@@ -1,0 +1,392 @@
+env: "develop"
+http:
+  bindAddress: ":8080"
+  mode: debug #(debug,release,test)
+  prefix: /arbitrum
+grpc:
+  host: 0.0.0.0
+  port: 10443
+common:
+  chainID: 42161
+  dataFolder: internal/pkg/data/chain/arbitrum
+  publicRPC: "https://arb1.arbitrum.io/rpc"
+  rpcs:
+    - "https://arbitrum.kyberengineering.io"
+  address:
+    # multicall: '0x80c7dd17b01855a6d2347444a0fcc36136a314de'
+    multicall: '0xBF69a56D35B8d6f5A8e0e96B245a72F735751e54'
+    gasToken: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1'
+    executorAddress: '0x6F82A3C19dc0f8D745b72AA263D8B37a1fF18946'
+    routerAddress: '0x617Dee16B86534a5d792A4d7A62FB491B544111E'
+gas:
+  gasPriceOracleContract: "0x000000000000000000000000000000000000006c"
+log:
+  sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
+  consoleLevel: info
+  enableConsole: true
+  enableJSONFormat: false
+enableDexes: &enableDexes
+  - kyberswap
+  - kyberswap-static
+  - kyberswapv2
+  - uniswapv3
+  - sushiswap
+  - curve
+  - balancer
+  - swapr
+  - synapse
+#   - dfyn
+  - saddle
+  - dodo
+  - gmx
+  - fraxswap
+  - camelot
+  - kyberswap-limit-order
+dexes:
+  - id: camelot
+    handler: camelot
+    properties:
+      factoryAddress: 0x6EcCab422D763aC031210895C81787E87B43A652
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 10
+      updateReserveBulk: 50
+  - id: fraxswap
+    handler: fraxswap
+    properties:
+      factoryAddress: 0x8374A74A728f06bEa6B7259C68AA7BBB732bfeaD
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 10
+      updateReserveBulk: 10
+  - id: kyberswap
+    handler: dmm
+    properties:
+      factoryAddress: 0x51E8D106C646cA58Caf32A47812e95887C071a62
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswap-static
+    handler: dmm
+    properties:
+      factoryAddress: 0x1c758aF0688502e49140230F6b0EBd376d429be5
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswapv2
+    handler: promm
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-arbitrum-one"
+      factoryAddress: 0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      reserveJobInterval: 100ms
+      updateReserveBulk: 10
+      concurrentBatches: 20
+  - id: uniswapv3
+    handler: uniswapv3
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/piavgh/uniswap-v3-arbitrum"
+      factoryAddress: 0x1F98431c8aD98523631AE4a59f267346ea31F984
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      reserveJobInterval: 100ms
+      updateReserveBulk: 10
+      concurrentBatches: 100
+  - id: sushiswap
+    handler: uniswap
+    properties:
+      factoryAddress: 0xc35dadb65012ec5796536bd9864ed8773abc74c4
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: curve
+    handler: curve
+    properties:
+      poolPath: "curve/pools.json"
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 500
+  - id: balancer
+    handler: balancer
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-arbitrum-v2"
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: swapr
+    handler: uniswap
+    properties:
+      factoryAddress: 0x359f20ad0f42d75a5077e65f30274cabe6f4f01a
+      swapFee: 0.0025
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  # - id: dfyn
+  #   handler: uniswap
+  #   properties:
+  #       factoryAddress: 0xa102072a4c07f06ec3b4900fdc4c7b80b6c57429
+  #       swapFee: 0.003
+  #       reserveJobInterval: 2
+  #       newPoolJobIntervalSec: 10
+  #       newPoolLimit: 1000
+  #       updateReserveBulk: 200
+  - id: saddle
+    handler: synapse
+    properties:
+      poolPath: "saddle/pools.json"
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      updateReserveBulk: 200
+  - id: synapse
+    handler: synapse
+    properties:
+      poolPath: "synapse/pools.json"
+      reserveJobInterval: 1s
+      newPoolJobIntervalSec: 500
+      updateReserveBulk: 200
+  - id: dodo
+    handler: dodo
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/dodoex/dodoex-v2-arbitrum"
+      dodoV1SellHelper: "0xa5f36e822540efd11fcd77ec46626b916b217c3e"
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      reserveJobInterval: 2s
+      updateReserveBulk: 50
+  - id: gmx
+    handler: gmx
+    properties:
+      addressesPath: "gmx/addresses.json"
+      reserveJobInterval: 2s
+  - id: kyberswap-limit-order
+    handler: limit-order
+    properties:
+      limitOrderHTTPUrl: https://limit-order.dev.kyberengineering.io
+      reserveJobInterval: 3s
+      newPoolJobIntervalSec: 10
+      predefineSupportedPairs:
+epsilon: 0.005
+cachePoints:
+  - amount: 1
+    ttl: 30
+  - amount: 2
+    ttl: 30
+  - amount: 5
+    ttl: 30
+  - amount: 10
+    ttl: 30
+  - amount: 11
+    ttl: 30
+  - amount: 12
+    ttl: 30
+  - amount: 15
+    ttl: 30
+  - amount: 20
+  - amount: 21
+    ttl: 30
+  - amount: 22
+    ttl: 30
+  - amount: 25
+    ttl: 30
+  - amount: 30
+    ttl: 30
+  - amount: 33
+    ttl: 30
+  - amount: 35
+    ttl: 30
+  - amount: 40
+    ttl: 30
+  - amount: 44
+    ttl: 30
+  - amount: 45
+    ttl: 30
+  - amount: 50
+    ttl: 30
+  - amount: 55
+    ttl: 30
+  - amount: 60
+    ttl: 30
+  - amount: 66
+    ttl: 30
+  - amount: 70
+    ttl: 30
+  - amount: 77
+    ttl: 30
+  - amount: 80
+    ttl: 30
+  - amount: 88
+    ttl: 30
+  - amount: 90
+    ttl: 30
+  - amount: 99
+    ttl: 30
+  - amount: 100
+    ttl: 30
+  - amount: 500
+    ttl: 30
+  - amount: 1000
+    ttl: 30
+  - amount: 10000
+    ttl: 30
+  - amount: 100000
+    ttl: 30
+cacheRanges:
+  - fromUSD: 0
+    toUSD: 100
+    ttl: 15
+  - fromUSD: 101
+    toUSD: 500
+    ttl: 15
+  - fromUSD: 500
+    toUSD: 1000
+    ttl: 15
+  - fromUSD: 1001
+    toUSD: 2000
+    ttl: 30
+  - fromUSD: 2000
+    toUSD: 5000
+    ttl: 30
+  - fromUSD: 5000
+    toUSD: 10000
+    ttl: 30
+  - fromUSD: 10000
+    toUSD: -1
+    ttl: 30
+redis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+  readTimeout: 3
+  writeTimeout: 3
+readOnlyRedis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+redisSentinel:
+  masterName: ""
+  sentinelPort: 26379
+  dbNumber: 0
+  password: ""
+  prefix: ""
+  readTimeout: 3
+  writeTimeout: 3
+ddAgentHost: ""
+featureFlags:
+  useOptimizedSPFA: false
+enableGRPC: false
+keyPair:
+  storageFilePath: ""
+  keyIDForSealingData:
+    clientData: "1"
+tokenCatalog:
+  httpUrl: ""
+reloadConfig:
+  httpUrl: ""
+  interval: 10s
+  serviceName: "aggregator"
+  chainID: 42161
+whitelistedTokens: &whitelistedTokens
+  - name: "Wrapped Ether"
+    symbol: "WETH"
+    address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+    decimals: 18
+    cgkId: "ethereum"
+  - name: "Tether USD"
+    symbol: "USDT"
+    address: "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"
+    decimals: 6
+    cgkId: "tether"
+  - name: "Dai Stablecoin"
+    symbol: "DAI"
+    address: "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1"
+    decimals: 18
+    cgkId: "dai"
+  - name: "USD Coin"
+    symbol: "USDC"
+    address: "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8"
+    decimals: 6
+    cgkId: "usd-coin"
+  - name: "Wrapped BTC"
+    symbol: "WBTC"
+    address: "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f"
+    decimals: 8
+    cgkId: "bitcoin"
+  - name: "Magic Internet Money"
+    symbol: "MIM"
+    address: "0xFEa7a6a0B346362BF88A9e4A88416B77a57D6c2A"
+    decimals: 18
+    cgkId: "magic-internet-money"
+  - name: "Wrapped liquid staked Ether 2.0"
+    symbol: "WSTETH"
+    address: "0x5979D7b546E38E414F7E9822514be443A4800529"
+    decimals: 18
+    cgkId: "wrapped-steth"
+  - name: "Kyber Network Crystal"
+    symbol: "KNC"
+    address: "0xe4dddfe67e7164b0fe14e218d80dc4c08edc01cb"
+    decimals: 18
+    cgkId: "kyber-network-crystal"
+secretKey:
+metrics:
+  host:
+  port: 8125
+  namespace: "kybernetwork."
+blacklistedPools:
+encoder:
+  chainId: 42161
+  executorAddress: 0xf9A747eC426F8fFD0D550f9f867604077FFf15F6
+  routerAddress: 0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D
+  kyberLOAddress: 0x9deCa89E0934a5E0F187a1865299a9a586550864
+useCase:
+  poolFactory:
+  cacheRoute:
+  getRoutes:
+    chainId: 42161
+    gasTokenAddress: 0x82af49447d8a07e3bd95bd0d56f35241523fbab1
+    routerAddress: 0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D
+    epsilon: 0.005
+    baseGas: 125000
+    getBestPoolsOptions:
+      directPoolsCount: 100
+      whitelistPoolsCount: 500
+      tokenInPoolsCount: 200
+      tokenOutPoolCount: 200
+      amplifiedTvlDirectPoolsCount: 50
+      amplifiedTvlWhitelistPoolsCount: 200
+      amplifiedTvlTokenInPoolsCount: 100
+      amplifiedTvlTokenOutPoolCount: 100
+    spfaFinderOptions:
+      maxHops: 3
+      minPartUsd: 500
+    enabledDexes: *enableDexes
+    whitelistedTokens: *whitelistedTokens
+    blacklistedPools:
+    featureFlags:
+      useOptimizedSPFA: false
+api:
+  defaultTTL: 1s
+  getRoutes:
+    isCacheEnabled: true
+    ttl: 1s
+    isTimeoutEnabled: true
+    timeout: 10s
+  buildRoute:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getPools:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getTokens:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+

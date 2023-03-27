@@ -1,0 +1,333 @@
+env: "develop"
+http:
+  bindAddress: ":8080"
+  mode: release #(debug,release,test)
+  prefix: /cronos
+grpc:
+  host: 0.0.0.0
+  port: 10443
+common:
+  chainID: 25
+  dataFolder: internal/pkg/data/chain/cronos
+  publicRPC: "https://evm-cronos.crypto.org"
+  rpcs:
+    - "https://cronos.knstats.com/v1/mainnet/geth?appId=prod-dmm-aggregator-backend"
+    # - "https://evm-cronos.crypto.org"
+  address:
+    multicall: '0x5e954f5972EC6BFc7dECd75779F10d848230345F'
+    gasToken: '0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23'
+    executorAddress: '0x41684b361557E9282E0373CA51260D9331e518C9'
+    routerAddress: '0x00555513Acf282B42882420E5e5bA87b44D8fA6E'
+log:
+  sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
+  consoleLevel: info
+  enableConsole: true
+  enableJSONFormat: true
+enableDexes: &enableDexes
+  - kyberswap
+  - kyberswap-static
+  - kyberswapv2
+  - vvs
+  - cronaswap
+  - crodex
+  - mmf
+  # - kryptodex
+  - empiredex
+  - photonswap
+  - kyberswap-limit-order
+dexes:
+  - id: kyberswap
+    handler: dmm
+    properties:
+      subgraphAPI: "https://cronos-subgraph.kyberswap.com/subgraphs/name/kyberswap/kyberswap-cronos"
+      factoryAddress: 0xD9bfE9979e9CA4b2fe84bA5d4Cf963bBcB376974
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswap-static
+    handler: dmm
+    properties:
+      factoryAddress: 0x1c758aF0688502e49140230F6b0EBd376d429be5
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswapv2
+    handler: promm
+    properties:
+      subgraphAPI: "https://cronos-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-elastic-cronos"
+      factoryAddress: 0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      reserveJobInterval: 2s
+      updateReserveBulk: 200
+  - id: vvs
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://graph.vvs.finance/exchange"
+      factoryAddress: 0x3b44b2a187a7b3824131f8db5a74194d0a42fc15
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      updateReserveBulk: 500
+  - id: cronaswap
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://graph.cronaswap.org/subgraphs/name/cronaswap/exchange"
+      factoryAddress: 0x73A48f8f521EB31c55c0e1274dB0898dE599Cb11
+      swapFee: 0.0025
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      updateReserveBulk: 500
+  - id: crodex
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://infoapi.crodex.app/subgraphs/name/crograph2/crodex2"
+      factoryAddress: 0xe9c29cB475C0ADe80bE0319B74AD112F1e80058F
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      updateReserveBulk: 500
+  - id: mmf
+    handler: uniswap
+    properties:
+      factoryAddress: 0xd590cc180601aecd6eeadd9b7f2b7611519544f4
+      swapFee: 0.0017
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      updateReserveBulk: 500
+  - id: kryptodex
+    handler: uniswap
+    properties:
+      factoryAddress: 0x33c04bd4ae93336bbd1024d709f4a313cc858ebe
+      swapFee: 0.002
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      updateReserveBulk: 500
+  - id: empiredex
+    handler: uniswap
+    properties:
+      factoryAddress: 0x06530550a48f990360dfd642d2132354a144f31d
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      updateReserveBulk: 500
+  - id: photonswap
+    handler: uniswap
+    properties:
+      factoryAddress: 0x462c98cae5affeed576c98a55daa922604e2d875
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      updateReserveBulk: 500
+epsilon: 0.005
+cachePoints:
+  - amount: 1
+    ttl: 30
+  - amount: 2
+    ttl: 10
+  - amount: 5
+    ttl: 10
+  - amount: 10
+    ttl: 10
+  - amount: 11
+    ttl: 30
+  - amount: 15
+    ttl: 10
+  - amount: 20
+    ttl: 10
+  - amount: 22
+    ttl: 30
+  - amount: 25
+    ttl: 10
+  - amount: 30
+    ttl: 10
+  - amount: 33
+    ttl: 30
+  - amount: 35
+    ttl: 10
+  - amount: 40
+    ttl: 10
+  - amount: 44
+    ttl: 30
+  - amount: 45
+    ttl: 10
+  - amount: 50
+    ttl: 10
+  - amount: 55
+    ttl: 30
+  - amount: 60
+    ttl: 10
+  - amount: 66
+    ttl: 30
+  - amount: 70
+    ttl: 10
+  - amount: 77
+    ttl: 30
+  - amount: 80
+    ttl: 10
+  - amount: 88
+    ttl: 30
+  - amount: 90
+    ttl: 10
+  - amount: 99
+    ttl: 30
+  - amount: 100
+    ttl: 30
+  - amount: 500
+    ttl: 10
+  - amount: 1000
+    ttl: 30
+  - amount: 10000
+    ttl: 30
+  - amount: 100000
+    ttl: 30
+cacheRanges:
+  - fromUSD: 0
+    toUSD: 100
+    ttl: 10
+  - fromUSD: 101
+    toUSD: 500
+    ttl: 10
+  - fromUSD: 500
+    toUSD: 1000
+    ttl: 10
+  - fromUSD: 1001
+    toUSD: 2000
+    ttl: 15
+  - fromUSD: 2000
+    toUSD: 5000
+    ttl: 15
+  - fromUSD: 5000
+    toUSD: 10000
+    ttl: 15
+  - fromUSD: 10000
+    toUSD: -1
+    ttl: 15
+redis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+  readTimeout: 3
+  writeTimeout: 3
+readOnlyRedis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+redisSentinel:
+  masterName: ""
+  sentinelPort: 26379
+  dbNumber: 0
+  password: ""
+  prefix: ""
+  readTimeout: 3
+  writeTimeout: 3
+ddAgentHost: ""
+featureFlags:
+  useOptimizedSPFA: false
+enableGRPC: false
+keyPair:
+  storageFilePath: ""
+  keyIDForSealingData:
+    clientData: "1"
+tokenCatalog:
+  httpUrl: ""
+reloadConfig:
+  httpUrl: ""
+  interval: 10s
+  serviceName: "aggregator"
+  chainID: 25
+whitelistedTokens:
+  - name: "Wrapped CRO"
+    symbol: "WCRO"
+    address: "0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23"
+    decimals: 18
+    cgkId: "crypto-com-coin"
+  - name: "Wrapped Ether"
+    symbol: "WETH"
+    address: "0xe44Fd7fCb2b1581822D0c862B68222998a0c299a"
+    decimals: 18
+    cgkId: "ethereum"
+  - name: "Tether USD"
+    symbol: "USDT"
+    address: "0x66e428c3f67a68878562e79A0234c1F83c208770"
+    decimals: 6
+    cgkId: "tether"
+  - name: "Dai Stablecoin"
+    symbol: "DAI"
+    address: "0xF2001B145b43032AAF5Ee2884e456CCd805F677D"
+    decimals: 18
+    cgkId: "dai"
+  - name: "USD Coin"
+    symbol: "USDC"
+    address: "0xc21223249CA28397B4B6541dfFaEcC539BfF0c59"
+    decimals: 6
+    cgkId: "usd-coin"
+  - name: "Wrapped BTC"
+    symbol: "WBTC"
+    address: "0x062E66477Faf219F25D27dCED647BF57C3107d52"
+    decimals: 8
+    cgkId: "bitcoin"
+secretKey:
+metrics:
+  host:
+  port: 8125
+  namespace: "kybernetwork."
+blacklistedPools:
+encoder:
+  chainId: 25
+  executorAddress:
+  routerAddress:
+useCase:
+  poolFactory:
+  cacheRoute:
+  getRoutes:
+    chainId: 25
+    gasTokenAddress: 0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23
+    routerAddress:
+    epsilon: 0.005
+    baseGas: 125000
+    getBestPoolsOptions:
+      directPoolsCount: 100
+      whitelistPoolsCount: 500
+      tokenInPoolsCount: 200
+      tokenOutPoolCount: 200
+      amplifiedTvlDirectPoolsCount: 50
+      amplifiedTvlWhitelistPoolsCount: 200
+      amplifiedTvlTokenInPoolsCount: 100
+      amplifiedTvlTokenOutPoolCount: 100
+    spfaFinderOptions:
+      maxHops: 3
+      minPartUsd: 500
+    enabledDexes: *enableDexes
+    blacklistedPools:
+    featureFlags:
+      useOptimizedSPFA: false
+api:
+  defaultTTL: 1s
+  getRoutes:
+    isCacheEnabled: true
+    ttl: 5.5s
+    isTimeoutEnabled: true
+    timeout: 10s
+  buildRoute:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getPools:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getTokens:
+    isCacheEnabled: false
+    isTimeoutEnabled: false

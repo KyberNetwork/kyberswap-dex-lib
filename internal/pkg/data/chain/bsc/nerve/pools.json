@@ -1,0 +1,48 @@
+[
+  {
+    "id": "0x1b3771a66ee31180906972580ade9b81afc5fcdc",
+    "name": "Stable 3Pool",
+    "tokens": [
+      {
+        "address": "0xe9e7cea3dedca5984780bafc599bd69add087d56",
+        "precision": "1"
+      },
+      {
+        "address": "0x55d398326f99059ff775485246999027b3197955",
+        "precision": "1"
+      },
+      {
+        "address": "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
+        "precision": "1"
+      }
+    ]
+  },
+  {
+    "id": "0x6c341938bb75dde823faafe7f446925c66e6270c",
+    "name": "BTCB/anyBTC Pool",
+    "tokens": [
+      {
+        "address": "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c",
+        "precision": "1"
+      },
+      {
+        "address": "0x54261774905f3e6e9718f2abb10ed6555cae308a",
+        "precision": "10000000000"
+      }
+    ]
+  },
+  {
+    "id": "0x146cd24dcc9f4eb224dfd010c5bf2b0d25afa9c0",
+    "name": "ETH/anyETH Pool",
+    "tokens": [
+      {
+        "address": "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
+        "precision": "1"
+      },
+      {
+        "address": "0x6f817a0ce8f7640add3bc0c1c2298635043c2423",
+        "precision": "1"
+      }
+    ]
+  }
+]

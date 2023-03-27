@@ -1,0 +1,322 @@
+env: "develop"
+http:
+  bindAddress: ":8080"
+  mode: release #(debug,release,test)
+  prefix: /aurora
+grpc:
+  host: 0.0.0.0
+  port: 10443
+common:
+  chainID: 1313161554
+  dataFolder: internal/pkg/data/chain/aurora
+  publicRPC: "https://mainnet.aurora.dev"
+  rpcs:
+    # - "https://aurora.kyberswap.com/v1/mainnet/geth?appId=test-daniel"
+    - "https://mainnet.aurora.dev"
+  address:
+    multicall: '0xBF69a56D35B8d6f5A8e0e96B245a72F735751e54'
+    gasToken: '0xc9bdeed33cd01541e1eed10f90519d2c06fe3feb'
+    executorAddress: '0x41684b361557E9282E0373CA51260D9331e518C9'
+    routerAddress: '0x00555513Acf282B42882420E5e5bA87b44D8fA6E'
+log:
+  sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
+  consoleLevel: info
+  enableConsole: true
+  enableJSONFormat: true
+enableDexes: &enableDexes
+  - kyberswap
+  - kyberswap-static
+#  - kyberswapv2
+  - trisolaris
+  - wannaswap
+  - nearpad
+  # - rose
+  - dodo
+  - curve
+dexes:
+  - id: kyberswap
+    handler: dmm
+    properties:
+      factoryAddress: 0x39a8809fbbf22ccaeac450eaf559c076843eb910
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswap-static
+    handler: dmm
+    properties:
+      factoryAddress: 0x1c758aF0688502e49140230F6b0EBd376d429be5
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+#  - id: kyberswapv2
+#    handler: promm
+#    properties:
+#      subgraphAPI: "https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-aurora"
+#      factoryAddress: 0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a
+#      newPoolJobIntervalSec: 10
+#      newPoolLimit: 3000
+#      reserveJobInterval: 2s
+#      updateReserveBulk: 500
+  - id: trisolaris
+    handler: uniswap
+    properties:
+      factoryAddress: 0xc66F594268041dB60507F00703b152492fb176E7
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+  - id: wannaswap
+    handler: uniswap
+    properties:
+      factoryAddress: 0x7928D4FeA7b2c90C732c10aFF59cf403f0C38246
+      swapFee: 0.002
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      updateReserveBulk: 500
+  - id: nearpad
+    handler: uniswap
+    properties:
+      factoryAddress: 0x34484b4E416f5d4B45D4Add0B6eF6Ca08FcED8f1
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      updateReserveBulk: 500
+#  - id: rose
+#    handler: curve
+#    properties:
+#      poolPath: "rose/pools.json"
+#      reserveJobInterval: 2s
+#      newPoolJobIntervalSec: 500
+  - id: dodo
+    handler: dodo
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/dodoex/dodoex-v2-aurora"
+      dodoV1SellHelper: "0x72d220ce168c4f361dd4dee5d826a01ad8598f6c"
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      reserveJobInterval: 2s
+      updateReserveBulk: 50
+  - id: curve
+    handler: curve
+    properties:
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 500
+epsilon: 0.005
+cachePoints:
+  - amount: 1
+    ttl: 30
+  - amount: 2
+    ttl: 10
+  - amount: 5
+    ttl: 10
+  - amount: 10
+    ttl: 10
+  - amount: 11
+    ttl: 30
+  - amount: 15
+    ttl: 10
+  - amount: 20
+    ttl: 10
+  - amount: 22
+    ttl: 30
+  - amount: 25
+    ttl: 10
+  - amount: 30
+    ttl: 10
+  - amount: 33
+    ttl: 30
+  - amount: 35
+    ttl: 10
+  - amount: 40
+    ttl: 10
+  - amount: 44
+    ttl: 30
+  - amount: 45
+    ttl: 10
+  - amount: 50
+    ttl: 10
+  - amount: 55
+    ttl: 30
+  - amount: 60
+    ttl: 10
+  - amount: 66
+    ttl: 30
+  - amount: 70
+    ttl: 10
+  - amount: 77
+    ttl: 30
+  - amount: 80
+    ttl: 10
+  - amount: 88
+    ttl: 30
+  - amount: 90
+    ttl: 10
+  - amount: 99
+    ttl: 30
+  - amount: 100
+    ttl: 30
+  - amount: 500
+    ttl: 10
+  - amount: 1000
+    ttl: 30
+  - amount: 10000
+    ttl: 30
+  - amount: 100000
+    ttl: 30
+cacheRanges:
+  - fromUSD: 0
+    toUSD: 100
+    ttl: 10
+  - fromUSD: 101
+    toUSD: 500
+    ttl: 10
+  - fromUSD: 500
+    toUSD: 1000
+    ttl: 10
+  - fromUSD: 1001
+    toUSD: 2000
+    ttl: 15
+  - fromUSD: 2000
+    toUSD: 5000
+    ttl: 15
+  - fromUSD: 5000
+    toUSD: 10000
+    ttl: 15
+  - fromUSD: 10000
+    toUSD: -1
+    ttl: 15
+redis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+  readTimeout: 3
+  writeTimeout: 3
+readOnlyRedis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+redisSentinel:
+  masterName: ""
+  sentinelPort: 26379
+  dbNumber: 0
+  password: ""
+  prefix: ""
+  readTimeout: 3
+  writeTimeout: 3
+ddAgentHost: ""
+featureFlags:
+  useOptimizedSPFA: false
+enableGRPC: false
+keyPair:
+  storageFilePath: ""
+  keyIDForSealingData:
+    clientData: "1"
+tokenCatalog:
+  httpUrl: ""
+reloadConfig:
+  httpUrl: ""
+  interval: 10s
+  serviceName: "aggregator"
+  chainID: 1313161554
+whitelistedTokens: &whitelistedTokens
+  - name: "Aurora"
+    symbol: "AURORA"
+    address: "0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79"
+    decimals: 18
+    cgkId: "aurora"
+  - name: "Near"
+    symbol: "NEAR"
+    address: "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d"
+    decimals: 24
+    cgkId: "near"
+  - name: "Wrapped Ether"
+    symbol: "WETH"
+    address: "0xC9BdeEd33CD01541e1eeD10f90519d2C06Fe3feB"
+    decimals: 18
+    cgkId: "ethereum"
+  - name: "Tether USD"
+    symbol: "USDT"
+    address: "0x4988a896b1227218e4A686fdE5EabdcAbd91571f"
+    decimals: 6
+    cgkId: "tether"
+  - name: "Dai Stablecoin"
+    symbol: "DAI"
+    address: "0xe3520349F477A5F6EB06107066048508498A291b"
+    decimals: 18
+    cgkId: "dai"
+  - name: "USD Coin"
+    symbol: "USDC"
+    address: "0xB12BFcA5A55806AaF64E99521918A4bf0fC40802"
+    decimals: 6
+    cgkId: "usd-coin"
+  - name: "Wrapped BTC"
+    symbol: "WBTC"
+    address: "0xF4eB217Ba2454613b15dBdea6e5f22276410e89e"
+    decimals: 8
+    cgkId: "bitcoin"
+  - name: "NearPad"
+    symbol: "PAD"
+    address: "0x885f8CF6E45bdd3fdcDc644efdcd0AC93880c781"
+    decimals: 18
+    cgkId: "nearpad"
+secretKey:
+metrics:
+  host:
+  port: 8125
+  namespace: "kybernetwork."
+blacklistedPools:
+encoder:
+  chainId: 1313161554
+  executorAddress:
+  routerAddress:
+useCase:
+  poolFactory:
+  cacheRoute:
+  getRoutes:
+    chainId: 1313161554
+    gasTokenAddress: 0xc9bdeed33cd01541e1eed10f90519d2c06fe3feb
+    routerAddress:
+    epsilon: 0.005
+    baseGas: 125000
+    getBestPoolsOptions:
+      directPoolsCount: 100
+      whitelistPoolsCount: 500
+      tokenInPoolsCount: 200
+      tokenOutPoolCount: 200
+      amplifiedTvlDirectPoolsCount: 50
+      amplifiedTvlWhitelistPoolsCount: 200
+      amplifiedTvlTokenInPoolsCount: 100
+      amplifiedTvlTokenOutPoolCount: 100
+    spfaFinderOptions:
+      maxHops: 3
+      minPartUsd: 500
+    enabledDexes: *enableDexes
+    whitelistedTokens: *whitelistedTokens
+    blacklistedPools:
+    featureFlags:
+      useOptimizedSPFA: false
+api:
+  defaultTTL: 1s
+  getRoutes:
+    isCacheEnabled: true
+    ttl: 2s
+    isTimeoutEnabled: true
+    timeout: 10s
+  buildRoute:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getPools:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getTokens:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+

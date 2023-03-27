@@ -1,0 +1,366 @@
+env: "develop"
+http:
+  bindAddress: ":8080"
+  mode: release #(debug,release,test)
+  prefix: /bttc
+grpc:
+  host: 0.0.0.0
+  port: 10443
+common:
+  chainID: 199
+  dataFolder: internal/pkg/data/chain/bttc
+  publicRPC: "https://rpc.bt.io/"
+  rpcs:
+    - "https://rpc.bt.io/"
+  address:
+    multicall: '0xaf0936b1dc49b5c7444ca838a5f32080fc043add'
+    gasToken: '0x8d193c6efa90bcff940a98785d1ce9d093d3dc8a'
+    executorAddress: '0x41684b361557E9282E0373CA51260D9331e518C9'
+    routerAddress: '0x00555513Acf282B42882420E5e5bA87b44D8fA6E'
+log:
+  sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
+  consoleLevel: info
+  enableConsole: true
+  enableJSONFormat: true
+enableDexes: &enableDexes
+  - kyberswap
+  - kyberswap-static
+  - kyberswapv2
+dexes:
+  - id: kyberswap
+    handler: dmm
+    properties:
+      factoryAddress: 0xD9bfE9979e9CA4b2fe84bA5d4Cf963bBcB376974
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswap-static
+    handler: dmm
+    properties:
+      factoryAddress: 0x1c758aF0688502e49140230F6b0EBd376d429be5
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswapv2
+    handler: promm
+    properties:
+      subgraphAPI: "https://bttc-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-elastic-bttc"
+      factoryAddress: 0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      reserveJobInterval: 2s
+      updateReserveBulk: 200
+epsilon: 0.005
+cachePoints:
+  - amount: 1
+    ttl: 30
+  - amount: 2
+    ttl: 30
+  - amount: 5
+    ttl: 30
+  - amount: 10
+    ttl: 30
+  - amount: 11
+    ttl: 30
+  - amount: 12
+    ttl: 30
+  - amount: 15
+    ttl: 30
+  - amount: 20
+  - amount: 21
+    ttl: 30
+  - amount: 22
+    ttl: 30
+  - amount: 25
+    ttl: 30
+  - amount: 30
+    ttl: 30
+  - amount: 33
+    ttl: 30
+  - amount: 35
+    ttl: 30
+  - amount: 40
+    ttl: 30
+  - amount: 44
+    ttl: 30
+  - amount: 45
+    ttl: 30
+  - amount: 50
+    ttl: 30
+  - amount: 55
+    ttl: 30
+  - amount: 60
+    ttl: 30
+  - amount: 66
+    ttl: 30
+  - amount: 70
+    ttl: 30
+  - amount: 77
+    ttl: 30
+  - amount: 80
+    ttl: 30
+  - amount: 88
+    ttl: 30
+  - amount: 90
+    ttl: 30
+  - amount: 99
+    ttl: 30
+  - amount: 100
+    ttl: 30
+  - amount: 500
+    ttl: 30
+  - amount: 1000
+    ttl: 30
+  - amount: 10000
+    ttl: 30
+  - amount: 100000
+    ttl: 30
+cacheRanges:
+  - fromUSD: 0
+    toUSD: 100
+    ttl: 15
+  - fromUSD: 101
+    toUSD: 500
+    ttl: 15
+  - fromUSD: 500
+    toUSD: 1000
+    ttl: 15
+  - fromUSD: 1001
+    toUSD: 2000
+    ttl: 30
+  - fromUSD: 2000
+    toUSD: 5000
+    ttl: 30
+  - fromUSD: 5000
+    toUSD: 10000
+    ttl: 30
+  - fromUSD: 10000
+    toUSD: -1
+    ttl: 30
+redis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+  readTimeout: 3
+  writeTimeout: 3
+readOnlyRedis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+redisSentinel:
+  masterName: ""
+  sentinelPort: 26379
+  dbNumber: 0
+  password: ""
+  prefix: ""
+  readTimeout: 3
+  writeTimeout: 3
+ddAgentHost: ""
+featureFlags:
+  useOptimizedSPFA: false
+enableGRPC: false
+keyPair:
+  storageFilePath: ""
+  keyIDForSealingData:
+    clientData: "1"
+tokenCatalog:
+  httpUrl: ""
+reloadConfig:
+  httpUrl: ""
+  interval: 10s
+  serviceName: "aggregator"
+  chainID: 199
+whitelistedTokens: &whitelistedTokens
+  - name: "Wrapped BTT"
+    symbol: "WBTT"
+    address: "0x8d193c6efa90bcff940a98785d1ce9d093d3dc8a"
+    decimals: 18
+    cgkId: "bittorrent"
+  - name: "Wrapped BTT"
+    symbol: "WBTT_t"
+    address: "0x0000000000000000000000000000000000001010"
+    decimals: 18
+    cgkId: "bittorrent"
+  - name: "Wrapped BTT"
+    symbol: "WBTT_b"
+    address: "0xcbb9edf6775e39748ea6483a7fa6a385cd7e9a4e"
+    decimals: 18
+    cgkId: "bittorrent"
+  - name: "Wrapped BTT"
+    symbol: "WBTT_e"
+    address: "0x65676055e58b02e61272cedec6e5c6d56badfb86"
+    decimals: 18
+    cgkId: "bittorrent"
+  - name: "Ethereum Token_BSC"
+    symbol: "ETH_b"
+    address: "0xa20dfb01dca223c0e52b0d4991d4afa7e08e3a50"
+    decimals: 18
+    cgkId: "ethereum"
+  - name: "ETH"
+    symbol: "ETH"
+    address: "0x1249c65afb11d179ffb3ce7d4eedd1d9b98ad006"
+    decimals: 18
+    cgkId: "ethereum"
+  - name: "BNB"
+    symbol: "BNB_b"
+    address: "0x185a4091027e2db459a2433f85f894dc3013aeb5"
+    decimals: 18
+    cgkId: "bnb"
+  - name: "TRON"
+    symbol: "TRX_t"
+    address: "0xedf53026aea60f8f75fca25f8830b7e2d6200662"
+    decimals: 6
+    cgkId: "tron"
+  - name: "TRON"
+    symbol: "TRX_b"
+    address: "0xdc3e2d18b6b1b5db09ecdb7f6c8b8fa01564236f"
+    decimals: 6
+    cgkId: "tron"
+  - name: "TRON"
+    symbol: "TRX_e"
+    address: "0x5bae3d53484848a4a15607b2490d51b484bf42dc"
+    decimals: 6
+    cgkId: "tron"
+  - name: "Tether USD"
+    symbol: "USDT_b"
+    address: "0x9B5F27f6ea9bBD753ce3793a07CbA3C74644330d"
+    decimals: 18
+    cgkId: "tether"
+  - name: "Tether USD"
+    symbol: "USDT_e"
+    address: "0xe887512ab8bc60bcc9224e1c3b5be68e26048b8b"
+    decimals: 6
+    cgkId: "tether"
+  - name: "Tether USD"
+    symbol: "USDT_t"
+    address: "0xdb28719f7f938507dbfe4f0eae55668903d34a15"
+    decimals: 6
+    cgkId: "tether"
+  - name: "True USD"
+    symbol: "TUSD_b"
+    address: "0xa2611f4488c92e1a91eb4d2a8d30110eba9925b5"
+    decimals: 18
+    cgkId: "true-usd"
+  - name: "True USD"
+    symbol: "TUSD_e"
+    address: "0xe7424ab0e1828d83ad402da5644142e55598c782"
+    decimals: 18
+    cgkId: "true-usd"
+  - name: "True USD"
+    symbol: "TUSD_t"
+    address: "0x04b0f8bd78d07be6d27209163a5174b4b4ec0fbd"
+    decimals: 18
+    cgkId: "true-usd"
+  - name: "Dai Stablecoin"
+    symbol: "DAI_e"
+    address: "0xe7dc549ae8db61bde71f22097becc8db542ca100"
+    decimals: 18
+    cgkId: "dai"
+  - name: "USD Coin"
+    symbol: "USDC_b"
+    address: "0xca424b845497f7204d9301bd13ff87c0e2e86fcf"
+    decimals: 18
+    cgkId: "usd-coin"
+  - name: "USD Coin"
+    symbol: "USDC_e"
+    address: "0xae17940943ba9440540940db0f1877f101d39e8b"
+    decimals: 6
+    cgkId: "usd-coin"
+  - name: "USD Coin"
+    symbol: "USDC_t"
+    address: "0x935faa2fcec6ab81265b301a30467bbc804b43d3"
+    decimals: 6
+    cgkId: "usd-coin"
+  - name: "JUST Stablecoin"
+    symbol: "USDJ_t"
+    address: "0xdd85d7bdd2b35a38f527f73bad1acb09b7a1e35c"
+    decimals: 18
+    cgkId: "just-stablecoin"
+  - name: "Binance USD"
+    symbol: "BUSD_b"
+    address: "0xde47772ac041a4ccf3c865632131d1093e51c02d"
+    decimals: 18
+    cgkId: "binance-usd"
+  - name: "Binance USD"
+    symbol: "BUSD_e"
+    address: "0x6e626c62d54554737697e633ef9578ac3c4ba4ea"
+    decimals: 18
+    cgkId: "binance-usd"
+  - name: "TerraUSD"
+    symbol: "UST_e"
+    address: "0xeb7121ea70e95c7141c58f15e79f89c5cfb9acbc"
+    decimals: 18
+    cgkId: "terra-usd"
+  - name: "BTC"
+    symbol: "BTC_b"
+    address: "0x1a7019909b10cdd2d8b0034293ad729f1c1f604e"
+    decimals: 18
+    cgkId: "bitcoin"
+  - name: "Kyber Network Crystal v2 - BSC"
+    symbol: "KNC_b"
+    address: "0x18fA72e0EE4C580a129b0CE5bD0694d716C7443E"
+    decimals: 18
+    cgkId: "kyber-network-crystal"
+  - name: "Kyber Network Crystal v2 - Ethereum"
+    symbol: "KNC_e"
+    address: "0xE467F79E9869757DD818DfB8535068120F6BcB97"
+    decimals: 18
+    cgkId: "kyber-network-crystal"
+secretKey:
+metrics:
+  host:
+  port: 8125
+  namespace: "kybernetwork."
+blacklistedPools:
+encoder:
+  chainId: 199
+  executorAddress:
+  routerAddress:
+useCase:
+  poolFactory:
+  cacheRoute:
+  getRoutes:
+    chainId: 199
+    gasTokenAddress: 0x8d193c6efa90bcff940a98785d1ce9d093d3dc8a
+    routerAddress:
+    epsilon: 0.005
+    baseGas: 125000
+    getBestPoolsOptions:
+      directPoolsCount: 100
+      whitelistPoolsCount: 500
+      tokenInPoolsCount: 200
+      tokenOutPoolCount: 200
+      amplifiedTvlDirectPoolsCount: 50
+      amplifiedTvlWhitelistPoolsCount: 200
+      amplifiedTvlTokenInPoolsCount: 100
+      amplifiedTvlTokenOutPoolCount: 100
+    spfaFinderOptions:
+      maxHops: 3
+      minPartUsd: 500
+    enabledDexes: *enableDexes
+    whitelistedTokens: *whitelistedTokens
+    blacklistedPools:
+    featureFlags:
+      useOptimizedSPFA: false
+api:
+  defaultTTL: 1s
+  getRoutes:
+    isCacheEnabled: true
+    ttl: 2s
+    isTimeoutEnabled: true
+    timeout: 10s
+  buildRoute:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getPools:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getTokens:
+    isCacheEnabled: false
+    isTimeoutEnabled: false

@@ -1,0 +1,12 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Integration test') {
+            when { changeRequest() }
+            steps {
+                build job: 'QA/Aggregator_Api_Find_Route/main'
+            }
+        }
+    }
+}

@@ -1,0 +1,242 @@
+package common
+
+import (
+	"context"
+	"math/big"
+	"sort"
+
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core"
+	poolPkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
+	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
+	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+)
+
+type nodeInfo struct {
+	tokenAmount    poolPkg.TokenAmount
+	totalGasAmount int64
+	poolsOnPath    []poolPkg.IPool
+	tokensOnPath   []entity.Token
+}
+
+// GenKthBestPaths Find several best paths from tokenIn to tokenOut
+// we represent graph node as pair (token, hops) because we want to handle negative cycles
+// edges are now from (X, hop) to (Y, hop + 1) => make the graph a DAG => no cycle
+//
+// Perform BFS from (tokenIn,0) to find the best path to token out
+// Because we are performing BFS and that only edges between (X, hop) -> (Y, hop+1) exist
+// => The order of traversal looks like: (, 0) ... (, 0) (, 1) ... (, 1) ... (, hop-1), ... (,hop-1), (,hop)... (, hop)
+//
+// For each pair (token, hop), we maintain maxPathsToGenerate best paths
+// => return the best maxPathsToGenerate paths of each length (from 1 -> maxHops) from tokenIn to tokenOut
+//
+// The maximum number of paths returned is maxPathsToGenerate * maxHops
+func GenKthBestPaths(
+	ctx context.Context,
+	input findroute.Input,
+	data findroute.FinderData,
+	tokenAmountIn poolPkg.TokenAmount,
+	tokenToPoolAddress map[string][]string,
+	hopsToTokenOut map[string]uint32,
+	maxHops, maxPathsToGenerate uint32,
+) ([]*core.Path, error) {
+	span, _ := tracer.StartSpanFromContext(ctx, "GenKthBestPaths")
+	defer span.Finish()
+
+	// Must be able to get info about tokenIn
+	if _, ok := data.TokenByAddress[input.TokenInAddress]; !ok {
+		return nil, findroute.ErrNoInfoTokenIn
+	}
+	// Must be able to get info about tokenOut
+	if _, ok := data.TokenByAddress[input.TokenOutAddress]; !ok {
+		return nil, findroute.ErrNoInfoTokenOut
+	}
+
+	if minHopFromTokenIn, ok := hopsToTokenOut[input.TokenInAddress]; !ok || minHopFromTokenIn > maxHops {
+		return nil, nil
+	}
+
+	// Perform BFS with layers, layer ith contains paths of length i.
+	// For each token in each layer, we store at most kth paths
+	var (
+		prevLayer = make(map[string][]*nodeInfo)
+		paths     []*core.Path
+	)
+
+	prevLayer[input.TokenInAddress] = []*nodeInfo{
+		{
+			tokenAmount:    tokenAmountIn,
+			totalGasAmount: 0,
+			tokensOnPath:   []entity.Token{data.TokenByAddress[input.TokenInAddress]},
+		},
+	}
+	for currentHop := uint32(0); currentHop < maxHops; currentHop++ {
+
+		nextLayer, err := genNextLayerOfPaths(input, data, tokenToPoolAddress, hopsToTokenOut, maxHops, currentHop, prevLayer)
+		if err != nil {
+			return nil, err
+		}
+
+		nextLayer = getKthBestPathsForEachToken(nextLayer, maxPathsToGenerate, input.GasInclude)
+
+		paths = append(paths, getKthPathAtTokenOut(input, data, tokenAmountIn, nextLayer[input.TokenOutAddress])...)
+
+		prevLayer = nextLayer
+	}
+
+	return paths, nil
+}
+
+func genNextLayerOfPaths(
+	input findroute.Input,
+	data findroute.FinderData,
+	tokenToPoolAddresses map[string][]string,
+	hopsToTokenOut map[string]uint32,
+	maxHops uint32,
+	currentHop uint32,
+	currentLayer map[string][]*nodeInfo,
+) (map[string][]*nodeInfo, error) {
+	nextLayer := make(map[string][]*nodeInfo)
+	for fromToken, pathsToToken := range currentLayer {
+		for _, fromNodeInfo := range pathsToToken {
+			// get possible path of length currentHop + 1 by traveling one edge/ appending a pool
+			nextNodeInfo, err := getNextLayerFromToken(input, data, tokenToPoolAddresses, hopsToTokenOut, maxHops, currentHop, fromToken, fromNodeInfo)
+			if err != nil {
+				return nil, err
+			}
+			for _, info := range nextNodeInfo {
+				nextLayer[info.tokenAmount.Token] = append(nextLayer[info.tokenAmount.Token], info)
+			}
+		}
+	}
+	return nextLayer, nil
+}
+
+func getNextLayerFromToken(
+	input findroute.Input,
+	data findroute.FinderData,
+	tokenToPoolAddresses map[string][]string,
+	hopsToTokenOut map[string]uint32,
+	maxHops uint32,
+	currentHop uint32,
+	fromTokenAddress string,
+	fromNodeInfo *nodeInfo,
+) ([]*nodeInfo, error) {
+	usedTokens := sets.NewString()
+	for _, tokenOnPath := range fromNodeInfo.tokensOnPath {
+		usedTokens.Insert(tokenOnPath.Address)
+	}
+
+	var (
+		nextNodeInfos []*nodeInfo
+		toTokenInfo   entity.Token
+		pool          poolPkg.IPool
+
+		remainingHopToTokenOut uint32
+		ok                     bool
+	)
+	for _, poolAddress := range tokenToPoolAddresses[fromTokenAddress] {
+		pool, ok = data.PoolByAddress[poolAddress]
+		if !ok {
+			return nil, findroute.ErrNoIPool
+		}
+		for _, toTokenAddress := range pool.CanSwapTo(fromTokenAddress) {
+			// must-have info for fromToken on path
+			toTokenInfo, ok = data.TokenByAddress[toTokenAddress]
+			if !ok {
+				continue
+			}
+			// completely avoid cycles
+			if usedTokens.Has(toTokenAddress) {
+				continue
+			}
+			if remainingHopToTokenOut, ok = hopsToTokenOut[toTokenAddress]; !ok || currentHop+1+remainingHopToTokenOut > maxHops {
+				continue
+			}
+			// it is ok for prices[tokenTo] to default to zero
+			toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGas(pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, toTokenAddress, data.PriceUSDByAddress[toTokenAddress], toTokenInfo.Decimals, input.GasPrice, input.GasTokenPriceUSD)
+			if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Int64() == 0 {
+				continue
+			}
+			// append pool and tokens to path
+			nextNodeInfos = append(nextNodeInfos, &nodeInfo{
+				tokenAmount:    *toTokenAmount,
+				totalGasAmount: toTotalGasAmount,
+				poolsOnPath:    append(append([]poolPkg.IPool{}, fromNodeInfo.poolsOnPath...), pool),
+				tokensOnPath:   append(append([]entity.Token{}, fromNodeInfo.tokensOnPath...), toTokenInfo),
+			})
+		}
+	}
+	return nextNodeInfos, nil
+}
+
+func getKthBestPathsForEachToken(
+	nextLayer map[string][]*nodeInfo,
+	maxPathsToGenerate uint32,
+	gasInclude bool,
+) map[string][]*nodeInfo {
+	sortedNextLayer := make(map[string][]*nodeInfo)
+	for token, pathsToToken := range nextLayer {
+		sort.Slice(pathsToToken, func(i, j int) bool {
+			return betterAmountOut(pathsToToken[i], pathsToToken[j], gasInclude)
+		})
+		// only keep k best paths
+		if uint32(len(pathsToToken)) > maxPathsToGenerate {
+			pathsToToken = pathsToToken[:maxPathsToGenerate]
+		}
+		sortedNextLayer[token] = pathsToToken
+	}
+	return sortedNextLayer
+}
+
+func getKthPathAtTokenOut(
+	input findroute.Input,
+	data findroute.FinderData,
+	tokenAmountIn poolPkg.TokenAmount,
+	nodeInfoAtTokenOut []*nodeInfo,
+) (paths []*core.Path) {
+	for kthPath, pathInfo := range nodeInfoAtTokenOut {
+		path, err := core.NewPath(pathInfo.poolsOnPath, pathInfo.tokensOnPath, tokenAmountIn, input.TokenOutAddress,
+			data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[input.TokenOutAddress].Decimals,
+			core.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD},
+		)
+		if err != nil {
+			logger.WithFields(logger.Fields{"error": err}).
+				Debugf("cannot generate %v_th path (hop = %v) from token %v to token %v", kthPath, len(pathInfo.poolsOnPath), input.TokenInAddress, input.TokenOutAddress)
+		} else {
+			paths = append(paths, path)
+		}
+	}
+	return paths
+}
+
+func betterAmountOut(nodeA, nodeB *nodeInfo, gasFeeInclude bool) bool {
+	// If we consider gas fee, prioritize node with more AmountUsd
+	if gasFeeInclude {
+		return nodeA.tokenAmount.AmountUsd > nodeB.tokenAmount.AmountUsd
+	}
+	// Otherwise, prioritize node with more token Amount
+	return nodeA.tokenAmount.Amount.Cmp(nodeB.tokenAmount.Amount) > 0
+}
+
+// return newTokenAmount, newTotalGasAmount, error
+func calcNewTokenAmountAndGas(
+	pool poolPkg.IPool,
+	fromAmountIn poolPkg.TokenAmount, fromTotalGasAmount int64,
+	tokenOut string, tokenOutPrice float64, tokenOutDecimal uint8,
+	gasPrice *big.Float, gasTokenPrice float64,
+) (*poolPkg.TokenAmount, int64, error) {
+	calcAmountOutResult, err := pool.CalcAmountOut(fromAmountIn, tokenOut)
+	if err != nil {
+		return nil, 0, err
+	}
+	newTotalGasAmount := calcAmountOutResult.Gas + fromTotalGasAmount
+	calcAmountOutResult.TokenAmountOut.AmountUsd =
+		utils.CalcTokenAmountUsd(calcAmountOutResult.TokenAmountOut.Amount, tokenOutDecimal, tokenOutPrice) -
+			utils.CalcGasUsd(gasPrice, newTotalGasAmount, gasTokenPrice)
+	return calcAmountOutResult.TokenAmountOut, newTotalGasAmount, nil
+}

@@ -1,0 +1,239 @@
+env: "develop"
+http:
+  bindAddress: ":8080"
+  mode: debug #(debug,release,test)
+  prefix: /fuji
+grpc:
+  host: 0.0.0.0
+  port: 10443
+common:
+  chainID: 43113
+  dataFolder: internal/pkg/data/chain/fuji
+  publicRPC: "https://avalanchetestapi.terminet.io/ext/bc/C/rpc"
+  rpcs:
+    - "https://avalanchetestapi.terminet.io/ext/bc/C/rpc"
+  address:
+    multicall: '0x5D605e78bc699fB565E6E6a1fa2d940C40F8ce25'
+    gasToken: '0xd00ae08403b9bbb9124bb305c09058e32c39a48c'
+    executorAddress: '0xA270E7506dD1b6Fa8a4D1d14a53A6A80aFc4Fd4D'
+    routerAddress: '0x7633dF4a71391Ba81924E916781402c564984E73'
+log:
+  sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
+  consoleLevel: info
+  enableConsole: true
+  enableJSONFormat: false
+enableDexes: &enableDexes
+  - kyberswap-static
+  # - kyberswapv2
+dexes:
+  - id: kyberswap-static
+    handler: dmm
+    properties:
+      factoryAddress: 0x09917437898D7378C41Fdc4e8AdA531e7b360fe8
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  # - id: kyberswapv2
+  #   handler: promm
+  #   properties:
+  #     subgraphAPI: "https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-avalanche"
+  #     factoryAddress: 0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a
+  #     newPoolJobIntervalSec: 10
+  #     newPoolLimit: 3000
+  #     reserveJobInterval: 2s
+  #     updateReserveBulk: 50
+epsilon: 0.005
+cachePoints:
+  - amount: 1
+    ttl: 30
+  - amount: 2
+    ttl: 10
+  - amount: 5
+    ttl: 10
+  - amount: 10
+    ttl: 10
+  - amount: 11
+    ttl: 30
+  - amount: 15
+    ttl: 10
+  - amount: 20
+    ttl: 10
+  - amount: 22
+    ttl: 30
+  - amount: 25
+    ttl: 10
+  - amount: 30
+    ttl: 10
+  - amount: 33
+    ttl: 30
+  - amount: 35
+    ttl: 10
+  - amount: 40
+    ttl: 10
+  - amount: 44
+    ttl: 30
+  - amount: 45
+    ttl: 10
+  - amount: 50
+    ttl: 10
+  - amount: 55
+    ttl: 30
+  - amount: 60
+    ttl: 10
+  - amount: 66
+    ttl: 30
+  - amount: 70
+    ttl: 10
+  - amount: 77
+    ttl: 30
+  - amount: 80
+    ttl: 10
+  - amount: 88
+    ttl: 30
+  - amount: 90
+    ttl: 10
+  - amount: 99
+    ttl: 30
+  - amount: 100
+    ttl: 30
+  - amount: 500
+    ttl: 10
+  - amount: 1000
+    ttl: 30
+  - amount: 10000
+    ttl: 30
+  - amount: 100000
+    ttl: 30
+cacheRanges:
+  - fromUSD: 0
+    toUSD: 100
+    ttl: 10
+  - fromUSD: 101
+    toUSD: 500
+    ttl: 10
+  - fromUSD: 500
+    toUSD: 1000
+    ttl: 10
+  - fromUSD: 1001
+    toUSD: 2000
+    ttl: 15
+  - fromUSD: 2000
+    toUSD: 5000
+    ttl: 15
+  - fromUSD: 5000
+    toUSD: 10000
+    ttl: 15
+  - fromUSD: 10000
+    toUSD: -1
+    ttl: 15
+redis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+  readTimeout: 3
+  writeTimeout: 3
+readOnlyRedis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+redisSentinel:
+  masterName: ""
+  sentinelPort: 26379
+  dbNumber: 0
+  password: ""
+  prefix: ""
+  readTimeout: 3
+  writeTimeout: 3
+ddAgentHost: ""
+featureFlags:
+  useOptimizedSPFA: false
+enableGRPC: false
+keyPair:
+  storageFilePath: ""
+  keyIDForSealingData:
+    clientData: "1"
+tokenCatalog:
+  httpUrl: ""
+reloadConfig:
+  httpUrl: ""
+  interval: 10s
+  serviceName: "aggregator"
+  chainID: 43113
+whitelistedTokens: &whitelistedTokens
+  - name: "Wrapped AVAX"
+    symbol: "WAVAX"
+    address: "0xebd333ffbf16491505318ae0678c0d61e40bd7fc"
+    decimals: 18
+    cgkId: "wrapped-avax"
+  - name: "Tether USD"
+    symbol: "USDT"
+    address: "0x82DCEC6aa3c8BFE2C96d40d8805EE0dA15708643"
+    decimals: 18
+    cgkId: "tether"
+  - name: "USD Coin"
+    symbol: "USDC"
+    address: "0xAF82969ECF299c1f1Bb5e1D12dDAcc9027431160"
+    decimals: 6
+    cgkId: "usd-coin"
+  - name: "Kyber Network Crystal"
+    symbol: "KNC"
+    address: "0xbde248b108065a08c60c88d9ed09aec5a8d9a2b1"
+    decimals: 18
+    cgkId: "kyber-network-crystal"
+secretKey:
+metrics:
+  host:
+  port: 8125
+  namespace: "kybernetwork."
+blacklistedPools:
+encoder:
+  chainId: 43113
+  executorAddress: 0x1877Ec0770901cc6886FDA7E7525a78c2Ed4e975
+  routerAddress: 0x8d9Fcb70AE1D93B4373e0D990fe629C237791f1F
+useCase:
+  poolFactory:
+  cacheRoute:
+  getRoutes:
+    chainId: 43113
+    gasTokenAddress: 0xd00ae08403b9bbb9124bb305c09058e32c39a48c
+    routerAddress: 0x8d9Fcb70AE1D93B4373e0D990fe629C237791f1F
+    epsilon: 0.005
+    baseGas: 125000
+    getBestPoolsOptions:
+      directPoolsCount: 100
+      whitelistPoolsCount: 500
+      tokenInPoolsCount: 200
+      tokenOutPoolCount: 200
+      amplifiedTvlDirectPoolsCount: 50
+      amplifiedTvlWhitelistPoolsCount: 200
+      amplifiedTvlTokenInPoolsCount: 100
+      amplifiedTvlTokenOutPoolCount: 100
+    spfaFinderOptions:
+      maxHops: 3
+      minPartUsd: 500
+    enabledDexes: *enableDexes
+    whitelistedTokens: *whitelistedTokens
+    blacklistedPools:
+    featureFlags:
+      useOptimizedSPFA: false
+api:
+  defaultTTL: 1s
+  getRoutes:
+    isCacheEnabled: true
+    ttl: 2s
+    isTimeoutEnabled: true
+    timeout: 10s
+  buildRoute:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getPools:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getTokens:
+    isCacheEnabled: false
+    isTimeoutEnabled: false

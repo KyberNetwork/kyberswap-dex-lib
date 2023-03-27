@@ -1,0 +1,365 @@
+env: "develop"
+http:
+  bindAddress: ":8080"
+  mode: debug #(debug,release,test)
+  prefix: /optimism
+grpc:
+  host: 0.0.0.0
+  port: 10443
+common:
+  chainID: 10
+  dataFolder: internal/pkg/data/chain/optimism
+  publicRPC: "https://rpc.ankr.com/optimism"
+  rpcs:
+    - "https://rpc.ankr.com/optimism"
+  address:
+    multicall: '0xD9bfE9979e9CA4b2fe84bA5d4Cf963bBcB376974'
+    gasToken: '0x4200000000000000000000000000000000000006'
+    executorAddress: '0xBE13e651FF246ac63fA36CaD6cd8610B090A6A25'
+    routerAddress: '0x617Dee16B86534a5d792A4d7A62FB491B544111E'
+  whitelistToken: "tokens.json"
+gas:
+  gasPriceOracleContract: 0x420000000000000000000000000000000000000F
+log:
+  sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
+  consoleLevel: info
+  enableConsole: true
+  enableJSONFormat: false
+enableDexes: &enableDexes
+  - curve
+  - kyberswap-static
+  - kyberswapv2
+  - synapse
+  - uniswapv3
+  - zipswap
+  - velodrome
+  - beethovenx
+  - synthetix
+  - fraxswap
+  - kyberswap-limit-order
+dexes:
+  - id: fraxswap
+    handler: fraxswap
+    properties:
+      factoryAddress: 0x67a1412d2D6CbF211bb71F8e851b4393b491B10f
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 10
+      updateReserveBulk: 10
+  - id: curve
+    handler: curve
+    properties:
+      poolPath: "curve/pools.json"
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 500
+  - id: kyberswap-static
+    handler: dmm
+    properties:
+      factoryAddress: 0x1c758aF0688502e49140230F6b0EBd376d429be5
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswapv2
+    handler: promm
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-optimism"
+      factoryAddress: 0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      reserveJobInterval: 100ms
+      updateReserveBulk: 10
+      concurrentBatches: 50
+  - id: uniswapv3
+    handler: uniswapv3
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/ianlapham/optimism-post-regenesis"
+      factoryAddress: 0x1f98431c8ad98523631ae4a59f267346ea31f984
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      reserveJobInterval: 100ms
+      updateReserveBulk: 10
+      concurrentBatches: 50
+      tickLensAddress: 0xbfd8137f7d1516d3ea5ca83523914859ec47f573
+      preGenesisPoolPath: "univ3/pools.json"
+  - id: synapse
+    handler: synapse
+    properties:
+      poolPath: "synapse/pools.json"
+      reserveJobInterval: 1s
+      newPoolJobIntervalSec: 500
+      updateReserveBulk: 200
+  - id: zipswap
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/nonamefits/zipswap"
+      factoryAddress: 0x8bcedd62dd46f1a76f8a1633d4f5b76e0cda521e
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      updateReserveBulk: 500
+  - id: velodrome
+    handler: velodrome
+    properties:
+      factoryAddress: 0x25cbddb98b35ab1ff77413456b31ec81a6b6b746
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      updateReserveBulk: 500
+  - id: beethovenx
+    handler: balancer
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/beethovenxfi/beethovenx-optimism"
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: synthetix
+    handler: synthetix
+    properties:
+      addressesPath: "synthetix/addresses.json"
+      reserveJobInterval: 1s
+  - id: kyberswap-limit-order
+    handler: limit-order
+    properties:
+      limitOrderHTTPUrl: https://limit-order.dev.kyberengineering.io
+      reserveJobInterval: 3s
+      newPoolJobIntervalSec: 10
+      predefineSupportedPairs:
+epsilon: 0.005
+cachePoints:
+  - amount: 1
+    ttl: 30
+  - amount: 2
+    ttl: 10
+  - amount: 5
+    ttl: 10
+  - amount: 10
+    ttl: 10
+  - amount: 11
+    ttl: 30
+  - amount: 15
+    ttl: 10
+  - amount: 20
+    ttl: 10
+  - amount: 22
+    ttl: 30
+  - amount: 25
+    ttl: 10
+  - amount: 30
+    ttl: 10
+  - amount: 33
+    ttl: 30
+  - amount: 35
+    ttl: 10
+  - amount: 40
+    ttl: 10
+  - amount: 44
+    ttl: 30
+  - amount: 45
+    ttl: 10
+  - amount: 50
+    ttl: 10
+  - amount: 55
+    ttl: 30
+  - amount: 60
+    ttl: 10
+  - amount: 66
+    ttl: 30
+  - amount: 70
+    ttl: 10
+  - amount: 77
+    ttl: 30
+  - amount: 80
+    ttl: 10
+  - amount: 88
+    ttl: 30
+  - amount: 90
+    ttl: 10
+  - amount: 99
+    ttl: 30
+  - amount: 100
+    ttl: 30
+  - amount: 500
+    ttl: 10
+  - amount: 1000
+    ttl: 30
+  - amount: 10000
+    ttl: 30
+  - amount: 100000
+    ttl: 30
+cacheRanges:
+  - fromUSD: 0
+    toUSD: 100
+    ttl: 10
+  - fromUSD: 101
+    toUSD: 500
+    ttl: 10
+  - fromUSD: 500
+    toUSD: 1000
+    ttl: 10
+  - fromUSD: 1001
+    toUSD: 2000
+    ttl: 15
+  - fromUSD: 2000
+    toUSD: 5000
+    ttl: 15
+  - fromUSD: 5000
+    toUSD: 10000
+    ttl: 15
+  - fromUSD: 10000
+    toUSD: -1
+    ttl: 15
+redis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: 'optimism'
+readOnlyRedis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: 'optimism'
+  readTimeout: 3
+  writeTimeout: 3
+redisSentinel:
+  masterName: ""
+  sentinelPort: 26379
+  dbNumber: 0
+  password: ""
+  prefix: ""
+  readTimeout: 3
+  writeTimeout: 3
+ddAgentHost: ""
+featureFlags:
+  useOptimizedSPFA: false
+enableGRPC: false
+keyPair:
+  storageFilePath: ""
+  keyIDForSealingData:
+    clientData: "1"
+tokenCatalog:
+  httpUrl: ""
+reloadConfig:
+  httpUrl: ""
+  interval: 10s
+  serviceName: "aggregator"
+  chainID: 10
+whitelistedTokens: &whitelistedTokens
+  - name: "Frax"
+    symbol: "FRAX"
+    address: "0x2e3d870790dc77a83dd1d18184acc7439a53f475"
+    decimals: 18
+    cgkId: "frax"
+  - name: "Tether USD"
+    symbol: "USDT"
+    address: "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58"
+    decimals: 6
+    cgkId: "tether"
+  - name: "Dai Stablecoin"
+    symbol: "DAI"
+    address: "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1"
+    decimals: 18
+    cgkId: "dai"
+  - name: "USD Coin"
+    symbol: "USDC"
+    address: "0x7f5c764cbc14f9669b88837ca1490cca17c31607"
+    decimals: 6
+    cgkId: "usd-coin"
+  - name: "Wrapped BTC"
+    symbol: "WBTC"
+    address: "0x68f180fcce6836688e9084f035309e29bf0a2095"
+    decimals: 8
+    cgkId: "wrapped-bitcoin"
+  - name: "ChainLink Token"
+    symbol: "LINK"
+    address: "0x350a791bfc2c21f9ed5d10980dad2e2638ffa7f6"
+    decimals: 18
+    cgkId: "chainlink"
+  - name: "Synthetix Network Token"
+    symbol: "SNX"
+    address: "0x8700daec35af8ff88c16bdf0418774cb3d7599b4"
+    decimals: 18
+    cgkId: "havven"
+  - name: "Wrapped Ether"
+    symbol: "WETH"
+    address: "0x4200000000000000000000000000000000000006"
+    decimals: 18
+    cgkId: "weth"
+  - name: "Optimism"
+    symbol: "OP"
+    address: "0x4200000000000000000000000000000000000042"
+    decimals: 18
+    cgkId: "optimism"
+  - name: "Velodrome"
+    symbol: "VELO"
+    address: "0x3c8B650257cFb5f272f799F5e2b4e65093a11a05"
+    decimals: 18
+    cgkId: "velodrome-finance"
+  - name: "Wrapped liquid staked Ether 2.0"
+    symbol: "WSTETH"
+    address: "0x1F32b1c2345538c0c6f582fCB022739c4A194Ebb"
+    decimals: 18
+    cgkId: "wrapped-steth"
+  - name: "Kyber Network Crystal"
+    symbol: "KNC"
+    address: "0xa00E3A3511aAC35cA78530c85007AFCd31753819"
+    decimals: 18
+    cgkId: "kyber-network-crystal"
+secretKey:
+metrics:
+  host:
+  port: 8125
+  namespace: "kybernetwork."
+blacklistedPools:
+encoder:
+  chainId: 10
+  executorAddress: 0x363Ef7806B3Fd17531D72e762cC82688E928D106
+  routerAddress: 0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D
+  kyberLOAddress: 0xAF800D3EB207BAFBadE540554DF8bDCe561166f8
+
+useCase:
+  poolFactory:
+  cacheRoute:
+  getRoutes:
+    chainId: 10
+    gasTokenAddress: 0x4200000000000000000000000000000000000006
+    routerAddress: 0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D
+    epsilon: 0.005
+    baseGas: 125000
+    getBestPoolsOptions:
+      directPoolsCount: 100
+      whitelistPoolsCount: 500
+      tokenInPoolsCount: 200
+      tokenOutPoolCount: 200
+      amplifiedTvlDirectPoolsCount: 50
+      amplifiedTvlWhitelistPoolsCount: 200
+      amplifiedTvlTokenInPoolsCount: 100
+      amplifiedTvlTokenOutPoolCount: 100
+    spfaFinderOptions:
+      maxHops: 3
+      minPartUsd: 500
+    enabledDexes: *enableDexes
+    whitelistedTokens: *whitelistedTokens
+    blacklistedPools:
+    featureFlags:
+      useOptimizedSPFA: false
+api:
+  defaultTTL: 1s
+  getRoutes:
+    isCacheEnabled: true
+    ttl: 1s
+    isTimeoutEnabled: true
+    timeout: 10s
+  buildRoute:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getPools:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getTokens:
+    isCacheEnabled: false
+    isTimeoutEnabled: false

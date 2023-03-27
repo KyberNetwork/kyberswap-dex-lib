@@ -1,0 +1,64 @@
+package encode
+
+import (
+	"github.com/ethereum/go-ethereum/common/hexutil"
+
+	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/encode/executor"
+	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/encode/router"
+	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+)
+
+type (
+	encodeExecutorFunc = func(chainID valueobject.ChainID, routerAddress string, data types.EncodingData) ([]byte, error)
+	encodeRouterFunc   = func(executorAddress string, executorData []byte, data types.EncodingData) ([]byte, error)
+)
+
+type Encoder struct {
+	config                   Config
+	encodeExecutorNormalMode encodeExecutorFunc
+	encodeRouterNormalMode   encodeRouterFunc
+	encodeExecutorSimpleMode encodeExecutorFunc
+	encodeRouterSimpleMode   encodeRouterFunc
+}
+
+func NewEncoder(config Config) *Encoder {
+	return &Encoder{
+		config:                   config,
+		encodeExecutorNormalMode: executor.BuildAndPackCallBytesInputs,
+		encodeRouterNormalMode:   router.BuildAndPackSwapInputs,
+		encodeExecutorSimpleMode: executor.BuildAndPackSimpleSwapData,
+		encodeRouterSimpleMode:   router.BuildAndPackSwapSimpleModeInputs,
+	}
+}
+
+func (e *Encoder) Encode(data types.EncodingData) (string, error) {
+	encodeExecutor, encodeRouter := e.encodeExecutorNormalMode, e.encodeRouterNormalMode
+	if data.EncodingMode.IsSimple() {
+		encodeExecutor, encodeRouter = e.encodeExecutorSimpleMode, e.encodeRouterSimpleMode
+	}
+
+	executorData, err := encodeExecutor(e.config.ChainID, e.config.RouterAddress, data)
+	if err != nil {
+		return "", err
+	}
+
+	routerData, err := encodeRouter(e.config.ExecutorAddress, executorData, data)
+	if err != nil {
+		return "", err
+	}
+
+	return hexutil.Encode(routerData), nil
+}
+
+func (e *Encoder) GetExecutorAddress() string {
+	return e.config.ExecutorAddress
+}
+
+func (e *Encoder) GetRouterAddress() string {
+	return e.config.RouterAddress
+}
+
+func (e *Encoder) GetKyberLOAddress() string {
+	return e.config.KyberLOAddress
+}

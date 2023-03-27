@@ -1,0 +1,30 @@
+[
+  {
+    "name": "Wrapped BNB",
+    "symbol": "WBNB",
+    "address": "0xae13d989dac2f0debff460ac112a837c89baa7cd",
+    "decimals": 18,
+    "cgkId": "wbnb"
+  },
+  {
+    "name": "Tether USD",
+    "symbol": "USDT",
+    "address": "0x102e969a101d0f5a7defb29b4090c08f8def0f42",
+    "decimals": 18,
+    "cgkId": "tether"
+  },
+  {
+    "name": "Dai Stablecoin",
+    "symbol": "DAI",
+    "address": "0x74c21a9e797ef95066c33ba0cc295ca67a7f6d18",
+    "decimals": 18,
+    "cgkId": "dai"
+  },
+  {
+    "name": "Binance-Peg USD Coin",
+    "symbol": "USDC",
+    "address": "0x50A8C32cCa7eDcB2104bFc6BD7b50fa4Dc6B6673",
+    "decimals": 18,
+    "cgkId": "usd-coin"
+  }
+]

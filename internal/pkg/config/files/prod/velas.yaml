@@ -1,0 +1,271 @@
+env: "develop"
+http:
+  bindAddress: ":8080"
+  mode: release #(debug,release,test)
+  prefix: /velas
+grpc:
+  host: 0.0.0.0
+  port: 10443
+common:
+  chainID: 106
+  dataFolder: internal/pkg/data/chain/velas
+  publicRPC: "https://evmexplorer.velas.com/rpc"
+  rpcs:
+    - "https://evmexplorer.velas.com/rpc"
+  address:
+    multicall: '0x1877Ec0770901cc6886FDA7E7525a78c2Ed4e975'
+    gasToken: '0xc579D1f3CF86749E05CD06f7ADe17856c2CE3126'
+    executorAddress: '0x41684b361557E9282E0373CA51260D9331e518C9'
+    routerAddress: '0x00555513Acf282B42882420E5e5bA87b44D8fA6E'
+log:
+  sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
+  consoleLevel: info
+  enableConsole: true
+  enableJSONFormat: true
+enableDexes: &enableDexes
+  - kyberswap
+  - kyberswap-static
+#  - kyberswapv2
+  - wagyuswap
+  - astroswap
+dexes:
+  - id: kyberswap
+    handler: dmm
+    properties:
+      factoryAddress: 0xD9bfE9979e9CA4b2fe84bA5d4Cf963bBcB376974
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswap-static
+    handler: dmm
+    properties:
+      factoryAddress: 0x1c758aF0688502e49140230F6b0EBd376d429be5
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+#  - id: kyberswapv2
+#    handler: promm
+#    properties:
+#      subgraphAPI: "https://velas-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-elastic-velas"
+#      factoryAddress: 0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a
+#      newPoolJobIntervalSec: 10
+#      newPoolLimit: 3000
+#      reserveJobInterval: 2s
+#      updateReserveBulk: 200
+  - id: wagyuswap
+    handler: uniswap
+    properties:
+      factoryAddress: 0x69f3212344A38b35844cCe4864C2af9c717F35e3
+      swapFee: 0.002
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: astroswap
+    handler: uniswap
+    properties:
+      factoryAddress: 0xe82d721A6CdeC2f86e9Fca074Ff671c8621F8459
+      swapFee: 0.002
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+epsilon: 0.005
+cachePoints:
+  - amount: 1
+    ttl: 30
+  - amount: 2
+    ttl: 30
+  - amount: 5
+    ttl: 30
+  - amount: 10
+    ttl: 30
+  - amount: 11
+    ttl: 30
+  - amount: 12
+    ttl: 30
+  - amount: 15
+    ttl: 30
+  - amount: 20
+  - amount: 21
+    ttl: 30
+  - amount: 22
+    ttl: 30
+  - amount: 25
+    ttl: 30
+  - amount: 30
+    ttl: 30
+  - amount: 33
+    ttl: 30
+  - amount: 35
+    ttl: 30
+  - amount: 40
+    ttl: 30
+  - amount: 44
+    ttl: 30
+  - amount: 45
+    ttl: 30
+  - amount: 50
+    ttl: 30
+  - amount: 55
+    ttl: 30
+  - amount: 60
+    ttl: 30
+  - amount: 66
+    ttl: 30
+  - amount: 70
+    ttl: 30
+  - amount: 77
+    ttl: 30
+  - amount: 80
+    ttl: 30
+  - amount: 88
+    ttl: 30
+  - amount: 90
+    ttl: 30
+  - amount: 99
+    ttl: 30
+  - amount: 100
+    ttl: 30
+  - amount: 500
+    ttl: 30
+  - amount: 1000
+    ttl: 30
+  - amount: 10000
+    ttl: 30
+  - amount: 100000
+    ttl: 30
+cacheRanges:
+  - fromUSD: 0
+    toUSD: 100
+    ttl: 15
+  - fromUSD: 101
+    toUSD: 500
+    ttl: 15
+  - fromUSD: 500
+    toUSD: 1000
+    ttl: 15
+  - fromUSD: 1001
+    toUSD: 2000
+    ttl: 30
+  - fromUSD: 2000
+    toUSD: 5000
+    ttl: 30
+  - fromUSD: 5000
+    toUSD: 10000
+    ttl: 30
+  - fromUSD: 10000
+    toUSD: -1
+    ttl: 30
+redis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+  readTimeout: 3
+  writeTimeout: 3
+readOnlyRedis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+redisSentinel:
+  masterName: ""
+  sentinelPort: 26379
+  dbNumber: 0
+  password: ""
+  prefix: ""
+  readTimeout: 3
+  writeTimeout: 3
+ddAgentHost: ""
+featureFlags:
+  useOptimizedSPFA: false
+enableGRPC: false
+keyPair:
+  storageFilePath: ""
+  keyIDForSealingData:
+    clientData: "1"
+tokenCatalog:
+  httpUrl: ""
+reloadConfig:
+  httpUrl: ""
+  interval: 10s
+  serviceName: "aggregator"
+  chainID: 106
+whitelistedTokens: &whitelistedTokens
+  - name: "Wrapped VLX"
+    symbol: "WVLX"
+    address: "0xc579D1f3CF86749E05CD06f7ADe17856c2CE3126"
+    decimals: 18
+    cgkId: "wrapped-velas"
+  - name: "Tether USD"
+    symbol: "USDT"
+    address: "0x01445C31581c354b7338AC35693AB2001B50b9aE"
+    decimals: 6
+    cgkId: "tether"
+  - name: "USD Coin"
+    symbol: "USDC"
+    address: "0xe2C120f188eBd5389F71Cf4d9C16d05b62A58993"
+    decimals: 6
+    cgkId: "usd-coin"
+  - name: "Cardano"
+    symbol: "ADA"
+    address: "0x3611Fbfb06ffBcEf9Afb210f6Ace86742e6c14a4"
+    decimals: 6
+    cgkId: "cardano"
+secretKey:
+metrics:
+  host:
+  port: 8125
+  namespace: "kybernetwork."
+blacklistedPools:
+encoder:
+  chainId: 106
+  executorAddress:
+  routerAddress:
+useCase:
+  poolFactory:
+  cacheRoute:
+  getRoutes:
+    chainId: 106
+    gasTokenAddress: 0xc579D1f3CF86749E05CD06f7ADe17856c2CE3126
+    routerAddress:
+    epsilon: 0.005
+    baseGas: 125000
+    getBestPoolsOptions:
+      directPoolsCount: 100
+      whitelistPoolsCount: 500
+      tokenInPoolsCount: 200
+      tokenOutPoolCount: 200
+      amplifiedTvlDirectPoolsCount: 50
+      amplifiedTvlWhitelistPoolsCount: 200
+      amplifiedTvlTokenInPoolsCount: 100
+      amplifiedTvlTokenOutPoolCount: 100
+    spfaFinderOptions:
+      maxHops: 3
+      minPartUsd: 500
+    enabledDexes: *enableDexes
+    whitelistedTokens: *whitelistedTokens
+    blacklistedPools:
+    featureFlags:
+      useOptimizedSPFA: false
+api:
+  defaultTTL: 1s
+  getRoutes:
+    isCacheEnabled: true
+    ttl: 3s
+    isTimeoutEnabled: true
+    timeout: 10s
+  buildRoute:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getPools:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getTokens:
+    isCacheEnabled: false
+    isTimeoutEnabled: false

@@ -1,0 +1,297 @@
+env: "develop"
+http:
+  bindAddress: ":8080"
+  mode: release #(debug,release,test)
+  prefix: /oasis
+grpc:
+  host: 0.0.0.0
+  port: 10443
+common:
+  chainID: 42262
+  dataFolder: internal/pkg/data/chain/oasis
+  publicRPC: "https://emerald.oasis.dev"
+  rpcs:
+    - "https://emerald.oasis.dev"
+  address:
+    multicall: '0xBF69a56D35B8d6f5A8e0e96B245a72F735751e54'
+    gasToken: '0x21C718C22D52d0F3a789b752D4c2fD5908a8A733'
+    executorAddress: '0x41684b361557E9282E0373CA51260D9331e518C9'
+    routerAddress: '0x00555513Acf282B42882420E5e5bA87b44D8fA6E'
+log:
+  sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
+  consoleLevel: info
+  enableConsole: true
+  enableJSONFormat: true
+enableDexes: &enableDexes
+  - kyberswap
+  - kyberswap-static
+  - kyberswapv2
+  - valleyswap
+  - yuzuswap
+  - gemkeeper
+  - lizard
+  - valleyswap-v2
+dexes:
+  - id: kyberswap
+    handler: dmm
+    properties:
+      factoryAddress: 0xD9bfE9979e9CA4b2fe84bA5d4Cf963bBcB376974
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswap-static
+    handler: dmm
+    properties:
+      factoryAddress: 0x1c758aF0688502e49140230F6b0EBd376d429be5
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswapv2
+    handler: promm
+    properties:
+      subgraphAPI: "https://oasis-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-elastic-oasis"
+      factoryAddress: 0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      reserveJobInterval: 2s
+      updateReserveBulk: 200
+  - id: valleyswap
+    handler: uniswap
+    properties:
+      factoryAddress: 0x82E196Fc4dF41D529b395aE2Ce64a0FCB5d68E72
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: valleyswap-v2
+    handler: uniswap
+    properties:
+      factoryAddress: 0xa25464822b505968eEc9A45C43765228c701d35f
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: yuzuswap
+    handler: uniswap
+    properties:
+      factoryAddress: 0x5F50fDC22697591c1D7BfBE8021163Fc73513653
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: gemkeeper
+    handler: uniswap
+    properties:
+      factoryAddress: 0xa7200334f652425A12BF2f7e4F0F5409CCA4d963
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: lizard
+    handler: uniswap
+    properties:
+      factoryAddress: 0xefA6861931991CCE372c477a015619A21dfEBE8c
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+epsilon: 0.005
+cachePoints:
+  - amount: 1
+    ttl: 30
+  - amount: 2
+    ttl: 30
+  - amount: 5
+    ttl: 30
+  - amount: 10
+    ttl: 30
+  - amount: 11
+    ttl: 30
+  - amount: 12
+    ttl: 30
+  - amount: 15
+    ttl: 30
+  - amount: 20
+  - amount: 21
+    ttl: 30
+  - amount: 22
+    ttl: 30
+  - amount: 25
+    ttl: 30
+  - amount: 30
+    ttl: 30
+  - amount: 33
+    ttl: 30
+  - amount: 35
+    ttl: 30
+  - amount: 40
+    ttl: 30
+  - amount: 44
+    ttl: 30
+  - amount: 45
+    ttl: 30
+  - amount: 50
+    ttl: 30
+  - amount: 55
+    ttl: 30
+  - amount: 60
+    ttl: 30
+  - amount: 66
+    ttl: 30
+  - amount: 70
+    ttl: 30
+  - amount: 77
+    ttl: 30
+  - amount: 80
+    ttl: 30
+  - amount: 88
+    ttl: 30
+  - amount: 90
+    ttl: 30
+  - amount: 99
+    ttl: 30
+  - amount: 100
+    ttl: 30
+  - amount: 500
+    ttl: 30
+  - amount: 1000
+    ttl: 30
+  - amount: 10000
+    ttl: 30
+  - amount: 100000
+    ttl: 30
+cacheRanges:
+  - fromUSD: 0
+    toUSD: 100
+    ttl: 15
+  - fromUSD: 101
+    toUSD: 500
+    ttl: 15
+  - fromUSD: 500
+    toUSD: 1000
+    ttl: 15
+  - fromUSD: 1001
+    toUSD: 2000
+    ttl: 30
+  - fromUSD: 2000
+    toUSD: 5000
+    ttl: 30
+  - fromUSD: 5000
+    toUSD: 10000
+    ttl: 30
+  - fromUSD: 10000
+    toUSD: -1
+    ttl: 30
+redis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+  readTimeout: 3
+  writeTimeout: 3
+readOnlyRedis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+redisSentinel:
+  masterName: ""
+  sentinelPort: 26379
+  dbNumber: 0
+  password: ""
+  prefix: ""
+  readTimeout: 3
+  writeTimeout: 3
+ddAgentHost: ""
+featureFlags:
+  useOptimizedSPFA: false
+enableGRPC: false
+keyPair:
+  storageFilePath: ""
+  keyIDForSealingData:
+    clientData: "1"
+tokenCatalog:
+  httpUrl: ""
+reloadConfig:
+  httpUrl: ""
+  interval: 10s
+  serviceName: "aggregator"
+  chainID: 42262
+whitelistedTokens: &whitelistedTokens
+  - name: "Wrapped ROSE"
+    symbol: "WROSE"
+    address: "0x21C718C22D52d0F3a789b752D4c2fD5908a8A733"
+    decimals: 18
+    cgkId: "oasis-network"
+  - name: "Tether USD"
+    symbol: "USDT"
+    address: "0x6Cb9750a92643382e020eA9a170AbB83Df05F30B"
+    decimals: 6
+    cgkId: "tether"
+  - name: "Bitcoin"
+    symbol: "BTC"
+    address: "0x010CDf0Db2737f9407F8CFcb4dCaECA4dE54c815"
+    decimals: 8
+    cgkId: "bitcoin"
+  - name: "ValleySwap Token"
+    symbol: "VS"
+    address: "0xBC033203796CC2C8C543a5aAe93a9a643320433D"
+    decimals: 18
+    cgkId: "valleyswap"
+secretKey:
+metrics:
+  host:
+  port: 8125
+  namespace: "kybernetwork."
+blacklistedPools:
+encoder:
+  chainId: 42262
+  executorAddress:
+  routerAddress:
+useCase:
+  poolFactory:
+  cacheRoute:
+  getRoutes:
+    chainId: 42262
+    gasTokenAddress: 0x21C718C22D52d0F3a789b752D4c2fD5908a8A733
+    routerAddress:
+    epsilon: 0.005
+    baseGas: 125000
+    getBestPoolsOptions:
+      directPoolsCount: 100
+      whitelistPoolsCount: 500
+      tokenInPoolsCount: 200
+      tokenOutPoolCount: 200
+      amplifiedTvlDirectPoolsCount: 50
+      amplifiedTvlWhitelistPoolsCount: 200
+      amplifiedTvlTokenInPoolsCount: 100
+      amplifiedTvlTokenOutPoolCount: 100
+    spfaFinderOptions:
+      maxHops: 3
+      minPartUsd: 500
+    enabledDexes: *enableDexes
+    whitelistedTokens: *whitelistedTokens
+    blacklistedPools:
+    featureFlags:
+      useOptimizedSPFA: false
+api:
+  defaultTTL: 1s
+  getRoutes:
+    isCacheEnabled: true
+    ttl: 6s
+    isTimeoutEnabled: true
+    timeout: 10s
+  buildRoute:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getPools:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getTokens:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+

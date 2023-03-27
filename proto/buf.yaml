@@ -1,0 +1,16 @@
+version: v1
+name: buf.build/KyberNetwork/kyberswap-aggregator
+deps:
+  - buf.build/envoyproxy/protoc-gen-validate:0e25aabb25c0709aff19aea176a1da13328b12fb
+
+lint:
+  use:
+    - DEFAULT
+    - FILE_LOWER_SNAKE_CASE
+    - COMMENT_SERVICE
+    - COMMENT_RPC
+    - COMMENT_MESSAGE
+    - COMMENT_ENUM
+breaking:
+  use:
+    - FILE

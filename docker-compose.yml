@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  redis:
+    image: redis
+    container_name: redis-aggregator-backend-master
+    ports:
+      - "6379:6379"
+    networks:
+      - redis-cluster
+
+  redis-slave:
+    image: redis
+    container_name: redis-aggregator-backend-slave
+    ports:
+      - "6380:6379"
+    command: redis-server --slaveof redis 6379
+    depends_on:
+      - redis
+    networks:
+      - redis-cluster
+
+  redis-sentinel:
+    image: 'bitnami/redis-sentinel'
+    depends_on:
+      - redis
+      - redis-slave
+    environment:
+      - REDIS_MASTER_HOST=redis
+    ports:
+      - '26379-26381:26379'
+    networks:
+      - redis-cluster
+
+networks:
+  redis-cluster:
+    driver: bridge

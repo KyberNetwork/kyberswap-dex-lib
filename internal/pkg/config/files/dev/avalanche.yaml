@@ -1,0 +1,431 @@
+env: "develop"
+http:
+  bindAddress: ":8080"
+  mode: debug #(debug,release,test)
+  prefix: /avalanche
+grpc:
+  host: 0.0.0.0
+  port: 10443
+common:
+  chainID: 43114
+  dataFolder: internal/pkg/data/chain/avalanche
+  publicRPC: "https://api.avax.network/ext/bc/C/rpc"
+  rpcs:
+    - "https://api.avax.network/ext/bc/C/rpc"
+  address:
+    multicall: '0xf2fd8219609e28c61a998cc534681f95d2740f61'
+    gasToken: '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7'
+    executorAddress: '0x92CbfC3F9466e9d0A65ED63aF277d1eeD69558e7'
+    routerAddress: '0x617Dee16B86534a5d792A4d7A62FB491B544111E'
+log:
+  sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
+  consoleLevel: info
+  enableConsole: true
+  enableJSONFormat: false
+enableDexes: &enableDexes
+  - kyberswap
+  - kyberswap-static
+  - kyberswapv2
+  - iron-stable
+  - pangolin
+  - traderjoe
+  - curve
+  - synapse
+  - axial
+  - lydia
+  - yetiswap
+  - dodo
+  - sushiswap
+  - platypus
+  - gmx
+  - fraxswap
+  - kyberswap-limit-order
+dexes:
+  - id: fraxswap
+    handler: fraxswap
+    properties:
+      factoryAddress: 0xf77ca9B635898980fb219b4F4605C50e4ba58afF
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 10
+      updateReserveBulk: 10
+  - id: platypus
+    handler: platypus
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/platypus-finance/platypus-exchange-v2"
+      getPoolAddressesBulk: 100
+      newPoolJobIntervalSec: 10
+      reserveJobInterval: 2s
+  - id: kyberswap
+    handler: dmm
+    properties:
+      subgraphAPI: "https://avax-subgraph.dmm.exchange/subgraphs/name/dynamic-amm/dmm-exchange-avax"
+      factoryAddress: 0x10908c875d865c66f271f5d3949848971c9595c9
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswap-static
+    handler: dmm
+    properties:
+      factoryAddress: 0x1c758aF0688502e49140230F6b0EBd376d429be5
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswapv2
+    handler: promm
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-avalanche"
+      factoryAddress: 0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      reserveJobInterval: 2s
+      updateReserveBulk: 200
+  - id: iron-stable
+    handler: iron-stable
+    properties:
+      poolPath: "iron/stable.json"
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      updateReserveBulk: 200
+  - id: pangolin
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/dasconnor/pangolin-dex"
+      factoryAddress: 0xefa94DE7a4656D787667C749f7E1223D71E9FD88
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: traderjoe
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/traderjoe-xyz/exchange"
+      factoryAddress: 0x9ad6c38be94206ca50bb0d90783181662f0cfa10
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+      trackedReserveKey: "trackedReserveAVAX"
+  - id: curve
+    handler: curve
+    properties:
+      poolPath: "curve/pools.json"
+      reserveJobInterval: 1s
+      newPoolJobIntervalSec: 500
+  - id: synapse
+    handler: synapse
+    properties:
+      poolPath: "synapse/pools.json"
+      reserveJobInterval: 1s
+      newPoolJobIntervalSec: 500
+      updateReserveBulk: 200
+  - id: axial
+    handler: synapse
+    properties:
+      poolPath: "axial/pools.json"
+      reserveJobInterval: 1s
+      newPoolJobIntervalSec: 500
+      updateReserveBulk: 200
+  - id: lydia
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/lydiacoder/lydia"
+      factoryAddress: 0xe0C1bb6DF4851feEEdc3E14Bd509FEAF428f7655
+      swapFee: 0.002
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: yetiswap
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/yetiswap/yetiswap2"
+      factoryAddress: 0x58C8CD291Fa36130119E6dEb9E520fbb6AcA1c3a
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: dodo
+    handler: dodo
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/dodoex/dodoex-v2-avax"
+      dodoV1SellHelper: "0xf7c5311b618e6dfbbc34210c92d2c9675d7eddca"
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      reserveJobInterval: 2s
+      updateReserveBulk: 50
+  - id: sushiswap
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/sushiswap/avalanche-exchange"
+      factoryAddress: 0xc35dadb65012ec5796536bd9864ed8773abc74c4
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: gmx
+    handler: gmx
+    properties:
+      addressesPath: "gmx/addresses.json"
+      reserveJobInterval: 2s
+  - id: kyberswap-limit-order
+    handler: limit-order
+    properties:
+      limitOrderHTTPUrl: https://limit-order.dev.kyberengineering.io
+      reserveJobInterval: 3s
+      newPoolJobIntervalSec: 10
+      predefineSupportedPairs:
+epsilon: 0.005
+cachePoints:
+  - amount: 1
+    ttl: 30
+  - amount: 2
+    ttl: 10
+  - amount: 5
+    ttl: 10
+  - amount: 10
+    ttl: 10
+  - amount: 11
+    ttl: 30
+  - amount: 15
+    ttl: 10
+  - amount: 20
+    ttl: 10
+  - amount: 22
+    ttl: 30
+  - amount: 25
+    ttl: 10
+  - amount: 30
+    ttl: 10
+  - amount: 33
+    ttl: 30
+  - amount: 35
+    ttl: 10
+  - amount: 40
+    ttl: 10
+  - amount: 44
+    ttl: 30
+  - amount: 45
+    ttl: 10
+  - amount: 50
+    ttl: 10
+  - amount: 55
+    ttl: 30
+  - amount: 60
+    ttl: 10
+  - amount: 66
+    ttl: 30
+  - amount: 70
+    ttl: 10
+  - amount: 77
+    ttl: 30
+  - amount: 80
+    ttl: 10
+  - amount: 88
+    ttl: 30
+  - amount: 90
+    ttl: 10
+  - amount: 99
+    ttl: 30
+  - amount: 100
+    ttl: 30
+  - amount: 500
+    ttl: 10
+  - amount: 1000
+    ttl: 30
+  - amount: 10000
+    ttl: 30
+  - amount: 100000
+    ttl: 30
+cacheRanges:
+  - fromUSD: 0
+    toUSD: 100
+    ttl: 10
+  - fromUSD: 101
+    toUSD: 500
+    ttl: 10
+  - fromUSD: 500
+    toUSD: 1000
+    ttl: 10
+  - fromUSD: 1001
+    toUSD: 2000
+    ttl: 15
+  - fromUSD: 2000
+    toUSD: 5000
+    ttl: 15
+  - fromUSD: 5000
+    toUSD: 10000
+    ttl: 15
+  - fromUSD: 10000
+    toUSD: -1
+    ttl: 15
+redis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+  readTimeout: 3
+  writeTimeout: 3
+readOnlyRedis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+redisSentinel:
+  masterName: ""
+  sentinelPort: 26379
+  dbNumber: 0
+  password: ""
+  prefix: ""
+  readTimeout: 3
+  writeTimeout: 3
+ddAgentHost: ""
+featureFlags:
+  useOptimizedSPFA: false
+enableGRPC: false
+keyPair:
+  storageFilePath: ""
+  keyIDForSealingData:
+    clientData: "1"
+tokenCatalog:
+  httpUrl: ""
+reloadConfig:
+  httpUrl: ""
+  interval: 10s
+  serviceName: "aggregator"
+  chainID: 43114
+whitelistedTokens: &whitelistedTokens
+  - name: "Wrapped AVAX"
+    symbol: "WAVAX"
+    address: "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7"
+    decimals: 18
+    cgkId: "avalanche-2"
+  - name: "Tether USD"
+    symbol: "USDT.e"
+    address: "0xc7198437980c041c805a1edcba50c1ce5db95118"
+    decimals: 6
+    cgkId: "tether-avalanche-bridged-usdt-e"
+  - name: "Dai Stablecoin"
+    symbol: "DAI.e"
+    address: "0xd586e7f844cea2f87f50152665bcbc2c279d8d70"
+    decimals: 18
+    cgkId: "dai"
+  - name: "USD Coin"
+    symbol: "USDC.e"
+    address: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664"
+    decimals: 6
+    cgkId: "usd-coin-avalanche-bridged-usdc-e"
+  - name: "Wrapped Ether"
+    symbol: "WETH.e"
+    address: "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab"
+    decimals: 18
+    cgkId: "ethereum"
+  - name: "Wrapped BTC"
+    symbol: "WBTC.e"
+    address: "0x50b7545627a5162f82a992c33b87adc75187b218"
+    decimals: 8
+  - name: "Magic Internet Money"
+    symbol: "MIM"
+    address: "0x130966628846bfd36ff31a822705796e8cb8c18d"
+    decimals: 18
+  - name: "TetherToken"
+    symbol: "USDt"
+    address: "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7"
+    decimals: 6
+    cgkId: "tether"
+  - name: "USD Coin"
+    symbol: "USDC"
+    address: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E"
+    decimals: 6
+    cgkId: "usd-coin"
+  - name: "Kyber Network Crystal"
+    symbol: "KNC"
+    address: "0x39fc9e94caeacb435842fadedecb783589f50f5f"
+    decimals: 18
+    cgkId: "kyber-network-crystal"
+  - name: "YUSD Stablecoin"
+    symbol: "YUSD"
+    address: "0x111111111111ed1D73f860F57b2798b683f2d325"
+    decimals: 18
+    cgkId: "yusd-stablecoin"
+  - name: "Staked AVAX"
+    symbol: "sAVAX"
+    address: "0x2b2C81e08f1Af8835a78Bb2A90AE924ACE0eA4bE"
+    decimals: 18
+    cgkId: "benqi-liquid-staked-avax"
+  - name: "MAI (miMATIC)"
+    symbol: "MAI"
+    address: "0x3B55E45fD6bd7d4724F5c47E0d1bCaEdd059263e"
+    decimals: 18
+    cgkId: "mimatic"
+  - name: "Aave Token"
+    symbol: "AAVE.e"
+    address: "0x63a72806098Bd3D9520cC43356dD78afe5D386D9"
+    decimals: 18
+    cgkId: "aave"
+  - name: "Chainlink Token"
+    symbol: "LINK.e"
+    address: "0x5947BB275c521040051D82396192181b413227A3"
+    decimals: 18
+    cgkId: "chainlink"
+secretKey:
+metrics:
+  host:
+  port: 8125
+  namespace: "kybernetwork."
+blacklistedPools:
+encoder:
+  chainId: 43114
+  executorAddress: 0xf9A747eC426F8fFD0D550f9f867604077FFf15F6
+  routerAddress: 0x09917437898D7378C41Fdc4e8AdA531e7b360fe8
+  kyberLOAddress: 0x1877Ec0770901cc6886FDA7E7525a78c2Ed4e975
+useCase:
+  poolFactory:
+  cacheRoute:
+  getRoutes:
+    chainId: 43114
+    gasTokenAddress: 0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7
+    routerAddress: 0x09917437898D7378C41Fdc4e8AdA531e7b360fe8
+    epsilon: 0.005
+    baseGas: 125000
+    getBestPoolsOptions:
+      directPoolsCount: 100
+      whitelistPoolsCount: 500
+      tokenInPoolsCount: 200
+      tokenOutPoolCount: 200
+      amplifiedTvlDirectPoolsCount: 50
+      amplifiedTvlWhitelistPoolsCount: 200
+      amplifiedTvlTokenInPoolsCount: 100
+      amplifiedTvlTokenOutPoolCount: 100
+    spfaFinderOptions:
+      maxHops: 3
+      minPartUsd: 500
+    enabledDexes: *enableDexes
+    whitelistedTokens: *whitelistedTokens
+    blacklistedPools:
+    featureFlags:
+      useOptimizedSPFA: false
+api:
+  defaultTTL: 1s
+  getRoutes:
+    isCacheEnabled: true
+    ttl: 2s
+    isTimeoutEnabled: true
+    timeout: 10s
+  buildRoute:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getPools:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getTokens:
+    isCacheEnabled: false
+    isTimeoutEnabled: false

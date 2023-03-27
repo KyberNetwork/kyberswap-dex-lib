@@ -1,0 +1,512 @@
+env: "develop"
+http:
+  bindAddress: ":8080"
+  mode: release #(debug,release,test)
+  prefix: /polygon
+grpc:
+  host: 0.0.0.0
+  port: 10443
+common:
+  chainID: 137
+  dataFolder: internal/pkg/data/chain/polygon
+  publicRPC: "https://rpc-mainnet.maticvigil.com"
+  rpcs:
+    - "https://polygon.kyberengineering.io/v1/mainnet/geth?appId=prod-dmm"
+  address:
+    multicall: '0xed386fe855c1eff2f843b910923dd8846e45c5a4'
+    gasToken: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270'
+    executorAddress: '0x7F92d949185cD8ceebeBAD89876Ab3e90D1CE3b5'
+    routerAddress: '0x617Dee16B86534a5d792A4d7A62FB491B544111E'
+log:
+  sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
+  consoleLevel: info
+  enableConsole: true
+  enableJSONFormat: true
+enableDexes: &enableDexes
+  - kyberswap
+  - kyberswap-static
+  - kyberswapv2
+  - uniswapv3
+  - sushiswap
+  - quickswap
+  - jetswap
+  - wault
+  - polycat
+  - dfyn
+  - polydex
+  - oneswap
+  - iron-stable
+  - curve
+  - synapse
+  - balancer
+  - gravity
+  - cometh
+  - apeswap
+  - dinoswap
+  - dodo
+  - dystopia
+  - mmf
+  - madmex
+  - metavault
+  - fraxswap
+dexes:
+  - id: fraxswap
+    handler: fraxswap
+    properties:
+      factoryAddress: 0x54F454D747e037Da288dB568D4121117EAb34e79
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 10
+      updateReserveBulk: 10
+  - id: metavault
+    handler: metavault
+    properties:
+      addressesPath: "metavault/addresses.json"
+      reserveJobInterval: 2s
+  - id: madmex
+    handler: madmex
+    properties:
+      addressesPath: "madmex/addresses.json"
+      reserveJobInterval: 2s
+  - id: kyberswap
+    handler: dmm
+    properties:
+      factoryAddress: 0x5f1fe642060b5b9658c15721ea22e982643c095c
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswap-static
+    handler: dmm
+    properties:
+      factoryAddress: 0x1c758aF0688502e49140230F6b0EBd376d429be5
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: kyberswapv2
+    handler: promm
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-matic"
+      factoryAddress: 0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      reserveJobInterval: 100ms
+      updateReserveBulk: 20
+      concurrentBatches: 100
+  - id: uniswapv3
+    handler: uniswapv3
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/ianlapham/uniswap-v3-polygon"
+      factoryAddress: 0x1F98431c8aD98523631AE4a59f267346ea31F984
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      reserveJobInterval: 100ms
+      updateReserveBulk: 10
+      concurrentBatches: 400
+  - id: sushiswap
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/sushiswap/matic-exchange"
+      factoryAddress: 0xc35dadb65012ec5796536bd9864ed8773abc74c4
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: quickswap
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/sameepsi/quickswap06"
+      factoryAddress: 0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: jetswap
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/smartcookie0501/jetswap-subgraph-polygon"
+      factoryAddress: 0x668ad0ed2622c62e24f0d5ab6b6ac1b9d2cd4ac7
+      swapFee: 0.001
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: wault
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/waultfinance/waultswap-polygon"
+      factoryAddress: 0xa98ea6356A316b44Bf710D5f9b6b4eA0081409Ef
+      swapFee: 0.002
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: polycat
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/polycatfi/polycat-finance-amm"
+      factoryAddress: 0x477Ce834Ae6b7aB003cCe4BC4d8697763FF456FA
+      swapFee: 0.0024
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: dfyn
+    handler: uniswap
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/ss-sonic/dfyn-v4"
+      factoryAddress: 0xE7Fb3e833eFE5F9c441105EB65Ef8b261266423B
+      swapFee: 0.003
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: polydex
+    handler: polydex
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/polydex-ws/polydex-info-v2"
+      factoryAddress: 0xEAA98F7b5f7BfbcD1aF14D0efAa9d9e68D82f640
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: oneswap
+    handler: oneswap
+    properties:
+      factoryAddress: 0xd2891f9a9fdbffc2db3ec9d4194409a7678cbc51
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: iron-stable
+    handler: iron-stable
+    properties:
+      poolPath: "iron/stable.json"
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      updateReserveBulk: 200
+  - id: curve
+    handler: curve
+    properties:
+      poolPath: "curve/pools.json"
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 500
+  - id: balancer
+    handler: balancer
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/balancer-labs/balancer-polygon-v2"
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: synapse
+    handler: synapse
+    properties:
+      poolPath: "synapse/pools.json"
+      reserveJobInterval: 1s
+      newPoolJobIntervalSec: 500
+      updateReserveBulk: 200
+  - id: gravity
+    handler: uniswap
+    properties:
+      factoryAddress: 0x3ed75AfF4094d2Aaa38FaFCa64EF1C152ec1Cf20
+      swapFee: 0.0025
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: cometh
+    handler: uniswap
+    properties:
+      factoryAddress: 0x800b052609c355cA8103E06F022aA30647eAd60a
+      swapFee: 0.005
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: apeswap
+    handler: uniswap
+    properties:
+      factoryAddress: 0xcf083be4164828f00cae704ec15a36d711491284
+      swapFee: 0.002
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: dinoswap
+    handler: uniswap
+    properties:
+      factoryAddress: 0x624ccf581371f8a4493e6abde46412002555a1b6
+      swapFee: 0.0018
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 1000
+      updateReserveBulk: 200
+  - id: dodo
+    handler: dodo
+    properties:
+      subgraphAPI: "https://api.thegraph.com/subgraphs/name/dodoex/dodoex-v2-polygon"
+      dodoV1SellHelper: "0xdfaf9584f5d229a9dbe5978523317820a8897c5a"
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      reserveJobInterval: 2s
+      updateReserveBulk: 50
+  - id: dystopia
+    handler: dystopia
+    properties:
+      factoryAddress: 0x1d21Db6cde1b18c7E47B0F7F42f4b3F68b9beeC9
+      swapFee: 0.0005
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      updateReserveBulk: 500
+  - id: mmf
+    handler: uniswap
+    properties:
+      factoryAddress: 0x7cfb780010e9c861e03bcbc7ac12e013137d47a5
+      swapFee: 0.0017
+      reserveJobInterval: 2s
+      newPoolJobIntervalSec: 10
+      newPoolLimit: 3000
+      updateReserveBulk: 500
+epsilon: 0.005
+cachePoints:
+  - amount: 1
+    ttl: 30
+  - amount: 2
+    ttl: 10
+  - amount: 5
+    ttl: 10
+  - amount: 10
+    ttl: 10
+  - amount: 11
+    ttl: 30
+  - amount: 15
+    ttl: 10
+  - amount: 20
+    ttl: 10
+  - amount: 22
+    ttl: 30
+  - amount: 25
+    ttl: 10
+  - amount: 30
+    ttl: 10
+  - amount: 33
+    ttl: 30
+  - amount: 35
+    ttl: 10
+  - amount: 40
+    ttl: 10
+  - amount: 44
+    ttl: 30
+  - amount: 45
+    ttl: 10
+  - amount: 50
+    ttl: 10
+  - amount: 55
+    ttl: 30
+  - amount: 60
+    ttl: 10
+  - amount: 66
+    ttl: 30
+  - amount: 70
+    ttl: 10
+  - amount: 77
+    ttl: 30
+  - amount: 80
+    ttl: 10
+  - amount: 88
+    ttl: 30
+  - amount: 90
+    ttl: 10
+  - amount: 99
+    ttl: 30
+  - amount: 100
+    ttl: 10
+  - amount: 500
+    ttl: 10
+  - amount: 1000
+    ttl: 10
+  - amount: 10000
+    ttl: 10
+  - amount: 100000
+    ttl: 10
+cacheRanges:
+  - fromUSD: 0
+    toUSD: 100
+    ttl: 10
+  - fromUSD: 101
+    toUSD: 500
+    ttl: 10
+  - fromUSD: 500
+    toUSD: 1000
+    ttl: 10
+  - fromUSD: 1001
+    toUSD: 2000
+    ttl: 10
+  - fromUSD: 2000
+    toUSD: 5000
+    ttl: 10
+  - fromUSD: 5000
+    toUSD: 10000
+    ttl: 10
+  - fromUSD: 10000
+    toUSD: -1
+    ttl: 10
+redis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+  readTimeout: 3
+  writeTimeout: 3
+readOnlyRedis:
+  host: localhost
+  port: 6379
+  dbNumber: 0
+  password: ''
+  prefix: ''
+redisSentinel:
+  masterName: ""
+  sentinelPort: 26379
+  dbNumber: 0
+  password: ""
+  prefix: ""
+  readTimeout: 3
+  writeTimeout: 3
+ddAgentHost: ""
+featureFlags:
+  useOptimizedSPFA: false
+enableGRPC: false
+keyPair:
+  storageFilePath: ""
+  keyIDForSealingData:
+    clientData: "1"
+tokenCatalog:
+  httpUrl: ""
+reloadConfig:
+  httpUrl: ""
+  interval: 10s
+  serviceName: "aggregator"
+  chainID: 137
+whitelistedTokens: &whitelistedTokens
+  - name: "Wrapped Matic"
+    symbol: "WMATIC"
+    address: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"
+    decimals: 18
+    cgkId: "wmatic"
+  - name: "Tether USD"
+    symbol: "USDT"
+    address: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
+    decimals: 6
+    cgkId: "tether"
+  - name: "Dai Stablecoin"
+    symbol: "DAI"
+    address: "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063"
+    decimals: 18
+    cgkId: "dai"
+  - name: "USD Coin"
+    symbol: "USDC"
+    address: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174"
+    decimals: 6
+    cgkId: "usd-coin"
+  - name: "Wrapped Ether"
+    symbol: "WETH"
+    address: "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619"
+    decimals: 18
+    cgkId: "ethereum"
+  - name: "Wrapped BTC"
+    symbol: "WBTC"
+    address: "0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6"
+    decimals: 8
+  - name: "Quickswap"
+    symbol: "QUICK"
+    address: "0xB5C064F955D8e7F38fE0460C556a72987494eE17"
+    decimals: 18
+  - name: "Kyber Network Crystal"
+    symbol: "KNC"
+    address: "0x1c954e8fe737f99f68fa1ccda3e51ebdb291948c"
+    decimals: 18
+    cgkId: "kyber-network-crystal"
+  - name: "Staked MATIC (PoS)"
+    symbol: "stMATIC"
+    address: "0x3a58a54c066fdc0f2d55fc9c89f0415c92ebf3c4"
+    decimals: 18
+    cgkId: "lido-staked-matic"
+  - name: "miMATIC (miMATIC)"
+    symbol: "MIMATIC"
+    address: "0xa3Fa99A148fA48D14Ed51d610c367C61876997F1"
+    decimals: 18
+    cgkId: "mimatic"
+  - name: "VersaGames"
+    symbol: "VERSA"
+    address: "0x8497842420cFdbc97896C2353D75d89Fc8D5Be5D"
+    decimals: 18
+    cgkId: "versagames"
+  - name: "MMFinance (MMF)"
+    symbol: "MMF"
+    address: "0x22a31bd4cb694433b6de19e0acc2899e553e9481"
+    decimals: 18
+    cgkId: "mmfinance-polygon"
+  - name: "ChainLink"
+    symbol: "LINK"
+    address: "0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39"
+    decimals: 18
+    cgkId: "chainlink"
+secretKey:
+metrics:
+  host:
+  port: 8125
+  namespace: "kybernetwork."
+blacklistedPools:
+  - 0x7cC19f8c258D7F489BC1074437e25A46e397688F
+encoder:
+  chainId: 137
+  executorAddress: 0x1d5702C6D7eB30E42A8c94B8Db7eA2E8444a37FD
+  routerAddress: 0x6131B5fae19EA4f9D964eAc0408E4408b66337b5
+useCase:
+  poolFactory:
+  cacheRoute:
+  getRoutes:
+    chainId: 137
+    gasTokenAddress: 0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270
+    routerAddress: 0x6131B5fae19EA4f9D964eAc0408E4408b66337b5
+    epsilon: 0.005
+    baseGas: 125000
+    getBestPoolsOptions:
+      directPoolsCount: 100
+      whitelistPoolsCount: 500
+      tokenInPoolsCount: 200
+      tokenOutPoolCount: 200
+      amplifiedTvlDirectPoolsCount: 50
+      amplifiedTvlWhitelistPoolsCount: 200
+      amplifiedTvlTokenInPoolsCount: 100
+      amplifiedTvlTokenOutPoolCount: 100
+    spfaFinderOptions:
+      maxHops: 3
+      minPartUsd: 500
+    enabledDexes: *enableDexes
+    whitelistedTokens: *whitelistedTokens
+    blacklistedPools:
+    featureFlags:
+      useOptimizedSPFA: false
+api:
+  defaultTTL: 1s
+  getRoutes:
+    isCacheEnabled: true
+    ttl: 2s
+    isTimeoutEnabled: true
+    timeout: 10s
+  buildRoute:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getPools:
+    isCacheEnabled: false
+    isTimeoutEnabled: false
+  getTokens:
+    isCacheEnabled: false
+    isTimeoutEnabled: false

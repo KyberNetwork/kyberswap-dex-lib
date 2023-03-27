@@ -1,0 +1,99 @@
+package metavault
+
+import (
+	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
+
+	"math/big"
+	"time"
+)
+
+// FastPriceFeedV1
+// https://github.com/gmx-io/gmx-contracts/blob/master/contracts/oracle/FastPriceFeed.sol
+type FastPriceFeedV1 struct {
+	DisableFastPriceVoteCount *big.Int            `json:"disableFastPriceVoteCount"`
+	IsSpreadEnabled           bool                `json:"isSpreadEnabled"`
+	LastUpdatedAt             *big.Int            `json:"lastUpdatedAt"`
+	MaxDeviationBasisPoints   *big.Int            `json:"maxDeviationBasisPoints"`
+	MinAuthorizations         *big.Int            `json:"minAuthorizations"`
+	PriceDuration             *big.Int            `json:"priceDuration"`
+	VolBasisPoints            *big.Int            `json:"volBasisPoints"`
+	Prices                    map[string]*big.Int `json:"prices"`
+}
+
+func (pf *FastPriceFeedV1) GetPrice(token string, refPrice *big.Int, maximise bool) *big.Int {
+	if new(big.Int).SetInt64(time.Now().Unix()).Cmp(new(big.Int).Add(pf.LastUpdatedAt, pf.PriceDuration)) > 0 {
+		return refPrice
+	}
+
+	fastPrice := pf.Prices[token]
+	if fastPrice.Cmp(constant.Zero) == 0 {
+		return refPrice
+	}
+
+	maxPrice := new(big.Int).Div(new(big.Int).Mul(refPrice, new(big.Int).Add(BasisPointsDivisor, pf.MaxDeviationBasisPoints)), BasisPointsDivisor)
+	minPrice := new(big.Int).Div(new(big.Int).Mul(refPrice, new(big.Int).Sub(BasisPointsDivisor, pf.MaxDeviationBasisPoints)), BasisPointsDivisor)
+
+	if pf.favorFastPrice() {
+		if fastPrice.Cmp(minPrice) >= 0 && fastPrice.Cmp(maxPrice) <= 0 {
+			if maximise {
+				if refPrice.Cmp(fastPrice) > 0 {
+					volPrice := new(big.Int).Div(new(big.Int).Mul(fastPrice, new(big.Int).Add(BasisPointsDivisor, pf.VolBasisPoints)), BasisPointsDivisor)
+
+					if volPrice.Cmp(refPrice) > 0 {
+						return refPrice
+					} else {
+						return volPrice
+					}
+				}
+
+				return fastPrice
+			}
+
+			if refPrice.Cmp(fastPrice) < 0 {
+				volPrice := new(big.Int).Div(new(big.Int).Mul(fastPrice, new(big.Int).Sub(BasisPointsDivisor, pf.VolBasisPoints)), BasisPointsDivisor)
+
+				if volPrice.Cmp(refPrice) < 0 {
+					return refPrice
+				} else {
+					return volPrice
+				}
+			}
+
+			return fastPrice
+		}
+	}
+
+	if maximise {
+		if refPrice.Cmp(fastPrice) > 0 {
+			return refPrice
+		}
+
+		if fastPrice.Cmp(maxPrice) > 0 {
+			return maxPrice
+		} else {
+			return fastPrice
+		}
+	}
+
+	if refPrice.Cmp(fastPrice) < 0 {
+		return refPrice
+	}
+
+	if fastPrice.Cmp(minPrice) < 0 {
+		return minPrice
+	} else {
+		return fastPrice
+	}
+}
+
+func (pf *FastPriceFeedV1) favorFastPrice() bool {
+	if pf.IsSpreadEnabled {
+		return false
+	}
+
+	if pf.DisableFastPriceVoteCount.Cmp(pf.MinAuthorizations) >= 0 {
+		return false
+	}
+
+	return true
+}

@@ -1,0 +1,22 @@
+{
+  "dai": {
+    "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
+    "decimals": 18
+  },
+  "psms": [
+    {
+      "address": "0x89b78cfa322f6c5de0abceecab66aee45393cc5a",
+      "gem": {
+        "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "decimals": 6
+      }
+    },
+    {
+      "address": "0x961ae24a1ceba861d1fdf723794f6024dc5485cf",
+      "gem": {
+        "address": "0x8e870d67f660d95d5be530380d0ec0bd388289e1",
+        "decimals": 18
+      }
+    }
+  ]
+}

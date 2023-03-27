@@ -1,0 +1,7 @@
+[
+    {
+        "id": "client_data_1",
+        "privateKeyPEM": "-----BEGIN RSA PRIVATE KEY-----\nMIICXAIBAAKBgQCI8ylfXTmRqvmD11+T+Cj4qZcZAs2iTn2rFiZPZw8XEQp8Hw/d\nGFtqdho1KTf0XlezIveHKCguiKbq/w+FlQ/OFNvxlkK/3Ih0soC/0AgOpCo27ZQn\ne7aTy3i8FQrugF1h5MkAotIql3JUgWlh6zTx/s8i4zeTk/EwKfDmWekEYQIDAQAB\nAoGAWNTRS0hfJTuv6XL0Tjiz6semeNS2qcccALO3Wd3RjfbBxE0prxIzidTdnwoD\nf4EKhenygTrtBXIiQ1/6o31S6DhecvMEqoI4LZmQMsbCNiP3vapaLwcV2DIDbsfd\nX21jZaWeCtP81M2CmMrLp/2k1tLfrAfZ7i7aB8fLn+M1VaECQQDJAqfAuZHe5ldD\nn7sgjl6Fj+WhqwnR78dk7VfRO93tFSSLOnmp4OvDmIUEHJ4F5tiif7aLAB2yenDN\nBh5Z9QCFAkEArmopE7j2Qb09WhRu3JAe9iKKOqDIMJH9JPdHb2uJGOhr7kfccCVn\neYjoWjZbtJGzUtpAZelB0iRu+AOhYYpJLQJBAJmrU/+8Xk4fnhrupCoxbQWCirTb\ngzhhrPf1kqs8r16uSS+/Vn+Ome8ATMBl+FDeuEMSi8UcI5fsjwvOX6m56dkCQEgL\nZAJYkaggAjq2XADRq2hiZhTHm0ms1BMz7ZcRpWTbhNG9b0oHuVFTgx7Ye1MAKEGe\nE6HFE0I5eHkMDtpao9UCQGUqT1pjATvl8ExTcziuX/wzjwuYoKAiFNkrj+MDA1c/\nbhZgLJOFNU4Em/fgfiM+fYwx9G4DFYosPKuGraH9GII=\n-----END RSA PRIVATE KEY-----\n%",
+        "publicKeyPEM": "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCI8ylfXTmRqvmD11+T+Cj4qZcZ\nAs2iTn2rFiZPZw8XEQp8Hw/dGFtqdho1KTf0XlezIveHKCguiKbq/w+FlQ/OFNvx\nlkK/3Ih0soC/0AgOpCo27ZQne7aTy3i8FQrugF1h5MkAotIql3JUgWlh6zTx/s8i\n4zeTk/EwKfDmWekEYQIDAQAB\n-----END PUBLIC KEY-----\n%"
+    }
+]

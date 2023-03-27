@@ -1,0 +1,74 @@
+[
+  {
+    "address": "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+    "symbol": "USDT",
+    "name": "Tether",
+    "decimals": 6
+  },
+  {
+    "address": "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+    "symbol": "USDC",
+    "name": "USDC",
+    "decimals": 6
+  },
+  {
+    "address": "0xcc1b9517460d8ae86fe576f614d091fca65a28fc",
+    "symbol": "VIS",
+    "name": "Vigorus",
+    "decimals": 18
+  },
+  {
+    "address": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+    "symbol": "WMATIC",
+    "name": "WMATIC",
+    "decimals": 18
+  },
+  {
+    "address": "0xc1c93d475dc82fe72dbc7074d55f5a734f8ceeae",
+    "symbol": "PGX",
+    "name": "PGX",
+    "decimals": 18
+  },
+  {
+    "address": "0x3a58a54c066fdc0f2d55fc9c89f0415c92ebf3c4",
+    "symbol": "stMATIC",
+    "name": "stMATIC",
+    "decimals": 18
+  },
+  {
+    "address": "0xa3fa99a148fa48d14ed51d610c367c61876997f1",
+    "symbol": "miMATIC",
+    "name": "miMATIC",
+    "decimals": 18
+  },
+  {
+    "address": "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063",
+    "symbol": "DAI",
+    "name": "DAI",
+    "decimals": 18
+  },
+  {
+    "address": "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619",
+    "symbol": "WETH",
+    "name": "WETH",
+    "decimals": 18
+  },
+  {
+    "address": "0xb0b195aefa3650a6908f15cdac7d92f8a5791b0b",
+    "symbol": "BOB",
+    "name": "BOB",
+    "decimals": 18
+  },
+  {
+    "address": "0x22a31bd4cb694433b6de19e0acc2899e553e9481",
+    "symbol": "MMF",
+    "name": "MMF",
+    "decimals": 18
+  },
+  {
+    "address": "0xbd1463f02f61676d53fd183c2b19282bff93d099",
+    "symbol": "jCHF",
+    "name": "jCHF",
+    "decimals": 18
+  }
+]

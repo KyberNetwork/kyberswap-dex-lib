@@ -1,0 +1,3 @@
+lint:
+	golangci-lint run ./internal/pkg/...
+

@@ -1,0 +1,114 @@
+syntax = "proto3";
+
+package aggregator.v1;
+
+import "validate/validate.proto";
+
+option go_package = "github.com/KyberNetwork/kyberswap-aggregator/pb/go/price/v1";
+
+
+// AggregatorService is service aggregator which aggregates all data for all dex from on chain.
+service AggregatorService {
+  // FindRoute will receive request from client and return best route.
+  rpc FindRoutes (FindRoutesRequest) returns (FindRoutesResponse) {}
+  // BuildRoute will verify find route input with signature from client sending and return encoded data.
+  rpc BuildRoute (BuildRouteRequest) returns (BuildRouteResponse) {}
+}
+
+// BuildRouteRequest defines all input for building route
+message BuildRouteRequest {
+  RouteSummary route_summary = 1;
+  string signature = 2 [(validate.rules).string.min_len = 1];
+  int64 deadline = 3;
+  uint32 slippage_tolerance = 4;
+  string to = 5 [(validate.rules).string.min_len = 1];
+  string referral = 6;
+  string source = 7;
+}
+
+// BuildRoutesRequest contains encoded route result.
+message BuildRouteResponse {
+  BuildRouteResult result = 1;
+}
+
+// BuildRouteResult ...
+message BuildRouteResult{
+  string data = 1;
+  string router_address = 2;
+}
+
+// FindRoutesRequest defines all input for finding best route.
+message FindRoutesRequest {
+  string token_in = 1 [(validate.rules).string.min_len = 1];
+  string token_out = 2 [(validate.rules).string.min_len = 1];
+  string amount_in = 3 [(validate.rules).string.min_len = 1];
+  repeated string dexes = 4;
+  bool save_gas = 5;
+  bool gas_include = 6;
+  string gas_price = 7;
+  ExtraFee extra_fee = 8;
+}
+
+// ExtraFee ...
+message ExtraFee {
+  string fee_amount = 1;
+  ChargeFeeBy charge_fee_by = 2;
+  bool is_in_bps = 3;
+  string fee_receiver = 4;
+}
+
+// FindRoutesResponse includes best route info.
+message FindRoutesResponse {
+  FindRoutesResult result = 1;
+}
+
+// FindRoutesResult ...
+message FindRoutesResult {
+  RouteSummary route_summary = 1;
+  string signature = 2;
+  string route_address = 3;
+}
+
+// FindRoutesResult ...
+message RouteSummary {
+  string token_in = 1;
+  string amount_in = 2;
+  double amount_in_usd = 3;
+  bool token_in_market_price_available = 4;
+  string token_out = 5;
+  string amount_out = 6;
+  double amount_out_usd = 7;
+  bool token_out_market_price_available = 8;
+  int64 gas = 9;
+  string gas_price = 10;
+  double gas_usd = 11;
+  ExtraFee extra_fee = 12; 
+  repeated Path route = 13;
+}
+
+// Path ...
+message Path {
+  repeated Swap swaps = 1;
+}
+
+// Swap ...
+message Swap {
+  string pool = 1;
+  string token_in = 2;
+  string token_out = 3;
+  string limit_return_amount = 4;
+  string swap_amount = 5;
+  string amount_out = 6;
+  string exchange = 7;
+  int32 pool_length = 8;
+  // TODO: use enum instead
+  string pool_type = 9;
+  bytes extra = 10;
+}
+
+// ChargeFeeBy ...
+enum ChargeFeeBy {
+  CHARGE_FEE_BY_UNSPECIFIED = 0;
+  CHARGE_FEE_BY_IN = 1;
+  CHARGE_FEE_BY_OUT = 2;
+}
