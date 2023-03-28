@@ -1,6 +1,6 @@
 package fixtures
 
-import "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+import "github.com/KyberNetwork/router-service/internal/pkg/entity"
 
 var Prices = []entity.Price{
 	{

@@ -3,8 +3,8 @@ package usecase
 import (
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/factory"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type Config struct {

@@ -7,12 +7,12 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	aggregatorerrors "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/errors"
-	usecasecore "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/core"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/eth"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	aggregatorerrors "github.com/KyberNetwork/router-service/internal/pkg/errors"
+	usecasecore "github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 
 	"github.com/KyberNetwork/kyberswap-error/pkg/errors"
 )

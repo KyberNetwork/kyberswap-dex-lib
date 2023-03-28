@@ -1,5 +1,5 @@
 version: v1
-name: buf.build/KyberNetwork/kyberswap-aggregator
+name: buf.build/KyberNetwork/router-service
 deps:
   - buf.build/envoyproxy/protoc-gen-validate:0e25aabb25c0709aff19aea176a1da13328b12fb
 

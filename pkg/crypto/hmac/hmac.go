@@ -6,7 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 
-	cryptopkg "github.com/KyberNetwork/kyberswap-aggregator/pkg/crypto"
+	cryptopkg "github.com/KyberNetwork/router-service/pkg/crypto"
 )
 
 var ErrSignatureMisMatch = errors.New("signature is mismatch")

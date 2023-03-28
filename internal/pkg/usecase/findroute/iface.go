@@ -4,9 +4,9 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core"
-	poolPkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/core"
+	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
 // IFinder is an interface of finding route algorithm

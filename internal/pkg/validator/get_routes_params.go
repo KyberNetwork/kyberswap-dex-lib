@@ -4,10 +4,10 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/api/params"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
 type getRoutesParamsValidator struct{}

@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 
 	"github.com/stretchr/testify/assert"
 )

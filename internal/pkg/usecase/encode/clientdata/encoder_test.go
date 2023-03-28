@@ -8,8 +8,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/mocks/usecase/encode/clientdata"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/encode/clientdata"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 )
 
 func TestEncoder_Encode(t *testing.T) {

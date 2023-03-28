@@ -6,9 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	poolPkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/uni"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/uni"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
 func TestNewPath(t *testing.T) {

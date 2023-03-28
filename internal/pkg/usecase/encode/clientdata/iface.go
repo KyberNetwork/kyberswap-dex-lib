@@ -1,6 +1,6 @@
 package clientdata
 
-//go:generate mockgen -destination ../../../mocks/usecase/encode/clientdata/signer.go -package clientdata github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/encode/clientdata ISigner
+//go:generate mockgen -destination ../../../mocks/usecase/encode/clientdata/signer.go -package clientdata github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata ISigner
 
 import (
 	"context"

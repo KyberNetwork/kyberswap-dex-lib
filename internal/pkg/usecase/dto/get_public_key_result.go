@@ -1,6 +1,6 @@
 package dto
 
-import "github.com/KyberNetwork/kyberswap-aggregator/pkg/crypto"
+import "github.com/KyberNetwork/router-service/pkg/crypto"
 
 type GetPublicKeyResult struct {
 	PEMString string `json:"pemString"`

@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
 const PoolEntity = "pool"

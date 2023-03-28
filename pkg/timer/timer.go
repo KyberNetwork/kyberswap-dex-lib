@@ -3,7 +3,7 @@ package timer
 import (
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func Start(task interface{}) func() {

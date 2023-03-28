@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-resty/resty/v2"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/service"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/service"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 const (

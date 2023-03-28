@@ -1,4 +1,4 @@
-module github.com/KyberNetwork/kyberswap-aggregator
+module github.com/KyberNetwork/router-service
 
 go 1.16
 

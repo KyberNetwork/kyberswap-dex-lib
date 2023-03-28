@@ -6,11 +6,11 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	curveBase "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/curve-base"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	curveBase "github.com/KyberNetwork/router-service/internal/pkg/core/curve-base"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
 type Pool struct {

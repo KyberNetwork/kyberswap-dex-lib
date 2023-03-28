@@ -8,9 +8,9 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/api/params"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/dto"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 // GetRoutes [GET /routes] Find best routes

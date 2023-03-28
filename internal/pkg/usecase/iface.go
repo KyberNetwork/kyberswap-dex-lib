@@ -5,20 +5,20 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-//go:generate mockgen -destination ../mocks/usecase/pool_repository.go -package usecase github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase IPoolRepository
-//go:generate mockgen -destination ../mocks/usecase/token_repository.go -package usecase github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase ITokenRepository
-//go:generate mockgen -destination ../mocks/usecase/price_repository.go -package usecase github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase IPriceRepository
-//go:generate mockgen -destination ../mocks/usecase/config_fetcher_repository.go -package usecase github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase IConfigFetcherRepository
-//go:generate mockgen -destination ../mocks/usecase/route_cache_repository.go -package usecase github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase IRouteCacheRepository
-//go:generate mockgen -destination ../mocks/usecase/scanner_state_repository.go -package usecase github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase IScannerStateRepository
-//go:generate mockgen -destination ../mocks/usecase/client_data_encoder.go -package usecase github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase IClientDataEncoder
-//go:generate mockgen -destination ../mocks/usecase/encoder.go -package usecase github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase IEncoder
-//go:generate mockgen -destination ../mocks/usecase/l2fee_calculator.go -package usecase github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase IL2FeeCalculator
+//go:generate mockgen -destination ../mocks/usecase/pool_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IPoolRepository
+//go:generate mockgen -destination ../mocks/usecase/token_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase ITokenRepository
+//go:generate mockgen -destination ../mocks/usecase/price_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IPriceRepository
+//go:generate mockgen -destination ../mocks/usecase/config_fetcher_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IConfigFetcherRepository
+//go:generate mockgen -destination ../mocks/usecase/route_cache_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IRouteCacheRepository
+//go:generate mockgen -destination ../mocks/usecase/scanner_state_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IScannerStateRepository
+//go:generate mockgen -destination ../mocks/usecase/client_data_encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IClientDataEncoder
+//go:generate mockgen -destination ../mocks/usecase/encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IEncoder
+//go:generate mockgen -destination ../mocks/usecase/l2fee_calculator.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IL2FeeCalculator
 
 // IPoolRepository receives pool addresses, fetch pool data from datastore, decode them and return []entity.Pool
 type IPoolRepository interface {

@@ -10,9 +10,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/config"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/model"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/config"
+	"github.com/KyberNetwork/router-service/internal/pkg/model"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 const jobIntervalSec = 30

@@ -8,7 +8,7 @@ import (
 
 	"github.com/machinebox/graphql"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
 var GetPoolAddressesQueryTemplate = `{pools (first: {{.First}} skip: {{.Skip}}) { id }}`

@@ -3,7 +3,7 @@ package core
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
 // CalcL1FeeUSD return gas in USD that is used to publish tx to L1

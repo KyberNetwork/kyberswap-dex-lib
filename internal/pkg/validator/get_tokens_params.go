@@ -1,7 +1,7 @@
 package validator
 
 import (
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 )
 
 type getTokensParamsValidator struct{}

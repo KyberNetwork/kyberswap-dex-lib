@@ -9,11 +9,11 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/api/params"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/mocks/api"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/dto"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/test"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/validator"
+	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/mocks/api"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/test"
+	"github.com/KyberNetwork/router-service/internal/pkg/validator"
 )
 
 func TestTokenController_GetTokens(t *testing.T) {

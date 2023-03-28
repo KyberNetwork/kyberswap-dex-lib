@@ -3,8 +3,8 @@ package core
 import (
 	"github.com/oleiade/lane"
 
-	poolPkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
 // minHopsToToken performs BFS and returns minimum swap required (min hops)

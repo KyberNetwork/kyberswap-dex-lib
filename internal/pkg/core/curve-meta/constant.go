@@ -1,7 +1,7 @@
 package curveMeta
 
 import (
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
 const MaxLoopLimit = 255

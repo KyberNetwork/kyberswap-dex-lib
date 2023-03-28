@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 
 	cmap "github.com/orcaman/concurrent-map"
 )

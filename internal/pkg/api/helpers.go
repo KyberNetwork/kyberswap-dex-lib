@@ -6,11 +6,11 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/eth"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/requestid"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/validator"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
+	"github.com/KyberNetwork/router-service/internal/pkg/validator"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 var ErrorResponseByError = map[error]ErrorResponse{

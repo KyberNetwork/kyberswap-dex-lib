@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	errors "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/errors"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	errors "github.com/KyberNetwork/router-service/internal/pkg/core/errors"
 )
 
 func _xpMem(

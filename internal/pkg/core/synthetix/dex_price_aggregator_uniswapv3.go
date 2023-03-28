@@ -7,9 +7,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/abi"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/abi"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 )
 
 // =============================================================================================

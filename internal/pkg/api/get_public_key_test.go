@@ -8,10 +8,10 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/mocks/api"
-	usecasepkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/dto"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/test"
+	"github.com/KyberNetwork/router-service/internal/pkg/mocks/api"
+	usecasepkg "github.com/KyberNetwork/router-service/internal/pkg/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/test"
 )
 
 func Test_GetPublicKey(t *testing.T) {

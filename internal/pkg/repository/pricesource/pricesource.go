@@ -1,9 +1,9 @@
 package pricesource
 
 import (
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/repository"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/repository/pricesource/coingecko"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/repository/pricesource/krystal"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/pricesource/coingecko"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/pricesource/krystal"
 )
 
 type TypePriceSource string

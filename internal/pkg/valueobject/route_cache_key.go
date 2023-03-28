@@ -3,7 +3,7 @@ package valueobject
 import (
 	"strings"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
 type RouteCacheMode string

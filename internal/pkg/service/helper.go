@@ -1,6 +1,6 @@
 package service
 
-import "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+import "github.com/KyberNetwork/router-service/internal/pkg/entity"
 
 func ExtractPricesMapping(priceEntityByAddress map[string]entity.Price) map[string]float64 {
 	prices := make(map[string]float64, len(priceEntityByAddress))

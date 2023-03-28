@@ -5,10 +5,10 @@ import (
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/factory"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 )
 
 const (

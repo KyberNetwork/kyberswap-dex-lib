@@ -7,8 +7,8 @@ import (
 
 	cmap "github.com/orcaman/concurrent-map"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 var ErrPoolNotFoundInCache = errors.New("can not get pool in cache")

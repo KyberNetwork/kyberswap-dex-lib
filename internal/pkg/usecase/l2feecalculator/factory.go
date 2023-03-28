@@ -1,8 +1,8 @@
 package l2feecalculator
 
 import (
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func NewL2FeeCalculator(chainID valueobject.ChainID) usecase.IL2FeeCalculator {

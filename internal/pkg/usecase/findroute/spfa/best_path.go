@@ -5,10 +5,10 @@ import (
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core"
-	poolPkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/findroute"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/findroute/common"
+	"github.com/KyberNetwork/router-service/internal/pkg/core"
+	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 )
 
 // bestPathExactIn Find the best path to token out

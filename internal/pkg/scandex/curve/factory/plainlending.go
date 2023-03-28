@@ -7,19 +7,19 @@ import (
 
 	"context"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/abis"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/repository"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/service"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/eth"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/abis"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository"
+	"github.com/KyberNetwork/router-service/internal/pkg/service"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 
-	curveAave "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/curve-aave"
-	curveBase "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/curve-base"
-	curveCompound "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/curve-compound"
-	curvePlainOracle "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/curve-plain-oracle"
+	curveAave "github.com/KyberNetwork/router-service/internal/pkg/core/curve-aave"
+	curveBase "github.com/KyberNetwork/router-service/internal/pkg/core/curve-base"
+	curveCompound "github.com/KyberNetwork/router-service/internal/pkg/core/curve-compound"
+	curvePlainOracle "github.com/KyberNetwork/router-service/internal/pkg/core/curve-plain-oracle"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 
 	"github.com/ethereum/go-ethereum/common"
 )

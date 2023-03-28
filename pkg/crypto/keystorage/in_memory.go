@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/crypto"
+	"github.com/KyberNetwork/router-service/pkg/crypto"
 )
 
 type inMemoryStorage struct {

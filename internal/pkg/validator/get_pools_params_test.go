@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 )
 
 func TestGetPoolsParamsValidator_Validate(t *testing.T) {

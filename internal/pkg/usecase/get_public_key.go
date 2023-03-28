@@ -3,8 +3,8 @@ package usecase
 import (
 	"context"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/dto"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/crypto"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/pkg/crypto"
 )
 
 type getPublicKeyUseCase struct {

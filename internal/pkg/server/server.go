@@ -10,9 +10,9 @@ import (
 
 	"github.com/KyberNetwork/reload"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/config"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/reloadconfig"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/config"
+	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type server struct {

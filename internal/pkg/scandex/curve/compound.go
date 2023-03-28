@@ -4,14 +4,14 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/abis"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	curveCompound "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/curve-compound"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/repository"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/abis"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	curveCompound "github.com/KyberNetwork/router-service/internal/pkg/core/curve-compound"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 
-	errorsPkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/errors"
+	errorsPkg "github.com/KyberNetwork/router-service/internal/pkg/core/errors"
 
 	"github.com/ethereum/go-ethereum/common"
 )
