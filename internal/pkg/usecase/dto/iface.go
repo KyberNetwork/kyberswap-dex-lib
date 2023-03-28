@@ -1,6 +1,6 @@
 package dto
 
-import "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+import "github.com/KyberNetwork/router-service/internal/pkg/entity"
 
 // IGetTokensResultTokenBuilder owns logic of building GetTokensResult
 type IGetTokensResultTokenBuilder interface {

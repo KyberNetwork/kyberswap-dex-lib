@@ -1,7 +1,7 @@
 package gmx
 
 import (
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 
 	"math/big"
 	"time"

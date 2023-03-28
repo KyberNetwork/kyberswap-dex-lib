@@ -1,8 +1,8 @@
 package executor
 
 import (
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func BuildAndPackSwapSequences(chainID valueobject.ChainID, encodingRoute [][]types.EncodingSwap) ([][]byte, error) {

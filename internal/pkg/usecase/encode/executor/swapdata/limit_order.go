@@ -10,9 +10,9 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/limitorder"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/limitorder"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 var (

@@ -4,9 +4,9 @@ import (
 	"math/big"
 	"time"
 
-	errors "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/errors"
+	errors "github.com/KyberNetwork/router-service/internal/pkg/core/errors"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
 /**

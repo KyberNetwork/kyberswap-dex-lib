@@ -14,10 +14,10 @@ import (
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
 type Pool struct {

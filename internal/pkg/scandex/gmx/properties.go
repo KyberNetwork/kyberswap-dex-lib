@@ -3,7 +3,7 @@ package gmx
 import (
 	"encoding/json"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/duration"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/duration"
 )
 
 type Properties struct {

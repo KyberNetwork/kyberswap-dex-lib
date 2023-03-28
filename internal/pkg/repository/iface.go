@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 )
 
 // IRPCRepository collects data from RPC nodes

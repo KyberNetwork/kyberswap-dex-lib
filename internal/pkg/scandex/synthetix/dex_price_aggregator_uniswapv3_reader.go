@@ -9,11 +9,11 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/abis"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/repository"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/service"
-	abiutils "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/abi"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/abis"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository"
+	"github.com/KyberNetwork/router-service/internal/pkg/service"
+	abiutils "github.com/KyberNetwork/router-service/internal/pkg/utils/abi"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 )
 
 const (

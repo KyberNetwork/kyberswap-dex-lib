@@ -3,15 +3,15 @@ package config
 import (
 	"errors"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/api"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/metrics"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/reloadconfig"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/server/http"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/encode"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/redis"
+	"github.com/KyberNetwork/router-service/internal/pkg/api"
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
+	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
+	"github.com/KyberNetwork/router-service/internal/pkg/server/http"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
 var (

@@ -10,13 +10,13 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/config"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/metrics"
-	limitorderrepo "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/repository/limitorder"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/service"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/config"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
+	limitorderrepo "github.com/KyberNetwork/router-service/internal/pkg/repository/limitorder"
+	"github.com/KyberNetwork/router-service/internal/pkg/service"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 // Currently, total of reserve in limit order pool will very small with other pools. So it will filter in choosing pools process

@@ -14,13 +14,13 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/config"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/metrics"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/scandex/core"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/service"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/config"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
+	"github.com/KyberNetwork/router-service/internal/pkg/scandex/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/service"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type Scanner struct {

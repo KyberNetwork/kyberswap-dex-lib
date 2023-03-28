@@ -3,7 +3,7 @@ package rest
 import (
 	"testing"
 
-	aggregatorerrors "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/errors"
+	aggregatorerrors "github.com/KyberNetwork/router-service/internal/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-error/pkg/errors"
 	"github.com/stretchr/testify/assert"

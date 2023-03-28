@@ -9,9 +9,9 @@ import (
 
 	"github.com/go-resty/resty/v2"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/service"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/time"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/service"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/time"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 const (

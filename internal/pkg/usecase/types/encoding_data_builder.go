@@ -3,9 +3,9 @@ package types
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/core"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/eth"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type EncodingDataBuilder struct {

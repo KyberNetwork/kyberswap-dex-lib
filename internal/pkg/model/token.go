@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
 const TokenKey = "tokens"

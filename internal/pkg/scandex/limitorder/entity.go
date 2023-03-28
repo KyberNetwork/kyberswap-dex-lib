@@ -5,9 +5,9 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/duration"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/duration"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 var json = jsoniter.ConfigCompatibleWithStandardLibrary

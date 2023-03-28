@@ -1,6 +1,6 @@
 package validateroute
 
-import "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core"
+import "github.com/KyberNetwork/router-service/internal/pkg/core"
 
 type IValidator interface {
 	Validate(route core.Route) error

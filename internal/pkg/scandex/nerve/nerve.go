@@ -11,18 +11,18 @@ import (
 
 	"context"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/abis"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/config"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	saddlePool "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/saddle"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/repository"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/scandex/core"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/scandex/ironstable"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/scandex/saddle"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/scandex/uniswap"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/service"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/abis"
+	"github.com/KyberNetwork/router-service/internal/pkg/config"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	saddlePool "github.com/KyberNetwork/router-service/internal/pkg/core/saddle"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository"
+	"github.com/KyberNetwork/router-service/internal/pkg/scandex/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/scandex/ironstable"
+	"github.com/KyberNetwork/router-service/internal/pkg/scandex/saddle"
+	"github.com/KyberNetwork/router-service/internal/pkg/scandex/uniswap"
+	"github.com/KyberNetwork/router-service/internal/pkg/service"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func New(scanDexCfg *config.ScanDex, scanService *service.ScanService) (core.IScanDex, error) {

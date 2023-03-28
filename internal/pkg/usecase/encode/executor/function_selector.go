@@ -1,7 +1,7 @@
 package executor
 
 import (
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/abi"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/abi"
 )
 
 // FunctionSelector function to execute swap on aggregation executor contract

@@ -5,9 +5,9 @@ import (
 
 	"context"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/abis"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/eth"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/abis"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"

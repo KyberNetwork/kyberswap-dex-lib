@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type (

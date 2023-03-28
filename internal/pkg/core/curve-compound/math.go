@@ -3,9 +3,9 @@ package curvecompound
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	errors "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/errors"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	errors "github.com/KyberNetwork/router-service/internal/pkg/core/errors"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
 var FeeDenominator = utils.NewBig10("10000000000")

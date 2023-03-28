@@ -6,10 +6,10 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/abis"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/repository"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/service"
+	"github.com/KyberNetwork/router-service/internal/pkg/abis"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository"
+	"github.com/KyberNetwork/router-service/internal/pkg/service"
 )
 
 type FeeReader struct {

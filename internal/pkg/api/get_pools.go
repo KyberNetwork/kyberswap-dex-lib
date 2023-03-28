@@ -4,8 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/api/params"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 )
 
 // GetPools [GET /pools] Get pools data

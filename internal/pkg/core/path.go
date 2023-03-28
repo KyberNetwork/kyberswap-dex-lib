@@ -5,10 +5,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	poolPkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
 var (

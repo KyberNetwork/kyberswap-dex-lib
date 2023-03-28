@@ -5,9 +5,9 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
-	poolpkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
 type Pool struct {

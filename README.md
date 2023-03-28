@@ -1,4 +1,4 @@
-# Aggregator Backend
+# Router Service
 
 ## Prerequisites
 * Go 1.16+
@@ -8,7 +8,7 @@
 ## Quick start
 ```shell
 # Clone repo
-git clone git@github.com:KyberNetwork/dmm-aggregator-backend.git
+git clone git@github.com:KyberNetwork/router-service.git
 
 # Install dependencies
 go mod download
@@ -20,10 +20,10 @@ docker compose up -d
 go build -o app ./cmd/app
 
 # Start scanner
-./app -c internal/pkg/config/ethereum.yaml scan
+./app -c internal/pkg/config/files/dev/ethereum.yaml scan
 
 # Start API
-./app -c internal/pkg/config/ethereum.yaml api
+./app -c internal/pkg/config/files/dev/ethereum.yaml api
 ```
 
 ## Benchmark
@@ -42,14 +42,14 @@ gdown "https://drive.google.com/uc?id=1pNA9Ygf_jBnsT7ZQYu_iJQsTz5Yafkes"
 redis-server
 
 ## Open new tab, then clone benchmark repo
-git clone -b feat/benchmark_bf git@github.com:KyberNetwork/dmm-aggregator-backend.git
+git clone -b feat/benchmark_bf git@github.com:KyberNetwork/router-service.git
 
 # Install dependencies
 go mod download
 
 # Run benchmark rate and pprof
-go test github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/benchmark -run "^TestProfileSingleAlgorithmConcurrently$"
-go test github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/benchmark -run "^TestBenchmarkAlgorithm$"
+go test github.com/KyberNetwork/router-service/internal/pkg/usecase/benchmark -run "^TestProfileSingleAlgorithmConcurrently$"
+go test github.com/KyberNetwork/router-service/internal/pkg/usecase/benchmark -run "^TestBenchmarkAlgorithm$"
 
 # Wait for 15 minute, the rate result is stored in test_results.csv, pprof result is in pprof/ folder, example to view pprof cpu of bruteforce algo
 go tool pprof -http localhost:8080 internal/pkg/usecase/benchmark/pprof/bruteforce_cpu.pprof
@@ -57,7 +57,7 @@ go tool pprof -http localhost:8080 internal/pkg/usecase/benchmark/pprof/brutefor
 
 ```
 _Note:_
-- You should change `internal/pkg/config/ethereum.yaml` to the config of the network that you want.
+- You should change `internal/pkg/config/files/dev/ethereum.yaml` to the config of the network that you want.
 - The Redis Sentinel config in docker-compose.yml does not work on localhost at the moment, but you can ignore it, the API can still work normally without Redis Sentinel.
 
 ## Supported dexes

@@ -12,9 +12,9 @@ import (
 	"go.uber.org/zap"
 	gintracer "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/envvar"
-	requestidpkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/requestid"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/util/env"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
+	requestidpkg "github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
+	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
 const (

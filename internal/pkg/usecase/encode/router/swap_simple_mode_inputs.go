@@ -3,8 +3,8 @@ package router
 import (
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/abis"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/abis"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 )
 
 func BuildAndPackSwapSimpleModeInputs(

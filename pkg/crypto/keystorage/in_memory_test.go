@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/crypto"
+	"github.com/KyberNetwork/router-service/pkg/crypto"
 )
 
 func Test_Get(t *testing.T) {

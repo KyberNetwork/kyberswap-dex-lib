@@ -7,7 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
 func TestOptimismL2FeeCalculator_CreateRawTxFromInputData(t *testing.T) {

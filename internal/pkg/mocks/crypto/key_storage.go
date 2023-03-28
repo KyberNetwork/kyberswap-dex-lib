@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	crypto "github.com/KyberNetwork/kyberswap-aggregator/pkg/crypto"
+	crypto "github.com/KyberNetwork/router-service/pkg/crypto"
 
 	gomock "github.com/golang/mock/gomock"
 )

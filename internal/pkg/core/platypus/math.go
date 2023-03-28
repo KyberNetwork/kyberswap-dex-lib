@@ -3,7 +3,7 @@ package platypus
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
 // wmul

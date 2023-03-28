@@ -32,7 +32,7 @@ jobs:
     needs:
       - prepare
     env:
-      SERVICE: dmm-aggregator-backend
+      SERVICE: router-service
       VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
       BUILD_DATE: ${{ needs.prepare.outputs.build_date }}
     runs-on: self-hosted
@@ -111,7 +111,7 @@ jobs:
       - name: Create tag
         run: |
           git tag -d "$VERSION_TAG" 2> /dev/null || echo "Release tag '$VERSION_TAG' does NOT exist"
-          git tag --annotate --message "dmm-aggregator-backend $VERSION_TAG" "$VERSION_TAG"
+          git tag --annotate --message "router-service $VERSION_TAG" "$VERSION_TAG"
           git push origin "refs/tags/$VERSION_TAG"
 
       - name: Create release
@@ -120,4 +120,4 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ env.VERSION_TAG }}
           prerelease: false
-          name: "DMM Aggregator Backend ${{ env.VERSION_TAG }}"
+          name: "Router Service ${{ env.VERSION_TAG }}"

@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"strconv"
 
-	poolPkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/uni"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/uni"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
 func GenerateRandomTokenByAddress(nTokens int) map[string]entity.Token {

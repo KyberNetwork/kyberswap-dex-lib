@@ -7,10 +7,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/repository"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/redis"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository"
+	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
 const StatsKey = "ScanBlock"

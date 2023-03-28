@@ -3,10 +3,10 @@ package validateroute
 import (
 	"errors"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/synthetix"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/metrics"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/synthetix"
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type SynthetixValidator struct {

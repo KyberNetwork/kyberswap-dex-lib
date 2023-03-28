@@ -7,11 +7,11 @@ import (
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	errorsPkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/errors"
-	poolpkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/rest"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	errorsPkg "github.com/KyberNetwork/router-service/internal/pkg/core/errors"
+	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/rest"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 var (

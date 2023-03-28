@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
 func TestPoolFilterSources(t *testing.T) {

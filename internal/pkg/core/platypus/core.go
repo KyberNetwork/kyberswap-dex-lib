@@ -3,7 +3,7 @@ package platypus
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
 // _slippageFunc calculates g(xr,i) or g(xr,j). This function always returns >= 0

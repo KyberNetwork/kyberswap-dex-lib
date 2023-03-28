@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/stretchr/testify/assert"
 )
 

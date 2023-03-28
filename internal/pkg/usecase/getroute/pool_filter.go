@@ -1,7 +1,7 @@
 package getroute
 
 import (
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
 func filterPools(pools []entity.Pool, filters ...PoolFilter) []entity.Pool {

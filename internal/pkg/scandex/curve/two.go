@@ -4,11 +4,11 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/abis"
-	curveTricrypto "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/curve-tricrypto"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/repository"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/abis"
+	curveTricrypto "github.com/KyberNetwork/router-service/internal/pkg/core/curve-tricrypto"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func (t *Curve) getTwoPoolData(ctx context.Context, pool entity.Pool) (interface{}, []*big.Int, error) {

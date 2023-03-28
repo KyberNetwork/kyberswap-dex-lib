@@ -3,7 +3,7 @@ package core
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 // GetMaxAmountInFunc returns maximum possible amountIn

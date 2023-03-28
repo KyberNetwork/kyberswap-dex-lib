@@ -1,7 +1,7 @@
 package encode
 
 import (
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type Config struct {

@@ -3,9 +3,9 @@ package balancerstable
 import (
 	"testing"
 
-	poolpkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
+	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"

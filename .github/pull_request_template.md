@@ -10,6 +10,10 @@
 <!--- If fixing a bug, there should be an issue describing it with steps to reproduce -->
 <!--- Please link to the issue here: -->
 
+## Release Note
+<!--- Please list out special notes (if any) when releasing this commit -->
+<!--- Special notes is things like breaking changes and related components, required changes and env configurations in kyber-application, etc. -->
+
 ## How Has This Been Tested?
 <!--- Please describe in detail how you tested your changes. -->
 <!--- Include details of your testing environment, and the tests you ran to -->

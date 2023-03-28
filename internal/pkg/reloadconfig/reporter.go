@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 const (

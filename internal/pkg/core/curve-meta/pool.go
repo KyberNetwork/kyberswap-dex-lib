@@ -6,12 +6,12 @@ import (
 	"math/big"
 	"strings"
 
-	errorsPkg "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/errors"
+	errorsPkg "github.com/KyberNetwork/router-service/internal/pkg/core/errors"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
 // ICurveBasePool is the interface for curve base pool inside a meta pool

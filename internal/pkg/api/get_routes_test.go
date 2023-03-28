@@ -5,7 +5,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/test"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/test"
 )
 
 func TestRouteController_GetRoutes(t *testing.T) {

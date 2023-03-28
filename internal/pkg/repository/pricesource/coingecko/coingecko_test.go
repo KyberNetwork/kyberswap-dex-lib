@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/config"
+	"github.com/KyberNetwork/router-service/internal/pkg/config"
 )
 
 func mockHandleSuccess(w http.ResponseWriter, r *http.Request) {

@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type CatalogToken struct {

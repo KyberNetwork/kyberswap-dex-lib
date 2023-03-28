@@ -8,10 +8,10 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/abis"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/encode/executor"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/encode/executor/swapdata"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/encode/router"
+	"github.com/KyberNetwork/router-service/internal/pkg/abis"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/executor"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/executor/swapdata"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/router"
 )
 
 type (

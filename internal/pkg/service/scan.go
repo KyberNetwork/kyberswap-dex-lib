@@ -11,17 +11,17 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/abis"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/config"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/synthetix"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/univ3"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/repository"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/envvar"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/eth"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/util/env"
+	"github.com/KyberNetwork/router-service/internal/pkg/abis"
+	"github.com/KyberNetwork/router-service/internal/pkg/config"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/synthetix"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/univ3"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
 type TokenSCField string

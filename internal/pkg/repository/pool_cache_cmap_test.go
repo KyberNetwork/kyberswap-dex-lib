@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/stretchr/testify/assert"

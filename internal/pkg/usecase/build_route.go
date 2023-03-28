@@ -9,14 +9,14 @@ import (
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/core"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/dto"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/encode/clientdata"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/eth"
-	timeutil "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/time"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 var OutputChangeNoChange = dto.OutputChange{

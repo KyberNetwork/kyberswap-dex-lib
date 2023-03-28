@@ -3,7 +3,7 @@ package balancerweighted
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
 // Solidity code: https://github.com/balancer-labs/balancer-v2-monorepo/blob/d3bc956f837eeb54614c64876791fafd90b4740e/contracts/lib/math/Math.sol#L62

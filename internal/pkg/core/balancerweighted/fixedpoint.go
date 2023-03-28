@@ -3,8 +3,8 @@ package balancerweighted
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
 // MAX_POW_RELATIVE_ERROR keeps it snake-case so that it looks like Solidity code, easier to compare

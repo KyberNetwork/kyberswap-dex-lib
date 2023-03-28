@@ -8,9 +8,9 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/mocks/crypto"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/dto"
-	cryptopkg "github.com/KyberNetwork/kyberswap-aggregator/pkg/crypto"
+	"github.com/KyberNetwork/router-service/internal/pkg/mocks/crypto"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	cryptopkg "github.com/KyberNetwork/router-service/pkg/crypto"
 )
 
 func Test_GetPublicKey(t *testing.T) {

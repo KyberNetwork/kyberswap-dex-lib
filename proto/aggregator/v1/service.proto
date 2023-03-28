@@ -4,7 +4,7 @@ package aggregator.v1;
 
 import "validate/validate.proto";
 
-option go_package = "github.com/KyberNetwork/kyberswap-aggregator/pb/go/price/v1";
+option go_package = "github.com/KyberNetwork/router-service/pb/go/price/v1";
 
 
 // AggregatorService is service aggregator which aggregates all data for all dex from on chain.

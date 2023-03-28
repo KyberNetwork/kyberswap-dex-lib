@@ -3,10 +3,10 @@ package encode
 import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/encode/executor"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/encode/router"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/executor"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/router"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type (

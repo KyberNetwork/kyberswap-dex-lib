@@ -5,7 +5,7 @@ import (
 
 	"github.com/patrickmn/go-cache"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
 type TokenCacheRepository struct {

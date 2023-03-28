@@ -7,8 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/requestid"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func RequestLoggerMiddleware() gin.HandlerFunc {

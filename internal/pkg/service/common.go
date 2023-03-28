@@ -6,9 +6,9 @@ import (
 
 	"github.com/ethereum/go-ethereum/ethclient"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/config"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/redis"
+	"github.com/KyberNetwork/router-service/internal/pkg/config"
+	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
 const gasPriceJobIntervalSec = 2

@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/findroute"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/findroute/common"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 )
 
 func TestUniswapFinder(t *testing.T) {

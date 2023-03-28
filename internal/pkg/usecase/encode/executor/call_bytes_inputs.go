@@ -3,9 +3,9 @@ package executor
 import (
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/core"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func BuildAndPackCallBytesInputs(chainID valueobject.ChainID, routerAddress string, data types.EncodingData) ([]byte, error) {

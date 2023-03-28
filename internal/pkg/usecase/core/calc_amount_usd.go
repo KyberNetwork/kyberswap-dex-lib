@@ -3,7 +3,7 @@ package core
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
 // CalcAmountUSD returns amount in USD

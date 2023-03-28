@@ -10,7 +10,7 @@ import (
 
 	"context"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
 type Redis struct {

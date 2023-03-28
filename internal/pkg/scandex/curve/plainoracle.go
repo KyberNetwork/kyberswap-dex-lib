@@ -8,14 +8,14 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	curvePlainOracle "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/curve-plain-oracle"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/repository"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	curvePlainOracle "github.com/KyberNetwork/router-service/internal/pkg/core/curve-plain-oracle"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/abis"
+	"github.com/KyberNetwork/router-service/internal/pkg/abis"
 )
 
 const (

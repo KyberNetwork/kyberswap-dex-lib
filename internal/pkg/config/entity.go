@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type Common struct {

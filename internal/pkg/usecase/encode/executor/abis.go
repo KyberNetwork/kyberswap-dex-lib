@@ -3,7 +3,7 @@ package executor
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant/abitypes"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant/abitypes"
 )
 
 var (

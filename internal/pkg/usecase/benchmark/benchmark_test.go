@@ -21,14 +21,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	pool2 "github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/core/pool"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/findroute"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/findroute/bruteforce"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/findroute/spfa"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/usecase/findroute/uniswap"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	pool2 "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/bruteforce"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfa"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/uniswap"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 )
 
 func init() {

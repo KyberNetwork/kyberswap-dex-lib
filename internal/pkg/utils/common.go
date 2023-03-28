@@ -1,8 +1,8 @@
 package utils
 
 import (
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils/envvar"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/util/env"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
+	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
 const (

@@ -14,19 +14,19 @@ import (
 	"github.com/machinebox/graphql"
 	cmap "github.com/orcaman/concurrent-map"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/abis"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/repository"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/utils"
-	"github.com/KyberNetwork/kyberswap-aggregator/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/abis"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 
 	"context"
 
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/config"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/constant"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/scandex/core"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/scandex/uniswap"
-	"github.com/KyberNetwork/kyberswap-aggregator/internal/pkg/service"
+	"github.com/KyberNetwork/router-service/internal/pkg/config"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/scandex/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/scandex/uniswap"
+	"github.com/KyberNetwork/router-service/internal/pkg/service"
 )
 
 type Dodo struct {
