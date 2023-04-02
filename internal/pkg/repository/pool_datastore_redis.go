@@ -19,6 +19,22 @@ func NewPoolDataStoreRedisRepository(
 	}
 }
 
+func (r *PoolDatastoreRedisRepository) FindAllAddresses(
+	ctx context.Context,
+) ([]string, error) {
+	key := r.db.FormatKey(entity.PoolKey)
+	addresses, err := r.db.Client.HKeys(
+		ctx,
+		key,
+	).Result()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return addresses, nil
+}
+
 func (r *PoolDatastoreRedisRepository) FindAll(
 	ctx context.Context,
 ) ([]entity.Pool, error) {

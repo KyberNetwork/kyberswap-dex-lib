@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -19,10 +20,12 @@ import (
 //go:generate mockgen -destination ../mocks/usecase/client_data_encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IClientDataEncoder
 //go:generate mockgen -destination ../mocks/usecase/encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IEncoder
 //go:generate mockgen -destination ../mocks/usecase/l2fee_calculator.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IL2FeeCalculator
+//go:generate mockgen -destination ../mocks/usecase/index_pools_route_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IIndexPoolsRouteRepository
 
 // IPoolRepository receives pool addresses, fetch pool data from datastore, decode them and return []entity.Pool
 type IPoolRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]entity.Pool, error)
+	FindAllAddresses(ctx context.Context) ([]string, error)
 }
 
 // ITokenRepository receives token addresses, fetch token data from datastore, decode them and return []entity.Token
@@ -41,6 +44,13 @@ type IConfigFetcherRepository interface {
 
 type IRouteRepository interface {
 	GetBestPools(ctx context.Context, directPairKey, tokenIn, tokenOut string, options GetBestPoolsOptions, whitelistI, whitelistJ bool) (*types.BestPools, error)
+}
+
+// IIndexPoolsRouteRepository is used in IndexPoolsUseCase
+// Can not put AddToSortedSetScoreByReserveUsd and AddToSortedSetScoreByAmplifiedTvl into IRouteRepository because of  cyclic dependency when generating mock test
+type IIndexPoolsRouteRepository interface {
+	AddToSortedSetScoreByReserveUsd(ctx context.Context, pool entity.Pool, key string, tokenIAddress, tokenJAddress string, whiteListI, whiteListJ bool) error
+	AddToSortedSetScoreByAmplifiedTvl(ctx context.Context, pool entity.Pool, key string, tokenIAddress, tokenJAddress string, whiteListI, whiteListJ bool) error
 }
 
 // IRouteCacheRepository collects, manage and store route cache
@@ -76,4 +86,9 @@ type IL2FeeCalculator interface {
 
 type IL2FeeCalculatorUseCase interface {
 	GetL1Fee(ctx context.Context, encodedSwapData string) (*big.Int, error)
+}
+
+// IIndexPoolsUseCase get pools info save/update into Redis sorted set, score by reserveUsd or amplifiedTvl
+type IIndexPoolsUseCase interface {
+	Handle(ctx context.Context, command dto.IndexPoolsCommand) *dto.IndexPoolsResult
 }

@@ -35,6 +35,21 @@ func (m *MockIPoolRepository) EXPECT() *MockIPoolRepositoryMockRecorder {
 	return m.recorder
 }
 
+// FindAllAddresses mocks base method.
+func (m *MockIPoolRepository) FindAllAddresses(arg0 context.Context) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindAllAddresses", arg0)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindAllAddresses indicates an expected call of FindAllAddresses.
+func (mr *MockIPoolRepositoryMockRecorder) FindAllAddresses(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindAllAddresses", reflect.TypeOf((*MockIPoolRepository)(nil).FindAllAddresses), arg0)
+}
+
 // FindByAddresses mocks base method.
 func (m *MockIPoolRepository) FindByAddresses(arg0 context.Context, arg1 []string) ([]entity.Pool, error) {
 	m.ctrl.T.Helper()

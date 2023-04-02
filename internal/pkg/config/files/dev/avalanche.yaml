@@ -429,3 +429,5 @@ api:
   getTokens:
     isCacheEnabled: false
     isTimeoutEnabled: false
+indexPoolsChunkSize: 3000
+indexPoolsJobIntervalSec: 2

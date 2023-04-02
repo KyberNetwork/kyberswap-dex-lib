@@ -87,3 +87,23 @@ type (
 		TTL     time.Duration `mapstructure:"ttl"`
 	}
 )
+
+type (
+	BenchmarkConfig struct {
+		GetRoutesConfig
+		WhitelistedTokensByAddress map[string]bool
+	}
+)
+
+type (
+	IndexPoolsConfig struct {
+		WhitelistedTokensByAddress map[string]bool
+		ChunkSize                  uint64
+	}
+)
+
+type (
+	IndexPoolsJobConfig struct {
+		IndexPoolsJobIntervalSec uint64
+	}
+)
