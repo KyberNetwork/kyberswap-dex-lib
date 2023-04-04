@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"sync"
 
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
@@ -41,22 +43,15 @@ func (u *IndexPoolsUseCase) ApplyConfig(whitelistedTokensByAddress map[string]bo
 
 func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCommand) *dto.IndexPoolsResult {
 	var failedPoolAddresses []string
-	poolAddresses := command.PoolAddresses
 
 	// process chunk by chunk
 	chunkSize := int(u.config.ChunkSize)
-	start := 0
-	for start < len(poolAddresses) {
-		end := start + chunkSize
-		if end > len(poolAddresses) {
-			end = len(poolAddresses)
-		}
-
-		// TODO: update poolRepo to get pools from Pool Service API after separating Redis
-		pools, err := u.poolRepo.FindByAddresses(ctx, poolAddresses[start:end])
+	chunks := lo.Chunk(command.PoolAddresses, chunkSize)
+	for _, poolAddresses := range chunks {
+		pools, err := u.poolRepo.FindByAddresses(ctx, poolAddresses)
 		if err != nil {
 			logger.Errorf("failed to find pools by addresses, cause by %v", err)
-			failedPoolAddresses = append(failedPoolAddresses, poolAddresses[start:end]...)
+			failedPoolAddresses = append(failedPoolAddresses, poolAddresses...)
 		}
 
 		for _, p := range pools {
@@ -66,9 +61,8 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 			}
 			logger.Infof("index pool successfully: %s", p.Address)
 		}
-
-		start += chunkSize
 	}
+
 	return dto.NewIndexPoolsResult(failedPoolAddresses)
 }
 

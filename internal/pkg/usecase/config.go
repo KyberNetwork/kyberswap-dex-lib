@@ -101,9 +101,3 @@ type (
 		ChunkSize                  uint64
 	}
 )
-
-type (
-	IndexPoolsJobConfig struct {
-		IndexPoolsJobIntervalSec uint64
-	}
-)

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -86,9 +85,4 @@ type IL2FeeCalculator interface {
 
 type IL2FeeCalculatorUseCase interface {
 	GetL1Fee(ctx context.Context, encodedSwapData string) (*big.Int, error)
-}
-
-// IIndexPoolsUseCase get pools info save/update into Redis sorted set, score by reserveUsd or amplifiedTvl
-type IIndexPoolsUseCase interface {
-	Handle(ctx context.Context, command dto.IndexPoolsCommand) *dto.IndexPoolsResult
 }
