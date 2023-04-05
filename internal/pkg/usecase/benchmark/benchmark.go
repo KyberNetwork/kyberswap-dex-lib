@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"math/big"
 
-	cmap "github.com/orcaman/concurrent-map"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
@@ -13,7 +12,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository"
-	"github.com/KyberNetwork/router-service/internal/pkg/service"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	usecasecore "github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
@@ -32,8 +30,7 @@ type benchmarkUseCase struct {
 
 	logger logger.Logger
 
-	config        usecase.GetRoutesConfig
-	scanConfigSvc *service.ScanConfigService
+	config usecase.BenchmarkConfig
 }
 
 func newMockBenchmarkUseCase(configFile string) (*benchmarkUseCase, error) {
@@ -67,17 +64,20 @@ func newMockBenchmarkUseCase(configFile string) (*benchmarkUseCase, error) {
 	poolFactoryConfig := factory.PoolFactoryConfig{ChainID: cfg.Common.ChainID}
 	poolFactory := factory.NewPoolFactory(poolFactoryConfig)
 
-	tokenCacheCMapRepo := repository.NewTokenCacheCMapRepository(cmap.New())
-
-	tokenRepo := repository.NewTokenRepository(tokenDataStoreRepo, tokenCacheCMapRepo)
-
-	priceCacheRepo := repository.NewPriceCacheRedisRepository(rDb)
-	priceRepo := repository.NewPriceRepository(priceDataStoreRepo, priceCacheRepo)
-
-	scanConfigSvc := service.NewScanConfigService(configLoader, cfg.Common, tokenRepo, priceRepo)
+	c := usecase.BenchmarkConfig{
+		GetRoutesConfig:            cfg.UseCase.GetRoutes,
+		WhitelistedTokensByAddress: cfg.WhitelistedTokensByAddress(),
+	}
 
 	return &benchmarkUseCase{
-		poolFactory, poolRepo, tokenDataStoreRepo, priceDataStoreRepo, routeRepo, scanStateRepo, lg, cfg.UseCase.GetRoutes, scanConfigSvc,
+		poolFactory:            poolFactory,
+		poolRepository:         poolRepo,
+		tokenRepository:        tokenDataStoreRepo,
+		priceRepository:        priceDataStoreRepo,
+		routeRepository:        routeRepo,
+		scannerStateRepository: scanStateRepo,
+		logger:                 lg,
+		config:                 c,
 	}, nil
 }
 
@@ -113,8 +113,8 @@ func (uc *benchmarkUseCase) listPools(
 
 	directPairKey := usecasecore.GenDirectPairKey(tokenInAddress, tokenOutAddress)
 
-	whitelistI := uc.scanConfigSvc.IsWhiteListToken(tokenInAddress)
-	whitelistJ := uc.scanConfigSvc.IsWhiteListToken(tokenOutAddress)
+	whitelistI := uc.config.WhitelistedTokensByAddress[tokenInAddress]
+	whitelistJ := uc.config.WhitelistedTokensByAddress[tokenOutAddress]
 	bestPools, err := uc.routeRepository.GetBestPools(ctx, directPairKey, tokenInAddress, tokenOutAddress, uc.config.GetBestPoolsOptions, whitelistI, whitelistJ)
 	if err != nil {
 		return nil, err

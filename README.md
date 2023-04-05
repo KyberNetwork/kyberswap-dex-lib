@@ -1,7 +1,7 @@
 # Router Service
 
 ## Prerequisites
-* Go 1.16+
+* Go 1.19+
 * Redis
 * Docker + docker-compose (optional)
 
@@ -19,8 +19,8 @@ docker compose up -d
 # Build app
 go build -o app ./cmd/app
 
-# Start scanner
-./app -c internal/pkg/config/files/dev/ethereum.yaml scan
+# Start indexer
+./app -c internal/pkg/config/files/dev/ethereum.yaml indexer
 
 # Start API
 ./app -c internal/pkg/config/files/dev/ethereum.yaml api
@@ -252,12 +252,12 @@ Example:
 app -c internal/pkg/config/polygon.yaml api
 ```
 
-### scan
-Start scan server
+### indexer
+Start indexer server
 
 Example: 
 ```bash
-app -c internal/pkg/config/polygon.yaml scan
+app -c internal/pkg/config/polygon.yaml indexer
 ```
 #Multicall2 addresses
 | Chain   | Address |

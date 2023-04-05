@@ -336,3 +336,5 @@ useCase:
     blacklistedPools:
     featureFlags:
       useOptimizedSPFA: false
+indexPoolsChunkSize: 3000
+indexPoolsJobIntervalSec: 2

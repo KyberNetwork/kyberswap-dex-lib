@@ -1,5 +1,5 @@
 # Vendor stage
-FROM golang:1.16 as dep
+FROM golang:1.19 as dep
 WORKDIR /build
 COPY go.mod go.sum ./
 RUN GO111MODULE=on go mod download
@@ -13,7 +13,7 @@ RUN go mod vendor
 #RUN golangci-lint run --verbose --timeout 5m0s
 
 # Build binary stage
-FROM golang:1.16 as build
+FROM golang:1.19 as build
 WORKDIR /build
 COPY --from=dep /build .
 RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -a -installsuffix cgo -o server -tags nethttpomithttp2 ./cmd/app

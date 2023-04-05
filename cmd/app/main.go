@@ -2,8 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -29,15 +27,11 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	errorsPkg "github.com/KyberNetwork/router-service/internal/pkg/errors"
+	"github.com/KyberNetwork/router-service/internal/pkg/job"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/l2feereader/arbitrum"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/l2feereader/optimism"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/setting"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/tokencatalog"
-	"github.com/KyberNetwork/router-service/internal/pkg/scandex"
-	"github.com/KyberNetwork/router-service/internal/pkg/scandex/core"
 	"github.com/KyberNetwork/router-service/internal/pkg/server"
 	httppkg "github.com/KyberNetwork/router-service/internal/pkg/server/http"
 	"github.com/KyberNetwork/router-service/internal/pkg/service"
@@ -97,10 +91,10 @@ func main() {
 				Action:  apiAction,
 			},
 			{
-				Name:    "scan",
+				Name:    "indexer",
 				Aliases: []string{},
-				Usage:   "Update dex pool info",
-				Action:  scanAction,
+				Usage:   "Index pools",
+				Action:  indexerAction,
 			},
 		}}
 
@@ -179,7 +173,7 @@ func apiAction(c *cli.Context) (err error) {
 	k8sDb, err := redis.NewSentinel(&cfg.RedisSentinel)
 	if err != nil {
 		// it's ok to not be able to connect primary Redis
-		logger.Warnf("Can not connect to primary redis (sentinel) in k8s: %v\n", err)
+		logger.Warnf("Can not connect to primary redis (sentinel) in k8s: %v", err)
 		k8sDb = nil
 	}
 
@@ -310,9 +304,6 @@ func apiAction(c *cli.Context) (err error) {
 		cfg.FeatureFlags,
 	)
 
-	service.SetupPoolRoute(rDb, router)
-	service.SetupTokenRoute(rDb, router)
-	service.SetupPriceRoute(rDb, router)
 	service.SetupStatsRoute(rDb, router)
 
 	apiHandlersWithConfig := apiHandlersFactory(cfg.API.DefaultTTL)
@@ -343,7 +334,7 @@ func apiAction(c *cli.Context) (err error) {
 	// Run hot-reload manager.
 	// Add all app reloaders in order.
 	reloadManager.RegisterReloader(0, reload.ReloaderFunc(func(ctx context.Context, id string) error {
-		logger.Infof("Received reloading signal: <%s>\n", id)
+		logger.Infof("Received reloading signal: <%s>", id)
 
 		// If configuration fails ignore reload with a warning.
 		err = configLoader.Reload(ctx)
@@ -357,8 +348,8 @@ func apiAction(c *cli.Context) (err error) {
 	}))
 
 	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
-		logger.Infof("Received reloading signal: <%s>\n", id)
-		return applyLatestConfig(ctx, getRoutesUseCase, routeSvc, configLoader)
+		logger.Infof("Received reloading signal: <%s>", id)
+		return applyLatestConfigForAPI(ctx, getRoutesUseCase, routeSvc, configLoader)
 	}))
 
 	httpServer := &http.Server{Handler: ginServer, Addr: cfg.Http.BindAddress}
@@ -368,28 +359,30 @@ func apiAction(c *cli.Context) (err error) {
 	return apiServer.Run(ctx)
 }
 
-func scanAction(c *cli.Context) (err error) {
+func indexerAction(c *cli.Context) (err error) {
 	ctx := context.Background()
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	configFile := c.String("config")
 
+	// load config
+	configFile := c.String("config")
 	configLoader, err := config.NewConfigLoader(configFile)
 	if err != nil {
 		return err
 	}
-
 	cfg, err := configLoader.Get()
 	if err != nil {
 		return err
 	}
 
+	// init logger
 	_, err = logger.InitLogger(cfg.Log.Configuration, logger.LoggerBackendZap)
 	if err != nil {
 		return err
 	}
 
+	// init metrics client
 	_, err = metrics.InitClient(newMetricsConfig(cfg))
 
 	// Initialize config reloader
@@ -408,91 +401,65 @@ func scanAction(c *cli.Context) (err error) {
 		logger.Infoln("Config reloaded")
 	}
 
+	// init eth client
 	ethClient, err := eth.NewClient(cfg.Common.RPCs)
 	if err != nil {
 		logger.Errorf("error when initing RPC client cause by %v", err)
 		return err
 	}
 
+	// init redis client
 	rds, err := redis.New(&cfg.Redis)
 	if err != nil {
 		return err
 	}
 
+	// init repository
 	poolDatastoreRepo := repository.NewPoolDataStoreRedisRepository(rds)
 	poolCacheRepo := repository.NewPoolCacheCMapRepository(cmap.New(), cmap.New())
 	poolRepo := repository.NewPoolRepository(poolDatastoreRepo, poolCacheRepo)
-
-	tokenDatastoreRepo := repository.NewTokenDataStoreRedisRepository(rds)
-	tokenCacheRepo := repository.NewTokenCacheCMapRepository(cmap.New())
-
-	tokenRepo := repository.NewTokenRepository(tokenDatastoreRepo, tokenCacheRepo)
-	tokenCatalogRepo := tokencatalog.NewHTTPClient(cfg.TokenCatalog.HTTPURL)
-
-	priceDatastoreRepo := repository.NewPriceDataStoreRedisRepository(rds)
-	priceCacheRepo := repository.NewPriceCacheRedisRepository(rds)
-	priceRepo := repository.NewPriceRepository(priceDatastoreRepo, priceCacheRepo)
-
 	statsRepo := repository.NewStatsRedisRepository(rds)
-
-	scannerStateRepo := repository.NewScannerStateRedisRepository(rds)
-
 	routeRepo := repository.NewRouteRedisRepository(rds)
-
 	rpcRepo := repository.NewRPCRepository(ethClient, repository.RPCRepositoryConfig{
 		RPCs:             cfg.Common.RPCs,
 		MulticallAddress: cfg.Common.Address.Multicall,
 	})
 
+	// init service
 	rpcService := service.NewRPC(cfg.Common)
 	commonService := service.NewCommon(rds, cfg.Common, rpcService)
-	scanConfigSvc := service.NewScanConfigService(configLoader, cfg.Common, tokenRepo, priceRepo)
-	scanSvc := service.NewScanService(
-		rpcRepo,
-		poolRepo,
-		tokenRepo,
-		priceRepo,
-		routeRepo,
-		scannerStateRepo,
-		scanConfigSvc,
-		tokenCatalogRepo,
-	)
-	scanEventSvc := service.NewScanEventService(
-		cfg.Common,
-		scanSvc,
-		rpcRepo,
-		scannerStateRepo,
-	)
+	scanSvc := service.NewScanService(rpcRepo)
 
 	jobs := []service.IService{
 		rpcService,
 		commonService,
-		scanEventSvc,
 		service.NewStats(scanSvc, poolRepo, statsRepo),
-		service.NewSavePool(scanSvc, poolRepo),
-		service.NewSavePoolPrice(scanSvc, poolRepo, priceRepo),
-		service.NewSavePoolSupply(scanSvc, scanEventSvc),
-		service.NewUpdateAtokenPrice(tokenRepo, priceRepo),
 	}
 
-	if cfg.Common.ChainID == int(valueobject.ChainIDOptimism) {
-		optimismFeeReader := optimism.NewOptimismFeeReader(scanSvc, cfg.Gas.GasPriceOracleContract)
-
-		jobs = append(jobs, service.NewL2FeeService(optimismFeeReader, scannerStateRepo))
-	}
-
-	if cfg.Common.ChainID == int(valueobject.ChainIDArbitrumOne) {
-		arbitrumFeeReader := arbitrum.NewArbitrumFeeReader(scanSvc, cfg.Gas.GasPriceOracleContract)
-
-		jobs = append(jobs, service.NewL2FeeService(arbitrumFeeReader, scannerStateRepo))
-	}
+	// init use case
+	getAllPoolAddressesUseCase := usecase.NewGetAllPoolAddressesUseCase(poolRepo)
+	indexPoolsUseCase := usecase.NewIndexPoolsUseCase(
+		poolRepo,
+		routeRepo,
+		usecase.IndexPoolsConfig{
+			WhitelistedTokensByAddress: cfg.WhitelistedTokensByAddress(),
+			ChunkSize:                  cfg.IndexPoolsChunkSize,
+		},
+	)
+	indexPoolsJob := job.NewIndexPoolsJob(
+		getAllPoolAddressesUseCase,
+		indexPoolsUseCase,
+		job.IndexPoolsJobConfig{
+			IndexPoolsJobIntervalSec: cfg.IndexPoolsJobIntervalSec,
+		},
+	)
 
 	reloadManager := reload.NewManager()
 
 	// Run hot-reload manager.
 	// Add all app reloaders in order.
 	reloadManager.RegisterReloader(0, reload.ReloaderFunc(func(ctx context.Context, id string) error {
-		logger.Infof("Received reloading signal: <%s>\n", id)
+		logger.Infof("Received reloading signal: <%s>", id)
 
 		// If configuration fails ignore reload with a warning.
 		err = configLoader.Reload(ctx)
@@ -506,26 +473,15 @@ func scanAction(c *cli.Context) (err error) {
 	}))
 
 	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
-		logger.Infof("Received reloading signal: <%s>\n", id)
+		logger.Infof("Received reloading signal: <%s>", id)
 		logger.Infoln("ScanConfigService reloaded")
 
-		return scanConfigSvc.ApplyConfig(ctx)
+		return applyLatestConfigForIndexer(ctx, indexPoolsUseCase, indexPoolsJob, configLoader)
 	}))
-
-	var scandexes []core.IScanDex
-	for _, s := range cfg.Dexes {
-		dex, err := scandex.NewScanDexHandler(s, scanSvc)
-		if err != nil {
-			return fmt.Errorf("can not create dex handler id: %s err=%s", s.Id, err)
-		}
-		scandexes = append(scandexes, dex)
-	}
-	if len(scandexes) == 0 {
-		return errors.New("dexes must be set")
-	}
 
 	g, ctx := errgroup.WithContext(ctx)
 
+	// run jobs
 	g.Go(func() error {
 		logger.Infof("Starting reload manager")
 		return reloadManager.Run(ctx)
@@ -535,12 +491,6 @@ func scanAction(c *cli.Context) (err error) {
 		logger.Infoln("Starting scanner")
 
 		var wg sync.WaitGroup
-		for _, s := range scandexes {
-			err := s.InitPool(ctx)
-			if err != nil {
-				return err
-			}
-		}
 		for _, s := range jobs {
 			wg.Add(1)
 			go func(s service.IService) {
@@ -549,32 +499,14 @@ func scanAction(c *cli.Context) (err error) {
 			}(s)
 		}
 
-		for _, s := range scandexes {
-			wg.Add(1)
-			go func(s core.IScanDex) {
-				defer wg.Done()
-				s.UpdateNewPools(ctx)
-			}(s)
-		}
-
-		for _, s := range scandexes {
-			wg.Add(1)
-			go func(s core.IScanDex) {
-				defer wg.Done()
-				s.UpdateReserves(ctx)
-			}(s)
-		}
-
-		for _, s := range scandexes {
-			wg.Add(1)
-			go func(s core.IScanDex) {
-				defer wg.Done()
-				s.UpdateTotalSupply(ctx)
-			}(s)
-		}
-
 		wg.Wait()
 
+		return nil
+	})
+
+	g.Go(func() error {
+		logger.Infof("Starting indexer")
+		indexPoolsJob.Run(ctx)
 		return nil
 	})
 
@@ -640,35 +572,6 @@ func newCacheRouteConfig(cfg *config.Config) usecase.CacheRouteConfig {
 	}
 }
 
-func applyLatestConfig(
-	ctx context.Context,
-	getRoutesUseCase *getroute.GetRoutesUseCase,
-	routeSvc *service.RouteService,
-	configLoader *config.ConfigLoader,
-) error {
-	cfg, err := configLoader.Get()
-	if err != nil {
-		return err
-	}
-
-	logger.Infoln("Applying new log level")
-	if err = logger.SetLogLevel(cfg.Log.ConsoleLevel); err != nil {
-		logger.Warnf("reload Log level error cause by <%v>\n", err)
-	}
-
-	logger.Infoln("Applying new config to GetRoutesUseCase")
-	if err = getRoutesUseCase.ApplyConfig(cfg.EnableDexes, cfg.BlacklistedPools, cfg.FeatureFlags, cfg.WhitelistedTokens); err != nil {
-		logger.Warnf("reload GetRoutesUseCase's config error cause by <%v>\n", err)
-	}
-
-	logger.Infoln("Applying new config to RouteService")
-	if err = routeSvc.ApplyConfig(ctx); err != nil {
-		logger.Warnf("reload RouteService's config error cause by <%v>\n", err)
-	}
-
-	return nil
-}
-
 func apiHandlersFactory(defaultTTL time.Duration) func(mainHandler gin.HandlerFunc, config api.ItemConfig) []gin.HandlerFunc {
 	cacheStore := persist.NewMemoryStore(defaultTTL)
 
@@ -693,4 +596,58 @@ func apiHandlersFactory(defaultTTL time.Duration) func(mainHandler gin.HandlerFu
 
 		return handlers
 	}
+}
+
+func applyLatestConfigForAPI(
+	ctx context.Context,
+	getRoutesUseCase *getroute.GetRoutesUseCase,
+	routeSvc *service.RouteService,
+	configLoader *config.ConfigLoader,
+) error {
+	cfg, err := configLoader.Get()
+	if err != nil {
+		return err
+	}
+
+	logger.Infoln("Applying new log level")
+	if err = logger.SetLogLevel(cfg.Log.ConsoleLevel); err != nil {
+		logger.Warnf("reload Log level error cause by <%v>", err)
+	}
+
+	logger.Infoln("Applying new config to GetRoutesUseCase")
+	if err = getRoutesUseCase.ApplyConfig(cfg.EnableDexes, cfg.BlacklistedPools, cfg.FeatureFlags, cfg.WhitelistedTokens); err != nil {
+		logger.Warnf("reload GetRoutesUseCase's config error cause by <%v>", err)
+	}
+
+	logger.Infoln("Applying new config to RouteService")
+	if err = routeSvc.ApplyConfig(ctx); err != nil {
+		logger.Warnf("reload RouteService's config error cause by <%v>", err)
+	}
+
+	return nil
+}
+
+func applyLatestConfigForIndexer(
+	_ context.Context,
+	indexPoolsUseCase *usecase.IndexPoolsUseCase,
+	indexPoolsJob *job.IndexPoolsJob,
+	configLoader *config.ConfigLoader,
+) error {
+	cfg, err := configLoader.Get()
+	if err != nil {
+		return err
+	}
+
+	logger.Infoln("Applying new log level")
+	if err = logger.SetLogLevel(cfg.Log.ConsoleLevel); err != nil {
+		logger.Warnf("reload Log level error cause by <%v>", err)
+	}
+
+	logger.Infoln("Applying new config to IndexPoolsJob")
+	indexPoolsJob.ApplyConfig(cfg.IndexPoolsJobIntervalSec)
+
+	logger.Infoln("Applying new config to IndexPoolsUseCase")
+	indexPoolsUseCase.ApplyConfig(cfg.WhitelistedTokensByAddress(), cfg.IndexPoolsChunkSize)
+
+	return nil
 }

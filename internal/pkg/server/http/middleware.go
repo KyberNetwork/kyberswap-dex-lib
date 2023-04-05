@@ -3,7 +3,6 @@ package http
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 
 	"github.com/gin-gonic/gin"
 
@@ -15,8 +14,8 @@ func RequestLoggerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var buf bytes.Buffer
 		tee := io.TeeReader(c.Request.Body, &buf)
-		body, _ := ioutil.ReadAll(tee)
-		c.Request.Body = ioutil.NopCloser(&buf)
+		body, _ := io.ReadAll(tee)
+		c.Request.Body = io.NopCloser(&buf)
 		logger.WithFields(logger.Fields{
 			"body":   string(body),
 			"header": c.Request.Header,

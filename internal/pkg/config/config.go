@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
@@ -47,6 +48,9 @@ type Config struct {
 	Encoder           encode.Config                  `mapstructure:"encoder" json:"encoder"`
 	UseCase           usecase.Config                 `mapstructure:"useCase" json:"useCase"`
 	API               api.Config                     `mapstructure:"api" json:"api"`
+
+	IndexPoolsChunkSize      uint64 `mapstructure:"indexPoolsChunkSize" json:"indexPoolsChunkSize" default:"3000"`
+	IndexPoolsJobIntervalSec uint64 `mapstructure:"indexPoolsJobIntervalSec" json:"indexPoolsJobIntervalSec" default:"2"`
 }
 
 func (c *Config) Validate() error {
@@ -63,4 +67,13 @@ func (c *Config) Validate() error {
 	}
 
 	return nil
+}
+
+func (c *Config) WhitelistedTokensByAddress() map[string]bool {
+	whitelistedTokensByAddress := make(map[string]bool)
+	for _, t := range c.WhitelistedTokens {
+		tokenAddress := strings.ToLower(t.Address)
+		whitelistedTokensByAddress[tokenAddress] = true
+	}
+	return whitelistedTokensByAddress
 }

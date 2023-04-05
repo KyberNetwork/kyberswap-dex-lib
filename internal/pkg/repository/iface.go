@@ -135,7 +135,9 @@ type IPoolCacheRepository interface {
 
 // IPoolDatastoreRepository collects, manage and store pool data in datastore
 type IPoolDatastoreRepository interface {
-	// FindAll returns all prices in datastore
+	// FindAllAddresses returns all pool addresses in datastore
+	FindAllAddresses(ctx context.Context) ([]string, error)
+	// FindAll returns all pools in datastore
 	FindAll(ctx context.Context) ([]entity.Pool, error)
 	// FindByAddresses receives list of addresses and returns list of pools
 	FindByAddresses(ctx context.Context, addresses []string) ([]entity.Pool, error)
