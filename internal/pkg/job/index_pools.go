@@ -43,6 +43,7 @@ func (u *IndexPoolsJob) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			logger.Errorf("%v", ctx.Err())
+			return
 		case <-ticker.C:
 			u.run(ctx)
 		}
