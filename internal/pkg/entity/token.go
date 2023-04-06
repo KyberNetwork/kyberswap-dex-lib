@@ -1,10 +1,7 @@
 package entity
 
 import (
-	"strconv"
-	"strings"
-
-	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"encoding/json"
 )
 
 const TokenEntity = "token"
@@ -21,23 +18,20 @@ type Token struct {
 }
 
 func (t Token) Encode() string {
-	return utils.Join(t.Symbol, t.Name, t.Decimals, t.CgkID, t.Type, t.PoolAddress)
+	bytes, _ := json.Marshal(t)
+
+	return string(bytes)
 }
 
 func DecodeToken(key, member string) Token {
 	var t Token
-	split := strings.Split(member, ":")
-	t.Address = key
-	t.Symbol = split[0]
-	t.Name = split[1]
-	decimals, _ := strconv.ParseUint(split[2], 10, 64)
-	t.Decimals = uint8(decimals)
-	t.CgkID = split[3]
-	t.Type = split[4]
+	err := json.Unmarshal([]byte(member), &t)
 
-	if len(split) >= 6 {
-		t.PoolAddress = split[5]
+	if err != nil {
+		return Token{}
 	}
+
+	t.Address = key
 
 	return t
 }

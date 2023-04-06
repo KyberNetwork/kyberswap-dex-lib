@@ -20,7 +20,7 @@ func TestPrice_Encode(t *testing.T) {
 
 		priceStr := price.Encode()
 
-		assert.Equal(t, "10000:100000:lpAddress:120000:kyberswap", priceStr)
+		assert.Equal(t, "{\"address\":\"\",\"price\":10000,\"liquidity\":100000,\"lpAddress\":\"lpAddress\",\"marketPrice\":120000,\"preferPriceSource\":\"kyberswap\"}", priceStr)
 	})
 }
 
@@ -36,7 +36,7 @@ func TestDecodePrice(t *testing.T) {
 		{
 			name:   "it should decode price correctly when it has full data",
 			key:    "address",
-			member: "10000:100000:lpAddress:120000:coingecko",
+			member: "{\"address\":\"address\",\"price\":10000,\"liquidity\":100000,\"lpAddress\":\"lpAddress\",\"marketPrice\":120000,\"preferPriceSource\":\"coingecko\"}",
 			expectedPrice: Price{
 				Address:           "address",
 				Price:             10000,
@@ -49,7 +49,7 @@ func TestDecodePrice(t *testing.T) {
 		{
 			name:   "it should decode price correctly when it has no market price data",
 			key:    "address",
-			member: "10000:100000:lpAddress::kyberswap",
+			member: "{\"address\":\"address\",\"price\":10000,\"liquidity\":100000,\"lpAddress\":\"lpAddress\",\"preferPriceSource\":\"kyberswap\"}",
 			expectedPrice: Price{
 				Address:           "address",
 				Price:             10000,

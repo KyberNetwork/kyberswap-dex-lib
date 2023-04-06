@@ -22,7 +22,7 @@ func TestToken_Encode(t *testing.T) {
 
 		tokenStr := token.Encode()
 
-		assert.Equal(t, "ABC:ABC Token:18:abc:erc20:xyz", tokenStr)
+		assert.Equal(t, "{\"address\":\"0xABC\",\"symbol\":\"ABC\",\"name\":\"ABC Token\",\"decimals\":18,\"cgkId\":\"abc\",\"type\":\"erc20\",\"poolAddress\":\"xyz\"}", tokenStr)
 	})
 }
 
@@ -38,7 +38,7 @@ func TestDecodeToken(t *testing.T) {
 		{
 			name:   "it should decode token correctly when it has full data",
 			key:    "address",
-			member: "ABC:ABC Token:18:abc:erc20:xyz",
+			member: "{\"address\":\"0xABC\",\"symbol\":\"ABC\",\"name\":\"ABC Token\",\"decimals\":18,\"cgkId\":\"abc\",\"type\":\"erc20\",\"poolAddress\":\"xyz\"}",
 			expectedToken: Token{
 				Address:     "address",
 				Symbol:      "ABC",
@@ -52,7 +52,7 @@ func TestDecodeToken(t *testing.T) {
 		{
 			name:   "it should decode price correctly when it has no pool address data",
 			key:    "address",
-			member: "ABC:ABC Token:18:abc:erc20",
+			member: "{\"address\":\"0xABC\",\"symbol\":\"ABC\",\"name\":\"ABC Token\",\"decimals\":18,\"cgkId\":\"abc\",\"type\":\"erc20\"}",
 			expectedToken: Token{
 				Address:     "address",
 				Symbol:      "ABC",

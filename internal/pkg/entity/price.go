@@ -1,9 +1,7 @@
 package entity
 
 import (
-	"strconv"
-
-	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"encoding/json"
 )
 
 const PriceKey = "prices"
@@ -25,37 +23,20 @@ type Price struct {
 }
 
 func (p Price) Encode() string {
-	return utils.Join(p.Price, p.Liquidity, p.LpAddress, p.MarketPrice, string(p.PreferPriceSource))
+	bytes, _ := json.Marshal(p)
+
+	return string(bytes)
 }
 
 // DecodePrice will decode price from the string
 func DecodePrice(key, member string) Price {
 	var p Price
-	split := utils.Split(member)
-	p.Address = key
-	p.Price, _ = strconv.ParseFloat(split[0], 64)
-	p.Liquidity, _ = strconv.ParseFloat(split[1], 64)
-	p.LpAddress = split[2]
-	if len(split) >= 4 {
-		p.MarketPrice, _ = strconv.ParseFloat(split[3], 64)
-	} else {
-		p.MarketPrice = 0
+	err := json.Unmarshal([]byte(member), &p)
+	if err != nil {
+		return Price{}
 	}
 
-	// For example: 10000:100000:0x4535913573d299a6372ca43b90aa6be1cf68f779:120000:coingecko will return
-	//{
-	//  Address:           "key",
-	//	Price:             10000,
-	//	Liquidity:         100000,
-	//	LpAddress:         "0x4535913573d299a6372ca43b90aa6be1cf68f779",
-	//	MarketPrice:       120000,
-	//	PreferPriceSource: PriceSourceCoingecko,
-	//}
-	if len(split) >= 5 {
-		p.PreferPriceSource = parsePriceSource(split[4])
-	} else {
-		p.PreferPriceSource = PriceSourceCoingecko
-	}
+	p.Address = key
 
 	return p
 }
@@ -76,8 +57,4 @@ func (p Price) GetPreferredPrice() (float64, bool) {
 	default:
 		return p.MarketPrice, true
 	}
-}
-
-func parsePriceSource(source string) PriceSource {
-	return PriceSource(source)
 }
