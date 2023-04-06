@@ -16,7 +16,6 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-contrib/timeout"
 	"github.com/gin-gonic/gin"
-	redisv8 "github.com/go-redis/redis/v8"
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/patrickmn/go-cache"
 	"github.com/urfave/cli/v2"
@@ -157,24 +156,9 @@ func apiAction(c *cli.Context) (err error) {
 	// Flush buffered events before the program terminates.
 	defer sentry.Flush(2 * time.Second)
 
-	// wDb to write to secondary Redis
-	wDb, err := redis.New(&cfg.Redis)
+	rDb, err := redis.New(&cfg.Redis)
 	if err != nil {
 		return err
-	}
-
-	// rDb to read-only secondary Redis read-replica.
-	rDb, err := redis.New(&cfg.ReadOnlyRedis)
-	if err != nil {
-		return err
-	}
-
-	// k8sDb to read/write to primary Redis (sentinel) in our K8S cluster
-	k8sDb, err := redis.NewSentinel(&cfg.RedisSentinel)
-	if err != nil {
-		// it's ok to not be able to connect primary Redis
-		logger.Warnf("Can not connect to primary redis (sentinel) in k8s: %v", err)
-		k8sDb = nil
 	}
 
 	_, err = metrics.InitClient(newMetricsConfig(cfg))
@@ -189,28 +173,8 @@ func apiAction(c *cli.Context) (err error) {
 	poolDataStoreRepo := repository.NewPoolDataStoreRedisRepository(rDb)
 	priceDataStoreRepo := repository.NewPriceDataStoreRedisRepository(rDb)
 
-	var (
-		rDbClient   *redisv8.Client
-		wDbClient   *redisv8.Client
-		k8sDbClient *redisv8.ClusterClient
-	)
-
-	if rDb != nil {
-		rDbClient = rDb.Client
-	}
-
-	if wDb != nil {
-		wDbClient = wDb.Client
-	}
-
-	if k8sDb != nil {
-		k8sDbClient = k8sDb.Client
-	}
-
 	routeCacheRepo := repository.NewRouteCacheRedisRepository(
-		rDbClient,
-		wDbClient,
-		k8sDbClient,
+		rDb.Client,
 	)
 	routeRepo := repository.NewRouteRedisRepository(rDb)
 	scanStateRepo := repository.NewScannerStateRedisRepository(rDb)
@@ -283,9 +247,6 @@ func apiAction(c *cli.Context) (err error) {
 	routeSvc := service.NewRoute(
 		configLoader,
 		router,
-		wDb,
-		rDb,
-		k8sDb,
 		cfg.Gas,
 		cfg.Common,
 		poolDataStoreRepo,

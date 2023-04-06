@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"strconv"
 	"testing"
 
 	redisv8 "github.com/go-redis/redis/v8"
@@ -26,16 +25,9 @@ func TestScannerStateRedisRepository_GetDexOffset(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -60,16 +52,9 @@ func TestScannerStateRedisRepository_GetDexOffset(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -95,16 +80,9 @@ func TestScannerStateRedisRepository_GetDexOffset(t *testing.T) {
 			t.Fatalf("failed to setup redis for testing: %v", err.Error())
 		}
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -133,16 +111,9 @@ func TestScannerStateRedisRepository_SetDexOffset(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -166,16 +137,9 @@ func TestScannerStateRedisRepository_SetDexOffset(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -202,16 +166,9 @@ func TestScannerStateRedisRepository_SetDexOffset(t *testing.T) {
 			t.Fatalf("failed to setup redis for testing: %v", err.Error())
 		}
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -239,16 +196,9 @@ func TestScannerStateRedisRepository_GetScanBlock(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -273,16 +223,9 @@ func TestScannerStateRedisRepository_GetScanBlock(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -308,16 +251,9 @@ func TestScannerStateRedisRepository_GetScanBlock(t *testing.T) {
 			t.Fatalf("failed to setup redis for testing: %v", err.Error())
 		}
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -346,16 +282,9 @@ func TestScannerStateRedisRepository_SetScanBlock(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -382,16 +311,9 @@ func TestScannerStateRedisRepository_SetScanBlock(t *testing.T) {
 			t.Fatalf("failed to setup redis for testing: %v", err.Error())
 		}
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -419,16 +341,9 @@ func TestScannerStateRedisRepository_GetGasPrice(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -453,16 +368,9 @@ func TestScannerStateRedisRepository_GetGasPrice(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -488,16 +396,9 @@ func TestScannerStateRedisRepository_GetGasPrice(t *testing.T) {
 			t.Fatalf("failed to setup redis for testing: %v", err.Error())
 		}
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -526,16 +427,9 @@ func TestScannerStateRedisRepository_SetGasPrice(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -561,16 +455,9 @@ func TestScannerStateRedisRepository_SetGasPrice(t *testing.T) {
 			t.Fatalf("failed to setup redis for testing: %v", err.Error())
 		}
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -598,16 +485,9 @@ func TestScannerStateRedisRepository_GetL2Fee(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -632,16 +512,9 @@ func TestScannerStateRedisRepository_GetL2Fee(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -672,16 +545,9 @@ func TestScannerStateRedisRepository_GetL2Fee(t *testing.T) {
 			t.Fatalf("failed to setup redis for testing: %v", err.Error())
 		}
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -710,16 +576,9 @@ func TestScannerStateRedisRepository_SetL2Fee(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -750,16 +609,9 @@ func TestScannerStateRedisRepository_SetL2Fee(t *testing.T) {
 			t.Fatalf("failed to setup redis for testing: %v", err.Error())
 		}
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -827,18 +679,10 @@ func TestScannerStateRedisRepository_encodeL2Fee(t *testing.T) {
 				t.Fatalf("failed to setup redis for testing: %v", err.Error())
 			}
 
-			// Setup redis client
-			port, err := strconv.Atoi(redisServer.Port())
-			if err != nil {
-				t.Fatalf("failed to convert redis port: %v", err.Error())
-			}
-
 			redisConfig := &redis.Config{
-				Host:   redisServer.Host(),
-				Port:   port,
-				Prefix: "",
+				Addresses: []string{redisServer.Addr()},
+				Prefix:    "",
 			}
-
 			db, err := redis.New(redisConfig)
 			if err != nil {
 				t.Fatalf("failed to init redis client: %v", err.Error())
@@ -900,18 +744,10 @@ func TestScannerStateRedisRepository_decodeL2Fee(t *testing.T) {
 				t.Fatalf("failed to setup redis for testing: %v", err.Error())
 			}
 
-			// Setup redis client
-			port, err := strconv.Atoi(redisServer.Port())
-			if err != nil {
-				t.Fatalf("failed to convert redis port: %v", err.Error())
-			}
-
 			redisConfig := &redis.Config{
-				Host:   redisServer.Host(),
-				Port:   port,
-				Prefix: "",
+				Addresses: []string{redisServer.Addr()},
+				Prefix:    "",
 			}
-
 			db, err := redis.New(redisConfig)
 			if err != nil {
 				t.Fatalf("failed to init redis client: %v", err.Error())

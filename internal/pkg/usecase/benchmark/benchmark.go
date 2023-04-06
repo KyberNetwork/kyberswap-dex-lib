@@ -50,7 +50,7 @@ func newMockBenchmarkUseCase(configFile string) (*benchmarkUseCase, error) {
 	}
 
 	// rDb to read-only secondary Redis read-replica.
-	rDb, err := redis.New(&cfg.ReadOnlyRedis)
+	rDb, err := redis.New(&cfg.Redis)
 	if err != nil {
 		return nil, err
 	}

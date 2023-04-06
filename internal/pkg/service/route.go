@@ -96,9 +96,7 @@ type RouteService struct {
 	configLoader           *config.ConfigLoader
 	router                 *gin.RouterGroup
 	enableDexes            []string
-	wDb                    *redis.Redis
-	rDb                    *redis.Redis
-	k8sDb                  *redis.RedisCluster
+	db                     *redis.Redis
 	config                 *config.Common
 	gasConfig              *config.Gas
 	poolRepo               IPoolRepository
@@ -133,9 +131,6 @@ type EncodingInput struct {
 func NewRoute(
 	configLoader *config.ConfigLoader,
 	router *gin.RouterGroup,
-	wDb *redis.Redis,
-	rDb *redis.Redis,
-	k8sDb *redis.RedisCluster,
 	gasConfig *config.Gas,
 	config *config.Common,
 	poolRepo IPoolRepository,
@@ -157,9 +152,6 @@ func NewRoute(
 		configLoader:           configLoader,
 		router:                 router,
 		enableDexes:            enableDexes,
-		wDb:                    wDb,
-		rDb:                    rDb,
-		k8sDb:                  k8sDb,
 		config:                 config,
 		gasConfig:              gasConfig,
 		poolRepo:               poolRepo,
@@ -406,53 +398,53 @@ func (t *RouteService) findRoute(
 	}
 
 	key := GetPairAddressKey(tokenInAddress, tokenOutAddress)
-	cmders, err := t.rDb.Client.Pipelined(
+	cmders, err := t.db.Client.Pipelined(
 		ctx, func(tx redisv8.Pipeliner) error {
-			tx.HGet(ctx, t.rDb.FormatKey(ConfigKey), GasPriceKey)
+			tx.HGet(ctx, t.db.FormatKey(ConfigKey), GasPriceKey)
 			tx.ZRevRangeByScore(
-				ctx, t.rDb.FormatKey(model.PairKey, key), &redisv8.ZRangeBy{
+				ctx, t.db.FormatKey(model.PairKey, key), &redisv8.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: 100,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, t.rDb.FormatKey(model.PairKey, model.WhiteListKey), &redisv8.ZRangeBy{
+				ctx, t.db.FormatKey(model.PairKey, model.WhiteListKey), &redisv8.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: 500,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, t.rDb.FormatKey(model.PairKey, model.WhiteListKey, tokenInAddress), &redisv8.ZRangeBy{
+				ctx, t.db.FormatKey(model.PairKey, model.WhiteListKey, tokenInAddress), &redisv8.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: 200,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, t.rDb.FormatKey(model.PairKey, model.WhiteListKey, tokenOutAddress), &redisv8.ZRangeBy{
+				ctx, t.db.FormatKey(model.PairKey, model.WhiteListKey, tokenOutAddress), &redisv8.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: 200,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, t.rDb.FormatKey(model.AmplifiedTvlKey, model.PairKey, key), &redisv8.ZRangeBy{
+				ctx, t.db.FormatKey(model.AmplifiedTvlKey, model.PairKey, key), &redisv8.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: 50,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, t.rDb.FormatKey(model.AmplifiedTvlKey, model.PairKey, model.WhiteListKey), &redisv8.ZRangeBy{
+				ctx, t.db.FormatKey(model.AmplifiedTvlKey, model.PairKey, model.WhiteListKey), &redisv8.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: 200,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, t.rDb.FormatKey(model.AmplifiedTvlKey, model.PairKey, model.WhiteListKey, tokenInAddress),
+				ctx, t.db.FormatKey(model.AmplifiedTvlKey, model.PairKey, model.WhiteListKey, tokenInAddress),
 				&redisv8.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
@@ -460,7 +452,7 @@ func (t *RouteService) findRoute(
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, t.rDb.FormatKey(model.AmplifiedTvlKey, model.PairKey, model.WhiteListKey, tokenOutAddress),
+				ctx, t.db.FormatKey(model.AmplifiedTvlKey, model.PairKey, model.WhiteListKey, tokenOutAddress),
 				&redisv8.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
@@ -1007,11 +999,11 @@ func (t *RouteService) compoundCachedRouteKey(
 	}
 
 	if isCachePoint {
-		cachedRouteKey = t.rDb.FormatKey(
+		cachedRouteKey = t.db.FormatKey(
 			model.Route, pairRouteCacheKey, saveGas, model.CachePoint, amountIn, strings.Join(dexes, "-"), gasInclude,
 		)
 	} else {
-		cachedRouteKey = t.rDb.FormatKey(
+		cachedRouteKey = t.db.FormatKey(
 			model.Route, pairRouteCacheKey, saveGas, model.CacheRange, fmt.Sprint(amountInUSDRound), strings.Join(dexes, "-"), gasInclude,
 		)
 	}
@@ -1021,26 +1013,8 @@ func (t *RouteService) compoundCachedRouteKey(
 
 // Get cache best route for this data point
 func (t *RouteService) lookupCachedRoute(ctx context.Context, cachedRouteKey string) ([]byte, time.Duration, error) {
-	if t.k8sDb != nil {
-		// First, lookup in-cluster redis
-		cmders, err := t.k8sDb.Client.Pipelined(
-			ctx, func(tx redisv8.Pipeliner) error {
-				tx.Get(ctx, cachedRouteKey)
-				tx.TTL(ctx, cachedRouteKey)
-				return nil
-			},
-		)
-		if err == nil {
-			cachedRoute, err1 := cmders[0].(*redisv8.StringCmd).Bytes()
-			ttl, err2 := cmders[1].(*redisv8.DurationCmd).Result()
-			if err1 == nil && err1 != redisv8.Nil && err2 == nil && err2 != redisv8.Nil {
-				return cachedRoute, ttl, nil
-			}
-		}
-	}
-
 	// Second try, lookup cloud redis
-	cmders, err := t.rDb.Client.Pipelined(
+	cmders, err := t.db.Client.Pipelined(
 		ctx, func(tx redisv8.Pipeliner) error {
 			tx.Get(ctx, cachedRouteKey)
 			tx.TTL(ctx, cachedRouteKey)
@@ -1086,11 +1060,7 @@ func (t *RouteService) writeBestRouteToCache(
 		return err
 	}
 
-	if t.k8sDb != nil {
-		t.k8sDb.Client.Set(ctx, cachedRouteKey, routeBytes, *ttl)
-	}
-
-	t.wDb.Client.Set(ctx, cachedRouteKey, routeBytes, *ttl)
+	t.db.Client.Set(ctx, cachedRouteKey, routeBytes, *ttl)
 
 	return nil
 }

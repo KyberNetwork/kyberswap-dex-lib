@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"strconv"
 	"testing"
 
 	"github.com/alicebob/miniredis"
@@ -26,16 +25,9 @@ func TestPriceCacheRedisRepository_Keys(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		cache, err := redis.New(redisConfig)
@@ -66,18 +58,10 @@ func TestPriceCacheRedisRepository_Get(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
-
 		cache, err := redis.New(redisConfig)
 		if err != nil {
 			t.Fatalf("failed to init redis client: %v", err.Error())
@@ -104,18 +88,10 @@ func TestPriceCacheRedisRepository_Get(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
-
 		cache, err := redis.New(redisConfig)
 		if err != nil {
 			t.Fatalf("failed to init redis client: %v", err.Error())
@@ -145,17 +121,9 @@ func TestPriceCacheRedisRepository_Set(t *testing.T) {
 		}
 
 		defer redisServer.Close()
-
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		cache, err := redis.New(redisConfig)
@@ -188,18 +156,10 @@ func TestPriceCacheRedisRepository_Remove(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
-
 		cache, err := redis.New(redisConfig)
 		if err != nil {
 			t.Fatalf("failed to init redis client: %v", err.Error())
@@ -233,16 +193,9 @@ func TestPriceCacheRedisRepository_Count(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		cache, err := redis.New(redisConfig)

@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"strconv"
 	"testing"
 
 	"github.com/alicebob/miniredis"
@@ -33,16 +32,9 @@ func TestTokenCacheInmemoryRepository_FindByAddresses(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)

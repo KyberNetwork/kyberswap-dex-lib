@@ -190,25 +190,11 @@ cacheRanges:
     toUSD: -1
     ttl: 15
 redis:
-  host: localhost
-  port: 6379
-  dbNumber: 0
-  password: ''
-  prefix: ''
-  readTimeout: 3
-  writeTimeout: 3
-readOnlyRedis:
-  host: localhost
-  port: 6379
-  dbNumber: 0
-  password: ''
-  prefix: ''
-redisSentinel:
+  addresses: localhost:6379
   masterName: ""
-  sentinelPort: 26379
   dbNumber: 0
-  password: ""
-  prefix: ""
+  password: ''
+  prefix: 'aurora'
   readTimeout: 3
   writeTimeout: 3
 ddAgentHost: ""

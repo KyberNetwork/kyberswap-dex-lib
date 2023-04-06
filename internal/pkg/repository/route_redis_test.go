@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"testing"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -24,16 +23,9 @@ func TestRouteRedisRepository_GetBestPools(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -188,16 +180,9 @@ func TestRouteRedisRepository_GetBestPools(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -352,16 +337,9 @@ func TestRouteRedisRepository_GetBestPools(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -516,16 +494,9 @@ func TestRouteRedisRepository_GetBestPools(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -678,16 +649,9 @@ func TestRouteRedisRepository_GetBestPools(t *testing.T) {
 			t.Fatalf("failed to setup redis for testing: %v", err.Error())
 		}
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -734,16 +698,9 @@ func TestRouteRedisRepository_AddToSortedSetScoreByReserveUsd(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -814,16 +771,9 @@ func TestRouteRedisRepository_AddToSortedSetScoreByReserveUsd(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -894,16 +844,9 @@ func TestRouteRedisRepository_AddToSortedSetScoreByReserveUsd(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -975,16 +918,9 @@ func TestRouteRedisRepository_AddToSortedSetScoreByReserveUsd(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -1053,16 +989,9 @@ func TestRouteRedisRepository_AddToSortedSetScoreByReserveUsd(t *testing.T) {
 			t.Fatalf("failed to setup redis for testing: %v", err.Error())
 		}
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -1094,16 +1023,9 @@ func TestRouteRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -1179,16 +1101,9 @@ func TestRouteRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -1259,16 +1174,9 @@ func TestRouteRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -1340,16 +1248,9 @@ func TestRouteRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 
 		defer redisServer.Close()
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)
@@ -1418,16 +1319,9 @@ func TestRouteRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 			t.Fatalf("failed to setup redis for testing: %v", err.Error())
 		}
 
-		// Setup redis client
-		port, err := strconv.Atoi(redisServer.Port())
-		if err != nil {
-			t.Fatalf("failed to convert redis port: %v", err.Error())
-		}
-
 		redisConfig := &redis.Config{
-			Host:   redisServer.Host(),
-			Port:   port,
-			Prefix: "",
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
 		}
 
 		db, err := redis.New(redisConfig)

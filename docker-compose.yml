@@ -3,7 +3,7 @@ version: '3'
 services:
   redis:
     image: redis
-    container_name: redis-aggregator-backend-master
+    container_name: redis-router-service-master
     ports:
       - "6379:6379"
     networks:
@@ -11,7 +11,7 @@ services:
 
   redis-slave:
     image: redis
-    container_name: redis-aggregator-backend-slave
+    container_name: redis-router-service-slave
     ports:
       - "6380:6379"
     command: redis-server --slaveof redis 6379
