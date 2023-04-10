@@ -362,8 +362,8 @@ redis:
   dbNumber: 0
   password: ""
   prefix: "polygon"
-  readTimeout: 3
-  writeTimeout: 3
+  readTimeout: 3s
+  writeTimeout: 3s
 ddAgentHost: ""
 featureFlags:
   useOptimizedSPFA: false

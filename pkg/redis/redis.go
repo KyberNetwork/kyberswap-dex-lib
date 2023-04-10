@@ -3,7 +3,6 @@ package redis
 import (
 	"context"
 	"encoding/json"
-	"time"
 
 	"github.com/go-redis/redis/v8"
 
@@ -21,8 +20,8 @@ func New(cfg *Config) (*Redis, error) {
 		DB:           cfg.DBNumber,
 		Password:     cfg.Password,
 		MasterName:   cfg.MasterName,
-		ReadTimeout:  time.Duration(cfg.ReadTimeout) * time.Second,
-		WriteTimeout: time.Duration(cfg.WriteTimeout) * time.Second,
+		ReadTimeout:  cfg.ReadTimeout,
+		WriteTimeout: cfg.WriteTimeout,
 	})
 
 	if _, err := rdb.Ping(context.Background()).Result(); err != nil {
