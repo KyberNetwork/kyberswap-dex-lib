@@ -42,7 +42,7 @@ func GenKthBestPaths(
 	tokenAmountIn poolPkg.TokenAmount,
 	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
-	maxHops, maxPathsToGenerate uint32,
+	maxHops, maxPathsToGenerate, maxPathsToReturn uint32,
 ) ([]*core.Path, error) {
 	span, _ := tracer.StartSpanFromContext(ctx, "GenKthBestPaths")
 	defer span.Finish()
@@ -80,14 +80,18 @@ func GenKthBestPaths(
 		if err != nil {
 			return nil, err
 		}
+		// fmt.Printf("This layer has %v paths\n", len(nextLayer[input.TokenOutAddress]))
+		paths = append(paths, getKthPathAtTokenOut(input, data, tokenAmountIn, nextLayer[input.TokenOutAddress], maxPathsToReturn)...)
+
+		nextLayer[input.TokenOutAddress] = nil
 
 		nextLayer = getKthBestPathsForEachToken(nextLayer, maxPathsToGenerate, input.GasInclude)
 
-		paths = append(paths, getKthPathAtTokenOut(input, data, tokenAmountIn, nextLayer[input.TokenOutAddress])...)
-
 		prevLayer = nextLayer
-	}
 
+	}
+	// fmt.Println()
+	// fmt.Println(len(paths))
 	return paths, nil
 }
 
@@ -198,7 +202,16 @@ func getKthPathAtTokenOut(
 	data findroute.FinderData,
 	tokenAmountIn poolPkg.TokenAmount,
 	nodeInfoAtTokenOut []*nodeInfo,
+	maxPathsToReturn uint32,
 ) (paths []*core.Path) {
+
+	sort.Slice(nodeInfoAtTokenOut, func(i, j int) bool {
+		return betterAmountOut(nodeInfoAtTokenOut[i], nodeInfoAtTokenOut[j], input.GasInclude)
+	})
+	if uint32(len(nodeInfoAtTokenOut)) > maxPathsToReturn {
+		nodeInfoAtTokenOut = nodeInfoAtTokenOut[:maxPathsToReturn]
+	}
+
 	for kthPath, pathInfo := range nodeInfoAtTokenOut {
 		path, err := core.NewPath(pathInfo.poolsOnPath, pathInfo.tokensOnPath, tokenAmountIn, input.TokenOutAddress,
 			data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[input.TokenOutAddress].Decimals,

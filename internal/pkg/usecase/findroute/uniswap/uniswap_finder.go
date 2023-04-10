@@ -107,15 +107,15 @@ func (f *uniswapFinder) Find(
 		AmountUsd: utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, data.PriceUSDByAddress[input.TokenInAddress]),
 	}
 
-	paths, err := common.GenKthBestPaths(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut, f.maxHops, f.maxPathsToGenerate)
+	paths, err := common.GenKthBestPaths(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut, f.maxHops, f.maxPathsToGenerate, f.maxPathsToGenerate)
 	if err != nil {
 		return nil, err
 	}
 
 	if input.SaveGas {
-		return f.genSinglePathRoutes(ctx, input, data, tokenAmountIn, paths), nil
+		return f.genSinglePathRoutes(ctx, input, data, paths), nil
 	}
 
 	// Step 4: Pick several paths to form a route
-	return f.genBestRoutes(ctx, input, data, tokenAmountIn, paths)
+	return f.genBestRoutes(ctx, input, data, paths)
 }

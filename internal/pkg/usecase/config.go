@@ -57,8 +57,14 @@ type (
 	}
 
 	SPFAFinderOptions struct {
-		MaxHops    int     `mapstructure:"maxHops"`
-		MinPartUSD float64 `mapstructure:"minPartUsd"`
+		MaxHops                 uint32  `mapstructure:"maxHops"`
+		DistributionPercent     uint32  `mapstructure:"distributionPercent"`
+		MaxPathsInRoute         uint32  `mapstructure:"maxPathsInRoute"`
+		MaxPathsToGenerate      uint32  `mapstructure:"maxPathsToGenerate"`
+		MaxPathsToReturn        uint32  `mapstructure:"maxPathsToReturn"`
+		MinPartUSD              float64 `mapstructure:"minPartUSD"`
+		MinThresholdAmountInUSD float64 `mapstructure:"minThresholdAmountInUSD"`
+		MaxThresholdAmountInUSD float64 `mapstructure:"maxThresholdAmountInUSD"`
 	}
 )
 

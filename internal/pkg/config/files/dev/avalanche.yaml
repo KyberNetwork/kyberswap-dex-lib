@@ -393,7 +393,13 @@ useCase:
       amplifiedTvlTokenOutPoolCount: 100
     spfaFinderOptions:
       maxHops: 3
-      minPartUsd: 500
+      distributionPercent: 5
+      maxPathsInRoute: 20
+      maxPathsToGenerate: 5
+      maxPathsToReturn: 200
+      minPartUSD: 500
+      minThresholdAmountInUSD: 0
+      maxThresholdAmountInUSD: 100000000
     enabledDexes: *enableDexes
     whitelistedTokens: *whitelistedTokens
     blacklistedPools:

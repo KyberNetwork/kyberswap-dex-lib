@@ -25,7 +25,7 @@ func (f *spfaFinder) bestPathExactIn(
 	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*core.Path, error) {
-	span, _ := tracer.StartSpanFromContext(ctx, "[spfa] bestPathExactIn")
+	span, ctx := tracer.StartSpanFromContext(ctx, "spfaFinder.bestPathExactIn")
 	defer span.Finish()
 
 	// Must be able to get info about tokenIn
@@ -38,7 +38,7 @@ func (f *spfaFinder) bestPathExactIn(
 	}
 
 	// only pick one best path, so set maxPathsToGenerate = 1.
-	paths, err := common.GenKthBestPaths(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut, f.maxHops, defaultSpfaMaxPathsToGenerate)
+	paths, err := common.GenKthBestPaths(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut, f.maxHops, defaultSpfaMaxPathsToGenerate, defaultSpfaMaxPathsToReturn)
 	if err != nil {
 		return nil, err
 	}

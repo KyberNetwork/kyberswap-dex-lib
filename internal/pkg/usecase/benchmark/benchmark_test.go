@@ -22,38 +22,68 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	pool2 "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/core"
+	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/bruteforce"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfa"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/uniswap"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
-
-func init() {
-	if err := json.Unmarshal([]byte(benchmarkTokensJSON), &benchmarkTokens); err != nil {
-		panic(err)
-	}
-}
 
 const (
 	configFilePath = "../../config/files/dev/polygon.yaml"
+	saveGas        = false
+	gasInclude     = false
 )
 
+type finderAlgo int
+
 const (
-	finderAlgoBruteforce finderAlgo = iota
-	finderAlgoSPFA
+	finderAlgoSPFA finderAlgo = iota
 	finderAlgoUniswap
-	MinMultiplyOfAvgPrice = 5
-	MaxMultiplyOfAvgPrice = 15
+	finderAlgoBruteforce
+	finderAlgoSpfav2
 )
+
+var algoName = []string{"spfa", "uniswap", "bruteforce", "spfav2"}
+
+var (
+	algoToBenchmark = []finderAlgo{finderAlgoSPFA, finderAlgoSpfav2}
+
+	// we will compare rate of other algo to baseAlgo
+	// index in algoToBenchmark
+	baseAlgoIndex = 0
+)
+
+type multiplyOfAvgPriceRange struct {
+	minMultiply, maxMultiply int
+}
+
+var multiplyRange = []multiplyOfAvgPriceRange{
+	{1, 1},
+	{10, 10},
+	{50, 51},
+	{100, 100},
+	{500, 501},
+	{1000, 1000},
+	{5000, 5001},
+	{10000, 10000},
+}
+
+//go:embed benchmark_tokens.json
+var benchmarkTokensJSON string
 
 type tokenData struct {
 	Address  string `json:"address"`
 	Symbol   string `json:"symbol"`
 	Decimals uint8  `json:"decimals"`
 }
+
+var benchmarkTokens []tokenData
 
 type topTradingPairs struct {
 	Pair      string
@@ -62,11 +92,6 @@ type topTradingPairs struct {
 	Volume    float64
 	AvgAmount float64
 }
-
-//go:embed benchmark_tokens.json
-var benchmarkTokensJSON string
-
-var benchmarkTokens []tokenData
 
 type testcase struct {
 	tokenInAddress, tokenOutAddress string
@@ -81,11 +106,28 @@ type finderContext struct {
 	finderDataFactory func() findroute.FinderData
 }
 
+func init() {
+	if err := json.Unmarshal([]byte(benchmarkTokensJSON), &benchmarkTokens); err != nil {
+		panic(err)
+	}
+}
+
+func newDefaultIFinderFromID(algoID finderAlgo, uc *benchmarkUseCase, finderCtx *finderContext) findroute.IFinder {
+	switch algoID {
+	case finderAlgoSPFA:
+		return spfa.NewDefaultSPFAFinder()
+	case finderAlgoUniswap:
+		return uniswap.NewDefaultUniswapFinder()
+	case finderAlgoBruteforce:
+		return bruteforce.NewDefaultBruteforceFinder(finderCtx.pools, uc.poolFactory)
+	case finderAlgoSpfav2:
+		return spfav2.NewDefaultSPFAv2Finder()
+	default:
+		panic("invalid algo")
+	}
+}
+
 func makeFinderContext(uc *benchmarkUseCase, tc *testcase) (*finderContext, error) {
-	var (
-		saveGas    = false
-		gasInclude = false
-	)
 	tokenInAddress, err := eth.ConvertEtherToWETH(tc.tokenInAddress, uc.config.ChainID)
 	if err != nil {
 		return nil, err
@@ -132,8 +174,8 @@ func makeFinderContext(uc *benchmarkUseCase, tc *testcase) (*finderContext, erro
 	gasTokenPriceUSD := preferredPriceUSDByAddress[gasTokenAddress]
 
 	amountInBi, ok := new(big.Int).SetString(tc.amountIn, 10)
-	//fmt.Println(tokenInAddress, amountInBi)
-	//fmt.Println(preferredPriceUSDByAddress[tokenInAddress])
+	// fmt.Println(tokenInAddress, amountInBi)
+	// fmt.Println(preferredPriceUSDByAddress[tokenInAddress])
 	if !ok {
 		return nil, errors.New("invalid amountIn")
 	}
@@ -169,118 +211,70 @@ func testRun(uc *benchmarkUseCase, w *csv.Writer, tc testcase) error {
 		return err
 	}
 
-	bruteforceStartTime := time.Now()
-	bruteforceBestRoutes, err := bruteforce.NewDefaultBruteforceFinder(finderCtx.pools, uc.poolFactory).Find(
-		context.TODO(),
-		finderCtx.input,
-		finderCtx.finderDataFactory(),
-	)
-	if err != nil {
-		return err
-	}
-	bruteforceExecTime := time.Since(bruteforceStartTime)
+	allAlgoBestRoute := make([]*core.Route, len(algoToBenchmark))
+	allAlgoSummamize := make([]valueobject.Route, len(algoToBenchmark))
+	allAlgoRunningTime := make([]string, len(algoToBenchmark))
+	var allAlgoDiffVsBaseAlgo []string
+	for i, algoID := range algoToBenchmark {
 
-	spfaStartTime := time.Now()
-	spfaBestRoutes, err := spfa.NewDefaultSPFAFinder().Find(
-		context.TODO(),
-		finderCtx.input,
-		finderCtx.finderDataFactory(),
-	)
-	if err != nil {
-		return err
-	}
-	spfaExecTime := time.Since(spfaStartTime)
+		finder := newDefaultIFinderFromID(algoID, uc, finderCtx)
 
-	uniswapStartTime := time.Now()
-	uniswapBestRoutes, err := uniswap.NewDefaultUniswapFinder().Find(
-		context.TODO(),
-		finderCtx.input,
-		finderCtx.finderDataFactory(),
-	)
-	if err != nil {
-		return err
-	}
-	uniswapExecTime := time.Since(uniswapStartTime)
+		algoStartTime := time.Now()
+		algoBestRoutes, err := finder.Find(context.TODO(), finderCtx.input, finderCtx.finderDataFactory())
+		if err != nil {
+			fmt.Printf("[%v] failed to find route, err: %v\n", algoName[algoID], err)
+			return nil
+		}
+		allAlgoRunningTime[i] = strconv.FormatInt(time.Since(algoStartTime).Milliseconds(), 10)
 
-	spfaBestRoute := extractBestRoute(spfaBestRoutes)
-	bruteforceBestRoute := extractBestRoute(bruteforceBestRoutes)
-	uniswapBestRoute := extractBestRoute(uniswapBestRoutes)
+		allAlgoBestRoute[i] = extractBestRoute(algoBestRoutes)
 
-	// OriginalPools is nil, assign to a slice to have identical len
-	if spfaBestRoute != nil {
-		spfaBestRoute.OriginalPools = spfaBestRoute.Pools
-	}
-	if bruteforceBestRoute != nil {
-		bruteforceBestRoute.OriginalPools = spfaBestRoute.Pools
-	}
-	if uniswapBestRoute != nil {
-		uniswapBestRoute.OriginalPools = spfaBestRoute.Pools
+		algoSummarize, err := allAlgoBestRoute[i].Summarize(uc.poolFactory.NewPools(finderCtx.pools))
+		if err != nil {
+			fmt.Printf("[%v] failed to summarize, err: %v\n", algoName[algoID], err)
+			return nil
+		}
+		allAlgoSummamize[i] = algoSummarize
+
 	}
 
-	//fmt.Println("summarize: ")
-	spfaSummarize, err := spfaBestRoute.Summarize(uc.poolFactory.NewPools(finderCtx.pools))
-	if err != nil {
-		return err
+	for i := range algoToBenchmark {
+		if i != baseAlgoIndex {
+			allAlgoDiffVsBaseAlgo = append(allAlgoDiffVsBaseAlgo,
+				new(big.Int).Sub(allAlgoSummamize[i].OutputAmount, allAlgoSummamize[baseAlgoIndex].OutputAmount).String())
+		}
 	}
 
-	bruteforceSummarize, err := bruteforceBestRoute.Summarize(uc.poolFactory.NewPools(finderCtx.pools))
-	if err != nil {
-		return err
-	}
-
-	uniswapSummarize, err := uniswapBestRoute.Summarize(uc.poolFactory.NewPools(finderCtx.pools))
-	if err != nil {
-		return err
-	}
-
-	// TODO calc true percent
-	percentUniswapVsSpfa :=
-		new(big.Int).Sub(uniswapSummarize.OutputAmount, spfaSummarize.OutputAmount).String()
-	percentBruteforceVsSpfa :=
-		new(big.Int).Sub(bruteforceSummarize.OutputAmount, spfaSummarize.OutputAmount).String()
-
-	if bruteforceSummarize.OutputAmount.Cmp(spfaSummarize.OutputAmount) > 0 {
-
-		fmt.Println(" amount:", bruteforceBestRoute.Input.Amount, bruteforceBestRoute.Input.AmountUsd)
-		fmt.Println("SPFA Algo Result: ", spfaSummarize.OutputAmount)
-		for _, path := range spfaSummarize.Route {
-			fmt.Println(path[0].SwapAmount, "(", new(big.Int).Div(new(big.Int).Mul(path[0].SwapAmount, big.NewInt(100)), spfaSummarize.InputAmount).String(), ")")
-			for i, swap := range path {
+	for i, summarizedRoute := range allAlgoSummamize {
+		fmt.Printf("[%v] Summarize Result: %v \n", algoName[algoToBenchmark[i]], summarizedRoute.OutputAmount.String())
+		for _, path := range summarizedRoute.Route {
+			fmt.Println(path[0].SwapAmount, "(", new(big.Int).Div(new(big.Int).Mul(path[0].SwapAmount, big.NewInt(100)), summarizedRoute.InputAmount).String(), ")")
+			for j, swap := range path {
 				fmt.Print("pool: ", swap.Pool, " ", swap.Exchange, " => ")
-				if i == len(path)-1 {
+				if j == len(path)-1 {
 					fmt.Println(swap.AmountOut)
 				}
 			}
 		}
-
 		fmt.Println()
-		fmt.Println("Brute Force Algo Result: ", bruteforceSummarize.OutputAmount)
-		for _, path := range bruteforceSummarize.Route {
-			fmt.Println(path[0].SwapAmount, "(", new(big.Int).Div(new(big.Int).Mul(path[0].SwapAmount, big.NewInt(100)), spfaSummarize.InputAmount).String(), ")")
-			for i, swap := range path {
-				fmt.Print("pool: ", swap.Pool, " ", swap.Exchange, " => ")
-				if i == len(path)-1 {
-					fmt.Println(swap.AmountOut)
-				}
-			}
-		}
-
 	}
 
-	w.Write([]string{tc.tokenInSymbol, tc.tokenOutSymbol,
-		fmt.Sprintf("%f", spfaBestRoute.Input.AmountUsd),
-		fmt.Sprintf("%s", spfaSummarize.OutputAmount),
-		fmt.Sprintf("%s", bruteforceSummarize.OutputAmount),
-		fmt.Sprintf("%s", uniswapSummarize.OutputAmount),
-		percentBruteforceVsSpfa,
-		percentUniswapVsSpfa,
-		strconv.FormatInt(spfaExecTime.Milliseconds(), 10),
-		strconv.FormatInt(bruteforceExecTime.Milliseconds(), 10),
-		strconv.FormatInt(uniswapExecTime.Milliseconds(), 10),
-		fmt.Sprint(len(spfaBestRoute.Paths)),
-		fmt.Sprint(len(bruteforceBestRoute.Paths)),
-		fmt.Sprint(len(uniswapBestRoute.Paths)),
-	})
+	var testResult = []string{tc.tokenInSymbol, tc.tokenOutSymbol, fmt.Sprintf("%f", allAlgoBestRoute[baseAlgoIndex].Input.AmountUsd)}
+
+	for _, summarizedRoute := range allAlgoSummamize {
+		testResult = append(testResult, summarizedRoute.OutputAmount.String())
+	}
+
+	testResult = append(testResult, allAlgoDiffVsBaseAlgo...)
+
+	testResult = append(testResult, allAlgoRunningTime...)
+
+	for _, summarizedRoute := range allAlgoSummamize {
+		testResult = append(testResult, strconv.Itoa(len(summarizedRoute.Route)))
+	}
+
+	w.Write(testResult)
+	w.Flush()
 	return nil
 }
 
@@ -290,18 +284,13 @@ func TestSwap(t *testing.T) {
 	uc, err := newMockBenchmarkUseCase(configFilePath)
 	assert.Nil(t, err)
 
-	var (
-	//saveGas    = false
-	//gasInclude = false
-	)
-
 	// WETH
 	tokenInAddress := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 
 	// KNCL
 	tokenOutAddress := "0xdd974d5c2e2928dea5f71b9825b8b646686bd200"
 
-	//gasTokenAddress := strings.ToLower(uc.config.GasTokenAddress)
+	// gasTokenAddress := strings.ToLower(uc.config.GasTokenAddress)
 
 	// allow all sources
 	sources := uc.getSources(nil, nil)
@@ -310,10 +299,10 @@ func TestSwap(t *testing.T) {
 	assert.Nil(t, err)
 
 	for _, pool := range pools {
-		//fmt.Println(pool.Address)
+		// fmt.Println(pool.Address)
 		if pool.Address == "0x76838fd2f22bdc1d3e96069971e65653173edb2a" {
 			iswap := uc.poolFactory.NewPools([]entity.Pool{pool})
-			out, err := iswap[0].CalcAmountOut(pool2.TokenAmount{
+			out, err := iswap[0].CalcAmountOut(poolPkg.TokenAmount{
 				Token:     tokenInAddress,
 				Amount:    big.NewInt(1750000000000000000),
 				AmountUsd: 0,
@@ -323,7 +312,7 @@ func TestSwap(t *testing.T) {
 			assert.Equal(t, out.TokenAmountOut.Amount.Cmp(expect), 0)
 
 			iswap = uc.poolFactory.NewPools([]entity.Pool{pool})
-			out, err = iswap[0].CalcAmountOut(pool2.TokenAmount{
+			out, err = iswap[0].CalcAmountOut(poolPkg.TokenAmount{
 				Token:     tokenInAddress,
 				Amount:    big.NewInt(2000000000000000000),
 				AmountUsd: 0,
@@ -390,20 +379,20 @@ func makeTestCaseFromTokens(uc *benchmarkUseCase) ([]testcase, error) {
 						if len(price) == 0 {
 							return nil, errors.New("can't get price from db")
 						}
-
-						minAmount := math.Max(topPair.AvgAmount/price[0].MarketPrice, 1)
-
-						for i := MinMultiplyOfAvgPrice; i <= MaxMultiplyOfAvgPrice; i++ {
-							amountIn := new(big.Int).Mul(constant.TenPowInt(tokenIn.Decimals), new(big.Int).Mul(big.NewInt(int64(i)), big.NewInt(int64(minAmount)))).String()
-
-							tests = append(tests, testcase{
-								tokenInAddress:  strings.ToLower(tokenIn.Address),
-								tokenOutAddress: strings.ToLower(tokenOut.Address),
-								tokenInSymbol:   tokenIn.Symbol,
-								tokenOutSymbol:  tokenOut.Symbol,
-								amountIn:        amountIn,
-								testName:        fmt.Sprintf("%v %v %v", tokenIn.Symbol, tokenOut.Symbol, amountIn),
-							})
+						tokenInPreferredPrice, _ := price[0].GetPreferredPrice()
+						minAmount := math.Max(topPair.AvgAmount/tokenInPreferredPrice, 1)
+						for _, r := range multiplyRange {
+							for i := r.minMultiply; i <= r.maxMultiply; i++ {
+								amountIn := new(big.Int).Mul(constant.TenPowInt(tokenIn.Decimals), new(big.Int).Mul(big.NewInt(int64(i)), big.NewInt(int64(minAmount)))).String()
+								tests = append(tests, testcase{
+									tokenInAddress:  strings.ToLower(tokenIn.Address),
+									tokenOutAddress: strings.ToLower(tokenOut.Address),
+									tokenInSymbol:   tokenIn.Symbol,
+									tokenOutSymbol:  tokenOut.Symbol,
+									amountIn:        amountIn,
+									testName:        fmt.Sprintf("%v %v %v", tokenIn.Symbol, tokenOut.Symbol, amountIn),
+								})
+							}
 						}
 					}
 				}
@@ -429,8 +418,25 @@ func TestBenchmarkAlgorithm(t *testing.T) {
 	defer f.Close()
 	w := csv.NewWriter(f)
 	defer w.Flush()
-	w.Write([]string{"tokenIn", "tokenOut", "amountInUsd", "spfaAmountOut", "bruteforceAmountOut",
-		"uniswapAmountOut", "bruteforceDiff", "uniswapDiff", "spfaExecTime", "bruteforceExecTime", "uniswapExecTime", "splitSPFA", "splitBF", "splitUni", "pathSPFA", "pathBF", "pathUni"})
+
+	attributeNames := []string{"tokenIn", "tokenOut", "amountInUsd"}
+	for _, algo := range algoToBenchmark {
+		attributeNames = append(attributeNames, fmt.Sprintf("%vAmountOut", algoName[algo]))
+	}
+	for i, algo := range algoToBenchmark {
+		if i == baseAlgoIndex {
+			continue
+		}
+		attributeNames = append(attributeNames, fmt.Sprintf("%vDiff", algoName[algo]))
+	}
+	for _, algo := range algoToBenchmark {
+		attributeNames = append(attributeNames, fmt.Sprintf("%vExecTime", algoName[algo]))
+	}
+	for _, algo := range algoToBenchmark {
+		attributeNames = append(attributeNames, fmt.Sprintf("%vSplit", algoName[algo]))
+	}
+
+	w.Write(attributeNames)
 
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
@@ -439,25 +445,13 @@ func TestBenchmarkAlgorithm(t *testing.T) {
 	}
 }
 
-type finderAlgo int
-
 func findRouteByAlgorithmAndTestCase(algo finderAlgo, uc *benchmarkUseCase, tc testcase, result chan *big.Int) error {
 	finderCtx, err := makeFinderContext(uc, &tc)
 	if err != nil {
 		return err
 	}
 
-	var finder findroute.IFinder
-	switch algo {
-	case finderAlgoBruteforce:
-		finder = bruteforce.NewDefaultBruteforceFinder(finderCtx.pools, uc.poolFactory)
-	case finderAlgoSPFA:
-		finder = spfa.NewDefaultSPFAFinder()
-	case finderAlgoUniswap:
-		finder = uniswap.NewDefaultUniswapFinder()
-	default:
-		return errors.New("invalid algo")
-	}
+	var finder = newDefaultIFinderFromID(algo, uc, finderCtx)
 
 	routes, err := finder.Find(context.TODO(), finderCtx.input, finderCtx.finderDataFactory())
 	if err != nil {
@@ -483,7 +477,7 @@ func TestProfileSingleAlgorithmConcurrently(t *testing.T) {
 
 	var (
 		algo = finderAlgoSPFA
-		//rng  = rand.New(rand.NewSource(time.Now().UnixNano()))
+		// rng  = rand.New(rand.NewSource(time.Now().UnixNano()))
 	)
 
 	tests, err := makeTestCaseFromTokens(uc)

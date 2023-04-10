@@ -24,18 +24,14 @@ type routeNode struct {
 }
 
 func (f *uniswapFinder) genSinglePathRoutes(
-	ctx context.Context, input findroute.Input, data findroute.FinderData, tokenAmountIn poolPkg.TokenAmount, paths []*core.Path,
+	ctx context.Context, input findroute.Input, data findroute.FinderData, paths []*core.Path,
 ) []*core.Route {
 	span, _ := tracer.StartSpanFromContext(ctx, "[uniswap] genSinglePathRoutes")
 	defer span.Finish()
 
 	singlePathRoutes := make([]*core.Route, 0, len(paths))
 	for _, path := range paths {
-		singlePathRoutes = append(singlePathRoutes, core.NewRouteFromPaths(poolPkg.TokenAmount{
-			Token:     input.TokenInAddress,
-			Amount:    input.AmountIn,
-			AmountUsd: 0,
-		}, input.TokenOutAddress, data.PoolByAddress, []*core.Path{path}))
+		singlePathRoutes = append(singlePathRoutes, core.NewRouteFromPaths(input.TokenInAddress, input.TokenOutAddress, data.PoolByAddress, []*core.Path{path}))
 	}
 	sort.Slice(singlePathRoutes, func(i, j int) bool {
 		return singlePathRoutes[i].CompareTo(singlePathRoutes[j], input.GasInclude) > 0
@@ -47,7 +43,7 @@ func (f *uniswapFinder) genSinglePathRoutes(
 }
 
 func (f *uniswapFinder) genBestRoutes(
-	ctx context.Context, input findroute.Input, data findroute.FinderData, tokenAmountIn poolPkg.TokenAmount, paths []*core.Path,
+	ctx context.Context, input findroute.Input, data findroute.FinderData, paths []*core.Path,
 ) ([]*core.Route, error) {
 	span, _ := tracer.StartSpanFromContext(ctx, "[uniswap] genBestRoutes")
 	defer span.Finish()
@@ -74,7 +70,7 @@ func (f *uniswapFinder) genBestRoutes(
 
 	// Step 2: Perform layered BFS, each edge would be a path => adding a path = travel an edge
 	for currentNumberOfPaths := uint32(1); currentNumberOfPaths <= f.maxPaths; currentNumberOfPaths++ {
-		routes = append(routes, getPossibleRoutesFromCurrentLayer(input, data, tokenAmountIn, currentLayer)...)
+		routes = append(routes, getPossibleRoutesFromCurrentLayer(input, data, currentLayer)...)
 
 		if currentNumberOfPaths < f.maxPaths {
 			currentLayer = f.getNextLayerOfRoutes(percentToPath, percents, currentLayer)
@@ -180,16 +176,11 @@ func (f *uniswapFinder) getNextRoutesFromCurrentRoute(percentToPath map[int][]*c
 	return nextRoutes
 }
 
-func getPossibleRoutesFromCurrentLayer(input findroute.Input, data findroute.FinderData, tokenAmountIn poolPkg.TokenAmount, currentLayer []*routeNode) []*core.Route {
+func getPossibleRoutesFromCurrentLayer(input findroute.Input, data findroute.FinderData, currentLayer []*routeNode) []*core.Route {
 	var possibleRoutes []*core.Route
 	for _, node := range currentLayer {
 		if node.remainingPercent == 0 {
-			possibleRoutes = append(possibleRoutes, core.NewRouteFromPaths(poolPkg.TokenAmount{
-				Token:     input.TokenInAddress,
-				Amount:    input.AmountIn,
-				AmountUsd: 0,
-			}, input.TokenOutAddress, data.PoolByAddress, node.pathsOnRoute))
-			continue
+			possibleRoutes = append(possibleRoutes, core.NewRouteFromPaths(input.TokenInAddress, input.TokenOutAddress, data.PoolByAddress, node.pathsOnRoute))
 		}
 	}
 	return possibleRoutes

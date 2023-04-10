@@ -6,8 +6,6 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/core"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 )
 
@@ -16,8 +14,9 @@ const (
 	defaultSpfaDistributionPercent uint32  = 5
 	defaultSpfaMinPartUSD          float64 = 500
 
-	// number of paths to generate in BestPathExactIn, not meant to be configurable
+	// number of paths to generate and return in BestPathExactIn, not meant to be configurable
 	defaultSpfaMaxPathsToGenerate uint32 = 1
+	defaultSpfaMaxPathsToReturn   uint32 = 1
 )
 
 // spfaFinder finds route using Shortest spfaPath Faster Algorithm (SPFA)
@@ -31,18 +30,14 @@ type spfaFinder struct {
 
 	// minPartUSD minimum amount in USD of each part
 	minPartUSD float64
-
-	originalPools []entity.Pool
-
-	poolFactory *factory.PoolFactory
 }
 
-func NewSPFAFinder(maxHops, distributionPercent uint32, minPartUSD float64, pool []entity.Pool, poolFactory *factory.PoolFactory) *spfaFinder {
-	return &spfaFinder{maxHops, distributionPercent, minPartUSD, pool, poolFactory}
+func NewSPFAFinder(maxHops, distributionPercent uint32, minPartUSD float64) *spfaFinder {
+	return &spfaFinder{maxHops, distributionPercent, minPartUSD}
 }
 
 func NewDefaultSPFAFinder() *spfaFinder {
-	return NewSPFAFinder(defaultSpfaMaxHops, defaultSpfaDistributionPercent, defaultSpfaMinPartUSD, nil, nil)
+	return NewSPFAFinder(defaultSpfaMaxHops, defaultSpfaDistributionPercent, defaultSpfaMinPartUSD)
 }
 
 func (f *spfaFinder) Find(
@@ -50,7 +45,7 @@ func (f *spfaFinder) Find(
 	input findroute.Input,
 	data findroute.FinderData,
 ) ([]*core.Route, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "[spfa] Find")
+	span, ctx := tracer.StartSpanFromContext(ctx, "spfaFinder.Find")
 	defer span.Finish()
 
 	bestRoute, err := f.bestRouteExactIn(ctx, input, data)

@@ -23,10 +23,11 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfa"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -545,7 +546,16 @@ func (uc *GetRoutesUseCase) findRouteWithSPFA(
 		GasInclude:       params.query.GasInclude,
 	}
 
-	var finder findroute.IFinder = spfa.NewDefaultSPFAFinder()
+	var finder findroute.IFinder = spfav2.NewSPFAv2Finder(
+		uc.config.SPFAFinderOptions.MaxHops,
+		uc.config.SPFAFinderOptions.DistributionPercent,
+		uc.config.SPFAFinderOptions.MaxPathsInRoute,
+		uc.config.SPFAFinderOptions.MaxPathsToGenerate,
+		uc.config.SPFAFinderOptions.MaxPathsToReturn,
+		uc.config.SPFAFinderOptions.MinPartUSD,
+		uc.config.SPFAFinderOptions.MinThresholdAmountInUSD,
+		uc.config.SPFAFinderOptions.MaxThresholdAmountInUSD,
+	)
 
 	bestRoutes, err := finder.Find(
 		ctx,
@@ -588,7 +598,7 @@ func (uc *GetRoutesUseCase) summarizeRoute(
 	route *core.Route,
 	params *findRouteParams,
 ) (*valueobject.RouteSummary, error) {
-	span, _ := tracer.StartSpanFromContext(ctx, "GetRoutesUseCase.summarizeRoute")
+	span, ctx := tracer.StartSpanFromContext(ctx, "GetRoutesUseCase.summarizeRoute")
 	defer span.Finish()
 
 	pools := uc.poolFactory.NewPools(params.pools)
@@ -614,6 +624,7 @@ func (uc *GetRoutesUseCase) summarizeRoute(
 			if !ok {
 				logger.WithFields(logger.Fields{
 					"pool.Address": swapPool.GetAddress(),
+					"request.id":   requestid.RequestIDFromCtx(ctx),
 				}).Error("[GetRoutesUseCase.summarizeRoute] pool not found")
 
 				return nil, usecase.ErrPoolNotFound
@@ -625,6 +636,7 @@ func (uc *GetRoutesUseCase) summarizeRoute(
 					"tokenIn":      swapIn.Token,
 					"amountIn":     swapIn.Amount.String(),
 					"pool.Address": freshPool.GetAddress(),
+					"request.id":   requestid.RequestIDFromCtx(ctx),
 				}).Error("[GetRoutesUseCase.summarizeRoute] invalid swap")
 
 				return nil, usecase.ErrInvalidSwap
@@ -635,6 +647,7 @@ func (uc *GetRoutesUseCase) summarizeRoute(
 					"tokenIn":      swapIn.Token,
 					"amountIn":     swapIn.Amount.String(),
 					"pool.Address": freshPool.GetAddress(),
+					"request.id":   requestid.RequestIDFromCtx(ctx),
 				}).Error("[GetRoutesUseCase.summarizeRoute] invalid swap")
 
 				return nil, usecase.ErrInvalidSwap

@@ -19,6 +19,7 @@ func TestGenKthBestPaths(t *testing.T) {
 			nPools                   = 2000
 			maxHop            uint32 = 3
 			maxPathToGenerate uint32 = 5
+			maxPathToReturn   uint32 = 5
 		)
 		tokenByAddress := GenerateRandomTokenByAddress(nTokens)
 		var tokenAddressList []string
@@ -63,7 +64,7 @@ func TestGenKthBestPaths(t *testing.T) {
 			context.TODO(),
 			input, data, tokenAmountIn,
 			tokenToPoolAddress, minHopToTokenOut,
-			maxHop, maxPathToGenerate,
+			maxHop, maxPathToGenerate, maxPathToReturn,
 		)
 		assert.Nil(t, err)
 		fmt.Println("tokenIn", tokenIn)

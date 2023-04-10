@@ -53,7 +53,7 @@ func NewRoute(
 }
 
 func NewEmptyRouteFromPoolData(
-	tokenAmountIn poolpkg.TokenAmount,
+	tokenInAddress string,
 	tokenOutAddress string,
 	poolByAddress map[string]poolpkg.IPool,
 ) *Route {
@@ -65,7 +65,11 @@ func NewEmptyRouteFromPoolData(
 	// disregard original pool here (setting nil) since Finalize Route is not used
 	return &Route{
 		Pools: poolLists,
-		Input: tokenAmountIn,
+		Input: poolpkg.TokenAmount{
+			Token:     tokenInAddress,
+			Amount:    big.NewInt(0),
+			AmountUsd: 0,
+		},
 		Output: poolpkg.TokenAmount{
 			Token:     tokenOutAddress,
 			Amount:    constant.Zero,
@@ -77,7 +81,7 @@ func NewEmptyRouteFromPoolData(
 }
 
 func NewRouteFromPaths(
-	tokenAmountIn poolpkg.TokenAmount,
+	tokenInAddress string,
 	tokenOutAddress string,
 	poolByAddress map[string]poolpkg.IPool,
 	paths []*Path,
@@ -91,7 +95,11 @@ func NewRouteFromPaths(
 		poolLists = append(poolLists, pool)
 	}
 	var route = Route{
-		Input: tokenAmountIn,
+		Input: poolpkg.TokenAmount{
+			Token:     tokenInAddress,
+			Amount:    big.NewInt(0),
+			AmountUsd: 0,
+		},
 		Output: poolpkg.TokenAmount{
 			Token:     tokenOutAddress,
 			Amount:    big.NewInt(0),

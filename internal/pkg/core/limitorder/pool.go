@@ -91,8 +91,12 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 	for _, filledOrderInfo := range swapInfo.FilledOrders {
 		order := p.ordersMapping[filledOrderInfo.OrderID]
-		order.FilledTakingAmount = new(big.Int).Add(order.FilledTakingAmount, filledOrderInfo.FilledTakingAmount)
-		order.FilledMakingAmount = new(big.Int).Add(order.FilledMakingAmount, filledOrderInfo.FilledMakingAmount)
+
+		filledTakingAmount, _ := new(big.Int).SetString(filledOrderInfo.FilledTakingAmount, 10)
+		filledMakingAmount, _ := new(big.Int).SetString(filledOrderInfo.FilledMakingAmount, 10)
+
+		order.FilledTakingAmount = new(big.Int).Add(order.FilledTakingAmount, filledTakingAmount)
+		order.FilledMakingAmount = new(big.Int).Add(order.FilledMakingAmount, filledMakingAmount)
 	}
 }
 
@@ -133,7 +137,7 @@ func (p *Pool) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn pool.Toke
 	swapInfo := SwapInfo{
 		FilledOrders: []*FilledOrderInfo{},
 		SwapSide:     swapSide,
-		AmountIn:     tokenAmountIn.Amount,
+		AmountIn:     tokenAmountIn.Amount.String(),
 	}
 	isFulfillAmountIn := false
 	totalFeeAmountWei := new(big.Int)
@@ -162,7 +166,7 @@ func (p *Pool) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn pool.Toke
 			totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, feeAmountWeiByOrder)
 			actualAmountOut := new(big.Int).Sub(filledMakingAmountWei, feeAmountWeiByOrder)
 			totalAmountOutWei = new(big.Int).Add(totalAmountOutWei, actualAmountOut)
-			filledOrderInfo := newFilledOrderInfo(order, filledTakingAmountWei, filledMakingAmountWei, feeAmountWeiByOrder)
+			filledOrderInfo := newFilledOrderInfo(order, filledTakingAmountWei.String(), filledMakingAmountWei.String(), feeAmountWeiByOrder.String())
 			swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
 			isFulfillAmountIn = true
 
@@ -184,7 +188,7 @@ func (p *Pool) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn pool.Toke
 					continue
 				}
 				totalMakingAmountWei = new(big.Int).Add(totalMakingAmountWei, remainingMakingAmountWei)
-				filledOrderInfo := newFilledOrderInfo(order, constant.Zero, constant.Zero, constant.Zero)
+				filledOrderInfo := newFilledOrderInfo(order, "0", "0", "0")
 				filledOrderInfo.IsFallBack = true
 				swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
 			}
@@ -195,7 +199,7 @@ func (p *Pool) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn pool.Toke
 		actualAmountOut := new(big.Int).Sub(remainingMakingAmountWei, feeAmountWeiByOrder)
 		totalAmountOutWei = new(big.Int).Add(totalAmountOutWei, actualAmountOut)
 		totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, feeAmountWeiByOrder)
-		filledOrderInfo := newFilledOrderInfo(order, remainingTakingAmountWei, remainingMakingAmountWei, feeAmountWeiByOrder)
+		filledOrderInfo := newFilledOrderInfo(order, remainingTakingAmountWei.String(), remainingMakingAmountWei.String(), feeAmountWeiByOrder.String())
 		swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
 	}
 	if !isFulfillAmountIn {

@@ -115,15 +115,22 @@ func toFillBatchOrdersParams(swapInfo *limitorder.SwapInfo) (FillBatchOrdersPara
 		if err != nil {
 			return FillBatchOrdersParams{}, err
 		}
-
+		makingAmount, ok := new(big.Int).SetString(filledOrder.MakingAmount, 10)
+		if !ok {
+			return FillBatchOrdersParams{}, fmt.Errorf("toFillBatchOrdersParams error cause by parsing makingAmount")
+		}
+		takingAmount, ok := new(big.Int).SetString(filledOrder.TakingAmount, 10)
+		if !ok {
+			return FillBatchOrdersParams{}, fmt.Errorf("toFillBatchOrdersParams error cause by parsing takingAmount")
+		}
 		orders[i] = Order{
 			MakerAsset:           common.HexToAddress(filledOrder.MakerAsset),
 			TakerAsset:           common.HexToAddress(filledOrder.TakerAsset),
 			Maker:                common.HexToAddress(filledOrder.Maker),
 			Receiver:             common.HexToAddress(filledOrder.Receiver),
 			AllowedSender:        common.HexToAddress(filledOrder.AllowedSenders),
-			MakingAmount:         filledOrder.MakingAmount,
-			TakingAmount:         filledOrder.TakingAmount,
+			MakingAmount:         makingAmount,
+			TakingAmount:         takingAmount,
 			FeeRecipient:         common.HexToAddress(filledOrder.FeeRecipient),
 			MakerTokenFeePercent: filledOrder.MakerTokenFeePercent,
 			MakerAssetData:       bytesTakerAssetData,
@@ -143,11 +150,14 @@ func toFillBatchOrdersParams(swapInfo *limitorder.SwapInfo) (FillBatchOrdersPara
 		}
 		orders[i].Salt = salt
 	}
-
+	amountIn, ok := new(big.Int).SetString(swapInfo.AmountIn, 10)
+	if !ok {
+		return FillBatchOrdersParams{}, fmt.Errorf("toFillBatchOrdersParams error cause by parsing amountIn")
+	}
 	return FillBatchOrdersParams{
 		Orders:          orders,
 		Signatures:      signatures,
-		TakingAmount:    swapInfo.AmountIn,
+		TakingAmount:    amountIn,
 		ThresholdAmount: &big.Int{},
 		Target:          [20]byte{},
 	}, nil

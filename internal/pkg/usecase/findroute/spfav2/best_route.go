@@ -1,8 +1,7 @@
-package spfa
+package spfav2
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"math/big"
 
@@ -14,11 +13,10 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
-func (f *spfaFinder) bestRouteExactIn(ctx context.Context, input findroute.Input, data findroute.FinderData) (*core.Route, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "spfaFinder.bestRouteExactIn")
+func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Input, data findroute.FinderData) (*core.Route, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestRouteExactIn")
 	defer span.Finish()
 
 	// Must be able to get info about tokenIn
@@ -38,13 +36,6 @@ func (f *spfaFinder) bestRouteExactIn(ctx context.Context, input findroute.Input
 		}
 	}
 
-	// it is fine if prices[token] is not set because it would default to zero
-	tokenAmountIn := poolPkg.TokenAmount{
-		Token:     input.TokenInAddress,
-		Amount:    input.AmountIn,
-		AmountUsd: utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, data.PriceUSDByAddress[input.TokenInAddress]),
-	}
-
 	hopsToTokenOut, err := common.MinHopsToTokenOut(data.PoolByAddress, data.TokenByAddress, tokenToPoolAddress, input.TokenOutAddress)
 	if err != nil {
 		return nil, err
@@ -54,100 +45,24 @@ func (f *spfaFinder) bestRouteExactIn(ctx context.Context, input findroute.Input
 		return nil, nil
 	}
 
-	bestSinglePathRoute, errFindSinglePathRoute := f.bestSinglePathRoute(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
-
-	// if SaveGas option enabled, consider only single-path route
-	if input.SaveGas && errFindSinglePathRoute != nil {
-		return nil, errFindSinglePathRoute
-	}
-	if input.SaveGas && errFindSinglePathRoute == nil {
-		return bestSinglePathRoute, nil
+	// it is fine if prices[token] is not set because it would default to zero
+	tokenAmountIn := poolPkg.TokenAmount{
+		Token:     input.TokenInAddress,
+		Amount:    input.AmountIn,
+		AmountUsd: utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, data.PriceUSDByAddress[input.TokenInAddress]),
 	}
 
-	bestMultiPathRoute, errFindMultiPathRoute := f.bestMultiPathRoute(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
-
-	// cannot find any route
-	if errFindSinglePathRoute != nil && errFindMultiPathRoute != nil {
-		return nil, nil
+	if f.minThresholdAmountInUSD < tokenAmountIn.AmountUsd && tokenAmountIn.AmountUsd < f.maxThresholdAmountInUSD {
+		return f.findrouteV2(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
+	} else {
+		return f.findrouteV1(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
 	}
-
-	// return the better route between bestSinglePathRoute and bestMultiPathRoute
-	if errFindSinglePathRoute != nil || bestSinglePathRoute == nil || len(bestSinglePathRoute.Paths) == 0 {
-		return bestMultiPathRoute, nil
-	}
-
-	if errFindMultiPathRoute != nil || bestMultiPathRoute == nil || len(bestMultiPathRoute.Paths) == 0 {
-		return bestSinglePathRoute, nil
-	}
-
-	if bestSinglePathRoute.CompareTo(bestMultiPathRoute, input.GasInclude) > 0 {
-		return bestSinglePathRoute, nil
-	}
-
-	return bestMultiPathRoute, nil
-}
-
-func (f *spfaFinder) bestSinglePathRoute(
-	ctx context.Context,
-	input findroute.Input,
-	data findroute.FinderData,
-	tokenAmountIn poolPkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
-	hopsToTokenOut map[string]uint32,
-) (*core.Route, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "spfaFinder.bestSinglePathRoute")
-	defer span.Finish()
-
-	bestPath, err := f.bestPathExactIn(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
-	if err != nil {
-		return nil, err
-	}
-
-	if bestPath == nil {
-		return nil, nil
-	}
-
-	bestSinglePathRoute := core.NewRouteFromPaths(input.TokenInAddress, input.TokenOutAddress, data.PoolByAddress, []*core.Path{bestPath})
-	return bestSinglePathRoute, nil
-}
-
-func (f *spfaFinder) bestMultiPathRoute(
-	ctx context.Context,
-	input findroute.Input,
-	data findroute.FinderData,
-	tokenAmountIn poolPkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
-	hopsToTokenOut map[string]uint32,
-) (*core.Route, error) {
-	var (
-		splits             = f.splitAmountIn(input, data, tokenAmountIn)
-		bestMultiPathRoute = core.NewEmptyRouteFromPoolData(input.TokenInAddress, input.TokenOutAddress, data.PoolByAddress)
-	)
-	for _, amountInPerSplit := range splits {
-		bestPath, err := f.bestPathExactIn(ctx, input, data, amountInPerSplit, tokenToPoolAddress, hopsToTokenOut)
-		if err != nil {
-			logger.WithFields(logger.Fields{"error": err}).
-				Debugf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
-					input.TokenInAddress, input.TokenOutAddress, amountInPerSplit.Amount, amountInPerSplit.AmountUsd)
-		}
-		bestAddedPath, err := common.BestPathAmongAddedPaths(input, data, amountInPerSplit, bestMultiPathRoute.Paths)
-		if err == nil && bestAddedPath.CompareTo(bestPath, input.GasInclude) < 0 {
-			bestPath = bestAddedPath
-		}
-		if bestPath == nil {
-			return nil, nil
-		}
-		if ok := bestMultiPathRoute.AddPath(bestPath); !ok {
-			return nil, fmt.Errorf("cannot add path to bestMultiPathRoute")
-		}
-	}
-	return bestMultiPathRoute, nil
 }
 
 // split amount in into portions of f.distributionPercent% such that each split has value >= minUsdPerSplit
 // if there are remaining amount after splitting, we add to the first split (because it is always the best possible path)
 // e.g. distributionPercent = 10, but we need 30% amountIn to be > minUsdPerSplit -> split 40, 30, 30
-func (f *spfaFinder) splitAmountIn(input findroute.Input, data findroute.FinderData, totalAmountIn poolPkg.TokenAmount) []poolPkg.TokenAmount {
+func (f *spfav2Finder) splitAmountIn(input findroute.Input, data findroute.FinderData, totalAmountIn poolPkg.TokenAmount) []poolPkg.TokenAmount {
 	tokenInPrice := data.PriceUSDByAddress[input.TokenInAddress]
 	tokenInDecimal := data.TokenByAddress[input.TokenInAddress].Decimals
 
