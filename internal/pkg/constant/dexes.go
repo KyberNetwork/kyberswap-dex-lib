@@ -13,7 +13,7 @@ type types struct {
 	UniV3              string
 	Firebird           string
 	Dmm                string
-	ProMM              string
+	Elastic            string
 	Saddle             string
 	BalancerWeighted   string
 	BalancerStable     string
@@ -45,10 +45,10 @@ var (
 		CurveTricrypto:     "curve-tricrypto",
 		CurveTwo:           "curve-two",
 		Uni:                "uni",
-		UniV3:              "univ3",
+		UniV3:              "uniswapv3",
 		Firebird:           "firebird",
 		Dmm:                "dmm",
-		ProMM:              "promm",
+		Elastic:            "elastic",
 		Saddle:             "saddle",
 		BalancerWeighted:   "balancer-weighted",
 		BalancerStable:     "balancer-stable",

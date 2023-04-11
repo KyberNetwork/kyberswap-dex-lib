@@ -189,8 +189,8 @@ func (f PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
 		return f.newSaddle(entityPool)
 	case constant.PoolTypes.Dmm:
 		return f.newDMM(entityPool)
-	case constant.PoolTypes.ProMM:
-		return f.newProMM(entityPool)
+	case constant.PoolTypes.Elastic:
+		return f.newElastic(entityPool)
 	case constant.PoolTypes.CurveAave:
 		return f.newCurveAAVE(entityPool)
 	case constant.PoolTypes.CurveCompound:
@@ -294,12 +294,12 @@ func (f PoolFactory) newDMM(entityPool entity.Pool) (*dmm.Pool, error) {
 	return corePool, nil
 }
 
-func (f PoolFactory) newProMM(entityPool entity.Pool) (*promm.Pool, error) {
+func (f PoolFactory) newElastic(entityPool entity.Pool) (*promm.Pool, error) {
 	corePool, err := promm.NewPool(entityPool, f.config.ChainID)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
-			"[PoolFactory.newProMM] pool: [%s] » type: [%s]",
+			"[PoolFactory.newElastic] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
