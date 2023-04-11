@@ -23,7 +23,7 @@ func TestBruteforceFinder_GenerateSplits(t *testing.T) {
 		{1400, [][]int{{560, 840}, {840, 560}, {630, 770}, {770, 630}, {700, 700}, {1400}}},
 		{1005, [][]int{{502, 503}, {1005}}},
 	}
-	finder := NewDefaultBruteforceFinder(nil, nil)
+	finder := NewDefaultBruteforceFinder()
 	input := findroute.Input{
 		TokenInAddress: "tokenIn",
 		SaveGas:        false,

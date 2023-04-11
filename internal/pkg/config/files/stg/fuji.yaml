@@ -175,6 +175,8 @@ useCase:
     chainId: *chainId
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
+    capacity: 50000
+    poolRenewalInterval: 3s
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000

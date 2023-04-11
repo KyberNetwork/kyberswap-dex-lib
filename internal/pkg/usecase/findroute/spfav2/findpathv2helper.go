@@ -8,10 +8,10 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type findPathV2Helper struct {
@@ -41,10 +41,10 @@ func (h *findPathV2Helper) bestPathExactInV2(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-	paths []*core.Path,
+	paths []*valueobject.Path,
 	newAmountIn poolPkg.TokenAmount,
-) *core.Path {
-	span, _ := tracer.StartSpanFromContext(ctx, "findPathV2Helper.bestPathExactInV2")
+) *valueobject.Path {
+	span, _ := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestPathExactInV2")
 	defer span.Finish()
 
 	for h.pq.Len() > 0 {
@@ -59,8 +59,8 @@ func (h *findPathV2Helper) bestPathExactInV2(
 		// if no pool of this path is updated after the last time we calculate this path, we can reuse this path
 		// otherwise, we recalculate the path
 		if !h.needToRecalculatePath(pathId, paths[pathId]) {
-			for _, pool := range paths[pathId].Pools {
-				h.poolAddressToLastUsedSplit[pool.GetAddress()] = h.currentSplit
+			for _, poolAddress := range paths[pathId].PoolAddresses {
+				h.poolAddressToLastUsedSplit[poolAddress] = h.currentSplit
 			}
 			h.addedPathIds.Insert(pathId)
 			h.currentSplit += 1
@@ -68,14 +68,14 @@ func (h *findPathV2Helper) bestPathExactInV2(
 			var bestPath = paths[pathId]
 			// if amount used to generate is different from splitAmountIn, this is possible when amountInUsd is small
 			if h.tokenAmountIn.CompareTo(&newAmountIn) != 0 {
-				bestPath = newPath(input, data, bestPath.Pools, bestPath.Tokens, newAmountIn, h.addedPathIds.Has(pathId))
+				bestPath = newPath(input, data, bestPath.PoolAddresses, bestPath.Tokens, newAmountIn, h.addedPathIds.Has(pathId))
 			}
 
 			return bestPath
 		}
 
 		// we recalculate the path here
-		paths[pathId] = newPath(input, data, paths[pathId].Pools, paths[pathId].Tokens, h.tokenAmountIn, h.addedPathIds.Has(pathId))
+		paths[pathId] = newPath(input, data, paths[pathId].PoolAddresses, paths[pathId].Tokens, h.tokenAmountIn, h.addedPathIds.Has(pathId))
 		h.pathIdToLastCalculatedSplit[pathId] = h.currentSplit
 		heap.Pop(h.pq)
 		if paths[pathId] != nil {
@@ -85,9 +85,9 @@ func (h *findPathV2Helper) bestPathExactInV2(
 	return nil
 }
 
-func (h *findPathV2Helper) needToRecalculatePath(pathId int, path *core.Path) bool {
-	for _, pool := range path.Pools {
-		if lastUsed, ok := h.poolAddressToLastUsedSplit[pool.GetAddress()]; ok && lastUsed >= h.pathIdToLastCalculatedSplit[pathId] {
+func (h *findPathV2Helper) needToRecalculatePath(pathId int, path *valueobject.Path) bool {
+	for _, poolAddress := range path.PoolAddresses {
+		if lastUsed, ok := h.poolAddressToLastUsedSplit[poolAddress]; ok && lastUsed >= h.pathIdToLastCalculatedSplit[pathId] {
 			return true
 		}
 	}
@@ -97,19 +97,19 @@ func (h *findPathV2Helper) needToRecalculatePath(pathId int, path *core.Path) bo
 func newPath(
 	input findroute.Input,
 	data findroute.FinderData,
-	pools []poolPkg.IPool,
+	poolAddresses []string,
 	tokens []entity.Token,
 	tokenAmountIn poolPkg.TokenAmount,
 	disregardGasFee bool,
-) *core.Path {
+) *valueobject.Path {
 	// if the path is added, we set disregardGasFee = true
-	var gasOption core.GasOption
+	var gasOption valueobject.GasOption
 	if disregardGasFee {
-		gasOption = core.GasOption{GasFeeInclude: false, Price: big.NewFloat(0), TokenPrice: 0}
+		gasOption = valueobject.GasOption{GasFeeInclude: false, Price: big.NewFloat(0), TokenPrice: 0}
 	} else {
-		gasOption = core.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}
+		gasOption = valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}
 	}
-	path, err := core.NewPath(pools, tokens, tokenAmountIn, input.TokenOutAddress,
+	path, err := valueobject.NewPath(data.PoolBucket, poolAddresses, tokens, tokenAmountIn, input.TokenOutAddress,
 		data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[input.TokenOutAddress].Decimals, gasOption,
 	)
 	if err != nil {

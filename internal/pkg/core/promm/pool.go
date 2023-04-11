@@ -19,12 +19,12 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type Pool struct {
 	pool.Pool
 	prommPool *prommEntities.Pool
-	nextState NextState
 	gas       Gas
 	tickMin   int
 	tickMax   int
@@ -107,7 +107,6 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error)
 	return &Pool{
 		Pool:      pool.Pool{Info: info},
 		prommPool: prommPool,
-		nextState: NextState{},
 		gas:       DefaultGas,
 		tickMin:   tickMin,
 		tickMax:   tickMax,
@@ -132,6 +131,14 @@ func (p *Pool) getSqrtPriceLimit(zeroForOne bool) *big.Int {
 	}
 
 	return sqrtPriceX96Limit
+}
+
+// PrommSwapInfo store after state of a Promm swap
+type PrommSwapInfo struct {
+	nextStateSqrtRatioX96 *big.Int
+	nextStateLiquidity    *big.Int
+	nextStateReinvestL    *big.Int
+	nextStateTickCurrent  int
 }
 
 func (p *Pool) CalcAmountOut(
@@ -160,10 +167,10 @@ func (p *Pool) CalcAmountOut(
 
 		var totalGas = p.gas.SwapBase
 
-		p.nextState.SqrtRatioX96 = newPoolState.SqrtRatioX96
-		p.nextState.Liquidity = newPoolState.Liquidity
-		p.nextState.ReinvestL = newPoolState.ReinvestLiquidity
-		p.nextState.TickCurrent = newPoolState.TickCurrent
+		//p.nextState.SqrtRatioX96 = newPoolState.SqrtRatioX96
+		//p.nextState.Liquidity = newPoolState.Liquidity
+		//p.nextState.ReinvestL = newPoolState.ReinvestLiquidity
+		//p.nextState.TickCurrent = newPoolState.TickCurrent
 
 		if amountOut.Quotient().Cmp(constant.Zero) > 0 {
 			return &pool.CalcAmountOutResult{
@@ -176,6 +183,12 @@ func (p *Pool) CalcAmountOut(
 					Amount: nil,
 				},
 				Gas: totalGas,
+				SwapInfo: PrommSwapInfo{
+					nextStateSqrtRatioX96: new(big.Int).Set(newPoolState.SqrtRatioX96),
+					nextStateLiquidity:    new(big.Int).Set(newPoolState.Liquidity),
+					nextStateReinvestL:    new(big.Int).Set(newPoolState.ReinvestLiquidity),
+					nextStateTickCurrent:  newPoolState.TickCurrent,
+				},
 			}, nil
 		}
 
@@ -186,10 +199,15 @@ func (p *Pool) CalcAmountOut(
 }
 
 func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
-	p.prommPool.SqrtRatioX96 = p.nextState.SqrtRatioX96
-	p.prommPool.Liquidity = p.nextState.Liquidity
-	p.prommPool.ReinvestLiquidity = p.nextState.ReinvestL
-	p.prommPool.TickCurrent = p.nextState.TickCurrent
+	si, ok := params.SwapInfo.(PrommSwapInfo)
+	if !ok {
+		logger.Warn("failed to UpdateBalance for ProMM pool, wrong swapInfo type")
+		return
+	}
+	p.prommPool.SqrtRatioX96 = si.nextStateSqrtRatioX96
+	p.prommPool.Liquidity = si.nextStateLiquidity
+	p.prommPool.ReinvestLiquidity = si.nextStateReinvestL
+	p.prommPool.TickCurrent = si.nextStateTickCurrent
 }
 
 func (p *Pool) GetLpToken() string {

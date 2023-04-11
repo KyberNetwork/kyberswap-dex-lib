@@ -9,11 +9,9 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -125,7 +123,7 @@ func (a *ammAggregator) findBestRoute(
 	}
 
 	data := findroute.FinderData{
-		PoolByAddress:     poolByAddress,
+		PoolBucket:        valueobject.NewPoolBucket(poolByAddress),
 		TokenByAddress:    tokenByAddress,
 		PriceUSDByAddress: priceUSDByAddress,
 	}
@@ -141,72 +139,68 @@ func (a *ammAggregator) findBestRoute(
 		return nil, ErrRouteNotFound
 	}
 
-	return a.summarizeRoute(ctx, bestRoute, params)
+	return a.summarizeRoute(ctx, bestRoute, params, poolByAddress)
 }
 
 func (a *ammAggregator) summarizeRoute(
-	ctx context.Context,
-	route *core.Route,
+	_ context.Context,
+	route *valueobject.Route,
 	params *types.AggregateParams,
+	poolByAddress map[string]poolpkg.IPool,
 ) (*valueobject.RouteSummary, error) {
 	// Step 1: prepare pool data
-	poolByAddress, err := a.poolManager.GetPoolByAddress(
-		ctx,
-		route.ExtractPoolAddresses(),
-		common.PoolFilterSources(params.Sources),
-		common.PoolFilterHasReserveOrAmplifiedTvl,
-	)
-	if err != nil {
-		return nil, err
-	}
+	poolBucket := valueobject.NewPoolBucket(poolByAddress)
 
 	var (
 		amountOut = new(big.Int).Set(constant.Zero)
 		gas       = business.BaseGas
 	)
 
-	// Step 3: summarize route
+	// Step 2: summarize route
 	summarizedRoute := make([][]valueobject.Swap, 0, len(route.Paths))
 	for _, path := range route.Paths {
 
-		// Step 3.1: summarize path
-		summarizedPath := make([]valueobject.Swap, 0, len(path.Pools))
+		// Step 2.1: summarize path
+		summarizedPath := make([]valueobject.Swap, 0, len(path.PoolAddresses))
 
-		// Step 3.1.0: prepare input of the first swap
+		// Step 2.1.0: prepare input of the first swap
 		tokenAmountIn := path.Input
 
-		for swapIdx, swapPool := range path.Pools {
-			// Step 3.1.1: take the pool with fresh data
-			pool, ok := poolByAddress[swapPool.GetAddress()]
+		for swapIdx, swapPoolAddress := range path.PoolAddresses {
+			// Step 2.1.1: take the pool with fresh data
+			pool, ok := poolBucket.GetPool(swapPoolAddress)
 			if !ok {
 				return nil, errors.Wrapf(
 					ErrInvalidSwap,
 					"ammAggregator.summarizeRoute > pool not found [%s]",
-					swapPool.GetAddress(),
+					swapPoolAddress,
 				)
 			}
 
-			// Step 3.1.2: simulate c swap through the pool
+			// Step 2.1.2: simulate c swap through the pool
 			result, err := pool.CalcAmountOut(tokenAmountIn, path.Tokens[swapIdx+1].Address)
 			if err != nil {
 				return nil, errors.Wrapf(
 					ErrInvalidSwap,
 					"ammAggregator.summarizeRoute > swap failed > pool: [%s] > error : [%v]",
-					pool.GetAddress(),
+					swapPoolAddress,
 					err,
 				)
 			}
 
-			// Step 3.1.3: check if result is valid
+			// Step 2.1.3: check if result is valid
 			if !result.IsValid() {
 				return nil, errors.Wrapf(
 					ErrInvalidSwap,
 					"ammAggregator.summarizeRoute > invalid swap > pool : [%s]",
-					pool.GetAddress(),
+					swapPoolAddress,
 				)
 			}
 
-			// Step 3.1.4: update balance of the pool
+			//Step 2.1.4: clone the pool before updating it (do not modify IPool returned by `poolManager`)
+			pool = poolBucket.ClonePool(swapPoolAddress)
+
+			// Step 2.1.5: update balance of the pool
 			updateBalanceParams := poolpkg.UpdateBalanceParams{
 				TokenAmountIn:  tokenAmountIn,
 				TokenAmountOut: *result.TokenAmountOut,
@@ -215,7 +209,7 @@ func (a *ammAggregator) summarizeRoute(
 			}
 			pool.UpdateBalance(updateBalanceParams)
 
-			// Step 3.1.5: summarize the swap
+			// Step 2.1.6: summarize the swap
 			swap := valueobject.Swap{
 				Pool:              pool.GetAddress(),
 				TokenIn:           tokenAmountIn.Token,
@@ -232,14 +226,14 @@ func (a *ammAggregator) summarizeRoute(
 
 			summarizedPath = append(summarizedPath, swap)
 
-			// Step 3.1.6: add up gas fee
+			// Step 2.1.7: add up gas fee
 			gas += result.Gas
 
-			// Step 3.1.7: update input of the next swap is output of current swap
+			// Step 2.1.8: update input of the next swap is output of current swap
 			tokenAmountIn = *result.TokenAmountOut
 		}
 
-		// Step 3.2: add up amountOut
+		// Step 2.2: add up amountOut
 		amountOut.Add(amountOut, tokenAmountIn.Amount)
 		summarizedRoute = append(summarizedRoute, summarizedPath)
 	}
@@ -280,8 +274,7 @@ func (a *ammAggregator) getPoolByAddress(
 	return a.poolManager.GetPoolByAddress(
 		ctx,
 		bestPoolIDs,
-		common.PoolFilterSources(ammSources),
-		common.PoolFilterHasReserveOrAmplifiedTvl,
+		ammSources,
 	)
 }
 

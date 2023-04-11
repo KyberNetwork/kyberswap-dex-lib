@@ -226,7 +226,10 @@ func apiAction(c *cli.Context) (err error) {
 	getTokensUseCase := usecase.NewGetTokens(tokenCacheRepo, poolDataStoreRepo, priceDataStoreRepo)
 
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory)
-	poolManager := poolmanager.NewPoolManager(poolRepository, poolFactory, cfg.UseCase.PoolManager)
+	poolManager, err := poolmanager.NewPointerSwapPoolManager(poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager)
+	if err != nil {
+		return err
+	}
 
 	getRouteUseCase := getroute.NewUseCase(
 		poolRankRepository,

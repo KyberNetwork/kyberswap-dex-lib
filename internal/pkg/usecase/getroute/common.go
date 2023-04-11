@@ -1,7 +1,6 @@
 package getroute
 
 import (
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -55,7 +54,7 @@ func collectTokenAddresses(poolSet map[string]poolpkg.IPool, addresses ...string
 }
 
 // extractBestRoute returns the best routes among routes
-func extractBestRoute(routes []*core.Route) *core.Route {
+func extractBestRoute(routes []*valueobject.Route) *valueobject.Route {
 	if len(routes) == 0 {
 		return nil
 	}

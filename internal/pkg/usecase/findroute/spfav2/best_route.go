@@ -8,14 +8,14 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Input, data findroute.FinderData) (*core.Route, error) {
+func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Input, data findroute.FinderData) (*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestRouteExactIn")
 	defer span.Finish()
 
@@ -30,13 +30,13 @@ func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Inp
 
 	// Optimize graph traversal by using adjacent list
 	tokenToPoolAddress := make(map[string][]string)
-	for poolAddress, pool := range data.PoolByAddress {
-		for _, fromToken := range pool.GetTokens() {
+	for poolAddress := range data.PoolBucket.PerRequestPoolsByAddress {
+		for _, fromToken := range data.PoolBucket.PerRequestPoolsByAddress[poolAddress].GetTokens() {
 			tokenToPoolAddress[fromToken] = append(tokenToPoolAddress[fromToken], poolAddress)
 		}
 	}
 
-	hopsToTokenOut, err := common.MinHopsToTokenOut(data.PoolByAddress, data.TokenByAddress, tokenToPoolAddress, input.TokenOutAddress)
+	hopsToTokenOut, err := common.MinHopsToTokenOut(data.PoolBucket.PerRequestPoolsByAddress, data.TokenByAddress, tokenToPoolAddress, input.TokenOutAddress)
 	if err != nil {
 		return nil, err
 	}

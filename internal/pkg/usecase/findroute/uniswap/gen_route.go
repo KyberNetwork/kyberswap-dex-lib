@@ -9,29 +9,29 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type routeNode struct {
-	pathsOnRoute            []*core.Path
+	pathsOnRoute            []*valueobject.Path
 	lastDistributionPercent int
 	remainingPercent        int
 	nSwapUsed               int
 }
 
 func (f *uniswapFinder) genSinglePathRoutes(
-	ctx context.Context, input findroute.Input, data findroute.FinderData, paths []*core.Path,
-) []*core.Route {
-	span, _ := tracer.StartSpanFromContext(ctx, "[uniswap] genSinglePathRoutes")
+	ctx context.Context, input findroute.Input, paths []*valueobject.Path,
+) []*valueobject.Route {
+	span, _ := tracer.StartSpanFromContext(ctx, "uniswapFinder.genSinglePathRoutes")
 	defer span.Finish()
 
-	singlePathRoutes := make([]*core.Route, 0, len(paths))
+	singlePathRoutes := make([]*valueobject.Route, 0, len(paths))
 	for _, path := range paths {
-		singlePathRoutes = append(singlePathRoutes, core.NewRouteFromPaths(input.TokenInAddress, input.TokenOutAddress, data.PoolByAddress, []*core.Path{path}))
+		singlePathRoutes = append(singlePathRoutes, valueobject.NewRouteFromPaths(input.TokenInAddress, input.TokenOutAddress, []*valueobject.Path{path}))
 	}
 	sort.Slice(singlePathRoutes, func(i, j int) bool {
 		return singlePathRoutes[i].CompareTo(singlePathRoutes[j], input.GasInclude) > 0
@@ -43,9 +43,9 @@ func (f *uniswapFinder) genSinglePathRoutes(
 }
 
 func (f *uniswapFinder) genBestRoutes(
-	ctx context.Context, input findroute.Input, data findroute.FinderData, paths []*core.Path,
-) ([]*core.Route, error) {
-	span, _ := tracer.StartSpanFromContext(ctx, "[uniswap] genBestRoutes")
+	ctx context.Context, input findroute.Input, data findroute.FinderData, paths []*valueobject.Path,
+) ([]*valueobject.Route, error) {
+	span, _ := tracer.StartSpanFromContext(ctx, "uniswapFinder.genBestRoutes")
 	defer span.Finish()
 
 	// Must be able to get info about tokenIn
@@ -65,12 +65,12 @@ func (f *uniswapFinder) genBestRoutes(
 	var (
 		// currentLayer now contains routes that consist of exactly one path
 		currentLayer = f.initFirstLayer(percentToPath, percents)
-		routes       []*core.Route
+		routes       []*valueobject.Route
 	)
 
 	// Step 2: Perform layered BFS, each edge would be a path => adding a path = travel an edge
 	for currentNumberOfPaths := uint32(1); currentNumberOfPaths <= f.maxPaths; currentNumberOfPaths++ {
-		routes = append(routes, getPossibleRoutesFromCurrentLayer(input, data, currentLayer)...)
+		routes = append(routes, getPossibleRoutesFromCurrentLayer(input, currentLayer)...)
 
 		if currentNumberOfPaths < f.maxPaths {
 			currentLayer = f.getNextLayerOfRoutes(percentToPath, percents, currentLayer)
@@ -86,8 +86,8 @@ func (f *uniswapFinder) genBestRoutes(
 	return routes[:f.maxRoutes], nil
 }
 
-func (f *uniswapFinder) genPathsWithSplitAmountIn(input findroute.Input, data findroute.FinderData, paths []*core.Path) (percentToPath map[int][]*core.Path, percents []int) {
-	percentToPath = make(map[int][]*core.Path)
+func (f *uniswapFinder) genPathsWithSplitAmountIn(input findroute.Input, data findroute.FinderData, paths []*valueobject.Path) (percentToPath map[int][]*valueobject.Path, percents []int) {
+	percentToPath = make(map[int][]*valueobject.Path)
 
 	for percentIndex := 1; int(f.distributionPercent)*percentIndex <= constant.OneHundredPercent; percentIndex++ {
 		var (
@@ -109,11 +109,11 @@ func (f *uniswapFinder) genPathsWithSplitAmountIn(input findroute.Input, data fi
 
 		percents = append(percents, percent)
 
-		var splitPaths = make([]*core.Path, 0, len(paths))
+		var splitPaths = make([]*valueobject.Path, 0, len(paths))
 		for _, path := range paths {
-			splitPath, err := core.NewPath(path.Pools, path.Tokens, splitTokenAmountIn, input.TokenOutAddress,
+			splitPath, err := valueobject.NewPath(data.PoolBucket, path.PoolAddresses, path.Tokens, splitTokenAmountIn, input.TokenOutAddress,
 				data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[input.TokenOutAddress].Decimals,
-				core.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD},
+				valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD},
 			)
 			if err != nil {
 				logger.WithFields(logger.Fields{"error": err}).
@@ -131,25 +131,25 @@ func (f *uniswapFinder) genPathsWithSplitAmountIn(input findroute.Input, data fi
 	return percentToPath, percents
 }
 
-func (f *uniswapFinder) initFirstLayer(percentToPath map[int][]*core.Path, percents []int) []*routeNode {
+func (f *uniswapFinder) initFirstLayer(percentToPath map[int][]*valueobject.Path, percents []int) []*routeNode {
 	var layer []*routeNode
 	for percentIndex, percent := range percents {
 		for _, path := range getNonOverlappingPathsOfEachLength(f.maxHops, percentToPath[percent], nil) {
-			if uint32(len(path.Pools)) > f.maxPools {
+			if uint32(len(path.PoolAddresses)) > f.maxPools {
 				continue
 			}
 			layer = append(layer, &routeNode{
-				pathsOnRoute:            []*core.Path{path},
+				pathsOnRoute:            []*valueobject.Path{path},
 				remainingPercent:        constant.OneHundredPercent - percent,
 				lastDistributionPercent: percentIndex,
-				nSwapUsed:               len(path.Pools),
+				nSwapUsed:               len(path.PoolAddresses),
 			})
 		}
 	}
 	return layer
 }
 
-func (f *uniswapFinder) getNextLayerOfRoutes(percentToPath map[int][]*core.Path, percents []int, currentLayer []*routeNode) []*routeNode {
+func (f *uniswapFinder) getNextLayerOfRoutes(percentToPath map[int][]*valueobject.Path, percents []int, currentLayer []*routeNode) []*routeNode {
 	var nextLayer []*routeNode
 	for _, currentRoute := range currentLayer {
 		nextLayer = append(nextLayer, f.getNextRoutesFromCurrentRoute(percentToPath, percents, currentRoute)...)
@@ -157,57 +157,51 @@ func (f *uniswapFinder) getNextLayerOfRoutes(percentToPath map[int][]*core.Path,
 	return nextLayer
 }
 
-func (f *uniswapFinder) getNextRoutesFromCurrentRoute(percentToPath map[int][]*core.Path, percents []int, currentRoute *routeNode) []*routeNode {
+func (f *uniswapFinder) getNextRoutesFromCurrentRoute(percentToPath map[int][]*valueobject.Path, percents []int, currentRoute *routeNode) []*routeNode {
 	var nextRoutes []*routeNode
 	for index := 0; index <= currentRoute.lastDistributionPercent && percents[index] <= currentRoute.remainingPercent; index++ {
 		// iterate at most maxHop path here
 		for _, path := range getNonOverlappingPathsOfEachLength(f.maxHops, percentToPath[percents[index]], currentRoute.pathsOnRoute) {
-			if uint32(currentRoute.nSwapUsed+len(path.Pools)) > f.maxPools {
+			if uint32(currentRoute.nSwapUsed+len(path.PoolAddresses)) > f.maxPools {
 				continue
 			}
 			nextRoutes = append(nextRoutes, &routeNode{
 				lastDistributionPercent: index,
 				remainingPercent:        currentRoute.remainingPercent - percents[index],
-				nSwapUsed:               currentRoute.nSwapUsed + len(path.Pools),
-				pathsOnRoute:            append(append([]*core.Path{}, currentRoute.pathsOnRoute...), path),
+				nSwapUsed:               currentRoute.nSwapUsed + len(path.PoolAddresses),
+				pathsOnRoute:            append(append([]*valueobject.Path{}, currentRoute.pathsOnRoute...), path),
 			})
 		}
 	}
 	return nextRoutes
 }
 
-func getPossibleRoutesFromCurrentLayer(input findroute.Input, data findroute.FinderData, currentLayer []*routeNode) []*core.Route {
-	var possibleRoutes []*core.Route
+func getPossibleRoutesFromCurrentLayer(input findroute.Input, currentLayer []*routeNode) []*valueobject.Route {
+	var possibleRoutes []*valueobject.Route
 	for _, node := range currentLayer {
 		if node.remainingPercent == 0 {
-			possibleRoutes = append(possibleRoutes, core.NewRouteFromPaths(input.TokenInAddress, input.TokenOutAddress, data.PoolByAddress, node.pathsOnRoute))
+			possibleRoutes = append(possibleRoutes, valueobject.NewRouteFromPaths(input.TokenInAddress, input.TokenOutAddress, node.pathsOnRoute))
 		}
 	}
 	return possibleRoutes
 }
 
 // return best path for each hop
-func getNonOverlappingPathsOfEachLength(maxHops uint32, paths []*core.Path, usedPaths []*core.Path) []*core.Path {
+func getNonOverlappingPathsOfEachLength(maxHops uint32, paths []*valueobject.Path, usedPaths []*valueobject.Path) []*valueobject.Path {
 	var (
 		usedPoolAddresses     = sets.NewString()
 		foundPathOfLen        = make([]bool, maxHops)
-		bestPathForEachLength []*core.Path
+		bestPathForEachLength []*valueobject.Path
 	)
 
 	for _, path := range usedPaths {
-		for _, pool := range path.Pools {
-			usedPoolAddresses.Insert(pool.GetAddress())
-		}
+		usedPoolAddresses.Insert(path.PoolAddresses...)
 	}
 	// since paths is sorted in decreasing order of amountOut (or amountOutUsd),
 	// the first path found of each len is the best path of that len
 	for _, path := range paths {
-		pathLen := len(path.Pools)
-		poolAddressesOnPath := make([]string, 0, pathLen)
-		for _, pool := range path.Pools {
-			poolAddressesOnPath = append(poolAddressesOnPath, pool.GetAddress())
-		}
-		if !foundPathOfLen[pathLen-1] && !usedPoolAddresses.HasAny(poolAddressesOnPath...) {
+		pathLen := len(path.PoolAddresses)
+		if !foundPathOfLen[pathLen-1] && !usedPoolAddresses.HasAny(path.PoolAddresses...) {
 			foundPathOfLen[pathLen-1] = true
 			bestPathForEachLength = append(bestPathForEachLength, path)
 			// we have found maxHops paths (one for each len) -> we can break

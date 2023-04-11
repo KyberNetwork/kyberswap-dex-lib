@@ -28,7 +28,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/core/makerpsm"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/metavault"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/platypus"
-	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/promm"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/saddle"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/synthetix"
@@ -56,7 +56,7 @@ func NewPoolFactory(config Config) *PoolFactory {
 	}
 }
 
-func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool) map[string]poolpkg.IPool {
+func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool) []poolPkg.IPool {
 	span, _ := tracer.StartSpanFromContext(ctx, "poolFactory.NewPoolByAddress")
 	defer span.Finish()
 
@@ -65,7 +65,58 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 
 	basePools := combinePoolsMap(curveBasePoolByAddress, curvePlainOraclePoolByAddress)
 
-	poolByAddress := make(map[string]poolpkg.IPool, len(pools))
+	iPools := make([]poolPkg.IPool, 0, len(pools))
+	for _, pool := range pools {
+		switch pool.Type {
+		case constant.PoolTypes.CurveBase:
+			iPool, ok := curveBasePoolByAddress[pool.Address]
+			if !ok {
+				continue // NOTE: already warned in getCurveBasePoolByAddress
+			}
+
+			iPools = append(iPools, iPool)
+
+		case constant.PoolTypes.CurvePlainOracle:
+			iPool, ok := curvePlainOraclePoolByAddress[pool.Address]
+			if !ok {
+				continue // NOTE: already warned in getCurvePlainOraclePoolByAddress
+			}
+
+			iPools = append(iPools, iPool)
+
+		case constant.PoolTypes.CurveMeta:
+			iPool, err := f.newCurveMeta(*pool, basePools)
+			if err != nil {
+				logger.Debugf(err.Error())
+				continue
+			}
+
+			iPools = append(iPools, iPool)
+
+		default:
+			iPool, err := f.newPool(*pool)
+			if err != nil {
+				logger.Debugf(err.Error())
+				continue
+			}
+
+			iPools = append(iPools, iPool)
+		}
+	}
+
+	return iPools
+}
+
+func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool) map[string]poolPkg.IPool {
+	span, _ := tracer.StartSpanFromContext(ctx, "poolFactory.NewPoolByAddress")
+	defer span.Finish()
+
+	curveBasePoolByAddress := f.getCurveBasePoolByAddress(pools)
+	curvePlainOraclePoolByAddress := f.getCurvePlainOraclePoolByAddress(pools)
+
+	basePools := combinePoolsMap(curveBasePoolByAddress, curvePlainOraclePoolByAddress)
+
+	poolByAddress := make(map[string]poolPkg.IPool, len(pools))
 	for _, pool := range pools {
 		switch pool.Type {
 		case constant.PoolTypes.CurveBase:
@@ -153,7 +204,7 @@ func (f *PoolFactory) getCurvePlainOraclePoolByAddress(
 
 // newPool receives entity.Pool, based on its type to return matched factory method
 // if there is no matched factory method, it returns ErrPoolTypeFactoryNotFound
-func (f *PoolFactory) newPool(entityPool entity.Pool) (poolpkg.IPool, error) {
+func (f *PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
 	switch entityPool.Type {
 	case constant.PoolTypes.Uni, constant.PoolTypes.Firebird:
 		return f.newUni(entityPool)

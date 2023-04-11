@@ -5,10 +5,10 @@ import (
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 // bestPathExactIn Find the best path to token out
@@ -24,8 +24,8 @@ func (f *spfaFinder) bestPathExactIn(
 	tokenAmountIn poolPkg.TokenAmount,
 	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
-) (*core.Path, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "spfaFinder.bestPathExactIn")
+) (*valueobject.Path, error) {
+	span, _ := tracer.StartSpanFromContext(ctx, "spfaFinder.bestPathExactIn")
 	defer span.Finish()
 
 	// Must be able to get info about tokenIn
@@ -42,7 +42,7 @@ func (f *spfaFinder) bestPathExactIn(
 	if err != nil {
 		return nil, err
 	}
-	var bestPath *core.Path
+	var bestPath *valueobject.Path
 	for _, path := range paths {
 		if path != nil && path.CompareTo(bestPath, input.GasInclude) < 0 {
 			bestPath = path

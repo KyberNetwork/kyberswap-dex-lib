@@ -2,23 +2,22 @@ package spfa
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"math/big"
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
-func (f *spfaFinder) bestRouteExactIn(ctx context.Context, input findroute.Input, data findroute.FinderData) (*core.Route, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "spfaFinder.bestRouteExactIn")
+func (f *spfaFinder) bestRouteExactIn(ctx context.Context, input findroute.Input, data findroute.FinderData) (*valueobject.Route, error) {
+	span, _ := tracer.StartSpanFromContext(ctx, "spfaFinder.bestRouteExactIn")
 	defer span.Finish()
 
 	// Must be able to get info about tokenIn
@@ -32,7 +31,7 @@ func (f *spfaFinder) bestRouteExactIn(ctx context.Context, input findroute.Input
 
 	// Optimize graph traversal by using adjacent list
 	tokenToPoolAddress := make(map[string][]string)
-	for poolAddress, pool := range data.PoolByAddress {
+	for poolAddress, pool := range data.PoolBucket.PerRequestPoolsByAddress {
 		for _, fromToken := range pool.GetTokens() {
 			tokenToPoolAddress[fromToken] = append(tokenToPoolAddress[fromToken], poolAddress)
 		}
@@ -45,7 +44,7 @@ func (f *spfaFinder) bestRouteExactIn(ctx context.Context, input findroute.Input
 		AmountUsd: utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, data.PriceUSDByAddress[input.TokenInAddress]),
 	}
 
-	hopsToTokenOut, err := common.MinHopsToTokenOut(data.PoolByAddress, data.TokenByAddress, tokenToPoolAddress, input.TokenOutAddress)
+	hopsToTokenOut, err := common.MinHopsToTokenOut(data.PoolBucket.PerRequestPoolsByAddress, data.TokenByAddress, tokenToPoolAddress, input.TokenOutAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -94,10 +93,7 @@ func (f *spfaFinder) bestSinglePathRoute(
 	tokenAmountIn poolPkg.TokenAmount,
 	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
-) (*core.Route, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "spfaFinder.bestSinglePathRoute")
-	defer span.Finish()
-
+) (*valueobject.Route, error) {
 	bestPath, err := f.bestPathExactIn(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
 	if err != nil {
 		return nil, err
@@ -107,7 +103,7 @@ func (f *spfaFinder) bestSinglePathRoute(
 		return nil, nil
 	}
 
-	bestSinglePathRoute := core.NewRouteFromPaths(input.TokenInAddress, input.TokenOutAddress, data.PoolByAddress, []*core.Path{bestPath})
+	bestSinglePathRoute := valueobject.NewRouteFromPaths(input.TokenInAddress, input.TokenOutAddress, []*valueobject.Path{bestPath})
 	return bestSinglePathRoute, nil
 }
 
@@ -118,11 +114,12 @@ func (f *spfaFinder) bestMultiPathRoute(
 	tokenAmountIn poolPkg.TokenAmount,
 	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
-) (*core.Route, error) {
+) (*valueobject.Route, error) {
 	var (
 		splits             = f.splitAmountIn(input, data, tokenAmountIn)
-		bestMultiPathRoute = core.NewEmptyRouteFromPoolData(input.TokenInAddress, input.TokenOutAddress, data.PoolByAddress)
+		bestMultiPathRoute = valueobject.NewRoute(input.TokenInAddress, input.TokenOutAddress)
 	)
+
 	for _, amountInPerSplit := range splits {
 		bestPath, err := f.bestPathExactIn(ctx, input, data, amountInPerSplit, tokenToPoolAddress, hopsToTokenOut)
 		if err != nil {
@@ -137,8 +134,9 @@ func (f *spfaFinder) bestMultiPathRoute(
 		if bestPath == nil {
 			return nil, nil
 		}
-		if ok := bestMultiPathRoute.AddPath(bestPath); !ok {
-			return nil, fmt.Errorf("cannot add path to bestMultiPathRoute")
+
+		if err = bestMultiPathRoute.AddPath(data.PoolBucket, bestPath); err != nil {
+			return nil, err
 		}
 	}
 	return bestMultiPathRoute, nil

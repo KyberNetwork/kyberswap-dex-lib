@@ -5,8 +5,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/common"
-
 	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -21,8 +19,7 @@ type IAggregator interface {
 type IPoolManager interface {
 	GetPoolByAddress(
 		ctx context.Context,
-		addresses []string,
-		filters ...common.PoolFilter,
+		addresses, dex []string,
 	) (map[string]poolpkg.IPool, error)
 }
 

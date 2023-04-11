@@ -3,9 +3,10 @@ package validateroute
 import (
 	"errors"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
+	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/synthetix"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -16,8 +17,9 @@ func NewSynthetixValidator() *SynthetixValidator {
 	return &SynthetixValidator{}
 }
 
-func (v *SynthetixValidator) Validate(route core.Route) error {
-	err := synthetix.Validate(route)
+// Validate will reapply pool update and will have to modify the pool state. Do not use original pools for this
+func (v *SynthetixValidator) Validate(poolByAddress map[string]poolPkg.IPool, route *valueobject.Route) error {
+	err := synthetix.Validate(poolByAddress, route)
 
 	if errors.Is(err, synthetix.ErrInvalidLastAtomicVolume) {
 		return err

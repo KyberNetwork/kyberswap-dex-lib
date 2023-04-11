@@ -2,6 +2,7 @@ package curveBase
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -40,6 +41,10 @@ func NewPool(entityPool entity.Pool) (*Pool, error) {
 	}
 
 	var numTokens = len(entityPool.Tokens)
+	if entityPool.Reserves == nil || len(entityPool.Reserves) < numTokens {
+		return nil, errors.New("empty reserve")
+	}
+
 	var tokens = make([]string, numTokens)
 	var reserves = make([]*big.Int, numTokens)
 	var multipliers = make([]*big.Int, numTokens)

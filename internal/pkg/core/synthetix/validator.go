@@ -4,23 +4,30 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-func Validate(route core.Route) error {
+// Validate will do all the swap based on Route's paths.
+// It will update the pools in the process of doing so hence will only take a copy
+func Validate(poolByAddress map[string]poolPkg.IPool, route *valueobject.Route) error {
 	var (
 		poolStateVersion        PoolStateVersion
 		blockTimestamp          uint64
 		atomicMaxVolumePerBlock *big.Int
 		lastAtomicVolume        *ExchangeVolumeAtPeriod
 	)
+	poolBucket := valueobject.NewPoolBucket(poolByAddress)
 
 	// Get PoolStateVersion, BlockTimestamp, AtomicMaxVolumePerBlock and LastAtomicVolume
 	for _, path := range route.Paths {
-		for _, p := range path.Pools {
-			if p.GetType() == constant.PoolTypes.Synthetix {
-				synthetixPool, ok := p.(*Pool)
+		for _, poolAddress := range path.PoolAddresses {
+			pool, ok := poolBucket.GetPool(poolAddress)
+			if !ok {
+				continue
+			}
+			if pool.GetType() == constant.PoolTypes.Synthetix {
+				synthetixPool, ok := pool.(*Pool)
 				if !ok {
 					continue
 				}
@@ -42,15 +49,10 @@ func Validate(route core.Route) error {
 
 	totalVolume := constant.Zero
 
-	poolByAddress := make(map[string]poolPkg.IPool, len(route.OriginalPools))
-	for _, originalPool := range route.OriginalPools {
-		poolByAddress[originalPool.GetAddress()] = originalPool
-	}
-
 	for _, path := range route.Paths {
 		var tokenAmountIn = path.Input
-		for i := range path.Pools {
-			pool, ok := poolByAddress[path.Pools[i].GetAddress()]
+		for i, poolAddress := range path.PoolAddresses {
+			pool, ok := poolBucket.GetPool(poolAddress)
 			if !ok {
 				continue
 			}
@@ -82,7 +84,12 @@ func Validate(route core.Route) error {
 				TokenAmountIn:  tokenAmountIn,
 				TokenAmountOut: *tokenAmountOut,
 				Fee:            *calcAmountOutResult.Fee,
+				SwapInfo:       calcAmountOutResult.SwapInfo,
 			}
+			// clone the pool before updating it, so it doesn't modify the original data copied from pool manager
+			pool = poolBucket.ClonePool(poolAddress)
+
+			// modify our copy
 			pool.UpdateBalance(updateBalanceParams)
 
 			tokenAmountIn = *tokenAmountOut

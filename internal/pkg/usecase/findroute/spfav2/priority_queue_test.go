@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func TestPathPQ(t *testing.T) {
-	paths := []*core.Path{
+	paths := []*valueobject.Path{
 		{
 			Output: poolPkg.TokenAmount{
 				AmountUsd: 100,

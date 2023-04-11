@@ -5,9 +5,9 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 // BestPathAmongAddedPaths try to swap through a previously-found path by adding more amountIn to that path.
@@ -16,11 +16,11 @@ func BestPathAmongAddedPaths(
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolPkg.TokenAmount,
-	addedPaths []core.Path,
-) (*core.Path, error) {
+	addedPaths []*valueobject.Path,
+) (*valueobject.Path, error) {
 	var (
-		bestPath      *core.Path = nil
-		bestAmountOut            = poolPkg.TokenAmount{
+		bestPath      *valueobject.Path = nil
+		bestAmountOut                   = poolPkg.TokenAmount{
 			Token:     input.TokenOutAddress,
 			Amount:    constant.Zero,
 			AmountUsd: 0,
@@ -31,14 +31,14 @@ func BestPathAmongAddedPaths(
 	)
 
 	for _, path := range addedPaths {
-		amountOut, err = path.TrySwap(tokenAmountIn)
+		amountOut, _, err = path.CalcAmountOut(data.PoolBucket, tokenAmountIn)
 		if err != nil {
 			continue
 		}
 		// only compare token amount (not AmountUsd) as fee should be disregarded here
 		if amountOut.Token == input.TokenOutAddress && amountOut.Amount.Cmp(bestAmountOut.Amount) > 0 {
 			bestAmountOut = amountOut
-			bestPath = &path
+			bestPath = path
 		}
 	}
 	if bestPath == nil {
@@ -46,14 +46,15 @@ func BestPathAmongAddedPaths(
 	}
 
 	// clone the best path and disregard gas fee as the path would be merged into an existing path anyway
-	bestPath, err = core.NewPath(
-		bestPath.Pools,
+	bestPath, err = valueobject.NewPath(
+		data.PoolBucket,
+		bestPath.PoolAddresses,
 		bestPath.Tokens,
 		tokenAmountIn,
 		input.TokenOutAddress,
 		data.PriceUSDByAddress[input.TokenOutAddress],
 		data.TokenByAddress[input.TokenOutAddress].Decimals,
-		core.GasOption{
+		valueobject.GasOption{
 			GasFeeInclude: false,
 			Price:         big.NewFloat(0),
 			TokenPrice:    0,

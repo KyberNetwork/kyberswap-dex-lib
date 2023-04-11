@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
@@ -28,12 +29,11 @@ var (
 )
 
 type Pool struct {
+	V3Pool *v3Entities.Pool
 	pool.Pool
-	v3Pool    *v3Entities.Pool
-	nextState NextState
-	gas       Gas
-	tickMin   int
-	tickMax   int
+	gas     Gas
+	tickMin int
+	tickMax int
 }
 
 func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error) {
@@ -109,12 +109,11 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error)
 	}
 
 	return &Pool{
-		Pool:      pool.Pool{Info: info},
-		v3Pool:    v3Pool,
-		nextState: NextState{},
-		gas:       DefaultGas,
-		tickMin:   tickMin,
-		tickMax:   tickMax,
+		Pool:    pool.Pool{Info: info},
+		V3Pool:  v3Pool,
+		gas:     DefaultGas,
+		tickMin: tickMin,
+		tickMax: tickMax,
 	}, nil
 }
 
@@ -138,6 +137,13 @@ func (p *Pool) getSqrtPriceLimit(zeroForOne bool) *big.Int {
 	return sqrtPriceX96Limit
 }
 
+// UniV3SwapInfo present the after state of a swap
+type UniV3SwapInfo struct {
+	nextStateSqrtRatioX96 *big.Int
+	nextStateLiquidity    *big.Int
+	nextStateTickCurrent  int
+}
+
 func (p *Pool) CalcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
@@ -148,15 +154,15 @@ func (p *Pool) CalcAmountOut(
 	var zeroForOne bool
 
 	if tokenInIndex >= 0 && tokenOutIndex >= 0 {
-		if strings.EqualFold(tokenOut, p.v3Pool.Token0.Address.String()) {
+		if strings.EqualFold(tokenOut, p.V3Pool.Token0.Address.String()) {
 			zeroForOne = false
-			tokenIn = p.v3Pool.Token1
+			tokenIn = p.V3Pool.Token1
 		} else {
-			tokenIn = p.v3Pool.Token0
+			tokenIn = p.V3Pool.Token0
 			zeroForOne = true
 		}
 		amountIn := coreEntities.FromRawAmount(tokenIn, tokenAmountIn.Amount)
-		amountOut, newPoolState, err := p.v3Pool.GetOutputAmount(amountIn, p.getSqrtPriceLimit(zeroForOne))
+		amountOut, newPoolState, err := p.V3Pool.GetOutputAmount(amountIn, p.getSqrtPriceLimit(zeroForOne))
 
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
@@ -164,9 +170,9 @@ func (p *Pool) CalcAmountOut(
 
 		var totalGas = p.gas.Swap
 
-		p.nextState.SqrtRatioX96 = newPoolState.SqrtRatioX96
-		p.nextState.Liquidity = newPoolState.Liquidity
-		p.nextState.TickCurrent = newPoolState.TickCurrent
+		//p.nextState.SqrtRatioX96 = newPoolState.SqrtRatioX96
+		//p.nextState.Liquidity = newPoolState.Liquidity
+		//p.nextState.TickCurrent = newPoolState.TickCurrent
 
 		if amountOut.Quotient().Cmp(constant.Zero) > 0 {
 			return &pool.CalcAmountOutResult{
@@ -179,6 +185,11 @@ func (p *Pool) CalcAmountOut(
 					Amount: nil,
 				},
 				Gas: totalGas,
+				SwapInfo: UniV3SwapInfo{
+					nextStateSqrtRatioX96: new(big.Int).Set(newPoolState.SqrtRatioX96),
+					nextStateLiquidity:    new(big.Int).Set(newPoolState.Liquidity),
+					nextStateTickCurrent:  newPoolState.TickCurrent,
+				},
 			}, nil
 		}
 
@@ -189,9 +200,14 @@ func (p *Pool) CalcAmountOut(
 }
 
 func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
-	p.v3Pool.SqrtRatioX96 = p.nextState.SqrtRatioX96
-	p.v3Pool.Liquidity = p.nextState.Liquidity
-	p.v3Pool.TickCurrent = p.nextState.TickCurrent
+	si, ok := params.SwapInfo.(UniV3SwapInfo)
+	if !ok {
+		logger.Warn("failed to UpdateBalance for UniV3 pool, wrong swapInfo type")
+		return
+	}
+	p.V3Pool.SqrtRatioX96 = si.nextStateSqrtRatioX96
+	p.V3Pool.Liquidity = si.nextStateLiquidity
+	p.V3Pool.TickCurrent = si.nextStateTickCurrent
 }
 
 func (p *Pool) GetLpToken() string {
@@ -214,18 +230,18 @@ func (p *Pool) CanSwapTo(address string) []string {
 
 // GetMidPrice This function is not used
 func (p *Pool) GetMidPrice(tokenIn string, tokenOut string, base *big.Int) *big.Int {
-	if strings.EqualFold(tokenOut, p.v3Pool.Token0.Address.String()) {
-		return p.v3Pool.Token0Price().Quotient()
+	if strings.EqualFold(tokenOut, p.V3Pool.Token0.Address.String()) {
+		return p.V3Pool.Token0Price().Quotient()
 	} else {
-		return p.v3Pool.Token1Price().Quotient()
+		return p.V3Pool.Token1Price().Quotient()
 	}
 }
 
 func (p *Pool) CalcExactQuote(tokenIn string, tokenOut string, base *big.Int) *big.Int {
-	if strings.EqualFold(tokenOut, p.v3Pool.Token0.Address.String()) {
-		return p.v3Pool.Token0Price().Quotient()
+	if strings.EqualFold(tokenOut, p.V3Pool.Token0.Address.String()) {
+		return p.V3Pool.Token0Price().Quotient()
 	} else {
-		return p.v3Pool.Token1Price().Quotient()
+		return p.V3Pool.Token1Price().Quotient()
 	}
 }
 

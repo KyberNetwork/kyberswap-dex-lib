@@ -1,8 +1,6 @@
 package common
 
-import (
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-)
+import "github.com/KyberNetwork/router-service/internal/pkg/entity"
 
 func FilterPools(pools []*entity.Pool, filters ...PoolFilter) []*entity.Pool {
 	filteredPools := make([]*entity.Pool, 0, len(pools))

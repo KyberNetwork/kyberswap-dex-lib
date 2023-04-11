@@ -10,6 +10,7 @@ import (
 
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func TestGenKthBestPaths(t *testing.T) {
@@ -52,7 +53,7 @@ func TestGenKthBestPaths(t *testing.T) {
 			GasInclude:       true,
 		}
 		data := findroute.FinderData{
-			PoolByAddress:     poolByAddress,
+			PoolBucket:        valueobject.NewPoolBucket(poolByAddress),
 			TokenByAddress:    tokenByAddress,
 			PriceUSDByAddress: priceUSDByAddress,
 		}
@@ -71,7 +72,7 @@ func TestGenKthBestPaths(t *testing.T) {
 		fmt.Println("tokenOut", tokenOut)
 		fmt.Println("number of generated paths", len(paths))
 		for _, path := range paths {
-			fmt.Println("path length", len(path.Pools))
+			fmt.Println("path length", len(path.PoolAddresses))
 			fmt.Println("output:", path.Output.Amount, path.Output.AmountUsd)
 			fmt.Println(path.Tokens)
 		}

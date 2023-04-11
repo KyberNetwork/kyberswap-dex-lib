@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/common"
-
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
@@ -216,8 +214,7 @@ func (c *cache) summarizeSimpleRoute(
 	poolByAddress, err := c.poolManager.GetPoolByAddress(
 		ctx,
 		simpleRoute.ExtractPoolAddresses(),
-		common.PoolFilterSources(params.Sources),
-		common.PoolFilterHasReserveOrAmplifiedTvl,
+		params.Sources,
 	)
 	if err != nil {
 		return nil, err

@@ -14,7 +14,7 @@ import (
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
-type poolManager struct {
+type PoolManager struct {
 	poolRepository IPoolRepository
 	poolFactory    IPoolFactory
 
@@ -27,23 +27,27 @@ func NewPoolManager(
 	poolRepository IPoolRepository,
 	poolFactory IPoolFactory,
 	config Config,
-) *poolManager {
-	return &poolManager{
+) *PoolManager {
+	return &PoolManager{
 		poolRepository: poolRepository,
 		poolFactory:    poolFactory,
 		config:         config,
 	}
 }
 
-func (m *poolManager) GetPoolByAddress(
+func (m *PoolManager) GetPoolByAddress(
 	ctx context.Context,
-	addresses []string,
-	filters ...common.PoolFilter,
+	addresses, dex []string,
 ) (map[string]poolpkg.IPool, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "poolManager.GetPoolByAddress")
 	defer span.Finish()
 
-	pools, err := m.listPools(ctx, addresses, filters)
+	pools, err := m.listPools(
+		ctx,
+		addresses,
+		common.PoolFilterSources(dex),
+		common.PoolFilterHasReserveOrAmplifiedTvl,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -51,14 +55,14 @@ func (m *poolManager) GetPoolByAddress(
 	return m.poolFactory.NewPoolByAddress(ctx, pools), nil
 }
 
-func (m *poolManager) ApplyConfig(config Config) {
+func (m *PoolManager) ApplyConfig(config Config) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.config = config
 }
 
-func (m *poolManager) listPools(ctx context.Context, addresses []string, filters []common.PoolFilter) ([]*entity.Pool, error) {
+func (m *PoolManager) listPools(ctx context.Context, addresses []string, filters ...common.PoolFilter) ([]*entity.Pool, error) {
 	filteredAddresses := m.filterBlacklistedAddresses(addresses)
 
 	pools, err := m.poolRepository.FindByAddresses(ctx, filteredAddresses)
@@ -84,7 +88,7 @@ func (m *poolManager) listPools(ctx context.Context, addresses []string, filters
 // - for each curveMeta pool
 //   - decode its staticExtra to get its basePool address
 //   - if it hasn't been fetched, fetch the pool data
-func (m *poolManager) listCurveMetaBasePools(
+func (m *PoolManager) listCurveMetaBasePools(
 	ctx context.Context,
 	pools []*entity.Pool,
 ) ([]*entity.Pool, error) {
@@ -135,7 +139,7 @@ func (m *poolManager) listCurveMetaBasePools(
 	return m.poolRepository.FindByAddresses(ctx, poolAddresses)
 }
 
-func (m *poolManager) filterBlacklistedAddresses(addresses []string) []string {
+func (m *PoolManager) filterBlacklistedAddresses(addresses []string) []string {
 	filtered := make([]string, 0, len(addresses))
 
 	for _, address := range addresses {

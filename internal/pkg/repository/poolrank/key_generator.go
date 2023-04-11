@@ -16,6 +16,10 @@ func NewKeyGenerator(prefix string) *keyGenerator {
 	}
 }
 
+func (g *keyGenerator) globalSortedSetKey(sortBy string) string {
+	return utils.Join(g.prefix, sortBy)
+}
+
 // directPairKey generates key of direct pairs
 func (g *keyGenerator) directPairKey(sortBy, token0, token1 string) string {
 	return utils.Join(g.prefix, sortBy, g.joinTokens(token0, token1))

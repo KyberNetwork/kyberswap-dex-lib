@@ -5,8 +5,8 @@ import (
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 const (
@@ -27,7 +27,7 @@ type spfav2Finder struct {
 	maxHops uint32
 
 	// distributionPercent the portion of amountIn to split. It should be a divisor of 100.
-	//  e.g distributionPercent = 5, we split amountIn into portions of 5%, 10%, 15%, ..., 100%
+	// e.g. distributionPercent = 5, we split amountIn into portions of 5%, 10%, 15%, ..., 100%
 	distributionPercent uint32
 
 	// max number of paths in a route
@@ -59,7 +59,7 @@ func (f *spfav2Finder) Find(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-) ([]*core.Route, error) {
+) ([]*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.Find")
 	defer span.Finish()
 
@@ -71,5 +71,5 @@ func (f *spfav2Finder) Find(
 		return nil, nil
 	}
 
-	return []*core.Route{bestRoute}, nil
+	return []*valueobject.Route{bestRoute}, nil
 }

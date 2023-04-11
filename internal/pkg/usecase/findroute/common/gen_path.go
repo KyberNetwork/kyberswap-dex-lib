@@ -8,19 +8,19 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type nodeInfo struct {
-	tokenAmount    poolPkg.TokenAmount
-	totalGasAmount int64
-	poolsOnPath    []poolPkg.IPool
-	tokensOnPath   []entity.Token
+	tokenAmount         poolPkg.TokenAmount
+	poolAddressesOnPath []string
+	tokensOnPath        []entity.Token
+	totalGasAmount      int64
 }
 
 // GenKthBestPaths Find several best paths from tokenIn to tokenOut
@@ -43,7 +43,7 @@ func GenKthBestPaths(
 	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 	maxHops, maxPathsToGenerate, maxPathsToReturn uint32,
-) ([]*core.Path, error) {
+) ([]*valueobject.Path, error) {
 	span, _ := tracer.StartSpanFromContext(ctx, "GenKthBestPaths")
 	defer span.Finish()
 
@@ -64,7 +64,7 @@ func GenKthBestPaths(
 	// For each token in each layer, we store at most kth paths
 	var (
 		prevLayer = make(map[string][]*nodeInfo)
-		paths     []*core.Path
+		paths     []*valueobject.Path
 	)
 
 	prevLayer[input.TokenInAddress] = []*nodeInfo{
@@ -144,7 +144,7 @@ func getNextLayerFromToken(
 		ok                     bool
 	)
 	for _, poolAddress := range tokenToPoolAddresses[fromTokenAddress] {
-		pool, ok = data.PoolByAddress[poolAddress]
+		pool, ok = data.PoolBucket.GetPool(poolAddress)
 		if !ok {
 			return nil, findroute.ErrNoIPool
 		}
@@ -168,10 +168,10 @@ func getNextLayerFromToken(
 			}
 			// append pool and tokens to path
 			nextNodeInfos = append(nextNodeInfos, &nodeInfo{
-				tokenAmount:    *toTokenAmount,
-				totalGasAmount: toTotalGasAmount,
-				poolsOnPath:    append(append([]poolPkg.IPool{}, fromNodeInfo.poolsOnPath...), pool),
-				tokensOnPath:   append(append([]entity.Token{}, fromNodeInfo.tokensOnPath...), toTokenInfo),
+				tokenAmount:         *toTokenAmount,
+				totalGasAmount:      toTotalGasAmount,
+				poolAddressesOnPath: append(append([]string{}, fromNodeInfo.poolAddressesOnPath...), pool.GetAddress()),
+				tokensOnPath:        append(append([]entity.Token{}, fromNodeInfo.tokensOnPath...), toTokenInfo),
 			})
 		}
 	}
@@ -203,7 +203,7 @@ func getKthPathAtTokenOut(
 	tokenAmountIn poolPkg.TokenAmount,
 	nodeInfoAtTokenOut []*nodeInfo,
 	maxPathsToReturn uint32,
-) (paths []*core.Path) {
+) (paths []*valueobject.Path) {
 
 	sort.Slice(nodeInfoAtTokenOut, func(i, j int) bool {
 		return betterAmountOut(nodeInfoAtTokenOut[i], nodeInfoAtTokenOut[j], input.GasInclude)
@@ -213,13 +213,13 @@ func getKthPathAtTokenOut(
 	}
 
 	for kthPath, pathInfo := range nodeInfoAtTokenOut {
-		path, err := core.NewPath(pathInfo.poolsOnPath, pathInfo.tokensOnPath, tokenAmountIn, input.TokenOutAddress,
+		path, err := valueobject.NewPath(data.PoolBucket, pathInfo.poolAddressesOnPath, pathInfo.tokensOnPath, tokenAmountIn, input.TokenOutAddress,
 			data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[input.TokenOutAddress].Decimals,
-			core.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD},
+			valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD},
 		)
 		if err != nil {
 			logger.WithFields(logger.Fields{"error": err}).
-				Debugf("cannot generate %v_th path (hop = %v) from token %v to token %v", kthPath, len(pathInfo.poolsOnPath), input.TokenInAddress, input.TokenOutAddress)
+				Debugf("cannot generate %v_th path (hop = %v) from token %v to token %v", kthPath, len(pathInfo.poolAddressesOnPath), input.TokenInAddress, input.TokenOutAddress)
 		} else {
 			paths = append(paths, path)
 		}

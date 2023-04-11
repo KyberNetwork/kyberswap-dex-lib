@@ -5,11 +5,11 @@ import (
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 const (
@@ -68,8 +68,8 @@ func (f *uniswapFinder) Find(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-) ([]*core.Route, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "[uniswap] Find")
+) ([]*valueobject.Route, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "uniswapFinder.Find")
 	defer span.Finish()
 
 	// Must be able to get info about tokenIn
@@ -83,14 +83,14 @@ func (f *uniswapFinder) Find(
 
 	// Step 1: Optimize graph traversal by using adjacent list
 	tokenToPoolAddress := make(map[string][]string)
-	for poolAddress, pool := range data.PoolByAddress {
+	for poolAddress, pool := range data.PoolBucket.PerRequestPoolsByAddress {
 		for _, fromToken := range pool.GetTokens() {
 			tokenToPoolAddress[fromToken] = append(tokenToPoolAddress[fromToken], poolAddress)
 		}
 	}
 
 	// Step 2: Find min number of hop from tokenA -> tokenOut for all tokenA
-	hopsToTokenOut, err := common.MinHopsToTokenOut(data.PoolByAddress, data.TokenByAddress, tokenToPoolAddress, input.TokenOutAddress)
+	hopsToTokenOut, err := common.MinHopsToTokenOut(data.PoolBucket.PerRequestPoolsByAddress, data.TokenByAddress, tokenToPoolAddress, input.TokenOutAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (f *uniswapFinder) Find(
 	}
 
 	if input.SaveGas {
-		return f.genSinglePathRoutes(ctx, input, data, paths), nil
+		return f.genSinglePathRoutes(ctx, input, paths), nil
 	}
 
 	// Step 4: Pick several paths to form a route

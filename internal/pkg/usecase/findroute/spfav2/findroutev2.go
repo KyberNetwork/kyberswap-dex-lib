@@ -7,10 +7,10 @@ import (
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -21,7 +21,7 @@ func (f *spfav2Finder) findrouteV2(
 	tokenAmountIn poolPkg.TokenAmount,
 	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
-) (*core.Route, error) {
+) (*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.findrouteV2")
 	defer span.Finish()
 
@@ -49,7 +49,7 @@ func (f *spfav2Finder) bestRouteV2(
 	tokenAmountIn poolPkg.TokenAmount,
 	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
-) (*core.Route, error) {
+) (*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestRouteV2")
 	defer span.Finish()
 
@@ -83,7 +83,8 @@ func (f *spfav2Finder) bestRouteV2(
 
 	// step 3: Find multi-path route
 	// For each chunk (split), iterate through generated k paths to recalculate amountOut and get the best path among them
-	bestMultiPathRoute := core.NewEmptyRouteFromPoolData(input.TokenInAddress, input.TokenOutAddress, data.PoolByAddress)
+
+	bestMultiPathRoute := valueobject.NewRoute(input.TokenInAddress, input.TokenOutAddress)
 	h := NewFindPathV2Helper(len(paths), int(f.maxPathsInRoute), amountInToGeneratePath, cmpFunc)
 
 	for _, amountInPerSplit := range splits {
@@ -92,8 +93,8 @@ func (f *spfav2Finder) bestRouteV2(
 			return nil, nil
 		}
 
-		if ok := bestMultiPathRoute.AddPath(bestPath); !ok {
-			return nil, fmt.Errorf("cannot add path to bestMultiPathRoute")
+		if err := bestMultiPathRoute.AddPath(data.PoolBucket, bestPath); err != nil {
+			return nil, err
 		}
 	}
 
@@ -116,15 +117,15 @@ func (f *spfav2Finder) bestSinglePathRouteV2(
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolPkg.TokenAmount,
-	paths []*core.Path,
+	paths []*valueobject.Path,
 	numberOfPathToTry int,
-) *core.Route {
-	var bestPath *core.Path
+) *valueobject.Route {
+	var bestPath *valueobject.Path
 	for i := 0; i < numberOfPathToTry && i < len(paths); i++ {
 		if paths[i] == nil {
 			continue
 		}
-		path := newPath(input, data, paths[i].Pools, paths[i].Tokens, tokenAmountIn, false)
+		path := newPath(input, data, paths[i].PoolAddresses, paths[i].Tokens, tokenAmountIn, false)
 		if path != nil && (bestPath == nil || path.CompareTo(bestPath, input.GasInclude) < 0) {
 			bestPath = path
 		}
@@ -134,5 +135,5 @@ func (f *spfav2Finder) bestSinglePathRouteV2(
 		return nil
 	}
 
-	return core.NewRouteFromPaths(input.TokenInAddress, input.TokenOutAddress, data.PoolByAddress, []*core.Path{bestPath})
+	return valueobject.NewRouteFromPaths(input.TokenInAddress, input.TokenOutAddress, []*valueobject.Path{bestPath})
 }

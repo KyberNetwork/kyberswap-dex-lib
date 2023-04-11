@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func TestSpfaFinder(t *testing.T) {
@@ -45,7 +46,7 @@ func TestSpfaFinder(t *testing.T) {
 		GasInclude:       true,
 	}
 	data := findroute.FinderData{
-		PoolByAddress:     poolByAddress,
+		PoolBucket:        valueobject.NewPoolBucket(poolByAddress),
 		TokenByAddress:    tokenByAddress,
 		PriceUSDByAddress: priceUSDByAddress,
 	}
@@ -59,10 +60,10 @@ func TestSpfaFinder(t *testing.T) {
 	fmt.Println("amountOutUSD", route.Output.AmountUsd)
 	fmt.Println("number of paths on best route:", len(route.Paths))
 	for _, path := range route.Paths {
-		fmt.Println("path length", len(path.Pools))
+		fmt.Println("path length", len(path.PoolAddresses))
 		fmt.Print("pool on path ")
-		for _, pool := range path.Pools {
-			fmt.Print(pool.GetAddress(), " ")
+		for _, poolAddress := range path.PoolAddresses {
+			fmt.Print(poolAddress, " ")
 		}
 		fmt.Println()
 	}

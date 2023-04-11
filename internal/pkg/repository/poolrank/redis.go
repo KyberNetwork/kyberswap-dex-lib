@@ -220,6 +220,15 @@ func (r *redisRepository) FindBestPoolIDs(
 	return poolIds, nil
 }
 
+// FindGlobalBestPools return pools address that has the most TVL among all pairs
+func (r *redisRepository) FindGlobalBestPools(ctx context.Context, poolCount int64) []string {
+	return r.redisClient.ZRevRangeByScore(ctx, r.keyGenerator.globalSortedSetKey(SortByTVL), &redis.ZRangeBy{
+		Min:   "0",
+		Max:   "+inf",
+		Count: poolCount,
+	}).Val()
+}
+
 func (r *redisRepository) AddToSortedSetScoreByTvl(
 	ctx context.Context,
 	pool entity.Pool,
@@ -233,6 +242,7 @@ func (r *redisRepository) AddToSortedSetScoreByTvl(
 
 	_, err := r.redisClient.TxPipelined(
 		ctx, func(tx redis.Pipeliner) error {
+			tx.ZAdd(ctx, r.keyGenerator.globalSortedSetKey(SortByTVL), member)
 			tx.ZAdd(ctx, r.keyGenerator.directPairKey(SortByTVL, token0, token1), member)
 
 			if isToken0Whitelisted && isToken1Whitelisted {

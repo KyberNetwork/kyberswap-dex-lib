@@ -4,16 +4,15 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/core"
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 // IFinder is an interface of finding route algorithm
 type IFinder interface {
 	// Find performs finding route algorithm and return zero, one or multiple routes.
 	// In case it returns multiple routes, the first route (index 0) is the best route
-	Find(ctx context.Context, input Input, data FinderData) ([]*core.Route, error)
+	Find(ctx context.Context, input Input, data FinderData) ([]*valueobject.Route, error)
 }
 
 // Input contains parameter specified by clients.
@@ -42,8 +41,7 @@ type Input struct {
 
 // FinderData contains all data for finding route.
 type FinderData struct {
-	// PoolByAddress mapping from pool address to IPool
-	PoolByAddress map[string]poolPkg.IPool
+	PoolBucket *valueobject.PoolBucket
 
 	// TokenByAddress mapping from token address to token info (decimals, symbol, ...)
 	TokenByAddress map[string]entity.Token
