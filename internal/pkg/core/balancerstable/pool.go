@@ -18,6 +18,7 @@ type StablePool struct {
 	A              *big.Int
 	Precision      *big.Int
 	VaultAddress   string
+	PoolId         string
 	Decimals       []uint
 	ScalingFactors []*big.Int
 	gas            Gas
@@ -48,7 +49,7 @@ func NewPool(entityPool entity.Pool) (*StablePool, error) {
 	return &StablePool{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:    strings.ToLower(staticExtra.PoolId),
+				Address:    entityPool.Address,
 				ReserveUsd: entityPool.ReserveUsd,
 				SwapFee:    swapFee,
 				Exchange:   entityPool.Exchange,
@@ -59,6 +60,7 @@ func NewPool(entityPool entity.Pool) (*StablePool, error) {
 			},
 		},
 		VaultAddress:   strings.ToLower(staticExtra.VaultAddress),
+		PoolId:         strings.ToLower(staticExtra.PoolId),
 		A:              extra.AmplificationParameter.Value,
 		Precision:      extra.AmplificationParameter.Precision,
 		ScalingFactors: extra.ScalingFactors,
@@ -148,7 +150,10 @@ func (t *StablePool) CalcExactQuote(tokenIn string, tokenOut string, base *big.I
 }
 
 func (t *StablePool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	return Meta{VaultAddress: t.VaultAddress}
+	return Meta{
+		VaultAddress: t.VaultAddress,
+		PoolId:       t.PoolId,
+	}
 }
 
 func (t *StablePool) GetLpToken() string {

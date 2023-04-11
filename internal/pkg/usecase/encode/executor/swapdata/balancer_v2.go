@@ -45,6 +45,7 @@ func buildBalancerV2(swap types.EncodingSwap) (BalancerV2, error) {
 
 	var extra struct {
 		VaultAddress string `json:"vault"`
+		PoolId       string `json:"poolId"`
 	}
 
 	if err = json.Unmarshal(byteData, &extra); err != nil {
@@ -56,7 +57,7 @@ func buildBalancerV2(swap types.EncodingSwap) (BalancerV2, error) {
 	}
 
 	var pool [32]byte
-	copy(pool[:], common.FromHex(swap.Pool))
+	copy(pool[:], common.FromHex(extra.PoolId))
 
 	return BalancerV2{
 		Vault:    common.HexToAddress(extra.VaultAddress),

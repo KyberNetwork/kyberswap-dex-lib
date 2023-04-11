@@ -16,6 +16,7 @@ import (
 type WeightedPool2Tokens struct {
 	pool.Pool
 	VaultAddress string
+	PoolId       string
 	Decimals     []uint
 	Weights      []*big.Int
 	gas          Gas
@@ -46,7 +47,7 @@ func NewPool(entityPool entity.Pool) (*WeightedPool2Tokens, error) {
 	return &WeightedPool2Tokens{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:    strings.ToLower(staticExtra.PoolId),
+				Address:    entityPool.Address,
 				ReserveUsd: entityPool.ReserveUsd,
 				SwapFee:    swapFee,
 				Exchange:   entityPool.Exchange,
@@ -57,6 +58,7 @@ func NewPool(entityPool entity.Pool) (*WeightedPool2Tokens, error) {
 			},
 		},
 		VaultAddress: strings.ToLower(staticExtra.VaultAddress),
+		PoolId:       strings.ToLower(staticExtra.PoolId),
 		Decimals:     decimals,
 		Weights:      weights,
 		gas:          DefaultGas,
@@ -148,7 +150,10 @@ func (t *WeightedPool2Tokens) CalcExactQuote(tokenIn string, tokenOut string, ba
 }
 
 func (t *WeightedPool2Tokens) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	return Meta{VaultAddress: t.VaultAddress}
+	return Meta{
+		VaultAddress: t.VaultAddress,
+		PoolId:       t.PoolId,
+	}
 }
 
 func (t *WeightedPool2Tokens) GetLpToken() string {

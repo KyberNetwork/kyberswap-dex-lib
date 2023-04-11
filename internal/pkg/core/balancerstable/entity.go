@@ -6,6 +6,7 @@ import (
 
 type Meta struct {
 	VaultAddress string `json:"vault"`
+	PoolId       string `json:"poolId"`
 }
 
 type StaticExtra struct {
