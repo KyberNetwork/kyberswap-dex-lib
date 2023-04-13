@@ -1202,7 +1202,7 @@ func (t *RouteService) summarizeRoute(
 				Fee:            *swapFee,
 				SwapInfo:       calcAmountOutResult.SwapInfo,
 			}
-			swapPool.UpdateBalance(updateBalanceParams)
+			freshPool.UpdateBalance(updateBalanceParams)
 			swapIn = *swapOut
 
 			metrics.IncrDexHitRate(string(swap.Exchange))
