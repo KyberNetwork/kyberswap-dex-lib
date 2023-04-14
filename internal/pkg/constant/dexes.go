@@ -44,7 +44,7 @@ var (
 		CurveLending:       "curve-lending",
 		CurveTricrypto:     "curve-tricrypto",
 		CurveTwo:           "curve-two",
-		Uni:                "uni",
+		Uni:                "uniswap",
 		UniV3:              "uniswapv3",
 		Firebird:           "firebird",
 		Dmm:                "dmm",
