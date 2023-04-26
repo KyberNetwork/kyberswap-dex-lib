@@ -11,6 +11,8 @@ type Config struct {
 	PoolFactory factory.PoolFactoryConfig `mapstructure:"poolFactory"`
 	CacheRoute  CacheRouteConfig          `mapstructure:"cacheRoute"`
 	GetRoutes   GetRoutesConfig           `mapstructure:"getRoutes"`
+
+	IndexPools IndexPoolsConfig `mapstructure:"indexPools"`
 }
 
 type (
@@ -103,7 +105,7 @@ type (
 
 type (
 	IndexPoolsConfig struct {
-		WhitelistedTokensByAddress map[string]bool
-		ChunkSize                  uint64
+		WhitelistedTokenSet map[string]struct{} `mapstructure:"whitelistedTokenSet"`
+		ChunkSize           int                 `mapstructure:"chunkSize"`
 	}
 )

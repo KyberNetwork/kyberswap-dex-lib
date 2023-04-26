@@ -351,6 +351,12 @@ useCase:
     blacklistedPools:
     featureFlags:
       useOptimizedSPFA: false
+  indexPools:
+    whitelistedTokenSet:
+    chunkSize: 3000
+job:
+  indexPools:
+    interval: 2s
 api:
   defaultTTL: 1s
   getRoutes:
@@ -367,5 +373,3 @@ api:
   getTokens:
     isCacheEnabled: false
     isTimeoutEnabled: false
-indexPoolsChunkSize: 3000
-indexPoolsJobIntervalSec: 2

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
+	"github.com/KyberNetwork/router-service/internal/pkg/job"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
 	"github.com/KyberNetwork/router-service/internal/pkg/server/http"
@@ -46,6 +47,8 @@ type Config struct {
 	Encoder           encode.Config                  `mapstructure:"encoder" json:"encoder"`
 	UseCase           usecase.Config                 `mapstructure:"useCase" json:"useCase"`
 	API               api.Config                     `mapstructure:"api" json:"api"`
+
+	Job job.Config `mapstructure:"job" json:"job"`
 
 	IndexPoolsChunkSize      uint64 `mapstructure:"indexPoolsChunkSize" json:"indexPoolsChunkSize" default:"3000"`
 	IndexPoolsJobIntervalSec uint64 `mapstructure:"indexPoolsJobIntervalSec" json:"indexPoolsJobIntervalSec" default:"2"`

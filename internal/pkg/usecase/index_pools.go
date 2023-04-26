@@ -19,7 +19,8 @@ type IndexPoolsUseCase struct {
 	routeRepo IIndexPoolsRouteRepository
 
 	config IndexPoolsConfig
-	mu     sync.RWMutex
+
+	mu sync.RWMutex
 }
 
 func NewIndexPoolsUseCase(
@@ -34,10 +35,9 @@ func NewIndexPoolsUseCase(
 	}
 }
 
-func (u *IndexPoolsUseCase) ApplyConfig(whitelistedTokensByAddress map[string]bool, chunkSize uint64) {
+func (u *IndexPoolsUseCase) ApplyConfig(config IndexPoolsConfig) {
 	u.mu.Lock()
-	u.config.WhitelistedTokensByAddress = whitelistedTokensByAddress
-	u.config.ChunkSize = chunkSize
+	u.config = config
 	u.mu.Unlock()
 }
 
@@ -45,12 +45,10 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 	var failedPoolAddresses []string
 
 	// process chunk by chunk
-	chunkSize := int(u.config.ChunkSize)
-	chunks := lo.Chunk(command.PoolAddresses, chunkSize)
+	chunks := lo.Chunk(command.PoolAddresses, u.config.ChunkSize)
 	for _, poolAddresses := range chunks {
 		pools, err := u.poolRepo.FindByAddresses(ctx, poolAddresses)
 		if err != nil {
-			logger.Errorf("failed to find pools by addresses, cause by %v", err)
 			failedPoolAddresses = append(failedPoolAddresses, poolAddresses...)
 		}
 
@@ -59,7 +57,6 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 			if !isSuccessful {
 				failedPoolAddresses = append(failedPoolAddresses, p.Address)
 			}
-			logger.Infof("index pool successfully: %s", p.Address)
 		}
 	}
 
@@ -76,7 +73,7 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool entity.Pool) boo
 	poolTokens := pool.Tokens
 	for i := 0; i < len(poolTokens); i++ {
 		tokenI := poolTokens[i]
-		whiteListI := u.config.WhitelistedTokensByAddress[tokenI.Address]
+		whiteListI := u.isWhitelistedToken(tokenI.Address)
 		if !tokenI.Swappable {
 			continue
 		}
@@ -85,7 +82,7 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool entity.Pool) boo
 			if !tokenJ.Swappable {
 				continue
 			}
-			whiteListJ := u.config.WhitelistedTokensByAddress[tokenJ.Address]
+			whiteListJ := u.isWhitelistedToken(tokenJ.Address)
 			key := core.GenDirectPairKey(tokenI.Address, tokenJ.Address)
 
 			if pool.HasReserves() {
@@ -117,9 +114,9 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool entity.Pool) boo
 			for i := 0; i < len(extra.UnderlyingTokens); i++ {
 				for j := i + 1; j < len(extra.UnderlyingTokens); j++ {
 					tokenI := extra.UnderlyingTokens[i]
-					whiteListI := u.config.WhitelistedTokensByAddress[tokenI]
+					whiteListI := u.isWhitelistedToken(tokenI)
 					tokenJ := extra.UnderlyingTokens[j]
-					whiteListJ := u.config.WhitelistedTokensByAddress[tokenJ]
+					whiteListJ := u.isWhitelistedToken(tokenJ)
 					key := core.GenDirectPairKey(tokenI, tokenJ)
 
 					if pool.HasReserves() {
@@ -145,4 +142,10 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool entity.Pool) boo
 	}
 
 	return result
+}
+
+func (u *IndexPoolsUseCase) isWhitelistedToken(tokenAddress string) bool {
+	_, contained := u.config.WhitelistedTokenSet[tokenAddress]
+
+	return contained
 }

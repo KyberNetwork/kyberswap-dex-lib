@@ -171,8 +171,14 @@ func (cl *ConfigLoader) setEnabledDexes(enabledDexes []valueobject.Dex) {
 }
 
 func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.WhitelistedToken) {
+	whitelistedTokenSet := make(map[string]struct{}, len(whitelistedTokens))
+	for _, whitelistedToken := range whitelistedTokens {
+		whitelistedTokenSet[whitelistedToken.Address] = struct{}{}
+	}
+
 	cl.config.WhitelistedTokens = whitelistedTokens
 	cl.config.UseCase.GetRoutes.WhitelistedTokens = whitelistedTokens
+	cl.config.UseCase.IndexPools.WhitelistedTokenSet = whitelistedTokenSet
 }
 
 func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {

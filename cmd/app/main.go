@@ -402,17 +402,12 @@ func indexerAction(c *cli.Context) (err error) {
 	indexPoolsUseCase := usecase.NewIndexPoolsUseCase(
 		poolRepo,
 		routeRepo,
-		usecase.IndexPoolsConfig{
-			WhitelistedTokensByAddress: cfg.WhitelistedTokensByAddress(),
-			ChunkSize:                  cfg.IndexPoolsChunkSize,
-		},
+		cfg.UseCase.IndexPools,
 	)
 	indexPoolsJob := job.NewIndexPoolsJob(
 		getAllPoolAddressesUseCase,
 		indexPoolsUseCase,
-		job.IndexPoolsJobConfig{
-			IndexPoolsJobIntervalSec: cfg.IndexPoolsJobIntervalSec,
-		},
+		cfg.Job.IndexPools,
 	)
 
 	reloadManager := reload.NewManager()
@@ -605,10 +600,10 @@ func applyLatestConfigForIndexer(
 	}
 
 	logger.Infoln("Applying new config to IndexPoolsJob")
-	indexPoolsJob.ApplyConfig(cfg.IndexPoolsJobIntervalSec)
+	indexPoolsJob.ApplyConfig(cfg.Job.IndexPools)
 
 	logger.Infoln("Applying new config to IndexPoolsUseCase")
-	indexPoolsUseCase.ApplyConfig(cfg.WhitelistedTokensByAddress(), cfg.IndexPoolsChunkSize)
+	indexPoolsUseCase.ApplyConfig(cfg.UseCase.IndexPools)
 
 	return nil
 }

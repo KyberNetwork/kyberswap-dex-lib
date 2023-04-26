@@ -29,20 +29,22 @@ func NewIndexPoolsJob(
 	}
 }
 
-func (u *IndexPoolsJob) ApplyConfig(indexPoolsJobIntervalSec uint64) {
+func (u *IndexPoolsJob) ApplyConfig(config IndexPoolsJobConfig) {
 	u.mu.Lock()
-	u.config.IndexPoolsJobIntervalSec = indexPoolsJobIntervalSec
+	u.config = config
 	u.mu.Unlock()
 }
 
 func (u *IndexPoolsJob) Run(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(u.config.IndexPoolsJobIntervalSec) * time.Second)
+	ticker := time.NewTicker(u.config.Interval)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
-			logger.Errorf("%v", ctx.Err())
+			logger.
+				WithFields(logger.Fields{"error": ctx.Err()}).
+				Errorf("IndexPoolsJob error")
 			return
 		case <-ticker.C:
 			u.run(ctx)
@@ -51,9 +53,19 @@ func (u *IndexPoolsJob) Run(ctx context.Context) {
 }
 
 func (u *IndexPoolsJob) run(ctx context.Context) {
+	startTime := time.Now()
+	defer func() {
+		logger.
+			WithFields(logger.Fields{"duration_ms": time.Since(startTime).Milliseconds()}).
+			Info("IndexPoolsJob.run done")
+	}()
+
 	poolAddresses, err := u.getAllPoolAddressesUseCase.Handle(ctx)
 	if err != nil {
-		logger.Errorf("error when getAllPoolAddresses pools, cause by %v", err)
+		logger.
+			WithFields(logger.Fields{"error": err}).
+			Error("failed to get all pool addresses")
+
 		return
 	}
 
@@ -62,6 +74,8 @@ func (u *IndexPoolsJob) run(ctx context.Context) {
 	}
 	result := u.indexPoolsUseCase.Handle(ctx, indexPoolsCmd)
 	if result != nil {
-		logger.Errorf("some pools were failed to be indexed: %v", result.FailedPoolAddresses)
+		logger.
+			WithFields(logger.Fields{"failedPoolAddresses": result.FailedPoolAddresses}).
+			Error("failed to index pools")
 	}
 }
