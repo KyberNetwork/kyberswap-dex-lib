@@ -417,7 +417,7 @@ api:
   getRoutes:
     isCacheEnabled: true
     ttl: 3s
-    isTimeoutEnabled: true
+    isTimeoutEnabled: false
     timeout: 10s
   buildRoute:
     isCacheEnabled: false

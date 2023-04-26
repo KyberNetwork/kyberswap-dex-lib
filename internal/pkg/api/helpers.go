@@ -119,12 +119,7 @@ func RespondSuccess(c *gin.Context, data interface{}) {
 		Data:      data,
 		RequestID: requestid.ExtractRequestID(c),
 	}
-	logger.WithFields(logger.Fields{
-		"response.httpStatus": http.StatusOK,
-		"response.code":       successResponse.Code,
-		"data":                successResponse.Data,
-		"requestId":           successResponse.RequestID,
-	}).Info("API response successfully")
+
 	c.JSON(
 		http.StatusOK,
 		successResponse,
@@ -138,15 +133,13 @@ func RespondFailure(c *gin.Context, err error) {
 		return
 	}
 
+	requestID := requestid.ExtractRequestID(c)
 	response := responseFromErr(err)
-	response.RequestID = requestid.ExtractRequestID(c)
-	logger.WithFields(logger.Fields{
-		"response.httpStatus": response.HTTPStatus,
-		"response.code":       response.Code,
-		"response.message:":   response.Message,
-		"error":               err.Error(),
-		"requestId":           requestid.ExtractRequestID(c),
-	}).Error("API response failure")
+	response.RequestID = requestID
+
+	logger.
+		WithFields(logger.Fields{"request.id": requestID, "error": err}).
+		Warn("respond failure")
 
 	c.JSON(
 		response.HTTPStatus,
@@ -185,14 +178,6 @@ func respondValidationError(c *gin.Context, err *validator.ValidationError) {
 		},
 		RequestID: requestid.ExtractRequestID(c),
 	}
-
-	logger.WithFields(logger.Fields{
-		"response.httpStatus": errorResponse.HTTPStatus,
-		"response.code":       errorResponse.Code,
-		"response.message:":   errorResponse.Message,
-		"details":             errorResponse.Details,
-		"requestId":           errorResponse.RequestID,
-	}).Error("API response validation failure")
 
 	c.JSON(
 		http.StatusBadRequest,

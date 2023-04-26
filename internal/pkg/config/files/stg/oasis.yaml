@@ -280,7 +280,7 @@ api:
   getRoutes:
     isCacheEnabled: true
     ttl: 6s
-    isTimeoutEnabled: true
+    isTimeoutEnabled: false
     timeout: 10s
   buildRoute:
     isCacheEnabled: false

@@ -508,7 +508,7 @@ api:
   getRoutes:
     isCacheEnabled: true
     ttl: 2s
-    isTimeoutEnabled: true
+    isTimeoutEnabled: false
     timeout: 10s
   buildRoute:
     isCacheEnabled: false
