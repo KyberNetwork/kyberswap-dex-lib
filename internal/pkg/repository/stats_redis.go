@@ -4,7 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	redisv8 "github.com/go-redis/redis/v8"
+	redisv9 "github.com/redis/go-redis/v9"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/redis"
@@ -70,7 +70,7 @@ func (r *StatsRedisRepository) Persist(ctx context.Context, stats entity.Stats) 
 	}
 
 	_, err = r.db.Client.Pipelined(
-		ctx, func(tx redisv8.Pipeliner) error {
+		ctx, func(tx redisv9.Pipeliner) error {
 			tx.HSet(ctx, r.db.FormatKey(StatsKey), PoolsKey, encodedPools)
 			tx.HSet(ctx, r.db.FormatKey(StatsKey), TotalPoolKey, stats.TotalPools)
 			tx.HSet(ctx, r.db.FormatKey(StatsKey), TotalTokenKey, stats.TotalTokens)

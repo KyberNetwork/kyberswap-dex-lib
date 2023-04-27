@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"testing"
 
-	redisv8 "github.com/go-redis/redis/v8"
+	redisv9 "github.com/redis/go-redis/v9"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/redis"
@@ -500,7 +500,7 @@ func TestScannerStateRedisRepository_GetL2Fee(t *testing.T) {
 		l2Fee, err := repo.GetL2Fee(context.Background())
 
 		assert.Nil(t, l2Fee)
-		assert.ErrorIs(t, redisv8.Nil, err)
+		assert.ErrorIs(t, redisv9.Nil, err)
 	})
 
 	t.Run("it should return correct l2 fee when it exists in redis", func(t *testing.T) {

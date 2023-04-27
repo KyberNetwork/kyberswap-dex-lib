@@ -6,7 +6,7 @@ import (
 	"errors"
 	"math/big"
 
-	redisv8 "github.com/go-redis/redis/v8"
+	redisv9 "github.com/redis/go-redis/v9"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/redis"
@@ -36,7 +36,7 @@ func (r *ScannerStateRepository) GetDexOffset(ctx context.Context, offsetKey str
 
 	if err != nil {
 		switch {
-		case errors.Is(err, redisv8.Nil):
+		case errors.Is(err, redisv9.Nil):
 			return 0, nil
 		default:
 			return 0, err
@@ -58,7 +58,7 @@ func (r *ScannerStateRepository) GetScanBlock(ctx context.Context) (uint64, erro
 	block, err := r.db.Client.HGet(ctx, r.db.FormatKey(KeyScannerState), FieldScanBlock).Uint64()
 	if err != nil {
 		switch {
-		case errors.Is(err, redisv8.Nil):
+		case errors.Is(err, redisv9.Nil):
 			return 0, nil
 		default:
 			return 0, err
@@ -96,7 +96,7 @@ func (r *ScannerStateRepository) GetCurveAddressProviders(ctx context.Context) (
 	addressesFromProviderStr, err := r.db.Client.HGet(ctx, r.db.FormatKey(KeyScannerState), FieldCurveProviders).Result()
 	if err != nil {
 		switch {
-		case errors.Is(err, redisv8.Nil):
+		case errors.Is(err, redisv9.Nil):
 			return "", nil
 		default:
 			return "", err

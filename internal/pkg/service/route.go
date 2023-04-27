@@ -15,8 +15,8 @@ import (
 	t "github.com/KyberNetwork/kyberswap-error/pkg/transformers"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
-	redisv8 "github.com/go-redis/redis/v8"
 	"github.com/pkg/errors"
+	redisv9 "github.com/redis/go-redis/v9"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -399,45 +399,45 @@ func (t *RouteService) findRoute(
 
 	key := GetPairAddressKey(tokenInAddress, tokenOutAddress)
 	cmders, err := t.db.Client.Pipelined(
-		ctx, func(tx redisv8.Pipeliner) error {
+		ctx, func(tx redisv9.Pipeliner) error {
 			tx.HGet(ctx, t.db.FormatKey(ConfigKey), GasPriceKey)
 			tx.ZRevRangeByScore(
-				ctx, t.db.FormatKey(model.PairKey, key), &redisv8.ZRangeBy{
+				ctx, t.db.FormatKey(model.PairKey, key), &redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: 100,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, t.db.FormatKey(model.PairKey, model.WhiteListKey), &redisv8.ZRangeBy{
+				ctx, t.db.FormatKey(model.PairKey, model.WhiteListKey), &redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: 500,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, t.db.FormatKey(model.PairKey, model.WhiteListKey, tokenInAddress), &redisv8.ZRangeBy{
+				ctx, t.db.FormatKey(model.PairKey, model.WhiteListKey, tokenInAddress), &redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: 200,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, t.db.FormatKey(model.PairKey, model.WhiteListKey, tokenOutAddress), &redisv8.ZRangeBy{
+				ctx, t.db.FormatKey(model.PairKey, model.WhiteListKey, tokenOutAddress), &redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: 200,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, t.db.FormatKey(model.AmplifiedTvlKey, model.PairKey, key), &redisv8.ZRangeBy{
+				ctx, t.db.FormatKey(model.AmplifiedTvlKey, model.PairKey, key), &redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: 50,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, t.db.FormatKey(model.AmplifiedTvlKey, model.PairKey, model.WhiteListKey), &redisv8.ZRangeBy{
+				ctx, t.db.FormatKey(model.AmplifiedTvlKey, model.PairKey, model.WhiteListKey), &redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: 200,
@@ -445,7 +445,7 @@ func (t *RouteService) findRoute(
 			)
 			tx.ZRevRangeByScore(
 				ctx, t.db.FormatKey(model.AmplifiedTvlKey, model.PairKey, model.WhiteListKey, tokenInAddress),
-				&redisv8.ZRangeBy{
+				&redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: 100,
@@ -453,7 +453,7 @@ func (t *RouteService) findRoute(
 			)
 			tx.ZRevRangeByScore(
 				ctx, t.db.FormatKey(model.AmplifiedTvlKey, model.PairKey, model.WhiteListKey, tokenOutAddress),
-				&redisv8.ZRangeBy{
+				&redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: 100,
@@ -466,21 +466,21 @@ func (t *RouteService) findRoute(
 		return nil, err
 	}
 	if len(gasPriceStr) == 0 {
-		gasPriceStr = cmders[0].(*redisv8.StringCmd).Val()
+		gasPriceStr = cmders[0].(*redisv9.StringCmd).Val()
 	}
 	gasPrice, ok := new(big.Float).SetString(gasPriceStr)
 	if !ok {
 		return nil, errors.New("invalid gas price")
 	}
-	directPoolIds := cmders[1].(*redisv8.StringSliceCmd).Val()
-	whitelistPoolIds := cmders[2].(*redisv8.StringSliceCmd).Val()
-	tokenInPoolIds := cmders[3].(*redisv8.StringSliceCmd).Val()
-	tokenOutPoolIds := cmders[4].(*redisv8.StringSliceCmd).Val()
+	directPoolIds := cmders[1].(*redisv9.StringSliceCmd).Val()
+	whitelistPoolIds := cmders[2].(*redisv9.StringSliceCmd).Val()
+	tokenInPoolIds := cmders[3].(*redisv9.StringSliceCmd).Val()
+	tokenOutPoolIds := cmders[4].(*redisv9.StringSliceCmd).Val()
 
-	directPoolIdsByAmplifiedTvl := cmders[5].(*redisv8.StringSliceCmd).Val()
-	whitelistPoolIdsByAmplifiedTvl := cmders[6].(*redisv8.StringSliceCmd).Val()
-	tokenInPoolIdsByAmplifiedTvl := cmders[7].(*redisv8.StringSliceCmd).Val()
-	tokenOutPoolIdsByAmplifiedTvl := cmders[8].(*redisv8.StringSliceCmd).Val()
+	directPoolIdsByAmplifiedTvl := cmders[5].(*redisv9.StringSliceCmd).Val()
+	whitelistPoolIdsByAmplifiedTvl := cmders[6].(*redisv9.StringSliceCmd).Val()
+	tokenInPoolIdsByAmplifiedTvl := cmders[7].(*redisv9.StringSliceCmd).Val()
+	tokenOutPoolIdsByAmplifiedTvl := cmders[8].(*redisv9.StringSliceCmd).Val()
 
 	poolSet := sets.NewString(directPoolIds...)
 	mergeIds := func(ids []string) {
@@ -1015,16 +1015,16 @@ func (t *RouteService) compoundCachedRouteKey(
 func (t *RouteService) lookupCachedRoute(ctx context.Context, cachedRouteKey string) ([]byte, time.Duration, error) {
 	// Second try, lookup cloud redis
 	cmders, err := t.db.Client.Pipelined(
-		ctx, func(tx redisv8.Pipeliner) error {
+		ctx, func(tx redisv9.Pipeliner) error {
 			tx.Get(ctx, cachedRouteKey)
 			tx.TTL(ctx, cachedRouteKey)
 			return nil
 		},
 	)
 	if err == nil {
-		cachedRoute, err1 := cmders[0].(*redisv8.StringCmd).Bytes()
-		ttl, err2 := cmders[1].(*redisv8.DurationCmd).Result()
-		if err1 == nil && err1 != redisv8.Nil && err2 == nil && err2 != redisv8.Nil {
+		cachedRoute, err1 := cmders[0].(*redisv9.StringCmd).Bytes()
+		ttl, err2 := cmders[1].(*redisv9.DurationCmd).Result()
+		if err1 == nil && err1 != redisv9.Nil && err2 == nil && err2 != redisv9.Nil {
 			return cachedRoute, ttl, nil
 		}
 	}

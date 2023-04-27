@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	redisv8 "github.com/go-redis/redis/v8"
+	redisv9 "github.com/redis/go-redis/v9"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -51,44 +51,44 @@ func NewRouteRedisRepository(
 */
 func (r *RouteRedisRepository) GetBestPools(ctx context.Context, directPairKey, tokenIn, tokenOut string, opt usecase.GetBestPoolsOptions, whitelistI, whitelistJ bool) (*types.BestPools, error) {
 	cmders, err := r.db.Client.Pipelined(
-		ctx, func(tx redisv8.Pipeliner) error {
+		ctx, func(tx redisv9.Pipeliner) error {
 			tx.ZRevRangeByScore(
-				ctx, r.db.FormatKey(KeyPair, directPairKey), &redisv8.ZRangeBy{
+				ctx, r.db.FormatKey(KeyPair, directPairKey), &redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: opt.DirectPoolsCount,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, r.db.FormatKey(KeyPair, KeyWhiteList), &redisv8.ZRangeBy{
+				ctx, r.db.FormatKey(KeyPair, KeyWhiteList), &redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: opt.WhitelistPoolsCount,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, r.db.FormatKey(KeyPair, KeyWhiteList, tokenIn), &redisv8.ZRangeBy{
+				ctx, r.db.FormatKey(KeyPair, KeyWhiteList, tokenIn), &redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: opt.TokenInPoolsCount,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, r.db.FormatKey(KeyPair, KeyWhiteList, tokenOut), &redisv8.ZRangeBy{
+				ctx, r.db.FormatKey(KeyPair, KeyWhiteList, tokenOut), &redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: opt.TokenOutPoolCount,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, r.db.FormatKey(KeyAmplifiedTvl, KeyPair, directPairKey), &redisv8.ZRangeBy{
+				ctx, r.db.FormatKey(KeyAmplifiedTvl, KeyPair, directPairKey), &redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: opt.AmplifiedTvlDirectPoolsCount,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, r.db.FormatKey(KeyAmplifiedTvl, KeyPair, KeyWhiteList), &redisv8.ZRangeBy{
+				ctx, r.db.FormatKey(KeyAmplifiedTvl, KeyPair, KeyWhiteList), &redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: opt.AmplifiedTvlWhitelistPoolsCount,
@@ -96,7 +96,7 @@ func (r *RouteRedisRepository) GetBestPools(ctx context.Context, directPairKey, 
 			)
 			tx.ZRevRangeByScore(
 				ctx, r.db.FormatKey(KeyAmplifiedTvl, KeyPair, KeyWhiteList, tokenIn),
-				&redisv8.ZRangeBy{
+				&redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: opt.AmplifiedTvlTokenInPoolsCount,
@@ -104,7 +104,7 @@ func (r *RouteRedisRepository) GetBestPools(ctx context.Context, directPairKey, 
 			)
 			tx.ZRevRangeByScore(
 				ctx, r.db.FormatKey(KeyAmplifiedTvl, KeyPair, KeyWhiteList, tokenOut),
-				&redisv8.ZRangeBy{
+				&redisv9.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: opt.AmplifiedTvlTokenOutPoolCount,
@@ -119,15 +119,15 @@ func (r *RouteRedisRepository) GetBestPools(ctx context.Context, directPairKey, 
 		return nil, err
 	}
 
-	directPoolIds := cmders[0].(*redisv8.StringSliceCmd).Val()
-	whitelistPoolIds := cmders[1].(*redisv8.StringSliceCmd).Val()
-	tokenInPoolIds := cmders[2].(*redisv8.StringSliceCmd).Val()
-	tokenOutPoolIds := cmders[3].(*redisv8.StringSliceCmd).Val()
+	directPoolIds := cmders[0].(*redisv9.StringSliceCmd).Val()
+	whitelistPoolIds := cmders[1].(*redisv9.StringSliceCmd).Val()
+	tokenInPoolIds := cmders[2].(*redisv9.StringSliceCmd).Val()
+	tokenOutPoolIds := cmders[3].(*redisv9.StringSliceCmd).Val()
 
-	directPoolIdsByAmplifiedTvl := cmders[4].(*redisv8.StringSliceCmd).Val()
-	whitelistPoolIdsByAmplifiedTvl := cmders[5].(*redisv8.StringSliceCmd).Val()
-	tokenInPoolIdsByAmplifiedTvl := cmders[6].(*redisv8.StringSliceCmd).Val()
-	tokenOutPoolIdsByAmplifiedTvl := cmders[7].(*redisv8.StringSliceCmd).Val()
+	directPoolIdsByAmplifiedTvl := cmders[4].(*redisv9.StringSliceCmd).Val()
+	whitelistPoolIdsByAmplifiedTvl := cmders[5].(*redisv9.StringSliceCmd).Val()
+	tokenInPoolIdsByAmplifiedTvl := cmders[6].(*redisv9.StringSliceCmd).Val()
+	tokenOutPoolIdsByAmplifiedTvl := cmders[7].(*redisv9.StringSliceCmd).Val()
 
 	poolSet := sets.NewString()
 	// Merge ids into poolSet
@@ -219,13 +219,13 @@ func (r *RouteRedisRepository) GetBestPools(ctx context.Context, directPairKey, 
 }
 
 func (r *RouteRedisRepository) AddToSortedSetScoreByReserveUsd(ctx context.Context, pool entity.Pool, key string, tokenIAddress, tokenJAddress string, whiteListI, whiteListJ bool) error {
-	member := &redisv8.Z{
+	member := redisv9.Z{
 		Score:  pool.ReserveUsd,
 		Member: pool.Address,
 	}
 
 	_, err := r.db.Client.TxPipelined(
-		ctx, func(tx redisv8.Pipeliner) error {
+		ctx, func(tx redisv9.Pipeliner) error {
 			tx.ZAdd(ctx, r.db.FormatKey(KeyPair, key), member)
 			if whiteListI && whiteListJ {
 				tx.ZAdd(ctx, r.db.FormatKey(KeyPair, KeyWhiteList), member)
@@ -245,13 +245,13 @@ func (r *RouteRedisRepository) AddToSortedSetScoreByReserveUsd(ctx context.Conte
 }
 
 func (r *RouteRedisRepository) AddToSortedSetScoreByAmplifiedTvl(ctx context.Context, pool entity.Pool, key string, tokenIAddress, tokenJAddress string, whiteListI, whiteListJ bool) error {
-	member := &redisv8.Z{
+	member := redisv9.Z{
 		Score:  pool.AmplifiedTvl,
 		Member: pool.Address,
 	}
 
 	_, err := r.db.Client.TxPipelined(
-		ctx, func(tx redisv8.Pipeliner) error {
+		ctx, func(tx redisv9.Pipeliner) error {
 			tx.ZAdd(ctx, r.db.FormatKey(KeyAmplifiedTvl, KeyPair, key), member)
 			if whiteListI && whiteListJ {
 				tx.ZAdd(ctx, r.db.FormatKey(KeyAmplifiedTvl, KeyPair, KeyWhiteList), member)
