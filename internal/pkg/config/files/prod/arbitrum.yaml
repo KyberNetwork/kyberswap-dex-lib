@@ -12,6 +12,7 @@ common:
   publicRPC: "https://arb1.arbitrum.io/rpc"
   rpcs:
     - "https://arbitrum.kyberengineering.io"
+  rpc: "https://arbitrum.kyberengineering.io"
   address:
     # multicall: '0x80c7dd17b01855a6d2347444a0fcc36136a314de'
     multicall: '0xBF69a56D35B8d6f5A8e0e96B245a72F735751e54'
@@ -370,6 +371,8 @@ useCase:
     chunkSize: 3000
 job:
   indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
     interval: 2s
 api:
   defaultTTL: 1s

@@ -11,6 +11,7 @@ type Common struct {
 	DataFolder string   `mapstructure:"dataFolder"`
 	PublicRPC  string   `mapstructure:"publicRPC"`
 	RPCs       []string `mapstructure:"rpcs"`
+	RPC        string   `mapstructure:"rpc"`
 	Address    Address  `mapstructure:"address"`
 }
 type EnableDexes []string

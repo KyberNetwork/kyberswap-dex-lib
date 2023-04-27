@@ -12,6 +12,7 @@ common:
   publicRPC: "https://rpc.ftm.tools/"
   rpcs:
     - https://rpc.ftm.tools/
+  rpc: https://rpc.ftm.tools/
   address:
     multicall: '0xeaa5bc63466ce2359c2a13dce952bd0e88a5bef7'
     gasToken: '0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83'
@@ -356,6 +357,8 @@ useCase:
     chunkSize: 3000
 job:
   indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
     interval: 2s
 api:
   defaultTTL: 1s

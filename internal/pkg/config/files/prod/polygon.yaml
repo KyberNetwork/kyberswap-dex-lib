@@ -12,6 +12,7 @@ common:
   publicRPC: "https://rpc-mainnet.maticvigil.com"
   rpcs:
     - "https://polygon.kyberengineering.io/v1/mainnet/geth?appId=prod-dmm"
+  rpc: "https://polygon.kyberengineering.io/v1/mainnet/geth?appId=prod-dmm"
   address:
     multicall: '0xed386fe855c1eff2f843b910923dd8846e45c5a4'
     gasToken: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270'
@@ -500,6 +501,8 @@ useCase:
     chunkSize: 3000
 job:
   indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
     interval: 2s
 api:
   defaultTTL: 1s

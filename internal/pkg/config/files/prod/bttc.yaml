@@ -12,6 +12,7 @@ common:
   publicRPC: "https://rpc.bt.io/"
   rpcs:
     - "https://rpc.bt.io/"
+  rpc: "https://rpc.bt.io/"
   address:
     multicall: '0xaf0936b1dc49b5c7444ca838a5f32080fc043add'
     gasToken: '0x8d193c6efa90bcff940a98785d1ce9d093d3dc8a'
@@ -345,6 +346,8 @@ useCase:
     chunkSize: 3000
 job:
   indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
     interval: 2s
 api:
   defaultTTL: 1s

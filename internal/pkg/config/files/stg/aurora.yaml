@@ -13,6 +13,7 @@ common:
   rpcs:
     # - "https://aurora.kyberswap.com/v1/mainnet/geth?appId=test-daniel"
     - "https://mainnet.aurora.dev"
+  rpc: "https://mainnet.aurora.dev"
   address:
     multicall: '0xBF69a56D35B8d6f5A8e0e96B245a72F735751e54'
     gasToken: '0xc9bdeed33cd01541e1eed10f90519d2c06fe3feb'
@@ -299,6 +300,8 @@ useCase:
     chunkSize: 3000
 job:
   indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
     interval: 2s
 api:
   defaultTTL: 1s

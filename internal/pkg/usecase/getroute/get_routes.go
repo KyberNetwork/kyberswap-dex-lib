@@ -37,11 +37,11 @@ type GetRoutesUseCase struct {
 	validateRoute *validateroute.ValidateRouteUseCase
 	poolFactory   *factory.PoolFactory
 
-	poolRepository         usecase.IPoolRepository
-	tokenRepository        usecase.ITokenRepository
-	priceRepository        usecase.IPriceRepository
-	routeRepository        usecase.IRouteRepository
-	scannerStateRepository usecase.IScannerStateRepository
+	poolRepository  usecase.IPoolRepository
+	tokenRepository usecase.ITokenRepository
+	priceRepository usecase.IPriceRepository
+	routeRepository usecase.IRouteRepository
+	gasRepository   usecase.IGasRepository
 
 	config usecase.GetRoutesConfig
 	mu     sync.RWMutex
@@ -74,19 +74,19 @@ func NewGetRoutesUseCase(
 	tokenRepository usecase.ITokenRepository,
 	priceRepository usecase.IPriceRepository,
 	routeRepository usecase.IRouteRepository,
-	scannerStateRepository usecase.IScannerStateRepository,
+	gasRepository usecase.IGasRepository,
 	config usecase.GetRoutesConfig,
 ) *GetRoutesUseCase {
 	return &GetRoutesUseCase{
-		cacheRoute:             cacheRoute,
-		validateRoute:          validateRoute,
-		poolFactory:            poolFactory,
-		poolRepository:         poolRepository,
-		tokenRepository:        tokenRepository,
-		priceRepository:        priceRepository,
-		routeRepository:        routeRepository,
-		scannerStateRepository: scannerStateRepository,
-		config:                 config,
+		cacheRoute:      cacheRoute,
+		validateRoute:   validateRoute,
+		poolFactory:     poolFactory,
+		poolRepository:  poolRepository,
+		tokenRepository: tokenRepository,
+		priceRepository: priceRepository,
+		routeRepository: routeRepository,
+		gasRepository:   gasRepository,
+		config:          config,
 	}
 }
 
@@ -375,7 +375,12 @@ func (uc *GetRoutesUseCase) getGasPrice(
 		return queryGasPrice, nil
 	}
 
-	return uc.scannerStateRepository.GetGasPrice(ctx)
+	suggestedGasPrice, err := uc.gasRepository.GetSuggestedGasPrice(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return new(big.Float).SetInt(suggestedGasPrice), nil
 }
 
 // findRouteWithCache gets route from cache, if cached route is valid, it returns the cached route

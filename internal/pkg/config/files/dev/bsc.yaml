@@ -12,6 +12,7 @@ common:
   publicRPC: "https://bsc-dataseed.binance.org"
   rpcs:
     - "https://bscrpc.com"
+  rpc: "https://bscrpc.com"
   address:
     multicall: '0xed386fe855c1eff2f843b910923dd8846e45c5a4'
     gasToken: '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c'
@@ -411,6 +412,8 @@ useCase:
     chunkSize: 3000
 job:
   indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
     interval: 2s
 api:
   defaultTTL: 1s

@@ -12,6 +12,7 @@ common:
   publicRPC: "https://api.avax.network/ext/bc/C/rpc"
   rpcs:
     - "https://api.avax.network/ext/bc/C/rpc"
+  rpc: "https://api.avax.network/ext/bc/C/rpc"
   address:
     multicall: '0xf2fd8219609e28c61a998cc534681f95d2740f61'
     gasToken: '0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7'
@@ -409,6 +410,8 @@ useCase:
     chunkSize: 3000
 job:
   indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
     interval: 2s
 api:
   defaultTTL: 1s

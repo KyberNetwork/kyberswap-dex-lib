@@ -13,6 +13,7 @@ common:
   rpcs:
     - "https://cronos.knstats.com/v1/mainnet/geth?appId=prod-dmm-aggregator-backend"
     # - "https://evm-cronos.crypto.org"
+  rpc: "https://cronos.knstats.com/v1/mainnet/geth?appId=prod-dmm-aggregator-backend"
   address:
     multicall: '0x5e954f5972EC6BFc7dECd75779F10d848230345F'
     gasToken: '0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23'
@@ -312,6 +313,8 @@ useCase:
     chunkSize: 3000
 job:
   indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
     interval: 2s
 api:
   defaultTTL: 1s

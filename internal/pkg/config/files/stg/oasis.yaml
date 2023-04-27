@@ -12,6 +12,7 @@ common:
   publicRPC: "https://emerald.oasis.dev"
   rpcs:
     - "https://emerald.oasis.dev"
+  rpc: "https://emerald.oasis.dev"
   address:
     multicall: '0xBF69a56D35B8d6f5A8e0e96B245a72F735751e54'
     gasToken: '0x21C718C22D52d0F3a789b752D4c2fD5908a8A733'
@@ -274,6 +275,8 @@ useCase:
     chunkSize: 3000
 job:
   indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
     interval: 2s
 api:
   defaultTTL: 1s

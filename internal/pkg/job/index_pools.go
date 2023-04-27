@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	ctxutils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -43,28 +44,43 @@ func (u *IndexPoolsJob) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			logger.
-				WithFields(logger.Fields{"error": ctx.Err()}).
-				Errorf("IndexPoolsJob error")
+				WithFields(
+					logger.Fields{
+						"job.name": IndexPools,
+						"error":    ctx.Err(),
+					}).
+				Errorf("job error")
 			return
 		case <-ticker.C:
-			u.run(ctx)
+			u.run(ctxutils.NewJobCtx(ctx))
 		}
 	}
 }
 
 func (u *IndexPoolsJob) run(ctx context.Context) {
+	jobID := ctxutils.GetJobID(ctx)
 	startTime := time.Now()
 	defer func() {
 		logger.
-			WithFields(logger.Fields{"duration_ms": time.Since(startTime).Milliseconds()}).
-			Info("IndexPoolsJob.run done")
+			WithFields(
+				logger.Fields{
+					"job.id":      jobID,
+					"job.name":    IndexPools,
+					"duration_ms": time.Since(startTime).Milliseconds()},
+			).
+			Info("job duration")
 	}()
 
 	poolAddresses, err := u.getAllPoolAddressesUseCase.Handle(ctx)
 	if err != nil {
 		logger.
-			WithFields(logger.Fields{"error": err}).
-			Error("failed to get all pool addresses")
+			WithFields(
+				logger.Fields{
+					"job.id":   jobID,
+					"job.name": IndexPools,
+					"error":    err,
+				}).
+			Error("job failed: get all pool addresses")
 
 		return
 	}
@@ -73,9 +89,31 @@ func (u *IndexPoolsJob) run(ctx context.Context) {
 		PoolAddresses: poolAddresses,
 	}
 	result := u.indexPoolsUseCase.Handle(ctx, indexPoolsCmd)
+
+	var failedCount int
 	if result != nil {
-		logger.
-			WithFields(logger.Fields{"failedPoolAddresses": result.FailedPoolAddresses}).
-			Error("failed to index pools")
+		failedCount = len(result.FailedPoolAddresses)
 	}
+
+	if failedCount > 0 {
+		logger.
+			WithFields(
+				logger.Fields{
+					"job.id":       jobID,
+					"job.name":     IndexPools,
+					"total_count":  len(poolAddresses),
+					"failed_count": failedCount,
+				}).
+			Warn("job done")
+		return
+	}
+
+	logger.
+		WithFields(
+			logger.Fields{
+				"job.id":      jobID,
+				"job.name":    IndexPools,
+				"total_count": len(poolAddresses),
+			}).
+		Info("job done")
 }

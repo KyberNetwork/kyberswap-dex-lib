@@ -15,3 +15,8 @@ type IGetAllPoolAddressesUseCase interface {
 type IIndexPoolsUseCase interface {
 	Handle(ctx context.Context, command dto.IndexPoolsCommand) *dto.IndexPoolsResult
 }
+
+// IUpdateSuggestedGasPriceUseCase get suggested gas price from rpc and save it to Redis
+type IUpdateSuggestedGasPriceUseCase interface {
+	Handle(ctx context.Context) (*dto.UpdateGasPriceResult, error)
+}

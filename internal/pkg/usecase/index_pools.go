@@ -11,7 +11,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type IndexPoolsUseCase struct {
@@ -89,7 +88,6 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool entity.Pool) boo
 				err := u.routeRepo.AddToSortedSetScoreByReserveUsd(ctx, pool, key, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ)
 
 				if err != nil {
-					logger.Errorf("failed to AddToSortedSetScoreByReserveUsd, err: %v", err)
 					result = false
 				}
 			}
@@ -98,7 +96,6 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool entity.Pool) boo
 				err := u.routeRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, key, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ)
 
 				if err != nil {
-					logger.Errorf("failed to AddToSortedSetScoreByReserveUsd, err: %v", err)
 					result = false
 				}
 			}
@@ -123,7 +120,6 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool entity.Pool) boo
 						err := u.routeRepo.AddToSortedSetScoreByReserveUsd(ctx, pool, key, tokenI, tokenJ, whiteListI, whiteListJ)
 
 						if err != nil {
-							logger.Errorf("failed to AddToSortedSetScoreByReserveUsd, err: %v", err)
 							result = false
 						}
 					}
@@ -132,7 +128,6 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool entity.Pool) boo
 						err := u.routeRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, key, tokenI, tokenJ, whiteListI, whiteListJ)
 
 						if err != nil {
-							logger.Errorf("failed to AddToSortedSetScoreByAmplifiedTvl, err: %v", err)
 							result = false
 						}
 					}

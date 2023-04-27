@@ -12,6 +12,7 @@ common:
   publicRPC: "https://rpc.ankr.com/optimism"
   rpcs:
     - "https://rpc.ankr.com/optimism"
+  rpc: "https://rpc.ankr.com/optimism"
   address:
     multicall: '0xD9bfE9979e9CA4b2fe84bA5d4Cf963bBcB376974'
     gasToken: '0x4200000000000000000000000000000000000006'
@@ -344,6 +345,8 @@ useCase:
     chunkSize: 3000
 job:
   indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
     interval: 2s
 api:
   defaultTTL: 1s

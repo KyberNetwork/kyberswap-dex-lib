@@ -6,15 +6,15 @@ import (
 
 type (
 	Config struct {
-		IndexPools     IndexPoolsJobConfig  `mapstructure:"indexPools"`
-		UpdateGasPrice UpdateGasPriceConfig `mapstructure:"updateGasPrice"`
+		IndexPools              IndexPoolsJobConfig           `mapstructure:"indexPools"`
+		UpdateSuggestedGasPrice UpdateSuggestedGasPriceConfig `mapstructure:"updateSuggestedGasPrice"`
 	}
 
 	IndexPoolsJobConfig struct {
 		Interval time.Duration `mapstructure:"interval"`
 	}
 
-	UpdateGasPriceConfig struct {
+	UpdateSuggestedGasPriceConfig struct {
 		Interval time.Duration `mapstructure:"interval"`
 	}
 )

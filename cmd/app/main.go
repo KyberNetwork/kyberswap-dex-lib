@@ -6,7 +6,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-error/pkg/transformers"
@@ -22,6 +21,8 @@ import (
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
+	"github.com/KyberNetwork/ethrpc"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -30,6 +31,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/setting"
 	"github.com/KyberNetwork/router-service/internal/pkg/server"
 	httppkg "github.com/KyberNetwork/router-service/internal/pkg/server/http"
@@ -42,7 +44,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/l2feecalculator"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
 	"github.com/KyberNetwork/router-service/internal/pkg/validator"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -163,6 +164,8 @@ func apiAction(c *cli.Context) (err error) {
 
 	_, err = metrics.InitClient(newMetricsConfig(cfg))
 
+	ethClient := ethrpc.New(cfg.Common.RPC)
+
 	// init repositories
 	tokenDataStoreRepo := repository.NewTokenDataStoreRedisRepository(rDb)
 	tokenCacheRepo := repository.NewTokenCacheRepository(
@@ -178,6 +181,7 @@ func apiAction(c *cli.Context) (err error) {
 	)
 	routeRepo := repository.NewRouteRedisRepository(rDb)
 	scanStateRepo := repository.NewScannerStateRedisRepository(rDb)
+	gasRepository := gas.NewRedisRepository(rDb.Client, ethClient, gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
 	// sealer
 
@@ -221,7 +225,7 @@ func apiAction(c *cli.Context) (err error) {
 		tokenCacheRepo,
 		priceDataStoreRepo,
 		routeRepo,
-		scanStateRepo,
+		gasRepository,
 		cfg.UseCase.GetRoutes,
 	)
 
@@ -362,12 +366,7 @@ func indexerAction(c *cli.Context) (err error) {
 		logger.Infoln("Config reloaded")
 	}
 
-	// init eth client
-	ethClient, err := eth.NewClient(cfg.Common.RPCs)
-	if err != nil {
-		logger.Errorf("error when initing RPC client cause by %v", err)
-		return err
-	}
+	ethClient := ethrpc.New(cfg.Common.RPC)
 
 	// init redis client
 	rds, err := redis.New(&cfg.Redis)
@@ -379,23 +378,8 @@ func indexerAction(c *cli.Context) (err error) {
 	poolDatastoreRepo := repository.NewPoolDataStoreRedisRepository(rds)
 	poolCacheRepo := repository.NewPoolCacheCMapRepository(cmap.New(), cmap.New())
 	poolRepo := repository.NewPoolRepository(poolDatastoreRepo, poolCacheRepo)
-	statsRepo := repository.NewStatsRedisRepository(rds)
 	routeRepo := repository.NewRouteRedisRepository(rds)
-	rpcRepo := repository.NewRPCRepository(ethClient, repository.RPCRepositoryConfig{
-		RPCs:             cfg.Common.RPCs,
-		MulticallAddress: cfg.Common.Address.Multicall,
-	})
-
-	// init service
-	rpcService := service.NewRPC(cfg.Common)
-	commonService := service.NewCommon(rds, cfg.Common, rpcService)
-	scanSvc := service.NewScanService(rpcRepo)
-
-	jobs := []service.IService{
-		rpcService,
-		commonService,
-		service.NewStats(scanSvc, poolRepo, statsRepo),
-	}
+	gasRepository := gas.NewRedisRepository(rds.Client, ethClient, gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
 	// init use case
 	getAllPoolAddressesUseCase := usecase.NewGetAllPoolAddressesUseCase(poolRepo)
@@ -404,10 +388,16 @@ func indexerAction(c *cli.Context) (err error) {
 		routeRepo,
 		cfg.UseCase.IndexPools,
 	)
+	updateSuggestedGasPriceUseCase := usecase.NewUpdateSuggestedGasPrice(gasRepository)
+
 	indexPoolsJob := job.NewIndexPoolsJob(
 		getAllPoolAddressesUseCase,
 		indexPoolsUseCase,
 		cfg.Job.IndexPools,
+	)
+	updateSuggestedGasPriceJob := job.NewUpdateSuggestedGasPriceJob(
+		updateSuggestedGasPriceUseCase,
+		cfg.Job.UpdateSuggestedGasPrice,
 	)
 
 	reloadManager := reload.NewManager()
@@ -444,25 +434,18 @@ func indexerAction(c *cli.Context) (err error) {
 	})
 
 	g.Go(func() error {
-		logger.Infoln("Starting scanner")
+		logger.Info("Starting indexPoolsJobs")
 
-		var wg sync.WaitGroup
-		for _, s := range jobs {
-			wg.Add(1)
-			go func(s service.IService) {
-				defer wg.Done()
-				s.UpdateData(ctx)
-			}(s)
-		}
-
-		wg.Wait()
+		indexPoolsJob.Run(ctx)
 
 		return nil
 	})
 
 	g.Go(func() error {
-		logger.Infof("Starting indexer")
-		indexPoolsJob.Run(ctx)
+		logger.Info("Starting updateSuggestedGasPriceJob")
+
+		updateSuggestedGasPriceJob.Run(ctx)
+
 		return nil
 	})
 

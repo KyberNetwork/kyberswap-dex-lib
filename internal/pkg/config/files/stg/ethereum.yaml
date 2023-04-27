@@ -12,6 +12,7 @@ common:
   publicRPC: "https://ethereum.kyberengineering.io"
   rpcs:
     - "https://ethereum.kyberengineering.io"
+  rpc: "https://ethereum.kyberengineering.io"
   address:
     multicall: '0x5ba1e12693dc8f9c48aad8770482f4739beed696'
     gasToken: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
@@ -372,6 +373,8 @@ useCase:
     chunkSize: 3000
 job:
   indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
     interval: 2s
 api:
   defaultTTL: 1s

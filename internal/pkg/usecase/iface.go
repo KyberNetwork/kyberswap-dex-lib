@@ -65,6 +65,11 @@ type IScannerStateRepository interface {
 	GetL2Fee(ctx context.Context) (*entity.L2Fee, error)
 }
 
+type IGasRepository interface {
+	UpdateSuggestedGasPrice(ctx context.Context) (*big.Int, error)
+	GetSuggestedGasPrice(ctx context.Context) (*big.Int, error)
+}
+
 type IClientDataEncoder interface {
 	Encode(ctx context.Context, data types.ClientData) ([]byte, error)
 }

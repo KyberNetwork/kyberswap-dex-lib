@@ -12,6 +12,7 @@ common:
   publicRPC: "https://avalanchetestapi.terminet.io/ext/bc/C/rpc"
   rpcs:
     - "https://avalanchetestapi.terminet.io/ext/bc/C/rpc"
+  rpc: "https://avalanchetestapi.terminet.io/ext/bc/C/rpc"
   address:
     multicall: '0x5D605e78bc699fB565E6E6a1fa2d940C40F8ce25'
     gasToken: '0xd00ae08403b9bbb9124bb305c09058e32c39a48c'
@@ -218,6 +219,8 @@ useCase:
     chunkSize: 3000
 job:
   indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
     interval: 2s
 api:
   defaultTTL: 1s

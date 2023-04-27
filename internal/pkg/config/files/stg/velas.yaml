@@ -12,6 +12,7 @@ common:
   publicRPC: "https://evmexplorer.velas.com/rpc"
   rpcs:
     - "https://evmexplorer.velas.com/rpc"
+  rpc: "https://evmexplorer.velas.com/rpc"
   address:
     multicall: '0x1877Ec0770901cc6886FDA7E7525a78c2Ed4e975'
     gasToken: '0xc579D1f3CF86749E05CD06f7ADe17856c2CE3126'
@@ -249,6 +250,8 @@ useCase:
     chunkSize: 3000
 job:
   indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
     interval: 2s
 api:
   defaultTTL: 1s
