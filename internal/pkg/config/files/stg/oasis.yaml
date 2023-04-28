@@ -119,7 +119,15 @@ cacheRanges:
     toUSD: -1
     ttl: 30
 redis:
-  addresses: localhost:6379
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: "oasis"
+  readTimeout: 3s
+  writeTimeout: 3s
+poolRedis:
+  addresses:
   masterName: ""
   dbNumber: 0
   password: ""

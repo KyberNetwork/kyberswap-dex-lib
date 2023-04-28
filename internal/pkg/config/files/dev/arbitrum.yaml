@@ -133,8 +133,16 @@ redis:
   addresses: localhost:6379
   masterName: ""
   dbNumber: 0
-  password: ''
-  prefix: 'arbitrum'
+  password: ""
+  prefix: "arbitrum"
+  readTimeout: 3s
+  writeTimeout: 3s
+poolRedis:
+  addresses: localhost:6379
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: "arbitrum"
   readTimeout: 3s
   writeTimeout: 3s
 ddAgentHost: ""

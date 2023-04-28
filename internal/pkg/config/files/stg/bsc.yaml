@@ -127,7 +127,15 @@ cacheRanges:
     toUSD: -1
     ttl: 10
 redis:
-  addresses: localhost:6379
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: "bsc"
+  readTimeout: 3s
+  writeTimeout: 3s
+poolRedis:
+  addresses:
   masterName: ""
   dbNumber: 0
   password: ""

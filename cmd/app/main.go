@@ -152,8 +152,14 @@ func apiAction(c *cli.Context) (err error) {
 	// Flush buffered events before the program terminates.
 	defer sentry.Flush(2 * time.Second)
 
-	rDb, err := redis.New(&cfg.Redis)
+	routerRedisClient, err := redis.New(&cfg.Redis)
 	if err != nil {
+		return err
+	}
+
+	poolRedisClient, err := redis.New(&cfg.PoolRedis)
+	if err != nil {
+		logger.Errorf("fail to init redis client to pool service")
 		return err
 	}
 
@@ -162,20 +168,20 @@ func apiAction(c *cli.Context) (err error) {
 	ethClient := ethrpc.New(cfg.Common.RPC)
 
 	// init repositories
-	tokenDataStoreRepo := repository.NewTokenDataStoreRedisRepository(rDb)
+	tokenDataStoreRepo := repository.NewTokenDataStoreRedisRepository(poolRedisClient)
 	tokenCacheRepo := repository.NewTokenCacheRepository(
 		tokenDataStoreRepo,
 		cache.New(cache.NoExpiration, cache.NoExpiration),
 	)
 
-	poolDataStoreRepo := repository.NewPoolDataStoreRedisRepository(rDb)
-	priceDataStoreRepo := repository.NewPriceDataStoreRedisRepository(rDb)
+	poolDataStoreRepo := repository.NewPoolDataStoreRedisRepository(poolRedisClient)
+	priceDataStoreRepo := repository.NewPriceDataStoreRedisRepository(poolRedisClient)
 
 	routeCacheRepo := repository.NewRouteCacheRedisRepository(
-		rDb.Client,
+		routerRedisClient.Client,
 	)
-	routeRepo := repository.NewRouteRedisRepository(rDb)
-	gasRepository := gas.NewRedisRepository(rDb.Client, ethClient, gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
+	routeRepo := repository.NewRouteRedisRepository(routerRedisClient)
+	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient, gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
 	// sealer
 
@@ -334,17 +340,24 @@ func indexerAction(c *cli.Context) (err error) {
 	ethClient := ethrpc.New(cfg.Common.RPC)
 
 	// init redis client
-	rds, err := redis.New(&cfg.Redis)
+	routerRedisClient, err := redis.New(&cfg.Redis)
 	if err != nil {
+		logger.Errorf("fail to init redis client for indexer")
+		return err
+	}
+
+	poolRedisClient, err := redis.New(&cfg.PoolRedis)
+	if err != nil {
+		logger.Errorf("fail to init redis client to pool service")
 		return err
 	}
 
 	// init repository
-	poolDatastoreRepo := repository.NewPoolDataStoreRedisRepository(rds)
+	poolDatastoreRepo := repository.NewPoolDataStoreRedisRepository(poolRedisClient)
 	poolCacheRepo := repository.NewPoolCacheCMapRepository(cmap.New(), cmap.New())
 	poolRepo := repository.NewPoolRepository(poolDatastoreRepo, poolCacheRepo)
-	routeRepo := repository.NewRouteRedisRepository(rds)
-	gasRepository := gas.NewRedisRepository(rds.Client, ethClient, gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
+	routeRepo := repository.NewRouteRedisRepository(routerRedisClient)
+	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient, gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
 	// init use case
 	getAllPoolAddressesUseCase := usecase.NewGetAllPoolAddressesUseCase(poolRepo)

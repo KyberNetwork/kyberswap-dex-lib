@@ -132,6 +132,14 @@ redis:
   prefix: "avalanche"
   readTimeout: 3s
   writeTimeout: 3s
+poolRedis:
+  addresses: localhost:6379
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: "avalanche"
+  readTimeout: 3s
+  writeTimeout: 3s
 ddAgentHost: ""
 featureFlags:
   useOptimizedSPFA: false

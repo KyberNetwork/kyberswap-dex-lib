@@ -34,6 +34,7 @@ type Config struct {
 	CachePoints       []*CachePoint                  `mapstructure:"cachePoints" json:"cachePoints"`
 	CacheRanges       []*CacheRange                  `mapstructure:"cacheRanges" json:"cacheRanges"`
 	Redis             redis.Config                   `mapstructure:"redis" json:"redis"`
+	PoolRedis         redis.Config                   `mapstructure:"poolRedis" json:"poolRedis"`
 	Gas               *Gas                           `mapstructure:"gas" json:"gas"`
 	DogstatsdHost     string                         `mapstructure:"ddAgentHost" json:"ddAgentHost"`
 	FeatureFlags      valueobject.FeatureFlags       `mapstructure:"featureFlags" json:"featureFlags"`
