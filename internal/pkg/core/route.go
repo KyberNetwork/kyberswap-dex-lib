@@ -5,12 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	errorsPkg "github.com/KyberNetwork/router-service/internal/pkg/core/errors"
 	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/rest"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -186,88 +182,6 @@ func (r *Route) AddPath(path *Path) bool {
 	r.Output.AmountUsd += path.Output.AmountUsd
 
 	return true
-}
-
-func (r *Route) Finalize(parentSpan tracer.Span) (*rest.RouteResponse, error) {
-	span := tracer.StartSpan("Finalize", tracer.ChildOf(parentSpan.Context()))
-	defer span.Finish()
-	var totalAmountIn = big.NewInt(0)
-	var totalAmountOut = big.NewInt(0)
-	var totalGas int64 = 0
-	var swaps = make([][]rest.Swap, 0)
-	for _, path := range r.Paths {
-		var p = make([]rest.Swap, 0)
-		totalAmountIn = new(big.Int).Add(totalAmountIn, path.Input.Amount)
-		totalGas += path.TotalGas
-		var tokenAmountIn = path.Input
-		for i := range path.Pools {
-			var poolIndex = -1
-			for id, originalPool := range r.OriginalPools {
-				if originalPool.Equals(path.Pools[i]) {
-					poolIndex = id
-					break
-				}
-			}
-			if poolIndex < 0 {
-				return nil, ErrInvalidPool
-			}
-			var pool = r.OriginalPools[poolIndex]
-			calcAmountOutResult, err := pool.CalcAmountOut(
-				tokenAmountIn,
-				path.Tokens[i+1].Address,
-			)
-			if err != nil {
-				return nil, fmt.Errorf(
-					"error: %s, PoolAddress: %v, PoolExchange: %v, CalcAmountOut[ tokenAmountIn: %v, tokenOut: %s, error: %v]",
-					errorsPkg.ErrInvalidSwap, pool.GetAddress(), pool.GetExchange(), tokenAmountIn, path.Tokens[i+1].Address,
-					err,
-				)
-			}
-			tokenAmountOut, fee := calcAmountOutResult.TokenAmountOut, calcAmountOutResult.Fee
-
-			if tokenAmountOut == nil || tokenAmountOut.Amount == nil || tokenAmountOut.Amount.Cmp(constant.Zero) <= 0 {
-				return nil, fmt.Errorf(
-					"error: %s, PoolAddress: %v, PoolExchange: %v, CalcAmountOut[ tokenAmountIn: %v, tokenOut: %s, error: tokenAmountOut %v is not expected]",
-					errorsPkg.ErrInvalidSwap, pool.GetAddress(), pool.GetExchange(), tokenAmountIn, path.Tokens[i+1].Address,
-					tokenAmountOut,
-				)
-			}
-			p = append(
-				p, rest.Swap{
-					Pool:              path.Pools[i].GetAddress(),
-					TokenIn:           tokenAmountIn.Token,
-					TokenOut:          tokenAmountOut.Token,
-					SwapAmount:        tokenAmountIn.Amount.String(),
-					AmountOut:         tokenAmountOut.Amount.String(),
-					LimitReturnAmount: "0",
-					MaxPrice:          rest.DefaultMaxPrice,
-					Exchange:          path.Pools[i].GetExchange(),
-					PoolLength:        len(path.Pools[i].GetTokens()),
-					PoolType:          path.Pools[i].GetType(),
-					PoolExtra:         path.Pools[i].GetMetaInfo(tokenAmountIn.Token, tokenAmountOut.Token),
-					Extra:             calcAmountOutResult.SwapInfo,
-				},
-			)
-			updateBalanceParams := poolpkg.UpdateBalanceParams{
-				TokenAmountIn:  tokenAmountIn,
-				TokenAmountOut: *tokenAmountOut,
-				Fee:            *fee,
-			}
-			r.OriginalPools[poolIndex].UpdateBalance(updateBalanceParams)
-			tokenAmountIn = *tokenAmountOut
-		}
-		totalAmountOut = new(big.Int).Add(totalAmountOut, tokenAmountIn.Amount)
-		swaps = append(swaps, p)
-	}
-	r.Input.Amount = totalAmountIn
-	r.Output.Amount = totalAmountOut
-	r.TotalGas = totalGas
-	return &rest.RouteResponse{
-		InputAmount:  totalAmountIn.String(),
-		OutputAmount: totalAmountOut.String(),
-		TotalGas:     totalGas,
-		Swaps:        swaps,
-	}, nil
 }
 
 func (r *Route) Summarize(pools []poolpkg.IPool) (valueobject.Route, error) {

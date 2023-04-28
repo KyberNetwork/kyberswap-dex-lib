@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	EmptyString      = ""
 	defaultSeparator = ":"
 )
 
@@ -47,19 +48,6 @@ func Join(args ...interface{}) string {
 		}
 	}
 	return strings.Join(s, defaultSeparator)
-}
-
-func Split(data string) []string {
-	return strings.Split(data, defaultSeparator)
-}
-
-func CoalesceEmptyString(values ...string) string {
-	for _, v := range values {
-		if v != EmptyString {
-			return v
-		}
-	}
-	return EmptyString
 }
 
 func IsEmptyString(str string) bool {

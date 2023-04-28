@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/job"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository"
 	"github.com/KyberNetwork/router-service/internal/pkg/server/http"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode"
@@ -27,7 +28,6 @@ type Config struct {
 	Common            *Common                        `mapstructure:"common" json:"common"`
 	Log               *Log                           `mapstructure:"log" json:"log"`
 	EnableDexes       EnableDexes                    `mapstructure:"enableDexes" json:"enableDexes"`
-	Dexes             []*ScanDex                     `mapstructure:"dexes" json:"dexes"`
 	WhitelistedTokens []valueobject.WhitelistedToken `mapstructure:"whitelistedTokens" json:"whitelistedTokens"`
 	BlacklistedPools  []string                       `mapstructure:"blacklistedPools" json:"blacklistedPools"`
 	Epsilon           float64                        `mapstructure:"epsilon" json:"epsilon" default:"0.005"`
@@ -47,11 +47,8 @@ type Config struct {
 	Encoder           encode.Config                  `mapstructure:"encoder" json:"encoder"`
 	UseCase           usecase.Config                 `mapstructure:"useCase" json:"useCase"`
 	API               api.Config                     `mapstructure:"api" json:"api"`
-
-	Job job.Config `mapstructure:"job" json:"job"`
-
-	IndexPoolsChunkSize      uint64 `mapstructure:"indexPoolsChunkSize" json:"indexPoolsChunkSize" default:"3000"`
-	IndexPoolsJobIntervalSec uint64 `mapstructure:"indexPoolsJobIntervalSec" json:"indexPoolsJobIntervalSec" default:"2"`
+	Repository        repository.Config              `mapstructure:"repository" json:"repository"`
+	Job               job.Config                     `mapstructure:"job" json:"job"`
 }
 
 func (c *Config) Validate() error {

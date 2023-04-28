@@ -1,4 +1,4 @@
-env: "develop"
+env: "production"
 http:
   bindAddress: ":8080"
   mode: release #(debug,release,test)
@@ -27,33 +27,6 @@ enableDexes: &enableDexes
   - kyberswap
   - kyberswap-static
   - kyberswapv2
-dexes:
-  - id: kyberswap
-    handler: dmm
-    properties:
-      factoryAddress: 0xD9bfE9979e9CA4b2fe84bA5d4Cf963bBcB376974
-      reserveJobInterval: 2s
-      newPoolJobIntervalSec: 10
-      newPoolLimit: 1000
-      updateReserveBulk: 200
-  - id: kyberswap-static
-    handler: dmm
-    properties:
-      factoryAddress: 0x1c758aF0688502e49140230F6b0EBd376d429be5
-      reserveJobInterval: 2s
-      newPoolJobIntervalSec: 10
-      newPoolLimit: 1000
-      updateReserveBulk: 200
-  - id: kyberswapv2
-    handler: promm
-    properties:
-      subgraphAPI: "https://bttc-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-elastic-bttc"
-      factoryAddress: 0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a
-      newPoolJobIntervalSec: 10
-      newPoolLimit: 3000
-      reserveJobInterval: 2s
-      updateReserveBulk: 200
-epsilon: 0.005
 cachePoints:
   - amount: 1
     ttl: 30

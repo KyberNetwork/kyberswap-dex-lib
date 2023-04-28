@@ -8,7 +8,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-error/pkg/transformers"
 	"github.com/KyberNetwork/reload"
 	gincache "github.com/chenyahui/gin-cache"
 	"github.com/chenyahui/gin-cache/persist"
@@ -25,8 +24,6 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	errorsPkg "github.com/KyberNetwork/router-service/internal/pkg/errors"
 	"github.com/KyberNetwork/router-service/internal/pkg/job"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
@@ -35,13 +32,11 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/setting"
 	"github.com/KyberNetwork/router-service/internal/pkg/server"
 	httppkg "github.com/KyberNetwork/router-service/internal/pkg/server/http"
-	"github.com/KyberNetwork/router-service/internal/pkg/service"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/l2feecalculator"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
@@ -180,7 +175,6 @@ func apiAction(c *cli.Context) (err error) {
 		rDb.Client,
 	)
 	routeRepo := repository.NewRouteRedisRepository(rDb)
-	scanStateRepo := repository.NewScannerStateRedisRepository(rDb)
 	gasRepository := gas.NewRedisRepository(rDb.Client, ethClient, gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
 	// sealer
@@ -238,38 +232,12 @@ func apiAction(c *cli.Context) (err error) {
 		usecase.BuildRouteConfig{ChainID: valueobject.ChainID(cfg.Common.ChainID)},
 	)
 
-	l2FeeCalculator := l2feecalculator.NewL2FeeCalculator(valueobject.ChainID(cfg.Common.ChainID))
-	l2FeeCalculatorUseCase := usecase.NewL2FeeCalculatorUseCase(l2FeeCalculator, scanStateRepo)
-
 	// init services
 	zapLogger, err := logger.GetDesugaredZapLoggerDelegate(lg)
 	if err != nil {
 		return err
 	}
 	ginServer, router, _ := httppkg.GinServer(cfg.Http, zapLogger)
-
-	routeSvc := service.NewRoute(
-		configLoader,
-		router,
-		cfg.Gas,
-		cfg.Common,
-		poolDataStoreRepo,
-		tokenDataStoreRepo,
-		priceDataStoreRepo,
-		cfg.EnableDexes,
-		cfg.Epsilon,
-		cfg.CachePoints,
-		cfg.CacheRanges,
-		poolFactory,
-		validateRouteUseCase,
-		l2FeeCalculatorUseCase,
-		clientDataEncoder,
-		encoder,
-		cfg.BlacklistedPools,
-		cfg.FeatureFlags,
-	)
-
-	service.SetupStatsRoute(rDb, router)
 
 	apiHandlersWithConfig := apiHandlersFactory(cfg.API.DefaultTTL)
 
@@ -291,9 +259,6 @@ func apiAction(c *cli.Context) (err error) {
 	v1.POST("/route/build", buildRouteHandlers...)
 	v1.GET("/keys/publics/:keyId", getPublicKeyHandlers...)
 
-	transformer := transformers.RestTransformerInstance()
-	transformer.RegisterTransformFunc(constant.DomainErrCodeTokensAreIdentical, errorsPkg.NewRestAPIErrTokensAreIdentical)
-
 	reloadManager := reload.NewManager()
 
 	// Run hot-reload manager.
@@ -314,7 +279,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
 		logger.Infof("Received reloading signal: <%s>", id)
-		return applyLatestConfigForAPI(ctx, getRoutesUseCase, routeSvc, configLoader)
+		return applyLatestConfigForAPI(ctx, getRoutesUseCase, configLoader)
 	}))
 
 	httpServer := &http.Server{Handler: ginServer, Addr: cfg.Http.BindAddress}
@@ -540,7 +505,6 @@ func apiHandlersFactory(defaultTTL time.Duration) func(mainHandler gin.HandlerFu
 func applyLatestConfigForAPI(
 	ctx context.Context,
 	getRoutesUseCase *getroute.GetRoutesUseCase,
-	routeSvc *service.RouteService,
 	configLoader *config.ConfigLoader,
 ) error {
 	cfg, err := configLoader.Get()
@@ -556,11 +520,6 @@ func applyLatestConfigForAPI(
 	logger.Infoln("Applying new config to GetRoutesUseCase")
 	if err = getRoutesUseCase.ApplyConfig(cfg.EnableDexes, cfg.BlacklistedPools, cfg.FeatureFlags, cfg.WhitelistedTokens); err != nil {
 		logger.Warnf("reload GetRoutesUseCase's config error cause by <%v>", err)
-	}
-
-	logger.Infoln("Applying new config to RouteService")
-	if err = routeSvc.ApplyConfig(ctx); err != nil {
-		logger.Warnf("reload RouteService's config error cause by <%v>", err)
 	}
 
 	return nil

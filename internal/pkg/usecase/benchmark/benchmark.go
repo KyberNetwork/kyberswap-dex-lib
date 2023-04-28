@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math/big"
 
+	"github.com/KyberNetwork/ethrpc"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
@@ -12,6 +13,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/core"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	usecasecore "github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
@@ -21,12 +23,12 @@ import (
 )
 
 type benchmarkUseCase struct {
-	poolFactory            *factory.PoolFactory
-	poolRepository         usecase.IPoolRepository
-	tokenRepository        usecase.ITokenRepository
-	priceRepository        usecase.IPriceRepository
-	routeRepository        usecase.IRouteRepository
-	scannerStateRepository usecase.IScannerStateRepository
+	poolFactory     *factory.PoolFactory
+	poolRepository  usecase.IPoolRepository
+	tokenRepository usecase.ITokenRepository
+	priceRepository usecase.IPriceRepository
+	routeRepository usecase.IRouteRepository
+	gasRepository   usecase.IGasRepository
 
 	logger logger.Logger
 
@@ -55,12 +57,13 @@ func newMockBenchmarkUseCase(configFile string) (*benchmarkUseCase, error) {
 		return nil, err
 	}
 
+	ethClient := ethrpc.New(cfg.Common.RPC)
+
 	poolRepo := repository.NewPoolDataStoreRedisRepository(rDb)
 	tokenDataStoreRepo := repository.NewTokenDataStoreRedisRepository(rDb)
 	priceDataStoreRepo := repository.NewPriceDataStoreRedisRepository(rDb)
-
 	routeRepo := repository.NewRouteRedisRepository(rDb)
-	scanStateRepo := repository.NewScannerStateRedisRepository(rDb)
+	gasRepo := gas.NewRedisRepository(rDb.Client, ethClient, cfg.Repository.Gas.Redis)
 	poolFactoryConfig := factory.PoolFactoryConfig{ChainID: cfg.Common.ChainID}
 	poolFactory := factory.NewPoolFactory(poolFactoryConfig)
 
@@ -70,14 +73,14 @@ func newMockBenchmarkUseCase(configFile string) (*benchmarkUseCase, error) {
 	}
 
 	return &benchmarkUseCase{
-		poolFactory:            poolFactory,
-		poolRepository:         poolRepo,
-		tokenRepository:        tokenDataStoreRepo,
-		priceRepository:        priceDataStoreRepo,
-		routeRepository:        routeRepo,
-		scannerStateRepository: scanStateRepo,
-		logger:                 lg,
-		config:                 c,
+		poolFactory:     poolFactory,
+		poolRepository:  poolRepo,
+		tokenRepository: tokenDataStoreRepo,
+		priceRepository: priceDataStoreRepo,
+		routeRepository: routeRepo,
+		gasRepository:   gasRepo,
+		logger:          lg,
+		config:          c,
 	}, nil
 }
 
@@ -247,12 +250,16 @@ func (uc *benchmarkUseCase) getGasPrice(
 	ctx context.Context,
 	queryGasPrice *big.Float,
 ) (*big.Float, error) {
-
 	if queryGasPrice != nil {
 		return queryGasPrice, nil
 	}
 
-	return uc.scannerStateRepository.GetGasPrice(ctx)
+	suggestedGasPrice, err := uc.gasRepository.GetSuggestedGasPrice(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return new(big.Float).SetInt(suggestedGasPrice), nil
 }
 
 func (uc *benchmarkUseCase) filterBlacklistedPools(poolIDs []string) []string {

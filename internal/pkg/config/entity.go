@@ -15,12 +15,6 @@ type Common struct {
 	Address    Address  `mapstructure:"address"`
 }
 type EnableDexes []string
-type ScanDex struct {
-	Id         string                 `mapstructure:"id"`
-	Handler    string                 `mapstructure:"handler"`
-	Json       bool                   `mapstructure:"json"`
-	Properties map[string]interface{} `mapstructure:"properties"`
-}
 
 type Gas struct {
 	Default                int64  `mapstructure:"default" default:"125000"`

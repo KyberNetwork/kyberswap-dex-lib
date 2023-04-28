@@ -64,12 +64,12 @@ func buildCurveSwap(chainID valueobject.ChainID, swap types.EncodingSwap) (Curve
 
 	tokenFrom := common.HexToAddress(swap.TokenIn)
 	if !useTriCrypto && eth.IsWETH(swap.TokenIn, chainID) {
-		tokenFrom = common.HexToAddress(constant.EtherAddress)
+		tokenFrom = common.HexToAddress(valueobject.EtherAddress)
 	}
 
 	tokenTo := common.HexToAddress(swap.TokenOut)
 	if !useTriCrypto && eth.IsWETH(swap.TokenOut, chainID) {
-		tokenTo = common.HexToAddress(constant.EtherAddress)
+		tokenTo = common.HexToAddress(valueobject.EtherAddress)
 	}
 
 	return CurveSwap{

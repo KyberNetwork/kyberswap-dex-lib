@@ -10,22 +10,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 )
 
-// IRPCRepository collects data from RPC nodes
-type IRPCRepository interface {
-	// GetLatestBlockTimestamp get the latest block timestamp
-	GetLatestBlockTimestamp(ctx context.Context) (uint64, error)
-	// Call executes one call to RPC nodes
-	Call(ctx context.Context, in *CallParams) error
-	// MultiCall executes multiple calls at once to RPC nodes
-	MultiCall(ctx context.Context, calls []*CallParams) error
-	// TryAggregate ...
-	TryAggregate(ctx context.Context, requireSuccess bool, calls []*TryCallParams) error
-	// TryAggregateForce ...
-	TryAggregateForce(ctx context.Context, requireSuccess bool, calls []*TryCallParams) error
-	// TryAggregateUnpack ...
-	TryAggregateUnpack(ctx context.Context, requireSuccess bool, calls []*TryCallUnPackParams) error
-}
-
 // IPriceRepository collects, manage and store price data in datastore and cache
 type IPriceRepository interface {
 	IPriceDatastoreRepository

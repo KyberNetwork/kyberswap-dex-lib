@@ -1,4 +1,4 @@
-env: "develop"
+env: "production"
 http:
   bindAddress: ":8080"
   mode: release #(debug,release,test)
@@ -32,73 +32,6 @@ enableDexes: &enableDexes
   - gemkeeper
   - lizard
   - valleyswap-v2
-dexes:
-  - id: kyberswap
-    handler: dmm
-    properties:
-      factoryAddress: 0xD9bfE9979e9CA4b2fe84bA5d4Cf963bBcB376974
-      reserveJobInterval: 2s
-      newPoolJobIntervalSec: 10
-      newPoolLimit: 1000
-      updateReserveBulk: 200
-  - id: kyberswap-static
-    handler: dmm
-    properties:
-      factoryAddress: 0x1c758aF0688502e49140230F6b0EBd376d429be5
-      reserveJobInterval: 2s
-      newPoolJobIntervalSec: 10
-      newPoolLimit: 1000
-      updateReserveBulk: 200
-  - id: kyberswapv2
-    handler: promm
-    properties:
-      subgraphAPI: "https://oasis-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-elastic-oasis"
-      factoryAddress: 0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a
-      newPoolJobIntervalSec: 10
-      newPoolLimit: 3000
-      reserveJobInterval: 2s
-      updateReserveBulk: 200
-  - id: valleyswap
-    handler: uniswap
-    properties:
-      factoryAddress: 0x82E196Fc4dF41D529b395aE2Ce64a0FCB5d68E72
-      reserveJobInterval: 2s
-      newPoolJobIntervalSec: 10
-      newPoolLimit: 1000
-      updateReserveBulk: 200
-  - id: valleyswap-v2
-    handler: uniswap
-    properties:
-      factoryAddress: 0xa25464822b505968eEc9A45C43765228c701d35f
-      reserveJobInterval: 2s
-      newPoolJobIntervalSec: 10
-      newPoolLimit: 1000
-      updateReserveBulk: 200
-  - id: yuzuswap
-    handler: uniswap
-    properties:
-      factoryAddress: 0x5F50fDC22697591c1D7BfBE8021163Fc73513653
-      reserveJobInterval: 2s
-      newPoolJobIntervalSec: 10
-      newPoolLimit: 1000
-      updateReserveBulk: 200
-  - id: gemkeeper
-    handler: uniswap
-    properties:
-      factoryAddress: 0xa7200334f652425A12BF2f7e4F0F5409CCA4d963
-      reserveJobInterval: 2s
-      newPoolJobIntervalSec: 10
-      newPoolLimit: 1000
-      updateReserveBulk: 200
-  - id: lizard
-    handler: uniswap
-    properties:
-      factoryAddress: 0xefA6861931991CCE372c477a015619A21dfEBE8c
-      reserveJobInterval: 2s
-      newPoolJobIntervalSec: 10
-      newPoolLimit: 1000
-      updateReserveBulk: 200
-epsilon: 0.005
 cachePoints:
   - amount: 1
     ttl: 30

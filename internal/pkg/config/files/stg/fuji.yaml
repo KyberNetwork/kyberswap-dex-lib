@@ -26,25 +26,6 @@ log:
 enableDexes: &enableDexes
   - kyberswap-static
   # - kyberswapv2
-dexes:
-  - id: kyberswap-static
-    handler: dmm
-    properties:
-      factoryAddress: 0x09917437898D7378C41Fdc4e8AdA531e7b360fe8
-      reserveJobInterval: 2s
-      newPoolJobIntervalSec: 10
-      newPoolLimit: 1000
-      updateReserveBulk: 200
-  # - id: kyberswapv2
-  #   handler: promm
-  #   properties:
-  #     subgraphAPI: "https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-elastic-avalanche"
-  #     factoryAddress: 0x5F1dddbf348aC2fbe22a163e30F99F9ECE3DD50a
-  #     newPoolJobIntervalSec: 10
-  #     newPoolLimit: 3000
-  #     reserveJobInterval: 2s
-  #     updateReserveBulk: 50
-epsilon: 0.005
 cachePoints:
   - amount: 1
     ttl: 30

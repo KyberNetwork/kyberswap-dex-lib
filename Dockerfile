@@ -23,7 +23,6 @@ FROM alpine:latest
 WORKDIR /app
 COPY internal/pkg/config internal/pkg/config
 COPY internal/pkg/abis internal/pkg/abis
-COPY internal/pkg/data internal/pkg/data
 COPY --from=build /build/server server
 RUN apk update
 RUN apk upgrade

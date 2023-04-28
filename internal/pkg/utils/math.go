@@ -1,8 +1,6 @@
 package utils
 
 import (
-	"errors"
-	"math"
 	"math/big"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -15,11 +13,6 @@ func NewBig10(s string) (res *big.Int) {
 
 func NewBig(s string) (res *big.Int) {
 	res, _ = new(big.Int).SetString(s, 0)
-	return res
-}
-
-func NewFloat(s string) (res *big.Float) {
-	res, _ = new(big.Float).SetString(s)
 	return res
 }
 
@@ -43,24 +36,4 @@ func CalcTokenAmountUsd(tokenAmount *big.Int, decimals uint8, tokenPrice float64
 	)
 	var ret, _ = retFloat.Float64()
 	return ret
-}
-
-func DivDecimals(amount string, decimals uint8) (big.Float, error) {
-	var retAmount big.Float
-	amountBig, ok := new(big.Int).SetString(amount, 10)
-	if !ok {
-		return retAmount, errors.New("invalid amount")
-	}
-	amountBF := new(big.Float).Quo(
-		new(big.Float).SetInt(amountBig),
-		constant.TenPowDecimals(decimals),
-	)
-
-	return *amountBF, nil
-}
-
-const float64EqualityThreshold = 1e-9
-
-func AlmostEqual(a, b float64) bool {
-	return math.Abs(a-b) <= float64EqualityThreshold
 }

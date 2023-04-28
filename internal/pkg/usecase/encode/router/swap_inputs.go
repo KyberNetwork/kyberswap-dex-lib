@@ -4,8 +4,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/abis"
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func BuildAndPackSwapInputs(
@@ -16,7 +16,7 @@ func BuildAndPackSwapInputs(
 	swapInputs := SwapInputs{
 		Execution: SwapExecutionParams{
 			CallTarget:    common.HexToAddress(executorAddress),
-			ApproveTarget: common.HexToAddress(constant.AddressZero),
+			ApproveTarget: common.HexToAddress(valueobject.ZeroAddress),
 			Desc:          buildSwapDescriptionV2ForSwap(executorAddress, data),
 			TargetData:    executorData,
 			ClientData:    data.ClientData,

@@ -1,19 +1,9 @@
 package repository
 
+import (
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
+)
+
 type Config struct {
-	RPCRepository RPCRepositoryConfig
-}
-
-type RPCRepositoryConfig struct {
-	RPCs             []string
-	MulticallAddress string
-}
-
-func DefaultConfig() Config {
-	return Config{
-		RPCRepository: RPCRepositoryConfig{
-			RPCs:             []string{},
-			MulticallAddress: "",
-		},
-	}
+	Gas gas.Config `mapstructure:"gas"`
 }
