@@ -203,7 +203,8 @@ func (f PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
 		return f.newBalancerWeighted(entityPool)
 	case constant.PoolTypes.BalancerStable, constant.PoolTypes.BalancerMetaStable:
 		return f.newBalancerStable(entityPool)
-	case constant.PoolTypes.Dodo:
+	case constant.PoolTypes.DodoClassical, constant.PoolTypes.DodoStable,
+		constant.PoolTypes.DodoVendingMachine, constant.PoolTypes.DodoPrivate:
 		return f.newDoDo(entityPool)
 	case constant.PoolTypes.Velodrome:
 		return f.newVelodrome(entityPool)

@@ -18,7 +18,10 @@ type types struct {
 	BalancerWeighted   string
 	BalancerStable     string
 	BalancerMetaStable string
-	Dodo               string
+	DodoClassical      string
+	DodoVendingMachine string
+	DodoStable         string
+	DodoPrivate        string
 	Velodrome          string
 	PlatypusBase       string
 	PlatypusPure       string
@@ -53,7 +56,10 @@ var (
 		BalancerWeighted:   "balancer-weighted",
 		BalancerStable:     "balancer-stable",
 		BalancerMetaStable: "balancer-meta-stable",
-		Dodo:               "dodo",
+		DodoClassical:      "dodo-classical",
+		DodoVendingMachine: "dodo-dvm",
+		DodoStable:         "dodo-dsp",
+		DodoPrivate:        "dodo-dpp",
 		Velodrome:          "velodrome",
 		PlatypusBase:       "platypus-base",
 		PlatypusPure:       "platypus-pure",
