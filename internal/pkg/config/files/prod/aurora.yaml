@@ -255,3 +255,27 @@ api:
   getTokens:
     isCacheEnabled: false
     isTimeoutEnabled: false
+repository:
+  gas:
+    redis:
+      prefix: aurora
+  pool:
+    redis:
+      prefix: aurora
+  price:
+    redis:
+      prefix: aurora
+  token:
+    redis:
+      prefix: aurora
+    goCache:
+      expiration: -1
+      cleanupInterval: -1
+  poolRank:
+    redis:
+      prefix: aurora
+  route:
+    redisCache:
+      prefix: aurora
+      localCacheSize: 1000
+      localCacheTtl: 30s

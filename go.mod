@@ -10,11 +10,11 @@ replace (
 require (
 	github.com/DataDog/datadog-go v4.8.2+incompatible
 	github.com/KyberNetwork/ethrpc v0.2.0
-	github.com/KyberNetwork/kyberswap-error v0.0.0-20220630071131-e9b03e456957
 	github.com/KyberNetwork/promm-sdk-go v0.5.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/cenkalti/backoff/v4 v4.1.3
+	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/chenyahui/gin-cache v1.8.1
 	github.com/daoleno/uniswap-sdk-core v0.1.5
 	github.com/daoleno/uniswapv3-sdk v0.4.0
@@ -25,6 +25,7 @@ require (
 	github.com/gin-contrib/requestid v0.0.6
 	github.com/gin-contrib/timeout v0.0.3
 	github.com/gin-gonic/gin v1.8.1
+	github.com/go-redis/cache/v9 v9.0.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
@@ -48,7 +49,6 @@ require (
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/DataDog/dd-trace-go.v1 v1.36.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-	gorm.io/gorm v1.21.12
 	k8s.io/apimachinery v0.22.2
 )
 
@@ -60,7 +60,6 @@ require (
 	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
-	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set/v2 v2.1.0 // indirect
@@ -86,9 +85,8 @@ require (
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/holiman/uint256 v1.2.0 // indirect
 	github.com/jellydator/ttlcache/v2 v2.11.1 // indirect
-	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/jinzhu/now v1.1.2 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
+	github.com/klauspost/compress v1.15.15 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
@@ -112,6 +110,9 @@ require (
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	github.com/tklauser/numcpus v0.5.0 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
+	github.com/vmihailenco/go-tinylfu v0.2.2 // indirect
+	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20220504180219-658193537a64 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect

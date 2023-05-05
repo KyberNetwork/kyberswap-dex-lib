@@ -279,3 +279,27 @@ api:
   getTokens:
     isCacheEnabled: false
     isTimeoutEnabled: false
+repository:
+  gas:
+    redis:
+      prefix: optimism
+  pool:
+    redis:
+      prefix: optimism
+  price:
+    redis:
+      prefix: optimism
+  token:
+    redis:
+      prefix: optimism
+    goCache:
+      expiration: -1
+      cleanupInterval: -1
+  poolRank:
+    redis:
+      prefix: optimism
+  route:
+    redisCache:
+      prefix: optimism
+      localCacheSize: 1000
+      localCacheTtl: 30s

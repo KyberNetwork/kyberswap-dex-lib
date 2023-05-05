@@ -295,3 +295,27 @@ api:
   getTokens:
     isCacheEnabled: false
     isTimeoutEnabled: false
+repository:
+  gas:
+    redis:
+      prefix: avalanche
+  pool:
+    redis:
+      prefix: avalanche
+  price:
+    redis:
+      prefix: avalanche
+  token:
+    redis:
+      prefix: avalanche
+    goCache:
+      expiration: -1
+      cleanupInterval: -1
+  poolRank:
+    redis:
+      prefix: avalanche
+  route:
+    redisCache:
+      prefix: avalanche
+      localCacheSize: 1000
+      localCacheTtl: 30s

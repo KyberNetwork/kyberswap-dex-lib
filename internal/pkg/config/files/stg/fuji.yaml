@@ -227,3 +227,27 @@ api:
   getTokens:
     isCacheEnabled: false
     isTimeoutEnabled: false
+repository:
+  gas:
+    redis:
+      prefix: fuji
+  pool:
+    redis:
+      prefix: fuji
+  price:
+    redis:
+      prefix: fuji
+  token:
+    redis:
+      prefix: fuji
+    goCache:
+      expiration: -1
+      cleanupInterval: -1
+  poolRank:
+    redis:
+      prefix: fuji
+  route:
+    redisCache:
+      prefix: fuji
+      localCacheSize: 1000
+      localCacheTtl: 30s

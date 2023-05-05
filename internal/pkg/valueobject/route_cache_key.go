@@ -3,6 +3,8 @@ package valueobject
 import (
 	"strings"
 
+	"github.com/cespare/xxhash/v2"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
@@ -30,7 +32,7 @@ type RouteCacheKey struct {
 }
 
 // String receives prefix and returns cache key
-func (k RouteCacheKey) String(prefix string) string {
+func (k *RouteCacheKey) String(prefix string) string {
 	return utils.Join(
 		prefix,
 		strings.Join([]string{k.TokenIn, k.TokenOut}, RouteCacheKeyTokensDelimiter),
@@ -40,4 +42,8 @@ func (k RouteCacheKey) String(prefix string) string {
 		strings.Join(k.Dexes, RouteCacheKeyDexesDelimiter),
 		k.GasInclude,
 	)
+}
+
+func (k *RouteCacheKey) Hash(prefix string) uint64 {
+	return xxhash.Sum64String(k.String(prefix))
 }
