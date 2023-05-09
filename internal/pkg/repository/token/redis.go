@@ -30,7 +30,7 @@ func (r *redisRepository) FindByAddresses(ctx context.Context, addresses []strin
 		return nil, nil
 	}
 
-	tokenDataList, err := r.redisClient.HMGet(ctx, KeyTokens, addresses...).Result()
+	tokenDataList, err := r.redisClient.HMGet(ctx, r.keyTokens, addresses...).Result()
 	if err != nil {
 		return nil, err
 	}

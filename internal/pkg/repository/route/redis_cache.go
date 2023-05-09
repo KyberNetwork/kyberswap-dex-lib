@@ -5,10 +5,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/go-redis/cache/v9"
 	"github.com/redis/go-redis/v9"
-
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type redisCacheRepository struct {

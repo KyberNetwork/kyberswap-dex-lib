@@ -3,11 +3,10 @@ package poolrank
 import (
 	"context"
 
-	"github.com/redis/go-redis/v9"
-	"k8s.io/apimachinery/pkg/util/sets"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
+	"github.com/redis/go-redis/v9"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 type redisRepository struct {
