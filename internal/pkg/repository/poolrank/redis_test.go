@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
-	"github.com/KyberNetwork/router-service/pkg/redis"
 	"github.com/alicebob/miniredis"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
 func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
@@ -151,7 +152,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			"poolTokenAddress2",
 			true,
 			true,
-			usecase.GetBestPoolsOptions{
+			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,
@@ -305,7 +306,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			"poolTokenAddress2",
 			true,
 			false,
-			usecase.GetBestPoolsOptions{
+			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,
@@ -457,7 +458,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			"poolTokenAddress2",
 			false,
 			true,
-			usecase.GetBestPoolsOptions{
+			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,
@@ -609,7 +610,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			"poolTokenAddress2",
 			false,
 			false,
-			usecase.GetBestPoolsOptions{
+			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,
@@ -653,7 +654,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			"poolTokenAddress2",
 			true,
 			true,
-			usecase.GetBestPoolsOptions{
+			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,

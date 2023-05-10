@@ -5,7 +5,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -16,7 +16,7 @@ import (
 // aggregation router need to transfer total amount of first swaps of each sequence to aggregation executor while
 // in simple mode, those amounts is transferred to first pools directly
 func buildSwapDescriptionV2ForSwap(executorAddress string, data types.EncodingData) SwapDescriptionV2 {
-	minAmountOut := core.GetMinAmountOutExactInput(data.OutputAmount, data.SlippageTolerance)
+	minAmountOut := business.GetMinAmountOutExactInput(data.OutputAmount, data.SlippageTolerance)
 	srcReceivers, srcAmounts := getSrcReceiversAndAmounts(data.TokenIn, data.Route, executorAddress)
 	feeReceivers, feeAmounts := getFeeReceiversAndAmounts(data.ExtraFee)
 	flagValues := getFlagsValue(data.Flags)
@@ -38,7 +38,7 @@ func buildSwapDescriptionV2ForSwap(executorAddress string, data types.EncodingDa
 
 // buildSwapDescriptionV2ForSwapSimpleMode return SwapDescriptionV2 which is used by aggregation router in swap simple mode
 func buildSwapDescriptionV2ForSwapSimpleMode(data types.EncodingData) SwapDescriptionV2 {
-	minAmountOut := core.GetMinAmountOutExactInput(data.OutputAmount, data.SlippageTolerance)
+	minAmountOut := business.GetMinAmountOutExactInput(data.OutputAmount, data.SlippageTolerance)
 	feeReceivers, feeAmounts := getFeeReceiversAndAmounts(data.ExtraFee)
 	flagValues := getFlagsValue(data.Flags)
 

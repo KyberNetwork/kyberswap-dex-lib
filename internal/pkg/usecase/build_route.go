@@ -10,7 +10,7 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -122,8 +122,8 @@ func (uc *buildRouteUseCase) updateRouteSummary(ctx context.Context, routeSummar
 	tokenInPriceUSD, tokenInMarketPriceAvailable := tokenInPrice.GetPreferredPrice()
 	tokenOutPriceUSD, tokenOutMarketPriceAvailable := tokenOutPrice.GetPreferredPrice()
 
-	amountInUSD := core.CalcAmountUSD(routeSummary.AmountIn, tokenIn.Decimals, tokenInPriceUSD)
-	amountOutUSD := core.CalcAmountUSD(routeSummary.AmountOut, tokenOut.Decimals, tokenOutPriceUSD)
+	amountInUSD := business.CalcAmountUSD(routeSummary.AmountIn, tokenIn.Decimals, tokenInPriceUSD)
+	amountOutUSD := business.CalcAmountUSD(routeSummary.AmountOut, tokenOut.Decimals, tokenOutPriceUSD)
 
 	routeSummary.AmountInUSD, _ = amountInUSD.Float64()
 	routeSummary.TokenInMarketPriceAvailable = tokenInMarketPriceAvailable

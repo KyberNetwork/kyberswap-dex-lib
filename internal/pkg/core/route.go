@@ -295,3 +295,20 @@ func (r *Route) ToCachedRoute() (CachedRoute, error) {
 		Paths: paths,
 	}, nil
 }
+
+func (r *Route) ExtractPoolAddresses() []string {
+	poolAddressSet := make(map[string]struct{})
+
+	for _, path := range r.Paths {
+		for _, pool := range path.Pools {
+			poolAddressSet[pool.GetAddress()] = struct{}{}
+		}
+	}
+
+	poolAddresses := make([]string, 0, len(poolAddressSet))
+	for poolAddress := range poolAddressSet {
+		poolAddresses = append(poolAddresses, poolAddress)
+	}
+
+	return poolAddresses
+}

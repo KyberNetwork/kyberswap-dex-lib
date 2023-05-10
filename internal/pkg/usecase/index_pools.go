@@ -9,13 +9,12 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 )
 
 type IndexPoolsUseCase struct {
-	poolRepo  IPoolRepository
-	routeRepo IIndexPoolsRouteRepository
+	poolRepo     IPoolRepository
+	poolRankRepo IPoolRankRepository
 
 	config IndexPoolsConfig
 
@@ -24,13 +23,13 @@ type IndexPoolsUseCase struct {
 
 func NewIndexPoolsUseCase(
 	poolRepo IPoolRepository,
-	routeRepo IIndexPoolsRouteRepository,
+	poolRankRepo IPoolRankRepository,
 	config IndexPoolsConfig,
 ) *IndexPoolsUseCase {
 	return &IndexPoolsUseCase{
-		poolRepo:  poolRepo,
-		routeRepo: routeRepo,
-		config:    config,
+		poolRepo:     poolRepo,
+		poolRankRepo: poolRankRepo,
+		config:       config,
 	}
 }
 
@@ -82,10 +81,9 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool entity.Pool) boo
 				continue
 			}
 			whiteListJ := u.isWhitelistedToken(tokenJ.Address)
-			key := core.GenDirectPairKey(tokenI.Address, tokenJ.Address)
 
 			if pool.HasReserves() {
-				err := u.routeRepo.AddToSortedSetScoreByReserveUsd(ctx, pool, key, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ)
+				err := u.poolRankRepo.AddToSortedSetScoreByTvl(ctx, pool, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ)
 
 				if err != nil {
 					result = false
@@ -93,7 +91,7 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool entity.Pool) boo
 			}
 
 			if pool.HasAmplifiedTvl() {
-				err := u.routeRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, key, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ)
+				err := u.poolRankRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ)
 
 				if err != nil {
 					result = false
@@ -114,10 +112,9 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool entity.Pool) boo
 					whiteListI := u.isWhitelistedToken(tokenI)
 					tokenJ := extra.UnderlyingTokens[j]
 					whiteListJ := u.isWhitelistedToken(tokenJ)
-					key := core.GenDirectPairKey(tokenI, tokenJ)
 
 					if pool.HasReserves() {
-						err := u.routeRepo.AddToSortedSetScoreByReserveUsd(ctx, pool, key, tokenI, tokenJ, whiteListI, whiteListJ)
+						err := u.poolRankRepo.AddToSortedSetScoreByTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
 
 						if err != nil {
 							result = false
@@ -125,7 +122,7 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool entity.Pool) boo
 					}
 
 					if pool.HasAmplifiedTvl() {
-						err := u.routeRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, key, tokenI, tokenJ, whiteListI, whiteListJ)
+						err := u.poolRankRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
 
 						if err != nil {
 							result = false

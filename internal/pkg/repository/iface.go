@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 )
 
@@ -133,7 +132,7 @@ type IPoolDatastoreRepository interface {
 
 // IRouteRepository collects, manage and store route data in datastore
 type IRouteRepository interface {
-	GetBestPools(ctx context.Context, directPairKey, tokenIn, tokenOut string, opt usecase.GetBestPoolsOptions, whitelistI, whitelistJ bool) (*types.BestPools, error)
+	GetBestPools(ctx context.Context, directPairKey, tokenIn, tokenOut string, opt types.GetBestPoolsOptions, whitelistI, whitelistJ bool) (*types.BestPools, error)
 	AddToSortedSetScoreByReserveUsd(ctx context.Context, pool entity.Pool, key string, tokenIAddress, tokenJAddress string, whiteListI, whiteListJ bool) error
 	AddToSortedSetScoreByAmplifiedTvl(ctx context.Context, pool entity.Pool, key string, tokenIAddress, tokenJAddress string, whiteListI, whiteListJ bool) error
 }

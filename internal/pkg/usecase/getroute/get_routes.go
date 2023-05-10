@@ -19,7 +19,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
-	usecasecore "github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -232,7 +232,7 @@ func (uc *GetRoutesUseCase) listPools(
 	span, ctx := tracer.StartSpanFromContext(ctx, "GetRoutesUseCase.listPools")
 	defer span.Finish()
 
-	directPairKey := usecasecore.GenDirectPairKey(tokenInAddress, tokenOutAddress)
+	directPairKey := business.GenDirectPairKey(tokenInAddress, tokenOutAddress)
 
 	whitelistI := uc.isWhiteListedToken(tokenInAddress)
 	whitelistJ := uc.isWhiteListedToken(tokenOutAddress)
@@ -396,7 +396,7 @@ func (uc *GetRoutesUseCase) findRouteWithCache(
 	// amountIn is actual amount of token to be swapped
 	// in case charge fee by currencyIn: amountIn = amountIn - extraFeeAmount
 	// in case charge fee by currencyOut: amountOut = amountOut - extraFeeAmount will be included in summarizeRoute
-	amountIn := usecasecore.CalcAmountInAfterFee(params.query.AmountIn, params.query.ExtraFee)
+	amountIn := business.CalcAmountInAfterFee(params.query.AmountIn, params.query.ExtraFee)
 
 	tokenInPrice, _ := params.tokenInPrice.GetPreferredPrice()
 

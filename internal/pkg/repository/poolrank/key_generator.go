@@ -1,7 +1,7 @@
 package poolrank
 
 import (
-	"fmt"
+	"strings"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
@@ -32,9 +32,10 @@ func (g *keyGenerator) whitelistToTokenPairKey(sortBy, token string) string {
 }
 
 func (g *keyGenerator) joinTokens(token0, token1 string) string {
+	// Benchmark: https://freshman.tech/snippets/go/string-concatenation/
 	if token0 > token1 {
-		return fmt.Sprintf("%s-%s", token0, token1)
+		return strings.Join([]string{token0, token1}, "-")
 	}
 
-	return fmt.Sprintf("%s-%s", token1, token0)
+	return strings.Join([]string{token1, token0}, "-")
 }

@@ -5,11 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/alicebob/miniredis"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/route"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/redis"
-	"github.com/alicebob/miniredis"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestRedisCacheRepository_Set(t *testing.T) {
@@ -49,7 +50,7 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 				GasInclude: false,
 			},
 			&valueobject.SimpleRoute{
-				Distributions: []int64{1},
+				Distributions: []uint64{1},
 				Paths:         nil,
 			},
 			time.Second,
@@ -102,7 +103,7 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 				GasInclude: false,
 			},
 			&valueobject.SimpleRoute{
-				Distributions: []int64{1},
+				Distributions: []uint64{1},
 				Paths:         nil,
 			},
 			time.Second,
@@ -150,7 +151,7 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 				GasInclude: false,
 			},
 			&valueobject.SimpleRoute{
-				Distributions: []int64{1},
+				Distributions: []uint64{1},
 				Paths:         nil,
 			},
 			time.Second,

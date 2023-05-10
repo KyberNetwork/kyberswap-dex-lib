@@ -9,10 +9,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/reload"
-	gincache "github.com/chenyahui/gin-cache"
-	"github.com/chenyahui/gin-cache/persist"
 	"github.com/getsentry/sentry-go"
-	"github.com/gin-contrib/timeout"
 	"github.com/gin-gonic/gin"
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/patrickmn/go-cache"
@@ -29,7 +26,12 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/price"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/route"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/setting"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/token"
 	"github.com/KyberNetwork/router-service/internal/pkg/server"
 	httppkg "github.com/KyberNetwork/router-service/internal/pkg/server/http"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
@@ -37,6 +39,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroutev2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
@@ -181,8 +184,17 @@ func apiAction(c *cli.Context) (err error) {
 		routerRedisClient.Client,
 	)
 	routeRepo := repository.NewRouteRedisRepository(routerRedisClient)
-	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient, gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
+	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient, cfg.Repository.Gas.Redis)
+	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
+	routeRepository := route.NewRedisCacheRepository(routerRedisClient.Client, cfg.Repository.Route.RedisCache)
+
+	tokenRepository := token.NewGoCacheRepository(
+		token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis),
+		cfg.Repository.Token.GoCache,
+	)
+	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
+	priceRepository := price.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Price.Redis)
 	// sealer
 
 	// init validators
@@ -229,6 +241,16 @@ func apiAction(c *cli.Context) (err error) {
 		cfg.UseCase.GetRoutes,
 	)
 
+	getRouteV2UseCase := getroutev2.NewUseCase(
+		poolRankRepository,
+		tokenRepository,
+		priceRepository,
+		routeRepository,
+		gasRepository,
+		poolRepository,
+		cfg.UseCase.GetRouteV2,
+	)
+
 	buildRouteUseCase := usecase.NewBuildRouteUseCase(
 		tokenCacheRepo,
 		priceDataStoreRepo,
@@ -245,25 +267,18 @@ func apiAction(c *cli.Context) (err error) {
 	}
 	ginServer, router, _ := httppkg.GinServer(cfg.Http, zapLogger)
 
-	apiHandlersWithConfig := apiHandlersFactory(cfg.API.DefaultTTL)
-
-	getPoolsHandlers := apiHandlersWithConfig(api.GetPools(getPoolsParamsValidator, getPoolsUseCase), cfg.API.GetPools)
-	getTokensHandlers := apiHandlersWithConfig(api.GetTokens(getTokensParamsValidator, getTokensUseCase), cfg.API.GetTokens)
-	getRoutesHandlers := apiHandlersWithConfig(api.GetRoutes(getRoutesParamsValidator, getRoutesUseCase), cfg.API.GetRoutes)
-	buildRouteHandlers := apiHandlersWithConfig(api.BuildRoute(buildRouteParamsValidator, buildRouteUseCase, timeutil.NowFunc), cfg.API.BuildRoute)
-	getPublicKeyHandlers := apiHandlersWithConfig(api.GetPublicKey(keyPairUseCase), cfg.API.GetPublicKey)
-
 	v1 := router.Group("/api/v1")
 
 	v1Health := v1.Group("/health")
 	v1Health.GET("/live", func(c *gin.Context) { c.AbortWithStatusJSON(http.StatusOK, "OK") })
 	v1Health.GET("/ready", func(c *gin.Context) { c.AbortWithStatusJSON(http.StatusOK, "OK") })
 
-	v1.GET("/pools", getPoolsHandlers...)
-	v1.GET("/tokens", getTokensHandlers...)
-	v1.GET("/routes", getRoutesHandlers...)
-	v1.POST("/route/build", buildRouteHandlers...)
-	v1.GET("/keys/publics/:keyId", getPublicKeyHandlers...)
+	v1.GET("/pools", api.GetPools(getPoolsParamsValidator, getPoolsUseCase))
+	v1.GET("/tokens", api.GetTokens(getTokensParamsValidator, getTokensUseCase))
+	v1.GET("/routes", api.GetRoutes(getRoutesParamsValidator, getRouteV2UseCase))
+	v1.GET("/routes-legacy", api.GetRoutes(getRoutesParamsValidator, getRoutesUseCase))
+	v1.POST("/route/build", api.BuildRoute(buildRouteParamsValidator, buildRouteUseCase, timeutil.NowFunc))
+	v1.GET("/keys/publics/:keyId", api.GetPublicKey(keyPairUseCase))
 
 	reloadManager := reload.NewManager()
 
@@ -356,14 +371,14 @@ func indexerAction(c *cli.Context) (err error) {
 	poolDatastoreRepo := repository.NewPoolDataStoreRedisRepository(poolRedisClient)
 	poolCacheRepo := repository.NewPoolCacheCMapRepository(cmap.New(), cmap.New())
 	poolRepo := repository.NewPoolRepository(poolDatastoreRepo, poolCacheRepo)
-	routeRepo := repository.NewRouteRedisRepository(routerRedisClient)
+	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
 	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient, gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
 	// init use case
 	getAllPoolAddressesUseCase := usecase.NewGetAllPoolAddressesUseCase(poolRepo)
 	indexPoolsUseCase := usecase.NewIndexPoolsUseCase(
 		poolRepo,
-		routeRepo,
+		poolRankRepository,
 		cfg.UseCase.IndexPools,
 	)
 	updateSuggestedGasPriceUseCase := usecase.NewUpdateSuggestedGasPrice(gasRepository)
@@ -486,32 +501,6 @@ func newCacheRouteConfig(cfg *config.Config) usecase.CacheRouteConfig {
 		CacheRanges:     cacheRanges,
 		KeyPrefix:       cfg.Redis.Prefix,
 		DefaultCacheTTL: 10 * time.Second,
-	}
-}
-
-func apiHandlersFactory(defaultTTL time.Duration) func(mainHandler gin.HandlerFunc, config api.ItemConfig) []gin.HandlerFunc {
-	cacheStore := persist.NewMemoryStore(defaultTTL)
-
-	return func(mainHandler gin.HandlerFunc, config api.ItemConfig) []gin.HandlerFunc {
-		var handlers []gin.HandlerFunc
-
-		if config.IsCacheEnabled {
-			handlers = append(handlers, gincache.CacheByRequestURI(cacheStore, config.TTL))
-		}
-
-		if config.IsTimeoutEnabled {
-			handlers = append(handlers,
-				timeout.New(
-					timeout.WithTimeout(config.Timeout),
-					timeout.WithHandler(mainHandler),
-					timeout.WithResponse(api.TimeoutHandler),
-				),
-			)
-		} else {
-			handlers = append(handlers, mainHandler)
-		}
-
-		return handlers
 	}
 }
 

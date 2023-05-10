@@ -3,7 +3,7 @@ package executor
 import (
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -14,7 +14,7 @@ func BuildAndPackCallBytesInputs(chainID valueobject.ChainID, routerAddress stri
 		return nil, err
 	}
 
-	minAmountOut := core.GetMinAmountOutExactInput(data.OutputAmount, data.SlippageTolerance)
+	minAmountOut := business.GetMinAmountOutExactInput(data.OutputAmount, data.SlippageTolerance)
 
 	callBytesInputs := CallBytesInputs{
 		Data: SwapExecutorDescription{

@@ -3,10 +3,11 @@ package poolrank
 import (
 	"context"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/redis/go-redis/v9"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 )
 
 type redisRepository struct {
@@ -50,7 +51,7 @@ func (r *redisRepository) FindBestPoolIDs(
 	ctx context.Context,
 	tokenIn, tokenOut string,
 	isTokenInWhitelisted, isTokenOutWhitelisted bool,
-	opt usecase.GetBestPoolsOptions,
+	opt types.GetBestPoolsOptions,
 ) ([]string, error) {
 	cmders, err := r.redisClient.Pipelined(
 		ctx, func(tx redis.Pipeliner) error {
@@ -146,12 +147,11 @@ func (r *redisRepository) FindBestPoolIDs(
 		tokenPoolSet.Insert(tokenPoolIdsByAmplifiedTvl...)
 		tokenPoolSet.Insert(directPoolIdsByTvl...)
 		tokenPoolSet.Insert(directPoolIdsByAmplifiedTvl...)
-		uniqueTokenPools := tokenPoolSet.UnsortedList()
 
 		// if doesn't exist pool to tokenOut/tokenIn
 		if len(tokenPoolIdsByTvl) == 0 && len(tokenPoolIdsByAmplifiedTvl) == 0 {
 			// do nothing, will not merge any pools to find route, there is no route
-		} else if len(uniqueTokenPools) == 1 {
+		} else if tokenPoolSet.Len() == 1 {
 			// There is only 1 path: tokenIn -> WlToken -> tokenOut
 			mergeIds(directPoolIdsByTvl)
 		} else {

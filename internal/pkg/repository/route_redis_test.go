@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 
 	"github.com/alicebob/miniredis"
@@ -149,7 +149,7 @@ func TestRouteRedisRepository_GetBestPools(t *testing.T) {
 			"poolTokenAddress1-poolTokenAddress2",
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			usecase.GetBestPoolsOptions{
+			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,
@@ -306,7 +306,7 @@ func TestRouteRedisRepository_GetBestPools(t *testing.T) {
 			"poolTokenAddress1-poolTokenAddress2",
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			usecase.GetBestPoolsOptions{
+			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,
@@ -463,7 +463,7 @@ func TestRouteRedisRepository_GetBestPools(t *testing.T) {
 			"poolTokenAddress1-poolTokenAddress2",
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			usecase.GetBestPoolsOptions{
+			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,
@@ -620,7 +620,7 @@ func TestRouteRedisRepository_GetBestPools(t *testing.T) {
 			"poolTokenAddress1-poolTokenAddress2",
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			usecase.GetBestPoolsOptions{
+			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,
@@ -668,7 +668,7 @@ func TestRouteRedisRepository_GetBestPools(t *testing.T) {
 			"poolTokenAddress1-poolTokenAddress2",
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			usecase.GetBestPoolsOptions{
+			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,

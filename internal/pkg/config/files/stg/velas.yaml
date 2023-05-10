@@ -208,6 +208,117 @@ useCase:
     blacklistedPools:
     featureFlags:
       useOptimizedSPFA: false
+  getRouteV2:
+    chainID: 106
+    gasTokenAddress: 0xc579D1f3CF86749E05CD06f7ADe17856c2CE3126
+    routerAddress:
+    availableSources:
+      - kyberswap
+      - kyberswap-static
+      - wagyuswap
+      - astroswap
+    ammAggregator:
+      getBestPoolsOptions:
+        directPoolsCount: 100
+        whitelistPoolsCount: 500
+        tokenInPoolsCount: 200
+        tokenOutPoolCount: 200
+        amplifiedTvlDirectPoolsCount: 50
+        amplifiedTvlWhitelistPoolsCount: 200
+        amplifiedTvlTokenInPoolsCount: 100
+        amplifiedTvlTokenOutPoolCount: 100
+      finderOptions:
+        maxHops: 3
+        distributionPercent: 5
+        maxPathsInRoute: 20
+        maxPathsToGenerate: 5
+        maxPathsToReturn: 200
+        minPartUSD: 500
+        minThresholdAmountInUSD: 0
+        maxThresholdAmountInUSD: 100000000
+    cache:
+      defaultTtl: 15s
+      ttlByAmount:
+        - amount: 1
+          ttl: 30
+        - amount: 2
+          ttl: 10
+        - amount: 5
+          ttl: 10
+        - amount: 10
+          ttl: 10
+        - amount: 11
+          ttl: 30
+        - amount: 15
+          ttl: 10
+        - amount: 20
+          ttl: 10
+        - amount: 22
+          ttl: 30
+        - amount: 25
+          ttl: 10
+        - amount: 30
+          ttl: 10
+        - amount: 33
+          ttl: 30
+        - amount: 35
+          ttl: 10
+        - amount: 40
+          ttl: 10
+        - amount: 44
+          ttl: 30
+        - amount: 45
+          ttl: 10
+        - amount: 50
+          ttl: 10
+        - amount: 55
+          ttl: 30
+        - amount: 60
+          ttl: 10
+        - amount: 66
+          ttl: 30
+        - amount: 70
+          ttl: 10
+        - amount: 77
+          ttl: 30
+        - amount: 80
+          ttl: 10
+        - amount: 88
+          ttl: 30
+        - amount: 90
+          ttl: 10
+        - amount: 99
+          ttl: 30
+        - amount: 100
+          ttl: 10
+        - amount: 500
+          ttl: 10
+        - amount: 1000
+          ttl: 10
+        - amount: 10000
+          ttl: 10
+        - amount: 100000
+          ttl: 10
+      ttlByAmountUsdRange:
+        - amountUSDLowerBound: 0
+          ttl: 10
+        - amountUSDLowerBound: 101
+          ttl: 10
+        - amountUSDLowerBound: 500
+          ttl: 10
+        - amountUSDLowerBound: 1001
+          ttl: 10
+        - amountUSDLowerBound: 2000
+          ttl: 10
+        - amountUSDLowerBound: 5000
+          ttl: 10
+        - amountUSDLowerBound: 10000
+          ttl: 10
+      priceImpactThreshold: 0.005
+      shrinkFuncName: "round"
+      shrinkFuncPowExp: 0.7
+    poolFactory:
+      chainID: 106
   indexPools:
     whitelistedTokenSet:
     chunkSize: 3000
@@ -216,22 +327,6 @@ job:
     interval: 2s
   updateSuggestedGasPrice:
     interval: 2s
-api:
-  defaultTTL: 1s
-  getRoutes:
-    isCacheEnabled: true
-    ttl: 3s
-    isTimeoutEnabled: false
-    timeout: 10s
-  buildRoute:
-    isCacheEnabled: false
-    isTimeoutEnabled: false
-  getPools:
-    isCacheEnabled: false
-    isTimeoutEnabled: false
-  getTokens:
-    isCacheEnabled: false
-    isTimeoutEnabled: false
 repository:
   gas:
     redis:

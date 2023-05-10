@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/api"
 	"github.com/KyberNetwork/router-service/internal/pkg/job"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
@@ -47,7 +46,6 @@ type Config struct {
 	EnableGRPC        bool                           `mapstructure:"enableGRPC" json:"enableGRPC"`
 	Encoder           encode.Config                  `mapstructure:"encoder" json:"encoder"`
 	UseCase           usecase.Config                 `mapstructure:"useCase" json:"useCase"`
-	API               api.Config                     `mapstructure:"api" json:"api"`
 	Repository        repository.Config              `mapstructure:"repository" json:"repository"`
 	Job               job.Config                     `mapstructure:"job" json:"job"`
 }

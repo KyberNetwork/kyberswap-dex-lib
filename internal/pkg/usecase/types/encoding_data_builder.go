@@ -3,7 +3,7 @@ package types
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -178,7 +178,7 @@ func getRecipient(
 		return executorAddress
 	}
 
-	if core.CanReceiveTokenBeforeSwap(curSwap.Exchange) && core.CanReceiveTokenBeforeSwap(nextSwap.Exchange) {
+	if business.CanReceiveTokenBeforeSwap(curSwap.Exchange) && business.CanReceiveTokenBeforeSwap(nextSwap.Exchange) {
 		return nextSwap.Pool
 	}
 
@@ -194,7 +194,7 @@ func getCollectAmount(
 		return ZeroCollectAmount
 	}
 
-	if core.CanReceiveTokenBeforeSwap(prevSwap.Exchange) && core.CanReceiveTokenBeforeSwap(curSwap.Exchange) {
+	if business.CanReceiveTokenBeforeSwap(prevSwap.Exchange) && business.CanReceiveTokenBeforeSwap(curSwap.Exchange) {
 		return ZeroCollectAmount
 	}
 
@@ -214,7 +214,7 @@ func canSwapSimpleMode(tokenIn string, route [][]valueobject.Swap) bool {
 			return false
 		}
 
-		if !core.CanReceiveTokenBeforeSwap(path[0].Exchange) {
+		if !business.CanReceiveTokenBeforeSwap(path[0].Exchange) {
 			return false
 		}
 	}

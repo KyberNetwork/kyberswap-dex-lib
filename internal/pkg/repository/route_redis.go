@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )
@@ -49,7 +48,7 @@ func NewRouteRedisRepository(
 	            2. Otherwise, load whitelisted pools.
 	        3. Do calculation based on loaded pools.
 */
-func (r *RouteRedisRepository) GetBestPools(ctx context.Context, directPairKey, tokenIn, tokenOut string, opt usecase.GetBestPoolsOptions, whitelistI, whitelistJ bool) (*types.BestPools, error) {
+func (r *RouteRedisRepository) GetBestPools(ctx context.Context, directPairKey, tokenIn, tokenOut string, opt types.GetBestPoolsOptions, whitelistI, whitelistJ bool) (*types.BestPools, error) {
 	cmders, err := r.db.Client.Pipelined(
 		ctx, func(tx redisv9.Pipeliner) error {
 			tx.ZRevRangeByScore(

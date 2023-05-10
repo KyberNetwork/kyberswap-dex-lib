@@ -15,7 +15,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/repository"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
-	usecasecore "github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -114,7 +114,7 @@ func (uc *benchmarkUseCase) listPools(
 	span, ctx := tracer.StartSpanFromContext(ctx, "benchmarkUseCase.listPools")
 	defer span.Finish()
 
-	directPairKey := usecasecore.GenDirectPairKey(tokenInAddress, tokenOutAddress)
+	directPairKey := business.GenDirectPairKey(tokenInAddress, tokenOutAddress)
 
 	whitelistI := uc.config.WhitelistedTokensByAddress[tokenInAddress]
 	whitelistJ := uc.config.WhitelistedTokensByAddress[tokenOutAddress]

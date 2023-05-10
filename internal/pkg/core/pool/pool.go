@@ -2,6 +2,8 @@ package pool
 
 import (
 	"math/big"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
 type IPool interface {
@@ -61,6 +63,10 @@ type CalcAmountOutResult struct {
 	Fee            *TokenAmount
 	Gas            int64
 	SwapInfo       interface{}
+}
+
+func (r *CalcAmountOutResult) IsValid() bool {
+	return r.TokenAmountOut != nil && r.TokenAmountOut.Amount != nil && r.TokenAmountOut.Amount.Cmp(constant.Zero) > 0
 }
 
 type UpdateBalanceParams struct {

@@ -162,63 +162,57 @@ func TestIndexPools_Handle(t *testing.T) {
 						},
 					).Return(mockPools, nil)
 
-				mockRouteRepo := usecase.NewMockIIndexPoolsRouteRepository(ctrl)
-				mockRouteRepo.EXPECT().AddToSortedSetScoreByReserveUsd(
+				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
 					gomock.Any(),
 					mockPools[0],
-					fmt.Sprintf("%s-%s", mockTokens[1].Address, mockTokens[0].Address),
 					mockTokens[0].Address,
 					mockTokens[1].Address,
 					true,
 					false,
 				).Return(nil)
-				mockRouteRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
 					gomock.Any(),
 					mockPools[0],
-					fmt.Sprintf("%s-%s", mockTokens[1].Address, mockTokens[0].Address),
 					mockTokens[0].Address,
 					mockTokens[1].Address,
 					true,
 					false,
 				).Return(nil)
-				mockRouteRepo.EXPECT().AddToSortedSetScoreByReserveUsd(
+				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
 					gomock.Any(),
 					mockPools[1],
-					fmt.Sprintf("%s-%s", mockTokens[1].Address, mockTokens[0].Address),
 					mockTokens[1].Address,
 					mockTokens[0].Address,
 					false,
 					true,
 				).Return(nil)
-				mockRouteRepo.EXPECT().AddToSortedSetScoreByReserveUsd(
+				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
 					gomock.Any(),
 					mockPools[1],
-					fmt.Sprintf("%s-%s", mockTokens[4].Address, mockTokens[3].Address),
 					mockTokens[3].Address,
 					mockTokens[4].Address,
 					true,
 					false,
 				).Return(nil)
-				mockRouteRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
 					gomock.Any(),
 					mockPools[2],
-					fmt.Sprintf("%s-%s", mockTokens[1].Address, mockTokens[0].Address),
 					mockTokens[0].Address,
 					mockTokens[1].Address,
 					true,
 					false,
 				).Return(nil)
-				mockRouteRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
 					gomock.Any(),
 					mockPools[2],
-					fmt.Sprintf("%s-%s", mockTokens[4].Address, mockTokens[3].Address),
 					mockTokens[3].Address,
 					mockTokens[4].Address,
 					true,
 					false,
 				).Return(nil)
 
-				return NewIndexPoolsUseCase(mockPoolRepo, mockRouteRepo, mockConfig)
+				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, mockConfig)
 			},
 			command: dto.IndexPoolsCommand{PoolAddresses: []string{
 				mockPools[0].Address,
@@ -254,63 +248,57 @@ func TestIndexPools_Handle(t *testing.T) {
 						},
 					).Return(mockPools, nil)
 
-				mockRouteRepo := usecase.NewMockIIndexPoolsRouteRepository(ctrl)
-				mockRouteRepo.EXPECT().AddToSortedSetScoreByReserveUsd(
+				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
 					gomock.Any(),
 					mockPools[0],
-					fmt.Sprintf("%s-%s", mockTokens[1].Address, mockTokens[0].Address),
 					mockTokens[0].Address,
 					mockTokens[1].Address,
 					true,
 					false,
 				).Return(nil)
-				mockRouteRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
 					gomock.Any(),
 					mockPools[0],
-					fmt.Sprintf("%s-%s", mockTokens[1].Address, mockTokens[0].Address),
 					mockTokens[0].Address,
 					mockTokens[1].Address,
 					true,
 					false,
 				).Return(nil)
-				mockRouteRepo.EXPECT().AddToSortedSetScoreByReserveUsd(
+				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
 					gomock.Any(),
 					mockPools[1],
-					fmt.Sprintf("%s-%s", mockTokens[1].Address, mockTokens[0].Address),
 					mockTokens[1].Address,
 					mockTokens[0].Address,
 					false,
 					true,
 				).Return(theError)
-				mockRouteRepo.EXPECT().AddToSortedSetScoreByReserveUsd(
+				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
 					gomock.Any(),
 					mockPools[1],
-					fmt.Sprintf("%s-%s", mockTokens[4].Address, mockTokens[3].Address),
 					mockTokens[3].Address,
 					mockTokens[4].Address,
 					true,
 					false,
 				).Return(nil)
-				mockRouteRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
 					gomock.Any(),
 					mockPools[2],
-					fmt.Sprintf("%s-%s", mockTokens[1].Address, mockTokens[0].Address),
 					mockTokens[0].Address,
 					mockTokens[1].Address,
 					true,
 					false,
 				).Return(nil)
-				mockRouteRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
 					gomock.Any(),
 					mockPools[2],
-					fmt.Sprintf("%s-%s", mockTokens[4].Address, mockTokens[3].Address),
 					mockTokens[3].Address,
 					mockTokens[4].Address,
 					true,
 					false,
 				).Return(nil)
 
-				return NewIndexPoolsUseCase(mockPoolRepo, mockRouteRepo, mockConfig)
+				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, mockConfig)
 			},
 			command: dto.IndexPoolsCommand{PoolAddresses: []string{
 				mockPools[0].Address,
@@ -332,8 +320,8 @@ func TestIndexPools_Handle(t *testing.T) {
 				mockPoolRepo.EXPECT().
 					FindByAddresses(gomock.Any(), []string{"pooladdress1", "pooladdress2", "pooladdress3"}).
 					Return(nil, theError)
-				mockRouteRepo := usecase.NewMockIIndexPoolsRouteRepository(ctrl)
-				return NewIndexPoolsUseCase(mockPoolRepo, mockRouteRepo, mockConfig)
+				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, mockConfig)
 			},
 			command: dto.IndexPoolsCommand{PoolAddresses: []string{"pooladdress1", "pooladdress2", "pooladdress3"}},
 			result:  dto.NewIndexPoolsResult([]string{"pooladdress1", "pooladdress2", "pooladdress3"}),
