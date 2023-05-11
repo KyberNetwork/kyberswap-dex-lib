@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -34,6 +36,9 @@ func (m *poolManager) GetPoolByAddress(
 	addresses []string,
 	filters ...PoolFilter,
 ) (map[string]poolpkg.IPool, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] poolManager.GetPoolByAddress")
+	defer span.Finish()
+
 	pools, err := m.listPools(ctx, addresses, filters)
 	if err != nil {
 		return nil, err

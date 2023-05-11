@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/pkg/errors"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -54,6 +55,9 @@ func NewUseCase(
 }
 
 func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.GetRoutesResult, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] useCase.Handle")
+	defer span.Finish()
+
 	originalTokenIn := query.TokenIn
 	originalTokenOut := query.TokenOut
 

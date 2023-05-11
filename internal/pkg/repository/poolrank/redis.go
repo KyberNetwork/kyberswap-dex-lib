@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/redis/go-redis/v9"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -53,6 +54,9 @@ func (r *redisRepository) FindBestPoolIDs(
 	isTokenInWhitelisted, isTokenOutWhitelisted bool,
 	opt types.GetBestPoolsOptions,
 ) ([]string, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[poolrank] redisRepository.FindBestPoolIDs")
+	defer span.Finish()
+
 	cmders, err := r.redisClient.Pipelined(
 		ctx, func(tx redis.Pipeliner) error {
 			tx.ZRevRangeByScore(

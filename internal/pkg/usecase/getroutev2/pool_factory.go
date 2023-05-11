@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/pkg/errors"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/balancerstable"
@@ -55,7 +56,10 @@ func NewPoolFactory(config PoolFactoryConfig) *PoolFactory {
 	}
 }
 
-func (f *PoolFactory) NewPoolByAddress(_ context.Context, pools []*entity.Pool) map[string]poolpkg.IPool {
+func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool) map[string]poolpkg.IPool {
+	span, _ := tracer.StartSpanFromContext(ctx, "[getroutev2] poolFactory.NewPoolByAddress")
+	defer span.Finish()
+
 	curveBasePoolByAddress := f.getCurveBasePoolByAddress(pools)
 	curvePlainOraclePoolByAddress := f.getCurvePlainOraclePoolByAddress(pools)
 

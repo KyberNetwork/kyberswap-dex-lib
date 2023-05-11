@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/redis/go-redis/v9"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -26,6 +27,9 @@ func NewRedisRepository(redisClient redis.UniversalClient, config RedisRepositor
 
 // FindByAddresses returns prices from token addresses
 func (r *redisRepository) FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Price, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[price] redisRepository.FindByAddresses")
+	defer span.Finish()
+
 	if len(addresses) == 0 {
 		return nil, nil
 	}

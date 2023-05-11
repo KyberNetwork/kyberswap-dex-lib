@@ -7,12 +7,14 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -45,6 +47,9 @@ func NewCache(
 }
 
 func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] cache.Aggregate")
+	defer span.Finish()
+
 	key, ttl := c.genKey(params)
 
 	routeSummary, err := c.getRouteFromCache(ctx, params, key)
@@ -67,23 +72,57 @@ func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*
 func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregateParams, key *valueobject.RouteCacheKey) (*valueobject.RouteSummary, error) {
 	simpleRoute, err := c.routeCacheRepository.Get(ctx, key)
 	if err != nil {
+		logger.
+			WithFields(logger.Fields{
+				"key":        key.String(""),
+				"reason":     "get cache failed",
+				"error":      err,
+				"request_id": requestid.RequestIDFromCtx(ctx),
+			}).
+			Info("cache missed")
+
 		return nil, err
 	}
 
 	routeSummary, err := c.summarizeSimpleRoute(ctx, simpleRoute, params)
 	if err != nil {
+		logger.
+			WithFields(logger.Fields{
+				"key":        key.String(""),
+				"reason":     "summarize simple route failed",
+				"error":      err,
+				"request_id": requestid.RequestIDFromCtx(ctx),
+			}).
+			Info("cache missed")
+
 		return nil, err
 	}
 
 	priceImpact := routeSummary.GetPriceImpact()
 
 	if priceImpact > c.config.PriceImpactThreshold {
+		logger.
+			WithFields(logger.Fields{
+				"key":        key.String(""),
+				"reason":     "price impact is greater than threshold",
+				"error":      err,
+				"request_id": requestid.RequestIDFromCtx(ctx),
+			}).
+			Info("cache missed")
+
 		return nil, errors.Wrapf(
 			ErrPriceImpactIsGreaterThanThreshold,
 			"priceImpact: [%f]",
 			priceImpact,
 		)
 	}
+
+	logger.
+		WithFields(logger.Fields{
+			"key":        key.String(""),
+			"request_id": requestid.RequestIDFromCtx(ctx),
+		}).
+		Info("cache hit")
 
 	return routeSummary, nil
 }

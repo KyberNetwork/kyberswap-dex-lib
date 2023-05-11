@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/pkg/errors"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/core"
@@ -59,6 +60,9 @@ func NewAMMAggregator(
 }
 
 func (a *ammAggregator) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] ammAggregator.Aggregate")
+	defer span.Finish()
+
 	// Step 1: get pool set
 	poolByAddress, err := a.getPoolByAddress(ctx, params)
 	if err != nil {
