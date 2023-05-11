@@ -58,6 +58,7 @@ var (
 		valueobject.ExchangeKyberSwapStatic: true,
 		valueobject.ExchangeVelodrome:       true,
 		valueobject.ExchangeDystopia:        true,
+		valueobject.ExchangeChronos:         true,
 		valueobject.ExchangeCamelot:         true,
 
 		// GMX and GMX-like exchanges are also able to receive token before calling swap.

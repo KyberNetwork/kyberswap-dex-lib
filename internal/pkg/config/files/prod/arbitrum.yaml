@@ -43,6 +43,7 @@ enableDexes: &enableDexes
   - fraxswap
   - camelot
   - kyberswap-limit-order
+  - chronos
 cachePoints:
   - amount: 1
     ttl: 30
@@ -264,6 +265,7 @@ useCase:
       - fraxswap
       - camelot
       - kyberswap-limit-order
+      - chronos
     ammAggregator:
       getBestPoolsOptions:
         directPoolsCount: 100
