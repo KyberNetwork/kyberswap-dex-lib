@@ -167,7 +167,6 @@ func (cl *ConfigLoader) setEnabledDexes(enabledDexes []valueobject.Dex) {
 		stringDexes = append(stringDexes, string(d))
 	}
 	cl.config.EnableDexes = stringDexes
-	cl.config.UseCase.GetRoutes.EnabledDexes = stringDexes
 }
 
 func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.WhitelistedToken) {
@@ -177,18 +176,15 @@ func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.Whi
 	}
 
 	cl.config.WhitelistedTokens = whitelistedTokens
-	cl.config.UseCase.GetRoutes.WhitelistedTokens = whitelistedTokens
 	cl.config.UseCase.IndexPools.WhitelistedTokenSet = whitelistedTokenSet
 }
 
 func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {
 	cl.config.BlacklistedPools = blacklistedPools
-	cl.config.UseCase.GetRoutes.BlacklistedPools = blacklistedPools
 }
 
 func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
 	cl.config.FeatureFlags = featureFlags
-	cl.config.UseCase.GetRoutes.FeatureFlags = featureFlags
 }
 
 func (cl *ConfigLoader) setLog(log valueobject.Log) {

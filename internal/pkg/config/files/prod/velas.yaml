@@ -180,36 +180,7 @@ encoder:
 useCase:
   poolFactory:
   cacheRoute:
-  getRoutes:
-    chainId: 106
-    gasTokenAddress: 0xc579D1f3CF86749E05CD06f7ADe17856c2CE3126
-    routerAddress:
-    epsilon: 0.005
-    baseGas: 125000
-    getBestPoolsOptions:
-      directPoolsCount: 100
-      whitelistPoolsCount: 500
-      tokenInPoolsCount: 200
-      tokenOutPoolCount: 200
-      amplifiedTvlDirectPoolsCount: 50
-      amplifiedTvlWhitelistPoolsCount: 200
-      amplifiedTvlTokenInPoolsCount: 100
-      amplifiedTvlTokenOutPoolCount: 100
-    spfaFinderOptions:
-      maxHops: 3
-      distributionPercent: 5
-      maxPathsInRoute: 20
-      maxPathsToGenerate: 5
-      maxPathsToReturn: 200
-      minPartUSD: 500
-      minThresholdAmountInUSD: 0
-      maxThresholdAmountInUSD: 100000000
-    enabledDexes: *enableDexes
-    whitelistedTokens: *whitelistedTokens
-    blacklistedPools:
-    featureFlags:
-      useOptimizedSPFA: false
-  getRouteV2:
+  getRoute:
     chainID: 106
     gasTokenAddress: 0xc579D1f3CF86749E05CD06f7ADe17856c2CE3126
     routerAddress:

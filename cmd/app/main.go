@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"log"
 	"net"
 	"net/http"
@@ -37,9 +38,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroutev2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
@@ -180,11 +178,6 @@ func apiAction(c *cli.Context) (err error) {
 	poolDataStoreRepo := repository.NewPoolDataStoreRedisRepository(poolRedisClient)
 	priceDataStoreRepo := repository.NewPriceDataStoreRedisRepository(poolRedisClient)
 
-	routeCacheRepo := repository.NewRouteCacheRedisRepository(
-		routerRedisClient.Client,
-	)
-	routeRepo := repository.NewRouteRedisRepository(routerRedisClient)
-
 	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient, cfg.Repository.Gas.Redis)
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
 	routeRepository := route.NewRedisCacheRepository(routerRedisClient.Client, cfg.Repository.Route.RedisCache)
@@ -220,35 +213,18 @@ func apiAction(c *cli.Context) (err error) {
 
 	validateRouteUseCase := validateroute.NewValidateRouteUseCase()
 	validateRouteUseCase.RegisterValidator(validateroute.NewSynthetixValidator())
-	poolFactoryConfig := factory.PoolFactoryConfig{ChainID: cfg.Common.ChainID}
-	poolFactory := factory.NewPoolFactory(poolFactoryConfig)
 
 	getPoolsUseCase := usecase.NewGetPoolsUseCase(poolDataStoreRepo)
 	getTokensUseCase := usecase.NewGetTokens(tokenCacheRepo, poolDataStoreRepo, priceDataStoreRepo)
 
-	cacheRouteConfig := newCacheRouteConfig(cfg)
-	cacheRouteUseCase := usecase.NewCacheRouteUseCase(cacheRouteConfig, routeCacheRepo)
-
-	getRoutesUseCase := getroute.NewGetRoutesUseCase(
-		cacheRouteUseCase,
-		validateRouteUseCase,
-		poolFactory,
-		poolDataStoreRepo,
-		tokenCacheRepo,
-		priceDataStoreRepo,
-		routeRepo,
-		gasRepository,
-		cfg.UseCase.GetRoutes,
-	)
-
-	getRouteV2UseCase := getroutev2.NewUseCase(
+	getRouteUseCase := getroute.NewUseCase(
 		poolRankRepository,
 		tokenRepository,
 		priceRepository,
 		routeRepository,
 		gasRepository,
 		poolRepository,
-		cfg.UseCase.GetRouteV2,
+		cfg.UseCase.GetRoute,
 	)
 
 	buildRouteUseCase := usecase.NewBuildRouteUseCase(
@@ -275,8 +251,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	v1.GET("/pools", api.GetPools(getPoolsParamsValidator, getPoolsUseCase))
 	v1.GET("/tokens", api.GetTokens(getTokensParamsValidator, getTokensUseCase))
-	v1.GET("/routes", api.GetRoutes(getRoutesParamsValidator, getRouteV2UseCase))
-	v1.GET("/routes-legacy", api.GetRoutes(getRoutesParamsValidator, getRoutesUseCase))
+	v1.GET("/routes", api.GetRoutes(getRoutesParamsValidator, getRouteUseCase))
 	v1.POST("/route/build", api.BuildRoute(buildRouteParamsValidator, buildRouteUseCase, timeutil.NowFunc))
 	v1.GET("/keys/publics/:keyId", api.GetPublicKey(keyPairUseCase))
 
@@ -300,7 +275,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
 		logger.Infof("Received reloading signal: <%s>", id)
-		return applyLatestConfigForAPI(ctx, getRoutesUseCase, configLoader)
+		return applyLatestConfigForAPI(ctx, configLoader)
 	}))
 
 	httpServer := &http.Server{Handler: ginServer, Addr: cfg.Http.BindAddress}
@@ -506,7 +481,6 @@ func newCacheRouteConfig(cfg *config.Config) usecase.CacheRouteConfig {
 
 func applyLatestConfigForAPI(
 	ctx context.Context,
-	getRoutesUseCase *getroute.GetRoutesUseCase,
 	configLoader *config.ConfigLoader,
 ) error {
 	cfg, err := configLoader.Get()
@@ -517,11 +491,6 @@ func applyLatestConfigForAPI(
 	logger.Infoln("Applying new log level")
 	if err = logger.SetLogLevel(cfg.Log.ConsoleLevel); err != nil {
 		logger.Warnf("reload Log level error cause by <%v>", err)
-	}
-
-	logger.Infoln("Applying new config to GetRoutesUseCase")
-	if err = getRoutesUseCase.ApplyConfig(cfg.EnableDexes, cfg.BlacklistedPools, cfg.FeatureFlags, cfg.WhitelistedTokens); err != nil {
-		logger.Warnf("reload GetRoutesUseCase's config error cause by <%v>", err)
 	}
 
 	return nil

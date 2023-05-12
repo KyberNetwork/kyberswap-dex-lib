@@ -1,4 +1,4 @@
-package getroutev2
+package getroute
 
 import (
 	"github.com/KyberNetwork/router-service/internal/pkg/core"

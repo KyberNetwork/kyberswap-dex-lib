@@ -4,8 +4,8 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
-func filterPools(pools []entity.Pool, filters ...PoolFilter) []entity.Pool {
-	filteredPools := make([]entity.Pool, 0, len(pools))
+func filterPools(pools []*entity.Pool, filters ...PoolFilter) []*entity.Pool {
+	filteredPools := make([]*entity.Pool, 0, len(pools))
 
 	for _, pool := range pools {
 		valid := true
@@ -27,20 +27,22 @@ func filterPools(pools []entity.Pool, filters ...PoolFilter) []entity.Pool {
 	return filteredPools
 }
 
-type PoolFilter func(pool entity.Pool) bool
+type PoolFilter func(pool *entity.Pool) bool
 
 func PoolFilterSources(sources []string) PoolFilter {
-	sourceSet := make(map[string]bool, len(sources))
+	sourceSet := make(map[string]struct{}, len(sources))
 
 	for _, source := range sources {
-		sourceSet[source] = true
+		sourceSet[source] = struct{}{}
 	}
 
-	return func(pool entity.Pool) bool {
-		return sourceSet[pool.Exchange]
+	return func(pool *entity.Pool) bool {
+		_, contained := sourceSet[pool.Exchange]
+
+		return contained
 	}
 }
 
-func PoolFilterHasReserveOrAmplifiedTvl(pool entity.Pool) bool {
+func PoolFilterHasReserveOrAmplifiedTvl(pool *entity.Pool) bool {
 	return pool.HasReserves() || pool.HasAmplifiedTvl()
 }

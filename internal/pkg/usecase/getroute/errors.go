@@ -1,4 +1,4 @@
-package getroutev2
+package getroute
 
 import (
 	"errors"

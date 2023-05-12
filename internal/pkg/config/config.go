@@ -59,7 +59,7 @@ func (c *Config) Validate() error {
 		return ErrNoExecutorAddress
 	}
 
-	if utils.IsEmptyString(c.UseCase.GetRoutes.RouterAddress) {
+	if utils.IsEmptyString(c.UseCase.GetRoute.RouterAddress) {
 		return ErrNoRouterAddress
 	}
 

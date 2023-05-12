@@ -1,10 +1,10 @@
 package usecase
 
 import (
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"time"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroutev2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -12,8 +12,7 @@ import (
 type Config struct {
 	PoolFactory factory.PoolFactoryConfig `mapstructure:"poolFactory"`
 	CacheRoute  CacheRouteConfig          `mapstructure:"cacheRoute"`
-	GetRoutes   GetRoutesConfig           `mapstructure:"getRoutes"`
-	GetRouteV2  getroutev2.Config         `mapstructure:"getRouteV2"`
+	GetRoute    getroute.Config           `mapstructure:"getRoute"`
 
 	IndexPools IndexPoolsConfig `mapstructure:"indexPools"`
 }
