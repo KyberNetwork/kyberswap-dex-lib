@@ -1,14 +1,16 @@
-package getroute
+package poolmanager
 
 import (
 	"context"
 	"encoding/json"
+	"sync"
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/common"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -16,13 +18,15 @@ type poolManager struct {
 	poolRepository IPoolRepository
 	poolFactory    IPoolFactory
 
-	config PoolManagerConfig
+	config Config
+
+	mu sync.RWMutex
 }
 
 func NewPoolManager(
 	poolRepository IPoolRepository,
 	poolFactory IPoolFactory,
-	config PoolManagerConfig,
+	config Config,
 ) *poolManager {
 	return &poolManager{
 		poolRepository: poolRepository,
@@ -34,9 +38,9 @@ func NewPoolManager(
 func (m *poolManager) GetPoolByAddress(
 	ctx context.Context,
 	addresses []string,
-	filters ...PoolFilter,
+	filters ...common.PoolFilter,
 ) (map[string]poolpkg.IPool, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] poolManager.GetPoolByAddress")
+	span, ctx := tracer.StartSpanFromContext(ctx, "poolManager.GetPoolByAddress")
 	defer span.Finish()
 
 	pools, err := m.listPools(ctx, addresses, filters)
@@ -47,7 +51,14 @@ func (m *poolManager) GetPoolByAddress(
 	return m.poolFactory.NewPoolByAddress(ctx, pools), nil
 }
 
-func (m *poolManager) listPools(ctx context.Context, addresses []string, filters []PoolFilter) ([]*entity.Pool, error) {
+func (m *poolManager) ApplyConfig(config Config) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	m.config = config
+}
+
+func (m *poolManager) listPools(ctx context.Context, addresses []string, filters []common.PoolFilter) ([]*entity.Pool, error) {
 	filteredAddresses := m.filterBlacklistedAddresses(addresses)
 
 	pools, err := m.poolRepository.FindByAddresses(ctx, filteredAddresses)
@@ -55,7 +66,7 @@ func (m *poolManager) listPools(ctx context.Context, addresses []string, filters
 		return nil, err
 	}
 
-	filteredPools := filterPools(
+	filteredPools := common.FilterPools(
 		pools,
 		filters...,
 	)
@@ -128,9 +139,11 @@ func (m *poolManager) filterBlacklistedAddresses(addresses []string) []string {
 	filtered := make([]string, 0, len(addresses))
 
 	for _, address := range addresses {
-		if _, contained := m.config.BlacklistedPoolSet[address]; !contained {
-			filtered = append(filtered, address)
+		if m.config.BlacklistedPoolSet[address] {
+			continue
 		}
+
+		filtered = append(filtered, address)
 	}
 
 	return filtered

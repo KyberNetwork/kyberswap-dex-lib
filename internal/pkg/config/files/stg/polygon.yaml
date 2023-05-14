@@ -1,4 +1,4 @@
-env: "develop"
+env: "staging"
 http:
   bindAddress: ":8080"
   mode: release #(debug,release,test)
@@ -7,139 +7,77 @@ grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainID: 137
-  dataFolder: internal/pkg/data/chain/polygon
-  publicRPC: "https://rpc-mainnet.maticvigil.com"
-  rpcs:
-    - "https://polygon.kyberengineering.io/v1/mainnet/geth?appId=prod-dmm"
-  rpc: "https://polygon.kyberengineering.io/v1/mainnet/geth?appId=prod-dmm"
-  address:
-    multicall: '0xed386fe855c1eff2f843b910923dd8846e45c5a4'
-    gasToken: '0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270'
-    executorAddress: '0x7F92d949185cD8ceebeBAD89876Ab3e90D1CE3b5'
-    routerAddress: '0x617Dee16B86534a5d792A4d7A62FB491B544111E'
+  chainId: &chainId 137
+  chainName: &chainName polygon
+  rpc: "https://polygon.kyberengineering.io/v1/mainnet/geth?appId=prod-dmm-aggregator-backend"
+  executorAddress: &executorAddress "0x1d5702C6D7eB30E42A8c94B8Db7eA2E8444a37FD"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+  gasTokenAddress: &gasTokenAddress "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"
+  whitelistedTokenSet: &whitelistedTokenSet
+    0x9f28e2455f9FFcFac9EBD6084853417362bc5dBb: true # rMATIC
+    0x7A7B94F18EF6AD056CDa648588181CDA84800f94: true # FIS
+    0x5736df66b4f8401d639Ffa915a46B4c548C09Ac1: true # rETH
+    0xc3c7d422809852031b44ab29eec9f1eff2a58756: true # LDO
+    0xd6df932a45c0f255f85145f286ea0b292b21c90b: true # AAVE
+    0xe0b52e49357fd4daf2c15e02058dce6bc0057db4: true # agEUR
+    0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270: true # WMATIC
+    0xc2132d05d31c914a87c6611c10748aeb04b58e8f: true # USDT
+    0x8f3cf7ad23cd3cadbd9735aff958023239c6a063: true # DAI
+    0x2791bca1f2de4661ed88a30c99a7a9449aa84174: true # USDC
+    0x7ceb23fd6bc0add59e62ac25578270cff1b9f619: true # WETH
+    0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6: true # WBTC
+    0xB5C064F955D8e7F38fE0460C556a72987494eE17: true # QUICK
+    0x1c954e8fe737f99f68fa1ccda3e51ebdb291948c: true # KNC
+    0x3a58a54c066fdc0f2d55fc9c89f0415c92ebf3c4: true # stMATIC
+    0xa3Fa99A148fA48D14Ed51d610c367C61876997F1: true # MIMATIC
+    0x8497842420cFdbc97896C2353D75d89Fc8D5Be5D: true # VERSA
+    0x22a31bd4cb694433b6de19e0acc2899e553e9481: true # MMF
+    0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39: true # LINK
+    0x03b54A6e9a984069379fae1a4fC4dBAE93B3bCCD: true # wstETH
+  blacklistedPoolSet: &blacklistedPoolSet
+    0x7cc19f8c258d7f489bc1074437e25a46e397688f: true
+    0xa71415675f68f29259ddd63215e5518d2735bf0a: true
+    0x7db214f2d46d94846936a0f8bd9044c5c5bd2b93: true
+  availableSources: &availableSources
+    - "kyberswap",
+    - "kyberswap-static",
+    - "kyberswapv2",
+    - "uniswapv3",
+    - "sushiswap",
+    - "quickswap",
+    - "jetswap",
+    - "wault",
+    - "polycat",
+    - "dfyn",
+    - "polydex",
+    - "oneswap",
+    - "iron-stable",
+    - "curve",
+    - "synapse",
+    - "balancer",
+    - "gravity",
+    - "cometh",
+    - "apeswap",
+    - "dinoswap",
+    - "dodo",
+    - "dystopia",
+    - "mmf",
+    - "madmex",
+    - "metavault",
+    - "fraxswap",
+    - "kyberswap-limit-order"
+  featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
   enableConsole: true
   enableJSONFormat: true
-enableDexes: &enableDexes
-  - kyberswap
-  - kyberswap-static
-  - kyberswapv2
-  - uniswapv3
-  - sushiswap
-  - quickswap
-  - jetswap
-  - wault
-  - polycat
-  - dfyn
-  - polydex
-  - oneswap
-  - iron-stable
-  - curve
-  - synapse
-  - balancer
-  - gravity
-  - cometh
-  - apeswap
-  - dinoswap
-  - dodo
-  - dystopia
-  - mmf
-  - madmex
-  - metavault
-  - fraxswap
-  - kyberswap-limit-order
-cachePoints:
-  - amount: 1
-    ttl: 30
-  - amount: 2
-    ttl: 10
-  - amount: 5
-    ttl: 10
-  - amount: 10
-    ttl: 10
-  - amount: 11
-    ttl: 30
-  - amount: 15
-    ttl: 10
-  - amount: 20
-    ttl: 10
-  - amount: 22
-    ttl: 30
-  - amount: 25
-    ttl: 10
-  - amount: 30
-    ttl: 10
-  - amount: 33
-    ttl: 30
-  - amount: 35
-    ttl: 10
-  - amount: 40
-    ttl: 10
-  - amount: 44
-    ttl: 30
-  - amount: 45
-    ttl: 10
-  - amount: 50
-    ttl: 10
-  - amount: 55
-    ttl: 30
-  - amount: 60
-    ttl: 10
-  - amount: 66
-    ttl: 30
-  - amount: 70
-    ttl: 10
-  - amount: 77
-    ttl: 30
-  - amount: 80
-    ttl: 10
-  - amount: 88
-    ttl: 30
-  - amount: 90
-    ttl: 10
-  - amount: 99
-    ttl: 30
-  - amount: 100
-    ttl: 10
-  - amount: 500
-    ttl: 10
-  - amount: 1000
-    ttl: 10
-  - amount: 10000
-    ttl: 10
-  - amount: 100000
-    ttl: 10
-cacheRanges:
-  - fromUSD: 0
-    toUSD: 100
-    ttl: 10
-  - fromUSD: 101
-    toUSD: 500
-    ttl: 10
-  - fromUSD: 500
-    toUSD: 1000
-    ttl: 10
-  - fromUSD: 1001
-    toUSD: 2000
-    ttl: 10
-  - fromUSD: 2000
-    toUSD: 5000
-    ttl: 10
-  - fromUSD: 5000
-    toUSD: 10000
-    ttl: 10
-  - fromUSD: 10000
-    toUSD: -1
-    ttl: 10
 redis:
   addresses:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "polygon"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 poolRedis:
@@ -147,136 +85,37 @@ poolRedis:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "polygon"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 ddAgentHost: ""
-featureFlags:
-  useOptimizedSPFA: false
-enableGRPC: false
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:
     clientData: "1"
-tokenCatalog:
-  httpUrl: ""
 reloadConfig:
   httpUrl: ""
   interval: 10s
   serviceName: "aggregator"
-  chainID: 137
-whitelistedTokens:
-  - name: "Wrapped Matic"
-    symbol: "WMATIC"
-    address: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"
-    decimals: 18
-    cgkId: "wmatic"
-  - name: "Tether USD"
-    symbol: "USDT"
-    address: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
-    decimals: 6
-    cgkId: "tether"
-  - name: "Dai Stablecoin"
-    symbol: "DAI"
-    address: "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063"
-    decimals: 18
-    cgkId: "dai"
-  - name: "USD Coin"
-    symbol: "USDC"
-    address: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174"
-    decimals: 6
-    cgkId: "usd-coin"
-  - name: "Wrapped Ether"
-    symbol: "WETH"
-    address: "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619"
-    decimals: 18
-    cgkId: "ethereum"
-  - name: "Wrapped BTC"
-    symbol: "WBTC"
-    address: "0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6"
-    decimals: 8
-  - name: "Quickswap"
-    symbol: "QUICK"
-    address: "0xB5C064F955D8e7F38fE0460C556a72987494eE17"
-    decimals: 18
-  - name: "Kyber Network Crystal"
-    symbol: "KNC"
-    address: "0x1c954e8fe737f99f68fa1ccda3e51ebdb291948c"
-    decimals: 18
-    cgkId: "kyber-network-crystal"
-  - name: "Staked MATIC (PoS)"
-    symbol: "stMATIC"
-    address: "0x3a58a54c066fdc0f2d55fc9c89f0415c92ebf3c4"
-    decimals: 18
-    cgkId: "lido-staked-matic"
-  - name: "miMATIC (miMATIC)"
-    symbol: "MIMATIC"
-    address: "0xa3Fa99A148fA48D14Ed51d610c367C61876997F1"
-    decimals: 18
-    cgkId: "mimatic"
-  - name: "VersaGames"
-    symbol: "VERSA"
-    address: "0x8497842420cFdbc97896C2353D75d89Fc8D5Be5D"
-    decimals: 18
-    cgkId: "versagames"
-  - name: "MMFinance (MMF)"
-    symbol: "MMF"
-    address: "0x22a31bd4cb694433b6de19e0acc2899e553e9481"
-    decimals: 18
-    cgkId: "mmfinance-polygon"
-  - name: "ChainLink"
-    symbol: "LINK"
-    address: "0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39"
-    decimals: 18
-    cgkId: "chainlink"
+  chainID: *chainId
 secretKey:
 metrics:
   host:
   port: 8125
   namespace: "kybernetwork."
-blacklistedPools:
-  - 0x7cC19f8c258D7F489BC1074437e25A46e397688F
 encoder:
-  chainId: 137
-  executorAddress: 0x1d5702C6D7eB30E42A8c94B8Db7eA2E8444a37FD
-  routerAddress: 0x6131B5fae19EA4f9D964eAc0408E4408b66337b5
-  kyberLOAddress: 0x3C2E9227A6d3779e5b469E425CAa7067b40Ff124
+  chainId: *chainId
+  executorAddress: *executorAddress
+  routerAddress: *routerAddress
+  kyberLOAddress:
 useCase:
-  poolFactory:
-  cacheRoute:
   getRoute:
-    chainID: 137
-    gasTokenAddress: 0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270
-    routerAddress: 0x48397E166c78AAf801Ab0641b2a9aB62f1D3892a
-    availableSources:
-      - kyberswap
-      - kyberswap-static
-      - kyberswapv2
-      - uniswapv3
-      - sushiswap
-      - quickswap
-      - jetswap
-      - wault
-      - polycat
-      - dfyn
-      - polydex
-      - oneswap
-      - iron-stable
-      - curve
-      - synapse
-      - balancer
-      - gravity
-      - cometh
-      - apeswap
-      - dinoswap
-      - dodo
-      - dystopia
-      - mmf
-      - madmex
-      - metavault
-      - fraxswap
-      - kyberswap-limit-order
+    chainId: *chainId
+    gasTokenAddress: *gasTokenAddress
+    routerAddress: *routerAddress
+    availableSources: *availableSources
     ammAggregator:
+      whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions:
         directPoolsCount: 100
         whitelistPoolsCount: 500
@@ -376,10 +215,14 @@ useCase:
       priceImpactThreshold: 0.005
       shrinkFuncName: "round"
       shrinkFuncPowExp: 0.7
-    poolFactory:
-      chainID: 137
+  buildRoute:
+    chainId: *chainId
+  poolFactory:
+    chainId: *chainId
+  poolManager:
+    blacklistedPoolSet: *blacklistedPoolSet
   indexPools:
-    whitelistedTokenSet:
+    whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
 job:
   indexPools:
@@ -389,24 +232,24 @@ job:
 repository:
   gas:
     redis:
-      prefix: polygon
+      prefix: *chainName
   pool:
     redis:
-      prefix: polygon
+      prefix: *chainName
   price:
     redis:
-      prefix: polygon
+      prefix: *chainName
   token:
     redis:
-      prefix: polygon
+      prefix: *chainName
     goCache:
       expiration: -1
       cleanupInterval: -1
   poolRank:
     redis:
-      prefix: polygon
+      prefix: *chainName
   route:
     redisCache:
-      prefix: polygon
+      prefix: *chainName
       localCacheSize: 1000
       localCacheTtl: 30s

@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/reload"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
@@ -17,8 +17,6 @@ import (
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
-
-	"github.com/KyberNetwork/ethrpc"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
@@ -38,17 +36,27 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
 	"github.com/KyberNetwork/router-service/internal/pkg/validator"
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	cryptopkg "github.com/KyberNetwork/router-service/pkg/crypto"
 	"github.com/KyberNetwork/router-service/pkg/crypto/keystorage"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
+
+type IGetRouteUseCase interface {
+	ApplyConfig(config getroute.Config)
+}
+
+type IPoolManager interface {
+	ApplyConfig(config poolmanager.Config)
+}
 
 // TODO: refactor main file -> separate to many folders with per folder is application. The main file should contains call root action per application.
 func main() {
@@ -217,13 +225,16 @@ func apiAction(c *cli.Context) (err error) {
 	getPoolsUseCase := usecase.NewGetPoolsUseCase(poolDataStoreRepo)
 	getTokensUseCase := usecase.NewGetTokens(tokenCacheRepo, poolDataStoreRepo, priceDataStoreRepo)
 
+	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory)
+	poolManager := poolmanager.NewPoolManager(poolRepository, poolFactory, cfg.UseCase.PoolManager)
+
 	getRouteUseCase := getroute.NewUseCase(
 		poolRankRepository,
 		tokenRepository,
 		priceRepository,
 		routeRepository,
 		gasRepository,
-		poolRepository,
+		poolManager,
 		cfg.UseCase.GetRoute,
 	)
 
@@ -233,7 +244,7 @@ func apiAction(c *cli.Context) (err error) {
 		clientDataEncoder,
 		encoder,
 		timeutil.NowFunc,
-		usecase.BuildRouteConfig{ChainID: valueobject.ChainID(cfg.Common.ChainID)},
+		cfg.UseCase.BuildRoute,
 	)
 
 	// init services
@@ -275,7 +286,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
 		logger.Infof("Received reloading signal: <%s>", id)
-		return applyLatestConfigForAPI(ctx, configLoader)
+		return applyLatestConfigForAPI(ctx, configLoader, getRouteUseCase, poolManager)
 	}))
 
 	httpServer := &http.Server{Handler: ginServer, Addr: cfg.Http.BindAddress}
@@ -453,35 +464,11 @@ func newMetricsConfig(cfg *config.Config) metrics.Config {
 	}
 }
 
-func newCacheRouteConfig(cfg *config.Config) usecase.CacheRouteConfig {
-	cachePoints := make([]usecase.CachePointConfig, 0, len(cfg.CachePoints))
-	for _, cachePoint := range cfg.CachePoints {
-		cachePoints = append(cachePoints, usecase.CachePointConfig{
-			Amount: int64(cachePoint.Amount),
-			TTL:    time.Duration(cachePoint.TTL) * time.Second,
-		})
-	}
-
-	cacheRanges := make([]usecase.CacheRangeConfig, 0, len(cfg.CacheRanges))
-	for _, cacheRange := range cfg.CacheRanges {
-		cacheRanges = append(cacheRanges, usecase.CacheRangeConfig{
-			FromUSD: cacheRange.FromUSD,
-			ToUSD:   cacheRange.ToUSD,
-			TTL:     time.Duration(cacheRange.TTL) * time.Second,
-		})
-	}
-
-	return usecase.CacheRouteConfig{
-		CachePoints:     cachePoints,
-		CacheRanges:     cacheRanges,
-		KeyPrefix:       cfg.Redis.Prefix,
-		DefaultCacheTTL: 10 * time.Second,
-	}
-}
-
 func applyLatestConfigForAPI(
-	ctx context.Context,
+	_ context.Context,
 	configLoader *config.ConfigLoader,
+	getRouteUseCase IGetRouteUseCase,
+	poolManager IPoolManager,
 ) error {
 	cfg, err := configLoader.Get()
 	if err != nil {
@@ -492,6 +479,9 @@ func applyLatestConfigForAPI(
 	if err = logger.SetLogLevel(cfg.Log.ConsoleLevel); err != nil {
 		logger.Warnf("reload Log level error cause by <%v>", err)
 	}
+
+	getRouteUseCase.ApplyConfig(cfg.UseCase.GetRoute)
+	poolManager.ApplyConfig(cfg.UseCase.PoolManager)
 
 	return nil
 }

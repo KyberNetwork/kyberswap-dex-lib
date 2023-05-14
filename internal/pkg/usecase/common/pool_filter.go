@@ -1,10 +1,10 @@
-package getroute
+package common
 
 import (
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
-func filterPools(pools []*entity.Pool, filters ...PoolFilter) []*entity.Pool {
+func FilterPools(pools []*entity.Pool, filters ...PoolFilter) []*entity.Pool {
 	filteredPools := make([]*entity.Pool, 0, len(pools))
 
 	for _, pool := range pools {

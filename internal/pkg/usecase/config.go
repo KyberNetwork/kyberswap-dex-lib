@@ -2,48 +2,20 @@ package usecase
 
 import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
-	"time"
-
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type Config struct {
-	PoolFactory factory.PoolFactoryConfig `mapstructure:"poolFactory"`
-	CacheRoute  CacheRouteConfig          `mapstructure:"cacheRoute"`
-	GetRoute    getroute.Config           `mapstructure:"getRoute"`
+	GetRoute   getroute.Config  `mapstructure:"getRoute" json:"getRoute"`
+	BuildRoute BuildRouteConfig `mapstructure:"buildRoute" json:"buildRoute"`
 
-	IndexPools IndexPoolsConfig `mapstructure:"indexPools"`
+	IndexPools IndexPoolsConfig `mapstructure:"indexPools" json:"indexPools"`
+
+	PoolFactory poolfactory.Config `mapstructure:"poolFactory" json:"poolFactory"`
+	PoolManager poolmanager.Config `mapstructure:"poolManager" json:"poolManager"`
 }
-
-type (
-	GetRoutesConfig struct {
-		ChainID             valueobject.ChainID       `mapstructure:"chainId"`
-		GasTokenAddress     string                    `mapstructure:"gasTokenAddress"`
-		RouterAddress       string                    `mapstructure:"routerAddress"`
-		Epsilon             float64                   `mapstructure:"epsilon"`
-		BaseGas             int64                     `mapstructure:"baseGas"`
-		GetBestPoolsOptions types.GetBestPoolsOptions `mapstructure:"getBestPoolsOptions"`
-		SPFAFinderOptions   SPFAFinderOptions         `mapstructure:"spfaFinderOptions"`
-
-		EnabledDexes      []string                       `json:"enabledDexes"`
-		BlacklistedPools  []string                       `mapstructure:"blacklistedPools"`
-		FeatureFlags      valueobject.FeatureFlags       `mapstructure:"featureFlags"`
-		WhitelistedTokens []valueobject.WhitelistedToken `mapstructure:"whitelistTokens"`
-	}
-
-	SPFAFinderOptions struct {
-		MaxHops                 uint32  `mapstructure:"maxHops"`
-		DistributionPercent     uint32  `mapstructure:"distributionPercent"`
-		MaxPathsInRoute         uint32  `mapstructure:"maxPathsInRoute"`
-		MaxPathsToGenerate      uint32  `mapstructure:"maxPathsToGenerate"`
-		MaxPathsToReturn        uint32  `mapstructure:"maxPathsToReturn"`
-		MinPartUSD              float64 `mapstructure:"minPartUSD"`
-		MinThresholdAmountInUSD float64 `mapstructure:"minThresholdAmountInUSD"`
-		MaxThresholdAmountInUSD float64 `mapstructure:"maxThresholdAmountInUSD"`
-	}
-)
 
 type (
 	BuildRouteConfig struct {
@@ -52,35 +24,8 @@ type (
 )
 
 type (
-	CacheRouteConfig struct {
-		CachePoints     []CachePointConfig `mapstructure:"cachePoints"`
-		CacheRanges     []CacheRangeConfig `mapstructure:"cacheRanges"`
-		KeyPrefix       string             `mapstructure:"keyPrefix"`
-		DefaultCacheTTL time.Duration      `mapstructure:"defaultCacheTTL"`
-	}
-
-	CachePointConfig struct {
-		Amount int64         `mapstructure:"amount"`
-		TTL    time.Duration `mapstructure:"ttl"`
-	}
-
-	CacheRangeConfig struct {
-		FromUSD int           `mapstructure:"fromUsd"`
-		ToUSD   int           `mapstructure:"toUsd"`
-		TTL     time.Duration `mapstructure:"ttl"`
-	}
-)
-
-type (
-	BenchmarkConfig struct {
-		GetRoutesConfig
-		WhitelistedTokensByAddress map[string]bool
-	}
-)
-
-type (
 	IndexPoolsConfig struct {
-		WhitelistedTokenSet map[string]struct{} `mapstructure:"whitelistedTokenSet"`
-		ChunkSize           int                 `mapstructure:"chunkSize"`
+		WhitelistedTokenSet map[string]bool `mapstructure:"whitelistedTokenSet"`
+		ChunkSize           int             `mapstructure:"chunkSize"`
 	}
 )

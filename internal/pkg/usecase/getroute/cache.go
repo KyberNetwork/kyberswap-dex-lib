@@ -4,7 +4,10 @@ import (
 	"context"
 	"math/big"
 	"strconv"
+	"sync"
 	"time"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/common"
 
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -29,6 +32,8 @@ type cache struct {
 	shrinkFunc ShrinkFunc
 
 	config CacheConfig
+
+	mu sync.RWMutex
 }
 
 func NewCache(
@@ -67,6 +72,14 @@ func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*
 	}
 
 	return routeSummary, nil
+}
+
+func (c *cache) ApplyConfig(config Config) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.config = config.Cache
+	c.aggregator.ApplyConfig(config)
 }
 
 func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregateParams, key *valueobject.RouteCacheKey) (*valueobject.RouteSummary, error) {
@@ -203,8 +216,8 @@ func (c *cache) summarizeSimpleRoute(
 	poolByAddress, err := c.poolManager.GetPoolByAddress(
 		ctx,
 		simpleRoute.ExtractPoolAddresses(),
-		PoolFilterSources(params.Sources),
-		PoolFilterHasReserveOrAmplifiedTvl,
+		common.PoolFilterSources(params.Sources),
+		common.PoolFilterHasReserveOrAmplifiedTvl,
 	)
 	if err != nil {
 		return nil, err

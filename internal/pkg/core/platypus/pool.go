@@ -23,7 +23,7 @@ type (
 		HaircutRate    *big.Int
 		SAvaxRate      *big.Int
 		AssetByToken   map[string]Asset
-		ChainID        int
+		ChainID        valueobject.ChainID
 		gas            Gas
 	}
 
@@ -40,7 +40,7 @@ type (
 	}
 )
 
-func NewPool(entityPool entity.Pool, chainID int) (*Pool, error) {
+func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -302,7 +302,7 @@ func (p *Pool) _quoteIdealToAmountSAvax(
 	toAsset Asset,
 	fromAmount *big.Int,
 ) (*big.Int, error) {
-	weth, ok := valueobject.WETHByChainID[valueobject.ChainID(p.ChainID)]
+	weth, ok := valueobject.WETHByChainID[p.ChainID]
 	if !ok {
 		return nil, ErrWETHNotFound
 	}

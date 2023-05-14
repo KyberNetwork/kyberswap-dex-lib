@@ -13,7 +13,6 @@ type (
 
 	// should include variable which need not to restart pods.
 	FeatureFlags struct {
-		UseOptimizedSPFA bool `mapstructure:"useOptimizedSPFA"`
 	}
 
 	Log struct {

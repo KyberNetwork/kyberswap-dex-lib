@@ -48,6 +48,10 @@ func (r *redisRepository) FindByAddresses(ctx context.Context, addresses []strin
 
 	pools := make([]*entity.Pool, 0, len(poolDataList))
 	for i, poolData := range poolDataList {
+		if poolData == nil {
+			continue
+		}
+
 		poolDataStr, ok := poolData.(string)
 		if !ok {
 			logger.

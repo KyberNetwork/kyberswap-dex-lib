@@ -7,214 +7,79 @@ grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainID: 1313161554
-  dataFolder: internal/pkg/data/chain/aurora
-  publicRPC: "https://mainnet.aurora.dev"
-  rpcs:
-    # - "https://aurora.kyberswap.com/v1/mainnet/geth?appId=test-daniel"
-    - "https://mainnet.aurora.dev"
+  chainId: &chainId 1313161554
+  chainName: &chainName aurora
   rpc: "https://mainnet.aurora.dev"
-  address:
-    multicall: '0xBF69a56D35B8d6f5A8e0e96B245a72F735751e54'
-    gasToken: '0xc9bdeed33cd01541e1eed10f90519d2c06fe3feb'
-    executorAddress: '0x41684b361557E9282E0373CA51260D9331e518C9'
-    routerAddress: '0x00555513Acf282B42882420E5e5bA87b44D8fA6E'
+  executorAddress: &executorAddress "0xf9A747eC426F8fFD0D550f9f867604077FFf15F6"
+  routerAddress: &routerAddress "0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D"
+  gasTokenAddress: &gasTokenAddress "0xc9bdeed33cd01541e1eed10f90519d2c06fe3feb"
+  whitelistedTokenSet: &whitelistedTokenSet
+    0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79: true # AURORA
+    0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d: true # NEAR
+    0xC9BdeEd33CD01541e1eeD10f90519d2C06Fe3feB: true # WETH
+    0x4988a896b1227218e4A686fdE5EabdcAbd91571f: true # USDT
+    0xe3520349F477A5F6EB06107066048508498A291b: true # DAI
+    0xB12BFcA5A55806AaF64E99521918A4bf0fC40802: true # USDC
+    0xF4eB217Ba2454613b15dBdea6e5f22276410e89e: true # WBTC
+    0x885f8CF6E45bdd3fdcDc644efdcd0AC93880c781: true # PAD
+  blacklistedPoolSet: &blacklistedPoolSet
+  availableSources: &availableSources
+    - "kyberswap"
+    - "kyberswap-static"
+    - "trisolaris"
+    - "wannaswap"
+    - "nearpad"
+    - "dodo"
+    - "curve"
+  featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
   enableConsole: true
-  enableJSONFormat: false
-enableDexes: &enableDexes
-  - kyberswap
-  - kyberswap-static
-#  - kyberswapv2
-  - trisolaris
-  - wannaswap
-  - nearpad
-  # - rose
-  - dodo
-  - curve
-cachePoints:
-  - amount: 1
-    ttl: 30
-  - amount: 2
-    ttl: 10
-  - amount: 5
-    ttl: 10
-  - amount: 10
-    ttl: 10
-  - amount: 11
-    ttl: 30
-  - amount: 15
-    ttl: 10
-  - amount: 20
-    ttl: 10
-  - amount: 22
-    ttl: 30
-  - amount: 25
-    ttl: 10
-  - amount: 30
-    ttl: 10
-  - amount: 33
-    ttl: 30
-  - amount: 35
-    ttl: 10
-  - amount: 40
-    ttl: 10
-  - amount: 44
-    ttl: 30
-  - amount: 45
-    ttl: 10
-  - amount: 50
-    ttl: 10
-  - amount: 55
-    ttl: 30
-  - amount: 60
-    ttl: 10
-  - amount: 66
-    ttl: 30
-  - amount: 70
-    ttl: 10
-  - amount: 77
-    ttl: 30
-  - amount: 80
-    ttl: 10
-  - amount: 88
-    ttl: 30
-  - amount: 90
-    ttl: 10
-  - amount: 99
-    ttl: 30
-  - amount: 100
-    ttl: 30
-  - amount: 500
-    ttl: 10
-  - amount: 1000
-    ttl: 30
-  - amount: 10000
-    ttl: 30
-  - amount: 100000
-    ttl: 30
-cacheRanges:
-  - fromUSD: 0
-    toUSD: 100
-    ttl: 10
-  - fromUSD: 101
-    toUSD: 500
-    ttl: 10
-  - fromUSD: 500
-    toUSD: 1000
-    ttl: 10
-  - fromUSD: 1001
-    toUSD: 2000
-    ttl: 15
-  - fromUSD: 2000
-    toUSD: 5000
-    ttl: 15
-  - fromUSD: 5000
-    toUSD: 10000
-    ttl: 15
-  - fromUSD: 10000
-    toUSD: -1
-    ttl: 15
+  enableJSONFormat: true
 redis:
-  addresses: localhost:6379
+  addresses:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "aurora"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 poolRedis:
-  addresses: localhost:6379
+  addresses:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "aurora"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 ddAgentHost: ""
-featureFlags:
-  useOptimizedSPFA: false
-enableGRPC: false
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:
     clientData: "1"
-tokenCatalog:
-  httpUrl: ""
 reloadConfig:
   httpUrl: ""
   interval: 10s
   serviceName: "aggregator"
-  chainID: 1313161554
-whitelistedTokens: &whitelistedTokens
-  - name: "Aurora"
-    symbol: "AURORA"
-    address: "0x8BEc47865aDe3B172A928df8f990Bc7f2A3b9f79"
-    decimals: 18
-    cgkId: "aurora"
-  - name: "Near"
-    symbol: "NEAR"
-    address: "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d"
-    decimals: 24
-    cgkId: "near"
-  - name: "Wrapped Ether"
-    symbol: "WETH"
-    address: "0xC9BdeEd33CD01541e1eeD10f90519d2C06Fe3feB"
-    decimals: 18
-    cgkId: "ethereum"
-  - name: "Tether USD"
-    symbol: "USDT"
-    address: "0x4988a896b1227218e4A686fdE5EabdcAbd91571f"
-    decimals: 6
-    cgkId: "tether"
-  - name: "Dai Stablecoin"
-    symbol: "DAI"
-    address: "0xe3520349F477A5F6EB06107066048508498A291b"
-    decimals: 18
-    cgkId: "dai"
-  - name: "USD Coin"
-    symbol: "USDC"
-    address: "0xB12BFcA5A55806AaF64E99521918A4bf0fC40802"
-    decimals: 6
-    cgkId: "usd-coin"
-  - name: "Wrapped BTC"
-    symbol: "WBTC"
-    address: "0xF4eB217Ba2454613b15dBdea6e5f22276410e89e"
-    decimals: 8
-    cgkId: "bitcoin"
-  - name: "NearPad"
-    symbol: "PAD"
-    address: "0x885f8CF6E45bdd3fdcDc644efdcd0AC93880c781"
-    decimals: 18
-    cgkId: "nearpad"
+  chainID: *chainId
 secretKey:
 metrics:
   host:
   port: 8125
   namespace: "kybernetwork."
-blacklistedPools:
 encoder:
-  chainId: 1313161554
-  executorAddress: 0xf9A747eC426F8fFD0D550f9f867604077FFf15F6
-  routerAddress: 0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D
+  chainId: *chainId
+  executorAddress: *executorAddress
+  routerAddress: *routerAddress
 useCase:
-  poolFactory:
-  cacheRoute:
   getRoute:
-    chainID: 1313161554
-    gasTokenAddress: 0xc9bdeed33cd01541e1eed10f90519d2c06fe3feb
-    routerAddress:
-    availableSources:
-      - kyberswap
-      - kyberswap-static
-      - trisolaris
-      - wannaswap
-      - nearpad
-      - dodo
-      - curve
+    chainId: *chainId
+    gasTokenAddress: *gasTokenAddress
+    routerAddress: *routerAddress
+    availableSources: *availableSources
     ammAggregator:
+      whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions:
         directPoolsCount: 100
         whitelistPoolsCount: 500
@@ -314,10 +179,14 @@ useCase:
       priceImpactThreshold: 0.005
       shrinkFuncName: "round"
       shrinkFuncPowExp: 0.7
-    poolFactory:
-      chainID: 1313161554
+  buildRoute:
+    chainId: *chainId
+  poolFactory:
+    chainId: *chainId
+  poolManager:
+    blacklistedPoolSet: *blacklistedPoolSet
   indexPools:
-    whitelistedTokenSet:
+    whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
 job:
   indexPools:
@@ -327,24 +196,24 @@ job:
 repository:
   gas:
     redis:
-      prefix: aurora
+      prefix: *chainName
   pool:
     redis:
-      prefix: aurora
+      prefix: *chainName
   price:
     redis:
-      prefix: aurora
+      prefix: *chainName
   token:
     redis:
-      prefix: aurora
+      prefix: *chainName
     goCache:
       expiration: -1
       cleanupInterval: -1
   poolRank:
     redis:
-      prefix: aurora
+      prefix: *chainName
   route:
     redisCache:
-      prefix: aurora
+      prefix: *chainName
       localCacheSize: 1000
       localCacheTtl: 30s

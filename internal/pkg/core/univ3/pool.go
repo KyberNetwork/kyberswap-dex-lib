@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
@@ -35,7 +36,7 @@ type Pool struct {
 	tickMax   int
 }
 
-func NewPool(entityPool entity.Pool, chainID int) (*Pool, error) {
+func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err

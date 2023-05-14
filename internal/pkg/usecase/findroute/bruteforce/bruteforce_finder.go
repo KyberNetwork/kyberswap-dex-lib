@@ -9,9 +9,8 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/core"
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -28,6 +27,10 @@ const (
 	defaultBruteforceMaxPathsToReturn   uint32 = 1
 )
 
+type IPoolFactory interface {
+	NewPoolByAddress(ctx context.Context, pools []*entity.Pool) map[string]poolpkg.IPool
+}
+
 // bruteforceFinder finds route using Shortest spfaPath Faster Algorithm (SPFA)
 type bruteforceFinder struct {
 	// maxHops maximum hops performed
@@ -40,16 +43,16 @@ type bruteforceFinder struct {
 	// minPartUSD minimum amount in USD of each part
 	minPartUSD float64
 
-	originalPools []entity.Pool
+	originalPools []*entity.Pool
 
-	poolFactory *factory.PoolFactory
+	poolFactory IPoolFactory
 }
 
-func NewBruteforceFinder(maxHops, distributionPercent uint32, minPartUSD float64, pool []entity.Pool, poolFactory *factory.PoolFactory) *bruteforceFinder {
+func NewBruteforceFinder(maxHops, distributionPercent uint32, minPartUSD float64, pool []*entity.Pool, poolFactory IPoolFactory) *bruteforceFinder {
 	return &bruteforceFinder{maxHops, distributionPercent, minPartUSD, pool, poolFactory}
 }
 
-func NewDefaultBruteforceFinder(pool []entity.Pool, uc *factory.PoolFactory) *bruteforceFinder {
+func NewDefaultBruteforceFinder(pool []*entity.Pool, uc IPoolFactory) *bruteforceFinder {
 	return NewBruteforceFinder(defaultBruteforceMaxHops, defaultBruteforceDistributionPercent, defaultBruteforceMinPartUSD, pool, uc)
 }
 
@@ -76,12 +79,12 @@ func (f *bruteforceFinder) bestBruteforceRoute(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenAmountIn poolPkg.TokenAmount,
+	tokenAmountIn poolpkg.TokenAmount,
 	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*core.Route, error) {
 	var (
-		bestBruteforceRoute = core.NewEmptyRouteFromPoolData(input.TokenInAddress, input.TokenOutAddress, f.poolFactory.NewPoolByAddress(f.originalPools))
+		bestBruteforceRoute = core.NewEmptyRouteFromPoolData(input.TokenInAddress, input.TokenOutAddress, f.poolFactory.NewPoolByAddress(ctx, f.originalPools))
 	)
 	splits, err := f.generateSplits(input, data, tokenAmountIn)
 	// fmt.Println(len(splits), "???", input.AmountIn)
@@ -90,7 +93,7 @@ func (f *bruteforceFinder) bestBruteforceRoute(
 	}
 
 	for _, split := range splits {
-		data.PoolByAddress = f.poolFactory.NewPoolByAddress(f.originalPools)
+		data.PoolByAddress = f.poolFactory.NewPoolByAddress(ctx, f.originalPools)
 		currentBestRoute := core.NewEmptyRouteFromPoolData(input.TokenInAddress, input.TokenOutAddress, data.PoolByAddress)
 		for _, amountInPerSplit := range split {
 			bestPath, err := f.bestPathExactIn(ctx, input, data, amountInPerSplit, tokenToPoolAddress, hopsToTokenOut)
@@ -140,7 +143,7 @@ func (f *bruteforceFinder) bestRouteExactIn(ctx context.Context, input findroute
 	}
 
 	// it is fine if prices[token] is not set because it would default to zero
-	tokenAmountIn := poolPkg.TokenAmount{
+	tokenAmountIn := poolpkg.TokenAmount{
 		Token:     input.TokenInAddress,
 		Amount:    input.AmountIn,
 		AmountUsd: utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, data.PriceUSDByAddress[input.TokenInAddress]),
@@ -197,7 +200,7 @@ func (f *bruteforceFinder) bestSinglePathRoute(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenAmountIn poolPkg.TokenAmount,
+	tokenAmountIn poolpkg.TokenAmount,
 	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*core.Route, error) {
@@ -219,7 +222,7 @@ func (f *bruteforceFinder) bestPathExactIn(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenAmountIn poolPkg.TokenAmount,
+	tokenAmountIn poolpkg.TokenAmount,
 	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*core.Path, error) {
@@ -250,12 +253,12 @@ func (f *bruteforceFinder) bestPathExactIn(
 }
 
 // generateSplits spawn all possible splits
-func (f *bruteforceFinder) generateSplits(input findroute.Input, data findroute.FinderData, totalAmountIn poolPkg.TokenAmount) ([][]poolPkg.TokenAmount, error) {
+func (f *bruteforceFinder) generateSplits(input findroute.Input, data findroute.FinderData, totalAmountIn poolpkg.TokenAmount) ([][]poolpkg.TokenAmount, error) {
 	tokenInPrice := data.PriceUSDByAddress[input.TokenInAddress]
 	tokenInDecimal := data.TokenByAddress[input.TokenInAddress].Decimals
 
 	if f.distributionPercent == constant.OneHundredPercent || tokenInPrice == 0 || totalAmountIn.AmountUsd <= f.minPartUSD {
-		return [][]poolPkg.TokenAmount{{totalAmountIn}}, nil
+		return [][]poolpkg.TokenAmount{{totalAmountIn}}, nil
 	}
 
 	var (
@@ -265,15 +268,15 @@ func (f *bruteforceFinder) generateSplits(input findroute.Input, data findroute.
 		// maxNumSplits        = int64(constant.OneHundredPercent / f.distributionPercent)
 		n                   = 100 / f.distributionPercent
 		splits              = generateArraySumN(int(n), DefaultMaxNumSplitBruteForce)
-		result              [][]poolPkg.TokenAmount
+		result              [][]poolpkg.TokenAmount
 		cumulativeSumAmount *big.Int
-		scaledSplit         []poolPkg.TokenAmount
+		scaledSplit         []poolpkg.TokenAmount
 	)
 	for _, split := range splits {
 		// validAmounts will be set to false if exist any amount < min part usd
 		validAmounts := true
 		cumulativeSumAmount = big.NewInt(0)
-		scaledSplit = []poolPkg.TokenAmount{}
+		scaledSplit = []poolpkg.TokenAmount{}
 
 		for index, num := range split {
 			percentOfAmountIn := big.NewInt(int64(uint32(num) * f.distributionPercent))
@@ -297,7 +300,7 @@ func (f *bruteforceFinder) generateSplits(input findroute.Input, data findroute.
 			}
 			cumulativeSumAmount = new(big.Int).Add(cumulativeSumAmount, amount)
 
-			scaledSplit = append(scaledSplit, poolPkg.TokenAmount{
+			scaledSplit = append(scaledSplit, poolpkg.TokenAmount{
 				Token:     totalAmountIn.Token,
 				Amount:    amount,
 				AmountUsd: amountUsd,

@@ -1,6 +1,6 @@
 name: Build Docker
 
-concurrency: 
+concurrency:
   group: ci-workflow-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
@@ -30,6 +30,7 @@ jobs:
           version: latest
           skip-pkg-cache: true
           skip-build-cache: true
+          args: --timeout=10m
   test:
     runs-on: self-hosted
     steps:
@@ -54,8 +55,8 @@ jobs:
       current_branch: ${{ steps.current_branch.outputs.value }}
       head_sha: ${{ steps.head_sha.outputs.value }}
       image_name: "asia.gcr.io/kyber-operation/core/${{ env.SERVICE }}"
-      image_tag: ${{ steps.get_tag.outputs.image_tag }} 
-      branch_tag: ${{ steps.get_tag.outputs.branch_tag }} 
+      image_tag: ${{ steps.get_tag.outputs.image_tag }}
+      branch_tag: ${{ steps.get_tag.outputs.branch_tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -83,9 +84,9 @@ jobs:
 
           echo "::set-output name=value::$BRANCH" 
 
-      - name: Extract GitHub HEAD SHA 
-        id: head_sha 
-        run: echo "::set-output name=value::$(git rev-parse HEAD)"   
+      - name: Extract GitHub HEAD SHA
+        id: head_sha
+        run: echo "::set-output name=value::$(git rev-parse HEAD)"
 
       - name: Get Docker image tag
         id: get_tag
@@ -122,7 +123,7 @@ jobs:
         uses: google-github-actions/auth@v0
         with:
           credentials_json: '${{ secrets.GCR_CREDENTIALS }}'
-    
+
       - name: Setup Gcloud SDK
         uses: google-github-actions/setup-gcloud@v0
 
@@ -147,11 +148,11 @@ jobs:
             kyber.network.name=${{ env.SERVICE }}
           tags: |
             ${{ needs.prepare.outputs.image_name }}:${{ needs.prepare.outputs.image_tag }}
-            ${{ needs.prepare.outputs.image_name }}:${{ needs.prepare.outputs.branch_tag }} 
+            ${{ needs.prepare.outputs.image_name }}:${{ needs.prepare.outputs.branch_tag }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
-      - name: Move Docker cache 
+      - name: Move Docker cache
         run: |
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache

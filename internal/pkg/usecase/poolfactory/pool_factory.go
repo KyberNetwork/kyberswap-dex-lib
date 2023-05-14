@@ -1,4 +1,4 @@
-package getroute
+package poolfactory
 
 import (
 	"context"
@@ -47,17 +47,17 @@ var (
 )
 
 type PoolFactory struct {
-	config PoolFactoryConfig
+	config Config
 }
 
-func NewPoolFactory(config PoolFactoryConfig) *PoolFactory {
+func NewPoolFactory(config Config) *PoolFactory {
 	return &PoolFactory{
 		config: config,
 	}
 }
 
 func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool) map[string]poolpkg.IPool {
-	span, _ := tracer.StartSpanFromContext(ctx, "[getroutev2] poolFactory.NewPoolByAddress")
+	span, _ := tracer.StartSpanFromContext(ctx, "poolFactory.NewPoolByAddress")
 	defer span.Finish()
 
 	curveBasePoolByAddress := f.getCurveBasePoolByAddress(pools)

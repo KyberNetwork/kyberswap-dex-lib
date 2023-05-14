@@ -1,4 +1,4 @@
-env: "develop"
+env: "staging"
 http:
   bindAddress: ":8080"
   mode: release #(debug,release,test)
@@ -7,134 +7,56 @@ grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainID: 1
-  dataFolder: internal/pkg/data/chain/ethereum
-  publicRPC: "https://ethereum.kyberengineering.io"
-  rpcs:
-    - "https://ethereum.kyberengineering.io"
+  chainId: &chainId 1
+  chainName: &chainName ethereum
   rpc: "https://ethereum.kyberengineering.io"
-  address:
-    multicall: '0x5ba1e12693dc8f9c48aad8770482f4739beed696'
-    gasToken: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
-    executorAddress: '0x4Fe5b965E3BD76eFf36280471030ef9b0E6e2C1D'
-    routerAddress: '0x617Dee16B86534a5d792A4d7A62FB491B544111E'
-  whitelistToken: "tokens.json"
+  executorAddress: &executorAddress "0x555B6eE8faB3DfdBcCa9121721c435FD4C7a1fd1"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+  gasTokenAddress: &gasTokenAddress "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+  whitelistedTokenSet: &whitelistedTokenSet
+    0xB50721BCf8d664c30412Cfbc6cf7a15145234ad1: true # ARB
+    0x1a7e4e63778b4f12a199c062f3efdd288afcbce8: true # agEUR
+    0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2: true # WETH
+    0xdac17f958d2ee523a2206206994597c13d831ec7: true # USDT
+    0x6b175474e89094c44da98b954eedeac495271d0f: true # DAI
+    0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48: true # USDC
+    0x2260fac5e5542a773aa44fbcfedf7c193bc2c599: true # WBTC
+    0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202: true # KNC
+    0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0: true # wstETH
+    0xae7ab96520de3a18e5e111b5eaab095312d7fe84: true # stETH
+  blacklistedPoolSet: &blacklistedPoolSet
+    0x3dabc75ffd70695852da101b0c0d018781320551: true
+    0xf6a8e47daeeddcce297e7541523e27df2f167bf3: true
+  availableSources: &availableSources
+    - "kyberswap"
+    - "kyberswap-static"
+    - "kyberswapv2"
+    - "uniswap"
+    - "uniswapv3"
+    - "sushiswap"
+    - "curve"
+    - "balancer"
+    - "synapse"
+    - "shibaswap"
+    - "defiswap"
+    - "saddle"
+    - "dodo"
+    - "maker-psm"
+    - "lido"
+    - "fraxswap"
+    - "kyberswap-limit-order"
+  featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
   enableConsole: true
   enableJSONFormat: true
-enableDexes: &enableDexes
-  - kyberswap
-  - kyberswap-static
-  - kyberswapv2
-  - uniswap
-  - uniswapv3
-  - sushiswap
-  - curve
-  - balancer
-  - synapse
-  - shibaswap
-  - defiswap
-  - saddle
-  - dodo
-  - synthetix
-  - maker-psm
-  - lido
-  - fraxswap
-  - kyberswap-limit-order
-cachePoints:
-  - amount: 1
-    ttl: 30
-  - amount: 2
-    ttl: 30
-  - amount: 5
-    ttl: 30
-  - amount: 10
-    ttl: 30
-  - amount: 11
-    ttl: 30
-  - amount: 12
-    ttl: 30
-  - amount: 15
-    ttl: 30
-  - amount: 20
-  - amount: 21
-    ttl: 30
-  - amount: 22
-    ttl: 30
-  - amount: 25
-    ttl: 30
-  - amount: 30
-    ttl: 30
-  - amount: 33
-    ttl: 30
-  - amount: 35
-    ttl: 30
-  - amount: 40
-    ttl: 30
-  - amount: 44
-    ttl: 30
-  - amount: 45
-    ttl: 30
-  - amount: 50
-    ttl: 30
-  - amount: 55
-    ttl: 30
-  - amount: 60
-    ttl: 30
-  - amount: 66
-    ttl: 30
-  - amount: 70
-    ttl: 30
-  - amount: 77
-    ttl: 30
-  - amount: 80
-    ttl: 30
-  - amount: 88
-    ttl: 30
-  - amount: 90
-    ttl: 30
-  - amount: 99
-    ttl: 30
-  - amount: 100
-    ttl: 10
-  - amount: 500
-    ttl: 10
-  - amount: 1000
-    ttl: 10
-  - amount: 10000
-    ttl: 10
-  - amount: 100000
-    ttl: 5
-cacheRanges:
-  - fromUSD: 0
-    toUSD: 100
-    ttl: 10
-  - fromUSD: 101
-    toUSD: 500
-    ttl: 10
-  - fromUSD: 500
-    toUSD: 1000
-    ttl: 10
-  - fromUSD: 1001
-    toUSD: 2000
-    ttl: 10
-  - fromUSD: 2000
-    toUSD: 5000
-    ttl: 10
-  - fromUSD: 5000
-    toUSD: 10000
-    ttl: 10
-  - fromUSD: 10000
-    toUSD: -1
-    ttl: 5
 redis:
   addresses:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "ethereum"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 poolRedis:
@@ -142,93 +64,37 @@ poolRedis:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "ethereum"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 ddAgentHost: ""
-featureFlags:
-  useOptimizedSPFA: false
-enableGRPC: false
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:
     clientData: "1"
-tokenCatalog:
-  httpUrl: ""
 reloadConfig:
   httpUrl: ""
   interval: 10s
   serviceName: "aggregator"
-  chainID: 1
-whitelistedTokens:
-  - name: "Wrapped Ether"
-    symbol: "WETH"
-    address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
-    decimals: 18
-    cgkId: "ethereum"
-  - name: "Tether USD"
-    symbol: "USDT"
-    address: "0xdac17f958d2ee523a2206206994597c13d831ec7"
-    decimals: 6
-    cgkId: "tether"
-  - name: "Dai Stablecoin"
-    symbol: "DAI"
-    address: "0x6b175474e89094c44da98b954eedeac495271d0f"
-    decimals: 18
-    cgkId: "dai"
-  - name: "USD Coin"
-    symbol: "USDC"
-    address: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
-    decimals: 6
-    cgkId: "usd-coin"
-  - name: "Wrapped BTC"
-    symbol: "WBTC"
-    address: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"
-    decimals: 8
-    cgkId: "bitcoin"
-  - name: "Kyber Network Crystal"
-    symbol: "KNC"
-    address: "0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202"
-    decimals: 18
-    cgkId: "kyber-network-crystal"
+  chainID: *chainId
 secretKey:
 metrics:
   host:
   port: 8125
   namespace: "kybernetwork."
-blacklistedPools:
 encoder:
-  chainId: 1
-  executorAddress:
-  routerAddress:
+  chainId: *chainId
+  executorAddress: *executorAddress
+  routerAddress: *routerAddress
   kyberLOAddress:
 useCase:
-  poolFactory:
-  cacheRoute:
   getRoute:
-    chainID: 1
-    gasTokenAddress: 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
-    routerAddress: 0x6131B5fae19EA4f9D964eAc0408E4408b66337b5
-    availableSources:
-      - kyberswap
-      - kyberswap-static
-      - kyberswapv2
-      - uniswap
-      - uniswapv3
-      - sushiswap
-      - curve
-      - balancer
-      - synapse
-      - shibaswap
-      - defiswap
-      - saddle
-      - dodo
-      - synthetix
-      - maker-psm
-      - lido
-      - fraxswap
-      - kyberswap-limit-order
+    chainId: *chainId
+    gasTokenAddress: *gasTokenAddress
+    routerAddress: *routerAddress
+    availableSources: *availableSources
     ammAggregator:
+      whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions:
         directPoolsCount: 100
         whitelistPoolsCount: 500
@@ -328,10 +194,14 @@ useCase:
       priceImpactThreshold: 0.005
       shrinkFuncName: "round"
       shrinkFuncPowExp: 0.7
-    poolFactory:
-      chainID: 1
+  buildRoute:
+    chainId: *chainId
+  poolFactory:
+    chainId: *chainId
+  poolManager:
+    blacklistedPoolSet: *blacklistedPoolSet
   indexPools:
-    whitelistedTokenSet:
+    whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
 job:
   indexPools:
@@ -341,24 +211,24 @@ job:
 repository:
   gas:
     redis:
-      prefix: ethereum
+      prefix: *chainName
   pool:
     redis:
-      prefix: ethereum
+      prefix: *chainName
   price:
     redis:
-      prefix: ethereum
+      prefix: *chainName
   token:
     redis:
-      prefix: ethereum
+      prefix: *chainName
     goCache:
       expiration: -1
       cleanupInterval: -1
   poolRank:
     redis:
-      prefix: ethereum
+      prefix: *chainName
   route:
     redisCache:
-      prefix: ethereum
+      prefix: *chainName
       localCacheSize: 1000
       localCacheTtl: 30s

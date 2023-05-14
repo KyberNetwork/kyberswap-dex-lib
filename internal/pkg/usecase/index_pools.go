@@ -137,7 +137,5 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool entity.Pool) boo
 }
 
 func (u *IndexPoolsUseCase) isWhitelistedToken(tokenAddress string) bool {
-	_, contained := u.config.WhitelistedTokenSet[tokenAddress]
-
-	return contained
+	return u.config.WhitelistedTokenSet[tokenAddress]
 }

@@ -2,6 +2,7 @@ package getroute
 
 import (
 	"context"
+	"sync"
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
@@ -13,6 +14,8 @@ import (
 // chargeExtraFee is a decorator for aggregator which handle charging extra fee logic
 type chargeExtraFee struct {
 	aggregator IAggregator
+
+	mu sync.RWMutex
 }
 
 func NewChargeExtraFee(
@@ -23,22 +26,29 @@ func NewChargeExtraFee(
 	}
 }
 
-func (d *chargeExtraFee) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
+func (c *chargeExtraFee) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] chargeExtraFee.Aggregate")
 	defer span.Finish()
 
 	if params.ExtraFee.IsChargeFeeByCurrencyIn() {
-		return d.chargeFeeByCurrencyIn(ctx, params)
+		return c.chargeFeeByCurrencyIn(ctx, params)
 	}
 
 	if params.ExtraFee.IsChargeFeeByCurrencyOut() {
-		return d.chargeFeeByCurrencyOut(ctx, params)
+		return c.chargeFeeByCurrencyOut(ctx, params)
 	}
 
-	return d.aggregator.Aggregate(ctx, params)
+	return c.aggregator.Aggregate(ctx, params)
 }
 
-func (d *chargeExtraFee) chargeFeeByCurrencyIn(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
+func (c *chargeExtraFee) ApplyConfig(config Config) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.aggregator.ApplyConfig(config)
+}
+
+func (c *chargeExtraFee) chargeFeeByCurrencyIn(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
 	// Step 1: calculate amountIn after fee
 	amountIn := params.AmountIn
 	amountInAfterFee := business.CalcAmountInAfterFee(amountIn, params.ExtraFee)
@@ -47,7 +57,7 @@ func (d *chargeExtraFee) chargeFeeByCurrencyIn(ctx context.Context, params *type
 	params.AmountIn = amountInAfterFee
 
 	// Step 3: aggregate
-	routeSummary, err := d.aggregator.Aggregate(ctx, params)
+	routeSummary, err := c.aggregator.Aggregate(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -62,9 +72,9 @@ func (d *chargeExtraFee) chargeFeeByCurrencyIn(ctx context.Context, params *type
 	return routeSummary, nil
 }
 
-func (d *chargeExtraFee) chargeFeeByCurrencyOut(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
+func (c *chargeExtraFee) chargeFeeByCurrencyOut(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
 	// Step 1: aggregate
-	routeSummary, err := d.aggregator.Aggregate(ctx, params)
+	routeSummary, err := c.aggregator.Aggregate(ctx, params)
 	if err != nil {
 		return nil, err
 	}

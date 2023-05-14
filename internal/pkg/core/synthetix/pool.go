@@ -33,7 +33,7 @@ type Pool struct {
 	gas              Gas
 }
 
-func NewPool(entityPool entity.Pool, chainID int) (*Pool, error) {
+func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func NewPool(entityPool entity.Pool, chainID int) (*Pool, error) {
 		Pool: pool.Pool{
 			Info: info,
 		},
-		poolStateVersion: getPoolStateVersion(valueobject.ChainID(chainID)),
+		poolStateVersion: getPoolStateVersion(chainID),
 		poolState:        extra.PoolState,
 		gas:              DefaultGas,
 	}, nil

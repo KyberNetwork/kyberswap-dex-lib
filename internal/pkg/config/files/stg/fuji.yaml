@@ -1,4 +1,4 @@
-env: "develop"
+env: "staging"
 http:
   bindAddress: ":8080"
   mode: debug #(debug,release,test)
@@ -7,114 +7,31 @@ grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainID: 43113
-  dataFolder: internal/pkg/data/chain/fuji
-  publicRPC: "https://avalanchetestapi.terminet.io/ext/bc/C/rpc"
-  rpcs:
-    - "https://avalanchetestapi.terminet.io/ext/bc/C/rpc"
+  chainId: &chainId 43113
+  chainName: &chainName fuji
   rpc: "https://avalanchetestapi.terminet.io/ext/bc/C/rpc"
-  address:
-    multicall: '0x5D605e78bc699fB565E6E6a1fa2d940C40F8ce25'
-    gasToken: '0xd00ae08403b9bbb9124bb305c09058e32c39a48c'
-    executorAddress: '0xA270E7506dD1b6Fa8a4D1d14a53A6A80aFc4Fd4D'
-    routerAddress: '0x7633dF4a71391Ba81924E916781402c564984E73'
+  executorAddress: &executorAddress "0x1877Ec0770901cc6886FDA7E7525a78c2Ed4e975"
+  routerAddress: &routerAddress "0x6F82A3C19dc0f8D745b72AA263D8B37a1fF18946"
+  gasTokenAddress: &gasTokenAddress "0xd00ae08403b9bbb9124bb305c09058e32c39a48c"
+  whitelistedTokenSet: &whitelistedTokenSet
+    0xebd333ffbf16491505318ae0678c0d61e40bd7fc: true # WAVAX
+    0x82DCEC6aa3c8BFE2C96d40d8805EE0dA15708643: true # USDT
+    0xAF82969ECF299c1f1Bb5e1D12dDAcc9027431160: true # USDC
+    0xbde248b108065a08c60c88d9ed09aec5a8d9a2b1: true # KNC
+  blacklistedPoolSet: &blacklistedPoolSet
+  availableSources: &availableSources
+    - "kyberswap-static"
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
   enableConsole: true
   enableJSONFormat: false
-enableDexes: &enableDexes
-  - kyberswap-static
-  # - kyberswapv2
-cachePoints:
-  - amount: 1
-    ttl: 30
-  - amount: 2
-    ttl: 10
-  - amount: 5
-    ttl: 10
-  - amount: 10
-    ttl: 10
-  - amount: 11
-    ttl: 30
-  - amount: 15
-    ttl: 10
-  - amount: 20
-    ttl: 10
-  - amount: 22
-    ttl: 30
-  - amount: 25
-    ttl: 10
-  - amount: 30
-    ttl: 10
-  - amount: 33
-    ttl: 30
-  - amount: 35
-    ttl: 10
-  - amount: 40
-    ttl: 10
-  - amount: 44
-    ttl: 30
-  - amount: 45
-    ttl: 10
-  - amount: 50
-    ttl: 10
-  - amount: 55
-    ttl: 30
-  - amount: 60
-    ttl: 10
-  - amount: 66
-    ttl: 30
-  - amount: 70
-    ttl: 10
-  - amount: 77
-    ttl: 30
-  - amount: 80
-    ttl: 10
-  - amount: 88
-    ttl: 30
-  - amount: 90
-    ttl: 10
-  - amount: 99
-    ttl: 30
-  - amount: 100
-    ttl: 30
-  - amount: 500
-    ttl: 10
-  - amount: 1000
-    ttl: 30
-  - amount: 10000
-    ttl: 30
-  - amount: 100000
-    ttl: 30
-cacheRanges:
-  - fromUSD: 0
-    toUSD: 100
-    ttl: 10
-  - fromUSD: 101
-    toUSD: 500
-    ttl: 10
-  - fromUSD: 500
-    toUSD: 1000
-    ttl: 10
-  - fromUSD: 1001
-    toUSD: 2000
-    ttl: 15
-  - fromUSD: 2000
-    toUSD: 5000
-    ttl: 15
-  - fromUSD: 5000
-    toUSD: 10000
-    ttl: 15
-  - fromUSD: 10000
-    toUSD: -1
-    ttl: 15
 redis:
   addresses:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "fuji"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 poolRedis:
@@ -122,65 +39,36 @@ poolRedis:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "fuji"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 ddAgentHost: ""
-featureFlags:
-  useOptimizedSPFA: false
-enableGRPC: false
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:
     clientData: "1"
-tokenCatalog:
-  httpUrl: ""
 reloadConfig:
   httpUrl: ""
   interval: 10s
   serviceName: "aggregator"
-  chainID: 43113
-whitelistedTokens: &whitelistedTokens
-  - name: "Wrapped AVAX"
-    symbol: "WAVAX"
-    address: "0xebd333ffbf16491505318ae0678c0d61e40bd7fc"
-    decimals: 18
-    cgkId: "wrapped-avax"
-  - name: "Tether USD"
-    symbol: "USDT"
-    address: "0x82DCEC6aa3c8BFE2C96d40d8805EE0dA15708643"
-    decimals: 18
-    cgkId: "tether"
-  - name: "USD Coin"
-    symbol: "USDC"
-    address: "0xAF82969ECF299c1f1Bb5e1D12dDAcc9027431160"
-    decimals: 6
-    cgkId: "usd-coin"
-  - name: "Kyber Network Crystal"
-    symbol: "KNC"
-    address: "0xbde248b108065a08c60c88d9ed09aec5a8d9a2b1"
-    decimals: 18
-    cgkId: "kyber-network-crystal"
+  chainID: *chainId
 secretKey:
 metrics:
   host:
   port: 8125
   namespace: "kybernetwork."
-blacklistedPools:
 encoder:
-  chainId: 43113
-  executorAddress: 0x1877Ec0770901cc6886FDA7E7525a78c2Ed4e975
-  routerAddress: 0x8d9Fcb70AE1D93B4373e0D990fe629C237791f1F
+  chainId: *chainId
+  executorAddress: *executorAddress
+  routerAddress: *routerAddress
 useCase:
-  poolFactory:
-  cacheRoute:
   getRoute:
-    chainID: 43113
-    gasTokenAddress: 0x21C718C22D52d0F3a789b752D4c2fD5908a8A733
-    routerAddress: 0x6F82A3C19dc0f8D745b72AA263D8B37a1fF18946
-    availableSources:
-      - kyberswap-static
+    chainId: *chainId
+    gasTokenAddress: *gasTokenAddress
+    routerAddress: *routerAddress
+    availableSources: *availableSources
     ammAggregator:
+      whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions:
         directPoolsCount: 100
         whitelistPoolsCount: 500
@@ -280,10 +168,14 @@ useCase:
       priceImpactThreshold: 0.005
       shrinkFuncName: "round"
       shrinkFuncPowExp: 0.7
-    poolFactory:
-      chainID: 43113
+  buildRoute:
+    chainId: *chainId
+  poolFactory:
+    chainId: *chainId
+  poolManager:
+    blacklistedPoolSet: *blacklistedPoolSet
   indexPools:
-    whitelistedTokenSet:
+    whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
 job:
   indexPools:
@@ -293,24 +185,24 @@ job:
 repository:
   gas:
     redis:
-      prefix: fuji
+      prefix: *chainName
   pool:
     redis:
-      prefix: fuji
+      prefix: *chainName
   price:
     redis:
-      prefix: fuji
+      prefix: *chainName
   token:
     redis:
-      prefix: fuji
+      prefix: *chainName
     goCache:
       expiration: -1
       cleanupInterval: -1
   poolRank:
     redis:
-      prefix: fuji
+      prefix: *chainName
   route:
     redisCache:
-      prefix: fuji
+      prefix: *chainName
       localCacheSize: 1000
       localCacheTtl: 30s

@@ -141,10 +141,10 @@ func TestIndexPools_Handle(t *testing.T) {
 			name: "it should return nil result when no pool failed to index",
 			prepare: func(ctrl *gomock.Controller) *IndexPoolsUseCase {
 				mockConfig := IndexPoolsConfig{
-					WhitelistedTokenSet: map[string]struct{}{
-						mockTokens[0].Address: {},
-						mockTokens[2].Address: {},
-						mockTokens[3].Address: {},
+					WhitelistedTokenSet: map[string]bool{
+						mockTokens[0].Address: true,
+						mockTokens[2].Address: true,
+						mockTokens[3].Address: true,
 					},
 					ChunkSize: 100,
 				}
@@ -227,10 +227,10 @@ func TestIndexPools_Handle(t *testing.T) {
 			name: "it should return correct failed pool addresses when some pools were failed to index",
 			prepare: func(ctrl *gomock.Controller) *IndexPoolsUseCase {
 				mockConfig := IndexPoolsConfig{
-					WhitelistedTokenSet: map[string]struct{}{
-						mockTokens[0].Address: {},
-						mockTokens[2].Address: {},
-						mockTokens[3].Address: {},
+					WhitelistedTokenSet: map[string]bool{
+						mockTokens[0].Address: true,
+						mockTokens[2].Address: true,
+						mockTokens[3].Address: true,
 					},
 					ChunkSize: 100,
 				}

@@ -8,66 +8,56 @@ import (
 )
 
 type Config struct {
-	ChainID          valueobject.ChainID `mapstructure:"chainID"`
-	RouterAddress    string              `mapstructure:"routerAddress"`
-	GasTokenAddress  string              `mapstructure:"gasTokenAddress"`
-	AvailableSources []string            `mapstructure:"availableSources"`
+	ChainID          valueobject.ChainID `mapstructure:"chainId" json:"chainId"`
+	RouterAddress    string              `mapstructure:"routerAddress" json:"routerAddress"`
+	GasTokenAddress  string              `mapstructure:"gasTokenAddress" json:"gasTokenAddress"`
+	AvailableSources []string            `mapstructure:"availableSources" json:"availableSources"`
 
-	AmmAggregator AmmAggregatorConfig `mapstructure:"ammAggregator"`
-	Cache         CacheConfig         `mapstructure:"cache"`
-	PoolManager   PoolManagerConfig   `mapstructure:"poolManager"`
-	PoolFactory   PoolFactoryConfig   `mapstructure:"poolFactory"`
+	AmmAggregator AmmAggregatorConfig `mapstructure:"ammAggregator" json:"ammAggregator"`
+	Cache         CacheConfig         `mapstructure:"cache" json:"cache"`
 }
 
 type AmmAggregatorConfig struct {
-	WhitelistedTokenSet map[string]struct{}       `mapstructure:"whitelistedTokenSet"`
-	GetBestPoolsOptions types.GetBestPoolsOptions `mapstructure:"getBestPoolsOptions"`
-	FinderOptions       FinderOptions             `mapstructure:"finderOptions"`
+	WhitelistedTokenSet map[string]bool           `mapstructure:"whitelistedTokenSet" json:"whitelistedTokenSet"`
+	GetBestPoolsOptions types.GetBestPoolsOptions `mapstructure:"getBestPoolsOptions" json:"getBestPoolsOptions"`
+	FinderOptions       FinderOptions             `mapstructure:"finderOptions" json:"finderOptions"`
 }
 
 type CachePoint struct {
-	Amount float64       `mapstructure:"amount"`
-	TTL    time.Duration `mapstructure:"ttl"`
+	Amount float64       `mapstructure:"amount" json:"amount"`
+	TTL    time.Duration `mapstructure:"ttl" json:"ttl"`
 }
 
 type CacheRange struct {
-	AmountUSDLowerBound float64       `mapstructure:"amountUSDLowerBound"`
-	TTL                 time.Duration `mapstructure:"ttl"`
+	AmountUSDLowerBound float64       `mapstructure:"amountUSDLowerBound" json:"amountUSDLowerBound"`
+	TTL                 time.Duration `mapstructure:"ttl" json:"ttl"`
 }
 
 type CacheConfig struct {
 	// DefaultTTL default time to live of the cache
-	DefaultTTL time.Duration `mapstructure:"defaultTtl"`
+	DefaultTTL time.Duration `mapstructure:"defaultTtl" json:"defaultTtl"`
 
 	// TTLByAmount time to live by amount
 	// key is amount without decimals
-	TTLByAmount []CachePoint `mapstructure:"ttlByAmount"`
+	TTLByAmount []CachePoint `mapstructure:"ttlByAmount" json:"ttlByAmount"`
 
 	// TTLByAmountUSDRange time to live by amount usd range
 	// key is lower bound of the range
-	TTLByAmountUSDRange []CacheRange `mapstructure:"ttlByAmountUsdRange"`
+	TTLByAmountUSDRange []CacheRange `mapstructure:"ttlByAmountUsdRange" json:"ttlByAmountUsdRange"`
 
-	PriceImpactThreshold float64 `mapstructure:"priceImpactThreshold"`
+	PriceImpactThreshold float64 `mapstructure:"priceImpactThreshold" json:"priceImpactThreshold"`
 
-	ShrinkFuncName   string  `mapstructure:"shrinkFuncName"`
-	ShrinkFuncPowExp float64 `mapstructure:"shrinkFuncPowExp"`
-}
-
-type PoolManagerConfig struct {
-	BlacklistedPoolSet map[string]struct{} `mapstructure:"blacklistedPoolSet"`
+	ShrinkFuncName   string  `mapstructure:"shrinkFuncName" json:"shrinkFuncName"`
+	ShrinkFuncPowExp float64 `mapstructure:"shrinkFuncPowExp" json:"shrinkFuncPowExp"`
 }
 
 type FinderOptions struct {
-	MaxHops                 uint32  `mapstructure:"maxHops"`
-	DistributionPercent     uint32  `mapstructure:"distributionPercent"`
-	MaxPathsInRoute         uint32  `mapstructure:"maxPathsInRoute"`
-	MaxPathsToGenerate      uint32  `mapstructure:"maxPathsToGenerate"`
-	MaxPathsToReturn        uint32  `mapstructure:"maxPathsToReturn"`
-	MinPartUSD              float64 `mapstructure:"minPartUSD"`
-	MinThresholdAmountInUSD float64 `mapstructure:"minThresholdAmountInUSD"`
-	MaxThresholdAmountInUSD float64 `mapstructure:"maxThresholdAmountInUSD"`
-}
-
-type PoolFactoryConfig struct {
-	ChainID int `mapstructure:"chainId"`
+	MaxHops                 uint32  `mapstructure:"maxHops" json:"maxHops"`
+	DistributionPercent     uint32  `mapstructure:"distributionPercent" json:"distributionPercent"`
+	MaxPathsInRoute         uint32  `mapstructure:"maxPathsInRoute" json:"maxPathsInRoute"`
+	MaxPathsToGenerate      uint32  `mapstructure:"maxPathsToGenerate" json:"maxPathsToGenerate"`
+	MaxPathsToReturn        uint32  `mapstructure:"maxPathsToReturn" json:"maxPathsToReturn"`
+	MinPartUSD              float64 `mapstructure:"minPartUSD" json:"minPartUSD"`
+	MinThresholdAmountInUSD float64 `mapstructure:"minThresholdAmountInUSD" json:"minThresholdAmountInUSD"`
+	MaxThresholdAmountInUSD float64 `mapstructure:"maxThresholdAmountInUSD" json:"maxThresholdAmountInUSD"`
 }

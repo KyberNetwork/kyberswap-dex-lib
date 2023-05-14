@@ -3,6 +3,7 @@ package getroute
 import (
 	"context"
 	"math/big"
+	"sync"
 
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -22,6 +23,8 @@ type useCase struct {
 	gasRepository   IGasRepository
 
 	config Config
+
+	mu sync.RWMutex
 }
 
 func NewUseCase(
@@ -30,11 +33,9 @@ func NewUseCase(
 	priceRepository IPriceRepository,
 	routeCacheRepository IRouteCacheRepository,
 	gasRepository IGasRepository,
-	poolRepository IPoolRepository,
+	poolManager IPoolManager,
 	config Config,
 ) *useCase {
-	poolFactory := NewPoolFactory(config.PoolFactory)
-	poolManager := NewPoolManager(poolRepository, poolFactory, config.PoolManager)
 	ammAggregator := NewAMMAggregator(
 		poolRankRepository,
 		tokenRepository,
@@ -83,6 +84,14 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 		RouteSummary:  routeSummary,
 		RouterAddress: u.config.RouterAddress,
 	}, nil
+}
+
+func (u *useCase) ApplyConfig(config Config) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	u.config = config
+	u.aggregator.ApplyConfig(config)
 }
 
 // wrapTokens wraps tokens in query and returns the query

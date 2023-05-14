@@ -41,6 +41,10 @@ func (r *redisRepository) FindByAddresses(ctx context.Context, addresses []strin
 
 	prices := make([]*entity.Price, 0, len(priceDataList))
 	for i, priceData := range priceDataList {
+		if priceData == nil {
+			continue
+		}
+
 		priceDataStr, ok := priceData.(string)
 		if !ok {
 			logger.

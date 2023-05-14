@@ -162,29 +162,39 @@ func (cl *ConfigLoader) Get() (*Config, error) {
 }
 
 func (cl *ConfigLoader) setEnabledDexes(enabledDexes []valueobject.Dex) {
-	var stringDexes []string
+	availableSources := make([]string, 0, len(enabledDexes))
+
 	for _, d := range enabledDexes {
-		stringDexes = append(stringDexes, string(d))
+		availableSources = append(availableSources, string(d))
 	}
-	cl.config.EnableDexes = stringDexes
+
+	cl.config.Common.AvailableSources = availableSources
+	cl.config.UseCase.GetRoute.AvailableSources = availableSources
 }
 
 func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.WhitelistedToken) {
-	whitelistedTokenSet := make(map[string]struct{}, len(whitelistedTokens))
+	whitelistedTokenSet := make(map[string]bool, len(whitelistedTokens))
 	for _, whitelistedToken := range whitelistedTokens {
-		whitelistedTokenSet[whitelistedToken.Address] = struct{}{}
+		whitelistedTokenSet[strings.ToLower(whitelistedToken.Address)] = true
 	}
 
-	cl.config.WhitelistedTokens = whitelistedTokens
+	cl.config.Common.WhitelistedTokenSet = whitelistedTokenSet
+	cl.config.UseCase.GetRoute.AmmAggregator.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.IndexPools.WhitelistedTokenSet = whitelistedTokenSet
 }
 
 func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {
-	cl.config.BlacklistedPools = blacklistedPools
+	blacklistedPoolSet := make(map[string]bool, len(blacklistedPools))
+	for _, blacklistedPool := range blacklistedPools {
+		blacklistedPoolSet[strings.ToLower(blacklistedPool)] = true
+	}
+
+	cl.config.Common.BlacklistedPoolsSet = blacklistedPoolSet
+	cl.config.UseCase.PoolManager.BlacklistedPoolSet = blacklistedPoolSet
 }
 
 func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
-	cl.config.FeatureFlags = featureFlags
+	cl.config.Common.FeatureFlags = featureFlags
 }
 
 func (cl *ConfigLoader) setLog(log valueobject.Log) {

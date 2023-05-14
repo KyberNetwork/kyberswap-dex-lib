@@ -7,131 +7,58 @@ grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainID: 56
-  dataFolder: internal/pkg/data/chain/bsc
-  publicRPC: "https://bsc-dataseed.binance.org"
-  rpcs:
-    - "https://bscrpc.com"
-  rpc: "https://bscrpc.com"
-  address:
-    multicall: '0xed386fe855c1eff2f843b910923dd8846e45c5a4'
-    gasToken: '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c'
-    executorAddress: '0x41684b361557E9282E0373CA51260D9331e518C9'
-    routerAddress: '0x617Dee16B86534a5d792A4d7A62FB491B544111E'
+  chainId: &chainId 56
+  chainName: &chainName bsc
+  rpc: "https://bsc.kyberengineering.io"
+  executorAddress: &executorAddress "0x1d5702C6D7eB30E42A8c94B8Db7eA2E8444a37FD"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+  gasTokenAddress: &gasTokenAddress "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
+  whitelistedTokenSet: &whitelistedTokenSet
+    0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c: true # WBNB
+    0x55d398326f99059ff775485246999027b3197955: true # USDT
+    0x1af3f329e8be154074d8769d1ffa4ee058b1dbc3: true # DAI
+    0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d: true # USDC
+    0xe9e7cea3dedca5984780bafc599bd69add087d56: true # BUSD
+    0x2170ed0880ac9a755fd29b2688956bd959f933f8: true # ETH
+    0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c: true # BTCB
+    0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82: true # CAKE
+    0xfe56d5892bdffc7bf58f2e84be1b2c32d21c308b: true # KNC
+    0x0aCfc95A193009F1EA45b7fAEEF2d5e4a47c21b4: true # VERSA
+  blacklistedPoolSet: &blacklistedPoolSet
+    - "0xfeafe253802b77456b4627f8c2306a9cebb5d681"
+    - "0xffe166ceabef3af31977fb76b93892e8c4c504e6"
+  availableSources: &availableSources
+    - "kyberswap"
+    - "kyberswap-static"
+    - "kyberswapv2"
+    - "sushiswap"
+    - "oneswap"
+    - "ellipsis"
+    - "nerve"
+    - "apeswap"
+    - "jetswap"
+    - "mdex"
+    - "pancake"
+    - "wault"
+    - "pancake-legacy"
+    - "synapse"
+    - "pantherswap"
+    - "dodo"
+    - "biswap"
+    - "fraxswap"
+    - "kyberswap-limit-order"
+  featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
   enableConsole: true
   enableJSONFormat: true
-enableDexes: &enableDexes
-  - kyberswap
-  - kyberswap-static
-  - kyberswapv2
-  - sushiswap
-  - oneswap
-  - ellipsis
-  - nerve
-  - apeswap
-  - jetswap
-  - mdex
-  - pancake
-  - wault
-  - biswap
-  - pancake-legacy
-  - synapse
-  - pantherswap
-  - dodo
-  - fraxswap
-  - kyberswap-limit-order
-cachePoints:
-  - amount: 1
-    ttl: 30
-  - amount: 2
-    ttl: 10
-  - amount: 5
-    ttl: 10
-  - amount: 10
-    ttl: 10
-  - amount: 11
-    ttl: 30
-  - amount: 15
-    ttl: 10
-  - amount: 20
-    ttl: 10
-  - amount: 22
-    ttl: 30
-  - amount: 25
-    ttl: 10
-  - amount: 30
-    ttl: 10
-  - amount: 33
-    ttl: 30
-  - amount: 35
-    ttl: 10
-  - amount: 40
-    ttl: 10
-  - amount: 44
-    ttl: 30
-  - amount: 45
-    ttl: 10
-  - amount: 50
-    ttl: 10
-  - amount: 55
-    ttl: 30
-  - amount: 60
-    ttl: 10
-  - amount: 66
-    ttl: 30
-  - amount: 70
-    ttl: 10
-  - amount: 77
-    ttl: 30
-  - amount: 80
-    ttl: 10
-  - amount: 88
-    ttl: 30
-  - amount: 90
-    ttl: 10
-  - amount: 99
-    ttl: 30
-  - amount: 100
-    ttl: 10
-  - amount: 500
-    ttl: 10
-  - amount: 1000
-    ttl: 10
-  - amount: 10000
-    ttl: 10
-  - amount: 100000
-    ttl: 10
-cacheRanges:
-  - fromUSD: 0
-    toUSD: 100
-    ttl: 10
-  - fromUSD: 101
-    toUSD: 500
-    ttl: 10
-  - fromUSD: 500
-    toUSD: 1000
-    ttl: 10
-  - fromUSD: 1001
-    toUSD: 2000
-    ttl: 10
-  - fromUSD: 2000
-    toUSD: 5000
-    ttl: 10
-  - fromUSD: 5000
-    toUSD: 10000
-    ttl: 10
-  - fromUSD: 10000
-    toUSD: -1
-    ttl: 10
 redis:
   addresses:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "bsc"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 poolRedis:
@@ -139,112 +66,37 @@ poolRedis:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "bsc"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 ddAgentHost: ""
-featureFlags:
-  useOptimizedSPFA: false
-enableGRPC: false
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:
     clientData: "1"
-tokenCatalog:
-  httpUrl: ""
 reloadConfig:
   httpUrl: ""
   interval: 10s
   serviceName: "aggregator"
-  chainID: 56
-whitelistedTokens: &whitelistedTokens
-  - name: "Wrapped BNB"
-    symbol: "WBNB"
-    address: "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
-    decimals: 18
-    cgkId: "wbnb"
-  - name: "Tether USD"
-    symbol: "USDT"
-    address: "0x55d398326f99059ff775485246999027b3197955"
-    decimals: 18
-    cgkId: "tether"
-  - name: "Dai Stablecoin"
-    symbol: "DAI"
-    address: "0x1af3f329e8be154074d8769d1ffa4ee058b1dbc3"
-    decimals: 18
-    cgkId: "dai"
-  - name: "Binance-Peg USD Coin"
-    symbol: "USDC"
-    address: "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d"
-    decimals: 18
-    cgkId: "usd-coin"
-  - name: "Binance USD"
-    symbol: "BUSD"
-    address: "0xe9e7cea3dedca5984780bafc599bd69add087d56"
-    decimals: 18
-    cgkId: "binance-usd"
-  - name: "Ethereum Token"
-    symbol: "ETH"
-    address: "0x2170ed0880ac9a755fd29b2688956bd959f933f8"
-    decimals: 18
-    cgkId: "ethereum"
-  - name: "BTCB Token"
-    symbol: "BTCB"
-    address: "0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c"
-    decimals: 18
-  - name: "PancakeSwap Token"
-    symbol: "CAKE"
-    address: "0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82"
-    decimals: 18
-  - name: "Kyber Network Crystal"
-    symbol: "KNC"
-    address: "0xfe56d5892bdffc7bf58f2e84be1b2c32d21c308b"
-    decimals: 18
-    cgkId: "kyber-network-crystal"
-  - name: "VersaGames"
-    symbol: "VERSA"
-    address: "0x0aCfc95A193009F1EA45b7fAEEF2d5e4a47c21b4"
-    decimals: 18
-    cgkId: "versagames"
+  chainID: *chainId
 secretKey:
 metrics:
   host:
   port: 8125
   namespace: "kybernetwork."
-blacklistedPools:
 encoder:
-  chainId: 56
-  executorAddress:
-  routerAddress:
+  chainId: *chainId
+  executorAddress: *executorAddress
+  routerAddress: *routerAddress
   kyberLOAddress:
 useCase:
-  poolFactory:
-  cacheRoute:
   getRoute:
-    chainID: 56
-    gasTokenAddress: 0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c
-    routerAddress: 0x09917437898D7378C41Fdc4e8AdA531e7b360fe8
-    availableSources:
-      - kyberswap
-      - kyberswap-static
-      - kyberswapv2
-      - sushiswap
-      - oneswap
-      - ellipsis
-      - nerve
-      - apeswap
-      - jetswap
-      - mdex
-      - pancake
-      - wault
-      - biswap
-      - pancake-legacy
-      - synapse
-      - pantherswap
-      - dodo
-      - fraxswap
-      - kyberswap-limit-order
+    chainId: *chainId
+    gasTokenAddress: *gasTokenAddress
+    routerAddress: *routerAddress
+    availableSources: *availableSources
     ammAggregator:
+      whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions:
         directPoolsCount: 100
         whitelistPoolsCount: 500
@@ -344,10 +196,14 @@ useCase:
       priceImpactThreshold: 0.005
       shrinkFuncName: "round"
       shrinkFuncPowExp: 0.7
-    poolFactory:
-      chainID: 56
+  buildRoute:
+    chainId: *chainId
+  poolFactory:
+    chainId: *chainId
+  poolManager:
+    blacklistedPoolSet: *blacklistedPoolSet
   indexPools:
-    whitelistedTokenSet:
+    whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
 job:
   indexPools:
@@ -357,24 +213,24 @@ job:
 repository:
   gas:
     redis:
-      prefix: bsc
+      prefix: *chainName
   pool:
     redis:
-      prefix: bsc
+      prefix: *chainName
   price:
     redis:
-      prefix: bsc
+      prefix: *chainName
   token:
     redis:
-      prefix: bsc
+      prefix: *chainName
     goCache:
       expiration: -1
       cleanupInterval: -1
   poolRank:
     redis:
-      prefix: bsc
+      prefix: *chainName
   route:
     redisCache:
-      prefix: bsc
+      prefix: *chainName
       localCacheSize: 1000
       localCacheTtl: 30s

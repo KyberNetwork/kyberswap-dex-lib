@@ -7,222 +7,87 @@ grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainID: 250
-  dataFolder: internal/pkg/data/chain/fantom
-  publicRPC: "https://rpc.ftm.tools/"
-  rpcs:
-    - https://rpc.ftm.tools/
-  rpc: https://rpc.ftm.tools/
-  address:
-    multicall: '0xeaa5bc63466ce2359c2a13dce952bd0e88a5bef7'
-    gasToken: '0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83'
-    executorAddress: '0x41684b361557E9282E0373CA51260D9331e518C9'
-    routerAddress: '0x617Dee16B86534a5d792A4d7A62FB491B544111E'
+  chainId: &chainId 250
+  chainName: &chainName fantom
+  rpc: "https://fantom.knstats.com/v1/mainnet/geth?appId=prod-dmm-aggregator-backend"
+  executorAddress: &executorAddress "0xf9A747eC426F8fFD0D550f9f867604077FFf15F6"
+  routerAddress: &routerAddress "0x8A11B742dc630dE5E4EFc07C91E3499A09fae06c"
+  gasTokenAddress: &gasTokenAddress "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83"
+  whitelistedTokenSet: &whitelistedTokenSet
+    0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83: true # FTM
+    0x049d68029688eabf473097a2fc38ef61633a3c7a: true # fUSDT
+    0x8d11ec38a3eb5e956b052f67da8bdc9bef8abf3e: true # DAI
+    0x04068da6c83afcfa0e13ba15a6696662335d5b75: true # USDC
+    0x74b23882a30290451a17c44f4f05243b6b58c76d: true # WETH
+    0x321162cd933e2be498cd2267a90534a804051b11: true # BTC
+    0x1e1085efaa63edfe74aad7c05a28eae4ef917c3f: true # KNC
+  blacklistedPoolSet: &blacklistedPoolSet
+  availableSources: &availableSources
+    - "kyberswap"
+    - "kyberswap-static"
+    - "kyberswapv2"
+    - "spookyswap"
+    - "spiritswap"
+    - "curve"
+    - "jetswap"
+    - "paintswap"
+    - "sushiswap"
+    - "beethovenx"
+    - "synapse"
+    - "morpheus"
+    - "saddle"
+    - "fraxswap"
+    - "kyberswap-limit-order"
+  featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
   enableConsole: true
-  enableJSONFormat: false
-enableDexes: &enableDexes
-  - kyberswap
-  - kyberswap-static
-  - kyberswapv2
-  - spookyswap
-  - spiritswap
-  - curve
-  - jetswap
-  - paintswap
-  - sushiswap
-  - beethovenx
-  - synapse
-  - morpheus
-  - saddle
-  - fraxswap
-  - kyberswap-limit-order
-cachePoints:
-  - amount: 1
-    ttl: 30
-  - amount: 2
-    ttl: 10
-  - amount: 5
-    ttl: 10
-  - amount: 10
-    ttl: 10
-  - amount: 11
-    ttl: 30
-  - amount: 15
-    ttl: 10
-  - amount: 20
-    ttl: 10
-  - amount: 22
-    ttl: 30
-  - amount: 25
-    ttl: 10
-  - amount: 30
-    ttl: 10
-  - amount: 33
-    ttl: 30
-  - amount: 35
-    ttl: 10
-  - amount: 40
-    ttl: 10
-  - amount: 44
-    ttl: 30
-  - amount: 45
-    ttl: 10
-  - amount: 50
-    ttl: 10
-  - amount: 55
-    ttl: 30
-  - amount: 60
-    ttl: 10
-  - amount: 66
-    ttl: 30
-  - amount: 70
-    ttl: 10
-  - amount: 77
-    ttl: 30
-  - amount: 80
-    ttl: 10
-  - amount: 88
-    ttl: 30
-  - amount: 90
-    ttl: 10
-  - amount: 99
-    ttl: 30
-  - amount: 100
-    ttl: 30
-  - amount: 500
-    ttl: 10
-  - amount: 1000
-    ttl: 30
-  - amount: 10000
-    ttl: 30
-  - amount: 100000
-    ttl: 30
-cacheRanges:
-  - fromUSD: 0
-    toUSD: 100
-    ttl: 10
-  - fromUSD: 101
-    toUSD: 500
-    ttl: 10
-  - fromUSD: 500
-    toUSD: 1000
-    ttl: 10
-  - fromUSD: 1001
-    toUSD: 2000
-    ttl: 15
-  - fromUSD: 2000
-    toUSD: 5000
-    ttl: 15
-  - fromUSD: 5000
-    toUSD: 10000
-    ttl: 15
-  - fromUSD: 10000
-    toUSD: -1
-    ttl: 15
+  enableJSONFormat: true
 redis:
-  addresses: localhost:6379
+  addresses:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "fantom"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 poolRedis:
-  addresses: localhost:6379
+  addresses:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "fantom"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 ddAgentHost: ""
-featureFlags:
-  useOptimizedSPFA: false
-enableGRPC: false
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:
     clientData: "1"
-tokenCatalog:
-  httpUrl: ""
 reloadConfig:
   httpUrl: ""
   interval: 10s
   serviceName: "aggregator"
-  chainID: 250
-whitelistedTokens: &whitelistedTokens
-  - name: "Wrapped Fantom"
-    symbol: "FTM"
-    address: "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83"
-    decimals: 18
-    cgkId: "wrapped-fantom"
-  - name: "Frapped USDT"
-    symbol: "fUSDT"
-    address: "0x049d68029688eabf473097a2fc38ef61633a3c7a"
-    decimals: 6
-    cgkId: "tether"
-  - name: "Dai Stablecoin"
-    symbol: "DAI"
-    address: "0x8d11ec38a3eb5e956b052f67da8bdc9bef8abf3e"
-    decimals: 18
-    cgkId: "dai"
-  - name: "USD Coin"
-    symbol: "USDC"
-    address: "0x04068da6c83afcfa0e13ba15a6696662335d5b75"
-    decimals: 6
-    cgkId: "usd-coin"
-  - name: "Wrapped Ether"
-    symbol: "WETH"
-    address: "0x74b23882a30290451a17c44f4f05243b6b58c76d"
-    decimals: 18
-    cgkId: "ethereum"
-  - name: "Wrapped BTC"
-    symbol: "BTC"
-    address: "0x321162cd933e2be498cd2267a90534a804051b11"
-    decimals: 8
-  - name: "Kyber Network Crystal"
-    symbol: "KNC"
-    address: "0x1e1085efaa63edfe74aad7c05a28eae4ef917c3f"
-    decimals: 18
-    cgkId: "kyber-network-crystal"
+  chainID: *chainId
 secretKey:
 metrics:
   host:
   port: 8125
   namespace: "kybernetwork."
-blacklistedPools:
 encoder:
-  chainId: 250
-  executorAddress: 0xf9A747eC426F8fFD0D550f9f867604077FFf15F6
-  routerAddress: 0x8A11B742dc630dE5E4EFc07C91E3499A09fae06c
-  kyberLOAddress: 0x15a7e4A0BD7B96ada9db1219fA62c521bDCd8F81
+  chainId: *chainId
+  executorAddress: *executorAddress
+  routerAddress: *routerAddress
+  kyberLOAddress:
 useCase:
-  poolFactory:
-  cacheRoute:
   getRoute:
-    chainID: 250
-    gasTokenAddress: 0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83
-    routerAddress: 0x8A11B742dc630dE5E4EFc07C91E3499A09fae06c
-    availableSources:
-      - kyberswap
-      - kyberswap-static
-      - kyberswapv2
-      - spookyswap
-      - spiritswap
-      - curve
-      - jetswap
-      - paintswap
-      - sushiswap
-      - beethovenx
-      - synapse
-      - morpheus
-      - saddle
-      - fraxswap
-      - kyberswap-limit-order
+    chainId: *chainId
+    gasTokenAddress: *gasTokenAddress
+    routerAddress: *routerAddress
+    availableSources: *availableSources
     ammAggregator:
+      whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions:
         directPoolsCount: 100
         whitelistPoolsCount: 500
@@ -322,10 +187,14 @@ useCase:
       priceImpactThreshold: 0.005
       shrinkFuncName: "round"
       shrinkFuncPowExp: 0.7
-    poolFactory:
-      chainID: 250
+  buildRoute:
+    chainId: *chainId
+  poolFactory:
+    chainId: *chainId
+  poolManager:
+    blacklistedPoolSet: *blacklistedPoolSet
   indexPools:
-    whitelistedTokenSet:
+    whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
 job:
   indexPools:
@@ -335,24 +204,24 @@ job:
 repository:
   gas:
     redis:
-      prefix: fantom
+      prefix: *chainName
   pool:
     redis:
-      prefix: fantom
+      prefix: *chainName
   price:
     redis:
-      prefix: fantom
+      prefix: *chainName
   token:
     redis:
-      prefix: fantom
+      prefix: *chainName
     goCache:
       expiration: -1
       cleanupInterval: -1
   poolRank:
     redis:
-      prefix: fantom
+      prefix: *chainName
   route:
     redisCache:
-      prefix: fantom
+      prefix: *chainName
       localCacheSize: 1000
       localCacheTtl: 30s

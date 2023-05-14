@@ -7,135 +7,61 @@ grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainID: 42161
-  dataFolder: internal/pkg/data/chain/arbitrum
-  publicRPC: "https://arb1.arbitrum.io/rpc"
-  rpcs:
-    - "https://arbitrum.kyberengineering.io"
+  chainId: &chainId 42161
+  chainName: &chainName arbitrum
   rpc: "https://arbitrum.kyberengineering.io"
-  address:
-    # multicall: '0x80c7dd17b01855a6d2347444a0fcc36136a314de'
-    multicall: '0xBF69a56D35B8d6f5A8e0e96B245a72F735751e54'
-    gasToken: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1'
-    executorAddress: '0x6F82A3C19dc0f8D745b72AA263D8B37a1fF18946'
-    routerAddress: '0x617Dee16B86534a5d792A4d7A62FB491B544111E'
-gas:
-  gasPriceOracleContract: "0x000000000000000000000000000000000000006c"
+  executorAddress: &executorAddress "0x1d5702C6D7eB30E42A8c94B8Db7eA2E8444a37FD"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+  gasTokenAddress: &gasTokenAddress "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+  whitelistedTokenSet: &whitelistedTokenSet
+    0x4CFA50B7Ce747e2D61724fcAc57f24B748FF2b2A: true # FUSDC
+    0x1622bf67e6e5747b81866fe0b85178a93c7f86e3: true # UMAMI
+    0x912CE59144191C1204E64559FE8253a0e49E6548: true # ARB
+    0xfa5ed56a203466cbbc2430a43c66b9d8723528e7: true # agEUR
+    0x82af49447d8a07e3bd95bd0d56f35241523fbab1: true # WETH
+    0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9: true # USDT
+    0xda10009cbd5d07dd0cecc66161fc93d7c9000da1: true # DAI
+    0xff970a61a04b1ca14834a43f5de4533ebddb5cc8: true # USDC
+    0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f: true # WBTC
+    0xFEa7a6a0B346362BF88A9e4A88416B77a57D6c2A: true # MIM
+    0x5979D7b546E38E414F7E9822514be443A4800529: true # WSTETH
+    0xe4dddfe67e7164b0fe14e218d80dc4c08edc01cb: true # KNC
+    0x3f56e0c36d275367b8c502090edf38289b3dea0d: true # MAI
+    0x316772cfec9a3e976fde42c3ba21f5a13aaaff12: true # mKNC
+    0x13ad51ed4f1b7e9dc168d8a00cb3f4ddd85efa60: true # LDO
+    0xf97f4df75117a78c1a5a0dbb814af92458539fb4: true # LINK
+  blacklistedPoolSet: &blacklistedPoolSet
+    0x7b07164ecfaf0f0d85dfc062bc205a4674c75aa0: true
+    0x1506b54a1c0ea1b2f4a84866ec5776f7f6e7f0b1: true
+  availableSources: &availableSources
+    - "kyberswap"
+    - "kyberswap-static"
+    - "kyberswapv2"
+    - "uniswapv3"
+    - "sushiswap"
+    - "curve"
+    - "balancer"
+    - "swapr"
+    - "synapse"
+    - "saddle"
+    - "dodo"
+    - "gmx"
+    - "fraxswap"
+    - "camelot"
+    - "kyberswap-limit-order"
+    - "chronos"
+  featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
   enableConsole: true
   enableJSONFormat: true
-enableDexes: &enableDexes
-  - kyberswap
-  - kyberswap-static
-  - kyberswapv2
-  - uniswapv3
-  - sushiswap
-  - curve
-  - balancer
-  - swapr
-  - synapse
-#   - dfyn
-  - saddle
-  - dodo
-  - gmx
-  - fraxswap
-  - camelot
-  - kyberswap-limit-order
-  - chronos
-cachePoints:
-  - amount: 1
-    ttl: 30
-  - amount: 2
-    ttl: 30
-  - amount: 5
-    ttl: 30
-  - amount: 10
-    ttl: 30
-  - amount: 11
-    ttl: 30
-  - amount: 12
-    ttl: 30
-  - amount: 15
-    ttl: 30
-  - amount: 20
-  - amount: 21
-    ttl: 30
-  - amount: 22
-    ttl: 30
-  - amount: 25
-    ttl: 30
-  - amount: 30
-    ttl: 30
-  - amount: 33
-    ttl: 30
-  - amount: 35
-    ttl: 30
-  - amount: 40
-    ttl: 30
-  - amount: 44
-    ttl: 30
-  - amount: 45
-    ttl: 30
-  - amount: 50
-    ttl: 30
-  - amount: 55
-    ttl: 30
-  - amount: 60
-    ttl: 30
-  - amount: 66
-    ttl: 30
-  - amount: 70
-    ttl: 30
-  - amount: 77
-    ttl: 30
-  - amount: 80
-    ttl: 30
-  - amount: 88
-    ttl: 30
-  - amount: 90
-    ttl: 30
-  - amount: 99
-    ttl: 30
-  - amount: 100
-    ttl: 30
-  - amount: 500
-    ttl: 30
-  - amount: 1000
-    ttl: 30
-  - amount: 10000
-    ttl: 30
-  - amount: 100000
-    ttl: 30
-cacheRanges:
-  - fromUSD: 0
-    toUSD: 100
-    ttl: 15
-  - fromUSD: 101
-    toUSD: 500
-    ttl: 15
-  - fromUSD: 500
-    toUSD: 1000
-    ttl: 15
-  - fromUSD: 1001
-    toUSD: 2000
-    ttl: 30
-  - fromUSD: 2000
-    toUSD: 5000
-    ttl: 30
-  - fromUSD: 5000
-    toUSD: 10000
-    ttl: 30
-  - fromUSD: 10000
-    toUSD: -1
-    ttl: 30
 redis:
   addresses:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "arbitrum"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 poolRedis:
@@ -143,101 +69,39 @@ poolRedis:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "arbitrum"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 ddAgentHost: ""
 featureFlags:
   useOptimizedSPFA: false
-enableGRPC: false
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:
     clientData: "1"
-tokenCatalog:
-  httpUrl: ""
 reloadConfig:
   httpUrl: ""
   interval: 10s
   serviceName: "aggregator"
-  chainID: 42161
-whitelistedTokens: &whitelistedTokens
-  - name: "Wrapped Ether"
-    symbol: "WETH"
-    address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
-    decimals: 18
-    cgkId: "ethereum"
-  - name: "Tether USD"
-    symbol: "USDT"
-    address: "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"
-    decimals: 6
-    cgkId: "tether"
-  - name: "Dai Stablecoin"
-    symbol: "DAI"
-    address: "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1"
-    decimals: 18
-    cgkId: "dai"
-  - name: "USD Coin"
-    symbol: "USDC"
-    address: "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8"
-    decimals: 6
-    cgkId: "usd-coin"
-  - name: "Wrapped BTC"
-    symbol: "WBTC"
-    address: "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f"
-    decimals: 8
-    cgkId: "bitcoin"
-  - name: "Magic Internet Money"
-    symbol: "MIM"
-    address: "0xFEa7a6a0B346362BF88A9e4A88416B77a57D6c2A"
-    decimals: 18
-    cgkId: "magic-internet-money"
-  - name: "Wrapped liquid staked Ether 2.0"
-    symbol: "WSTETH"
-    address: "0x5979D7b546E38E414F7E9822514be443A4800529"
-    decimals: 18
-    cgkId: "wrapped-steth"
-  - name: "Kyber Network Crystal"
-    symbol: "KNC"
-    address: "0xe4dddfe67e7164b0fe14e218d80dc4c08edc01cb"
-    decimals: 18
-    cgkId: "kyber-network-crystal"
+  chainID: *chainId
 secretKey:
 metrics:
   host:
   port: 8125
   namespace: "kybernetwork."
-blacklistedPools:
 encoder:
-  chainId: 42161
-  executorAddress:
-  routerAddress:
+  chainId: *chainId
+  executorAddress: *executorAddress
+  routerAddress: *routerAddress
   kyberLOAddress:
 useCase:
-  poolFactory:
-  cacheRoute:
   getRoute:
-    chainID: 42161
-    gasTokenAddress: 0x82af49447d8a07e3bd95bd0d56f35241523fbab1
-    routerAddress: 0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D
-    availableSources:
-      - kyberswap
-      - kyberswap-static
-      - kyberswapv2
-      - uniswapv3
-      - sushiswap
-      - curve
-      - balancer
-      - swapr
-      - synapse
-      - saddle
-      - dodo
-      - gmx
-      - fraxswap
-      - camelot
-      - kyberswap-limit-order
-      - chronos
+    chainId: *chainId
+    gasTokenAddress: *gasTokenAddress
+    routerAddress: *routerAddress
+    availableSources: *availableSources
     ammAggregator:
+      whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions:
         directPoolsCount: 100
         whitelistPoolsCount: 500
@@ -337,10 +201,14 @@ useCase:
       priceImpactThreshold: 0.005
       shrinkFuncName: "round"
       shrinkFuncPowExp: 0.7
-    poolFactory:
-      chainID: 42161
+  buildRoute:
+    chainId: *chainId
+  poolFactory:
+    chainId: *chainId
+  poolManager:
+    blacklistedPoolSet: *blacklistedPoolSet
   indexPools:
-    whitelistedTokenSet:
+    whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
 job:
   indexPools:
@@ -350,25 +218,25 @@ job:
 repository:
   gas:
     redis:
-      prefix: arbitrum
+      prefix: *chainName
   pool:
     redis:
-      prefix: arbitrum
+      prefix: *chainName
   price:
     redis:
-      prefix: arbitrum
+      prefix: *chainName
   token:
     redis:
-      prefix: arbitrum
+      prefix: *chainName
     goCache:
       expiration: -1
       cleanupInterval: -1
   poolRank:
     redis:
-      prefix: arbitrum
+      prefix: *chainName
   route:
     redisCache:
-      prefix: arbitrum
+      prefix: *chainName
       localCacheSize: 1000
       localCacheTtl: 30s
 

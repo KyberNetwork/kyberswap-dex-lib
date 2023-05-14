@@ -3,6 +3,7 @@ package getroute
 import (
 	"context"
 	"math/big"
+	"sync"
 
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -12,6 +13,7 @@ import (
 	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -29,6 +31,8 @@ type ammAggregator struct {
 	routeFinder findroute.IFinder
 
 	config AmmAggregatorConfig
+
+	mu sync.RWMutex
 }
 
 func NewAMMAggregator(
@@ -95,6 +99,13 @@ func (a *ammAggregator) Aggregate(ctx context.Context, params *types.AggregatePa
 	return a.findBestRoute(ctx, params, poolByAddress, tokenByAddress, priceByAddress)
 }
 
+func (a *ammAggregator) ApplyConfig(config Config) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	a.config = config.AmmAggregator
+}
+
 // findBestRoute find the best route and summarize it
 func (a *ammAggregator) findBestRoute(
 	ctx context.Context,
@@ -142,8 +153,8 @@ func (a *ammAggregator) summarizeRoute(
 	poolByAddress, err := a.poolManager.GetPoolByAddress(
 		ctx,
 		route.ExtractPoolAddresses(),
-		PoolFilterSources(params.Sources),
-		PoolFilterHasReserveOrAmplifiedTvl,
+		common.PoolFilterSources(params.Sources),
+		common.PoolFilterHasReserveOrAmplifiedTvl,
 	)
 	if err != nil {
 		return nil, err
@@ -269,8 +280,8 @@ func (a *ammAggregator) getPoolByAddress(
 	return a.poolManager.GetPoolByAddress(
 		ctx,
 		bestPoolIDs,
-		PoolFilterSources(ammSources),
-		PoolFilterHasReserveOrAmplifiedTvl,
+		common.PoolFilterSources(ammSources),
+		common.PoolFilterHasReserveOrAmplifiedTvl,
 	)
 }
 
@@ -307,9 +318,7 @@ func (a *ammAggregator) getPriceUSDByAddress(ctx context.Context, tokenAddresses
 }
 
 func (a *ammAggregator) isWhitelistedToken(tokenAddress string) bool {
-	_, contained := a.config.WhitelistedTokenSet[tokenAddress]
-
-	return contained
+	return a.config.WhitelistedTokenSet[tokenAddress]
 }
 
 func (a *ammAggregator) filterAMMSources(sources []string) []string {

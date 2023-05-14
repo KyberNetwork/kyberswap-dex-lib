@@ -41,6 +41,10 @@ func (r *redisRepository) FindByAddresses(ctx context.Context, addresses []strin
 
 	tokens := make([]*entity.Token, 0, len(tokenDataList))
 	for i, tokenData := range tokenDataList {
+		if tokenData == nil {
+			continue
+		}
+
 		tokenDataStr, ok := tokenData.(string)
 		if !ok {
 			logger.

@@ -7,120 +7,35 @@ grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainID: 106
-  dataFolder: internal/pkg/data/chain/velas
-  publicRPC: "https://evmexplorer.velas.com/rpc"
-  rpcs:
-    - "https://evmexplorer.velas.com/rpc"
+  chainId: &chainId 106
+  chainName: &chainName velas
   rpc: "https://evmexplorer.velas.com/rpc"
-  address:
-    multicall: '0x1877Ec0770901cc6886FDA7E7525a78c2Ed4e975'
-    gasToken: '0xc579D1f3CF86749E05CD06f7ADe17856c2CE3126'
-    executorAddress: '0x41684b361557E9282E0373CA51260D9331e518C9'
-    routerAddress: '0x00555513Acf282B42882420E5e5bA87b44D8fA6E'
+  executorAddress: &executorAddress "0x1d5702C6D7eB30E42A8c94B8Db7eA2E8444a37FD"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+  gasTokenAddress: &gasTokenAddress "0xc579D1f3CF86749E05CD06f7ADe17856c2CE3126"
+  whitelistedTokenSet: &whitelistedTokenSet
+    0xc579D1f3CF86749E05CD06f7ADe17856c2CE3126: true # WVLX
+    0x01445C31581c354b7338AC35693AB2001B50b9aE: true # USDT
+    0xe2C120f188eBd5389F71Cf4d9C16d05b62A58993: true # USDC
+    0x3611Fbfb06ffBcEf9Afb210f6Ace86742e6c14a4: true # ADA
+  blacklistedPoolSet: &blacklistedPoolSet
+  availableSources: &availableSources
+    - "kyberswap"
+    - "kyberswap-static"
+    - "wagyuswap"
+    - "astroswap"
+  featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
   enableConsole: true
   enableJSONFormat: true
-enableDexes: &enableDexes
-  - kyberswap
-  - kyberswap-static
-#  - kyberswapv2
-  - wagyuswap
-  - astroswap
-cachePoints:
-  - amount: 1
-    ttl: 30
-  - amount: 2
-    ttl: 30
-  - amount: 5
-    ttl: 30
-  - amount: 10
-    ttl: 30
-  - amount: 11
-    ttl: 30
-  - amount: 12
-    ttl: 30
-  - amount: 15
-    ttl: 30
-  - amount: 20
-  - amount: 21
-    ttl: 30
-  - amount: 22
-    ttl: 30
-  - amount: 25
-    ttl: 30
-  - amount: 30
-    ttl: 30
-  - amount: 33
-    ttl: 30
-  - amount: 35
-    ttl: 30
-  - amount: 40
-    ttl: 30
-  - amount: 44
-    ttl: 30
-  - amount: 45
-    ttl: 30
-  - amount: 50
-    ttl: 30
-  - amount: 55
-    ttl: 30
-  - amount: 60
-    ttl: 30
-  - amount: 66
-    ttl: 30
-  - amount: 70
-    ttl: 30
-  - amount: 77
-    ttl: 30
-  - amount: 80
-    ttl: 30
-  - amount: 88
-    ttl: 30
-  - amount: 90
-    ttl: 30
-  - amount: 99
-    ttl: 30
-  - amount: 100
-    ttl: 30
-  - amount: 500
-    ttl: 30
-  - amount: 1000
-    ttl: 30
-  - amount: 10000
-    ttl: 30
-  - amount: 100000
-    ttl: 30
-cacheRanges:
-  - fromUSD: 0
-    toUSD: 100
-    ttl: 15
-  - fromUSD: 101
-    toUSD: 500
-    ttl: 15
-  - fromUSD: 500
-    toUSD: 1000
-    ttl: 15
-  - fromUSD: 1001
-    toUSD: 2000
-    ttl: 30
-  - fromUSD: 2000
-    toUSD: 5000
-    ttl: 30
-  - fromUSD: 5000
-    toUSD: 10000
-    ttl: 30
-  - fromUSD: 10000
-    toUSD: -1
-    ttl: 30
 redis:
   addresses:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "velas"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 poolRedis:
@@ -128,68 +43,36 @@ poolRedis:
   masterName: ""
   dbNumber: 0
   password: ""
-  prefix: "velas"
+  prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
 ddAgentHost: ""
-featureFlags:
-  useOptimizedSPFA: false
-enableGRPC: false
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:
     clientData: "1"
-tokenCatalog:
-  httpUrl: ""
 reloadConfig:
   httpUrl: ""
   interval: 10s
   serviceName: "aggregator"
-  chainID: 106
-whitelistedTokens: &whitelistedTokens
-  - name: "Wrapped VLX"
-    symbol: "WVLX"
-    address: "0xc579D1f3CF86749E05CD06f7ADe17856c2CE3126"
-    decimals: 18
-    cgkId: "wrapped-velas"
-  - name: "Tether USD"
-    symbol: "USDT"
-    address: "0x01445C31581c354b7338AC35693AB2001B50b9aE"
-    decimals: 6
-    cgkId: "tether"
-  - name: "USD Coin"
-    symbol: "USDC"
-    address: "0xe2C120f188eBd5389F71Cf4d9C16d05b62A58993"
-    decimals: 6
-    cgkId: "usd-coin"
-  - name: "Cardano"
-    symbol: "ADA"
-    address: "0x3611Fbfb06ffBcEf9Afb210f6Ace86742e6c14a4"
-    decimals: 6
-    cgkId: "cardano"
+  chainID: *chainId
 secretKey:
 metrics:
   host:
   port: 8125
   namespace: "kybernetwork."
-blacklistedPools:
 encoder:
-  chainId: 106
-  executorAddress:
-  routerAddress:
+  chainId: *chainId
+  executorAddress: *executorAddress
+  routerAddress: *routerAddress
 useCase:
-  poolFactory:
-  cacheRoute:
   getRoute:
-    chainID: 106
-    gasTokenAddress: 0xc579D1f3CF86749E05CD06f7ADe17856c2CE3126
-    routerAddress:
-    availableSources:
-      - kyberswap
-      - kyberswap-static
-      - wagyuswap
-      - astroswap
+    chainId: *chainId
+    gasTokenAddress: *gasTokenAddress
+    routerAddress: *routerAddress
+    availableSources: *availableSources
     ammAggregator:
+      whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions:
         directPoolsCount: 100
         whitelistPoolsCount: 500
@@ -289,10 +172,14 @@ useCase:
       priceImpactThreshold: 0.005
       shrinkFuncName: "round"
       shrinkFuncPowExp: 0.7
-    poolFactory:
-      chainID: 106
+  buildRoute:
+    chainId: *chainId
+  poolFactory:
+    chainId: *chainId
+  poolManager:
+    blacklistedPoolSet: *blacklistedPoolSet
   indexPools:
-    whitelistedTokenSet:
+    whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
 job:
   indexPools:
@@ -302,24 +189,24 @@ job:
 repository:
   gas:
     redis:
-      prefix: velas
+      prefix: *chainName
   pool:
     redis:
-      prefix: velas
+      prefix: *chainName
   price:
     redis:
-      prefix: velas
+      prefix: *chainName
   token:
     redis:
-      prefix: velas
+      prefix: *chainName
     goCache:
       expiration: -1
       cleanupInterval: -1
   poolRank:
     redis:
-      prefix: velas
+      prefix: *chainName
   route:
     redisCache:
-      prefix: velas
+      prefix: *chainName
       localCacheSize: 1000
       localCacheTtl: 30s
