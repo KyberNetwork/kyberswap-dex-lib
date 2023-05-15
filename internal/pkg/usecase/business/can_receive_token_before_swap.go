@@ -59,6 +59,7 @@ var (
 		valueobject.ExchangeVelodrome:       true,
 		valueobject.ExchangeDystopia:        true,
 		valueobject.ExchangeChronos:         true,
+		valueobject.ExchangeRamses:          true,
 		valueobject.ExchangeCamelot:         true,
 
 		// GMX and GMX-like exchanges are also able to receive token before calling swap.
