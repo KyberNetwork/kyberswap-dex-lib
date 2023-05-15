@@ -39,32 +39,32 @@ common:
     0xa71415675f68f29259ddd63215e5518d2735bf0a: true
     0x7db214f2d46d94846936a0f8bd9044c5c5bd2b93: true
   availableSources: &availableSources
-    - "kyberswap",
-    - "kyberswap-static",
-    - "kyberswapv2",
-    - "uniswapv3",
-    - "sushiswap",
-    - "quickswap",
-    - "jetswap",
-    - "wault",
-    - "polycat",
-    - "dfyn",
-    - "polydex",
-    - "oneswap",
-    - "iron-stable",
-    - "curve",
-    - "synapse",
-    - "balancer",
-    - "gravity",
-    - "cometh",
-    - "apeswap",
-    - "dinoswap",
-    - "dodo",
-    - "dystopia",
-    - "mmf",
-    - "madmex",
-    - "metavault",
-    - "fraxswap",
+    - "kyberswap"
+    - "kyberswap-static"
+    - "kyberswapv2"
+    - "uniswapv3"
+    - "sushiswap"
+    - "quickswap"
+    - "jetswap"
+    - "wault"
+    - "polycat"
+    - "dfyn"
+    - "polydex"
+    - "oneswap"
+    - "iron-stable"
+    - "curve"
+    - "synapse"
+    - "balancer"
+    - "gravity"
+    - "cometh"
+    - "apeswap"
+    - "dinoswap"
+    - "dodo"
+    - "dystopia"
+    - "mmf"
+    - "madmex"
+    - "metavault"
+    - "fraxswap"
     - "kyberswap-limit-order"
   featureFlags: &featureFlags
 log:
