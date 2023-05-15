@@ -14,10 +14,10 @@ common:
   routerAddress: &routerAddress "0x6F82A3C19dc0f8D745b72AA263D8B37a1fF18946"
   gasTokenAddress: &gasTokenAddress "0x21C718C22D52d0F3a789b752D4c2fD5908a8A733"
   whitelistedTokenSet: &whitelistedTokenSet
-    0x21C718C22D52d0F3a789b752D4c2fD5908a8A733: true # WROSE
-    0x6Cb9750a92643382e020eA9a170AbB83Df05F30B: true # USDT
-    0x010CDf0Db2737f9407F8CFcb4dCaECA4dE54c815: true # BTC
-    0xBC033203796CC2C8C543a5aAe93a9a643320433D: true # VS
+    0x21c718c22d52d0f3a789b752d4c2fd5908a8a733: true # WROSE
+    0x6cb9750a92643382e020ea9a170abb83df05f30b: true # USDT
+    0x010cdf0db2737f9407f8cfcb4dcaeca4de54c815: true # BTC
+    0xbc033203796cc2c8c543a5aae93a9a643320433d: true # VS
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
     - "kyberswap",

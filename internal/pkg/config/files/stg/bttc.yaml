@@ -24,7 +24,7 @@ common:
     0xedf53026aea60f8f75fca25f8830b7e2d6200662: true # TRX_t
     0xdc3e2d18b6b1b5db09ecdb7f6c8b8fa01564236f: true # TRX_b
     0x5bae3d53484848a4a15607b2490d51b484bf42dc: true # TRX_e
-    0x9B5F27f6ea9bBD753ce3793a07CbA3C74644330d: true # USDT_b
+    0x9b5f27f6ea9bbd753ce3793a07cba3c74644330d: true # USDT_b
     0xe887512ab8bc60bcc9224e1c3b5be68e26048b8b: true # USDT_e
     0xdb28719f7f938507dbfe4f0eae55668903d34a15: true # USDT_t
     0xa2611f4488c92e1a91eb4d2a8d30110eba9925b5: true # TUSD_b
@@ -39,8 +39,8 @@ common:
     0x6e626c62d54554737697e633ef9578ac3c4ba4ea: true # BUSD_e
     0xeb7121ea70e95c7141c58f15e79f89c5cfb9acbc: true # UST_e
     0x1a7019909b10cdd2d8b0034293ad729f1c1f604e: true # BTC_b
-    0x18fA72e0EE4C580a129b0CE5bD0694d716C7443E: true # KNC_b
-    0xE467F79E9869757DD818DfB8535068120F6BcB97: true # KNC_e
+    0x18fa72e0ee4c580a129b0ce5bd0694d716c7443e: true # KNC_b
+    0xe467f79e9869757dd818dfb8535068120f6bcb97: true # KNC_e
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
     - "kyberswap"

@@ -14,7 +14,7 @@ common:
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
   whitelistedTokenSet: &whitelistedTokenSet
-    0xB50721BCf8d664c30412Cfbc6cf7a15145234ad1: true # ARB
+    0xb50721bcf8d664c30412cfbc6cf7a15145234ad1: true # ARB
     0x1a7e4e63778b4f12a199c062f3efdd288afcbce8: true # agEUR
     0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2: true # WETH
     0xdac17f958d2ee523a2206206994597c13d831ec7: true # USDT

@@ -14,17 +14,17 @@ common:
   routerAddress: &routerAddress "0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D"
   gasTokenAddress: &gasTokenAddress "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
   whitelistedTokenSet: &whitelistedTokenSet
-    0x4CFA50B7Ce747e2D61724fcAc57f24B748FF2b2A: true # FUSDC
+    0x4cfa50b7ce747e2d61724fcac57f24b748ff2b2a: true # FUSDC
     0x1622bf67e6e5747b81866fe0b85178a93c7f86e3: true # UMAMI
-    0x912CE59144191C1204E64559FE8253a0e49E6548: true # ARB
+    0x912ce59144191c1204e64559fe8253a0e49e6548: true # ARB
     0xfa5ed56a203466cbbc2430a43c66b9d8723528e7: true # agEUR
     0x82af49447d8a07e3bd95bd0d56f35241523fbab1: true # WETH
     0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9: true # USDT
     0xda10009cbd5d07dd0cecc66161fc93d7c9000da1: true # DAI
     0xff970a61a04b1ca14834a43f5de4533ebddb5cc8: true # USDC
     0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f: true # WBTC
-    0xFEa7a6a0B346362BF88A9e4A88416B77a57D6c2A: true # MIM
-    0x5979D7b546E38E414F7E9822514be443A4800529: true # WSTETH
+    0xfea7a6a0b346362bf88a9e4a88416b77a57d6c2a: true # MIM
+    0x5979d7b546e38e414f7e9822514be443a4800529: true # WSTETH
     0xe4dddfe67e7164b0fe14e218d80dc4c08edc01cb: true # KNC
     0x3f56e0c36d275367b8c502090edf38289b3dea0d: true # MAI
     0x316772cfec9a3e976fde42c3ba21f5a13aaaff12: true # mKNC

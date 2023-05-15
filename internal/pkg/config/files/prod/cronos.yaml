@@ -14,12 +14,12 @@ common:
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23"
   whitelistedTokenSet: &whitelistedTokenSet
-    0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23: true # WCRO
-    0xe44Fd7fCb2b1581822D0c862B68222998a0c299a: true # WETH
-    0x66e428c3f67a68878562e79A0234c1F83c208770: true # USDT
-    0xF2001B145b43032AAF5Ee2884e456CCd805F677D: true # DAI
-    0xc21223249CA28397B4B6541dfFaEcC539BfF0c59: true # USDC
-    0x062E66477Faf219F25D27dCED647BF57C3107d52: true # WBTC
+    0x5c7f8a570d578ed84e63fdfa7b1ee72deae1ae23: true # WCRO
+    0xe44fd7fcb2b1581822d0c862b68222998a0c299a: true # WETH
+    0x66e428c3f67a68878562e79a0234c1f83c208770: true # USDT
+    0xf2001b145b43032aaf5ee2884e456ccd805f677d: true # DAI
+    0xc21223249ca28397b4b6541dffaecc539bff0c59: true # USDC
+    0x062e66477faf219f25d27dced647bf57c3107d52: true # WBTC
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
     - "kyberswap"

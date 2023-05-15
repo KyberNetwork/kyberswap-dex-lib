@@ -14,9 +14,9 @@ common:
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"
   whitelistedTokenSet: &whitelistedTokenSet
-    0x9f28e2455f9FFcFac9EBD6084853417362bc5dBb: true # rMATIC
-    0x7A7B94F18EF6AD056CDa648588181CDA84800f94: true # FIS
-    0x5736df66b4f8401d639Ffa915a46B4c548C09Ac1: true # rETH
+    0x9f28e2455f9ffcfac9ebd6084853417362bc5dbb: true # rMATIC
+    0x7a7b94f18ef6ad056cda648588181cda84800f94: true # FIS
+    0x5736df66b4f8401d639ffa915a46b4c548c09ac1: true # rETH
     0xc3c7d422809852031b44ab29eec9f1eff2a58756: true # LDO
     0xd6df932a45c0f255f85145f286ea0b292b21c90b: true # AAVE
     0xe0b52e49357fd4daf2c15e02058dce6bc0057db4: true # agEUR
@@ -26,14 +26,14 @@ common:
     0x2791bca1f2de4661ed88a30c99a7a9449aa84174: true # USDC
     0x7ceb23fd6bc0add59e62ac25578270cff1b9f619: true # WETH
     0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6: true # WBTC
-    0xB5C064F955D8e7F38fE0460C556a72987494eE17: true # QUICK
+    0xb5c064f955d8e7f38fe0460c556a72987494ee17: true # QUICK
     0x1c954e8fe737f99f68fa1ccda3e51ebdb291948c: true # KNC
     0x3a58a54c066fdc0f2d55fc9c89f0415c92ebf3c4: true # stMATIC
-    0xa3Fa99A148fA48D14Ed51d610c367C61876997F1: true # MIMATIC
-    0x8497842420cFdbc97896C2353D75d89Fc8D5Be5D: true # VERSA
+    0xa3fa99a148fa48d14ed51d610c367c61876997f1: true # MIMATIC
+    0x8497842420cfdbc97896c2353d75d89fc8d5be5d: true # VERSA
     0x22a31bd4cb694433b6de19e0acc2899e553e9481: true # MMF
-    0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39: true # LINK
-    0x03b54A6e9a984069379fae1a4fC4dBAE93B3bCCD: true # wstETH
+    0x53e0bca35ec356bd5dddfebbd1fc0fd03fabad39: true # LINK
+    0x03b54a6e9a984069379fae1a4fc4dbae93b3bccd: true # wstETH
   blacklistedPoolSet: &blacklistedPoolSet
     0x7cc19f8c258d7f489bc1074437e25a46e397688f: true
     0xa71415675f68f29259ddd63215e5518d2735bf0a: true

@@ -23,7 +23,7 @@ common:
     0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c: true # BTCB
     0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82: true # CAKE
     0xfe56d5892bdffc7bf58f2e84be1b2c32d21c308b: true # KNC
-    0x0aCfc95A193009F1EA45b7fAEEF2d5e4a47c21b4: true # VERSA
+    0x0acfc95a193009f1ea45b7faeef2d5e4a47c21b4: true # VERSA
   blacklistedPoolSet: &blacklistedPoolSet
     - "0xfeafe253802b77456b4627f8c2306a9cebb5d681"
     - "0xffe166ceabef3af31977fb76b93892e8c4c504e6"
