@@ -61,6 +61,7 @@ encoder:
   chainId: *chainId
   executorAddress: *executorAddress
   routerAddress: *routerAddress
+  isPositiveSlippageEnabled: false
 useCase:
   getRoute:
     chainId: *chainId

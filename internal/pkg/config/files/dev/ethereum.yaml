@@ -10,7 +10,7 @@ common:
   chainId: &chainId 1
   chainName: &chainName ethereum
   rpc: "https://ethereum.kyberengineering.io"
-  executorAddress: &executorAddress "0x555B6eE8faB3DfdBcCa9121721c435FD4C7a1fd1"
+  executorAddress: &executorAddress "0xCaa00aaF6FBC769D627D825B4fAEDC3aaD880597"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -87,6 +87,7 @@ encoder:
   executorAddress: *executorAddress
   routerAddress: *routerAddress
   kyberLOAddress:
+  isPositiveSlippageEnabled: true
 useCase:
   getRoute:
     chainId: *chainId

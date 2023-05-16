@@ -10,7 +10,7 @@ common:
   chainId: &chainId 42161
   chainName: &chainName arbitrum
   rpc: "https://arbitrum.kyberengineering.io"
-  executorAddress: &executorAddress "0xf9A747eC426F8fFD0D550f9f867604077FFf15F6"
+  executorAddress: &executorAddress "0x75b02A71B6948774CA28160fc51b944De6aaCf78"
   routerAddress: &routerAddress "0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D"
   gasTokenAddress: &gasTokenAddress "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -95,6 +95,7 @@ encoder:
   executorAddress: *executorAddress
   routerAddress: *routerAddress
   kyberLOAddress:
+  isPositiveSlippageEnabled: true
 useCase:
   getRoute:
     chainId: *chainId

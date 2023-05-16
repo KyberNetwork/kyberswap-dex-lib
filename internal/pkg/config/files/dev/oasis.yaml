@@ -10,7 +10,7 @@ common:
   chainId: &chainId 42262
   chainName: &chainName oasis
   rpc: "https://oasis.kyberengineering.io"
-  executorAddress: &executorAddress "0xf9A747eC426F8fFD0D550f9f867604077FFf15F6"
+  executorAddress: &executorAddress "0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D"
   routerAddress: &routerAddress "0x6F82A3C19dc0f8D745b72AA263D8B37a1fF18946"
   gasTokenAddress: &gasTokenAddress "0x21C718C22D52d0F3a789b752D4c2fD5908a8A733"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -69,6 +69,7 @@ encoder:
   chainId: *chainId
   executorAddress: *executorAddress
   routerAddress: *routerAddress
+  isPositiveSlippageEnabled: true
 useCase:
   getRoute:
     chainId: *chainId

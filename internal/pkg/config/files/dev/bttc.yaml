@@ -10,7 +10,7 @@ common:
   chainId: &chainId 199
   chainName: &chainName bttc
   rpc: "https://bttc.kyberengineering.io"
-  executorAddress: &executorAddress "0xe3019C304EaB9B7366DBBBf8b4f350B6Abcf8a69"
+  executorAddress: &executorAddress "0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D"
   routerAddress: &routerAddress "0x92CbfC3F9466e9d0A65ED63aF277d1eeD69558e7"
   gasTokenAddress: &gasTokenAddress "0x8d193c6efa90bcff940a98785d1ce9d093d3dc8a"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -87,6 +87,7 @@ encoder:
   chainId: *chainId
   executorAddress: *executorAddress
   routerAddress: *routerAddress
+  isPositiveSlippageEnabled: true
 useCase:
   getRoute:
     chainId: *chainId

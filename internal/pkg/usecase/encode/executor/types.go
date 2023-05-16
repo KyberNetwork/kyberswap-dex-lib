@@ -71,3 +71,7 @@ type Swap struct {
 type SwapSingleSequenceInputs struct {
 	SwapData []Swap
 }
+
+type PositiveSlippageFeeData struct {
+	ExpectedReturnAmount *big.Int
+}

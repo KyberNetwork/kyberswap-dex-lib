@@ -10,6 +10,7 @@ var (
 	CallBytesInputsABIArguments          abi.Arguments
 	SwapSingleSequenceInputsABIArguments abi.Arguments
 	SimpleSwapDataABIArguments           abi.Arguments
+	PositiveSlippageFeeDataABIArguments  abi.Arguments
 	SwapExecutorDescriptionABIType       abi.Type
 	SwapSequenceABIType                  abi.Type
 )
@@ -58,5 +59,9 @@ func init() {
 		{Name: "swapDatas", Type: abitypes.BytesArr},
 		{Name: "deadline", Type: abitypes.Uint256},
 		{Name: "destTokenFeeData", Type: abitypes.Bytes},
+	}
+
+	PositiveSlippageFeeDataABIArguments = abi.Arguments{
+		{Name: "expectedReturnAmount", Type: abitypes.Uint256},
 	}
 }

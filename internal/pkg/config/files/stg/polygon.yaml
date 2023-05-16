@@ -10,7 +10,7 @@ common:
   chainId: &chainId 137
   chainName: &chainName polygon
   rpc: "https://polygon.kyberengineering.io/v1/mainnet/geth?appId=prod-dmm-aggregator-backend"
-  executorAddress: &executorAddress "0x1d5702C6D7eB30E42A8c94B8Db7eA2E8444a37FD"
+  executorAddress: &executorAddress "0xCaa00aaF6FBC769D627D825B4fAEDC3aaD880597"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -108,6 +108,7 @@ encoder:
   executorAddress: *executorAddress
   routerAddress: *routerAddress
   kyberLOAddress:
+  isPositiveSlippageEnabled: true
 useCase:
   getRoute:
     chainId: *chainId

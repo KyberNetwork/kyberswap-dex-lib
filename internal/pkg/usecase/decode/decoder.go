@@ -46,13 +46,13 @@ type (
 	}
 
 	DecodedSwapExecutorDescription struct {
-		SwapSequences     [][]DecodedSwap `json:"swapSequences"`
-		TokenIn           common.Address  `json:"tokenIn"`
-		TokenOut          common.Address  `json:"tokenOut"`
-		MinTotalAmountOut *big.Int        `json:"minTotalAmountOut"`
-		To                common.Address  `json:"to"`
-		Deadline          *big.Int        `json:"deadline"`
-		DestTokenFeeData  []byte          `json:"destTokenFeeData"`
+		SwapSequences     [][]DecodedSwap                  `json:"swapSequences"`
+		TokenIn           common.Address                   `json:"tokenIn"`
+		TokenOut          common.Address                   `json:"tokenOut"`
+		MinTotalAmountOut *big.Int                         `json:"minTotalAmountOut"`
+		To                common.Address                   `json:"to"`
+		Deadline          *big.Int                         `json:"deadline"`
+		DestTokenFeeData  executor.PositiveSlippageFeeData `json:"destTokenFeeData"`
 	}
 
 	DecodedSwap struct {
@@ -61,11 +61,11 @@ type (
 	}
 
 	DecodedSimpleSwapData struct {
-		FirstPools       []common.Address `json:"firstPools"`
-		FirstSwapAmounts []*big.Int       `json:"firstSwapAmounts"`
-		SwapDatas        [][]DecodedSwap  `json:"swapDatas"`
-		Deadline         *big.Int         `json:"deadline"`
-		DestTokenFeeData []byte           `json:"destTokenFeeData"`
+		FirstPools       []common.Address                 `json:"firstPools"`
+		FirstSwapAmounts []*big.Int                       `json:"firstSwapAmounts"`
+		SwapDatas        [][]DecodedSwap                  `json:"swapDatas"`
+		Deadline         *big.Int                         `json:"deadline"`
+		DestTokenFeeData executor.PositiveSlippageFeeData `json:"destTokenFeeData"`
 	}
 )
 
@@ -148,6 +148,14 @@ func (d *Decoder) decodeCallBytesInputs(data []byte) (DecodedCallBytesInputs, er
 		return DecodedCallBytesInputs{}, nil
 	}
 
+	var positiveSlippageFeeData executor.PositiveSlippageFeeData
+	if len(callBytesInputs.Data.DestTokenFeeData) > 0 {
+		positiveSlippageFeeData, err = executor.UnpackPositiveSlippageFeeData(callBytesInputs.Data.DestTokenFeeData)
+		if err != nil {
+			return DecodedCallBytesInputs{}, nil
+		}
+	}
+
 	return DecodedCallBytesInputs{
 		Data: DecodedSwapExecutorDescription{
 			SwapSequences:     decodedSwapSequences,
@@ -156,7 +164,7 @@ func (d *Decoder) decodeCallBytesInputs(data []byte) (DecodedCallBytesInputs, er
 			MinTotalAmountOut: callBytesInputs.Data.MinTotalAmountOut,
 			To:                callBytesInputs.Data.To,
 			Deadline:          callBytesInputs.Data.Deadline,
-			DestTokenFeeData:  nil,
+			DestTokenFeeData:  positiveSlippageFeeData,
 		},
 	}, nil
 }
@@ -172,12 +180,20 @@ func (d *Decoder) decodeSimpleSwapData(data []byte) (DecodedSimpleSwapData, erro
 		return DecodedSimpleSwapData{}, err
 	}
 
+	var positiveSlippageFeeData executor.PositiveSlippageFeeData
+	if len(simpleSwapData.DestTokenFeeData) > 0 {
+		positiveSlippageFeeData, err = executor.UnpackPositiveSlippageFeeData(simpleSwapData.DestTokenFeeData)
+		if err != nil {
+			return DecodedSimpleSwapData{}, nil
+		}
+	}
+
 	return DecodedSimpleSwapData{
 		FirstPools:       simpleSwapData.FirstPools,
 		FirstSwapAmounts: simpleSwapData.FirstSwapAmounts,
 		SwapDatas:        swapDatas,
 		Deadline:         simpleSwapData.Deadline,
-		DestTokenFeeData: nil,
+		DestTokenFeeData: positiveSlippageFeeData,
 	}, nil
 }
 

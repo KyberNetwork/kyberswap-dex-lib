@@ -10,7 +10,7 @@ common:
   chainId: &chainId 10
   chainName: &chainName optimism
   rpc: "https://rpc.ankr.com/optimism"
-  executorAddress: &executorAddress "0x363Ef7806B3Fd17531D72e762cC82688E928D106"
+  executorAddress: &executorAddress "0xCaa00aaF6FBC769D627D825B4fAEDC3aaD880597"
   routerAddress: &routerAddress "0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D"
   gasTokenAddress: &gasTokenAddress "0x4200000000000000000000000000000000000006"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -86,6 +86,7 @@ encoder:
   executorAddress: *executorAddress
   routerAddress: *routerAddress
   kyberLOAddress:
+  isPositiveSlippageEnabled: true
 useCase:
   getRoute:
     chainId: *chainId

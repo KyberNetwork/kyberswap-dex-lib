@@ -19,6 +19,9 @@ type EncodingData struct {
 	// OutputAmount total amount of TokenOut (after fee)
 	OutputAmount *big.Int
 
+	// TotalAmountOut total amount out of TokenOut (before fee)
+	TotalAmountOut *big.Int
+
 	Route [][]EncodingSwap
 
 	Recipient         string
