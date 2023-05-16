@@ -14,11 +14,17 @@ import (
 
 type buildRouteParamsValidator struct {
 	nowFunc func() time.Time
+
+	config BuildRouteParamsConfig
 }
 
-func NewBuildRouteParamsValidator(nowFunc func() time.Time) *buildRouteParamsValidator {
+func NewBuildRouteParamsValidator(
+	nowFunc func() time.Time,
+	config BuildRouteParamsConfig,
+) *buildRouteParamsValidator {
 	return &buildRouteParamsValidator{
 		nowFunc: nowFunc,
+		config:  config,
 	}
 }
 
@@ -103,7 +109,7 @@ func (v *buildRouteParamsValidator) validateTokenOut(tokenOut string) error {
 }
 
 func (v *buildRouteParamsValidator) validateSlippageTolerance(slippageTolerance int64) error {
-	if slippageTolerance < 0 || slippageTolerance > constant.MaximumSlippage {
+	if slippageTolerance < v.config.SlippageToleranceGTE || slippageTolerance > v.config.SlippageToleranceLTE {
 		return NewValidationError("slippageTolerance", "invalid")
 	}
 

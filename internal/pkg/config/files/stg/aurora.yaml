@@ -217,3 +217,7 @@ repository:
       prefix: *chainName
       localCacheSize: 1000
       localCacheTtl: 30s
+validator:
+  buildRouteParams:
+    slippageToleranceGte: 0
+    slippageToleranceLte: 5000

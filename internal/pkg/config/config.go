@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/validator"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
@@ -36,6 +37,7 @@ type Config struct {
 	UseCase       usecase.Config            `mapstructure:"useCase" json:"useCase"`
 	Repository    repository.Config         `mapstructure:"repository" json:"repository"`
 	Job           job.Config                `mapstructure:"job" json:"job"`
+	Validator     validator.Config          `mapstructure:"validator" json:"validator"`
 }
 
 func (c *Config) Validate() error {

@@ -74,7 +74,7 @@ func TestBuildRouteParamsValidator_Validate(t *testing.T) {
 					TokenIn:      "0xc7198437980c041c805a1edcba50c1ce5db95118",
 					TokenOut:     "0xa7d7079b0fead91f3e65f86e8915cb59c1a34c66",
 				},
-				SlippageTolerance: 2001,
+				SlippageTolerance: 5001,
 			},
 			err: NewValidationError("slippageTolerance", "invalid"),
 		},
@@ -289,6 +289,10 @@ func TestBuildRouteParamsValidator_Validate(t *testing.T) {
 				nowFunc: func() time.Time {
 					return time.Now().Add(20 * time.Minute)
 				},
+				config: BuildRouteParamsConfig{
+					SlippageToleranceGTE: 0,
+					SlippageToleranceLTE: 5000,
+				},
 			}
 
 			err := validator.Validate(tc.params)
@@ -431,7 +435,7 @@ func TestBuildRouteParamsValidator_validateSlippageTolerance(t *testing.T) {
 	}{
 		{
 			name:              "it should return [slippageTolerance|invalid]",
-			slippageTolerance: 2001,
+			slippageTolerance: 5001,
 			err:               NewValidationError("slippageTolerance", "invalid"),
 		},
 		{
@@ -448,7 +452,12 @@ func TestBuildRouteParamsValidator_validateSlippageTolerance(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := buildRouteParamsValidator{}
+			validator := buildRouteParamsValidator{
+				config: BuildRouteParamsConfig{
+					SlippageToleranceGTE: 0,
+					SlippageToleranceLTE: 5000,
+				},
+			}
 
 			err := validator.validateSlippageTolerance(tc.slippageTolerance)
 
