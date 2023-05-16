@@ -11,7 +11,6 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -67,7 +66,7 @@ func transformBuildRouteParams(params params.BuildRouteParams, nowFunc func() ti
 
 	deadline := params.Deadline
 	if params.Deadline == 0 {
-		deadline = nowFunc().Add(constant.DefaultDeadlineInMinute).Unix()
+		deadline = nowFunc().Add(valueobject.DefaultDeadline).Unix()
 	}
 
 	permit := common.FromHex(params.Permit)

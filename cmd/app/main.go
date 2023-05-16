@@ -202,7 +202,7 @@ func apiAction(c *cli.Context) (err error) {
 	getPoolsParamsValidator := validator.NewGetPoolsParamsValidator()
 	getTokensParamsValidator := validator.NewGetTokensParamsValidator()
 	getRoutesParamsValidator := validator.NewGetRouteParamsValidator()
-	buildRouteParamsValidator := validator.NewBuildRouteParamsValidator(timeutil.NowFunc)
+	buildRouteParamsValidator := validator.NewBuildRouteParamsValidator(timeutil.NowFunc, cfg.Validator.BuildRouteParams)
 
 	// init use cases
 	keyStorage, err := getKeyStorage(cfg.KeyPair.StorageFilePath)
