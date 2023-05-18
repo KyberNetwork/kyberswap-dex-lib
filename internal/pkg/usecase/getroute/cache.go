@@ -2,10 +2,13 @@ package getroute
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -91,6 +94,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 				"request_id": requestid.RequestIDFromCtx(ctx),
 			}).
 			Info("cache missed")
+		metrics.IncrFindRouteCacheCount(false, []string{"reason:getCachedRouteFailed"})
 
 		return nil, err
 	}
@@ -105,6 +109,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 				"request_id": requestid.RequestIDFromCtx(ctx),
 			}).
 			Info("cache missed")
+		metrics.IncrFindRouteCacheCount(false, []string{"reason:summarizeCachedRouteFailed"})
 
 		return nil, err
 	}
@@ -120,6 +125,13 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 				"request_id": requestid.RequestIDFromCtx(ctx),
 			}).
 			Info("cache missed")
+		metrics.IncrFindRouteCacheCount(
+			false,
+			[]string{
+				"reason:priceImpactIsGreaterThanEpsilon",
+				fmt.Sprintf("priceImpact:%f", priceImpact),
+			},
+		)
 
 		return nil, errors.Wrapf(
 			ErrPriceImpactIsGreaterThanThreshold,
@@ -134,6 +146,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 			"request_id": requestid.RequestIDFromCtx(ctx),
 		}).
 		Info("cache hit")
+	metrics.IncrFindRouteCacheCount(true, nil)
 
 	return routeSummary, nil
 }

@@ -2,20 +2,16 @@ package metrics
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 const (
-	DexHitRateMetricsName                = "dex_hit_rate.count"
-	PoolTypeHitRateMetricsName           = "pool_hit_rate.count"
-	RequestPairCountMetricsName          = "request_pair.count"
-	FindRouteCacheCountMetricsName       = "find_route_cache.count"
-	AggregatorScanLatestBlockMetricsName = "aggregator_scan_latest_block"
-	InvalidSynthetixVolumeMetricsName    = "invalid_synthetix_volume.count"
-
-	HistogramScannerUpdateReservesDurationMetricsName = "scanner_update_reserves_duration"
+	DexHitRateMetricsName             = "dex_hit_rate.count"
+	PoolTypeHitRateMetricsName        = "pool_hit_rate.count"
+	RequestPairCountMetricsName       = "request_pair.count"
+	FindRouteCacheCountMetricsName    = "find_route_cache.count"
+	InvalidSynthetixVolumeMetricsName = "invalid_synthetix_volume.count"
 )
 
 func IncrDexHitRate(dex string) {
@@ -61,19 +57,6 @@ func IncrInvalidSynthetixVolume() {
 	incr(InvalidSynthetixVolumeMetricsName, nil, 1)
 }
 
-func GaugeAggregatorScanLatestBlock(maxBlocks uint64) {
-	gauge(AggregatorScanLatestBlockMetricsName, float64(maxBlocks), nil, 1)
-}
-
-func HistogramScannerUpdateReservesDuration(duration time.Duration, dex string, poolCount int) {
-	tags := []string{
-		fmt.Sprintf("dex:%s", dex),
-		fmt.Sprintf("poolCount:%d", poolCount),
-	}
-
-	histogram(HistogramScannerUpdateReservesDurationMetricsName, float64(duration.Milliseconds()), tags, 1)
-}
-
 func Flush() {
 	if client == nil {
 		return
@@ -98,6 +81,8 @@ func incr(name string, tags []string, rate float64) {
 	}
 }
 
+// NOTE: Still keep this unused function in case we further need to use gauge metrics
+// nolint:golint,unused
 func gauge(name string, value float64, tags []string, rate float64) {
 	if client == nil {
 		return
@@ -110,6 +95,8 @@ func gauge(name string, value float64, tags []string, rate float64) {
 	}
 }
 
+// NOTE: Still keep this unused function in case we further need to use histogram metrics
+// nolint:golint,unused
 func histogram(name string, value float64, tags []string, rate float64) {
 	if client == nil {
 		return

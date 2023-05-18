@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
@@ -231,12 +232,17 @@ func (a *ammAggregator) summarizeRoute(
 
 			// Step 2.1.8: update input of the next swap is output of current swap
 			tokenAmountIn = *result.TokenAmountOut
+
+			metrics.IncrDexHitRate(string(swap.Exchange))
+			metrics.IncrPoolTypeHitRate(swap.PoolType)
 		}
 
 		// Step 2.2: add up amountOut
 		amountOut.Add(amountOut, tokenAmountIn.Amount)
 		summarizedRoute = append(summarizedRoute, summarizedPath)
 	}
+
+	metrics.IncrRequestPairCount(params.TokenIn.Address, params.TokenOut.Address, params.AmountIn.String())
 
 	return &valueobject.RouteSummary{
 		TokenIn:      params.TokenIn.Address,
