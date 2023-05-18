@@ -25,8 +25,8 @@ common:
     0xfe56d5892bdffc7bf58f2e84be1b2c32d21c308b: true # KNC
     0x0acfc95a193009f1ea45b7faeef2d5e4a47c21b4: true # VERSA
   blacklistedPoolSet: &blacklistedPoolSet
-    - "0xfeafe253802b77456b4627f8c2306a9cebb5d681"
-    - "0xffe166ceabef3af31977fb76b93892e8c4c504e6"
+    0xfeafe253802b77456b4627f8c2306a9cebb5d681: true
+    0xffe166ceabef3af31977fb76b93892e8c4c504e6: true
   availableSources: &availableSources
     - "kyberswap"
     - "kyberswap-static"
