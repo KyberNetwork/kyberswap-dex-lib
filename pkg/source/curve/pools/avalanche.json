@@ -1,0 +1,162 @@
+[
+  {
+    "id": "0x7f90122bf0700f9e7e1f688fe926940e8839f353",
+    "lpToken": "0x1337bedc9d22ecbe766df105c9623922a27963ec",
+    "type": "curve-aave",
+    "tokens": [
+      {
+        "address": "0x47afa96cdc9fab46904a55a6ad4bf6660b53c38a",
+        "precision": "1"
+      },
+      {
+        "address": "0x46a51127c3ce23fb7ab1de06226147f446e4a857",
+        "precision": "1000000000000"
+      },
+      {
+        "address": "0x532e6537fea298397212f09a61e03311686f548e",
+        "precision": "1000000000000"
+      }
+    ],
+    "underlyingTokens": [
+      "0xd586e7f844cea2f87f50152665bcbc2c279d8d70",
+      "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+      "0xc7198437980c041c805a1edcba50c1ce5db95118"
+    ]
+  },
+  {
+    "id": "0x16a7da911a4dd1d83f3ff066fe28f3c792c50d90",
+    "lpToken": "0xc2b1df84112619d190193e48148000e3990bf627",
+    "type": "curve-aave",
+    "tokens": [
+      {
+        "address": "0x686bef2417b6dc32c50a3cbfbcc3bb60e1e9a15d",
+        "precision": "10000000000"
+      },
+      {
+        "address": "0xdbf31df14b66535af65aac99c32e9ea844e14501",
+        "precision": "10000000000"
+      }
+    ],
+    "underlyingTokens": [
+      "0x50b7545627a5162f82a992c33b87adc75187b218",
+      "0xdbf31df14b66535af65aac99c32e9ea844e14501"
+    ]
+  },
+  {
+    "id": "0xaea2e71b631fa93683bcf256a8689dfa0e094fcd",
+    "lpToken": "0xaea2e71b631fa93683bcf256a8689dfa0e094fcd",
+    "type": "curve-base",
+    "aPrecision": "100",
+    "version": 0,
+    "tokens": [
+      {
+        "address": "0x130966628846bfd36ff31a822705796e8cb8c18d",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      },
+      {
+        "address": "0xc7198437980c041c805a1edcba50c1ce5db95118",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      },
+      {
+        "address": "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      }
+    ]
+  },
+  {
+    "id": "0x30df229cefa463e991e29d42db0bae2e122b2ac7",
+    "type": "curve-meta",
+    "name": "MIM",
+    "lpToken": "0x30df229cefa463e991e29d42db0bae2e122b2ac7",
+    "basePool": "7f90122bf0700f9e7e1f688fe926940e8839f353",
+    "rateMultiplier": "1000000000000000000",
+    "aPrecision": "100",
+    "tokens": [
+      {
+        "address": "0x130966628846bfd36ff31a822705796e8cb8c18d",
+        "precision": "1"
+      },
+      {
+        "address": "0x1337bedc9d22ecbe766df105c9623922a27963ec",
+        "precision": "1"
+      }
+    ],
+    "underlyingTokens": [
+      "0x130966628846bfd36ff31a822705796e8cb8c18d",
+      "0xd586e7f844cea2f87f50152665bcbc2c279d8d70",
+      "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+      "0xc7198437980c041c805a1edcba50c1ce5db95118"
+    ]
+  },
+  {
+    "id": "0xf72beacc6fd334e14a7ddac25c3ce1eb8a827e10",
+    "lpToken": "0xf72beacc6fd334e14a7ddac25c3ce1eb8a827e10",
+    "type": "curve-meta",
+    "aPrecision": "100",
+    "version": 0,
+    "tokens": [
+      {
+        "address": "0x026187bdbc6b751003517bcb30ac7817d5b766f8",
+        "precision": "1"
+      },
+      {
+        "address": "0x1337bedc9d22ecbe766df105c9623922a27963ec",
+        "precision": "1"
+      }
+    ]
+  },
+  {
+    "id": "0xf72beacc6fd334e14a7ddac25c3ce1eb8a827e10",
+    "type": "curve-meta",
+    "name": "Defrost H2O",
+    "lpToken": "0xf72beacc6fd334e14a7ddac25c3ce1eb8a827e10",
+    "basePool": "7f90122bf0700f9e7e1f688fe926940e8839f353",
+    "rateMultiplier": "1000000000000000000",
+    "aPrecision": "100",
+    "tokens": [
+      {
+        "address": "0x026187BdbC6b751003517bcb30Ac7817D5B766f8",
+        "precision": "1"
+      },
+      {
+        "address": "0x1337bedc9d22ecbe766df105c9623922a27963ec",
+        "precision": "1"
+      }
+    ],
+    "underlyingTokens": [
+      "0x026187BdbC6b751003517bcb30Ac7817D5B766f8",
+      "0xd586e7f844cea2f87f50152665bcbc2c279d8d70",
+      "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+      "0xc7198437980c041c805a1edcba50c1ce5db95118"
+    ]
+  },
+  {
+    "id": "0xB755B949C126C04e0348DD881a5cF55d424742B2",
+    "type": "curve-tricrypto",
+    "name": "tricrypto2",
+    "lpToken": "0x1daB6560494B04473A0BE3E7D83CF3Fdf3a51828",
+    "tokens": [
+      {
+        "address": "0x1337bedc9d22ecbe766df105c9623922a27963ec",
+        "precision": "1"
+      },
+      {
+        "address": "0x686bEF2417b6Dc32C50a3cBfbCC3bb60E1e9a15D",
+        "precision": "10000000000"
+      },
+      {
+        "address": "0x53f7c5869a859F0AeC3D334ee8B4Cf01E3492f21",
+        "precision": "1"
+      }
+    ],
+    "underlyingTokens": [
+      "0xd586e7f844cea2f87f50152665bcbc2c279d8d70",
+      "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+      "0xc7198437980c041c805a1edcba50c1ce5db95118",
+      "0x53f7c5869a859F0AeC3D334ee8B4Cf01E3492f21"
+    ]
+  }
+]

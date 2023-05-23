@@ -1,0 +1,26 @@
+[
+  {
+    "id": "0x445fe580ef8d70ff569ab36e80c647af338db351",
+    "lpToken": "0xe7a24ef0c5e95ffb0f6684b813a78f2a3ad7d171",
+    "type": "curve-aave",
+    "tokens": [
+      {
+        "address": "0x27f8d03b3a2196956ed754badc28d73be8830a6e",
+        "precision": "1"
+      },
+      {
+        "address": "0x1a13f4ca1d028320a707d99520abfefca3998b7f",
+        "precision": "1000000000000"
+      },
+      {
+        "address": "0x60d55f02a771d515e077c9c2403a1ef324885cec",
+        "precision": "1000000000000"
+      }
+    ],
+    "underlyingTokens": [
+      "0x8f3cf7ad23cd3cadbd9735aff958023239c6a063",
+      "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+      "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
+    ]
+  }
+]

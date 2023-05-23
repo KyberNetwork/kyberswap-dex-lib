@@ -1,0 +1,42 @@
+[
+  {
+    "id": "0xbea9f78090bdb9e662d8cb301a00ad09a5b756e9",
+    "tokens": [
+      {
+        "address": "0x2913e812cf0dcca30fb28e6cac3d2dcff4497688",
+        "precision": "1"
+      },
+      {
+        "address": "0xfea7a6a0b346362bf88a9e4a88416b77a57d6c2a",
+        "precision": "1"
+      },
+      {
+        "address": "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+        "precision": "1000000000000"
+      },
+      {
+        "address": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+        "precision": "1000000000000"
+      }
+    ],
+    "swapFee": 0.0004
+  },
+  {
+    "id": "0xfeea4d1bacb0519e8f952460a70719944fe56ee0",
+    "tokens": [
+      {
+        "address": "0x17fc002b466eec40dae837fc4be5c67993ddbd6f",
+        "precision": "1"
+      },
+      {
+        "address": "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+        "precision": "1000000000000"
+      },
+      {
+        "address": "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+        "precision": "1000000000000"
+      }
+    ],
+    "swapFee": 0.0004
+  }
+]
