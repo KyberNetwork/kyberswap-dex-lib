@@ -12,7 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/timer"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/timer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 

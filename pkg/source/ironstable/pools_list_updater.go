@@ -11,7 +11,7 @@ import (
 	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/timer"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/timer"
 )
 
 type PoolsListUpdater struct {
