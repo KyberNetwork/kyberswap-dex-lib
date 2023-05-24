@@ -9,7 +9,7 @@ grpc:
 common:
   chainId: &chainId 137
   chainName: &chainName polygon
-  rpc: "https://polygon.kyberengineering.io/v1/mainnet/geth?appId=prod-dmm-aggregator-backend"
+  rpc: "https://polygon.llamarpc.com"
   executorAddress: &executorAddress "0x75b02A71B6948774CA28160fc51b944De6aaCf78"
   routerAddress: &routerAddress "0x48397E166c78AAf801Ab0641b2a9aB62f1D3892a"
   gasTokenAddress: &gasTokenAddress "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"
@@ -41,7 +41,7 @@ common:
   availableSources: &availableSources
     - "kyberswap"
     - "kyberswap-static"
-    - "kyberswapv2"
+    - "kyberswap-elastic"
     - "uniswapv3"
     - "sushiswap"
     - "quickswap"

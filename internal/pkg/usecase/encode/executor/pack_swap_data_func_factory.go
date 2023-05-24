@@ -105,7 +105,7 @@ func init() {
 
 	// UniSwapV3ProMM
 	RegisterPackSwapDataFunc(valueobject.ExchangeUniSwapV3, swapdata.PackUniSwapV3ProMM)
-	RegisterPackSwapDataFunc(valueobject.ExchangeKyberSwapV2, swapdata.PackUniSwapV3ProMM)
+	RegisterPackSwapDataFunc(valueobject.ExchangeKyberswapElastic, swapdata.PackUniSwapV3ProMM)
 
 	// BalancerV2
 	RegisterPackSwapDataFunc(valueobject.ExchangeBalancer, swapdata.PackBalancerV2)

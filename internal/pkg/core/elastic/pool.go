@@ -1,4 +1,4 @@
-package promm
+package elastic
 
 import (
 	"encoding/json"
@@ -8,9 +8,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/KyberNetwork/promm-sdk-go/constants"
-	prommEntities "github.com/KyberNetwork/promm-sdk-go/entities"
-	prommUtils "github.com/KyberNetwork/promm-sdk-go/utils"
+	"github.com/KyberNetwork/elastic-go-sdk/v2/constants"
+	elasticEntities "github.com/KyberNetwork/elastic-go-sdk/v2/entities"
+	elasticUtils "github.com/KyberNetwork/elastic-go-sdk/v2/utils"
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/ethereum/go-ethereum/common"
 
@@ -24,10 +24,10 @@ import (
 
 type Pool struct {
 	pool.Pool
-	prommPool *prommEntities.Pool
-	gas       Gas
-	tickMin   int
-	tickMax   int
+	elasticPool *elasticEntities.Pool
+	gas         Gas
+	tickMin     int
+	tickMax     int
 }
 
 func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error) {
@@ -50,10 +50,10 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error)
 		reserves[1] = utils.NewBig10(entityPool.Reserves[1])
 	}
 
-	var prommTicks []prommEntities.Tick
+	var elasticTicks []elasticEntities.Tick
 
 	for _, t := range extra.Ticks {
-		prommTicks = append(prommTicks, prommEntities.Tick{
+		elasticTicks = append(elasticTicks, elasticEntities.Tick{
 			Index:          t.Index,
 			LiquidityGross: t.LiquidityGross,
 			LiquidityNet:   t.LiquidityNet,
@@ -61,16 +61,16 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error)
 	}
 
 	// Sort the ticks because function NewTickListDataProvider needs
-	sort.SliceStable(prommTicks, func(i, j int) bool {
-		return prommTicks[i].Index < prommTicks[j].Index
+	sort.SliceStable(elasticTicks, func(i, j int) bool {
+		return elasticTicks[i].Index < elasticTicks[j].Index
 	})
 
-	ticks, err := prommEntities.NewTickListDataProvider(prommTicks, constants.TickSpacings[constants.FeeAmount(entityPool.SwapFee)])
+	ticks, err := elasticEntities.NewTickListDataProvider(elasticTicks, constants.TickSpacings[constants.FeeAmount(entityPool.SwapFee)])
 	if err != nil {
 		return nil, err
 	}
 
-	prommPool, err := prommEntities.NewPool(
+	elasticPool, err := elasticEntities.NewPool(
 		token0,
 		token1,
 		constants.FeeAmount(entityPool.SwapFee),
@@ -85,12 +85,12 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error)
 	}
 
 	var tickMin, tickMax int
-	if len(prommTicks) == 0 {
-		tickMin = prommPool.TickCurrent
-		tickMax = prommPool.TickCurrent
+	if len(elasticTicks) == 0 {
+		tickMin = elasticPool.CurrentTick
+		tickMax = elasticPool.CurrentTick
 	} else {
-		tickMin = prommTicks[0].Index
-		tickMax = prommTicks[len(prommTicks)-1].Index
+		tickMin = elasticTicks[0].Index
+		tickMax = elasticTicks[len(elasticTicks)-1].Index
 	}
 
 	var info = pool.PoolInfo{
@@ -105,11 +105,11 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error)
 	}
 
 	return &Pool{
-		Pool:      pool.Pool{Info: info},
-		prommPool: prommPool,
-		gas:       DefaultGas,
-		tickMin:   tickMin,
-		tickMax:   tickMax,
+		Pool:        pool.Pool{Info: info},
+		elasticPool: elasticPool,
+		gas:         DefaultGas,
+		tickMin:     tickMin,
+		tickMax:     tickMax,
 	}, nil
 }
 
@@ -124,21 +124,13 @@ func (p *Pool) getSqrtPriceLimit(zeroForOne bool) *big.Int {
 		tickLimit = p.tickMax
 	}
 
-	sqrtPriceX96Limit, err := prommUtils.GetSqrtRatioAtTick(tickLimit)
+	sqrtPriceX96Limit, err := elasticUtils.GetSqrtRatioAtTick(tickLimit)
 
 	if err != nil {
 		return nil
 	}
 
 	return sqrtPriceX96Limit
-}
-
-// PrommSwapInfo store after state of a Promm swap
-type PrommSwapInfo struct {
-	nextStateSqrtRatioX96 *big.Int
-	nextStateLiquidity    *big.Int
-	nextStateReinvestL    *big.Int
-	nextStateTickCurrent  int
 }
 
 func (p *Pool) CalcAmountOut(
@@ -151,26 +143,21 @@ func (p *Pool) CalcAmountOut(
 	var zeroForOne bool
 
 	if tokenInIndex >= 0 && tokenOutIndex >= 0 {
-		if strings.EqualFold(tokenOut, p.prommPool.Token0.Address.String()) {
+		if strings.EqualFold(tokenOut, p.elasticPool.Token0.Address.String()) {
 			zeroForOne = false
-			tokenIn = p.prommPool.Token1
+			tokenIn = p.elasticPool.Token1
 		} else {
-			tokenIn = p.prommPool.Token0
+			tokenIn = p.elasticPool.Token0
 			zeroForOne = true
 		}
 		amountIn := coreEntities.FromRawAmount(tokenIn, tokenAmountIn.Amount)
-		amountOut, newPoolState, err := p.prommPool.GetOutputAmount(amountIn, p.getSqrtPriceLimit(zeroForOne))
+		amountOut, newPoolState, err := p.elasticPool.GetOutputAmount(amountIn, p.getSqrtPriceLimit(zeroForOne))
 
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
 		}
 
 		var totalGas = p.gas.SwapBase
-
-		//p.nextState.SqrtRatioX96 = newPoolState.SqrtRatioX96
-		//p.nextState.Liquidity = newPoolState.Liquidity
-		//p.nextState.ReinvestL = newPoolState.ReinvestLiquidity
-		//p.nextState.TickCurrent = newPoolState.TickCurrent
 
 		if amountOut.Quotient().Cmp(constant.Zero) > 0 {
 			return &pool.CalcAmountOutResult{
@@ -183,11 +170,12 @@ func (p *Pool) CalcAmountOut(
 					Amount: nil,
 				},
 				Gas: totalGas,
-				SwapInfo: PrommSwapInfo{
-					nextStateSqrtRatioX96: new(big.Int).Set(newPoolState.SqrtRatioX96),
-					nextStateLiquidity:    new(big.Int).Set(newPoolState.Liquidity),
-					nextStateReinvestL:    new(big.Int).Set(newPoolState.ReinvestLiquidity),
-					nextStateTickCurrent:  newPoolState.TickCurrent,
+				SwapInfo: KSElasticSwapInfo{
+					nextStateSqrtP:              new(big.Int).Set(newPoolState.SqrtP),
+					nextStateBaseL:              new(big.Int).Set(newPoolState.BaseL),
+					nextStateReinvestL:          new(big.Int).Set(newPoolState.ReinvestL),
+					nextStateCurrentTick:        newPoolState.CurrentTick,
+					nextStateNearestCurrentTick: newPoolState.NearestCurrentTick,
 				},
 			}, nil
 		}
@@ -199,15 +187,17 @@ func (p *Pool) CalcAmountOut(
 }
 
 func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
-	si, ok := params.SwapInfo.(PrommSwapInfo)
+	si, ok := params.SwapInfo.(KSElasticSwapInfo)
 	if !ok {
 		logger.Warn("failed to UpdateBalance for ProMM pool, wrong swapInfo type")
 		return
 	}
-	p.prommPool.SqrtRatioX96 = si.nextStateSqrtRatioX96
-	p.prommPool.Liquidity = si.nextStateLiquidity
-	p.prommPool.ReinvestLiquidity = si.nextStateReinvestL
-	p.prommPool.TickCurrent = si.nextStateTickCurrent
+
+	p.elasticPool.SqrtP = si.nextStateSqrtP
+	p.elasticPool.BaseL = si.nextStateBaseL
+	p.elasticPool.ReinvestL = si.nextStateReinvestL
+	p.elasticPool.CurrentTick = si.nextStateCurrentTick
+	p.elasticPool.NearestCurrentTick = si.nextStateNearestCurrentTick
 }
 
 func (p *Pool) GetLpToken() string {
@@ -230,18 +220,18 @@ func (p *Pool) CanSwapTo(address string) []string {
 
 // GetMidPrice This function is not used
 func (p *Pool) GetMidPrice(tokenIn string, tokenOut string, base *big.Int) *big.Int {
-	if strings.EqualFold(tokenOut, p.prommPool.Token0.Address.String()) {
-		return p.prommPool.Token0Price().Quotient()
+	if strings.EqualFold(tokenOut, p.elasticPool.Token0.Address.String()) {
+		return p.elasticPool.Token0Price().Quotient()
 	} else {
-		return p.prommPool.Token1Price().Quotient()
+		return p.elasticPool.Token1Price().Quotient()
 	}
 }
 
 func (p *Pool) CalcExactQuote(tokenIn string, tokenOut string, base *big.Int) *big.Int {
-	if strings.EqualFold(tokenOut, p.prommPool.Token0.Address.String()) {
-		return p.prommPool.Token0Price().Quotient()
+	if strings.EqualFold(tokenOut, p.elasticPool.Token0.Address.String()) {
+		return p.elasticPool.Token0Price().Quotient()
 	} else {
-		return p.prommPool.Token1Price().Quotient()
+		return p.elasticPool.Token1Price().Quotient()
 	}
 }
 

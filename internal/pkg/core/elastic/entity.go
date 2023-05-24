@@ -1,4 +1,4 @@
-package promm
+package elastic
 
 import (
 	"math/big"
@@ -9,11 +9,13 @@ type Gas struct {
 	SwapNonBase int64
 }
 
-type NextState struct {
-	SqrtRatioX96 *big.Int
-	Liquidity    *big.Int
-	ReinvestL    *big.Int
-	TickCurrent  int
+// KSElasticSwapInfo store after state of a KSElastic swap
+type KSElasticSwapInfo struct {
+	nextStateSqrtP              *big.Int
+	nextStateBaseL              *big.Int
+	nextStateReinvestL          *big.Int
+	nextStateCurrentTick        int
+	nextStateNearestCurrentTick int
 }
 
 type Tick struct {

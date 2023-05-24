@@ -1,4 +1,4 @@
-package promm
+package elastic
 
 import (
 	"math/big"

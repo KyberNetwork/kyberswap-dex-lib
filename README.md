@@ -64,7 +64,7 @@ _Note:_
 ### Polygon
   - kyberswap
   - kyberswap-static
-  - kyberswapv2
+  - kyberswap-elastic
   - uniswapv3
   - sushiswap
   - quickswap
@@ -87,7 +87,7 @@ _Note:_
 ### Binance Smart Chain 
   - kyberswap
   - kyberswap-static
-  - kyberswapv2
+  - kyberswap-elastic
   - firebird
   - oneswap
   - ellipsis
@@ -104,7 +104,7 @@ _Note:_
 ### Avalanche
   - kyberswap
   - kyberswap-static
-  - kyberswapv2
+  - kyberswap-elastic
   - iron-stable
   - pangolin
   - traderjoe
@@ -116,7 +116,7 @@ _Note:_
 ### Ethereum
   - kyberswap
   - kyberswap-static
-  - kyberswapv2
+  - kyberswap-elastic
   - uniswap (v2)
   - sushiswap
   - curve (3pool, aave, saave, hbtc, ren, sbtc, eurs, link)
@@ -133,14 +133,14 @@ _Note:_
   - sushiswap
   - kyberswap
   - kyberswap-static
-  - kyberswapv2
+  - kyberswap-elastic
   - beethovenx
   - synapse
   - morpheus
 ### Cronos
   - kyberswap
   - kyberswap-static
-  - kyberswapv2
+  - kyberswap-elastic
   - vvs finance
   - cronaswap
   - crodex
@@ -158,7 +158,7 @@ _Note:_
 ### Arbitrum
   - kyberswap
   - kyberswap-static
-  - kyberswapv2
+  - kyberswap-elastic
   - sushiswap
   - curve
   - balancer
@@ -167,12 +167,12 @@ _Note:_
 ### BitTorrent Chain
   - kyberswap
   - kyberswap-static
-  - kyberswapv2
+  - kyberswap-elastic
 
 ### Oasis
   - kyberswap
   - kyberswap-static
-  - kyberswapv2
+  - kyberswap-elastic
   - valleyswap
   - yuzuswap
   - gemkeeper
@@ -191,7 +191,7 @@ _Note:_
   - zipswap
 
 ### Rinkeby
-  - kyberswapv2
+  - kyberswap-elastic
 
 ## Development
 ### Install Dependencies

@@ -20,6 +20,7 @@ import (
 	curveTwo "github.com/KyberNetwork/router-service/internal/pkg/core/curve-two"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/dmm"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/dodo"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/elastic"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/fraxswap"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/gmx"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/lido"
@@ -29,7 +30,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/core/metavault"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/platypus"
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/promm"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/saddle"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/synthetix"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/uni"
@@ -320,8 +320,8 @@ func (f *PoolFactory) newDMM(entityPool entity.Pool) (*dmm.Pool, error) {
 	return corePool, nil
 }
 
-func (f *PoolFactory) newElastic(entityPool entity.Pool) (*promm.Pool, error) {
-	corePool, err := promm.NewPool(entityPool, f.config.ChainID)
+func (f *PoolFactory) newElastic(entityPool entity.Pool) (*elastic.Pool, error) {
+	corePool, err := elastic.NewPool(entityPool, f.config.ChainID)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,

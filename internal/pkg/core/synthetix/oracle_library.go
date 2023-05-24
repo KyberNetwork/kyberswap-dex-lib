@@ -3,7 +3,7 @@ package synthetix
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/promm-sdk-go/utils"
+	"github.com/KyberNetwork/elastic-go-sdk/v2/utils"
 	uniswapV3Utils "github.com/daoleno/uniswapv3-sdk/utils"
 	"github.com/ethereum/go-ethereum/common"
 
