@@ -1,19 +1,19 @@
-package token_test
+package token
 
 import (
 	"context"
 	"testing"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/token"
-	"github.com/KyberNetwork/router-service/pkg/redis"
 	"github.com/alicebob/miniredis"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
 func TestRedisRepository_FindByAddresses(t *testing.T) {
 	t.Run("it should return nil when addresses is empty", func(t *testing.T) {
-		repo := token.NewRedisRepository(nil, token.RedisRepositoryConfig{})
+		repo := NewRedisRepository(nil, RedisRepositoryConfig{})
 
 		tokens, err := repo.FindByAddresses(context.Background(), nil)
 
@@ -40,7 +40,7 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := token.NewRedisRepository(db.Client, token.RedisRepositoryConfig{Prefix: ""})
+		repo := NewRedisRepository(db.Client, RedisRepositoryConfig{Prefix: ""})
 
 		// Prepare data
 		redisTokens := []entity.Token{
@@ -74,7 +74,8 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 		}
 
 		for _, token := range redisTokens {
-			redisServer.HSet(":tokens", token.Address, token.Encode())
+			encodedToken, _ := encodeToken(token)
+			redisServer.HSet(":tokens", token.Address, encodedToken)
 		}
 
 		tokens, err := repo.FindByAddresses(context.Background(), []string{"address1", "address2", "address4"})
@@ -121,7 +122,7 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := token.NewRedisRepository(db.Client, token.RedisRepositoryConfig{Prefix: ""})
+		repo := NewRedisRepository(db.Client, RedisRepositoryConfig{Prefix: ""})
 
 		redisServer.Close()
 

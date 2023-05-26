@@ -59,9 +59,9 @@ func mockPoolTokensTestIndexPools() []*entity.PoolToken {
 	return []*entity.PoolToken{token1, token2, token3, token4, token5}
 }
 
-func mockPoolsTestIndexPools() []entity.Pool {
+func mockPoolsTestIndexPools() []*entity.Pool {
 	poolTokens := mockPoolTokensTestIndexPools()
-	return []entity.Pool{
+	return []*entity.Pool{
 		{
 			Address:      "pooladdress1",
 			ReserveUsd:   10000,

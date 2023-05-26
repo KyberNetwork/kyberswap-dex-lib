@@ -13,10 +13,6 @@ const PoolKey = "pools"
 
 type PoolReserves []string
 
-func (r PoolReserves) Encode() string {
-	return strings.Join(r, ":")
-}
-
 type PoolToken struct {
 	Address   string `json:"address,omitempty"`
 	Name      string `json:"name,omitempty"`
@@ -50,26 +46,6 @@ func (p Pool) GetTotalSupply() float64 {
 	totalSupply, _ := new(big.Float).Quo(totalSupplyBF, constant.TenPowDecimals(18)).Float64()
 
 	return totalSupply
-}
-
-func (p Pool) Encode() (string, error) {
-	bytes, err := json.Marshal(p)
-	if err != nil {
-		return "", err
-	}
-	return string(bytes), nil
-}
-
-func DecodePool(key, member string) (p Pool, err error) {
-	err = json.Unmarshal([]byte(member), &p)
-
-	if err != nil {
-		return
-	}
-
-	p.Address = key
-
-	return
 }
 
 // GetLpToken returns the LpToken of the pool

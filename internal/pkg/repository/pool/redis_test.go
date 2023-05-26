@@ -1,14 +1,14 @@
-package pool_test
+package pool
 
 import (
 	"context"
 	"testing"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
-	"github.com/KyberNetwork/router-service/pkg/redis"
 	"github.com/alicebob/miniredis"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
 func TestRedisRepository_FindAllAddresses(t *testing.T) {
@@ -29,11 +29,11 @@ func TestRedisRepository_FindAllAddresses(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		redisRepositoryConfig := pool.RedisRepositoryConfig{
+		redisRepositoryConfig := RedisRepositoryConfig{
 			Prefix: "",
 		}
 
-		repo := pool.NewRedisRepository(db.Client, redisRepositoryConfig)
+		repo := NewRedisRepository(db.Client, redisRepositoryConfig)
 
 		redisPools := []entity.Pool{
 			{
@@ -45,7 +45,7 @@ func TestRedisRepository_FindAllAddresses(t *testing.T) {
 		}
 
 		for _, pool := range redisPools {
-			encodedPool, _ := pool.Encode()
+			encodedPool, _ := encodePool(pool)
 			redisServer.HSet(":pools", pool.Address, encodedPool)
 		}
 
@@ -69,11 +69,11 @@ func TestRedisRepository_FindAllAddresses(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		redisRepositoryConfig := pool.RedisRepositoryConfig{
+		redisRepositoryConfig := RedisRepositoryConfig{
 			Prefix: "",
 		}
 
-		redisRepository := pool.NewRedisRepository(db.Client, redisRepositoryConfig)
+		redisRepository := NewRedisRepository(db.Client, redisRepositoryConfig)
 		redisServer.Close()
 
 		addresses, err := redisRepository.FindAllAddresses(context.Background())
@@ -100,11 +100,11 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		redisRepositoryConfig := pool.RedisRepositoryConfig{
+		redisRepositoryConfig := RedisRepositoryConfig{
 			Prefix: "",
 		}
 
-		redisRepository := pool.NewRedisRepository(db.Client, redisRepositoryConfig)
+		redisRepository := NewRedisRepository(db.Client, redisRepositoryConfig)
 
 		// Prepare data
 		redisPools := []entity.Pool{
@@ -203,7 +203,7 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			},
 		}
 		for _, pool := range redisPools {
-			encodedPool, _ := pool.Encode()
+			encodedPool, _ := encodePool(pool)
 			redisServer.HSet(":pools", pool.Address, encodedPool)
 		}
 
@@ -294,11 +294,11 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		redisRepositoryConfig := pool.RedisRepositoryConfig{
+		redisRepositoryConfig := RedisRepositoryConfig{
 			Prefix: "",
 		}
 
-		redisRepository := pool.NewRedisRepository(db.Client, redisRepositoryConfig)
+		redisRepository := NewRedisRepository(db.Client, redisRepositoryConfig)
 		pools, err := redisRepository.FindByAddresses(context.Background(), nil)
 
 		assert.Nil(t, pools)
@@ -321,11 +321,11 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		redisRepositoryConfig := pool.RedisRepositoryConfig{
+		redisRepositoryConfig := RedisRepositoryConfig{
 			Prefix: "",
 		}
 
-		redisRepository := pool.NewRedisRepository(db.Client, redisRepositoryConfig)
+		redisRepository := NewRedisRepository(db.Client, redisRepositoryConfig)
 		redisServer.Close()
 		pools, err := redisRepository.FindByAddresses(context.Background(), []string{"address1"})
 

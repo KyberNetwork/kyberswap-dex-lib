@@ -178,18 +178,18 @@ func (uc *buildRouteUseCase) getTokens(
 	ctx context.Context,
 	tokenInAddress string,
 	tokenOutAddress string,
-) (entity.Token, entity.Token, error) {
+) (*entity.Token, *entity.Token, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.getTokens")
 	defer span.Finish()
 
 	tokens, err := uc.tokenRepository.FindByAddresses(ctx, []string{tokenInAddress, tokenOutAddress})
 	if err != nil {
-		return entity.Token{}, entity.Token{}, err
+		return nil, nil, err
 	}
 
 	var (
-		tokenIn  entity.Token
-		tokenOut entity.Token
+		tokenIn  *entity.Token
+		tokenOut *entity.Token
 	)
 
 	for _, token := range tokens {
@@ -210,18 +210,18 @@ func (uc *buildRouteUseCase) getPrices(
 	ctx context.Context,
 	tokenInAddress string,
 	tokenOutAddress string,
-) (entity.Price, entity.Price, error) {
+) (*entity.Price, *entity.Price, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.getPrices")
 	defer span.Finish()
 
 	prices, err := uc.priceRepository.FindByAddresses(ctx, []string{tokenInAddress, tokenOutAddress})
 	if err != nil {
-		return entity.Price{}, entity.Price{}, err
+		return nil, nil, err
 	}
 
 	var (
-		tokenInPrice  entity.Price
-		tokenOutPrice entity.Price
+		tokenInPrice  *entity.Price
+		tokenOutPrice *entity.Price
 	)
 
 	for _, price := range prices {

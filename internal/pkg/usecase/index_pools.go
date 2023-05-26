@@ -62,7 +62,7 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 }
 
 // indexPool returns false if any errors occur and vice versa
-func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool entity.Pool) bool {
+func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) bool {
 	if !pool.HasReserves() && !pool.HasAmplifiedTvl() {
 		return true
 	}

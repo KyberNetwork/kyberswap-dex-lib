@@ -35,24 +35,24 @@ func TestGetTokens_Handle(t *testing.T) {
 				mockTokenRepo.
 					EXPECT().
 					FindByAddresses(gomock.Any(), []string{"tokenaddress1", "tokenaddress4"}).
-					Return([]entity.Token{fixtures.Tokens[0], fixtures.Tokens[3]}, nil)
+					Return([]*entity.Token{fixtures.Tokens[0], fixtures.Tokens[3]}, nil)
 
 				mockTokenRepo.
 					EXPECT().
 					FindByAddresses(gomock.Any(), []string{"tokenaddress2"}).
-					Return([]entity.Token{fixtures.Tokens[1]}, nil)
+					Return([]*entity.Token{fixtures.Tokens[1]}, nil)
 
 				mockPriceRepo := usecase.NewMockIPriceRepository(ctrl)
 				mockPriceRepo.
 					EXPECT().
 					FindByAddresses(gomock.Any(), []string{"tokenaddress1", "tokenaddress4"}).
-					Return([]entity.Price{fixtures.Prices[0], fixtures.Prices[3]}, nil)
+					Return([]*entity.Price{fixtures.Prices[0], fixtures.Prices[3]}, nil)
 
 				mockPoolRepo := usecase.NewMockIPoolRepository(ctrl)
 				mockPoolRepo.
 					EXPECT().
 					FindByAddresses(gomock.Any(), []string{"pooladdress1"}).
-					Return([]entity.Pool{fixtures.Pools[0]}, nil)
+					Return([]*entity.Pool{fixtures.Pools[0]}, nil)
 
 				return NewGetTokens(mockTokenRepo, mockPoolRepo, mockPriceRepo)
 			},
@@ -129,7 +129,7 @@ func TestGetTokens_Handle(t *testing.T) {
 				mockTokenRepo.
 					EXPECT().
 					FindByAddresses(gomock.Any(), []string{"tokenaddress1", "tokenaddress4"}).
-					Return([]entity.Token{fixtures.Tokens[0], fixtures.Tokens[3]}, nil)
+					Return([]*entity.Token{fixtures.Tokens[0], fixtures.Tokens[3]}, nil)
 
 				mockPriceRepo := usecase.NewMockIPriceRepository(ctrl)
 				mockPriceRepo.
@@ -152,13 +152,13 @@ func TestGetTokens_Handle(t *testing.T) {
 				mockTokenRepo.
 					EXPECT().
 					FindByAddresses(gomock.Any(), []string{"tokenaddress1", "tokenaddress4"}).
-					Return([]entity.Token{fixtures.Tokens[0], fixtures.Tokens[3]}, nil)
+					Return([]*entity.Token{fixtures.Tokens[0], fixtures.Tokens[3]}, nil)
 
 				mockPriceRepo := usecase.NewMockIPriceRepository(ctrl)
 				mockPriceRepo.
 					EXPECT().
 					FindByAddresses(gomock.Any(), []string{"tokenaddress1", "tokenaddress4"}).
-					Return([]entity.Price{fixtures.Prices[0], fixtures.Prices[3]}, nil)
+					Return([]*entity.Price{fixtures.Prices[0], fixtures.Prices[3]}, nil)
 
 				mockPoolRepo := usecase.NewMockIPoolRepository(ctrl)
 				mockPoolRepo.
@@ -182,7 +182,7 @@ func TestGetTokens_Handle(t *testing.T) {
 				mockTokenRepo.
 					EXPECT().
 					FindByAddresses(gomock.Any(), []string{"tokenaddress1", "tokenaddress4"}).
-					Return([]entity.Token{fixtures.Tokens[0], fixtures.Tokens[3]}, nil)
+					Return([]*entity.Token{fixtures.Tokens[0], fixtures.Tokens[3]}, nil)
 
 				mockTokenRepo.
 					EXPECT().
@@ -193,13 +193,13 @@ func TestGetTokens_Handle(t *testing.T) {
 				mockPriceRepo.
 					EXPECT().
 					FindByAddresses(gomock.Any(), []string{"tokenaddress1", "tokenaddress4"}).
-					Return([]entity.Price{fixtures.Prices[0], fixtures.Prices[3]}, nil)
+					Return([]*entity.Price{fixtures.Prices[0], fixtures.Prices[3]}, nil)
 
 				mockPoolRepo := usecase.NewMockIPoolRepository(ctrl)
 				mockPoolRepo.
 					EXPECT().
 					FindByAddresses(gomock.Any(), []string{"pooladdress1"}).
-					Return([]entity.Pool{fixtures.Pools[0]}, nil)
+					Return([]*entity.Pool{fixtures.Pools[0]}, nil)
 
 				return NewGetTokens(mockTokenRepo, mockPoolRepo, mockPriceRepo)
 			},

@@ -48,7 +48,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]entity.Token{
+						[]*entity.Token{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						},
@@ -59,7 +59,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				priceRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]entity.Price{
+						[]*entity.Price{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
 						},
@@ -122,7 +122,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]entity.Token{
+						[]*entity.Token{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						},
@@ -133,7 +133,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				priceRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]entity.Price{
+						[]*entity.Price{
 							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
 						},

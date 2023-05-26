@@ -39,7 +39,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 		})
 
 		// Prepare data
-		redisPools := []entity.Pool{
+		redisPools := []*entity.Pool{
 			{
 				Address:      "address1",
 				ReserveUsd:   100,
@@ -193,7 +193,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 		})
 
 		// Prepare data
-		redisPools := []entity.Pool{
+		redisPools := []*entity.Pool{
 			{
 				Address:      "address1",
 				ReserveUsd:   100,
@@ -345,7 +345,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
 
 		// Prepare data
-		redisPools := []entity.Pool{
+		redisPools := []*entity.Pool{
 			{
 				Address:      "address1",
 				ReserveUsd:   100,
@@ -497,7 +497,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
 
 		// Prepare data
-		redisPools := []entity.Pool{
+		redisPools := []*entity.Pool{
 			{
 				Address:      "address1",
 				ReserveUsd:   100,
@@ -694,7 +694,7 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 
 		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
 
-		p := entity.Pool{
+		p := &entity.Pool{
 			Address:      "address1",
 			ReserveUsd:   100,
 			AmplifiedTvl: 100,
@@ -767,7 +767,7 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 
 		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
 
-		p := entity.Pool{
+		p := &entity.Pool{
 			Address:      "address1",
 			ReserveUsd:   100,
 			AmplifiedTvl: 100,
@@ -839,7 +839,7 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 
 		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
 
-		p := entity.Pool{
+		p := &entity.Pool{
 			Address:      "address1",
 			ReserveUsd:   100,
 			AmplifiedTvl: 100,
@@ -912,7 +912,7 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 
 		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
 
-		p := entity.Pool{
+		p := &entity.Pool{
 			Address:      "address1",
 			ReserveUsd:   100,
 			AmplifiedTvl: 100,
@@ -987,7 +987,7 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 		token1Address := "poolTokenAddress1"
 		token2Address := "poolTokenAddress2"
 
-		err = repo.AddToSortedSetScoreByTvl(context.Background(), entity.Pool{}, token1Address, token2Address, true, true)
+		err = repo.AddToSortedSetScoreByTvl(context.Background(), &entity.Pool{}, token1Address, token2Address, true, true)
 
 		assert.Error(t, err)
 	})
@@ -1015,7 +1015,7 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 
 		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
 
-		p := entity.Pool{
+		p := &entity.Pool{
 			Address:      "address1",
 			ReserveUsd:   100,
 			AmplifiedTvl: 100,
@@ -1092,7 +1092,7 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 
 		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
 
-		p := entity.Pool{
+		p := &entity.Pool{
 			Address:      "address1",
 			ReserveUsd:   100,
 			AmplifiedTvl: 100,
@@ -1164,7 +1164,7 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 
 		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
 
-		p := entity.Pool{
+		p := &entity.Pool{
 			Address:      "address1",
 			ReserveUsd:   100,
 			AmplifiedTvl: 100,
@@ -1237,7 +1237,7 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 
 		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
 
-		p := entity.Pool{
+		p := &entity.Pool{
 			Address:      "address1",
 			ReserveUsd:   100,
 			AmplifiedTvl: 100,
@@ -1312,7 +1312,7 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 		token1Address := "poolTokenAddress1"
 		token2Address := "poolTokenAddress2"
 
-		err = repo.AddToSortedSetScoreByAmplifiedTvl(context.Background(), entity.Pool{}, token1Address, token2Address, true, true)
+		err = repo.AddToSortedSetScoreByAmplifiedTvl(context.Background(), &entity.Pool{}, token1Address, token2Address, true, true)
 
 		assert.Error(t, err)
 	})

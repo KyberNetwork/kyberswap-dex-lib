@@ -1,14 +1,14 @@
-package price_test
+package price
 
 import (
 	"context"
 	"testing"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/price"
-	"github.com/KyberNetwork/router-service/pkg/redis"
 	"github.com/alicebob/miniredis"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
 func TestRedisRepository_FindByAddresses(t *testing.T) {
@@ -29,10 +29,10 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		repoConfig := price.RedisRepositoryConfig{
+		repoConfig := RedisRepositoryConfig{
 			Prefix: "avalanche",
 		}
-		repo := price.NewRedisRepository(db.Client, repoConfig)
+		repo := NewRedisRepository(db.Client, repoConfig)
 		// Prepare data
 		redisPrices := []entity.Price{
 			{
@@ -59,7 +59,8 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 		}
 
 		for _, price := range redisPrices {
-			redisServer.HSet("avalanche:prices", price.Address, price.Encode())
+			encodedPrice, _ := encodePrice(price)
+			redisServer.HSet("avalanche:prices", price.Address, encodedPrice)
 		}
 
 		prices, err := repo.FindByAddresses(context.Background(), []string{"address1", "address2", "address4"})
@@ -103,10 +104,10 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			t.Fatalf("failed to setup redis client for testing: %v", err.Error())
 		}
 
-		repoConfig := price.RedisRepositoryConfig{
+		repoConfig := RedisRepositoryConfig{
 			Prefix: "",
 		}
-		repo := price.NewRedisRepository(db.Client, repoConfig)
+		repo := NewRedisRepository(db.Client, repoConfig)
 		prices, err := repo.FindByAddresses(context.Background(), []string{})
 
 		assert.Nil(t, prices)
@@ -129,10 +130,10 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			t.Fatalf("failed to setup redis client for testing: %v", err.Error())
 		}
 
-		repoConfig := price.RedisRepositoryConfig{
+		repoConfig := RedisRepositoryConfig{
 			Prefix: "",
 		}
-		repo := price.NewRedisRepository(db.Client, repoConfig)
+		repo := NewRedisRepository(db.Client, repoConfig)
 		redisServer.Close()
 		prices, err := repo.FindByAddresses(context.Background(), []string{"address1"})
 

@@ -64,13 +64,13 @@ func (u *getTokensUseCase) Handle(ctx context.Context, query dto.GetTokensQuery)
 func (u *getTokensUseCase) getTokens(
 	ctx context.Context,
 	addresses []string,
-) (map[string]entity.Token, error) {
+) (map[string]*entity.Token, error) {
 	tokens, err := u.tokenRepo.FindByAddresses(ctx, addresses)
 	if err != nil {
 		return nil, err
 	}
 
-	tokenByAddress := make(map[string]entity.Token, len(tokens))
+	tokenByAddress := make(map[string]*entity.Token, len(tokens))
 	for _, token := range tokens {
 		tokenByAddress[token.Address] = token
 	}
@@ -81,13 +81,13 @@ func (u *getTokensUseCase) getTokens(
 func (u *getTokensUseCase) getPrices(
 	ctx context.Context,
 	addresses []string,
-) (map[string]entity.Price, error) {
+) (map[string]*entity.Price, error) {
 	prices, err := u.priceRepo.FindByAddresses(ctx, addresses)
 	if err != nil {
 		return nil, err
 	}
 
-	priceByAddress := make(map[string]entity.Price, len(prices))
+	priceByAddress := make(map[string]*entity.Price, len(prices))
 	for _, price := range prices {
 		priceByAddress[price.Address] = price
 	}
@@ -98,8 +98,8 @@ func (u *getTokensUseCase) getPrices(
 func (u *getTokensUseCase) getPools(
 	ctx context.Context,
 	showPoolTokens bool,
-	tokenByAddress map[string]entity.Token,
-) (map[string]entity.Pool, error) {
+	tokenByAddress map[string]*entity.Token,
+) (map[string]*entity.Pool, error) {
 	if !showPoolTokens {
 		return nil, nil
 	}
@@ -122,7 +122,7 @@ func (u *getTokensUseCase) getPools(
 		return nil, err
 	}
 
-	poolByAddress := make(map[string]entity.Pool, len(pools))
+	poolByAddress := make(map[string]*entity.Pool, len(pools))
 	for _, pool := range pools {
 		poolByAddress[pool.Address] = pool
 	}
@@ -132,14 +132,14 @@ func (u *getTokensUseCase) getPools(
 
 func (u *getTokensUseCase) getPoolTokens(
 	ctx context.Context,
-	tokenByAddress map[string]entity.Token,
-	poolByTokenAddress map[string]entity.Pool,
-) (map[string]entity.Token, error) {
+	tokenByAddress map[string]*entity.Token,
+	poolByTokenAddress map[string]*entity.Pool,
+) (map[string]*entity.Token, error) {
 	if len(poolByTokenAddress) == 0 {
 		return nil, nil
 	}
 
-	poolTokenByAddress := make(map[string]entity.Token)
+	poolTokenByAddress := make(map[string]*entity.Token)
 	poolTokenSet := sets.NewString()
 	for _, pool := range poolByTokenAddress {
 		for _, poolToken := range pool.Tokens {
@@ -171,10 +171,10 @@ func (u *getTokensUseCase) getPoolTokens(
 
 func aggregateTokens(
 	query dto.GetTokensQuery,
-	tokenByAddress map[string]entity.Token,
-	priceByAddress map[string]entity.Price,
-	poolByAddress map[string]entity.Pool,
-	poolTokenByAddress map[string]entity.Token,
+	tokenByAddress map[string]*entity.Token,
+	priceByAddress map[string]*entity.Price,
+	poolByAddress map[string]*entity.Pool,
+	poolTokenByAddress map[string]*entity.Token,
 ) []*dto.GetTokensResultToken {
 	tokens := make([]*dto.GetTokensResultToken, 0, len(tokenByAddress))
 	for address, entityToken := range tokenByAddress {

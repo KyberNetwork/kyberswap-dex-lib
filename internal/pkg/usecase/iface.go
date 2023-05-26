@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"math/big"
-	"time"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -14,7 +13,6 @@ import (
 //go:generate mockgen -destination ../mocks/usecase/token_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase ITokenRepository
 //go:generate mockgen -destination ../mocks/usecase/price_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IPriceRepository
 //go:generate mockgen -destination ../mocks/usecase/config_fetcher_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IConfigFetcherRepository
-//go:generate mockgen -destination ../mocks/usecase/route_cache_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IRouteCacheRepository
 //go:generate mockgen -destination ../mocks/usecase/scanner_state_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IScannerStateRepository
 //go:generate mockgen -destination ../mocks/usecase/client_data_encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IClientDataEncoder
 //go:generate mockgen -destination ../mocks/usecase/encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IEncoder
@@ -23,53 +21,40 @@ import (
 
 // IPoolRepository receives pool addresses, fetch pool data from datastore, decode them and return []entity.Pool
 type IPoolRepository interface {
-	FindByAddresses(ctx context.Context, addresses []string) ([]entity.Pool, error)
+	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Pool, error)
 	FindAllAddresses(ctx context.Context) ([]string, error)
 }
 
 // ITokenRepository receives token addresses, fetch token data from datastore, decode them and return []entity.Token
 type ITokenRepository interface {
-	FindByAddresses(ctx context.Context, addresses []string) ([]entity.Token, error)
+	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error)
 }
 
 // IPriceRepository receives token addresses, fetch price data from datastore, decode them and return []entity.Price
 type IPriceRepository interface {
-	FindByAddresses(ctx context.Context, addresses []string) ([]entity.Price, error)
+	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Price, error)
 }
 
 type IConfigFetcherRepository interface {
 	GetConfigs(ctx context.Context, serviceCode string, currentHash string) (valueobject.RemoteConfig, error)
 }
 
-type IRouteRepository interface {
-	GetBestPools(ctx context.Context, directPairKey, tokenIn, tokenOut string, options types.GetBestPoolsOptions, whitelistI, whitelistJ bool) (*types.BestPools, error)
-}
-
 type IPoolRankRepository interface {
 	AddToSortedSetScoreByTvl(
 		ctx context.Context,
-		pool entity.Pool,
+		pool *entity.Pool,
 		token0, token1 string,
 		isToken0Whitelisted, isToken1Whitelisted bool,
 	) error
 	AddToSortedSetScoreByAmplifiedTvl(
 		ctx context.Context,
-		pool entity.Pool,
+		pool *entity.Pool,
 		token0, token1 string,
 		isToken0Whitelisted, isToken1Whitelisted bool,
 	) error
 }
 
-// IRouteCacheRepository collects, manage and store route cache
-type IRouteCacheRepository interface {
-	// Set stores route cache
-	Set(ctx context.Context, key string, data string, ttl time.Duration) error
-	// Get receives key and return data, ttl and error if exists
-	Get(ctx context.Context, key string) ([]byte, time.Duration, error)
-}
-
 type IScannerStateRepository interface {
-	GetGasPrice(ctx context.Context) (*big.Float, error)
 	GetL2Fee(ctx context.Context) (*entity.L2Fee, error)
 }
 

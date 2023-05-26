@@ -36,10 +36,10 @@ func (m *MockITokenRepository) EXPECT() *MockITokenRepositoryMockRecorder {
 }
 
 // FindByAddresses mocks base method.
-func (m *MockITokenRepository) FindByAddresses(arg0 context.Context, arg1 []string) ([]entity.Token, error) {
+func (m *MockITokenRepository) FindByAddresses(arg0 context.Context, arg1 []string) ([]*entity.Token, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindByAddresses", arg0, arg1)
-	ret0, _ := ret[0].([]entity.Token)
+	ret0, _ := ret[0].([]*entity.Token)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

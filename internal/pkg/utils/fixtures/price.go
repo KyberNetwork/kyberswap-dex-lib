@@ -2,7 +2,7 @@ package fixtures
 
 import "github.com/KyberNetwork/router-service/internal/pkg/entity"
 
-var Prices = []entity.Price{
+var Prices = []*entity.Price{
 	{
 		Address:     "tokenaddress1",
 		Price:       100000,

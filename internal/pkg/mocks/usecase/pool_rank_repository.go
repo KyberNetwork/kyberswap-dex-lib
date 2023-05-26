@@ -36,7 +36,7 @@ func (m *MockIPoolRankRepository) EXPECT() *MockIPoolRankRepositoryMockRecorder 
 }
 
 // AddToSortedSetScoreByAmplifiedTvl mocks base method.
-func (m *MockIPoolRankRepository) AddToSortedSetScoreByAmplifiedTvl(arg0 context.Context, arg1 entity.Pool, arg2, arg3 string, arg4, arg5 bool) error {
+func (m *MockIPoolRankRepository) AddToSortedSetScoreByAmplifiedTvl(arg0 context.Context, arg1 *entity.Pool, arg2, arg3 string, arg4, arg5 bool) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddToSortedSetScoreByAmplifiedTvl", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].(error)
@@ -50,7 +50,7 @@ func (mr *MockIPoolRankRepositoryMockRecorder) AddToSortedSetScoreByAmplifiedTvl
 }
 
 // AddToSortedSetScoreByTvl mocks base method.
-func (m *MockIPoolRankRepository) AddToSortedSetScoreByTvl(arg0 context.Context, arg1 entity.Pool, arg2, arg3 string, arg4, arg5 bool) error {
+func (m *MockIPoolRankRepository) AddToSortedSetScoreByTvl(arg0 context.Context, arg1 *entity.Pool, arg2, arg3 string, arg4, arg5 bool) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddToSortedSetScoreByTvl", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].(error)

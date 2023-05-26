@@ -12,8 +12,6 @@ import (
 	"github.com/KyberNetwork/reload"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
-	cmap "github.com/orcaman/concurrent-map"
-	"github.com/patrickmn/go-cache"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -23,7 +21,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/job"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
@@ -177,14 +174,14 @@ func apiAction(c *cli.Context) (err error) {
 	ethClient := ethrpc.New(cfg.Common.RPC)
 
 	// init repositories
-	tokenDataStoreRepo := repository.NewTokenDataStoreRedisRepository(poolRedisClient)
-	tokenCacheRepo := repository.NewTokenCacheRepository(
+	tokenDataStoreRepo := token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis)
+	tokenCacheRepo := token.NewGoCacheRepository(
 		tokenDataStoreRepo,
-		cache.New(cache.NoExpiration, cache.NoExpiration),
+		cfg.Repository.Token.GoCache,
 	)
 
-	poolDataStoreRepo := repository.NewPoolDataStoreRedisRepository(poolRedisClient)
-	priceDataStoreRepo := repository.NewPriceDataStoreRedisRepository(poolRedisClient)
+	poolDataStoreRepo := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
+	priceDataStoreRepo := price.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Price.Redis)
 
 	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient, cfg.Repository.Gas.Redis)
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
@@ -357,9 +354,7 @@ func indexerAction(c *cli.Context) (err error) {
 	}
 
 	// init repository
-	poolDatastoreRepo := repository.NewPoolDataStoreRedisRepository(poolRedisClient)
-	poolCacheRepo := repository.NewPoolCacheCMapRepository(cmap.New(), cmap.New())
-	poolRepo := repository.NewPoolRepository(poolDatastoreRepo, poolCacheRepo)
+	poolRepo := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
 	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient, gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 

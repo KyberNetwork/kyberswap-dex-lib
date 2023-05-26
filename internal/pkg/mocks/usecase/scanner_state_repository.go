@@ -6,7 +6,6 @@ package usecase
 
 import (
 	context "context"
-	big "math/big"
 	reflect "reflect"
 
 	entity "github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -34,21 +33,6 @@ func NewMockIScannerStateRepository(ctrl *gomock.Controller) *MockIScannerStateR
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockIScannerStateRepository) EXPECT() *MockIScannerStateRepositoryMockRecorder {
 	return m.recorder
-}
-
-// GetGasPrice mocks base method.
-func (m *MockIScannerStateRepository) GetGasPrice(arg0 context.Context) (*big.Float, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetGasPrice", arg0)
-	ret0, _ := ret[0].(*big.Float)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetGasPrice indicates an expected call of GetGasPrice.
-func (mr *MockIScannerStateRepositoryMockRecorder) GetGasPrice(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGasPrice", reflect.TypeOf((*MockIScannerStateRepository)(nil).GetGasPrice), arg0)
 }
 
 // GetL2Fee mocks base method.

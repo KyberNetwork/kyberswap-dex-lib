@@ -23,7 +23,7 @@ func TestNewGetTokensResultTokenBuilder(t *testing.T) {
 
 func TestGetTokensResultTokenBuilder_WithToken(t *testing.T) {
 	t.Run("it should build correct token data", func(t *testing.T) {
-		token := entity.Token{
+		token := &entity.Token{
 			Name:     "name",
 			Decimals: 6,
 			Symbol:   "symbol",
@@ -54,7 +54,7 @@ func TestGetTokensResultTokenBuilder_WithToken(t *testing.T) {
 
 func TestGetTokensResultTokenBuilder_WithPrice(t *testing.T) {
 	t.Run("it should build correct price data when showExtra is false", func(t *testing.T) {
-		price := entity.Price{
+		price := &entity.Price{
 			Price:     float64(1000000),
 			Liquidity: float64(20000),
 			LpAddress: "poolAddress",
@@ -79,7 +79,7 @@ func TestGetTokensResultTokenBuilder_WithPrice(t *testing.T) {
 	})
 
 	t.Run("it should build correct price data when showExtra is true", func(t *testing.T) {
-		price := entity.Price{
+		price := &entity.Price{
 			Price:     float64(1000000),
 			Liquidity: float64(20000),
 			LpAddress: "poolAddress",
@@ -108,7 +108,7 @@ func TestGetTokensResultTokenBuilder_WithPrice(t *testing.T) {
 
 func TestGetTokensResultTokenBuilder_WithPool(t *testing.T) {
 	t.Run("it should skip when showPoolTokens is false", func(t *testing.T) {
-		pool := entity.Pool{
+		pool := &entity.Pool{
 			Address:     "poolAddress",
 			TotalSupply: "1000000",
 			ReserveUsd:  1000000,
@@ -123,7 +123,7 @@ func TestGetTokensResultTokenBuilder_WithPool(t *testing.T) {
 				},
 			},
 		}
-		tokenByAddress := map[string]entity.Token{
+		tokenByAddress := map[string]*entity.Token{
 			"token0Address": {
 				Name:     "token0Name",
 				Decimals: 6,
@@ -155,7 +155,7 @@ func TestGetTokensResultTokenBuilder_WithPool(t *testing.T) {
 	})
 
 	t.Run("it should skip when pool is zero", func(t *testing.T) {
-		pool := entity.Pool{}
+		pool := &entity.Pool{}
 
 		expected := &GetTokensResultTokenBuilder{
 			showExtra:      false,
@@ -174,7 +174,7 @@ func TestGetTokensResultTokenBuilder_WithPool(t *testing.T) {
 	})
 
 	t.Run("it should return correct pool when showPoolTokens is true and pool is not zero", func(t *testing.T) {
-		pool := entity.Pool{
+		pool := &entity.Pool{
 			Address:     "poolAddress",
 			TotalSupply: "1000000000000000000000000",
 			ReserveUsd:  1000000,
@@ -189,7 +189,7 @@ func TestGetTokensResultTokenBuilder_WithPool(t *testing.T) {
 				},
 			},
 		}
-		tokenByAddress := map[string]entity.Token{
+		tokenByAddress := map[string]*entity.Token{
 			"token0Address": {
 				Name:     "token0Name",
 				Decimals: 6,

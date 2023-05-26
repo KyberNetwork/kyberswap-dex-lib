@@ -31,7 +31,7 @@ type (
 	}
 )
 
-func NewGetPoolsResult(pools []entity.Pool) *GetPoolsResult {
+func NewGetPoolsResult(pools []*entity.Pool) *GetPoolsResult {
 	resultPools := make([]*GetPoolsResultPool, 0, len(pools))
 	for _, pool := range pools {
 		resultPools = append(resultPools, toGetPoolsResultPool(pool))
@@ -42,7 +42,7 @@ func NewGetPoolsResult(pools []entity.Pool) *GetPoolsResult {
 	}
 }
 
-func toGetPoolsResultPool(pool entity.Pool) *GetPoolsResultPool {
+func toGetPoolsResultPool(pool *entity.Pool) *GetPoolsResultPool {
 	reserves := make([]string, 0, len(pool.Reserves))
 	for _, reserve := range pool.Reserves {
 		reserves = append(reserves, reserve)

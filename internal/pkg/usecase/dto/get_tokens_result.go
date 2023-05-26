@@ -53,7 +53,7 @@ func NewGetTokensResultTokenBuilder(
 	}
 }
 
-func (b *GetTokensResultTokenBuilder) WithToken(token entity.Token) IGetTokensResultTokenBuilder {
+func (b *GetTokensResultTokenBuilder) WithToken(token *entity.Token) IGetTokensResultTokenBuilder {
 	b.token.Name = token.Name
 	b.token.Decimals = token.Decimals
 	b.token.Symbol = token.Symbol
@@ -62,7 +62,7 @@ func (b *GetTokensResultTokenBuilder) WithToken(token entity.Token) IGetTokensRe
 	return b
 }
 
-func (b *GetTokensResultTokenBuilder) WithPrice(price entity.Price) IGetTokensResultTokenBuilder {
+func (b *GetTokensResultTokenBuilder) WithPrice(price *entity.Price) IGetTokensResultTokenBuilder {
 	b.token.Price = price.Price
 
 	if b.showExtra {
@@ -74,14 +74,14 @@ func (b *GetTokensResultTokenBuilder) WithPrice(price entity.Price) IGetTokensRe
 }
 
 func (b *GetTokensResultTokenBuilder) WithPool(
-	pool entity.Pool,
-	tokenByAddress map[string]entity.Token,
+	pool *entity.Pool,
+	tokenByAddress map[string]*entity.Token,
 ) IGetTokensResultTokenBuilder {
 	if !b.showPoolTokens {
 		return b
 	}
 
-	if pool.IsZero() {
+	if pool == nil || pool.IsZero() {
 		return b
 	}
 

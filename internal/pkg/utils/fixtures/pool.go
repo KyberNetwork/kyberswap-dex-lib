@@ -2,7 +2,7 @@ package fixtures
 
 import "github.com/KyberNetwork/router-service/internal/pkg/entity"
 
-var Pools = []entity.Pool{
+var Pools = []*entity.Pool{
 	{
 		Address:      "pooladdress1",
 		ReserveUsd:   10000,

@@ -51,10 +51,10 @@ func (mr *MockIPoolRepositoryMockRecorder) FindAllAddresses(arg0 interface{}) *g
 }
 
 // FindByAddresses mocks base method.
-func (m *MockIPoolRepository) FindByAddresses(arg0 context.Context, arg1 []string) ([]entity.Pool, error) {
+func (m *MockIPoolRepository) FindByAddresses(arg0 context.Context, arg1 []string) ([]*entity.Pool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindByAddresses", arg0, arg1)
-	ret0, _ := ret[0].([]entity.Pool)
+	ret0, _ := ret[0].([]*entity.Pool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

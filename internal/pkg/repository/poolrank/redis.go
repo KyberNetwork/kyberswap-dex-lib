@@ -231,7 +231,7 @@ func (r *redisRepository) FindGlobalBestPools(ctx context.Context, poolCount int
 
 func (r *redisRepository) AddToSortedSetScoreByTvl(
 	ctx context.Context,
-	pool entity.Pool,
+	pool *entity.Pool,
 	token0, token1 string,
 	isToken0Whitelisted, isToken1Whitelisted bool,
 ) error {
@@ -266,7 +266,7 @@ func (r *redisRepository) AddToSortedSetScoreByTvl(
 
 func (r *redisRepository) AddToSortedSetScoreByAmplifiedTvl(
 	ctx context.Context,
-	pool entity.Pool,
+	pool *entity.Pool,
 	token0, token1 string,
 	isToken0Whitelisted, isToken1Whitelisted bool,
 ) error {

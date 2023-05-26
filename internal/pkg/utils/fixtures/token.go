@@ -2,7 +2,7 @@ package fixtures
 
 import "github.com/KyberNetwork/router-service/internal/pkg/entity"
 
-var Tokens = []entity.Token{
+var Tokens = []*entity.Token{
 	{
 		Address:     "tokenaddress1",
 		Symbol:      "symbol1",

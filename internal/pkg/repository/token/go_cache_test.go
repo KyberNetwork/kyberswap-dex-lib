@@ -1,12 +1,11 @@
-package repository
+package token
 
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/alicebob/miniredis"
-	"github.com/patrickmn/go-cache"
-
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -15,7 +14,10 @@ import (
 
 func TestTokenCacheInmemoryRepository_FindByAddresses(t *testing.T) {
 	t.Run("it should return empty when addresses is empty", func(t *testing.T) {
-		repo := NewTokenCacheRepository(nil, cache.New(cache.NoExpiration, cache.NoExpiration))
+		repo := NewGoCacheRepository(nil, GoCacheRepositoryConfig{
+			Expiration:      10 * time.Second,
+			CleanupInterval: 20 * time.Second,
+		})
 
 		tokens, err := repo.FindByAddresses(context.Background(), nil)
 
@@ -41,9 +43,14 @@ func TestTokenCacheInmemoryRepository_FindByAddresses(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
-		tokenDatastoreRepo := NewTokenDataStoreRedisRepository(db)
+		tokenDatastoreRepo := NewRedisRepository(db.Client, RedisRepositoryConfig{
+			Prefix: "",
+		})
 
-		repo := NewTokenCacheRepository(tokenDatastoreRepo, cache.New(cache.NoExpiration, cache.NoExpiration))
+		repo := NewGoCacheRepository(tokenDatastoreRepo, GoCacheRepositoryConfig{
+			Expiration:      10 * time.Second,
+			CleanupInterval: 20 * time.Second,
+		})
 
 		// Prepare data test case 1 all token from cache
 		redisTokens := []entity.Token{
@@ -77,12 +84,13 @@ func TestTokenCacheInmemoryRepository_FindByAddresses(t *testing.T) {
 		}
 
 		for _, token := range redisTokens {
-			redisServer.HSet(":tokens", token.Address, token.Encode())
+			encodedToken, _ := encodeToken(token)
+			redisServer.HSet(":tokens", token.Address, encodedToken)
 		}
 
 		tokens, err := repo.FindByAddresses(context.Background(), []string{"address1", "address2", "address3"})
 
-		expectedTokens := []entity.Token{
+		expectedTokens := []*entity.Token{
 			{
 				Address:     "address1",
 				Symbol:      "symbol1",

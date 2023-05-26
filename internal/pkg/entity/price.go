@@ -1,9 +1,5 @@
 package entity
 
-import (
-	"encoding/json"
-)
-
 const PriceKey = "prices"
 
 type PriceSource string
@@ -20,25 +16,6 @@ type Price struct {
 	LpAddress         string      `json:"lpAddress"`
 	MarketPrice       float64     `json:"marketPrice"`
 	PreferPriceSource PriceSource `json:"preferPriceSource"`
-}
-
-func (p Price) Encode() string {
-	bytes, _ := json.Marshal(p)
-
-	return string(bytes)
-}
-
-// DecodePrice will decode price from the string
-func DecodePrice(key, member string) Price {
-	var p Price
-	err := json.Unmarshal([]byte(member), &p)
-	if err != nil {
-		return Price{}
-	}
-
-	p.Address = key
-
-	return p
 }
 
 // GetPreferredPrice returns the preferred price + if the value is market price or not
