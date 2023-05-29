@@ -89,6 +89,7 @@ var (
 	ExchangeDystopia  Exchange = "dystopia"
 	ExchangeChronos   Exchange = "chronos"
 	ExchangeRamses    Exchange = "ramses"
+	ExchangeVelocore  Exchange = "velocore"
 
 	ExchangePlatypus Exchange = "platypus"
 
@@ -171,6 +172,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeDystopia:            {},
 	ExchangeChronos:             {},
 	ExchangeRamses:              {},
+	ExchangeVelocore:            {},
 	ExchangePlatypus:            {},
 	ExchangeKyberSwapLimitOrder: {},
 }

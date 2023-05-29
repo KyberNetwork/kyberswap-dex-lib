@@ -86,6 +86,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeDystopia, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeChronos, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeRamses, swapdata.PackUniSwap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeVelocore, swapdata.PackUniSwap)
 
 	RegisterPackSwapDataFunc(valueobject.ExchangeCamelot, swapdata.PackCamelot)
 
