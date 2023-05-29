@@ -351,7 +351,7 @@ func (d *PoolsListUpdater) getPoolAddresses(
 			ABI:    registryOrFactoryABI,
 			Target: registryOrFactoryAddress,
 			Method: registryOrFactoryMethodPoolList,
-			Params: []interface{}{big.NewInt(int64(i))},
+			Params: []interface{}{big.NewInt(int64(currentOffset + i))},
 		}, []interface{}{&poolAddresses[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
