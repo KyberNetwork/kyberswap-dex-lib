@@ -3,8 +3,10 @@ module github.com/KyberNetwork/kyberswap-dex-lib
 go 1.20
 
 require (
+	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.0
 	github.com/KyberNetwork/ethrpc v0.2.0
 	github.com/KyberNetwork/logger v0.1.0
+	github.com/daoleno/uniswap-sdk-core v0.1.5
 	github.com/daoleno/uniswapv3-sdk v0.4.0
 	github.com/ethereum/go-ethereum v1.11.6
 	github.com/go-resty/resty/v2 v2.7.0
@@ -19,7 +21,6 @@ require (
 
 require (
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
-	github.com/daoleno/uniswap-sdk-core v0.1.5 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set/v2 v2.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
