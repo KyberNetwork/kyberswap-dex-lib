@@ -2,6 +2,7 @@ package source
 
 import (
 	"fmt"
+
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/biswap"
@@ -13,6 +14,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/hashflow"
+	hashflowclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/hashflow/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ironstable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
@@ -32,11 +35,13 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
+	"github.com/redis/go-redis/v9"
 )
 
 func NewPoolsListUpdaterHandler(
 	scanDexCfg *ScanDex,
 	ethrpcClient *ethrpc.Client,
+	redisClient redis.UniversalClient,
 ) (pool.IPoolsListUpdater, error) {
 	switch scanDexCfg.Handler {
 	case uniswap.DexTypeUniswap:
@@ -291,6 +296,16 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return syncswap.NewPoolsListUpdater(&cfg, ethrpcClient), nil
+	case hashflow.DexTypeHashflow:
+		var cfg hashflowclient.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		fallbackClient := hashflowclient.NewHTTPClient(&cfg.HTTP)
+		cacheClient := hashflowclient.NewRedisCacheClient(&cfg.RedisCache, redisClient, fallbackClient)
+		return hashflow.NewPoolsListUpdater(&hashflow.Config{DexID: scanDexCfg.Id}, cacheClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pools list updater handler: %s", scanDexCfg.Handler)
@@ -299,6 +314,7 @@ func NewPoolsListUpdaterHandler(
 func NewPoolTrackerHandler(
 	scanDexCfg *ScanDex,
 	ethrpcClient *ethrpc.Client,
+	redisClient redis.UniversalClient,
 ) (pool.IPoolTracker, error) {
 	switch scanDexCfg.Handler {
 	case uniswap.DexTypeUniswap:
@@ -476,6 +492,16 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return syncswap.NewPoolTracker(&cfg, ethrpcClient), nil
+	case hashflow.DexTypeHashflow:
+		var cfg hashflowclient.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		fallbackClient := hashflowclient.NewHTTPClient(&cfg.HTTP)
+		cacheClient := hashflowclient.NewRedisCacheClient(&cfg.RedisCache, redisClient, fallbackClient)
+		return hashflow.NewPoolTracker(&hashflow.Config{DexID: scanDexCfg.Id}, cacheClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pool tracker handler: %s", scanDexCfg.Handler)
