@@ -1,8 +1,9 @@
-package velodrome
+package ramses
 
 import (
 	"context"
 	"encoding/json"
+	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -28,8 +29,8 @@ func NewPoolTracker(
 
 func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	var (
-		reserve                Reserves
-		stableFee, volatileFee *big.Int
+		reserve                         Reserves
+		stableFee, volatileFee, pairFee *big.Int
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -55,6 +56,13 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		Params: nil,
 	}, []interface{}{&volatileFee})
 
+	calls.AddCall(&ethrpc.Call{
+		ABI:    factoryABI,
+		Target: d.config.FactoryAddress,
+		Method: poolMethodPairFee,
+		Params: []interface{}{common.HexToAddress(p.Address)},
+	}, []interface{}{&pairFee})
+
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
@@ -74,9 +82,12 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		return entity.Pool{}, err
 	}
 
-	swapFee := volatileFee.Int64()
-	if staticExtra.Stable {
-		swapFee = stableFee.Int64()
+	var swapFee = pairFee.Int64()
+	if pairFee.Int64() == 0 {
+		swapFee = volatileFee.Int64()
+		if staticExtra.Stable {
+			swapFee = stableFee.Int64()
+		}
 	}
 
 	p.Reserves = entity.PoolReserves{reserve.Reserve0.String(), reserve.Reserve1.String()}
