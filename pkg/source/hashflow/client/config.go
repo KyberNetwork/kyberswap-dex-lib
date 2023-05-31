@@ -6,8 +6,9 @@ import (
 )
 
 type Config struct {
-	HTTP       HTTPConfig       `mapstructure:"http"`
-	RedisCache RedisCacheConfig `mapstructure:"redisCache"`
+	HTTP        HTTPConfig        `mapstructure:"http"`
+	RedisCache  RedisCacheConfig  `mapstructure:"redisCache"`
+	MemoryCache MemoryCacheConfig `mapstructure:"memoryCache"`
 }
 
 type HTTPConfig struct {
@@ -23,4 +24,8 @@ type RedisCacheConfig struct {
 	Prefix    string            `mapstructure:"prefix"`
 	Separator string            `mapstructure:"separator"`
 	TTL       duration.Duration `mapstructure:"ttl"`
+}
+
+type MemoryCacheConfig struct {
+	TTL duration.Duration `mapstructure:"ttl"`
 }

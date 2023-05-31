@@ -35,13 +35,11 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
-	"github.com/redis/go-redis/v9"
 )
 
 func NewPoolsListUpdaterHandler(
 	scanDexCfg *ScanDex,
 	ethrpcClient *ethrpc.Client,
-	redisClient redis.UniversalClient,
 ) (pool.IPoolsListUpdater, error) {
 	switch scanDexCfg.Handler {
 	case uniswap.DexTypeUniswap:
@@ -304,7 +302,7 @@ func NewPoolsListUpdaterHandler(
 		}
 
 		fallbackClient := hashflowclient.NewHTTPClient(&cfg.HTTP)
-		cacheClient := hashflowclient.NewRedisCacheClient(&cfg.RedisCache, redisClient, fallbackClient)
+		cacheClient := hashflowclient.NewMemoryCacheClient(&cfg.MemoryCache, fallbackClient)
 		return hashflow.NewPoolsListUpdater(&hashflow.Config{DexID: scanDexCfg.Id}, cacheClient), nil
 	}
 
@@ -314,7 +312,6 @@ func NewPoolsListUpdaterHandler(
 func NewPoolTrackerHandler(
 	scanDexCfg *ScanDex,
 	ethrpcClient *ethrpc.Client,
-	redisClient redis.UniversalClient,
 ) (pool.IPoolTracker, error) {
 	switch scanDexCfg.Handler {
 	case uniswap.DexTypeUniswap:
@@ -500,7 +497,7 @@ func NewPoolTrackerHandler(
 		}
 
 		fallbackClient := hashflowclient.NewHTTPClient(&cfg.HTTP)
-		cacheClient := hashflowclient.NewRedisCacheClient(&cfg.RedisCache, redisClient, fallbackClient)
+		cacheClient := hashflowclient.NewMemoryCacheClient(&cfg.MemoryCache, fallbackClient)
 		return hashflow.NewPoolTracker(&hashflow.Config{DexID: scanDexCfg.Id}, cacheClient), nil
 	}
 
