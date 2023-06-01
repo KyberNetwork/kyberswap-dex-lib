@@ -6,6 +6,20 @@ import (
 	"strconv"
 )
 
+type Gas struct {
+	SwapBase    int64
+	SwapNonBase int64
+}
+
+// KSElasticSwapInfo store after state of a KSElastic swap
+type KSElasticSwapInfo struct {
+	nextStateSqrtP              *big.Int
+	nextStateBaseL              *big.Int
+	nextStateReinvestL          *big.Int
+	nextStateCurrentTick        int
+	nextStateNearestCurrentTick int
+}
+
 type Metadata struct {
 	LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp"`
 }

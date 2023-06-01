@@ -6,7 +6,7 @@ const (
 	ChainIDEthereum        ChainID = 1
 	ChainIDRopsten         ChainID = 3
 	ChainIDRinkeBy         ChainID = 4
-	ChainIDGorli           ChainID = 5
+	ChainIDGoerli          ChainID = 5
 	ChainIDOptimism        ChainID = 10
 	ChainIDKovan           ChainID = 42
 	ChainIDBSC             ChainID = 56

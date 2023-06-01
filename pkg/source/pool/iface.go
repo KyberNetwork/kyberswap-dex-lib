@@ -1,4 +1,4 @@
-package source
+package pool
 
 import (
 	"context"
@@ -18,4 +18,20 @@ type IPoolsListUpdater interface {
 
 type IPoolTracker interface {
 	GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error)
+}
+
+type IPoolSimulator interface {
+	// CalcAmountOut amountOut, fee, gas
+	// DO NOT FUCKING MODIFY THE POOL whilst calculating amount out. Call UpdateBalance when you need to.
+	CalcAmountOut(
+		tokenAmountIn TokenAmount,
+		tokenOut string,
+	) (*CalcAmountOutResult, error)
+	UpdateBalance(params UpdateBalanceParams)
+	CanSwapTo(address string) []string
+	GetTokens() []string
+	GetAddress() string
+	GetExchange() string
+	GetType() string
+	GetMetaInfo(tokenIn string, tokenOut string) interface{}
 }
