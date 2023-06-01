@@ -1,0 +1,30 @@
+name: Integration Test
+
+concurrency:
+  group: ci-workflow-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+      branches: 
+        - main
+      types: [closed]
+  
+
+env:
+  SERVICE: router-service
+
+jobs:
+    integration-test:
+        name: On Dev
+        if: ${{ github.event.pull_request.merged }}
+        runs-on: [self-hosted]
+        steps:
+          - uses: convictional/trigger-workflow-and-wait@v1.6.5
+            with:
+              owner: KyberNetwork
+              repo: dexes-integration-test
+              github_token: ${{ secrets.GH_PAT }}
+              workflow_file_name: aggregator_post_check.yaml
+              ref: main
+              client_payload: '{"BASE_URL":"https://router-api.dev.kyberengineering.io","CHAIN_ID":"56","AMOUNT_IN":"1000000000000000000","TOKEN_IN":"0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56","TOKEN_OUT":"0xc53dc6A3fBe4F67a220214c8e7529D72D8abfb42"}'
