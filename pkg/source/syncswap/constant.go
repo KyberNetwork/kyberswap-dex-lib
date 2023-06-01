@@ -16,8 +16,10 @@ var (
 	poolMasterMethodPoolsLength = "poolsLength"
 	poolMasterMethodPools       = "pools"
 
-	poolMethodPoolType    = "poolType"
-	poolMethodGetAssets   = "getAssets"
-	poolMethodGetSwapFee  = "getSwapFee"
-	poolMethodGetReserves = "getReserves"
+	poolMethodPoolType                  = "poolType"
+	poolMethodGetAssets                 = "getAssets"
+	poolMethodGetSwapFee                = "getSwapFee"
+	poolMethodGetReserves               = "getReserves"
+	poolMethodToken0PrecisionMultiplier = "token0PrecisionMultiplier"
+	poolMethodToken1PrecisionMultiplier = "token1PrecisionMultiplier"
 )

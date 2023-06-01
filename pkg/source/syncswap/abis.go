@@ -9,6 +9,7 @@ import (
 var (
 	masterABI      abi.ABI
 	classicPoolABI abi.ABI
+	stablePoolABI  abi.ABI
 )
 
 func init() {
@@ -18,6 +19,7 @@ func init() {
 	}{
 		{&masterABI, masterABIData},
 		{&classicPoolABI, classicPoolABIData},
+		{&stablePoolABI, stablePoolABIData},
 	}
 
 	for _, b := range builder {
