@@ -45,6 +45,8 @@ redis:
   prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
 poolRedis:
   addresses:
   masterName: ""
@@ -53,6 +55,8 @@ poolRedis:
   prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
 ddAgentHost: ""
 keyPair:
   storageFilePath: ""
