@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/validator"
@@ -50,22 +51,28 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    "feeAmount is greater than amountOut",
 	},
 
-	usecase.ErrFeeAmountIsGreaterThanAmountOut: {
+	getroute.ErrFeeAmountIsGreaterThanAmountOut: {
 		HTTPStatus: http.StatusBadRequest,
 		Code:       4007,
 		Message:    "feeAmount is greater than amountOut",
 	},
 
-	usecase.ErrRouteNotFound: {
+	getroute.ErrRouteNotFound: {
 		HTTPStatus: http.StatusBadRequest,
 		Code:       4008,
 		Message:    "route not found",
 	},
 
-	usecase.ErrAmountInIsGreaterThanMaxAllowed: {
+	getroute.ErrAmountInIsGreaterThanMaxAllowed: {
 		HTTPStatus: http.StatusBadRequest,
 		Code:       4009,
 		Message:    "amountIn is greater than max allowed",
+	},
+
+	getroute.ErrPoolSetEmpty: {
+		HTTPStatus: http.StatusBadRequest,
+		Code:       4010,
+		Message:    "route not found",
 	},
 
 	usecase.ErrPublicKeyNotFound: {

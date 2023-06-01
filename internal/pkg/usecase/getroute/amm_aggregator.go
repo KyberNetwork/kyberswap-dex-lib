@@ -5,13 +5,13 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
@@ -131,7 +131,7 @@ func (a *ammAggregator) findBestRoute(
 
 	routes, err := a.routeFinder.Find(ctx, input, data)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrapf(ErrRouteNotFound, "find route failed: [%v]", err)
 	}
 
 	bestRoute := extractBestRoute(routes)
@@ -242,6 +242,14 @@ func (a *ammAggregator) summarizeRoute(
 		summarizedRoute = append(summarizedRoute, summarizedPath)
 	}
 
+	// amountOut is actual amount of token to be received
+	// in case charge fee by currencyIn: amountIn = amountIn - extraFeeAmount
+	// in case charge fee by currencyOut: amountOut = amountOut - extraFeeAmount will be included in summarizeRoute
+	amountOut, err := calcAmountOutAfterFee(amountOut, params.ExtraFee)
+	if err != nil {
+		return nil, err
+	}
+
 	metrics.IncrRequestPairCount(params.TokenIn.Address, params.TokenOut.Address, params.AmountIn.String())
 
 	return &valueobject.RouteSummary{
@@ -329,4 +337,18 @@ func (a *ammAggregator) filterAMMSources(sources []string) []string {
 	}
 
 	return ammSources
+}
+
+func calcAmountOutAfterFee(amountOut *big.Int, extraFee valueobject.ExtraFee) (*big.Int, error) {
+	if extraFee.ChargeFeeBy != valueobject.ChargeFeeByCurrencyOut {
+		return amountOut, nil
+	}
+
+	actualFeeAmount := extraFee.CalcActualFeeAmount(amountOut)
+
+	if actualFeeAmount.Cmp(constant.Zero) > 0 && actualFeeAmount.Cmp(amountOut) > 0 {
+		return nil, ErrFeeAmountIsGreaterThanAmountOut
+	}
+
+	return new(big.Int).Sub(amountOut, actualFeeAmount), nil
 }

@@ -72,6 +72,11 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 		return nil, err
 	}
 
+	amountInUSD := utils.CalcTokenAmountUsd(params.AmountIn, params.TokenIn.Decimals, params.TokenInPriceUSD)
+	if amountInUSD > MaxAmountInUSD {
+		return nil, ErrAmountInIsGreaterThanMaxAllowed
+	}
+
 	routeSummary, err := u.aggregator.Aggregate(ctx, params)
 	if err != nil {
 		return nil, err
