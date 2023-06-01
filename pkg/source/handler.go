@@ -301,9 +301,8 @@ func NewPoolsListUpdaterHandler(
 			return nil, err
 		}
 
-		fallbackClient := hashflowclient.NewHTTPClient(&cfg.HTTP)
-		cacheClient := hashflowclient.NewMemoryCacheClient(&cfg.MemoryCache, fallbackClient)
-		return hashflow.NewPoolsListUpdater(&hashflow.Config{DexID: scanDexCfg.Id}, cacheClient), nil
+		httpClient := hashflowclient.NewHTTPClient(&cfg.HTTP)
+		return hashflow.NewPoolsListUpdater(&hashflow.Config{DexID: scanDexCfg.Id}, httpClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pools list updater handler: %s", scanDexCfg.Handler)

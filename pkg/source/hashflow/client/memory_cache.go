@@ -10,6 +10,12 @@ import (
 	"github.com/KyberNetwork/logger"
 )
 
+const (
+	defaultNumCounts   = 5000
+	defaultMaxCost     = 500
+	defaultBufferItems = 64
+)
+
 type memoryCacheClient struct {
 	config         *MemoryCacheConfig
 	cache          *ristretto.Cache
@@ -21,9 +27,9 @@ func NewMemoryCacheClient(
 	fallbackClient IClient,
 ) *memoryCacheClient {
 	cache, err := ristretto.NewCache(&ristretto.Config{
-		NumCounters: 1e4,
-		MaxCost:     1 << 20,
-		BufferItems: 64,
+		NumCounters: defaultNumCounts,
+		MaxCost:     defaultMaxCost,
+		BufferItems: defaultBufferItems,
 	})
 	if err != nil {
 		logger.Errorf("failed to init memory cache. err %v", err.Error())
