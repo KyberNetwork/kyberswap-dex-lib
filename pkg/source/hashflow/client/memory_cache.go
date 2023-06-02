@@ -4,16 +4,18 @@ import (
 	"context"
 	"errors"
 
+	"github.com/KyberNetwork/logger"
 	"github.com/dgraph-io/ristretto"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/hashflow"
-	"github.com/KyberNetwork/logger"
 )
 
 const (
 	defaultNumCounts   = 5000
 	defaultMaxCost     = 500
 	defaultBufferItems = 64
+
+	defaultSingleItemCost = 1
 )
 
 type memoryCacheClient struct {
@@ -91,7 +93,7 @@ func (c *memoryCacheClient) listPairsFromCache(marketMakers []string) ([]hashflo
 }
 
 func (c *memoryCacheClient) savePairsByMarketMakerToCache(marketMaker string, pairs []hashflow.Pair) error {
-	c.cache.SetWithTTL(marketMaker, pairs, 1, c.config.TTL.Duration)
+	c.cache.SetWithTTL(marketMaker, pairs, defaultSingleItemCost, c.config.TTL.Duration)
 	c.cache.Wait()
 
 	return nil
