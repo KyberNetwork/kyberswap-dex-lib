@@ -80,7 +80,7 @@ func (c *chargeExtraFee) chargeFeeByCurrencyOut(ctx context.Context, params *typ
 	}
 
 	// Step 2: calculate amountOut after fee
-	amountOutAfterFee := business.CalcAmountInAfterFee(routeSummary.AmountOut, params.ExtraFee)
+	amountOutAfterFee := business.CalcAmountOutAfterFee(routeSummary.AmountOut, params.ExtraFee)
 
 	// Step 3: update route summary with amountOut after fee
 	amountOutAfterFeeUSDBigFloat := business.CalcAmountUSD(amountOutAfterFee, params.TokenOut.Decimals, params.TokenOutPriceUSD)

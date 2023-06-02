@@ -75,6 +75,12 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    "route not found",
 	},
 
+	getroute.ErrTokenNotFound: {
+		HTTPStatus: http.StatusBadRequest,
+		Code:       4011,
+		Message:    "token not found",
+	},
+
 	usecase.ErrPublicKeyNotFound: {
 		HTTPStatus: http.StatusNotFound,
 		Code:       4040,
