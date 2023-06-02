@@ -52,6 +52,7 @@ var (
 	ExchangeAstroSwap     Exchange = "astroswap"
 	ExchangeCamelot       Exchange = "camelot"
 	ExchangeFraxSwap      Exchange = "fraxswap"
+	ExchangeVerse         Exchange = "verse"
 
 	ExchangeOneSwap    Exchange = "oneswap"
 	ExchangeNerve      Exchange = "nerve"
@@ -146,6 +147,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAstroSwap:           {},
 	ExchangeCamelot:             {},
 	ExchangeFraxSwap:            {},
+	ExchangeVerse:               {},
 	ExchangeOneSwap:             {},
 	ExchangeNerve:               {},
 	ExchangeIronStable:          {},
