@@ -87,6 +87,98 @@ var (
 
 	ExchangeVelodrome Exchange = "velodrome"
 	ExchangeDystopia  Exchange = "dystopia"
+	ExchangeChronos   Exchange = "chronos"
+	ExchangeRamses    Exchange = "ramses"
+	ExchangeVelocore  Exchange = "velocore"
 
 	ExchangePlatypus Exchange = "platypus"
+
+	ExchangeKyberSwapLimitOrder Exchange = "kyberswap-limit-order"
 )
+
+var AMMSourceSet = map[Exchange]struct{}{
+	ExchangeSushiSwap:           {},
+	ExchangeTrisolaris:          {},
+	ExchangeWannaSwap:           {},
+	ExchangeNearPad:             {},
+	ExchangePangolin:            {},
+	ExchangeTraderJoe:           {},
+	ExchangeLydia:               {},
+	ExchangeYetiSwap:            {},
+	ExchangeApeSwap:             {},
+	ExchangeJetSwap:             {},
+	ExchangeMDex:                {},
+	ExchangePancake:             {},
+	ExchangeWault:               {},
+	ExchangePancakeLegacy:       {},
+	ExchangeBiSwap:              {},
+	ExchangePantherSwap:         {},
+	ExchangeVVS:                 {},
+	ExchangeCronaSwap:           {},
+	ExchangeCrodex:              {},
+	ExchangeMMF:                 {},
+	ExchangeEmpireDex:           {},
+	ExchangePhotonSwap:          {},
+	ExchangeUniSwap:             {},
+	ExchangeShibaSwap:           {},
+	ExchangeDefiSwap:            {},
+	ExchangeSpookySwap:          {},
+	ExchangeSpiritSwap:          {},
+	ExchangePaintSwap:           {},
+	ExchangeMorpheus:            {},
+	ExchangeValleySwap:          {},
+	ExchangeYuzuSwap:            {},
+	ExchangeGemKeeper:           {},
+	ExchangeLizard:              {},
+	ExchangeValleySwapV2:        {},
+	ExchangeZipSwap:             {},
+	ExchangeQuickSwap:           {},
+	ExchangePolycat:             {},
+	ExchangeDFYN:                {},
+	ExchangePolyDex:             {},
+	ExchangeGravity:             {},
+	ExchangeCometh:              {},
+	ExchangeDinoSwap:            {},
+	ExchangeKrptoDex:            {},
+	ExchangeSafeSwap:            {},
+	ExchangeSwapr:               {},
+	ExchangeWagyuSwap:           {},
+	ExchangeAstroSwap:           {},
+	ExchangeCamelot:             {},
+	ExchangeFraxSwap:            {},
+	ExchangeOneSwap:             {},
+	ExchangeNerve:               {},
+	ExchangeIronStable:          {},
+	ExchangeSynapse:             {},
+	ExchangeSaddle:              {},
+	ExchangeAxial:               {},
+	ExchangeCurve:               {},
+	ExchangeEllipsis:            {},
+	ExchangeUniSwapV3:           {},
+	ExchangeKyberswapElastic:    {},
+	ExchangeBalancer:            {},
+	ExchangeBeethovenX:          {},
+	ExchangeDodo:                {},
+	ExchangeGMX:                 {},
+	ExchangeMadMex:              {},
+	ExchangeMetavault:           {},
+	ExchangeSynthetix:           {},
+	ExchangeMakerPSM:            {},
+	ExchangeMakerLido:           {},
+	ExchangeDMM:                 {},
+	ExchangeKyberSwap:           {},
+	ExchangeKyberSwapStatic:     {},
+	ExchangeVelodrome:           {},
+	ExchangeDystopia:            {},
+	ExchangeChronos:             {},
+	ExchangeRamses:              {},
+	ExchangeVelocore:            {},
+	ExchangePlatypus:            {},
+	ExchangeKyberSwapLimitOrder: {},
+}
+
+func IsAMMSource(exchange Exchange) bool {
+	_, contained := AMMSourceSet[exchange]
+
+	return contained
+}

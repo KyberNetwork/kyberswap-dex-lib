@@ -26,6 +26,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/oneswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/polydex"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
@@ -36,7 +37,7 @@ import (
 func NewPoolsListUpdaterHandler(
 	scanDexCfg *ScanDex,
 	ethrpcClient *ethrpc.Client,
-) (IPoolsListUpdater, error) {
+) (pool.IPoolsListUpdater, error) {
 	switch scanDexCfg.Handler {
 	case uniswap.DexTypeUniswap:
 		var cfg uniswap.Config
@@ -280,7 +281,7 @@ func NewPoolsListUpdaterHandler(
 func NewPoolTrackerHandler(
 	scanDexCfg *ScanDex,
 	ethrpcClient *ethrpc.Client,
-) (IPoolTracker, error) {
+) (pool.IPoolTracker, error) {
 	switch scanDexCfg.Handler {
 	case uniswap.DexTypeUniswap:
 		return uniswap.NewPoolTracker(ethrpcClient)

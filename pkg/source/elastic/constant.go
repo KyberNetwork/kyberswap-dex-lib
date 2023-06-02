@@ -22,5 +22,7 @@ const (
 )
 
 var (
-	ZeroBI = big.NewInt(0)
+	zeroBI       = big.NewInt(0)
+	bOneFloat, _ = new(big.Float).SetString("1000000000000000000")
+	defaultGas   = Gas{SwapBase: 100000}
 )
