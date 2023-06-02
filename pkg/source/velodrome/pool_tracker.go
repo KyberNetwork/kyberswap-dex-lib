@@ -55,7 +55,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		Params: nil,
 	}, []interface{}{&volatileFee})
 
-	if _, err := calls.TryAggregate(); err != nil {
+	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
@@ -70,6 +70,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			"poolAddress": p.Address,
 			"error":       err,
 		}).Errorf("failed to extract static extra")
+
+		return entity.Pool{}, err
 	}
 
 	swapFee := volatileFee.Int64()
