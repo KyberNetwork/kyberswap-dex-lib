@@ -12,6 +12,9 @@ var (
 	ZeroBI = big.NewInt(0)
 )
 
+var BONE = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+var BoneFloat, _ = new(big.Float).SetString("1000000000000000000")
+
 // TenPowDecimals calculates 10^decimal
 func TenPowDecimals(decimal uint8) *big.Float {
 	return big.NewFloat(math.Pow10(int(decimal)))
