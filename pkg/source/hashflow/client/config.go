@@ -7,17 +7,17 @@ import (
 
 type Config struct {
 	HTTP        HTTPConfig        `mapstructure:"http"`
-	RedisCache  RedisCacheConfig  `mapstructure:"redisCache"`
-	MemoryCache MemoryCacheConfig `mapstructure:"memoryCache"`
+	RedisCache  RedisCacheConfig  `mapstructure:"redis_cache" json:"redis_cache"`
+	MemoryCache MemoryCacheConfig `mapstructure:"memory_cache" json:"memory_cache"`
 }
 
 type HTTPConfig struct {
-	ChainID    valueobject.ChainID `json:"chainID"`
-	BaseURL    string              `mapstructure:"baseUrl"`
-	APIKey     string              `mapstructure:"apiKey"`
+	ChainID    valueobject.ChainID `json:"chain_id"`
+	BaseURL    string              `mapstructure:"base_url" json:"base_url"`
+	APIKey     string              `mapstructure:"api_key" json:"api_key"`
 	Source     string              `mapstructure:"source"`
 	Timeout    duration.Duration   `mapstructure:"timeout"`
-	RetryCount int                 `mapstructure:"retryCount"`
+	RetryCount int                 `mapstructure:"retry_count" json:"retry_count"`
 }
 
 type RedisCacheConfig struct {

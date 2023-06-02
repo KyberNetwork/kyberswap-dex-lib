@@ -23,9 +23,7 @@ func calcReserve0(pair Pair) *big.Int {
 		return ZeroBI
 	}
 
-	maxAmount1In := pair.OneToZeroPriceLevels[len(pair.OneToZeroPriceLevels)-1].Level
-
-	amountOutAfterDecimals := getMaxLiquidity(maxAmount1In, pair.OneToZeroPriceLevels)
+	amountOutAfterDecimals := getMaxLiquidity(pair.OneToZeroPriceLevels)
 
 	amountOut, _ := new(big.Float).Mul(
 		amountOutAfterDecimals,
@@ -40,9 +38,7 @@ func calcReserve1(pair Pair) *big.Int {
 		return ZeroBI
 	}
 
-	maxAmount0In := pair.ZeroToOnePriceLevels[len(pair.ZeroToOnePriceLevels)-1].Level
-
-	amountOutAfterDecimals := getMaxLiquidity(maxAmount0In, pair.ZeroToOnePriceLevels)
+	amountOutAfterDecimals := getMaxLiquidity(pair.ZeroToOnePriceLevels)
 
 	amountOut, _ := new(big.Float).Mul(
 		amountOutAfterDecimals,
@@ -52,10 +48,12 @@ func calcReserve1(pair Pair) *big.Int {
 	return amountOut
 }
 
-func getMaxLiquidity(maxAmountIn *big.Float, priceLevels []PriceLevel) *big.Float {
+func getMaxLiquidity(priceLevels []PriceLevel) *big.Float {
 	if len(priceLevels) == 0 {
 		return ZeroBF
 	}
+
+	maxAmountIn := priceLevels[len(priceLevels)-1].Level
 
 	if maxAmountIn.Cmp(priceLevels[0].Level) < 0 {
 		return ZeroBF

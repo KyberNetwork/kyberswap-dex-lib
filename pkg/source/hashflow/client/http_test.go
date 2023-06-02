@@ -108,6 +108,7 @@ func mockListMarketMakersHandler(rw http.ResponseWriter, r *http.Request) {
 
 	if len(source) == 0 {
 		rw.WriteHeader(http.StatusBadRequest)
+		// nolint:errcheck
 		rw.Write([]byte(`{"status":"fail","error":{"code":42,"message":"Missing source"}}`))
 
 		return
@@ -115,6 +116,7 @@ func mockListMarketMakersHandler(rw http.ResponseWriter, r *http.Request) {
 
 	if source != "kyber" {
 		rw.WriteHeader(http.StatusBadRequest)
+		// nolint:errcheck
 		rw.Write([]byte(fmt.Sprintf(`{"status":"fail","error":{"code":42,"message":"Invalid source: '%s'"}}`, source)))
 
 		return
@@ -122,6 +124,7 @@ func mockListMarketMakersHandler(rw http.ResponseWriter, r *http.Request) {
 
 	if authorizationHeader != "apiKey" {
 		rw.WriteHeader(http.StatusUnauthorized)
+		// nolint:errcheck
 		rw.Write([]byte(`{"status":"fail","error":{"code":72,"message":"Unauthorized access"}}`))
 
 		return
@@ -130,6 +133,7 @@ func mockListMarketMakersHandler(rw http.ResponseWriter, r *http.Request) {
 	networkID := queryParams.Get("networkId")
 	if networkID != strconv.FormatUint(uint64(valueobject.ChainIDEthereum), 10) {
 		rw.WriteHeader(http.StatusUnauthorized)
+		// nolint:errcheck
 		rw.Write([]byte(fmt.Sprintf(`{"status":"fail","error":{"code":42,"message":"Invalid networkId: %s"}}`, networkID)))
 
 		return
@@ -137,5 +141,6 @@ func mockListMarketMakersHandler(rw http.ResponseWriter, r *http.Request) {
 
 	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
+	// nolint:errcheck
 	rw.Write([]byte(`{"marketMakers":["mm3_5","mm4","mm5","mm9","mm10_0","mm12_1","mm13","mm14_6","mm21"]}`))
 }
