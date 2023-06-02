@@ -5,8 +5,12 @@ import (
 	"math/big"
 )
 
-// TwoPow128 2^128
-var TwoPow128 = new(big.Int).Exp(big.NewInt(2), big.NewInt(128), nil)
+var (
+	// TwoPow128 2^128
+	TwoPow128 = new(big.Int).Exp(big.NewInt(2), big.NewInt(128), nil)
+
+	ZeroBI = big.NewInt(0)
+)
 
 // TenPowDecimals calculates 10^decimal
 func TenPowDecimals(decimal uint8) *big.Float {

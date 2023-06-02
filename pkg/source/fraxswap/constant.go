@@ -14,3 +14,7 @@ const (
 
 	reserveZero = "0"
 )
+
+var (
+	DefaultGas = Gas{Swap: 113276}
+)
