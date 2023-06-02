@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestHttpClient_ListMarketMakers(t *testing.T) {
@@ -22,14 +24,44 @@ func TestHttpClient_ListMarketMakers(t *testing.T) {
 		expectedError        error
 	}{
 		{
-			name: "it should return ErrListMarketMakersFailed when chainId is not valid",
+			name: "it should return ErrListMarketMakersFailed when apiKey is not valid",
 			config: HTTPConfig{
 				ChainID: valueobject.ChainIDEthereum,
 				BaseURL: server.URL,
-				APIKey:  "wrong APIKey",
+				APIKey:  "invalid-apiKey",
 				Source:  "kyber",
 			},
 			expectedError: ErrListMarketMakersFailed,
+		},
+		{
+			name: "it should return ErrListMarketMakersFailed when source is not valid",
+			config: HTTPConfig{
+				ChainID: valueobject.ChainIDEthereum,
+				BaseURL: server.URL,
+				APIKey:  "apiKey",
+				Source:  "invalid-source",
+			},
+			expectedError: ErrListMarketMakersFailed,
+		},
+		{
+			name: "it should return ErrListMarketMakersFailed when chainId is not valid",
+			config: HTTPConfig{
+				ChainID: 10,
+				BaseURL: server.URL,
+				APIKey:  "apiKey",
+				Source:  "kyber",
+			},
+			expectedError: ErrListMarketMakersFailed,
+		},
+		{
+			name: "it should return market makers when request is valid",
+			config: HTTPConfig{
+				ChainID: valueobject.ChainIDEthereum,
+				BaseURL: server.URL,
+				APIKey:  "apiKey",
+				Source:  "kyber",
+			},
+			expectedMarketMakers: []string{"mm3_5", "mm4", "mm5", "mm9", "mm10_0", "mm12_1", "mm13", "mm14_6", "mm21"},
 		},
 	}
 
@@ -96,14 +128,14 @@ func mockListMarketMakersHandler(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	networkID := queryParams.Get("networkId")
-
-	if networkID == "999" {
+	if networkID != strconv.FormatUint(uint64(valueobject.ChainIDEthereum), 10) {
 		rw.WriteHeader(http.StatusUnauthorized)
-		rw.Write([]byte(`{"status":"fail","error":{"code":42,"message":"Invalid networkId: 999"}}`))
+		rw.Write([]byte(fmt.Sprintf(`{"status":"fail","error":{"code":42,"message":"Invalid networkId: %s"}}`, networkID)))
 
 		return
 	}
 
+	rw.Header().Set("Content-Type", "application/json")
 	rw.WriteHeader(http.StatusOK)
 	rw.Write([]byte(`{"marketMakers":["mm3_5","mm4","mm5","mm9","mm10_0","mm12_1","mm13","mm14_6","mm21"]}`))
 }
