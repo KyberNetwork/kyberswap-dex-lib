@@ -67,6 +67,9 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	batchSize := d.config.NewPoolLimit
 	if currentOffset+batchSize > totalNumberOfPools {
 		batchSize = totalNumberOfPools - currentOffset
+		if batchSize <= 0 {
+			return nil, metadataBytes, nil
+		}
 	}
 
 	getPairAddressRequest := d.ethrpcClient.NewRequest()
