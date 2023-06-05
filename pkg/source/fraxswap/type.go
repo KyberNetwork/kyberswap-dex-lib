@@ -20,3 +20,12 @@ type ReserveAfterTwammOutput struct {
 type FeeOutput struct {
 	Fee *big.Int
 }
+
+type Gas struct {
+	Swap int64
+}
+
+type Meta struct {
+	SwapFee      uint32 `json:"swapFee"`
+	FeePrecision uint32 `json:"feePrecision"`
+}
