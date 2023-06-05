@@ -146,7 +146,7 @@ func Power(
 	_expN uint,
 	_expD uint,
 ) (res *big.Int, precision uint, err error) {
-	var baseLog = new(big.Int)
+	var baseLog *big.Int
 	var base = new(big.Int).Div(new(big.Int).Mul(_baseN, Fixed1), _baseD)
 	if base.Cmp(OptLogMaxVal) < 0 {
 		baseLog = optimalLog(base)
