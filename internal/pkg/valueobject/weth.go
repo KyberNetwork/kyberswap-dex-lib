@@ -21,4 +21,5 @@ var WETHByChainID = map[ChainID]string{
 	ChainIDOasisEmerald:    "0x21C718C22D52d0F3a789b752D4c2fD5908a8A733",
 	ChainIDArbitrumOne:     "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
 	ChainIDArbitrumRinkeby: "0xB47e6A5f8b33b3F17603C83a0535A9dcD7E32681",
+	ChainIDZKSync:          "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91",
 }

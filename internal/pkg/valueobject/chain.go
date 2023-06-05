@@ -23,4 +23,5 @@ const (
 	ChainIDOasisEmerald    ChainID = 42262
 	ChainIDArbitrumOne     ChainID = 42161
 	ChainIDArbitrumRinkeby ChainID = 421611
+	ChainIDZKSync          ChainID = 324
 )
