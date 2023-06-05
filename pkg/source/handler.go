@@ -2,6 +2,7 @@ package source
 
 import (
 	"fmt"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramses"
 
 	"github.com/KyberNetwork/ethrpc"
 
@@ -92,6 +93,15 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return velodrome.NewPoolListUpdater(&cfg, ethrpcClient), nil
+	case ramses.DexTypeRamses:
+		var cfg ramses.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return ramses.NewPoolListUpdater(&cfg, ethrpcClient), nil
 	case platypus.DexTypePlatypus:
 		var cfg platypus.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
@@ -306,6 +316,15 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return velodrome.NewPoolTracker(&cfg, ethrpcClient)
+	case ramses.DexTypeRamses:
+		var cfg ramses.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return ramses.NewPoolTracker(&cfg, ethrpcClient)
 	case dodo.DexTypeDodo:
 		var cfg dodo.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
