@@ -1,5 +1,7 @@
 package camelot
 
+import "errors"
+
 const DexTypeCamelot = "camelot"
 
 const (
@@ -23,4 +25,12 @@ const (
 
 const (
 	defaultTokenWeight = 50
+)
+
+var (
+	DefaultGas = Gas{Swap: 128000}
+
+	ErrInsufficientOutputAmount = errors.New("CamelotPair: INSUFFICIENT_OUTPUT_AMOUNT")
+	ErrInsufficientLiquidity    = errors.New("CamelotPair: INSUFFICIENT_LIQUIDITY")
+	ErrInvalidK                 = errors.New("CamelotPair: K")
 )

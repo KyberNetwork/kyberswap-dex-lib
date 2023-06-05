@@ -25,7 +25,7 @@ type Extra struct {
 	PrecisionMultiplier0 *big.Int `json:"precisionMultiplier0"`
 	PrecisionMultiplier1 *big.Int `json:"precisionMultiplier1"`
 
-	Factory *Factory
+	Factory *Factory `json:"factory"`
 }
 
 type Pair struct {
@@ -36,4 +36,13 @@ type Pair struct {
 	Token1FeePercent     uint16
 	PrecisionMultiplier0 *big.Int
 	PrecisionMultiplier1 *big.Int
+}
+
+type Gas struct {
+	Swap int64
+}
+
+type Meta struct {
+	SwapFee      uint32 `json:"swapFee"`
+	FeePrecision uint32 `json:"feePrecision"`
 }
