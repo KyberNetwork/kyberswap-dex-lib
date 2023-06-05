@@ -233,6 +233,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
 		return f.newDoDo(entityPool)
 	case constant.PoolTypes.Velodrome:
 		return f.newVelodrome(entityPool)
+	case constant.PoolTypes.Ramses:
+		return f.newVelodrome(entityPool)
 	case constant.PoolTypes.PlatypusBase, constant.PoolTypes.PlatypusPure, constant.PoolTypes.PlatypusAvax:
 		return f.newPlatypus(entityPool)
 	case constant.PoolTypes.GMX:
