@@ -59,8 +59,8 @@ github.com/KyberNetwork/reload v0.1.1 h1:d2gu8KK8C34tiyPQongjLzwy5w73fYHbwP1P9Mo
 github.com/KyberNetwork/reload v0.1.1/go.mod h1:0qlzJAjsqBf1ZBw93qPpucFXre/0FMtQWwD/BidcYtM=
 github.com/KyberNetwork/uniswap-sdk-core v0.1.5 h1:IcIvwfHwSI11WfjjbkZnKAt70rAYfsS66xk1NXT5Xig=
 github.com/KyberNetwork/uniswap-sdk-core v0.1.5/go.mod h1:OV1Kvws5JShxPz3qFpjpkuZB4gdebRpqm/AcYMZ7TZQ=
-github.com/KyberNetwork/uniswapv3-sdk v0.4.1 h1:6Hm7EWr+XdP3WyW6hSuOwIuimFsE3p7HHzhOzsLfHYY=
-github.com/KyberNetwork/uniswapv3-sdk v0.4.1/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
+github.com/KyberNetwork/uniswapv3-sdk v0.4.2 h1:6XrMjpnDYDMOdPNyoW5nVzx9BXqc9zi3wRtaRhx5jZw=
+github.com/KyberNetwork/uniswapv3-sdk v0.4.2/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
 github.com/Microsoft/go-winio v0.5.0/go.mod h1:JPGBdM1cNvN/6ISo+n8V5iA4v8pBzdOpzfwIujj1a84=
 github.com/Microsoft/go-winio v0.5.1 h1:aPJp2QD7OOrhO5tQXqQoGSJc+DjDtWTGLOmNyAm6FgY=
 github.com/Microsoft/go-winio v0.5.1/go.mod h1:JPGBdM1cNvN/6ISo+n8V5iA4v8pBzdOpzfwIujj1a84=
@@ -420,8 +420,6 @@ github.com/onsi/gomega v1.24.1/go.mod h1:3AOiACssS3/MajrniINInwbfOOtfZvplPzuRSmv
 github.com/onsi/gomega v1.25.0 h1:Vw7br2PCDYijJHSfBOWhov+8cAnUf8MfMaIOV323l6Y=
 github.com/onsi/gomega v1.25.0/go.mod h1:r+zV744Re+DiYCIPRlYOTxn0YkOLcAnW8k1xXdMPGhM=
 github.com/opentracing/opentracing-go v1.1.0 h1:pWlfV3Bxv7k65HYwkikxat0+s3pV4bsqf19k25Ur8rU=
-github.com/orcaman/concurrent-map v0.0.0-20210501183033-44dafcb38ecc h1:Ak86L+yDSOzKFa7WM5bf5itSOo1e3Xh8bm5YCMUXIjQ=
-github.com/orcaman/concurrent-map v0.0.0-20210501183033-44dafcb38ecc/go.mod h1:Lu3tH6HLW3feq74c2GC+jIMS/K2CFcDWnWD9XkenwhI=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=
 github.com/patrickmn/go-cache v2.1.0+incompatible/go.mod h1:3Qf8kWWT7OJRJbdiICTKqZju1ZixQ/KpMGzzAfe6+WQ=

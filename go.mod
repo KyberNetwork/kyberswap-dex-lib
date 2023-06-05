@@ -4,7 +4,7 @@ go 1.19
 
 replace (
 	github.com/daoleno/uniswap-sdk-core v0.1.5 => github.com/KyberNetwork/uniswap-sdk-core v0.1.5
-	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.4.1
+	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.4.2
 )
 
 require (
@@ -32,7 +32,6 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/mcuadros/go-defaults v1.2.0
 	github.com/oleiade/lane v1.0.1
-	github.com/orcaman/concurrent-map v0.0.0-20210501183033-44dafcb38ecc
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/errors v0.9.1
 	github.com/redis/go-redis/v9 v9.0.3

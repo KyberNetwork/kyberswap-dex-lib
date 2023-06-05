@@ -59,6 +59,11 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error)
 	var v3Ticks []v3Entities.Tick
 
 	for _, t := range extra.Ticks {
+		// LiquidityGross = 0 means that the tick is uninitialized
+		if t.LiquidityGross.Cmp(big.NewInt(0)) == 0 {
+			continue
+		}
+
 		v3Ticks = append(v3Ticks, v3Entities.Tick{
 			Index:          t.Index,
 			LiquidityGross: t.LiquidityGross,
