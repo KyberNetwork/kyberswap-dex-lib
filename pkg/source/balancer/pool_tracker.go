@@ -67,7 +67,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		Params: nil,
 	}, []interface{}{&swapFeePercentage})
 
-	if DexType(p.Type) == dexTypeBalancerStable {
+	if DexType(p.Type) == DexTypeBalancerStable {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    stablePoolABI,
 			Target: p.Address,
@@ -76,7 +76,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		}, []interface{}{&amplificationParameter})
 	}
 
-	if DexType(p.Type) == dexTypeBalancerMetaStable {
+	if DexType(p.Type) == DexTypeBalancerMetaStable {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    metaStablePoolABI,
 			Target: p.Address,
@@ -123,7 +123,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	}
 
 	var extra string
-	if DexType(p.Type) == dexTypeBalancerStable {
+	if DexType(p.Type) == DexTypeBalancerStable {
 		extraBytes, err := json.Marshal(Extra{
 			AmplificationParameter: amplificationParameter,
 		})
@@ -138,7 +138,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		extra = string(extraBytes)
 	}
 
-	if DexType(p.Type) == dexTypeBalancerMetaStable {
+	if DexType(p.Type) == DexTypeBalancerMetaStable {
 		extraBytes, err := json.Marshal(Extra{
 			AmplificationParameter: amplificationParameter,
 			ScalingFactors:         scalingFactors,
