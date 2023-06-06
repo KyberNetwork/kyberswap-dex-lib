@@ -136,6 +136,9 @@ func (d *PoolsListUpdater) getNewPoolsTypeBase(
 			return nil, err
 		}
 
+		// initial totalSupply
+		reserves = append(reserves, zeroString)
+
 		newPool := entity.Pool{
 			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
 			Exchange:    DexTypeCurve,
