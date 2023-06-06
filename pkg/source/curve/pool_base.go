@@ -208,7 +208,7 @@ func (d *PoolTracker) getNewPoolStateTypeBase(
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
-		Target: p.GetLpToken(),
+		Target: p.Address,
 		Method: erc20MethodTotalSupply,
 		Params: nil,
 	}, []interface{}{&lpSupply})
