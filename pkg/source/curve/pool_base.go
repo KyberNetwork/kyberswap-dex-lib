@@ -136,6 +136,9 @@ func (d *PoolsListUpdater) getNewPoolsTypeBase(
 			return nil, err
 		}
 
+		// initial totalSupply
+		reserves = append(reserves, zeroString)
+
 		newPool := entity.Pool{
 			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
 			Exchange:    DexTypeCurve,
@@ -208,7 +211,7 @@ func (d *PoolTracker) getNewPoolStateTypeBase(
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
-		Target: p.GetLpToken(),
+		Target: p.Address,
 		Method: erc20MethodTotalSupply,
 		Params: nil,
 	}, []interface{}{&lpSupply})
