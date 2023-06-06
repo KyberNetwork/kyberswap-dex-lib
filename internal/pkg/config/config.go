@@ -30,7 +30,7 @@ type Config struct {
 	DogstatsdHost string                    `mapstructure:"ddAgentHost" json:"ddAgentHost"`
 	KeyPair       KeyPairInfo               `mapstructure:"keyPair" json:"keyPair"`
 	ReloadConfig  reloadconfig.ReloadConfig `mapstructure:"reloadConfig" json:"reloadConfig"`
-	SecretKey     string                    `mapstructure:"secretKey" json:"secretKey"`
+	SecretKey     string                    `mapstructure:"secretKey" json:"-"`
 	Metrics       metrics.Config            `mapstructure:"metrics" json:"metrics"`
 	GRPC          ServerListen              `mapstructure:"grpc" json:"grpc"`
 	Encoder       encode.Config             `mapstructure:"encoder" json:"encoder"`

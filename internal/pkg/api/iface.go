@@ -34,6 +34,11 @@ type IGetRoutesUseCase interface {
 	Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.GetRoutesResult, error)
 }
 
+// IGetCustomRoutesUseCase is a use-case which handles getting routes within a list of custom pools logic
+type IGetCustomRoutesUseCase interface {
+	Handle(ctx context.Context, query dto.GetCustomRoutesQuery) (*dto.GetRoutesResult, error)
+}
+
 // IBuildRouteUseCase is a use-case which handles building route logic
 type IBuildRouteUseCase interface {
 	Handle(ctx context.Context, command dto.BuildRouteCommand) (*dto.BuildRouteResult, error)

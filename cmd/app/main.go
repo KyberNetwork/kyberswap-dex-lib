@@ -33,6 +33,8 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getcustomroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
@@ -247,6 +249,30 @@ func apiAction(c *cli.Context) (err error) {
 		cfg.UseCase.BuildRoute,
 	)
 
+	routeFinder := spfav2.NewSPFAv2Finder(
+		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.MaxHops,
+		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.DistributionPercent,
+		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.MaxPathsInRoute,
+		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.MaxPathsToGenerate,
+		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.MaxPathsToReturn,
+		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.MinPartUSD,
+		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.MinThresholdAmountInUSD,
+		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.MaxThresholdAmountInUSD,
+	)
+	getCustomRoutesUseCase := getcustomroute.NewCustomRoutesUseCase(
+		tokenRepository,
+		priceRepository,
+		gasRepository,
+		poolManager,
+		routeFinder,
+		getcustomroute.Config{
+			ChainID:          cfg.UseCase.GetRoute.ChainID,
+			RouterAddress:    cfg.UseCase.GetRoute.RouterAddress,
+			GasTokenAddress:  cfg.UseCase.GetRoute.GasTokenAddress,
+			AvailableSources: cfg.UseCase.GetRoute.AvailableSources,
+		},
+	)
+
 	// init services
 	zapLogger, err := logger.GetDesugaredZapLoggerDelegate(lg)
 	if err != nil {
@@ -259,6 +285,13 @@ func apiAction(c *cli.Context) (err error) {
 	v1Health := v1.Group("/health")
 	v1Health.GET("/live", func(c *gin.Context) { c.AbortWithStatusJSON(http.StatusOK, "OK") })
 	v1Health.GET("/ready", func(c *gin.Context) { c.AbortWithStatusJSON(http.StatusOK, "OK") })
+
+	v1Debug := v1.Group("/debug")
+	v1Debug.GET("/config", func(c *gin.Context) {
+		currentConfig, _ := configLoader.Get()
+		c.JSON(http.StatusOK, currentConfig)
+	})
+	v1Debug.GET("/custom-routes", api.GetCustomRoutes(getRoutesParamsValidator, getCustomRoutesUseCase))
 
 	v1.GET("/pools", api.GetPools(getPoolsParamsValidator, getPoolsUseCase))
 	v1.GET("/tokens", api.GetTokens(getTokensParamsValidator, getTokensUseCase))
