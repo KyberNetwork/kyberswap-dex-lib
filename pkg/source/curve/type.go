@@ -174,3 +174,9 @@ type PoolTricryptoExtra struct {
 	AdjustmentStep      string   `json:"adjustmentStep"`
 	MaHalfTime          string   `json:"maHalfTime"`
 }
+
+type Meta struct {
+	TokenInIndex  int  `json:"tokenInIndex"`
+	TokenOutIndex int  `json:"tokenOutIndex"`
+	Underlying    bool `json:"underlying"`
+}
