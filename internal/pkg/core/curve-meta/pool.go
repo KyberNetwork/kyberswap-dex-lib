@@ -94,7 +94,7 @@ func NewPool(entityPool entity.Pool, basePool ICurveBasePool) (*Pool, error) {
 		InitialA:       utils.NewBig10(extraStr.InitialA),
 		FutureA:        utils.NewBig10(extraStr.FutureA),
 		InitialATime:   extraStr.InitialATime,
-		FutureATime:    extraStr.InitialATime,
+		FutureATime:    extraStr.FutureATime,
 		AdminFee:       utils.NewBig10(extraStr.AdminFee),
 		LpToken:        staticExtra.LpToken,
 		LpSupply:       utils.NewBig10(entityPool.Reserves[numTokens]),

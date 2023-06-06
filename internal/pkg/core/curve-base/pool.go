@@ -80,7 +80,7 @@ func NewPool(entityPool entity.Pool) (*Pool, error) {
 		InitialA:     utils.NewBig10(extra.InitialA),
 		FutureA:      utils.NewBig10(extra.FutureA),
 		InitialATime: extra.InitialATime,
-		FutureATime:  extra.InitialATime,
+		FutureATime:  extra.FutureATime,
 		AdminFee:     utils.NewBig10(extra.AdminFee),
 		LpToken:      staticExtra.LpToken,
 		LpSupply:     utils.NewBig10(entityPool.Reserves[numTokens]),
