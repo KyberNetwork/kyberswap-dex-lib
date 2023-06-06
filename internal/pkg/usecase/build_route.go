@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -114,13 +115,35 @@ func (uc *buildRouteUseCase) updateRouteSummary(ctx context.Context, routeSummar
 		return routeSummary, err
 	}
 
+	if tokenIn == nil {
+		return routeSummary, errors.Wrapf(ErrTokenNotFound, "tokenIn: [%s]", tokenInAddress)
+	}
+
+	if tokenOut == nil {
+		return routeSummary, errors.Wrapf(ErrTokenNotFound, "tokenOut: [%s]", tokenOutAddress)
+	}
+
 	tokenInPrice, tokenOutPrice, err := uc.getPrices(ctx, tokenInAddress, tokenOutAddress)
 	if err != nil {
 		return routeSummary, err
 	}
 
-	tokenInPriceUSD, tokenInMarketPriceAvailable := tokenInPrice.GetPreferredPrice()
-	tokenOutPriceUSD, tokenOutMarketPriceAvailable := tokenOutPrice.GetPreferredPrice()
+	var (
+		tokenInPriceUSD             float64
+		tokenInMarketPriceAvailable bool
+	)
+	if tokenInPrice != nil {
+		tokenInPriceUSD, tokenInMarketPriceAvailable = tokenInPrice.GetPreferredPrice()
+	}
+
+	var (
+		tokenOutPriceUSD             float64
+		tokenOutMarketPriceAvailable bool
+	)
+	if tokenOutPrice != nil {
+		tokenOutPriceUSD, tokenOutMarketPriceAvailable = tokenOutPrice.GetPreferredPrice()
+
+	}
 
 	amountInUSD := business.CalcAmountUSD(routeSummary.AmountIn, tokenIn.Decimals, tokenInPriceUSD)
 	amountOutUSD := business.CalcAmountUSD(routeSummary.AmountOut, tokenOut.Decimals, tokenOutPriceUSD)
