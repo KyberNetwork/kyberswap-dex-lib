@@ -9,7 +9,7 @@ replace (
 
 require (
 	github.com/DataDog/datadog-go v4.8.2+incompatible
-	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.0
+	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.1
 	github.com/KyberNetwork/ethrpc v0.2.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/alicebob/miniredis v2.5.0+incompatible

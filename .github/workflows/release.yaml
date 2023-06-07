@@ -1,5 +1,7 @@
 name: 'Release'
 
+permissions: write-all
+
 on:
   workflow_dispatch:
     inputs:
@@ -47,7 +49,7 @@ jobs:
         uses: google-github-actions/auth@v0
         with:
           credentials_json: '${{ secrets.GCR_CREDENTIALS }}'
-    
+
       - name: Setup Gcloud SDK
         uses: google-github-actions/setup-gcloud@v0
 
