@@ -233,6 +233,8 @@ func (c *cache) summarizeSimpleRoute(
 		return nil, err
 	}
 
+	poolBucket := valueobject.NewPoolBucket(poolByAddress)
+
 	var (
 		amountOut = new(big.Int).Set(constant.Zero)
 		gas       = business.BaseGas
@@ -256,7 +258,7 @@ func (c *cache) summarizeSimpleRoute(
 
 		for _, simpleSwap := range simplePath {
 			// Step 3.1.1: take the pool with fresh data
-			pool, ok := poolByAddress[simpleSwap.PoolAddress]
+			pool, ok := poolBucket.GetPool(simpleSwap.PoolAddress)
 			if !ok {
 				return nil, errors.Wrapf(
 					ErrInvalidSwap,
@@ -292,6 +294,7 @@ func (c *cache) summarizeSimpleRoute(
 				Fee:            *result.Fee,
 				SwapInfo:       result.SwapInfo,
 			}
+			pool = poolBucket.ClonePool(simpleSwap.PoolAddress)
 			pool.UpdateBalance(updateBalanceParams)
 
 			// Step 3.1.5: summarize the swap
