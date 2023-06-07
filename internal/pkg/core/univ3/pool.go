@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"sort"
 	"strings"
 
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
@@ -58,6 +57,8 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error)
 
 	var v3Ticks []v3Entities.Tick
 
+	// Ticks are sorted from the pool service, so we don't have to do it again here
+	// Purpose: to improve the latency
 	for _, t := range extra.Ticks {
 		// LiquidityGross = 0 means that the tick is uninitialized
 		if t.LiquidityGross.Cmp(big.NewInt(0)) == 0 {
@@ -70,11 +71,6 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error)
 			LiquidityNet:   t.LiquidityNet,
 		})
 	}
-
-	// Sort the ticks because function NewTickListDataProvider needs
-	sort.SliceStable(v3Ticks, func(i, j int) bool {
-		return v3Ticks[i].Index < v3Ticks[j].Index
-	})
 
 	// if the tick list is empty, the pool should be ignored
 	if len(v3Ticks) == 0 {

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"sort"
 	"strings"
 
 	"github.com/KyberNetwork/elastic-go-sdk/v2/constants"
@@ -52,6 +51,8 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error)
 
 	var elasticTicks []elasticEntities.Tick
 
+	// Ticks are sorted from the pool service, so we don't have to do it again here
+	// Purpose: to improve the latency
 	for _, t := range extra.Ticks {
 		elasticTicks = append(elasticTicks, elasticEntities.Tick{
 			Index:          t.Index,
@@ -59,11 +60,6 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error)
 			LiquidityNet:   t.LiquidityNet,
 		})
 	}
-
-	// Sort the ticks because function NewTickListDataProvider needs
-	sort.SliceStable(elasticTicks, func(i, j int) bool {
-		return elasticTicks[i].Index < elasticTicks[j].Index
-	})
 
 	ticks, err := elasticEntities.NewTickListDataProvider(elasticTicks, constants.TickSpacings[constants.FeeAmount(entityPool.SwapFee)])
 	if err != nil {
