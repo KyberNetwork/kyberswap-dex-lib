@@ -52,7 +52,7 @@ func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Inp
 		AmountUsd: utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, data.PriceUSDByAddress[input.TokenInAddress]),
 	}
 
-	if f.minThresholdAmountInUSD < tokenAmountIn.AmountUsd && tokenAmountIn.AmountUsd < f.maxThresholdAmountInUSD {
+	if f.minThresholdAmountInUSD <= tokenAmountIn.AmountUsd && tokenAmountIn.AmountUsd <= f.maxThresholdAmountInUSD {
 		return f.findrouteV2(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
 	} else {
 		return f.findrouteV1(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
