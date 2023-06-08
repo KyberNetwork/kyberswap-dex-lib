@@ -163,7 +163,7 @@ func (c *cache) setRouteToCache(ctx context.Context, routeSummary *valueobject.R
 
 func (c *cache) getCachePointTTL(amount float64) (time.Duration, bool) {
 	for _, cachePoint := range c.config.TTLByAmount {
-		if float64AlmostEqual(cachePoint.Amount, amount) {
+		if utils.Float64AlmostEqual(cachePoint.Amount, amount) {
 			return cachePoint.TTL, true
 		}
 	}

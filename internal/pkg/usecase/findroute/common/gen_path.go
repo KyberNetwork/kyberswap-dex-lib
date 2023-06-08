@@ -229,7 +229,8 @@ func getKthPathAtTokenOut(
 
 func betterAmountOut(nodeA, nodeB *nodeInfo, gasFeeInclude bool) bool {
 	// If we consider gas fee, prioritize node with more AmountUsd
-	if gasFeeInclude {
+	// If amountUsd is the same, compare amountOut regardless of gasFeeInclude
+	if gasFeeInclude && !utils.Float64AlmostEqual(nodeA.tokenAmount.AmountUsd, nodeA.tokenAmount.AmountUsd) {
 		return nodeA.tokenAmount.AmountUsd > nodeB.tokenAmount.AmountUsd
 	}
 	// Otherwise, prioritize node with more token Amount

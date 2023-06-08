@@ -1,10 +1,17 @@
 package utils
 
 import (
+	"math"
 	"math/big"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
+
+const float64EqualityThreshold = 1e-9
+
+func Float64AlmostEqual(a, b float64) bool {
+	return math.Abs(a-b) <= float64EqualityThreshold
+}
 
 func NewBig10(s string) (res *big.Int) {
 	res, _ = new(big.Int).SetString(s, 10)
