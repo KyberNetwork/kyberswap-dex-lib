@@ -11,7 +11,7 @@ common:
   chainName: &chainName zksync
   rpc: "https://mainnet.era.zksync.io"
   executorAddress: &executorAddress "0x44918C45565A0cFE7fB92A9A080B5324b1f6fd05"
-  routerAddress: &routerAddress "0x72bD53def97C4CA5C48BCD8B01d546b0eD50c7C0"
+  routerAddress: &routerAddress "0x3F95eF3f2eAca871858dbE20A93c01daF6C2e923"
   gasTokenAddress: &gasTokenAddress "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91"
   whitelistedTokenSet: &whitelistedTokenSet
     0x5aea5775959fbc2557cc8789bc1bf90a239d9a91: true # WETH
