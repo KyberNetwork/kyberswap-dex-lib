@@ -2,6 +2,7 @@ package source
 
 import (
 	"fmt"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/muteswitch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramses"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -93,6 +94,15 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return velodrome.NewPoolListUpdater(&cfg, ethrpcClient), nil
+	case muteswitch.DexTypeMuteSwitch:
+		var cfg muteswitch.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return muteswitch.NewPoolListUpdater(&cfg, ethrpcClient), nil
 	case ramses.DexTypeRamses:
 		var cfg ramses.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
@@ -316,6 +326,15 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return velodrome.NewPoolTracker(&cfg, ethrpcClient)
+	case muteswitch.DexTypeMuteSwitch:
+		var cfg muteswitch.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return muteswitch.NewPoolTracker(&cfg, ethrpcClient)
 	case ramses.DexTypeRamses:
 		var cfg ramses.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
