@@ -79,6 +79,11 @@ func TestGenMethodID(t *testing.T) {
 			types:      []string{"uint256", "bytes", "uint256"},
 			expectedId: "0xbfe1b858",
 		},
+		{
+			rawName:    "executeMuteSwitchSwap",
+			types:      []string{"uint256", "bytes", "uint256"},
+			expectedId: "0xfe3868f2",
+		},
 	}
 
 	for idx, tc := range testCases {
