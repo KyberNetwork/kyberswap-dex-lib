@@ -93,12 +93,15 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		logger.WithFields(logger.Fields{
 			"dexID":                     d.config.DexID,
 			"batchSize":                 batchSize,
-			"totalNumberOfUpdatedPools": currentOffset + len(pools),
+			"totalNumberOfUpdatedPools": currentOffset + batchSize,
 			"totalNumberOfPools":        totalNumberOfPools,
 		}).Info("scan SyncSwapPoolMaster")
 	}
 
-	nextOffset := currentOffset + len(pools)
+	nextOffset := currentOffset + batchSize
+	if nextOffset > totalNumberOfPools {
+		nextOffset = totalNumberOfPools
+	}
 	newMetadataBytes, err := json.Marshal(Metadata{
 		Offset: nextOffset,
 	})
@@ -151,12 +154,14 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		}
 
 		var token0 = entity.PoolToken{
-			Address: token0Address,
-			Weight:  defaultTokenWeight,
+			Address:   token0Address,
+			Weight:    defaultTokenWeight,
+			Swappable: true,
 		}
 		var token1 = entity.PoolToken{
-			Address: token1Address,
-			Weight:  defaultTokenWeight,
+			Address:   token1Address,
+			Weight:    defaultTokenWeight,
+			Swappable: true,
 		}
 
 		newPool := entity.Pool{

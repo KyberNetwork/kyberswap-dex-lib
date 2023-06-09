@@ -6,8 +6,8 @@ var (
 	poolTypeSyncSwapClassic = "syncswap-classic"
 	poolTypeSyncSwapStable  = "syncswap-stable"
 
-	poolTypeSyncSwapClassicInContract = 1
-	poolTypeSyncSwapStableInContract  = 2
+	// poolTypeSyncSwapClassicInContract = 1
+	poolTypeSyncSwapStableInContract = 2
 
 	defaultTokenWeight uint = 50
 	reserveZero             = "0"
