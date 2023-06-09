@@ -86,11 +86,12 @@ var (
 	ExchangeKyberSwap       Exchange = "kyberswap"
 	ExchangeKyberSwapStatic Exchange = "kyberswap-static"
 
-	ExchangeVelodrome Exchange = "velodrome"
-	ExchangeDystopia  Exchange = "dystopia"
-	ExchangeChronos   Exchange = "chronos"
-	ExchangeRamses    Exchange = "ramses"
-	ExchangeVelocore  Exchange = "velocore"
+	ExchangeVelodrome  Exchange = "velodrome"
+	ExchangeDystopia   Exchange = "dystopia"
+	ExchangeChronos    Exchange = "chronos"
+	ExchangeRamses     Exchange = "ramses"
+	ExchangeVelocore   Exchange = "velocore"
+	ExchangeMuteSwitch Exchange = "muteswitch"
 
 	ExchangePlatypus Exchange = "platypus"
 
@@ -175,6 +176,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeChronos:             {},
 	ExchangeRamses:              {},
 	ExchangeVelocore:            {},
+	ExchangeMuteSwitch:          {},
 	ExchangePlatypus:            {},
 	ExchangeKyberSwapLimitOrder: {},
 }

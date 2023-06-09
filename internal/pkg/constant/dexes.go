@@ -36,6 +36,7 @@ type types struct {
 	LimitOrder         string
 	Fraxswap           string
 	Camelot            string
+	MuteSwitch         string
 }
 
 var (
@@ -75,5 +76,6 @@ var (
 		LimitOrder:         "limit-order",
 		Fraxswap:           "fraxswap",
 		Camelot:            "camelot",
+		MuteSwitch:         "muteswitch",
 	}
 )

@@ -88,6 +88,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeRamses, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeVelocore, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeVerse, swapdata.PackUniSwap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeMuteSwitch, swapdata.PackUniSwap)
 
 	RegisterPackSwapDataFunc(valueobject.ExchangeCamelot, swapdata.PackCamelot)
 
