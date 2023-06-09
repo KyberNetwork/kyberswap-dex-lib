@@ -12,8 +12,6 @@ import (
 // ---
 // parameters:
 //   - ids: list of token addresses, separated by comma
-//     extra: return liquidity and lp address also
-//     poolTokens: return pool data if it is a lp token
 func GetTokens(
 	validator IGetTokensParamsValidator,
 	useCase IGetTokensUseCase,
@@ -47,8 +45,6 @@ func GetTokens(
 
 func transformGetTokensParams(params params.GetTokensParams) dto.GetTokensQuery {
 	return dto.GetTokensQuery{
-		IDs:        transformSliceParams(params.IDs),
-		PoolTokens: params.PoolTokens,
-		Extra:      params.Extra,
+		IDs: transformSliceParams(params.IDs),
 	}
 }

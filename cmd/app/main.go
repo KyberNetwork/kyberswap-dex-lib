@@ -223,7 +223,7 @@ func apiAction(c *cli.Context) (err error) {
 	validateRouteUseCase.RegisterValidator(validateroute.NewSynthetixValidator())
 
 	getPoolsUseCase := usecase.NewGetPoolsUseCase(poolDataStoreRepo)
-	getTokensUseCase := usecase.NewGetTokens(tokenCacheRepo, poolDataStoreRepo, priceDataStoreRepo)
+	getTokensUseCase := usecase.NewGetTokens(tokenCacheRepo, priceDataStoreRepo)
 
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory)
 	poolManager, err := poolmanager.NewPointerSwapPoolManager(poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager)
