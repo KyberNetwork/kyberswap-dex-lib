@@ -6,6 +6,17 @@ import (
 	"strconv"
 )
 
+type Gas struct {
+	Swap int64
+}
+
+// UniV3SwapInfo present the after state of a swap
+type UniV3SwapInfo struct {
+	nextStateSqrtRatioX96 *big.Int
+	nextStateLiquidity    *big.Int
+	nextStateTickCurrent  int
+}
+
 type Metadata struct {
 	LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp"`
 }

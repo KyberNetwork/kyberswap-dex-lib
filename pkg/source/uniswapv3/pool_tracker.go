@@ -171,8 +171,8 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 	var (
 		liquidity *big.Int
 		slot0     Slot0
-		reserve0  = ZeroBI
-		reserve1  = ZeroBI
+		reserve0  = zeroBI
+		reserve1  = zeroBI
 	)
 
 	rpcRequest := d.ethrpcClient.NewRequest()

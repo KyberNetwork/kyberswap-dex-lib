@@ -3,7 +3,7 @@ module github.com/KyberNetwork/kyberswap-dex-lib
 go 1.20
 
 require (
-	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.0
+	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
 	github.com/KyberNetwork/ethrpc v0.2.0
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/daoleno/uniswap-sdk-core v0.1.5

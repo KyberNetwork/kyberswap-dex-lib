@@ -57,7 +57,7 @@ func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	metadata := Metadata{
-		LastCreatedAtTimestamp: ZeroBI,
+		LastCreatedAtTimestamp: zeroBI,
 	}
 	if len(metadataBytes) != 0 {
 		err := json.Unmarshal(metadataBytes, &metadata)
