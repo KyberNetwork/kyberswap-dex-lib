@@ -20,13 +20,13 @@ common:
     0xbc033203796cc2c8c543a5aae93a9a643320433d: true # VS
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
-    - "kyberswap",
-    - "kyberswap-static",
-    - "kyberswap-elastic",
-    - "valleyswap",
-    - "yuzuswap",
-    - "gemkeeper",
-    - "lizard",
+    - "kyberswap"
+    - "kyberswap-static"
+    - "kyberswap-elastic"
+    - "valleyswap"
+    - "yuzuswap"
+    - "gemkeeper"
+    - "lizard"
     - "valleyswap-v2"
   featureFlags: &featureFlags
 log:
