@@ -2,11 +2,7 @@ package source
 
 import (
 	"fmt"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/muteswitch"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramses"
-
 	"github.com/KyberNetwork/ethrpc"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/biswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
@@ -23,12 +19,15 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/madmex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/makerpsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/metavault"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/muteswitch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nerve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/oneswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/polydex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramses"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
@@ -283,6 +282,15 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return limitorder.NewPoolsListUpdater(&cfg)
+	case syncswap.DexTypeSyncSwap:
+		var cfg syncswap.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return syncswap.NewPoolsListUpdater(&cfg, ethrpcClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pools list updater handler: %s", scanDexCfg.Handler)
@@ -459,6 +467,15 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return limitorder.NewPoolTracker(&cfg), nil
+	case syncswap.DexTypeSyncSwap:
+		var cfg syncswap.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return syncswap.NewPoolTracker(&cfg, ethrpcClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pool tracker handler: %s", scanDexCfg.Handler)
