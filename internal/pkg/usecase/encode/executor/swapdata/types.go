@@ -178,3 +178,12 @@ type KyberLimitOrder struct {
 	TakerAsset     common.Address
 	Params         FillBatchOrdersParams
 }
+
+// SyncSwap
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/develop_zk/contracts/executor-helpers/ZkSyncExecutorHelper.sol#L72-L77
+type SyncSwap struct {
+	Data          []byte
+	TokenIn       common.Address
+	Pool          common.Address
+	CollectAmount *big.Int
+}

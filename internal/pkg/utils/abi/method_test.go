@@ -84,6 +84,11 @@ func TestGenMethodID(t *testing.T) {
 			types:      []string{"uint256", "bytes", "uint256"},
 			expectedId: "0xfe3868f2",
 		},
+		{
+			rawName:    "executeSyncSwap",
+			types:      []string{"uint256", "bytes", "uint256"},
+			expectedId: "0x22939f03",
+		},
 	}
 
 	for idx, tc := range testCases {

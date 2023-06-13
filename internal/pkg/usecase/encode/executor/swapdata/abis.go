@@ -20,6 +20,10 @@ var (
 	PlatypusABIArguments        abi.Arguments
 	KyberLimitOrderABIArguments abi.Arguments
 
+	// Syncswap
+	SyncSwapABIArguments     abi.Arguments
+	SyncSwapDataABIArguments abi.Arguments
+
 	FillBatchOrdersParamsABIType abi.Type
 )
 
@@ -177,5 +181,21 @@ func init() {
 		{Name: "makerAsset", Type: abitypes.Address},
 		{Name: "takerAsset", Type: abitypes.Address},
 		{Name: "params", Type: FillBatchOrdersParamsABIType},
+	}
+
+	// Reference from SC
+	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/develop_zk/contracts/executor-helpers/ZkSyncExecutorHelper.sol#L72-L77
+	SyncSwapABIArguments = abi.Arguments{
+		{Name: "_data", Type: abitypes.Bytes},
+		{Name: "tokenIn", Type: abitypes.Address},
+		{Name: "pool", Type: abitypes.Address},
+		{Name: "collectAmount", Type: abitypes.Uint256},
+	}
+	// _data encode of (address, address, uint8) : (tokenIn, recipient, withdrawMode)
+	// withdrawMode: always using 0 (DEFAULT)
+	SyncSwapDataABIArguments = abi.Arguments{
+		{Name: "tokenIn", Type: abitypes.Address},
+		{Name: "recipient", Type: abitypes.Address},
+		{Name: "withdrawMode", Type: abitypes.Uint8},
 	}
 }

@@ -37,6 +37,8 @@ type types struct {
 	Fraxswap           string
 	Camelot            string
 	MuteSwitch         string
+	SyncSwapClassic    string
+	SyncSwapStable     string
 }
 
 var (
@@ -77,5 +79,7 @@ var (
 		Fraxswap:           "fraxswap",
 		Camelot:            "camelot",
 		MuteSwitch:         "muteswitch",
+		SyncSwapClassic:    "syncswap-classic",
+		SyncSwapStable:     "syncswap-stable",
 	}
 )

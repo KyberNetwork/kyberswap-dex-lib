@@ -99,6 +99,7 @@ func init() {
 	Three = big.NewInt(3)
 	Four = big.NewInt(4)
 	Five = big.NewInt(5)
+
 	Ten = new(big.Float).SetFloat64(10)
 	BipBase = big.NewInt(10000)
 	tenPowDecimals = make([]*big.Float, maxDecimals)

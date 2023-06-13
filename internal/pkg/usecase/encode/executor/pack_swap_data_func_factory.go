@@ -136,4 +136,8 @@ func init() {
 
 	// KyberLimitOrder
 	RegisterPackSwapDataFunc(valueobject.ExchangeKyberSwapLimitOrder, swapdata.PackKyberLimitOrder)
+
+	// SyncSwap
+	RegisterPackSwapDataFunc(valueobject.ExchangeSyncSwap, swapdata.PackSyncSwap)
+
 }

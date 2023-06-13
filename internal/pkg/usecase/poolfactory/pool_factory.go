@@ -31,6 +31,8 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/core/platypus"
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/saddle"
+	syncswapclassic "github.com/KyberNetwork/router-service/internal/pkg/core/syncswap-classic"
+	syncswapstable "github.com/KyberNetwork/router-service/internal/pkg/core/syncswap-stable"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/synthetix"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/uni"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/univ3"
@@ -257,6 +259,10 @@ func (f *PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
 		return f.newCamelot(entityPool)
 	case constant.PoolTypes.LimitOrder:
 		return f.newLimitOrder(entityPool)
+	case constant.PoolTypes.SyncSwapClassic:
+		return f.newSyncswapClassic(entityPool)
+	case constant.PoolTypes.SyncSwapStable:
+		return f.newSyncswapStable(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -649,6 +655,34 @@ func (f *PoolFactory) newCamelot(entityPool entity.Pool) (*camelot.Pool, error) 
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newCamelot] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newSyncswapClassic(entityPool entity.Pool) (*syncswapclassic.Pool, error) {
+	corePool, err := syncswapclassic.NewPool(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newSyncswapClassic] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newSyncswapStable(entityPool entity.Pool) (*syncswapstable.Pool, error) {
+	corePool, err := syncswapstable.NewPool(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newSyncswapClassic] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

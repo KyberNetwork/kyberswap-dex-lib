@@ -139,6 +139,9 @@ func init() {
 	// executePlatypusSwap
 	RegisterFunctionSelector(valueobject.ExchangePlatypus, FunctionSelectorPlatypus)
 
+	// executeSyncSwap
+	RegisterFunctionSelector(valueobject.ExchangeSyncSwap, FunctionSelectorSyncSwap)
+
 	// executeKyberLimitOrder
 	RegisterFunctionSelector(valueobject.ExchangeKyberSwapLimitOrder, FunctionSelectorLimitOrder)
 

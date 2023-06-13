@@ -95,6 +95,8 @@ var (
 
 	ExchangePlatypus Exchange = "platypus"
 
+	ExchangeSyncSwap Exchange = "syncswap"
+
 	ExchangeKyberSwapLimitOrder Exchange = "kyberswap-limit-order"
 )
 
@@ -178,6 +180,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeVelocore:            {},
 	ExchangeMuteSwitch:          {},
 	ExchangePlatypus:            {},
+	ExchangeSyncSwap:            {},
 	ExchangeKyberSwapLimitOrder: {},
 }
 

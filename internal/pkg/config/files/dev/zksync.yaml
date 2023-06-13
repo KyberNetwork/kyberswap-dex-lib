@@ -18,6 +18,7 @@ common:
     0x3355df6d4c9c3035724fd0e3914de96a5a83aaf4: true # USDC
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
+    - "syncswap"
     - "velocore"
     - "kyberswap"
     - "muteswitch"
