@@ -1,9 +1,13 @@
 package swapdata
 
 import (
+	"encoding/hex"
+	"strings"
+
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 type withdrawMode uint8
@@ -24,7 +28,11 @@ func PackSyncSwap(_ valueobject.ChainID, encodingSwap types.EncodingSwap) ([]byt
 }
 
 func UnpackSyncSwap(data []byte) (SyncSwap, error) {
-	unpacked, err := SyncSwapABIArguments.Unpack(data)
+	encodedSwapStr := hex.EncodeToString(data)
+	packedEncodedSwapDataStr := strings.Replace(encodedSwapStr, OffsetToTheStartOfData, "", 1)
+	packedEncodedSwapBytes := common.Hex2Bytes(packedEncodedSwapDataStr)
+
+	unpacked, err := SyncSwapABIArguments.Unpack(packedEncodedSwapBytes)
 	if err != nil {
 		return SyncSwap{}, err
 	}
@@ -54,10 +62,15 @@ func buildSyncSwap(swap types.EncodingSwap) (SyncSwap, error) {
 }
 
 func packSyncSwap(swap SyncSwap) ([]byte, error) {
-	return SyncSwapABIArguments.Pack(
+	encoded, err := SyncSwapABIArguments.Pack(
 		swap.Data,
 		swap.TokenIn,
 		swap.Pool,
 		swap.CollectAmount,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return hex.DecodeString(OffsetToTheStartOfData + common.Bytes2Hex(encoded))
 }
