@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"sort"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
@@ -21,8 +20,8 @@ import (
 )
 
 var (
-	ErrV3TicksEmpty                  = errors.New("v3Ticks empty")
-	ErrNewTickListDataProviderFailed = errors.New("new tick list data provider failed")
+	ErrTickNil      = errors.New("tick is nil")
+	ErrV3TicksEmpty = errors.New("v3Ticks empty")
 )
 
 type PoolSimulator struct {
@@ -37,6 +36,10 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulato
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
+	}
+
+	if extra.Tick == nil {
+		return nil, ErrTickNil
 	}
 
 	token0 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[0].Address), uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, entityPool.Tokens[0].Name)
@@ -55,18 +58,20 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulato
 
 	var v3Ticks []v3Entities.Tick
 
+	// Ticks are sorted from the pool service, so we don't have to do it again here
+	// Purpose: to improve the latency
 	for _, t := range extra.Ticks {
+		// LiquidityGross = 0 means that the tick is uninitialized
+		if t.LiquidityGross.Cmp(zeroBI) == 0 {
+			continue
+		}
+
 		v3Ticks = append(v3Ticks, v3Entities.Tick{
 			Index:          t.Index,
 			LiquidityGross: t.LiquidityGross,
 			LiquidityNet:   t.LiquidityNet,
 		})
 	}
-
-	// Sort the ticks because function NewTickListDataProvider needs
-	sort.SliceStable(v3Ticks, func(i, j int) bool {
-		return v3Ticks[i].Index < v3Ticks[j].Index
-	})
 
 	// if the tick list is empty, the pool should be ignored
 	if len(v3Ticks) == 0 {
@@ -75,7 +80,7 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulato
 
 	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, constants.TickSpacings[constants.FeeAmount(entityPool.SwapFee)])
 	if err != nil {
-		return nil, ErrNewTickListDataProviderFailed
+		return nil, err
 	}
 
 	v3Pool, err := v3Entities.NewPool(
