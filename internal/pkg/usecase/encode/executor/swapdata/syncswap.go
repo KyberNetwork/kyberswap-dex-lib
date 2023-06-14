@@ -64,7 +64,7 @@ func buildSyncSwap(swap types.EncodingSwap) (SyncSwap, error) {
 		)
 	}
 	var extra struct {
-		VaultAddress string `json:"VaultAddress"`
+		VaultAddress string `json:"vaultAddress"`
 	}
 	if err := json.Unmarshal(byteData, &extra); err != nil {
 		return SyncSwap{}, err
