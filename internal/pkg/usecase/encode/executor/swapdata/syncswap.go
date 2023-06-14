@@ -7,9 +7,10 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 type withdrawMode uint8
@@ -50,7 +51,7 @@ func UnpackSyncSwap(data []byte) (SyncSwap, error) {
 func buildSyncSwap(swap types.EncodingSwap) (SyncSwap, error) {
 	// _data encode of (address, address, uint8) : (tokenIn, recipient, withdrawMode)
 	// withdrawMode: always using 0 (DEFAULT)
-	data, err := SyncSwapDataABIArguments.Pack(common.HexToAddress(swap.TokenIn), common.HexToAddress(swap.Recipient), defaultMode)
+	data, err := SyncSwapDataABIArguments.Pack(common.HexToAddress(swap.TokenIn), common.HexToAddress(swap.Recipient), wrappedMode)
 	if err != nil {
 		return SyncSwap{}, err
 	}
