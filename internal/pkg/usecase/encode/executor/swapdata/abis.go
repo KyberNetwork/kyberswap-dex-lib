@@ -187,6 +187,7 @@ func init() {
 	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/develop_zk/contracts/executor-helpers/ZkSyncExecutorHelper.sol#L72-L77
 	SyncSwapABIArguments = abi.Arguments{
 		{Name: "_data", Type: abitypes.Bytes},
+		{Name: "vault", Type: abitypes.Address},
 		{Name: "tokenIn", Type: abitypes.Address},
 		{Name: "pool", Type: abitypes.Address},
 		{Name: "collectAmount", Type: abitypes.Uint256},

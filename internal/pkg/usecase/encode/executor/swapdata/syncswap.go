@@ -2,12 +2,14 @@ package swapdata
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type withdrawMode uint8
@@ -53,8 +55,24 @@ func buildSyncSwap(swap types.EncodingSwap) (SyncSwap, error) {
 		return SyncSwap{}, err
 	}
 
+	byteData, err := json.Marshal(swap.Extra)
+	if err != nil {
+		return SyncSwap{}, errors.Wrapf(
+			ErrMarshalFailed,
+			"[BuildSyncSwap] err :[%v]",
+			err,
+		)
+	}
+	var extra struct {
+		VaultAddress string `json:"VaultAddress"`
+	}
+	if err := json.Unmarshal(byteData, &extra); err != nil {
+		return SyncSwap{}, err
+	}
+
 	return SyncSwap{
 		Data:          data,
+		Vault:         common.HexToAddress(extra.VaultAddress),
 		TokenIn:       common.HexToAddress(swap.TokenIn),
 		Pool:          common.HexToAddress(swap.Pool),
 		CollectAmount: swap.CollectAmount,
@@ -64,6 +82,7 @@ func buildSyncSwap(swap types.EncodingSwap) (SyncSwap, error) {
 func packSyncSwap(swap SyncSwap) ([]byte, error) {
 	encoded, err := SyncSwapABIArguments.Pack(
 		swap.Data,
+		swap.Vault,
 		swap.TokenIn,
 		swap.Pool,
 		swap.CollectAmount,

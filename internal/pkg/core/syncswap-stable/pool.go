@@ -14,6 +14,7 @@ import (
 
 type Pool struct {
 	pool.Pool
+	vaultAddress              string
 	swapFees                  []*big.Int
 	tokenPrecisionMultipliers []*big.Int
 	gas                       Gas
@@ -33,6 +34,8 @@ func NewPool(entityPool entity.Pool) (*Pool, error) {
 	reserves[0] = utils.NewBig10(entityPool.Reserves[0])
 	reserves[1] = utils.NewBig10(entityPool.Reserves[1])
 
+	var vaultAddress = extra.VaultAddress
+
 	var swapFees = make([]*big.Int, 2)
 	swapFees[0] = extra.SwapFee0To1
 	swapFees[1] = extra.SwapFee1To0
@@ -51,6 +54,7 @@ func NewPool(entityPool entity.Pool) (*Pool, error) {
 
 	return &Pool{
 		Pool:                      pool.Pool{Info: info},
+		vaultAddress:              vaultAddress,
 		swapFees:                  swapFees,
 		tokenPrecisionMultipliers: tokenPrecisionMultipliers,
 		gas:                       DefaultGas,
@@ -150,7 +154,9 @@ func (p *Pool) CanSwapTo(address string) []string {
 }
 
 func (p *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	return nil
+	return Meta{
+		VaultAddress: p.vaultAddress,
+	}
 }
 
 func (p *Pool) GetMidPrice(tokenIn string, tokenOut string, base *big.Int) *big.Int {

@@ -12,4 +12,10 @@ type ExtraStablePool struct {
 
 	Token0PrecisionMultiplier *big.Int `json:"token0PrecisionMultiplier"`
 	Token1PrecisionMultiplier *big.Int `json:"token1PrecisionMultiplier"`
+
+	VaultAddress string `json:"vaultAddress"`
+}
+
+type Meta struct {
+	VaultAddress string `json:"vaultAddress"`
 }
