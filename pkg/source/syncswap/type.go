@@ -7,8 +7,9 @@ type Metadata struct {
 }
 
 type ExtraClassicPool struct {
-	SwapFee0To1 *big.Int `json:"swapFee0To1"`
-	SwapFee1To0 *big.Int `json:"swapFee1To0"`
+	SwapFee0To1  *big.Int `json:"swapFee0To1"`
+	SwapFee1To0  *big.Int `json:"swapFee1To0"`
+	VaultAddress string   `json:"vaultAddress"`
 }
 
 type ExtraStablePool struct {
@@ -17,4 +18,6 @@ type ExtraStablePool struct {
 
 	Token0PrecisionMultiplier *big.Int `json:"token0PrecisionMultiplier"`
 	Token1PrecisionMultiplier *big.Int `json:"token1PrecisionMultiplier"`
+
+	VaultAddress string `json:"vaultAddress"`
 }

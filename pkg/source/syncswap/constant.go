@@ -22,4 +22,5 @@ var (
 	poolMethodGetReserves               = "getReserves"
 	poolMethodToken0PrecisionMultiplier = "token0PrecisionMultiplier"
 	poolMethodToken1PrecisionMultiplier = "token1PrecisionMultiplier"
+	poolMethodVault                     = "vault"
 )

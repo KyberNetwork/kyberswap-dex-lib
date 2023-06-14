@@ -50,6 +50,7 @@ func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool) (e
 	var (
 		swapFee0To1, swapFee1To0 *big.Int
 		reserves                 = make([]*big.Int, len(p.Tokens))
+		vaultAddress             common.Address
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -85,6 +86,13 @@ func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool) (e
 		Params: nil,
 	}, []interface{}{&reserves})
 
+	calls.AddCall(&ethrpc.Call{
+		ABI:    classicPoolABI,
+		Target: p.Address,
+		Method: poolMethodVault,
+		Params: nil,
+	}, []interface{}{&vaultAddress})
+
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"address": p.Address,
@@ -94,8 +102,9 @@ func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool) (e
 	}
 
 	extraBytes, err := json.Marshal(ExtraClassicPool{
-		SwapFee0To1: swapFee0To1,
-		SwapFee1To0: swapFee1To0,
+		SwapFee0To1:  swapFee0To1,
+		SwapFee1To0:  swapFee1To0,
+		VaultAddress: vaultAddress.Hex(),
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -127,6 +136,7 @@ func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool) (en
 	var (
 		swapFee0To1, swapFee1To0                             *big.Int
 		token0PrecisionMultiplier, token1PrecisionMultiplier *big.Int
+		vaultAddress                                         common.Address
 		reserves                                             = make([]*big.Int, len(p.Tokens))
 	)
 
@@ -177,6 +187,13 @@ func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool) (en
 		Params: nil,
 	}, []interface{}{&token1PrecisionMultiplier})
 
+	calls.AddCall(&ethrpc.Call{
+		ABI:    classicPoolABI,
+		Target: p.Address,
+		Method: poolMethodVault,
+		Params: nil,
+	}, []interface{}{&vaultAddress})
+
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"address": p.Address,
@@ -190,6 +207,7 @@ func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool) (en
 		SwapFee1To0:               swapFee1To0,
 		Token0PrecisionMultiplier: token0PrecisionMultiplier,
 		Token1PrecisionMultiplier: token1PrecisionMultiplier,
+		VaultAddress:              vaultAddress.Hex(),
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
