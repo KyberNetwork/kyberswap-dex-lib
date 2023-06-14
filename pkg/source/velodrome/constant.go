@@ -19,3 +19,7 @@ const (
 	reserveZero         = "0"
 	bps         float64 = 10000
 )
+
+var (
+	DefaultGas = Gas{Swap: 227000}
+)
