@@ -55,7 +55,7 @@ func buildSyncSwap(swap types.EncodingSwap) (SyncSwap, error) {
 		return SyncSwap{}, err
 	}
 
-	byteData, err := json.Marshal(swap.Extra)
+	byteData, err := json.Marshal(swap.PoolExtra)
 	if err != nil {
 		return SyncSwap{}, errors.Wrapf(
 			ErrMarshalFailed,
@@ -63,16 +63,19 @@ func buildSyncSwap(swap types.EncodingSwap) (SyncSwap, error) {
 			err,
 		)
 	}
-	var extra struct {
+	var poolExtra struct {
 		VaultAddress string `json:"vaultAddress"`
 	}
-	if err := json.Unmarshal(byteData, &extra); err != nil {
+	if err := json.Unmarshal(byteData, &poolExtra); err != nil {
 		return SyncSwap{}, err
+	}
+	if len(poolExtra.VaultAddress) == 0 {
+		return SyncSwap{}, ErrSyncSwapVaultNotFound
 	}
 
 	return SyncSwap{
 		Data:          data,
-		Vault:         common.HexToAddress(extra.VaultAddress),
+		Vault:         common.HexToAddress(poolExtra.VaultAddress),
 		TokenIn:       common.HexToAddress(swap.TokenIn),
 		Pool:          common.HexToAddress(swap.Pool),
 		CollectAmount: swap.CollectAmount,

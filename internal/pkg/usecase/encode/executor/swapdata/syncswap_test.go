@@ -22,7 +22,7 @@ var packSyncSwapPairs = []struct {
 		swap: types.EncodingSwap{
 			TokenIn:   "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91",
 			Recipient: "0x1111111111111111111111111111111111111100",
-			Extra: struct {
+			PoolExtra: struct {
 				VaultAddress string `json:"vaultAddress"`
 			}{
 				VaultAddress: "0x621425a1ef6abe91058e9712575dcc4258f8d091",
