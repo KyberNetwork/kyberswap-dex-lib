@@ -86,3 +86,19 @@ func (p Pool) HasReserves() bool {
 func (p Pool) HasAmplifiedTvl() bool {
 	return p.AmplifiedTvl > 0
 }
+
+func ClonePoolTokens(poolTokens []*PoolToken) []*PoolToken {
+	var result = make([]*PoolToken, len(poolTokens))
+	for i, poolToken := range poolTokens {
+		clonePoolToken := &PoolToken{
+			Address:   poolToken.Address,
+			Name:      poolToken.Name,
+			Symbol:    poolToken.Symbol,
+			Decimals:  poolToken.Decimals,
+			Weight:    poolToken.Weight,
+			Swappable: poolToken.Swappable,
+		}
+		result[i] = clonePoolToken
+	}
+	return result
+}
