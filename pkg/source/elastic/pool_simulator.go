@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"sort"
 	"strings"
 
 	"github.com/KyberNetwork/elastic-go-sdk/v2/constants"
@@ -20,6 +19,11 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
+var (
+	ErrTickNil           = errors.New("tick is nil")
+	ErrElasticTicksEmpty = errors.New("elastic ticks empty")
+)
+
 type PoolSimulator struct {
 	pool.Pool
 	elasticPool *elasticEntities.Pool
@@ -32,6 +36,10 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
+	}
+
+	if extra.Tick == nil {
+		return nil, ErrTickNil
 	}
 
 	token0 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[0].Address), uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, entityPool.Tokens[0].Name)
@@ -50,7 +58,14 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 
 	var elasticTicks []elasticEntities.Tick
 
+	// Ticks are sorted from the pool service, so we don't have to do it again here
+	// Purpose: to improve the latency
 	for _, t := range extra.Ticks {
+		// LiquidityGross = 0 means that the tick is uninitialized
+		if t.LiquidityGross.Cmp(zeroBI) == 0 {
+			continue
+		}
+
 		elasticTicks = append(elasticTicks, elasticEntities.Tick{
 			Index:          t.Index,
 			LiquidityGross: t.LiquidityGross,
@@ -58,10 +73,10 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		})
 	}
 
-	// Sort the ticks because function NewTickListDataProvider needs
-	sort.SliceStable(elasticTicks, func(i, j int) bool {
-		return elasticTicks[i].Index < elasticTicks[j].Index
-	})
+	// if the tick list is empty, the pool should be ignored
+	if len(elasticTicks) == 0 {
+		return nil, ErrElasticTicksEmpty
+	}
 
 	ticks, err := elasticEntities.NewTickListDataProvider(elasticTicks, constants.TickSpacings[constants.FeeAmount(entityPool.SwapFee)])
 	if err != nil {
