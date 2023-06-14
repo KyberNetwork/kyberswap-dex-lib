@@ -16,6 +16,7 @@ import (
 	_ "go.uber.org/automaxprocs"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
@@ -78,6 +79,26 @@ func main() {
 		defer tracer.Stop()
 	}
 
+	if env.StringFromEnv(envvar.DDProfilerEnabled, "") != "" {
+		err := profiler.Start(
+			profiler.WithService(env.StringFromEnv(envvar.DDService, "")),
+			profiler.WithEnv(env.StringFromEnv(envvar.DDEnv, "")),
+			profiler.WithVersion(env.StringFromEnv(envvar.DDVersion, "")),
+			profiler.WithProfileTypes(
+				profiler.CPUProfile,
+				profiler.HeapProfile,
+				// The profiles below are disabled by default to keep overhead
+				// low, but can be enabled as needed.
+
+				//profiler.BlockProfile,
+				//profiler.MutexProfile,
+				//profiler.GoroutineProfile,
+			))
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer profiler.Stop()
+	}
 	app := &cli.App{
 		Flags: []cli.Flag{
 			&cli.StringFlag{
