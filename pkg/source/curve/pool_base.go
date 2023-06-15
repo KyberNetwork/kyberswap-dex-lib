@@ -20,7 +20,6 @@ func (d *PoolsListUpdater) getNewPoolsTypeBase(
 ) ([]entity.Pool, error) {
 	var (
 		coins           = make([][8]common.Address, len(poolAndRegistries))
-		underlyingCoins = make([][8]common.Address, len(poolAndRegistries))
 		decimals        = make([][8]*big.Int, len(poolAndRegistries))
 		aList           = make([]*big.Int, len(poolAndRegistries))
 		aPreciseList    = make([]*big.Int, len(poolAndRegistries))
@@ -37,13 +36,6 @@ func (d *PoolsListUpdater) getNewPoolsTypeBase(
 			Method: registryOrFactoryMethodGetCoins,
 			Params: []interface{}{poolAndRegistry.PoolAddress},
 		}, []interface{}{&coins[i]})
-
-		calls.AddCall(&ethrpc.Call{
-			ABI:    *poolAndRegistry.RegistryOrFactoryABI,
-			Target: *poolAndRegistry.RegistryOrFactoryAddress,
-			Method: registryOrFactoryMethodGetUnderlyingCoins,
-			Params: []interface{}{poolAndRegistry.PoolAddress},
-		}, []interface{}{&underlyingCoins[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    *poolAndRegistry.RegistryOrFactoryABI,

@@ -45,7 +45,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeAave(
 		calls.AddCall(&ethrpc.Call{
 			ABI:    *poolAndRegistry.RegistryOrFactoryABI,
 			Target: *poolAndRegistry.RegistryOrFactoryAddress,
-			Method: registryOrFactoryMethodGetDecimals,
+			Method: registryOrFactoryMethodGetUnderDecimals,
 			Params: []interface{}{poolAndRegistry.PoolAddress},
 		}, []interface{}{&decimals[i]})
 
