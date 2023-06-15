@@ -5,6 +5,6 @@ import (
 )
 
 var (
-	DefaultGas = Gas{Swap: 0}
+	DefaultGas = Gas{Swap: 300000}
 	MaxFee     = utils.NewBig("100000")
 )
