@@ -123,6 +123,8 @@ func (p *Pool) GetAtomicVolume(
 
 func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {}
 
+func (p *Pool) CanSwapFrom(address string) []string { return p.CanSwapTo(address) }
+
 func (p *Pool) CanSwapTo(address string) []string {
 	var tokenIndex = p.GetTokenIndex(address)
 	if tokenIndex < 0 {

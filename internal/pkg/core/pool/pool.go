@@ -15,6 +15,7 @@ type IPool interface {
 	) (*CalcAmountOutResult, error)
 	UpdateBalance(params UpdateBalanceParams)
 	CanSwapTo(address string) []string
+	CanSwapFrom(address string) []string
 	GetTokens() []string
 	GetAddress() string
 	GetExchange() string
@@ -57,6 +58,30 @@ func (t *Pool) GetTokenIndex(address string) int {
 
 func (t *Pool) GetType() string {
 	return t.Info.Type
+}
+
+// CanSwapTo is the base method to get all swappable tokens from a pool by a given token address
+// Pools with custom logic should override this method
+func (t *Pool) CanSwapTo(address string) []string {
+	var tokenIndex = t.GetTokenIndex(address)
+	if tokenIndex < 0 {
+		return nil // returning nil is good enough
+	}
+
+	result := make([]string, 0, len(t.Info.Tokens)-1) // avoid allocating new memory as much as possible
+	for i := 0; i < len(t.Info.Tokens); i += 1 {
+		if i != tokenIndex {
+			result = append(result, t.Info.Tokens[i])
+		}
+	}
+
+	return result
+}
+
+// most pools are bi-directional so just call CanSwapTo here
+// Pools with custom logic should override this method
+func (t *Pool) CanSwapFrom(address string) []string {
+	return t.CanSwapTo(address)
 }
 
 type CalcAmountOutResult struct {

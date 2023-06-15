@@ -115,20 +115,6 @@ func (t *WeightedPool2Tokens) CalcAmountOut(
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
 }
 
-func (t *WeightedPool2Tokens) CanSwapTo(address string) []string {
-	var ret = make([]string, 0)
-	var tokenIndex = t.GetTokenIndex(address)
-	if tokenIndex < 0 {
-		return ret
-	}
-	for i := 0; i < len(t.Info.Tokens); i += 1 {
-		if i != tokenIndex {
-			ret = append(ret, t.Info.Tokens[i])
-		}
-	}
-	return ret
-}
-
 func (t *WeightedPool2Tokens) GetMidPrice(tokenIn string, tokenOut string, base *big.Int) *big.Int {
 	var tokenInIndex = t.GetTokenIndex(tokenIn)
 	var tokenOutIndex = t.GetTokenIndex(tokenOut)

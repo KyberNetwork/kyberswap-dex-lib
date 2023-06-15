@@ -219,20 +219,6 @@ func (p *Pool) GetLpToken() string {
 	return ""
 }
 
-func (p *Pool) CanSwapTo(address string) []string {
-	var ret = make([]string, 0)
-	var tokenIndex = p.GetTokenIndex(address)
-	if tokenIndex < 0 {
-		return ret
-	}
-	for i := 0; i < len(p.Info.Tokens); i += 1 {
-		if i != tokenIndex {
-			ret = append(ret, p.Info.Tokens[i])
-		}
-	}
-	return ret
-}
-
 // GetMidPrice This function is not used
 func (p *Pool) GetMidPrice(tokenIn string, tokenOut string, base *big.Int) *big.Int {
 	if strings.EqualFold(tokenOut, p.elasticPool.Token0.Address.String()) {

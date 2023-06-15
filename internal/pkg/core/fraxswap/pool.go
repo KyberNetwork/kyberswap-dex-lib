@@ -159,20 +159,6 @@ func (p *Pool) GetLpToken() string {
 	return ""
 }
 
-func (p *Pool) CanSwapTo(address string) []string {
-	var ret = make([]string, 0)
-	var tokenIndex = p.GetTokenIndex(address)
-	if tokenIndex < 0 {
-		return ret
-	}
-	for i := 0; i < len(p.Info.Tokens); i += 1 {
-		if i != tokenIndex {
-			ret = append(ret, p.Info.Tokens[i])
-		}
-	}
-	return ret
-}
-
 func (p *Pool) GetMidPrice(tokenIn string, _ string, base *big.Int) *big.Int {
 	exactQuote, err := p.getAmountOut(base, tokenIn)
 	if err != nil {

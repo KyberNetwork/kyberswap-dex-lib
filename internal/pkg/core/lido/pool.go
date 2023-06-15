@@ -97,32 +97,6 @@ func (p *Pool) GetLpToken() string {
 	return p.LpToken
 }
 
-func (p *Pool) CanSwapTo(address string) []string {
-	swappableTokens := make([]string, 0, len(p.GetTokens())-1)
-
-	isTokenExists := false
-	for _, token := range p.GetTokens() {
-		if strings.EqualFold(token, address) {
-			isTokenExists = true
-			break
-		}
-	}
-
-	if !isTokenExists {
-		return swappableTokens
-	}
-
-	for _, token := range p.GetTokens() {
-		if token == address {
-			continue
-		}
-
-		swappableTokens = append(swappableTokens, token)
-	}
-
-	return swappableTokens
-}
-
 func (p *Pool) GetMidPrice(_ string, tokenOut string, _ *big.Int) *big.Int {
 	if strings.EqualFold(tokenOut, p.LpToken) {
 		return p.TokensPerStEth

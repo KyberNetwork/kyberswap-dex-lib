@@ -93,6 +93,8 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.vault.DecreasePoolAmount(output.Token, new(big.Int).Add(output.Amount, fee.Amount))
 }
 
+func (p *Pool) CanSwapFrom(address string) []string { return p.CanSwapTo(address) }
+
 func (p *Pool) CanSwapTo(address string) []string {
 	whitelistedTokens := p.vault.WhitelistedTokens
 

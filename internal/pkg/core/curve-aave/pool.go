@@ -140,20 +140,6 @@ func (t *AavePool) GetLpToken() string {
 	return ""
 }
 
-func (t *AavePool) CanSwapTo(address string) []string {
-	var ret = make([]string, 0)
-	var tokenIndex = t.GetTokenIndex(address)
-	if tokenIndex < 0 {
-		return ret
-	}
-	for i := 0; i < len(t.Info.Tokens); i += 1 {
-		if i != tokenIndex {
-			ret = append(ret, t.Info.Tokens[i])
-		}
-	}
-	return ret
-}
-
 func (t *AavePool) GetMidPrice(tokenIn string, tokenOut string, base *big.Int) *big.Int {
 	var tokenInIndex = t.GetTokenIndex(tokenIn)
 	var tokenOutIndex = t.GetTokenIndex(tokenOut)

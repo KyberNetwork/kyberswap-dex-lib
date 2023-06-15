@@ -148,7 +148,7 @@ func getNextLayerFromToken(
 		if !ok {
 			return nil, findroute.ErrNoIPool
 		}
-		for _, toTokenAddress := range pool.CanSwapTo(fromTokenAddress) {
+		for _, toTokenAddress := range pool.CanSwapFrom(fromTokenAddress) {
 			// must-have info for fromToken on path
 			toTokenInfo, ok = data.TokenByAddress[toTokenAddress]
 			if !ok {

@@ -124,18 +124,6 @@ func (p *Pool) GetLpToken() string {
 	return p.GetAddress()
 }
 
-func (p *Pool) CanSwapTo(tokenAddress string) []string {
-	var swappableTokenAddresses []string
-
-	for _, tAddress := range p.Info.Tokens {
-		if tAddress != tokenAddress {
-			swappableTokenAddresses = append(swappableTokenAddresses, tAddress)
-		}
-	}
-
-	return swappableTokenAddresses
-}
-
 func (p *Pool) GetMidPrice(tokenIn string, tokenOut string, base *big.Int) *big.Int {
 	return constant.Zero
 }
