@@ -13,6 +13,7 @@ const (
 	registryOrFactoryMethodIsMeta             = "is_meta"
 	registryOrFactoryMethodGetBasePool        = "get_base_pool"
 	registryOrFactoryMethodGetDecimals        = "get_decimals"
+	registryOrFactoryMethodGetUnderDecimals   = "get_underlying_decimals"
 	registryOrFactoryMethodGetRates           = "get_rates"
 	registryOrFactoryMethodGetLpToken         = "get_lp_token"
 
