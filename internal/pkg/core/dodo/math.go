@@ -5,11 +5,12 @@ import (
 	"math/big"
 )
 
-func QuerySellBase(amount *big.Float, state *PoolState) (result *big.Float, err error) {
+// https://github.com/DODOEX/contractV2/blob/1c8d393ae1ed7a9c7effeceb58a6db4579637e8e/contracts/DODOPrivatePool/impl/DPPTrader.sol#L201
+func QuerySellBase(amount *big.Float, state *PoolState) (result *big.Float, mtFee *big.Float, err error) {
 	if state.RStatus == rStatusOne {
 		result, err = ROneSellBase(amount, state)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else if state.RStatus == rStatusAboveOne {
 		backToOnePayBase := new(big.Float).Sub(state.B0, state.B)
@@ -18,7 +19,7 @@ func QuerySellBase(amount *big.Float, state *PoolState) (result *big.Float, err 
 		if amount.Cmp(backToOnePayBase) < 0 {
 			result, err = RAboveSellBase(amount, state)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			if result.Cmp(backToOneReceiveQuote) > 0 {
@@ -29,35 +30,36 @@ func QuerySellBase(amount *big.Float, state *PoolState) (result *big.Float, err 
 		} else {
 			rOneSellBase, err := ROneSellBase(new(big.Float).Sub(amount, backToOnePayBase), state)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			result = new(big.Float).Add(backToOneReceiveQuote, rOneSellBase)
 		}
 	} else {
 		result, err = RBelowSellBase(amount, state)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
-	mtFee := new(big.Float).Mul(result, state.mtFeeRate)
+	mtFee = new(big.Float).Mul(result, state.mtFeeRate)
 	lpFee := new(big.Float).Mul(result, state.lpFeeRate)
 
 	result = new(big.Float).Sub(new(big.Float).Sub(result, mtFee), lpFee)
 
-	return result, nil
+	return result, mtFee, nil
 }
 
-func QuerySellQuote(amount *big.Float, state *PoolState) (result *big.Float, err error) {
+// https://github.com/DODOEX/contractV2/blob/1c8d393ae1ed7a9c7effeceb58a6db4579637e8e/contracts/DODOPrivatePool/impl/DPPTrader.sol#L223
+func QuerySellQuote(amount *big.Float, state *PoolState) (result *big.Float, mtFee *big.Float, err error) {
 	if state.RStatus == rStatusOne {
 		result, err = ROneSellQuote(amount, state)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else if state.RStatus == rStatusAboveOne {
 		result, err = RAboveSellQuote(amount, state)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
 		backToOneReceiveBase := new(big.Float).Sub(state.B, state.B0)
@@ -66,7 +68,7 @@ func QuerySellQuote(amount *big.Float, state *PoolState) (result *big.Float, err
 		if amount.Cmp(backToOnePayQuote) < 0 {
 			result, err = RBelowSellQuote(amount, state)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			if result.Cmp(backToOneReceiveBase) > 0 {
@@ -77,18 +79,18 @@ func QuerySellQuote(amount *big.Float, state *PoolState) (result *big.Float, err
 		} else {
 			rOneSellQuote, err := ROneSellQuote(new(big.Float).Sub(amount, backToOnePayQuote), state)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			result = new(big.Float).Add(backToOneReceiveBase, rOneSellQuote)
 		}
 	}
 
-	mtFee := new(big.Float).Mul(result, state.mtFeeRate)
+	mtFee = new(big.Float).Mul(result, state.mtFeeRate)
 	lpFee := new(big.Float).Mul(result, state.lpFeeRate)
 
 	result = new(big.Float).Sub(new(big.Float).Sub(result, mtFee), lpFee)
 
-	return result, nil
+	return result, mtFee, nil
 }
 
 func ROneSellBase(amount *big.Float, state *PoolState) (result *big.Float, err error) {

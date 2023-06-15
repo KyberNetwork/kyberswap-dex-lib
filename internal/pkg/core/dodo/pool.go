@@ -107,11 +107,12 @@ func (p *Pool) CalcAmountOut(
 		amountIn := new(big.Float).Quo(
 			new(big.Float).SetInt(tokenAmountIn.Amount), constant.TenPowDecimals(uint8(p.Tokens[0].Decimals)),
 		)
-		amountOutF, err := QuerySellBase(amountIn, &p.PoolState)
+		amountOutF, mtFeeF, err := QuerySellBase(amountIn, &p.PoolState)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
 		amountOut, _ := new(big.Float).Mul(amountOutF, constant.TenPowDecimals(uint8(p.Tokens[1].Decimals))).Int(nil)
+		mtFee, _ := new(big.Float).Mul(mtFeeF, constant.BoneFloat).Int(nil)
 		return &pool.CalcAmountOutResult{
 			TokenAmountOut: &pool.TokenAmount{
 				Token:  tokenOut,
@@ -119,7 +120,7 @@ func (p *Pool) CalcAmountOut(
 			},
 			Fee: &pool.TokenAmount{
 				Token:  tokenAmountIn.Token,
-				Amount: nil,
+				Amount: mtFee,
 			},
 			Gas: totalGas,
 		}, nil
@@ -133,11 +134,12 @@ func (p *Pool) CalcAmountOut(
 		amountIn := new(big.Float).Quo(
 			new(big.Float).SetInt(tokenAmountIn.Amount), constant.TenPowDecimals(uint8(p.Tokens[1].Decimals)),
 		)
-		amountOutF, err := QuerySellQuote(amountIn, &p.PoolState)
+		amountOutF, mtFeeF, err := QuerySellQuote(amountIn, &p.PoolState)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
 		amountOut, _ := new(big.Float).Mul(amountOutF, constant.TenPowDecimals(uint8(p.Tokens[0].Decimals))).Int(nil)
+		mtFee, _ := new(big.Float).Mul(mtFeeF, constant.BoneFloat).Int(nil)
 		return &pool.CalcAmountOutResult{
 			TokenAmountOut: &pool.TokenAmount{
 				Token:  tokenOut,
@@ -145,7 +147,7 @@ func (p *Pool) CalcAmountOut(
 			},
 			Fee: &pool.TokenAmount{
 				Token:  tokenAmountIn.Token,
-				Amount: nil,
+				Amount: mtFee,
 			},
 			Gas: totalGas,
 		}, nil
@@ -161,11 +163,9 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	} else {
 		isSellBase = false
 	}
-	// inputAmount = input.Amount * (10^18 - p.Info.SwapFee) / 10^18
-	inputAmount := new(big.Int).Div(
-		new(big.Int).Mul(input.Amount, new(big.Int).Sub(constant.BONE, p.Info.SwapFee)), constant.BONE,
-	)
-	outputAmount := output.Amount
+	inputAmount := input.Amount
+	// output.Amount was already fee-deducted in CalcAmountOut above, need to add back to update balances
+	outputAmount := new(big.Int).Add(output.Amount, params.Fee.Amount)
 
 	if isSellBase {
 		// amountInF = inputAmount / 10^Tokens[0].Decimals
@@ -177,7 +177,7 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 			new(big.Float).SetInt(outputAmount), constant.TenPowDecimals(uint8(p.Tokens[1].Decimals)),
 		)
 		// p.Info.Reserves[0] = p.Info.Reserves[0] + inputAmount
-		// p.Info.Reserves[1] = p.Info.Reserves[1] - outputAmount
+		// p.Info.Reserves[1] = p.Info.Reserves[1] - outputAmount - mtFee
 		p.Info.Reserves[0] = new(big.Int).Add(p.Info.Reserves[0], inputAmount)
 		p.Info.Reserves[1] = new(big.Int).Sub(p.Info.Reserves[1], outputAmount)
 
@@ -193,7 +193,7 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 			new(big.Float).SetInt(outputAmount), constant.TenPowDecimals(uint8(p.Tokens[0].Decimals)),
 		)
 
-		// p.Info.Reserves[0] = p.Info.Reserves[0] - outputAmount
+		// p.Info.Reserves[0] = p.Info.Reserves[0] - outputAmount - mtFee
 		// p.Info.Reserves[1] = p.Info.Reserves[1] + inputAmount
 		p.Info.Reserves[0] = new(big.Int).Sub(p.Info.Reserves[0], outputAmount)
 		p.Info.Reserves[1] = new(big.Int).Add(p.Info.Reserves[1], inputAmount)

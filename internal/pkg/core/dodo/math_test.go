@@ -20,7 +20,7 @@ func TestSellBaseROne(t *testing.T) {
 		mtFeeRate:   big.NewFloat(0.00002),
 		lpFeeRate:   big.NewFloat(0),
 	}
-	amountOut, err := QuerySellBase(amountIn, &poolState)
+	amountOut, _, err := QuerySellBase(amountIn, &poolState)
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, amountOut.String(), "0.9999799991")
@@ -39,7 +39,7 @@ func TestSellBaseRAboveOne(t *testing.T) {
 		mtFeeRate:   big.NewFloat(0.00002),
 		lpFeeRate:   big.NewFloat(0),
 	}
-	amountOut, err := QuerySellBase(amountIn, &poolState)
+	amountOut, _, err := QuerySellBase(amountIn, &poolState)
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, amountOut.String(), "1.001267661")
@@ -58,7 +58,7 @@ func TestSellBaseRBelowOne(t *testing.T) {
 		mtFeeRate:   big.NewFloat(0.00002),
 		lpFeeRate:   big.NewFloat(0),
 	}
-	amountOut, err := QuerySellBase(amountIn, &poolState)
+	amountOut, _, err := QuerySellBase(amountIn, &poolState)
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, amountOut.String(), "1.000090777")
@@ -77,7 +77,7 @@ func TestSellQuoteROne(t *testing.T) {
 		mtFeeRate:   big.NewFloat(0.00002),
 		lpFeeRate:   big.NewFloat(0),
 	}
-	amountOut, err := QuerySellQuote(amountIn, &poolState)
+	amountOut, _, err := QuerySellQuote(amountIn, &poolState)
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, amountOut.String(), "0.99998")
@@ -96,7 +96,7 @@ func TestSellQuoteRAboveOne(t *testing.T) {
 		mtFeeRate:   big.NewFloat(0.00002),
 		lpFeeRate:   big.NewFloat(0),
 	}
-	amountOut, err := QuerySellQuote(amountIn, &poolState)
+	amountOut, _, err := QuerySellQuote(amountIn, &poolState)
 
 	assert.Equal(t, err, nil)
 	assert.Equal(t, amountOut.String(), "0.9986939936")
