@@ -25,8 +25,7 @@ jobs:
               owner: KyberNetwork
               repo: dexes-integration-test
               github_token: ${{ secrets.GH_PAT }}
-              workflow_file_name: aggregator_post_check.yaml
+              workflow_file_name: smoke-test.yml
               ref: main
-              client_payload: '{"BASE_URL":"https://router-api.stg.kyberengineering.io","CHAIN_ID":"56","AMOUNT_IN":"1000000000000000000","TOKEN_IN":"0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56","TOKEN_OUT":"0xc53dc6A3fBe4F67a220214c8e7529D72D8abfb42"}'
-  
+              client_payload: '{"BASE_URL":"https://router-api.stg.kyberengineering.io", "ENV":"staging"}'  
               
