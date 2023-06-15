@@ -1,4 +1,5 @@
 env: "staging"
+pprof: false
 http:
   bindAddress: ":8080"
   mode: release #(debug,release,test)
