@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/reload"
 	"github.com/getsentry/sentry-go"
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/urfave/cli/v2"
 	_ "go.uber.org/automaxprocs"
@@ -301,6 +302,11 @@ func apiAction(c *cli.Context) (err error) {
 		return err
 	}
 	ginServer, router, _ := httppkg.GinServer(cfg.Http, zapLogger)
+
+	// Only profiling in dev
+	if cfg.Pprof {
+		pprof.Register(ginServer)
+	}
 
 	v1 := router.Group("/api/v1")
 

@@ -16,6 +16,16 @@ go mod download
 # Start Redis (master, slave, sentinel)
 docker compose up -d
 
+### Optional
+### 
+# Run redis-server with dump data 
+# Firstly, download dump data for the chain at: 
+https://console.cloud.google.com/storage/browser/shared-data-backup-0409cbcf/redis/pool-service-ethereum?pageState=(%22StorageObjectListTable%22:(%22f%22:%22%255B%255D%22))&authuser=0&hl=vi&prefix=&forceOnObjectsSortingFiltering=false
+# Then, rename this downloaded file to `dump.rdb` and run this command in the same folder: 
+redis-server
+###
+###
+
 # Build app
 go build -o app ./cmd/app
 
@@ -27,38 +37,12 @@ go build -o app ./cmd/app
 ```
 
 ## Benchmark
+_Note: pprof profile is only available in dev environment, so please use config yaml file in dev folder._
+- After run the api server, go to the link http://localhost:8080/debug/pprof/profile?seconds=30 to download `profle` file in 30s time range
+- Then run this command in the same folder
 ```shell
-
-## install dependencies
-brew install redis
-pip install gdown 
-go install github.com/google/pprof@latest
-
-
-## Prepare redis polygon data
-gdown "https://drive.google.com/uc?id=1pNA9Ygf_jBnsT7ZQYu_iJQsTz5Yafkes"
-
-## run the redis server with downloaded file named dump.rdb, no need to specify the rdb filename because dump.rdb is default filename
-redis-server
-
-## Open new tab, then clone benchmark repo
-git clone -b feat/benchmark_bf git@github.com:KyberNetwork/router-service.git
-
-# Install dependencies
-go mod download
-
-# Run benchmark rate and pprof
-go test github.com/KyberNetwork/router-service/internal/pkg/usecase/benchmark -run "^TestProfileSingleAlgorithmConcurrently$"
-go test github.com/KyberNetwork/router-service/internal/pkg/usecase/benchmark -run "^TestBenchmarkAlgorithm$"
-
-# Wait for 15 minute, the rate result is stored in test_results.csv, pprof result is in pprof/ folder, example to view pprof cpu of bruteforce algo
-go tool pprof -http localhost:8080 internal/pkg/usecase/benchmark/pprof/bruteforce_cpu.pprof
-
-
+go tool pprof -http=":8081" ./profile
 ```
-_Note:_
-- You should change `internal/pkg/config/files/dev/ethereum.yaml` to the config of the network that you want.
-- The Redis Sentinel config in docker-compose.yml does not work on localhost at the moment, but you can ignore it, the API can still work normally without Redis Sentinel.
 
 ## Supported dexes
 ### Polygon

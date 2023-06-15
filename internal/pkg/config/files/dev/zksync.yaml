@@ -1,4 +1,5 @@
 env: "develop"
+pprof: true
 http:
   bindAddress: ":8080"
   mode: debug #(debug,release,test)

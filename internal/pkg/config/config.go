@@ -38,6 +38,7 @@ type Config struct {
 	Repository    repository.Config         `mapstructure:"repository" json:"repository"`
 	Job           job.Config                `mapstructure:"job" json:"job"`
 	Validator     validator.Config          `mapstructure:"validator" json:"validator"`
+	Pprof         bool                      `mapstructure:"pprof" json:"pprof"`
 }
 
 func (c *Config) Validate() error {
