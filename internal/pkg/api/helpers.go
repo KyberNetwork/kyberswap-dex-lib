@@ -93,6 +93,12 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    "public key can not be found",
 	},
 
+	getroute.ErrInvalidSwap: {
+		HTTPStatus: http.StatusBadRequest,
+		Code:       4003,
+		Message:    "invalid swap",
+	},
+
 	eth.ErrWETHNotFound: {
 		HTTPStatus: http.StatusUnprocessableEntity,
 		Code:       4221,

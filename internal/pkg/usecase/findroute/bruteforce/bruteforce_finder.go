@@ -81,7 +81,6 @@ func (f *bruteforceFinder) bestBruteforceRoute(
 ) (*valueobject.Route, error) {
 	bestBruteforceRoute := valueobject.NewRoute(input.TokenInAddress, input.TokenOutAddress)
 	splits, err := f.generateSplits(input, data, tokenAmountIn)
-	// fmt.Println(len(splits), "???", input.AmountIn)
 	if err != nil {
 		return nil, err
 	}
