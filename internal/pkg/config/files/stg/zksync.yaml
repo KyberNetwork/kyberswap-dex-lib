@@ -1,56 +1,30 @@
-env: "production"
+env: "staging"
 http:
   bindAddress: ":8080"
-  mode: release #(debug,release,test)
-  prefix: /arbitrum
+  mode: debug #(debug,release,test)
+  prefix: /zksync
 grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainId: &chainId 42161
-  chainName: &chainName arbitrum
-  rpc: "https://arbitrum.kyberengineering.io"
-  executorAddress: &executorAddress "0xCaa00aaF6FBC769D627D825B4fAEDC3aaD880597"
-  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-  gasTokenAddress: &gasTokenAddress "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
+  chainId: &chainId 324
+  chainName: &chainName zksync
+  rpc: "https://mainnet.era.zksync.io"
+  executorAddress: &executorAddress "0x0C83d9a7353F533D762bc9ecd8bCA48b0aDD6a33"
+  routerAddress: &routerAddress "0x3F95eF3f2eAca871858dbE20A93c01daF6C2e923"
+  gasTokenAddress: &gasTokenAddress "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91"
   whitelistedTokenSet: &whitelistedTokenSet
-    0x4cfa50b7ce747e2d61724fcac57f24b748ff2b2a: true # FUSDC
-    0x1622bf67e6e5747b81866fe0b85178a93c7f86e3: true # UMAMI
-    0x912ce59144191c1204e64559fe8253a0e49e6548: true # ARB
-    0xfa5ed56a203466cbbc2430a43c66b9d8723528e7: true # agEUR
-    0x82af49447d8a07e3bd95bd0d56f35241523fbab1: true # WETH
-    0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9: true # USDT
-    0xda10009cbd5d07dd0cecc66161fc93d7c9000da1: true # DAI
-    0xff970a61a04b1ca14834a43f5de4533ebddb5cc8: true # USDC
-    0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f: true # WBTC
-    0xfea7a6a0b346362bf88a9e4a88416b77a57d6c2a: true # MIM
-    0x5979d7b546e38e414f7e9822514be443a4800529: true # WSTETH
-    0xe4dddfe67e7164b0fe14e218d80dc4c08edc01cb: true # KNC
-    0x3f56e0c36d275367b8c502090edf38289b3dea0d: true # MAI
-    0x316772cfec9a3e976fde42c3ba21f5a13aaaff12: true # mKNC
-    0x13ad51ed4f1b7e9dc168d8a00cb3f4ddd85efa60: true # LDO
-    0xf97f4df75117a78c1a5a0dbb814af92458539fb4: true # LINK
+    0x5aea5775959fbc2557cc8789bc1bf90a239d9a91: true # WETH
+    0x3355df6d4c9c3035724fd0e3914de96a5a83aaf4: true # USDC
+    0x493257fd37edb34451f62edf8d2a0c418852ba4c: true # USDT
+    0x2039bb4116b4efc145ec4f0e2ea75012d6c0f181: true # BUSD
+    0x8e86e46278518efc1c5ced245cba2c7e3ef11557: true # USD+
   blacklistedPoolSet: &blacklistedPoolSet
-    0x7b07164ecfaf0f0d85dfc062bc205a4674c75aa0: true
-    0x1506b54a1c0ea1b2f4a84866ec5776f7f6e7f0b1: true
   availableSources: &availableSources
+    - "syncswap"
+    - "velocore"
     - "kyberswap"
-    - "kyberswap-static"
-    - "kyberswap-elastic"
-    - "uniswapv3"
-    - "sushiswap"
-    - "curve"
-    - "balancer"
-    - "swapr"
-    - "synapse"
-    - "saddle"
-    - "dodo"
-    - "gmx"
-    - "fraxswap"
-    - "camelot"
-    - "kyberswap-limit-order"
-    - "chronos"
-    - "ramses"
+    - "muteswitch"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
@@ -78,8 +52,6 @@ poolRedis:
   readOnly: false
   routeRandomly: false
 ddAgentHost: ""
-featureFlags:
-  useOptimizedSPFA: false
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:
@@ -213,7 +185,7 @@ useCase:
     chainId: *chainId
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
-    capacity: 1000000
+    capacity: 100000
     poolRenewalInterval: 3s
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
@@ -251,4 +223,3 @@ validator:
   buildRouteParams:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
-
