@@ -40,10 +40,10 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	}
 
 	extra := Extra{}
-	g, _ := errgroup.WithContext(ctx)
+	g, gCtx := errgroup.WithContext(ctx)
 
 	g.Go(func() error {
-		buyOrders, err := d.limitOrderClient.ListOrders(ctx, listOrdersFilter{
+		buyOrders, err := d.limitOrderClient.ListOrders(gCtx, listOrdersFilter{
 			ChainID:    ChainID(d.config.ChainID),
 			MakerAsset: token0.Address,
 			TakerAsset: token1.Address,
@@ -59,7 +59,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	})
 
 	g.Go(func() error {
-		sellOrders, err := d.limitOrderClient.ListOrders(ctx, listOrdersFilter{
+		sellOrders, err := d.limitOrderClient.ListOrders(gCtx, listOrdersFilter{
 			ChainID:    ChainID(d.config.ChainID),
 			MakerAsset: token1.Address,
 			TakerAsset: token0.Address,

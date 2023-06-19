@@ -73,12 +73,15 @@ func (c *httpClient) ListOrders(
 	if err != nil {
 		return nil, err
 	}
+
+	if resp.StatusCode() < 200 || resp.StatusCode() >= 400 {
+		return nil, fmt.Errorf("error when ListOrders, url: %v, response: %v", resp.Request.URL, resp.String())
+	}
+
 	if result.Code != 0 {
 		return nil, errors.New(result.Message)
 	}
-	if resp.StatusCode() < 200 || resp.StatusCode() >= 400 {
-		return nil, fmt.Errorf("error when performing ListOrders with response %v", result)
-	}
+
 	if result.Data == nil {
 		return nil, nil
 	}
