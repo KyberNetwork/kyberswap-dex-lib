@@ -1,5 +1,7 @@
 package limitorder
 
+import "time"
+
 const (
 	DexTypeLimitOrder = "limit-order"
 
@@ -11,4 +13,5 @@ const (
 	// TODO: when we has correct formula that pool's reserve can be eligible pools.
 	limitOrderPoolReserve    = "10000000000000000000"
 	LimitOrderPoolReserveUSD = 1000000000
+	APITimeout               = 10 * time.Second
 )
