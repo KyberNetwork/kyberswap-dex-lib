@@ -6,6 +6,7 @@ import (
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -81,6 +82,9 @@ func (c *chargeExtraFee) chargeFeeByCurrencyOut(ctx context.Context, params *typ
 
 	// Step 2: calculate amountOut after fee
 	amountOutAfterFee := business.CalcAmountOutAfterFee(routeSummary.AmountOut, params.ExtraFee)
+	if amountOutAfterFee.Cmp(constant.Zero) < 0 {
+		return nil, ErrFeeAmountIsGreaterThanAmountOut
+	}
 
 	// Step 3: update route summary with amountOut after fee
 	amountOutAfterFeeUSDBigFloat := business.CalcAmountUSD(amountOutAfterFee, params.TokenOut.Decimals, params.TokenOutPriceUSD)
