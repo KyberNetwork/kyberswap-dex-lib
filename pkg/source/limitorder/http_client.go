@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"strconv"
 	"time"
 
@@ -16,17 +15,8 @@ type httpClient struct {
 }
 
 func NewHTTPClient(baseURL string) *httpClient {
-	// Override MaxConnsPerHost, MaxIdleConnsPerHost
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	transport.MaxConnsPerHost = 100
-	transport.MaxIdleConnsPerHost = 100
-
 	client := resty.New()
 	client.SetBaseURL(baseURL)
-
-	client.SetTimeout(APITimeout)
-	client.SetTransport(transport)
-
 	return &httpClient{
 		client: client,
 	}
