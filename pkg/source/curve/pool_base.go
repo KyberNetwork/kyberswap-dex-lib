@@ -67,7 +67,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeBase(
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    mainRegistryABI,
-			Target: d.config.MetaPoolsFactoryAddress,
+			Target: d.config.MainRegistryAddress,
 			Method: registryOrFactoryMethodGetLpToken,
 			Params: []interface{}{poolAndRegistry.PoolAddress},
 		}, []interface{}{&lpAddresses[i]})
@@ -203,7 +203,7 @@ func (d *PoolTracker) getNewPoolStateTypeBase(
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    erc20ABI,
-		Target: p.Address,
+		Target: p.GetLpToken(),
 		Method: erc20MethodTotalSupply,
 		Params: nil,
 	}, []interface{}{&lpSupply})
