@@ -54,6 +54,7 @@ var (
 		valueobject.ExchangeWagyuSwap:       true,
 		valueobject.ExchangeAstroSwap:       true,
 		valueobject.ExchangeVerse:           true,
+		valueobject.ExchangeEchoDex:         true,
 		valueobject.ExchangeDMM:             true,
 		valueobject.ExchangeKyberSwap:       true,
 		valueobject.ExchangeKyberSwapStatic: true,
