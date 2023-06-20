@@ -175,7 +175,7 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 	p.states[writeTo].update(poolByAddress)
 	//swapping here
 	p.readFrom.Store(writeTo)
-	logger.Infof("PointerSwapPoolManager.preparePoolsData > Prepared %v pools", len(poolByAddress))
+	logger.Debugf("PointerSwapPoolManager.preparePoolsData > Prepared %v pools", len(poolByAddress))
 	return nil
 }
 
