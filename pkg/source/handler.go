@@ -2,7 +2,9 @@ package source
 
 import (
 	"fmt"
+
 	"github.com/KyberNetwork/ethrpc"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/biswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
@@ -27,6 +29,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramses"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synapse"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
@@ -165,6 +168,16 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return saddle.NewPoolsListUpdater(&cfg, ethrpcClient), nil
+
+	case synapse.DexTypeSynapse:
+		var cfg synapse.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return synapse.NewPoolsListUpdater(&cfg, ethrpcClient), nil
 	case dodo.DexTypeDodo:
 		var cfg dodo.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
@@ -387,6 +400,8 @@ func NewPoolTrackerHandler(
 		return oneswap.NewPoolTracker(ethrpcClient), nil
 	case saddle.DexTypeSaddle:
 		return saddle.NewPoolTracker(ethrpcClient), nil
+	case synapse.DexTypeSynapse:
+		return synapse.NewPoolTracker(ethrpcClient), nil
 	case nerve.DexTypeNerve:
 		var cfg nerve.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
