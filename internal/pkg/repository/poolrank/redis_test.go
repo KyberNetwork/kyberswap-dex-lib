@@ -150,8 +150,6 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			context.Background(),
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			true,
-			true,
 			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
@@ -304,8 +302,6 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			context.Background(),
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			true,
-			false,
 			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
@@ -456,8 +452,6 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			context.Background(),
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			false,
-			true,
 			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
@@ -608,8 +602,6 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			context.Background(),
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			false,
-			false,
 			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
@@ -652,8 +644,6 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			context.Background(),
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			true,
-			true,
 			types.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,

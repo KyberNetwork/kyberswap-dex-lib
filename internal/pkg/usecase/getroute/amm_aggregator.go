@@ -267,8 +267,6 @@ func (a *ammAggregator) getPoolByAddress(
 		ctx,
 		params.TokenIn.Address,
 		params.TokenOut.Address,
-		a.isWhitelistedToken(params.TokenIn.Address),
-		a.isWhitelistedToken(params.TokenOut.Address),
 		a.config.GetBestPoolsOptions,
 	)
 	if err != nil {
@@ -314,10 +312,6 @@ func (a *ammAggregator) getPriceUSDByAddress(ctx context.Context, tokenAddresses
 	}
 
 	return priceUSDByAddress, nil
-}
-
-func (a *ammAggregator) isWhitelistedToken(tokenAddress string) bool {
-	return a.config.WhitelistedTokenSet[tokenAddress]
 }
 
 func (a *ammAggregator) filterAMMSources(sources []string) []string {

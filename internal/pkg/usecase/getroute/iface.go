@@ -35,7 +35,6 @@ type IPoolRankRepository interface {
 	FindBestPoolIDs(
 		ctx context.Context,
 		tokenIn, tokenOut string,
-		isTokenInWhitelisted, isTokenOutWhitelisted bool,
 		opt types.GetBestPoolsOptions,
 	) ([]string, error)
 }

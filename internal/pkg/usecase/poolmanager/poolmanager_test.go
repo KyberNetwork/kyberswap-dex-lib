@@ -131,7 +131,6 @@ func listAddresses(configFile, tokenIn, tokenOut string) ([]string, []string, er
 	ammAggregatorConfig := cfg.UseCase.GetRoute.AmmAggregator
 	poolAddress, err := poolRankRepository.FindBestPoolIDs(
 		context.Background(), tokenIn, tokenOut,
-		ammAggregatorConfig.WhitelistedTokenSet[tokenIn], ammAggregatorConfig.WhitelistedTokenSet[tokenOut],
 		ammAggregatorConfig.GetBestPoolsOptions,
 	)
 	if err != nil {
