@@ -13,7 +13,7 @@ common:
   rpc: "https://evmexplorer.velas.com/rpc"
   executorAddress: &executorAddress "0xCaa00aaF6FBC769D627D825B4fAEDC3aaD880597"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-  gasTokenAddress: &gasTokenAddress "0xc579D1f3CF86749E05CD06f7ADe17856c2CE3126"
+  gasTokenAddress: &gasTokenAddress "0xc579d1f3cf86749e05cd06f7ade17856c2ce3126"
   whitelistedTokenSet: &whitelistedTokenSet
     0xc579d1f3cf86749e05cd06f7ade17856c2ce3126: true # WVLX
     0x01445c31581c354b7338ac35693ab2001b50b9ae: true # USDT

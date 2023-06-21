@@ -13,7 +13,7 @@ common:
   rpc: "https://oasis.kyberengineering.io"
   executorAddress: &executorAddress "0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D"
   routerAddress: &routerAddress "0x6F82A3C19dc0f8D745b72AA263D8B37a1fF18946"
-  gasTokenAddress: &gasTokenAddress "0x21C718C22D52d0F3a789b752D4c2fD5908a8A733"
+  gasTokenAddress: &gasTokenAddress "0x21c718c22d52d0f3a789b752d4c2fd5908a8a733"
   whitelistedTokenSet: &whitelistedTokenSet
     0x21c718c22d52d0f3a789b752d4c2fd5908a8a733: true # WROSE
     0x6cb9750a92643382e020ea9a170abb83df05f30b: true # USDT

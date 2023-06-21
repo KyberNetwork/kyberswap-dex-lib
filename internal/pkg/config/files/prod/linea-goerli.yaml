@@ -12,7 +12,7 @@ common:
   rpc: "https://rpc.goerli.linea.build"
   executorAddress: &executorAddress "0x7B2fEBa419c1E96708cAC068a9F599C5e2aE2208"
   routerAddress: &routerAddress "0x8D890dDA6535Aa3B6c2A00dAD0bAA0977722dbb0"
-  gasTokenAddress: &gasTokenAddress "0x2C1b868d6596a18e32E61B901E4060C872647b6C"
+  gasTokenAddress: &gasTokenAddress "0x2c1b868d6596a18e32e61b901e4060c872647b6c"
   whitelistedTokenSet: &whitelistedTokenSet
     0x2c1b868d6596a18e32e61b901e4060c872647b6c: true # WETH
   blacklistedPoolSet: &blacklistedPoolSet

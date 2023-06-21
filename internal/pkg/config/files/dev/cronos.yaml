@@ -13,7 +13,7 @@ common:
   rpc: "https://cronos.kyberengineering.io"
   executorAddress: &executorAddress "0xA270E7506dD1b6Fa8a4D1d14a53A6A80aFc4Fd4D"
   routerAddress: &routerAddress "0x7633dF4a71391Ba81924E916781402c564984E73"
-  gasTokenAddress: &gasTokenAddress "0x5C7F8A570d578ED84E63fdFA7b1eE72dEae1AE23"
+  gasTokenAddress: &gasTokenAddress "0x5c7f8a570d578ed84e63fdfa7b1ee72deae1ae23"
   whitelistedTokenSet: &whitelistedTokenSet
     0x5c7f8a570d578ed84e63fdfa7b1ee72deae1ae23: true # WCRO
     0xe44fd7fcb2b1581822d0c862b68222998a0c299a: true # WETH
