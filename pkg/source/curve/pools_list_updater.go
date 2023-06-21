@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -65,6 +66,10 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	var newPoolLimitLeft = d.config.NewPoolLimit
 	for i := 0; i < len(registryOrFactoryList); i++ {
+		if strings.EqualFold(registryOrFactoryList[i].Address, addressZero) {
+			logger.Debugf("skip zero factory %v", i)
+			continue
+		}
 		poolAddresses, poolTypes, nextOffset, err := d.getNewPoolAddressesFromRegistryOrFactory(
 			ctx,
 			registryOrFactoryList[i].ABI,

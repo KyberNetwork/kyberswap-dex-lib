@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/machinebox/graphql"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
@@ -118,7 +119,8 @@ func (p *PoolsListUpdater) getPoolAddresses(
 		return nil, err
 	}
 
-	return response.Pools, nil
+	validPools := lo.Filter(response.Pools, func(p SubgraphPool, _ int) bool { return !strings.EqualFold(p.ID, addressZero) })
+	return validPools, nil
 }
 
 func (p *PoolsListUpdater) getPools(
