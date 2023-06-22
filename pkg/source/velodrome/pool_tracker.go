@@ -29,7 +29,7 @@ func NewPoolTracker(
 func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
-	}).Infof("[%s] Start getting new poos", p.Type)
+	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
 		reserve                Reserves
