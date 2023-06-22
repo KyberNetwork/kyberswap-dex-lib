@@ -2,6 +2,7 @@ package source
 
 import (
 	"fmt"
+
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/biswap"
@@ -386,7 +387,9 @@ func NewPoolTrackerHandler(
 	case oneswap.DexTypeOneSwap:
 		return oneswap.NewPoolTracker(ethrpcClient), nil
 	case saddle.DexTypeSaddle:
-		return saddle.NewPoolTracker(ethrpcClient), nil
+		var cfg saddle.Config
+		cfg.DexID = scanDexCfg.Id
+		return saddle.NewPoolTracker(&cfg, ethrpcClient), nil
 	case nerve.DexTypeNerve:
 		var cfg nerve.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
