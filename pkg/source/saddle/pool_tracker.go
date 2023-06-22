@@ -13,17 +13,19 @@ import (
 )
 
 type PoolTracker struct {
+	config       *Config
 	ethrpcClient *ethrpc.Client
 }
 
-func NewPoolTracker(ethrpcClient *ethrpc.Client) *PoolTracker {
+func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	return &PoolTracker{
+		config:       cfg,
 		ethrpcClient: ethrpcClient,
 	}
 }
 
 func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
-	logger.Infof("[Saddle] Start getting new state of pool: %v", p.Address)
+	logger.Infof("[%s] Start getting new state of pool: %v", d.config.DexID, p.Address)
 
 	var (
 		lpSupply    *big.Int
@@ -92,7 +94,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	p.Reserves = reserves
 	p.Timestamp = time.Now().Unix()
 
-	logger.Infof("[Saddle] Finish updating state of pool: %v", p.Address)
+	logger.Infof("[%s] Finish updating state of pool: %v", d.config.DexID, p.Address)
 
 	return p, nil
 }

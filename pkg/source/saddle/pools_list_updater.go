@@ -63,7 +63,7 @@ func (d *PoolsListUpdater) initPools(ctx context.Context) ([]entity.Pool, error)
 		return nil, err
 	}
 
-	logger.Infof("got %v from pool path config file", len(poolItems))
+	logger.Infof("[%s] got %v from pool path config file", d.config.DexID, len(poolItems))
 
 	pools, err := d.processBatch(ctx, poolItems)
 	if err != nil {
