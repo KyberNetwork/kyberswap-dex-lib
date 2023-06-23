@@ -26,7 +26,9 @@ func NewPoolTracker(
 }
 
 func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
-	logger.Infof("[MuteSwitch] Start getting new state of pool %v", p.Address)
+	logger.WithFields(logger.Fields{
+		"address": p.Address,
+	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
 		reserve Reserves
@@ -62,7 +64,9 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	p.SwapFee = float64(pairFee.Int64()) / bps
 	p.Timestamp = reserve.BlockTimestampLast.Int64()
 
-	logger.Infof("[MuteSwitch] Finish getting new state of pool %v", p.Address)
+	logger.WithFields(logger.Fields{
+		"address": p.Address,
+	}).Infof("[%s] Finish getting new state of pool", p.Type)
 
 	return p, nil
 }
