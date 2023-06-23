@@ -2,6 +2,7 @@ package biswap
 
 import (
 	"context"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -71,7 +72,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 	swapFeeFL := float64(swapFee) / 1000
 	p.SwapFee = swapFeeFL
-	p.Timestamp = int64(reserves.BlockTimestampLast)
+	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
 		reserves.Reserve0.String(),
 		reserves.Reserve1.String(),

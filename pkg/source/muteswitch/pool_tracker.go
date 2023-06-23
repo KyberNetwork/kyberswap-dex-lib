@@ -3,6 +3,7 @@ package muteswitch
 import (
 	"context"
 	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -62,7 +63,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 	p.Reserves = entity.PoolReserves{reserve.Reserve0.String(), reserve.Reserve1.String()}
 	p.SwapFee = float64(pairFee.Int64()) / bps
-	p.Timestamp = reserve.BlockTimestampLast.Int64()
+	p.Timestamp = time.Now().Unix()
 
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
