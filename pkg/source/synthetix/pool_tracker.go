@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -164,7 +165,7 @@ func (d *PoolTracker) newPool(address string, poolState *PoolState) (*entity.Poo
 		Address:   strings.ToLower(address),
 		Exchange:  d.cfg.DexID,
 		Type:      DexTypeSynthetix,
-		Timestamp: int64(poolState.BlockTimestamp),
+		Timestamp: time.Now().Unix(),
 		Tokens:    poolTokens,
 		Reserves:  reserves,
 		Extra:     string(extraBytes),

@@ -2,6 +2,7 @@ package dystopia
 
 import (
 	"context"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -45,7 +46,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	}
 
 	p.Reserves = entity.PoolReserves{reserve.Reserve0.String(), reserve.Reserve1.String()}
-	p.Timestamp = int64(reserve.BlockTimestampLast)
+	p.Timestamp = time.Now().Unix()
 
 	log.Infof("[Dystopia] Finish getting new state of pool")
 

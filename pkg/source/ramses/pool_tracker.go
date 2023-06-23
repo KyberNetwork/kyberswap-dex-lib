@@ -3,8 +3,10 @@ package ramses
 import (
 	"context"
 	"encoding/json"
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
+	"time"
+
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -92,7 +94,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 	p.Reserves = entity.PoolReserves{reserve.Reserve0.String(), reserve.Reserve1.String()}
 	p.SwapFee = float64(swapFee) / bps
-	p.Timestamp = reserve.BlockTimestampLast.Int64()
+	p.Timestamp = time.Now().Unix()
 
 	return p, nil
 }
