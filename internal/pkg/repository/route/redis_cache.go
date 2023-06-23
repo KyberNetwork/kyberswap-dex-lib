@@ -69,3 +69,10 @@ func (r *redisCacheRepository) Get(
 func (r *redisCacheRepository) genKey(key *valueobject.RouteCacheKey) string {
 	return strconv.FormatUint(key.Hash(r.config.Prefix), 10)
 }
+
+func (r *redisCacheRepository) Del(
+	ctx context.Context,
+	key *valueobject.RouteCacheKey,
+) error {
+	return r.cache.Delete(ctx, r.genKey(key))
+}

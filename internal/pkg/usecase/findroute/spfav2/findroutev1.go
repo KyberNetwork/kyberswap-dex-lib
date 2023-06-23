@@ -95,7 +95,10 @@ func (f *spfav2Finder) bestMultiPathRouteV1(
 		splits             = f.splitAmountIn(input, data, tokenAmountIn)
 		bestMultiPathRoute = valueobject.NewRoute(input.TokenInAddress, input.TokenOutAddress)
 	)
-
+	if len(splits) == 1 {
+		// just use bestSinglePathRoute
+		return nil, nil
+	}
 	for _, amountInPerSplit := range splits {
 		bestPath, err := f.bestPathExactInV1(ctx, input, data, amountInPerSplit, tokenToPoolAddress, hopsToTokenOut)
 		if err != nil {

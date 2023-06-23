@@ -46,6 +46,7 @@ type IPoolRepository interface {
 type IRouteCacheRepository interface {
 	Set(ctx context.Context, key *valueobject.RouteCacheKey, route *valueobject.SimpleRoute, ttl time.Duration) error
 	Get(ctx context.Context, key *valueobject.RouteCacheKey) (*valueobject.SimpleRoute, error)
+	Del(ctx context.Context, key *valueobject.RouteCacheKey) error
 }
 
 type ITokenRepository interface {

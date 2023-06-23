@@ -133,6 +133,8 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 			},
 		)
 
+		// it's meaningless to keep a route which cannot be used
+		c.routeCacheRepository.Del(ctx, key)
 		return nil, errors.Wrapf(
 			ErrPriceImpactIsGreaterThanThreshold,
 			"priceImpact: [%f]",

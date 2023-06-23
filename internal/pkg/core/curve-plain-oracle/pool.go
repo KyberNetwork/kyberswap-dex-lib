@@ -160,7 +160,7 @@ func (t *Pool) CanSwapTo(address string) []string {
 	var ret = make([]string, 0)
 	var tokenIndex = t.GetTokenIndex(address)
 	if tokenIndex < 0 && address != t.LpToken {
-		return ret
+		return nil
 	}
 	for i := 0; i < len(t.Info.Tokens); i += 1 {
 		if i != tokenIndex {

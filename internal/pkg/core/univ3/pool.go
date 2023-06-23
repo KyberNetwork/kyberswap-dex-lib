@@ -223,7 +223,7 @@ func (p *Pool) CanSwapTo(address string) []string {
 	var ret = make([]string, 0)
 	var tokenIndex = p.GetTokenIndex(address)
 	if tokenIndex < 0 {
-		return ret
+		return nil
 	}
 	for i := 0; i < len(p.Info.Tokens); i += 1 {
 		if i != tokenIndex {
