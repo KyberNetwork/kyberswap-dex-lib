@@ -26,7 +26,7 @@ type PoolToken struct {
 type PoolTokens []*PoolToken
 
 type Pool struct {
-	Address      string       `json:"address,omitempty"`
+	Address      string       `json:"-"`
 	ReserveUsd   float64      `json:"reserveUsd,omitempty"`
 	AmplifiedTvl float64      `json:"amplifiedTvl,omitempty"`
 	SwapFee      float64      `json:"swapFee,omitempty"`
