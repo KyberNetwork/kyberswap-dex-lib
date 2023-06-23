@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -279,6 +280,7 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 	p.Extra = string(extraBytes)
 	p.SwapFee = bigToFloat64(extra.LpFeeRate) + bigToFloat64(extra.MtFeeRate)
 	p.Reserves = entity.PoolReserves{state.B.String(), state.Q.String()}
+	p.Timestamp = time.Now().Unix()
 
 	logger.Infof("[Dodo] Finish updating state of dodoV2 pool: %v", p.Address)
 
