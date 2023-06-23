@@ -49,7 +49,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTwo(
 		}, []interface{}{&lpTokens[i]})
 	}
 
-	if _, err := calls.Aggregate(); err != nil {
+	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to aggregate call to get pool data")

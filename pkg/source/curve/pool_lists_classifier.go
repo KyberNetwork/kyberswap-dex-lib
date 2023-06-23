@@ -151,6 +151,8 @@ func (d *PoolsListUpdater) classifyCurveV2PoolTypes(
 	poolAddresses []common.Address,
 ) ([]string, error) {
 	var coins = make([][8]common.Address, len(poolAddresses))
+	var gammaList = make([]*big.Int, len(poolAddresses))
+
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, poolAddress := range poolAddresses {
 		calls.AddCall(&ethrpc.Call{
@@ -159,8 +161,14 @@ func (d *PoolsListUpdater) classifyCurveV2PoolTypes(
 			Method: registryOrFactoryMethodGetCoins,
 			Params: []interface{}{poolAddress},
 		}, []interface{}{&coins[i]})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    twoABI,
+			Target: poolAddresses[i].Hex(),
+			Method: poolMethodGamma,
+			Params: nil,
+		}, []interface{}{&gammaList[i]})
 	}
-	if _, err := calls.Aggregate(); err != nil {
+	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to get coins data of pool")
@@ -169,6 +177,9 @@ func (d *PoolsListUpdater) classifyCurveV2PoolTypes(
 
 	var poolTypes = make([]string, len(poolAddresses))
 	for i := range poolAddresses {
+		if gammaList[i] == nil {
+			continue
+		}
 		if d.isTwo(coins[i]) {
 			poolTypes[i] = poolTypeTwo
 		} else {
