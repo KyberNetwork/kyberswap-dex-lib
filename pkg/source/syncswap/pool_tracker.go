@@ -4,12 +4,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"time"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 type PoolTracker struct {
@@ -44,8 +46,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
-		"type":    p.Type,
-	}).Infof("[Syncswap] Start getting new state of pool")
+	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
 		swapFee0To1, swapFee1To0 *big.Int
@@ -121,8 +122,7 @@ func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool) (e
 
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
-		"type":    p.Type,
-	}).Infof("[Syncswap] Finish getting new state of pool")
+	}).Infof("[%s] Finish getting new state of pool", p.Type)
 
 	return p, nil
 }
@@ -130,8 +130,7 @@ func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool) (e
 func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
-		"type":    p.Type,
-	}).Infof("[Syncswap] Start getting new state of pool")
+	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
 		swapFee0To1, swapFee1To0                             *big.Int
@@ -224,8 +223,7 @@ func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool) (en
 
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
-		"type":    p.Type,
-	}).Infof("[Syncswap] Finish getting new state of pool")
+	}).Infof("[%s] Finish getting new state of pool", p.Type)
 
 	return p, nil
 }
