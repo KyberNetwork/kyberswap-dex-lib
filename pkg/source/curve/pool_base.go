@@ -19,12 +19,12 @@ func (d *PoolsListUpdater) getNewPoolsTypeBase(
 	poolAndRegistries []PoolAndRegistries,
 ) ([]entity.Pool, error) {
 	var (
-		coins           = make([][8]common.Address, len(poolAndRegistries))
-		decimals        = make([][8]*big.Int, len(poolAndRegistries))
-		aList           = make([]*big.Int, len(poolAndRegistries))
-		aPreciseList    = make([]*big.Int, len(poolAndRegistries))
-		rates           = make([][8]*big.Int, len(poolAndRegistries))
-		lpAddresses     = make([]common.Address, len(poolAndRegistries))
+		coins        = make([][8]common.Address, len(poolAndRegistries))
+		decimals     = make([][8]*big.Int, len(poolAndRegistries))
+		aList        = make([]*big.Int, len(poolAndRegistries))
+		aPreciseList = make([]*big.Int, len(poolAndRegistries))
+		rates        = make([][8]*big.Int, len(poolAndRegistries))
+		lpAddresses  = make([]common.Address, len(poolAndRegistries))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -150,7 +150,7 @@ func (d *PoolTracker) getNewPoolStateTypeBase(
 	ctx context.Context,
 	p entity.Pool,
 ) (entity.Pool, error) {
-	logger.Infof("[Curve] Start getting new state of pool %v with type %v", p.Address, p.Type)
+	logger.Infof("[%s] Start getting new state of pool %v with type %v", d.config.DexID, p.Address, p.Type)
 
 	var (
 		initialA, futureA, initialATime, futureATime, swapFee, adminFee, lpSupply *big.Int

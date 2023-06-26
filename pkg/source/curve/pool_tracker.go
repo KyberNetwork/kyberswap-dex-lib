@@ -19,8 +19,10 @@ func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
-	if err := initConfig(cfg, ethrpcClient); err != nil {
-		return nil, err
+	if !skipInitFactory(cfg.DexID) {
+		if err := initConfig(cfg, ethrpcClient); err != nil {
+			return nil, err
+		}
 	}
 
 	return &PoolTracker{

@@ -102,3 +102,5 @@ var (
 	emptyString       = ""
 	zero        int64 = 0
 )
+
+var skipInitFactoryDexes = []string{"ellipsis"}

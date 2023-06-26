@@ -25,11 +25,13 @@ func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolsListUpdater, error) {
-	if err := initConfig(cfg, ethrpcClient); err != nil {
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Errorf("[Curve] failed to init poolsListUpdater")
-		return nil, err
+	if !skipInitFactory(cfg.DexID) {
+		if err := initConfig(cfg, ethrpcClient); err != nil {
+			logger.WithFields(logger.Fields{
+				"error": err,
+			}).Errorf("[%s] failed to init poolsListUpdater", cfg.DexID)
+			return nil, err
+		}
 	}
 
 	return &PoolsListUpdater{
@@ -65,37 +67,39 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	)
 
 	var newPoolLimitLeft = d.config.NewPoolLimit
-	for i := 0; i < len(registryOrFactoryList); i++ {
-		if strings.EqualFold(registryOrFactoryList[i].Address, addressZero) {
-			logger.Debugf("skip zero factory %v", i)
-			continue
-		}
-		poolAddresses, poolTypes, nextOffset, err := d.getNewPoolAddressesFromRegistryOrFactory(
-			ctx,
-			registryOrFactoryList[i].ABI,
-			registryOrFactoryList[i].Address,
-			registryOrFactoryList[i].Offset,
-			newPoolLimitLeft,
-		)
-		if err != nil {
-			logger.WithFields(logger.Fields{
-				"address": registryOrFactoryList[i].Address,
-				"offset":  registryOrFactoryList[i].Offset,
-				"error":   err,
-			}).Errorf("failed to get new pool addresses from the registry or factory")
-			return nil, nil, err
-		}
-		newPoolLimitLeft = newPoolLimitLeft - (nextOffset - registryOrFactoryList[i].Offset)
+	if !skipInitFactory(d.config.DexID) {
+		for i := 0; i < len(registryOrFactoryList); i++ {
+			if strings.EqualFold(registryOrFactoryList[i].Address, addressZero) {
+				logger.Debugf("skip zero factory %v", i)
+				continue
+			}
+			poolAddresses, poolTypes, nextOffset, err := d.getNewPoolAddressesFromRegistryOrFactory(
+				ctx,
+				registryOrFactoryList[i].ABI,
+				registryOrFactoryList[i].Address,
+				registryOrFactoryList[i].Offset,
+				newPoolLimitLeft,
+			)
+			if err != nil {
+				logger.WithFields(logger.Fields{
+					"address": registryOrFactoryList[i].Address,
+					"offset":  registryOrFactoryList[i].Offset,
+					"error":   err,
+				}).Errorf("failed to get new pool addresses from the registry or factory")
+				return nil, nil, err
+			}
+			newPoolLimitLeft = newPoolLimitLeft - (nextOffset - registryOrFactoryList[i].Offset)
 
-		for j := 0; j < len(poolAddresses); j++ {
-			poolTypeMap[poolTypes[j]] = append(poolTypeMap[poolTypes[j]], PoolAndRegistries{
-				PoolAddress:              poolAddresses[j],
-				RegistryOrFactoryABI:     &registryOrFactoryList[i].ABI,
-				RegistryOrFactoryAddress: &registryOrFactoryList[i].Address,
-			})
-		}
+			for j := 0; j < len(poolAddresses); j++ {
+				poolTypeMap[poolTypes[j]] = append(poolTypeMap[poolTypes[j]], PoolAndRegistries{
+					PoolAddress:              poolAddresses[j],
+					RegistryOrFactoryABI:     &registryOrFactoryList[i].ABI,
+					RegistryOrFactoryAddress: &registryOrFactoryList[i].Address,
+				})
+			}
 
-		registryOrFactoryList[i].Offset = nextOffset
+			registryOrFactoryList[i].Offset = nextOffset
+		}
 	}
 
 	var pools []entity.Pool
@@ -128,7 +132,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, nil, err
 		}
 		pools = append(pools, newPools...)
-		logger.Infof("got total of %v Curve pools of %v types from registry and factory", len(newPools), poolType)
+		logger.Infof("got total of %v %s pools of %v types from registry and factory", len(newPools), d.config.DexID, poolType)
 	}
 
 	if !d.hasInitialized {
@@ -156,6 +160,12 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, err
 	}
 
+	if len(pools) > 0 {
+		logger.WithFields(logger.Fields{
+			"dexID":         d.config.DexID,
+			"numberOfPools": len(pools),
+		}).Infof("scan %s", d.config.DexID)
+	}
 	return pools, newMetaDataBytes, nil
 }
 
@@ -282,7 +292,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 
 		var newPool = entity.Pool{
 			Address:     poolItem.ID,
-			Exchange:    DexTypeCurve,
+			Exchange:    d.config.DexID,
 			Type:        poolItem.Type,
 			Tokens:      tokens,
 			Reserves:    reserves,

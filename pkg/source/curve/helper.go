@@ -119,3 +119,12 @@ func safeCastBigIntToReserve(num *big.Int) string {
 
 	return num.String()
 }
+
+func skipInitFactory(dex string) bool {
+	for i := 0; i < len(skipInitFactoryDexes); i++ {
+		if strings.EqualFold(skipInitFactoryDexes[i], dex) {
+			return true
+		}
+	}
+	return false
+}
