@@ -11,10 +11,15 @@ type types struct {
 	CurveTwo           string
 	Uni                string
 	UniV3              string
+	Biswap             string
+	Polydex            string
 	Firebird           string
 	Dmm                string
 	Elastic            string
 	Saddle             string
+	Nerve              string
+	OneSwap            string
+	IronStable         string
 	BalancerWeighted   string
 	BalancerStable     string
 	BalancerMetaStable string
@@ -24,6 +29,7 @@ type types struct {
 	DodoPrivate        string
 	Velodrome          string
 	Ramses             string
+	Dystopia           string
 	PlatypusBase       string
 	PlatypusPure       string
 	PlatypusAvax       string
@@ -53,10 +59,15 @@ var (
 		CurveTwo:           "curve-two",
 		Uni:                "uniswap",
 		UniV3:              "uniswapv3",
+		Biswap:             "biswap",
+		Polydex:            "polydex",
 		Firebird:           "firebird",
 		Dmm:                "dmm",
 		Elastic:            "elastic",
 		Saddle:             "saddle",
+		Nerve:              "nerve",
+		OneSwap:            "oneswap",
+		IronStable:         "iron-stable",
 		BalancerWeighted:   "balancer-weighted",
 		BalancerStable:     "balancer-stable",
 		BalancerMetaStable: "balancer-meta-stable",
@@ -66,6 +77,7 @@ var (
 		DodoPrivate:        "dodo-dpp",
 		Velodrome:          "velodrome",
 		Ramses:             "ramses",
+		Dystopia:           "dystopia",
 		PlatypusBase:       "platypus-base",
 		PlatypusPure:       "platypus-pure",
 		PlatypusAvax:       "platypus-avax",

@@ -208,11 +208,13 @@ func (f *PoolFactory) getCurvePlainOraclePoolByAddress(
 // if there is no matched factory method, it returns ErrPoolTypeFactoryNotFound
 func (f *PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
 	switch entityPool.Type {
-	case constant.PoolTypes.Uni, constant.PoolTypes.Firebird:
+	case constant.PoolTypes.Uni, constant.PoolTypes.Firebird,
+		constant.PoolTypes.Biswap, constant.PoolTypes.Polydex:
 		return f.newUni(entityPool)
 	case constant.PoolTypes.UniV3:
 		return f.newUniV3(entityPool)
-	case constant.PoolTypes.Saddle:
+	case constant.PoolTypes.Saddle, constant.PoolTypes.Nerve,
+		constant.PoolTypes.OneSwap, constant.PoolTypes.IronStable:
 		return f.newSaddle(entityPool)
 	case constant.PoolTypes.Dmm:
 		return f.newDMM(entityPool)
@@ -233,11 +235,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
 	case constant.PoolTypes.DodoClassical, constant.PoolTypes.DodoStable,
 		constant.PoolTypes.DodoVendingMachine, constant.PoolTypes.DodoPrivate:
 		return f.newDoDo(entityPool)
-	case constant.PoolTypes.Velodrome:
-		return f.newVelodrome(entityPool)
-	case constant.PoolTypes.Ramses:
-		return f.newVelodrome(entityPool)
-	case constant.PoolTypes.MuteSwitch:
+	case constant.PoolTypes.Velodrome, constant.PoolTypes.Ramses,
+		constant.PoolTypes.MuteSwitch, constant.PoolTypes.Dystopia:
 		return f.newVelodrome(entityPool)
 	case constant.PoolTypes.PlatypusBase, constant.PoolTypes.PlatypusPure, constant.PoolTypes.PlatypusAvax:
 		return f.newPlatypus(entityPool)
