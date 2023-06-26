@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/machinebox/graphql"
 	"github.com/samber/lo"
@@ -195,10 +196,10 @@ func (p *PoolsListUpdater) getPools(
 		// platypus-pure: all assetAddress
 		// platypus-base (chain-link): all assetAddress, aggregatorAddress
 		// platypus-avax (and similar): all assetAddress, priceOracleAddress
-		dependencies := lo.Map(assetAddresses, func(a common.Address, _ int) string { return a.Hex() })
+		dependencies := mapset.NewSet(lo.Map(assetAddresses, func(a common.Address, _ int) string { return a.Hex() })...)
 		switch state.Type {
 		case poolTypePlatypusBase:
-			dependencies = append(dependencies, state.PriceOracle.Hex())
+			dependencies.Add(state.PriceOracle.Hex())
 			aggregators, ok := poolAggregatorsMap[state.Address]
 			if !ok {
 				// this is not a platypus-base pool, we get to here because we're not supporting yyAvax, AAvaxC... yet
@@ -207,11 +208,11 @@ func (p *PoolsListUpdater) getPools(
 			for _, ag := range aggregators {
 				agAdr := ag.Hex()
 				if !strings.EqualFold(agAdr, addressZero) {
-					dependencies = append(dependencies, agAdr)
+					dependencies.Add(agAdr)
 				}
 			}
 		case poolTypePlatypusAvax:
-			dependencies = append(dependencies, state.PriceOracle.Hex())
+			dependencies.Add(state.PriceOracle.Hex())
 		}
 
 		pools = append(pools, entity.Pool{

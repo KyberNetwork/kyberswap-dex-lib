@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
 
@@ -95,10 +96,10 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	// platypus-pure: all assetAddress
 	// platypus-base (chain-link): all assetAddress, priceOracleAddress, aggregatorAddress
 	// platypus-avax (and similar): all assetAddress, priceOracleAddress
-	dependencies := lo.Map(assetAddresses, func(a common.Address, _ int) string { return a.Hex() })
+	dependencies := mapset.NewSet(lo.Map(assetAddresses, func(a common.Address, _ int) string { return a.Hex() })...)
 	switch p.Type {
 	case poolTypePlatypusBase:
-		dependencies = append(dependencies, poolState.PriceOracle.Hex())
+		dependencies.Add(poolState.PriceOracle.Hex())
 		// get aggregators for chainlink pools (platypus-base)
 		aggregators, err := t.getChainlinkProxyAggregator(ctx, poolState)
 		if err != nil {
@@ -110,11 +111,11 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		for _, ag := range aggregators {
 			agAdr := ag.Hex()
 			if !strings.EqualFold(agAdr, addressZero) {
-				dependencies = append(dependencies, agAdr)
+				dependencies.Add(agAdr)
 			}
 		}
 	case poolTypePlatypusAvax:
-		dependencies = append(dependencies, poolState.PriceOracle.Hex())
+		dependencies.Add(poolState.PriceOracle.Hex())
 	}
 
 	p.Reserves = reserves
