@@ -92,6 +92,8 @@ type PoolState struct {
 	TokenAddresses []common.Address
 	XThreshold     *big.Int
 	Paused         bool
+
+	Type string
 }
 
 // AssetState represents data of asset smart contract

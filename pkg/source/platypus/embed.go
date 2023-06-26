@@ -10,3 +10,9 @@ var assetABIData []byte
 
 //go:embed abi/StakedAVAX.json
 var stakedAvaxABIData []byte
+
+//go:embed abi/Oracle.json
+var oracleABIData []byte
+
+//go:embed abi/Chainlink.json
+var chainlinkABIData []byte

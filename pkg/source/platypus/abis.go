@@ -10,6 +10,8 @@ var (
 	poolABI       abi.ABI
 	assetABI      abi.ABI
 	stakedAvaxABI abi.ABI
+	oracleABI     abi.ABI
+	chainlinkABI  abi.ABI
 )
 
 func init() {
@@ -28,6 +30,14 @@ func init() {
 		{
 			ABI:  &stakedAvaxABI,
 			data: stakedAvaxABIData,
+		},
+		{
+			ABI:  &oracleABI,
+			data: oracleABIData,
+		},
+		{
+			ABI:  &chainlinkABI,
+			data: chainlinkABIData,
 		},
 	}
 
