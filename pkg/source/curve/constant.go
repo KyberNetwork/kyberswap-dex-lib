@@ -102,3 +102,8 @@ var (
 	emptyString       = ""
 	zero        int64 = 0
 )
+
+// skipInitFactoryDexes include dexes that don't have factory.
+var skipInitFactoryDexes = map[string]struct{}{
+	"ellipsis": {},
+}

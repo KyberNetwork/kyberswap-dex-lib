@@ -62,6 +62,11 @@ var optimismPoolsBytes []byte
 //go:embed pools/polygon.json
 var polygonPoolsBytes []byte
 
+// Ellipsis pool bytes
+
+//go:embed pools/ellipsis/bsc.json
+var ellipsisBscPoolsBytes []byte
+
 var bytesByPath = map[string][]byte{
 	"pools/arbitrum.json":  arbitrumPoolsBytes,
 	"pools/avalanche.json": avalanchePoolsBytes,
@@ -69,4 +74,6 @@ var bytesByPath = map[string][]byte{
 	"pools/fantom.json":    fantomPoolsBytes,
 	"pools/optimism.json":  optimismPoolsBytes,
 	"pools/polygon.json":   polygonPoolsBytes,
+
+	"pools/ellipsis/bsc.json": ellipsisBscPoolsBytes,
 }
