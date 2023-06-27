@@ -64,17 +64,9 @@ func NewPool(entityPool entity.Pool) (*Pool, error) {
 		precisions[i] = utils.NewBig10(staticExtra.PrecisionMultipliers[i])
 	}
 
-	packedPrice := constant.Zero
-	lastPricesPacked := constant.Zero
-	priceOraclePacked := constant.Zero
-	for i := numTokens - 2; i >= 0; i -= 1 {
-		var priceScale = utils.NewBig10(extraStr.PriceScale[i])
-		packedPrice = new(big.Int).Or(new(big.Int).Lsh(packedPrice, PriceSize), priceScale)
-		var lastPrice = utils.NewBig10(extraStr.LastPrices[i])
-		lastPricesPacked = new(big.Int).Or(new(big.Int).Lsh(lastPricesPacked, PriceSize), lastPrice)
-		var priceOracle = utils.NewBig10(extraStr.PriceOracle[i])
-		priceOraclePacked = new(big.Int).Or(new(big.Int).Lsh(priceOraclePacked, PriceSize), priceOracle)
-	}
+	packedPrice := utils.NewBig10(extraStr.PriceScale)
+	lastPricesPacked := utils.NewBig10(extraStr.LastPrices)
+	priceOraclePacked := utils.NewBig10(extraStr.PriceOracle)
 
 	return &Pool{
 		Pool: pool.Pool{
@@ -182,25 +174,6 @@ func (t *Pool) Swap(
 
 func (t *Pool) GetLpToken() string {
 	return t.LpToken
-}
-
-func (t *Pool) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
-
-func (t *Pool) CanSwapTo(address string) []string {
-	var ret = make([]string, 0)
-	var tokenIndex = t.GetTokenIndex(address)
-	if tokenIndex < 0 && address != t.LpToken {
-		return nil
-	}
-	for i := 0; i < len(t.Info.Tokens); i += 1 {
-		if i != tokenIndex {
-			ret = append(ret, t.Info.Tokens[i])
-		}
-	}
-	if address != t.LpToken {
-		ret = append(ret, t.LpToken)
-	}
-	return ret
 }
 
 func (t *Pool) GetMidPrice(tokenIn string, tokenOut string, base *big.Int) *big.Int {

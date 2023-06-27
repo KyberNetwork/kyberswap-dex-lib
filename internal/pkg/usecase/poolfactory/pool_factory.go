@@ -98,7 +98,7 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool) []pool
 		default:
 			iPool, err := f.newPool(*pool)
 			if err != nil {
-				logger.Debugf(err.Error())
+				logger.Debug(err.Error())
 				continue
 			}
 
