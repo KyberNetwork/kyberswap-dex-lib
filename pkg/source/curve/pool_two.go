@@ -303,6 +303,8 @@ func (d *PoolTracker) getNewPoolStateTypeTwo(
 		AllowedExtraProfit: allowedExtraProfit.String(),
 		AdjustmentStep:     adjustmentStep.String(),
 		MaHalfTime:         maHalfTime.String(),
+
+		LastPricesTimestamp: lastPriceTimestamp.Int64(),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
