@@ -45,7 +45,7 @@ func TestSerialization_EncodePool(t *testing.T) {
 		poolStr, err := encodePool(pool)
 
 		assert.Nil(t, err)
-		assert.Equal(t, "{\"reserveUsd\":100,\"amplifiedTvl\":100,\"swapFee\":0.3,\"type\":\"uni\",\"timestamp\":12345,\"reserves\":[\"reserve1\",\"reserve2\"],\"tokens\":[{\"address\":\"poolTokenAddress1\",\"name\":\"poolTokenName1\",\"symbol\":\"poolTokenSymbol1\",\"decimals\":18,\"weight\":50,\"swappable\":true},{\"address\":\"poolTokenAddress2\",\"name\":\"poolTokenName2\",\"symbol\":\"poolTokenSymbol2\",\"decimals\":18,\"weight\":50,\"swappable\":true}],\"extra\":\"extra1\",\"staticExtra\":\"staticExtra1\",\"totalSupply\":\"totalSupply1\"}", poolStr)
+		assert.Equal(t, "{\"address\":\"address1\",\"reserveUsd\":100,\"amplifiedTvl\":100,\"swapFee\":0.3,\"type\":\"uni\",\"timestamp\":12345,\"reserves\":[\"reserve1\",\"reserve2\"],\"tokens\":[{\"address\":\"poolTokenAddress1\",\"name\":\"poolTokenName1\",\"symbol\":\"poolTokenSymbol1\",\"decimals\":18,\"weight\":50,\"swappable\":true},{\"address\":\"poolTokenAddress2\",\"name\":\"poolTokenName2\",\"symbol\":\"poolTokenSymbol2\",\"decimals\":18,\"weight\":50,\"swappable\":true}],\"extra\":\"extra1\",\"staticExtra\":\"staticExtra1\",\"totalSupply\":\"totalSupply1\"}", poolStr)
 	})
 }
 
@@ -59,7 +59,7 @@ func TestSerialization_DecodePool(t *testing.T) {
 		{
 			name:   "it should decode pool correctly with full data",
 			key:    "address1",
-			member: "{\"reserveUsd\":100,\"amplifiedTvl\":100,\"swapFee\":0.3,\"type\":\"uni\",\"timestamp\":12345,\"reserves\":[\"reserve1\",\"reserve2\"],\"tokens\":[{\"address\":\"poolTokenAddress1\",\"name\":\"poolTokenName1\",\"symbol\":\"poolTokenSymbol1\",\"decimals\":18,\"weight\":50,\"swappable\":true},{\"address\":\"poolTokenAddress2\",\"name\":\"poolTokenName2\",\"symbol\":\"poolTokenSymbol2\",\"decimals\":18,\"weight\":50,\"swappable\":true}],\"extra\":\"extra1\",\"staticExtra\":\"staticExtra1\",\"totalSupply\":\"totalSupply1\"}",
+			member: "{\"address\":\"address1\",\"reserveUsd\":100,\"amplifiedTvl\":100,\"swapFee\":0.3,\"type\":\"uni\",\"timestamp\":12345,\"reserves\":[\"reserve1\",\"reserve2\"],\"tokens\":[{\"address\":\"poolTokenAddress1\",\"name\":\"poolTokenName1\",\"symbol\":\"poolTokenSymbol1\",\"decimals\":18,\"weight\":50,\"swappable\":true},{\"address\":\"poolTokenAddress2\",\"name\":\"poolTokenName2\",\"symbol\":\"poolTokenSymbol2\",\"decimals\":18,\"weight\":50,\"swappable\":true}],\"extra\":\"extra1\",\"staticExtra\":\"staticExtra1\",\"totalSupply\":\"totalSupply1\"}",
 			expectedPool: &entity.Pool{
 				Address:      "address1",
 				ReserveUsd:   100,
@@ -95,7 +95,7 @@ func TestSerialization_DecodePool(t *testing.T) {
 		{
 			name:   "it should decode pool correctly without pool tokens",
 			key:    "address1",
-			member: "{\"reserveUsd\":100,\"amplifiedTvl\":100,\"swapFee\":0.3,\"type\":\"uni\",\"timestamp\":12345,\"reserves\":[\"reserve1\",\"reserve2\"],\"staticExtra\":\"staticExtra1\",\"totalSupply\":\"totalSupply1\"}",
+			member: "{\"address\":\"address1\",\"reserveUsd\":100,\"amplifiedTvl\":100,\"swapFee\":0.3,\"type\":\"uni\",\"timestamp\":12345,\"reserves\":[\"reserve1\",\"reserve2\"],\"staticExtra\":\"staticExtra1\",\"totalSupply\":\"totalSupply1\"}",
 			expectedPool: &entity.Pool{
 				Address:      "address1",
 				ReserveUsd:   100,
@@ -114,7 +114,7 @@ func TestSerialization_DecodePool(t *testing.T) {
 		{
 			name:   "it should decode pool correctly without extra",
 			key:    "address1",
-			member: "{\"reserveUsd\":100,\"amplifiedTvl\":100,\"swapFee\":0.3,\"type\":\"uni\",\"timestamp\":12345,\"reserves\":[\"reserve1\",\"reserve2\"],\"tokens\":[{\"address\":\"poolTokenAddress1\",\"name\":\"poolTokenName1\",\"symbol\":\"poolTokenSymbol1\",\"decimals\":18,\"weight\":50,\"swappable\":true},{\"address\":\"poolTokenAddress2\",\"name\":\"poolTokenName2\",\"symbol\":\"poolTokenSymbol2\",\"decimals\":18,\"weight\":50,\"swappable\":true}],\"staticExtra\":\"staticExtra1\",\"totalSupply\":\"totalSupply1\"}",
+			member: "{\"address\":\"address1\",\"reserveUsd\":100,\"amplifiedTvl\":100,\"swapFee\":0.3,\"type\":\"uni\",\"timestamp\":12345,\"reserves\":[\"reserve1\",\"reserve2\"],\"tokens\":[{\"address\":\"poolTokenAddress1\",\"name\":\"poolTokenName1\",\"symbol\":\"poolTokenSymbol1\",\"decimals\":18,\"weight\":50,\"swappable\":true},{\"address\":\"poolTokenAddress2\",\"name\":\"poolTokenName2\",\"symbol\":\"poolTokenSymbol2\",\"decimals\":18,\"weight\":50,\"swappable\":true}],\"staticExtra\":\"staticExtra1\",\"totalSupply\":\"totalSupply1\"}",
 			expectedPool: &entity.Pool{
 				Address:      "address1",
 				ReserveUsd:   100,
@@ -150,7 +150,7 @@ func TestSerialization_DecodePool(t *testing.T) {
 		{
 			name:   "it should decode pool correctly without staticExtra",
 			key:    "address1",
-			member: "{\"reserveUsd\":100,\"amplifiedTvl\":100,\"swapFee\":0.3,\"type\":\"uni\",\"timestamp\":12345,\"reserves\":[\"reserve1\",\"reserve2\"],\"tokens\":[{\"address\":\"poolTokenAddress1\",\"name\":\"poolTokenName1\",\"symbol\":\"poolTokenSymbol1\",\"decimals\":18,\"weight\":50,\"swappable\":true},{\"address\":\"poolTokenAddress2\",\"name\":\"poolTokenName2\",\"symbol\":\"poolTokenSymbol2\",\"decimals\":18,\"weight\":50,\"swappable\":true}],\"extra\":\"extra1\",\"totalSupply\":\"totalSupply1\"}",
+			member: "{\"address\":\"address1\",\"reserveUsd\":100,\"amplifiedTvl\":100,\"swapFee\":0.3,\"type\":\"uni\",\"timestamp\":12345,\"reserves\":[\"reserve1\",\"reserve2\"],\"tokens\":[{\"address\":\"poolTokenAddress1\",\"name\":\"poolTokenName1\",\"symbol\":\"poolTokenSymbol1\",\"decimals\":18,\"weight\":50,\"swappable\":true},{\"address\":\"poolTokenAddress2\",\"name\":\"poolTokenName2\",\"symbol\":\"poolTokenSymbol2\",\"decimals\":18,\"weight\":50,\"swappable\":true}],\"extra\":\"extra1\",\"totalSupply\":\"totalSupply1\"}",
 			expectedPool: &entity.Pool{
 				Address:      "address1",
 				ReserveUsd:   100,
