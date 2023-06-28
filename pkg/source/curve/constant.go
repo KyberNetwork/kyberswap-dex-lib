@@ -70,6 +70,15 @@ const (
 	poolTypeCompound    = "curve-compound"
 	poolTypeTricrypto   = "curve-tricrypto"
 	poolTypeTwo         = "curve-two"
+	poolTypeUnsupported = "unsupported"
+)
+
+// Curve pool types
+const (
+	sourceMainRegistry = iota
+	sourceMetaPoolsFactory
+	sourceCryptoPoolsRegistry
+	sourceCryptoPoolsFactory
 )
 
 // Known weth9 implementation addresses, used in our implementation of Ether#wrapped

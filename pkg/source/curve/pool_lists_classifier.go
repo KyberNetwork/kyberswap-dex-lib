@@ -13,16 +13,23 @@ import (
 
 func (d *PoolsListUpdater) classifyPoolTypes(
 	ctx context.Context,
+	poolsSourceIndex int,
 	registryOrFactoryABI abi.ABI,
 	registryOrFactoryAddress string,
 	poolAddresses []common.Address,
 ) ([]string, error) {
-	if strings.EqualFold(registryOrFactoryAddress, d.config.CryptoPoolsRegistryAddress) ||
-		strings.EqualFold(registryOrFactoryAddress, d.config.CryptoPoolsFactoryAddress) {
+	switch poolsSourceIndex {
+	case sourceMainRegistry:
+		return d.classifyCurveV1PoolTypes(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
+	case sourceMetaPoolsFactory:
+		return d.classifyCurveV1PoolTypes(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
+	case sourceCryptoPoolsRegistry:
 		return d.classifyCurveV2PoolTypes(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
+	case sourceCryptoPoolsFactory:
+		return d.classifyCurveV2PoolTypes(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
+	default:
+		return d.classifyCurveV1PoolTypes(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
 	}
-
-	return d.classifyCurveV1PoolTypes(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
 }
 
 // classifyCurveV1PoolTypes includes plainOracle, base, meta, aave, compound
@@ -150,7 +157,7 @@ func (d *PoolsListUpdater) classifyCurveV2PoolTypes(
 	registryOrFactoryAddress string,
 	poolAddresses []common.Address,
 ) ([]string, error) {
-	var coins = make([][8]common.Address, len(poolAddresses))
+	coins := make([][8]common.Address, len(poolAddresses))
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, poolAddress := range poolAddresses {
 		calls.AddCall(&ethrpc.Call{
@@ -171,8 +178,11 @@ func (d *PoolsListUpdater) classifyCurveV2PoolTypes(
 	for i := range poolAddresses {
 		if d.isTwo(coins[i]) {
 			poolTypes[i] = poolTypeTwo
-		} else {
+		} else if d.isTricrypto(coins[i]) {
 			poolTypes[i] = poolTypeTricrypto
+		} else {
+			logger.Infof("unsupported curve v2 pool: %s", poolAddresses[i].Hex())
+			poolTypes[i] = poolTypeUnsupported
 		}
 	}
 
@@ -265,7 +275,7 @@ func (d *PoolsListUpdater) isCompoundPool(
 // isTwo TwoCryptoPool
 // is curveV2, belongs to CryptoFactory and CryptoRegistry
 // has "gamma" in its contracts
-// has only 2 coins (has 2 coins is TriCryptoPool)
+// has only 2 coins (has 3 coins is TricryptoPool)
 func (d *PoolsListUpdater) isTwo(coins [8]common.Address) bool {
 	var numberOfCoin = 0
 	for _, coin := range coins {
@@ -276,4 +286,19 @@ func (d *PoolsListUpdater) isTwo(coins [8]common.Address) bool {
 	}
 
 	return numberOfCoin == 2
+}
+
+// isTricrypto is curveV2, belongs to CryptoRegistry and CryptoFactory
+// has "gamma" in its contracts
+// has only 3 coins (has 2 coins is TwoPool)
+func (d *PoolsListUpdater) isTricrypto(coins [8]common.Address) bool {
+	var numberOfCoin = 0
+	for _, coin := range coins {
+		if strings.EqualFold(coin.Hex(), addressZero) {
+			break
+		}
+		numberOfCoin += 1
+	}
+
+	return numberOfCoin == 3
 }

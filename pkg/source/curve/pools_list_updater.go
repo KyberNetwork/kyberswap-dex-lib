@@ -15,6 +15,17 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
+// PoolsSource is a struct to store the source of the pools, includes:
+// 1. main registry
+// 2. meta pool factory
+// 3. crypto pools registry
+// 4. crypto pools factory
+type PoolsSource struct {
+	ABI     abi.ABI
+	Address string
+	Offset  int
+}
+
 type PoolsListUpdater struct {
 	config         *Config
 	ethrpcClient   *ethrpc.Client
@@ -53,12 +64,15 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	var (
-		poolTypeMap           = make(map[string][]PoolAndRegistries)
-		registryOrFactoryList = []struct {
-			ABI     abi.ABI
-			Address string
-			Offset  int
-		}{
+		poolTypeMap = make(map[string][]PoolAndRegistries)
+
+		// registryOrFactoryList is a list of sources to get new pools
+		// 1. main registry
+		// 2. meta pool factory
+		// 3. crypto pools registry
+		// 4. crypto pools factory
+		// At the moment, we MUST keep the order of the sources like this
+		registryOrFactoryList = []PoolsSource{
 			{mainRegistryABI, d.config.MainRegistryAddress, metadata.MainRegistryOffset},
 			{metaPoolFactoryABI, d.config.MetaPoolsFactoryAddress, metadata.MetaFactoryOffset},
 			{cryptoRegistryABI, d.config.CryptoPoolsRegistryAddress, metadata.CryptoRegistryOffset},
@@ -66,35 +80,36 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	)
 
-	var newPoolLimitLeft = d.config.NewPoolLimit
 	if !skipInitFactory(d.config.DexID) {
 		for i := 0; i < len(registryOrFactoryList); i++ {
 			if strings.EqualFold(registryOrFactoryList[i].Address, addressZero) {
 				logger.Debugf("skip zero factory %v", i)
 				continue
 			}
-			poolAddresses, poolTypes, nextOffset, err := d.getNewPoolAddressesFromRegistryOrFactory(
+
+			poolAddresses, poolTypes, nextOffset, err := d.getNewPoolAddressesFromSource(
 				ctx,
+				i,
 				registryOrFactoryList[i].ABI,
 				registryOrFactoryList[i].Address,
 				registryOrFactoryList[i].Offset,
-				newPoolLimitLeft,
+				d.config.NewPoolLimit,
 			)
 			if err != nil {
-				logger.WithFields(logger.Fields{
-					"address": registryOrFactoryList[i].Address,
-					"offset":  registryOrFactoryList[i].Offset,
-					"error":   err,
-				}).Errorf("failed to get new pool addresses from the registry or factory")
+				logger.Errorf("failed to get new pool addresses from the registry or factory, address: %v, offset: %v, err: %v", registryOrFactoryList[i].Address, registryOrFactoryList[i].Offset, err)
 				return nil, nil, err
 			}
-			newPoolLimitLeft = newPoolLimitLeft - (nextOffset - registryOrFactoryList[i].Offset)
 
 			for j := 0; j < len(poolAddresses); j++ {
+				// Skip unsupported pools
+				if poolTypes[j] == poolTypeUnsupported {
+					continue
+				}
+
 				poolTypeMap[poolTypes[j]] = append(poolTypeMap[poolTypes[j]], PoolAndRegistries{
 					PoolAddress:              poolAddresses[j],
-					RegistryOrFactoryABI:     &registryOrFactoryList[i].ABI,
-					RegistryOrFactoryAddress: &registryOrFactoryList[i].Address,
+					RegistryOrFactoryABI:     registryOrFactoryList[i].ABI,
+					RegistryOrFactoryAddress: registryOrFactoryList[i].Address,
 				})
 			}
 
@@ -122,15 +137,14 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		case poolTypeTricrypto:
 			newPools, err = d.getNewPoolsTypeTricrypto(ctx, poolAndRegistries)
 		default:
+			logger.Infof("skip pool type %v", poolType)
 			continue
 		}
 		if err != nil {
-			logger.WithFields(logger.Fields{
-				"poolType": poolType,
-				"error":    err,
-			}).Errorf("failed to get new pools of type")
-			return nil, nil, err
+			// Just log the error here, we don't want to skip all pools just because 1 pool type failed
+			logger.Errorf("failed to get new pools of type: %v, err: %v", poolType, err)
 		}
+
 		pools = append(pools, newPools...)
 		logger.Infof("got total of %v %s pools of %v types from registry and factory", len(newPools), d.config.DexID, poolType)
 	}
@@ -166,6 +180,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			"numberOfPools": len(pools),
 		}).Infof("scan %s", d.config.DexID)
 	}
+
 	return pools, newMetaDataBytes, nil
 }
 
@@ -305,15 +320,26 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 	return pools, nil
 }
 
-func (d *PoolsListUpdater) getNewPoolAddressesFromRegistryOrFactory(
+// getNewPoolAddressesFromSource gets new pool addresses from source, it can be one of:
+// 1. main registry
+// 2. meta pool factory
+// 3. crypto pools registry
+// 4. crypto pools factory
+func (d *PoolsListUpdater) getNewPoolAddressesFromSource(
 	ctx context.Context,
+	poolsSourceIndex int,
 	registryOrFactoryABI abi.ABI,
 	registryOrFactoryAddress string,
 	currentOffset int,
 	newPoolLimit int,
 ) ([]common.Address, []string, int, error) {
 	poolAddresses, newOffset, err := d.getPoolAddresses(
-		ctx, registryOrFactoryABI, registryOrFactoryAddress, currentOffset, newPoolLimit)
+		ctx,
+		registryOrFactoryABI,
+		registryOrFactoryAddress,
+		currentOffset,
+		newPoolLimit,
+	)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"address": registryOrFactoryAddress,
@@ -322,7 +348,7 @@ func (d *PoolsListUpdater) getNewPoolAddressesFromRegistryOrFactory(
 		return nil, nil, currentOffset, err
 	}
 
-	poolTypes, err := d.classifyPoolTypes(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
+	poolTypes, err := d.classifyPoolTypes(ctx, poolsSourceIndex, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
 	if err != nil {
 		return nil, nil, currentOffset, err
 	}

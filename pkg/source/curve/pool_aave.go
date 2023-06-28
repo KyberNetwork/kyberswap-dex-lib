@@ -29,37 +29,35 @@ func (d *PoolsListUpdater) getNewPoolsTypeAave(
 
 	for i, poolAndRegistry := range poolAndRegistries {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    *poolAndRegistry.RegistryOrFactoryABI,
-			Target: *poolAndRegistry.RegistryOrFactoryAddress,
+			ABI:    poolAndRegistry.RegistryOrFactoryABI,
+			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
 			Params: []interface{}{poolAndRegistry.PoolAddress},
 		}, []interface{}{&coins[i]})
 
 		calls.AddCall(&ethrpc.Call{
-			ABI:    *poolAndRegistry.RegistryOrFactoryABI,
-			Target: *poolAndRegistry.RegistryOrFactoryAddress,
+			ABI:    poolAndRegistry.RegistryOrFactoryABI,
+			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderlyingCoins,
 			Params: []interface{}{poolAndRegistry.PoolAddress},
 		}, []interface{}{&underlyingCoins[i]})
 
 		calls.AddCall(&ethrpc.Call{
-			ABI:    *poolAndRegistry.RegistryOrFactoryABI,
-			Target: *poolAndRegistry.RegistryOrFactoryAddress,
+			ABI:    poolAndRegistry.RegistryOrFactoryABI,
+			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetUnderDecimals,
 			Params: []interface{}{poolAndRegistry.PoolAddress},
 		}, []interface{}{&decimals[i]})
 
 		calls.AddCall(&ethrpc.Call{
-			ABI:    *poolAndRegistry.RegistryOrFactoryABI,
-			Target: *poolAndRegistry.RegistryOrFactoryAddress,
+			ABI:    poolAndRegistry.RegistryOrFactoryABI,
+			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetLpToken,
 			Params: []interface{}{poolAndRegistry.PoolAddress},
 		}, []interface{}{&lpAddresses[i]})
 	}
 	if _, err := calls.TryAggregate(); err != nil {
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Errorf("failed to aggregate call to get pool data")
+		logger.Errorf("failed to aggregate call to get pool data, err: %v", err)
 		return nil, err
 	}
 
@@ -87,9 +85,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeAave(
 		}
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {
-			logger.WithFields(logger.Fields{
-				"error": err,
-			}).Errorf("failed to marshal static extra data")
+			logger.Errorf("failed to marshal static extra data, err: %v", err)
 			return nil, err
 		}
 

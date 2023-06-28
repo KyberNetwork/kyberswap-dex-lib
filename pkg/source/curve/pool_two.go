@@ -28,15 +28,15 @@ func (d *PoolsListUpdater) getNewPoolsTypeTwo(
 
 	for i, poolAndRegistry := range poolAndRegistries {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    *poolAndRegistry.RegistryOrFactoryABI,
-			Target: *poolAndRegistry.RegistryOrFactoryAddress,
+			ABI:    poolAndRegistry.RegistryOrFactoryABI,
+			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
 			Params: []interface{}{poolAndRegistry.PoolAddress},
 		}, []interface{}{&coins[i]})
 
 		calls.AddCall(&ethrpc.Call{
-			ABI:    *poolAndRegistry.RegistryOrFactoryABI,
-			Target: *poolAndRegistry.RegistryOrFactoryAddress,
+			ABI:    poolAndRegistry.RegistryOrFactoryABI,
+			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetDecimals,
 			Params: []interface{}{poolAndRegistry.PoolAddress},
 		}, []interface{}{&decimals[i]})
@@ -50,9 +50,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTwo(
 	}
 
 	if _, err := calls.Aggregate(); err != nil {
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Errorf("failed to aggregate call to get pool data")
+		logger.Errorf("failed to aggregate call to get pool data, err: %v", err)
 		return nil, err
 	}
 
@@ -79,9 +77,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTwo(
 		}
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {
-			logger.WithFields(logger.Fields{
-				"error": err,
-			}).Errorf("failed to marshal static extra data")
+			logger.Errorf("failed to marshal static extra data, err: %v", err)
 			return nil, err
 		}
 
