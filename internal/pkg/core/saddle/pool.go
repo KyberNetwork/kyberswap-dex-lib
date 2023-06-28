@@ -50,6 +50,12 @@ func NewPool(entityPool entity.Pool) (*Pool, error) {
 
 	swapFee := utils.NewBig10(extra.SwapFee)
 
+	// only have withdrawFee in saddle v1, default to 0
+	defaultWithdrawFee := utils.NewBig10(extra.DefaultWithdrawFee)
+	if defaultWithdrawFee == nil {
+		defaultWithdrawFee = constant.Zero
+	}
+
 	return &Pool{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
@@ -69,7 +75,7 @@ func NewPool(entityPool entity.Pool) (*Pool, error) {
 		InitialATime:       extra.InitialATime,
 		FutureATime:        extra.FutureATime,
 		AdminFee:           utils.NewBig10(extra.AdminFee),
-		DefaultWithdrawFee: utils.NewBig10(extra.DefaultWithdrawFee),
+		DefaultWithdrawFee: defaultWithdrawFee,
 		LpToken:            staticExtra.LpToken,
 		LpSupply:           utils.NewBig10(entityPool.Reserves[numTokens]),
 		gas:                DefaultGas,
