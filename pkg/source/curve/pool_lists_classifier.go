@@ -20,20 +20,22 @@ func (d *PoolsListUpdater) classifyPoolTypes(
 ) ([]string, error) {
 	switch poolsSourceIndex {
 	case sourceMainRegistry:
-		return d.classifyCurveV1PoolTypes(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
+		return d.classifyPoolsFromMainRegistry(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
 	case sourceMetaPoolsFactory:
-		return d.classifyCurveV1PoolTypes(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
+		return d.classifyPoolsFromMetaPoolsFactory(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
 	case sourceCryptoPoolsRegistry:
 		return d.classifyCurveV2PoolTypes(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
 	case sourceCryptoPoolsFactory:
 		return d.classifyCurveV2PoolTypes(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
 	default:
-		return d.classifyCurveV1PoolTypes(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
+		// Index can be found here https://github.com/KyberNetwork/kyberswap-dex-lib/blob/0e4796ffde08481ef8b456e354cf2cb7b3aa8268/pkg/source/curve/pools_list_updater.go#L69-L79
+		logger.Errorf("unknown pools source index %v", poolsSourceIndex)
+		return nil, nil
 	}
 }
 
-// classifyCurveV1PoolTypes includes plainOracle, base, meta, aave, compound
-func (d *PoolsListUpdater) classifyCurveV1PoolTypes(
+// classifyPoolsFromMainRegistry includes plainOracle, base, meta, aave, compound
+func (d *PoolsListUpdater) classifyPoolsFromMainRegistry(
 	ctx context.Context,
 	registryOrFactoryABI abi.ABI,
 	registryOrFactoryAddress string,
@@ -145,6 +147,43 @@ func (d *PoolsListUpdater) classifyCurveV1PoolTypes(
 		}
 
 		poolTypes[i] = poolTypeLending
+	}
+
+	return poolTypes, nil
+}
+
+// classifyPoolsFromMetaPoolsFactory includes meta only
+func (d *PoolsListUpdater) classifyPoolsFromMetaPoolsFactory(
+	ctx context.Context,
+	registryOrFactoryABI abi.ABI,
+	registryOrFactoryAddress string,
+	poolAddresses []common.Address,
+) ([]string, error) {
+	var isMetaList = make([]bool, len(poolAddresses))
+
+	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(false)
+
+	for i, poolAddress := range poolAddresses {
+		calls.AddCall(&ethrpc.Call{
+			ABI:    registryOrFactoryABI,
+			Target: registryOrFactoryAddress,
+			Method: registryOrFactoryMethodIsMeta,
+			Params: []interface{}{poolAddress},
+		}, []interface{}{&isMetaList[i]})
+	}
+
+	if _, err := calls.TryAggregate(); err != nil {
+		logger.WithFields(logger.Fields{
+			"error": err,
+		}).Errorf("failed to aggregate to get pool data")
+		return nil, err
+	}
+
+	var poolTypes = make([]string, len(poolAddresses))
+	for i := range poolAddresses {
+		if isMetaList[i] {
+			poolTypes[i] = poolTypeMeta
+		}
 	}
 
 	return poolTypes, nil
