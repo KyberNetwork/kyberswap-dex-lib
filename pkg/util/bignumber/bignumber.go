@@ -10,9 +10,11 @@ var (
 	TwoPow128 = new(big.Int).Exp(big.NewInt(2), big.NewInt(128), nil)
 
 	ZeroBI = big.NewInt(0)
-	One = big.NewInt(1)
-	Two = big.NewInt(2)
-	Three = big.NewInt(3)
+	One    = big.NewInt(1)
+	Two    = big.NewInt(2)
+	Three  = big.NewInt(3)
+	Four   = big.NewInt(4)
+	Five   = big.NewInt(5)
 )
 
 var BONE = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)

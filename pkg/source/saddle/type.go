@@ -23,6 +23,8 @@ type Extra struct {
 	FutureATime  int64  `json:"futureATime"`
 	SwapFee      string `json:"swapFee"`
 	AdminFee     string `json:"adminFee"`
+
+	DefaultWithdrawFee string `json:"defaultWithdrawFee"`
 }
 
 type PoolItem struct {
@@ -39,4 +41,16 @@ type PoolToken struct {
 type StaticExtra struct {
 	LpToken              string   `json:"lpToken"`
 	PrecisionMultipliers []string `json:"precisionMultipliers"`
+}
+
+type Gas struct {
+	Swap            int64
+	AddLiquidity    int64
+	RemoveLiquidity int64
+}
+
+type Meta struct {
+	TokenInIndex  int `json:"tokenInIndex"`
+	TokenOutIndex int `json:"tokenOutIndex"`
+	PoolLength    int `json:"poolLength"`
 }
