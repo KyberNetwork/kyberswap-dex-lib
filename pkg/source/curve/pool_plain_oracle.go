@@ -20,35 +20,27 @@ func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
 	poolAndRegistries []PoolAndRegistries,
 ) ([]entity.Pool, error) {
 	var (
-		coins           = make([][8]common.Address, len(poolAndRegistries))
-		underlyingCoins = make([][8]common.Address, len(poolAndRegistries))
-		decimals        = make([][8]*big.Int, len(poolAndRegistries))
-		aList           = make([]*big.Int, len(poolAndRegistries))
-		aPreciseList    = make([]*big.Int, len(poolAndRegistries))
-		plainOracles    = make([]common.Address, len(poolAndRegistries))
-		lpAddresses     = make([]common.Address, len(poolAndRegistries))
+		coins        = make([][8]common.Address, len(poolAndRegistries))
+		decimals     = make([][8]*big.Int, len(poolAndRegistries))
+		aList        = make([]*big.Int, len(poolAndRegistries))
+		aPreciseList = make([]*big.Int, len(poolAndRegistries))
+		plainOracles = make([]common.Address, len(poolAndRegistries))
+		lpAddresses  = make([]common.Address, len(poolAndRegistries))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i, poolAndRegistry := range poolAndRegistries {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    *poolAndRegistry.RegistryOrFactoryABI,
-			Target: *poolAndRegistry.RegistryOrFactoryAddress,
+			ABI:    poolAndRegistry.RegistryOrFactoryABI,
+			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
 			Params: []interface{}{poolAndRegistry.PoolAddress},
 		}, []interface{}{&coins[i]})
 
 		calls.AddCall(&ethrpc.Call{
-			ABI:    *poolAndRegistry.RegistryOrFactoryABI,
-			Target: *poolAndRegistry.RegistryOrFactoryAddress,
-			Method: registryOrFactoryMethodGetUnderlyingCoins,
-			Params: []interface{}{poolAndRegistry.PoolAddress},
-		}, []interface{}{&underlyingCoins[i]})
-
-		calls.AddCall(&ethrpc.Call{
-			ABI:    *poolAndRegistry.RegistryOrFactoryABI,
-			Target: *poolAndRegistry.RegistryOrFactoryAddress,
+			ABI:    poolAndRegistry.RegistryOrFactoryABI,
+			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetDecimals,
 			Params: []interface{}{poolAndRegistry.PoolAddress},
 		}, []interface{}{&decimals[i]})
@@ -106,7 +98,7 @@ func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
 			Oracle:     plainOracles[i].Hex(),
 		}
 		// The curve-base found inside the metaFactory has the lpToken equals its own pool Address and has the totalSupply method.
-		if strings.EqualFold(staticExtra.LpToken, addressZero) && strings.EqualFold(*poolAndRegistries[i].RegistryOrFactoryAddress, d.config.MetaPoolsFactoryAddress) {
+		if strings.EqualFold(staticExtra.LpToken, addressZero) && strings.EqualFold(poolAndRegistries[i].RegistryOrFactoryAddress, d.config.MetaPoolsFactoryAddress) {
 			staticExtra.LpToken = strings.ToLower(poolAndRegistries[i].PoolAddress.Hex())
 		}
 		for j := range coins[i] {

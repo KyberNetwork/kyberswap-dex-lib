@@ -31,15 +31,15 @@ func (d *PoolsListUpdater) getNewPoolsTypeBase(
 
 	for i, poolAndRegistry := range poolAndRegistries {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    *poolAndRegistry.RegistryOrFactoryABI,
-			Target: *poolAndRegistry.RegistryOrFactoryAddress,
+			ABI:    poolAndRegistry.RegistryOrFactoryABI,
+			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetCoins,
 			Params: []interface{}{poolAndRegistry.PoolAddress},
 		}, []interface{}{&coins[i]})
 
 		calls.AddCall(&ethrpc.Call{
-			ABI:    *poolAndRegistry.RegistryOrFactoryABI,
-			Target: *poolAndRegistry.RegistryOrFactoryAddress,
+			ABI:    poolAndRegistry.RegistryOrFactoryABI,
+			Target: poolAndRegistry.RegistryOrFactoryAddress,
 			Method: registryOrFactoryMethodGetDecimals,
 			Params: []interface{}{poolAndRegistry.PoolAddress},
 		}, []interface{}{&decimals[i]})
@@ -102,7 +102,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeBase(
 			APrecision: aPrecisions[i].String(),
 		}
 		// The curve-base found inside the metaFactory has the lpToken equals its own pool Address and has the totalSupply method.
-		if strings.EqualFold(staticExtra.LpToken, addressZero) && strings.EqualFold(*poolAndRegistries[i].RegistryOrFactoryAddress, d.config.MetaPoolsFactoryAddress) {
+		if strings.EqualFold(staticExtra.LpToken, addressZero) && strings.EqualFold(poolAndRegistries[i].RegistryOrFactoryAddress, d.config.MetaPoolsFactoryAddress) {
 			staticExtra.LpToken = strings.ToLower(poolAndRegistries[i].PoolAddress.Hex())
 		}
 		for j := range coins[i] {

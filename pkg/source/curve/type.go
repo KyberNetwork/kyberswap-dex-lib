@@ -9,8 +9,8 @@ import (
 
 type PoolAndRegistries struct {
 	PoolAddress              common.Address
-	RegistryOrFactoryABI     *abi.ABI
-	RegistryOrFactoryAddress *string
+	RegistryOrFactoryABI     abi.ABI
+	RegistryOrFactoryAddress string
 }
 
 type Metadata struct {
