@@ -11,6 +11,8 @@ const (
 	poolMethodSwapStorage                  = "swapStorage"
 	poolMethodGetBalances                  = "getBalances"
 
+	methodGetTotalSupply = "totalSupply"
+
 	defaultWeight = 1
 
 	zeroString = "0"

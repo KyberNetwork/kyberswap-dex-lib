@@ -3,6 +3,7 @@ package oneswap
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -72,10 +73,39 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		return entity.Pool{}, err
 	}
 
-	var reserves = make([]string, len(balances))
-	for i := range balances {
-		reserves[i] = balances[i].String()
+	lpToken := swapStorage.LpToken.Hex()
+
+	if len(lpToken) == 0 {
+		err := fmt.Errorf("couldnt get lp token")
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+		}).Error(err.Error())
+		return entity.Pool{}, err
 	}
+
+	var totalSupply *big.Int
+	calls = d.ethrpcClient.NewRequest().SetContext(ctx)
+
+	calls.AddCall(&ethrpc.Call{
+		ABI:    erc20ABI,
+		Target: lpToken,
+		Method: methodGetTotalSupply,
+		Params: nil,
+	}, []interface{}{&totalSupply})
+
+	if _, err := calls.TryAggregate(); err != nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"error":       err,
+		}).Errorf("failed to aggregate pool total supply")
+		return entity.Pool{}, err
+	}
+
+	var reserves = make([]string, 0, len(balances)+1)
+	for _, balance := range balances {
+		reserves = append(reserves, balance.String())
+	}
+	reserves = append(reserves, totalSupply.String())
 
 	p.Extra = string(extraBytes)
 	p.Reserves = reserves

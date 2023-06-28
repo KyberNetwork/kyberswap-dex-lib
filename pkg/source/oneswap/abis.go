@@ -9,6 +9,7 @@ import (
 var (
 	oneSwapABI        abi.ABI
 	oneSwapFactoryABI abi.ABI
+	erc20ABI          abi.ABI
 )
 
 func init() {
@@ -18,6 +19,7 @@ func init() {
 	}{
 		{&oneSwapABI, oneSwapABIData},
 		{&oneSwapFactoryABI, oneSwapFactoryABIData},
+		{&erc20ABI, erc20Json},
 	}
 
 	for _, b := range build {
