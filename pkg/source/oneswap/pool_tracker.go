@@ -101,11 +101,11 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		return entity.Pool{}, err
 	}
 
-	var reserves = make([]string, len(balances)+1)
-	for i := range balances {
-		reserves[i] = balances[i].String()
+	var reserves = make([]string, 0, len(balances)+1)
+	for _, balance := range balances {
+		reserves = append(reserves, balance.String())
 	}
-	reserves[len(balances)] = totalSupply.String()
+	reserves = append(reserves, totalSupply.String())
 
 	p.Extra = string(extraBytes)
 	p.Reserves = reserves
