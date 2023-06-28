@@ -181,6 +181,7 @@ func (d *PoolsListUpdater) classifyCurveV2PoolTypes(
 		} else if d.isTricrypto(coins[i]) {
 			poolTypes[i] = poolTypeTricrypto
 		} else {
+			logger.Infof("unsupported curve v2 pool: %s", poolAddresses[i].Hex())
 			poolTypes[i] = poolTypeUnsupported
 		}
 	}
