@@ -131,7 +131,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 	pools := make([]entity.Pool, 0, len(poolAddresses))
 	for i, poolAddress := range poolAddresses {
 		var tokens = make([]*entity.PoolToken, 0, len(poolTokens[i]))
-		var reserves = make([]string, 0, len(poolTokens[i]))
+		var reserves = make([]string, 0, len(poolTokens[i])+1)
 		var staticExtra StaticExtra
 
 		for j := 0; j < len(poolTokens[i]); j++ {
@@ -145,6 +145,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			reserves = append(reserves, zeroString)
 			staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, precisionMultipliers[i][j].String())
 		}
+		reserves = append(reserves, zeroString) // for totalSupply
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
