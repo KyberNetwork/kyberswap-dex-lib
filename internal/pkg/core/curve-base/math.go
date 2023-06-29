@@ -101,7 +101,7 @@ func (t *Pool) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 		for j := 0; j < numTokens; j++ {
 			dP = new(big.Int).Div(
 				new(big.Int).Mul(dP, d),
-				new(big.Int).Mul(xp[j], numTokensBI),
+				new(big.Int).Add(new(big.Int).Mul(xp[j], numTokensBI), constant.One), // +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
 			)
 		}
 		prevD = d

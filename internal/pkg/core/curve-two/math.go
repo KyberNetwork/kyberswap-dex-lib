@@ -226,6 +226,9 @@ func newtonY(ann *big.Int, gamma *big.Int, x []*big.Int, D *big.Int, i int) (*bi
 
 	for j := 2; j < nCoins+1; j += 1 {
 		var _x = xSorted[nCoins-j]
+		if _x.Cmp(constant.Zero) == 0 {
+			return nil, ErrDenominatorZero
+		}
 		y = new(big.Int).Div(new(big.Int).Mul(y, D), new(big.Int).Mul(_x, nCoinBi))
 		Si = new(big.Int).Add(Si, _x)
 	}
