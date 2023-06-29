@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -99,6 +100,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
 	return pools, nil
 }
 
+// Smart contract code: https://arbiscan.io/address/0x960ea3e3c7fb317332d990873d354e18d7645590#code
 func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 	ctx context.Context,
 	p entity.Pool,
@@ -110,7 +112,9 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 
 		lastPriceTimestamp, xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, maHalfTime, lpSupply *big.Int
 
-		balances     = make([]*big.Int, len(p.Tokens))
+		balances = make([]*big.Int, len(p.Tokens))
+
+		// These 3 slices only has length = number of tokens - 1 (check in the contract)
 		priceScales  = make([]*big.Int, len(p.Tokens)-1)
 		priceOracles = make([]*big.Int, len(p.Tokens)-1)
 		lastPrices   = make([]*big.Int, len(p.Tokens)-1)
@@ -281,20 +285,18 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 		return entity.Pool{}, err
 	}
 
-	var (
-		priceScalesStr  = make([]string, len(p.Tokens))
-		priceOraclesStr = make([]string, len(p.Tokens))
-		lastPricesStr   = make([]string, len(p.Tokens))
-		reserves        = make(entity.PoolReserves, len(balances))
-	)
-	for i := range p.Tokens {
-		reserves[i] = balances[i].String()
-	}
-	for i := 0; i < len(p.Tokens)-1; i++ {
-		priceScalesStr[i] = priceScales[i].String()
-		priceOraclesStr[i] = priceOracles[i].String()
-		lastPricesStr[i] = lastPrices[i].String()
-	}
+	var reserves entity.PoolReserves = lo.Map(balances, func(value *big.Int, _ int) string {
+		return value.String()
+	})
+	priceScalesStr := lo.Map(priceScales, func(value *big.Int, _ int) string {
+		return value.String()
+	})
+	priceOraclesStr := lo.Map(priceOracles, func(value *big.Int, _ int) string {
+		return value.String()
+	})
+	lastPricesStr := lo.Map(lastPrices, func(value *big.Int, _ int) string {
+		return value.String()
+	})
 
 	var extra = PoolTricryptoExtra{
 		A:                   a.String(),
