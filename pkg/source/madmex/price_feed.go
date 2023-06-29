@@ -1,6 +1,10 @@
 package madmex
 
-import "math/big"
+import (
+	"math/big"
+
+	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+)
 
 type PriceFeed struct {
 	RoundID *big.Int            `json:"roundId"`
@@ -27,3 +31,16 @@ const (
 	priceFeedMethodGetRoundData    = "getRoundData"
 	minRoundCount                  = 2
 )
+
+func (pf *PriceFeed) LatestRound() *big.Int {
+	return pf.RoundID
+}
+
+func (pf *PriceFeed) LatestAnswer() *big.Int {
+	return pf.Answer
+}
+
+// GetRoundData returns roundId, answer, startedAt, updatedAt, answeredInRound
+func (pf *PriceFeed) GetRoundData(roundID *big.Int) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int) {
+	return roundID, pf.Answers[roundID.String()], constant.ZeroBI, constant.ZeroBI, constant.ZeroBI
+}
