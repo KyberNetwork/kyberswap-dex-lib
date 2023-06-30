@@ -96,10 +96,6 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *Pool) GetLpToken() string {
-	return ""
-}
-
 func (p *Pool) GetMetaInfo(tokenIn string, _ string) interface{} {
 	var swapFee uint32
 	if strings.EqualFold(tokenIn, p.Info.Tokens[0]) {
