@@ -10,6 +10,9 @@ var (
 	TwoPow128 = new(big.Int).Exp(big.NewInt(2), big.NewInt(128), nil)
 
 	ZeroBI = big.NewInt(0)
+	One = big.NewInt(1)
+	Two = big.NewInt(2)
+	Three = big.NewInt(3)
 )
 
 var BONE = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
@@ -22,4 +25,14 @@ func TenPowDecimals(decimal uint8) *big.Float {
 
 func TenPowInt(decimal uint8) *big.Int {
 	return new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimal)), nil)
+}
+
+func NewBig10(s string) (res *big.Int) {
+	res, _ = new(big.Int).SetString(s, 10)
+	return res
+}
+
+func NewBig(s string) (res *big.Int) {
+	res, _ = new(big.Int).SetString(s, 0)
+	return res
 }
