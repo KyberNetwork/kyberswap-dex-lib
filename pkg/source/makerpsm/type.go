@@ -27,6 +27,8 @@ type PSM struct {
 	Vat        *Vat           `json:"vat"`
 	VatAddress common.Address `json:"-"`
 	ILK        [32]byte       `json:"-"`
+
+	To18ConversionFactor *big.Int
 }
 
 type Vat struct {
@@ -41,4 +43,13 @@ type ILK struct {
 	Line *big.Int `json:"line"` // Debt Ceiling              [rad]
 	Spot *big.Int `json:"-"`
 	Dust *big.Int `json:"-"`
+}
+
+type Extra struct {
+	PSM PSM `json:"psm"`
+}
+
+type Gas struct {
+	BuyGem  int64
+	SellGem int64
 }
