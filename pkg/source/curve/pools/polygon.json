@@ -22,5 +22,24 @@
       "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
       "0xc2132d05d31c914a87c6611c10748aeb04b58e8f"
     ]
+  },
+  {
+    "id": "0xfba3b7bb043415035220b1c44fb4756434639392",
+    "lpToken": "0xfba3b7bb043415035220b1c44fb4756434639392",
+    "type": "curve-base",
+    "aPrecision": "100",
+    "version": 0,
+    "tokens": [
+      {
+        "address": "0x750e4C4984a9e0f12978eA6742Bc1c5D248f40ed",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      },
+      {
+        "address": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      }
+    ]
   }
 ]

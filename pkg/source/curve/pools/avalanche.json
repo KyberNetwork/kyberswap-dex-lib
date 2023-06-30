@@ -158,5 +158,24 @@
       "0xc7198437980c041c805a1edcba50c1ce5db95118",
       "0x53f7c5869a859F0AeC3D334ee8B4Cf01E3492f21"
     ]
+  },
+  {
+    "id": "0xd7bb79aee866672419999a0496d99c54741d67b5",
+    "lpToken": "0xaea2e71b631fa93683bcf256a8689dfa0e094fcd",
+    "type": "curve-base",
+    "aPrecision": "100",
+    "version": 0,
+    "tokens": [
+      {
+        "address": "0xfaB550568C688d5D8A52C7d794cb93Edc26eC0eC",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      },
+      {
+        "address": "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      }
+    ]
   }
 ]
