@@ -105,8 +105,6 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.PSM.updateBalanceSellingGem(output.Amount)
 }
 
-func (p *PoolSimulator) GetLpToken() string { return "" }
-
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
 }
