@@ -83,6 +83,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeAave(
 				Swappable: true,
 			})
 		}
+		reserves = append(reserves, zeroString)
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {
 			logger.Errorf("failed to marshal static extra data, err: %v", err)
@@ -111,6 +112,7 @@ func (d *PoolTracker) getNewPoolStateTypeAave(
 
 	var (
 		initialA, futureA, initialATime, futureATime, swapFee, adminFee, offpegFee *big.Int
+		lpSupply                                                                   *big.Int
 		balances                                                                   = make([]*big.Int, len(p.Tokens))
 	)
 
@@ -165,6 +167,13 @@ func (d *PoolTracker) getNewPoolStateTypeAave(
 		Params: nil,
 	}, []interface{}{&offpegFee})
 
+	calls.AddCall(&ethrpc.Call{
+		ABI:    erc20ABI,
+		Target: p.GetLpToken(),
+		Method: erc20MethodTotalSupply,
+		Params: nil,
+	}, []interface{}{&lpSupply})
+
 	for i := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    aaveABI,
@@ -202,10 +211,11 @@ func (d *PoolTracker) getNewPoolStateTypeAave(
 		return entity.Pool{}, err
 	}
 
-	var reserves = make(entity.PoolReserves, len(balances))
-	for i := range balances {
-		reserves[i] = balances[i].String()
+	var reserves = make(entity.PoolReserves, 0, len(balances)+1)
+	for _, balance := range balances {
+		reserves = append(reserves, balance.String())
 	}
+	reserves = append(reserves, safeCastBigIntToReserve(lpSupply))
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
