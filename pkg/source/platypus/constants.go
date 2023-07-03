@@ -3,6 +3,8 @@ package platypus
 import (
 	"math/big"
 	"time"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 const (
@@ -48,3 +50,10 @@ const (
 )
 
 var bOne = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+
+var (
+	WAD = bignumber.TenPowInt(18)
+	RAY = bignumber.TenPowInt(27)
+
+	DefaultGas = Gas{Swap: 88000}
+)
