@@ -17,12 +17,12 @@ func TestGetMinAmountOutExactInput(t *testing.T) {
 			{
 				outputAmount:      new(big.Int).SetInt64(987654321),
 				slippageTolerance: new(big.Int).SetInt64(1500),
-				minAmountOut:      new(big.Int).SetInt64(858829844),
+				minAmountOut:      new(big.Int).SetInt64(839506172),
 			},
 			{
 				outputAmount:      new(big.Int).SetInt64(123456),
 				slippageTolerance: new(big.Int).SetInt64(2000),
-				minAmountOut:      new(big.Int).SetInt64(102880),
+				minAmountOut:      new(big.Int).SetInt64(98764),
 			},
 		}
 
