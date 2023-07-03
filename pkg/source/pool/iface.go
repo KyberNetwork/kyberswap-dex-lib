@@ -29,9 +29,11 @@ type IPoolSimulator interface {
 	) (*CalcAmountOutResult, error)
 	UpdateBalance(params UpdateBalanceParams)
 	CanSwapTo(address string) []string
+	CanSwapFrom(address string) []string
 	GetTokens() []string
 	GetAddress() string
 	GetExchange() string
 	GetType() string
 	GetMetaInfo(tokenIn string, tokenOut string) interface{}
+	GetTokenIndex(address string) int
 }
