@@ -7,7 +7,10 @@ package metavault
 //go:generate mockgen -destination ./mock_price_feed_reader.go -package metavault pool-service/internal/dex/metavault IPriceFeedReader
 //go:generate mockgen -destination ./mock_usdm_reader.go -package metavault pool-service/internal/dex/metavault IUSDMReader
 
-import "context"
+import (
+	"context"
+	"math/big"
+)
 
 // IVaultReader reads vault smart contract
 type IVaultReader interface {
@@ -40,4 +43,5 @@ type IUSDMReader interface {
 
 type IFastPriceFeed interface {
 	GetVersion() int
+	GetPrice(token string, refPrice *big.Int, maximise bool) *big.Int
 }
