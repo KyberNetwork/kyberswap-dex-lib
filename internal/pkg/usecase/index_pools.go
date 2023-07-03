@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 type IndexPoolsUseCase struct {
@@ -56,6 +57,7 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 				failedPoolAddresses = append(failedPoolAddresses, p.Address)
 			}
 		}
+		mempool.ReserveMany(pools)
 	}
 
 	return dto.NewIndexPoolsResult(failedPoolAddresses)

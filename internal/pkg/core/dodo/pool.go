@@ -85,7 +85,7 @@ func NewPool(entityPool entity.Pool) (*Pool, error) {
 			Info: info,
 		},
 		PoolState: poolState,
-		Tokens:    entityPool.Tokens,
+		Tokens:    entity.ClonePoolTokens(entityPool.Tokens),
 		Meta:      meta,
 		gas:       DefaultGas,
 	}, nil

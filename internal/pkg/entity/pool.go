@@ -24,6 +24,22 @@ type PoolToken struct {
 
 type PoolTokens []*PoolToken
 
+func ClonePoolTokens(poolTokens []*PoolToken) []*PoolToken {
+	var result = make([]*PoolToken, len(poolTokens))
+	for i, poolToken := range poolTokens {
+		clonePoolToken := &PoolToken{
+			Address:   poolToken.Address,
+			Name:      poolToken.Name,
+			Symbol:    poolToken.Symbol,
+			Decimals:  poolToken.Decimals,
+			Weight:    poolToken.Weight,
+			Swappable: poolToken.Swappable,
+		}
+		result[i] = clonePoolToken
+	}
+	return result
+}
+
 type Pool struct {
 	Address      string       `json:"address,omitempty"`
 	ReserveUsd   float64      `json:"reserveUsd,omitempty"`
@@ -82,4 +98,25 @@ func (p Pool) HasReserves() bool {
 // HasAmplifiedTvl check if the pool has amplifiedTvl or not
 func (p Pool) HasAmplifiedTvl() bool {
 	return p.AmplifiedTvl > 0
+}
+
+func (p *Pool) Clear() {
+	p.Type = ""
+	if p.Reserves != nil {
+		// Keep allocated memory
+		p.Reserves = p.Reserves[:0]
+	}
+	p.Address = ""
+	if p.Tokens != nil {
+		// Keep allocated memory
+		p.Tokens = p.Tokens[:0]
+	}
+	p.Extra = ""
+	p.StaticExtra = ""
+	p.Exchange = ""
+	p.ReserveUsd = 0
+	p.Timestamp = 0
+	p.SwapFee = 0
+	p.AmplifiedTvl = 0
+	p.TotalSupply = ""
 }

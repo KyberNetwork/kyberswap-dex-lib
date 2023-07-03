@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/common"
 	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 type PoolManager struct {
@@ -48,6 +49,7 @@ func (m *PoolManager) GetPoolByAddress(
 		common.PoolFilterSources(dex),
 		common.PoolFilterHasReserveOrAmplifiedTvl,
 	)
+	defer mempool.ReserveMany(pools)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +78,7 @@ func (m *PoolManager) listPools(ctx context.Context, addresses []string, filters
 	)
 
 	curveMetaBasePools, err := m.listCurveMetaBasePools(ctx, filteredPools)
+
 	if err != nil {
 		return nil, err
 	}

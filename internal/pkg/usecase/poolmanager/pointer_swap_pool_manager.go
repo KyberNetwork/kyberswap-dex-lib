@@ -12,6 +12,7 @@ import (
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 type PointerSwapPoolManager struct {
@@ -41,7 +42,7 @@ func (s *LockedState) update(poolByAddress map[string]poolPkg.IPool) {
 	s.lock.Unlock()
 }
 
-// NewPointerSwapPoolManager This will take a while to start since it will generate a copy of all Pool
+// NewPointerSwapPoolManager This will take a while to start since it will generate a copy of all PoolSlice
 func NewPointerSwapPoolManager(
 	poolRepository IPoolRepository,
 	poolFactory IPoolFactory,
@@ -133,6 +134,8 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 		return resultPoolByAddress
 	}
 
+	defer mempool.ReserveMany(poolEntities)
+
 	filteredPoolEntities := make([]*entity.Pool, 0, len(poolEntities))
 	for i := range poolEntities {
 		if dexSet.Has(poolEntities[i].Exchange) {
@@ -167,6 +170,7 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 	filteredPoolAddress := p.filterBlacklistedAddresses(poolAddresses)
 
 	poolEntities, err := p.poolRepository.FindByAddresses(ctx, filteredPoolAddress)
+	defer mempool.ReserveMany(poolEntities)
 	if err != nil {
 		return err
 	}

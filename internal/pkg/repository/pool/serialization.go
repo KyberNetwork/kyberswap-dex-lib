@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 func encodePool(p entity.Pool) (string, error) {
@@ -16,12 +17,14 @@ func encodePool(p entity.Pool) (string, error) {
 }
 
 func decodePool(address string, data string) (*entity.Pool, error) {
-	var pool entity.Pool
-	if err := json.Unmarshal([]byte(data), &pool); err != nil {
+	pool := mempool.EntityPool.Get().(*entity.Pool)
+	// clear old data when get exist from mempool
+	pool.Clear()
+	if err := json.Unmarshal([]byte(data), pool); err != nil {
 		return nil, err
 	}
 
 	pool.Address = address
 
-	return &pool, nil
+	return pool, nil
 }

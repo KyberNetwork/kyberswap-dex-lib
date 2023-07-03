@@ -68,7 +68,7 @@ func NewPool(entityPool entity.Pool) (*Pool, error) {
 		sellOrderIDs:  sellOrderIDs,
 		buyOrderIDs:   buyOrderIDs,
 		ordersMapping: ordersMapping,
-		tokens:        entityPool.Tokens,
+		tokens:        entity.ClonePoolTokens(entityPool.Tokens),
 	}, nil
 }
 

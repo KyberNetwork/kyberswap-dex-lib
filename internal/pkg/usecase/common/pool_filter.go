@@ -1,6 +1,9 @@
 package common
 
-import "github.com/KyberNetwork/router-service/internal/pkg/entity"
+import (
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
+)
 
 func FilterPools(pools []*entity.Pool, filters ...PoolFilter) []*entity.Pool {
 	filteredPools := make([]*entity.Pool, 0, len(pools))
@@ -16,6 +19,7 @@ func FilterPools(pools []*entity.Pool, filters ...PoolFilter) []*entity.Pool {
 		}
 
 		if !valid {
+			mempool.EntityPool.Put(pool)
 			continue
 		}
 

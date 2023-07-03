@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
@@ -208,6 +209,8 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 		}
 
 		pools, err := redisRepository.FindByAddresses(context.Background(), []string{"address1", "address2", "address4"})
+		defer mempool.ReserveMany(pools)
+
 		expectedPools := []*entity.Pool{
 			{
 				Address:      "address1",
@@ -300,6 +303,7 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 
 		redisRepository := NewRedisRepository(db.Client, redisRepositoryConfig)
 		pools, err := redisRepository.FindByAddresses(context.Background(), nil)
+		defer mempool.ReserveMany(pools)
 
 		assert.Nil(t, pools)
 		assert.Nil(t, err)
@@ -328,6 +332,7 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 		redisRepository := NewRedisRepository(db.Client, redisRepositoryConfig)
 		redisServer.Close()
 		pools, err := redisRepository.FindByAddresses(context.Background(), []string{"address1"})
+		defer mempool.ReserveMany(pools)
 
 		assert.Error(t, err)
 		assert.Nil(t, pools)
