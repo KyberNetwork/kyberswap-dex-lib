@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ironstable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido"
+	lido_steth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido-steth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/madmex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/makerpsm"
@@ -229,6 +230,15 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return lido.NewPoolsListUpdater(&cfg), nil
+	case lido_steth.DexTypeLidoStETH:
+		var cfg lido_steth.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return lido_steth.NewPoolsListUpdater(&cfg), nil
 	case gmx.DexTypeGmx:
 		var cfg gmx.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
@@ -430,6 +440,8 @@ func NewPoolTrackerHandler(
 
 	case lido.DexTypeLido:
 		return lido.NewPoolTracker(ethrpcClient), nil
+	case lido_steth.DexTypeLidoStETH:
+		return lido_steth.NewPoolTracker(ethrpcClient), nil
 	case gmx.DexTypeGmx:
 		var cfg gmx.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
