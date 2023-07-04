@@ -2,7 +2,6 @@ package velodrome
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
@@ -93,10 +92,4 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	}).Infof("[%s] Finish getting new state of pool", p.Type)
 
 	return p, nil
-}
-
-func extractStaticExtra(s string) (staticExtra StaticExtra, err error) {
-	err = json.Unmarshal([]byte(s), &staticExtra)
-
-	return
 }

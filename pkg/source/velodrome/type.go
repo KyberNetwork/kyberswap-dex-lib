@@ -29,3 +29,7 @@ type Reserves struct {
 	Reserve1           *big.Int
 	BlockTimestampLast *big.Int
 }
+
+type Gas struct {
+	Swap int64
+}
