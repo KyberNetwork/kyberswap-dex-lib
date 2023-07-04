@@ -1,5 +1,7 @@
 package limitorder
 
+import "math/big"
+
 const (
 	DexTypeLimitOrder = "limit-order"
 
@@ -11,4 +13,20 @@ const (
 	// TODO: when we has correct formula that pool's reserve can be eligible pools.
 	limitOrderPoolReserve    = "10000000000000000000"
 	LimitOrderPoolReserveUSD = 1000000000
+)
+
+var (
+	Buy  SwapSide = "BUY"
+	Sell SwapSide = "SELL"
+
+	// BasGas is base gas to executor a tx for LO.
+	BaseGas = 90000
+
+	// GasPerOrderExecutor is gas for executing an order.
+	GasPerOrderExecutor = 11100
+	// GasPerOrderRouter need to burn when sending in call data.
+	GasPerOrderRouter = 12208
+	// FallbackPercentageOfTotalMakingAmount is fallback percentage of total remain making amount with amount out.
+	// total remain making amount = total remain making amount(filled orders) + total remain making amount(fallback orders)
+	FallbackPercentageOfTotalMakingAmount = big.NewFloat(1.3)
 )
