@@ -37,7 +37,6 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	}
 
 	p.Reserves = reserves
-	p.Extra = "{}"
 	p.Timestamp = time.Now().Unix()
 
 	log.Infof("[Lido-stETH] Finish getting new state of pool")
