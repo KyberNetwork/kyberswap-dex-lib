@@ -47,3 +47,12 @@ type AmplificationParameter struct {
 	IsUpdating bool     `json:"isUpdating"`
 	Precision  *big.Int `json:"precision"`
 }
+
+type Gas struct {
+	Swap int64
+}
+
+type Meta struct {
+	VaultAddress string `json:"vault"`
+	PoolId       string `json:"poolId"`
+}
