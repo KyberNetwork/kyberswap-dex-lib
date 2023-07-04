@@ -292,13 +292,13 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			reserves[j] = zeroString
 			if poolItem.Type == poolTypeAave {
 				tokens[j] = &entity.PoolToken{
-					Address:   poolItem.Tokens[j].Address,
+					Address:   strings.ToLower(poolItem.Tokens[j].Address),
 					Weight:    defaultWeight,
 					Swappable: false,
 				}
 			} else {
 				tokens[j] = &entity.PoolToken{
-					Address:   poolItem.Tokens[j].Address,
+					Address:   strings.ToLower(poolItem.Tokens[j].Address),
 					Weight:    defaultWeight,
 					Swappable: true,
 				}
