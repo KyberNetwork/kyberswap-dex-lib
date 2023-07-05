@@ -12,6 +12,8 @@ var (
 	MinGamma         = utils.NewBig10("10000000000")
 	MaxGamma         = new(big.Int).Mul(big.NewInt(5), utils.NewBig10("10000000000000000"))
 	AMultiplier      = utils.NewBig10("10000")
+	MinA             = new(big.Int).Div(new(big.Int).Mul(big.NewInt(27), AMultiplier), big.NewInt(100)) // 27 = NCoins ** NCoins, NCoins = 3
+	MaxA             = new(big.Int).Mul(new(big.Int).Mul(big.NewInt(27), AMultiplier), big.NewInt(1000))
 	Precision        = constant.BONE
 	PriceMask        = new(big.Int).Sub(new(big.Int).Lsh(constant.One, 128), constant.One)
 	PriceSize   uint = 128

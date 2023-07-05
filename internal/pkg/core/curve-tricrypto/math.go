@@ -2,6 +2,7 @@ package curveTricrypto
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -173,6 +174,31 @@ func newton_D(ANN *big.Int, gamma *big.Int, x_unsorted []*big.Int) (*big.Int, er
 }
 
 func newtonY(ann *big.Int, gamma *big.Int, x []*big.Int, D *big.Int, i int) (*big.Int, error) {
+	// Reference: https://github.com/curvefi/curve-crypto-contract/blob/master/contracts/tricrypto/CurveCryptoMath3.vy#L177-L184
+	if ann.Cmp(new(big.Int).Sub(MinA, constant.One)) <= 0 || ann.Cmp(new(big.Int).Add(MaxA, constant.One)) >= 0 {
+		return nil, errors.New("unsafe values A")
+	}
+
+	if gamma.Cmp(new(big.Int).Sub(MinGamma, constant.One)) <= 0 || gamma.Cmp(new(big.Int).Add(MaxGamma, constant.One)) >= 0 {
+		return nil, errors.New("unsafe values gamma")
+	}
+
+	if D.Cmp(new(big.Int).Sub(constant.TenPowInt(17), constant.One)) <= 0 {
+		return nil, errors.New("unsafe values D")
+	}
+	if D.Cmp(new(big.Int).Add(new(big.Int).Mul(constant.TenPowInt(15), constant.TenPowInt(18)), constant.One)) >= 0 {
+		return nil, errors.New("unsafe values D")
+	}
+	for k := 0; k < 3; k++ {
+		if k == i {
+			continue
+		}
+		frac := new(big.Int).Div(new(big.Int).Mul(x[k], constant.TenPowInt(18)), D)
+		if frac.Cmp(new(big.Int).Sub(constant.TenPowInt(16), constant.One)) <= 0 || frac.Cmp(new(big.Int).Add(constant.TenPowInt(20), constant.One)) >= 0 {
+			return nil, fmt.Errorf("unsafe values x[%d]", i)
+		}
+	}
+
 	var nCoins = len(x)
 	var nCoinBi = big.NewInt(int64(nCoins))
 	var y = new(big.Int).Div(D, nCoinBi)

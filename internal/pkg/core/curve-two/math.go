@@ -202,6 +202,22 @@ func newtonD(ANN *big.Int, gamma *big.Int, xUnsorted []*big.Int) (*big.Int, erro
 }
 
 func newtonY(ann *big.Int, gamma *big.Int, x []*big.Int, D *big.Int, i int) (*big.Int, error) {
+	// Reference: https://github.com/curvefi/curve-crypto-contract/blob/master/contracts/two/CurveCryptoSwap2ETH.vy#L346-L349
+	if ann.Cmp(new(big.Int).Sub(MinA, constant.One)) <= 0 || ann.Cmp(new(big.Int).Add(MaxA, constant.One)) >= 0 {
+		return nil, errors.New("unsafe values A")
+	}
+
+	if gamma.Cmp(new(big.Int).Sub(MinGamma, constant.One)) <= 0 || gamma.Cmp(new(big.Int).Add(MaxGamma, constant.One)) >= 0 {
+		return nil, errors.New("unsafe values gamma")
+	}
+
+	if D.Cmp(new(big.Int).Sub(constant.TenPowInt(17), constant.One)) <= 0 {
+		return nil, errors.New("unsafe values D")
+	}
+	if D.Cmp(new(big.Int).Add(new(big.Int).Mul(constant.TenPowInt(15), constant.TenPowInt(18)), constant.One)) >= 0 {
+		return nil, errors.New("unsafe values D")
+	}
+
 	var nCoins = len(x)
 	var nCoinBi = big.NewInt(int64(nCoins))
 	var y = new(big.Int).Div(D, nCoinBi)
