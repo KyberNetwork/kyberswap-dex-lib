@@ -61,6 +61,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			}).Errorf("failed to unmarshal metadataBytes")
 			return nil, nil, err
 		}
+	} else {
+		d.hasInitialized = false
 	}
 
 	var (
