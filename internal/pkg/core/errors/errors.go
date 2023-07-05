@@ -18,4 +18,6 @@ var (
 	ErrBasePoolExchangeNotSupported  = errors.New("not support exchange in base pool")
 	ErrTokenToUnderLyingNotSupported = errors.New("not support exchange from base pool token to its underlying")
 	ErrProvidersNotSupported         = errors.New("not support curve providers for this dex")
+
+	ErrDenominatorZero = errors.New("denominator should not be 0")
 )

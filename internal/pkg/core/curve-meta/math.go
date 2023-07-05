@@ -8,13 +8,17 @@ import (
 	errors "github.com/KyberNetwork/router-service/internal/pkg/core/errors"
 )
 
-func (t *Pool) _xp_mem(_balances []*big.Int) []*big.Int {
+func (t *Pool) _xp_mem(_balances []*big.Int) ([]*big.Int, error) {
 	var nCoins = len(_balances)
-	var ret = []*big.Int{t.RateMultiplier, t.BasePool.GetVirtualPrice()}
+	vPrice, err := t.BasePool.GetVirtualPrice()
+	if err != nil {
+		return nil, err
+	}
+	var ret = []*big.Int{t.RateMultiplier, vPrice}
 	for i := 0; i < nCoins; i += 1 {
 		ret[i] = new(big.Int).Div(new(big.Int).Mul(ret[i], _balances[i]), Precision)
 	}
-	return ret
+	return ret, nil
 }
 
 func (t *Pool) _get_D(xp []*big.Int, a *big.Int) (*big.Int, error) {
@@ -169,10 +173,17 @@ func (t *Pool) _get_y(
 }
 
 func (t *Pool) _get_dy_mem(i int, j int, _dx *big.Int, _balances []*big.Int) (*big.Int, *big.Int, error) {
-	var rates = []*big.Int{t.RateMultiplier, t.BasePool.GetVirtualPrice()}
-	var xp = t._xp_mem(_balances)
+	vPrice, err := t.BasePool.GetVirtualPrice()
+	if err != nil {
+		return nil, nil, err
+	}
+	var rates = []*big.Int{t.RateMultiplier, vPrice}
+	xp, err := t._xp_mem(_balances)
+	if err != nil {
+		return nil, nil, err
+	}
 	var x = new(big.Int).Add(xp[i], new(big.Int).Div(new(big.Int).Mul(_dx, rates[i]), Precision))
-	var y, err = t._get_y(i, j, x, xp)
+	y, err := t._get_y(i, j, x, xp)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -194,8 +205,15 @@ func (t *Pool) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *big.Int, 
 	var nCoins = len(t.Info.Tokens)
 	var maxCoin = nCoins - 1
 	var baseNCoins = len(t.BasePool.GetInfo().Tokens)
-	var rates = []*big.Int{t.RateMultiplier, t.BasePool.GetVirtualPrice()}
-	var xp = t._xp_mem(t.Info.Reserves)
+	vPrice, err := t.BasePool.GetVirtualPrice()
+	if err != nil {
+		return nil, nil, err
+	}
+	var rates = []*big.Int{t.RateMultiplier, vPrice}
+	xp, err := t._xp_mem(t.Info.Reserves)
+	if err != nil {
+		return nil, nil, err
+	}
 	var base_i = i - maxCoin
 	var base_j = j - maxCoin
 	var meta_i = maxCoin
@@ -228,7 +246,7 @@ func (t *Pool) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *big.Int, 
 			return t.BasePool.GetDy(base_i, base_j, _dx)
 		}
 	}
-	var y, err = t._get_y(meta_i, meta_j, x, xp)
+	y, err := t._get_y(meta_i, meta_j, x, xp)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -248,17 +266,24 @@ func (t *Pool) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *big.Int, 
 
 func (t *Pool) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 	var nCoins = len(t.Info.Tokens)
+	vPrice, err := t.BasePool.GetVirtualPrice()
+	if err != nil {
+		return nil, err
+	}
 	var rates = []*big.Int{
 		t.RateMultiplier,
-		t.BasePool.GetVirtualPrice(),
+		vPrice,
 	}
 	var old_balances = make([]*big.Int, nCoins)
 	for k := 0; k < nCoins; k += 1 {
 		old_balances[k] = t.Info.Reserves[k]
 	}
-	var xp = t._xp_mem(old_balances)
+	xp, err := t._xp_mem(old_balances)
+	if err != nil {
+		return nil, err
+	}
 	var x = new(big.Int).Add(xp[i], new(big.Int).Div(new(big.Int).Mul(dx, rates[i]), Precision))
-	var y, err = t._get_y(i, j, x, xp)
+	y, err := t._get_y(i, j, x, xp)
 	if err != nil {
 		return nil, err
 	}
@@ -276,9 +301,13 @@ func (t *Pool) ExchangeUnderlying(i int, j int, dx *big.Int) (*big.Int, error) {
 	var nCoins = len(t.Info.Tokens)
 	var maxCoins = nCoins - 1
 	var baseNCoins = len(t.BasePool.GetInfo().Tokens)
+	vPrice, err := t.BasePool.GetVirtualPrice()
+	if err != nil {
+		return nil, err
+	}
 	var rates = []*big.Int{
 		t.RateMultiplier,
-		t.BasePool.GetVirtualPrice(),
+		vPrice,
 	}
 	var base_i = i - maxCoins
 	var base_j = j - maxCoins
@@ -296,7 +325,10 @@ func (t *Pool) ExchangeUnderlying(i int, j int, dx *big.Int) (*big.Int, error) {
 		for k := 0; k < nCoins; k += 1 {
 			old_balances[k] = t.Info.Reserves[k]
 		}
-		var xp = t._xp_mem(old_balances)
+		xp, err := t._xp_mem(old_balances)
+		if err != nil {
+			return nil, err
+		}
 		var x = constant.Zero
 		if base_i < 0 {
 			x = new(big.Int).Add(xp[i], new(big.Int).Div(new(big.Int).Mul(dx, rates[i]), Precision))
@@ -314,7 +346,7 @@ func (t *Pool) ExchangeUnderlying(i int, j int, dx *big.Int) (*big.Int, error) {
 			x = new(big.Int).Div(new(big.Int).Mul(dx, rates[maxCoins]), Precision)
 			x = new(big.Int).Add(x, xp[maxCoins])
 		}
-		var y, err = t._get_y(meta_i, meta_j, x, xp)
+		y, err := t._get_y(meta_i, meta_j, x, xp)
 		if err != nil {
 			return nil, err
 		}

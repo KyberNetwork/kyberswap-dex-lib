@@ -116,7 +116,9 @@ func TestGetDyVirtualPrice(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	assert.Equal(t, utils.NewBig10("1077638023314146944"), p.GetVirtualPrice())
+	v, err := p.GetVirtualPrice()
+	require.Nil(t, err)
+	assert.Equal(t, utils.NewBig10("1077638023314146944"), v)
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {

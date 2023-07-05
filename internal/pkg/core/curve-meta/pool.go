@@ -25,7 +25,7 @@ type ICurveBasePool interface {
 	GetInfo() pool.PoolInfo
 	GetLpToken() string
 	GetTokenIndex(address string) int
-	GetVirtualPrice() *big.Int
+	GetVirtualPrice() (*big.Int, error)
 	GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error)
 	CalculateTokenAmount(amounts []*big.Int, deposit bool) (*big.Int, error)
 	CalculateWithdrawOneCoin(tokenAmount *big.Int, i int) (*big.Int, *big.Int, error)
