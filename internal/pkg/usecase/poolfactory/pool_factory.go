@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/balancerstable"
@@ -62,40 +63,26 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool) []pool
 	span, _ := tracer.StartSpanFromContext(ctx, "poolFactory.NewPoolByAddress")
 	defer span.Finish()
 
-	curveBasePoolByAddress := f.getCurveBasePoolByAddress(pools)
-	curvePlainOraclePoolByAddress := f.getCurvePlainOraclePoolByAddress(pools)
-
-	basePools := combinePoolsMap(curveBasePoolByAddress, curvePlainOraclePoolByAddress)
+	curveBasePoolByAddress, curveBasePoolAddressSet := f.getCurveMetaBasePoolByAddress(pools)
 
 	iPools := make([]poolPkg.IPool, 0, len(pools))
 	for _, pool := range pools {
-		switch pool.Type {
-		case constant.PoolTypes.CurveBase:
+		if curveBasePoolAddressSet.Has(pool.Address) {
 			iPool, ok := curveBasePoolByAddress[pool.Address]
 			if !ok {
-				continue // NOTE: already warned in getCurveBasePoolByAddress
+				continue // NOTE: already warned before
 			}
 
-			iPools = append(iPools, iPool)
-
-		case constant.PoolTypes.CurvePlainOracle:
-			iPool, ok := curvePlainOraclePoolByAddress[pool.Address]
-			if !ok {
-				continue // NOTE: already warned in getCurvePlainOraclePoolByAddress
-			}
-
-			iPools = append(iPools, iPool)
-
-		case constant.PoolTypes.CurveMeta:
-			iPool, err := f.newCurveMeta(*pool, basePools)
+			iPools = append(iPools, iPool.(poolPkg.IPool)) // iPool here is ICurveBasePool and surely is a poolPkg.IPool
+		} else if pool.Type == constant.PoolTypes.CurveMeta {
+			iPool, err := f.newCurveMeta(*pool, curveBasePoolByAddress)
 			if err != nil {
 				logger.Debugf(err.Error())
 				continue
 			}
 
 			iPools = append(iPools, iPool)
-
-		default:
+		} else {
 			iPool, err := f.newPool(*pool)
 			if err != nil {
 				logger.Debug(err.Error())
@@ -113,40 +100,26 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 	span, _ := tracer.StartSpanFromContext(ctx, "poolFactory.NewPoolByAddress")
 	defer span.Finish()
 
-	curveBasePoolByAddress := f.getCurveBasePoolByAddress(pools)
-	curvePlainOraclePoolByAddress := f.getCurvePlainOraclePoolByAddress(pools)
-
-	basePools := combinePoolsMap(curveBasePoolByAddress, curvePlainOraclePoolByAddress)
+	curveBasePoolByAddress, curveBasePoolAddressSet := f.getCurveMetaBasePoolByAddress(pools)
 
 	poolByAddress := make(map[string]poolPkg.IPool, len(pools))
 	for _, pool := range pools {
-		switch pool.Type {
-		case constant.PoolTypes.CurveBase:
+		if curveBasePoolAddressSet.Has(pool.Address) {
 			iPool, ok := curveBasePoolByAddress[pool.Address]
 			if !ok {
-				continue // NOTE: already warned in getCurveBasePoolByAddress
+				continue // NOTE: already warned before
 			}
 
-			poolByAddress[iPool.GetAddress()] = iPool
-
-		case constant.PoolTypes.CurvePlainOracle:
-			iPool, ok := curvePlainOraclePoolByAddress[pool.Address]
-			if !ok {
-				continue // NOTE: already warned in getCurvePlainOraclePoolByAddress
-			}
-
-			poolByAddress[iPool.GetAddress()] = iPool
-
-		case constant.PoolTypes.CurveMeta:
-			iPool, err := f.newCurveMeta(*pool, basePools)
+			poolByAddress[iPool.GetInfo().Address] = iPool.(poolPkg.IPool) // iPool here is ICurveBasePool and surely is a poolPkg.IPool
+		} else if pool.Type == constant.PoolTypes.CurveMeta {
+			iPool, err := f.newCurveMeta(*pool, curveBasePoolByAddress)
 			if err != nil {
 				logger.Debugf(err.Error())
 				continue
 			}
 
 			poolByAddress[iPool.GetAddress()] = iPool
-
-		default:
+		} else {
 			iPool, err := f.newPool(*pool)
 			if err != nil {
 				logger.Debugf(err.Error())
@@ -160,48 +133,50 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 	return poolByAddress
 }
 
-func (f *PoolFactory) getCurveBasePoolByAddress(
+func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 	entityPools []*entity.Pool,
-) map[string]*curveBase.Pool {
-	curveBasePoolByAddress := make(map[string]*curveBase.Pool)
+) (map[string]curveMeta.ICurveBasePool, sets.String) {
+	basePoolByAddress := make(map[string]curveMeta.ICurveBasePool)
+	basePoolAddresses := sets.NewString()
 
 	for _, entityPool := range entityPools {
-		if entityPool.Type != constant.PoolTypes.CurveBase {
+		switch entityPool.Type {
+		case constant.PoolTypes.CurveBase:
+			{
+				basePoolAddresses.Insert(entityPool.Address)
+				basePool, err := f.newCurveBase(*entityPool)
+				if err != nil {
+					logger.Warn(err.Error())
+					continue
+				}
+				basePoolByAddress[basePool.GetAddress()] = basePool
+			}
+		case constant.PoolTypes.CurvePlainOracle:
+			{
+				basePoolAddresses.Insert(entityPool.Address)
+				basePool, err := f.newCurvePlainOracle(*entityPool)
+				if err != nil {
+					logger.Warn(err.Error())
+					continue
+				}
+				basePoolByAddress[basePool.GetAddress()] = basePool
+			}
+		case constant.PoolTypes.CurveAave:
+			{
+				basePoolAddresses.Insert(entityPool.Address)
+				basePool, err := f.newCurveAAVE(*entityPool)
+				if err != nil {
+					logger.Warn(err.Error())
+					continue
+				}
+				basePoolByAddress[basePool.GetAddress()] = basePool
+			}
+		default:
 			continue
 		}
 
-		curveBasePool, err := f.newCurveBase(*entityPool)
-		if err != nil {
-			logger.Warn(err.Error())
-			continue
-		}
-
-		curveBasePoolByAddress[curveBasePool.GetAddress()] = curveBasePool
 	}
-
-	return curveBasePoolByAddress
-}
-
-func (f *PoolFactory) getCurvePlainOraclePoolByAddress(
-	entityPools []*entity.Pool,
-) map[string]*curvePlainOracle.Pool {
-	curvePlainOraclePoolByAddress := make(map[string]*curvePlainOracle.Pool)
-
-	for _, entityPool := range entityPools {
-		if entityPool.Type != constant.PoolTypes.CurvePlainOracle {
-			continue
-		}
-
-		curvePlainOraclePool, err := f.newCurvePlainOracle(*entityPool)
-		if err != nil {
-			logger.Warn(err.Error())
-			continue
-		}
-
-		curvePlainOraclePoolByAddress[curvePlainOraclePool.GetAddress()] = curvePlainOraclePool
-	}
-
-	return curvePlainOraclePoolByAddress
+	return basePoolByAddress, basePoolAddresses
 }
 
 // newPool receives entity.Pool, based on its type to return matched factory method
@@ -688,19 +663,4 @@ func (f *PoolFactory) newSyncswapStable(entityPool entity.Pool) (*syncswapstable
 	}
 
 	return corePool, nil
-}
-
-func combinePoolsMap(
-	curveBasePools map[string]*curveBase.Pool,
-	curvePlainOraclePools map[string]*curvePlainOracle.Pool,
-) map[string]curveMeta.ICurveBasePool {
-	m := make(map[string]curveMeta.ICurveBasePool)
-	for k, v := range curveBasePools {
-		m[k] = v
-	}
-	for k, v := range curvePlainOraclePools {
-		m[k] = v
-	}
-
-	return m
 }

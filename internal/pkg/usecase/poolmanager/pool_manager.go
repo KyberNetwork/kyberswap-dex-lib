@@ -3,9 +3,11 @@ package poolmanager
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"sync"
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
@@ -77,7 +79,7 @@ func (m *PoolManager) listPools(ctx context.Context, addresses []string, filters
 		filters...,
 	)
 
-	curveMetaBasePools, err := m.listCurveMetaBasePools(ctx, filteredPools)
+	curveMetaBasePools, err := listCurveMetaBasePools(ctx, m.poolRepository, filteredPools)
 
 	if err != nil {
 		return nil, err
@@ -91,8 +93,9 @@ func (m *PoolManager) listPools(ctx context.Context, addresses []string, filters
 // - for each curveMeta pool
 //   - decode its staticExtra to get its basePool address
 //   - if it hasn't been fetched, fetch the pool data
-func (m *PoolManager) listCurveMetaBasePools(
+func listCurveMetaBasePools(
 	ctx context.Context,
+	poolRepository IPoolRepository,
 	pools []*entity.Pool,
 ) ([]*entity.Pool, error) {
 	var (
@@ -100,7 +103,7 @@ func (m *PoolManager) listCurveMetaBasePools(
 		alreadyFetchedSet = map[string]bool{}
 
 		// poolAddresses contains pool addresses to fetch
-		poolAddresses []string
+		poolAddresses = sets.NewString()
 	)
 
 	for _, pool := range pools {
@@ -109,6 +112,10 @@ func (m *PoolManager) listCurveMetaBasePools(
 		}
 
 		if pool.Type == constant.PoolTypes.CurvePlainOracle {
+			alreadyFetchedSet[pool.Address] = true
+		}
+
+		if pool.Type == constant.PoolTypes.CurveAave {
 			alreadyFetchedSet[pool.Address] = true
 		}
 	}
@@ -136,10 +143,10 @@ func (m *PoolManager) listCurveMetaBasePools(
 			continue
 		}
 
-		poolAddresses = append(poolAddresses, staticExtra.BasePool)
+		poolAddresses.Insert(strings.ToLower(staticExtra.BasePool))
 	}
 
-	return m.poolRepository.FindByAddresses(ctx, poolAddresses)
+	return poolRepository.FindByAddresses(ctx, poolAddresses.List())
 }
 
 func (m *PoolManager) filterBlacklistedAddresses(addresses []string) []string {

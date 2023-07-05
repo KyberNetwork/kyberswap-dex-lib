@@ -143,9 +143,13 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 		}
 	}
 
-	//Note, when base pool is not fetched from DB, but curve-meta is fetched from DB -> cannot init curve-meta from factory
-	//Skipping this case because it is unlikely and the logic to fix this is complicated
-	//To fix: unmarshall curve-meta to get basePool address, fetch base pools from DB, pass both to factory
+	curveMetaBasePools, err := listCurveMetaBasePools(ctx, p.poolRepository, filteredPoolEntities)
+	if err != nil {
+		logger.Debugf("failed to load curve-meta base pool %v", err)
+		return resultPoolByAddress
+	}
+	filteredPoolEntities = append(filteredPoolEntities, curveMetaBasePools...)
+
 	poolInterfaces := p.poolFactory.NewPools(ctx, filteredPoolEntities)
 	for i := range poolInterfaces {
 		resultPoolByAddress[poolInterfaces[i].GetAddress()] = poolInterfaces[i]
