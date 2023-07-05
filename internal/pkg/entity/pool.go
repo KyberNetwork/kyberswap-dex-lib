@@ -104,11 +104,22 @@ func (p *Pool) Clear() {
 	p.Type = ""
 	if p.Reserves != nil {
 		// Keep allocated memory
+		for i := range p.Reserves {
+			p.Reserves[i] = "0"
+		}
 		p.Reserves = p.Reserves[:0]
 	}
 	p.Address = ""
 	if p.Tokens != nil {
 		// Keep allocated memory
+		for i := range p.Tokens {
+			p.Tokens[i].Weight = 0
+			p.Tokens[i].Name = ""
+			p.Tokens[i].Swappable = false
+			p.Tokens[i].Address = ""
+			p.Tokens[i].Symbol = ""
+			p.Tokens[i].Decimals = 0
+		}
 		p.Tokens = p.Tokens[:0]
 	}
 	p.Extra = ""
