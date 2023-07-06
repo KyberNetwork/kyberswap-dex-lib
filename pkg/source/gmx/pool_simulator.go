@@ -123,26 +123,6 @@ func (p *Pool) CanSwapTo(address string) []string {
 	return swappableTokens
 }
 
-func (p *Pool) GetLpToken() string { return "" }
-
-func (p *Pool) GetMidPrice(tokenIn string, tokenOut string, base *big.Int) *big.Int {
-	amountOutAfterFees, feeAmount, err := p.getAmountOut(tokenIn, tokenOut, base)
-	if err != nil {
-		return nil
-	}
-
-	return new(big.Int).Add(amountOutAfterFees, feeAmount)
-}
-
-func (p *Pool) CalcExactQuote(tokenIn string, tokenOut string, base *big.Int) *big.Int {
-	amountOutAfterFees, feeAmount, err := p.getAmountOut(tokenIn, tokenOut, base)
-	if err != nil {
-		return bignumber.ZeroBI
-	}
-
-	return new(big.Int).Add(amountOutAfterFees, feeAmount)
-}
-
 func (p *Pool) GetMetaInfo(_ string, _ string) interface{} { return nil }
 
 // getAmountOut returns amountOutAfterFees, feeAmount and error
