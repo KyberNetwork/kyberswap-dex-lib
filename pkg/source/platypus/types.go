@@ -103,3 +103,7 @@ type AssetState struct {
 	UnderlyingToken  common.Address
 	AggregateAccount common.Address
 }
+
+type Gas struct {
+	Swap int64
+}
