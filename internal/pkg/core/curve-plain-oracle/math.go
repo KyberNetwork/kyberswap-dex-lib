@@ -419,7 +419,10 @@ func (t *Pool) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, er
 func (t *Pool) GetVirtualPrice() (*big.Int, error) {
 	var xp = t._xp()
 	var A = t._A()
-	var D, _ = t.getD(xp, A)
+	var D, err = t.getD(xp, A)
+	if err != nil {
+		return nil, err
+	}
 	if t.LpSupply.Cmp(constant.Zero) == 0 {
 		return nil, errors.ErrDenominatorZero
 	}

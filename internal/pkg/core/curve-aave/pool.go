@@ -319,7 +319,10 @@ func (t *AavePool) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error) 
 
 func (t *AavePool) GetVirtualPrice() (*big.Int, error) {
 	var A = _getAPrecise(t.FutureATime, t.FutureA, t.InitialATime, t.InitialA)
-	var D, _ = t.getDPrecision(t.Info.Reserves, A)
+	D, err := t.getDPrecision(t.Info.Reserves, A)
+	if err != nil {
+		return nil, err
+	}
 	if t.LpSupply.Cmp(constant.Zero) == 0 {
 		return nil, errors.ErrDenominatorZero
 	}
