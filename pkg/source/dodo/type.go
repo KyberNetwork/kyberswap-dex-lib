@@ -71,3 +71,17 @@ type FeeRate struct {
 	MtFeeRate *big.Int `json:"mtFeeRate"`
 	LpFeeRate *big.Int `json:"lpFeeRate"`
 }
+
+type Meta struct {
+	Type             string `json:"type"`
+	DodoV1SellHelper string `json:"dodoV1SellHelper"`
+	BaseToken        string `json:"baseToken"`
+	QuoteToken       string `json:"quoteToken"`
+}
+
+type Gas struct {
+	SellBaseV1 int64
+	BuyBaseV1  int64
+	SellBaseV2 int64
+	BuyBaseV2  int64
+}

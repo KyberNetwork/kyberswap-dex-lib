@@ -39,6 +39,12 @@ const (
 	defaultTokenDecimals         = 18
 
 	zeroString = "0"
+
+	TypeV1Pool = "CLASSICAL"
+
+	rStatusOne      = 0
+	rStatusAboveOne = 1
+	rStatusBelowOne = 2
 )
 
 var (
@@ -51,5 +57,12 @@ var (
 		subgraphPoolTypeDodoStable:         poolTypeDodoStable,
 		subgraphPoolTypeDodoVendingMachine: poolTypeDodoVendingMachine,
 		subgraphPoolTypeDodoPrivate:        poolTypeDodoPrivate,
+	}
+
+	DefaultGas = Gas{
+		SellBaseV1: 170000,
+		BuyBaseV1:  224000,
+		SellBaseV2: 128000,
+		BuyBaseV2:  116000,
 	}
 )
