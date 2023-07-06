@@ -34,6 +34,12 @@ func (t *Pool) CanSwapTo(address string) []string {
 	return result
 }
 
+// by default pool is bi-directional so just call CanSwapTo here
+// Pools with custom logic should override this method
+func (t *Pool) CanSwapFrom(address string) []string {
+	return t.CanSwapTo(address)
+}
+
 func (t *Pool) GetAddress() string {
 	return t.Info.Address
 }
