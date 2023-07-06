@@ -130,10 +130,6 @@ func (p *Pool) UpdateBalance(
 	p.AssetByToken[params.TokenAmountOut.Token] = toAsset
 }
 
-func (p *Pool) GetLpToken() string {
-	return ""
-}
-
 func (p *Pool) GetMidPrice(
 	tokenIn string,
 	tokenOut string,
