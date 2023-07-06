@@ -57,7 +57,8 @@ func Validate(poolByAddress map[string]poolPkg.IPool, route *valueobject.Route) 
 				continue
 			}
 
-			calcAmountOutResult, err := pool.CalcAmountOut(
+			calcAmountOutResult, err := poolPkg.CalcAmountOut(
+				pool,
 				tokenAmountIn,
 				path.Tokens[i+1].Address,
 			)

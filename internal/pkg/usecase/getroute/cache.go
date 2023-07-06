@@ -270,7 +270,7 @@ func (c *cache) summarizeSimpleRoute(
 			}
 
 			// Step 3.1.2: simulate c swap through the pool
-			result, err := pool.CalcAmountOut(tokenAmountIn, simpleSwap.TokenOutAddress)
+			result, err := poolpkg.CalcAmountOut(pool, tokenAmountIn, simpleSwap.TokenOutAddress)
 			if err != nil {
 				return nil, errors.Wrapf(
 					ErrInvalidSwap,

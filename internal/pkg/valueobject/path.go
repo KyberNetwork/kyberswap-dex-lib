@@ -106,7 +106,7 @@ func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolPkg.Token
 				poolAddress,
 			)
 		}
-		calcAmountOutResult, err := pool.CalcAmountOut(currentAmount, p.Tokens[i+1].Address)
+		calcAmountOutResult, err := poolPkg.CalcAmountOut(pool, currentAmount, p.Tokens[i+1].Address)
 		if err != nil {
 			return poolPkg.TokenAmount{}, 0, errors.Wrapf(
 				ErrInvalidSwap,

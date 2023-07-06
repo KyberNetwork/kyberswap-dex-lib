@@ -1,10 +1,14 @@
 package pool
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
+
+var ErrCalcAmountOutPanic = errors.New("calcAmountOut was panic")
 
 type IPool interface {
 	// CalcAmountOut amountOut, fee, gas
@@ -30,6 +34,22 @@ type IPool interface {
 
 type Pool struct {
 	Info PoolInfo
+}
+
+// wrap around pool.CalcAmountOut and catch panic
+func CalcAmountOut(pool IPool, tokenAmountIn TokenAmount, tokenOut string) (res *CalcAmountOutResult, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = ErrCalcAmountOutPanic
+			logger.WithFields(
+				logger.Fields{
+					"recover":     r,
+					"poolAddress": pool.GetAddress(),
+				}).Warn(err.Error())
+		}
+	}()
+
+	return pool.CalcAmountOut(tokenAmountIn, tokenOut)
 }
 
 func (t *Pool) GetInfo() PoolInfo {

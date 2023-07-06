@@ -179,7 +179,7 @@ func (a *ammAggregator) summarizeRoute(
 			}
 
 			// Step 2.1.2: simulate c swap through the pool
-			result, err := pool.CalcAmountOut(tokenAmountIn, path.Tokens[swapIdx+1].Address)
+			result, err := poolpkg.CalcAmountOut(pool, tokenAmountIn, path.Tokens[swapIdx+1].Address)
 			if err != nil {
 				return nil, errors.Wrapf(
 					ErrInvalidSwap,

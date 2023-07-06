@@ -244,7 +244,7 @@ func calcNewTokenAmountAndGas(
 	tokenOut string, tokenOutPrice float64, tokenOutDecimal uint8,
 	gasPrice *big.Float, gasTokenPrice float64,
 ) (*poolPkg.TokenAmount, int64, error) {
-	calcAmountOutResult, err := pool.CalcAmountOut(fromAmountIn, tokenOut)
+	calcAmountOutResult, err := poolPkg.CalcAmountOut(pool, fromAmountIn, tokenOut)
 	if err != nil {
 		return nil, 0, err
 	}
