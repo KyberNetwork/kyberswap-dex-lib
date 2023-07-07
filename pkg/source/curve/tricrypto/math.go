@@ -150,7 +150,7 @@ func newton_D(ANN *big.Int, gamma *big.Int, x_unsorted []*big.Int) (*big.Int, er
 		} else {
 			D = new(big.Int).Div(new(big.Int).Sub(D_minus, D_plus), constant.Two)
 		}
-		var diff = constant.ZeroBI
+		var diff *big.Int
 		if D.Cmp(D_prev) > 0 {
 			diff = new(big.Int).Sub(D, D_prev)
 		} else {
