@@ -1,7 +1,6 @@
 package madmex
 
 import (
-	"fmt"
 	"math/big"
 	"time"
 
@@ -41,15 +40,12 @@ const (
 )
 
 func (pf *FastPriceFeedV1) GetPrice(token string, refPrice *big.Int, maximise bool) *big.Int {
-	fmt.Println("ffv1 getPrice", refPrice)
 	if new(big.Int).SetInt64(time.Now().Unix()).Cmp(new(big.Int).Add(pf.LastUpdatedAt, pf.PriceDuration)) > 0 {
-		fmt.Println("ffv1 getPrice 0", refPrice)
 		return refPrice
 	}
 
 	fastPrice := pf.Prices[token]
 	if fastPrice.Cmp(constant.ZeroBI) == 0 {
-		fmt.Println("ffv1 getPrice 1", refPrice)
 		return refPrice
 	}
 

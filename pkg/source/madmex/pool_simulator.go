@@ -2,7 +2,6 @@ package madmex
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"strings"
 
@@ -142,8 +141,6 @@ func (p *Pool) getAmountOut(tokenIn string, tokenOut string, amountIn *big.Int) 
 		return nil, nil, err
 	}
 
-	fmt.Println("priceIn", priceIn, priceOut)
-
 	amountOut := new(big.Int).Div(new(big.Int).Mul(amountIn, priceIn), priceOut)
 	amountOut = p.vault.AdjustForDecimals(amountOut, tokenIn, tokenOut)
 
@@ -175,7 +172,6 @@ func (p *Pool) getAmountOut(tokenIn string, tokenOut string, amountIn *big.Int) 
 	)
 
 	feeAmount := new(big.Int).Sub(amountOut, amountOutAfterFees)
-	fmt.Println("amountOut", amountOut, amountOutAfterFees, feeBasisPoints, feeAmount)
 
 	return amountOutAfterFees, feeAmount, nil
 }

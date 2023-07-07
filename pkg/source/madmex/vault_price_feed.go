@@ -2,7 +2,6 @@ package madmex
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 
 	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -143,7 +142,6 @@ func (pf *VaultPriceFeed) UnmarshalJSON(bytes []byte) error {
 }
 
 func (pf *VaultPriceFeed) UnmarshalJSONSecondaryPriceFeed(bytes []byte) error {
-	fmt.Println("use ", pf.SecondaryPriceFeedVersion)
 	switch pf.SecondaryPriceFeedVersion {
 	case 1:
 		var priceFeed struct {
@@ -169,7 +167,6 @@ func (pf *VaultPriceFeed) UnmarshalJSONSecondaryPriceFeed(bytes []byte) error {
 		return ErrInvalidSecondaryPriceFeedVersion
 	}
 
-	fmt.Println("use ", pf.SecondaryPriceFeed)
 	return nil
 }
 
@@ -221,7 +218,6 @@ func (pf *VaultPriceFeed) getPriceV1(token string, maximise bool, includeAmmPric
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("prim price", token, price)
 
 	if includeAmmPrice && pf.IsAmmEnabled {
 		ammPrice := pf.getAmmPrice(token)
@@ -233,18 +229,13 @@ func (pf *VaultPriceFeed) getPriceV1(token string, maximise bool, includeAmmPric
 				price = ammPrice
 			}
 		}
-		fmt.Println("ammPrice", token, ammPrice)
 	}
-	fmt.Println("ammPrice", token, price, includeAmmPrice, pf.IsAmmEnabled)
 
 	if pf.IsSecondaryPriceEnabled {
 		price = pf.getSecondaryPrice(token, price, maximise)
-		fmt.Println("2nd", token, price)
 	}
-	fmt.Println("2nd price", token, price)
 
 	if pf.StrictStableTokens[token] {
-		fmt.Println("strict", token)
 		var delta *big.Int
 		if price.Cmp(OneUSD) > 0 {
 			delta = new(big.Int).Sub(price, OneUSD)
