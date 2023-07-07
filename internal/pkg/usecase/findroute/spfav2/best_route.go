@@ -78,18 +78,17 @@ func (f *spfav2Finder) splitAmountIn(input findroute.Input, data findroute.Finde
 		// But we need to account for the f.MinPartUsd requirement by merging these splits
 		maxNumSplits = int64(constant.OneHundredPercent / f.distributionPercent)
 
-		amountInPerSplit    = new(big.Int).Div(amountInBigInt, big.NewInt(maxNumSplits))
-		amountInPerSplitUsd = utils.CalcTokenAmountUsd(amountInPerSplit, tokenInDecimal, tokenInPrice)
+		amountInPerSplit = new(big.Int).Div(amountInBigInt, big.NewInt(maxNumSplits))
 	)
-
-	var minSplitsToMeetMinUsdRequirement int64
-	if utils.Float64AlmostEqual(amountInPerSplitUsd, 0) {
-		minSplitsToMeetMinUsdRequirement = 1
-	} else {
-		minSplitsToMeetMinUsdRequirement = int64(math.Max(math.Ceil(f.minPartUSD/amountInPerSplitUsd), 1))
+	if amountInPerSplit.Cmp(constant.Zero) == 0 {
+		amountInPerSplit = constant.One
 	}
 
 	var (
+		amountInPerSplitUsd = utils.CalcTokenAmountUsd(amountInPerSplit, tokenInDecimal, tokenInPrice)
+
+		minSplitsToMeetMinUsdRequirement = int64(math.Max(math.Ceil(f.minPartUSD/amountInPerSplitUsd), 1))
+
 		// the actual number of splits that we would make, considering the f.MinPartUSD requirement
 		trueNumSplits           = maxNumSplits / minSplitsToMeetMinUsdRequirement
 		trueAmountInPerSplit    = new(big.Int).Mul(amountInPerSplit, big.NewInt(minSplitsToMeetMinUsdRequirement))
