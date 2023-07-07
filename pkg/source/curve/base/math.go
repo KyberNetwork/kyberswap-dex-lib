@@ -456,9 +456,15 @@ func (t *PoolBaseSimulator) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) 
 	return dy, nil
 }
 
-func (t *PoolBaseSimulator) GetVirtualPrice() *big.Int {
+func (t *PoolBaseSimulator) GetVirtualPrice() (*big.Int, error) {
 	var xp = t._xp()
 	var A = t._A()
-	var D, _ = t.getD(xp, A)
-	return new(big.Int).Div(new(big.Int).Mul(D, Precision), t.LpSupply)
+	var D, err = t.getD(xp, A)
+	if err != nil {
+		return nil, err
+	}
+	if t.LpSupply.Cmp(bignumber.ZeroBI) == 0 {
+		return nil, ErrDenominatorZero
+	}
+	return new(big.Int).Div(new(big.Int).Mul(D, Precision), t.LpSupply), nil
 }

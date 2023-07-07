@@ -13,4 +13,5 @@ var (
 	ErrTokenNotFound                = errors.New("token not found")
 	ErrWithdrawMoreThanAvailable    = errors.New("cannot withdraw more than available")
 	ErrD1LowerThanD0                = errors.New("d1 <= d0")
+	ErrDenominatorZero              = errors.New("denominator should not be 0")
 )
