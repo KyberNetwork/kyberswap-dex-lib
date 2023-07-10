@@ -20,44 +20,42 @@ func PackUniSwap(chainID valueobject.ChainID, encodingSwap types.EncodingSwap) (
 	return packUniSwap(swap)
 }
 
-func UnpackUniSwap(data []byte) (UniSwap, error) {
-	unpacked, err := UniSwapABIArguments.Unpack(data)
+func UnpackUniSwap(data []byte) (Uniswap, error) {
+	unpacked, err := UniswapABIArguments.Unpack(data)
 	if err != nil {
-		return UniSwap{}, err
+		return Uniswap{}, err
 	}
 
-	var swap UniSwap
-	if err = UniSwapABIArguments.Copy(&swap, unpacked); err != nil {
-		return UniSwap{}, err
+	var swap Uniswap
+	if err = UniswapABIArguments.Copy(&swap, unpacked); err != nil {
+		return Uniswap{}, err
 	}
 
 	return swap, nil
 }
 
-func buildUniSwap(chainID valueobject.ChainID, swap types.EncodingSwap) (UniSwap, error) {
+func buildUniSwap(chainID valueobject.ChainID, swap types.EncodingSwap) (Uniswap, error) {
 	swapFee := GetFee(chainID, swap.Exchange)
 
-	return UniSwap{
-		Pool:              common.HexToAddress(swap.Pool),
-		TokenIn:           common.HexToAddress(swap.TokenIn),
-		TokenOut:          common.HexToAddress(swap.TokenOut),
-		Recipient:         common.HexToAddress(swap.Recipient),
-		CollectAmount:     swap.CollectAmount,
-		LimitReturnAmount: swap.LimitReturnAmount,
-		SwapFee:           swapFee.Fee,
-		FeePrecision:      swapFee.Precision,
-		TokenWeightInput:  TokenWeightInputUniSwap,
+	return Uniswap{
+		Pool:             common.HexToAddress(swap.Pool),
+		TokenIn:          common.HexToAddress(swap.TokenIn),
+		TokenOut:         common.HexToAddress(swap.TokenOut),
+		Recipient:        common.HexToAddress(swap.Recipient),
+		CollectAmount:    swap.CollectAmount,
+		SwapFee:          swapFee.Fee,
+		FeePrecision:     swapFee.Precision,
+		TokenWeightInput: TokenWeightInputUniSwap,
 	}, nil
 }
 
-func packUniSwap(swap UniSwap) ([]byte, error) {
-	return UniSwapABIArguments.Pack(
+func packUniSwap(swap Uniswap) ([]byte, error) {
+	return UniswapABIArguments.Pack(
 		swap.Pool,
 		swap.TokenIn,
 		swap.TokenOut,
 		swap.Recipient,
 		swap.CollectAmount,
-		swap.LimitReturnAmount,
 		swap.SwapFee,
 		swap.FeePrecision,
 		swap.TokenWeightInput,

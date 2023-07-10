@@ -11,8 +11,8 @@ common:
   chainId: &chainId 199
   chainName: &chainName bttc
   rpc: "https://bttc.kyberengineering.io"
-  executorAddress: &executorAddress "0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D"
-  routerAddress: &routerAddress "0x92CbfC3F9466e9d0A65ED63aF277d1eeD69558e7"
+  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x8d193c6efa90bcff940a98785d1ce9d093d3dc8a"
   whitelistedTokenSet: &whitelistedTokenSet
     0x8d193c6efa90bcff940a98785d1ce9d093d3dc8a: true # WBTT

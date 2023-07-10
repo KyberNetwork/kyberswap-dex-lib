@@ -79,7 +79,6 @@ func buildCurveSwap(chainID valueobject.ChainID, swap types.EncodingSwap) (Curve
 		TokenIndexFrom:    big.NewInt(extra.TokenInIndex),
 		TokenIndexTo:      big.NewInt(extra.TokenOutIndex),
 		Dx:                swap.SwapAmount,
-		MinDy:             constant.Zero,
 		UsePoolUnderlying: extra.Underlying,
 		UseTriCrypto:      useTriCrypto,
 	}, nil
@@ -93,7 +92,6 @@ func packCurveSwap(swap CurveSwap) ([]byte, error) {
 		swap.TokenIndexFrom,
 		swap.TokenIndexTo,
 		swap.Dx,
-		swap.MinDy,
 		swap.UsePoolUnderlying,
 		swap.UseTriCrypto,
 	)

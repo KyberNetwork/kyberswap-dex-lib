@@ -11,8 +11,8 @@ common:
   chainId: &chainId 42161
   chainName: &chainName arbitrum
   rpc: "https://arbitrum.kyberengineering.io"
-  executorAddress: &executorAddress "0x75b02A71B6948774CA28160fc51b944De6aaCf78"
-  routerAddress: &routerAddress "0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D"
+  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
   whitelistedTokenSet: &whitelistedTokenSet
     0x4cfa50b7ce747e2d61724fcac57f24b748ff2b2a: true # FUSDC

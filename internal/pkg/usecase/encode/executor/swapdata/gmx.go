@@ -33,7 +33,6 @@ func buildGMX(swap types.EncodingSwap) GMX {
 		TokenIn:  common.HexToAddress(swap.TokenIn),
 		TokenOut: common.HexToAddress(swap.TokenOut),
 		Amount:   swap.SwapAmount,
-		MinOut:   swap.LimitReturnAmount,
 		Receiver: common.HexToAddress(swap.Recipient),
 	}
 }
@@ -44,7 +43,6 @@ func packGMX(swap GMX) ([]byte, error) {
 		swap.TokenIn,
 		swap.TokenOut,
 		swap.Amount,
-		swap.MinOut,
 		swap.Receiver,
 	)
 }

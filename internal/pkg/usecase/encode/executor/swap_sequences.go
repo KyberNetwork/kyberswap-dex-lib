@@ -72,9 +72,13 @@ func BuildSwap(chainID valueobject.ChainID, encodingSwap types.EncodingSwap) (Sw
 		return Swap{}, err
 	}
 
+	flags := getSwapFlags(encodingSwap.Flags)
+
+	selectorAndFlags := buildSelectorAndFlags(functionSelector.ID, flags)
+
 	return Swap{
 		Data:             data,
-		FunctionSelector: functionSelector.ID,
+		SelectorAndFlags: selectorAndFlags,
 	}, nil
 }
 
@@ -94,4 +98,35 @@ func UnpackSwapSingleSequenceInputs(data []byte) (SwapSingleSequenceInputs, erro
 	}
 
 	return inputs, nil
+}
+
+func getSwapFlags(flags []types.EncodingSwapFlag) SwapFlags {
+	var b SwapFlags
+	var v uint32
+
+	for _, flag := range flags {
+		v |= flag.Value
+	}
+
+	for i := 0; i < len(b); i++ {
+		b[i] = byte(v >> (8 * i))
+
+	}
+
+	return b
+}
+
+func buildSelectorAndFlags(selector SwapSelector, flags SwapFlags) SwapSelectorAndFlags {
+	var result SwapSelectorAndFlags
+
+	// Swap flags into reverse order,
+	// so we can copy flags into result directly.
+	for i, j := 0, len(flags)-1; i < j; i, j = i+1, j-1 {
+		flags[i], flags[j] = flags[j], flags[i]
+	}
+
+	copy(result[:], selector[:])
+	copy(result[len(result)-len(flags):], flags[:])
+
+	return result
 }

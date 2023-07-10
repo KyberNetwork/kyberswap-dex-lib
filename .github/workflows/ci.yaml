@@ -45,7 +45,6 @@ jobs:
         run: |
           go tool cover -func cover.out | grep total | awk '{notice="Statement Coverage: " substr($3, 1, length($3))} END {print notice}'
 
-
   prepare:
     runs-on: [self-hosted]
     needs:
@@ -70,19 +69,19 @@ jobs:
               HEAD_REF=$(printf "%q" "${{ github.head_ref }}")
               HEAD_REF=${HEAD_REF/refs\/heads\//}
               BRANCH=$HEAD_REF
-            else 
+            else
               REF=$(printf "%q" "${{ github.ref }}")
               REF_BRANCH=${REF/refs\/pull\//}
               REF_BRANCH=${REF_BRANCH/refs\/heads\//}
               BRANCH=$REF_BRANCH
             fi
-          else 
+          else
             REF=$(printf "%q" "${{ github.ref }}")
             REF_BRANCH=${REF/refs\/tags\//}
             BRANCH=$REF_BRANCH
           fi
 
-          echo "::set-output name=value::$BRANCH" 
+          echo "::set-output name=value::$BRANCH"
 
       - name: Extract GitHub HEAD SHA
         id: head_sha
@@ -96,17 +95,16 @@ jobs:
           if [[ $CURRENT_BRANCH = "main" ]]; then
             short_sha="$(git rev-parse --short HEAD)"
             branch_tag="$(echo "$CURRENT_BRANCH" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/--*/-/g' | sed 's/-$//g')"
-            echo "::set-output name=image_tag::$branch_tag-$short_sha"  
+            echo "::set-output name=image_tag::$branch_tag-$short_sha"
             echo "::set-output name=branch_tag::$branch_tag-$short_sha"
           else
             branch_tag="$(echo "$CURRENT_BRANCH")"
             if [[ ! $CURRENT_BRANCH =~ release-* ]]; then
               branch_tag="$(echo "$CURRENT_BRANCH" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/--*/-/g' | sed 's/-$//g')"
             fi
-            echo "::set-output name=image_tag::$branch_tag.${GITHUB_RUN_NUMBER}"  
+            echo "::set-output name=image_tag::$branch_tag.${GITHUB_RUN_NUMBER}"
             echo "::set-output name=branch_tag::$branch_tag.${GITHUB_RUN_NUMBER}"
           fi
-          
 
   build:
     runs-on: [self-hosted]
@@ -122,7 +120,7 @@ jobs:
       - name: Gcloud Auth
         uses: google-github-actions/auth@v0
         with:
-          credentials_json: '${{ secrets.GCR_CREDENTIALS }}'
+          credentials_json: "${{ secrets.GCR_CREDENTIALS }}"
 
       - name: Setup Gcloud SDK
         uses: google-github-actions/setup-gcloud@v0
@@ -140,7 +138,7 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           labels: |
             kyber.network.schema-version=1.0
             kyber.network.vcs-ref=${{ github.sha }}

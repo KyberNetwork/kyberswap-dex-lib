@@ -65,7 +65,6 @@ func buildBalancerV2(swap types.EncodingSwap) (BalancerV2, error) {
 		AssetIn:  common.HexToAddress(swap.TokenIn),
 		AssetOut: common.HexToAddress(swap.TokenOut),
 		Amount:   swap.SwapAmount,
-		Limit:    swap.LimitReturnAmount,
 	}, nil
 }
 
@@ -76,6 +75,5 @@ func packBalancerV2(swap BalancerV2) ([]byte, error) {
 		swap.AssetIn,
 		swap.AssetOut,
 		swap.Amount,
-		swap.Limit,
 	)
 }

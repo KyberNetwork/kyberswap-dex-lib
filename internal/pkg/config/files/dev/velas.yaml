@@ -11,8 +11,8 @@ common:
   chainId: &chainId 106
   chainName: &chainName velas
   rpc: "https://evmexplorer.velas.com/rpc"
-  executorAddress: &executorAddress "0xaa8A009aA166D7f8340Fde8D8A1fB08738b46e0D"
-  routerAddress: &routerAddress "0x92CbfC3F9466e9d0A65ED63aF277d1eeD69558e7"
+  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0xc579d1f3cf86749e05cd06f7ade17856c2ce3126"
   whitelistedTokenSet: &whitelistedTokenSet
     0xc579d1f3cf86749e05cd06f7ade17856c2ce3126: true # WVLX

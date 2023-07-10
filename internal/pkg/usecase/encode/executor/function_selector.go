@@ -21,17 +21,17 @@ func NewFunctionSelector(rawName string, types []string) FunctionSelector {
 }
 
 var (
-	FunctionSelectorUniSwap        FunctionSelector
+	FunctionSelectorUniswap        FunctionSelector
 	FunctionSelectorStableSwap     FunctionSelector
 	FunctionSelectorCurveSwap      FunctionSelector
-	FunctionSelectorUniSwapV3ProMM FunctionSelector
+	FunctionSelectorUniV3KSElastic FunctionSelector
 	FunctionSelectorBalancerV2     FunctionSelector
 	FunctionSelectorDODO           FunctionSelector
 	FunctionSelectorGMX            FunctionSelector
 	FunctionSelectorSynthetix      FunctionSelector
 	FunctionSelectorPSM            FunctionSelector
 	FunctionSelectorWSTETH         FunctionSelector
-	FunctionSelectorKyberDMM       FunctionSelector
+	FunctionSelectorKSClassic      FunctionSelector
 	FunctionSelectorVelodrome      FunctionSelector
 	FunctionSelectorPlatypus       FunctionSelector
 	FunctionSelectorFraxSwap       FunctionSelector
@@ -42,24 +42,25 @@ var (
 )
 
 func init() {
-	FunctionSelectorUniSwap = NewFunctionSelector("executeUniSwap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorStableSwap = NewFunctionSelector("executeStableSwap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorCurveSwap = NewFunctionSelector("executeCurveSwap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorUniSwapV3ProMM = NewFunctionSelector("executeUniV3ProMMSwap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorBalancerV2 = NewFunctionSelector("executeBalV2Swap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorDODO = NewFunctionSelector("executeDODOSwap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorGMX = NewFunctionSelector("executeGMXSwap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorSynthetix = NewFunctionSelector("executeSynthetixSwap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorPSM = NewFunctionSelector("executePSMSwap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorWSTETH = NewFunctionSelector("executeWrappedstETHSwap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorKyberDMM = NewFunctionSelector("executeKyberDMMSwap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorVelodrome = NewFunctionSelector("executeVelodromeSwap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorPlatypus = NewFunctionSelector("executePlatypusSwap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorFraxSwap = NewFunctionSelector("executeFraxSwap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorCamelotSwap = NewFunctionSelector("executeCamelotSwap", []string{"uint256", "bytes", "uint256"})
+	FunctionSelectorUniswap = NewFunctionSelector("executeUniswap", []string{"bytes", "uint256"})
+	FunctionSelectorStableSwap = NewFunctionSelector("executeStableSwap", []string{"bytes", "uint256"})
+	FunctionSelectorCurveSwap = NewFunctionSelector("executeCurve", []string{"bytes", "uint256"})
+	FunctionSelectorUniV3KSElastic = NewFunctionSelector("executeUniV3KSElastic", []string{"bytes", "uint256"})
+	FunctionSelectorBalancerV2 = NewFunctionSelector("executeBalV2", []string{"bytes", "uint256"})
+	FunctionSelectorDODO = NewFunctionSelector("executeDODO", []string{"bytes", "uint256"})
+	FunctionSelectorGMX = NewFunctionSelector("executeGMX", []string{"bytes", "uint256"})
+	FunctionSelectorSynthetix = NewFunctionSelector("executeSynthetix", []string{"bytes", "uint256"})
+	FunctionSelectorPSM = NewFunctionSelector("executePSM", []string{"bytes", "uint256"})
+	FunctionSelectorWSTETH = NewFunctionSelector("executeWrappedstETH", []string{"bytes", "uint256"})
+	FunctionSelectorKSClassic = NewFunctionSelector("executeKSClassic", []string{"bytes", "uint256"})
+	FunctionSelectorVelodrome = NewFunctionSelector("executeVelodrome", []string{"bytes", "uint256"})
+	FunctionSelectorPlatypus = NewFunctionSelector("executePlatypus", []string{"bytes", "uint256"})
+	FunctionSelectorFraxSwap = NewFunctionSelector("executeFrax", []string{"bytes", "uint256"})
+	FunctionSelectorCamelotSwap = NewFunctionSelector("executeCamelot", []string{"bytes", "uint256"})
+
 	FunctionSelectorMuteSwitch = NewFunctionSelector("executeMuteSwitchSwap", []string{"uint256", "bytes", "uint256"})
 	FunctionSelectorSyncSwap = NewFunctionSelector("executeSyncSwap", []string{"uint256", "bytes", "uint256"})
 	// Reference from SC
-	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/edd5870ecd990313cb9ab984b7d6a4f16ad6ed9b/contracts/executor-helpers/ExecutorHelper1.sol#L583
-	FunctionSelectorLimitOrder = NewFunctionSelector("executeKyberLimitOrder", []string{"uint256", "bytes", "uint256"})
+	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/executor-helpers/ExecutorHelper2.sol#LL724C1-L724C1
+	FunctionSelectorLimitOrder = NewFunctionSelector("executeKyberLimitOrder", []string{"bytes", "uint256"})
 }

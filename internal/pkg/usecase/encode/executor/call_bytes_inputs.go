@@ -3,7 +3,6 @@ package executor
 import (
 	"github.com/ethereum/go-ethereum/common"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -13,8 +12,6 @@ func BuildAndPackCallBytesInputs(chainID valueobject.ChainID, routerAddress stri
 	if err != nil {
 		return nil, err
 	}
-
-	minAmountOut := business.GetMinAmountOutExactInput(data.OutputAmount, data.SlippageTolerance)
 
 	var destTokenFeeData []byte
 	if isPositiveSlippageEnabled {
@@ -30,13 +27,12 @@ func BuildAndPackCallBytesInputs(chainID valueobject.ChainID, routerAddress stri
 
 	callBytesInputs := CallBytesInputs{
 		Data: SwapExecutorDescription{
-			SwapSequences:     swapSequences,
-			TokenIn:           common.HexToAddress(data.TokenIn),
-			TokenOut:          common.HexToAddress(data.TokenOut),
-			MinTotalAmountOut: minAmountOut,
-			To:                common.HexToAddress(routerAddress),
-			Deadline:          data.Deadline,
-			DestTokenFeeData:  destTokenFeeData,
+			SwapSequences:    swapSequences,
+			TokenIn:          common.HexToAddress(data.TokenIn),
+			TokenOut:         common.HexToAddress(data.TokenOut),
+			To:               common.HexToAddress(routerAddress),
+			Deadline:         data.Deadline,
+			DestTokenFeeData: destTokenFeeData,
 		},
 	}
 

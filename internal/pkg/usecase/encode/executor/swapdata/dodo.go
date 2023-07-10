@@ -6,7 +6,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -72,15 +71,14 @@ func buildDODO(swap types.EncodingSwap) (DODO, error) {
 	}
 
 	return DODO{
-		Recipient:       common.HexToAddress(swap.Recipient),
-		Pool:            common.HexToAddress(swap.Pool),
-		TokenFrom:       common.HexToAddress(swap.TokenIn),
-		TokenTo:         common.HexToAddress(swap.TokenOut),
-		Amount:          swap.SwapAmount,
-		MinReceiveQuote: constant.Zero,
-		SellHelper:      common.HexToAddress(extra.DodoV1SellHelper),
-		IsSellBase:      isSellBase,
-		IsVersion2:      isVersion2,
+		Recipient:  common.HexToAddress(swap.Recipient),
+		Pool:       common.HexToAddress(swap.Pool),
+		TokenFrom:  common.HexToAddress(swap.TokenIn),
+		TokenTo:    common.HexToAddress(swap.TokenOut),
+		Amount:     swap.SwapAmount,
+		SellHelper: common.HexToAddress(extra.DodoV1SellHelper),
+		IsSellBase: isSellBase,
+		IsVersion2: isVersion2,
 	}, nil
 }
 
@@ -91,7 +89,6 @@ func packDODO(swap DODO) ([]byte, error) {
 		swap.TokenFrom,
 		swap.TokenTo,
 		swap.Amount,
-		swap.MinReceiveQuote,
 		swap.SellHelper,
 		swap.IsSellBase,
 		swap.IsVersion2,

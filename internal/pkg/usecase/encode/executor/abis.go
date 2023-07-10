@@ -24,12 +24,11 @@ func init() {
 				Name: "swapSequences", Type: "tuple[][]",
 				Components: []abi.ArgumentMarshaling{
 					{Name: "data", Type: "bytes"},
-					{Name: "functionSelector", Type: "bytes4"},
+					{Name: "selectorAndFlags", Type: "bytes32"},
 				},
 			},
 			{Name: "tokenIn", Type: "address"},
 			{Name: "tokenOut", Type: "address"},
-			{Name: "minTotalAmountOut", Type: "uint256"},
 			{Name: "to", Type: "address"},
 			{Name: "deadline", Type: "uint256"},
 			{Name: "destTokenFeeData", Type: "bytes"},
@@ -41,7 +40,7 @@ func init() {
 		"",
 		[]abi.ArgumentMarshaling{
 			{Name: "data", Type: "bytes"},
-			{Name: "functionSelector", Type: "bytes4"},
+			{Name: "selectorAndFlags", Type: "bytes32"},
 		},
 	)
 

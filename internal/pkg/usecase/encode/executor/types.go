@@ -32,7 +32,7 @@ type SimpleSwapData struct {
 }
 
 // SwapExecutorDescription contains data required by executor contract to execute swap in normal mode
-// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/35d5ffa3388f058055d5bf99eeef943daad348f8/contracts/AggregationExecutor.sol#L31-L39
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/interfaces/IAggregationExecutor.sol#L29-L36
 type SwapExecutorDescription struct {
 	// SwapSequences contains detail Swap
 	SwapSequences [][]Swap
@@ -42,9 +42,6 @@ type SwapExecutorDescription struct {
 
 	// TokenOut address of the token to be received
 	TokenOut common.Address
-
-	// MinTotalAmountOut minimum amount out of TokenOut
-	MinTotalAmountOut *big.Int
 
 	// To address of wallet that token out will be transferred to
 	To common.Address
@@ -57,14 +54,17 @@ type SwapExecutorDescription struct {
 }
 
 // Swap contains data of a swap
-// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/35d5ffa3388f058055d5bf99eeef943daad348f8/contracts/interfaces/IMultihopRouter.sol#L11-L14
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/interfaces/IAggregationExecutor.sol#L8-L11
 type Swap struct {
 	// Data is packed swap data
 	Data []byte
 
-	// FunctionSelector is first 4 bytes of the execute function
-	FunctionSelector [4]byte
+	// SelectorAndFlags [selector (32 bits) + flags (224 bits)]
+	SelectorAndFlags SwapSelectorAndFlags
 }
+type SwapSelectorAndFlags [32]byte
+type SwapSelector [4]byte
+type SwapFlags [4]byte
 
 // SwapSingleSequenceInputs inputs of swapSingleSequence function
 // https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/35d5ffa3388f058055d5bf99eeef943daad348f8/contracts/AggregationExecutor.sol#L130

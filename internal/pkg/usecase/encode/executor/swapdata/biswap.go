@@ -21,10 +21,10 @@ func PackBiSwap(chainID valueobject.ChainID, encodingSwap types.EncodingSwap) ([
 	return packBiswap(swap)
 }
 
-func buildBiswap(chainID valueobject.ChainID, swap types.EncodingSwap) (UniSwap, error) {
+func buildBiswap(chainID valueobject.ChainID, swap types.EncodingSwap) (Uniswap, error) {
 	byteData, err := json.Marshal(swap.PoolExtra)
 	if err != nil {
-		return UniSwap{}, errors.Wrapf(
+		return Uniswap{}, errors.Wrapf(
 			ErrMarshalFailed,
 			"[buildBiswap] err :[%v]",
 			err,
@@ -36,7 +36,7 @@ func buildBiswap(chainID valueobject.ChainID, swap types.EncodingSwap) (UniSwap,
 	}
 
 	if err = json.Unmarshal(byteData, &extra); err != nil {
-		return UniSwap{}, errors.Wrapf(
+		return Uniswap{}, errors.Wrapf(
 			ErrUnmarshalFailed,
 			"[buildBiswap] err :[%v]",
 			err,
@@ -49,27 +49,25 @@ func buildBiswap(chainID valueobject.ChainID, swap types.EncodingSwap) (UniSwap,
 	// Override custom swap fee value
 	fee := new(big.Int).Div(new(big.Int).Mul(swapFeeBI, big.NewInt(int64(defaultSwapFee.Precision))), constant.BONE)
 
-	return UniSwap{
-		Pool:              common.HexToAddress(swap.Pool),
-		TokenIn:           common.HexToAddress(swap.TokenIn),
-		TokenOut:          common.HexToAddress(swap.TokenOut),
-		Recipient:         common.HexToAddress(swap.Recipient),
-		CollectAmount:     swap.CollectAmount,
-		LimitReturnAmount: swap.LimitReturnAmount,
-		SwapFee:           uint32(fee.Int64()),
-		FeePrecision:      defaultSwapFee.Precision,
-		TokenWeightInput:  TokenWeightInputUniSwap,
+	return Uniswap{
+		Pool:             common.HexToAddress(swap.Pool),
+		TokenIn:          common.HexToAddress(swap.TokenIn),
+		TokenOut:         common.HexToAddress(swap.TokenOut),
+		Recipient:        common.HexToAddress(swap.Recipient),
+		CollectAmount:    swap.CollectAmount,
+		SwapFee:          uint32(fee.Int64()),
+		FeePrecision:     defaultSwapFee.Precision,
+		TokenWeightInput: TokenWeightInputUniSwap,
 	}, nil
 }
 
-func packBiswap(swap UniSwap) ([]byte, error) {
-	return UniSwapABIArguments.Pack(
+func packBiswap(swap Uniswap) ([]byte, error) {
+	return UniswapABIArguments.Pack(
 		swap.Pool,
 		swap.TokenIn,
 		swap.TokenOut,
 		swap.Recipient,
 		swap.CollectAmount,
-		swap.LimitReturnAmount,
 		swap.SwapFee,
 		swap.FeePrecision,
 		swap.TokenWeightInput,

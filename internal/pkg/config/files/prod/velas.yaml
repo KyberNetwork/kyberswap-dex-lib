@@ -11,7 +11,7 @@ common:
   chainId: &chainId 106
   chainName: &chainName velas
   rpc: "https://evmexplorer.velas.com/rpc"
-  executorAddress: &executorAddress "0xCaa00aaF6FBC769D627D825B4fAEDC3aaD880597"
+  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0xc579d1f3cf86749e05cd06f7ade17856c2ce3126"
   whitelistedTokenSet: &whitelistedTokenSet

@@ -65,7 +65,6 @@ func buildSynthetix(swap types.EncodingSwap) (Synthetix, error) {
 		SourceCurrencyKey:      eth.StringToBytes32(meta.SourceCurrencyKey),
 		SourceAmount:           swap.SwapAmount,
 		DestinationCurrencyKey: eth.StringToBytes32(meta.DestinationCurrencyKey),
-		MinAmount:              swap.LimitReturnAmount,
 		UseAtomicExchange:      meta.UseAtomicExchange,
 	}, nil
 }
@@ -78,7 +77,6 @@ func packSynthetix(swap Synthetix) ([]byte, error) {
 		swap.SourceCurrencyKey,
 		swap.SourceAmount,
 		swap.DestinationCurrencyKey,
-		swap.MinAmount,
 		swap.UseAtomicExchange,
 	)
 }

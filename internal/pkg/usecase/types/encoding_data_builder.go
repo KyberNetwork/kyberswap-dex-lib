@@ -102,6 +102,15 @@ func getEncodingFlags(mode EncodingMode, extraFee valueobject.ExtraFee) []Encodi
 	return flags
 }
 
+func getEncodingSwapFlags(swap EncodingSwap, executorAddress string) []EncodingSwapFlag {
+	var flags []EncodingSwapFlag
+
+	// For now: always unset ShouldNotKeepDustTokenOut & set ShouldApproveMax
+	flags = append(flags, EncodingSwapFlagShouldApproveMax)
+
+	return flags
+}
+
 func transformRoute(route [][]valueobject.Swap, kyberLOAddress string) [][]EncodingSwap {
 	encodingRoute := make([][]EncodingSwap, 0, len(route))
 
@@ -161,6 +170,7 @@ func updateSwapRecipientAndCollectAmount(
 				prevSwap = path[swapIdx-1]
 			}
 
+			route[pathIdx][swapIdx].Flags = getEncodingSwapFlags(swap, executorAddress)
 			route[pathIdx][swapIdx].Recipient = getRecipient(swap, nextSwap, executorAddress)
 			route[pathIdx][swapIdx].CollectAmount = getCollectAmount(swap, prevSwap, encodingMode)
 		}

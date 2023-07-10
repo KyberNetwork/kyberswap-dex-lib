@@ -11,7 +11,7 @@ common:
   chainId: &chainId 43114
   chainName: &chainName avalanche
   rpc: "https://avalanche.knstats.com/v1/mainnet/geth?appId=prod-dmm-aggregator-backend"
-  executorAddress: &executorAddress "0xCaa00aaF6FBC769D627D825B4fAEDC3aaD880597"
+  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7"
   whitelistedTokenSet: &whitelistedTokenSet

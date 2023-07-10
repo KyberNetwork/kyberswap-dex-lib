@@ -11,8 +11,8 @@ common:
   chainId: &chainId 25
   chainName: &chainName cronos
   rpc: "https://cronos.kyberengineering.io"
-  executorAddress: &executorAddress "0xA270E7506dD1b6Fa8a4D1d14a53A6A80aFc4Fd4D"
-  routerAddress: &routerAddress "0x7633dF4a71391Ba81924E916781402c564984E73"
+  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x5c7f8a570d578ed84e63fdfa7b1ee72deae1ae23"
   whitelistedTokenSet: &whitelistedTokenSet
     0x5c7f8a570d578ed84e63fdfa7b1ee72deae1ae23: true # WCRO

@@ -11,7 +11,7 @@ common:
   chainId: &chainId 56
   chainName: &chainName bsc
   rpc: "https://bsc.kyberengineering.io"
-  executorAddress: &executorAddress "0xf0902ee0ea61fee5c4a5cfc44278b9fa083e4118"
+  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
   whitelistedTokenSet: &whitelistedTokenSet

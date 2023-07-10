@@ -11,7 +11,7 @@ common:
   chainId: &chainId 1313161554
   chainName: &chainName aurora
   rpc: "https://mainnet.aurora.dev"
-  executorAddress: &executorAddress "0xCaa00aaF6FBC769D627D825B4fAEDC3aaD880597"
+  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0xc9bdeed33cd01541e1eed10f90519d2c06fe3feb"
   whitelistedTokenSet: &whitelistedTokenSet

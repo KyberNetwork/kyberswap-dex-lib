@@ -46,18 +46,18 @@ type (
 	}
 
 	DecodedSwapExecutorDescription struct {
-		SwapSequences     [][]DecodedSwap                  `json:"swapSequences"`
-		TokenIn           common.Address                   `json:"tokenIn"`
-		TokenOut          common.Address                   `json:"tokenOut"`
-		MinTotalAmountOut *big.Int                         `json:"minTotalAmountOut"`
-		To                common.Address                   `json:"to"`
-		Deadline          *big.Int                         `json:"deadline"`
-		DestTokenFeeData  executor.PositiveSlippageFeeData `json:"destTokenFeeData"`
+		SwapSequences    [][]DecodedSwap                  `json:"swapSequences"`
+		TokenIn          common.Address                   `json:"tokenIn"`
+		TokenOut         common.Address                   `json:"tokenOut"`
+		To               common.Address                   `json:"to"`
+		Deadline         *big.Int                         `json:"deadline"`
+		DestTokenFeeData executor.PositiveSlippageFeeData `json:"destTokenFeeData"`
 	}
 
 	DecodedSwap struct {
-		Data             interface{} `json:"data"`
-		FunctionSelector string      `json:"functionSelector"`
+		Data             interface{}        `json:"data"`
+		FunctionSelector string             `json:"functionSelector"`
+		Flags            executor.SwapFlags `json:"flags"`
 	}
 
 	DecodedSimpleSwapData struct {
@@ -158,13 +158,12 @@ func (d *Decoder) decodeCallBytesInputs(data []byte) (DecodedCallBytesInputs, er
 
 	return DecodedCallBytesInputs{
 		Data: DecodedSwapExecutorDescription{
-			SwapSequences:     decodedSwapSequences,
-			TokenIn:           callBytesInputs.Data.TokenIn,
-			TokenOut:          callBytesInputs.Data.TokenOut,
-			MinTotalAmountOut: callBytesInputs.Data.MinTotalAmountOut,
-			To:                callBytesInputs.Data.To,
-			Deadline:          callBytesInputs.Data.Deadline,
-			DestTokenFeeData:  positiveSlippageFeeData,
+			SwapSequences:    decodedSwapSequences,
+			TokenIn:          callBytesInputs.Data.TokenIn,
+			TokenOut:         callBytesInputs.Data.TokenOut,
+			To:               callBytesInputs.Data.To,
+			Deadline:         callBytesInputs.Data.Deadline,
+			DestTokenFeeData: positiveSlippageFeeData,
 		},
 	}, nil
 }
@@ -246,22 +245,25 @@ func (d *Decoder) decodeSwap(swap executor.Swap) (DecodedSwap, error) {
 		return DecodedSwap{}, err
 	}
 
+	functionSelector, flags := d.decodeSelectorAndFlags(swap.SelectorAndFlags)
+
 	return DecodedSwap{
 		Data:             swapData,
-		FunctionSelector: d.decodeFunctionSelector(swap.FunctionSelector),
+		FunctionSelector: d.decodeFunctionSelector(functionSelector),
+		Flags:            flags,
 	}, nil
 }
 
-func (d *Decoder) decodeFunctionSelector(id [4]byte) string {
+func (d *Decoder) decodeFunctionSelector(id executor.SwapSelector) string {
 	switch id {
-	case executor.FunctionSelectorUniSwap.ID:
-		return executor.FunctionSelectorUniSwap.RawName
+	case executor.FunctionSelectorUniswap.ID:
+		return executor.FunctionSelectorUniswap.RawName
 	case executor.FunctionSelectorStableSwap.ID:
 		return executor.FunctionSelectorStableSwap.RawName
 	case executor.FunctionSelectorCurveSwap.ID:
 		return executor.FunctionSelectorCurveSwap.RawName
-	case executor.FunctionSelectorUniSwapV3ProMM.ID:
-		return executor.FunctionSelectorUniSwapV3ProMM.RawName
+	case executor.FunctionSelectorUniV3KSElastic.ID:
+		return executor.FunctionSelectorUniV3KSElastic.RawName
 	case executor.FunctionSelectorBalancerV2.ID:
 		return executor.FunctionSelectorBalancerV2.RawName
 	case executor.FunctionSelectorDODO.ID:
@@ -274,8 +276,8 @@ func (d *Decoder) decodeFunctionSelector(id [4]byte) string {
 		return executor.FunctionSelectorPSM.RawName
 	case executor.FunctionSelectorWSTETH.ID:
 		return executor.FunctionSelectorWSTETH.RawName
-	case executor.FunctionSelectorKyberDMM.ID:
-		return executor.FunctionSelectorKyberDMM.RawName
+	case executor.FunctionSelectorKSClassic.ID:
+		return executor.FunctionSelectorKSClassic.RawName
 	case executor.FunctionSelectorVelodrome.ID:
 		return executor.FunctionSelectorVelodrome.RawName
 	case executor.FunctionSelectorPlatypus.ID:
@@ -292,15 +294,16 @@ func (d *Decoder) decodeFunctionSelector(id [4]byte) string {
 }
 
 func (d *Decoder) decodeSwapData(sw executor.Swap) (interface{}, error) {
-	switch sw.FunctionSelector {
-	case executor.FunctionSelectorUniSwap.ID:
+	functionSelector, _ := d.decodeSelectorAndFlags(sw.SelectorAndFlags)
+	switch functionSelector {
+	case executor.FunctionSelectorUniswap.ID:
 		return swapdata.UnpackUniSwap(sw.Data)
 	case executor.FunctionSelectorStableSwap.ID:
 		return swapdata.UnpackStableSwap(sw.Data)
 	case executor.FunctionSelectorCurveSwap.ID:
 		return swapdata.UnpackCurveSwap(sw.Data)
-	case executor.FunctionSelectorUniSwapV3ProMM.ID:
-		return swapdata.UnpackUniSwapV3ProMM(sw.Data)
+	case executor.FunctionSelectorUniV3KSElastic.ID:
+		return swapdata.UnpackUniswapV3KSElastic(sw.Data)
 	case executor.FunctionSelectorBalancerV2.ID:
 		return swapdata.UnpackBalancerV2(sw.Data)
 	case executor.FunctionSelectorDODO.ID:
@@ -313,7 +316,7 @@ func (d *Decoder) decodeSwapData(sw executor.Swap) (interface{}, error) {
 		return swapdata.UnpackPSM(sw.Data)
 	case executor.FunctionSelectorWSTETH.ID:
 		return swapdata.UnpackWSTETH(sw.Data)
-	case executor.FunctionSelectorKyberDMM.ID:
+	case executor.FunctionSelectorKSClassic.ID:
 		return swapdata.UnpackUniSwap(sw.Data)
 	case executor.FunctionSelectorVelodrome.ID:
 		return swapdata.UnpackUniSwap(sw.Data)
@@ -330,4 +333,17 @@ func (d *Decoder) decodeSwapData(sw executor.Swap) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("unsupported function selector")
 	}
+}
+
+func (d *Decoder) decodeSelectorAndFlags(sf executor.SwapSelectorAndFlags) (
+	functionSelector executor.SwapSelector,
+	flags executor.SwapFlags,
+) {
+	copy(functionSelector[:], sf[:len(functionSelector)])
+	copy(flags[:], sf[len(sf)-len(flags):])
+	// Reverse swap flags
+	for i, j := 0, len(flags)-1; i < j; i, j = i+1, j-1 {
+		flags[i], flags[j] = flags[j], flags[i]
+	}
+	return
 }

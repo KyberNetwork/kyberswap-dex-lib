@@ -11,7 +11,7 @@ common:
   chainId: &chainId 1
   chainName: &chainName ethereum
   rpc: "https://ethereum.kyberengineering.io"
-  executorAddress: &executorAddress "0xCaa00aaF6FBC769D627D825B4fAEDC3aaD880597"
+  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
   whitelistedTokenSet: &whitelistedTokenSet

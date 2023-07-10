@@ -19,10 +19,10 @@ func PackFraxSwap(_ valueobject.ChainID, encodingSwap types.EncodingSwap) ([]byt
 	return packFraxSwap(swap)
 }
 
-func buildFraxSwap(swap types.EncodingSwap) (UniSwap, error) {
+func buildFraxSwap(swap types.EncodingSwap) (Uniswap, error) {
 	byteData, err := json.Marshal(swap.PoolExtra)
 	if err != nil {
-		return UniSwap{}, errors.Wrapf(
+		return Uniswap{}, errors.Wrapf(
 			ErrMarshalFailed,
 			"[builFraxSwap] err :[%v]",
 			err,
@@ -35,34 +35,32 @@ func buildFraxSwap(swap types.EncodingSwap) (UniSwap, error) {
 	}
 
 	if err = json.Unmarshal(byteData, &extra); err != nil {
-		return UniSwap{}, errors.Wrapf(
+		return Uniswap{}, errors.Wrapf(
 			ErrUnmarshalFailed,
 			"[builFraxSwap] err :[%v]",
 			err,
 		)
 	}
 
-	return UniSwap{
-		Pool:              common.HexToAddress(swap.Pool),
-		TokenIn:           common.HexToAddress(swap.TokenIn),
-		TokenOut:          common.HexToAddress(swap.TokenOut),
-		Recipient:         common.HexToAddress(swap.Recipient),
-		CollectAmount:     swap.CollectAmount,
-		LimitReturnAmount: swap.LimitReturnAmount,
-		SwapFee:           extra.SwapFee,
-		FeePrecision:      extra.FeePrecision,
-		TokenWeightInput:  TokenWeightInputUniSwap,
+	return Uniswap{
+		Pool:             common.HexToAddress(swap.Pool),
+		TokenIn:          common.HexToAddress(swap.TokenIn),
+		TokenOut:         common.HexToAddress(swap.TokenOut),
+		Recipient:        common.HexToAddress(swap.Recipient),
+		CollectAmount:    swap.CollectAmount,
+		SwapFee:          extra.SwapFee,
+		FeePrecision:     extra.FeePrecision,
+		TokenWeightInput: TokenWeightInputUniSwap,
 	}, nil
 }
 
-func packFraxSwap(swap UniSwap) ([]byte, error) {
-	return UniSwapABIArguments.Pack(
+func packFraxSwap(swap Uniswap) ([]byte, error) {
+	return UniswapABIArguments.Pack(
 		swap.Pool,
 		swap.TokenIn,
 		swap.TokenOut,
 		swap.Recipient,
 		swap.CollectAmount,
-		swap.LimitReturnAmount,
 		swap.SwapFee,
 		swap.FeePrecision,
 		swap.TokenWeightInput,

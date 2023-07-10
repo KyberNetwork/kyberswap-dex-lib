@@ -6,22 +6,21 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-// UniSwap
-// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/35d5ffa3388f058055d5bf99eeef943daad348f8/contracts/executor-helpers/ExecutorHelper1.sol#L35-L45
-type UniSwap struct {
-	Pool              common.Address
-	TokenIn           common.Address
-	TokenOut          common.Address
-	Recipient         common.Address
-	CollectAmount     *big.Int
-	LimitReturnAmount *big.Int
-	SwapFee           uint32
-	FeePrecision      uint32
-	TokenWeightInput  uint32
+// Uniswap
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/executor-helpers/ExecutorHelper1.sol#L22-L31
+type Uniswap struct {
+	Pool             common.Address
+	TokenIn          common.Address
+	TokenOut         common.Address
+	Recipient        common.Address
+	CollectAmount    *big.Int
+	SwapFee          uint32
+	FeePrecision     uint32
+	TokenWeightInput uint32
 }
 
 // StableSwap
-// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/35d5ffa3388f058055d5bf99eeef943daad348f8/contracts/executor-helpers/ExecutorHelper1.sol#L47-L58
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/executor-helpers/ExecutorHelper2.sol#L41-L51
 type StableSwap struct {
 	Pool           common.Address
 	TokenFrom      common.Address
@@ -29,14 +28,13 @@ type StableSwap struct {
 	TokenIndexFrom uint8
 	TokenIndexTo   uint8
 	Dx             *big.Int
-	MinDy          *big.Int
 	PoolLength     *big.Int
 	PoolLp         common.Address
 	IsSaddle       bool
 }
 
 // CurveSwap
-// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/develop/contracts/executor-helpers/ExecutorHelper1.sol#L60-L70
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/executor-helpers/ExecutorHelper2.sol#L53-L62
 type CurveSwap struct {
 	Pool              common.Address
 	TokenFrom         common.Address
@@ -44,62 +42,57 @@ type CurveSwap struct {
 	TokenIndexFrom    *big.Int
 	TokenIndexTo      *big.Int
 	Dx                *big.Int
-	MinDy             *big.Int
 	UsePoolUnderlying bool
 	UseTriCrypto      bool
 }
 
-// UniSwapV3ProMM
-// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/35d5ffa3388f058055d5bf99eeef943daad348f8/contracts/executor-helpers/ExecutorHelper1.sol#L72-L81
-type UniSwapV3ProMM struct {
+// UniswapV3KSElastic
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/executor-helpers/ExecutorHelper2.sol#L64-L72
+type UniswapV3KSElastic struct {
 	Recipient         common.Address
 	Pool              common.Address
 	TokenIn           common.Address
 	TokenOut          common.Address
 	SwapAmount        *big.Int
-	LimitReturnAmount *big.Int
 	SqrtPriceLimitX96 *big.Int
 	IsUniV3           bool
 }
 
 // BalancerV2
-// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/35d5ffa3388f058055d5bf99eeef943daad348f8/contracts/executor-helpers/ExecutorHelper1.sol#L92-L99
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/executor-helpers/ExecutorHelper2.sol#L83-L89
 type BalancerV2 struct {
 	Vault    common.Address
 	PoolId   [32]byte
 	AssetIn  common.Address
 	AssetOut common.Address
 	Amount   *big.Int
-	Limit    *big.Int
 }
 
 // DODO
-// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/35d5ffa3388f058055d5bf99eeef943daad348f8/contracts/executor-helpers/ExecutorHelper1.sol#L109-L119
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/executor-helpers/ExecutorHelper2.sol#L99-L108
 type DODO struct {
-	Recipient       common.Address
-	Pool            common.Address
-	TokenFrom       common.Address
-	TokenTo         common.Address
-	Amount          *big.Int
-	MinReceiveQuote *big.Int
-	SellHelper      common.Address
-	IsSellBase      bool
-	IsVersion2      bool
+	Recipient  common.Address
+	Pool       common.Address
+	TokenFrom  common.Address
+	TokenTo    common.Address
+	Amount     *big.Int
+	SellHelper common.Address
+	IsSellBase bool
+	IsVersion2 bool
 }
 
 // GMX
-// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/35d5ffa3388f058055d5bf99eeef943daad348f8/contracts/executor-helpers/ExecutorHelper1.sol#L121-L128
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/executor-helpers/ExecutorHelper2.sol#L110-L116
 type GMX struct {
 	Vault    common.Address
 	TokenIn  common.Address
 	TokenOut common.Address
 	Amount   *big.Int
-	MinOut   *big.Int
 	Receiver common.Address
 }
 
 // Synthetix
-// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/35d5ffa3388f058055d5bf99eeef943daad348f8/contracts/executor-helpers/ExecutorHelper1.sol#L130-L139
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/executor-helpers/ExecutorHelper2.sol#L118-L126
 type Synthetix struct {
 	SynthetixProxy         common.Address
 	TokenIn                common.Address
@@ -107,7 +100,6 @@ type Synthetix struct {
 	SourceCurrencyKey      [32]byte
 	SourceAmount           *big.Int
 	DestinationCurrencyKey [32]byte
-	MinAmount              *big.Int
 	UseAtomicExchange      bool
 }
 

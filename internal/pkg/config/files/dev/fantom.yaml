@@ -10,9 +10,9 @@ grpc:
 common:
   chainId: &chainId 250
   chainName: &chainName fantom
-  rpc: "https://fantom.knstats.com/v1/mainnet/geth?appId=prod-dmm-aggregator-backend"
-  executorAddress: &executorAddress "0xFAFA550F4eB2BC356890a46E5868432912163a85"
-  routerAddress: &routerAddress "0x8A11B742dc630dE5E4EFc07C91E3499A09fae06c"
+  rpc: "https://fantom.kyberengineering.io"
+  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83"
   whitelistedTokenSet: &whitelistedTokenSet
     0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83: true # FTM

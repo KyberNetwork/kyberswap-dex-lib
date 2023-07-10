@@ -10,7 +10,7 @@ common:
   chainId: &chainId 324
   chainName: &chainName zksync
   rpc: "https://mainnet.era.zksync.io"
-  executorAddress: &executorAddress "0x0C83d9a7353F533D762bc9ecd8bCA48b0aDD6a33"
+  executorAddress: &executorAddress "0x849c6514E07FE2249D380044a03947dA40C7FA1A"
   routerAddress: &routerAddress "0x3F95eF3f2eAca871858dbE20A93c01daF6C2e923"
   gasTokenAddress: &gasTokenAddress "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91"
   whitelistedTokenSet: &whitelistedTokenSet

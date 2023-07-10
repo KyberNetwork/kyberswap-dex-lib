@@ -7,18 +7,18 @@ import (
 )
 
 var (
-	UniSwapABIArguments         abi.Arguments
-	StableSwapABIArguments      abi.Arguments
-	CurveSwapABIArguments       abi.Arguments
-	UniSwapV3ProMMABIArguments  abi.Arguments
-	BalancerV2ABIArguments      abi.Arguments
-	DODOABIArguments            abi.Arguments
-	GMXABIArguments             abi.Arguments
-	SynthetixABIArguments       abi.Arguments
-	PSMABIArguments             abi.Arguments
-	WSTETHABIArguments          abi.Arguments
-	PlatypusABIArguments        abi.Arguments
-	KyberLimitOrderABIArguments abi.Arguments
+	UniswapABIArguments           abi.Arguments
+	StableSwapABIArguments        abi.Arguments
+	CurveSwapABIArguments         abi.Arguments
+	UniswapV3KSElasticABIArgument abi.Arguments
+	BalancerV2ABIArguments        abi.Arguments
+	DODOABIArguments              abi.Arguments
+	GMXABIArguments               abi.Arguments
+	SynthetixABIArguments         abi.Arguments
+	PSMABIArguments               abi.Arguments
+	WSTETHABIArguments            abi.Arguments
+	PlatypusABIArguments          abi.Arguments
+	KyberLimitOrderABIArguments   abi.Arguments
 
 	// Syncswap
 	SyncSwapABIArguments     abi.Arguments
@@ -28,13 +28,12 @@ var (
 )
 
 func init() {
-	UniSwapABIArguments = abi.Arguments{
+	UniswapABIArguments = abi.Arguments{
 		{Name: "pool", Type: abitypes.Address},
 		{Name: "tokenIn", Type: abitypes.Address},
 		{Name: "tokenOut", Type: abitypes.Address},
 		{Name: "recipient", Type: abitypes.Address},
 		{Name: "collectAmount", Type: abitypes.Uint256},
-		{Name: "limitReturnAmount", Type: abitypes.Uint256},
 		{Name: "swapFee", Type: abitypes.Uint32},
 		{Name: "feePrecision", Type: abitypes.Uint32},
 		{Name: "tokenWeightInput", Type: abitypes.Uint32},
@@ -47,7 +46,6 @@ func init() {
 		{Name: "tokenIndexFrom", Type: abitypes.Uint8},
 		{Name: "tokenIndexTo", Type: abitypes.Uint8},
 		{Name: "dx", Type: abitypes.Uint256},
-		{Name: "minDy", Type: abitypes.Uint256},
 		{Name: "poolLength", Type: abitypes.Uint256},
 		{Name: "poolLp", Type: abitypes.Address},
 		{Name: "isSaddle", Type: abitypes.Bool},
@@ -60,18 +58,16 @@ func init() {
 		{Name: "tokenIndexFrom", Type: abitypes.Int128},
 		{Name: "tokenIndexTo", Type: abitypes.Int128},
 		{Name: "dx", Type: abitypes.Uint256},
-		{Name: "minDy", Type: abitypes.Uint256},
 		{Name: "usePoolUnderlying", Type: abitypes.Bool},
 		{Name: "useTriCrypto", Type: abitypes.Bool},
 	}
 
-	UniSwapV3ProMMABIArguments = abi.Arguments{
+	UniswapV3KSElasticABIArgument = abi.Arguments{
 		{Name: "recipient", Type: abitypes.Address},
 		{Name: "pool", Type: abitypes.Address},
 		{Name: "tokenIn", Type: abitypes.Address},
 		{Name: "tokenOut", Type: abitypes.Address},
 		{Name: "swapAmount", Type: abitypes.Uint256},
-		{Name: "limitReturnAmount", Type: abitypes.Uint256},
 		{Name: "sqrtPriceLimitX96", Type: abitypes.Uint160},
 		{Name: "isUniV3", Type: abitypes.Bool},
 	}
@@ -82,7 +78,6 @@ func init() {
 		{Name: "assetIn", Type: abitypes.Address},
 		{Name: "assetOut", Type: abitypes.Address},
 		{Name: "amount", Type: abitypes.Uint256},
-		{Name: "limit", Type: abitypes.Uint256},
 	}
 
 	DODOABIArguments = abi.Arguments{
@@ -91,7 +86,6 @@ func init() {
 		{Name: "tokenFrom", Type: abitypes.Address},
 		{Name: "tokenTo", Type: abitypes.Address},
 		{Name: "amount", Type: abitypes.Uint256},
-		{Name: "minReceiveQuote", Type: abitypes.Uint256},
 		{Name: "sellHelper", Type: abitypes.Address},
 		{Name: "isSellBase", Type: abitypes.Bool},
 		{Name: "isVersion2", Type: abitypes.Bool},
@@ -102,7 +96,6 @@ func init() {
 		{Name: "tokenIn", Type: abitypes.Address},
 		{Name: "tokenOut", Type: abitypes.Address},
 		{Name: "amount", Type: abitypes.Uint256},
-		{Name: "minOut", Type: abitypes.Uint256},
 		{Name: "receiver", Type: abitypes.Address},
 	}
 
@@ -113,7 +106,6 @@ func init() {
 		{Name: "sourceCurrencyKey", Type: abitypes.Bytes32},
 		{Name: "sourceAmount", Type: abitypes.Uint256},
 		{Name: "destinationCurrencyKey", Type: abitypes.Bytes32},
-		{Name: "minAmount", Type: abitypes.Uint256},
 		{Name: "useAtomicExchange", Type: abitypes.Bool},
 	}
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +18,7 @@ var packSwapSingleSequenceInputsPairs = []struct {
 			SwapData: []Swap{
 				{
 					Data:             []byte("data 1.2"),
-					FunctionSelector: [4]byte{2, 2, 3, 4},
+					SelectorAndFlags: SwapSelectorAndFlags{2, 2, 3, 4},
 				},
 			},
 		},
@@ -46,5 +47,55 @@ func TestUnpackSwapSingleSequenceInputs(t *testing.T) {
 			assert.Nil(t, err)
 			assert.Equal(t, pair.data, result)
 		})
+	}
+}
+
+func TestGetSwapFlags(t *testing.T) {
+	testCases := []struct {
+		name           string
+		flags          []types.EncodingSwapFlag
+		expectedResult SwapFlags
+	}{
+		{
+			name: "it should parse correctly with using last byte only (current case)",
+			flags: []types.EncodingSwapFlag{
+				types.EncodingSwapFlagShouldNotKeepDustTokenOut,
+				types.EncodingSwapFlagShouldApproveMax,
+			},
+			expectedResult: SwapFlags{3, 0, 0, 0},
+		},
+		{
+			name: "it should parse correctly with any flag bits",
+			flags: []types.EncodingSwapFlag{
+				{Value: 256},
+				{Value: 2147483648},
+				types.EncodingSwapFlagShouldNotKeepDustTokenOut,
+				types.EncodingSwapFlagShouldApproveMax,
+			},
+			expectedResult: SwapFlags{3, 1, 0, 128},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := getSwapFlags(tc.flags)
+
+			assert.Equal(t, tc.expectedResult, result)
+		})
+
+	}
+
+}
+
+func TestBuildSelectorAndFlags(t *testing.T) {
+	selector := [4]byte{1, 2, 3, 4}
+	flags := [4]byte{5, 6, 7, 8}
+
+	build := buildSelectorAndFlags(selector, flags)
+
+	// The result should be {1, 2, 3, 4, 0, ..., 0, 8, 7, 6, 5}
+	for idx := 0; idx < 4; idx++ {
+		assert.Equal(t, selector[idx], build[idx])
+		assert.Equal(t, flags[idx], build[len(build)-1-idx])
 	}
 }
