@@ -132,6 +132,7 @@ func init() {
 
 	// WSTETH
 	RegisterPackSwapDataFunc(valueobject.ExchangeMakerLido, swapdata.PackWSTETH)
+	RegisterPackSwapDataFunc(valueobject.ExchangeMakerLidoStETH, swapdata.PackStETH)
 
 	// Platypus
 	RegisterPackSwapDataFunc(valueobject.ExchangePlatypus, swapdata.PackPlatypus)

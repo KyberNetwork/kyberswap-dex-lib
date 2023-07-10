@@ -276,6 +276,8 @@ func (d *Decoder) decodeFunctionSelector(id executor.SwapSelector) string {
 		return executor.FunctionSelectorPSM.RawName
 	case executor.FunctionSelectorWSTETH.ID:
 		return executor.FunctionSelectorWSTETH.RawName
+	case executor.FunctionSelectorSTETH.ID:
+		return executor.FunctionSelectorSTETH.RawName
 	case executor.FunctionSelectorKSClassic.ID:
 		return executor.FunctionSelectorKSClassic.RawName
 	case executor.FunctionSelectorVelodrome.ID:
@@ -316,6 +318,8 @@ func (d *Decoder) decodeSwapData(sw executor.Swap) (interface{}, error) {
 		return swapdata.UnpackPSM(sw.Data)
 	case executor.FunctionSelectorWSTETH.ID:
 		return swapdata.UnpackWSTETH(sw.Data)
+	case executor.FunctionSelectorSTETH.ID:
+		return swapdata.UnpackStETH(sw.Data)
 	case executor.FunctionSelectorKSClassic.ID:
 		return swapdata.UnpackUniSwap(sw.Data)
 	case executor.FunctionSelectorVelodrome.ID:

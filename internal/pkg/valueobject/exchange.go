@@ -84,6 +84,8 @@ var (
 
 	ExchangeMakerLido Exchange = "lido"
 
+	ExchangeMakerLidoStETH Exchange = "lido-steth"
+
 	ExchangeDMM             Exchange = "dmm"
 	ExchangeKyberSwap       Exchange = "kyberswap"
 	ExchangeKyberSwapStatic Exchange = "kyberswap-static"
@@ -174,6 +176,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSynthetix:           {},
 	ExchangeMakerPSM:            {},
 	ExchangeMakerLido:           {},
+	ExchangeMakerLidoStETH:      {},
 	ExchangeDMM:                 {},
 	ExchangeKyberSwap:           {},
 	ExchangeKyberSwapStatic:     {},

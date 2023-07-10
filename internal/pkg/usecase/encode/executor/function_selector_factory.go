@@ -124,6 +124,7 @@ func init() {
 
 	// executeWrappedstETHSwap
 	RegisterFunctionSelector(valueobject.ExchangeMakerLido, FunctionSelectorWSTETH)
+	RegisterFunctionSelector(valueobject.ExchangeMakerLidoStETH, FunctionSelectorSTETH)
 
 	// executeKyberDMMSwap
 	RegisterFunctionSelector(valueobject.ExchangeDMM, FunctionSelectorKSClassic)

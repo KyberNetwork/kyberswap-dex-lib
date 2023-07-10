@@ -25,6 +25,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/core/fraxswap"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/gmx"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/lido"
+	lido_steth "github.com/KyberNetwork/router-service/internal/pkg/core/lido-steth"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/limitorder"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/madmex"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/makerpsm"
@@ -227,6 +228,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
 		return f.newMetavault(entityPool)
 	case constant.PoolTypes.Lido:
 		return f.newLido(entityPool)
+	case constant.PoolTypes.LidoStEth:
+		return f.newLidoStEth(entityPool)
 	case constant.PoolTypes.Fraxswap:
 		return f.newFraxswap(entityPool)
 	case constant.PoolTypes.Camelot:
@@ -587,6 +590,20 @@ func (f *PoolFactory) newLido(entityPool entity.Pool) (*lido.Pool, error) {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newLido] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newLidoStEth(entityPool entity.Pool) (*lido_steth.PoolSimulator, error) {
+	corePool, err := lido_steth.NewPoolSimulator(entityPool, f.config.ChainID)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newLidoStEth] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

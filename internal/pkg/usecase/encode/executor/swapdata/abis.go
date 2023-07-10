@@ -17,6 +17,7 @@ var (
 	SynthetixABIArguments         abi.Arguments
 	PSMABIArguments               abi.Arguments
 	WSTETHABIArguments            abi.Arguments
+	StETHABIArguments             abi.Arguments
 	PlatypusABIArguments          abi.Arguments
 	KyberLimitOrderABIArguments   abi.Arguments
 
@@ -121,6 +122,10 @@ func init() {
 		{Name: "pool", Type: abitypes.Address},
 		{Name: "amount", Type: abitypes.Uint256},
 		{Name: "isWrapping", Type: abitypes.Bool},
+	}
+
+	StETHABIArguments = abi.Arguments{
+		{Name: "amount", Type: abitypes.Uint256},
 	}
 
 	PlatypusABIArguments = abi.Arguments{

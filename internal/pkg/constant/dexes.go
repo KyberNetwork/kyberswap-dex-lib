@@ -39,6 +39,7 @@ type types struct {
 	MadMex             string
 	Metavault          string
 	Lido               string
+	LidoStEth          string
 	LimitOrder         string
 	Fraxswap           string
 	Camelot            string
@@ -87,6 +88,7 @@ var (
 		MadMex:             "madmex",
 		Metavault:          "metavault",
 		Lido:               "lido",
+		LidoStEth:          "lido-steth",
 		LimitOrder:         "limit-order",
 		Fraxswap:           "fraxswap",
 		Camelot:            "camelot",

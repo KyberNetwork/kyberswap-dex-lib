@@ -31,6 +31,7 @@ var (
 	FunctionSelectorSynthetix      FunctionSelector
 	FunctionSelectorPSM            FunctionSelector
 	FunctionSelectorWSTETH         FunctionSelector
+	FunctionSelectorSTETH          FunctionSelector
 	FunctionSelectorKSClassic      FunctionSelector
 	FunctionSelectorVelodrome      FunctionSelector
 	FunctionSelectorPlatypus       FunctionSelector
@@ -52,6 +53,7 @@ func init() {
 	FunctionSelectorSynthetix = NewFunctionSelector("executeSynthetix", []string{"bytes", "uint256"})
 	FunctionSelectorPSM = NewFunctionSelector("executePSM", []string{"bytes", "uint256"})
 	FunctionSelectorWSTETH = NewFunctionSelector("executeWrappedstETH", []string{"bytes", "uint256"})
+	FunctionSelectorSTETH = NewFunctionSelector("executeStEth", []string{"bytes", "uint256"})
 	FunctionSelectorKSClassic = NewFunctionSelector("executeKSClassic", []string{"bytes", "uint256"})
 	FunctionSelectorVelodrome = NewFunctionSelector("executeVelodrome", []string{"bytes", "uint256"})
 	FunctionSelectorPlatypus = NewFunctionSelector("executePlatypus", []string{"bytes", "uint256"})
