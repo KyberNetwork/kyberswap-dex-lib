@@ -2,6 +2,9 @@ package madmex
 
 import (
 	"math/big"
+	"time"
+
+	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type FastPriceFeedV1 struct {
@@ -35,3 +38,81 @@ const (
 	fastPriceFeedMethodV1Prices                    = "prices"
 	fastPriceFeedMethodV1VolBasisPoints            = "volBasisPoints"
 )
+
+func (pf *FastPriceFeedV1) GetPrice(token string, refPrice *big.Int, maximise bool) *big.Int {
+	if new(big.Int).SetInt64(time.Now().Unix()).Cmp(new(big.Int).Add(pf.LastUpdatedAt, pf.PriceDuration)) > 0 {
+		return refPrice
+	}
+
+	fastPrice := pf.Prices[token]
+	if fastPrice.Cmp(constant.ZeroBI) == 0 {
+		return refPrice
+	}
+
+	maxPrice := new(big.Int).Div(new(big.Int).Mul(refPrice, new(big.Int).Add(BasisPointsDivisor, pf.MaxDeviationBasisPoints)), BasisPointsDivisor)
+	minPrice := new(big.Int).Div(new(big.Int).Mul(refPrice, new(big.Int).Sub(BasisPointsDivisor, pf.MaxDeviationBasisPoints)), BasisPointsDivisor)
+
+	if pf.favorFastPrice() {
+		if fastPrice.Cmp(minPrice) >= 0 && fastPrice.Cmp(maxPrice) <= 0 {
+			if maximise {
+				if refPrice.Cmp(fastPrice) > 0 {
+					volPrice := new(big.Int).Div(new(big.Int).Mul(fastPrice, new(big.Int).Add(BasisPointsDivisor, pf.VolBasisPoints)), BasisPointsDivisor)
+
+					if volPrice.Cmp(refPrice) > 0 {
+						return refPrice
+					} else {
+						return volPrice
+					}
+				}
+
+				return fastPrice
+			}
+
+			if refPrice.Cmp(fastPrice) < 0 {
+				volPrice := new(big.Int).Div(new(big.Int).Mul(fastPrice, new(big.Int).Sub(BasisPointsDivisor, pf.VolBasisPoints)), BasisPointsDivisor)
+
+				if volPrice.Cmp(refPrice) < 0 {
+					return refPrice
+				} else {
+					return volPrice
+				}
+			}
+
+			return fastPrice
+		}
+	}
+
+	if maximise {
+		if refPrice.Cmp(fastPrice) > 0 {
+			return refPrice
+		}
+
+		if fastPrice.Cmp(maxPrice) > 0 {
+			return maxPrice
+		} else {
+			return fastPrice
+		}
+	}
+
+	if refPrice.Cmp(fastPrice) < 0 {
+		return refPrice
+	}
+
+	if fastPrice.Cmp(minPrice) < 0 {
+		return minPrice
+	} else {
+		return fastPrice
+	}
+}
+
+func (pf *FastPriceFeedV1) favorFastPrice() bool {
+	if pf.IsSpreadEnabled {
+		return false
+	}
+
+	if pf.DisableFastPriceVoteCount.Cmp(pf.MinAuthorizations) >= 0 {
+		return false
+	}
+
+	return true
+}

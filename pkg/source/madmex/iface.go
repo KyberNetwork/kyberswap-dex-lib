@@ -9,7 +9,10 @@ package madmex
 //go:generate mockgen -destination ./mock_chainlink_flags_reader.go -package madmex pool-service/internal/dex/madmex IChainlinkFlagsReader
 //go:generate mockgen -destination ./mock_pancake_pair_reader.go -package madmex pool-service/internal/dex/madmex IPancakePairReader
 
-import "context"
+import (
+	"context"
+	"math/big"
+)
 
 // IVaultReader reads vault smart contract
 type IVaultReader interface {
@@ -52,4 +55,5 @@ type IPancakePairReader interface {
 
 type IFastPriceFeed interface {
 	GetVersion() int
+	GetPrice(token string, refPrice *big.Int, maximise bool) *big.Int
 }

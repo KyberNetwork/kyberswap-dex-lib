@@ -14,3 +14,7 @@ func NewPancakePair() *PancakePair {
 const (
 	pancakePairMethodGetReserves = "getReserves"
 )
+
+func (p *PancakePair) GetReserves() (*big.Int, *big.Int, uint32) {
+	return p.Reserves[0], p.Reserves[1], p.TimestampLast
+}

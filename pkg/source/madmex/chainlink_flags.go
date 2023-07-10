@@ -7,3 +7,7 @@ type ChainlinkFlags struct {
 const (
 	chainlinkFlagsMethodGetFlag = "getFlag"
 )
+
+func (f *ChainlinkFlags) GetFlag(address string) bool {
+	return f.Flags[address]
+}
