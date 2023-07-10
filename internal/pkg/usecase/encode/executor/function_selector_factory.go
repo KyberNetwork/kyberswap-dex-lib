@@ -102,6 +102,7 @@ func init() {
 	// executeUniV3ProMMSwap
 	RegisterFunctionSelector(valueobject.ExchangeUniSwapV3, FunctionSelectorUniSwapV3ProMM)
 	RegisterFunctionSelector(valueobject.ExchangeKyberswapElastic, FunctionSelectorUniSwapV3ProMM)
+	RegisterFunctionSelector(valueobject.ExchangePancakeV3, FunctionSelectorUniSwapV3ProMM)
 
 	// executeBalV2Swap
 	RegisterFunctionSelector(valueobject.ExchangeBalancer, FunctionSelectorBalancerV2)

@@ -11,7 +11,7 @@ common:
   chainId: &chainId 56
   chainName: &chainName bsc
   rpc: "https://bsc.kyberengineering.io"
-  executorAddress: &executorAddress "0xf12bf5eF99EE8D0a7570ef9A811759A5AcF3622e"
+  executorAddress: &executorAddress "0xf0902ee0ea61fee5c4a5cfc44278b9fa083e4118"
   routerAddress: &routerAddress "0x09917437898D7378C41Fdc4e8AdA531e7b360fe8"
   gasTokenAddress: &gasTokenAddress "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -48,6 +48,7 @@ common:
     - "biswap"
     - "fraxswap"
     - "kyberswap-limit-order"
+    - "pancake-v3"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"

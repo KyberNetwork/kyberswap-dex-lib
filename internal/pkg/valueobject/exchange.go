@@ -15,6 +15,7 @@ var (
 	ExchangeJetSwap       Exchange = "jetswap"
 	ExchangeMDex          Exchange = "mdex"
 	ExchangePancake       Exchange = "pancake"
+	ExchangePancakeV3     Exchange = "pancake-v3"
 	ExchangeWault         Exchange = "wault"
 	ExchangePancakeLegacy Exchange = "pancake-legacy"
 	ExchangeBiSwap        Exchange = "biswap"
@@ -114,6 +115,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeJetSwap:             {},
 	ExchangeMDex:                {},
 	ExchangePancake:             {},
+	ExchangePancakeV3:           {},
 	ExchangeWault:               {},
 	ExchangePancakeLegacy:       {},
 	ExchangeBiSwap:              {},
