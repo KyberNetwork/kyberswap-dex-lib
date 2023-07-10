@@ -4,12 +4,7 @@ import (
 	"math/big"
 
 	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
-
-var FeeDenominator = utils.NewBig10("10000000000")
-
-const MaxLoopLimit = 256
 
 func _xp(
 	balances []*big.Int,
