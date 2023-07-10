@@ -96,10 +96,6 @@ func (p *Pool) CalcAmountOut(
 
 func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {}
 
-func (p *Pool) GetLpToken() string {
-	return p.LpToken
-}
-
 func (p *Pool) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
 }
