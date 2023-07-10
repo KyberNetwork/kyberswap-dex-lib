@@ -206,10 +206,6 @@ func (t *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (t *Pool) GetLpToken() string {
-	return t.LpToken
-}
-
 func (t *Pool) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
 
 func (t *Pool) CanSwapTo(address string) []string {

@@ -10,4 +10,5 @@ var (
 	ErrAmountOutNotConverge          = errors.New("approximation did not converge")
 	ErrBasePoolExchangeNotSupported  = errors.New("not support exchange in base pool")
 	ErrTokenToUnderLyingNotSupported = errors.New("not support exchange from base pool token to its underlying")
+	ErrDenominatorZero               = errors.New("denominator should not be 0")
 )

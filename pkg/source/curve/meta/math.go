@@ -36,6 +36,9 @@ func (t *Pool) _get_D(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	for i := 0; i < MaxLoopLimit; i++ {
 		var dP = new(big.Int).Set(d)
 		for j := 0; j < numTokens; j++ {
+			if xp[j].Cmp(constant.ZeroBI) == 0 {
+				return nil, ErrDenominatorZero
+			}
 			dP = new(big.Int).Div(
 				new(big.Int).Mul(dP, d),
 				new(big.Int).Mul(xp[j], numTokensBI),
