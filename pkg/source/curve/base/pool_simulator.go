@@ -153,10 +153,6 @@ func (t *PoolBaseSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (t *PoolBaseSimulator) GetLpToken() string {
-	return t.LpToken
-}
-
 func (t *PoolBaseSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)
