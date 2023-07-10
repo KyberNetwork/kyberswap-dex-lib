@@ -10,8 +10,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type AavePool struct {
@@ -56,7 +54,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*AavePool, error) {
 
 	lpSupply := bignumber.One
 	if len(entityPool.Reserves) > numTokens {
-		lpSupply = utils.NewBig10(entityPool.Reserves[numTokens])
+		lpSupply = bignumber.NewBig10(entityPool.Reserves[numTokens])
 	}
 
 	return &AavePool{
@@ -201,7 +199,7 @@ func (t *AavePool) AddLiquidity(amounts []*big.Int) (*big.Int, error) {
 	if token_supply.Cmp(bignumber.ZeroBI) > 0 {
 		ys := new(big.Int).Div(new(big.Int).Add(D0, D1), nCoinsBi)
 		var _fee = new(big.Int).Div(new(big.Int).Mul(t.Info.SwapFee, nCoinsBi),
-			new(big.Int).Mul(constant.Four, big.NewInt(int64(nCoins-1))))
+			new(big.Int).Mul(bignumber.Four, big.NewInt(int64(nCoins-1))))
 		_feemul := t.OffpegFeeMultiplier
 		for i := 0; i < nCoins; i += 1 {
 			t.Info.Reserves[i] = new_balances[i] // cannot determine real amount transfered, so use this, close enough
@@ -290,8 +288,8 @@ func (t *AavePool) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error) 
 	// 		(xp[i] + x) / 2, (xp[j] + y) / 2, self.fee, self.offpeg_fee_multiplier
 	// ) * dy / FEE_DENOMINATOR
 	var fee = _dynamicFee(
-		new(big.Int).Div(new(big.Int).Add(xp[i], x), constant.Two),
-		new(big.Int).Div(new(big.Int).Add(xp[j], y), constant.Two),
+		new(big.Int).Div(new(big.Int).Add(xp[i], x), bignumber.Two),
+		new(big.Int).Div(new(big.Int).Add(xp[j], y), bignumber.Two),
 		t.Info.SwapFee,
 		t.OffpegFeeMultiplier,
 	)
