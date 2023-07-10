@@ -158,31 +158,10 @@ func (t *Pool) CalcAmountOut(
 
 func (t *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
-	_, _, _, _ = t.Swap(input, output.Token)
-}
-
-func (t *Pool) Swap(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.TokenAmount, *pool.TokenAmount, int64, error) {
-	var inputAmount = tokenAmountIn.Amount
-	var inputIndex = t.GetTokenIndex(tokenAmountIn.Token)
-	var outputIndex = t.GetTokenIndex(tokenOut)
-	amountOut, err := t.Exchange(inputIndex, outputIndex, inputAmount)
-	if err != nil {
-		return nil, nil, 0, err
-	}
-	return &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut,
-		}, &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: bignumber.ZeroBI,
-		}, t.gas.Exchange, nil
-}
-
-func (t *Pool) GetLpToken() string {
-	return t.LpToken
+	var inputAmount = input.Amount
+	var inputIndex = t.GetTokenIndex(input.Token)
+	var outputIndex = t.GetTokenIndex(output.Token)
+	_, _ = t.Exchange(inputIndex, outputIndex, inputAmount)
 }
 
 func (t *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
