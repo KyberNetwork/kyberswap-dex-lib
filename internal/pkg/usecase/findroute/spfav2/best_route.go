@@ -84,11 +84,16 @@ func (f *spfav2Finder) splitAmountIn(input findroute.Input, data findroute.Finde
 		amountInPerSplit = constant.One
 	}
 
-	var (
-		amountInPerSplitUsd = utils.CalcTokenAmountUsd(amountInPerSplit, tokenInDecimal, tokenInPrice)
+	var amountInPerSplitUsd = utils.CalcTokenAmountUsd(amountInPerSplit, tokenInDecimal, tokenInPrice)
 
+	var minSplitsToMeetMinUsdRequirement int64
+	if utils.Float64AlmostEqual(amountInPerSplitUsd, 0) {
+		minSplitsToMeetMinUsdRequirement = maxNumSplits
+	} else {
 		minSplitsToMeetMinUsdRequirement = int64(math.Max(math.Ceil(f.minPartUSD/amountInPerSplitUsd), 1))
+	}
 
+	var (
 		// the actual number of splits that we would make, considering the f.MinPartUSD requirement
 		trueNumSplits           = maxNumSplits / minSplitsToMeetMinUsdRequirement
 		trueAmountInPerSplit    = new(big.Int).Mul(amountInPerSplit, big.NewInt(minSplitsToMeetMinUsdRequirement))
