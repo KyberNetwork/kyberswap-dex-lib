@@ -14,6 +14,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/hashflow"
+	hashflowclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/hashflow/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ironstable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido"
 	lido_steth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido-steth"
@@ -302,6 +304,15 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return syncswap.NewPoolsListUpdater(&cfg, ethrpcClient), nil
+	case hashflow.DexTypeHashflow:
+		var cfg hashflowclient.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		httpClient := hashflowclient.NewHTTPClient(&cfg.HTTP)
+		return hashflow.NewPoolsListUpdater(&hashflow.Config{DexID: scanDexCfg.Id}, httpClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pools list updater handler: %s", scanDexCfg.Handler)
@@ -491,6 +502,16 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return syncswap.NewPoolTracker(&cfg, ethrpcClient), nil
+	case hashflow.DexTypeHashflow:
+		var cfg hashflowclient.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+
+		fallbackClient := hashflowclient.NewHTTPClient(&cfg.HTTP)
+		cacheClient := hashflowclient.NewMemoryCacheClient(&cfg.MemoryCache, fallbackClient)
+		return hashflow.NewPoolTracker(&hashflow.Config{DexID: scanDexCfg.Id}, cacheClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pool tracker handler: %s", scanDexCfg.Handler)
