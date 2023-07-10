@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	mapset "github.com/deckarep/golang-set/v2"
 )
 
 type PoolReserves []string
@@ -38,6 +39,8 @@ type Pool struct {
 	Extra        string       `json:"extra,omitempty"`
 	StaticExtra  string       `json:"staticExtra,omitempty"`
 	TotalSupply  string       `json:"totalSupply,omitempty"`
+
+	Dependencies mapset.Set[string] `json:"dependencies,omitempty"`
 }
 
 func (p Pool) IsZero() bool { return len(p.Address) == 0 && len(p.Tokens) == 0 }

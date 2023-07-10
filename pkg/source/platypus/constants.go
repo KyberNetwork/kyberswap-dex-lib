@@ -30,6 +30,8 @@ const (
 
 const (
 	poolMethodAssetOf           = "assetOf"
+	poolMethodSourceAsset       = "getSourceOfAsset"
+	poolMethodAggregator        = "aggregator"
 	poolMethodGetC1             = "getC1"
 	poolMethodGetHaircutRate    = "getHaircutRate"
 	poolMethodGetPriceOracle    = "getPriceOracle"

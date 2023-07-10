@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/machinebox/graphql"
 	"github.com/samber/lo"
@@ -164,8 +165,21 @@ func (p *PoolsListUpdater) getPools(
 		return nil, err
 	}
 
+	// get aggregators for chainlink pools (platypus-base)
+	chainlinkPools := lo.Filter(poolStates, func(p PoolState, _ int) bool {
+		return p.Type == poolTypePlatypusBase
+	})
+	poolAggregatorsMap, err := p.getChainlinkProxyAggregators(ctx, chainlinkPools)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"error": err,
+		}).Errorf("Fail to get chainlink pool aggregator")
+		return nil, err
+	}
+
 	pools := make([]entity.Pool, 0, len(poolStates))
 	for _, state := range poolStates {
+		assetAddresses := poolAssetAddressesMap[state.Address]
 		assetStates := poolAssetStatesMap[state.Address]
 		extra := newExtra(state, assetStates, sAvaxRate)
 		extraBytes, err := json.Marshal(extra)
@@ -178,18 +192,43 @@ func (p *PoolsListUpdater) getPools(
 			reserves = append(reserves, assetState.Cash.String())
 		}
 
+		// dependency tracking:
+		// platypus-pure: all assetAddress
+		// platypus-base (chain-link): all assetAddress, aggregatorAddress
+		// platypus-avax (and similar): all assetAddress, priceOracleAddress
+		dependencies := mapset.NewSet(lo.Map(assetAddresses, func(a common.Address, _ int) string { return a.Hex() })...)
+		switch state.Type {
+		case poolTypePlatypusBase:
+			dependencies.Add(state.PriceOracle.Hex())
+			aggregators, ok := poolAggregatorsMap[state.Address]
+			if !ok {
+				// this is not a platypus-base pool, we get to here because we're not supporting yyAvax, AAvaxC... yet
+				continue
+			}
+			for _, ag := range aggregators {
+				agAdr := ag.Hex()
+				if !strings.EqualFold(agAdr, addressZero) {
+					dependencies.Add(agAdr)
+				}
+			}
+		case poolTypePlatypusAvax:
+			dependencies.Add(state.PriceOracle.Hex())
+		}
+
 		pools = append(pools, entity.Pool{
 			Address:      state.Address,
 			ReserveUsd:   0,
 			AmplifiedTvl: 0,
 			SwapFee:      0,
 			Exchange:     p.config.DexID,
-			Type:         getPoolTypeByPriceOracle(strings.ToLower(state.PriceOracle.Hex())),
+			Type:         state.Type,
 			Timestamp:    time.Now().Unix(),
 			Reserves:     reserves,
 			Extra:        string(extraBytes),
 			StaticExtra:  "",
 			Tokens:       newPoolTokens(state.TokenAddresses),
+
+			Dependencies: dependencies,
 		})
 	}
 
@@ -271,7 +310,9 @@ func (p *PoolsListUpdater) getPoolStates(
 		}
 
 		state.Address = addresses[i]
+		state.Type = getPoolTypeByPriceOracle(strings.ToLower(state.PriceOracle.Hex()))
 		poolStates = append(poolStates, state)
+		logger.WithFields(logger.Fields{"state": state}).Debug("get state")
 	}
 
 	return poolStates, nil
@@ -298,8 +339,73 @@ func (p *PoolsListUpdater) getAssetAddresses(
 	if _, err := request.Aggregate(); err != nil {
 		return nil, err
 	}
+	logger.WithFields(logger.Fields{"pools": poolStates, "assest": poolAssetAddressesMap}).Debug("get assest")
 
 	return poolAssetAddressesMap, nil
+}
+
+func (p *PoolsListUpdater) getChainlinkProxyAggregators(
+	ctx context.Context, poolStates []PoolState,
+) (map[string][]common.Address, error) {
+	logger.WithFields(logger.Fields{"pools": poolStates}).Debug("get chainlink proxy")
+
+	// first get the proxies
+	request := p.ethClient.NewRequest()
+	poolTokenProxiesMap := make(map[string][]common.Address)
+	for _, state := range poolStates {
+		proxyAddresses := make([]common.Address, len(state.TokenAddresses))
+		poolTokenProxiesMap[state.Address] = proxyAddresses
+		for i, tokenAddress := range state.TokenAddresses {
+			request.AddCall(&ethrpc.Call{
+				ABI:    oracleABI,
+				Target: state.PriceOracle.Hex(),
+				Method: poolMethodSourceAsset,
+				Params: []interface{}{tokenAddress},
+			}, []interface{}{&proxyAddresses[i]})
+		}
+	}
+
+	if _, err := request.TryAggregate(); err != nil {
+		return nil, err
+	}
+
+	logger.WithFields(logger.Fields{"pools": poolStates, "proxies": poolTokenProxiesMap}).Debug("get chainlink proxy")
+
+	// then get the aggregators of those proxies
+	request = p.ethClient.NewRequest()
+	poolTokenAggregatorsMap := make(map[string][]common.Address)
+	for _, state := range poolStates {
+		invalidProxy := false
+		for i := range state.TokenAddresses {
+			if poolTokenProxiesMap[state.Address][i].Hex() == addressZero {
+				invalidProxy = true
+				break
+			}
+		}
+		if invalidProxy {
+			logger.WithFields(logger.Fields{"pool": state.Address}).Info("ignore invalid proxy")
+			continue
+		}
+
+		aggregatorAddresses := make([]common.Address, len(state.TokenAddresses))
+		poolTokenAggregatorsMap[state.Address] = aggregatorAddresses
+		for i := range state.TokenAddresses {
+			request.AddCall(&ethrpc.Call{
+				ABI:    chainlinkABI,
+				Target: poolTokenProxiesMap[state.Address][i].Hex(),
+				Method: poolMethodAggregator,
+				Params: []interface{}{},
+			}, []interface{}{&aggregatorAddresses[i]})
+		}
+	}
+
+	if _, err := request.Aggregate(); err != nil {
+		return nil, err
+	}
+
+	logger.WithFields(logger.Fields{"pools": poolStates, "aggregators": poolTokenAggregatorsMap}).Debug("get chainlink aggregator")
+
+	return poolTokenAggregatorsMap, nil
 }
 
 func (p *PoolsListUpdater) getAssetStates(
