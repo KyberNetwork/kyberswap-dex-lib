@@ -22,7 +22,6 @@ import (
 // At the moment, our code can only support base/plain pool and plain oracle pool
 type ICurveBasePool interface {
 	GetInfo() pool.PoolInfo
-	GetLpToken() string
 	GetTokenIndex(address string) int
 	GetVirtualPrice() (*big.Int, error)
 	GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error)
