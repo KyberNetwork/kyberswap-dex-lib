@@ -41,6 +41,7 @@ func TestGetPools_Handle(t *testing.T) {
 			result: &dto.GetPoolsResult{
 				Pools: []*dto.GetPoolsResultPool{
 					{
+						Address:      "pooladdress1",
 						ReserveUsd:   10000,
 						AmplifiedTvl: 10,
 						SwapFee:      100,
@@ -71,6 +72,7 @@ func TestGetPools_Handle(t *testing.T) {
 						TotalSupply: "10000",
 					},
 					{
+						Address:      "poolAddress2",
 						ReserveUsd:   20000,
 						AmplifiedTvl: 20,
 						SwapFee:      200,

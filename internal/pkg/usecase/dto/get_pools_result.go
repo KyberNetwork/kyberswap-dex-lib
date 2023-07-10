@@ -8,6 +8,7 @@ type (
 	}
 
 	GetPoolsResultPool struct {
+		Address      string                     `json:"address,omitempty"`
 		ReserveUsd   float64                    `json:"reserveUsd,omitempty"`
 		AmplifiedTvl float64                    `json:"amplifiedTvl,omitempty"`
 		SwapFee      float64                    `json:"swapFee,omitempty"`
@@ -49,6 +50,7 @@ func toGetPoolsResultPool(pool *entity.Pool) *GetPoolsResultPool {
 	}
 
 	return &GetPoolsResultPool{
+		Address:      pool.Address,
 		ReserveUsd:   pool.ReserveUsd,
 		AmplifiedTvl: pool.AmplifiedTvl,
 		SwapFee:      pool.SwapFee,
