@@ -75,16 +75,6 @@ type Slot0 struct {
 	Unlocked                   bool     `json:"unlocked"`
 }
 
-type preGenesisPool struct {
-	ID string `json:"id"`
-}
-
-type populatedTick struct {
-	Tick           *big.Int
-	LiquidityNet   *big.Int
-	LiquidityGross *big.Int
-}
-
 type FetchRPCResult struct {
 	liquidity *big.Int
 	slot0     Slot0

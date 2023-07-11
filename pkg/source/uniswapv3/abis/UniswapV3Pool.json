@@ -782,9 +782,9 @@
         "type": "uint16"
       },
       {
-        "internalType": "uint32",
+        "internalType": "uint8",
         "name": "feeProtocol",
-        "type": "uint32"
+        "type": "uint8"
       },
       {
         "internalType": "bool",

@@ -17,10 +17,9 @@ const (
 )
 
 const (
-	methodGetLiquidity                    = "liquidity"
-	methodGetSlot0                        = "slot0"
-	tickLensMethodGetPopulatedTicksInWord = "getPopulatedTicksInWord"
-	erc20MethodBalanceOf                  = "balanceOf"
+	methodGetLiquidity   = "liquidity"
+	methodGetSlot0       = "slot0"
+	erc20MethodBalanceOf = "balanceOf"
 )
 
 var (
