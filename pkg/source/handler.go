@@ -34,6 +34,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkswap"
 )
 
 func NewPoolsListUpdaterHandler(
@@ -302,6 +303,16 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return syncswap.NewPoolsListUpdater(&cfg, ethrpcClient), nil
+
+	case zkswap.DexTypeZkSwap:
+		var cfg zkswap.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return zkswap.NewPoolListUpdater(&cfg, ethrpcClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pools list updater handler: %s", scanDexCfg.Handler)
@@ -491,6 +502,16 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return syncswap.NewPoolTracker(&cfg, ethrpcClient), nil
+
+	case zkswap.DexTypeZkSwap:
+		var cfg zkswap.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return zkswap.NewPoolTracker(&cfg, ethrpcClient)
 	}
 
 	return nil, fmt.Errorf("can not find pool tracker handler: %s", scanDexCfg.Handler)
