@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/KyberNetwork/ethrpc"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/biswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
@@ -24,6 +25,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/muteswitch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nerve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/oneswap"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pancakev3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/polydex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -303,15 +305,23 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return syncswap.NewPoolsListUpdater(&cfg, ethrpcClient), nil
-
-	case zkswap.DexTypeZkSwap:
-		var cfg zkswap.Config
+	case pancakev3.DexTypePancakeV3:
+		var cfg pancakev3.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
 		if err != nil {
 			return nil, err
 		}
 		cfg.DexID = scanDexCfg.Id
 
+		return pancakev3.NewPoolsListUpdater(&cfg), nil
+  case zkswap.DexTypeZkSwap:
+		var cfg zkswap.Config
+    	err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+    
 		return zkswap.NewPoolListUpdater(&cfg, ethrpcClient), nil
 	}
 
@@ -502,15 +512,24 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return syncswap.NewPoolTracker(&cfg, ethrpcClient), nil
+	case pancakev3.DexTypePancakeV3:
+		var cfg pancakev3.Config
 
-	case zkswap.DexTypeZkSwap:
-		var cfg zkswap.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
 		if err != nil {
 			return nil, err
 		}
 		cfg.DexID = scanDexCfg.Id
 
+		return pancakev3.NewPoolTracker(&cfg, ethrpcClient)
+	case zkswap.DexTypeZkSwap:
+		var cfg zkswap.Config
+    err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+    
 		return zkswap.NewPoolTracker(&cfg, ethrpcClient)
 	}
 

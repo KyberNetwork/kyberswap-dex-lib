@@ -1,4 +1,4 @@
-package uniswapv3
+package pancakev3
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ type Gas struct {
 	Swap int64
 }
 
-// UniV3SwapInfo present the after state of a swap
-type UniV3SwapInfo struct {
+// SwapInfo present the after state of a swap
+type SwapInfo struct {
 	nextStateSqrtRatioX96 *big.Int
 	nextStateLiquidity    *big.Int
 	nextStateTickCurrent  int
@@ -71,18 +71,8 @@ type Slot0 struct {
 	ObservationIndex           uint16   `json:"observationIndex"`
 	ObservationCardinality     uint16   `json:"observationCardinality"`
 	ObservationCardinalityNext uint16   `json:"observationCardinalityNext"`
-	FeeProtocol                uint8    `json:"feeProtocol"`
+	FeeProtocol                uint32   `json:"feeProtocol"`
 	Unlocked                   bool     `json:"unlocked"`
-}
-
-type preGenesisPool struct {
-	ID string `json:"id"`
-}
-
-type populatedTick struct {
-	Tick           *big.Int
-	LiquidityNet   *big.Int
-	LiquidityGross *big.Int
 }
 
 type FetchRPCResult struct {

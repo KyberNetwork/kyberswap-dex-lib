@@ -6,7 +6,8 @@ require (
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
 	github.com/KyberNetwork/ethrpc v0.2.0
 	github.com/KyberNetwork/logger v0.1.0
-	github.com/daoleno/uniswap-sdk-core v0.1.5
+	github.com/KyberNetwork/pancake-v3-sdk v0.1.0
+	github.com/daoleno/uniswap-sdk-core v0.1.7
 	github.com/daoleno/uniswapv3-sdk v0.4.0
 	github.com/ethereum/go-ethereum v1.11.6
 	github.com/go-resty/resty/v2 v2.7.0
@@ -14,6 +15,7 @@ require (
 	github.com/machinebox/graphql v0.2.2
 	github.com/orcaman/concurrent-map v1.0.0
 	github.com/samber/lo v1.38.1
+	github.com/sirupsen/logrus v1.9.0
 	github.com/sourcegraph/conc v0.3.0
 	github.com/stretchr/testify v1.8.3
 	golang.org/x/sync v0.2.0
@@ -33,7 +35,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.10 // indirect
 	github.com/tklauser/numcpus v0.5.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect

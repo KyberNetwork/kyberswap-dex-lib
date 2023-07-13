@@ -67,7 +67,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,
-			})
+			}).Errorf("failed to get listOrders for sell side")
 			return err
 		}
 		extra.SellOrders = sellOrders
