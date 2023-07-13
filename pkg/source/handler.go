@@ -106,7 +106,7 @@ func NewPoolsListUpdaterHandler(
 		}
 		cfg.DexID = scanDexCfg.Id
 
-		return velodrome.NewPoolListUpdater(&cfg, ethrpcClient), nil
+		return velocimeter.NewPoolListUpdater(&cfg, ethrpcClient), nil
 	case muteswitch.DexTypeMuteSwitch:
 		var cfg muteswitch.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
