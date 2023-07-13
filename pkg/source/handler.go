@@ -36,6 +36,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
 )
 
 func NewPoolsListUpdaterHandler(
@@ -90,6 +91,15 @@ func NewPoolsListUpdaterHandler(
 		return balancer.NewPoolsListUpdater(&cfg, ethrpcClient), nil
 	case velodrome.DexTypeVelodrome:
 		var cfg velodrome.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return velodrome.NewPoolListUpdater(&cfg, ethrpcClient), nil
+	case velocimeter.DexTypeVelocimeter:
+		var cfg velocimeter.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
 		if err != nil {
 			return nil, err
@@ -356,6 +366,15 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return velodrome.NewPoolTracker(&cfg, ethrpcClient)
+	case velocimeter.DexTypeVelocimeter:
+		var cfg velocimeter.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return velocimeter.NewPoolTracker(&cfg, ethrpcClient)
 	case muteswitch.DexTypeMuteSwitch:
 		var cfg muteswitch.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
