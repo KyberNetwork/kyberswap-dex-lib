@@ -30,6 +30,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/core/madmex"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/makerpsm"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/metavault"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/pancakev3"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/platypus"
 	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/saddle"
@@ -240,6 +241,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
 		return f.newSyncswapClassic(entityPool)
 	case constant.PoolTypes.SyncSwapStable:
 		return f.newSyncswapStable(entityPool)
+	case constant.PoolTypes.PancakeV3:
+		return f.newPancakeV3(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -674,6 +677,20 @@ func (f *PoolFactory) newSyncswapStable(entityPool entity.Pool) (*syncswapstable
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSyncswapClassic] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newPancakeV3(entityPool entity.Pool) (*pancakev3.Pool, error) {
+	corePool, err := pancakev3.NewPool(entityPool, f.config.ChainID)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newPancakeV3] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

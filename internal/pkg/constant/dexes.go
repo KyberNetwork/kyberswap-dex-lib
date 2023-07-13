@@ -46,6 +46,7 @@ type types struct {
 	MuteSwitch         string
 	SyncSwapClassic    string
 	SyncSwapStable     string
+	PancakeV3          string
 }
 
 var (
@@ -95,5 +96,6 @@ var (
 		MuteSwitch:         "muteswitch",
 		SyncSwapClassic:    "syncswap-classic",
 		SyncSwapStable:     "syncswap-stable",
+		PancakeV3:          "pancake-v3",
 	}
 )
