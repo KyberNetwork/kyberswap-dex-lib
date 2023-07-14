@@ -13,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
 
 type PoolsListUpdater struct {
@@ -84,7 +85,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}, []interface{}{&pairAddresses[j]})
 	}
 
-	if _, err := getPairAddressRequest.Aggregate(); err != nil {
+	if _, err := getPairAddressRequest.TryAggregate(); err != nil {
 		logger.Errorf("failed to process aggregate, err: %v", err)
 		return nil, metadataBytes, err
 	}
@@ -95,9 +96,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	numPools := len(pools)
-
-	nextOffset := currentOffset + numPools
+	nextOffset := currentOffset + batchSize
 	newMetadataBytes, err := json.Marshal(Metadata{
 		Offset: nextOffset,
 	})
@@ -106,7 +105,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	if len(pools) > 0 {
-		logger.Infof("scan UniswapV2Factory with batch size %v, progress: %d/%d", batchSize, currentOffset+numPools, totalNumberOfPools)
+		logger.Infof("scan UniswapV2Factory with batch size %v, progress: %d/%d", batchSize, currentOffset+batchSize, totalNumberOfPools)
 	}
 
 	return pools, newMetadataBytes, nil
@@ -121,6 +120,10 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 	rpcRequest.SetContext(ctx)
 
 	for i := 0; i < limit; i++ {
+		if eth.IsZeroAddress(pairAddresses[i]) {
+			logger.Infof("[%s] Skip pool number %d", d.config.DexID, i)
+			continue
+		}
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    uniswapV2PairABI,
 			Target: pairAddresses[i].Hex(),
