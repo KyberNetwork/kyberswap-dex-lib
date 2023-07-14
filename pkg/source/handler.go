@@ -36,6 +36,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/usdfi"
 )
 
 func NewPoolsListUpdaterHandler(
@@ -205,6 +206,16 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return dystopia.NewPoolsListUpdater(&cfg, ethrpcClient), nil
+
+	case usdfi.DexTypeUsdfi:
+		var cfg usdfi.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return usdfi.NewPoolsListUpdater(&cfg, ethrpcClient), nil
 	case metavault.DexTypeMetavault:
 		var cfg metavault.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
@@ -421,6 +432,8 @@ func NewPoolTrackerHandler(
 		return nerve.NewPoolTracker(&cfg, ethrpcClient)
 	case dystopia.DexTypeDystopia:
 		return dystopia.NewPoolTracker(ethrpcClient), nil
+	case usdfi.DexTypeUsdfi:
+		return usdfi.NewPoolTracker(ethrpcClient), nil
 	case synthetix.DexTypeSynthetix:
 		var cfg synthetix.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
