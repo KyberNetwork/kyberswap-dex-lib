@@ -246,3 +246,6 @@ validator:
   buildRouteParams:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
+  getRouteEncodeParams:
+    slippageToleranceGte: 0
+    slippageToleranceLte: 5000

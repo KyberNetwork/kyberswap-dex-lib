@@ -1,9 +1,10 @@
 package api
 
 import (
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 )

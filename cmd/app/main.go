@@ -199,11 +199,6 @@ func apiAction(c *cli.Context) (err error) {
 	ethClient := ethrpc.New(cfg.Common.RPC)
 
 	// init repositories
-	tokenDataStoreRepo := token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis)
-	tokenCacheRepo := token.NewGoCacheRepository(
-		tokenDataStoreRepo,
-		cfg.Repository.Token.GoCache,
-	)
 
 	poolDataStoreRepo := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
 	priceDataStoreRepo := price.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Price.Redis)
@@ -216,6 +211,7 @@ func apiAction(c *cli.Context) (err error) {
 		token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis),
 		cfg.Repository.Token.GoCache,
 	)
+
 	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
 	priceRepository := price.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Price.Redis)
 	// sealer
@@ -224,6 +220,7 @@ func apiAction(c *cli.Context) (err error) {
 	getPoolsParamsValidator := validator.NewGetPoolsParamsValidator()
 	getTokensParamsValidator := validator.NewGetTokensParamsValidator()
 	getRoutesParamsValidator := validator.NewGetRouteParamsValidator()
+	getRouteEncodeParamsValidator := validator.NewGetRouteEncodeParamsValidator(cfg.Validator.GetRouteEncodeParams)
 	buildRouteParamsValidator := validator.NewBuildRouteParamsValidator(timeutil.NowFunc, cfg.Validator.BuildRouteParams)
 
 	// init use cases
@@ -245,7 +242,7 @@ func apiAction(c *cli.Context) (err error) {
 	validateRouteUseCase.RegisterValidator(validateroute.NewSynthetixValidator())
 
 	getPoolsUseCase := usecase.NewGetPoolsUseCase(poolDataStoreRepo)
-	getTokensUseCase := usecase.NewGetTokens(tokenCacheRepo, priceDataStoreRepo)
+	getTokensUseCase := usecase.NewGetTokens(tokenRepository, priceDataStoreRepo)
 
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory)
 	poolManager, err := poolmanager.NewPointerSwapPoolManager(poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager)
@@ -264,7 +261,7 @@ func apiAction(c *cli.Context) (err error) {
 	)
 
 	buildRouteUseCase := usecase.NewBuildRouteUseCase(
-		tokenCacheRepo,
+		tokenRepository,
 		priceDataStoreRepo,
 		clientDataEncoder,
 		encoder,
@@ -308,6 +305,17 @@ func apiAction(c *cli.Context) (err error) {
 		pprof.Register(ginServer)
 	}
 
+	router.GET(
+		"/route/encode",
+		api.GetRouteEncode(
+			getRouteEncodeParamsValidator,
+			getRouteUseCase,
+			buildRouteUseCase,
+			getTokensUseCase,
+			timeutil.NowFunc,
+		),
+	)
+
 	v1 := router.Group("/api/v1")
 
 	v1Health := v1.Group("/health")
@@ -325,6 +333,7 @@ func apiAction(c *cli.Context) (err error) {
 	v1.GET("/tokens", api.GetTokens(getTokensParamsValidator, getTokensUseCase))
 	v1.GET("/routes", api.GetRoutes(getRoutesParamsValidator, getRouteUseCase))
 	v1.POST("/route/build", api.BuildRoute(buildRouteParamsValidator, buildRouteUseCase, timeutil.NowFunc))
+
 	v1.GET("/keys/publics/:keyId", api.GetPublicKey(keyPairUseCase))
 
 	reloadManager := reload.NewManager()

@@ -12,7 +12,7 @@ import (
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
-func TestTokenCacheInmemoryRepository_FindByAddresses(t *testing.T) {
+func TestTokenCacheRepository_FindByAddresses(t *testing.T) {
 	t.Run("it should return empty when addresses is empty", func(t *testing.T) {
 		repo := NewGoCacheRepository(nil, GoCacheRepositoryConfig{
 			Expiration:      10 * time.Second,

@@ -62,7 +62,6 @@ func (r *redisCacheRepository) Get(
 	if err := r.cache.Get(ctx, r.genKey(key), &simpleRoute); err != nil {
 		return nil, err
 	}
-
 	return &simpleRoute, nil
 }
 

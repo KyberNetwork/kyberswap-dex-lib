@@ -12,4 +12,6 @@ var (
 	ErrInvalidValue                  = errors.New("invalid value")
 	ErrFeeAmountGreaterThanAmountIn  = errors.New("feeAmount is greater than amountIn")
 	ErrFeeAmountGreaterThanAmountOut = errors.New("feeAmount is greater than amountOut")
+
+	ErrRouteNotFound = errors.New("route not found")
 )

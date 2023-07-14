@@ -58,6 +58,5 @@ func (r *redisRepository) GetSuggestedGasPrice(ctx context.Context) (*big.Int, e
 	if !isValid {
 		return nil, ErrInvalidGasPrice
 	}
-
 	return suggestedGasPrice, nil
 }

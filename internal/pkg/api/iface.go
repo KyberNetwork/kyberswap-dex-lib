@@ -68,3 +68,7 @@ type IGetRoutesParamsValidator interface {
 type IBuildRouteParamsValidator interface {
 	Validate(params params.BuildRouteParams) error
 }
+
+type IGetRouteEncodeParamsValidator interface {
+	Validate(params params.GetRouteEncodeParams) error
+}
