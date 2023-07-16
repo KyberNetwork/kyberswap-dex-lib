@@ -63,17 +63,6 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		return entity.Pool{}, err
 	}
 
-	// Would like to clarify that we can safely delete this
-	// staticExtra, err := extractStaticExtra(p.StaticExtra)
-	// if err != nil {
-	// 	logger.WithFields(logger.Fields{
-	// 		"poolAddress": p.Address,
-	// 		"error":       err,
-	// 	}).Errorf("failed to extract static extra")
-
-	// 	return entity.Pool{}, err
-	// }
-
 	swapFee := poolFee.Int64()
 
 	p.Reserves = entity.PoolReserves{reserve.Reserve0.String(), reserve.Reserve1.String()}
