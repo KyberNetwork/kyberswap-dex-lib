@@ -36,7 +36,7 @@ func buildUniswapV3KSElastic(swap types.EncodingSwap) UniswapV3KSElastic {
 		TokenOut:          common.HexToAddress(swap.TokenOut),
 		SwapAmount:        swap.SwapAmount,
 		SqrtPriceLimitX96: constant.Zero,
-		IsUniV3:           swap.PoolType == constant.PoolTypes.UniV3,
+		IsUniV3:           isUniV3Type(swap.PoolType),
 	}
 }
 
@@ -50,4 +50,18 @@ func packUniswapV3KSElastic(swap UniswapV3KSElastic) ([]byte, error) {
 		swap.SqrtPriceLimitX96,
 		swap.IsUniV3,
 	)
+}
+
+// isUniV3Type returns true if poolType is UniswapV3 or PancakeV3 type
+// otherwise, it returns false
+// This function should be updated whenever we support new UniV3-like pool
+func isUniV3Type(poolType string) bool {
+	switch poolType {
+	case constant.PoolTypes.UniV3:
+		return true
+	case constant.PoolTypes.PancakeV3:
+		return true
+	default:
+		return false
+	}
 }
