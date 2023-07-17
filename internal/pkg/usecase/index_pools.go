@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/samber/lo"
+	"github.com/sourcegraph/conc/iter"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -51,9 +52,14 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 			failedPoolAddresses = append(failedPoolAddresses, poolAddresses...)
 		}
 
-		for _, p := range pools {
-			isSuccessful := u.indexPool(ctx, p)
-			if !isSuccessful {
+		// Map always uses at most runtime.GOMAXPROCS goroutines
+		// https://pkg.go.dev/github.com/sourcegraph/conc/iter#Map
+		indexPoolsResults := iter.Map(pools, func(pool **entity.Pool) bool {
+			return u.indexPool(ctx, *pool)
+		})
+
+		for i, p := range pools {
+			if !indexPoolsResults[i] {
 				failedPoolAddresses = append(failedPoolAddresses, p.Address)
 			}
 		}

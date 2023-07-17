@@ -39,6 +39,7 @@ require (
 	github.com/redis/go-redis/v9 v9.0.3
 	github.com/samber/lo v1.38.1
 	github.com/sirupsen/logrus v1.9.0
+	github.com/sourcegraph/conc v0.3.0
 	github.com/spf13/viper v1.8.1
 	github.com/stretchr/testify v1.8.3
 	github.com/urfave/cli/v2 v2.17.2-0.20221006022127-8f469abc00aa
@@ -125,7 +126,7 @@ require (
 	github.com/yuin/gopher-lua v0.0.0-20220504180219-658193537a64 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/multierr v1.9.0 // indirect
 	go4.org/intern v0.0.0-20211027215823-ae77deb06f29 // indirect
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
 	golang.org/x/arch v0.3.0 // indirect

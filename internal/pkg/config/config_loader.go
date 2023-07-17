@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -87,6 +88,7 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 		}
 	}
 	fmt.Println(viper.GetString("ENV"))
+	fmt.Println("GOMAXPROCS: ", runtime.GOMAXPROCS(0))
 
 	return c, nil
 }
