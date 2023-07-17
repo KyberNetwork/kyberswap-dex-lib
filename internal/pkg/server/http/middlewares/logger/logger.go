@@ -1,4 +1,4 @@
-package http
+package logger
 
 import (
 	"bytes"
@@ -7,11 +7,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
-func LoggerMiddleware(skipPathSet map[string]struct{}) gin.HandlerFunc {
+func New(skipPathSet map[string]struct{}) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if _, contained := skipPathSet[c.Request.URL.Path]; contained {
 			return
@@ -19,6 +20,7 @@ func LoggerMiddleware(skipPathSet map[string]struct{}) gin.HandlerFunc {
 
 		startTime := time.Now()
 		requestID := requestid.ExtractRequestID(c)
+		clientID := clientid.ExtractClientID(c)
 
 		var buf bytes.Buffer
 		tee := io.TeeReader(c.Request.Body, &buf)
@@ -32,6 +34,7 @@ func LoggerMiddleware(skipPathSet map[string]struct{}) gin.HandlerFunc {
 			"request.client_ip":  c.ClientIP(),
 			"request.user_agent": c.Request.UserAgent(),
 			"request.id":         requestID,
+			"client.id":          clientID,
 		}).Info("inbound request")
 
 		blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
@@ -47,6 +50,7 @@ func LoggerMiddleware(skipPathSet map[string]struct{}) gin.HandlerFunc {
 				"response.body":        string(resp),
 				"response.duration_ms": time.Since(startTime).Milliseconds(),
 				"request.id":           requestID,
+				"client.id":            clientID,
 			}).
 			Info("inbound response")
 	}

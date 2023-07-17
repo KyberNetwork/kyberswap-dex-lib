@@ -12,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -24,6 +25,8 @@ func BuildRoute(
 	return func(ginCtx *gin.Context) {
 		span, ctx := tracer.StartSpanFromContext(ginCtx.Request.Context(), "BuildRoute")
 		defer span.Finish()
+
+		clientIDFromHeader := clientid.ExtractClientID(ginCtx)
 
 		var bodyParams params.BuildRouteParams
 		if err := ginCtx.ShouldBindJSON(&bodyParams); err != nil {
@@ -45,6 +48,11 @@ func BuildRoute(
 		if err != nil {
 			RespondFailure(ginCtx, err)
 			return
+		}
+
+		// if source param is empty, use clientID from header as the source
+		if command.Source == "" {
+			command.Source = clientIDFromHeader
 		}
 
 		result, err := useCase.Handle(ctx, command)

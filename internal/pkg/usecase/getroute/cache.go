@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -91,7 +92,8 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 				"key":        key.String(""),
 				"reason":     "get cache failed",
 				"error":      err,
-				"request_id": requestid.RequestIDFromCtx(ctx),
+				"request_id": requestid.GetRequestIDFromCtx(ctx),
+				"client_id":  clientid.GetClientIDFromCtx(ctx),
 			}).
 			Info("cache missed")
 		metrics.IncrFindRouteCacheCount(false, []string{"reason:getCachedRouteFailed"})
@@ -106,7 +108,8 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 				"key":        key.String(""),
 				"reason":     "summarize simple route failed",
 				"error":      err,
-				"request_id": requestid.RequestIDFromCtx(ctx),
+				"request_id": requestid.GetRequestIDFromCtx(ctx),
+				"client_id":  clientid.GetClientIDFromCtx(ctx),
 			}).
 			Info("cache missed")
 		metrics.IncrFindRouteCacheCount(false, []string{"reason:summarizeCachedRouteFailed"})
@@ -122,7 +125,8 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 				"key":        key.String(""),
 				"reason":     "price impact is greater than threshold",
 				"error":      err,
-				"request_id": requestid.RequestIDFromCtx(ctx),
+				"request_id": requestid.GetRequestIDFromCtx(ctx),
+				"client_id":  clientid.GetClientIDFromCtx(ctx),
 			}).
 			Info("cache missed")
 		metrics.IncrFindRouteCacheCount(
@@ -145,7 +149,8 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 	logger.
 		WithFields(logger.Fields{
 			"key":        key.String(""),
-			"request_id": requestid.RequestIDFromCtx(ctx),
+			"request_id": requestid.GetRequestIDFromCtx(ctx),
+			"client_id":  clientid.GetClientIDFromCtx(ctx),
 		}).
 		Info("cache hit")
 	metrics.IncrFindRouteCacheCount(true, nil)

@@ -10,7 +10,7 @@ func SetRequestIDToContext(ctx context.Context, requestID string) context.Contex
 	return context.WithValue(ctx, requestIDContextKey, requestID)
 }
 
-func RequestIDFromCtx(ctx context.Context) string {
+func GetRequestIDFromCtx(ctx context.Context) string {
 	v := ctx.Value(requestIDContextKey)
 	requestID, _ := v.(string)
 	return requestID

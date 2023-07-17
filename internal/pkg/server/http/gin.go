@@ -12,6 +12,9 @@ import (
 	gintracer "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
+	clientidmiddleware "github.com/KyberNetwork/router-service/internal/pkg/server/http/middlewares/clientid"
+	loggermiddleware "github.com/KyberNetwork/router-service/internal/pkg/server/http/middlewares/logger"
+	clientidpkg "github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	requestidpkg "github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/pkg/util/env"
@@ -52,15 +55,22 @@ func GinServer(cfg *HTTPConfig, zapLogger *zap.Logger) (*gin.Engine, *gin.Router
 
 	middlewares = append(middlewares,
 		requestid.New(
-			requestid.WithCustomHeaderStrKey(requestidpkg.RequestIDHeaderKey),
+			requestid.WithCustomHeaderStrKey(requestidpkg.HeaderKeyRequestID),
 			requestid.WithHandler(func(c *gin.Context, requestID string) {
 				c.Request = c.Request.WithContext(requestidpkg.SetRequestIDToContext(c.Request.Context(), requestID))
+			}),
+		),
+
+		clientidmiddleware.New(
+			clientidmiddleware.WithCustomHeaderStrKey(clientidpkg.HeaderKeyClientID),
+			clientidmiddleware.WithHandler(func(c *gin.Context, clientID string) {
+				c.Request = c.Request.WithContext(clientidpkg.SetClientIDToContext(c.Request.Context(), clientID))
 			}),
 		),
 	)
 
 	server.Use(middlewares...)
-	server.Use(LoggerMiddleware(skipPathSet))
+	server.Use(loggermiddleware.New(skipPathSet))
 	server.Use(gin.CustomRecovery(api.RecoveryFunc))
 
 	setCORS(server)
@@ -74,10 +84,14 @@ func setCORS(engine *gin.Engine) {
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AddAllowMethods(http.MethodOptions)
 	corsConfig.AllowAllOrigins = true
+
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers
+	// HTTP headers are case-insensitive
 	corsConfig.AddAllowHeaders("Authorization")
-	corsConfig.AddAllowHeaders("x-request-id")
 	corsConfig.AddAllowHeaders("X-Request-Id")
+	corsConfig.AddAllowHeaders("X-Client-Id")
 	corsConfig.AddAllowHeaders("Accept-Version")
+
 	engine.Use(cors.New(corsConfig))
 }
 

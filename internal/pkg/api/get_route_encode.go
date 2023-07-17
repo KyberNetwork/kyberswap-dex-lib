@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -31,6 +32,8 @@ func GetRouteEncode(
 		defer span.Finish()
 
 		span.SetTag("request-uri", ginCtx.Request.URL.RequestURI())
+
+		clientIDFromHeader := clientid.ExtractClientID(ginCtx)
 
 		var queryParams params.GetRouteEncodeParams
 		if err := ginCtx.ShouldBindQuery(&queryParams); err != nil {
@@ -67,6 +70,11 @@ func GetRouteEncode(
 		if err != nil {
 			RespondFailure(ginCtx, err)
 			return
+		}
+
+		// if source param is empty, use clientID from header as the source
+		if buildRouteCommand.Source == "" {
+			buildRouteCommand.Source = clientIDFromHeader
 		}
 
 		buildRouteResult, err := buildRoutesUseCase.Handle(ctx, buildRouteCommand)
