@@ -7,11 +7,12 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/samber/lo"
 )
 
 type StablePool struct {
@@ -77,29 +78,29 @@ func (t *StablePool) CalcAmountOut(
 	var tokenIndexFrom = t.GetTokenIndex(tokenAmountIn.Token)
 	var tokenIndexTo = t.GetTokenIndex(tokenOut)
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
-		var feeAmount = mulUp(tokenAmountIn.Amount, t.Info.SwapFee)
+		var feeAmount = balancer.MulUpFixed(tokenAmountIn.Amount, t.Info.SwapFee)
 		var amountIn = new(big.Int).Sub(tokenAmountIn.Amount, feeAmount)
 		var scalingFactorTokenIn = t.getScalingFactor(tokenIndexFrom)
-		amountIn = _upscale(amountIn, scalingFactorTokenIn)
+		amountIn = balancer.Upscale(amountIn, scalingFactorTokenIn)
 
 		var balances = make([]*big.Int, len(t.Info.Tokens))
 		var scalingFactorOut *big.Int
 		for i := 0; i < len(t.Info.Tokens); i += 1 {
 			var scalingFactor = t.getScalingFactor(i)
-			balances[i] = _upscale(t.Info.Reserves[i], scalingFactor)
+			balances[i] = balancer.Upscale(t.Info.Reserves[i], scalingFactor)
 			if i == tokenIndexTo {
 				scalingFactorOut = scalingFactor
 			}
 		}
-		var invariant = _calculateInvariant(t.A, balances, true)
+		var invariant = balancer.CalculateInvariant(t.A, balances, true)
 		if invariant == nil {
 			return &pool.CalcAmountOutResult{}, errors.New("invariant equals nil")
 		}
-		var amountOut = _calcOutGivenIn(t.A, balances, tokenIndexFrom, tokenIndexTo, amountIn, invariant)
+		var amountOut = balancer.CalcOutGivenIn(t.A, balances, tokenIndexFrom, tokenIndexTo, amountIn, invariant)
 		if amountOut == nil {
 			return &pool.CalcAmountOutResult{}, errors.New("amountOut equals nil")
 		}
-		amountOut = _downscaleDown(amountOut, scalingFactorOut)
+		amountOut = balancer.DownscaleDown(amountOut, scalingFactorOut)
 		return &pool.CalcAmountOutResult{
 			TokenAmountOut: &pool.TokenAmount{
 				Token:  tokenOut,
@@ -140,5 +141,5 @@ func (t *StablePool) getScalingFactor(tokenIndex int) *big.Int {
 		return t.ScalingFactors[tokenIndex]
 	}
 
-	return _computeScalingFactor(t.Decimals[tokenIndex])
+	return balancer.ComputeScalingFactor(t.Decimals[tokenIndex])
 }

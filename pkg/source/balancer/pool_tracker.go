@@ -48,6 +48,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		amplificationParameter AmplificationParameter
 		scalingFactors         []*big.Int
 		swapFeePercentage      *big.Int
+		bptIndex               int
+		actualSupply           *big.Int
 	)
 
 	calls := d.ethrpcClient.NewRequest()
@@ -92,6 +94,21 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		}, []interface{}{&scalingFactors})
 	}
 
+	if DexType(p.Type) == DexTypeBalancerComposableStable {
+		calls.AddCall(&ethrpc.Call{
+			ABI:    metaStablePoolABI,
+			Target: p.Address,
+			Method: composableStablePoolMethodGetBptIndex,
+			Params: nil,
+		}, []interface{}{&bptIndex})
+
+		calls.AddCall(&ethrpc.Call{
+			ABI:    metaStablePoolABI,
+			Target: p.Address,
+			Method: composableStablePoolMethodGetActualSupply,
+			Params: nil,
+		}, []interface{}{&actualSupply})
+	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
@@ -142,6 +159,24 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		extraBytes, err := json.Marshal(Extra{
 			AmplificationParameter: amplificationParameter,
 			ScalingFactors:         scalingFactors,
+		})
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"poolAddress": p.Address,
+				"error":       err,
+			}).Errorf("failed to marshal pool extra")
+			return entity.Pool{}, err
+		}
+
+		extra = string(extraBytes)
+	}
+
+	if DexType(p.Type) == DexTypeBalancerComposableStable {
+		extraBytes, err := json.Marshal(Extra{
+			AmplificationParameter: amplificationParameter,
+			ScalingFactors:         scalingFactors,
+			BptIndex:               bptIndex,
+			ActualSupply:           actualSupply,
 		})
 		if err != nil {
 			logger.WithFields(logger.Fields{

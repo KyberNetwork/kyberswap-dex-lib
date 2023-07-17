@@ -7,10 +7,11 @@ import (
 )
 
 var (
-	vaultABI          abi.ABI
-	balancerPoolABI   abi.ABI
-	stablePoolABI     abi.ABI
-	metaStablePoolABI abi.ABI
+	vaultABI                abi.ABI
+	balancerPoolABI         abi.ABI
+	stablePoolABI           abi.ABI
+	metaStablePoolABI       abi.ABI
+	composableStablePoolABI abi.ABI
 )
 
 func init() {
@@ -22,6 +23,7 @@ func init() {
 		{&balancerPoolABI, balancerPoolJson},
 		{&stablePoolABI, balancerStablePoolJson},
 		{&metaStablePoolABI, balancerMetaStablePoolJson},
+		{&composableStablePoolABI, balancerComposableStablePoolJson},
 	}
 
 	for _, b := range builder {

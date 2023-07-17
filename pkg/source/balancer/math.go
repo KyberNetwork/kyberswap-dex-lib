@@ -1,4 +1,4 @@
-package balancerstable
+package balancer
 
 import (
 	"math/big"
@@ -13,21 +13,21 @@ func init() {
 	One = new(big.Int).Set(bignumber.BONE)
 }
 
-func _upscale(amount *big.Int, scalingFactor *big.Int) *big.Int {
-	return mulDown(amount, scalingFactor)
+func Upscale(amount *big.Int, scalingFactor *big.Int) *big.Int {
+	return MulDownFixed(amount, scalingFactor)
 }
 
-func _computeScalingFactor(tokenDecimals uint) *big.Int {
+func ComputeScalingFactor(tokenDecimals uint) *big.Int {
 	var decimalsDiff = 36 - tokenDecimals
 	return bignumber.TenPowInt(uint8(decimalsDiff))
 }
 
-func mulDown(a *big.Int, b *big.Int) *big.Int {
+func MulDownFixed(a *big.Int, b *big.Int) *big.Int {
 	var ret = new(big.Int).Mul(a, b)
 	return new(big.Int).Div(ret, One)
 }
 
-func mulUp(a *big.Int, b *big.Int) *big.Int {
+func MulUpFixed(a *big.Int, b *big.Int) *big.Int {
 	var ret = new(big.Int).Mul(a, b)
 	if ret.Cmp(bignumber.ZeroBI) == 0 {
 		return ret
@@ -37,23 +37,23 @@ func mulUp(a *big.Int, b *big.Int) *big.Int {
 
 func div(a *big.Int, b *big.Int, roundUp bool) *big.Int {
 	if roundUp {
-		return _divUp(a, b)
+		return DivUp(a, b)
 	}
-	return _divDown(a, b)
+	return DivDown(a, b)
 }
 
-func _divDown(a *big.Int, b *big.Int) *big.Int {
+func DivDown(a *big.Int, b *big.Int) *big.Int {
 	return new(big.Int).Div(a, b)
 }
 
-func _divUp(a *big.Int, b *big.Int) *big.Int {
+func DivUp(a *big.Int, b *big.Int) *big.Int {
 	if a.Cmp(bignumber.ZeroBI) == 0 {
 		return bignumber.ZeroBI
 	}
 	return new(big.Int).Add(new(big.Int).Div(new(big.Int).Sub(a, bignumber.One), b), bignumber.One)
 }
 
-func divDown(a *big.Int, b *big.Int) *big.Int {
+func DivDownFixed(a *big.Int, b *big.Int) *big.Int {
 	if a.Cmp(bignumber.ZeroBI) == 0 {
 		return bignumber.ZeroBI
 	}
@@ -69,11 +69,11 @@ func divDown(a *big.Int, b *big.Int) *big.Int {
 //	return new(big.Int).Add(new(big.Int).Div(new(big.Int).Sub(ret, bignumber.One), b), bignumber.One)
 //}
 
-func _downscaleDown(amount *big.Int, scalingFactor *big.Int) *big.Int {
-	return divDown(amount, scalingFactor)
+func DownscaleDown(amount *big.Int, scalingFactor *big.Int) *big.Int {
+	return DivDownFixed(amount, scalingFactor)
 }
 
-func _calcOutGivenIn(
+func CalcOutGivenIn(
 	a *big.Int,
 	balances []*big.Int,
 	tokenIndexIn int,
@@ -82,7 +82,7 @@ func _calcOutGivenIn(
 	invariant *big.Int,
 ) *big.Int {
 	balances[tokenIndexIn] = new(big.Int).Add(balances[tokenIndexIn], tokenAmountIn)
-	var finalBalanceOut = _getTokenBalanceGivenInvariantAndAllOtherBalances(a, balances, invariant, tokenIndexOut)
+	var finalBalanceOut = GetTokenBalanceGivenInvariantAndAllOtherBalances(a, balances, invariant, tokenIndexOut)
 	if finalBalanceOut == nil {
 		return nil
 	}
@@ -90,7 +90,7 @@ func _calcOutGivenIn(
 	return new(big.Int).Sub(new(big.Int).Sub(balances[tokenIndexOut], finalBalanceOut), bignumber.One)
 }
 
-func _getTokenBalanceGivenInvariantAndAllOtherBalances(
+func GetTokenBalanceGivenInvariantAndAllOtherBalances(
 	a *big.Int,
 	balances []*big.Int,
 	invariant *big.Int,
@@ -102,21 +102,21 @@ func _getTokenBalanceGivenInvariantAndAllOtherBalances(
 	var sum = balances[0]
 	var P_D = new(big.Int).Mul(balances[0], nTokensBi)
 	for j := 1; j < nTokens; j += 1 {
-		P_D = _divDown(new(big.Int).Mul(new(big.Int).Mul(P_D, balances[j]), nTokensBi), invariant)
+		P_D = DivDown(new(big.Int).Mul(new(big.Int).Mul(P_D, balances[j]), nTokensBi), invariant)
 		sum = new(big.Int).Add(sum, balances[j])
 	}
 	sum = new(big.Int).Sub(sum, balances[tokenIndex])
 	var inv2 = new(big.Int).Mul(invariant, invariant)
 	var c = new(big.Int).Mul(
-		new(big.Int).Mul(_divUp(inv2, new(big.Int).Mul(ampTotal, P_D)), AmpPrecision),
+		new(big.Int).Mul(DivUp(inv2, new(big.Int).Mul(ampTotal, P_D)), AmpPrecision),
 		balances[tokenIndex],
 	)
-	var b = new(big.Int).Add(sum, new(big.Int).Mul(_divDown(invariant, ampTotal), AmpPrecision))
+	var b = new(big.Int).Add(sum, new(big.Int).Mul(DivDown(invariant, ampTotal), AmpPrecision))
 	var prevTokenBalance *big.Int
-	var tokenBalance = _divUp(new(big.Int).Add(inv2, c), new(big.Int).Add(invariant, b))
+	var tokenBalance = DivUp(new(big.Int).Add(inv2, c), new(big.Int).Add(invariant, b))
 	for i := 0; i < 255; i += 1 {
 		prevTokenBalance = tokenBalance
-		tokenBalance = _divUp(
+		tokenBalance = DivUp(
 			new(big.Int).Add(new(big.Int).Mul(tokenBalance, tokenBalance), c),
 			new(big.Int).Sub(new(big.Int).Add(new(big.Int).Mul(tokenBalance, bignumber.Two), b), invariant),
 		)
@@ -131,7 +131,7 @@ func _getTokenBalanceGivenInvariantAndAllOtherBalances(
 	return nil
 }
 
-func _calculateInvariant(A *big.Int, balances []*big.Int, roundUp bool) *big.Int {
+func CalculateInvariant(A *big.Int, balances []*big.Int, roundUp bool) *big.Int {
 	var sum = bignumber.ZeroBI
 	var numTokens = len(balances)
 	var numTokensBi = big.NewInt(int64(numTokens))
@@ -170,4 +170,11 @@ func _calculateInvariant(A *big.Int, balances []*big.Int, roundUp bool) *big.Int
 		}
 	}
 	return nil
+}
+
+func ComplementFixed(x *big.Int) *big.Int {
+	if x.Cmp(bignumber.BONE) < 0 {
+		return new(big.Int).Sub(bignumber.BONE, x)
+	}
+	return big.NewInt(0)
 }

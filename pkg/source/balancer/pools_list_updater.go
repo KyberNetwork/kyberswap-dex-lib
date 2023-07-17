@@ -44,6 +44,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		subgraphPoolTypeWeighted,
 		subgraphPoolTypeStable,
 		subgraphPoolTypeMetaStable,
+		subgraphPoolTypeComposableStable,
 	}
 
 	var metadata Metadata
