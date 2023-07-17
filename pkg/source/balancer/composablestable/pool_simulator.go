@@ -209,11 +209,20 @@ func (c ComposableStablePool) _onSwapGivenIn(
 	return amountOut
 }
 func (c ComposableStablePool) UpdateBalance(params pool.UpdateBalanceParams) {
-	//TODO implement me
-	panic("implement me")
+	input, output := params.TokenAmountIn, params.TokenAmountOut
+	var tokenInIndex = c.GetTokenIndex(input.Token)
+	var tokenOutIndex = c.GetTokenIndex(output.Token)
+	if tokenInIndex >= 0 {
+		c.Info.Reserves[tokenInIndex] = new(big.Int).Add(c.Info.Reserves[tokenInIndex], input.Amount)
+	}
+	if tokenOutIndex >= 0 {
+		c.Info.Reserves[tokenOutIndex] = new(big.Int).Sub(c.Info.Reserves[tokenOutIndex], output.Amount)
+	}
 }
 
 func (c ComposableStablePool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	//TODO implement me
-	panic("implement me")
+	return balancer.Meta{
+		VaultAddress: c.VaultAddress,
+		PoolId:       c.PoolId,
+	}
 }
