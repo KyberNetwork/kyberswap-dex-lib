@@ -148,11 +148,10 @@ func transformFromGetRouteEncodeToGetRoutesQuery(params params.GetRouteEncodePar
 	}
 
 	return dto.GetRoutesQuery{
-		TokenIn:         params.TokenIn,
-		TokenOut:        params.TokenOut,
+		TokenIn:         cleanUpParam(params.TokenIn),
+		TokenOut:        cleanUpParam(params.TokenOut),
 		AmountIn:        amountIn,
 		IncludedSources: transformSliceParams(params.Dexes),
-		ExcludedSources: transformSliceParams(""),
 		SaveGas:         params.SaveGas,
 		GasInclude:      params.GasInclude,
 		GasPrice:        gasPrice,
@@ -181,7 +180,7 @@ func buildBuildRouteCommand(
 
 	return dto.BuildRouteCommand{
 		RouteSummary:      *getRoutesResult.RouteSummary,
-		Recipient:         params.To,
+		Recipient:         cleanUpParam(params.To),
 		Deadline:          deadline,
 		SlippageTolerance: params.SlippageTolerance,
 		Referral:          params.Referral,
