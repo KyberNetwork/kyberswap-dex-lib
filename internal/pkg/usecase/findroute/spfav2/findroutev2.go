@@ -82,28 +82,14 @@ func (f *spfav2Finder) bestRouteV2(
 	bestSinglePathRoute := f.bestSinglePathRouteV2(input, data, tokenAmountIn, paths, len(splits))
 
 	// step 3: Find multi-path route
-	// For each chunk (split), iterate through generated k paths to recalculate amountOut and get the best path among them
-
-	bestMultiPathRoute := valueobject.NewRoute(input.TokenInAddress, input.TokenOutAddress)
-	h := NewFindPathV2Helper(len(paths), int(f.maxPathsInRoute), amountInToGeneratePath, cmpFunc)
-
-	for _, amountInPerSplit := range splits {
-		bestPath := h.bestPathExactInV2(ctx, input, data, paths, amountInPerSplit)
-		if bestPath == nil {
-			return nil, nil
-		}
-
-		if err := bestMultiPathRoute.AddPath(data.PoolBucket, bestPath); err != nil {
-			return nil, err
-		}
-	}
+	bestMultiPathRoute, errFindMultiPathRoute := f.bestMultiPathRouteV2(ctx, input, data, paths, amountInToGeneratePath, splits, cmpFunc)
 
 	// step 4: compare and return the best route
 	if bestSinglePathRoute == nil {
 		return bestMultiPathRoute, nil
 	}
 
-	if bestMultiPathRoute == nil {
+	if errFindMultiPathRoute != nil || bestMultiPathRoute == nil {
 		return bestSinglePathRoute, nil
 	}
 
@@ -136,4 +122,33 @@ func (f *spfav2Finder) bestSinglePathRouteV2(
 	}
 
 	return valueobject.NewRouteFromPaths(input.TokenInAddress, input.TokenOutAddress, []*valueobject.Path{bestPath})
+}
+
+func (f *spfav2Finder) bestMultiPathRouteV2(
+	ctx context.Context,
+	input findroute.Input,
+	data findroute.FinderData,
+	paths []*valueobject.Path,
+	amountInToGeneratePath poolPkg.TokenAmount,
+	splits []poolPkg.TokenAmount,
+	cmpFunc func(a, b int) bool,
+) (*valueobject.Route, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestMultiPathRouteV2")
+	defer span.Finish()
+
+	// For each chunk (split), iterate through generated k paths to recalculate amountOut and get the best path among them
+	bestMultiPathRoute := valueobject.NewRoute(input.TokenInAddress, input.TokenOutAddress)
+	h := NewFindPathV2Helper(len(paths), int(f.maxPathsInRoute), amountInToGeneratePath, cmpFunc)
+
+	for _, amountInPerSplit := range splits {
+		bestPath := h.bestPathExactInV2(ctx, input, data, paths, amountInPerSplit)
+		if bestPath == nil {
+			return nil, nil
+		}
+
+		if err := bestMultiPathRoute.AddPath(data.PoolBucket, bestPath); err != nil {
+			return nil, err
+		}
+	}
+	return bestMultiPathRoute, nil
 }
