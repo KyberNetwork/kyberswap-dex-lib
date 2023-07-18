@@ -96,14 +96,14 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 	if DexType(p.Type) == DexTypeBalancerComposableStable {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    metaStablePoolABI,
+			ABI:    composableStablePoolABI,
 			Target: p.Address,
 			Method: composableStablePoolMethodGetBptIndex,
 			Params: nil,
 		}, []interface{}{&bptIndex})
 
 		calls.AddCall(&ethrpc.Call{
-			ABI:    metaStablePoolABI,
+			ABI:    composableStablePoolABI,
 			Target: p.Address,
 			Method: composableStablePoolMethodGetActualSupply,
 			Params: nil,
