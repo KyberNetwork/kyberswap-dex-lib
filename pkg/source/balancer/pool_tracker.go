@@ -48,7 +48,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		amplificationParameter AmplificationParameter
 		scalingFactors         []*big.Int
 		swapFeePercentage      *big.Int
-		bptIndex               int
+		bptIndex               *big.Int
 		actualSupply           *big.Int
 	)
 

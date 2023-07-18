@@ -13,7 +13,7 @@ type ComposableStablePool struct {
 	PoolId                 string
 	ScalingFactors         []*big.Int
 	ActualSupply           *big.Int
-	BptIndex               int
+	BptIndex               *big.Int
 	AmplificationParameter *big.Int
 }
 
@@ -71,7 +71,9 @@ func (c ComposableStablePool) CalcAmountOut(tokenAmountIn pool.TokenAmount, toke
 		pairType PairTypes
 		indexIn  int
 		indexOut int
+		bptIndex int64
 	)
+	bptIndex = c.BptIndex.Int64()
 	tokens := c.Pool.GetTokens()
 	for i, token := range tokens {
 		if token == tokenAmountIn.Token {
@@ -82,9 +84,9 @@ func (c ComposableStablePool) CalcAmountOut(tokenAmountIn pool.TokenAmount, toke
 		}
 	}
 
-	if tokenAmountIn.Token == tokens[c.BptIndex] {
+	if tokenAmountIn.Token == tokens[bptIndex] {
 		pairType = BptToToken
-	} else if tokenOut == tokens[c.BptIndex] {
+	} else if tokenOut == tokens[bptIndex] {
 		pairType = TokenToBpt
 	} else {
 		pairType = TokenToToken
@@ -96,7 +98,7 @@ func (c ComposableStablePool) CalcAmountOut(tokenAmountIn pool.TokenAmount, toke
 	tokenAmountInScaled := c._upscale(tokenAmountsInWithFee, c.ScalingFactors[indexIn])
 	actualSupply := c.ActualSupply
 
-	dropped := c.removeBpt(balancesUpscaled, indexIn, indexOut, c.BptIndex)
+	dropped := c.removeBpt(balancesUpscaled, indexIn, indexOut, int(bptIndex))
 
 	amountOut := c._onSwapGivenIn(
 		tokenAmountInScaled,

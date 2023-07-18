@@ -34,7 +34,7 @@ type StaticExtra struct {
 type Extra struct {
 	AmplificationParameter AmplificationParameter `json:"amplificationParameter"`
 	ScalingFactors         []*big.Int             `json:"scalingFactors,omitempty"`
-	BptIndex               int                    `json:"bptIndex"`
+	BptIndex               *big.Int               `json:"bptIndex"`
 	ActualSupply           *big.Int               `json:"actualSupply"`
 }
 
