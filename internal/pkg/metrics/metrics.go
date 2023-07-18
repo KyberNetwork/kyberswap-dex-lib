@@ -11,6 +11,7 @@ const (
 	PoolTypeHitRateMetricsName        = "pool_hit_rate.count"
 	RequestPairCountMetricsName       = "request_pair.count"
 	FindRouteCacheCountMetricsName    = "find_route_cache.count"
+	ClientIDMetricsName               = "client_id.count"
 	InvalidSynthetixVolumeMetricsName = "invalid_synthetix_volume.count"
 )
 
@@ -30,12 +31,10 @@ func IncrPoolTypeHitRate(poolType string) {
 	incr(PoolTypeHitRateMetricsName, tags, 0.1)
 }
 
-func IncrRequestPairCount(tokenInAddress, tokenOutAddress, amountIn string) {
+func IncrRequestPairCount(tokenInAddress, tokenOutAddress string) {
 	tags := []string{
-		fmt.Sprintf("pair:%s-%s", tokenInAddress, tokenOutAddress),
 		fmt.Sprintf("token0:%s", tokenInAddress),
 		fmt.Sprintf("token1:%s", tokenOutAddress),
-		//fmt.Sprintf("amountIn:%s", amountIn),
 	}
 
 	incr(RequestPairCountMetricsName, tags, 0.5)
@@ -51,6 +50,15 @@ func IncrFindRouteCacheCount(cacheHit bool, otherTags []string) {
 	}
 
 	incr(FindRouteCacheCountMetricsName, tags, 1)
+}
+
+func IncrClientIDCount(clientID string, responseStatus int) {
+	tags := []string{
+		fmt.Sprintf("client_id:%s", clientID),
+		fmt.Sprintf("http_status:%d", responseStatus),
+	}
+
+	incr(ClientIDMetricsName, tags, 1)
 }
 
 func IncrInvalidSynthetixVolume() {

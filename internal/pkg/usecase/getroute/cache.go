@@ -95,7 +95,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 				"request_id": requestid.GetRequestIDFromCtx(ctx),
 				"client_id":  clientid.GetClientIDFromCtx(ctx),
 			}).
-			Info("cache missed")
+			Debug("cache missed")
 		metrics.IncrFindRouteCacheCount(false, []string{"reason:getCachedRouteFailed"})
 
 		return nil, err
@@ -111,7 +111,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 				"request_id": requestid.GetRequestIDFromCtx(ctx),
 				"client_id":  clientid.GetClientIDFromCtx(ctx),
 			}).
-			Info("cache missed")
+			Debug("cache missed")
 		metrics.IncrFindRouteCacheCount(false, []string{"reason:summarizeCachedRouteFailed"})
 
 		return nil, err
@@ -128,7 +128,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 				"request_id": requestid.GetRequestIDFromCtx(ctx),
 				"client_id":  clientid.GetClientIDFromCtx(ctx),
 			}).
-			Info("cache missed")
+			Debug("cache missed")
 		metrics.IncrFindRouteCacheCount(
 			false,
 			[]string{
@@ -152,7 +152,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 			"request_id": requestid.GetRequestIDFromCtx(ctx),
 			"client_id":  clientid.GetClientIDFromCtx(ctx),
 		}).
-		Info("cache hit")
+		Debug("cache hit")
 	metrics.IncrFindRouteCacheCount(true, nil)
 
 	return routeSummary, nil

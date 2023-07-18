@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -53,6 +54,7 @@ func New(skipPathSet map[string]struct{}) gin.HandlerFunc {
 				"client.id":            clientID,
 			}).
 			Info("inbound response")
+		metrics.IncrClientIDCount(clientID, blw.Status())
 	}
 }
 

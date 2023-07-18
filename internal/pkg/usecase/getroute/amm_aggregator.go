@@ -242,7 +242,7 @@ func (a *ammAggregator) summarizeRoute(
 		summarizedRoute = append(summarizedRoute, summarizedPath)
 	}
 
-	metrics.IncrRequestPairCount(params.TokenIn.Address, params.TokenOut.Address, params.AmountIn.String())
+	metrics.IncrRequestPairCount(params.TokenIn.Address, params.TokenOut.Address)
 
 	return &valueobject.RouteSummary{
 		TokenIn:      params.TokenIn.Address,
