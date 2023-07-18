@@ -60,8 +60,8 @@ func init() {
 	FunctionSelectorFraxSwap = NewFunctionSelector("executeFrax", []string{"bytes", "uint256"})
 	FunctionSelectorCamelotSwap = NewFunctionSelector("executeCamelot", []string{"bytes", "uint256"})
 
-	FunctionSelectorMuteSwitch = NewFunctionSelector("executeMuteSwitchSwap", []string{"uint256", "bytes", "uint256"})
-	FunctionSelectorSyncSwap = NewFunctionSelector("executeSyncSwap", []string{"uint256", "bytes", "uint256"})
+	FunctionSelectorMuteSwitch = NewFunctionSelector("executeMuteSwitchSwap", []string{"bytes", "uint256"})
+	FunctionSelectorSyncSwap = NewFunctionSelector("executeSyncSwap", []string{"bytes", "uint256"})
 	// Reference from SC
 	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/executor-helpers/ExecutorHelper2.sol#LL724C1-L724C1
 	FunctionSelectorLimitOrder = NewFunctionSelector("executeKyberLimitOrder", []string{"bytes", "uint256"})
