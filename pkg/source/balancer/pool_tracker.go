@@ -44,13 +44,19 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	poolIdParam := common.HexToHash(staticExtra.PoolId)
 
 	var (
-		poolTokens             PoolTokens
-		amplificationParameter AmplificationParameter
-		scalingFactors         []*big.Int
-		swapFeePercentage      *big.Int
-		bptIndex               *big.Int
-		actualSupply           *big.Int
+		poolTokens                 PoolTokens
+		amplificationParameter     AmplificationParameter
+		scalingFactors             []*big.Int
+		swapFeePercentage          *big.Int
+		bptIndex                   *big.Int
+		actualSupply               *big.Int
+		totalSupply                *big.Int
+		lastJoinExit               LastJoinExitData
+		protocolFeePercentageCache *big.Int
 	)
+	tokensExemptFromYieldProtocolFee := make([]bool, len(p.Tokens))
+	tokenRateCaches := make([]*TokenRateCache, len(p.Tokens))
+	rateProviders := make([]string, len(p.Tokens))
 
 	calls := d.ethrpcClient.NewRequest()
 	calls.SetContext(ctx)
@@ -122,6 +128,52 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			Method: metaStablePoolMethodGetScalingFactors,
 			Params: nil,
 		}, []interface{}{&scalingFactors})
+
+		calls.AddCall(&ethrpc.Call{
+			ABI:    composableStablePoolABI,
+			Target: p.Address,
+			Method: composableStablePoolMethodGetLastJoinExitData,
+			Params: nil,
+		}, []interface{}{&lastJoinExit})
+
+		calls.AddCall(&ethrpc.Call{
+			ABI:    composableStablePoolABI,
+			Target: p.Address,
+			Method: composableStablePoolMethodGetTotalSupply,
+			Params: nil,
+		}, []interface{}{&totalSupply})
+
+		calls.AddCall(&ethrpc.Call{
+			ABI:    composableStablePoolABI,
+			Target: p.Address,
+			Method: composableStablePoolMethodGetRateProviders,
+			Params: nil,
+		}, []interface{}{&rateProviders})
+
+		calls.AddCall(&ethrpc.Call{
+			ABI:    composableStablePoolABI,
+			Target: p.Address,
+			Method: composableStablePoolMethodGetProtocolFeePercentageCache,
+			Params: nil,
+		}, []interface{}{&protocolFeePercentageCache})
+
+		for i, token := range p.Tokens {
+			address := token.Address
+			calls.AddCall(&ethrpc.Call{
+				ABI:    composableStablePoolABI,
+				Target: p.Address,
+				Method: composableStablePoolMethodIsTokenExemptFromYieldProtocolFee,
+				Params: []interface{}{address},
+			}, []interface{}{&tokensExemptFromYieldProtocolFee[i]})
+
+			calls.AddCall(&ethrpc.Call{
+				ABI:    composableStablePoolABI,
+				Target: p.Address,
+				Method: composableStablePoolMethodGetTokenRateCache,
+				Params: []interface{}{address},
+			}, []interface{}{&tokenRateCaches[i]})
+
+		}
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -187,10 +239,15 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 	if DexType(p.Type) == DexTypeBalancerComposableStable {
 		extraBytes, err := json.Marshal(Extra{
-			AmplificationParameter: amplificationParameter,
-			ScalingFactors:         scalingFactors,
-			BptIndex:               bptIndex,
-			ActualSupply:           actualSupply,
+			AmplificationParameter:           amplificationParameter,
+			ScalingFactors:                   scalingFactors,
+			BptIndex:                         bptIndex,
+			ActualSupply:                     actualSupply,
+			LastJoinExit:                     &lastJoinExit,
+			RateProviders:                    rateProviders,
+			TokensExemptFromYieldProtocolFee: tokensExemptFromYieldProtocolFee,
+			TokenRateCaches:                  tokenRateCaches,
+			ProtocolFeePercentageCache:       protocolFeePercentageCache,
 		})
 		if err != nil {
 			logger.WithFields(logger.Fields{
@@ -201,6 +258,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		}
 
 		extra = string(extraBytes)
+		p.TotalSupply = totalSupply.String()
 	}
 
 	p.Extra = extra

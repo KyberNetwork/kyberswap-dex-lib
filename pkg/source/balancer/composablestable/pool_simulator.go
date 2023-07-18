@@ -13,12 +13,19 @@ import (
 
 type ComposableStablePool struct {
 	pool.Pool
-	VaultAddress           string
-	PoolId                 string
-	ScalingFactors         []*big.Int
-	ActualSupply           *big.Int
-	BptIndex               *big.Int
-	AmplificationParameter *big.Int
+	VaultAddress               string
+	PoolId                     string
+	ScalingFactors             []*big.Int
+	ActualSupply               *big.Int
+	BptIndex                   *big.Int
+	AmplificationParameter     *big.Int
+	TotalSupply                *big.Int
+	ProtocolFeePercentageCache *big.Int
+
+	LastJoinExit                     *balancer.LastJoinExitData
+	RateProviders                    []string
+	TokensExemptFromYieldProtocolFee []bool
+	TokenRateCaches                  []*balancer.TokenRateCache
 }
 
 type droppedBpt struct {
@@ -43,7 +50,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*ComposableStablePool, error) {
 	numTokens := len(entityPool.Tokens)
 	tokens := make([]string, numTokens)
 	reserves := make([]*big.Int, numTokens)
-
+	totalSupply, _ := new(big.Int).SetString(entityPool.TotalSupply, 10)
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
@@ -62,12 +69,18 @@ func NewPoolSimulator(entityPool entity.Pool) (*ComposableStablePool, error) {
 				Checked:    false,
 			},
 		},
-		VaultAddress:           strings.ToLower(staticExtra.VaultAddress),
-		PoolId:                 strings.ToLower(staticExtra.PoolId),
-		AmplificationParameter: extra.AmplificationParameter.Value,
-		ScalingFactors:         extra.ScalingFactors,
-		BptIndex:               extra.BptIndex,
-		ActualSupply:           extra.ActualSupply,
+		VaultAddress:                     strings.ToLower(staticExtra.VaultAddress),
+		PoolId:                           strings.ToLower(staticExtra.PoolId),
+		AmplificationParameter:           extra.AmplificationParameter.Value,
+		ScalingFactors:                   extra.ScalingFactors,
+		BptIndex:                         extra.BptIndex,
+		ActualSupply:                     extra.ActualSupply,
+		LastJoinExit:                     extra.LastJoinExit,
+		TotalSupply:                      totalSupply,
+		RateProviders:                    extra.RateProviders,
+		TokensExemptFromYieldProtocolFee: extra.TokensExemptFromYieldProtocolFee,
+		TokenRateCaches:                  extra.TokenRateCaches,
+		ProtocolFeePercentageCache:       extra.ProtocolFeePercentageCache,
 	}, nil
 }
 
@@ -147,7 +160,6 @@ func (c ComposableStablePool) CalcAmountOut(tokenAmountIn pool.TokenAmount, toke
 	actualSupply := c.ActualSupply
 
 	dropped := c.removeBpt(balancesUpscaled, indexIn, indexOut, int(bptIndex))
-
 	amountOut := c._onSwapGivenIn(
 		tokenAmountInScaled,
 		dropped.balances,
@@ -249,6 +261,9 @@ func (c ComposableStablePool) _onSwapGivenIn(
 	switch pairType {
 	case TokenToBpt:
 		amountsIn := make([]*big.Int, len(balances))
+		for i := range amountsIn {
+			amountsIn[i] = new(big.Int)
+		}
 		amountsIn[indexIn] = tokenAmountIn
 		amountOut = CalcBptOutGivenExactTokensIn(c.AmplificationParameter, balances, amountsIn, virtualBptSupply, invariant)
 	case BptToToken:
@@ -275,4 +290,220 @@ func (c ComposableStablePool) GetMetaInfo(tokenIn string, tokenOut string) inter
 		VaultAddress: c.VaultAddress,
 		PoolId:       c.PoolId,
 	}
+}
+
+// _swapWithBptGivenIn
+// reference https://github.com/balancer/balancer-v2-monorepo/blob/872342e060bfc31c3ab6a1deb7b1d3050ea7e19d/pkg/pool-stable/contracts/ComposableStablePool.sol#L314
+func (c ComposableStablePool) _swapWithBptGivenIn(
+	tokenAmountIn *big.Int,
+	registeredBalances []*big.Int,
+	indexIn int,
+	indexOut int,
+) *big.Int {
+	balancesUpscaled := c._upscaleArray(registeredBalances, c.ScalingFactors)
+	tokenAmountInScaled := c._upscale(tokenAmountIn, c.ScalingFactors[indexIn])
+
+	preJoinExitSupply, balances, currentAmp, preJoinExitInvariant := c._beforeJoinExit(balancesUpscaled)
+
+}
+
+func (c ComposableStablePool) _beforeJoinExit(registeredBalances []*big.Int) (*big.Int, []*big.Int, *big.Int, *big.Int) {
+	preJoinExitSupply, balances, oldAmpPreJoinExitInvariant := c._payProtocolFeesBeforeJoinExit(registeredBalances)
+	currentAmp := c.AmplificationParameter
+
+	var preJoinExitInvariant *big.Int
+
+	if currentAmp.Cmp(c.LastJoinExit.LastJoinExitAmplification) == 0 {
+		preJoinExitInvariant = oldAmpPreJoinExitInvariant
+	} else {
+		preJoinExitInvariant = balancer.CalculateInvariant(currentAmp, balances, false)
+	}
+
+	return preJoinExitSupply, balances, currentAmp, preJoinExitInvariant
+
+}
+
+/** _payProtocolFeesBeforeJoinExit
+ * @dev Calculates due protocol fees originating from accumulated swap fees and yield of non-exempt tokens, pays
+ * them by minting BPT, and returns the actual supply and current balances.
+ *
+ * We also return the current invariant computed using the amplification factor at the last join or exit, which can
+ * be useful to skip computations in scenarios where the amplification factor is not changing.
+ * Ref: https://github.com/balancer/balancer-v2-monorepo/blob/3251913e63949f35be168b42987d0aae297a01b1/pkg/pool-stable/contracts/ComposableStablePoolProtocolFees.sol#L64
+ */
+func (c ComposableStablePool) _payProtocolFeesBeforeJoinExit(
+	registeredBalances []*big.Int,
+) (*big.Int, []*big.Int, *big.Int) {
+	virtualSupply, droppedBalances := c._dropBptItemFromBalances(registeredBalances)
+	expectedProtocolOwnershipPercentage, currentInvariantWithLastJoinExitAmp := c._getProtocolPoolOwnershipPercentage(droppedBalances)
+
+	protocolFeeAmount := c.bptForPoolOwnershipPercentage(virtualSupply, expectedProtocolOwnershipPercentage)
+
+	return new(big.Int).Add(virtualSupply, protocolFeeAmount), droppedBalances, currentInvariantWithLastJoinExitAmp
+}
+
+// _getProtocolPoolOwnershipPercentage
+// https://github.com/balancer/balancer-v2-monorepo/blob/3251913e63949f35be168b42987d0aae297a01b1/pkg/pool-stable/contracts/ComposableStablePoolProtocolFees.sol#L102
+func (c ComposableStablePool) _getProtocolPoolOwnershipPercentage(balances []*big.Int) (*big.Int, *big.Int) {
+	swapFeeGrowthInvariant, totalNonExemptGrowthInvariant, totalGrowthInvariant := c._getGrowthInvariants(balances)
+
+	// Calculate the delta for swap fee growth invariant
+	swapFeeGrowthInvariantDelta := new(big.Int).Sub(swapFeeGrowthInvariant, c.LastJoinExit.LastPostJoinExitInvariant)
+	if swapFeeGrowthInvariantDelta.Cmp(bignumber.ZeroBI) < 0 {
+		swapFeeGrowthInvariantDelta.SetUint64(0)
+	}
+
+	// Calculate the delta for non-exempt yield growth invariant
+	nonExemptYieldGrowthInvariantDelta := new(big.Int).Sub(totalNonExemptGrowthInvariant, swapFeeGrowthInvariant)
+	if nonExemptYieldGrowthInvariantDelta.Cmp(bignumber.ZeroBI) < 0 {
+		nonExemptYieldGrowthInvariantDelta.SetUint64(0)
+	}
+
+	//swapFeeGrowthInvariantDelta/totalGrowthInvariant*getProtocolFeePercentageCache
+	protocolSwapFeePercentage := balancer.MulDownFixed(
+		balancer.DivDownFixed(swapFeeGrowthInvariantDelta, totalGrowthInvariant),
+		c.ProtocolFeePercentageCache)
+
+	protocolYieldPercentage := balancer.MulDownFixed(
+		balancer.DivDownFixed(nonExemptYieldGrowthInvariantDelta, totalGrowthInvariant),
+		c.ProtocolFeePercentageCache)
+
+	// Calculate the total protocol Pool ownership percentage
+	protocolPoolOwnershipPercentage := new(big.Int).Add(protocolSwapFeePercentage, protocolYieldPercentage)
+
+	return protocolPoolOwnershipPercentage, totalGrowthInvariant
+}
+
+func (c ComposableStablePool) _getGrowthInvariants(balances []*big.Int) (*big.Int, *big.Int, *big.Int) {
+	var (
+		swapFeeGrowthInvariant        *big.Int
+		totalNonExemptGrowthInvariant *big.Int
+		totalGrowthInvariant          *big.Int
+	)
+
+	// This invariant result is calc by DivDown (round down)
+	// DivDown https://github.com/balancer/balancer-v2-monorepo/blob/b46023f7c5deefaf58a0a42559a36df420e1639f/pkg/pool-stable/contracts/StableMath.sol#L96
+	swapFeeGrowthInvariant = balancer.CalculateInvariant(
+		c.LastJoinExit.LastJoinExitAmplification,
+		c.getAdjustedBalances(balances, true), false)
+
+	// For the other invariants, we can potentially skip some work. In the edge cases where none or all of the
+	// tokens are exempt from yield, there's one fewer invariant to compute.
+	if c._areNoTokensExempt() {
+		// If there are no tokens with fee-exempt yield, then the total non-exempt growth will equal the total
+		// growth: all yield growth is non-exempt. There's also no point in adjusting balances, since we
+		// already know none are exempt.
+		totalNonExemptGrowthInvariant = balancer.CalculateInvariant(c.LastJoinExit.LastJoinExitAmplification, balances, false)
+		totalGrowthInvariant = totalNonExemptGrowthInvariant
+	} else if c._areAllTokensExempt() {
+		// If no tokens are charged fees on yield, then the non-exempt growth is equal to the swap fee growth - no
+		// yield fees will be collected.
+		totalNonExemptGrowthInvariant = swapFeeGrowthInvariant
+		totalGrowthInvariant = balancer.CalculateInvariant(c.LastJoinExit.LastJoinExitAmplification, balances, false)
+	} else {
+		// In the general case, we need to calculate two invariants: one with some adjusted balances, and one with
+		// the current balances.
+
+		totalNonExemptGrowthInvariant = balancer.CalculateInvariant(
+			c.LastJoinExit.LastJoinExitAmplification,
+			c.getAdjustedBalances(balances, false), // Only adjust non-exempt balances
+			false,
+		)
+
+		totalGrowthInvariant = balancer.CalculateInvariant(
+			c.LastJoinExit.LastJoinExitAmplification,
+			balances,
+			false)
+	}
+	return swapFeeGrowthInvariant, totalNonExemptGrowthInvariant, totalGrowthInvariant
+}
+func (c ComposableStablePool) _dropBptItemFromBalances(balances []*big.Int) (*big.Int, []*big.Int) {
+	return c._getVirtualSupply(balances[c.BptIndex.Int64()]), c._dropBptItem(balances)
+}
+
+func (c ComposableStablePool) _getVirtualSupply(bptBalance *big.Int) *big.Int {
+	return new(big.Int).Sub(c.TotalSupply, bptBalance)
+}
+
+func (c ComposableStablePool) _hasRateProvider(tokenIndex int) bool {
+	return c.RateProviders[tokenIndex] != ""
+}
+
+func (c ComposableStablePool) isTokenExemptFromYieldProtocolFee(tokenIndex int) bool {
+	return c.TokensExemptFromYieldProtocolFee[tokenIndex]
+}
+
+func (c ComposableStablePool) _areNoTokensExempt() bool {
+	for _, exempt := range c.TokensExemptFromYieldProtocolFee {
+		if exempt {
+			return false
+		}
+	}
+	return true
+}
+
+func (c ComposableStablePool) _areAllTokensExempt() bool {
+	for _, exempt := range c.TokensExemptFromYieldProtocolFee {
+		if exempt == false {
+			return false
+		}
+	}
+	return true
+}
+
+func (c ComposableStablePool) getAdjustedBalances(balances []*big.Int, ignoreExemptFlags bool) []*big.Int {
+	totalTokensWithoutBpt := len(balances)
+	adjustedBalances := make([]*big.Int, totalTokensWithoutBpt)
+
+	for i := 0; i < totalTokensWithoutBpt; i++ {
+		skipBptIndex := i
+		if i >= int(c.BptIndex.Int64()) {
+			skipBptIndex++
+		}
+
+		if c.isTokenExemptFromYieldProtocolFee(skipBptIndex) || (ignoreExemptFlags && c._hasRateProvider(skipBptIndex)) {
+			adjustedBalances[i] = c._adjustedBalance(balances[i], c.TokenRateCaches[skipBptIndex])
+		} else {
+			adjustedBalances[i] = balances[i]
+		}
+	}
+
+	return adjustedBalances
+}
+
+// _adjustedBalance Compute balance * oldRate/currentRate, doing division last to minimize rounding error.
+func (c ComposableStablePool) _adjustedBalance(balance *big.Int, cache *balancer.TokenRateCache) *big.Int {
+	return balancer.DivDown(new(big.Int).Mul(balance, cache.OldRate), cache.Rate)
+}
+
+// _dropBptItem Remove the item at `_bptIndex` from an arbitrary array (e.g., amountsIn).
+func (c ComposableStablePool) _dropBptItem(amounts []*big.Int) []*big.Int {
+	amountsWithoutBpt := make([]*big.Int, len(amounts)-1)
+	bptIndex := int(c.BptIndex.Int64())
+
+	for i := 0; i < len(amountsWithoutBpt); i++ {
+		if i < bptIndex {
+			amountsWithoutBpt[i] = new(big.Int).Set(amounts[i])
+		} else {
+			amountsWithoutBpt[i] = new(big.Int).Set(amounts[i+1])
+		}
+	}
+
+	return amountsWithoutBpt
+}
+
+/**
+ * @dev Calculates the amount of BPT necessary to give ownership of a given percentage of the Pool to an external
+ * third party. In the case of protocol fees, this is the DAO, but could also be a pool manager, etc.
+ * Note that this function reverts if `poolPercentage` >= 100%, it's expected that the caller will enforce this.
+ * @param totalSupply - The total supply of the pool prior to minting BPT.
+ * @param poolOwnershipPercentage - The desired ownership percentage of the pool to have as a result of minting BPT.
+ * @return bptAmount - The amount of BPT to mint such that it is `poolPercentage` of the resultant total supply.
+ */
+func (c ComposableStablePool) bptForPoolOwnershipPercentage(totalSupply, poolOwnershipPercentage *big.Int) *big.Int {
+	// If we mint some amount `bptAmount` of BPT then the percentage ownership of the pool this grants is given by:
+	// `poolOwnershipPercentage = bptAmount / (totalSupply + bptAmount)`.
+	// Solving for `bptAmount`, we arrive at:
+	// `bptAmount = totalSupply * poolOwnershipPercentage / (1 - poolOwnershipPercentage)`.
+	return balancer.DivDown(new(big.Int).Mul(totalSupply, poolOwnershipPercentage), balancer.ComplementFixed(poolOwnershipPercentage))
 }

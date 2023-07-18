@@ -31,12 +31,18 @@ const (
 	vaultMethodGetPoolTokens = "getPoolTokens"
 
 	// poolMethodGetVault to get vault of a pool
-	poolMethodGetVault                        = "getVault"
-	poolMethodGetSwapFeePercentage            = "getSwapFeePercentage"
-	poolMethodGetAmplificationParameter       = "getAmplificationParameter"
-	metaStablePoolMethodGetScalingFactors     = "getScalingFactors"
-	composableStablePoolMethodGetActualSupply = "getActualSupply"
-	composableStablePoolMethodGetBptIndex     = "getBptIndex"
+	poolMethodGetVault                                          = "getVault"
+	poolMethodGetSwapFeePercentage                              = "getSwapFeePercentage"
+	poolMethodGetAmplificationParameter                         = "getAmplificationParameter"
+	metaStablePoolMethodGetScalingFactors                       = "getScalingFactors"
+	composableStablePoolMethodGetActualSupply                   = "getActualSupply"
+	composableStablePoolMethodGetBptIndex                       = "getBptIndex"
+	composableStablePoolMethodGetLastJoinExitData               = "getLastJoinExitData"
+	composableStablePoolMethodGetTotalSupply                    = "totalSupply"
+	composableStablePoolMethodIsTokenExemptFromYieldProtocolFee = "isTokenExemptFromYieldProtocolFee"
+	composableStablePoolMethodGetRateProviders                  = "getRateProviders"
+	composableStablePoolMethodGetTokenRateCache                 = "getTokenRateCache"
+	composableStablePoolMethodGetProtocolFeePercentageCache     = "getProtocolFeePercentageCache"
 )
 
 var (
