@@ -1,10 +1,14 @@
 package composablestable
 
 import (
+	"encoding/json"
 	"math/big"
+	"strings"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type ComposableStablePool struct {
@@ -21,6 +25,50 @@ type droppedBpt struct {
 	balances []*big.Int
 	indexIn  int
 	indexOut int
+}
+
+func NewPoolSimulator(entityPool entity.Pool) (*ComposableStablePool, error) {
+	var staticExtra balancer.StaticExtra
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+		return nil, err
+	}
+
+	var extra balancer.Extra
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	swapFeeFl := new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), bignumber.BoneFloat)
+	swapFee, _ := swapFeeFl.Int(nil)
+	numTokens := len(entityPool.Tokens)
+	tokens := make([]string, numTokens)
+	reserves := make([]*big.Int, numTokens)
+
+	for i := 0; i < numTokens; i += 1 {
+		tokens[i] = entityPool.Tokens[i].Address
+		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
+	}
+
+	return &ComposableStablePool{
+		Pool: pool.Pool{
+			Info: pool.PoolInfo{
+				Address:    entityPool.Address,
+				ReserveUsd: entityPool.ReserveUsd,
+				SwapFee:    swapFee,
+				Exchange:   entityPool.Exchange,
+				Type:       entityPool.Type,
+				Tokens:     tokens,
+				Reserves:   reserves,
+				Checked:    false,
+			},
+		},
+		VaultAddress:           strings.ToLower(staticExtra.VaultAddress),
+		PoolId:                 strings.ToLower(staticExtra.PoolId),
+		AmplificationParameter: extra.AmplificationParameter.Value,
+		ScalingFactors:         extra.ScalingFactors,
+		BptIndex:               extra.BptIndex,
+		ActualSupply:           extra.ActualSupply,
+	}, nil
 }
 
 func (c ComposableStablePool) removeBpt(balances []*big.Int, tokenIndexIn, tokenIndexOut, bptIndex int) *droppedBpt {

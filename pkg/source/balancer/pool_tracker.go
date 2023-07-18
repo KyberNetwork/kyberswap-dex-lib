@@ -108,6 +108,20 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			Method: composableStablePoolMethodGetActualSupply,
 			Params: nil,
 		}, []interface{}{&actualSupply})
+
+		calls.AddCall(&ethrpc.Call{
+			ABI:    composableStablePoolABI,
+			Target: p.Address,
+			Method: poolMethodGetAmplificationParameter,
+			Params: nil,
+		}, []interface{}{&amplificationParameter})
+
+		calls.AddCall(&ethrpc.Call{
+			ABI:    composableStablePoolABI,
+			Target: p.Address,
+			Method: metaStablePoolMethodGetScalingFactors,
+			Params: nil,
+		}, []interface{}{&scalingFactors})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
