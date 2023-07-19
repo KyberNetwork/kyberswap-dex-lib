@@ -8,9 +8,9 @@ type Metadata struct {
 
 type SubgraphPool struct {
 	ID          string        `json:"id"`
-	Fee         float64       `json:"fee"`
-	TickSpacing *big.Int      `json:"tickSpacing"`
-	Timestamp   *big.Int      `json:"timestamp"`
+	Fee         string        `json:"fee"`
+	TickSpacing string        `json:"tickSpacing"`
+	Timestamp   string        `json:"timestamp"`
 	TokenA      SubgraphToken `json:"tokenA"`
 	TokenB      SubgraphToken `json:"tokenB"`
 }

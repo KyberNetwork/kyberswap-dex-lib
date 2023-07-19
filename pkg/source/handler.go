@@ -315,7 +315,7 @@ func NewPoolsListUpdaterHandler(
 
 		return pancakev3.NewPoolsListUpdater(&cfg), nil
 
-	case maverick.DexTypeMaverick:
+	case maverick.DexTypeMaverickV1:
 		var cfg maverick.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
 		if err != nil {
@@ -522,7 +522,7 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return pancakev3.NewPoolTracker(&cfg, ethrpcClient)
-	case maverick.DexTypeMaverick:
+	case maverick.DexTypeMaverickV1:
 		var cfg maverick.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
 		if err != nil {

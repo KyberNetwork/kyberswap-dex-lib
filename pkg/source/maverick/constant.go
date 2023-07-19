@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	DexTypeMaverick       = "maverick"
+	DexTypeMaverickV1     = "maverickv1"
 	graphQLRequestTimeout = 20 * time.Second
 
 	poolMethodFee         = "fee"

@@ -127,17 +127,17 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		calls.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: p.Address,
-			Method: poolMethodGetBin,
+			Method: poolMethodBinPositions,
 			Params: []interface{}{bin.LowerTick.String(), bin.Kind.String()},
 		}, []interface{}{binPositions[bin.LowerTick.String()][bin.Kind.String()]})
-
-		calls.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: p.Address,
-			Method: poolMethodGetBin,
-			Params: []interface{}{binMapIndex},
-		}, []interface{}{binMap[binMapIndex.String()]})
 	}
+	calls.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: p.Address,
+		Method: poolMethodBinMap,
+		Params: []interface{}{binMapIndex},
+	}, []interface{}{binMap[binMapIndex.String()]})
+
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,

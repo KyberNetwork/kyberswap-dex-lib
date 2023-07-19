@@ -7,10 +7,12 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/logger"
 	"github.com/machinebox/graphql"
 	"math/big"
+	"strconv"
 	"time"
 )
 
@@ -46,7 +48,7 @@ func (d *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	pools, lastCreatedTime, err := d.getNewPoolFromSubgraph(ctx, metadata.LastCreateTime)
 	if err != nil {
 		logger.WithFields(logger.Fields{
-			"type":  DexTypeMaverick,
+			"type":  DexTypeMaverickV1,
 			"error": err,
 		}).Errorf("failed to get new pools")
 		return nil, metadataBytes, err
@@ -55,7 +57,7 @@ func (d *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	newMetadataBytes, err := json.Marshal(Metadata{LastCreateTime: lastCreatedTime})
 	if err != nil {
 		logger.WithFields(logger.Fields{
-			"type":  DexTypeMaverick,
+			"type":  DexTypeMaverickV1,
 			"error": err,
 		}).Errorf("failed to marshal metadata")
 		return nil, metadataBytes, err
@@ -66,20 +68,20 @@ func (d *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 
 func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreateTime *big.Int) ([]entity.Pool, *big.Int, error) {
 	logger.WithFields(logger.Fields{
-		"type": DexTypeMaverick,
+		"type": DexTypeMaverickV1,
 	}).Info("start getting new pools...")
 
 	subgraphPools, err := d.querySubgraph(ctx, lastCreateTime, d.config.NewPoolLimit, 0)
 	if err != nil {
 		logger.WithFields(logger.Fields{
-			"type":  maverickPoolABI,
+			"type":  poolABI,
 			"error": err,
 		})
 		return nil, lastCreateTime, err
 	}
 
 	logger.WithFields(logger.Fields{
-		"type": DexTypeMaverick,
+		"type": DexTypeMaverickV1,
 	}).Infof("get %v pools from subgraph", len(subgraphPools))
 
 	var pools = make([]entity.Pool, 0, len(subgraphPools))
@@ -95,24 +97,28 @@ func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreate
 			},
 		}
 		var reserves = []string{zeroString, zeroString}
+
+		tickSpacing := bignumber.NewBig10(p.TickSpacing)
 		var staticExtra = StaticExtra{
-			TickSpacing: p.TickSpacing,
+			TickSpacing: tickSpacing,
 		}
 
 		staticBytes, err := json.Marshal(staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
-				"type":  DexTypeMaverick,
+				"type":  DexTypeMaverickV1,
 				"error": err,
 			}).Errorf("failed to marshal static extra")
 			return nil, lastCreateTime, err
 		}
 
+		swapFee, _ := strconv.ParseFloat(p.Fee, 64)
+
 		var newPool = entity.Pool{
 			Address:     p.ID,
-			SwapFee:     p.Fee,
+			SwapFee:     swapFee,
 			Exchange:    d.config.DexID,
-			Type:        DexTypeMaverick,
+			Type:        DexTypeMaverickV1,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    reserves,
 			Tokens:      tokens,
@@ -126,11 +132,11 @@ func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreate
 	newLastCreateTime := lastCreateTime
 	if len(subgraphPools) > 0 {
 		lastSubgraphPool := subgraphPools[len(subgraphPools)-1]
-		newLastCreateTime = lastSubgraphPool.Timestamp
+		newLastCreateTime = bignumber.NewBig10(lastSubgraphPool.Timestamp)
 	}
 
 	logger.WithFields(logger.Fields{
-		"type":     DexTypeMaverick,
+		"type":     DexTypeMaverickV1,
 		"newPools": len(pools),
 	}).Info("finish getting new pools")
 
@@ -163,14 +169,12 @@ func (d *PoolListUpdater) querySubgraph(
 			protocolFeeRatio
 			timestamp
 			tokenA {
-			  address
+			  id 
 			  decimals	
-			  weight
 			}
 			tokenB {
-			  address
+			  id 
 			  decimals	
-			  weight
 			}
 		}
 	}`, lastCreateTime, first, skip),
@@ -181,7 +185,7 @@ func (d *PoolListUpdater) querySubgraph(
 	}
 	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
-			"type":  DexTypeMaverick,
+			"type":  DexTypeMaverickV1,
 			"error": err,
 		}).Errorf("failed to query subgraph to get pools")
 		return nil, err
