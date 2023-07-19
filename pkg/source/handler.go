@@ -2,6 +2,7 @@ package source
 
 import (
 	"fmt"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverick"
 
 	"github.com/KyberNetwork/ethrpc"
 
@@ -313,6 +314,16 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return pancakev3.NewPoolsListUpdater(&cfg), nil
+
+	case maverick.DexTypeMaverick:
+		var cfg maverick.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return maverick.NewPoolListUpdater(&cfg, ethrpcClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pools list updater handler: %s", scanDexCfg.Handler)
@@ -511,6 +522,15 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return pancakev3.NewPoolTracker(&cfg, ethrpcClient)
+	case maverick.DexTypeMaverick:
+		var cfg maverick.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return maverick.NewPoolTracker(&cfg, ethrpcClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pool tracker handler: %s", scanDexCfg.Handler)

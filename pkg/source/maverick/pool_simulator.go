@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
-	"math/big"
 	"strings"
 )
 
@@ -32,14 +30,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	tokens[0] = entityPool.Tokens[0].Address
 	tokens[1] = entityPool.Tokens[1].Address
 
-	var swapFeeFl = new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), bignumber.BoneFloat)
-	var swapFee, _ = swapFeeFl.Int(nil)
-
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
 				Address:  entityPool.Address,
-				SwapFee:  swapFee,
+				SwapFee:  extra.Fee,
 				Exchange: entityPool.Exchange,
 				Type:     entityPool.Type,
 				Tokens:   tokens,

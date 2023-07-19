@@ -77,3 +77,10 @@ type Active struct {
 	Word *big.Int
 	Tick *big.Int
 }
+
+type GetStateResult struct {
+	ActiveTick       *big.Int `json:"activeTick"`
+	Status           *big.Int `json:"status"`
+	BinCounter       *big.Int `json:"binCounter"`
+	ProtocolFeeRatio *big.Int `json:"protocolFeeRatio"`
+}

@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	maverickPoolABI abi.ABI
+	poolABI abi.ABI
 )
 
 func init() {
@@ -14,7 +14,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&maverickPoolABI, poolABIJson},
+		{&poolABI, poolABIJson},
 	}
 
 	for _, b := range builder {

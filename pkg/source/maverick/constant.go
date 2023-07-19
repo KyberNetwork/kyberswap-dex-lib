@@ -9,6 +9,17 @@ import (
 const (
 	DexTypeMaverick       = "maverick"
 	graphQLRequestTimeout = 20 * time.Second
+
+	poolMethodFee         = "fee"
+	poolMethodGetState    = "getState"
+	poolMethodBinBalanceA = "binBalanceA"
+	poolMethodBinBalanceB = "binBalanceB"
+	poolMethodTokenAScale = "tokenAScale"
+	poolMethodTokenBScale = "tokenBScale"
+
+	poolMethodBinPositions = "binPositions"
+	poolMethodGetBin       = "getBin"
+	poolMethodBinMap       = "binMap"
 )
 
 var (
