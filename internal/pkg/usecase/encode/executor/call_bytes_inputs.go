@@ -3,6 +3,7 @@ package executor
 import (
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -25,12 +26,21 @@ func BuildAndPackCallBytesInputs(chainID valueobject.ChainID, routerAddress stri
 		}
 	}
 
+	var to common.Address
+	if data.ExtraFee.IsChargeFeeByCurrencyOut() &&
+		data.ExtraFee.FeeAmount != nil &&
+		data.ExtraFee.FeeAmount.Cmp(constant.Zero) > 0 {
+		to = common.HexToAddress(routerAddress)
+	} else {
+		to = common.HexToAddress(data.Recipient)
+	}
+
 	callBytesInputs := CallBytesInputs{
 		Data: SwapExecutorDescription{
 			SwapSequences:    swapSequences,
 			TokenIn:          common.HexToAddress(data.TokenIn),
 			TokenOut:         common.HexToAddress(data.TokenOut),
-			To:               common.HexToAddress(routerAddress),
+			To:               to,
 			Deadline:         data.Deadline,
 			DestTokenFeeData: destTokenFeeData,
 		},
