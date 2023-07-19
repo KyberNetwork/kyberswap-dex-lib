@@ -51,7 +51,7 @@ type Extra struct {
 	LastJoinExit                        *LastJoinExitData      `json:"lastJoinExit"`
 	RateProviders                       []string               `json:"rateProviders"`
 	TokensExemptFromYieldProtocolFee    []bool                 `json:"tokensExemptFromYieldProtocolFee"`
-	TokenRateCaches                     []*TokenRateCache      `json:"tokenRateCaches"`
+	TokenRateCaches                     []TokenRateCache       `json:"tokenRateCaches"`
 	ProtocolFeePercentageCacheSwapType  *big.Int               `json:"protocolFeePercentageCacheSwapType"`
 	ProtocolFeePercentageCacheYieldType *big.Int               `json:"protocolFeePercentageCacheYieldType"`
 }

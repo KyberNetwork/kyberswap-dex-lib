@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type ComposableStablePool struct {
@@ -27,7 +28,7 @@ type ComposableStablePool struct {
 	LastJoinExit                     *balancer.LastJoinExitData
 	RateProviders                    []string
 	TokensExemptFromYieldProtocolFee []bool
-	TokenRateCaches                  []*balancer.TokenRateCache
+	TokenRateCaches                  []balancer.TokenRateCache
 }
 
 type droppedBpt struct {
@@ -564,7 +565,10 @@ func (c ComposableStablePool) _getVirtualSupply(bptBalance *big.Int) *big.Int {
 }
 
 func (c ComposableStablePool) _hasRateProvider(tokenIndex int) bool {
-	return c.RateProviders[tokenIndex] != ""
+	if c.RateProviders[tokenIndex] == "" || c.RateProviders[tokenIndex] == valueobject.ZeroAddress {
+		return false
+	}
+	return true
 }
 
 func (c ComposableStablePool) isTokenExemptFromYieldProtocolFee(tokenIndex int) bool {
@@ -600,7 +604,7 @@ func (c ComposableStablePool) getAdjustedBalances(balances []*big.Int, ignoreExe
 		}
 
 		if c.isTokenExemptFromYieldProtocolFee(skipBptIndex) || (ignoreExemptFlags && c._hasRateProvider(skipBptIndex)) {
-			adjustedBalances[i] = c._adjustedBalance(balances[i], c.TokenRateCaches[skipBptIndex])
+			adjustedBalances[i] = c._adjustedBalance(balances[i], &c.TokenRateCaches[skipBptIndex])
 		} else {
 			adjustedBalances[i] = balances[i]
 		}

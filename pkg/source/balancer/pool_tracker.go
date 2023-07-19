@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -56,8 +57,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		protocolFeePercentageCacheYieldType *big.Int
 	)
 	tokensExemptFromYieldProtocolFee := make([]bool, len(p.Tokens))
-	tokenRateCaches := make([]*TokenRateCache, len(p.Tokens))
-	rateProviders := make([]string, len(p.Tokens))
+	tokenRateCaches := make([]TokenRateCache, len(p.Tokens))
+	rateProviders := make([]common.Address, len(p.Tokens))
 
 	calls := d.ethrpcClient.NewRequest()
 	calls.SetContext(ctx)
@@ -155,14 +156,14 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			ABI:    composableStablePoolABI,
 			Target: p.Address,
 			Method: composableStablePoolMethodGetProtocolFeePercentageCache,
-			Params: []interface{}{ProtocolFeeTypeSwap.Int64()},
+			Params: []interface{}{ProtocolFeeTypeSwap},
 		}, []interface{}{&protocolFeePercentageCacheSwapType})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    composableStablePoolABI,
 			Target: p.Address,
 			Method: composableStablePoolMethodGetProtocolFeePercentageCache,
-			Params: []interface{}{ProtocolFeeTypeYield.Int64()},
+			Params: []interface{}{ProtocolFeeTypeYield},
 		}, []interface{}{&protocolFeePercentageCacheYieldType})
 
 		for i, token := range p.Tokens {
@@ -171,15 +172,19 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 				ABI:    composableStablePoolABI,
 				Target: p.Address,
 				Method: composableStablePoolMethodIsTokenExemptFromYieldProtocolFee,
-				Params: []interface{}{address},
+				Params: []interface{}{common.HexToAddress(address)},
 			}, []interface{}{&tokensExemptFromYieldProtocolFee[i]})
 
-			calls.AddCall(&ethrpc.Call{
-				ABI:    composableStablePoolABI,
-				Target: p.Address,
-				Method: composableStablePoolMethodGetTokenRateCache,
-				Params: []interface{}{address},
-			}, []interface{}{&tokenRateCaches[i]})
+			//// TokenRateCaches is only valid with non-bptToken, so if this token is bpt-token (address = poolAddr), we ignore
+			//if address != p.Address {
+			//	calls.AddCall(&ethrpc.Call{
+			//		ABI:    composableStablePoolABI,
+			//		Target: p.Address,
+			//		Method: composableStablePoolMethodGetTokenRateCache,
+			//		Params: []interface{}{common.HexToAddress(address)},
+			//	}, []interface{}{&tokenRateCaches[i]})
+			//}
+
 		}
 	}
 	if _, err := calls.Aggregate(); err != nil {
@@ -188,6 +193,34 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			"error":       err,
 		}).Errorf("[Balancer] failed to aggregate for pool data")
 		return entity.Pool{}, err
+	}
+	logger.WithFields(logger.Fields{}).Infof("[Balancer] DONE Call1 WTF")
+
+	if DexType(p.Type) == DexTypeBalancerComposableStable {
+
+		callsRPCForRateCache := d.ethrpcClient.NewRequest()
+		callsRPCForRateCache.SetContext(ctx)
+		for i, token := range p.Tokens {
+			address := token.Address
+			rateProvider := strings.ToLower(rateProviders[i].Hex())
+			// Only get rate cache if this token has rate provider
+			if address != p.Address && rateProvider != "" && rateProvider != valueobject.ZeroAddress {
+				callsRPCForRateCache.AddCall(&ethrpc.Call{
+					ABI:    composableStablePoolABI,
+					Target: p.Address,
+					Method: composableStablePoolMethodGetTokenRateCache,
+					Params: []interface{}{common.HexToAddress(address)},
+				}, []interface{}{&tokenRateCaches[i]})
+			}
+		}
+
+		if _, err := callsRPCForRateCache.Aggregate(); err != nil {
+			logger.WithFields(logger.Fields{
+				"poolAddress": p.Address,
+				"error":       err,
+			}).Errorf("[Balancer] failed to aggregate for pool data in Second Call: RPC get rate cache")
+			return entity.Pool{}, err
+		}
 	}
 
 	if swapFeePercentage != nil {
@@ -244,6 +277,11 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		extra = string(extraBytes)
 	}
 
+	stringRateProviders := make([]string, len(rateProviders))
+	for i, rateProvider := range rateProviders {
+		stringRateProviders[i] = strings.ToLower(rateProvider.Hex())
+	}
+
 	if DexType(p.Type) == DexTypeBalancerComposableStable {
 		extraBytes, err := json.Marshal(Extra{
 			AmplificationParameter:              amplificationParameter,
@@ -251,7 +289,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			BptIndex:                            bptIndex,
 			ActualSupply:                        actualSupply,
 			LastJoinExit:                        &lastJoinExit,
-			RateProviders:                       rateProviders,
+			RateProviders:                       stringRateProviders,
 			TokensExemptFromYieldProtocolFee:    tokensExemptFromYieldProtocolFee,
 			TokenRateCaches:                     tokenRateCaches,
 			ProtocolFeePercentageCacheSwapType:  protocolFeePercentageCacheSwapType,
