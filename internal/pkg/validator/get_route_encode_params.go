@@ -3,6 +3,7 @@ package validator
 import (
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -12,66 +13,74 @@ import (
 )
 
 type getRouteEncodeParamsValidator struct {
+	nowFunc func() time.Time
+
 	config GetRouteEncodeParamsConfig
 }
 
 func NewGetRouteEncodeParamsValidator(
+	nowFunc func() time.Time,
 	config GetRouteEncodeParamsConfig,
 ) *getRouteEncodeParamsValidator {
 	return &getRouteEncodeParamsValidator{
-		config: config,
+		nowFunc: nowFunc,
+		config:  config,
 	}
 }
 
-func (r *getRouteEncodeParamsValidator) Validate(params params.GetRouteEncodeParams) error {
-	if err := r.validateTokens(params.TokenIn, params.TokenOut); err != nil {
+func (v *getRouteEncodeParamsValidator) Validate(params params.GetRouteEncodeParams) error {
+	if err := v.validateTokens(params.TokenIn, params.TokenOut); err != nil {
 		return err
 	}
 
-	if err := r.validateTokenIn(params.TokenIn); err != nil {
+	if err := v.validateTokenIn(params.TokenIn); err != nil {
 		return err
 	}
 
-	if err := r.validateTokenOut(params.TokenOut); err != nil {
+	if err := v.validateTokenOut(params.TokenOut); err != nil {
 		return err
 	}
 
-	if err := r.validateAmountIn(params.AmountIn); err != nil {
+	if err := v.validateAmountIn(params.AmountIn); err != nil {
 		return err
 	}
 
-	if err := r.validateFeeReceiver(params.FeeReceiver); err != nil {
+	if err := v.validateFeeReceiver(params.FeeReceiver); err != nil {
 		return err
 	}
 
-	if err := r.validateFeeAmount(params.FeeAmount); err != nil {
+	if err := v.validateFeeAmount(params.FeeAmount); err != nil {
 		return err
 	}
 
-	if err := r.validateChargeFeeBy(params.ChargeFeeBy, params.FeeAmount); err != nil {
+	if err := v.validateChargeFeeBy(params.ChargeFeeBy, params.FeeAmount); err != nil {
 		return err
 	}
 
-	if err := r.validatePermit(params.Permit); err != nil {
+	if err := v.validatePermit(params.Permit); err != nil {
 		return err
 	}
 
-	if err := r.validateTo(params.To); err != nil {
+	if err := v.validateSlippageTolerance(params.SlippageTolerance); err != nil {
 		return err
 	}
 
-	if err := r.validateSlippageTolerance(params.SlippageTolerance); err != nil {
+	if err := v.validateDeadline(params.Deadline); err != nil {
 		return err
 	}
 
-	if err := r.validateGasPrice(params.GasPrice); err != nil {
+	if err := v.validateGasPrice(params.GasPrice); err != nil {
+		return err
+	}
+
+	if err := v.validateTo(params.To); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *getRouteEncodeParamsValidator) validateAmountIn(amountInParams string) error {
+func (v *getRouteEncodeParamsValidator) validateAmountIn(amountInParams string) error {
 	amountInBi, ok := new(big.Int).SetString(amountInParams, 10)
 	if !ok || amountInBi.Cmp(constant.Zero) <= 0 {
 		return NewValidationError("amountIn", "invalid")
@@ -80,7 +89,7 @@ func (r *getRouteEncodeParamsValidator) validateAmountIn(amountInParams string) 
 	return nil
 }
 
-func (r *getRouteEncodeParamsValidator) validateTokens(tokenIn, tokenOut string) error {
+func (v *getRouteEncodeParamsValidator) validateTokens(tokenIn, tokenOut string) error {
 	if strings.EqualFold(tokenIn, tokenOut) {
 		return NewValidationError("tokenIn-out", "identical")
 	}
@@ -88,7 +97,7 @@ func (r *getRouteEncodeParamsValidator) validateTokens(tokenIn, tokenOut string)
 	return nil
 }
 
-func (r *getRouteEncodeParamsValidator) validateTokenIn(tokenIn string) error {
+func (v *getRouteEncodeParamsValidator) validateTokenIn(tokenIn string) error {
 	if len(tokenIn) == 0 {
 		return NewValidationError("tokenIn", "required")
 	}
@@ -100,7 +109,7 @@ func (r *getRouteEncodeParamsValidator) validateTokenIn(tokenIn string) error {
 	return nil
 }
 
-func (r *getRouteEncodeParamsValidator) validateTokenOut(tokenOut string) error {
+func (v *getRouteEncodeParamsValidator) validateTokenOut(tokenOut string) error {
 	if len(tokenOut) == 0 {
 		return NewValidationError("tokenOut", "required")
 	}
@@ -112,7 +121,7 @@ func (r *getRouteEncodeParamsValidator) validateTokenOut(tokenOut string) error 
 	return nil
 }
 
-func (r *getRouteEncodeParamsValidator) validateTo(to string) error {
+func (v *getRouteEncodeParamsValidator) validateTo(to string) error {
 	if len(to) == 0 {
 		return NewValidationError("to", "required")
 	}
@@ -123,7 +132,7 @@ func (r *getRouteEncodeParamsValidator) validateTo(to string) error {
 	return nil
 }
 
-func (r *getRouteEncodeParamsValidator) validateFeeReceiver(feeReceiver string) error {
+func (v *getRouteEncodeParamsValidator) validateFeeReceiver(feeReceiver string) error {
 	if len(feeReceiver) == 0 {
 		return nil
 	}
@@ -135,7 +144,7 @@ func (r *getRouteEncodeParamsValidator) validateFeeReceiver(feeReceiver string) 
 	return nil
 }
 
-func (r *getRouteEncodeParamsValidator) validateFeeAmount(feeAmount string) error {
+func (v *getRouteEncodeParamsValidator) validateFeeAmount(feeAmount string) error {
 	if len(feeAmount) == 0 {
 		return nil
 	}
@@ -147,7 +156,7 @@ func (r *getRouteEncodeParamsValidator) validateFeeAmount(feeAmount string) erro
 	return nil
 }
 
-func (r *getRouteEncodeParamsValidator) validateChargeFeeBy(chargeFeeBy string, feeAmount string) error {
+func (v *getRouteEncodeParamsValidator) validateChargeFeeBy(chargeFeeBy string, feeAmount string) error {
 	if len(feeAmount) == 0 {
 		return nil
 	}
@@ -161,15 +170,15 @@ func (r *getRouteEncodeParamsValidator) validateChargeFeeBy(chargeFeeBy string, 
 	return NewValidationError("chargeFeeBy", "invalid")
 }
 
-func (r *getRouteEncodeParamsValidator) validateSlippageTolerance(slippageTolerance int64) error {
-	if slippageTolerance < r.config.SlippageToleranceGTE || slippageTolerance > r.config.SlippageToleranceLTE {
+func (v *getRouteEncodeParamsValidator) validateSlippageTolerance(slippageTolerance int64) error {
+	if slippageTolerance < v.config.SlippageToleranceGTE || slippageTolerance > v.config.SlippageToleranceLTE {
 		return NewValidationError("slippageTolerance", "invalid")
 	}
 
 	return nil
 }
 
-func (r *getRouteEncodeParamsValidator) validatePermit(permit string) error {
+func (v *getRouteEncodeParamsValidator) validatePermit(permit string) error {
 	// Return early when permit is empty
 	if len(permit) == 0 || permit == constant.EmptyHex {
 		return nil
@@ -186,7 +195,7 @@ func (r *getRouteEncodeParamsValidator) validatePermit(permit string) error {
 	return nil
 }
 
-func (r *getRouteEncodeParamsValidator) validateGasPrice(gasPriceStr string) error {
+func (v *getRouteEncodeParamsValidator) validateGasPrice(gasPriceStr string) error {
 	if len(gasPriceStr) == 0 {
 		return nil
 	}
@@ -194,6 +203,18 @@ func (r *getRouteEncodeParamsValidator) validateGasPrice(gasPriceStr string) err
 	_, ok := new(big.Float).SetString(gasPriceStr)
 	if !ok {
 		return NewValidationError("gasPrice", "invalid")
+	}
+
+	return nil
+}
+
+func (v *getRouteEncodeParamsValidator) validateDeadline(deadline int64) error {
+	if deadline == 0 {
+		return nil
+	}
+
+	if deadline < v.nowFunc().Unix() {
+		return NewValidationError("deadline", "in the past")
 	}
 
 	return nil

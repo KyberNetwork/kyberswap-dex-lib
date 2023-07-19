@@ -220,7 +220,7 @@ func apiAction(c *cli.Context) (err error) {
 	getPoolsParamsValidator := validator.NewGetPoolsParamsValidator()
 	getTokensParamsValidator := validator.NewGetTokensParamsValidator()
 	getRoutesParamsValidator := validator.NewGetRouteParamsValidator()
-	getRouteEncodeParamsValidator := validator.NewGetRouteEncodeParamsValidator(cfg.Validator.GetRouteEncodeParams)
+	getRouteEncodeParamsValidator := validator.NewGetRouteEncodeParamsValidator(timeutil.NowFunc, cfg.Validator.GetRouteEncodeParams)
 	buildRouteParamsValidator := validator.NewBuildRouteParamsValidator(timeutil.NowFunc, cfg.Validator.BuildRouteParams)
 
 	// init use cases
