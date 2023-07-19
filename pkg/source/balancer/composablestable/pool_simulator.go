@@ -14,14 +14,15 @@ import (
 
 type ComposableStablePool struct {
 	pool.Pool
-	VaultAddress               string
-	PoolId                     string
-	ScalingFactors             []*big.Int
-	ActualSupply               *big.Int
-	BptIndex                   *big.Int
-	AmplificationParameter     *big.Int
-	TotalSupply                *big.Int
-	ProtocolFeePercentageCache *big.Int
+	VaultAddress                        string
+	PoolId                              string
+	ScalingFactors                      []*big.Int
+	ActualSupply                        *big.Int
+	BptIndex                            *big.Int
+	AmplificationParameter              *big.Int
+	TotalSupply                         *big.Int
+	ProtocolFeePercentageCacheSwapType  *big.Int
+	ProtocolFeePercentageCacheYieldType *big.Int
 
 	LastJoinExit                     *balancer.LastJoinExitData
 	RateProviders                    []string
@@ -70,18 +71,19 @@ func NewPoolSimulator(entityPool entity.Pool) (*ComposableStablePool, error) {
 				Checked:    false,
 			},
 		},
-		VaultAddress:                     strings.ToLower(staticExtra.VaultAddress),
-		PoolId:                           strings.ToLower(staticExtra.PoolId),
-		AmplificationParameter:           extra.AmplificationParameter.Value,
-		ScalingFactors:                   extra.ScalingFactors,
-		BptIndex:                         extra.BptIndex,
-		ActualSupply:                     extra.ActualSupply,
-		LastJoinExit:                     extra.LastJoinExit,
-		TotalSupply:                      totalSupply,
-		RateProviders:                    extra.RateProviders,
-		TokensExemptFromYieldProtocolFee: extra.TokensExemptFromYieldProtocolFee,
-		TokenRateCaches:                  extra.TokenRateCaches,
-		ProtocolFeePercentageCache:       extra.ProtocolFeePercentageCache,
+		VaultAddress:                        strings.ToLower(staticExtra.VaultAddress),
+		PoolId:                              strings.ToLower(staticExtra.PoolId),
+		AmplificationParameter:              extra.AmplificationParameter.Value,
+		ScalingFactors:                      extra.ScalingFactors,
+		BptIndex:                            extra.BptIndex,
+		ActualSupply:                        extra.ActualSupply,
+		LastJoinExit:                        extra.LastJoinExit,
+		TotalSupply:                         totalSupply,
+		RateProviders:                       extra.RateProviders,
+		TokensExemptFromYieldProtocolFee:    extra.TokensExemptFromYieldProtocolFee,
+		TokenRateCaches:                     extra.TokenRateCaches,
+		ProtocolFeePercentageCacheSwapType:  extra.ProtocolFeePercentageCacheSwapType,
+		ProtocolFeePercentageCacheYieldType: extra.ProtocolFeePercentageCacheYieldType,
 	}, nil
 }
 
@@ -498,11 +500,11 @@ func (c ComposableStablePool) _getProtocolPoolOwnershipPercentage(balances []*bi
 	//swapFeeGrowthInvariantDelta/totalGrowthInvariant*getProtocolFeePercentageCache
 	protocolSwapFeePercentage := balancer.MulDownFixed(
 		balancer.DivDownFixed(swapFeeGrowthInvariantDelta, totalGrowthInvariant),
-		c.ProtocolFeePercentageCache)
+		c.ProtocolFeePercentageCacheSwapType)
 
 	protocolYieldPercentage := balancer.MulDownFixed(
 		balancer.DivDownFixed(nonExemptYieldGrowthInvariantDelta, totalGrowthInvariant),
-		c.ProtocolFeePercentageCache)
+		c.ProtocolFeePercentageCacheYieldType)
 
 	// Calculate the total protocol Pool ownership percentage
 	protocolPoolOwnershipPercentage := new(big.Int).Add(protocolSwapFeePercentage, protocolYieldPercentage)

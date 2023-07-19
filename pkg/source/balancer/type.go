@@ -44,15 +44,16 @@ type TokenRateCache struct {
 }
 
 type Extra struct {
-	AmplificationParameter           AmplificationParameter `json:"amplificationParameter"`
-	ScalingFactors                   []*big.Int             `json:"scalingFactors,omitempty"`
-	BptIndex                         *big.Int               `json:"bptIndex"`
-	ActualSupply                     *big.Int               `json:"actualSupply"`
-	LastJoinExit                     *LastJoinExitData      `json:"lastJoinExit"`
-	RateProviders                    []string               `json:"rateProviders"`
-	TokensExemptFromYieldProtocolFee []bool                 `json:"tokensExemptFromYieldProtocolFee"`
-	TokenRateCaches                  []*TokenRateCache      `json:"tokenRateCaches"`
-	ProtocolFeePercentageCache       *big.Int               `json:"protocolFeePercentageCache"`
+	AmplificationParameter              AmplificationParameter `json:"amplificationParameter"`
+	ScalingFactors                      []*big.Int             `json:"scalingFactors,omitempty"`
+	BptIndex                            *big.Int               `json:"bptIndex"`
+	ActualSupply                        *big.Int               `json:"actualSupply"`
+	LastJoinExit                        *LastJoinExitData      `json:"lastJoinExit"`
+	RateProviders                       []string               `json:"rateProviders"`
+	TokensExemptFromYieldProtocolFee    []bool                 `json:"tokensExemptFromYieldProtocolFee"`
+	TokenRateCaches                     []*TokenRateCache      `json:"tokenRateCaches"`
+	ProtocolFeePercentageCacheSwapType  *big.Int               `json:"protocolFeePercentageCacheSwapType"`
+	ProtocolFeePercentageCacheYieldType *big.Int               `json:"protocolFeePercentageCacheYieldType"`
 }
 
 type PoolTokens struct {
@@ -75,3 +76,12 @@ type Meta struct {
 	VaultAddress string `json:"vault"`
 	PoolId       string `json:"poolId"`
 }
+
+type ProtocolFeeType int
+
+const (
+	SWAP ProtocolFeeType = iota
+	FLASH_LOAN
+	YIELD
+	AUM
+)

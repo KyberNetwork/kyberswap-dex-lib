@@ -44,15 +44,16 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	poolIdParam := common.HexToHash(staticExtra.PoolId)
 
 	var (
-		poolTokens                 PoolTokens
-		amplificationParameter     AmplificationParameter
-		scalingFactors             []*big.Int
-		swapFeePercentage          *big.Int
-		bptIndex                   *big.Int
-		actualSupply               *big.Int
-		totalSupply                *big.Int
-		lastJoinExit               LastJoinExitData
-		protocolFeePercentageCache *big.Int
+		poolTokens                          PoolTokens
+		amplificationParameter              AmplificationParameter
+		scalingFactors                      []*big.Int
+		swapFeePercentage                   *big.Int
+		bptIndex                            *big.Int
+		actualSupply                        *big.Int
+		totalSupply                         *big.Int
+		lastJoinExit                        LastJoinExitData
+		protocolFeePercentageCacheSwapType  *big.Int
+		protocolFeePercentageCacheYieldType *big.Int
 	)
 	tokensExemptFromYieldProtocolFee := make([]bool, len(p.Tokens))
 	tokenRateCaches := make([]*TokenRateCache, len(p.Tokens))
@@ -154,8 +155,15 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			ABI:    composableStablePoolABI,
 			Target: p.Address,
 			Method: composableStablePoolMethodGetProtocolFeePercentageCache,
-			Params: nil,
-		}, []interface{}{&protocolFeePercentageCache})
+			Params: []interface{}{SWAP},
+		}, []interface{}{&protocolFeePercentageCacheSwapType})
+
+		calls.AddCall(&ethrpc.Call{
+			ABI:    composableStablePoolABI,
+			Target: p.Address,
+			Method: composableStablePoolMethodGetProtocolFeePercentageCache,
+			Params: []interface{}{YIELD},
+		}, []interface{}{&protocolFeePercentageCacheYieldType})
 
 		for i, token := range p.Tokens {
 			address := token.Address
@@ -239,15 +247,16 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 	if DexType(p.Type) == DexTypeBalancerComposableStable {
 		extraBytes, err := json.Marshal(Extra{
-			AmplificationParameter:           amplificationParameter,
-			ScalingFactors:                   scalingFactors,
-			BptIndex:                         bptIndex,
-			ActualSupply:                     actualSupply,
-			LastJoinExit:                     &lastJoinExit,
-			RateProviders:                    rateProviders,
-			TokensExemptFromYieldProtocolFee: tokensExemptFromYieldProtocolFee,
-			TokenRateCaches:                  tokenRateCaches,
-			ProtocolFeePercentageCache:       protocolFeePercentageCache,
+			AmplificationParameter:              amplificationParameter,
+			ScalingFactors:                      scalingFactors,
+			BptIndex:                            bptIndex,
+			ActualSupply:                        actualSupply,
+			LastJoinExit:                        &lastJoinExit,
+			RateProviders:                       rateProviders,
+			TokensExemptFromYieldProtocolFee:    tokensExemptFromYieldProtocolFee,
+			TokenRateCaches:                     tokenRateCaches,
+			ProtocolFeePercentageCacheSwapType:  protocolFeePercentageCacheSwapType,
+			ProtocolFeePercentageCacheYieldType: protocolFeePercentageCacheYieldType,
 		})
 		if err != nil {
 			logger.WithFields(logger.Fields{
