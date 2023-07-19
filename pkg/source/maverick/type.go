@@ -50,8 +50,9 @@ type Bin struct {
 	ReserveB  *big.Int `json:"reserveB"`
 	LowerTick *big.Int `json:"lowerTick"`
 	Kind      *big.Int `json:"kind"`
-	MergeID   *big.Int `json:"mergeID"`
+	MergeID   *big.Int `json:"mergeId"`
 }
+
 type Gas struct {
 	Swap int64
 }
@@ -79,8 +80,22 @@ type Active struct {
 }
 
 type GetStateResult struct {
-	ActiveTick       *big.Int `json:"activeTick"`
-	Status           *big.Int `json:"status"`
-	BinCounter       *big.Int `json:"binCounter"`
-	ProtocolFeeRatio *big.Int `json:"protocolFeeRatio"`
+	State struct {
+		ActiveTick       int32    `json:"activeTick"`
+		Status           uint8    `json:"status"`
+		BinCounter       *big.Int `json:"binCounter"`
+		ProtocolFeeRatio uint64   `json:"protocolFeeRatio"`
+	}
+}
+
+type GetBinResult struct {
+	BinState struct {
+		ReserveA        *big.Int `json:"reserveA"`
+		ReserveB        *big.Int `json:"reserveB"`
+		MergeBinBalance *big.Int `json:"mergeBinBalance"`
+		MergeID         *big.Int `json:"mergeId"`
+		TotalSupply     *big.Int `json:"totalSupply"`
+		Kind            uint8    `json:"kind"`
+		LowerTick       int32    `json:"lowerTick"`
+	}
 }
