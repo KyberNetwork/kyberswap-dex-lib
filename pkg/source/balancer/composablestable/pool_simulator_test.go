@@ -21,8 +21,8 @@ func TestSwap(t *testing.T) {
 		SwapFee:      0.000001,
 		Exchange:     "balancer",
 		Type:         "balancer-composable-stable",
-		Timestamp:    1689669313,
-		Reserves:     entity.PoolReserves{"2712086279354774352629", "2596148429266323438822175768385755", "3271438820688750693099"},
+		Timestamp:    1689789778,
+		Reserves:     entity.PoolReserves{"2455412046525881020921", "2596148429266323438822175768385755", "3518407624731693170104"},
 		Tokens: entity.PoolTokens{
 			&entity.PoolToken{
 				Address:   "0x60d604890feaa0b5460b28a424407c24fe89374a",
@@ -46,9 +46,9 @@ func TestSwap(t *testing.T) {
 				Swappable: true,
 			},
 		},
-		Extra:       "{\"amplificationParameter\":{\"value\":700000,\"isUpdating\":false,\"precision\":1000},\"bptIndex\":1,\"actualSupply\":6105781862789255176406, \"scalingFactors\":[1003574892248307341,1000000000000000000,1043476167150887160]}",
+		Extra:       "{\"amplificationParameter\":{\"value\":700000,\"isUpdating\":false,\"precision\":1000},\"scalingFactors\":[1003637040578540860,1000000000000000000,1043680240732074966],\"bptIndex\":1,\"actualSupply\":6105781862789255176406,\"lastJoinExit\":{\"LastJoinExitAmplification\":700000,\"LastPostJoinExitInvariant\":6135006746648647084879},\"rateProviders\":[\"0x60d604890feaa0b5460b28a424407c24fe89374a\",\"0x0000000000000000000000000000000000000000\",\"0x7311e4bb8a72e7b300c5b8bde4de6cdaa822a5b1\"],\"tokensExemptFromYieldProtocolFee\":[false,false,false],\"tokenRateCaches\":[{\"Rate\":1003637040578540860,\"OldRate\":1003554274984131981,\"Duration\":21600,\"Expires\":1689810275},{\"Rate\":null,\"OldRate\":null,\"Duration\":null,\"Expires\":null},{\"Rate\":1043680240732074966,\"OldRate\":1043375386816533719,\"Duration\":21600,\"Expires\":1689810275}],\"protocolFeePercentageCacheSwapType\":0,\"protocolFeePercentageCacheYieldType\":0}",
 		StaticExtra: "{\"vaultAddress\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\",\"poolId\":\"0x9001cbbd96f54a658ff4e6e65ab564ded76a543100000000000000000000050a\",\"tokenDecimals\":[18,18,18]}",
-		TotalSupply: "",
+		TotalSupply: "2596148429272429220684965023562161",
 	}
 
 	var p, err = NewPoolSimulator(pair)

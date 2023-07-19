@@ -194,7 +194,6 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		}).Errorf("[Balancer] failed to aggregate for pool data")
 		return entity.Pool{}, err
 	}
-	logger.WithFields(logger.Fields{}).Infof("[Balancer] DONE Call1 WTF")
 
 	if DexType(p.Type) == DexTypeBalancerComposableStable {
 

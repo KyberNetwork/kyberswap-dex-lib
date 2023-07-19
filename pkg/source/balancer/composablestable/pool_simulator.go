@@ -133,10 +133,8 @@ func (c ComposableStablePool) _upscale(amount, scalingFactor *big.Int) *big.Int 
 
 func (c ComposableStablePool) CalcAmountOut(tokenAmountIn pool.TokenAmount, tokenOut string) (*pool.CalcAmountOutResult, error) {
 	var (
-		//pairType  PairTypes
-		indexIn  int
-		indexOut int
-		//bptIndex  int64
+		indexIn   int
+		indexOut  int
 		amountOut *big.Int
 	)
 	//bptIndex = c.BptIndex.Int64()
@@ -150,32 +148,6 @@ func (c ComposableStablePool) CalcAmountOut(tokenAmountIn pool.TokenAmount, toke
 		}
 	}
 
-	//if tokenAmountIn.Token == tokens[bptIndex] {
-	//	pairType = BptToToken
-	//} else if tokenOut == tokens[bptIndex] {
-	//	pairType = TokenToBpt
-	//} else {
-	//	pairType = TokenToToken
-	//}
-	//
-	//// Fees are subtracted before scaling, to reduce the complexity of the rounding direction analysis.
-	//tokenAmountsInWithFee, feeAmount := c._subtractSwapFeeAmount(tokenAmountIn.Amount, c.Info.SwapFee)
-	//balancesUpscaled := c._upscaleArray(c.Info.Reserves, c.ScalingFactors)
-	//tokenAmountInScaled := c._upscale(tokenAmountsInWithFee, c.ScalingFactors[indexIn])
-	//actualSupply := c.ActualSupply
-	//
-	//dropped := c.removeBpt(balancesUpscaled, indexIn, indexOut, int(bptIndex))
-	//amountOut := c._onSwapGivenIn(
-	//	tokenAmountInScaled,
-	//	dropped.balances,
-	//	dropped.indexIn,
-	//	dropped.indexOut,
-	//	actualSupply,
-	//	pairType,
-	//)
-	//
-	//// amountOut tokens are exiting the Pool, so we round down.
-	//amountOutScaleDown := balancer.DivDownFixed(amountOut, c.ScalingFactors[indexOut])
 	if tokenAmountIn.Token == c.Info.Address || tokenOut == c.Info.Address {
 		amountOut = c._swapWithBptGivenIn(tokenAmountIn.Amount, c.Info.Reserves, indexIn, indexOut)
 	} else {
