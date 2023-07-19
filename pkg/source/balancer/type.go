@@ -76,12 +76,3 @@ type Meta struct {
 	VaultAddress string `json:"vault"`
 	PoolId       string `json:"poolId"`
 }
-
-type ProtocolFeeType int
-
-const (
-	SWAP ProtocolFeeType = iota
-	FLASH_LOAN
-	YIELD
-	AUM
-)

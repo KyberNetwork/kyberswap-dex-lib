@@ -58,4 +58,13 @@ var (
 	bOneFloat, _ = new(big.Float).SetString("1000000000000000000")
 
 	DefaultGas = Gas{Swap: 80000}
+
+	/*
+	   uint256 internal constant SWAP = 0;
+	   uint256 internal constant FLASH_LOAN = 1;
+	   uint256 internal constant YIELD = 2;
+	   uint256 internal constant AUM = 3;
+	*/
+	ProtocolFeeTypeSwap  = big.NewInt(0)
+	ProtocolFeeTypeYield = big.NewInt(2)
 )

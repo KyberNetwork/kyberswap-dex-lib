@@ -155,14 +155,14 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			ABI:    composableStablePoolABI,
 			Target: p.Address,
 			Method: composableStablePoolMethodGetProtocolFeePercentageCache,
-			Params: []interface{}{SWAP},
+			Params: []interface{}{ProtocolFeeTypeSwap.Int64()},
 		}, []interface{}{&protocolFeePercentageCacheSwapType})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    composableStablePoolABI,
 			Target: p.Address,
 			Method: composableStablePoolMethodGetProtocolFeePercentageCache,
-			Params: []interface{}{YIELD},
+			Params: []interface{}{ProtocolFeeTypeYield.Int64()},
 		}, []interface{}{&protocolFeePercentageCacheYieldType})
 
 		for i, token := range p.Tokens {
@@ -180,7 +180,6 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 				Method: composableStablePoolMethodGetTokenRateCache,
 				Params: []interface{}{address},
 			}, []interface{}{&tokenRateCaches[i]})
-
 		}
 	}
 	if _, err := calls.Aggregate(); err != nil {
