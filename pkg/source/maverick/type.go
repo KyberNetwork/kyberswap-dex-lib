@@ -25,22 +25,32 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	TickSpacing      *big.Int
-	Fee              *big.Int
-	ProtocolFeeRatio *big.Int
-	ActiveTick       *big.Int
-	BinCounter       *big.Int
-	Bins             map[string]Bin
-	BinPositions     map[string]map[string]*big.Int
-	BinMap           map[string]*big.Int
+	Fee              *big.Int                       `json:"fee"`
+	ProtocolFeeRatio *big.Int                       `json:"protocolFeeRatio"`
+	ActiveTick       *big.Int                       `json:"activeTick"`
+	BinCounter       *big.Int                       `json:"binCounter"`
+	Bins             map[string]Bin                 `json:"bins"`
+	BinPositions     map[string]map[string]*big.Int `json:"binPositions"`
+	BinMap           map[string]*big.Int            `json:"binMap"`
+}
+
+type MaverickPoolState struct {
+	TickSpacing      *big.Int                       `json:"tickSpacing"`
+	Fee              *big.Int                       `json:"fee"`
+	ProtocolFeeRatio *big.Int                       `json:"protocolFeeRatio"`
+	ActiveTick       *big.Int                       `json:"activeTick"`
+	BinCounter       *big.Int                       `json:"binCounter"`
+	Bins             map[string]Bin                 `json:"bins"`
+	BinPositions     map[string]map[string]*big.Int `json:"binPositions"`
+	BinMap           map[string]*big.Int            `json:"binMap"`
 }
 
 type Bin struct {
-	ReserveA  *big.Int
-	ReserveB  *big.Int
-	LowerTick *big.Int
-	Kind      *big.Int
-	MergeID   *big.Int
+	ReserveA  *big.Int `json:"reserveA"`
+	ReserveB  *big.Int `json:"reserveB"`
+	LowerTick *big.Int `json:"lowerTick"`
+	Kind      *big.Int `json:"kind"`
+	MergeID   *big.Int `json:"mergeID"`
 }
 type Gas struct {
 	Swap int64

@@ -168,7 +168,7 @@ func TestSwapAForBWithoutExactOut(t *testing.T) {
 		"-1": bignumber.NewBig10("7463162598112715418867754100145796611164620634624434827815830738677402697728"),
 	}
 
-	var state = maverick.Extra{
+	var state = &maverick.MaverickPoolState{
 		Bins:             bins,
 		TickSpacing:      big.NewInt(953),
 		Fee:              big.NewInt(int64((0.3 / 100) * 1e18)),
@@ -348,7 +348,7 @@ func TestSwapAForBExactOut(t *testing.T) {
 		"-1": bignumber.NewBig10("7463162598112715418867754100145796611164620634624434827815830738677402697728"),
 	}
 
-	var state = maverick.Extra{
+	var state = &maverick.MaverickPoolState{
 		Bins:             bins,
 		TickSpacing:      big.NewInt(953),
 		Fee:              big.NewInt(int64((0.3 / 100) * 1e18)),
@@ -531,7 +531,7 @@ func TestSwapBForAExactOut(t *testing.T) {
 		"-1": bignumber.NewBig10("7463162598112715418867754100145796611164620634624434827815830738677402697728"),
 	}
 
-	var state = maverick.Extra{
+	var state = &maverick.MaverickPoolState{
 		Bins:             bins,
 		TickSpacing:      big.NewInt(953),
 		Fee:              big.NewInt(int64((0.3 / 100) * 1e18)),
@@ -727,7 +727,7 @@ func TestSwapBForAWithoutExactOut(t *testing.T) {
 		"-1": bignumber.NewBig10("7463166048985888814149647817523727749677346860178920913009108319939514597376"),
 	}
 
-	var state = maverick.Extra{
+	var state = &maverick.MaverickPoolState{
 		Bins:             bins,
 		TickSpacing:      big.NewInt(953),
 		Fee:              big.NewInt(int64((0.3 / 100) * 1e18)),

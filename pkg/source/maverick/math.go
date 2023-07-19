@@ -6,7 +6,7 @@ import (
 )
 
 func GetAmountOut(
-	state Extra,
+	state *MaverickPoolState,
 	amount *big.Int,
 	tokenAIn bool,
 	exactOutput bool,
@@ -31,7 +31,7 @@ func GetAmountOut(
 
 	var counter = 0
 	for delta.Excess.Cmp(zeroBI) > 0 {
-		newDelta, err := swapTick(delta, &state)
+		newDelta, err := swapTick(delta, state)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -50,7 +50,7 @@ func GetAmountOut(
 	return amountIn, amountOut, nil
 }
 
-func swapTick(delta *Delta, state *Extra) (*Delta, error) {
+func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
 	var activeTick = new(big.Int).Set(state.ActiveTick)
 	if delta.DecrementTick {
 		activeTick = new(big.Int).Sub(state.ActiveTick, bignumber.One)
@@ -159,7 +159,7 @@ func swapTick(delta *Delta, state *Extra) (*Delta, error) {
 func computeSwapExactOut(
 	sqrtPrice, liquidity, reserveA, reserveB, amountOut *big.Int,
 	tokenAIn bool,
-	state *Extra,
+	state *MaverickPoolState,
 ) (*Delta, error) {
 	amountOutAvailable := new(big.Int)
 	if tokenAIn {
@@ -256,7 +256,7 @@ func computeSwapExactOut(
 func computeSwapExactIn(
 	sqrtEdgePrice, sqrtPrice, liquidity, reserveA, reserveB, amountIn *big.Int,
 	limitInBin, tokenAIn bool,
-	state *Extra,
+	state *MaverickPoolState,
 ) (*Delta, error) {
 	var binAmountIn *big.Int
 	var err error
@@ -371,7 +371,7 @@ func computeSwapExactIn(
 	return delta, nil
 }
 
-func amountToBin(deltaInErc, feeBases *big.Int, state *Extra) (*big.Int, error) {
+func amountToBin(deltaInErc, feeBases *big.Int, state *MaverickPoolState) (*big.Int, error) {
 	protocolFeeRatio := new(big.Int).Set(state.ProtocolFeeRatio)
 
 	if protocolFeeRatio.Cmp(zeroBI) != 0 {
@@ -420,7 +420,7 @@ func combine(delta, newDelta *Delta) {
 	delta.SwappedToMaxPrice = newDelta.SwappedToMaxPrice
 }
 
-func currentTickLiquidity(activeTick *big.Int, state *Extra) (*big.Int, *big.Int, *big.Int, *big.Int, []Bin, error) {
+func currentTickLiquidity(activeTick *big.Int, state *MaverickPoolState) (*big.Int, *big.Int, *big.Int, *big.Int, []Bin, error) {
 	var active = getKindsAtTick(state.BinMap, activeTick)
 
 	var reserveA = big.NewInt(0)
