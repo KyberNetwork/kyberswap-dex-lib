@@ -1,4 +1,4 @@
-package balancer
+package balancer_composable_stable
 
 import (
 	"math/big"
@@ -31,9 +31,28 @@ type StaticExtra struct {
 	TokenDecimals []int  `json:"tokenDecimals"`
 }
 
+type LastJoinExitData struct {
+	LastJoinExitAmplification *big.Int
+	LastPostJoinExitInvariant *big.Int
+}
+
+type TokenRateCache struct {
+	Rate     *big.Int
+	OldRate  *big.Int
+	Duration *big.Int
+	Expires  *big.Int
+}
+
 type Extra struct {
-	AmplificationParameter AmplificationParameter `json:"amplificationParameter"`
-	ScalingFactors         []*big.Int             `json:"scalingFactors,omitempty"`
+	AmplificationParameter              AmplificationParameter `json:"amplificationParameter"`
+	ScalingFactors                      []*big.Int             `json:"scalingFactors,omitempty"`
+	BptIndex                            *big.Int               `json:"bptIndex"`
+	LastJoinExit                        *LastJoinExitData      `json:"lastJoinExit"`
+	RateProviders                       []string               `json:"rateProviders"`
+	TokensExemptFromYieldProtocolFee    []bool                 `json:"tokensExemptFromYieldProtocolFee"`
+	TokenRateCaches                     []TokenRateCache       `json:"tokenRateCaches"`
+	ProtocolFeePercentageCacheSwapType  *big.Int               `json:"protocolFeePercentageCacheSwapType"`
+	ProtocolFeePercentageCacheYieldType *big.Int               `json:"protocolFeePercentageCacheYieldType"`
 }
 
 type PoolTokens struct {

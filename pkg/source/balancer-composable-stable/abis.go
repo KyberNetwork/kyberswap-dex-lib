@@ -1,4 +1,4 @@
-package balancer
+package balancer_composable_stable
 
 import (
 	"bytes"
@@ -7,10 +7,9 @@ import (
 )
 
 var (
-	vaultABI          abi.ABI
-	balancerPoolABI   abi.ABI
-	stablePoolABI     abi.ABI
-	metaStablePoolABI abi.ABI
+	vaultABI                abi.ABI
+	balancerPoolABI         abi.ABI
+	composableStablePoolABI abi.ABI
 )
 
 func init() {
@@ -20,8 +19,7 @@ func init() {
 	}{
 		{&vaultABI, balancerVaultJson},
 		{&balancerPoolABI, balancerPoolJson},
-		{&stablePoolABI, balancerStablePoolJson},
-		{&metaStablePoolABI, balancerMetaStablePoolJson},
+		{&composableStablePoolABI, balancerComposableStablePoolJson},
 	}
 
 	for _, b := range builder {

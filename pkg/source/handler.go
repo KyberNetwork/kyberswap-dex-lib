@@ -6,6 +6,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
+	balancerComposableStable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/biswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
@@ -89,6 +90,15 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return balancer.NewPoolsListUpdater(&cfg, ethrpcClient), nil
+	case balancerComposableStable.DexTypeBalancerComposableStableExchange:
+		var cfg balancerComposableStable.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return balancerComposableStable.NewPoolsListUpdater(&cfg, ethrpcClient), nil
 	case velodrome.DexTypeVelodrome:
 		var cfg velodrome.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)

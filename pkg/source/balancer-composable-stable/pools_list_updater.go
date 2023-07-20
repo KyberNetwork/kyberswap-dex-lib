@@ -1,4 +1,4 @@
-package balancer
+package balancer_composable_stable
 
 import (
 	"context"
@@ -41,9 +41,7 @@ func NewPoolsListUpdater(
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	// Add more types of pool here
 	supportedPoolTypes := []PoolType{
-		subgraphPoolTypeWeighted,
-		subgraphPoolTypeStable,
-		subgraphPoolTypeMetaStable,
+		subgraphPoolTypeComposableStable,
 	}
 
 	var metadata Metadata

@@ -13,6 +13,3 @@ var balancerStablePoolJson []byte
 
 //go:embed abis/MetaStablePool.json
 var balancerMetaStablePoolJson []byte
-
-//go:embed abis/ComposableStable.json
-var balancerComposableStablePoolJson []byte

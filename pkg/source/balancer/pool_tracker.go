@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -45,19 +44,11 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	poolIdParam := common.HexToHash(staticExtra.PoolId)
 
 	var (
-		poolTokens                          PoolTokens
-		amplificationParameter              AmplificationParameter
-		scalingFactors                      []*big.Int
-		swapFeePercentage                   *big.Int
-		bptIndex                            *big.Int
-		totalSupply                         *big.Int
-		lastJoinExit                        LastJoinExitData
-		protocolFeePercentageCacheSwapType  *big.Int
-		protocolFeePercentageCacheYieldType *big.Int
+		poolTokens             PoolTokens
+		amplificationParameter AmplificationParameter
+		scalingFactors         []*big.Int
+		swapFeePercentage      *big.Int
 	)
-	tokensExemptFromYieldProtocolFee := make([]bool, len(p.Tokens))
-	tokenRateCaches := make([]TokenRateCache, len(p.Tokens))
-	rateProviders := make([]common.Address, len(p.Tokens))
 
 	calls := d.ethrpcClient.NewRequest()
 	calls.SetContext(ctx)
@@ -101,117 +92,12 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		}, []interface{}{&scalingFactors})
 	}
 
-	if DexType(p.Type) == DexTypeBalancerComposableStable {
-		calls.AddCall(&ethrpc.Call{
-			ABI:    composableStablePoolABI,
-			Target: p.Address,
-			Method: composableStablePoolMethodGetBptIndex,
-			Params: nil,
-		}, []interface{}{&bptIndex})
-
-		calls.AddCall(&ethrpc.Call{
-			ABI:    composableStablePoolABI,
-			Target: p.Address,
-			Method: poolMethodGetAmplificationParameter,
-			Params: nil,
-		}, []interface{}{&amplificationParameter})
-
-		calls.AddCall(&ethrpc.Call{
-			ABI:    composableStablePoolABI,
-			Target: p.Address,
-			Method: metaStablePoolMethodGetScalingFactors,
-			Params: nil,
-		}, []interface{}{&scalingFactors})
-
-		calls.AddCall(&ethrpc.Call{
-			ABI:    composableStablePoolABI,
-			Target: p.Address,
-			Method: composableStablePoolMethodGetLastJoinExitData,
-			Params: nil,
-		}, []interface{}{&lastJoinExit})
-
-		calls.AddCall(&ethrpc.Call{
-			ABI:    composableStablePoolABI,
-			Target: p.Address,
-			Method: composableStablePoolMethodGetTotalSupply,
-			Params: nil,
-		}, []interface{}{&totalSupply})
-
-		calls.AddCall(&ethrpc.Call{
-			ABI:    composableStablePoolABI,
-			Target: p.Address,
-			Method: composableStablePoolMethodGetRateProviders,
-			Params: nil,
-		}, []interface{}{&rateProviders})
-
-		calls.AddCall(&ethrpc.Call{
-			ABI:    composableStablePoolABI,
-			Target: p.Address,
-			Method: composableStablePoolMethodGetProtocolFeePercentageCache,
-			Params: []interface{}{ProtocolFeeTypeSwap},
-		}, []interface{}{&protocolFeePercentageCacheSwapType})
-
-		calls.AddCall(&ethrpc.Call{
-			ABI:    composableStablePoolABI,
-			Target: p.Address,
-			Method: composableStablePoolMethodGetProtocolFeePercentageCache,
-			Params: []interface{}{ProtocolFeeTypeYield},
-		}, []interface{}{&protocolFeePercentageCacheYieldType})
-
-		for i, token := range p.Tokens {
-			address := token.Address
-			calls.AddCall(&ethrpc.Call{
-				ABI:    composableStablePoolABI,
-				Target: p.Address,
-				Method: composableStablePoolMethodIsTokenExemptFromYieldProtocolFee,
-				Params: []interface{}{common.HexToAddress(address)},
-			}, []interface{}{&tokensExemptFromYieldProtocolFee[i]})
-
-			//// TokenRateCaches is only valid with non-bptToken, so if this token is bpt-token (address = poolAddr), we ignore
-			//if address != p.Address {
-			//	calls.AddCall(&ethrpc.Call{
-			//		ABI:    composableStablePoolABI,
-			//		Target: p.Address,
-			//		Method: composableStablePoolMethodGetTokenRateCache,
-			//		Params: []interface{}{common.HexToAddress(address)},
-			//	}, []interface{}{&tokenRateCaches[i]})
-			//}
-
-		}
-	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
 		}).Errorf("[Balancer] failed to aggregate for pool data")
 		return entity.Pool{}, err
-	}
-
-	if DexType(p.Type) == DexTypeBalancerComposableStable {
-
-		callsRPCForRateCache := d.ethrpcClient.NewRequest()
-		callsRPCForRateCache.SetContext(ctx)
-		for i, token := range p.Tokens {
-			address := token.Address
-			rateProvider := strings.ToLower(rateProviders[i].Hex())
-			// Only get rate cache if this token has rate provider
-			if address != p.Address && rateProvider != "" && rateProvider != valueobject.ZeroAddress {
-				callsRPCForRateCache.AddCall(&ethrpc.Call{
-					ABI:    composableStablePoolABI,
-					Target: p.Address,
-					Method: composableStablePoolMethodGetTokenRateCache,
-					Params: []interface{}{common.HexToAddress(address)},
-				}, []interface{}{&tokenRateCaches[i]})
-			}
-		}
-
-		if _, err := callsRPCForRateCache.Aggregate(); err != nil {
-			logger.WithFields(logger.Fields{
-				"poolAddress": p.Address,
-				"error":       err,
-			}).Errorf("[Balancer] failed to aggregate for pool data in Second Call: RPC get rate cache")
-			return entity.Pool{}, err
-		}
 	}
 
 	if swapFeePercentage != nil {
@@ -266,35 +152,6 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		}
 
 		extra = string(extraBytes)
-	}
-
-	stringRateProviders := make([]string, len(rateProviders))
-	for i, rateProvider := range rateProviders {
-		stringRateProviders[i] = strings.ToLower(rateProvider.Hex())
-	}
-
-	if DexType(p.Type) == DexTypeBalancerComposableStable {
-		extraBytes, err := json.Marshal(Extra{
-			AmplificationParameter:              amplificationParameter,
-			ScalingFactors:                      scalingFactors,
-			BptIndex:                            bptIndex,
-			LastJoinExit:                        &lastJoinExit,
-			RateProviders:                       stringRateProviders,
-			TokensExemptFromYieldProtocolFee:    tokensExemptFromYieldProtocolFee,
-			TokenRateCaches:                     tokenRateCaches,
-			ProtocolFeePercentageCacheSwapType:  protocolFeePercentageCacheSwapType,
-			ProtocolFeePercentageCacheYieldType: protocolFeePercentageCacheYieldType,
-		})
-		if err != nil {
-			logger.WithFields(logger.Fields{
-				"poolAddress": p.Address,
-				"error":       err,
-			}).Errorf("failed to marshal pool extra")
-			return entity.Pool{}, err
-		}
-
-		extra = string(extraBytes)
-		p.TotalSupply = totalSupply.String()
 	}
 
 	p.Extra = extra

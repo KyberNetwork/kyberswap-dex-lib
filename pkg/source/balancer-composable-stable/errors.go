@@ -1,4 +1,4 @@
-package balancer
+package balancer_composable_stable
 
 import "errors"
 
