@@ -78,6 +78,7 @@ func (t *PoolSimulator) CalcAmountOut(
 		if t.Weights[tokenInIndex] != t.Weights[tokenOutIndex] {
 			totalGas = t.gas.SwapNonBase
 		}
+
 		if amountOut.Cmp(zeroBI) > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
@@ -91,6 +92,8 @@ func (t *PoolSimulator) CalcAmountOut(
 				Gas: totalGas,
 			}, nil
 		}
+
+		return &pool.CalcAmountOutResult{}, fmt.Errorf("invalid amount out: %v", amountOut.String())
 	}
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 }
