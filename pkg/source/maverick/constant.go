@@ -23,6 +23,7 @@ const (
 )
 
 var (
+	DefaultGas = Gas{Swap: 125000}
 	zeroBI     = big.NewInt(0)
 	zeroString = "0"
 )

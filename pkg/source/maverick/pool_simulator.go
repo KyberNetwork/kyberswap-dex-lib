@@ -51,6 +51,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			BinPositions:     extra.BinPositions,
 			BinMap:           extra.BinMap,
 		},
+		gas: DefaultGas,
 	}, nil
 }
 

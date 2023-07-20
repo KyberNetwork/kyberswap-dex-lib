@@ -3,7 +3,7 @@ package maverick
 import "math/big"
 
 type Metadata struct {
-	LastCreateTime *big.Int
+	LastCreateTime uint64
 }
 
 type SubgraphPool struct {

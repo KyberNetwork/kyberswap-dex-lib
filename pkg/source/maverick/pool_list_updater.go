@@ -11,7 +11,6 @@ import (
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/logger"
 	"github.com/machinebox/graphql"
-	"math/big"
 	"strconv"
 	"time"
 )
@@ -66,7 +65,7 @@ func (d *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	return pools, newMetadataBytes, nil
 }
 
-func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreateTime *big.Int) ([]entity.Pool, *big.Int, error) {
+func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreateTime uint64) ([]entity.Pool, uint64, error) {
 	logger.WithFields(logger.Fields{
 		"type": DexTypeMaverickV1,
 	}).Info("start getting new pools...")
@@ -132,7 +131,7 @@ func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreate
 	newLastCreateTime := lastCreateTime
 	if len(subgraphPools) > 0 {
 		lastSubgraphPool := subgraphPools[len(subgraphPools)-1]
-		newLastCreateTime = bignumber.NewBig10(lastSubgraphPool.Timestamp)
+		newLastCreateTime, _ = strconv.ParseUint(lastSubgraphPool.Timestamp, 10, 64)
 	}
 
 	logger.WithFields(logger.Fields{
@@ -145,14 +144,10 @@ func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreate
 
 func (d *PoolListUpdater) querySubgraph(
 	ctx context.Context,
-	lastCreateTime *big.Int,
+	lastCreateTime uint64,
 	first int,
 	skip int,
 ) ([]*SubgraphPool, error) {
-	if lastCreateTime == nil {
-		lastCreateTime = zeroBI
-	}
-
 	req := graphql.NewRequest(fmt.Sprintf(`{
 		pools(
 			where : {
