@@ -53,6 +53,14 @@ func DivUp(a *big.Int, b *big.Int) *big.Int {
 	return new(big.Int).Add(new(big.Int).Div(new(big.Int).Sub(a, bignumber.One), b), bignumber.One)
 }
 
+func DivUpFixed(a *big.Int, b *big.Int) *big.Int {
+	if a.Cmp(bignumber.ZeroBI) == 0 {
+		return bignumber.ZeroBI
+	}
+	aInflated := new(big.Int).Mul(a, One)
+	return new(big.Int).Add(new(big.Int).Div(new(big.Int).Sub(aInflated, bignumber.One), b), bignumber.One)
+}
+
 func DivDownFixed(a *big.Int, b *big.Int) *big.Int {
 	if a.Cmp(bignumber.ZeroBI) == 0 {
 		return bignumber.ZeroBI
@@ -86,7 +94,7 @@ func CalcOutGivenIn(
 	if finalBalanceOut == nil {
 		return nil
 	}
-	balances[tokenIndexIn] = new(big.Int).Sub(balances[tokenIndexIn], bignumber.One)
+	balances[tokenIndexIn] = new(big.Int).Sub(balances[tokenIndexIn], tokenAmountIn)
 	return new(big.Int).Sub(new(big.Int).Sub(balances[tokenIndexOut], finalBalanceOut), bignumber.One)
 }
 

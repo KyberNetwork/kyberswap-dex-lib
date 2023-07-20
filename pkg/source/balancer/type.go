@@ -47,7 +47,6 @@ type Extra struct {
 	AmplificationParameter              AmplificationParameter `json:"amplificationParameter"`
 	ScalingFactors                      []*big.Int             `json:"scalingFactors,omitempty"`
 	BptIndex                            *big.Int               `json:"bptIndex"`
-	ActualSupply                        *big.Int               `json:"actualSupply"`
 	LastJoinExit                        *LastJoinExitData      `json:"lastJoinExit"`
 	RateProviders                       []string               `json:"rateProviders"`
 	TokensExemptFromYieldProtocolFee    []bool                 `json:"tokensExemptFromYieldProtocolFee"`

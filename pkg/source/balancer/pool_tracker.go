@@ -50,7 +50,6 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		scalingFactors                      []*big.Int
 		swapFeePercentage                   *big.Int
 		bptIndex                            *big.Int
-		actualSupply                        *big.Int
 		totalSupply                         *big.Int
 		lastJoinExit                        LastJoinExitData
 		protocolFeePercentageCacheSwapType  *big.Int
@@ -109,13 +108,6 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			Method: composableStablePoolMethodGetBptIndex,
 			Params: nil,
 		}, []interface{}{&bptIndex})
-
-		calls.AddCall(&ethrpc.Call{
-			ABI:    composableStablePoolABI,
-			Target: p.Address,
-			Method: composableStablePoolMethodGetActualSupply,
-			Params: nil,
-		}, []interface{}{&actualSupply})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    composableStablePoolABI,
@@ -286,7 +278,6 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			AmplificationParameter:              amplificationParameter,
 			ScalingFactors:                      scalingFactors,
 			BptIndex:                            bptIndex,
-			ActualSupply:                        actualSupply,
 			LastJoinExit:                        &lastJoinExit,
 			RateProviders:                       stringRateProviders,
 			TokensExemptFromYieldProtocolFee:    tokensExemptFromYieldProtocolFee,

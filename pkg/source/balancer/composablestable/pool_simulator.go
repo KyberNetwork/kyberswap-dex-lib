@@ -2,7 +2,6 @@ package composablestable
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"strings"
 
@@ -77,7 +76,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*ComposableStablePool, error) {
 		AmplificationParameter:              extra.AmplificationParameter.Value,
 		ScalingFactors:                      extra.ScalingFactors,
 		BptIndex:                            extra.BptIndex,
-		ActualSupply:                        extra.ActualSupply,
 		LastJoinExit:                        extra.LastJoinExit,
 		TotalSupply:                         totalSupply,
 		RateProviders:                       extra.RateProviders,
@@ -136,6 +134,7 @@ func (c ComposableStablePool) CalcAmountOut(tokenAmountIn pool.TokenAmount, toke
 		indexIn   int
 		indexOut  int
 		amountOut *big.Int
+		fee       *pool.TokenAmount
 	)
 	//bptIndex = c.BptIndex.Int64()
 	tokens := c.Pool.GetTokens()
@@ -149,25 +148,23 @@ func (c ComposableStablePool) CalcAmountOut(tokenAmountIn pool.TokenAmount, toke
 	}
 
 	if tokenAmountIn.Token == c.Info.Address || tokenOut == c.Info.Address {
-		amountOut = c._swapWithBptGivenIn(tokenAmountIn.Amount, c.Info.Reserves, indexIn, indexOut)
+		amountOut, fee = c._swapWithBptGivenIn(tokenAmountIn.Amount, c.Info.Reserves, indexIn, indexOut)
 	} else {
-		amountOut = c._swapGivenIn(tokenAmountIn.Amount, c.Info.Reserves, indexIn, indexOut)
+		amountOut, fee = c._swapGivenIn(tokenAmountIn.Amount, c.Info.Reserves, indexIn, indexOut)
 	}
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
 			Amount: amountOut,
 		},
-		Fee: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
-			Amount: bignumber.ZeroBI,
-		},
+		Fee: fee,
 		Gas: balancer.DefaultGas.Swap,
 	}, nil
 }
 
 // CalcBptOutGivenExactTokensIn https://github.com/balancer/balancer-v2-monorepo/blob/b46023f7c5deefaf58a0a42559a36df420e1639f/pkg/pool-stable/contracts/StableMath.sol#L201
-func CalcBptOutGivenExactTokensIn(amp *big.Int, balances []*big.Int, amountsIn []*big.Int, bptTotalSupply, invariant, swapFeePercentage *big.Int) *big.Int {
+func CalcBptOutGivenExactTokensIn(amp *big.Int, balances []*big.Int, amountsIn []*big.Int, bptTotalSupply, invariant, swapFeePercentage *big.Int) (*big.Int, *big.Int) {
+	feeAmountIn := big.NewInt(0)
 	sumBalances := big.NewInt(0)
 	for _, balance := range balances {
 		sumBalances.Add(sumBalances, balance)
@@ -197,6 +194,7 @@ func CalcBptOutGivenExactTokensIn(amp *big.Int, balances []*big.Int, amountsIn [
 		} else {
 			amountInWithoutFee = amountsIn[i]
 		}
+		feeAmountIn = feeAmountIn.Add(feeAmountIn, new(big.Int).Sub(amountsIn[i], amountInWithoutFee))
 		newBalances[i] = new(big.Int).Add(balance, amountInWithoutFee)
 	}
 
@@ -204,18 +202,17 @@ func CalcBptOutGivenExactTokensIn(amp *big.Int, balances []*big.Int, amountsIn [
 	invariantRatio := balancer.DivDownFixed(newInvariant, invariant)
 
 	if invariantRatio.Cmp(balancer.One) > 0 {
-		return balancer.MulDownFixed(bptTotalSupply, new(big.Int).Sub(invariantRatio, balancer.One))
+		return balancer.MulDownFixed(bptTotalSupply, new(big.Int).Sub(invariantRatio, balancer.One)), feeAmountIn
 	} else {
-		return big.NewInt(0)
+		return big.NewInt(0), feeAmountIn
 	}
 }
 
-func CalcTokenOutGivenExactBptIn(amp *big.Int, balances []*big.Int, tokenIndex int, bptAmountIn *big.Int, bptTotalSupply, invariant, swapFeePercentage *big.Int) *big.Int {
-	newInvariant := balancer.MulUpFixed(balancer.DivUp(new(big.Int).Sub(bptTotalSupply, bptAmountIn), bptTotalSupply), invariant)
-
+func CalcTokenOutGivenExactBptIn(amp *big.Int, balances []*big.Int, tokenIndex int, bptAmountIn *big.Int, bptTotalSupply, invariant, swapFeePercentage *big.Int) (*big.Int, *big.Int) {
+	newInvariant := balancer.MulUpFixed(balancer.DivUpFixed(new(big.Int).Sub(bptTotalSupply, bptAmountIn), bptTotalSupply), invariant)
 	newBalanceTokenIndex := balancer.GetTokenBalanceGivenInvariantAndAllOtherBalances(amp, balances, newInvariant, tokenIndex)
 	if newBalanceTokenIndex == nil {
-		return nil
+		return nil, nil
 	}
 	amountOutWithoutFee := new(big.Int).Sub(balances[tokenIndex], newBalanceTokenIndex)
 
@@ -230,12 +227,13 @@ func CalcTokenOutGivenExactBptIn(amp *big.Int, balances []*big.Int, tokenIndex i
 	taxableAmount := balancer.MulUpFixed(amountOutWithoutFee, taxablePercentage)
 	nonTaxableAmount := new(big.Int).Sub(amountOutWithoutFee, taxableAmount)
 
-	return new(big.Int).Add(nonTaxableAmount,
-		balancer.MulDownFixed(
-			taxableAmount,
-			new(big.Int).Sub(balancer.One, swapFeePercentage),
-		),
+	feeOfTaxableAmount := balancer.MulDownFixed(
+		taxableAmount,
+		new(big.Int).Sub(balancer.One, swapFeePercentage),
 	)
+
+	feeAmount := new(big.Int).Sub(taxableAmount, feeOfTaxableAmount)
+	return new(big.Int).Add(nonTaxableAmount, feeOfTaxableAmount), feeAmount
 }
 
 func (c ComposableStablePool) _onRegularSwap(
@@ -269,15 +267,15 @@ func (c ComposableStablePool) _swapGivenIn(
 	balances []*big.Int,
 	indexIn int,
 	indexOut int,
-) *big.Int {
+) (*big.Int, *pool.TokenAmount) {
 	amountAfterFee, feeAmount := c._subtractSwapFeeAmount(tokenAmountIn, c.Info.SwapFee)
 
 	upscaledBalances := c._upscaleArray(balances, c.ScalingFactors)
 	amountUpScale := c._upscale(amountAfterFee, c.ScalingFactors[indexIn])
 
 	amountOut := c._onSwapGivenIn(amountUpScale, upscaledBalances, indexIn, indexOut)
-	fmt.Println(feeAmount)
-	return balancer.DivDownFixed(amountOut, c.ScalingFactors[indexOut])
+	return balancer.DivDownFixed(amountOut, c.ScalingFactors[indexOut]),
+		&pool.TokenAmount{Token: c.Info.Tokens[indexIn], Amount: feeAmount}
 }
 
 func (c ComposableStablePool) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -306,19 +304,19 @@ func (c ComposableStablePool) _swapWithBptGivenIn(
 	registeredBalances []*big.Int,
 	registeredIndexIn int,
 	registeredIndexOut int,
-) *big.Int {
+) (*big.Int, *pool.TokenAmount) {
 	var (
-		amountCalculated   *big.Int
-		postJoinExitSupply *big.Int
+		amountCalculated *big.Int
+		_                *big.Int
+		feeAmount        *big.Int
+		tokenAmount      pool.TokenAmount
 	)
-
 	balancesUpscaled := c._upscaleArray(registeredBalances, c.ScalingFactors)
 	tokenAmountInScaled := c._upscale(tokenAmountIn, c.ScalingFactors[registeredIndexIn])
-
 	preJoinExitSupply, balances, currentAmp, preJoinExitInvariant := c._beforeJoinExit(balancesUpscaled)
 
 	if registeredIndexOut == int(c.BptIndex.Int64()) {
-		amountCalculated, postJoinExitSupply = c._doJoinSwap(
+		amountCalculated, _, feeAmount = c._doJoinSwap(
 			true,
 			tokenAmountInScaled,
 			balances,
@@ -327,8 +325,11 @@ func (c ComposableStablePool) _swapWithBptGivenIn(
 			preJoinExitSupply,
 			preJoinExitInvariant,
 		)
+		// charge fee amountIn
+		tokenAmount.Token = c.Info.Tokens[registeredIndexIn]
+		tokenAmount.Amount = feeAmount
 	} else {
-		amountCalculated, postJoinExitSupply = c._doExitSwap(
+		amountCalculated, _, feeAmount = c._doExitSwap(
 			true,
 			tokenAmountInScaled,
 			balances,
@@ -337,9 +338,11 @@ func (c ComposableStablePool) _swapWithBptGivenIn(
 			preJoinExitSupply,
 			preJoinExitInvariant,
 		)
+		// charge fee amountOut
+		tokenAmount.Token = c.Info.Tokens[registeredIndexOut]
+		tokenAmount.Amount = feeAmount
 	}
-	fmt.Println(amountCalculated, postJoinExitSupply)
-	return balancer.DivDownFixed(amountCalculated, c.ScalingFactors[registeredIndexOut])
+	return balancer.DivDownFixed(amountCalculated, c.ScalingFactors[registeredIndexOut]), &tokenAmount
 }
 
 func (c ComposableStablePool) _exitSwapExactBptInForTokenOut(
@@ -349,13 +352,13 @@ func (c ComposableStablePool) _exitSwapExactBptInForTokenOut(
 	currentAmp *big.Int,
 	actualSupply *big.Int,
 	preJoinExitInvariant *big.Int,
-) (*big.Int, *big.Int) {
-	amountOut := CalcTokenOutGivenExactBptIn(currentAmp, balances, indexOut, bptAmount, actualSupply, preJoinExitInvariant, c.Info.SwapFee)
+) (*big.Int, *big.Int, *big.Int) {
+	amountOut, feeAmount := CalcTokenOutGivenExactBptIn(currentAmp, balances, indexOut, bptAmount, actualSupply, preJoinExitInvariant, c.Info.SwapFee)
 
 	balances[indexOut].Sub(balances[indexOut], amountOut)
 	postJoinExitSupply := new(big.Int).Sub(actualSupply, bptAmount)
 
-	return amountOut, postJoinExitSupply
+	return amountOut, postJoinExitSupply, feeAmount
 
 }
 func (c ComposableStablePool) _doJoinSwap(
@@ -366,12 +369,12 @@ func (c ComposableStablePool) _doJoinSwap(
 	currentAmp *big.Int,
 	actualSupply *big.Int,
 	preJoinExitInvariant *big.Int,
-) (*big.Int, *big.Int) {
+) (*big.Int, *big.Int, *big.Int) {
 	if isGivenIn {
 		return c._joinSwapExactTokenInForBptOut(amount, balances, indexIn, currentAmp, actualSupply, preJoinExitInvariant)
 	}
 	// Currently ignore givenOut case
-	return nil, nil
+	return nil, nil, nil
 }
 
 func (c ComposableStablePool) _doExitSwap(
@@ -382,12 +385,12 @@ func (c ComposableStablePool) _doExitSwap(
 	currentAmp *big.Int,
 	actualSupply *big.Int,
 	preJoinExitInvariant *big.Int,
-) (*big.Int, *big.Int) {
+) (*big.Int, *big.Int, *big.Int) {
 	if isGivenIn {
 		return c._exitSwapExactBptInForTokenOut(amount, balances, indexOut, currentAmp, actualSupply, preJoinExitInvariant)
 	}
 	// Currently ignore givenOut case
-	return nil, nil
+	return nil, nil, nil
 }
 
 /** _joinSwapExactTokenInForBptOut
@@ -403,19 +406,19 @@ func (c ComposableStablePool) _joinSwapExactTokenInForBptOut(
 	currentAmp *big.Int,
 	actualSupply *big.Int,
 	preJoinExitInvariant *big.Int,
-) (*big.Int, *big.Int) {
+) (*big.Int, *big.Int, *big.Int) {
 
 	amountsIn := make([]*big.Int, len(balances))
 	for i := range amountsIn {
 		amountsIn[i] = new(big.Int)
 	}
 	amountsIn[indexIn] = amountIn
-	bptOut := CalcBptOutGivenExactTokensIn(currentAmp, balances, amountsIn, actualSupply, preJoinExitInvariant, c.Info.SwapFee)
+	bptOut, feeAmountIn := CalcBptOutGivenExactTokensIn(currentAmp, balances, amountsIn, actualSupply, preJoinExitInvariant, c.Info.SwapFee)
 
 	balances[indexIn].Add(balances[indexIn], amountIn)
 	postJoinExitSupply := new(big.Int).Add(actualSupply, bptOut)
 
-	return bptOut, postJoinExitSupply
+	return bptOut, postJoinExitSupply, feeAmountIn
 }
 
 func (c ComposableStablePool) _beforeJoinExit(registeredBalances []*big.Int) (*big.Int, []*big.Int, *big.Int, *big.Int) {
