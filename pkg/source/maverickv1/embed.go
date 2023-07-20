@@ -1,4 +1,4 @@
-package maverick
+package maverickv1
 
 import _ "embed"
 

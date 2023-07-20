@@ -1,4 +1,4 @@
-package maverick
+package maverickv1
 
 import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -23,9 +23,10 @@ const (
 )
 
 var (
-	DefaultGas = Gas{Swap: 125000}
-	zeroBI     = big.NewInt(0)
-	zeroString = "0"
+	DefaultGas              = Gas{Swap: 125000}
+	zeroBI                  = big.NewInt(0)
+	zeroString              = "0"
+	defaultTokenWeight uint = 50
 )
 
 var (

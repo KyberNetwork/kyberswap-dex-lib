@@ -1,8 +1,8 @@
-package maverick_test
+package maverickv1_test
 
 import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverick"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/stretchr/testify/assert"
 	"math/big"
@@ -10,7 +10,7 @@ import (
 )
 
 func TestSwapAForBWithoutExactOut(t *testing.T) {
-	var bins = map[string]maverick.Bin{
+	var bins = map[string]maverickv1.Bin{
 		"1": {
 			ReserveA:  bignumber.NewBig10("497483862887020288"),
 			ReserveB:  bignumber.NewBig10("0"),
@@ -168,7 +168,7 @@ func TestSwapAForBWithoutExactOut(t *testing.T) {
 		"-1": bignumber.NewBig10("7463162598112715418867754100145796611164620634624434827815830738677402697728"),
 	}
 
-	var state = &maverick.MaverickPoolState{
+	var state = &maverickv1.MaverickPoolState{
 		Bins:             bins,
 		TickSpacing:      big.NewInt(953),
 		Fee:              big.NewInt(int64((0.3 / 100) * 1e18)),
@@ -181,7 +181,7 @@ func TestSwapAForBWithoutExactOut(t *testing.T) {
 
 	//var amountIn = elastic.NewBig10("1850163333337788672")
 	var amountIn = bignumber.NewBig10("1928426893355895583")
-	_, amountOut, err := maverick.GetAmountOut(state, amountIn, true, false, false)
+	_, amountOut, err := maverickv1.GetAmountOut(state, amountIn, true, false, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "1676945827577881678", amountOut.String())
@@ -190,7 +190,7 @@ func TestSwapAForBWithoutExactOut(t *testing.T) {
 }
 
 func TestSwapAForBExactOut(t *testing.T) {
-	var bins = map[string]maverick.Bin{
+	var bins = map[string]maverickv1.Bin{
 		"1": {
 			ReserveA:  bignumber.NewBig10("497483862887020288"),
 			ReserveB:  bignumber.NewBig10("0"),
@@ -348,7 +348,7 @@ func TestSwapAForBExactOut(t *testing.T) {
 		"-1": bignumber.NewBig10("7463162598112715418867754100145796611164620634624434827815830738677402697728"),
 	}
 
-	var state = &maverick.MaverickPoolState{
+	var state = &maverickv1.MaverickPoolState{
 		Bins:             bins,
 		TickSpacing:      big.NewInt(953),
 		Fee:              big.NewInt(int64((0.3 / 100) * 1e18)),
@@ -360,7 +360,7 @@ func TestSwapAForBExactOut(t *testing.T) {
 	}
 
 	var amountIn = elastic.NewBig10("2963297000000000000")
-	_, amountOut, err := maverick.GetAmountOut(state, amountIn, true, true, false)
+	_, amountOut, err := maverickv1.GetAmountOut(state, amountIn, true, true, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "2963297000000000000", amountOut.String())
@@ -373,7 +373,7 @@ func TestSwapAForBExactOut(t *testing.T) {
 }
 
 func TestSwapBForAExactOut(t *testing.T) {
-	var bins = map[string]maverick.Bin{
+	var bins = map[string]maverickv1.Bin{
 		"1": {
 			ReserveA:  bignumber.NewBig10("497483862887020288"),
 			ReserveB:  bignumber.NewBig10("0"),
@@ -531,7 +531,7 @@ func TestSwapBForAExactOut(t *testing.T) {
 		"-1": bignumber.NewBig10("7463162598112715418867754100145796611164620634624434827815830738677402697728"),
 	}
 
-	var state = &maverick.MaverickPoolState{
+	var state = &maverickv1.MaverickPoolState{
 		Bins:             bins,
 		TickSpacing:      big.NewInt(953),
 		Fee:              big.NewInt(int64((0.3 / 100) * 1e18)),
@@ -543,14 +543,14 @@ func TestSwapBForAExactOut(t *testing.T) {
 	}
 
 	var amountIn = elastic.NewBig10("1894736241169897472")
-	_, amountOut, err := maverick.GetAmountOut(state, amountIn, false, true, false)
+	_, amountOut, err := maverickv1.GetAmountOut(state, amountIn, false, true, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "1894736241169897472", amountOut.String())
 }
 
 func TestSwapBForAWithoutExactOut(t *testing.T) {
-	bins := map[string]maverick.Bin{
+	bins := map[string]maverickv1.Bin{
 		"1": {
 			ReserveA:  bignumber.NewBig10("36455272596522751"),
 			ReserveB:  bignumber.NewBig10("0"),
@@ -727,7 +727,7 @@ func TestSwapBForAWithoutExactOut(t *testing.T) {
 		"-1": bignumber.NewBig10("7463166048985888814149647817523727749677346860178920913009108319939514597376"),
 	}
 
-	var state = &maverick.MaverickPoolState{
+	var state = &maverickv1.MaverickPoolState{
 		Bins:             bins,
 		TickSpacing:      big.NewInt(953),
 		Fee:              big.NewInt(int64((0.3 / 100) * 1e18)),
@@ -739,7 +739,7 @@ func TestSwapBForAWithoutExactOut(t *testing.T) {
 	}
 
 	var amountIn = elastic.NewBig10("4221332000000000000")
-	_, amountOut, err := maverick.GetAmountOut(state, amountIn, false, false, false)
+	_, amountOut, err := maverickv1.GetAmountOut(state, amountIn, false, false, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "4825296145740468025", amountOut.String())

@@ -1,4 +1,4 @@
-package maverick
+package maverickv1
 
 import (
 	"context"
@@ -87,12 +87,16 @@ func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreate
 	for _, p := range subgraphPools {
 		var tokens = []*entity.PoolToken{
 			{
-				Address:  p.TokenA.ID,
-				Decimals: p.TokenA.Decimals,
+				Address:   p.TokenA.ID,
+				Weight:    defaultTokenWeight,
+				Decimals:  p.TokenA.Decimals,
+				Swappable: true,
 			},
 			{
-				Address:  p.TokenB.ID,
-				Decimals: p.TokenB.Decimals,
+				Address:   p.TokenB.ID,
+				Weight:    defaultTokenWeight,
+				Decimals:  p.TokenB.Decimals,
+				Swappable: true,
 			},
 		}
 		var reserves = []string{zeroString, zeroString}

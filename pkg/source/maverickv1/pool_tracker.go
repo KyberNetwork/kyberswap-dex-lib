@@ -1,9 +1,8 @@
-package maverick
+package maverickv1
 
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -140,7 +139,6 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	binMapCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	for _, bin := range bins {
 		binMapIndex := d.getBinMapIndex(bin.LowerTick)
-		fmt.Println("---binMapIndex", binMapIndex)
 		if binMapIndex.Sign() >= 0 {
 			binMapCalls.AddCall(&ethrpc.Call{
 				ABI:    poolABI,

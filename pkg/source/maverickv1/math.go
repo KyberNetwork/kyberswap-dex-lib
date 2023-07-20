@@ -1,4 +1,4 @@
-package maverick
+package maverickv1
 
 import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"

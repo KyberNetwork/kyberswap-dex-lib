@@ -2,7 +2,7 @@ package source
 
 import (
 	"fmt"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverick"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
 
 	"github.com/KyberNetwork/ethrpc"
 
@@ -315,15 +315,15 @@ func NewPoolsListUpdaterHandler(
 
 		return pancakev3.NewPoolsListUpdater(&cfg), nil
 
-	case maverick.DexTypeMaverickV1:
-		var cfg maverick.Config
+	case maverickv1.DexTypeMaverickV1:
+		var cfg maverickv1.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
 		if err != nil {
 			return nil, err
 		}
 		cfg.DexID = scanDexCfg.Id
 
-		return maverick.NewPoolListUpdater(&cfg, ethrpcClient), nil
+		return maverickv1.NewPoolListUpdater(&cfg, ethrpcClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pools list updater handler: %s", scanDexCfg.Handler)
@@ -522,15 +522,15 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return pancakev3.NewPoolTracker(&cfg, ethrpcClient)
-	case maverick.DexTypeMaverickV1:
-		var cfg maverick.Config
+	case maverickv1.DexTypeMaverickV1:
+		var cfg maverickv1.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
 		if err != nil {
 			return nil, err
 		}
 		cfg.DexID = scanDexCfg.Id
 
-		return maverick.NewPoolTracker(&cfg, ethrpcClient), nil
+		return maverickv1.NewPoolTracker(&cfg, ethrpcClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pool tracker handler: %s", scanDexCfg.Handler)
