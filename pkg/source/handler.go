@@ -2,7 +2,6 @@ package source
 
 import (
 	"fmt"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
 
 	"github.com/KyberNetwork/ethrpc"
 
@@ -22,6 +21,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/madmex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/makerpsm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/metavault"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/muteswitch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nerve"

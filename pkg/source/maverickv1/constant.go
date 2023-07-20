@@ -17,9 +17,7 @@ const (
 	poolMethodTokenAScale = "tokenAScale"
 	poolMethodTokenBScale = "tokenBScale"
 
-	poolMethodBinPositions = "binPositions"
-	poolMethodGetBin       = "getBin"
-	poolMethodBinMap       = "binMap"
+	poolMethodGetBin = "getBin"
 )
 
 var (

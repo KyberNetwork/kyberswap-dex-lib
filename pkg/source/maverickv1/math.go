@@ -577,7 +577,7 @@ func tickPrice(tickSpacing *big.Int, activeTick *big.Int) (*big.Int, error) {
 		)
 	}
 
-	ratio.Mul(ratio, big.NewInt(int64(1e18)))
+	ratio.Mul(ratio, bignumber.TenPowInt(18))
 	ratio.Rsh(ratio, 128)
 
 	return ratio, nil
@@ -660,7 +660,7 @@ func getTickSqrtPriceAndL(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickP
 		return nil, nil, err
 	}
 
-	tmpDiv, err := div(new(big.Int).Add(reserveB, qo), new(big.Int).Add(reserveB, bo))
+	tmpDiv, err := div(new(big.Int).Add(reserveA, qo), new(big.Int).Add(reserveB, bo))
 	if err != nil {
 		return nil, nil, err
 	}

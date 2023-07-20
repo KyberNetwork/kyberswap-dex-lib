@@ -179,14 +179,11 @@ func TestSwapAForBWithoutExactOut(t *testing.T) {
 		BinMap:           binMap,
 	}
 
-	//var amountIn = elastic.NewBig10("1850163333337788672")
-	var amountIn = bignumber.NewBig10("1928426893355895583")
+	var amountIn = elastic.NewBig10("1850163333337788672")
 	_, amountOut, err := maverickv1.GetAmountOut(state, amountIn, true, false, false)
 
 	assert.Nil(t, err)
-	assert.Equal(t, "1676945827577881678", amountOut.String())
-	//assert.Equal(t, "1676945827577881677", amountOut.String())
-	//assert.Equal(t, "1676945", new(big.Int).Div(amountOut, bignumber.TenPowInt(12)).String())
+	assert.Equal(t, "1676945827577881677", amountOut.String())
 }
 
 func TestSwapAForBExactOut(t *testing.T) {
@@ -742,7 +739,6 @@ func TestSwapBForAWithoutExactOut(t *testing.T) {
 	_, amountOut, err := maverickv1.GetAmountOut(state, amountIn, false, false, false)
 
 	assert.Nil(t, err)
-	assert.Equal(t, "4825296145740468025", amountOut.String())
-	//assert.Equal(t, "4629465618898435945", amountOut.String())
+	assert.Equal(t, "4629465618898435945", amountOut.String())
 	//assert.Equal(t, "1676945", new(big.Int).Div(amountOut, bignumber.TenPowInt(12)).String())
 }

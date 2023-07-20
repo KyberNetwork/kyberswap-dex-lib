@@ -5,9 +5,7 @@ import (
 	"encoding/json"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
-	"math"
 	"math/big"
 	"strconv"
 	"time"
@@ -96,8 +94,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	protocolFeeRatio := big.NewInt(int64(getStateResult.State.ProtocolFeeRatio))
 
 	binLength := int(binCounter.Int64())
-	binList := make([]GetBinResult, binLength)
-
+	binRaws := make([]GetBinResult, binLength)
 	binCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	for i := 0; i < binLength; i++ {
 		binCalls.AddCall(&ethrpc.Call{
@@ -105,7 +102,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			Target: p.Address,
 			Method: poolMethodGetBin,
 			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&binList[i]})
+		}, []interface{}{&binRaws[i]})
 	}
 	if _, err := binCalls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -116,63 +113,29 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		return entity.Pool{}, err
 	}
 
-	bins := d.binListToMap(binList)
+	// Generate bins, binPosition, binMap from binRaws
+	bins := make(map[string]Bin)
+	binPositions := make(map[string]map[string]*big.Int)
+	binMap := make(map[string]*big.Int)
+	for i, binRaw := range binRaws {
+		strI := strconv.Itoa(i)
 
-	minTick := math.MaxInt
-	maxTick := -math.MaxInt
-	for _, bin := range bins {
-		binTick := int(bin.LowerTick.Int64())
-		if minTick > binTick {
-			minTick = binTick
+		bin := Bin{
+			ReserveA:  new(big.Int).Set(binRaw.BinState.ReserveA),
+			ReserveB:  new(big.Int).Set(binRaw.BinState.ReserveB),
+			LowerTick: big.NewInt(int64(binRaw.BinState.LowerTick)),
+			Kind:      big.NewInt(int64(binRaw.BinState.Kind)),
+			MergeID:   new(big.Int).Set(binRaw.BinState.MergeID),
 		}
-		if maxTick < binTick {
-			maxTick = binTick
+		bins[strI] = bin
+
+		if binPositions[bin.LowerTick.String()] == nil {
+			binPositions[bin.LowerTick.String()] = make(map[string]*big.Int)
 		}
-	}
-	if minTick < 0 {
-		minTick *= -1
-	}
+		binPositions[bin.LowerTick.String()][bin.Kind.String()] = big.NewInt(int64(i))
 
-	binMapPositive := make([]*big.Int, maxTick+1)
-	binMapNegative := make([]*big.Int, minTick+1)
-
-	binMapCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
-	for _, bin := range bins {
-		binMapIndex := d.getBinMapIndex(bin.LowerTick)
-		if binMapIndex.Sign() >= 0 {
-			binMapCalls.AddCall(&ethrpc.Call{
-				ABI:    poolABI,
-				Target: p.Address,
-				Method: poolMethodBinMap,
-				Params: []interface{}{int32(binMapIndex.Int64())},
-			}, []interface{}{&binMapPositive[int(binMapIndex.Int64())]})
-		} else {
-			binMapCalls.AddCall(&ethrpc.Call{
-				ABI:    poolABI,
-				Target: p.Address,
-				Method: poolMethodBinMap,
-				Params: []interface{}{int32(binMapIndex.Int64())},
-			}, []interface{}{&binMapNegative[-int(binMapIndex.Int64())]})
-		}
-	}
-	if _, err := binMapCalls.TryAggregate(); err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-			"error":       err,
-		}).Errorf("failed to try aggregate to get pool data")
-
-		return entity.Pool{}, err
-	}
-
-	binMap := make(map[string]*big.Int, 0)
-	for i, b := range binMapPositive {
-		if b != nil {
-			binMap[strconv.Itoa(i)] = new(big.Int).Set(b)
-		}
-	}
-	for i, b := range binMapNegative {
-		if b != nil {
-			binMap[strconv.Itoa(-i)] = new(big.Int).Set(b)
+		if bin.MergeID.Int64() == 0 {
+			d.putTypeAtTick(binMap, bin.Kind, bin.LowerTick)
 		}
 	}
 
@@ -182,7 +145,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		ActiveTick:       activeTick,
 		BinCounter:       binCounter,
 		Bins:             bins,
-		BinPositions:     d.generateBinPosition(bins),
+		BinPositions:     binPositions,
 		BinMap:           binMap,
 	}
 	extraBytes, err := json.Marshal(extra)
@@ -205,35 +168,30 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	return p, nil
 }
 
-func (d *PoolTracker) getBinMapIndex(activeTick *big.Int) *big.Int {
-	mapIndex := new(big.Int).Rsh(activeTick, 8)
-
-	return mapIndex
-}
-
-func (d *PoolTracker) binListToMap(binList []GetBinResult) map[string]Bin {
-	bins := make(map[string]Bin, len(binList))
-	for i, bin := range binList {
-		strI := strconv.Itoa(i)
-		bins[strI] = Bin{
-			ReserveA:  bin.BinState.ReserveA,
-			ReserveB:  bin.BinState.ReserveB,
-			LowerTick: big.NewInt(int64(bin.BinState.LowerTick)),
-			Kind:      big.NewInt(int64(bin.BinState.Kind)),
-		}
+func (d *PoolTracker) putTypeAtTick(
+	binMap map[string]*big.Int,
+	kind, tick *big.Int,
+) {
+	offset, mapIndex := d.getMapPointer(
+		new(big.Int).Add(
+			new(big.Int).Mul(tick, Kinds),
+			kind,
+		))
+	subMap := binMap[mapIndex.String()]
+	if subMap == nil {
+		subMap = big.NewInt(0)
 	}
 
-	return bins
+	value := new(big.Int).Or(
+		subMap,
+		new(big.Int).Lsh(big.NewInt(1), uint(offset.Int64())))
+
+	binMap[mapIndex.String()] = value
 }
 
-func (d *PoolTracker) generateBinPosition(bins map[string]Bin) map[string]map[string]*big.Int {
-	binPositions := make(map[string]map[string]*big.Int, 0)
-	for i, bin := range bins {
-		if binPositions[bin.LowerTick.String()] == nil {
-			binPositions[bin.LowerTick.String()] = make(map[string]*big.Int)
-		}
-		binPositions[bin.LowerTick.String()][bin.Kind.String()] = bignumber.NewBig10(i)
-	}
+func (d *PoolTracker) getMapPointer(tick *big.Int) (*big.Int, *big.Int) {
+	offset := new(big.Int).And(tick, OffsetMask)
+	mapIndex := new(big.Int).Rsh(tick, 8)
 
-	return binPositions
+	return offset, mapIndex
 }
