@@ -21,7 +21,7 @@ func TestSwap(t *testing.T) {
 		ReserveUsd:   0,
 		AmplifiedTvl: 0,
 		SwapFee:      0.000001,
-		Exchange:     "balancer",
+		Exchange:     "balancer-composable-stable",
 		Type:         "balancer-composable-stable",
 		Timestamp:    1689789778,
 		Reserves:     entity.PoolReserves{"2518960237189623226641", "2596148429266323438822175768385755", "3457262534881651304610"},

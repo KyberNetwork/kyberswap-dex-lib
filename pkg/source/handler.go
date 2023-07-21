@@ -368,6 +368,8 @@ func NewPoolTrackerHandler(
 		return elastic.NewPoolTracker(&cfg, ethrpcClient)
 	case balancer.DexTypeBalancer:
 		return balancer.NewPoolTracker(ethrpcClient)
+	case balancerComposableStable.DexTypeBalancerComposableStableExchange:
+		return balancerComposableStable.NewPoolTracker(ethrpcClient)
 	case velodrome.DexTypeVelodrome:
 		var cfg velodrome.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
