@@ -104,7 +104,7 @@ func (c Pool) CalcAmountOut(tokenAmountIn pool.TokenAmount, tokenOut string) (*p
 	}
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
+			Token:  tokenOut,
 			Amount: amountOut,
 		},
 		Fee: fee,
