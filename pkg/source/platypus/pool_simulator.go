@@ -12,7 +12,7 @@ import (
 )
 
 type (
-	Pool struct {
+	PoolSimulator struct {
 		pool.Pool
 
 		C1             *big.Int
@@ -28,7 +28,7 @@ type (
 	}
 )
 
-func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Pool, error) {
+func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		Tokens:   tokens,
 	}
 
-	return &Pool{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: info,
 		},
@@ -67,7 +67,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}, nil
 }
 
-func (p *Pool) CalcAmountOut(
+func (p *PoolSimulator) CalcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.CalcAmountOutResult, error) {
@@ -109,7 +109,7 @@ func (p *Pool) CalcAmountOut(
 		}, Gas: p.gas.Swap}, nil
 }
 
-func (p *Pool) UpdateBalance(
+func (p *PoolSimulator) UpdateBalance(
 	params pool.UpdateBalanceParams,
 ) {
 	fromAsset, err := p._assetOf(params.TokenAmountIn.Token)
@@ -130,7 +130,7 @@ func (p *Pool) UpdateBalance(
 	p.AssetByToken[params.TokenAmountOut.Token] = toAsset
 }
 
-func (p *Pool) GetMidPrice(
+func (p *PoolSimulator) GetMidPrice(
 	tokenIn string,
 	tokenOut string,
 	base *big.Int,
@@ -153,7 +153,7 @@ func (p *Pool) GetMidPrice(
 	return actualToAmount
 }
 
-func (p *Pool) CalcExactQuote(
+func (p *PoolSimulator) CalcExactQuote(
 	tokenIn string,
 	tokenOut string,
 	base *big.Int,
@@ -176,7 +176,7 @@ func (p *Pool) CalcExactQuote(
 	return actualToAmount
 }
 
-func (p *Pool) GetMetaInfo(
+func (p *PoolSimulator) GetMetaInfo(
 	tokenIn string,
 	tokenOut string,
 ) interface{} {
@@ -185,7 +185,7 @@ func (p *Pool) GetMetaInfo(
 
 // _quoteFrom quotes the actual amount user would receive in a swap, taking in account slippage and haircut
 // https://github.com/platypus-finance/core/blob/ce7a98d5a12aa54d3f9b31777b6dde8f1f771318/contracts/pool/Pool.sol#L790
-func (p *Pool) _quoteFrom(
+func (p *PoolSimulator) _quoteFrom(
 	fromAsset Asset,
 	toAsset Asset,
 	fromAmount *big.Int,
@@ -237,7 +237,7 @@ func (p *Pool) _quoteFrom(
 
 // _quoteIdealToAmount quotes the ideal amount in case of swap
 // https://github.com/platypus-finance/core/blob/ce7a98d5a12aa54d3f9b31777b6dde8f1f771318/contracts/pool/Pool.sol#L832
-func (p *Pool) _quoteIdealToAmount(
+func (p *PoolSimulator) _quoteIdealToAmount(
 	fromAsset Asset,
 	toAsset Asset,
 	fromAmount *big.Int,
@@ -257,7 +257,7 @@ func (p *Pool) _quoteIdealToAmount(
 
 // _quoteIdealToAmountSAvax quotes the ideal amount in case of swap for sAvax pool
 // https://github.com/platypus-finance/core/blob/ce7a98d5a12aa54d3f9b31777b6dde8f1f771318/contracts/pool/PoolSAvax.sol#L939
-func (p *Pool) _quoteIdealToAmountSAvax(
+func (p *PoolSimulator) _quoteIdealToAmountSAvax(
 	fromAsset Asset,
 	toAsset Asset,
 	fromAmount *big.Int,
@@ -283,7 +283,7 @@ func (p *Pool) _quoteIdealToAmountSAvax(
 
 // _assetOf gets Asset corresponding to ERC20 token. Returns error if asset does not exist in Pool.
 // https://github.com/platypus-finance/core/blob/ce7a98d5a12aa54d3f9b31777b6dde8f1f771318/contracts/pool/Pool.sol#L469
-func (p *Pool) _assetOf(
+func (p *PoolSimulator) _assetOf(
 	token string,
 ) (Asset, error) {
 	asset, ok := p.AssetByToken[token]
