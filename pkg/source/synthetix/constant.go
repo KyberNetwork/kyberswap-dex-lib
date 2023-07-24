@@ -89,15 +89,15 @@ type PoolStateVersion uint
 const (
 	PoolStateVersionNormal PoolStateVersion = 1
 	PoolStateVersionAtomic PoolStateVersion = 2
+	PoolInitCodeHash                        = "0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54"
 )
 
-var PoolStateVersionByChainID = map[valueobject.ChainID]PoolStateVersion{
-	valueobject.ChainIDEthereum: PoolStateVersionAtomic,
-	valueobject.ChainIDOptimism: PoolStateVersionNormal,
-}
-
-var DefaultPoolStateVersion = PoolStateVersionAtomic
-
-var DefaultChainlinkNumRounds = big.NewInt(5)
-
-const PoolInitCodeHash = "0xe34f199b19b2b4f47f68442619d555527d244f78a3297ea89325f843f87b8b54"
+var (
+	DefaultPoolStateVersion   = PoolStateVersionAtomic
+	DefaultChainlinkNumRounds = big.NewInt(5)
+	DefaultGas                = Gas{ExchangeAtomically: 600000, Exchange: 130000}
+	PoolStateVersionByChainID = map[valueobject.ChainID]PoolStateVersion{
+		valueobject.ChainIDEthereum: PoolStateVersionAtomic,
+		valueobject.ChainIDOptimism: PoolStateVersionNormal,
+	}
+)

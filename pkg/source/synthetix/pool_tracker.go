@@ -297,12 +297,3 @@ func (d *PoolTracker) getPoolState(ctx context.Context, address string) (*PoolSt
 
 	return poolState, nil
 }
-
-func getPoolStateVersion(chainID valueobject.ChainID) PoolStateVersion {
-	poolStateVersion, ok := PoolStateVersionByChainID[chainID]
-	if !ok {
-		return DefaultPoolStateVersion
-	}
-
-	return poolStateVersion
-}
