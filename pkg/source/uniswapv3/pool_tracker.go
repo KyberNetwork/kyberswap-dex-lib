@@ -239,11 +239,23 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 
 		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			// Workaround at the moment to live with the error subgraph on Arbitrum
-			if allowSubgraphError && resp.Pool == nil {
+			if allowSubgraphError {
+				if resp.Pool == nil {
+					logger.WithFields(logger.Fields{
+						"poolAddress":        poolAddress,
+						"error":              err,
+						"allowSubgraphError": allowSubgraphError,
+					}).Errorf("failed to query subgraph")
+
+					return nil, err
+				}
+			} else {
 				logger.WithFields(logger.Fields{
-					"poolAddress": poolAddress,
-					"error":       err,
+					"poolAddress":        poolAddress,
+					"error":              err,
+					"allowSubgraphError": allowSubgraphError,
 				}).Errorf("failed to query subgraph")
+
 				return nil, err
 			}
 		}
