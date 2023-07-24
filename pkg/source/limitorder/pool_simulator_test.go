@@ -5,9 +5,10 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPool_CalcAmountOut(t *testing.T) {
@@ -837,7 +838,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p, err := NewPool(tt.poolEntity)
+			p, err := NewPoolSimulator(tt.poolEntity)
 			assert.Equal(t, nil, err)
 			got, err := p.CalcAmountOut(tt.args.tokenAmountIn, tt.args.tokenOut)
 			assert.Equal(t, tt.err, err)

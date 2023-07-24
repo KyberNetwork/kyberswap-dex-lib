@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCalcAmountOut(t *testing.T) {
@@ -23,7 +24,7 @@ func TestCalcAmountOut(t *testing.T) {
 		{"A", "100000000000", "B", "174"},
 	}
 
-	p, err := NewPool(entity.Pool{
+	p, err := NewPoolSimulator(entity.Pool{
 		Exchange:    "",
 		Type:        "",
 		SwapFee:     0.0005, // from factory https://optimistic.etherscan.io/address/0x25cbddb98b35ab1ff77413456b31ec81a6b6b746#readContract

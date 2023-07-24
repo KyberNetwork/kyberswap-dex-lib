@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
@@ -27,7 +28,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{"A", 1000, "C", 484002822504000000},
 		{"A", 1000, "D", 299779},
 	}
-	p, err := NewPool(entity.Pool{
+	p, err := NewPoolSimulator(entity.Pool{
 		Exchange: "",
 		Type:     "",
 		Tokens:   []*entity.PoolToken{{Address: "A"}, {Address: "B"}, {Address: "C"}, {Address: "D"}},
@@ -62,7 +63,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 		{"A", 1000, "C", []string{"1640778763", "47192917723885198852", "176522198603677266873231", "417621596032"}, []string{"370249605383403946435521", "108601943211855065272548", "226991251062006728124154", "407271566307761703548011"}},
 		{"C", 10000, "B", []string{"1640778763", "47192917723885198849", "176522198603677266883231", "417621596032"}, []string{"370249605383403946435521", "108601943211855065266353", "226991251062006728130349", "407271566307761703548011"}},
 	}
-	p, err := NewPool(entity.Pool{
+	p, err := NewPoolSimulator(entity.Pool{
 		Exchange: "",
 		Type:     "",
 		Tokens:   []*entity.PoolToken{{Address: "A"}, {Address: "B"}, {Address: "C"}, {Address: "D"}},
