@@ -6,12 +6,13 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/logger"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/KyberNetwork/logger"
 )
 
 type (
@@ -25,7 +26,7 @@ type (
 	}
 )
 
-func NewPool(entityPool entity.Pool) (*Pool, error) {
+func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	var numTokens = len(entityPool.Tokens)
 	var tokens = make([]string, numTokens)
 	var reserves = make([]*big.Int, numTokens)
