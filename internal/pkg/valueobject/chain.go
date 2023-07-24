@@ -25,4 +25,5 @@ const (
 	ChainIDArbitrumRinkeby ChainID = 421611
 	ChainIDZKSync          ChainID = 324
 	ChainIDLineaGoerli     ChainID = 59140
+	ChainIDLinea           ChainID = 59144
 )
