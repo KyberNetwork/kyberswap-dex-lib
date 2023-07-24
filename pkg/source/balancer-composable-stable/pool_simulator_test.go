@@ -1,4 +1,4 @@
-package composablestable
+package balancercomposablestable
 
 import (
 	"fmt"

@@ -1,4 +1,4 @@
-package balancer_composable_stable
+package balancercomposablestable
 
 import (
 	"bytes"

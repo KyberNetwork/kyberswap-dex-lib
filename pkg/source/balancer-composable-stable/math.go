@@ -1,4 +1,4 @@
-package balancer_composable_stable
+package balancercomposablestable
 
 import (
 	"math/big"
@@ -11,15 +11,6 @@ var AmpPrecision = bignumber.NewBig10("1000")
 
 func init() {
 	One = new(big.Int).Set(bignumber.BONE)
-}
-
-func Upscale(amount *big.Int, scalingFactor *big.Int) *big.Int {
-	return MulDownFixed(amount, scalingFactor)
-}
-
-func ComputeScalingFactor(tokenDecimals uint) *big.Int {
-	var decimalsDiff = 36 - tokenDecimals
-	return bignumber.TenPowInt(uint8(decimalsDiff))
 }
 
 func MulDownFixed(a *big.Int, b *big.Int) *big.Int {

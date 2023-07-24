@@ -1,4 +1,4 @@
-package balancer_composable_stable
+package balancercomposablestable
 
 type Config struct {
 	DexID        string `json:"dexID"`
