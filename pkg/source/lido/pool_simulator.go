@@ -10,7 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type Pool struct {
+type PoolSimulator struct {
 	pool.Pool
 	// extra fields
 	StEthPerToken  *big.Int
@@ -24,7 +24,7 @@ type Gas struct {
 	Unwrap int64
 }
 
-func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var numTokens = len(entityPool.Tokens)
 	var tokens = make([]string, numTokens)
 	var reserves = make([]*big.Int, numTokens)
@@ -46,7 +46,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 		return nil, err
 	}
 
-	return &Pool{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
 				Address:    strings.ToLower(entityPool.Address),
@@ -66,7 +66,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	}, nil
 }
 
-func (p *Pool) CalcAmountOut(
+func (p *PoolSimulator) CalcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.CalcAmountOutResult, error) {
@@ -94,8 +94,8 @@ func (p *Pool) CalcAmountOut(
 	}, nil
 }
 
-func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {}
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {}
 
-func (p *Pool) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
 }
