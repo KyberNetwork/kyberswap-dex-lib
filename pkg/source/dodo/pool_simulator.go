@@ -32,6 +32,14 @@ type Pool struct {
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
+	if len(entityPool.StaticExtra) == 0 {
+		return nil, ErrStaticExtraEmpty
+	}
+
+	if len(entityPool.Extra) == 0 {
+		return nil, ErrExtraEmpty
+	}
+
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
@@ -97,9 +105,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 			Info: info,
 		},
 		PoolSimulatorState: poolState,
-		Tokens:    entity.ClonePoolTokens(entityPool.Tokens),
-		Meta:      meta,
-		gas:       DefaultGas,
+		Tokens:             entity.ClonePoolTokens(entityPool.Tokens),
+		Meta:               meta,
+		gas:                DefaultGas,
 	}, nil
 }
 
