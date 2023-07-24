@@ -21,6 +21,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/madmex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/makerpsm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/metavault"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/muteswitch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nerve"
@@ -313,6 +314,16 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return pancakev3.NewPoolsListUpdater(&cfg), nil
+
+	case maverickv1.DexTypeMaverickV1:
+		var cfg maverickv1.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return maverickv1.NewPoolListUpdater(&cfg, ethrpcClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pools list updater handler: %s", scanDexCfg.Handler)
@@ -511,6 +522,15 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return pancakev3.NewPoolTracker(&cfg, ethrpcClient)
+	case maverickv1.DexTypeMaverickV1:
+		var cfg maverickv1.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return maverickv1.NewPoolTracker(&cfg, ethrpcClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pool tracker handler: %s", scanDexCfg.Handler)
