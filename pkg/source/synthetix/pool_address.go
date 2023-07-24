@@ -1,7 +1,6 @@
 package synthetix
 
 import (
-	"errors"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -12,8 +11,6 @@ import (
 // =============================================================================================
 // Implementation of this contract:
 // https://github.com/Uniswap/v3-periphery/blob/5bcdd9f67f9394f3159dad80d0dd01d37ca08c66/contracts/libraries/PoolAddress.sol
-
-var ErrNotSortedKeys = errors.New("not sorted keys")
 
 type PoolKey struct {
 	token0 common.Address
