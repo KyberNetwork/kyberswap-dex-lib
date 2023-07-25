@@ -1,7 +1,14 @@
 package pool
 
 import (
+	"errors"
 	"math/big"
+
+	"github.com/KyberNetwork/logger"
+)
+
+var (
+	ErrCalcAmountOutPanic = errors.New("calcAmountOut was panic")
 )
 
 type Pool struct {
@@ -104,4 +111,20 @@ func (t *PoolInfo) GetTokenIndex(address string) int {
 		}
 	}
 	return -1
+}
+
+// wrap around pool.CalcAmountOut and catch panic
+func CalcAmountOut(pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string) (res *CalcAmountOutResult, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = ErrCalcAmountOutPanic
+			logger.WithFields(
+				logger.Fields{
+					"recover":     r,
+					"poolAddress": pool.GetAddress(),
+				}).Warn(err.Error())
+		}
+	}()
+
+	return pool.CalcAmountOut(tokenAmountIn, tokenOut)
 }
