@@ -114,6 +114,7 @@ func init() {
 
 	// BalancerV2
 	RegisterPackSwapDataFunc(valueobject.ExchangeBalancer, swapdata.PackBalancerV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBalancerComposableStable, swapdata.PackBalancerV2)
 	RegisterPackSwapDataFunc(valueobject.ExchangeBeethovenX, swapdata.PackBalancerV2)
 
 	// DODO

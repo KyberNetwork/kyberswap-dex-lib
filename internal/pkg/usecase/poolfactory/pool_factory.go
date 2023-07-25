@@ -9,6 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/balancercomposablestable"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/balancerstable"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/balancerweighted"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/camelot"
@@ -209,6 +210,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
 		return f.newBalancerWeighted(entityPool)
 	case constant.PoolTypes.BalancerStable, constant.PoolTypes.BalancerMetaStable:
 		return f.newBalancerStable(entityPool)
+	case constant.PoolTypes.BalancerComposeableStable:
+		return f.newBalancerComposableStable(entityPool)
 	case constant.PoolTypes.DodoClassical, constant.PoolTypes.DodoStable,
 		constant.PoolTypes.DodoVendingMachine, constant.PoolTypes.DodoPrivate:
 		return f.newDoDo(entityPool)
@@ -467,6 +470,20 @@ func (f *PoolFactory) newBalancerStable(entityPool entity.Pool) (*balancerstable
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newBalancerStable] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newBalancerComposableStable(entityPool entity.Pool) (*balancercomposablestable.Pool, error) {
+	corePool, err := balancercomposablestable.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newBalancerComposableStable] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

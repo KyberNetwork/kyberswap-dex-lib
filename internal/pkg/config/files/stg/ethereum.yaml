@@ -37,6 +37,7 @@ common:
     - "sushiswap"
     - "curve"
     - "balancer"
+    - "balancer-composable-stable"
     - "synapse"
     - "shibaswap"
     - "defiswap"

@@ -106,6 +106,7 @@ func init() {
 
 	// executeBalV2Swap
 	RegisterFunctionSelector(valueobject.ExchangeBalancer, FunctionSelectorBalancerV2)
+	RegisterFunctionSelector(valueobject.ExchangeBalancerComposableStable, FunctionSelectorBalancerV2)
 	RegisterFunctionSelector(valueobject.ExchangeBeethovenX, FunctionSelectorBalancerV2)
 
 	// executeDODOSwap
