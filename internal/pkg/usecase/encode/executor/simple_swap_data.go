@@ -17,7 +17,7 @@ var (
 	OffsetToTheStartOfData = "0000000000000000000000000000000000000000000000000000000000000020"
 )
 
-func BuildAndPackSimpleSwapData(chainID valueobject.ChainID, _ string, isPositiveSlippageEnabled bool, data types.EncodingData) ([]byte, error) {
+func BuildAndPackSimpleSwapData(chainID valueobject.ChainID, _ string, isPositiveSlippageEnabled bool, minimumPSThreshold int64, data types.EncodingData) ([]byte, error) {
 	swapDatas, err := BuildAndPackSwapSequences(chainID, data.Route)
 	if err != nil {
 		return nil, err
@@ -29,6 +29,7 @@ func BuildAndPackSimpleSwapData(chainID valueobject.ChainID, _ string, isPositiv
 	if isPositiveSlippageEnabled {
 		positiveSlippageFeeData := PositiveSlippageFeeData{
 			ExpectedReturnAmount: data.TotalAmountOut,
+			MinimumPSAmount:      getMinPositiveSlippageAmount(data.TotalAmountOut, minimumPSThreshold),
 		}
 
 		destTokenFeeData, err = PackPositiveSlippageFeeData(positiveSlippageFeeData)

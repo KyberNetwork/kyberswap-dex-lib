@@ -10,4 +10,5 @@ type Config struct {
 	KyberLOAddress            string              `mapstructure:"kyberLOAddress"`
 	ChainID                   valueobject.ChainID `mapstructure:"chainId"`
 	IsPositiveSlippageEnabled bool                `mapstructure:"isPositiveSlippageEnabled"`
+	MinimumPSThreshold        int64               `mapstructure:"minimumPSThreshold"`
 }

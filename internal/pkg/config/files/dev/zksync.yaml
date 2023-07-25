@@ -73,6 +73,7 @@ encoder:
   routerAddress: *routerAddress
   kyberLOAddress:
   isPositiveSlippageEnabled: true
+  minimumPSThreshold: 1000000
 useCase:
   getRoute:
     chainId: *chainId

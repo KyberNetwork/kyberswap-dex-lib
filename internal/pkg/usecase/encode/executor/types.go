@@ -73,5 +73,8 @@ type SwapSingleSequenceInputs struct {
 }
 
 type PositiveSlippageFeeData struct {
+	// The order of the fields matters for unpacking.
+	// ExpectedReturnAmount should be first.
 	ExpectedReturnAmount *big.Int
+	MinimumPSAmount      *big.Int
 }

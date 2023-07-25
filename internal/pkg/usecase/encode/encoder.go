@@ -10,7 +10,7 @@ import (
 )
 
 type (
-	encodeExecutorFunc = func(chainID valueobject.ChainID, routerAddress string, isPositiveSlippageEnabled bool, data types.EncodingData) ([]byte, error)
+	encodeExecutorFunc = func(chainID valueobject.ChainID, routerAddress string, isPositiveSlippageEnabled bool, minimumPSThreshold int64, data types.EncodingData) ([]byte, error)
 	encodeRouterFunc   = func(executorAddress string, executorData []byte, data types.EncodingData) ([]byte, error)
 )
 
@@ -38,7 +38,7 @@ func (e *Encoder) Encode(data types.EncodingData) (string, error) {
 		encodeExecutor, encodeRouter = e.encodeExecutorSimpleMode, e.encodeRouterSimpleMode
 	}
 
-	executorData, err := encodeExecutor(e.config.ChainID, e.config.RouterAddress, e.config.IsPositiveSlippageEnabled, data)
+	executorData, err := encodeExecutor(e.config.ChainID, e.config.RouterAddress, e.config.IsPositiveSlippageEnabled, e.config.MinimumPSThreshold, data)
 	if err != nil {
 		return "", err
 	}

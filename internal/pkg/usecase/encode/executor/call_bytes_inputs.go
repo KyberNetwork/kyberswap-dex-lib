@@ -8,7 +8,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-func BuildAndPackCallBytesInputs(chainID valueobject.ChainID, routerAddress string, isPositiveSlippageEnabled bool, data types.EncodingData) ([]byte, error) {
+func BuildAndPackCallBytesInputs(chainID valueobject.ChainID, routerAddress string, isPositiveSlippageEnabled bool, minimumPSThreshold int64, data types.EncodingData) ([]byte, error) {
 	swapSequences, err := BuildSwapSequences(chainID, data.Route)
 	if err != nil {
 		return nil, err
@@ -18,6 +18,7 @@ func BuildAndPackCallBytesInputs(chainID valueobject.ChainID, routerAddress stri
 	if isPositiveSlippageEnabled {
 		positiveSlippageFeeData := PositiveSlippageFeeData{
 			ExpectedReturnAmount: data.TotalAmountOut,
+			MinimumPSAmount:      getMinPositiveSlippageAmount(data.TotalAmountOut, minimumPSThreshold),
 		}
 
 		destTokenFeeData, err = PackPositiveSlippageFeeData(positiveSlippageFeeData)
