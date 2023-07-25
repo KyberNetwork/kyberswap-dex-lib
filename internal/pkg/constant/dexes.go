@@ -48,6 +48,7 @@ type types struct {
 	SyncSwapClassic           string
 	SyncSwapStable            string
 	PancakeV3                 string
+	MaverickV1                string
 }
 
 var (
@@ -99,5 +100,6 @@ var (
 		SyncSwapClassic:           "syncswap-classic",
 		SyncSwapStable:            "syncswap-stable",
 		PancakeV3:                 "pancake-v3",
+		MaverickV1:                "maverick-v1",
 	}
 )

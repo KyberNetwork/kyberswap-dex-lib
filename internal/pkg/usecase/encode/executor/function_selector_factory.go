@@ -146,6 +146,9 @@ func init() {
 	// executeSyncSwap
 	RegisterFunctionSelector(valueobject.ExchangeSyncSwap, FunctionSelectorSyncSwap)
 
+	// executeMaverickV1
+	RegisterFunctionSelector(valueobject.ExchangeMaverickV1, FunctionSelectorMaverickV1)
+
 	// executeKyberLimitOrder
 	RegisterFunctionSelector(valueobject.ExchangeKyberSwapLimitOrder, FunctionSelectorLimitOrder)
 

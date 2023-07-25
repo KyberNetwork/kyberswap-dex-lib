@@ -334,6 +334,8 @@ func (d *Decoder) decodeSwapData(sw executor.Swap) (interface{}, error) {
 		return swapdata.UnpackKyberLimitOrder(sw.Data)
 	case executor.FunctionSelectorSyncSwap.ID:
 		return swapdata.UnpackSyncSwap(sw.Data)
+	case executor.FunctionSelectorMaverickV1.ID:
+		return swapdata.UnpackMaverickV1(sw.Data)
 	default:
 		return nil, fmt.Errorf("unsupported function selector")
 	}

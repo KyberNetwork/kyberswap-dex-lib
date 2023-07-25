@@ -180,3 +180,12 @@ type SyncSwap struct {
 	Pool          common.Address
 	CollectAmount *big.Int
 }
+
+type MaverickV1Swap struct {
+	Pool              common.Address
+	TokenIn           common.Address
+	TokenOut          common.Address
+	Recipient         common.Address
+	SwapAmount        *big.Int
+	SqrtPriceLimitD18 *big.Int
+}

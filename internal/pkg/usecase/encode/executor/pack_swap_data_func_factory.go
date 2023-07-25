@@ -144,4 +144,7 @@ func init() {
 	// SyncSwap
 	RegisterPackSwapDataFunc(valueobject.ExchangeSyncSwap, swapdata.PackSyncSwap)
 
+	// MaverickV1
+	RegisterPackSwapDataFunc(valueobject.ExchangeMaverickV1, swapdata.PackMaverickV1)
+
 }

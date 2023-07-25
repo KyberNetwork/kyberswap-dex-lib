@@ -102,6 +102,8 @@ var (
 
 	ExchangeSyncSwap Exchange = "syncswap"
 
+	ExchangeMaverickV1 Exchange = "maverick-v1"
+
 	ExchangeKyberSwapLimitOrder Exchange = "kyberswap-limit-order"
 )
 
@@ -191,6 +193,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangePlatypus:                 {},
 	ExchangeSyncSwap:                 {},
 	ExchangeKyberSwapLimitOrder:      {},
+	ExchangeMaverickV1:               {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

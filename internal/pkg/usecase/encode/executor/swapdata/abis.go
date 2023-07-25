@@ -25,6 +25,9 @@ var (
 	SyncSwapABIArguments     abi.Arguments
 	SyncSwapDataABIArguments abi.Arguments
 
+	// MaverickV1
+	MaverickABIArguments abi.Arguments
+
 	FillBatchOrdersParamsABIType abi.Type
 )
 
@@ -195,5 +198,14 @@ func init() {
 		{Name: "tokenIn", Type: abitypes.Address},
 		{Name: "recipient", Type: abitypes.Address},
 		{Name: "withdrawMode", Type: abitypes.Uint8},
+	}
+
+	MaverickABIArguments = abi.Arguments{
+		{Name: "pool", Type: abitypes.Address},
+		{Name: "tokenIn", Type: abitypes.Address},
+		{Name: "tokenOut", Type: abitypes.Address},
+		{Name: "recipient", Type: abitypes.Address},
+		{Name: "swapAmount", Type: abitypes.Uint256},
+		{Name: "sqrtPriceLimitD18", Type: abitypes.Uint256},
 	}
 }

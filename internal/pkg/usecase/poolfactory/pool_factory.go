@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 
+	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/core/maverickv1"
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
-	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/balancercomposablestable"
@@ -246,6 +248,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
 		return f.newSyncswapStable(entityPool)
 	case constant.PoolTypes.PancakeV3:
 		return f.newPancakeV3(entityPool)
+	case constant.PoolTypes.MaverickV1:
+		return f.newMaverickV1(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -711,6 +715,19 @@ func (f *PoolFactory) newPancakeV3(entityPool entity.Pool) (*pancakev3.Pool, err
 			entityPool.Address,
 			entityPool.Type,
 		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newMaverickV1(entityPool entity.Pool) (*maverickv1.Pool, error) {
+	corePool, err := maverickv1.NewPool(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newMaverickV1] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type)
 	}
 
 	return corePool, nil
