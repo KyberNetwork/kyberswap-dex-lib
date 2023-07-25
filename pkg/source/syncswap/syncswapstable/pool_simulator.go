@@ -3,16 +3,16 @@ package syncswapstable
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type Pool struct {
+type PoolSimulator struct {
 	pool.Pool
 	vaultAddress              string
 	swapFees                  []*big.Int
@@ -20,7 +20,7 @@ type Pool struct {
 	gas                       syncswap.Gas
 }
 
-func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra syncswap.ExtraStablePool
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -52,7 +52,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 		Reserves: reserves,
 	}
 
-	return &Pool{
+	return &PoolSimulator{
 		Pool:                      pool.Pool{Info: info},
 		vaultAddress:              vaultAddress,
 		swapFees:                  swapFees,
@@ -61,7 +61,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	}, nil
 }
 
-func (p *Pool) CalcAmountOut(
+func (p *PoolSimulator) CalcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.CalcAmountOutResult, error) {
@@ -106,7 +106,7 @@ func (p *Pool) CalcAmountOut(
 	}, nil
 }
 
-func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	var input, output = params.TokenAmountIn, params.TokenAmountOut
 	var tokenInIndex = p.GetTokenIndex(input.Token)
 	var tokenOutIndex = p.GetTokenIndex(output.Token)
@@ -118,7 +118,7 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.Info.Reserves[tokenOutIndex] = new(big.Int).Sub(p.Info.Reserves[tokenOutIndex], outputAmount)
 }
 
-func (p *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return syncswap.Meta{
 		VaultAddress: p.vaultAddress,
 	}
