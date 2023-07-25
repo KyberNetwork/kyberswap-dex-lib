@@ -1059,3 +1059,63 @@ func abs(x *big.Int) *big.Int {
 	}
 	return x
 }
+
+func sDivDownFixed(a, b *big.Int) (*big.Int, error) {
+	return divDownFixed(a, b)
+}
+
+func sMulUpFixed(a, b *big.Int) (*big.Int, error) {
+	product := new(big.Int).Mul(a, b)
+	if a.Cmp(zeroBI) == 0 || new(big.Int).Div(product, a).Cmp(b) == 0 {
+		if product.Cmp(zeroBI) == 0 {
+			return big.NewInt(0), nil
+		} else {
+			return new(big.Int).Add(
+				new(big.Int).Div(new(big.Int).Sub(product, bignumber.One), One),
+				bignumber.One,
+			), nil
+		}
+	}
+
+	return nil, ErrMulOverflow
+}
+
+func scaleFromAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
+	if decimals == 18 {
+		return amount, nil
+	}
+	var scalingFactor *big.Int
+	if decimals > 18 {
+		scalingFactor = new(big.Int).Mul(
+			bignumber.TenPowInt(18),
+			bignumber.TenPowInt(decimals-18),
+		)
+		return sDivDownFixed(amount, scalingFactor)
+	} else {
+		scalingFactor = new(big.Int).Mul(
+			bignumber.TenPowInt(18),
+			bignumber.TenPowInt(18-decimals),
+		)
+		return sMulUpFixed(amount, scalingFactor)
+	}
+}
+
+func scaleToAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
+	if decimals == 18 {
+		return amount, nil
+	}
+	var scalingFactor *big.Int
+	if decimals > 18 {
+		scalingFactor = new(big.Int).Mul(
+			bignumber.TenPowInt(18),
+			bignumber.TenPowInt(decimals-18),
+		)
+		return sMulUpFixed(amount, scalingFactor)
+	} else {
+		scalingFactor = new(big.Int).Mul(
+			bignumber.TenPowInt(18),
+			bignumber.TenPowInt(18-decimals),
+		)
+		return sDivDownFixed(amount, scalingFactor)
+	}
+}
