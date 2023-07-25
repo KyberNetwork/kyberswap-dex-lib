@@ -1,4 +1,4 @@
-package balancer
+package balancercomposablestable
 
 import (
 	"context"
@@ -41,9 +41,7 @@ func NewPoolsListUpdater(
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	// Add more types of pool here
 	supportedPoolTypes := []PoolType{
-		subgraphPoolTypeWeighted,
-		subgraphPoolTypeStable,
-		subgraphPoolTypeMetaStable,
+		subgraphPoolTypeComposableStable,
 	}
 
 	var metadata Metadata
@@ -140,17 +138,17 @@ func (d *PoolsListUpdater) getNewPoolsByType(ctx context.Context, poolType PoolT
 		}
 
 		for _, item := range p.Tokens {
-			//weight, _ := strconv.ParseFloat(item.Weight, 64)
+			weight, _ := strconv.ParseFloat(item.Weight, 64)
 			poolToken := entity.PoolToken{
-				Address: item.Address,
-				//Weight:    uint(weight * 1e18),
+				Address:   item.Address,
+				Weight:    uint(weight * 1e18),
 				Swappable: true,
 			}
 
 			staticField.TokenDecimals = append(staticField.TokenDecimals, item.Decimals)
-			//if poolToken.Weight == 0 {
-			//	poolToken.Weight = uint(1e18 / len(p.Tokens))
-			//}
+			if poolToken.Weight == 0 {
+				poolToken.Weight = uint(1e18 / len(p.Tokens))
+			}
 
 			tokens = append(tokens, &poolToken)
 			reserves = append(reserves, zeroString)
