@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,7 +14,7 @@ func TestValidator_CheckAtomicVolume(t *testing.T) {
 		sourceSusdValue         *big.Int
 		blockTimestamp          uint64
 		atomicMaxVolumePerBlock *big.Int
-		lastAtomicVolume        *ExchangeVolumeAtPeriod
+		lastAtomicVolume        *synthetix.ExchangeVolumeAtPeriod
 		expectedErr             error
 	}{
 		{
@@ -22,25 +23,25 @@ func TestValidator_CheckAtomicVolume(t *testing.T) {
 			blockTimestamp:          100,
 			atomicMaxVolumePerBlock: big.NewInt(1000000),
 			lastAtomicVolume:        nil,
-			expectedErr:             ErrInvalidLastAtomicVolume,
+			expectedErr:             synthetix.ErrInvalidLastAtomicVolume,
 		},
 		{
 			name:                    "it should return error when volume limit is surpassed",
 			sourceSusdValue:         big.NewInt(1100000),
 			blockTimestamp:          100,
 			atomicMaxVolumePerBlock: big.NewInt(1000000),
-			lastAtomicVolume: &ExchangeVolumeAtPeriod{
+			lastAtomicVolume: &synthetix.ExchangeVolumeAtPeriod{
 				Time:   200,
 				Volume: big.NewInt(200000),
 			},
-			expectedErr: ErrSurpassedVolumeLimit,
+			expectedErr: synthetix.ErrSurpassedVolumeLimit,
 		},
 		{
 			name:                    "it should return nil when volume per block is within limit and current block timestamp is equal lastAtomicVolume time",
 			sourceSusdValue:         big.NewInt(100000),
 			blockTimestamp:          100,
 			atomicMaxVolumePerBlock: big.NewInt(1000000),
-			lastAtomicVolume: &ExchangeVolumeAtPeriod{
+			lastAtomicVolume: &synthetix.ExchangeVolumeAtPeriod{
 				Time:   100,
 				Volume: big.NewInt(200000),
 			},
@@ -51,7 +52,7 @@ func TestValidator_CheckAtomicVolume(t *testing.T) {
 			sourceSusdValue:         big.NewInt(100000),
 			blockTimestamp:          100,
 			atomicMaxVolumePerBlock: big.NewInt(1000000),
-			lastAtomicVolume: &ExchangeVolumeAtPeriod{
+			lastAtomicVolume: &synthetix.ExchangeVolumeAtPeriod{
 				Time:   200,
 				Volume: big.NewInt(200000),
 			},

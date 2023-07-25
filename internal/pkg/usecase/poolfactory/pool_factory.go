@@ -4,46 +4,45 @@ import (
 	"context"
 	"encoding/json"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-
-	"github.com/KyberNetwork/router-service/internal/pkg/core/maverickv1"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
+	balancerstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/stable"
+	balancerweighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/weighted"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
+	curveAave "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/aave"
+	curveBase "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/base"
+	curveCompound "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/compound"
+	curveMeta "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/meta"
+	curvePlainOracle "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/plain-oracle"
+	curveTricrypto "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/tricrypto"
+	curveTwo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/two"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dmm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dodo"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido"
+	lidosteth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido-steth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/madmex"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/makerpsm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/metavault"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pancakev3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap/syncswapclassic"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap/syncswapstable"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/balancercomposablestable"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/balancerstable"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/balancerweighted"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/camelot"
-	curveAave "github.com/KyberNetwork/router-service/internal/pkg/core/curve-aave"
-	curveBase "github.com/KyberNetwork/router-service/internal/pkg/core/curve-base"
-	curveCompound "github.com/KyberNetwork/router-service/internal/pkg/core/curve-compound"
-	curveMeta "github.com/KyberNetwork/router-service/internal/pkg/core/curve-meta"
-	curvePlainOracle "github.com/KyberNetwork/router-service/internal/pkg/core/curve-plain-oracle"
-	curveTricrypto "github.com/KyberNetwork/router-service/internal/pkg/core/curve-tricrypto"
-	curveTwo "github.com/KyberNetwork/router-service/internal/pkg/core/curve-two"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/dmm"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/dodo"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/elastic"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/fraxswap"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/gmx"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/lido"
-	lido_steth "github.com/KyberNetwork/router-service/internal/pkg/core/lido-steth"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/limitorder"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/madmex"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/makerpsm"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/metavault"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/pancakev3"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/platypus"
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/saddle"
-	syncswapclassic "github.com/KyberNetwork/router-service/internal/pkg/core/syncswap-classic"
-	syncswapstable "github.com/KyberNetwork/router-service/internal/pkg/core/syncswap-stable"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/synthetix"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/uni"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/univ3"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/velodrome"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -64,21 +63,21 @@ func NewPoolFactory(config Config) *PoolFactory {
 	}
 }
 
-func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool) []poolPkg.IPool {
+func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool) []poolpkg.IPoolSimulator {
 	span, _ := tracer.StartSpanFromContext(ctx, "poolFactory.NewPoolByAddress")
 	defer span.Finish()
 
 	curveBasePoolByAddress, curveBasePoolAddressSet := f.getCurveMetaBasePoolByAddress(pools)
 
-	iPools := make([]poolPkg.IPool, 0, len(pools))
+	iPoolSimulators := make([]poolpkg.IPoolSimulator, 0, len(pools))
 	for _, pool := range pools {
 		if curveBasePoolAddressSet.Has(pool.Address) {
-			iPool, ok := curveBasePoolByAddress[pool.Address]
+			iPoolSimulator, ok := curveBasePoolByAddress[pool.Address]
 			if !ok {
 				continue // NOTE: already warned before
 			}
 
-			iPools = append(iPools, iPool.(poolPkg.IPool)) // iPool here is ICurveBasePool and surely is a poolPkg.IPool
+			iPoolSimulators = append(iPoolSimulators, iPoolSimulator.(poolpkg.IPoolSimulator)) // iPoolSimulator here is ICurveBasePool and surely is a poolpkg.IPoolSimulator
 		} else if pool.Type == constant.PoolTypes.CurveMeta {
 			iPool, err := f.newCurveMeta(*pool, curveBasePoolByAddress)
 			if err != nil {
@@ -86,7 +85,7 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool) []pool
 				continue
 			}
 
-			iPools = append(iPools, iPool)
+			iPoolSimulators = append(iPoolSimulators, iPool)
 		} else {
 			iPool, err := f.newPool(*pool)
 			if err != nil {
@@ -94,36 +93,36 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool) []pool
 				continue
 			}
 
-			iPools = append(iPools, iPool)
+			iPoolSimulators = append(iPoolSimulators, iPool)
 		}
 	}
 
-	return iPools
+	return iPoolSimulators
 }
 
-func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool) map[string]poolPkg.IPool {
+func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool) map[string]poolpkg.IPoolSimulator {
 	span, _ := tracer.StartSpanFromContext(ctx, "poolFactory.NewPoolByAddress")
 	defer span.Finish()
 
 	curveBasePoolByAddress, curveBasePoolAddressSet := f.getCurveMetaBasePoolByAddress(pools)
 
-	poolByAddress := make(map[string]poolPkg.IPool, len(pools))
+	poolByAddress := make(map[string]poolpkg.IPoolSimulator, len(pools))
 	for _, pool := range pools {
 		if curveBasePoolAddressSet.Has(pool.Address) {
-			iPool, ok := curveBasePoolByAddress[pool.Address]
+			IPoolSimulator, ok := curveBasePoolByAddress[pool.Address]
 			if !ok {
 				continue // NOTE: already warned before
 			}
 
-			poolByAddress[iPool.GetInfo().Address] = iPool.(poolPkg.IPool) // iPool here is ICurveBasePool and surely is a poolPkg.IPool
+			poolByAddress[IPoolSimulator.GetInfo().Address] = IPoolSimulator.(poolpkg.IPoolSimulator) // IPoolSimulator here is ICurveBasePool and surely is a poolpkg.IPoolSimulator
 		} else if pool.Type == constant.PoolTypes.CurveMeta {
-			iPool, err := f.newCurveMeta(*pool, curveBasePoolByAddress)
+			IPoolSimulator, err := f.newCurveMeta(*pool, curveBasePoolByAddress)
 			if err != nil {
 				logger.Debugf(err.Error())
 				continue
 			}
 
-			poolByAddress[iPool.GetAddress()] = iPool
+			poolByAddress[IPoolSimulator.GetAddress()] = IPoolSimulator
 		} else {
 			iPool, err := f.newPool(*pool)
 			if err != nil {
@@ -186,7 +185,7 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 
 // newPool receives entity.Pool, based on its type to return matched factory method
 // if there is no matched factory method, it returns ErrPoolTypeFactoryNotFound
-func (f *PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
+func (f *PoolFactory) newPool(entityPool entity.Pool) (poolpkg.IPoolSimulator, error) {
 	switch entityPool.Type {
 	case constant.PoolTypes.Uni, constant.PoolTypes.Firebird,
 		constant.PoolTypes.Biswap, constant.PoolTypes.Polydex:
@@ -212,7 +211,7 @@ func (f *PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
 		return f.newBalancerWeighted(entityPool)
 	case constant.PoolTypes.BalancerStable, constant.PoolTypes.BalancerMetaStable:
 		return f.newBalancerStable(entityPool)
-	case constant.PoolTypes.BalancerComposeableStable:
+	case constant.PoolTypes.BalancerComposableStable:
 		return f.newBalancerComposableStable(entityPool)
 	case constant.PoolTypes.DodoClassical, constant.PoolTypes.DodoStable,
 		constant.PoolTypes.DodoVendingMachine, constant.PoolTypes.DodoPrivate:
@@ -253,7 +252,7 @@ func (f *PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
-			"[PoolFactory.newPool] pool: [%s] » type: [%s]",
+			"[PoolFactory.NewPoolSimulator] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
@@ -261,8 +260,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool) (poolPkg.IPool, error) {
 
 }
 
-func (f *PoolFactory) newUni(entityPool entity.Pool) (*uni.Pool, error) {
-	corePool, err := uni.NewPool(entityPool)
+func (f *PoolFactory) newUni(entityPool entity.Pool) (*uniswap.PoolSimulator, error) {
+	corePool, err := uniswap.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -275,8 +274,8 @@ func (f *PoolFactory) newUni(entityPool entity.Pool) (*uni.Pool, error) {
 	return corePool, nil
 }
 
-func (f *PoolFactory) newUniV3(entityPool entity.Pool) (*univ3.Pool, error) {
-	corePool, err := univ3.NewPool(entityPool, f.config.ChainID)
+func (f *PoolFactory) newUniV3(entityPool entity.Pool) (*uniswapv3.PoolSimulator, error) {
+	corePool, err := uniswapv3.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -289,8 +288,8 @@ func (f *PoolFactory) newUniV3(entityPool entity.Pool) (*univ3.Pool, error) {
 	return corePool, nil
 }
 
-func (f *PoolFactory) newSaddle(entityPool entity.Pool) (*saddle.Pool, error) {
-	corePool, err := saddle.NewPool(entityPool)
+func (f *PoolFactory) newSaddle(entityPool entity.Pool) (*saddle.PoolSimulator, error) {
+	corePool, err := saddle.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -303,8 +302,8 @@ func (f *PoolFactory) newSaddle(entityPool entity.Pool) (*saddle.Pool, error) {
 	return corePool, nil
 }
 
-func (f *PoolFactory) newDMM(entityPool entity.Pool) (*dmm.Pool, error) {
-	corePool, err := dmm.NewPool(entityPool)
+func (f *PoolFactory) newDMM(entityPool entity.Pool) (*dmm.PoolSimulator, error) {
+	corePool, err := dmm.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -317,8 +316,8 @@ func (f *PoolFactory) newDMM(entityPool entity.Pool) (*dmm.Pool, error) {
 	return corePool, nil
 }
 
-func (f *PoolFactory) newElastic(entityPool entity.Pool) (*elastic.Pool, error) {
-	corePool, err := elastic.NewPool(entityPool, f.config.ChainID)
+func (f *PoolFactory) newElastic(entityPool entity.Pool) (*elastic.PoolSimulator, error) {
+	corePool, err := elastic.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -331,8 +330,8 @@ func (f *PoolFactory) newElastic(entityPool entity.Pool) (*elastic.Pool, error) 
 	return corePool, nil
 }
 
-func (f *PoolFactory) newCurveBase(entityPool entity.Pool) (*curveBase.Pool, error) {
-	corePool, err := curveBase.NewPool(entityPool)
+func (f *PoolFactory) newCurveBase(entityPool entity.Pool) (*curveBase.PoolBaseSimulator, error) {
+	corePool, err := curveBase.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -346,7 +345,7 @@ func (f *PoolFactory) newCurveBase(entityPool entity.Pool) (*curveBase.Pool, err
 }
 
 func (f *PoolFactory) newCurvePlainOracle(entityPool entity.Pool) (*curvePlainOracle.Pool, error) {
-	corePool, err := curvePlainOracle.NewPool(entityPool)
+	corePool, err := curvePlainOracle.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -385,7 +384,7 @@ func (f *PoolFactory) newCurveMeta(
 		)
 	}
 
-	curveMetaPool, err := curveMeta.NewPool(entityPool, basePool)
+	curveMetaPool, err := curveMeta.NewPoolSimulator(entityPool, basePool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -399,7 +398,7 @@ func (f *PoolFactory) newCurveMeta(
 }
 
 func (f *PoolFactory) newCurveAAVE(entityPool entity.Pool) (*curveAave.AavePool, error) {
-	corePool, err := curveAave.NewPool(entityPool)
+	corePool, err := curveAave.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -413,7 +412,7 @@ func (f *PoolFactory) newCurveAAVE(entityPool entity.Pool) (*curveAave.AavePool,
 }
 
 func (f *PoolFactory) newCurveCompound(entityPool entity.Pool) (*curveCompound.CompoundPool, error) {
-	corePool, err := curveCompound.NewPool(entityPool)
+	corePool, err := curveCompound.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -427,7 +426,7 @@ func (f *PoolFactory) newCurveCompound(entityPool entity.Pool) (*curveCompound.C
 }
 
 func (f *PoolFactory) newCurveTricrypto(entityPool entity.Pool) (*curveTricrypto.Pool, error) {
-	corePool, err := curveTricrypto.NewPool(entityPool)
+	corePool, err := curveTricrypto.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -441,7 +440,7 @@ func (f *PoolFactory) newCurveTricrypto(entityPool entity.Pool) (*curveTricrypto
 }
 
 func (f *PoolFactory) newCurveTwo(entityPool entity.Pool) (*curveTwo.Pool, error) {
-	corePool, err := curveTwo.NewPool(entityPool)
+	corePool, err := curveTwo.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -455,7 +454,7 @@ func (f *PoolFactory) newCurveTwo(entityPool entity.Pool) (*curveTwo.Pool, error
 }
 
 func (f *PoolFactory) newBalancerWeighted(entityPool entity.Pool) (*balancerweighted.WeightedPool2Tokens, error) {
-	corePool, err := balancerweighted.NewPool(entityPool)
+	corePool, err := balancerweighted.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -469,7 +468,7 @@ func (f *PoolFactory) newBalancerWeighted(entityPool entity.Pool) (*balancerweig
 }
 
 func (f *PoolFactory) newBalancerStable(entityPool entity.Pool) (*balancerstable.StablePool, error) {
-	corePool, err := balancerstable.NewPool(entityPool)
+	corePool, err := balancerstable.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -482,7 +481,7 @@ func (f *PoolFactory) newBalancerStable(entityPool entity.Pool) (*balancerstable
 	return corePool, nil
 }
 
-func (f *PoolFactory) newBalancerComposableStable(entityPool entity.Pool) (*balancercomposablestable.Pool, error) {
+func (f *PoolFactory) newBalancerComposableStable(entityPool entity.Pool) (*balancercomposablestable.PoolSimulator, error) {
 	corePool, err := balancercomposablestable.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
@@ -496,8 +495,8 @@ func (f *PoolFactory) newBalancerComposableStable(entityPool entity.Pool) (*bala
 	return corePool, nil
 }
 
-func (f *PoolFactory) newDoDo(entityPool entity.Pool) (*dodo.Pool, error) {
-	corePool, err := dodo.NewPool(entityPool)
+func (f *PoolFactory) newDoDo(entityPool entity.Pool) (*dodo.PoolSimulator, error) {
+	corePool, err := dodo.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -510,8 +509,8 @@ func (f *PoolFactory) newDoDo(entityPool entity.Pool) (*dodo.Pool, error) {
 	return corePool, nil
 }
 
-func (f *PoolFactory) newVelodrome(entityPool entity.Pool) (*velodrome.Pool, error) {
-	corePool, err := velodrome.NewPool(entityPool)
+func (f *PoolFactory) newVelodrome(entityPool entity.Pool) (*velodrome.PoolSimulator, error) {
+	corePool, err := velodrome.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -524,8 +523,8 @@ func (f *PoolFactory) newVelodrome(entityPool entity.Pool) (*velodrome.Pool, err
 	return corePool, nil
 }
 
-func (f *PoolFactory) newPlatypus(entityPool entity.Pool) (*platypus.Pool, error) {
-	corePool, err := platypus.NewPool(entityPool, f.config.ChainID)
+func (f *PoolFactory) newPlatypus(entityPool entity.Pool) (*platypus.PoolSimulator, error) {
+	corePool, err := platypus.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -538,8 +537,8 @@ func (f *PoolFactory) newPlatypus(entityPool entity.Pool) (*platypus.Pool, error
 	return corePool, nil
 }
 
-func (f *PoolFactory) newGMX(entityPool entity.Pool) (*gmx.Pool, error) {
-	corePool, err := gmx.NewPool(entityPool)
+func (f *PoolFactory) newGMX(entityPool entity.Pool) (*gmx.PoolSimulator, error) {
+	corePool, err := gmx.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -552,8 +551,8 @@ func (f *PoolFactory) newGMX(entityPool entity.Pool) (*gmx.Pool, error) {
 	return corePool, nil
 }
 
-func (f *PoolFactory) newMadMex(entityPool entity.Pool) (*madmex.Pool, error) {
-	corePool, err := madmex.NewPool(entityPool)
+func (f *PoolFactory) newMadMex(entityPool entity.Pool) (*madmex.PoolSimulator, error) {
+	corePool, err := madmex.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -566,8 +565,8 @@ func (f *PoolFactory) newMadMex(entityPool entity.Pool) (*madmex.Pool, error) {
 	return corePool, nil
 }
 
-func (f *PoolFactory) newMetavault(entityPool entity.Pool) (*metavault.Pool, error) {
-	corePool, err := metavault.NewPool(entityPool)
+func (f *PoolFactory) newMetavault(entityPool entity.Pool) (*metavault.PoolSimulator, error) {
+	corePool, err := metavault.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -580,8 +579,8 @@ func (f *PoolFactory) newMetavault(entityPool entity.Pool) (*metavault.Pool, err
 	return corePool, nil
 }
 
-func (f *PoolFactory) newMakerPSm(entityPool entity.Pool) (*makerpsm.Pool, error) {
-	corePool, err := makerpsm.NewPool(entityPool)
+func (f *PoolFactory) newMakerPSm(entityPool entity.Pool) (*makerpsm.PoolSimulator, error) {
+	corePool, err := makerpsm.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -594,8 +593,8 @@ func (f *PoolFactory) newMakerPSm(entityPool entity.Pool) (*makerpsm.Pool, error
 	return corePool, nil
 }
 
-func (f *PoolFactory) newSynthetix(entityPool entity.Pool) (*synthetix.Pool, error) {
-	corePool, err := synthetix.NewPool(entityPool, f.config.ChainID)
+func (f *PoolFactory) newSynthetix(entityPool entity.Pool) (*synthetix.PoolSimulator, error) {
+	corePool, err := synthetix.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -608,8 +607,8 @@ func (f *PoolFactory) newSynthetix(entityPool entity.Pool) (*synthetix.Pool, err
 	return corePool, nil
 }
 
-func (f *PoolFactory) newLido(entityPool entity.Pool) (*lido.Pool, error) {
-	corePool, err := lido.NewPool(entityPool)
+func (f *PoolFactory) newLido(entityPool entity.Pool) (*lido.PoolSimulator, error) {
+	corePool, err := lido.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -622,8 +621,8 @@ func (f *PoolFactory) newLido(entityPool entity.Pool) (*lido.Pool, error) {
 	return corePool, nil
 }
 
-func (f *PoolFactory) newLidoStEth(entityPool entity.Pool) (*lido_steth.PoolSimulator, error) {
-	corePool, err := lido_steth.NewPoolSimulator(entityPool, f.config.ChainID)
+func (f *PoolFactory) newLidoStEth(entityPool entity.Pool) (*lidosteth.PoolSimulator, error) {
+	corePool, err := lidosteth.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -636,8 +635,8 @@ func (f *PoolFactory) newLidoStEth(entityPool entity.Pool) (*lido_steth.PoolSimu
 	return corePool, nil
 }
 
-func (f *PoolFactory) newFraxswap(entityPool entity.Pool) (*fraxswap.Pool, error) {
-	corePool, err := fraxswap.NewPool(entityPool)
+func (f *PoolFactory) newFraxswap(entityPool entity.Pool) (*fraxswap.PoolSimulator, error) {
+	corePool, err := fraxswap.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -649,8 +648,8 @@ func (f *PoolFactory) newFraxswap(entityPool entity.Pool) (*fraxswap.Pool, error
 	return corePool, nil
 
 }
-func (f *PoolFactory) newLimitOrder(entityPool entity.Pool) (*limitorder.Pool, error) {
-	corePool, err := limitorder.NewPool(entityPool)
+func (f *PoolFactory) newLimitOrder(entityPool entity.Pool) (*limitorder.PoolSimulator, error) {
+	corePool, err := limitorder.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -664,8 +663,8 @@ func (f *PoolFactory) newLimitOrder(entityPool entity.Pool) (*limitorder.Pool, e
 	return corePool, nil
 }
 
-func (f *PoolFactory) newCamelot(entityPool entity.Pool) (*camelot.Pool, error) {
-	corePool, err := camelot.NewPool(entityPool)
+func (f *PoolFactory) newCamelot(entityPool entity.Pool) (*camelot.PoolSimulator, error) {
+	corePool, err := camelot.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -678,8 +677,8 @@ func (f *PoolFactory) newCamelot(entityPool entity.Pool) (*camelot.Pool, error) 
 	return corePool, nil
 }
 
-func (f *PoolFactory) newSyncswapClassic(entityPool entity.Pool) (*syncswapclassic.Pool, error) {
-	corePool, err := syncswapclassic.NewPool(entityPool)
+func (f *PoolFactory) newSyncswapClassic(entityPool entity.Pool) (*syncswapclassic.PoolSimulator, error) {
+	corePool, err := syncswapclassic.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -692,8 +691,8 @@ func (f *PoolFactory) newSyncswapClassic(entityPool entity.Pool) (*syncswapclass
 	return corePool, nil
 }
 
-func (f *PoolFactory) newSyncswapStable(entityPool entity.Pool) (*syncswapstable.Pool, error) {
-	corePool, err := syncswapstable.NewPool(entityPool)
+func (f *PoolFactory) newSyncswapStable(entityPool entity.Pool) (*syncswapstable.PoolSimulator, error) {
+	corePool, err := syncswapstable.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -706,8 +705,8 @@ func (f *PoolFactory) newSyncswapStable(entityPool entity.Pool) (*syncswapstable
 	return corePool, nil
 }
 
-func (f *PoolFactory) newPancakeV3(entityPool entity.Pool) (*pancakev3.Pool, error) {
-	corePool, err := pancakev3.NewPool(entityPool, f.config.ChainID)
+func (f *PoolFactory) newPancakeV3(entityPool entity.Pool) (*pancakev3.PoolSimulator, error) {
+	corePool, err := pancakev3.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -721,7 +720,7 @@ func (f *PoolFactory) newPancakeV3(entityPool entity.Pool) (*pancakev3.Pool, err
 }
 
 func (f *PoolFactory) newMaverickV1(entityPool entity.Pool) (*maverickv1.Pool, error) {
-	corePool, err := maverickv1.NewPool(entityPool)
+	corePool, err := maverickv1.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,

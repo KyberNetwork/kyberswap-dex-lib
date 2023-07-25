@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"math/big"
 
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -15,18 +16,18 @@ import (
 func BestPathAmongAddedPaths(
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenAmountIn poolPkg.TokenAmount,
+	tokenAmountIn poolpkg.TokenAmount,
 	addedPaths []*valueobject.Path,
 ) (*valueobject.Path, error) {
 	var (
 		bestPath      *valueobject.Path = nil
-		bestAmountOut                   = poolPkg.TokenAmount{
+		bestAmountOut                   = poolpkg.TokenAmount{
 			Token:     input.TokenOutAddress,
 			Amount:    constant.Zero,
 			AmountUsd: 0,
 		}
 
-		amountOut poolPkg.TokenAmount
+		amountOut poolpkg.TokenAmount
 		err       error
 	)
 

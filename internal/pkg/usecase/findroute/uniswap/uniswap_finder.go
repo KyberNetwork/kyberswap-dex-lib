@@ -3,9 +3,9 @@ package uniswap
 import (
 	"context"
 
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -101,7 +101,7 @@ func (f *uniswapFinder) Find(
 
 	// Step 3: Find multiple best paths from tokenIn to tokenOut
 	// it is fine if prices[token] is not set because it would default to zero
-	tokenAmountIn := poolPkg.TokenAmount{
+	tokenAmountIn := poolpkg.TokenAmount{
 		Token:     input.TokenInAddress,
 		Amount:    input.AmountIn,
 		AmountUsd: utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, data.PriceUSDByAddress[input.TokenInAddress]),

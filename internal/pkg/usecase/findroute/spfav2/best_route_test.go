@@ -4,10 +4,11 @@ import (
 	"math/big"
 	"testing"
 
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 )
 
 func Test_BestRoute(t *testing.T) {
@@ -49,7 +50,7 @@ func Test_BestRoute(t *testing.T) {
 		},
 	}
 
-	totalAmountIn := poolPkg.TokenAmount{
+	totalAmountIn := poolpkg.TokenAmount{
 		Token:     "0x69b2cd28b205b47c8ba427e111dd486f9c461b57",
 		Amount:    big.NewInt(19),
 		AmountUsd: 1228.1879063322242,

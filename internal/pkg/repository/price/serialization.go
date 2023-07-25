@@ -3,7 +3,7 @@ package price
 import (
 	"encoding/json"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 func encodePrice(price entity.Price) (string, error) {

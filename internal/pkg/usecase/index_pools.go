@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"sync"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/iter"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )

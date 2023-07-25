@@ -7,7 +7,8 @@ import (
 	"github.com/alicebob/miniredis"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )

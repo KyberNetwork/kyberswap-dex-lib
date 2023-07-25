@@ -6,7 +6,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )

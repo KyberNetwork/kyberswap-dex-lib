@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 func TestSerialization_EncodePool(t *testing.T) {

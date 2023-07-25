@@ -1,7 +1,8 @@
 package common
 
 import (
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 

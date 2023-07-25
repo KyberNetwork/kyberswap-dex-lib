@@ -5,9 +5,9 @@ import (
 	"math/rand"
 	"strconv"
 
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/uni"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 )
 
 func GenerateRandomTokenByAddress(nTokens int) map[string]entity.Token {
@@ -35,15 +35,15 @@ func GenerateRandomPriceUSDByAddress(tokenAddressList []string) map[string]float
 	return prices
 }
 
-func GenerateRandomPoolByAddress(nPools int, tokenAddressList []string) (map[string]poolPkg.IPool, error) {
+func GenerateRandomPoolByAddress(nPools int, tokenAddressList []string) (map[string]poolpkg.IPoolSimulator, error) {
 	if nPools < len(tokenAddressList)-1 {
 		return nil, fmt.Errorf("not enough poolByAddress to make a connected graph")
 	}
 	var (
 		nTokens                                   = len(tokenAddressList)
-		poolByAddress                             = make(map[string]poolPkg.IPool)
+		poolByAddress                             = make(map[string]poolpkg.IPoolSimulator)
 		data                                      entity.Pool
-		swap                                      poolPkg.IPool
+		swap                                      poolpkg.IPoolSimulator
 		swapAddress, tokenAddress0, tokenAddress1 string
 		swapFee                                   float64
 		err                                       error
@@ -74,7 +74,7 @@ func GenerateRandomPoolByAddress(nPools int, tokenAddressList []string) (map[str
 			},
 		}
 		// using uni pool for simplicity
-		if swap, err = uni.NewPool(data); err != nil {
+		if swap, err = uniswap.NewPoolSimulator(data); err != nil {
 			return nil, err
 		}
 		poolByAddress[swapAddress] = swap

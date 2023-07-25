@@ -6,11 +6,11 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	cachePolicy "github.com/hashicorp/golang-lru/v2"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
@@ -32,11 +32,11 @@ type PointerSwapPoolManager struct {
 }
 
 type LockedState struct {
-	poolByAddress map[string]poolPkg.IPool
+	poolByAddress map[string]poolpkg.IPoolSimulator
 	lock          *sync.RWMutex
 }
 
-func (s *LockedState) update(poolByAddress map[string]poolPkg.IPool) {
+func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
 	s.lock.Lock()
 	s.poolByAddress = poolByAddress
 	s.lock.Unlock()
@@ -52,7 +52,7 @@ func NewPointerSwapPoolManager(
 	states := [2]*LockedState{}
 	for i := 0; i < 2; i++ {
 		states[i] = &LockedState{
-			poolByAddress: make(map[string]poolPkg.IPool),
+			poolByAddress: make(map[string]poolpkg.IPoolSimulator),
 			lock:          &sync.RWMutex{},
 		}
 	}
@@ -98,7 +98,7 @@ func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
 
 // GetPoolByAddress return a reference to pools maintained by `PointerSwapPoolManager`
 // Therefore, do not modify IPool returned here, clone IPool before UpdateBalance
-func (p *PointerSwapPoolManager) GetPoolByAddress(ctx context.Context, poolAddresses, dex []string) (map[string]poolPkg.IPool, error) {
+func (p *PointerSwapPoolManager) GetPoolByAddress(ctx context.Context, poolAddresses, dex []string) (map[string]poolpkg.IPoolSimulator, error) {
 	filteredPoolAddress := p.filterBlacklistedAddresses(poolAddresses)
 
 	// update cache policy
@@ -110,9 +110,9 @@ func (p *PointerSwapPoolManager) GetPoolByAddress(ctx context.Context, poolAddre
 	return p.getPools(ctx, filteredPoolAddress, dex, readFrom), nil
 }
 
-func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, readFrom int32) map[string]poolPkg.IPool {
+func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, readFrom int32) map[string]poolpkg.IPoolSimulator {
 	var (
-		resultPoolByAddress = make(map[string]poolPkg.IPool, len(poolAddresses))
+		resultPoolByAddress = make(map[string]poolpkg.IPoolSimulator, len(poolAddresses))
 		poolsToFetchFromDB  []string
 		dexSet              = sets.NewString(dex...)
 	)

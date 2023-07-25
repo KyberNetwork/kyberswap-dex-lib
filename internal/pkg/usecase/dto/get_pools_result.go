@@ -1,6 +1,6 @@
 package dto
 
-import "github.com/KyberNetwork/router-service/internal/pkg/entity"
+import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
 type (
 	GetPoolsResult struct {

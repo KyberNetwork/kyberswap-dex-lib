@@ -7,7 +7,8 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 )
 

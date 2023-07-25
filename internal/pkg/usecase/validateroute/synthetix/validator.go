@@ -1,21 +1,50 @@
 package synthetix
 
 import (
+	"errors"
 	"math/big"
 
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
+	"github.com/KyberNetwork/logger"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
+type SynthetixValidator struct {
+}
+
+func NewSynthetixValidator() *SynthetixValidator {
+	return &SynthetixValidator{}
+}
+
+// Validate will reapply pool update and will have to modify the pool state. Do not use original pools for this
+func (v *SynthetixValidator) Validate(poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobject.Route) error {
+	err := Validate(poolByAddress, route)
+
+	if errors.Is(err, synthetix.ErrInvalidLastAtomicVolume) {
+		return err
+	}
+
+	if errors.Is(err, synthetix.ErrSurpassedVolumeLimit) {
+		logger.Error("invalid Synthetix volume for route")
+
+		metrics.IncrInvalidSynthetixVolume()
+	}
+
+	return nil
+}
+
 // Validate will do all the swap based on Route's paths.
 // It will update the pools in the process of doing so hence will only take a copy
-func Validate(poolByAddress map[string]poolPkg.IPool, route *valueobject.Route) error {
+func Validate(poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobject.Route) error {
 	var (
-		poolStateVersion        PoolStateVersion
+		poolStateVersion        synthetix.PoolStateVersion
 		blockTimestamp          uint64
 		atomicMaxVolumePerBlock *big.Int
-		lastAtomicVolume        *ExchangeVolumeAtPeriod
+		lastAtomicVolume        *synthetix.ExchangeVolumeAtPeriod
 	)
 	poolBucket := valueobject.NewPoolBucket(poolByAddress)
 
@@ -27,15 +56,15 @@ func Validate(poolByAddress map[string]poolPkg.IPool, route *valueobject.Route) 
 				continue
 			}
 			if pool.GetType() == constant.PoolTypes.Synthetix {
-				synthetixPool, ok := pool.(*Pool)
+				synthetixPool, ok := pool.(*synthetix.PoolSimulator)
 				if !ok {
 					continue
 				}
 
-				poolStateVersion = synthetixPool.poolStateVersion
-				blockTimestamp = synthetixPool.poolState.BlockTimestamp
-				atomicMaxVolumePerBlock = synthetixPool.poolState.AtomicMaxVolumePerBlock
-				lastAtomicVolume = synthetixPool.poolState.LastAtomicVolume
+				poolStateVersion = synthetixPool.GetPoolStateVersion()
+				blockTimestamp = synthetixPool.GetPoolState().BlockTimestamp
+				atomicMaxVolumePerBlock = synthetixPool.GetPoolState().AtomicMaxVolumePerBlock
+				lastAtomicVolume = synthetixPool.GetPoolState().LastAtomicVolume
 
 				break
 			}
@@ -43,7 +72,7 @@ func Validate(poolByAddress map[string]poolPkg.IPool, route *valueobject.Route) 
 	}
 
 	// Normal Synthetix pool does not have to validate the total volume
-	if poolStateVersion != PoolStateVersionAtomic {
+	if poolStateVersion != synthetix.PoolStateVersionAtomic {
 		return nil
 	}
 
@@ -57,7 +86,7 @@ func Validate(poolByAddress map[string]poolPkg.IPool, route *valueobject.Route) 
 				continue
 			}
 
-			calcAmountOutResult, err := poolPkg.CalcAmountOut(
+			calcAmountOutResult, err := poolpkg.CalcAmountOut(
 				pool,
 				tokenAmountIn,
 				path.Tokens[i+1].Address,
@@ -70,7 +99,7 @@ func Validate(poolByAddress map[string]poolPkg.IPool, route *valueobject.Route) 
 				return err
 			}
 
-			synthetixPool, ok := pool.(*Pool)
+			synthetixPool, ok := pool.(*synthetix.PoolSimulator)
 			if ok {
 				synthetixTradeVolume, err := synthetixPool.GetAtomicVolume(tokenAmountIn, path.Tokens[i+1].Address)
 				if err != nil {
@@ -81,7 +110,7 @@ func Validate(poolByAddress map[string]poolPkg.IPool, route *valueobject.Route) 
 					totalVolume = new(big.Int).Add(totalVolume, synthetixTradeVolume)
 				}
 			}
-			updateBalanceParams := poolPkg.UpdateBalanceParams{
+			updateBalanceParams := poolpkg.UpdateBalanceParams{
 				TokenAmountIn:  tokenAmountIn,
 				TokenAmountOut: *tokenAmountOut,
 				Fee:            *calcAmountOutResult.Fee,
@@ -104,10 +133,10 @@ func checkAtomicVolume(
 	sourceSusdValue *big.Int,
 	blockTimestamp uint64,
 	atomicMaxVolumePerBlock *big.Int,
-	lastAtomicVolume *ExchangeVolumeAtPeriod,
+	lastAtomicVolume *synthetix.ExchangeVolumeAtPeriod,
 ) error {
 	if lastAtomicVolume == nil {
-		return ErrInvalidLastAtomicVolume
+		return synthetix.ErrInvalidLastAtomicVolume
 	}
 
 	currentVolume := sourceSusdValue
@@ -117,7 +146,7 @@ func checkAtomicVolume(
 	}
 
 	if currentVolume.Cmp(atomicMaxVolumePerBlock) > 0 {
-		return ErrSurpassedVolumeLimit
+		return synthetix.ErrSurpassedVolumeLimit
 	}
 
 	return nil

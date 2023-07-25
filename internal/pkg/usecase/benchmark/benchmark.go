@@ -12,7 +12,7 @@ package benchmark
 //	"github.com/KyberNetwork/router-service/internal/pkg/config"
 //	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 //	"github.com/KyberNetwork/router-service/internal/pkg/core"
-//	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+//	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 //	"github.com/KyberNetwork/router-service/internal/pkg/repository"
 //	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
 //	"github.com/KyberNetwork/router-service/internal/pkg/usecase"

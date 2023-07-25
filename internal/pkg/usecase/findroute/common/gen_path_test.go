@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"testing"
 
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/stretchr/testify/assert"
 
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -57,7 +57,7 @@ func TestGenKthBestPaths(t *testing.T) {
 			TokenByAddress:    tokenByAddress,
 			PriceUSDByAddress: priceUSDByAddress,
 		}
-		tokenAmountIn := poolPkg.TokenAmount{
+		tokenAmountIn := poolpkg.TokenAmount{
 			Token:  tokenIn,
 			Amount: big.NewInt(1_000_000_000),
 		}

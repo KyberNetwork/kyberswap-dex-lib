@@ -5,11 +5,11 @@ import (
 	"math/big"
 	"sort"
 
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -97,7 +97,7 @@ func (f *uniswapFinder) genPathsWithSplitAmountIn(input findroute.Input, data fi
 				big.NewInt(constant.OneHundredPercent),
 			)
 			amountUSD          = utils.CalcTokenAmountUsd(amount, data.TokenByAddress[input.TokenInAddress].Decimals, data.PriceUSDByAddress[input.TokenInAddress])
-			splitTokenAmountIn = poolPkg.TokenAmount{
+			splitTokenAmountIn = poolpkg.TokenAmount{
 				Token:     input.TokenInAddress,
 				Amount:    amount,
 				AmountUsd: amountUSD,

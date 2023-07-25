@@ -6,7 +6,7 @@ import (
 	"github.com/patrickmn/go-cache"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 type goCacheRepository struct {

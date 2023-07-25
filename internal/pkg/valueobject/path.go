@@ -3,10 +3,10 @@ package valueobject
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/pkg/errors"
 
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
@@ -22,10 +22,10 @@ var (
 
 type Path struct {
 	// Input consists of tokenIn and amountIn
-	Input poolPkg.TokenAmount `json:"input"`
+	Input poolpkg.TokenAmount `json:"input"`
 
 	// Output consists of tokenOut and amountOut
-	Output poolPkg.TokenAmount `json:"output"`
+	Output poolpkg.TokenAmount `json:"output"`
 
 	// TotalGas estimated gas required swapping through this path
 	TotalGas int64 `json:"totalGas"`
@@ -41,7 +41,7 @@ func NewPath(
 	poolBucket *PoolBucket,
 	poolAddresses []string,
 	tokens []entity.Token,
-	tokenAmountIn poolPkg.TokenAmount,
+	tokenAmountIn poolpkg.TokenAmount,
 	tokenOut string,
 	tokenOutPrice float64,
 	tokenOutDecimals uint8,
@@ -90,25 +90,25 @@ func NewPath(
 }
 
 // CalcAmountOut swaps through path with Input
-func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolPkg.TokenAmount) (poolPkg.TokenAmount, int64, error) {
+func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.TokenAmount) (poolpkg.TokenAmount, int64, error) {
 	var (
 		currentAmount = tokenAmountIn
-		pool          poolPkg.IPool
+		pool          poolpkg.IPoolSimulator
 		ok            bool
 		totalGas      int64
 	)
 
 	for i, poolAddress := range p.PoolAddresses {
 		if pool, ok = poolBucket.GetPool(poolAddress); !ok {
-			return poolPkg.TokenAmount{}, 0, errors.Wrapf(
+			return poolpkg.TokenAmount{}, 0, errors.Wrapf(
 				ErrNoIPool,
 				"[Path.CalcAmountOut] poolAddress: [%s]",
 				poolAddress,
 			)
 		}
-		calcAmountOutResult, err := poolPkg.CalcAmountOut(pool, currentAmount, p.Tokens[i+1].Address)
+		calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, currentAmount, p.Tokens[i+1].Address)
 		if err != nil {
-			return poolPkg.TokenAmount{}, 0, errors.Wrapf(
+			return poolpkg.TokenAmount{}, 0, errors.Wrapf(
 				ErrInvalidSwap,
 				"[Path.CalcAmountOut] CalcAmountOut returns error | poolAddress: [%s], exchange: [%s], tokenIn: [%s], amountIn: [%s], tokenOut: [%s], err: [%v]",
 				pool.GetAddress(),
@@ -121,7 +121,7 @@ func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolPkg.Token
 		}
 		swapTokenAmountOut, gas := calcAmountOutResult.TokenAmountOut, calcAmountOutResult.Gas
 		if swapTokenAmountOut == nil {
-			return poolPkg.TokenAmount{}, 0, errors.Wrapf(
+			return poolpkg.TokenAmount{}, 0, errors.Wrapf(
 				ErrInvalidSwap,
 				"[Path.CalcAmountOut] CalcAmountOut returns nil | poolAddress: [%s], exchange: [%s], tokenIn: [%s], amountIn: [%s], tokenOut: [%s]",
 				pool.GetAddress(),
@@ -166,13 +166,13 @@ func (p *Path) Merge(other *Path) bool {
 		return false
 	}
 
-	newInput := poolPkg.TokenAmount{
+	newInput := poolpkg.TokenAmount{
 		Token:     p.Input.Token,
 		Amount:    new(big.Int).Add(p.Input.Amount, other.Input.Amount),
 		AmountUsd: p.Input.AmountUsd + other.Input.AmountUsd,
 	}
 
-	newOutput := poolPkg.TokenAmount{
+	newOutput := poolpkg.TokenAmount{
 		Token:     p.Output.Token,
 		Amount:    new(big.Int).Add(p.Output.Amount, other.Output.Amount),
 		AmountUsd: p.Output.AmountUsd + other.Output.AmountUsd,

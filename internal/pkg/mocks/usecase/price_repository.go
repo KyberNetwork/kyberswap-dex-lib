@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	entity "github.com/KyberNetwork/router-service/internal/pkg/entity"
+	entity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	gomock "github.com/golang/mock/gomock"
 )
 

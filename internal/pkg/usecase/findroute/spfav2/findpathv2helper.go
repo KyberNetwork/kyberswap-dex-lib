@@ -5,17 +5,18 @@ import (
 	"context"
 	"math/big"
 
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type findPathV2Helper struct {
-	tokenAmountIn               poolPkg.TokenAmount
+	tokenAmountIn               poolpkg.TokenAmount
 	poolAddressToLastUsedSplit  map[string]int
 	pathIdToLastCalculatedSplit []int
 	addedPathIds                sets.Int
@@ -25,7 +26,7 @@ type findPathV2Helper struct {
 	currentSplit    int
 }
 
-func NewFindPathV2Helper(numberOfPaths, maxPathsInRoute int, tokenAmountIn poolPkg.TokenAmount, cmpFunc func(a, b int) bool) *findPathV2Helper {
+func NewFindPathV2Helper(numberOfPaths, maxPathsInRoute int, tokenAmountIn poolpkg.TokenAmount, cmpFunc func(a, b int) bool) *findPathV2Helper {
 	return &findPathV2Helper{
 		tokenAmountIn,
 		make(map[string]int),
@@ -42,7 +43,7 @@ func (h *findPathV2Helper) bestPathExactInV2(
 	input findroute.Input,
 	data findroute.FinderData,
 	paths []*valueobject.Path,
-	newAmountIn poolPkg.TokenAmount,
+	newAmountIn poolpkg.TokenAmount,
 ) *valueobject.Path {
 	span, _ := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestPathExactInV2")
 	defer span.Finish()
@@ -99,7 +100,7 @@ func newPath(
 	data findroute.FinderData,
 	poolAddresses []string,
 	tokens []entity.Token,
-	tokenAmountIn poolPkg.TokenAmount,
+	tokenAmountIn poolpkg.TokenAmount,
 	disregardGasFee bool,
 ) *valueobject.Path {
 	// if the path is added, we set disregardGasFee = true

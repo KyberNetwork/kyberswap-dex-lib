@@ -5,10 +5,10 @@ import (
 	"math"
 	"math/big"
 
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -46,7 +46,7 @@ func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Inp
 	}
 
 	// it is fine if prices[token] is not set because it would default to zero
-	tokenAmountIn := poolPkg.TokenAmount{
+	tokenAmountIn := poolpkg.TokenAmount{
 		Token:     input.TokenInAddress,
 		Amount:    input.AmountIn,
 		AmountUsd: utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, data.PriceUSDByAddress[input.TokenInAddress]),
@@ -62,12 +62,12 @@ func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Inp
 // split amount in into portions of f.distributionPercent% such that each split has value >= minUsdPerSplit
 // if there are remaining amount after splitting, we add to the first split (because it is always the best possible path)
 // e.g. distributionPercent = 10, but we need 30% amountIn to be > minUsdPerSplit -> split 40, 30, 30
-func (f *spfav2Finder) splitAmountIn(input findroute.Input, data findroute.FinderData, totalAmountIn poolPkg.TokenAmount) []poolPkg.TokenAmount {
+func (f *spfav2Finder) splitAmountIn(input findroute.Input, data findroute.FinderData, totalAmountIn poolpkg.TokenAmount) []poolpkg.TokenAmount {
 	tokenInPrice := data.PriceUSDByAddress[input.TokenInAddress]
 	tokenInDecimal := data.TokenByAddress[input.TokenInAddress].Decimals
 
 	if f.distributionPercent == constant.OneHundredPercent || tokenInPrice == 0 || totalAmountIn.AmountUsd <= f.minPartUSD {
-		return []poolPkg.TokenAmount{totalAmountIn}
+		return []poolpkg.TokenAmount{totalAmountIn}
 	}
 	var (
 		amountInBigInt = totalAmountIn.Amount
@@ -103,16 +103,16 @@ func (f *spfav2Finder) splitAmountIn(input findroute.Input, data findroute.Finde
 		remainingAmountIn    = new(big.Int).Sub(amountInBigInt, new(big.Int).Mul(trueAmountInPerSplit, big.NewInt(trueNumSplits)))
 		remainingAmountInUsd = amountInUsd - trueAmountInPerSplitUsd*float64(trueNumSplits)
 
-		splits = make([]poolPkg.TokenAmount, trueNumSplits)
+		splits = make([]poolpkg.TokenAmount, trueNumSplits)
 	)
 
-	splits[0] = poolPkg.TokenAmount{
+	splits[0] = poolpkg.TokenAmount{
 		Token:     totalAmountIn.Token,
 		Amount:    new(big.Int).Add(trueAmountInPerSplit, remainingAmountIn),
 		AmountUsd: trueAmountInPerSplitUsd + remainingAmountInUsd,
 	}
 	for i := 1; i < int(trueNumSplits); i++ {
-		splits[i] = poolPkg.TokenAmount{
+		splits[i] = poolpkg.TokenAmount{
 			Token:     totalAmountIn.Token,
 			Amount:    new(big.Int).Set(trueAmountInPerSplit),
 			AmountUsd: trueAmountInPerSplitUsd,

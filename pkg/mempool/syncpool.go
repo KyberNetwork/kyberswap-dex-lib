@@ -3,7 +3,7 @@ package mempool
 import (
 	"sync"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 var EntityPool = sync.Pool{

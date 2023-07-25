@@ -5,12 +5,12 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -109,7 +109,7 @@ func (a *ammAggregator) ApplyConfig(config Config) {
 func (a *ammAggregator) findBestRoute(
 	ctx context.Context,
 	params *types.AggregateParams,
-	poolByAddress map[string]poolpkg.IPool,
+	poolByAddress map[string]poolpkg.IPoolSimulator,
 	tokenByAddress map[string]entity.Token,
 	priceUSDByAddress map[string]float64,
 ) (*valueobject.RouteSummary, error) {
@@ -147,7 +147,7 @@ func (a *ammAggregator) summarizeRoute(
 	_ context.Context,
 	route *valueobject.Route,
 	params *types.AggregateParams,
-	poolByAddress map[string]poolpkg.IPool,
+	poolByAddress map[string]poolpkg.IPoolSimulator,
 ) (*valueobject.RouteSummary, error) {
 	// Step 1: prepare pool data
 	poolBucket := valueobject.NewPoolBucket(poolByAddress)
@@ -262,7 +262,7 @@ func (a *ammAggregator) summarizeRoute(
 func (a *ammAggregator) getPoolByAddress(
 	ctx context.Context,
 	params *types.AggregateParams,
-) (map[string]poolpkg.IPool, error) {
+) (map[string]poolpkg.IPoolSimulator, error) {
 	bestPoolIDs, err := a.poolRankRepository.FindBestPoolIDs(
 		ctx,
 		params.TokenIn.Address,

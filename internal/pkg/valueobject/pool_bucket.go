@@ -1,21 +1,20 @@
 package valueobject
 
 import (
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/huandu/go-clone"
-
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 )
 
 // PoolBucket contains data for finding route
 // it is responsible for cloning pools
 type PoolBucket struct {
 	// PerRequestPoolsByAddress mapping from pool address to IPool
-	PerRequestPoolsByAddress map[string]poolPkg.IPool
+	PerRequestPoolsByAddress map[string]poolpkg.IPoolSimulator
 	// ChangedPools Keep track of pools we updated balance
-	ChangedPools map[string]poolPkg.IPool
+	ChangedPools map[string]poolpkg.IPoolSimulator
 }
 
-func NewPoolBucket(perRequestPoolsByAddress map[string]poolPkg.IPool) *PoolBucket {
+func NewPoolBucket(perRequestPoolsByAddress map[string]poolpkg.IPoolSimulator) *PoolBucket {
 	return &PoolBucket{
 		PerRequestPoolsByAddress: perRequestPoolsByAddress,
 		ChangedPools:             nil,
@@ -29,9 +28,9 @@ func (b *PoolBucket) ClearChangedPools() {
 // ClonePool clone the pool before updating, so that it doesn't modify the original data copied from route service
 // do nothing if pool is already cloned, or if original data of that pool not found
 // otherwise, clone pool from PerRequestPoolsByAddress to ChangedPools
-func (b *PoolBucket) ClonePool(poolAddress string) poolPkg.IPool {
+func (b *PoolBucket) ClonePool(poolAddress string) poolpkg.IPoolSimulator {
 	var (
-		pool  poolPkg.IPool
+		pool  poolpkg.IPoolSimulator
 		avail bool
 	)
 	if b.ChangedPools != nil {
@@ -40,7 +39,7 @@ func (b *PoolBucket) ClonePool(poolAddress string) poolPkg.IPool {
 			return pool
 		}
 	} else {
-		b.ChangedPools = make(map[string]poolPkg.IPool)
+		b.ChangedPools = make(map[string]poolpkg.IPoolSimulator)
 	}
 	pool, avail = b.PerRequestPoolsByAddress[poolAddress]
 	// if original data not found, do nothing
@@ -50,7 +49,7 @@ func (b *PoolBucket) ClonePool(poolAddress string) poolPkg.IPool {
 
 	// clone the pool and add to ChangedPools
 	v := clone.Slowly(pool)
-	pool = v.(poolPkg.IPool)
+	pool = v.(poolpkg.IPoolSimulator)
 	b.ChangedPools[poolAddress] = pool
 
 	// Note: When we need to clone a curve-meta pool, we should clone its base pool as well (as the code below)
@@ -71,9 +70,9 @@ func (b *PoolBucket) ClonePool(poolAddress string) poolPkg.IPool {
 }
 
 // GetPool search for changed pool, then search for original pool
-func (b *PoolBucket) GetPool(poolAddress string) (poolPkg.IPool, bool) {
+func (b *PoolBucket) GetPool(poolAddress string) (poolpkg.IPoolSimulator, bool) {
 	var (
-		pool  poolPkg.IPool
+		pool  poolpkg.IPoolSimulator
 		avail bool
 	)
 	if b.ChangedPools != nil {

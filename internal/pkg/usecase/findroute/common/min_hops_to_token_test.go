@@ -3,11 +3,11 @@ package common
 import (
 	"testing"
 
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	"github.com/stretchr/testify/assert"
 
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/uni"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 func TestMinHopToTokenOut(t *testing.T) {
@@ -47,9 +47,9 @@ func TestMinHopToTokenOut(t *testing.T) {
 				Reserves: entity.PoolReserves{"1", "1"},
 			},
 		}
-		poolByAddress := make(map[string]poolPkg.IPool)
+		poolByAddress := make(map[string]poolpkg.IPoolSimulator)
 		for _, poolEntity := range poolEntityList {
-			pool, err := uni.NewPool(poolEntity)
+			pool, err := uniswap.NewPoolSimulator(poolEntity)
 			assert.Nil(t, err)
 			poolByAddress[pool.GetAddress()] = pool
 		}

@@ -3,7 +3,7 @@ package token
 import (
 	"context"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 type IFallbackRepository interface {

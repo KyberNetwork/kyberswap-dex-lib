@@ -1,16 +1,16 @@
 package common
 
 import (
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/oleiade/lane"
 
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 )
 
 // MinHopsToTokenOut perform BFS from tokenOut
 func MinHopsToTokenOut(
-	poolByAddress map[string]poolPkg.IPool,
+	poolByAddress map[string]poolpkg.IPoolSimulator,
 	tokenByAddress map[string]entity.Token,
 	tokenToPoolAddresses map[string][]string,
 	tokenOut string,
@@ -18,7 +18,7 @@ func MinHopsToTokenOut(
 	var (
 		minHop = make(map[string]uint32)
 		queue  = lane.NewQueue()
-		pool   poolPkg.IPool
+		pool   poolpkg.IPoolSimulator
 		ok     bool
 	)
 

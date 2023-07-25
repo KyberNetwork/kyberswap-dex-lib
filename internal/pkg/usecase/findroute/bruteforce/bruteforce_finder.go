@@ -7,9 +7,10 @@ import (
 
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -28,7 +29,7 @@ const (
 )
 
 type IPoolFactory interface {
-	NewPoolByAddress(ctx context.Context, pools []*entity.Pool) map[string]poolpkg.IPool
+	NewPoolByAddress(ctx context.Context, pools []*entity.Pool) map[string]poolpkg.IPoolSimulator
 }
 
 // bruteforceFinder finds route using Shortest spfaPath Faster Algorithm (SPFA)

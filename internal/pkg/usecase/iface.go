@@ -4,7 +4,8 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -13,10 +14,8 @@ import (
 //go:generate mockgen -destination ../mocks/usecase/token_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase ITokenRepository
 //go:generate mockgen -destination ../mocks/usecase/price_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IPriceRepository
 //go:generate mockgen -destination ../mocks/usecase/config_fetcher_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IConfigFetcherRepository
-//go:generate mockgen -destination ../mocks/usecase/scanner_state_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IScannerStateRepository
 //go:generate mockgen -destination ../mocks/usecase/client_data_encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IClientDataEncoder
 //go:generate mockgen -destination ../mocks/usecase/encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IEncoder
-//go:generate mockgen -destination ../mocks/usecase/l2fee_calculator.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IL2FeeCalculator
 //go:generate mockgen -destination ../mocks/usecase/pool_rank_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IPoolRankRepository
 
 // IPoolRepository receives pool addresses, fetch pool data from datastore, decode them and return []entity.Pool
@@ -54,10 +53,6 @@ type IPoolRankRepository interface {
 	) error
 }
 
-type IScannerStateRepository interface {
-	GetL2Fee(ctx context.Context) (*entity.L2Fee, error)
-}
-
 type IGasRepository interface {
 	UpdateSuggestedGasPrice(ctx context.Context) (*big.Int, error)
 	GetSuggestedGasPrice(ctx context.Context) (*big.Int, error)
@@ -73,14 +68,4 @@ type IEncoder interface {
 	GetExecutorAddress() string
 	GetRouterAddress() string
 	GetKyberLOAddress() string
-}
-
-type IL2FeeCalculator interface {
-	SetParams(l2Fee *entity.L2Fee)
-	CreateRawTxFromInputData(encodedSwapData string) ([]byte, error)
-	GetL1Fee(_data []byte) *big.Int
-}
-
-type IL2FeeCalculatorUseCase interface {
-	GetL1Fee(ctx context.Context, encodedSwapData string) (*big.Int, error)
 }

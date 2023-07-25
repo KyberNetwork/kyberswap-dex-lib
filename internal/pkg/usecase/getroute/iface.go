@@ -5,8 +5,9 @@ import (
 	"math/big"
 	"time"
 
-	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -20,11 +21,11 @@ type IPoolManager interface {
 	GetPoolByAddress(
 		ctx context.Context,
 		addresses, dex []string,
-	) (map[string]poolpkg.IPool, error)
+	) (map[string]poolpkg.IPoolSimulator, error)
 }
 
 type IPoolFactory interface {
-	NewPoolByAddress(ctx context.Context, pools []*entity.Pool) map[string]poolpkg.IPool
+	NewPoolByAddress(ctx context.Context, pools []*entity.Pool) map[string]poolpkg.IPoolSimulator
 }
 
 type IGasRepository interface {

@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sort"
 
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -18,7 +18,7 @@ func (f *spfav2Finder) findrouteV2(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenAmountIn poolPkg.TokenAmount,
+	tokenAmountIn poolpkg.TokenAmount,
 	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Route, error) {
@@ -46,7 +46,7 @@ func (f *spfav2Finder) bestRouteV2(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenAmountIn poolPkg.TokenAmount,
+	tokenAmountIn poolpkg.TokenAmount,
 	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Route, error) {
@@ -102,7 +102,7 @@ func (f *spfav2Finder) bestRouteV2(
 func (f *spfav2Finder) bestSinglePathRouteV2(
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenAmountIn poolPkg.TokenAmount,
+	tokenAmountIn poolpkg.TokenAmount,
 	paths []*valueobject.Path,
 	numberOfPathToTry int,
 ) *valueobject.Route {
@@ -129,8 +129,8 @@ func (f *spfav2Finder) bestMultiPathRouteV2(
 	input findroute.Input,
 	data findroute.FinderData,
 	paths []*valueobject.Path,
-	amountInToGeneratePath poolPkg.TokenAmount,
-	splits []poolPkg.TokenAmount,
+	amountInToGeneratePath poolpkg.TokenAmount,
+	splits []poolpkg.TokenAmount,
 	cmpFunc func(a, b int) bool,
 ) (*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestMultiPathRouteV2")

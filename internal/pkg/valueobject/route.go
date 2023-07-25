@@ -3,10 +3,10 @@ package valueobject
 import (
 	"math/big"
 
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 )
 
 var (
@@ -14,8 +14,8 @@ var (
 )
 
 type Route struct {
-	Input    poolPkg.TokenAmount `json:"input"`
-	Output   poolPkg.TokenAmount `json:"output"`
+	Input    poolpkg.TokenAmount `json:"input"`
+	Output   poolpkg.TokenAmount `json:"output"`
 	Paths    []*Path             `json:"paths"`
 	TotalGas int64               `json:"totalGas"`
 }
@@ -25,12 +25,12 @@ func NewRoute(
 	tokenOutAddress string,
 ) *Route {
 	return &Route{
-		Input: poolPkg.TokenAmount{
+		Input: poolpkg.TokenAmount{
 			Token:     tokenInAddress,
 			Amount:    constant.Zero,
 			AmountUsd: 0,
 		},
-		Output: poolPkg.TokenAmount{
+		Output: poolpkg.TokenAmount{
 			Token:     tokenOutAddress,
 			Amount:    constant.Zero,
 			AmountUsd: 0,
@@ -71,7 +71,7 @@ func (r *Route) AddPath(poolBucket *PoolBucket, p *Path) error {
 
 	var (
 		currentAmount = p.Input
-		pool          poolPkg.IPool
+		pool          poolpkg.IPoolSimulator
 		ok            bool
 	)
 
@@ -83,7 +83,7 @@ func (r *Route) AddPath(poolBucket *PoolBucket, p *Path) error {
 				poolAddress,
 			)
 		}
-		calcAmountOutResult, err := poolPkg.CalcAmountOut(pool, currentAmount, p.Tokens[i+1].Address)
+		calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, currentAmount, p.Tokens[i+1].Address)
 		if err != nil {
 			return errors.Wrapf(
 				ErrInvalidSwap,
@@ -100,7 +100,7 @@ func (r *Route) AddPath(poolBucket *PoolBucket, p *Path) error {
 
 		tokenAmountOut, fee := calcAmountOutResult.TokenAmountOut, calcAmountOutResult.Fee
 
-		updateBalanceParams := poolPkg.UpdateBalanceParams{
+		updateBalanceParams := poolpkg.UpdateBalanceParams{
 			TokenAmountIn:  currentAmount,
 			TokenAmountOut: *tokenAmountOut,
 			Fee:            *fee,

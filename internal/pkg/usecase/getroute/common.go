@@ -1,7 +1,8 @@
 package getroute
 
 import (
-	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -33,7 +34,7 @@ func simplifyRouteSummary(routeSummary *valueobject.RouteSummary) *valueobject.S
 }
 
 // collectTokenAddresses extracts addresses of pool tokens, combines with addresses and returns
-func collectTokenAddresses(poolSet map[string]poolpkg.IPool, addresses ...string) []string {
+func collectTokenAddresses(poolSet map[string]poolpkg.IPoolSimulator, addresses ...string) []string {
 	tokenAddressSet := make(map[string]struct{}, len(poolSet)+len(addresses))
 	for _, pool := range poolSet {
 		for _, token := range pool.GetTokens() {

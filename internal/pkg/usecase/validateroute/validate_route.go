@@ -1,12 +1,13 @@
 package validateroute
 
 import (
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type IValidator interface {
-	Validate(poolByAddress map[string]poolPkg.IPool, route *valueobject.Route) error
+	Validate(poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobject.Route) error
 }
 
 type ValidateRouteUseCase struct {
@@ -23,7 +24,7 @@ func (t *ValidateRouteUseCase) RegisterValidator(validator IValidator) {
 	t.validators = append(t.validators, validator)
 }
 
-func (t *ValidateRouteUseCase) ValidateRouteResult(poolByAddress map[string]poolPkg.IPool, route *valueobject.Route) error {
+func (t *ValidateRouteUseCase) ValidateRouteResult(poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobject.Route) error {
 	for _, v := range t.validators {
 		err := v.Validate(poolByAddress, route)
 		if err != nil {

@@ -25,7 +25,7 @@ package benchmark
 //	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 //	"github.com/KyberNetwork/router-service/internal/pkg/core"
 //	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-//	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+//	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 //	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 //	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/bruteforce"
 //	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfa"
@@ -303,7 +303,7 @@ package benchmark
 //		// fmt.Println(pool.Address)
 //		if pool.Address == "0x76838fd2f22bdc1d3e96069971e65653173edb2a" {
 //			iswap := uc.poolFactory.NewPools([]entity.Pool{pool})
-//			out, err := iswap[0].CalcAmountOut(poolPkg.TokenAmount{
+//			out, err := iswap[0].CalcAmountOut(poolpkg.TokenAmount{
 //				Token:     tokenInAddress,
 //				Amount:    big.NewInt(1750000000000000000),
 //				AmountUsd: 0,
@@ -313,7 +313,7 @@ package benchmark
 //			assert.Equal(t, out.TokenAmountOut.Amount.Cmp(expect), 0)
 //
 //			iswap = uc.poolFactory.NewPools([]entity.Pool{pool})
-//			out, err = iswap[0].CalcAmountOut(poolPkg.TokenAmount{
+//			out, err = iswap[0].CalcAmountOut(poolpkg.TokenAmount{
 //				Token:     tokenInAddress,
 //				Amount:    big.NewInt(2000000000000000000),
 //				AmountUsd: 0,

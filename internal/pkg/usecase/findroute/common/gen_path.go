@@ -5,11 +5,12 @@ import (
 	"math/big"
 	"sort"
 
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	poolPkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -17,7 +18,7 @@ import (
 )
 
 type nodeInfo struct {
-	tokenAmount         poolPkg.TokenAmount
+	tokenAmount         poolpkg.TokenAmount
 	poolAddressesOnPath []string
 	tokensOnPath        []entity.Token
 	totalGasAmount      int64
@@ -39,7 +40,7 @@ func GenKthBestPaths(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenAmountIn poolPkg.TokenAmount,
+	tokenAmountIn poolpkg.TokenAmount,
 	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 	maxHops, maxPathsToGenerate, maxPathsToReturn uint32,
@@ -138,7 +139,7 @@ func getNextLayerFromToken(
 	var (
 		nextNodeInfos []*nodeInfo
 		toTokenInfo   entity.Token
-		pool          poolPkg.IPool
+		pool          poolpkg.IPoolSimulator
 
 		remainingHopToTokenOut uint32
 		ok                     bool
@@ -200,7 +201,7 @@ func getKthBestPathsForEachToken(
 func getKthPathAtTokenOut(
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenAmountIn poolPkg.TokenAmount,
+	tokenAmountIn poolpkg.TokenAmount,
 	nodeInfoAtTokenOut []*nodeInfo,
 	maxPathsToReturn uint32,
 ) (paths []*valueobject.Path) {
@@ -239,12 +240,12 @@ func betterAmountOut(nodeA, nodeB *nodeInfo, gasFeeInclude bool) bool {
 
 // return newTokenAmount, newTotalGasAmount, error
 func calcNewTokenAmountAndGas(
-	pool poolPkg.IPool,
-	fromAmountIn poolPkg.TokenAmount, fromTotalGasAmount int64,
+	pool poolpkg.IPoolSimulator,
+	fromAmountIn poolpkg.TokenAmount, fromTotalGasAmount int64,
 	tokenOut string, tokenOutPrice float64, tokenOutDecimal uint8,
 	gasPrice *big.Float, gasTokenPrice float64,
-) (*poolPkg.TokenAmount, int64, error) {
-	calcAmountOutResult, err := poolPkg.CalcAmountOut(pool, fromAmountIn, tokenOut)
+) (*poolpkg.TokenAmount, int64, error) {
+	calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, fromAmountIn, tokenOut)
 	if err != nil {
 		return nil, 0, err
 	}

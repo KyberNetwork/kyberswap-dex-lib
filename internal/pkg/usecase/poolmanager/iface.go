@@ -3,13 +3,13 @@ package poolmanager
 import (
 	"context"
 
-	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type IPoolFactory interface {
-	NewPoolByAddress(ctx context.Context, pools []*entity.Pool) map[string]poolpkg.IPool
-	NewPools(ctx context.Context, pools []*entity.Pool) []poolpkg.IPool
+	NewPoolByAddress(ctx context.Context, pools []*entity.Pool) map[string]poolpkg.IPoolSimulator
+	NewPools(ctx context.Context, pools []*entity.Pool) []poolpkg.IPoolSimulator
 }
 
 type IPoolRepository interface {

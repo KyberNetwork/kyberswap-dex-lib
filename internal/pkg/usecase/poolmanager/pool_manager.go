@@ -6,12 +6,12 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	poolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/common"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
@@ -41,7 +41,7 @@ func NewPoolManager(
 func (m *PoolManager) GetPoolByAddress(
 	ctx context.Context,
 	addresses, dex []string,
-) (map[string]poolpkg.IPool, error) {
+) (map[string]poolpkg.IPoolSimulator, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "poolManager.GetPoolByAddress")
 	defer span.Finish()
 

@@ -1,6 +1,6 @@
 package fixtures
 
-import "github.com/KyberNetwork/router-service/internal/pkg/entity"
+import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
 var Tokens = []*entity.Token{
 	{

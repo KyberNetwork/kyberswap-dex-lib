@@ -3,7 +3,7 @@ package token
 import (
 	"encoding/json"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 func encodeToken(token entity.Token) (string, error) {

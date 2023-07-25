@@ -42,6 +42,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute/synthetix"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
 	"github.com/KyberNetwork/router-service/internal/pkg/validator"
@@ -239,7 +240,7 @@ func apiAction(c *cli.Context) (err error) {
 	encoder := encode.NewEncoder(cfg.Encoder)
 
 	validateRouteUseCase := validateroute.NewValidateRouteUseCase()
-	validateRouteUseCase.RegisterValidator(validateroute.NewSynthetixValidator())
+	validateRouteUseCase.RegisterValidator(synthetix.NewSynthetixValidator())
 
 	getPoolsUseCase := usecase.NewGetPoolsUseCase(poolDataStoreRepo)
 	getTokensUseCase := usecase.NewGetTokens(tokenRepository, priceDataStoreRepo)

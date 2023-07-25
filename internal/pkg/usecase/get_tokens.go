@@ -1,10 +1,11 @@
 package usecase
 
 import (
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
-
 	"context"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 )
 
 type getTokensUseCase struct {

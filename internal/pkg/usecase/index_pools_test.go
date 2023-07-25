@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 )
