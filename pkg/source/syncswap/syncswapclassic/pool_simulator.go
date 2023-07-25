@@ -12,14 +12,14 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type Pool struct {
+type PoolSimulator struct {
 	pool.Pool
 	vaultAddress string
 	swapFees     []*big.Int
 	gas          syncswap.Gas
 }
 
-func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra syncswap.ExtraClassicPool
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 		Reserves: reserves,
 	}
 
-	return &Pool{
+	return &PoolSimulator{
 		Pool:         pool.Pool{Info: info},
 		vaultAddress: vaultAddress,
 		swapFees:     swapFees,
@@ -55,7 +55,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	}, nil
 }
 
-func (p *Pool) CalcAmountOut(
+func (p *PoolSimulator) CalcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.CalcAmountOutResult, error) {
@@ -98,7 +98,7 @@ func (p *Pool) CalcAmountOut(
 	}, nil
 }
 
-func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	var input, output = params.TokenAmountIn, params.TokenAmountOut
 	var tokenInIndex = p.GetTokenIndex(input.Token)
 	var tokenOutIndex = p.GetTokenIndex(output.Token)
@@ -110,7 +110,7 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.Info.Reserves[tokenOutIndex] = new(big.Int).Sub(p.Info.Reserves[tokenOutIndex], outputAmount)
 }
 
-func (p *Pool) CalcExactQuote(tokenIn string, tokenOut string, base *big.Int) *big.Int {
+func (p *PoolSimulator) CalcExactQuote(tokenIn string, tokenOut string, base *big.Int) *big.Int {
 	var tokenInIndex = p.GetTokenIndex(tokenIn)
 	var tokenOutIndex = p.GetTokenIndex(tokenOut)
 
@@ -128,7 +128,7 @@ func (p *Pool) CalcExactQuote(tokenIn string, tokenOut string, base *big.Int) *b
 	return exactQuote
 }
 
-func (p *Pool) CanSwapTo(address string) []string {
+func (p *PoolSimulator) CanSwapTo(address string) []string {
 	var ret = make([]string, 0)
 	var tokenInIndex = p.GetTokenIndex(address)
 	if tokenInIndex < 0 {
@@ -143,16 +143,16 @@ func (p *Pool) CanSwapTo(address string) []string {
 	return ret
 }
 
-func (p *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return syncswap.Meta{
 		VaultAddress: p.vaultAddress,
 	}
 }
 
-func (p *Pool) GetMidPrice(tokenIn string, tokenOut string, base *big.Int) *big.Int {
+func (p *PoolSimulator) GetMidPrice(tokenIn string, tokenOut string, base *big.Int) *big.Int {
 	return bignumber.ZeroBI
 }
 
-func (p *Pool) GetLpToken() string {
+func (p *PoolSimulator) GetLpToken() string {
 	return p.GetAddress()
 }
