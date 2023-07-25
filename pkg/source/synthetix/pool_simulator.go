@@ -194,3 +194,11 @@ func (p *PoolSimulator) validateAmountIn(currencyKey string, amount *big.Int) er
 
 	return nil
 }
+
+func (p *PoolSimulator) GetPoolState() *PoolState {
+	return p.poolState
+}
+
+func (p *PoolSimulator) GetPoolStateVersion() PoolStateVersion {
+	return p.poolStateVersion
+}
