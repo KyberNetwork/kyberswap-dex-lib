@@ -50,12 +50,13 @@ func TestSerialization_EncodePool(t *testing.T) {
 }
 
 func TestSerialization_DecodePool(t *testing.T) {
-	tests := []struct {
+	type testInput struct {
 		name         string
 		key          string
 		member       string
 		expectedPool *entity.Pool
-	}{
+	}
+	tests := []testInput{
 		{
 			name:   "it should decode pool correctly with full data",
 			key:    "address1",
@@ -90,25 +91,6 @@ func TestSerialization_DecodePool(t *testing.T) {
 				Extra:       "extra1",
 				StaticExtra: "staticExtra1",
 				TotalSupply: "totalSupply1",
-			},
-		},
-		{
-			name:   "it should decode pool correctly without pool tokens",
-			key:    "address1",
-			member: "{\"address\":\"address1\",\"reserveUsd\":100,\"amplifiedTvl\":100,\"swapFee\":0.3,\"type\":\"uni\",\"timestamp\":12345,\"reserves\":[\"reserve1\",\"reserve2\"],\"staticExtra\":\"staticExtra1\",\"totalSupply\":\"totalSupply1\"}",
-			expectedPool: &entity.Pool{
-				Address:      "address1",
-				ReserveUsd:   100,
-				AmplifiedTvl: 100,
-				SwapFee:      0.3,
-				Exchange:     "",
-				Type:         "uni",
-				Timestamp:    12345,
-				Reserves:     []string{"reserve1", "reserve2"},
-				Tokens:       nil,
-				Extra:        "",
-				StaticExtra:  "staticExtra1",
-				TotalSupply:  "totalSupply1",
 			},
 		},
 		{
@@ -193,4 +175,35 @@ func TestSerialization_DecodePool(t *testing.T) {
 			assert.Equal(t, test.expectedPool, pool)
 		})
 	}
+
+	// edge test
+	edgeTest := testInput{
+		name:   "it should decode pool correctly without pool tokens",
+		key:    "address1",
+		member: "{\"address\":\"address1\",\"reserveUsd\":100,\"amplifiedTvl\":100,\"swapFee\":0.3,\"type\":\"uni\",\"timestamp\":12345,\"reserves\":[\"reserve1\",\"reserve2\"],\"staticExtra\":\"staticExtra1\",\"totalSupply\":\"totalSupply1\"}",
+		expectedPool: &entity.Pool{
+			Address:      "address1",
+			ReserveUsd:   100,
+			AmplifiedTvl: 100,
+			SwapFee:      0.3,
+			Exchange:     "",
+			Type:         "uni",
+			Timestamp:    12345,
+			Reserves:     []string{"reserve1", "reserve2"},
+			Tokens:       nil,
+			Extra:        "",
+			StaticExtra:  "staticExtra1",
+			TotalSupply:  "totalSupply1",
+		},
+	}
+	t.Run(edgeTest.name, func(t *testing.T) {
+		pool, err := decodePool(edgeTest.key, edgeTest.member)
+		assert.Nil(t, err)
+		// in case of that pool is derived from mempool, then tokens has it's len == 0 && cap > 0 => assign to nil
+		//t.Log(len(pool.Tokens), cap(pool.Tokens), edgeTest.expectedPool.Tokens)
+		if len(pool.Tokens) == 0 && cap(pool.Tokens) > 0 {
+			pool.Tokens = nil
+		}
+		assert.Equal(t, edgeTest.expectedPool, pool)
+	})
 }
