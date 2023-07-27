@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/daoleno/uniswapv3-sdk/constants"
@@ -43,37 +44,40 @@ func _require(cond bool, msg string) {
 	}
 }
 
-func _writeTimepoint(
+func (p *PoolSimulator) _writeTimepoint(
 	timepointIndex uint16,
 	blockTimestamp uint32,
-	tick int32,
+	tick int24,
 	liquidity *big.Int,
 	volumePerLiquidityInBlock *big.Int,
-) (newTimepointIndex uint16) {
-	// TODO
-	// return IDataStorageOperator(dataStorageOperator).write(timepointIndex, blockTimestamp, tick, liquidity, volumePerLiquidityInBlock)
-	return 0
+) (uint16, error) {
+	return p.timepoints.write(timepointIndex, blockTimestamp, tick, liquidity, volumePerLiquidityInBlock)
 }
 
-func _getNewFee(
+func (p *PoolSimulator) _getNewFee(
 	_time uint32,
-	_tick int32,
+	_tick int24,
 	_index uint16,
 	_liquidity *big.Int,
-) (newFee uint16) {
-	// TODO:
-	// newFee = IDataStorageOperator(dataStorageOperator).getFee(_time, _tick, _index, _liquidity)
-	// return 1765
-	return 1550
+) (uint16, error) {
+	err, volatilityAverage, volumePerLiqAverage := p.timepoints.getAverages(_time, _tick, _index, _liquidity)
+	if err != nil {
+		return 0, err
+	}
+	return getFee(
+		new(big.Int).Div(volatilityAverage, big.NewInt(15)),
+		volumePerLiqAverage,
+		&p.feeConf,
+	), nil
 }
 
-func (p *PoolSimulator) calculateSwapAndLock(
+func (p *PoolSimulator) _calculateSwapAndLock(
 	zeroToOne bool,
 	amountRequired *big.Int,
 	limitSqrtPrice *big.Int,
 ) (error, *big.Int, *big.Int) {
 
-	// blockTimestamp := time.Now().Unix()
+	blockTimestamp := uint32(time.Now().Unix())
 	var cache SwapCalculationCache
 
 	// load from one storage slot
@@ -115,24 +119,28 @@ func (p *PoolSimulator) calculateSwapAndLock(
 
 	// don't need to care about activeIncentive
 
-	// newTimepointIndex := _writeTimepoint(
-	// 	cache.timepointIndex,
-	// 	blockTimestamp,
-	// 	cache.startTick,
-	// 	currentLiquidity,
-	// 	cache.volumePerLiquidityInBlock,
-	// )
+	newTimepointIndex, err := p._writeTimepoint(
+		cache.timepointIndex,
+		blockTimestamp,
+		int24(cache.startTick),
+		currentLiquidity,
+		cache.volumePerLiquidityInBlock,
+	)
+	if err != nil {
+		return err, nil, nil
+	}
 
-	// // new timepoint appears only for first swap in block
-	// if newTimepointIndex != cache.timepointIndex {
-	// 	cache.timepointIndex = newTimepointIndex
-	// 	cache.volumePerLiquidityInBlock = bignumber.ZeroBI
-	// 	cache.fee = _getNewFee(blockTimestamp, currentTick, newTimepointIndex, currentLiquidity)
-	// }
-	cache.fee = _getNewFee(0, 0, 0, nil) // TODO
+	// new timepoint appears only for first swap in block
+	if newTimepointIndex != cache.timepointIndex {
+		cache.timepointIndex = newTimepointIndex
+		cache.volumePerLiquidityInBlock = bignumber.ZeroBI
+		cache.fee, err = p._getNewFee(blockTimestamp, int24(currentTick), newTimepointIndex, currentLiquidity)
+		if err != nil {
+			return err, nil, nil
+		}
+	}
 
 	var step PriceMovementCache
-	var err error
 	// swap until there is remaining input or output tokens or we reach the price limit
 	for {
 		step.stepSqrtPrice = currentPrice
@@ -150,18 +158,16 @@ func (p *PoolSimulator) calculateSwapAndLock(
 		if zeroToOne == ltLimit {
 			targetPrice = limitSqrtPrice
 		}
-		currentPrice, step.input, step.output, step.feeAmount, err = utils.ComputeSwapStep(currentPrice, targetPrice, currentLiquidity, amountRequired, constants.FeeAmount(cache.fee))
+		currentPrice, step.input, step.output, step.feeAmount, err = utils.ComputeSwapStep(
+			currentPrice,
+			targetPrice,
+			currentLiquidity,
+			amountRequired,
+			constants.FeeAmount(cache.fee),
+		)
 		if err != nil {
 			return err, nil, nil
 		}
-		// currentPrice, step.input, step.output, step.feeAmount = PriceMovementMath.movePriceTowardsTarget(
-		// 	zeroToOne,
-		// 	currentPrice,
-		// 	targetPrice, // move the price to the target or to the limit
-		// 	currentLiquidity,
-		// 	amountRequired,
-		// 	cache.fee,
-		// )
 
 		if cache.exactInput {
 			amountRequired = new(big.Int).Sub(amountRequired, new(big.Int).Add(step.input, step.feeAmount)) // decrease remaining input amount

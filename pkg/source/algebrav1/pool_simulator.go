@@ -32,6 +32,9 @@ type PoolSimulator struct {
 	gas                       Gas
 	tickMin                   int
 	tickMax                   int
+
+	timepoints TimepointStorage
+	feeConf FeeConfiguration
 }
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
@@ -152,7 +155,7 @@ func (p *PoolSimulator) CalcAmountOut(
 		}
 		// amountIn := coreEntities.FromRawAmount(tokenIn, tokenAmountIn.Amount)
 		// amountOut, _, err := p.GetOutputAmount(amountIn, p.getSqrtPriceLimit(zeroForOne))
-		err, amount0, amount1 := p.calculateSwapAndLock(zeroForOne, tokenAmountIn.Amount, p.getSqrtPriceLimit(zeroForOne))
+		err, amount0, amount1 := p._calculateSwapAndLock(zeroForOne, tokenAmountIn.Amount, p.getSqrtPriceLimit(zeroForOne))
 		var amountOut *big.Int
 		if zeroForOne {
 			amountOut = new(big.Int).Neg(amount1)

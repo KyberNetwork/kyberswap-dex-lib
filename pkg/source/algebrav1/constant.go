@@ -22,6 +22,7 @@ const (
 	erc20MethodBalanceOf = "balanceOf"
 
 	tickSpacing = 60
+	uint16_max  = 65535
 )
 
 var (
