@@ -54,7 +54,7 @@ var (
 	ExchangeCamelot       Exchange = "camelot"
 	ExchangeFraxSwap      Exchange = "fraxswap"
 	ExchangeVerse         Exchange = "verse"
-	ExchangeEchoDex       Exchange = "echodex"
+	ExchangeEchoDex       Exchange = "echo-dex"
 
 	ExchangeOneSwap    Exchange = "oneswap"
 	ExchangeNerve      Exchange = "nerve"
