@@ -11,4 +11,5 @@ type Config struct {
 	MetaPoolsFactoryAddress    string `json:"metaPoolsFactoryAddress"`
 	CryptoPoolsRegistryAddress string `json:"cryptoPoolsRegistryAddress"`
 	CryptoPoolsFactoryAddress  string `json:"cryptoPoolsFactoryAddress"`
+	MetaRegistryAddress        string `json:"metaRegistryAddress"`
 }

@@ -94,3 +94,40 @@ func TestUpdateBalance(t *testing.T) {
 		})
 	}
 }
+
+func TestCalcAmountOut_TricryptoNg(t *testing.T) {
+	// test data from https://etherscan.io/address/0xf5f5b97624542d72a9e06f04804bf81baa15e2b4#readContract
+	testcases := []struct {
+		in                string
+		inAmount          int64
+		out               string
+		expectedOutAmount int64
+	}{
+		{"A", 1, "C", 538241055},
+		// {"B", 1, "C", 157068743909},
+		// {"B", 1, "A", 291},
+		// {"A", 1000, "B", 3},
+	}
+	p, err := NewPoolSimulator(entity.Pool{
+		Exchange:    "",
+		Type:        "",
+		Reserves:    entity.PoolReserves{"15317422881831", "52824388635", "8284580173678815971922"},
+		Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}, {Address: "C"}},
+		Extra:       "{\"A\":\"1707629\",\"D\":\"46617229314630114198531403\",\"gamma\":\"11809167828997\",\"priceScale\":[\"29783813816513118349543\",\"1879178628943791475467\"],\"lastPrices\":[\"29182427724882269779339\",\"1856045136235060629765\"],\"priceOracle\":[\"29175653246518670292298\",\"1855388373980498554761\"],\"feeGamma\":\"500000000000000\",\"midFee\":\"3000000\",\"outFee\":\"30000000\",\"futureAGammaTime\":0,\"futureAGamma\":\"581076037942835227425498917514114728328226821\",\"initialAGammaTime\":0,\"initialAGamma\":\"581076037942835227425498917514114728328226821\",\"lastPricesTimestamp\":1690277879,\"lpSupply\":\"40611960090138375918197\",\"xcpProfit\":\"1000559554558942509\",\"virtualPrice\":\"1000280481739697211\",\"allowedExtraProfit\":\"2000000000000\",\"adjustmentStep\":\"490000000000000\",\"maHalfTime\":\"600\"}",
+		StaticExtra: "{\"lpToken\":\"LP\",\"precisionMultipliers\":[\"1000000000000\",\"10000000000\",\"1\"]}",
+	})
+	require.Nil(t, err)
+
+	assert.Equal(t, []string{}, p.CanSwapTo("LP"))
+	assert.Equal(t, []string{"B", "C"}, p.CanSwapTo("A"))
+
+	for idx, tc := range testcases {
+		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
+			out, err := p.CalcAmountOut(pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}, tc.out)
+			require.Nil(t, err)
+			fmt.Println(out.Fee)
+			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
+			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
+		})
+	}
+}

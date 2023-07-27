@@ -17,6 +17,9 @@ var cryptoFactoryABIBytes []byte
 //go:embed abi/CryptoRegistry.json
 var cryptoRegistryABIBytes []byte
 
+//go:embed abi/MetaRegistry.json
+var metaRegistryABIBytes []byte
+
 //go:embed abi/MetaPool.json
 var metaABIBytes []byte
 
@@ -43,6 +46,9 @@ var compoundABIBytes []byte
 
 //go:embed abi/ERC20.json
 var erc20ABIBytes []byte
+
+//go:embed abi/cERC20.json
+var cerc20ABIBytes []byte
 
 //go:embed pools/arbitrum.json
 var arbitrumPoolsBytes []byte

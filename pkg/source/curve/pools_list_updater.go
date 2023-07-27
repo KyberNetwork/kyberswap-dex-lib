@@ -79,6 +79,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			{metaPoolFactoryABI, d.config.MetaPoolsFactoryAddress, metadata.MetaFactoryOffset},
 			{cryptoRegistryABI, d.config.CryptoPoolsRegistryAddress, metadata.CryptoRegistryOffset},
 			{cryptoFactoryABI, d.config.CryptoPoolsFactoryAddress, metadata.CryptoFactoryOffset},
+			{metaRegistryABI, d.config.MetaRegistryAddress, metadata.MetaRegistryOffset},
 		}
 	)
 
@@ -168,6 +169,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		MetaFactoryOffset:    registryOrFactoryList[1].Offset,
 		CryptoRegistryOffset: registryOrFactoryList[2].Offset,
 		CryptoFactoryOffset:  registryOrFactoryList[3].Offset,
+		MetaRegistryOffset:   registryOrFactoryList[4].Offset,
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -281,6 +283,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 		case poolTypeTricrypto:
 			var staticExtra = PoolTricryptoStaticExtra{
 				LpToken: poolItem.LpToken,
+				IsTricryptoNg: false,
 			}
 			for j := range poolItem.Tokens {
 				staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, poolItem.Tokens[j].Precision)

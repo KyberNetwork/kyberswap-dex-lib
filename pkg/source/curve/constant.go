@@ -42,6 +42,7 @@ const (
 	poolMethodAllowedExtraProfit  = "allowed_extra_profit"
 	poolMethodAdjustmentStep      = "adjustment_step"
 	poolMethodMaHalfTime          = "ma_half_time"
+	poolMethodMaTime              = "ma_time"
 	poolMethodPriceScale          = "price_scale"
 	poolMethodPriceOracle         = "price_oracle"
 	poolMethodLastPrices          = "last_prices"
@@ -53,6 +54,9 @@ const (
 
 	erc20MethodName        = "name"
 	erc20MethodTotalSupply = "totalSupply"
+
+	cerc20MethodName     = "name"
+	cerc20MethodIsCToken = "isCToken"
 
 	addressEther = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
 	addressZero  = "0x0000000000000000000000000000000000000000"
@@ -79,6 +83,7 @@ const (
 	sourceMetaPoolsFactory
 	sourceCryptoPoolsRegistry
 	sourceCryptoPoolsFactory
+	sourceMetaRegistry
 )
 
 // Known weth9 implementation addresses, used in our implementation of Ether#wrapped

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolReserves []string
@@ -75,7 +76,7 @@ func (p Pool) GetLpToken() string {
 
 	_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
 
-	if len(staticExtra.LpToken) > 0 {
+	if len(staticExtra.LpToken) > 0 && !strings.EqualFold(staticExtra.LpToken, valueobject.ZeroAddress) {
 		return strings.ToLower(staticExtra.LpToken)
 	}
 

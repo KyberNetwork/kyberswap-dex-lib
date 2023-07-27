@@ -12,6 +12,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func (d *PoolsListUpdater) getNewPoolsTypeBase(
@@ -89,10 +90,11 @@ func (d *PoolsListUpdater) getNewPoolsTypeBase(
 
 	var pools = make([]entity.Pool, 0, len(poolAndRegistries))
 	for i := range poolAndRegistries {
-		if rates[i][0] == nil {
+		if rates[i][0] == nil || rates[i][0].Cmp(bignumber.ZeroBI) == 0 {
+			// TODO: support plain pool later, they have hardcoded rates so will fall into this case
 			logger.WithFields(logger.Fields{
 				"poolAddress": poolAndRegistries[i].PoolAddress,
-			}).Errorf("pool with nil rates is not valid")
+			}).Errorf("pool with nil or zero rates is not valid")
 			continue
 		}
 		var reserves entity.PoolReserves

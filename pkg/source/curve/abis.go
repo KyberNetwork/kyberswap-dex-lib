@@ -8,11 +8,13 @@ import (
 
 var (
 	erc20ABI           abi.ABI
+	cerc20ABI          abi.ABI
 	addressProviderABI abi.ABI
 	mainRegistryABI    abi.ABI
 	metaPoolFactoryABI abi.ABI
 	cryptoFactoryABI   abi.ABI
 	cryptoRegistryABI  abi.ABI
+	metaRegistryABI    abi.ABI
 	metaABI            abi.ABI
 	aaveABI            abi.ABI
 	plainOracleABI     abi.ABI
@@ -29,11 +31,13 @@ func init() {
 		data []byte
 	}{
 		{&erc20ABI, erc20ABIBytes},
+		{&cerc20ABI, cerc20ABIBytes},
 		{&addressProviderABI, addressProviderABIBytes},
 		{&mainRegistryABI, mainRegistryABIBytes},
 		{&metaPoolFactoryABI, metaPoolFactoryABIBybtes},
 		{&cryptoFactoryABI, cryptoFactoryABIBytes},
 		{&cryptoRegistryABI, cryptoRegistryABIBytes},
+		{&metaRegistryABI, metaRegistryABIBytes},
 		{&metaABI, metaABIBytes},
 		{&aaveABI, aaveABIBytes},
 		{&plainOracleABI, plainOraclePoolABIBytes},

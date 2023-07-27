@@ -18,6 +18,7 @@ type Metadata struct {
 	MetaFactoryOffset    int `json:"metaFactoryOffset"`
 	CryptoRegistryOffset int `json:"cryptoRegistryOffset"`
 	CryptoFactoryOffset  int `json:"cryptoFactoryOffset"`
+	MetaRegistryOffset   int `json:"metaRegistryOffset"`
 }
 
 type PoolToken struct {
@@ -82,6 +83,7 @@ type PoolTwoStaticExtra struct {
 type PoolTricryptoStaticExtra struct {
 	LpToken              string   `json:"lpToken"`
 	PrecisionMultipliers []string `json:"precisionMultipliers"`
+	IsTricryptoNg        bool     `json:"isTricryptoNg"`
 }
 
 type PoolBaseExtra struct {

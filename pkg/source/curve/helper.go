@@ -12,7 +12,7 @@ import (
 
 func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
 	var (
-		mainRegistryAddress, metaFactoryAddress, cryptoRegistryAddress, cryptoFactoryAddress common.Address
+		mainRegistryAddress, metaFactoryAddress, cryptoRegistryAddress, cryptoFactoryAddress, metaRegistryAddress common.Address
 	)
 	calls := ethrpcClient.NewRequest()
 
@@ -44,6 +44,13 @@ func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
 		Params: []interface{}{big.NewInt(6)},
 	}, []interface{}{&cryptoFactoryAddress})
 
+	calls.AddCall(&ethrpc.Call{
+		ABI:    addressProviderABI,
+		Target: config.AddressProvider,
+		Method: addressProviderMethodGetAddress,
+		Params: []interface{}{big.NewInt(7)},
+	}, []interface{}{&metaRegistryAddress})
+
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"addressProvider": config.AddressProvider,
@@ -56,6 +63,7 @@ func initConfig(config *Config, ethrpcClient *ethrpc.Client) error {
 	config.MetaPoolsFactoryAddress = metaFactoryAddress.Hex()
 	config.CryptoPoolsRegistryAddress = cryptoRegistryAddress.Hex()
 	config.CryptoPoolsFactoryAddress = cryptoFactoryAddress.Hex()
+	config.MetaRegistryAddress = metaRegistryAddress.Hex()
 
 	return nil
 }

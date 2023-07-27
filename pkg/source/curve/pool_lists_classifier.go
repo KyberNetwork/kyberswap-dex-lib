@@ -27,6 +27,8 @@ func (d *PoolsListUpdater) classifyPoolTypes(
 		return d.classifyCurveV2PoolTypes(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
 	case sourceCryptoPoolsFactory:
 		return d.classifyCurveV2PoolTypes(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
+	case sourceMetaRegistry:
+		return d.classifyPoolsFromMainRegistry(ctx, registryOrFactoryABI, registryOrFactoryAddress, poolAddresses)
 	default:
 		// Index can be found here https://github.com/KyberNetwork/kyberswap-dex-lib/blob/0e4796ffde08481ef8b456e354cf2cb7b3aa8268/pkg/source/curve/pools_list_updater.go#L69-L79
 		logger.Errorf("unknown pools source index %v", poolsSourceIndex)
@@ -278,6 +280,7 @@ func (d *PoolsListUpdater) isCompoundPool(
 		}
 	}
 	var tokenNames = make([]string, len(coins))
+	var isCToken = make([]bool, len(coins))
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, coin := range coins {
 		if strings.EqualFold(coin.Hex(), addressZero) {
@@ -287,14 +290,20 @@ func (d *PoolsListUpdater) isCompoundPool(
 			continue
 		}
 		calls.AddCall(&ethrpc.Call{
-			ABI:    erc20ABI,
+			ABI:    cerc20ABI,
 			Target: coin.Hex(),
-			Method: erc20MethodName,
+			Method: cerc20MethodName,
 			Params: nil,
 		}, []interface{}{&tokenNames[i]})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    cerc20ABI,
+			Target: coin.Hex(),
+			Method: cerc20MethodIsCToken,
+			Params: nil,
+		}, []interface{}{&isCToken[i]})
 	}
 
-	if _, err := calls.Aggregate(); err != nil {
+	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": poolAddress,
 			"error":       err,
@@ -302,8 +311,8 @@ func (d *PoolsListUpdater) isCompoundPool(
 		return false, err
 	}
 
-	for _, name := range tokenNames {
-		if strings.Contains(strings.ToLower(name), "compound") {
+	for i, name := range tokenNames {
+		if strings.Contains(strings.ToLower(name), "compound") && isCToken[i] {
 			return true, nil
 		}
 	}

@@ -3,6 +3,7 @@ package curve
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
@@ -23,6 +25,9 @@ func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
 		coins    = make([][8]common.Address, len(poolAndRegistries))
 		decimals = make([][8]*big.Int, len(poolAndRegistries))
 		lpTokens = make([]common.Address, len(poolAndRegistries))
+
+		maHalfTime         = make([]*big.Int, len(poolAndRegistries))
+		allowedExtraProfit = make([]*big.Int, len(poolAndRegistries))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -48,21 +53,48 @@ func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
 			Method: poolMethodToken,
 			Params: nil,
 		}, []interface{}{&lpTokens[i]})
+
+		calls.AddCall(&ethrpc.Call{
+			ABI:    tricryptoABI,
+			Target: poolAndRegistry.PoolAddress.Hex(),
+			Method: poolMethodMaHalfTime,
+			Params: nil,
+		}, []interface{}{&maHalfTime[i]})
+
+		calls.AddCall(&ethrpc.Call{
+			ABI:    tricryptoABI,
+			Target: poolAndRegistry.PoolAddress.Hex(),
+			Method: poolMethodAllowedExtraProfit,
+			Params: nil,
+		}, []interface{}{&allowedExtraProfit[i]})
 	}
 
-	if _, err := calls.Aggregate(); err != nil {
+	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to aggregate call to get pool data")
 		return nil, err
 	}
 
-	var pools = make([]entity.Pool, len(poolAndRegistries))
+	var pools = make([]entity.Pool, 0, len(poolAndRegistries))
 	for i := range poolAndRegistries {
+		if allowedExtraProfit[i] == nil || allowedExtraProfit[i].Cmp(bignumber.ZeroBI) == 0 {
+			// ignore old tricrypto pool with hardcoded allowed_extra_profit
+			// for example https://etherscan.io/address/0x80466c64868e1ab14a1ddf27a676c3fcbe638fe5#readContract
+			logger.WithFields(logger.Fields{
+				"poolAddress": poolAndRegistries[i].PoolAddress,
+			}).Warn("ignore pool without allowed_extra_profit")
+			continue
+		}
+
 		var reserves entity.PoolReserves
 		var tokens []*entity.PoolToken
+
+		// tricrypto-ng is a special version optimized for ETH
+		isTricryptoNg := maHalfTime[i] == nil || maHalfTime[i].Cmp(bignumber.ZeroBI) == 0
 		var staticExtra = PoolTricryptoStaticExtra{
-			LpToken: strings.ToLower(lpTokens[i].Hex()),
+			LpToken:       strings.ToLower(lpTokens[i].Hex()),
+			IsTricryptoNg: isTricryptoNg,
 		}
 		for j := range coins[i] {
 			coinAddress := convertToEtherAddress(coins[i][j].Hex(), d.config.ChainID)
@@ -86,7 +118,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
 			return nil, err
 		}
 
-		pools[i] = entity.Pool{
+		pools = append(pools, entity.Pool{
 			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
 			Exchange:    DexTypeCurve,
 			Type:        poolTypeTricrypto,
@@ -94,7 +126,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
 			Reserves:    reserves,
 			Tokens:      tokens,
 			StaticExtra: string(staticExtraBytes),
-		}
+		})
 	}
 
 	return pools, nil
@@ -110,7 +142,7 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 	var (
 		a, dExtra, gamma, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
 
-		lastPriceTimestamp, xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, maHalfTime, lpSupply *big.Int
+		lastPriceTimestamp, xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, maHalfTime, maTime, lpSupply *big.Int
 
 		balances = make([]*big.Int, len(p.Tokens))
 
@@ -119,6 +151,16 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 		priceOracles = make([]*big.Int, len(p.Tokens)-1)
 		lastPrices   = make([]*big.Int, len(p.Tokens)-1)
 	)
+
+	var staticExtra PoolTricryptoStaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"poolType":    p.Type,
+			"error":       err,
+		}).Errorf("failed to unmarshal static extra data")
+		return entity.Pool{}, err
+	}
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -227,12 +269,21 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 		Params: nil,
 	}, []interface{}{&adjustmentStep})
 
-	calls.AddCall(&ethrpc.Call{
-		ABI:    tricryptoABI,
-		Target: p.Address,
-		Method: poolMethodMaHalfTime,
-		Params: nil,
-	}, []interface{}{&maHalfTime})
+	if staticExtra.IsTricryptoNg {
+		calls.AddCall(&ethrpc.Call{
+			ABI:    tricryptoABI,
+			Target: p.Address,
+			Method: poolMethodMaTime,
+			Params: nil,
+		}, []interface{}{&maTime})
+	} else {
+		calls.AddCall(&ethrpc.Call{
+			ABI:    tricryptoABI,
+			Target: p.Address,
+			Method: poolMethodMaHalfTime,
+			Params: nil,
+		}, []interface{}{&maHalfTime})
+	}
 
 	lpToken := p.GetLpToken()
 	if len(lpToken) > 0 {
@@ -298,6 +349,13 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 		return value.String()
 	})
 
+	var maHalfTimeS string
+	if staticExtra.IsTricryptoNg {
+		maHalfTimeS = maTime.String()
+	} else {
+		maHalfTimeS = maHalfTime.String()
+	}
+
 	var extra = PoolTricryptoExtra{
 		A:                   a.String(),
 		D:                   dExtra.String(),
@@ -314,7 +372,7 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 		VirtualPrice:        virtualPrice.String(),
 		AllowedExtraProfit:  allowedExtraProfit.String(),
 		AdjustmentStep:      adjustmentStep.String(),
-		MaHalfTime:          maHalfTime.String(),
+		MaHalfTime:          maHalfTimeS,
 
 		PriceScale:  priceScalesStr,
 		LastPrices:  lastPricesStr,
@@ -334,6 +392,34 @@ func (d *PoolTracker) getNewPoolStateTypeTricrypto(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = reserves
+
+	// debug to get testcase data
+	if strings.EqualFold(p.Address, "0xf5f5b97624542d72a9e06f04804bf81baa15e2b4") {
+		x, _ := json.Marshal(p)
+		fmt.Println("---", p.Address)
+		fmt.Println("---", string(x))
+
+		var r, r1 *big.Int
+		request := d.ethrpcClient.NewRequest().
+			AddCall(&ethrpc.Call{
+				ABI:    tricryptoABI,
+				Target: p.Address,
+				Method: "get_dy",
+				Params: []interface{}{big.NewInt(0), big.NewInt(2), big.NewInt(1)},
+			}, []interface{}{&r}).
+			AddCall(&ethrpc.Call{
+				ABI:    tricryptoABI,
+				Target: p.Address,
+				Method: "get_dy",
+				Params: []interface{}{big.NewInt(1), big.NewInt(2), big.NewInt(1)},
+			}, []interface{}{&r1})
+
+		if _, err := request.Aggregate(); err != nil {
+			fmt.Println("err---", err)
+		}
+		fmt.Println("amount out---", r.String(), r1.String())
+	}
+	// end of debug
 
 	logger.Infof("[Curve] Finish getting new state of pool %v with type %v", p.Address, p.Type)
 
