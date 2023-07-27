@@ -130,10 +130,10 @@ func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
 		}
 	}
 
-	for _, bin := range currentBins {
-		var thisBinAmount = bin.ReserveA
+	for i := range currentBins {
+		var thisBinAmount = currentBins[i].ReserveA
 		if currentReserveB.Cmp(zeroBI) > 0 {
-			thisBinAmount = bin.ReserveB
+			thisBinAmount = currentBins[i].ReserveB
 		}
 
 		var totalAmount = currentReserveA
@@ -141,7 +141,7 @@ func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
 			totalAmount = currentReserveB
 		}
 
-		if err := adjustAB(bin, newDelta, thisBinAmount, totalAmount); err != nil {
+		if err := adjustAB(&currentBins[i], newDelta, thisBinAmount, totalAmount); err != nil {
 			return nil, err
 		}
 	}
@@ -604,7 +604,7 @@ func sqrtEdgePrice(delta *Delta) *big.Int {
 	return delta.SqrtLowerTickPrice
 }
 
-func adjustAB(bin Bin, delta *Delta, thisBinAmount, totalAmount *big.Int) error {
+func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount *big.Int) error {
 	var deltaOut = big.NewInt(0)
 	deltaIn, err := mulDiv(delta.DeltaInBinInternal, thisBinAmount, totalAmount, false)
 	if err != nil {
