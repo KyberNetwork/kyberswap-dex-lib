@@ -22,7 +22,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		out               string
 		expectedOutAmount int64
 	}{
-		// {"A", 10, "B", 11815484110223},
+		{"A", 10, "B", 11815484110223},
 		{"B", 100000000000000000, "A", 75997},
 	}
 	g := GlobalState{
@@ -56,7 +56,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		baseFee:     100,
 	}
 	p.timepoints = TimepointStorage{
-		data: [65536]Timepoint{},
+		data:    [65536]Timepoint{},
+		updates: map[uint16]Timepoint{},
 	}
 	p.timepoints.data[62] = Timepoint{
 		initialized:                   true,

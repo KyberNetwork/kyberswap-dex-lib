@@ -12,27 +12,32 @@ const UINT16_MODULO = 65536
 
 type (
 	int24 = int32
+	int56 = int64
 )
 
 type Timepoint struct {
 	initialized                   bool     // whether or not the timepoint is initialized
 	blockTimestamp                uint32   // the block timestamp of the timepoint
-	tickCumulative                int64    // the tick accumulator, i.e. tick * time elapsed since the pool was first initialized
+	tickCumulative                int56    // the tick accumulator, i.e. tick * time elapsed since the pool was first initialized
 	secondsPerLiquidityCumulative *big.Int // the seconds per liquidity since the pool was first initialized
 	volatilityCumulative          *big.Int // the volatility accumulator; overflow after ~34800 years is desired :)
-	averageTick                   int32    // average tick at this blockTimestamp
+	averageTick                   int24    // average tick at this blockTimestamp
 	volumePerLiquidityCumulative  *big.Int // the gmean(volumes)/liquidity accumulator
 }
 
 type TimepointStorage struct {
-	data [UINT16_MODULO]Timepoint
+	data    [UINT16_MODULO]Timepoint
+	updates map[uint16]Timepoint
 }
 
 func (s *TimepointStorage) Get(index uint16) Timepoint {
+	if v, ok := s.updates[index]; ok {
+		return v
+	}
 	return s.data[index]
 }
 func (s *TimepointStorage) Set(index uint16, v Timepoint) {
-	s.data[index] = v
+	s.updates[index] = v
 }
 
 // / @notice Calculates volatility between two sequential timepoints with resampling to 1 sec frequency
@@ -97,17 +102,17 @@ func _volatilityOnRange(
 func createNewTimepoint(
 	last Timepoint,
 	blockTimestamp uint32,
-	tick int32,
-	prevTick int32,
+	tick int24,
+	prevTick int24,
 	liquidity *big.Int,
-	averageTick int32,
+	averageTick int24,
 	volumePerLiquidity *big.Int,
 ) Timepoint {
 	delta := blockTimestamp - last.blockTimestamp
 
 	last.initialized = true
 	last.blockTimestamp = blockTimestamp
-	last.tickCumulative += int64(tick) * int64(delta)
+	last.tickCumulative += int56(tick) * int64(delta)
 
 	if liquidity.Cmp(bignumber.ZeroBI) <= 0 {
 		liquidity = bignumber.One
@@ -150,11 +155,11 @@ func lteConsideringOverflow(
 // / returns int256 for fuzzy tests
 func (self *TimepointStorage) _getAverageTick(
 	time uint32,
-	tick int32,
+	tick int24,
 	index uint16,
 	oldestIndex uint16,
 	lastTimestamp uint32,
-	lastTickCumulative int64,
+	lastTickCumulative int56,
 ) (*big.Int, error) {
 	oldest := self.Get(oldestIndex)
 	oldestTimestamp := oldest.blockTimestamp
@@ -265,7 +270,7 @@ func (self *TimepointStorage) binarySearch(
 func (self *TimepointStorage) getSingleTimepoint(
 	time uint32,
 	secondsAgo uint32,
-	tick int32,
+	tick int24,
 	index uint16,
 	oldestIndex uint16,
 	liquidity *big.Int,
@@ -284,7 +289,7 @@ func (self *TimepointStorage) getSingleTimepoint(
 			if err != nil {
 				return Timepoint{}, err
 			}
-			avgTick := int32(avgTickBI.Int64())
+			avgTick := int24(avgTickBI.Int64())
 			prevTick := tick
 			{
 				if index != oldestIndex {
@@ -292,7 +297,7 @@ func (self *TimepointStorage) getSingleTimepoint(
 					_prevLast := self.Get(index - 1) // considering index underflow
 					prevLast.blockTimestamp = _prevLast.blockTimestamp
 					prevLast.tickCumulative = _prevLast.tickCumulative
-					prevTick = int32((last.tickCumulative - prevLast.tickCumulative) / int64(last.blockTimestamp-prevLast.blockTimestamp))
+					prevTick = int24((last.tickCumulative - prevLast.tickCumulative) / int64(last.blockTimestamp-prevLast.blockTimestamp))
 				}
 			}
 			return createNewTimepoint(last, target, tick, prevTick, liquidity, avgTick, bignumber.ZeroBI), nil

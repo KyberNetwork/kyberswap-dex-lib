@@ -34,7 +34,7 @@ type PoolSimulator struct {
 	tickMax                   int
 
 	timepoints TimepointStorage
-	feeConf FeeConfiguration
+	feeConf    FeeConfiguration
 }
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
@@ -162,6 +162,9 @@ func (p *PoolSimulator) CalcAmountOut(
 		} else {
 			amountOut = new(big.Int).Neg(amount0)
 		}
+
+		// always clear written data, TODO: return in nextstate object
+		p.timepoints.updates = map[uint16]Timepoint{}
 
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
