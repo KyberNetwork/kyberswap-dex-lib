@@ -70,7 +70,7 @@ var (
 	ExchangeKyberswapElastic Exchange = "kyberswap-elastic"
 	ExchangeChronosV3        Exchange = "chronos-v3"
 	ExchangeRetro            Exchange = "retro"
-	ExchangeHorizon          Exchange = "horizon"
+	ExchangeHorizonDex       Exchange = "horizon-dex"
 
 	ExchangeBalancer                 Exchange = "balancer"
 	ExchangeBalancerComposableStable Exchange = "balancer-composable-stable"
@@ -199,7 +199,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSyncSwap:                 {},
 	ExchangeKyberSwapLimitOrder:      {},
 	ExchangeMaverickV1:               {},
-	ExchangeHorizon:                  {},
+	ExchangeHorizonDex:               {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
