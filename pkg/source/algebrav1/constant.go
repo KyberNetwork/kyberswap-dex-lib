@@ -21,11 +21,15 @@ const (
 	methodGetGlobalState = "globalState"
 	erc20MethodBalanceOf = "balanceOf"
 
-	tickSpacing = 60
-	uint16_max  = 65535
+	uint16_max = 65535
+
+	maxSwapLoop = 1000000
 )
 
 var (
+	uint256_max               = bignumber.NewBig("0xffffffffffffffffffffffffffffffff")
+	pow192                    = new(big.Int).Lsh(bignumber.One, 192)
 	Q128                      = bignumber.NewBig("0x100000000000000000000000000000000")
 	COMMUNITY_FEE_DENOMINATOR = big.NewInt(1000)
+	MAX_VOLUME_PER_LIQUIDITY  = new(big.Int).Lsh(big.NewInt(100000), 64) // maximum meaningful ratio of volume to liquidity
 )

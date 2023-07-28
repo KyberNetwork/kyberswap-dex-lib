@@ -40,7 +40,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		Type:     "",
 		Reserves: entity.PoolReserves{"1156075", "35450062374042037833"},
 		Tokens:   []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
-		Extra:    fmt.Sprintf("{\"liquidity\":119137538372759,\"volumePerLiquidityInBlock\":100,\"totalFeeGrowth0Token\":303633474589870761058966414024, \"totalFeeGrowth1Token\":423897051166683508742054049450199029991046,\"globalState\": %s,\"ticks\":[{\"index\":-887220,\"liquidityGross\":2822091172725,\"liquidityNet\":2822091172725},{\"index\":273540,\"liquidityGross\":116315447200034,\"liquidityNet\":116315447200034},{\"index\":279120,\"liquidityGross\":116315447200034,\"liquidityNet\":-116315447200034},{\"index\":285480,\"liquidityGross\":2822091172725,\"liquidityNet\":-2822091172725},{\"index\":887220,\"liquidityGross\":0,\"liquidityNet\":0}]}", gs),
+		Extra:    fmt.Sprintf("{\"tickSpacing\":60,\"liquidity\":119137538372759,\"volumePerLiquidityInBlock\":100,\"totalFeeGrowth0Token\":303633474589870761058966414024, \"totalFeeGrowth1Token\":423897051166683508742054049450199029991046,\"globalState\": %s,\"ticks\":[{\"index\":-887220,\"liquidityGross\":2822091172725,\"liquidityNet\":2822091172725},{\"index\":273540,\"liquidityGross\":116315447200034,\"liquidityNet\":116315447200034},{\"index\":279120,\"liquidityGross\":116315447200034,\"liquidityNet\":-116315447200034},{\"index\":285480,\"liquidityGross\":2822091172725,\"liquidityNet\":-2822091172725},{\"index\":887220,\"liquidityGross\":0,\"liquidityNet\":0}]}", gs),
 	}, valueobject.ChainIDPolygon)
 	require.Nil(t, err)
 

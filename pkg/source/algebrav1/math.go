@@ -19,8 +19,8 @@ type SwapCalculationCache struct {
 	computedLatestTimepoint       bool     //  if we have already fetched _tickCumulative_ and _secondPerLiquidity_ from the DataOperator
 	amountRequiredInitial         *big.Int // The initial value of the exact input\output amount
 	amountCalculated              *big.Int // The additive amount of total output\input calculated trough the swap
-	totalFeeGrowth                *big.Int // The initial totalFeeGrowth + the fee growth during a swap
-	totalFeeGrowthB               *big.Int
+	// totalFeeGrowth                *big.Int // The initial totalFeeGrowth + the fee growth during a swap
+	// totalFeeGrowthB               *big.Int
 	// incentiveStatus               IAlgebraVirtualPool.Status // If there is an active incentive at the moment
 	exactInput     bool   // Whether the exact input or output is specified
 	fee            uint16 // The current dynamic fee
@@ -36,12 +36,6 @@ type PriceMovementCache struct {
 	input         *big.Int // The additive amount of tokens that have been provided
 	output        *big.Int // The additive amount of token that have been withdrawn
 	feeAmount     *big.Int // The total amount of fee earned within a current step
-}
-
-func _require(cond bool, msg string) {
-	if cond {
-		panic(msg)
-	}
 }
 
 func (p *PoolSimulator) _writeTimepoint(
@@ -71,18 +65,50 @@ func (p *PoolSimulator) _getNewFee(
 	), nil
 }
 
+func (p *PoolSimulator) _getSingleTimepoint(
+	blockTimestamp uint32,
+	secondsAgo uint32,
+	startTick int24,
+	timepointIndex uint16,
+	liquidityStart *big.Int,
+) (error, int56, *big.Int, *big.Int, *big.Int) {
+
+	var oldestIndex uint16
+	// check if we have overflow in the past
+	nextIndex := timepointIndex + 1 // considering overflow
+	if p.timepoints.Get(nextIndex).initialized {
+		oldestIndex = nextIndex
+	}
+
+	result, err := p.timepoints.getSingleTimepoint(blockTimestamp, secondsAgo, startTick, timepointIndex, oldestIndex, liquidityStart)
+	if err != nil {
+		return err, 0, nil, nil, nil
+	}
+	return nil,
+		result.tickCumulative,
+		result.secondsPerLiquidityCumulative,
+		result.volatilityCumulative,
+		result.volumePerLiquidityCumulative
+}
+
 func (p *PoolSimulator) _calculateSwapAndLock(
 	zeroToOne bool,
 	amountRequired *big.Int,
 	limitSqrtPrice *big.Int,
-) (error, *big.Int, *big.Int) {
+) (error, *big.Int, *big.Int, *StateUpdate) {
+	nextState := &StateUpdate{}
+
+	defer func() {
+		// reset written timepoints
+		p.timepoints.updates = map[uint16]Timepoint{}
+	}()
 
 	blockTimestamp := uint32(time.Now().Unix())
 	var cache SwapCalculationCache
 
 	// load from one storage slot
 	currentPrice := p.globalState.Price
-	currentTick := int(p.globalState.Tick.Int64()) // TODO: cast at tracker side
+	currentTick := int(p.globalState.Tick.Int64())
 	cache.fee = p.globalState.Fee
 	cache.amountCalculated = bignumber.ZeroBI
 	cache.timepointIndex = p.globalState.TimepointIndex
@@ -93,7 +119,7 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 
 	cmp := amountRequired.Cmp(bignumber.ZeroBI)
 	if cmp == 0 {
-		return errors.New("AS"), nil, nil
+		return errors.New("AS"), nil, nil, nil
 	}
 
 	cache.amountRequiredInitial, cache.exactInput = amountRequired, cmp > 0
@@ -103,15 +129,13 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 
 	if zeroToOne {
 		if limitSqrtPrice.Cmp(currentPrice) >= 0 || limitSqrtPrice.Cmp(utils.MinSqrtRatio) <= 0 {
-			return errors.New("SPL"), nil, nil
+			return errors.New("SPL"), nil, nil, nil
 		}
-		cache.totalFeeGrowth = p.totalFeeGrowth0Token
 		cache.communityFee = big.NewInt(int64(_communityFeeToken0))
 	} else {
 		if limitSqrtPrice.Cmp(currentPrice) <= 0 || limitSqrtPrice.Cmp(utils.MaxSqrtRatio) >= 0 {
-			return errors.New("SPL"), nil, nil
+			return errors.New("SPL"), nil, nil, nil
 		}
-		cache.totalFeeGrowth = p.totalFeeGrowth1Token
 		cache.communityFee = big.NewInt(int64(_communityFeeToken1))
 	}
 
@@ -127,7 +151,7 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 		cache.volumePerLiquidityInBlock,
 	)
 	if err != nil {
-		return err, nil, nil
+		return err, nil, nil, nil
 	}
 
 	// new timepoint appears only for first swap in block
@@ -136,20 +160,21 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 		cache.volumePerLiquidityInBlock = bignumber.ZeroBI
 		cache.fee, err = p._getNewFee(blockTimestamp, int24(currentTick), newTimepointIndex, currentLiquidity)
 		if err != nil {
-			return err, nil, nil
+			return err, nil, nil, nil
 		}
 	}
 
 	var step PriceMovementCache
 	// swap until there is remaining input or output tokens or we reach the price limit
-	for {
+	// limit by maxSwapLoop to make sure we won't loop infinitely because of a bug somewhere
+	for i := 0; i < maxSwapLoop; i++ {
 		step.stepSqrtPrice = currentPrice
 
-		step.nextTick, step.initialized = p.ticks.NextInitializedTickWithinOneWord(currentTick, zeroToOne, tickSpacing)
+		step.nextTick, step.initialized = p.ticks.NextInitializedTickWithinOneWord(currentTick, zeroToOne, p.tickSpacing)
 
 		step.nextTickPrice, err = utils.GetSqrtRatioAtTick(step.nextTick)
 		if err != nil {
-			return err, nil, nil
+			return err, nil, nil, nil
 		}
 
 		// calculate the amounts needed to move the price to the next target if it is possible or as much as possible
@@ -166,7 +191,7 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 			constants.FeeAmount(cache.fee),
 		)
 		if err != nil {
-			return err, nil, nil
+			return err, nil, nil, nil
 		}
 
 		if cache.exactInput {
@@ -188,57 +213,35 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 			communityFeeAmount = new(big.Int).Add(communityFeeAmount, delta)
 		}
 
-		if currentLiquidity.Cmp(bignumber.ZeroBI) > 0 {
-			cache.totalFeeGrowth = new(big.Int).Add(cache.totalFeeGrowth, MulDivRoundingDown(step.feeAmount, Q128, currentLiquidity))
-		}
-
 		if currentPrice == step.nextTickPrice {
 			// if the reached tick is initialized then we need to cross it
 			if step.initialized {
 				// once at a swap we have to get the last timepoint of the observation
 				if !cache.computedLatestTimepoint {
-					// TODO
-					// cache.tickCumulative, cache.secondsPerLiquidityCumulative, _, _ = _getSingleTimepoint(
-					// 	blockTimestamp,
-					// 	0,
-					// 	cache.startTick,
-					// 	cache.timepointIndex,
-					// 	currentLiquidity, // currentLiquidity can be changed only after computedLatestTimepoint
-					// )
-					// cache.computedLatestTimepoint = true
-					// if zeroToOne {
-					// 	cache.totalFeeGrowthB = p.totalFeeGrowth1Token
-					// } else {
-					// 	cache.totalFeeGrowthB = p.totalFeeGrowth0Token
-					// }
+					err, cache.tickCumulative, cache.secondsPerLiquidityCumulative, _, _ = p._getSingleTimepoint(
+						blockTimestamp,
+						0,
+						int24(cache.startTick),
+						cache.timepointIndex,
+						currentLiquidity, // currentLiquidity can be changed only after computedLatestTimepoint
+					)
+					if err != nil {
+						return err, nil, nil, nil
+					}
+					cache.computedLatestTimepoint = true
 				}
 
 				// every tick cross is needed to be duplicated in a virtual pool
 				// don't need to do this here
 
-				// TODO
-				// var liquidityDelta *big.Int
-				// if zeroToOne {
-				// 	liquidityDelta = -ticks.cross(
-				// 		step.nextTick,
-				// 		cache.totalFeeGrowth,  // A == 0
-				// 		cache.totalFeeGrowthB, // B == 1
-				// 		cache.secondsPerLiquidityCumulative,
-				// 		cache.tickCumulative,
-				// 		blockTimestamp,
-				// 	)
-				// } else {
-				// 	liquidityDelta = ticks.cross(
-				// 		step.nextTick,
-				// 		cache.totalFeeGrowthB, // B == 0
-				// 		cache.totalFeeGrowth,  // A == 1
-				// 		cache.secondsPerLiquidityCumulative,
-				// 		cache.tickCumulative,
-				// 		blockTimestamp,
-				// 	)
-				// }
+				var liquidityDelta *big.Int
+				if zeroToOne {
+					liquidityDelta = new(big.Int).Neg(p.ticks.GetTick(step.nextTick).LiquidityNet)
+				} else {
+					liquidityDelta = p.ticks.GetTick(step.nextTick).LiquidityNet
+				}
 
-				// currentLiquidity = LiquidityMath.addDelta(currentLiquidity, liquidityDelta)
+				currentLiquidity = utils.AddDelta(currentLiquidity, liquidityDelta)
 			}
 			if zeroToOne {
 				currentTick = step.nextTick - 1
@@ -249,7 +252,7 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 			// if the price has changed but hasn't reached the target
 			currentTick, err = utils.GetTickAtSqrtRatio(currentPrice)
 			if err != nil {
-				return err, nil, nil
+				return err, nil, nil, nil
 			}
 			break // since the price hasn't reached the target, amountRequired should be 0
 		}
@@ -268,25 +271,134 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	} else {
 		amount0, amount1 = cache.amountCalculated, new(big.Int).Sub(cache.amountRequiredInitial, amountRequired)
 	}
-	// TODO: do not update here but return to be updated later
-	// p.globalState.Price, p.globalState.Tick, p.globalState.Fee, p.globalState.TimepointIndex = currentPrice, currentTick, cache.fee, cache.timepointIndex
 
-	// liquidity, volumePerLiquidityInBlock =
-	// 	currentLiquidity,
-	// 	cache.volumePerLiquidityInBlock+IDataStorageOperator(dataStorageOperator).calculateVolumePerLiquidity(currentLiquidity, amount0, amount1)
+	nextState.GlobalState = GlobalState{
+		Price:          currentPrice,
+		Tick:           big.NewInt(int64(currentTick)),
+		Fee:            cache.fee,
+		TimepointIndex: cache.timepointIndex,
+	}
 
-	// if zeroToOne {
-	// 	totalFeeGrowth0Token = cache.totalFeeGrowth
-	// } else {
-	// 	totalFeeGrowth1Token = cache.totalFeeGrowth
-	// }
+	nextState.Liquidity, nextState.VolumePerLiquidityInBlock =
+		currentLiquidity,
+		new(big.Int).Add(cache.volumePerLiquidityInBlock, calculateVolumePerLiquidity(currentLiquidity, amount0, amount1))
+
+	// copy written timepoints
+	nextState.NewTimepoints = make(map[uint16]Timepoint, len(p.timepoints.updates))
+	for i, tp := range p.timepoints.updates {
+		nextState.NewTimepoints[i] = tp
+	}
 
 	fmt.Println("amount--", amount0, amount1)
-	return nil, amount0, amount1
+	return nil, amount0, amount1, nextState
 }
 
-func MulDivRoundingDown(a, b, denominator *big.Int) *big.Int {
-	product := new(big.Int).Mul(a, b)
-	result := new(big.Int).Div(product, denominator)
-	return result
+// func MulDivRoundingDown(a, b, denominator *big.Int) *big.Int {
+// 	product := new(big.Int).Mul(a, b)
+// 	result := new(big.Int).Div(product, denominator)
+// 	return result
+// }
+
+// / @notice Transitions to next tick as needed by price movement
+// / @param self The mapping containing all tick information for initialized ticks
+// / @param tick The destination tick of the transition
+// / @param totalFeeGrowth0Token The all-time global fee growth, per unit of liquidity, in token0
+// / @param totalFeeGrowth1Token The all-time global fee growth, per unit of liquidity, in token1
+// / @param secondsPerLiquidityCumulative The current seconds per liquidity
+// / @param tickCumulative The all-time global cumulative tick
+// / @param time The current block.timestamp
+// / @return liquidityDelta The amount of liquidity added (subtracted) when tick is crossed from left to right (right to left)
+// func cross(
+// 	ticks *entities.TickListDataProvider,
+// 	tick int24,
+// 	totalFeeGrowth0Token *big.Int,
+// 	totalFeeGrowth1Token *big.Int,
+// 	secondsPerLiquidityCumulative *big.Int,
+// 	tickCumulative int56,
+// 	time uint32,
+// ) *big.Int {
+// 	data := ticks.GetTick(int(tick))
+
+// 	data.outerSecondsSpent = time - data.outerSecondsSpent
+// 	data.outerSecondsPerLiquidity = secondsPerLiquidityCumulative - data.outerSecondsPerLiquidity
+// 	data.outerTickCumulative = tickCumulative - data.outerTickCumulative
+
+// 	data.outerFeeGrowth1Token = totalFeeGrowth1Token - data.outerFeeGrowth1Token
+// 	data.outerFeeGrowth0Token = totalFeeGrowth0Token - data.outerFeeGrowth0Token
+
+// 	return data.liquidityDelta
+// }
+
+func calculateVolumePerLiquidity(
+	liquidity *big.Int,
+	amount0 *big.Int,
+	amount1 *big.Int,
+) *big.Int {
+	volume := new(big.Int).Mul(sqrtAbs(amount0), sqrtAbs(amount1))
+	var volumeShifted *big.Int
+	if liquidity.Cmp(bignumber.ZeroBI) <= 0 {
+		liquidity = new(big.Int).Set(bignumber.One)
+	}
+	if volume.Cmp(pow192) >= 0 {
+		volumeShifted = new(big.Int).Div(uint256_max, liquidity)
+	} else {
+		volumeShifted = new(big.Int).Div(new(big.Int).Lsh(volume, 64), liquidity)
+	}
+	if volumeShifted.Cmp(MAX_VOLUME_PER_LIQUIDITY) >= 0 {
+		return MAX_VOLUME_PER_LIQUIDITY
+	} else {
+		return volumeShifted
+	}
+}
+
+// / @notice Gets the square root of the absolute value of the parameter
+func sqrtAbs(_x *big.Int) *big.Int {
+	// get abs value
+	mask := new(big.Int).Rsh(_x, (256 - 1))
+	x := new(big.Int).Sub(new(big.Int).Xor(_x, mask), mask)
+	if x.Cmp(bignumber.ZeroBI) == 0 {
+		return bignumber.ZeroBI
+	} else {
+		xx := x
+		r := new(big.Int).Set(bignumber.One)
+		if xx.Cmp(bignumber.NewBig("0x100000000000000000000000000000000")) >= 0 {
+			xx = new(big.Int).Rsh(xx, 128)
+			r = new(big.Int).Lsh(r, 64)
+		}
+		if xx.Cmp(bignumber.NewBig("0x10000000000000000")) >= 0 {
+			xx = new(big.Int).Rsh(xx, 64)
+			r = new(big.Int).Lsh(r, 32)
+		}
+		if xx.Cmp(bignumber.NewBig("0x100000000")) >= 0 {
+			xx = new(big.Int).Rsh(xx, 32)
+			r = new(big.Int).Lsh(r, 16)
+		}
+		if xx.Cmp(bignumber.NewBig("0x10000")) >= 0 {
+			xx = new(big.Int).Rsh(xx, 16)
+			r = new(big.Int).Lsh(r, 8)
+		}
+		if xx.Cmp(bignumber.NewBig("0x100")) >= 0 {
+			xx = new(big.Int).Rsh(xx, 8)
+			r = new(big.Int).Lsh(r, 4)
+		}
+		if xx.Cmp(bignumber.NewBig("0x10")) >= 0 {
+			xx = new(big.Int).Rsh(xx, 4)
+			r = new(big.Int).Lsh(r, 2)
+		}
+		if xx.Cmp(bignumber.NewBig("0x8")) >= 0 {
+			r = new(big.Int).Lsh(r, 1)
+		}
+		r = new(big.Int).Rsh(new(big.Int).Add(r, new(big.Int).Div(x, r)), 1)
+		r = new(big.Int).Rsh(new(big.Int).Add(r, new(big.Int).Div(x, r)), 1)
+		r = new(big.Int).Rsh(new(big.Int).Add(r, new(big.Int).Div(x, r)), 1)
+		r = new(big.Int).Rsh(new(big.Int).Add(r, new(big.Int).Div(x, r)), 1)
+		r = new(big.Int).Rsh(new(big.Int).Add(r, new(big.Int).Div(x, r)), 1)
+		r = new(big.Int).Rsh(new(big.Int).Add(r, new(big.Int).Div(x, r)), 1)
+		r = new(big.Int).Rsh(new(big.Int).Add(r, new(big.Int).Div(x, r)), 1) // @dev Seven iterations should be enough.
+		r1 := new(big.Int).Div(x, r)
+		if r.Cmp(r1) < 0 {
+			return r
+		}
+		return r1
+	}
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/KyberNetwork/logger"
 )
 
 var (
@@ -26,12 +27,13 @@ type PoolSimulator struct {
 	globalState               GlobalState
 	liquidity                 *big.Int
 	volumePerLiquidityInBlock *big.Int
-	totalFeeGrowth0Token      *big.Int
-	totalFeeGrowth1Token      *big.Int
-	ticks                     *v3Entities.TickListDataProvider
-	gas                       Gas
-	tickMin                   int
-	tickMax                   int
+	// totalFeeGrowth0Token      *big.Int
+	// totalFeeGrowth1Token      *big.Int
+	ticks       *v3Entities.TickListDataProvider
+	gas         Gas
+	tickMin     int
+	tickMax     int
+	tickSpacing int
 
 	timepoints TimepointStorage
 	feeConf    FeeConfiguration
@@ -83,7 +85,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, ErrV3TicksEmpty
 	}
 
-	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, tickSpacing)
+	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, extra.TickSpacing)
 	if err != nil {
 		return nil, err
 	}
@@ -107,12 +109,13 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		globalState:               extra.GlobalState,
 		liquidity:                 extra.Liquidity,
 		volumePerLiquidityInBlock: extra.VolumePerLiquidityInBlock,
-		totalFeeGrowth0Token:      extra.TotalFeeGrowth0Token,
-		totalFeeGrowth1Token:      extra.TotalFeeGrowth1Token,
-		ticks:                     ticks,
+		// totalFeeGrowth0Token:      extra.TotalFeeGrowth0Token,
+		// totalFeeGrowth1Token:      extra.TotalFeeGrowth1Token,
+		ticks: ticks,
 		// gas:     defaultGas,
 		tickMin: tickMin,
 		tickMax: tickMax,
+		tickSpacing: extra.TickSpacing,
 	}, nil
 }
 
@@ -142,20 +145,16 @@ func (p *PoolSimulator) CalcAmountOut(
 ) (*pool.CalcAmountOutResult, error) {
 	var tokenInIndex = p.GetTokenIndex(tokenAmountIn.Token)
 	var tokenOutIndex = p.GetTokenIndex(tokenOut)
-	// var tokenIn *coreEntities.Token
 	var zeroForOne bool
 
 	if tokenInIndex >= 0 && tokenOutIndex >= 0 {
 		if strings.EqualFold(tokenOut, p.Info.Tokens[0]) {
 			zeroForOne = false
-			// tokenIn = p.Info.Tokens[1]
 		} else {
-			// tokenIn = p.Info.Tokens[0]
 			zeroForOne = true
 		}
-		// amountIn := coreEntities.FromRawAmount(tokenIn, tokenAmountIn.Amount)
-		// amountOut, _, err := p.GetOutputAmount(amountIn, p.getSqrtPriceLimit(zeroForOne))
-		err, amount0, amount1 := p._calculateSwapAndLock(zeroForOne, tokenAmountIn.Amount, p.getSqrtPriceLimit(zeroForOne))
+
+		err, amount0, amount1, stateUpdate := p._calculateSwapAndLock(zeroForOne, tokenAmountIn.Amount, p.getSqrtPriceLimit(zeroForOne))
 		var amountOut *big.Int
 		if zeroForOne {
 			amountOut = new(big.Int).Neg(amount1)
@@ -163,19 +162,11 @@ func (p *PoolSimulator) CalcAmountOut(
 			amountOut = new(big.Int).Neg(amount0)
 		}
 
-		// always clear written data, TODO: return in nextstate object
-		p.timepoints.updates = map[uint16]Timepoint{}
-
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
 		}
 
 		// var totalGas = p.gas.Swap
-
-		//p.nextState.SqrtRatioX96 = newPoolState.SqrtRatioX96
-		//p.nextState.Liquidity = newPoolState.Liquidity
-		//p.nextState.TickCurrent = newPoolState.TickCurrent
-
 		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
@@ -187,11 +178,7 @@ func (p *PoolSimulator) CalcAmountOut(
 					Amount: nil,
 				},
 				// Gas: totalGas,
-				// SwapInfo: UniV3SwapInfo{
-				// 	nextStateSqrtRatioX96: new(big.Int).Set(newPoolState.SqrtRatioX96),
-				// 	nextStateLiquidity:    new(big.Int).Set(newPoolState.Liquidity),
-				// 	nextStateTickCurrent:  newPoolState.TickCurrent,
-				// },
+				SwapInfo: stateUpdate,
 			}, nil
 		}
 
@@ -202,14 +189,12 @@ func (p *PoolSimulator) CalcAmountOut(
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	// si, ok := params.SwapInfo.(UniV3SwapInfo)
-	// if !ok {
-	// 	logger.Warn("failed to UpdateBalance for UniV3 pool, wrong swapInfo type")
-	// 	return
-	// }
-	// p.V3Pool.SqrtRatioX96 = si.nextStateSqrtRatioX96
-	// p.V3Pool.Liquidity = si.nextStateLiquidity
-	// p.V3Pool.TickCurrent = si.nextStateTickCurrent
+	si, ok := params.SwapInfo.(StateUpdate)
+	if !ok {
+		logger.Warnf("failed to UpdateBalance for Algebra %v %v pool, wrong swapInfo type", p.Info.Address, p.Info.Exchange)
+		return
+	}
+	p.liquidity = si.Liquidity
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {

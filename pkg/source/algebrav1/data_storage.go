@@ -115,7 +115,7 @@ func createNewTimepoint(
 	last.tickCumulative += int56(tick) * int64(delta)
 
 	if liquidity.Cmp(bignumber.ZeroBI) <= 0 {
-		liquidity = bignumber.One
+		liquidity = new(big.Int).Set(bignumber.One)
 	}
 	// just timedelta if liquidity == 0
 	last.secondsPerLiquidityCumulative = new(big.Int).Add(

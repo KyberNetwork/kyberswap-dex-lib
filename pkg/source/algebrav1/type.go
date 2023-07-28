@@ -64,12 +64,21 @@ type Tick struct {
 }
 
 type Extra struct {
-	Liquidity                 *big.Int    `json:"liquidity"`
-	VolumePerLiquidityInBlock *big.Int    `json:"volumePerLiquidityInBlock"`
-	TotalFeeGrowth0Token      *big.Int    `json:"totalFeeGrowth0Token"`
-	TotalFeeGrowth1Token      *big.Int    `json:"totalFeeGrowth1Token"`
-	GlobalState               GlobalState `json:"globalState"`
-	Ticks                     []Tick      `json:"ticks"`
+	Liquidity                 *big.Int `json:"liquidity"`
+	VolumePerLiquidityInBlock *big.Int `json:"volumePerLiquidityInBlock"`
+	// TotalFeeGrowth0Token      *big.Int    `json:"totalFeeGrowth0Token"`
+	// TotalFeeGrowth1Token      *big.Int    `json:"totalFeeGrowth1Token"`
+	GlobalState GlobalState `json:"globalState"`
+	Ticks       []Tick      `json:"ticks"`
+	TickSpacing int         `json:"tickSpacing"`
+}
+
+// we won't update the state when calculating amountOut, return this struct instead
+type StateUpdate struct {
+	Liquidity     *big.Int
+	VolumePerLiquidityInBlock     *big.Int
+	GlobalState   GlobalState
+	NewTimepoints map[uint16]Timepoint
 }
 
 type populatedTick struct {
