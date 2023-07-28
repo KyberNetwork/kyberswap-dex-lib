@@ -113,8 +113,8 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		// totalFeeGrowth1Token:      extra.TotalFeeGrowth1Token,
 		ticks: ticks,
 		// gas:     defaultGas,
-		tickMin: tickMin,
-		tickMax: tickMax,
+		tickMin:     tickMin,
+		tickMax:     tickMax,
 		tickSpacing: extra.TickSpacing,
 	}, nil
 }
@@ -178,7 +178,7 @@ func (p *PoolSimulator) CalcAmountOut(
 					Amount: nil,
 				},
 				// Gas: totalGas,
-				SwapInfo: stateUpdate,
+				SwapInfo: *stateUpdate,
 			}, nil
 		}
 
@@ -194,7 +194,13 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		logger.Warnf("failed to UpdateBalance for Algebra %v %v pool, wrong swapInfo type", p.Info.Address, p.Info.Exchange)
 		return
 	}
-	p.liquidity = si.Liquidity
+	p.liquidity = new(big.Int).Set(si.Liquidity)
+	p.volumePerLiquidityInBlock = new(big.Int).Set(si.VolumePerLiquidityInBlock)
+	p.globalState = si.GlobalState
+	p.timepoints.updates = make(map[uint16]Timepoint, len(si.NewTimepoints))
+	for i, tp := range si.NewTimepoints {
+		p.timepoints.updates[i] = tp
+	}
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
