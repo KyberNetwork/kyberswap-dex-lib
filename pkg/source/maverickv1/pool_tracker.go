@@ -129,13 +129,12 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		}
 		bins[strI] = bin
 
-		if binPositions[bin.LowerTick.String()] == nil {
-			binPositions[bin.LowerTick.String()] = make(map[string]*big.Int)
-		}
-		binPositions[bin.LowerTick.String()][bin.Kind.String()] = big.NewInt(int64(i))
-
 		if bin.MergeID.Int64() == 0 {
 			d.putTypeAtTick(binMap, bin.Kind, bin.LowerTick)
+			if binPositions[bin.LowerTick.String()] == nil {
+				binPositions[bin.LowerTick.String()] = make(map[string]*big.Int)
+			}
+			binPositions[bin.LowerTick.String()][bin.Kind.String()] = big.NewInt(int64(i))
 		}
 	}
 

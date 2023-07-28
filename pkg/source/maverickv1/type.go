@@ -45,6 +45,12 @@ type MaverickPoolState struct {
 	BinMap           map[string]*big.Int            `json:"binMap"`
 }
 
+// MaverickSwapInfo present the after state of a swap
+type MaverickSwapInfo struct {
+	Bins       map[string]Bin `json:"bins"`
+	ActiveTick *big.Int       `json:"activeTick"`
+}
+
 type Bin struct {
 	ReserveA  *big.Int `json:"reserveA"`
 	ReserveB  *big.Int `json:"reserveB"`
