@@ -11,7 +11,7 @@ import (
 )
 
 type (
-	Pool struct {
+	PoolSimulator struct {
 		pool.Pool
 
 		StableSwap           bool
@@ -27,7 +27,7 @@ type (
 	}
 )
 
-func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 		reserves = append(reserves, bignumber.NewBig10(reserve))
 	}
 
-	return &Pool{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
 				Address:    strings.ToLower(entityPool.Address),
@@ -75,7 +75,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 // Swapping between token0 and token1 has the same logic but using different configs, such as Token0FeePercent or Token1FeePercent
 // ,so I implemented two different functions to reduce if/else statements
 // https://arbiscan.deth.net/address/0x84652bb2539513BAf36e225c930Fdd8eaa63CE27
-func (p *Pool) CalcAmountOut(
+func (p *PoolSimulator) CalcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.CalcAmountOutResult, error) {
@@ -86,7 +86,7 @@ func (p *Pool) CalcAmountOut(
 	return p._swap1To0(tokenAmountIn, tokenOut)
 }
 
-func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if strings.EqualFold(params.TokenAmountIn.Token, p.Info.Tokens[0]) {
 		p.Info.Reserves[0] = new(big.Int).Sub(new(big.Int).Add(p.Info.Reserves[0], params.TokenAmountIn.Amount), params.Fee.Amount)
 		p.Info.Reserves[1] = new(big.Int).Add(p.Info.Reserves[1], params.TokenAmountOut.Amount)
@@ -96,7 +96,7 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *Pool) GetMetaInfo(tokenIn string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) interface{} {
 	var swapFee uint32
 	if strings.EqualFold(tokenIn, p.Info.Tokens[0]) {
 		swapFee = uint32(p.Token0FeePercent.Uint64())
@@ -110,7 +110,7 @@ func (p *Pool) GetMetaInfo(tokenIn string, _ string) interface{} {
 	}
 }
 
-func (p *Pool) _swap0To1(
+func (p *PoolSimulator) _swap0To1(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.CalcAmountOutResult, error) {
@@ -162,7 +162,7 @@ func (p *Pool) _swap0To1(
 	}, nil
 }
 
-func (p *Pool) _swap1To0(
+func (p *PoolSimulator) _swap1To0(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.CalcAmountOutResult, error) {
@@ -213,7 +213,7 @@ func (p *Pool) _swap1To0(
 	}, nil
 }
 
-func (p *Pool) getAmountOut(amountIn *big.Int, tokenIn string) *big.Int {
+func (p *PoolSimulator) getAmountOut(amountIn *big.Int, tokenIn string) *big.Int {
 	var feePercent *big.Int
 
 	if strings.EqualFold(tokenIn, p.Info.Tokens[0]) {
@@ -225,7 +225,7 @@ func (p *Pool) getAmountOut(amountIn *big.Int, tokenIn string) *big.Int {
 	return p._getAmountOut(amountIn, tokenIn, p.Info.Reserves[0], p.Info.Reserves[1], feePercent)
 }
 
-func (p *Pool) _getAmountOut(
+func (p *PoolSimulator) _getAmountOut(
 	amountIn *big.Int,
 	tokenIn string,
 	_reserve0 *big.Int,
@@ -297,7 +297,7 @@ func (p *Pool) _getAmountOut(
 	)
 }
 
-func (p *Pool) _k(balance0 *big.Int, balance1 *big.Int) *big.Int {
+func (p *PoolSimulator) _k(balance0 *big.Int, balance1 *big.Int) *big.Int {
 	if p.StableSwap {
 		_x := new(big.Int).Div(new(big.Int).Mul(balance0, bignumber.BONE), p.PrecisionMultiplier0)
 		_y := new(big.Int).Div(new(big.Int).Mul(balance1, bignumber.BONE), p.PrecisionMultiplier1)
@@ -313,7 +313,7 @@ func (p *Pool) _k(balance0 *big.Int, balance1 *big.Int) *big.Int {
 	return new(big.Int).Mul(balance0, balance1)
 }
 
-func (p *Pool) _getY(x0 *big.Int, xy *big.Int, y *big.Int) *big.Int {
+func (p *PoolSimulator) _getY(x0 *big.Int, xy *big.Int, y *big.Int) *big.Int {
 	for i := 0; i < 255; i++ {
 		yPrev := y
 		k := _f(x0, y)

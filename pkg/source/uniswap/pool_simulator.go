@@ -61,38 +61,43 @@ func (t *PoolSimulator) CalcAmountOut(
 ) (*pool.CalcAmountOutResult, error) {
 	var tokenInIndex = t.GetTokenIndex(tokenAmountIn.Token)
 	var tokenOutIndex = t.GetTokenIndex(tokenOut)
-	if tokenInIndex >= 0 && tokenOutIndex >= 0 {
-		amountOut, err := getAmountOut(
-			tokenAmountIn.Amount,
-			t.Info.Reserves[tokenInIndex],
-			t.Info.Reserves[tokenOutIndex],
-			t.Weights[tokenInIndex],
-			t.Weights[tokenOutIndex],
-			t.Info.SwapFee,
-		)
-		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
-		}
 
-		var totalGas = t.gas.SwapBase
-		if t.Weights[tokenInIndex] != t.Weights[tokenOutIndex] {
-			totalGas = t.gas.SwapNonBase
-		}
-		if amountOut.Cmp(zeroBI) > 0 {
-			return &pool.CalcAmountOutResult{
-				TokenAmountOut: &pool.TokenAmount{
-					Token:  tokenOut,
-					Amount: amountOut,
-				},
-				Fee: &pool.TokenAmount{
-					Token:  tokenAmountIn.Token,
-					Amount: nil,
-				},
-				Gas: totalGas,
-			}, nil
-		}
+	if tokenInIndex < 0 || tokenOutIndex < 0 {
+		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex: %v or tokenOutIndex: %v is not correct", tokenInIndex, tokenOutIndex)
 	}
-	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
+
+	amountOut, err := getAmountOut(
+		tokenAmountIn.Amount,
+		t.Info.Reserves[tokenInIndex],
+		t.Info.Reserves[tokenOutIndex],
+		t.Weights[tokenInIndex],
+		t.Weights[tokenOutIndex],
+		t.Info.SwapFee,
+	)
+	if err != nil {
+		return &pool.CalcAmountOutResult{}, err
+	}
+
+	var totalGas = t.gas.SwapBase
+	if t.Weights[tokenInIndex] != t.Weights[tokenOutIndex] {
+		totalGas = t.gas.SwapNonBase
+	}
+
+	if amountOut.Cmp(zeroBI) > 0 {
+		return &pool.CalcAmountOutResult{
+			TokenAmountOut: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: amountOut,
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenAmountIn.Token,
+				Amount: nil,
+			},
+			Gas: totalGas,
+		}, nil
+	}
+
+	return &pool.CalcAmountOutResult{}, fmt.Errorf("invalid amount out: %v", amountOut.String())
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

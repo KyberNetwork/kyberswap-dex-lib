@@ -76,7 +76,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
-			p, err := NewPool(tt.fields.entityPool)
+			p, err := NewPoolSimulator(tt.fields.entityPool)
 			assert.Nil(t1, err)
 
 			got, err := p.CalcAmountOut(tt.args.tokenAmountIn, tt.args.tokenOut)

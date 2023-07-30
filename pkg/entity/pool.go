@@ -25,6 +25,22 @@ type PoolToken struct {
 
 type PoolTokens []*PoolToken
 
+func ClonePoolTokens(poolTokens []*PoolToken) []*PoolToken {
+	var result = make([]*PoolToken, len(poolTokens))
+	for i, poolToken := range poolTokens {
+		clonePoolToken := &PoolToken{
+			Address:   poolToken.Address,
+			Name:      poolToken.Name,
+			Symbol:    poolToken.Symbol,
+			Decimals:  poolToken.Decimals,
+			Weight:    poolToken.Weight,
+			Swappable: poolToken.Swappable,
+		}
+		result[i] = clonePoolToken
+	}
+	return result
+}
+
 type Pool struct {
 	Address      string       `json:"address,omitempty"`
 	ReserveUsd   float64      `json:"reserveUsd,omitempty"`
@@ -87,18 +103,34 @@ func (p Pool) HasAmplifiedTvl() bool {
 	return p.AmplifiedTvl > 0
 }
 
-func ClonePoolTokens(poolTokens []*PoolToken) []*PoolToken {
-	var result = make([]*PoolToken, len(poolTokens))
-	for i, poolToken := range poolTokens {
-		clonePoolToken := &PoolToken{
-			Address:   poolToken.Address,
-			Name:      poolToken.Name,
-			Symbol:    poolToken.Symbol,
-			Decimals:  poolToken.Decimals,
-			Weight:    poolToken.Weight,
-			Swappable: poolToken.Swappable,
+func (p *Pool) Clear() {
+	p.Type = ""
+	if p.Reserves != nil {
+		// Keep allocated memory
+		for i := range p.Reserves {
+			p.Reserves[i] = "0"
 		}
-		result[i] = clonePoolToken
+		p.Reserves = p.Reserves[:0]
 	}
-	return result
+	p.Address = ""
+	if p.Tokens != nil {
+		// Keep allocated memory
+		for i := range p.Tokens {
+			p.Tokens[i].Weight = 0
+			p.Tokens[i].Name = ""
+			p.Tokens[i].Swappable = false
+			p.Tokens[i].Address = ""
+			p.Tokens[i].Symbol = ""
+			p.Tokens[i].Decimals = 0
+		}
+		p.Tokens = p.Tokens[:0]
+	}
+	p.Extra = ""
+	p.StaticExtra = ""
+	p.Exchange = ""
+	p.ReserveUsd = 0
+	p.Timestamp = 0
+	p.SwapFee = 0
+	p.AmplifiedTvl = 0
+	p.TotalSupply = ""
 }

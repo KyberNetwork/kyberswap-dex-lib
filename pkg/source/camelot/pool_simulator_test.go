@@ -13,14 +13,14 @@ import (
 func TestPool_getAmountOut(t *testing.T) {
 	testCases := []struct {
 		name              string
-		pool              Pool
+		pool              PoolSimulator
 		amountIn          *big.Int
 		tokenIn           string
 		expectedAmountOut *big.Int
 	}{
 		{
 			name: "it should return correct amount when swap from 0 to 1 stableSwap",
-			pool: Pool{
+			pool: PoolSimulator{
 				Pool: pool.Pool{
 					Info: pool.PoolInfo{
 						Tokens: []string{
@@ -46,7 +46,7 @@ func TestPool_getAmountOut(t *testing.T) {
 		},
 		{
 			name: "it should return correct amount when swap from 1 to 0 stableSwap",
-			pool: Pool{
+			pool: PoolSimulator{
 				Pool: pool.Pool{
 					Info: pool.PoolInfo{
 						Tokens: []string{
@@ -72,7 +72,7 @@ func TestPool_getAmountOut(t *testing.T) {
 		},
 		{
 			name: "it should return correct amount when swap from 0 to 1",
-			pool: Pool{
+			pool: PoolSimulator{
 				Pool: pool.Pool{
 					Info: pool.PoolInfo{
 						Tokens: []string{
@@ -98,7 +98,7 @@ func TestPool_getAmountOut(t *testing.T) {
 		},
 		{
 			name: "it should return correct amount when swap from 1 to 0",
-			pool: Pool{
+			pool: PoolSimulator{
 				Pool: pool.Pool{
 					Info: pool.PoolInfo{
 						Tokens: []string{
@@ -124,7 +124,7 @@ func TestPool_getAmountOut(t *testing.T) {
 		},
 		{
 			name: "it should return correct amount when swap from 1 to 0 with owner fee",
-			pool: Pool{
+			pool: PoolSimulator{
 				Pool: pool.Pool{
 					Info: pool.PoolInfo{
 						Tokens: []string{

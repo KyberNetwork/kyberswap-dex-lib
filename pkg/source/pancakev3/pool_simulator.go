@@ -32,7 +32,7 @@ type PoolSimulator struct {
 	tickMax int
 }
 
-func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
+func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -45,7 +45,7 @@ func NewPool(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulato
 	token0 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[0].Address), uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, entityPool.Tokens[0].Name)
 	token1 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[1].Address), uint(entityPool.Tokens[1].Decimals), entityPool.Tokens[1].Symbol, entityPool.Tokens[1].Name)
 
-	swapFeeFl := new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), boneFloat)
+	swapFeeFl := big.NewFloat(entityPool.SwapFee)
 	swapFee, _ := swapFeeFl.Int(nil)
 	tokens := make([]string, 2)
 	reserves := make([]*big.Int, 2)

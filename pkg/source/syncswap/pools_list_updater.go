@@ -2,15 +2,17 @@ package syncswap
 
 import (
 	"context"
+	"math/big"
+	"strings"
+	"time"
+
 	"encoding/json"
+
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"math/big"
-	"strings"
-	"time"
 )
 
 type PoolsListUpdater struct {

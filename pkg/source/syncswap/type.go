@@ -21,3 +21,11 @@ type ExtraStablePool struct {
 
 	VaultAddress string `json:"vaultAddress"`
 }
+
+type Meta struct {
+	VaultAddress string `json:"vaultAddress"`
+}
+
+type Gas struct {
+	Swap int64
+}
