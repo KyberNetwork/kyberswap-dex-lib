@@ -1,4 +1,4 @@
-package uniswap
+package zkswap
 
 import (
 	"bytes"
@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	uniswapV2PairABI    abi.ABI
-	uniswapV2FactoryABI abi.ABI
+	zkswapPairABI    abi.ABI
+	zkswpFactoryABI abi.ABI
 )
 
 func init() {
@@ -17,14 +17,14 @@ func init() {
 		data []byte
 	}{
 		{
-			&uniswapV2PairABI, pairABIJson,
+			&zkswapPairABI, pairABIJson,
 		},
 		{
-			&uniswapV2FactoryABI, factoryABIJson,
+			&zkswpFactoryABI, factoryABIJson,
 		},
 	}
 
-	for _, b := range builder {uni
+	for _, b := range builder {
 		var err error
 		*b.ABI, err = abi.JSON(bytes.NewReader(b.data))
 		if err != nil {
