@@ -177,7 +177,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 			Address:      p,
 			ReserveUsd:   0,
 			AmplifiedTvl: 0,
-			SwapFee:      swapFeeFL,
+			SwapFee:      swapFeeFL, //FIXME: can we use d.config.SwapFee?
 			Exchange:     d.config.DexID,
 			Type:         DexTypeCrowdswapV2,
 			Timestamp:    time.Now().Unix(),
