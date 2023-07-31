@@ -23,7 +23,7 @@ type PoolSimulatorState struct {
 	lpFeeRate   *big.Float // DODO._LP_FEE_RATE_()/10^18
 }
 
-type Pool struct {
+type PoolSimulator struct {
 	pool.Pool
 	PoolSimulatorState
 	Tokens entity.PoolTokens
@@ -31,7 +31,15 @@ type Pool struct {
 	gas    Gas
 }
 
-func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+	if len(entityPool.StaticExtra) == 0 {
+		return nil, ErrStaticExtraEmpty
+	}
+
+	if len(entityPool.Extra) == 0 {
+		return nil, ErrExtraEmpty
+	}
+
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
@@ -92,18 +100,18 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 		QuoteToken:       entityPool.Tokens[1].Address,
 	}
 
-	return &Pool{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: info,
 		},
 		PoolSimulatorState: poolState,
-		Tokens:    entity.ClonePoolTokens(entityPool.Tokens),
-		Meta:      meta,
-		gas:       DefaultGas,
+		Tokens:             entity.ClonePoolTokens(entityPool.Tokens),
+		Meta:               meta,
+		gas:                DefaultGas,
 	}, nil
 }
 
-func (p *Pool) CalcAmountOut(
+func (p *PoolSimulator) CalcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.CalcAmountOutResult, error) {
@@ -167,7 +175,7 @@ func (p *Pool) CalcAmountOut(
 	return &pool.CalcAmountOutResult{}, errors.New("could not calculate the amountOut")
 }
 
-func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var isSellBase bool
 	if input.Token == p.Info.Tokens[0] {
@@ -215,10 +223,10 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *Pool) GetLpToken() string {
+func (p *PoolSimulator) GetLpToken() string {
 	return p.Info.Address
 }
 
-func (p *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return p.Meta
 }

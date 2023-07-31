@@ -83,21 +83,26 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Params: []interface{}{big.NewInt(int64(currentOffset + j))},
 		}, []interface{}{&pairAddresses[j]})
 	}
-
-	if _, err := getPairAddressRequest.Aggregate(); err != nil {
+	resp, err := getPairAddressRequest.TryAggregate()
+	if err != nil {
 		logger.Errorf("failed to process aggregate, err: %v", err)
 		return nil, metadataBytes, err
 	}
 
-	pools, err := d.processBatch(ctx, pairAddresses)
+	var successPairAddresses []common.Address
+	for i, isSuccess := range resp.Result {
+		if isSuccess {
+			successPairAddresses = append(successPairAddresses, pairAddresses[i])
+		}
+	}
+
+	pools, err := d.processBatch(ctx, successPairAddresses)
 	if err != nil {
 		logger.Errorf("failed to process update new pool, err: %v", err)
 		return nil, metadataBytes, err
 	}
 
-	numPools := len(pools)
-
-	nextOffset := currentOffset + numPools
+	nextOffset := currentOffset + batchSize
 	newMetadataBytes, err := json.Marshal(Metadata{
 		Offset: nextOffset,
 	})
@@ -106,7 +111,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	if len(pools) > 0 {
-		logger.Infof("scan UniswapV2Factory with batch size %v, progress: %d/%d", batchSize, currentOffset+numPools, totalNumberOfPools)
+		logger.Infof("scan UniswapV2Factory with batch size %v, progress: %d/%d", batchSize, currentOffset+batchSize, totalNumberOfPools)
 	}
 
 	return pools, newMetadataBytes, nil

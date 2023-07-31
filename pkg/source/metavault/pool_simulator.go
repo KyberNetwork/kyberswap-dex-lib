@@ -14,7 +14,7 @@ type Gas struct {
 	Swap int64
 }
 
-type Pool struct {
+type PoolSimulator struct {
 	pool.Pool
 
 	vault      *Vault
@@ -22,7 +22,7 @@ type Pool struct {
 	gas        Gas
 }
 
-func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 		Tokens:   tokens,
 	}
 
-	return &Pool{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: info,
 		},
@@ -50,7 +50,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	}, nil
 }
 
-func (p *Pool) CalcAmountOut(
+func (p *PoolSimulator) CalcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.CalcAmountOutResult, error) {
@@ -77,7 +77,7 @@ func (p *Pool) CalcAmountOut(
 
 // UpdateBalance update UsdmAmount only
 // https://github.com/gmx-io/gmx-contracts/blob/787d767e033c411f6d083f2725fb54b7fa956f7e/contracts/core/Vault.sol#L547-L548
-func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output, fee := params.TokenAmountIn, params.TokenAmountOut, params.Fee
 	priceIn, err := p.vault.GetMinPrice(input.Token)
 	if err != nil {
@@ -93,11 +93,11 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.vault.DecreasePoolAmount(output.Token, new(big.Int).Add(output.Amount, fee.Amount))
 }
 
-func (p *Pool) CanSwapFrom(address string) []string {
+func (p *PoolSimulator) CanSwapFrom(address string) []string {
 	return p.CanSwapTo(address)
 }
 
-func (p *Pool) CanSwapTo(address string) []string {
+func (p *PoolSimulator) CanSwapTo(address string) []string {
 	whitelistedTokens := p.vault.WhitelistedTokens
 
 	isTokenExists := false
@@ -125,10 +125,10 @@ func (p *Pool) CanSwapTo(address string) []string {
 	return swappableTokens
 }
 
-func (p *Pool) GetMetaInfo(_ string, _ string) interface{} { return nil }
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} { return nil }
 
 // getAmountOut returns amountOutAfterFees, feeAmount and error
-func (p *Pool) getAmountOut(tokenIn string, tokenOut string, amountIn *big.Int) (*big.Int, *big.Int, error) {
+func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *big.Int) (*big.Int, *big.Int, error) {
 	if !p.vault.IsSwapEnabled {
 		return nil, nil, ErrVaultSwapsNotEnabled
 	}
@@ -177,7 +177,7 @@ func (p *Pool) getAmountOut(tokenIn string, tokenOut string, amountIn *big.Int) 
 	return amountOutAfterFees, feeAmount, nil
 }
 
-func (p *Pool) validateMaxUsdmExceed(token string, amount *big.Int) error {
+func (p *PoolSimulator) validateMaxUsdmExceed(token string, amount *big.Int) error {
 	currentUsdmAmount := p.vault.USDMAmounts[token]
 	newUsdmAmount := new(big.Int).Add(currentUsdmAmount, amount)
 
@@ -194,7 +194,7 @@ func (p *Pool) validateMaxUsdmExceed(token string, amount *big.Int) error {
 	return ErrVaultMaxUsdmExceeded
 }
 
-func (p *Pool) validateMinPoolAmount(token string, amount *big.Int) error {
+func (p *PoolSimulator) validateMinPoolAmount(token string, amount *big.Int) error {
 	currentPoolAmount := p.vault.PoolAmounts[token]
 
 	if currentPoolAmount.Cmp(amount) < 0 {
@@ -211,7 +211,7 @@ func (p *Pool) validateMinPoolAmount(token string, amount *big.Int) error {
 	return nil
 }
 
-func (p *Pool) validateBufferAmount(token string, amount *big.Int) error {
+func (p *PoolSimulator) validateBufferAmount(token string, amount *big.Int) error {
 	currentPoolAmount := p.vault.PoolAmounts[token]
 	newPoolAmount := new(big.Int).Sub(currentPoolAmount, amount)
 

@@ -12,7 +12,7 @@ import (
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type Pool struct {
+type PoolSimulator struct {
 	pool.Pool
 	Multipliers []*big.Int
 	// extra fields
@@ -27,7 +27,7 @@ type Pool struct {
 	gas                Gas
 }
 
-func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
@@ -56,7 +56,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 		defaultWithdrawFee = constant.ZeroBI
 	}
 
-	return &Pool{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
 				Address:    strings.ToLower(entityPool.Address),
@@ -82,7 +82,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	}, nil
 }
 
-func (t *Pool) CalcAmountOut(
+func (t *PoolSimulator) CalcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.CalcAmountOutResult, error) {
@@ -193,7 +193,7 @@ func (t *Pool) CalcAmountOut(
 	return &pool.CalcAmountOutResult{}, errors.New("i'm dead here")
 }
 
-func (t *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
+func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output, fee := params.TokenAmountIn, params.TokenAmountOut, params.Fee
 	var inputAmount = input.Amount
 	var outputAmount = output.Amount
@@ -234,9 +234,9 @@ func (t *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (t *Pool) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
+func (t *PoolSimulator) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
 
-func (t *Pool) CanSwapTo(address string) []string {
+func (t *PoolSimulator) CanSwapTo(address string) []string {
 	var ret = make([]string, 0)
 	var tokenIndex = t.GetTokenIndex(address)
 	if tokenIndex < 0 && address != t.LpToken {
@@ -253,7 +253,7 @@ func (t *Pool) CanSwapTo(address string) []string {
 	return ret
 }
 
-func (t *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)
 	return Meta{

@@ -1,12 +1,8 @@
 package velodrome
 
-import "time"
-
 const (
-	DexTypeVelodrome          = "velodrome"
-	defaultNewPoolLimit       = 100
-	defaultNewPoolJobInterval = 600 * time.Second
-	defaultTokenWeight        = 50
+	DexTypeVelodrome   = "velodrome"
+	defaultTokenWeight = 50
 
 	poolFactoryMethodAllPairLength = "allPairsLength"
 	poolFactoryMethodAllPairs      = "allPairs"

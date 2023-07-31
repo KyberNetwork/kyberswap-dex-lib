@@ -6,16 +6,17 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/logger"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/KyberNetwork/logger"
 )
 
 type (
-	Pool struct {
+	PoolSimulator struct {
 		pool.Pool
 		tokens        []*entity.PoolToken
 		ordersMapping map[int64]*order
@@ -25,7 +26,7 @@ type (
 	}
 )
 
-func NewPool(entityPool entity.Pool) (*Pool, error) {
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var numTokens = len(entityPool.Tokens)
 	var tokens = make([]string, numTokens)
 	var reserves = make([]*big.Int, numTokens)
@@ -52,7 +53,7 @@ func NewPool(entityPool entity.Pool) (*Pool, error) {
 		ordersMapping[sellOrder.ID] = sellOrder
 		sellOrderIDs[j] = sellOrder.ID
 	}
-	return &Pool{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
 				Address:    strings.ToLower(entityPool.Address),
@@ -72,14 +73,14 @@ func NewPool(entityPool entity.Pool) (*Pool, error) {
 	}, nil
 }
 
-func (p *Pool) CalcAmountOut(
+func (p *PoolSimulator) CalcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.CalcAmountOutResult, error) {
 	return p.calcAmountOut(tokenAmountIn, tokenOut)
 }
 
-func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
 		logger.Warn("failed to UpdateBalance for LO pool, wrong swapInfo type")
@@ -100,7 +101,7 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-func (p *Pool) calcAmountOut(
+func (p *PoolSimulator) calcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.CalcAmountOutResult, error) {
@@ -124,7 +125,7 @@ func (p *Pool) calcAmountOut(
 	}, nil
 }
 
-func (p *Pool) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn pool.TokenAmount) (*big.Int, SwapInfo, *big.Int, error) {
+func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn pool.TokenAmount) (*big.Int, SwapInfo, *big.Int, error) {
 
 	orderIDs := p.getOrderIDsBySwapSide(swapSide)
 	if len(orderIDs) == 0 {
@@ -209,7 +210,7 @@ func (p *Pool) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn pool.Toke
 }
 
 // feeAmount = (params.makingAmount * params.order.makerTokenFeePercent + BPS - 1) / BPS
-func (p *Pool) calcFeeAmountPerOrder(order *order, filledMakingAmount *big.Int) *big.Int {
+func (p *PoolSimulator) calcFeeAmountPerOrder(order *order, filledMakingAmount *big.Int) *big.Int {
 	if order.MakerTokenFeePercent == 0 {
 		return constant.ZeroBI
 	}
@@ -217,34 +218,34 @@ func (p *Pool) calcFeeAmountPerOrder(order *order, filledMakingAmount *big.Int) 
 	return new(big.Int).Div(new(big.Int).Sub(new(big.Int).Add(amount, valueobject.BasisPoint), constant.One), valueobject.BasisPoint)
 }
 
-func (p *Pool) estimateGas(numberOfFilledOrders int) int64 {
+func (p *PoolSimulator) estimateGas(numberOfFilledOrders int) int64 {
 	return p.estimateGasForExecutor(numberOfFilledOrders) + p.estimateGasForRouter(numberOfFilledOrders)
 }
 
-func (p *Pool) estimateGasForExecutor(numberOfFilledOrders int) int64 {
+func (p *PoolSimulator) estimateGasForExecutor(numberOfFilledOrders int) int64 {
 	return int64(BaseGas) + int64(numberOfFilledOrders)*int64(GasPerOrderExecutor)
 }
 
-func (p *Pool) estimateGasForRouter(numberOfFilledOrders int) int64 {
+func (p *PoolSimulator) estimateGasForRouter(numberOfFilledOrders int) int64 {
 	return int64(numberOfFilledOrders) * int64(GasPerOrderRouter)
 
 }
 
-func (p *Pool) getOrderIDsBySwapSide(swapSide SwapSide) []int64 {
+func (p *PoolSimulator) getOrderIDsBySwapSide(swapSide SwapSide) []int64 {
 	if swapSide == Buy {
 		return p.buyOrderIDs
 	}
 	return p.sellOrderIDs
 }
 
-func (p *Pool) getSwapSide(tokenIn string, TokenOut string) SwapSide {
+func (p *PoolSimulator) getSwapSide(tokenIn string, TokenOut string) SwapSide {
 	if strings.ToLower(tokenIn) > strings.ToLower(TokenOut) {
 		return Sell
 	}
 	return Buy
 }
 
-func (p *Pool) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
 }
 

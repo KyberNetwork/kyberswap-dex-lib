@@ -4,10 +4,11 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestPool_CalcAmountOut(t *testing.T) {
@@ -387,7 +388,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 		entityPool          entity.Pool
 		tokenAmountIn       poolPkg.TokenAmount
 		tokenAmountOut      poolPkg.TokenAmount
-		expectedPool        Pool
+		expectedPool        PoolSimulator
 		expectedUSDGAmounts map[string]*big.Int
 	}{
 		{
@@ -489,7 +490,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 
 func TestPool_CanSwapTo(t *testing.T) {
 	t.Run("it should return correct swappable tokens", func(t *testing.T) {
-		pool := Pool{
+		pool := PoolSimulator{
 			vault: &Vault{
 				WhitelistedTokens: []string{
 					"0x17fc002b466eec40dae837fc4be5c67993ddbd6f",
@@ -522,7 +523,7 @@ func TestPool_CanSwapTo(t *testing.T) {
 
 func TestPool_GetMetaInfo(t *testing.T) {
 	t.Run("it should return nil", func(t *testing.T) {
-		pool := Pool{}
+		pool := PoolSimulator{}
 
 		assert.Nil(t, pool.GetMetaInfo("0xda10009cbd5d07dd0cecc66161fc93d7c9000da1", "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8"))
 	})

@@ -6,6 +6,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
+	balancerComposableStable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/biswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
@@ -21,6 +22,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/madmex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/makerpsm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/metavault"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/muteswitch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nerve"
@@ -89,6 +91,15 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return balancer.NewPoolsListUpdater(&cfg, ethrpcClient), nil
+	case balancerComposableStable.DexTypeBalancerComposableStableExchange:
+		var cfg balancerComposableStable.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return balancerComposableStable.NewPoolsListUpdater(&cfg, ethrpcClient), nil
 	case velodrome.DexTypeVelodrome:
 		var cfg velodrome.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
@@ -317,14 +328,22 @@ func NewPoolsListUpdaterHandler(
 
   case zkswap.DexTypeZkSwap:
 		var cfg zkswap.Config
-    	err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
-    
-		if err != nil {
+    err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+    if err != nil {
 			return nil, err
 		}
 		cfg.DexID = scanDexCfg.Id
     
 		return zkswap.NewPoolListUpdater(&cfg, ethrpcClient), nil
+	case maverickv1.DexTypeMaverickV1:
+		var cfg maverickv1.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+    if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+    
+		return maverickv1.NewPoolListUpdater(&cfg, ethrpcClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pools list updater handler: %s", scanDexCfg.Handler)
@@ -359,6 +378,8 @@ func NewPoolTrackerHandler(
 		return elastic.NewPoolTracker(&cfg, ethrpcClient)
 	case balancer.DexTypeBalancer:
 		return balancer.NewPoolTracker(ethrpcClient)
+	case balancerComposableStable.DexTypeBalancerComposableStableExchange:
+		return balancerComposableStable.NewPoolTracker(ethrpcClient)
 	case velodrome.DexTypeVelodrome:
 		var cfg velodrome.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
@@ -525,13 +546,22 @@ func NewPoolTrackerHandler(
 		return pancakev3.NewPoolTracker(&cfg, ethrpcClient)
 	case zkswap.DexTypeZkSwap:
 		var cfg zkswap.Config
-    	err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+    err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
 		if err != nil {
 			return nil, err
 		}
 		cfg.DexID = scanDexCfg.Id
     
 		return zkswap.NewPoolTracker(&cfg, ethrpcClient)
+	case maverickv1.DexTypeMaverickV1:
+		var cfg maverickv1.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+    
+		return maverickv1.NewPoolTracker(&cfg, ethrpcClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pool tracker handler: %s", scanDexCfg.Handler)

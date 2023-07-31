@@ -22,7 +22,6 @@ type IPoolTracker interface {
 
 type IPoolSimulator interface {
 	// CalcAmountOut amountOut, fee, gas
-	// DO NOT FUCKING MODIFY THE POOL whilst calculating amount out. Call UpdateBalance when you need to.
 	CalcAmountOut(
 		tokenAmountIn TokenAmount,
 		tokenOut string,

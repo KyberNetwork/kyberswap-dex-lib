@@ -1,16 +1,13 @@
 package synthetix
 
 import (
-	"bytes"
 	"context"
-	"encoding/hex"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 )
@@ -386,13 +383,6 @@ func _getPoolForRoute(
 	return pool, nil
 }
 
-// @notice Obtain the canonical identifier for a route denoted by a PoolKey
-// @param _poolKey PoolKey representing the route
-// @return id identifier for the route
-func _identifyRouteFromPoolKey(_poolKey PoolKey) string {
-	return hex.EncodeToString(crypto.Keccak256(encodePacked(_poolKey.token0.Bytes(), _poolKey.token1.Bytes())))
-}
-
 // @notice Fetch an overridden pool for a route denoted by a PoolKey, if any
 // @param _poolKey PoolKey representing the route
 // @return pool Address of the Uniswap V3 pool overridden for the route.
@@ -400,8 +390,4 @@ func _identifyRouteFromPoolKey(_poolKey PoolKey) string {
 //	address(0) if no overridden pool has been set.
 func _getOverriddenPool(dexPriceAggregator *DexPriceAggregatorUniswapV3, _poolKey PoolKey) common.Address {
 	return dexPriceAggregator.OverriddenPoolForRoute[_identifyRouteFromPoolKey(_poolKey)]
-}
-
-func encodePacked(input ...[]byte) []byte {
-	return bytes.Join(input, nil)
 }
