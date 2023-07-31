@@ -9,7 +9,7 @@ import (
 	balancerComposableStable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/biswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/crowdswapv2" //TODO crowdswap
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/crowdswapv2" //FIXME: crowdswap: Should we do anything?
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dodo"
