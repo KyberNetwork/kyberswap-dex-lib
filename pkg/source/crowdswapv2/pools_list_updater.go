@@ -121,27 +121,35 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 	var limit = len(pairAddresses)
 	var token0Addresses = make([]common.Address, limit)
 	var token1Addresses = make([]common.Address, limit)
+	var swapFees = make([]int8, limit)
 
-	rpcRequest := d.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
+	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i := 0; i < limit; i++ {
-		rpcRequest.AddCall(&ethrpc.Call{
+		calls.AddCall(&ethrpc.Call{
 			ABI:    crowdswapV2PairABI,
 			Target: pairAddresses[i].Hex(),
 			Method: pairMethodToken0,
 			Params: nil,
 		}, []interface{}{&token0Addresses[i]})
 
-		rpcRequest.AddCall(&ethrpc.Call{
+		calls.AddCall(&ethrpc.Call{
 			ABI:    crowdswapV2PairABI,
 			Target: pairAddresses[i].Hex(),
 			Method: pairMethodToken1,
 			Params: nil,
 		}, []interface{}{&token1Addresses[i]})
+
+		calls.AddCall(&ethrpc.Call{
+			ABI:    crowdswapV2PairABI,
+			Target: pairAddresses[i].Hex(),
+			Method: pairMethodGetSwapFee,
+			Params: nil,
+		}, []interface{}{&swapFees[i]})
+
 	}
 
-	if _, err := rpcRequest.Aggregate(); err != nil {
+	if _, err := calls.Aggregate(); err != nil {
 		logger.Errorf("failed to process aggregate to get 2 tokens from pair contract, err: %v", err)
 		return nil, err
 	}
@@ -163,12 +171,13 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
+		var swapFeeFL float64 = float64(swapFees[i]) / 1000
 
 		var newPool = entity.Pool{
 			Address:      p,
 			ReserveUsd:   0,
 			AmplifiedTvl: 0,
-			SwapFee:      d.config.SwapFee,
+			SwapFee:      swapFeeFL,
 			Exchange:     d.config.DexID,
 			Type:         DexTypeCrowdswapV2,
 			Timestamp:    time.Now().Unix(),

@@ -3,7 +3,7 @@ package crowdswapv2
 import "math/big"
 
 const (
-	DexTypeCrowdswapV2     = "crowdswapv2"
+	DexTypeCrowdswapV2 = "crowdswapv2"
 	defaultTokenWeight = 50
 	reserveZero        = "0"
 )
@@ -13,6 +13,7 @@ const (
 	factoryMethodAllPairsLength = "allPairsLength"
 	pairMethodToken0            = "token0"
 	pairMethodToken1            = "token1"
+	pairMethodGetSwapFee        = "swapFee"
 	pairMethodGetReserves       = "getReserves"
 )
 

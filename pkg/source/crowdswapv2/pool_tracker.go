@@ -25,31 +25,59 @@ func NewPoolTracker(
 func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	logger.Infof("[Crowdswap V2] Start getting new state of pool: %v", p.Address)
 
-	rpcRequest := d.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
+	var (
+		reserves Reserves
+		swapFee  uint8
+	)
 
-	var reserves Reserves
+	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 
-	rpcRequest.AddCall(&ethrpc.Call{
+	calls.AddCall(&ethrpc.Call{
 		ABI:    crowdswapV2PairABI,
 		Target: p.Address,
 		Method: pairMethodGetReserves,
 		Params: nil,
 	}, []interface{}{&reserves})
 
-	_, err := rpcRequest.Call()
+	calls.AddCall(&ethrpc.Call{
+		ABI:    crowdswapV2PairABI,
+		Target: p.Address,
+		Method: pairMethodGetSwapFee,
+		Params: nil,
+	}, []interface{}{&swapFee})
+
+	resp, err := calls.TryAggregate()
 	if err != nil {
-		logger.Errorf("failed to process tryAggregate for pool: %v, err: %v", p.Address, err)
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"error":       err,
+		}).Errorf("[Crowdswap V2]: failed to process tryAggregate for pool")
 		return entity.Pool{}, err
 	}
 
+	if len(resp.Result) != 2 {
+		logger.WithFields(logger.Fields{
+			"error": err,
+		}).Errorf("[Crowdswap V2]: result of tryAggregate for pool: %v is broken", p.Address)
+		return entity.Pool{}, err
+	}
+
+	if !resp.Result[0] || !resp.Result[1] {
+		logger.Warnf("[Crowdswap V2]: failed to fetch pool state, reserves: %v, swapFee: %v", resp.Result[0], resp.Result[1])
+		return entity.Pool{}, err
+	}
+
+	var swapFeeFL float64 = float64(swapFee) / 1000
+	p.SwapFee = swapFeeFL
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
 		reserves.Reserve0.String(),
 		reserves.Reserve1.String(),
 	}
 
-	logger.Infof("[Crowdswap V2] Finish getting new state of pool: %v", p.Address)
+	logger.WithFields(logger.Fields{
+		"poolAddress": p.Address,
+	}).Infof("[Crowdswap V2] Finish getting new state of pool")
 
 	return p, nil
 }
