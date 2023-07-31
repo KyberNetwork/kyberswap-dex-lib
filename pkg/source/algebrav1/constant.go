@@ -35,7 +35,7 @@ const (
 )
 
 var (
-	uint256_max               = bignumber.NewBig("0xffffffffffffffffffffffffffffffff")
+	uint256_max               = bignumber.NewBig("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
 	pow192                    = new(big.Int).Lsh(bignumber.One, 192)
 	Q128                      = bignumber.NewBig("0x100000000000000000000000000000000")
 	COMMUNITY_FEE_DENOMINATOR = big.NewInt(1000)

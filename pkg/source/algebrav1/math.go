@@ -2,7 +2,6 @@ package algebrav1
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -292,45 +291,8 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 		nextState.NewTimepoints[i] = tp
 	}
 
-	fmt.Println("amount--", amount0, amount1)
 	return nil, amount0, amount1, nextState
 }
-
-// func MulDivRoundingDown(a, b, denominator *big.Int) *big.Int {
-// 	product := new(big.Int).Mul(a, b)
-// 	result := new(big.Int).Div(product, denominator)
-// 	return result
-// }
-
-// / @notice Transitions to next tick as needed by price movement
-// / @param self The mapping containing all tick information for initialized ticks
-// / @param tick The destination tick of the transition
-// / @param totalFeeGrowth0Token The all-time global fee growth, per unit of liquidity, in token0
-// / @param totalFeeGrowth1Token The all-time global fee growth, per unit of liquidity, in token1
-// / @param secondsPerLiquidityCumulative The current seconds per liquidity
-// / @param tickCumulative The all-time global cumulative tick
-// / @param time The current block.timestamp
-// / @return liquidityDelta The amount of liquidity added (subtracted) when tick is crossed from left to right (right to left)
-// func cross(
-// 	ticks *entities.TickListDataProvider,
-// 	tick int24,
-// 	totalFeeGrowth0Token *big.Int,
-// 	totalFeeGrowth1Token *big.Int,
-// 	secondsPerLiquidityCumulative *big.Int,
-// 	tickCumulative int56,
-// 	time uint32,
-// ) *big.Int {
-// 	data := ticks.GetTick(int(tick))
-
-// 	data.outerSecondsSpent = time - data.outerSecondsSpent
-// 	data.outerSecondsPerLiquidity = secondsPerLiquidityCumulative - data.outerSecondsPerLiquidity
-// 	data.outerTickCumulative = tickCumulative - data.outerTickCumulative
-
-// 	data.outerFeeGrowth1Token = totalFeeGrowth1Token - data.outerFeeGrowth1Token
-// 	data.outerFeeGrowth0Token = totalFeeGrowth0Token - data.outerFeeGrowth0Token
-
-// 	return data.liquidityDelta
-// }
 
 func calculateVolumePerLiquidity(
 	liquidity *big.Int,
