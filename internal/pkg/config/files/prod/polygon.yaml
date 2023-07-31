@@ -68,6 +68,7 @@ common:
     - "metavault"
     - "fraxswap"
     - "kyberswap-limit-order"
+    - "retro-cl"
     - "retro"
   featureFlags: &featureFlags
 log:

@@ -104,7 +104,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeKyberswapElastic, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangePancakeV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeChronosV3, FunctionSelectorUniV3KSElastic)
-	RegisterFunctionSelector(valueobject.ExchangeRetro, FunctionSelectorUniV3KSElastic)
+	RegisterFunctionSelector(valueobject.ExchangeRetroCL, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeHorizonDex, FunctionSelectorUniV3KSElastic)
 
 	// executeBalV2Swap
@@ -141,6 +141,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeChronos, FunctionSelectorVelodrome)
 	RegisterFunctionSelector(valueobject.ExchangeRamses, FunctionSelectorVelodrome)
 	RegisterFunctionSelector(valueobject.ExchangeVelocore, FunctionSelectorVelodrome)
+	RegisterFunctionSelector(valueobject.ExchangeRetro, FunctionSelectorVelodrome)
 	RegisterFunctionSelector(valueobject.ExchangeMuteSwitch, FunctionSelectorMuteSwitch)
 
 	// executePlatypusSwap
