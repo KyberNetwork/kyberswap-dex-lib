@@ -10,6 +10,7 @@ import (
 // TokenWeightInputUniSwap weight of tokenIn, it's 50 with Uniswap
 // TODO: Should read from extra field of the swap instead
 const TokenWeightInputUniSwap = 50
+const actualAmountOutPercents = 9995
 
 func PackUniSwap(chainID valueobject.ChainID, encodingSwap types.EncodingSwap) ([]byte, error) {
 	swap, err := buildUniSwap(chainID, encodingSwap)
@@ -37,13 +38,19 @@ func UnpackUniSwap(data []byte) (Uniswap, error) {
 func buildUniSwap(chainID valueobject.ChainID, swap types.EncodingSwap) (Uniswap, error) {
 	swapFee := GetFee(chainID, swap.Exchange)
 
+	fee := swapFee.Fee
+	if shouldAddActualAmountOutPercents(swap.Exchange) {
+		// [16 bits for actualAmountOutPercents][16 bits for dex swap fee]
+		fee |= actualAmountOutPercents << 16
+	}
+
 	return Uniswap{
 		Pool:             common.HexToAddress(swap.Pool),
 		TokenIn:          common.HexToAddress(swap.TokenIn),
 		TokenOut:         common.HexToAddress(swap.TokenOut),
 		Recipient:        common.HexToAddress(swap.Recipient),
 		CollectAmount:    swap.CollectAmount,
-		SwapFee:          swapFee.Fee,
+		SwapFee:          fee,
 		FeePrecision:     swapFee.Precision,
 		TokenWeightInput: TokenWeightInputUniSwap,
 	}, nil
@@ -60,4 +67,8 @@ func packUniSwap(swap Uniswap) ([]byte, error) {
 		swap.FeePrecision,
 		swap.TokenWeightInput,
 	)
+}
+
+func shouldAddActualAmountOutPercents(exchange valueobject.Exchange) bool {
+	return exchange == valueobject.ExchangeGravity || exchange == valueobject.ExchangeEchoDex
 }

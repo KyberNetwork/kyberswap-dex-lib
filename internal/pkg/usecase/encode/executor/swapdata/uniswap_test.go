@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 )
@@ -50,6 +52,39 @@ func TestUnpackUniSwap(t *testing.T) {
 
 			assert.ErrorIs(t, err, nil)
 			assert.Equal(t, pair.data, result)
+		})
+	}
+}
+
+func TestAddActualAmountOutPercents(t *testing.T) {
+	t.Parallel()
+
+	testcases := []struct {
+		name        string
+		chainID     valueobject.ChainID
+		swap        types.EncodingSwap
+		expectedFee uint32
+	}{
+		{
+			name:        "it should keep normal fee for normal univ2 forks",
+			chainID:     valueobject.ChainIDEthereum,
+			swap:        types.EncodingSwap{Exchange: valueobject.ExchangeSushiSwap},
+			expectedFee: 30, // default fee
+		},
+		{
+			name:        "it should add actual amount out percents for Gravity dex",
+			chainID:     valueobject.ChainIDEthereum,
+			swap:        types.EncodingSwap{Exchange: valueobject.ExchangeGravity},
+			expectedFee: 655032345, // 25 | (9995 << 16)
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := buildUniSwap(tc.chainID, tc.swap)
+
+			assert.ErrorIs(t, err, nil)
+			assert.Equal(t, tc.expectedFee, result.SwapFee)
 		})
 	}
 }
