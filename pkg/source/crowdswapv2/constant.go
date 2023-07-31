@@ -1,9 +1,9 @@
-package uniswap
+package crowdswapv2
 
 import "math/big"
 
 const (
-	DexTypeUniswap     = "uniswap"
+	DexTypeCrowdswapV2     = "crowdswapv2"
 	defaultTokenWeight = 50
 	reserveZero        = "0"
 )

@@ -1,4 +1,4 @@
-package uniswap
+package crowdswapv2
 
 import (
 	"context"
@@ -23,7 +23,7 @@ func NewPoolTracker(
 }
 
 func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
-	logger.Infof("[Uniswap V2] Start getting new state of pool: %v", p.Address)
+	logger.Infof("[Crowdswap V2] Start getting new state of pool: %v", p.Address)
 
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
@@ -31,7 +31,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	var reserves Reserves
 
 	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    uniswapV2PairABI,
+		ABI:    crowdswapV2PairABI,
 		Target: p.Address,
 		Method: pairMethodGetReserves,
 		Params: nil,
@@ -49,7 +49,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		reserves.Reserve1.String(),
 	}
 
-	logger.Infof("[Uniswap V2] Finish getting new state of pool: %v", p.Address)
+	logger.Infof("[Crowdswap V2] Finish getting new state of pool: %v", p.Address)
 
 	return p, nil
 }

@@ -1,4 +1,4 @@
-package uniswap
+package crowdswapv2
 
 import (
 	"context"
@@ -50,7 +50,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	getNumPoolsRequest := d.ethrpcClient.NewRequest()
 	getNumPoolsRequest.AddCall(&ethrpc.Call{
-		ABI:    uniswapV2FactoryABI,
+		ABI:    crowdswapV2FactoryABI,
 		Target: d.config.FactoryAddress,
 		Method: factoryMethodAllPairsLength,
 		Params: nil,
@@ -77,7 +77,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	var pairAddresses = make([]common.Address, batchSize)
 	for j := 0; j < batchSize; j++ {
 		getPairAddressRequest.AddCall(&ethrpc.Call{
-			ABI:    uniswapV2FactoryABI,
+			ABI:    crowdswapV2FactoryABI,
 			Target: d.config.FactoryAddress,
 			Method: factoryMethodGetPair,
 			Params: []interface{}{big.NewInt(int64(currentOffset + j))},
@@ -111,7 +111,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	if len(pools) > 0 {
-		logger.Infof("scan UniswapV2Factory with batch size %v, progress: %d/%d", batchSize, currentOffset+batchSize, totalNumberOfPools)
+		logger.Infof("scan CrowdswapV2Factory with batch size %v, progress: %d/%d", batchSize, currentOffset+batchSize, totalNumberOfPools)
 	}
 
 	return pools, newMetadataBytes, nil
@@ -127,14 +127,14 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 
 	for i := 0; i < limit; i++ {
 		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    uniswapV2PairABI,
+			ABI:    crowdswapV2PairABI,
 			Target: pairAddresses[i].Hex(),
 			Method: pairMethodToken0,
 			Params: nil,
 		}, []interface{}{&token0Addresses[i]})
 
 		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    uniswapV2PairABI,
+			ABI:    crowdswapV2PairABI,
 			Target: pairAddresses[i].Hex(),
 			Method: pairMethodToken1,
 			Params: nil,
@@ -170,7 +170,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 			AmplifiedTvl: 0,
 			SwapFee:      d.config.SwapFee,
 			Exchange:     d.config.DexID,
-			Type:         DexTypeUniswap,
+			Type:         DexTypeCrowdswapV2,
 			Timestamp:    time.Now().Unix(),
 			Reserves:     []string{reserveZero, reserveZero},
 			Tokens:       []*entity.PoolToken{&token0, &token1},

@@ -1,4 +1,4 @@
-package uniswap
+package crowdswapv2
 
 import (
 	"bytes"
@@ -7,8 +7,8 @@ import (
 )
 
 var (
-	uniswapV2PairABI    abi.ABI
-	uniswapV2FactoryABI abi.ABI
+	crowdswapV2PairABI    abi.ABI
+	crowdswapV2FactoryABI abi.ABI
 )
 
 func init() {
@@ -17,10 +17,10 @@ func init() {
 		data []byte
 	}{
 		{
-			&uniswapV2PairABI, pairABIJson,
+			&crowdswapV2PairABI, pairABIJson,
 		},
 		{
-			&uniswapV2FactoryABI, factoryABIJson,
+			&crowdswapV2FactoryABI, factoryABIJson,
 		},
 	}
 

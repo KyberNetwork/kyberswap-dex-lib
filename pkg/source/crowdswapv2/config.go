@@ -1,4 +1,4 @@
-package uniswap
+package crowdswapv2
 
 type Config struct {
 	DexID          string  `json:"dexID"`

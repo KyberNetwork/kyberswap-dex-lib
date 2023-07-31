@@ -1,9 +1,9 @@
-package uniswap
+package crowdswapv2
 
 import _ "embed"
 
-//go:embed abis/UniswapV2Pair.json
+//go:embed abis/CrowdswapV2Pair.json
 var pairABIJson []byte
 
-//go:embed abis/UniswapV2Factory.json
+//go:embed abis/CrowdswapV2Factory.json
 var factoryABIJson []byte
