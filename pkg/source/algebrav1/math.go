@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
 	"github.com/daoleno/uniswapv3-sdk/constants"
 	"github.com/daoleno/uniswapv3-sdk/utils"
 )
@@ -76,7 +76,7 @@ func (p *PoolSimulator) _getSingleTimepoint(
 	var oldestIndex uint16
 	// check if we have overflow in the past
 	nextIndex := timepointIndex + 1 // considering overflow
-	if p.timepoints.Get(nextIndex).initialized {
+	if p.timepoints.Get(nextIndex).Initialized {
 		oldestIndex = nextIndex
 	}
 
@@ -85,10 +85,10 @@ func (p *PoolSimulator) _getSingleTimepoint(
 		return err, 0, nil, nil, nil
 	}
 	return nil,
-		result.tickCumulative,
-		result.secondsPerLiquidityCumulative,
-		result.volatilityCumulative,
-		result.volumePerLiquidityCumulative
+		result.TickCumulative,
+		result.SecondsPerLiquidityCumulative,
+		result.VolatilityCumulative,
+		result.VolumePerLiquidityCumulative
 }
 
 func (p *PoolSimulator) _calculateSwapAndLock(
@@ -103,7 +103,8 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 		p.timepoints.updates = map[uint16]Timepoint{}
 	}()
 
-	blockTimestamp := uint32(time.Now().Unix())
+	// blockTimestamp := uint32(time.Now().Unix())
+	blockTimestamp := uint32(1690776535)
 	var cache SwapCalculationCache
 
 	// load from one storage slot
@@ -125,7 +126,8 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	cache.amountRequiredInitial, cache.exactInput = amountRequired, cmp > 0
 
 	var currentLiquidity *big.Int
-	currentLiquidity, cache.volumePerLiquidityInBlock = p.liquidity, p.volumePerLiquidityInBlock
+	// currentLiquidity, cache.volumePerLiquidityInBlock = p.liquidity, p.volumePerLiquidityInBlock
+	currentLiquidity, cache.volumePerLiquidityInBlock = p.liquidity, bignumber.NewBig10("172760224274117266")
 
 	if zeroToOne {
 		if limitSqrtPrice.Cmp(currentPrice) >= 0 || limitSqrtPrice.Cmp(utils.MinSqrtRatio) <= 0 {
@@ -159,6 +161,7 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 		cache.timepointIndex = newTimepointIndex
 		cache.volumePerLiquidityInBlock = bignumber.ZeroBI
 		cache.fee, err = p._getNewFee(blockTimestamp, int24(currentTick), newTimepointIndex, currentLiquidity)
+		logger.Debugf("fee %v", cache.fee)
 		if err != nil {
 			return err, nil, nil, nil
 		}

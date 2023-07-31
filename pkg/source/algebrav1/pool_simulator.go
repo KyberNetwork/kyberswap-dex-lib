@@ -49,11 +49,6 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, ErrTickNil
 	}
 
-	// token0 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[0].Address), uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, entityPool.Tokens[0].Name)
-	// token1 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[1].Address), uint(entityPool.Tokens[1].Decimals), entityPool.Tokens[1].Symbol, entityPool.Tokens[1].Name)
-
-	swapFeeFl := new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), bignumber.BoneFloat)
-	swapFee, _ := swapFeeFl.Int(nil)
 	tokens := make([]string, 2)
 	reserves := make([]*big.Int, 2)
 	if len(entityPool.Reserves) == 2 && len(entityPool.Tokens) == 2 {
@@ -63,40 +58,23 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		reserves[1] = bignumber.NewBig10(entityPool.Reserves[1])
 	}
 
-	var v3Ticks []v3Entities.Tick
-
-	// Ticks are sorted from the pool service, so we don't have to do it again here
-	// Purpose: to improve the latency
-	for _, t := range extra.Ticks {
-		// LiquidityGross = 0 means that the tick is uninitialized
-		if t.LiquidityGross.Cmp(bignumber.ZeroBI) == 0 {
-			continue
-		}
-
-		v3Ticks = append(v3Ticks, v3Entities.Tick{
-			Index:          t.Index,
-			LiquidityGross: t.LiquidityGross,
-			LiquidityNet:   t.LiquidityNet,
-		})
-	}
-
 	// if the tick list is empty, the pool should be ignored
-	if len(v3Ticks) == 0 {
+	if len(extra.Ticks) == 0 {
 		return nil, ErrV3TicksEmpty
 	}
 
-	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, extra.TickSpacing)
+	ticks, err := v3Entities.NewTickListDataProvider(extra.Ticks, int(extra.TickSpacing))
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("---", len(extra.Ticks), extra.Ticks[0])
 
-	tickMin := v3Ticks[0].Index
-	tickMax := v3Ticks[len(v3Ticks)-1].Index
+	tickMin := extra.Ticks[0].Index
+	tickMax := extra.Ticks[len(extra.Ticks)-1].Index
 
 	var info = pool.PoolInfo{
 		Address:    strings.ToLower(entityPool.Address),
 		ReserveUsd: entityPool.ReserveUsd,
-		SwapFee:    swapFee,
 		Exchange:   entityPool.Exchange,
 		Type:       entityPool.Type,
 		Tokens:     tokens,
@@ -109,13 +87,13 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		globalState:               extra.GlobalState,
 		liquidity:                 extra.Liquidity,
 		volumePerLiquidityInBlock: extra.VolumePerLiquidityInBlock,
-		// totalFeeGrowth0Token:      extra.TotalFeeGrowth0Token,
-		// totalFeeGrowth1Token:      extra.TotalFeeGrowth1Token,
-		ticks: ticks,
+		ticks:                     ticks,
 		// gas:     defaultGas,
 		tickMin:     tickMin,
 		tickMax:     tickMax,
-		tickSpacing: extra.TickSpacing,
+		tickSpacing: int(extra.TickSpacing),
+		timepoints:  TimepointStorage{data: extra.Timepoints, updates: map[uint16]Timepoint{}},
+		feeConf:     extra.FeeConfig,
 	}, nil
 }
 
@@ -154,7 +132,9 @@ func (p *PoolSimulator) CalcAmountOut(
 			zeroForOne = true
 		}
 
-		err, amount0, amount1, stateUpdate := p._calculateSwapAndLock(zeroForOne, tokenAmountIn.Amount, p.getSqrtPriceLimit(zeroForOne))
+		priceLimit := p.getSqrtPriceLimit(zeroForOne)
+		logger.Debugf("price limit %v", priceLimit)
+		err, amount0, amount1, stateUpdate := p._calculateSwapAndLock(zeroForOne, tokenAmountIn.Amount, priceLimit)
 		var amountOut *big.Int
 		if zeroForOne {
 			amountOut = new(big.Int).Neg(amount1)

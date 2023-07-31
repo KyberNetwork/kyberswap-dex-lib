@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	algebraV1PoolABI abi.ABI
-	erc20ABI         abi.ABI
+	algebraV1PoolABI                abi.ABI
+	algebraV1DataStorageOperatorAPI abi.ABI
+	erc20ABI                        abi.ABI
 )
 
 func init() {
@@ -17,6 +18,7 @@ func init() {
 		data []byte
 	}{
 		{&algebraV1PoolABI, algebraV1PoolJson},
+		{&algebraV1DataStorageOperatorAPI, algebraV1DataStorageOperatorJson},
 		{&erc20ABI, erc20Json},
 	}
 

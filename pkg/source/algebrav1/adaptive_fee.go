@@ -6,18 +6,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-type FeeConfiguration struct {
-	alpha1      uint16 // max value of the first sigmoid
-	alpha2      uint16 // max value of the second sigmoid
-	beta1       uint32 // shift along the x-axis for the first sigmoid
-	beta2       uint32 // shift along the x-axis for the second sigmoid
-	gamma1      uint16 // horizontal stretch factor for the first sigmoid
-	gamma2      uint16 // horizontal stretch factor for the second sigmoid
-	volumeBeta  uint32 // shift along the x-axis for the outer volume-sigmoid
-	volumeGamma uint16 // horizontal stretch factor the outer volume-sigmoid
-	baseFee     uint16 // minimum possible fee
-}
-
 // / @notice Calculates fee based on formula:
 // / baseFee + sigmoidVolume(sigmoid1(volatility, volumePerLiquidity) + sigmoid2(volatility, volumePerLiquidity))
 // / maximum value capped by baseFee + alpha1 + alpha2
@@ -26,8 +14,8 @@ func getFee(
 	volumePerLiquidity *big.Int,
 	config *FeeConfiguration,
 ) uint16 {
-	sumOfSigmoids := sigmoid(volatility, config.gamma1, config.alpha1, big.NewInt(int64(config.beta1))) +
-		sigmoid(volatility, config.gamma2, config.alpha2, big.NewInt(int64(config.beta2)))
+	sumOfSigmoids := sigmoid(volatility, config.Gamma1, config.Alpha1, big.NewInt(int64(config.Beta1))) +
+		sigmoid(volatility, config.Gamma2, config.Alpha2, big.NewInt(int64(config.Beta2)))
 
 	if sumOfSigmoids > uint16_max {
 		// should be impossible, just in case
@@ -35,8 +23,8 @@ func getFee(
 	}
 
 	// safe since alpha1 + alpha2 + baseFee _must_ be <= type(uint16).max
-	return uint16(config.baseFee +
-		sigmoid(volumePerLiquidity, config.volumeGamma, uint16(sumOfSigmoids), big.NewInt(int64(config.volumeBeta))),
+	return uint16(config.BaseFee +
+		sigmoid(volumePerLiquidity, config.VolumeGamma, uint16(sumOfSigmoids), big.NewInt(int64(config.VolumeBeta))),
 	)
 }
 

@@ -2,6 +2,7 @@ package algebrav1
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -15,26 +16,28 @@ type (
 	int56 = int64
 )
 
-type Timepoint struct {
-	initialized                   bool     // whether or not the timepoint is initialized
-	blockTimestamp                uint32   // the block timestamp of the timepoint
-	tickCumulative                int56    // the tick accumulator, i.e. tick * time elapsed since the pool was first initialized
-	secondsPerLiquidityCumulative *big.Int // the seconds per liquidity since the pool was first initialized
-	volatilityCumulative          *big.Int // the volatility accumulator; overflow after ~34800 years is desired :)
-	averageTick                   int24    // average tick at this blockTimestamp
-	volumePerLiquidityCumulative  *big.Int // the gmean(volumes)/liquidity accumulator
-}
-
 type TimepointStorage struct {
-	data    [UINT16_MODULO]Timepoint
+	data    map[uint16]Timepoint
 	updates map[uint16]Timepoint
 }
 
 func (s *TimepointStorage) Get(index uint16) Timepoint {
+	fmt.Println("access", index)
 	if v, ok := s.updates[index]; ok {
 		return v
 	}
-	return s.data[index]
+	if v, ok := s.data[index]; ok {
+		return v
+	}
+	return Timepoint{
+		Initialized:                   false,
+		BlockTimestamp:                0,
+		TickCumulative:                0,
+		SecondsPerLiquidityCumulative: new(big.Int),
+		VolatilityCumulative:          new(big.Int),
+		AverageTick:                   0,
+		VolumePerLiquidityCumulative:  new(big.Int),
+	}
 }
 func (s *TimepointStorage) Set(index uint16, v Timepoint) {
 	s.updates[index] = v
@@ -108,27 +111,28 @@ func createNewTimepoint(
 	averageTick int24,
 	volumePerLiquidity *big.Int,
 ) Timepoint {
-	delta := blockTimestamp - last.blockTimestamp
+	delta := blockTimestamp - last.BlockTimestamp
 
-	last.initialized = true
-	last.blockTimestamp = blockTimestamp
-	last.tickCumulative += int56(tick) * int64(delta)
+	last.Initialized = true
+	last.BlockTimestamp = blockTimestamp
+	last.TickCumulative += int56(tick) * int64(delta)
 
 	if liquidity.Cmp(bignumber.ZeroBI) <= 0 {
 		liquidity = new(big.Int).Set(bignumber.One)
 	}
 	// just timedelta if liquidity == 0
-	last.secondsPerLiquidityCumulative = new(big.Int).Add(
-		last.secondsPerLiquidityCumulative,
+	last.SecondsPerLiquidityCumulative = new(big.Int).Add(
+		last.SecondsPerLiquidityCumulative,
 		new(big.Int).Div(new(big.Int).Lsh(big.NewInt(int64(delta)), 128), liquidity),
 	)
 	// always fits 88 bits
-	last.volatilityCumulative = new(big.Int).Add(
-		last.volatilityCumulative,
-		_volatilityOnRange(big.NewInt(int64(delta)), big.NewInt(int64(prevTick)), big.NewInt(int64(tick)), big.NewInt(int64(last.averageTick)), big.NewInt(int64(averageTick))),
+	last.VolatilityCumulative = new(big.Int).Add(
+		last.VolatilityCumulative,
+		_volatilityOnRange(big.NewInt(int64(delta)), big.NewInt(int64(prevTick)), big.NewInt(int64(tick)), big.NewInt(int64(last.AverageTick)), big.NewInt(int64(averageTick))),
 	)
-	last.averageTick = averageTick
-	last.volumePerLiquidityCumulative = new(big.Int).Add(last.volumePerLiquidityCumulative, volumePerLiquidity)
+	last.AverageTick = averageTick
+	fmt.Println("----", last, volumePerLiquidity, tick, prevTick)
+	last.VolumePerLiquidityCumulative = new(big.Int).Add(last.VolumePerLiquidityCumulative, volumePerLiquidity)
 
 	return last
 }
@@ -162,8 +166,8 @@ func (self *TimepointStorage) _getAverageTick(
 	lastTickCumulative int56,
 ) (*big.Int, error) {
 	oldest := self.Get(oldestIndex)
-	oldestTimestamp := oldest.blockTimestamp
-	oldestTickCumulative := oldest.tickCumulative
+	oldestTimestamp := oldest.BlockTimestamp
+	oldestTickCumulative := oldest.TickCumulative
 
 	var avgTick int64
 
@@ -171,8 +175,8 @@ func (self *TimepointStorage) _getAverageTick(
 		if lteConsideringOverflow(lastTimestamp, time-WINDOW, time) {
 			index -= 1 // considering underflow
 			startTimepoint := self.Get(index)
-			if startTimepoint.initialized {
-				avgTick = (lastTickCumulative - startTimepoint.tickCumulative) / int64(lastTimestamp-startTimepoint.blockTimestamp)
+			if startTimepoint.Initialized {
+				avgTick = (lastTickCumulative - startTimepoint.TickCumulative) / int64(lastTimestamp-startTimepoint.BlockTimestamp)
 			} else {
 				avgTick = int64(tick)
 			}
@@ -185,7 +189,7 @@ func (self *TimepointStorage) _getAverageTick(
 			//    current-WINDOW  last   current
 			// _________*____________*_______*_
 			//           ||||||||||||
-			avgTick = (lastTickCumulative - startOfWindow.tickCumulative) / int64(lastTimestamp-time+WINDOW)
+			avgTick = (lastTickCumulative - startOfWindow.TickCumulative) / int64(lastTimestamp-time+WINDOW)
 		}
 	} else {
 		if lastTimestamp == oldestTimestamp {
@@ -226,12 +230,12 @@ func (self *TimepointStorage) binarySearch(
 
 	for {
 		beforeOrAt := self.Get(uint16(current)) // checking the "middle" point between the boundaries
-		initializedBefore, timestampBefore := beforeOrAt.initialized, beforeOrAt.blockTimestamp
+		initializedBefore, timestampBefore := beforeOrAt.Initialized, beforeOrAt.BlockTimestamp
 		if initializedBefore {
 			if lteConsideringOverflow(timestampBefore, target, time) {
 				// is current point before or at `target`?
 				atOrAfter = self.Get(uint16(current + 1)) // checking the next point after "middle"
-				initializedAfter, timestampAfter := atOrAfter.initialized, atOrAfter.blockTimestamp
+				initializedAfter, timestampAfter := atOrAfter.Initialized, atOrAfter.BlockTimestamp
 				if initializedAfter {
 					if lteConsideringOverflow(target, timestampAfter, time) {
 						// is the "next" point after or at `target`?
@@ -278,14 +282,14 @@ func (self *TimepointStorage) getSingleTimepoint(
 	target := time - secondsAgo
 
 	// if target is newer than last timepoint
-	if secondsAgo == 0 || lteConsideringOverflow(self.Get(index).blockTimestamp, target, time) {
+	if secondsAgo == 0 || lteConsideringOverflow(self.Get(index).BlockTimestamp, target, time) {
 		// lteConsideringOverflow(self[index].blockTimestamp, target, time) -> case3
 		last := self.Get(index)
-		if last.blockTimestamp == target {
+		if last.BlockTimestamp == target {
 			return last, nil
 		} else {
 			// otherwise, we need to add new timepoint
-			avgTickBI, err := self._getAverageTick(time, tick, index, oldestIndex, last.blockTimestamp, last.tickCumulative)
+			avgTickBI, err := self._getAverageTick(time, tick, index, oldestIndex, last.BlockTimestamp, last.TickCumulative)
 			if err != nil {
 				return Timepoint{}, err
 			}
@@ -295,53 +299,53 @@ func (self *TimepointStorage) getSingleTimepoint(
 				if index != oldestIndex {
 					var prevLast Timepoint
 					_prevLast := self.Get(index - 1) // considering index underflow
-					prevLast.blockTimestamp = _prevLast.blockTimestamp
-					prevLast.tickCumulative = _prevLast.tickCumulative
-					prevTick = int24((last.tickCumulative - prevLast.tickCumulative) / int64(last.blockTimestamp-prevLast.blockTimestamp))
+					prevLast.BlockTimestamp = _prevLast.BlockTimestamp
+					prevLast.TickCumulative = _prevLast.TickCumulative
+					prevTick = int24((last.TickCumulative - prevLast.TickCumulative) / int64(last.BlockTimestamp-prevLast.BlockTimestamp))
 				}
 			}
 			return createNewTimepoint(last, target, tick, prevTick, liquidity, avgTick, bignumber.ZeroBI), nil
 		}
 	}
 
-	if !lteConsideringOverflow(self.Get(oldestIndex).blockTimestamp, target, time) {
+	if !lteConsideringOverflow(self.Get(oldestIndex).BlockTimestamp, target, time) {
 		return Timepoint{}, errors.New("OLD")
 	}
 	beforeOrAt, atOrAfter := self.binarySearch(time, target, index, oldestIndex)
 
-	if target == atOrAfter.blockTimestamp {
+	if target == atOrAfter.BlockTimestamp {
 		return atOrAfter, nil // we're at the right boundary
 	}
 
-	if target != beforeOrAt.blockTimestamp {
+	if target != beforeOrAt.BlockTimestamp {
 		// we're in the middle
-		timepointTimeDelta := atOrAfter.blockTimestamp - beforeOrAt.blockTimestamp
-		targetDelta := target - beforeOrAt.blockTimestamp
+		timepointTimeDelta := atOrAfter.BlockTimestamp - beforeOrAt.BlockTimestamp
+		targetDelta := target - beforeOrAt.BlockTimestamp
 
 		// For gas savings the resulting point is written to beforeAt
-		beforeOrAt.tickCumulative += ((atOrAfter.tickCumulative - beforeOrAt.tickCumulative) / int64(timepointTimeDelta)) * int64(targetDelta)
-		beforeOrAt.secondsPerLiquidityCumulative = new(big.Int).Add(beforeOrAt.secondsPerLiquidityCumulative,
+		beforeOrAt.TickCumulative += ((atOrAfter.TickCumulative - beforeOrAt.TickCumulative) / int64(timepointTimeDelta)) * int64(targetDelta)
+		beforeOrAt.SecondsPerLiquidityCumulative = new(big.Int).Add(beforeOrAt.SecondsPerLiquidityCumulative,
 			new(big.Int).Div(
 				new(big.Int).Mul(
-					new(big.Int).Sub(atOrAfter.secondsPerLiquidityCumulative, beforeOrAt.secondsPerLiquidityCumulative),
+					new(big.Int).Sub(atOrAfter.SecondsPerLiquidityCumulative, beforeOrAt.SecondsPerLiquidityCumulative),
 					big.NewInt(int64(targetDelta)),
 				),
 				big.NewInt(int64(timepointTimeDelta)),
 			),
 		)
-		beforeOrAt.volatilityCumulative = new(big.Int).Add(beforeOrAt.volatilityCumulative,
+		beforeOrAt.VolatilityCumulative = new(big.Int).Add(beforeOrAt.VolatilityCumulative,
 			new(big.Int).Mul(
 				new(big.Int).Div(
-					new(big.Int).Sub(atOrAfter.volatilityCumulative, beforeOrAt.volatilityCumulative),
+					new(big.Int).Sub(atOrAfter.VolatilityCumulative, beforeOrAt.VolatilityCumulative),
 					big.NewInt(int64(timepointTimeDelta)),
 				),
 				big.NewInt(int64(targetDelta)),
 			),
 		)
-		beforeOrAt.volumePerLiquidityCumulative = new(big.Int).Add(beforeOrAt.volumePerLiquidityCumulative,
+		beforeOrAt.VolumePerLiquidityCumulative = new(big.Int).Add(beforeOrAt.VolumePerLiquidityCumulative,
 			new(big.Int).Mul(
 				new(big.Int).Div(
-					new(big.Int).Sub(atOrAfter.volumePerLiquidityCumulative, beforeOrAt.volumePerLiquidityCumulative),
+					new(big.Int).Sub(atOrAfter.VolumePerLiquidityCumulative, beforeOrAt.VolumePerLiquidityCumulative),
 					big.NewInt(int64(timepointTimeDelta)),
 				),
 				big.NewInt(int64(targetDelta)),
@@ -371,7 +375,7 @@ func (self *TimepointStorage) getAverages(
 	oldest := self.Get(0)
 	nextIndex := index + 1 // considering overflow
 	nxt := self.Get(nextIndex)
-	if nxt.initialized {
+	if nxt.Initialized {
 		oldest = nxt
 		oldestIndex = nextIndex
 	}
@@ -381,27 +385,25 @@ func (self *TimepointStorage) getAverages(
 		return err, nil, nil
 	}
 
-	oldestTimestamp := oldest.blockTimestamp
+	oldestTimestamp := oldest.BlockTimestamp
 	if lteConsideringOverflow(oldestTimestamp, time-WINDOW, time) {
-		// case 1
 		startOfWindow, err := self.getSingleTimepoint(time, WINDOW, tick, index, oldestIndex, liquidity)
 		if err != nil {
 			return err, nil, nil
 		}
 		return nil,
-			new(big.Int).Div(new(big.Int).Sub(endOfWindow.volatilityCumulative, startOfWindow.volatilityCumulative), big.NewInt(WINDOW)),
-			new(big.Int).Rsh(new(big.Int).Sub(endOfWindow.volumePerLiquidityCumulative, startOfWindow.volumePerLiquidityCumulative), 57)
+			new(big.Int).Div(new(big.Int).Sub(endOfWindow.VolatilityCumulative, startOfWindow.VolatilityCumulative), big.NewInt(WINDOW)),
+			new(big.Int).Rsh(new(big.Int).Sub(endOfWindow.VolumePerLiquidityCumulative, startOfWindow.VolumePerLiquidityCumulative), 57)
 
 	} else if time != oldestTimestamp {
-		// case 2
-		_oldestVolatilityCumulative := oldest.volatilityCumulative
-		_oldestVolumePerLiquidityCumulative := oldest.volumePerLiquidityCumulative
+		_oldestVolatilityCumulative := oldest.VolatilityCumulative
+		_oldestVolumePerLiquidityCumulative := oldest.VolumePerLiquidityCumulative
 		return nil,
 			new(big.Int).Div(
-				new(big.Int).Sub(endOfWindow.volatilityCumulative, _oldestVolatilityCumulative),
+				new(big.Int).Sub(endOfWindow.VolatilityCumulative, _oldestVolatilityCumulative),
 				big.NewInt(int64(time-oldestTimestamp)),
 			),
-			new(big.Int).Rsh(new(big.Int).Sub(endOfWindow.volumePerLiquidityCumulative, _oldestVolumePerLiquidityCumulative), 57)
+			new(big.Int).Rsh(new(big.Int).Sub(endOfWindow.VolumePerLiquidityCumulative, _oldestVolumePerLiquidityCumulative), 57)
 
 	}
 	return nil, bignumber.ZeroBI, bignumber.ZeroBI
@@ -425,7 +427,7 @@ func (self *TimepointStorage) write(
 ) (indexUpdated uint16, err error) {
 	_last := self.Get(index)
 	// early return if we've already written an timepoint this block
-	if _last.blockTimestamp == blockTimestamp {
+	if _last.BlockTimestamp == blockTimestamp {
 		return index, nil
 	}
 	last := _last
@@ -435,11 +437,11 @@ func (self *TimepointStorage) write(
 
 	var oldestIndex uint16
 	// check if we have overflow in the past
-	if self.Get(indexUpdated).initialized {
+	if self.Get(indexUpdated).Initialized {
 		oldestIndex = indexUpdated
 	}
 
-	avgTickBI, err := self._getAverageTick(blockTimestamp, tick, index, oldestIndex, last.blockTimestamp, last.tickCumulative)
+	avgTickBI, err := self._getAverageTick(blockTimestamp, tick, index, oldestIndex, last.BlockTimestamp, last.TickCumulative)
 	if err != nil {
 		return 0, err
 	}
@@ -447,9 +449,9 @@ func (self *TimepointStorage) write(
 	prevTick := tick
 	if index != oldestIndex {
 		_prevLast := self.Get(index - 1) // considering index underflow
-		_prevLastBlockTimestamp := _prevLast.blockTimestamp
-		_prevLastTickCumulative := _prevLast.tickCumulative
-		prevTick = int24((last.tickCumulative - _prevLastTickCumulative) / int64(last.blockTimestamp-_prevLastBlockTimestamp))
+		_prevLastBlockTimestamp := _prevLast.BlockTimestamp
+		_prevLastTickCumulative := _prevLast.TickCumulative
+		prevTick = int24((last.TickCumulative - _prevLastTickCumulative) / int64(last.BlockTimestamp-_prevLastBlockTimestamp))
 	}
 
 	self.Set(indexUpdated, createNewTimepoint(last, blockTimestamp, tick, prevTick, liquidity, avgTick, volumePerLiquidity))
