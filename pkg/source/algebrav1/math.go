@@ -3,6 +3,7 @@ package algebrav1
 import (
 	"errors"
 	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
@@ -102,8 +103,7 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 		p.timepoints.updates = map[uint16]Timepoint{}
 	}()
 
-	// blockTimestamp := uint32(time.Now().Unix())
-	blockTimestamp := uint32(1690776535)
+	blockTimestamp := uint32(time.Now().Unix())
 	var cache SwapCalculationCache
 
 	// load from one storage slot
@@ -125,8 +125,7 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	cache.amountRequiredInitial, cache.exactInput = amountRequired, cmp > 0
 
 	var currentLiquidity *big.Int
-	// currentLiquidity, cache.volumePerLiquidityInBlock = p.liquidity, p.volumePerLiquidityInBlock
-	currentLiquidity, cache.volumePerLiquidityInBlock = p.liquidity, bignumber.NewBig10("172760224274117266")
+	currentLiquidity, cache.volumePerLiquidityInBlock = p.liquidity, p.volumePerLiquidityInBlock
 
 	if zeroToOne {
 		if limitSqrtPrice.Cmp(currentPrice) >= 0 || limitSqrtPrice.Cmp(utils.MinSqrtRatio) <= 0 {
@@ -160,11 +159,11 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 		cache.timepointIndex = newTimepointIndex
 		cache.volumePerLiquidityInBlock = bignumber.ZeroBI
 		cache.fee, err = p._getNewFee(blockTimestamp, int24(currentTick), newTimepointIndex, currentLiquidity)
-		logger.Debugf("fee %v", cache.fee)
 		if err != nil {
 			return err, nil, nil, nil
 		}
 	}
+	logger.Debugf("fee %v", cache.fee)
 
 	var step PriceMovementCache
 	// swap until there is remaining input or output tokens or we reach the price limit
@@ -281,9 +280,10 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 		TimepointIndex: cache.timepointIndex,
 	}
 
+	volPerLiq := calculateVolumePerLiquidity(currentLiquidity, amount0, amount1)
+	logger.Debugf("volumePerLiquidity %v", volPerLiq)
 	nextState.Liquidity, nextState.VolumePerLiquidityInBlock =
-		currentLiquidity,
-		new(big.Int).Add(cache.volumePerLiquidityInBlock, calculateVolumePerLiquidity(currentLiquidity, amount0, amount1))
+		currentLiquidity, new(big.Int).Add(cache.volumePerLiquidityInBlock, volPerLiq)
 
 	// copy written timepoints
 	nextState.NewTimepoints = make(map[uint16]Timepoint, len(p.timepoints.updates))
