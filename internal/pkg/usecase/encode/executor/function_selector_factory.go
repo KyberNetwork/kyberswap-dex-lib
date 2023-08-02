@@ -104,7 +104,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeKyberswapElastic, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangePancakeV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeChronosV3, FunctionSelectorUniV3KSElastic)
-	RegisterFunctionSelector(valueobject.ExchangeRetroCL, FunctionSelectorUniV3KSElastic)
+	RegisterFunctionSelector(valueobject.ExchangeRetroV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeHorizonDex, FunctionSelectorUniV3KSElastic)
 
 	// executeBalV2Swap

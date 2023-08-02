@@ -68,7 +68,7 @@ common:
     - "metavault"
     - "fraxswap"
     - "kyberswap-limit-order"
-    - "retro-cl"
+    - "retro-v3"
     - "retro"
     - "pearl"
     - "pearl-v2"

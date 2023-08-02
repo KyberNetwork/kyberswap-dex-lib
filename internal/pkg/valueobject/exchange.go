@@ -69,7 +69,7 @@ var (
 	ExchangeUniSwapV3        Exchange = "uniswapv3"
 	ExchangeKyberswapElastic Exchange = "kyberswap-elastic"
 	ExchangeChronosV3        Exchange = "chronos-v3"
-	ExchangeRetroCL          Exchange = "retro-cl"
+	ExchangeRetroV3          Exchange = "retro-v3"
 	ExchangeHorizonDex       Exchange = "horizon-dex"
 
 	ExchangeBalancer                 Exchange = "balancer"
@@ -179,7 +179,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUniSwapV3:                {},
 	ExchangeKyberswapElastic:         {},
 	ExchangeChronosV3:                {},
-	ExchangeRetroCL:                  {},
+	ExchangeRetroV3:                  {},
 	ExchangeBalancer:                 {},
 	ExchangeBalancerComposableStable: {},
 	ExchangeBeethovenX:               {},
