@@ -217,7 +217,7 @@ func (f *PoolFactory) newPool(entityPool entity.Pool) (poolpkg.IPoolSimulator, e
 		constant.PoolTypes.DodoVendingMachine, constant.PoolTypes.DodoPrivate:
 		return f.newDoDo(entityPool)
 	case constant.PoolTypes.Velodrome, constant.PoolTypes.Ramses,
-		constant.PoolTypes.MuteSwitch, constant.PoolTypes.Dystopia:
+		constant.PoolTypes.MuteSwitch, constant.PoolTypes.Dystopia, constant.PoolTypes.Pearl:
 		return f.newVelodrome(entityPool)
 	case constant.PoolTypes.PlatypusBase, constant.PoolTypes.PlatypusPure, constant.PoolTypes.PlatypusAvax:
 		return f.newPlatypus(entityPool)

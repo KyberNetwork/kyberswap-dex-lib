@@ -102,6 +102,8 @@ var (
 	ExchangeMuteSwitch Exchange = "muteswitch"
 	ExchangeRetro      Exchange = "retro"
 	ExchangeThena      Exchange = "thena"
+	ExchangePearl      Exchange = "pearl"
+	ExchangePearlV2    Exchange = "pearl-v2"
 
 	ExchangePlatypus Exchange = "platypus"
 
@@ -193,6 +195,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeKyberSwapStatic:          {},
 	ExchangeVelodrome:                {},
 	ExchangeThena:                    {},
+	ExchangePearl:                    {},
+	ExchangePearlV2:                  {},
 	ExchangeDystopia:                 {},
 	ExchangeChronos:                  {},
 	ExchangeRamses:                   {},

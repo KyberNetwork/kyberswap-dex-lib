@@ -30,6 +30,8 @@ type types struct {
 	DodoPrivate              string
 	Velodrome                string
 	Thena                    string
+	Pearl                    string
+	PearlV2                  string
 	Ramses                   string
 	Dystopia                 string
 	PlatypusBase             string
@@ -83,6 +85,8 @@ var (
 		DodoPrivate:              "dodo-dpp",
 		Velodrome:                "velodrome",
 		Thena:                    "thena",
+		Pearl:                    "pearl",
+		PearlV2:                  "pearl-v2",
 		Ramses:                   "ramses",
 		Dystopia:                 "dystopia",
 		PlatypusBase:             "platypus-base",
