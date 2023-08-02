@@ -218,17 +218,17 @@ func (self *TimepointStorage) binarySearch(
 	target uint32,
 	lastIndex uint16,
 	oldestIndex uint16,
-) (beforeOrAt, atOrAfter Timepoint) {
-	left := oldestIndex // oldest timepoint
-	var right uint16
+) (err error, beforeOrAt, atOrAfter Timepoint) {
+	left := int64(oldestIndex) // oldest timepoint
+	var right int64
 	if lastIndex >= oldestIndex {
-		right = lastIndex
+		right = int64(lastIndex)
 	} else {
-		right = uint16((int(lastIndex) + UINT16_MODULO) % UINT16_MODULO)
+		right = int64(lastIndex) + UINT16_MODULO
 	} // newest timepoint considering one index overflow
 	current := (left + right) >> 1 // "middle" point between the boundaries
 
-	for {
+	for i := 0; i < 30; i += 1 {
 		beforeOrAt := self.Get(uint16(current)) // checking the "middle" point between the boundaries
 		initializedBefore, timestampBefore := beforeOrAt.Initialized, beforeOrAt.BlockTimestamp
 		if initializedBefore {
@@ -239,13 +239,13 @@ func (self *TimepointStorage) binarySearch(
 				if initializedAfter {
 					if lteConsideringOverflow(target, timestampAfter, time) {
 						// is the "next" point after or at `target`?
-						return beforeOrAt, atOrAfter // the only fully correct way to finish
+						return nil, beforeOrAt, atOrAfter // the only fully correct way to finish
 					}
 					left = current + 1 // "next" point is before the `target`, so looking in the right half
 				} else {
 					// beforeOrAt is initialized and <= target, and next timepoint is uninitialized
 					// should be impossible if initial boundaries and `target` are correct
-					return beforeOrAt, beforeOrAt
+					return nil, beforeOrAt, beforeOrAt
 				}
 			} else {
 				right = current - 1 // current point is after the `target`, so looking in the left half
@@ -257,6 +257,7 @@ func (self *TimepointStorage) binarySearch(
 		}
 		current = (left + right) >> 1 // calculating the new "middle" point index after updating the bounds
 	}
+	return ErrMaxBinarySearchLoop, Timepoint{}, Timepoint{}
 }
 
 // / @dev Reverts if an timepoint at or before the desired timepoint timestamp does not exist.
@@ -311,7 +312,10 @@ func (self *TimepointStorage) getSingleTimepoint(
 	if !lteConsideringOverflow(self.Get(oldestIndex).BlockTimestamp, target, time) {
 		return Timepoint{}, errors.New("OLD")
 	}
-	beforeOrAt, atOrAfter := self.binarySearch(time, target, index, oldestIndex)
+	err, beforeOrAt, atOrAfter := self.binarySearch(time, target, index, oldestIndex)
+	if err != nil {
+		return Timepoint{}, err
+	}
 
 	if target == atOrAfter.BlockTimestamp {
 		return atOrAfter, nil // we're at the right boundary
