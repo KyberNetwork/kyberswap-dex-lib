@@ -83,6 +83,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeKyberSwap, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeKyberSwapStatic, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeVelodrome, swapdata.PackUniSwap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeFvm, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeThena, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeDystopia, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeChronos, swapdata.PackUniSwap)

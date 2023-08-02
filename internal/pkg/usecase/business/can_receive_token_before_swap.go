@@ -59,6 +59,7 @@ var (
 		valueobject.ExchangeKyberSwap:       true,
 		valueobject.ExchangeKyberSwapStatic: true,
 		valueobject.ExchangeVelodrome:       true,
+		valueobject.ExchangeFvm:             true,
 		valueobject.ExchangeThena:           true,
 		valueobject.ExchangePearl:           true,
 		valueobject.ExchangePearlV2:         true,

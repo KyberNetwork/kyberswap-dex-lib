@@ -29,6 +29,7 @@ type types struct {
 	DodoStable               string
 	DodoPrivate              string
 	Velodrome                string
+	Velocimeter              string
 	Thena                    string
 	Pearl                    string
 	PearlV2                  string
@@ -84,6 +85,7 @@ var (
 		DodoStable:               "dodo-dsp",
 		DodoPrivate:              "dodo-dpp",
 		Velodrome:                "velodrome",
+		Velocimeter:              "velocimeter",
 		Thena:                    "thena",
 		Pearl:                    "pearl",
 		PearlV2:                  "pearl-v2",

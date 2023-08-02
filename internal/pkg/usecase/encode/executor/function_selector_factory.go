@@ -146,6 +146,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeThena, FunctionSelectorVelodrome)
 	RegisterFunctionSelector(valueobject.ExchangePearl, FunctionSelectorVelodrome)
 	RegisterFunctionSelector(valueobject.ExchangePearlV2, FunctionSelectorVelodrome)
+	RegisterFunctionSelector(valueobject.ExchangeFvm, FunctionSelectorVelodrome)
 
 	// executePlatypusSwap
 	RegisterFunctionSelector(valueobject.ExchangePlatypus, FunctionSelectorPlatypus)

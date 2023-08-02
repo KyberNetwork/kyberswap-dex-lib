@@ -37,6 +37,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -219,6 +220,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool) (poolpkg.IPoolSimulator, e
 	case constant.PoolTypes.Velodrome, constant.PoolTypes.Ramses,
 		constant.PoolTypes.MuteSwitch, constant.PoolTypes.Dystopia, constant.PoolTypes.Pearl:
 		return f.newVelodrome(entityPool)
+	case constant.PoolTypes.Velocimeter:
+		return f.newVelocimeter(entityPool)
 	case constant.PoolTypes.PlatypusBase, constant.PoolTypes.PlatypusPure, constant.PoolTypes.PlatypusAvax:
 		return f.newPlatypus(entityPool)
 	case constant.PoolTypes.GMX:
@@ -515,6 +518,20 @@ func (f *PoolFactory) newVelodrome(entityPool entity.Pool) (*velodrome.PoolSimul
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newVelodrome] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newVelocimeter(entityPool entity.Pool) (*velocimeter.Pool, error) {
+	corePool, err := velocimeter.NewPool(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newVelocimeter] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

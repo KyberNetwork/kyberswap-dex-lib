@@ -95,6 +95,7 @@ var (
 	ExchangeKyberSwapStatic Exchange = "kyberswap-static"
 
 	ExchangeVelodrome  Exchange = "velodrome"
+	ExchangeFvm        Exchange = "fvm"
 	ExchangeDystopia   Exchange = "dystopia"
 	ExchangeChronos    Exchange = "chronos"
 	ExchangeRamses     Exchange = "ramses"
@@ -194,6 +195,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeKyberSwap:                {},
 	ExchangeKyberSwapStatic:          {},
 	ExchangeVelodrome:                {},
+	ExchangeFvm:                      {},
 	ExchangeThena:                    {},
 	ExchangePearl:                    {},
 	ExchangePearlV2:                  {},
