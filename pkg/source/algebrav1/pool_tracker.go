@@ -143,6 +143,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 		Params: nil,
 	}, []interface{}{&res.liquidity})
 
+	// TODO: check with a pool with uint8 community fee non-zero to see if it still work with uint16 ABI
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    algebraV1PoolABI,
 		Target: p.Address,

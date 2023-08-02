@@ -46,8 +46,8 @@ type GlobalState struct {
 	Tick               *big.Int `json:"tick"`
 	Fee                uint16   `json:"fee"`
 	TimepointIndex     uint16   `json:"timepoint_index"`
-	CommunityFeeToken0 uint8    `json:"community_fee_token0"`
-	CommunityFeeToken1 uint8    `json:"community_fee_token1"`
+	CommunityFeeToken0 uint16   `json:"community_fee_token0"`
+	CommunityFeeToken1 uint16   `json:"community_fee_token1"`
 	Unlocked           bool     `json:"unlocked"`
 }
 

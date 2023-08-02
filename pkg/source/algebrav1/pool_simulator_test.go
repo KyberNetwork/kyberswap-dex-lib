@@ -29,7 +29,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		Type:     "",
 		Reserves: entity.PoolReserves{"723924", "36031866872048609640"},
 		Tokens:   []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
-		Extra:    `{"liquidity":2822091172725,"globalState":{"price":93065132232889433968150957834858946,"tick":279543,"fee":2985,"timepoint_index":65,"community_fee_token0":0,"community_fee_token1":0},"ticks":[{"Index":-887220,"LiquidityGross":2822091172725,"LiquidityNet":2822091172725},{"Index":273540,"LiquidityGross":116315447200034,"LiquidityNet":116315447200034},{"Index":279120,"LiquidityGross":116315447200034,"LiquidityNet":-116315447200034},{"Index":285480,"LiquidityGross":2822091172725,"LiquidityNet":-2822091172725}],"tickSpacing":60}`,
+		Extra:    `{"liquidity":2822091172725,"globalState":{"price":93065132232889433968150957834858946,"tick":279543,"fee":2985,"timepoint_index":65,"community_fee_token0":0,"community_fee_token1":0,"unlocked":true},"ticks":[{"Index":-887220,"LiquidityGross":2822091172725,"LiquidityNet":2822091172725},{"Index":273540,"LiquidityGross":116315447200034,"LiquidityNet":116315447200034},{"Index":279120,"LiquidityGross":116315447200034,"LiquidityNet":-116315447200034},{"Index":285480,"LiquidityGross":2822091172725,"LiquidityNet":-2822091172725}],"tickSpacing":60}`,
 	}, 1001)
 	require.Nil(t, err)
 
@@ -71,7 +71,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 		Type:     "",
 		Reserves: entity.PoolReserves{"723924", "36031866872048609640"},
 		Tokens:   []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
-		Extra:    `{"liquidity":2822091172725,"globalState":{"price":93065132232889433968150957834858946,"tick":279543,"fee":2979,"timepoint_index":65,"community_fee_token0":0,"community_fee_token1":0},"ticks":[{"Index":-887220,"LiquidityGross":2822091172725,"LiquidityNet":2822091172725},{"Index":273540,"LiquidityGross":116315447200034,"LiquidityNet":116315447200034},{"Index":279120,"LiquidityGross":116315447200034,"LiquidityNet":-116315447200034},{"Index":285480,"LiquidityGross":2822091172725,"LiquidityNet":-2822091172725}],"tickSpacing":60}`,
+		Extra:    `{"liquidity":2822091172725,"globalState":{"price":93065132232889433968150957834858946,"tick":279543,"fee":2979,"timepoint_index":65,"community_fee_token0":0,"community_fee_token1":0,"unlocked":true},"ticks":[{"Index":-887220,"LiquidityGross":2822091172725,"LiquidityNet":2822091172725},{"Index":273540,"LiquidityGross":116315447200034,"LiquidityNet":116315447200034},{"Index":279120,"LiquidityGross":116315447200034,"LiquidityNet":-116315447200034},{"Index":285480,"LiquidityGross":2822091172725,"LiquidityNet":-2822091172725}],"tickSpacing":60}`,
 	}, 1001)
 	require.Nil(t, err)
 
@@ -92,3 +92,5 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 		})
 	}
 }
+
+// TODO: test pool with community_fee_token0 https://bscscan.com/address/0x0137a5ba1dfa5d6d9a5896251f3d06b2e6669c3a#readContract
