@@ -8,9 +8,8 @@ import (
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 )
 
-type Gas struct {
-	Swap int64
-}
+type int24 = int32
+type int56 = int64
 
 type Metadata struct {
 	LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp"`
@@ -49,7 +48,7 @@ type GlobalState struct {
 	TimepointIndex     uint16   `json:"timepoint_index"`
 	CommunityFeeToken0 uint8    `json:"community_fee_token0"`
 	CommunityFeeToken1 uint8    `json:"community_fee_token1"`
-	Unlocked           bool     `json:"-"`
+	Unlocked           bool     `json:"unlocked"`
 }
 
 type FeeConfiguration struct {
@@ -65,14 +64,11 @@ type FeeConfiguration struct {
 }
 
 type FetchRPCResult struct {
-	liquidity                 *big.Int
-	state                     GlobalState
-	feeConf                   FeeConfiguration
-	tickSpacing               *big.Int
-	reserve0                  *big.Int
-	reserve1                  *big.Int
-	timepoints                map[uint16]Timepoint
-	volumePerLiquidityInBlock *big.Int
+	liquidity   *big.Int
+	state       GlobalState
+	tickSpacing *big.Int
+	reserve0    *big.Int
+	reserve1    *big.Int
 }
 
 type Timepoint struct {
@@ -97,21 +93,16 @@ type TimepointRPC struct {
 }
 
 type Extra struct {
-	Liquidity                 *big.Int             `json:"liquidity"`
-	// VolumePerLiquidityInBlock *big.Int             `json:"volumePerLiquidityInBlock"`
-	GlobalState               GlobalState          `json:"globalState"`
-	// FeeConfig                 FeeConfiguration     `json:"feeConfig"`
-	Ticks                     []v3Entities.Tick    `json:"ticks"`
-	TickSpacing               int24                `json:"tickSpacing"`
-	// Timepoints                map[uint16]Timepoint `json:"timepoints"`
+	Liquidity   *big.Int          `json:"liquidity"`
+	GlobalState GlobalState       `json:"globalState"`
+	Ticks       []v3Entities.Tick `json:"ticks"`
+	TickSpacing int24             `json:"tickSpacing"`
 }
 
 // we won't update the state when calculating amountOut, return this struct instead
 type StateUpdate struct {
-	Liquidity                 *big.Int
-	// VolumePerLiquidityInBlock *big.Int
-	GlobalState               GlobalState
-	// NewTimepoints             map[uint16]Timepoint
+	Liquidity   *big.Int
+	GlobalState GlobalState
 }
 
 func transformTickRespToTick(tickResp TickResp) (v3Entities.Tick, error) {
@@ -137,4 +128,16 @@ func transformTickRespToTick(tickResp TickResp) (v3Entities.Tick, error) {
 		LiquidityGross: liquidityGross,
 		LiquidityNet:   liquidityNet,
 	}, nil
+}
+
+func (tp *TimepointRPC) toTimepoint() Timepoint {
+	return Timepoint{
+		Initialized:                   tp.Initialized,
+		BlockTimestamp:                tp.BlockTimestamp,
+		TickCumulative:                tp.TickCumulative.Int64(),
+		SecondsPerLiquidityCumulative: tp.SecondsPerLiquidityCumulative,
+		VolatilityCumulative:          tp.VolatilityCumulative,
+		AverageTick:                   int24(tp.AverageTick.Int64()),
+		VolumePerLiquidityCumulative:  tp.VolumePerLiquidityCumulative,
+	}
 }

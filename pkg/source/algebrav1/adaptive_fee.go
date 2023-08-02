@@ -17,11 +17,6 @@ func getFee(
 	sumOfSigmoids := sigmoid(volatility, config.Gamma1, config.Alpha1, big.NewInt(int64(config.Beta1))) +
 		sigmoid(volatility, config.Gamma2, config.Alpha2, big.NewInt(int64(config.Beta2)))
 
-	if sumOfSigmoids > uint16_max {
-		// should be impossible, just in case
-		sumOfSigmoids = uint16_max
-	}
-
 	// safe since alpha1 + alpha2 + baseFee _must_ be <= type(uint16).max
 	return uint16(config.BaseFee +
 		sigmoid(volumePerLiquidity, config.VolumeGamma, uint16(sumOfSigmoids), big.NewInt(int64(config.VolumeBeta))),

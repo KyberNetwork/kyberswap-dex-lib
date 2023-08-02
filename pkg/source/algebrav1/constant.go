@@ -4,7 +4,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -26,20 +25,17 @@ const (
 	methodGetTickSpacing         = "tickSpacing"
 	erc20MethodBalanceOf         = "balanceOf"
 
-	uint16_max = 65535
+	maxSwapLoop         = 1000000
+	maxBinarySearchLoop = 1000
 
-	maxSwapLoop = 1000000
+	timepointPageSize           = uint16(300)
 
-	timepointPageSize           = 300
-	timepointWindowLimitSeconds = 3600 * 24
+	WINDOW        = 86400 // 1 day in seconds
+	UINT16_MODULO = 65536
 )
 
 var (
-	uint256_max               = bignumber.NewBig("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
-	pow192                    = new(big.Int).Lsh(bignumber.One, 192)
-	Q128                      = bignumber.NewBig("0x100000000000000000000000000000000")
 	COMMUNITY_FEE_DENOMINATOR = big.NewInt(1000)
-	MAX_VOLUME_PER_LIQUIDITY  = new(big.Int).Lsh(big.NewInt(100000), 64) // maximum meaningful ratio of volume to liquidity
 
 	slot3 = common.BigToHash(big.NewInt(3))
 )

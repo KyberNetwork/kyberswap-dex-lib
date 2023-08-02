@@ -2,33 +2,30 @@ package algebrav1
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
 )
 
-const WINDOW = 86400
-const UINT16_MODULO = 65536
+// port https://github.com/cryptoalgebra/AlgebraV1/blob/dfebf532a27803dafcbf2ba49724740bd6220505/src/core/contracts/libraries/DataStorage.sol
 
-type (
-	int24 = int32
-	int56 = int64
-)
-
+// we won't need full 65536 points as in SC, so use a custom struct
 type TimepointStorage struct {
-	data    map[uint16]Timepoint
-	updates map[uint16]Timepoint
+	data    map[uint16]Timepoint // original data from SC
+	updates map[uint16]Timepoint // new data written during simulation (or precalculation), will be cleared
 }
 
 func (s *TimepointStorage) Get(index uint16) Timepoint {
-	fmt.Println("access", index)
 	if v, ok := s.updates[index]; ok {
+		logger.Debugf("access new %v %v", index, v)
 		return v
 	}
 	if v, ok := s.data[index]; ok {
+		logger.Debugf("access exists %v %v", index, v)
 		return v
 	}
+	logger.Debugf("access none %v", index)
 	return Timepoint{
 		Initialized:                   false,
 		BlockTimestamp:                0,
@@ -131,7 +128,6 @@ func createNewTimepoint(
 		_volatilityOnRange(big.NewInt(int64(delta)), big.NewInt(int64(prevTick)), big.NewInt(int64(tick)), big.NewInt(int64(last.AverageTick)), big.NewInt(int64(averageTick))),
 	)
 	last.AverageTick = averageTick
-	fmt.Println("----", last, volumePerLiquidity, tick, prevTick)
 	last.VolumePerLiquidityCumulative = new(big.Int).Add(last.VolumePerLiquidityCumulative, volumePerLiquidity)
 
 	return last
@@ -228,7 +224,8 @@ func (self *TimepointStorage) binarySearch(
 	} // newest timepoint considering one index overflow
 	current := (left + right) >> 1 // "middle" point between the boundaries
 
-	for i := 0; i < 30; i += 1 {
+	// limit number of loop to make sure we won't loop forever because of a bug somewhere
+	for i := 0; i < maxBinarySearchLoop; i += 1 {
 		beforeOrAt := self.Get(uint16(current)) // checking the "middle" point between the boundaries
 		initializedBefore, timestampBefore := beforeOrAt.Initialized, beforeOrAt.BlockTimestamp
 		if initializedBefore {
@@ -388,6 +385,7 @@ func (self *TimepointStorage) getAverages(
 	if err != nil {
 		return err, nil, nil
 	}
+	logger.Debugf("endW %v", endOfWindow.BlockTimestamp)
 
 	oldestTimestamp := oldest.BlockTimestamp
 	if lteConsideringOverflow(oldestTimestamp, time-WINDOW, time) {
@@ -395,6 +393,7 @@ func (self *TimepointStorage) getAverages(
 		if err != nil {
 			return err, nil, nil
 		}
+		logger.Debugf("startW %v", startOfWindow.BlockTimestamp)
 		return nil,
 			new(big.Int).Div(new(big.Int).Sub(endOfWindow.VolatilityCumulative, startOfWindow.VolatilityCumulative), big.NewInt(WINDOW)),
 			new(big.Int).Rsh(new(big.Int).Sub(endOfWindow.VolumePerLiquidityCumulative, startOfWindow.VolumePerLiquidityCumulative), 57)
@@ -402,6 +401,7 @@ func (self *TimepointStorage) getAverages(
 	} else if time != oldestTimestamp {
 		_oldestVolatilityCumulative := oldest.VolatilityCumulative
 		_oldestVolumePerLiquidityCumulative := oldest.VolumePerLiquidityCumulative
+		logger.Debugf("startW oldestTimestamp %v", oldestTimestamp)
 		return nil,
 			new(big.Int).Div(
 				new(big.Int).Sub(endOfWindow.VolatilityCumulative, _oldestVolatilityCumulative),
@@ -460,4 +460,23 @@ func (self *TimepointStorage) write(
 
 	self.Set(indexUpdated, createNewTimepoint(last, blockTimestamp, tick, prevTick, liquidity, avgTick, volumePerLiquidity))
 	return
+}
+
+// https://github.com/cryptoalgebra/AlgebraV1/blob/dfebf532a27803dafcbf2ba49724740bd6220505/src/core/contracts/DataStorageOperator.sol#L150
+func (ts *TimepointStorage) _getNewFee(
+	_time uint32,
+	_tick int24,
+	_index uint16,
+	_liquidity *big.Int,
+	_feeConf *FeeConfiguration,
+) (uint16, error) {
+	err, volatilityAverage, volumePerLiqAverage := ts.getAverages(_time, _tick, _index, _liquidity)
+	if err != nil {
+		return 0, err
+	}
+	return getFee(
+		new(big.Int).Div(volatilityAverage, big.NewInt(15)),
+		volumePerLiqAverage,
+		_feeConf,
+	), nil
 }

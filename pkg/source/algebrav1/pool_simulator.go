@@ -2,7 +2,6 @@ package algebrav1
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -13,33 +12,21 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
-)
-
-var (
-	ErrTickNil      = errors.New("tick is nil")
-	ErrV3TicksEmpty = errors.New("v3Ticks empty")
 )
 
 type PoolSimulator struct {
 	pool.Pool
-	globalState               GlobalState
-	liquidity                 *big.Int
-	// volumePerLiquidityInBlock *big.Int
-	// totalFeeGrowth0Token      *big.Int
-	// totalFeeGrowth1Token      *big.Int
+	globalState GlobalState
+	liquidity   *big.Int
 	ticks       *v3Entities.TickListDataProvider
-	gas         Gas
+	gas         int64
 	tickMin     int
 	tickMax     int
 	tickSpacing int
-
-	// timepoints TimepointStorage
-	// feeConf    FeeConfiguration
 }
 
-func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
+func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -56,6 +43,8 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		reserves[0] = bignumber.NewBig10(entityPool.Reserves[0])
 		tokens[1] = entityPool.Tokens[1].Address
 		reserves[1] = bignumber.NewBig10(entityPool.Reserves[1])
+	} else {
+		return nil, ErrInvalidToken
 	}
 
 	// if the tick list is empty, the pool should be ignored
@@ -63,11 +52,14 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, ErrV3TicksEmpty
 	}
 
+	if !extra.GlobalState.Unlocked {
+		return nil, ErrPoolLocked
+	}
+
 	ticks, err := v3Entities.NewTickListDataProvider(extra.Ticks, int(extra.TickSpacing))
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("---", len(extra.Ticks), extra.Ticks[0])
 
 	tickMin := extra.Ticks[0].Index
 	tickMax := extra.Ticks[len(extra.Ticks)-1].Index
@@ -83,17 +75,14 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	return &PoolSimulator{
-		Pool:                      pool.Pool{Info: info},
-		globalState:               extra.GlobalState,
-		liquidity:                 extra.Liquidity,
-		// volumePerLiquidityInBlock: extra.VolumePerLiquidityInBlock,
-		ticks:                     ticks,
-		// gas:     defaultGas,
+		Pool:        pool.Pool{Info: info},
+		globalState: extra.GlobalState,
+		liquidity:   extra.Liquidity,
+		ticks:       ticks,
+		gas:         defaultGas,
 		tickMin:     tickMin,
 		tickMax:     tickMax,
 		tickSpacing: int(extra.TickSpacing),
-		// timepoints:  TimepointStorage{data: extra.Timepoints, updates: map[uint16]Timepoint{}},
-		// feeConf:     extra.FeeConfig,
 	}, nil
 }
 
@@ -146,7 +135,6 @@ func (p *PoolSimulator) CalcAmountOut(
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
 		}
 
-		// var totalGas = p.gas.Swap
 		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
@@ -157,12 +145,12 @@ func (p *PoolSimulator) CalcAmountOut(
 					Token:  tokenAmountIn.Token,
 					Amount: nil,
 				},
-				// Gas: totalGas,
+				Gas:      p.gas,
 				SwapInfo: *stateUpdate,
 			}, nil
 		}
 
-		return &pool.CalcAmountOutResult{}, errors.New("amountOut is 0")
+		return &pool.CalcAmountOutResult{}, ErrZeroAmountOut
 	}
 
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
@@ -175,12 +163,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 	p.liquidity = new(big.Int).Set(si.Liquidity)
-	// p.volumePerLiquidityInBlock = new(big.Int).Set(si.VolumePerLiquidityInBlock)
 	p.globalState = si.GlobalState
-	// p.timepoints.updates = make(map[uint16]Timepoint, len(si.NewTimepoints))
-	// for i, tp := range si.NewTimepoints {
-	// 	p.timepoints.updates[i] = tp
-	// }
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {

@@ -1,7 +1,6 @@
 package algebrav1
 
 import (
-	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -11,19 +10,19 @@ import (
 )
 
 type SwapCalculationCache struct {
-	communityFee                  *big.Int // The community fee of the selling token, uint256 to minimize casts
-	volumePerLiquidityInBlock     *big.Int
-	tickCumulative                int64    // The global tickCumulative at the moment
-	secondsPerLiquidityCumulative *big.Int // The global secondPerLiquidity at the moment
-	computedLatestTimepoint       bool     //  if we have already fetched _tickCumulative_ and _secondPerLiquidity_ from the DataOperator
-	amountRequiredInitial         *big.Int // The initial value of the exact input\output amount
-	amountCalculated              *big.Int // The additive amount of total output\input calculated trough the swap
+	communityFee *big.Int // The community fee of the selling token, uint256 to minimize casts
+	// volumePerLiquidityInBlock     *big.Int
+	// tickCumulative                int64    // The global tickCumulative at the moment
+	// secondsPerLiquidityCumulative *big.Int // The global secondPerLiquidity at the moment
+	// computedLatestTimepoint       bool     //  if we have already fetched _tickCumulative_ and _secondPerLiquidity_ from the DataOperator
+	amountRequiredInitial *big.Int // The initial value of the exact input\output amount
+	amountCalculated      *big.Int // The additive amount of total output\input calculated trough the swap
 	// totalFeeGrowth                *big.Int // The initial totalFeeGrowth + the fee growth during a swap
 	// totalFeeGrowthB               *big.Int
 	// incentiveStatus               IAlgebraVirtualPool.Status // If there is an active incentive at the moment
 	exactInput bool   // Whether the exact input or output is specified
 	fee        uint16 // The current dynamic fee
-	startTick  int    // The tick at the start of a swap
+	// startTick  int    // The tick at the start of a swap
 	// timepointIndex uint16 // The index of last written timepoint
 }
 
@@ -37,133 +36,50 @@ type PriceMovementCache struct {
 	feeAmount     *big.Int // The total amount of fee earned within a current step
 }
 
-// func (p *PoolSimulator) _writeTimepoint(
-// 	timepointIndex uint16,
-// 	blockTimestamp uint32,
-// 	tick int24,
-// 	liquidity *big.Int,
-// 	volumePerLiquidityInBlock *big.Int,
-// ) (uint16, error) {
-// 	return p.timepoints.write(timepointIndex, blockTimestamp, tick, liquidity, volumePerLiquidityInBlock)
-// }
-
-// func (p *PoolSimulator) _getNewFee(
-// 	_time uint32,
-// 	_tick int24,
-// 	_index uint16,
-// 	_liquidity *big.Int,
-// ) (uint16, error) {
-// 	err, volatilityAverage, volumePerLiqAverage := p.timepoints.getAverages(_time, _tick, _index, _liquidity)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// 	return getFee(
-// 		new(big.Int).Div(volatilityAverage, big.NewInt(15)),
-// 		volumePerLiqAverage,
-// 		&p.feeConf,
-// 	), nil
-// }
-
-// func (p *PoolSimulator) _getSingleTimepoint(
-// 	blockTimestamp uint32,
-// 	secondsAgo uint32,
-// 	startTick int24,
-// 	timepointIndex uint16,
-// 	liquidityStart *big.Int,
-// ) (error, int56, *big.Int, *big.Int, *big.Int) {
-
-// 	var oldestIndex uint16
-// 	// check if we have overflow in the past
-// 	nextIndex := timepointIndex + 1 // considering overflow
-// 	if p.timepoints.Get(nextIndex).Initialized {
-// 		oldestIndex = nextIndex
-// 	}
-
-// 	result, err := p.timepoints.getSingleTimepoint(blockTimestamp, secondsAgo, startTick, timepointIndex, oldestIndex, liquidityStart)
-// 	if err != nil {
-// 		return err, 0, nil, nil, nil
-// 	}
-// 	return nil,
-// 		result.TickCumulative,
-// 		result.SecondsPerLiquidityCumulative,
-// 		result.VolatilityCumulative,
-// 		result.VolumePerLiquidityCumulative
-// }
-
+// https://github.com/cryptoalgebra/AlgebraV1/blob/dfebf532a27803dafcbf2ba49724740bd6220505/src/core/contracts/AlgebraPool.sol#L703
 func (p *PoolSimulator) _calculateSwapAndLock(
 	zeroToOne bool,
 	amountRequired *big.Int,
 	limitSqrtPrice *big.Int,
 ) (error, *big.Int, *big.Int, *StateUpdate) {
-	nextState := &StateUpdate{}
-
-	defer func() {
-		// reset written timepoints
-		// p.timepoints.updates = map[uint16]Timepoint{}
-	}()
-
-	// blockTimestamp := uint32(time.Now().Unix())
 	var cache SwapCalculationCache
+	var err error
+
+	nextState := &StateUpdate{}
 
 	// load from one storage slot
 	currentPrice := p.globalState.Price
 	currentTick := int(p.globalState.Tick.Int64())
 	cache.fee = p.globalState.Fee
 	cache.amountCalculated = bignumber.ZeroBI
-	// cache.timepointIndex = p.globalState.TimepointIndex
 	_communityFeeToken0 := p.globalState.CommunityFeeToken0
 	_communityFeeToken1 := p.globalState.CommunityFeeToken1
 
-	communityFeeAmount := bignumber.ZeroBI // TODO: return this
-
 	cmp := amountRequired.Cmp(bignumber.ZeroBI)
 	if cmp == 0 {
-		return errors.New("AS"), nil, nil, nil
+		return ErrZeroAmountIn, nil, nil, nil
 	}
 
 	cache.amountRequiredInitial, cache.exactInput = amountRequired, cmp > 0
 
-	var currentLiquidity *big.Int
-	// currentLiquidity, cache.volumePerLiquidityInBlock = p.liquidity, p.volumePerLiquidityInBlock
-	currentLiquidity = p.liquidity
+	currentLiquidity := p.liquidity
 
 	if zeroToOne {
 		if limitSqrtPrice.Cmp(currentPrice) >= 0 || limitSqrtPrice.Cmp(utils.MinSqrtRatio) <= 0 {
-			return errors.New("SPL"), nil, nil, nil
+			return ErrSPL, nil, nil, nil
 		}
 		cache.communityFee = big.NewInt(int64(_communityFeeToken0))
 	} else {
 		if limitSqrtPrice.Cmp(currentPrice) <= 0 || limitSqrtPrice.Cmp(utils.MaxSqrtRatio) >= 0 {
-			return errors.New("SPL"), nil, nil, nil
+			return ErrSPL, nil, nil, nil
 		}
 		cache.communityFee = big.NewInt(int64(_communityFeeToken1))
 	}
 
-	cache.startTick = currentTick
-
 	// don't need to care about activeIncentive
 
-	var err error
-	// newTimepointIndex, err := p._writeTimepoint(
-	// 	cache.timepointIndex,
-	// 	blockTimestamp,
-	// 	int24(cache.startTick),
-	// 	currentLiquidity,
-	// 	cache.volumePerLiquidityInBlock,
-	// )
-	// if err != nil {
-	// 	return err, nil, nil, nil
-	// }
-
-	// new timepoint appears only for first swap in block
-	// if newTimepointIndex != cache.timepointIndex {
-	// 	cache.timepointIndex = newTimepointIndex
-	// 	cache.volumePerLiquidityInBlock = bignumber.ZeroBI
-	// 	cache.fee, err = p._getNewFee(blockTimestamp, int24(currentTick), newTimepointIndex, currentLiquidity)
-	// 	if err != nil {
-	// 		return err, nil, nil, nil
-	// 	}
-	// }
+	// use pre-calculated fee instead of calculating from timepoints
+	// see tracker code for more details
 	cache.fee = p.globalState.Fee
 	logger.Debugf("fee %v", cache.fee)
 
@@ -213,26 +129,13 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 				COMMUNITY_FEE_DENOMINATOR,
 			)
 			step.feeAmount = new(big.Int).Sub(step.feeAmount, delta)
-			communityFeeAmount = new(big.Int).Add(communityFeeAmount, delta)
 		}
 
 		if currentPrice == step.nextTickPrice {
 			// if the reached tick is initialized then we need to cross it
 			if step.initialized {
 				// once at a swap we have to get the last timepoint of the observation
-				// if !cache.computedLatestTimepoint {
-				// 	err, cache.tickCumulative, cache.secondsPerLiquidityCumulative, _, _ = p._getSingleTimepoint(
-				// 		blockTimestamp,
-				// 		0,
-				// 		int24(cache.startTick),
-				// 		cache.timepointIndex,
-				// 		currentLiquidity, // currentLiquidity can be changed only after computedLatestTimepoint
-				// 	)
-				// 	if err != nil {
-				// 		return err, nil, nil, nil
-				// 	}
-				// 	cache.computedLatestTimepoint = true
-				// }
+				// don't need to do this here
 
 				// every tick cross is needed to be duplicated in a virtual pool
 				// don't need to do this here
@@ -284,90 +187,7 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 		CommunityFeeToken1: p.globalState.CommunityFeeToken0,
 	}
 
-	// volPerLiq := calculateVolumePerLiquidity(currentLiquidity, amount0, amount1)
-	// logger.Debugf("volumePerLiquidity %v", volPerLiq)
-	nextState.Liquidity =
-		currentLiquidity
-
-	// copy written timepoints
-	// nextState.NewTimepoints = make(map[uint16]Timepoint, len(p.timepoints.updates))
-	// for i, tp := range p.timepoints.updates {
-	// 	nextState.NewTimepoints[i] = tp
-	// }
+	nextState.Liquidity = currentLiquidity
 
 	return nil, amount0, amount1, nextState
-}
-
-func calculateVolumePerLiquidity(
-	liquidity *big.Int,
-	amount0 *big.Int,
-	amount1 *big.Int,
-) *big.Int {
-	volume := new(big.Int).Mul(sqrtAbs(amount0), sqrtAbs(amount1))
-	var volumeShifted *big.Int
-	if liquidity.Cmp(bignumber.ZeroBI) <= 0 {
-		liquidity = new(big.Int).Set(bignumber.One)
-	}
-	if volume.Cmp(pow192) >= 0 {
-		volumeShifted = new(big.Int).Div(uint256_max, liquidity)
-	} else {
-		volumeShifted = new(big.Int).Div(new(big.Int).Lsh(volume, 64), liquidity)
-	}
-	if volumeShifted.Cmp(MAX_VOLUME_PER_LIQUIDITY) >= 0 {
-		return MAX_VOLUME_PER_LIQUIDITY
-	} else {
-		return volumeShifted
-	}
-}
-
-// / @notice Gets the square root of the absolute value of the parameter
-func sqrtAbs(_x *big.Int) *big.Int {
-	// get abs value
-	mask := new(big.Int).Rsh(_x, (256 - 1))
-	x := new(big.Int).Sub(new(big.Int).Xor(_x, mask), mask)
-	if x.Cmp(bignumber.ZeroBI) == 0 {
-		return bignumber.ZeroBI
-	} else {
-		xx := x
-		r := new(big.Int).Set(bignumber.One)
-		if xx.Cmp(bignumber.NewBig("0x100000000000000000000000000000000")) >= 0 {
-			xx = new(big.Int).Rsh(xx, 128)
-			r = new(big.Int).Lsh(r, 64)
-		}
-		if xx.Cmp(bignumber.NewBig("0x10000000000000000")) >= 0 {
-			xx = new(big.Int).Rsh(xx, 64)
-			r = new(big.Int).Lsh(r, 32)
-		}
-		if xx.Cmp(bignumber.NewBig("0x100000000")) >= 0 {
-			xx = new(big.Int).Rsh(xx, 32)
-			r = new(big.Int).Lsh(r, 16)
-		}
-		if xx.Cmp(bignumber.NewBig("0x10000")) >= 0 {
-			xx = new(big.Int).Rsh(xx, 16)
-			r = new(big.Int).Lsh(r, 8)
-		}
-		if xx.Cmp(bignumber.NewBig("0x100")) >= 0 {
-			xx = new(big.Int).Rsh(xx, 8)
-			r = new(big.Int).Lsh(r, 4)
-		}
-		if xx.Cmp(bignumber.NewBig("0x10")) >= 0 {
-			xx = new(big.Int).Rsh(xx, 4)
-			r = new(big.Int).Lsh(r, 2)
-		}
-		if xx.Cmp(bignumber.NewBig("0x8")) >= 0 {
-			r = new(big.Int).Lsh(r, 1)
-		}
-		r = new(big.Int).Rsh(new(big.Int).Add(r, new(big.Int).Div(x, r)), 1)
-		r = new(big.Int).Rsh(new(big.Int).Add(r, new(big.Int).Div(x, r)), 1)
-		r = new(big.Int).Rsh(new(big.Int).Add(r, new(big.Int).Div(x, r)), 1)
-		r = new(big.Int).Rsh(new(big.Int).Add(r, new(big.Int).Div(x, r)), 1)
-		r = new(big.Int).Rsh(new(big.Int).Add(r, new(big.Int).Div(x, r)), 1)
-		r = new(big.Int).Rsh(new(big.Int).Add(r, new(big.Int).Div(x, r)), 1)
-		r = new(big.Int).Rsh(new(big.Int).Add(r, new(big.Int).Div(x, r)), 1) // @dev Seven iterations should be enough.
-		r1 := new(big.Int).Div(x, r)
-		if r.Cmp(r1) < 0 {
-			return r
-		}
-		return r1
-	}
 }
