@@ -98,20 +98,20 @@ type TimepointRPC struct {
 
 type Extra struct {
 	Liquidity                 *big.Int             `json:"liquidity"`
-	VolumePerLiquidityInBlock *big.Int             `json:"volumePerLiquidityInBlock"`
+	// VolumePerLiquidityInBlock *big.Int             `json:"volumePerLiquidityInBlock"`
 	GlobalState               GlobalState          `json:"globalState"`
-	FeeConfig                 FeeConfiguration     `json:"feeConfig"`
+	// FeeConfig                 FeeConfiguration     `json:"feeConfig"`
 	Ticks                     []v3Entities.Tick    `json:"ticks"`
 	TickSpacing               int24                `json:"tickSpacing"`
-	Timepoints                map[uint16]Timepoint `json:"timepoints"`
+	// Timepoints                map[uint16]Timepoint `json:"timepoints"`
 }
 
 // we won't update the state when calculating amountOut, return this struct instead
 type StateUpdate struct {
 	Liquidity                 *big.Int
-	VolumePerLiquidityInBlock *big.Int
+	// VolumePerLiquidityInBlock *big.Int
 	GlobalState               GlobalState
-	NewTimepoints             map[uint16]Timepoint
+	// NewTimepoints             map[uint16]Timepoint
 }
 
 func transformTickRespToTick(tickResp TickResp) (v3Entities.Tick, error) {

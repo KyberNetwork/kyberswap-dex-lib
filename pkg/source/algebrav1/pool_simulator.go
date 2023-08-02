@@ -26,7 +26,7 @@ type PoolSimulator struct {
 	pool.Pool
 	globalState               GlobalState
 	liquidity                 *big.Int
-	volumePerLiquidityInBlock *big.Int
+	// volumePerLiquidityInBlock *big.Int
 	// totalFeeGrowth0Token      *big.Int
 	// totalFeeGrowth1Token      *big.Int
 	ticks       *v3Entities.TickListDataProvider
@@ -35,8 +35,8 @@ type PoolSimulator struct {
 	tickMax     int
 	tickSpacing int
 
-	timepoints TimepointStorage
-	feeConf    FeeConfiguration
+	// timepoints TimepointStorage
+	// feeConf    FeeConfiguration
 }
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
@@ -86,14 +86,14 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		Pool:                      pool.Pool{Info: info},
 		globalState:               extra.GlobalState,
 		liquidity:                 extra.Liquidity,
-		volumePerLiquidityInBlock: extra.VolumePerLiquidityInBlock,
+		// volumePerLiquidityInBlock: extra.VolumePerLiquidityInBlock,
 		ticks:                     ticks,
 		// gas:     defaultGas,
 		tickMin:     tickMin,
 		tickMax:     tickMax,
 		tickSpacing: int(extra.TickSpacing),
-		timepoints:  TimepointStorage{data: extra.Timepoints, updates: map[uint16]Timepoint{}},
-		feeConf:     extra.FeeConfig,
+		// timepoints:  TimepointStorage{data: extra.Timepoints, updates: map[uint16]Timepoint{}},
+		// feeConf:     extra.FeeConfig,
 	}, nil
 }
 
@@ -175,12 +175,12 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 	p.liquidity = new(big.Int).Set(si.Liquidity)
-	p.volumePerLiquidityInBlock = new(big.Int).Set(si.VolumePerLiquidityInBlock)
+	// p.volumePerLiquidityInBlock = new(big.Int).Set(si.VolumePerLiquidityInBlock)
 	p.globalState = si.GlobalState
-	p.timepoints.updates = make(map[uint16]Timepoint, len(si.NewTimepoints))
-	for i, tp := range si.NewTimepoints {
-		p.timepoints.updates[i] = tp
-	}
+	// p.timepoints.updates = make(map[uint16]Timepoint, len(si.NewTimepoints))
+	// for i, tp := range si.NewTimepoints {
+	// 	p.timepoints.updates[i] = tp
+	// }
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {

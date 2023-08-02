@@ -3,7 +3,6 @@ package algebrav1
 import (
 	"errors"
 	"math/big"
-	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
@@ -22,10 +21,10 @@ type SwapCalculationCache struct {
 	// totalFeeGrowth                *big.Int // The initial totalFeeGrowth + the fee growth during a swap
 	// totalFeeGrowthB               *big.Int
 	// incentiveStatus               IAlgebraVirtualPool.Status // If there is an active incentive at the moment
-	exactInput     bool   // Whether the exact input or output is specified
-	fee            uint16 // The current dynamic fee
-	startTick      int    // The tick at the start of a swap
-	timepointIndex uint16 // The index of last written timepoint
+	exactInput bool   // Whether the exact input or output is specified
+	fee        uint16 // The current dynamic fee
+	startTick  int    // The tick at the start of a swap
+	// timepointIndex uint16 // The index of last written timepoint
 }
 
 type PriceMovementCache struct {
@@ -38,58 +37,58 @@ type PriceMovementCache struct {
 	feeAmount     *big.Int // The total amount of fee earned within a current step
 }
 
-func (p *PoolSimulator) _writeTimepoint(
-	timepointIndex uint16,
-	blockTimestamp uint32,
-	tick int24,
-	liquidity *big.Int,
-	volumePerLiquidityInBlock *big.Int,
-) (uint16, error) {
-	return p.timepoints.write(timepointIndex, blockTimestamp, tick, liquidity, volumePerLiquidityInBlock)
-}
+// func (p *PoolSimulator) _writeTimepoint(
+// 	timepointIndex uint16,
+// 	blockTimestamp uint32,
+// 	tick int24,
+// 	liquidity *big.Int,
+// 	volumePerLiquidityInBlock *big.Int,
+// ) (uint16, error) {
+// 	return p.timepoints.write(timepointIndex, blockTimestamp, tick, liquidity, volumePerLiquidityInBlock)
+// }
 
-func (p *PoolSimulator) _getNewFee(
-	_time uint32,
-	_tick int24,
-	_index uint16,
-	_liquidity *big.Int,
-) (uint16, error) {
-	err, volatilityAverage, volumePerLiqAverage := p.timepoints.getAverages(_time, _tick, _index, _liquidity)
-	if err != nil {
-		return 0, err
-	}
-	return getFee(
-		new(big.Int).Div(volatilityAverage, big.NewInt(15)),
-		volumePerLiqAverage,
-		&p.feeConf,
-	), nil
-}
+// func (p *PoolSimulator) _getNewFee(
+// 	_time uint32,
+// 	_tick int24,
+// 	_index uint16,
+// 	_liquidity *big.Int,
+// ) (uint16, error) {
+// 	err, volatilityAverage, volumePerLiqAverage := p.timepoints.getAverages(_time, _tick, _index, _liquidity)
+// 	if err != nil {
+// 		return 0, err
+// 	}
+// 	return getFee(
+// 		new(big.Int).Div(volatilityAverage, big.NewInt(15)),
+// 		volumePerLiqAverage,
+// 		&p.feeConf,
+// 	), nil
+// }
 
-func (p *PoolSimulator) _getSingleTimepoint(
-	blockTimestamp uint32,
-	secondsAgo uint32,
-	startTick int24,
-	timepointIndex uint16,
-	liquidityStart *big.Int,
-) (error, int56, *big.Int, *big.Int, *big.Int) {
+// func (p *PoolSimulator) _getSingleTimepoint(
+// 	blockTimestamp uint32,
+// 	secondsAgo uint32,
+// 	startTick int24,
+// 	timepointIndex uint16,
+// 	liquidityStart *big.Int,
+// ) (error, int56, *big.Int, *big.Int, *big.Int) {
 
-	var oldestIndex uint16
-	// check if we have overflow in the past
-	nextIndex := timepointIndex + 1 // considering overflow
-	if p.timepoints.Get(nextIndex).Initialized {
-		oldestIndex = nextIndex
-	}
+// 	var oldestIndex uint16
+// 	// check if we have overflow in the past
+// 	nextIndex := timepointIndex + 1 // considering overflow
+// 	if p.timepoints.Get(nextIndex).Initialized {
+// 		oldestIndex = nextIndex
+// 	}
 
-	result, err := p.timepoints.getSingleTimepoint(blockTimestamp, secondsAgo, startTick, timepointIndex, oldestIndex, liquidityStart)
-	if err != nil {
-		return err, 0, nil, nil, nil
-	}
-	return nil,
-		result.TickCumulative,
-		result.SecondsPerLiquidityCumulative,
-		result.VolatilityCumulative,
-		result.VolumePerLiquidityCumulative
-}
+// 	result, err := p.timepoints.getSingleTimepoint(blockTimestamp, secondsAgo, startTick, timepointIndex, oldestIndex, liquidityStart)
+// 	if err != nil {
+// 		return err, 0, nil, nil, nil
+// 	}
+// 	return nil,
+// 		result.TickCumulative,
+// 		result.SecondsPerLiquidityCumulative,
+// 		result.VolatilityCumulative,
+// 		result.VolumePerLiquidityCumulative
+// }
 
 func (p *PoolSimulator) _calculateSwapAndLock(
 	zeroToOne bool,
@@ -100,10 +99,10 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 
 	defer func() {
 		// reset written timepoints
-		p.timepoints.updates = map[uint16]Timepoint{}
+		// p.timepoints.updates = map[uint16]Timepoint{}
 	}()
 
-	blockTimestamp := uint32(time.Now().Unix())
+	// blockTimestamp := uint32(time.Now().Unix())
 	var cache SwapCalculationCache
 
 	// load from one storage slot
@@ -111,7 +110,7 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	currentTick := int(p.globalState.Tick.Int64())
 	cache.fee = p.globalState.Fee
 	cache.amountCalculated = bignumber.ZeroBI
-	cache.timepointIndex = p.globalState.TimepointIndex
+	// cache.timepointIndex = p.globalState.TimepointIndex
 	_communityFeeToken0 := p.globalState.CommunityFeeToken0
 	_communityFeeToken1 := p.globalState.CommunityFeeToken1
 
@@ -125,7 +124,8 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	cache.amountRequiredInitial, cache.exactInput = amountRequired, cmp > 0
 
 	var currentLiquidity *big.Int
-	currentLiquidity, cache.volumePerLiquidityInBlock = p.liquidity, p.volumePerLiquidityInBlock
+	// currentLiquidity, cache.volumePerLiquidityInBlock = p.liquidity, p.volumePerLiquidityInBlock
+	currentLiquidity = p.liquidity
 
 	if zeroToOne {
 		if limitSqrtPrice.Cmp(currentPrice) >= 0 || limitSqrtPrice.Cmp(utils.MinSqrtRatio) <= 0 {
@@ -143,26 +143,28 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 
 	// don't need to care about activeIncentive
 
-	newTimepointIndex, err := p._writeTimepoint(
-		cache.timepointIndex,
-		blockTimestamp,
-		int24(cache.startTick),
-		currentLiquidity,
-		cache.volumePerLiquidityInBlock,
-	)
-	if err != nil {
-		return err, nil, nil, nil
-	}
+	var err error
+	// newTimepointIndex, err := p._writeTimepoint(
+	// 	cache.timepointIndex,
+	// 	blockTimestamp,
+	// 	int24(cache.startTick),
+	// 	currentLiquidity,
+	// 	cache.volumePerLiquidityInBlock,
+	// )
+	// if err != nil {
+	// 	return err, nil, nil, nil
+	// }
 
 	// new timepoint appears only for first swap in block
-	if newTimepointIndex != cache.timepointIndex {
-		cache.timepointIndex = newTimepointIndex
-		cache.volumePerLiquidityInBlock = bignumber.ZeroBI
-		cache.fee, err = p._getNewFee(blockTimestamp, int24(currentTick), newTimepointIndex, currentLiquidity)
-		if err != nil {
-			return err, nil, nil, nil
-		}
-	}
+	// if newTimepointIndex != cache.timepointIndex {
+	// 	cache.timepointIndex = newTimepointIndex
+	// 	cache.volumePerLiquidityInBlock = bignumber.ZeroBI
+	// 	cache.fee, err = p._getNewFee(blockTimestamp, int24(currentTick), newTimepointIndex, currentLiquidity)
+	// 	if err != nil {
+	// 		return err, nil, nil, nil
+	// 	}
+	// }
+	cache.fee = p.globalState.Fee
 	logger.Debugf("fee %v", cache.fee)
 
 	var step PriceMovementCache
@@ -218,19 +220,19 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 			// if the reached tick is initialized then we need to cross it
 			if step.initialized {
 				// once at a swap we have to get the last timepoint of the observation
-				if !cache.computedLatestTimepoint {
-					err, cache.tickCumulative, cache.secondsPerLiquidityCumulative, _, _ = p._getSingleTimepoint(
-						blockTimestamp,
-						0,
-						int24(cache.startTick),
-						cache.timepointIndex,
-						currentLiquidity, // currentLiquidity can be changed only after computedLatestTimepoint
-					)
-					if err != nil {
-						return err, nil, nil, nil
-					}
-					cache.computedLatestTimepoint = true
-				}
+				// if !cache.computedLatestTimepoint {
+				// 	err, cache.tickCumulative, cache.secondsPerLiquidityCumulative, _, _ = p._getSingleTimepoint(
+				// 		blockTimestamp,
+				// 		0,
+				// 		int24(cache.startTick),
+				// 		cache.timepointIndex,
+				// 		currentLiquidity, // currentLiquidity can be changed only after computedLatestTimepoint
+				// 	)
+				// 	if err != nil {
+				// 		return err, nil, nil, nil
+				// 	}
+				// 	cache.computedLatestTimepoint = true
+				// }
 
 				// every tick cross is needed to be duplicated in a virtual pool
 				// don't need to do this here
@@ -274,22 +276,24 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	}
 
 	nextState.GlobalState = GlobalState{
-		Price:          currentPrice,
-		Tick:           big.NewInt(int64(currentTick)),
-		Fee:            cache.fee,
-		TimepointIndex: cache.timepointIndex,
+		Price:              currentPrice,
+		Tick:               big.NewInt(int64(currentTick)),
+		Fee:                p.globalState.Fee,
+		TimepointIndex:     p.globalState.TimepointIndex,
+		CommunityFeeToken0: p.globalState.CommunityFeeToken0,
+		CommunityFeeToken1: p.globalState.CommunityFeeToken0,
 	}
 
-	volPerLiq := calculateVolumePerLiquidity(currentLiquidity, amount0, amount1)
-	logger.Debugf("volumePerLiquidity %v", volPerLiq)
-	nextState.Liquidity, nextState.VolumePerLiquidityInBlock =
-		currentLiquidity, new(big.Int).Add(cache.volumePerLiquidityInBlock, volPerLiq)
+	// volPerLiq := calculateVolumePerLiquidity(currentLiquidity, amount0, amount1)
+	// logger.Debugf("volumePerLiquidity %v", volPerLiq)
+	nextState.Liquidity =
+		currentLiquidity
 
 	// copy written timepoints
-	nextState.NewTimepoints = make(map[uint16]Timepoint, len(p.timepoints.updates))
-	for i, tp := range p.timepoints.updates {
-		nextState.NewTimepoints[i] = tp
-	}
+	// nextState.NewTimepoints = make(map[uint16]Timepoint, len(p.timepoints.updates))
+	// for i, tp := range p.timepoints.updates {
+	// 	nextState.NewTimepoints[i] = tp
+	// }
 
 	return nil, amount0, amount1, nextState
 }
