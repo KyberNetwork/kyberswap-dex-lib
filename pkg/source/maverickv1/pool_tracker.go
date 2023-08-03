@@ -142,6 +142,26 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		}
 	}
 
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"error":       err,
+		}).Errorf("faield to unmarshal static extra")
+
+		return entity.Pool{}, err
+	}
+	_, _, sqrtPrice, liquidity, _, _ := currentTickLiquidity(activeTick, &MaverickPoolState{
+		TickSpacing:      staticExtra.TickSpacing,
+		Fee:              fee,
+		ProtocolFeeRatio: protocolFeeRatio,
+		ActiveTick:       activeTick,
+		BinCounter:       binCounter,
+		Bins:             bins,
+		BinPositions:     binPositions,
+		BinMap:           binMap,
+	})
+
 	var extra = Extra{
 		Fee:              fee,
 		ProtocolFeeRatio: protocolFeeRatio,
@@ -150,7 +170,11 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		Bins:             bins,
 		BinPositions:     binPositions,
 		BinMap:           binMap,
+
+		SqrtPriceX96: sqrtPrice,
+		Liquidity:    liquidity,
 	}
+
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
