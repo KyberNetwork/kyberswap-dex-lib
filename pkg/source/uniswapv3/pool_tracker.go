@@ -71,7 +71,7 @@ func initializeConfig(cfg *Config) (*Config, error) {
 }
 
 func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
-	logger.Infof("[Uniswap V3] Start getting new state of pool: %v", p.Address)
+	logger.Infof("[%s] Start getting new state of pool: %v", d.config.DexID, p.Address)
 
 	var (
 		rpcData   FetchRPCResult
@@ -162,7 +162,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		rpcData.reserve1.String(),
 	}
 
-	logger.Infof("[Uniswap V3] Finish updating state of pool: %v", p.Address)
+	logger.Infof("[%s] Finish updating state of pool: %v", d.config.DexID, p.Address)
 
 	return p, nil
 }
