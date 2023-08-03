@@ -32,6 +32,10 @@ type Extra struct {
 	Bins             map[string]Bin                 `json:"bins"`
 	BinPositions     map[string]map[string]*big.Int `json:"binPositions"`
 	BinMap           map[string]*big.Int            `json:"binMap"`
+
+	// State to calculate TVL
+	Liquidity    *big.Int `json:"liquidity"`
+	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
 }
 
 type MaverickPoolState struct {
