@@ -2,10 +2,12 @@ package source
 
 import (
 	"fmt"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pearl"
 
 	"github.com/KyberNetwork/ethrpc"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	balancerComposableStable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/biswap"
@@ -38,8 +40,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
 )
 
 func NewPoolsListUpdaterHandler(
@@ -65,6 +67,15 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return uniswapv3.NewPoolsListUpdater(&cfg), nil
+	case algebrav1.DexTypeAlgebraV1:
+		var cfg algebrav1.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return algebrav1.NewPoolsListUpdater(&cfg), nil
 	case dmm.DexTypeDMM:
 		var cfg dmm.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
