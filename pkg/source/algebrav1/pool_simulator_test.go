@@ -48,7 +48,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 }
 
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
-	logger.SetLogLevel("debug")
+	_ = logger.SetLogLevel("debug")
 	// test data from https://polygonscan.com/address/0xd372b5067fe9cbac932af47406fdb9c64666295b#readContract
 	testcases := []struct {
 		in                string
