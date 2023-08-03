@@ -76,7 +76,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	numSubgraphPools := len(subgraphPools)
 
-	logger.Infof("got %v subgraph pools from UniswapV3 subgraph", numSubgraphPools)
+	logger.Infof("got %v subgraph pools from %s subgraph", numSubgraphPools, d.config.DexID)
 
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 	for _, p := range subgraphPools {
@@ -165,7 +165,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	logger.Infof("got %v UniswapV3 pools", len(pools))
+	logger.Infof("got %v %s pools", len(pools), d.config.DexID)
 
 	return pools, newMetadataBytes, nil
 }
