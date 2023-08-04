@@ -195,7 +195,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 		return res, err
 	}
 
-	if res.state.Unlocked == false {
+	if !res.state.Unlocked {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 		}).Info("pool has been locked and not usable")
