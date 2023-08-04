@@ -560,6 +560,9 @@ func calcBptOutGivenExactTokensIn(amp *big.Int, balances []*big.Int, amountsIn [
 
 	newInvariant := CalculateInvariant(amp, newBalances, false)
 	logger.Warnf("%s %s %s", amp, newBalances, newInvariant)
+	if newInvariant == nil {
+		return big.NewInt(0), big.NewInt(0)
+	}
 	invariantRatio := DivDownFixed(newInvariant, invariant)
 
 	if invariantRatio.Cmp(One) > 0 {

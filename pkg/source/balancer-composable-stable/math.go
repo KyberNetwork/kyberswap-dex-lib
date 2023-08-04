@@ -144,19 +144,20 @@ func CalculateInvariant(A *big.Int, balances []*big.Int, roundUp bool) *big.Int 
 	var invariant = sum
 	var ampTotal = new(big.Int).Mul(A, numTokensBi)
 	for i := 0; i < 255; i += 1 {
-		var P_D = new(big.Int).Mul(balances[0], numTokensBi)
-		for j := 1; j < numTokens; j += 1 {
-			P_D = div(new(big.Int).Mul(new(big.Int).Mul(P_D, balances[j]), numTokensBi), invariant, roundUp)
+		D_P := invariant
+		for j := 0; j < numTokens; j += 1 {
+			D_P = div(new(big.Int).Mul(D_P, invariant), new(big.Int).Mul(balances[j], numTokensBi), roundUp)
 		}
 		prevInvariant = invariant
 		invariant = div(
-			new(big.Int).Add(
-				new(big.Int).Mul(new(big.Int).Mul(numTokensBi, invariant), invariant),
-				div(new(big.Int).Mul(new(big.Int).Mul(ampTotal, sum), P_D), AmpPrecision, roundUp),
+			new(big.Int).Mul(
+				new(big.Int).Add(DivDown(new(big.Int).Mul(ampTotal, sum), AmpPrecision), new(big.Int).Mul(D_P, numTokensBi)),
+				invariant,
 			),
+
 			new(big.Int).Add(
-				new(big.Int).Mul(new(big.Int).Add(numTokensBi, bignumber.One), invariant),
-				div(new(big.Int).Mul(new(big.Int).Sub(ampTotal, AmpPrecision), P_D), AmpPrecision, !roundUp),
+				DivDown(new(big.Int).Mul(new(big.Int).Sub(ampTotal, AmpPrecision), invariant), AmpPrecision),
+				new(big.Int).Mul(new(big.Int).Add(numTokensBi, bignumber.One), D_P),
 			),
 			roundUp,
 		)
