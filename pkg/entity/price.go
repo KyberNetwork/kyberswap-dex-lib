@@ -5,6 +5,9 @@ type PriceSource string
 const (
 	PriceSourceKyberswap PriceSource = "kyberswap"
 	PriceSourceCoingecko PriceSource = "coingecko"
+
+	// UpperLimitPrice is the upper limit price for a token in $, if the price is higher than this, we should ignore it
+	UpperLimitPrice = 1000000
 )
 
 type Price struct {
@@ -20,7 +23,7 @@ type Price struct {
 // Default is price from Coingecko price source
 func (p Price) GetPreferredPrice() (float64, bool) {
 	// We don't always have market price, so it's better to have this fallback
-	if p.MarketPrice == 0 {
+	if p.MarketPrice == 0 && p.Price <= UpperLimitPrice {
 		return p.Price, false
 	}
 
