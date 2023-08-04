@@ -77,6 +77,12 @@ func TestAddActualAmountOutPercents(t *testing.T) {
 			swap:        types.EncodingSwap{Exchange: valueobject.ExchangeGravity},
 			expectedFee: 655032345, // 25 | (9995 << 16)
 		},
+		{
+			name:        "it should add actual amount out percents for Echo dex",
+			chainID:     valueobject.ChainIDEthereum,
+			swap:        types.EncodingSwap{Exchange: valueobject.ExchangeEchoDex},
+			expectedFee: 653393920, // 9970 << 16
+		},
 	}
 
 	for _, tc := range testcases {
