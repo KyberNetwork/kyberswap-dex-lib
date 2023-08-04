@@ -38,7 +38,8 @@ func getPoolsListQuery(allowSubgraphError bool, lastCreatedAtTimestamp *big.Int,
 		lastPoolIdsQ,
 	}
 
-	// Add subgraphError: allow
+	// lastPoolIds is the list of pools that has createdAtTimestamp=lastCreatedAtTimestamp
+	// if it's non-empty then we need to exclude those pools because they had been fetched in last scan
 	t, err := template.New("poolsListQuery").Parse(`{
 		pools(
 			{{ if .AllowSubgraphError }}subgraphError: allow,{{ end }}

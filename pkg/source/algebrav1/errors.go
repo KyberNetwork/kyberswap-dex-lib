@@ -9,7 +9,7 @@ var (
 	ErrMaxBinarySearchLoop = errors.New("max binary search loop reached")
 	ErrStaleTimepoints     = errors.New("getting stale timepoint data")
 	ErrTickNil             = errors.New("tick is nil")
-	ErrV3TicksEmpty        = errors.New("v3Ticks empty")
+	ErrTicksEmpty          = errors.New("ticks list is empty")
 	ErrInvalidToken        = errors.New("invalid token info")
 	ErrZeroAmountIn        = errors.New("amountIn is 0")
 	ErrZeroAmountOut       = errors.New("amountOut is 0")
