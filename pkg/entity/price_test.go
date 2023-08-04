@@ -56,6 +56,20 @@ func TestGetPreferredPrice(t *testing.T) {
 			expectedPriceValue:    1,
 			expectedIsMarketPrice: false,
 		},
+		{
+			name: "it should return 0 when the market price is 0 and price > 1 million $",
+			key:  "address",
+			price: Price{
+				Address:           "address",
+				Price:             1000001,
+				Liquidity:         100000,
+				LpAddress:         "lpAddress",
+				MarketPrice:       0,
+				PreferPriceSource: PriceSourceCoingecko,
+			},
+			expectedPriceValue:    0,
+			expectedIsMarketPrice: true,
+		},
 	}
 
 	for _, test := range tests {
