@@ -278,7 +278,7 @@ func (c *PoolSimulator) _joinSwapExactTokenInForBptOut(
 	actualSupply *big.Int,
 	preJoinExitInvariant *big.Int,
 ) (*big.Int, *big.Int, *big.Int) {
-
+	logger.Warnf("In _joinSwapExactTokenInForBptOut", balances)
 	amountsIn := make([]*big.Int, len(balances))
 	for i := range amountsIn {
 		amountsIn[i] = new(big.Int)
@@ -559,6 +559,7 @@ func calcBptOutGivenExactTokensIn(amp *big.Int, balances []*big.Int, amountsIn [
 	}
 
 	newInvariant := CalculateInvariant(amp, newBalances, false)
+	logger.Warnf("%s %s %s", amp, newBalances, newInvariant)
 	invariantRatio := DivDownFixed(newInvariant, invariant)
 
 	if invariantRatio.Cmp(One) > 0 {

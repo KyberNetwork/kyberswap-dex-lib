@@ -2,7 +2,9 @@ package pool
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
+	"runtime"
 
 	"github.com/KyberNetwork/logger"
 )
@@ -117,12 +119,17 @@ func (t *PoolInfo) GetTokenIndex(address string) int {
 func CalcAmountOut(pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string) (res *CalcAmountOutResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = ErrCalcAmountOutPanic
+			// Print the panic message and the stack trace
+			stackTrace := make([]byte, 4096)
+			stackSize := runtime.Stack(stackTrace, false)
+			panicMsg := fmt.Sprintf("Panic: %v\n%s", r, stackTrace[:stackSize])
+			err = fmt.Errorf("%w: %s", ErrCalcAmountOutPanic, panicMsg)
+
 			logger.WithFields(
 				logger.Fields{
 					"recover":     r,
 					"poolAddress": pool.GetAddress(),
-				}).Warn(err.Error())
+				}).Error(err.Error())
 		}
 	}()
 
