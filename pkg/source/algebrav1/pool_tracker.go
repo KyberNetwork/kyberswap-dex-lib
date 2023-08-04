@@ -195,6 +195,12 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 		return res, err
 	}
 
+	if res.state.Unlocked == false {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+		}).Info("pool has been locked and not usable")
+	}
+
 	return res, err
 }
 
@@ -204,6 +210,10 @@ func (d *PoolTracker) approximateFee(ctx context.Context, poolAddress, dataStora
 	yesterday := blockTimestamp - WINDOW
 	timepoints, err := d.getPoolTimepoints(ctx, state.TimepointIndex, poolAddress, yesterday)
 	if err != nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": poolAddress,
+			"error":       err,
+		}).Error("failed to fetch pool timepoints")
 		return err
 	}
 
