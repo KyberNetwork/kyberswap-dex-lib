@@ -198,6 +198,12 @@ func (p *Path) CompareTo(other *Path, gasInclude bool) int {
 		return amountCmp
 	}
 
+	// if that amount is equal, we compare path in alphabetical order of PathId
+	cmpAlphabet := utils.CompareStringSlices(p.PoolAddresses, other.PoolAddresses)
+	if cmpAlphabet != 0 {
+		return cmpAlphabet
+	}
+
 	return p.cmpTokenLen(other)
 }
 

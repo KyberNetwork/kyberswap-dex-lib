@@ -53,3 +53,35 @@ func Join(args ...interface{}) string {
 func IsEmptyString(str string) bool {
 	return str == EmptyString
 }
+
+// CompareStringSlices
+// return -1 if len(a) < len(b) or a < b in alphabet order,
+// return 0 if equal
+// else return 1
+// Compare two string slices lexicographically (alphabetically)
+func CompareStringSlices(a, b []string) int {
+	if len(a) != len(b) {
+		if len(a) < len(b) {
+			return -1
+		}
+		return 1
+	}
+
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			return compareStrings(a[i], b[i])
+		}
+	}
+
+	return 0
+}
+
+// Compare two strings lexicographically (alphabetically)
+func compareStrings(a, b string) int {
+	if a < b {
+		return -1
+	} else if a > b {
+		return 1
+	}
+	return 0
+}

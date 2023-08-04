@@ -235,7 +235,12 @@ func betterAmountOut(nodeA, nodeB *nodeInfo, gasFeeInclude bool) bool {
 		return nodeA.tokenAmount.AmountUsd > nodeB.tokenAmount.AmountUsd
 	}
 	// Otherwise, prioritize node with more token Amount
-	return nodeA.tokenAmount.Amount.Cmp(nodeB.tokenAmount.Amount) > 0
+	cmp := nodeA.tokenAmount.Amount.Cmp(nodeB.tokenAmount.Amount)
+	if cmp != 0 {
+		return cmp > 0
+	}
+	// if that amount is equal, we compare nodeId in alphabetical order
+	return utils.CompareStringSlices(nodeA.poolAddressesOnPath, nodeB.poolAddressesOnPath) == -1
 }
 
 // return newTokenAmount, newTotalGasAmount, error
