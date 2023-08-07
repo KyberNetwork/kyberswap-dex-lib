@@ -15,6 +15,7 @@ var (
 	Three  = big.NewInt(3)
 	Four   = big.NewInt(4)
 	Five   = big.NewInt(5)
+	Six    = big.NewInt(6)
 )
 
 var BONE = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
