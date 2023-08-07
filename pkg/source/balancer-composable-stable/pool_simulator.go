@@ -556,8 +556,11 @@ func calcBptOutGivenExactTokensIn(amp *big.Int, balances []*big.Int, amountsIn [
 	}
 
 	newInvariant := CalculateInvariant(amp, newBalances, false)
+	// if the invariant didn't converge, return 0
+	if newInvariant == nil {
+		return big.NewInt(0), big.NewInt(0)
+	}
 	invariantRatio := DivDownFixed(newInvariant, invariant)
-
 	if invariantRatio.Cmp(One) > 0 {
 		return MulDownFixed(bptTotalSupply, new(big.Int).Sub(invariantRatio, One)), feeAmountIn
 	} else {
