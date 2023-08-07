@@ -49,7 +49,7 @@ func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator,
 
 	// if the tick list is empty, the pool should be ignored
 	if len(extra.Ticks) == 0 {
-		return nil, ErrV3TicksEmpty
+		return nil, ErrTicksEmpty
 	}
 
 	if !extra.GlobalState.Unlocked {
