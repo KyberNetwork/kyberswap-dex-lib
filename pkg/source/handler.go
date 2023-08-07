@@ -385,6 +385,15 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return uniswapv3.NewPoolTracker(&cfg, ethrpcClient)
+	case algebrav1.DexTypeAlgebraV1:
+		var cfg algebrav1.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return algebrav1.NewPoolTracker(&cfg, ethrpcClient)
 	case dmm.DexTypeDMM:
 		return dmm.NewPoolTracker(ethrpcClient)
 	case elastic.DexTypeElastic:
