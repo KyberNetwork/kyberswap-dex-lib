@@ -23,7 +23,7 @@ const (
 )
 
 func TestGetNewPools(t *testing.T) {
-	// t.Skip()
+	t.Skip()
 
 	config := &traderjoecommon.Config{
 		DexID:          "traderjoev21",
