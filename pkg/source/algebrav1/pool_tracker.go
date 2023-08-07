@@ -190,9 +190,11 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 		return res, err
 	}
 
-	err = d.approximateFee(ctx, p.Address, dataStorageOperator.Hex(), &res.state, res.liquidity)
-	if err != nil {
-		return res, err
+	if !d.config.SkipFeeCalculating {
+		err = d.approximateFee(ctx, p.Address, dataStorageOperator.Hex(), &res.state, res.liquidity)
+		if err != nil {
+			return res, err
+		}
 	}
 
 	if !res.state.Unlocked {
