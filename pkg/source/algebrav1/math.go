@@ -89,7 +89,10 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	for i := 0; i < maxSwapLoop; i++ {
 		step.stepSqrtPrice = currentPrice
 
-		step.nextTick, step.initialized = p.ticks.NextInitializedTickWithinOneWord(currentTick, zeroToOne, p.tickSpacing)
+		step.nextTick, step.initialized, err = p.ticks.NextInitializedTickWithinOneWord(currentTick, zeroToOne, p.tickSpacing)
+		if err != nil {
+			return err, nil, nil, nil
+		}
 
 		step.nextTickPrice, err = utils.GetSqrtRatioAtTick(step.nextTick)
 		if err != nil {
@@ -140,11 +143,15 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 				// every tick cross is needed to be duplicated in a virtual pool
 				// don't need to do this here
 
+				nextTickData, err := p.ticks.GetTick(step.nextTick)
+				if err != nil {
+					return err, nil, nil, nil
+				}
 				var liquidityDelta *big.Int
 				if zeroToOne {
-					liquidityDelta = new(big.Int).Neg(p.ticks.GetTick(step.nextTick).LiquidityNet)
+					liquidityDelta = new(big.Int).Neg(nextTickData.LiquidityNet)
 				} else {
-					liquidityDelta = p.ticks.GetTick(step.nextTick).LiquidityNet
+					liquidityDelta = nextTickData.LiquidityNet
 				}
 
 				currentLiquidity = utils.AddDelta(currentLiquidity, liquidityDelta)
