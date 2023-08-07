@@ -124,15 +124,15 @@ func (p *PoolSimulator) CalcAmountOut(
 		priceLimit := p.getSqrtPriceLimit(zeroForOne)
 		logger.Debugf("price limit %v", priceLimit)
 		err, amount0, amount1, stateUpdate := p._calculateSwapAndLock(zeroForOne, tokenAmountIn.Amount, priceLimit)
+		if err != nil {
+			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
+		}
+
 		var amountOut *big.Int
 		if zeroForOne {
 			amountOut = new(big.Int).Neg(amount1)
 		} else {
 			amountOut = new(big.Int).Neg(amount0)
-		}
-
-		if err != nil {
-			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
 		}
 
 		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
