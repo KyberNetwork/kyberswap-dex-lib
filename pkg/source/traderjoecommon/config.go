@@ -1,4 +1,4 @@
-package traderjoev20
+package traderjoecommon
 
 type Config struct {
 	DexID          string `json:"dexID"`

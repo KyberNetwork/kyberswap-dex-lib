@@ -1,6 +1,10 @@
 package traderjoev20
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+)
 
 // Reserves https://github.com/traderjoe-xyz/joe-v2/blob/v2.0.0/src/LBPair.sol#L151
 type Reserves struct {
@@ -10,6 +14,9 @@ type Reserves struct {
 	ActiveId *big.Int
 }
 
-type Metadata struct {
-	Offset int `json:"offset"`
+func (r Reserves) GetPoolReserves() entity.PoolReserves {
+	return entity.PoolReserves{
+		r.ReserveX.String(),
+		r.ReserveY.String(),
+	}
 }

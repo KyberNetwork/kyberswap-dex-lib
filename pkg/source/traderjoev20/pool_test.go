@@ -12,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoecommon"
 )
 
 const (
@@ -24,7 +25,7 @@ const (
 func TestGetNewPools(t *testing.T) {
 	t.Skip()
 
-	config := &Config{
+	config := &traderjoecommon.Config{
 		DexID:          "traderjoev20",
 		FactoryAddress: factoryAddress,
 		NewPoolLimit:   100,
@@ -33,14 +34,14 @@ func TestGetNewPools(t *testing.T) {
 	client.SetMulticallContract(common.HexToAddress(multicallAddress))
 	updater := NewPoolsListUpdater(config, client)
 
-	metadata := Metadata{Offset: 0}
+	metadata := traderjoecommon.Metadata{Offset: 0}
 	metadataBytes, err := json.Marshal(metadata)
 	require.NoError(t, err)
 
 	pools, nextMetadataBytes, err := updater.GetNewPools(context.Background(), metadataBytes)
 	require.NoError(t, err)
 
-	nextMetadata := &Metadata{}
+	nextMetadata := &traderjoecommon.Metadata{}
 	require.NoError(t, json.Unmarshal(nextMetadataBytes, nextMetadata))
 
 	fmt.Printf("next offset = %v\n", nextMetadata.Offset)
