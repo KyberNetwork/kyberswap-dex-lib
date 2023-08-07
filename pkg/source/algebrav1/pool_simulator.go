@@ -99,6 +99,12 @@ func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) *big.Int {
 
 	sqrtPriceX96Limit, err := v3Utils.GetSqrtRatioAtTick(tickLimit)
 
+	if zeroForOne {
+		sqrtPriceX96Limit = new(big.Int).Add(sqrtPriceX96Limit, bignumber.One) // = (sqrtPrice at minTick) + 1
+	} else {
+		sqrtPriceX96Limit = new(big.Int).Sub(sqrtPriceX96Limit, bignumber.One) // = (sqrtPrice at maxTick) - 1
+	}
+
 	if err != nil {
 		return nil
 	}
@@ -122,7 +128,6 @@ func (p *PoolSimulator) CalcAmountOut(
 		}
 
 		priceLimit := p.getSqrtPriceLimit(zeroForOne)
-		logger.Debugf("price limit %v", priceLimit)
 		err, amount0, amount1, stateUpdate := p._calculateSwapAndLock(zeroForOne, tokenAmountIn.Amount, priceLimit)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
