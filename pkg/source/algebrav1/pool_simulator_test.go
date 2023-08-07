@@ -157,3 +157,35 @@ func TestPoolSimulator_CalcAmountOut_CommFee(t *testing.T) {
 		})
 	}
 }
+
+func TestPoolSimulator_CalcAmountOut_v1_9(t *testing.T) {
+	// test data from https://ftmscan.com/address/0x2fbb6b6c054ef35f20c91fd29d6579cb3c642195#code
+	testcases := []struct {
+		in                string
+		inAmount          string
+		out               string
+		expectedOutAmount string
+	}{
+		{"A", "10", "B", "3"},
+		{"A", "10000000000", "B", "4041064818"},
+		{"B", "10000000000", "A", "24373699676"},
+	}
+	p, err := NewPoolSimulator(entity.Pool{
+		Exchange: "",
+		Type:     "",
+		Reserves: entity.PoolReserves{"21265875874493991905878", "10344609910613908943698"},
+		Tokens:   []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
+		Extra:    `{"liquidity":299344339249801237803452,"globalState":{"price":50556054571765543459252266509,"tick":-8986,"fee":7550,"timepoint_index":4,"community_fee_token0":0,"community_fee_token1":0,"unlocked":true},"ticks":[{"Index":-23040,"LiquidityGross":18101291400643986804037,"LiquidityNet":18101291400643986804037},{"Index":-9495,"LiquidityGross":281243047849157250999415,"LiquidityNet":281243047849157250999415},{"Index":-8940,"LiquidityGross":281243047849157250999415,"LiquidityNet":-281243047849157250999415},{"Index":16080,"LiquidityGross":18101291400643986804037,"LiquidityNet":-18101291400643986804037}],"tickSpacing":5}`,
+	}, 1001)
+	require.Nil(t, err)
+
+	for idx, tc := range testcases {
+		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
+			in := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
+			out, err := p.CalcAmountOut(in, tc.out)
+			require.Nil(t, err)
+			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)
+			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
+		})
+	}
+}
