@@ -87,7 +87,7 @@ var (
 
 	ExchangeVelodrome Exchange = "velodrome"
 	ExchangeDystopia  Exchange = "dystopia"
-	ExchangeUsdfi  Exchange = "usdfi"
+	ExchangeUsdfi     Exchange = "usdfi"
 	ExchangeChronos   Exchange = "chronos"
 	ExchangeRamses    Exchange = "ramses"
 	ExchangeVelocore  Exchange = "velocore"
