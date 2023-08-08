@@ -624,7 +624,7 @@ func NewPoolTrackerHandler(
 	case traderjoev20.DexTypeTraderJoeV20:
 		return traderjoev20.NewPoolTracker(ethrpcClient)
 	case traderjoev21.DexTypeTraderJoeV21:
-		return traderjoev20.NewPoolTracker(ethrpcClient)
+		return traderjoev21.NewPoolTracker(ethrpcClient)
 	}
 
 	return nil, fmt.Errorf("can not find pool tracker handler: %s", scanDexCfg.Handler)

@@ -1,7 +1,7 @@
 package traderjoev21
 
 const (
-	DexTypeTraderJoeV21 = "traderjoev21"
+	DexTypeTraderJoeV21 = "traderjoe-v21"
 	defaultTokenWeight  = 50
 )
 
