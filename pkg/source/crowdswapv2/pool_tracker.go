@@ -51,7 +51,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
-		}).Errorf("[Crowdswap V2]: failed to process tryAggregate for pool")
+		}).Errorf("[Crowdswap V2]: failed to process tryAggregate for pool: %v, err: %v", p.Address, err)
 		return entity.Pool{}, err
 	}
 
@@ -67,7 +67,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		return entity.Pool{}, err
 	}
 
-	var swapFeeFL float64 = float64(swapFee) / 1000
+	var swapFeeFL float64 = float64(swapFee) / bps
 	p.SwapFee = swapFeeFL
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{

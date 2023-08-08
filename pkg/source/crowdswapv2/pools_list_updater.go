@@ -167,7 +167,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
-		var swapFeeFL float64 = float64(swapFees[i]) / 1000
+		var swapFeeFL float64 = float64(swapFees[i]) / bps
 
 		var newPool = entity.Pool{
 			Address:      p,
