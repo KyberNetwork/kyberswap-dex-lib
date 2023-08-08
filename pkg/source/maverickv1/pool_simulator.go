@@ -125,7 +125,7 @@ func (p *Pool) CalcAmountOut(
 				Amount: nil,
 			},
 			Gas: p.gas.Swap,
-			SwapInfo: MaverickPoolState{
+			SwapInfo: MaverickSwapInfo{
 				ActiveTick: newState.ActiveTick,
 				Bins:       newState.Bins,
 			},
@@ -136,7 +136,7 @@ func (p *Pool) CalcAmountOut(
 }
 
 func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
-	newState, ok := params.SwapInfo.(MaverickPoolState)
+	newState, ok := params.SwapInfo.(MaverickSwapInfo)
 	if !ok {
 		logger.Warn("failed to UpdateBalancer for Maverick pool, wrong swapInfo type")
 		return
