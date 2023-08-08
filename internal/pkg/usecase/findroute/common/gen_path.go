@@ -5,11 +5,10 @@ import (
 	"math/big"
 	"sort"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -132,8 +131,12 @@ func getNextLayerFromToken(
 	fromNodeInfo *nodeInfo,
 ) ([]*nodeInfo, error) {
 	usedTokens := sets.NewString()
+	usedPools := sets.NewString()
 	for _, tokenOnPath := range fromNodeInfo.tokensOnPath {
 		usedTokens.Insert(tokenOnPath.Address)
+	}
+	for _, poolOnPath := range fromNodeInfo.poolAddressesOnPath {
+		usedPools.Insert(poolOnPath)
 	}
 
 	var (
@@ -145,6 +148,12 @@ func getNextLayerFromToken(
 		ok                     bool
 	)
 	for _, poolAddress := range tokenToPoolAddresses[fromTokenAddress] {
+		// If next pool addr == current pool addr -> skip because we have not update reserve balance on GenKBestPaths,
+		// so the way which go two same pools on a path will give wrong result.
+		if usedPools.Has(poolAddress) {
+			continue
+		}
+
 		pool, ok = data.PoolBucket.GetPool(poolAddress)
 		if !ok {
 			return nil, findroute.ErrNoIPool
