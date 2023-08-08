@@ -299,13 +299,19 @@ func (d *PoolTracker) approximateFee(ctx context.Context, poolAddress, dataStora
 
 	if d.config.UseDirectionalFee {
 		state.FeeZto, err = ts._getNewFee(blockTimestamp, currentTick, newTimepointIndex, currentLiquidity, &feeConfZto)
+		if err != nil {
+			return err
+		}
 		state.FeeOtz, err = ts._getNewFee(blockTimestamp, currentTick, newTimepointIndex, currentLiquidity, &feeConfOtz)
+		if err != nil {
+			return err
+		}
 	} else {
 		state.FeeZto, err = ts._getNewFee(blockTimestamp, currentTick, newTimepointIndex, currentLiquidity, &feeConf)
+		if err != nil {
+			return err
+		}
 		state.FeeOtz = state.FeeZto
-	}
-	if err != nil {
-		return err
 	}
 	return nil
 }
