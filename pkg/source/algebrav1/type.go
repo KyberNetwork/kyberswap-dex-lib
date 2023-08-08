@@ -42,10 +42,35 @@ type SubgraphPoolTicks struct {
 	Ticks []TickResp `json:"ticks"`
 }
 
+// for algebra v1 with single fee for both direction
+type rpcGlobalStateSingleFee struct {
+	Price              *big.Int
+	Tick               *big.Int
+	Fee                uint16
+	TimepointIndex     uint16
+	CommunityFeeToken0 uint16
+	CommunityFeeToken1 uint16
+	Unlocked           bool
+}
+
+// for algebra v1 camelot and similar (directional fee)
+type rpcGlobalStateDirFee struct {
+	Price              *big.Int
+	Tick               *big.Int
+	FeeZto             uint16
+	FeeOtz             uint16
+	TimepointIndex     uint16
+	CommunityFeeToken0 uint8
+	CommunityFeeToken1 uint8
+	Unlocked           bool
+}
+
+// unified data for simulation
 type GlobalState struct {
 	Price              *big.Int `json:"price"`
 	Tick               *big.Int `json:"tick"`
-	Fee                uint16   `json:"fee"`
+	FeeZto             uint16   `json:"feeZto"`
+	FeeOtz             uint16   `json:"feeOtz"`
 	TimepointIndex     uint16   `json:"timepoint_index"`
 	CommunityFeeToken0 uint16   `json:"community_fee_token0"`
 	CommunityFeeToken1 uint16   `json:"community_fee_token1"`
