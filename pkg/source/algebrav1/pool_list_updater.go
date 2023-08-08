@@ -11,8 +11,8 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/machinebox/graphql"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
@@ -57,7 +57,7 @@ func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	metadata := Metadata{
-		LastCreatedAtTimestamp: bignumber.ZeroBI,
+		LastCreatedAtTimestamp: integer.Zero(),
 	}
 	if len(metadataBytes) != 0 {
 		err := json.Unmarshal(metadataBytes, &metadata)
