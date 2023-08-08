@@ -16,8 +16,8 @@ type PoolSimulator struct {
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	swapFeeFl := new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), bOneFloat)
-	swapFee, _ := swapFeeFl.Int(nil)
+	//for 0.3% fee, the swapFee in the real pair should be set to 3
+	swapFee := big.NewInt(int64(entityPool.SwapFee * oneFloat))
 	tokens := make([]string, 2)
 	weights := make([]uint, 2)
 	reserves := make([]*big.Int, 2)
@@ -36,6 +36,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tokens[1] = entityPool.Tokens[1].Address
 		weights[1] = weight1
 		reserves[1] = NewBig10(entityPool.Reserves[1])
+	} else {
+		return nil, fmt.Errorf("number of reserves: %v or number of tokens: %v is not correct", len(entityPool.Reserves), len(entityPool.Tokens))
 	}
 	info := pool.PoolInfo{
 		Address:    strings.ToLower(entityPool.Address),
@@ -116,9 +118,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	if t.GetInfo().SwapFee == nil {
-		return Meta{
-			SwapFee: defaultSwapFee,
-		}
+		return nil
 	}
 
 	return Meta{

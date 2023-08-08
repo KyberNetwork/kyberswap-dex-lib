@@ -30,10 +30,6 @@ func NewPoolsListUpdater(
 	}
 }
 
-func (d *PoolsListUpdater) InitPool(_ context.Context) error {
-	return nil
-}
-
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	var metadata Metadata
 	if len(metadataBytes) != 0 {
@@ -121,7 +117,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 	var limit = len(pairAddresses)
 	var token0Addresses = make([]common.Address, limit)
 	var token1Addresses = make([]common.Address, limit)
-	var swapFees = make([]int8, limit)
+	var swapFees = make([]uint8, limit)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -177,7 +173,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 			Address:      p,
 			ReserveUsd:   0,
 			AmplifiedTvl: 0,
-			SwapFee:      swapFeeFL, //FIXME: crowdswap can we use d.config.SwapFee?
+			SwapFee:      swapFeeFL, //FIXME: crowdswap can we use d.config.SwapFee? We use for example 3 in our pair to refer 0.3% fee
 			Exchange:     d.config.DexID,
 			Type:         DexTypeCrowdswapV2,
 			Timestamp:    time.Now().Unix(),

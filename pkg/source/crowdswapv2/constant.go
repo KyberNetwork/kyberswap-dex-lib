@@ -18,9 +18,8 @@ const (
 )
 
 var (
-	zeroBI         = big.NewInt(0)
-	defaultGas     = Gas{SwapBase: 60000, SwapNonBase: 102000}
-	defaultSwapFee = "2"
-	bOne           = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-	bOneFloat, _   = new(big.Float).SetString("1000000000000000000")
+	zeroBI             = big.NewInt(0)
+	defaultGas         = Gas{SwapBase: 60000, SwapNonBase: 102000}
+	bOne               = new(big.Int).Exp(big.NewInt(10), big.NewInt(3), nil)
+	oneFloat   float64 = 10
 )
