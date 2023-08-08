@@ -90,6 +90,7 @@ var (
 	ExchangeChronos   Exchange = "chronos"
 	ExchangeRamses    Exchange = "ramses"
 	ExchangeVelocore  Exchange = "velocore"
+	ExchangePearl     Exchange = "pearl"
 
 	ExchangePlatypus Exchange = "platypus"
 
@@ -169,6 +170,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeKyberSwap:           {},
 	ExchangeKyberSwapStatic:     {},
 	ExchangeVelodrome:           {},
+	ExchangePearl:               {},
 	ExchangeDystopia:            {},
 	ExchangeChronos:             {},
 	ExchangeRamses:              {},

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
 	"github.com/machinebox/graphql"
 
@@ -57,7 +58,7 @@ func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	metadata := Metadata{
-		LastCreatedAtTimestamp: zeroBI,
+		LastCreatedAtTimestamp: integer.Zero(),
 	}
 	if len(metadataBytes) != 0 {
 		err := json.Unmarshal(metadataBytes, &metadata)
@@ -76,7 +77,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	numSubgraphPools := len(subgraphPools)
 
-	logger.Infof("got %v subgraph pools from UniswapV3 subgraph", numSubgraphPools)
+	logger.Infof("got %v subgraph pools from %s subgraph", numSubgraphPools, d.config.DexID)
 
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 	for _, p := range subgraphPools {
@@ -165,7 +166,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	logger.Infof("got %v UniswapV3 pools", len(pools))
+	logger.Infof("got %v %s pools", len(pools), d.config.DexID)
 
 	return pools, newMetadataBytes, nil
 }

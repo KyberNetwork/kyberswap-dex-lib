@@ -3,8 +3,11 @@ package source
 import (
 	"fmt"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pearl"
+
 	"github.com/KyberNetwork/ethrpc"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	balancerComposableStable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/biswap"
@@ -38,6 +41,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
 )
 
@@ -73,6 +77,15 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return crowdswapv2.NewPoolsListUpdater(&cfg, ethrpcClient), nil
+	case algebrav1.DexTypeAlgebraV1:
+		var cfg algebrav1.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return algebrav1.NewPoolsListUpdater(&cfg), nil
 	case dmm.DexTypeDMM:
 		var cfg dmm.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
@@ -118,6 +131,15 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return velodrome.NewPoolListUpdater(&cfg, ethrpcClient), nil
+	case velocimeter.DexTypeVelocimeter:
+		var cfg velocimeter.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return velocimeter.NewPoolListUpdater(&cfg, ethrpcClient), nil
 	case muteswitch.DexTypeMuteSwitch:
 		var cfg muteswitch.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
@@ -334,7 +356,6 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return pancakev3.NewPoolsListUpdater(&cfg), nil
-
 	case maverickv1.DexTypeMaverickV1:
 		var cfg maverickv1.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
@@ -344,6 +365,15 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return maverickv1.NewPoolListUpdater(&cfg, ethrpcClient), nil
+	case pearl.DexTypePearl:
+		var cfg pearl.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return pearl.NewPoolListUpdater(&cfg, ethrpcClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pools list updater handler: %s", scanDexCfg.Handler)
@@ -367,6 +397,15 @@ func NewPoolTrackerHandler(
 		return uniswapv3.NewPoolTracker(&cfg, ethrpcClient)
 	case crowdswapv2.DexTypeCrowdswapV2:
 		return crowdswapv2.NewPoolTracker(ethrpcClient)
+	case algebrav1.DexTypeAlgebraV1:
+		var cfg algebrav1.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return algebrav1.NewPoolTracker(&cfg, ethrpcClient)
 	case dmm.DexTypeDMM:
 		return dmm.NewPoolTracker(ethrpcClient)
 	case elastic.DexTypeElastic:
@@ -391,6 +430,15 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return velodrome.NewPoolTracker(&cfg, ethrpcClient)
+	case velocimeter.DexTypeVelocimeter:
+		var cfg velocimeter.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return velocimeter.NewPoolTracker(&cfg, ethrpcClient)
 	case muteswitch.DexTypeMuteSwitch:
 		var cfg muteswitch.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
@@ -555,6 +603,15 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return maverickv1.NewPoolTracker(&cfg, ethrpcClient), nil
+	case pearl.DexTypePearl:
+		var cfg pearl.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return pearl.NewPoolTracker(&cfg, ethrpcClient)
 	}
 
 	return nil, fmt.Errorf("can not find pool tracker handler: %s", scanDexCfg.Handler)

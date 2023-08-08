@@ -1,4 +1,4 @@
-package pancakev3
+package algebrav1
 
 import (
 	"context"
@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
 	"github.com/machinebox/graphql"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
@@ -32,17 +32,16 @@ func NewPoolsListUpdater(
 	}
 }
 
-func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp *big.Int, first, skip int) ([]SubgraphPool, error) {
-	allowSubgraphError := d.config.IsAllowSubgraphError()
+func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimestamp *big.Int, lastPoolIds []string, first, skip int) ([]SubgraphPool, error) {
+	allowSubgraphError := d.config.AllowSubgraphError
 
-	req := graphql.NewRequest(getPoolsListQuery(allowSubgraphError, lastCreatedAtTimestamp, first, skip))
+	req := graphql.NewRequest(getPoolsListQuery(allowSubgraphError, lastCreatedAtTimestamp, lastPoolIds, first, skip))
 
 	var response struct {
 		Pools []SubgraphPool `json:"pools"`
 	}
 
 	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
-		// Workaround at the moment to live with the error subgraph on Arbitrum
 		if allowSubgraphError && len(response.Pools) > 0 {
 			return response.Pools, nil
 		}
@@ -67,7 +66,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	subgraphPools, err := d.getPoolsList(ctx, metadata.LastCreatedAtTimestamp, graphFirstLimit, 0)
+	subgraphPools, err := d.getPoolsList(ctx, metadata.LastCreatedAtTimestamp, metadata.LastPoolIds, graphFirstLimit, 0)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
@@ -77,15 +76,26 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	numSubgraphPools := len(subgraphPools)
 
-	logger.Infof("got %v subgraph pools from Pancake V3 subgraph", numSubgraphPools)
+	logger.Infof("got %v subgraph pools from %v subgraph", numSubgraphPools, d.config.DexID)
+
+	if numSubgraphPools == 0 {
+		// no new pool
+		return []entity.Pool{}, metadataBytes, nil
+	}
+
+	// Track the last pool's CreatedAtTimestamp
+	lastPoolIds := []string{}
+	lastCreatedAtTimestampStr := subgraphPools[numSubgraphPools-1].CreatedAtTimestamp
+	lastCreatedAtTimestamp, ok := new(big.Int).SetString(lastCreatedAtTimestampStr, 10)
+	if !ok {
+		return nil, metadataBytes, fmt.Errorf("invalid CreatedAtTimestamp: %v, pool: %v",
+			lastCreatedAtTimestampStr, subgraphPools[numSubgraphPools-1].ID)
+	}
 
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 	for _, p := range subgraphPools {
 		tokens := make([]*entity.PoolToken, 0, 2)
 		reserves := make([]string, 0, 2)
-		staticField := StaticExtra{
-			PoolId: p.ID,
-		}
 
 		if p.Token0.Address != emptyString {
 			token0Decimals, err := strconv.Atoi(p.Token0.Decimals)
@@ -127,46 +137,32 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			reserves = append(reserves, zeroString)
 		}
 
-		var swapFee, _ = strconv.ParseFloat(p.FeeTier, 64)
-
-		staticBytes, _ := json.Marshal(staticField)
 		var newPool = entity.Pool{
 			Address:      p.ID,
 			ReserveUsd:   0,
 			AmplifiedTvl: 0,
-			SwapFee:      swapFee,
 			Exchange:     d.config.DexID,
-			Type:         DexTypePancakeV3,
+			Type:         DexTypeAlgebraV1,
 			Timestamp:    time.Now().Unix(),
 			Reserves:     reserves,
 			Tokens:       tokens,
-			StaticExtra:  string(staticBytes),
 		}
 
 		pools = append(pools, newPool)
-	}
-
-	// Track the last pool's CreatedAtTimestamp
-	var lastCreatedAtTimestamp = metadata.LastCreatedAtTimestamp
-	if len(subgraphPools) > 0 {
-		lastSubgraphPoolIndex := len(subgraphPools) - 1
-		ts, ok := new(big.Int).SetString(subgraphPools[lastSubgraphPoolIndex].CreatedAtTimestamp, 10)
-		if !ok {
-			return nil, metadataBytes, fmt.Errorf("invalid CreatedAtTimestamp: %v, pool: %v",
-				subgraphPools[lastSubgraphPoolIndex].CreatedAtTimestamp, subgraphPools[lastSubgraphPoolIndex].ID)
+		if p.CreatedAtTimestamp == lastCreatedAtTimestampStr {
+			lastPoolIds = append(lastPoolIds, p.ID)
 		}
-
-		lastCreatedAtTimestamp = ts
 	}
 
 	newMetadataBytes, err := json.Marshal(Metadata{
 		LastCreatedAtTimestamp: lastCreatedAtTimestamp,
+		LastPoolIds:            lastPoolIds,
 	})
 	if err != nil {
 		return nil, metadataBytes, err
 	}
 
-	logger.Infof("got %v Pancake V3 pools", len(pools))
+	logger.Infof("got %v %v pools", len(pools), d.config.DexID)
 
 	return pools, newMetadataBytes, nil
 }

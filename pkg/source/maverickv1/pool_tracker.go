@@ -118,8 +118,12 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	binPositions := make(map[string]map[string]*big.Int)
 	binMap := make(map[string]*big.Int)
 	for i, binRaw := range binRaws {
-		strI := strconv.Itoa(i)
+		if binRaw.BinState.MergeID.Cmp(zeroBI) != 0 ||
+			(binRaw.BinState.ReserveA.Cmp(zeroBI) == 0 && binRaw.BinState.ReserveB.Cmp(zeroBI) == 0 && big.NewInt(int64(binRaw.BinState.LowerTick)).Cmp(activeTick) != 0) {
+			continue
+		}
 
+		strI := strconv.Itoa(i)
 		bin := Bin{
 			ReserveA:  new(big.Int).Set(binRaw.BinState.ReserveA),
 			ReserveB:  new(big.Int).Set(binRaw.BinState.ReserveB),
@@ -138,6 +142,26 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		}
 	}
 
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"error":       err,
+		}).Errorf("faield to unmarshal static extra")
+
+		return entity.Pool{}, err
+	}
+	_, _, sqrtPrice, liquidity, _, _ := currentTickLiquidity(activeTick, &MaverickPoolState{
+		TickSpacing:      staticExtra.TickSpacing,
+		Fee:              fee,
+		ProtocolFeeRatio: protocolFeeRatio,
+		ActiveTick:       activeTick,
+		BinCounter:       binCounter,
+		Bins:             bins,
+		BinPositions:     binPositions,
+		BinMap:           binMap,
+	})
+
 	var extra = Extra{
 		Fee:              fee,
 		ProtocolFeeRatio: protocolFeeRatio,
@@ -146,7 +170,11 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		Bins:             bins,
 		BinPositions:     binPositions,
 		BinMap:           binMap,
+
+		SqrtPriceX96: sqrtPrice,
+		Liquidity:    liquidity,
 	}
+
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
