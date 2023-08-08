@@ -38,6 +38,9 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoecommon"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoev20"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoev21"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
@@ -364,6 +367,24 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return pearl.NewPoolListUpdater(&cfg, ethrpcClient), nil
+	case traderjoev20.DexTypeTraderJoeV20:
+		var cfg traderjoecommon.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return traderjoev20.NewPoolsListUpdater(&cfg, ethrpcClient), nil
+	case traderjoev21.DexTypeTraderJoeV21:
+		var cfg traderjoecommon.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return traderjoev21.NewPoolsListUpdater(&cfg, ethrpcClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pools list updater handler: %s", scanDexCfg.Handler)
@@ -600,6 +621,10 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return pearl.NewPoolTracker(&cfg, ethrpcClient)
+	case traderjoev20.DexTypeTraderJoeV20:
+		return traderjoev20.NewPoolTracker(ethrpcClient)
+	case traderjoev21.DexTypeTraderJoeV21:
+		return traderjoev20.NewPoolTracker(ethrpcClient)
 	}
 
 	return nil, fmt.Errorf("can not find pool tracker handler: %s", scanDexCfg.Handler)
