@@ -3,7 +3,7 @@ package algebrav1
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
 	"github.com/daoleno/uniswapv3-sdk/constants"
 	"github.com/daoleno/uniswapv3-sdk/utils"
@@ -51,11 +51,11 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	currentPrice := p.globalState.Price
 	currentTick := int(p.globalState.Tick.Int64())
 	cache.fee = p.globalState.Fee
-	cache.amountCalculated = bignumber.ZeroBI
+	cache.amountCalculated = integer.Zero()
 	_communityFeeToken0 := p.globalState.CommunityFeeToken0
 	_communityFeeToken1 := p.globalState.CommunityFeeToken1
 
-	cmp := amountRequired.Cmp(bignumber.ZeroBI)
+	cmp := amountRequired.Cmp(integer.Zero())
 	if cmp == 0 {
 		return ErrZeroAmountIn, nil, nil, nil
 	}
@@ -126,7 +126,7 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 			) // increase calculated input amount
 		}
 
-		if cache.communityFee.Cmp(bignumber.ZeroBI) > 0 {
+		if cache.communityFee.Cmp(integer.Zero()) > 0 {
 			delta := new(big.Int).Div(
 				new(big.Int).Mul(step.feeAmount, cache.communityFee),
 				COMMUNITY_FEE_DENOMINATOR,
@@ -171,7 +171,7 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 		}
 
 		// check stop condition
-		if amountRequired.Cmp(bignumber.ZeroBI) == 0 || currentPrice.Cmp(limitSqrtPrice) == 0 {
+		if amountRequired.Cmp(integer.Zero()) == 0 || currentPrice.Cmp(limitSqrtPrice) == 0 {
 			break
 		}
 	}

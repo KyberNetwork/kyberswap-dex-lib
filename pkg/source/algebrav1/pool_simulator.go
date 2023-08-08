@@ -9,6 +9,7 @@ import (
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -100,9 +101,9 @@ func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) *big.Int {
 	sqrtPriceX96Limit, err := v3Utils.GetSqrtRatioAtTick(tickLimit)
 
 	if zeroForOne {
-		sqrtPriceX96Limit = new(big.Int).Add(sqrtPriceX96Limit, bignumber.One) // = (sqrtPrice at minTick) + 1
+		sqrtPriceX96Limit = new(big.Int).Add(sqrtPriceX96Limit, integer.One()) // = (sqrtPrice at minTick) + 1
 	} else {
-		sqrtPriceX96Limit = new(big.Int).Sub(sqrtPriceX96Limit, bignumber.One) // = (sqrtPrice at maxTick) - 1
+		sqrtPriceX96Limit = new(big.Int).Sub(sqrtPriceX96Limit, integer.One()) // = (sqrtPrice at maxTick) - 1
 	}
 
 	if err != nil {
@@ -140,7 +141,7 @@ func (p *PoolSimulator) CalcAmountOut(
 			amountOut = new(big.Int).Neg(amount0)
 		}
 
-		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
+		if amountOut.Cmp(integer.Zero()) > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,
