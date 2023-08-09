@@ -21,6 +21,8 @@ const (
 	methodGetGlobalState         = "globalState"
 	methodGetDataStorageOperator = "dataStorageOperator"
 	methodGetFeeConfig           = "feeConfig"
+	methodGetFeeConfigZto        = "feeConfigZto"
+	methodGetFeeConfigOtz        = "feeConfigOtz"
 	methodGetTimepoints          = "timepoints"
 	methodGetTickSpacing         = "tickSpacing"
 	erc20MethodBalanceOf         = "balanceOf"
@@ -28,7 +30,7 @@ const (
 	maxSwapLoop         = 1000000
 	maxBinarySearchLoop = 1000
 
-	timepointPageSize           = uint16(300)
+	timepointPageSize = uint16(300)
 
 	WINDOW        = 86400 // 1 day in seconds
 	UINT16_MODULO = 65536

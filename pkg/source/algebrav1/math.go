@@ -50,7 +50,6 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	// load from one storage slot
 	currentPrice := p.globalState.Price
 	currentTick := int(p.globalState.Tick.Int64())
-	cache.fee = p.globalState.Fee
 	cache.amountCalculated = integer.Zero()
 	_communityFeeToken0 := p.globalState.CommunityFeeToken0
 	_communityFeeToken1 := p.globalState.CommunityFeeToken1
@@ -80,7 +79,11 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 
 	// use pre-calculated fee instead of calculating from timepoints
 	// see tracker code for more details
-	cache.fee = p.globalState.Fee
+	if zeroToOne {
+		cache.fee = p.globalState.FeeZto
+	} else {
+		cache.fee = p.globalState.FeeOtz
+	}
 	logger.Debugf("fee %v", cache.fee)
 
 	var step PriceMovementCache
@@ -188,7 +191,8 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	nextState.GlobalState = GlobalState{
 		Price:              currentPrice,
 		Tick:               big.NewInt(int64(currentTick)),
-		Fee:                p.globalState.Fee,
+		FeeZto:             p.globalState.FeeZto,
+		FeeOtz:             p.globalState.FeeOtz,
 		TimepointIndex:     p.globalState.TimepointIndex,
 		CommunityFeeToken0: p.globalState.CommunityFeeToken0,
 		CommunityFeeToken1: p.globalState.CommunityFeeToken0,

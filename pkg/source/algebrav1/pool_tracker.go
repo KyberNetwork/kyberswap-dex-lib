@@ -122,7 +122,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		rpcData.reserve1.String(),
 	}
 
-	logger.Infof("[%v] Finish updating state of pool: %v, approximate fee %v", d.config.DexID, p.Address, rpcData.state.Fee)
+	logger.Infof("[%v] Finish updating state of pool: %v, approximate fee %v %v", d.config.DexID, p.Address, rpcData.state.FeeZto, rpcData.state.FeeOtz)
 
 	return p, nil
 }
@@ -143,12 +143,25 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 		Params: nil,
 	}, []interface{}{&res.liquidity})
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    algebraV1PoolABI,
-		Target: p.Address,
-		Method: methodGetGlobalState,
-		Params: nil,
-	}, []interface{}{&res.state})
+	// the globalstate abi are slightly different across versions
+	var rpcState interface{}
+	if d.config.UseDirectionalFee {
+		rpcState = &rpcGlobalStateDirFee{}
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    algebraV1DirFeePoolABI,
+			Target: p.Address,
+			Method: methodGetGlobalState,
+			Params: nil,
+		}, []interface{}{rpcState})
+	} else {
+		rpcState = &rpcGlobalStateSingleFee{}
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    algebraV1PoolABI,
+			Target: p.Address,
+			Method: methodGetGlobalState,
+			Params: nil,
+		}, []interface{}{rpcState})
+	}
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    algebraV1PoolABI,
@@ -180,13 +193,40 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 		}, []interface{}{&res.reserve1})
 	}
 
-	_, err := rpcRequest.TryAggregate()
+	_, err := rpcRequest.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
 		}).Errorf("failed to process tryAggregate")
 		return res, err
+	}
+
+	if d.config.UseDirectionalFee {
+		rpcStateRes := rpcState.(*rpcGlobalStateDirFee)
+		res.state = GlobalState{
+			Price:              rpcStateRes.Price,
+			Tick:               rpcStateRes.Tick,
+			FeeZto:             rpcStateRes.FeeZto,
+			FeeOtz:             rpcStateRes.FeeOtz,
+			TimepointIndex:     rpcStateRes.TimepointIndex,
+			CommunityFeeToken0: uint16(rpcStateRes.CommunityFeeToken0),
+			CommunityFeeToken1: uint16(rpcStateRes.CommunityFeeToken1),
+			Unlocked:           rpcStateRes.Unlocked,
+		}
+	} else {
+		// for v1 without directional fee, we'll use Fee for both FeeZto/FeeOtz
+		rpcStateRes := rpcState.(*rpcGlobalStateSingleFee)
+		res.state = GlobalState{
+			Price:              rpcStateRes.Price,
+			Tick:               rpcStateRes.Tick,
+			FeeZto:             rpcStateRes.Fee,
+			FeeOtz:             rpcStateRes.Fee,
+			TimepointIndex:     rpcStateRes.TimepointIndex,
+			CommunityFeeToken0: rpcStateRes.CommunityFeeToken0,
+			CommunityFeeToken1: rpcStateRes.CommunityFeeToken1,
+			Unlocked:           rpcStateRes.Unlocked,
+		}
 	}
 
 	if !d.config.SkipFeeCalculating {
@@ -225,7 +265,13 @@ func (d *PoolTracker) approximateFee(ctx context.Context, poolAddress, dataStora
 	}
 
 	feeConf := FeeConfiguration{}
-	err = d.getPoolFeeConfig(ctx, dataStorageOperator, &feeConf)
+	feeConfZto := FeeConfiguration{}
+	feeConfOtz := FeeConfiguration{}
+	if d.config.UseDirectionalFee {
+		err = d.getPoolDirectionalFeeConfig(ctx, dataStorageOperator, &feeConfZto, &feeConfOtz)
+	} else {
+		err = d.getPoolFeeConfig(ctx, dataStorageOperator, &feeConf)
+	}
 	if err != nil {
 		return err
 	}
@@ -250,9 +296,22 @@ func (d *PoolTracker) approximateFee(ctx context.Context, poolAddress, dataStora
 	if err != nil {
 		return err
 	}
-	state.Fee, err = ts._getNewFee(blockTimestamp, int24(currentTick), newTimepointIndex, currentLiquidity, &feeConf)
-	if err != nil {
-		return err
+
+	if d.config.UseDirectionalFee {
+		state.FeeZto, err = ts._getNewFee(blockTimestamp, currentTick, newTimepointIndex, currentLiquidity, &feeConfZto)
+		if err != nil {
+			return err
+		}
+		state.FeeOtz, err = ts._getNewFee(blockTimestamp, currentTick, newTimepointIndex, currentLiquidity, &feeConfOtz)
+		if err != nil {
+			return err
+		}
+	} else {
+		state.FeeZto, err = ts._getNewFee(blockTimestamp, currentTick, newTimepointIndex, currentLiquidity, &feeConf)
+		if err != nil {
+			return err
+		}
+		state.FeeOtz = state.FeeZto
 	}
 	return nil
 }
@@ -267,6 +326,34 @@ func (d *PoolTracker) getPoolFeeConfig(ctx context.Context, dataStorageOperatorA
 		Method: methodGetFeeConfig,
 		Params: nil,
 	}, []interface{}{feeConf})
+
+	_, err := rpcRequest.Aggregate()
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dataStorageAddress": dataStorageOperatorAddress,
+			"error":              err,
+		}).Errorf("failed to fetch from data storage operator")
+		return err
+	}
+	return nil
+}
+
+func (d *PoolTracker) getPoolDirectionalFeeConfig(ctx context.Context, dataStorageOperatorAddress string, feeConfZto *FeeConfiguration, feeConfOtz *FeeConfiguration) error {
+	rpcRequest := d.ethrpcClient.NewRequest()
+	rpcRequest.SetContext(ctx)
+
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    algebraV1DirFeeDataStorageOperatorAPI,
+		Target: dataStorageOperatorAddress,
+		Method: methodGetFeeConfigZto,
+		Params: nil,
+	}, []interface{}{feeConfZto},
+	).AddCall(&ethrpc.Call{
+		ABI:    algebraV1DirFeeDataStorageOperatorAPI,
+		Target: dataStorageOperatorAddress,
+		Method: methodGetFeeConfigOtz,
+		Params: nil,
+	}, []interface{}{feeConfOtz})
 
 	_, err := rpcRequest.Aggregate()
 	if err != nil {
