@@ -189,3 +189,13 @@ type MaverickV1Swap struct {
 	SwapAmount        *big.Int
 	SqrtPriceLimitD18 *big.Int
 }
+
+type AlgebraV1 struct {
+	Recipient           common.Address
+	Pool                common.Address
+	TokenIn             common.Address
+	TokenOut            common.Address
+	SwapAmount          *big.Int
+	SqrtPriceLimitX96   *big.Int
+	SenderFeeOnTransfer *big.Int
+}

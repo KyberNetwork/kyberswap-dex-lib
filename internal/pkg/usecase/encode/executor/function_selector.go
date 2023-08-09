@@ -41,6 +41,7 @@ var (
 	FunctionSelectorSyncSwap       FunctionSelector
 	FunctionSelectorLimitOrder     FunctionSelector
 	FunctionSelectorMaverickV1     FunctionSelector
+	FunctionSelectorAlgebraV1      FunctionSelector
 )
 
 func init() {
@@ -64,6 +65,7 @@ func init() {
 	FunctionSelectorMuteSwitch = NewFunctionSelector("executeMuteSwitchSwap", []string{"bytes", "uint256"})
 	FunctionSelectorSyncSwap = NewFunctionSelector("executeSyncSwap", []string{"bytes", "uint256"})
 	FunctionSelectorMaverickV1 = NewFunctionSelector("executeMaverick", []string{"bytes", "uint256"})
+	FunctionSelectorAlgebraV1 = NewFunctionSelector("executeAlgebraV1", []string{"bytes", "uint256"})
 	// Reference from SC
 	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/executor-helpers/ExecutorHelper2.sol#LL724C1-L724C1
 	FunctionSelectorLimitOrder = NewFunctionSelector("executeKyberLimitOrder", []string{"bytes", "uint256"})

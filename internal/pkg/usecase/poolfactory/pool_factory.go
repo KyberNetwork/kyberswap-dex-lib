@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	balancerstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/stable"
 	balancerweighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/weighted"
@@ -44,6 +45,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -252,6 +254,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool) (poolpkg.IPoolSimulator, e
 		return f.newPancakeV3(entityPool)
 	case constant.PoolTypes.MaverickV1:
 		return f.newMaverickV1(entityPool)
+	case constant.PoolTypes.AlgebraV1:
+		return f.newAlgebraV1(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -742,6 +746,20 @@ func (f *PoolFactory) newMaverickV1(entityPool entity.Pool) (*maverickv1.Pool, e
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newMaverickV1] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newAlgebraV1(entityPool entity.Pool) (*algebrav1.PoolSimulator, error) {
+	defaultGas := DefaultGasAlgebra[valueobject.Exchange(entityPool.Exchange)]
+	corePool, err := algebrav1.NewPoolSimulator(entityPool, defaultGas)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newAlgebraV1] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type)
 	}

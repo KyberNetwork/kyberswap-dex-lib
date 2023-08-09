@@ -28,6 +28,8 @@ var (
 	// MaverickV1
 	MaverickABIArguments abi.Arguments
 
+	AlgebraV1ABIArguments abi.Arguments
+
 	FillBatchOrdersParamsABIType abi.Type
 )
 
@@ -74,6 +76,16 @@ func init() {
 		{Name: "swapAmount", Type: abitypes.Uint256},
 		{Name: "sqrtPriceLimitX96", Type: abitypes.Uint160},
 		{Name: "isUniV3", Type: abitypes.Bool},
+	}
+
+	AlgebraV1ABIArguments = abi.Arguments{
+		{Name: "recipient", Type: abitypes.Address},
+		{Name: "pool", Type: abitypes.Address},
+		{Name: "tokenIn", Type: abitypes.Address},
+		{Name: "tokenOut", Type: abitypes.Address},
+		{Name: "swapAmount", Type: abitypes.Uint256},
+		{Name: "sqrtPriceLimitX96", Type: abitypes.Uint160},
+		{Name: "senderFeeOnTransfer", Type: abitypes.Uint256},
 	}
 
 	BalancerV2ABIArguments = abi.Arguments{

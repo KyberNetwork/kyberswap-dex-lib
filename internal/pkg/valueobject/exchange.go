@@ -40,6 +40,7 @@ var (
 	ExchangeValleySwapV2  Exchange = "valleyswap-v2"
 	ExchangeZipSwap       Exchange = "zipswap"
 	ExchangeQuickSwap     Exchange = "quickswap"
+	ExchangeQuickSwapV3   Exchange = "quickswap-v3"
 	ExchangePolycat       Exchange = "polycat"
 	ExchangeDFYN          Exchange = "dfyn"
 	ExchangePolyDex       Exchange = "polydex"
@@ -154,6 +155,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeValleySwapV2:             {},
 	ExchangeZipSwap:                  {},
 	ExchangeQuickSwap:                {},
+	ExchangeQuickSwapV3:              {},
 	ExchangePolycat:                  {},
 	ExchangeDFYN:                     {},
 	ExchangePolyDex:                  {},

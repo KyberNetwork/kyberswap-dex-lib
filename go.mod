@@ -9,15 +9,15 @@ replace (
 
 require (
 	github.com/DataDog/datadog-go v4.8.2+incompatible
-	github.com/KyberNetwork/ethrpc v0.2.0
-	github.com/KyberNetwork/kyberswap-dex-lib v0.8.0
+	github.com/KyberNetwork/ethrpc v0.3.0
+	github.com/KyberNetwork/kyberswap-dex-lib v0.9.2
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/envoyproxy/protoc-gen-validate v0.1.0
-	github.com/ethereum/go-ethereum v1.11.6
+	github.com/ethereum/go-ethereum v1.12.0
 	github.com/getsentry/sentry-go v0.18.0
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-contrib/pprof v1.4.0
@@ -61,6 +61,7 @@ require (
 	github.com/DataDog/go-tuf v0.3.0--fix-localmeta-fork // indirect
 	github.com/DataDog/gostackparse v0.5.0 // indirect
 	github.com/DataDog/sketches-go v1.2.1 // indirect
+	github.com/KyberNetwork/blockchain-toolkit v0.1.0 // indirect
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 // indirect
 	github.com/KyberNetwork/pancake-v3-sdk v0.1.0 // indirect
 	github.com/Microsoft/go-winio v0.5.1 // indirect

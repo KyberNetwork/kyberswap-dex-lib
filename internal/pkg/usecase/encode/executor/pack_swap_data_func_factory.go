@@ -156,4 +156,6 @@ func init() {
 	// MaverickV1
 	RegisterPackSwapDataFunc(valueobject.ExchangeMaverickV1, swapdata.PackMaverickV1)
 
+	// AlgebraV1
+	RegisterPackSwapDataFunc(valueobject.ExchangeQuickSwapV3, swapdata.PackAlgebraV1)
 }

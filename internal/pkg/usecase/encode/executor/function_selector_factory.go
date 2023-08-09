@@ -80,6 +80,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeAstroSwap, FunctionSelectorUniswap)
 	RegisterFunctionSelector(valueobject.ExchangeVerse, FunctionSelectorUniswap)
 	RegisterFunctionSelector(valueobject.ExchangeEchoDex, FunctionSelectorUniswap)
+	RegisterFunctionSelector(valueobject.ExchangeQuickSwapV3, FunctionSelectorAlgebraV1)
 
 	// executeCamelotSwap
 	RegisterFunctionSelector(valueobject.ExchangeCamelot, FunctionSelectorCamelotSwap)
