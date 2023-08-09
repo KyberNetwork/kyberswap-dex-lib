@@ -23,12 +23,15 @@ common:
     0x27a4bf80c2d63e42437258533dac7eaff9881bdb: true # MAI
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
+    - "balancer-composable-stable"
     - "balancer"
-    - "pancake"
-    - "pancake-v3"
-    - "kyberswap-static"
-    - "kyberswap-elastic"
     - "doveswap-v3"
+    - "kyberswap-elastic"
+    - "kyberswap-static"
+    - "pancake-v3"
+    - "pancake"
+    - "quickswap-v3"
+    - "sushiswap-v3"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
