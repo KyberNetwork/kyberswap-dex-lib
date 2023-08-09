@@ -24,4 +24,5 @@ var WETHByChainID = map[ChainID]string{
 	ChainIDZKSync:          "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91",
 	ChainIDLineaGoerli:     "0x2c1b868d6596a18e32e61b901e4060c872647b6c",
 	ChainIDLinea:           "0xe5d7c2a44ffddf6b295a15c148167daaaf5cf34f",
+	ChainIDPolygonZkEVM:    "0x4f9a0e7fd2bf6067db6994cf12e4495df938e6e9",
 }

@@ -26,4 +26,5 @@ const (
 	ChainIDZKSync          ChainID = 324
 	ChainIDLineaGoerli     ChainID = 59140
 	ChainIDLinea           ChainID = 59144
+	ChainIDPolygonZkEVM    ChainID = 1101
 )

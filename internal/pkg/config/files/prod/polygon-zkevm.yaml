@@ -1,0 +1,233 @@
+env: "production"
+pprof: false
+http:
+  bindAddress: ":8080"
+  mode: release #(debug,release,test)
+  prefix: /polygon-zkevm
+grpc:
+  host: 0.0.0.0
+  port: 10443
+common:
+  chainId: &chainId 1101
+  chainName: &chainName polygon-zkevm
+  rpc: "https://zkevm-rpc.com"
+  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+  gasTokenAddress: &gasTokenAddress "0x4f9a0e7fd2bf6067db6994cf12e4495df938e6e9" # WETH
+  whitelistedTokenSet: &whitelistedTokenSet
+    0xa2036f0538221a77a3937f1379699f44945018d0: true # MATIC
+    0x4f9a0e7fd2bf6067db6994cf12e4495df938e6e9: true # WETH
+    0x83b874c1e09d316059d929da402dcb1a98e92082: true # stMATIC
+    0xc5015b9d9161dca7e18e32f6f25c4ad850731fd4: true # DAI
+    0xa8ce8aee21bc2a48a5ef670afcc9274c7bbbc035: true # USDC
+    0x27a4bf80c2d63e42437258533dac7eaff9881bdb: true # MAI
+  blacklistedPoolSet: &blacklistedPoolSet
+  availableSources: &availableSources
+    - "balancer"
+    - "pancake"
+    - "pancake-v3"
+    - "kyberswap-static"
+    - "kyberswap-elastic"
+    - "doveswap-v3"
+  featureFlags: &featureFlags
+log:
+  sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
+  consoleLevel: info
+  enableConsole: true
+  enableJSONFormat: true
+redis:
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: *chainName
+  readTimeout: 3s
+  writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
+poolRedis:
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: *chainName
+  readTimeout: 3s
+  writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
+ddAgentHost: ""
+keyPair:
+  storageFilePath: ""
+  keyIDForSealingData:
+    clientData: "1"
+reloadConfig:
+  httpUrl: ""
+  interval: 10s
+  serviceName: "aggregator"
+  chainID: *chainId
+secretKey:
+metrics:
+  host:
+  port: 8125
+  namespace: "kybernetwork."
+encoder:
+  chainId: *chainId
+  executorAddress: *executorAddress
+  routerAddress: *routerAddress
+  kyberLOAddress:
+  isPositiveSlippageEnabled: true
+  minimumPSThreshold: 1000000
+useCase:
+  getRoute:
+    chainId: *chainId
+    gasTokenAddress: *gasTokenAddress
+    routerAddress: *routerAddress
+    availableSources: *availableSources
+    ammAggregator:
+      whitelistedTokenSet: *whitelistedTokenSet
+      getBestPoolsOptions:
+        directPoolsCount: 100
+        whitelistPoolsCount: 500
+        tokenInPoolsCount: 200
+        tokenOutPoolCount: 200
+        amplifiedTvlDirectPoolsCount: 50
+        amplifiedTvlWhitelistPoolsCount: 200
+        amplifiedTvlTokenInPoolsCount: 100
+        amplifiedTvlTokenOutPoolCount: 100
+      finderOptions:
+        maxHops: 3
+        distributionPercent: 5
+        maxPathsInRoute: 20
+        maxPathsToGenerate: 5
+        maxPathsToReturn: 200
+        minPartUSD: 500
+        minThresholdAmountInUSD: 0
+        maxThresholdAmountInUSD: 100000000
+    cache:
+      defaultTtl: 15s
+      ttlByAmount:
+        - amount: 1
+          ttl: 30s
+        - amount: 2
+          ttl: 10s
+        - amount: 5
+          ttl: 10s
+        - amount: 10
+          ttl: 10s
+        - amount: 11
+          ttl: 30s
+        - amount: 15
+          ttl: 10s
+        - amount: 20
+          ttl: 10s
+        - amount: 22
+          ttl: 30s
+        - amount: 25
+          ttl: 10s
+        - amount: 30
+          ttl: 10s
+        - amount: 33
+          ttl: 30s
+        - amount: 35
+          ttl: 10s
+        - amount: 40
+          ttl: 10s
+        - amount: 44
+          ttl: 30s
+        - amount: 45
+          ttl: 10s
+        - amount: 50
+          ttl: 10s
+        - amount: 55
+          ttl: 30s
+        - amount: 60
+          ttl: 10s
+        - amount: 66
+          ttl: 30s
+        - amount: 70
+          ttl: 10s
+        - amount: 77
+          ttl: 30s
+        - amount: 80
+          ttl: 10s
+        - amount: 88
+          ttl: 30s
+        - amount: 90
+          ttl: 10s
+        - amount: 99
+          ttl: 30s
+        - amount: 100
+          ttl: 10s
+        - amount: 500
+          ttl: 10s
+        - amount: 1000
+          ttl: 10s
+        - amount: 10000
+          ttl: 10s
+        - amount: 100000
+          ttl: 10s
+      ttlByAmountUsdRange:
+        - amountUSDLowerBound: 0
+          ttl: 10s
+        - amountUSDLowerBound: 101
+          ttl: 10s
+        - amountUSDLowerBound: 500
+          ttl: 10s
+        - amountUSDLowerBound: 1001
+          ttl: 10s
+        - amountUSDLowerBound: 2000
+          ttl: 10s
+        - amountUSDLowerBound: 5000
+          ttl: 10s
+        - amountUSDLowerBound: 10000
+          ttl: 10s
+      priceImpactThreshold: 0.005
+      shrinkFuncName: "round"
+      shrinkFuncPowExp: 0.7
+  buildRoute:
+    chainId: *chainId
+  poolFactory:
+    chainId: *chainId
+  poolManager:
+    blacklistedPoolSet: *blacklistedPoolSet
+    capacity: 100000
+    poolRenewalInterval: 2s
+  indexPools:
+    whitelistedTokenSet: *whitelistedTokenSet
+    chunkSize: 3000
+job:
+  indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
+    interval: 2s
+repository:
+  gas:
+    redis:
+      prefix: *chainName
+  pool:
+    redis:
+      prefix: *chainName
+  price:
+    redis:
+      prefix: *chainName
+  token:
+    redis:
+      prefix: *chainName
+    goCache:
+      expiration: -1
+      cleanupInterval: -1
+  poolRank:
+    redis:
+      prefix: *chainName
+  route:
+    redisCache:
+      prefix: *chainName
+      localCacheSize: 1000
+      localCacheTtl: 30s
+validator:
+  buildRouteParams:
+    slippageToleranceGte: 0
+    slippageToleranceLte: 5000
+  getRouteEncodeParams:
+    slippageToleranceGte: 0
+    slippageToleranceLte: 5000
