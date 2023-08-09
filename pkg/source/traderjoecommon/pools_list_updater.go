@@ -32,6 +32,15 @@ type PoolsListUpdater struct {
 	DefaultTokenWeight uint
 }
 
+// GetNewPools gets TraderJoe pools with offset and limit.
+// TraderJoe v2.0 and v2.1 stores list of pools in the factory contract by a append-only list.
+// The offset is store in Metadata struct and advanced after each call of GetNewPools.
+// The limit is configured in Config field.
+// Functions to get the pools list's length and get each pool address are documented in
+//
+// * TraderJoe v2.0: https://docs.traderjoexyz.com/V2/contracts/LBFactory
+//
+// * TraderJoe v2.1: https://docs.traderjoexyz.com/contracts/LBFactory
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	var metadata Metadata
 	if len(metadataBytes) != 0 {
