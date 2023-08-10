@@ -94,9 +94,9 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	protocolFeeRatio := big.NewInt(int64(getStateResult.State.ProtocolFeeRatio))
 
 	binLength := int(binCounter.Int64())
-	binRaws := make([]GetBinResult, binLength)
+	binRaws := make([]GetBinResult, binLength+1)
 	binCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
-	for i := 0; i < binLength; i++ {
+	for i := 0; i <= binLength; i++ {
 		binCalls.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: p.Address,
