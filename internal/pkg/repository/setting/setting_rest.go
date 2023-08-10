@@ -18,7 +18,7 @@ const (
 )
 
 type ConfigResponseDataConfig struct {
-	EnabledDexes      []valueobject.Dex              `json:"enabledDexes"`
+	AvailableSources  []valueobject.Source           `json:"availableSources"`
 	WhitelistedTokens []valueobject.WhitelistedToken `json:"whitelistedTokens"`
 	BlacklistedPools  []string                       `json:"blacklistedPools"`
 	FeatureFlags      valueobject.FeatureFlags       `json:"featureFlags"`
@@ -83,7 +83,7 @@ func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string, curre
 
 	return valueobject.RemoteConfig{
 		Hash:              cfgResp.Data.Hash,
-		EnabledDexes:      cfgResp.Data.Config.EnabledDexes,
+		AvailableSources:  cfgResp.Data.Config.AvailableSources,
 		WhitelistedTokens: cfgResp.Data.Config.WhitelistedTokens,
 		BlacklistedPools:  cfgResp.Data.Config.BlacklistedPools,
 		FeatureFlags:      cfgResp.Data.Config.FeatureFlags,

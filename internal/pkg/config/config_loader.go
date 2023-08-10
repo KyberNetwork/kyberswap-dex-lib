@@ -138,7 +138,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.mu.Lock()
 
 		// Set each field so that it does not override the address of the pointer cl.config
-		cl.setEnabledDexes(remoteCfg.EnabledDexes)
+		cl.setAvailableSources(remoteCfg.AvailableSources)
 		cl.setWhitelistedTokens(remoteCfg.WhitelistedTokens)
 		cl.setBlacklistedPools(remoteCfg.BlacklistedPools)
 		cl.setFeatureFlags(remoteCfg.FeatureFlags)
@@ -163,15 +163,15 @@ func (cl *ConfigLoader) Get() (*Config, error) {
 	return cl.config, nil
 }
 
-func (cl *ConfigLoader) setEnabledDexes(enabledDexes []valueobject.Dex) {
-	availableSources := make([]string, 0, len(enabledDexes))
+func (cl *ConfigLoader) setAvailableSources(availableSources []valueobject.Source) {
+	strAvailableSources := make([]string, 0, len(availableSources))
 
-	for _, d := range enabledDexes {
-		availableSources = append(availableSources, string(d))
+	for _, s := range availableSources {
+		strAvailableSources = append(strAvailableSources, string(s))
 	}
 
-	cl.config.Common.AvailableSources = availableSources
-	cl.config.UseCase.GetRoute.AvailableSources = availableSources
+	cl.config.Common.AvailableSources = strAvailableSources
+	cl.config.UseCase.GetRoute.AvailableSources = strAvailableSources
 }
 
 func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.WhitelistedToken) {

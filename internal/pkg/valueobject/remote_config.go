@@ -1,7 +1,7 @@
 package valueobject
 
 type (
-	Dex string
+	Source string
 
 	WhitelistedToken struct {
 		Address  string `mapstructure:"address" json:"address"`
@@ -22,7 +22,7 @@ type (
 
 type RemoteConfig struct {
 	Hash              string             `json:"hash"`
-	EnabledDexes      []Dex              `json:"enabledDexes"`
+	AvailableSources  []Source           `json:"availableSources"`
 	WhitelistedTokens []WhitelistedToken `json:"whitelistedTokens"`
 	FeatureFlags      FeatureFlags       `json:"featureFlags"`
 	BlacklistedPools  []string           `json:"blacklistedPools"`
