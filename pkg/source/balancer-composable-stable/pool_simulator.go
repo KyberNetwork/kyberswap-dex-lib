@@ -228,6 +228,9 @@ func (c *PoolSimulator) _swapWithBptGivenIn(
 		tokenAmount.Token = c.Info.Tokens[registeredIndexOut]
 		tokenAmount.Amount = feeAmount
 	}
+	if amountCalculated == nil {
+		return nil, nil, ErrorInvalidAmountOutCalculated
+	}
 	return DivDownFixed(amountCalculated, c.ScalingFactors[registeredIndexOut]), &tokenAmount, nil
 }
 
