@@ -143,6 +143,8 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setBlacklistedPools(remoteCfg.BlacklistedPools)
 		cl.setFeatureFlags(remoteCfg.FeatureFlags)
 		cl.setLog(remoteCfg.Log)
+		cl.setFinderOptions(remoteCfg.FinderOptions)
+		cl.setGetBestPoolOptions(remoteCfg.GetBestPoolsOptions)
 
 		cl.mu.Unlock()
 	}
@@ -201,4 +203,12 @@ func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
 
 func (cl *ConfigLoader) setLog(log valueobject.Log) {
 	cl.config.Log.Configuration.ConsoleLevel = log.ConsoleLevel
+}
+
+func (cl *ConfigLoader) setFinderOptions(finderOptions valueobject.FinderOptions) {
+	cl.config.UseCase.GetRoute.AmmAggregator.FinderOptions = finderOptions
+}
+
+func (cl *ConfigLoader) setGetBestPoolOptions(getBestPoolsOptions valueobject.GetBestPoolsOptions) {
+	cl.config.UseCase.GetRoute.AmmAggregator.GetBestPoolsOptions = getBestPoolsOptions
 }

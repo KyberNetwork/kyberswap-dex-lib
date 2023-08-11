@@ -11,7 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
@@ -151,7 +151,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			context.Background(),
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			types.GetBestPoolsOptions{
+			valueobject.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,
@@ -303,7 +303,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			context.Background(),
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			types.GetBestPoolsOptions{
+			valueobject.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,
@@ -453,7 +453,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			context.Background(),
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			types.GetBestPoolsOptions{
+			valueobject.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,
@@ -603,7 +603,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			context.Background(),
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			types.GetBestPoolsOptions{
+			valueobject.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,
@@ -645,7 +645,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			context.Background(),
 			"poolTokenAddress1",
 			"poolTokenAddress2",
-			types.GetBestPoolsOptions{
+			valueobject.GetBestPoolsOptions{
 				DirectPoolsCount:    100,
 				WhitelistPoolsCount: 500,
 				TokenInPoolsCount:   200,

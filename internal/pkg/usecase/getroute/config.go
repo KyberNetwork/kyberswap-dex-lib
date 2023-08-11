@@ -3,7 +3,6 @@ package getroute
 import (
 	"time"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -18,9 +17,9 @@ type Config struct {
 }
 
 type AmmAggregatorConfig struct {
-	WhitelistedTokenSet map[string]bool           `mapstructure:"whitelistedTokenSet" json:"whitelistedTokenSet"`
-	GetBestPoolsOptions types.GetBestPoolsOptions `mapstructure:"getBestPoolsOptions" json:"getBestPoolsOptions"`
-	FinderOptions       FinderOptions             `mapstructure:"finderOptions" json:"finderOptions"`
+	WhitelistedTokenSet map[string]bool                 `mapstructure:"whitelistedTokenSet" json:"whitelistedTokenSet"`
+	GetBestPoolsOptions valueobject.GetBestPoolsOptions `mapstructure:"getBestPoolsOptions" json:"getBestPoolsOptions"`
+	FinderOptions       valueobject.FinderOptions       `mapstructure:"finderOptions" json:"finderOptions"`
 }
 
 type CachePoint struct {
@@ -49,15 +48,4 @@ type CacheConfig struct {
 
 	ShrinkFuncName   string  `mapstructure:"shrinkFuncName" json:"shrinkFuncName"`
 	ShrinkFuncPowExp float64 `mapstructure:"shrinkFuncPowExp" json:"shrinkFuncPowExp"`
-}
-
-type FinderOptions struct {
-	MaxHops                 uint32  `mapstructure:"maxHops" json:"maxHops"`
-	DistributionPercent     uint32  `mapstructure:"distributionPercent" json:"distributionPercent"`
-	MaxPathsInRoute         uint32  `mapstructure:"maxPathsInRoute" json:"maxPathsInRoute"`
-	MaxPathsToGenerate      uint32  `mapstructure:"maxPathsToGenerate" json:"maxPathsToGenerate"`
-	MaxPathsToReturn        uint32  `mapstructure:"maxPathsToReturn" json:"maxPathsToReturn"`
-	MinPartUSD              float64 `mapstructure:"minPartUSD" json:"minPartUSD"`
-	MinThresholdAmountInUSD float64 `mapstructure:"minThresholdAmountInUSD" json:"minThresholdAmountInUSD"`
-	MaxThresholdAmountInUSD float64 `mapstructure:"maxThresholdAmountInUSD" json:"maxThresholdAmountInUSD"`
 }

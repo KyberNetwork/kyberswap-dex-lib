@@ -102,6 +102,19 @@ func (a *ammAggregator) ApplyConfig(config Config) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
+	if a.config.FinderOptions != config.AmmAggregator.FinderOptions {
+		a.routeFinder = spfav2.NewSPFAv2Finder(
+			config.AmmAggregator.FinderOptions.MaxHops,
+			config.AmmAggregator.FinderOptions.DistributionPercent,
+			config.AmmAggregator.FinderOptions.MaxPathsInRoute,
+			config.AmmAggregator.FinderOptions.MaxPathsToGenerate,
+			config.AmmAggregator.FinderOptions.MaxPathsToReturn,
+			config.AmmAggregator.FinderOptions.MinPartUSD,
+			config.AmmAggregator.FinderOptions.MinThresholdAmountInUSD,
+			config.AmmAggregator.FinderOptions.MaxThresholdAmountInUSD,
+		)
+	}
+
 	a.config = config.AmmAggregator
 }
 

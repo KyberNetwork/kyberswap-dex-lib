@@ -31,6 +31,26 @@ func mockHandleSuccess(w http.ResponseWriter, r *http.Request) {
 					},
 				},
 				BlacklistedPools: []string{"0x00"},
+				GetBestPoolsOptions: valueobject.GetBestPoolsOptions{
+					DirectPoolsCount:                100,
+					WhitelistPoolsCount:             500,
+					TokenInPoolsCount:               200,
+					TokenOutPoolCount:               200,
+					AmplifiedTvlDirectPoolsCount:    50,
+					AmplifiedTvlWhitelistPoolsCount: 200,
+					AmplifiedTvlTokenInPoolsCount:   100,
+					AmplifiedTvlTokenOutPoolCount:   100,
+				},
+				FinderOptions: valueobject.FinderOptions{
+					MaxHops:                 3,
+					DistributionPercent:     5,
+					MaxPathsInRoute:         20,
+					MaxPathsToGenerate:      5,
+					MaxPathsToReturn:        200,
+					MinPartUSD:              500,
+					MinThresholdAmountInUSD: 0,
+					MaxThresholdAmountInUSD: 100000000,
+				},
 			},
 		},
 	}
@@ -77,6 +97,26 @@ func TestGetConfigs(t *testing.T) {
 			},
 		},
 		BlacklistedPools: []string{"0x00"},
+		GetBestPoolsOptions: valueobject.GetBestPoolsOptions{
+			DirectPoolsCount:                100,
+			WhitelistPoolsCount:             500,
+			TokenInPoolsCount:               200,
+			TokenOutPoolCount:               200,
+			AmplifiedTvlDirectPoolsCount:    50,
+			AmplifiedTvlWhitelistPoolsCount: 200,
+			AmplifiedTvlTokenInPoolsCount:   100,
+			AmplifiedTvlTokenOutPoolCount:   100,
+		},
+		FinderOptions: valueobject.FinderOptions{
+			MaxHops:                 3,
+			DistributionPercent:     5,
+			MaxPathsInRoute:         20,
+			MaxPathsToGenerate:      5,
+			MaxPathsToReturn:        200,
+			MinPartUSD:              500,
+			MinThresholdAmountInUSD: 0,
+			MaxThresholdAmountInUSD: 100000000,
+		},
 	}
 
 	assert.Equal(t, want, result)

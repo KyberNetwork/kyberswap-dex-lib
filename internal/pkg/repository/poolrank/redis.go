@@ -9,7 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type redisRepository struct {
@@ -32,7 +32,7 @@ func NewRedisRepository(redisClient redis.UniversalClient, config RedisRepositor
 func (r *redisRepository) FindBestPoolIDs(
 	ctx context.Context,
 	tokenIn, tokenOut string,
-	opt types.GetBestPoolsOptions,
+	opt valueobject.GetBestPoolsOptions,
 ) ([]string, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[poolrank] redisRepository.FindBestPoolIDs")
 	defer span.Finish()
