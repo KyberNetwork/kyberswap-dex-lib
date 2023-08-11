@@ -5,8 +5,6 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/KyberNetwork/logger"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -85,7 +83,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (c *PoolSimulator) CalcAmountOut(tokenAmountIn pool.TokenAmount, tokenOut string) (*pool.CalcAmountOutResult, error) {
-	logger.Warnf("calc wtrffasfasasdasd: %s %s %s ", tokenAmountIn.Token, tokenAmountIn.Amount.String(), tokenOut)
 	var (
 		indexIn   = c.mapTokenAddressToIndex[tokenAmountIn.Token]
 		indexOut  = c.mapTokenAddressToIndex[tokenOut]
