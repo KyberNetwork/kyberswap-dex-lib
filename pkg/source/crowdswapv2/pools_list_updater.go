@@ -117,7 +117,6 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 	var limit = len(pairAddresses)
 	var token0Addresses = make([]common.Address, limit)
 	var token1Addresses = make([]common.Address, limit)
-	var swapFees = make([]uint8, limit)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -135,13 +134,6 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 			Method: pairMethodToken1,
 			Params: nil,
 		}, []interface{}{&token1Addresses[i]})
-
-		calls.AddCall(&ethrpc.Call{
-			ABI:    crowdswapV2PairABI,
-			Target: pairAddresses[i].Hex(),
-			Method: pairMethodGetSwapFee,
-			Params: nil,
-		}, []interface{}{&swapFees[i]})
 
 	}
 
@@ -167,18 +159,17 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
-		var swapFeeFL float64 = float64(swapFees[i]) / bps
 
 		var newPool = entity.Pool{
 			Address:      p,
 			ReserveUsd:   0,
 			AmplifiedTvl: 0,
-			SwapFee:      swapFeeFL, //FIXME: crowdswap can we use d.config.SwapFee? We use for example 3 in our pair to refer 0.3% fee
-			Exchange:     d.config.DexID,
-			Type:         DexTypeCrowdswapV2,
-			Timestamp:    time.Now().Unix(),
-			Reserves:     []string{reserveZero, reserveZero},
-			Tokens:       []*entity.PoolToken{&token0, &token1},
+			// SwapFee:      swapFeeFL, //FIXME: crowdswap can we use d.config.SwapFee? We use for example 3 in our pair to refer 0.3% fee
+			Exchange:  d.config.DexID,
+			Type:      DexTypeCrowdswapV2,
+			Timestamp: time.Now().Unix(),
+			Reserves:  []string{reserveZero, reserveZero},
+			Tokens:    []*entity.PoolToken{&token0, &token1},
 		}
 
 		pools = append(pools, newPool)
