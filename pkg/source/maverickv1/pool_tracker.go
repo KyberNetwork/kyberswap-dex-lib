@@ -119,7 +119,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	binMap := make(map[string]*big.Int)
 	for i, binRaw := range binRaws {
 		if binRaw.BinState.MergeID.Cmp(zeroBI) != 0 ||
-			(binRaw.BinState.ReserveA.Cmp(zeroBI) == 0 && binRaw.BinState.ReserveB.Cmp(zeroBI) == 0 && big.NewInt(int64(binRaw.BinState.LowerTick)).Cmp(activeTick) != 0) {
+			(binRaw.BinState.ReserveA.Cmp(zeroBI) == 0 && binRaw.BinState.ReserveB.Cmp(zeroBI) == 0) {
 			continue
 		}
 
