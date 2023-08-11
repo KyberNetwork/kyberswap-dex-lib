@@ -16,8 +16,7 @@ type PoolSimulator struct {
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	//for 0.3% fee, the swapFee in the real pair should be set to 3
-	swapFee := big.NewInt(int64(entityPool.SwapFee * oneFloat))
+	swapFee := big.NewInt(int64(entityPool.SwapFee))
 	tokens := make([]string, 2)
 	weights := make([]uint, 2)
 	reserves := make([]*big.Int, 2)

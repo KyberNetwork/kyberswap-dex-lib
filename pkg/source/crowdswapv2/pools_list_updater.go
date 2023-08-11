@@ -164,12 +164,11 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 			Address:      p,
 			ReserveUsd:   0,
 			AmplifiedTvl: 0,
-			// SwapFee:      swapFeeFL, //FIXME: crowdswap can we use d.config.SwapFee? We use for example 3 in our pair to refer 0.3% fee
-			Exchange:  d.config.DexID,
-			Type:      DexTypeCrowdswapV2,
-			Timestamp: time.Now().Unix(),
-			Reserves:  []string{reserveZero, reserveZero},
-			Tokens:    []*entity.PoolToken{&token0, &token1},
+			Exchange:     d.config.DexID,
+			Type:         DexTypeCrowdswapV2,
+			Timestamp:    time.Now().Unix(),
+			Reserves:     []string{reserveZero, reserveZero},
+			Tokens:       []*entity.PoolToken{&token0, &token1},
 		}
 
 		pools = append(pools, newPool)

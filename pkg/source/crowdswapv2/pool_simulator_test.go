@@ -29,7 +29,7 @@ func TestGetAmountOut(t *testing.T) {
 			name: "test token0 as tokenIn",
 			entityPool: entity.Pool{
 				Address:  poolAddress,
-				SwapFee:  0.3, //%
+				SwapFee:  3,
 				Exchange: "crowdswapv2",
 				Type:     "v2",
 				Reserves: []string{
@@ -62,7 +62,7 @@ func TestGetAmountOut(t *testing.T) {
 			name: "test token1 as tokenIn",
 			entityPool: entity.Pool{
 				Address:  poolAddress,
-				SwapFee:  0.3, //%
+				SwapFee:  3,
 				Exchange: "crowdswapv2",
 				Type:     "v2",
 				Reserves: []string{
