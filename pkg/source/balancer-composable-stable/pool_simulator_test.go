@@ -105,3 +105,16 @@ func TestSwap(t *testing.T) {
 
 	}
 }
+
+func TestCalculateInvariant(t *testing.T) {
+	a := big.NewInt(60000)
+	b1, _ := new(big.Int).SetString("50310513788381313281", 10)
+	b2, _ := new(big.Int).SetString("19360701460293571158", 10)
+	b3, _ := new(big.Int).SetString("58687814461000000000000", 10)
+
+	balances := []*big.Int{
+		b1, b2, b3,
+	}
+	_, err := CalculateInvariant(a, balances, false)
+	assert.Equal(t, err, ErrorStableGetBalanceDidntConverge)
+}

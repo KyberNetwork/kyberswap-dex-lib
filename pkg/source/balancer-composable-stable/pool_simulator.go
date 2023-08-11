@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/logger"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -83,18 +85,24 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (c *PoolSimulator) CalcAmountOut(tokenAmountIn pool.TokenAmount, tokenOut string) (*pool.CalcAmountOutResult, error) {
+	logger.Warnf("calc wtrffasfasasdasd: %s %s %s ", tokenAmountIn.Token, tokenAmountIn.Amount.String(), tokenOut)
 	var (
 		indexIn   = c.mapTokenAddressToIndex[tokenAmountIn.Token]
 		indexOut  = c.mapTokenAddressToIndex[tokenOut]
 		amountOut *big.Int
 		fee       *pool.TokenAmount
+		err       error
 	)
 
 	if tokenAmountIn.Token == c.Info.Address || tokenOut == c.Info.Address {
-		amountOut, fee = c._swapWithBptGivenIn(tokenAmountIn.Amount, indexIn, indexOut)
+		amountOut, fee, err = c._swapWithBptGivenIn(tokenAmountIn.Amount, indexIn, indexOut)
 	} else {
-		amountOut, fee = c._swapGivenIn(tokenAmountIn.Amount, indexIn, indexOut)
+		amountOut, fee, err = c._swapGivenIn(tokenAmountIn.Amount, indexIn, indexOut)
 	}
+	if err != nil {
+		return nil, err
+	}
+
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
@@ -129,14 +137,16 @@ func (c *PoolSimulator) _onRegularSwap(
 	registeredBalances []*big.Int,
 	registeredIndexIn,
 	registeredIndexOut int,
-) *big.Int {
+) (*big.Int, error) {
 	droppedBalances := c._dropBptItem(registeredBalances)
 	indexIn := c._skipBptIndex(registeredIndexIn)
 	indexOut := c._skipBptIndex(registeredIndexOut)
 
 	currentAmp := c.AmplificationParameter
-	invariant := CalculateInvariant(currentAmp, droppedBalances, false)
-
+	invariant, err := CalculateInvariant(currentAmp, droppedBalances, false)
+	if err != nil {
+		return nil, err
+	}
 	// given In
 	return CalcOutGivenIn(currentAmp, droppedBalances, indexIn, indexOut, amountIn, invariant)
 }
@@ -146,7 +156,7 @@ func (c *PoolSimulator) _onSwapGivenIn(
 	registeredBalances []*big.Int,
 	registeredIndexIn,
 	registeredIndexOut int,
-) *big.Int {
+) (*big.Int, error) {
 	return c._onRegularSwap(amountIn, registeredBalances, registeredIndexIn, registeredIndexOut)
 }
 
@@ -154,15 +164,18 @@ func (c *PoolSimulator) _swapGivenIn(
 	tokenAmountIn *big.Int,
 	indexIn int,
 	indexOut int,
-) (*big.Int, *pool.TokenAmount) {
+) (*big.Int, *pool.TokenAmount, error) {
 	amountAfterFee, feeAmount := c._subtractSwapFeeAmount(tokenAmountIn, c.Info.SwapFee)
 
 	upscaledBalances := c._upscaleArray(c.Info.Reserves, c.ScalingFactors)
 	amountUpScale := c._upscale(amountAfterFee, c.ScalingFactors[indexIn])
 
-	amountOut := c._onSwapGivenIn(amountUpScale, upscaledBalances, indexIn, indexOut)
+	amountOut, err := c._onSwapGivenIn(amountUpScale, upscaledBalances, indexIn, indexOut)
+	if err != nil {
+		return nil, nil, err
+	}
 	return DivDownFixed(amountOut, c.ScalingFactors[indexOut]),
-		&pool.TokenAmount{Token: c.Info.Tokens[indexIn], Amount: feeAmount}
+		&pool.TokenAmount{Token: c.Info.Tokens[indexIn], Amount: feeAmount}, nil
 }
 
 // _swapWithBptGivenIn
@@ -171,7 +184,7 @@ func (c *PoolSimulator) _swapWithBptGivenIn(
 	tokenAmountIn *big.Int,
 	registeredIndexIn int,
 	registeredIndexOut int,
-) (*big.Int, *pool.TokenAmount) {
+) (*big.Int, *pool.TokenAmount, error) {
 	var (
 		amountCalculated *big.Int
 		_                *big.Int
@@ -180,10 +193,13 @@ func (c *PoolSimulator) _swapWithBptGivenIn(
 	)
 	balancesUpscaled := c._upscaleArray(c.Info.Reserves, c.ScalingFactors)
 	tokenAmountInScaled := c._upscale(tokenAmountIn, c.ScalingFactors[registeredIndexIn])
-	preJoinExitSupply, balances, currentAmp, preJoinExitInvariant := c._beforeJoinExit(balancesUpscaled)
 
+	preJoinExitSupply, balances, currentAmp, preJoinExitInvariant, err := c._beforeJoinExit(balancesUpscaled)
+	if err != nil {
+		return nil, nil, err
+	}
 	if registeredIndexOut == int(c.BptIndex.Int64()) {
-		amountCalculated, _, feeAmount = c._doJoinSwap(
+		amountCalculated, _, feeAmount, err = c._doJoinSwap(
 			true,
 			tokenAmountInScaled,
 			balances,
@@ -192,11 +208,14 @@ func (c *PoolSimulator) _swapWithBptGivenIn(
 			preJoinExitSupply,
 			preJoinExitInvariant,
 		)
+		if err != nil {
+			return nil, nil, err
+		}
 		// charge fee amountIn
 		tokenAmount.Token = c.Info.Tokens[registeredIndexIn]
 		tokenAmount.Amount = feeAmount
 	} else {
-		amountCalculated, _, feeAmount = c._doExitSwap(
+		amountCalculated, _, feeAmount, err = c._doExitSwap(
 			true,
 			tokenAmountInScaled,
 			balances,
@@ -205,11 +224,14 @@ func (c *PoolSimulator) _swapWithBptGivenIn(
 			preJoinExitSupply,
 			preJoinExitInvariant,
 		)
+		if err != nil {
+			return nil, nil, err
+		}
 		// charge fee amountOut
 		tokenAmount.Token = c.Info.Tokens[registeredIndexOut]
 		tokenAmount.Amount = feeAmount
 	}
-	return DivDownFixed(amountCalculated, c.ScalingFactors[registeredIndexOut]), &tokenAmount
+	return DivDownFixed(amountCalculated, c.ScalingFactors[registeredIndexOut]), &tokenAmount, nil
 }
 
 func (c *PoolSimulator) _exitSwapExactBptInForTokenOut(
@@ -219,13 +241,16 @@ func (c *PoolSimulator) _exitSwapExactBptInForTokenOut(
 	currentAmp *big.Int,
 	actualSupply *big.Int,
 	preJoinExitInvariant *big.Int,
-) (*big.Int, *big.Int, *big.Int) {
-	amountOut, feeAmount := calcTokenOutGivenExactBptIn(currentAmp, balances, indexOut, bptAmount, actualSupply, preJoinExitInvariant, c.Info.SwapFee)
+) (*big.Int, *big.Int, *big.Int, error) {
+	amountOut, feeAmount, err := calcTokenOutGivenExactBptIn(currentAmp, balances, indexOut, bptAmount, actualSupply, preJoinExitInvariant, c.Info.SwapFee)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	balances[indexOut].Sub(balances[indexOut], amountOut)
 	postJoinExitSupply := new(big.Int).Sub(actualSupply, bptAmount)
 
-	return amountOut, postJoinExitSupply, feeAmount
+	return amountOut, postJoinExitSupply, feeAmount, nil
 
 }
 
@@ -237,12 +262,12 @@ func (c *PoolSimulator) _doJoinSwap(
 	currentAmp *big.Int,
 	actualSupply *big.Int,
 	preJoinExitInvariant *big.Int,
-) (*big.Int, *big.Int, *big.Int) {
+) (*big.Int, *big.Int, *big.Int, error) {
 	if isGivenIn {
 		return c._joinSwapExactTokenInForBptOut(amount, balances, indexIn, currentAmp, actualSupply, preJoinExitInvariant)
 	}
 	// Currently ignore givenOut case
-	return nil, nil, nil
+	return nil, nil, nil, nil
 }
 
 func (c *PoolSimulator) _doExitSwap(
@@ -253,12 +278,12 @@ func (c *PoolSimulator) _doExitSwap(
 	currentAmp *big.Int,
 	actualSupply *big.Int,
 	preJoinExitInvariant *big.Int,
-) (*big.Int, *big.Int, *big.Int) {
+) (*big.Int, *big.Int, *big.Int, error) {
 	if isGivenIn {
 		return c._exitSwapExactBptInForTokenOut(amount, balances, indexOut, currentAmp, actualSupply, preJoinExitInvariant)
 	}
 	// Currently ignore givenOut case
-	return nil, nil, nil
+	return nil, nil, nil, nil
 }
 
 /** _joinSwapExactTokenInForBptOut
@@ -274,34 +299,44 @@ func (c *PoolSimulator) _joinSwapExactTokenInForBptOut(
 	currentAmp *big.Int,
 	actualSupply *big.Int,
 	preJoinExitInvariant *big.Int,
-) (*big.Int, *big.Int, *big.Int) {
+) (*big.Int, *big.Int, *big.Int, error) {
 
 	amountsIn := make([]*big.Int, len(balances))
 	for i := range amountsIn {
 		amountsIn[i] = new(big.Int)
 	}
 	amountsIn[indexIn] = amountIn
-	bptOut, feeAmountIn := calcBptOutGivenExactTokensIn(currentAmp, balances, amountsIn, actualSupply, preJoinExitInvariant, c.Info.SwapFee)
-
+	bptOut, feeAmountIn, err := calcBptOutGivenExactTokensIn(currentAmp, balances, amountsIn, actualSupply, preJoinExitInvariant, c.Info.SwapFee)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	balances[indexIn].Add(balances[indexIn], amountIn)
 	postJoinExitSupply := new(big.Int).Add(actualSupply, bptOut)
 
-	return bptOut, postJoinExitSupply, feeAmountIn
+	return bptOut, postJoinExitSupply, feeAmountIn, nil
 }
 
-func (c *PoolSimulator) _beforeJoinExit(registeredBalances []*big.Int) (*big.Int, []*big.Int, *big.Int, *big.Int) {
-	preJoinExitSupply, balances, oldAmpPreJoinExitInvariant := c._payProtocolFeesBeforeJoinExit(registeredBalances)
+func (c *PoolSimulator) _beforeJoinExit(registeredBalances []*big.Int) (*big.Int, []*big.Int, *big.Int, *big.Int, error) {
+	preJoinExitSupply, balances, oldAmpPreJoinExitInvariant, err := c._payProtocolFeesBeforeJoinExit(registeredBalances)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
 	currentAmp := c.AmplificationParameter
 
-	var preJoinExitInvariant *big.Int
+	var (
+		preJoinExitInvariant *big.Int
+	)
 
 	if currentAmp.Cmp(c.LastJoinExit.LastJoinExitAmplification) == 0 {
 		preJoinExitInvariant = oldAmpPreJoinExitInvariant
 	} else {
-		preJoinExitInvariant = CalculateInvariant(currentAmp, balances, false)
+		preJoinExitInvariant, err = CalculateInvariant(currentAmp, balances, false)
+	}
+	if err != nil {
+		return nil, nil, nil, nil, err
 	}
 
-	return preJoinExitSupply, balances, currentAmp, preJoinExitInvariant
+	return preJoinExitSupply, balances, currentAmp, preJoinExitInvariant, nil
 
 }
 
@@ -315,20 +350,24 @@ func (c *PoolSimulator) _beforeJoinExit(registeredBalances []*big.Int) (*big.Int
  */
 func (c *PoolSimulator) _payProtocolFeesBeforeJoinExit(
 	registeredBalances []*big.Int,
-) (*big.Int, []*big.Int, *big.Int) {
+) (*big.Int, []*big.Int, *big.Int, error) {
 	virtualSupply, droppedBalances := c._dropBptItemFromBalances(registeredBalances)
-	expectedProtocolOwnershipPercentage, currentInvariantWithLastJoinExitAmp := c._getProtocolPoolOwnershipPercentage(droppedBalances)
-
+	expectedProtocolOwnershipPercentage, currentInvariantWithLastJoinExitAmp, err := c._getProtocolPoolOwnershipPercentage(droppedBalances)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	protocolFeeAmount := c.bptForPoolOwnershipPercentage(virtualSupply, expectedProtocolOwnershipPercentage)
 
-	return new(big.Int).Add(virtualSupply, protocolFeeAmount), droppedBalances, currentInvariantWithLastJoinExitAmp
+	return new(big.Int).Add(virtualSupply, protocolFeeAmount), droppedBalances, currentInvariantWithLastJoinExitAmp, nil
 }
 
 // _getProtocolPoolOwnershipPercentage
 // https://github.com/balancer/balancer-v2-monorepo/blob/3251913e63949f35be168b42987d0aae297a01b1/pkg/pool-stable/contracts/ComposableStablePoolProtocolFees.sol#L102
-func (c *PoolSimulator) _getProtocolPoolOwnershipPercentage(balances []*big.Int) (*big.Int, *big.Int) {
-	swapFeeGrowthInvariant, totalNonExemptGrowthInvariant, totalGrowthInvariant := c._getGrowthInvariants(balances)
-
+func (c *PoolSimulator) _getProtocolPoolOwnershipPercentage(balances []*big.Int) (*big.Int, *big.Int, error) {
+	swapFeeGrowthInvariant, totalNonExemptGrowthInvariant, totalGrowthInvariant, err := c._getGrowthInvariants(balances)
+	if err != nil {
+		return nil, nil, err
+	}
 	// Calculate the delta for swap fee growth invariant
 	swapFeeGrowthInvariantDelta := new(big.Int).Sub(swapFeeGrowthInvariant, c.LastJoinExit.LastPostJoinExitInvariant)
 	if swapFeeGrowthInvariantDelta.Cmp(bignumber.ZeroBI) < 0 {
@@ -353,21 +392,25 @@ func (c *PoolSimulator) _getProtocolPoolOwnershipPercentage(balances []*big.Int)
 	// Calculate the total protocol PoolSimulator ownership percentage
 	protocolPoolOwnershipPercentage := new(big.Int).Add(protocolSwapFeePercentage, protocolYieldPercentage)
 
-	return protocolPoolOwnershipPercentage, totalGrowthInvariant
+	return protocolPoolOwnershipPercentage, totalGrowthInvariant, nil
 }
 
-func (c *PoolSimulator) _getGrowthInvariants(balances []*big.Int) (*big.Int, *big.Int, *big.Int) {
+func (c *PoolSimulator) _getGrowthInvariants(balances []*big.Int) (*big.Int, *big.Int, *big.Int, error) {
 	var (
 		swapFeeGrowthInvariant        *big.Int
 		totalNonExemptGrowthInvariant *big.Int
 		totalGrowthInvariant          *big.Int
+		err                           error
 	)
 
 	// This invariant result is calc by DivDown (round down)
 	// DivDown https://github.com/balancer/balancer-v2-monorepo/blob/b46023f7c5deefaf58a0a42559a36df420e1639f/pkg/pool-stable/contracts/StableMath.sol#L96
-	swapFeeGrowthInvariant = CalculateInvariant(
+	swapFeeGrowthInvariant, err = CalculateInvariant(
 		c.LastJoinExit.LastJoinExitAmplification,
 		c.getAdjustedBalances(balances, true), false)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	// For the other invariants, we can potentially skip some work. In the edge cases where none or all of the
 	// tokens are exempt from yield, there's one fewer invariant to compute.
@@ -375,29 +418,42 @@ func (c *PoolSimulator) _getGrowthInvariants(balances []*big.Int) (*big.Int, *bi
 		// If there are no tokens with fee-exempt yield, then the total non-exempt growth will equal the total
 		// growth: all yield growth is non-exempt. There's also no point in adjusting balances, since we
 		// already know none are exempt.
-		totalNonExemptGrowthInvariant = CalculateInvariant(c.LastJoinExit.LastJoinExitAmplification, balances, false)
+		totalNonExemptGrowthInvariant, err = CalculateInvariant(c.LastJoinExit.LastJoinExitAmplification, balances, false)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
 		totalGrowthInvariant = totalNonExemptGrowthInvariant
 	} else if c._areAllTokensExempt() {
 		// If no tokens are charged fees on yield, then the non-exempt growth is equal to the swap fee growth - no
 		// yield fees will be collected.
 		totalNonExemptGrowthInvariant = swapFeeGrowthInvariant
-		totalGrowthInvariant = CalculateInvariant(c.LastJoinExit.LastJoinExitAmplification, balances, false)
+		totalGrowthInvariant, err = CalculateInvariant(c.LastJoinExit.LastJoinExitAmplification, balances, false)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	} else {
 		// In the general case, we need to calculate two invariants: one with some adjusted balances, and one with
 		// the current balances.
 
-		totalNonExemptGrowthInvariant = CalculateInvariant(
+		totalNonExemptGrowthInvariant, err = CalculateInvariant(
 			c.LastJoinExit.LastJoinExitAmplification,
 			c.getAdjustedBalances(balances, false), // Only adjust non-exempt balances
 			false,
 		)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 
-		totalGrowthInvariant = CalculateInvariant(
+		totalGrowthInvariant, err = CalculateInvariant(
 			c.LastJoinExit.LastJoinExitAmplification,
 			balances,
 			false)
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
-	return swapFeeGrowthInvariant, totalNonExemptGrowthInvariant, totalGrowthInvariant
+	return swapFeeGrowthInvariant, totalNonExemptGrowthInvariant, totalGrowthInvariant, nil
 }
 func (c *PoolSimulator) _dropBptItemFromBalances(balances []*big.Int) (*big.Int, []*big.Int) {
 	return c._getVirtualSupply(balances[c.BptIndex.Int64()]), c._dropBptItem(balances)
@@ -520,7 +576,7 @@ func (c *PoolSimulator) _upscale(amount, scalingFactor *big.Int) *big.Int {
 }
 
 // calcBptOutGivenExactTokensIn https://github.com/balancer/balancer-v2-monorepo/blob/b46023f7c5deefaf58a0a42559a36df420e1639f/pkg/pool-stable/contracts/StableMath.sol#L201
-func calcBptOutGivenExactTokensIn(amp *big.Int, balances []*big.Int, amountsIn []*big.Int, bptTotalSupply, invariant, swapFeePercentage *big.Int) (*big.Int, *big.Int) {
+func calcBptOutGivenExactTokensIn(amp *big.Int, balances []*big.Int, amountsIn []*big.Int, bptTotalSupply, invariant, swapFeePercentage *big.Int) (*big.Int, *big.Int, error) {
 	feeAmountIn := big.NewInt(0)
 	sumBalances := big.NewInt(0)
 	for _, balance := range balances {
@@ -555,24 +611,24 @@ func calcBptOutGivenExactTokensIn(amp *big.Int, balances []*big.Int, amountsIn [
 		newBalances[i] = new(big.Int).Add(balance, amountInWithoutFee)
 	}
 
-	newInvariant := CalculateInvariant(amp, newBalances, false)
-	// if the invariant didn't converge, return 0
-	if newInvariant == nil {
-		return big.NewInt(0), big.NewInt(0)
+	newInvariant, err := CalculateInvariant(amp, newBalances, false)
+	if err != nil {
+		return nil, nil, err
 	}
+
 	invariantRatio := DivDownFixed(newInvariant, invariant)
 	if invariantRatio.Cmp(One) > 0 {
-		return MulDownFixed(bptTotalSupply, new(big.Int).Sub(invariantRatio, One)), feeAmountIn
+		return MulDownFixed(bptTotalSupply, new(big.Int).Sub(invariantRatio, One)), feeAmountIn, nil
 	} else {
-		return big.NewInt(0), feeAmountIn
+		return big.NewInt(0), feeAmountIn, nil
 	}
 }
 
-func calcTokenOutGivenExactBptIn(amp *big.Int, balances []*big.Int, tokenIndex int, bptAmountIn *big.Int, bptTotalSupply, invariant, swapFeePercentage *big.Int) (*big.Int, *big.Int) {
+func calcTokenOutGivenExactBptIn(amp *big.Int, balances []*big.Int, tokenIndex int, bptAmountIn *big.Int, bptTotalSupply, invariant, swapFeePercentage *big.Int) (*big.Int, *big.Int, error) {
 	newInvariant := MulUpFixed(DivUpFixed(new(big.Int).Sub(bptTotalSupply, bptAmountIn), bptTotalSupply), invariant)
-	newBalanceTokenIndex := GetTokenBalanceGivenInvariantAndAllOtherBalances(amp, balances, newInvariant, tokenIndex)
-	if newBalanceTokenIndex == nil {
-		return nil, nil
+	newBalanceTokenIndex, err := GetTokenBalanceGivenInvariantAndAllOtherBalances(amp, balances, newInvariant, tokenIndex)
+	if err != nil {
+		return nil, nil, err
 	}
 	amountOutWithoutFee := new(big.Int).Sub(balances[tokenIndex], newBalanceTokenIndex)
 
@@ -593,5 +649,5 @@ func calcTokenOutGivenExactBptIn(amp *big.Int, balances []*big.Int, tokenIndex i
 	)
 
 	feeAmount := new(big.Int).Sub(taxableAmount, feeOfTaxableAmount)
-	return new(big.Int).Add(nonTaxableAmount, feeOfTaxableAmount), feeAmount
+	return new(big.Int).Add(nonTaxableAmount, feeOfTaxableAmount), feeAmount, nil
 }
