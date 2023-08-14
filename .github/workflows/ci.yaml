@@ -17,7 +17,7 @@ env:
 
 jobs:
   lint:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v3
         with:
@@ -32,7 +32,7 @@ jobs:
           skip-build-cache: true
           args: --timeout=10m
   test:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v3
         with:
@@ -46,7 +46,7 @@ jobs:
           go tool cover -func cover.out | grep total | awk '{notice="Statement Coverage: " substr($3, 1, length($3))} END {print notice}'
 
   prepare:
-    runs-on: [self-hosted]
+    runs-on: [ubuntu-latest]
     needs:
       - lint
       - test
@@ -107,7 +107,7 @@ jobs:
           fi
 
   build:
-    runs-on: [self-hosted]
+    runs-on: [ubuntu-latest]
     needs:
       - prepare
     steps:

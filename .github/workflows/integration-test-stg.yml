@@ -6,7 +6,7 @@ concurrency:
 
 on:
   pull_request:
-    branches: 
+    branches:
         - release-v**
     types: [closed]
 
@@ -18,7 +18,7 @@ jobs:
     integration-test:
         name: On Staging
         if: ${{ github.event.pull_request.merged }}
-        runs-on: [self-hosted]
+        runs-on: [ubuntu-latest]
         steps:
           - uses: convictional/trigger-workflow-and-wait@v1.6.5
             with:
@@ -27,5 +27,4 @@ jobs:
               github_token: ${{ secrets.GH_PAT }}
               workflow_file_name: smoke-test.yml
               ref: main
-              client_payload: '{"BASE_URL":"https://router-api.stg.kyberengineering.io", "ENV":"staging"}'  
-              
+              client_payload: '{"BASE_URL":"https://router-api.stg.kyberengineering.io", "ENV":"staging"}'

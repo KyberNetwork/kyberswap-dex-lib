@@ -12,7 +12,7 @@ on:
 
 jobs:
   prepare:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     outputs:
       version_tag: ${{ steps.version_tag.outputs.value }}
       build_date: ${{ steps.build_date.outputs.value }}
@@ -37,7 +37,7 @@ jobs:
       SERVICE: router-service
       VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
       BUILD_DATE: ${{ needs.prepare.outputs.build_date }}
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -91,7 +91,7 @@ jobs:
     needs:
       - prepare
       - docker
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     env:
       VERSION_TAG: ${{ needs.prepare.outputs.version_tag }}
     steps:
