@@ -1,4 +1,4 @@
-package maverickv1
+package wombat
 
 import (
 	"context"
@@ -7,34 +7,34 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/logger"
 	"github.com/machinebox/graphql"
+	"math/big"
 	"strconv"
 	"time"
 )
 
-type PoolListUpdater struct {
+type PoolsListUpdater struct {
 	config        *Config
 	ethrpcClient  *ethrpc.Client
 	graphqlClient *graphql.Client
 }
 
-func NewPoolListUpdater(
+func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
-) *PoolListUpdater {
+) *PoolsListUpdater {
 	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
 
-	return &PoolListUpdater{
+	return &PoolsListUpdater{
 		config:        cfg,
 		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
 	}
 }
 
-func (d *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
+func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	var metadata Metadata
 	if len(metadataBytes) != 0 {
 		err := json.Unmarshal(metadataBytes, &metadata)
@@ -47,7 +47,7 @@ func (d *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	pools, lastCreatedTime, err := d.getNewPoolFromSubgraph(ctx, metadata.LastCreateTime)
 	if err != nil {
 		logger.WithFields(logger.Fields{
-			"type":  DexTypeMaverickV1,
+			"type":  DexTypeWombat,
 			"error": err,
 		}).Errorf("failed to get new pools")
 		return nil, metadataBytes, err
@@ -56,7 +56,7 @@ func (d *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	newMetadataBytes, err := json.Marshal(Metadata{LastCreateTime: lastCreatedTime})
 	if err != nil {
 		logger.WithFields(logger.Fields{
-			"type":  DexTypeMaverickV1,
+			"type":  DexTypeWombat,
 			"error": err,
 		}).Errorf("failed to marshal metadata")
 		return nil, metadataBytes, err
@@ -65,67 +65,53 @@ func (d *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	return pools, newMetadataBytes, nil
 }
 
-func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreateTime uint64) ([]entity.Pool, uint64, error) {
+func (d *PoolsListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreateTime uint64) ([]entity.Pool, uint64, error) {
 	logger.WithFields(logger.Fields{
-		"type": DexTypeMaverickV1,
+		"type": DexTypeWombat,
 	}).Info("start getting new pools...")
 
-	subgraphPools, err := d.querySubgraph(ctx, lastCreateTime, d.config.NewPoolLimit, 0)
+	subgraphPools, err := d.querySubgraph(ctx, lastCreateTime)
 	if err != nil {
 		logger.WithFields(logger.Fields{
-			"type":  DexTypeMaverickV1,
+			"type":  DexTypeWombat,
 			"error": err,
-		}).Errorf("failed to query subgraph")
+		})
 		return nil, lastCreateTime, err
 	}
 
 	logger.WithFields(logger.Fields{
-		"type": DexTypeMaverickV1,
+		"type": DexTypeWombat,
 	}).Infof("get %v pools from subgraph", len(subgraphPools))
 
 	var pools = make([]entity.Pool, 0, len(subgraphPools))
 	for _, p := range subgraphPools {
-		var tokens = []*entity.PoolToken{
-			{
-				Address:   p.TokenA.ID,
-				Weight:    defaultTokenWeight,
-				Decimals:  p.TokenA.Decimals,
-				Swappable: true,
-			},
-			{
-				Address:   p.TokenB.ID,
-				Weight:    defaultTokenWeight,
-				Decimals:  p.TokenB.Decimals,
-				Swappable: true,
-			},
+		if len(p.Assets) == 0 {
+			continue
 		}
-		var reserves = []string{zeroString, zeroString}
-
-		tickSpacing := bignumber.NewBig10(p.TickSpacing)
-		var staticExtra = StaticExtra{
-			TickSpacing: tickSpacing,
+		var reserves = make([]string, len(p.Assets))
+		var tokens = make([]*entity.PoolToken, len(p.Assets))
+		for j, asset := range p.Assets {
+			tokens[j] = &entity.PoolToken{
+				Address:   asset.UnderlyingToken.ID,
+				Weight:    defaultTokenWeight,
+				Decimals:  asset.UnderlyingToken.Decimals,
+				Swappable: true,
+			}
+			reserves[j] = zeroString
 		}
 
-		staticBytes, err := json.Marshal(staticExtra)
+		poolType, err := d.classifyPoolType(ctx, p.Assets[0].ID)
 		if err != nil {
-			logger.WithFields(logger.Fields{
-				"type":  DexTypeMaverickV1,
-				"error": err,
-			}).Errorf("failed to marshal static extra")
 			return nil, lastCreateTime, err
 		}
 
-		swapFee, _ := strconv.ParseFloat(p.Fee, 64)
-
 		var newPool = entity.Pool{
-			Address:     p.ID,
-			SwapFee:     swapFee,
-			Exchange:    d.config.DexID,
-			Type:        DexTypeMaverickV1,
-			Timestamp:   time.Now().Unix(),
-			Reserves:    reserves,
-			Tokens:      tokens,
-			StaticExtra: string(staticBytes),
+			Address:   p.ID,
+			Exchange:  d.config.DexID,
+			Type:      poolType,
+			Timestamp: time.Now().Unix(),
+			Reserves:  reserves,
+			Tokens:    tokens,
 		}
 
 		pools = append(pools, newPool)
@@ -135,48 +121,38 @@ func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreate
 	newLastCreateTime := lastCreateTime
 	if len(subgraphPools) > 0 {
 		lastSubgraphPool := subgraphPools[len(subgraphPools)-1]
-		newLastCreateTime, _ = strconv.ParseUint(lastSubgraphPool.Timestamp, 10, 64)
+		newLastCreateTime, _ = strconv.ParseUint(lastSubgraphPool.CreatedTimestamp, 10, 64)
 	}
 
 	logger.WithFields(logger.Fields{
-		"type":     DexTypeMaverickV1,
+		"type":     DexTypeWombat,
 		"newPools": len(pools),
 	}).Info("finish getting new pools")
 
 	return pools, newLastCreateTime, nil
 }
 
-func (d *PoolListUpdater) querySubgraph(
+func (d *PoolsListUpdater) querySubgraph(
 	ctx context.Context,
 	lastCreateTime uint64,
-	first int,
-	skip int,
 ) ([]*SubgraphPool, error) {
 	req := graphql.NewRequest(fmt.Sprintf(`{
 		pools(
-			where : {
-				timestamp_gte: %v,
-			},
-			first: %v,
-			skip: %v,
-			orderBy: timestamp,
-			orderDirection: asc,
-		) {
+			orderBy: createdTimestamp
+			orderDirection: asc
+			where: {createdTimestamp_gte: %v}
+		  ) {
 			id
-			tickSpacing
-			fee
-			protocolFeeRatio
-			timestamp
-			tokenA {
-			  id 
-			  decimals	
+			assets {
+			  id
+			  underlyingToken {
+				decimals
+				id
+			  }
 			}
-			tokenB {
-			  id 
-			  decimals	
-			}
-		}
-	}`, lastCreateTime, first, skip),
+			createdTimestamp
+		  }
+	}`, lastCreateTime),
 	)
 
 	var response struct {
@@ -184,11 +160,38 @@ func (d *PoolListUpdater) querySubgraph(
 	}
 	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
-			"type":  DexTypeMaverickV1,
+			"type":  DexTypeWombat,
 			"error": err,
 		}).Errorf("failed to query subgraph to get pools")
 		return nil, err
 	}
 
 	return response.Pools, nil
+}
+
+func (d *PoolsListUpdater) classifyPoolType(ctx context.Context, assetAddress string) (string, error) {
+	var relativePrice *big.Int
+	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
+
+	calls.AddCall(&ethrpc.Call{
+		ABI:    DynamicAssetABI,
+		Target: assetAddress,
+		Method: assetMethodGetRelativePrice,
+		Params: nil,
+	}, []interface{}{&relativePrice})
+
+	if _, err := calls.TryAggregate(); err != nil {
+		logger.WithFields(logger.Fields{
+			"type": DexTypeWombat,
+			"err":  err,
+		}).Errorf("failed to try aggregate call")
+
+		return "", err
+	}
+
+	if relativePrice == nil {
+		return poolTypeWombatMain, nil
+	}
+
+	return poolTypeWombatLSD, nil
 }
