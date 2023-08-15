@@ -74,6 +74,7 @@ var (
 	ExchangeHorizonDex       Exchange = "horizon-dex"
 	ExchangeDoveSwapV3       Exchange = "doveswap-v3"
 	ExchangeSushiSwapV3      Exchange = "sushiswap-v3"
+	ExchangeRamsesV2         Exchange = "ramses-v2"
 
 	ExchangeBalancer                 Exchange = "balancer"
 	ExchangeBalancerComposableStable Exchange = "balancer-composable-stable"
@@ -216,6 +217,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeRetro:                    {},
 	ExchangeDoveSwapV3:               {},
 	ExchangeSushiSwapV3:              {},
+	ExchangeRamsesV2:                 {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
