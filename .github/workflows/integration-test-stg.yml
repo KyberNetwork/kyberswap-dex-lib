@@ -7,24 +7,23 @@ concurrency:
 on:
   pull_request:
     branches:
-        - release-v**
+      - release-v**
     types: [closed]
-
 
 env:
   SERVICE: router-service
 
 jobs:
-    integration-test:
-        name: On Staging
-        if: ${{ github.event.pull_request.merged }}
-        runs-on: [ubuntu-latest]
-        steps:
-          - uses: convictional/trigger-workflow-and-wait@v1.6.5
-            with:
-              owner: KyberNetwork
-              repo: dexes-integration-test
-              github_token: ${{ secrets.GH_PAT }}
-              workflow_file_name: smoke-test.yml
-              ref: main
-              client_payload: '{"BASE_URL":"https://router-api.stg.kyberengineering.io", "ENV":"staging"}'
+  integration-test:
+    name: On Staging
+    if: ${{ github.event.pull_request.merged }}
+    runs-on: [self-hosted]
+    steps:
+      - uses: convictional/trigger-workflow-and-wait@v1.6.5
+        with:
+          owner: KyberNetwork
+          repo: dexes-integration-test
+          github_token: ${{ secrets.GH_PAT }}
+          workflow_file_name: smoke-test.yml
+          ref: main
+          client_payload: '{"BASE_URL":"https://router-api.stg.kyberengineering.io", "ENV":"staging"}'
