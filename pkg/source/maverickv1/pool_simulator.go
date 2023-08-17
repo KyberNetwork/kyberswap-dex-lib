@@ -104,12 +104,12 @@ func (p *Pool) CalcAmountOut(
 
 		var scaleAmountOut *big.Int
 		if strings.EqualFold(tokenAmountIn.Token, p.Pool.Info.Tokens[0]) {
-			scaleAmountOut, err = scaleToAmount(amountOut, p.decimals[1])
+			scaleAmountOut, err = ScaleToAmount(amountOut, p.decimals[1])
 			if err != nil {
 				return &pool.CalcAmountOutResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
 			}
 		} else {
-			scaleAmountOut, err = scaleToAmount(amountOut, p.decimals[0])
+			scaleAmountOut, err = ScaleToAmount(amountOut, p.decimals[0])
 			if err != nil {
 				return &pool.CalcAmountOutResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
 			}
