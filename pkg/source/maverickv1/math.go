@@ -66,6 +66,7 @@ func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
 	var currentBins []Bin
 	var err error
 
+	oldActiveTick := new(big.Int).Set(activeTick)
 	currentReserveA, currentReserveB, delta.SqrtPrice, currentLiquidity, currentBins, err = currentTickLiquidity(activeTick, state)
 	if err != nil {
 		return nil, err
@@ -141,7 +142,7 @@ func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
 			totalAmount = currentReserveB
 		}
 
-		if err := adjustAB(&currentBins[i], newDelta, thisBinAmount, totalAmount); err != nil {
+		if err := adjustAB(&currentBins[i], newDelta, thisBinAmount, totalAmount, oldActiveTick, state); err != nil {
 			return nil, err
 		}
 	}
@@ -444,7 +445,6 @@ func currentTickLiquidity(activeTick *big.Int, state *MaverickPoolState) (*big.I
 				bins = append(bins, bin)
 			}
 		}
-
 	}
 
 	var sqrtLowerTickPrice, sqrtUpperTickPrice *big.Int
@@ -604,7 +604,7 @@ func sqrtEdgePrice(delta *Delta) *big.Int {
 	return delta.SqrtLowerTickPrice
 }
 
-func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount *big.Int) error {
+func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount, activeTick *big.Int, state *MaverickPoolState) error {
 	var deltaOut = big.NewInt(0)
 	deltaIn, err := mulDiv(delta.DeltaInBinInternal, thisBinAmount, totalAmount, false)
 	if err != nil {
@@ -628,6 +628,22 @@ func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount *big.Int) error
 		bin.ReserveA = big.NewInt(0)
 		if delta.Excess.Cmp(zeroBI) <= 0 {
 			bin.ReserveA = clip(bin.ReserveA, deltaOut)
+		}
+	}
+
+	// Custom code to update state.Bin
+	var active = getKindsAtTick(state.BinMap, activeTick)
+	bigI := big.NewInt(bin.Kind.Int64())
+	if new(big.Int).And(active.Word, new(big.Int).Lsh(big.NewInt(1), uint(bin.Kind.Int64()))).Cmp(zeroBI) > 0 {
+		if state.BinPositions[activeTick.String()] == nil {
+			state.BinPositions[activeTick.String()] = make(map[string]*big.Int)
+		}
+		var binID = state.BinPositions[activeTick.String()][bigI.String()]
+		if binID == nil {
+			binID = big.NewInt(0)
+		}
+		if binID.Cmp(zeroBI) > 0 {
+			state.Bins[binID.String()] = *bin
 		}
 	}
 
@@ -1100,7 +1116,7 @@ func scaleFromAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
 	}
 }
 
-func scaleToAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
+func ScaleToAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
 	if decimals == 18 {
 		return amount, nil
 	}

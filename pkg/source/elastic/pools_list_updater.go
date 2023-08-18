@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
 	"github.com/machinebox/graphql"
 
@@ -69,7 +70,7 @@ func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	metadata := Metadata{
-		LastCreatedAtTimestamp: zeroBI,
+		LastCreatedAtTimestamp: integer.Zero(),
 	}
 	if len(metadataBytes) != 0 {
 		err := json.Unmarshal(metadataBytes, &metadata)

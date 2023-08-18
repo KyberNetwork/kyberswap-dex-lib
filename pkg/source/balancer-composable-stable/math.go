@@ -79,14 +79,14 @@ func CalcOutGivenIn(
 	tokenIndexOut int,
 	tokenAmountIn *big.Int,
 	invariant *big.Int,
-) *big.Int {
+) (*big.Int, error) {
 	balances[tokenIndexIn] = new(big.Int).Add(balances[tokenIndexIn], tokenAmountIn)
-	var finalBalanceOut = GetTokenBalanceGivenInvariantAndAllOtherBalances(a, balances, invariant, tokenIndexOut)
-	if finalBalanceOut == nil {
-		return nil
+	var finalBalanceOut, err = GetTokenBalanceGivenInvariantAndAllOtherBalances(a, balances, invariant, tokenIndexOut)
+	if err != nil {
+		return nil, err
 	}
 	balances[tokenIndexIn] = new(big.Int).Sub(balances[tokenIndexIn], tokenAmountIn)
-	return new(big.Int).Sub(new(big.Int).Sub(balances[tokenIndexOut], finalBalanceOut), bignumber.One)
+	return new(big.Int).Sub(new(big.Int).Sub(balances[tokenIndexOut], finalBalanceOut), bignumber.One), nil
 }
 
 func GetTokenBalanceGivenInvariantAndAllOtherBalances(
@@ -94,7 +94,7 @@ func GetTokenBalanceGivenInvariantAndAllOtherBalances(
 	balances []*big.Int,
 	invariant *big.Int,
 	tokenIndex int,
-) *big.Int {
+) (*big.Int, error) {
 	var nTokens = len(balances)
 	var nTokensBi = big.NewInt(int64(nTokens))
 	var ampTotal = new(big.Int).Mul(a, nTokensBi)
@@ -121,16 +121,16 @@ func GetTokenBalanceGivenInvariantAndAllOtherBalances(
 		)
 		if tokenBalance.Cmp(prevTokenBalance) > 0 {
 			if new(big.Int).Sub(tokenBalance, prevTokenBalance).Cmp(bignumber.One) <= 0 {
-				return tokenBalance
+				return tokenBalance, nil
 			}
 		} else if new(big.Int).Sub(prevTokenBalance, tokenBalance).Cmp(bignumber.One) <= 0 {
-			return tokenBalance
+			return tokenBalance, nil
 		}
 	}
-	return nil
+	return nil, ErrorStableGetBalanceDidntConverge
 }
 
-func CalculateInvariant(A *big.Int, balances []*big.Int, roundUp bool) *big.Int {
+func CalculateInvariant(A *big.Int, balances []*big.Int, roundUp bool) (*big.Int, error) {
 	var sum = bignumber.ZeroBI
 	var numTokens = len(balances)
 	var numTokensBi = big.NewInt(int64(numTokens))
@@ -138,7 +138,7 @@ func CalculateInvariant(A *big.Int, balances []*big.Int, roundUp bool) *big.Int 
 		sum = new(big.Int).Add(sum, balances[i])
 	}
 	if sum.Cmp(bignumber.ZeroBI) == 0 {
-		return bignumber.ZeroBI
+		return bignumber.ZeroBI, nil
 	}
 	var prevInvariant *big.Int
 	var invariant = sum
@@ -162,13 +162,13 @@ func CalculateInvariant(A *big.Int, balances []*big.Int, roundUp bool) *big.Int 
 		)
 		if invariant.Cmp(prevInvariant) > 0 {
 			if new(big.Int).Sub(invariant, prevInvariant).Cmp(bignumber.One) <= 0 {
-				return invariant
+				return invariant, nil
 			}
 		} else if new(big.Int).Sub(prevInvariant, invariant).Cmp(bignumber.One) <= 0 {
-			return invariant
+			return invariant, nil
 		}
 	}
-	return nil
+	return nil, ErrorStableGetBalanceDidntConverge
 }
 
 func ComplementFixed(x *big.Int) *big.Int {
