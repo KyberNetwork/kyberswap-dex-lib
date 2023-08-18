@@ -14,11 +14,15 @@ on:
 
 env:
   SERVICE: router-service
+  GOPRIVATE: github.com/KyberNetwork
 
 jobs:
   lint:
     runs-on: self-hosted
     steps:
+      - name: Add git config for go private module
+        run: git config --global url."https://${{ secrets.GH_PAT }}:x-oauth-basic@github.com/".insteadOf https://github.com/
+
       - uses: actions/setup-go@v3
         with:
           go-version: 1.19
@@ -34,6 +38,8 @@ jobs:
   test:
     runs-on: self-hosted
     steps:
+      - name: Add git config for go private module
+        run: git config --global url."https://${{ secrets.GH_PAT }}:x-oauth-basic@github.com/".insteadOf https://github.com/
       - uses: actions/setup-go@v3
         with:
           go-version: 1.19
@@ -111,6 +117,9 @@ jobs:
     needs:
       - prepare
     steps:
+      - name: Add git config for go private module
+        run: git config --global url."https://${{ secrets.GH_PAT }}:x-oauth-basic@github.com/".insteadOf https://github.com/
+
       - name: Checkout
         uses: actions/checkout@v2
 
@@ -149,6 +158,8 @@ jobs:
             ${{ needs.prepare.outputs.image_name }}:${{ needs.prepare.outputs.branch_tag }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
+          build-args: |
+            GH_PAT=${{ secrets.GH_PAT }}
 
       - name: Move Docker cache
         run: |
