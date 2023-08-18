@@ -34,6 +34,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/server"
 	httppkg "github.com/KyberNetwork/router-service/internal/pkg/server/http"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/decode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
@@ -293,6 +294,7 @@ func apiAction(c *cli.Context) (err error) {
 			AvailableSources: cfg.UseCase.GetRoute.AvailableSources,
 		},
 	)
+	decodeRouteUsecase := &decode.Decoder{}
 
 	// init services
 	zapLogger, err := logger.GetDesugaredZapLoggerDelegate(lg)
@@ -329,6 +331,7 @@ func apiAction(c *cli.Context) (err error) {
 		c.JSON(http.StatusOK, currentConfig)
 	})
 	v1Debug.GET("/custom-routes", api.GetCustomRoutes(getRoutesParamsValidator, getCustomRoutesUseCase))
+	v1Debug.POST("/decode", api.DecodeSwapData(decodeRouteUsecase))
 
 	v1.GET("/pools", api.GetPools(getPoolsParamsValidator, getPoolsUseCase))
 	v1.GET("/tokens", api.GetTokens(getTokensParamsValidator, getTokensUseCase))

@@ -72,3 +72,7 @@ type IBuildRouteParamsValidator interface {
 type IGetRouteEncodeParamsValidator interface {
 	Validate(params params.GetRouteEncodeParams) error
 }
+
+type IDecodeSwapDataUseCase interface {
+	Decode(data string) (interface{}, error)
+}
