@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
@@ -197,11 +198,15 @@ func (u *useCase) getGasPrice(ctx context.Context, customGasPrice *big.Float) (*
 }
 
 func (u *useCase) getSources(includedSources []string, excludedSources []string) []string {
-	sources := make([]string, 0, len(u.config.AvailableSources))
+	// For CustomRouteUsecase, we use all available sources as default
+	// (not affected by the dynamic configs).
+	sources := []string{}
+
 	includedSourcesLen := len(includedSources)
 	excludedSourcesLen := len(excludedSources)
 
-	for _, source := range u.config.AvailableSources {
+	for source := range valueobject.AMMSourceSet {
+		source := string(source)
 		if excludedSourcesLen > 0 && utils.StringContains(excludedSources, source) {
 			continue
 		}

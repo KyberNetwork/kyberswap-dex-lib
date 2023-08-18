@@ -288,10 +288,9 @@ func apiAction(c *cli.Context) (err error) {
 		poolManager,
 		routeFinder,
 		getcustomroute.Config{
-			ChainID:          cfg.UseCase.GetRoute.ChainID,
-			RouterAddress:    cfg.UseCase.GetRoute.RouterAddress,
-			GasTokenAddress:  cfg.UseCase.GetRoute.GasTokenAddress,
-			AvailableSources: cfg.UseCase.GetRoute.AvailableSources,
+			ChainID:         cfg.UseCase.GetRoute.ChainID,
+			RouterAddress:   cfg.UseCase.GetRoute.RouterAddress,
+			GasTokenAddress: cfg.UseCase.GetRoute.GasTokenAddress,
 		},
 	)
 	decodeRouteUsecase := &decode.Decoder{}
