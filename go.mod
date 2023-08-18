@@ -42,6 +42,7 @@ require (
 	github.com/sourcegraph/conc v0.3.0
 	github.com/spf13/viper v1.8.1
 	github.com/stretchr/testify v1.8.3
+	github.com/tdewolff/minify/v2 v2.12.4
 	github.com/urfave/cli/v2 v2.17.2-0.20221006022127-8f469abc00aa
 	go.uber.org/automaxprocs v1.5.2
 	go.uber.org/zap v1.24.0
@@ -53,6 +54,8 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	k8s.io/apimachinery v0.23.17
 )
+
+require github.com/tdewolff/parse/v2 v2.6.6 // indirect
 
 require (
 	github.com/DataDog/appsec-internal-go v1.0.0 // indirect

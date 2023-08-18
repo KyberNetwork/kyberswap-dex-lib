@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/reload"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
@@ -24,6 +27,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/job"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
@@ -37,6 +41,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/decode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
+	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getcustomroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
@@ -199,6 +204,10 @@ func apiAction(c *cli.Context) (err error) {
 	_, err = metrics.InitClient(newMetricsConfig(cfg))
 
 	ethClient := ethrpc.New(cfg.Common.RPC)
+	rpcClient, err := rpc.Dial(cfg.Common.RPC)
+	if err != nil {
+		return fmt.Errorf("could not dial JSON-RPC node %w", err)
+	}
 
 	// init repositories
 
@@ -246,7 +255,21 @@ func apiAction(c *cli.Context) (err error) {
 	getPoolsUseCase := usecase.NewGetPoolsUseCase(poolDataStoreRepo)
 	getTokensUseCase := usecase.NewGetTokens(tokenRepository, priceDataStoreRepo)
 
-	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory)
+	var balanceSlotsUseCase *erc20balanceslotuc.Cache
+	if cfg.AEVMEnabled {
+		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(poolRedisClient.Client, erc20balanceslot.RedisRepositoryConfig{
+			Prefix: cfg.PoolRedis.Prefix,
+		})
+		balanceSlotsProbe := erc20balanceslotuc.NewProbe(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet))
+		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe, cfg.AEVM.PredefinedBalanceSlots)
+		if err := balanceSlotsUseCase.PreloadAll(context.Background()); err != nil {
+			logger.Errorf("could not preload balance slots %s", err)
+			return err
+		}
+		defer balanceSlotsUseCase.CommitToRedis(context.Background())
+	}
+
+	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, balanceSlotsUseCase)
 	poolManager, err := poolmanager.NewPointerSwapPoolManager(poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager)
 	if err != nil {
 		return err

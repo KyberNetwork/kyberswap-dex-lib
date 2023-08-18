@@ -45,6 +45,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -57,12 +58,14 @@ var (
 )
 
 type PoolFactory struct {
-	config Config
+	config              Config
+	balanceSlotsUseCase *erc20balanceslot.Cache
 }
 
-func NewPoolFactory(config Config) *PoolFactory {
+func NewPoolFactory(config Config, balanceSlotsUseCase *erc20balanceslot.Cache) *PoolFactory {
 	return &PoolFactory{
-		config: config,
+		config:              config,
+		balanceSlotsUseCase: balanceSlotsUseCase,
 	}
 }
 

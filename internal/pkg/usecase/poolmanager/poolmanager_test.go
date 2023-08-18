@@ -49,7 +49,7 @@ func newMockPointerSwapPoolManager(configFile string) (*poolmanager.PointerSwapP
 	}
 	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
-	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory)
+	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil)
 	return poolmanager.NewPointerSwapPoolManager(poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager)
 }
 
@@ -75,7 +75,7 @@ func newMockPoolManager(configFile string) (*poolmanager.PoolManager, error) {
 		return nil, err
 	}
 	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
-	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory)
+	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil)
 	return poolmanager.NewPoolManager(poolRepository, poolFactory, cfg.UseCase.PoolManager), nil
 }
 

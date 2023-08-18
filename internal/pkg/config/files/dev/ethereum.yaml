@@ -255,3 +255,20 @@ validator:
   getRouteEncodeParams:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
+aevmEnabled: true
+aevm:
+  rpc: "http://localhost:8545"
+  simulationWallet: "0x19767032471665df0fd7f6160381a103ece6261a"
+  predefinedBalanceSlots:
+    # LIDO token
+    0x5a98fcbea516cf06857215779fd812ca3bef1b32:
+      token: 0x5a98fcbea516cf06857215779fd812ca3bef1b32
+      wallet: 0x19767032471665df0fd7f6160381a103ece6261a
+      found: true
+      balanceSlot: 0x1d92366e0eb8047c54dfd3b4dbea0f8e23e5b021de7fe643c5e1b27c1a169cf0
+      # the first 128 bits is balance = 0x0000ffffffffffffffffffffffffffff (which is large enough)
+      # the last 128 bits is block number at which balance is changed
+      preferredValue: 0x0000ffffffffffffffffffffffffffff000000000000000000000000010c766a
+      extraOverrides:
+        # balance history length, must be > 0
+        0x5a7df2e997858d39f2aef4861e79c3133f8533d36ea28b6a66fa8b4914908a5a: 0x0000000000000000000000000000000000000000000000000000000000000001

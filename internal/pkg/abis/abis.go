@@ -8,6 +8,7 @@ import (
 
 var (
 	MetaAggregationRouterV2 abi.ABI
+	ERC20                   abi.ABI
 )
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 		data []byte
 	}{
 		{&MetaAggregationRouterV2, metaAggregationRouterV2},
+		{&ERC20, erc20},
 	}
 
 	for _, b := range builder {

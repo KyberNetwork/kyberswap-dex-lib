@@ -13,11 +13,14 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/validator"
 	"github.com/KyberNetwork/router-service/pkg/redis"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 var (
-	ErrNoRouterAddress   = errors.New("no aggregation router address")
-	ErrNoExecutorAddress = errors.New("no aggregation executor address")
+	ErrNoRouterAddress    = errors.New("no aggregation router address")
+	ErrNoExecutorAddress  = errors.New("no aggregation executor address")
+	ErrZeroAEVMFakeWallet = errors.New("zero AEVM fake wallet")
+	ErrMissingAEVMConfigs = errors.New("missing AEVM configs")
 )
 
 type Config struct {
@@ -39,6 +42,8 @@ type Config struct {
 	Job           job.Config                `mapstructure:"job" json:"job"`
 	Validator     validator.Config          `mapstructure:"validator" json:"validator"`
 	Pprof         bool                      `mapstructure:"pprof" json:"pprof"`
+	AEVMEnabled   bool                      `mapstructure:"aevmEnabled" json:"aevmEnabled"`
+	AEVM          *AEVM                     `mapstructure:"aevm" json:"aevm"`
 }
 
 func (c *Config) Validate() error {
@@ -52,6 +57,15 @@ func (c *Config) Validate() error {
 
 	if utils.IsEmptyString(c.UseCase.GetRoute.RouterAddress) {
 		return ErrNoRouterAddress
+	}
+
+	if c.AEVMEnabled {
+		if c.AEVM == nil {
+			return ErrMissingAEVMConfigs
+		}
+		if utils.IsEmptyString(c.AEVM.FakeWallet) || common.HexToAddress(c.AEVM.FakeWallet) == (common.Address{}) {
+			return ErrZeroAEVMFakeWallet
+		}
 	}
 
 	return nil

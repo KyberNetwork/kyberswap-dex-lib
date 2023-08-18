@@ -256,3 +256,7 @@ validator:
   getRouteEncodeParams:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
+aevmEnabled: true
+aevm:
+  rpc: "http://localhost:9650/ext/bc/C/rpc"
+  simulationWallet: "0x47f3c2557364efc28f1269e3169773fa5236384d"

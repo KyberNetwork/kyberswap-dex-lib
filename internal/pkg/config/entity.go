@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -19,6 +20,17 @@ type Common struct {
 	AvailableSources    []string                 `mapstructure:"availableSources"`
 	FeatureFlags        valueobject.FeatureFlags `mapstructure:"featureFlags"`
 }
+
+type AEVM struct {
+	// Node URL for probing balance slot. The node must be enabled tracing feature.
+	RPC string `mapstructure:"rpc"`
+
+	// The wallet to probe balance slot for new tokens.
+	FakeWallet string `mapstructure:"simulationWallet"`
+
+	PredefinedBalanceSlots map[string]*entity.ERC20BalanceSlot `mapstructure:"predefinedBalanceSlots"`
+}
+
 type Log struct {
 	logger.Configuration `mapstructure:",squash"`
 	SentryDSN            string `mapstructure:"sentryDSN" default:""`
