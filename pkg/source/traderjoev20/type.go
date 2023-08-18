@@ -6,17 +6,28 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
-// Reserves https://github.com/traderjoe-xyz/joe-v2/blob/v2.0.0/src/LBPair.sol#L151
-type Reserves struct {
+// ReservesAndID https://github.com/traderjoe-xyz/joe-v2/blob/v2.0.0/src/LBPair.sol#L151
+type ReservesAndID struct {
 	ReserveX *big.Int
 	ReserveY *big.Int
 	//revive:disable:var-naming
 	ActiveId *big.Int
 }
 
-func (r Reserves) GetPoolReserves() entity.PoolReserves {
+// BinReserves https://github.com/traderjoe-xyz/joe-v2/blob/v2.0.0/src/LBPair.sol#L265
+type BinReserves struct {
+	ReserveX *big.Int
+	ReserveY *big.Int
+}
+
+func (r ReservesAndID) GetPoolReserves() entity.PoolReserves {
 	return entity.PoolReserves{
 		r.ReserveX.String(),
 		r.ReserveY.String(),
 	}
+}
+
+type Extra struct {
+	Liquidity *big.Int `json:"liquidity"`
+	PriceX128 *big.Int `json:"priceX128"`
 }

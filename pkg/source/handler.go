@@ -622,7 +622,13 @@ func NewPoolTrackerHandler(
 
 		return pearl.NewPoolTracker(&cfg, ethrpcClient)
 	case traderjoev20.DexTypeTraderJoeV20:
-		return traderjoev20.NewPoolTracker(ethrpcClient)
+		var cfg traderjoecommon.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+		return traderjoev20.NewPoolTracker(ethrpcClient, &cfg)
 	case traderjoev21.DexTypeTraderJoeV21:
 		return traderjoev21.NewPoolTracker(ethrpcClient)
 	}

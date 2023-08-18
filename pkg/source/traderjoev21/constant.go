@@ -11,4 +11,7 @@ const (
 	pairTokenXMethod           = "getTokenX"
 	pairTokenYMethod           = "getTokenY"
 	pairGetReservesMethod      = "getReserves"
+	pairGetActiveIDMethod      = "getActiveId"
+	pairGetBinReservesMethod   = "getBin"
+	pairGetPriceFromID         = "getPriceFromId"
 )

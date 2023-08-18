@@ -20,6 +20,7 @@ const (
 	multicallAddress = "0xf2fd8219609e28c61a998cc534681f95d2740f61"
 	// https://docs.traderjoexyz.com/deployment-addresses/avalanche#v20
 	factoryAddress = "0x6E77932A92582f504FF6c4BdbCef7Da6c198aEEf"
+	routerAddress  = "0xE3Ffc583dC176575eEA7FD9dF2A7c65F7E23f4C3"
 )
 
 func TestGetNewPools(t *testing.T) {
@@ -62,7 +63,9 @@ func TestGetPoolState(t *testing.T) {
 
 	client := ethrpc.New(rpcURL)
 	client.SetMulticallContract(common.HexToAddress(multicallAddress))
-	tracker, err := NewPoolTracker(client)
+	tracker, err := NewPoolTracker(client, &traderjoecommon.Config{
+		RouterAddress: routerAddress,
+	})
 	require.NoError(t, err)
 
 	pool, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: usdceUSDCPool})

@@ -10,5 +10,7 @@ const (
 	factoryNumberOfPairsMethod = "getNumberOfLBPairs"
 	pairTokenXMethod           = "tokenX"
 	pairTokenYMethod           = "tokenY"
-	pairGetReservesMethod      = "getReservesAndId"
+	pairGetReservesAndIDMethod = "getReservesAndId"
+	pairGetBinReservesMethod   = "getBin"
+	routerGetPriceFromIDMethod = "getPriceFromId"
 )
