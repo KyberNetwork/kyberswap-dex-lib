@@ -6,8 +6,6 @@ const (
 	DexTypeCrowdswapV2 = "crowdswap-v2"
 	defaultTokenWeight = 50
 	reserveZero        = "0"
-
-	bps = 1000
 )
 
 const (
