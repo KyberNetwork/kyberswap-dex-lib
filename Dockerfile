@@ -20,8 +20,10 @@ RUN chmod -R +w vendor/github.com/KyberNetwork/aevm
 #RUN golangci-lint run --verbose --timeout 5m0s
 
 # Build binary stage
-FROM golang:1.19 as build
+FROM golang:1.19-alpine as build
 WORKDIR /build
+RUN apk update
+RUN apk add build-base
 COPY --from=dep /build .
 RUN CGO_ENABLED=1 GOOS=linux go build -mod=vendor -a -installsuffix cgo -o server -tags nethttpomithttp2 ./cmd/app
 
@@ -35,4 +37,5 @@ RUN apk update
 RUN apk upgrade
 RUN apk add ca-certificates
 RUN apk --no-cache add tzdata
+RUN /app/server --help
 CMD ["./server"]
