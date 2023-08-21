@@ -7,6 +7,7 @@ import (
 	"time"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
+	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
@@ -87,10 +88,14 @@ func NewPointerSwapPoolManager(
 	}
 	p.readFrom.Store(0)
 
-	stateRoot, err := aevmClient.LatestStateRoot()
-	if err != nil {
-		logger.Errorf("could not get latest state root for aevm %s", err)
-		return nil, err
+	var stateRoot aevmcommon.Hash
+	// if running with aevm
+	if aevmClient != nil {
+		stateRoot, err = aevmClient.LatestStateRoot()
+		if err != nil {
+			logger.Errorf("could not get latest state root for aevm %s", err)
+			return nil, err
+		}
 	}
 	if err = p.preparePoolsData(context.Background(), poolAddresses, common.Hash(stateRoot)); err != nil {
 		return nil, err
@@ -174,12 +179,17 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 }
 
 func (p *PointerSwapPoolManager) maintain() {
+	var err error
 	for {
 		time.Sleep(p.config.PoolRenewalInterval)
-		stateRoot, err := p.aevmClient.LatestStateRoot()
-		if err != nil {
-			logger.Errorf("could not get latest state root for aevm %s", err)
-			continue
+		var stateRoot aevmcommon.Hash
+		// if running with aevm
+		if p.aevmClient != nil {
+			stateRoot, err = p.aevmClient.LatestStateRoot()
+			if err != nil {
+				logger.Errorf("could not get latest state root for aevm %s", err)
+				continue
+			}
 		}
 		// p.poolCache.Keys() return the list of pool address to maintain
 		if err := p.preparePoolsData(context.Background(), p.poolCache.Keys(), common.Hash(stateRoot)); err != nil {

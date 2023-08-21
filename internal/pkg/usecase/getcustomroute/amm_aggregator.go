@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 
+	aevmcommon "github.com/KyberNetwork/aevm/common"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
@@ -44,9 +45,15 @@ func NewCustomAMMAggregator(
 
 func (a *ammAggregator) Aggregate(ctx context.Context, params *types.AggregateParams, poolIds []string) (*valueobject.RouteSummary, error) {
 	// Step 1: get pool set
-	stateRoot, err := a.poolManager.GetAEVMClient().LatestStateRoot()
-	if err != nil {
-		return nil, err
+	var (
+		stateRoot aevmcommon.Hash
+		err       error
+	)
+	if aevmClient := a.poolManager.GetAEVMClient(); aevmClient != nil {
+		stateRoot, err = aevmClient.LatestStateRoot()
+		if err != nil {
+			return nil, err
+		}
 	}
 	poolByAddress, err := a.getPoolByAddress(ctx, params, poolIds, common.Hash(stateRoot))
 	if err != nil {

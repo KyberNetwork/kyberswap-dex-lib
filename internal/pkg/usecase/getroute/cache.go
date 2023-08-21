@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	aevmcommon "github.com/KyberNetwork/aevm/common"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
@@ -231,9 +232,15 @@ func (c *cache) summarizeSimpleRoute(
 	params *types.AggregateParams,
 ) (*valueobject.RouteSummary, error) {
 	// Step 1: prepare pool data
-	stateRoot, err := c.poolManager.GetAEVMClient().LatestStateRoot()
-	if err != nil {
-		return nil, err
+	var (
+		stateRoot aevmcommon.Hash
+		err       error
+	)
+	if aevmClient := c.poolManager.GetAEVMClient(); aevmClient != nil {
+		stateRoot, err = aevmClient.LatestStateRoot()
+		if err != nil {
+			return nil, err
+		}
 	}
 	poolByAddress, err := c.poolManager.GetPoolByAddress(
 		ctx,

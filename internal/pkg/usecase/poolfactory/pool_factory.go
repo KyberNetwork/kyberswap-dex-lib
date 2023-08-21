@@ -795,6 +795,9 @@ func (f *PoolFactory) newAlgebraV1(entityPool entity.Pool) (*algebrav1.PoolSimul
 }
 
 func (f *PoolFactory) newTraderJoeV20(entityPool entity.Pool, stateRoot common.Hash) (*traderjoev20.Pool, error) {
+	if f.balanceSlotsUseCase == nil || f.client == nil {
+		return nil, errors.New("AEVM is not initialized")
+	}
 	balanceSlots := f.getBalanceSlots(&entityPool)
 	corePool, err := traderjoev20.NewPoolAEVM(entityPool, f.client, stateRoot, balanceSlots)
 	if err != nil {
@@ -809,6 +812,9 @@ func (f *PoolFactory) newTraderJoeV20(entityPool entity.Pool, stateRoot common.H
 }
 
 func (f *PoolFactory) newTraderJoeV21(entityPool entity.Pool, stateRoot common.Hash) (*traderjoev21.Pool, error) {
+	if f.balanceSlotsUseCase == nil || f.client == nil {
+		return nil, errors.New("AEVM is not initialized")
+	}
 	balanceSlots := f.getBalanceSlots(&entityPool)
 	corePool, err := traderjoev21.NewPoolAEVM(entityPool, f.client, stateRoot, balanceSlots)
 	if err != nil {

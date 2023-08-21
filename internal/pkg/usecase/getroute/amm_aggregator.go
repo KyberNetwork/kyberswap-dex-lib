@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sync"
 
+	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
@@ -68,9 +69,15 @@ func (a *ammAggregator) Aggregate(ctx context.Context, params *types.AggregatePa
 	defer span.Finish()
 
 	// Step 1: get pool set
-	stateRoot, err := a.poolManager.GetAEVMClient().LatestStateRoot()
-	if err != nil {
-		return nil, err
+	var (
+		stateRoot aevmcommon.Hash
+		err       error
+	)
+	if aevmClient := a.poolManager.GetAEVMClient(); aevmClient != nil {
+		stateRoot, err = aevmClient.LatestStateRoot()
+		if err != nil {
+			return nil, err
+		}
 	}
 	poolByAddress, err := a.getPoolByAddress(ctx, params, common.Hash(stateRoot))
 	if err != nil {

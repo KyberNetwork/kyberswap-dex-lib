@@ -256,7 +256,7 @@ validator:
   getRouteEncodeParams:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
-aevmEnabled: true 
+aevmEnabled: false
 aevm:
   serverUrl: "localhost:8246"
   rpc: "http://localhost:9650/ext/bc/C/rpc"
