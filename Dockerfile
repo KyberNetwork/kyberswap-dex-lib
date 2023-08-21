@@ -36,6 +36,6 @@ COPY --from=build /build/server server
 RUN apk update
 RUN apk upgrade
 RUN apk add ca-certificates
-RUN apk --no-cache add tzdata
+RUN apk --no-cache add tzdata libgcc
 RUN /app/server --help
 CMD ["./server"]
