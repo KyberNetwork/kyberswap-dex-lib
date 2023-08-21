@@ -94,6 +94,6 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = reserves.GetPoolReserves()
 
-	logger.Infof("[TraderJoe v2.0] Finish getting new state of pool: %v", p.Address)
+	logger.Infof("[TraderJoe v2.1] Finish getting new state of pool: %v", p.Address)
 	return p, nil
 }
