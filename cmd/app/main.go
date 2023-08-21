@@ -7,8 +7,10 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 
+	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/reload"
 	"github.com/ethereum/go-ethereum/common"
@@ -41,6 +43,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/decode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
+
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getcustomroute"
@@ -204,10 +207,6 @@ func apiAction(c *cli.Context) (err error) {
 	_, err = metrics.InitClient(newMetricsConfig(cfg))
 
 	ethClient := ethrpc.New(cfg.Common.RPC)
-	rpcClient, err := rpc.Dial(cfg.Common.RPC)
-	if err != nil {
-		return fmt.Errorf("could not dial JSON-RPC node %w", err)
-	}
 
 	// init repositories
 
@@ -256,10 +255,15 @@ func apiAction(c *cli.Context) (err error) {
 	getTokensUseCase := usecase.NewGetTokens(tokenRepository, priceDataStoreRepo)
 
 	var balanceSlotsUseCase *erc20balanceslotuc.Cache
+	var aevmClient aevmclient.Client
 	if cfg.AEVMEnabled {
 		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(poolRedisClient.Client, erc20balanceslot.RedisRepositoryConfig{
 			Prefix: cfg.PoolRedis.Prefix,
 		})
+		rpcClient, err := rpc.Dial(cfg.AEVM.RPC)
+		if err != nil {
+			return fmt.Errorf("could not dial JSON-RPC node %w", err)
+		}
 		balanceSlotsProbe := erc20balanceslotuc.NewProbe(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet))
 		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe, cfg.AEVM.PredefinedBalanceSlots)
 		if err := balanceSlotsUseCase.PreloadAll(context.Background()); err != nil {
@@ -267,10 +271,15 @@ func apiAction(c *cli.Context) (err error) {
 			return err
 		}
 		defer balanceSlotsUseCase.CommitToRedis(context.Background())
+
+		aevmClient, err = aevmclient.NewTCPClient(cfg.AEVM.AEVMServerURL, runtime.NumCPU())
+		if err != nil {
+			return err
+		}
 	}
 
-	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, balanceSlotsUseCase)
-	poolManager, err := poolmanager.NewPointerSwapPoolManager(poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager)
+	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
+	poolManager, err := poolmanager.NewPointerSwapPoolManager(poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager, aevmClient)
 	if err != nil {
 		return err
 	}

@@ -258,5 +258,6 @@ validator:
     slippageToleranceLte: 5000
 aevmEnabled: true 
 aevm:
+  serverUrl: "localhost:8246"
   rpc: "http://localhost:9650/ext/bc/C/rpc"
   simulationWallet: "0x47f3c2557364efc28f1269e3169773fa5236384d"

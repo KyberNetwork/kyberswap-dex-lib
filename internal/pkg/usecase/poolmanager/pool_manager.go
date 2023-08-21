@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/common"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
+	gethcommon "github.com/ethereum/go-ethereum/common"
 )
 
 type PoolManager struct {
@@ -41,6 +42,7 @@ func NewPoolManager(
 func (m *PoolManager) GetPoolByAddress(
 	ctx context.Context,
 	addresses, dex []string,
+	stateRoot gethcommon.Hash,
 ) (map[string]poolpkg.IPoolSimulator, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "poolManager.GetPoolByAddress")
 	defer span.Finish()
@@ -56,7 +58,7 @@ func (m *PoolManager) GetPoolByAddress(
 		return nil, err
 	}
 
-	return m.poolFactory.NewPoolByAddress(ctx, pools), nil
+	return m.poolFactory.NewPoolByAddress(ctx, pools, stateRoot), nil
 }
 
 func (m *PoolManager) ApplyConfig(config Config) {

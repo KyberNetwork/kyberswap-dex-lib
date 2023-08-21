@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
@@ -40,11 +41,15 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/traderjoev20"
+	"github.com/KyberNetwork/router-service/internal/pkg/core/traderjoev21"
+	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -59,17 +64,19 @@ var (
 
 type PoolFactory struct {
 	config              Config
+	client              aevmclient.Client
 	balanceSlotsUseCase *erc20balanceslot.Cache
 }
 
-func NewPoolFactory(config Config, balanceSlotsUseCase *erc20balanceslot.Cache) *PoolFactory {
+func NewPoolFactory(config Config, client aevmclient.Client, balanceSlotsUseCase *erc20balanceslot.Cache) *PoolFactory {
 	return &PoolFactory{
 		config:              config,
+		client:              client,
 		balanceSlotsUseCase: balanceSlotsUseCase,
 	}
 }
 
-func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool) []poolpkg.IPoolSimulator {
+func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) []poolpkg.IPoolSimulator {
 	span, _ := tracer.StartSpanFromContext(ctx, "poolFactory.NewPoolByAddress")
 	defer span.Finish()
 
@@ -93,7 +100,7 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool) []pool
 
 			iPoolSimulators = append(iPoolSimulators, iPool)
 		} else {
-			iPool, err := f.newPool(*pool)
+			iPool, err := f.newPool(*pool, stateRoot)
 			if err != nil {
 				logger.Debug(err.Error())
 				continue
@@ -106,7 +113,7 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool) []pool
 	return iPoolSimulators
 }
 
-func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool) map[string]poolpkg.IPoolSimulator {
+func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) map[string]poolpkg.IPoolSimulator {
 	span, _ := tracer.StartSpanFromContext(ctx, "poolFactory.NewPoolByAddress")
 	defer span.Finish()
 
@@ -130,7 +137,7 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 
 			poolByAddress[IPoolSimulator.GetAddress()] = IPoolSimulator
 		} else {
-			iPool, err := f.newPool(*pool)
+			iPool, err := f.newPool(*pool, stateRoot)
 			if err != nil {
 				logger.Debugf(err.Error())
 				continue
@@ -189,9 +196,22 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 	return basePoolByAddress, basePoolAddresses
 }
 
+func (f *PoolFactory) getBalanceSlots(pool *entity.Pool) map[common.Address]*routerentity.ERC20BalanceSlot {
+	balanceSlots := make(map[common.Address]*routerentity.ERC20BalanceSlot)
+	for _, token := range pool.Tokens {
+		tokenAddr := common.HexToAddress(token.Address)
+		bl, err := f.balanceSlotsUseCase.Get(context.Background(), tokenAddr)
+		if err != nil {
+			continue
+		}
+		balanceSlots[tokenAddr] = bl
+	}
+	return balanceSlots
+}
+
 // newPool receives entity.Pool, based on its type to return matched factory method
 // if there is no matched factory method, it returns ErrPoolTypeFactoryNotFound
-func (f *PoolFactory) newPool(entityPool entity.Pool) (poolpkg.IPoolSimulator, error) {
+func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (poolpkg.IPoolSimulator, error) {
 	switch entityPool.Type {
 	case constant.PoolTypes.Uni, constant.PoolTypes.Firebird,
 		constant.PoolTypes.Biswap, constant.PoolTypes.Polydex:
@@ -259,6 +279,10 @@ func (f *PoolFactory) newPool(entityPool entity.Pool) (poolpkg.IPoolSimulator, e
 		return f.newMaverickV1(entityPool)
 	case constant.PoolTypes.AlgebraV1:
 		return f.newAlgebraV1(entityPool)
+	case constant.PoolTypes.TraderJoeV20:
+		return f.newTraderJoeV20(entityPool, stateRoot)
+	case constant.PoolTypes.TraderJoeV21:
+		return f.newTraderJoeV21(entityPool, stateRoot)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -767,5 +791,33 @@ func (f *PoolFactory) newAlgebraV1(entityPool entity.Pool) (*algebrav1.PoolSimul
 			entityPool.Type)
 	}
 
+	return corePool, nil
+}
+
+func (f *PoolFactory) newTraderJoeV20(entityPool entity.Pool, stateRoot common.Hash) (*traderjoev20.Pool, error) {
+	balanceSlots := f.getBalanceSlots(&entityPool)
+	corePool, err := traderjoev20.NewPoolAEVM(entityPool, f.client, stateRoot, balanceSlots)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newTraderJoeV20] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+	return corePool, nil
+}
+
+func (f *PoolFactory) newTraderJoeV21(entityPool entity.Pool, stateRoot common.Hash) (*traderjoev21.Pool, error) {
+	balanceSlots := f.getBalanceSlots(&entityPool)
+	corePool, err := traderjoev21.NewPoolAEVM(entityPool, f.client, stateRoot, balanceSlots)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newTraderJoeV21] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
 	return corePool, nil
 }

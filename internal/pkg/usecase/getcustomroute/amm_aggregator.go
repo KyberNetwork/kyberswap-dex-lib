@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -43,7 +44,11 @@ func NewCustomAMMAggregator(
 
 func (a *ammAggregator) Aggregate(ctx context.Context, params *types.AggregateParams, poolIds []string) (*valueobject.RouteSummary, error) {
 	// Step 1: get pool set
-	poolByAddress, err := a.getPoolByAddress(ctx, params, poolIds)
+	stateRoot, err := a.poolManager.GetAEVMClient().LatestStateRoot()
+	if err != nil {
+		return nil, err
+	}
+	poolByAddress, err := a.getPoolByAddress(ctx, params, poolIds, common.Hash(stateRoot))
 	if err != nil {
 		return nil, err
 	}
@@ -237,6 +242,7 @@ func (a *ammAggregator) getPoolByAddress(
 	ctx context.Context,
 	params *types.AggregateParams,
 	poolIds []string,
+	stateRoot common.Hash,
 ) (map[string]poolpkg.IPoolSimulator, error) {
 	ammSources := a.filterAMMSources(params.Sources)
 
@@ -244,6 +250,7 @@ func (a *ammAggregator) getPoolByAddress(
 		ctx,
 		poolIds,
 		ammSources,
+		stateRoot,
 	)
 }
 

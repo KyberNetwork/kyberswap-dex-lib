@@ -54,6 +54,8 @@ type types struct {
 	PancakeV3                string
 	MaverickV1               string
 	AlgebraV1                string
+	TraderJoeV20             string
+	TraderJoeV21             string
 }
 
 var (
@@ -111,5 +113,7 @@ var (
 		PancakeV3:                "pancake-v3",
 		MaverickV1:               "maverick-v1",
 		AlgebraV1:                "algebra-v1",
+		TraderJoeV20:             "traderjoe-v20",
+		TraderJoeV21:             "traderjoe-v21",
 	}
 )

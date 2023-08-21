@@ -7,6 +7,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 
@@ -49,8 +50,8 @@ func newMockPointerSwapPoolManager(configFile string) (*poolmanager.PointerSwapP
 	}
 	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
-	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil)
-	return poolmanager.NewPointerSwapPoolManager(poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager)
+	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil, nil)
+	return poolmanager.NewPointerSwapPoolManager(poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager, nil)
 }
 
 func newMockPoolManager(configFile string) (*poolmanager.PoolManager, error) {
@@ -75,7 +76,7 @@ func newMockPoolManager(configFile string) (*poolmanager.PoolManager, error) {
 		return nil, err
 	}
 	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
-	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil)
+	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil, nil)
 	return poolmanager.NewPoolManager(poolRepository, poolFactory, cfg.UseCase.PoolManager), nil
 }
 
@@ -92,11 +93,11 @@ func comparePoolManager(
 	poolManager *poolmanager.PoolManager,
 	addresses, dex []string,
 ) error {
-	p1, err := pointerSwapPoolManager.GetPoolByAddress(context.Background(), addresses, dex)
+	p1, err := pointerSwapPoolManager.GetPoolByAddress(context.Background(), addresses, dex, common.Hash{})
 	if err != nil {
 		return errors.Wrap(err, "pointerSwapPoolManager")
 	}
-	p2, err := poolManager.GetPoolByAddress(context.Background(), addresses, dex)
+	p2, err := poolManager.GetPoolByAddress(context.Background(), addresses, dex, common.Hash{})
 	if err != nil {
 		return errors.Wrap(err, "poolManager")
 	}

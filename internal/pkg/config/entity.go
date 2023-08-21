@@ -22,6 +22,12 @@ type Common struct {
 }
 
 type AEVM struct {
+	// AEVM server URL
+	AEVMServerURL string `mapstructure:"serverUrl"`
+
+	// AddressesByDex Addresses needed to simulate a dex such as router and factory address.
+	AddressesByDex map[string]map[string]string `mapstructure:"addressesByDex"`
+
 	// Node URL for probing balance slot. The node must be enabled tracing feature.
 	RPC string `mapstructure:"rpc"`
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
@@ -67,7 +68,11 @@ func (a *ammAggregator) Aggregate(ctx context.Context, params *types.AggregatePa
 	defer span.Finish()
 
 	// Step 1: get pool set
-	poolByAddress, err := a.getPoolByAddress(ctx, params)
+	stateRoot, err := a.poolManager.GetAEVMClient().LatestStateRoot()
+	if err != nil {
+		return nil, err
+	}
+	poolByAddress, err := a.getPoolByAddress(ctx, params, common.Hash(stateRoot))
 	if err != nil {
 		return nil, err
 	}
@@ -275,6 +280,7 @@ func (a *ammAggregator) summarizeRoute(
 func (a *ammAggregator) getPoolByAddress(
 	ctx context.Context,
 	params *types.AggregateParams,
+	stateRoot common.Hash,
 ) (map[string]poolpkg.IPoolSimulator, error) {
 	bestPoolIDs, err := a.poolRankRepository.FindBestPoolIDs(
 		ctx,
@@ -292,6 +298,7 @@ func (a *ammAggregator) getPoolByAddress(
 		ctx,
 		bestPoolIDs,
 		ammSources,
+		stateRoot,
 	)
 }
 

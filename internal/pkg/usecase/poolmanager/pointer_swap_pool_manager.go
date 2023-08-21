@@ -6,8 +6,10 @@ import (
 	"sync/atomic"
 	"time"
 
+	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/ethereum/go-ethereum/common"
 	cachePolicy "github.com/hashicorp/golang-lru/v2"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -27,6 +29,8 @@ type PointerSwapPoolManager struct {
 	// poolCache control which pool to maintain when there are too many pools
 	// currently poolCache use LRU policy
 	poolCache *cachePolicy.Cache[string, struct{}]
+
+	aevmClient aevmclient.Client
 
 	lock *sync.RWMutex
 }
@@ -48,6 +52,7 @@ func NewPointerSwapPoolManager(
 	poolFactory IPoolFactory,
 	poolRankRepository IPoolRankRepository,
 	config Config,
+	aevmClient aevmclient.Client,
 ) (*PointerSwapPoolManager, error) {
 	states := [2]*LockedState{}
 	for i := 0; i < 2; i++ {
@@ -78,14 +83,24 @@ func NewPointerSwapPoolManager(
 		poolRankRepository: poolRankRepository,
 		poolCache:          poolCache,
 		lock:               &sync.RWMutex{},
+		aevmClient:         aevmClient,
 	}
 	p.readFrom.Store(0)
 
-	if err = p.preparePoolsData(context.Background(), poolAddresses); err != nil {
+	stateRoot, err := aevmClient.LatestStateRoot()
+	if err != nil {
+		logger.Errorf("could not get latest state root for aevm %s", err)
+		return nil, err
+	}
+	if err = p.preparePoolsData(context.Background(), poolAddresses, common.Hash(stateRoot)); err != nil {
 		return nil, err
 	}
 	go p.maintain()
 	return &p, nil
+}
+
+func (p *PointerSwapPoolManager) GetAEVMClient() aevmclient.Client {
+	return p.aevmClient
 }
 
 func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
@@ -98,7 +113,7 @@ func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
 
 // GetPoolByAddress return a reference to pools maintained by `PointerSwapPoolManager`
 // Therefore, do not modify IPool returned here, clone IPool before UpdateBalance
-func (p *PointerSwapPoolManager) GetPoolByAddress(ctx context.Context, poolAddresses, dex []string) (map[string]poolpkg.IPoolSimulator, error) {
+func (p *PointerSwapPoolManager) GetPoolByAddress(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (map[string]poolpkg.IPoolSimulator, error) {
 	filteredPoolAddress := p.filterBlacklistedAddresses(poolAddresses)
 
 	// update cache policy
@@ -107,10 +122,10 @@ func (p *PointerSwapPoolManager) GetPoolByAddress(ctx context.Context, poolAddre
 	}
 
 	readFrom := p.readFrom.Load()
-	return p.getPools(ctx, filteredPoolAddress, dex, readFrom), nil
+	return p.getPools(ctx, filteredPoolAddress, dex, readFrom, stateRoot), nil
 }
 
-func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, readFrom int32) map[string]poolpkg.IPoolSimulator {
+func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, readFrom int32, stateRoot common.Hash) map[string]poolpkg.IPoolSimulator {
 	var (
 		resultPoolByAddress = make(map[string]poolpkg.IPoolSimulator, len(poolAddresses))
 		poolsToFetchFromDB  []string
@@ -150,7 +165,7 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 	}
 	filteredPoolEntities = append(filteredPoolEntities, curveMetaBasePools...)
 
-	poolInterfaces := p.poolFactory.NewPools(ctx, filteredPoolEntities)
+	poolInterfaces := p.poolFactory.NewPools(ctx, filteredPoolEntities, stateRoot)
 	for i := range poolInterfaces {
 		resultPoolByAddress[poolInterfaces[i].GetAddress()] = poolInterfaces[i]
 	}
@@ -161,14 +176,19 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 func (p *PointerSwapPoolManager) maintain() {
 	for {
 		time.Sleep(p.config.PoolRenewalInterval)
+		stateRoot, err := p.aevmClient.LatestStateRoot()
+		if err != nil {
+			logger.Errorf("could not get latest state root for aevm %s", err)
+			continue
+		}
 		// p.poolCache.Keys() return the list of pool address to maintain
-		if err := p.preparePoolsData(context.Background(), p.poolCache.Keys()); err != nil {
+		if err := p.preparePoolsData(context.Background(), p.poolCache.Keys(), common.Hash(stateRoot)); err != nil {
 			logger.Errorf("could not update pool's stateData, error:%s", err)
 		}
 	}
 }
 
-func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddresses []string) error {
+func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddresses []string, stateRoot common.Hash) error {
 	writeTo := 1 - p.readFrom.Load()
 
 	filteredPoolAddress := p.filterBlacklistedAddresses(poolAddresses)
@@ -179,7 +199,7 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 		return err
 	}
 
-	poolByAddress := p.poolFactory.NewPoolByAddress(ctx, poolEntities)
+	poolByAddress := p.poolFactory.NewPoolByAddress(ctx, poolEntities, stateRoot)
 	p.states[writeTo].update(poolByAddress)
 	//swapping here
 	p.readFrom.Store(writeTo)
