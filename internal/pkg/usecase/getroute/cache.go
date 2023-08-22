@@ -34,7 +34,7 @@ type cache struct {
 
 	shrinkFunc ShrinkFunc
 
-	config CacheConfig
+	config valueobject.CacheConfig
 
 	mu sync.RWMutex
 }
@@ -43,7 +43,7 @@ func NewCache(
 	aggregator IAggregator,
 	routeCacheRepository IRouteCacheRepository,
 	poolManager IPoolManager,
-	config CacheConfig,
+	config valueobject.CacheConfig,
 ) *cache {
 	return &cache{
 		aggregator:           aggregator,
@@ -55,23 +55,37 @@ func NewCache(
 }
 
 func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
+	var (
+		routeSummary *valueobject.RouteSummary
+		key          *valueobject.RouteCacheKey
+		ttl          time.Duration
+		err          error
+	)
+
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] cache.Aggregate")
 	defer span.Finish()
 
-	key, ttl := c.genKey(params)
+	key, ttl, err = c.genKey(params)
 
-	routeSummary, err := c.getRouteFromCache(ctx, params, key)
-	if err == nil {
-		return routeSummary, nil
-	}
-
-	routeSummary, err = c.aggregator.Aggregate(ctx, params)
-	if err != nil {
-		return nil, err
-	}
-
-	if routeSummary.GetPriceImpact() <= c.config.PriceImpactThreshold {
-		c.setRouteToCache(ctx, routeSummary, key, ttl)
+	// if this tokenIn has price and we successfully gen cache key
+	if err == nil && key != nil {
+		routeSummary, err = c.getRouteFromCache(ctx, params, key)
+		if err == nil {
+			return routeSummary, nil
+		}
+		routeSummary, err = c.aggregator.Aggregate(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		if routeSummary.GetPriceImpact() <= c.config.PriceImpactThreshold {
+			c.setRouteToCache(ctx, routeSummary, key, ttl)
+		}
+	} else {
+		// we have no key cacheRoute -> recalculate new route.
+		routeSummary, err = c.aggregator.Aggregate(ctx, params)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return routeSummary, nil
@@ -81,7 +95,12 @@ func (c *cache) ApplyConfig(config Config) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	// only apply cache only if it changed
+	if !c.config.Equals(config.Cache) {
+		c.shrinkFunc = ShrinkFuncFactory(config.Cache)
+	}
 	c.config = config.Cache
+
 	c.aggregator.ApplyConfig(config)
 }
 
@@ -179,7 +198,9 @@ func (c *cache) getCachePointTTL(amount float64) (time.Duration, bool) {
 	return 0, false
 }
 
-func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKey, time.Duration) {
+// genKey retrieves the key required to access the cacheRoute.
+// It returns an error if these parameters do not correspond to a cache point and lack pricing information.
+func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKey, time.Duration, error) {
 	amountInWithoutDecimals := business.AmountWithoutDecimals(params.AmountIn, params.TokenIn.Decimals)
 	amountInWithoutDecimalsFloat64, _ := amountInWithoutDecimals.Float64()
 
@@ -193,7 +214,12 @@ func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKe
 			SaveGas:    params.SaveGas,
 			GasInclude: params.GasInclude,
 			Dexes:      params.Sources,
-		}, ttlByAmount
+		}, ttlByAmount, nil
+	}
+
+	// if this token in doesn't have price, return error
+	if params.TokenInPriceUSD <= 0 {
+		return nil, 0, ErrNoTokenInPrice
 	}
 
 	amountInUSD := business.CalcAmountUSD(params.AmountIn, params.TokenIn.Decimals, params.TokenInPriceUSD)
@@ -211,7 +237,7 @@ func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKe
 				SaveGas:    params.SaveGas,
 				GasInclude: params.GasInclude,
 				Dexes:      params.Sources,
-			}, cacheRange.TTL
+			}, cacheRange.TTL, nil
 		}
 	}
 
@@ -223,7 +249,7 @@ func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKe
 		SaveGas:    params.SaveGas,
 		GasInclude: params.GasInclude,
 		Dexes:      params.Sources,
-	}, c.config.DefaultTTL
+	}, c.config.DefaultTTL, nil
 }
 
 func (c *cache) summarizeSimpleRoute(

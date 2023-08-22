@@ -145,7 +145,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setLog(remoteCfg.Log)
 		cl.setFinderOptions(remoteCfg.FinderOptions)
 		cl.setGetBestPoolOptions(remoteCfg.GetBestPoolsOptions)
-
+		cl.setCacheConfig(remoteCfg.CacheConfig)
 		cl.mu.Unlock()
 	}
 
@@ -211,4 +211,8 @@ func (cl *ConfigLoader) setFinderOptions(finderOptions valueobject.FinderOptions
 
 func (cl *ConfigLoader) setGetBestPoolOptions(getBestPoolsOptions valueobject.GetBestPoolsOptions) {
 	cl.config.UseCase.GetRoute.AmmAggregator.GetBestPoolsOptions = getBestPoolsOptions
+}
+
+func (cl *ConfigLoader) setCacheConfig(cacheConfig valueobject.CacheConfig) {
+	cl.config.UseCase.GetRoute.Cache = cacheConfig
 }

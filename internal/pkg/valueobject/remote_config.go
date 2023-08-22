@@ -1,5 +1,7 @@
 package valueobject
 
+import "time"
+
 type (
 	Source string
 
@@ -42,6 +44,67 @@ type (
 	}
 )
 
+type CachePoint struct {
+	Amount float64       `mapstructure:"amount" json:"amount"`
+	TTL    time.Duration `mapstructure:"ttl" json:"ttl"`
+}
+
+type CacheRange struct {
+	AmountUSDLowerBound float64       `mapstructure:"amountUSDLowerBound" json:"amountUSDLowerBound"`
+	TTL                 time.Duration `mapstructure:"ttl" json:"ttl"`
+}
+
+type CacheConfig struct {
+	// DefaultTTL default time to live of the cache
+	DefaultTTL time.Duration `mapstructure:"defaultTtl" json:"defaultTtl"`
+
+	// TTLByAmount time to live by amount
+	// key is amount without decimals
+	TTLByAmount []CachePoint `mapstructure:"ttlByAmount" json:"ttlByAmount"`
+
+	// TTLByAmountUSDRange time to live by amount usd range
+	// key is lower bound of the range
+	TTLByAmountUSDRange []CacheRange `mapstructure:"ttlByAmountUsdRange" json:"ttlByAmountUsdRange"`
+
+	PriceImpactThreshold float64 `mapstructure:"priceImpactThreshold" json:"priceImpactThreshold"`
+
+	ShrinkFuncName       string  `mapstructure:"shrinkFuncName" json:"shrinkFuncName"`
+	ShrinkFuncPowExp     float64 `mapstructure:"shrinkFuncPowExp" json:"shrinkFuncPowExp"`
+	ShrinkFuncLogPercent float64 `mapstructure:"shrinkFuncLogPercent" json:"shrinkFuncLogPercent"`
+}
+
+func (c CacheConfig) Equals(other CacheConfig) bool {
+	if c.DefaultTTL != other.DefaultTTL ||
+		c.PriceImpactThreshold != other.PriceImpactThreshold ||
+		c.ShrinkFuncName != other.ShrinkFuncName ||
+		c.ShrinkFuncPowExp != other.ShrinkFuncPowExp ||
+		c.ShrinkFuncLogPercent != other.ShrinkFuncLogPercent {
+		return false
+	}
+
+	if len(c.TTLByAmount) != len(other.TTLByAmount) {
+		return false
+	}
+
+	for i, point := range c.TTLByAmount {
+		if point != other.TTLByAmount[i] {
+			return false
+		}
+	}
+
+	if len(c.TTLByAmountUSDRange) != len(other.TTLByAmountUSDRange) {
+		return false
+	}
+
+	for i, rangeItem := range c.TTLByAmountUSDRange {
+		if rangeItem != other.TTLByAmountUSDRange[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
 type RemoteConfig struct {
 	Hash                string              `json:"hash"`
 	AvailableSources    []Source            `json:"availableSources"`
@@ -51,4 +114,5 @@ type RemoteConfig struct {
 	Log                 Log                 `json:"log"`
 	GetBestPoolsOptions GetBestPoolsOptions `json:"getBestPoolsOptions"`
 	FinderOptions       FinderOptions       `json:"finderOptions"`
+	CacheConfig         CacheConfig         `json:"cache"`
 }

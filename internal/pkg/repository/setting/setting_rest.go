@@ -25,6 +25,7 @@ type ConfigResponseDataConfig struct {
 	Log                 valueobject.Log                 `json:"log"`
 	GetBestPoolsOptions valueobject.GetBestPoolsOptions `json:"getBestPoolsOptions"`
 	FinderOptions       valueobject.FinderOptions       `json:"finderOptions"`
+	CacheConfig         valueobject.CacheConfig         `json:"cache"`
 }
 
 type ConfigResponseData struct {
@@ -92,6 +93,7 @@ func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string, curre
 		Log:                 cfgResp.Data.Config.Log,
 		GetBestPoolsOptions: cfgResp.Data.Config.GetBestPoolsOptions,
 		FinderOptions:       cfgResp.Data.Config.FinderOptions,
+		CacheConfig:         cfgResp.Data.Config.CacheConfig,
 	}, nil
 }
 

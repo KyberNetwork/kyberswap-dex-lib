@@ -18,4 +18,6 @@ var (
 	ErrFeeAmountIsGreaterThanAmountOut = errors.New("feeAmount is greater than amountOut")
 
 	ErrAmountInIsGreaterThanMaxAllowed = errors.New("amountIn is greater than max allowed")
+
+	ErrNoTokenInPrice = errors.New("no token in price")
 )

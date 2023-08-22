@@ -51,6 +51,15 @@ func mockHandleSuccess(w http.ResponseWriter, r *http.Request) {
 					MinThresholdAmountInUSD: 0,
 					MaxThresholdAmountInUSD: 100000000,
 				},
+				CacheConfig: valueobject.CacheConfig{
+					DefaultTTL:           15,
+					TTLByAmount:          nil,
+					TTLByAmountUSDRange:  nil,
+					PriceImpactThreshold: 5,
+					ShrinkFuncName:       "decimal",
+					ShrinkFuncPowExp:     0.7,
+					ShrinkFuncLogPercent: 1.01,
+				},
 			},
 		},
 	}
@@ -116,6 +125,15 @@ func TestGetConfigs(t *testing.T) {
 			MinPartUSD:              500,
 			MinThresholdAmountInUSD: 0,
 			MaxThresholdAmountInUSD: 100000000,
+		},
+		CacheConfig: valueobject.CacheConfig{
+			DefaultTTL:           15,
+			TTLByAmount:          nil,
+			TTLByAmountUSDRange:  nil,
+			PriceImpactThreshold: 5,
+			ShrinkFuncName:       "decimal",
+			ShrinkFuncPowExp:     0.7,
+			ShrinkFuncLogPercent: 1.01,
 		},
 	}
 

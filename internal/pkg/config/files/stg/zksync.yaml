@@ -184,6 +184,7 @@ useCase:
       priceImpactThreshold: 0.005
       shrinkFuncName: "round"
       shrinkFuncPowExp: 0.7
+      shrinkFuncLogPercent: 1.01
   buildRoute:
     chainId: *chainId
   poolFactory:
