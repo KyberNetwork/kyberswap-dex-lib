@@ -5,6 +5,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.20.0] - 2023-08-23   
+
+### Added
+- New cache route mechanism and dynamic config cache (#360)
+
+
 ## [v1.19.2] - 2023-08-21   
 
 ### Added
