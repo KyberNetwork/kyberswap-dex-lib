@@ -22,7 +22,7 @@ func TestGenMethodID(t *testing.T) {
 		{
 			rawName:    "executeCrowdSwapV2",
 			types:      []string{"uint256", "bytes", "uint256"},
-			expectedId: "0xd0796174",
+			expectedId: "0xbeac25ac",
 		},
 		{
 			rawName:    "executeStableSwap",
