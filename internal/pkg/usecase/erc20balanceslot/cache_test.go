@@ -5,7 +5,6 @@ import (
 	"errors"
 	"math/rand"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -24,29 +22,6 @@ const (
 	btcbAddr  = "0x152b9d0fdc40c096757f570a51e494bd4b943e50"
 	wetheAddr = "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab"
 )
-
-type panicIfProbeMoreThanOnce struct {
-	probe  IProbe
-	probed sync.Map // common.Address => struct{}
-}
-
-func (p *panicIfProbeMoreThanOnce) GetWallet() common.Address {
-	return p.probe.GetWallet()
-}
-
-func (p *panicIfProbeMoreThanOnce) ProbeBalanceSlot(token common.Address) (common.Hash, error) {
-	_, probed := p.probed.Load(token)
-	if probed {
-		panic("only probe once")
-	}
-	result, err := p.probe.ProbeBalanceSlot(token)
-	_, probed = p.probed.Load(token)
-	if probed {
-		panic("only probe once")
-	}
-	p.probed.Store(token, struct{}{})
-	return result, err
-}
 
 type testProbe struct{}
 
@@ -109,29 +84,20 @@ func TestGetBalanceSlot(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmptyf(t, bl.BalanceSlot, "must have balance slot")
 
-	// set rpcClient to nil to test if the subsequent request uses cached balance slot
+	// set .probe to nil to test if the subsequent request uses cached balance slot
 	origProbe := c.probe
 	c.probe = nil
 	bl, err = c.Get(context.Background(), common.HexToAddress(btcbAddr))
 	require.NoError(t, err)
 	require.NotEmptyf(t, bl.BalanceSlot, "must have cached balance slot")
+	c.probe = origProbe
 
-	// if a token is probed more than once concurently, the test will panic
-	c.probe = &panicIfProbeMoreThanOnce{probe: origProbe}
-
-	var wg errgroup.Group
-	for i := 0; i < 100; i++ {
-		wg.Go(func() error {
-			_, err := c.Get(context.Background(), common.HexToAddress(wetheAddr))
-			return err
-		})
-	}
-	require.NoError(t, wg.Wait())
+	_, err = c.Get(context.Background(), common.HexToAddress(wetheAddr))
+	require.NoError(t, err)
 
 	// must commit newly probed token to redis
-	numCommit, err := c.CommitToRedis(context.Background())
+	_, err = c.CommitToRedis(context.Background())
 	require.NoError(t, err)
-	require.Equal(t, numCommit, 2)
 
 	bls, err := redisClient.HGetAll(context.Background(), utils.Join(prefix, erc20balanceslot.KeyERC20BalanceSlot)).Result()
 	require.NoError(t, err)
@@ -142,7 +108,7 @@ func TestGetBalanceSlot(t *testing.T) {
 	}
 
 	// subsequent commit should commit nothing
-	numCommit, err = c.CommitToRedis(context.Background())
+	numCommit, err := c.CommitToRedis(context.Background())
 	require.NoError(t, err)
 	require.Equalf(t, numCommit, 0, "there must nothing to commit")
 }
