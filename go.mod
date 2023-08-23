@@ -3,13 +3,15 @@ module github.com/KyberNetwork/kyberswap-dex-lib
 go 1.20
 
 require (
-	github.com/KyberNetwork/blockchain-toolkit v0.1.0
+	github.com/KyberNetwork/blockchain-toolkit v0.2.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
 	github.com/KyberNetwork/ethrpc v0.3.0
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/pancake-v3-sdk v0.1.0
 	github.com/daoleno/uniswap-sdk-core v0.1.7
 	github.com/daoleno/uniswapv3-sdk v0.4.0
+	github.com/davecgh/go-spew v1.1.1
+	github.com/dgraph-io/ristretto v0.1.1
 	github.com/ethereum/go-ethereum v1.12.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/golang/mock v1.6.0
@@ -24,11 +26,13 @@ require (
 
 require (
 	github.com/btcsuite/btcd/btcec/v2 v2.2.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/deckarep/golang-set/v2 v2.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
+	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
+	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/holiman/uint256 v1.2.2-0.20230321075855-87b91420868c // indirect
 	github.com/matryer/is v1.4.1 // indirect
