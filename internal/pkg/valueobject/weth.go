@@ -25,4 +25,5 @@ var WETHByChainID = map[ChainID]string{
 	ChainIDLineaGoerli:     "0x2c1b868d6596a18e32e61b901e4060c872647b6c",
 	ChainIDLinea:           "0xe5d7c2a44ffddf6b295a15c148167daaaf5cf34f",
 	ChainIDPolygonZkEVM:    "0x4f9a0e7fd2bf6067db6994cf12e4495df938e6e9",
+	ChainIDBase:            "0x4200000000000000000000000000000000000006",
 }

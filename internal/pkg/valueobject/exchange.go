@@ -57,6 +57,9 @@ var (
 	ExchangeFraxSwap      Exchange = "fraxswap"
 	ExchangeVerse         Exchange = "verse"
 	ExchangeEchoDex       Exchange = "echo-dex"
+	ExchangeBaseSwap      Exchange = "baseswap"
+	ExchangeAlienBase     Exchange = "alien-base"
+	ExchangeSwapBased     Exchange = "swapbased"
 
 	ExchangeOneSwap    Exchange = "oneswap"
 	ExchangeNerve      Exchange = "nerve"
@@ -101,6 +104,7 @@ var (
 
 	ExchangeVelodrome  Exchange = "velodrome"
 	ExchangeFvm        Exchange = "fvm"
+	ExchangeBvm        Exchange = "bvm"
 	ExchangeDystopia   Exchange = "dystopia"
 	ExchangeChronos    Exchange = "chronos"
 	ExchangeRamses     Exchange = "ramses"
@@ -203,6 +207,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeKyberSwapStatic:          {},
 	ExchangeVelodrome:                {},
 	ExchangeFvm:                      {},
+	ExchangeBvm:                      {},
 	ExchangeThena:                    {},
 	ExchangePearl:                    {},
 	ExchangePearlV2:                  {},
@@ -220,6 +225,9 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeDoveSwapV3:               {},
 	ExchangeSushiSwapV3:              {},
 	ExchangeRamsesV2:                 {},
+	ExchangeBaseSwap:                 {},
+	ExchangeAlienBase:                {},
+	ExchangeSwapBased:                {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

@@ -27,4 +27,5 @@ const (
 	ChainIDLineaGoerli     ChainID = 59140
 	ChainIDLinea           ChainID = 59144
 	ChainIDPolygonZkEVM    ChainID = 1101
+	ChainIDBase            ChainID = 8453
 )
