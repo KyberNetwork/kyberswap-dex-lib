@@ -29,14 +29,19 @@ func NewPoolTracker(cfg *Config) *PoolTracker {
 
 func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	logger.Infof("[LimitOrder] Start getting new states for pool %v", p.Address)
-	token0, token1 := p.Tokens[0], p.Tokens[1]
 	if len(p.Tokens) < 2 {
 		err := errors.New("number of token should be greater than or equal 2")
 		logger.Errorf(err.Error())
 		return entity.Pool{}, err
 	}
+	token0, token1 := p.Tokens[0], p.Tokens[1]
 	if strings.ToLower(token0.Address) < strings.ToLower(token1.Address) {
 		token0, token1 = p.Tokens[1], p.Tokens[0]
+	}
+
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		return entity.Pool{}, err
 	}
 
 	extra := Extra{}
@@ -44,9 +49,10 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 	g.Go(func() error {
 		buyOrders, err := d.limitOrderClient.ListOrders(gCtx, listOrdersFilter{
-			ChainID:    ChainID(d.config.ChainID),
-			MakerAsset: token0.Address,
-			TakerAsset: token1.Address,
+			ChainID:         ChainID(d.config.ChainID),
+			MakerAsset:      token0.Address,
+			TakerAsset:      token1.Address,
+			ContractAddress: staticExtra.ContractAddress,
 		})
 		if err != nil {
 			logger.WithFields(logger.Fields{
@@ -60,9 +66,10 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 	g.Go(func() error {
 		sellOrders, err := d.limitOrderClient.ListOrders(gCtx, listOrdersFilter{
-			ChainID:    ChainID(d.config.ChainID),
-			MakerAsset: token1.Address,
-			TakerAsset: token0.Address,
+			ChainID:         ChainID(d.config.ChainID),
+			MakerAsset:      token1.Address,
+			TakerAsset:      token0.Address,
+			ContractAddress: staticExtra.ContractAddress,
 		})
 		if err != nil {
 			logger.WithFields(logger.Fields{

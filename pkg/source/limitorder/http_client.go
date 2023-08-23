@@ -29,7 +29,8 @@ func (c *httpClient) ListAllPairs(
 	req := c.client.R().SetContext(ctx).
 		SetHeader("Content-Type", "application/json").
 		SetQueryParams(map[string]string{
-			"chainId": strconv.Itoa(int(chainID)),
+			"chainId":                    strconv.Itoa(int(chainID)),
+			"hasDistinctContractAddress": "true",
 		})
 
 	var result listAllPairsResult
@@ -54,9 +55,10 @@ func (c *httpClient) ListOrders(
 	req := c.client.R().SetContext(ctx).
 		SetHeader("Content-Type", "application/json").
 		SetQueryParams(map[string]string{
-			"takerAsset": filter.TakerAsset,
-			"makerAsset": filter.MakerAsset,
-			"chainId":    strconv.Itoa(int(filter.ChainID)),
+			"takerAsset":      filter.TakerAsset,
+			"makerAsset":      filter.MakerAsset,
+			"chainId":         strconv.Itoa(int(filter.ChainID)),
+			"contractAddress": filter.ContractAddress,
 		})
 	var result listOrdersResult
 	resp, err := req.SetResult(&result).Get(listOrdersEndpoint)
