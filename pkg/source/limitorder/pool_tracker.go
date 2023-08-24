@@ -39,9 +39,15 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		token0, token1 = p.Tokens[1], p.Tokens[0]
 	}
 
-	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		return entity.Pool{}, err
+	var contractAddress string
+	if d.config.SupportMultiSCs {
+		var staticExtra StaticExtra
+		if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+			return entity.Pool{}, err
+		}
+		contractAddress = staticExtra.ContractAddress
+	} else {
+		contractAddress = ""
 	}
 
 	extra := Extra{}
@@ -52,7 +58,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			ChainID:         ChainID(d.config.ChainID),
 			MakerAsset:      token0.Address,
 			TakerAsset:      token1.Address,
-			ContractAddress: staticExtra.ContractAddress,
+			ContractAddress: contractAddress,
 		})
 		if err != nil {
 			logger.WithFields(logger.Fields{
@@ -69,7 +75,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			ChainID:         ChainID(d.config.ChainID),
 			MakerAsset:      token1.Address,
 			TakerAsset:      token0.Address,
-			ContractAddress: staticExtra.ContractAddress,
+			ContractAddress: contractAddress,
 		})
 		if err != nil {
 			logger.WithFields(logger.Fields{
