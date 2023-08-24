@@ -16,14 +16,13 @@ import (
 
 type StablePool struct {
 	pool.Pool
-	A                      *big.Int
-	Precision              *big.Int
-	VaultAddress           string
-	PoolId                 string
-	Decimals               []uint
-	ScalingFactors         []*big.Int
-	gas                    balancer.Gas
-	mapTokenAddressToIndex map[string]int
+	A              *big.Int
+	Precision      *big.Int
+	VaultAddress   string
+	PoolId         string
+	Decimals       []uint
+	ScalingFactors []*big.Int
+	gas            balancer.Gas
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*StablePool, error) {
@@ -42,12 +41,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*StablePool, error) {
 	numTokens := len(entityPool.Tokens)
 	tokens := make([]string, numTokens)
 	reserves := make([]*big.Int, numTokens)
-	mapTokenAddressToIndex := make(map[string]int)
 
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
-		mapTokenAddressToIndex[entityPool.Tokens[i].Address] = i
 	}
 
 	return &StablePool{
@@ -63,14 +60,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*StablePool, error) {
 				Checked:    false,
 			},
 		},
-		VaultAddress:           strings.ToLower(staticExtra.VaultAddress),
-		PoolId:                 strings.ToLower(staticExtra.PoolId),
-		A:                      extra.AmplificationParameter.Value,
-		Precision:              extra.AmplificationParameter.Precision,
-		ScalingFactors:         extra.ScalingFactors,
-		Decimals:               lo.Map(staticExtra.TokenDecimals, func(dec int, _ int) uint { return uint(dec) }),
-		gas:                    balancer.DefaultGas,
-		mapTokenAddressToIndex: mapTokenAddressToIndex,
+		VaultAddress:   strings.ToLower(staticExtra.VaultAddress),
+		PoolId:         strings.ToLower(staticExtra.PoolId),
+		A:              extra.AmplificationParameter.Value,
+		Precision:      extra.AmplificationParameter.Precision,
+		ScalingFactors: extra.ScalingFactors,
+		Decimals:       lo.Map(staticExtra.TokenDecimals, func(dec int, _ int) uint { return uint(dec) }),
+		gas:            balancer.DefaultGas,
 	}, nil
 }
 
@@ -121,10 +117,14 @@ func (t *StablePool) CalcAmountOut(
 }
 
 func (t *StablePool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+	mapTokenAddressToIndex := make(map[string]int)
+	for idx, tokenAddress := range t.Pool.Info.Tokens {
+		mapTokenAddressToIndex[tokenAddress] = idx
+	}
 	return balancer.Meta{
 		VaultAddress:           t.VaultAddress,
 		PoolId:                 t.PoolId,
-		MapTokenAddressToIndex: t.mapTokenAddressToIndex,
+		MapTokenAddressToIndex: mapTokenAddressToIndex,
 	}
 }
 

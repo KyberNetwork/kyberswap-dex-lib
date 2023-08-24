@@ -16,12 +16,11 @@ import (
 
 type WeightedPool2Tokens struct {
 	pool.Pool
-	VaultAddress           string
-	PoolId                 string
-	Decimals               []uint
-	Weights                []*big.Int
-	gas                    balancer.Gas
-	mapTokenAddressToIndex map[string]int
+	VaultAddress string
+	PoolId       string
+	Decimals     []uint
+	Weights      []*big.Int
+	gas          balancer.Gas
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*WeightedPool2Tokens, error) {
@@ -38,14 +37,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*WeightedPool2Tokens, error) {
 	reserves := make([]*big.Int, numTokens)
 	weights := make([]*big.Int, numTokens)
 	decimals := make([]uint, numTokens)
-	mapTokenAddressToIndex := make(map[string]int)
 
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 		weights[i] = big.NewInt(int64(entityPool.Tokens[i].Weight))
 		decimals[i] = uint(staticExtra.TokenDecimals[i])
-		mapTokenAddressToIndex[entityPool.Tokens[i].Address] = i
 	}
 
 	return &WeightedPool2Tokens{
@@ -61,12 +58,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*WeightedPool2Tokens, error) {
 				Checked:    false,
 			},
 		},
-		VaultAddress:           strings.ToLower(staticExtra.VaultAddress),
-		PoolId:                 strings.ToLower(staticExtra.PoolId),
-		Decimals:               decimals,
-		Weights:                weights,
-		gas:                    balancer.DefaultGas,
-		mapTokenAddressToIndex: mapTokenAddressToIndex,
+		VaultAddress: strings.ToLower(staticExtra.VaultAddress),
+		PoolId:       strings.ToLower(staticExtra.PoolId),
+		Decimals:     decimals,
+		Weights:      weights,
+		gas:          balancer.DefaultGas,
 	}, nil
 }
 
@@ -125,10 +121,14 @@ func (t *WeightedPool2Tokens) CalcAmountOut(
 }
 
 func (t *WeightedPool2Tokens) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+	mapTokenAddressToIndex := make(map[string]int)
+	for idx, tokenAddress := range t.Pool.Info.Tokens {
+		mapTokenAddressToIndex[tokenAddress] = idx
+	}
 	return balancer.Meta{
 		VaultAddress:           t.VaultAddress,
 		PoolId:                 t.PoolId,
-		MapTokenAddressToIndex: t.mapTokenAddressToIndex,
+		MapTokenAddressToIndex: mapTokenAddressToIndex,
 	}
 }
 
