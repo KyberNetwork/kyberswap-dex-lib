@@ -28,6 +28,10 @@ common:
     - "sushiswap-v3"
     - "maverick-v1"
     - "bvm"
+    - "kyberswap-elastic"
+    - "balancer"
+    - "balancer-composable-stable"
+    - "horizon-dex"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
