@@ -25,11 +25,13 @@ func NewHTTPClient(baseURL string) *httpClient {
 func (c *httpClient) ListAllPairs(
 	ctx context.Context,
 	chainID ChainID,
+	supportMultiSCs bool,
 ) ([]*limitOrderPair, error) {
 	req := c.client.R().SetContext(ctx).
 		SetHeader("Content-Type", "application/json").
 		SetQueryParams(map[string]string{
-			"chainId": strconv.Itoa(int(chainID)),
+			"chainId":                    strconv.Itoa(int(chainID)),
+			"hasDistinctContractAddress": strconv.FormatBool(supportMultiSCs),
 		})
 
 	var result listAllPairsResult
@@ -54,9 +56,10 @@ func (c *httpClient) ListOrders(
 	req := c.client.R().SetContext(ctx).
 		SetHeader("Content-Type", "application/json").
 		SetQueryParams(map[string]string{
-			"takerAsset": filter.TakerAsset,
-			"makerAsset": filter.MakerAsset,
-			"chainId":    strconv.Itoa(int(filter.ChainID)),
+			"takerAsset":      filter.TakerAsset,
+			"makerAsset":      filter.MakerAsset,
+			"chainId":         strconv.Itoa(int(filter.ChainID)),
+			"contractAddress": filter.ContractAddress,
 		})
 	var result listOrdersResult
 	resp, err := req.SetResult(&result).Get(listOrdersEndpoint)
