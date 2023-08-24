@@ -53,6 +53,7 @@ type Gas struct {
 }
 
 type Meta struct {
-	VaultAddress string `json:"vault"`
-	PoolId       string `json:"poolId"`
+	VaultAddress           string         `json:"vault"`
+	PoolId                 string         `json:"poolId"`
+	MapTokenAddressToIndex map[string]int `json:"mapTokenAddressToIndex"`
 }
