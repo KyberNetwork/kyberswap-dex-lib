@@ -53,7 +53,7 @@ func (v *getRoutesParamsValidator) validateTokenIn(tokenIn, tokenOut string) err
 		return NewValidationError("tokenIn", "required")
 	}
 
-	if !isEthereumAddress(tokenIn) {
+	if !IsEthereumAddress(tokenIn) {
 		return NewValidationError("tokenIn", "invalid")
 	}
 
@@ -69,7 +69,7 @@ func (v *getRoutesParamsValidator) validateTokenOut(tokenOut string) error {
 		return NewValidationError("tokenOut", "required")
 	}
 
-	if !isEthereumAddress(tokenOut) {
+	if !IsEthereumAddress(tokenOut) {
 		return NewValidationError("tokenOut", "invalid")
 	}
 
@@ -94,7 +94,7 @@ func (v *getRoutesParamsValidator) validateFeeReceiver(feeReceiver string) error
 		return nil
 	}
 
-	if !isEthereumAddress(feeReceiver) {
+	if !IsEthereumAddress(feeReceiver) {
 		return NewValidationError("feeReceiver", "invalid")
 	}
 

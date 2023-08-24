@@ -11,7 +11,7 @@ require (
 	github.com/DataDog/datadog-go v4.8.2+incompatible
 	github.com/KyberNetwork/aevm v1.0.1-0.20230816144311-058a85ce673d
 	github.com/KyberNetwork/ethrpc v0.3.0
-	github.com/KyberNetwork/kyberswap-dex-lib v0.9.8
+	github.com/KyberNetwork/kyberswap-dex-lib v0.10.0
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/alicebob/miniredis v2.5.0+incompatible

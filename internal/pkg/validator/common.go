@@ -1,5 +1,5 @@
 package validator
 
-func isEthereumAddress(str string) bool {
+func IsEthereumAddress(str string) bool {
 	return ethAddressRegex.MatchString(str)
 }

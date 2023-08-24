@@ -102,7 +102,7 @@ func (v *getRouteEncodeParamsValidator) validateTokenIn(tokenIn string) error {
 		return NewValidationError("tokenIn", "required")
 	}
 
-	if !isEthereumAddress(tokenIn) {
+	if !IsEthereumAddress(tokenIn) {
 		return NewValidationError("tokenIn", "invalid")
 	}
 
@@ -114,7 +114,7 @@ func (v *getRouteEncodeParamsValidator) validateTokenOut(tokenOut string) error 
 		return NewValidationError("tokenOut", "required")
 	}
 
-	if !isEthereumAddress(tokenOut) {
+	if !IsEthereumAddress(tokenOut) {
 		return NewValidationError("tokenOut", "invalid")
 	}
 
@@ -126,7 +126,7 @@ func (v *getRouteEncodeParamsValidator) validateTo(to string) error {
 		return NewValidationError("to", "required")
 	}
 
-	if !isEthereumAddress(to) {
+	if !IsEthereumAddress(to) {
 		return NewValidationError("to", "invalid")
 	}
 	return nil
@@ -137,7 +137,7 @@ func (v *getRouteEncodeParamsValidator) validateFeeReceiver(feeReceiver string) 
 		return nil
 	}
 
-	if !isEthereumAddress(feeReceiver) {
+	if !IsEthereumAddress(feeReceiver) {
 		return NewValidationError("feeReceiver", "invalid")
 	}
 

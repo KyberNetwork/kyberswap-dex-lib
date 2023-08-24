@@ -5,7 +5,9 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/validator"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type EncodingDataBuilder struct {
@@ -141,6 +143,13 @@ func transformRoute(route [][]valueobject.Swap, kyberLOAddress string) [][]Encod
 
 func getPool(swap *valueobject.Swap, kyberLOAddress string) string {
 	if swap.Exchange == valueobject.ExchangeKyberSwapLimitOrder {
+		if swap.PoolExtra != nil {
+			if contractAddress, ok := swap.PoolExtra.(string); ok && validator.IsEthereumAddress(contractAddress) {
+				return contractAddress
+			} else {
+				logger.Debugf("Invalid LO contract address %v %v", swap.PoolExtra, swap.Pool)
+			}
+		}
 		return kyberLOAddress
 	}
 	return swap.Pool
