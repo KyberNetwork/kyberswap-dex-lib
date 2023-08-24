@@ -29,8 +29,9 @@ type (
 	}
 
 	limitOrderPair struct {
-		MakerAsset string `json:"makerAsset"`
-		TakeAsset  string `json:"takerAsset"`
+		MakerAsset      string `json:"makerAsset"`
+		TakeAsset       string `json:"takerAsset"`
+		ContractAddress string `json:"contractAddress"`
 	}
 
 	listOrdersData struct {
@@ -67,6 +68,7 @@ type (
 		ChainID             ChainID
 		MakerAsset          string
 		TakerAsset          string
+		ContractAddress     string
 		ExcludeExpiredOrder bool
 	}
 
