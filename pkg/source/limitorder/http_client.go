@@ -25,12 +25,13 @@ func NewHTTPClient(baseURL string) *httpClient {
 func (c *httpClient) ListAllPairs(
 	ctx context.Context,
 	chainID ChainID,
+	supportMultiSCs bool,
 ) ([]*limitOrderPair, error) {
 	req := c.client.R().SetContext(ctx).
 		SetHeader("Content-Type", "application/json").
 		SetQueryParams(map[string]string{
 			"chainId":                    strconv.Itoa(int(chainID)),
-			"hasDistinctContractAddress": "true",
+			"hasDistinctContractAddress": strconv.FormatBool(supportMultiSCs),
 		})
 
 	var result listAllPairsResult

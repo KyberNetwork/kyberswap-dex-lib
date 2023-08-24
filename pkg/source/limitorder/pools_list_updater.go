@@ -26,7 +26,7 @@ func NewPoolsListUpdater(
 }
 
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	loPairs, err := d.limitOrderClient.ListAllPairs(ctx, ChainID(d.config.ChainID))
+	loPairs, err := d.limitOrderClient.ListAllPairs(ctx, ChainID(d.config.ChainID), d.config.SupportMultiSCs)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
@@ -89,10 +89,16 @@ func (d *PoolsListUpdater) toTokenPair(pair *limitOrderPair) *tokenPair {
 
 func (d *PoolsListUpdater) getPoolID(token0, token1, contractAddress string) string {
 	token0, token1 = strings.ToLower(token0), strings.ToLower(token1)
+	var poolId string
 	if token0 > token1 {
-		return strings.Join([]string{PrefixLimitOrderPoolID, token0, token1, contractAddress}, SeparationCharacterLimitOrderPoolID)
+		poolId = strings.Join([]string{PrefixLimitOrderPoolID, token0, token1}, SeparationCharacterLimitOrderPoolID)
+	} else {
+		poolId = strings.Join([]string{PrefixLimitOrderPoolID, token1, token0}, SeparationCharacterLimitOrderPoolID)
 	}
-	return strings.Join([]string{PrefixLimitOrderPoolID, token1, token0, contractAddress}, SeparationCharacterLimitOrderPoolID)
+	if d.config.SupportMultiSCs {
+		return strings.Join([]string{poolId, contractAddress}, SeparationCharacterLimitOrderPoolID)
+	}
+	return poolId
 }
 
 func (d *PoolsListUpdater) initPool(pair *tokenPair) (entity.Pool, error) {
