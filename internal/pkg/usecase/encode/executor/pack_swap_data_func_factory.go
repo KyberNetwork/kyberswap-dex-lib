@@ -68,6 +68,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeValleySwapV2, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeZipSwap, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeQuickSwap, swapdata.PackUniSwap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeSynthSwap, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangePolycat, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeDFYN, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangePolyDex, swapdata.PackUniSwap)
@@ -99,6 +100,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeBaseSwap, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeAlienBase, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeSwapBased, swapdata.PackUniSwap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBaso, swapdata.PackUniSwap)
 
 	RegisterPackSwapDataFunc(valueobject.ExchangeCamelot, swapdata.PackCamelot)
 
@@ -165,4 +167,5 @@ func init() {
 
 	// AlgebraV1
 	RegisterPackSwapDataFunc(valueobject.ExchangeQuickSwapV3, swapdata.PackAlgebraV1)
+	RegisterPackSwapDataFunc(valueobject.ExchangeSynthSwapV3, swapdata.PackAlgebraV1)
 }

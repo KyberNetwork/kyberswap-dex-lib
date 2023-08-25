@@ -42,6 +42,8 @@ var (
 	ExchangeZipSwap       Exchange = "zipswap"
 	ExchangeQuickSwap     Exchange = "quickswap"
 	ExchangeQuickSwapV3   Exchange = "quickswap-v3"
+	ExchangeSynthSwap     Exchange = "synthswap"
+	ExchangeSynthSwapV3   Exchange = "synthswap-v3"
 	ExchangePolycat       Exchange = "polycat"
 	ExchangeDFYN          Exchange = "dfyn"
 	ExchangePolyDex       Exchange = "polydex"
@@ -114,6 +116,7 @@ var (
 	ExchangeThena      Exchange = "thena"
 	ExchangePearl      Exchange = "pearl"
 	ExchangePearlV2    Exchange = "pearl-v2"
+	ExchangeBaso       Exchange = "baso"
 
 	ExchangePlatypus Exchange = "platypus"
 
@@ -164,6 +167,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZipSwap:                  {},
 	ExchangeQuickSwap:                {},
 	ExchangeQuickSwapV3:              {},
+	ExchangeSynthSwap:                {},
+	ExchangeSynthSwapV3:              {},
 	ExchangePolycat:                  {},
 	ExchangeDFYN:                     {},
 	ExchangePolyDex:                  {},
@@ -228,6 +233,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBaseSwap:                 {},
 	ExchangeAlienBase:                {},
 	ExchangeSwapBased:                {},
+	ExchangeBaso:                     {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
