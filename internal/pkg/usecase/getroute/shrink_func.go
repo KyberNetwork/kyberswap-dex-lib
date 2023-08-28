@@ -22,7 +22,10 @@ func ShrinkFuncFactory(config valueobject.CacheConfig) ShrinkFunc {
 	case ShrinkFuncNameRound:
 		return ShrinkFuncRound
 	case ShrinkFuncNameDecimal:
-		return ShrinkFuncDecimal
+		return func(v float64) float64 {
+			l := math.Pow(config.ShrinkDecimalBase, math.Floor(math.Log(v)/math.Log(config.ShrinkDecimalBase)))
+			return l * math.Round(v/l)
+		}
 	case ShrinkFuncNameLogarithm:
 		return func(f float64) float64 {
 			return math.Pow(config.ShrinkFuncLogPercent, math.Round(math.Log(f)/math.Log(config.ShrinkFuncLogPercent)))
@@ -40,9 +43,4 @@ func ShrinkFuncPow(exp float64) ShrinkFunc {
 
 func ShrinkFuncRound(v float64) float64 {
 	return math.Round(v)
-}
-
-func ShrinkFuncDecimal(v float64) float64 {
-	l := math.Pow10(int(math.Floor(math.Log10(v))))
-	return l * math.Round(v/l)
 }

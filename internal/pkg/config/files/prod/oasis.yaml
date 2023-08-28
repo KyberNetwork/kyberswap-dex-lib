@@ -182,6 +182,7 @@ useCase:
           ttl: 10s
       priceImpactThreshold: 0.005
       shrinkFuncName: "round"
+      shrinkDecimalBase: 10
       shrinkFuncPowExp: 0.7
       shrinkFuncLogPercent: 1.01
   buildRoute:

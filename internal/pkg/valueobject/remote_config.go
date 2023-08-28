@@ -70,6 +70,7 @@ type CacheConfig struct {
 
 	ShrinkFuncName       string  `mapstructure:"shrinkFuncName" json:"shrinkFuncName"`
 	ShrinkFuncPowExp     float64 `mapstructure:"shrinkFuncPowExp" json:"shrinkFuncPowExp"`
+	ShrinkDecimalBase    float64 `mapstructure:"shrinkDecimalBase" json:"shrinkDecimalBase"`
 	ShrinkFuncLogPercent float64 `mapstructure:"shrinkFuncLogPercent" json:"shrinkFuncLogPercent"`
 }
 
