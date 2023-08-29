@@ -5,6 +5,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [v1.21.3] - 2023-08-28
+
+### Added 
+- Support `synapse` on base (#388)
+
+### Fixed
+- Fix bug `alien-base` wrong rate (#388)
+
+
+## [v1.21.2] - 2023-08-25
+
+### Added
+- Support `baso`, `synthswap-v3`, `synthswap` on base (#385)
+- Use LO contract address from pool if available (#378)
+  - Use LO contract address from pool if available 
+  - Check valid eth address 
+  - Bump dex-lib v0.10.0
+
+
+## [v1.21.1] - 2023-08-24
+
+### Added
+- Support `kyberswap-elastic`, `horizon`, `balancer`, `balancer-composable-stable` on base (#380)
+- Support `balancer`, `balancer-composable` on avalanche (#380)
+
+
+## [v1.21.0] - 2023-08-23
+
+### Added 
+- Support base (#374)
+
+
 ## [v1.20.0] - 2023-08-23   
 
 ### Added
