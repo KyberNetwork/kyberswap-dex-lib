@@ -2,11 +2,9 @@ package source
 
 import (
 	"fmt"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pearl"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodromev2"
 
 	"github.com/KyberNetwork/ethrpc"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	balancerComposableStable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
@@ -31,6 +29,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nerve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/oneswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pancakev3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pearl"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/polydex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -124,6 +123,15 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return velodrome.NewPoolListUpdater(&cfg, ethrpcClient), nil
+	case velodromev2.DexTypeVelodromeV2:
+		var cfg velodromev2.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return velodromev2.NewPoolListUpdater(&cfg, ethrpcClient), nil
 	case velocimeter.DexTypeVelocimeter:
 		var cfg velocimeter.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
@@ -439,6 +447,15 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return velodrome.NewPoolTracker(&cfg, ethrpcClient)
+	case velodromev2.DexTypeVelodromeV2:
+		var cfg velodromev2.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return velodromev2.NewPoolTracker(&cfg, ethrpcClient)
 	case velocimeter.DexTypeVelocimeter:
 		var cfg velocimeter.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
