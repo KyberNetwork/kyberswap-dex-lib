@@ -121,9 +121,14 @@ func (t *WeightedPool2Tokens) CalcAmountOut(
 }
 
 func (t *WeightedPool2Tokens) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+	mapTokenAddressToIndex := make(map[string]int)
+	for idx, tokenAddress := range t.Pool.Info.Tokens {
+		mapTokenAddressToIndex[tokenAddress] = idx
+	}
 	return balancer.Meta{
-		VaultAddress: t.VaultAddress,
-		PoolId:       t.PoolId,
+		VaultAddress:           t.VaultAddress,
+		PoolId:                 t.PoolId,
+		MapTokenAddressToIndex: mapTokenAddressToIndex,
 	}
 }
 
