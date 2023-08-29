@@ -101,6 +101,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeAlienBase, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeSwapBased, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeBaso, swapdata.PackUniSwap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeRocketSwapV2, swapdata.PackUniSwap)
 
 	RegisterPackSwapDataFunc(valueobject.ExchangeCamelot, swapdata.PackCamelot)
 
@@ -129,6 +130,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeSushiSwapV3, swapdata.PackUniswapV3KSElastic)
 	RegisterPackSwapDataFunc(valueobject.ExchangeRamsesV2, swapdata.PackUniswapV3KSElastic)
 	RegisterPackSwapDataFunc(valueobject.ExchangeEchoDexV3, swapdata.PackUniswapV3KSElastic)
+	RegisterPackSwapDataFunc(valueobject.ExchangeDackieV3, swapdata.PackUniswapV3KSElastic)
 
 	// BalancerV2
 	RegisterPackSwapDataFunc(valueobject.ExchangeBalancer, swapdata.PackBalancerV2)

@@ -76,6 +76,7 @@ var (
 		valueobject.ExchangeAlienBase:       true,
 		valueobject.ExchangeSwapBased:       true,
 		valueobject.ExchangeBaso:            true,
+		valueobject.ExchangeRocketSwapV2:    true,
 
 		// GMX and GMX-like exchanges are also able to receive token before calling swap.
 		// However, they validate balance before swapping, so it's not possible to execute two gmx swaps consecutively without transferring token back to executor
