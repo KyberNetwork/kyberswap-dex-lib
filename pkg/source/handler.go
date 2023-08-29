@@ -10,6 +10,7 @@ import (
 	balancerComposableStable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/biswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/crowdswapv2" //FIXME: crowdswap: Should we do anything?
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dodo"
@@ -69,6 +70,15 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return uniswapv3.NewPoolsListUpdater(&cfg), nil
+	case crowdswapv2.DexTypeCrowdswapV2:
+		var cfg crowdswapv2.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		return crowdswapv2.NewPoolsListUpdater(&cfg, ethrpcClient), nil
 	case algebrav1.DexTypeAlgebraV1:
 		var cfg algebrav1.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
@@ -414,6 +424,8 @@ func NewPoolTrackerHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return uniswapv3.NewPoolTracker(&cfg, ethrpcClient)
+	case crowdswapv2.DexTypeCrowdswapV2:
+		return crowdswapv2.NewPoolTracker(ethrpcClient)
 	case algebrav1.DexTypeAlgebraV1:
 		var cfg algebrav1.Config
 		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
