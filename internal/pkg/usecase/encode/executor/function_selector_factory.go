@@ -88,6 +88,7 @@ func init() {
 
 	RegisterFunctionSelector(valueobject.ExchangeQuickSwapV3, FunctionSelectorAlgebraV1)
 	RegisterFunctionSelector(valueobject.ExchangeSynthSwapV3, FunctionSelectorAlgebraV1)
+	RegisterFunctionSelector(valueobject.ExchangeSwapBasedV3, FunctionSelectorAlgebraV1)
 
 	// executeCamelotSwap
 	RegisterFunctionSelector(valueobject.ExchangeCamelot, FunctionSelectorCamelotSwap)

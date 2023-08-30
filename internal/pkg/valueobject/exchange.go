@@ -44,6 +44,7 @@ var (
 	ExchangeQuickSwapV3   Exchange = "quickswap-v3"
 	ExchangeSynthSwap     Exchange = "synthswap"
 	ExchangeSynthSwapV3   Exchange = "synthswap-v3"
+	ExchangeSwapBasedV3   Exchange = "swapbased-v3"
 	ExchangePolycat       Exchange = "polycat"
 	ExchangeDFYN          Exchange = "dfyn"
 	ExchangePolyDex       Exchange = "polydex"
@@ -173,6 +174,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeQuickSwapV3:              {},
 	ExchangeSynthSwap:                {},
 	ExchangeSynthSwapV3:              {},
+	ExchangeSwapBasedV3:              {},
 	ExchangePolycat:                  {},
 	ExchangeDFYN:                     {},
 	ExchangePolyDex:                  {},

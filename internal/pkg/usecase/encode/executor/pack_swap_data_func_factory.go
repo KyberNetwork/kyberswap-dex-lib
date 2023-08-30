@@ -172,4 +172,5 @@ func init() {
 	// AlgebraV1
 	RegisterPackSwapDataFunc(valueobject.ExchangeQuickSwapV3, swapdata.PackAlgebraV1)
 	RegisterPackSwapDataFunc(valueobject.ExchangeSynthSwapV3, swapdata.PackAlgebraV1)
+	RegisterPackSwapDataFunc(valueobject.ExchangeSwapBasedV3, swapdata.PackAlgebraV1)
 }
