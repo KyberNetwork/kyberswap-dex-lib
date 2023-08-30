@@ -106,19 +106,21 @@ var (
 	ExchangeKyberSwap       Exchange = "kyberswap"
 	ExchangeKyberSwapStatic Exchange = "kyberswap-static"
 
-	ExchangeVelodrome  Exchange = "velodrome"
-	ExchangeFvm        Exchange = "fvm"
-	ExchangeBvm        Exchange = "bvm"
-	ExchangeDystopia   Exchange = "dystopia"
-	ExchangeChronos    Exchange = "chronos"
-	ExchangeRamses     Exchange = "ramses"
-	ExchangeVelocore   Exchange = "velocore"
-	ExchangeMuteSwitch Exchange = "muteswitch"
-	ExchangeRetro      Exchange = "retro"
-	ExchangeThena      Exchange = "thena"
-	ExchangePearl      Exchange = "pearl"
-	ExchangePearlV2    Exchange = "pearl-v2"
-	ExchangeBaso       Exchange = "baso"
+	ExchangeVelodrome   Exchange = "velodrome"
+	ExchangeVelodromeV2 Exchange = "velodrome-v2"
+	ExchangeAerodrome   Exchange = "aerodrome"
+	ExchangeFvm         Exchange = "fvm"
+	ExchangeBvm         Exchange = "bvm"
+	ExchangeDystopia    Exchange = "dystopia"
+	ExchangeChronos     Exchange = "chronos"
+	ExchangeRamses      Exchange = "ramses"
+	ExchangeVelocore    Exchange = "velocore"
+	ExchangeMuteSwitch  Exchange = "muteswitch"
+	ExchangeRetro       Exchange = "retro"
+	ExchangeThena       Exchange = "thena"
+	ExchangePearl       Exchange = "pearl"
+	ExchangePearlV2     Exchange = "pearl-v2"
+	ExchangeBaso        Exchange = "baso"
 
 	ExchangePlatypus Exchange = "platypus"
 
@@ -213,6 +215,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeKyberSwap:                {},
 	ExchangeKyberSwapStatic:          {},
 	ExchangeVelodrome:                {},
+	ExchangeVelodromeV2:              {},
+	ExchangeAerodrome:                {},
 	ExchangeFvm:                      {},
 	ExchangeBvm:                      {},
 	ExchangeThena:                    {},
