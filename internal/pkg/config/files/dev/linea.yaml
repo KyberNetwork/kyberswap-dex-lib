@@ -10,7 +10,7 @@ common:
   chainId: &chainId 59144
   chainName: &chainName linea
   rpc: "https://rpc.linea.build"
-  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
+  executorAddress: &executorAddress "0x0bCF4eAb6464DfeE9d72849c24D2dC12547E68A9"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0xe5d7c2a44ffddf6b295a15c148167daaaf5cf34f"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -27,6 +27,7 @@ common:
     - "horizon-dex"
     - "kyberswap-elastic"
     - "echo-dex-v3"
+    - "lynex"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
