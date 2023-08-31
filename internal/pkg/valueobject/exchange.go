@@ -45,6 +45,7 @@ var (
 	ExchangeSynthSwap     Exchange = "synthswap"
 	ExchangeSynthSwapV3   Exchange = "synthswap-v3"
 	ExchangeSwapBasedV3   Exchange = "swapbased-v3"
+	ExchangeLynex         Exchange = "lynex"
 	ExchangePolycat       Exchange = "polycat"
 	ExchangeDFYN          Exchange = "dfyn"
 	ExchangePolyDex       Exchange = "polydex"
@@ -175,6 +176,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSynthSwap:                {},
 	ExchangeSynthSwapV3:              {},
 	ExchangeSwapBasedV3:              {},
+	ExchangeLynex:                    {},
 	ExchangePolycat:                  {},
 	ExchangeDFYN:                     {},
 	ExchangePolyDex:                  {},
