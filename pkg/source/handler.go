@@ -18,6 +18,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ironstable"
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
+	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido"
 	lido_steth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido-steth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
@@ -393,6 +395,18 @@ func NewPoolsListUpdaterHandler(
 		cfg.DexID = scanDexCfg.Id
 
 		return traderjoev21.NewPoolsListUpdater(&cfg, ethrpcClient), nil
+	case kyberpmm.DexTypeKyberPMM:
+		var cfg kyberpmm.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		httpClient := kyberpmmclient.NewHTTPClient(&cfg.HTTP)
+		memoryCacheClient := kyberpmmclient.NewMemoryCacheClient(&cfg.MemoryCache, httpClient)
+
+		return kyberpmm.NewPoolsListUpdater(cfg, memoryCacheClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pools list updater handler: %s", scanDexCfg.Handler)
@@ -648,6 +662,18 @@ func NewPoolTrackerHandler(
 		return traderjoev20.NewPoolTracker(ethrpcClient, &cfg)
 	case traderjoev21.DexTypeTraderJoeV21:
 		return traderjoev21.NewPoolTracker(ethrpcClient)
+	case kyberpmm.DexTypeKyberPMM:
+		var cfg kyberpmm.Config
+		err := PropertiesToStruct(scanDexCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = scanDexCfg.Id
+
+		httpClient := kyberpmmclient.NewHTTPClient(&cfg.HTTP)
+		memoryCacheClient := kyberpmmclient.NewMemoryCacheClient(&cfg.MemoryCache, httpClient)
+
+		return kyberpmm.NewPoolTracker(&cfg, memoryCacheClient), nil
 	}
 
 	return nil, fmt.Errorf("can not find pool tracker handler: %s", scanDexCfg.Handler)
