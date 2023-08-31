@@ -54,10 +54,10 @@ type PriceLevel struct {
 }
 
 type SwapInfo struct {
-	BaseToken        string `json:"baseToken"`
-	BaseTokenAmount  string `json:"baseTokenAmount"`
-	QuoteToken       string `json:"quoteToken"`
-	QuoteTokenAmount string `json:"quoteTokenAmount"`
+	TakerAsset   string `json:"takerAsset"`
+	TakingAmount string `json:"takingAmount"`
+	MakerAsset   string `json:"makerAsset"`
+	MakingAmount string `json:"makingAmount"`
 }
 
 type Gas struct {

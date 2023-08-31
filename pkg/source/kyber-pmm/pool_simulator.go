@@ -143,10 +143,10 @@ func (p *PoolSimulator) swapBaseToQuote(tokenAmountIn pool.TokenAmount, tokenOut
 		Fee:            &pool.TokenAmount{Token: tokenAmountIn.Token, Amount: integer.Zero()},
 		Gas:            p.gas.Swap,
 		SwapInfo: SwapInfo{
-			BaseToken:        tokenAmountIn.Token,
-			BaseTokenAmount:  tokenAmountIn.Amount.String(),
-			QuoteToken:       tokenOut,
-			QuoteTokenAmount: amountOut.String(),
+			TakerAsset:   tokenAmountIn.Token,
+			TakingAmount: tokenAmountIn.Amount.String(),
+			MakerAsset:   tokenOut,
+			MakingAmount: amountOut.String(),
 		},
 	}, nil
 }
@@ -172,10 +172,10 @@ func (p *PoolSimulator) swapQuoteToBase(tokenAmountIn pool.TokenAmount, tokenOut
 		Fee:            &pool.TokenAmount{Token: tokenAmountIn.Token, Amount: integer.Zero()},
 		Gas:            p.gas.Swap,
 		SwapInfo: SwapInfo{
-			BaseToken:        tokenAmountIn.Token,
-			BaseTokenAmount:  tokenAmountIn.Amount.String(),
-			QuoteToken:       tokenOut,
-			QuoteTokenAmount: amountOut.String(),
+			TakerAsset:   tokenAmountIn.Token,
+			TakingAmount: tokenAmountIn.Amount.String(),
+			MakerAsset:   tokenOut,
+			MakingAmount: amountOut.String(),
 		},
 	}, nil
 }
