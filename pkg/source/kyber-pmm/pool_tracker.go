@@ -123,6 +123,13 @@ func transformPriceLevels(priceLevels PriceItem) ([]PriceLevel, []PriceLevel) {
 		if err != nil {
 			continue
 		}
+
+		// Check to prevent division by 0 panic
+		if baseToQuoteAskPrice == 0 {
+			logger.Debugf("base to quote ask price is 0, skip it")
+			continue
+		}
+
 		quoteToBaseBidPrice := 1 / baseToQuoteAskPrice
 
 		baseToQuoteAskAmount, err := strconv.ParseFloat(ask[1], 64)
