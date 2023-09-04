@@ -53,7 +53,7 @@ type PriceLevel struct {
 	Amount float64 `json:"amount"`
 }
 
-type SwapInfo struct {
+type SwapExtra struct {
 	TakerAsset   string `json:"takerAsset"`
 	TakingAmount string `json:"takingAmount"`
 	MakerAsset   string `json:"makerAsset"`
@@ -62,4 +62,39 @@ type SwapInfo struct {
 
 type Gas struct {
 	Swap int64
+}
+
+type FirmRequestParams struct {
+	MakerAsset  string `json:"makerAsset"`
+	TakerAsset  string `json:"takerAsset"`
+	MakerAmount string `json:"makerAmount"`
+	TakerAmount string `json:"takerAmount"`
+	UserAddress string `json:"userAddress"`
+}
+
+type FirmResult struct {
+	Order struct {
+		Info        string `json:"info"`
+		Expiry      int64  `json:"expiry"`
+		MakerAsset  string `json:"makerAsset"`
+		TakerAsset  string `json:"takerAsset"`
+		Maker       string `json:"maker"`
+		Taker       string `json:"taker"`
+		MakerAmount string `json:"makerAmount"`
+		TakerAmount string `json:"takerAmount"`
+		Signature   string `json:"signature"`
+	} `json:"order"`
+}
+
+type RFQExtra struct {
+	RFQContractAddress string `json:"rfqContractAddress"`
+	Info               string `json:"info"`
+	Expiry             int64  `json:"expiry"`
+	MakerAsset         string `json:"makerAsset"`
+	TakerAsset         string `json:"takerAsset"`
+	Maker              string `json:"maker"`
+	Taker              string `json:"taker"`
+	MakerAmount        string `json:"makerAmount"`
+	TakerAmount        string `json:"takerAmount"`
+	Signature          string `json:"signature"`
 }
