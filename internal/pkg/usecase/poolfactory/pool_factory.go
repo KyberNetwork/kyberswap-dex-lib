@@ -23,6 +23,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx"
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido"
 	lidosteth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido-steth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
@@ -286,6 +287,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newTraderJoeV20(entityPool, stateRoot)
 	case constant.PoolTypes.TraderJoeV21:
 		return f.newTraderJoeV21(entityPool, stateRoot)
+	case constant.PoolTypes.KyberPMM:
+		return f.newKyberPMM(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -842,5 +845,20 @@ func (f *PoolFactory) newTraderJoeV21(entityPool entity.Pool, stateRoot common.H
 			entityPool.Type,
 		)
 	}
+	return corePool, nil
+}
+
+func (f *PoolFactory) newKyberPMM(entityPool entity.Pool) (*kyberpmm.PoolSimulator, error) {
+	corePool, err := kyberpmm.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newKyberPMM] pool: [%s] » type: [%s] cause by %v",
+			entityPool.Address,
+			entityPool.Type,
+			err,
+		)
+	}
+
 	return corePool, nil
 }

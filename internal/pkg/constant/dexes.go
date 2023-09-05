@@ -58,6 +58,7 @@ type types struct {
 	AlgebraV1                string
 	TraderJoeV20             string
 	TraderJoeV21             string
+	KyberPMM                 string
 }
 
 var (
@@ -119,5 +120,6 @@ var (
 		AlgebraV1:                "algebra-v1",
 		TraderJoeV20:             "traderjoe-v20",
 		TraderJoeV21:             "traderjoe-v21",
+		KyberPMM:                 "kyber-pmm",
 	}
 )
