@@ -36,3 +36,7 @@ type IPoolSimulator interface {
 	GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	GetTokenIndex(address string) int
 }
+
+type IPoolRFQ interface {
+	RFQ(ctx context.Context, recipient string, params any) (any, error)
+}
