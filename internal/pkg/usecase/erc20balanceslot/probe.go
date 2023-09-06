@@ -91,7 +91,7 @@ func (p *Probe) ProbeBalanceSlot(token common.Address) (common.Hash, error) {
 		}
 
 		testValue := randomizeHash()
-		logger.Infof("    probing slot %s with test value %s\n", common.HexToHash(sload.Slot), testValue)
+		logger.Debugf("    probing slot %s with test value %s\n", common.HexToHash(sload.Slot), testValue)
 		result, err := jsonrpc.EthCall(
 			p.rpcClient,
 			&jsonrpc.EthCallCalldataParam{
@@ -109,18 +109,18 @@ func (p *Probe) ProbeBalanceSlot(token common.Address) (common.Hash, error) {
 				},
 			},
 		)
-		logger.Infof("    result = %+v\n", *result)
 		if err != nil {
 			return common.Hash{}, err
 		}
+		logger.Debugf("    result = %+v\n", *result)
 		if common.HexToHash(*result) == testValue {
-			logger.Infof("        slot %s is a candidate\n", common.HexToHash(sload.Slot))
+			logger.Debugf("        slot %s is a candidate\n", common.HexToHash(sload.Slot))
 			possibleSlots = append(possibleSlots, common.HexToHash(sload.Slot))
 		}
 	}
 
 	if len(possibleSlots) != 1 {
-		logger.Infof("    EXPECTED 1 CANDIDATE, GOT %v\n", len(possibleSlots))
+		logger.Debugf("    EXPECTED 1 CANDIDATE, GOT %v\n", len(possibleSlots))
 		return common.Hash{}, errors.New("could not probe")
 	}
 

@@ -41,6 +41,8 @@ common:
     - "iron-stable"
     - "pangolin"
     - "traderjoe"
+    #- "traderjoe-v20"
+    #- "traderjoe-v21"
     - "curve"
     - "synapse"
     - "axial"
@@ -262,6 +264,7 @@ validator:
     slippageToleranceLte: 5000
 aevmEnabled: false
 aevm:
-  serverUrl: "localhost:8246"
-  rpc: "http://localhost:9650/ext/bc/C/rpc"
+  # 192.168.8.3 is the AEVM-enabled Avalanche node which is reachable from router-service cluster
+  serverUrl: "192.168.8.3:8246"
+  rpc: "http://192.168.8.3:9650/ext/bc/C/rpc"
   simulationWallet: "0x47f3c2557364efc28f1269e3169773fa5236384d"

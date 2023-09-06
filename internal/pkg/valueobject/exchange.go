@@ -133,6 +133,9 @@ var (
 	ExchangeKyberSwapLimitOrder Exchange = "kyberswap-limit-order"
 
 	ExchangeKyberPMM Exchange = "kyber-pmm"
+
+	ExchangeTraderJoeV20 Exchange = "traderjoe-v20"
+	ExchangeTraderJoeV21 Exchange = "traderjoe-v21"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -249,6 +252,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeRocketSwapV2:             {},
 	ExchangeDackieV3:                 {},
 	ExchangeKyberPMM:                 {},
+	ExchangeTraderJoeV20:             {},
+	ExchangeTraderJoeV21:             {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
