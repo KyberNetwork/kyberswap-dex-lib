@@ -161,3 +161,7 @@ func (c *memoryCacheClient) savePriceLevelsToCache(priceLevels map[string]kyberp
 
 	return nil
 }
+
+func (c *memoryCacheClient) Firm(ctx context.Context, params kyberpmm.FirmRequestParams) (kyberpmm.FirmResult, error) {
+	return c.fallbackClient.Firm(ctx, params)
+}

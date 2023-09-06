@@ -4,14 +4,16 @@ import (
 	"context"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 )
 
 const (
-	listTokens = "/kyberswap/v1/tokens"
-	listPairs  = "/kyberswap/v1/pairs"
-	listPrices = "/kyberswap/v1/prices"
+	listTokensEndpoint = "/kyberswap/v1/tokens"
+	listPairsEndpoint  = "/kyberswap/v1/pairs"
+	listPricesEndpoint = "/kyberswap/v1/prices"
+	firmEndpoint       = "/kyberswap/v1/firm"
 )
 
 type httpClient struct {
@@ -36,13 +38,13 @@ func (c *httpClient) ListTokens(ctx context.Context) (map[string]kyberpmm.TokenI
 		SetContext(ctx)
 
 	var result kyberpmm.ListTokensResult
-	resp, err := req.SetResult(&result).Get(listTokens)
+	resp, err := req.SetResult(&result).Get(listTokensEndpoint)
 	if err != nil {
 		return nil, err
 	}
 
 	if !resp.IsSuccess() {
-		return nil, ErrListTokensFailed
+		return nil, errors.Wrapf(ErrListTokensFailed, "response status: %v, response error: %v", resp.Status(), resp.Error())
 	}
 
 	return result.Tokens, nil
@@ -53,13 +55,13 @@ func (c *httpClient) ListPairs(ctx context.Context) (map[string]kyberpmm.PairIte
 		SetContext(ctx)
 
 	var result kyberpmm.ListPairsResult
-	resp, err := req.SetResult(&result).Get(listPairs)
+	resp, err := req.SetResult(&result).Get(listPairsEndpoint)
 	if err != nil {
 		return nil, err
 	}
 
 	if !resp.IsSuccess() {
-		return nil, ErrListPairsFailed
+		return nil, errors.Wrapf(ErrListPairsFailed, "response status: %v, response error: %v", resp.Status(), resp.Error())
 	}
 
 	return result.Pairs, nil
@@ -70,14 +72,32 @@ func (c *httpClient) ListPriceLevels(ctx context.Context) (map[string]kyberpmm.P
 		SetContext(ctx)
 
 	var result kyberpmm.ListPriceLevelsResult
-	resp, err := req.SetResult(&result).Get(listPrices)
+	resp, err := req.SetResult(&result).Get(listPricesEndpoint)
 	if err != nil {
 		return nil, err
 	}
 
 	if !resp.IsSuccess() {
-		return nil, ErrListPriceLevelsFailed
+		return nil, errors.Wrapf(ErrListPriceLevelsFailed, "response status: %v, response error: %v", resp.Status(), resp.Error())
 	}
 
 	return result.Prices, nil
+}
+
+func (c *httpClient) Firm(ctx context.Context, params kyberpmm.FirmRequestParams) (kyberpmm.FirmResult, error) {
+	req := c.client.R().
+		SetContext(ctx).
+		SetBody(params)
+
+	var result kyberpmm.FirmResult
+	resp, err := req.SetResult(&result).Post(firmEndpoint)
+	if err != nil {
+		return kyberpmm.FirmResult{}, err
+	}
+
+	if !resp.IsSuccess() {
+		return kyberpmm.FirmResult{}, errors.Wrapf(ErrFirmQuoteFailed, "response status: %v, response error: %v", resp.Status(), resp.Error())
+	}
+
+	return result, nil
 }
