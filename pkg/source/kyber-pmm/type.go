@@ -97,4 +97,5 @@ type RFQExtra struct {
 	MakerAmount        string `json:"makerAmount"`
 	TakerAmount        string `json:"takerAmount"`
 	Signature          string `json:"signature"`
+	Recipient          string `json:"recipient"`
 }

@@ -57,5 +57,6 @@ func (h *RFQHandler) RFQ(ctx context.Context, recipient string, params any) (any
 		MakerAmount:        result.Order.MakerAmount,
 		TakerAmount:        result.Order.TakerAmount,
 		Signature:          result.Order.Signature,
+		Recipient:          recipient,
 	}, nil
 }
