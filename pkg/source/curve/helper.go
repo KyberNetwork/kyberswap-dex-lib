@@ -119,8 +119,3 @@ func safeCastBigIntToReserve(num *big.Int) string {
 
 	return num.String()
 }
-
-func skipInitFactory(dex string) bool {
-	_, exists := skipInitFactoryDexes[dex]
-	return exists
-}
