@@ -40,6 +40,7 @@ type FilledOrderInfo struct {
 	AllowedSenders       string `json:"allowedSenders"`
 	GetMakerAmount       string `json:"getMakerAmount"`
 	GetTakerAmount       string `json:"getTakerAmount"`
+	FeeConfig            string `json:"feeConfig"`
 	FeeRecipient         string `json:"feeRecipient"`
 	MakerTokenFeePercent uint32 `json:"makerTokenFeePercent"`
 	MakerAssetData       string `json:"makerAssetData"`
@@ -49,4 +50,9 @@ type FilledOrderInfo struct {
 	Interaction          string `json:"interaction"`
 	Signature            string `json:"signature"`
 	IsFallBack           bool   `json:"isFallback"`
+}
+
+type OpSignatureExtra struct {
+	SwapInfo
+	OperatorSignaturesById map[int64]*operatorSignatures `json:"operatorSignaturesById"`
 }
