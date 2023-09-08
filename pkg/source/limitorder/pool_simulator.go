@@ -263,6 +263,10 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func newFilledOrderInfo(order *order, filledTakingAmount, filledMakingAmount string, feeAmount string) *FilledOrderInfo {
+	feeConfig := ""
+	if order.FeeConfig != nil {
+		feeConfig = order.FeeConfig.String()
+	}
 	return &FilledOrderInfo{
 		OrderID:              order.ID,
 		FilledTakingAmount:   filledTakingAmount,
@@ -277,6 +281,7 @@ func newFilledOrderInfo(order *order, filledTakingAmount, filledMakingAmount str
 		AllowedSenders:       order.AllowedSenders,
 		GetMakerAmount:       order.GetMakerAmount,
 		GetTakerAmount:       order.GetTakerAmount,
+		FeeConfig:            feeConfig,
 		FeeRecipient:         order.FeeRecipient,
 		MakerAssetData:       order.MakerAssetData,
 		MakerTokenFeePercent: order.MakerTokenFeePercent,
