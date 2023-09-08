@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/logger"
+	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -13,15 +15,20 @@ import (
 type PoolsListUpdater struct {
 	config           *Config
 	limitOrderClient *httpClient
+
+	includedContractAddresses mapset.Set[string]
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
 ) (*PoolsListUpdater, error) {
 	limitOrderClient := NewHTTPClient(cfg.LimitOrderHTTPUrl)
+	contractAddresses := lo.Map(cfg.ContractAddresses, func(c string, _ int) string { return strings.ToLower(c) })
 	return &PoolsListUpdater{
 		config:           cfg,
 		limitOrderClient: limitOrderClient,
+
+		includedContractAddresses: mapset.NewSet(contractAddresses...),
 	}, nil
 }
 
@@ -57,6 +64,10 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 func (d *PoolsListUpdater) extractTokenPairs(loPairs []*limitOrderPair) []*tokenPair {
 	pairMap := make(map[string]*tokenPair, 0)
 	for _, loPair := range loPairs {
+		// if we're filtering by address, and if this pool SC doesn't match, then ignore
+		if d.includedContractAddresses.Cardinality() > 0 && !d.includedContractAddresses.Contains(strings.ToLower(loPair.ContractAddress)) {
+			continue
+		}
 		pair := d.toTokenPair(loPair)
 		poolID := d.getPoolID(pair.Token0, pair.Token1, pair.ContractAddress)
 		if _, ok := pairMap[poolID]; !ok {

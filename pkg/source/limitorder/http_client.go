@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 
 	"github.com/go-resty/resty/v2"
+	"github.com/samber/lo"
 )
 
 type httpClient struct {
@@ -96,4 +98,36 @@ func (c *httpClient) pruneExpiredOrders(orders []*orderData) []*orderData {
 		result = append(result, o)
 	}
 	return result
+}
+
+func (c *httpClient) GetOpSignatures(
+	ctx context.Context,
+	chainId ChainID,
+	orderIds []int64,
+) ([]*operatorSignatures, error) {
+	req := c.client.R().SetContext(ctx).
+		SetHeader("Content-Type", "application/json").
+		SetQueryParam("chainId", strconv.Itoa(int(chainId))).
+		SetQueryParamsFromValues(url.Values{
+			"orderIds": lo.Map(orderIds, func(o int64, _ int) string { return strconv.FormatInt(o, 10) }),
+		})
+	var result getOpSignaturesResult
+	resp, err := req.SetResult(&result).Get(getOpSignaturesEndpoint)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode() < 200 || resp.StatusCode() >= 400 {
+		return nil, fmt.Errorf("error when getting Op Signatures, url: %v, response: %v", resp.Request.URL, resp.String())
+	}
+
+	if result.Code != 0 {
+		return nil, errors.New(result.Message)
+	}
+
+	if result.Data == nil {
+		return nil, nil
+	}
+
+	return result.Data.OperatorSignatures, nil
 }

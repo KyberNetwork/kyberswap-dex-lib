@@ -277,6 +277,7 @@ func newFilledOrderInfo(order *order, filledTakingAmount, filledMakingAmount str
 		AllowedSenders:       order.AllowedSenders,
 		GetMakerAmount:       order.GetMakerAmount,
 		GetTakerAmount:       order.GetTakerAmount,
+		FeeConfig:            order.FeeConfig.String(),
 		FeeRecipient:         order.FeeRecipient,
 		MakerAssetData:       order.MakerAssetData,
 		MakerTokenFeePercent: order.MakerTokenFeePercent,
