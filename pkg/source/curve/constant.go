@@ -114,5 +114,6 @@ var (
 
 // skipInitFactoryDexes include dexes that don't have factory.
 var skipInitFactoryDexes = map[string]struct{}{
-	"ellipsis": {},
+	"ellipsis":       {},
+	"pancake-stable": {},
 }
