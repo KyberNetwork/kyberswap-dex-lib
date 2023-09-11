@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/float"
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -183,6 +184,18 @@ func (p *PoolSimulator) swapQuoteToBase(tokenAmountIn pool.TokenAmount, tokenOut
 func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel) (*big.Float, error) {
 	if len(priceLevels) == 0 {
 		return nil, ErrEmptyPriceLevels
+	}
+
+	// Calculate the total available amount in the price levels
+	availableAmount := lo.Reduce(priceLevels, func(acc float64, priceLevel PriceLevel, _ int) float64 {
+		return acc + priceLevel.Amount
+	}, 0.0)
+
+	availableAmountBF := new(big.Float).SetFloat64(availableAmount)
+
+	// If the amount in is greater than the available amount that price levels can provide, return error insufficient liquidity
+	if amountIn.Cmp(availableAmountBF) > 0 {
+		return nil, ErrInsufficientLiquidity
 	}
 
 	amountOut := float.Zero()

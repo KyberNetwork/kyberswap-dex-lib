@@ -28,37 +28,9 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 			expectedErr:       ErrEmptyPriceLevels,
 		},
 		{
-			name: "it should return correct amount out when fully filled",
+			name: "it should return insufficient liquidity error when the requested amount is greater than available amount in price levels",
 			args: args{
-				amountIn: new(big.Float).SetFloat64(1),
-				priceLevels: []PriceLevel{
-					{
-						Price:  100,
-						Amount: 1,
-					},
-				},
-			},
-			expectedAmountOut: new(big.Float).SetFloat64(100),
-			expectedErr:       nil,
-		},
-		{
-			name: "it should return correct amount out when the amountIn is greater than the amount available in the single price level",
-			args: args{
-				amountIn: new(big.Float).SetFloat64(2),
-				priceLevels: []PriceLevel{
-					{
-						Price:  100,
-						Amount: 1,
-					},
-				},
-			},
-			expectedAmountOut: new(big.Float).SetFloat64(100),
-			expectedErr:       nil,
-		},
-		{
-			name: "it should return correct amount out when the amountIn is greater than the amount available in the all price levels",
-			args: args{
-				amountIn: new(big.Float).SetFloat64(5),
+				amountIn: new(big.Float).SetFloat64(4),
 				priceLevels: []PriceLevel{
 					{
 						Price:  100,
@@ -70,7 +42,21 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 					},
 				},
 			},
-			expectedAmountOut: new(big.Float).SetFloat64(298),
+			expectedAmountOut: nil,
+			expectedErr:       ErrInsufficientLiquidity,
+		},
+		{
+			name: "it should return correct amount out when fully filled",
+			args: args{
+				amountIn: new(big.Float).SetFloat64(1),
+				priceLevels: []PriceLevel{
+					{
+						Price:  100,
+						Amount: 1,
+					},
+				},
+			},
+			expectedAmountOut: new(big.Float).SetFloat64(100),
 			expectedErr:       nil,
 		},
 		{
