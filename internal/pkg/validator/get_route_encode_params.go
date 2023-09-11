@@ -129,6 +129,11 @@ func (v *getRouteEncodeParamsValidator) validateTo(to string) error {
 	if !IsEthereumAddress(to) {
 		return NewValidationError("to", "invalid")
 	}
+
+	if v.config.BlacklistedRecipientSet[to] {
+		return NewValidationError("to", "invalid")
+	}
+
 	return nil
 }
 

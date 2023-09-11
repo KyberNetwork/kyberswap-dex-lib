@@ -6,11 +6,13 @@ type Config struct {
 }
 
 type BuildRouteParamsConfig struct {
-	SlippageToleranceLTE int64 `mapstructure:"slippageToleranceLte"`
-	SlippageToleranceGTE int64 `mapstructure:"slippageToleranceGte"`
+	SlippageToleranceLTE    int64           `mapstructure:"slippageToleranceLte"`
+	SlippageToleranceGTE    int64           `mapstructure:"slippageToleranceGte"`
+	BlacklistedRecipientSet map[string]bool `mapstructure:"blacklistedRecipientSet"`
 }
 
 type GetRouteEncodeParamsConfig struct {
-	SlippageToleranceLTE int64 `mapstructure:"slippageToleranceLte"`
-	SlippageToleranceGTE int64 `mapstructure:"slippageToleranceGte"`
+	SlippageToleranceLTE    int64           `mapstructure:"slippageToleranceLte"`
+	SlippageToleranceGTE    int64           `mapstructure:"slippageToleranceGte"`
+	BlacklistedRecipientSet map[string]bool `mapstructure:"blacklistedRecipientSet"`
 }

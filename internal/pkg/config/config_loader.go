@@ -146,6 +146,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setFinderOptions(remoteCfg.FinderOptions)
 		cl.setGetBestPoolOptions(remoteCfg.GetBestPoolsOptions)
 		cl.setCacheConfig(remoteCfg.CacheConfig)
+		cl.setBlacklistedRecipients(remoteCfg.BlacklistedRecipients)
 		cl.mu.Unlock()
 	}
 
@@ -215,4 +216,14 @@ func (cl *ConfigLoader) setGetBestPoolOptions(getBestPoolsOptions valueobject.Ge
 
 func (cl *ConfigLoader) setCacheConfig(cacheConfig valueobject.CacheConfig) {
 	cl.config.UseCase.GetRoute.Cache = cacheConfig
+}
+
+func (cl *ConfigLoader) setBlacklistedRecipients(blacklistedRecipients []string) {
+	blacklistedRecipientSet := make(map[string]bool, len(blacklistedRecipients))
+	for _, blacklistedRecipient := range blacklistedRecipients {
+		blacklistedRecipientSet[strings.ToLower(blacklistedRecipient)] = true
+	}
+
+	cl.config.Validator.BuildRouteParams.BlacklistedRecipientSet = blacklistedRecipientSet
+	cl.config.Validator.GetRouteEncodeParams.BlacklistedRecipientSet = blacklistedRecipientSet
 }

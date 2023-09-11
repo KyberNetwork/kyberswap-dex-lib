@@ -253,6 +253,8 @@ validator:
   buildRouteParams:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
+    blacklistedRecipientSet:
   getRouteEncodeParams:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
+    blacklistedRecipientSet:

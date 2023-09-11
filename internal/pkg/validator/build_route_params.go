@@ -166,12 +166,16 @@ func (v *buildRouteParamsValidator) validateDeadline(deadline int64) error {
 	return nil
 }
 
-func (v *buildRouteParamsValidator) validateRecipient(to string) error {
-	if len(to) == 0 {
+func (v *buildRouteParamsValidator) validateRecipient(recipient string) error {
+	if len(recipient) == 0 {
 		return NewValidationError("recipient", "required")
 	}
 
-	if !IsEthereumAddress(to) {
+	if !IsEthereumAddress(recipient) {
+		return NewValidationError("recipient", "invalid")
+	}
+
+	if v.config.BlacklistedRecipientSet[recipient] {
 		return NewValidationError("recipient", "invalid")
 	}
 

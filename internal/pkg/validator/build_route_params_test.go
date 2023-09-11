@@ -632,6 +632,11 @@ func TestBuildRouteParamsValidator_validateRecipient(t *testing.T) {
 			err:       NewValidationError("recipient", "invalid"),
 		},
 		{
+			name:      "it should return [recipient][invalid]",
+			recipient: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+			err:       NewValidationError("recipient", "invalid"),
+		},
+		{
 			name:      "it should return nil",
 			recipient: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
 			err:       nil,
@@ -640,7 +645,13 @@ func TestBuildRouteParamsValidator_validateRecipient(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := buildRouteParamsValidator{}
+			validator := buildRouteParamsValidator{
+				config: BuildRouteParamsConfig{
+					BlacklistedRecipientSet: map[string]bool{
+						"0x71C7656EC7ab88b098defB751B7401B5f6d8976F": true,
+					},
+				},
+			}
 
 			err := validator.validateRecipient(tc.recipient)
 

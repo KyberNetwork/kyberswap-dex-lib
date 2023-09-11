@@ -3,6 +3,19 @@ package valueobject
 import "time"
 
 type (
+	RemoteConfig struct {
+		Hash                  string              `json:"hash"`
+		AvailableSources      []Source            `json:"availableSources"`
+		WhitelistedTokens     []WhitelistedToken  `json:"whitelistedTokens"`
+		FeatureFlags          FeatureFlags        `json:"featureFlags"`
+		BlacklistedPools      []string            `json:"blacklistedPools"`
+		Log                   Log                 `json:"log"`
+		GetBestPoolsOptions   GetBestPoolsOptions `json:"getBestPoolsOptions"`
+		FinderOptions         FinderOptions       `json:"finderOptions"`
+		CacheConfig           CacheConfig         `json:"cache"`
+		BlacklistedRecipients []string            `json:"blacklistedRecipients"`
+	}
+
 	Source string
 
 	WhitelistedToken struct {
@@ -42,37 +55,37 @@ type (
 		MinThresholdAmountInUSD float64 `mapstructure:"minThresholdAmountInUSD" json:"minThresholdAmountInUSD"`
 		MaxThresholdAmountInUSD float64 `mapstructure:"maxThresholdAmountInUSD" json:"maxThresholdAmountInUSD"`
 	}
+
+	CacheConfig struct {
+		// DefaultTTL default time to live of the cache
+		DefaultTTL time.Duration `mapstructure:"defaultTtl" json:"defaultTtl"`
+
+		// TTLByAmount time to live by amount
+		// key is amount without decimals
+		TTLByAmount []CachePoint `mapstructure:"ttlByAmount" json:"ttlByAmount"`
+
+		// TTLByAmountUSDRange time to live by amount usd range
+		// key is lower bound of the range
+		TTLByAmountUSDRange []CacheRange `mapstructure:"ttlByAmountUsdRange" json:"ttlByAmountUsdRange"`
+
+		PriceImpactThreshold float64 `mapstructure:"priceImpactThreshold" json:"priceImpactThreshold"`
+
+		ShrinkFuncName       string  `mapstructure:"shrinkFuncName" json:"shrinkFuncName"`
+		ShrinkFuncPowExp     float64 `mapstructure:"shrinkFuncPowExp" json:"shrinkFuncPowExp"`
+		ShrinkDecimalBase    float64 `mapstructure:"shrinkDecimalBase" json:"shrinkDecimalBase"`
+		ShrinkFuncLogPercent float64 `mapstructure:"shrinkFuncLogPercent" json:"shrinkFuncLogPercent"`
+	}
+
+	CachePoint struct {
+		Amount float64       `mapstructure:"amount" json:"amount"`
+		TTL    time.Duration `mapstructure:"ttl" json:"ttl"`
+	}
+
+	CacheRange struct {
+		AmountUSDLowerBound float64       `mapstructure:"amountUSDLowerBound" json:"amountUSDLowerBound"`
+		TTL                 time.Duration `mapstructure:"ttl" json:"ttl"`
+	}
 )
-
-type CachePoint struct {
-	Amount float64       `mapstructure:"amount" json:"amount"`
-	TTL    time.Duration `mapstructure:"ttl" json:"ttl"`
-}
-
-type CacheRange struct {
-	AmountUSDLowerBound float64       `mapstructure:"amountUSDLowerBound" json:"amountUSDLowerBound"`
-	TTL                 time.Duration `mapstructure:"ttl" json:"ttl"`
-}
-
-type CacheConfig struct {
-	// DefaultTTL default time to live of the cache
-	DefaultTTL time.Duration `mapstructure:"defaultTtl" json:"defaultTtl"`
-
-	// TTLByAmount time to live by amount
-	// key is amount without decimals
-	TTLByAmount []CachePoint `mapstructure:"ttlByAmount" json:"ttlByAmount"`
-
-	// TTLByAmountUSDRange time to live by amount usd range
-	// key is lower bound of the range
-	TTLByAmountUSDRange []CacheRange `mapstructure:"ttlByAmountUsdRange" json:"ttlByAmountUsdRange"`
-
-	PriceImpactThreshold float64 `mapstructure:"priceImpactThreshold" json:"priceImpactThreshold"`
-
-	ShrinkFuncName       string  `mapstructure:"shrinkFuncName" json:"shrinkFuncName"`
-	ShrinkFuncPowExp     float64 `mapstructure:"shrinkFuncPowExp" json:"shrinkFuncPowExp"`
-	ShrinkDecimalBase    float64 `mapstructure:"shrinkDecimalBase" json:"shrinkDecimalBase"`
-	ShrinkFuncLogPercent float64 `mapstructure:"shrinkFuncLogPercent" json:"shrinkFuncLogPercent"`
-}
 
 func (c CacheConfig) Equals(other CacheConfig) bool {
 	if c.DefaultTTL != other.DefaultTTL ||
@@ -104,16 +117,4 @@ func (c CacheConfig) Equals(other CacheConfig) bool {
 	}
 
 	return true
-}
-
-type RemoteConfig struct {
-	Hash                string              `json:"hash"`
-	AvailableSources    []Source            `json:"availableSources"`
-	WhitelistedTokens   []WhitelistedToken  `json:"whitelistedTokens"`
-	FeatureFlags        FeatureFlags        `json:"featureFlags"`
-	BlacklistedPools    []string            `json:"blacklistedPools"`
-	Log                 Log                 `json:"log"`
-	GetBestPoolsOptions GetBestPoolsOptions `json:"getBestPoolsOptions"`
-	FinderOptions       FinderOptions       `json:"finderOptions"`
-	CacheConfig         CacheConfig         `json:"cache"`
 }

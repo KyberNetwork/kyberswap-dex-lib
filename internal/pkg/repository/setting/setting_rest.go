@@ -18,14 +18,15 @@ const (
 )
 
 type ConfigResponseDataConfig struct {
-	AvailableSources    []valueobject.Source            `json:"availableSources"`
-	WhitelistedTokens   []valueobject.WhitelistedToken  `json:"whitelistedTokens"`
-	BlacklistedPools    []string                        `json:"blacklistedPools"`
-	FeatureFlags        valueobject.FeatureFlags        `json:"featureFlags"`
-	Log                 valueobject.Log                 `json:"log"`
-	GetBestPoolsOptions valueobject.GetBestPoolsOptions `json:"getBestPoolsOptions"`
-	FinderOptions       valueobject.FinderOptions       `json:"finderOptions"`
-	CacheConfig         valueobject.CacheConfig         `json:"cache"`
+	AvailableSources      []valueobject.Source            `json:"availableSources"`
+	WhitelistedTokens     []valueobject.WhitelistedToken  `json:"whitelistedTokens"`
+	BlacklistedPools      []string                        `json:"blacklistedPools"`
+	FeatureFlags          valueobject.FeatureFlags        `json:"featureFlags"`
+	Log                   valueobject.Log                 `json:"log"`
+	GetBestPoolsOptions   valueobject.GetBestPoolsOptions `json:"getBestPoolsOptions"`
+	FinderOptions         valueobject.FinderOptions       `json:"finderOptions"`
+	CacheConfig           valueobject.CacheConfig         `json:"cache"`
+	BlacklistedRecipients []string                        `json:"blacklistedRecipients"`
 }
 
 type ConfigResponseData struct {
@@ -85,15 +86,16 @@ func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string, curre
 	}
 
 	return valueobject.RemoteConfig{
-		Hash:                cfgResp.Data.Hash,
-		AvailableSources:    cfgResp.Data.Config.AvailableSources,
-		WhitelistedTokens:   cfgResp.Data.Config.WhitelistedTokens,
-		BlacklistedPools:    cfgResp.Data.Config.BlacklistedPools,
-		FeatureFlags:        cfgResp.Data.Config.FeatureFlags,
-		Log:                 cfgResp.Data.Config.Log,
-		GetBestPoolsOptions: cfgResp.Data.Config.GetBestPoolsOptions,
-		FinderOptions:       cfgResp.Data.Config.FinderOptions,
-		CacheConfig:         cfgResp.Data.Config.CacheConfig,
+		Hash:                  cfgResp.Data.Hash,
+		AvailableSources:      cfgResp.Data.Config.AvailableSources,
+		WhitelistedTokens:     cfgResp.Data.Config.WhitelistedTokens,
+		BlacklistedPools:      cfgResp.Data.Config.BlacklistedPools,
+		FeatureFlags:          cfgResp.Data.Config.FeatureFlags,
+		Log:                   cfgResp.Data.Config.Log,
+		GetBestPoolsOptions:   cfgResp.Data.Config.GetBestPoolsOptions,
+		FinderOptions:         cfgResp.Data.Config.FinderOptions,
+		CacheConfig:           cfgResp.Data.Config.CacheConfig,
+		BlacklistedRecipients: cfgResp.Data.Config.BlacklistedRecipients,
 	}, nil
 }
 

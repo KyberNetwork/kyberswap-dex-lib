@@ -101,7 +101,20 @@ func TestGetRouteEncodeParamsValidator_Validate(t *testing.T) {
 			},
 			err: NewValidationError("gasPrice", "invalid"),
 		},
-
+		{
+			name: "it should return correct error when to is blacklisted",
+			params: params.GetRouteEncodeParams{
+				TokenIn:     "0xd1B47490209CcB7A806E8a45d9479490C040ABf4",
+				TokenOut:    "0xd1B47490209CcB7A806E8a45d9479490C040ABf2",
+				AmountIn:    "10",
+				GasPrice:    "22",
+				FeeReceiver: "0xd1B47490209CcB7A806E8a45d9479490C040ABf4",
+				FeeAmount:   "2",
+				ChargeFeeBy: "currency_in",
+				To:          "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+			},
+			err: NewValidationError("to", "invalid"),
+		},
 		{
 			name: "it should return nil",
 			params: params.GetRouteEncodeParams{
@@ -120,7 +133,13 @@ func TestGetRouteEncodeParamsValidator_Validate(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			validator := getRouteEncodeParamsValidator{}
+			validator := getRouteEncodeParamsValidator{
+				config: GetRouteEncodeParamsConfig{
+					BlacklistedRecipientSet: map[string]bool{
+						"0x71C7656EC7ab88b098defB751B7401B5f6d8976F": true,
+					},
+				},
+			}
 
 			err := validator.Validate(tc.params)
 

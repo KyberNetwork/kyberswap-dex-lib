@@ -257,9 +257,11 @@ validator:
   buildRouteParams:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
+    blacklistedRecipientSet:
   getRouteEncodeParams:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
+    blacklistedRecipientSet:
 aevmEnabled: false
 aevm:
   serverUrl: "localhost:8246"

@@ -259,9 +259,11 @@ validator:
   buildRouteParams:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
+    blacklistedRecipientSet:
   getRouteEncodeParams:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
+    blacklistedRecipientSet:
 aevmEnabled: false
 aevm:
   # 192.168.8.3 is the AEVM-enabled Avalanche node which is reachable from router-service cluster
