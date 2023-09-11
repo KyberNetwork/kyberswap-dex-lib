@@ -5,6 +5,8 @@ type Config struct {
 	ChainID      int    `json:"chainID"`
 	PoolPath     string `json:"poolPath"`
 	NewPoolLimit int    `json:"newPoolLimit"`
+	// SkipInitFactory include dexes that don't have factory.
+	SkipInitFactory bool `json:"skipInitFactory"`
 
 	AddressProvider            string `json:"addressProvider"`
 	MainRegistryAddress        string `json:"mainRegistryAddress"`

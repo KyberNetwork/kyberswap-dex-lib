@@ -1,0 +1,324 @@
+[
+  {
+    "id": "0xa450487d8c8f355611eff9553337be67261af26f",
+    "name": "3c-f",
+    "type": "curve-base",
+    "lpToken": "0xa450487d8c8f355611eff9553337be67261af26f",
+    "aPrecision": "100",
+    "tokens": [
+      {
+        "address": "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      },
+      {
+        "address": "0xeb466342c4d449bc9f53a865d5cb90586f405215",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      },
+      {
+        "address": "0x417ac0e078398c154edfadd9ef675d30be60af93",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      }
+    ]
+  },
+  {
+    "id": "0xf6c5f01c7f3148891ad0e19df78743d31e390d1f",
+    "name": "Curve.fi Factory Plain Pool: 4pool",
+    "type": "curve-base",
+    "lpToken": "0xf6c5f01c7f3148891ad0e19df78743d31e390d1f",
+    "aPrecision": "100",
+    "tokens": [
+      {
+        "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      },
+      {
+        "address": "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      },
+      {
+        "address": "0xeb466342c4d449bc9f53a865d5cb90586f405215",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      },
+      {
+        "address": "0x417ac0e078398c154edfadd9ef675d30be60af93",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      }
+    ]
+  },
+  {
+    "id": "0xda3de145054ed30ee937865d31b500505c4bdfe7",
+    "name": "Curve.fi Factory Plain Pool: Overnight/Curve",
+    "type": "curve-base",
+    "lpToken": "0xda3de145054ed30ee937865d31b500505c4bdfe7",
+    "aPrecision": "100",
+    "tokens": [
+      {
+        "address": "0xb79dd08ea68a908a97220c76d19a6aa9cbde4376",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      },
+      {
+        "address": "0x417ac0e078398c154edfadd9ef675d30be60af93",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      }
+    ]
+  },
+  {
+    "id": "0xc87c4d23057f1112e071fae702e9dfa481352bfa",
+    "name": "Curve.fi Factory Plain Pool: 3pool",
+    "type": "curve-base",
+    "lpToken": "0xc87c4d23057f1112e071fae702e9dfa481352bfa",
+    "aPrecision": "100",
+    "tokens": [
+      {
+        "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      },
+      {
+        "address": "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      },
+      {
+        "address": "0xeb466342c4d449bc9f53a865d5cb90586f405215",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      }
+    ]
+  },
+  {
+    "id": "0xffe0dcdb7085508a3c32931973bd2dc77df30caa",
+    "name": "Curve.fi Factory Plain Pool: Paypal PYUSD/crvUSD",
+    "type": "curve-base",
+    "lpToken": "0xffe0dcdb7085508a3c32931973bd2dc77df30caa",
+    "aPrecision": "100",
+    "tokens": [
+      {
+        "address": "0x5fd0787a5a66d24c5a868c2e6a296ca2b1452558",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      },
+      {
+        "address": "0x417ac0e078398c154edfadd9ef675d30be60af93",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      }
+    ]
+  },
+  {
+    "id": "0x98f6fd72d68d4b550c89a7096ed28f090a1a49fc",
+    "name": "Curve.fi Factory Plain Pool: PYUSD/crvUSD",
+    "type": "curve-base",
+    "lpToken": "0x98f6fd72d68d4b550c89a7096ed28f090a1a49fc",
+    "aPrecision": "100",
+    "tokens": [
+      {
+        "address": "0x5fd0787a5a66d24c5a868c2e6a296ca2b1452558",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      },
+      {
+        "address": "0x417ac0e078398c154edfadd9ef675d30be60af93",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      }
+    ]
+  },
+  {
+    "id": "0x5eff83643a71156a880e960edd1990c8156ee958",
+    "name": "Curve.fi Factory Plain Pool: USDC/crvUSD/DAI",
+    "type": "curve-base",
+    "lpToken": "0x5eff83643a71156a880e960edd1990c8156ee958",
+    "aPrecision": "100",
+    "tokens": [
+      {
+        "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      },
+      {
+        "address": "0x417ac0e078398c154edfadd9ef675d30be60af93",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      },
+      {
+        "address": "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      }
+    ]
+  },
+  {
+    "id": "0xc217ed24e579ff0ac317184d700a3dedf748b32a",
+    "name": "Curve.fi Factory Plain Pool: USDbC/USDC/DAI",
+    "type": "curve-base",
+    "lpToken": "0xc217ed24e579ff0ac317184d700a3dedf748b32a",
+    "aPrecision": "100",
+    "tokens": [
+      {
+        "address": "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      },
+      {
+        "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      },
+      {
+        "address": "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      }
+    ]
+  },
+  {
+    "id": "0x3cef2d65472424e4dc7f4f8519f687932c12e9b6",
+    "name": "Curve.fi Factory Plain Pool: Bald Trifecta",
+    "type": "curve-base",
+    "lpToken": "0x3cef2d65472424e4dc7f4f8519f687932c12e9b6",
+    "aPrecision": "100",
+    "tokens": [
+      {
+        "address": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      },
+      {
+        "address": "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
+        "precision": "1000000000000",
+        "rate": "1000000000000000000000000000000"
+      },
+      {
+        "address": "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      }
+    ]
+  },
+  {
+    "id": "0x6e53131f68a034873b6bfa15502af094ef0c5854",
+    "name": "tricrypto",
+    "type": "curve-tricrypto",
+    "tokens": [
+      {
+        "address": "0x417ac0e078398c154edfadd9ef675d30be60af93",
+        "precision": "1"
+      },
+      {
+        "address": "0x236aa50979d5f3de3bd1eeb40e81137f22ab794b",
+        "precision": "1"
+      },
+      {
+        "address": "0x4200000000000000000000000000000000000006",
+        "precision": "1"
+      }
+    ],
+    "lpToken": "0x6e53131f68a034873b6bfa15502af094ef0c5854"
+  },
+  {
+    "id": "0x11c1fbd4b3de66bc0565779b35171a6cf3e71f59",
+    "name": "0x11c1fbd4b3de66bc0565779b35171a6cf3e71f59",
+    "type": "curve-two",
+    "tokens": [
+      {
+        "address": "0x4200000000000000000000000000000000000006",
+        "precision": "1"
+      },
+      {
+        "address": "0x2ae3f1ec7f1f5012cfeab0185bfc7aa3cf0dec22",
+        "precision": "1"
+      }
+    ],
+    "lpToken": "0x98244d93d42b42ab3e3a4d12a5dc0b3e7f8f32f9"
+  },
+  {
+    "id": "0x3fcaac77b949943da097ae6a7de0ec63dd78ddf9",
+    "name": "0x3fcaac77b949943da097ae6a7de0ec63dd78ddf9",
+    "type": "curve-two",
+    "tokens": [
+      {
+        "address": "0x8ee73c484a26e0a5df2ee2a4960b789967dd0415",
+        "precision": "1"
+      },
+      {
+        "address": "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
+        "precision": "1000000000000"
+      }
+    ],
+    "lpToken": "0x4a63b159b3b6ad2859d5d9f73472aefd19e34fcb"
+  },
+  {
+    "id": "0xde37e221442fa15c35dc19fbae11ed106ba52fb2",
+    "name": "0xde37e221442fa15c35dc19fbae11ed106ba52fb2",
+    "type": "curve-two",
+    "tokens": [
+      {
+        "address": "0x8ee73c484a26e0a5df2ee2a4960b789967dd0415",
+        "precision": "1"
+      },
+      {
+        "address": "0x417ac0e078398c154edfadd9ef675d30be60af93",
+        "precision": "1"
+      }
+    ],
+    "lpToken": "0x6dfe79cece4f64c1a34f48cf5802492ab595257e"
+  },
+  {
+    "id": "0xd4c4d635c7371db736b3a91bc9d84ef7afd01a4a",
+    "name": "0xd4c4d635c7371db736b3a91bc9d84ef7afd01a4a",
+    "type": "curve-two",
+    "tokens": [
+      {
+        "address": "0x4200000000000000000000000000000000000006",
+        "precision": "1"
+      },
+      {
+        "address": "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
+        "precision": "1"
+      }
+    ],
+    "lpToken": "0x3566d5a694e38c11fc4c4e7e2374bbc594d00df1"
+  },
+  {
+    "id": "0x9507a65cd55457a444ae249ef384d54e825a6b21",
+    "name": "0x9507a65cd55457a444ae249ef384d54e825a6b21",
+    "type": "curve-two",
+    "tokens": [
+      {
+        "address": "0x4200000000000000000000000000000000000006",
+        "precision": "1"
+      },
+      {
+        "address": "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
+        "precision": "1"
+      }
+    ],
+    "lpToken": "0xcaa82eb97cc513e9f221c8ec6c50dd98a3b70ee3"
+  },
+  {
+    "id": "0xc973042dcaf6fe4d632f2a9cd624d38b9326bde6",
+    "name": "0xc973042dcaf6fe4d632f2a9cd624d38b9326bde6",
+    "type": "curve-two",
+    "tokens": [
+      {
+        "address": "0x71e8f538f47397cd9a544041555cafc7a0ce9ae3",
+        "precision": "1"
+      },
+      {
+        "address": "0x417ac0e078398c154edfadd9ef675d30be60af93",
+        "precision": "1"
+      }
+    ],
+    "lpToken": "0x47a9c08cbba5ce85007f6e33ea27ba2e6db297ef"
+  }
+]
