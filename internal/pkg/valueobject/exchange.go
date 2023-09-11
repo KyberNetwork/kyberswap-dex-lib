@@ -16,6 +16,7 @@ var (
 	ExchangeMDex          Exchange = "mdex"
 	ExchangePancake       Exchange = "pancake"
 	ExchangePancakeV3     Exchange = "pancake-v3"
+	ExchangePancakeStable Exchange = "pancake-stable"
 	ExchangeEchoDexV3     Exchange = "echo-dex-v3"
 	ExchangeWault         Exchange = "wault"
 	ExchangePancakeLegacy Exchange = "pancake-legacy"
@@ -207,6 +208,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAxial:                    {},
 	ExchangeCurve:                    {},
 	ExchangeEllipsis:                 {},
+	ExchangePancakeStable:            {},
 	ExchangeUniSwapV3:                {},
 	ExchangeKyberswapElastic:         {},
 	ExchangeChronosV3:                {},

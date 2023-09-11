@@ -110,6 +110,7 @@ func init() {
 	// executeCurveSwap
 	RegisterFunctionSelector(valueobject.ExchangeCurve, FunctionSelectorCurveSwap)
 	RegisterFunctionSelector(valueobject.ExchangeEllipsis, FunctionSelectorCurveSwap)
+	RegisterFunctionSelector(valueobject.ExchangePancakeStable, FunctionSelectorCurveSwap)
 
 	// executeUniV3ProMMSwap
 	RegisterFunctionSelector(valueobject.ExchangeUniSwapV3, FunctionSelectorUniV3KSElastic)
