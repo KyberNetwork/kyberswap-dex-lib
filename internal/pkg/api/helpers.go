@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -158,6 +159,14 @@ func RespondFailure(c *gin.Context, err error) {
 		return
 	}
 
+	// This check also catches the context canceled by our side, not just by client side.
+	// I didn't find a better check, and I assume we won't cancel the request ever.
+	// So keep this simple check for now.
+	if errors.Is(err, context.Canceled) {
+		respondContextCanceledError(c, err)
+		return
+	}
+
 	requestID := requestid.ExtractRequestID(c)
 	response := responseFromErr(err)
 	response.RequestID = requestID
@@ -206,6 +215,21 @@ func respondValidationError(c *gin.Context, err *validator.ValidationError) {
 
 	c.JSON(
 		http.StatusBadRequest,
+		errorResponse,
+	)
+}
+
+const ClientClosedRequestStatusCode = 499
+
+func respondContextCanceledError(c *gin.Context, err error) {
+	errorResponse := ErrorResponse{
+		Code:      4990,
+		Message:   "request was canceled",
+		RequestID: requestid.ExtractRequestID(c),
+	}
+
+	c.JSON(
+		ClientClosedRequestStatusCode,
 		errorResponse,
 	)
 }
