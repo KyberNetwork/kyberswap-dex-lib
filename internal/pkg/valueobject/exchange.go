@@ -65,6 +65,7 @@ var (
 	ExchangeAlienBase     Exchange = "alien-base"
 	ExchangeSwapBased     Exchange = "swapbased"
 	ExchangeRocketSwapV2  Exchange = "rocketswap-v2"
+	ExchangeSpartaDex     Exchange = "sparta-dex"
 
 	ExchangeOneSwap    Exchange = "oneswap"
 	ExchangeNerve      Exchange = "nerve"
@@ -254,6 +255,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeKyberPMM:                 {},
 	ExchangeTraderJoeV20:             {},
 	ExchangeTraderJoeV21:             {},
+	ExchangeSpartaDex:                {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
