@@ -36,7 +36,7 @@ func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolsListUpdater, error) {
-	if !skipInitFactory(cfg.DexID) {
+	if !cfg.SkipInitFactory {
 		if err := initConfig(cfg, ethrpcClient); err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,
@@ -82,7 +82,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	)
 
-	if !skipInitFactory(d.config.DexID) {
+	if !d.config.SkipInitFactory {
 		for i := 0; i < len(registryOrFactoryList); i++ {
 			if strings.EqualFold(registryOrFactoryList[i].Address, addressZero) {
 				logger.Debugf("skip zero factory %v", i)

@@ -62,10 +62,18 @@ var optimismPoolsBytes []byte
 //go:embed pools/polygon.json
 var polygonPoolsBytes []byte
 
+//go:embed pools/base.json
+var basePoolsBytes []byte
+
 // Ellipsis pool bytes
 
 //go:embed pools/ellipsis/bsc.json
 var ellipsisBscPoolsBytes []byte
+
+// Pancake-stable pool bytes
+
+//go:embed pools/pancake-stable/bsc.json
+var pancakeStablePoolsBytes []byte
 
 var bytesByPath = map[string][]byte{
 	"pools/arbitrum.json":  arbitrumPoolsBytes,
@@ -74,6 +82,8 @@ var bytesByPath = map[string][]byte{
 	"pools/fantom.json":    fantomPoolsBytes,
 	"pools/optimism.json":  optimismPoolsBytes,
 	"pools/polygon.json":   polygonPoolsBytes,
+	"pools/base.json":      basePoolsBytes,
 
-	"pools/ellipsis/bsc.json": ellipsisBscPoolsBytes,
+	"pools/ellipsis/bsc.json":       ellipsisBscPoolsBytes,
+	"pools/pancake-stable/bsc.json": pancakeStablePoolsBytes,
 }
