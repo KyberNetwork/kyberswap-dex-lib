@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [v1.22.3] - 2023-09-07
+
+### Added
+- Support `pancake-v3` on Linea (#418)
+
+
+## [v1.22.2] - 2023-09-05
+
+### Added
+- Add exchange `lynex` (#406)
+- Update config for `lynex` (#404)
+- Support `pancake` and `pancake-v3` on Base (#402)
+- Update executor on Zksync (#411)
+
+
+## [v1.22.1] - 2023-08-30
+
+### Added
+- Support `swapbased-v3` on Base (#398)
+
+
+## [v1.22.0] - 2023-08-30
+
+### Added
+- Support `velodromev2` and `aerodrome` on Base (#396)
+
+
 ## [v1.21.5] - 2023-08-29
 
 ### Added
