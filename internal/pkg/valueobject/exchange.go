@@ -66,6 +66,7 @@ var (
 	ExchangeSwapBased     Exchange = "swapbased"
 	ExchangeRocketSwapV2  Exchange = "rocketswap-v2"
 	ExchangeSpartaDex     Exchange = "sparta-dex"
+	ExchangeArbiDex       Exchange = "arbi-dex"
 
 	ExchangeOneSwap    Exchange = "oneswap"
 	ExchangeNerve      Exchange = "nerve"
@@ -256,6 +257,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeTraderJoeV20:             {},
 	ExchangeTraderJoeV21:             {},
 	ExchangeSpartaDex:                {},
+	ExchangeArbiDex:                  {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

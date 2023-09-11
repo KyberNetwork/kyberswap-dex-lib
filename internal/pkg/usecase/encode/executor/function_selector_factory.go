@@ -86,6 +86,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeSwapBased, FunctionSelectorUniswap)
 	RegisterFunctionSelector(valueobject.ExchangeRocketSwapV2, FunctionSelectorUniswap)
 	RegisterFunctionSelector(valueobject.ExchangeSpartaDex, FunctionSelectorUniswap)
+	RegisterFunctionSelector(valueobject.ExchangeArbiDex, FunctionSelectorUniswap)
 
 	RegisterFunctionSelector(valueobject.ExchangeQuickSwapV3, FunctionSelectorAlgebraV1)
 	RegisterFunctionSelector(valueobject.ExchangeSynthSwapV3, FunctionSelectorAlgebraV1)
