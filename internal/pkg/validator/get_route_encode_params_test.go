@@ -136,7 +136,7 @@ func TestGetRouteEncodeParamsValidator_Validate(t *testing.T) {
 			validator := getRouteEncodeParamsValidator{
 				config: GetRouteEncodeParamsConfig{
 					BlacklistedRecipientSet: map[string]bool{
-						"0x71C7656EC7ab88b098defB751B7401B5f6d8976F": true,
+						"0x71c7656ec7ab88b098defb751b7401b5f6d8976f": true,
 					},
 				},
 			}

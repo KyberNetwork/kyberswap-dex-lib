@@ -138,7 +138,7 @@ func (v *getRouteEncodeParamsValidator) validateTo(to string) error {
 		return NewValidationError("to", "invalid")
 	}
 
-	if v.config.BlacklistedRecipientSet[to] {
+	if v.config.BlacklistedRecipientSet[strings.ToLower(to)] {
 		return NewValidationError("to", "invalid")
 	}
 

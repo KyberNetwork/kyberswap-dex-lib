@@ -183,7 +183,7 @@ func (v *buildRouteParamsValidator) validateRecipient(recipient string) error {
 		return NewValidationError("recipient", "invalid")
 	}
 
-	if v.config.BlacklistedRecipientSet[recipient] {
+	if v.config.BlacklistedRecipientSet[strings.ToLower(recipient)] {
 		return NewValidationError("recipient", "invalid")
 	}
 
