@@ -3,6 +3,7 @@ package validator
 import (
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -16,6 +17,7 @@ type buildRouteParamsValidator struct {
 	nowFunc func() time.Time
 
 	config BuildRouteParamsConfig
+	mu     sync.Mutex
 }
 
 func NewBuildRouteParamsValidator(
@@ -70,6 +72,12 @@ func (v *buildRouteParamsValidator) Validate(params params.BuildRouteParams) err
 	}
 
 	return nil
+}
+
+func (v *buildRouteParamsValidator) ApplyConfig(config BuildRouteParamsConfig) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.config = config
 }
 
 func (v *buildRouteParamsValidator) validateRoute(route params.RouteSummary) error {

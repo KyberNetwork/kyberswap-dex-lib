@@ -15,6 +15,7 @@ import (
 	"context"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/validator"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 )
@@ -67,10 +68,12 @@ type IGetRoutesParamsValidator interface {
 // IBuildRouteParamsValidator validates params.BuildRouteParams
 type IBuildRouteParamsValidator interface {
 	Validate(params params.BuildRouteParams) error
+	ApplyConfig(config validator.BuildRouteParamsConfig)
 }
 
 type IGetRouteEncodeParamsValidator interface {
 	Validate(params params.GetRouteEncodeParams) error
+	ApplyConfig(config validator.GetRouteEncodeParamsConfig)
 }
 
 type IDecodeSwapDataUseCase interface {

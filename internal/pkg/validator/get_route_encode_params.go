@@ -3,6 +3,7 @@ package validator
 import (
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -16,6 +17,7 @@ type getRouteEncodeParamsValidator struct {
 	nowFunc func() time.Time
 
 	config GetRouteEncodeParamsConfig
+	mu     sync.Mutex
 }
 
 func NewGetRouteEncodeParamsValidator(
@@ -78,6 +80,12 @@ func (v *getRouteEncodeParamsValidator) Validate(params params.GetRouteEncodePar
 	}
 
 	return nil
+}
+
+func (v *getRouteEncodeParamsValidator) ApplyConfig(config GetRouteEncodeParamsConfig) {
+	v.mu.Lock()
+	defer v.mu.Unlock()
+	v.config = config
 }
 
 func (v *getRouteEncodeParamsValidator) validateAmountIn(amountInParams string) error {

@@ -8,6 +8,7 @@ import (
 	reflect "reflect"
 
 	params "github.com/KyberNetwork/router-service/internal/pkg/api/params"
+	validator "github.com/KyberNetwork/router-service/internal/pkg/validator"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -32,6 +33,18 @@ func NewMockIBuildRouteParamsValidator(ctrl *gomock.Controller) *MockIBuildRoute
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockIBuildRouteParamsValidator) EXPECT() *MockIBuildRouteParamsValidatorMockRecorder {
 	return m.recorder
+}
+
+// ApplyConfig mocks base method.
+func (m *MockIBuildRouteParamsValidator) ApplyConfig(arg0 validator.BuildRouteParamsConfig) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ApplyConfig", arg0)
+}
+
+// ApplyConfig indicates an expected call of ApplyConfig.
+func (mr *MockIBuildRouteParamsValidatorMockRecorder) ApplyConfig(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyConfig", reflect.TypeOf((*MockIBuildRouteParamsValidator)(nil).ApplyConfig), arg0)
 }
 
 // Validate mocks base method.

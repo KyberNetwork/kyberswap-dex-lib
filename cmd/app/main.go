@@ -391,7 +391,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
 		logger.Infof("Received reloading signal: <%s>", id)
-		return applyLatestConfigForAPI(ctx, configLoader, getRouteUseCase, poolManager)
+		return applyLatestConfigForAPI(ctx, configLoader, getRouteUseCase, poolManager, buildRouteParamsValidator, getRouteEncodeParamsValidator)
 	}))
 
 	httpServer := &http.Server{Handler: ginServer, Addr: cfg.Http.BindAddress}
@@ -572,6 +572,8 @@ func applyLatestConfigForAPI(
 	configLoader *config.ConfigLoader,
 	getRouteUseCase IGetRouteUseCase,
 	poolManager IPoolManager,
+	buildRouteParamsValidator api.IBuildRouteParamsValidator,
+	getRouteEncodeParamsValidator api.IGetRouteEncodeParamsValidator,
 ) error {
 	cfg, err := configLoader.Get()
 	if err != nil {
@@ -583,8 +585,11 @@ func applyLatestConfigForAPI(
 		logger.Warnf("reload Log level error cause by <%v>", err)
 	}
 
+	logger.Infoln("Applying new config to API")
 	getRouteUseCase.ApplyConfig(cfg.UseCase.GetRoute)
 	poolManager.ApplyConfig(cfg.UseCase.PoolManager)
+	buildRouteParamsValidator.ApplyConfig(cfg.Validator.BuildRouteParams)
+	getRouteEncodeParamsValidator.ApplyConfig(cfg.Validator.GetRouteEncodeParams)
 
 	return nil
 }
