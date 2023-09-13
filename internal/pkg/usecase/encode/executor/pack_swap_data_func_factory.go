@@ -177,4 +177,8 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeSynthSwapV3, swapdata.PackAlgebraV1)
 	RegisterPackSwapDataFunc(valueobject.ExchangeSwapBasedV3, swapdata.PackAlgebraV1)
 	RegisterPackSwapDataFunc(valueobject.ExchangeLynex, swapdata.PackAlgebraV1)
+
+	// TraderJoeV20 and TraderJoeV21
+	RegisterPackSwapDataFunc(valueobject.ExchangeTraderJoeV20, swapdata.PackTraderJoeV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeTraderJoeV21, swapdata.PackTraderJoeV2)
 }

@@ -199,3 +199,12 @@ type AlgebraV1 struct {
 	SqrtPriceLimitX96   *big.Int
 	SenderFeeOnTransfer *big.Int
 }
+
+type TraderJoeV2 struct {
+	Recipient common.Address
+	Pool      common.Address
+	TokenIn   common.Address
+	TokenOut  common.Address
+	// packed (version, collectAmount)
+	PackedCollectAmount *big.Int `abi:"collectAmount"`
+}

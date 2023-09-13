@@ -182,4 +182,6 @@ func init() {
 	// executeKyberLimitOrder
 	RegisterFunctionSelector(valueobject.ExchangeKyberSwapLimitOrder, FunctionSelectorLimitOrder)
 
+	RegisterFunctionSelector(valueobject.ExchangeTraderJoeV20, FunctionSelectorTraderJoeV2)
+	RegisterFunctionSelector(valueobject.ExchangeTraderJoeV21, FunctionSelectorTraderJoeV2)
 }

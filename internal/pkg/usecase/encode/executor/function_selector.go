@@ -42,6 +42,7 @@ var (
 	FunctionSelectorLimitOrder     FunctionSelector
 	FunctionSelectorMaverickV1     FunctionSelector
 	FunctionSelectorAlgebraV1      FunctionSelector
+	FunctionSelectorTraderJoeV2    FunctionSelector
 )
 
 func init() {
@@ -69,4 +70,5 @@ func init() {
 	// Reference from SC
 	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/executor-helpers/ExecutorHelper2.sol#LL724C1-L724C1
 	FunctionSelectorLimitOrder = NewFunctionSelector("executeKyberLimitOrder", []string{"bytes", "uint256"})
+	FunctionSelectorTraderJoeV2 = NewFunctionSelector("executeTraderJoeV2", []string{"bytes", "uint256"})
 }

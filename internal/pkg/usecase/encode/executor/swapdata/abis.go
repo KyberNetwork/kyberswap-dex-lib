@@ -30,6 +30,8 @@ var (
 
 	AlgebraV1ABIArguments abi.Arguments
 
+	TraderJoeV2Arguments abi.Arguments
+
 	FillBatchOrdersParamsABIType abi.Type
 )
 
@@ -219,5 +221,13 @@ func init() {
 		{Name: "recipient", Type: abitypes.Address},
 		{Name: "swapAmount", Type: abitypes.Uint256},
 		{Name: "sqrtPriceLimitD18", Type: abitypes.Uint256},
+	}
+
+	TraderJoeV2Arguments = abi.Arguments{
+		{Name: "recipient", Type: abitypes.Address},
+		{Name: "pool", Type: abitypes.Address},
+		{Name: "tokenIn", Type: abitypes.Address},
+		{Name: "tokenOut", Type: abitypes.Address},
+		{Name: "collectAmount", Type: abitypes.Uint256},
 	}
 }
