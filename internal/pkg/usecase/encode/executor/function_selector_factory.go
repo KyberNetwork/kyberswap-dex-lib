@@ -106,6 +106,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeSynapse, FunctionSelectorStableSwap)
 	RegisterFunctionSelector(valueobject.ExchangeSaddle, FunctionSelectorStableSwap)
 	RegisterFunctionSelector(valueobject.ExchangeAxial, FunctionSelectorStableSwap)
+	RegisterFunctionSelector(valueobject.ExchangeAlienBaseStableSwap, FunctionSelectorStableSwap)
 
 	// executeCurveSwap
 	RegisterFunctionSelector(valueobject.ExchangeCurve, FunctionSelectorCurveSwap)

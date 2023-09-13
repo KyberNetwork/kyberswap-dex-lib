@@ -118,6 +118,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeSynapse, swapdata.PackStableSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeSaddle, swapdata.PackStableSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeAxial, swapdata.PackStableSwap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeAlienBaseStableSwap, swapdata.PackStableSwap)
 
 	// CurveSwap
 	RegisterPackSwapDataFunc(valueobject.ExchangeCurve, swapdata.PackCurveSwap)

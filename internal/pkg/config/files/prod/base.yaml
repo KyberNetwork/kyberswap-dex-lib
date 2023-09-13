@@ -42,6 +42,7 @@ common:
     - "pancake"
     - "pancake-v3"
     - "curve"
+    - "alien-base-stableswap"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
