@@ -50,6 +50,11 @@ var synapseBasePoolData []byte
 //go:embed pools/axial/avalanche.json
 var axialAvalanchePoolData []byte
 
+// Alien Base StableSwap data
+
+//go:embed pools/alien-base-stableswap/base.json
+var alienBaseStableSwapPoolData []byte
+
 var bytesByPath = map[string][]byte{
 	"pools/saddle/arbitrum.json": saddleArbitrumPoolData,
 	"pools/saddle/ethereum.json": saddleEthereumPoolData,
@@ -65,4 +70,6 @@ var bytesByPath = map[string][]byte{
 	"pools/synapse/base.json":      synapseBasePoolData,
 
 	"pools/axial/avalanche.json": axialAvalanchePoolData,
+
+	"pools/alien-base-stableswap/base.json": alienBaseStableSwapPoolData,
 }

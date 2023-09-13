@@ -1,0 +1,16 @@
+[
+    {
+        "id": "0x927860797d07b1C46fbBe7f6f73D45C7E1BFBb27",
+        "tokens": [
+            {
+                "address": "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
+                "precision": "1000000000000"
+            },
+            {
+                "address": "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
+                "precision": "1"
+            }
+        ],
+        "swapFee": 0.0008
+    }
+]
