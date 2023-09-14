@@ -11,13 +11,16 @@ import (
 )
 
 type PoolTracker struct {
+	config       *Config
 	ethrpcClient *ethrpc.Client
 }
 
 func NewPoolTracker(
+	config *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
 	return &PoolTracker{
+		config:       config,
 		ethrpcClient: ethrpcClient,
 	}, nil
 }
@@ -25,7 +28,7 @@ func NewPoolTracker(
 func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
-	}).Infof("[Biswap] Start getting new state of pool")
+	}).Infof("[%s] Start getting new state of pool", d.config.DexID)
 
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
@@ -70,7 +73,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		return entity.Pool{}, err
 	}
 
-	swapFeeFL := float64(swapFee) / 1000
+	swapFeeFL := float64(swapFee) / float64(d.config.FeePrecision)
 	p.SwapFee = swapFeeFL
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
@@ -80,7 +83,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 	logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
-	}).Infof("[Biswap] Finish getting new state of pool")
+	}).Infof("[%s] Finish getting new state of pool", d.config.DexID)
 
 	return p, nil
 
