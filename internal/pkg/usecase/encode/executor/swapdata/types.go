@@ -208,3 +208,28 @@ type TraderJoeV2 struct {
 	// packed (version, collectAmount)
 	PackedCollectAmount *big.Int `abi:"collectAmount"`
 }
+
+// OrderRFQ
+// Reference: https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/fda542505b49252f6c59273d9ee542377be6c3a9/contracts/interfaces/pool-types/IRFQ.sol#L7-L18
+type OrderRFQ struct {
+	// lowest 64 bits is the order id, next 64 bits is the expiration timestamp
+	// highest bit is unwrap WETH flag which is set on taker's side
+	// [unwrap eth(1 bit) | unused (127 bits) | expiration timestamp(64 bits) | orderId (64 bits)]
+	Info          *big.Int
+	MakerAsset    common.Address
+	TakerAsset    common.Address
+	Maker         common.Address
+	AllowedSender common.Address // null address on public orders
+	MakingAmount  *big.Int
+	TakingAmount  *big.Int
+}
+
+// KyberRFQ
+// Reference: https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/fda542505b49252f6c59273d9ee542377be6c3a9/contracts/executor-helpers/ExecutorHelper2.sol#L91-L97
+type KyberRFQ struct {
+	RFQ       common.Address `abi:"rfq"`
+	Order     OrderRFQ
+	Signature []byte
+	Amount    *big.Int
+	Target    common.Address
+}

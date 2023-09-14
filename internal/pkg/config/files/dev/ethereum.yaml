@@ -11,7 +11,7 @@ common:
   chainId: &chainId 1
   chainName: &chainName ethereum
   rpc: "https://ethereum.kyberengineering.io"
-  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
+  executorAddress: &executorAddress "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -213,6 +213,15 @@ useCase:
       shrinkFuncLogPercent: 1.01
   buildRoute:
     chainId: *chainId
+    rfq:
+      - id: kyber-pmm
+        handler: kyber-pmm
+        properties:
+          http:
+            base_url: "https://staging-kyberswap.knreserve.com"
+            timeout: 10s
+            retry_count: 3
+          rfq_contract_address: "0x9f9D5a8F4a6e1F40835cDB040a7a53B35C1b1400"
   poolFactory:
     chainId: *chainId
   poolManager:

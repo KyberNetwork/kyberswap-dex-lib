@@ -20,6 +20,8 @@ var (
 	StETHABIArguments             abi.Arguments
 	PlatypusABIArguments          abi.Arguments
 	KyberLimitOrderABIArguments   abi.Arguments
+	KyberRFQABIType               abi.Type
+	KyberRFQABIArguments          abi.Arguments
 
 	// Syncswap
 	SyncSwapABIArguments     abi.Arguments
@@ -229,5 +231,29 @@ func init() {
 		{Name: "tokenIn", Type: abitypes.Address},
 		{Name: "tokenOut", Type: abitypes.Address},
 		{Name: "collectAmount", Type: abitypes.Uint256},
+	}
+
+	KyberRFQABIType, _ = abi.NewType("tuple", "", []abi.ArgumentMarshaling{
+		{Name: "rfq", Type: "address"},
+		// Order
+		// Reference: https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/fda542505b49252f6c59273d9ee542377be6c3a9/contracts/interfaces/pool-types/IRFQ.sol#L7-L18
+		{Name: "order", Type: "tuple", Components: []abi.ArgumentMarshaling{
+			{Name: "info", Type: "uint256"},
+			{Name: "makerAsset", Type: "address"},
+			{Name: "takerAsset", Type: "address"},
+			{Name: "maker", Type: "address"},
+			{Name: "allowedSender", Type: "address"},
+			{Name: "makingAmount", Type: "uint256"},
+			{Name: "takingAmount", Type: "uint256"},
+		}},
+		{Name: "signature", Type: "bytes"},
+		{Name: "amount", Type: "uint256"},
+		{Name: "target", Type: "address"},
+	})
+
+	// KyberRFQABIArguments
+	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/fda542505b49252f6c59273d9ee542377be6c3a9/contracts/executor-helpers/ExecutorHelper2.sol#L91-L97
+	KyberRFQABIArguments = abi.Arguments{
+		{Type: KyberRFQABIType},
 	}
 }

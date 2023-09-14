@@ -292,6 +292,8 @@ func (d *Decoder) decodeFunctionSelector(id executor.SwapSelector) string {
 		return executor.FunctionSelectorLimitOrder.RawName
 	case executor.FunctionSelectorTraderJoeV2.ID:
 		return executor.FunctionSelectorTraderJoeV2.RawName
+	case executor.FunctionSelectorKyberPMM.ID:
+		return executor.FunctionSelectorKyberPMM.RawName
 	default:
 		return ""
 	}
@@ -342,6 +344,8 @@ func (d *Decoder) decodeSwapData(sw executor.Swap) (interface{}, error) {
 		return swapdata.UnpackAlgebraV1(sw.Data)
 	case executor.FunctionSelectorTraderJoeV2.ID:
 		return swapdata.UnpackTraderJoeV2(sw.Data)
+	case executor.FunctionSelectorKyberPMM.ID:
+		return swapdata.UnpackKyberRFQ(sw.Data)
 	default:
 		return nil, fmt.Errorf("unsupported function selector")
 	}

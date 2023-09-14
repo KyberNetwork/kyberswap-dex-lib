@@ -12,6 +12,7 @@ import (
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/ethrpc"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/reload"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -25,6 +26,7 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
+	"github.com/KyberNetwork/router-service/internal/pkg/bootstrap"
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
 	"github.com/KyberNetwork/router-service/internal/pkg/job"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
@@ -294,9 +296,20 @@ func apiAction(c *cli.Context) (err error) {
 		cfg.UseCase.GetRoute,
 	)
 
+	rfqHandlerByPoolType := make(map[string]poolpkg.IPoolRFQ)
+	for _, s := range cfg.UseCase.BuildRoute.RFQ {
+		rfqHandler, err := bootstrap.NewRFQHandler(s)
+		if err != nil {
+			return fmt.Errorf("can not create RFQ handler: %v, err: %v", s.Handler, err)
+		}
+
+		rfqHandlerByPoolType[s.Handler] = rfqHandler
+	}
+
 	buildRouteUseCase := usecase.NewBuildRouteUseCase(
 		tokenRepository,
 		priceDataStoreRepo,
+		rfqHandlerByPoolType,
 		clientDataEncoder,
 		encoder,
 		timeutil.NowFunc,

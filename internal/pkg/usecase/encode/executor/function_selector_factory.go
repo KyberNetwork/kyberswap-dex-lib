@@ -185,4 +185,7 @@ func init() {
 
 	RegisterFunctionSelector(valueobject.ExchangeTraderJoeV20, FunctionSelectorTraderJoeV2)
 	RegisterFunctionSelector(valueobject.ExchangeTraderJoeV21, FunctionSelectorTraderJoeV2)
+
+	// executeKyberPMM
+	RegisterFunctionSelector(valueobject.ExchangeKyberPMM, FunctionSelectorKyberPMM)
 }

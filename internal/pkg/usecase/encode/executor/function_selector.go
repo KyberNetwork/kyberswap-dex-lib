@@ -43,6 +43,7 @@ var (
 	FunctionSelectorMaverickV1     FunctionSelector
 	FunctionSelectorAlgebraV1      FunctionSelector
 	FunctionSelectorTraderJoeV2    FunctionSelector
+	FunctionSelectorKyberPMM       FunctionSelector
 )
 
 func init() {
@@ -71,4 +72,7 @@ func init() {
 	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/executor-helpers/ExecutorHelper2.sol#LL724C1-L724C1
 	FunctionSelectorLimitOrder = NewFunctionSelector("executeKyberLimitOrder", []string{"bytes", "uint256"})
 	FunctionSelectorTraderJoeV2 = NewFunctionSelector("executeTraderJoeV2", []string{"bytes", "uint256"})
+
+	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/fda542505b49252f6c59273d9ee542377be6c3a9/contracts/executor-helpers/ExecutorHelper2.sol#L375-L411
+	FunctionSelectorKyberPMM = NewFunctionSelector("executeRfq", []string{"bytes", "uint256"})
 }

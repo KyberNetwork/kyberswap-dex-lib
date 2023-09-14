@@ -29,6 +29,7 @@ func TestGenMethodID(t *testing.T) {
 		{expectedId: "0x92749fe1", function: FunctionSelectorPlatypus},
 		{expectedId: "0x8f079854", function: FunctionSelectorPSM},
 		{expectedId: "0xd6984a6d", function: FunctionSelectorLimitOrder},
+		{expectedId: "0xca6182da", function: FunctionSelectorKyberPMM},
 	}
 
 	for idx, tc := range testCases {

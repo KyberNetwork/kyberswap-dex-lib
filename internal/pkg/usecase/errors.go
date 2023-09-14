@@ -8,4 +8,6 @@ var (
 	ErrPublicKeyNotFound = errors.New("public key is not found")
 
 	ErrTokenNotFound = errors.New("token not found")
+
+	ErrRFQFailed = errors.New("RFQ request failed")
 )

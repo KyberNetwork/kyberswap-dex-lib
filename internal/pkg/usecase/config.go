@@ -20,8 +20,15 @@ type Config struct {
 type (
 	BuildRouteConfig struct {
 		ChainID valueobject.ChainID `mapstructure:"chainId"`
+		RFQ     []RFQConfig         `mapstructure:"rfq"`
 	}
 )
+
+type RFQConfig struct {
+	Id         string                 `mapstructure:"id"`
+	Handler    string                 `mapstructure:"handler"`
+	Properties map[string]interface{} `mapstructure:"properties"`
+}
 
 type (
 	IndexPoolsConfig struct {

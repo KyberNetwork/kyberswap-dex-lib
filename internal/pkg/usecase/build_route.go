@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 var OutputChangeNoChange = dto.OutputChange{
@@ -30,9 +32,10 @@ type buildRouteUseCase struct {
 	tokenRepository ITokenRepository
 	priceRepository IPriceRepository
 
-	clientDataEncoder IClientDataEncoder
-	encoder           IEncoder
-	nowFunc           func() time.Time
+	rfqHandlerByPoolType map[string]pool.IPoolRFQ
+	clientDataEncoder    IClientDataEncoder
+	encoder              IEncoder
+	nowFunc              func() time.Time
 
 	config BuildRouteConfig
 }
@@ -40,6 +43,7 @@ type buildRouteUseCase struct {
 func NewBuildRouteUseCase(
 	tokenRepository ITokenRepository,
 	priceRepository IPriceRepository,
+	rfqHandlerByPoolType map[string]pool.IPoolRFQ,
 	clientDataEncoder IClientDataEncoder,
 	encoder IEncoder,
 	nowFunc func() time.Time,
@@ -50,12 +54,13 @@ func NewBuildRouteUseCase(
 	}
 
 	return &buildRouteUseCase{
-		tokenRepository:   tokenRepository,
-		priceRepository:   priceRepository,
-		clientDataEncoder: clientDataEncoder,
-		encoder:           encoder,
-		nowFunc:           nowFunc,
-		config:            config,
+		tokenRepository:      tokenRepository,
+		priceRepository:      priceRepository,
+		rfqHandlerByPoolType: rfqHandlerByPoolType,
+		clientDataEncoder:    clientDataEncoder,
+		encoder:              encoder,
+		nowFunc:              nowFunc,
+		config:               config,
 	}
 }
 
@@ -63,7 +68,12 @@ func (uc *buildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.Handle")
 	defer span.Finish()
 
-	routeSummary, err := uc.updateRouteSummary(ctx, command.RouteSummary)
+	routeSummary, err := uc.rfq(ctx, command.Recipient, command.RouteSummary)
+	if err != nil {
+		return nil, err
+	}
+
+	routeSummary, err = uc.updateRouteSummary(ctx, routeSummary)
 	if err != nil {
 		return nil, err
 	}
@@ -90,6 +100,34 @@ func (uc *buildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		Data:          encodedData,
 		RouterAddress: uc.encoder.GetRouterAddress(),
 	}, nil
+}
+
+func (uc *buildRouteUseCase) rfq(
+	ctx context.Context,
+	recipient string,
+	routeSummary valueobject.RouteSummary,
+) (valueobject.RouteSummary, error) {
+	for pathIdx, path := range routeSummary.Route {
+		for swapIdx, swap := range path {
+			rfqHandler, found := uc.rfqHandlerByPoolType[swap.PoolType]
+			if !found {
+				// This pool type does not have RFQ handler
+				// It means that this swap does not need to be processed via RFQ
+				logger.Debugf("no RFQ handler for pool type: %v", swap.PoolType)
+				continue
+			}
+
+			result, err := rfqHandler.RFQ(ctx, recipient, swap.Extra)
+			if err != nil {
+				return routeSummary, errors.Wrapf(ErrRFQFailed, "rfq failed, swap data: %v, err: [%s]", swap, err.Error())
+			}
+
+			// Enrich the swap extra with the RFQ extra
+			routeSummary.Route[pathIdx][swapIdx].Extra = result
+		}
+	}
+
+	return routeSummary, nil
 }
 
 // updateRouteSummary updates AmountInUSD/AmountOutUSD, TokenInMarketPriceAvailable/TokenOutMarketPriceAvailable in command.RouteSummary

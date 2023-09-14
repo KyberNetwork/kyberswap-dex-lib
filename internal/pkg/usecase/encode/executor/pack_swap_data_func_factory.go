@@ -182,4 +182,7 @@ func init() {
 	// TraderJoeV20 and TraderJoeV21
 	RegisterPackSwapDataFunc(valueobject.ExchangeTraderJoeV20, swapdata.PackTraderJoeV2)
 	RegisterPackSwapDataFunc(valueobject.ExchangeTraderJoeV21, swapdata.PackTraderJoeV2)
+
+	// KyberPMM
+	RegisterPackSwapDataFunc(valueobject.ExchangeKyberPMM, swapdata.PackKyberRFQ)
 }
