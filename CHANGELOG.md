@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.22.4] - 2023-09-14
+
+### Added
+- Integrate `pancake-stable` on BSC & `curve` on Base (#420).
+- Integrate `sparta-dex` (#421) & `arbi-dex` (#422) on Arbitrum.
+- Add `blacklistedRecipients` config (#423, #426, #427).
+- Integrate `alien-base-stableswap` on Base (#429).
+- Add error handler for client context cancel (#415).
 
 ## [v1.22.3] - 2023-09-07
 
@@ -43,13 +51,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v1.21.4] - 2023-08-28
 
-### Added 
+### Added
 - Dynamic config cache for shrink decimal func on all chains (#389)
 
 
 ## [v1.21.3] - 2023-08-28
 
-### Added 
+### Added
 - Support `synapse` on base (#388)
 
 ### Fixed
@@ -61,8 +69,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Support `baso`, `synthswap-v3`, `synthswap` on base (#385)
 - Use LO contract address from pool if available (#378)
-  - Use LO contract address from pool if available 
-  - Check valid eth address 
+  - Use LO contract address from pool if available
+  - Check valid eth address
   - Bump dex-lib v0.10.0
 
 
@@ -75,17 +83,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [v1.21.0] - 2023-08-23
 
-### Added 
+### Added
 - Support base (#374)
 
 
-## [v1.20.0] - 2023-08-23   
+## [v1.20.0] - 2023-08-23
 
 ### Added
 - New cache route mechanism and dynamic config cache (#360)
 
 
-## [v1.19.2] - 2023-08-21   
+## [v1.19.2] - 2023-08-21
 
 ### Added
 - AG-665: integrate echo-dex-v3 (#358)
