@@ -35,6 +35,9 @@ var (
 	TraderJoeV2Arguments abi.Arguments
 
 	FillBatchOrdersParamsABIType abi.Type
+
+	FillBatchOrdersParamsDSABIType abi.Type
+	KyberLimitOrderDSABIArguments  abi.Arguments
 )
 
 func init() {
@@ -197,6 +200,49 @@ func init() {
 		{Name: "makerAsset", Type: abitypes.Address},
 		{Name: "takerAsset", Type: abitypes.Address},
 		{Name: "params", Type: FillBatchOrdersParamsABIType},
+	}
+
+	FillBatchOrdersParamsDSABIType, _ = abi.NewType("tuple", "",
+		[]abi.ArgumentMarshaling{
+			{
+				Name: "orders", Type: "tuple[]",
+				Components: []abi.ArgumentMarshaling{
+					{Name: "salt", Type: "uint256"},
+					{Name: "makerAsset", Type: "address"},
+					{Name: "takerAsset", Type: "address"},
+					{Name: "maker", Type: "address"},
+					{Name: "receiver", Type: "address"},
+					{Name: "allowedSender", Type: "address"},
+					{Name: "makingAmount", Type: "uint256"},
+					{Name: "takingAmount", Type: "uint256"},
+					{Name: "feeConfig", Type: "uint256"},
+					{Name: "makerAssetData", Type: "bytes"},
+					{Name: "takerAssetData", Type: "bytes"},
+					{Name: "getMakerAmount", Type: "bytes"},
+					{Name: "getTakerAmount", Type: "bytes"},
+					{Name: "predicate", Type: "bytes"},
+					{Name: "permit", Type: "bytes"},
+					{Name: "interaction", Type: "bytes"},
+				},
+			},
+			{
+				Name: "signatures", Type: "tuple[]",
+				Components: []abi.ArgumentMarshaling{
+					{Name: "orderSignature", Type: "bytes"},
+					{Name: "opSignature", Type: "bytes"},
+				},
+			},
+			{Name: "opExpireTimes", Type: "uint32[]"},
+			{Name: "takingAmount", Type: "uint256"},
+			{Name: "thresholdAmount", Type: "uint256"},
+			{Name: "target", Type: "address"},
+		})
+
+	KyberLimitOrderDSABIArguments = abi.Arguments{
+		{Name: "kyberLOAddress", Type: abitypes.Address},
+		{Name: "makerAsset", Type: abitypes.Address},
+		{Name: "takerAsset", Type: abitypes.Address},
+		{Name: "params", Type: FillBatchOrdersParamsDSABIType},
 	}
 
 	// Reference from SC

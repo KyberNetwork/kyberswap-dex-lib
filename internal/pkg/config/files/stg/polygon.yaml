@@ -11,7 +11,7 @@ common:
   chainId: &chainId 137
   chainName: &chainName polygon
   rpc: "https://polygon.llamarpc.com"
-  executorAddress: &executorAddress "0x8857d848e9094b473663F448134fd8a94e5C7C46"
+  executorAddress: &executorAddress "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -68,6 +68,7 @@ common:
     - "metavault"
     - "fraxswap"
     - "kyberswap-limit-order"
+    - "kyberswap-limit-order-v2"
     - "retro-v3"
     - "retro"
     - "pearl"
@@ -233,6 +234,12 @@ useCase:
       shrinkFuncLogPercent: 1.01
   buildRoute:
     chainId: *chainId
+    rfq:
+      - id: kyberswap-limit-order-v2
+        handler: limit-order
+        properties:
+          chainID: *chainId
+          limitOrderHTTPUrl: https://limit-order.stg.kyberengineering.io
   poolFactory:
     chainId: *chainId
   poolManager:

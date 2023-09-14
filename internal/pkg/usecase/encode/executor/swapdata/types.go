@@ -171,6 +171,47 @@ type KyberLimitOrder struct {
 	Params         FillBatchOrdersParams
 }
 
+// Double Signature Limit Order
+type OrderDS struct {
+	Salt           *big.Int
+	MakerAsset     common.Address
+	TakerAsset     common.Address
+	Maker          common.Address
+	Receiver       common.Address
+	AllowedSender  common.Address
+	MakingAmount   *big.Int
+	TakingAmount   *big.Int
+	FeeConfig      *big.Int
+	MakerAssetData []byte
+	TakerAssetData []byte
+	GetMakerAmount []byte
+	GetTakerAmount []byte
+	Predicate      []byte
+	Permit         []byte
+	Interaction    []byte
+}
+
+type Signature struct {
+	OrderSignature []byte // Signature to confirm quote ownership
+	OpSignature    []byte // OP Signature to confirm quote ownership
+}
+
+type FillBatchOrdersParamsDS struct {
+	Orders          []OrderDS
+	Signatures      []Signature
+	OpExpireTimes   []uint32
+	TakingAmount    *big.Int
+	ThresholdAmount *big.Int
+	Target          common.Address
+}
+
+type KyberLimitOrderDS struct {
+	KyberLOAddress common.Address
+	MakerAsset     common.Address
+	TakerAsset     common.Address
+	Params         FillBatchOrdersParamsDS
+}
+
 // SyncSwap
 // https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/develop_zk/contracts/executor-helpers/ZkSyncExecutorHelper.sol#L72-L77
 type SyncSwap struct {

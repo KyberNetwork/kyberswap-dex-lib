@@ -290,6 +290,8 @@ func (d *Decoder) decodeFunctionSelector(id executor.SwapSelector) string {
 		return executor.FunctionSelectorCamelotSwap.RawName
 	case executor.FunctionSelectorLimitOrder.ID:
 		return executor.FunctionSelectorLimitOrder.RawName
+	case executor.FunctionSelectorLimitOrderDS.ID:
+		return executor.FunctionSelectorLimitOrderDS.RawName
 	case executor.FunctionSelectorTraderJoeV2.ID:
 		return executor.FunctionSelectorTraderJoeV2.RawName
 	case executor.FunctionSelectorKyberPMM.ID:
@@ -336,6 +338,8 @@ func (d *Decoder) decodeSwapData(sw executor.Swap) (interface{}, error) {
 		return swapdata.UnpackUniSwap(sw.Data)
 	case executor.FunctionSelectorLimitOrder.ID:
 		return swapdata.UnpackKyberLimitOrder(sw.Data)
+	case executor.FunctionSelectorLimitOrderDS.ID:
+		return swapdata.UnpackKyberLimitOrderDS(sw.Data)
 	case executor.FunctionSelectorSyncSwap.ID:
 		return swapdata.UnpackSyncSwap(sw.Data)
 	case executor.FunctionSelectorMaverickV1.ID:

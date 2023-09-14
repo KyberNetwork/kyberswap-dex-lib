@@ -134,7 +134,8 @@ var (
 
 	ExchangeMaverickV1 Exchange = "maverick-v1"
 
-	ExchangeKyberSwapLimitOrder Exchange = "kyberswap-limit-order"
+	ExchangeKyberSwapLimitOrder   Exchange = "kyberswap-limit-order"
+	ExchangeKyberSwapLimitOrderDS Exchange = "kyberswap-limit-order-v2"
 
 	ExchangeKyberPMM Exchange = "kyber-pmm"
 
@@ -244,6 +245,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangePlatypus:                 {},
 	ExchangeSyncSwap:                 {},
 	ExchangeKyberSwapLimitOrder:      {},
+	ExchangeKyberSwapLimitOrderDS:    {},
 	ExchangeMaverickV1:               {},
 	ExchangeHorizonDex:               {},
 	ExchangeRetro:                    {},

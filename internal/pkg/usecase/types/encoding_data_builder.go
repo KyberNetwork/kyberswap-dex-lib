@@ -142,7 +142,7 @@ func transformRoute(route [][]valueobject.Swap, kyberLOAddress string) [][]Encod
 }
 
 func getPool(swap *valueobject.Swap, kyberLOAddress string) string {
-	if swap.Exchange == valueobject.ExchangeKyberSwapLimitOrder {
+	if swap.Exchange == valueobject.ExchangeKyberSwapLimitOrder || swap.Exchange == valueobject.ExchangeKyberSwapLimitOrderDS {
 		if swap.PoolExtra != nil {
 			if contractAddress, ok := swap.PoolExtra.(string); ok && validator.IsEthereumAddress(contractAddress) {
 				return contractAddress
