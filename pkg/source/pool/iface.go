@@ -2,6 +2,7 @@ package pool
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -37,6 +38,11 @@ type IPoolSimulator interface {
 	GetTokenIndex(address string) int
 }
 
+type RFQResult struct {
+	NewAmountOut *big.Int
+	Extra        any
+}
+
 type IPoolRFQ interface {
-	RFQ(ctx context.Context, recipient string, params any) (any, error)
+	RFQ(ctx context.Context, recipient string, params any) (RFQResult, error)
 }

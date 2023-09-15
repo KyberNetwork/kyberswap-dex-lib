@@ -6,6 +6,8 @@ import (
 
 	"github.com/KyberNetwork/logger"
 	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type RFQHandler struct {
@@ -21,15 +23,15 @@ func NewRFQHandler(config *Config) *RFQHandler {
 	}
 }
 
-func (h *RFQHandler) RFQ(ctx context.Context, recipient string, params any) (any, error) {
+func (h *RFQHandler) RFQ(ctx context.Context, recipient string, params any) (pool.RFQResult, error) {
 	paramsByteData, err := json.Marshal(params)
 	if err != nil {
-		return nil, err
+		return pool.RFQResult{}, err
 	}
 
 	var swapInfo SwapInfo
 	if err = json.Unmarshal(paramsByteData, &swapInfo); err != nil {
-		return nil, InvalidSwapInfo
+		return pool.RFQResult{}, InvalidSwapInfo
 	}
 
 	orderIds := lo.Map(swapInfo.FilledOrders, func(o *FilledOrderInfo, _ int) int64 { return o.OrderID })
@@ -39,11 +41,14 @@ func (h *RFQHandler) RFQ(ctx context.Context, recipient string, params any) (any
 			"params": params,
 			"error":  err,
 		}).Errorf("failed to get operator signatures")
-		return nil, err
+		return pool.RFQResult{}, err
 	}
 
-	return OpSignatureExtra{
-		SwapInfo:               swapInfo,
-		OperatorSignaturesById: lo.SliceToMap(result, func(sig *operatorSignatures) (int64, *operatorSignatures) { return sig.ID, sig }),
+	return pool.RFQResult{
+		NewAmountOut: nil, // at the moment we don't use the new amount out of Limit Order, nil will ignore it
+		Extra: OpSignatureExtra{
+			SwapInfo:               swapInfo,
+			OperatorSignaturesById: lo.SliceToMap(result, func(sig *operatorSignatures) (int64, *operatorSignatures) { return sig.ID, sig }),
+		},
 	}, nil
 }

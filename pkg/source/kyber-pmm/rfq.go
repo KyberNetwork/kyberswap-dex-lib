@@ -3,8 +3,11 @@ package kyberpmm
 import (
 	"context"
 	"encoding/json"
+	"math/big"
 
 	"github.com/KyberNetwork/logger"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type RFQHandler struct {
@@ -19,15 +22,15 @@ func NewRFQHandler(config *Config, client IClient) *RFQHandler {
 	}
 }
 
-func (h *RFQHandler) RFQ(ctx context.Context, recipient string, params any) (any, error) {
+func (h *RFQHandler) RFQ(ctx context.Context, recipient string, params any) (pool.RFQResult, error) {
 	paramsByteData, err := json.Marshal(params)
 	if err != nil {
-		return nil, err
+		return pool.RFQResult{}, err
 	}
 
 	var swapExtra SwapExtra
 	if err = json.Unmarshal(paramsByteData, &swapExtra); err != nil {
-		return nil, ErrInvalidFirmQuoteParams
+		return pool.RFQResult{}, ErrInvalidFirmQuoteParams
 	}
 
 	result, err := h.client.Firm(ctx,
@@ -43,20 +46,25 @@ func (h *RFQHandler) RFQ(ctx context.Context, recipient string, params any) (any
 			"params": params,
 			"error":  err,
 		}).Errorf("failed to get firm quote")
-		return nil, err
+		return pool.RFQResult{}, err
 	}
 
-	return RFQExtra{
-		RFQContractAddress: h.config.RFQContractAddress,
-		Info:               result.Order.Info,
-		Expiry:             result.Order.Expiry,
-		MakerAsset:         result.Order.MakerAsset,
-		TakerAsset:         result.Order.TakerAsset,
-		Maker:              result.Order.Maker,
-		Taker:              result.Order.Taker,
-		MakerAmount:        result.Order.MakerAmount,
-		TakerAmount:        result.Order.TakerAmount,
-		Signature:          result.Order.Signature,
-		Recipient:          recipient,
+	newAmountOut, _ := new(big.Int).SetString(result.Order.MakerAmount, 10)
+
+	return pool.RFQResult{
+		NewAmountOut: newAmountOut,
+		Extra: RFQExtra{
+			RFQContractAddress: h.config.RFQContractAddress,
+			Info:               result.Order.Info,
+			Expiry:             result.Order.Expiry,
+			MakerAsset:         result.Order.MakerAsset,
+			TakerAsset:         result.Order.TakerAsset,
+			Maker:              result.Order.Maker,
+			Taker:              result.Order.Taker,
+			MakerAmount:        result.Order.MakerAmount,
+			TakerAmount:        result.Order.TakerAmount,
+			Signature:          result.Order.Signature,
+			Recipient:          recipient,
+		},
 	}, nil
 }
