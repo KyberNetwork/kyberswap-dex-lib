@@ -70,7 +70,7 @@ func TestCalcAmountOutAEVMWithUSDCE_USDCPoolWithTCPClient(t *testing.T) {
 		usdcAddr,
 	)
 	require.NoError(t, err)
-	fmt.Printf("swapping 500 USDC.e for USDC amountOut = %s\n", result.TokenAmountOut.Amount)
+	fmt.Printf("swapping 500 USDC.e for USDC amountOut = %s, gas used = %v\n", result.TokenAmountOut.Amount, result.Gas)
 	usdcOut := new(big.Int).Set(result.TokenAmountOut.Amount)
 
 	p.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: result.SwapInfo})
@@ -83,5 +83,5 @@ func TestCalcAmountOutAEVMWithUSDCE_USDCPoolWithTCPClient(t *testing.T) {
 		usdceAddr,
 	)
 	require.NoError(t, err)
-	fmt.Printf("swapping %s USDC for USDC.e amountOut = %s\n", usdcOut, result.TokenAmountOut.Amount)
+	fmt.Printf("swapping %s USDC for USDC.e amountOut = %s, gas used = %v\n", usdcOut, result.TokenAmountOut.Amount, result.Gas)
 }

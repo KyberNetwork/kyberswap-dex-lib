@@ -241,5 +241,6 @@ func CalcAmountOutAEVM(
 		SwapInfo: &AEVMSwapInfo{
 			StateAfter: swapResult.StateAfter,
 		},
+		Gas: int64(swapResult.GasUsed),
 	}, nil
 }

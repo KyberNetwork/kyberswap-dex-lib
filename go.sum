@@ -61,8 +61,8 @@ github.com/DataDog/gostackparse v0.5.0/go.mod h1:lTfqcJKqS9KnXQGnyQMCugq3u1FP6UZ
 github.com/DataDog/sketches-go v1.2.1 h1:qTBzWLnZ3kM2kw39ymh6rMcnN+5VULwFs++lEYUUsro=
 github.com/DataDog/sketches-go v1.2.1/go.mod h1:1xYmPLY1So10AwxV6MJV0J53XVH+WL9Ad1KetxVivVI=
 github.com/DataDog/zstd v1.5.2 h1:vUG4lAyuPCXO0TLbXvPv7EB7cNK1QV/luu55UHLrrn8=
-github.com/KyberNetwork/aevm v1.0.2 h1:sWAmVYqemubLsV9FbOYVI9/3YWOyv7Jf6wf77CHpUzg=
-github.com/KyberNetwork/aevm v1.0.2/go.mod h1:r1gufLQ9MWtIdIxlwK5RzRpAkVYcaX9qSXPE3sYqalE=
+github.com/KyberNetwork/aevm v1.0.4 h1:JG0/ovjLegfUHIc7Ehp4c8maIxqt36sTU4ph2ZJS78E=
+github.com/KyberNetwork/aevm v1.0.4/go.mod h1:6FSqoLDnn1OzY+N4IbpunEHV2iWKaxqxEC35IvZb8lA=
 github.com/KyberNetwork/blockchain-toolkit v0.2.0 h1:OQkENV1Hl+i8HznWDxPq2DHqFJ4+8Jsdjcsc/Otcv1E=
 github.com/KyberNetwork/blockchain-toolkit v0.2.0/go.mod h1:1xF0YWJsVr3EE5Qpvdv0OrmU3kjUBLS477ldco5X7eI=
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 h1:kN7ez6MPJEaFbacmvR+22PRa5pJkzwYN4h3RyRhjUnU=
