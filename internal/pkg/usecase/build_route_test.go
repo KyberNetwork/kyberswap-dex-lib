@@ -85,7 +85,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					AmountInUSD:                  0,
 					TokenInMarketPriceAvailable:  false,
 					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(10000),
+					AmountOut:                    big.NewInt(0),
 					AmountOutUSD:                 0,
 					TokenOutMarketPriceAvailable: false,
 					Gas:                          0,
@@ -166,7 +166,14 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					GasPrice:                     big.NewFloat(100.2),
 					GasUSD:                       0,
 					ExtraFee:                     valueobject.ExtraFee{},
-					Route:                        [][]valueobject.Swap{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:      "0xabc",
+								AmountOut: big.NewInt(10000),
+							},
+						},
+					},
 				},
 				SlippageTolerance: 5,
 				Recipient:         "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",

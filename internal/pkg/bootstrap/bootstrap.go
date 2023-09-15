@@ -17,8 +17,8 @@ func NewNoopRFQHandler() *NoopRFQHandler {
 	return &NoopRFQHandler{}
 }
 
-func (h *NoopRFQHandler) RFQ(ctx context.Context, recipient string, params any) (any, error) {
-	return nil, nil
+func (h *NoopRFQHandler) RFQ(ctx context.Context, recipient string, params any) (pool.RFQResult, error) {
+	return pool.RFQResult{}, nil
 }
 
 func NewRFQHandler(

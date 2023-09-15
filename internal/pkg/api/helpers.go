@@ -105,6 +105,12 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Code:       4221,
 		Message:    "weth not found",
 	},
+
+	usecase.ErrQuotedAmountSmallerThanEstimated: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4222,
+		Message:    usecase.ErrQuotedAmountSmallerThanEstimated.Error(),
+	},
 }
 
 type SuccessResponse struct {

@@ -123,8 +123,25 @@ func (uc *buildRouteUseCase) rfq(
 			}
 
 			// Enrich the swap extra with the RFQ extra
-			routeSummary.Route[pathIdx][swapIdx].Extra = result
+			routeSummary.Route[pathIdx][swapIdx].Extra = result.Extra
+
+			// We might have to apply the new amount out from RFQ (MM can quote with a different amount out)
+			if result.NewAmountOut != nil {
+				routeSummary.Route[pathIdx][swapIdx].AmountOut = result.NewAmountOut
+			}
 		}
+	}
+
+	// Recalculate the new amount out after RFQ
+	afterRFQAmountOut := big.NewInt(0)
+	for _, path := range routeSummary.Route {
+		afterRFQAmountOut.Add(afterRFQAmountOut, path[len(path)-1].AmountOut)
+	}
+
+	// NOTE: if afterRFQAmountOut < oldAmountOut due to any RFQ hop, we will return error.
+	// Reference: https://www.notion.so/kybernetwork/Build-route-behavior-discussion-5a0765555e1e47c1866db5df3d01a0b5
+	if afterRFQAmountOut.Cmp(routeSummary.AmountOut) < 0 {
+		return routeSummary, ErrQuotedAmountSmallerThanEstimated
 	}
 
 	return routeSummary, nil
