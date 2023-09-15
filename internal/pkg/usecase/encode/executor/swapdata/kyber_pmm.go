@@ -76,7 +76,7 @@ func buildKyberRFQ(swap types.EncodingSwap) (KyberRFQ, error) {
 		Order:     orderRFQ,
 		Signature: common.FromHex(rfqExtra.Signature),
 		Amount:    takingAmount,
-		Target:    common.HexToAddress(rfqExtra.Recipient),
+		Target:    common.HexToAddress(swap.Recipient),
 	}, nil
 }
 
