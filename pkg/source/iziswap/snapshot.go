@@ -25,7 +25,7 @@ func minInt(a int, b int) int {
 func (d *PoolTracker) getLiquiditySnapshot(ctx context.Context, pool entity.Pool, poolInfo swap.PoolInfo) ([]swap.LiquidityPoint, error) {
 	ptRange := d.config.PointRange
 	if ptRange <= 0 {
-		ptRange = 2000
+		ptRange = DEFAULT_PT_RANGE
 	}
 	pointDelta := poolInfo.PointDelta
 	leftPoint := poolInfo.CurrentPoint - ptRange
@@ -93,7 +93,7 @@ func (d *PoolTracker) getLiquiditySnapshot(ctx context.Context, pool entity.Pool
 func (d *PoolTracker) getLimitOrderSnapshot(ctx context.Context, pool entity.Pool, poolInfo swap.PoolInfo) ([]swap.LimitOrderPoint, error) {
 	ptRange := d.config.PointRange
 	if ptRange <= 0 {
-		ptRange = 2000
+		ptRange = DEFAULT_PT_RANGE
 	}
 	pointDelta := poolInfo.PointDelta
 	leftPoint := poolInfo.CurrentPoint - ptRange

@@ -23,7 +23,7 @@ func NewPoolTracker(
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
 	if cfg.PointRange <= 0 {
-		cfg.PointRange = 2000
+		cfg.PointRange = DEFAULT_PT_RANGE
 	}
 	return &PoolTracker{
 		config:       cfg,
