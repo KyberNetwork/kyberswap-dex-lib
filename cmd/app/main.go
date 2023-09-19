@@ -213,7 +213,10 @@ func apiAction(c *cli.Context) (err error) {
 	// init repositories
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
 	routeRepository := route.NewRedisCacheRepository(routerRedisClient.Client, cfg.Repository.Route.RedisCache)
-	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient, cfg.Repository.Gas.Redis)
+	gasRepository, err := gas.NewRistrettoRepository(
+		gas.NewRedisRepository(routerRedisClient.Client, ethClient, cfg.Repository.Gas.Redis),
+		cfg.Repository.Gas.Ristretto,
+	)
 
 	tokenRepository := token.NewGoCacheRepository(
 		token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis),

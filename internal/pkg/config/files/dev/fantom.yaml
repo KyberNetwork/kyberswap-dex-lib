@@ -213,11 +213,18 @@ job:
   indexPools:
     interval: 2s
   updateSuggestedGasPrice:
-    interval: 2s
+    interval: 15s
 repository:
   gas:
     redis:
       prefix: *chainName
+    ristretto:
+      numCounters: 5000
+      maxCost: 500
+      bufferItems: 64
+      suggestedGasPrice:
+        cost: 1
+        ttl: 2m
   pool:
     redis:
       prefix: *chainName

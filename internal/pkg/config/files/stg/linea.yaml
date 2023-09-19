@@ -206,6 +206,13 @@ repository:
   gas:
     redis:
       prefix: *chainName
+    ristretto:
+      numCounters: 5000
+      maxCost: 500
+      bufferItems: 64
+      suggestedGasPrice:
+        cost: 1
+        ttl: 2m
   pool:
     redis:
       prefix: *chainName
