@@ -39,7 +39,7 @@ func (c *httpClient) ListPools(ctx context.Context, params iziswap.ListPoolsPara
 	var result iziswap.ListPoolsResponse
 	resp, err := c.client.R().
 		SetQueryParams(map[string]string{
-			"chainId":    strconv.Itoa(params.ChainId),
+			"chain_id":   strconv.Itoa(params.ChainId),
 			"type":       POOL_TYPE_VALUE,
 			"version":    params.Version,
 			"time_start": time.Unix(int64(params.TimeStart), 0).Format("2006-01-02T15:04:05"),
