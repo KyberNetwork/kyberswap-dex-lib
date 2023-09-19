@@ -1,11 +1,10 @@
 package iziswap
 
-type Config struct {
-	DexID string
-	// used for pools_list_updater
-	ChainID int `json:"chainID"`
+import "github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 
-	// used for limit number of pools fetch from API
+type Config struct {
+	DexID        string
+	ChainID      int `json:"chainID"`
 	NewPoolLimit int `json:"newPoolLimit"`
 
 	// for pool tracker
@@ -21,6 +20,14 @@ type Config struct {
 	// is [currentPrice/1.2, currentPrice * 1.2)
 	PointRange int `json:"pointRange"`
 
+	HTTP HTTPConfig
+
 	// //todo: we may use it in the future for speed up
 	// preGenesisPoolAddrs []string
+}
+
+type HTTPConfig struct {
+	BaseURL    string                `mapstructure:"base_url" json:"base_url,omitempty"`
+	Timeout    durationjson.Duration `mapstructure:"timeout" json:"timeout,omitempty"`
+	RetryCount int                   `mapstructure:"retry_count" json:"retry_count,omitempty"`
 }

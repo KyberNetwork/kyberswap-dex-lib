@@ -154,7 +154,6 @@ func (p *PoolSimulator) CalcAmountOut(
 // that means, if there exists some limit orders around the current point of a pool
 // and we still want to get the value of `amountOut` as accurate as possible, we need
 // to call pool_tracker of that pool more frequently to update limit order distribution in time
-// -_-
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	si, ok := params.SwapInfo.(iZiSwapInfo)
 	if !ok {

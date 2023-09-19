@@ -3,8 +3,6 @@ package iziswap
 import (
 	"context"
 	"encoding/json"
-	"net"
-	"net/http"
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -15,21 +13,14 @@ import (
 // with minor changes in PoolsListUpdater and PoolSimulator.
 
 type PoolsListUpdater struct {
-	config *Config
-	client *http.Client
+	config Config
+	client IClient
 }
 
 func NewPoolsListUpdater(
-	cfg *Config,
+	cfg Config,
+	client IClient,
 ) *PoolsListUpdater {
-	client := &http.Client{
-		Transport: &http.Transport{
-			DialContext: (&net.Dialer{
-				Timeout: 5 * time.Second,
-			}).DialContext,
-		},
-		Timeout: 60 * time.Second,
-	}
 	return &PoolsListUpdater{
 		config: cfg,
 		client: client,
@@ -48,16 +39,14 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	params := &PoolsListQueryParams{
-		chainId: d.config.ChainID,
-		// todo: for some certain testnet (if exists)
-		// we need change version to "v1"
-		version:   "v2",
-		timeStart: metadata.LastCreatedAtTimestamp,
-		limit:     d.config.NewPoolLimit,
+	params := ListPoolsParams{
+		ChainId:   d.config.ChainID,
+		Version:   "v2",
+		TimeStart: metadata.LastCreatedAtTimestamp,
+		Limit:     d.config.NewPoolLimit,
 	}
 
-	queryResult, err := getPoolsList(ctx, d.client, params)
+	queryResult, err := d.client.ListPools(ctx, params)
 	logger.Infof("got %v pools from iZiSwap API", len(queryResult))
 
 	if err != nil {

@@ -6,6 +6,34 @@ import (
 	"github.com/izumiFinance/iZiSwap-SDK-go/swap"
 )
 
+type PoolInfo struct {
+	Fee            int    `json:"fee"`
+	TokenX         string `json:"tokenX"`
+	TokenY         string `json:"tokenY"`
+	Address        string `json:"address"`
+	Timestamp      int    `json:"timestamp"`
+	TokenXAddress  string `json:"tokenX_address"`
+	TokenYAddress  string `json:"tokenY_address"`
+	TokenXDecimals int    `json:"tokenX_decimals"`
+	TokenYDecimals int    `json:"tokenY_decimals"`
+	Version        string `json:"version"`
+}
+
+type ListPoolsParams struct {
+	ChainId int
+	// v1 or v2
+	Version string
+	// timestamp in second
+	TimeStart int
+	// response size
+	Limit int
+}
+
+type ListPoolsResponse struct {
+	Data  []PoolInfo `json:"data,omitempty"`
+	Total int        `json:"total"`
+}
+
 type State struct {
 	SqrtPrice_96            *big.Int `abi:"sqrtPrice_96"`
 	CurrentPoint            *big.Int `abi:"currentPoint"`
