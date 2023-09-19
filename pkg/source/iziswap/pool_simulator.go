@@ -2,7 +2,6 @@ package iziswap
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -11,11 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
 	"github.com/izumiFinance/iZiSwap-SDK-go/swap"
-)
-
-var (
-	ErrLiquidityNil  = errors.New("liquidities is nil")
-	ErrLimitOrderNil = errors.New("limit Orders is nil")
+	"github.com/pkg/errors"
 )
 
 type PoolSimulator struct {
@@ -32,32 +27,43 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	if extra.LimitOrders == nil {
 		return nil, ErrLimitOrderNil
 	}
+
 	if extra.Liquidities == nil {
 		return nil, ErrLiquidityNil
 	}
-	tokens := make([]string, 2)
-	reserves := make([]*big.Int, 2)
-	if len(entityPool.Reserves) == 2 && len(entityPool.Tokens) == 2 {
-		tokens[0] = entityPool.Tokens[0].Address
-		reserves[0] = NewBig10(entityPool.Reserves[0])
-		tokens[1] = entityPool.Tokens[1].Address
-		reserves[1] = NewBig10(entityPool.Reserves[1])
+
+	if len(entityPool.Reserves) != 2 {
+		return nil, ErrInvalidReservesLength
 	}
-	swapFeeFl := new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), boneFloat)
-	swapFee, _ := swapFeeFl.Int(nil)
-	var info = pool.PoolInfo{
-		Address:    strings.ToLower(entityPool.Address),
-		ReserveUsd: entityPool.ReserveUsd,
-		SwapFee:    swapFee,
-		Exchange:   entityPool.Exchange,
-		Type:       entityPool.Type,
-		Tokens:     tokens,
-		Reserves:   reserves,
-		Checked:    false,
+	if len(entityPool.Tokens) != 2 {
+		return nil, ErrInvalidTokensLength
 	}
 
+	reserves0, ok := new(big.Int).SetString(entityPool.Reserves[0], 10)
+	if !ok {
+		return nil, errors.Wrapf(ErrInvalidReserve, "fail to parse reserve[0] %s to big.Int", entityPool.Reserves[0])
+	}
+
+	reserves1, ok := new(big.Int).SetString(entityPool.Reserves[1], 10)
+	if !ok {
+		return nil, errors.Wrapf(ErrInvalidReserve, "fail to parse reserve[1] %s to big.Int", entityPool.Reserves[1])
+	}
+
+	// swapFeeFl := new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), boneFloat)
+	// swapFee, _ := swapFeeFl.Int(nil)
+
 	return &PoolSimulator{
-		Pool:     pool.Pool{Info: info},
+		Pool: pool.Pool{
+			Info: pool.PoolInfo{
+				Address:    strings.ToLower(entityPool.Address),
+				ReserveUsd: entityPool.ReserveUsd,
+				// SwapFee:    swapFee,
+				Exchange: entityPool.Exchange,
+				Type:     entityPool.Type,
+				Tokens:   []string{entityPool.Tokens[0].Address, entityPool.Tokens[1].Address},
+				Reserves: []*big.Int{reserves0, reserves1},
+			},
+		},
 		PoolInfo: swap.PoolInfo(extra),
 	}, nil
 }

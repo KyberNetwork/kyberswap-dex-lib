@@ -36,11 +36,6 @@ func NewHTTPClient(config *iziswap.HTTPConfig) *httpClient {
 
 // ListPools example params="chain_id=324&type=10&version=v2&time_start=2023-06-02T13:53:13&page=1&page_size=10&order_by=time"
 func (c *httpClient) ListPools(ctx context.Context, params iziswap.ListPoolsParams) ([]iziswap.PoolInfo, error) {
-	limit := params.Limit
-	if limit < 0 || limit > POOL_LIST_LIMIT {
-		limit = POOL_LIST_LIMIT
-	}
-
 	var result iziswap.ListPoolsResponse
 	resp, err := c.client.R().
 		SetQueryParams(map[string]string{
@@ -50,7 +45,7 @@ func (c *httpClient) ListPools(ctx context.Context, params iziswap.ListPoolsPara
 			"time_start": time.Unix(int64(params.TimeStart), 0).Format("2006-01-02T15:04:05"),
 			"format":     "json",
 			"order_by":   "time",
-			"page_size":  strconv.Itoa(limit),
+			"page_size":  strconv.Itoa(params.Limit),
 		}).
 		SetContext(ctx).
 		SetResult(&result).

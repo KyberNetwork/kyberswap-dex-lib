@@ -24,7 +24,6 @@ const (
 )
 
 var zeroBI = big.NewInt(0)
-var boneFloat, _ = new(big.Float).SetString("1000000000000000000")
 
 var pointDeltas = map[int]int{
 	100:   1,
@@ -37,3 +36,4 @@ var pointDeltas = map[int]int{
 
 // // Fee can be ignored for now
 // var feeBase = big.NewInt(1e6)
+// var boneFloat, _ = new(big.Float).SetString("1000000000000000000")
