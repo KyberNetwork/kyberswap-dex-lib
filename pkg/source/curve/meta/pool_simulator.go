@@ -261,6 +261,13 @@ func (t *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	}
 }
 
+func (t *Pool) GetTokens() []string {
+	var result []string
+	result = append(result, t.GetInfo().Tokens...)
+	result = append(result, t.BasePool.GetInfo().Tokens...)
+	return result
+}
+
 func (t *Pool) getUnderlyingIndex(token string) int {
 	var tokenIndex = t.GetTokenIndex(token)
 	if tokenIndex >= 0 {
