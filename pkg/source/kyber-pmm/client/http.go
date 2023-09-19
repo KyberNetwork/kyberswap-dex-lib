@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 
+	"github.com/KyberNetwork/logger"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 
@@ -99,5 +100,27 @@ func (c *httpClient) Firm(ctx context.Context, params kyberpmm.FirmRequestParams
 		return kyberpmm.FirmResult{}, errors.Wrapf(ErrFirmQuoteFailed, "response status: %v, response error: %v", resp.Status(), resp.Error())
 	}
 
+	if result.Error != "" {
+		parsedErr := parseFirmQuoteError(result.Error)
+		logger.Errorf("firm quote failed with error: %v", result.Error)
+
+		return kyberpmm.FirmResult{}, parsedErr
+	}
+
 	return result, nil
+}
+
+func parseFirmQuoteError(errorMessage string) error {
+	switch errorMessage {
+	case ErrFirmQuoteInternalErrorText:
+		return ErrFirmQuoteInternalError
+	case ErrFirmQuoteBlacklistText:
+		return ErrFirmQuoteBlacklist
+	case ErrFirmQuoteInsufficientLiquidityText:
+		return ErrFirmQuoteInsufficientLiquidity
+	case ErrFirmQuoteMarketConditionText:
+		return ErrFirmQuoteMarketCondition
+	default:
+		return ErrFirmQuoteInternalError
+	}
 }

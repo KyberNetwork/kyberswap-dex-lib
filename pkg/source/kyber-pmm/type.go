@@ -84,6 +84,8 @@ type FirmResult struct {
 		TakerAmount string `json:"takerAmount"`
 		Signature   string `json:"signature"`
 	} `json:"order"`
+
+	Error string `json:"error"`
 }
 
 type RFQExtra struct {
