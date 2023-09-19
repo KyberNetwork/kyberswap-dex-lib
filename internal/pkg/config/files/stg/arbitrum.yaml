@@ -11,7 +11,7 @@ common:
   chainId: &chainId 42161
   chainName: &chainName arbitrum
   rpc: "https://arbitrum.kyberengineering.io"
-  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
+  executorAddress: &executorAddress "0xf55d0A8Df5C864c0058CC2F755695ff6A20c9CB4"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -110,6 +110,23 @@ encoder:
   kyberLOAddress:
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
+  useL2Optimize: true
+  functionSelectorMappingID: # This map should be updated when we change executor address
+    executeUniSwap: 0
+    executeKyberClassic: 1
+    executeVelodromeSwap: 2
+    executeFraxSwap: 3
+    executeCamelotSwap: 4
+    executeKyberLimitOrder: 5
+    executeRfqSwap: 6
+    executeHashflowSwap: 7
+    executeStableSwap: 8
+    executeCurveSwap: 9
+    executeUniV3KSElastic: 10
+    executeBalV2Swap: 11
+    executeDODOSwap: 12
+    executeGMXSwap: 13
+    executeSynthetixSwap: 14
 useCase:
   getRoute:
     chainId: *chainId

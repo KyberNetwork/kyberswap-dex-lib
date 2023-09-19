@@ -7,3 +7,6 @@ var metaAggregationRouterV2 []byte
 
 //go:embed ERC20.json
 var erc20 []byte
+
+//go:embed MetaAggregationRouterV2Optimistic.json
+var metaAggregationRouterV2Optimistic []byte

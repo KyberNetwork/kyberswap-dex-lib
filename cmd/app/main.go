@@ -248,7 +248,7 @@ func apiAction(c *cli.Context) (err error) {
 		signer,
 		cfg.KeyPair.KeyIDForSealingData.ClientData,
 	)
-	encoder := encode.NewEncoder(cfg.Encoder)
+	encoder := encode.NewEncoderFactory(cfg.Encoder).GetEncoder()
 
 	validateRouteUseCase := validateroute.NewValidateRouteUseCase()
 	validateRouteUseCase.RegisterValidator(synthetix.NewSynthetixValidator())
@@ -338,7 +338,14 @@ func apiAction(c *cli.Context) (err error) {
 			GasTokenAddress: cfg.UseCase.GetRoute.GasTokenAddress,
 		},
 	)
-	decodeRouteUsecase := &decode.Decoder{}
+	decodeRouteUsecase := decode.NewDecoderFactory(decode.Config{
+		RouterAddress:             cfg.Encoder.RouterAddress,
+		ExecutorAddress:           cfg.Encoder.ExecutorAddress,
+		KyberLOAddress:            cfg.Encoder.KyberLOAddress,
+		ChainID:                   cfg.Encoder.ChainID,
+		UseL2Optimize:             cfg.Encoder.UseL2Optimize,
+		FunctionSelectorMappingID: cfg.Encoder.FunctionSelectorMappingID,
+	}).GetDecoder()
 
 	// init services
 	zapLogger, err := logger.GetDesugaredZapLoggerDelegate(lg)

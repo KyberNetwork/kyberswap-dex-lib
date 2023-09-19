@@ -3,6 +3,7 @@ package types
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l2encode/pack"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -43,6 +44,13 @@ type EncodingSwap struct {
 	// - aggregation executor contract address
 	// - user wallet (to) address
 	Recipient string
+}
+
+type L2EncodingSwap struct {
+	EncodingSwap
+	PoolMappingID pack.UInt24
+	RecipientFlag uint8
+	IsFirstSwap   bool
 }
 
 func (s EncodingSwap) IsZero() bool {

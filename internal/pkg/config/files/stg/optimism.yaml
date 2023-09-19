@@ -11,7 +11,7 @@ common:
   chainId: &chainId 10
   chainName: &chainName optimism
   rpc: "https://rpc.ankr.com/optimism"
-  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
+  executorAddress: &executorAddress "0x044D3bF991F710D3901216d959D69628D7CFEb8D"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x4200000000000000000000000000000000000006"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -95,6 +95,23 @@ encoder:
   kyberLOAddress:
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
+  useL2Optimize: true
+  functionSelectorMappingID:  # This map should be updated when we change executor address
+    executeUniSwap: 0
+    executeKyberClassic: 1
+    executeVelodromeSwap: 2
+    executeFraxSwap: 3
+    executeCamelotSwap: 4
+    executeKyberLimitOrder: 5
+    executeRfqSwap: 6
+    executeHashflowSwap: 7
+    executeStableSwap: 8
+    executeCurveSwap: 9
+    executeUniV3KSElastic: 10
+    executeBalV2Swap: 11
+    executeDODOSwap: 12
+    executeGMXSwap: 13
+    executeSynthetixSwap: 14
 useCase:
   getRoute:
     chainId: *chainId
