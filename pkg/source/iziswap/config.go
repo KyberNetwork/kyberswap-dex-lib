@@ -18,9 +18,9 @@ type Config struct {
 	// a non-positive value will be set to 2000 by default,
 	// so the default range of liquidity/limitOrder distribution
 	// is [currentPrice/1.2, currentPrice * 1.2)
-	PointRange int `json:"pointRange"`
+	PointRange int `mapstructure:"point_range" json:"point_range,omitempty"`
 
-	HTTP HTTPConfig
+	HTTP HTTPConfig `mapstructure:"http" json:"http,omitempty"`
 
 	// //todo: we may use it in the future for speed up
 	// preGenesisPoolAddrs []string
