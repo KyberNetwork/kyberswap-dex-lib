@@ -211,21 +211,24 @@ func apiAction(c *cli.Context) (err error) {
 	ethClient := ethrpc.New(cfg.Common.RPC)
 
 	// init repositories
-
-	poolDataStoreRepo := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
-	priceDataStoreRepo := price.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Price.Redis)
-
-	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient, cfg.Repository.Gas.Redis)
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
 	routeRepository := route.NewRedisCacheRepository(routerRedisClient.Client, cfg.Repository.Route.RedisCache)
+	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient, cfg.Repository.Gas.Redis)
 
 	tokenRepository := token.NewGoCacheRepository(
 		token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis),
 		cfg.Repository.Token.GoCache,
 	)
 
+	priceRepository, err := price.NewRistrettoRepository(
+		price.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Price.Redis),
+		cfg.Repository.Price.RistrettoConfig,
+	)
+	if err != nil {
+		return err
+	}
+
 	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
-	priceRepository := price.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Price.Redis)
 	// sealer
 
 	// init validators
@@ -253,8 +256,8 @@ func apiAction(c *cli.Context) (err error) {
 	validateRouteUseCase := validateroute.NewValidateRouteUseCase()
 	validateRouteUseCase.RegisterValidator(synthetix.NewSynthetixValidator())
 
-	getPoolsUseCase := usecase.NewGetPoolsUseCase(poolDataStoreRepo)
-	getTokensUseCase := usecase.NewGetTokens(tokenRepository, priceDataStoreRepo)
+	getPoolsUseCase := usecase.NewGetPoolsUseCase(poolRepository)
+	getTokensUseCase := usecase.NewGetTokens(tokenRepository, priceRepository)
 
 	var balanceSlotsUseCase *erc20balanceslotuc.Cache
 	var aevmClient aevmclient.Client
@@ -308,7 +311,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	buildRouteUseCase := usecase.NewBuildRouteUseCase(
 		tokenRepository,
-		priceDataStoreRepo,
+		priceRepository,
 		rfqHandlerByPoolType,
 		clientDataEncoder,
 		encoder,

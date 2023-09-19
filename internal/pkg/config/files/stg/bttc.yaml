@@ -229,6 +229,13 @@ repository:
   price:
     redis:
       prefix: *chainName
+    ristretto:
+      numCounters: 10000
+      maxCost: 1000
+      bufferItems: 64
+      price:
+        cost: 1
+        ttl: 1m
   token:
     redis:
       prefix: *chainName
@@ -241,7 +248,7 @@ repository:
   route:
     redisCache:
       prefix: *chainName
-      localCacheSize: 1000
+      localCacheSize: 5000
       localCacheTtl: 30s
 validator:
   buildRouteParams:
