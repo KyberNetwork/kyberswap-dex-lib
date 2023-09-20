@@ -72,22 +72,19 @@ func (p *PoolSimulator) CalcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.CalcAmountOutResult, error) {
+	tokenInAddr := tokenAmountIn.Token
+	tokenOutAddr := tokenOut
 
-	var tokenInIndex = p.GetTokenIndex(tokenAmountIn.Token)
-	var tokenOutIndex = p.GetTokenIndex(tokenOut)
-	if tokenInIndex < 0 || tokenOutIndex < 0 {
+	tokenInIndex := p.GetTokenIndex(tokenInAddr)
+	tokenOutIndex := p.GetTokenIndex(tokenOutAddr)
+	if tokenInIndex < 0 || tokenOutIndex < 0 || tokenInIndex == tokenOutIndex {
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
 	// Clone tokenAmountIn.Amount, since the SDK will mutate it
 	tokenAmountInAmount := new(big.Int).Set(tokenAmountIn.Amount)
 
-	tokenInAddr := strings.ToLower(tokenAmountIn.Token)
-	tokenOutAddr := strings.ToLower(tokenOut)
-	x2y := true
-	if tokenInAddr > tokenOutAddr {
-		x2y = false
-	}
+	x2y := tokenInAddr < tokenOutAddr
 	if x2y {
 		// todo, not limit swap-range in the future
 		//    or give a way to modify it

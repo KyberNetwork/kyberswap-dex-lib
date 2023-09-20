@@ -46,15 +46,20 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		return entity.Pool{}, err
 	}
 
-	var poolInfo swap.PoolInfo
+	swapFee := int(p.SwapFee)
+	pointDelta := getPointDelta(swapFee)
+	rightMostPt := RIGHT_MOST_PT / pointDelta * pointDelta
+	leftMostPt := -rightMostPt
 
-	poolInfo.CurrentPoint = int(rpcData.state.CurrentPoint.Int64())
-	poolInfo.Fee = int(p.SwapFee)
-	poolInfo.PointDelta = getPointDelta(poolInfo.Fee)
-	poolInfo.RightMostPt = RIGHT_MOST_PT / poolInfo.PointDelta * poolInfo.PointDelta
-	poolInfo.LeftMostPt = -poolInfo.RightMostPt
-	poolInfo.Liquidity = rpcData.state.Liquidity
-	poolInfo.LiquidityX = rpcData.state.LiquidityX
+	poolInfo := swap.PoolInfo{
+		CurrentPoint: int(rpcData.state.CurrentPoint.Int64()),
+		Fee:          swapFee,
+		PointDelta:   pointDelta,
+		RightMostPt:  rightMostPt,
+		LeftMostPt:   leftMostPt,
+		Liquidity:    rpcData.state.Liquidity,
+		LiquidityX:   rpcData.state.LiquidityX,
+	}
 
 	var (
 		liquidityPointData  []swap.LiquidityPoint
@@ -114,9 +119,11 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 }
 
 func (d *PoolTracker) fetchPoolState(ctx context.Context, p entity.Pool) (FetchRPCResult, error) {
-	var state State
-	var reserve0 = zeroBI
-	var reserve1 = zeroBI
+	var (
+		state    State
+		reserve0 = zeroBI
+		reserve1 = zeroBI
+	)
 
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
