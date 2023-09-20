@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm/client"
 	"github.com/gin-gonic/gin"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
@@ -110,6 +111,30 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		HTTPStatus: http.StatusUnprocessableEntity,
 		Code:       4222,
 		Message:    usecase.ErrQuotedAmountSmallerThanEstimated.Error(),
+	},
+
+	kyberpmmclient.ErrFirmQuoteInternalError: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4223,
+		Message:    "firm API: unknown error occur in the backend",
+	},
+
+	kyberpmmclient.ErrFirmQuoteBlacklist: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4224,
+		Message:    "firm API: user address is in blacklist",
+	},
+
+	kyberpmmclient.ErrFirmQuoteInsufficientLiquidity: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4225,
+		Message:    "firm API: reserve has not enough balance to serve the request",
+	},
+
+	kyberpmmclient.ErrFirmQuoteMarketCondition: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4226,
+		Message:    "firm API: the maker reject signing due market price updated",
 	},
 }
 

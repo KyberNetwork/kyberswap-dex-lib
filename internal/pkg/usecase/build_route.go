@@ -119,7 +119,7 @@ func (uc *buildRouteUseCase) rfq(
 
 			result, err := rfqHandler.RFQ(ctx, recipient, swap.Extra)
 			if err != nil {
-				return routeSummary, errors.Wrapf(ErrRFQFailed, "rfq failed, swap data: %v, err: [%s]", swap, err.Error())
+				return routeSummary, errors.Wrapf(err, "rfq failed, swap data: %v", swap)
 			}
 
 			// Enrich the swap extra with the RFQ extra

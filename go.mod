@@ -11,12 +11,13 @@ require (
 	github.com/DataDog/datadog-go v4.8.2+incompatible
 	github.com/KyberNetwork/aevm v1.0.4
 	github.com/KyberNetwork/ethrpc v0.3.0
-	github.com/KyberNetwork/kyberswap-dex-lib v0.13.1
+	github.com/KyberNetwork/kyberswap-dex-lib v0.13.4
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/cenkalti/backoff/v4 v4.1.3
 	github.com/cespare/xxhash/v2 v2.2.0
+	github.com/dgraph-io/ristretto v0.1.1
 	github.com/envoyproxy/protoc-gen-validate v0.10.0
 	github.com/ethereum/go-ethereum v1.12.0
 	github.com/getsentry/sentry-go v0.18.0
@@ -80,7 +81,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deckarep/golang-set/v2 v2.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
-	github.com/dgraph-io/ristretto v0.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect

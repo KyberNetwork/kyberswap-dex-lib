@@ -9,7 +9,5 @@ var (
 
 	ErrTokenNotFound = errors.New("token not found")
 
-	ErrRFQFailed = errors.New("RFQ request failed")
-
 	ErrQuotedAmountSmallerThanEstimated = errors.New("quoted amount is smaller than estimated")
 )
