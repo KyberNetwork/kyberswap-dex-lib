@@ -192,4 +192,7 @@ func init() {
 
 	// executeIziSwap
 	RegisterFunctionSelector(valueobject.ExchangeIZiSwap, FunctionSelectorIZiSwap)
+
+	// executeWombat
+	RegisterFunctionSelector(valueobject.ExchangeWombat, FunctionSelectorWombat)
 }

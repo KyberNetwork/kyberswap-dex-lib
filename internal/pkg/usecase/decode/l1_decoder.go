@@ -350,6 +350,8 @@ func (d *Decoder) decodeSwapData(sw executor.Swap) (interface{}, error) {
 		return swapdata.UnpackTraderJoeV2(sw.Data)
 	case executor.FunctionSelectorKyberPMM.ID:
 		return swapdata.UnpackKyberRFQ(sw.Data)
+	case executor.FunctionSelectorWombat.ID:
+		return swapdata.UnpackWombat(sw.Data)
 	default:
 		return nil, fmt.Errorf("unsupported function selector")
 	}

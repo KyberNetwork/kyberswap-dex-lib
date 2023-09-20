@@ -44,6 +44,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodromev2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatlsd"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatmain"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -254,6 +256,10 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newVelocimeter(entityPool)
 	case constant.PoolTypes.PlatypusBase, constant.PoolTypes.PlatypusPure, constant.PoolTypes.PlatypusAvax:
 		return f.newPlatypus(entityPool)
+	case constant.PoolTypes.WombatMain:
+		return f.newWombatMain(entityPool)
+	case constant.PoolTypes.WombatLsd:
+		return f.newWombatLsd(entityPool)
 	case constant.PoolTypes.GMX:
 		return f.newGMX(entityPool)
 	case constant.PoolTypes.MakerPSM:
@@ -600,6 +606,34 @@ func (f *PoolFactory) newPlatypus(entityPool entity.Pool) (*platypus.PoolSimulat
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newPlatypus] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newWombatMain(entityPool entity.Pool) (*wombatmain.PoolSimulator, error) {
+	corePool, err := wombatmain.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newWombatMain] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newWombatLsd(entityPool entity.Pool) (*wombatlsd.PoolSimulator, error) {
+	corePool, err := wombatlsd.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newWombatLsd] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

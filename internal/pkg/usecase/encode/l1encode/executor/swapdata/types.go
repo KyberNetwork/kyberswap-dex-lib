@@ -285,3 +285,13 @@ type IZiSwap struct {
 	SwapAmount *big.Int
 	LimitPoint *big.Int
 }
+
+// Wombat
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/develop/contracts/executor-helpers/ExecutorHelper3.sol#L335
+type Wombat struct {
+	Pool      common.Address
+	TokenIn   common.Address
+	TokenOut  common.Address
+	Amount    *big.Int
+	Recipient common.Address
+}

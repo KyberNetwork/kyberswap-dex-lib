@@ -46,6 +46,7 @@ var (
 	FunctionSelectorTraderJoeV2    FunctionSelector
 	FunctionSelectorKyberPMM       FunctionSelector
 	FunctionSelectorIZiSwap        FunctionSelector
+	FunctionSelectorWombat         FunctionSelector
 )
 
 func init() {
@@ -65,6 +66,7 @@ func init() {
 	FunctionSelectorPlatypus = NewFunctionSelector("executePlatypus", []string{"bytes", "uint256"})
 	FunctionSelectorFraxSwap = NewFunctionSelector("executeFrax", []string{"bytes", "uint256"})
 	FunctionSelectorCamelotSwap = NewFunctionSelector("executeCamelot", []string{"bytes", "uint256"})
+	FunctionSelectorWombat = NewFunctionSelector("executeWombat", []string{"bytes", "uint256"})
 
 	FunctionSelectorMuteSwitch = NewFunctionSelector("executeMuteSwitchSwap", []string{"bytes", "uint256"})
 	FunctionSelectorSyncSwap = NewFunctionSelector("executeSyncSwap", []string{"bytes", "uint256"})

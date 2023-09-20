@@ -22,6 +22,7 @@ var (
 	KyberLimitOrderABIArguments   abi.Arguments
 	KyberRFQABIType               abi.Type
 	KyberRFQABIArguments          abi.Arguments
+	WombatABIArguments            abi.Arguments
 
 	// Syncswap
 	SyncSwapABIArguments     abi.Arguments
@@ -314,4 +315,13 @@ func init() {
 		{Type: KyberRFQABIType},
 	}
 
+	// WombatABIArguments
+	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/develop/contracts/executor-helpers/ExecutorHelper3.sol#L335
+	WombatABIArguments = abi.Arguments{
+		{Name: "pool", Type: abitypes.Address},
+		{Name: "tokenIn", Type: abitypes.Address},
+		{Name: "tokenOut", Type: abitypes.Address},
+		{Name: "amount", Type: abitypes.Uint256},
+		{Name: "recipient", Type: abitypes.Address},
+	}
 }

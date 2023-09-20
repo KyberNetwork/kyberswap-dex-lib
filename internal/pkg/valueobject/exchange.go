@@ -129,6 +129,7 @@ var (
 	ExchangeBaso        Exchange = "baso"
 
 	ExchangePlatypus Exchange = "platypus"
+	ExchangeWombat   Exchange = "wombat"
 
 	ExchangeSyncSwap Exchange = "syncswap"
 
@@ -245,6 +246,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeVelocore:                 {},
 	ExchangeMuteSwitch:               {},
 	ExchangePlatypus:                 {},
+	ExchangeWombat:                   {},
 	ExchangeSyncSwap:                 {},
 	ExchangeKyberSwapLimitOrder:      {},
 	ExchangeKyberSwapLimitOrderDS:    {},

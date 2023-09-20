@@ -40,6 +40,8 @@ type types struct {
 	PlatypusBase             string
 	PlatypusPure             string
 	PlatypusAvax             string
+	WombatMain               string
+	WombatLsd                string
 	GMX                      string
 	MakerPSM                 string
 	Synthetix                string
@@ -103,6 +105,8 @@ var (
 		PlatypusBase:             "platypus-base",
 		PlatypusPure:             "platypus-pure",
 		PlatypusAvax:             "platypus-avax",
+		WombatMain:               "wombat-main",
+		WombatLsd:                "wombat-lsd",
 		GMX:                      "gmx",
 		MakerPSM:                 "maker-psm",
 		Synthetix:                "synthetix",

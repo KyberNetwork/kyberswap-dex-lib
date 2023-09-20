@@ -89,6 +89,11 @@ func TestGenMethodID(t *testing.T) {
 			types:      []string{"uint256", "bytes", "uint256"},
 			expectedId: "0x22939f03",
 		},
+		{
+			rawName:    "executeWombat",
+			types:      []string{"bytes", "uint256"},
+			expectedId: "0xaa293da2",
+		},
 	}
 
 	for idx, tc := range testCases {

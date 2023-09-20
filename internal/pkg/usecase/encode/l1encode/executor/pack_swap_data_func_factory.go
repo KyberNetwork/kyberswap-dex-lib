@@ -189,4 +189,7 @@ func init() {
 
 	// IZiSwap
 	RegisterPackSwapDataFunc(valueobject.ExchangeIZiSwap, swapdata.PackIZiSwap)
+
+	// Wombat
+	RegisterPackSwapDataFunc(valueobject.ExchangeWombat, swapdata.PackWombat)
 }
