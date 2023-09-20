@@ -21,38 +21,40 @@ func NewFunctionSelector(rawName string, types []string) FunctionSelector {
 }
 
 var (
-	FunctionSelectorUniswap        FunctionSelector
-	FunctionSelectorStableSwap     FunctionSelector
-	FunctionSelectorCurveSwap      FunctionSelector
-	FunctionSelectorUniV3KSElastic FunctionSelector
-	FunctionSelectorBalancerV2     FunctionSelector
-	FunctionSelectorDODO           FunctionSelector
-	FunctionSelectorGMX            FunctionSelector
-	FunctionSelectorSynthetix      FunctionSelector
-	FunctionSelectorPSM            FunctionSelector
-	FunctionSelectorWSTETH         FunctionSelector
-	FunctionSelectorSTETH          FunctionSelector
-	FunctionSelectorKSClassic      FunctionSelector
-	FunctionSelectorVelodrome      FunctionSelector
-	FunctionSelectorPlatypus       FunctionSelector
-	FunctionSelectorFraxSwap       FunctionSelector
-	FunctionSelectorCamelotSwap    FunctionSelector
-	FunctionSelectorMuteSwitch     FunctionSelector
-	FunctionSelectorSyncSwap       FunctionSelector
-	FunctionSelectorLimitOrder     FunctionSelector
-	FunctionSelectorLimitOrderDS   FunctionSelector
-	FunctionSelectorMaverickV1     FunctionSelector
-	FunctionSelectorAlgebraV1      FunctionSelector
-	FunctionSelectorTraderJoeV2    FunctionSelector
-	FunctionSelectorKyberPMM       FunctionSelector
-	FunctionSelectorIZiSwap        FunctionSelector
-	FunctionSelectorWombat         FunctionSelector
+	FunctionSelectorUniswap           FunctionSelector
+	FunctionSelectorStableSwap        FunctionSelector
+	FunctionSelectorCurveSwap         FunctionSelector
+	FunctionSelectorUniV3KSElastic    FunctionSelector
+	FunctionSelectorBalancerV2        FunctionSelector
+	FunctionSelectorDODO              FunctionSelector
+	FunctionSelectorGMX               FunctionSelector
+	FunctionSelectorSynthetix         FunctionSelector
+	FunctionSelectorPSM               FunctionSelector
+	FunctionSelectorWSTETH            FunctionSelector
+	FunctionSelectorSTETH             FunctionSelector
+	FunctionSelectorKSClassic         FunctionSelector
+	FunctionSelectorVelodrome         FunctionSelector
+	FunctionSelectorPlatypus          FunctionSelector
+	FunctionSelectorFraxSwap          FunctionSelector
+	FunctionSelectorCamelotSwap       FunctionSelector
+	FunctionSelectorMuteSwitch        FunctionSelector
+	FunctionSelectorSyncSwap          FunctionSelector
+	FunctionSelectorLimitOrder        FunctionSelector
+	FunctionSelectorLimitOrderDS      FunctionSelector
+	FunctionSelectorMaverickV1        FunctionSelector
+	FunctionSelectorAlgebraV1         FunctionSelector
+	FunctionSelectorTraderJoeV2       FunctionSelector
+	FunctionSelectorKyberPMM          FunctionSelector
+	FunctionSelectorIZiSwap           FunctionSelector
+	FunctionSelectorWombat            FunctionSelector
+	FunctionSelectorPancakeStableSwap FunctionSelector
 )
 
 func init() {
 	FunctionSelectorUniswap = NewFunctionSelector("executeUniswap", []string{"bytes", "uint256"})
 	FunctionSelectorStableSwap = NewFunctionSelector("executeStableSwap", []string{"bytes", "uint256"})
 	FunctionSelectorCurveSwap = NewFunctionSelector("executeCurve", []string{"bytes", "uint256"})
+	FunctionSelectorPancakeStableSwap = NewFunctionSelector("executePancakeStableSwap", []string{"bytes", "uint256"})
 	FunctionSelectorUniV3KSElastic = NewFunctionSelector("executeUniV3KSElastic", []string{"bytes", "uint256"})
 	FunctionSelectorBalancerV2 = NewFunctionSelector("executeBalV2", []string{"bytes", "uint256"})
 	FunctionSelectorDODO = NewFunctionSelector("executeDODO", []string{"bytes", "uint256"})
