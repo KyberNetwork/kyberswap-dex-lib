@@ -212,6 +212,15 @@ useCase:
       shrinkFuncLogPercent: 1.01
   buildRoute:
     chainId: *chainId
+    rfq:
+      - id: kyber-pmm
+        handler: kyber-pmm
+        properties:
+          http:
+            base_url: "https://kyberswap.knreserve.com"
+            timeout: 10s
+            retry_count: 3
+          rfq_contract_address: "0x9f9D5a8F4a6e1F40835cDB040a7a53B35C1b1400"
   poolFactory:
     chainId: *chainId
   poolManager:
