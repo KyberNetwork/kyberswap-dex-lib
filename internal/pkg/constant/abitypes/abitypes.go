@@ -18,5 +18,6 @@ var (
 	AddressArr, _ = abi.NewType("address[]", "", nil)
 	BytesArr, _   = abi.NewType("bytes[]", "", nil)
 	Int8, _       = abi.NewType("int8", "", nil)
+	Int24, _      = abi.NewType("int24", "", nil)
 	Int128, _     = abi.NewType("int128", "", nil)
 )

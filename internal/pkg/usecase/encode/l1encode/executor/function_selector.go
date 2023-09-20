@@ -45,6 +45,7 @@ var (
 	FunctionSelectorAlgebraV1      FunctionSelector
 	FunctionSelectorTraderJoeV2    FunctionSelector
 	FunctionSelectorKyberPMM       FunctionSelector
+	FunctionSelectorIZiSwap        FunctionSelector
 )
 
 func init() {
@@ -77,4 +78,7 @@ func init() {
 
 	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/fda542505b49252f6c59273d9ee542377be6c3a9/contracts/executor-helpers/ExecutorHelper2.sol#L375-L411
 	FunctionSelectorKyberPMM = NewFunctionSelector("executeRfq", []string{"bytes", "uint256"})
+
+	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/29d63d83cac3011067bcfd3b9597239745f848d9/contracts/executor-helpers/ExecutorHelper3.sol#L363-L417
+	FunctionSelectorIZiSwap = NewFunctionSelector("executeIziSwap", []string{"bytes", "uint256"})
 }

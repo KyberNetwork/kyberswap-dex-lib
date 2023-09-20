@@ -38,6 +38,8 @@ var (
 
 	FillBatchOrdersParamsDSABIType abi.Type
 	KyberLimitOrderDSABIArguments  abi.Arguments
+
+	IZiSwapArguments abi.Arguments
 )
 
 func init() {
@@ -157,6 +159,15 @@ func init() {
 		{Name: "recipient", Type: abitypes.Address},
 		{Name: "collectAmount", Type: abitypes.Uint256},
 		{Name: "limitReturnAmount", Type: abitypes.Uint256},
+	}
+
+	IZiSwapArguments = abi.Arguments{
+		{Name: "pool", Type: abitypes.Address},
+		{Name: "tokenIn", Type: abitypes.Address},
+		{Name: "tokenOut", Type: abitypes.Address},
+		{Name: "recipient", Type: abitypes.Address},
+		{Name: "swapAmount", Type: abitypes.Uint256},
+		{Name: "limitPoint", Type: abitypes.Int24},
 	}
 
 	// Reference from SC
@@ -302,4 +313,5 @@ func init() {
 	KyberRFQABIArguments = abi.Arguments{
 		{Type: KyberRFQABIType},
 	}
+
 }

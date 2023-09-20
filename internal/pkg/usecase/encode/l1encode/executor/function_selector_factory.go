@@ -189,4 +189,7 @@ func init() {
 
 	// executeKyberPMM
 	RegisterFunctionSelector(valueobject.ExchangeKyberPMM, FunctionSelectorKyberPMM)
+
+	// executeIziSwap
+	RegisterFunctionSelector(valueobject.ExchangeIZiSwap, FunctionSelectorIZiSwap)
 }

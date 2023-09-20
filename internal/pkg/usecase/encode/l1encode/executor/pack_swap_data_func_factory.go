@@ -186,4 +186,7 @@ func init() {
 
 	// KyberPMM
 	RegisterPackSwapDataFunc(valueobject.ExchangeKyberPMM, swapdata.PackKyberRFQ)
+
+	// IZiSwap
+	RegisterPackSwapDataFunc(valueobject.ExchangeIZiSwap, swapdata.PackIZiSwap)
 }

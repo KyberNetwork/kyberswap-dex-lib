@@ -274,3 +274,14 @@ type KyberRFQ struct {
 	Amount    *big.Int
 	Target    common.Address
 }
+
+// IZiSwap
+// Reference: https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/29d63d83cac3011067bcfd3b9597239745f848d9/contracts/executor-helpers/ExecutorHelper3.sol#L77C1-L84C4
+type IZiSwap struct {
+	Pool       common.Address
+	TokenIn    common.Address
+	TokenOut   common.Address
+	Recipient  common.Address
+	SwapAmount *big.Int
+	LimitPoint *big.Int
+}

@@ -11,7 +11,7 @@ require (
 	github.com/DataDog/datadog-go v4.8.2+incompatible
 	github.com/KyberNetwork/aevm v1.0.4
 	github.com/KyberNetwork/ethrpc v0.3.0
-	github.com/KyberNetwork/kyberswap-dex-lib v0.13.4
+	github.com/KyberNetwork/kyberswap-dex-lib v0.14.0
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/alicebob/miniredis v2.5.0+incompatible
@@ -102,6 +102,7 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20230328201059-365e72989107 // indirect
+	github.com/izumiFinance/iZiSwap-SDK-go v1.0.0 // indirect
 	github.com/karrick/godirwalk v1.16.1 // indirect
 	github.com/klauspost/compress v1.15.15 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect

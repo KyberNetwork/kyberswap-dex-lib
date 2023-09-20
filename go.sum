@@ -69,8 +69,8 @@ github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 h1:kN7ez6MPJEaFbacmvR+22PRa5pJk
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2/go.mod h1:3DThBH6zHAYSWUVmtj9deQO1XuiwbawdKxj5yV4SuMo=
 github.com/KyberNetwork/ethrpc v0.3.0 h1:LoqtmSR4ABgsCvSc+qPUbPibPhVZpd12YQLbMGAyVWk=
 github.com/KyberNetwork/ethrpc v0.3.0/go.mod h1:QOlJ7bWKIVlo3ZfJt3cmyc5oke9uU+4hl9Vth5IHK/Y=
-github.com/KyberNetwork/kyberswap-dex-lib v0.13.4 h1:3h/YMIZ5S9EwbNuJFQvc0G9QYhMa9yvQD8BdZMQJ51E=
-github.com/KyberNetwork/kyberswap-dex-lib v0.13.4/go.mod h1:S71M3xfPrRMe2W273N0ilsqFveGULDYr0KDtyivrRq4=
+github.com/KyberNetwork/kyberswap-dex-lib v0.14.0 h1:6wjNhL1ISbiWb9tYG/fSpysuSjWXvhV1o0KrOFxzJuQ=
+github.com/KyberNetwork/kyberswap-dex-lib v0.14.0/go.mod h1:jSv0IKgdJ4cC8sZWWsUVmm5qpWlm5dDz9Ku5vx7Mb3U=
 github.com/KyberNetwork/logger v0.1.0 h1:Iibu9Ls+tipjR+C0iXhzUYM1VtRgmmR1HHWGufPYcbs=
 github.com/KyberNetwork/logger v0.1.0/go.mod h1:zBqHbtJ3nJn6HQnp6UW8pbQkR+U6tSRFd5CzfiKL3Kw=
 github.com/KyberNetwork/pancake-v3-sdk v0.1.0 h1:HVUD13Qbwl4kiU1uSprQVpkis6fYYp3A32mVuK+f1Iw=
@@ -358,6 +358,8 @@ github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/ianlancetaylor/demangle v0.0.0-20210905161508-09a460cdf81d/go.mod h1:aYm2/VgdVmcIU8iMfdMvDMsRAQjcfZSKFby6HOFvi/w=
 github.com/inconshreveable/mousetrap v1.0.0/go.mod h1:PxqpIevigyE2G7u3NXJIT2ANytuPF1OarO4DADm73n8=
+github.com/izumiFinance/iZiSwap-SDK-go v1.0.0 h1:htdwZpfcDRgih6MHtPPzlFnrk8bPFAOTUkO7s8L1N/w=
+github.com/izumiFinance/iZiSwap-SDK-go v1.0.0/go.mod h1:Ay9DY0IFZrRS3ep1EDjw+IO+5boIHrCcw1Q7dpiKyOE=
 github.com/jackpal/go-nat-pmp v1.0.2 h1:KzKSgb7qkJvOUTqYl9/Hg/me3pWgBmERKrTGD7BdWus=
 github.com/json-iterator/go v1.1.7/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
 github.com/json-iterator/go v1.1.11/go.mod h1:KdQUCv79m/52Kvf8AW2vK1V8akMuk1QjK/uOdHXbAo4=
