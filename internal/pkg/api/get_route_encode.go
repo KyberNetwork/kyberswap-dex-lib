@@ -14,6 +14,7 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getrouteencode"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -160,6 +161,7 @@ func transformFromGetRouteEncodeToGetRoutesQuery(params params.GetRouteEncodePar
 		TokenOut:        cleanUpParam(params.TokenOut),
 		AmountIn:        amountIn,
 		IncludedSources: transformSliceParams(params.Dexes),
+		ExcludedSources: getrouteencode.GetExcludedSources(),
 		SaveGas:         params.SaveGas,
 		GasInclude:      params.GasInclude,
 		GasPrice:        gasPrice,

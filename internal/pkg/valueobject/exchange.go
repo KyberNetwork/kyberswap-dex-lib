@@ -271,3 +271,13 @@ func IsAMMSource(exchange Exchange) bool {
 
 	return contained
 }
+
+var RFQSourceSet = map[Exchange]struct{}{
+	ExchangeKyberPMM: {},
+}
+
+func IsRFQSource(exchange Exchange) bool {
+	_, contained := RFQSourceSet[exchange]
+
+	return contained
+}
