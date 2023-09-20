@@ -8,6 +8,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"go.uber.org/zap"
 	gintracer "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
 
@@ -47,6 +48,19 @@ func GinServer(cfg *HTTPConfig, zapLogger *zap.Logger) (*gin.Engine, *gin.Router
 				env.StringFromEnv(envvar.DDService, ""),
 				gintracer.WithIgnoreRequest(func(c *gin.Context) bool {
 					_, contained := skipPathSet[c.Request.URL.Path]
+					return contained
+				}),
+			),
+		)
+	}
+
+	if env.StringFromEnv(envvar.OTELEnabled, "") != "" {
+		middlewares = append(
+			middlewares,
+			otelgin.Middleware(
+				env.StringFromEnv(envvar.OTELService, ""),
+				otelgin.WithFilter(func(c *http.Request) bool {
+					_, contained := skipPathSet[c.URL.Path]
 					return contained
 				}),
 			),

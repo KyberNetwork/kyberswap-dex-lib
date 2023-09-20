@@ -3,8 +3,8 @@ package pool
 import (
 	"context"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/redis/go-redis/v9"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
@@ -36,7 +36,7 @@ func (r *redisRepository) FindAllAddresses(ctx context.Context) ([]string, error
 // FindByAddresses returns pools by addresses
 func (r *redisRepository) FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Pool, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[pool] redisRepository.FindByAddresses")
-	defer span.Finish()
+	defer span.End()
 
 	if len(addresses) == 0 {
 		return nil, nil

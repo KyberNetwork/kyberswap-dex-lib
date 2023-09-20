@@ -4,7 +4,7 @@ import (
 	"context"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
@@ -21,7 +21,7 @@ func (f *spfav2Finder) findrouteV1(
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.findrouteV1")
-	defer span.Finish()
+	defer span.End()
 
 	bestSinglePathRoute, errFindSinglePathRoute := f.bestSinglePathRouteV1(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
 
@@ -65,7 +65,7 @@ func (f *spfav2Finder) bestSinglePathRouteV1(
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestSinglePathRouteV1")
-	defer span.Finish()
+	defer span.End()
 
 	bestPath, err := f.bestPathExactInV1(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
 	if err != nil {
@@ -89,7 +89,7 @@ func (f *spfav2Finder) bestMultiPathRouteV1(
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestMultiPathRouteV1")
-	defer span.Finish()
+	defer span.End()
 
 	var (
 		splits             = f.splitAmountIn(input, data, tokenAmountIn)
@@ -130,7 +130,7 @@ func (f *spfav2Finder) bestPathExactInV1(
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Path, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestPathExactInV1")
-	defer span.Finish()
+	defer span.End()
 
 	// Must be able to get info about tokenIn
 	if _, ok := data.TokenByAddress[input.TokenInAddress]; !ok {

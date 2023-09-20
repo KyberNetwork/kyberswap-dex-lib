@@ -8,10 +8,10 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/redis/go-redis/v9"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 type RedisRepository struct {
@@ -34,7 +34,7 @@ func (r *RedisRepository) GetPrefix() string {
 
 func (r *RedisRepository) Get(ctx context.Context, token common.Address) (*entity.ERC20BalanceSlot, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[erc20balanceslot] redisRepository.Get")
-	defer span.Finish()
+	defer span.End()
 
 	rawResult := r.redisClient.HGet(ctx, r.redisKey, strings.ToLower(token.String())).Val()
 	if rawResult == "" {
@@ -52,7 +52,7 @@ func (r *RedisRepository) Get(ctx context.Context, token common.Address) (*entit
 
 func (r *RedisRepository) GetAll(ctx context.Context) (map[common.Address]*entity.ERC20BalanceSlot, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[erc20balanceslot] redisRepository.GetAll")
-	defer span.Finish()
+	defer span.End()
 
 	rawResult := r.redisClient.HGetAll(ctx, r.redisKey).Val()
 	result := make(map[common.Address]*entity.ERC20BalanceSlot)
@@ -71,7 +71,7 @@ func (r *RedisRepository) GetAll(ctx context.Context) (map[common.Address]*entit
 
 func (r *RedisRepository) PutMany(ctx context.Context, balanceSlots []*entity.ERC20BalanceSlot) error {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[erc20balanceslot] redisRepository.Put")
-	defer span.Finish()
+	defer span.End()
 
 	if len(balanceSlots) == 0 {
 		return nil

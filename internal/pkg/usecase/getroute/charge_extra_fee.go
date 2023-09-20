@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
@@ -29,7 +29,7 @@ func NewChargeExtraFee(
 
 func (c *chargeExtraFee) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] chargeExtraFee.Aggregate")
-	defer span.Finish()
+	defer span.End()
 
 	if params.ExtraFee.IsChargeFeeByCurrencyIn() {
 		return c.chargeFeeByCurrencyIn(ctx, params)

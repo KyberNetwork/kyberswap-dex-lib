@@ -6,7 +6,7 @@ import (
 	"math/big"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -46,7 +46,7 @@ func (h *findPathV2Helper) bestPathExactInV2(
 	newAmountIn poolpkg.TokenAmount,
 ) *valueobject.Path {
 	span, _ := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestPathExactInV2")
-	defer span.Finish()
+	defer span.End()
 
 	for h.pq.Len() > 0 {
 		pathId := h.pq.Top().(int)

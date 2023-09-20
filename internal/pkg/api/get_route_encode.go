@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -30,7 +30,7 @@ func GetRouteEncode(
 ) func(ginCtx *gin.Context) {
 	return func(ginCtx *gin.Context) {
 		span, ctx := tracer.StartSpanFromContext(ginCtx.Request.Context(), "GetRouteEncode")
-		defer span.Finish()
+		defer span.End()
 
 		span.SetTag("request-uri", ginCtx.Request.URL.RequestURI())
 

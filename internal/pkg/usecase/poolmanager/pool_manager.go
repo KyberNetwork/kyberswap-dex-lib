@@ -8,7 +8,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -45,7 +45,7 @@ func (m *PoolManager) GetPoolByAddress(
 	stateRoot gethcommon.Hash,
 ) (map[string]poolpkg.IPoolSimulator, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "poolManager.GetPoolByAddress")
-	defer span.Finish()
+	defer span.End()
 
 	pools, err := m.listPools(
 		ctx,

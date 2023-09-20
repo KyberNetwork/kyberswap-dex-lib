@@ -4,7 +4,7 @@ import (
 	"context"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
@@ -26,7 +26,7 @@ func (f *spfaFinder) bestPathExactIn(
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Path, error) {
 	span, _ := tracer.StartSpanFromContext(ctx, "spfaFinder.bestPathExactIn")
-	defer span.Finish()
+	defer span.End()
 
 	// Must be able to get info about tokenIn
 	if _, ok := data.TokenByAddress[input.TokenInAddress]; !ok {

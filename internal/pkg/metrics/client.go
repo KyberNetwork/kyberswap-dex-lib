@@ -13,10 +13,9 @@ var (
 	client *statsd.Client
 )
 
-func GetClient() *statsd.Client {
-	return client
-}
-
+// For now, we support both VanPT & DataDog for backward compatibility.
+// When DataDog deprecates, we can simply disable it through env.
+// TODO: Deprecate related DataDog code after VanPT runs stably.
 func InitClient(config Config) (*statsd.Client, error) {
 	if client != nil {
 		return client, nil
@@ -32,6 +31,8 @@ func InitClient(config Config) (*statsd.Client, error) {
 	once.Do(func() {
 		client = statClient
 	})
+
+	// VanPT client is init through import in main.
 
 	return client, nil
 }

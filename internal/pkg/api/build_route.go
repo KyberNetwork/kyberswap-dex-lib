@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -24,7 +24,7 @@ func BuildRoute(
 ) func(ginCtx *gin.Context) {
 	return func(ginCtx *gin.Context) {
 		span, ctx := tracer.StartSpanFromContext(ginCtx.Request.Context(), "BuildRoute")
-		defer span.Finish()
+		defer span.End()
 
 		clientIDFromHeader := clientid.ExtractClientID(ginCtx)
 

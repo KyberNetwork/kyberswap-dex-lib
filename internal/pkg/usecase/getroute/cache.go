@@ -10,9 +10,9 @@ import (
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
@@ -63,7 +63,7 @@ func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*
 	)
 
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] cache.Aggregate")
-	defer span.Finish()
+	defer span.End()
 
 	key, ttl, err = c.genKey(params)
 

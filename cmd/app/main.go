@@ -12,6 +12,7 @@ import (
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/ethrpc"
+	_ "github.com/KyberNetwork/kyber-trace-go/tools"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/reload"
 	"github.com/ethereum/go-ethereum/common"

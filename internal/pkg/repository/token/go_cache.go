@@ -3,8 +3,8 @@ package token
 import (
 	"context"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/patrickmn/go-cache"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -29,7 +29,7 @@ func NewGoCacheRepository(
 // FindByAddresses looks for token in cache, if the token is not cached, find it from fallbackRepository and cache them
 func (r *goCacheRepository) FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[token] goCacheRepository.FindByAddresses")
-	defer span.Finish()
+	defer span.End()
 
 	tokens := make([]*entity.Token, 0, len(addresses))
 	uncachedAddresses := make([]string, 0, len(addresses))

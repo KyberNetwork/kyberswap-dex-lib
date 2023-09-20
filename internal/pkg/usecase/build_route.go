@@ -9,8 +9,8 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/pkg/errors"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -66,7 +66,7 @@ func NewBuildRouteUseCase(
 
 func (uc *buildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteCommand) (*dto.BuildRouteResult, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.Handle")
-	defer span.Finish()
+	defer span.End()
 
 	routeSummary, err := uc.rfq(ctx, command.Recipient, command.RouteSummary)
 	if err != nil {
@@ -153,7 +153,7 @@ func (uc *buildRouteUseCase) rfq(
 // need them for their business.
 func (uc *buildRouteUseCase) updateRouteSummary(ctx context.Context, routeSummary valueobject.RouteSummary) (valueobject.RouteSummary, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.updateRouteSummary")
-	defer span.Finish()
+	defer span.End()
 
 	tokenInAddress, err := eth.ConvertEtherToWETH(routeSummary.TokenIn, uc.config.ChainID)
 	if err != nil {
@@ -214,7 +214,7 @@ func (uc *buildRouteUseCase) updateRouteSummary(ctx context.Context, routeSummar
 
 func (uc *buildRouteUseCase) encode(ctx context.Context, command dto.BuildRouteCommand, routeSummary valueobject.RouteSummary) (string, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.encode")
-	defer span.Finish()
+	defer span.End()
 
 	clientData, err := uc.encodeClientData(ctx, command, routeSummary)
 	if err != nil {
@@ -258,7 +258,7 @@ func (uc *buildRouteUseCase) getTokens(
 	tokenOutAddress string,
 ) (*entity.Token, *entity.Token, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.getTokens")
-	defer span.Finish()
+	defer span.End()
 
 	tokens, err := uc.tokenRepository.FindByAddresses(ctx, []string{tokenInAddress, tokenOutAddress})
 	if err != nil {
@@ -290,7 +290,7 @@ func (uc *buildRouteUseCase) getPrices(
 	tokenOutAddress string,
 ) (*entity.Price, *entity.Price, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.getPrices")
-	defer span.Finish()
+	defer span.End()
 
 	prices, err := uc.priceRepository.FindByAddresses(ctx, []string{tokenInAddress, tokenOutAddress})
 	if err != nil {

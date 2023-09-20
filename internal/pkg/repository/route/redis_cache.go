@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/go-redis/cache/v9"
 	"github.com/redis/go-redis/v9"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -38,7 +38,7 @@ func (r *redisCacheRepository) Set(
 	ttl time.Duration,
 ) error {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[route] redisCacheRepository.Set")
-	defer span.Finish()
+	defer span.End()
 
 	item := &cache.Item{
 		Ctx:   ctx,
@@ -56,7 +56,7 @@ func (r *redisCacheRepository) Get(
 	key *valueobject.RouteCacheKey,
 ) (*valueobject.SimpleRoute, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[route] redisCacheRepository.Get")
-	defer span.Finish()
+	defer span.End()
 
 	var simpleRoute valueobject.SimpleRoute
 	if err := r.cache.Get(ctx, r.genKey(key), &simpleRoute); err != nil {

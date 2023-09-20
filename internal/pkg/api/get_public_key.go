@@ -1,14 +1,14 @@
 package api
 
 import (
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/gin-gonic/gin"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 func GetPublicKey(useCase IGetPublicKeyUseCase) func(ginCtx *gin.Context) {
 	return func(ginCtx *gin.Context) {
 		span, ctx := tracer.StartSpanFromContext(ginCtx.Request.Context(), "GetPublicKey")
-		defer span.Finish()
+		defer span.End()
 
 		result, err := useCase.Handle(ctx, getKeyIDFromParamRequest(ginCtx))
 		if err != nil {

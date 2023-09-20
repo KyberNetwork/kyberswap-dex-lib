@@ -3,7 +3,7 @@ package spfa
 import (
 	"context"
 
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -46,7 +46,7 @@ func (f *spfaFinder) Find(
 	data findroute.FinderData,
 ) ([]*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfaFinder.Find")
-	defer span.Finish()
+	defer span.End()
 
 	bestRoute, err := f.bestRouteExactIn(ctx, input, data)
 	if err != nil {

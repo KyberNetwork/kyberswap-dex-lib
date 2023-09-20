@@ -1,8 +1,8 @@
 package api
 
 import (
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/gin-gonic/gin"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -18,7 +18,7 @@ func GetPools(
 ) func(ginCtx *gin.Context) {
 	return func(ginCtx *gin.Context) {
 		span, ctx := tracer.StartSpanFromContext(ginCtx.Request.Context(), "GetPools")
-		defer span.Finish()
+		defer span.End()
 
 		var reqParams params.GetPoolsParams
 		if err := ginCtx.ShouldBindQuery(&reqParams); err != nil {

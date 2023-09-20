@@ -3,8 +3,8 @@ package poolrank
 import (
 	"context"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/redis/go-redis/v9"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -35,7 +35,7 @@ func (r *redisRepository) FindBestPoolIDs(
 	opt valueobject.GetBestPoolsOptions,
 ) ([]string, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[poolrank] redisRepository.FindBestPoolIDs")
-	defer span.Finish()
+	defer span.End()
 
 	cmders, err := r.redisClient.Pipelined(
 		ctx, func(tx redis.Pipeliner) error {

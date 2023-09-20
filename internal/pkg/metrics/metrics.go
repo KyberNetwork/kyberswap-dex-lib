@@ -1,8 +1,11 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
+	"strings"
 
+	"github.com/KyberNetwork/kyber-trace-go/pkg/metric"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -66,6 +69,14 @@ func IncrInvalidSynthetixVolume() {
 }
 
 func Flush() {
+	// Flush VanPT
+	if err := metric.Flush(context.Background()); err != nil {
+		logger.WithFields(logger.Fields{
+			"error": err,
+		}).Warn("failed to flush VanPT metrics")
+	}
+
+	// Flush DataDog
 	if client == nil {
 		return
 	}
@@ -78,6 +89,21 @@ func Flush() {
 }
 
 func incr(name string, tags []string, rate float64) {
+	// Incr VanPT
+	// VanPT doesn't accept "." in the counter name,
+	// so replace all the current "." to "_".
+	name = strings.Replace(name, ".", "_", -1)
+	counter, err := metric.Meter().Float64Counter(name)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"error": err,
+		}).Warnf("failed to push %s metrics to VanPT", name)
+	}
+	ctx := context.Background()
+	counter.Add(ctx, rate)
+	metric.Flush(ctx)
+
+	// Incr DataDog
 	if client == nil {
 		return
 	}

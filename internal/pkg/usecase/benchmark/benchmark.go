@@ -7,7 +7,7 @@ package benchmark
 //	"math/big"
 //
 //	"github.com/KyberNetwork/ethrpc"
-//	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+//	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 //
 //	"github.com/KyberNetwork/router-service/internal/pkg/config"
 //	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -113,7 +113,7 @@ package benchmark
 //	sources []string,
 //) ([]entity.Pool, error) {
 //	span, ctx := tracer.StartSpanFromContext(ctx, "benchmarkUseCase.listPools")
-//	defer span.Finish()
+//	defer span.End()
 //
 //	directPairKey := business.GenDirectPairKey(tokenInAddress, tokenOutAddress)
 //
@@ -155,7 +155,7 @@ package benchmark
 //	pools []entity.Pool,
 //) ([]entity.Pool, error) {
 //	span, ctx := tracer.StartSpanFromContext(ctx, "benchmarkUseCase.listCurveMetaBasePools")
-//	defer span.Finish()
+//	defer span.End()
 //
 //	var (
 //		// alreadyFetchedSet contains fetched pool ids
@@ -210,7 +210,7 @@ package benchmark
 //	tokenAddresses []string,
 //) (map[string]entity.Token, error) {
 //	span, ctx := tracer.StartSpanFromContext(ctx, "benchmarkUseCase.getTokenByAddress")
-//	defer span.Finish()
+//	defer span.End()
 //
 //	tokens, err := uc.tokenRepository.FindByAddresses(ctx, tokenAddresses)
 //	if err != nil {
@@ -231,7 +231,7 @@ package benchmark
 //	tokenAddresses []string,
 //) (map[string]entity.Price, error) {
 //	span, ctx := tracer.StartSpanFromContext(ctx, "benchmarkUseCase.getPriceByAddress")
-//	defer span.Finish()
+//	defer span.End()
 //
 //	prices, err := uc.priceRepository.FindByAddresses(ctx, tokenAddresses)
 //	if err != nil {

@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -27,7 +27,7 @@ func (f *uniswapFinder) genSinglePathRoutes(
 	ctx context.Context, input findroute.Input, paths []*valueobject.Path,
 ) []*valueobject.Route {
 	span, _ := tracer.StartSpanFromContext(ctx, "uniswapFinder.genSinglePathRoutes")
-	defer span.Finish()
+	defer span.End()
 
 	singlePathRoutes := make([]*valueobject.Route, 0, len(paths))
 	for _, path := range paths {
@@ -46,7 +46,7 @@ func (f *uniswapFinder) genBestRoutes(
 	ctx context.Context, input findroute.Input, data findroute.FinderData, paths []*valueobject.Path,
 ) ([]*valueobject.Route, error) {
 	span, _ := tracer.StartSpanFromContext(ctx, "uniswapFinder.genBestRoutes")
-	defer span.Finish()
+	defer span.End()
 
 	// Must be able to get info about tokenIn
 	if _, ok := data.TokenByAddress[input.TokenInAddress]; !ok {

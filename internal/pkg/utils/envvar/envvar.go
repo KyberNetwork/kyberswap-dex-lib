@@ -1,6 +1,9 @@
 package envvar
 
 const (
+	OTELEnabled = "OTEL_ENABLED"
+	OTELService = "OTEL_SERVICE_NAME"
+
 	DDProfilerEnabled = "DD_PROFILER_ENABLED"
 	DDEnabled         = "DD_ENABLED"
 	DDAgentHost       = "DD_AGENT_HOST"

@@ -6,7 +6,7 @@ import (
 	"math/big"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -17,7 +17,7 @@ import (
 
 func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Input, data findroute.FinderData) (*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestRouteExactIn")
-	defer span.Finish()
+	defer span.End()
 
 	// Must be able to get info about tokenIn
 	if _, ok := data.TokenByAddress[input.TokenInAddress]; !ok {

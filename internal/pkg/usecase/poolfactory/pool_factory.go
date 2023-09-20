@@ -46,9 +46,9 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodromev2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatlsd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatmain"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -83,7 +83,7 @@ func NewPoolFactory(config Config, client aevmclient.Client, balanceSlotsUseCase
 
 func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) []poolpkg.IPoolSimulator {
 	span, _ := tracer.StartSpanFromContext(ctx, "poolFactory.NewPoolByAddress")
-	defer span.Finish()
+	defer span.End()
 
 	curveBasePoolByAddress, curveBasePoolAddressSet := f.getCurveMetaBasePoolByAddress(pools)
 
@@ -120,7 +120,7 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool, stateR
 
 func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) map[string]poolpkg.IPoolSimulator {
 	span, _ := tracer.StartSpanFromContext(ctx, "poolFactory.NewPoolByAddress")
-	defer span.Finish()
+	defer span.End()
 
 	curveBasePoolByAddress, curveBasePoolAddressSet := f.getCurveMetaBasePoolByAddress(pools)
 

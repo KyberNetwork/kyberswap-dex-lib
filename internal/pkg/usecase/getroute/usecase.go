@@ -6,8 +6,8 @@ import (
 	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/pkg/errors"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -57,7 +57,7 @@ func NewUseCase(
 
 func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.GetRoutesResult, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] useCase.Handle")
-	defer span.Finish()
+	defer span.End()
 
 	originalTokenIn := query.TokenIn
 	originalTokenOut := query.TokenOut
