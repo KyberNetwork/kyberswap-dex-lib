@@ -61,7 +61,7 @@ func GinServer(cfg *HTTPConfig, zapLogger *zap.Logger) (*gin.Engine, *gin.Router
 				env.StringFromEnv(envvar.OTELService, ""),
 				otelgin.WithFilter(func(c *http.Request) bool {
 					_, contained := skipPathSet[c.URL.Path]
-					return contained
+					return !contained
 				}),
 			),
 		)
