@@ -71,6 +71,7 @@ jobs:
             VERSION=${{ env.VERSION_TAG }}
             GIT_HASH=${{ github.sha }}
             BUILD_DATE=${{ env.BUILD_DATE }}
+            GH_PAT=${{ secrets.GH_PAT }}
           labels: |
             kyber.network.schema-version=1.0
             kyber.network.vcs-ref=${{ github.sha }}
@@ -81,8 +82,6 @@ jobs:
             asia.gcr.io/kyber-operation/core/${{ env.SERVICE }}:${{ env.VERSION_TAG }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
-          build-args: |
-            GH_PAT=${{ secrets.GH_PAT }}
 
       - name: Move Docker cache
         run: |
