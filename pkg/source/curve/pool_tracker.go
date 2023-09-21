@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolTracker struct {
@@ -34,6 +35,7 @@ func NewPoolTracker(
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	switch p.Type {
 	case poolTypeBase:

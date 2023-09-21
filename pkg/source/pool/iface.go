@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/ethereum/go-ethereum/core/types"
 )
 
 type IPoolsListUpdater interface {
@@ -15,6 +16,10 @@ type IPoolsListUpdater interface {
 	// @return []byte the new metadataBytes for the next round
 	// @return error if there is any error
 	GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error)
+}
+
+type GetNewPoolStateParams struct {
+	Logs []types.Log
 }
 
 type IPoolTracker interface {

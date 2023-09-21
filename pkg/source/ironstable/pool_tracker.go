@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/timer"
 )
 
@@ -26,7 +27,11 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, err
 	}, nil
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
 	finish := timer.Start(fmt.Sprintf("[%s] get new pool state", d.cfg.DexID))
 	defer finish()
 

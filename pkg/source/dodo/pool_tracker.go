@@ -15,6 +15,7 @@ import (
 	cmap "github.com/orcaman/concurrent-map"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolTracker struct {
@@ -39,7 +40,11 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
 	var staticExtraData = struct {
 		Type string `json:"type"`
 	}{}
