@@ -12,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoecommon"
 )
 
@@ -68,7 +69,7 @@ func TestGetPoolState(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	pool, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: usdceUSDCPool})
+	pool, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: usdceUSDCPool}, sourcePool.GetNewPoolStateParams{})
 	require.NoError(t, err)
 
 	spew.Dump(pool)
