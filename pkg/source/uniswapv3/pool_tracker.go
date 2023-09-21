@@ -15,7 +15,7 @@ import (
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	dexpool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
@@ -74,7 +74,7 @@ func initializeConfig(cfg *Config) (*Config, error) {
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ dexpool.GetNewPoolStateParams,
+	_ sourcePool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	logger.Infof("[%s] Start getting new state of pool: %v", d.config.DexID, p.Address)
 

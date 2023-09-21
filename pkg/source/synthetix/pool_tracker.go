@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	dexpool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/timer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -55,7 +55,7 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	pool entity.Pool,
-	_ dexpool.GetNewPoolStateParams,
+	_ sourcePool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	finish := timer.Start(fmt.Sprintf("[%s] get new pool state", d.cfg.DexID))
 	defer finish()
