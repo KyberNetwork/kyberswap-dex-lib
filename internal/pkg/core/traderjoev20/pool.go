@@ -8,6 +8,7 @@ import (
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	aevmcommon "github.com/KyberNetwork/aevm/common"
+	aevmtypes "github.com/KyberNetwork/aevm/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	gethcommon "github.com/ethereum/go-ethereum/common"
@@ -112,7 +113,7 @@ func (p *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 	if err != nil {
 		return nil, fmt.Errorf("could not build transfer call: %w", err)
 	}
-	transferCall := aevmclient.SingleCall{
+	transferCall := aevmtypes.SingleCall{
 		From:  aevmcommon.Address(wallet),
 		To:    aevmcommon.Address(tokenIn),
 		Value: uint256.NewInt(0),
@@ -122,17 +123,17 @@ func (p *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 	if err != nil {
 		return nil, fmt.Errorf("could not build swap call: %w", err)
 	}
-	swapCall := aevmclient.SingleCall{
+	swapCall := aevmtypes.SingleCall{
 		From:  aevmcommon.Address(wallet),
 		To:    aevmcommon.Address(poolAddress),
 		Value: uint256.NewInt(0),
 		Data:  swapInput,
-		Options: &aevmclient.SingleCallOptions{
+		Options: &aevmtypes.SingleCallOptions{
 			ReturnStateAfter: true,
 		},
 	}
 	return &aevmcore.AEVMSwapCalls{
-		PreCalls: []aevmclient.SingleCall{
+		PreCalls: []aevmtypes.SingleCall{
 			transferCall,
 		},
 		SwapCall: swapCall,

@@ -3,7 +3,6 @@ package traderjoev20
 import (
 	"fmt"
 	"math/big"
-	"runtime"
 	"testing"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
@@ -40,13 +39,13 @@ var (
 )
 
 func TestCalcAmountOutAEVMWithUSDCE_USDCPoolWithTCPClient(t *testing.T) {
-	client, err := aevmclient.NewTCPClient(aevmServerURL, runtime.NumCPU())
-	if err != nil {
-		t.Skip("could not connect to AEVM server")
-		return
-	}
+	t.Skip()
+
+	client, err := aevmclient.NewGRPCClient(aevmServerURL)
+	require.NoError(t, err)
 
 	stateRoot, err := client.LatestStateRoot()
+	fmt.Printf("stateRoot = %s\n", stateRoot)
 	require.NoError(t, err)
 
 	p, err := NewPoolAEVM(

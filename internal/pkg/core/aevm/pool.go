@@ -6,9 +6,9 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/KyberNetwork/aevm"
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	aevmcommon "github.com/KyberNetwork/aevm/common"
+	aevmtypes "github.com/KyberNetwork/aevm/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
@@ -19,7 +19,7 @@ import (
 
 // AEVMSwapInfo holds related data after a simulation. These data are used for the next simulation of the same pool.
 type AEVMSwapInfo struct {
-	StateAfter *aevm.StateOverrides `json:"-"`
+	StateAfter *aevmtypes.StateOverrides `json:"-"`
 }
 
 // AEVMPool a AEVM-integrated pool
@@ -37,11 +37,11 @@ type AEVMPool struct {
 // AEVMSwapCalls a list of contract calls required for a swap
 type AEVMSwapCalls struct {
 	// Contract calls before swapping such as approving call
-	PreCalls []aevmclient.SingleCall
+	PreCalls []aevmtypes.SingleCall
 	// The swap call itself
-	SwapCall aevmclient.SingleCall
+	SwapCall aevmtypes.SingleCall
 	// Contract calls after swapping such as calling balanceOf to tokenOut to retrieve amountOut
-	PostCalls []aevmclient.SingleCall
+	PostCalls []aevmtypes.SingleCall
 }
 
 // Len returns the number of contract calls
@@ -50,8 +50,8 @@ func (c *AEVMSwapCalls) Len() int {
 }
 
 // List converts contract calls to a list
-func (c *AEVMSwapCalls) List() []aevmclient.SingleCall {
-	var calls []aevmclient.SingleCall
+func (c *AEVMSwapCalls) List() []aevmtypes.SingleCall {
+	var calls []aevmtypes.SingleCall
 	calls = append(calls, c.PreCalls...)
 	calls = append(calls, c.SwapCall)
 	calls = append(calls, c.PostCalls...)
@@ -59,7 +59,7 @@ func (c *AEVMSwapCalls) List() []aevmclient.SingleCall {
 }
 
 // GetSwapCallResult get the simulation result of the swap call from the list of simulation results
-func (c *AEVMSwapCalls) GetSwapCallResult(results []*aevmclient.CallResponse) (*aevmclient.CallResponse, error) {
+func (c *AEVMSwapCalls) GetSwapCallResult(results []*aevmtypes.CallResult) (*aevmtypes.CallResult, error) {
 	if len(results) != c.Len() {
 		return nil, fmt.Errorf("an error occurred in call sequence")
 	}
@@ -110,7 +110,7 @@ type AEVMSwapStrategy struct {
 	AmountOutGetterArgs interface{}
 }
 
-func (s *AEVMSwapStrategy) getAmountOut(swapResult *aevmclient.CallResponse, results []*aevmclient.CallResponse) (*big.Int, error) {
+func (s *AEVMSwapStrategy) getAmountOut(swapResult *aevmtypes.CallResult, results []*aevmtypes.CallResult) (*big.Int, error) {
 	var amountOut *big.Int
 	switch s.AmountOutGetter {
 	case AmountOutGetterSwapOutput:
@@ -176,12 +176,12 @@ func CalcAmountOutAEVM(
 
 	calls := s.SwapCalls
 
-	var overrides *aevm.StateOverrides
+	var overrides *aevmtypes.StateOverrides
 	if p.NextSwapInfo != nil {
 		// inherit current state
 		overrides = p.NextSwapInfo.StateAfter.Clone()
 	} else {
-		overrides = new(aevm.StateOverrides)
+		overrides = new(aevmtypes.StateOverrides)
 	}
 	// make sure wallet have abundant native tokens
 	overrides.OverrideBalance(wallet, new(uint256.Int).SetUint64(math.MaxUint64))
@@ -200,7 +200,7 @@ func CalcAmountOutAEVM(
 		overrides.OverrideState(aevmcommon.Address(tokenIn), aevmcommon.HexToHash(slot), aevmcommon.HexToHash(val))
 	}
 
-	results, err := p.AEVMClient.Get().(aevmclient.Client).MultipleCall(&aevmclient.MultipleCallRequest{
+	results, err := p.AEVMClient.Get().(aevmclient.Client).MultipleCall(&aevmtypes.MultipleCallParams{
 		StateRoot: aevmcommon.Hash(p.StateRoot),
 		Calls:     calls.List(),
 		Overrides: overrides,
@@ -208,23 +208,23 @@ func CalcAmountOutAEVM(
 	if err != nil {
 		return nil, err
 	}
-	if len(results.Responses) != calls.Len() {
+	if len(results.Results) != calls.Len() {
 		return nil, fmt.Errorf("an error occurred in call sequence")
 	}
 
-	swapResult, err := calls.GetSwapCallResult(results.Responses)
+	swapResult, err := calls.GetSwapCallResult(results.Results)
 	if err != nil {
 		return nil, err
 	}
 
 	// make sure all calls are success
-	for _, result := range results.Responses {
+	for _, result := range results.Results {
 		if !result.Success {
 			return nil, fmt.Errorf("simulation returns error %s", result.Error)
 		}
 	}
 
-	amountOut, err := s.getAmountOut(swapResult, results.Responses)
+	amountOut, err := s.getAmountOut(swapResult, results.Results)
 	if err != nil {
 		return nil, err
 	}
