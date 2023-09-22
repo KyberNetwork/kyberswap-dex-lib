@@ -12,11 +12,24 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/validator"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func PackKyberLimitOrderDS(_ valueobject.ChainID, encodingSwap types.EncodingSwap) ([]byte, error) {
+	// get contract address for LO.
+	if encodingSwap.PoolExtra == nil {
+		return nil, fmt.Errorf("[PackKyberLimitOrderDS] PoolExtra is nil")
+	}
+
+	contractAddress, ok := encodingSwap.PoolExtra.(string)
+	if !ok || !validator.IsEthereumAddress(contractAddress) {
+		errMsg := fmt.Sprintf("Invalid LO contract address: %v, pool: %v", encodingSwap.PoolExtra, encodingSwap.Pool)
+		return nil, fmt.Errorf("[PackKyberLimitOrderDS] %s", errMsg)
+	}
+	encodingSwap.Pool = contractAddress
+
 	kyberLimitOrder, err := buildKyberLimitOrderDS(encodingSwap)
 	if err != nil {
 		return nil, err
@@ -47,7 +60,7 @@ func buildKyberLimitOrderDS(swap types.EncodingSwap) (KyberLimitOrderDS, error) 
 	if err != nil {
 		return KyberLimitOrderDS{}, errors.Wrapf(
 			ErrMarshalFailed,
-			"[BuildKyberLimitOrder] err :[%v]",
+			"[BuildKyberLimitOrderDS] err :[%v]",
 			err,
 		)
 	}
@@ -56,16 +69,16 @@ func buildKyberLimitOrderDS(swap types.EncodingSwap) (KyberLimitOrderDS, error) 
 	if err = json.Unmarshal(byteData, &swapInfo); err != nil {
 		return KyberLimitOrderDS{}, errors.Wrapf(
 			ErrUnmarshalFailed,
-			"[BuildKyberLimitOrder] err :[%v]",
+			"[BuildKyberLimitOrderDS] err :[%v]",
 			err,
 		)
 	}
 	if len(swapInfo.FilledOrders) == 0 {
-		return KyberLimitOrderDS{}, fmt.Errorf("[BuildKyberLimitOrder] cause by filledOrder is empty")
+		return KyberLimitOrderDS{}, fmt.Errorf("[BuildKyberLimitOrderDS] cause by filledOrder is empty")
 	}
 	Params, err := toFillBatchOrdersParamsDS(&swapInfo)
 	if err != nil {
-		return KyberLimitOrderDS{}, fmt.Errorf("[BuildKyberLimitOrder] error at toFillBatchOrdersParams func error cause by %v", err)
+		return KyberLimitOrderDS{}, fmt.Errorf("[BuildKyberLimitOrderDS] error at toFillBatchOrdersParams func error cause by %v", err)
 	}
 	return KyberLimitOrderDS{
 		KyberLOAddress: common.HexToAddress(swap.Pool),

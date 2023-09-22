@@ -347,7 +347,6 @@ func apiAction(c *cli.Context) (err error) {
 	decodeRouteUsecase := decode.NewDecoderFactory(decode.Config{
 		RouterAddress:             cfg.Encoder.RouterAddress,
 		ExecutorAddress:           cfg.Encoder.ExecutorAddress,
-		KyberLOAddress:            cfg.Encoder.KyberLOAddress,
 		ChainID:                   cfg.Encoder.ChainID,
 		UseL2Optimize:             cfg.Encoder.UseL2Optimize,
 		FunctionSelectorMappingID: cfg.Encoder.FunctionSelectorMappingID,

@@ -19,7 +19,6 @@ func (e *EncoderFactory) GetEncoder() IEncoder {
 		return l2encode.NewEncoder(l2encode.Config{
 			RouterAddress:             e.config.RouterAddress,
 			ExecutorAddress:           e.config.ExecutorAddress,
-			KyberLOAddress:            e.config.KyberLOAddress,
 			ChainID:                   e.config.ChainID,
 			IsPositiveSlippageEnabled: e.config.IsPositiveSlippageEnabled,
 			MinimumPSThreshold:        e.config.MinimumPSThreshold,
@@ -30,7 +29,6 @@ func (e *EncoderFactory) GetEncoder() IEncoder {
 	return l1encode.NewEncoder(l1encode.Config{
 		RouterAddress:             e.config.RouterAddress,
 		ExecutorAddress:           e.config.ExecutorAddress,
-		KyberLOAddress:            e.config.KyberLOAddress,
 		ChainID:                   e.config.ChainID,
 		IsPositiveSlippageEnabled: e.config.IsPositiveSlippageEnabled,
 		MinimumPSThreshold:        e.config.MinimumPSThreshold,

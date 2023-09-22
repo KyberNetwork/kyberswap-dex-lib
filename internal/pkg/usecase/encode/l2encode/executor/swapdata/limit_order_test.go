@@ -6,6 +6,8 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 )
@@ -100,4 +102,87 @@ func TestUnpackLimitOrderSwap(t *testing.T) {
 func parseBigInt(value string) *big.Int {
 	bigIntValue, _ := new(big.Int).SetString(value, 10)
 	return bigIntValue
+}
+
+func TestPackKyberLimitOrder(t *testing.T) {
+	testCases := []struct {
+		name         string
+		encodingSwap types.L2EncodingSwap
+		assert       func(t *testing.T, actualResult []byte, actualErr error)
+	}{
+		{
+			name: "1. PoolExtra is nil",
+			encodingSwap: types.L2EncodingSwap{
+				EncodingSwap: types.EncodingSwap{
+					Pool: "limit-order",
+				},
+			},
+			assert: func(t *testing.T, actualResult []byte, actualErr error) {
+				assert.Equal(t, []uint8([]byte(nil)), actualResult)
+				assert.EqualError(t, actualErr, "[PackKyberLimitOrder] PoolExtra is nil")
+			},
+		},
+		{
+			name: "2. PoolExtra is not string",
+			encodingSwap: types.L2EncodingSwap{
+				EncodingSwap: types.EncodingSwap{
+					Pool:      "limit-order",
+					PoolExtra: 1,
+				},
+			},
+			assert: func(t *testing.T, actualResult []byte, actualErr error) {
+				assert.Equal(t, []uint8([]byte(nil)), actualResult)
+				assert.EqualError(t, actualErr, "[PackKyberLimitOrder] Invalid LO contract address: 1, pool: limit-order")
+			},
+		},
+		{
+			name: "3. PoolExtra is not an address",
+			encodingSwap: types.L2EncodingSwap{
+				EncodingSwap: types.EncodingSwap{
+					Pool:      "limit-order",
+					PoolExtra: "0x00",
+				},
+			},
+			assert: func(t *testing.T, actualResult []byte, actualErr error) {
+				assert.Equal(t, []uint8([]byte(nil)), actualResult)
+				assert.EqualError(t, actualErr, "[PackKyberLimitOrder] Invalid LO contract address: 0x00, pool: limit-order")
+			},
+		},
+		{
+			name: "4. Get contract address successfully",
+			encodingSwap: types.L2EncodingSwap{
+				EncodingSwap: types.EncodingSwap{
+					Pool:      "limit-order",
+					PoolExtra: "0x4aaf59cbbaf7fbdbbe24d0186a9ea03875d9ada5",
+					Extra: limitorder.SwapInfo{
+						AmountIn: "60000000000",
+						FilledOrders: []*limitorder.FilledOrderInfo{
+							{
+								Salt:                 "135786982651412687203851465093295409688",
+								MakerAsset:           "0x1a30c9ed6436e03d506227a362b2cbf59a303967",
+								TakerAsset:           "0x4f6519025e6de0edb6e4901827c1956ce18c39d3",
+								Maker:                "0xef09879057a9ad798438f3ba561bcdd293d72fc7",
+								Receiver:             "0xef09879057a9ad798438f3ba561bcdd293d72fc7",
+								TakingAmount:         "60000000000",
+								MakingAmount:         "60000000000",
+								FeeRecipient:         "0x0000000000000000000000000000000000000000",
+								MakerTokenFeePercent: 22,
+							},
+						},
+					},
+				},
+			},
+			assert: func(t *testing.T, actualResult []byte, actualErr error) {
+				assert.NotNil(t, actualResult)
+				assert.NoError(t, actualErr)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := PackKyberLimitOrder(1, tc.encodingSwap)
+			tc.assert(t, result, err)
+		})
+	}
 }

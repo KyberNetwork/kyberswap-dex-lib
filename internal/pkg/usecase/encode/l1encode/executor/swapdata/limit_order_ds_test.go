@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
@@ -73,6 +74,91 @@ func TestUnpackLimitOrderDSSwap(t *testing.T) {
 			result, err := UnpackKyberLimitOrderDS(common.Hex2Bytes(pair.packedData))
 			require.Nil(t, err)
 			assert.EqualValues(t, pair.data, result)
+		})
+	}
+}
+
+func TestPackKyberLimitOrderDS(t *testing.T) {
+	testCases := []struct {
+		name         string
+		encodingSwap types.EncodingSwap
+		assert       func(t *testing.T, actualResult []byte, actualErr error)
+	}{
+		{
+			name: "1. PoolExtra is nil",
+			encodingSwap: types.EncodingSwap{
+				Pool: "limit-order",
+			},
+			assert: func(t *testing.T, actualResult []byte, actualErr error) {
+				assert.Equal(t, []uint8([]byte(nil)), actualResult)
+				assert.EqualError(t, actualErr, "[PackKyberLimitOrderDS] PoolExtra is nil")
+			},
+		},
+		{
+			name: "2. PoolExtra is not string",
+			encodingSwap: types.EncodingSwap{
+				Pool:      "limit-order",
+				PoolExtra: 1,
+			},
+			assert: func(t *testing.T, actualResult []byte, actualErr error) {
+				assert.Equal(t, []uint8([]byte(nil)), actualResult)
+				assert.EqualError(t, actualErr, "[PackKyberLimitOrderDS] Invalid LO contract address: 1, pool: limit-order")
+			},
+		},
+		{
+			name: "3. PoolExtra is not an address",
+			encodingSwap: types.EncodingSwap{
+				Pool:      "limit-order",
+				PoolExtra: "0x00",
+			},
+			assert: func(t *testing.T, actualResult []byte, actualErr error) {
+				assert.Equal(t, []uint8([]byte(nil)), actualResult)
+				assert.EqualError(t, actualErr, "[PackKyberLimitOrderDS] Invalid LO contract address: 0x00, pool: limit-order")
+			},
+		},
+		{
+			name: "4. Get contract address successfully",
+			encodingSwap: types.EncodingSwap{
+				Pool:      "limit-order",
+				PoolExtra: "0xef09879057a9ad798438f3ba561bcdd293d72fc7",
+				Extra: map[string]interface{}{
+					"amountIn": "60000000000",
+					"filledOrders": []map[string]interface{}{
+						{
+							"orderID":              1,
+							"salt":                 "135786982651412687203851465093295409688",
+							"makerAsset":           "0x1a30c9ed6436e03d506227a362b2cbf59a303967",
+							"takerAsset":           "0x4f6519025e6de0edb6e4901827c1956ce18c39d3",
+							"maker":                "0xef09879057a9ad798438f3ba561bcdd293d72fc7",
+							"receiver":             "0xef09879057a9ad798438f3ba561bcdd293d72fc7",
+							"takingAmount":         "60000000000",
+							"makingAmount":         "60000000000",
+							"feeRecipient":         "0x0000000000000000000000000000000000000000",
+							"makerTokenFeePercent": 22,
+							"feeConfig":            "146159165624476364475945418325124367680971254365544",
+						},
+					},
+					"operatorSignaturesById": map[int64]interface{}{
+						1: map[string]interface{}{
+							"id":                         1,
+							"chainId":                    "1",
+							"operatorSignature":          "b0b4a1d79dac9af74c46f25e657d88b1c435876164b7b070ab10ab32fbb2755e11fc1e78c166f60da7df485d4c9a3de897262ba8a9180466327d4d9a347097621c",
+							"operatorSignatureExpiredAt": 1694656567,
+						},
+					},
+				},
+			},
+			assert: func(t *testing.T, actualResult []byte, actualErr error) {
+				assert.NotNil(t, actualResult)
+				assert.NoError(t, actualErr)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := PackKyberLimitOrderDS(1, tc.encodingSwap)
+			tc.assert(t, result, err)
 		})
 	}
 }

@@ -222,7 +222,7 @@ func (uc *buildRouteUseCase) encode(ctx context.Context, command dto.BuildRouteC
 	}
 
 	encodingData := types.NewEncodingDataBuilder().
-		SetRoute(&routeSummary, uc.encoder.GetExecutorAddress(), uc.encoder.GetKyberLOAddress(), command.Recipient).
+		SetRoute(&routeSummary, uc.encoder.GetExecutorAddress(), command.Recipient).
 		SetDeadline(big.NewInt(command.Deadline)).
 		SetSlippageTolerance(big.NewInt(command.SlippageTolerance)).
 		SetClientData(clientData).

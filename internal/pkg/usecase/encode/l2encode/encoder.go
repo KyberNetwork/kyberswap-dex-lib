@@ -75,7 +75,3 @@ func (e *Encoder) GetExecutorAddress() string {
 func (e *Encoder) GetRouterAddress() string {
 	return e.config.RouterAddress
 }
-
-func (e *Encoder) GetKyberLOAddress() string {
-	return e.config.KyberLOAddress
-}

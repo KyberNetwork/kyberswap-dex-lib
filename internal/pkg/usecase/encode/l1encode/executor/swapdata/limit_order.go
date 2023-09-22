@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/validator"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -22,6 +23,18 @@ var (
 )
 
 func PackKyberLimitOrder(_ valueobject.ChainID, encodingSwap types.EncodingSwap) ([]byte, error) {
+	// get contract address for LO.
+	if encodingSwap.PoolExtra == nil {
+		return nil, fmt.Errorf("[PackKyberLimitOrder] PoolExtra is nil")
+	}
+
+	contractAddress, ok := encodingSwap.PoolExtra.(string)
+	if !ok || !validator.IsEthereumAddress(contractAddress) {
+		errMsg := fmt.Sprintf("Invalid LO contract address: %v, pool: %v", encodingSwap.PoolExtra, encodingSwap.Pool)
+		return nil, fmt.Errorf("[PackKyberLimitOrder] %s", errMsg)
+	}
+	encodingSwap.Pool = contractAddress
+
 	kyberLimitOrder, err := buildKyberLimitOrder(encodingSwap)
 	if err != nil {
 		return nil, err

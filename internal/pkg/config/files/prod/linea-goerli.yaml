@@ -65,7 +65,6 @@ encoder:
   chainId: *chainId
   executorAddress: *executorAddress
   routerAddress: *routerAddress
-  kyberLOAddress:
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
 useCase:

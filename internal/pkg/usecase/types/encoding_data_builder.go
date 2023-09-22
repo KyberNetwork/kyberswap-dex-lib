@@ -5,9 +5,7 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
-	"github.com/KyberNetwork/router-service/internal/pkg/validator"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type EncodingDataBuilder struct {
@@ -47,11 +45,10 @@ func (b *EncodingDataBuilder) SetPermit(permit []byte) *EncodingDataBuilder {
 func (b *EncodingDataBuilder) SetRoute(
 	routeSummary *valueobject.RouteSummary,
 	executorAddress string,
-	kyberLOAddress string,
 	recipient string,
 ) *EncodingDataBuilder {
 	encodingMode := getEncodingMode(routeSummary.TokenIn, routeSummary.Route)
-	encodingRoute := transformRoute(routeSummary.Route, kyberLOAddress)
+	encodingRoute := transformRoute(routeSummary.Route)
 	encodingRoute = updateSwapRecipientAndCollectAmount(
 		encodingRoute,
 		encodingMode,
@@ -113,7 +110,7 @@ func getEncodingSwapFlags(swap EncodingSwap, executorAddress string) []EncodingS
 	return flags
 }
 
-func transformRoute(route [][]valueobject.Swap, kyberLOAddress string) [][]EncodingSwap {
+func transformRoute(route [][]valueobject.Swap) [][]EncodingSwap {
 	encodingRoute := make([][]EncodingSwap, 0, len(route))
 
 	for _, path := range route {
@@ -121,7 +118,7 @@ func transformRoute(route [][]valueobject.Swap, kyberLOAddress string) [][]Encod
 
 		for _, swap := range path {
 			encodingPath = append(encodingPath, EncodingSwap{
-				Pool:              getPool(&swap, kyberLOAddress),
+				Pool:              swap.Pool,
 				TokenIn:           swap.TokenIn,
 				TokenOut:          swap.TokenOut,
 				SwapAmount:        swap.SwapAmount,
@@ -139,20 +136,6 @@ func transformRoute(route [][]valueobject.Swap, kyberLOAddress string) [][]Encod
 	}
 
 	return encodingRoute
-}
-
-func getPool(swap *valueobject.Swap, kyberLOAddress string) string {
-	if swap.Exchange == valueobject.ExchangeKyberSwapLimitOrder || swap.Exchange == valueobject.ExchangeKyberSwapLimitOrderDS {
-		if swap.PoolExtra != nil {
-			if contractAddress, ok := swap.PoolExtra.(string); ok && validator.IsEthereumAddress(contractAddress) {
-				return contractAddress
-			} else {
-				logger.Debugf("Invalid LO contract address %v %v", swap.PoolExtra, swap.Pool)
-			}
-		}
-		return kyberLOAddress
-	}
-	return swap.Pool
 }
 
 func updateSwapRecipientAndCollectAmount(

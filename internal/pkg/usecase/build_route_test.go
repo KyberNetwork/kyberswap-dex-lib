@@ -67,9 +67,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 						nil,
 					)
 
-				encoder.EXPECT().
-					GetKyberLOAddress().
-					Return("0x02").AnyTimes()
 				return &buildRouteUseCase{
 					tokenRepository:   tokenRepository,
 					priceRepository:   priceRepository,
@@ -141,9 +138,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 						nil,
 					)
 
-				encoder.EXPECT().
-					GetKyberLOAddress().
-					Return("0x02").AnyTimes()
 				return &buildRouteUseCase{
 					tokenRepository:   tokenRepository,
 					priceRepository:   priceRepository,

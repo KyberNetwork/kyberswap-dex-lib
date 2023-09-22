@@ -5,88 +5,74 @@
 package usecase
 
 import (
-	reflect "reflect"
+        reflect "reflect"
 
-	types "github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
-	gomock "github.com/golang/mock/gomock"
+        types "github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+        gomock "github.com/golang/mock/gomock"
 )
 
 // MockIEncoder is a mock of IEncoder interface.
 type MockIEncoder struct {
-	ctrl     *gomock.Controller
-	recorder *MockIEncoderMockRecorder
+        ctrl     *gomock.Controller
+        recorder *MockIEncoderMockRecorder
 }
 
 // MockIEncoderMockRecorder is the mock recorder for MockIEncoder.
 type MockIEncoderMockRecorder struct {
-	mock *MockIEncoder
+        mock *MockIEncoder
 }
 
 // NewMockIEncoder creates a new mock instance.
 func NewMockIEncoder(ctrl *gomock.Controller) *MockIEncoder {
-	mock := &MockIEncoder{ctrl: ctrl}
-	mock.recorder = &MockIEncoderMockRecorder{mock}
-	return mock
+        mock := &MockIEncoder{ctrl: ctrl}
+        mock.recorder = &MockIEncoderMockRecorder{mock}
+        return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockIEncoder) EXPECT() *MockIEncoderMockRecorder {
-	return m.recorder
+        return m.recorder
 }
 
 // Encode mocks base method.
-func (m *MockIEncoder) Encode(arg0 types.EncodingData) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Encode", arg0)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+func (m *MockIEncoder) Encode(data types.EncodingData) (string, error) {
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "Encode", data)
+        ret0, _ := ret[0].(string)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
 }
 
 // Encode indicates an expected call of Encode.
-func (mr *MockIEncoderMockRecorder) Encode(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Encode", reflect.TypeOf((*MockIEncoder)(nil).Encode), arg0)
+func (mr *MockIEncoderMockRecorder) Encode(data interface{}) *gomock.Call {
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Encode", reflect.TypeOf((*MockIEncoder)(nil).Encode), data)
 }
 
 // GetExecutorAddress mocks base method.
 func (m *MockIEncoder) GetExecutorAddress() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetExecutorAddress")
-	ret0, _ := ret[0].(string)
-	return ret0
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GetExecutorAddress")
+        ret0, _ := ret[0].(string)
+        return ret0
 }
 
 // GetExecutorAddress indicates an expected call of GetExecutorAddress.
 func (mr *MockIEncoderMockRecorder) GetExecutorAddress() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExecutorAddress", reflect.TypeOf((*MockIEncoder)(nil).GetExecutorAddress))
-}
-
-// GetKyberLOAddress mocks base method.
-func (m *MockIEncoder) GetKyberLOAddress() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetKyberLOAddress")
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// GetKyberLOAddress indicates an expected call of GetKyberLOAddress.
-func (mr *MockIEncoderMockRecorder) GetKyberLOAddress() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetKyberLOAddress", reflect.TypeOf((*MockIEncoder)(nil).GetKyberLOAddress))
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetExecutorAddress", reflect.TypeOf((*MockIEncoder)(nil).GetExecutorAddress))
 }
 
 // GetRouterAddress mocks base method.
 func (m *MockIEncoder) GetRouterAddress() string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRouterAddress")
-	ret0, _ := ret[0].(string)
-	return ret0
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "GetRouterAddress")
+        ret0, _ := ret[0].(string)
+        return ret0
 }
 
 // GetRouterAddress indicates an expected call of GetRouterAddress.
 func (mr *MockIEncoderMockRecorder) GetRouterAddress() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRouterAddress", reflect.TypeOf((*MockIEncoder)(nil).GetRouterAddress))
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRouterAddress", reflect.TypeOf((*MockIEncoder)(nil).GetRouterAddress))
 }
