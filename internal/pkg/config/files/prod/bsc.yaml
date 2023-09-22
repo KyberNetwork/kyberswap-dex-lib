@@ -11,7 +11,7 @@ common:
   chainId: &chainId 56
   chainName: &chainName bsc
   rpc: "https://bsc.kyberengineering.io"
-  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
+  executorAddress: &executorAddress "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -55,6 +55,7 @@ common:
     - "pancake-stable"
     - "iziswap"
     - "wombat"
+    - "thena-fusion"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"

@@ -94,6 +94,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeLynex, FunctionSelectorAlgebraV1)
 	RegisterFunctionSelector(valueobject.ExchangeCamelotV3, FunctionSelectorAlgebraV1)
 	RegisterFunctionSelector(valueobject.ExchangeZyberSwapV3, FunctionSelectorAlgebraV1)
+	RegisterFunctionSelector(valueobject.ExchangeThenaFusion, FunctionSelectorAlgebraV1)
 
 	// executeCamelotSwap
 	RegisterFunctionSelector(valueobject.ExchangeCamelot, FunctionSelectorCamelotSwap)

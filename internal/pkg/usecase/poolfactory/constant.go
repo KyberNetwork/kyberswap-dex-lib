@@ -10,5 +10,6 @@ var (
 		valueobject.ExchangeLynex:       280000,
 		valueobject.ExchangeCamelotV3:   280000,
 		valueobject.ExchangeZyberSwapV3: 280000,
+		valueobject.ExchangeThenaFusion: 280000,
 	}
 )
