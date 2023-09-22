@@ -59,6 +59,7 @@ var (
 	ExchangeWagyuSwap     Exchange = "wagyuswap"
 	ExchangeAstroSwap     Exchange = "astroswap"
 	ExchangeCamelot       Exchange = "camelot"
+	ExchangeCamelotV3     Exchange = "camelot-v3"
 	ExchangeFraxSwap      Exchange = "fraxswap"
 	ExchangeVerse         Exchange = "verse"
 	ExchangeEchoDex       Exchange = "echo-dex"
@@ -202,6 +203,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWagyuSwap:                {},
 	ExchangeAstroSwap:                {},
 	ExchangeCamelot:                  {},
+	ExchangeCamelotV3:                {},
 	ExchangeFraxSwap:                 {},
 	ExchangeVerse:                    {},
 	ExchangeEchoDex:                  {},

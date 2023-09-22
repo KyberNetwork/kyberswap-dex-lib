@@ -11,7 +11,7 @@ common:
   chainId: &chainId 42161
   chainName: &chainName arbitrum
   rpc: "https://arbitrum.kyberengineering.io"
-  executorAddress: &executorAddress "0xf55d0A8Df5C864c0058CC2F755695ff6A20c9CB4"
+  executorAddress: &executorAddress "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
   whitelistedTokenSet: &whitelistedTokenSet
@@ -62,6 +62,7 @@ common:
     - "arbi-dex"
     - "wombat"
     - "iziswap"
+    - "camelot-v3"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
@@ -112,7 +113,7 @@ encoder:
   kyberLOAddress:
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
-  useL2Optimize: true
+  useL2Optimize: false
   functionSelectorMappingID: # This map should be updated when we change executor address
     executeUniSwap: 0
     executeKyberClassic: 1
