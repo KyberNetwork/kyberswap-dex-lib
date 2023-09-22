@@ -180,6 +180,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeSwapBasedV3, swapdata.PackAlgebraV1)
 	RegisterPackSwapDataFunc(valueobject.ExchangeLynex, swapdata.PackAlgebraV1)
 	RegisterPackSwapDataFunc(valueobject.ExchangeCamelotV3, swapdata.PackAlgebraV1)
+	RegisterPackSwapDataFunc(valueobject.ExchangeZyberSwapV3, swapdata.PackAlgebraV1)
 
 	// TraderJoeV20 and TraderJoeV21
 	RegisterPackSwapDataFunc(valueobject.ExchangeTraderJoeV20, swapdata.PackTraderJoeV2)

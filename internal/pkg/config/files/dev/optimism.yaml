@@ -10,7 +10,7 @@ grpc:
 common:
   chainId: &chainId 10
   chainName: &chainName optimism
-  rpc: "https://rpc.ankr.com/optimism"
+  rpc: "https://optimism.llamarpc.com"
   executorAddress: &executorAddress "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x4200000000000000000000000000000000000006"
@@ -47,6 +47,7 @@ common:
     - "kyberswap-limit-order"
     - "sushiswap-v3"
     - "velodrome-v2"
+    - "zyberswap-v3"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
