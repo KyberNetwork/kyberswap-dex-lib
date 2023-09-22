@@ -23,7 +23,7 @@ type GetNewPoolStateParams struct {
 }
 
 type IPoolTracker interface {
-	GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error)
+	GetNewPoolState(ctx context.Context, p entity.Pool, params GetNewPoolStateParams) (entity.Pool, error)
 }
 
 type IPoolSimulator interface {
