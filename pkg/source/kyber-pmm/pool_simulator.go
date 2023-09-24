@@ -17,8 +17,8 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
-	baseToken              *entity.PoolToken
-	quoteToken             *entity.PoolToken
+	baseToken              entity.PoolToken
+	quoteToken             entity.PoolToken
 	baseToQuotePriceLevels []PriceLevel
 	quoteToBasePriceLevels []PriceLevel
 	gas                    Gas
@@ -38,17 +38,17 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	var baseToken, quoteToken *entity.PoolToken
+	var baseToken, quoteToken entity.PoolToken
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 
 		if strings.EqualFold(staticExtra.BaseTokenAddress, entityPool.Tokens[i].Address) {
-			baseToken = entityPool.Tokens[i]
+			baseToken = *entityPool.Tokens[i]
 		}
 
 		if strings.EqualFold(staticExtra.QuoteTokenAddress, entityPool.Tokens[i].Address) {
-			quoteToken = entityPool.Tokens[i]
+			quoteToken = *entityPool.Tokens[i]
 		}
 	}
 
