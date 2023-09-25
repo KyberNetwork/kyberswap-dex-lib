@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math/big"
 
+	"github.com/KyberNetwork/blockchain-toolkit/account"
 	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -30,6 +31,14 @@ func (h *RFQHandler) RFQ(ctx context.Context, recipient string, params any) (poo
 
 	var swapExtra SwapExtra
 	if err = json.Unmarshal(paramsByteData, &swapExtra); err != nil {
+		return pool.RFQResult{}, ErrInvalidFirmQuoteParams
+	}
+
+	if swapExtra.MakingAmount == "" || swapExtra.TakingAmount == "" {
+		return pool.RFQResult{}, ErrInvalidFirmQuoteParams
+	}
+
+	if !account.IsValidAddress(swapExtra.MakerAsset) || !account.IsValidAddress(swapExtra.TakerAsset) {
 		return pool.RFQResult{}, ErrInvalidFirmQuoteParams
 	}
 
