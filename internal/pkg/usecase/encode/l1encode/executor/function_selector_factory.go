@@ -130,6 +130,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeEchoDexV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeDackieV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeHoriza, FunctionSelectorUniV3KSElastic)
+	RegisterFunctionSelector(valueobject.ExchangeBaseSwapV3, FunctionSelectorUniV3KSElastic)
 
 	// executeBalV2Swap
 	RegisterFunctionSelector(valueobject.ExchangeBalancer, FunctionSelectorBalancerV2)

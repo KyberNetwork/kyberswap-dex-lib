@@ -93,6 +93,7 @@ var (
 	ExchangeRamsesV2         Exchange = "ramses-v2"
 	ExchangeDackieV3         Exchange = "dackie-v3"
 	ExchangeHoriza           Exchange = "horiza"
+	ExchangeBaseSwapV3       Exchange = "baseswap-v3"
 
 	ExchangeBalancer                 Exchange = "balancer"
 	ExchangeBalancerComposableStable Exchange = "balancer-composable-stable"
@@ -280,6 +281,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSpacefi:                  {},
 	ExchangeHoriza:                   {},
 	ExchangeLyve:                     {},
+	ExchangeBaseSwapV3:               {},
 }
 
 func IsAnExchange(exchange Exchange) bool {
