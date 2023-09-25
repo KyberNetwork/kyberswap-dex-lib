@@ -310,6 +310,8 @@ func (d *Decoder) decodeSwapData(sw executor.Swap) (interface{}, error) {
 		return swapdata.UnpackStableSwap(sw.Data)
 	case executor.FunctionSelectorCurveSwap.ID:
 		return swapdata.UnpackCurveSwap(sw.Data)
+	case executor.FunctionSelectorPancakeStableSwap.ID:
+		return swapdata.UnpackPancakeStableSwap(sw.Data)
 	case executor.FunctionSelectorUniV3KSElastic.ID:
 		return swapdata.UnpackUniswapV3KSElastic(sw.Data)
 	case executor.FunctionSelectorBalancerV2.ID:
