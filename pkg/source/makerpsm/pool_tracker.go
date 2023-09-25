@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolTracker struct {
@@ -26,7 +27,11 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	}
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, pool entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	pool entity.Pool,
+	_ sourcePool.GetNewPoolStateParams,
+) (entity.Pool, error) {
 	defer func(startTime time.Time) {
 		logger.
 			WithFields(logger.Fields{

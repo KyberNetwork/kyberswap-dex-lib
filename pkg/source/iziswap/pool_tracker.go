@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/izumiFinance/iZiSwap-SDK-go/swap"
@@ -31,7 +32,11 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ sourcePool.GetNewPoolStateParams,
+) (entity.Pool, error) {
 	logger.Infof("[iZiSwap] Start getting new state of pool: %v", p.Address)
 
 	g := pool.New().WithContext(ctx)
