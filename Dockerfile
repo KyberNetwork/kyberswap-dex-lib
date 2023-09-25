@@ -1,5 +1,5 @@
 # Vendor stage
-FROM golang:1.19 as dep
+FROM golang:1.21 as dep
 ARG GH_PAT
 WORKDIR /build
 COPY go.mod go.sum ./
@@ -20,7 +20,7 @@ RUN chmod -R +w vendor/github.com/KyberNetwork/aevm
 #RUN golangci-lint run --verbose --timeout 5m0s
 
 # Build binary stage
-FROM golang:1.19-alpine as build
+FROM golang:1.21-alpine as build
 WORKDIR /build
 RUN apk update
 RUN apk add build-base
