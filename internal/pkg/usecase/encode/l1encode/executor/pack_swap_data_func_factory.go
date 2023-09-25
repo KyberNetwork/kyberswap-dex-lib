@@ -106,6 +106,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeAerodrome, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeSpartaDex, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeArbiDex, swapdata.PackBiSwap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeSpacefi, swapdata.PackUniSwap)
 
 	RegisterPackSwapDataFunc(valueobject.ExchangeCamelot, swapdata.PackCamelot)
 
