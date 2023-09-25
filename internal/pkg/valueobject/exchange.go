@@ -132,6 +132,7 @@ var (
 	ExchangePearl       Exchange = "pearl"
 	ExchangePearlV2     Exchange = "pearl-v2"
 	ExchangeBaso        Exchange = "baso"
+	ExchangeLyve        Exchange = "lyve"
 
 	ExchangePlatypus Exchange = "platypus"
 	ExchangeWombat   Exchange = "wombat"
@@ -278,6 +279,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeZyberSwapV3:              {},
 	ExchangeSpacefi:                  {},
 	ExchangeHoriza:                   {},
+	ExchangeLyve:                     {},
 }
 
 func IsAnExchange(exchange Exchange) bool {
