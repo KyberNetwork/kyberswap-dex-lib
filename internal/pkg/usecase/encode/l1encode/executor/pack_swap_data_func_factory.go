@@ -138,6 +138,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeRamsesV2, swapdata.PackUniswapV3KSElastic)
 	RegisterPackSwapDataFunc(valueobject.ExchangeEchoDexV3, swapdata.PackUniswapV3KSElastic)
 	RegisterPackSwapDataFunc(valueobject.ExchangeDackieV3, swapdata.PackUniswapV3KSElastic)
+	RegisterPackSwapDataFunc(valueobject.ExchangeHoriza, swapdata.PackUniswapV3KSElastic)
 
 	// BalancerV2
 	RegisterPackSwapDataFunc(valueobject.ExchangeBalancer, swapdata.PackBalancerV2)
