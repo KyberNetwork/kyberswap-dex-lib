@@ -147,3 +147,39 @@ func TestGetRouteEncodeParamsValidator_Validate(t *testing.T) {
 		})
 	}
 }
+
+func TestGetRouteEncodeDexesValidator_validateSources(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name    string
+		sources string
+		err     error
+	}{
+		{
+			name:    "it should return nil when sources is oke",
+			sources: "velodrome-v2, kyber-pmm",
+			err:     nil,
+		},
+		{
+			name:    "it should return nil when sources is empty",
+			sources: "",
+			err:     nil,
+		},
+		{
+			name:    "it should return err when sources is invalid",
+			sources: "velodrome2-v2, kyber-pmm",
+			err:     NewValidationError("AvailableSources", "invalid"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			validator := getRouteEncodeParamsValidator{}
+
+			err := validator.validateSources(tc.sources)
+
+			assert.Equal(t, tc.err, err)
+		})
+	}
+}

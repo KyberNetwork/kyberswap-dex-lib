@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -45,6 +46,13 @@ func (v *getRoutesParamsValidator) Validate(params params.GetRoutesParams) error
 		return err
 	}
 
+	if err := v.validateSources(params.ExcludedSources); err != nil {
+		return err
+	}
+
+	if err := v.validateSources(params.IncludedSources); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -137,5 +145,15 @@ func (v *getRoutesParamsValidator) validateGasPrice(gasPriceStr string) error {
 		return NewValidationError("gasPrice", "invalid")
 	}
 
+	return nil
+}
+
+func (v *getRoutesParamsValidator) validateSources(sources string) error {
+	dexes := utils.TransformSliceParams(sources)
+	for _, dex := range dexes {
+		if !valueobject.IsAnExchange(valueobject.Exchange(dex)) {
+			return NewValidationError("AvailableSources", "invalid")
+		}
+	}
 	return nil
 }

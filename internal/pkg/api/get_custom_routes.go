@@ -4,9 +4,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
 // GetCustomRoutes [GET /custom-routes] Find best routes within input pools
@@ -55,6 +55,6 @@ func transformGetCustomRoutesParams(params params.GetCustomRoutesParams) (dto.Ge
 
 	return dto.GetCustomRoutesQuery{
 		GetRoutesQuery: query,
-		PoolIds:        transformSliceParams(params.PoolIds),
+		PoolIds:        utils.TransformSliceParams(params.PoolIds),
 	}, nil
 }

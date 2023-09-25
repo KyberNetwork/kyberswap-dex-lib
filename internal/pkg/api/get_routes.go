@@ -4,9 +4,11 @@ import (
 	"math/big"
 	"strconv"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -109,11 +111,11 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 	}
 
 	return dto.GetRoutesQuery{
-		TokenIn:         cleanUpParam(params.TokenIn),
-		TokenOut:        cleanUpParam(params.TokenOut),
+		TokenIn:         utils.CleanUpParam(params.TokenIn),
+		TokenOut:        utils.CleanUpParam(params.TokenOut),
 		AmountIn:        amountIn,
-		IncludedSources: transformSliceParams(params.IncludedSources),
-		ExcludedSources: transformSliceParams(params.ExcludedSources),
+		IncludedSources: utils.TransformSliceParams(params.IncludedSources),
+		ExcludedSources: utils.TransformSliceParams(params.ExcludedSources),
 		SaveGas:         params.SaveGas,
 		GasInclude:      params.GasInclude,
 		GasPrice:        gasPrice,

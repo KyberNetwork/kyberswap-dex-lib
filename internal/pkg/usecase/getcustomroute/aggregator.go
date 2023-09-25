@@ -1,73 +1,49 @@
-package getroute
+package getcustomroute
 
 import (
 	"context"
 	"math/big"
-	"sync"
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-// ammAggregator finds best route within amm liquidity sources
-type ammAggregator struct {
-	poolRankRepository IPoolRankRepository
-	tokenRepository    ITokenRepository
-	priceRepository    IPriceRepository
-	poolManager        IPoolManager
+// aggregator finds best route within amm liquidity sources
+type aggregator struct {
+	tokenRepository ITokenRepository
+	priceRepository IPriceRepository
+	poolManager     IPoolManager
 
 	routeFinder findroute.IFinder
-
-	config AmmAggregatorConfig
-
-	mu sync.RWMutex
 }
 
-func NewAMMAggregator(
-	poolRankRepository IPoolRankRepository,
+func NewCustomAggregator(
 	tokenRepository ITokenRepository,
 	priceRepository IPriceRepository,
 	poolManager IPoolManager,
-	config AmmAggregatorConfig,
-) *ammAggregator {
-	routeFinder := spfav2.NewSPFAv2Finder(
-		config.FinderOptions.MaxHops,
-		config.FinderOptions.DistributionPercent,
-		config.FinderOptions.MaxPathsInRoute,
-		config.FinderOptions.MaxPathsToGenerate,
-		config.FinderOptions.MaxPathsToReturn,
-		config.FinderOptions.MinPartUSD,
-		config.FinderOptions.MinThresholdAmountInUSD,
-		config.FinderOptions.MaxThresholdAmountInUSD,
-	)
-
-	return &ammAggregator{
-		poolRankRepository: poolRankRepository,
-		tokenRepository:    tokenRepository,
-		priceRepository:    priceRepository,
-		poolManager:        poolManager,
-		routeFinder:        routeFinder,
-		config:             config,
+	routeFinder findroute.IFinder,
+) *aggregator {
+	return &aggregator{
+		tokenRepository: tokenRepository,
+		priceRepository: priceRepository,
+		poolManager:     poolManager,
+		routeFinder:     routeFinder,
 	}
 }
 
-func (a *ammAggregator) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] ammAggregator.Aggregate")
-	defer span.End()
-
+func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParams, poolIds []string) (*valueobject.RouteSummary, error) {
 	// Step 1: get pool set
 	var (
 		stateRoot aevmcommon.Hash
@@ -79,13 +55,13 @@ func (a *ammAggregator) Aggregate(ctx context.Context, params *types.AggregatePa
 			return nil, err
 		}
 	}
-	poolByAddress, err := a.getPoolByAddress(ctx, params, common.Hash(stateRoot))
+	poolByAddress, err := a.getPoolByAddress(ctx, params, poolIds, common.Hash(stateRoot))
 	if err != nil {
 		return nil, err
 	}
 
 	if len(poolByAddress) == 0 {
-		return nil, ErrPoolSetEmpty
+		return nil, getroute.ErrPoolSetEmpty
 	}
 
 	// Step 2: collect tokens and price data
@@ -110,28 +86,10 @@ func (a *ammAggregator) Aggregate(ctx context.Context, params *types.AggregatePa
 	return a.findBestRoute(ctx, params, poolByAddress, tokenByAddress, priceByAddress)
 }
 
-func (a *ammAggregator) ApplyConfig(config Config) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	if a.config.FinderOptions != config.AmmAggregator.FinderOptions {
-		a.routeFinder = spfav2.NewSPFAv2Finder(
-			config.AmmAggregator.FinderOptions.MaxHops,
-			config.AmmAggregator.FinderOptions.DistributionPercent,
-			config.AmmAggregator.FinderOptions.MaxPathsInRoute,
-			config.AmmAggregator.FinderOptions.MaxPathsToGenerate,
-			config.AmmAggregator.FinderOptions.MaxPathsToReturn,
-			config.AmmAggregator.FinderOptions.MinPartUSD,
-			config.AmmAggregator.FinderOptions.MinThresholdAmountInUSD,
-			config.AmmAggregator.FinderOptions.MaxThresholdAmountInUSD,
-		)
-	}
-
-	a.config = config.AmmAggregator
-}
+func (a *aggregator) ApplyConfig(config getroute.Config) {}
 
 // findBestRoute find the best route and summarize it
-func (a *ammAggregator) findBestRoute(
+func (a *aggregator) findBestRoute(
 	ctx context.Context,
 	params *types.AggregateParams,
 	poolByAddress map[string]poolpkg.IPoolSimulator,
@@ -156,19 +114,19 @@ func (a *ammAggregator) findBestRoute(
 
 	routes, err := a.routeFinder.Find(ctx, input, data)
 	if err != nil {
-		return nil, errors.Wrapf(ErrRouteNotFound, "find route failed: [%v]", err)
+		return nil, errors.Wrapf(getroute.ErrRouteNotFound, "find route failed: [%v]", err)
 	}
 
 	bestRoute := extractBestRoute(routes)
 
 	if bestRoute == nil || len(bestRoute.Paths) == 0 {
-		return nil, ErrRouteNotFound
+		return nil, getroute.ErrRouteNotFound
 	}
 
 	return a.summarizeRoute(ctx, bestRoute, params, poolByAddress)
 }
 
-func (a *ammAggregator) summarizeRoute(
+func (a *aggregator) summarizeRoute(
 	_ context.Context,
 	route *valueobject.Route,
 	params *types.AggregateParams,
@@ -197,8 +155,8 @@ func (a *ammAggregator) summarizeRoute(
 			pool, ok := poolBucket.GetPool(swapPoolAddress)
 			if !ok {
 				return nil, errors.Wrapf(
-					ErrInvalidSwap,
-					"ammAggregator.summarizeRoute > pool not found [%s]",
+					getroute.ErrInvalidSwap,
+					"aggregator.summarizeRoute > pool not found [%s]",
 					swapPoolAddress,
 				)
 			}
@@ -207,8 +165,8 @@ func (a *ammAggregator) summarizeRoute(
 			result, err := poolpkg.CalcAmountOut(pool, tokenAmountIn, path.Tokens[swapIdx+1].Address)
 			if err != nil {
 				return nil, errors.Wrapf(
-					ErrInvalidSwap,
-					"ammAggregator.summarizeRoute > swap failed > pool: [%s] > error : [%v]",
+					getroute.ErrInvalidSwap,
+					"aggregator.summarizeRoute > swap failed > pool: [%s] > error : [%v]",
 					swapPoolAddress,
 					err,
 				)
@@ -217,8 +175,8 @@ func (a *ammAggregator) summarizeRoute(
 			// Step 2.1.3: check if result is valid
 			if !result.IsValid() {
 				return nil, errors.Wrapf(
-					ErrInvalidSwap,
-					"ammAggregator.summarizeRoute > invalid swap > pool : [%s]",
+					getroute.ErrInvalidSwap,
+					"aggregator.summarizeRoute > invalid swap > pool : [%s]",
 					swapPoolAddress,
 				)
 			}
@@ -257,9 +215,6 @@ func (a *ammAggregator) summarizeRoute(
 
 			// Step 2.1.8: update input of the next swap is output of current swap
 			tokenAmountIn = *result.TokenAmountOut
-
-			metrics.IncrDexHitRate(string(swap.Exchange))
-			metrics.IncrPoolTypeHitRate(swap.PoolType)
 		}
 
 		// Step 2.2: add up amountOut
@@ -267,7 +222,13 @@ func (a *ammAggregator) summarizeRoute(
 		summarizedRoute = append(summarizedRoute, summarizedPath)
 	}
 
-	metrics.IncrRequestPairCount(params.TokenIn.Address, params.TokenOut.Address)
+	// amountOut is actual amount of token to be received
+	// in case charge fee by currencyIn: amountIn = amountIn - extraFeeAmount
+	// in case charge fee by currencyOut: amountOut = amountOut - extraFeeAmount will be included in summarizeRoute
+	amountOut, err := calcAmountOutAfterFee(amountOut, params.ExtraFee)
+	if err != nil {
+		return nil, err
+	}
 
 	return &valueobject.RouteSummary{
 		TokenIn:      params.TokenIn.Address,
@@ -284,33 +245,22 @@ func (a *ammAggregator) summarizeRoute(
 	}, nil
 }
 
-func (a *ammAggregator) getPoolByAddress(
+func (a *aggregator) getPoolByAddress(
 	ctx context.Context,
 	params *types.AggregateParams,
+	poolIds []string,
 	stateRoot common.Hash,
 ) (map[string]poolpkg.IPoolSimulator, error) {
-	bestPoolIDs, err := a.poolRankRepository.FindBestPoolIDs(
-		ctx,
-		params.TokenIn.Address,
-		params.TokenOut.Address,
-		a.config.GetBestPoolsOptions,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	ammSources := a.filterAMMSources(params.Sources)
-
 	return a.poolManager.GetPoolByAddress(
 		ctx,
-		bestPoolIDs,
-		ammSources,
+		poolIds,
+		params.Sources,
 		stateRoot,
 	)
 }
 
 // getTokenByAddress receives a list of address and returns a map of address to entity.Token
-func (a *ammAggregator) getTokenByAddress(ctx context.Context, tokenAddresses []string) (map[string]entity.Token, error) {
+func (a *aggregator) getTokenByAddress(ctx context.Context, tokenAddresses []string) (map[string]entity.Token, error) {
 	tokens, err := a.tokenRepository.FindByAddresses(ctx, tokenAddresses)
 	if err != nil {
 		return nil, err
@@ -325,7 +275,7 @@ func (a *ammAggregator) getTokenByAddress(ctx context.Context, tokenAddresses []
 }
 
 // getPriceUSDByAddress receives a list of address and returns a map of address to its preferred price in USD
-func (a *ammAggregator) getPriceUSDByAddress(ctx context.Context, tokenAddresses []string) (map[string]float64, error) {
+func (a *aggregator) getPriceUSDByAddress(ctx context.Context, tokenAddresses []string) (map[string]float64, error) {
 	prices, err := a.priceRepository.FindByAddresses(ctx, tokenAddresses)
 	if err != nil {
 		return nil, err
@@ -341,13 +291,16 @@ func (a *ammAggregator) getPriceUSDByAddress(ctx context.Context, tokenAddresses
 	return priceUSDByAddress, nil
 }
 
-func (a *ammAggregator) filterAMMSources(sources []string) []string {
-	ammSources := make([]string, 0, len(sources))
-	for _, source := range sources {
-		if valueobject.IsAMMSource(valueobject.Exchange(source)) {
-			ammSources = append(ammSources, source)
-		}
+func calcAmountOutAfterFee(amountOut *big.Int, extraFee valueobject.ExtraFee) (*big.Int, error) {
+	if extraFee.ChargeFeeBy != valueobject.ChargeFeeByCurrencyOut {
+		return amountOut, nil
 	}
 
-	return ammSources
+	actualFeeAmount := extraFee.CalcActualFeeAmount(amountOut)
+
+	if actualFeeAmount.Cmp(constant.Zero) > 0 && actualFeeAmount.Cmp(amountOut) > 0 {
+		return nil, getroute.ErrFeeAmountIsGreaterThanAmountOut
+	}
+
+	return new(big.Int).Sub(amountOut, actualFeeAmount), nil
 }

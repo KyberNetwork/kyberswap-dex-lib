@@ -7,10 +7,12 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -157,10 +159,10 @@ func transformFromGetRouteEncodeToGetRoutesQuery(params params.GetRouteEncodePar
 	}
 
 	return dto.GetRoutesQuery{
-		TokenIn:         cleanUpParam(params.TokenIn),
-		TokenOut:        cleanUpParam(params.TokenOut),
+		TokenIn:         utils.CleanUpParam(params.TokenIn),
+		TokenOut:        utils.CleanUpParam(params.TokenOut),
 		AmountIn:        amountIn,
-		IncludedSources: transformSliceParams(params.Dexes),
+		IncludedSources: utils.TransformSliceParams(params.Dexes),
 		ExcludedSources: getrouteencode.GetExcludedSources(),
 		SaveGas:         params.SaveGas,
 		GasInclude:      params.GasInclude,
@@ -190,7 +192,7 @@ func buildBuildRouteCommand(
 
 	return dto.BuildRouteCommand{
 		RouteSummary:      *getRoutesResult.RouteSummary,
-		Recipient:         cleanUpParam(params.To),
+		Recipient:         utils.CleanUpParam(params.To),
 		Deadline:          deadline,
 		SlippageTolerance: params.SlippageTolerance,
 		Referral:          params.Referral,

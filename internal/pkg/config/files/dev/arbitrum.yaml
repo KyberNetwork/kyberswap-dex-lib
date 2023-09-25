@@ -135,7 +135,7 @@ useCase:
     gasTokenAddress: *gasTokenAddress
     routerAddress: *routerAddress
     availableSources: *availableSources
-    ammAggregator:
+    aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions:
         directPoolsCount: 100

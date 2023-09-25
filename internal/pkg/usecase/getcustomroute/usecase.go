@@ -38,7 +38,7 @@ func NewCustomRoutesUseCase(
 	routeFinder findroute.IFinder,
 	config Config,
 ) *useCase {
-	ammAggregator := NewCustomAMMAggregator(
+	aggregator := NewCustomAggregator(
 		tokenRepository,
 		priceRepository,
 		poolManager,
@@ -46,7 +46,7 @@ func NewCustomRoutesUseCase(
 	)
 
 	return &useCase{
-		aggregator:      ammAggregator,
+		aggregator:      aggregator,
 		tokenRepository: tokenRepository,
 		priceRepository: priceRepository,
 		gasRepository:   gasRepository,

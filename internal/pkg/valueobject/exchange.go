@@ -268,7 +268,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBaso:                     {},
 	ExchangeRocketSwapV2:             {},
 	ExchangeDackieV3:                 {},
-	ExchangeKyberPMM:                 {},
 	ExchangeTraderJoeV20:             {},
 	ExchangeTraderJoeV21:             {},
 	ExchangeSpartaDex:                {},
@@ -279,9 +278,14 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSpacefi:                  {},
 }
 
-func IsAMMSource(exchange Exchange) bool {
-	_, contained := AMMSourceSet[exchange]
+func IsAnExchange(exchange Exchange) bool {
+	var contained bool
+	_, contained = AMMSourceSet[exchange]
+	if contained {
+		return true
+	}
 
+	_, contained = RFQSourceSet[exchange]
 	return contained
 }
 

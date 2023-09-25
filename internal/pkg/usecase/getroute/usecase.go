@@ -6,8 +6,9 @@ import (
 	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -36,14 +37,14 @@ func NewUseCase(
 	poolManager IPoolManager,
 	config Config,
 ) *useCase {
-	ammAggregator := NewAMMAggregator(
+	aggregator := NewAggregator(
 		poolRankRepository,
 		tokenRepository,
 		priceRepository,
 		poolManager,
-		config.AmmAggregator,
+		config.Aggregator,
 	)
-	aggregatorWithCache := NewCache(ammAggregator, routeCacheRepository, poolManager, config.Cache)
+	aggregatorWithCache := NewCache(aggregator, routeCacheRepository, poolManager, config.Cache)
 	aggregatorWitchChargeExtraFee := NewChargeExtraFee(aggregatorWithCache)
 
 	return &useCase{

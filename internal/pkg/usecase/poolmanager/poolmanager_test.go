@@ -129,10 +129,10 @@ func listAddresses(configFile, tokenIn, tokenOut string) ([]string, []string, er
 		return nil, nil, err
 	}
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
-	ammAggregatorConfig := cfg.UseCase.GetRoute.AmmAggregator
+	aggregatorConfig := cfg.UseCase.GetRoute.Aggregator
 	poolAddress, err := poolRankRepository.FindBestPoolIDs(
 		context.Background(), tokenIn, tokenOut,
-		ammAggregatorConfig.GetBestPoolsOptions,
+		aggregatorConfig.GetBestPoolsOptions,
 	)
 	if err != nil {
 		return nil, nil, err

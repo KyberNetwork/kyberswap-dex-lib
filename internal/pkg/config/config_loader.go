@@ -184,7 +184,7 @@ func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.Whi
 	}
 
 	cl.config.Common.WhitelistedTokenSet = whitelistedTokenSet
-	cl.config.UseCase.GetRoute.AmmAggregator.WhitelistedTokenSet = whitelistedTokenSet
+	cl.config.UseCase.GetRoute.Aggregator.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.IndexPools.WhitelistedTokenSet = whitelistedTokenSet
 }
 
@@ -207,11 +207,11 @@ func (cl *ConfigLoader) setLog(log valueobject.Log) {
 }
 
 func (cl *ConfigLoader) setFinderOptions(finderOptions valueobject.FinderOptions) {
-	cl.config.UseCase.GetRoute.AmmAggregator.FinderOptions = finderOptions
+	cl.config.UseCase.GetRoute.Aggregator.FinderOptions = finderOptions
 }
 
 func (cl *ConfigLoader) setGetBestPoolOptions(getBestPoolsOptions valueobject.GetBestPoolsOptions) {
-	cl.config.UseCase.GetRoute.AmmAggregator.GetBestPoolsOptions = getBestPoolsOptions
+	cl.config.UseCase.GetRoute.Aggregator.GetBestPoolsOptions = getBestPoolsOptions
 }
 
 func (cl *ConfigLoader) setCacheConfig(cacheConfig valueobject.CacheConfig) {

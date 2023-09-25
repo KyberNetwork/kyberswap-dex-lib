@@ -1,11 +1,12 @@
 package api
 
 import (
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/gin-gonic/gin"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 )
 
 // GetTokens [GET /tokens] Get tokens data
@@ -45,6 +46,6 @@ func GetTokens(
 
 func transformGetTokensParams(params params.GetTokensParams) dto.GetTokensQuery {
 	return dto.GetTokensQuery{
-		IDs: transformSliceParams(params.IDs),
+		IDs: utils.TransformSliceParams(params.IDs),
 	}
 }

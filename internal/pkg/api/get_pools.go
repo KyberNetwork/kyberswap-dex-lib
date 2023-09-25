@@ -1,11 +1,12 @@
 package api
 
 import (
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/gin-gonic/gin"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 )
 
 // GetPools [GET /pools] Get pools data
@@ -45,6 +46,6 @@ func GetPools(
 
 func transformGetPoolsParams(params params.GetPoolsParams) dto.GetPoolsQuery {
 	return dto.GetPoolsQuery{
-		IDs: transformSliceParams(params.IDs),
+		IDs: utils.TransformSliceParams(params.IDs),
 	}
 }

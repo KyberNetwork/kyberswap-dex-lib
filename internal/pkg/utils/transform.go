@@ -1,4 +1,4 @@
-package api
+package utils
 
 import (
 	"strings"
@@ -6,7 +6,7 @@ import (
 
 const SliceParamsItemSeparator = ","
 
-func transformSliceParams(params string) []string {
+func TransformSliceParams(params string) []string {
 	var items []string
 
 	if len(params) == 0 {
@@ -16,13 +16,13 @@ func transformSliceParams(params string) []string {
 	for _, item := range strings.Split(params, SliceParamsItemSeparator) {
 		items = append(
 			items,
-			cleanUpParam(item),
+			CleanUpParam(item),
 		)
 	}
 
 	return items
 }
 
-func cleanUpParam(param string) string {
+func CleanUpParam(param string) string {
 	return strings.ToLower(strings.TrimSpace(param))
 }

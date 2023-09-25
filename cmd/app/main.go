@@ -323,14 +323,14 @@ func apiAction(c *cli.Context) (err error) {
 	)
 
 	routeFinder := spfav2.NewSPFAv2Finder(
-		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.MaxHops,
-		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.DistributionPercent,
-		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.MaxPathsInRoute,
-		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.MaxPathsToGenerate,
-		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.MaxPathsToReturn,
-		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.MinPartUSD,
-		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.MinThresholdAmountInUSD,
-		cfg.UseCase.GetRoute.AmmAggregator.FinderOptions.MaxThresholdAmountInUSD,
+		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxHops,
+		cfg.UseCase.GetRoute.Aggregator.FinderOptions.DistributionPercent,
+		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxPathsInRoute,
+		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxPathsToGenerate,
+		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxPathsToReturn,
+		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MinPartUSD,
+		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MinThresholdAmountInUSD,
+		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxThresholdAmountInUSD,
 	)
 	getCustomRoutesUseCase := getcustomroute.NewCustomRoutesUseCase(
 		tokenRepository,
