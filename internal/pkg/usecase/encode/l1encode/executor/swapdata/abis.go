@@ -22,7 +22,9 @@ var (
 	KyberLimitOrderABIArguments   abi.Arguments
 	KyberRFQABIType               abi.Type
 	KyberRFQABIArguments          abi.Arguments
-	WombatABIArguments            abi.Arguments
+
+	// Mantis: https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/develop/contracts/executor-helpers/ExecutorHelper4.sol#L17
+	WombatABIArguments abi.Arguments
 
 	// Syncswap
 	SyncSwapABIArguments     abi.Arguments

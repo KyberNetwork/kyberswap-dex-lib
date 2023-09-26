@@ -46,6 +46,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodromev2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatlsd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatmain"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/woofiv2"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
@@ -298,6 +299,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newKyberPMM(entityPool)
 	case constant.PoolTypes.IZiSwap:
 		return f.newIZiSwap(entityPool)
+	case constant.PoolTypes.WooFiV2:
+		return f.newWooFiV2(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -909,6 +912,20 @@ func (f *PoolFactory) newIZiSwap(entityPool entity.Pool) (*iziswap.PoolSimulator
 			entityPool.Address,
 			entityPool.Type,
 			err,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newWooFiV2(entityPool entity.Pool) (*woofiv2.PoolSimulator, error) {
+	corePool, err := woofiv2.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newWooFiV2] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
 		)
 	}
 

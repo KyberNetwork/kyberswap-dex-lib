@@ -48,6 +48,7 @@ var (
 	FunctionSelectorIZiSwap           FunctionSelector
 	FunctionSelectorWombat            FunctionSelector
 	FunctionSelectorPancakeStableSwap FunctionSelector
+	FunctionSelectorWooFiV2           FunctionSelector
 )
 
 func init() {
@@ -69,6 +70,7 @@ func init() {
 	FunctionSelectorFraxSwap = NewFunctionSelector("executeFrax", []string{"bytes", "uint256"})
 	FunctionSelectorCamelotSwap = NewFunctionSelector("executeCamelot", []string{"bytes", "uint256"})
 	FunctionSelectorWombat = NewFunctionSelector("executeWombat", []string{"bytes", "uint256"})
+	FunctionSelectorWooFiV2 = NewFunctionSelector("executeWooFiV2", []string{"bytes", "uint256"})
 
 	FunctionSelectorMuteSwitch = NewFunctionSelector("executeMuteSwitchSwap", []string{"bytes", "uint256"})
 	FunctionSelectorSyncSwap = NewFunctionSelector("executeSyncSwap", []string{"bytes", "uint256"})

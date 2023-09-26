@@ -199,4 +199,7 @@ func init() {
 
 	// Wombat
 	RegisterPackSwapDataFunc(valueobject.ExchangeWombat, swapdata.PackWombat)
+
+	// WooFiV2
+	RegisterPackSwapDataFunc(valueobject.ExchangeWooFiV2, swapdata.PackWombat)
 }
