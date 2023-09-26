@@ -45,12 +45,12 @@
     "aPrecision": "1",
     "tokens": [
       {
-        "address": "0x0782b6d8c4551b9760e74c0545a9bcd90bdc41e5",
+        "address": "0x55d398326f99059fF775485246999027B3197955",
         "precision": "1",
         "rate": "1000000000000000000"
       },
       {
-        "address": "0xe9e7cea3dedca5984780bafc599bd69add087d56",
+        "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d",
         "precision": "1",
         "rate": "1000000000000000000"
       }
@@ -65,8 +65,8 @@
     "tokens": [
       {
         "address": "0x0782b6d8c4551b9760e74c0545a9bcd90bdc41e5",
-        "precision": "1000000000000",
-        "rate": "1000000000000000000000000000000"
+        "precision": "1",
+        "rate": "1000000000000000000"
       },
       {
         "address": "0xe9e7cea3dedca5984780bafc599bd69add087d56",
