@@ -233,7 +233,6 @@ func init() {
 					{Name: "getMakerAmount", Type: "bytes"},
 					{Name: "getTakerAmount", Type: "bytes"},
 					{Name: "predicate", Type: "bytes"},
-					{Name: "permit", Type: "bytes"},
 					{Name: "interaction", Type: "bytes"},
 				},
 			},

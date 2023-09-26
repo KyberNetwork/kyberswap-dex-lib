@@ -133,10 +133,6 @@ func toFillBatchOrdersParamsDS(swapInfo *limitorder.OpSignatureExtra) (FillBatch
 		if err != nil {
 			return FillBatchOrdersParamsDS{}, err
 		}
-		bytesMakerPermit, err := hex.DecodeString(filledOrder.Permit)
-		if err != nil {
-			return FillBatchOrdersParamsDS{}, err
-		}
 		bytesInteraction, err := hex.DecodeString(filledOrder.Interaction)
 		if err != nil {
 			return FillBatchOrdersParamsDS{}, err
@@ -163,7 +159,6 @@ func toFillBatchOrdersParamsDS(swapInfo *limitorder.OpSignatureExtra) (FillBatch
 			GetMakerAmount: bytesGetMakerAmount,
 			GetTakerAmount: bytesGetTakerAmount,
 			Predicate:      bytesPredicate,
-			Permit:         bytesMakerPermit,
 			Interaction:    bytesInteraction,
 		}
 		if len(filledOrder.Salt) == 0 {

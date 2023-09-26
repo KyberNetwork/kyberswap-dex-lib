@@ -187,7 +187,6 @@ type OrderDS struct {
 	GetMakerAmount []byte
 	GetTakerAmount []byte
 	Predicate      []byte
-	Permit         []byte
 	Interaction    []byte
 }
 
