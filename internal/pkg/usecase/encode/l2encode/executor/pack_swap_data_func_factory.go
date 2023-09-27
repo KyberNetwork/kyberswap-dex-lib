@@ -75,4 +75,14 @@ func init() {
 
 	// KyberLimitOrder
 	RegisterPackSwapDataFunc(valueobject.ExchangeKyberSwapLimitOrder, swapdata.PackKyberLimitOrder)
+
+	// AlgebraV1
+	RegisterPackSwapDataFunc(valueobject.ExchangeCamelotV3, swapdata.PackAlgebraV1)
+	RegisterPackSwapDataFunc(valueobject.ExchangeZyberSwapV3, swapdata.PackAlgebraV1)
+
+	// IZiSwap
+	RegisterPackSwapDataFunc(valueobject.ExchangeIZiSwap, swapdata.PackIZiSwap)
+
+	// Wombat
+	RegisterPackSwapDataFunc(valueobject.ExchangeWombat, swapdata.PackWombat)
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+type Int24 int32
 type UInt24 uint32
 type UInt96 *big.Int
 type UInt160 *big.Int
@@ -17,6 +18,7 @@ type UInt160 *big.Int
 type RawBytes []byte
 
 var _AddressType = reflect.TypeOf(common.BytesToAddress(nil))
+var _Int24Type = reflect.TypeOf(Int24(0))
 var _UInt24Type = reflect.TypeOf(UInt24(0))
 var _UInt96Type = reflect.TypeOf(UInt96(big.NewInt(0)))
 var _UInt160Type = reflect.TypeOf(UInt160(big.NewInt(0)))
@@ -64,6 +66,8 @@ func Pack(args ...interface{}) ([]byte, error) {
 		}
 
 		switch rt {
+		case _Int24Type:
+			ret = append(ret, PackInt24(arg.(Int24))...)
 		case _UInt24Type:
 			ret = append(ret, PackInt(uint32(arg.(UInt24)), 3)...) // Compressed to 3 bytes
 		case _UInt96Type:
@@ -116,6 +120,18 @@ func PackBoolean(arg bool) []byte {
 func PackBigInt(arg *big.Int, size uint8) []byte {
 	ret := make([]byte, size)
 	return arg.FillBytes(ret)
+}
+
+// PackInt24 uses two's complement method
+// to present a number in binary
+func PackInt24(arg Int24) []byte {
+	argInt32 := int32(arg)
+	if argInt32 < 0 {
+		argInt32 = -argInt32
+		argInt32 ^= (1 << 24) - 1
+		argInt32 += 1
+	}
+	return PackInt(argInt32, 3) // Compressed to 3 bytes
 }
 
 // PackInt stores []byte in big-endian system (stores the most significant byte at the smallest memory address).

@@ -82,4 +82,14 @@ func init() {
 
 	// executeKyberLimitOrder
 	RegisterFunctionSelector(valueobject.ExchangeKyberSwapLimitOrder, FunctionSelectorLimitOrder)
+
+	// executeAlgebraV1
+	RegisterFunctionSelector(valueobject.ExchangeCamelotV3, FunctionSelectorAlgebraV1)
+	RegisterFunctionSelector(valueobject.ExchangeZyberSwapV3, FunctionSelectorAlgebraV1)
+
+	// executeIziSwap
+	RegisterFunctionSelector(valueobject.ExchangeIZiSwap, FunctionSelectorIZiSwap)
+
+	// executeWombat
+	RegisterFunctionSelector(valueobject.ExchangeWombat, FunctionSelectorWombat)
 }

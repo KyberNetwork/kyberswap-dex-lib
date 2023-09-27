@@ -26,10 +26,27 @@ func ReadUInt8(data []byte, startByte int) (uint8, int) {
 	return data[startByte], startByte + 1
 }
 
+// ReadInt24 uses ReadUInt24 to read UInt24,
+// then revert the two's complement method
+// if the number is negative to get the int24 number
+func ReadInt24(data []byte, startByte int) (ret Int24, endByte int) {
+	endByte = startByte + 3
+	retUInt24, _ := ReadUInt24(data, startByte)
+	isPositive := ((retUInt24 >> 23) & 1) == 0
+	if isPositive {
+		ret = Int24(retUInt24)
+	} else {
+		retUInt24 -= 1
+		retUInt24 ^= (1 << 24) - 1
+		ret = -Int24(retUInt24)
+	}
+	return
+}
+
 func ReadUInt24(data []byte, startByte int) (ret UInt24, endByte int) {
 	endByte = startByte + 3
 	for i := startByte; i < endByte; i++ {
-		ret += UInt24(data[i] << (endByte - i - 1))
+		ret += UInt24(data[i]) << (8 * (endByte - i - 1))
 	}
 	return
 }
@@ -56,6 +73,13 @@ func ReadUInt160(data []byte, startByte int) (UInt160, int) {
 
 func ReadBigInt(data []byte, startByte int) (ret *big.Int, endByte int) {
 	endByte = startByte + 16
+	ret = new(big.Int)
+	ret.SetBytes(data[startByte:endByte])
+	return
+}
+
+func ReadBigIntAsInt256(data []byte, startByte int) (ret *big.Int, endByte int) {
+	endByte = startByte + 32
 	ret = new(big.Int)
 	ret.SetBytes(data[startByte:endByte])
 	return

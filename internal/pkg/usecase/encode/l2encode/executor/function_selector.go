@@ -34,6 +34,9 @@ var (
 	FunctionSelectorBalancerV2     FunctionSelector
 	FunctionSelectorDODO           FunctionSelector
 	FunctionSelectorCamelotSwap    FunctionSelector
+	FunctionSelectorAlgebraV1      FunctionSelector
+	FunctionSelectorWombat         FunctionSelector
+	FunctionSelectorIZiSwap        FunctionSelector
 )
 
 func init() {
@@ -50,4 +53,7 @@ func init() {
 	FunctionSelectorBalancerV2 = NewFunctionSelector("executeBalV2Swap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorDODO = NewFunctionSelector("executeDODOSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorCamelotSwap = NewFunctionSelector("executeCamelotSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
+	FunctionSelectorAlgebraV1 = NewFunctionSelector("executeAlgebraV1", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
+	FunctionSelectorWombat = NewFunctionSelector("executeWombat", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
+	FunctionSelectorIZiSwap = NewFunctionSelector("executeIziSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 }
