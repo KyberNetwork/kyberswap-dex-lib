@@ -3,23 +3,31 @@ package wombat
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/machinebox/graphql"
 	"math/big"
+	"strings"
 	"time"
 )
 
 type PoolTracker struct {
-	config       *Config
-	ethrpcClient *ethrpc.Client
+	config        *Config
+	ethrpcClient  *ethrpc.Client
+	graphqlClient *graphql.Client
 }
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
+	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
+
 	return &PoolTracker{
-		config:       cfg,
-		ethrpcClient: ethrpcClient,
+		config:        cfg,
+		ethrpcClient:  ethrpcClient,
+		graphqlClient: graphqlClient,
 	}
 }
 
@@ -29,8 +37,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	}).Infof("[%s] Start getting new states of pool", p.Type)
 
 	var ampFactor, haircutRate, startCovRatio, endcovRatio *big.Int
+	var paused bool
 	var assetAddresses = make([]common.Address, len(p.Tokens))
-	var isPauses = make([]bool, len(assetAddresses))
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	calls.AddCall(&ethrpc.Call{
@@ -57,6 +65,12 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		Method: poolMethodEndCovRatio,
 		Params: nil,
 	}, []interface{}{&endcovRatio})
+	calls.AddCall(&ethrpc.Call{
+		ABI:    PoolV2ABI,
+		Target: p.Address,
+		Method: poolMethodPaused,
+		Params: nil,
+	}, []interface{}{&paused})
 	for i, token := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    PoolV2ABI,
@@ -64,14 +78,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			Method: poolMethodAddressOfAsset,
 			Params: []interface{}{common.HexToAddress(token.Address)},
 		}, []interface{}{&assetAddresses[i]})
-		calls.AddCall(&ethrpc.Call{
-			ABI:    PoolV2ABI,
-			Target: p.Address,
-			Method: poolMethodIsPaused,
-			Params: []interface{}{common.HexToAddress(token.Address)},
-		}, []interface{}{&isPauses[i]})
 	}
-	if _, err := calls.Aggregate(); err != nil {
+	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"type":    p.Type,
 			"address": p.Address,
@@ -85,28 +93,28 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		relativePrices = make([]*big.Int, len(assetAddresses))
 	)
 
-	calls = d.ethrpcClient.NewRequest().SetContext(ctx)
+	assetCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, assetAddress := range assetAddresses {
-		calls.AddCall(&ethrpc.Call{
+		assetCalls.AddCall(&ethrpc.Call{
 			ABI:    DynamicAssetABI,
 			Target: assetAddress.Hex(),
 			Method: assetMethodCash,
 			Params: nil,
 		}, []interface{}{&cashes[i]})
-		calls.AddCall(&ethrpc.Call{
+		assetCalls.AddCall(&ethrpc.Call{
 			ABI:    DynamicAssetABI,
 			Target: assetAddress.Hex(),
 			Method: assetMethodLiability,
 			Params: nil,
 		}, []interface{}{&liabilities[i]})
-		calls.AddCall(&ethrpc.Call{
+		assetCalls.AddCall(&ethrpc.Call{
 			ABI:    DynamicAssetABI,
 			Target: assetAddress.Hex(),
 			Method: assetMethodGetRelativePrice,
 			Params: nil,
 		}, []interface{}{&relativePrices[i]})
 	}
-	if _, err := calls.TryAggregate(); err != nil {
+	if _, err := assetCalls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"type":    p.Type,
 			"address": p.Address,
@@ -115,21 +123,43 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		return entity.Pool{}, err
 	}
 
+	subgraphQuery, err := d.querySubgraph(ctx, p)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"err":         err,
+		}).Errorf("failed to query subgraph")
+
+		return entity.Pool{}, err
+	}
+
 	var assetMap = make(map[string]Asset)
 	var reserves = make([]string, len(p.Tokens))
 	for i, token := range p.Tokens {
+		isPaused := false
+		for _, assetQuery := range subgraphQuery.Assets {
+			if strings.EqualFold(assetQuery.ID, assetAddresses[i].Hex()) {
+				isPaused = assetQuery.IsPaused
+			}
+		}
+
 		assetMap[token.Address] = Asset{
-			IsPause:                 isPauses[i],
+			IsPause:                 isPaused,
 			Address:                 assetAddresses[i].Hex(),
 			UnderlyingTokenDecimals: p.Tokens[i].Decimals,
 			Cash:                    cashes[i],
 			Liability:               liabilities[i],
 			RelativePrice:           relativePrices[i],
 		}
-		reserves[i] = liabilities[i].String()
+		if liabilities[i] == nil {
+			reserves[i] = big.NewInt(0).String()
+		} else {
+			reserves[i] = liabilities[i].String()
+		}
 	}
 
 	extraByte, err := json.Marshal(Extra{
+		Paused:        paused,
 		HaircutRate:   haircutRate,
 		AmpFactor:     ampFactor,
 		StartCovRatio: startCovRatio,
@@ -156,4 +186,34 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	}).Infof("[%s] Finish getting new state of pool", p.Type)
 
 	return p, nil
+}
+
+func (d *PoolTracker) querySubgraph(
+	ctx context.Context,
+	p entity.Pool,
+) (*SubgraphAsset, error) {
+	req := graphql.NewRequest(fmt.Sprintf(`{
+		pool(
+			id: "%v"
+		  ) {
+			assets {
+			  id
+			  isPaused
+			}
+		  }
+	}`, p.Address),
+	)
+
+	var response struct {
+		Pool *SubgraphAsset `json:"pool"`
+	}
+	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
+		logger.WithFields(logger.Fields{
+			"type":  DexTypeWombat,
+			"error": err,
+		}).Errorf("failed to query subgraph to get pools")
+		return nil, err
+	}
+
+	return response.Pool, nil
 }

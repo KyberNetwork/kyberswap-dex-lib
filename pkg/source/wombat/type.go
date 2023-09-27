@@ -3,6 +3,7 @@ package wombat
 import "math/big"
 
 type Extra struct {
+	Paused        bool             `json:"paused"`
 	HaircutRate   *big.Int         `json:"haircutRate"`
 	AmpFactor     *big.Int         `json:"ampFactor"`
 	StartCovRatio *big.Int         `json:"startCovRatio"`
@@ -33,9 +34,14 @@ type SubgraphPool struct {
 	CreatedTimestamp string          `json:"createdTimestamp"`
 }
 
+type SubgraphAsset struct {
+	Assets []AssetSubgraph `json:"assets"`
+}
+
 type AssetSubgraph struct {
 	ID              string                  `json:"id"`
 	UnderlyingToken UnderlyingTokenSubgraph `json:"underlyingToken"`
+	IsPaused        bool                    `json:"isPaused"`
 }
 
 type UnderlyingTokenSubgraph struct {
