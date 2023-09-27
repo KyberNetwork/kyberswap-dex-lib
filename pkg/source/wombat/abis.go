@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	PoolV2ABI       abi.ABI
-	DynamicAssetABI abi.ABI
-	AssetABI        abi.ABI
+	PoolV2ABI         abi.ABI
+	DynamicAssetABI   abi.ABI
+	AssetABI          abi.ABI
+	CrossChainPoolABI abi.ABI
 )
 
 func init() {
@@ -20,6 +21,7 @@ func init() {
 		{&PoolV2ABI, PoolV2ABIData},
 		{&DynamicAssetABI, DynamicAssetABIData},
 		{&AssetABI, AssetABIData},
+		{&CrossChainPoolABI, CrossChainPoolABIData},
 	}
 
 	for _, b := range builder {

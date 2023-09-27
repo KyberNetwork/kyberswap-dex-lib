@@ -31,7 +31,7 @@ func TestQuotePotentialSwap(t *testing.T) {
 	}
 
 	potentialOutcome, haircut, err := wombatmain.QuotePotentialSwap(
-		fromToken, toToken, fromAmount,
+		fromToken, toToken, fromAmount, false,
 		haircutRate, ampFactor, startCovRatio, endCovRatio, assetMap)
 
 	assert.Nil(t, err)
