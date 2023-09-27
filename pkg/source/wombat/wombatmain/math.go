@@ -11,9 +11,13 @@ func QuotePotentialSwap(
 	fromToken string,
 	toToken string,
 	fromAmount *big.Int,
+	paused bool,
 	haircutRate, ampFactor, startCovRatio, endCovRatio *big.Int,
 	assetMap map[string]wombat.Asset,
 ) (*big.Int, *big.Int, error) {
+	if paused {
+		return nil, nil, ErrWombatPoolAlreadyPaused
+	}
 	if err := checkSameAddress(fromToken, toToken); err != nil {
 		return nil, nil, err
 	}
@@ -31,7 +35,7 @@ func QuotePotentialSwap(
 	}
 
 	if fromAsset.IsPause {
-		return nil, nil, ErrWombatAssetAlreadyPause
+		return nil, nil, ErrWombatAssetAlreadyPaused
 	}
 
 	fromAmount = toWad(fromAmount, fromAsset.UnderlyingTokenDecimals)

@@ -100,9 +100,12 @@ func (d *PoolsListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreat
 			reserves[j] = zeroString
 		}
 
-		poolType, err := d.classifyPoolType(ctx, p.Assets[0].ID)
+		poolType, err := d.classifyPoolType(ctx, p)
 		if err != nil {
 			return nil, lastCreateTime, err
+		}
+		if poolType == poolTypeWombatCrossChain {
+			continue
 		}
 
 		var newPool = entity.Pool{
@@ -169,16 +172,31 @@ func (d *PoolsListUpdater) querySubgraph(
 	return response.Pools, nil
 }
 
-func (d *PoolsListUpdater) classifyPoolType(ctx context.Context, assetAddress string) (string, error) {
-	var relativePrice *big.Int
-	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
+// classifyPoolType
+// poolTypeWombatLSD has relativePrice in assets
+// poolTypeWombatCrossChain has creditForTokensHaircut
+// poolTypeWombatMain do not has creditForTokensHaircut and relativePrice in assets
+func (d *PoolsListUpdater) classifyPoolType(ctx context.Context, p *SubgraphPool) (string, error) {
+	var relativePrice, creditForTokensHaircut *big.Int
 
+	if len(p.Assets) <= 0 {
+		return "", fmt.Errorf("asset is not found")
+	}
+	assetAddress := p.Assets[0].ID
+
+	calls := d.ethrpcClient.NewRequest().SetContext(ctx).SetRequireSuccess(false)
 	calls.AddCall(&ethrpc.Call{
 		ABI:    DynamicAssetABI,
 		Target: assetAddress,
 		Method: assetMethodGetRelativePrice,
 		Params: nil,
 	}, []interface{}{&relativePrice})
+	calls.AddCall(&ethrpc.Call{
+		ABI:    CrossChainPoolABI,
+		Target: p.ID,
+		Method: poolMethodCreditForTokensHaircut,
+		Params: nil,
+	}, []interface{}{&creditForTokensHaircut})
 
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -189,9 +207,12 @@ func (d *PoolsListUpdater) classifyPoolType(ctx context.Context, assetAddress st
 		return "", err
 	}
 
-	if relativePrice == nil {
-		return poolTypeWombatMain, nil
+	if relativePrice != nil {
+		return poolTypeWombatLSD, nil
+	}
+	if creditForTokensHaircut != nil {
+		return poolTypeWombatCrossChain, nil
 	}
 
-	return poolTypeWombatLSD, nil
+	return poolTypeWombatMain, nil
 }

@@ -11,6 +11,7 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
+	paused        bool
 	haircutRate   *big.Int
 	ampFactor     *big.Int
 	startCovRatio *big.Int
@@ -40,6 +41,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Checked:  false,
 			},
 		},
+		paused:        extra.Paused,
 		haircutRate:   extra.HaircutRate,
 		ampFactor:     extra.AmpFactor,
 		startCovRatio: extra.StartCovRatio,
@@ -62,7 +64,7 @@ func (p *PoolSimulator) CalcAmountOut(
 
 	amountOut, haircut, err := QuotePotentialSwap(
 		tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount,
-		p.haircutRate, p.ampFactor, p.startCovRatio, p.endCovRatio,
+		p.paused, p.haircutRate, p.ampFactor, p.startCovRatio, p.endCovRatio,
 		p.assets,
 	)
 	if err != nil {
