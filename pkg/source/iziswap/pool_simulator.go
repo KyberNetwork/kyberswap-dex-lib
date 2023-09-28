@@ -117,7 +117,7 @@ func (p *PoolSimulator) CalcAmountOut(
 		// todo, not limit swap-range in the future
 		//    or give a way to modify it
 		highPt := p.PoolInfo.CurrentPoint + SIMULATOR_PT_RANGE
-		ret, err := swap.SwapY2X(tokenAmountIn.Amount, highPt, p.PoolInfo)
+		ret, err := swap.SwapY2X(tokenAmountInAmount, highPt, p.PoolInfo)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
