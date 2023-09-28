@@ -92,11 +92,13 @@ func buildIZiSwap(swap types.L2EncodingSwap) (IZiSwap, error) {
 	}
 
 	return IZiSwap{
-		Pool:       common.HexToAddress(swap.Pool),
-		TokenOut:   common.HexToAddress(swap.TokenOut),
-		Recipient:  common.HexToAddress(swap.Recipient),
-		SwapAmount: swap.SwapAmount,
-		LimitPoint: pack.Int24(extra.LimitPoint),
+		Pool:          common.HexToAddress(swap.Pool),
+		TokenOut:      common.HexToAddress(swap.TokenOut),
+		Recipient:     common.HexToAddress(swap.Recipient),
+		SwapAmount:    swap.SwapAmount,
+		LimitPoint:    pack.Int24(extra.LimitPoint),
+		recipientFlag: swap.RecipientFlag,
+		isFirstSwap:   swap.IsFirstSwap,
 	}, nil
 }
 
