@@ -27,6 +27,7 @@ type ConfigResponseDataConfig struct {
 	FinderOptions         valueobject.FinderOptions       `json:"finderOptions"`
 	CacheConfig           valueobject.CacheConfig         `json:"cache"`
 	BlacklistedRecipients []string                        `json:"blacklistedRecipients"`
+	L2EncodePartners      []string                        `json:"l2EncodePartners"`
 }
 
 type ConfigResponseData struct {
@@ -96,6 +97,7 @@ func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string, curre
 		FinderOptions:         cfgResp.Data.Config.FinderOptions,
 		CacheConfig:           cfgResp.Data.Config.CacheConfig,
 		BlacklistedRecipients: cfgResp.Data.Config.BlacklistedRecipients,
+		L2EncodePartners:      cfgResp.Data.Config.L2EncodePartners,
 	}, nil
 }
 

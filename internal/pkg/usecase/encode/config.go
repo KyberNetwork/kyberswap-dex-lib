@@ -6,13 +6,16 @@ import (
 
 type Config struct {
 	// Shared configs
-	RouterAddress             string              `mapstructure:"routerAddress"`
-	ExecutorAddress           string              `mapstructure:"executorAddress"`
 	ChainID                   valueobject.ChainID `mapstructure:"chainId"`
 	IsPositiveSlippageEnabled bool                `mapstructure:"isPositiveSlippageEnabled"`
 	MinimumPSThreshold        int64               `mapstructure:"minimumPSThreshold"`
 
+	// L1 encode configs
+	RouterAddress   string `mapstructure:"routerAddress"`
+	ExecutorAddress string `mapstructure:"executorAddress"`
+
 	// L2 encode configs
-	UseL2Optimize             bool            `mapstructure:"useL2Optimize"`
+	// We use L1 router for L2 encode, so no separate L2RouterAddress config
+	L2ExecutorAddress         string          `mapstructure:"l2ExecutorAddress"`
 	FunctionSelectorMappingID map[string]byte `mapstructure:"functionSelectorMappingID"` // Map between selector to the ID registered in the SC
 }

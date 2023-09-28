@@ -43,8 +43,9 @@ import (
 	httppkg "github.com/KyberNetwork/router-service/internal/pkg/server/http"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/decode"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l1encode"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l2encode"
 
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
@@ -70,6 +71,10 @@ type IGetRouteUseCase interface {
 
 type IPoolManager interface {
 	ApplyConfig(config poolmanager.Config)
+}
+
+type IBuildRouteUseCase interface {
+	ApplyConfig(config usecase.BuildRouteConfig)
 }
 
 // TODO: refactor main file -> separate to many folders with per folder is application. The main file should contains call root action per application.
@@ -254,7 +259,21 @@ func apiAction(c *cli.Context) (err error) {
 		signer,
 		cfg.KeyPair.KeyIDForSealingData.ClientData,
 	)
-	encoder := encode.NewEncoderFactory(cfg.Encoder).GetEncoder()
+	l1Encoder := l1encode.NewEncoder(l1encode.Config{
+		RouterAddress:             cfg.Encoder.RouterAddress,
+		ExecutorAddress:           cfg.Encoder.ExecutorAddress,
+		ChainID:                   cfg.Encoder.ChainID,
+		IsPositiveSlippageEnabled: cfg.Encoder.IsPositiveSlippageEnabled,
+		MinimumPSThreshold:        cfg.Encoder.MinimumPSThreshold,
+	})
+	l2Encoder := l2encode.NewEncoder(l2encode.Config{
+		RouterAddress:             cfg.Encoder.RouterAddress,
+		ExecutorAddress:           cfg.Encoder.L2ExecutorAddress,
+		ChainID:                   cfg.Encoder.ChainID,
+		IsPositiveSlippageEnabled: cfg.Encoder.IsPositiveSlippageEnabled,
+		MinimumPSThreshold:        cfg.Encoder.MinimumPSThreshold,
+		FunctionSelectorMappingID: cfg.Encoder.FunctionSelectorMappingID,
+	})
 
 	validateRouteUseCase := validateroute.NewValidateRouteUseCase()
 	validateRouteUseCase.RegisterValidator(synthetix.NewSynthetixValidator())
@@ -317,7 +336,8 @@ func apiAction(c *cli.Context) (err error) {
 		priceRepository,
 		rfqHandlerByPoolType,
 		clientDataEncoder,
-		encoder,
+		l1Encoder,
+		l2Encoder,
 		timeutil.NowFunc,
 		cfg.UseCase.BuildRoute,
 	)
@@ -344,13 +364,10 @@ func apiAction(c *cli.Context) (err error) {
 			GasTokenAddress: cfg.UseCase.GetRoute.GasTokenAddress,
 		},
 	)
-	decodeRouteUsecase := decode.NewDecoderFactory(decode.Config{
-		RouterAddress:             cfg.Encoder.RouterAddress,
-		ExecutorAddress:           cfg.Encoder.ExecutorAddress,
-		ChainID:                   cfg.Encoder.ChainID,
-		UseL2Optimize:             cfg.Encoder.UseL2Optimize,
+	l1Decoder := &decode.Decoder{}
+	l2Decoder := decode.NewL2Decoder(decode.L2DecoderConfig{
 		FunctionSelectorMappingID: cfg.Encoder.FunctionSelectorMappingID,
-	}).GetDecoder()
+	})
 
 	// init services
 	zapLogger, err := logger.GetDesugaredZapLoggerDelegate(lg)
@@ -387,7 +404,7 @@ func apiAction(c *cli.Context) (err error) {
 		c.JSON(http.StatusOK, currentConfig)
 	})
 	v1Debug.GET("/custom-routes", api.GetCustomRoutes(getRoutesParamsValidator, getCustomRoutesUseCase))
-	v1Debug.POST("/decode", api.DecodeSwapData(decodeRouteUsecase))
+	v1Debug.POST("/decode", api.DecodeSwapData(l1Decoder, l2Decoder))
 
 	v1.GET("/pools", api.GetPools(getPoolsParamsValidator, getPoolsUseCase))
 	v1.GET("/tokens", api.GetTokens(getTokensParamsValidator, getTokensUseCase))
@@ -416,7 +433,15 @@ func apiAction(c *cli.Context) (err error) {
 
 	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
 		logger.Infof("Received reloading signal: <%s>", id)
-		return applyLatestConfigForAPI(ctx, configLoader, getRouteUseCase, poolManager, buildRouteParamsValidator, getRouteEncodeParamsValidator)
+		return applyLatestConfigForAPI(
+			ctx,
+			configLoader,
+			getRouteUseCase,
+			buildRouteUseCase,
+			poolManager,
+			buildRouteParamsValidator,
+			getRouteEncodeParamsValidator,
+		)
 	}))
 
 	httpServer := &http.Server{Handler: ginServer, Addr: cfg.Http.BindAddress}
@@ -596,6 +621,7 @@ func applyLatestConfigForAPI(
 	_ context.Context,
 	configLoader *config.ConfigLoader,
 	getRouteUseCase IGetRouteUseCase,
+	buildRouteUseCase IBuildRouteUseCase,
 	poolManager IPoolManager,
 	buildRouteParamsValidator api.IBuildRouteParamsValidator,
 	getRouteEncodeParamsValidator api.IGetRouteEncodeParamsValidator,
@@ -612,6 +638,7 @@ func applyLatestConfigForAPI(
 
 	logger.Infoln("Applying new config to API")
 	getRouteUseCase.ApplyConfig(cfg.UseCase.GetRoute)
+	buildRouteUseCase.ApplyConfig(cfg.UseCase.BuildRoute)
 	poolManager.ApplyConfig(cfg.UseCase.PoolManager)
 	buildRouteParamsValidator.ApplyConfig(cfg.Validator.BuildRouteParams)
 	getRouteEncodeParamsValidator.ApplyConfig(cfg.Validator.GetRouteEncodeParams)

@@ -70,7 +70,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				return &buildRouteUseCase{
 					tokenRepository:   tokenRepository,
 					priceRepository:   priceRepository,
-					encoder:           encoder,
+					l1Encoder:         encoder,
+					l2Encoder:         encoder,
 					clientDataEncoder: clientDataEncoder,
 					config:            BuildRouteConfig{ChainID: valueobject.ChainIDEthereum},
 				}
@@ -141,7 +142,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				return &buildRouteUseCase{
 					tokenRepository:   tokenRepository,
 					priceRepository:   priceRepository,
-					encoder:           encoder,
+					l1Encoder:         encoder,
+					l2Encoder:         encoder,
 					clientDataEncoder: clientDataEncoder,
 					config:            BuildRouteConfig{ChainID: valueobject.ChainIDEthereum},
 				}

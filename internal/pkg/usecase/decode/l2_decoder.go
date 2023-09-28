@@ -16,10 +16,10 @@ import (
 )
 
 type L2Decoder struct {
-	config Config
+	config L2DecoderConfig
 }
 
-func NewL2Decoder(config Config) *L2Decoder {
+func NewL2Decoder(config L2DecoderConfig) *L2Decoder {
 	return &L2Decoder{config: config}
 }
 

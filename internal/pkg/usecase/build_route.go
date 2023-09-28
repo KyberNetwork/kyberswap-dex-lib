@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -15,6 +16,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/helper"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
@@ -34,10 +36,13 @@ type buildRouteUseCase struct {
 
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ
 	clientDataEncoder    IClientDataEncoder
-	encoder              IEncoder
+	l1Encoder            IEncoder
+	l2Encoder            IEncoder
 	nowFunc              func() time.Time
 
 	config BuildRouteConfig
+
+	mu sync.RWMutex
 }
 
 func NewBuildRouteUseCase(
@@ -45,7 +50,8 @@ func NewBuildRouteUseCase(
 	priceRepository IPriceRepository,
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ,
 	clientDataEncoder IClientDataEncoder,
-	encoder IEncoder,
+	l1Encoder IEncoder,
+	l2Encoder IEncoder,
 	nowFunc func() time.Time,
 	config BuildRouteConfig,
 ) *buildRouteUseCase {
@@ -58,7 +64,8 @@ func NewBuildRouteUseCase(
 		priceRepository:      priceRepository,
 		rfqHandlerByPoolType: rfqHandlerByPoolType,
 		clientDataEncoder:    clientDataEncoder,
-		encoder:              encoder,
+		l1Encoder:            l1Encoder,
+		l2Encoder:            l2Encoder,
 		nowFunc:              nowFunc,
 		config:               config,
 	}
@@ -98,8 +105,14 @@ func (uc *buildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		OutputChange: OutputChangeNoChange,
 
 		Data:          encodedData,
-		RouterAddress: uc.encoder.GetRouterAddress(),
+		RouterAddress: uc.getEncoder(ctx, command).GetRouterAddress(),
 	}, nil
+}
+
+func (uc *buildRouteUseCase) ApplyConfig(config BuildRouteConfig) {
+	uc.mu.Lock()
+	defer uc.mu.Unlock()
+	uc.config.L2EncodePartners = config.L2EncodePartners
 }
 
 func (uc *buildRouteUseCase) rfq(
@@ -221,15 +234,17 @@ func (uc *buildRouteUseCase) encode(ctx context.Context, command dto.BuildRouteC
 		return "", err
 	}
 
+	encoder := uc.getEncoder(ctx, command)
+
 	encodingData := types.NewEncodingDataBuilder().
-		SetRoute(&routeSummary, uc.encoder.GetExecutorAddress(), command.Recipient).
+		SetRoute(&routeSummary, encoder.GetExecutorAddress(), command.Recipient).
 		SetDeadline(big.NewInt(command.Deadline)).
 		SetSlippageTolerance(big.NewInt(command.SlippageTolerance)).
 		SetClientData(clientData).
 		SetPermit(command.Permit).
 		GetData()
 
-	return uc.encoder.Encode(encodingData)
+	return encoder.Encode(encodingData)
 }
 
 // encodeClientData recalculates amountInUSD and amountOutUSD then perform encoding
@@ -313,4 +328,18 @@ func (uc *buildRouteUseCase) getPrices(
 	}
 
 	return tokenInPrice, tokenOutPrice, nil
+}
+
+func (uc *buildRouteUseCase) getEncoder(ctx context.Context, command dto.BuildRouteCommand) IEncoder {
+	if !helper.IsL2EncoderSupportedChains(uc.config.ChainID) {
+		return uc.l1Encoder
+	}
+	if _, exist := uc.config.L2EncodePartners[strings.ToLower(command.Source)]; exist {
+		return uc.l2Encoder
+	}
+
+	if !uc.config.UseL2OptimizeByDefault {
+		return uc.l1Encoder
+	}
+	return uc.l2Encoder
 }

@@ -14,6 +14,7 @@ type (
 		FinderOptions         FinderOptions       `json:"finderOptions"`
 		CacheConfig           CacheConfig         `json:"cache"`
 		BlacklistedRecipients []string            `json:"blacklistedRecipients"`
+		L2EncodePartners      []string            `json:"l2EncodePartners"`
 	}
 
 	Source string

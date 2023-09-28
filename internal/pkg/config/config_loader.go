@@ -147,6 +147,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setGetBestPoolOptions(remoteCfg.GetBestPoolsOptions)
 		cl.setCacheConfig(remoteCfg.CacheConfig)
 		cl.setBlacklistedRecipients(remoteCfg.BlacklistedRecipients)
+		cl.setL2EncodePartners(remoteCfg.L2EncodePartners)
 		cl.mu.Unlock()
 	}
 
@@ -226,4 +227,13 @@ func (cl *ConfigLoader) setBlacklistedRecipients(blacklistedRecipients []string)
 
 	cl.config.Validator.BuildRouteParams.BlacklistedRecipientSet = blacklistedRecipientSet
 	cl.config.Validator.GetRouteEncodeParams.BlacklistedRecipientSet = blacklistedRecipientSet
+}
+
+func (cl *ConfigLoader) setL2EncodePartners(l2EncodePartners []string) {
+	l2EncodePartnersSet := make(map[string]struct{}, len(l2EncodePartners))
+	for _, partner := range l2EncodePartners {
+		l2EncodePartnersSet[strings.ToLower(partner)] = struct{}{}
+	}
+
+	cl.config.UseCase.BuildRoute.L2EncodePartners = l2EncodePartnersSet
 }

@@ -19,8 +19,10 @@ type Config struct {
 
 type (
 	BuildRouteConfig struct {
-		ChainID valueobject.ChainID `mapstructure:"chainId"`
-		RFQ     []RFQConfig         `mapstructure:"rfq"`
+		ChainID                valueobject.ChainID `mapstructure:"chainId"`
+		RFQ                    []RFQConfig         `mapstructure:"rfq"`
+		L2EncodePartners       map[string]struct{}
+		UseL2OptimizeByDefault bool `mapstructure:"useL2OptimizeByDefault"`
 	}
 )
 

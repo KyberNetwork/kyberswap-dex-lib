@@ -113,10 +113,10 @@ encoder:
   chainId: *chainId
   executorAddress: *executorAddress
   routerAddress: *routerAddress
+  l2ExecutorAddress: "0x412F0F6D644C61452D2c85a0c6cEeB00103bb877"
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
-  useL2Optimize: false
-  functionSelectorMappingID: # This map should be updated when we change executor address
+  functionSelectorMappingID: # This map can be updated when we change l2 executor address
     executeUniSwap: 0
     executeKyberClassic: 1
     executeVelodromeSwap: 2
@@ -246,6 +246,7 @@ useCase:
       shrinkFuncLogPercent: 1.01
   buildRoute:
     chainId: *chainId
+    useL2OptimizeByDefault: false
   poolFactory:
     chainId: *chainId
   poolManager:
