@@ -73,6 +73,7 @@ var (
 		valueobject.ExchangeRamses:          true,
 		valueobject.ExchangeVelocore:        true,
 		valueobject.ExchangeCamelot:         true,
+		valueobject.ExchangeEzkalibur:       true,
 		valueobject.ExchangeMuteSwitch:      true,
 		valueobject.ExchangeRetro:           true,
 		valueobject.ExchangeBaseSwap:        true,
