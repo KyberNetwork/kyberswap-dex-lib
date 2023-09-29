@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/KyberNetwork/kyber-trace-go/pkg/metric"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+
+	kybermetric "github.com/KyberNetwork/kyber-trace-go/pkg/metric"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -17,6 +20,35 @@ const (
 	ClientIDMetricsName               = "client_id.count"
 	InvalidSynthetixVolumeMetricsName = "invalid_synthetix_volume.count"
 )
+
+var (
+	dexHitRateCounter             metric.Float64Counter
+	poolTypeHitRateCounter        metric.Float64Counter
+	requestPairCountCounter       metric.Float64Counter
+	findRouteCacheCounter         metric.Float64Counter
+	clientIDCounter               metric.Float64Counter
+	invalidSynthetixVolumeCounter metric.Float64Counter
+
+	mapMetricNameToCounter map[string]metric.Float64Counter
+)
+
+func init() {
+	dexHitRateCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(DexHitRateMetricsName))
+	poolTypeHitRateCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(PoolTypeHitRateMetricsName))
+	requestPairCountCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(RequestPairCountMetricsName))
+	findRouteCacheCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(FindRouteCacheCountMetricsName))
+	clientIDCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(ClientIDMetricsName))
+	invalidSynthetixVolumeCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(InvalidSynthetixVolumeMetricsName))
+
+	mapMetricNameToCounter = map[string]metric.Float64Counter{
+		DexHitRateMetricsName:             dexHitRateCounter,
+		PoolTypeHitRateMetricsName:        poolTypeHitRateCounter,
+		RequestPairCountMetricsName:       requestPairCountCounter,
+		FindRouteCacheCountMetricsName:    findRouteCacheCounter,
+		ClientIDMetricsName:               clientIDCounter,
+		InvalidSynthetixVolumeMetricsName: invalidSynthetixVolumeCounter,
+	}
+}
 
 func IncrDexHitRate(dex string) {
 	tags := []string{
@@ -70,7 +102,7 @@ func IncrInvalidSynthetixVolume() {
 
 func Flush() {
 	// Flush VanPT
-	if err := metric.Flush(context.Background()); err != nil {
+	if err := kybermetric.Flush(context.Background()); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Warn("failed to flush VanPT metrics")
@@ -90,18 +122,15 @@ func Flush() {
 
 func incr(name string, tags []string, rate float64) {
 	// Incr VanPT
-	// VanPT doesn't accept "." in the counter name,
-	// so replace all the current "." to "_".
-	name = strings.Replace(name, ".", "_", -1)
-	counter, err := metric.Meter().Float64Counter(name)
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Warnf("failed to push %s metrics to VanPT", name)
+	if counter, exist := mapMetricNameToCounter[name]; counter != nil && exist {
+		attributes := make([]attribute.KeyValue, 0, len(tags))
+		for _, tag := range tags {
+			attributes = append(attributes, attribute.Bool(tag, true))
+		}
+		counter.Add(context.Background(), rate, metric.WithAttributes(attributes...))
+	} else {
+		logger.Warnf("counter for %s metrics not found", name)
 	}
-	ctx := context.Background()
-	counter.Add(ctx, rate)
-	metric.Flush(ctx)
 
 	// Incr DataDog
 	if client == nil {
@@ -141,4 +170,10 @@ func histogram(name string, value float64, tags []string, rate float64) {
 			"error": err,
 		}).Warnf("failed to push %s metrics", name)
 	}
+}
+
+func formatMetricName(name string) string {
+	// VanPT doesn't accept "." in the metric name,
+	// so replace all the current "." to "_".
+	return strings.Replace(name, ".", "_", -1)
 }
