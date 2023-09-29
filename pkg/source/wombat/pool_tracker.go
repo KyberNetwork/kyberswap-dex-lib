@@ -4,16 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"strings"
+	"time"
+
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/machinebox/graphql"
-	"math/big"
-	"strings"
-	"time"
 )
 
 type PoolTracker struct {
@@ -198,6 +200,7 @@ func (d *PoolTracker) querySubgraph(
 	p entity.Pool,
 ) (*SubgraphAsset, error) {
 	req := graphql.NewRequest(fmt.Sprintf(`{
+		_meta { block { timestamp }}
 		pool(
 			id: "%v"
 		  ) {
@@ -210,7 +213,8 @@ func (d *PoolTracker) querySubgraph(
 	)
 
 	var response struct {
-		Pool *SubgraphAsset `json:"pool"`
+		Pool *SubgraphAsset            `json:"pool"`
+		Meta *valueobject.SubgraphMeta `json:"_meta"`
 	}
 	if err := d.graphqlClient.Run(ctx, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
@@ -219,6 +223,8 @@ func (d *PoolTracker) querySubgraph(
 		}).Errorf("failed to query subgraph to get pools")
 		return nil, err
 	}
+
+	response.Meta.CheckIsLagging(d.config.DexID, p.Address)
 
 	return response.Pool, nil
 }
