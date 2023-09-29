@@ -21,6 +21,7 @@ var (
 		valueobject.ExchangeWault:           true,
 		valueobject.ExchangePancakeLegacy:   true,
 		valueobject.ExchangeBiSwap:          true,
+		valueobject.ExchangeCrowdswapV2:     true,
 		valueobject.ExchangePantherSwap:     true,
 		valueobject.ExchangeVVS:             true,
 		valueobject.ExchangeCronaSwap:       true,

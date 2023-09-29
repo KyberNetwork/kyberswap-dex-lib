@@ -21,6 +21,7 @@ var (
 	ExchangeWault         Exchange = "wault"
 	ExchangePancakeLegacy Exchange = "pancake-legacy"
 	ExchangeBiSwap        Exchange = "biswap"
+	ExchangeCrowdswapV2   Exchange = "crowdswap-v2"
 	ExchangePantherSwap   Exchange = "pantherswap"
 	ExchangeVVS           Exchange = "vvs"
 	ExchangeCronaSwap     Exchange = "cronaswap"
@@ -173,6 +174,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWault:                    {},
 	ExchangePancakeLegacy:            {},
 	ExchangeBiSwap:                   {},
+	ExchangeCrowdswapV2:              {},
 	ExchangePantherSwap:              {},
 	ExchangeVVS:                      {},
 	ExchangeCronaSwap:                {},

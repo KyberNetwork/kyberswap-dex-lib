@@ -12,6 +12,7 @@ type types struct {
 	Uni                      string
 	UniV3                    string
 	Biswap                   string
+	CrowdswapV2              string
 	Polydex                  string
 	Firebird                 string
 	Dmm                      string
@@ -78,6 +79,7 @@ var (
 		Uni:                      "uniswap",
 		UniV3:                    "uniswapv3",
 		Biswap:                   "biswap",
+		CrowdswapV2:              "crowdswap-v2",
 		Polydex:                  "polydex",
 		Firebird:                 "firebird",
 		Dmm:                      "dmm",
