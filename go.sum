@@ -76,8 +76,8 @@ github.com/KyberNetwork/pancake-v3-sdk v0.1.0 h1:HVUD13Qbwl4kiU1uSprQVpkis6fYYp3
 github.com/KyberNetwork/pancake-v3-sdk v0.1.0/go.mod h1:AhHu1v2KZAXKFZ9AnjwYPPx1+dDFHBqmSpSeg4fnvzg=
 github.com/KyberNetwork/reload v0.1.1 h1:d2gu8KK8C34tiyPQongjLzwy5w73fYHbwP1P9MobXuo=
 github.com/KyberNetwork/reload v0.1.1/go.mod h1:0qlzJAjsqBf1ZBw93qPpucFXre/0FMtQWwD/BidcYtM=
-github.com/KyberNetwork/uniswapv3-sdk v0.4.2 h1:6XrMjpnDYDMOdPNyoW5nVzx9BXqc9zi3wRtaRhx5jZw=
-github.com/KyberNetwork/uniswapv3-sdk v0.4.2/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
+github.com/KyberNetwork/uniswapv3-sdk v0.4.3 h1:OSFsc/CXq3b7B8MRN6Ei3Wcx6CytwZt1WshQkAJaWPI=
+github.com/KyberNetwork/uniswapv3-sdk v0.4.3/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
 github.com/Microsoft/go-winio v0.5.0/go.mod h1:JPGBdM1cNvN/6ISo+n8V5iA4v8pBzdOpzfwIujj1a84=
 github.com/Microsoft/go-winio v0.5.1 h1:aPJp2QD7OOrhO5tQXqQoGSJc+DjDtWTGLOmNyAm6FgY=
 github.com/Microsoft/go-winio v0.5.1/go.mod h1:JPGBdM1cNvN/6ISo+n8V5iA4v8pBzdOpzfwIujj1a84=
