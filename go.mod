@@ -14,7 +14,7 @@ require (
 	github.com/KyberNetwork/aevm v1.0.6
 	github.com/KyberNetwork/ethrpc v0.3.0
 	github.com/KyberNetwork/kyber-trace-go v0.1.0
-	github.com/KyberNetwork/kyberswap-dex-lib v0.15.1
+	github.com/KyberNetwork/kyberswap-dex-lib v0.15.2
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/alicebob/miniredis v2.5.0+incompatible
@@ -50,6 +50,7 @@ require (
 	github.com/urfave/cli/v2 v2.17.2-0.20221006022127-8f469abc00aa
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.43.0
 	go.opentelemetry.io/otel v1.17.0
+	go.opentelemetry.io/otel/metric v1.17.0
 	go.opentelemetry.io/otel/trace v1.17.0
 	go.uber.org/automaxprocs v1.5.2
 	go.uber.org/zap v1.24.0
@@ -151,7 +152,6 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.16.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.16.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.16.0 // indirect
-	go.opentelemetry.io/otel/metric v1.17.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.16.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v0.39.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
