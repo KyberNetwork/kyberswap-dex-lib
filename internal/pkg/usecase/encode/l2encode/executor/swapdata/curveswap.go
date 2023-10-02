@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l2encode/pack"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -18,6 +19,8 @@ type CurveSwap struct {
 	CanGetToken       bool
 	PoolMappingID     pack.UInt24
 	Pool              common.Address
+	TokenTo           common.Address
+	TokenIndexFrom    uint8
 	TokenIndexTo      uint8
 	Dx                *big.Int
 	UsePoolUnderlying bool
@@ -26,8 +29,8 @@ type CurveSwap struct {
 	isFirstSwap bool
 }
 
-func PackCurveSwap(_ valueobject.ChainID, encodingSwap types.L2EncodingSwap) ([]byte, error) {
-	swap, err := buildCurveSwap(encodingSwap)
+func PackCurveSwap(chainID valueobject.ChainID, encodingSwap types.L2EncodingSwap) ([]byte, error) {
+	swap, err := buildCurveSwap(chainID, encodingSwap)
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +46,11 @@ func UnpackCurveSwap(data []byte, isFirstSwap bool) (CurveSwap, error) {
 	swap.PoolMappingID, startByte = pack.ReadUInt24(data, startByte)
 	if swap.PoolMappingID == 0 {
 		swap.Pool, startByte = pack.ReadAddress(data, startByte)
+	}
+
+	if !swap.CanGetToken {
+		swap.TokenTo, startByte = pack.ReadAddress(data, startByte)
+		swap.TokenIndexFrom, startByte = pack.ReadUInt8(data, startByte)
 	}
 
 	swap.TokenIndexTo, startByte = pack.ReadUInt8(data, startByte)
@@ -62,7 +70,7 @@ func UnpackCurveSwap(data []byte, isFirstSwap bool) (CurveSwap, error) {
 	return swap, nil
 }
 
-func buildCurveSwap(swap types.L2EncodingSwap) (CurveSwap, error) {
+func buildCurveSwap(chainID valueobject.ChainID, swap types.L2EncodingSwap) (CurveSwap, error) {
 	byteData, err := json.Marshal(swap.PoolExtra)
 	if err != nil {
 		return CurveSwap{}, errors.Wrapf(
@@ -73,6 +81,7 @@ func buildCurveSwap(swap types.L2EncodingSwap) (CurveSwap, error) {
 	}
 
 	var extra struct {
+		TokenInIndex  uint8 `json:"tokenInIndex"`
 		TokenOutIndex uint8 `json:"tokenOutIndex"`
 		Underlying    bool  `json:"underlying"`
 	}
@@ -87,13 +96,26 @@ func buildCurveSwap(swap types.L2EncodingSwap) (CurveSwap, error) {
 
 	useTriCrypto := swap.PoolType == constant.PoolTypes.CurveTricrypto || swap.PoolType == constant.PoolTypes.CurveTwo
 
+	tokenTo := common.HexToAddress(swap.TokenOut)
+	if !useTriCrypto && eth.IsWETH(swap.TokenOut, chainID) {
+		tokenTo = common.HexToAddress(valueobject.EtherAddress)
+	}
+
 	// canGetToken true if Curve pool allows to read pool's tokens, by exposing function `coins` or `underlying_coins`.
 	canGetToken := true
+
+	// CurveMeta pools don't have `underlying_coins` function,
+	// so we set canGetToken = false if swapping underlying coins through these pools.
+	if extra.Underlying && swap.PoolType == constant.PoolTypes.CurveMeta {
+		canGetToken = false
+	}
 
 	return CurveSwap{
 		CanGetToken:       canGetToken,
 		PoolMappingID:     swap.PoolMappingID,
 		Pool:              common.HexToAddress(swap.Pool),
+		TokenTo:           tokenTo,
+		TokenIndexFrom:    extra.TokenInIndex,
 		TokenIndexTo:      extra.TokenOutIndex,
 		Dx:                swap.SwapAmount,
 		UsePoolUnderlying: extra.Underlying,
@@ -109,6 +131,9 @@ func packCurveSwap(swap CurveSwap) ([]byte, error) {
 	args = append(args, swap.CanGetToken, swap.PoolMappingID)
 	if swap.PoolMappingID == 0 {
 		args = append(args, swap.Pool)
+	}
+	if !swap.CanGetToken {
+		args = append(args, swap.TokenTo, swap.TokenIndexFrom)
 	}
 	args = append(args, swap.TokenIndexTo)
 	if swap.isFirstSwap {
