@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -141,6 +142,11 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			if strings.EqualFold(assetQuery.ID, assetAddresses[i].Hex()) {
 				isPaused = assetQuery.IsPaused
 			}
+		}
+
+		// This pool has token in subgraph but not in contract: https://bscscan.com/address/0x2ea772346486972e7690219c190dadda40ac5da4#readProxyContract
+		if eth.IsZeroAddress(assetAddresses[i]) {
+			continue
 		}
 
 		assetMap[token.Address] = Asset{
