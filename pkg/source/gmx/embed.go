@@ -25,18 +25,3 @@ var vaultPriceFeedJson []byte
 
 //go:embed abis/ERC20.json
 var erc20Json []byte
-
-//go:embed vaults/arbitrum.json
-var vaultArbitrumAddressBytes []byte
-
-//go:embed vaults/avalanche.json
-var vaultAvalancheAddressBytes []byte
-
-//go:embed vaults/base.json
-var vaultBaseAddressBytes []byte
-
-var bytesByPath = map[string][]byte{
-	"vaults/arbitrum.json":  vaultArbitrumAddressBytes,
-	"vaults/avalanche.json": vaultAvalancheAddressBytes,
-	"vaults/base.json":      vaultBaseAddressBytes,
-}
