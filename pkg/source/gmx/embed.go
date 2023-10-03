@@ -32,7 +32,11 @@ var vaultArbitrumAddressBytes []byte
 //go:embed vaults/avalanche.json
 var vaultAvalancheAddressBytes []byte
 
+//go:embed vaults/base.json
+var vaultBaseAddressBytes []byte
+
 var bytesByPath = map[string][]byte{
 	"vaults/arbitrum.json":  vaultArbitrumAddressBytes,
 	"vaults/avalanche.json": vaultAvalancheAddressBytes,
+	"vaults/base.json":      vaultBaseAddressBytes,
 }
