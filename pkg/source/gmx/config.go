@@ -1,7 +1,7 @@
 package gmx
 
 type Config struct {
-	DexID     string `json:"-"`
-	VaultPath string `json:"vaultPath"`
-	ChainID   int    `json:"chainID"`
+	DexID                   string `json:"-"`
+	VaultAddress            string `json:"vaultAddress"`
+	UseSecondaryPriceFeedV1 bool   `json:"useSecondaryPriceFeedV1"`
 }

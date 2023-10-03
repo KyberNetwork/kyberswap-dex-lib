@@ -3,7 +3,6 @@ package gmx
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -29,20 +28,6 @@ func NewPoolsListUpdater(
 	}
 }
 
-func getVaultAddress(vaultPath string) (string, error) {
-	byteValue, ok := bytesByPath[vaultPath]
-	if !ok {
-		return "", errors.New("misconfigured vault")
-	}
-
-	var vaultAddress VaultAddress
-	if err := json.Unmarshal(byteValue, &vaultAddress); err != nil {
-		return "", err
-	}
-
-	return vaultAddress.Vault, nil
-}
-
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	log := logger.WithFields(logger.Fields{
 		"liquiditySource": DexTypeGmx,
@@ -53,13 +38,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, nil
 	}
 
-	vaultAddr, err := getVaultAddress(d.config.VaultPath)
-	if err != nil {
-		log.Errorf("get vault address failed: %v", err)
-		return nil, nil, err
-	}
-
-	vault, err := NewVaultScanner(ChainID(d.config.ChainID), d.ethrpcClient).getVault(ctx, vaultAddr)
+	vault, err := NewVaultScanner(d.config, d.ethrpcClient).getVault(ctx, d.config.VaultAddress)
 	if err != nil {
 		log.Errorf("get vault failed: %v", err)
 		return nil, nil, err
@@ -84,7 +63,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	pool := entity.Pool{
-		Address:   vaultAddr,
+		Address:   d.config.VaultAddress,
 		Exchange:  d.config.DexID,
 		Type:      DexTypeGmx,
 		Tokens:    poolTokens,
@@ -94,7 +73,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	d.hasInitialized = true
-	log.Infof("got %v vault from file: %v", vaultAddr, d.config.VaultPath)
+	log.Infof("got %v vault", d.config.VaultAddress)
 
 	return []entity.Pool{pool}, nil, nil
 }

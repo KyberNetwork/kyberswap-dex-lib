@@ -6,11 +6,6 @@ const DexTypeGmx = "gmx"
 
 const flagArbitrumSeqOffline = "0xa438451d6458044c3c8cd2f6f31c91ac882a6d91"
 
-var secondaryPriceFeedVersionByChainID = map[ChainID]SecondaryPriceFeedVersion{
-	ARBITRUM:  secondaryPriceFeedVersion2,
-	AVALANCHE: secondaryPriceFeedVersion2,
-}
-
 var (
 	DefaultGas             = Gas{Swap: 165000}
 	BasisPointsDivisor     = big.NewInt(10000)
