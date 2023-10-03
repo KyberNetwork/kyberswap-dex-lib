@@ -34,7 +34,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	})
 	log.Info("Start getting new state of pool")
 
-	vault, err := NewVaultScanner(ChainID(d.config.ChainID), d.ethrpcClient).getVault(ctx, p.Address)
+	vault, err := NewVaultScanner(d.config, d.ethrpcClient).getVault(ctx, p.Address)
 	if err != nil {
 		log.Errorf("get vault failed: %v", err)
 		return entity.Pool{}, fmt.Errorf("get vault failed, pool: %s, err: %v", p.Address, err)

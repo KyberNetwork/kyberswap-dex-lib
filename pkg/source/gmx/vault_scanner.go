@@ -12,7 +12,7 @@ import (
 )
 
 type VaultScanner struct {
-	chainID               ChainID
+	config                *Config
 	vaultReader           IVaultReader
 	vaultPriceFeedReader  IVaultPriceFeedReader
 	fastPriceFeedV1Reader IFastPriceFeedV1Reader
@@ -25,11 +25,11 @@ type VaultScanner struct {
 }
 
 func NewVaultScanner(
-	chainID ChainID,
+	config *Config,
 	ethrpcClient *ethrpc.Client,
 ) *VaultScanner {
 	return &VaultScanner{
-		chainID:               chainID,
+		config:                config,
 		vaultReader:           NewVaultReader(ethrpcClient),
 		vaultPriceFeedReader:  NewVaultPriceFeedReader(ethrpcClient),
 		fastPriceFeedV1Reader: NewFastPriceFeedV1Reader(ethrpcClient),
@@ -115,7 +115,7 @@ func (vs *VaultScanner) getVaultPriceFeed(ctx context.Context, address string, t
 		vaultPriceFeed.ETHBNB = ethBnb
 	}
 
-	secondaryPriceFeedVersion := getSecondaryPriceFeedVersion(vs.chainID)
+	secondaryPriceFeedVersion := vs.getSecondaryPriceFeedVersion()
 
 	vaultPriceFeed.SecondaryPriceFeedVersion = int(secondaryPriceFeedVersion)
 
@@ -174,11 +174,9 @@ func (vs VaultScanner) getFastPriceFeed(
 	return vs.fastPriceFeedV1Reader.Read(ctx, address, tokens)
 }
 
-func getSecondaryPriceFeedVersion(chainID ChainID) SecondaryPriceFeedVersion {
-	secondaryPriceFeedVersion, ok := secondaryPriceFeedVersionByChainID[chainID]
-	if !ok {
-		return defaultSecondaryPriceFeedVersion
+func (vs *VaultScanner) getSecondaryPriceFeedVersion() SecondaryPriceFeedVersion {
+	if vs.config.UseSecondaryPriceFeedV1 {
+		return secondaryPriceFeedVersion1
 	}
-
-	return secondaryPriceFeedVersion
+	return secondaryPriceFeedVersion2
 }
