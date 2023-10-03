@@ -108,6 +108,7 @@ var (
 	ExchangeGMX       Exchange = "gmx"
 	ExchangeMadMex    Exchange = "madmex"
 	ExchangeMetavault Exchange = "metavault"
+	ExchangeBMX       Exchange = "bmx"
 
 	ExchangeSynthetix Exchange = "synthetix"
 
@@ -297,6 +298,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeArbiDexV3:                {},
 	ExchangeWagmi:                    {},
 	ExchangeDackieV2:                 {},
+	ExchangeBMX:                      {},
 }
 
 func IsAnExchange(exchange Exchange) bool {

@@ -160,6 +160,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeGMX, swapdata.PackGMX)
 	RegisterPackSwapDataFunc(valueobject.ExchangeMadMex, swapdata.PackGMX)
 	RegisterPackSwapDataFunc(valueobject.ExchangeMetavault, swapdata.PackGMX)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBMX, swapdata.PackGMX)
 
 	// Synthetix
 	RegisterPackSwapDataFunc(valueobject.ExchangeSynthetix, swapdata.PackSynthetix)
