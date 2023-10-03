@@ -1,5 +1,10 @@
 package valueobject
 
+import (
+	"hash/fnv"
+	"sort"
+)
+
 type Exchange string
 
 var (
@@ -312,6 +317,16 @@ func IsAnExchange(exchange Exchange) bool {
 	return contained
 }
 
+func GetSourcesAsSlice(sources map[Exchange]struct{}) []string {
+	result := make([]string, len(sources))
+	count := 0
+	for src := range sources {
+		result[count] = string(src)
+		count = count + 1
+	}
+	return result
+}
+
 var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeKyberPMM: {},
 }
@@ -320,4 +335,29 @@ func IsRFQSource(exchange Exchange) bool {
 	_, contained := RFQSourceSet[exchange]
 
 	return contained
+}
+
+// HashSources unique, then sort and has the slice string
+func HashSources(sources []string) uint64 {
+	// Step 1: Make the elements unique
+	uniqueMap := make(map[string]bool)
+	for _, str := range sources {
+		uniqueMap[str] = true
+	}
+
+	// Extract the unique elements
+	uniqueSlice := make([]string, 0, len(uniqueMap))
+	for str := range uniqueMap {
+		uniqueSlice = append(uniqueSlice, str)
+	}
+
+	// Step 2: Sort the unique elements stably
+	sort.Strings(uniqueSlice)
+
+	// Step 3: Hash
+	h := fnv.New64()
+	for _, str := range uniqueSlice {
+		_, _ = h.Write([]byte(str))
+	}
+	return h.Sum64()
 }

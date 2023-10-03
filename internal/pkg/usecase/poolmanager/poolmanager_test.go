@@ -101,7 +101,6 @@ func comparePoolManager(
 	if err != nil {
 		return errors.Wrap(err, "poolManager")
 	}
-	fmt.Println(len(p1), len(p2))
 	if len(p1) != len(p2) {
 		panic(err)
 	}

@@ -44,6 +44,10 @@ type IPoolRankRepository interface {
 	) ([]string, error)
 }
 
+type IBestPathRepository interface {
+	GetBestPaths(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath
+}
+
 type IPoolRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Pool, error)
 }

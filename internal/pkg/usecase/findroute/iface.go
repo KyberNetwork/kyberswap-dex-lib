@@ -38,6 +38,12 @@ type Input struct {
 
 	// GasInclude should we consider gas price when finding optimal route
 	GasInclude bool
+
+	// IsPathGeneratorEnabled should we use pregen paths
+	IsPathGeneratorEnabled bool
+
+	// SourceHash hash sources dex input by fnv hashing func
+	SourceHash uint64
 }
 
 // FinderData contains all data for finding route.

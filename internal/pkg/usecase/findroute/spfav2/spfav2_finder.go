@@ -3,6 +3,8 @@ package spfav2
 import (
 	"context"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -45,14 +47,28 @@ type spfav2Finder struct {
 	// if minThreshold < amountInUSD < maxThreshold: run similar to spfaFinder, else run the new strategy
 	minThresholdAmountInUSD float64
 	maxThresholdAmountInUSD float64
+
+	getGeneratedBestPaths func(sourceHash uint64, tokenIn string, tokenOut string) []*entity.MinimalPath
 }
 
-func NewSPFAv2Finder(maxHops, distributionPercent, maxPathsInRoute, maxPathsToGenerate, maxPathsToReturn uint32, minPartUSD, minThresholdAmountInUSD, maxThresholdAmountInUSD float64) *spfav2Finder {
-	return &spfav2Finder{maxHops, distributionPercent, maxPathsInRoute, maxPathsToGenerate, maxPathsToReturn, minPartUSD, minThresholdAmountInUSD, maxThresholdAmountInUSD}
+func NewSPFAv2Finder(
+	maxHops, distributionPercent, maxPathsInRoute, maxPathsToGenerate, maxPathsToReturn uint32,
+	minPartUSD, minThresholdAmountInUSD, maxThresholdAmountInUSD float64,
+	getGeneratedBestPaths func(sourceHash uint64, tokenIn string, tokenOut string) []*entity.MinimalPath,
+) *spfav2Finder {
+	return &spfav2Finder{
+		maxHops, distributionPercent, maxPathsInRoute, maxPathsToGenerate, maxPathsToReturn,
+		minPartUSD, minThresholdAmountInUSD, maxThresholdAmountInUSD,
+		getGeneratedBestPaths,
+	}
 }
 
 func NewDefaultSPFAv2Finder() *spfav2Finder {
-	return NewSPFAv2Finder(defaultSpfav2MaxHops, defaultSpfav2DistributionPercent, defaultSpfav2MaxPathsInRoute, defaultSpfav2MaxPathsToGenerate, defaultSpfav2MaxPathsToReturn, defaultSpfav2MinPartUSD, defaultSpfav2MinThresholdAmountInUSD, defaultSpfav2MaxThresholdAmountInUSD)
+	return NewSPFAv2Finder(
+		defaultSpfav2MaxHops, defaultSpfav2DistributionPercent, defaultSpfav2MaxPathsInRoute, defaultSpfav2MaxPathsToGenerate, defaultSpfav2MaxPathsToReturn,
+		defaultSpfav2MinPartUSD, defaultSpfav2MinThresholdAmountInUSD, defaultSpfav2MaxThresholdAmountInUSD,
+		func(sourceHash uint64, tokenIn string, tokenOut string) []*entity.MinimalPath { return nil },
+	)
 }
 
 func (f *spfav2Finder) Find(

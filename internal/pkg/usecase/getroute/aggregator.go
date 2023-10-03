@@ -29,6 +29,7 @@ type aggregator struct {
 	tokenRepository    ITokenRepository
 	priceRepository    IPriceRepository
 	poolManager        IPoolManager
+	bestPathRepository IBestPathRepository
 
 	routeFinder findroute.IFinder
 
@@ -43,6 +44,7 @@ func NewAggregator(
 	priceRepository IPriceRepository,
 	poolManager IPoolManager,
 	config AggregatorConfig,
+	bestPathRepository IBestPathRepository,
 ) *aggregator {
 	routeFinder := spfav2.NewSPFAv2Finder(
 		config.FinderOptions.MaxHops,
@@ -53,6 +55,7 @@ func NewAggregator(
 		config.FinderOptions.MinPartUSD,
 		config.FinderOptions.MinThresholdAmountInUSD,
 		config.FinderOptions.MaxThresholdAmountInUSD,
+		bestPathRepository.GetBestPaths,
 	)
 
 	return &aggregator{
@@ -62,6 +65,7 @@ func NewAggregator(
 		poolManager:        poolManager,
 		routeFinder:        routeFinder,
 		config:             config,
+		bestPathRepository: bestPathRepository,
 	}
 }
 
@@ -115,7 +119,7 @@ func (a *aggregator) ApplyConfig(config Config) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if a.config.FinderOptions != config.Aggregator.FinderOptions {
+	if a.config.FinderOptions != config.Aggregator.FinderOptions || a.config.FeatureFlags != config.Aggregator.FeatureFlags {
 		a.routeFinder = spfav2.NewSPFAv2Finder(
 			config.Aggregator.FinderOptions.MaxHops,
 			config.Aggregator.FinderOptions.DistributionPercent,
@@ -125,6 +129,7 @@ func (a *aggregator) ApplyConfig(config Config) {
 			config.Aggregator.FinderOptions.MinPartUSD,
 			config.Aggregator.FinderOptions.MinThresholdAmountInUSD,
 			config.Aggregator.FinderOptions.MaxThresholdAmountInUSD,
+			a.bestPathRepository.GetBestPaths,
 		)
 	}
 
@@ -140,13 +145,15 @@ func (a *aggregator) findBestRoute(
 	priceUSDByAddress map[string]float64,
 ) (*valueobject.RouteSummary, error) {
 	input := findroute.Input{
-		TokenInAddress:   params.TokenIn.Address,
-		TokenOutAddress:  params.TokenOut.Address,
-		AmountIn:         params.AmountIn,
-		GasPrice:         params.GasPrice,
-		GasTokenPriceUSD: params.GasTokenPriceUSD,
-		SaveGas:          params.SaveGas,
-		GasInclude:       params.GasInclude,
+		TokenInAddress:         params.TokenIn.Address,
+		TokenOutAddress:        params.TokenOut.Address,
+		AmountIn:               params.AmountIn,
+		GasPrice:               params.GasPrice,
+		GasTokenPriceUSD:       params.GasTokenPriceUSD,
+		SaveGas:                params.SaveGas,
+		GasInclude:             params.GasInclude,
+		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
+		SourceHash:             valueobject.HashSources(params.Sources),
 	}
 
 	data := findroute.FinderData{

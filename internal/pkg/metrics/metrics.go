@@ -9,6 +9,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	kybermetric "github.com/KyberNetwork/kyber-trace-go/pkg/metric"
+
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -19,6 +20,7 @@ const (
 	FindRouteCacheCountMetricsName    = "find_route_cache.count"
 	ClientIDMetricsName               = "client_id.count"
 	InvalidSynthetixVolumeMetricsName = "invalid_synthetix_volume.count"
+	FindRoutePregenHitRateMetricsName = "find_route_pregen.count"
 )
 
 var (
@@ -28,8 +30,8 @@ var (
 	findRouteCacheCounter         metric.Float64Counter
 	clientIDCounter               metric.Float64Counter
 	invalidSynthetixVolumeCounter metric.Float64Counter
-
-	mapMetricNameToCounter map[string]metric.Float64Counter
+	findRoutePregenHitRateCounter metric.Float64Counter
+	mapMetricNameToCounter        map[string]metric.Float64Counter
 )
 
 func init() {
@@ -39,7 +41,7 @@ func init() {
 	findRouteCacheCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(FindRouteCacheCountMetricsName))
 	clientIDCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(ClientIDMetricsName))
 	invalidSynthetixVolumeCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(InvalidSynthetixVolumeMetricsName))
-
+	findRoutePregenHitRateCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(FindRoutePregenHitRateMetricsName))
 	mapMetricNameToCounter = map[string]metric.Float64Counter{
 		DexHitRateMetricsName:             dexHitRateCounter,
 		PoolTypeHitRateMetricsName:        poolTypeHitRateCounter,
@@ -47,6 +49,7 @@ func init() {
 		FindRouteCacheCountMetricsName:    findRouteCacheCounter,
 		ClientIDMetricsName:               clientIDCounter,
 		InvalidSynthetixVolumeMetricsName: invalidSynthetixVolumeCounter,
+		FindRoutePregenHitRateMetricsName: findRoutePregenHitRateCounter,
 	}
 }
 
@@ -73,6 +76,18 @@ func IncrRequestPairCount(tokenInAddress, tokenOutAddress string) {
 	}
 
 	incr(RequestPairCountMetricsName, tags, 0.5)
+}
+
+func IncrFindRoutePregenCount(pregenHit bool, otherTags []string) {
+	tags := []string{
+		fmt.Sprintf("hit:%t", pregenHit),
+	}
+
+	if len(otherTags) > 0 {
+		tags = append(tags, otherTags...)
+	}
+
+	incr(FindRoutePregenHitRateMetricsName, tags, 1)
 }
 
 func IncrFindRouteCacheCount(cacheHit bool, otherTags []string) {

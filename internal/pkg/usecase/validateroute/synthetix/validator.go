@@ -107,7 +107,7 @@ func Validate(poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobjec
 				}
 
 				if synthetixTradeVolume != nil && synthetixTradeVolume.Cmp(constant.Zero) > 0 {
-					totalVolume = new(big.Int).Add(totalVolume, synthetixTradeVolume)
+					totalVolume.Add(totalVolume, synthetixTradeVolume)
 				}
 			}
 			updateBalanceParams := poolpkg.UpdateBalanceParams{

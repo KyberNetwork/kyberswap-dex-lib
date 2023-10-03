@@ -7,8 +7,9 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -223,13 +224,14 @@ func getKthPathAtTokenOut(
 	}
 
 	for kthPath, pathInfo := range nodeInfoAtTokenOut {
-		path, err := valueobject.NewPath(data.PoolBucket, pathInfo.poolAddressesOnPath, pathInfo.tokensOnPath, tokenAmountIn, input.TokenOutAddress,
-			data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[input.TokenOutAddress].Decimals,
+		tokenOut := pathInfo.tokensOnPath[len(pathInfo.tokensOnPath)-1].Address
+		path, err := valueobject.NewPath(data.PoolBucket, pathInfo.poolAddressesOnPath, pathInfo.tokensOnPath, tokenAmountIn, tokenOut,
+			data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[tokenOut].Decimals,
 			valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD},
 		)
 		if err != nil {
 			logger.WithFields(logger.Fields{"error": err}).
-				Debugf("cannot generate %v_th path (hop = %v) from token %v to token %v", kthPath, len(pathInfo.poolAddressesOnPath), input.TokenInAddress, input.TokenOutAddress)
+				Errorf("cannot generate %v_th path (hop = %v) from token %v to token %v %v", kthPath, len(pathInfo.poolAddressesOnPath), input.TokenInAddress, tokenOut, input.AmountIn)
 		} else {
 			paths = append(paths, path)
 		}

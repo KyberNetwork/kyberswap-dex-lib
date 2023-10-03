@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"runtime"
 	"time"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
@@ -33,6 +34,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/pathgenerator"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/price"
@@ -49,8 +51,10 @@ import (
 
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/generatepath"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getcustomroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getrouteencode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
@@ -139,6 +143,12 @@ func main() {
 				Usage:   "Index pools",
 				Action:  indexerAction,
 			},
+			{
+				Name:    "pathgenerator",
+				Aliases: []string{},
+				Usage:   "Periodically generate best paths for configured tokens",
+				Action:  pathGeneratorAction,
+			},
 		}}
 
 	err := app.Run(os.Args)
@@ -222,6 +232,7 @@ func apiAction(c *cli.Context) (err error) {
 		gas.NewRedisRepository(routerRedisClient.Client, ethClient, cfg.Repository.Gas.Redis),
 		cfg.Repository.Gas.Ristretto,
 	)
+	bestPathRepository := pathgenerator.NewRedisRepository(routerRedisClient.Client, pathgenerator.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
 	tokenRepository := token.NewGoCacheRepository(
 		token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis),
@@ -318,6 +329,7 @@ func apiAction(c *cli.Context) (err error) {
 		routeRepository,
 		gasRepository,
 		poolManager,
+		bestPathRepository,
 		cfg.UseCase.GetRoute,
 	)
 
@@ -351,6 +363,7 @@ func apiAction(c *cli.Context) (err error) {
 		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MinPartUSD,
 		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MinThresholdAmountInUSD,
 		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxThresholdAmountInUSD,
+		bestPathRepository.GetBestPaths,
 	)
 	getCustomRoutesUseCase := getcustomroute.NewCustomRoutesUseCase(
 		tokenRepository,
@@ -594,6 +607,186 @@ func indexerAction(c *cli.Context) (err error) {
 	return g.Wait()
 }
 
+func pathGeneratorAction(c *cli.Context) (err error) {
+	ctx := context.Background()
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// load config
+	configFile := c.String("config")
+	configLoader, err := config.NewConfigLoader(configFile)
+	if err != nil {
+		return err
+	}
+	cfg, err := configLoader.Get()
+	if err != nil {
+		return err
+	}
+
+	// init logger
+	_, err = logger.InitLogger(cfg.Log.Configuration, logger.LoggerBackendZap)
+	if err != nil {
+		return err
+	}
+
+	// Initialize config reloader
+	restSettingRepo := setting.NewRestRepository(cfg.ReloadConfig.HttpUrl)
+	reloadConfigUseCase := usecase.NewReloadConfigUseCase(restSettingRepo)
+	reloadConfigFetcher := reloadconfig.NewReloadConfigFetcher(cfg.ReloadConfig, reloadConfigUseCase)
+	reloadConfigReporter := reloadconfig.NewReloadConfigReporter(cfg.ReloadConfig, reloadConfigUseCase)
+
+	configLoader.SetRemoteConfigFetcher(reloadConfigFetcher)
+
+	// reload config with remote config. Ignore error with a warning
+	err = configLoader.Reload(ctx)
+	if err != nil {
+		logger.Warnf("Config could not be reloaded: %s", err)
+	} else {
+		logger.Info("Config reloaded")
+	}
+
+	if err := cfg.Validate(); err != nil {
+		logger.Errorf("failed to validate config, err: %v", err)
+		panic(err)
+	}
+
+	ethClient := ethrpc.New(cfg.Common.RPC)
+
+	// init redis client
+	routerRedisClient, err := redis.New(&cfg.Redis)
+	if err != nil {
+		logger.Errorf("fail to init redis client to router service")
+		return err
+	}
+
+	poolRedisClient, err := redis.New(&cfg.PoolRedis)
+	if err != nil {
+		logger.Errorf("fail to init redis client to pool service")
+		return err
+	}
+
+	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
+	priceRepository := price.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Price.Redis)
+	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
+
+	var balanceSlotsUseCase *erc20balanceslotuc.Cache
+	var aevmClient aevmclient.Client
+	if cfg.AEVMEnabled {
+		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(poolRedisClient.Client, erc20balanceslot.RedisRepositoryConfig{
+			Prefix: cfg.PoolRedis.Prefix,
+		})
+		rpcClient, err := rpc.Dial(cfg.AEVM.RPC)
+		if err != nil {
+			return fmt.Errorf("could not dial JSON-RPC node %w", err)
+		}
+		balanceSlotsProbe := erc20balanceslotuc.NewProbe(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet))
+		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe, cfg.AEVM.PredefinedBalanceSlots)
+		if err := balanceSlotsUseCase.PreloadAll(context.Background()); err != nil {
+			logger.Errorf("could not preload balance slots %s", err)
+			return err
+		}
+		defer balanceSlotsUseCase.CommitToRedis(context.Background())
+
+		aevmClient, err = aevmclient.NewTCPClient(cfg.AEVM.AEVMServerURL, runtime.NumCPU())
+		if err != nil {
+			return err
+		}
+	}
+
+	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
+	poolManager, err := poolmanager.NewNonMaintenancePointerSwapPoolManager(poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager, aevmClient)
+	if err != nil {
+		return err
+	}
+	tokenDataStoreRepo := token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis)
+	tokenCacheRepo := token.NewGoCacheRepository(
+		tokenDataStoreRepo,
+		cfg.Repository.Token.GoCache,
+	)
+
+	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient, cfg.Repository.Gas.Redis)
+
+	bestPathRepository := pathgenerator.NewRedisRepository(routerRedisClient.Client, pathgenerator.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
+
+	// Pre-gen paths for all sources
+	generateBestPathsAllSourcesUseCase := generatepath.NewUseCase(
+		poolManager,
+		tokenCacheRepo,
+		priceRepository,
+		poolRankRepository,
+		gasRepository,
+		bestPathRepository,
+		cfg.UseCase.GenerateBestPaths,
+	)
+
+	// Only pre-gen for sources which are excluded
+	ammSourcesCfgUseCaseGenerateBestPaths := cfg.UseCase.GenerateBestPaths
+	ammSourcesCfgUseCaseGenerateBestPaths.AvailableSources = getrouteencode.GetSourcesAfterExclude(ammSourcesCfgUseCaseGenerateBestPaths.AvailableSources)
+	generateBestPathsAmmSourcesUseCase := generatepath.NewUseCase(
+		poolManager,
+		tokenCacheRepo,
+		priceRepository,
+		poolRankRepository,
+		gasRepository,
+		bestPathRepository,
+		ammSourcesCfgUseCaseGenerateBestPaths,
+	)
+
+	generateBestPathsJob := job.NewGenerateBestPathsJob(
+		generateBestPathsAllSourcesUseCase,
+		generateBestPathsAmmSourcesUseCase,
+		cfg.Job.GenerateBestPaths,
+	)
+
+	reloadManager := reload.NewManager()
+
+	// Run hot-reload manager.
+	// Add all app reloaders in order.
+	reloadManager.RegisterReloader(0, reload.ReloaderFunc(func(ctx context.Context, id string) error {
+		logger.Infof("Received reloading signal: <%s>", id)
+
+		// If configuration fails ignore reload with a warning.
+		err = configLoader.Reload(ctx)
+		if err != nil {
+			logger.Warnf("Config could not be reloaded: %s", err)
+			return nil
+		}
+
+		logger.Infoln("Config reloaded")
+		return nil
+	}))
+
+	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
+		logger.Infof("Received reloading signal: <%s>", id)
+		return applyLatestConfigForPathGenerator(ctx, generateBestPathsAllSourcesUseCase, generateBestPathsAmmSourcesUseCase, poolManager, configLoader)
+	}))
+
+	g, ctx := errgroup.WithContext(ctx)
+	// Register notifier
+	reloadChan := make(chan string)
+	reloadManager.RegisterNotifier(reload.NotifierChan(reloadChan))
+	// run jobs
+	g.Go(func() error {
+		logger.Infof("Starting reload manager")
+		return reloadManager.Run(ctx)
+	})
+
+	g.Go(func() error {
+		logger.Infoln("Starting reload config reporter")
+		reloadConfigReporter.Report(ctx, reloadChan)
+		return nil
+	})
+
+	g.Go(func() error {
+		logger.Info("Starting generateBestPathsJob")
+		generateBestPathsJob.Run(c.Context)
+		return nil
+	})
+
+	return g.Wait()
+}
+
 func getKeyStorage(storageFilePath string) (cryptopkg.KeyPairStorage, error) {
 	keyStorage, err := keystorage.NewInMemoryStorageFromFile(storageFilePath)
 	if err != nil {
@@ -667,6 +860,35 @@ func applyLatestConfigForIndexer(
 
 	logger.Infoln("Applying new config to IndexPoolsUseCase")
 	indexPoolsUseCase.ApplyConfig(cfg.UseCase.IndexPools)
+
+	return nil
+}
+
+func applyLatestConfigForPathGenerator(
+	_ context.Context,
+	generateBestPathsAllSourcesUseCase job.IGeneratePathUseCase,
+	generateBestPathsAmmSourcesUseCase job.IGeneratePathUseCase,
+	poolManager IPoolManager,
+	configLoader *config.ConfigLoader,
+) error {
+	cfg, err := configLoader.Get()
+	if err != nil {
+		return err
+	}
+
+	logger.Infoln("Applying new log level")
+	if err = logger.SetLogLevel(cfg.Log.ConsoleLevel); err != nil {
+		logger.Warnf("reload Log level error cause by <%v>", err)
+	}
+
+	logger.Infoln("Applying new config to PoolManager")
+	poolManager.ApplyConfig(cfg.UseCase.PoolManager)
+
+	logger.Infoln("Applying new config to generateBestPathsAllSourcesUseCase")
+	generateBestPathsAllSourcesUseCase.ApplyConfig(cfg.UseCase.GenerateBestPaths)
+
+	logger.Infoln("Applying new config to generateBestPathsAmmSourcesUseCase")
+	generateBestPathsAmmSourcesUseCase.ApplyConfig(cfg.UseCase.GenerateBestPaths)
 
 	return nil
 }

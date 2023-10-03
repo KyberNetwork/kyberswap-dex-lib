@@ -18,4 +18,5 @@ type AggregatorConfig struct {
 	WhitelistedTokenSet map[string]bool                 `mapstructure:"whitelistedTokenSet" json:"whitelistedTokenSet"`
 	GetBestPoolsOptions valueobject.GetBestPoolsOptions `mapstructure:"getBestPoolsOptions" json:"getBestPoolsOptions"`
 	FinderOptions       valueobject.FinderOptions       `mapstructure:"finderOptions" json:"finderOptions"`
+	FeatureFlags        valueobject.FeatureFlags        `mapstructure:"featureFlags"`
 }

@@ -47,7 +47,65 @@ func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
 	s.lock.Unlock()
 }
 
-// NewPointerSwapPoolManager This will take a while to start since it will generate a copy of all PoolSlice
+// NewNonMaintenancePointerSwapPoolManager return a Pool Manager with only pool addresses and not pool data
+// any service using this implementation will have to call Reload() on its own
+func NewNonMaintenancePointerSwapPoolManager(
+	poolRepository IPoolRepository,
+	poolFactory IPoolFactory,
+	poolRankRepository IPoolRankRepository,
+	config Config,
+	aevmClient aevmclient.Client,
+) (*PointerSwapPoolManager, error) {
+	states := [2]*LockedState{}
+	for i := 0; i < 2; i++ {
+		states[i] = &LockedState{
+			poolByAddress: make(map[string]poolpkg.IPoolSimulator),
+			lock:          &sync.RWMutex{},
+		}
+	}
+	//TODO try policies other than LRU
+	poolCache, err := cachePolicy.New[string, struct{}](config.Capacity)
+	if err != nil {
+		return nil, err
+	}
+
+	// initialize pools to read from DB
+	poolAddresses := poolRankRepository.FindGlobalBestPools(context.Background(), int64(config.Capacity))
+	// add in reverse order so that pools with most volume at top of LRU list
+	for i := len(poolAddresses) - 1; i >= 0; i-- {
+		poolCache.Add(poolAddresses[i], struct{}{})
+	}
+
+	p := PointerSwapPoolManager{
+		states:             states,
+		readFrom:           atomic.Int32{},
+		config:             config,
+		poolFactory:        poolFactory,
+		poolRepository:     poolRepository,
+		poolRankRepository: poolRankRepository,
+		poolCache:          poolCache,
+		lock:               &sync.RWMutex{},
+		aevmClient:         aevmClient,
+	}
+	p.readFrom.Store(0)
+
+	var stateRoot aevmcommon.Hash
+	// if running with aevm
+	if aevmClient != nil {
+		stateRoot, err = aevmClient.LatestStateRoot()
+		if err != nil {
+			logger.Errorf("could not get latest state root for aevm %s", err)
+			return nil, err
+		}
+	}
+	if err = p.preparePoolsData(context.Background(), poolAddresses, common.Hash(stateRoot)); err != nil {
+		return nil, err
+	}
+	//go p.maintain()
+	return &p, nil
+}
+
+// NewPointerSwapPoolManager This will take a while to start since it will generate a copy of all Pool
 func NewPointerSwapPoolManager(
 	poolRepository IPoolRepository,
 	poolFactory IPoolFactory,
@@ -178,21 +236,29 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 	return resultPoolByAddress
 }
 
+func (p *PointerSwapPoolManager) Reload() error {
+	var (
+		stateRoot aevmcommon.Hash
+		err       error
+	)
+	// if running with aevm
+	if p.aevmClient != nil {
+		stateRoot, err = p.aevmClient.LatestStateRoot()
+		if err != nil {
+			logger.Errorf("could not get latest state root for aevm %s", err)
+			return err
+		}
+	}
+
+	return p.preparePoolsData(context.Background(), p.poolCache.Keys(), common.Hash(stateRoot))
+}
+
 func (p *PointerSwapPoolManager) maintain() {
-	var err error
 	for {
 		time.Sleep(p.config.PoolRenewalInterval)
-		var stateRoot aevmcommon.Hash
-		// if running with aevm
-		if p.aevmClient != nil {
-			stateRoot, err = p.aevmClient.LatestStateRoot()
-			if err != nil {
-				logger.Errorf("could not get latest state root for aevm %s", err)
-				continue
-			}
-		}
+
 		// p.poolCache.Keys() return the list of pool address to maintain
-		if err := p.preparePoolsData(context.Background(), p.poolCache.Keys(), common.Hash(stateRoot)); err != nil {
+		if err := p.Reload(); err != nil {
 			logger.Errorf("could not update pool's stateData, error:%s", err)
 		}
 	}

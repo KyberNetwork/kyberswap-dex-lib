@@ -19,4 +19,6 @@ type GetRoutesQuery struct {
 	GasPrice   *big.Float
 
 	ExtraFee valueobject.ExtraFee
+
+	IsPathGeneratorEnabled bool
 }

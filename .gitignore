@@ -34,3 +34,8 @@ test/result
 # Miscellaneous
 command
 app
+*.pyc
+
+certs.pem
+
+cmd/data/__pycache__/

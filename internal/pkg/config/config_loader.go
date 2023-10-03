@@ -176,6 +176,7 @@ func (cl *ConfigLoader) setAvailableSources(availableSources []valueobject.Sourc
 
 	cl.config.Common.AvailableSources = strAvailableSources
 	cl.config.UseCase.GetRoute.AvailableSources = strAvailableSources
+	cl.config.UseCase.GenerateBestPaths.AvailableSources = strAvailableSources
 }
 
 func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.WhitelistedToken) {
@@ -187,6 +188,7 @@ func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.Whi
 	cl.config.Common.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.GetRoute.Aggregator.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.IndexPools.WhitelistedTokenSet = whitelistedTokenSet
+	cl.config.UseCase.GenerateBestPaths.WhitelistedTokens = whitelistedTokens
 }
 
 func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {
@@ -197,10 +199,12 @@ func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {
 
 	cl.config.Common.BlacklistedPoolsSet = blacklistedPoolSet
 	cl.config.UseCase.PoolManager.BlacklistedPoolSet = blacklistedPoolSet
+	cl.config.UseCase.GenerateBestPaths.BlacklistedPools = blacklistedPools
 }
 
 func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
 	cl.config.Common.FeatureFlags = featureFlags
+	cl.config.UseCase.GetRoute.Aggregator.FeatureFlags = featureFlags
 }
 
 func (cl *ConfigLoader) setLog(log valueobject.Log) {
@@ -209,10 +213,12 @@ func (cl *ConfigLoader) setLog(log valueobject.Log) {
 
 func (cl *ConfigLoader) setFinderOptions(finderOptions valueobject.FinderOptions) {
 	cl.config.UseCase.GetRoute.Aggregator.FinderOptions = finderOptions
+	cl.config.UseCase.GenerateBestPaths.SPFAFinderOptions = finderOptions
 }
 
 func (cl *ConfigLoader) setGetBestPoolOptions(getBestPoolsOptions valueobject.GetBestPoolsOptions) {
 	cl.config.UseCase.GetRoute.Aggregator.GetBestPoolsOptions = getBestPoolsOptions
+	cl.config.UseCase.GenerateBestPaths.GetBestPoolsOptions = getBestPoolsOptions
 }
 
 func (cl *ConfigLoader) setCacheConfig(cacheConfig valueobject.CacheConfig) {

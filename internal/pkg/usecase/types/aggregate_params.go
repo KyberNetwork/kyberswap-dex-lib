@@ -38,4 +38,7 @@ type AggregateParams struct {
 
 	// ExtraFee fee charged by client
 	ExtraFee valueobject.ExtraFee
+
+	// IsPathGeneratorEnabled whether we should use pregen paths from path-generator
+	IsPathGeneratorEnabled bool
 }

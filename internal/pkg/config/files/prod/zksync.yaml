@@ -107,6 +107,7 @@ useCase:
         minPartUSD: 500
         minThresholdAmountInUSD: 0
         maxThresholdAmountInUSD: 100000000
+        isPathGeneratorEnabled: false
     cache:
       defaultTtl: 15s
       ttlByAmount:

@@ -17,6 +17,7 @@ import (
 //go:generate mockgen -destination ../mocks/usecase/client_data_encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IClientDataEncoder
 //go:generate mockgen -destination ../mocks/usecase/encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IEncoder
 //go:generate mockgen -destination ../mocks/usecase/pool_rank_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IPoolRankRepository
+//go:generate mockgen -destination ../mocks/usecase/best_path_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IBestPathRepository
 
 // IPoolRepository receives pool addresses, fetch pool data from datastore, decode them and return []entity.Pool
 type IPoolRepository interface {

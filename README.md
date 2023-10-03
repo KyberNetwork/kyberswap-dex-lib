@@ -34,6 +34,9 @@ go build -o app ./cmd/app
 
 # Start API
 ./app -c internal/pkg/config/files/dev/ethereum.yaml api
+
+# Start path generator
+./app -c internal/pkg/config/files/dev/ethereum.yaml pathgenerator
 ```
 
 ## Benchmark

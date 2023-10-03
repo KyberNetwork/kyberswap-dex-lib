@@ -36,6 +36,9 @@ type GetRoutesParams struct {
 
 	// FeeReceiver address to be received custom fee
 	FeeReceiver string `form:"feeReceiver"`
+
+	// IsPathGeneratorEnabled is true, then router-service will use pregen paths from path-generator service
+	IsPathGeneratorEnabled bool `form:"isPathGeneratorEnabled"`
 }
 
 type GetRoutesResponse struct {

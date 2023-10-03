@@ -35,6 +35,7 @@ func NewUseCase(
 	routeCacheRepository IRouteCacheRepository,
 	gasRepository IGasRepository,
 	poolManager IPoolManager,
+	bestPathRepository IBestPathRepository,
 	config Config,
 ) *useCase {
 	aggregator := NewAggregator(
@@ -43,6 +44,7 @@ func NewUseCase(
 		priceRepository,
 		poolManager,
 		config.Aggregator,
+		bestPathRepository,
 	)
 	aggregatorWithCache := NewCache(aggregator, routeCacheRepository, poolManager, config.Cache)
 	aggregatorWitchChargeExtraFee := NewChargeExtraFee(aggregatorWithCache)
@@ -144,19 +146,26 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		return nil, err
 	}
 
+	sources := u.getSources(query.IncludedSources, query.ExcludedSources)
+
+	isPathGeneratorEnabled := false
+	if query.IsPathGeneratorEnabled || u.config.Aggregator.FeatureFlags.IsPathGeneratorEnabled {
+		isPathGeneratorEnabled = true
+	}
 	return &types.AggregateParams{
-		TokenIn:          tokenIn,
-		TokenOut:         tokenOut,
-		GasToken:         tokenByAddress[u.config.GasTokenAddress],
-		TokenInPriceUSD:  priceUSDByAddress[query.TokenIn],
-		TokenOutPriceUSD: priceUSDByAddress[query.TokenOut],
-		GasTokenPriceUSD: priceUSDByAddress[u.config.GasTokenAddress],
-		AmountIn:         query.AmountIn,
-		Sources:          u.getSources(query.IncludedSources, query.ExcludedSources),
-		SaveGas:          query.SaveGas,
-		GasInclude:       query.GasInclude,
-		GasPrice:         gasPrice,
-		ExtraFee:         query.ExtraFee,
+		TokenIn:                tokenIn,
+		TokenOut:               tokenOut,
+		GasToken:               tokenByAddress[u.config.GasTokenAddress],
+		TokenInPriceUSD:        priceUSDByAddress[query.TokenIn],
+		TokenOutPriceUSD:       priceUSDByAddress[query.TokenOut],
+		GasTokenPriceUSD:       priceUSDByAddress[u.config.GasTokenAddress],
+		AmountIn:               query.AmountIn,
+		Sources:                sources,
+		SaveGas:                query.SaveGas,
+		GasInclude:             query.GasInclude,
+		GasPrice:               gasPrice,
+		ExtraFee:               query.ExtraFee,
+		IsPathGeneratorEnabled: isPathGeneratorEnabled,
 	}, nil
 }
 

@@ -9,15 +9,16 @@ package benchmark
 //	"github.com/KyberNetwork/ethrpc"
 //	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 //
+//	usecasecore "github.com/KyberNetwork/router-service/internal/pkg/usecase/core"
+//	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
+//
 //	"github.com/KyberNetwork/router-service/internal/pkg/config"
 //	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-//	"github.com/KyberNetwork/router-service/internal/pkg/core"
 //	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 //	"github.com/KyberNetwork/router-service/internal/pkg/repository"
 //	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
 //	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
-//	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
-//	"github.com/KyberNetwork/router-service/internal/pkg/usecase/factory"
+//	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/routePkg"
 //	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 //	"github.com/KyberNetwork/router-service/pkg/logger"
 //	"github.com/KyberNetwork/router-service/pkg/redis"
@@ -115,7 +116,7 @@ package benchmark
 //	span, ctx := tracer.StartSpanFromContext(ctx, "benchmarkUseCase.listPools")
 //	defer span.End()
 //
-//	directPairKey := business.GenDirectPairKey(tokenInAddress, tokenOutAddress)
+//	directPairKey := usecasecore.GenDirectPairKey(tokenInAddress, tokenOutAddress)
 //
 //	whitelistI := uc.config.WhitelistedTokensByAddress[tokenInAddress]
 //	whitelistJ := uc.config.WhitelistedTokensByAddress[tokenOutAddress]
@@ -304,7 +305,7 @@ package benchmark
 //	return tokenAddresses
 //}
 //
-//func extractBestRoute(routes []*core.Route) *core.Route {
+//func extractBestRoute(routes []*routePkg.Route) *routePkg.Route {
 //	if len(routes) == 0 {
 //		return nil
 //	}
