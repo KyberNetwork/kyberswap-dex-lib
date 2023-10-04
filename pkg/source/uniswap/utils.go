@@ -1,6 +1,8 @@
 package uniswap
 
-import "github.com/ethereum/go-ethereum/core/types"
+import (
+	"github.com/ethereum/go-ethereum/core/types"
+)
 
 func isSyncEvent(log types.Log) bool {
 	if len(log.Topics) == 0 {
@@ -25,4 +27,29 @@ func decodeSyncEvent(log types.Log) (Reserves, error) {
 		Reserve0: syncEvent.Reserve0,
 		Reserve1: syncEvent.Reserve1,
 	}, nil
+}
+
+func findLatestSyncEvent(logs []types.Log) *types.Log {
+	var (
+		found       bool
+		latestEvent types.Log
+	)
+
+	for _, log := range logs {
+		if log.Removed || !isSyncEvent(log) {
+			continue
+		}
+
+		if !found || latestEvent.BlockNumber < log.BlockNumber ||
+			(latestEvent.BlockNumber == log.BlockNumber && latestEvent.Index < log.Index) {
+			found = true
+			latestEvent = log
+		}
+	}
+
+	if !found {
+		return nil
+	}
+
+	return &latestEvent
 }

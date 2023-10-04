@@ -6,7 +6,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -36,7 +35,7 @@ func (d *PoolTracker) GetNewPoolState(
 		reserves Reserves
 	)
 
-	latestSyncEvent := d.findLatestSyncEvent(params.Logs)
+	latestSyncEvent := findLatestSyncEvent(params.Logs)
 	if latestSyncEvent == nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
@@ -98,21 +97,4 @@ func (d *PoolTracker) fetchReservesFromNode(ctx context.Context, poolAddress str
 	}
 
 	return reserves, nil
-}
-
-func (d *PoolTracker) findLatestSyncEvent(logs []types.Log) *types.Log {
-	var latestSyncEvent *types.Log
-	for _, log := range logs {
-		if log.Removed || !isSyncEvent(log) {
-			continue
-		}
-
-		if latestSyncEvent == nil ||
-			latestSyncEvent.BlockNumber < log.BlockNumber ||
-			(latestSyncEvent.BlockNumber == log.BlockNumber && latestSyncEvent.Index < log.Index) {
-			latestSyncEvent = &log
-		}
-	}
-
-	return latestSyncEvent
 }
