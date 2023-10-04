@@ -38,6 +38,9 @@ func (d *PoolTracker) GetNewPoolState(
 
 	latestSyncEvent := d.findLatestSyncEvent(params.Logs)
 	if latestSyncEvent == nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+		}).Info("Fetch reserves from node")
 		reserves, err = d.fetchReservesFromNode(ctx, p.Address)
 		if err != nil {
 			logger.WithFields(logger.Fields{
@@ -46,6 +49,10 @@ func (d *PoolTracker) GetNewPoolState(
 			}).Error("Fail to fetch reserves from node")
 		}
 	} else {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"event":       latestSyncEvent,
+		}).Info("Decode sync event")
 		reserves, err = decodeSyncEvent(*latestSyncEvent)
 		if err != nil {
 			logger.WithFields(logger.Fields{
@@ -108,29 +115,4 @@ func (d *PoolTracker) findLatestSyncEvent(logs []types.Log) *types.Log {
 	}
 
 	return latestSyncEvent
-}
-
-func isSyncEvent(log types.Log) bool {
-	if len(log.Topics) == 0 {
-		return false
-	}
-
-	return log.Topics[0] == uniswapV2PairABI.Events["Sync"].ID
-}
-
-func decodeSyncEvent(log types.Log) (Reserves, error) {
-	filterer, err := NewUniswapFilterer(log.Address, nil)
-	if err != nil {
-		return Reserves{}, err
-	}
-
-	syncEvent, err := filterer.ParseSync(log)
-	if err != nil {
-		return Reserves{}, err
-	}
-
-	return Reserves{
-		Reserve0: syncEvent.Reserve0,
-		Reserve1: syncEvent.Reserve1,
-	}, nil
 }
