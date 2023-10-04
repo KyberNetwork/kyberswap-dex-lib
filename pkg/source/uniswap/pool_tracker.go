@@ -6,7 +6,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -36,8 +35,11 @@ func (d *PoolTracker) GetNewPoolState(
 		reserves Reserves
 	)
 
-	latestSyncEvent := d.findLatestSyncEvent(params.Logs)
+	latestSyncEvent := findLatestSyncEvent(params.Logs)
 	if latestSyncEvent == nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+		}).Debug("Fetch reserves from node")
 		reserves, err = d.fetchReservesFromNode(ctx, p.Address)
 		if err != nil {
 			logger.WithFields(logger.Fields{
@@ -46,6 +48,10 @@ func (d *PoolTracker) GetNewPoolState(
 			}).Error("Fail to fetch reserves from node")
 		}
 	} else {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"event":       latestSyncEvent,
+		}).Debug("Decode sync event")
 		reserves, err = decodeSyncEvent(*latestSyncEvent)
 		if err != nil {
 			logger.WithFields(logger.Fields{
@@ -91,46 +97,4 @@ func (d *PoolTracker) fetchReservesFromNode(ctx context.Context, poolAddress str
 	}
 
 	return reserves, nil
-}
-
-func (d *PoolTracker) findLatestSyncEvent(logs []types.Log) *types.Log {
-	var latestSyncEvent *types.Log
-	for _, log := range logs {
-		if log.Removed || !isSyncEvent(log) {
-			continue
-		}
-
-		if latestSyncEvent == nil ||
-			latestSyncEvent.BlockNumber < log.BlockNumber ||
-			(latestSyncEvent.BlockNumber == log.BlockNumber && latestSyncEvent.Index < log.Index) {
-			latestSyncEvent = &log
-		}
-	}
-
-	return latestSyncEvent
-}
-
-func isSyncEvent(log types.Log) bool {
-	if len(log.Topics) == 0 {
-		return false
-	}
-
-	return log.Topics[0] == uniswapV2PairABI.Events["Sync"].ID
-}
-
-func decodeSyncEvent(log types.Log) (Reserves, error) {
-	filterer, err := NewUniswapFilterer(log.Address, nil)
-	if err != nil {
-		return Reserves{}, err
-	}
-
-	syncEvent, err := filterer.ParseSync(log)
-	if err != nil {
-		return Reserves{}, err
-	}
-
-	return Reserves{
-		Reserve0: syncEvent.Reserve0,
-		Reserve1: syncEvent.Reserve1,
-	}, nil
 }
