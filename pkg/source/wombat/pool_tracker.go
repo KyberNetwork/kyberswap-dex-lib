@@ -138,6 +138,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	var reserves = make([]string, len(p.Tokens))
 	for i, token := range p.Tokens {
 		isPaused := false
+		reserves[i] = zeroString
 		for _, assetQuery := range subgraphQuery.Assets {
 			if strings.EqualFold(assetQuery.ID, assetAddresses[i].Hex()) {
 				isPaused = assetQuery.IsPaused
@@ -157,9 +158,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			Liability:               liabilities[i],
 			RelativePrice:           relativePrices[i],
 		}
-		if liabilities[i] == nil {
-			reserves[i] = big.NewInt(0).String()
-		} else {
+		if liabilities[i] != nil {
 			reserves[i] = liabilities[i].String()
 		}
 	}
