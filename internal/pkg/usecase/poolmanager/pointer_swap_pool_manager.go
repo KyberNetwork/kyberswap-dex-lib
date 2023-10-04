@@ -177,7 +177,7 @@ func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
 // GetPoolByAddress return a reference to pools maintained by `PointerSwapPoolManager`
 // Therefore, do not modify IPool returned here, clone IPool before UpdateBalance
 func (p *PointerSwapPoolManager) GetPoolByAddress(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (map[string]poolpkg.IPoolSimulator, error) {
-	filteredPoolAddress := p.filterBlacklistedAddresses(poolAddresses)
+	filteredPoolAddress := p.filterBlacklistedAddresses(ctx, poolAddresses)
 
 	// update cache policy
 	for _, poolAddress := range filteredPoolAddress {
@@ -267,7 +267,7 @@ func (p *PointerSwapPoolManager) maintain() {
 func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddresses []string, stateRoot common.Hash) error {
 	writeTo := 1 - p.readFrom.Load()
 
-	filteredPoolAddress := p.filterBlacklistedAddresses(poolAddresses)
+	filteredPoolAddress := p.filterBlacklistedAddresses(ctx, poolAddresses)
 
 	poolEntities, err := p.poolRepository.FindByAddresses(ctx, filteredPoolAddress)
 	defer mempool.ReserveMany(poolEntities)
@@ -283,7 +283,7 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 	return nil
 }
 
-func (p *PointerSwapPoolManager) filterBlacklistedAddresses(poolAddresses []string) []string {
+func (p *PointerSwapPoolManager) filterBlacklistedAddresses(ctx context.Context, poolAddresses []string) []string {
 	filtered := make([]string, 0, len(poolAddresses))
 
 	for _, address := range poolAddresses {
@@ -294,5 +294,20 @@ func (p *PointerSwapPoolManager) filterBlacklistedAddresses(poolAddresses []stri
 		filtered = append(filtered, address)
 	}
 
-	return filtered
+	// check again with Redis
+	isInBlacklist, err := p.poolRepository.CheckPoolsInBlacklist(ctx, filtered)
+	if err != nil {
+		logger.Errorf("error checking pool blacklist %v", err)
+		return nil
+	}
+	validPools := make([]string, 0, len(filtered))
+	for idx, address := range filtered {
+		if isInBlacklist[idx] {
+			continue
+		}
+
+		validPools = append(validPools, address)
+	}
+
+	return validPools
 }

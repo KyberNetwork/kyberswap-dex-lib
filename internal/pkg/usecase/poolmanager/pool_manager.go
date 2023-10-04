@@ -69,7 +69,7 @@ func (m *PoolManager) ApplyConfig(config Config) {
 }
 
 func (m *PoolManager) listPools(ctx context.Context, addresses []string, filters ...common.PoolFilter) ([]*entity.Pool, error) {
-	filteredAddresses := m.filterBlacklistedAddresses(addresses)
+	filteredAddresses := m.filterBlacklistedAddresses(ctx, addresses)
 
 	pools, err := m.poolRepository.FindByAddresses(ctx, filteredAddresses)
 	if err != nil {
@@ -151,7 +151,7 @@ func listCurveMetaBasePools(
 	return poolRepository.FindByAddresses(ctx, poolAddresses.List())
 }
 
-func (m *PoolManager) filterBlacklistedAddresses(addresses []string) []string {
+func (m *PoolManager) filterBlacklistedAddresses(ctx context.Context, addresses []string) []string {
 	filtered := make([]string, 0, len(addresses))
 
 	for _, address := range addresses {
@@ -162,5 +162,20 @@ func (m *PoolManager) filterBlacklistedAddresses(addresses []string) []string {
 		filtered = append(filtered, address)
 	}
 
-	return filtered
+	// check again with Redis
+	isInBlacklist, err := m.poolRepository.CheckPoolsInBlacklist(ctx, filtered)
+	if err != nil {
+		logger.Errorf("error checking pool blacklist %v", err)
+		return nil
+	}
+	validPools := make([]string, 0, len(filtered))
+	for idx, address := range filtered {
+		if isInBlacklist[idx] {
+			continue
+		}
+
+		validPools = append(validPools, address)
+	}
+
+	return validPools
 }

@@ -5,6 +5,7 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/redis/go-redis/v9"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
@@ -16,6 +17,8 @@ type redisRepository struct {
 	redisClient redis.UniversalClient
 	config      RedisRepositoryConfig
 	keyPools    string
+
+	keyBlacklistedPools string
 }
 
 func NewRedisRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig) *redisRepository {
@@ -25,12 +28,26 @@ func NewRedisRepository(redisClient redis.UniversalClient, config RedisRepositor
 		config: config,
 
 		keyPools: utils.Join(config.Prefix, KeyPools),
+
+		keyBlacklistedPools: utils.Join(config.Prefix, KeyBlacklistedPools),
 	}
 }
 
 // FindAllAddresses returns all pool addresses
 func (r *redisRepository) FindAllAddresses(ctx context.Context) ([]string, error) {
 	return r.redisClient.HKeys(ctx, r.keyPools).Result()
+}
+
+func (r *redisRepository) CheckPoolsInBlacklist(ctx context.Context, addresses []string) ([]bool, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[pool] redisRepository.CheckPoolsInBlacklist")
+	defer span.End()
+
+	if len(addresses) == 0 {
+		return nil, nil
+	}
+
+	addresses_interface := lo.Map(addresses, func(address string, _ int) interface{} { return address })
+	return r.redisClient.SMIsMember(ctx, r.keyBlacklistedPools, addresses_interface...).Result()
 }
 
 // FindByAddresses returns pools by addresses
