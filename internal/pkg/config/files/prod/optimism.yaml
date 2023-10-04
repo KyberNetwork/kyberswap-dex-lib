@@ -116,6 +116,7 @@ encoder:
     executeSynthetixSwap: 14
     executeAlgebraV1: 21
     executeWombat: 24
+    executeWooFiV2: 25
     executeIziSwap: 26
 useCase:
   getRoute:

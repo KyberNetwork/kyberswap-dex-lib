@@ -93,4 +93,7 @@ func init() {
 
 	// executeWombat
 	RegisterFunctionSelector(valueobject.ExchangeWombat, FunctionSelectorWombat)
+
+	// executeWooFiV2
+	RegisterFunctionSelector(valueobject.ExchangeWooFiV2, FunctionSelectorWooFiV2)
 }

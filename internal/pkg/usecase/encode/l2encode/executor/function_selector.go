@@ -36,6 +36,7 @@ var (
 	FunctionSelectorCamelotSwap    FunctionSelector
 	FunctionSelectorAlgebraV1      FunctionSelector
 	FunctionSelectorWombat         FunctionSelector
+	FunctionSelectorWooFiV2        FunctionSelector
 	FunctionSelectorIZiSwap        FunctionSelector
 )
 
@@ -55,5 +56,6 @@ func init() {
 	FunctionSelectorCamelotSwap = NewFunctionSelector("executeCamelotSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorAlgebraV1 = NewFunctionSelector("executeAlgebraV1", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorWombat = NewFunctionSelector("executeWombat", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
+	FunctionSelectorWooFiV2 = NewFunctionSelector("executeWooFiV2", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorIZiSwap = NewFunctionSelector("executeIziSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 }
