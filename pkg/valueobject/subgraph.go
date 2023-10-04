@@ -17,7 +17,7 @@ func (m *SubgraphMeta) CheckIsLagging(names ...string) {
 		now := time.Now().Unix()
 		lag := now - m.Block.Timestamp
 
-		// hardcode threshold to 5min for now, this will soon be replaced with pool-ticks
+		// hardcode threshold to 10min for now, this will soon be replaced with pool-ticks
 		if lag > 60*10 {
 			logger.Warnf("subgraph is lagging by %v seconds for %v", lag, names)
 		}
