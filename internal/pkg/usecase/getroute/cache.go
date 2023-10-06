@@ -201,6 +201,11 @@ func (c *cache) getCachePointTTL(amount float64) (time.Duration, bool) {
 // genKey retrieves the key required to access the cacheRoute.
 // It returns an error if these parameters do not correspond to a cache point and lack pricing information.
 func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKey, time.Duration, error) {
+	// If request has excluded pools, we will not hit cache.
+	if params.ExcludedPools.Cardinality() != 0 {
+		return nil, 0, nil
+	}
+
 	amountInWithoutDecimals := business.AmountWithoutDecimals(params.AmountIn, params.TokenIn.Decimals)
 	amountInWithoutDecimalsFloat64, _ := amountInWithoutDecimals.Float64()
 

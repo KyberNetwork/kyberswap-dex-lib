@@ -82,6 +82,16 @@ func TestGetRoutesParamsValidator_Validate(t *testing.T) {
 			err: NewValidationError("gasPrice", "invalid"),
 		},
 		{
+			name: "it should return correct error when excludedPools failed",
+			params: params.GetRoutesParams{
+				TokenIn:       "0xc7198437980c041c805a1edcba50c1ce5db95118",
+				TokenOut:      "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+				AmountIn:      "1000000",
+				ExcludedPools: "abc",
+			},
+			err: NewValidationError("excludedPools", "invalid"),
+		},
+		{
 			name: "it should return nil when there is no error",
 			params: params.GetRoutesParams{
 				TokenIn:  "0xc7198437980c041c805a1edcba50c1ce5db95118",

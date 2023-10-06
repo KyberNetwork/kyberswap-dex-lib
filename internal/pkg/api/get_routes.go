@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"strconv"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 
@@ -121,6 +122,7 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 		GasPrice:               gasPrice,
 		ExtraFee:               extraFee,
 		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
+		ExcludedPools:          mapset.NewSet(utils.TransformSliceParams(params.ExcludedPools)...),
 	}, nil
 }
 

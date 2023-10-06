@@ -166,6 +166,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		GasPrice:               gasPrice,
 		ExtraFee:               query.ExtraFee,
 		IsPathGeneratorEnabled: isPathGeneratorEnabled,
+		ExcludedPools:          query.ExcludedPools,
 	}, nil
 }
 

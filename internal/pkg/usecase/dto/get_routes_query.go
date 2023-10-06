@@ -3,6 +3,8 @@ package dto
 import (
 	"math/big"
 
+	mapset "github.com/deckarep/golang-set/v2"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -21,4 +23,6 @@ type GetRoutesQuery struct {
 	ExtraFee valueobject.ExtraFee
 
 	IsPathGeneratorEnabled bool
+
+	ExcludedPools mapset.Set[string]
 }

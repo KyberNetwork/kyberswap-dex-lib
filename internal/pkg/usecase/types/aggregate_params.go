@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	mapset "github.com/deckarep/golang-set/v2"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -41,4 +42,7 @@ type AggregateParams struct {
 
 	// IsPathGeneratorEnabled whether we should use pregen paths from path-generator
 	IsPathGeneratorEnabled bool
+
+	// ExcludedPools name of pool addresses are excluded when finding route, separated by comma
+	ExcludedPools mapset.Set[string]
 }

@@ -307,9 +307,17 @@ func (a *aggregator) getPoolByAddress(
 		return nil, err
 	}
 
+	filteredPoolIDs := make([]string, 0, len(bestPoolIDs))
+	for _, bestPoolID := range bestPoolIDs {
+		if params.ExcludedPools.Contains(bestPoolID) {
+			continue
+		}
+		filteredPoolIDs = append(filteredPoolIDs, bestPoolID)
+	}
+
 	return a.poolManager.GetPoolByAddress(
 		ctx,
-		bestPoolIDs,
+		filteredPoolIDs,
 		params.Sources,
 		stateRoot,
 	)
