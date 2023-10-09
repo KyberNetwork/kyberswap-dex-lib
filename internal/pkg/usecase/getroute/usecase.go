@@ -149,7 +149,8 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 	sources := u.getSources(query.IncludedSources, query.ExcludedSources)
 
 	isPathGeneratorEnabled := false
-	if query.IsPathGeneratorEnabled || u.config.Aggregator.FeatureFlags.IsPathGeneratorEnabled {
+	// Use path generator if empty excludedPools parameter and path generator is enabled.
+	if query.ExcludedPools.Cardinality() == 0 && (query.IsPathGeneratorEnabled || u.config.Aggregator.FeatureFlags.IsPathGeneratorEnabled) {
 		isPathGeneratorEnabled = true
 	}
 	return &types.AggregateParams{
