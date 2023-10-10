@@ -78,6 +78,7 @@ var (
 	ExchangeZyberSwapV3   Exchange = "zyberswap-v3"
 	ExchangeSpacefi       Exchange = "spacefi"
 	ExchangeEzkalibur     Exchange = "ezkalibur"
+	ExchangeMoonBase      Exchange = "moonbase"
 
 	ExchangeOneSwap             Exchange = "oneswap"
 	ExchangeNerve               Exchange = "nerve"
@@ -304,6 +305,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWagmi:                    {},
 	ExchangeDackieV2:                 {},
 	ExchangeBMX:                      {},
+	ExchangeMoonBase:                 {},
 }
 
 func IsAnExchange(exchange Exchange) bool {
