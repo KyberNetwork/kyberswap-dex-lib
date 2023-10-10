@@ -7,7 +7,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"runtime"
 	"time"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
@@ -688,7 +687,7 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 		}
 		defer balanceSlotsUseCase.CommitToRedis(context.Background())
 
-		aevmClient, err = aevmclient.NewTCPClient(cfg.AEVM.AEVMServerURL, runtime.NumCPU())
+		aevmClient, err = aevmclient.NewGRPCClient(cfg.AEVM.AEVMServerURL)
 		if err != nil {
 			return err
 		}
