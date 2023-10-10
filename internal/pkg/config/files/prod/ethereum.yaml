@@ -110,7 +110,7 @@ useCase:
     availableSources: *availableSources
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
-      getBestPoolsOptions:
+      getBestPoolsOptions: &getBestPoolsOptions
         directPoolsCount: 100
         whitelistPoolsCount: 500
         tokenInPoolsCount: 200
@@ -119,7 +119,7 @@ useCase:
         amplifiedTvlWhitelistPoolsCount: 200
         amplifiedTvlTokenInPoolsCount: 100
         amplifiedTvlTokenOutPoolCount: 100
-      finderOptions:
+      finderOptions: &finderOptions
         maxHops: 3
         distributionPercent: 5
         maxPathsInRoute: 20
@@ -232,11 +232,23 @@ useCase:
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
+  generateBestPaths:
+    gasTokenAddress: *gasTokenAddress
+    getBestPoolsOptions: *getBestPoolsOptions
+    spfaFinderOptions: *finderOptions
+    whitelistedTokens: *whitelistedTokenSet
+    availableSources: *availableSources
+    blacklistedPools:
+    configGeneratorDataTtl: 12h
+    pathGeneratorDataTtl: 2h
+    maintainingInterval: 360s
 job:
   indexPools:
     interval: 2s
   updateSuggestedGasPrice:
     interval: 15s
+  generateBestPaths:
+    interval: 360s
 repository:
   gas:
     redis:
