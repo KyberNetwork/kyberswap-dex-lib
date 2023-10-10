@@ -32,7 +32,6 @@ func GetPackSwapDataFunc(exchange valueobject.Exchange) (PackSwapDataFunc, error
 func init() {
 	// Uniswap
 	RegisterPackSwapDataFunc(valueobject.ExchangeCamelot, swapdata.PackCamelot) // Custom PackUniswap
-	RegisterPackSwapDataFunc(valueobject.ExchangeEzkalibur, swapdata.PackCamelot)
 	RegisterPackSwapDataFunc(valueobject.ExchangeChronos, swapdata.PackUniswap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeFraxSwap, swapdata.PackFraxSwap) // Custom PackUniswap
 	RegisterPackSwapDataFunc(valueobject.ExchangeKyberSwap, swapdata.PackUniswap)

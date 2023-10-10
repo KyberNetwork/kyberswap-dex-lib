@@ -102,6 +102,7 @@ func init() {
 
 	// executeCamelotSwap
 	RegisterFunctionSelector(valueobject.ExchangeCamelot, FunctionSelectorCamelotSwap)
+	RegisterFunctionSelector(valueobject.ExchangeEzkalibur, FunctionSelectorCamelotSwap)
 
 	// executeFraxSwap
 	RegisterFunctionSelector(valueobject.ExchangeFraxSwap, FunctionSelectorFraxSwap)
