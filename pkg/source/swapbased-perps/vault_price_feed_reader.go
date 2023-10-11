@@ -74,21 +74,12 @@ func (r *VaultPriceFeedReader) readData(
 	callParamsFactory := CallParamsFactory(r.abi, address)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodBNB, nil), []interface{}{&bnb})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodBNBBUSD, nil), []interface{}{&vaultPriceFeed.BNBBUSDAddress})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodBTC, nil), []interface{}{&btc})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodBTCBNB, nil), []interface{}{&vaultPriceFeed.BTCBNBAddress})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodChainlinkFlags, nil), []interface{}{&vaultPriceFeed.ChainlinkFlagsAddress})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodETH, nil), []interface{}{&eth})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodETHBNB, nil), []interface{}{&vaultPriceFeed.ETHBNBAddress})
 	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodFavorPrimaryPrice, nil), []interface{}{&vaultPriceFeed.FavorPrimaryPrice})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodIsAmmEnabled, nil), []interface{}{&vaultPriceFeed.IsAmmEnabled})
 	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodIsSecondaryPriceEnabled, nil), []interface{}{&vaultPriceFeed.IsSecondaryPriceEnabled})
 	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodMaxStrictPriceDeviation, nil), []interface{}{&vaultPriceFeed.MaxStrictPriceDeviation})
 	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodPriceSampleSpace, nil), []interface{}{&vaultPriceFeed.PriceSampleSpace})
 	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodSecondaryPriceFeed, nil), []interface{}{&vaultPriceFeed.SecondaryPriceFeedAddress})
 	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodSpreadThresholdBasisPoints, nil), []interface{}{&vaultPriceFeed.SpreadThresholdBasisPoints})
-	rpcRequest.AddCall(callParamsFactory(vaultPriceFeedMethodUseV2Pricing, nil), []interface{}{&vaultPriceFeed.UseV2Pricing})
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		r.log.Errorf("error when call aggreate request: %s", err)

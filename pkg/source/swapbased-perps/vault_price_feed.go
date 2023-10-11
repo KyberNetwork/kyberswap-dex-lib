@@ -59,21 +59,12 @@ func NewVaultPriceFeed() *VaultPriceFeed {
 }
 
 const (
-	vaultPriceFeedMethodBNB                        = "bnb"
-	vaultPriceFeedMethodBNBBUSD                    = "bnbBusd"
-	vaultPriceFeedMethodBTC                        = "btc"
-	vaultPriceFeedMethodBTCBNB                     = "btcBnb"
-	vaultPriceFeedMethodChainlinkFlags             = "chainlinkFlags"
-	vaultPriceFeedMethodETH                        = "eth"
-	vaultPriceFeedMethodETHBNB                     = "ethBnb"
 	vaultPriceFeedMethodFavorPrimaryPrice          = "favorPrimaryPrice"
-	vaultPriceFeedMethodIsAmmEnabled               = "isAmmEnabled"
 	vaultPriceFeedMethodIsSecondaryPriceEnabled    = "isSecondaryPriceEnabled"
 	vaultPriceFeedMethodMaxStrictPriceDeviation    = "maxStrictPriceDeviation"
 	vaultPriceFeedMethodPriceSampleSpace           = "priceSampleSpace"
 	vaultPriceFeedMethodSecondaryPriceFeed         = "secondaryPriceFeed"
 	vaultPriceFeedMethodSpreadThresholdBasisPoints = "spreadThresholdBasisPoints"
-	vaultPriceFeedMethodUseV2Pricing               = "useV2Pricing"
 
 	vaultPriceFeedMethodPriceFeeds            = "priceFeeds"
 	vaultPriceFeedMethodPriceDecimals         = "priceDecimals"
