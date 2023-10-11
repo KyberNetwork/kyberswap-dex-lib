@@ -112,6 +112,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeVesync, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeDackieV2, swapdata.PackUniSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeMoonBase, swapdata.PackUniSwap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeScale, swapdata.PackUniSwap)
 
 	RegisterPackSwapDataFunc(valueobject.ExchangeCamelot, swapdata.PackCamelot)
 	RegisterPackSwapDataFunc(valueobject.ExchangeEzkalibur, swapdata.PackCamelot)

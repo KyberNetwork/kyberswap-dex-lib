@@ -21,6 +21,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dodo"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/equalizer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap"
@@ -301,6 +302,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newIZiSwap(entityPool)
 	case constant.PoolTypes.WooFiV2:
 		return f.newWooFiV2(entityPool)
+	case constant.PoolTypes.Equalizer:
+		return f.newEqualizer(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -924,6 +927,20 @@ func (f *PoolFactory) newWooFiV2(entityPool entity.Pool) (*woofiv2.PoolSimulator
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newWooFiV2] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newEqualizer(entityPool entity.Pool) (*equalizer.PoolSimulator, error) {
+	corePool, err := equalizer.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newEqualizer] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

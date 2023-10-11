@@ -64,6 +64,7 @@ type types struct {
 	KyberPMM                 string
 	IZiSwap                  string
 	WooFiV2                  string
+	Equalizer                string
 }
 
 var (
@@ -131,5 +132,6 @@ var (
 		KyberPMM:                 "kyber-pmm",
 		IZiSwap:                  "iziswap",
 		WooFiV2:                  "woofi-v2",
+		Equalizer:                "equalizer",
 	}
 )
