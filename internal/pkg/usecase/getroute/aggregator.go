@@ -309,7 +309,7 @@ func (a *aggregator) getPoolByAddress(
 
 	filteredPoolIDs := make([]string, 0, len(bestPoolIDs))
 	for _, bestPoolID := range bestPoolIDs {
-		if params.ExcludedPools.Contains(bestPoolID) {
+		if params.ExcludedPools != nil && params.ExcludedPools.Contains(bestPoolID) {
 			continue
 		}
 		filteredPoolIDs = append(filteredPoolIDs, bestPoolID)

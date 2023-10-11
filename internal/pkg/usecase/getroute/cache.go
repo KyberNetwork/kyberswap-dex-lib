@@ -202,7 +202,7 @@ func (c *cache) getCachePointTTL(amount float64) (time.Duration, bool) {
 // It returns an error if these parameters do not correspond to a cache point and lack pricing information.
 func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKey, time.Duration, error) {
 	// If request has excluded pools, we will not hit cache.
-	if params.ExcludedPools.Cardinality() != 0 {
+	if params.ExcludedPools != nil && params.ExcludedPools.Cardinality() != 0 {
 		return nil, 0, nil
 	}
 

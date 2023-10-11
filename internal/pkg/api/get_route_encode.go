@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
@@ -169,6 +170,7 @@ func transformFromGetRouteEncodeToGetRoutesQuery(params params.GetRouteEncodePar
 		GasPrice:               gasPrice,
 		ExtraFee:               extraFee,
 		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
+		ExcludedPools:          mapset.NewSet[string](),
 	}, nil
 }
 
