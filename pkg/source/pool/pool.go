@@ -86,6 +86,13 @@ func (r *CalcAmountOutResult) IsValid() bool {
 	return r.TokenAmountOut != nil && r.TokenAmountOut.Amount != nil && r.TokenAmountOut.Amount.Cmp(ZeroBI) > 0
 }
 
+type CalcAmountInResult struct {
+	TokenAmountIn *TokenAmount
+	Fee           *TokenAmount
+	Gas           int64
+	SwapInfo      interface{}
+}
+
 type UpdateBalanceParams struct {
 	TokenAmountIn  TokenAmount
 	TokenAmountOut TokenAmount
@@ -152,4 +159,50 @@ func CalcAmountOut(pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut stri
 			TokenOut:      tokenOut,
 			Limit:         limit,
 		})
+}
+
+// CalcAmountIn we will run CalcAmountOut twice to find the approximate amountIn
+// For example, we need to calculate how many of token X we need to swap to get 1 ETH
+// 1st calculation: we will calculate from 1 ETH, how many token X we will get => 1 ETH => k token X
+// 2nd calculation: we will calculate from k token X, how many ETH we will get => k token X => 0.9 ETH for example
+// After 2 calculations, we have the rate k token X => 0.9 ETH
+// To get 1 ETH, we need k/0.9 token X
+func CalcAmountIn(pool IPoolSimulator, tokenAmountOut TokenAmount, tokenIn string, limit SwapLimit) (res *CalcAmountInResult, err error) {
+	// 1st calculation
+	// We calculate from tokenAmountOut of tokenOut, how many tokenIn we can get (let's call this value X)
+	amountOutTokenIn, err := pool.CalcAmountOut(CalcAmountOutParams{
+		TokenAmountIn: tokenAmountOut,
+		TokenOut:      tokenIn,
+		Limit:         limit,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Now we do the 2nd calculation
+	// We will calculate from X tokenIn, how many tokenOut we can get
+	amountOutTokenOut, err := pool.CalcAmountOut(
+		CalcAmountOutParams{
+			TokenAmountIn: *amountOutTokenIn.TokenAmountOut,
+			TokenOut:      tokenAmountOut.Token,
+			Limit:         limit},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Now we calculate the amountIn of tokenIn we need to get tokenAmountOut of tokenOut
+	amountIn := new(big.Int).Div(new(big.Int).Mul(tokenAmountOut.Amount, amountOutTokenIn.TokenAmountOut.Amount), amountOutTokenOut.TokenAmountOut.Amount)
+
+	return &CalcAmountInResult{
+		TokenAmountIn: &TokenAmount{
+			Token:  tokenIn,
+			Amount: amountIn,
+		},
+		Fee: &TokenAmount{
+			Token:  tokenAmountOut.Token,
+			Amount: nil,
+		},
+		Gas: amountOutTokenOut.Gas,
+	}, nil
 }
