@@ -1,4 +1,4 @@
-package scale
+package equalizer
 
 import (
 	"math/big"
@@ -10,7 +10,7 @@ type Metadata struct {
 	Offset int `json:"offset"`
 }
 
-type ScaleMetadata struct {
+type EqualizerMetadata struct {
 	Dec0 *big.Int
 	Dec1 *big.Int
 	R0   *big.Int

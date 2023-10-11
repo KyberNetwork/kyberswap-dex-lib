@@ -1,9 +1,10 @@
-package scale
+package equalizer
 
 import "math/big"
 
 const (
-	DexTypeScale       = "scale"
+	DexTypeEqualizer = "equalizer"
+
 	defaultTokenWeight = 50
 
 	poolFactoryMethodAllPairLength = "allPairsLength"

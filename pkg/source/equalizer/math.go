@@ -1,4 +1,4 @@
-package scale
+package equalizer
 
 import (
 	"math/big"
@@ -9,7 +9,7 @@ import (
 // reference from smart-contract:
 //
 //	function getAmountOut(uint amountIn, address tokenIn) external view returns (uint)
-//	https://optimistic.etherscan.io/address/0x25cbddb98b35ab1ff77413456b31ec81a6b6b746#code
+//	https://basescan.org/address/0xF3F1F5760a614B8146eec5D1c94658720c2425b9#code
 func getAmountOut(
 	amountIn *big.Int,
 	reserveIn *big.Int,

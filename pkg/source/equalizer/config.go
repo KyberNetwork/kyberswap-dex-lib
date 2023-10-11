@@ -1,4 +1,4 @@
-package scale
+package equalizer
 
 type Config struct {
 	DexID          string `json:"dexID"`

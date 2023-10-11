@@ -1,4 +1,4 @@
-package scale
+package equalizer
 
 import (
 	"context"
@@ -117,7 +117,7 @@ func (d *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 func (d *PoolListUpdater) processBatch(ctx context.Context, poolAddresses []common.Address) ([]entity.Pool, error) {
 	var (
 		limit        = len(poolAddresses)
-		poolMetadata = make([]ScaleMetadata, limit)
+		poolMetadata = make([]EqualizerMetadata, limit)
 		pools        = make([]entity.Pool, 0, limit)
 	)
 
@@ -174,7 +174,7 @@ func (d *PoolListUpdater) processBatch(ctx context.Context, poolAddresses []comm
 		newPool := entity.Pool{
 			Address:     poolAddress,
 			Exchange:    d.config.DexID,
-			Type:        DexTypeScale,
+			Type:        DexTypeEqualizer,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    []string{reserveZero, reserveZero},
 			Tokens:      []*entity.PoolToken{&token0, &token1},

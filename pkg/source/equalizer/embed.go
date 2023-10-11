@@ -1,4 +1,4 @@
-package scale
+package equalizer
 
 import _ "embed"
 
