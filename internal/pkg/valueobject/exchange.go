@@ -277,7 +277,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWombat:                   {},
 	ExchangeSyncSwap:                 {},
 	ExchangeKyberSwapLimitOrder:      {},
-	ExchangeKyberSwapLimitOrderDS:    {},
 	ExchangeMaverickV1:               {},
 	ExchangeHorizonDex:               {},
 	ExchangeRetro:                    {},
@@ -337,6 +336,8 @@ func GetSourcesAsSlice(sources map[Exchange]struct{}) []string {
 
 var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeKyberPMM: {},
+
+	ExchangeKyberSwapLimitOrderDS: {},
 }
 
 func IsRFQSource(exchange Exchange) bool {
