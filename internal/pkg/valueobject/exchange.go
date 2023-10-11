@@ -112,10 +112,11 @@ var (
 
 	ExchangeDodo Exchange = "dodo"
 
-	ExchangeGMX       Exchange = "gmx"
-	ExchangeMadMex    Exchange = "madmex"
-	ExchangeMetavault Exchange = "metavault"
-	ExchangeBMX       Exchange = "bmx"
+	ExchangeGMX            Exchange = "gmx"
+	ExchangeMadMex         Exchange = "madmex"
+	ExchangeMetavault      Exchange = "metavault"
+	ExchangeBMX            Exchange = "bmx"
+	ExchangeSynthSwapPerps Exchange = "synthswap-perps"
 
 	ExchangeSynthetix Exchange = "synthetix"
 
@@ -310,6 +311,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMoonBase:                 {},
 	ExchangeScale:                    {},
 	ExchangeBalDex:                   {},
+	ExchangeSynthSwapPerps:           {},
 }
 
 func IsAnExchange(exchange Exchange) bool {
