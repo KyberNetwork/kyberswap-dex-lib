@@ -344,7 +344,7 @@ func (pf *VaultPriceFeed) getPrimaryPrice(token string, maximise bool) (*big.Int
 	}
 
 	if pf.ChainlinkFlags != nil {
-		isRaised := pf.ChainlinkFlags.GetFlag(FlagArbitrumSeqOffline)
+		isRaised := pf.ChainlinkFlags.GetFlag(flagArbitrumSeqOffline)
 
 		if isRaised {
 			return nil, ErrVaultPriceFeedChainlinkFeedsNotUpdated

@@ -4,7 +4,6 @@ import "math/big"
 
 const DexTypeSwapBasedPerps = "swapbased-perps"
 
-// TODO: what is this?
 const flagArbitrumSeqOffline = "0xa438451d6458044c3c8cd2f6f31c91ac882a6d91"
 
 var (
@@ -13,5 +12,4 @@ var (
 	PricePrecision         = new(big.Int).Exp(big.NewInt(10), big.NewInt(30), nil)
 	USDBDecimals           = big.NewInt(18)
 	OneUSD                 = PricePrecision
-	FlagArbitrumSeqOffline = "0xa438451d6458044c3c8cd2f6f31c91ac882a6d91"
 )
