@@ -23,6 +23,10 @@ func (t *Pool) GetTokens() []string {
 	return t.Info.Tokens
 }
 
+func (t *Pool) GetReserves() []*big.Int {
+	return t.Info.Reserves
+}
+
 // CanSwapTo is the base method to get all swappable tokens from a pool by a given token address
 // Pools with custom logic should override this method
 func (t *Pool) CanSwapTo(address string) []string {
