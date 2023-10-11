@@ -63,12 +63,15 @@ func (uc *useCase) ApplyConfig(config Config) {
 	differentSources := false
 	if len(config.AvailableSources) != len(uc.config.AvailableSources) {
 		differentSources = true
-	}
-	for i := range config.AvailableSources {
-		if config.AvailableSources[i] != uc.config.AvailableSources[i] {
-			differentSources = true
+	} else {
+		for i := range config.AvailableSources {
+			if config.AvailableSources[i] != uc.config.AvailableSources[i] {
+				differentSources = true
+				break
+			}
 		}
 	}
+
 	// if we have a new sources, rehash it.
 	if differentSources {
 		uc.sourceHash = valueobject.HashSources(config.AvailableSources)
