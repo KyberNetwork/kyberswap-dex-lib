@@ -143,13 +143,13 @@ func probeBalanceSlotAction(c *cli.Context) error {
 	}
 	fmt.Printf("numTokens = %v\n", len(tokens))
 
+	balanceSlots, err := balanceSlotRepo.GetAll(context.Background())
+	if err != nil {
+		logger.Errorf("could not get balance slots %s", err)
+	}
+
 	skippedTokens := make(map[common.Address]struct{})
 	if c.Bool("skip-existing-tokens") {
-		balanceSlots, err := balanceSlotRepo.GetAll(context.Background())
-		if err != nil {
-			logger.Errorf("could not get balance slots %s", err)
-		}
-
 		for token, bl := range balanceSlots {
 			if bl.Found {
 				skippedTokens[token] = struct{}{}
@@ -163,7 +163,7 @@ func probeBalanceSlotAction(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	probe := erc20balanceslotuc.NewProbe(rpcClient, walletAddr)
+	probe := erc20balanceslotuc.NewMultipleStrategy(rpcClient, walletAddr)
 
 	var newBalanceSlots []*entity.ERC20BalanceSlot
 	for i, token := range tokens {
@@ -171,22 +171,13 @@ func probeBalanceSlotAction(c *cli.Context) error {
 			continue
 		}
 
-		slot, err := probe.ProbeBalanceSlot(common.HexToAddress(token))
+		oldBl := balanceSlots[common.HexToAddress(token)]
+		bl, err := probe.ProbeBalanceSlot(common.HexToAddress(token), oldBl, nil)
 		if err != nil {
 			fmt.Printf("ERROR: %s\n", err)
-			newBalanceSlots = append(newBalanceSlots, &entity.ERC20BalanceSlot{
-				Token:  token,
-				Wallet: walletAddr.String(),
-				Found:  false,
-			})
 		} else {
-			fmt.Printf("(%d/%d) %s : %s\n", i+1, len(tokens), token, slot)
-			newBalanceSlots = append(newBalanceSlots, &entity.ERC20BalanceSlot{
-				Token:       token,
-				Wallet:      walletAddr.String(),
-				Found:       true,
-				BalanceSlot: slot.String(),
-			})
+			fmt.Printf("(%d/%d) %s : %s\n", i+1, len(tokens), token, bl.BalanceSlot)
+			newBalanceSlots = append(newBalanceSlots, bl)
 		}
 	}
 

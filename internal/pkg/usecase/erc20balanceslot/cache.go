@@ -3,9 +3,6 @@ package erc20balanceslot
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/signal"
-	"strings"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -18,14 +15,14 @@ import (
 
 type Cache struct {
 	repo       erc20balanceslot.IRepository
-	probe      IProbe
+	probe      *MultipleStrategy
 	predefined map[common.Address]*entity.ERC20BalanceSlot
 	cache      sync.Map // common.Address => *entity.ERC20BalanceSlot
 	newEntries sync.Map // common.Address => *entity.ERC20BalanceSlot
 	group      singleflight.Group
 }
 
-func NewCache(repo erc20balanceslot.IRepository, probe IProbe, predefined map[string]*entity.ERC20BalanceSlot) *Cache {
+func NewCache(repo erc20balanceslot.IRepository, probe *MultipleStrategy, predefined map[string]*entity.ERC20BalanceSlot) *Cache {
 	c := &Cache{
 		repo:       repo,
 		probe:      probe,
@@ -34,21 +31,6 @@ func NewCache(repo erc20balanceslot.IRepository, probe IProbe, predefined map[st
 	for token, bl := range predefined {
 		c.predefined[common.HexToAddress(token)] = bl
 	}
-
-	// Set up channel on which to send signal notifications.
-	// We must use a buffered channel or risk missing the signal
-	// if we're not ready to receive when the signal is sent.
-	sigCh := make(chan os.Signal, 1)
-
-	// Passing no signals to Notify means that
-	// all signals will be sent to the channel.
-	signal.Notify(sigCh)
-
-	go func() {
-		s := <-sigCh
-		logger.Infof("got signal %s, commit to Redis", s)
-		c.CommitToRedis(context.Background())
-	}()
 
 	return c
 }
@@ -83,26 +65,38 @@ func (c *Cache) Get(ctx context.Context, token common.Address) (*entity.ERC20Bal
 		return entry, nil
 	}
 	// then try cache
-	if entry, ok := c.cache.Load(token); ok {
-		return entry.(*entity.ERC20BalanceSlot), nil
+	if _entry, ok := c.cache.Load(token); ok {
+		entry := _entry.(*entity.ERC20BalanceSlot)
+		if entry.Found {
+			return entry, nil
+		}
 	}
-	// then probe it
-	_slot, err, _ := c.group.Do(token.String(), func() (interface{}, error) {
-		return c.probe.ProbeBalanceSlot(token)
+	// try to (re)probe the token
+	_bl, err, _ := c.group.Do(token.String(), func() (interface{}, error) {
+		var oldBl *entity.ERC20BalanceSlot
+		if _oldBl, ok := c.cache.Load(token); ok {
+			oldBl = _oldBl.(*entity.ERC20BalanceSlot)
+		}
+		extraParams := &MultipleStrategyExtraParams{}
+		bl, err := c.probe.ProbeBalanceSlot(token, oldBl, extraParams)
+		// store the result
+		if bl != nil {
+			c.cache.Store(token, bl)
+			c.newEntries.Store(token, bl)
+		}
+		// err != nil implies bl == nil
+		if err != nil {
+			return nil, fmt.Errorf("could not find balance slots: %w", err)
+		}
+		if !bl.Found {
+			return nil, fmt.Errorf("could not find balance slots, attempted: %v", bl.StrategiesAttempted)
+		}
+		return bl, nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	slot := _slot.(common.Hash)
-	bl := &entity.ERC20BalanceSlot{
-		Token:       strings.ToLower(token.String()),
-		Wallet:      strings.ToLower(c.probe.GetWallet().String()),
-		Found:       true,
-		BalanceSlot: slot.Hex(),
-	}
-	c.cache.Store(token, bl)
-	c.newEntries.Store(token, bl)
-	return bl, nil
+	return _bl.(*entity.ERC20BalanceSlot), nil
 }
 
 // CommitToRedis writes all new entries to Redis.

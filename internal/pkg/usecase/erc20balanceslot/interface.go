@@ -1,8 +1,16 @@
 package erc20balanceslot
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"github.com/ethereum/go-ethereum/common"
 
-type IProbe interface {
-	ProbeBalanceSlot(token common.Address) (common.Hash, error)
-	GetWallet() common.Address
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+)
+
+type ProbeStrategyExtraParams interface {
+	ProbeStrategyExtraParams()
+}
+
+type ProbeStrategy interface {
+	Name() string
+	ProbeBalanceSlot(token common.Address, extraParams ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error)
 }

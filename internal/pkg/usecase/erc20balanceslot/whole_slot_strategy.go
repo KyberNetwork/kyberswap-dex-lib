@@ -3,12 +3,14 @@ package erc20balanceslot
 import (
 	"errors"
 	"math/rand"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/abis"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/jsonrpc"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -25,25 +27,27 @@ const (
 	gasLimit = "0x7a120"
 )
 
-type Probe struct {
+// WholeSlotStrategy For a ERC20 token and a wallet, find the storage slot of the token that contains the wallet's balance of the token.
+// This strategy only works if the ERC20 token's contract reads and writes balances directly from and to a mapping (e.g `mapping(address => uint256) _balances`).
+type WholeSlotStrategy struct {
 	rpcClient *rpc.Client
 	wallet    common.Address
 }
 
-func NewProbe(rpcClient *rpc.Client, wallet common.Address) *Probe {
-	return &Probe{
+func NewWholeSlotStrategy(rpcClient *rpc.Client, wallet common.Address) *WholeSlotStrategy {
+	return &WholeSlotStrategy{
 		rpcClient: rpcClient,
 		wallet:    wallet,
 	}
 }
 
-func (p *Probe) GetWallet() common.Address {
-	return p.wallet
+func (*WholeSlotStrategy) Name() string {
+	return "whole_slot"
 }
 
 // ProbeBalanceSlot For a ERC20 token and a wallet, find the storage slot of the token that contains the wallet's balance of the token.
 // This approach only works if the ERC20 token's contract reads and writes balances directly from and to a mapping.
-func (p *Probe) ProbeBalanceSlot(token common.Address) (common.Hash, error) {
+func (p *WholeSlotStrategy) ProbeBalanceSlot(token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
 	logger.Infof("probing balance slot for wallet %s in token %s\n", p.wallet, token)
 
 	/*
@@ -51,7 +55,7 @@ func (p *Probe) ProbeBalanceSlot(token common.Address) (common.Hash, error) {
 	*/
 	data, err := abis.ERC20.Pack("balanceOf", p.wallet)
 	if err != nil {
-		return common.Hash{}, err
+		return nil, err
 	}
 	tracingResult := new(tracingResult)
 	err = jsonrpc.DebugTraceCall(
@@ -69,7 +73,7 @@ func (p *Probe) ProbeBalanceSlot(token common.Address) (common.Hash, error) {
 		tracingResult,
 	)
 	if err != nil {
-		return common.Hash{}, err
+		return nil, err
 	}
 
 	// encoded, _ := json.MarshalIndent(tracingResult, "", "  ")
@@ -110,7 +114,7 @@ func (p *Probe) ProbeBalanceSlot(token common.Address) (common.Hash, error) {
 			},
 		)
 		if err != nil {
-			return common.Hash{}, err
+			return nil, err
 		}
 		logger.Debugf("    result = %+v\n", *result)
 		if common.HexToHash(*result) == testValue {
@@ -121,8 +125,13 @@ func (p *Probe) ProbeBalanceSlot(token common.Address) (common.Hash, error) {
 
 	if len(possibleSlots) != 1 {
 		logger.Debugf("    EXPECTED 1 CANDIDATE, GOT %v\n", len(possibleSlots))
-		return common.Hash{}, errors.New("could not probe")
+		return nil, errors.New("could not probe")
 	}
 
-	return possibleSlots[0], nil
+	return &entity.ERC20BalanceSlot{
+		Token:       strings.ToLower(token.String()),
+		Wallet:      strings.ToLower(p.wallet.String()),
+		Found:       true,
+		BalanceSlot: possibleSlots[0].String(),
+	}, nil
 }
