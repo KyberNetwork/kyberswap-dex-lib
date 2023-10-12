@@ -3,6 +3,7 @@ package gmxglp
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/KyberNetwork/logger"
 	"math/big"
 	"strings"
 
@@ -17,13 +18,11 @@ type Gas struct {
 
 type PoolSimulator struct {
 	pool.Pool
-
 	vault      *Vault
 	vaultUtils *VaultUtils
-
 	glpManager *GlpManager
-
-	gas Gas
+	gas        Gas
+	swapInfo   *gmxGlpSwapInfo
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -61,17 +60,20 @@ func (p *PoolSimulator) CalcAmountOut(
 ) (*pool.CalcAmountOutResult, error) {
 	var amountOut, feeAmount *big.Int
 	var err error
+	p.swapInfo = &gmxGlpSwapInfo{}
 
 	if strings.EqualFold(tokenOut, p.glpManager.Glp) {
 		amountOut, err = p.MintAndStakeGlp(tokenAmountIn.Token, tokenAmountIn.Amount)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
+		p.swapInfo.calcAmountOutType = calcAmountOutTypeStake
 	} else if strings.EqualFold(tokenAmountIn.Token, p.glpManager.Glp) {
 		amountOut, err = p.UnstakeAndRedeemGlp(tokenOut, tokenAmountIn.Amount)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
+		p.swapInfo.calcAmountOutType = calcAmountOutTypeUnStake
 	} else {
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("pool gmx-glp %v only allows from/to glp token", p.Info.Address)
 	}
@@ -89,39 +91,44 @@ func (p *PoolSimulator) CalcAmountOut(
 		TokenAmountOut: tokenAmountOut,
 		Fee:            tokenAmountFee,
 		Gas:            p.gas.Swap,
+		SwapInfo: gmxGlpSwapInfo{
+			calcAmountOutType: p.swapInfo.calcAmountOutType,
+			mintAmount:        p.swapInfo.mintAmount,
+			amountAfterFees:   p.swapInfo.amountAfterFees,
+			redemptionAmount:  p.swapInfo.redemptionAmount,
+			usdgAmount:        p.swapInfo.usdgAmount,
+		},
 	}, nil
 }
 
 // UpdateBalance update UsdgAmount only
 // https://github.com/gmx-io/gmx-contracts/blob/787d767e033c411f6d083f2725fb54b7fa956f7e/contracts/core/Vault.sol#L547-L548
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	input, output, fee := params.TokenAmountIn, params.TokenAmountOut, params.Fee
-	priceIn, err := p.vault.GetMinPrice(input.Token)
-	if err != nil {
+	swapInfo, ok := params.SwapInfo.(gmxGlpSwapInfo)
+	if !ok {
+		logger.Error("failed to UpdateBalancer for GmpGlp pool, wrong swapInfo type")
 		return
 	}
 
-	usdgAmount := new(big.Int).Div(new(big.Int).Mul(input.Amount, priceIn), PricePrecision)
-	usdgAmount = p.vault.AdjustForDecimals(usdgAmount, input.Token, p.vault.USDG.Address)
-
-	p.vault.IncreaseUSDGAmount(input.Token, usdgAmount)
-	p.vault.DecreaseUSDGAmount(output.Token, usdgAmount)
-	p.vault.IncreasePoolAmount(input.Token, input.Amount)
-	p.vault.DecreasePoolAmount(output.Token, new(big.Int).Add(output.Amount, fee.Amount))
+	switch swapInfo.calcAmountOutType {
+	case calcAmountOutTypeStake:
+		p.vault.IncreaseUSDGAmount(params.TokenAmountIn.Token, swapInfo.mintAmount)
+		p.vault.IncreasePoolAmount(params.TokenAmountIn.Token, swapInfo.amountAfterFees)
+	case calcAmountOutTypeUnStake:
+		p.vault.DecreaseUSDGAmount(params.TokenAmountOut.Token, swapInfo.usdgAmount)
+		p.vault.DecreasePoolAmount(params.TokenAmountOut.Token, swapInfo.redemptionAmount)
+	}
 }
 
-// CanSwapFrom only allows to swap from address to glp
+// CanSwapFrom only allows glp swap to other tokens or other tokens to glp
 func (p *PoolSimulator) CanSwapFrom(address string) []string {
-	if !strings.EqualFold(address, p.glpManager.Glp) {
-		return []string{p.glpManager.Glp}
-	}
 	return p.CanSwapTo(address)
 }
 
-// CanSwapTo only allows glp swap to other tokens
+// CanSwapTo only allows glp swap to other tokens or other tokens to glp
 func (p *PoolSimulator) CanSwapTo(address string) []string {
 	if !strings.EqualFold(address, p.glpManager.Glp) {
-		return nil
+		return []string{p.glpManager.Glp}
 	}
 
 	whitelistedTokens := p.vault.WhitelistedTokens

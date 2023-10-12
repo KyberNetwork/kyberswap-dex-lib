@@ -9,7 +9,7 @@ func (p *PoolSimulator) MintAndStakeGlp(tokenIn string, amount *big.Int) (*big.I
 	if amount.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrRewardRouterInvalidAmount
 	}
-	glpAmount, err := p.addliquidityForAccount(tokenIn, amount)
+	glpAmount, err := p.addLiquidityForAccount(tokenIn, amount)
 	if err != nil {
 		return nil, err
 	}
@@ -17,7 +17,7 @@ func (p *PoolSimulator) MintAndStakeGlp(tokenIn string, amount *big.Int) (*big.I
 	return glpAmount, nil
 }
 
-func (p *PoolSimulator) addliquidityForAccount(tokenIn string, amount *big.Int) (*big.Int, error) {
+func (p *PoolSimulator) addLiquidityForAccount(tokenIn string, amount *big.Int) (*big.Int, error) {
 	// _addLiquidity
 	if amount.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrGlpManagerInvalidAmount
@@ -99,8 +99,11 @@ func (p *PoolSimulator) BuyUSDG(tokenIn string, tokenAmount *big.Int) (*big.Int,
 	}
 	mintAmount = p.vault.AdjustForDecimals(mintAmount, tokenIn, p.vault.USDG.Address)
 
-	p.vault.IncreaseUSDGAmount(tokenIn, mintAmount)
-	p.vault.IncreasePoolAmount(tokenIn, amountAfterFees)
+	// swapInfo for caching result to updateBalance
+	p.swapInfo.mintAmount = new(big.Int).Set(mintAmount)
+	p.swapInfo.amountAfterFees = new(big.Int).Set(amountAfterFees)
+	//p.vault.IncreaseUSDGAmount(tokenIn, mintAmount)
+	//p.vault.IncreasePoolAmount(tokenIn, amountAfterFees)
 
 	//IUSDG(usdg).mint(_receiver, mintAmount);
 
