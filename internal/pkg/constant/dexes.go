@@ -65,7 +65,7 @@ type types struct {
 	IZiSwap                  string
 	WooFiV2                  string
 	Equalizer                string
-	SwapBasedPerps           string
+	SwapBasedPerp            string
 	USDFi                    string
 }
 
@@ -135,7 +135,7 @@ var (
 		IZiSwap:                  "iziswap",
 		WooFiV2:                  "woofi-v2",
 		Equalizer:                "equalizer",
-		SwapBasedPerps:           "swapbased-perps",
+		SwapBasedPerp:            "swapbased-perp",
 		USDFi:                    "usdfi",
 	}
 )

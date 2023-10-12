@@ -112,12 +112,12 @@ var (
 
 	ExchangeDodo Exchange = "dodo"
 
-	ExchangeGMX            Exchange = "gmx"
-	ExchangeMadMex         Exchange = "madmex"
-	ExchangeMetavault      Exchange = "metavault"
-	ExchangeBMX            Exchange = "bmx"
-	ExchangeSynthSwapPerps Exchange = "synthswap-perps"
-	ExchangeSwapBasedPerps Exchange = "swapbased-perps"
+	ExchangeGMX           Exchange = "gmx"
+	ExchangeMadMex        Exchange = "madmex"
+	ExchangeMetavault     Exchange = "metavault"
+	ExchangeBMX           Exchange = "bmx"
+	ExchangeSynthSwapPerp Exchange = "synthswap-perp"
+	ExchangeSwapBasedPerp Exchange = "swapbased-perp"
 
 	ExchangeSynthetix Exchange = "synthetix"
 
@@ -314,8 +314,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMoonBase:                 {},
 	ExchangeScale:                    {},
 	ExchangeBalDex:                   {},
-	ExchangeSynthSwapPerps:           {},
-	ExchangeSwapBasedPerps:           {},
+	ExchangeSynthSwapPerp:            {},
+	ExchangeSwapBasedPerp:            {},
 	ExchangeMMFV3:                    {},
 	ExchangeUSDFi:                    {},
 }

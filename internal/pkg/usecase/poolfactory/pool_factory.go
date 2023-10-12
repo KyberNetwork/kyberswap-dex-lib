@@ -37,7 +37,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
-	swapbasedperps "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perps"
+	swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap/syncswapclassic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap/syncswapstable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
@@ -306,8 +306,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newWooFiV2(entityPool)
 	case constant.PoolTypes.Equalizer:
 		return f.newEqualizer(entityPool)
-	case constant.PoolTypes.SwapBasedPerps:
-		return f.newSwapBasedPerps(entityPool)
+	case constant.PoolTypes.SwapBasedPerp:
+		return f.newSwapBasedPerp(entityPool)
 	case constant.PoolTypes.USDFi:
 		return f.newUSDFi(entityPool)
 	default:
@@ -955,12 +955,12 @@ func (f *PoolFactory) newEqualizer(entityPool entity.Pool) (*equalizer.PoolSimul
 	return corePool, nil
 }
 
-func (f *PoolFactory) newSwapBasedPerps(entityPool entity.Pool) (*swapbasedperps.PoolSimulator, error) {
-	corePool, err := swapbasedperps.NewPoolSimulator(entityPool)
+func (f *PoolFactory) newSwapBasedPerp(entityPool entity.Pool) (*swapbasedperp.PoolSimulator, error) {
+	corePool, err := swapbasedperp.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
-			"[PoolFactory.newSwapBasedPerps] pool: [%s] » type: [%s]",
+			"[PoolFactory.newSwapBasedPerp] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
