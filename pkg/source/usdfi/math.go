@@ -9,7 +9,7 @@ import (
 // reference from smart-contract:
 //
 //	function getAmountOut(uint amountIn, address tokenIn) external view returns (uint)
-//	https://optimistic.etherscan.io/address/0x25cbddb98b35ab1ff77413456b31ec81a6b6b746#code
+//	https://bscscan.com/address/0x37c395d62668599182DF288535C19D7Df48F2E17#code
 func getAmountOut(
 	amountIn *big.Int,
 	reserveIn *big.Int,
