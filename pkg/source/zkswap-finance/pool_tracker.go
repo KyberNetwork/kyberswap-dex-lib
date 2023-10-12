@@ -42,12 +42,12 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		Params: nil,
 	}, []interface{}{&reserves})
 
-	// rpcRequest.AddCall(&ethrpc.Call{
-	// 	ABI:    pairABI,
-	// 	Target: p.Address,
-	// 	Method: pairMethodGetSwapFee,
-	// 	Params: nil,
-	// }, []interface{}{&swapFee})
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    pairABI,
+		Target: p.Address,
+		Method: pairMethodGetSwapFee,
+		Params: nil,
+	}, []interface{}{&swapFee})
 
 	_, err := rpcRequest.Call()
 	if err != nil {
