@@ -66,6 +66,7 @@ require (
 require github.com/tdewolff/parse/v2 v2.6.6 // indirect
 
 require (
+	github.com/ALTree/bigfloat v0.2.0
 	github.com/DataDog/appsec-internal-go v1.0.0 // indirect
 	github.com/DataDog/datadog-agent/pkg/obfuscate v0.45.0-rc.1 // indirect
 	github.com/DataDog/datadog-agent/pkg/remoteconfig/state v0.45.0-rc.1 // indirect

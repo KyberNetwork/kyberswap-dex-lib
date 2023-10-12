@@ -26,6 +26,7 @@ func NewMultipleStrategy(rpcClient *rpc.Client, wallet common.Address) *Multiple
 	return &MultipleStrategy{
 		strategies: []ProbeStrategy{
 			NewWholeSlotStrategy(rpcClient, wallet),
+			NewWholeSlotWithFStrategy(rpcClient, wallet),
 		},
 	}
 }
