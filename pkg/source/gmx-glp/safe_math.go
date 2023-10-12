@@ -33,12 +33,3 @@ func sub(a, b *big.Int) (*big.Int, error) {
 
 	return new(big.Int).Sub(a, b), nil
 }
-
-func add(a, b *big.Int) (*big.Int, error) {
-	c := new(big.Int).Add(a, b)
-	if c.Cmp(a) < 0 {
-		return nil, ErrSafeMathAddOverflow
-	}
-
-	return c, nil
-}

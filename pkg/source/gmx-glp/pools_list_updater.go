@@ -50,6 +50,10 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		log.Errorf("get glpManager failed: %v", err)
 		return nil, nil, fmt.Errorf("get glpManager failed, pool: %s, err: %v", d.config.GlpManagerAddress, err)
 	}
+	yearnTokenVault, err := NewYearnTokenVaultScanner(d.config, d.ethrpcClient).getYearnTokenVaultScanner(ctx, d.config.YearnTokenVaultAddress)
+	if err != nil {
+		return nil, nil, fmt.Errorf("get yearnTokenVault failed, pool: %s, err: %v", d.config.YearnTokenVaultAddress, err)
+	}
 
 	poolTokens := make([]*entity.PoolToken, 0, len(vault.WhitelistedTokens))
 	reserves := make(entity.PoolReserves, 0, len(vault.WhitelistedTokens))
@@ -63,12 +67,16 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	// Add glpToken
 	poolTokens = append(poolTokens, &entity.PoolToken{
-		Address:   strings.ToLower(glpManager.Glp),
+		Address:   strings.ToLower(yearnTokenVault.Address),
 		Swappable: true,
 	})
-	reserves = append(reserves, glpManager.GlpTotalSupply.String())
+	reserves = append(reserves, yearnTokenVault.TotalSupply.String())
 
-	extra := Extra{Vault: vault, GlpManager: glpManager}
+	extra := Extra{
+		Vault:           vault,
+		GlpManager:      glpManager,
+		YearnTokenVault: yearnTokenVault,
+	}
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

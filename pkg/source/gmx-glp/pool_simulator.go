@@ -9,7 +9,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type Gas struct {
@@ -48,10 +47,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Pool: pool.Pool{
 			Info: info,
 		},
-		vault:      extra.Vault,
-		vaultUtils: NewVaultUtils(extra.Vault),
-		glpManager: extra.GlpManager,
-		gas:        DefaultGas,
+		vault:           extra.Vault,
+		vaultUtils:      NewVaultUtils(extra.Vault),
+		glpManager:      extra.GlpManager,
+		yearnTokenVault: extra.YearnTokenVault,
+		gas:             DefaultGas,
 	}, nil
 }
 
@@ -63,7 +63,7 @@ func (p *PoolSimulator) CalcAmountOut(
 	var err error
 	p.swapInfo = &gmxGlpSwapInfo{}
 
-	if strings.EqualFold(tokenOut, p.glpManager.Glp) {
+	if strings.EqualFold(tokenOut, p.yearnTokenVault.Address) {
 		amountOut, err = p.MintAndStakeGlp(tokenAmountIn.Token, tokenAmountIn.Amount)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
@@ -73,14 +73,18 @@ func (p *PoolSimulator) CalcAmountOut(
 			return &pool.CalcAmountOutResult{}, err
 		}
 		p.swapInfo.calcAmountOutType = calcAmountOutTypeStake
-	} else if strings.EqualFold(tokenAmountIn.Token, p.glpManager.Glp) {
-		amountOut, err = p.UnstakeAndRedeemGlp(tokenOut, tokenAmountIn.Amount)
+	} else if strings.EqualFold(tokenAmountIn.Token, p.yearnTokenVault.Address) {
+		amountOut, err = p.yearnTokenVault.Withdraw(tokenAmountIn.Amount)
+		if err != nil {
+			return &pool.CalcAmountOutResult{}, err
+		}
+		amountOut, err = p.UnstakeAndRedeemGlp(tokenOut, amountOut)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
 		p.swapInfo.calcAmountOutType = calcAmountOutTypeUnStake
 	} else {
-		return &pool.CalcAmountOutResult{}, fmt.Errorf("pool gmx-glp %v only allows from/to glp token", p.Info.Address)
+		return &pool.CalcAmountOutResult{}, fmt.Errorf("pool gmx-glp %v only allows from/to wBLT token %v", p.Info.Address, p.yearnTokenVault.Address)
 	}
 
 	tokenAmountOut := &pool.TokenAmount{
@@ -125,15 +129,15 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	}
 }
 
-// CanSwapFrom only allows glp swap to other tokens or other tokens to glp
+// CanSwapFrom only allows wBLT swap to other tokens or other tokens to wBLT
 func (p *PoolSimulator) CanSwapFrom(address string) []string {
 	return p.CanSwapTo(address)
 }
 
-// CanSwapTo only allows glp swap to other tokens or other tokens to glp
+// CanSwapTo only allows wBLT swap to other tokens or other tokens to wBLT
 func (p *PoolSimulator) CanSwapTo(address string) []string {
-	if !strings.EqualFold(address, p.glpManager.Glp) {
-		return []string{p.glpManager.Glp}
+	if !strings.EqualFold(address, p.yearnTokenVault.Address) {
+		return []string{p.yearnTokenVault.Address}
 	}
 
 	whitelistedTokens := p.vault.WhitelistedTokens
@@ -151,51 +155,10 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	return swappableTokens
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} { return nil }
-
-func (p *PoolSimulator) validateMaxUsdgExceed(token string, amount *big.Int) error {
-	currentUsdgAmount := p.vault.USDGAmounts[token]
-	newUsdgAmount := new(big.Int).Add(currentUsdgAmount, amount)
-
-	maxUsdgAmount := p.vault.MaxUSDGAmounts[token]
-
-	if maxUsdgAmount.Cmp(bignumber.ZeroBI) == 0 {
-		return nil
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+	return Meta{
+		GlpManager: p.glpManager.Address,
+		StakeGLP:   p.glpManager.StakeGlp,
+		YearnVault: p.yearnTokenVault.Address,
 	}
-
-	if newUsdgAmount.Cmp(maxUsdgAmount) < 0 {
-		return nil
-	}
-
-	return ErrVaultMaxUsdgExceeded
-}
-
-func (p *PoolSimulator) validateMinPoolAmount(token string, amount *big.Int) error {
-	currentPoolAmount := p.vault.PoolAmounts[token]
-
-	if currentPoolAmount.Cmp(amount) < 0 {
-		return ErrVaultPoolAmountExceeded
-	}
-
-	newPoolAmount := new(big.Int).Sub(currentPoolAmount, amount)
-	reservedAmount := p.vault.ReservedAmounts[token]
-
-	if reservedAmount.Cmp(newPoolAmount) > 0 {
-		return ErrVaultReserveExceedsPool
-	}
-
-	return nil
-}
-
-func (p *PoolSimulator) validateBufferAmount(token string, amount *big.Int) error {
-	currentPoolAmount := p.vault.PoolAmounts[token]
-	newPoolAmount := new(big.Int).Sub(currentPoolAmount, amount)
-
-	bufferAmount := p.vault.BufferAmounts[token]
-
-	if newPoolAmount.Cmp(bufferAmount) < 0 {
-		return ErrVaultPoolAmountLessThanBufferAmount
-	}
-
-	return nil
 }

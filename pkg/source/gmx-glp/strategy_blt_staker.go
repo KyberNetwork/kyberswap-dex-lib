@@ -3,7 +3,15 @@ package gmxglp
 import "math/big"
 
 type StrategyBltStaker struct {
+	Address              string
 	EstimatedTotalAssets *big.Int `json:"estimatedTotalAssets"`
+}
+
+func NewStrategyBltStaker(address string, estimatedTotalAssets *big.Int) *StrategyBltStaker {
+	return &StrategyBltStaker{
+		Address:              address,
+		EstimatedTotalAssets: estimatedTotalAssets,
+	}
 }
 
 func (s *StrategyBltStaker) Withdraw(amountNeeded *big.Int) (*big.Int, *big.Int) {

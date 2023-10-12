@@ -67,5 +67,6 @@ func (g *GlpManagerScanner) getGlpManager(ctx context.Context, address string) (
 		MaximiseAumInUsdg:    maximiseAumInUsdg,
 		NotMaximiseAumInUsdg: notMaximiseAumInUsdg,
 		GlpTotalSupply:       glpTotalSupply,
+		StakeGlp:             g.config.StakeGLPAddress,
 	}, nil
 }

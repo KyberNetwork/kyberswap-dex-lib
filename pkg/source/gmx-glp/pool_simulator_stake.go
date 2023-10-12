@@ -52,7 +52,7 @@ func (p *PoolSimulator) addLiquidityForAccount(tokenIn string, amount *big.Int) 
 	return mintAmount, nil
 }
 
-func (p *PoolSimulator) BuyUSDG(tokenIn string, tokenAmount *big.Int) (*big.Int, error) {
+func (p *PoolSimulator) BuyUSDG(token string, tokenAmount *big.Int) (*big.Int, error) {
 	//_validate(whitelistedTokens[_token], 16);  // canSwapTo vaildated it
 	p.vault.UseSwapPricing = true
 
@@ -65,7 +65,7 @@ func (p *PoolSimulator) BuyUSDG(tokenIn string, tokenAmount *big.Int) (*big.Int,
 
 	// updateCumulativeFundingRate(_token, _token);
 
-	price, err := p.vault.GetMinPrice(tokenIn)
+	price, err := p.vault.GetMinPrice(token)
 	if err != nil {
 		return nil, err
 	}
@@ -78,14 +78,14 @@ func (p *PoolSimulator) BuyUSDG(tokenIn string, tokenAmount *big.Int) (*big.Int,
 	if err != nil {
 		return nil, err
 	}
-	usdgAmount = p.vault.AdjustForDecimals(usdgAmount, tokenIn, p.vault.USDG.Address)
+	usdgAmount = p.vault.AdjustForDecimals(usdgAmount, token, p.vault.USDG.Address)
 	if usdgAmount.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrVaultNegativeUsdgAmount
 	}
 
 	// getBuyUsdgFeeBasisPoints
-	feeBasicPoints := p.vaultUtils.GetBuyUsdgFeeBasisPoints(tokenIn, usdgAmount)
-	amountAfterFees, err := p.vault.CollectSwapFees(tokenIn, tokenAmount, feeBasicPoints)
+	feeBasicPoints := p.vaultUtils.GetBuyUsdgFeeBasisPoints(token, usdgAmount)
+	amountAfterFees, err := p.vault.CollectSwapFees(token, tokenAmount, feeBasicPoints)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (p *PoolSimulator) BuyUSDG(tokenIn string, tokenAmount *big.Int) (*big.Int,
 	if err != nil {
 		return nil, err
 	}
-	mintAmount = p.vault.AdjustForDecimals(mintAmount, tokenIn, p.vault.USDG.Address)
+	mintAmount = p.vault.AdjustForDecimals(mintAmount, token, p.vault.USDG.Address)
 
 	// swapInfo for caching result to updateBalance
 	p.swapInfo.mintAmount = new(big.Int).Set(mintAmount)

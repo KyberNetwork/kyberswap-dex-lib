@@ -28,3 +28,9 @@ var erc20Json []byte
 
 //go:embed abis/GlpManager.json
 var glpManagerJson []byte
+
+//go:embed abis/YearnTokenVault.json
+var yearnTokenVaultJson []byte
+
+//go:embed abis/StrategyBLTStaker.json
+var strategyBLTStrakerJson []byte

@@ -15,8 +15,15 @@ type VaultAddress struct {
 }
 
 type Extra struct {
-	Vault      *Vault      `json:"vault"`
-	GlpManager *GlpManager `json:"glpManager"`
+	Vault           *Vault           `json:"vault"`
+	GlpManager      *GlpManager      `json:"glpManager"`
+	YearnTokenVault *YearnTokenVault `json:"yearnTokenVault"`
+}
+
+type Meta struct {
+	StakeGLP   string `json:"stakeGLP"`
+	GlpManager string `json:"glpManager"`
+	YearnVault string `json:"yearnVault"`
 }
 
 type ChainID uint

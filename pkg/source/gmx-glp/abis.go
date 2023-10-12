@@ -7,15 +7,17 @@ import (
 )
 
 var (
-	chainlinkABI       abi.ABI
-	fastPriceFeedV1ABI abi.ABI
-	fastPriceFeedV2ABI abi.ABI
-	pancakePairABI     abi.ABI
-	priceFeedABI       abi.ABI
-	vaultABI           abi.ABI
-	vaultPriceFeedABI  abi.ABI
-	erc20ABI           abi.ABI
-	glpManagerABI      abi.ABI
+	chainlinkABI         abi.ABI
+	fastPriceFeedV1ABI   abi.ABI
+	fastPriceFeedV2ABI   abi.ABI
+	pancakePairABI       abi.ABI
+	priceFeedABI         abi.ABI
+	vaultABI             abi.ABI
+	vaultPriceFeedABI    abi.ABI
+	erc20ABI             abi.ABI
+	glpManagerABI        abi.ABI
+	yearnTokenVaultABI   abi.ABI
+	strategyBLTStakerABI abi.ABI
 )
 
 func init() {
@@ -32,6 +34,8 @@ func init() {
 		{&vaultPriceFeedABI, vaultPriceFeedJson},
 		{&erc20ABI, erc20Json},
 		{&glpManagerABI, glpManagerJson},
+		{&yearnTokenVaultABI, yearnTokenVaultJson},
+		{&strategyBLTStakerABI, strategyBLTStrakerJson},
 	}
 
 	for _, b := range builder {

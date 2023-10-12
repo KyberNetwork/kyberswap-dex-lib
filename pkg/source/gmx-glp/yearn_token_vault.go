@@ -1,6 +1,7 @@
 package gmxglp
 
 import (
+	"fmt"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"math/big"
 	"time"
@@ -13,22 +14,31 @@ var (
 )
 
 type YearnStrategy struct {
-	TotalDebt *big.Int `json:"TotalDebt"`
+	TotalDebt            *big.Int `json:"TotalDebt"`
+	EstimatedTotalAssets *big.Int `json:"estimatedTotalAssets"`
 }
-type YearnTokenVault struct {
-	TotalSupply             *big.Int `json:"totalSupply"`
-	TotalAsset              *big.Int `json:"totalAsset"`
-	LastReport              *big.Int `json:"lastReport"`
-	LockedProfitDegradation *big.Int `json:"lockedProfitDegradation"`
-	LockedProfit            *big.Int `json:"lockedProfit"`
-	DepositLimit            *big.Int `json:"depositLimit"`
-	TotalIdle               *big.Int `json:"totalIdle"`
-	// Balance is Token.BalanceOf(self)
-	Balance          *big.Int                  `json:"balance"`
-	YearnStrategyMap map[string]*YearnStrategy `json:"yearnStrategyMap"`
 
-	WithdrawalQueue      []string             `json:"withdrawalQueue"`
-	WithdrawalStrategies map[string]IStrategy `json:"strategies"`
+type YearnTokenVault struct {
+	Address                 string                    `json:"address"`
+	TotalSupply             *big.Int                  `json:"totalSupply"`
+	TotalAsset              *big.Int                  `json:"totalAsset"`
+	LastReport              *big.Int                  `json:"lastReport"`
+	LockedProfitDegradation *big.Int                  `json:"lockedProfitDegradation"`
+	LockedProfit            *big.Int                  `json:"lockedProfit"`
+	DepositLimit            *big.Int                  `json:"depositLimit"`
+	TotalIdle               *big.Int                  `json:"totalIdle"`
+	YearnStrategyMap        map[string]*YearnStrategy `json:"yearnStrategyMap"`
+	WithdrawalQueue         []string                  `json:"withdrawalQueue"`
+}
+
+func (y *YearnTokenVault) GetStrategy(address string) (IStrategy, error) {
+	strategy := y.YearnStrategyMap[address]
+	switch address {
+	case "0x321E9366a4Aaf40855713868710A306Ec665CA00":
+		return NewStrategyBltStaker(address, strategy.EstimatedTotalAssets), nil
+	}
+
+	return nil, fmt.Errorf("not found strategy %v", address)
 }
 
 func (y *YearnTokenVault) Deposit(amount *big.Int) (*big.Int, error) {
@@ -65,7 +75,10 @@ func (y *YearnTokenVault) Withdraw(maxShares *big.Int) (*big.Int, error) {
 				continue
 			}
 
-			withdrawalStrategy := y.WithdrawalStrategies[strategy]
+			withdrawalStrategy, err := y.GetStrategy(strategy)
+			if err != nil {
+				return nil, err
+			}
 
 			amountFreed, loss := withdrawalStrategy.Withdraw(amountNeeded)
 
@@ -89,15 +102,11 @@ func (y *YearnTokenVault) Withdraw(maxShares *big.Int) (*big.Int, error) {
 }
 
 func (y *YearnTokenVault) issueSharesForAmount(amount *big.Int) *big.Int {
-	shares := big.NewInt(0)
 	if y.TotalSupply.Cmp(bignumber.ZeroBI) > 0 {
-		feeFunds := big.NewInt(0)
-		shares = new(big.Int).Div(new(big.Int).Mul(amount, y.TotalSupply), feeFunds)
-	} else {
-		shares = new(big.Int).Set(amount)
+		return new(big.Int).Div(new(big.Int).Mul(amount, y.TotalSupply), y.freeFund())
 	}
 
-	return shares
+	return new(big.Int).Set(amount)
 }
 
 func (y *YearnTokenVault) freeFund() *big.Int {
