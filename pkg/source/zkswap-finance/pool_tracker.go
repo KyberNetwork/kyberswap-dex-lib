@@ -32,7 +32,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 	var (
 		reserves Reserves
-		swapFee  uint64
+		swapFee  uint16
 	)
 
 	rpcRequest.AddCall(&ethrpc.Call{
