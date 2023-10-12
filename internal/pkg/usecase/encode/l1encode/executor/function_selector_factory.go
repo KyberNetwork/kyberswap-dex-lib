@@ -190,6 +190,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeLyve, FunctionSelectorVelodrome)
 	RegisterFunctionSelector(valueobject.ExchangeVesync, FunctionSelectorVelodrome)
 	RegisterFunctionSelector(valueobject.ExchangeScale, FunctionSelectorVelodrome)
+	RegisterFunctionSelector(valueobject.ExchangeUSDFi, FunctionSelectorVelodrome)
 
 	// executePlatypusSwap
 	RegisterFunctionSelector(valueobject.ExchangePlatypus, FunctionSelectorPlatypus)

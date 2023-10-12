@@ -43,6 +43,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/usdfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodromev2"
@@ -307,6 +308,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newEqualizer(entityPool)
 	case constant.PoolTypes.SwapBasedPerps:
 		return f.newSwapBasedPerps(entityPool)
+	case constant.PoolTypes.USDFi:
+		return f.newUSDFi(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -958,6 +961,20 @@ func (f *PoolFactory) newSwapBasedPerps(entityPool entity.Pool) (*swapbasedperps
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSwapBasedPerps] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newUSDFi(entityPool entity.Pool) (*usdfi.PoolSimulator, error) {
+	corePool, err := usdfi.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newUSDFi] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
