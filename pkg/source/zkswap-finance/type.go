@@ -1,12 +1,5 @@
 package zkswapfinance
 
-import "math/big"
-
-type Reserves struct {
-	Reserve0 *big.Int `abi:""`
-	Reserve1 *big.Int `abi:""`
-}
-
 type Metadata struct {
 	Offset int `json:"offset"`
 }

@@ -2,6 +2,7 @@ package zkswapfinance
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -31,8 +32,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	rpcRequest.SetContext(ctx)
 
 	var (
-		reserves Reserves
-		swapFee  uint16
+		reserve0, reserve1 *big.Int
+		swapFee            uint16
 	)
 
 	rpcRequest.AddCall(&ethrpc.Call{
@@ -40,7 +41,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		Target: p.Address,
 		Method: pairMethodGetReservesSimple,
 		Params: nil,
-	}, []interface{}{&reserves})
+	}, []interface{}{&reserve0, &reserve1})
 
 	// rpcRequest.AddCall(&ethrpc.Call{
 	// 	ABI:    pairABI,
@@ -58,8 +59,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	p.SwapFee = float64(swapFee) / float64(bps)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		reserves.Reserve0.String(),
-		reserves.Reserve1.String(),
+		reserve0.String(),
+		reserve1.String(),
 	}
 
 	logger.WithFields(logger.Fields{
