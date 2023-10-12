@@ -57,3 +57,7 @@ type IFastPriceFeed interface {
 	GetVersion() int
 	GetPrice(token string, refPrice *big.Int, maximise bool) *big.Int
 }
+
+type IStrategy interface {
+	Withdraw(amountNeeded *big.Int) (*big.Int, *big.Int)
+}

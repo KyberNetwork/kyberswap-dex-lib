@@ -28,4 +28,8 @@ var (
 	ErrSafeMathDivZero     = errors.New("safeMath: division by zero")
 	ErrSafeMathSubOverflow = errors.New("safeMath: subtraction overflow")
 	ErrSafeMathAddOverflow = errors.New("safeMath: addition overflow")
+
+	ErrYearnTokenVaultDepositNotRespected = errors.New("deposit limit is not respected")
+	ErrYearnTokenVaultDepositNothing      = errors.New("deposit nothing")
+	ErrYearnTokenVaultWithdrawNothing     = errors.New("withdraw nothing")
 )

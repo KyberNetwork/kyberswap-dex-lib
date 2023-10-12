@@ -18,11 +18,12 @@ type Gas struct {
 
 type PoolSimulator struct {
 	pool.Pool
-	vault      *Vault
-	vaultUtils *VaultUtils
-	glpManager *GlpManager
-	gas        Gas
-	swapInfo   *gmxGlpSwapInfo
+	vault           *Vault
+	vaultUtils      *VaultUtils
+	glpManager      *GlpManager
+	yearnTokenVault *YearnTokenVault
+	gas             Gas
+	swapInfo        *gmxGlpSwapInfo
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -64,6 +65,10 @@ func (p *PoolSimulator) CalcAmountOut(
 
 	if strings.EqualFold(tokenOut, p.glpManager.Glp) {
 		amountOut, err = p.MintAndStakeGlp(tokenAmountIn.Token, tokenAmountIn.Amount)
+		if err != nil {
+			return &pool.CalcAmountOutResult{}, err
+		}
+		amountOut, err = p.yearnTokenVault.Deposit(amountOut)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
