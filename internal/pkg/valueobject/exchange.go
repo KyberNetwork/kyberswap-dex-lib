@@ -170,6 +170,8 @@ var (
 	ExchangeWooFiV2  Exchange = "woofi-v2"
 	ExchangeVesync   Exchange = "vesync"
 	ExchangeDackieV2 Exchange = "dackie-v2"
+
+	ExchangeMMFV3 Exchange = "mmf-v3"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -313,6 +315,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBalDex:                   {},
 	ExchangeSynthSwapPerps:           {},
 	ExchangeSwapBasedPerps:           {},
+	ExchangeMMFV3:                    {},
 }
 
 func IsAnExchange(exchange Exchange) bool {
