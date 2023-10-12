@@ -46,10 +46,23 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeZipSwap, swapdata.PackUniswap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeSpartaDex, swapdata.PackUniswap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeArbiDex, swapdata.PackBiswap) // Custom PackUniswap
+	RegisterPackSwapDataFunc(valueobject.ExchangeBaseSwap, swapdata.PackUniswap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeAlienBase, swapdata.PackUniswap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeSwapBased, swapdata.PackUniswap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBvm, swapdata.PackUniswap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBaso, swapdata.PackUniswap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeSynthSwap, swapdata.PackUniswap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeRocketSwapV2, swapdata.PackUniswap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeAerodrome, swapdata.PackUniswap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeDackieV2, swapdata.PackUniswap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeMoonBase, swapdata.PackUniswap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeScale, swapdata.PackUniswap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBalDex, swapdata.PackUniswap)
 
 	// StableSwap
 	RegisterPackSwapDataFunc(valueobject.ExchangeSaddle, swapdata.PackStableSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeSynapse, swapdata.PackStableSwap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeAlienBaseStableSwap, swapdata.PackStableSwap)
 
 	// CurveSwap
 	RegisterPackSwapDataFunc(valueobject.ExchangeCurve, swapdata.PackCurveSwap)
@@ -63,6 +76,9 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeUniSwapV3, swapdata.PackUniswapV3KSElastic)
 	RegisterPackSwapDataFunc(valueobject.ExchangeArbiDexV3, swapdata.PackUniswapV3KSElastic)
 	RegisterPackSwapDataFunc(valueobject.ExchangeMMFV3, swapdata.PackUniswapV3KSElastic)
+	RegisterPackSwapDataFunc(valueobject.ExchangeHorizonDex, swapdata.PackUniswapV3KSElastic)
+	RegisterPackSwapDataFunc(valueobject.ExchangeDackieV3, swapdata.PackUniswapV3KSElastic)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBaseSwapV3, swapdata.PackUniswapV3KSElastic)
 
 	// BalancerV2
 	RegisterPackSwapDataFunc(valueobject.ExchangeBalancer, swapdata.PackBalancerV2)
@@ -74,13 +90,21 @@ func init() {
 
 	// GMX
 	RegisterPackSwapDataFunc(valueobject.ExchangeGMX, swapdata.PackGMX)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBMX, swapdata.PackGMX)
+	RegisterPackSwapDataFunc(valueobject.ExchangeSynthSwapPerp, swapdata.PackGMX)
+	RegisterPackSwapDataFunc(valueobject.ExchangeSwapBasedPerp, swapdata.PackGMX)
 
 	// KyberLimitOrder
 	RegisterPackSwapDataFunc(valueobject.ExchangeKyberSwapLimitOrder, swapdata.PackKyberLimitOrder)
 
+	// MaverickV1
+	RegisterPackSwapDataFunc(valueobject.ExchangeMaverickV1, swapdata.PackMaverickV1)
+
 	// AlgebraV1
 	RegisterPackSwapDataFunc(valueobject.ExchangeCamelotV3, swapdata.PackAlgebraV1)
 	RegisterPackSwapDataFunc(valueobject.ExchangeZyberSwapV3, swapdata.PackAlgebraV1)
+	RegisterPackSwapDataFunc(valueobject.ExchangeSynthSwapV3, swapdata.PackAlgebraV1)
+	RegisterPackSwapDataFunc(valueobject.ExchangeSwapBasedV3, swapdata.PackAlgebraV1)
 
 	// IZiSwap
 	RegisterPackSwapDataFunc(valueobject.ExchangeIZiSwap, swapdata.PackIZiSwap)

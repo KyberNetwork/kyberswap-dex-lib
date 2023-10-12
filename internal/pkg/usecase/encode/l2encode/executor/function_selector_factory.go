@@ -37,6 +37,14 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeZipSwap, FunctionSelectorUniswap)
 	RegisterFunctionSelector(valueobject.ExchangeSpartaDex, FunctionSelectorUniswap)
 	RegisterFunctionSelector(valueobject.ExchangeArbiDex, FunctionSelectorUniswap)
+	RegisterFunctionSelector(valueobject.ExchangeBaseSwap, FunctionSelectorUniswap)
+	RegisterFunctionSelector(valueobject.ExchangeAlienBase, FunctionSelectorUniswap)
+	RegisterFunctionSelector(valueobject.ExchangeSwapBased, FunctionSelectorUniswap)
+	RegisterFunctionSelector(valueobject.ExchangeSynthSwap, FunctionSelectorUniswap)
+	RegisterFunctionSelector(valueobject.ExchangeRocketSwapV2, FunctionSelectorUniswap)
+	RegisterFunctionSelector(valueobject.ExchangeDackieV2, FunctionSelectorUniswap)
+	RegisterFunctionSelector(valueobject.ExchangeMoonBase, FunctionSelectorUniswap)
+	RegisterFunctionSelector(valueobject.ExchangeBalDex, FunctionSelectorUniswap)
 
 	// executeKyberClassic
 	RegisterFunctionSelector(valueobject.ExchangeKyberSwap, FunctionSelectorKSClassic)
@@ -51,6 +59,7 @@ func init() {
 	// executeStableSwap
 	RegisterFunctionSelector(valueobject.ExchangeSaddle, FunctionSelectorStableSwap)
 	RegisterFunctionSelector(valueobject.ExchangeSynapse, FunctionSelectorStableSwap)
+	RegisterFunctionSelector(valueobject.ExchangeAlienBaseStableSwap, FunctionSelectorStableSwap)
 
 	// executeCurveSwap
 	RegisterFunctionSelector(valueobject.ExchangeCurve, FunctionSelectorCurveSwap)
@@ -64,6 +73,9 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeUniSwapV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeArbiDexV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeMMFV3, FunctionSelectorUniV3KSElastic)
+	RegisterFunctionSelector(valueobject.ExchangeHorizonDex, FunctionSelectorUniV3KSElastic)
+	RegisterFunctionSelector(valueobject.ExchangeDackieV3, FunctionSelectorUniV3KSElastic)
+	RegisterFunctionSelector(valueobject.ExchangeBaseSwapV3, FunctionSelectorUniV3KSElastic)
 
 	// executeBalV2Swap
 	RegisterFunctionSelector(valueobject.ExchangeBalancer, FunctionSelectorBalancerV2)
@@ -75,19 +87,31 @@ func init() {
 
 	// executeGMXSwap
 	RegisterFunctionSelector(valueobject.ExchangeGMX, FunctionSelectorGMX)
+	RegisterFunctionSelector(valueobject.ExchangeBMX, FunctionSelectorGMX)
+	RegisterFunctionSelector(valueobject.ExchangeSynthSwapPerp, FunctionSelectorGMX)
+	RegisterFunctionSelector(valueobject.ExchangeSwapBasedPerp, FunctionSelectorGMX)
 
 	// executeVelodromeSwap
 	RegisterFunctionSelector(valueobject.ExchangeChronos, FunctionSelectorVelodrome)
 	RegisterFunctionSelector(valueobject.ExchangeRamses, FunctionSelectorVelodrome)
 	RegisterFunctionSelector(valueobject.ExchangeVelodrome, FunctionSelectorVelodrome)
 	RegisterFunctionSelector(valueobject.ExchangeVelodromeV2, FunctionSelectorVelodrome)
+	RegisterFunctionSelector(valueobject.ExchangeBvm, FunctionSelectorVelodrome)
+	RegisterFunctionSelector(valueobject.ExchangeBaso, FunctionSelectorVelodrome)
+	RegisterFunctionSelector(valueobject.ExchangeAerodrome, FunctionSelectorVelodrome)
+	RegisterFunctionSelector(valueobject.ExchangeScale, FunctionSelectorVelodrome)
 
 	// executeKyberLimitOrder
 	RegisterFunctionSelector(valueobject.ExchangeKyberSwapLimitOrder, FunctionSelectorLimitOrder)
 
+	// executeMaverick
+	RegisterFunctionSelector(valueobject.ExchangeMaverickV1, FunctionSelectorMaverickV1)
+
 	// executeAlgebraV1
 	RegisterFunctionSelector(valueobject.ExchangeCamelotV3, FunctionSelectorAlgebraV1)
 	RegisterFunctionSelector(valueobject.ExchangeZyberSwapV3, FunctionSelectorAlgebraV1)
+	RegisterFunctionSelector(valueobject.ExchangeSynthSwapV3, FunctionSelectorAlgebraV1)
+	RegisterFunctionSelector(valueobject.ExchangeSwapBasedV3, FunctionSelectorAlgebraV1)
 
 	// executeIziSwap
 	RegisterFunctionSelector(valueobject.ExchangeIZiSwap, FunctionSelectorIZiSwap)

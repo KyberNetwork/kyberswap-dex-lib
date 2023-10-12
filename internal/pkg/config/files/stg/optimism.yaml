@@ -114,6 +114,7 @@ encoder:
     executeDODOSwap: 12
     executeGMXSwap: 13
     executeSynthetixSwap: 14
+    executeMaverick: 19
     executeAlgebraV1: 21
     executeWombat: 24
     executeWooFiV2: 25
