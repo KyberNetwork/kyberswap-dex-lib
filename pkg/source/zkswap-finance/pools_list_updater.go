@@ -46,7 +46,6 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	ctx = util.NewContextWithTimestamp(ctx)
 
 	var lengthBI *big.Int
-
 	getNumPoolsRequest := d.ethrpcClient.NewRequest()
 	getNumPoolsRequest.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
@@ -147,8 +146,16 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 		return nil, err
 	}
 
-	pools := make([]entity.Pool, 0, len(pairAddresses))
+	staticExtra := StaticExtra{
+		FeePrecision: feePrecision.Uint64(),
+	}
+	staticExtraBytes, err := json.Marshal(staticExtra)
+	if err != nil {
+		logger.Errorf("failed to marshal static extra, err: %v", err)
+		return nil, err
+	}
 
+	pools := make([]entity.Pool, 0, len(pairAddresses))
 	for i, pairAddress := range pairAddresses {
 		p := strings.ToLower(pairAddress.Hex())
 		token0Address := strings.ToLower(token0Addresses[i].Hex())
@@ -169,11 +176,15 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, pairAddresses []com
 			Address:      p,
 			ReserveUsd:   0,
 			AmplifiedTvl: 0,
+			SwapFee:      0,
 			Exchange:     d.config.DexID,
 			Type:         DexTypeZkSwapFinance,
 			Timestamp:    time.Now().Unix(),
 			Reserves:     []string{reserveZero, reserveZero},
 			Tokens:       []*entity.PoolToken{&token0, &token1},
+			Extra:        "",
+			StaticExtra:  string(staticExtraBytes),
+			TotalSupply:  "",
 		}
 
 		pools = append(pools, newPool)

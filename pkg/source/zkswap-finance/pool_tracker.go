@@ -2,7 +2,6 @@ package zkswapfinance
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -31,24 +30,14 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 
-	var (
-		reserve0, reserve1 *big.Int
-		swapFee            uint16
-	)
+	var reservesAndParameters ReservesAndParameters
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
-		Method: pairMethodGetReservesSimple,
+		Method: getReservesAndParameters,
 		Params: nil,
-	}, []interface{}{&reserve0, &reserve1})
-
-	// rpcRequest.AddCall(&ethrpc.Call{
-	// 	ABI:    pairABI,
-	// 	Target: p.Address,
-	// 	Method: pairMethodGetSwapFee,
-	// 	Params: nil,
-	// }, []interface{}{&swapFee})
+	}, []interface{}{&reservesAndParameters})
 
 	_, err := rpcRequest.Call()
 	if err != nil {
@@ -56,12 +45,12 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		return entity.Pool{}, err
 	}
 
-	p.SwapFee = float64(swapFee) / float64(bps)
-	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		reserve0.String(),
-		reserve1.String(),
+		reservesAndParameters.Reserve0.String(),
+		reservesAndParameters.Reserve1.String(),
 	}
+	p.SwapFee = float64(reservesAndParameters.SwapFee)
+	p.Timestamp = time.Now().Unix()
 
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
