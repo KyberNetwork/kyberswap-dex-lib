@@ -2,7 +2,6 @@ package zkswapfinance
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -33,7 +32,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 	var (
 		reserves Reserves
-		swapFee  *big.Int
+		swapFee  uint64
 	)
 
 	rpcRequest.AddCall(&ethrpc.Call{
@@ -56,7 +55,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		return entity.Pool{}, err
 	}
 
-	p.SwapFee = float64(swapFee.Int64()) / float64(bps)
+	p.SwapFee = float64(swapFee) / float64(bps)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
 		reserves.Reserve0.String(),
