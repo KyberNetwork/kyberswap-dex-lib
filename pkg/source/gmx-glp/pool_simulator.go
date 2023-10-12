@@ -2,6 +2,7 @@ package gmxglp
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -72,10 +73,7 @@ func (p *PoolSimulator) CalcAmountOut(
 			return &pool.CalcAmountOutResult{}, err
 		}
 	} else {
-		amountOut, feeAmount, err = p.getAmountOut(tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount)
-		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
-		}
+		return &pool.CalcAmountOutResult{}, fmt.Errorf("pool gmx-glp %v only allows from/to glp token", p.Info.Address)
 	}
 
 	tokenAmountOut := &pool.TokenAmount{
@@ -112,22 +110,21 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.vault.DecreasePoolAmount(output.Token, new(big.Int).Add(output.Amount, fee.Amount))
 }
 
-func (p *PoolSimulator) CanSwapFrom(address string) []string { return p.CanSwapTo(address) }
-
-func (p *PoolSimulator) CanSwapTo(address string) []string {
-	whitelistedTokens := p.vault.WhitelistedTokens
-
-	isTokenExists := false
-	for _, token := range whitelistedTokens {
-		if strings.EqualFold(token, address) {
-			isTokenExists = true
-		}
+// CanSwapFrom only allows to swap from address to glp
+func (p *PoolSimulator) CanSwapFrom(address string) []string {
+	if !strings.EqualFold(address, p.glpManager.Glp) {
+		return []string{p.glpManager.Glp}
 	}
+	return p.CanSwapTo(address)
+}
 
-	if !isTokenExists {
+// CanSwapTo only allows glp swap to other tokens
+func (p *PoolSimulator) CanSwapTo(address string) []string {
+	if !strings.EqualFold(address, p.glpManager.Glp) {
 		return nil
 	}
 
+	whitelistedTokens := p.vault.WhitelistedTokens
 	swappableTokens := make([]string, 0, len(whitelistedTokens)-1)
 	for _, token := range whitelistedTokens {
 		tokenAddress := token
@@ -143,57 +140,6 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} { return nil }
-
-// getAmountOut returns amountOutAfterFees, feeAmount and error
-func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *big.Int) (*big.Int, *big.Int, error) {
-	if !p.vault.IsSwapEnabled {
-		return nil, nil, ErrVaultSwapsNotEnabled
-	}
-
-	priceIn, err := p.vault.GetMinPrice(tokenIn)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	priceOut, err := p.vault.GetMaxPrice(tokenOut)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	amountOut := new(big.Int).Div(new(big.Int).Mul(amountIn, priceIn), priceOut)
-	amountOut = p.vault.AdjustForDecimals(amountOut, tokenIn, tokenOut)
-
-	usdgAmount := new(big.Int).Div(new(big.Int).Mul(amountIn, priceIn), PricePrecision)
-	usdgAmount = p.vault.AdjustForDecimals(usdgAmount, tokenIn, p.vault.USDG.Address)
-
-	// in smart contract, this validation is implemented inside _increaseUsdgAmount method
-	if err = p.validateMaxUsdgExceed(tokenIn, usdgAmount); err != nil {
-		return nil, nil, err
-	}
-
-	// in smart contract, this validation is implemented inside _decreasePoolAmount method
-	if err = p.validateMinPoolAmount(tokenOut, amountOut); err != nil {
-		return nil, nil, err
-	}
-
-	// in smart contract, this validation is implemented inside _validateBufferAmount method
-	if err = p.validateBufferAmount(tokenOut, amountOut); err != nil {
-		return nil, nil, err
-	}
-
-	feeBasisPoints := p.vaultUtils.GetSwapFeeBasisPoints(tokenIn, tokenOut, usdgAmount)
-	amountOutAfterFees := new(big.Int).Div(
-		new(big.Int).Mul(
-			amountOut,
-			new(big.Int).Sub(BasisPointsDivisor, feeBasisPoints),
-		),
-		BasisPointsDivisor,
-	)
-
-	feeAmount := new(big.Int).Sub(amountOut, amountOutAfterFees)
-
-	return amountOutAfterFees, feeAmount, nil
-}
 
 func (p *PoolSimulator) validateMaxUsdgExceed(token string, amount *big.Int) error {
 	currentUsdgAmount := p.vault.USDGAmounts[token]
