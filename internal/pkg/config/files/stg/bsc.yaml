@@ -218,6 +218,12 @@ useCase:
       shrinkFuncLogPercent: 1.01
   buildRoute:
     chainId: *chainId
+    rfq:
+      - id: kyberswap-limit-order-v2
+        handler: limit-order
+        properties:
+          chainID: *chainId
+          limitOrderHTTPUrl: https://limit-order.stg.kyberengineering.io
   poolFactory:
     chainId: *chainId
   poolManager:

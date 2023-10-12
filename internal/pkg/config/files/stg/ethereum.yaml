@@ -223,6 +223,11 @@ useCase:
             timeout: 10s
             retry_count: 3
           rfq_contract_address: "0x7A819Fa46734a49D0112796f9377E024c350FB26"
+      - id: kyberswap-limit-order-v2
+        handler: limit-order
+        properties:
+          chainID: *chainId
+          limitOrderHTTPUrl: https://limit-order.stg.kyberengineering.io
   poolFactory:
     chainId: *chainId
   poolManager:
