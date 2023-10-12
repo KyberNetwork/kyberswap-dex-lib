@@ -56,7 +56,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		return entity.Pool{}, err
 	}
 
-	p.SwapFee = float64(swapFee.Int64()) / float64(tenThousands)
+	p.SwapFee = float64(swapFee.Int64()) / float64(bps)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
 		reserves.Reserve0.String(),

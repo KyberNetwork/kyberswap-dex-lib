@@ -19,7 +19,7 @@ const (
 )
 
 const (
-	tenThousands = 10000
+	bps = 10000
 )
 
 var (
