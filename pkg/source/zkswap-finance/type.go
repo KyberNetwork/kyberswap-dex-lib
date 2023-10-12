@@ -3,8 +3,8 @@ package zkswapfinance
 import "math/big"
 
 type Reserves struct {
-	Reserve0 *big.Int
-	Reserve1 *big.Int
+	Reserve0 *big.Int `abi:""`
+	Reserve1 *big.Int `abi:""`
 }
 
 type Metadata struct {
