@@ -32,8 +32,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
-		reserve                Reserves
-		stableFee, volatileFee *big.Int
+		reserve Reserves
+		fee     *big.Int
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -46,18 +46,11 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	}, []interface{}{&reserve})
 
 	calls.AddCall(&ethrpc.Call{
-		ABI:    factoryABI,
-		Target: d.config.FactoryAddress,
-		Method: poolFactoryMethodBaseStableFee,
+		ABI:    pairABI,
+		Target: p.Address,
+		Method: poolMethodFee,
 		Params: nil,
-	}, []interface{}{&stableFee})
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    factoryABI,
-		Target: d.config.FactoryAddress,
-		Method: poolFactoryMethodBaseVariableFee,
-		Params: nil,
-	}, []interface{}{&volatileFee})
+	}, []interface{}{&fee})
 
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -68,23 +61,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		return entity.Pool{}, err
 	}
 
-	staticExtra, err := extractStaticExtra(p.StaticExtra)
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-			"error":       err,
-		}).Errorf("failed to extract static extra")
-
-		return entity.Pool{}, err
-	}
-
-	swapFee := volatileFee.Int64()
-	if staticExtra.Stable {
-		swapFee = stableFee.Int64()
-	}
-
 	p.Reserves = entity.PoolReserves{reserve.Reserve0.String(), reserve.Reserve1.String()}
-	p.SwapFee = float64(numeratorOne) / float64(swapFee)
+	p.SwapFee = float64(numeratorOne) / float64(fee.Uint64())
 	p.Timestamp = time.Now().Unix()
 
 	logger.WithFields(logger.Fields{

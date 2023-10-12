@@ -4,13 +4,12 @@ const (
 	DexTypeUSDFi       = "usdfi"
 	defaultTokenWeight = 50
 
-	poolFactoryMethodAllPairLength   = "allPairsLength"
-	poolFactoryMethodAllPairs        = "allPairs"
-	poolFactoryMethodBaseStableFee   = "baseStableFee"
-	poolFactoryMethodBaseVariableFee = "baseVariableFee"
+	poolFactoryMethodAllPairLength = "allPairsLength"
+	poolFactoryMethodAllPairs      = "allPairs"
 
 	poolMethodMetadata    = "metadata"
 	poolMethodGetReserves = "getReserves"
+	poolMethodFee         = "fee"
 
 	reserveZero = "0"
 )
