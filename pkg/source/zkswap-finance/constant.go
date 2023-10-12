@@ -12,10 +12,10 @@ const (
 	factoryMethodGetPair        = "allPairs"
 	factoryMethodAllPairsLength = "allPairsLength"
 
-	pairMethodToken0      = "token0"
-	pairMethodToken1      = "token1"
-	pairMethodGetReserves = "getReserves"
-	pairMethodGetSwapFee  = "getSwapFee"
+	pairMethodToken0            = "token0"
+	pairMethodToken1            = "token1"
+	pairMethodGetReservesSimple = "getReservesSimple"
+	pairMethodGetSwapFee        = "getSwapFee"
 )
 
 const (

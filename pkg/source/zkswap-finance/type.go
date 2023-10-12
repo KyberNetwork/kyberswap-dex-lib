@@ -3,9 +3,8 @@ package zkswapfinance
 import "math/big"
 
 type Reserves struct {
-	Reserve0           *big.Int
-	Reserve1           *big.Int
-	BlockTimestampLast uint32
+	Reserve0 *big.Int
+	Reserve1 *big.Int
 }
 
 type Metadata struct {
