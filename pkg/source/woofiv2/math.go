@@ -66,6 +66,10 @@ func sellQuote(
 	baseTokenInfo.Reserve = new(big.Int).Sub(baseTokenInfo.Reserve, baseAmount)
 	quoteTokenInfo.Reserve = new(big.Int).Add(quoteTokenInfo.Reserve, quoteAmount)
 
+	if baseTokenInfo.Reserve.Cmp(bignumber.ZeroBI) < 0 || baseAmount.Cmp(bignumber.ZeroBI) < 0 {
+		return nil, ErrBaseBalanceNotEnough
+	}
+
 	return baseAmount, nil
 }
 
@@ -114,6 +118,10 @@ func sellBase(
 
 	baseTokenInfo.Reserve = new(big.Int).Add(baseTokenInfo.Reserve, baseAmount)
 	quoteTokenInfo.Reserve = new(big.Int).Sub(quoteTokenInfo.Reserve, new(big.Int).Sub(quoteAmount, swapFee))
+
+	if quoteTokenInfo.Reserve.Cmp(bignumber.ZeroBI) < 0 || quoteAmount.Cmp(bignumber.ZeroBI) < 0 {
+		return nil, ErrQuoteBalanceNotEnough
+	}
 
 	return quoteAmountAfterFee, nil
 }
@@ -185,6 +193,10 @@ func swapBaseToBase(
 	}
 
 	base2TokenInfo.Reserve = new(big.Int).Sub(base2TokenInfo.Reserve, base2Amount)
+
+	if base2TokenInfo.Reserve.Cmp(bignumber.ZeroBI) < 0 || base2Amount.Cmp(bignumber.ZeroBI) < 0 {
+		return nil, ErrBase2BalanceNotEnough
+	}
 
 	return base2Amount, nil
 }
