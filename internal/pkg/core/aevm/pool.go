@@ -185,16 +185,22 @@ func CalcAmountOutAEVM(
 	}
 	// make sure wallet have abundant native tokens
 	overrides.OverrideBalance(wallet, new(uint256.Int).SetUint64(math.MaxUint64))
-	// overriding amountIn
-	var overridedBalance aevmcommon.Hash
-	if blIn.PreferredValue != "" {
-		// Some token stores balance in specical way that we coud only handle case-by-case.
-		overridedBalance = aevmcommon.HexToHash(blIn.PreferredValue)
-	} else {
-		overridedBalance = uint256.MustFromBig(amountIn).Bytes32()
+	// overriding amountIn if BalanceSlot is specified
+	if blIn.BalanceSlot != "" {
+		var overridedBalance aevmcommon.Hash
+		if blIn.PreferredValue != "" {
+			// Some token stores balance in specical way that we coud only handle case-by-case.
+			overridedBalance = aevmcommon.HexToHash(blIn.PreferredValue)
+			// if overridedBalance < amountIn
+			if new(big.Int).SetBytes(overridedBalance[:]).Cmp(amountIn) < 0 {
+				return nil, fmt.Errorf("overridedBalance must >= amountIn")
+			}
+		} else {
+			overridedBalance = uint256.MustFromBig(amountIn).Bytes32()
+		}
+		// make sure wallet have enough amountIn
+		overrides.OverrideState(aevmcommon.Address(tokenIn), aevmcommon.HexToHash(blIn.BalanceSlot), overridedBalance)
 	}
-	// make sure wallet have enough amountIn
-	overrides.OverrideState(aevmcommon.Address(tokenIn), aevmcommon.HexToHash(blIn.BalanceSlot), overridedBalance)
 	// override extra if needed
 	for slot, val := range blIn.ExtraOverrides {
 		overrides.OverrideState(aevmcommon.Address(tokenIn), aevmcommon.HexToHash(slot), aevmcommon.HexToHash(val))
