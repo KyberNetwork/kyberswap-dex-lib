@@ -68,6 +68,7 @@ type types struct {
 	SwapBasedPerp            string
 	USDFi                    string
 	ZkSwapFinance            string
+	MantisSwap               string
 }
 
 var (
@@ -139,5 +140,6 @@ var (
 		SwapBasedPerp:            "swapbased-perp",
 		USDFi:                    "usdfi",
 		ZkSwapFinance:            "zkswap-finance",
+		MantisSwap:               "mantisswap",
 	}
 )

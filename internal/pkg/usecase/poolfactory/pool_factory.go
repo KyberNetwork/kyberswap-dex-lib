@@ -31,6 +31,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/madmex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/makerpsm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/mantisswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/metavault"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pancakev3"
@@ -313,6 +314,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newUSDFi(entityPool)
 	case constant.PoolTypes.ZkSwapFinance:
 		return f.newZkSwapFinance(entityPool)
+	case constant.PoolTypes.MantisSwap:
+		return f.newMantisSwap(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -992,6 +995,20 @@ func (f *PoolFactory) newZkSwapFinance(entityPool entity.Pool) (*zkswapfinance.P
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newZkSwapFinance] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newMantisSwap(entityPool entity.Pool) (*mantisswap.PoolSimulator, error) {
+	corePool, err := mantisswap.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newMantisSwap] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

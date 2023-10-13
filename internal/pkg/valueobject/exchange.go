@@ -152,8 +152,9 @@ var (
 	ExchangeScale       Exchange = "scale"
 	ExchangeUSDFi       Exchange = "usdfi"
 
-	ExchangePlatypus Exchange = "platypus"
-	ExchangeWombat   Exchange = "wombat"
+	ExchangePlatypus   Exchange = "platypus"
+	ExchangeWombat     Exchange = "wombat"
+	ExchangeMantisSwap Exchange = "mantisswap"
 
 	ExchangeSyncSwap Exchange = "syncswap"
 
@@ -280,6 +281,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMuteSwitch:               {},
 	ExchangePlatypus:                 {},
 	ExchangeWombat:                   {},
+	ExchangeMantisSwap:               {},
 	ExchangeSyncSwap:                 {},
 	ExchangeKyberSwapLimitOrder:      {},
 	ExchangeMaverickV1:               {},

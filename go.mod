@@ -20,6 +20,7 @@ require (
 	github.com/alicebob/miniredis v2.5.0+incompatible
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/cespare/xxhash/v2 v2.2.0
+	github.com/deckarep/golang-set/v2 v2.1.0
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/envoyproxy/protoc-gen-validate v0.10.1
 	github.com/ethereum/go-ethereum v1.12.0
