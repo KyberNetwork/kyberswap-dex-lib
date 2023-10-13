@@ -80,6 +80,7 @@ var (
 	ExchangeEzkalibur     Exchange = "ezkalibur"
 	ExchangeMoonBase      Exchange = "moonbase"
 	ExchangeBalDex        Exchange = "baldex"
+	ExchangeZkSwapFinance Exchange = "zkswap-finance"
 
 	ExchangeOneSwap             Exchange = "oneswap"
 	ExchangeNerve               Exchange = "nerve"
@@ -318,6 +319,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSwapBasedPerp:            {},
 	ExchangeMMFV3:                    {},
 	ExchangeUSDFi:                    {},
+	ExchangeZkSwapFinance:            {},
 }
 
 func IsAnExchange(exchange Exchange) bool {

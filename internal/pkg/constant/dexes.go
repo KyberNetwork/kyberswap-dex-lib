@@ -67,6 +67,7 @@ type types struct {
 	Equalizer                string
 	SwapBasedPerp            string
 	USDFi                    string
+	ZkSwapFinance            string
 }
 
 var (
@@ -137,5 +138,6 @@ var (
 		Equalizer:                "equalizer",
 		SwapBasedPerp:            "swapbased-perp",
 		USDFi:                    "usdfi",
+		ZkSwapFinance:            "zkswap-finance",
 	}
 )
