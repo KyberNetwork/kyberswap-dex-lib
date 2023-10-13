@@ -195,22 +195,6 @@ func TestIndexPools_Handle(t *testing.T) {
 					true,
 					false,
 				).Return(nil)
-				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
-					gomock.Any(),
-					mockPools[2],
-					mockTokens[0].Address,
-					mockTokens[1].Address,
-					true,
-					false,
-				).Return(nil)
-				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
-					gomock.Any(),
-					mockPools[2],
-					mockTokens[3].Address,
-					mockTokens[4].Address,
-					true,
-					false,
-				).Return(nil)
 
 				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, mockConfig)
 			},
@@ -276,22 +260,6 @@ func TestIndexPools_Handle(t *testing.T) {
 				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
 					gomock.Any(),
 					mockPools[1],
-					mockTokens[3].Address,
-					mockTokens[4].Address,
-					true,
-					false,
-				).Return(nil)
-				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
-					gomock.Any(),
-					mockPools[2],
-					mockTokens[0].Address,
-					mockTokens[1].Address,
-					true,
-					false,
-				).Return(nil)
-				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
-					gomock.Any(),
-					mockPools[2],
 					mockTokens[3].Address,
 					mockTokens[4].Address,
 					true,

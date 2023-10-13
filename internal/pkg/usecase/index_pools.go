@@ -80,29 +80,31 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) bo
 	for i := 0; i < len(poolTokens); i++ {
 		tokenI := poolTokens[i]
 		whiteListI := u.isWhitelistedToken(tokenI.Address)
-		if !tokenI.Swappable {
+		if !tokenI.Swappable || len(pool.Reserves)-1 < i {
 			continue
 		}
 		for j := i + 1; j < len(poolTokens); j++ {
 			tokenJ := poolTokens[j]
-			if !tokenJ.Swappable {
+			if !tokenJ.Swappable || len(pool.Reserves)-1 < j {
 				continue
 			}
 			whiteListJ := u.isWhitelistedToken(tokenJ.Address)
 
-			if pool.HasReserves() {
-				err := u.poolRankRepo.AddToSortedSetScoreByTvl(ctx, pool, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ)
+			if pool.HasReserve(pool.Reserves[i]) && pool.HasReserve(pool.Reserves[j]) {
+				if pool.HasReserves() {
+					err := u.poolRankRepo.AddToSortedSetScoreByTvl(ctx, pool, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ)
 
-				if err != nil {
-					result = false
+					if err != nil {
+						result = false
+					}
 				}
-			}
 
-			if pool.HasAmplifiedTvl() {
-				err := u.poolRankRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ)
+				if pool.HasAmplifiedTvl() {
+					err := u.poolRankRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ)
 
-				if err != nil {
-					result = false
+					if err != nil {
+						result = false
+					}
 				}
 			}
 		}
@@ -116,24 +118,29 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) bo
 		if err == nil {
 			for i := 0; i < len(extra.UnderlyingTokens); i++ {
 				for j := i + 1; j < len(extra.UnderlyingTokens); j++ {
+					if len(pool.Reserves)-1 < j {
+						continue
+					}
 					tokenI := extra.UnderlyingTokens[i]
 					whiteListI := u.isWhitelistedToken(tokenI)
 					tokenJ := extra.UnderlyingTokens[j]
 					whiteListJ := u.isWhitelistedToken(tokenJ)
 
-					if pool.HasReserves() {
-						err := u.poolRankRepo.AddToSortedSetScoreByTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
+					if pool.HasReserve(pool.Reserves[i]) && pool.HasReserve(pool.Reserves[j]) {
+						if pool.HasReserves() {
+							err := u.poolRankRepo.AddToSortedSetScoreByTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
 
-						if err != nil {
-							result = false
+							if err != nil {
+								result = false
+							}
 						}
-					}
 
-					if pool.HasAmplifiedTvl() {
-						err := u.poolRankRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
+						if pool.HasAmplifiedTvl() {
+							err := u.poolRankRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
 
-						if err != nil {
-							result = false
+							if err != nil {
+								result = false
+							}
 						}
 					}
 				}
