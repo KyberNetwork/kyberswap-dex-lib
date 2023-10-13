@@ -26,7 +26,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	var tokens = make([]string, len(entityPool.Tokens))
+	var tokens = make([]string, 0, len(entityPool.Tokens))
 	for _, token := range entityPool.Tokens {
 		tokens = append(tokens, token.Address)
 	}
