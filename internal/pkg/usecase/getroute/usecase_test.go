@@ -1,0 +1,229 @@
+package getroute
+
+import (
+	"context"
+	"errors"
+	"math/big"
+	"testing"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/getroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/golang/mock/gomock"
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+)
+
+func TestGetRouteUseCase_Handle(t *testing.T) {
+	t.Parallel()
+
+	amountIn, _ := new(big.Int).SetString("1000000000000000", 10)
+
+	testCases := []struct {
+		name    string
+		command dto.GetRoutesQuery
+		err     error
+	}{
+		{
+			name: "it should succeed when get route with common params",
+			command: dto.GetRoutesQuery{
+				TokenIn:    "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+				TokenOut:   "0xdac17f958d2ee523a2206206994597c13d831ec7",
+				AmountIn:   amountIn,
+				SaveGas:    false,
+				GasInclude: true,
+			},
+		},
+		{
+			name: "it should return route not found when exclude sources",
+			command: dto.GetRoutesQuery{
+				TokenIn:         "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+				TokenOut:        "0xdac17f958d2ee523a2206206994597c13d831ec7",
+				AmountIn:        amountIn,
+				SaveGas:         false,
+				GasInclude:      true,
+				ExcludedSources: []string{"uniswap"},
+			},
+			err: ErrPoolSetEmpty,
+		},
+		{
+			name: "it should return route not found when exclude pools",
+			command: dto.GetRoutesQuery{
+				TokenIn:       "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+				TokenOut:      "0xdac17f958d2ee523a2206206994597c13d831ec7",
+				AmountIn:      amountIn,
+				SaveGas:       false,
+				GasInclude:    true,
+				ExcludedPools: mapset.NewSet("0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852"),
+			},
+			err: ErrPoolSetEmpty,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			uc := prepareUsecase(ctrl)
+			result, err := uc.Handle(context.Background(), tc.command)
+
+			assert.ErrorIs(t, err, tc.err)
+
+			if tc.err == nil {
+				assert.Equal(t, tc.command.TokenIn, result.RouteSummary.TokenIn)
+				assert.Equal(t, tc.command.TokenOut, result.RouteSummary.TokenOut)
+			}
+		})
+	}
+}
+
+func prepareUsecase(ctrl *gomock.Controller) *useCase {
+	// Mock up tokens
+	tokenWETH := &entity.Token{
+		Name:     "Wrapped Ether",
+		Symbol:   "WETH",
+		Address:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+		Decimals: 18,
+	}
+	priceWETH := &entity.Price{
+		Address:   tokenWETH.Address,
+		Price:     1576.07366,
+		Liquidity: 180000000,
+	}
+	tokenUSDT := &entity.Token{
+		Name:     "Tether USD",
+		Symbol:   "USDT",
+		Address:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
+		Decimals: 6,
+	}
+	priceUSDT := &entity.Price{
+		Address:   tokenUSDT.Address,
+		Price:     1,
+		Liquidity: 99999999999999,
+	}
+
+	// Mock up pools
+	entityPools := []*entity.Pool{
+		{
+			Address:  "0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852",
+			Exchange: "uniswap",
+			Type:     "uniswap",
+			Reserves: entity.PoolReserves{"21807913977161779085372", "34113654675815"},
+			Tokens: []*entity.PoolToken{
+				{Address: tokenWETH.Address, Weight: 50, Swappable: true},
+				{Address: tokenUSDT.Address, Weight: 50, Swappable: true},
+			},
+		},
+	}
+	poolFactory := poolfactory.NewPoolFactory(poolfactory.Config{}, nil, nil)
+	pools := poolFactory.NewPools(context.Background(), entityPools, common.Hash{})
+
+	// Mock IPoolRankRepository
+	poolRankRepository := getroute.NewMockIPoolRankRepository(ctrl)
+	poolRankRepository.EXPECT().
+		FindBestPoolIDs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(lo.Map(entityPools, func(item *entity.Pool, _ int) string { return item.Address }), nil).
+		AnyTimes()
+
+	// Mock ITokenRepository
+	tokenRepository := usecase.NewMockITokenRepository(ctrl)
+	tokenRepository.EXPECT().
+		FindByAddresses(gomock.Any(), gomock.Any()).
+		Return([]*entity.Token{tokenWETH, tokenUSDT}, nil).
+		AnyTimes()
+
+	// Mock IPriceRepository
+	priceRepository := usecase.NewMockIPriceRepository(ctrl)
+	priceRepository.EXPECT().
+		FindByAddresses(gomock.Any(), gomock.Any()).
+		Return([]*entity.Price{priceWETH, priceUSDT}, nil).
+		AnyTimes()
+
+	// Mock IRouteCacheRepository
+	routeCacheRepository := getroute.NewMockIRouteCacheRepository(ctrl)
+	routeCacheRepository.EXPECT().
+		Get(gomock.Any(), gomock.Any()).
+		Return(nil, errors.New("some error")).
+		AnyTimes()
+
+	// Mock IGasRepository
+	gasRepository := getroute.NewMockIGasRepository(ctrl)
+	gasRepository.EXPECT().
+		GetSuggestedGasPrice(gomock.Any()).
+		Return(big.NewInt(7901274685), nil).
+		AnyTimes()
+
+	// Mock IPoolManager
+	poolManager := getroute.NewMockIPoolManager(ctrl)
+	poolManager.EXPECT().
+		GetPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(
+			func(ctx context.Context, addresses, dex []string, stateRoot common.Hash) (map[string]pool.IPoolSimulator, error) {
+				addressesSet := mapset.NewSet(addresses...)
+				dexesSet := mapset.NewSet(dex...)
+
+				filteredPools := make([]pool.IPoolSimulator, 0, len(pools))
+				for _, pool := range pools {
+					if !addressesSet.Contains(pool.GetAddress()) {
+						continue
+					}
+					if !dexesSet.Contains(pool.GetExchange()) {
+						continue
+					}
+					filteredPools = append(filteredPools, pool)
+				}
+
+				return lo.Associate(filteredPools, func(item pool.IPoolSimulator) (string, pool.IPoolSimulator) {
+					return item.GetAddress(), item
+				}), nil
+			},
+		).
+		AnyTimes()
+	poolManager.EXPECT().GetAEVMClient().Return(nil).AnyTimes()
+
+	// Mock IBestPathRepository
+	bestPathRepository := getroute.NewMockIBestPathRepository(ctrl)
+	bestPathRepository.EXPECT().
+		GetBestPaths(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
+	return NewUseCase(
+		poolRankRepository,
+		tokenRepository,
+		priceRepository,
+		routeCacheRepository,
+		gasRepository,
+		poolManager,
+		bestPathRepository,
+		Config{
+			ChainID:          valueobject.ChainIDEthereum,
+			GasTokenAddress:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			AvailableSources: lo.Map(entityPools, func(item *entity.Pool, _ int) string { return item.Exchange }),
+
+			Aggregator: AggregatorConfig{
+				WhitelistedTokenSet: map[string]bool{
+					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true,
+					"0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202": true,
+				},
+				FinderOptions: valueobject.FinderOptions{
+					MaxHops:                 3,
+					DistributionPercent:     5,
+					MaxPathsInRoute:         20,
+					MaxPathsToGenerate:      5,
+					MaxPathsToReturn:        200,
+					MinPartUSD:              500,
+					MinThresholdAmountInUSD: 0,
+					MaxThresholdAmountInUSD: 100000000,
+				},
+			},
+		},
+	)
+}
