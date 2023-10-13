@@ -125,9 +125,9 @@ func (p *Pool) CalcAmountOut(
 				Amount: nil,
 			},
 			Gas: p.gas.Swap,
-			SwapInfo: MaverickSwapInfo{
-				ActiveTick: newState.ActiveTick,
-				Bins:       newState.Bins,
+			SwapInfo: maverickSwapInfo{
+				activeTick: newState.ActiveTick,
+				bins:       newState.Bins,
 			},
 		}, nil
 	}
@@ -136,14 +136,14 @@ func (p *Pool) CalcAmountOut(
 }
 
 func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
-	newState, ok := params.SwapInfo.(MaverickSwapInfo)
+	newState, ok := params.SwapInfo.(maverickSwapInfo)
 	if !ok {
 		logger.Warn("failed to UpdateBalancer for Maverick pool, wrong swapInfo type")
 		return
 	}
 
-	p.state.Bins = newState.Bins
-	p.state.ActiveTick = newState.ActiveTick
+	p.state.Bins = newState.bins
+	p.state.ActiveTick = newState.activeTick
 }
 
 func (p *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
