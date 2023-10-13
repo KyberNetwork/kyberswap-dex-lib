@@ -49,10 +49,10 @@ type MaverickPoolState struct {
 	BinMap           map[string]*big.Int            `json:"binMap"`
 }
 
-// MaverickSwapInfo present the after state of a swap
-type MaverickSwapInfo struct {
-	Bins       map[string]Bin `json:"bins"`
-	ActiveTick *big.Int       `json:"activeTick"`
+// maverickSwapInfo present the after state of a swap
+type maverickSwapInfo struct {
+	bins       map[string]Bin
+	activeTick *big.Int
 }
 
 type Bin struct {
