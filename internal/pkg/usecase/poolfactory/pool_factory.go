@@ -211,7 +211,7 @@ func (f *PoolFactory) getBalanceSlots(pool *entity.Pool) map[common.Address]*rou
 	balanceSlots := make(map[common.Address]*routerentity.ERC20BalanceSlot)
 	for _, token := range pool.Tokens {
 		tokenAddr := common.HexToAddress(token.Address)
-		bl, err := f.balanceSlotsUseCase.Get(context.Background(), tokenAddr)
+		bl, err := f.balanceSlotsUseCase.Get(context.Background(), tokenAddr, pool)
 		if err != nil {
 			continue
 		}

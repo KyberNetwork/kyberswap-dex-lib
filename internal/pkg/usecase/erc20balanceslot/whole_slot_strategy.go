@@ -41,7 +41,7 @@ func NewWholeSlotStrategy(rpcClient *rpc.Client, wallet common.Address) *WholeSl
 	}
 }
 
-func (*WholeSlotStrategy) Name() string {
+func (*WholeSlotStrategy) Name(_ ProbeStrategyExtraParams) string {
 	return "whole_slot"
 }
 

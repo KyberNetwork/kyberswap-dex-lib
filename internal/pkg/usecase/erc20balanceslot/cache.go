@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	dexentity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/ethereum/go-ethereum/common"
 	"golang.org/x/sync/singleflight"
 
@@ -59,7 +60,7 @@ func (c *Cache) PreloadAll(ctx context.Context) error {
 	return nil
 }
 
-func (c *Cache) Get(ctx context.Context, token common.Address) (*entity.ERC20BalanceSlot, error) {
+func (c *Cache) Get(ctx context.Context, token common.Address, pool *dexentity.Pool) (*entity.ERC20BalanceSlot, error) {
 	// try predefined first
 	if entry, ok := c.predefined[token]; ok {
 		return entry, nil
@@ -78,6 +79,12 @@ func (c *Cache) Get(ctx context.Context, token common.Address) (*entity.ERC20Bal
 			oldBl = _oldBl.(*entity.ERC20BalanceSlot)
 		}
 		extraParams := &MultipleStrategyExtraParams{}
+		// only use addressable pool
+		if pool != nil && common.IsHexAddress(pool.Address) {
+			extraParams.DoubleFromSource = &DoubleFromSourceStrategyExtraParams{
+				Source: common.HexToAddress(pool.Address),
+			}
+		}
 		bl, err := c.probe.ProbeBalanceSlot(token, oldBl, extraParams)
 		// store the result
 		if bl != nil {

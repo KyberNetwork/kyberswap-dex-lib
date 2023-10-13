@@ -11,6 +11,6 @@ type ProbeStrategyExtraParams interface {
 }
 
 type ProbeStrategy interface {
-	Name() string
+	Name(extraParams ProbeStrategyExtraParams) string
 	ProbeBalanceSlot(token common.Address, extraParams ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error)
 }

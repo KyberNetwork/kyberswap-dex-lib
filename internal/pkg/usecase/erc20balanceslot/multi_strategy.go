@@ -12,9 +12,14 @@ import (
 )
 
 type MultipleStrategyExtraParams struct {
+	DoubleFromSource *DoubleFromSourceStrategyExtraParams
 }
 
 func (p *MultipleStrategyExtraParams) Dispatch(probe ProbeStrategy) ProbeStrategyExtraParams {
+	switch probe.(type) {
+	case *DoubleFromSourceStrategy:
+		return p.DoubleFromSource
+	}
 	return nil
 }
 
@@ -27,6 +32,7 @@ func NewMultipleStrategy(rpcClient *rpc.Client, wallet common.Address) *Multiple
 		strategies: []ProbeStrategy{
 			NewWholeSlotStrategy(rpcClient, wallet),
 			NewWholeSlotWithFStrategy(rpcClient, wallet),
+			NewDoubleFromSourceStrategy(rpcClient),
 		},
 	}
 }
@@ -50,15 +56,17 @@ func (p *MultipleStrategy) ProbeBalanceSlot(token common.Address, oldBalanceSlot
 		}
 	}
 	for _, s := range p.strategies {
-		if _, ok := hadAttempted[s.Name()]; ok {
+		_extraParams := extraParams.Dispatch(s)
+		name := s.Name(_extraParams)
+		if _, ok := hadAttempted[name]; ok {
 			continue
 		}
-		attempted = append(attempted, s.Name())
-		bl, err = s.ProbeBalanceSlot(token, extraParams.Dispatch(s))
+		attempted = append(attempted, name)
+		bl, err = s.ProbeBalanceSlot(token, _extraParams)
 		if err == nil {
 			break
 		}
-		logger.Debugf("strategy %s failed: %s", s.Name(), err)
+		logger.Debugf("strategy %s failed: %s", name, err)
 	}
 	if len(attempted) == 0 {
 		return nil, fmt.Errorf("there is no more strategies to attempted, already attempted %v", hadAttemptedList)

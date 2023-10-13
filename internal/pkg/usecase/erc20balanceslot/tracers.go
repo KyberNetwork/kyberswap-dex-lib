@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/tdewolff/minify/v2/js"
 )
 
@@ -21,6 +22,19 @@ type tracingResultSload struct {
 type tracingResult struct {
 	Sloads []tracingResultSload `json:"sloads"`
 	Output string               `json:"output"`
+}
+
+type prestateTracerConfig struct {
+	DiffMode bool `json:"diffMode"`
+}
+
+type prestateTracerResult struct {
+	Pre map[common.Address]struct {
+		Storage map[common.Hash]common.Hash `json:"storage"`
+	} `json:"pre"`
+	Post map[common.Address]struct {
+		Storage map[common.Hash]common.Hash `json:"storage"`
+	} `json:"post"`
 }
 
 func init() {

@@ -1,6 +1,8 @@
 package erc20balanceslot
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/davecgh/go-spew/spew"
@@ -36,6 +38,29 @@ func TestWholeSlotWithFStrategy(t *testing.T) {
 	spew.Dump(bl)
 }
 
+func TestDoubleFromSourceStrategy(t *testing.T) {
+	t.Skip()
+
+	logger.InitLogger(logger.Configuration{
+		EnableConsole: true,
+		ConsoleLevel:  "debug",
+	}, logger.LoggerBackendZap)
+
+	rpcClient, err := rpc.Dial(jsonRPCURL)
+	require.NoError(t, err)
+
+	p := NewDoubleFromSourceStrategy(rpcClient)
+
+	token := common.HexToAddress("0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32")
+	cloneSource := common.HexToAddress("0xa3f558aebAecAf0e11cA4b2199cC5Ed341edfd74")
+	bl, err := p.ProbeBalanceSlot(token, &DoubleFromSourceStrategyExtraParams{
+		Source: cloneSource,
+	})
+	require.NoError(t, err)
+	require.True(t, bl.Found)
+	spew.Dump(bl)
+}
+
 func TestMultipleStrategy(t *testing.T) {
 	t.Skip()
 
@@ -49,10 +74,26 @@ func TestMultipleStrategy(t *testing.T) {
 
 	p := NewMultipleStrategy(rpcClient, randomizeAddress())
 
-	token := common.HexToAddress("0x098754d293dd4375de7dC6566275aFb138021D00")
-	bl, err := p.ProbeBalanceSlot(token, nil, &MultipleStrategyExtraParams{})
-	require.NoError(t, err)
-	require.True(t, bl.Found)
-	require.NotEmpty(t, bl.StrategiesAttempted)
-	spew.Dump(bl)
+	t.Run("must success with WholeSlotWithFStrategy", func(t *testing.T) {
+		token := common.HexToAddress("0x098754d293dd4375de7dC6566275aFb138021D00")
+		bl, err := p.ProbeBalanceSlot(token, nil, &MultipleStrategyExtraParams{})
+		require.NoError(t, err)
+		require.True(t, bl.Found)
+		require.NotEmpty(t, bl.StrategiesAttempted)
+		require.Equal(t, "whole_slot_with_f", bl.StrategiesAttempted[len(bl.StrategiesAttempted)-1])
+		spew.Dump(bl)
+	})
+
+	t.Run("must success with DoubleFromSourceStrategy", func(t *testing.T) {
+		token := common.HexToAddress("0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32")
+		cloneSource := common.HexToAddress("0xa3f558aebAecAf0e11cA4b2199cC5Ed341edfd74")
+		bl, err := p.ProbeBalanceSlot(token, nil, &MultipleStrategyExtraParams{
+			DoubleFromSource: &DoubleFromSourceStrategyExtraParams{Source: cloneSource},
+		})
+		require.NoError(t, err)
+		require.True(t, bl.Found)
+		require.NotEmpty(t, bl.StrategiesAttempted)
+		require.Equal(t, fmt.Sprintf("double_from_source,source=%s", strings.ToLower(cloneSource.String())), bl.StrategiesAttempted[len(bl.StrategiesAttempted)-1])
+		spew.Dump(bl)
+	})
 }

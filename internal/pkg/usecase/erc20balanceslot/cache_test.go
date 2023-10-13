@@ -28,7 +28,7 @@ const (
 
 type testProbe struct{}
 
-func (*testProbe) Name() string {
+func (*testProbe) Name(_ ProbeStrategyExtraParams) string {
 	return "test_probe"
 }
 
@@ -88,19 +88,19 @@ func TestGetBalanceSlot(t *testing.T) {
 	})
 	c := NewCache(repo, NewTestMultipleStrategy(&testProbe{}), nil)
 
-	bl, err := c.Get(context.Background(), common.HexToAddress(btcbAddr))
+	bl, err := c.Get(context.Background(), common.HexToAddress(btcbAddr), nil)
 	require.NoError(t, err)
 	require.NotEmptyf(t, bl.BalanceSlot, "must have balance slot")
 
 	// set .probe to nil to test if the subsequent request uses cached balance slot
 	origProbe := c.probe
 	c.probe = nil
-	bl, err = c.Get(context.Background(), common.HexToAddress(btcbAddr))
+	bl, err = c.Get(context.Background(), common.HexToAddress(btcbAddr), nil)
 	require.NoError(t, err)
 	require.NotEmptyf(t, bl.BalanceSlot, "must have cached balance slot")
 	c.probe = origProbe
 
-	_, err = c.Get(context.Background(), common.HexToAddress(wetheAddr))
+	_, err = c.Get(context.Background(), common.HexToAddress(wetheAddr), nil)
 	require.NoError(t, err)
 
 	// must commit newly probed token to redis
@@ -125,7 +125,7 @@ func TestGetBalanceSlot(t *testing.T) {
 	_entry, _ := c.cache.Load(common.HexToAddress(btcbAddr))
 	entry := _entry.(*entity.ERC20BalanceSlot)
 	entry.Found = false
-	_, err = c.Get(context.Background(), common.HexToAddress(btcbAddr))
+	_, err = c.Get(context.Background(), common.HexToAddress(btcbAddr), nil)
 	require.Error(t, err)
 	fmt.Printf("%s\n", err)
 

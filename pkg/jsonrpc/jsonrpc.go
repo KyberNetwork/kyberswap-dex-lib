@@ -2,6 +2,8 @@
 package jsonrpc
 
 import (
+	"encoding/json"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -39,7 +41,9 @@ type DebugTraceCallCalldataParam struct {
 
 // DebugTraceCallTracerConfigParam debug_traceCall's tracer config param
 type DebugTraceCallTracerConfigParam struct {
-	Tracer string `json:"tracer"`
+	Tracer         string          `json:"tracer"`
+	TracerConfig   json.RawMessage `json:"tracerConfig,omitempty"`
+	StateOverrides StateOverride   `json:"stateOverrides,omitempty"`
 }
 
 // DebugTraceCall debug_traceCall wrapper

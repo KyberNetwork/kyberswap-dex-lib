@@ -52,12 +52,12 @@ func NewWholeSlotWithFStrategy(rpcClient *rpc.Client, wallet common.Address) *Wh
 	}
 }
 
-func (*WholeSlotWithFStrategy) Name() string {
+func (*WholeSlotWithFStrategy) Name(_ ProbeStrategyExtraParams) string {
 	return "whole_slot_with_f"
 }
 
 func (p *WholeSlotWithFStrategy) ProbeBalanceSlot(token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
-	logger.Infof("[%s] probing balance slot for wallet %s in token %s", p.Name(), p.wallet, token)
+	logger.Infof("[%s] probing balance slot for wallet %s in token %s", p.Name(nil), p.wallet, token)
 
 	blockNumber, err := p.ethClient.BlockNumber(context.Background())
 	if err != nil {
