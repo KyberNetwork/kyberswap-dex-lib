@@ -3,12 +3,15 @@ package metrics
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
+	"golang.org/x/exp/maps"
 
 	kybermetric "github.com/KyberNetwork/kyber-trace-go/pkg/metric"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -54,58 +57,54 @@ func init() {
 }
 
 func IncrDexHitRate(dex string) {
-	tags := []string{
-		fmt.Sprintf("dex:%s", dex),
+	tags := map[string]string{
+		"dex": dex,
 	}
 
 	incr(DexHitRateMetricsName, tags, 0.1)
 }
 
 func IncrPoolTypeHitRate(poolType string) {
-	tags := []string{
-		fmt.Sprintf("pool_type:%s", poolType),
+	tags := map[string]string{
+		"pool_type": poolType,
 	}
 
 	incr(PoolTypeHitRateMetricsName, tags, 0.1)
 }
 
 func IncrRequestPairCount(tokenInAddress, tokenOutAddress string) {
-	tags := []string{
-		fmt.Sprintf("token0:%s", tokenInAddress),
-		fmt.Sprintf("token1:%s", tokenOutAddress),
+	tags := map[string]string{
+		"token0": tokenInAddress,
+		"token1": tokenOutAddress,
 	}
 
 	incr(RequestPairCountMetricsName, tags, 0.5)
 }
 
-func IncrFindRoutePregenCount(pregenHit bool, otherTags []string) {
-	tags := []string{
-		fmt.Sprintf("hit:%t", pregenHit),
+func IncrFindRoutePregenCount(pregenHit bool, otherTags map[string]string) {
+	tags := map[string]string{
+		"hit": strconv.FormatBool(pregenHit),
 	}
 
-	if len(otherTags) > 0 {
-		tags = append(tags, otherTags...)
-	}
+	maps.Copy(tags, otherTags)
 
 	incr(FindRoutePregenHitRateMetricsName, tags, 1)
 }
 
-func IncrFindRouteCacheCount(cacheHit bool, otherTags []string) {
-	tags := []string{
-		fmt.Sprintf("hit:%t", cacheHit),
+func IncrFindRouteCacheCount(cacheHit bool, otherTags map[string]string) {
+	tags := map[string]string{
+		"hit": strconv.FormatBool(cacheHit),
 	}
 
-	if len(otherTags) > 0 {
-		tags = append(tags, otherTags...)
-	}
+	maps.Copy(tags, otherTags)
 
 	incr(FindRouteCacheCountMetricsName, tags, 1)
 }
 
 func IncrClientIDCount(clientID string, responseStatus int) {
-	tags := []string{
-		fmt.Sprintf("client_id:%s", clientID),
-		fmt.Sprintf("http_status:%d", responseStatus),
+	tags := map[string]string{
+		"client_id":   clientID,
+		"http_status": strconv.FormatInt(int64(responseStatus), 10),
 	}
 
 	incr(ClientIDMetricsName, tags, 1)
@@ -135,12 +134,12 @@ func Flush() {
 	}
 }
 
-func incr(name string, tags []string, rate float64) {
+func incr(name string, tags map[string]string, rate float64) {
 	// Incr VanPT
 	if counter, exist := mapMetricNameToCounter[name]; counter != nil && exist {
 		attributes := make([]attribute.KeyValue, 0, len(tags))
-		for _, tag := range tags {
-			attributes = append(attributes, attribute.Bool(tag, true))
+		for key, value := range tags {
+			attributes = append(attributes, attribute.String(key, value))
 		}
 		counter.Add(context.Background(), rate, metric.WithAttributes(attributes...))
 	} else {
@@ -152,7 +151,10 @@ func incr(name string, tags []string, rate float64) {
 		return
 	}
 
-	if err := client.Incr(name, tags, rate); err != nil {
+	ddTags := lo.MapToSlice(tags, func(k, v string) string {
+		return fmt.Sprintf("%s:%s", k, v)
+	})
+	if err := client.Incr(name, ddTags, rate); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Warnf("failed to push %s metrics", name)
@@ -161,12 +163,15 @@ func incr(name string, tags []string, rate float64) {
 
 // NOTE: Still keep this unused function in case we further need to use gauge metrics
 // nolint:golint,unused
-func gauge(name string, value float64, tags []string, rate float64) {
+func gauge(name string, value float64, tags map[string]string, rate float64) {
 	if client == nil {
 		return
 	}
 
-	if err := client.Gauge(name, value, tags, rate); err != nil {
+	ddTags := lo.MapToSlice(tags, func(k, v string) string {
+		return fmt.Sprintf("%s:%s", k, v)
+	})
+	if err := client.Gauge(name, value, ddTags, rate); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Warnf("failed to push %s metrics", name)
@@ -175,12 +180,15 @@ func gauge(name string, value float64, tags []string, rate float64) {
 
 // NOTE: Still keep this unused function in case we further need to use histogram metrics
 // nolint:golint,unused
-func histogram(name string, value float64, tags []string, rate float64) {
+func histogram(name string, value float64, tags map[string]string, rate float64) {
 	if client == nil {
 		return
 	}
 
-	if err := client.Histogram(name, value, tags, rate); err != nil {
+	ddTags := lo.MapToSlice(tags, func(k, v string) string {
+		return fmt.Sprintf("%s:%s", k, v)
+	})
+	if err := client.Histogram(name, value, ddTags, rate); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Warnf("failed to push %s metrics", name)

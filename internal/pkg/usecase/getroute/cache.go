@@ -116,7 +116,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 				"client_id":  clientid.GetClientIDFromCtx(ctx),
 			}).
 			Debug("cache missed")
-		metrics.IncrFindRouteCacheCount(false, []string{"reason:getCachedRouteFailed"})
+		metrics.IncrFindRouteCacheCount(false, map[string]string{"reason": "getCachedRouteFailed"})
 
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 				"client_id":  clientid.GetClientIDFromCtx(ctx),
 			}).
 			Debug("cache missed")
-		metrics.IncrFindRouteCacheCount(false, []string{"reason:summarizeCachedRouteFailed"})
+		metrics.IncrFindRouteCacheCount(false, map[string]string{"reason": "summarizeCachedRouteFailed"})
 
 		return nil, err
 	}
@@ -151,9 +151,9 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 			Debug("cache missed")
 		metrics.IncrFindRouteCacheCount(
 			false,
-			[]string{
-				"reason:priceImpactIsGreaterThanEpsilon",
-				fmt.Sprintf("priceImpact:%f", priceImpact),
+			map[string]string{
+				"reason":       "priceImpactIsGreaterThanEpsilon",
+				"price_impact": fmt.Sprintf("%f", priceImpact),
 			},
 		)
 
