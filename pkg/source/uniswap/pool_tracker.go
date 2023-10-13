@@ -39,7 +39,7 @@ func (d *PoolTracker) GetNewPoolState(
 	if latestSyncEvent == nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
-		}).Debug("Fetch reserves from node")
+		}).Info("Fetch reserves from node")
 		reserves, err = d.fetchReservesFromNode(ctx, p.Address)
 		if err != nil {
 			logger.WithFields(logger.Fields{
