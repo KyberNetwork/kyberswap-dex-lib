@@ -21,9 +21,10 @@ type Extra struct {
 }
 
 type Meta struct {
-	StakeGLP   string `json:"stakeGLP"`
-	GlpManager string `json:"glpManager"`
-	YearnVault string `json:"yearnVault"`
+	StakeGLP      string `json:"stakeGLP"`
+	GlpManager    string `json:"glpManager"`
+	YearnVault    string `json:"yearnVault"`
+	DirectionFlag uint8  `json:"directionFlag"`
 }
 
 type ChainID uint

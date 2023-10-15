@@ -155,10 +155,16 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	return swappableTokens
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+	var directionFlag uint8 = 0
+
+	if strings.EqualFold(tokenIn, p.yearnTokenVault.Address) {
+		directionFlag = 1
+	}
 	return Meta{
-		GlpManager: p.glpManager.Address,
-		StakeGLP:   p.glpManager.StakeGlp,
-		YearnVault: p.yearnTokenVault.Address,
+		GlpManager:    p.glpManager.Address,
+		StakeGLP:      p.glpManager.StakeGlp,
+		YearnVault:    p.yearnTokenVault.Address,
+		DirectionFlag: directionFlag,
 	}
 }
