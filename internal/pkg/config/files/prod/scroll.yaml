@@ -1,0 +1,244 @@
+env: "production"
+pprof: false
+http:
+  bindAddress: ":8080"
+  mode: debug #(debug,release,test)
+  prefix: /scroll
+grpc:
+  host: 0.0.0.0
+  port: 10443
+common:
+  chainId: &chainId 534352
+  chainName: &chainName scroll
+  rpc: "https://rpc.scroll.io"
+  executorAddress: &executorAddress "0xf40442E1Cb0BdFb496E8B7405d0c1c48a81BC897"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+  gasTokenAddress: &gasTokenAddress "0x5300000000000000000000000000000000000004"
+  whitelistedTokenSet: &whitelistedTokenSet
+    0x5300000000000000000000000000000000000004: true # WETH
+    0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4: true # USDC
+    0xf55bec9cafdbe8730f096aa55dad6d22d44099df: true # USDT
+  blacklistedPoolSet: &blacklistedPoolSet
+  availableSources: &availableSources
+    - "kyberswap-static"
+    - "kyberswap-elastic"
+    - "skydrome"
+    - "spacefi"
+    - "scrollswap"
+  featureFlags: &featureFlags
+log:
+  sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
+  consoleLevel: info
+  enableConsole: true
+  enableJSONFormat: true
+redis:
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: *chainName
+  readTimeout: 3s
+  writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
+poolRedis:
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: *chainName
+  readTimeout: 3s
+  writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
+ddAgentHost: ""
+keyPair:
+  storageFilePath: ""
+  keyIDForSealingData:
+    clientData: "1"
+reloadConfig:
+  httpUrl: ""
+  interval: 10s
+  serviceName: "aggregator"
+  chainID: *chainId
+secretKey:
+metrics:
+  host:
+  port: 8125
+  namespace: "kybernetwork."
+encoder:
+  chainId: *chainId
+  executorAddress: *executorAddress
+  routerAddress: *routerAddress
+  kyberLOAddress:
+  isPositiveSlippageEnabled: true
+  minimumPSThreshold: 1000000
+useCase:
+  getRoute:
+    chainId: *chainId
+    gasTokenAddress: *gasTokenAddress
+    routerAddress: *routerAddress
+    availableSources: *availableSources
+    ammAggregator:
+      whitelistedTokenSet: *whitelistedTokenSet
+      getBestPoolsOptions:
+        directPoolsCount: 100
+        whitelistPoolsCount: 500
+        tokenInPoolsCount: 200
+        tokenOutPoolCount: 200
+        amplifiedTvlDirectPoolsCount: 50
+        amplifiedTvlWhitelistPoolsCount: 200
+        amplifiedTvlTokenInPoolsCount: 100
+        amplifiedTvlTokenOutPoolCount: 100
+      finderOptions:
+        maxHops: 3
+        distributionPercent: 5
+        maxPathsInRoute: 20
+        maxPathsToGenerate: 5
+        maxPathsToReturn: 200
+        minPartUSD: 500
+        minThresholdAmountInUSD: 0
+        maxThresholdAmountInUSD: 100000000
+    cache:
+      defaultTtl: 15s
+      ttlByAmount:
+        - amount: 1
+          ttl: 30s
+        - amount: 2
+          ttl: 10s
+        - amount: 5
+          ttl: 10s
+        - amount: 10
+          ttl: 10s
+        - amount: 11
+          ttl: 30s
+        - amount: 15
+          ttl: 10s
+        - amount: 20
+          ttl: 10s
+        - amount: 22
+          ttl: 30s
+        - amount: 25
+          ttl: 10s
+        - amount: 30
+          ttl: 10s
+        - amount: 33
+          ttl: 30s
+        - amount: 35
+          ttl: 10s
+        - amount: 40
+          ttl: 10s
+        - amount: 44
+          ttl: 30s
+        - amount: 45
+          ttl: 10s
+        - amount: 50
+          ttl: 10s
+        - amount: 55
+          ttl: 30s
+        - amount: 60
+          ttl: 10s
+        - amount: 66
+          ttl: 30s
+        - amount: 70
+          ttl: 10s
+        - amount: 77
+          ttl: 30s
+        - amount: 80
+          ttl: 10s
+        - amount: 88
+          ttl: 30s
+        - amount: 90
+          ttl: 10s
+        - amount: 99
+          ttl: 30s
+        - amount: 100
+          ttl: 10s
+        - amount: 500
+          ttl: 10s
+        - amount: 1000
+          ttl: 10s
+        - amount: 10000
+          ttl: 10s
+        - amount: 100000
+          ttl: 10s
+      ttlByAmountUsdRange:
+        - amountUSDLowerBound: 0
+          ttl: 10s
+        - amountUSDLowerBound: 101
+          ttl: 10s
+        - amountUSDLowerBound: 500
+          ttl: 10s
+        - amountUSDLowerBound: 1001
+          ttl: 10s
+        - amountUSDLowerBound: 2000
+          ttl: 10s
+        - amountUSDLowerBound: 5000
+          ttl: 10s
+        - amountUSDLowerBound: 10000
+          ttl: 10s
+      priceImpactThreshold: 0.005
+      shrinkFuncName: "round"
+      shrinkFuncPowExp: 0.7
+      shrinkFuncLogPercent: 1.01
+  buildRoute:
+    chainId: *chainId
+  poolFactory:
+    chainId: *chainId
+  poolManager:
+    blacklistedPoolSet: *blacklistedPoolSet
+    capacity: 100000
+    poolRenewalInterval: 3s
+  indexPools:
+    whitelistedTokenSet: *whitelistedTokenSet
+    chunkSize: 3000
+job:
+  indexPools:
+    interval: 2s
+  updateSuggestedGasPrice:
+    interval: 2s
+repository:
+  gas:
+    redis:
+      prefix: *chainName
+    ristretto:
+      numCounters: 5000
+      maxCost: 500
+      bufferItems: 64
+      suggestedGasPrice:
+        cost: 1
+        ttl: 2m
+  pool:
+    redis:
+      prefix: *chainName
+  price:
+    redis:
+      prefix: *chainName
+    ristretto:
+      numCounters: 10000
+      maxCost: 1000
+      bufferItems: 64
+      price:
+        cost: 1
+        ttl: 1m
+  token:
+    redis:
+      prefix: *chainName
+    goCache:
+      expiration: -1
+      cleanupInterval: -1
+  poolRank:
+    redis:
+      prefix: *chainName
+  route:
+    redisCache:
+      prefix: *chainName
+      localCacheSize: 1000
+      localCacheTtl: 30s
+validator:
+  buildRouteParams:
+    slippageToleranceGte: 0
+    slippageToleranceLte: 5000
+  getRouteEncodeParams:
+    slippageToleranceGte: 0
+    slippageToleranceLte: 5000

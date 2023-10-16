@@ -81,6 +81,7 @@ var (
 	ExchangeMoonBase      Exchange = "moonbase"
 	ExchangeBalDex        Exchange = "baldex"
 	ExchangeZkSwapFinance Exchange = "zkswap-finance"
+	ExchangeScrollSwap    Exchange = "scrollswap"
 
 	ExchangeOneSwap             Exchange = "oneswap"
 	ExchangeNerve               Exchange = "nerve"
@@ -152,6 +153,7 @@ var (
 	ExchangeLyve        Exchange = "lyve"
 	ExchangeScale       Exchange = "scale"
 	ExchangeUSDFi       Exchange = "usdfi"
+	ExchangeSkydrome    Exchange = "skydrome"
 
 	ExchangePlatypus   Exchange = "platypus"
 	ExchangeWombat     Exchange = "wombat"
