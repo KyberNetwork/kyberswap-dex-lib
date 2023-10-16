@@ -124,7 +124,7 @@ encoder:
     executeWombat: 24
     executeWooFiV2: 25
     executeIziSwap: 26
-    executeGMXGLP: 31
+    executeGMXGLP: 30
 useCase:
   getRoute:
     chainId: *chainId
