@@ -88,6 +88,7 @@ func init() {
 	// executeGMXSwap
 	RegisterFunctionSelector(valueobject.ExchangeGMX, FunctionSelectorGMX)
 	RegisterFunctionSelector(valueobject.ExchangeBMX, FunctionSelectorGMX)
+	RegisterFunctionSelector(valueobject.ExchangeBMXGLP, FunctionSelectorGmxGlp)
 	RegisterFunctionSelector(valueobject.ExchangeSynthSwapPerp, FunctionSelectorGMX)
 	RegisterFunctionSelector(valueobject.ExchangeSwapBasedPerp, FunctionSelectorGMX)
 

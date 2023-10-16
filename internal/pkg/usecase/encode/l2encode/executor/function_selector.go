@@ -29,6 +29,7 @@ var (
 	FunctionSelectorSynthetix      FunctionSelector
 	FunctionSelectorUniV3KSElastic FunctionSelector
 	FunctionSelectorGMX            FunctionSelector
+	FunctionSelectorGmxGlp         FunctionSelector
 	FunctionSelectorStableSwap     FunctionSelector
 	FunctionSelectorCurveSwap      FunctionSelector
 	FunctionSelectorBalancerV2     FunctionSelector
@@ -50,6 +51,7 @@ func init() {
 	FunctionSelectorSynthetix = NewFunctionSelector("executeSynthetixSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorUniV3KSElastic = NewFunctionSelector("executeUniV3KSElastic", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorGMX = NewFunctionSelector("executeGMXSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
+	FunctionSelectorGmxGlp = NewFunctionSelector("executeGMXGLP", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorStableSwap = NewFunctionSelector("executeStableSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorCurveSwap = NewFunctionSelector("executeCurveSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorBalancerV2 = NewFunctionSelector("executeBalV2Swap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})

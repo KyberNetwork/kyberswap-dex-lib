@@ -13,7 +13,6 @@ var (
 	UniswapV3KSElasticABIArgument abi.Arguments
 	BalancerV2ABIArguments        abi.Arguments
 	DODOABIArguments              abi.Arguments
-	GMXABIArguments               abi.Arguments
 	SynthetixABIArguments         abi.Arguments
 	PSMABIArguments               abi.Arguments
 	WSTETHABIArguments            abi.Arguments
@@ -22,6 +21,10 @@ var (
 	KyberLimitOrderABIArguments   abi.Arguments
 	KyberRFQABIType               abi.Type
 	KyberRFQABIArguments          abi.Arguments
+
+	GMXABIArguments abi.Arguments
+	// GmxGlpABIArguments https://github.com/KyberNetwork/ks-dex-aggregator-sc/pull/228/files#diff-aef4b18ab626112c08de702796dd44471d23fa6e19d45afef4a4ab126ebbb3e0
+	GmxGlpABIArguments abi.Arguments
 
 	// Mantis: https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/develop/contracts/executor-helpers/ExecutorHelper4.sol#L17
 	WombatABIArguments abi.Arguments

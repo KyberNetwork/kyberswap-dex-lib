@@ -24,6 +24,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/equalizer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx"
+	gmxglp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx-glp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido"
@@ -268,6 +269,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newWombatLsd(entityPool)
 	case constant.PoolTypes.GMX:
 		return f.newGMX(entityPool)
+	case constant.PoolTypes.GMXGLP:
+		return f.newGmxGlp(entityPool)
 	case constant.PoolTypes.MakerPSM:
 		return f.newMakerPSm(entityPool)
 	case constant.PoolTypes.Synthetix:
@@ -666,6 +669,20 @@ func (f *PoolFactory) newGMX(entityPool entity.Pool) (*gmx.PoolSimulator, error)
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newGMX] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newGmxGlp(entityPool entity.Pool) (*gmxglp.PoolSimulator, error) {
+	corePool, err := gmxglp.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newGmxGlp] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

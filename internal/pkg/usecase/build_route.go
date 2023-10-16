@@ -10,9 +10,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-	"github.com/pkg/errors"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
@@ -20,8 +17,10 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/pkg/errors"
 )
 
 var OutputChangeNoChange = dto.OutputChange{

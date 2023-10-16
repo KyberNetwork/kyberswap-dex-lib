@@ -44,6 +44,7 @@ type types struct {
 	WombatMain               string
 	WombatLsd                string
 	GMX                      string
+	GMXGLP                   string
 	MakerPSM                 string
 	Synthetix                string
 	MadMex                   string
@@ -116,6 +117,7 @@ var (
 		WombatMain:               "wombat-main",
 		WombatLsd:                "wombat-lsd",
 		GMX:                      "gmx",
+		GMXGLP:                   "gmx-glp",
 		MakerPSM:                 "maker-psm",
 		Synthetix:                "synthetix",
 		MadMex:                   "madmex",
