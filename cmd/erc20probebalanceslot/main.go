@@ -1,23 +1,28 @@
 package main
 
 import (
+	"cmp"
 	"context"
-	"fmt"
+	"encoding/json"
 	"log"
 	"math/rand"
 	"os"
+	"slices"
+
+	dexentity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/urfave/cli/v2"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/token"
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/redis"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/urfave/cli/v2"
 )
 
 func main() {
@@ -112,7 +117,7 @@ func probeBalanceSlotAction(c *cli.Context) error {
 		walletAddr = randomizeAddress()
 	}
 
-	fmt.Printf("wallet address: %s\n", walletAddr)
+	logger.Infof("wallet address: %s\n", walletAddr)
 
 	var jsonrpcURL string
 	if c.IsSet("jsonrpcurl-override") {
@@ -121,7 +126,7 @@ func probeBalanceSlotAction(c *cli.Context) error {
 		jsonrpcURL = cfg.Common.RPC
 	}
 
-	fmt.Printf("JSONRPC URL: %s\n", jsonrpcURL)
+	logger.Infof("JSONRPC URL: %s\n", jsonrpcURL)
 
 	retryNotFoundTokens := c.Bool("retry-not-found-tokens")
 
@@ -131,33 +136,62 @@ func probeBalanceSlotAction(c *cli.Context) error {
 		return err
 	}
 
+	// get all pools and group by its tokens
+	rawPools := poolRedisClient.Client.HGetAll(context.Background(), utils.Join(cfg.PoolRedis.Prefix, pool.KeyPools)).Val()
+	poolsByToken := make(map[common.Address][]*dexentity.Pool)
+	for _, rawPool := range rawPools {
+		pool := new(dexentity.Pool)
+		// ignore failed to unmarshal pools
+		if err := json.Unmarshal([]byte(rawPool), pool); err != nil {
+			continue
+		}
+		// ignore non-addressable pools
+		if !common.IsHexAddress(pool.Address) {
+			continue
+		}
+		for _, token := range pool.Tokens {
+			tokenAddr := common.HexToAddress(token.Address)
+			poolsByToken[tokenAddr] = append(poolsByToken[tokenAddr], pool)
+		}
+	}
+	// sort by ReserveUSD descending
+	for _, pools := range poolsByToken {
+		slices.SortFunc(pools, func(a, b *dexentity.Pool) int { return cmp.Compare(b.ReserveUsd, a.ReserveUsd) })
+	}
+
 	balanceSlotRepo := erc20balanceslot.NewRedisRepository(poolRedisClient.Client, erc20balanceslot.RedisRepositoryConfig{
 		Prefix: cfg.PoolRedis.Prefix,
 	})
 
-	var tokens []string
+	tokens := make(map[common.Address]struct{})
 	if len(c.StringSlice("tokens")) > 0 {
-		tokens = c.StringSlice("tokens")
+		for _, token := range c.StringSlice("tokens") {
+			tokens[common.HexToAddress(token)] = struct{}{}
+		}
 	} else {
-		tokens = poolRedisClient.Client.HKeys(context.Background(), utils.Join(cfg.PoolRedis.Prefix, token.KeyTokens)).Val()
+		tokensList := poolRedisClient.Client.HKeys(context.Background(), utils.Join(cfg.PoolRedis.Prefix, token.KeyTokens)).Val()
+		for _, token := range tokensList {
+			if common.IsHexAddress(token) {
+				tokens[common.HexToAddress(token)] = struct{}{}
+			}
+		}
 	}
-	fmt.Printf("numTokens = %v\n", len(tokens))
 
 	balanceSlots, err := balanceSlotRepo.GetAll(context.Background())
 	if err != nil {
 		logger.Errorf("could not get balance slots %s", err)
 	}
 
-	skippedTokens := make(map[common.Address]struct{})
 	if c.Bool("skip-existing-tokens") {
 		for token, bl := range balanceSlots {
 			if bl.Found {
-				skippedTokens[token] = struct{}{}
+				delete(tokens, token)
 			} else if !retryNotFoundTokens {
-				skippedTokens[token] = struct{}{}
+				delete(tokens, token)
 			}
 		}
 	}
+	logger.Infof("number of tokens to probe = %v\n", len(tokens))
 
 	rpcClient, err := rpc.DialHTTP(jsonrpcURL)
 	if err != nil {
@@ -165,20 +199,27 @@ func probeBalanceSlotAction(c *cli.Context) error {
 	}
 	probe := erc20balanceslotuc.NewMultipleStrategy(rpcClient, walletAddr)
 
+	var i int
 	var newBalanceSlots []*entity.ERC20BalanceSlot
-	for i, token := range tokens {
-		if _, ok := skippedTokens[common.HexToAddress(token)]; ok {
-			continue
+	for token := range tokens {
+		oldBl := balanceSlots[token]
+		extraParams := &erc20balanceslotuc.MultipleStrategyExtraParams{}
+		if pools, ok := poolsByToken[token]; ok {
+			if len(pools) > 0 {
+				extraParams.DoubleFromSource = &erc20balanceslotuc.DoubleFromSourceStrategyExtraParams{
+					Source: common.HexToAddress(pools[0].Address),
+				}
+			}
 		}
-
-		oldBl := balanceSlots[common.HexToAddress(token)]
-		bl, err := probe.ProbeBalanceSlot(common.HexToAddress(token), oldBl, nil)
+		bl, err := probe.ProbeBalanceSlot(token, oldBl, extraParams)
 		if err != nil {
-			fmt.Printf("ERROR: %s\n", err)
+			logger.Infof("ERROR: %s\n", err)
 		} else {
-			fmt.Printf("(%d/%d) %s : %s\n", i+1, len(tokens), token, bl.BalanceSlot)
+			logger.Infof("(%d/%d) %s : %+v\n", i+1, len(tokens), token, bl)
 			newBalanceSlots = append(newBalanceSlots, bl)
 		}
+
+		i++
 	}
 
 	return balanceSlotRepo.PutMany(context.Background(), newBalanceSlots)
