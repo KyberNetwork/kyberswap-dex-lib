@@ -12,6 +12,7 @@ type Int24 int32
 type UInt24 uint32
 type UInt96 *big.Int
 type UInt160 *big.Int
+type UInt200 *big.Int
 
 // RawBytes is used when you want to simply concat the bytes into the current packing data.
 // Useful when encoding data with nested structs inside.
@@ -22,6 +23,7 @@ var _Int24Type = reflect.TypeOf(Int24(0))
 var _UInt24Type = reflect.TypeOf(UInt24(0))
 var _UInt96Type = reflect.TypeOf(UInt96(big.NewInt(0)))
 var _UInt160Type = reflect.TypeOf(UInt160(big.NewInt(0)))
+var _UInt200Type = reflect.TypeOf(UInt200(big.NewInt(0)))
 var _RawByteType = reflect.TypeOf(RawBytes([]byte{}))
 var _BigIntType = reflect.TypeOf(big.NewInt(0))
 var _BoolType = reflect.TypeOf(false)
@@ -74,6 +76,8 @@ func Pack(args ...interface{}) ([]byte, error) {
 			ret = append(ret, PackBigInt(arg.(UInt96), 12)...) // Compressed to 12 bytes
 		case _UInt160Type:
 			ret = append(ret, PackBigInt(arg.(UInt160), 20)...) // Compressed to 20 bytes
+		case _UInt200Type:
+			ret = append(ret, PackBigInt(arg.(UInt200), 25)...) // compressed to 25 bytes
 		case _BigIntType:
 			ret = append(ret, PackBigInt(arg.(*big.Int), 16)...) // Compressed to 16 bytes
 		case _AddressType:

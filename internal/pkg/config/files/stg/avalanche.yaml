@@ -54,6 +54,7 @@ common:
     - "gmx"
     - "fraxswap"
     - "kyberswap-limit-order"
+    - "kyberswap-limit-order-v2"
     - "sushiswap-v3"
     - "balancer"
     - "balancer-composable-stable"

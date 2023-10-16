@@ -39,6 +39,7 @@ common:
     - "saddle"
     - "fraxswap"
     - "kyberswap-limit-order"
+    - "kyberswap-limit-order-v2"
     - "fvm"
     - "sushiswap-v3"
     - "woofi-v2"

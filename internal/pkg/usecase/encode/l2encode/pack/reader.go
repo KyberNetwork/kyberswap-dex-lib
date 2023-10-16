@@ -71,6 +71,13 @@ func ReadUInt160(data []byte, startByte int) (UInt160, int) {
 	return ret, endByte
 }
 
+func ReadUInt200(data []byte, startByte int) (UInt200, int) {
+	endByte := startByte + 25
+	ret := new(big.Int)
+	ret.SetBytes(data[startByte:endByte])
+	return ret, endByte
+}
+
 func ReadBigInt(data []byte, startByte int) (ret *big.Int, endByte int) {
 	endByte = startByte + 16
 	ret = new(big.Int)

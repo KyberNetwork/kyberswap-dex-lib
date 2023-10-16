@@ -51,6 +51,7 @@ common:
     - "fraxswap"
     - "camelot"
     - "kyberswap-limit-order"
+    - "kyberswap-limit-order-v2"
     - "chronos"
     - "ramses"
     - "chronos-v3"
@@ -141,6 +142,7 @@ encoder:
     executeWombat: 24
     executeWooFiV2: 25
     executeIziSwap: 26
+    executeKyberDSLO: 28
 useCase:
   getRoute:
     chainId: *chainId
@@ -254,6 +256,12 @@ useCase:
   buildRoute:
     chainId: *chainId
     useL2OptimizeByDefault: false
+    rfq:
+      - id: kyberswap-limit-order-v2
+        handler: limit-order
+        properties:
+          chainID: *chainId
+          limitOrderHTTPUrl: https://limit-order.stg.kyberengineering.io
   poolFactory:
     chainId: *chainId
   poolManager:

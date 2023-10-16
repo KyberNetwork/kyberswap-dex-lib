@@ -217,6 +217,8 @@ func (d *L2Decoder) decodeSwapData(data []byte, functionSelectorName string, isF
 		return swapdata.UnpackGmxGlp(data, isFirstSwap)
 	case strings.ToLower(l2executor.FunctionSelectorLimitOrder.RawName):
 		return swapdata.UnpackKyberLimitOrder(data, isFirstSwap)
+	case strings.ToLower(l2executor.FunctionSelectorLimitOrderDS.RawName):
+		return swapdata.UnpackKyberLimitOrderDS(data, isFirstSwap)
 	case strings.ToLower(l2executor.FunctionSelectorStableSwap.RawName):
 		return swapdata.UnpackStableSwap(data, isFirstSwap)
 	case strings.ToLower(l2executor.FunctionSelectorSynthetix.RawName):

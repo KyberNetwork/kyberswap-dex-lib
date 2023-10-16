@@ -48,6 +48,7 @@ common:
     - "biswap"
     - "fraxswap"
     - "kyberswap-limit-order"
+    - "kyberswap-limit-order-v2"
     - "pancake-v3"
     - "maverick-v1"
     - "thena"

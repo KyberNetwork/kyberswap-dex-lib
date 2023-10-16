@@ -26,6 +26,7 @@ var (
 	FunctionSelectorVelodrome      FunctionSelector
 	FunctionSelectorFraxSwap       FunctionSelector
 	FunctionSelectorLimitOrder     FunctionSelector
+	FunctionSelectorLimitOrderDS   FunctionSelector
 	FunctionSelectorSynthetix      FunctionSelector
 	FunctionSelectorUniV3KSElastic FunctionSelector
 	FunctionSelectorGMX            FunctionSelector
@@ -48,6 +49,7 @@ func init() {
 	FunctionSelectorVelodrome = NewFunctionSelector("executeVelodromeSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorFraxSwap = NewFunctionSelector("executeFraxSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorLimitOrder = NewFunctionSelector("executeKyberLimitOrder", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
+	FunctionSelectorLimitOrderDS = NewFunctionSelector("executeKyberDSLO", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorSynthetix = NewFunctionSelector("executeSynthetixSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorUniV3KSElastic = NewFunctionSelector("executeUniV3KSElastic", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorGMX = NewFunctionSelector("executeGMXSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})

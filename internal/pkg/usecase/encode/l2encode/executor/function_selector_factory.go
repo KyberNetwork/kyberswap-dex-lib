@@ -104,6 +104,7 @@ func init() {
 
 	// executeKyberLimitOrder
 	RegisterFunctionSelector(valueobject.ExchangeKyberSwapLimitOrder, FunctionSelectorLimitOrder)
+	RegisterFunctionSelector(valueobject.ExchangeKyberSwapLimitOrderDS, FunctionSelectorLimitOrderDS)
 
 	// executeMaverick
 	RegisterFunctionSelector(valueobject.ExchangeMaverickV1, FunctionSelectorMaverickV1)

@@ -47,6 +47,7 @@ common:
     - "lido"
     - "fraxswap"
     - "kyberswap-limit-order"
+    - "kyberswap-limit-order-v2"
     - "verse"
     - "maverick-v1"
     - "pancake"
