@@ -96,7 +96,7 @@ encoder:
   chainId: *chainId
   executorAddress: *executorAddress
   routerAddress: *routerAddress
-  l2ExecutorAddress: "0x162B9A66Fb27bA482400502e3358F603FB08f9b2"
+  l2ExecutorAddress: "0x11ddD59C33c73C44733b4123a86Ea5ce57F6e854"
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
   functionSelectorMappingID:  # This map can be updated when we change l2 executor address
