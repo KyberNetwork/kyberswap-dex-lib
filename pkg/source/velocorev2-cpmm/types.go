@@ -21,3 +21,13 @@ type Extra struct {
 	Fee1e9        uint32 `json:"fee1e9"`
 	FeeMultiplier string `json:"feeMultiplier"`
 }
+
+type Meta struct {
+	Fee1e9        uint32 `json:"fee1e9"`
+	FeeMultiplier string `json:"feeMultiplier"`
+}
+
+type SwapInfo struct {
+	NeedToUpdateFeeMultiplier bool   `json:"needToUpdateFeeMultiplier"`
+	FeeMultiplierUpdated      string `json:"feeMultiplierUpdated"`
+}
