@@ -65,7 +65,7 @@ func buildWombat(swap types.L2EncodingSwap) Wombat {
 		PoolMappingID: swap.PoolMappingID,
 		Pool:          common.HexToAddress(swap.Pool),
 		TokenOut:      common.HexToAddress(swap.TokenOut),
-		Amount:        swap.AmountOut,
+		Amount:        swap.SwapAmount,
 		Recipient:     common.HexToAddress(swap.Recipient),
 
 		recipientFlag: swap.RecipientFlag,

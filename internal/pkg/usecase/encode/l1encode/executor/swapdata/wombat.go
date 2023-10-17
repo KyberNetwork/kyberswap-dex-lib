@@ -32,7 +32,7 @@ func buildWombat(swap types.EncodingSwap) Wombat {
 		Pool:      common.HexToAddress(swap.Pool),
 		TokenIn:   common.HexToAddress(swap.TokenIn),
 		TokenOut:  common.HexToAddress(swap.TokenOut),
-		Amount:    swap.AmountOut,
+		Amount:    swap.SwapAmount,
 		Recipient: common.HexToAddress(swap.Recipient),
 	}
 }
