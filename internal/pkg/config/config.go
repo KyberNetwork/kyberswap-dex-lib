@@ -3,6 +3,8 @@ package config
 import (
 	"errors"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/job"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
@@ -13,7 +15,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/validator"
 	"github.com/KyberNetwork/router-service/pkg/redis"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 var (
@@ -29,6 +30,7 @@ type Config struct {
 	Common        Common                    `mapstructure:"common" json:"common"`
 	Log           *Log                      `mapstructure:"log" json:"log"`
 	Redis         redis.Config              `mapstructure:"redis" json:"redis"`
+	PregenRedis   redis.Config              `mapstructure:"pregenRedis" json:"pregenRedis"`
 	PoolRedis     redis.Config              `mapstructure:"poolRedis" json:"poolRedis"`
 	DogstatsdHost string                    `mapstructure:"ddAgentHost" json:"ddAgentHost"`
 	KeyPair       KeyPairInfo               `mapstructure:"keyPair" json:"keyPair"`
