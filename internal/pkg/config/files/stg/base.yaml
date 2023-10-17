@@ -237,7 +237,7 @@ useCase:
       shrinkFuncLogPercent: 1.01
   buildRoute:
     chainId: *chainId
-    useL2OptimizeByDefault: false
+    useL2OptimizeByDefault: true
   poolFactory:
     chainId: *chainId
   poolManager:
