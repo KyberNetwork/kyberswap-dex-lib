@@ -18,6 +18,7 @@ common:
     0x5300000000000000000000000000000000000004: true # WETH
     0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4: true # USDC
     0xf55bec9cafdbe8730f096aa55dad6d22d44099df: true # USDT
+    0xca77eb3fefe3725dc33bccb54edefc3d9f764f97: true # DAI
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
     - "kyberswap-static"
@@ -26,6 +27,7 @@ common:
     - "spacefi"
     - "scrollswap"
     - "iziswap"
+    - "punkswap"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"

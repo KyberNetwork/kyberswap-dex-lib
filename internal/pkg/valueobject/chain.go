@@ -28,4 +28,5 @@ const (
 	ChainIDLinea           ChainID = 59144
 	ChainIDPolygonZkEVM    ChainID = 1101
 	ChainIDBase            ChainID = 8453
+	ChainIDScroll          ChainID = 534352
 )
