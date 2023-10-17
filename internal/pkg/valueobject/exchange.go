@@ -82,6 +82,7 @@ var (
 	ExchangeBalDex        Exchange = "baldex"
 	ExchangeZkSwapFinance Exchange = "zkswap-finance"
 	ExchangeScrollSwap    Exchange = "scrollswap"
+	ExchangePunkSwap      Exchange = "punkswap"
 
 	ExchangeOneSwap             Exchange = "oneswap"
 	ExchangeNerve               Exchange = "nerve"
