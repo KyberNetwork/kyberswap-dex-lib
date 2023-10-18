@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocorev2-cpmm/sd59x18"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
 )
 
 type PoolSimulator struct {
@@ -82,13 +83,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (t *PoolSimulator) CalcAmountOut(
+func (p *PoolSimulator) CalcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) (*pool.CalcAmountOutResult, error) {
-	tokens, r := t.newVelocoreExecuteParams(tokenAmountIn, tokenOut)
+	tokens, r := p.newVelocoreExecuteParams(tokenAmountIn, tokenOut)
 
-	result, err := t.velocoreExecute(tokens, r)
+	result, err := p.velocoreExecute(tokens, r)
 	if err != nil {
 		return nil, err
 	}
@@ -120,14 +121,40 @@ func (t *PoolSimulator) CalcAmountOut(
 	}, nil
 }
 
-func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	tokenInIdx := p.GetTokenIndex(params.TokenAmountIn.Token)
+	if tokenInIdx < 0 {
+		logger.WithFields(logger.Fields{
+			"dexID":   p.Pool.Info.Exchange,
+			"dexType": p.Pool.Info.Type,
+			"token":   params.TokenAmountIn.Token,
+		}).Error("can not find token in pool")
+		return
+	}
+	tokenOutIdx := p.GetTokenIndex(params.TokenAmountOut.Token)
+	if tokenOutIdx < 0 {
+		logger.WithFields(logger.Fields{
+			"dexID":   p.Pool.Info.Exchange,
+			"dexType": p.Pool.Info.Type,
+			"token":   params.TokenAmountOut.Token,
+		}).Error("can not find token in pool")
+	}
 
+	p.Info.Reserves[tokenInIdx] = new(big.Int).Add(p.Info.Reserves[tokenInIdx], params.TokenAmountIn.Amount)
+	p.Info.Reserves[tokenOutIdx] = new(big.Int).Sub(p.Info.Reserves[tokenOutIdx], params.TokenAmountOut.Amount)
+
+	swapInfo, ok := params.SwapInfo.(SwapInfo)
+	if ok && swapInfo.IsFeeMultiplierUpdated {
+		p.feeMultiplier, _ = new(big.Int).SetString(swapInfo.FeeMultiplier, 10)
+	}
+
+	p.isLastWithdrawInTheSameBlock = true
 }
 
-func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return Meta{
-		Fee1e9:        t.fee1e9,
-		FeeMultiplier: t.feeMultiplier.String(),
+		Fee1e9:        p.fee1e9,
+		FeeMultiplier: p.feeMultiplier.String(),
 	}
 }
 
@@ -694,22 +721,22 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 	}, nil
 }
 
-func (t *PoolSimulator) getEffectiveFee1e9() *big.Int {
-	effectiveFee1e9 := big.NewInt(int64(t.fee1e9))
-	if !t.isLastWithdrawInTheSameBlock {
+func (p *PoolSimulator) getEffectiveFee1e9() *big.Int {
+	effectiveFee1e9 := big.NewInt(int64(p.fee1e9))
+	if !p.isLastWithdrawInTheSameBlock {
 		return effectiveFee1e9
 	}
 	effectiveFee1e9 = new(big.Int).Div(
-		new(big.Int).Mul(effectiveFee1e9, t.feeMultiplier),
+		new(big.Int).Mul(effectiveFee1e9, p.feeMultiplier),
 		bigint1e9,
 	)
 	return effectiveFee1e9
 }
 
-func (t *PoolSimulator) getPoolBalances(tokens []string) ([]*big.Int, error) {
+func (p *PoolSimulator) getPoolBalances(tokens []string) ([]*big.Int, error) {
 	tokenToReserve := make(map[string]*big.Int)
-	for i, token := range t.Info.Tokens {
-		tokenToReserve[token] = t.Info.Reserves[i]
+	for i, token := range p.Info.Tokens {
+		tokenToReserve[token] = p.Info.Reserves[i]
 	}
 	var balances []*big.Int
 	for _, token := range tokens {
@@ -722,7 +749,7 @@ func (t *PoolSimulator) getPoolBalances(tokens []string) ([]*big.Int, error) {
 	return balances, nil
 }
 
-func (t *PoolSimulator) newVelocoreExecuteParams(
+func (p *PoolSimulator) newVelocoreExecuteParams(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
 ) ([]string, []*big.Int) {
@@ -731,20 +758,20 @@ func (t *PoolSimulator) newVelocoreExecuteParams(
 	return tokens, amounts
 }
 
-func (t *PoolSimulator) isLpToken(token string) bool {
-	return strings.EqualFold(token, t.Info.Address)
+func (p *PoolSimulator) isLpToken(token string) bool {
+	return strings.EqualFold(token, p.Info.Address)
 }
 
-func (t *PoolSimulator) getTokenWeight(token string) (*big.Int, error) {
-	for i, tok := range t.Info.Tokens {
+func (p *PoolSimulator) getTokenWeight(token string) (*big.Int, error) {
+	for i, tok := range p.Info.Tokens {
 		if tok == token {
-			return t.weights[i], nil
+			return p.weights[i], nil
 		}
 	}
 	return nil, ErrInvalidToken
 }
 
-func (t *PoolSimulator) getInvariant() (*big.Int, *big.Int, *big.Int, error) {
+func (p *PoolSimulator) getInvariant() (*big.Int, *big.Int, *big.Int, error) {
 	/*
 		https://docs.velocore.xyz/technical-docs/pool-specifics/generalized-cpmm#calculating-unknown-dimensions-in-a-zero-fee-scenario
 
@@ -752,8 +779,8 @@ func (t *PoolSimulator) getInvariant() (*big.Int, *big.Int, *big.Int, error) {
 		D = [Pi(xi^wi)]^(1/sum(wi)) (i=1..n)
 	*/
 
-	balances := t.Info.Reserves
-	if t.poolTokenNumber-lpTokenNumber == 2 && t.weights[1] == t.weights[2] {
+	balances := p.Info.Reserves
+	if p.poolTokenNumber-lpTokenNumber == 2 && p.weights[1] == p.weights[2] {
 		prod := new(big.Int).Mul(
 			new(big.Int).Add(balances[1], bigint1),
 			new(big.Int).Add(balances[2], bigint1),
@@ -769,7 +796,7 @@ func (t *PoolSimulator) getInvariant() (*big.Int, *big.Int, *big.Int, error) {
 		return ret0, invariantMin, invariantMax, nil
 	}
 
-	weights := t.weights
+	weights := p.weights
 	logInvariant := sd59x18.Zero()
 	for i := 1; i < len(weights); i++ {
 		g, err := sd59x18.ConvertToSD59x18(new(big.Int).Add(balances[i], bigint1))
@@ -792,7 +819,7 @@ func (t *PoolSimulator) getInvariant() (*big.Int, *big.Int, *big.Int, error) {
 		}
 		logInvariant = sd59x18.Add(logInvariant, gw)
 	}
-	sumW, err := sd59x18.ConvertToSD59x18(t.sumWeight)
+	sumW, err := sd59x18.ConvertToSD59x18(p.sumWeight)
 	if err != nil {
 		return nil, nil, nil, err
 	}
