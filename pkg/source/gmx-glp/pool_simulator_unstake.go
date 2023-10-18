@@ -70,6 +70,9 @@ func (p *PoolSimulator) SellUSDG(token string, usdgAmount *big.Int) (*big.Int, e
 	p.swapInfo.redemptionAmount = new(big.Int).Set(redemptionAmount)
 	//p.vault.DecreaseUSDGAmount(token, usdgAmount)
 	//p.vault.DecreasePoolAmount(token, redemptionAmount)
+	if err = p.validateMinPoolAmount(token, redemptionAmount); err != nil {
+		return nil, err
+	}
 	// updateTokenBalance(usdg)
 
 	feeBasisPoints := p.vaultUtils.GetSellUsdgFeeBasisPoints(token, usdgAmount)
