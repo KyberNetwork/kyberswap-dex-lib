@@ -31,26 +31,14 @@ const (
 	unknownInt = -1
 )
 
-// var (
-// 	zeroBI         = big.NewInt(0)
-// 	defaultGas     = Gas{SwapBase: 60000, SwapNonBase: 102000}
-// 	defaultSwapFee = "2"
-// 	bOne           = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
-// 	bOneFloat, _   = new(big.Float).SetString("1000000000000000000")
-// )
-
 var (
 	unknownBI = new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil), big.NewInt(1))
 
-	maxUint256 = new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil), big.NewInt(1))
-)
-
-var (
-	bigint1e9  = big.NewInt(1e9)
-	bigint1e18 = big.NewInt(1e18)
+	bigint0    = big.NewInt(0)
 	bigint1    = big.NewInt(1)
 	bigint2    = big.NewInt(2)
-	bigint1e5  = big.NewInt(1e5)
-	bigint0    = big.NewInt(0)
 	bigint1e4  = big.NewInt(1e4)
+	bigint1e5  = big.NewInt(1e5)
+	bigint1e9  = big.NewInt(1e9)
+	bigint1e18 = big.NewInt(1e18)
 )
