@@ -1,6 +1,7 @@
 package sdk
 
 import (
+	"errors"
 	"math/big"
 )
 
@@ -20,9 +21,9 @@ func computeAmountOut(
 	feesPool *big.Int,
 	userTradeTimestamp int64,
 	maxBlockDiffSeconds int64,
-) CurrencyAmount {
+) (*CurrencyAmount, error) {
 	if tokenAddressIn == token0 {
-		newPriceAverage0, newPriceAverage1 := getUpdatedPriceAverage(
+		newPriceAverage0, newPriceAverage1, err := getUpdatedPriceAverage(
 			reserve0Fic,
 			reserve1Fic,
 			priceAverageLastTimestamp,
@@ -31,7 +32,10 @@ func computeAmountOut(
 			userTradeTimestamp,
 			maxBlockDiffSeconds,
 		)
-		amountOut, newRes0, newRes1, newRes0Fic, newRes1Fic := getAmountOut(
+		if err != nil {
+			return nil, err
+		}
+		amountOut, newRes0, newRes1, newRes0Fic, newRes1Fic, err := getAmountOut(
 			tokenAmountIn,
 			reserve0,
 			reserve1,
@@ -42,7 +46,10 @@ func computeAmountOut(
 			feesLP,
 			feesPool,
 		)
-		return CurrencyAmount{
+		if err != nil {
+			return nil, err
+		}
+		return &CurrencyAmount{
 			currency:         token1,
 			amount:           amountOut,
 			amountMax:        amountOut,
@@ -52,9 +59,9 @@ func computeAmountOut(
 			newRes1Fic:       newRes1Fic,
 			newPriceAverage0: newPriceAverage0,
 			newPriceAverage1: newPriceAverage1,
-		}
+		}, nil
 	}
-	newPriceAverage1, newPriceAverage0 := getUpdatedPriceAverage(
+	newPriceAverage1, newPriceAverage0, err := getUpdatedPriceAverage(
 		reserve1Fic,
 		reserve0Fic,
 		priceAverageLastTimestamp,
@@ -63,8 +70,11 @@ func computeAmountOut(
 		userTradeTimestamp,
 		maxBlockDiffSeconds,
 	)
+	if err != nil {
+		return nil, err
+	}
 
-	amountOut, newRes1, newRes0, newRes1Fic, newRes0Fic := getAmountOut(
+	amountOut, newRes1, newRes0, newRes1Fic, newRes0Fic, err := getAmountOut(
 		tokenAmountIn,
 		reserve1,
 		reserve0,
@@ -75,7 +85,10 @@ func computeAmountOut(
 		feesLP,
 		feesPool,
 	)
-	return CurrencyAmount{
+	if err != nil {
+		return nil, err
+	}
+	return &CurrencyAmount{
 		currency:           token0,
 		amount:             amountOut,
 		amountMax:          amountOut,
@@ -86,32 +99,22 @@ func computeAmountOut(
 		newPriceAverage0:   newPriceAverage0,
 		newPriceAverage1:   newPriceAverage1,
 		userTradeTimestamp: userTradeTimestamp,
-	}
+	}, nil
 }
 
-func getAmountOut(
-	amountIn *big.Int,
-	reserveIn *big.Int,
-	reserveOut *big.Int,
-	reserveInFic *big.Int,
-	reserveOutFic *big.Int,
-	priceAverageIn *big.Int,
-	priceAverageOut *big.Int,
-	feesLP *big.Int,
-	feesPool *big.Int,
-) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int) {
+func getAmountOut(amountIn *big.Int, reserveIn *big.Int, reserveOut *big.Int, reserveInFic *big.Int, reserveOutFic *big.Int, priceAverageIn *big.Int, priceAverageOut *big.Int, feesLP *big.Int, feesPool *big.Int) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int, error) {
 	zero := big.NewInt(0)
 	if amountIn.Cmp(zero) != 1 {
-		//err
+		return nil, nil, nil, nil, nil, errors.New("INSUFFICIENT_INPUT_AMOUNT")
 	}
 	if reserveIn.Cmp(zero) != 1 || reserveOut.Cmp(zero) != 1 {
-		//err
+		return nil, nil, nil, nil, nil, errors.New("INSUFFICIENT_LIQUIDITY")
 	}
 	if reserveInFic.Cmp(zero) != 1 || reserveOutFic.Cmp(zero) != 1 {
-		//err
+		return nil, nil, nil, nil, nil, errors.New("INSUFFICIENT_LIQUIDITY")
 	}
 	if priceAverageIn.Cmp(zero) != 1 || priceAverageOut.Cmp(zero) != 1 {
-		//err
+		return nil, nil, nil, nil, nil, errors.New("INSUFFICIENT_PRICE_AVERAGE")
 	}
 	reserveInFicUpdated := reserveInFic
 	reserveOutFicUpdated := reserveOutFic
@@ -143,15 +146,11 @@ func getAmountOut(
 		)
 	}
 	if reserveInFicUpdated.Cmp(zero) != 1 {
-		return zero,
-			reserveIn,
-			reserveOut,
-			reserveInFicUpdated,
-			reserveOutFicUpdated
+		return zero, reserveIn, reserveOut, reserveInFicUpdated, reserveOutFicUpdated, nil
 	}
 	firstAmountNoFees := new(big.Int)
 	firstAmountNoFees.Mul(firstAmount, FEES_BASE).Div(firstAmountNoFees, feesTotalReversed)
-	amountOut, newResIn, newResOut, newResInFic, newResOutFic := applyKConstRuleOut(
+	amountOut, newResIn, newResOut, newResInFic, newResOutFic, err := applyKConstRuleOut(
 		firstAmountNoFees,
 		reserveIn,
 		reserveOut,
@@ -160,6 +159,9 @@ func getAmountOut(
 		feesLP,
 		feesPool,
 	)
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
 	if firstAmount.Cmp(amountWithFees) == -1 && firstAmountNoFees.Cmp(amountIn) == -1 {
 		newResInFic, newResOutFic := computeReserveFic(
 			newResIn,
@@ -168,14 +170,10 @@ func getAmountOut(
 			newResOutFic,
 		)
 		if newResInFic.Cmp(zero) != 1 {
-			return zero,
-				reserveIn,
-				reserveOut,
-				reserveInFicUpdated,
-				reserveOutFicUpdated
+			return zero, reserveIn, reserveOut, reserveInFicUpdated, reserveOutFicUpdated, nil
 		}
 		var secondAmountOutNoFees *big.Int
-		secondAmountOutNoFees, newResIn, newResOut, newResInFic, newResOutFic = applyKConstRuleOut(
+		secondAmountOutNoFees, newResIn, newResOut, newResInFic, newResOutFic, err = applyKConstRuleOut(
 			new(big.Int).Sub(amountIn, firstAmountNoFees),
 			newResIn,
 			newResOut,
@@ -184,6 +182,9 @@ func getAmountOut(
 			feesLP,
 			feesPool,
 		)
+		if err != nil {
+			return nil, nil, nil, nil, nil, err
+		}
 		amountOut.Add(amountOut, secondAmountOutNoFees)
 	}
 
@@ -191,21 +192,13 @@ func getAmountOut(
 		newResOut.Cmp(zero) != 1 ||
 		newResInFic.Cmp(zero) != 1 ||
 		newResOutFic.Cmp(zero) != 1 {
-		// err
+		return nil, nil, nil, nil, nil, errors.New("INSUFFICIENT_LIQUIDITY")
 	}
 
-	return amountOut, newResIn, newResOut, newResInFic, newResOutFic
+	return amountOut, newResIn, newResOut, newResInFic, newResOutFic, nil
 }
 
-func applyKConstRuleOut(
-	amountIn *big.Int,
-	reserveIn *big.Int,
-	reserveOut *big.Int,
-	reserveInFic *big.Int,
-	reserveOutFic *big.Int,
-	feesLP *big.Int,
-	feesPool *big.Int,
-) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int) {
+func applyKConstRuleOut(amountIn *big.Int, reserveIn *big.Int, reserveOut *big.Int, reserveInFic *big.Int, reserveOutFic *big.Int, feesLP *big.Int, feesPool *big.Int) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int, error) {
 	feesTotalReversed := new(big.Int)
 	feesTotalReversed.Sub(FEES_BASE, feesLP).Sub(feesTotalReversed, feesPool)
 	amountInWithFee := new(big.Int).Mul(amountIn, feesTotalReversed)
@@ -213,7 +206,7 @@ func applyKConstRuleOut(
 	denominator := new(big.Int)
 	denominator.Mul(reserveInFic, FEES_BASE).Sub(denominator, amountInWithFee)
 	if denominator.Cmp(big.NewInt(0)) == 0 {
-		//err
+		return nil, nil, nil, nil, nil, errors.New("SMARDEX_K_ERROR")
 	}
 
 	amountOut := new(big.Int).Div(numerator, denominator)
@@ -225,7 +218,7 @@ func applyKConstRuleOut(
 	newResOut := new(big.Int).Sub(reserveOut, amountOut)
 	newResOutFic := new(big.Int).Sub(reserveOutFic, amountOut)
 
-	return amountOut, newResIn, newResOut, newResInFic, newResOutFic
+	return amountOut, newResIn, newResOut, newResInFic, newResOutFic, nil
 }
 
 func computeFirstTradeQtyIn(
@@ -280,9 +273,9 @@ func ComputeAmountIn(
 	feesPool *big.Int,
 	userTradeTimestamp int64,
 	maxBlockDiffSeconds int64,
-) CurrencyAmount {
+) (*CurrencyAmount, error) {
 	if tokenAddressOut == token0 {
-		newPriceAverage1, newPriceAverage0 := getUpdatedPriceAverage(
+		newPriceAverage1, newPriceAverage0, err := getUpdatedPriceAverage(
 			reserve1Fic,
 			reserve0Fic,
 			priceAverageLastTimestamp,
@@ -291,8 +284,11 @@ func ComputeAmountIn(
 			userTradeTimestamp,
 			maxBlockDiffSeconds,
 		)
+		if err != nil {
+			return nil, err
+		}
 
-		amountIn, newRes1, newRes0, newRes1Fic, newRes0Fic :=
+		amountIn, newRes1, newRes0, newRes1Fic, newRes0Fic, err :=
 			getAmountIn(
 				tokenAmountOut,
 				reserve1,
@@ -304,7 +300,10 @@ func ComputeAmountIn(
 				feesLP,
 				feesPool,
 			)
-		return CurrencyAmount{
+		if err != nil {
+			return nil, err
+		}
+		return &CurrencyAmount{
 			currency:         token1,
 			amount:           amountIn,
 			amountMax:        amountIn,
@@ -314,9 +313,9 @@ func ComputeAmountIn(
 			newRes1Fic:       newRes1Fic,
 			newPriceAverage0: newPriceAverage0,
 			newPriceAverage1: newPriceAverage1,
-		}
+		}, nil
 	}
-	newPriceAverage1, newPriceAverage0 := getUpdatedPriceAverage(
+	newPriceAverage1, newPriceAverage0, err := getUpdatedPriceAverage(
 		reserve0Fic,
 		reserve1Fic,
 		priceAverageLastTimestamp,
@@ -325,8 +324,11 @@ func ComputeAmountIn(
 		userTradeTimestamp,
 		maxBlockDiffSeconds,
 	)
+	if err != nil {
+		return nil, err
+	}
 
-	amountIn, newRes1, newRes0, newRes1Fic, newRes0Fic :=
+	amountIn, newRes1, newRes0, newRes1Fic, newRes0Fic, err :=
 		getAmountIn(
 			tokenAmountOut,
 			reserve0,
@@ -338,7 +340,10 @@ func ComputeAmountIn(
 			feesLP,
 			feesPool,
 		)
-	return CurrencyAmount{
+	if err != nil {
+		return nil, err
+	}
+	return &CurrencyAmount{
 		currency:           token1,
 		amount:             amountIn,
 		amountMax:          amountIn,
@@ -349,32 +354,22 @@ func ComputeAmountIn(
 		newPriceAverage0:   newPriceAverage0,
 		newPriceAverage1:   newPriceAverage1,
 		userTradeTimestamp: userTradeTimestamp,
-	}
+	}, nil
 }
 
-func getAmountIn(
-	amountOut *big.Int,
-	reserveIn *big.Int,
-	reserveOut *big.Int,
-	reserveInFic *big.Int,
-	reserveOutFic *big.Int,
-	priceAverageIn *big.Int,
-	priceAverageOut *big.Int,
-	feesLP *big.Int,
-	feesPool *big.Int,
-) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int) {
+func getAmountIn(amountOut *big.Int, reserveIn *big.Int, reserveOut *big.Int, reserveInFic *big.Int, reserveOutFic *big.Int, priceAverageIn *big.Int, priceAverageOut *big.Int, feesLP *big.Int, feesPool *big.Int) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int, error) {
 	zero := big.NewInt(0)
 	if amountOut.Cmp(zero) != 1 {
-		//err
+		return nil, nil, nil, nil, nil, errors.New("INSUFFICIENT_OUTPUT_AMOUNT")
 	}
 	if reserveIn.Cmp(zero) != 1 || reserveOut.Cmp(zero) != 1 {
-		//err
+		return nil, nil, nil, nil, nil, errors.New("INSUFFICIENT_LIQUIDITY")
 	}
 	if reserveInFic.Cmp(zero) != 1 || reserveOutFic.Cmp(zero) != 1 {
-		//err
+		return nil, nil, nil, nil, nil, errors.New("INSUFFICIENT_LIQUIDITY")
 	}
 	if priceAverageIn.Cmp(zero) != 1 || priceAverageOut.Cmp(zero) != 1 {
-		//err
+		return nil, nil, nil, nil, nil, errors.New("INSUFFICIENT_PRICE_AVERAGE")
 	}
 	reserveInFicUpdated := reserveInFic
 	reserveOutFicUpdated := reserveOutFic
@@ -394,13 +389,9 @@ func getAmountIn(
 		)
 	}
 	if reserveInFic.Cmp(amountOut) != 1 {
-		return big.NewInt(0),
-			reserveIn,
-			reserveOut,
-			reserveInFicUpdated,
-			reserveOutFicUpdated
+		return big.NewInt(0), reserveIn, reserveOut, reserveInFicUpdated, reserveOutFicUpdated, nil
 	}
-	amountIn, newResIn, newResOut, newResInFic, newResOutFic :=
+	amountIn, newResIn, newResOut, newResInFic, newResOutFic, err :=
 		applyKConstRuleIn(
 			firstAmount,
 			reserveIn,
@@ -410,6 +401,9 @@ func getAmountIn(
 			feesLP,
 			feesPool,
 		)
+	if err != nil {
+		return nil, nil, nil, nil, nil, err
+	}
 
 	if firstAmount.Cmp(amountOut) == -1 {
 		newResInFic, newResOutFic := computeReserveFic(
@@ -419,15 +413,12 @@ func getAmountIn(
 			newResOutFic,
 		)
 		if newResInFic.Cmp(zero) != 1 {
-			return big.NewInt(0),
-				reserveIn,
-				reserveOut,
-				reserveInFicUpdated,
-				reserveOutFicUpdated
+			return big.NewInt(0), reserveIn, reserveOut, reserveInFicUpdated, reserveOutFicUpdated, nil
 		}
 		sub := big.NewInt(0)
 		sub.Sub(amountOut, firstAmount)
-		secondAmountIn, _, _, newResInFic, newResOutFic := applyKConstRuleIn(
+		var secondAmountIn *big.Int
+		secondAmountIn, newResIn, newResOut, newResInFic, newResOutFic, err = applyKConstRuleIn(
 			sub,
 			newResIn,
 			newResOut,
@@ -436,26 +427,21 @@ func getAmountIn(
 			feesLP,
 			feesPool,
 		)
+		if err != nil {
+			return nil, nil, nil, nil, nil, err
+		}
 		amountIn.Add(amountIn, secondAmountIn)
 	}
 	if newResIn.Cmp(zero) != 1 ||
 		newResOut.Cmp(zero) != 1 ||
 		newResInFic.Cmp(zero) != 1 ||
 		newResOutFic.Cmp(zero) != 1 {
-		//err
+		return nil, nil, nil, nil, nil, errors.New("INSUFFICIENT_LIQUIDITY")
 	}
-	return amountIn, newResIn, newResOut, newResInFic, newResOutFic
+	return amountIn, newResIn, newResOut, newResInFic, newResOutFic, nil
 }
 
-func applyKConstRuleIn(
-	amountOut *big.Int,
-	reserveIn *big.Int,
-	reserveOut *big.Int,
-	reserveInFic *big.Int,
-	reserveOutFic *big.Int,
-	feesLP *big.Int,
-	feesPool *big.Int,
-) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int) {
+func applyKConstRuleIn(amountOut *big.Int, reserveIn *big.Int, reserveOut *big.Int, reserveInFic *big.Int, reserveOutFic *big.Int, feesLP *big.Int, feesPool *big.Int) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int, error) {
 	feesTotalReversed := big.NewInt(0)
 	feesTotalReversed.Sub(FEES_BASE, feesLP).Sub(feesTotalReversed, feesPool)
 	numerator := big.NewInt(0)
@@ -463,7 +449,7 @@ func applyKConstRuleIn(
 	denominator := big.NewInt(0)
 	denominator.Sub(reserveOutFic, amountOut).Mul(denominator, feesTotalReversed)
 	if denominator.Cmp(big.NewInt(0)) == 0 {
-		// err
+		return nil, nil, nil, nil, nil, errors.New("INSUFFICIENT_LIQUIDITY")
 	}
 	amountIn := big.NewInt(0)
 	amountIn.Div(numerator, denominator).Add(amountIn, big.NewInt(1))
@@ -478,7 +464,7 @@ func applyKConstRuleIn(
 	newResOutFic := big.NewInt(0)
 	newResOutFic.Sub(reserveOutFic, amountOut)
 
-	return amountIn, newResIn, newResOut, newResInFic, newResOutFic
+	return amountIn, newResIn, newResOut, newResInFic, newResOutFic, nil
 }
 
 func computeReserveFic(
@@ -544,28 +530,20 @@ func computeFirstTradeQtyOut(
 	return firstAmountOut
 }
 
-func getUpdatedPriceAverage(
-	reserveFicIn *big.Int,
-	reserveFicOut *big.Int,
-	priceAverageLastTimestamp int64,
-	priceAverageIn *big.Int,
-	priceAverageOut *big.Int,
-	currentTimestampInSecond int64,
-	maxBlockDiffSeconds int64,
-) (*big.Int, *big.Int) {
+func getUpdatedPriceAverage(reserveFicIn *big.Int, reserveFicOut *big.Int, priceAverageLastTimestamp int64, priceAverageIn *big.Int, priceAverageOut *big.Int, currentTimestampInSecond int64, maxBlockDiffSeconds int64) (*big.Int, *big.Int, error) {
 	zero := big.NewInt(0)
 
 	if currentTimestampInSecond < priceAverageLastTimestamp {
-		//err
+		return nil, nil, errors.New("INVALID_TIMESTAMP")
 	}
 
 	if priceAverageLastTimestamp == 0 ||
 		priceAverageIn.Cmp(zero) == 0 ||
 		priceAverageOut.Cmp(zero) == 0 {
-		return reserveFicIn, reserveFicOut
+		return reserveFicIn, reserveFicOut, nil
 	}
 	if priceAverageLastTimestamp == currentTimestampInSecond {
-		return priceAverageIn, priceAverageOut
+		return priceAverageIn, priceAverageOut, nil
 	}
 
 	timeDiff := min(
@@ -578,5 +556,5 @@ func getUpdatedPriceAverage(
 	tmp := new(big.Int)
 	tmp.Mul(reserveFicOut, big.NewInt(timeDiff)).Div(tmp, big.NewInt(maxBlockDiffSeconds))
 	priceAverageOutRet.Add(priceAverageOutRet, tmp)
-	return priceAverageInRet, priceAverageOutRet
+	return priceAverageInRet, priceAverageOutRet, nil
 }
