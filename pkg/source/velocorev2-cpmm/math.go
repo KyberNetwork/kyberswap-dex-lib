@@ -4,19 +4,18 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocorev2-cpmm/sd59x18"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func ceilDiv(a *big.Int, b *big.Int) *big.Int {
-	if a.Cmp(zero) == 0 {
-		return zero
+	if a.Cmp(bigint0) == 0 {
+		return bigint0
 	}
-	a = new(big.Int).Sub(a, bignumber.One)
-	return new(big.Int).Add(new(big.Int).Div(a, b), bignumber.One)
+	a = new(big.Int).Sub(a, bigint1)
+	return new(big.Int).Add(new(big.Int).Div(a, b), bigint1)
 }
 
 func ceilDivUnsafe(a *big.Int, b *big.Int) *big.Int {
-	return new(big.Int).Div(new(big.Int).Sub(new(big.Int).Add(a, b), big.NewInt(1)), b)
+	return new(big.Int).Div(new(big.Int).Sub(new(big.Int).Add(a, b), bigint1), b)
 }
 
 func rpow(x *big.Int, n *big.Int, base *big.Int) *big.Int {

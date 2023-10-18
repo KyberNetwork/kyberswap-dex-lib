@@ -51,7 +51,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 	poolTokenNumber = staticExtra.PoolTokenNumber
 
-	sumWeight = zero
+	sumWeight = bigint0
 	for _, token := range entityPool.Tokens {
 		tokens = append(tokens, token.Address)
 		weightBI := big.NewInt(int64(token.Weight))
@@ -178,7 +178,7 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 			continue
 		}
 		weights[i], _ = p.getTokenWeight(token)
-		a[i] = new(big.Int).Add(a[i], one)
+		a[i] = new(big.Int).Add(a[i], bigint1)
 	}
 
 	var (
@@ -288,7 +288,7 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 
 		// this statement is not actually needed because we use *big.Int instead of uint256.
 		// it's here to make the code more similar to the original.
-		if requestedGrowth1e18.Cmp(zero) <= 0 {
+		if requestedGrowth1e18.Cmp(bigint0) <= 0 {
 			return nil, ErrInvalidTokenGrowth
 		}
 	}
@@ -315,7 +315,7 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 	if lpUnknown {
 		w = new(big.Int).Sub(w, p.sumWeight)
 	}
-	if w.Cmp(zero) == 0 {
+	if w.Cmp(bigint0) == 0 {
 		return nil, ErrInvalidR
 	}
 	g_, g, err = powReciprocal(requestedGrowth1e18, new(big.Int).Neg(w))
@@ -842,5 +842,5 @@ func (p *PoolSimulator) getInvariant() (*big.Int, *big.Int, *big.Int, error) {
 		bigint1,
 	)
 
-	return zero, invariantMin, invariantMax, nil
+	return bigint0, invariantMin, invariantMax, nil
 }
