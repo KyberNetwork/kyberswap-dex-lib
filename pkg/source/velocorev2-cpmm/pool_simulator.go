@@ -88,22 +88,70 @@ func (t *PoolSimulator) CalcAmountOut(
 ) (*pool.CalcAmountOutResult, error) {
 	tokens, r := t.newVelocoreExecuteParams(tokenAmountIn, tokenOut)
 
-	effectiveFee1e9 := t.getEffectiveFee1e9()
-
-	iLp := unknownInt
-	a, err := t.getPoolBalances(tokens)
+	result, err := t.velocoreExecute(tokens, r)
 	if err != nil {
 		return nil, err
 	}
+
+	var amountOut *big.Int
+	for i, token := range tokens {
+		if strings.EqualFold(token, tokenOut) {
+			amountOut = result.R[i]
+			break
+		}
+	}
+	if amountOut == nil {
+		return nil, ErrNotFoundR
+	}
+
+	swapInfo := SwapInfo{
+		IsFeeMultiplierUpdated: result.IsFeeMultiplierUpdated,
+		FeeMultiplier:          result.FeeMultiplier.String(),
+	}
+
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{
+			Token:  tokenOut,
+			Amount: amountOut,
+		},
+		Fee:      nil,
+		Gas:      0,
+		SwapInfo: swapInfo,
+	}, nil
+}
+
+func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+
+}
+
+func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+	return Meta{
+		Fee1e9:        t.fee1e9,
+		FeeMultiplier: t.feeMultiplier.String(),
+	}
+}
+
+// https://github.com/velocore/velocore-contracts/blob/master/src/pools/constant-product/ConstantProductPool.sol#L164
+func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocoreExecuteResult, error) {
+	effectiveFee1e9 := p.getEffectiveFee1e9()
+	iLp := unknownInt
+
+	// balances of "tokens"
+	a, err := p.getPoolBalances(tokens)
+	if err != nil {
+		return nil, err
+	}
+
+	// weights of "tokens"
 	weights := make([]*big.Int, len(tokens))
 	for i, token := range tokens {
-		if t.isLpToken(token) {
-			weights[i] = t.sumWeight
+		if p.isLpToken(token) {
+			weights[i] = p.sumWeight
 			iLp = i
-		} else {
-			weights[i], _ = t.getTokenWeight(token)
-			a[i] = new(big.Int).Add(a[i], one)
+			continue
 		}
+		weights[i], _ = p.getTokenWeight(token)
+		a[i] = new(big.Int).Add(a[i], one)
 	}
 
 	var (
@@ -112,12 +160,16 @@ func (t *PoolSimulator) CalcAmountOut(
 		lpInvolved                 = iLp != unknownInt
 		lpUnknown                  = lpInvolved && (a[iLp].Cmp(unknownBI) == 0)
 	)
+
+	// TODO: move this to other functions
+
+	// calculate "k"
+	// "k" is used to split "r" into taxable and non-taxable components
 	if lpInvolved {
-		_, invariantMin, invariantMax, err = t.getInvariant()
+		_, invariantMin, invariantMax, err = p.getInvariant()
 		if err != nil {
 			return nil, err
 		}
-
 		if lpUnknown {
 			kw := bigint0
 			for i := range tokens {
@@ -127,29 +179,24 @@ func (t *PoolSimulator) CalcAmountOut(
 					}
 					continue
 				}
-
 				balanceRatio := new(big.Int).Div(
-					new(big.Int).Mul(
-						new(big.Int).Add(a[i], r[i]),
-						bigint1e18,
-					),
+					new(big.Int).Mul(new(big.Int).Add(a[i], r[i]), bigint1e18),
 					a[i],
 				)
 				k = new(big.Int).Add(k, new(big.Int).Mul(weights[i], balanceRatio))
 			}
-
-			k = new(big.Int).Div(k, new(big.Int).Sub(t.sumWeight, kw))
+			k = new(big.Int).Div(k, new(big.Int).Sub(p.sumWeight, kw))
 		} else {
 			k = new(big.Int).Div(
-				new(big.Int).Mul(
-					bigint1e18,
-					new(big.Int).Sub(invariantMax, r[iLp]),
-				),
+				new(big.Int).Mul(bigint1e18, new(big.Int).Sub(invariantMax, r[iLp])),
 				invariantMax,
 			)
 		}
 	}
 
+	// calculate "requestedGrowth1e18"
+	// which equals to:
+	// Pi[ ((b - fee(b - a)) / a) ^ w ]
 	var (
 		requestedGrowth1e18 = bigint1e18
 		sumUnknownWeight    = bigint0
@@ -179,54 +226,41 @@ func (t *PoolSimulator) CalcAmountOut(
 				bPrime *big.Int
 				fee    *big.Int
 			)
-
 			if k.Cmp(bigint1e18) > 0 {
 				aPrime = a[i]
-				bPrime = new(big.Int).Div(
-					new(big.Int).Mul(b, bigint1e18),
-					k,
-				)
+				bPrime = new(big.Int).Div(new(big.Int).Mul(b, bigint1e18), k)
 			} else {
-				aPrime = new(big.Int).Div(
-					new(big.Int).Mul(a[i], k),
-					bigint1e18,
-				)
+				aPrime = new(big.Int).Div(new(big.Int).Mul(a[i], k), bigint1e18)
 				bPrime = b
 			}
 
 			if bPrime.Cmp(aPrime) > 0 {
 				fee = ceilDivUnsafe(
-					new(big.Int).Mul(
-						new(big.Int).Sub(bPrime, aPrime),
-						effectiveFee1e9,
-					),
+					new(big.Int).Mul(new(big.Int).Sub(bPrime, aPrime), effectiveFee1e9),
 					bigint1e9,
 				)
 			}
 
 			tokenGrowth1e18 = new(big.Int).Div(
-				new(big.Int).Mul(
-					bigint1e18,
-					new(big.Int).Sub(b, fee),
-				),
+				new(big.Int).Mul(bigint1e18, new(big.Int).Sub(b, fee)),
 				a[i],
 			)
 		}
 
 		oneHundred := big.NewInt(100)
 		lo := new(big.Int).Div(bigint1e18, oneHundred) // 0.01e18
-		hi := new(big.Int).Mul(bOne, oneHundred)       // 100e18
+		hi := new(big.Int).Mul(bigint1e18, oneHundred) // 100e18
 		if tokenGrowth1e18.Cmp(lo) <= 0 || tokenGrowth1e18.Cmp(hi) >= 0 {
-			return t.returnLogarithmicSwap(tokenOut, tokens, r)
+			return p.velocoreExecuteFallback(tokens, r)
 		}
 
 		requestedGrowth1e18 = new(big.Int).Div(
-			new(big.Int).Mul(
-				requestedGrowth1e18,
-				rpow(tokenGrowth1e18, weights[i], bigint1e18),
-			),
+			new(big.Int).Mul(requestedGrowth1e18, rpow(tokenGrowth1e18, weights[i], bigint1e18)),
 			bigint1e18,
 		)
+
+		// this statement is not actually needed because we use *big.Int instead of uint256.
+		// it's here to make the code more similar to the original.
 		if requestedGrowth1e18.Cmp(zero) <= 0 {
 			return nil, ErrInvalidTokenGrowth
 		}
@@ -237,23 +271,14 @@ func (t *PoolSimulator) CalcAmountOut(
 		x := new(big.Int).Sub(
 			bigint1e18,
 			new(big.Int).Div(
-				new(big.Int).Mul(
-					new(big.Int).Sub(bigint1e18, k),
-					effectiveFee1e9,
-				),
+				new(big.Int).Mul(new(big.Int).Sub(bigint1e18, k), effectiveFee1e9),
 				bigint1e9,
 			),
 		)
-		n := new(big.Int).Sub(
-			new(big.Int).Sub(t.sumWeight, sumUnknownWeight),
-			sumKnownWeight,
-		)
+		n := new(big.Int).Sub(new(big.Int).Sub(p.sumWeight, sumUnknownWeight), sumKnownWeight)
 		unaccountedFeeAsGrowth1e18 = rpow(x, n, bigint1e18)
 		requestedGrowth1e18 = new(big.Int).Div(
-			new(big.Int).Mul(
-				requestedGrowth1e18,
-				unaccountedFeeAsGrowth1e18,
-			),
+			new(big.Int).Mul(requestedGrowth1e18, unaccountedFeeAsGrowth1e18),
 			bigint1e18,
 		)
 	}
@@ -261,16 +286,17 @@ func (t *PoolSimulator) CalcAmountOut(
 	var g_, g *big.Int
 	w := sumUnknownWeight
 	if lpUnknown {
-		w = new(big.Int).Sub(w, t.sumWeight)
+		w = new(big.Int).Sub(w, p.sumWeight)
 	}
 	if w.Cmp(zero) == 0 {
 		return nil, ErrInvalidR
 	}
-	g_, g, err = powReciprocal(requestedGrowth1e18, new(big.Int).Neg(w)) // TODO: check me!
+	g_, g, err = powReciprocal(requestedGrowth1e18, new(big.Int).Neg(w))
 	if err != nil {
 		return nil, err
 	}
 
+	// calculate unknown "r_i"
 	for i := range tokens {
 		if r[i].Cmp(unknownBI) != 0 {
 			continue
@@ -286,7 +312,7 @@ func (t *PoolSimulator) CalcAmountOut(
 				aPrime = a[i]
 				bPrime = ceilDiv(new(big.Int).Mul(b, bigint1e18), k)
 			} else {
-				aPrime = ceilDiv(new(big.Int).Mul(a[i], k), bigint1e18)
+				aPrime = new(big.Int).Div(new(big.Int).Mul(a[i], k), bigint1e18)
 				bPrime = b
 			}
 
@@ -294,121 +320,116 @@ func (t *PoolSimulator) CalcAmountOut(
 			if bPrime.Cmp(aPrime) > 0 {
 				fee = new(big.Int).Sub(
 					ceilDiv(
-						new(big.Int).Mul(
-							bPrimeMinusAPrime,
-							bigint1e9,
-						),
+						new(big.Int).Mul(bPrimeMinusAPrime, bigint1e9),
 						new(big.Int).Sub(bigint1e9, effectiveFee1e9),
 					),
 					bPrimeMinusAPrime,
 				)
 			}
 
-			r[i] = new(big.Int).Sub( // TODO: this is amountIn
-				new(big.Int).Add(b, fee),
-				a[i],
-			)
+			r[i] = new(big.Int).Sub(new(big.Int).Add(b, fee), a[i])
 
 			continue
 		}
 
-		b := new(big.Int).Div(
-			new(big.Int).Mul(g_, invariantMin),
-			bigint1e18,
-		)
+		// case unknown lp token "r"
+
+		b := new(big.Int).Div(new(big.Int).Mul(g_, invariantMin), bigint1e18)
 		r[i] = new(big.Int).Neg(new(big.Int).Sub(b, invariantMax))
 	}
 
-	var swapInfo SwapInfo
-	if iLp != unknownInt && r[iLp].Cmp(bigint0) > 0 {
-		feeMultiplier := t.feeMultiplier
-		if !t.isLastWithdrawInTheSameBlock {
-			feeMultiplier = bigint1e9
+	var (
+		isFeeMultiplierUpdated bool
+		newFeeMultiplier       = bigint0
+	)
+	if lpInvolved && r[iLp].Cmp(bigint0) > 0 {
+		newFeeMultiplier = p.feeMultiplier
+		if !p.isLastWithdrawInTheSameBlock {
+			newFeeMultiplier = bigint1e9
 		}
-		feeMultiplier = new(big.Int).Div(
-			new(big.Int).Mul(feeMultiplier, invariantMax),
+		newFeeMultiplier = new(big.Int).Div(
+			new(big.Int).Mul(newFeeMultiplier, invariantMax),
 			new(big.Int).Sub(invariantMax, r[iLp]),
 		)
-		swapInfo.NeedToUpdateFeeMultiplier = true
-		swapInfo.FeeMultiplierUpdated = feeMultiplier.String()
+		isFeeMultiplierUpdated = true
 	}
 
-	var amountOut *big.Int
-	for i, token := range tokens {
-		if strings.EqualFold(token, tokenOut) {
-			amountOut = new(big.Int).Neg(r[i])
-			break
-		}
-	}
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut,
-		},
-		Fee:      nil, //TODO: implement me!
-		Gas:      0,
-		SwapInfo: &swapInfo,
+	return &velocoreExecuteResult{
+		Tokens:                 tokens,
+		R:                      r,
+		FeeMultiplier:          newFeeMultiplier,
+		IsFeeMultiplierUpdated: isFeeMultiplierUpdated,
 	}, nil
 }
 
-func (t *PoolSimulator) returnLogarithmicSwap(
-	tokenOut string,
-	tokens []string, r_ []*big.Int,
-) (*pool.CalcAmountOutResult, error) {
+// https://github.com/velocore/velocore-contracts/blob/master/src/pools/constant-product/ConstantProductLibrary.sol#L25
+func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) (*velocoreExecuteResult, error) {
 	var (
-		tt  = t.Info.Tokens
-		a   = t.Info.Reserves
+		t   = p.Info.Tokens
+		a   = p.Info.Reserves
 		idx = make([]int, len(tokens))
-		w   = t.weights
+		w   = p.weights
 	)
 
-	fee1e18 := new(big.Int).Mul(
-		big.NewInt(int64(t.fee1e9)),
-		bigint1e9,
-	)
-	if t.isLastWithdrawInTheSameBlock {
-		fee1e18 = new(big.Int).Div(
-			new(big.Int).Mul(fee1e18, t.feeMultiplier),
-			bigint1e9,
-		)
+	fee1e18 := new(big.Int).Mul(big.NewInt(int64(p.fee1e9)), bigint1e9)
+	if p.isLastWithdrawInTheSameBlock {
+		fee1e18 = new(big.Int).Div(new(big.Int).Mul(fee1e18, p.feeMultiplier), bigint1e9)
 	}
 	additionalMultiplier := bigint1e9
 
-	r := make([]*big.Int, len(tt))
+	// map from token to index in "t"
 	poolTokenIdx := map[string]int{}
-	for i, token := range tt {
+	for i, token := range t {
 		poolTokenIdx[token] = i
 	}
+
+	// copy "r_" to "r"
+	// and map index in "tokens" to index in "t"
+	r := make([]*big.Int, len(t))
 	for i, token := range tokens {
 		j := poolTokenIdx[token]
 		idx[i] = j
 		r[j] = r_[i]
 	}
 
+	var (
+		rSD59x18 = make([]sd59x18.SD59x18, len(r))
+		aSD59x18 = make([]sd59x18.SD59x18, len(a))
+		wSD59x18 = make([]sd59x18.SD59x18, len(w))
+	)
+	for i := 0; i < int(p.poolTokenNumber); i++ {
+		a[i] = new(big.Int).Add(a[i], bigint1)
+
+		var err error
+		if rSD59x18[i], err = sd59x18.ConvertToSD59x18(r[i]); err != nil {
+			return nil, err
+		}
+		if aSD59x18[i], err = sd59x18.ConvertToSD59x18(a[i]); err != nil {
+			return nil, err
+		}
+		if wSD59x18[i], err = sd59x18.ConvertToSD59x18(w[i]); err != nil {
+			return nil, err
+		}
+	}
+
 	logA := make([]sd59x18.SD59x18, len(w))
 	logInvariantMin := sd59x18.Zero()
 	for i := 1; i < len(w); i++ {
-		a[i] = new(big.Int).Add(a[i], bigint1)
-		ai, err := sd59x18.ConvertToSD59x18(a[i])
-		if err != nil {
+		var err error
+		if logA[i], err = sd59x18.Log2(aSD59x18[i]); err != nil {
 			return nil, err
 		}
-		logA[i], err = sd59x18.Log2(ai)
-		if err != nil {
-			return nil, err
-		}
-		logAiMulWi, err := sd59x18.Mul(logA[i], w[i])
+		logAiMulWi, err := sd59x18.Mul(logA[i], wSD59x18[i])
 		if err != nil {
 			return nil, err
 		}
 		logInvariantMin = sd59x18.Add(logInvariantMin, logAiMulWi)
 	}
-	w0SD59x18, err := sd59x18.ConvertToSD59x18(w[0])
-	if err != nil {
+
+	var err error
+	if logInvariantMin, err = sd59x18.Div(logInvariantMin, wSD59x18[0]); err != nil {
 		return nil, err
 	}
-	logInvariantMin = new(big.Int).Div(logInvariantMin, w0SD59x18)
 
 	var (
 		logK             = sd59x18.Zero()
@@ -422,53 +443,46 @@ func (t *PoolSimulator) returnLogarithmicSwap(
 				kw = new(big.Int).Add(kw, w[i])
 				continue
 			}
-			wi, err := sd59x18.ConvertToSD59x18(w[i])
+
+			aiAddRiSD59x18, err := sd59x18.ConvertToSD59x18(new(big.Int).Add(a[i], r[i]))
 			if err != nil {
 				return nil, err
 			}
-			aiAddRi, err := sd59x18.ConvertToSD59x18(new(big.Int).Add(a[i], r[i]))
-			if err != nil {
-				return nil, err
-			}
-			log2AiAddRi, err := sd59x18.Log2(aiAddRi)
+			log2AiAddRiSD59x18, err := sd59x18.Log2(aiAddRiSD59x18)
 			if err != nil {
 				return nil, err
 			}
 
-			d, err := sd59x18.Mul(wi, sd59x18.Sub(log2AiAddRi, logA[i]))
+			v, err := sd59x18.Mul(wSD59x18[i], sd59x18.Sub(log2AiAddRiSD59x18, logA[i]))
 			if err != nil {
 				return nil, err
 			}
-			logK = sd59x18.Add(logK, d)
+			logK = sd59x18.Add(logK, v)
 		}
-		w0SubKw, err := sd59x18.ConvertToSD59x18(new(big.Int).Sub(w[0], kw))
+		w0SubKwSD59x18, err := sd59x18.ConvertToSD59x18(new(big.Int).Sub(w[0], kw))
 		if err != nil {
 			return nil, err
 		}
-		logK, err = sd59x18.Div(logK, w0SubKw)
-		if err != nil {
+		if logK, err = sd59x18.Div(logK, w0SubKwSD59x18); err != nil {
 			return nil, err
 		}
-		sumUnknownWeight = sd59x18.Sub(sumUnknownWeight, w0SD59x18)
+		sumUnknownWeight = sd59x18.Sub(sumUnknownWeight, wSD59x18[0])
 	} else if r[0].Cmp(bigint0) != 0 {
-		r0, err := sd59x18.ConvertToSD59x18(r[0])
-		if err != nil {
-			return nil, err
-		}
 		exp2LogInvariantMin, err := sd59x18.Exp2(logInvariantMin)
 		if err != nil {
 			return nil, err
 		}
-		x := sd59x18.Sub(exp2LogInvariantMin, r0)
+		x := sd59x18.Sub(exp2LogInvariantMin, rSD59x18[0])
 		one, err := sd59x18.ConvertToSD59x18(bigint1)
 		if err != nil {
 			return nil, err
 		}
-		val := x
+
+		v := x
 		if sd59x18.Lt(x, one) {
-			val = one
+			v = one
 		}
-		logK, err := sd59x18.Log2(val)
+		logK, err = sd59x18.Log2(v)
 		if err != nil {
 			return nil, err
 		}
@@ -484,7 +498,7 @@ func (t *PoolSimulator) returnLogarithmicSwap(
 
 		logGrowth, err = sd59x18.Mul(
 			sd59x18.Sub(sd59x18.Zero(), logK),
-			w0SD59x18,
+			wSD59x18[0],
 		)
 		if err != nil {
 			return nil, err
@@ -495,14 +509,9 @@ func (t *PoolSimulator) returnLogarithmicSwap(
 	if err != nil {
 		return nil, err
 	}
-
 	for i := 1; i < len(w); i++ {
 		if r[i].Cmp(unknownBI) == 0 {
-			wi, err := sd59x18.ConvertToSD59x18(w[i])
-			if err != nil {
-				return nil, err
-			}
-			sumUnknownWeight = sd59x18.Add(sumUnknownWeight, wi)
+			sumUnknownWeight = sd59x18.Add(sumUnknownWeight, wSD59x18[i])
 			continue
 		}
 
@@ -510,27 +519,21 @@ func (t *PoolSimulator) returnLogarithmicSwap(
 		if err != nil {
 			return nil, err
 		}
+
 		var (
-			fee            sd59x18.SD59x18 = sd59x18.Zero()
+			fee            = sd59x18.Zero()
 			aPrime, bPrime sd59x18.SD59x18
 
-			zeroSD59x18 = sd59x18.Zero()
+			sd0    sd59x18.SD59x18 = bigint0
+			sd1e18 sd59x18.SD59x18 = bigint1e18
 		)
-
 		// calculate aPrime
 		{
 			v := k
-			if sd59x18.Lt(zeroSD59x18, logK) {
-				v, err = sd59x18.ConvertToSD59x18(bigint1e18)
-				if err != nil {
-					return nil, err
-				}
+			if sd59x18.Lt(sd0, logK) {
+				v = sd1e18
 			}
-			ai, err := sd59x18.ConvertToSD59x18(a[i])
-			if err != nil {
-				return nil, err
-			}
-			aPrime, err = sd59x18.Mul(ai, v)
+			aPrime, err = sd59x18.Mul(aSD59x18[i], v)
 			if err != nil {
 				return nil, err
 			}
@@ -538,11 +541,8 @@ func (t *PoolSimulator) returnLogarithmicSwap(
 
 		// calculate bPrime
 		{
-			v, err := sd59x18.ConvertToSD59x18(bigint1e18)
-			if err != nil {
-				return nil, err
-			}
-			if sd59x18.Lt(zeroSD59x18, logK) {
+			v := sd1e18
+			if sd59x18.Lt(sd0, logK) {
 				v = k
 			}
 			bPrime, err = sd59x18.Div(b, v)
@@ -551,38 +551,26 @@ func (t *PoolSimulator) returnLogarithmicSwap(
 			}
 		}
 
-		// TODO: check prime comparison
-
 		if sd59x18.Lt(aPrime, bPrime) {
-			v, err := sd59x18.ConvertToSD59x18(bigint1e18)
-			if err != nil {
-				return nil, err
-			}
-
+			var sdFee1e18 sd59x18.SD59x18 = fee1e18
 			fee, err = sd59x18.Mul(
 				sd59x18.Sub(bPrime, aPrime),
-				v,
+				sdFee1e18,
 			)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		wi, err := sd59x18.ConvertToSD59x18(w[i])
-		if err != nil {
-			return nil, err
-		}
-
+		// calculate logGrowth
 		log2BMinusFee, err := sd59x18.Log2(sd59x18.Sub(b, fee))
 		if err != nil {
 			return nil, err
 		}
-
-		prod, err := sd59x18.Mul(wi, sd59x18.Sub(log2BMinusFee, logA[i]))
+		prod, err := sd59x18.Mul(wSD59x18[i], sd59x18.Sub(log2BMinusFee, logA[i]))
 		if err != nil {
 			return nil, err
 		}
-
 		logGrowth = sd59x18.Add(logGrowth, prod)
 	}
 
@@ -591,17 +579,20 @@ func (t *PoolSimulator) returnLogarithmicSwap(
 		return nil, err
 	}
 
+	// calculate unknown "r_i"
 	for i := range w {
 		if r[i].Cmp(unknownBI) != 0 {
 			continue
 		}
 
+		var (
+			sd0    sd59x18.SD59x18 = bigint0
+			sd1e18 sd59x18.SD59x18 = bigint1e18
+		)
+
 		if i != 0 {
-			v, err := sd59x18.ConvertToSD59x18(bigint1e5)
-			if err != nil {
-				return nil, err
-			}
-			logB := sd59x18.Add(logG, sd59x18.Add(logA[i], v))
+			var sd1e5 sd59x18.SD59x18 = bigint1e5
+			logB := sd59x18.Add(logG, sd59x18.Add(logA[i], sd1e5))
 			b, err := sd59x18.Exp2(logB)
 			if err != nil {
 				return nil, err
@@ -609,24 +600,15 @@ func (t *PoolSimulator) returnLogarithmicSwap(
 
 			var (
 				aPrime, bPrime sd59x18.SD59x18
-
-				zeroSD59x18 = sd59x18.Zero()
 			)
 
 			// calculate aPrime
 			{
 				v := k
-				if sd59x18.Lt(zeroSD59x18, logK) {
-					v, err = sd59x18.ConvertToSD59x18(bigint1e18)
-					if err != nil {
-						return nil, err
-					}
+				if sd59x18.Lt(sd0, logK) {
+					v = sd1e18
 				}
-				ai, err := sd59x18.ConvertToSD59x18(a[i])
-				if err != nil {
-					return nil, err
-				}
-				aPrime, err = sd59x18.Mul(ai, v)
+				aPrime, err = sd59x18.Mul(aSD59x18[i], v)
 				if err != nil {
 					return nil, err
 				}
@@ -634,11 +616,8 @@ func (t *PoolSimulator) returnLogarithmicSwap(
 
 			// calculate bPrime
 			{
-				v, err := sd59x18.ConvertToSD59x18(bigint1e18)
-				if err != nil {
-					return nil, err
-				}
-				if sd59x18.Lt(zeroSD59x18, logK) {
+				v := sd1e18
+				if sd59x18.Lt(sd0, logK) {
 					v = k
 				}
 				bPrime, err = sd59x18.Div(b, v)
@@ -648,117 +627,71 @@ func (t *PoolSimulator) returnLogarithmicSwap(
 			}
 
 			if sd59x18.Lt(aPrime, bPrime) {
-				// b = b + ((b_prime - a_prime) / (sd(1e18) - sd(int256(fee1e18)))) - (b_prime - a_prime);
-
-				v0, err := sd59x18.ConvertToSD59x18(bigint1e18)
-				if err != nil {
-					return nil, err
-				}
-
-				v1, err := sd59x18.ConvertToSD59x18(fee1e18)
-				if err != nil {
-					return nil, err
-				}
-
-				v2, err := sd59x18.Div(
+				var sdFee1e18 sd59x18.SD59x18 = fee1e18
+				u, err := sd59x18.Div(
 					sd59x18.Sub(bPrime, aPrime),
-					sd59x18.Sub(v0, v1),
+					sd59x18.Sub(sd1e18, sdFee1e18),
 				)
 				if err != nil {
 					return nil, err
 				}
-
-				b = sd59x18.Add(b, sd59x18.Sub(v2, sd59x18.Sub(bPrime, aPrime)))
+				v := sd59x18.Sub(bPrime, aPrime)
+				b = sd59x18.Add(b, sd59x18.Sub(u, v))
 			}
 
-			// r[i] = convert(b - convert(int256(a[i]))).toInt128();
+			r[i] = sd59x18.ConvertToBI(sd59x18.Sub(b, aSD59x18[i]))
 
-			ai, err := sd59x18.ConvertToSD59x18(a[i])
+			continue
+		}
+
+		// case unknown lp token "r"
+
+		logB := sd59x18.Add(logG, logInvariantMin)
+		exp2LogB, err := sd59x18.Exp2(logB)
+		if err != nil {
+			return nil, err
+		}
+
+		exp2LogInvariantMin, err := sd59x18.Exp2(logInvariantMin)
+		if err != nil {
+			return nil, err
+		}
+
+		r[i] = new(big.Int).Neg(sd59x18.ConvertToBI(sd59x18.Sub(exp2LogB, exp2LogInvariantMin)))
+
+		if sd59x18.Lt(logG, sd0) {
+			v, err := sd59x18.Exp2(sd59x18.Sub(sd59x18.Zero(), logG))
 			if err != nil {
 				return nil, err
 			}
-
-			r[i] = sd59x18.ConvertToBI(sd59x18.Sub(b, ai))
-		} else {
-
-			// SD59x18 logB = logG + logInvariantMin;
-			// r[i] = -convert(exp2(logB) - exp2(logInvariantMin)).toInt128();
-			// if (logG < sd(0)) {
-			// 	additionalMultiplier = uint256(exp2(-logG).intoInt256() / 1e9);
-			// }
-
-			logB := sd59x18.Add(logG, logInvariantMin)
-			exp2LogB, err := sd59x18.Exp2(logB)
-			if err != nil {
-				return nil, err
-			}
-
-			exp2LogInvariantMin, err := sd59x18.Exp2(logInvariantMin)
-			if err != nil {
-				return nil, err
-			}
-
-			r[i] = new(big.Int).Neg(sd59x18.ConvertToBI(sd59x18.Sub(exp2LogB, exp2LogInvariantMin)))
-
-			if sd59x18.Lt(logG, sd59x18.Zero()) {
-				v, err := sd59x18.Exp2(sd59x18.Sub(sd59x18.Zero(), logG))
-				if err != nil {
-					return nil, err
-				}
-
-				additionalMultiplier = new(big.Int).Div(sd59x18.ConvertToBI(v), bigint1e9)
-			}
+			additionalMultiplier = new(big.Int).Div(sd59x18.ConvertToBI(v), bigint1e9)
 		}
 	}
 
-	swapInfo := SwapInfo{}
+	var (
+		isFeeMultiplierUpdated bool
+		newFeeMultiplier       = bigint0
+	)
 	if additionalMultiplier.Cmp(bigint1e9) > 0 {
-		feeMultiplier := additionalMultiplier
-		if t.isLastWithdrawInTheSameBlock {
-			feeMultiplier = new(big.Int).Div(
-				new(big.Int).Mul(additionalMultiplier, t.feeMultiplier),
+		newFeeMultiplier = additionalMultiplier
+		if p.isLastWithdrawInTheSameBlock {
+			newFeeMultiplier = new(big.Int).Div(
+				new(big.Int).Mul(additionalMultiplier, p.feeMultiplier),
 				bigint1e9,
 			)
 		}
-		swapInfo.NeedToUpdateFeeMultiplier = true
-		swapInfo.FeeMultiplierUpdated = feeMultiplier.String()
+		isFeeMultiplierUpdated = true
 	}
-
-	// for (uint256 i = 0; i < tokens.length; i++) {
-	// 	r_.u(i, r.u(idx.u(i)));
-	// }
 	for i := range tokens {
 		r_[i] = r[idx[i]]
 	}
 
-	var amountOut *big.Int
-	for i, token := range tokens {
-		if strings.EqualFold(token, tokenOut) {
-			amountOut = new(big.Int).Neg(r_[i])
-			break
-		}
-	}
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut,
-		},
-		Fee:      nil, //TODO: implement me!
-		Gas:      0,
-		SwapInfo: &swapInfo,
+	return &velocoreExecuteResult{
+		Tokens:                 tokens,
+		R:                      r_,
+		FeeMultiplier:          newFeeMultiplier,
+		IsFeeMultiplierUpdated: isFeeMultiplierUpdated,
 	}, nil
-}
-
-func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	
-}
-
-func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return Meta{
-		Fee1e9:        t.fee1e9,
-		FeeMultiplier: t.feeMultiplier.String(),
-	}
 }
 
 func (t *PoolSimulator) getEffectiveFee1e9() *big.Int {
@@ -812,6 +745,13 @@ func (t *PoolSimulator) getTokenWeight(token string) (*big.Int, error) {
 }
 
 func (t *PoolSimulator) getInvariant() (*big.Int, *big.Int, *big.Int, error) {
+	/*
+		https://docs.velocore.xyz/technical-docs/pool-specifics/generalized-cpmm#calculating-unknown-dimensions-in-a-zero-fee-scenario
+
+		So we have the following equation:
+		D = [Pi(xi^wi)]^(1/sum(wi)) (i=1..n)
+	*/
+
 	balances := t.Info.Reserves
 	if t.poolTokenNumber-lpTokenNumber == 2 && t.weights[1] == t.weights[2] {
 		prod := new(big.Int).Mul(
@@ -869,13 +809,7 @@ func (t *PoolSimulator) getInvariant() (*big.Int, *big.Int, *big.Int, error) {
 
 	invariantMax := new(big.Int).Add(
 		ceilDiv(
-			new(big.Int).Mul(
-				invariant,
-				new(big.Int).Add(
-					bigint1e18,
-					bigint1e5,
-				),
-			),
+			new(big.Int).Mul(invariant, new(big.Int).Add(bigint1e18, bigint1e5)),
 			bigint1e18,
 		),
 		bigint1,

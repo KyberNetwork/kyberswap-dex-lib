@@ -1,6 +1,9 @@
 package velocorev2cpmm
 
-import "encoding/hex"
+import (
+	"encoding/hex"
+	"math/big"
+)
 
 type Metadata struct {
 	Offset int `json:"offset"`
@@ -28,6 +31,15 @@ type Meta struct {
 }
 
 type SwapInfo struct {
-	NeedToUpdateFeeMultiplier bool   `json:"needToUpdateFeeMultiplier"`
-	FeeMultiplierUpdated      string `json:"feeMultiplierUpdated"`
+	IsFeeMultiplierUpdated bool   `json:"isFeeMultiplierUpdated"`
+	FeeMultiplier          string `json:"feeMultiplier"`
+}
+
+// internal types
+
+type velocoreExecuteResult struct {
+	Tokens                 []string
+	R                      []*big.Int
+	FeeMultiplier          *big.Int
+	IsFeeMultiplierUpdated bool
 }
