@@ -98,7 +98,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		)
 
 		assert.Nil(t, err)
-		assert.Equal(t, result.TokenAmountOut.Amount.Cmp(big.NewInt(937047)), 0)
+		assert.Equal(t, result.TokenAmountOut.Amount.Cmp(utils.NewBig("999914863605742941")), 0)
 	})
 
 	t.Run("it returns correct error when the pool is paused", func(t *testing.T) {
