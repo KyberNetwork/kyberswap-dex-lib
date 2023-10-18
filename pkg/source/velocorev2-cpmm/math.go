@@ -20,20 +20,20 @@ func ceilDivUnsafe(a *big.Int, b *big.Int) *big.Int {
 }
 
 func rpow(x *big.Int, n *big.Int, base *big.Int) *big.Int {
-	if x.Cmp(zero) == 0 {
-		if n.Cmp(zero) == 0 {
+	if x.Cmp(bigint0) == 0 {
+		if n.Cmp(bigint0) == 0 {
 			return base
 		}
-		return zero
+		return bigint0
 	}
 
 	z := x
-	if new(big.Int).Mod(x, two).Cmp(zero) == 0 {
+	if new(big.Int).Mod(x, bigint2).Cmp(bigint0) == 0 {
 		z = base
 	}
 
-	half := new(big.Int).Div(base, two)
-	for n = new(big.Int).Div(n, two); n.Cmp(zero) > 0; n = new(big.Int).Div(n, two) {
+	half := new(big.Int).Div(base, bigint2)
+	for i := new(big.Int).Div(n, bigint2); i.Cmp(bigint0) > 0; i = new(big.Int).Div(i, bigint2) {
 		xx := new(big.Int).Mul(x, x)
 
 		// skip the following check:
@@ -45,7 +45,7 @@ func rpow(x *big.Int, n *big.Int, base *big.Int) *big.Int {
 		// if lt(xxRound, xx) { revert(0, 0) }
 
 		x := new(big.Int).Div(xxRound, base)
-		if new(big.Int).Mod(n, two).Cmp(zero) == 0 {
+		if new(big.Int).Mod(i, bigint2).Cmp(bigint0) == 0 {
 			zx := new(big.Int).Mul(z, x)
 
 			// skip the following check:
@@ -60,7 +60,7 @@ func rpow(x *big.Int, n *big.Int, base *big.Int) *big.Int {
 		}
 	}
 
-	return nil
+	return z
 }
 
 func powReciprocal(x1e18 *big.Int, n *big.Int) (*big.Int, *big.Int, error) {
