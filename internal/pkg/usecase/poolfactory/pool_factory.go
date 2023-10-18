@@ -49,14 +49,16 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodromev2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/vooi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatlsd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatmain"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/woofiv2"
 	zkswapfinance "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkswap-finance"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/traderjoev20"
@@ -319,6 +321,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newZkSwapFinance(entityPool)
 	case constant.PoolTypes.MantisSwap:
 		return f.newMantisSwap(entityPool)
+	case constant.PoolTypes.Vooi:
+		return f.newVooi(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -1026,6 +1030,20 @@ func (f *PoolFactory) newMantisSwap(entityPool entity.Pool) (*mantisswap.PoolSim
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newMantisSwap] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newVooi(entityPool entity.Pool) (*vooi.PoolSimulator, error) {
+	corePool, err := vooi.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.vooi] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

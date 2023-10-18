@@ -224,4 +224,7 @@ func init() {
 
 	// executeWooFiV2
 	RegisterFunctionSelector(valueobject.ExchangeWooFiV2, FunctionSelectorWooFiV2)
+
+	// executeVooi
+	RegisterFunctionSelector(valueobject.ExchangeVooi, FunctionSelectorVooi)
 }

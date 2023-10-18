@@ -294,3 +294,15 @@ type Wombat struct {
 	Amount    *big.Int
 	Recipient common.Address
 }
+
+// Vooi
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/98cc419bb991ff4e405ed914e86f08fd0623b848/src/contracts/executor-helpers/ExecutorHelper4.sol#L57
+type Vooi struct {
+	Pool       common.Address
+	FromToken  common.Address
+	ToToken    common.Address
+	FromID     *big.Int
+	ToID       *big.Int
+	FromAmount *big.Int
+	To         common.Address
+}

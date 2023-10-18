@@ -46,6 +46,7 @@ var (
 	KyberLimitOrderDSABIArguments  abi.Arguments
 
 	IZiSwapArguments abi.Arguments
+	VooiArguments    abi.Arguments
 )
 
 func init() {
@@ -327,5 +328,15 @@ func init() {
 		{Name: "tokenOut", Type: abitypes.Address},
 		{Name: "amount", Type: abitypes.Uint256},
 		{Name: "recipient", Type: abitypes.Address},
+	}
+
+	VooiArguments = abi.Arguments{
+		{Name: "pool", Type: abitypes.Address},
+		{Name: "fromToken", Type: abitypes.Address},
+		{Name: "toToken", Type: abitypes.Address},
+		{Name: "fromID", Type: abitypes.Uint256},
+		{Name: "toID", Type: abitypes.Uint256},
+		{Name: "fromAmount", Type: abitypes.Uint256},
+		{Name: "to", Type: abitypes.Address},
 	}
 }

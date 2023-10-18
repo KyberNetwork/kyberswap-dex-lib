@@ -354,6 +354,8 @@ func (d *Decoder) decodeSwapData(sw executor.Swap) (interface{}, error) {
 		return swapdata.UnpackKyberRFQ(sw.Data)
 	case executor.FunctionSelectorWombat.ID:
 		return swapdata.UnpackWombat(sw.Data)
+	case executor.FunctionSelectorVooi.ID:
+		return swapdata.UnpackVooi(sw.Data)
 	default:
 		return nil, fmt.Errorf("unsupported function selector")
 	}

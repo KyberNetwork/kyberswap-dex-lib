@@ -70,6 +70,7 @@ type types struct {
 	USDFi                    string
 	ZkSwapFinance            string
 	MantisSwap               string
+	Vooi                     string
 }
 
 var (
@@ -143,5 +144,6 @@ var (
 		USDFi:                    "usdfi",
 		ZkSwapFinance:            "zkswap-finance",
 		MantisSwap:               "mantisswap",
+		Vooi:                     "vooi",
 	}
 )

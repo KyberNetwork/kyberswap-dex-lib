@@ -1,8 +1,6 @@
 module github.com/KyberNetwork/router-service
 
-go 1.21.0
-
-toolchain go1.21.1
+go 1.21.3
 
 replace (
 	github.com/daoleno/uniswap-sdk-core v0.1.5 => github.com/KyberNetwork/uniswap-sdk-core v0.1.5
@@ -14,7 +12,7 @@ require (
 	github.com/KyberNetwork/aevm v1.0.6
 	github.com/KyberNetwork/ethrpc v0.3.0
 	github.com/KyberNetwork/kyber-trace-go v0.1.0
-	github.com/KyberNetwork/kyberswap-dex-lib v0.19.0
+	github.com/KyberNetwork/kyberswap-dex-lib v0.19.1
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/alicebob/miniredis v2.5.0+incompatible
@@ -76,7 +74,7 @@ require (
 	github.com/DataDog/go-tuf v0.3.0--fix-localmeta-fork // indirect
 	github.com/DataDog/gostackparse v0.5.0 // indirect
 	github.com/DataDog/sketches-go v1.2.1 // indirect
-	github.com/KyberNetwork/blockchain-toolkit v0.2.0 // indirect
+	github.com/KyberNetwork/blockchain-toolkit v0.2.3 // indirect
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 // indirect
 	github.com/KyberNetwork/pancake-v3-sdk v0.1.0 // indirect
 	github.com/Microsoft/go-winio v0.5.1 // indirect
@@ -162,7 +160,7 @@ require (
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20220617031537-928513b29760 // indirect
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/crypto v0.12.0 // indirect
-	golang.org/x/exp v0.0.0-20230206171751-46f607a40771 // indirect
+	golang.org/x/exp v0.0.0-20230206171751-46f607a40771
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/sys v0.11.0 // indirect
 	golang.org/x/text v0.12.0 // indirect

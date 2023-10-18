@@ -50,6 +50,7 @@ var (
 	FunctionSelectorPancakeStableSwap FunctionSelector
 	FunctionSelectorWooFiV2           FunctionSelector
 	FunctionSelectorMantisSwap        FunctionSelector
+	FunctionSelectorVooi              FunctionSelector
 )
 
 func init() {
@@ -89,4 +90,6 @@ func init() {
 
 	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/29d63d83cac3011067bcfd3b9597239745f848d9/contracts/executor-helpers/ExecutorHelper3.sol#L363-L417
 	FunctionSelectorIZiSwap = NewFunctionSelector("executeIziSwap", []string{"bytes", "uint256"})
+
+	FunctionSelectorVooi = NewFunctionSelector("executeVooi", []string{"bytes", "uint256"})
 }
