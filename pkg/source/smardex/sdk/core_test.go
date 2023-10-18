@@ -6,15 +6,16 @@ import (
 )
 
 var (
-	amountInT0   = parseString("1000000000000000000")
-	resT0        = parseString("13847262709278700000")
-	resT1        = parseString("119700592015995000000000")
-	resFicT0     = parseString("6441406027101710000")
-	resFicT1     = parseString("53094867866428500000000")
-	priceAvT0    = parseString("1000000000000000000")
-	priceAvT1    = parseString("8197837914161090000000")
-	feesLP       = big.NewInt(500)
-	feesPool     = big.NewInt(200)
+	TIMESTAMP_JAN_2020 int64 = 1577833200
+	amountInT0               = parseString("1000000000000000000")
+	resT0                    = parseString("13847262709278700000")
+	resT1                    = parseString("119700592015995000000000")
+	resFicT0                 = parseString("6441406027101710000")
+	resFicT1                 = parseString("53094867866428500000000")
+	priceAvT0                = parseString("1000000000000000000")
+	priceAvT1                = parseString("8197837914161090000000")
+	feesLP                   = big.NewInt(500)
+	feesPool                 = big.NewInt(200)
 
 	expectedResT0       = parseString("14847062709278699999")
 	expectedResT1       = parseString("112484184376480628646478")
@@ -23,6 +24,54 @@ var (
 	expectedAmountOutT0 = parseString("7216407639514371353522")
 )
 
+func TestComputeAmountOut(t *testing.T) {
+
+	computed, err := ComputeAmountOut(
+		"token0",
+		"token1",
+		resT0,
+		resT1,
+		resFicT0,
+		resFicT1,
+		amountInT0,
+		"token0",
+		TIMESTAMP_JAN_2020,
+		priceAvT0,
+		priceAvT1,
+		feesLP,
+		feesPool,
+		TIMESTAMP_JAN_2020,
+		300,
+	)
+	if err != nil {
+		t.Fatalf(`Error thrown %v`, err)
+	}
+
+	if computed.currency == "token0" {
+		t.Fatalf(`Invalid value = %s, expected: %s`, "token0", computed.currency)
+	}
+	if computed.amount.Cmp(expectedAmountOutT0) == 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, computed.amount, expectedAmountOutT0)
+	}
+	if computed.newRes0.Cmp(expectedResT0) == 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, computed.newRes0, expectedResT0)
+	}
+	if computed.newRes1.Cmp(expectedResT1) == 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, computed.newRes1, expectedResT1)
+	}
+	if computed.newRes0Fic.Cmp(expectedResFicT0) == 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, computed.newRes0Fic, expectedResFicT0)
+	}
+	if computed.newRes1Fic.Cmp(expectedResFicT1) == 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, computed.newRes1Fic, expectedResFicT1)
+	}
+	if computed.amountMax.Cmp(computed.amount) == 1 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, computed.amountMax, computed.amount)
+	}
+	if computed.amountMax.Cmp(resFicT0) == -1 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, computed.amountMax, resFicT0)
+	}
+}
 func TestGetAmountOut(t *testing.T) {
 
 	amountOut, newResIn, newResOut, newResInFic, newResOutFic, err := getAmountOut(

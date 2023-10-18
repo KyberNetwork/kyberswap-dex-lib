@@ -5,7 +5,7 @@ import (
 	"math/big"
 )
 
-func computeAmountOut(
+func ComputeAmountOut(
 	token0 string,
 	token1 string,
 	reserve0 *big.Int,
