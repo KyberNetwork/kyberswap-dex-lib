@@ -1,4 +1,4 @@
-package usecase
+package buildroute
 
 import (
 	"context"
@@ -29,9 +29,10 @@ var OutputChangeNoChange = dto.OutputChange{
 	Level:   dto.OutputChangeLevelNormal,
 }
 
-type buildRouteUseCase struct {
+type BuildRouteUseCase struct {
 	tokenRepository ITokenRepository
 	priceRepository IPriceRepository
+	gasEstimator    IGasEstimator
 
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ
 	clientDataEncoder    IClientDataEncoder
@@ -39,7 +40,7 @@ type buildRouteUseCase struct {
 	l2Encoder            IEncoder
 	nowFunc              func() time.Time
 
-	config BuildRouteConfig
+	config Config
 
 	mu sync.RWMutex
 }
@@ -47,20 +48,22 @@ type buildRouteUseCase struct {
 func NewBuildRouteUseCase(
 	tokenRepository ITokenRepository,
 	priceRepository IPriceRepository,
+	gasEstimator IGasEstimator,
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ,
 	clientDataEncoder IClientDataEncoder,
 	l1Encoder IEncoder,
 	l2Encoder IEncoder,
 	nowFunc func() time.Time,
-	config BuildRouteConfig,
-) *buildRouteUseCase {
+	config Config,
+) *BuildRouteUseCase {
 	if nowFunc == nil {
 		nowFunc = timeutil.NowFunc
 	}
 
-	return &buildRouteUseCase{
+	return &BuildRouteUseCase{
 		tokenRepository:      tokenRepository,
 		priceRepository:      priceRepository,
+		gasEstimator:         gasEstimator,
 		rfqHandlerByPoolType: rfqHandlerByPoolType,
 		clientDataEncoder:    clientDataEncoder,
 		l1Encoder:            l1Encoder,
@@ -70,7 +73,7 @@ func NewBuildRouteUseCase(
 	}
 }
 
-func (uc *buildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteCommand) (*dto.BuildRouteResult, error) {
+func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteCommand) (*dto.BuildRouteResult, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.Handle")
 	defer span.End()
 
@@ -89,6 +92,15 @@ func (uc *buildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		return nil, err
 	}
 
+	// estimate gas price for a transaction
+	estimatedGas := uint64(routeSummary.Gas)
+	if command.EnableGasEstimation {
+		estimatedGas, err = uc.estimateGas(ctx, command, encodedData)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// NOTE: currently we don't check the route (check if there is a better route or the route returns different amounts)
 	// we return what client submitted
 	return &dto.BuildRouteResult{
@@ -98,7 +110,7 @@ func (uc *buildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		AmountOut:    routeSummary.AmountOut.String(),
 		AmountOutUSD: strconv.FormatFloat(routeSummary.AmountOutUSD, 'f', -1, 64),
 
-		Gas:    strconv.FormatInt(routeSummary.Gas, 10),
+		Gas:    strconv.FormatUint(estimatedGas, 10),
 		GasUSD: strconv.FormatFloat(routeSummary.GasUSD, 'f', -1, 64),
 
 		OutputChange: OutputChangeNoChange,
@@ -108,13 +120,13 @@ func (uc *buildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	}, nil
 }
 
-func (uc *buildRouteUseCase) ApplyConfig(config BuildRouteConfig) {
+func (uc *BuildRouteUseCase) ApplyConfig(config Config) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 	uc.config.L2EncodePartners = config.L2EncodePartners
 }
 
-func (uc *buildRouteUseCase) rfq(
+func (uc *BuildRouteUseCase) rfq(
 	ctx context.Context,
 	recipient string,
 	routeSummary valueobject.RouteSummary,
@@ -163,7 +175,7 @@ func (uc *buildRouteUseCase) rfq(
 // and returns updated command
 // We need these values, and they should be calculated in backend side because some services such as campaign or data
 // need them for their business.
-func (uc *buildRouteUseCase) updateRouteSummary(ctx context.Context, routeSummary valueobject.RouteSummary) (valueobject.RouteSummary, error) {
+func (uc *BuildRouteUseCase) updateRouteSummary(ctx context.Context, routeSummary valueobject.RouteSummary) (valueobject.RouteSummary, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.updateRouteSummary")
 	defer span.End()
 
@@ -224,7 +236,7 @@ func (uc *buildRouteUseCase) updateRouteSummary(ctx context.Context, routeSummar
 	return routeSummary, nil
 }
 
-func (uc *buildRouteUseCase) encode(ctx context.Context, command dto.BuildRouteCommand, routeSummary valueobject.RouteSummary) (string, error) {
+func (uc *BuildRouteUseCase) encode(ctx context.Context, command dto.BuildRouteCommand, routeSummary valueobject.RouteSummary) (string, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.encode")
 	defer span.End()
 
@@ -247,7 +259,7 @@ func (uc *buildRouteUseCase) encode(ctx context.Context, command dto.BuildRouteC
 }
 
 // encodeClientData recalculates amountInUSD and amountOutUSD then perform encoding
-func (uc *buildRouteUseCase) encodeClientData(ctx context.Context, command dto.BuildRouteCommand, routeSummary valueobject.RouteSummary) ([]byte, error) {
+func (uc *BuildRouteUseCase) encodeClientData(ctx context.Context, command dto.BuildRouteCommand, routeSummary valueobject.RouteSummary) ([]byte, error) {
 	flags, err := clientdata.ConvertFlagsToBitInteger(valueobject.Flags{
 		TokenInMarketPriceAvailable:  routeSummary.TokenInMarketPriceAvailable,
 		TokenOutMarketPriceAvailable: routeSummary.TokenOutMarketPriceAvailable,
@@ -266,7 +278,7 @@ func (uc *buildRouteUseCase) encodeClientData(ctx context.Context, command dto.B
 }
 
 // getTokens returns tokenIn and tokenOut data
-func (uc *buildRouteUseCase) getTokens(
+func (uc *BuildRouteUseCase) getTokens(
 	ctx context.Context,
 	tokenInAddress string,
 	tokenOutAddress string,
@@ -298,7 +310,7 @@ func (uc *buildRouteUseCase) getTokens(
 }
 
 // getPrices returns tokenIn and tokenOut price
-func (uc *buildRouteUseCase) getPrices(
+func (uc *BuildRouteUseCase) getPrices(
 	ctx context.Context,
 	tokenInAddress string,
 	tokenOutAddress string,
@@ -329,7 +341,7 @@ func (uc *buildRouteUseCase) getPrices(
 	return tokenInPrice, tokenOutPrice, nil
 }
 
-func (uc *buildRouteUseCase) getEncoder(ctx context.Context, command dto.BuildRouteCommand) IEncoder {
+func (uc *BuildRouteUseCase) getEncoder(ctx context.Context, command dto.BuildRouteCommand) IEncoder {
 	if !helper.IsL2EncoderSupportedChains(uc.config.ChainID) {
 		return uc.l1Encoder
 	}
@@ -341,4 +353,22 @@ func (uc *buildRouteUseCase) getEncoder(ctx context.Context, command dto.BuildRo
 		return uc.l1Encoder
 	}
 	return uc.l2Encoder
+}
+
+func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildRouteCommand, encodedData string) (uint64, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.estimateGas")
+	defer span.End()
+
+	gas, err := uc.gasEstimator.Execute(ctx, UnsignedTransaction{
+		command.Sender,
+		command.Recipient,
+		encodedData,
+		command.RouteSummary.AmountIn,
+		nil,
+	})
+	if err != nil {
+		return 0, errors.Wrapf(ErrEstimateGasFailed, "Estimate gas failed due to %s", err.Error())
+	}
+
+	return gas, nil
 }

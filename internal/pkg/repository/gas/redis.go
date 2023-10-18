@@ -12,7 +12,7 @@ import (
 
 type redisRepository struct {
 	redisClient redis.UniversalClient
-	gasPricer   ethereum.GasPricer
+	gasOperator ethereum.GasPricer
 
 	config RedisRepositoryConfig
 
@@ -21,12 +21,12 @@ type redisRepository struct {
 
 func NewRedisRepository(
 	redisClient redis.UniversalClient,
-	gasPricer ethereum.GasPricer,
+	gasOperator ethereum.GasPricer,
 	config RedisRepositoryConfig,
 ) *redisRepository {
 	return &redisRepository{
 		redisClient: redisClient,
-		gasPricer:   gasPricer,
+		gasOperator: gasOperator,
 		config:      config,
 		keyMetadata: utils.Join(config.Prefix, KeyMetadata),
 	}
@@ -34,7 +34,7 @@ func NewRedisRepository(
 
 // UpdateSuggestedGasPrice update latest suggested gas price
 func (r *redisRepository) UpdateSuggestedGasPrice(ctx context.Context) (*big.Int, error) {
-	suggestedGasPrice, err := r.gasPricer.SuggestGasPrice(ctx)
+	suggestedGasPrice, err := r.gasOperator.SuggestGasPrice(ctx)
 	if err != nil {
 		return nil, err
 	}

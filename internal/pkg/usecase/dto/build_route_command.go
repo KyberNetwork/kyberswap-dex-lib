@@ -15,5 +15,7 @@ type BuildRouteCommand struct {
 	Referral          string
 	Source            string
 
+	EnableGasEstimation bool
+
 	Permit []byte
 }

@@ -8,14 +8,19 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 	"github.com/alicebob/miniredis"
+	"github.com/ethereum/go-ethereum"
 	"github.com/stretchr/testify/assert"
 )
 
-type mockGasPricer struct {
+type mockGasOperator struct {
 }
 
-func (m *mockGasPricer) SuggestGasPrice(_ context.Context) (*big.Int, error) {
+func (m *mockGasOperator) SuggestGasPrice(_ context.Context) (*big.Int, error) {
 	return big.NewInt(1), nil
+}
+
+func (m *mockGasOperator) EstimateGas(ctx context.Context, _ ethereum.CallMsg) (uint64, error) {
+	return 1, nil
 }
 
 func TestRedisRepository_GetSuggestedGasPrice(t *testing.T) {
@@ -36,10 +41,10 @@ func TestRedisRepository_GetSuggestedGasPrice(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		mockGasPricer := &mockGasPricer{}
+		mockGasOperator := &mockGasOperator{}
 		redisServer.HSet(":metadata", "suggested_gas_price", "1")
 
-		repo := gas.NewRedisRepository(db.Client, mockGasPricer, gas.RedisRepositoryConfig{Prefix: ""})
+		repo := gas.NewRedisRepository(db.Client, mockGasOperator, gas.RedisRepositoryConfig{Prefix: ""})
 		gasPricer, err := repo.GetSuggestedGasPrice(context.Background())
 
 		assert.Nil(t, err)
@@ -62,9 +67,8 @@ func TestRedisRepository_GetSuggestedGasPrice(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		mockGasPricer := &mockGasPricer{}
-
-		repo := gas.NewRedisRepository(db.Client, mockGasPricer, gas.RedisRepositoryConfig{Prefix: ""})
+		mockGasOperator := &mockGasOperator{}
+		repo := gas.NewRedisRepository(db.Client, mockGasOperator, gas.RedisRepositoryConfig{Prefix: ""})
 		redisServer.Close()
 		gasPricer, err := repo.GetSuggestedGasPrice(context.Background())
 

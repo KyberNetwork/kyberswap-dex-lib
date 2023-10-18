@@ -15,6 +15,9 @@ type (
 		Referral          string `json:"referral"`
 		Source            string `json:"source"`
 
+		// enable gas estimation, default is false
+		EnableGasEstimation bool `json:"enableGasEstimation"`
+
 		// Permit allows user to swap without approving token beforehand
 		Permit string `json:"permit"`
 	}

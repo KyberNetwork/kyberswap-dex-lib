@@ -43,6 +43,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/server"
 	httppkg "github.com/KyberNetwork/router-service/internal/pkg/server/http"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/decode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l1encode"
@@ -77,7 +78,7 @@ type IPoolManager interface {
 }
 
 type IBuildRouteUseCase interface {
-	ApplyConfig(config usecase.BuildRouteConfig)
+	ApplyConfig(config buildroute.Config)
 }
 
 // TODO: refactor main file -> separate to many folders with per folder is application. The main file should contains call root action per application.
@@ -234,8 +235,7 @@ func apiAction(c *cli.Context) (err error) {
 	routeRepository := route.NewRedisCacheRepository(routerRedisClient.Client, cfg.Repository.Route.RedisCache)
 	gasRepository, err := gas.NewRistrettoRepository(
 		gas.NewRedisRepository(routerRedisClient.Client, ethClient, cfg.Repository.Gas.Redis),
-		cfg.Repository.Gas.Ristretto,
-	)
+		cfg.Repository.Gas.Ristretto)
 	bestPathRepository := pathgenerator.NewRedisRepository(pregenRedisClient.Client, pathgenerator.RedisRepositoryConfig{Prefix: cfg.PregenRedis.Prefix})
 
 	tokenRepository := token.NewGoCacheRepository(
@@ -347,9 +347,11 @@ func apiAction(c *cli.Context) (err error) {
 		rfqHandlerByPoolType[s.Handler] = rfqHandler
 	}
 
-	buildRouteUseCase := usecase.NewBuildRouteUseCase(
+	gasEstimator := buildroute.NewGasEstimator(ethClient)
+	buildRouteUseCase := buildroute.NewBuildRouteUseCase(
 		tokenRepository,
 		priceRepository,
+		gasEstimator,
 		rfqHandlerByPoolType,
 		clientDataEncoder,
 		l1Encoder,

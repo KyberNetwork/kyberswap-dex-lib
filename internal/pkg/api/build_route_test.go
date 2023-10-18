@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"math/big"
 	"net/http"
@@ -8,12 +9,15 @@ import (
 	"testing"
 	"time"
 
+	pkgErrors "github.com/pkg/errors"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/api"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/test"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
@@ -124,8 +128,37 @@ func TestBuildRoute(t *testing.T) {
 					ReqMethod:      http.MethodPost,
 					ReqURL:         "/api/v1/route/build",
 					ReqHandler:     BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, timeutil.NowFunc),
-					ReqBody:        strings.NewReader(`{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":"0"}}}}`),
+					ReqBody:        strings.NewReader(`{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":"0"}}}`),
 					RespHTTPStatus: http.StatusInternalServerError,
+					RespBody:       errResponse,
+				}
+			},
+		},
+		{
+			name: "it should return 422 when estimate gas failed",
+			prepare: func(ctrl *gomock.Controller) test.HTTPTestCase {
+				mockBuildRouteParamValidator := api.NewMockIBuildRouteParamsValidator(ctrl)
+				mockBuildRouteParamValidator.EXPECT().
+					Validate(gomock.Any()).
+					Return(nil)
+
+				mockBuildRouteUseCase := api.NewMockIBuildRouteUseCase(ctrl)
+				mockBuildRouteUseCase.EXPECT().
+					Handle(gomock.Any(), gomock.Any()).
+					Return(&dto.BuildRouteResult{}, pkgErrors.Wrapf(buildroute.ErrEstimateGasFailed, "Estimate gas failed due to %s", "some error"))
+
+				errResponse := ErrorResponse{
+					HTTPStatus: http.StatusUnprocessableEntity,
+					Code:       4227,
+					Message:    "estimate gas failed",
+				}
+
+				return test.HTTPTestCase{
+					ReqMethod:      http.MethodPost,
+					ReqURL:         "/api/v1/route/build",
+					ReqHandler:     BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, timeutil.NowFunc),
+					ReqBody:        strings.NewReader(`{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":"0"}}}`),
+					RespHTTPStatus: http.StatusUnprocessableEntity,
 					RespBody:       errResponse,
 				}
 			},
@@ -185,7 +218,7 @@ func TestBuildRoute(t *testing.T) {
 					ReqMethod:      http.MethodPost,
 					ReqURL:         "/api/v1/route/build",
 					ReqHandler:     BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, timeutil.NowFunc),
-					ReqBody:        strings.NewReader(`{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":"0"}}}}`),
+					ReqBody:        strings.NewReader(`{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":"0"}}}`),
 					RespHTTPStatus: http.StatusOK,
 					RespBody:       resp,
 				}
@@ -202,6 +235,98 @@ func TestBuildRoute(t *testing.T) {
 
 			check.Run(t)
 		})
+	}
+}
+
+func TestBuildRoute_EnableGasEstimation(t *testing.T) {
+	testCases := []struct {
+		name                    string
+		requestBody             string
+		expectedEstimationParam bool
+	}{
+		{
+			name:                    "it should return 200 with estimation param is true when there is no error",
+			requestBody:             `{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":"0"}},"recipient":"mockRecipient","enableGasEstimation":true,"deadline":1697469122}`,
+			expectedEstimationParam: true,
+		},
+		{
+			name:                    "it should return 200 with estimation param is false and estimate gas when there is no error",
+			requestBody:             `{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":"0"}},"recipient":"mockRecipient","enableGasEstimation":false,"deadline":1697469122}`,
+			expectedEstimationParam: false,
+		},
+		{
+			name:                    "it should return 200 with estimation param is false by default and estimate gas when there is no error",
+			requestBody:             `{"routeSummary":{"amountIn":"10000","amountInUsd":"10000","amountOut":"9999","amountOutUsd":"9999","gas":"20","gasUsd":"20","extraFee":{"feeAmount":"0"}},"recipient":"mockRecipient","deadline":1697469122}`,
+			expectedEstimationParam: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name,
+			func(t *testing.T) {
+				ctrl := gomock.NewController(t)
+				defer ctrl.Finish()
+
+				mockBuildRouteParamValidator := api.NewMockIBuildRouteParamsValidator(ctrl)
+				mockBuildRouteParamValidator.EXPECT().Validate(gomock.Any()).Return(nil)
+
+				var argCommand dto.BuildRouteCommand
+				mockBuildRouteUseCase := api.NewMockIBuildRouteUseCase(ctrl)
+				mockBuildRouteUseCase.EXPECT().
+					Handle(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, command dto.BuildRouteCommand) (*dto.BuildRouteResult, error) {
+						argCommand = command
+						return &dto.BuildRouteResult{Data: "data", RouterAddress: "addr"}, nil
+					})
+
+				resp := SuccessResponse{
+					Code:    0,
+					Message: "successfully",
+					Data: struct {
+						AmountIn     string `json:"amountIn"`
+						AmountInUSD  string `json:"amountInUsd"`
+						AmountOut    string `json:"amountOut"`
+						AmountOutUSD string `json:"amountOutUsd"`
+						Gas          string `json:"gas"`
+						GasUSD       string `json:"gasUsd"`
+						OutputChange struct {
+							Amount  string  `json:"amount"`
+							Percent float64 `json:"percent"`
+							Level   int     `json:"level"`
+						} `json:"outputChange"`
+						Data          string `json:"data"`
+						RouterAddress string `json:"routerAddress"`
+					}{
+						AmountIn:     "",
+						AmountInUSD:  "",
+						AmountOut:    "",
+						AmountOutUSD: "",
+						Gas:          "",
+						GasUSD:       "",
+						OutputChange: struct {
+							Amount  string  `json:"amount"`
+							Percent float64 `json:"percent"`
+							Level   int     `json:"level"`
+						}{
+							Amount:  "",
+							Percent: 0,
+							Level:   0,
+						},
+						Data:          "data",
+						RouterAddress: "addr",
+					}}
+				check := test.HTTPTestCase{
+					ReqMethod:      http.MethodPost,
+					ReqURL:         "/api/v1/route/build",
+					ReqHandler:     BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, timeutil.NowFunc),
+					ReqBody:        strings.NewReader(tc.requestBody),
+					RespHTTPStatus: http.StatusOK,
+					RespBody:       resp,
+				}
+
+				check.Run(t)
+				assert.Equal(t, argCommand.EnableGasEstimation, tc.expectedEstimationParam)
+			})
 	}
 }
 

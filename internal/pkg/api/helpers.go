@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
@@ -107,10 +108,10 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    "weth not found",
 	},
 
-	usecase.ErrQuotedAmountSmallerThanEstimated: {
+	buildroute.ErrQuotedAmountSmallerThanEstimated: {
 		HTTPStatus: http.StatusUnprocessableEntity,
 		Code:       4222,
-		Message:    usecase.ErrQuotedAmountSmallerThanEstimated.Error(),
+		Message:    buildroute.ErrQuotedAmountSmallerThanEstimated.Error(),
 	},
 
 	kyberpmmclient.ErrFirmQuoteInternalError: {
@@ -135,6 +136,12 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		HTTPStatus: http.StatusUnprocessableEntity,
 		Code:       4226,
 		Message:    "firm API: the maker reject signing due market price updated",
+	},
+
+	buildroute.ErrEstimateGasFailed: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4227,
+		Message:    buildroute.ErrEstimateGasFailed.Error(),
 	},
 }
 

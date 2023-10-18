@@ -80,13 +80,14 @@ func transformBuildRouteParams(params params.BuildRouteParams, nowFunc func() ti
 	permit := common.FromHex(params.Permit)
 
 	return dto.BuildRouteCommand{
-		RouteSummary:      routeSummary,
-		Deadline:          deadline,
-		SlippageTolerance: params.SlippageTolerance,
-		Recipient:         params.Recipient,
-		Referral:          params.Referral,
-		Source:            params.Source,
-		Permit:            permit,
+		RouteSummary:        routeSummary,
+		Deadline:            deadline,
+		SlippageTolerance:   params.SlippageTolerance,
+		Recipient:           params.Recipient,
+		Referral:            params.Referral,
+		Source:              params.Source,
+		Permit:              permit,
+		EnableGasEstimation: params.EnableGasEstimation,
 	}, nil
 }
 

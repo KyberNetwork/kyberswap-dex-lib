@@ -8,7 +8,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 )
 
 type NoopRFQHandler struct{}
@@ -22,7 +22,7 @@ func (h *NoopRFQHandler) RFQ(ctx context.Context, recipient string, params any) 
 }
 
 func NewRFQHandler(
-	rfqCfg usecase.RFQConfig,
+	rfqCfg buildroute.RFQConfig,
 ) (pool.IPoolRFQ, error) {
 	switch rfqCfg.Handler {
 	case kyberpmm.DexTypeKyberPMM:
