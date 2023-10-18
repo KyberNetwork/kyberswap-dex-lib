@@ -103,6 +103,9 @@ func (p *PoolSimulator) BuyUSDG(token string, tokenAmount *big.Int) (*big.Int, e
 	p.swapInfo.mintAmount = new(big.Int).Set(mintAmount)
 	p.swapInfo.amountAfterFees = new(big.Int).Set(amountAfterFees)
 	//p.vault.IncreaseUSDGAmount(tokenIn, mintAmount)
+	if err = p.validateMaxUsdgExceed(token, mintAmount); err != nil {
+		return nil, err
+	}
 	//p.vault.IncreasePoolAmount(tokenIn, amountAfterFees)
 
 	//IUSDG(usdg).mint(_receiver, mintAmount);
