@@ -413,10 +413,17 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 	// copy "r_" to "r"
 	// and map index in "tokens" to index in "t"
 	r := make([]*big.Int, len(t))
+	for i := range t {
+		r[i] = bigint0
+	}
 	for i, token := range tokens {
 		j := poolTokenIdx[token]
 		idx[i] = j
 		r[j] = r_[i]
+	}
+
+	for i := 1; i < len(w); i++ {
+		a[i] = new(big.Int).Add(a[i], bigint1)
 	}
 
 	var (
@@ -425,11 +432,11 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 		wSD59x18 = make([]sd59x18.SD59x18, len(w))
 	)
 	for i := 0; i < int(p.poolTokenNumber); i++ {
-		a[i] = new(big.Int).Add(a[i], bigint1)
-
 		var err error
-		if rSD59x18[i], err = sd59x18.ConvertToSD59x18(r[i]); err != nil {
-			return nil, err
+		if r[i].Cmp(unknownBI) != 0 {
+			if rSD59x18[i], err = sd59x18.ConvertToSD59x18(r[i]); err != nil {
+				return nil, err
+			}
 		}
 		if aSD59x18[i], err = sd59x18.ConvertToSD59x18(a[i]); err != nil {
 			return nil, err
