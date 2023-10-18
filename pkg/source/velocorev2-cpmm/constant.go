@@ -46,12 +46,6 @@ var (
 )
 
 var (
-	zero = big.NewInt(0) // TODO: change
-	one  = big.NewInt(1)
-	two  = big.NewInt(2)
-
-	bOne = new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(18)), nil)
-
 	bigint1e9  = big.NewInt(1e9)
 	bigint1e18 = big.NewInt(1e18)
 	bigint1    = big.NewInt(1)
