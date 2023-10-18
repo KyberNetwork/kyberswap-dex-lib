@@ -41,7 +41,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	extra := Extra{}
 
-	priceLevels, err := t.getPriceLevelsForPool(ctx, p)
+	priceLevels, inventory, err := t.getPriceLevelsForPool(ctx, p)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
@@ -51,7 +51,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	extra.BaseToQuotePriceLevels, extra.QuoteToBasePriceLevels = transformPriceLevels(priceLevels)
-
+	extra.Inventory = inventory
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -70,13 +70,13 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) (PriceItem, error) {
-	priceLevels, err := t.client.ListPriceLevels(ctx)
+func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) (PriceItem, map[string]string, error) {
+	result, err := t.client.ListPriceLevels(ctx)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to get price levels")
-		return PriceItem{}, err
+		return PriceItem{}, nil, err
 	}
 
 	var staticExtra StaticExtra
@@ -85,14 +85,20 @@ func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) 
 			"error": err,
 		}).Errorf("failed to unmarshal static extra data")
 
-		return PriceItem{}, err
+		return PriceItem{}, nil, err
+	}
+	priceLevelsForPool, found1 := result.Prices[staticExtra.PairID]
+	baseBalance, found2 := result.Balances[staticExtra.BaseTokenAddress]
+	quoteBalance, found3 := result.Balances[staticExtra.QuoteTokenAddress]
+
+	if found1 && found2 && found3 {
+		return priceLevelsForPool, map[string]string{
+			staticExtra.BaseTokenAddress:  baseBalance,
+			staticExtra.QuoteTokenAddress: quoteBalance,
+		}, nil
 	}
 
-	if priceLevelsForPool, found := priceLevels[staticExtra.PairID]; found {
-		return priceLevelsForPool, nil
-	}
-
-	return PriceItem{}, ErrNoPriceLevelsForPool
+	return PriceItem{}, nil, ErrNoPriceLevelsForPool
 }
 
 // For computing prices based on a quote token amount

@@ -34,7 +34,8 @@ type PriceItem struct {
 
 // ListPriceLevelsResult is the result of list price levels
 type ListPriceLevelsResult struct {
-	Prices map[string]PriceItem `json:"prices"`
+	Prices   map[string]PriceItem `json:"prices"`
+	Balances map[string]string    `json:"balances"`
 }
 
 type StaticExtra struct {
@@ -44,8 +45,9 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	BaseToQuotePriceLevels []PriceLevel `json:"baseToQuotePriceLevels"`
-	QuoteToBasePriceLevels []PriceLevel `json:"quoteToBasePriceLevels"`
+	BaseToQuotePriceLevels []PriceLevel      `json:"baseToQuotePriceLevels"`
+	QuoteToBasePriceLevels []PriceLevel      `json:"quoteToBasePriceLevels"`
+	Inventory              map[string]string `json:"inventory"`
 }
 
 type PriceLevel struct {
