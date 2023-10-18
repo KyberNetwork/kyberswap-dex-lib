@@ -4,6 +4,266 @@ import (
 	"math/big"
 )
 
+func computeAmountOut(
+	token0 string,
+	token1 string,
+	reserve0 *big.Int,
+	reserve1 *big.Int,
+	reserve0Fic *big.Int,
+	reserve1Fic *big.Int,
+	tokenAmountIn *big.Int,
+	tokenAddressIn string,
+	priceAverageLastTimestamp int64,
+	priceAverage0 *big.Int,
+	priceAverage1 *big.Int,
+	feesLP *big.Int,
+	feesPool *big.Int,
+	userTradeTimestamp int64,
+	maxBlockDiffSeconds int64,
+) CurrencyAmount {
+	if tokenAddressIn == token0 {
+		newPriceAverage0, newPriceAverage1 := getUpdatedPriceAverage(
+			reserve0Fic,
+			reserve1Fic,
+			priceAverageLastTimestamp,
+			priceAverage0,
+			priceAverage1,
+			userTradeTimestamp,
+			maxBlockDiffSeconds,
+		)
+		amountOut, newRes0, newRes1, newRes0Fic, newRes1Fic := getAmountOut(
+			tokenAmountIn,
+			reserve0,
+			reserve1,
+			reserve0Fic,
+			reserve1Fic,
+			newPriceAverage0,
+			newPriceAverage1,
+			feesLP,
+			feesPool,
+		)
+		return CurrencyAmount{
+			currency:         token1,
+			amount:           amountOut,
+			amountMax:        amountOut,
+			newRes0:          newRes0,
+			newRes1:          newRes1,
+			newRes0Fic:       newRes0Fic,
+			newRes1Fic:       newRes1Fic,
+			newPriceAverage0: newPriceAverage0,
+			newPriceAverage1: newPriceAverage1,
+		}
+	}
+	newPriceAverage1, newPriceAverage0 := getUpdatedPriceAverage(
+		reserve1Fic,
+		reserve0Fic,
+		priceAverageLastTimestamp,
+		priceAverage1,
+		priceAverage0,
+		userTradeTimestamp,
+		maxBlockDiffSeconds,
+	)
+
+	amountOut, newRes1, newRes0, newRes1Fic, newRes0Fic := getAmountOut(
+		tokenAmountIn,
+		reserve1,
+		reserve0,
+		reserve1Fic,
+		reserve0Fic,
+		newPriceAverage1,
+		newPriceAverage0,
+		feesLP,
+		feesPool,
+	)
+	return CurrencyAmount{
+		currency:           token0,
+		amount:             amountOut,
+		amountMax:          amountOut,
+		newRes0:            newRes0,
+		newRes1:            newRes1,
+		newRes0Fic:         newRes0Fic,
+		newRes1Fic:         newRes1Fic,
+		newPriceAverage0:   newPriceAverage0,
+		newPriceAverage1:   newPriceAverage1,
+		userTradeTimestamp: userTradeTimestamp,
+	}
+}
+
+func getAmountOut(
+	amountIn *big.Int,
+	reserveIn *big.Int,
+	reserveOut *big.Int,
+	reserveInFic *big.Int,
+	reserveOutFic *big.Int,
+	priceAverageIn *big.Int,
+	priceAverageOut *big.Int,
+	feesLP *big.Int,
+	feesPool *big.Int,
+) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int) {
+	zero := big.NewInt(0)
+	if amountIn.Cmp(zero) != 1 {
+		//err
+	}
+	if reserveIn.Cmp(zero) != 1 || reserveOut.Cmp(zero) != 1 {
+		//err
+	}
+	if reserveInFic.Cmp(zero) != 1 || reserveOutFic.Cmp(zero) != 1 {
+		//err
+	}
+	if priceAverageIn.Cmp(zero) != 1 || priceAverageOut.Cmp(zero) != 1 {
+		//err
+	}
+	reserveInFicUpdated := reserveInFic
+	reserveOutFicUpdated := reserveOutFic
+
+	feesTotalReversed := new(big.Int)
+	feesTotalReversed.Sub(FEES_BASE, feesLP).Sub(feesTotalReversed, feesPool)
+	amountWithFees := new(big.Int)
+	amountWithFees.Mul(amountIn, feesTotalReversed).Div(amountWithFees, FEES_BASE)
+	firstAmount := computeFirstTradeQtyIn(
+		amountWithFees,
+		reserveInFic,
+		reserveOutFic,
+		priceAverageIn,
+		priceAverageOut,
+		feesLP,
+		feesPool,
+	)
+	if firstAmount.Cmp(amountWithFees) == 0 && ratioApproxEq(
+		reserveInFic,
+		reserveOutFic,
+		priceAverageIn,
+		priceAverageOut,
+	) {
+		reserveInFicUpdated, reserveOutFicUpdated = computeReserveFic(
+			reserveIn,
+			reserveOut,
+			reserveInFic,
+			reserveOutFic,
+		)
+	}
+	if reserveInFicUpdated.Cmp(zero) != 1 {
+		return zero,
+			reserveIn,
+			reserveOut,
+			reserveInFicUpdated,
+			reserveOutFicUpdated
+	}
+	firstAmountNoFees := new(big.Int)
+	firstAmountNoFees.Mul(firstAmount, FEES_BASE).Div(firstAmountNoFees, feesTotalReversed)
+	amountOut, newResIn, newResOut, newResInFic, newResOutFic := applyKConstRuleOut(
+		firstAmountNoFees,
+		reserveIn,
+		reserveOut,
+		reserveInFicUpdated,
+		reserveOutFicUpdated,
+		feesLP,
+		feesPool,
+	)
+	if firstAmount.Cmp(amountWithFees) == -1 && firstAmountNoFees.Cmp(amountIn) == -1 {
+		newResInFic, newResOutFic := computeReserveFic(
+			newResIn,
+			newResOut,
+			newResInFic,
+			newResOutFic,
+		)
+		if newResInFic.Cmp(zero) != 1 {
+			return zero,
+				reserveIn,
+				reserveOut,
+				reserveInFicUpdated,
+				reserveOutFicUpdated
+		}
+		var secondAmountOutNoFees *big.Int
+		secondAmountOutNoFees, newResIn, newResOut, newResInFic, newResOutFic = applyKConstRuleOut(
+			new(big.Int).Sub(amountIn, firstAmountNoFees),
+			newResIn,
+			newResOut,
+			newResInFic,
+			newResOutFic,
+			feesLP,
+			feesPool,
+		)
+		amountOut.Add(amountOut, secondAmountOutNoFees)
+	}
+
+	if newResIn.Cmp(zero) != 1 ||
+		newResOut.Cmp(zero) != 1 ||
+		newResInFic.Cmp(zero) != 1 ||
+		newResOutFic.Cmp(zero) != 1 {
+		// err
+	}
+
+	return amountOut, newResIn, newResOut, newResInFic, newResOutFic
+}
+
+func applyKConstRuleOut(
+	amountIn *big.Int,
+	reserveIn *big.Int,
+	reserveOut *big.Int,
+	reserveInFic *big.Int,
+	reserveOutFic *big.Int,
+	feesLP *big.Int,
+	feesPool *big.Int,
+) (*big.Int, *big.Int, *big.Int, *big.Int, *big.Int) {
+	feesTotalReversed := new(big.Int)
+	feesTotalReversed.Sub(FEES_BASE, feesLP).Sub(feesTotalReversed, feesPool)
+	amountInWithFee := new(big.Int).Mul(amountIn, feesTotalReversed)
+	numerator := new(big.Int).Mul(amountInWithFee, reserveOutFic)
+	denominator := new(big.Int)
+	denominator.Mul(reserveInFic, FEES_BASE).Sub(denominator, amountInWithFee)
+	if denominator.Cmp(big.NewInt(0)) == 0 {
+		//err
+	}
+
+	amountOut := new(big.Int).Div(numerator, denominator)
+
+	amountInWithFeeLp := new(big.Int)
+	amountInWithFeeLp.Mul(amountIn, feesLP).Add(amountInWithFeeLp, amountInWithFee).Div(amountInWithFeeLp, FEES_BASE)
+	newResIn := new(big.Int).Add(reserveIn, amountInWithFeeLp)
+	newResInFic := new(big.Int).Add(reserveInFic, amountInWithFeeLp)
+	newResOut := new(big.Int).Sub(reserveOut, amountOut)
+	newResOutFic := new(big.Int).Sub(reserveOutFic, amountOut)
+
+	return amountOut, newResIn, newResOut, newResInFic, newResOutFic
+}
+
+func computeFirstTradeQtyIn(
+	amountIn *big.Int,
+	reserveInFic *big.Int,
+	reserveOutFic *big.Int,
+	priceAverageIn *big.Int,
+	priceAverageOut *big.Int,
+	feesLP *big.Int,
+	feesPool *big.Int,
+) *big.Int {
+	firstAmountIn := amountIn
+	if new(big.Int).Mul(reserveOutFic, priceAverageIn).Cmp(new(big.Int).Mul(reserveInFic, priceAverageOut)) == 1 {
+
+		feesTotalReversed := new(big.Int)
+		feesTotalReversed.Sub(FEES_BASE, feesLP).Sub(feesTotalReversed, feesPool)
+		toSub := new(big.Int)
+		toSub.Add(FEES_BASE, feesTotalReversed).Sub(toSub, feesPool).Mul(toSub, reserveInFic)
+		toDiv := new(big.Int)
+		toDiv.Add(feesTotalReversed, feesLP).Mul(toDiv, big.NewInt(2))
+
+		tmp := new(big.Int)
+		tmp.Mul(reserveInFic, reserveInFic).Mul(tmp, feesLP).Mul(tmp, feesLP)
+		inSqrt := new(big.Int)
+		inSqrt.Mul(reserveInFic, reserveOutFic).Mul(inSqrt, big.NewInt(4)).Div(inSqrt, priceAverageOut).
+			Mul(inSqrt, priceAverageIn).Mul(inSqrt, feesTotalReversed).
+			Mul(inSqrt, new(big.Int).Sub(FEES_BASE, feesPool)).
+			Add(inSqrt, tmp)
+
+		tmp.Mul(amountIn, toDiv).Add(tmp, toSub).Exp(tmp, big.NewInt(2), nil)
+		if inSqrt.Cmp(tmp) == -1 {
+			firstAmountIn = sqrt(inSqrt)
+			firstAmountIn.Sub(firstAmountIn, toSub).Div(firstAmountIn, toDiv)
+		}
+	}
+	return firstAmountIn
+}
+
 func ComputeAmountIn(
 	token0 string,
 	token1 string,
@@ -79,15 +339,16 @@ func ComputeAmountIn(
 			feesPool,
 		)
 	return CurrencyAmount{
-		currency:         token1,
-		amount:           amountIn,
-		amountMax:        amountIn,
-		newRes0:          newRes0,
-		newRes1:          newRes1,
-		newRes0Fic:       newRes0Fic,
-		newRes1Fic:       newRes1Fic,
-		newPriceAverage0: newPriceAverage0,
-		newPriceAverage1: newPriceAverage1,
+		currency:           token1,
+		amount:             amountIn,
+		amountMax:          amountIn,
+		newRes0:            newRes0,
+		newRes1:            newRes1,
+		newRes0Fic:         newRes0Fic,
+		newRes1Fic:         newRes1Fic,
+		newPriceAverage0:   newPriceAverage0,
+		newPriceAverage1:   newPriceAverage1,
+		userTradeTimestamp: userTradeTimestamp,
 	}
 }
 
@@ -107,6 +368,9 @@ func getAmountIn(
 		//err
 	}
 	if reserveIn.Cmp(zero) != 1 || reserveOut.Cmp(zero) != 1 {
+		//err
+	}
+	if reserveInFic.Cmp(zero) != 1 || reserveOutFic.Cmp(zero) != 1 {
 		//err
 	}
 	if priceAverageIn.Cmp(zero) != 1 || priceAverageOut.Cmp(zero) != 1 {
