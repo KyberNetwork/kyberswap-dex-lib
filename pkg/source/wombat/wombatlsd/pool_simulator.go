@@ -62,7 +62,7 @@ func (p *PoolSimulator) CalcAmountOut(
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
-	amountOut, haircut, err := QuotePotentialSwap(
+	amountOut, haircut, err := Swap(
 		tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount,
 		p.paused, p.haircutRate, p.ampFactor, p.startCovRatio, p.endCovRatio,
 		p.assets,

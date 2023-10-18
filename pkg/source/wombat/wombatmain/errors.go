@@ -11,4 +11,5 @@ var (
 	ErrCovRatioLimitExceeded    = errors.New("cov ratio limit exceeded")
 	ErrWombatAssetAlreadyPaused = errors.New("wombat asset already paused")
 	ErrWombatPoolAlreadyPaused  = errors.New("wombat pool already paused")
+	ErrWombatForbidden          = errors.New("wombat forbidden")
 )

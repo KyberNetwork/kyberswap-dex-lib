@@ -1,13 +1,14 @@
 package wombatmain
 
 import (
+	"github.com/KyberNetwork/blockchain-toolkit/dsmath"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"math/big"
 	"strings"
 )
 
-func QuotePotentialSwap(
+func Swap(
 	fromToken string,
 	toToken string,
 	fromAmount *big.Int,
@@ -38,19 +39,25 @@ func QuotePotentialSwap(
 		return nil, nil, ErrWombatAssetAlreadyPaused
 	}
 
-	fromAmount = toWad(fromAmount, fromAsset.UnderlyingTokenDecimals)
-	potentialOutcome, haircut, err := highCovRatioFeePoolV2QuoteFrom(fromAsset, toAsset, fromAmount, haircutRate, ampFactor, startCovRatio, endCovRatio)
+	fromAmount = dsmath.ToWAD(fromAmount, fromAsset.UnderlyingTokenDecimals)
+	actualToAmount, haircut, err := highCovRatioFeePoolV2QuoteFrom(fromAsset, toAsset, fromAmount, haircutRate, ampFactor, startCovRatio, endCovRatio)
 	if err != nil {
 		return nil, nil, err
 	}
-	potentialOutcome = fromWad(potentialOutcome, toAsset.UnderlyingTokenDecimals)
-	if fromAmount.Cmp(bignumber.ZeroBI) > 0 {
-		haircut = fromWad(haircut, toAsset.UnderlyingTokenDecimals)
-	} else {
-		haircut = fromWad(haircut, fromAsset.UnderlyingTokenDecimals)
+
+	newToAssetCash := removeCash(toAsset.Cash, new(big.Int).Add(actualToAmount, haircut))
+	if dsmath.WDiv(newToAssetCash, toAsset.Liability).Cmp(new(big.Int).Div(WAD, big.NewInt(100))) < 0 {
+		return nil, nil, ErrWombatForbidden
 	}
 
-	return potentialOutcome, haircut, nil
+	actualToAmount = dsmath.FromWAD(actualToAmount, toAsset.UnderlyingTokenDecimals)
+	if fromAmount.Cmp(bignumber.ZeroBI) > 0 {
+		haircut = dsmath.FromWAD(haircut, toAsset.UnderlyingTokenDecimals)
+	} else {
+		haircut = dsmath.FromWAD(haircut, fromAsset.UnderlyingTokenDecimals)
+	}
+
+	return actualToAmount, haircut, nil
 }
 
 func highCovRatioFeePoolV2QuoteFrom(
@@ -66,25 +73,25 @@ func highCovRatioFeePoolV2QuoteFrom(
 	if fromAmount.Cmp(bignumber.ZeroBI) >= 0 {
 		fromAssetCash := new(big.Int).Set(fromAsset.Cash)
 		fromAssetLiability := new(big.Int).Set(fromAsset.Liability)
-		finalFromAssetCovRatio := wdiv(new(big.Int).Add(fromAssetCash, fromAmount), fromAssetLiability)
+		finalFromAssetCovRatio := dsmath.WDiv(new(big.Int).Add(fromAssetCash, fromAmount), fromAssetLiability)
 
 		if finalFromAssetCovRatio.Cmp(startCovRatio) > 0 {
-			fee, err := getHighCovRatioFee(wdiv(fromAssetCash, fromAssetLiability), finalFromAssetCovRatio, startCovRatio, endCovRatio)
+			fee, err := getHighCovRatioFee(dsmath.WDiv(fromAssetCash, fromAssetLiability), finalFromAssetCovRatio, startCovRatio, endCovRatio)
 			if err != nil {
 				return nil, nil, err
 			}
-			highCovRatioFee := wmul(fee, actualToAmount)
+			highCovRatioFee := dsmath.WMul(fee, actualToAmount)
 			actualToAmount = new(big.Int).Sub(actualToAmount, highCovRatioFee)
 			haircut = new(big.Int).Add(haircut, highCovRatioFee)
 		}
 	} else {
 		toAssetCash := new(big.Int).Set(toAsset.Cash)
 		toAssetLiability := new(big.Int).Set(toAsset.Liability)
-		finalToAssetCovRatio := new(big.Int).Add(toAssetCash, wdiv(actualToAmount, toAssetLiability))
+		finalToAssetCovRatio := new(big.Int).Add(toAssetCash, dsmath.WDiv(actualToAmount, toAssetLiability))
 
 		if finalToAssetCovRatio.Cmp(startCovRatio) <= 0 {
 			return actualToAmount, haircut, nil
-		} else if wdiv(toAssetCash, toAssetLiability).Cmp(endCovRatio) >= 0 {
+		} else if dsmath.WDiv(toAssetCash, toAssetLiability).Cmp(endCovRatio) >= 0 {
 			return nil, nil, ErrCovRatioLimitExceeded
 		}
 
@@ -110,7 +117,7 @@ func poolV2QuoteFrom(
 
 	var newFromAmount = new(big.Int).Set(fromAmount)
 	if newFromAmount.Cmp(bignumber.ZeroBI) < 0 {
-		newFromAmount = wdiv(newFromAmount, new(big.Int).Sub(WADI, haircutRate))
+		newFromAmount = dsmath.WDiv(newFromAmount, new(big.Int).Sub(WADI, haircutRate))
 	}
 
 	fromCash := new(big.Int).Set(fromAsset.Cash)
@@ -139,11 +146,11 @@ func poolV2QuoteFrom(
 	}
 
 	if newFromAmount.Cmp(bignumber.ZeroBI) > 0 {
-		haircut = wmul(idealToAmount, haircutRate)
+		haircut = dsmath.WMul(idealToAmount, haircutRate)
 		actualToAmount = new(big.Int).Sub(idealToAmount, haircut)
 	} else {
 		actualToAmount = new(big.Int).Set(idealToAmount)
-		haircut = wmul(new(big.Int).Neg(newFromAmount), haircutRate)
+		haircut = dsmath.WMul(new(big.Int).Neg(newFromAmount), haircutRate)
 	}
 
 	return actualToAmount, haircut, nil
@@ -165,7 +172,7 @@ func getHighCovRatioFee(initCovRatio, finalCovRatio, startCovRatio, endCovRatio 
 	b := new(big.Int).Mul(
 		new(big.Int).Sub(finalCovRatio, startCovRatio),
 		new(big.Int).Sub(finalCovRatio, startCovRatio))
-	fee := wdiv(
+	fee := dsmath.WDiv(
 		new(big.Int).Div(new(big.Int).Div(
 			new(big.Int).Sub(b, a),
 			new(big.Int).Sub(finalCovRatio, initCovRatio),
@@ -178,8 +185,8 @@ func getHighCovRatioFee(initCovRatio, finalCovRatio, startCovRatio, endCovRatio 
 
 func findUpperBound(fromAsset, toAsset wombat.Asset, toAmount, hairCutRate, ampFactor, startCovRatio, endCovRatio *big.Int) (*big.Int, error) {
 	decimals := fromAsset.UnderlyingTokenDecimals
-	toWadFactor := toWad(big.NewInt(1), decimals)
-	high := new(big.Int).Sub(wmul(fromAsset.Liability, endCovRatio), fromWad(fromAsset.Cash, decimals))
+	toWadFactor := dsmath.ToWAD(big.NewInt(1), decimals)
+	high := new(big.Int).Sub(dsmath.WMul(fromAsset.Liability, endCovRatio), dsmath.FromWAD(fromAsset.Cash, decimals))
 	low := big.NewInt(1)
 
 	quote, _, err := highCovRatioFeePoolV2QuoteFrom(fromAsset, toAsset, new(big.Int).Mul(high, toWadFactor), hairCutRate, ampFactor, startCovRatio, endCovRatio)
@@ -216,28 +223,28 @@ func swapQuoteFunc(ax, ay, lx, ly, dx, a *big.Int) (*big.Int, error) {
 	}
 	d := new(big.Int).Sub(
 		new(big.Int).Add(ax, ay),
-		wmul(
+		dsmath.WMul(
 			a,
 			new(big.Int).Add(
 				new(big.Int).Div(new(big.Int).Mul(lx, lx), ax),
 				new(big.Int).Div(new(big.Int).Mul(ly, ly), ay)),
 		),
 	)
-	rx := wdiv(new(big.Int).Add(ax, dx), lx)
+	rx := dsmath.WDiv(new(big.Int).Add(ax, dx), lx)
 	b := new(big.Int).Sub(
 		new(big.Int).Div(
 			new(big.Int).Mul(
 				lx,
 				new(big.Int).Sub(
 					rx,
-					wdiv(a, rx)),
+					dsmath.WDiv(a, rx)),
 			),
 			ly,
 		),
-		wdiv(d, ly),
+		dsmath.WDiv(d, ly),
 	)
 	ry := solveQuad(b, a)
-	dy := new(big.Int).Sub(wmul(ly, ry), ay)
+	dy := new(big.Int).Sub(dsmath.WMul(ly, ry), ay)
 	if dy.Cmp(bignumber.ZeroBI) < 0 {
 		return new(big.Int).Neg(dy), nil
 	} else {
@@ -275,45 +282,6 @@ func assetOf(token string, assetMap map[string]wombat.Asset) (wombat.Asset, erro
 	}
 
 	return asset, nil
-}
-
-// ----------------- DSMATH
-func wmul(x, y *big.Int) *big.Int {
-	return new(big.Int).Div(
-		new(big.Int).Add(
-			new(big.Int).Mul(x, y),
-			new(big.Int).Div(WAD, bignumber.Two)),
-		WAD,
-	)
-}
-
-func wdiv(x, y *big.Int) *big.Int {
-	return new(big.Int).Div(
-		new(big.Int).Add(
-			new(big.Int).Mul(x, WAD),
-			new(big.Int).Div(y, bignumber.Two)),
-		y,
-	)
-}
-
-func toWad(x *big.Int, d uint8) *big.Int {
-	if d < 18 {
-		return new(big.Int).Mul(x, bignumber.TenPowInt(18-d))
-	} else if d > 18 {
-		return new(big.Int).Div(x, bignumber.TenPowInt(d-18))
-	}
-
-	return x
-}
-
-func fromWad(x *big.Int, d uint8) *big.Int {
-	if d < 18 {
-		return new(big.Int).Div(x, bignumber.TenPowInt(18-d))
-	} else if d > 18 {
-		return new(big.Int).Mul(x, bignumber.TenPowInt(d-18))
-	}
-
-	return x
 }
 
 func signedSafeMathSqrt(y, guess *big.Int) *big.Int {
