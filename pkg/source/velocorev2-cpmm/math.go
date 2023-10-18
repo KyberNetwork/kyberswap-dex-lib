@@ -27,7 +27,7 @@ func rpow(x *big.Int, n *big.Int, base *big.Int) *big.Int {
 	}
 
 	z := x
-	if new(big.Int).Mod(x, bigint2).Cmp(bigint0) == 0 {
+	if new(big.Int).Mod(n, bigint2).Cmp(bigint0) == 0 {
 		z = base
 	}
 

@@ -97,7 +97,7 @@ func (p *PoolSimulator) CalcAmountOut(
 	var amountOut *big.Int
 	for i, token := range tokens {
 		if strings.EqualFold(token, tokenOut) {
-			amountOut = result.R[i]
+			amountOut = new(big.Int).Neg(result.R[i])
 			break
 		}
 	}
@@ -115,7 +115,7 @@ func (p *PoolSimulator) CalcAmountOut(
 			Token:  tokenOut,
 			Amount: amountOut,
 		},
-		Fee:      nil,
+		Fee:      &pool.TokenAmount{},
 		Gas:      0,
 		SwapInfo: swapInfo,
 	}, nil
