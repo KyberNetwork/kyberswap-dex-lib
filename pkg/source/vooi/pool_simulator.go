@@ -119,7 +119,12 @@ func (s *PoolSimulator) CalcAmountOut(
 		return nil, ErrMaxSupplyExceeded
 	}
 
-	actualToAmount, lpFeeAmount, err := s._swap(fromAsset, toAsset, tokenAmountIn.Amount, integer.Zero())
+	actualToAmount, lpFeeAmount, err := s._swap(
+		fromAsset,
+		toAsset,
+		dsmath.ToWAD(tokenAmountIn.Amount, fromAsset.Decimals),
+		integer.Zero(),
+	)
 	if err != nil {
 		return nil, err
 	}
