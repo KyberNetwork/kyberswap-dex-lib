@@ -66,14 +66,12 @@ github.com/KyberNetwork/blockchain-toolkit v0.2.3 h1:ynZdLG7fR6BJUm3HAdLuCf+3YKN
 github.com/KyberNetwork/blockchain-toolkit v0.2.3/go.mod h1:1xF0YWJsVr3EE5Qpvdv0OrmU3kjUBLS477ldco5X7eI=
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 h1:kN7ez6MPJEaFbacmvR+22PRa5pJkzwYN4h3RyRhjUnU=
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2/go.mod h1:3DThBH6zHAYSWUVmtj9deQO1XuiwbawdKxj5yV4SuMo=
-github.com/KyberNetwork/ethrpc v0.3.0 h1:LoqtmSR4ABgsCvSc+qPUbPibPhVZpd12YQLbMGAyVWk=
-github.com/KyberNetwork/ethrpc v0.3.0/go.mod h1:QOlJ7bWKIVlo3ZfJt3cmyc5oke9uU+4hl9Vth5IHK/Y=
 github.com/KyberNetwork/ethrpc v0.5.0 h1:H2f9e9jD/q7F/Rc55RD3Xaq1b1Nu1rKhN+42JMj+RIo=
 github.com/KyberNetwork/ethrpc v0.5.0/go.mod h1:QOlJ7bWKIVlo3ZfJt3cmyc5oke9uU+4hl9Vth5IHK/Y=
 github.com/KyberNetwork/kyber-trace-go v0.1.0 h1:6qUAYpKw774qBF/Ksi4bJ9foUjt+touolK5Owv8Z1G8=
 github.com/KyberNetwork/kyber-trace-go v0.1.0/go.mod h1:0qL5v2KQoUjIyJfSA0YcDy2SYS7Ff9qWmz7RO7Gp+48=
-github.com/KyberNetwork/kyberswap-dex-lib v0.19.1 h1:RV3Zco8msTEt/FQw+I6yy8VJ6ZPh7PUl4pPm3zXvBgU=
-github.com/KyberNetwork/kyberswap-dex-lib v0.19.1/go.mod h1:9QlJA36tQ43tW8DkfqMNeN44n6bbKC64osrALKzSlI4=
+github.com/KyberNetwork/kyberswap-dex-lib v0.19.2 h1:3DI/dNTNVnYTUnv7C9cSEXM8Spk+bwMA8ETbY9uDkMg=
+github.com/KyberNetwork/kyberswap-dex-lib v0.19.2/go.mod h1:9QlJA36tQ43tW8DkfqMNeN44n6bbKC64osrALKzSlI4=
 github.com/KyberNetwork/logger v0.1.0 h1:Iibu9Ls+tipjR+C0iXhzUYM1VtRgmmR1HHWGufPYcbs=
 github.com/KyberNetwork/logger v0.1.0/go.mod h1:zBqHbtJ3nJn6HQnp6UW8pbQkR+U6tSRFd5CzfiKL3Kw=
 github.com/KyberNetwork/pancake-v3-sdk v0.1.0 h1:HVUD13Qbwl4kiU1uSprQVpkis6fYYp3A32mVuK+f1Iw=
