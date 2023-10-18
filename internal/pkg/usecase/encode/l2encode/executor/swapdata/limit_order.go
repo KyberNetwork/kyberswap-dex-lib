@@ -157,6 +157,7 @@ func buildKyberLimitOrder(swap types.L2EncodingSwap) (KyberLimitOrder, error) {
 		return KyberLimitOrder{}, fmt.Errorf("[BuildKyberLimitOrder] error at toFillBatchOrdersParams func error cause by %v", err)
 	}
 	return KyberLimitOrder{
+		PoolMappingID:  swap.PoolMappingID,
 		KyberLOAddress: common.HexToAddress(swap.Pool),
 		MakerAsset:     common.HexToAddress(swapInfo.FilledOrders[0].MakerAsset),
 		Params:         params,

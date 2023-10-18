@@ -92,6 +92,7 @@ func buildIZiSwap(swap types.L2EncodingSwap) (IZiSwap, error) {
 	}
 
 	return IZiSwap{
+		PoolMappingID: swap.PoolMappingID,
 		Pool:          common.HexToAddress(swap.Pool),
 		TokenOut:      common.HexToAddress(swap.TokenOut),
 		Recipient:     common.HexToAddress(swap.Recipient),

@@ -58,6 +58,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeMoonBase, swapdata.PackUniswap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeScale, swapdata.PackUniswap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeBalDex, swapdata.PackUniswap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeMMF, swapdata.PackUniswap)
 
 	// StableSwap
 	RegisterPackSwapDataFunc(valueobject.ExchangeSaddle, swapdata.PackStableSwap)
