@@ -11,11 +11,13 @@ func Sub(x SD59x18, y SD59x18) SD59x18 {
 }
 
 func Lt(x SD59x18, y SD59x18) bool {
-	xBI := new(big.Int).Set(x)
-	yBI := new(big.Int).Set(y)
+	var (
+		xBI *big.Int = x
+		yBI *big.Int = y
+	)
 	return xBI.Cmp(yBI) < 0
 }
 
 func Zero() SD59x18 {
-	return big.NewInt(0)
+	return bigint0
 }

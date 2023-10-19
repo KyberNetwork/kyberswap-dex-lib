@@ -15,7 +15,18 @@ func ConvertToSD59x18(x *big.Int) (SD59x18, error) {
 	return result, nil
 }
 
-
 func ConvertToBI(x SD59x18) *big.Int {
 	return new(big.Int).Div(x, uUnit)
+}
+
+func Sd(x *big.Int) SD59x18 {
+	return x
+}
+
+func Wrap(x *big.Int) SD59x18 {
+	return x
+}
+
+func Unwrap(x SD59x18) *big.Int {
+	return x
 }

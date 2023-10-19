@@ -3,6 +3,10 @@ package sd59x18
 import "math/big"
 
 var (
+	unit = big.NewInt(1e18)
+)
+
+var (
 	uUnit = big.NewInt(1e18)
 )
 
