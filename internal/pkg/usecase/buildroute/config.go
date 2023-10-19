@@ -7,7 +7,8 @@ type (
 		ChainID                valueobject.ChainID `mapstructure:"chainId"`
 		RFQ                    []RFQConfig         `mapstructure:"rfq"`
 		L2EncodePartners       map[string]struct{}
-		UseL2OptimizeByDefault bool `mapstructure:"useL2OptimizeByDefault"`
+		UseL2OptimizeByDefault bool                     `mapstructure:"useL2OptimizeByDefault"`
+		FeatureFlags           valueobject.FeatureFlags `mapstructure:"featureFlags"`
 	}
 	RFQConfig struct {
 		Id         string                 `mapstructure:"id"`

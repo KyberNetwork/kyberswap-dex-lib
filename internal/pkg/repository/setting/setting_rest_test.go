@@ -60,6 +60,10 @@ func mockHandleSuccess(w http.ResponseWriter, r *http.Request) {
 					ShrinkFuncPowExp:     0.7,
 					ShrinkFuncLogPercent: 1.01,
 				},
+				FeatureFlags: valueobject.FeatureFlags{
+					IsPathGeneratorEnabled: true,
+					IsGasEstimatorEnabled:  true,
+				},
 				BlacklistedRecipients: []string{"0xaa"},
 			},
 		},
@@ -135,6 +139,10 @@ func TestGetConfigs(t *testing.T) {
 			ShrinkFuncName:       "decimal",
 			ShrinkFuncPowExp:     0.7,
 			ShrinkFuncLogPercent: 1.01,
+		},
+		FeatureFlags: valueobject.FeatureFlags{
+			IsPathGeneratorEnabled: true,
+			IsGasEstimatorEnabled:  true,
 		},
 		BlacklistedRecipients: []string{"0xaa"},
 	}

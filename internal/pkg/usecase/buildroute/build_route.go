@@ -94,7 +94,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 
 	// estimate gas price for a transaction
 	estimatedGas := uint64(routeSummary.Gas)
-	if command.EnableGasEstimation {
+	if uc.config.FeatureFlags.IsGasEstimatorEnabled && command.EnableGasEstimation {
 		estimatedGas, err = uc.estimateGas(ctx, command, encodedData)
 		if err != nil {
 			return nil, err
@@ -124,6 +124,7 @@ func (uc *BuildRouteUseCase) ApplyConfig(config Config) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 	uc.config.L2EncodePartners = config.L2EncodePartners
+	uc.config.FeatureFlags = config.FeatureFlags
 }
 
 func (uc *BuildRouteUseCase) rfq(

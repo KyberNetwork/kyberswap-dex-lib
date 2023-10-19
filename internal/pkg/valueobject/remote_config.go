@@ -30,6 +30,7 @@ type (
 	// should include variable which need not to restart pods.
 	FeatureFlags struct {
 		IsPathGeneratorEnabled bool `mapstructure:"isPathGeneratorEnabled" json:"isPathGeneratorEnabled"`
+		IsGasEstimatorEnabled  bool `mapstructure:"isGasEstimatorEnabled" json:"isGasEstimatorEnabled"`
 	}
 
 	Log struct {
