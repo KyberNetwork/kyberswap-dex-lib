@@ -163,7 +163,7 @@ func getAmountOut(amountIn *big.Int, reserveIn *big.Int, reserveOut *big.Int, re
 		return nil, nil, nil, nil, nil, err
 	}
 	if firstAmount.Cmp(amountWithFees) == -1 && firstAmountNoFees.Cmp(amountIn) == -1 {
-		newResInFic, newResOutFic := computeReserveFic(
+		newResInFic, newResOutFic = computeReserveFic(
 			newResIn,
 			newResOut,
 			newResInFic,
@@ -204,7 +204,7 @@ func applyKConstRuleOut(amountIn *big.Int, reserveIn *big.Int, reserveOut *big.I
 	amountInWithFee := new(big.Int).Mul(amountIn, feesTotalReversed)
 	numerator := new(big.Int).Mul(amountInWithFee, reserveOutFic)
 	denominator := new(big.Int)
-	denominator.Mul(reserveInFic, FEES_BASE).Sub(denominator, amountInWithFee)
+	denominator.Mul(reserveInFic, FEES_BASE).Add(denominator, amountInWithFee)
 	if denominator.Cmp(big.NewInt(0)) == 0 {
 		return nil, nil, nil, nil, nil, errors.New("SMARDEX_K_ERROR")
 	}

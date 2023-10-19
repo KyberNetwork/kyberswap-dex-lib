@@ -1,6 +1,8 @@
 package sdk
 
-import "math/big"
+import (
+	"math/big"
+)
 
 var (
 	APPROX_EQ_PRECISION      = big.NewInt(1)
@@ -25,13 +27,13 @@ func sqrt(value *big.Int) *big.Int {
 	}
 	result := new(big.Int).Lsh(big.NewInt(1), log2(value)/2)
 	tmp := new(big.Int)
-	result = tmp.Rsh(tmp.Div(value, result).Add(result, tmp), 1)
-	result = tmp.Rsh(tmp.Div(value, result).Add(result, tmp), 1)
-	result = tmp.Rsh(tmp.Div(value, result).Add(result, tmp), 1)
-	result = tmp.Rsh(tmp.Div(value, result).Add(result, tmp), 1)
-	result = tmp.Rsh(tmp.Div(value, result).Add(result, tmp), 1)
-	result = tmp.Rsh(tmp.Div(value, result).Add(result, tmp), 1)
-	result = tmp.Rsh(tmp.Div(value, result).Add(result, tmp), 1)
+	result.Rsh(tmp.Div(value, result).Add(tmp, result), 1)
+	result.Rsh(tmp.Div(value, result).Add(result, tmp), 1)
+	result.Rsh(tmp.Div(value, result).Add(result, tmp), 1)
+	result.Rsh(tmp.Div(value, result).Add(result, tmp), 1)
+	result.Rsh(tmp.Div(value, result).Add(result, tmp), 1)
+	result.Rsh(tmp.Div(value, result).Add(result, tmp), 1)
+	result.Rsh(tmp.Div(value, result).Add(result, tmp), 1)
 	tmp = new(big.Int).Div(value, result)
 	if result.Cmp(tmp) == -1 {
 		return result
@@ -42,36 +44,37 @@ func sqrt(value *big.Int) *big.Int {
 func log2(value *big.Int) uint {
 	var result uint = 0
 	zero := big.NewInt(0)
-	tmp := new(big.Int)
-	if tmp.Rsh(value, 128).Cmp(zero) == 1 {
-		value = tmp
+	comparator := new(big.Int)
+	tempValue := new(big.Int).Set(value)
+	if comparator.Rsh(tempValue, 128).Cmp(zero) == 1 {
+		tempValue.Set(comparator)
 		result += 128
 	}
-	if tmp.Rsh(value, 64).Cmp(zero) == 1 {
-		value = tmp
+	if comparator.Rsh(tempValue, 64).Cmp(zero) == 1 {
+		tempValue.Set(comparator)
 		result += 64
 	}
-	if tmp.Rsh(value, 32).Cmp(zero) == 1 {
-		value = tmp
+	if comparator.Rsh(tempValue, 32).Cmp(zero) == 1 {
+		tempValue.Set(comparator)
 		result += 32
 	}
-	if tmp.Rsh(value, 16).Cmp(zero) == 1 {
-		value = tmp
+	if comparator.Rsh(tempValue, 16).Cmp(zero) == 1 {
+		tempValue.Set(comparator)
 		result += 16
 	}
-	if tmp.Rsh(value, 8).Cmp(zero) == 1 {
-		value = tmp
+	if comparator.Rsh(tempValue, 8).Cmp(zero) == 1 {
+		tempValue.Set(comparator)
 		result += 8
 	}
-	if tmp.Rsh(value, 4).Cmp(zero) == 1 {
-		value = tmp
+	if comparator.Rsh(tempValue, 4).Cmp(zero) == 1 {
+		tempValue.Set(comparator)
 		result += 4
 	}
-	if tmp.Rsh(value, 2).Cmp(zero) == 1 {
-		value = tmp
+	if comparator.Rsh(tempValue, 2).Cmp(zero) == 1 {
+		tempValue.Set(comparator)
 		result += 2
 	}
-	if tmp.Rsh(value, 1).Cmp(zero) == 1 {
+	if comparator.Rsh(tempValue, 1).Cmp(zero) == 1 {
 		result += 1
 	}
 
