@@ -183,11 +183,74 @@ func TestVelocoreExecuteFallback1(t *testing.T) {
 	desc := "pool 2 tokens, all token involved, lp token included, lp token known r"
 	t.Log(desc)
 
-	
+	// block 659738, linea
+
+	entityPoolStr := `{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","exchange":"velocorev2-cpmm","type":"velocorev2-cpmm","timestamp":1697617544,"reserves":["5192296858534827628430578339644164","7774767","1310912514297980345043"],"tokens":[{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","weight":2,"swappable":true},{"address":"0xa219439258ca9da29e9cc4ce5596924745e12b93","weight":1,"swappable":true},{"address":"0xcc22f6aa610d1b2a0e89ef228079cb3e1831b1d1","weight":1,"swappable":true}],"extra":"{\"fee1e9\":10000000,\"feeMultiplier\":\"0\"}","staticExtra":"{\"poolTokenNumber\":3}"}`
+	var entityPool entity.Pool
+	err := json.Unmarshal([]byte(entityPoolStr), &entityPool)
+	assert.Nil(t, err)
+
+	var (
+		tokens = []string{
+			"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca",
+			"0xa219439258ca9da29e9cc4ce5596924745e12b93",
+			"0xcc22f6aa610d1b2a0e89ef228079cb3e1831b1d1",
+		}
+
+		r = []*big.Int{
+			new(big.Int).Mul(bigint1e4, big.NewInt(-6996)),
+			unknownBI,
+			unknownBI,
+		}
+	)
+
+	simulator, err := NewPoolSimulator(entityPool)
+	assert.Nil(t, err)
+
+	result, err := simulator.velocoreExecuteFallback(tokens, r)
+	assert.Nil(t, err)
+
+	assert.Equal(t, "5", result.R[1].String())
+	assert.Equal(t, "908433163091179", result.R[2].String())
+
+	// simulator: [-69960000,5,908433163091179]
+	// contract:  [-69960000,5,908433163091179]
 }
 
 func TestVelocoreExecuteFallback2(t *testing.T) {
 	desc := "pool 2 tokens, all token involved, lp token included, lp token known r"
 	t.Log(desc)
 
+	// block 659738, linea
+
+	entityPoolStr := `{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","exchange":"velocorev2-cpmm","type":"velocorev2-cpmm","timestamp":1697617544,"reserves":["5192296858534827628430578339644164","7774767","1310912514297980345043"],"tokens":[{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","weight":2,"swappable":true},{"address":"0xa219439258ca9da29e9cc4ce5596924745e12b93","weight":1,"swappable":true},{"address":"0xcc22f6aa610d1b2a0e89ef228079cb3e1831b1d1","weight":1,"swappable":true}],"extra":"{\"fee1e9\":10000000,\"feeMultiplier\":\"0\"}","staticExtra":"{\"poolTokenNumber\":3}"}`
+	var entityPool entity.Pool
+	err := json.Unmarshal([]byte(entityPoolStr), &entityPool)
+	assert.Nil(t, err)
+
+	var (
+		tokens = []string{
+			"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca",
+			"0xa219439258ca9da29e9cc4ce5596924745e12b93",
+			"0xcc22f6aa610d1b2a0e89ef228079cb3e1831b1d1",
+		}
+
+		r = []*big.Int{
+			unknownBI,
+			unknownBI,
+			new(big.Int).Mul(bigint1e9, big.NewInt(-6996)),
+		}
+	)
+
+	simulator, err := NewPoolSimulator(entityPool)
+	assert.Nil(t, err)
+
+	result, err := simulator.velocoreExecuteFallback(tokens, r)
+	assert.Nil(t, err)
+
+	assert.Equal(t, "538775", result.R[0].String())
+	assert.Equal(t, "-1", result.R[1].String())
+
+	// simulator: [538775,-1,-6996000000000]
+	// contract:  [538774,0,-6996000000000]
 }
