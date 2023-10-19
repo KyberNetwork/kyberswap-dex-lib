@@ -61,7 +61,7 @@ func buildVooi(swap types.EncodingSwap) (Vooi, error) {
 		FromToken:  common.HexToAddress(swap.TokenIn),
 		ToToken:    common.HexToAddress(swap.TokenOut),
 		FromID:     big.NewInt(extra.FromID),
-		ToID:       big.NewInt(extra.FromID),
+		ToID:       big.NewInt(extra.ToID),
 		FromAmount: swap.SwapAmount,
 		To:         common.HexToAddress(swap.Recipient),
 	}, nil
