@@ -248,7 +248,7 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 			var (
 				aPrime *big.Int
 				bPrime *big.Int
-				fee    *big.Int
+				fee    = bigint0
 			)
 			if k.Cmp(bigint1e18) > 0 {
 				aPrime = a[i]
