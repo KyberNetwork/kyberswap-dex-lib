@@ -151,15 +151,40 @@ func (p *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 }
 
 func (p *Pool) deepcopyState(state *MaverickPoolState) (*MaverickPoolState, error) {
-	stateBytes, err := json.Marshal(state)
-	if err != nil {
-		return nil, err
+	newState := &MaverickPoolState{
+		TickSpacing:      new(big.Int).Set(state.TickSpacing),
+		Fee:              new(big.Int).Set(state.Fee),
+		ProtocolFeeRatio: new(big.Int).Set(state.ProtocolFeeRatio),
+		ActiveTick:       new(big.Int).Set(state.ActiveTick),
+		BinCounter:       new(big.Int).Set(state.BinCounter),
 	}
 
-	var newState MaverickPoolState
-	if err := json.Unmarshal(stateBytes, &newState); err != nil {
-		return nil, err
+	// Clone state.Bins
+	newState.Bins = make(map[string]Bin, len(state.Bins))
+	for k, v := range state.Bins {
+		newState.Bins[k] = Bin{
+			ReserveA:  new(big.Int).Set(v.ReserveA),
+			ReserveB:  new(big.Int).Set(v.ReserveB),
+			LowerTick: new(big.Int).Set(v.LowerTick),
+			Kind:      new(big.Int).Set(v.Kind),
+			MergeID:   new(big.Int).Set(v.MergeID),
+		}
 	}
 
-	return &newState, nil
+	// Clone state.BinPositions
+	newState.BinPositions = make(map[string]map[string]*big.Int, len(state.BinPositions))
+	for k, v := range state.BinPositions {
+		newState.BinPositions[k] = make(map[string]*big.Int, len(v))
+		for k1, v1 := range v {
+			newState.BinPositions[k][k1] = new(big.Int).Set(v1)
+		}
+	}
+
+	// Clone state.BinMap
+	newState.BinMap = make(map[string]*big.Int, len(state.BinMap))
+	for k, v := range state.BinMap {
+		newState.BinMap[k] = new(big.Int).Set(v)
+	}
+
+	return newState, nil
 }
