@@ -33,7 +33,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		poolTokenNumber uint
 		tokens          []string
 		weights         []*big.Int
-		sumWeight       *big.Int
 		reserves        []*big.Int
 
 		fee1e9        uint32
@@ -51,12 +50,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 	poolTokenNumber = staticExtra.PoolTokenNumber
 
-	sumWeight = bigint0
 	for _, token := range entityPool.Tokens {
 		tokens = append(tokens, token.Address)
 		weightBI := big.NewInt(int64(token.Weight))
 		weights = append(weights, weightBI)
-		sumWeight = new(big.Int).Add(sumWeight, weightBI)
 	}
 	for _, reserve := range entityPool.Reserves {
 		reserves = append(reserves, bignumber.NewBig10(reserve))
@@ -76,7 +73,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Pool:                         pool.Pool{Info: info},
 		poolTokenNumber:              poolTokenNumber,
 		weights:                      weights,
-		sumWeight:                    sumWeight,
+		sumWeight:                    weights[0],
 		fee1e9:                       fee1e9,
 		feeMultiplier:                feeMultiplier,
 		isLastWithdrawInTheSameBlock: false,
@@ -173,10 +170,11 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 	weights := make([]*big.Int, len(tokens))
 	for i, token := range tokens {
 		if p.isLpToken(token) {
-			weights[i] = p.sumWeight
+			weights[i] = p.sumWeight // p.weights[0]
 			iLp = i
 			continue
 		}
+
 		weights[i], _ = p.getTokenWeight(token)
 		a[i] = new(big.Int).Add(a[i], bigint1)
 	}
@@ -318,7 +316,7 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 	if w.Cmp(bigint0) == 0 {
 		return nil, ErrInvalidR
 	}
-	g_, g, err = powReciprocal(requestedGrowth1e18, new(big.Int).Neg(w))
+	g_, g, err = powReciprocal(requestedGrowth1e18, new(big.Int).Neg(w)) // check this powReciprocal
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +328,7 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 		}
 
 		if i != iLp {
-			b := ceilDiv(new(big.Int).Mul(g, a[i]), bigint1e18)
+			b := ceilDiv(new(big.Int).Mul(g, a[i]), bigint1e18) // TODO: check this ceilDiv
 			var (
 				fee            = bigint0
 				aPrime, bPrime *big.Int
@@ -343,8 +341,8 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 				bPrime = b
 			}
 
-			bPrimeMinusAPrime := new(big.Int).Sub(bPrime, aPrime)
 			if bPrime.Cmp(aPrime) > 0 {
+				bPrimeMinusAPrime := new(big.Int).Sub(bPrime, aPrime)
 				fee = new(big.Int).Sub(
 					ceilDiv(
 						new(big.Int).Mul(bPrimeMinusAPrime, bigint1e9),
@@ -787,7 +785,7 @@ func (p *PoolSimulator) getInvariant() (*big.Int, *big.Int, *big.Int, error) {
 	*/
 
 	balances := p.Info.Reserves
-	if p.poolTokenNumber-lpTokenNumber == 2 && p.weights[1] == p.weights[2] {
+	if p.poolTokenNumber-lpTokenNumber == 2 && p.weights[1].Cmp(p.weights[2]) == 0 {
 		prod := new(big.Int).Mul(
 			new(big.Int).Add(balances[1], bigint1),
 			new(big.Int).Add(balances[2], bigint1),

@@ -10,8 +10,7 @@ func ceilDiv(a *big.Int, b *big.Int) *big.Int {
 	if a.Cmp(bigint0) == 0 {
 		return bigint0
 	}
-	a = new(big.Int).Sub(a, bigint1)
-	return new(big.Int).Add(new(big.Int).Div(a, b), bigint1)
+	return new(big.Int).Add(new(big.Int).Div(new(big.Int).Sub(a, bigint1), b), bigint1)
 }
 
 func ceilDivUnsafe(a *big.Int, b *big.Int) *big.Int {
@@ -100,19 +99,14 @@ func powReciprocal(x1e18 *big.Int, n *big.Int) (*big.Int, *big.Int, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	bigint1e18SD59x18, err := sd59x18.ConvertToSD59x18(bigint1e18)
+	var sd1e18 sd59x18.SD59x18 = bigint1e18
+	sd1e18DivNSD59x18, err := sd59x18.Div(sd1e18, nSD59x18)
 	if err != nil {
 		return nil, nil, err
 	}
-	bigint1e18DivN, err := sd59x18.Div(bigint1e18SD59x18, nSD59x18)
-	if err != nil {
-		return nil, nil, err
-	}
-	x1e18SD59x18, err := sd59x18.ConvertToSD59x18(x1e18)
-	if err != nil {
-		return nil, nil, err
-	}
-	rawSD59x18, err := sd59x18.Pow(x1e18SD59x18, bigint1e18DivN)
+
+	var sdx1e18 sd59x18.SD59x18 = x1e18
+	rawSD59x18, err := sd59x18.Pow(sdx1e18, sd1e18DivNSD59x18)
 	if err != nil {
 		return nil, nil, err
 	}
