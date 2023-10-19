@@ -184,10 +184,8 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 		invariantMin, invariantMax *big.Int
 		k                          = bigint1e18
 		lpInvolved                 = iLp != unknownInt
-		lpUnknown                  = lpInvolved && (a[iLp].Cmp(unknownBI) == 0)
+		lpUnknown                  = lpInvolved && (r[iLp].Cmp(unknownBI) == 0)
 	)
-
-	// TODO: move this to other functions
 
 	// calculate "k"
 	// "k" is used to split "r" into taxable and non-taxable components
@@ -321,7 +319,7 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 	fmt.Printf("requestedGrowth1e18: %s\n", requestedGrowth1e18.String())
 	fmt.Printf("w: %s\n", w.String())
 
-	g_, g, err = powReciprocal(requestedGrowth1e18, new(big.Int).Neg(w)) // check this powReciprocal
+	g_, g, err = powReciprocal(requestedGrowth1e18, new(big.Int).Neg(w))
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +331,7 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 		}
 
 		if i != iLp {
-			b := ceilDiv(new(big.Int).Mul(g, a[i]), bigint1e18) // TODO: check this ceilDiv
+			b := ceilDiv(new(big.Int).Mul(g, a[i]), bigint1e18)
 			var (
 				fee            = bigint0
 				aPrime, bPrime *big.Int
