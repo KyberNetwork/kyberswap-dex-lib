@@ -37,9 +37,8 @@ func TestPool2TokensCalcAmountOutLpNotInvolved(t *testing.T) {
 	// resultBytes, _ := json.Marshal(result)
 	// t.Error(string(resultBytes))
 
-	// 1310912514297532736759
-	// -1310912514297532736758 (call contract)
-
+	// simulator: -1310912514297532736759
+	// contract: -1310912514297532736758
 }
 
 func TestPool2TokensCalcAmountOutLpInvolvedKnown(t *testing.T) {
@@ -64,12 +63,13 @@ func TestPool2TokensCalcAmountOutLpInvolvedKnown(t *testing.T) {
 	result, err := simulator.CalcAmountOut(tokenAmountIn, tokenOut)
 	assert.Nil(t, err)
 
-	resultBytes, _ := json.Marshal(result)
-	t.Error(string(resultBytes))
+	assert.Equal(t, "-2", result.TokenAmountOut.Amount.String())
 
+	// resultBytes, _ := json.Marshal(result)
+	// t.Error(string(resultBytes))
+
+	// simulator: 2
 	// contract: 1
-
-	// simulator: -2
 }
 
 func TestPool2TokensCalcAmountOutLpInvolvedUnknown(t *testing.T) {

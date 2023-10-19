@@ -2,6 +2,7 @@ package velocorev2cpmm
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"strings"
 
@@ -316,6 +317,10 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 	if w.Cmp(bigint0) == 0 {
 		return nil, ErrInvalidR
 	}
+
+	fmt.Printf("requestedGrowth1e18: %s\n", requestedGrowth1e18.String())
+	fmt.Printf("w: %s\n", w.String())
+
 	g_, g, err = powReciprocal(requestedGrowth1e18, new(big.Int).Neg(w)) // check this powReciprocal
 	if err != nil {
 		return nil, err
