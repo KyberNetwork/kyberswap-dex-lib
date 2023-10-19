@@ -45,8 +45,8 @@ func buildVooi(swap types.EncodingSwap) (Vooi, error) {
 	}
 
 	var extra struct {
-		FromID int64 `json:"fromID"`
-		ToID   int64 `json:"toID"`
+		FromID int64 `json:"fromId"`
+		ToID   int64 `json:"toId"`
 	}
 
 	if err = json.Unmarshal(byteData, &extra); err != nil {
