@@ -43,7 +43,7 @@ func rpow(x *big.Int, n *big.Int, base *big.Int) *big.Int {
 		// if lt(xxRound, xx) { revert(0, 0) }
 
 		x := new(big.Int).Div(xxRound, base)
-		if new(big.Int).Mod(i, bigint2).Cmp(bigint0) == 0 {
+		if new(big.Int).Mod(i, bigint2).Cmp(bigint0) != 0 {
 			zx := new(big.Int).Mul(z, x)
 
 			// skip the following check:
