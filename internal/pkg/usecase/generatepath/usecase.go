@@ -2,7 +2,6 @@ package generatepath
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"runtime"
 	"strings"
@@ -112,15 +111,20 @@ func (uc *useCase) Handle(ctx context.Context) {
 	}
 
 	var (
-		results            = make(chan *genBestPathsResult, numTasks)
 		wg                 sync.WaitGroup
 		ctxTimeout, cancel = context.WithTimeout(ctx, uc.config.PathGeneratorDataTtl)
 	)
 	defer cancel()
 
 	// Create a buffered channel for task distribution
-	tasks := make(chan genBestPathsTask, numTasks*2)
-	numWorkers := runtime.GOMAXPROCS(0)
+	numWorkers := runtime.GOMAXPROCS(0) - 1
+	if numWorkers < 1 {
+		numWorkers = 1
+	}
+
+	tasks := make(chan genBestPathsTask, numWorkers*2)
+	results := make(chan *genBestPathsResult, numWorkers*2)
+
 	logger.Infof("numworkers: %d Total task: %d", numWorkers, numTasks)
 	// Create worker goroutines
 	for i := 0; i < numWorkers; i++ {
@@ -133,68 +137,66 @@ func (uc *useCase) Handle(ctx context.Context) {
 		}()
 	}
 
-	for _, t := range tokensToMaintain {
-		tokenIn := strings.ToLower(t.TokenAddress)
-		var tokenOuts []string
+	// Close results channel after all workers are done
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// Dynamically create and send tasks to workers
+	go func() {
 		for _, t := range tokensToMaintain {
-			tokenOut := strings.ToLower(t.TokenAddress)
-			if tokenOut != tokenIn {
-				tokenOuts = append(tokenOuts, tokenOut)
+			tokenIn := strings.ToLower(t.TokenAddress)
+			var tokenOuts []string
+			for _, t := range tokensToMaintain {
+				tokenOut := strings.ToLower(t.TokenAddress)
+				if tokenOut != tokenIn {
+					tokenOuts = append(tokenOuts, tokenOut)
+				}
 			}
-		}
-		for _, amountInStr := range t.Amounts {
-			amountIn, _ := new(big.Int).SetString(amountInStr, 10)
-			task := genBestPathsTask{tokenIn, tokenOuts, amountIn}
-			tasks <- task // Enqueue the task
-		}
-	}
 
-	close(tasks) // Close the task channel to signal no more tasks will be added
-	wg.Wait()
-	close(results)
-
-	// Deduplicate paths and store into repository
-	distinctPaths := make(map[string][]*entity.MinimalPath) // distinctPaths maps between tokenIn-tokenOut to best paths
-	for r := range results {
-		if r == nil {
-			continue
-		}
-		tokenIn := strings.ToLower(r.tokenIn)
-		for tokenOut, paths := range r.bestPathsByTokenOut {
-			tokenOut = strings.ToLower(tokenOut)
-			tokenPair := fmt.Sprintf("%s-%s", tokenIn, tokenOut)
-			if _, ok := distinctPaths[tokenPair]; !ok {
-				distinctPaths[tokenPair] = make([]*entity.MinimalPath, 0)
+			amountIns := make([]*big.Int, len(t.Amounts))
+			for i, amountInStr := range t.Amounts {
+				amountIn, _ := new(big.Int).SetString(amountInStr, 10)
+				amountIns[i] = amountIn
 			}
-			distinctPaths[tokenPair] = append(distinctPaths[tokenPair], paths...)
+			tasks <- genBestPathsTask{tokenIn, tokenOuts, amountIns}
 		}
-	}
+		close(tasks)
+	}()
 
+	// Process results as they come in; since results channel is buffered,
+	// this can proceed in parallel with task processing
 	pathSuccess := 0
 	pathFail := 0
-	logger.Infof("distinctPaths: %d \n", len(distinctPaths))
-	for tokenPair, paths := range distinctPaths {
-		distinctPaths[tokenPair] = dedupBestPaths(paths)
-		tokenPairSplit := strings.Split(tokenPair, "-")
-		tokenIn, tokenOut := tokenPairSplit[0], tokenPairSplit[1]
-		err := uc.bestPathRepository.SetBestPaths(uc.sourceHash, tokenIn, tokenOut, distinctPaths[tokenPair], uc.config.PathGeneratorDataTtl)
-		if err == nil {
-			pathSuccess = pathSuccess + 1
-		} else {
-			logger.Errorf("Error while saving path %s", err)
-			pathFail = pathFail + 1
+
+	for result := range results {
+		if result == nil {
+			continue
+		}
+
+		tokenIn := strings.ToLower(result.tokenIn)
+		for tokenOut, paths := range result.bestPathsByTokenOut {
+			tokenOut = strings.ToLower(tokenOut)
+			err = uc.bestPathRepository.SetBestPaths(uc.sourceHash, tokenIn, tokenOut, paths, uc.config.PathGeneratorDataTtl)
+			if err != nil {
+				logger.Errorf("Error while saving path %s", err)
+				pathFail = pathFail + len(paths)
+			} else {
+				pathSuccess = pathSuccess + len(paths)
+			}
 		}
 	}
-	logger.Infof("successfully generate and save paths-> Detail: sourceHash %v success %d paths, fail %d paths", uc.sourceHash, pathSuccess, pathFail)
+
+	logger.Infof("Successfully generated and saved paths to redis-> Detail: sourceHash %v, success %d paths, fail %d paths", uc.sourceHash, pathSuccess, pathFail)
 
 }
 
 func (uc *useCase) worker(ctx context.Context, task genBestPathsTask) *genBestPathsResult {
-	paths, err := uc.generateBestPaths(ctx, task.tokenIn, task.tokenOuts, task.amountIn)
+	paths, err := uc.generateBestPaths(ctx, task.tokenIn, task.tokenOuts, task.amountIns)
 	log := logger.WithFields(logger.Fields{
 		"tokenIn":   task.tokenIn,
 		"tokenOuts": task.tokenOuts,
-		"amountIn":  task.amountIn.String(),
 	})
 	if err != nil {
 		log.WithFields(logger.Fields{"error": err}).Error("cannot generate best paths")
@@ -208,7 +210,7 @@ func (uc *useCase) generateBestPaths(
 	ctx context.Context,
 	tokenIn string,
 	tokenOuts []string,
-	amountIn *big.Int,
+	amountIns []*big.Int,
 ) (map[string][]*entity.MinimalPath, error) {
 	sources := uc.config.AvailableSources
 
@@ -250,50 +252,52 @@ func (uc *useCase) generateBestPaths(
 		tokenPriceUSDByAddress[address] = preferredPrice
 	}
 
-	tokenAmountIn := poolpkg.TokenAmount{
-		Token:  tokenIn,
-		Amount: new(big.Int).Set(amountIn),
-		AmountUsd: utils.CalcTokenAmountUsd(
-			amountIn,
-			tokenByAddress[tokenIn].Decimals,
-			tokenPriceUSDByAddress[tokenIn],
-		),
-	}
-
-	gasPrice, err := uc.getGasPrice(ctx, nil)
-	if err != nil {
-		return nil, err
-	}
-	gasTokenAddress := strings.ToLower(uc.config.GasTokenAddress)
-	gasTokenPrice := tokenPriceByAddress[gasTokenAddress]
-	gasTokenPriceUSD, _ := gasTokenPrice.GetPreferredPrice()
-
-	pathsByTokenOutAddress, err := common.GenKthBestPathsV2(
-		ctx,
-		findroute.Input{
-			TokenInAddress:   tokenIn,
-			AmountIn:         new(big.Int).Set(amountIn),
-			GasPrice:         gasPrice,
-			GasTokenPriceUSD: gasTokenPriceUSD,
-			GasInclude:       true,
-		},
-		findroute.FinderData{
-			PoolBucket:        valueobject.NewPoolBucket(poolByAddress),
-			TokenByAddress:    tokenByAddress,
-			PriceUSDByAddress: tokenPriceUSDByAddress,
-		},
-		tokenAmountIn,
-		uc.config.SPFAFinderOptions.MaxHops,
-		uc.config.SPFAFinderOptions.MaxPathsToGenerate,
-		uc.config.SPFAFinderOptions.MaxPathsToReturn,
-	)
-	if err != nil {
-		return nil, err
-	}
-
+	// For each amountIn, we do GenKBestPathV2 to find all possible paths tokenOuts
 	bestPathsByTokenOutAddress := make(map[string][]*entity.MinimalPath)
-	for tokenOutAddress, paths := range pathsByTokenOutAddress {
-		bestPathsByTokenOutAddress[tokenOutAddress] = pathsToBestPaths(paths)
+	for _, amountIn := range amountIns {
+		tokenAmountIn := poolpkg.TokenAmount{
+			Token:  tokenIn,
+			Amount: new(big.Int).Set(amountIn),
+			AmountUsd: utils.CalcTokenAmountUsd(
+				amountIn,
+				tokenByAddress[tokenIn].Decimals,
+				tokenPriceUSDByAddress[tokenIn],
+			),
+		}
+
+		gasPrice, err := uc.getGasPrice(ctx, nil)
+		if err != nil {
+			return nil, err
+		}
+		gasTokenAddress := strings.ToLower(uc.config.GasTokenAddress)
+		gasTokenPrice := tokenPriceByAddress[gasTokenAddress]
+		gasTokenPriceUSD, _ := gasTokenPrice.GetPreferredPrice()
+
+		pathsByTokenOutAddress, err := common.GenKthBestPathsV2(
+			ctx,
+			findroute.Input{
+				TokenInAddress:   tokenIn,
+				AmountIn:         new(big.Int).Set(amountIn),
+				GasPrice:         gasPrice,
+				GasTokenPriceUSD: gasTokenPriceUSD,
+				GasInclude:       true,
+			},
+			findroute.FinderData{
+				PoolBucket:        valueobject.NewPoolBucket(poolByAddress),
+				TokenByAddress:    tokenByAddress,
+				PriceUSDByAddress: tokenPriceUSDByAddress,
+			},
+			tokenAmountIn,
+			uc.config.SPFAFinderOptions.MaxHops,
+			uc.config.SPFAFinderOptions.MaxPathsToGenerate,
+			uc.config.SPFAFinderOptions.MaxPathsToReturn,
+		)
+		if err != nil {
+			return nil, err
+		}
+		for tokenOutAddress, paths := range pathsByTokenOutAddress {
+			bestPathsByTokenOutAddress[tokenOutAddress] = pathsToBestPaths(paths)
+		}
 	}
 
 	return bestPathsByTokenOutAddress, nil

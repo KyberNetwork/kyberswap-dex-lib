@@ -9,7 +9,7 @@ import (
 type genBestPathsTask struct {
 	tokenIn   string
 	tokenOuts []string
-	amountIn  *big.Int
+	amountIns []*big.Int
 }
 
 type genBestPathsResult struct {
