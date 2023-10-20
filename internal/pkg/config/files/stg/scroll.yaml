@@ -28,6 +28,7 @@ common:
     - "scrollswap"
     - "iziswap"
     - "punkswap"
+    - "syncswap"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
@@ -82,7 +83,7 @@ useCase:
     gasTokenAddress: *gasTokenAddress
     routerAddress: *routerAddress
     availableSources: *availableSources
-    ammAggregator:
+    aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions:
         directPoolsCount: 100
