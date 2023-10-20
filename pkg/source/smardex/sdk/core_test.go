@@ -105,6 +105,75 @@ func TestGetAmountOut(t *testing.T) {
 	}
 }
 
+func TestComputeReserveFicEthOutTrueOeGT1(t *testing.T) {
+	resT0 := parseString("13873434733749100000")
+	resT1 := parseString("119492838392173000000000")
+	resFicT0 := parseString("7120725548088060000")
+	resFicT1 := parseString("58241511553084200000000")
+	expectedResFicT0 := parseString("6761986430618317504")
+	expectedResFicT1 := parseString("55307329030031163856016")
+
+	newResFicIn, newResFicOut := computeReserveFic(
+		resT1,
+		resT0,
+		resFicT1,
+		resFicT0,
+	)
+
+	if newResFicIn.Cmp(expectedResFicT1) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newResFicIn, expectedResFicT1)
+	}
+	if newResFicOut.Cmp(expectedResFicT0) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newResFicOut, expectedResFicT0)
+	}
+}
+func TestComputeReserveFicEthInTrueOeLT1(t *testing.T) {
+	resT0 := parseString("13864885801349700000")
+	resT1 := parseString("119555797951391000000000")
+	resFicT0 := parseString("6459029119172690000")
+	resFicT1 := parseString("52950073801824400000000")
+	expectedResFicT0 := parseString("7112176615688650553")
+	expectedResFicT1 := parseString("58304471112302341135376")
+
+	newResFicIn, newResFicOut := computeReserveFic(
+		resT0,
+		resT1,
+		resFicT0,
+		resFicT1,
+	)
+
+	if newResFicIn.Cmp(expectedResFicT0) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newResFicIn, expectedResFicT0)
+	}
+	if newResFicOut.Cmp(expectedResFicT1) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newResFicOut, expectedResFicT1)
+	}
+}
+
+func TestComputeReserveFicEthInTrueOeGT1(t *testing.T) {
+	// ETH_in, oe > 1, line 23
+	resT0 := parseString("12668420462955600000")
+	resT1 := parseString("103877534648498000000000")
+	resFicT0 := parseString("6332837569656430000")
+	resFicT1 := parseString("51951123826036400000000")
+	expectedResFicT0 := parseString("6329892508211233858")
+	expectedResFicT1 := parseString("51926964158252125695036")
+
+	newResFicIn, newResFicOut := computeReserveFic(
+		resT0,
+		resT1,
+		resFicT0,
+		resFicT1,
+	)
+
+	if newResFicIn.Cmp(expectedResFicT0) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newResFicIn, expectedResFicT0)
+	}
+	if newResFicOut.Cmp(expectedResFicT1) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newResFicOut, expectedResFicT1)
+	}
+}
+
 func parseString(value string) *big.Int {
 	newValue := new(big.Int)
 	newValue.SetString(value, 10)

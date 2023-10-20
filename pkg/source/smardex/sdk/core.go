@@ -257,6 +257,7 @@ func computeFirstTradeQtyIn(
 	return firstAmountIn
 }
 
+// ComputeAmountIn and GetAmountIn shall not be used as they are not tested
 func ComputeAmountIn(
 	token0 string,
 	token1 string,
