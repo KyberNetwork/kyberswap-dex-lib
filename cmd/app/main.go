@@ -217,7 +217,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	pregenRedisClient, err := redis.New(&cfg.PregenRedis)
 	if err != nil {
-		return err
+		logger.Errorf("fail to init redis client to pregen redis service")
 	}
 
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
@@ -236,7 +236,11 @@ func apiAction(c *cli.Context) (err error) {
 	gasRepository, err := gas.NewRistrettoRepository(
 		gas.NewRedisRepository(routerRedisClient.Client, ethClient, cfg.Repository.Gas.Redis),
 		cfg.Repository.Gas.Ristretto)
-	bestPathRepository := pathgenerator.NewRedisRepository(pregenRedisClient.Client, pathgenerator.RedisRepositoryConfig{Prefix: cfg.PregenRedis.Prefix})
+
+	var bestPathRepository *pathgenerator.RedisRepository
+	if pregenRedisClient != nil {
+		bestPathRepository = pathgenerator.NewRedisRepository(pregenRedisClient.Client, pathgenerator.RedisRepositoryConfig{Prefix: cfg.PregenRedis.Prefix})
+	}
 
 	tokenRepository := token.NewGoCacheRepository(
 		token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis),

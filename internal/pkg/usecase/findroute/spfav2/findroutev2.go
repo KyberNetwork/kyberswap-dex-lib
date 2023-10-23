@@ -76,7 +76,7 @@ func (f *spfav2Finder) bestRouteV2(
 		numberOfPathToGenerate = f.maxPathsToGenerate
 	}
 
-	if input.IsPathGeneratorEnabled {
+	if input.IsPathGeneratorEnabled && f.getGeneratedBestPaths != nil {
 		generatedBestPaths = f.getGeneratedBestPaths(input.SourceHash, input.TokenInAddress, input.TokenOutAddress)
 	}
 

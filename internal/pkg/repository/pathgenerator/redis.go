@@ -15,19 +15,19 @@ import (
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
-type redisRepository struct {
+type RedisRepository struct {
 	redisClient redis.UniversalClient
 	config      RedisRepositoryConfig
 }
 
-func NewRedisRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig) *redisRepository {
-	return &redisRepository{
+func NewRedisRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig) *RedisRepository {
+	return &RedisRepository{
 		redisClient: redisClient,
 		config:      config,
 	}
 }
 
-func (r *redisRepository) GetPregenTokenAmounts(ctx context.Context) ([]generatepath.TokenAndAmounts, int64, error) {
+func (r *RedisRepository) GetPregenTokenAmounts(ctx context.Context) ([]generatepath.TokenAndAmounts, int64, error) {
 	value, err := r.redisClient.Get(ctx, r.getFormattedKeyWithoutSourceHash(PregenTokenAmountsKey)).Result()
 	if err != nil {
 		return nil, 0, err
@@ -42,15 +42,15 @@ func (r *redisRepository) GetPregenTokenAmounts(ctx context.Context) ([]generate
 	return data.TokenAmounts, data.Timestamp, err
 }
 
-func (r *redisRepository) GetBestPaths(sourcesHash uint64, tokenIn string, tokenOut string) []*entity.MinimalPath {
+func (r *RedisRepository) GetBestPaths(sourcesHash uint64, tokenIn string, tokenOut string) []*entity.MinimalPath {
 	return r.get(sourcesHash, getTokenPairString(tokenIn, tokenOut))
 }
 
-func (r *redisRepository) SetBestPaths(sourcesHash uint64, tokenIn, tokenOut string, data []*entity.MinimalPath, ttl time.Duration) error {
+func (r *RedisRepository) SetBestPaths(sourcesHash uint64, tokenIn, tokenOut string, data []*entity.MinimalPath, ttl time.Duration) error {
 	return r.set(sourcesHash, getTokenPairString(tokenIn, tokenOut), data, ttl)
 }
 
-func (r *redisRepository) set(sourcesHash uint64, key string, data []*entity.MinimalPath, ttl time.Duration) error {
+func (r *RedisRepository) set(sourcesHash uint64, key string, data []*entity.MinimalPath, ttl time.Duration) error {
 	ctx := context.Background()
 	fmtKey := r.getFormattedKey(sourcesHash, key)
 
@@ -84,7 +84,7 @@ func (r *redisRepository) set(sourcesHash uint64, key string, data []*entity.Min
 	return nil
 }
 
-func (r *redisRepository) get(sourcesHash uint64, key string) []*entity.MinimalPath {
+func (r *RedisRepository) get(sourcesHash uint64, key string) []*entity.MinimalPath {
 	ctx := context.Background()
 	fmtKey := r.getFormattedKey(sourcesHash, key)
 	pathsMap, err := r.redisClient.SMembers(ctx, fmtKey).Result()
@@ -105,11 +105,11 @@ func (r *redisRepository) get(sourcesHash uint64, key string) []*entity.MinimalP
 	return paths
 }
 
-func (r *redisRepository) getFormattedKey(sourcesHash uint64, key string) string {
+func (r *RedisRepository) getFormattedKey(sourcesHash uint64, key string) string {
 	return utils.Join(r.config.Prefix, entity.BestPathKey, sourcesHash, key)
 }
 
-func (r *redisRepository) getFormattedKeyWithoutSourceHash(key string) string {
+func (r *RedisRepository) getFormattedKeyWithoutSourceHash(key string) string {
 	return utils.Join(r.config.Prefix, entity.BestPathKey, key)
 }
 

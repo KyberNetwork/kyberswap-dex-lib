@@ -46,6 +46,11 @@ func NewAggregator(
 	config AggregatorConfig,
 	bestPathRepository IBestPathRepository,
 ) *aggregator {
+	var getBestPaths func(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath
+	if bestPathRepository != nil {
+		getBestPaths = bestPathRepository.GetBestPaths
+	}
+
 	routeFinder := spfav2.NewSPFAv2Finder(
 		config.FinderOptions.MaxHops,
 		config.FinderOptions.DistributionPercent,
@@ -55,7 +60,7 @@ func NewAggregator(
 		config.FinderOptions.MinPartUSD,
 		config.FinderOptions.MinThresholdAmountInUSD,
 		config.FinderOptions.MaxThresholdAmountInUSD,
-		bestPathRepository.GetBestPaths,
+		getBestPaths,
 	)
 
 	return &aggregator{
