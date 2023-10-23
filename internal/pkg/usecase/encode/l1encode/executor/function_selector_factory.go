@@ -95,6 +95,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeZkSwapFinance, FunctionSelectorUniswap)
 	RegisterFunctionSelector(valueobject.ExchangeScrollSwap, FunctionSelectorUniswap)
 	RegisterFunctionSelector(valueobject.ExchangePunkSwap, FunctionSelectorUniswap)
+	RegisterFunctionSelector(valueobject.ExchangeMetavaultV2, FunctionSelectorUniswap)
 
 	RegisterFunctionSelector(valueobject.ExchangeQuickSwapV3, FunctionSelectorAlgebraV1)
 	RegisterFunctionSelector(valueobject.ExchangeSynthSwapV3, FunctionSelectorAlgebraV1)
@@ -142,6 +143,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeArbiDexV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeWagmi, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeMMFV3, FunctionSelectorUniV3KSElastic)
+	RegisterFunctionSelector(valueobject.ExchangeMetavaultV3, FunctionSelectorUniV3KSElastic)
 
 	// executeBalV2Swap
 	RegisterFunctionSelector(valueobject.ExchangeBalancer, FunctionSelectorBalancerV2)

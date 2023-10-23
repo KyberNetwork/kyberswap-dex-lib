@@ -83,6 +83,7 @@ var (
 	ExchangeZkSwapFinance Exchange = "zkswap-finance"
 	ExchangeScrollSwap    Exchange = "scrollswap"
 	ExchangePunkSwap      Exchange = "punkswap"
+	ExchangeMetavaultV2   Exchange = "metavault-v2"
 
 	ExchangeOneSwap             Exchange = "oneswap"
 	ExchangeNerve               Exchange = "nerve"
@@ -108,6 +109,7 @@ var (
 	ExchangeBaseSwapV3       Exchange = "baseswap-v3"
 	ExchangeArbiDexV3        Exchange = "arbidex-v3"
 	ExchangeWagmi            Exchange = "wagmi"
+	ExchangeMetavaultV3      Exchange = "metavault-v3"
 
 	ExchangeBalancer                 Exchange = "balancer"
 	ExchangeBalancerComposableStable Exchange = "balancer-composable-stable"
@@ -333,6 +335,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeScrollSwap:               {},
 	ExchangePunkSwap:                 {},
 	ExchangeVooi:                     {},
+	ExchangeMetavaultV2:              {},
+	ExchangeMetavaultV3:              {},
 }
 
 func IsAnExchange(exchange Exchange) bool {
