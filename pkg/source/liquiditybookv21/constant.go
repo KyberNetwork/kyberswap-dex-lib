@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	DexTypeLiquidityBookV21 = "liquiditybook-v2.1"
+	DexTypeLiquidityBookV21 = "liquiditybook-v21"
 )
 
 const (
