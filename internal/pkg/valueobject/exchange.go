@@ -84,6 +84,7 @@ var (
 	ExchangeScrollSwap    Exchange = "scrollswap"
 	ExchangePunkSwap      Exchange = "punkswap"
 	ExchangeMetavaultV2   Exchange = "metavault-v2"
+	ExchangeNomiswap      Exchange = "nomiswap"
 
 	ExchangeOneSwap             Exchange = "oneswap"
 	ExchangeNerve               Exchange = "nerve"
@@ -337,6 +338,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeVooi:                     {},
 	ExchangeMetavaultV2:              {},
 	ExchangeMetavaultV3:              {},
+	ExchangeNomiswap:                 {},
 }
 
 func IsAnExchange(exchange Exchange) bool {

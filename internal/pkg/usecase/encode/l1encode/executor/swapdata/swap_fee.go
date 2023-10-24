@@ -39,6 +39,7 @@ var (
 		valueobject.ExchangeAstroSwap:       {Fee: 20, Precision: 10000},
 		valueobject.ExchangeDystopia:        {Fee: 5, Precision: 10000},
 		valueobject.ExchangeArbiDex:         {Fee: 25, Precision: 10000},
+		valueobject.ExchangeNomiswap:        {Fee: 1, Precision: 1000},
 	}
 
 	FeeByChain = map[valueobject.ChainID]map[valueobject.Exchange]Fee{
