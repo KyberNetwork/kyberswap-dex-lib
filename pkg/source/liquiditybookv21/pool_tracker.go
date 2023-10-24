@@ -196,6 +196,7 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 		if err != nil {
 			return nil, err
 		}
+		// TODO: remove empty bin
 		bins = append(bins, b...)
 
 		// for next cycle

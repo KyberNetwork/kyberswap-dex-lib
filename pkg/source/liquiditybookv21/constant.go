@@ -40,5 +40,6 @@ const (
 )
 
 var (
-	scale = new(big.Int).Lsh(big.NewInt(1), scaleOffset)
+	scale    = new(big.Int).Lsh(big.NewInt(1), scaleOffset)
+	precison = new(big.Int).Lsh(big.NewInt(1), 18)
 )

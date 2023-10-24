@@ -16,6 +16,10 @@ type Extra struct {
 	Bins                   []bin             `json:"bins"`
 }
 
+type SwapInfo struct {
+	AmountsInLeft *big.Int `json:"amountsInLeft"`
+}
+
 type queryRpcPoolStateResult struct {
 	BlockTimestamp    uint64            `json:"blockTimestamp"`
 	StaticFeeParams   staticFeeParams   `json:"staticFeeParams"`
@@ -62,10 +66,11 @@ type lbpairSubgraphResp struct {
 }
 
 type binSubgraphResp struct {
-	ID       string `json:"id"`
-	BinID    string `json:"binId"`
-	ReserveX string `json:"reserveX"`
-	ReserveY string `json:"reserveY"`
+	ID          string `json:"id"`
+	BinID       string `json:"binId"`
+	ReserveX    string `json:"reserveX"`
+	ReserveY    string `json:"reserveY"`
+	TotalSupply string `json:"totalSupply"`
 }
 
 type tokenSubgraphResp struct {
