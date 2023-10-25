@@ -46,6 +46,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeMoonBase, FunctionSelectorUniswap)
 	RegisterFunctionSelector(valueobject.ExchangeBalDex, FunctionSelectorUniswap)
 	RegisterFunctionSelector(valueobject.ExchangeMMF, FunctionSelectorUniswap)
+	RegisterFunctionSelector(valueobject.ExchangeArbswapAMM, FunctionSelectorUniswap)
 
 	// executeKyberClassic
 	RegisterFunctionSelector(valueobject.ExchangeKyberSwap, FunctionSelectorKSClassic)
