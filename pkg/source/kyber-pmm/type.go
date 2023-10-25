@@ -101,3 +101,7 @@ type RFQExtra struct {
 	Signature          string `json:"signature"`
 	Recipient          string `json:"recipient"`
 }
+
+type RFQMeta struct {
+	Timestamp int64 `json:"timestamp"`
+}

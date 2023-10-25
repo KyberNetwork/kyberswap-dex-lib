@@ -22,6 +22,7 @@ type PoolSimulator struct {
 	baseToQuotePriceLevels []PriceLevel
 	quoteToBasePriceLevels []PriceLevel
 	gas                    Gas
+	timestamp              int64
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -75,6 +76,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		baseToQuotePriceLevels: extra.BaseToQuotePriceLevels,
 		quoteToBasePriceLevels: extra.QuoteToBasePriceLevels,
 		gas:                    DefaultGas,
+		timestamp:              entityPool.Timestamp,
 	}, nil
 }
 
@@ -112,7 +114,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return nil
+	return RFQMeta{
+		Timestamp: p.timestamp,
+	}
 }
 
 func (p *PoolSimulator) getSwapDirection(tokenIn string) SwapDirection {
