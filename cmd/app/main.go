@@ -12,6 +12,7 @@ import (
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/ethrpc"
 	_ "github.com/KyberNetwork/kyber-trace-go/tools"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/reload"
 	"github.com/ethereum/go-ethereum/common"
@@ -364,6 +365,10 @@ func apiAction(c *cli.Context) (err error) {
 		cfg.UseCase.BuildRoute,
 	)
 
+	var getBestPaths func(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath
+	if bestPathRepository != nil {
+		getBestPaths = bestPathRepository.GetBestPaths
+	}
 	routeFinder := spfav2.NewSPFAv2Finder(
 		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxHops,
 		cfg.UseCase.GetRoute.Aggregator.FinderOptions.DistributionPercent,
@@ -373,8 +378,9 @@ func apiAction(c *cli.Context) (err error) {
 		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MinPartUSD,
 		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MinThresholdAmountInUSD,
 		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxThresholdAmountInUSD,
-		bestPathRepository.GetBestPaths,
+		getBestPaths,
 	)
+
 	getCustomRoutesUseCase := getcustomroute.NewCustomRoutesUseCase(
 		poolFactory,
 		tokenRepository,

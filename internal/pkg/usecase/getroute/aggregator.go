@@ -125,6 +125,11 @@ func (a *aggregator) ApplyConfig(config Config) {
 	defer a.mu.Unlock()
 
 	if a.config.FinderOptions != config.Aggregator.FinderOptions || a.config.FeatureFlags != config.Aggregator.FeatureFlags {
+		var getBestPaths func(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath
+		if a.bestPathRepository != nil {
+			getBestPaths = a.bestPathRepository.GetBestPaths
+		}
+
 		a.routeFinder = spfav2.NewSPFAv2Finder(
 			config.Aggregator.FinderOptions.MaxHops,
 			config.Aggregator.FinderOptions.DistributionPercent,
@@ -134,7 +139,7 @@ func (a *aggregator) ApplyConfig(config Config) {
 			config.Aggregator.FinderOptions.MinPartUSD,
 			config.Aggregator.FinderOptions.MinThresholdAmountInUSD,
 			config.Aggregator.FinderOptions.MaxThresholdAmountInUSD,
-			a.bestPathRepository.GetBestPaths,
+			getBestPaths,
 		)
 	}
 
