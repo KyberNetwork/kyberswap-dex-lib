@@ -3,6 +3,7 @@ package pool
 import (
 	"errors"
 	"math/big"
+	"sync"
 
 	"github.com/KyberNetwork/logger"
 )
@@ -87,6 +88,11 @@ type UpdateBalanceParams struct {
 	TokenAmountOut TokenAmount
 	Fee            TokenAmount
 	SwapInfo       interface{}
+
+	//Inventory is a reference to a per-request inventory balances.
+	// key is tokenAddress, balance is big.Float
+	// Must use reference (not copy)
+	Inventory *Inventory
 }
 
 type PoolToken struct {
@@ -131,4 +137,44 @@ func CalcAmountOut(pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut stri
 	}()
 
 	return pool.CalcAmountOut(tokenAmountIn, tokenOut)
+}
+
+// Inventory is a map of tokenAddress- balance.
+// DONOT directly modify it
+type Inventory struct {
+	lock    sync.RWMutex
+	Balance map[string]*big.Float
+}
+
+// GetBalance returns a copy of balance for the Inventory
+func (i *Inventory) GetBalance(tokenAddress string) *big.Float {
+	i.lock.RLock()
+	defer i.lock.RUnlock()
+	balance, avail := i.Balance[tokenAddress]
+	if !avail {
+		return big.NewFloat(0)
+	}
+	return big.NewFloat(0).Set(balance)
+}
+
+// UpdateBalance will reduce the Balance to reflect the change in inventory
+// note this delta is amount with Decimal
+func (i *Inventory) UpdateBalance(decreaseTokenAddress, increaseTokenAddress string, decreaseDelta, increaseDelta *big.Float) (*big.Float, *big.Float, error) {
+	i.lock.Lock()
+	defer i.lock.Unlock()
+	balance, avail := i.Balance[decreaseTokenAddress]
+	if !avail {
+		return big.NewFloat(0), big.NewFloat(0), errors.New("token is not available")
+	}
+	if balance.Cmp(decreaseDelta) < 0 {
+		return big.NewFloat(0), big.NewFloat(0), errors.New("not enough balance in inventory")
+	}
+	i.Balance[decreaseTokenAddress] = balance.Sub(balance, decreaseDelta)
+
+	balance2, avail := i.Balance[increaseTokenAddress]
+	if !avail {
+		return big.NewFloat(0), big.NewFloat(0), errors.New("token is not available")
+	}
+	i.Balance[increaseTokenAddress] = balance2.Add(balance, increaseDelta)
+	return big.NewFloat(0).Set(i.Balance[decreaseTokenAddress]), big.NewFloat(0).Set(i.Balance[increaseTokenAddress]), nil
 }
