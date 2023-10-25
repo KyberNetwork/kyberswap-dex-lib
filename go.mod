@@ -12,7 +12,7 @@ require (
 	github.com/KyberNetwork/aevm v1.0.6
 	github.com/KyberNetwork/ethrpc v0.5.0
 	github.com/KyberNetwork/kyber-trace-go v0.1.0
-	github.com/KyberNetwork/kyberswap-dex-lib v0.19.2
+	github.com/KyberNetwork/kyberswap-dex-lib v0.20.1
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/alicebob/miniredis v2.5.0+incompatible
@@ -30,7 +30,7 @@ require (
 	github.com/go-redis/cache/v9 v9.0.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/golang/mock v1.6.0
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.1
 	github.com/hashicorp/golang-lru/v2 v2.0.2
 	github.com/holiman/uint256 v1.2.2
 	github.com/huandu/go-clone v1.6.0
