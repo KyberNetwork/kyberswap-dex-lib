@@ -45,9 +45,8 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	BaseToQuotePriceLevels []PriceLevel      `json:"baseToQuotePriceLevels"`
-	QuoteToBasePriceLevels []PriceLevel      `json:"quoteToBasePriceLevels"`
-	Inventory              map[string]string `json:"inventory"`
+	BaseToQuotePriceLevels []PriceLevel `json:"baseToQuotePriceLevels"`
+	QuoteToBasePriceLevels []PriceLevel `json:"quoteToBasePriceLevels"`
 }
 
 type PriceLevel struct {

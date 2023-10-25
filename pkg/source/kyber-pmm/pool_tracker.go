@@ -49,9 +49,13 @@ func (t *PoolTracker) GetNewPoolState(
 		}).Errorf("failed to get price levels for pool")
 		return entity.Pool{}, err
 	}
+	//this is supposed to be float
+	p.Reserves = make([]string, 2)
+	for i, token := range p.Tokens {
+		p.Reserves[i] = inventory[token.Address]
+	}
 
 	extra.BaseToQuotePriceLevels, extra.QuoteToBasePriceLevels = transformPriceLevels(priceLevels)
-	extra.Inventory = inventory
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -64,12 +68,13 @@ func (t *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-
 	logger.Infof("[Kyber PMM] Finish getting new states for pool %v", p.Address)
 
 	return p, nil
 }
 
+// getPriceLevelsForPool returns a PriceItem of that pool
+// and a map[tokenAddress]Balance for PMM Inventory
 func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) (PriceItem, map[string]string, error) {
 	result, err := t.client.ListPriceLevels(ctx)
 	if err != nil {
@@ -79,7 +84,10 @@ func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) 
 		return PriceItem{}, nil, err
 	}
 
-	var staticExtra StaticExtra
+	var (
+		staticExtra                   StaticExtra
+		baseTokenName, quoteTokenName string
+	)
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
@@ -87,9 +95,17 @@ func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) 
 
 		return PriceItem{}, nil, err
 	}
+	for _, token := range p.Tokens {
+		if token.Address == staticExtra.BaseTokenAddress {
+			baseTokenName = token.Name
+		} else if token.Address == staticExtra.QuoteTokenAddress {
+			quoteTokenName = token.Name
+		}
+	}
 	priceLevelsForPool, found1 := result.Prices[staticExtra.PairID]
-	baseBalance, found2 := result.Balances[staticExtra.BaseTokenAddress]
-	quoteBalance, found3 := result.Balances[staticExtra.QuoteTokenAddress]
+
+	baseBalance, found2 := result.Balances[baseTokenName]
+	quoteBalance, found3 := result.Balances[quoteTokenName]
 
 	if found1 && found2 && found3 {
 		return priceLevelsForPool, map[string]string{
