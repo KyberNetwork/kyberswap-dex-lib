@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
@@ -31,17 +30,19 @@ type useCase struct {
 }
 
 func NewCustomRoutesUseCase(
+	poolFactory IPoolFactory,
 	tokenRepository ITokenRepository,
 	priceRepository IPriceRepository,
 	gasRepository IGasRepository,
-	poolManager IPoolManager,
+	poolRepository IPoolRepository,
 	routeFinder findroute.IFinder,
 	config Config,
 ) *useCase {
 	aggregator := NewCustomAggregator(
+		poolFactory,
 		tokenRepository,
 		priceRepository,
-		poolManager,
+		poolRepository,
 		routeFinder,
 	)
 
@@ -198,15 +199,12 @@ func (u *useCase) getGasPrice(ctx context.Context, customGasPrice *big.Float) (*
 }
 
 func (u *useCase) getSources(includedSources []string, excludedSources []string) []string {
-	// For CustomRouteUsecase, we use all available sources as default
-	// (not affected by the dynamic configs).
-	sources := []string{}
+	sources := make([]string, 0, len(u.config.AvailableSources))
 
 	includedSourcesLen := len(includedSources)
 	excludedSourcesLen := len(excludedSources)
 
-	for source := range valueobject.AMMSourceSet {
-		source := string(source)
+	for _, source := range u.config.AvailableSources {
 		if excludedSourcesLen > 0 && utils.StringContains(excludedSources, source) {
 			continue
 		}

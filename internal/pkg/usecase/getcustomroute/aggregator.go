@@ -4,7 +4,6 @@ import (
 	"context"
 	"math/big"
 
-	aevmcommon "github.com/KyberNetwork/aevm/common"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
@@ -20,44 +19,42 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-// aggregator finds best route within amm liquidity sources
 type aggregator struct {
+	poolFactory     IPoolFactory
 	tokenRepository ITokenRepository
 	priceRepository IPriceRepository
-	poolManager     IPoolManager
+	poolRepository  IPoolRepository
 
 	routeFinder findroute.IFinder
 }
 
 func NewCustomAggregator(
+	poolFactory IPoolFactory,
 	tokenRepository ITokenRepository,
 	priceRepository IPriceRepository,
-	poolManager IPoolManager,
+	poolRepository IPoolRepository,
 	routeFinder findroute.IFinder,
 ) *aggregator {
 	return &aggregator{
+		poolFactory:     poolFactory,
 		tokenRepository: tokenRepository,
 		priceRepository: priceRepository,
-		poolManager:     poolManager,
+		poolRepository:  poolRepository,
 		routeFinder:     routeFinder,
 	}
 }
 
 func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParams, poolIds []string) (*valueobject.RouteSummary, error) {
 	// Step 1: get pool set
-	var (
-		stateRoot aevmcommon.Hash
-		err       error
-	)
-	if aevmClient := a.poolManager.GetAEVMClient(); aevmClient != nil {
-		stateRoot, err = aevmClient.LatestStateRoot()
-		if err != nil {
-			return nil, err
-		}
-	}
-	poolByAddress, err := a.getPoolByAddress(ctx, params, poolIds, common.Hash(stateRoot))
+	poolEntities, err := a.poolRepository.FindByAddresses(ctx, poolIds)
 	if err != nil {
 		return nil, err
+	}
+
+	poolByAddress := make(map[string]poolpkg.IPoolSimulator, len(poolIds))
+	poolInterfaces := a.poolFactory.NewPools(ctx, poolEntities, common.Hash{}) // Not use AEVM in custom route
+	for i := range poolInterfaces {
+		poolByAddress[poolInterfaces[i].GetAddress()] = poolInterfaces[i]
 	}
 
 	if len(poolByAddress) == 0 {
@@ -243,20 +240,6 @@ func (a *aggregator) summarizeRoute(
 		ExtraFee:     params.ExtraFee,
 		Route:        summarizedRoute,
 	}, nil
-}
-
-func (a *aggregator) getPoolByAddress(
-	ctx context.Context,
-	params *types.AggregateParams,
-	poolIds []string,
-	stateRoot common.Hash,
-) (map[string]poolpkg.IPoolSimulator, error) {
-	return a.poolManager.GetPoolByAddress(
-		ctx,
-		poolIds,
-		params.Sources,
-		stateRoot,
-	)
 }
 
 // getTokenByAddress receives a list of address and returns a map of address to entity.Token

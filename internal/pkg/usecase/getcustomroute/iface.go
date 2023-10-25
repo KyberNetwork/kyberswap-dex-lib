@@ -4,7 +4,6 @@ import (
 	"context"
 	"math/big"
 
-	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,13 +16,12 @@ type IAggregator interface {
 	Aggregate(ctx context.Context, params *types.AggregateParams, poolIds []string) (*valueobject.RouteSummary, error)
 }
 
-type IPoolManager interface {
-	GetPoolByAddress(
-		ctx context.Context,
-		addresses, dex []string,
-		stateRoot common.Hash,
-	) (map[string]poolpkg.IPoolSimulator, error)
-	GetAEVMClient() aevmclient.Client
+type IPoolFactory interface {
+	NewPools(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) []poolpkg.IPoolSimulator
+}
+
+type IPoolRepository interface {
+	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Pool, error)
 }
 
 type IGasRepository interface {

@@ -376,15 +376,17 @@ func apiAction(c *cli.Context) (err error) {
 		bestPathRepository.GetBestPaths,
 	)
 	getCustomRoutesUseCase := getcustomroute.NewCustomRoutesUseCase(
+		poolFactory,
 		tokenRepository,
 		priceRepository,
 		gasRepository,
-		poolManager,
+		poolRepository,
 		routeFinder,
 		getcustomroute.Config{
-			ChainID:         cfg.UseCase.GetRoute.ChainID,
-			RouterAddress:   cfg.UseCase.GetRoute.RouterAddress,
-			GasTokenAddress: cfg.UseCase.GetRoute.GasTokenAddress,
+			ChainID:          cfg.UseCase.GetRoute.ChainID,
+			RouterAddress:    cfg.UseCase.GetRoute.RouterAddress,
+			GasTokenAddress:  cfg.UseCase.GetRoute.GasTokenAddress,
+			AvailableSources: cfg.UseCase.GetRoute.AvailableSources,
 		},
 	)
 	l1Decoder := &decode.Decoder{}
