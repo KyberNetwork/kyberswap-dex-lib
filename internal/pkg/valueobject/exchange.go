@@ -185,6 +185,8 @@ var (
 	ExchangeMMFV3 Exchange = "mmf-v3"
 
 	ExchangeVooi Exchange = "vooi"
+
+	ExchangePolMatic Exchange = "pol-matic"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -341,6 +343,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMetavaultV3:              {},
 	ExchangeNomiswap:                 {},
 	ExchangeArbswapAMM:               {},
+	ExchangePolMatic:                 {},
 }
 
 func IsAnExchange(exchange Exchange) bool {

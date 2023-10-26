@@ -226,4 +226,6 @@ func init() {
 
 	// Vooi
 	RegisterPackSwapDataFunc(valueobject.ExchangeVooi, swapdata.PackVooi)
+
+	RegisterPackSwapDataFunc(valueobject.ExchangePolMatic, swapdata.PackMaticMigrate)
 }

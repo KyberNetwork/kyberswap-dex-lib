@@ -51,6 +51,7 @@ var (
 	FunctionSelectorWooFiV2           FunctionSelector
 	FunctionSelectorMantisSwap        FunctionSelector
 	FunctionSelectorVooi              FunctionSelector
+	FunctionSelectorMaticMigrate      FunctionSelector
 )
 
 func init() {
@@ -92,4 +93,6 @@ func init() {
 	FunctionSelectorIZiSwap = NewFunctionSelector("executeIziSwap", []string{"bytes", "uint256"})
 
 	FunctionSelectorVooi = NewFunctionSelector("executeVooi", []string{"bytes", "uint256"})
+
+	FunctionSelectorMaticMigrate = NewFunctionSelector("executeMaticMigrate", []string{"bytes", "uint256"})
 }

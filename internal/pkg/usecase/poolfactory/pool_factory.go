@@ -37,6 +37,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/metavault"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pancakev3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
+	polmatic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pol-matic"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
 	swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
@@ -323,6 +324,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newMantisSwap(entityPool)
 	case constant.PoolTypes.Vooi:
 		return f.newVooi(entityPool)
+	case constant.PoolTypes.PolMatic:
+		return f.newPolMatic(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -1044,6 +1047,20 @@ func (f *PoolFactory) newVooi(entityPool entity.Pool) (*vooi.PoolSimulator, erro
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.vooi] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newPolMatic(entityPool entity.Pool) (*polmatic.PoolSimulator, error) {
+	corePool, err := polmatic.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.polmatic] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

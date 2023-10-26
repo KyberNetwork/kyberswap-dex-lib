@@ -231,4 +231,6 @@ func init() {
 
 	// executeVooi
 	RegisterFunctionSelector(valueobject.ExchangeVooi, FunctionSelectorVooi)
+
+	RegisterFunctionSelector(valueobject.ExchangePolMatic, FunctionSelectorMaticMigrate)
 }

@@ -306,3 +306,12 @@ type Vooi struct {
 	FromAmount *big.Int
 	To         common.Address
 }
+
+type MaticMigrate struct {
+	Pool      common.Address
+	TokenIn   common.Address
+	TokenOut  common.Address
+	Amount    *big.Int
+	Recipient common.Address
+	IsMigrate bool
+}

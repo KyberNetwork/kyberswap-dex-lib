@@ -356,6 +356,8 @@ func (d *Decoder) decodeSwapData(sw executor.Swap) (interface{}, error) {
 		return swapdata.UnpackWombat(sw.Data)
 	case executor.FunctionSelectorVooi.ID:
 		return swapdata.UnpackVooi(sw.Data)
+	case executor.FunctionSelectorMaticMigrate.ID:
+		return swapdata.UnpackMaticMigrate(sw.Data)
 	default:
 		return nil, fmt.Errorf("unsupported function selector")
 	}
