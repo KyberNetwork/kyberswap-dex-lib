@@ -343,10 +343,8 @@ func init() {
 
 	MaticMigrateArguments = abi.Arguments{
 		{Name: "pool", Type: abitypes.Address},
-		{Name: "tokenIn", Type: abitypes.Address},
-		{Name: "tokenOut", Type: abitypes.Address},
+		{Name: "tokenAddress", Type: abitypes.Address},
 		{Name: "amount", Type: abitypes.Uint256},
 		{Name: "recipient", Type: abitypes.Address},
-		{Name: "isMigrate", Type: abitypes.Bool},
 	}
 }

@@ -3,6 +3,7 @@ package swapdata
 import (
 	"encoding/json"
 
+	"github.com/KyberNetwork/blockchain-toolkit/account"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
@@ -55,23 +56,31 @@ func buildMaticMigrate(swap types.EncodingSwap) (MaticMigrate, error) {
 		)
 	}
 
+	var (
+		tokenAddress common.Address
+		recipient    common.Address
+	)
+	if extra.IsMigrate {
+		tokenAddress = common.HexToAddress(swap.TokenOut)
+		recipient = account.ZeroAddress
+	} else {
+		tokenAddress = common.HexToAddress(swap.TokenIn)
+		recipient = common.HexToAddress(swap.Recipient)
+	}
+
 	return MaticMigrate{
-		Pool:      common.HexToAddress(swap.Pool),
-		TokenIn:   common.HexToAddress(swap.TokenIn),
-		TokenOut:  common.HexToAddress(swap.TokenOut),
-		Amount:    swap.SwapAmount,
-		Recipient: common.HexToAddress(swap.Recipient),
-		IsMigrate: extra.IsMigrate,
+		Pool:         common.HexToAddress(swap.Pool),
+		TokenAddress: tokenAddress,
+		Amount:       swap.SwapAmount,
+		Recipient:    recipient,
 	}, nil
 }
 
 func packMaticMigrate(swap MaticMigrate) ([]byte, error) {
 	return MaticMigrateArguments.Pack(
 		swap.Pool,
-		swap.TokenIn,
-		swap.TokenOut,
+		swap.TokenAddress,
 		swap.Amount,
 		swap.Recipient,
-		swap.IsMigrate,
 	)
 }

@@ -308,10 +308,8 @@ type Vooi struct {
 }
 
 type MaticMigrate struct {
-	Pool      common.Address
-	TokenIn   common.Address
-	TokenOut  common.Address
-	Amount    *big.Int
-	Recipient common.Address
-	IsMigrate bool
+	Pool         common.Address
+	TokenAddress common.Address
+	Amount       *big.Int
+	Recipient    common.Address
 }
