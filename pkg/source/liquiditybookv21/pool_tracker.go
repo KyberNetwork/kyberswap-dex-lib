@@ -200,11 +200,23 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 		)
 
 		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
-			logger.WithFields(logger.Fields{
-				"poolAddress": p.Address,
-				"error":       err,
-			}).Errorf("failed to query subgraph")
-			return nil, err
+			if !d.cfg.AllowSubgraphError {
+				logger.WithFields(logger.Fields{
+					"poolAddress":        p.Address,
+					"error":              err,
+					"allowSubgraphError": d.cfg.AllowSubgraphError,
+				}).Errorf("failed to query subgraph")
+				return nil, err
+			}
+
+			if resp.Pair == nil {
+				logger.WithFields(logger.Fields{
+					"poolAddress":        p.Address,
+					"error":              err,
+					"allowSubgraphError": d.cfg.AllowSubgraphError,
+				}).Errorf("failed to query subgraph")
+				return nil, err
+			}
 		}
 		resp.Meta.CheckIsLagging(d.cfg.DexID, p.Address)
 
