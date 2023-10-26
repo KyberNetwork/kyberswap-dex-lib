@@ -1,6 +1,7 @@
 package polmatic
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
@@ -9,6 +10,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+)
+
+var (
+	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
 )
 
 type (
@@ -52,9 +57,17 @@ func (s *PoolSimulator) CalcAmountOut(
 		gas       int64
 	)
 	if tokenAmountIn.Token == s.Pool.Info.Tokens[0] {
+		if tokenAmountIn.Amount.Cmp(s.Pool.Info.Reserves[1]) > 0 {
+			return nil, ErrInsufficientLiquidity
+		}
+
 		isMigrate = true
 		gas = s.gas.Migrate
 	} else {
+		if tokenAmountIn.Amount.Cmp(s.Pool.Info.Reserves[0]) > 0 {
+			return nil, ErrInsufficientLiquidity
+		}
+
 		isMigrate = false
 		gas = s.gas.Unmigrate
 	}

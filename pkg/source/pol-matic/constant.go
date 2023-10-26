@@ -2,7 +2,6 @@ package polmatic
 
 var (
 	DexTypePolMatic = "pol-matic"
-	poolReserve     = "1000000000000000000000000"
 )
 
 var (
@@ -13,5 +12,6 @@ const (
 	polygonMigrationMethodPolygon = "polygon"
 	polygonMigrationMethodMatic   = "matic"
 
-	erc20MethodDecimals = "decimals"
+	erc20MethodDecimals  = "decimals"
+	erc20MethodBalanceOf = "balanceOf"
 )
