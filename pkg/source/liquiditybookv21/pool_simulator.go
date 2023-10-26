@@ -128,13 +128,23 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	// update reserves of bins
 	totalBinReserveChanges := make(map[uint32]binReserveChanges)
-	for _, binReserveChanges := range swapInfo.BinsReserveChanges {
-		changes := totalBinReserveChanges[binReserveChanges.BinID]
-		changes.AmountXIn = new(big.Int).Add(changes.AmountXIn, binReserveChanges.AmountXIn)
-		changes.AmountXOut = new(big.Int).Add(changes.AmountXOut, binReserveChanges.AmountXOut)
-		changes.AmountYIn = new(big.Int).Add(changes.AmountYIn, binReserveChanges.AmountYIn)
-		changes.AmountYOut = new(big.Int).Add(changes.AmountYOut, binReserveChanges.AmountYOut)
-		totalBinReserveChanges[binReserveChanges.BinID] = changes
+	for _, b := range swapInfo.BinsReserveChanges {
+		changes, ok := totalBinReserveChanges[b.BinID]
+		if !ok {
+			changes = binReserveChanges{
+				BinID:      b.BinID,
+				AmountXIn:  bignumber.ZeroBI,
+				AmountXOut: bignumber.ZeroBI,
+				AmountYIn:  bignumber.ZeroBI,
+				AmountYOut: bignumber.ZeroBI,
+			}
+		}
+		changes.AmountXIn = new(big.Int).Add(changes.AmountXIn, b.AmountXIn)
+		changes.AmountXOut = new(big.Int).Add(changes.AmountXOut, b.AmountXOut)
+		changes.AmountYIn = new(big.Int).Add(changes.AmountYIn, b.AmountYIn)
+		changes.AmountYOut = new(big.Int).Add(changes.AmountYOut, b.AmountYOut)
+
+		totalBinReserveChanges[b.BinID] = changes
 	}
 	newBins := []bin{}
 	for _, b := range p.bins {

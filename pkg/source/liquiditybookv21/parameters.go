@@ -7,9 +7,9 @@ import (
 
 // https://github.com/traderjoe-xyz/joe-v2/blob/v2.1.1/src/LBPair.sol#L60
 type parameters struct {
-	StaticFeeParams   staticFeeParams
-	VariableFeeParams variableFeeParams
-	ActiveBinID       uint32
+	StaticFeeParams   staticFeeParams   `json:"staticFeeParams"`
+	VariableFeeParams variableFeeParams `json:"variableFeeParams"`
+	ActiveBinID       uint32            `json:"-"`
 }
 
 func (p *parameters) updateReferences(blockTimestamp uint64) *parameters {

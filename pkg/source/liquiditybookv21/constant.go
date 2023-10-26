@@ -43,7 +43,7 @@ const (
 
 var (
 	scale    = new(big.Int).Lsh(big.NewInt(1), scaleOffset)
-	precison = new(big.Int).Lsh(big.NewInt(1), 18)
+	precison = big.NewInt(1e18)
 
 	maxUint256 = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1))
 
