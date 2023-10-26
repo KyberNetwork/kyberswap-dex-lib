@@ -72,6 +72,7 @@ type types struct {
 	MantisSwap               string
 	Vooi                     string
 	PolMatic                 string
+	KokonutCrypto            string
 }
 
 var (
@@ -147,5 +148,6 @@ var (
 		MantisSwap:               "mantisswap",
 		Vooi:                     "vooi",
 		PolMatic:                 "pol-matic",
+		KokonutCrypto:            "kokonut-crypto",
 	}
 )

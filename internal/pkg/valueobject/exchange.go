@@ -96,8 +96,9 @@ var (
 	ExchangeAxial               Exchange = "axial"
 	ExchangeAlienBaseStableSwap Exchange = "alien-base-stableswap"
 
-	ExchangeCurve    Exchange = "curve"
-	ExchangeEllipsis Exchange = "ellipsis"
+	ExchangeCurve         Exchange = "curve"
+	ExchangeEllipsis      Exchange = "ellipsis"
+	ExchangeKokonutCrypto Exchange = "kokonut-crypto"
 
 	ExchangeUniSwapV3        Exchange = "uniswapv3"
 	ExchangeKyberswapElastic Exchange = "kyberswap-elastic"
@@ -259,6 +260,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAxial:                    {},
 	ExchangeCurve:                    {},
 	ExchangeEllipsis:                 {},
+	ExchangeKokonutCrypto:            {},
 	ExchangePancakeStable:            {},
 	ExchangeUniSwapV3:                {},
 	ExchangeKyberswapElastic:         {},

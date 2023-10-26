@@ -127,6 +127,7 @@ func init() {
 	// executeCurveSwap
 	RegisterFunctionSelector(valueobject.ExchangeCurve, FunctionSelectorCurveSwap)
 	RegisterFunctionSelector(valueobject.ExchangeEllipsis, FunctionSelectorCurveSwap)
+	RegisterFunctionSelector(valueobject.ExchangeKokonutCrypto, FunctionSelectorCurveSwap)
 	RegisterFunctionSelector(valueobject.ExchangePancakeStable, FunctionSelectorPancakeStableSwap)
 
 	// executeUniV3ProMMSwap

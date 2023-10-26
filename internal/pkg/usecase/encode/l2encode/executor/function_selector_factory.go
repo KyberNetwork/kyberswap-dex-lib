@@ -66,6 +66,7 @@ func init() {
 
 	// executeCurveSwap
 	RegisterFunctionSelector(valueobject.ExchangeCurve, FunctionSelectorCurveSwap)
+	RegisterFunctionSelector(valueobject.ExchangeKokonutCrypto, FunctionSelectorCurveSwap)
 
 	// executeUniV3KSElastic
 	RegisterFunctionSelector(valueobject.ExchangeChronosV3, FunctionSelectorUniV3KSElastic)

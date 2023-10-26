@@ -26,6 +26,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx"
 	gmxglp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx-glp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap"
+	kokonutcrypto "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kokonut-crypto"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido"
 	lidosteth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido-steth"
@@ -326,6 +327,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newVooi(entityPool)
 	case constant.PoolTypes.PolMatic:
 		return f.newPolMatic(entityPool)
+	case constant.PoolTypes.KokonutCrypto:
+		return f.newKokonutCrypto(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -1061,6 +1064,20 @@ func (f *PoolFactory) newPolMatic(entityPool entity.Pool) (*polmatic.PoolSimulat
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.polmatic] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newKokonutCrypto(entityPool entity.Pool) (*kokonutcrypto.PoolSimulator, error) {
+	corePool, err := kokonutcrypto.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.kokonutCrypto] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
