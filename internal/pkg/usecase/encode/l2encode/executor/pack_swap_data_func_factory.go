@@ -60,8 +60,9 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeBalDex, swapdata.PackUniswap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeMMF, swapdata.PackUniswap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeArbswapAMM, swapdata.PackUniswap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeKokonutCpmm, swapdata.PackUniswap)
 
-	// StableSwap
+	// StableSwaps
 	RegisterPackSwapDataFunc(valueobject.ExchangeSaddle, swapdata.PackStableSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeSynapse, swapdata.PackStableSwap)
 	RegisterPackSwapDataFunc(valueobject.ExchangeAlienBaseStableSwap, swapdata.PackStableSwap)

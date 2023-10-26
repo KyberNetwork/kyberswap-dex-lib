@@ -86,6 +86,7 @@ var (
 	ExchangeMetavaultV2   Exchange = "metavault-v2"
 	ExchangeNomiswap      Exchange = "nomiswap"
 	ExchangeArbswapAMM    Exchange = "arbswap-amm"
+	ExchangeKokonutCpmm   Exchange = "kokonut-cpmm"
 
 	ExchangeOneSwap             Exchange = "oneswap"
 	ExchangeNerve               Exchange = "nerve"
@@ -330,6 +331,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMoonBase:                 {},
 	ExchangeScale:                    {},
 	ExchangeBalDex:                   {},
+	ExchangeKokonutCpmm:              {},
 	ExchangeSynthSwapPerp:            {},
 	ExchangeSwapBasedPerp:            {},
 	ExchangeMMFV3:                    {},
