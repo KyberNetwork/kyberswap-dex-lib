@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/machinebox/graphql"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -40,13 +41,28 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		"address": p.Address,
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
-	rpcResult, err := d.queryRpc(ctx, p)
-	if err != nil {
-		return entity.Pool{}, err
-	}
+	var (
+		rpcResult      *queryRpcPoolStateResult
+		subgraphResult *querySubgraphPoolStateResult
+		err            error
+	)
 
-	subgraphResult, err := d.querySubgraph(ctx, p)
-	if err != nil {
+	g := new(errgroup.Group)
+	g.Go(func() error {
+		rpcResult, err = d.queryRpc(ctx, p)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	g.Go(func() error {
+		subgraphResult, err = d.querySubgraph(ctx, p)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err := g.Wait(); err != nil {
 		return entity.Pool{}, err
 	}
 
@@ -163,18 +179,18 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*queryRpcPoo
 
 func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*querySubgraphPoolStateResult, error) {
 	var (
-		skip           = 0
 		bins           []bin
 		blockTimestamp int64
 		unitX          *big.Float
 		unitY          *big.Float
+		binIDGT        int64 = -1
 	)
 
 	// bins
 	for {
 		// query
 		var (
-			query = buildQueryGetBins(p.Address, skip)
+			query = buildQueryGetBins(p.Address, binIDGT)
 			req   = graphql.NewRequest(query)
 
 			resp struct {
@@ -232,11 +248,8 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 		if len(resp.Pair.Bins) < graphFirstLimit {
 			break
 		}
-		skip += len(resp.Pair.Bins)
-		if skip > graphSkipLimit {
-			logger.Info("hit skip limit, continue in next cycle") // TODO: check skip limit
-			break
-		}
+
+		binIDGT = int64(bins[len(bins)-1].ID)
 	}
 
 	sort.Slice(bins, func(i, j int) bool {

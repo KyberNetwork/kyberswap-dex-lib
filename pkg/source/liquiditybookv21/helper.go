@@ -43,12 +43,12 @@ func transformSubgraphBins(
 	return ret, nil
 }
 
-func buildQueryGetBins(pairAddress string, skip int) string {
+func buildQueryGetBins(pairAddress string, binIDGT int64) string {
 	q := fmt.Sprintf(`{
 	lbpair(id: "%s") {
 		tokenX { decimals }
 		tokenY { decimals }
-		bins(where: {totalSupply_not: "0"}, orderBy: binId, orderDirection: asc, first: %d, skip: %d) {
+		bins(where: {totalSupply_not: "0", binId_gt: "%d"}, orderBy: binId, orderDirection: asc, first: %d) {
 		  binId
 		  reserveX
 		  reserveY
@@ -56,7 +56,7 @@ func buildQueryGetBins(pairAddress string, skip int) string {
 		}
 	}
 	_meta { block { timestamp } }
-	}`, pairAddress, graphFirstLimit, skip)
+	}`, pairAddress, binIDGT, graphFirstLimit)
 
 	return q
 }
