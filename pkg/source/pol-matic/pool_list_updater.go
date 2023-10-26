@@ -154,7 +154,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 				{Address: strings.ToLower(matic.String()), Decimals: maticDecimals, Swappable: true},
 				{Address: strings.ToLower(polygon.String()), Decimals: polygonDecimals, Swappable: true},
 			},
-			Reserves:  []string{poolReserve, poolReserve},
+			Reserves:  []string{"0", "0"},
 			Exchange:  u.config.DexID,
 			Type:      DexTypePolMatic,
 			Timestamp: time.Now().Unix(),
