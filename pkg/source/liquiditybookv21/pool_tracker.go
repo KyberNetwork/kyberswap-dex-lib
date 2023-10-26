@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"sort"
 	"strconv"
 	"time"
 
@@ -28,6 +29,7 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, err
 	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
 
 	return &PoolTracker{
+		cfg:           cfg,
 		ethrpcClient:  ethrpcClient,
 		graphqlClient: graphqlClient,
 	}, nil
@@ -53,6 +55,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		SubgraphBlockTimestamp: subgraphResult.BlockTimestamp,
 		StaticFeeParams:        rpcResult.StaticFeeParams,
 		VariableFeeParams:      rpcResult.VariableFeeParams,
+		ActiveBinID:            rpcResult.ActiveBinID,
 		BinStep:                rpcResult.BinStep,
 		Bins:                   subgraphResult.Bins,
 	}
@@ -77,12 +80,14 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 
 func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*queryRpcPoolStateResult, error) {
 	var (
-		blockTimestamp    uint64
-		staticFeeParams   staticFeeParams
-		variableFeeParams variableFeeParams
-		reserves          reserves
-		activeBinID       uint32
-		binStep           uint16
+		blockTimestamp uint64
+		binStep        uint16
+
+		staticFeeParamsResp   staticFeeParamsResp
+		variableFeeParamsResp variableFeeParamsResp
+
+		reserves    reserves
+		activeBinID *big.Int
 
 		err error
 	)
@@ -93,13 +98,13 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*queryRpcPoo
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodGetStaticFeeParameters,
-	}, []interface{}{&staticFeeParams})
+	}, []interface{}{&staticFeeParamsResp})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
 		Target: p.Address,
 		Method: pairMethodGetVariableFeeParameters,
-	}, []interface{}{&variableFeeParams})
+	}, []interface{}{&variableFeeParamsResp})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
@@ -128,11 +133,30 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*queryRpcPoo
 		return nil, err
 	}
 
+	// params
+	staticFeeParams := staticFeeParams{
+		BaseFactor:               staticFeeParamsResp.BaseFactor,
+		FilterPeriod:             staticFeeParamsResp.FilterPeriod,
+		DecayPeriod:              staticFeeParamsResp.DecayPeriod,
+		ReductionFactor:          staticFeeParamsResp.ReductionFactor,
+		VariableFeeControl:       uint32(staticFeeParamsResp.VariableFeeControl.Uint64()),
+		ProtocolShare:            staticFeeParamsResp.ProtocolShare,
+		MaxVolatilityAccumulator: uint32(staticFeeParamsResp.MaxVolatilityAccumulator.Uint64()),
+	}
+
+	variableFeeParams := variableFeeParams{
+		VolatilityAccumulator: uint32(variableFeeParamsResp.VolatilityAccumulator.Uint64()),
+		VolatilityReference:   uint32(variableFeeParamsResp.VolatilityReference.Uint64()),
+		IdReference:           uint32(variableFeeParamsResp.IdReference.Uint64()),
+		TimeOfLastUpdate:      variableFeeParamsResp.TimeOfLastUpdate.Uint64(),
+	}
+
 	return &queryRpcPoolStateResult{
 		BlockTimestamp:    blockTimestamp,
 		StaticFeeParams:   staticFeeParams,
 		VariableFeeParams: variableFeeParams,
 		Reserves:          reserves,
+		ActiveBinID:       uint32(activeBinID.Uint64()),
 		BinStep:           binStep,
 	}, nil
 }
@@ -189,16 +213,20 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 
 		// if no bin returned, stop
 		if resp.Pair == nil || len(resp.Pair.Bins) == 0 {
+			logger.WithFields(logger.Fields{
+				"poolAddress": p.Address,
+			}).Info("no bin returned")
 			break
 		}
 
 		// transform
-		b, err := transformSubgraphBins(resp.Pair.Bins, unitX, unitY)
-		if err != nil {
-			return nil, err
+		if len(resp.Pair.Bins) > 0 {
+			b, err := transformSubgraphBins(resp.Pair.Bins, unitX, unitY)
+			if err != nil {
+				return nil, err
+			}
+			bins = append(bins, b...)
 		}
-		// TODO: remove empty bin
-		bins = append(bins, b...)
 
 		// for next cycle
 		if len(resp.Pair.Bins) < graphFirstLimit {
@@ -206,10 +234,14 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 		}
 		skip += len(resp.Pair.Bins)
 		if skip > graphSkipLimit {
-			logger.Infoln("hit skip limit, continue in next cycle")
+			logger.Info("hit skip limit, continue in next cycle") // TODO: check skip limit
 			break
 		}
 	}
+
+	sort.Slice(bins, func(i, j int) bool {
+		return bins[i].ID < bins[j].ID
+	})
 
 	return &querySubgraphPoolStateResult{
 		BlockTimestamp: uint64(blockTimestamp),

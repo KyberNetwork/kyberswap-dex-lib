@@ -76,3 +76,22 @@ type binSubgraphResp struct {
 type tokenSubgraphResp struct {
 	Decimals string `json:"decimals"`
 }
+
+// rpc
+
+type staticFeeParamsResp struct {
+	BaseFactor               uint16
+	FilterPeriod             uint16
+	DecayPeriod              uint16
+	ReductionFactor          uint16
+	VariableFeeControl       *big.Int
+	ProtocolShare            uint16
+	MaxVolatilityAccumulator *big.Int
+}
+
+type variableFeeParamsResp struct {
+	VolatilityAccumulator *big.Int
+	VolatilityReference   *big.Int
+	IdReference           *big.Int
+	TimeOfLastUpdate      *big.Int
+}
