@@ -17,7 +17,10 @@ type Extra struct {
 }
 
 type SwapInfo struct {
-	AmountsInLeft *big.Int `json:"amountsInLeft"`
+	AmountsInLeft      *big.Int            `json:"amountsInLeft"`
+	NewParameters      *parameters         `json:"parameters"`
+	NewActiveID        uint32              `json:"newActiveId"`
+	BinsReserveChanges []binReserveChanges `json:"binsReserveChanges"`
 }
 
 type queryRpcPoolStateResult struct {
@@ -54,6 +57,15 @@ type variableFeeParams struct {
 type reserves struct {
 	ReserveX *big.Int `json:"reserveX"`
 	ReserveY *big.Int `json:"reserveY"`
+}
+
+type getSwapOutResult struct {
+	AmountsInLeft      *big.Int
+	AmountOut          *big.Int
+	Fee                *big.Int
+	BinsReserveChanges []binReserveChanges
+	Parameters         *parameters
+	NewActiveID        uint32
 }
 
 // subgraph

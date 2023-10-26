@@ -10,4 +10,5 @@ var (
 	ErrMulDivOverflow   = errors.New("mul div overflow")
 	ErrMulShiftOverflow = errors.New("mul shift overflow")
 	ErrNotFoundBinID    = errors.New("not found bin id")
+	ErrFeeTooLarge      = errors.New("fee too large")
 )

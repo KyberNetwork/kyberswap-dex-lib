@@ -3,15 +3,14 @@ package liquiditybookv21
 import (
 	"encoding/json"
 	"math/big"
+	"sort"
 	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
 )
-
-// return param when CalcAmountOut
-// update will set the param to the pool
 
 type PoolSimulator struct {
 	pool.Pool
@@ -78,7 +77,7 @@ func (p *PoolSimulator) CalcAmountOut(
 	amountIn := tokenAmountIn.Amount
 	swapForY := tokenAmountIn.Token == p.Info.Tokens[0]
 
-	amountsInLeft, amountOut, fee, err := p.getSwapOut(amountIn, swapForY)
+	swapOutResult, err := p.getSwapOut(amountIn, swapForY)
 	if err != nil {
 		return nil, err
 	}
@@ -86,28 +85,87 @@ func (p *PoolSimulator) CalcAmountOut(
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
-			Amount: amountOut,
+			Amount: swapOutResult.AmountOut,
 		},
 		Fee: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
-			Amount: fee,
+			Amount: swapOutResult.Fee,
 		},
 		Gas: 0, // FIXME: change to real gas
 		SwapInfo: SwapInfo{
-			AmountsInLeft: amountsInLeft,
+			AmountsInLeft:      swapOutResult.AmountsInLeft,
+			BinsReserveChanges: swapOutResult.BinsReserveChanges,
+			NewParameters:      swapOutResult.Parameters,
+			NewActiveID:        swapOutResult.NewActiveID,
 		},
 	}, nil
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	swapInfo, ok := params.SwapInfo.(SwapInfo)
+	if !ok {
+		logger.WithFields(logger.Fields{
+			"address": p.Info.Address,
+		}).Warn("invalid swap info")
+	}
 
+	// update total reserves
+	for idx, reserve := range p.Info.Reserves {
+		if strings.EqualFold(p.Info.Tokens[idx], params.TokenAmountIn.Token) {
+			p.Info.Reserves[idx] = new(big.Int).Add(reserve, params.TokenAmountIn.Amount)
+		}
+		if strings.EqualFold(p.Info.Tokens[idx], params.TokenAmountOut.Token) {
+			p.Info.Reserves[idx] = new(big.Int).Sub(reserve, params.TokenAmountIn.Amount)
+		}
+	}
+
+	// active bin ID
+	p.activeBinID = swapInfo.NewActiveID
+
+	// fee
+	p.staticFeeParams = swapInfo.NewParameters.StaticFeeParams
+	p.variableFeeParams = swapInfo.NewParameters.VariableFeeParams
+
+	// update reserves of bins
+	totalBinReserveChanges := make(map[uint32]binReserveChanges)
+	for _, binReserveChanges := range swapInfo.BinsReserveChanges {
+		changes := totalBinReserveChanges[binReserveChanges.BinID]
+		changes.AmountXIn = new(big.Int).Add(changes.AmountXIn, binReserveChanges.AmountXIn)
+		changes.AmountXOut = new(big.Int).Add(changes.AmountXOut, binReserveChanges.AmountXOut)
+		changes.AmountYIn = new(big.Int).Add(changes.AmountYIn, binReserveChanges.AmountYIn)
+		changes.AmountYOut = new(big.Int).Add(changes.AmountYOut, binReserveChanges.AmountYOut)
+		totalBinReserveChanges[binReserveChanges.BinID] = changes
+	}
+	newBins := []bin{}
+	for _, b := range p.bins {
+		newBin := bin{
+			ID:          b.ID,
+			ReserveX:    new(big.Int).Set(b.ReserveX),
+			ReserveY:    new(big.Int).Set(b.ReserveY),
+			TotalSupply: new(big.Int).Set(b.TotalSupply),
+		}
+
+		changes, ok := totalBinReserveChanges[newBin.ID]
+		if ok {
+			newBin.ReserveX = new(big.Int).Add(new(big.Int).Sub(newBin.ReserveX, changes.AmountXOut), changes.AmountXIn)
+			newBin.ReserveY = new(big.Int).Add(new(big.Int).Sub(newBin.ReserveY, changes.AmountYOut), changes.AmountYIn)
+		}
+
+		if !newBin.isEmpty() {
+			newBins = append(newBins, newBin)
+		}
+	}
+	sort.Slice(newBins, func(i, j int) bool {
+		return newBins[i].ID < newBins[j].ID
+	})
+	p.bins = newBins
 }
 
 func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
 }
 
-func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*big.Int, *big.Int, *big.Int, error) {
+func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOutResult, error) {
 	amountsInLeft := amountIn
 	binStep := p.binStep
 
@@ -115,29 +173,34 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*big.Int, 
 	id := parameters.ActiveBinID
 	parameters = parameters.updateReferences(p.blockTimestamp)
 
-	amountOut := big.NewInt(0)
-	fee := big.NewInt(0)
+	amountOut := bignumber.ZeroBI
+	fee := bignumber.ZeroBI
+	binsReserveChanges := []binReserveChanges{}
 
 	for {
 		bin := p.bins[id]
-		if !bin.isEmpty(!swapForY) {
+		if !bin.isEmptyForSwap(!swapForY) {
 			parameters = parameters.updateVolatilityAccumulator(id)
 
 			amountsInWithFees, amountsOutOfBin, totalFees, err := bin.getAmounts(
 				parameters, binStep, swapForY, id, amountsInLeft,
 			)
 			if err != nil {
-				return nil, nil, nil, err
+				return nil, err
 			}
 
 			if amountsInWithFees.Cmp(bignumber.ZeroBI) > 0 {
 				amountsInLeft = new(big.Int).Sub(amountsInLeft, amountsInWithFees)
 				amountOut = new(big.Int).Add(amountOut, amountsOutOfBin)
 				fee = new(big.Int).Add(fee, totalFees)
-			}
-		}
 
-		// TODO: save sub binStep
+				newBinReserveChanges := newBinReserveChanges(
+					id, !swapForY, amountsInWithFees, amountsOutOfBin,
+				)
+				binsReserveChanges = append(binsReserveChanges, newBinReserveChanges)
+			}
+
+		}
 
 		if amountsInLeft.Cmp(bignumber.ZeroBI) == 0 {
 			break
@@ -148,13 +211,22 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*big.Int, 
 			if err == ErrNotFoundBinID {
 				break
 			}
-			return nil, nil, nil, err
+			return nil, err
 		}
 
 		id = nextID
 	}
 
-	return amountsInLeft, amountOut, fee, nil
+	ret := getSwapOutResult{
+		AmountsInLeft:      amountsInLeft,
+		AmountOut:          amountOut,
+		Fee:                fee,
+		BinsReserveChanges: binsReserveChanges,
+		Parameters:         parameters,
+		NewActiveID:        id,
+	}
+
+	return &ret, nil
 }
 
 func (p *PoolSimulator) validateTokens(tokens []string) error {

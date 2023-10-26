@@ -74,7 +74,10 @@ func (p *parameters) getTotalFee(binStep uint16) *big.Int {
 
 func (p *parameters) getBaseFee(binStep uint16) *big.Int {
 	baseFactor := p.StaticFeeParams.BaseFactor
-	result := new(big.Int).Mul(new(big.Int).Mul(big.NewInt(int64(baseFactor)), big.NewInt(int64(binStep))), big.NewInt(1e10))
+	result := new(big.Int).Mul(
+		new(big.Int).Mul(big.NewInt(int64(baseFactor)), big.NewInt(int64(binStep))),
+		big.NewInt(1e10),
+	)
 	return result
 }
 
@@ -85,11 +88,11 @@ func (p *parameters) getVariableFee(binStep uint16) *big.Int {
 	}
 
 	volAcc := p.VariableFeeParams.VolatilityAccumulator
-	prod0 := new(big.Int).Mul(big.NewInt(int64(volAcc)), big.NewInt(int64(binStep)))
+	prod := new(big.Int).Mul(big.NewInt(int64(volAcc)), big.NewInt(int64(binStep)))
 	variableFee := new(big.Int).Div(
 		new(big.Int).Add(
 			new(big.Int).Mul(
-				new(big.Int).Mul(prod0, prod0),
+				new(big.Int).Mul(prod, prod),
 				big.NewInt(int64(variableFeeControl)),
 			),
 			big.NewInt(99),
