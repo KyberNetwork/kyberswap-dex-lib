@@ -91,7 +91,7 @@ func (p *PoolSimulator) CalcAmountOut(
 			Token:  tokenAmountIn.Token,
 			Amount: swapOutResult.Fee,
 		},
-		Gas: 0, // FIXME: change to real gas
+		Gas: defaultGas,
 		SwapInfo: SwapInfo{
 			AmountsInLeft:      swapOutResult.AmountsInLeft,
 			BinsReserveChanges: swapOutResult.BinsReserveChanges,
@@ -178,7 +178,11 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 	binsReserveChanges := []binReserveChanges{}
 
 	for {
-		bin := p.bins[id]
+		binArrIdx, err := p.findBinArrIndex(id)
+		if err != nil {
+			return nil, err
+		}
+		bin := p.bins[binArrIdx]
 		if !bin.isEmptyForSwap(!swapForY) {
 			parameters = parameters.updateVolatilityAccumulator(id)
 
@@ -255,7 +259,7 @@ func (p *PoolSimulator) getNextNonEmptyBin(swapForY bool, id uint32) (uint32, er
 }
 
 func (p *PoolSimulator) findFirstRight(id uint32) (uint32, error) {
-	idx, err := p.findBinIndex(id)
+	idx, err := p.findBinArrIndex(id)
 	if err != nil {
 		return 0, err
 	}
@@ -266,7 +270,7 @@ func (p *PoolSimulator) findFirstRight(id uint32) (uint32, error) {
 }
 
 func (p *PoolSimulator) findFirstLeft(id uint32) (uint32, error) {
-	idx, err := p.findBinIndex(id)
+	idx, err := p.findBinArrIndex(id)
 	if err != nil {
 		return 0, err
 	}
@@ -276,7 +280,7 @@ func (p *PoolSimulator) findFirstLeft(id uint32) (uint32, error) {
 	return p.bins[idx+1].ID, nil
 }
 
-func (p *PoolSimulator) findBinIndex(binID uint32) (uint32, error) {
+func (p *PoolSimulator) findBinArrIndex(binID uint32) (uint32, error) {
 	var (
 		l = 0
 		r = len(p.bins)
