@@ -24,7 +24,6 @@ require (
 	github.com/sirupsen/logrus v1.9.0
 	github.com/sourcegraph/conc v0.3.0
 	github.com/stretchr/testify v1.8.3
-	github.com/test-go/testify v1.1.4
 	golang.org/x/sync v0.2.0
 )
 
