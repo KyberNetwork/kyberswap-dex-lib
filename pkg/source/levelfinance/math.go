@@ -17,11 +17,11 @@ func swap(tokenIn, tokenOut string, amountIn *big.Int, state *PoolState) (*big.I
 
 	tokenInInfo, ok := state.TokenInfos[tokenIn]
 	if !ok {
-		return nil, ErrTokenNotFound
+		return nil, ErrTokenInfoIsNotFound
 	}
 	tokenOutInfo, ok := state.TokenInfos[tokenOut]
 	if !ok {
-		return nil, ErrTokenNotFound
+		return nil, ErrTokenInfoIsNotFound
 	}
 
 	amountOutAfterFee, swapFee, err := calcSwapOutput(tokenInInfo, tokenOutInfo, amountIn, state)
@@ -31,7 +31,7 @@ func swap(tokenIn, tokenOut string, amountIn *big.Int, state *PoolState) (*big.I
 
 	daoFee := calcDaoFee(swapFee, state)
 
-	rebalanceTranches(tokenIn, new(big.Int).Sub(amountIn, daoFee), tokenOut, amountOutAfterFee, state)
+	rebalanceTranches(tokenInInfo, new(big.Int).Sub(amountIn, daoFee), tokenOutInfo, amountOutAfterFee, state)
 
 	return amountOutAfterFee, nil
 }
@@ -159,8 +159,9 @@ func rebalanceTranches(tokenIn *TokenInfo, amountIn *big.Int, tokenOut *TokenInf
 	}
 }
 
-func calcTrancheSharesAmount(indexToken, collateralToken *TokenInfo, amount *big.Int, isInceasePoolAmount bool, state *PoolState) map[string]*big.Int {
-	resserves := make(map[string]*big.Int, len(indexToken.TrancheAssets))
+func calcTrancheSharesAmount(indexToken, collateralToken *TokenInfo, amount *big.Int, isInceasePoolAmount bool, _ *PoolState) map[string]*big.Int {
+	nTranches := len(indexToken.TrancheAssets)
+	reserves := make(map[string]*big.Int, len(indexToken.TrancheAssets))
 	factors := make(map[string]*big.Int, len(indexToken.TrancheAssets))
 	maxShare := make(map[string]*big.Int, len(indexToken.TrancheAssets))
 
@@ -174,8 +175,40 @@ func calcTrancheSharesAmount(indexToken, collateralToken *TokenInfo, amount *big
 		if !isInceasePoolAmount {
 			maxShare[trancheAddress] = new(big.Int).Sub(asset.PoolAmount, asset.ReserveAmount)
 		}
-
 	}
+
+	var totalFactor *big.Int
+	if indexToken.IsStableCoin {
+		totalFactor = big.NewInt(int64(nTranches))
+	} else {
+		totalFactor = new(big.Int).Set(indexToken.TotalRiskFactor)
+	}
+
+	newAmount := new(big.Int).Set(amount)
+	for range indexToken.TrancheAssets {
+		totalRiskFactorTmp := new(big.Int).Set(totalFactor)
+		for i := range indexToken.TrancheAssets {
+			riskFactorTmp := new(big.Int).Set(factors[i])
+			if riskFactorTmp.Cmp(constants.Zero) != 0 {
+				shareAmount := frac(amount, riskFactorTmp, totalRiskFactorTmp)
+				availableAmount := new(big.Int).Sub(maxShare[i], reserves[i])
+				if shareAmount.Cmp(availableAmount) >= 0 {
+					shareAmount = availableAmount
+					totalFactor = new(big.Int).Sub(totalFactor, riskFactorTmp)
+					factors[i] = big.NewInt(0)
+				}
+
+				reserves[i] = new(big.Int).Add(reserves[i], shareAmount)
+				newAmount = new(big.Int).Sub(newAmount, shareAmount)
+				totalRiskFactorTmp = new(big.Int).Sub(totalRiskFactorTmp, riskFactorTmp)
+				if newAmount.Cmp(constants.Zero) == 0 {
+					return reserves
+				}
+			}
+		}
+	}
+
+	return reserves
 }
 
 func diff(a, b *big.Int) *big.Int {
