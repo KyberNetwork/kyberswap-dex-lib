@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math/big"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -49,10 +52,13 @@ func (t *PoolTracker) GetNewPoolState(
 		}).Errorf("failed to get price levels for pool")
 		return entity.Pool{}, err
 	}
-	//this is supposed to be float
+	//this is supposed to be big
 	p.Reserves = make([]string, 2)
 	for i, token := range p.Tokens {
-		p.Reserves[i] = inventory[token.Address]
+		inventoryWithoutDecimal, _ := new(big.Float).
+			Mul(new(big.Float).SetFloat64(inventory[strings.ToLower(token.Address)]),
+				new(big.Float).Set(bignumber.TenPowDecimals(token.Decimals))).Int(big.NewInt(0))
+		p.Reserves[i] = inventoryWithoutDecimal.String()
 	}
 
 	extra.BaseToQuotePriceLevels, extra.QuoteToBasePriceLevels = transformPriceLevels(priceLevels)
@@ -75,7 +81,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 // getPriceLevelsForPool returns a PriceItem of that pool
 // and a map[tokenAddress]Balance for PMM Inventory
-func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) (PriceItem, map[string]string, error) {
+func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) (PriceItem, map[string]float64, error) {
 	result, err := t.client.ListPriceLevels(ctx)
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -95,11 +101,13 @@ func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) 
 
 		return PriceItem{}, nil, err
 	}
+
 	for _, token := range p.Tokens {
-		if token.Address == staticExtra.BaseTokenAddress {
-			baseTokenName = token.Name
-		} else if token.Address == staticExtra.QuoteTokenAddress {
-			quoteTokenName = token.Name
+		if strings.ToLower(token.Address) == strings.ToLower(staticExtra.BaseTokenAddress) {
+			baseTokenName = token.Symbol
+		}
+		if strings.ToLower(token.Address) == strings.ToLower(staticExtra.QuoteTokenAddress) {
+			quoteTokenName = token.Symbol
 		}
 	}
 	priceLevelsForPool, found1 := result.Prices[staticExtra.PairID]
@@ -108,9 +116,9 @@ func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) 
 	quoteBalance, found3 := result.Balances[quoteTokenName]
 
 	if found1 && found2 && found3 {
-		return priceLevelsForPool, map[string]string{
-			staticExtra.BaseTokenAddress:  baseBalance,
-			staticExtra.QuoteTokenAddress: quoteBalance,
+		return priceLevelsForPool, map[string]float64{
+			strings.ToLower(staticExtra.BaseTokenAddress):  baseBalance,
+			strings.ToLower(staticExtra.QuoteTokenAddress): quoteBalance,
 		}, nil
 	}
 

@@ -23,8 +23,8 @@ type PoolSimulator struct {
 	baseToQuotePriceLevels []PriceLevel
 	quoteToBasePriceLevels []PriceLevel
 	gas                    Gas
-	QuoteBalance           *big.Float
-	BaseBalance            *big.Float
+	QuoteBalance           *big.Int
+	BaseBalance            *big.Int
 	timestamp              int64
 }
 
@@ -44,13 +44,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	var (
 		baseToken, quoteToken entity.PoolToken
-		baseBalance           = big.NewFloat(0.0)
-		quoteBalance          = big.NewFloat(0.0)
+		baseBalance           = big.NewInt(0)
+		quoteBalance          = big.NewInt(0)
 	)
 
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
-		amount, ok := big.NewFloat(0.0).SetString(entityPool.Reserves[i])
+		amount, ok := big.NewInt(0).SetString(entityPool.Reserves[i], 10)
 		if !ok {
 			return nil, errors.New("could not parse PMM reserve to big.Float")
 		}
@@ -63,6 +63,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			quoteToken = *entityPool.Tokens[i]
 			quoteBalance.Set(amount)
 		}
+		reserves[i] = amount
 	}
 
 	var extra Extra
@@ -100,17 +101,16 @@ func (p *PoolSimulator) CalcAmountOut(
 ) (result *pool.CalcAmountOutResult, err error) {
 	swapDirection := p.getSwapDirection(tokenAmountIn.Token)
 
-	var amountOutDecimal *big.Float
-
 	if swapDirection == SwapDirectionBaseToQuote {
-		result, amountOutDecimal, err = p.swapBaseToQuote(tokenAmountIn, tokenOut)
+		result, err = p.swapBaseToQuote(tokenAmountIn, tokenOut)
 	} else {
-		result, amountOutDecimal, err = p.swapQuoteToBase(tokenAmountIn, tokenOut)
+		result, err = p.swapQuoteToBase(tokenAmountIn, tokenOut)
 	}
 	if err != nil {
 		return nil, err
 	}
-	if (swapDirection == SwapDirectionBaseToQuote && amountOutDecimal.Cmp(p.BaseBalance) < 0) || (swapDirection == SwapDirectionBaseToQuote && amountOutDecimal.Cmp(p.QuoteBalance) < 0) {
+
+	if (swapDirection == SwapDirectionBaseToQuote && result.TokenAmountOut.Amount.Cmp(p.BaseBalance) < 0) || (swapDirection == SwapDirectionBaseToQuote && result.TokenAmountOut.Amount.Cmp(p.QuoteBalance) < 0) {
 		return nil, errors.New("not enough inventory")
 	}
 	return result, nil
@@ -125,13 +125,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			bignumber.TenPowDecimals(p.baseToken.Decimals),
 		)
 
-		amountOutAfterDecimals := new(big.Float).Quo(
-			new(big.Float).SetInt(params.TokenAmountOut.Amount),
-			bignumber.TenPowDecimals(p.quoteToken.Decimals),
-		)
-
 		p.baseToQuotePriceLevels = getNewPriceLevelsState(amountInAfterDecimals, p.baseToQuotePriceLevels)
-		newQuoteInventory, newBaseInventory, err := params.Inventory.UpdateBalance(p.quoteToken.Address, p.baseToken.Address, amountOutAfterDecimals, amountInAfterDecimals)
+		newQuoteInventory, newBaseInventory, err := params.Inventory.UpdateBalance(p.quoteToken.Address, p.baseToken.Address, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
 		if err != nil {
 			fmt.Println("unable to update PMM info, error:", err)
 		}
@@ -142,14 +137,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 			new(big.Float).SetInt(params.TokenAmountIn.Amount),
 			bignumber.TenPowDecimals(p.quoteToken.Decimals),
 		)
-		amountOutAfterDecimals := new(big.Float).Quo(
-			new(big.Float).SetInt(params.TokenAmountOut.Amount),
-			bignumber.TenPowDecimals(p.baseToken.Decimals),
-		)
 
 		p.quoteToBasePriceLevels = getNewPriceLevelsState(amountInAfterDecimals, p.quoteToBasePriceLevels)
 
-		newBaseInventory, newQuoteInventory, err := params.Inventory.UpdateBalance(p.baseToken.Address, p.quoteToken.Address, amountOutAfterDecimals, amountInAfterDecimals)
+		newBaseInventory, newQuoteInventory, err := params.Inventory.UpdateBalance(p.baseToken.Address, p.quoteToken.Address, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
 		if err != nil {
 			fmt.Println("unable to update PMM info, error:", err)
 		}
@@ -173,7 +164,7 @@ func (p *PoolSimulator) getSwapDirection(tokenIn string) SwapDirection {
 	return SwapDirectionQuoteToBase
 }
 
-func (p *PoolSimulator) swapBaseToQuote(tokenAmountIn pool.TokenAmount, tokenOut string) (*pool.CalcAmountOutResult, *big.Float, error) {
+func (p *PoolSimulator) swapBaseToQuote(tokenAmountIn pool.TokenAmount, tokenOut string) (*pool.CalcAmountOutResult, error) {
 	amountInAfterDecimals := new(big.Float).Quo(
 		new(big.Float).SetInt(tokenAmountIn.Amount),
 		bignumber.TenPowDecimals(p.baseToken.Decimals),
@@ -181,7 +172,7 @@ func (p *PoolSimulator) swapBaseToQuote(tokenAmountIn pool.TokenAmount, tokenOut
 
 	amountOutAfterDecimals, err := getAmountOut(amountInAfterDecimals, p.baseToQuotePriceLevels)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	amountOut, _ := new(big.Float).Mul(
@@ -199,10 +190,10 @@ func (p *PoolSimulator) swapBaseToQuote(tokenAmountIn pool.TokenAmount, tokenOut
 			MakerAsset:   tokenOut,
 			MakingAmount: amountOut.String(),
 		},
-	}, amountOutAfterDecimals, nil
+	}, nil
 }
 
-func (p *PoolSimulator) swapQuoteToBase(tokenAmountIn pool.TokenAmount, tokenOut string) (*pool.CalcAmountOutResult, *big.Float, error) {
+func (p *PoolSimulator) swapQuoteToBase(tokenAmountIn pool.TokenAmount, tokenOut string) (*pool.CalcAmountOutResult, error) {
 	amountInAfterDecimals := new(big.Float).Quo(
 		new(big.Float).SetInt(tokenAmountIn.Amount),
 		bignumber.TenPowDecimals(p.quoteToken.Decimals),
@@ -210,7 +201,7 @@ func (p *PoolSimulator) swapQuoteToBase(tokenAmountIn pool.TokenAmount, tokenOut
 
 	amountOutAfterDecimals, err := getAmountOut(amountInAfterDecimals, p.quoteToBasePriceLevels)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	amountOut, _ := new(big.Float).Mul(
@@ -228,7 +219,7 @@ func (p *PoolSimulator) swapQuoteToBase(tokenAmountIn pool.TokenAmount, tokenOut
 			MakerAsset:   tokenOut,
 			MakingAmount: amountOut.String(),
 		},
-	}, amountOutAfterDecimals, nil
+	}, nil
 }
 
 func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel) (*big.Float, error) {

@@ -140,41 +140,49 @@ func CalcAmountOut(pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut stri
 }
 
 // Inventory is a map of tokenAddress- balance.
+// The balance is stored WITHOUT decimals
 // DONOT directly modify it
 type Inventory struct {
-	lock    sync.RWMutex
-	Balance map[string]*big.Float
+	lock    *sync.RWMutex
+	Balance map[string]*big.Int
+}
+
+func NewInventory(balance map[string]*big.Int) *Inventory {
+	return &Inventory{
+		lock:    &sync.RWMutex{},
+		Balance: balance,
+	}
 }
 
 // GetBalance returns a copy of balance for the Inventory
-func (i *Inventory) GetBalance(tokenAddress string) *big.Float {
+func (i *Inventory) GetBalance(tokenAddress string) *big.Int {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 	balance, avail := i.Balance[tokenAddress]
 	if !avail {
-		return big.NewFloat(0)
+		return big.NewInt(0)
 	}
-	return big.NewFloat(0).Set(balance)
+	return big.NewInt(0).Set(balance)
 }
 
 // UpdateBalance will reduce the Balance to reflect the change in inventory
 // note this delta is amount with Decimal
-func (i *Inventory) UpdateBalance(decreaseTokenAddress, increaseTokenAddress string, decreaseDelta, increaseDelta *big.Float) (*big.Float, *big.Float, error) {
+func (i *Inventory) UpdateBalance(decreaseTokenAddress, increaseTokenAddress string, decreaseDelta, increaseDelta *big.Int) (*big.Int, *big.Int, error) {
 	i.lock.Lock()
 	defer i.lock.Unlock()
 	balance, avail := i.Balance[decreaseTokenAddress]
 	if !avail {
-		return big.NewFloat(0), big.NewFloat(0), errors.New("token is not available")
+		return big.NewInt(0), big.NewInt(0), errors.New("token is not available")
 	}
 	if balance.Cmp(decreaseDelta) < 0 {
-		return big.NewFloat(0), big.NewFloat(0), errors.New("not enough balance in inventory")
+		return big.NewInt(0), big.NewInt(0), errors.New("not enough balance in inventory")
 	}
 	i.Balance[decreaseTokenAddress] = balance.Sub(balance, decreaseDelta)
 
 	balance2, avail := i.Balance[increaseTokenAddress]
 	if !avail {
-		return big.NewFloat(0), big.NewFloat(0), errors.New("token is not available")
+		return big.NewInt(0), big.NewInt(0), errors.New("token is not available")
 	}
 	i.Balance[increaseTokenAddress] = balance2.Add(balance, increaseDelta)
-	return big.NewFloat(0).Set(i.Balance[decreaseTokenAddress]), big.NewFloat(0).Set(i.Balance[increaseTokenAddress]), nil
+	return big.NewInt(0).Set(i.Balance[decreaseTokenAddress]), big.NewInt(0).Set(i.Balance[increaseTokenAddress]), nil
 }
