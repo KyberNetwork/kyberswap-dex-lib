@@ -159,7 +159,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					big.NewInt(20000),
 					nil,
 				)
-				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10), nil)
+				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10), float64(1.5), nil)
 
 				return NewBuildRouteUseCase(
 					tokenRepository,
@@ -207,7 +207,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				AmountOut:     "10000",
 				AmountOutUSD:  "0.01",
 				Gas:           "10",
-				GasUSD:        "0",
+				GasUSD:        "1.5",
 				OutputChange:  OutputChangeNoChange,
 				Data:          "mockEncodedData",
 				RouterAddress: "0x01",
@@ -258,7 +258,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 					TokenOutMarketPriceAvailable: false,
 					Gas:                          12,
 					GasPrice:                     big.NewFloat(100.2),
-					GasUSD:                       0,
+					GasUSD:                       1.5,
 					ExtraFee:                     valueobject.ExtraFee{},
 					Route: [][]valueobject.Swap{
 						{
@@ -279,14 +279,14 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				AmountOut:     "10000",
 				AmountOutUSD:  "0.01",
 				Gas:           "1234",
-				GasUSD:        "0",
+				GasUSD:        "1.5",
 				OutputChange:  OutputChangeNoChange,
 				Data:          "mockEncodedData",
 				RouterAddress: "0x01",
 			},
 			estimateGas: func(ctrl *gomock.Controller) *buildroute.MockIGasEstimator {
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
-				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(uint64(1234), nil).Times(1)
+				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(uint64(1234), float64(1.5), nil).Times(1)
 				return gasEstimator
 			},
 			config: Config{ChainID: valueobject.ChainIDEthereum, FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true}},

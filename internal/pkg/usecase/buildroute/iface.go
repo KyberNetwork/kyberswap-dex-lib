@@ -27,10 +27,9 @@ type IEncoder interface {
 }
 
 type IGasRepository interface {
-	EstimateGas(sender string, recipient string, data string,
-		value *big.Int, gasPrice *big.Int, ctx context.Context) (uint64, error)
+	GetSuggestedGasPrice(ctx context.Context) (*big.Int, error)
 }
 
 type IGasEstimator interface {
-	Execute(ctx context.Context, tx UnsignedTransaction) (uint64, error)
+	Execute(ctx context.Context, tx UnsignedTransaction) (uint64, float64, error)
 }

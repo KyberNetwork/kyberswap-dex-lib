@@ -94,8 +94,9 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 
 	// estimate gas price for a transaction
 	estimatedGas := uint64(routeSummary.Gas)
+	gasInUSD := routeSummary.GasUSD
 	if uc.config.FeatureFlags.IsGasEstimatorEnabled && command.EnableGasEstimation {
-		estimatedGas, err = uc.estimateGas(ctx, command, encodedData)
+		estimatedGas, gasInUSD, err = uc.estimateGas(ctx, command, encodedData)
 		if err != nil {
 			return nil, err
 		}
@@ -111,7 +112,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		AmountOutUSD: strconv.FormatFloat(routeSummary.AmountOutUSD, 'f', -1, 64),
 
 		Gas:    strconv.FormatUint(estimatedGas, 10),
-		GasUSD: strconv.FormatFloat(routeSummary.GasUSD, 'f', -1, 64),
+		GasUSD: strconv.FormatFloat(gasInUSD, 'f', -1, 64),
 
 		OutputChange: OutputChangeNoChange,
 
@@ -356,11 +357,11 @@ func (uc *BuildRouteUseCase) getEncoder(ctx context.Context, command dto.BuildRo
 	return uc.l2Encoder
 }
 
-func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildRouteCommand, encodedData string) (uint64, error) {
+func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildRouteCommand, encodedData string) (uint64, float64, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.estimateGas")
 	defer span.End()
 
-	gas, err := uc.gasEstimator.Execute(ctx, UnsignedTransaction{
+	gas, gasUSD, err := uc.gasEstimator.Execute(ctx, UnsignedTransaction{
 		command.Sender,
 		command.Recipient,
 		encodedData,
@@ -368,8 +369,8 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 		nil,
 	})
 	if err != nil {
-		return 0, errors.Wrapf(ErrEstimateGasFailed, "Estimate gas failed due to %s", err.Error())
+		return 0, 0.0, errors.Wrapf(ErrEstimateGasFailed, "Estimate gas failed due to %s", err.Error())
 	}
 
-	return gas, nil
+	return gas, gasUSD, nil
 }

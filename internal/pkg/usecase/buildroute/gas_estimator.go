@@ -4,13 +4,17 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 )
 
 type GasEstimator struct {
-	gasEstimator IEthereumGasEstimator
+	gasEstimator    IEthereumGasEstimator
+	gasRepository   IGasRepository
+	priceRepository IPriceRepository
+	GasTokenAddress string
 }
 
 type UnsignedTransaction struct {
@@ -25,13 +29,17 @@ type IEthereumGasEstimator interface {
 	EstimateGas(ctx context.Context, call ethereum.CallMsg) (uint64, error)
 }
 
-func NewGasEstimator(gasEstimator IEthereumGasEstimator) *GasEstimator {
+func NewGasEstimator(gasEstimator IEthereumGasEstimator, gasRepo IGasRepository,
+	priceRepo IPriceRepository, gasToken string) *GasEstimator {
 	return &GasEstimator{
-		gasEstimator: gasEstimator,
+		gasEstimator:    gasEstimator,
+		gasRepository:   gasRepo,
+		priceRepository: priceRepo,
+		GasTokenAddress: gasToken,
 	}
 }
 
-func (e *GasEstimator) Execute(ctx context.Context, tx UnsignedTransaction) (uint64, error) {
+func (e *GasEstimator) Execute(ctx context.Context, tx UnsignedTransaction) (uint64, float64, error) {
 	var (
 		from             = common.HexToAddress(tx.sender)
 		to               = common.HexToAddress(tx.recipient)
@@ -39,7 +47,7 @@ func (e *GasEstimator) Execute(ctx context.Context, tx UnsignedTransaction) (uin
 	)
 	// We still return error incase data is empty because in router service, every transaction must contain data payload
 	if err != nil {
-		return 0, err
+		return 0, 0.0, err
 	}
 	estimatedGas, err := e.gasEstimator.EstimateGas(ctx, ethereum.CallMsg{
 		From:       from,
@@ -53,8 +61,43 @@ func (e *GasEstimator) Execute(ctx context.Context, tx UnsignedTransaction) (uin
 		AccessList: nil,
 	})
 	if err != nil {
-		return 0, err
+		return 0, 0.0, err
+	}
+	gasPrice, err := e.getGasPrice(ctx)
+	if err != nil {
+		return 0, 0.0, err
+	}
+	gasTokenPriceUSD, err := e.getPriceUSDByAddress(ctx, e.GasTokenAddress)
+	if err != nil {
+		return 0, 0.0, err
+	}
+	priceInUSD := utils.CalcGasUsd(gasPrice, int64(estimatedGas), gasTokenPriceUSD[e.GasTokenAddress])
+
+	return estimatedGas, priceInUSD, nil
+}
+
+func (e *GasEstimator) getGasPrice(ctx context.Context) (*big.Float, error) {
+
+	suggestedGasPrice, err := e.gasRepository.GetSuggestedGasPrice(ctx)
+	if err != nil {
+		return nil, err
 	}
 
-	return estimatedGas, nil
+	return new(big.Float).SetInt(suggestedGasPrice), nil
+}
+
+func (u *GasEstimator) getPriceUSDByAddress(ctx context.Context, addresses ...string) (map[string]float64, error) {
+	prices, err := u.priceRepository.FindByAddresses(ctx, addresses)
+	if err != nil {
+		return nil, err
+	}
+
+	priceUSDByAddress := make(map[string]float64, len(prices))
+	for _, price := range prices {
+		priceUSD, _ := price.GetPreferredPrice()
+
+		priceUSDByAddress[price.Address] = priceUSD
+	}
+
+	return priceUSDByAddress, nil
 }
