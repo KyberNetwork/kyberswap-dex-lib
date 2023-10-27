@@ -103,10 +103,10 @@ func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) 
 	}
 
 	for _, token := range p.Tokens {
-		if strings.ToLower(token.Address) == strings.ToLower(staticExtra.BaseTokenAddress) {
+		if strings.EqualFold(token.Address, staticExtra.BaseTokenAddress) {
 			baseTokenName = token.Symbol
 		}
-		if strings.ToLower(token.Address) == strings.ToLower(staticExtra.QuoteTokenAddress) {
+		if strings.EqualFold(token.Address, staticExtra.QuoteTokenAddress) {
 			quoteTokenName = token.Symbol
 		}
 	}
