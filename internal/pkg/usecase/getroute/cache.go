@@ -2,7 +2,6 @@ package getroute
 
 import (
 	"context"
-	"fmt"
 	"math/big"
 	"strconv"
 	"sync"
@@ -152,8 +151,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 		metrics.IncrFindRouteCacheCount(
 			false,
 			map[string]string{
-				"reason":       "priceImpactIsGreaterThanEpsilon",
-				"price_impact": fmt.Sprintf("%f", priceImpact),
+				"reason": "priceImpactIsGreaterThanEpsilon",
 			},
 		)
 
