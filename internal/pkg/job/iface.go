@@ -25,5 +25,5 @@ type IUpdateSuggestedGasPriceUseCase interface {
 // IGeneratePathUseCase generates the best paths from configured token pairs & amount and save them to Redis
 type IGeneratePathUseCase interface {
 	Handle(ctx context.Context)
-	ApplyConfig(config generatepath.Config)
+	ApplyConfig(config generatepath.Config, isExcludeRFQ bool)
 }

@@ -908,10 +908,10 @@ func applyLatestConfigForPathGenerator(
 	poolManager.ApplyConfig(cfg.UseCase.PoolManager)
 
 	logger.Infoln("Applying new config to generateBestPathsAllSourcesUseCase")
-	generateBestPathsAllSourcesUseCase.ApplyConfig(cfg.UseCase.GenerateBestPaths)
+	generateBestPathsAllSourcesUseCase.ApplyConfig(cfg.UseCase.GenerateBestPaths, false)
 
 	logger.Infoln("Applying new config to generateBestPathsAmmSourcesUseCase")
-	generateBestPathsAmmSourcesUseCase.ApplyConfig(cfg.UseCase.GenerateBestPaths)
+	generateBestPathsAmmSourcesUseCase.ApplyConfig(cfg.UseCase.GenerateBestPaths, true)
 
 	return nil
 }

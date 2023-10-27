@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getrouteencode"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -55,25 +56,34 @@ func NewUseCase(
 	}
 }
 
-func (uc *useCase) ApplyConfig(config Config) {
-	uc.mu.Lock()
-	defer uc.mu.Unlock()
+func (uc *useCase) ApplyConfig(config Config, isExcludeRFQ bool) {
+	var (
+		newSources     []string
+		currentSources = uc.config.AvailableSources
+	)
+	if isExcludeRFQ {
+		newSources = getrouteencode.GetSourcesAfterExclude(config.AvailableSources)
+	} else {
+		newSources = config.AvailableSources
+	}
 
 	differentSources := false
-	if len(config.AvailableSources) != len(uc.config.AvailableSources) {
+	if len(newSources) != len(currentSources) {
 		differentSources = true
 	} else {
-		for i := range config.AvailableSources {
-			if config.AvailableSources[i] != uc.config.AvailableSources[i] {
+		for i := range newSources {
+			if newSources[i] != currentSources[i] {
 				differentSources = true
 				break
 			}
 		}
 	}
 
+	uc.mu.Lock()
+	defer uc.mu.Unlock()
 	// if we have a new sources, rehash it.
 	if differentSources {
-		uc.sourceHash = valueobject.HashSources(config.AvailableSources)
+		uc.sourceHash = valueobject.HashSources(newSources)
 	}
 
 	uc.config = config
