@@ -50,17 +50,17 @@ func calcSwapOutput(tokenIn, tokenOut *TokenInfo, amountIn *big.Int, state *Pool
 
 	amountOutAfterFee := new(big.Int).Div(
 		new(big.Int).Div(
-			new(big.Int).Mul(valueChange, new(big.Int).Sub(Precision, fee)),
+			new(big.Int).Mul(valueChange, new(big.Int).Sub(precision, fee)),
 			priceOut,
 		),
-		Precision,
+		precision,
 	)
 	feeAmount := new(big.Int).Div(
 		new(big.Int).Div(
 			new(big.Int).Mul(valueChange, fee),
 			priceIn,
 		),
-		Precision,
+		precision,
 	)
 
 	return amountOutAfterFee, feeAmount, nil
@@ -142,7 +142,7 @@ func getPoolAsset(token *TokenInfo) *AssetInfo {
 }
 
 func calcDaoFee(feeAmount *big.Int, state *PoolState) *big.Int {
-	return frac(feeAmount, state.DaoFee, Precision)
+	return frac(feeAmount, state.DaoFee, precision)
 }
 
 func rebalanceTranches(tokenIn *TokenInfo, amountIn *big.Int, tokenOut *TokenInfo, amountOut *big.Int, state *PoolState) {

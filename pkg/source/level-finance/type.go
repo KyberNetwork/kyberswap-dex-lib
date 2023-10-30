@@ -17,9 +17,9 @@ type PoolState struct {
 
 type Extra struct {
 	Oracle           string                `json:"oracle"`
+	TokenInfos       map[string]*TokenInfo `json:"tokenInfos"`
 	TotalWeight      *big.Int              `json:"totalWeight"`
 	VirtualPoolValue *big.Int              `json:"virtualPoolValue"`
-	TokenInfos       map[string]*TokenInfo `json:"tokenInfos"`
 
 	// fee
 	StableCoinBaseSwapFee   *big.Int `json:"stableCoinBaseSwapFee"`

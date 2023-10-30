@@ -71,7 +71,7 @@ func (p *PoolSimulator) CalcAmountOut(
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-
+	return
 }
 
 func (p *PoolSimulator) deepCopyState(state *PoolState) *PoolState {

@@ -6,10 +6,8 @@ import (
 )
 
 var (
-	WooPPV2ABI           abi.ABI
-	IntegrationHelperABI abi.ABI
-	WooracleV2ABI        abi.ABI
-	Erc20ABI             abi.ABI
+	LiquidityPoolAbi abi.ABI
+	LevelOracleABI   abi.ABI
 )
 
 func init() {
@@ -17,10 +15,8 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&WooPPV2ABI, WooPPV2ABIBytes},
-		{&IntegrationHelperABI, IntegrationHelperABIBytes},
-		{&WooracleV2ABI, WooracleV2ABIBytes},
-		{&Erc20ABI, Erc20ABIBytes},
+		{&LiquidityPoolAbi, LiquidityPoolABIBytes},
+		{&LevelOracleABI, LevelOracleABIBytes},
 	}
 
 	for _, b := range builder {

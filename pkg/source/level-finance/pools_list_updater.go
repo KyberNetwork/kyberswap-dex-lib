@@ -4,8 +4,10 @@ import (
 	"context"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"math/big"
 	"strings"
 	"time"
 )
@@ -44,47 +46,43 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 func (d *PoolsListUpdater) init(ctx context.Context) ([]entity.Pool, error) {
 	var (
-		quoteToken common.Address
-		baseTokens = make([]common.Address, 0)
+		allAssets = make([]common.Address, 10)
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
-	calls.AddCall(&ethrpc.Call{
-		ABI:    IntegrationHelperABI,
-		Target: d.config.IntegrationHelperAddress,
-		Method: integrationHelperMethodAllBaseTokens,
-		Params: nil,
-	}, []interface{}{&baseTokens})
-	calls.AddCall(&ethrpc.Call{
-		ABI:    WooPPV2ABI,
-		Target: d.config.WooPPV2Address,
-		Method: wooPPV2MethodQuoteToken,
-		Params: nil,
-	}, []interface{}{&quoteToken})
+	for i := 0; i < 10; i++ {
+		calls.AddCall(&ethrpc.Call{
+			ABI:    LiquidityPoolAbi,
+			Target: d.config.LiquidityPoolAddress,
+			Method: liquidityPoolMethodAllAssets,
+			Params: []interface{}{big.NewInt(int64(i))},
+		}, []interface{}{&allAssets[i]})
+	}
 
-	if _, err := calls.Aggregate(); err != nil {
+	if _, err := calls.TryAggregate(); err != nil {
 		logger.Errorf("failed to aggregate call with error %v", err)
 		return nil, err
 	}
-	supportedToken := append(baseTokens, quoteToken)
 
-	var (
-		tokens   = make([]*entity.PoolToken, len(supportedToken))
-		reserves = make([]string, len(supportedToken))
-	)
-	for i, tokenAddress := range supportedToken {
-		tokens[i] = &entity.PoolToken{
+	reserves := make([]string, 0)
+	tokens := make([]*entity.PoolToken, 0)
+
+	for _, tokenAddress := range allAssets {
+		if tokenAddress.Hex() == valueobject.ZeroAddress {
+			break
+		}
+		tokens = append(tokens, &entity.PoolToken{
 			Address:   strings.ToLower(tokenAddress.Hex()),
 			Weight:    defaultWeight,
 			Swappable: true,
-		}
-		reserves[i] = zeroString
+		})
+		reserves = append(reserves, zeroString)
 	}
 
 	var newPool = entity.Pool{
-		Address:   strings.ToLower(d.config.WooPPV2Address),
+		Address:   strings.ToLower(d.config.LiquidityPoolAddress),
 		Exchange:  d.config.DexID,
-		Type:      DexTypeWooFiV2,
+		Type:      DexTypeLevelFinance,
 		Timestamp: time.Now().Unix(),
 		Reserves:  reserves,
 		Tokens:    tokens,
