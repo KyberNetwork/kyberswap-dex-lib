@@ -37,7 +37,7 @@ func (p *parameters) updateVolatilityReference() *parameters {
 	volAcc := p.VariableFeeParams.VolatilityAccumulator
 	reductionFactor := uint32(p.StaticFeeParams.ReductionFactor)
 
-	volRef := volAcc * reductionFactor / basisPointMax
+	volRef := uint32(uint64(volAcc) * uint64(reductionFactor) / basisPointMax)
 	return p.setVolatilityReference(volRef)
 }
 
