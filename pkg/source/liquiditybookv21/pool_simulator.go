@@ -209,7 +209,14 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 				amountOut = new(big.Int).Add(amountOut, amountsOutOfBin)
 				fee = new(big.Int).Add(fee, totalFees)
 
-				// TODO: sub amountsInWithFees for protocol fee
+				pFee, err := scalarMulDivBasisPointRoundDown(
+					totalFees,
+					big.NewInt(int64(p.staticFeeParams.ProtocolShare)),
+				)
+				if err != nil {
+					return nil, err
+				}
+				amountsInWithFees = new(big.Int).Sub(amountsInWithFees, pFee)
 				newBinReserveChanges := newBinReserveChanges(
 					id, !swapForY, amountsInWithFees, amountsOutOfBin,
 				)

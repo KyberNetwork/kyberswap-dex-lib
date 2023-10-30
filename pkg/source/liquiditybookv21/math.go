@@ -282,3 +282,19 @@ func verifyFee(fee *big.Int) error {
 	}
 	return nil
 }
+
+func scalarMulDivBasisPointRoundDown(totalFee *big.Int, multiplier *big.Int) (*big.Int, error) {
+	if multiplier.Cmp(bignumber.ZeroBI) == 0 {
+		return bignumber.ZeroBI, nil
+	}
+
+	if multiplier.Cmp(big.NewInt(basisPointMax)) > 0 {
+		return nil, ErrMultiplierTooLarge
+	}
+
+	result := new(big.Int).Div(
+		new(big.Int).Mul(totalFee, multiplier),
+		big.NewInt(basisPointMax),
+	)
+	return result, nil
+}
