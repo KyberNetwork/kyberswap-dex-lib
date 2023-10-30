@@ -38,6 +38,4 @@ var (
 	precison = big.NewInt(1e18)
 
 	maxUint256 = new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(1))
-
-	maxFee = big.NewInt(1e17)
 )

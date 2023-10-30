@@ -31,7 +31,19 @@ type querySubgraphPoolStateResult struct {
 	Bins           []bin  `json:"bins"`
 }
 
-type getSwapOutResult struct{}
+type getSwapOutResult struct {
+	AmountOut          *big.Int
+	Fee                *big.Int
+	BinsReserveChanges []binReserveChanges
+	FeeParameters      feeParameters
+	NewActiveID        uint32
+}
+
+type SwapInfo struct {
+	BinsReserveChanges []binReserveChanges
+	NewFeeParameters   feeParameters
+	NewActiveID        uint32
+}
 
 // rpc
 

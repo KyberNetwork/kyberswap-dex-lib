@@ -1,6 +1,11 @@
 package liquiditybookv20
 
-import "math"
+import (
+	"math"
+	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+)
 
 type feeParameters struct {
 	BinStep                  uint16 `json:"binStep"`
@@ -43,4 +48,63 @@ func (fp *feeParameters) updateVolatilityAccumulated(activeID uint32) {
 	}
 
 	fp.VolatilityAccumulated = uint32(volatilityAccumulated)
+}
+
+func (fp *feeParameters) getFeeAmount(amount *big.Int) *big.Int {
+	fee := fp.getTotalFee()
+	denominator := new(big.Int).Sub(precison, fee)
+	result := new(big.Int).Div(
+		new(big.Int).Sub(
+			new(big.Int).Add(new(big.Int).Mul(amount, fee), denominator),
+			bignumber.One,
+		),
+		denominator,
+	)
+	return result
+}
+
+func (fp *feeParameters) getTotalFee() *big.Int {
+	baseFee := fp.getBaseFee()
+	variableFee := fp.getVariableFee()
+	return new(big.Int).Add(baseFee, variableFee)
+}
+
+func (fp *feeParameters) getBaseFee() *big.Int {
+	baseFactor := fp.BaseFactor
+	result := new(big.Int).Mul(
+		new(big.Int).Mul(big.NewInt(int64(baseFactor)), big.NewInt(int64(fp.BinStep))),
+		big.NewInt(1e10),
+	)
+	return result
+}
+
+func (fp *feeParameters) getVariableFee() *big.Int {
+	if fp.VariableFeeControl == 0 {
+		return bignumber.ZeroBI
+	}
+
+	prod := new(big.Int).Mul(
+		big.NewInt(int64(fp.VolatilityAccumulated)),
+		big.NewInt(int64(fp.BinStep)),
+	)
+	variableFee := new(big.Int).Div(
+		new(big.Int).Add(
+			new(big.Int).Mul(
+				new(big.Int).Mul(prod, prod),
+				big.NewInt(int64(fp.VariableFeeControl)),
+			),
+			big.NewInt(99),
+		),
+		big.NewInt(100),
+	)
+	return variableFee
+}
+
+func (fp *feeParameters) getFeeAmountDistribution(fees *big.Int) (*big.Int, *big.Int) {
+	total := fees
+	protocol := new(big.Int).Div(
+		new(big.Int).Mul(total, big.NewInt(int64(fp.ProtocolShare))),
+		big.NewInt(basisPointMax),
+	)
+	return total, protocol
 }

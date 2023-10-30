@@ -209,6 +209,7 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 				amountOut = new(big.Int).Add(amountOut, amountsOutOfBin)
 				fee = new(big.Int).Add(fee, totalFees)
 
+				// TODO: sub amountsInWithFees for protocol fee
 				newBinReserveChanges := newBinReserveChanges(
 					id, !swapForY, amountsInWithFees, amountsOutOfBin,
 				)
