@@ -668,12 +668,16 @@ func (t *PoolSimulator) tweakPrice(mA *big.Int, mGamma *big.Int, xp []*big.Int, 
 		)
 		t.PriceOracle = newPriceOracle
 		t.LastPricesTimestamp = blockTimestamp
+	}
 
-	}
+	var err error
 	if newD.Cmp(constant.ZeroBI) == 0 {
-		newD, _ = newtonD(mA, mGamma, xp)
+		newD, err = newtonD(mA, mGamma, xp)
+		if err != nil {
+			return err
+		}
 	}
-	lastPricesTmp, err := t.getPrice(big.NewInt(1), mA, mGamma, xp, newD)
+	lastPricesTmp, err = t.getPrice(big.NewInt(1), mA, mGamma, xp, newD)
 	if err != nil {
 		return err
 	}
