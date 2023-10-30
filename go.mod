@@ -12,7 +12,7 @@ require (
 	github.com/KyberNetwork/aevm v1.0.6
 	github.com/KyberNetwork/ethrpc v0.5.0
 	github.com/KyberNetwork/kyber-trace-go v0.1.0
-	github.com/KyberNetwork/kyberswap-dex-lib v0.20.4
+	github.com/KyberNetwork/kyberswap-dex-lib v0.20.6
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/alicebob/miniredis v2.5.0+incompatible

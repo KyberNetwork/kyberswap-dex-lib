@@ -61,7 +61,6 @@ type types struct {
 	MaverickV1               string
 	AlgebraV1                string
 	TraderJoeV20             string
-	TraderJoeV21             string
 	KyberPMM                 string
 	IZiSwap                  string
 	WooFiV2                  string
@@ -73,6 +72,7 @@ type types struct {
 	Vooi                     string
 	PolMatic                 string
 	KokonutCrypto            string
+	LiquidityBookV21         string
 }
 
 var (
@@ -137,7 +137,6 @@ var (
 		MaverickV1:               "maverick-v1",
 		AlgebraV1:                "algebra-v1",
 		TraderJoeV20:             "traderjoe-v20",
-		TraderJoeV21:             "traderjoe-v21",
 		KyberPMM:                 "kyber-pmm",
 		IZiSwap:                  "iziswap",
 		WooFiV2:                  "woofi-v2",
@@ -149,5 +148,6 @@ var (
 		Vooi:                     "vooi",
 		PolMatic:                 "pol-matic",
 		KokonutCrypto:            "kokonut-crypto",
+		LiquidityBookV21:         "liquiditybook-v21",
 	}
 )

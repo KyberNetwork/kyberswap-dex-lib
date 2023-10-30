@@ -31,6 +31,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido"
 	lidosteth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido-steth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/liquiditybookv21"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/madmex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/makerpsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/mantisswap"
@@ -64,7 +65,6 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/core/traderjoev20"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/traderjoev21"
 	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -305,8 +305,6 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newAlgebraV1(entityPool)
 	case constant.PoolTypes.TraderJoeV20:
 		return f.newTraderJoeV20(entityPool, stateRoot)
-	case constant.PoolTypes.TraderJoeV21:
-		return f.newTraderJoeV21(entityPool, stateRoot)
 	case constant.PoolTypes.KyberPMM:
 		return f.newKyberPMM(entityPool)
 	case constant.PoolTypes.IZiSwap:
@@ -329,6 +327,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newPolMatic(entityPool)
 	case constant.PoolTypes.KokonutCrypto:
 		return f.newKokonutCrypto(entityPool)
+	case constant.PoolTypes.LiquidityBookV21:
+		return f.newLiquidityBookV21(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -913,23 +913,6 @@ func (f *PoolFactory) newTraderJoeV20(entityPool entity.Pool, stateRoot common.H
 	return corePool, nil
 }
 
-func (f *PoolFactory) newTraderJoeV21(entityPool entity.Pool, stateRoot common.Hash) (*traderjoev21.Pool, error) {
-	if f.balanceSlotsUseCase == nil || f.client == nil {
-		return nil, errors.New("AEVM is not initialized")
-	}
-	balanceSlots := f.getBalanceSlots(&entityPool)
-	corePool, err := traderjoev21.NewPoolAEVM(entityPool, f.client, stateRoot, balanceSlots)
-	if err != nil {
-		return nil, errors.Wrapf(
-			ErrInitializePoolFailed,
-			"[PoolFactory.newTraderJoeV21] pool: [%s] » type: [%s]",
-			entityPool.Address,
-			entityPool.Type,
-		)
-	}
-	return corePool, nil
-}
-
 func (f *PoolFactory) newKyberPMM(entityPool entity.Pool) (*kyberpmm.PoolSimulator, error) {
 	corePool, err := kyberpmm.NewPoolSimulator(entityPool)
 	if err != nil {
@@ -1078,6 +1061,21 @@ func (f *PoolFactory) newKokonutCrypto(entityPool entity.Pool) (*kokonutcrypto.P
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.kokonutCrypto] pool: [%s] » type: [%s]",
+
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newLiquidityBookV21(entityPool entity.Pool) (*liquiditybookv21.PoolSimulator, error) {
+	corePool, err := liquiditybookv21.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newLiquidityBookV21] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
