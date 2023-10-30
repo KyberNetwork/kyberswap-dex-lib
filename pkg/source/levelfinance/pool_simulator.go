@@ -51,11 +51,7 @@ func (p *PoolSimulator) CalcAmountOut(
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
-	newState, err := p.deepCopyState(p.state)
-	if err != nil {
-		return nil, err
-	}
-
+	newState := p.deepCopyState(p.state)
 	amountOutAfterFee, err := swap(tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount, newState)
 	if err != nil {
 		return nil, err
@@ -78,7 +74,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 }
 
-func (p *PoolSimulator) deepCopyState(state *PoolState) (*PoolState, error) {
+func (p *PoolSimulator) deepCopyState(state *PoolState) *PoolState {
 	newState := &PoolState{
 		TotalWeight:             new(big.Int).Set(state.TotalWeight),
 		VirtualPoolValue:        new(big.Int).Set(state.VirtualPoolValue),
@@ -106,4 +102,6 @@ func (p *PoolSimulator) deepCopyState(state *PoolState) (*PoolState, error) {
 			newState.TokenInfos[key].RiskFactor[keyRiskFactor] = new(big.Int).Set(valueRiskFactor)
 		}
 	}
+
+	return newState
 }
