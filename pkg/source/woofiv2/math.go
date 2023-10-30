@@ -3,6 +3,7 @@ package woofiv2
 import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"math/big"
+	"strings"
 )
 
 func GetAmountOut(
@@ -37,15 +38,9 @@ func sellQuote(
 		return nil, ErrTokenInfoNotFound
 	}
 
-	//balanceQuoteToken, err := balance(state.QuoteToken, state)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//// balanceBaseToken always equals baseTokenInfo.Reserve
-	//if new(big.Int).Sub(balanceQuoteToken, baseTokenInfo.Reserve).Cmp(quoteAmount) < 0 {
-	//	return nil, ErrQuoteBalanceNotEnough
-	//}
+	if balance(state.QuoteToken, quoteAmount, state).Cmp(quoteAmount) < 0 {
+		return nil, ErrQuoteBalanceNotEnough
+	}
 
 	swapFee := new(big.Int).Div(
 		new(big.Int).Mul(quoteAmount, baseTokenInfo.FeeRate),
@@ -91,15 +86,9 @@ func sellBase(
 		return nil, ErrTokenInfoNotFound
 	}
 
-	//balanceBaseToken, err := balance(baseToken, state)
-	//if err != nil {
-	//	return nil, err
-	//}
-
-	// balanceBaseToken always equals baseTokenInfo.Reserve
-	//if new(big.Int).Sub(balanceBaseToken, baseTokenInfo.Reserve).Cmp(baseAmount) < 0 {
-	//	return nil, ErrBaseBalanceNotEnough
-	//}
+	if balance(baseToken, baseAmount, state).Cmp(baseAmount) < 0 {
+		return nil, ErrBaseBalanceNotEnough
+	}
 
 	quoteAmount, newPrice, err := calcQuoteAmountSellBase(baseToken, baseAmount, state)
 	if err != nil {
@@ -148,14 +137,9 @@ func swapBaseToBase(
 		return nil, ErrTokenInfoNotFound
 	}
 
-	//balanceBaseToken1, err := balance(baseToken1, state)
-	//if err != nil {
-	//	return nil, err
-	//}
-	// balanceBaseToken always equals baseTokenInfo.Reserve
-	//if new(big.Int).Sub(balanceBaseToken1, base1TokenInfo.Reserve).Cmp(base1Amount) < 0 {
-	//	return nil, ErrBase1BalanceNotEnough
-	//}
+	if balance(baseToken1, base1Amount, state).Cmp(base1Amount) < 0 {
+		return nil, ErrBaseBalanceNotEnough
+	}
 
 	spread := new(big.Int).Div(
 		maxBigInt(base1TokenInfo.State.Spread, base2TokenInfo.State.Spread),
@@ -370,4 +354,11 @@ func postPrice(baseToken string, newPrice *big.Int, state *WooFiV2State) error {
 	baseTokenInfo.State.Price = new(big.Int).Set(newPrice)
 
 	return nil
+}
+
+func balance(token string, amount *big.Int, state *WooFiV2State) *big.Int {
+	if strings.EqualFold(token, state.QuoteToken) {
+		return new(big.Int).Sub(amount, state.UnclaimedFee)
+	}
+	return amount
 }
