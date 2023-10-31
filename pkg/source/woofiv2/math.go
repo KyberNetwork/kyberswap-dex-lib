@@ -1,9 +1,10 @@
 package woofiv2
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"math/big"
-	"strings"
+	"time"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func GetAmountOut(
@@ -38,10 +39,6 @@ func sellQuote(
 		return nil, ErrTokenInfoNotFound
 	}
 
-	if balance(state.QuoteToken, quoteAmount, state).Cmp(quoteAmount) < 0 {
-		return nil, ErrQuoteBalanceNotEnough
-	}
-
 	swapFee := new(big.Int).Div(
 		new(big.Int).Mul(quoteAmount, baseTokenInfo.FeeRate),
 		big.NewInt(1e5),
@@ -49,7 +46,8 @@ func sellQuote(
 	quoteAmountAfterFee := new(big.Int).Sub(quoteAmount, swapFee)
 	state.UnclaimedFee = new(big.Int).Add(state.UnclaimedFee, swapFee)
 
-	baseAmount, newPrice, err := calcBaseAmountSellQuote(baseToken, quoteAmountAfterFee, state)
+	wooracleState := getState(baseToken, state)
+	baseAmount, newPrice, err := calcBaseAmountSellQuote(baseToken, quoteAmountAfterFee, wooracleState, state)
 	if err != nil {
 		return nil, err
 	}
@@ -86,11 +84,8 @@ func sellBase(
 		return nil, ErrTokenInfoNotFound
 	}
 
-	if balance(baseToken, baseAmount, state).Cmp(baseAmount) < 0 {
-		return nil, ErrBaseBalanceNotEnough
-	}
-
-	quoteAmount, newPrice, err := calcQuoteAmountSellBase(baseToken, baseAmount, state)
+	wooracleState := getState(baseToken, state)
+	quoteAmount, newPrice, err := calcQuoteAmountSellBase(baseToken, baseAmount, wooracleState, state)
 	if err != nil {
 		return nil, err
 	}
@@ -137,9 +132,8 @@ func swapBaseToBase(
 		return nil, ErrTokenInfoNotFound
 	}
 
-	if balance(baseToken1, base1Amount, state).Cmp(base1Amount) < 0 {
-		return nil, ErrBaseBalanceNotEnough
-	}
+	wooracleState1 := getState(baseToken1, state)
+	wooracleState2 := getState(baseToken2, state)
 
 	spread := new(big.Int).Div(
 		maxBigInt(base1TokenInfo.State.Spread, base2TokenInfo.State.Spread),
@@ -147,10 +141,10 @@ func swapBaseToBase(
 	)
 	feeRate := maxBigInt(base1TokenInfo.FeeRate, base2TokenInfo.FeeRate)
 
-	base1TokenInfo.State.Spread = spread
-	base2TokenInfo.State.Spread = spread
+	wooracleState1.Spread = spread
+	wooracleState2.Spread = spread
 
-	quoteAmount, newBase1Price, err := calcQuoteAmountSellBase(baseToken1, base1Amount, state)
+	quoteAmount, newBase1Price, err := calcQuoteAmountSellBase(baseToken1, base1Amount, wooracleState1, state)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +162,7 @@ func swapBaseToBase(
 	quoteTokenInfo.Reserve = new(big.Int).Sub(quoteTokenInfo.Reserve, swapFee)
 	base1TokenInfo.Reserve = new(big.Int).Add(base1TokenInfo.Reserve, base1Amount)
 
-	base2Amount, newBase2Price, err := calcBaseAmountSellQuote(baseToken2, quoteAmountAfterFee, state)
+	base2Amount, newBase2Price, err := calcBaseAmountSellQuote(baseToken2, quoteAmountAfterFee, wooracleState2, state)
 	if err != nil {
 		return nil, err
 	}
@@ -188,14 +182,10 @@ func swapBaseToBase(
 func calcBaseAmountSellQuote(
 	baseToken string,
 	quoteAmount *big.Int,
+	wooracleState *OracleState,
 	state *WooFiV2State,
 ) (*big.Int, *big.Int, error) {
-	baseTokenInfo, ok := state.TokenInfos[baseToken]
-	if !ok {
-		return nil, nil, ErrTokenInfoNotFound
-	}
-
-	if !baseTokenInfo.State.WoFeasible {
+	if !wooracleState.WoFeasible {
 		return nil, nil, ErrOracleNotFeasible
 	}
 
@@ -208,9 +198,9 @@ func calcBaseAmountSellQuote(
 	coef := new(big.Int).Sub(
 		new(big.Int).Sub(
 			bignumber.BONE,
-			new(big.Int).Div(new(big.Int).Mul(quoteAmount, baseTokenInfo.State.Coeff), desc.QuoteDec),
+			new(big.Int).Div(new(big.Int).Mul(quoteAmount, wooracleState.Coeff), desc.QuoteDec),
 		),
-		baseTokenInfo.State.Spread,
+		wooracleState.Spread,
 	)
 	baseAmount := new(big.Int).Div(
 		new(big.Int).Div(
@@ -220,7 +210,7 @@ func calcBaseAmountSellQuote(
 						new(big.Int).Mul(quoteAmount, desc.BaseDec),
 						desc.PriceDec,
 					),
-					baseTokenInfo.State.Price,
+					wooracleState.Price,
 				),
 				coef,
 			),
@@ -235,9 +225,9 @@ func calcBaseAmountSellQuote(
 			new(big.Int).Mul(
 				new(big.Int).Add(
 					new(big.Int).Mul(bignumber.BONE, desc.QuoteDec),
-					new(big.Int).Mul(bignumber.Two, new(big.Int).Mul(baseTokenInfo.State.Coeff, quoteAmount)),
+					new(big.Int).Mul(bignumber.Two, new(big.Int).Mul(wooracleState.Coeff, quoteAmount)),
 				),
-				baseTokenInfo.State.Price,
+				wooracleState.Price,
 			),
 			desc.QuoteDec,
 		),
@@ -250,14 +240,10 @@ func calcBaseAmountSellQuote(
 func calcQuoteAmountSellBase(
 	baseToken string,
 	baseAmount *big.Int,
+	wooracleState *OracleState,
 	state *WooFiV2State,
 ) (*big.Int, *big.Int, error) {
-	baseTokenInfo, ok := state.TokenInfos[baseToken]
-	if !ok {
-		return nil, nil, ErrTokenInfoNotFound
-	}
-
-	if !baseTokenInfo.State.WoFeasible {
+	if !wooracleState.WoFeasible {
 		return nil, nil, ErrOracleNotFeasible
 	}
 
@@ -271,19 +257,19 @@ func calcQuoteAmountSellBase(
 			bignumber.BONE,
 			new(big.Int).Div(
 				new(big.Int).Div(
-					new(big.Int).Mul(baseTokenInfo.State.Coeff, new(big.Int).Mul(baseAmount, baseTokenInfo.State.Price)),
+					new(big.Int).Mul(wooracleState.Coeff, new(big.Int).Mul(baseAmount, wooracleState.Price)),
 					decs.BaseDec,
 				),
 				decs.PriceDec,
 			),
 		),
-		baseTokenInfo.State.Spread,
+		wooracleState.Spread,
 	)
 	quoteAmount := new(big.Int).Div(
 		new(big.Int).Div(
 			new(big.Int).Mul(
 				new(big.Int).Div(
-					new(big.Int).Mul(baseAmount, new(big.Int).Mul(decs.QuoteDec, baseTokenInfo.State.Price)),
+					new(big.Int).Mul(baseAmount, new(big.Int).Mul(decs.QuoteDec, wooracleState.Price)),
 					decs.PriceDec,
 				),
 				coef,
@@ -301,14 +287,14 @@ func calcQuoteAmountSellBase(
 				new(big.Int).Div(
 					new(big.Int).Div(
 						new(big.Int).Mul(
-							new(big.Int).Mul(bignumber.Two, baseTokenInfo.State.Coeff),
-							new(big.Int).Mul(baseTokenInfo.State.Price, baseAmount),
+							new(big.Int).Mul(bignumber.Two, wooracleState.Coeff),
+							new(big.Int).Mul(wooracleState.Price, baseAmount),
 						),
 						decs.PriceDec,
 					),
 					decs.BaseDec,
 				),
-				baseTokenInfo.State.Price,
+				wooracleState.Price,
 			),
 		),
 		bignumber.BONE,
@@ -356,9 +342,48 @@ func postPrice(baseToken string, newPrice *big.Int, state *WooFiV2State) error {
 	return nil
 }
 
-func balance(token string, amount *big.Int, state *WooFiV2State) *big.Int {
-	if strings.EqualFold(token, state.QuoteToken) {
-		return new(big.Int).Sub(amount, state.UnclaimedFee)
+func getState(base string, state *WooFiV2State) *OracleState {
+	basePrice, feasible := getPrice(base, state)
+	return &OracleState{
+		Price:        basePrice,
+		Spread:       state.TokenInfos[base].State.Spread,
+		Coeff:        state.TokenInfos[base].State.Coeff,
+		WoFeasible:   feasible,
+		Decimals:     state.TokenInfos[base].State.Decimals,
+		CloPrice:     state.TokenInfos[base].State.CloPrice,
+		CloPreferred: state.TokenInfos[base].State.CloPreferred,
 	}
-	return amount
+}
+
+func getPrice(base string, state *WooFiV2State) (*big.Int, bool) {
+	woPrice := new(big.Int).Set(state.TokenInfos[base].State.Price)
+	woPriceTimestamp := state.Timestamp
+	cloPrice := new(big.Int).Set(state.TokenInfos[base].State.CloPrice)
+
+	woFeasible := false
+	if woPrice.Cmp(bignumber.ZeroBI) != 0 && time.Now().Unix() <= woPriceTimestamp.Int64()+state.StaleDuration.Int64() {
+		woFeasible = true
+	}
+
+	woPriceInBound := false
+	if cloPrice.Cmp(bignumber.ZeroBI) == 0 ||
+		new(big.Int).Div(new(big.Int).Mul(cloPrice, new(big.Int).Sub(bignumber.BONE, state.Bound)), bignumber.BONE).Cmp(woPrice) <= 0 &&
+			new(big.Int).Div(new(big.Int).Mul(cloPrice, new(big.Int).Add(bignumber.BONE, state.Bound)), bignumber.BONE).Cmp(woPrice) >= 0 {
+		woPriceInBound = true
+	}
+
+	if woFeasible {
+		return woPrice, woPriceInBound
+	} else {
+		priceOut := cloPrice
+		if !state.TokenInfos[base].State.CloPreferred {
+			priceOut = big.NewInt(0)
+		}
+		feasible := false
+		if priceOut.Cmp(bignumber.ZeroBI) != 0 {
+			feasible = true
+		}
+
+		return priceOut, feasible
+	}
 }

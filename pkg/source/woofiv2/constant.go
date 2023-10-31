@@ -10,8 +10,13 @@ const (
 	wooPPV2MethodWooracle     = "wooracle"
 	wooPPV2MethodUnclaimedFee = "unclaimedFee"
 
-	wooracleMethodWoState  = "woState"
-	wooracleMethodDecimals = "decimals"
+	wooracleMethodWoState       = "woState"
+	wooracleMethodDecimals      = "decimals"
+	wooracleMethodTimestamp     = "timestamp"
+	wooracleMethodBound         = "bound"
+	wooracleMethodStaleDuration = "staleDuration"
+	wooracleMethodClOracles     = "clOracles"
+	wooracleMethodCloPrice      = "cloPrice"
 
 	erc20MethodDecimals = "decimals"
 
