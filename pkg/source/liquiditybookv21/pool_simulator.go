@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -134,10 +135,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		if !ok {
 			changes = binReserveChanges{
 				BinID:      b.BinID,
-				AmountXIn:  bignumber.ZeroBI,
-				AmountXOut: bignumber.ZeroBI,
-				AmountYIn:  bignumber.ZeroBI,
-				AmountYOut: bignumber.ZeroBI,
+				AmountXIn:  integer.Zero(),
+				AmountXOut: integer.Zero(),
+				AmountYIn:  integer.Zero(),
+				AmountYOut: integer.Zero(),
 			}
 		}
 		changes.AmountXIn = new(big.Int).Add(changes.AmountXIn, b.AmountXIn)
@@ -180,8 +181,8 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 	var (
 		amountsInLeft      = amountIn
 		binStep            = p.binStep
-		amountOut          = bignumber.ZeroBI
-		swapFee            = bignumber.ZeroBI
+		amountOut          = integer.Zero()
+		swapFee            = integer.Zero()
 		binsReserveChanges []binReserveChanges
 	)
 
@@ -227,7 +228,7 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 
 		}
 
-		if amountsInLeft.Cmp(bignumber.ZeroBI) == 0 {
+		if amountsInLeft.Cmp(integer.Zero()) == 0 {
 			break
 		}
 
