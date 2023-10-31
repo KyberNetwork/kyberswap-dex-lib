@@ -3,7 +3,7 @@ package liquiditybookv21
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 )
 
 type bin struct {
@@ -14,14 +14,16 @@ type bin struct {
 }
 
 func (b *bin) isEmptyForSwap(swapForX bool) bool {
+	zero := integer.Zero()
 	if swapForX {
-		return b.ReserveX.Cmp(bignumber.ZeroBI) == 0
+		return b.ReserveX.Cmp(zero) == 0
 	}
-	return b.ReserveY.Cmp(bignumber.ZeroBI) == 0
+	return b.ReserveY.Cmp(zero) == 0
 }
 
 func (b *bin) isEmpty() bool {
-	return b.ReserveX.Cmp(bignumber.ZeroBI) == 0 && b.ReserveY.Cmp(bignumber.ZeroBI) == 0
+	zero := integer.Zero()
+	return b.ReserveX.Cmp(zero) == 0 && b.ReserveY.Cmp(zero) == 0
 }
 
 func (b *bin) getAmounts(
@@ -116,17 +118,17 @@ func newBinReserveChanges(
 	if swapForX {
 		return binReserveChanges{
 			BinID:      binID,
-			AmountXIn:  bignumber.ZeroBI,
+			AmountXIn:  integer.Zero(),
 			AmountXOut: amountOut,
 			AmountYIn:  amountIn,
-			AmountYOut: bignumber.ZeroBI,
+			AmountYOut: integer.Zero(),
 		}
 	}
 	return binReserveChanges{
 		BinID:      binID,
 		AmountXIn:  amountIn,
-		AmountXOut: bignumber.ZeroBI,
-		AmountYIn:  bignumber.ZeroBI,
+		AmountXOut: integer.Zero(),
+		AmountYIn:  integer.Zero(),
 		AmountYOut: amountOut,
 	}
 }

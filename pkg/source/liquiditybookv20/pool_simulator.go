@@ -1,4 +1,4 @@
-package liquiditybookv21
+package liquiditybookv20
 
 import (
 	"encoding/json"
@@ -17,12 +17,10 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 
-	blockTimestamp    uint64
-	staticFeeParams   staticFeeParams
-	variableFeeParams variableFeeParams
-	activeBinID       uint32
-	binStep           uint16
-	bins              []bin
+	blockTimestamp uint64
+	feeParams      feeParameters
+	activeBinID    uint32
+	bins           []bin
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -58,13 +56,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:              pool.Pool{Info: info},
-		blockTimestamp:    extra.RpcBlockTimestamp,
-		staticFeeParams:   extra.StaticFeeParams,
-		variableFeeParams: extra.VariableFeeParams,
-		activeBinID:       extra.ActiveBinID,
-		binStep:           extra.BinStep,
-		bins:              extra.Bins,
+		Pool:           pool.Pool{Info: info},
+		blockTimestamp: extra.RpcBlockTimestamp,
+		feeParams:      extra.FeeParameters,
+		activeBinID:    extra.ActiveBinID,
+		bins:           extra.Bins,
 	}, nil
 }
 
@@ -95,12 +91,69 @@ func (p *PoolSimulator) CalcAmountOut(
 		},
 		Gas: defaultGas,
 		SwapInfo: SwapInfo{
-			AmountsInLeft:      swapOutResult.AmountsInLeft,
 			BinsReserveChanges: swapOutResult.BinsReserveChanges,
-			NewParameters:      swapOutResult.Parameters,
+			NewFeeParameters:   swapOutResult.FeeParameters,
 			NewActiveID:        swapOutResult.NewActiveID,
 		},
 	}, nil
+}
+
+func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOutResult, error) {
+	var (
+		id                 = p.activeBinID
+		amountOut          = integer.Zero()
+		swapFee            = integer.Zero()
+		binsReserveChanges []binReserveChanges
+	)
+
+	// All fields are value type, so we can copy directly.
+	fp := p.feeParams
+	fp.updateVariableFeeParameters(p.blockTimestamp, id)
+
+	for {
+		binArrIdx, err := p.findBinArrIndex(id)
+		if err != nil {
+			return nil, err
+		}
+		bin := p.bins[binArrIdx]
+		if !bin.isEmptyForSwap(!swapForY) {
+			amountInToBin, amountOutOfBin, totalFee, _, err := bin.getAmounts(&fp, id, swapForY, amountIn)
+			if err != nil {
+				return nil, err
+			}
+
+			swapFee = new(big.Int).Add(swapFee, totalFee)
+
+			amountIn = new(big.Int).Sub(amountIn, new(big.Int).Add(amountInToBin, totalFee))
+			amountOut = new(big.Int).Add(amountOut, amountOutOfBin)
+
+			newBinReserveChanges := newBinReserveChanges(
+				id, !swapForY, amountInToBin, amountOutOfBin,
+			)
+			binsReserveChanges = append(binsReserveChanges, newBinReserveChanges)
+		}
+
+		if amountIn.Cmp(integer.Zero()) == 0 {
+			break
+		}
+
+		nextID, err := p.getNextNonEmptyBin(swapForY, id)
+		if err != nil {
+			return nil, err
+		}
+
+		id = nextID
+	}
+
+	ret := getSwapOutResult{
+		AmountOut:          amountOut,
+		Fee:                swapFee,
+		BinsReserveChanges: binsReserveChanges,
+		FeeParameters:      fp,
+		NewActiveID:        id,
+	}
+
+	return &ret, nil
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -125,8 +178,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.activeBinID = swapInfo.NewActiveID
 
 	// fee
-	p.staticFeeParams = swapInfo.NewParameters.StaticFeeParams
-	p.variableFeeParams = swapInfo.NewParameters.VariableFeeParams
+	p.feeParams = swapInfo.NewFeeParameters
 
 	// update reserves of bins
 	totalBinReserveChanges := make(map[uint32]binReserveChanges)
@@ -177,86 +229,6 @@ func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
 }
 
-func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOutResult, error) {
-	var (
-		amountsInLeft      = amountIn
-		binStep            = p.binStep
-		amountOut          = integer.Zero()
-		swapFee            = integer.Zero()
-		binsReserveChanges []binReserveChanges
-	)
-
-	parameters := p.copyParameters()
-	id := parameters.ActiveBinID
-
-	parameters = parameters.updateReferences(p.blockTimestamp)
-
-	for {
-		binArrIdx, err := p.findBinArrIndex(id)
-		if err != nil {
-			return nil, err
-		}
-		bin := p.bins[binArrIdx]
-		if !bin.isEmptyForSwap(!swapForY) {
-			parameters = parameters.updateVolatilityAccumulator(id)
-
-			amountsInWithFees, amountsOutOfBin, totalFees, err := bin.getAmounts(
-				parameters, binStep, swapForY, id, amountsInLeft,
-			)
-			if err != nil {
-				return nil, err
-			}
-
-			if amountsInWithFees.Cmp(bignumber.ZeroBI) > 0 {
-				amountsInLeft = new(big.Int).Sub(amountsInLeft, amountsInWithFees)
-				amountOut = new(big.Int).Add(amountOut, amountsOutOfBin)
-				swapFee = new(big.Int).Add(swapFee, totalFees)
-
-				pFee, err := scalarMulDivBasisPointRoundDown(
-					totalFees,
-					big.NewInt(int64(p.staticFeeParams.ProtocolShare)),
-				)
-				if err != nil {
-					return nil, err
-				}
-				amountsInWithFees = new(big.Int).Sub(amountsInWithFees, pFee)
-				newBinReserveChanges := newBinReserveChanges(
-					id, !swapForY, amountsInWithFees, amountsOutOfBin,
-				)
-				binsReserveChanges = append(binsReserveChanges, newBinReserveChanges)
-			}
-
-		}
-
-		if amountsInLeft.Cmp(integer.Zero()) == 0 {
-			break
-		}
-
-		nextID, err := p.getNextNonEmptyBin(swapForY, id)
-		if err != nil {
-			if err == ErrNotFoundBinID {
-				break
-			}
-			return nil, err
-		}
-
-		id = nextID
-	}
-
-	parameters.ActiveBinID = id
-
-	ret := getSwapOutResult{
-		AmountsInLeft:      amountsInLeft,
-		AmountOut:          amountOut,
-		Fee:                swapFee,
-		BinsReserveChanges: binsReserveChanges,
-		Parameters:         parameters,
-		NewActiveID:        id,
-	}
-
-	return &ret, nil
-}
-
 func (p *PoolSimulator) validateTokens(tokens []string) error {
 	for _, t := range tokens {
 		if p.GetTokenIndex(t) < 0 {
@@ -266,12 +238,26 @@ func (p *PoolSimulator) validateTokens(tokens []string) error {
 	return nil
 }
 
-func (p *PoolSimulator) copyParameters() *parameters {
-	return &parameters{
-		StaticFeeParams:   p.staticFeeParams,
-		VariableFeeParams: p.variableFeeParams,
-		ActiveBinID:       p.activeBinID,
+func (p *PoolSimulator) findBinArrIndex(binID uint32) (uint32, error) {
+	var (
+		l = 0
+		r = len(p.bins)
+	)
+
+	for r-l > 1 {
+		m := (r + l) >> 1
+		if p.bins[m].ID <= binID {
+			l = m
+		} else {
+			r = m
+		}
 	}
+
+	if p.bins[l].ID != binID {
+		return 0, ErrNotFoundBinID
+	}
+
+	return uint32(l), nil
 }
 
 func (p *PoolSimulator) getNextNonEmptyBin(swapForY bool, id uint32) (uint32, error) {
@@ -302,26 +288,4 @@ func (p *PoolSimulator) findFirstLeft(id uint32) (uint32, error) {
 		return 0, ErrNotFoundBinID
 	}
 	return p.bins[idx+1].ID, nil
-}
-
-func (p *PoolSimulator) findBinArrIndex(binID uint32) (uint32, error) {
-	var (
-		l = 0
-		r = len(p.bins)
-	)
-
-	for r-l > 1 {
-		m := (r + l) >> 1
-		if p.bins[m].ID <= binID {
-			l = m
-		} else {
-			r = m
-		}
-	}
-
-	if p.bins[l].ID != binID {
-		return 0, ErrNotFoundBinID
-	}
-
-	return uint32(l), nil
 }

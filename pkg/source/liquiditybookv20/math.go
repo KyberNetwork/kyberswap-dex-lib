@@ -1,4 +1,4 @@
-package liquiditybookv21
+package liquiditybookv20
 
 import (
 	"math/big"
@@ -21,7 +21,6 @@ func getExponent(id uint32) *big.Int {
 	return new(big.Int).Sub(big.NewInt(int64(id)), big.NewInt(realIDShift))
 }
 
-// https://github.com/traderjoe-xyz/joe-v2/blob/v2.1.1/src/libraries/math/Uint128x128Math.sol#L95
 func pow(x *big.Int, y *big.Int) (*big.Int, error) {
 	var (
 		invert bool
@@ -80,15 +79,11 @@ func pow(x *big.Int, y *big.Int) (*big.Int, error) {
 	return result, nil
 }
 
-// https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L95
 func shiftDivRoundUp(x *big.Int, offset uint8, denominator *big.Int) (*big.Int, error) {
 	result, err := shiftDivRoundDown(x, offset, denominator)
 	if err != nil {
 		return nil, err
 	}
-
-	// https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L97
-	// mulmod(x, y, m): (x * y) % m with arbitrary precision arithmetic, 0 if m == 0
 
 	if denominator.Cmp(integer.Zero()) == 0 {
 		return integer.Zero(), nil
@@ -104,7 +99,6 @@ func shiftDivRoundUp(x *big.Int, offset uint8, denominator *big.Int) (*big.Int, 
 	return result, nil
 }
 
-// https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L114
 func shiftDivRoundDown(x *big.Int, offset uint8, denominator *big.Int) (*big.Int, error) {
 	var (
 		prod0, prod1 *big.Int
@@ -118,7 +112,6 @@ func shiftDivRoundDown(x *big.Int, offset uint8, denominator *big.Int) (*big.Int
 	return getEndOfDivRoundDown(x, y, denominator, prod0, prod1)
 }
 
-// https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L172
 func getEndOfDivRoundDown(
 	x *big.Int,
 	y *big.Int,
@@ -178,7 +171,6 @@ func gt(x *big.Int, y *big.Int) *big.Int {
 	return integer.Zero()
 }
 
-// https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L95
 func mulShiftRoundUp(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
 	result, err := mulShiftRoundDown(x, y, offset)
 	if err != nil {
@@ -194,7 +186,6 @@ func mulShiftRoundUp(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
 	return result, nil
 }
 
-// https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L67
 func mulShiftRoundDown(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
 	prod0, prod1 := getMulProds(x, y)
 	result := big.NewInt(0)
@@ -214,7 +205,6 @@ func mulShiftRoundDown(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
 	return result, nil
 }
 
-// https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/math/Uint256x256Math.sol#L152
 func getMulProds(x *big.Int, y *big.Int) (*big.Int, *big.Int) {
 	not0 := maxUint256
 	mm := new(big.Int).Mod(new(big.Int).Mul(x, y), not0)
@@ -233,68 +223,6 @@ func lt(x *big.Int, y *big.Int) *big.Int {
 	return integer.Zero()
 }
 
-// https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/FeeHelper.sol#L58
-func getFeeAmount(amount *big.Int, totalFee *big.Int) (*big.Int, error) {
-	if err := verifyFee(totalFee); err != nil {
-		return nil, err
-	}
-
-	denominator := new(big.Int).Sub(precison, totalFee)
-	result := new(big.Int).Div(
-		new(big.Int).Sub(
-			new(big.Int).Add(
-				new(big.Int).Mul(amount, totalFee),
-				denominator,
-			),
-			integer.One(),
-		),
-		denominator,
-	)
-	return result, nil
-}
-
-// https://github.com/traderjoe-xyz/joe-v2/blob/main/src/libraries/FeeHelper.sol#L40
-func getFeeAmountFrom(amountWithFees *big.Int, totalFee *big.Int) (*big.Int, error) {
-	if err := verifyFee(totalFee); err != nil {
-		return nil, err
-	}
-
-	result := new(big.Int).Div(
-		new(big.Int).Sub(
-			new(big.Int).Add(
-				new(big.Int).Mul(amountWithFees, totalFee),
-				precison,
-			),
-			integer.One(),
-		),
-		precison,
-	)
-	return result, nil
-}
-
 func bitwiseNotUint256(x *big.Int) *big.Int {
 	return new(big.Int).Xor(x, maxUint256)
-}
-
-func verifyFee(fee *big.Int) error {
-	if fee.Cmp(maxFee) > 0 {
-		return ErrFeeTooLarge
-	}
-	return nil
-}
-
-func scalarMulDivBasisPointRoundDown(totalFee *big.Int, multiplier *big.Int) (*big.Int, error) {
-	if multiplier.Cmp(integer.Zero()) == 0 {
-		return integer.Zero(), nil
-	}
-
-	if multiplier.Cmp(big.NewInt(basisPointMax)) > 0 {
-		return nil, ErrMultiplierTooLarge
-	}
-
-	result := new(big.Int).Div(
-		new(big.Int).Mul(totalFee, multiplier),
-		big.NewInt(basisPointMax),
-	)
-	return result, nil
 }
