@@ -4,7 +4,7 @@ import (
 	"math"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 )
 
 type feeParameters struct {
@@ -56,7 +56,7 @@ func (fp *feeParameters) getFeeAmount(amount *big.Int) *big.Int {
 	result := new(big.Int).Div(
 		new(big.Int).Sub(
 			new(big.Int).Add(new(big.Int).Mul(amount, fee), denominator),
-			bignumber.One,
+			integer.One(),
 		),
 		denominator,
 	)
@@ -80,7 +80,7 @@ func (fp *feeParameters) getBaseFee() *big.Int {
 
 func (fp *feeParameters) getVariableFee() *big.Int {
 	if fp.VariableFeeControl == 0 {
-		return bignumber.ZeroBI
+		return integer.Zero()
 	}
 
 	prod := new(big.Int).Mul(

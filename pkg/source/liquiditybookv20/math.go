@@ -3,7 +3,7 @@ package liquiditybookv20
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 )
 
 func getPriceFromID(id uint32, binStep uint16) (*big.Int, error) {
@@ -28,7 +28,7 @@ func pow(x *big.Int, y *big.Int) (*big.Int, error) {
 		result = big.NewInt(0)
 	)
 
-	if y.Cmp(bignumber.ZeroBI) == 0 {
+	if y.Cmp(integer.Zero()) == 0 {
 		return scale, nil
 	}
 
@@ -52,7 +52,7 @@ func pow(x *big.Int, y *big.Int) (*big.Int, error) {
 
 		for i := 0x1; i <= 0x80000; i <<= 1 {
 			and := new(big.Int).And(absY, big.NewInt(int64(i)))
-			if and.Cmp(bignumber.ZeroBI) != 0 {
+			if and.Cmp(integer.Zero()) != 0 {
 				result = new(big.Int).Rsh(
 					new(big.Int).Mul(result, squared),
 					128,
@@ -67,12 +67,12 @@ func pow(x *big.Int, y *big.Int) (*big.Int, error) {
 		}
 	}
 
-	if result.Cmp(bignumber.ZeroBI) == 0 {
+	if result.Cmp(integer.Zero()) == 0 {
 		return nil, ErrPowUnderflow
 	}
 
 	if invert {
-		v := new(big.Int).Sub(new(big.Int).Lsh(bignumber.One, 256), bignumber.One)
+		v := new(big.Int).Sub(new(big.Int).Lsh(integer.One(), 256), integer.One())
 		result = new(big.Int).Div(v, result)
 	}
 
@@ -85,15 +85,15 @@ func shiftDivRoundUp(x *big.Int, offset uint8, denominator *big.Int) (*big.Int, 
 		return nil, err
 	}
 
-	if denominator.Cmp(bignumber.ZeroBI) == 0 {
-		return bignumber.ZeroBI, nil
+	if denominator.Cmp(integer.Zero()) == 0 {
+		return integer.Zero(), nil
 	}
 	v := new(big.Int).Mod(
-		new(big.Int).Mul(x, new(big.Int).Lsh(bignumber.One, uint(offset))),
+		new(big.Int).Mul(x, new(big.Int).Lsh(integer.One(), uint(offset))),
 		denominator,
 	)
-	if v.Cmp(bignumber.ZeroBI) != 0 {
-		result = new(big.Int).Add(result, bignumber.One)
+	if v.Cmp(integer.Zero()) != 0 {
+		result = new(big.Int).Add(result, integer.One())
 	}
 
 	return result, nil
@@ -107,7 +107,7 @@ func shiftDivRoundDown(x *big.Int, offset uint8, denominator *big.Int) (*big.Int
 	prod0 = new(big.Int).Lsh(x, uint(offset))
 	prod1 = new(big.Int).Rsh(x, uint(256-int(offset)))
 
-	y := new(big.Int).Lsh(bignumber.One, uint(offset))
+	y := new(big.Int).Lsh(integer.One(), uint(offset))
 
 	return getEndOfDivRoundDown(x, y, denominator, prod0, prod1)
 }
@@ -119,7 +119,7 @@ func getEndOfDivRoundDown(
 	prod0 *big.Int,
 	prod1 *big.Int,
 ) (*big.Int, error) {
-	if prod1.Cmp(bignumber.ZeroBI) == 0 {
+	if prod1.Cmp(integer.Zero()) == 0 {
 		return new(big.Int).Div(prod0, denominator), nil
 	}
 
@@ -128,8 +128,8 @@ func getEndOfDivRoundDown(
 	}
 
 	var remainder *big.Int
-	if denominator.Cmp(bignumber.ZeroBI) == 0 {
-		remainder = bignumber.ZeroBI
+	if denominator.Cmp(integer.Zero()) == 0 {
+		remainder = integer.Zero()
 	} else {
 		remainder = new(big.Int).Mod(new(big.Int).Mul(x, y), denominator)
 	}
@@ -138,15 +138,15 @@ func getEndOfDivRoundDown(
 	prod0 = new(big.Int).Sub(prod0, remainder)
 
 	// bitwiseNotDenominator = ~denominator, denominator has type uint256
-	lpotdod := new(big.Int).And(denominator, new(big.Int).Add(bitwiseNotUint256(denominator), bignumber.One))
+	lpotdod := new(big.Int).And(denominator, new(big.Int).Add(bitwiseNotUint256(denominator), integer.One()))
 
 	denominator = new(big.Int).Div(denominator, lpotdod)
 
 	prod0 = new(big.Int).Div(prod0, lpotdod)
 
 	lpotdod = new(big.Int).Add(
-		new(big.Int).Div(new(big.Int).Sub(bignumber.ZeroBI, lpotdod), lpotdod),
-		bignumber.One,
+		new(big.Int).Div(new(big.Int).Sub(integer.Zero(), lpotdod), lpotdod),
+		integer.One(),
 	)
 
 	prod0 = new(big.Int).Or(prod0, new(big.Int).Mul(prod1, lpotdod))
@@ -156,7 +156,7 @@ func getEndOfDivRoundDown(
 	for i := 0; i < 6; i++ {
 		inverse = new(big.Int).Mul(
 			inverse,
-			new(big.Int).Sub(bignumber.Two, new(big.Int).Mul(denominator, inverse)),
+			new(big.Int).Sub(integer.Two(), new(big.Int).Mul(denominator, inverse)),
 		)
 	}
 
@@ -166,9 +166,9 @@ func getEndOfDivRoundDown(
 
 func gt(x *big.Int, y *big.Int) *big.Int {
 	if x.Cmp(y) > 0 {
-		return bignumber.One
+		return integer.One()
 	}
-	return bignumber.ZeroBI
+	return integer.Zero()
 }
 
 func mulShiftRoundUp(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
@@ -178,10 +178,10 @@ func mulShiftRoundUp(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
 	}
 	v := new(big.Int).Mod(
 		new(big.Int).Mul(x, y),
-		new(big.Int).Lsh(bignumber.One, uint(offset)),
+		new(big.Int).Lsh(integer.One(), uint(offset)),
 	)
-	if v.Cmp(bignumber.ZeroBI) != 0 {
-		result = new(big.Int).Add(result, bignumber.One)
+	if v.Cmp(integer.Zero()) != 0 {
+		result = new(big.Int).Add(result, integer.One())
 	}
 	return result, nil
 }
@@ -189,11 +189,11 @@ func mulShiftRoundUp(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
 func mulShiftRoundDown(x *big.Int, y *big.Int, offset uint8) (*big.Int, error) {
 	prod0, prod1 := getMulProds(x, y)
 	result := big.NewInt(0)
-	if prod0.Cmp(bignumber.ZeroBI) != 0 {
+	if prod0.Cmp(integer.Zero()) != 0 {
 		result = new(big.Int).Rsh(prod0, uint(offset))
 	}
-	if prod1.Cmp(bignumber.ZeroBI) != 0 {
-		if prod1.Cmp(new(big.Int).Lsh(bignumber.One, uint(offset))) >= 0 {
+	if prod1.Cmp(integer.Zero()) != 0 {
+		if prod1.Cmp(new(big.Int).Lsh(integer.One(), uint(offset))) >= 0 {
 			return nil, ErrMulShiftOverflow
 		}
 		result = new(big.Int).Add(
@@ -218,9 +218,9 @@ func getMulProds(x *big.Int, y *big.Int) (*big.Int, *big.Int) {
 
 func lt(x *big.Int, y *big.Int) *big.Int {
 	if x.Cmp(y) < 0 {
-		return bignumber.One
+		return integer.One()
 	}
-	return bignumber.ZeroBI
+	return integer.Zero()
 }
 
 func bitwiseNotUint256(x *big.Int) *big.Int {
