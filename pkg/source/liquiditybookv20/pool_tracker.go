@@ -70,7 +70,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		RpcBlockTimestamp:      rpcResult.BlockTimestamp,
 		SubgraphBlockTimestamp: subgraphResult.BlockTimestamp,
 		FeeParameters:          rpcResult.FeeParameters,
-		ActiveBinID:            uint32(rpcResult.ReservesAndID.ActiveID.Uint64()),
+		ActiveBinID:            uint32(rpcResult.ReservesAndID.ActiveId.Uint64()),
 		Bins:                   subgraphResult.Bins,
 	}
 	extraBytes, err := json.Marshal(extra)
@@ -96,8 +96,8 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*queryRpcPoo
 	var (
 		blockTimestamp uint64
 
-		feeParamsResp feeParametersResp
-		reservesAndID reservesAndID
+		feeParamsResp  feeParametersRpcResp
+		reservesAndID  reservesAndID
 
 		err error
 	)
@@ -127,18 +127,18 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*queryRpcPoo
 
 	// params
 	feeParameters := feeParameters{
-		BinStep:                  feeParamsResp.BinStep,
-		BaseFactor:               feeParamsResp.BaseFactor,
-		FilterPeriod:             feeParamsResp.FilterPeriod,
-		DecayPeriod:              feeParamsResp.DecayPeriod,
-		ReductionFactor:          feeParamsResp.ReductionFactor,
-		VariableFeeControl:       uint32(feeParamsResp.VariableFeeControl.Uint64()),
-		ProtocolShare:            feeParamsResp.ProtocolShare,
-		MaxVolatilityAccumulated: uint32(feeParamsResp.MaxVolatilityAccumulated.Uint64()),
-		VolatilityAccumulated:    uint32(feeParamsResp.VolatilityAccumulated.Uint64()),
-		VolatilityReference:      uint32(feeParamsResp.VolatilityReference.Uint64()),
-		IndexRef:                 uint32(feeParamsResp.IndexRef.Uint64()),
-		Time:                     uint64(feeParamsResp.Time.Uint64()),
+		BinStep:                  feeParamsResp.State.BinStep,
+		BaseFactor:               feeParamsResp.State.BaseFactor,
+		FilterPeriod:             feeParamsResp.State.FilterPeriod,
+		DecayPeriod:              feeParamsResp.State.DecayPeriod,
+		ReductionFactor:          feeParamsResp.State.ReductionFactor,
+		VariableFeeControl:       uint32(feeParamsResp.State.VariableFeeControl.Uint64()),
+		ProtocolShare:            feeParamsResp.State.ProtocolShare,
+		MaxVolatilityAccumulated: uint32(feeParamsResp.State.MaxVolatilityAccumulated.Uint64()),
+		VolatilityAccumulated:    uint32(feeParamsResp.State.VolatilityAccumulated.Uint64()),
+		VolatilityReference:      uint32(feeParamsResp.State.VolatilityReference.Uint64()),
+		IndexRef:                 uint32(feeParamsResp.State.IndexRef.Uint64()),
+		Time:                     uint64(feeParamsResp.State.Time.Uint64()),
 	}
 
 	return &queryRpcPoolStateResult{

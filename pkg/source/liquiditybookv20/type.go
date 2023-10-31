@@ -23,7 +23,7 @@ type queryRpcPoolStateResult struct {
 type reservesAndID struct {
 	ReserveX *big.Int `json:"reserveX"`
 	ReserveY *big.Int `json:"reserveY"`
-	ActiveID *big.Int `json:"activeId"`
+	ActiveId *big.Int `json:"activeId"`
 }
 
 type querySubgraphPoolStateResult struct {
@@ -40,14 +40,18 @@ type getSwapOutResult struct {
 }
 
 type SwapInfo struct {
-	BinsReserveChanges []binReserveChanges
-	NewFeeParameters   feeParameters
-	NewActiveID        uint32
+	BinsReserveChanges []binReserveChanges `json:"binsReserveChanges"`
+	NewFeeParameters   feeParameters       `json:"newFeeParameters"`
+	NewActiveID        uint32              `json:"newActiveId"`
 }
 
 // rpc
 
-type feeParametersResp struct {
+type feeParametersRpcResp struct {
+	State feeParametersRpc
+}
+
+type feeParametersRpc struct {
 	BinStep                  uint16
 	BaseFactor               uint16
 	FilterPeriod             uint16
