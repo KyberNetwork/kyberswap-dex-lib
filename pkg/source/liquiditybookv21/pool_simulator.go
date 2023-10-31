@@ -177,16 +177,18 @@ func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOutResult, error) {
-	amountsInLeft := amountIn
-	binStep := p.binStep
+	var (
+		amountsInLeft      = amountIn
+		binStep            = p.binStep
+		amountOut          = bignumber.ZeroBI
+		swapFee            = bignumber.ZeroBI
+		binsReserveChanges []binReserveChanges
+	)
 
 	parameters := p.copyParameters()
 	id := parameters.ActiveBinID
-	parameters = parameters.updateReferences(p.blockTimestamp)
 
-	amountOut := bignumber.ZeroBI
-	fee := bignumber.ZeroBI
-	binsReserveChanges := []binReserveChanges{}
+	parameters = parameters.updateReferences(p.blockTimestamp)
 
 	for {
 		binArrIdx, err := p.findBinArrIndex(id)
@@ -207,7 +209,7 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 			if amountsInWithFees.Cmp(bignumber.ZeroBI) > 0 {
 				amountsInLeft = new(big.Int).Sub(amountsInLeft, amountsInWithFees)
 				amountOut = new(big.Int).Add(amountOut, amountsOutOfBin)
-				fee = new(big.Int).Add(fee, totalFees)
+				swapFee = new(big.Int).Add(swapFee, totalFees)
 
 				pFee, err := scalarMulDivBasisPointRoundDown(
 					totalFees,
@@ -240,10 +242,12 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 		id = nextID
 	}
 
+	parameters.ActiveBinID = id
+
 	ret := getSwapOutResult{
 		AmountsInLeft:      amountsInLeft,
 		AmountOut:          amountOut,
-		Fee:                fee,
+		Fee:                swapFee,
 		BinsReserveChanges: binsReserveChanges,
 		Parameters:         parameters,
 		NewActiveID:        id,
