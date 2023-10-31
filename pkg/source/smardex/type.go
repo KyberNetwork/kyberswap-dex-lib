@@ -19,19 +19,19 @@ type Gas struct {
 type SmardexPair struct {
 
 	// smardex pair fees numerators, denominator is 1_000_000
-	pairFee PairFee
+	PairFee PairFee
 
 	// smardex new fictive reserves
-	fictiveReserve FictiveReseerve
+	FictiveReserve FictiveReseerve
 
 	// moving average on the price
-	priceAverage PriceAverage
+	PriceAverage PriceAverage
 
 	// fee for FEE_POOL
-	feeToAmount FeeToAmount
+	FeeToAmount FeeToAmount
 
 	// access through balanceOf of ERC20 token
-	reserve Reserve
+	Reserve Reserve
 }
 
 type PairFee struct {
@@ -40,8 +40,8 @@ type PairFee struct {
 }
 
 type FictiveReseerve struct {
-	fictiveReserve0 *big.Int
-	fictiveReserve1 *big.Int
+	fictiveReserve0_ *big.Int
+	fictiveReserve1_ *big.Int
 }
 
 type PriceAverage struct {

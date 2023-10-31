@@ -43,11 +43,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			},
 		},
 		SmardexPair: SmardexPair{
-			pairFee:        pair.pairFee,
-			fictiveReserve: pair.fictiveReserve,
-			priceAverage:   pair.priceAverage,
-			feeToAmount:    pair.feeToAmount,
-			reserve:        pair.reserve,
+			PairFee:        pair.PairFee,
+			FictiveReserve: pair.FictiveReserve,
+			PriceAverage:   pair.PriceAverage,
+			FeeToAmount:    pair.FeeToAmount,
+			Reserve:        pair.Reserve,
 		},
 		gas: DefaultGas,
 	}, nil
@@ -69,27 +69,27 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 
 	var (
 		amountCalculated  *big.Int = integer.Zero()
-		fictiveReserveIn  *big.Int = p.fictiveReserve.fictiveReserve0
-		fictiveReserveOut *big.Int = p.fictiveReserve.fictiveReserve1
-		priceAverageIn    *big.Int = p.priceAverage.priceAverage0
-		priceAverageOut   *big.Int = p.priceAverage.priceAverage1
-		balanceIn         *big.Int = new(big.Int).Sub(p.reserve.reserve0, p.feeToAmount.feeToAmount0)
-		balanceOut        *big.Int = new(big.Int).Sub(p.reserve.reserve1, p.feeToAmount.feeToAmount1)
+		fictiveReserveIn  *big.Int = p.FictiveReserve.fictiveReserve0_
+		fictiveReserveOut *big.Int = p.FictiveReserve.fictiveReserve1_
+		priceAverageIn    *big.Int = p.PriceAverage.priceAverage0
+		priceAverageOut   *big.Int = p.PriceAverage.priceAverage1
+		balanceIn         *big.Int = new(big.Int).Sub(p.Reserve.reserve0, p.FeeToAmount.feeToAmount0)
+		balanceOut        *big.Int = new(big.Int).Sub(p.Reserve.reserve1, p.FeeToAmount.feeToAmount1)
 	)
 	if !zeroForOne {
-		fictiveReserveIn = p.fictiveReserve.fictiveReserve1
-		fictiveReserveOut = p.fictiveReserve.fictiveReserve0
-		priceAverageIn = p.priceAverage.priceAverage1
-		priceAverageOut = p.priceAverage.priceAverage0
-		balanceIn = new(big.Int).Sub(p.reserve.reserve1, p.feeToAmount.feeToAmount1)
-		balanceOut = new(big.Int).Sub(p.reserve.reserve0, p.feeToAmount.feeToAmount0)
+		fictiveReserveIn = p.FictiveReserve.fictiveReserve1_
+		fictiveReserveOut = p.FictiveReserve.fictiveReserve0_
+		priceAverageIn = p.PriceAverage.priceAverage1
+		priceAverageOut = p.PriceAverage.priceAverage0
+		balanceIn = new(big.Int).Sub(p.Reserve.reserve1, p.FeeToAmount.feeToAmount1)
+		balanceOut = new(big.Int).Sub(p.Reserve.reserve0, p.FeeToAmount.feeToAmount0)
 	}
 
 	var err error
 	// compute new price average
 	priceAverageIn, priceAverageOut, err = getUpdatedPriceAverage(
 		fictiveReserveIn, fictiveReserveOut,
-		p.priceAverage.priceAverageLastTimestamp,
+		p.PriceAverage.priceAverageLastTimestamp,
 		priceAverageIn,
 		priceAverageOut,
 		time.Now().Unix())
@@ -106,8 +106,8 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 			fictiveReserveOut: fictiveReserveOut,
 			priceAverageIn:    priceAverageIn,
 			priceAverageOut:   priceAverageOut,
-			feesLP:            p.pairFee.feesLP,
-			feesPool:          p.pairFee.feesPool,
+			feesLP:            p.PairFee.feesLP,
+			feesPool:          p.PairFee.feesPool,
 		})
 	fictiveReserveIn = result.newFictiveReserveIn
 	fictiveReserveOut = result.newFictiveReserveOut
@@ -115,11 +115,11 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 
 	amount0, amount1 := tokenAmountIn.Amount, new(big.Int).Neg(amountCalculated)
 	feeToAmount0 := new(big.Int).Add(
-		p.feeToAmount.feeToAmount0,
-		new(big.Int).Div(new(big.Int).Mul(amount0, p.pairFee.feesPool), FEES_BASE))
+		p.FeeToAmount.feeToAmount0,
+		new(big.Int).Div(new(big.Int).Mul(amount0, p.PairFee.feesPool), FEES_BASE))
 	feeToAmount1 := new(big.Int).Add(
-		p.feeToAmount.feeToAmount1,
-		new(big.Int).Div(new(big.Int).Mul(amount1, p.pairFee.feesPool), FEES_BASE))
+		p.FeeToAmount.feeToAmount1,
+		new(big.Int).Div(new(big.Int).Mul(amount1, p.PairFee.feesPool), FEES_BASE))
 	if !zeroForOne {
 		amount0, amount1 = new(big.Int).Neg(amountCalculated), tokenAmountIn.Amount
 	}

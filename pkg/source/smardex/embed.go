@@ -1,5 +1,7 @@
 package smardex
 
+import _ "embed"
+
 //go:embed abi/Pair.json
 var pairABIData []byte
 
