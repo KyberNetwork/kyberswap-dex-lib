@@ -73,6 +73,7 @@ type types struct {
 	PolMatic                 string
 	KokonutCrypto            string
 	LiquidityBookV21         string
+	LiquidityBookV20         string
 }
 
 var (
@@ -149,5 +150,6 @@ var (
 		PolMatic:                 "pol-matic",
 		KokonutCrypto:            "kokonut-crypto",
 		LiquidityBookV21:         "liquiditybook-v21",
+		LiquidityBookV20:         "liquiditybook-v20",
 	}
 )

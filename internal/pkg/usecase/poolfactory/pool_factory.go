@@ -31,6 +31,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido"
 	lidosteth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/lido-steth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/liquiditybookv20"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/liquiditybookv21"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/madmex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/makerpsm"
@@ -64,8 +65,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/core/traderjoev20"
-	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -212,19 +211,6 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 	return basePoolByAddress, basePoolAddresses
 }
 
-func (f *PoolFactory) getBalanceSlots(pool *entity.Pool) map[common.Address]*routerentity.ERC20BalanceSlot {
-	balanceSlots := make(map[common.Address]*routerentity.ERC20BalanceSlot)
-	for _, token := range pool.Tokens {
-		tokenAddr := common.HexToAddress(token.Address)
-		bl, err := f.balanceSlotsUseCase.Get(context.Background(), tokenAddr, pool)
-		if err != nil {
-			continue
-		}
-		balanceSlots[tokenAddr] = bl
-	}
-	return balanceSlots
-}
-
 // newPool receives entity.Pool, based on its type to return matched factory method
 // if there is no matched factory method, it returns ErrPoolTypeFactoryNotFound
 func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (poolpkg.IPoolSimulator, error) {
@@ -303,8 +289,6 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newMaverickV1(entityPool)
 	case constant.PoolTypes.AlgebraV1:
 		return f.newAlgebraV1(entityPool)
-	case constant.PoolTypes.TraderJoeV20:
-		return f.newTraderJoeV20(entityPool, stateRoot)
 	case constant.PoolTypes.KyberPMM:
 		return f.newKyberPMM(entityPool)
 	case constant.PoolTypes.IZiSwap:
@@ -329,6 +313,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newKokonutCrypto(entityPool)
 	case constant.PoolTypes.LiquidityBookV21:
 		return f.newLiquidityBookV21(entityPool)
+	case constant.PoolTypes.LiquidityBookV20:
+		return f.newLiquidityBookV20(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -896,23 +882,6 @@ func (f *PoolFactory) newAlgebraV1(entityPool entity.Pool) (*algebrav1.PoolSimul
 	return corePool, nil
 }
 
-func (f *PoolFactory) newTraderJoeV20(entityPool entity.Pool, stateRoot common.Hash) (*traderjoev20.Pool, error) {
-	if f.balanceSlotsUseCase == nil || f.client == nil {
-		return nil, errors.New("AEVM is not initialized")
-	}
-	balanceSlots := f.getBalanceSlots(&entityPool)
-	corePool, err := traderjoev20.NewPoolAEVM(entityPool, f.client, stateRoot, balanceSlots)
-	if err != nil {
-		return nil, errors.Wrapf(
-			ErrInitializePoolFailed,
-			"[PoolFactory.newTraderJoeV20] pool: [%s] » type: [%s]",
-			entityPool.Address,
-			entityPool.Type,
-		)
-	}
-	return corePool, nil
-}
-
 func (f *PoolFactory) newKyberPMM(entityPool entity.Pool) (*kyberpmm.PoolSimulator, error) {
 	corePool, err := kyberpmm.NewPoolSimulator(entityPool)
 	if err != nil {
@@ -1076,6 +1045,20 @@ func (f *PoolFactory) newLiquidityBookV21(entityPool entity.Pool) (*liquidityboo
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newLiquidityBookV21] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newLiquidityBookV20(entityPool entity.Pool) (*liquiditybookv20.PoolSimulator, error) {
+	corePool, err := liquiditybookv20.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newLiquidityBookV20] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
