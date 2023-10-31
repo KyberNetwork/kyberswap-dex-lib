@@ -97,16 +97,16 @@ func (p *PoolSimulator) CalcAmountOut(
 }
 
 func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOutResult, error) {
+	var (
+		id                 = p.activeBinID
+		amountOut          = bignumber.ZeroBI
+		swapFee            = bignumber.ZeroBI
+		binsReserveChanges []binReserveChanges
+	)
+
 	// All fields are value type, so we can copy directly.
 	fp := p.feeParams
-
-	id := p.activeBinID
-
 	fp.updateVariableFeeParameters(p.blockTimestamp, id)
-	amountOut := bignumber.ZeroBI
-
-	binsReserveChanges := []binReserveChanges{}
-	swapFee := bignumber.ZeroBI
 
 	for {
 		binArrIdx, err := p.findBinArrIndex(id)
@@ -119,6 +119,7 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 			if err != nil {
 				return nil, err
 			}
+
 			swapFee = new(big.Int).Add(swapFee, totalFee)
 
 			amountIn = new(big.Int).Sub(amountIn, new(big.Int).Add(amountInToBin, totalFee))

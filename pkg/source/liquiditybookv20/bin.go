@@ -50,35 +50,35 @@ func (b *bin) getAmounts(
 	}
 
 	binReserveOut := b.getReserveOut(!swapForY)
-	var maxAmountIn *big.Int
+	var maxAmountInToBin *big.Int
 	if swapForY {
-		if maxAmountIn, err = shiftDivRoundUp(binReserveOut, scaleOffset, price); err != nil {
+		if maxAmountInToBin, err = shiftDivRoundUp(binReserveOut, scaleOffset, price); err != nil {
 			return nil, nil, nil, nil, err
 		}
 	} else {
-		if maxAmountIn, err = mulShiftRoundUp(binReserveOut, price, scaleOffset); err != nil {
+		if maxAmountInToBin, err = mulShiftRoundUp(binReserveOut, price, scaleOffset); err != nil {
 			return nil, nil, nil, nil, err
 		}
 	}
 
 	fp.updateVolatilityAccumulated(activeID)
 
-	totalFee, protocolFee = fp.getFeeAmountDistribution(fp.getFeeAmount(maxAmountIn))
+	totalFee, protocolFee = fp.getFeeAmountDistribution(fp.getFeeAmount(maxAmountInToBin))
 
-	if new(big.Int).Add(maxAmountIn, totalFee).Cmp(amountIn) <= 0 {
-		amountInToBin = maxAmountIn
+	if new(big.Int).Add(maxAmountInToBin, totalFee).Cmp(amountIn) <= 0 {
+		amountInToBin = maxAmountInToBin
 		amountOutOfBin = binReserveOut
 	} else {
 		totalFee, protocolFee = fp.getFeeAmountDistribution(fp.getFeeAmount(amountIn))
 		amountInToBin = new(big.Int).Sub(amountIn, totalFee)
 
 		if swapForY {
-			amountOutOfBin, err = mulShiftRoundDown(amountIn, price, scaleOffset)
+			amountOutOfBin, err = mulShiftRoundDown(amountInToBin, price, scaleOffset)
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
 		} else {
-			amountOutOfBin, err = shiftDivRoundDown(amountIn, scaleOffset, price)
+			amountOutOfBin, err = shiftDivRoundDown(amountInToBin, scaleOffset, price)
 			if err != nil {
 				return nil, nil, nil, nil, err
 			}
