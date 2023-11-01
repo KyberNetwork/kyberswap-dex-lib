@@ -22,7 +22,7 @@ func GetAmountOut(
 		return nil, ErrNoLp
 	}
 
-	toAmount, lpAmount, err := getSwapAmount(fromLp, toLp, amount, false, big.NewInt(0), big.NewInt(0), state)
+	toAmount, lpAmount, treasuryFees, err := getSwapAmount(fromLp, toLp, amount, false, big.NewInt(0), big.NewInt(0), state)
 	if err != nil {
 		return nil, err
 	}
@@ -34,8 +34,7 @@ func GetAmountOut(
 	if err := updateAssetLiability(amount, true, big.NewInt(0), false, false, fromLp); err != nil {
 		return nil, err
 	}
-	// treasuryFees equals 0
-	if err := updateAssetLiability(toAmount, false, lpAmount, true, false, toLp); err != nil {
+	if err := updateAssetLiability(new(big.Int).Add(toAmount, treasuryFees), false, lpAmount, true, false, toLp); err != nil {
 		return nil, err
 	}
 
@@ -48,9 +47,9 @@ func getSwapAmount(
 	isOneTap bool,
 	fromAsset, fromLiability *big.Int,
 	state *PoolState,
-) (*big.Int, *big.Int, error) {
+) (*big.Int, *big.Int, *big.Int, error) {
 	if !state.SwapAllowed {
-		return nil, nil, ErrSwapNotAllowed
+		return nil, nil, nil, ErrSwapNotAllowed
 	}
 	adjustedToAmount := new(big.Int).Div(
 		new(big.Int).Mul(amount, bignumber.TenPowInt(toLp.Decimals)),
@@ -63,7 +62,7 @@ func getSwapAmount(
 	toAsset := new(big.Int).Set(toLp.Asset)
 	toLiability := new(big.Int).Set(toLp.Liability)
 	if toAsset.Cmp(adjustedToAmount) < 0 {
-		return nil, nil, ErrLowAsset
+		return nil, nil, nil, ErrLowAsset
 	}
 
 	swapSlippageFactor, err := getSwapSlippageFactor(
@@ -74,12 +73,13 @@ func getSwapAmount(
 		state,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	toAmount := new(big.Int).Div(new(big.Int).Mul(adjustedToAmount, swapSlippageFactor), One18)
 
-	swapFeeRatio := getSwapFeeRatio(One18, state)
+	nlr := getNetLiquidityRatio(state)
+	swapFeeRatio := getSwapFeeRatio(nlr, state)
 	feeAmount := new(big.Int).Div(new(big.Int).Mul(toAmount, swapFeeRatio), bignumber.TenPowInt(6))
 
 	lpAmount := new(big.Int).Set(bignumber.ZeroBI)
@@ -88,7 +88,12 @@ func getSwapAmount(
 	}
 	toAmount = new(big.Int).Sub(toAmount, new(big.Int).Add(feeAmount, lpAmount))
 
-	return toAmount, lpAmount, nil
+	treasuryFees := new(big.Int).Div(
+		new(big.Int).Mul(feeAmount, getTreasuryRatio(nlr)),
+		big.NewInt(1e6),
+	)
+
+	return toAmount, lpAmount, treasuryFees, nil
 }
 
 func getSwapSlippageFactor(oldFromLR, newFromLR, oldToLR, newToLR *big.Int, state *PoolState) (*big.Int, error) {
@@ -346,4 +351,48 @@ func updateAssetLiability(
 	}
 
 	return nil
+}
+
+func getNetLiquidityRatio(state *PoolState) *big.Int {
+	totalAsset, totalLiability := getTotalAssetLiability(state)
+	if totalLiability.Cmp(bignumber.ZeroBI) == 0 {
+		return new(big.Int).Set(One18)
+	} else {
+		return new(big.Int).Div(new(big.Int).Mul(totalAsset, One18), totalLiability)
+	}
+}
+
+func getTotalAssetLiability(state *PoolState) (*big.Int, *big.Int) {
+	totalAsset := big.NewInt(0)
+	totalLiability := big.NewInt(0)
+	for _, lp := range state.LPs {
+		price := lp.TokenOraclePrice
+		lpAsset := new(big.Int).Set(lp.Asset)
+		totalAsset = new(big.Int).Add(
+			totalAsset,
+			new(big.Int).Div(
+				new(big.Int).Mul(lpAsset, price),
+				bignumber.TenPowInt(lp.Decimals),
+			),
+		)
+		totalLiability = new(big.Int).Add(
+			totalLiability,
+			new(big.Int).Div(
+				new(big.Int).Mul(lp.Liability, price),
+				bignumber.TenPowInt(lp.Decimals),
+			),
+		)
+	}
+
+	return totalAsset, totalLiability
+}
+
+func getTreasuryRatio(nlr *big.Int) *big.Int {
+	if nlr.Cmp(One18) < 0 {
+		return big.NewInt(0)
+	} else if nlr.Cmp(big.NewInt(1.05e18)) < 0 {
+		return big.NewInt(4e5)
+	} else {
+		return big.NewInt(8e5)
+	}
 }

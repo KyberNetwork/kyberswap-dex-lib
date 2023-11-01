@@ -29,11 +29,12 @@ type swapInfo struct {
 }
 
 type LP struct {
-	Address        string   `json:"address"`
-	Decimals       uint8    `json:"decimals"`
-	Asset          *big.Int `json:"asset"`
-	Liability      *big.Int `json:"liability"`
-	LiabilityLimit *big.Int `json:"liabilityLimit"`
+	Address          string   `json:"address"`
+	Decimals         uint8    `json:"decimals"`
+	Asset            *big.Int `json:"asset"`
+	Liability        *big.Int `json:"liability"`
+	LiabilityLimit   *big.Int `json:"liabilityLimit"`
+	TokenOraclePrice *big.Int `json:"tokenOraclePrice"`
 }
 
 type Gas struct {

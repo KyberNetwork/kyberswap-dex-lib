@@ -7,14 +7,15 @@ import (
 const (
 	DexTypeMantisSwap = "mantisswap"
 
-	mainPoolMethodLpList     = "lpList"
-	mainPoolMethodLpRatio    = "lpRatio"
-	mainPoolMethodBaseFee    = "baseFee"
-	mainPoolMethodSwapAlloed = "swapAllowed"
-	mainPoolMethodPaused     = "paused"
-	mainPoolMethodSlippageA  = "slippageA"
-	mainPoolMethodSlippageN  = "slippageN"
-	mainPoolMethodSlippageK  = "slippageK"
+	mainPoolMethodLpList           = "lpList"
+	mainPoolMethodLpRatio          = "lpRatio"
+	mainPoolMethodBaseFee          = "baseFee"
+	mainPoolMethodSwapAlloed       = "swapAllowed"
+	mainPoolMethodPaused           = "paused"
+	mainPoolMethodSlippageA        = "slippageA"
+	mainPoolMethodSlippageN        = "slippageN"
+	mainPoolMethodSlippageK        = "slippageK"
+	mainPoolMethodTokenOraclePrice = "tokenOraclePrice"
 
 	lpMethodDecimals       = "decimals"
 	lpMethodAsset          = "asset"
