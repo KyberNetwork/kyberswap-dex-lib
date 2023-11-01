@@ -190,7 +190,7 @@ func toFillBatchOrdersParamsDS(swapInfo *limitorder.OpSignatureExtra) (FillBatch
 		}
 		opSignature, ok := swapInfo.OperatorSignaturesById[filledOrder.OrderID]
 		if !ok {
-			return FillBatchOrdersParamsDS{}, fmt.Errorf("Operator signature not found for order %v", filledOrder.OrderID)
+			return FillBatchOrdersParamsDS{}, fmt.Errorf("operator signature not found for order %v", filledOrder.OrderID)
 		}
 		logger.Debugf("Operator signature %v %v %v", filledOrder.OrderID, opSignature.OperatorSignature, opSignature.OperatorSignatureExpiredAt)
 		bytesOpSignature, err := hex.DecodeString(opSignature.OperatorSignature)

@@ -155,6 +155,7 @@ encoder:
     executeWombat: 24
     executeWooFiV2: 25
     executeIziSwap: 26
+    executeTraderJoeV2: 27
     executeKyberDSLO: 28
 useCase:
   getRoute:

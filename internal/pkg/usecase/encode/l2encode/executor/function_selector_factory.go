@@ -127,4 +127,8 @@ func init() {
 
 	// executeWooFiV2
 	RegisterFunctionSelector(valueobject.ExchangeWooFiV2, FunctionSelectorWooFiV2)
+
+	// executeTraderJoeV2
+	RegisterFunctionSelector(valueobject.ExchangeTraderJoeV20, FunctionSelectorTraderJoeV2)
+	RegisterFunctionSelector(valueobject.ExchangeTraderJoeV21, FunctionSelectorTraderJoeV2)
 }
