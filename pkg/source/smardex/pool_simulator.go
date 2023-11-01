@@ -11,6 +11,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
+var now = time.Now
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var pair SmardexPair
 	if err := json.Unmarshal([]byte(entityPool.Extra), &pair); err != nil {
@@ -21,16 +23,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	tokens := make([]string, numTokens)
 	reserves := make([]*big.Int, numTokens)
 	// totalSupply, _ := new(big.Int).SetString(entityPool.TotalSupply, 10)
-	mapTokenAddressToIndex := make(map[string]int)
 	for i := 0; i < numTokens; i++ {
 		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
-		mapTokenAddressToIndex[entityPool.Tokens[i].Address] = i
-	}
-
-	var chainID uint
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &chainID); err != nil {
-		return nil, err
+		reserves[i] = bignumber.NewBig(entityPool.Reserves[i])
 	}
 
 	return &PoolSimulator{
@@ -61,23 +56,24 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 		return nil, ErrSameAddress
 	}
 
-	if tokenAmountIn.Amount.Cmp(integer.Zero()) <= 0 {
+	if isZero(tokenAmountIn.Amount) {
 		return nil, ErrZeroAmount
 	}
 
 	var zeroForOne bool
-	if tokenAmountIn.Token == p.GetTokens()[1] {
+	if tokenAmountIn.Token == p.GetTokens()[0] {
 		zeroForOne = true
 	}
 
 	var (
-		amountCalculated  *big.Int = integer.Zero()
-		fictiveReserveIn  *big.Int = p.FictiveReserve.FictiveReserve0
-		fictiveReserveOut *big.Int = p.FictiveReserve.FictiveReserve1
-		priceAverageIn    *big.Int = p.PriceAverage.PriceAverage0
-		priceAverageOut   *big.Int = p.PriceAverage.PriceAverage1
-		balanceIn         *big.Int = new(big.Int).Sub(p.GetReserves()[0], p.FeeToAmount.FeeToAmount0)
-		balanceOut        *big.Int = new(big.Int).Sub(p.GetReserves()[1], p.FeeToAmount.FeeToAmount1)
+		amountCalculated   *big.Int = integer.Zero()
+		fictiveReserveIn   *big.Int = p.FictiveReserve.FictiveReserve0
+		fictiveReserveOut  *big.Int = p.FictiveReserve.FictiveReserve1
+		priceAverageIn     *big.Int = p.PriceAverage.PriceAverage0
+		priceAverageOut    *big.Int = p.PriceAverage.PriceAverage1
+		balanceIn          *big.Int = new(big.Int).Sub(p.GetReserves()[0], p.FeeToAmount.FeeToAmount0)
+		balanceOut         *big.Int = new(big.Int).Sub(p.GetReserves()[1], p.FeeToAmount.FeeToAmount1)
+		userTradeTimestamp          = now().Unix()
 	)
 	if !zeroForOne {
 		fictiveReserveIn = p.FictiveReserve.FictiveReserve1
@@ -95,7 +91,7 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 		p.PriceAverage.PriceAverageLastTimestamp,
 		priceAverageIn,
 		priceAverageOut,
-		big.NewInt(time.Now().Unix()))
+		big.NewInt(userTradeTimestamp))
 	if err != nil {
 		return nil, err
 	}
@@ -111,28 +107,29 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 			priceAverageOut:   priceAverageOut,
 			feesLP:            p.PairFee.FeesLP,
 			feesPool:          p.PairFee.FeesPool,
+			feesBase:          p.PairFee.FeesBase,
 		})
 	if err != nil {
 		return nil, err
 	}
 	amountCalculated = result.amountOut
 
-	amount0, amount1 := tokenAmountIn.Amount, new(big.Int).Neg(amountCalculated)
+	amount0, amount1 := tokenAmountIn.Amount, amountCalculated
 	feeToAmount0 := new(big.Int).Add(
 		p.FeeToAmount.FeeToAmount0,
-		new(big.Int).Div(new(big.Int).Mul(amount0, p.PairFee.FeesPool), FEES_BASE))
+		new(big.Int).Div(new(big.Int).Mul(amount0, p.PairFee.FeesPool), p.PairFee.FeesBase))
 	feeToAmount1 := new(big.Int).Add(
 		p.FeeToAmount.FeeToAmount1,
-		new(big.Int).Div(new(big.Int).Mul(amount1, p.PairFee.FeesPool), FEES_BASE))
+		new(big.Int).Div(new(big.Int).Mul(amount1, p.PairFee.FeesPool), p.PairFee.FeesBase))
 	if !zeroForOne {
-		amount0, amount1 = new(big.Int).Neg(amountCalculated), tokenAmountIn.Amount
+		amount0, amount1 = amountCalculated, tokenAmountIn.Amount
 	}
 
 	if zeroForOne {
 		return &poolpkg.CalcAmountOutResult{
 			TokenAmountOut: &poolpkg.TokenAmount{
 				Token:  p.GetTokens()[1],
-				Amount: new(big.Int).Neg(amount1),
+				Amount: amount1,
 			},
 			Fee: &poolpkg.TokenAmount{
 				Token:  p.GetTokens()[1],
@@ -145,7 +142,7 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{
 			Token:  p.GetTokens()[0],
-			Amount: new(big.Int).Neg(amount0),
+			Amount: amount0,
 		},
 		Fee: &poolpkg.TokenAmount{
 			Token:  p.GetTokens()[0],

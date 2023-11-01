@@ -19,54 +19,55 @@ func getUpdatedPriceAverage(fictiveReserveIn *big.Int, fictiveReserveOut *big.In
 	priceAverageLastTimestamp *big.Int, priceAverageIn *big.Int,
 	priceAverageOut *big.Int, currentTimestamp *big.Int) (newPriceAverageIn *big.Int, newPriceAverageOut *big.Int, err error) {
 
-	if currentTimestamp.Cmp(big.NewInt(0)) >= 0 {
+	if currentTimestamp.Cmp(priceAverageLastTimestamp) == -1 {
 		err = ErrInvalidTimestamp
 		return
 	}
 
 	// priceAverage is initialized with the first price at the time of the first update
-	if isZero(priceAverageLastTimestamp) {
+	if isZero(priceAverageLastTimestamp) || isZero(priceAverageIn) || isZero(priceAverageOut) {
 		newPriceAverageIn = fictiveReserveIn
 		newPriceAverageOut = fictiveReserveOut
-	} else if priceAverageLastTimestamp == currentTimestamp { // another tx has been done in the same timestamp
+	} else if priceAverageLastTimestamp.Cmp(currentTimestamp) == 0 { // another tx has been done in the same timestamp
 		newPriceAverageIn = priceAverageIn
 		newPriceAverageOut = priceAverageOut
 	} else { // need to compute new linear-average price
 		// compute new price:
 		timeDiff := new(big.Int).Sub(currentTimestamp, priceAverageLastTimestamp)
-		if timeDiff.Cmp(MAX_BLOCK_DIFF_SECONDS) > 0 {
+		if timeDiff.Cmp(MAX_BLOCK_DIFF_SECONDS) == 1 {
 			timeDiff = MAX_BLOCK_DIFF_SECONDS
 		}
 
 		newPriceAverageIn = fictiveReserveIn
-		newPriceAverageOut = new(big.Int).Div(
-			new(big.Int).Add(
-				new(big.Int).Div(
-					(new(big.Int).Mul(
-						new(big.Int).Mul(
-							new(big.Int).Sub(MAX_BLOCK_DIFF_SECONDS, timeDiff),
-							priceAverageOut),
-						newPriceAverageIn)),
-					priceAverageIn),
-				new(big.Int).Mul(timeDiff, fictiveReserveOut)),
-			MAX_BLOCK_DIFF_SECONDS)
+		newPriceAverageOut = new(big.Int).Add(
+			new(big.Int).Div(
+				(new(big.Int).Mul(
+					new(big.Int).Mul(
+						new(big.Int).Sub(MAX_BLOCK_DIFF_SECONDS, timeDiff),
+						priceAverageOut),
+					newPriceAverageIn)),
+				priceAverageIn),
+			new(big.Int).Div(new(big.Int).Mul(timeDiff, fictiveReserveOut), MAX_BLOCK_DIFF_SECONDS))
 	}
 	return
 }
 
 func getAmountOut(param GetAmountParameters) (GetAmountResult, error) {
 	result := GetAmountResult{}
-
-	if isZero(param.reserveIn) || isZero(param.reserveOut) ||
-		isZero(param.fictiveReserveIn) || isZero(param.fictiveReserveOut) {
+	zero := big.NewInt(0)
+	if param.reserveIn.Cmp(zero) != 1 || param.reserveOut.Cmp(zero) != 1 ||
+		param.fictiveReserveIn.Cmp(zero) != 1 || param.fictiveReserveOut.Cmp(zero) != 1 {
 		return result, ErrInsufficientLiquidity
 	}
 
-	amountInWithFees := new(big.Int).Div(
-		new(big.Int).Mul(
-			param.amount,
-			new(big.Int).Sub(new(big.Int).Sub(FEES_BASE, param.feesPool), param.feesLP)),
-		FEES_BASE)
+	if param.priceAverageIn.Cmp(zero) != 1 || param.priceAverageOut.Cmp(zero) != 1 {
+		return result, ErrInsufficientPriceAverage
+	}
+
+	feesTotalReversed := new(big.Int)
+	feesTotalReversed.Sub(FEES_BASE, param.feesLP).Sub(feesTotalReversed, param.feesPool)
+	amountInWithFees := new(big.Int)
+	amountInWithFees.Mul(param.amount, feesTotalReversed).Div(amountInWithFees, FEES_BASE)
 	firstAmountIn := computeFirstTradeQtyIn(param)
 
 	// if there is 2 trade: 1st trade mustn't re-compute fictive reserves, 2nd should
@@ -79,9 +80,7 @@ func getAmountOut(param GetAmountParameters) (GetAmountResult, error) {
 			param.fictiveReserveOut)
 	}
 
-	firstAmountInNoFees := new(big.Int).Div(
-		new(big.Int).Mul(firstAmountIn, FEES_BASE),
-		new(big.Int).Sub(new(big.Int).Sub(FEES_BASE, param.feesPool), param.feesLP))
+	firstAmountInNoFees := new(big.Int).Div(new(big.Int).Mul(firstAmountIn, param.feesBase), feesTotalReversed)
 
 	result.amountOut, result.newReserveIn, result.newReserveOut,
 		result.newFictiveReserveIn, result.newFictiveReserveOut = applyKConstRuleOut(
@@ -94,13 +93,15 @@ func getAmountOut(param GetAmountParameters) (GetAmountResult, error) {
 			priceAverageIn:    param.priceAverageIn,
 			priceAverageOut:   param.priceAverageOut,
 			feesLP:            param.feesLP,
-			feesPool:          param.feesPool})
+			feesPool:          param.feesPool,
+			feesBase:          param.feesBase,
+		})
 
 	// update amountIn in case there is a second trade
 	param.amount = new(big.Int).Sub(param.amount, firstAmountInNoFees)
 
 	// if we need a second trade
-	if firstAmountIn.Cmp(amountInWithFees) < 0 {
+	if firstAmountIn.Cmp(amountInWithFees) == -1 && firstAmountInNoFees.Cmp(param.amount) == -1 {
 		// in the second trade ALWAYS recompute fictive reserves
 		result.newFictiveReserveIn, result.newFictiveReserveOut = computeFictiveReserves(
 			result.newReserveIn,
@@ -111,7 +112,7 @@ func getAmountOut(param GetAmountParameters) (GetAmountResult, error) {
 		var secondAmountOutNoFees *big.Int
 		secondAmountOutNoFees, result.newReserveIn, result.newReserveOut,
 			result.newFictiveReserveIn, result.newFictiveReserveOut = applyKConstRuleOut(GetAmountParameters{
-			amount:            param.amount,
+			amount:            new(big.Int).Sub(param.amount, firstAmountInNoFees),
 			reserveIn:         result.newReserveIn,
 			reserveOut:        result.newReserveOut,
 			fictiveReserveIn:  result.newFictiveReserveIn,
@@ -119,9 +120,18 @@ func getAmountOut(param GetAmountParameters) (GetAmountResult, error) {
 			priceAverageIn:    param.priceAverageIn,
 			priceAverageOut:   param.priceAverageOut,
 			feesLP:            param.feesLP,
-			feesPool:          param.feesPool})
+			feesPool:          param.feesPool,
+			feesBase:          param.feesBase,
+		})
 
 		result.amountOut = new(big.Int).Add(result.amountOut, secondAmountOutNoFees)
+	}
+
+	if result.newReserveIn.Cmp(zero) != 1 ||
+		result.newReserveOut.Cmp(zero) != 1 ||
+		result.newFictiveReserveIn.Cmp(zero) != 1 ||
+		result.newFictiveReserveOut.Cmp(zero) != 1 {
+		return result, ErrInsufficientLiquidity
 	}
 
 	return result, nil
@@ -172,32 +182,25 @@ func computeFirstTradeQtyIn(param GetAmountParameters) *big.Int {
 	b := new(big.Int).Mul(param.fictiveReserveIn, param.priceAverageOut)
 	if a.Cmp(b) == 1 {
 		// pre-compute all operands
-		toSub := new(big.Int).Mul(
-			param.fictiveReserveIn,
-			new(big.Int).Sub(
-				new(big.Int).Sub(
-					new(big.Int).Mul(FEES_BASE, big.NewInt(2)),
-					new(big.Int).Mul(param.feesPool, big.NewInt(2))),
-				param.feesLP))
-		toDiv := new(big.Int).Mul(new(big.Int).Sub(FEES_BASE, param.feesPool), big.NewInt(2))
-		inSqrt := new(big.Int).Mul(
-			new(big.Int).Div(
-				new(big.Int).Mul(new(big.Int).Mul(param.fictiveReserveIn, param.fictiveReserveOut), big.NewInt(4)),
-				param.priceAverageOut),
-			new(big.Int).Add(
-				new(big.Int).Mul(
-					param.priceAverageIn,
-					new(big.Int).Mul(
-						new(big.Int).Sub(new(big.Int).Sub(FEES_BASE, param.feesLP), param.feesPool),
-						new(big.Int).Sub(FEES_BASE, param.feesPool))),
-				new(big.Int).Mul(
-					new(big.Int).Mul(param.fictiveReserveIn, param.fictiveReserveIn),
-					new(big.Int).Mul(param.feesLP, param.feesLP))))
+		feesTotalReversed := new(big.Int)
+		feesTotalReversed.Sub(param.feesBase, param.feesLP).Sub(feesTotalReversed, param.feesPool)
+		toSub := new(big.Int)
+		toSub.Add(FEES_BASE, feesTotalReversed).Sub(toSub, param.feesPool).Mul(toSub, param.fictiveReserveIn)
+		toDiv := new(big.Int).Mul(new(big.Int).Sub(param.feesBase, param.feesPool), big.NewInt(2))
+		tmp := new(big.Int)
+		tmp.Mul(param.fictiveReserveIn, param.fictiveReserveIn).Mul(tmp, param.feesLP).Mul(tmp, param.feesLP)
+		inSqrt := new(big.Int)
+		inSqrt.Mul(param.fictiveReserveIn, param.fictiveReserveOut).
+			Mul(inSqrt, big.NewInt(4)).Div(inSqrt, param.priceAverageOut).
+			Mul(inSqrt, param.priceAverageIn).Mul(inSqrt, feesTotalReversed).
+			Mul(inSqrt, new(big.Int).Sub(param.feesBase, param.feesPool)).
+			Add(inSqrt, tmp)
 
 		// reverse sqrt check to only compute sqrt if really needed
-		inSqrtCompare := new(big.Int).Add(toSub, new(big.Int).Mul(param.amount, toDiv))
-		if inSqrt.Cmp(new(big.Int).Mul(inSqrtCompare, inSqrtCompare)) < 0 {
-			firstAmountIn = new(big.Int).Div(new(big.Int).Sub(new(big.Int).Sqrt(inSqrt), toSub), toDiv)
+		tmp.Mul(param.amount, toDiv).Add(tmp, toSub).Exp(tmp, big.NewInt(2), nil)
+		if inSqrt.Cmp(tmp) == -1 {
+			firstAmountIn = sqrt(inSqrt)
+			firstAmountIn.Sub(firstAmountIn, toSub).Div(firstAmountIn, toDiv)
 		}
 	}
 
@@ -215,13 +218,13 @@ func computeFirstTradeQtyIn(param GetAmountParameters) *big.Int {
  */
 func applyKConstRuleOut(param GetAmountParameters) (amountOut *big.Int, newReserveIn *big.Int, newReserveOut *big.Int, newFictiveReserveIn *big.Int, newFictiveReserveOut *big.Int) {
 	// k const rule
-	amountInWithFee := new(big.Int).Mul(param.amount, new(big.Int).Sub(new(big.Int).Sub(FEES_BASE, param.feesLP), param.feesPool))
+	amountInWithFee := new(big.Int).Mul(param.amount, new(big.Int).Sub(new(big.Int).Sub(param.feesBase, param.feesLP), param.feesPool))
 	numerator := new(big.Int).Mul(amountInWithFee, param.fictiveReserveOut)
-	denominator := new(big.Int).Add(new(big.Int).Mul(param.fictiveReserveIn, FEES_BASE), amountInWithFee)
+	denominator := new(big.Int).Add(new(big.Int).Mul(param.fictiveReserveIn, param.feesBase), amountInWithFee)
 	amountOut = new(big.Int).Div(numerator, denominator)
 
 	// update new reserves and add lp-fees to pools
-	amountInWithFeeLp := new(big.Int).Div(new(big.Int).Add(amountInWithFee, new(big.Int).Mul(param.amount, param.feesLP)), FEES_BASE)
+	amountInWithFeeLp := new(big.Int).Div(new(big.Int).Add(amountInWithFee, new(big.Int).Mul(param.amount, param.feesLP)), param.feesBase)
 	newReserveIn = new(big.Int).Add(param.reserveIn, amountInWithFeeLp)
 	newFictiveReserveIn = new(big.Int).Add(param.fictiveReserveIn, amountInWithFeeLp)
 	newReserveOut = new(big.Int).Sub(param.reserveOut, amountOut)

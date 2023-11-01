@@ -74,6 +74,7 @@ type GetAmountParameters struct {
 	priceAverageOut   *big.Int
 	feesLP            *big.Int
 	feesPool          *big.Int
+	feesBase          *big.Int
 }
 
 type GetAmountResult struct {

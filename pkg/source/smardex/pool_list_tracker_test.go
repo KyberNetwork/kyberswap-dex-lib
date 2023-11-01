@@ -51,9 +51,12 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 		assert.Fail(ts.Suite.T(), "Failed to unmarshal pool extra %e", err)
 	}
 
-	assert.NotNil(ts.Suite.T(), pair.PairFee)
-	assert.NotNil(ts.Suite.T(), pair.FictiveReserve)
-	assert.NotNil(ts.Suite.T(), pair.PriceAverage)
+	assert.NotNil(ts.Suite.T(), pair.PairFee.FeesLP)
+	assert.NotNil(ts.Suite.T(), pair.PairFee.FeesPool)
+	assert.NotNil(ts.Suite.T(), pair.FictiveReserve.FictiveReserve0)
+	assert.NotNil(ts.Suite.T(), pair.FictiveReserve.FictiveReserve1)
+	assert.NotNil(ts.Suite.T(), pair.PriceAverage.PriceAverage0)
+	assert.NotNil(ts.Suite.T(), pair.PriceAverage.PriceAverage1)
 	assert.NotNil(ts.Suite.T(), pair.FeeToAmount.FeeToAmount0)
 	assert.NotNil(ts.Suite.T(), pair.FeeToAmount.FeeToAmount1)
 	if ts.tracker.config.ChainID == 1 {
