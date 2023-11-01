@@ -96,10 +96,6 @@ func _get_y(x0, xy, y *big.Int) *big.Int {
 
 		k := _f(x0, _y)
 		d := _d(x0, _y)
-		if d.Cmp(bignumber.ZeroBI) <= 0 {
-			return bignumber.ZeroBI
-		}
-
 		if k.Cmp(xy) < 0 {
 			dy := new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(xy, k), bignumber.BONE), d)
 			_y.Add(_y, dy)

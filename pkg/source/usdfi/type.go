@@ -24,6 +24,10 @@ type StaticExtra struct {
 	Stable bool `json:"stable"`
 }
 
+type Extra struct {
+	FactoryPaused bool `json:"factoryPaused"`
+}
+
 type Reserves struct {
 	Reserve0           *big.Int
 	Reserve1           *big.Int
