@@ -54,7 +54,7 @@ func New(skipPathSet map[string]struct{}) gin.HandlerFunc {
 				"client.id":            clientID,
 			}).
 			Info("inbound response")
-		metrics.IncrClientIDCount(clientID, blw.Status())
+		metrics.IncrRequestCount(clientID, blw.Status())
 	}
 }
 

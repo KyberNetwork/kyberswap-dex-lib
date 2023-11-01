@@ -21,7 +21,7 @@ const (
 	PoolTypeHitRateMetricsName        = "pool_hit_rate.count"
 	RequestPairCountMetricsName       = "request_pair.count"
 	FindRouteCacheCountMetricsName    = "find_route_cache.count"
-	ClientIDMetricsName               = "client_id.count"
+	RequestCountMetricsName           = "request.count"
 	InvalidSynthetixVolumeMetricsName = "invalid_synthetix_volume.count"
 	FindRoutePregenHitRateMetricsName = "find_route_pregen.count"
 )
@@ -31,7 +31,7 @@ var (
 	poolTypeHitRateCounter        metric.Float64Counter
 	requestPairCountCounter       metric.Float64Counter
 	findRouteCacheCounter         metric.Float64Counter
-	clientIDCounter               metric.Float64Counter
+	requestCountCounter           metric.Float64Counter
 	invalidSynthetixVolumeCounter metric.Float64Counter
 	findRoutePregenHitRateCounter metric.Float64Counter
 	mapMetricNameToCounter        map[string]metric.Float64Counter
@@ -42,7 +42,7 @@ func init() {
 	poolTypeHitRateCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(PoolTypeHitRateMetricsName))
 	requestPairCountCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(RequestPairCountMetricsName))
 	findRouteCacheCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(FindRouteCacheCountMetricsName))
-	clientIDCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(ClientIDMetricsName))
+	requestCountCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(RequestCountMetricsName))
 	invalidSynthetixVolumeCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(InvalidSynthetixVolumeMetricsName))
 	findRoutePregenHitRateCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(FindRoutePregenHitRateMetricsName))
 	mapMetricNameToCounter = map[string]metric.Float64Counter{
@@ -50,7 +50,7 @@ func init() {
 		PoolTypeHitRateMetricsName:        poolTypeHitRateCounter,
 		RequestPairCountMetricsName:       requestPairCountCounter,
 		FindRouteCacheCountMetricsName:    findRouteCacheCounter,
-		ClientIDMetricsName:               clientIDCounter,
+		RequestCountMetricsName:           requestCountCounter,
 		InvalidSynthetixVolumeMetricsName: invalidSynthetixVolumeCounter,
 		FindRoutePregenHitRateMetricsName: findRoutePregenHitRateCounter,
 	}
@@ -101,13 +101,13 @@ func IncrFindRouteCacheCount(cacheHit bool, otherTags map[string]string) {
 	incr(FindRouteCacheCountMetricsName, tags, 1)
 }
 
-func IncrClientIDCount(clientID string, responseStatus int) {
+func IncrRequestCount(clientID string, responseStatus int) {
 	tags := map[string]string{
 		"client_id":   clientID,
 		"http_status": strconv.FormatInt(int64(responseStatus), 10),
 	}
 
-	incr(ClientIDMetricsName, tags, 1)
+	incr(RequestCountMetricsName, tags, 1)
 }
 
 func IncrInvalidSynthetixVolume() {
