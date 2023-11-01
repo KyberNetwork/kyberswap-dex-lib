@@ -16,16 +16,16 @@ import (
  * so the k constant rule will be applied to return to the price
  **/
 func getUpdatedPriceAverage(fictiveReserveIn *big.Int, fictiveReserveOut *big.Int,
-	priceAverageLastTimestamp int64, priceAverageIn *big.Int,
-	priceAverageOut *big.Int, currentTimestamp int64) (newPriceAverageIn *big.Int, newPriceAverageOut *big.Int, err error) {
+	priceAverageLastTimestamp *big.Int, priceAverageIn *big.Int,
+	priceAverageOut *big.Int, currentTimestamp *big.Int) (newPriceAverageIn *big.Int, newPriceAverageOut *big.Int, err error) {
 
-	if currentTimestamp >= 0 {
+	if currentTimestamp.Cmp(big.NewInt(0)) >= 0 {
 		err = ErrInvalidTimestamp
 		return
 	}
 
 	// priceAverage is initialized with the first price at the time of the first update
-	if priceAverageLastTimestamp == 0 {
+	if isZero(priceAverageLastTimestamp) {
 		newPriceAverageIn = fictiveReserveIn
 		newPriceAverageOut = fictiveReserveOut
 	} else if priceAverageLastTimestamp == currentTimestamp { // another tx has been done in the same timestamp
@@ -33,7 +33,10 @@ func getUpdatedPriceAverage(fictiveReserveIn *big.Int, fictiveReserveOut *big.In
 		newPriceAverageOut = priceAverageOut
 	} else { // need to compute new linear-average price
 		// compute new price:
-		timeDiff := min(currentTimestamp-priceAverageLastTimestamp, MAX_BLOCK_DIFF_SECONDS)
+		timeDiff := new(big.Int).Sub(currentTimestamp, priceAverageLastTimestamp)
+		if timeDiff.Cmp(MAX_BLOCK_DIFF_SECONDS) > 0 {
+			timeDiff = MAX_BLOCK_DIFF_SECONDS
+		}
 
 		newPriceAverageIn = fictiveReserveIn
 		newPriceAverageOut = new(big.Int).Div(
@@ -41,12 +44,12 @@ func getUpdatedPriceAverage(fictiveReserveIn *big.Int, fictiveReserveOut *big.In
 				new(big.Int).Div(
 					(new(big.Int).Mul(
 						new(big.Int).Mul(
-							big.NewInt(MAX_BLOCK_DIFF_SECONDS-timeDiff),
+							new(big.Int).Sub(MAX_BLOCK_DIFF_SECONDS, timeDiff),
 							priceAverageOut),
 						newPriceAverageIn)),
 					priceAverageIn),
-				new(big.Int).Mul(big.NewInt(timeDiff), fictiveReserveOut)),
-			big.NewInt(MAX_BLOCK_DIFF_SECONDS))
+				new(big.Int).Mul(timeDiff, fictiveReserveOut)),
+			MAX_BLOCK_DIFF_SECONDS)
 	}
 	return
 }

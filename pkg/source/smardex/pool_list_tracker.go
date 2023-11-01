@@ -2,8 +2,7 @@ package smardex
 
 import (
 	"context"
-	"encoding/hex"
-	"fmt"
+	"encoding/json"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -36,27 +35,21 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	rpcRequest.SetContext(ctx)
 
 	var (
-		// reserve Reserve
-		// feeToAmount FeeToAmount
-		fictiveReserve FictiveReseerve
-		// pairFee        PairFee
-		// priceAverage PriceAverage
-		totalSupply *big.Int
+		reserve        Reserve
+		feeToAmount    FeeToAmount
+		ethereumFees   EthereumFeeToAmount
+		fictiveReserve FictiveReserve
+		pairFee        PairFee
+		priceAverage   PriceAverage
+		totalSupply    *big.Int
 	)
 
-	// rpcRequest.AddCall(&ethrpc.Call{
-	// 	ABI:    pairABI,
-	// 	Target: p.Address,
-	// 	Method: pairGetReservesMethod,
-	// 	Params: nil,
-	// }, []interface{}{&reserve})
-
-	// rpcRequest.AddCall(&ethrpc.Call{
-	// 	ABI:    pairABI,
-	// 	Target: p.Address,
-	// 	Method: pairGetFeeToAmountsMethod,
-	// 	Params: nil,
-	// }, []interface{}{&feeToAmount})
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    pairABI,
+		Target: p.Address,
+		Method: pairGetReservesMethod,
+		Params: nil,
+	}, []interface{}{&reserve})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
@@ -65,19 +58,54 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		Params: nil,
 	}, []interface{}{&fictiveReserve})
 
-	// rpcRequest.AddCall(&ethrpc.Call{
-	// 	ABI:    pairABI,
-	// 	Target: p.Address,
-	// 	Method: pairGetPairFeesMethod,
-	// 	Params: nil,
-	// }, []interface{}{&pairFee})
+	/*
+	 * On ethereum: feesPool and feesLP are hardcode in sc
+	 * Other chains: feesPool and feesLP are gotten by rpc method
+	 * https://github.com/SmarDex-Dev/smart-contracts/commit/8d5a1e84123e07459b5dd6afbed615eacd633cc0#diff-26f384a3693d317994210fb738bb0ae5dfe485c46d867ed0b6bbf4fb7671b199
+	 */
+	if u.config.ChainID == 1 {
+		pairFee = PairFee{
+			FeesPool: big.NewInt(2),
+			FeesLP:   big.NewInt(5),
+			FeesBase: FEES_BASE_ETHEREUM,
+		}
+	} else {
+		pairFee = PairFee{
+			FeesBase: FEES_BASE_ETHEREUM,
+		}
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    pairABI,
+			Target: p.Address,
+			Method: pairGetPairFeesMethod,
+			Params: nil,
+		}, []interface{}{&pairFee})
+	}
 
-	// rpcRequest.AddCall(&ethrpc.Call{
-	// 	ABI:    pairABI,
-	// 	Target: p.Address,
-	// 	Method: pairGetPriceAverageMethod,
-	// 	Params: nil,
-	// }, []interface{}{&priceAverage})
+	/*
+	 * On ethereum: feeToAmount will be gotten by getFees, in other chains getFeeToAmounts will be used instead
+	 */
+	if u.config.ChainID == 1 {
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    pairABI,
+			Target: p.Address,
+			Method: pairGetFeesMethod,
+			Params: nil,
+		}, []interface{}{&ethereumFees})
+	} else {
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    pairABI,
+			Target: p.Address,
+			Method: pairGetFeeToAmountsMethod,
+			Params: nil,
+		}, []interface{}{&feeToAmount})
+	}
+
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    pairABI,
+		Target: p.Address,
+		Method: pairGetPriceAverageMethod,
+		Params: nil,
+	}, []interface{}{&priceAverage})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
@@ -86,51 +114,46 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		Params: nil,
 	}, []interface{}{&totalSupply})
 
-	res, err := rpcRequest.TryAggregate()
-	// var buff bytes.Buffer
-	// buff.Write(res.RawResponse)
-	fmt.Printf("cmnguyen res=%s\n", hex.EncodeToString(res.RawResponse))
+	_, err := rpcRequest.TryAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
-			"response":    res,
-		}).Errorf("%s: failed to process tryAggregate for pool %s", u.config.DexID, res)
+		}).Errorf("%s: failed to process tryAggregate for pool", u.config.DexID)
 		return entity.Pool{}, err
 	}
 
-	// extraBytes, err := json.Marshal(SmardexPair{
-	// 	FictiveReserve: fictiveReserve,
-	// 	PriceAverage:   priceAverage,
-	// 	FeeToAmount:    feeToAmount,
-	// 	Reserve:        reserve,
-	// })
-	// if err != nil {
-	// 	logger.WithFields(logger.Fields{
-	// 		"poolAddress": p.Address,
-	// 		"error":       err,
-	// 		"dex":         u.config.DexID}).Errorf(
-	// 		"failed to marshal pool extra")
-	// 	return entity.Pool{}, err
-	// }
+	if u.config.ChainID == 1 {
+		feeToAmount.FeeToAmount0 = ethereumFees.Fees0
+		feeToAmount.FeeToAmount1 = ethereumFees.Fees1
+	}
+	extraBytes, err := json.Marshal(SmardexPair{
+		PairFee:        pairFee,
+		FictiveReserve: fictiveReserve,
+		PriceAverage:   priceAverage,
+		FeeToAmount:    feeToAmount,
+	})
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"error":       err,
+			"dex":         u.config.DexID}).Errorf(
+			"failed to marshal pool extra")
+		return entity.Pool{}, err
+	}
 
-	// staticExtraBytes, err := json.Marshal(PairFee{
-	// 	feesLP:   pairFee.feesLP,
-	// 	feesPool: pairFee.feesPool,
-	// })
-	// if err != nil {
-	// 	logger.WithFields(logger.Fields{
-	// 		"poolAddress": p.Address,
-	// 		"error":       err,
-	// 		"dex":         u.config.DexID}).Errorf(
-	// 		"failed to marshal pool extra")
-	// 	return entity.Pool{}, err
-	// }
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"error":       err,
+			"dex":         u.config.DexID}).Errorf(
+			"failed to marshal pool extra")
+		return entity.Pool{}, err
+	}
 
-	// p.Extra = string(extraBytes)
-	// p.StaticExtra = string(staticExtraBytes)
+	p.Extra = string(extraBytes)
 	p.TotalSupply = totalSupply.String()
-	// p.Reserves = entity.PoolReserves([]string{reserve.reserve0.String(), reserve.reserve1.String()})
+	p.Reserves = entity.PoolReserves([]string{reserve.Reserve0.String(), reserve.Reserve1.String()})
 
 	return p, nil
 

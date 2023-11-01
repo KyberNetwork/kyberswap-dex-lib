@@ -5,7 +5,8 @@ import "math/big"
 var (
 	DefaultGas                      = Gas{Swap: 160000}
 	FEES_BASE              *big.Int = big.NewInt(1000000)
-	MAX_BLOCK_DIFF_SECONDS int64    = 300
+	FEES_BASE_ETHEREUM     *big.Int = big.NewInt(10000)
+	MAX_BLOCK_DIFF_SECONDS *big.Int = big.NewInt(300)
 )
 
 const (
@@ -21,6 +22,7 @@ const (
 	pairToken1Method             = "token1"
 	pairGetPairFeesMethod        = "getPairFees"
 	pairGetFeeToAmountsMethod    = "getFeeToAmounts"
+	pairGetFeesMethod            = "getFees"
 	pairGetFictiveReservesMethod = "getFictiveReserves"
 	pairGetPriceAverageMethod    = "getPriceAverage"
 	pairGetReservesMethod        = "getReserves"

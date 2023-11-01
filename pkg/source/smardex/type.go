@@ -22,42 +22,46 @@ type SmardexPair struct {
 	PairFee PairFee
 
 	// smardex new fictive reserves
-	FictiveReserve FictiveReseerve
+	FictiveReserve FictiveReserve
 
 	// moving average on the price
 	PriceAverage PriceAverage
 
 	// fee for FEE_POOL
 	FeeToAmount FeeToAmount
-
-	// access through balanceOf of ERC20 token
-	Reserve Reserve
 }
 
 type PairFee struct {
-	feesLP   *big.Int
-	feesPool *big.Int
+	FeesLP   *big.Int
+	FeesPool *big.Int
+	FeesBase *big.Int
 }
 
-type FictiveReseerve struct {
-	fictiveReserve0_ *big.Int
-	fictiveReserve1_ *big.Int
+type FictiveReserve struct {
+	FictiveReserve0 *big.Int
+	FictiveReserve1 *big.Int
 }
 
 type PriceAverage struct {
-	priceAverage0             *big.Int
-	priceAverage1             *big.Int
-	priceAverageLastTimestamp int64
+	PriceAverage0             *big.Int
+	PriceAverage1             *big.Int
+	PriceAverageLastTimestamp *big.Int
 }
 
 type FeeToAmount struct {
-	feeToAmount0 *big.Int
-	feeToAmount1 *big.Int
+	FeeToAmount0 *big.Int
+	FeeToAmount1 *big.Int
+}
+
+type EthereumFeeToAmount struct {
+	// Ethereum has another interfaces for method getFeeToAmounts
+	Fees0 *big.Int
+	Fees1 *big.Int
 }
 
 type Reserve struct {
-	reserve0 *big.Int
-	reserve1 *big.Int
+	Reserve0 *big.Int
+	Reserve1 *big.Int
 }
 
 type GetAmountParameters struct {
@@ -78,4 +82,11 @@ type GetAmountResult struct {
 	newReserveOut        *big.Int
 	newFictiveReserveIn  *big.Int
 	newFictiveReserveOut *big.Int
+}
+
+type SwapInfo struct {
+	NewReserveIn         *big.Int
+	NewReserveOut        *big.Int
+	NewFictiveReserveIn  *big.Int
+	NewFictiveReserveOut *big.Int
 }
