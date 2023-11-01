@@ -36,9 +36,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			},
 		},
 		state: &WooFiV2State{
-			QuoteToken:   extra.QuoteToken,
-			UnclaimedFee: extra.UnclaimedFee,
-			TokenInfos:   extra.TokenInfos,
+			QuoteToken:    extra.QuoteToken,
+			UnclaimedFee:  extra.UnclaimedFee,
+			TokenInfos:    extra.TokenInfos,
+			Timestamp:     extra.Timestamp,
+			StaleDuration: extra.StaleDuration,
+			Bound:         extra.Bound,
 		},
 		gas: DefaultGas,
 	}, nil

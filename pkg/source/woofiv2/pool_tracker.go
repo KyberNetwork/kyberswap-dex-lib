@@ -46,11 +46,12 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	var (
-		quoteToken, wooracle common.Address
-		unclaimedFee         *big.Int
-		tokenDecimals        = make([]uint8, len(p.Tokens))
-		priceTokenDecimals   = make([]uint8, len(p.Tokens))
-		tokenInfos           = make([]struct {
+		quoteToken, wooracle                   common.Address
+		unclaimedFee, timestamp, staleDuration *big.Int
+		bound                                  uint64
+		tokenDecimals                          = make([]uint8, len(p.Tokens))
+		priceTokenDecimals                     = make([]uint8, len(p.Tokens))
+		tokenInfos                             = make([]struct {
 			Reserve *big.Int `json:"reserve"`
 			FeeRate uint16   `json:"feeRate"`
 		}, len(p.Tokens))
@@ -99,7 +100,38 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
+	type CloPriceResp struct {
+		RefPrice     *big.Int
+		RefTimestamp *big.Int
+	}
+	type CloOraclesResp struct {
+		Oracle       common.Address
+		Decimal      uint8
+		CloPreferred bool
+	}
+	var (
+		cloPriceResp  = make([]CloPriceResp, len(p.Tokens))
+		cloOracleResp = make([]CloOraclesResp, len(p.Tokens))
+	)
 	oracleCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
+	oracleCalls.AddCall(&ethrpc.Call{
+		ABI:    WooracleV2ABI,
+		Target: wooracle.Hex(),
+		Method: wooracleMethodTimestamp,
+		Params: nil,
+	}, []interface{}{&timestamp})
+	oracleCalls.AddCall(&ethrpc.Call{
+		ABI:    WooracleV2ABI,
+		Target: wooracle.Hex(),
+		Method: wooracleMethodStaleDuration,
+		Params: nil,
+	}, []interface{}{&staleDuration})
+	oracleCalls.AddCall(&ethrpc.Call{
+		ABI:    WooracleV2ABI,
+		Target: wooracle.Hex(),
+		Method: wooracleMethodBound,
+		Params: nil,
+	}, []interface{}{&bound})
 	for i, token := range p.Tokens {
 		oracleCalls.AddCall(&ethrpc.Call{
 			ABI:    WooracleV2ABI,
@@ -113,6 +145,18 @@ func (d *PoolTracker) GetNewPoolState(
 			Method: wooracleMethodDecimals,
 			Params: []interface{}{common.HexToAddress(token.Address)},
 		}, []interface{}{&priceTokenDecimals[i]})
+		oracleCalls.AddCall(&ethrpc.Call{
+			ABI:    WooracleV2ABI,
+			Target: wooracle.Hex(),
+			Method: wooracleMethodClOracles,
+			Params: []interface{}{common.HexToAddress(token.Address)},
+		}, []interface{}{&cloOracleResp[i]})
+		oracleCalls.AddCall(&ethrpc.Call{
+			ABI:    WooracleV2ABI,
+			Target: wooracle.Hex(),
+			Method: wooracleMethodCloPrice,
+			Params: []interface{}{common.HexToAddress(token.Address)},
+		}, []interface{}{&cloPriceResp[i]})
 	}
 	if _, err := oracleCalls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -131,21 +175,26 @@ func (d *PoolTracker) GetNewPoolState(
 			FeeRate:  big.NewInt(int64(tokenInfos[i].FeeRate)),
 			Decimals: tokenDecimals[i],
 			State: &OracleState{
-				Price:      woState[i].Price,
-				Spread:     big.NewInt(int64(woState[i].Spread)),
-				Coeff:      big.NewInt(int64(woState[i].Coeff)),
-				WoFeasible: woState[i].WoFeasible,
-				Decimals:   priceTokenDecimals[i],
+				Price:        woState[i].Price,
+				Spread:       big.NewInt(int64(woState[i].Spread)),
+				Coeff:        big.NewInt(int64(woState[i].Coeff)),
+				WoFeasible:   woState[i].WoFeasible,
+				Decimals:     priceTokenDecimals[i],
+				CloPrice:     cloPriceResp[i].RefPrice,
+				CloPreferred: cloOracleResp[i].CloPreferred,
 			},
 		}
 		reserves[i] = tokenInfos[i].Reserve.String()
 	}
 
 	extraBytes, err := json.Marshal(&Extra{
-		QuoteToken:   strings.ToLower(quoteToken.Hex()),
-		UnclaimedFee: unclaimedFee,
-		Wooracle:     wooracle.Hex(),
-		TokenInfos:   extraTokenInfo,
+		QuoteToken:    strings.ToLower(quoteToken.Hex()),
+		UnclaimedFee:  unclaimedFee,
+		Wooracle:      wooracle.Hex(),
+		TokenInfos:    extraTokenInfo,
+		Timestamp:     timestamp,
+		StaleDuration: staleDuration,
+		Bound:         big.NewInt(int64(bound)),
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
