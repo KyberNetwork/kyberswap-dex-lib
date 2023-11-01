@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
 )
 
 var now = time.Now
@@ -159,19 +160,19 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 
 }
 
-// func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-// 	zeroForOne := params.TokenAmountIn.Token < params.TokenAmountOut.Token
-// 	token0, token1 := params.TokenAmountIn.Token, params.TokenAmountOut.Token
-// 	if !zeroForOne {
-// 		token0, token1 = params.TokenAmountOut.Token, params.TokenAmountIn.Token
-// 	}
-// 	pair := p.getPair[token0][token1]
+func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+	return nil
+}
 
-// 	amount0, amount1 := params.TokenAmountIn.Amount, new(big.Int).Neg(params.TokenAmountOut.Amount)
-// 	if !zeroForOne {
-// 		amount0, amount1 = new(big.Int).Neg(amountCalculated), tokenAmountIn.Amount
-// 	}
-// 	if zeroForOne {
-// 		pair.feeToAmount0 += ((uint256(amount0_) * _feesPool) / SmardexLibrary.FEES_BASE).toUint104();
-// 	}
-// }
+func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+	si, ok := params.SwapInfo.(SwapInfo)
+	if !ok {
+		logger.Warnf("failed to UpdateBalance for Algebra %v %v pool, wrong swapInfo type", p.Info.Address, p.Info.Exchange)
+		return
+	}
+	p.Info.Reserves = []*big.Int{si.NewReserveIn, si.NewReserveOut}
+	p.FictiveReserve = FictiveReserve{
+		si.NewFictiveReserveIn,
+		si.NewFictiveReserveOut,
+	}
+}

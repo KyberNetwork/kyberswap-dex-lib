@@ -1,7 +1,7 @@
 package smardex
 
 type Config struct {
-	DexID          string `json:"dexId"`
+	DexID          string
 	FactoryAddress string
 	PoolPagingSize int
 	ChainID        uint
