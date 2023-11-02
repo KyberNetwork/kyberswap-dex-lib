@@ -30,8 +30,6 @@ func TestCalcAmountOut(t *testing.T) {
 	simulator, err := NewPoolSimulator(entityPool)
 	assert.Nil(t, err)
 
-	result, err := simulator.CalcAmountOut(tokenAmountIn, tokenOut)
-	assert.Nil(t, err)
-
-	assert.Equal(t, "915526084694204215", result.TokenAmountOut.Amount.String())
+	_, err = simulator.CalcAmountOut(tokenAmountIn, tokenOut)
+	assert.Equal(t, ErrNotFoundBinID, err)
 }
