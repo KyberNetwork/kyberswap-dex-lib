@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -66,7 +65,6 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 	}
 
 	var (
-		amountCalculated   *big.Int = integer.Zero()
 		fictiveReserveIn   *big.Int = p.FictiveReserve.FictiveReserve0
 		fictiveReserveOut  *big.Int = p.FictiveReserve.FictiveReserve1
 		priceAverageIn     *big.Int = p.PriceAverage.PriceAverage0
@@ -112,9 +110,8 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 	if err != nil {
 		return nil, err
 	}
-	amountCalculated = result.amountOut
 
-	amount0, amount1 := tokenAmountIn.Amount, amountCalculated
+	amount0, amount1 := tokenAmountIn.Amount, result.amountOut
 	feeToAmount0 := new(big.Int).Add(
 		p.FeeToAmount.FeeToAmount0,
 		new(big.Int).Div(new(big.Int).Mul(amount0, p.PairFee.FeesPool), p.PairFee.FeesBase))
@@ -122,7 +119,7 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 		p.FeeToAmount.FeeToAmount1,
 		new(big.Int).Div(new(big.Int).Mul(amount1, p.PairFee.FeesPool), p.PairFee.FeesBase))
 	if !zeroForOne {
-		amount0, amount1 = amountCalculated, tokenAmountIn.Amount
+		amount0, amount1 = result.amountOut, tokenAmountIn.Amount
 	}
 
 	if zeroForOne {
