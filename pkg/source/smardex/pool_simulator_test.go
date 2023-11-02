@@ -53,8 +53,8 @@ func TestCalcAmountOut(t *testing.T) {
 			PriceAverageLastTimestamp: big.NewInt(TIMESTAMP_JAN_2020),
 		},
 		FeeToAmount: FeeToAmount{
-			FeeToAmount0: big.NewInt(0),
-			FeeToAmount1: big.NewInt(0),
+			Fees0: big.NewInt(0),
+			Fees1: big.NewInt(0),
 		},
 	}
 	extraJson, _ := json.Marshal(extra)
@@ -229,8 +229,8 @@ func TestUpdateBalance(t *testing.T) {
 			PriceAverageLastTimestamp: big.NewInt(TIMESTAMP_JAN_2020),
 		},
 		FeeToAmount: FeeToAmount{
-			FeeToAmount0: big.NewInt(0),
-			FeeToAmount1: big.NewInt(0),
+			Fees0: big.NewInt(0),
+			Fees1: big.NewInt(0),
 		},
 	}
 	extraJson, _ := json.Marshal(extra)

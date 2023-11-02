@@ -125,8 +125,8 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}
 
 	if u.config.ChainID == 1 {
-		feeToAmount.FeeToAmount0 = ethereumFees.Fees0
-		feeToAmount.FeeToAmount1 = ethereumFees.Fees1
+		feeToAmount.Fees0 = ethereumFees.Fees0
+		feeToAmount.Fees1 = ethereumFees.Fees1
 	}
 	extraBytes, err := json.Marshal(SmardexPair{
 		PairFee:        pairFee,

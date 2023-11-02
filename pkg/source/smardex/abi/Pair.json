@@ -814,5 +814,41 @@
     ],
     "stateMutability": "view",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getPairFees",
+    "outputs": [
+      {
+        "internalType": "uint128",
+        "name": "feesLP_",
+        "type": "uint128"
+      },
+      {
+        "internalType": "uint128",
+        "name": "feesPool_",
+        "type": "uint128"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getFeeToAmounts",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "fees0_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "fees1_",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
 ]

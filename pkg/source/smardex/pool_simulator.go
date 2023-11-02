@@ -69,8 +69,8 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 		fictiveReserveOut  *big.Int = p.FictiveReserve.FictiveReserve1
 		priceAverageIn     *big.Int = p.PriceAverage.PriceAverage0
 		priceAverageOut    *big.Int = p.PriceAverage.PriceAverage1
-		balanceIn          *big.Int = new(big.Int).Sub(p.GetReserves()[0], p.FeeToAmount.FeeToAmount0)
-		balanceOut         *big.Int = new(big.Int).Sub(p.GetReserves()[1], p.FeeToAmount.FeeToAmount1)
+		balanceIn          *big.Int = new(big.Int).Sub(p.GetReserves()[0], p.FeeToAmount.Fees0)
+		balanceOut         *big.Int = new(big.Int).Sub(p.GetReserves()[1], p.FeeToAmount.Fees1)
 		userTradeTimestamp          = now().Unix()
 	)
 	if !zeroForOne {
@@ -78,8 +78,8 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 		fictiveReserveOut = p.FictiveReserve.FictiveReserve0
 		priceAverageIn = p.PriceAverage.PriceAverage1
 		priceAverageOut = p.PriceAverage.PriceAverage0
-		balanceIn = new(big.Int).Sub(p.GetReserves()[1], p.FeeToAmount.FeeToAmount1)
-		balanceOut = new(big.Int).Sub(p.GetReserves()[0], p.FeeToAmount.FeeToAmount0)
+		balanceIn = new(big.Int).Sub(p.GetReserves()[1], p.FeeToAmount.Fees1)
+		balanceOut = new(big.Int).Sub(p.GetReserves()[0], p.FeeToAmount.Fees0)
 	}
 
 	var err error
@@ -113,10 +113,10 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 
 	amount0, amount1 := tokenAmountIn.Amount, result.amountOut
 	feeToAmount0 := new(big.Int).Add(
-		p.FeeToAmount.FeeToAmount0,
+		p.FeeToAmount.Fees0,
 		new(big.Int).Div(new(big.Int).Mul(amount0, p.PairFee.FeesPool), p.PairFee.FeesBase))
 	feeToAmount1 := new(big.Int).Add(
-		p.FeeToAmount.FeeToAmount1,
+		p.FeeToAmount.Fees1,
 		new(big.Int).Div(new(big.Int).Mul(amount1, p.PairFee.FeesPool), p.PairFee.FeesBase))
 	if !zeroForOne {
 		amount0, amount1 = result.amountOut, tokenAmountIn.Amount

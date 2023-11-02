@@ -49,8 +49,8 @@ type PriceAverage struct {
 }
 
 type FeeToAmount struct {
-	FeeToAmount0 *big.Int
-	FeeToAmount1 *big.Int
+	Fees0 *big.Int
+	Fees1 *big.Int
 }
 
 type EthereumFeeToAmount struct {
