@@ -170,19 +170,19 @@ func (i *Inventory) GetBalance(tokenAddress string) *big.Int {
 func (i *Inventory) UpdateBalance(decreaseTokenAddress, increaseTokenAddress string, decreaseDelta, increaseDelta *big.Int) (*big.Int, *big.Int, error) {
 	i.lock.Lock()
 	defer i.lock.Unlock()
-	balance, avail := i.Balance[decreaseTokenAddress]
+	decreasedTokenBalance, avail := i.Balance[decreaseTokenAddress]
 	if !avail {
-		return big.NewInt(0), big.NewInt(0), errors.New("token is not available")
+		return big.NewInt(0), big.NewInt(0), ErrTokenNotAvailable
 	}
-	if balance.Cmp(decreaseDelta) < 0 {
-		return big.NewInt(0), big.NewInt(0), errors.New("not enough balance in inventory")
+	if decreasedTokenBalance.Cmp(decreaseDelta) < 0 {
+		return big.NewInt(0), big.NewInt(0), ErrNotEnoughInventory
 	}
-	i.Balance[decreaseTokenAddress] = balance.Sub(balance, decreaseDelta)
+	i.Balance[decreaseTokenAddress] = decreasedTokenBalance.Sub(decreasedTokenBalance, decreaseDelta)
 
-	balance2, avail := i.Balance[increaseTokenAddress]
+	increasedTokenBalance, avail := i.Balance[increaseTokenAddress]
 	if !avail {
-		return big.NewInt(0), big.NewInt(0), errors.New("token is not available")
+		return big.NewInt(0), big.NewInt(0), ErrTokenNotAvailable
 	}
-	i.Balance[increaseTokenAddress] = balance2.Add(balance, increaseDelta)
+	i.Balance[increaseTokenAddress] = increasedTokenBalance.Add(decreasedTokenBalance, increaseDelta)
 	return big.NewInt(0).Set(i.Balance[decreaseTokenAddress]), big.NewInt(0).Set(i.Balance[increaseTokenAddress]), nil
 }

@@ -53,7 +53,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 	//this is supposed to be big
-	p.Reserves = make([]string, 2)
+	p.Reserves = make([]string, len(p.Tokens))
 	for i, token := range p.Tokens {
 		inventoryWithoutDecimal, _ := new(big.Float).
 			Mul(new(big.Float).SetFloat64(inventory[strings.ToLower(token.Address)]),
@@ -91,8 +91,8 @@ func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) 
 	}
 
 	var (
-		staticExtra                   StaticExtra
-		baseTokenName, quoteTokenName string
+		staticExtra                     StaticExtra
+		baseTokenSymbol, quoteTokenName string
 	)
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		logger.WithFields(logger.Fields{
@@ -104,7 +104,7 @@ func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) 
 
 	for _, token := range p.Tokens {
 		if strings.EqualFold(token.Address, staticExtra.BaseTokenAddress) {
-			baseTokenName = token.Symbol
+			baseTokenSymbol = token.Symbol
 		}
 		if strings.EqualFold(token.Address, staticExtra.QuoteTokenAddress) {
 			quoteTokenName = token.Symbol
@@ -112,7 +112,7 @@ func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) 
 	}
 	priceLevelsForPool, found1 := result.Prices[staticExtra.PairID]
 
-	baseBalance, found2 := result.Balances[baseTokenName]
+	baseBalance, found2 := result.Balances[baseTokenSymbol]
 	quoteBalance, found3 := result.Balances[quoteTokenName]
 
 	if found1 && found2 && found3 {

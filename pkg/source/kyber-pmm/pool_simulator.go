@@ -110,7 +110,7 @@ func (p *PoolSimulator) CalcAmountOut(
 		return nil, err
 	}
 
-	if (swapDirection == SwapDirectionBaseToQuote && result.TokenAmountOut.Amount.Cmp(p.BaseBalance) < 0) || (swapDirection == SwapDirectionBaseToQuote && result.TokenAmountOut.Amount.Cmp(p.QuoteBalance) < 0) {
+	if (swapDirection == SwapDirectionQuoteToBase && result.TokenAmountOut.Amount.Cmp(p.BaseBalance) < 0) || (swapDirection == SwapDirectionBaseToQuote && result.TokenAmountOut.Amount.Cmp(p.QuoteBalance) < 0) {
 		return nil, errors.New("not enough inventory")
 	}
 	return result, nil
