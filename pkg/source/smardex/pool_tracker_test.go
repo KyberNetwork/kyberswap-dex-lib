@@ -60,7 +60,7 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 	assert.NotNil(ts.Suite.T(), pair.FeeToAmount.Fees0)
 	assert.NotNil(ts.Suite.T(), pair.FeeToAmount.Fees1)
 	if ts.tracker.config.ChainID == 1 {
-		assert.Equal(ts.Suite.T(), pair.PairFee.FeesBase.Cmp(FEES_BASE), 0)
+		assert.Equal(ts.Suite.T(), pair.PairFee.FeesBase.Cmp(FEES_BASE_ETHEREUM), 0)
 	} else {
 		assert.Equal(ts.Suite.T(), pair.PairFee.FeesBase.Cmp(FEES_BASE), 0)
 	}

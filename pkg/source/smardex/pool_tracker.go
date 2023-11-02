@@ -66,9 +66,9 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	 */
 	if u.config.ChainID == 1 {
 		pairFee = PairFee{
-			FeesPool: FEES_POOL_DEFAULT,
-			FeesLP:   FEES_LP_DEFAULT,
-			FeesBase: FEES_BASE,
+			FeesPool: FEES_POOL_DEFAULT_ETHEREUM,
+			FeesLP:   FEES_LP_DEFAULT_ETHEREUM,
+			FeesBase: FEES_BASE_ETHEREUM,
 		}
 	} else {
 		pairFee = PairFee{

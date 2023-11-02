@@ -65,9 +65,9 @@ func getAmountOut(param GetAmountParameters) (GetAmountResult, error) {
 	}
 
 	feesTotalReversed := new(big.Int)
-	feesTotalReversed.Sub(FEES_BASE, param.feesLP).Sub(feesTotalReversed, param.feesPool)
+	feesTotalReversed.Sub(param.feesBase, param.feesLP).Sub(feesTotalReversed, param.feesPool)
 	amountInWithFees := new(big.Int)
-	amountInWithFees.Mul(param.amount, feesTotalReversed).Div(amountInWithFees, FEES_BASE)
+	amountInWithFees.Mul(param.amount, feesTotalReversed).Div(amountInWithFees, param.feesBase)
 	firstAmountIn := computeFirstTradeQtyIn(param)
 
 	// if there is 2 trade: 1st trade mustn't re-compute fictive reserves, 2nd should
@@ -185,7 +185,7 @@ func computeFirstTradeQtyIn(param GetAmountParameters) *big.Int {
 		feesTotalReversed := new(big.Int)
 		feesTotalReversed.Sub(param.feesBase, param.feesLP).Sub(feesTotalReversed, param.feesPool)
 		toSub := new(big.Int)
-		toSub.Add(FEES_BASE, feesTotalReversed).Sub(toSub, param.feesPool).Mul(toSub, param.fictiveReserveIn)
+		toSub.Add(param.feesBase, feesTotalReversed).Sub(toSub, param.feesPool).Mul(toSub, param.fictiveReserveIn)
 		toDiv := new(big.Int).Mul(new(big.Int).Sub(param.feesBase, param.feesPool), big.NewInt(2))
 		tmp := new(big.Int)
 		tmp.Mul(param.fictiveReserveIn, param.fictiveReserveIn).Mul(tmp, param.feesLP).Mul(tmp, param.feesLP)
