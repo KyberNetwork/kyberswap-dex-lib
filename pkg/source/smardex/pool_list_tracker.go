@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -61,17 +62,17 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	/*
 	 * On ethereum: feesPool and feesLP are hardcode in sc
 	 * Other chains: feesPool and feesLP are gotten by rpc method
-	 * https://github.com/SmarDex-Dev/smart-contracts/commit/8d5a1e84123e07459b5dd6afbed615eacd633cc0#diff-26f384a3693d317994210fb738bb0ae5dfe485c46d867ed0b6bbf4fb7671b199
+	 * https://github.com/SmarDex-Dev/smart-contracts/pull/7/files
 	 */
 	if u.config.ChainID == 1 {
 		pairFee = PairFee{
-			FeesPool: big.NewInt(2),
-			FeesLP:   big.NewInt(5),
-			FeesBase: FEES_BASE_ETHEREUM,
+			FeesPool: FEES_POOL_DEFAULT,
+			FeesLP:   FEES_LP_DEFAULT,
+			FeesBase: FEES_BASE,
 		}
 	} else {
 		pairFee = PairFee{
-			FeesBase: FEES_BASE_ETHEREUM,
+			FeesBase: FEES_BASE,
 		}
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    pairABI,
@@ -151,6 +152,7 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		return entity.Pool{}, err
 	}
 
+	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
 	p.TotalSupply = totalSupply.String()
 	p.Reserves = entity.PoolReserves([]string{reserve.Reserve0.String(), reserve.Reserve1.String()})

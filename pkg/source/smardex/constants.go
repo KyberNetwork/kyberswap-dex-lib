@@ -5,8 +5,9 @@ import "math/big"
 var (
 	DefaultGas                      = Gas{Swap: 160000}
 	FEES_BASE              *big.Int = big.NewInt(1000000)
-	FEES_BASE_ETHEREUM     *big.Int = big.NewInt(10000)
 	MAX_BLOCK_DIFF_SECONDS *big.Int = big.NewInt(300)
+	FEES_LP_DEFAULT        *big.Int = big.NewInt(700)
+	FEES_POOL_DEFAULT      *big.Int = big.NewInt(300)
 )
 
 const (
