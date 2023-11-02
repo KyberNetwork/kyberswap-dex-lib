@@ -60,7 +60,6 @@ type reserves struct {
 }
 
 type getSwapOutResult struct {
-	AmountsInLeft      *big.Int
 	AmountOut          *big.Int
 	Fee                *big.Int
 	BinsReserveChanges []binReserveChanges

@@ -95,7 +95,6 @@ func (p *PoolSimulator) CalcAmountOut(
 		},
 		Gas: defaultGas,
 		SwapInfo: SwapInfo{
-			AmountsInLeft:      swapOutResult.AmountsInLeft,
 			BinsReserveChanges: swapOutResult.BinsReserveChanges,
 			NewParameters:      swapOutResult.Parameters,
 			NewActiveID:        swapOutResult.NewActiveID,
@@ -234,10 +233,7 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 
 		nextID, err := p.getNextNonEmptyBin(swapForY, id)
 		if err != nil {
-			if err == ErrNotFoundBinID {
-				break
-			}
-			return nil, err
+			return nil, ErrNotFoundBinID
 		}
 
 		id = nextID
@@ -246,7 +242,6 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 	parameters.ActiveBinID = id
 
 	ret := getSwapOutResult{
-		AmountsInLeft:      amountsInLeft,
 		AmountOut:          amountOut,
 		Fee:                swapFee,
 		BinsReserveChanges: binsReserveChanges,
