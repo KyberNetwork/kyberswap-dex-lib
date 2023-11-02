@@ -31,6 +31,7 @@ func TestCalcAmountOut(t *testing.T) {
 		Reserves:    entity.PoolReserves{"2082415614000308399878", "3631620514949"},
 		Tokens:      []*entity.PoolToken{{Address: "A", Decimals: 18}, {Address: "B", Decimals: 6}},
 		StaticExtra: "{\"stable\": false}",
+		Extra:       "{\"factoryPaused\":false}",
 	})
 	require.Nil(t, err)
 
