@@ -6,6 +6,7 @@ const (
 
 	poolFactoryMethodAllPairLength = "allPairsLength"
 	poolFactoryMethodAllPairs      = "allPairs"
+	poolFactoryMethodIsPaused      = "isPaused"
 
 	poolMethodMetadata    = "metadata"
 	poolMethodGetReserves = "getReserves"

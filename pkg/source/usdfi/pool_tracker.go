@@ -2,6 +2,7 @@ package usdfi
 
 import (
 	"context"
+	"encoding/json"
 	"math/big"
 	"time"
 
@@ -37,8 +38,9 @@ func (d *PoolTracker) GetNewPoolState(
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
-		reserve Reserves
-		fee     *big.Int
+		reserve  Reserves
+		fee      *big.Int
+		isPaused bool
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -57,6 +59,13 @@ func (d *PoolTracker) GetNewPoolState(
 		Params: nil,
 	}, []interface{}{&fee})
 
+	calls.AddCall(&ethrpc.Call{
+		ABI:    factoryABI,
+		Target: d.config.FactoryAddress,
+		Method: poolFactoryMethodIsPaused,
+		Params: nil,
+	}, []interface{}{&isPaused})
+
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
@@ -66,9 +75,23 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
+	extra := Extra{
+		FactoryPaused: isPaused,
+	}
+	extraBytes, err := json.Marshal(extra)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"error":       err,
+		}).Errorf("failed to marshal extra data")
+
+		return entity.Pool{}, err
+	}
+
 	p.Reserves = entity.PoolReserves{reserve.Reserve0.String(), reserve.Reserve1.String()}
 	p.SwapFee = float64(numeratorOne) / float64(fee.Uint64())
 	p.Timestamp = time.Now().Unix()
+	p.Extra = string(extraBytes)
 
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
