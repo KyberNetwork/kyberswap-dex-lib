@@ -33,8 +33,8 @@ func simplifyRouteSummary(routeSummary *valueobject.RouteSummary) *valueobject.S
 	}
 }
 
-// collectTokenAddresses extracts addresses of pool tokens, combines with addresses and returns
-func collectTokenAddresses(poolSet map[string]poolpkg.IPoolSimulator, addresses ...string) []string {
+// CollectTokenAddresses extracts addresses of pool tokens, combines with addresses and returns
+func CollectTokenAddresses(poolSet map[string]poolpkg.IPoolSimulator, addresses ...string) []string {
 	tokenAddressSet := make(map[string]struct{}, len(poolSet)+len(addresses))
 	for _, pool := range poolSet {
 		for _, token := range pool.GetTokens() {

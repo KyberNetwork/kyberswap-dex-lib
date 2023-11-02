@@ -144,6 +144,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setFeatureFlags(remoteCfg.FeatureFlags)
 		cl.setLog(remoteCfg.Log)
 		cl.setFinderOptions(remoteCfg.FinderOptions)
+		cl.setPregenFinderOptions(remoteCfg.PregenFinderOptions)
 		cl.setGetBestPoolOptions(remoteCfg.GetBestPoolsOptions)
 		cl.setCacheConfig(remoteCfg.CacheConfig)
 		cl.setBlacklistedRecipients(remoteCfg.BlacklistedRecipients)
@@ -214,6 +215,9 @@ func (cl *ConfigLoader) setLog(log valueobject.Log) {
 
 func (cl *ConfigLoader) setFinderOptions(finderOptions valueobject.FinderOptions) {
 	cl.config.UseCase.GetRoute.Aggregator.FinderOptions = finderOptions
+}
+
+func (cl *ConfigLoader) setPregenFinderOptions(finderOptions valueobject.FinderOptions) {
 	cl.config.UseCase.GenerateBestPaths.SPFAFinderOptions = finderOptions
 }
 

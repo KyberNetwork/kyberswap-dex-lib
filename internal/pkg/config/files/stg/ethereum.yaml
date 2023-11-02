@@ -253,7 +253,16 @@ useCase:
   generateBestPaths:
     gasTokenAddress: *gasTokenAddress
     getBestPoolsOptions: *getBestPoolsOptions
-    spfaFinderOptions: *finderOptions
+    spfaFinderOptions:
+      maxHops: 3
+      distributionPercent: 5
+      maxPathsInRoute: 20
+      maxPathsToGenerate: 5
+      maxPathsToReturn: 200
+      minPartUSD: 5
+      minThresholdAmountInUSD: 0
+      maxThresholdAmountInUSD: 100000000
+      isPathGeneratorEnabled: true
     whitelistedTokens: *whitelistedTokenSet
     availableSources: *availableSources
     blacklistedPools:

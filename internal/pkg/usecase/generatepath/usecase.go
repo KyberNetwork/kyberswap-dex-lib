@@ -157,6 +157,7 @@ func (uc *useCase) Handle(ctx context.Context) {
 	go func() {
 		for _, t := range tokensToMaintain {
 			tokenIn := strings.ToLower(t.TokenAddress)
+
 			var tokenOuts []string
 			for _, t := range tokensToMaintain {
 				tokenOut := strings.ToLower(t.TokenAddress)
@@ -189,11 +190,13 @@ func (uc *useCase) Handle(ctx context.Context) {
 		for tokenOut, paths := range result.bestPathsByTokenOut {
 			tokenOut = strings.ToLower(tokenOut)
 			err = uc.bestPathRepository.SetBestPaths(uc.sourceHash, tokenIn, tokenOut, paths, uc.config.PathGeneratorDataTtl)
+
 			if err != nil {
 				logger.Errorf("Error while saving path %s", err)
 				pathFail = pathFail + len(paths)
 			} else {
 				pathSuccess = pathSuccess + len(paths)
+				logger.Infof("Done gen paths for: sourceHash %v, tokenIn %v, tokenOut %v, total %d paths", uc.sourceHash, tokenIn, tokenOut, len(paths))
 			}
 		}
 	}
@@ -245,7 +248,7 @@ func (uc *useCase) generateBestPaths(
 		return nil, err
 	}
 
-	allTokens := append([]string{tokenIn, uc.config.GasTokenAddress}, tokenOuts...)
+	allTokens := getroute.CollectTokenAddresses(poolByAddress, append([]string{tokenIn, uc.config.GasTokenAddress}, tokenOuts...)...)
 	tokenByAddress, err := uc.getTokenByAddress(ctx, allTokens)
 	if err != nil {
 		return nil, err
@@ -306,7 +309,7 @@ func (uc *useCase) generateBestPaths(
 			return nil, err
 		}
 		for tokenOutAddress, paths := range pathsByTokenOutAddress {
-			bestPathsByTokenOutAddress[tokenOutAddress] = pathsToBestPaths(paths)
+			bestPathsByTokenOutAddress[tokenOutAddress] = append(bestPathsByTokenOutAddress[tokenOutAddress], pathsToBestPaths(paths)...)
 		}
 	}
 

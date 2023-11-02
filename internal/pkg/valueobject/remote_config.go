@@ -12,6 +12,7 @@ type (
 		Log                   Log                 `json:"log"`
 		GetBestPoolsOptions   GetBestPoolsOptions `json:"getBestPoolsOptions"`
 		FinderOptions         FinderOptions       `json:"finderOptions"`
+		PregenFinderOptions   FinderOptions       `json:"pregenFinderOptions"`
 		CacheConfig           CacheConfig         `json:"cache"`
 		BlacklistedRecipients []string            `json:"blacklistedRecipients"`
 		L2EncodePartners      []string            `json:"l2EncodePartners"`

@@ -99,7 +99,7 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 	}
 
 	// Step 2: collect tokens and price data
-	tokenAddresses := collectTokenAddresses(
+	tokenAddresses := CollectTokenAddresses(
 		poolByAddress,
 		params.TokenIn.Address,
 		params.TokenOut.Address,

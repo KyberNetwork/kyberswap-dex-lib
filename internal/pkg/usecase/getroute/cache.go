@@ -9,9 +9,10 @@ import (
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
@@ -210,13 +211,14 @@ func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKe
 	ttlByAmount, ok := c.getCachePointTTL(amountInWithoutDecimalsFloat64)
 	if ok {
 		return &valueobject.RouteCacheKey{
-			CacheMode:  valueobject.RouteCacheModePoint,
-			TokenIn:    params.TokenIn.Address,
-			TokenOut:   params.TokenOut.Address,
-			AmountIn:   strconv.FormatFloat(amountInWithoutDecimalsFloat64, 'f', -1, 64),
-			SaveGas:    params.SaveGas,
-			GasInclude: params.GasInclude,
-			Dexes:      params.Sources,
+			CacheMode:              valueobject.RouteCacheModePoint,
+			TokenIn:                params.TokenIn.Address,
+			TokenOut:               params.TokenOut.Address,
+			AmountIn:               strconv.FormatFloat(amountInWithoutDecimalsFloat64, 'f', -1, 64),
+			SaveGas:                params.SaveGas,
+			GasInclude:             params.GasInclude,
+			Dexes:                  params.Sources,
+			IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
 		}, ttlByAmount, nil
 	}
 

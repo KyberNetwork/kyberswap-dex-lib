@@ -25,6 +25,7 @@ type ConfigResponseDataConfig struct {
 	Log                   valueobject.Log                 `json:"log"`
 	GetBestPoolsOptions   valueobject.GetBestPoolsOptions `json:"getBestPoolsOptions"`
 	FinderOptions         valueobject.FinderOptions       `json:"finderOptions"`
+	PregenFinderOptions   valueobject.FinderOptions       `json:"pregenFinderOptions"`
 	CacheConfig           valueobject.CacheConfig         `json:"cache"`
 	BlacklistedRecipients []string                        `json:"blacklistedRecipients"`
 	L2EncodePartners      []string                        `json:"l2EncodePartners"`
@@ -95,6 +96,7 @@ func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string, curre
 		Log:                   cfgResp.Data.Config.Log,
 		GetBestPoolsOptions:   cfgResp.Data.Config.GetBestPoolsOptions,
 		FinderOptions:         cfgResp.Data.Config.FinderOptions,
+		PregenFinderOptions:   cfgResp.Data.Config.PregenFinderOptions,
 		CacheConfig:           cfgResp.Data.Config.CacheConfig,
 		BlacklistedRecipients: cfgResp.Data.Config.BlacklistedRecipients,
 		L2EncodePartners:      cfgResp.Data.Config.L2EncodePartners,

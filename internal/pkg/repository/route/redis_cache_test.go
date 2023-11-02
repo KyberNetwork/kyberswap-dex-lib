@@ -41,13 +41,14 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 		err = cache.Set(
 			context.Background(),
 			&valueobject.RouteCacheKey{
-				TokenIn:    "addressIn",
-				TokenOut:   "addressOut",
-				SaveGas:    false,
-				CacheMode:  "normal",
-				AmountIn:   "100",
-				Dexes:      []string{"dodo"},
-				GasInclude: false,
+				TokenIn:                "addressIn",
+				TokenOut:               "addressOut",
+				SaveGas:                false,
+				CacheMode:              "normal",
+				AmountIn:               "100",
+				Dexes:                  []string{"dodo"},
+				GasInclude:             false,
+				IsPathGeneratorEnabled: false,
 			},
 			&valueobject.SimpleRoute{
 				Distributions: []uint64{1},
@@ -58,7 +59,7 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		dbResult, err := redisServer.Get("231169710515780218")
+		dbResult, err := redisServer.Get("1839672685618436818")
 		if err != nil {
 			t.Fatalf("failed to get redis data: %v", err.Error())
 		}
