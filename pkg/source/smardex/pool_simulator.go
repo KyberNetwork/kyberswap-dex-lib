@@ -134,10 +134,13 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 			},
 			Gas: p.gas.Swap,
 			SwapInfo: SwapInfo{
-				NewReserveIn:         result.newReserveIn,
-				NewReserveOut:        result.newReserveOut,
-				NewFictiveReserveIn:  result.newFictiveReserveIn,
-				NewFictiveReserveOut: result.newFictiveReserveOut,
+				NewReserveIn:              result.newReserveIn,
+				NewReserveOut:             result.newReserveOut,
+				NewFictiveReserveIn:       result.newFictiveReserveIn,
+				NewFictiveReserveOut:      result.newFictiveReserveOut,
+				NewPriceAverageIn:         priceAverageIn,
+				NewPriceAverageOut:        priceAverageOut,
+				PriceAverageLastTimestamp: big.NewInt(userTradeTimestamp),
 			},
 		}, nil
 	}
@@ -153,10 +156,13 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 		},
 		Gas: p.gas.Swap,
 		SwapInfo: SwapInfo{
-			NewReserveIn:         result.newReserveIn,
-			NewReserveOut:        result.newReserveOut,
-			NewFictiveReserveIn:  result.newFictiveReserveIn,
-			NewFictiveReserveOut: result.newFictiveReserveOut,
+			NewReserveIn:              result.newReserveIn,
+			NewReserveOut:             result.newReserveOut,
+			NewFictiveReserveIn:       result.newFictiveReserveIn,
+			NewFictiveReserveOut:      result.newFictiveReserveOut,
+			NewPriceAverageIn:         priceAverageIn,
+			NewPriceAverageOut:        priceAverageOut,
+			PriceAverageLastTimestamp: big.NewInt(userTradeTimestamp),
 		},
 	}, nil
 
@@ -176,5 +182,10 @@ func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	p.FictiveReserve = FictiveReserve{
 		si.NewFictiveReserveIn,
 		si.NewFictiveReserveOut,
+	}
+	p.PriceAverage = PriceAverage{
+		si.NewPriceAverageIn,
+		si.NewPriceAverageOut,
+		si.PriceAverageLastTimestamp,
 	}
 }

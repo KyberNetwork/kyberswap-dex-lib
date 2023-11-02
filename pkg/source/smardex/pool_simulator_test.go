@@ -269,4 +269,7 @@ func TestUpdateBalance(t *testing.T) {
 	assert.Equal(t, poolSimulator.FictiveReserve.FictiveReserve1.Cmp(expectedResFicT1), 0)
 	assert.Equal(t, poolSimulator.Info.Reserves[0].Cmp(expectedResT0), 0)
 	assert.Equal(t, poolSimulator.Info.Reserves[1].Cmp(expectedResT1), 0)
+	assert.Equal(t, poolSimulator.PriceAverage.PriceAverage0.Cmp(priceAvT0), 0)
+	assert.Equal(t, poolSimulator.PriceAverage.PriceAverage1.Cmp(priceAvT1), 0)
+	assert.Equal(t, poolSimulator.PriceAverage.PriceAverageLastTimestamp.Cmp(big.NewInt(TIMESTAMP_JAN_2020)), 0)
 }
