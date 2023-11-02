@@ -112,7 +112,7 @@ func getAmountOut(param GetAmountParameters) (GetAmountResult, error) {
 		var secondAmountOutNoFees *big.Int
 		secondAmountOutNoFees, result.newReserveIn, result.newReserveOut,
 			result.newFictiveReserveIn, result.newFictiveReserveOut = applyKConstRuleOut(GetAmountParameters{
-			amount:            new(big.Int).Sub(param.amount, firstAmountInNoFees),
+			amount:            param.amount,
 			reserveIn:         result.newReserveIn,
 			reserveOut:        result.newReserveOut,
 			fictiveReserveIn:  result.newFictiveReserveIn,

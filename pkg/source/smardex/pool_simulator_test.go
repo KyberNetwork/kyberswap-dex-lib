@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -88,18 +89,21 @@ func TestCalcAmountOut(t *testing.T) {
 		t.Fatalf(`Invalid value = %d, expected: %d`, result.TokenAmountOut.Amount, expectedAmountOutT0)
 	}
 
-	newState, _ := result.SwapInfo.(SwapInfo)
-	if newState.NewReserveIn.Cmp(expectedResT0) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, newState.NewReserveIn, expectedAmountOutT0)
+	newState, ok := result.SwapInfo.(SwapInfo)
+	if !ok {
+		t.Fatal(`Swapinfo is nil`)
 	}
-	if newState.NewFictiveReserveOut.Cmp(expectedResT1) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, newState.NewFictiveReserveOut, expectedAmountOutT0)
+	if newState.NewReserveIn.Cmp(expectedResT0) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newState.NewReserveIn, expectedResT0)
+	}
+	if newState.NewReserveOut.Cmp(expectedResT1) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newState.NewReserveOut, expectedResT1)
 	}
 	if newState.NewFictiveReserveIn.Cmp(expectedResFicT0) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, newState.NewFictiveReserveIn, expectedAmountOutT0)
+		t.Fatalf(`Invalid value = %d, expected: %d`, newState.NewFictiveReserveIn, expectedResFicT0)
 	}
 	if newState.NewFictiveReserveOut.Cmp(expectedResFicT1) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, newState.NewFictiveReserveOut, expectedAmountOutT0)
+		t.Fatalf(`Invalid value = %d, expected: %d`, newState.NewFictiveReserveOut, expectedResFicT1)
 	}
 }
 
@@ -124,16 +128,16 @@ func TestGetAmountOut(t *testing.T) {
 		t.Fatalf(`Invalid value = %d, expected: %d`, result.amountOut, expectedAmountOutT0)
 	}
 	if result.newReserveIn.Cmp(expectedResT0) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, result.newReserveIn, expectedAmountOutT0)
+		t.Fatalf(`Invalid value = %d, expected: %d`, result.newReserveIn, expectedResT0)
 	}
 	if result.newReserveOut.Cmp(expectedResT1) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, result.newReserveOut, expectedAmountOutT0)
+		t.Fatalf(`Invalid value = %d, expected: %d`, result.newReserveOut, expectedResT1)
 	}
 	if result.newFictiveReserveIn.Cmp(expectedResFicT0) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, result.newFictiveReserveIn, expectedAmountOutT0)
+		t.Fatalf(`Invalid value = %d, expected: %d`, result.newFictiveReserveIn, expectedResFicT0)
 	}
 	if result.newFictiveReserveOut.Cmp(expectedResFicT1) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, result.newFictiveReserveOut, expectedAmountOutT0)
+		t.Fatalf(`Invalid value = %d, expected: %d`, result.newFictiveReserveOut, expectedResFicT1)
 	}
 
 }
@@ -206,4 +210,63 @@ func TestComputeFictiveReservesEthInTrueOeGT1(t *testing.T) {
 	if newResFicOut.Cmp(expectedResFicT1) != 0 {
 		t.Fatalf(`Invalid value = %d, expected: %d`, newResFicOut, expectedResFicT1)
 	}
+}
+
+func TestUpdateBalance(t *testing.T) {
+	extra := SmardexPair{
+		PairFee: PairFee{
+			FeesLP:   feesLP,
+			FeesPool: feesPool,
+			FeesBase: FEES_BASE,
+		},
+		FictiveReserve: FictiveReserve{
+			FictiveReserve0: resFicT0,
+			FictiveReserve1: resFicT1,
+		},
+		PriceAverage: PriceAverage{
+			PriceAverage0:             priceAvT0,
+			PriceAverage1:             priceAvT1,
+			PriceAverageLastTimestamp: big.NewInt(TIMESTAMP_JAN_2020),
+		},
+		FeeToAmount: FeeToAmount{
+			FeeToAmount0: big.NewInt(0),
+			FeeToAmount1: big.NewInt(0),
+		},
+	}
+	extraJson, _ := json.Marshal(extra)
+
+	token0 := entity.PoolToken{
+		Address:   "token0",
+		Swappable: true,
+	}
+	token1 := entity.PoolToken{
+		Address:   "token1",
+		Swappable: true,
+	}
+
+	pool := entity.Pool{
+		Reserves: entity.PoolReserves{resT0.String(), resT1.String()},
+		Tokens:   []*entity.PoolToken{&token0, &token1},
+		Extra:    string(extraJson),
+	}
+	poolSimulator, _ := NewPoolSimulator(pool)
+	tokenAmountIn := poolpkg.TokenAmount{
+		Token:  "token0",
+		Amount: amountInT0,
+	}
+	now = func() time.Time {
+		return time.Unix(TIMESTAMP_JAN_2020, 0)
+	}
+	result, _ := poolSimulator.CalcAmountOut(tokenAmountIn, "token1")
+
+	poolSimulator.UpdateBalance(poolpkg.UpdateBalanceParams{
+		TokenAmountIn:  tokenAmountIn,
+		TokenAmountOut: *result.TokenAmountOut,
+		Fee:            *result.Fee,
+		SwapInfo:       result.SwapInfo,
+	})
+	assert.Equal(t, poolSimulator.FictiveReserve.FictiveReserve0.Cmp(expectedResFicT0), 0)
+	assert.Equal(t, poolSimulator.FictiveReserve.FictiveReserve1.Cmp(expectedResFicT1), 0)
+	assert.Equal(t, poolSimulator.Info.Reserves[0].Cmp(expectedResT0), 0)
+	assert.Equal(t, poolSimulator.Info.Reserves[1].Cmp(expectedResT1), 0)
 }

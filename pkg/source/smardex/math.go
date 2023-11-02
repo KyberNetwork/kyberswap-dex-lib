@@ -2,8 +2,8 @@ package smardex
 
 import "math/big"
 
-var APPROX_PRECISION = big.NewInt(1)
-var APPROX_PRECISION_BASE = big.NewInt(1_000_000)
+var APPROX_EQ_PRECISION = big.NewInt(1)
+var APPROX_EQ_BASE_PRECISION = big.NewInt(1000000)
 
 func isZero(a *big.Int) bool {
 	return big.NewInt(0).Cmp(a) == 0
@@ -28,11 +28,11 @@ func ratioApproxEq(xNum *big.Int, xDen *big.Int, yNum *big.Int, yDen *big.Int) b
  * @return true if numbers are approximately equal, false otherwise
  */
 func approxEq(x *big.Int, y *big.Int) bool {
-	if x.Cmp(y) > 1 {
-		return x.Cmp(new(big.Int).Add(y, new(big.Int).Div(new(big.Int).Mul(y, APPROX_PRECISION), APPROX_PRECISION_BASE))) < 0
-	} else {
-		return y.Cmp(new(big.Int).Add(x, new(big.Int).Div(new(big.Int).Mul(x, APPROX_PRECISION), APPROX_PRECISION_BASE))) < 0
+	res := big.NewInt(0)
+	if x.Cmp(y) == 1 {
+		return x.Cmp(res.Mul(y, APPROX_EQ_PRECISION).Div(res, APPROX_EQ_BASE_PRECISION).Add(res, y)) == -1
 	}
+	return y.Cmp(res.Mul(x, APPROX_EQ_PRECISION).Div(res, APPROX_EQ_BASE_PRECISION).Add(res, x)) == -1
 }
 
 func sqrt(value *big.Int) *big.Int {

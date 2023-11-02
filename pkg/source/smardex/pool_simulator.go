@@ -23,7 +23,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	numTokens := len(entityPool.Tokens)
 	tokens := make([]string, numTokens)
 	reserves := make([]*big.Int, numTokens)
-	// totalSupply, _ := new(big.Int).SetString(entityPool.TotalSupply, 10)
 	for i := 0; i < numTokens; i++ {
 		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig(entityPool.Reserves[i])
@@ -137,6 +136,12 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 				Amount: feeToAmount1,
 			},
 			Gas: p.gas.Swap,
+			SwapInfo: SwapInfo{
+				NewReserveIn:         result.newReserveIn,
+				NewReserveOut:        result.newReserveOut,
+				NewFictiveReserveIn:  result.newFictiveReserveIn,
+				NewFictiveReserveOut: result.newFictiveReserveOut,
+			},
 		}, nil
 	}
 
