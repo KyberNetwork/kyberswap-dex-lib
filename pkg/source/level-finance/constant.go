@@ -1,6 +1,9 @@
 package levelfinance
 
-import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+import (
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"math/big"
+)
 
 const (
 	DexTypeLevelFinance = "level-finance"
@@ -28,5 +31,6 @@ const (
 var (
 	DefaultGas = Gas{Swap: 125000}
 
-	precision = bignumber.TenPowInt(10)
+	precision  = bignumber.TenPowInt(10)
+	minSwapFee = big.NewInt(10000000)
 )

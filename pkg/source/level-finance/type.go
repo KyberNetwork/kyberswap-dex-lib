@@ -49,6 +49,10 @@ type AssetInfo struct {
 	ReserveAmount *big.Int `json:"reserveAmount"`
 }
 
+type swapInfo struct {
+	tokenInfos map[string]*TokenInfo
+}
+
 type Gas struct {
 	Swap int64
 }

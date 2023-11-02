@@ -2482,5 +2482,18 @@
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "getAllTranches",
+    "outputs": [
+      {
+        "internalType": "address[]",
+        "name": "tranches",
+        "type": "address[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
   }
 ]

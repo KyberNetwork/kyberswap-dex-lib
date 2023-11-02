@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/logger"
 	"math/big"
 )
 
@@ -36,7 +37,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			},
 		},
 		state: &PoolState{
-			TokenInfos: extra.TokenInfos,
+			TokenInfos:              extra.TokenInfos,
+			TotalWeight:             extra.TotalWeight,
+			VirtualPoolValue:        extra.VirtualPoolValue,
+			StableCoinBaseSwapFee:   extra.StableCoinBaseSwapFee,
+			StableCoinTaxBasisPoint: extra.StableCoinTaxBasisPoint,
+			BaseSwapFee:             extra.BaseSwapFee,
+			TaxBasisPoint:           extra.TaxBasisPoint,
+			DaoFee:                  extra.DaoFee,
 		},
 	}, nil
 }
@@ -66,16 +74,29 @@ func (p *PoolSimulator) CalcAmountOut(
 			Token:  tokenOut,
 			Amount: nil,
 		},
+		SwapInfo: swapInfo{
+			tokenInfos: newState.TokenInfos,
+		},
 		Gas: p.gas.Swap,
 	}, nil
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	return
+	newState, ok := params.SwapInfo.(swapInfo)
+	if !ok {
+		logger.Warnf("failed to UpdateBalancer for %s pool, wrong swapInfo type", p.Info.Type)
+		return
+	}
+	p.state.TokenInfos = newState.tokenInfos
+}
+
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+	return nil
 }
 
 func (p *PoolSimulator) deepCopyState(state *PoolState) *PoolState {
 	newState := &PoolState{
+		TokenInfos:              make(map[string]*TokenInfo),
 		TotalWeight:             new(big.Int).Set(state.TotalWeight),
 		VirtualPoolValue:        new(big.Int).Set(state.VirtualPoolValue),
 		StableCoinBaseSwapFee:   new(big.Int).Set(state.StableCoinBaseSwapFee),
@@ -88,6 +109,8 @@ func (p *PoolSimulator) deepCopyState(state *PoolState) *PoolState {
 		newState.TokenInfos[key] = &TokenInfo{
 			IsStableCoin:    value.IsStableCoin,
 			TargetWeight:    new(big.Int).Set(value.TargetWeight),
+			TrancheAssets:   make(map[string]*AssetInfo),
+			RiskFactor:      make(map[string]*big.Int),
 			TotalRiskFactor: new(big.Int).Set(value.TotalRiskFactor),
 			MinPrice:        new(big.Int).Set(value.MinPrice),
 			MaxPrice:        new(big.Int).Set(value.MaxPrice),

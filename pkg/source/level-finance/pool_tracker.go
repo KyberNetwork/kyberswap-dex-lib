@@ -141,8 +141,8 @@ func (d *PoolTracker) GetNewPoolState(
 
 	var tranches = make([]common.Address, 0)
 	if d.config.ChainID == int(valueobject.ChainIDBSC) {
+		tranches = make([]common.Address, trancheLength.Int64())
 		for i := 0; i < int(trancheLength.Int64()); i++ {
-			tranches = append(tranches, common.Address{})
 			calls.AddCall(&ethrpc.Call{
 				ABI:    LiquidityPoolAbi,
 				Target: p.Address,
@@ -209,7 +209,6 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	reserves := make(entity.PoolReserves, len(p.Tokens))
 	var extra = Extra{
 		Oracle:           oracle.Hex(),
 		TotalWeight:      totalWeight,
@@ -255,6 +254,12 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
+	reserves := make([]string, len(p.Tokens))
+	for i, token := range p.Tokens {
+		reserve := d.getReserve(extra.TokenInfos[token.Address])
+		reserves[i] = reserve.PoolAmount.String()
+	}
+
 	p.Extra = string(extraBytes)
 	p.Reserves = reserves
 	p.Timestamp = time.Now().Unix()
@@ -265,4 +270,16 @@ func (d *PoolTracker) GetNewPoolState(
 	}).Infof("[%s] Finish getting new state of pool", p.Type)
 
 	return p, nil
+}
+
+func (d *PoolTracker) getReserve(token *TokenInfo) *AssetInfo {
+	asset := &AssetInfo{
+		PoolAmount:    big.NewInt(0),
+		ReserveAmount: big.NewInt(0),
+	}
+	for _, tranche := range token.TrancheAssets {
+		asset.PoolAmount = new(big.Int).Add(asset.PoolAmount, tranche.PoolAmount)
+		asset.ReserveAmount = new(big.Int).Add(asset.ReserveAmount, tranche.ReserveAmount)
+	}
+	return asset
 }

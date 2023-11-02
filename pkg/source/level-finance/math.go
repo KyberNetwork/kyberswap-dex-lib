@@ -8,6 +8,8 @@ import (
 )
 
 func swap(tokenIn, tokenOut string, amountIn *big.Int, state *PoolState) (*big.Int, error) {
+	// Check allowSwap
+
 	if tokenIn == tokenOut {
 		return nil, ErrSameTokenSwap
 	}
@@ -33,6 +35,8 @@ func swap(tokenIn, tokenOut string, amountIn *big.Int, state *PoolState) (*big.I
 
 	rebalanceTranches(tokenInInfo, new(big.Int).Sub(amountIn, daoFee), tokenOutInfo, amountOutAfterFee, state)
 
+	// _validateMaxLiquidity
+
 	return amountOutAfterFee, nil
 }
 
@@ -40,8 +44,9 @@ func calcSwapOutput(tokenIn, tokenOut *TokenInfo, amountIn *big.Int, state *Pool
 	priceIn := new(big.Int).Set(tokenIn.MinPrice)
 	priceOut := new(big.Int).Set(tokenOut.MaxPrice)
 	valueChange := new(big.Int).Mul(amountIn, priceIn)
-	feeIn := calcSwapFee(tokenIn, priceIn, valueChange, true, state)
-	feeOut := calcSwapFee(tokenOut, priceOut, valueChange, false, state)
+	isStableSwap := tokenIn.IsStableCoin && tokenOut.IsStableCoin
+	feeIn := calcSwapFee(isStableSwap, tokenIn, priceIn, valueChange, true, state)
+	feeOut := calcSwapFee(isStableSwap, tokenOut, priceOut, valueChange, false, state)
 
 	fee := feeIn
 	if feeIn.Cmp(feeOut) <= 0 {
@@ -66,9 +71,9 @@ func calcSwapOutput(tokenIn, tokenOut *TokenInfo, amountIn *big.Int, state *Pool
 	return amountOutAfterFee, feeAmount, nil
 }
 
-func calcSwapFee(token *TokenInfo, tokenPrice, valueChange *big.Int, isSwapIn bool, state *PoolState) *big.Int {
+func calcSwapFee(isStableSwap bool, token *TokenInfo, tokenPrice, valueChange *big.Int, isSwapIn bool, state *PoolState) *big.Int {
 	var baseSwapFee, taxBasicPoint *big.Int
-	if token.IsStableCoin {
+	if isStableSwap {
 		baseSwapFee = new(big.Int).Set(state.StableCoinBaseSwapFee)
 		taxBasicPoint = new(big.Int).Set(state.StableCoinTaxBasisPoint)
 	} else {
@@ -112,7 +117,11 @@ func calcFeeRate(token *TokenInfo, tokenPrice, valueChange, baseFee, taxBasicPoi
 			new(big.Int).Mul(taxBasicPoint, initDiff),
 			targetValue,
 		)
-		return zeroCapSub(baseFee, feeAdjust)
+		rate := zeroCapSub(baseFee, feeAdjust)
+		if rate.Cmp(minSwapFee) > 0 {
+			return rate
+		}
+		return new(big.Int).Set(minSwapFee)
 	} else {
 		avgDiff := new(big.Int).Div(
 			new(big.Int).Add(initDiff, nextDiff),
@@ -166,6 +175,7 @@ func calcTrancheSharesAmount(indexToken, collateralToken *TokenInfo, amount *big
 	maxShare := make(map[string]*big.Int, len(indexToken.TrancheAssets))
 
 	for trancheAddress := range indexToken.TrancheAssets {
+		reserves[trancheAddress] = big.NewInt(0)
 		asset := collateralToken.TrancheAssets[trancheAddress]
 		factors[trancheAddress] = big.NewInt(1)
 		if !indexToken.IsStableCoin {
