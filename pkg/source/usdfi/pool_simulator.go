@@ -14,6 +14,7 @@ type PoolSimulator struct {
 	pool.Pool
 	Decimals []*big.Int
 	stable   bool
+	isPaused bool
 	gas      Gas
 }
 
@@ -49,10 +50,16 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
+	extra, err := extractExtra(entityPool.Extra)
+	if err != nil {
+		return nil, err
+	}
+
 	return &PoolSimulator{
 		Pool:     pool.Pool{Info: info},
 		Decimals: decimals,
 		stable:   staticExtra.Stable,
+		isPaused: extra.FactoryPaused,
 		gas:      DefaultGas,
 	}, nil
 }

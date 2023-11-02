@@ -51,7 +51,6 @@ func getExactQuote(
 
 		amountOut = new(big.Int).Div(new(big.Int).Mul(y, decimalOut), bignumber.BONE)
 	} else {
-		// (x*In)/(y+In)
 		numerator := new(big.Int).Mul(amountIn, reserveOut)
 		denominator := new(big.Int).Add(reserveIn, amountIn)
 
@@ -68,7 +67,6 @@ func getExactQuote(
 }
 
 func calAmountAfterFee(amountIn, swapFee *big.Int) *big.Int {
-	// In - (fee*In)/Bone
 	return new(big.Int).Sub(amountIn, new(big.Int).Div(new(big.Int).Mul(swapFee, amountIn), bignumber.BONE))
 }
 
@@ -78,7 +76,16 @@ func _k(x, y, decimals0, decimals1 *big.Int, stable bool) *big.Int {
 		_y := new(big.Int).Div(new(big.Int).Mul(y, bignumber.BONE), decimals1)
 
 		_a := new(big.Int).Div(new(big.Int).Mul(_x, _y), bignumber.BONE)
-		_b := new(big.Int).Div(new(big.Int).Add(new(big.Int).Mul(_x, _x), new(big.Int).Mul(_y, _y)), bignumber.BONE)
+		_b := new(big.Int).Add(
+			new(big.Int).Div(
+				new(big.Int).Mul(_x, _x),
+				bignumber.BONE,
+			),
+			new(big.Int).Div(
+				new(big.Int).Mul(_y, _y),
+				bignumber.BONE,
+			),
+		)
 
 		// x3y+y3x >= k
 		return new(big.Int).Div(new(big.Int).Mul(_a, _b), bignumber.BONE)
@@ -96,10 +103,6 @@ func _get_y(x0, xy, y *big.Int) *big.Int {
 
 		k := _f(x0, _y)
 		d := _d(x0, _y)
-		if d.Cmp(bignumber.ZeroBI) <= 0 {
-			return bignumber.ZeroBI
-		}
-
 		if k.Cmp(xy) < 0 {
 			dy := new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(xy, k), bignumber.BONE), d)
 			_y.Add(_y, dy)
@@ -117,24 +120,60 @@ func _get_y(x0, xy, y *big.Int) *big.Int {
 	return _y
 }
 
-func _f(x0, y *big.Int) *big.Int {
-	// y^3*x
-	y3x := new(big.Int).Mul(new(big.Int).Mul(y, y), new(big.Int).Mul(y, x0))
-	// x^3*y
-	x3y := new(big.Int).Mul(new(big.Int).Mul(x0, x0), new(big.Int).Mul(x0, y))
-
-	numerator := new(big.Int).Add(y3x, x3y)
-	denominator := new(big.Int).Mul(new(big.Int).Mul(bignumber.BONE, bignumber.BONE), bignumber.BONE)
-
-	return new(big.Int).Div(numerator, denominator)
+func _f(x0 *big.Int, y *big.Int) *big.Int {
+	return new(big.Int).Add(
+		new(big.Int).Div(
+			new(big.Int).Mul(
+				x0,
+				new(big.Int).Div(
+					new(big.Int).Mul(
+						new(big.Int).Div(new(big.Int).Mul(y, y), bignumber.BONE),
+						y,
+					),
+					bignumber.BONE,
+				),
+			),
+			bignumber.BONE,
+		),
+		new(big.Int).Div(
+			new(big.Int).Mul(
+				new(big.Int).Div(
+					new(big.Int).Mul(
+						new(big.Int).Div(new(big.Int).Mul(x0, x0), bignumber.BONE),
+						x0,
+					),
+					bignumber.BONE,
+				),
+				y,
+			),
+			bignumber.BONE,
+		),
+	)
 }
 
-func _d(x0, y *big.Int) *big.Int {
-	// 3*x*y^2 + x^3
-	numerator := new(big.Int).Add(new(big.Int).Mul(new(big.Int).Mul(bignumber.Three, x0), new(big.Int).Mul(y, y)), new(big.Int).Mul(new(big.Int).Mul(x0, x0), x0))
-	denominator := new(big.Int).Mul(bignumber.BONE, bignumber.BONE)
-
-	return new(big.Int).Div(numerator, denominator)
+func _d(x0 *big.Int, y *big.Int) *big.Int {
+	return new(big.Int).Add(
+		new(big.Int).Div(
+			new(big.Int).Mul(
+				bignumber.Three,
+				new(big.Int).Mul(
+					x0,
+					new(big.Int).Div(new(big.Int).Mul(y, y), bignumber.BONE),
+				),
+			),
+			bignumber.BONE,
+		),
+		new(big.Int).Div(
+			new(big.Int).Mul(
+				new(big.Int).Div(
+					new(big.Int).Mul(x0, x0),
+					bignumber.BONE,
+				),
+				x0,
+			),
+			bignumber.BONE,
+		),
+	)
 }
 
 // The SC required `K` after swap with condition:
