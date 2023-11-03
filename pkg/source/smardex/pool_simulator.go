@@ -175,7 +175,7 @@ func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	si, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
-		logger.Warnf("failed to UpdateBalance for Algebra %v %v pool, wrong swapInfo type", p.Info.Address, p.Info.Exchange)
+		logger.Warnf("failed to UpdateBalance for Smardex %v %v pool, wrong swapInfo type", p.Info.Address, p.Info.Exchange)
 		return
 	}
 	p.Info.Reserves = []*big.Int{si.NewReserveIn, si.NewReserveOut}

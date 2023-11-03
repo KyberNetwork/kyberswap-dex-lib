@@ -2,6 +2,8 @@ package smardex
 
 import (
 	"math/big"
+
+	"github.com/KyberNetwork/blockchain-toolkit/openzeppelin"
 )
 
 /**
@@ -199,7 +201,7 @@ func computeFirstTradeQtyIn(param GetAmountParameters) *big.Int {
 		// reverse sqrt check to only compute sqrt if really needed
 		tmp.Mul(param.amount, toDiv).Add(tmp, toSub).Exp(tmp, big.NewInt(2), nil)
 		if inSqrt.Cmp(tmp) == -1 {
-			firstAmountIn = sqrt(inSqrt)
+			firstAmountIn = openzeppelin.Sqrt(inSqrt)
 			firstAmountIn.Sub(firstAmountIn, toSub).Div(firstAmountIn, toDiv)
 		}
 	}
