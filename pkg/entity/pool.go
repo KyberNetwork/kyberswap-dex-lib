@@ -54,6 +54,7 @@ type Pool struct {
 	Extra        string       `json:"extra,omitempty"`
 	StaticExtra  string       `json:"staticExtra,omitempty"`
 	TotalSupply  string       `json:"totalSupply,omitempty"`
+	BlockNumber  uint64       `json:"blockNumber,omitempty"`
 }
 
 func (p Pool) IsZero() bool { return len(p.Address) == 0 && len(p.Tokens) == 0 }
