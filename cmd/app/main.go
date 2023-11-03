@@ -210,6 +210,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	// Flush buffered events before the program terminates.
 	defer sentry.Flush(2 * time.Second)
+	defer metrics.Flush()
 
 	routerRedisClient, err := redis.New(&cfg.Redis)
 	if err != nil {

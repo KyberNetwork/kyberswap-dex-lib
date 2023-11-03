@@ -82,10 +82,6 @@ func (s *server) run(ctx context.Context) error {
 				logger.Errorf("failed to stop server: %w", err)
 			}
 
-			if s.isRunningProduction {
-				logger.Infoln("Shutting down. Wait for 15 seconds")
-				time.Sleep(15 * time.Second)
-			}
 			return nil
 		case err := <-errCh:
 			return err
