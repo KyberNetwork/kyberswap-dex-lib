@@ -5,13 +5,13 @@ import (
 	"context"
 	"math/big"
 
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -111,7 +111,7 @@ func newPath(
 		gasOption = valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}
 	}
 	path, err := valueobject.NewPath(data.PoolBucket, poolAddresses, tokens, tokenAmountIn, input.TokenOutAddress,
-		data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[input.TokenOutAddress].Decimals, gasOption,
+		data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[input.TokenOutAddress].Decimals, gasOption, data.PMMInventory,
 	)
 	if err != nil {
 		return nil

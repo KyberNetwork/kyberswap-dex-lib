@@ -93,7 +93,7 @@ func comparePoolManager(
 	poolManager *poolmanager.PoolManager,
 	addresses, dex []string,
 ) error {
-	p1, err := pointerSwapPoolManager.GetPoolByAddress(context.Background(), addresses, dex, common.Hash{})
+	p1, _, err := pointerSwapPoolManager.GetPoolByAddress(context.Background(), addresses, dex, common.Hash{})
 	if err != nil {
 		return errors.Wrap(err, "pointerSwapPoolManager")
 	}

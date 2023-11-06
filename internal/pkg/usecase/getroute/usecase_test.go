@@ -8,16 +8,18 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
-	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/getroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/mock/gomock"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/getroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func TestGetRouteUseCase_Handle(t *testing.T) {
@@ -165,9 +167,10 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 	poolManager.EXPECT().
 		GetPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(
-			func(ctx context.Context, addresses, dex []string, stateRoot common.Hash) (map[string]pool.IPoolSimulator, error) {
+			func(ctx context.Context, addresses, dex []string, stateRoot common.Hash) (map[string]pool.IPoolSimulator, *pool.Inventory, error) {
 				addressesSet := mapset.NewSet(addresses...)
 				dexesSet := mapset.NewSet(dex...)
+				resultPMMInventory := make(map[string]*big.Int)
 
 				filteredPools := make([]pool.IPoolSimulator, 0, len(pools))
 				for _, pool := range pools {
@@ -178,11 +181,18 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 						continue
 					}
 					filteredPools = append(filteredPools, pool)
+					if pool.GetType() == constant.PoolTypes.KyberPMM {
+						tokens := pool.GetTokens()
+						rsv := pool.GetReserves()
+						for j, tok := range tokens {
+							resultPMMInventory[tok] = rsv[j]
+						}
+					}
 				}
 
 				return lo.Associate(filteredPools, func(item pool.IPoolSimulator) (string, pool.IPoolSimulator) {
 					return item.GetAddress(), item
-				}), nil
+				}), pool.NewInventory(resultPMMInventory), nil
 			},
 		).
 		AnyTimes()

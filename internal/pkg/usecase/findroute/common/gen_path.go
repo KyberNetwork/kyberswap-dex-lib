@@ -9,6 +9,7 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -177,6 +178,14 @@ func getNextLayerFromToken(
 			if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Int64() == 0 {
 				continue
 			}
+
+			if pool.GetType() == constant.PoolTypes.KyberPMM {
+
+				if data.PMMInventory.GetBalance(toTokenInfo.Address).Cmp(toTokenAmount.Amount) < 0 {
+					continue
+				}
+			}
+
 			// append pool and tokens to path
 			nextNodeInfos = append(nextNodeInfos, &nodeInfo{
 				tokenAmount:         *toTokenAmount,
@@ -227,7 +236,7 @@ func getKthPathAtTokenOut(
 		tokenOut := pathInfo.tokensOnPath[len(pathInfo.tokensOnPath)-1].Address
 		path, err := valueobject.NewPath(data.PoolBucket, pathInfo.poolAddressesOnPath, pathInfo.tokensOnPath, tokenAmountIn, tokenOut,
 			data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[tokenOut].Decimals,
-			valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD},
+			valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}, data.PMMInventory,
 		)
 		if err != nil {
 			logger.WithFields(logger.Fields{"error": err}).

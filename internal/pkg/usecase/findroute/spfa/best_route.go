@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -134,7 +135,7 @@ func (f *spfaFinder) bestMultiPathRoute(
 		if bestPath == nil {
 			return nil, nil
 		}
-		if err = bestMultiPathRoute.AddPath(data.PoolBucket, bestPath); err != nil {
+		if err = bestMultiPathRoute.AddPath(data.PoolBucket, bestPath, data.PMMInventory); err != nil {
 			return nil, err
 		}
 	}

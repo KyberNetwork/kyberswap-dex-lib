@@ -2,6 +2,7 @@ package poolmanager
 
 import (
 	"context"
+	"math/big"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -14,6 +15,7 @@ import (
 	cachePolicy "github.com/hashicorp/golang-lru/v2"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
@@ -38,12 +40,23 @@ type PointerSwapPoolManager struct {
 
 type LockedState struct {
 	poolByAddress map[string]poolpkg.IPoolSimulator
+	pmmInventory  map[string]*big.Int
 	lock          *sync.RWMutex
 }
 
 func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
 	s.lock.Lock()
 	s.poolByAddress = poolByAddress
+	//update the inventory
+	for key := range poolByAddress {
+		if poolByAddress[key].GetType() == constant.PoolTypes.KyberPMM {
+			tokens := s.poolByAddress[key].GetTokens()
+			rsv := s.poolByAddress[key].GetReserves()
+			for i, tok := range tokens {
+				s.pmmInventory[tok] = big.NewInt(0).Set(rsv[i]) //clone here.
+			}
+		}
+	}
 	s.lock.Unlock()
 }
 
@@ -117,6 +130,7 @@ func NewPointerSwapPoolManager(
 	for i := 0; i < 2; i++ {
 		states[i] = &LockedState{
 			poolByAddress: make(map[string]poolpkg.IPoolSimulator),
+			pmmInventory:  make(map[string]*big.Int),
 			lock:          &sync.RWMutex{},
 		}
 	}
@@ -176,7 +190,7 @@ func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
 
 // GetPoolByAddress return a reference to pools maintained by `PointerSwapPoolManager`
 // Therefore, do not modify IPool returned here, clone IPool before UpdateBalance
-func (p *PointerSwapPoolManager) GetPoolByAddress(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (map[string]poolpkg.IPoolSimulator, error) {
+func (p *PointerSwapPoolManager) GetPoolByAddress(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (map[string]poolpkg.IPoolSimulator, *poolpkg.Inventory, error) {
 	filteredPoolAddress := p.filterBlacklistedAddresses(ctx, poolAddresses)
 
 	// update cache policy
@@ -185,12 +199,14 @@ func (p *PointerSwapPoolManager) GetPoolByAddress(ctx context.Context, poolAddre
 	}
 
 	readFrom := p.readFrom.Load()
-	return p.getPools(ctx, filteredPoolAddress, dex, readFrom, stateRoot), nil
+	pools, pmmInventory := p.getPools(ctx, filteredPoolAddress, dex, readFrom, stateRoot)
+	return pools, pmmInventory, nil
 }
 
-func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, readFrom int32, stateRoot common.Hash) map[string]poolpkg.IPoolSimulator {
+func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, readFrom int32, stateRoot common.Hash) (map[string]poolpkg.IPoolSimulator, *poolpkg.Inventory) {
 	var (
 		resultPoolByAddress = make(map[string]poolpkg.IPoolSimulator, len(poolAddresses))
+		resultPMMInventory  = make(map[string]*big.Int)
 		poolsToFetchFromDB  []string
 		dexSet              = sets.NewString(dex...)
 	)
@@ -205,11 +221,15 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 			poolsToFetchFromDB = append(poolsToFetchFromDB, key)
 		}
 	}
+	//given a clone of pmm balance
+	for token, balance := range p.states[readFrom].pmmInventory {
+		resultPMMInventory[token] = big.NewInt(0).Set(balance)
+	}
 	p.states[readFrom].lock.RUnlock()
 
 	poolEntities, err := p.poolRepository.FindByAddresses(ctx, poolsToFetchFromDB)
 	if err != nil {
-		return resultPoolByAddress
+		return resultPoolByAddress, nil
 	}
 
 	defer mempool.ReserveMany(poolEntities)
@@ -224,7 +244,7 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 	curveMetaBasePools, err := listCurveMetaBasePools(ctx, p.poolRepository, filteredPoolEntities)
 	if err != nil {
 		logger.Debugf("failed to load curve-meta base pool %v", err)
-		return resultPoolByAddress
+		return resultPoolByAddress, nil
 	}
 	filteredPoolEntities = append(filteredPoolEntities, curveMetaBasePools...)
 
@@ -233,7 +253,7 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 		resultPoolByAddress[poolInterfaces[i].GetAddress()] = poolInterfaces[i]
 	}
 
-	return resultPoolByAddress
+	return resultPoolByAddress, poolpkg.NewInventory(resultPMMInventory)
 }
 
 func (p *PointerSwapPoolManager) Reload() error {

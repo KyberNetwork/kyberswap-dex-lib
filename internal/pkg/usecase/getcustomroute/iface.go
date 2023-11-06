@@ -19,9 +19,16 @@ type IAggregator interface {
 type IPoolFactory interface {
 	NewPools(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) []poolpkg.IPoolSimulator
 }
-
 type IPoolRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Pool, error)
+}
+
+type IPoolManager interface {
+	GetPoolByAddress(
+		ctx context.Context,
+		addresses, dex []string,
+		stateRoot common.Hash,
+	) (map[string]poolpkg.IPoolSimulator, *poolpkg.Inventory, error)
 }
 
 type IGasRepository interface {

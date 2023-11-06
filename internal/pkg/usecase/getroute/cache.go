@@ -12,8 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
@@ -21,6 +19,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -106,6 +105,7 @@ func (c *cache) ApplyConfig(config Config) {
 
 func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregateParams, key *valueobject.RouteCacheKey) (*valueobject.RouteSummary, error) {
 	simpleRoute, err := c.routeCacheRepository.Get(ctx, key)
+
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{
@@ -273,7 +273,7 @@ func (c *cache) summarizeSimpleRoute(
 			return nil, err
 		}
 	}
-	poolByAddress, err := c.poolManager.GetPoolByAddress(
+	poolByAddress, ivt, err := c.poolManager.GetPoolByAddress(
 		ctx,
 		simpleRoute.ExtractPoolAddresses(),
 		params.Sources,
@@ -284,7 +284,6 @@ func (c *cache) summarizeSimpleRoute(
 	}
 
 	poolBucket := valueobject.NewPoolBucket(poolByAddress)
-
 	var (
 		amountOut = new(big.Int).Set(constant.Zero)
 		gas       = business.BaseGas
@@ -327,6 +326,12 @@ func (c *cache) summarizeSimpleRoute(
 					err,
 				)
 			}
+			if pool.GetType() == constant.PoolTypes.KyberPMM {
+
+				if ivt.GetBalance(simpleSwap.TokenOutAddress).Cmp(result.TokenAmountOut.Amount) < 0 {
+					return nil, errors.New("not enough inventory")
+				}
+			}
 
 			// Step 3.1.3: check if result is valid
 			if !result.IsValid() {
@@ -343,6 +348,7 @@ func (c *cache) summarizeSimpleRoute(
 				TokenAmountOut: *result.TokenAmountOut,
 				Fee:            *result.Fee,
 				SwapInfo:       result.SwapInfo,
+				Inventory:      ivt,
 			}
 			pool = poolBucket.ClonePool(simpleSwap.PoolAddress)
 			pool.UpdateBalance(updateBalanceParams)

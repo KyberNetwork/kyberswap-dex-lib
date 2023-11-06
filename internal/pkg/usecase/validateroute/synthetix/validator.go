@@ -91,6 +91,7 @@ func Validate(poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobjec
 				tokenAmountIn,
 				path.Tokens[i+1].Address,
 			)
+
 			if err != nil {
 				return err
 			}
@@ -110,6 +111,8 @@ func Validate(poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobjec
 					totalVolume.Add(totalVolume, synthetixTradeVolume)
 				}
 			}
+
+			//we need not inventories here since this is Synthetix's pools only
 			updateBalanceParams := poolpkg.UpdateBalanceParams{
 				TokenAmountIn:  tokenAmountIn,
 				TokenAmountOut: *tokenAmountOut,

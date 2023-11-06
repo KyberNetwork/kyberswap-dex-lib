@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -55,4 +56,7 @@ type FinderData struct {
 
 	// PriceUSDByAddress mapping from token address to price in USD
 	PriceUSDByAddress map[string]float64
+
+	//PMMInventory is the store PMM inventory
+	PMMInventory *poolpkg.Inventory
 }

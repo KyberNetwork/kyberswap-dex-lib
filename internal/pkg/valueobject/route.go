@@ -60,7 +60,7 @@ func NewRouteFromPaths(
 // AddPath will add the path into Route.
 // it will also modify request's copy of IPool( poolByAddress). Once the Path is added,
 // the poolByAddress of the modified pool will be assigned to a different pointer to avoid changing data of other's request
-func (r *Route) AddPath(poolBucket *PoolBucket, p *Path) error {
+func (r *Route) AddPath(poolBucket *PoolBucket, p *Path, ivt *poolpkg.Inventory) error {
 	if r.Input.Token != p.Input.Token || r.Output.Token != p.Output.Token {
 		return errors.Wrapf(
 			ErrPathMismatchedToken,
@@ -84,6 +84,14 @@ func (r *Route) AddPath(poolBucket *PoolBucket, p *Path) error {
 			)
 		}
 		calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, currentAmount, p.Tokens[i+1].Address)
+		if pool.GetType() == constant.PoolTypes.KyberPMM {
+
+			if ivt.GetBalance(p.Tokens[i+1].Address).Cmp(calcAmountOutResult.TokenAmountOut.Amount) < 0 {
+				return errors.Wrapf(ErrInvalidSwap,
+					"[Route.AddPath] CalcAmountOut returns error | poolAddress: [%s], exchange: [%s], tokenIn: [%s], amountIn: [%s], tokenOut: [%s], err: [%v]",
+					poolAddress, pool.GetExchange(), currentAmount.Token, currentAmount.Amount, p.Tokens[i+1].Address, errors.New("not enough inventory"))
+			}
+		}
 		if err != nil {
 			return errors.Wrapf(
 				ErrInvalidSwap,
@@ -105,6 +113,7 @@ func (r *Route) AddPath(poolBucket *PoolBucket, p *Path) error {
 			TokenAmountOut: *tokenAmountOut,
 			Fee:            *fee,
 			SwapInfo:       calcAmountOutResult.SwapInfo,
+			Inventory:      ivt,
 		}
 		// clone the pool before updating it, so it doesn't modify the original data copied from pool manager
 		pool = poolBucket.ClonePool(poolAddress)

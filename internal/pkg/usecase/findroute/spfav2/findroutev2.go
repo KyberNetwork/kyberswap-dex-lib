@@ -178,7 +178,7 @@ func (f *spfav2Finder) bestMultiPathRouteV2(
 			return nil, nil
 		}
 
-		if err := bestMultiPathRoute.AddPath(data.PoolBucket, bestPath); err != nil {
+		if err := bestMultiPathRoute.AddPath(data.PoolBucket, bestPath, data.PMMInventory); err != nil {
 			return nil, err
 		}
 	}

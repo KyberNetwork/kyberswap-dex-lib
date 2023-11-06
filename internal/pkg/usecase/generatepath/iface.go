@@ -33,7 +33,7 @@ type IPoolManager interface {
 		ctx context.Context,
 		addresses, dex []string,
 		stateRoot common.Hash,
-	) (map[string]poolpkg.IPoolSimulator, error)
+	) (map[string]poolpkg.IPoolSimulator, *poolpkg.Inventory, error)
 	Reload() error
 	GetAEVMClient() aevmclient.Client
 }

@@ -6,8 +6,9 @@ import (
 	"sort"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -113,7 +114,7 @@ func (f *uniswapFinder) genPathsWithSplitAmountIn(input findroute.Input, data fi
 		for _, path := range paths {
 			splitPath, err := valueobject.NewPath(data.PoolBucket, path.PoolAddresses, path.Tokens, splitTokenAmountIn, input.TokenOutAddress,
 				data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[input.TokenOutAddress].Decimals,
-				valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD},
+				valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}, data.PMMInventory,
 			)
 			if err != nil {
 				logger.WithFields(logger.Fields{"error": err}).

@@ -243,7 +243,7 @@ func (uc *useCase) generateBestPaths(
 		}
 	}
 
-	poolByAddress, err := uc.poolManager.GetPoolByAddress(ctx, poolAddresses.List(), sources, gEthCommon.Hash(stateRoot))
+	poolByAddress, ivt, err := uc.poolManager.GetPoolByAddress(ctx, poolAddresses.List(), sources, gEthCommon.Hash(stateRoot))
 	if err != nil {
 		return nil, err
 	}
@@ -299,6 +299,7 @@ func (uc *useCase) generateBestPaths(
 				PoolBucket:        valueobject.NewPoolBucket(poolByAddress),
 				TokenByAddress:    tokenByAddress,
 				PriceUSDByAddress: tokenPriceUSDByAddress,
+				PMMInventory:      ivt,
 			},
 			tokenAmountIn,
 			uc.config.SPFAFinderOptions.MaxHops,

@@ -52,12 +52,13 @@ func (mr *MockIPoolManagerMockRecorder) GetAEVMClient() *gomock.Call {
 }
 
 // GetPoolByAddress mocks base method.
-func (m *MockIPoolManager) GetPoolByAddress(arg0 context.Context, arg1, arg2 []string, arg3 common.Hash) (map[string]pool.IPoolSimulator, error) {
+func (m *MockIPoolManager) GetPoolByAddress(arg0 context.Context, arg1, arg2 []string, arg3 common.Hash) (map[string]pool.IPoolSimulator, *pool.Inventory, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPoolByAddress", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(map[string]pool.IPoolSimulator)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(*pool.Inventory)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // GetPoolByAddress indicates an expected call of GetPoolByAddress.
