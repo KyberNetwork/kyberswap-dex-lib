@@ -68,21 +68,21 @@ func (c *httpClient) ListPairs(ctx context.Context) (map[string]kyberpmm.PairIte
 	return result.Pairs, nil
 }
 
-func (c *httpClient) ListPriceLevels(ctx context.Context) (map[string]kyberpmm.PriceItem, error) {
+func (c *httpClient) ListPriceLevels(ctx context.Context) (kyberpmm.ListPriceLevelsResult, error) {
 	req := c.client.R().
 		SetContext(ctx)
 
 	var result kyberpmm.ListPriceLevelsResult
 	resp, err := req.SetResult(&result).Get(listPricesEndpoint)
 	if err != nil {
-		return nil, err
+		return result, err
 	}
 
 	if !resp.IsSuccess() {
-		return nil, errors.Wrapf(ErrListPriceLevelsFailed, "response status: %v, response error: %v", resp.Status(), resp.Error())
+		return result, errors.Wrapf(ErrListPriceLevelsFailed, "response status: %v, response error: %v", resp.Status(), resp.Error())
 	}
 
-	return result.Prices, nil
+	return result, nil
 }
 
 func (c *httpClient) Firm(ctx context.Context, params kyberpmm.FirmRequestParams) (kyberpmm.FirmResult, error) {

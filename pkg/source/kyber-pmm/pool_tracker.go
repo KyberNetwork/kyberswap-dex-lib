@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math/big"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -41,7 +44,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	extra := Extra{}
 
-	priceLevels, err := t.getPriceLevelsForPool(ctx, p)
+	priceLevels, inventory, err := t.getPriceLevelsForPool(ctx, p)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
@@ -49,9 +52,16 @@ func (t *PoolTracker) GetNewPoolState(
 		}).Errorf("failed to get price levels for pool")
 		return entity.Pool{}, err
 	}
+	//this is supposed to be big
+	p.Reserves = make([]string, len(p.Tokens))
+	for i, token := range p.Tokens {
+		inventoryWithoutDecimal, _ := new(big.Float).
+			Mul(new(big.Float).SetFloat64(inventory[strings.ToLower(token.Address)]),
+				new(big.Float).Set(bignumber.TenPowDecimals(token.Decimals))).Int(big.NewInt(0))
+		p.Reserves[i] = inventoryWithoutDecimal.String()
+	}
 
 	extra.BaseToQuotePriceLevels, extra.QuoteToBasePriceLevels = transformPriceLevels(priceLevels)
-
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -64,35 +74,55 @@ func (t *PoolTracker) GetNewPoolState(
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
-
 	logger.Infof("[Kyber PMM] Finish getting new states for pool %v", p.Address)
 
 	return p, nil
 }
 
-func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) (PriceItem, error) {
-	priceLevels, err := t.client.ListPriceLevels(ctx)
+// getPriceLevelsForPool returns a PriceItem of that pool
+// and a map[tokenAddress]Balance for PMM Inventory
+func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) (PriceItem, map[string]float64, error) {
+	result, err := t.client.ListPriceLevels(ctx)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to get price levels")
-		return PriceItem{}, err
+		return PriceItem{}, nil, err
 	}
 
-	var staticExtra StaticExtra
+	var (
+		staticExtra                     StaticExtra
+		baseTokenSymbol, quoteTokenName string
+	)
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to unmarshal static extra data")
 
-		return PriceItem{}, err
+		return PriceItem{}, nil, err
 	}
 
-	if priceLevelsForPool, found := priceLevels[staticExtra.PairID]; found {
-		return priceLevelsForPool, nil
+	for _, token := range p.Tokens {
+		if strings.EqualFold(token.Address, staticExtra.BaseTokenAddress) {
+			baseTokenSymbol = token.Symbol
+		}
+		if strings.EqualFold(token.Address, staticExtra.QuoteTokenAddress) {
+			quoteTokenName = token.Symbol
+		}
+	}
+	priceLevelsForPool, found1 := result.Prices[staticExtra.PairID]
+
+	baseBalance, found2 := result.Balances[baseTokenSymbol]
+	quoteBalance, found3 := result.Balances[quoteTokenName]
+
+	if found1 && found2 && found3 {
+		return priceLevelsForPool, map[string]float64{
+			strings.ToLower(staticExtra.BaseTokenAddress):  baseBalance,
+			strings.ToLower(staticExtra.QuoteTokenAddress): quoteBalance,
+		}, nil
 	}
 
-	return PriceItem{}, ErrNoPriceLevelsForPool
+	return PriceItem{}, nil, ErrNoPriceLevelsForPool
 }
 
 // For computing prices based on a quote token amount
