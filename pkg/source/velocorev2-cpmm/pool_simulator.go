@@ -291,7 +291,6 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 		}
 	}
 
-	unaccountedFeeAsGrowth1e18 := bigint1e18
 	if k.Cmp(bigint1e18) < 0 {
 		x := new(big.Int).Sub(
 			bigint1e18,
@@ -301,7 +300,7 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 			),
 		)
 		n := new(big.Int).Sub(new(big.Int).Sub(p.sumWeight, sumUnknownWeight), sumKnownWeight)
-		unaccountedFeeAsGrowth1e18 = rpow(x, n, bigint1e18)
+		unaccountedFeeAsGrowth1e18 := rpow(x, n, bigint1e18)
 		requestedGrowth1e18 = new(big.Int).Div(
 			new(big.Int).Mul(requestedGrowth1e18, unaccountedFeeAsGrowth1e18),
 			bigint1e18,
