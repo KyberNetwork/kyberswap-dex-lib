@@ -6,11 +6,12 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/logger"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocorev2-cpmm/sd59x18"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
 )
 
 type PoolSimulator struct {

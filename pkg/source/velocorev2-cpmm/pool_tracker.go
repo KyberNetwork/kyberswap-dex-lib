@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/logger"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 type PoolTracker struct {
