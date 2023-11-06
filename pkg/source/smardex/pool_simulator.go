@@ -32,12 +32,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Info: poolpkg.PoolInfo{
 				Address:    entityPool.Address,
 				ReserveUsd: entityPool.ReserveUsd,
-				// SwapFee:    swapFee,
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens:   tokens,
-				Reserves: reserves,
-				Checked:  false,
+				Exchange:   entityPool.Exchange,
+				Type:       entityPool.Type,
+				Tokens:     tokens,
+				Reserves:   reserves,
+				Checked:    false,
 			},
 		},
 		SmardexPair: SmardexPair{
@@ -69,8 +68,8 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 		fictiveReserveOut  *big.Int = p.FictiveReserve.FictiveReserve1
 		priceAverageIn     *big.Int = p.PriceAverage.PriceAverage0
 		priceAverageOut    *big.Int = p.PriceAverage.PriceAverage1
-		balanceIn          *big.Int = new(big.Int).Sub(p.GetReserves()[0], p.FeeToAmount.Fees0)
-		balanceOut         *big.Int = new(big.Int).Sub(p.GetReserves()[1], p.FeeToAmount.Fees1)
+		balanceIn          *big.Int = p.GetReserves()[0]
+		balanceOut         *big.Int = p.GetReserves()[1]
 		userTradeTimestamp          = now().Unix()
 	)
 	if !zeroForOne {
@@ -78,8 +77,8 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 		fictiveReserveOut = p.FictiveReserve.FictiveReserve0
 		priceAverageIn = p.PriceAverage.PriceAverage1
 		priceAverageOut = p.PriceAverage.PriceAverage0
-		balanceIn = new(big.Int).Sub(p.GetReserves()[1], p.FeeToAmount.Fees1)
-		balanceOut = new(big.Int).Sub(p.GetReserves()[0], p.FeeToAmount.Fees0)
+		balanceIn = p.GetReserves()[1]
+		balanceOut = p.GetReserves()[0]
 	}
 
 	var err error
@@ -93,7 +92,6 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 	if err != nil {
 		return nil, err
 	}
-
 	result, err := getAmountOut(
 		GetAmountParameters{
 			amount:            tokenAmountIn.Amount,
@@ -134,8 +132,8 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 			},
 			Gas: p.gas.Swap,
 			SwapInfo: SwapInfo{
-				NewReserveIn:              result.newReserveIn,
-				NewReserveOut:             result.newReserveOut,
+				NewReserveIn:              new(big.Int).Sub(result.newReserveIn, p.FeeToAmount.Fees0),
+				NewReserveOut:             new(big.Int).Sub(result.newReserveOut, p.FeeToAmount.Fees1),
 				NewFictiveReserveIn:       result.newFictiveReserveIn,
 				NewFictiveReserveOut:      result.newFictiveReserveOut,
 				NewPriceAverageIn:         priceAverageIn,
@@ -156,8 +154,8 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 		},
 		Gas: p.gas.Swap,
 		SwapInfo: SwapInfo{
-			NewReserveIn:              result.newReserveIn,
-			NewReserveOut:             result.newReserveOut,
+			NewReserveIn:              new(big.Int).Sub(result.newReserveIn, p.FeeToAmount.Fees0),
+			NewReserveOut:             new(big.Int).Sub(result.newReserveOut, p.FeeToAmount.Fees1),
 			NewFictiveReserveIn:       result.newFictiveReserveIn,
 			NewFictiveReserveOut:      result.newFictiveReserveOut,
 			NewPriceAverageIn:         priceAverageIn,

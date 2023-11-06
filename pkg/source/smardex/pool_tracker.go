@@ -38,7 +38,6 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	var (
 		reserve        Reserve
 		feeToAmount    FeeToAmount
-		ethereumFees   EthereumFeeToAmount
 		fictiveReserve FictiveReserve
 		pairFee        PairFee
 		priceAverage   PriceAverage
@@ -85,21 +84,17 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	/*
 	 * On ethereum: feeToAmount will be gotten by getFees, in other chains getFeeToAmounts will be used instead
 	 */
+	getFeeMethodName := pairGetFeeToAmountsMethod
 	if u.config.ChainID == 1 {
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    pairABI,
-			Target: p.Address,
-			Method: pairGetFeesMethod,
-			Params: nil,
-		}, []interface{}{&ethereumFees})
-	} else {
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    pairABI,
-			Target: p.Address,
-			Method: pairGetFeeToAmountsMethod,
-			Params: nil,
-		}, []interface{}{&feeToAmount})
+		getFeeMethodName = pairGetFeesMethod
+
 	}
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    pairABI,
+		Target: p.Address,
+		Method: getFeeMethodName,
+		Params: nil,
+	}, []interface{}{&feeToAmount})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
@@ -124,10 +119,6 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		return entity.Pool{}, err
 	}
 
-	if u.config.ChainID == 1 {
-		feeToAmount.Fees0 = ethereumFees.Fees0
-		feeToAmount.Fees1 = ethereumFees.Fees1
-	}
 	extraBytes, err := json.Marshal(SmardexPair{
 		PairFee:        pairFee,
 		FictiveReserve: fictiveReserve,

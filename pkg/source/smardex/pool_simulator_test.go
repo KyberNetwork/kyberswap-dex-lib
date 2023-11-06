@@ -108,36 +108,78 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestGetAmountOut(t *testing.T) {
+	testCases := []struct {
+		name                string
+		amountParams        GetAmountParameters
+		expectedAmountOutT0 *big.Int
+		expectedReserve0    *big.Int
+		expectedReserve1    *big.Int
+		expectedResFictive0 *big.Int
+		expectedResFictive1 *big.Int
+	}{
+		{
+			name: "Test case 1",
+			amountParams: GetAmountParameters{
+				amount:            amountInT0,
+				reserveIn:         resT0,
+				reserveOut:        resT1,
+				fictiveReserveIn:  resFicT0,
+				fictiveReserveOut: resFicT1,
+				priceAverageIn:    priceAvT0,
+				priceAverageOut:   priceAvT1,
+				feesLP:            feesLP,
+				feesPool:          feesPool,
+				feesBase:          FEES_BASE},
+			expectedAmountOutT0: expectedAmountOutT0,
+			expectedReserve0:    expectedResT0,
+			expectedReserve1:    expectedResT1,
+			expectedResFictive0: expectedResFicT0,
+			expectedResFictive1: expectedResFicT1,
+		},
+		{
+			name: "Test case 2",
+			amountParams: GetAmountParameters{
+				amount:            big.NewInt(42),
+				reserveIn:         parseString("161897635415"),
+				reserveOut:        parseString("15369827327148701303864657"),
+				fictiveReserveIn:  parseString("76745457210"),
+				fictiveReserveOut: parseString("6535835031490019911286921"),
+				priceAverageIn:    parseString("76745457210"),
+				priceAverageOut:   parseString("6535835031490019911286921"),
+				feesLP:            big.NewInt(1500),
+				feesPool:          big.NewInt(900),
+				feesBase:          FEES_BASE},
+			expectedAmountOutT0: parseString("3483282525323441"),
+			expectedReserve0:    parseString("161897635455"),
+			expectedReserve1:    parseString("15369827323665418778541216"),
+			expectedResFictive0: parseString("85593526029"),
+			expectedResFictive1: parseString("7289358689105108450240064"),
+		},
+	}
 
-	result, err := getAmountOut(
-		GetAmountParameters{
-			amount:            amountInT0,
-			reserveIn:         resT0,
-			reserveOut:        resT1,
-			fictiveReserveIn:  resFicT0,
-			fictiveReserveOut: resFicT1,
-			priceAverageIn:    priceAvT0,
-			priceAverageOut:   priceAvT1,
-			feesLP:            feesLP,
-			feesPool:          feesPool,
-			feesBase:          FEES_BASE})
-	if err != nil {
-		t.Fatalf(`Error thrown %v`, err)
-	}
-	if result.amountOut.Cmp(expectedAmountOutT0) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, result.amountOut, expectedAmountOutT0)
-	}
-	if result.newReserveIn.Cmp(expectedResT0) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, result.newReserveIn, expectedResT0)
-	}
-	if result.newReserveOut.Cmp(expectedResT1) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, result.newReserveOut, expectedResT1)
-	}
-	if result.newFictiveReserveIn.Cmp(expectedResFicT0) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, result.newFictiveReserveIn, expectedResFicT0)
-	}
-	if result.newFictiveReserveOut.Cmp(expectedResFicT1) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, result.newFictiveReserveOut, expectedResFicT1)
+	for _, tc := range testCases {
+		t.Run(tc.name,
+			func(t *testing.T) {
+				result, err := getAmountOut(tc.amountParams)
+				if err != nil {
+					t.Fatalf(`Error thrown %v`, err)
+				}
+				if result.amountOut.Cmp(tc.expectedAmountOutT0) != 0 {
+					t.Fatalf(`Invalid value = %d, expected: %d`, result.amountOut, tc.expectedAmountOutT0)
+				}
+				if result.newReserveIn.Cmp(tc.expectedReserve0) != 0 {
+					t.Fatalf(`Invalid value = %d, expected: %d`, result.newReserveIn, tc.expectedReserve0)
+				}
+				if result.newReserveOut.Cmp(tc.expectedReserve1) != 0 {
+					t.Fatalf(`Invalid value = %d, expected: %d`, result.newReserveOut, tc.expectedReserve1)
+				}
+				if result.newFictiveReserveIn.Cmp(tc.expectedResFictive0) != 0 {
+					t.Fatalf(`Invalid value = %d, expected: %d`, result.newFictiveReserveIn, tc.expectedResFictive0)
+				}
+				if result.newFictiveReserveOut.Cmp(tc.expectedResFictive1) != 0 {
+					t.Fatalf(`Invalid value = %d, expected: %d`, result.newFictiveReserveOut, tc.expectedResFictive1)
+				}
+			})
 	}
 
 }

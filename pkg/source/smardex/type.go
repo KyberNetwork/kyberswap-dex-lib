@@ -53,12 +53,6 @@ type FeeToAmount struct {
 	Fees1 *big.Int
 }
 
-type EthereumFeeToAmount struct {
-	// Ethereum has another interfaces for method getFeeToAmounts
-	Fees0 *big.Int
-	Fees1 *big.Int
-}
-
 type Reserve struct {
 	Reserve0 *big.Int
 	Reserve1 *big.Int

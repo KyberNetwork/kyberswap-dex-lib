@@ -70,7 +70,19 @@ func getAmountOut(param GetAmountParameters) (GetAmountResult, error) {
 	feesTotalReversed.Sub(param.feesBase, param.feesLP).Sub(feesTotalReversed, param.feesPool)
 	amountInWithFees := new(big.Int)
 	amountInWithFees.Mul(param.amount, feesTotalReversed).Div(amountInWithFees, param.feesBase)
-	firstAmountIn := computeFirstTradeQtyIn(param)
+	firstAmountIn := computeFirstTradeQtyIn(
+		GetAmountParameters{
+			amount:            amountInWithFees,
+			reserveIn:         param.reserveIn,
+			reserveOut:        param.reserveOut,
+			fictiveReserveIn:  param.fictiveReserveIn,
+			fictiveReserveOut: param.fictiveReserveOut,
+			priceAverageIn:    param.priceAverageIn,
+			priceAverageOut:   param.priceAverageOut,
+			feesLP:            param.feesLP,
+			feesPool:          param.feesPool,
+			feesBase:          param.feesBase,
+		})
 
 	// if there is 2 trade: 1st trade mustn't re-compute fictive reserves, 2nd should
 	if firstAmountIn.Cmp(amountInWithFees) == 0 && ratioApproxEq(
