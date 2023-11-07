@@ -190,13 +190,13 @@ func (uc *useCase) Handle(ctx context.Context) {
 		for tokenOut, paths := range result.bestPathsByTokenOut {
 			tokenOut = strings.ToLower(tokenOut)
 			err = uc.bestPathRepository.SetBestPaths(uc.sourceHash, tokenIn, tokenOut, paths, uc.config.PathGeneratorDataTtl)
-
+			uniquePaths := dedupBestPaths(paths)
 			if err != nil {
 				logger.Errorf("Error while saving path %s", err)
-				pathFail = pathFail + len(paths)
+				pathFail = pathFail + len(uniquePaths)
 			} else {
-				pathSuccess = pathSuccess + len(paths)
-				logger.Infof("Done gen paths for: sourceHash %v, tokenIn %v, tokenOut %v, total %d paths", uc.sourceHash, tokenIn, tokenOut, len(paths))
+				pathSuccess = pathSuccess + len(uniquePaths)
+				logger.Infof("Done gen paths for: sourceHash %v, tokenIn %v, tokenOut %v, total %d paths", uc.sourceHash, tokenIn, tokenOut, len(uniquePaths))
 			}
 		}
 	}

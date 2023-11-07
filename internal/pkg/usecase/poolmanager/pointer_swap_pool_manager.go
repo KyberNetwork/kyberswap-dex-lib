@@ -73,6 +73,7 @@ func NewNonMaintenancePointerSwapPoolManager(
 	for i := 0; i < 2; i++ {
 		states[i] = &LockedState{
 			poolByAddress: make(map[string]poolpkg.IPoolSimulator),
+			pmmInventory:  make(map[string]*big.Int),
 			lock:          &sync.RWMutex{},
 		}
 	}
