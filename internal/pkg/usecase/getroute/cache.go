@@ -235,25 +235,27 @@ func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKe
 	for _, cacheRange := range c.config.TTLByAmountUSDRange {
 		if shrunkAmountInUSD > cacheRange.AmountUSDLowerBound {
 			return &valueobject.RouteCacheKey{
-				CacheMode:  valueobject.RouteCacheModeRange,
-				TokenIn:    params.TokenIn.Address,
-				TokenOut:   params.TokenOut.Address,
-				AmountIn:   strconv.FormatFloat(shrunkAmountInUSD, 'f', -1, 64),
-				SaveGas:    params.SaveGas,
-				GasInclude: params.GasInclude,
-				Dexes:      params.Sources,
+				CacheMode:              valueobject.RouteCacheModeRange,
+				TokenIn:                params.TokenIn.Address,
+				TokenOut:               params.TokenOut.Address,
+				AmountIn:               strconv.FormatFloat(shrunkAmountInUSD, 'f', -1, 64),
+				SaveGas:                params.SaveGas,
+				GasInclude:             params.GasInclude,
+				Dexes:                  params.Sources,
+				IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
 			}, cacheRange.TTL, nil
 		}
 	}
 
 	return &valueobject.RouteCacheKey{
-		CacheMode:  valueobject.RouteCacheModeRange,
-		TokenIn:    params.TokenIn.Address,
-		TokenOut:   params.TokenOut.Address,
-		AmountIn:   strconv.FormatFloat(shrunkAmountInUSD, 'f', -1, 64),
-		SaveGas:    params.SaveGas,
-		GasInclude: params.GasInclude,
-		Dexes:      params.Sources,
+		CacheMode:              valueobject.RouteCacheModeRange,
+		TokenIn:                params.TokenIn.Address,
+		TokenOut:               params.TokenOut.Address,
+		AmountIn:               strconv.FormatFloat(shrunkAmountInUSD, 'f', -1, 64),
+		SaveGas:                params.SaveGas,
+		GasInclude:             params.GasInclude,
+		Dexes:                  params.Sources,
+		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
 	}, c.config.DefaultTTL, nil
 }
 
