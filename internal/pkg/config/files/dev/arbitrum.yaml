@@ -72,6 +72,7 @@ common:
     - "arbswap-amm"
     - "traderjoe-v21"
     - "traderjoe-v20"
+    - "smardex"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
@@ -154,6 +155,7 @@ encoder:
     executeWooFiV2: 25
     executeIziSwap: 26
     executeTraderJoeV2: 27
+    smardex: 34
 useCase:
   getRoute:
     chainId: *chainId

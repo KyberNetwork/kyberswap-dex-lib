@@ -230,4 +230,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeVooi, swapdata.PackVooi)
 
 	RegisterPackSwapDataFunc(valueobject.ExchangePolMatic, swapdata.PackMaticMigrate)
+
+	// Smardex
+	RegisterPackSwapDataFunc(valueobject.ExchangeSmardex, swapdata.PackSmardex)
 }

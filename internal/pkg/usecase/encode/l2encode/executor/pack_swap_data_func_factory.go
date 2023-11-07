@@ -122,4 +122,7 @@ func init() {
 	// TraderJoeV2
 	RegisterPackSwapDataFunc(valueobject.ExchangeTraderJoeV20, swapdata.PackTraderJoeV2)
 	RegisterPackSwapDataFunc(valueobject.ExchangeTraderJoeV21, swapdata.PackTraderJoeV2)
+
+	// Smardex
+	RegisterPackSwapDataFunc(valueobject.ExchangeSmardex, swapdata.PackSmardex)
 }

@@ -131,4 +131,7 @@ func init() {
 	// executeTraderJoeV2
 	RegisterFunctionSelector(valueobject.ExchangeTraderJoeV20, FunctionSelectorTraderJoeV2)
 	RegisterFunctionSelector(valueobject.ExchangeTraderJoeV21, FunctionSelectorTraderJoeV2)
+
+	// executeSmardex
+	RegisterFunctionSelector(valueobject.ExchangeSmardex, FunctionSelectorSmardex)
 }

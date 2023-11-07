@@ -43,6 +43,7 @@ import (
 	polmatic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pol-matic"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/smardex"
 	swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap/syncswapclassic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap/syncswapstable"
@@ -315,6 +316,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newLiquidityBookV21(entityPool)
 	case constant.PoolTypes.LiquidityBookV20:
 		return f.newLiquidityBookV20(entityPool)
+	case constant.PoolTypes.Smardex:
+		return f.newSmardex(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -1059,6 +1062,20 @@ func (f *PoolFactory) newLiquidityBookV20(entityPool entity.Pool) (*liquidityboo
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newLiquidityBookV20] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newSmardex(entityPool entity.Pool) (*smardex.PoolSimulator, error) {
+	corePool, err := smardex.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newSmardex] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

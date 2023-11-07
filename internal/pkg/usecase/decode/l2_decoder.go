@@ -238,6 +238,8 @@ func (d *L2Decoder) decodeSwapData(data []byte, functionSelectorName string, isF
 		return swapdata.UnpackWombat(data, isFirstSwap)
 	case strings.ToLower(l2executor.FunctionSelectorIZiSwap.RawName):
 		return swapdata.UnpackIZiSwap(data, isFirstSwap)
+	case strings.ToLower(l2executor.FunctionSelectorSmardex.RawName):
+		return swapdata.UnpackSmardex(data, isFirstSwap)
 	default:
 		return nil, fmt.Errorf("unsupported function selector")
 	}

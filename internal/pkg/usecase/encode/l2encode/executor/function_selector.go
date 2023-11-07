@@ -42,6 +42,7 @@ var (
 	FunctionSelectorWooFiV2        FunctionSelector
 	FunctionSelectorIZiSwap        FunctionSelector
 	FunctionSelectorTraderJoeV2    FunctionSelector
+	FunctionSelectorSmardex        FunctionSelector
 )
 
 func init() {
@@ -66,4 +67,5 @@ func init() {
 	FunctionSelectorWooFiV2 = NewFunctionSelector("executeWooFiV2", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorIZiSwap = NewFunctionSelector("executeIziSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorTraderJoeV2 = NewFunctionSelector("executeTraderJoeV2", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
+	FunctionSelectorSmardex = NewFunctionSelector("executeSmardex", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 }

@@ -74,6 +74,7 @@ type types struct {
 	KokonutCrypto            string
 	LiquidityBookV21         string
 	LiquidityBookV20         string
+	Smardex                  string
 }
 
 var (
@@ -151,5 +152,6 @@ var (
 		KokonutCrypto:            "kokonut-crypto",
 		LiquidityBookV21:         "liquiditybook-v21",
 		LiquidityBookV20:         "liquiditybook-v20",
+		Smardex:                  "smardex",
 	}
 )

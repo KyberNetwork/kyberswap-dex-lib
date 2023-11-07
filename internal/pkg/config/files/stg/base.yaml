@@ -58,6 +58,7 @@ common:
     - "bmx-glp"
     - "kokonut-cpmm"
     - "kokonut-crypto"
+    - "smardex"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
@@ -138,6 +139,7 @@ encoder:
     executeWooFiV2: 25
     executeIziSwap: 26
     executeGMXGLP: 30
+    smardex: 34
 useCase:
   getRoute:
     chainId: *chainId

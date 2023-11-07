@@ -12,7 +12,7 @@ require (
 	github.com/KyberNetwork/aevm v1.0.6
 	github.com/KyberNetwork/ethrpc v0.5.0
 	github.com/KyberNetwork/kyber-trace-go v0.1.0
-	github.com/KyberNetwork/kyberswap-dex-lib v0.22.0
+	github.com/KyberNetwork/kyberswap-dex-lib v0.22.1
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/alicebob/miniredis v2.5.0+incompatible
@@ -74,7 +74,7 @@ require (
 	github.com/DataDog/go-tuf v0.3.0--fix-localmeta-fork // indirect
 	github.com/DataDog/gostackparse v0.5.0 // indirect
 	github.com/DataDog/sketches-go v1.2.1 // indirect
-	github.com/KyberNetwork/blockchain-toolkit v0.2.3
+	github.com/KyberNetwork/blockchain-toolkit v0.2.4
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 // indirect
 	github.com/KyberNetwork/pancake-v3-sdk v0.1.0 // indirect
 	github.com/Microsoft/go-winio v0.5.1 // indirect

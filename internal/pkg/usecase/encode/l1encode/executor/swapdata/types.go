@@ -313,3 +313,12 @@ type MaticMigrate struct {
 	Amount       *big.Int
 	Recipient    common.Address
 }
+
+// Smardex
+type Smardex struct {
+	Pool      common.Address
+	TokenIn   common.Address
+	TokenOut  common.Address
+	Amount    *big.Int
+	Recipient common.Address
+}
