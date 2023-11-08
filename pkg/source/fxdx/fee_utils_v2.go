@@ -42,7 +42,7 @@ func (f *FeeUtilsV2) GetSwapFeeBasisPoints(
 	}
 
 	feesBasisPoints0 := f.getFeeBasisPoints(tokenIn, usdfAmount, f.SwapFeeBasisPoints[tokenIn], f.TaxBasisPoints[tokenIn], true)
-	feesBasisPoints1 := f.getFeeBasisPoints(tokenOut, usdfAmount, f.SwapFeeBasisPoints[tokenIn], f.TaxBasisPoints[tokenIn], false)
+	feesBasisPoints1 := f.getFeeBasisPoints(tokenOut, usdfAmount, f.SwapFeeBasisPoints[tokenOut], f.TaxBasisPoints[tokenOut], false)
 
 	if feesBasisPoints0.Cmp(feesBasisPoints1) > 0 {
 		return feesBasisPoints0, nil
