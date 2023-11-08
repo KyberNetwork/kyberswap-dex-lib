@@ -3,6 +3,7 @@ package fxdx
 import (
 	"context"
 	"math/big"
+	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -69,7 +70,7 @@ func (r *FeeUtilsV2Reader) Read(ctx context.Context, vault *Vault) (*FeeUtilsV2,
 
 	index := 3
 	for _, token := range tokens {
-		tokenAddr := token.Hex()
+		tokenAddr := strings.ToLower(token.Hex())
 		feeUtils.TaxBasisPoints[tokenAddr] = intValues[index]
 		feeUtils.SwapFeeBasisPoints[tokenAddr] = intValues[index+2]
 	}
