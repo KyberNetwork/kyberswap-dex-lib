@@ -139,7 +139,7 @@ encoder:
     executeWooFiV2: 25
     executeIziSwap: 26
     executeGMXGLP: 30
-    smardex: 34
+    executeSmardex: 34
     executeKokonut: 36
 useCase:
   getRoute:

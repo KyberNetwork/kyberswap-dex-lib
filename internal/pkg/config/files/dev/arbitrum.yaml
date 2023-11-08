@@ -155,7 +155,7 @@ encoder:
     executeWooFiV2: 25
     executeIziSwap: 26
     executeTraderJoeV2: 27
-    smardex: 34
+    executeSmardex: 34
 useCase:
   getRoute:
     chainId: *chainId
