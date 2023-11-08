@@ -53,7 +53,6 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		reserves = append(reserves, vault.PoolAmounts[token].String())
 	}
 
-	// var feeUtils *FeeUtilsV2
 	feeUtils, err := NewFeeUtilsV2Reader(p.ethrpcClient).Read(ctx, vault)
 	if err != nil {
 		log.Errorf("get fee utils v2 failed: %v", err)
