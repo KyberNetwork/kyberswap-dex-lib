@@ -31,6 +31,8 @@ func NewVaultPriceFeedReader(ethrpcClient *ethrpc.Client) *VaultPriceFeedReader 
 func (r *VaultPriceFeedReader) Read(ctx context.Context, address string, tokens []string) (*VaultPriceFeed, error) {
 	vaultPriceFeed := NewVaultPriceFeed()
 
+	vaultPriceFeed.Address = address
+
 	if err := r.readData(ctx, address, vaultPriceFeed); err != nil {
 		r.log.Errorf("error when read data: %s", err)
 		return nil, err

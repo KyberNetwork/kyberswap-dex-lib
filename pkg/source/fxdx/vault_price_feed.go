@@ -8,6 +8,8 @@ import (
 )
 
 type VaultPriceFeed struct {
+	Address string `json:"address"`
+
 	BNB string `json:"bnb"`
 	BTC string `json:"btc"`
 	ETH string `json:"eth"`

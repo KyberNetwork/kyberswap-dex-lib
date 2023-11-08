@@ -26,14 +26,13 @@ func (r *FeeUtilsV2Reader) Read(ctx context.Context, vault *Vault) (*FeeUtilsV2,
 
 	var (
 		address = vault.FeeUtils.Hex()
-
-		boolValues    = make([]bool, 2)
-		addressValues = make([]string, 2)
-		intValues     = make([]*big.Int, 3+len(vault.WhitelistedTokens))
-
-		tokens = make([]common.Address, len(vault.WhitelistedTokens))
+		tokens  = make([]common.Address, len(vault.WhitelistedTokens))
 
 		isInitialized bool
+
+		boolValues    = make([]bool, 2)
+		addressValues = make([]common.Address, 2)
+		intValues     = make([]*big.Int, 3+len(vault.WhitelistedTokens))
 	)
 
 	for i, token := range vault.WhitelistedTokens {
@@ -45,22 +44,33 @@ func (r *FeeUtilsV2Reader) Read(ctx context.Context, vault *Vault) (*FeeUtilsV2,
 	request.AddCall(&ethrpc.Call{
 		ABI:    r.abi,
 		Target: address,
-		Method: feeUtilsV2MethodGetStates,
-		Params: []interface{}{tokens},
-	}, []interface{}{&addressValues, &intValues, &boolValues})
+		Method: feeUtilsV2IsInitialized,
+	}, []interface{}{&isInitialized})
 
 	request.AddCall(&ethrpc.Call{
 		ABI:    r.abi,
 		Target: address,
-		Method: feeUtilsV2IsInitialized,
-	}, []interface{}{&isInitialized})
+		Method: feeUtilsV2MethodGetStates,
+		Params: []interface{}{tokens},
+	}, []interface{}{&addressValues, &intValues, &boolValues})
 
 	if _, err := request.Call(); err != nil {
 		return nil, err
 	}
 
-	feeUtils.HasDynamicFees = boolValues[0]
+	feeUtils.Address = address
+
+	feeUtils.IsInitialized = isInitialized
 	feeUtils.IsActive = boolValues[1]
+	feeUtils.FeeMultiplierIfInactive = intValues[2]
+	feeUtils.HasDynamicFees = boolValues[0]
+
+	index := 3
+	for _, token := range tokens {
+		tokenAddr := token.Hex()
+		feeUtils.TaxBasisPoints[tokenAddr] = intValues[index]
+		feeUtils.SwapFeeBasisPoints[tokenAddr] = intValues[index+2]
+	}
 
 	return feeUtils, nil
 }

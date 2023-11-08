@@ -32,7 +32,7 @@ type Vault struct {
 
 	UseSwapPricing bool // not used, always false for now
 
-	FeeUtils common.Address `json:"feeUtils"`
+	FeeUtils common.Address `json:"-"`
 }
 
 func NewVault() *Vault {

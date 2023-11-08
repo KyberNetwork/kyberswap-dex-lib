@@ -7,6 +7,8 @@ import (
 )
 
 type FeeUtilsV2 struct {
+	Address string `json:"address"`
+
 	IsInitialized           bool     `json:"isInitialized"`
 	IsActive                bool     `json:"isActive"`
 	FeeMultiplierIfInactive *big.Int `json:"feeMultiplierIfInactive"`
