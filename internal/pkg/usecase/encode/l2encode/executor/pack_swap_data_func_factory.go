@@ -69,7 +69,7 @@ func init() {
 
 	// CurveSwap
 	RegisterPackSwapDataFunc(valueobject.ExchangeCurve, swapdata.PackCurveSwap)
-	RegisterPackSwapDataFunc(valueobject.ExchangeKokonutCrypto, swapdata.PackCurveSwap)
+	RegisterPackSwapDataFunc(valueobject.ExchangeKokonutCrypto, swapdata.PackKokonutCrypto)
 
 	// UniSwapV3ProMM
 	RegisterPackSwapDataFunc(valueobject.ExchangeChronosV3, swapdata.PackUniswapV3KSElastic)

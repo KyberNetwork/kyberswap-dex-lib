@@ -113,7 +113,7 @@ encoder:
   chainId: *chainId
   executorAddress: *executorAddress
   routerAddress: *routerAddress
-  l2ExecutorAddress: "0x9CFf23e05A18b6f8Aff587B7fEf64F9580A6C85E"
+  l2ExecutorAddress: "0x11ddD59C33c73C44733b4123a86Ea5ce57F6e854"
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
   functionSelectorMappingID: # This map can be updated when we change l2 executor address
@@ -139,6 +139,7 @@ encoder:
     executeIziSwap: 26
     executeGMXGLP: 30
     smardex: 34
+    executeKokonut: 36
 useCase:
   getRoute:
     chainId: *chainId

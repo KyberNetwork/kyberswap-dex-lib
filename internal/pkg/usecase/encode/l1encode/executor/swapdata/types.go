@@ -46,6 +46,16 @@ type CurveSwap struct {
 	UseTriCrypto      bool
 }
 
+// KokonutCrypto
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/develop/src/contracts-optimistic/interfaces/executor-helpers/IExecutorHelperOptimistic4.sol#L81
+type KokonutCrypto struct {
+	Pool           common.Address
+	Dx             *big.Int
+	TokenIndexFrom *big.Int
+	FromToken      common.Address
+	ToToken        common.Address
+}
+
 // UniswapV3KSElastic
 // https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/921725af2a121e023945fa46669c3ea5343ecd37/contracts/executor-helpers/ExecutorHelper2.sol#L64-L72
 type UniswapV3KSElastic struct {

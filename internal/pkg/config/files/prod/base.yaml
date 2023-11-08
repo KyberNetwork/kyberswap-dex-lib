@@ -139,6 +139,7 @@ encoder:
     executeIziSwap: 26
     executeGMXGLP: 30
     smardex: 34
+    executeKokonut: 36
 useCase:
   getRoute:
     chainId: *chainId

@@ -33,6 +33,7 @@ var (
 	FunctionSelectorGmxGlp         FunctionSelector
 	FunctionSelectorStableSwap     FunctionSelector
 	FunctionSelectorCurveSwap      FunctionSelector
+	FunctionSelectorKokonutCrypto  FunctionSelector
 	FunctionSelectorBalancerV2     FunctionSelector
 	FunctionSelectorDODO           FunctionSelector
 	FunctionSelectorCamelotSwap    FunctionSelector
@@ -58,6 +59,7 @@ func init() {
 	FunctionSelectorGmxGlp = NewFunctionSelector("executeGMXGLP", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorStableSwap = NewFunctionSelector("executeStableSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorCurveSwap = NewFunctionSelector("executeCurveSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
+	FunctionSelectorKokonutCrypto = NewFunctionSelector("executeKokonut", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorBalancerV2 = NewFunctionSelector("executeBalV2Swap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorDODO = NewFunctionSelector("executeDODOSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})
 	FunctionSelectorCamelotSwap = NewFunctionSelector("executeCamelotSwap", []string{"uint256", "bytes", "uint256", "address", "bool", "address"})

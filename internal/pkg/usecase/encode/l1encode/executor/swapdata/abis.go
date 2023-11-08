@@ -10,6 +10,7 @@ var (
 	UniswapABIArguments           abi.Arguments
 	StableSwapABIArguments        abi.Arguments
 	CurveSwapABIArguments         abi.Arguments
+	KokonutCryptoABIArguments     abi.Arguments
 	UniswapV3KSElasticABIArgument abi.Arguments
 	BalancerV2ABIArguments        abi.Arguments
 	DODOABIArguments              abi.Arguments
@@ -84,6 +85,14 @@ func init() {
 		{Name: "dx", Type: abitypes.Uint256},
 		{Name: "usePoolUnderlying", Type: abitypes.Bool},
 		{Name: "useTriCrypto", Type: abitypes.Bool},
+	}
+
+	KokonutCryptoABIArguments = abi.Arguments{
+		{Name: "pool", Type: abitypes.Address},
+		{Name: "dx", Type: abitypes.Uint256},
+		{Name: "tokenIndexFrom", Type: abitypes.Int128},
+		{Name: "fromToken", Type: abitypes.Address},
+		{Name: "toToken", Type: abitypes.Address},
 	}
 
 	UniswapV3KSElasticABIArgument = abi.Arguments{

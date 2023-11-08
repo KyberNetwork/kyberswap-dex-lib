@@ -24,6 +24,7 @@ var (
 	FunctionSelectorUniswap           FunctionSelector
 	FunctionSelectorStableSwap        FunctionSelector
 	FunctionSelectorCurveSwap         FunctionSelector
+	FunctionSelectorKokonutCrypto     FunctionSelector
 	FunctionSelectorUniV3KSElastic    FunctionSelector
 	FunctionSelectorBalancerV2        FunctionSelector
 	FunctionSelectorDODO              FunctionSelector
@@ -59,6 +60,7 @@ func init() {
 	FunctionSelectorUniswap = NewFunctionSelector("executeUniswap", []string{"bytes", "uint256"})
 	FunctionSelectorStableSwap = NewFunctionSelector("executeStableSwap", []string{"bytes", "uint256"})
 	FunctionSelectorCurveSwap = NewFunctionSelector("executeCurve", []string{"bytes", "uint256"})
+	FunctionSelectorKokonutCrypto = NewFunctionSelector("executeKokonut", []string{"bytes", "uint256"})
 	FunctionSelectorPancakeStableSwap = NewFunctionSelector("executePancakeStableSwap", []string{"bytes", "uint256"})
 	FunctionSelectorUniV3KSElastic = NewFunctionSelector("executeUniV3KSElastic", []string{"bytes", "uint256"})
 	FunctionSelectorBalancerV2 = NewFunctionSelector("executeBalV2", []string{"bytes", "uint256"})
