@@ -33,6 +33,8 @@ func (r *FeeUtilsV2Reader) Read(ctx context.Context, vault *Vault) (*FeeUtilsV2,
 		boolValues    = make([]bool, 2)
 		addressValues = make([]common.Address, 2)
 		intValues     = make([]*big.Int, 3+len(vault.WhitelistedTokens))
+
+		getStateResponse = []interface{}{&addressValues, &intValues, &boolValues}
 	)
 
 	for i, token := range vault.WhitelistedTokens {
@@ -52,9 +54,9 @@ func (r *FeeUtilsV2Reader) Read(ctx context.Context, vault *Vault) (*FeeUtilsV2,
 		Target: address,
 		Method: feeUtilsV2MethodGetStates,
 		Params: []interface{}{tokens},
-	}, []interface{}{&addressValues, &intValues, &boolValues})
+	}, []interface{}{&getStateResponse})
 
-	if _, err := request.Call(); err != nil {
+	if _, err := request.Aggregate(); err != nil {
 		return nil, err
 	}
 

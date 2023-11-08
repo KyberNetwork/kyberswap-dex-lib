@@ -30,7 +30,7 @@ type Vault struct {
 	USDFAddress common.Address `json:"-"`
 	USDF        *USDF          `json:"usdf"`
 
-	UseSwapPricing bool // not used, always false for now
+	UseSwapPricing bool `json:"useSwapPricing"` // not used, always false for now
 
 	FeeUtils common.Address `json:"-"`
 }

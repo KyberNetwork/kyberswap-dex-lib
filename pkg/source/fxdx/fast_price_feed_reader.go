@@ -77,7 +77,7 @@ func (r *FastPriceFeedReader) readTokenData(
 
 	prices := make([]*big.Int, tokensLen)
 	maxCumulativeDeltaDiffs := make([]*big.Int, tokensLen)
-	priceData := make([]PriceDataItem, tokensLen)
+	priceData := make([][4]*big.Int, tokensLen)
 	callParamsFactory := CallParamsFactory(r.abi, address)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
@@ -95,7 +95,12 @@ func (r *FastPriceFeedReader) readTokenData(
 	for i, token := range tokens {
 		fastPriceFeed.Prices[token] = prices[i]
 		fastPriceFeed.MaxCumulativeDeltaDiffs[token] = maxCumulativeDeltaDiffs[i]
-		fastPriceFeed.PriceData[token] = priceData[i]
+		fastPriceFeed.PriceData[token] = PriceDataItem{
+			RefPrice:            priceData[i][0],
+			RefTime:             priceData[i][1],
+			CumulativeRefDelta:  priceData[i][2],
+			CumulativeFastDelta: priceData[i][3],
+		}
 	}
 
 	return nil

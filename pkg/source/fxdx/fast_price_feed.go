@@ -24,9 +24,9 @@ type FastPriceFeed struct {
 
 type PriceDataItem struct {
 	RefPrice            *big.Int `json:"refPrice"`
-	RefTime             uint64   `json:"refTime"`
-	CumulativeRefDelta  uint64   `json:"cumulativeRefDelta"`
-	CumulativeFastDelta uint64   `json:"cumulativeFastDelta"`
+	RefTime             *big.Int `json:"refTime"`
+	CumulativeRefDelta  *big.Int `json:"cumulativeRefDelta"`
+	CumulativeFastDelta *big.Int `json:"cumulativeFastDelta"`
 }
 
 func NewFastPriceFeed() *FastPriceFeed {
@@ -127,7 +127,7 @@ func (pf *FastPriceFeed) getPriceData(token string) (*big.Int, *big.Int, *big.In
 	priceDataItem := pf.PriceData[token]
 
 	return priceDataItem.RefPrice,
-		new(big.Int).SetUint64(priceDataItem.RefTime),
-		new(big.Int).SetUint64(priceDataItem.CumulativeRefDelta),
-		new(big.Int).SetUint64(priceDataItem.CumulativeFastDelta)
+		priceDataItem.RefTime,
+		priceDataItem.CumulativeRefDelta,
+		priceDataItem.CumulativeFastDelta
 }
