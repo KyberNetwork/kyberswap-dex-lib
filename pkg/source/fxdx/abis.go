@@ -14,6 +14,7 @@ var (
 	pancakePairABI    abi.ABI
 	fastPriceFeedABI  abi.ABI
 	priceFeedABI      abi.ABI
+	feeUtilsABI       abi.ABI
 )
 
 func init() {
@@ -28,6 +29,7 @@ func init() {
 		{&pancakePairABI, pancakePairJson},
 		{&fastPriceFeedABI, fastPriceFeedJson},
 		{&priceFeedABI, priceFeedJson},
+		{&feeUtilsABI, feeUtilsV2Json},
 	}
 
 	for _, b := range builder {

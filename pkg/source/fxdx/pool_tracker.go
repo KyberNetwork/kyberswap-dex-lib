@@ -55,7 +55,13 @@ func (d *PoolTracker) GetNewPoolState(
 		reserves = append(reserves, vault.PoolAmounts[token].String())
 	}
 
-	extra := Extra{Vault: vault}
+	feeUtils, err := NewFeeUtilsV2Reader(d.ethrpcClient).Read(ctx, vault)
+	if err != nil {
+		log.Errorf("get fee utils v2 failed: %v", err)
+		return entity.Pool{}, err
+	}
+
+	extra := Extra{Vault: vault, FeeUtils: feeUtils}
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {

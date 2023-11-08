@@ -22,3 +22,6 @@ var fastPriceFeedJson []byte
 
 //go:embed abis/PriceFeed.json
 var priceFeedJson []byte
+
+//go:embed abis/FeeUtilsV2.json
+var feeUtilsV2Json []byte

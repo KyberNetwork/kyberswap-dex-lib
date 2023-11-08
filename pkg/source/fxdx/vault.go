@@ -8,14 +8,9 @@ import (
 )
 
 type Vault struct {
-	HasDynamicFees           bool     `json:"hasDynamicFees"`
-	IncludeAmmPrice          bool     `json:"includeAmmPrice"`
-	IsSwapEnabled            bool     `json:"isSwapEnabled"`
-	StableSwapFeeBasisPoints *big.Int `json:"stableSwapFeeBasisPoints"`
-	StableTaxBasisPoints     *big.Int `json:"stableTaxBasisPoints"`
-	SwapFeeBasisPoints       *big.Int `json:"swapFeeBasisPoints"`
-	TaxBasisPoints           *big.Int `json:"taxBasisPoints"`
-	TotalTokenWeights        *big.Int `json:"totalTokenWeights"`
+	IncludeAmmPrice   bool     `json:"includeAmmPrice"`
+	IsSwapEnabled     bool     `json:"isSwapEnabled"`
+	TotalTokenWeights *big.Int `json:"totalTokenWeights"`
 
 	WhitelistedTokens      []string `json:"whitelistedTokens"`
 	WhitelistedTokensCount *big.Int `json:"-"`
@@ -36,6 +31,8 @@ type Vault struct {
 	USDF        *USDF          `json:"usdf"`
 
 	UseSwapPricing bool // not used, always false for now
+
+	FeeUtils common.Address `json:"feeUtils"`
 }
 
 func NewVault() *Vault {
@@ -74,6 +71,8 @@ const (
 	vaultMethodUSDFAmounts     = "usdfAmounts"
 	vaultMethodMaxUSDFAmounts  = "maxUsdfAmounts"
 	vaultMethodTokenWeights    = "tokenWeights"
+
+	vaultMethodFeeUtils = "feeUtils"
 )
 
 func (v *Vault) GetMinPrice(token string) (*big.Int, error) {

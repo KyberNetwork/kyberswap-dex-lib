@@ -18,9 +18,9 @@ type Gas struct {
 type PoolSimulator struct {
 	pool.Pool
 
-	vault      *Vault
-	vaultUtils *VaultUtils
-	gas        Gas
+	vault    *Vault
+	feeUtils *FeeUtilsV2
+	gas      Gas
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -45,9 +45,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Pool: pool.Pool{
 			Info: info,
 		},
-		vault:      extra.Vault,
-		vaultUtils: NewVaultUtils(extra.Vault),
-		gas:        DefaultGas,
+		vault:    extra.Vault,
+		feeUtils: extra.FeeUtils,
+		gas:      DefaultGas,
 	}, nil
 }
 
@@ -160,7 +160,10 @@ func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *
 		return nil, nil, err
 	}
 
-	feeBasisPoints := p.vaultUtils.GetSwapFeeBasisPoints(tokenIn, tokenOut, usdfAmount)
+	feeBasisPoints, err := p.feeUtils.GetSwapFeeBasisPoints(tokenIn, tokenOut, usdfAmount)
+	if err != nil {
+		return nil, nil, err
+	}
 	amountOutAfterFees := new(big.Int).Div(
 		new(big.Int).Mul(
 			amountOut,

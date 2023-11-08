@@ -15,4 +15,6 @@ var (
 	ErrVaultPriceFeedChainlinkFeedsNotUpdated = errors.New("chainlink feeds are not being updated")
 
 	ErrInvalidSecondaryPriceFeedVersion = errors.New("invalid secondary price feed version")
+
+	ErrFeeUtilsV2IsNotInitialized = errors.New("feeUtilsV2: is not initialized")
 )
