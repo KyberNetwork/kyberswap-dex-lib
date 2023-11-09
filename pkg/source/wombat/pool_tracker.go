@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/KyberNetwork/blockchain-toolkit/dsmath"
 	"math/big"
 	"strings"
 	"time"
@@ -165,8 +166,9 @@ func (d *PoolTracker) GetNewPoolState(
 			Liability:               liabilities[i],
 			RelativePrice:           relativePrices[i],
 		}
-		if liabilities[i] != nil {
-			reserves[i] = liabilities[i].String()
+		if cashes[i] != nil {
+			underlyingReserves := dsmath.FromWAD(cashes[i], p.Tokens[i].Decimals)
+			reserves[i] = underlyingReserves.String()
 		}
 	}
 
