@@ -9,5 +9,10 @@ type Metadata struct {
 type bytes32 [32]byte
 
 type Extra struct {
-	LpTokenBalances []*big.Int `json:"lpTokenBalances"`
+	Fee1e18         *big.Int            `json:"fee1e18"`
+	LpTokenBalances map[string]*big.Int `json:"lpTokenBalances"`
+}
+
+type tokenInfo struct {
+	Scale uint8 `json:"scale"`
 }

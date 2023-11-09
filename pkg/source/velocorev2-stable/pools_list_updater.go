@@ -125,18 +125,18 @@ func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.A
 			tokenNbr        = len(tokens[i])
 			poolTokens      = []*entity.PoolToken{}
 			poolReserves    = []string{}
-			lpTokenBalances = []*big.Int{}
+			lpTokenBalances = make(map[string]*big.Int)
 		)
 
 		for j := 0; j < tokenNbr; j++ {
-			tokenAddr := strings.ToLower(decodeAddress(tokens[i][j]))
+			t := common.BytesToAddress(tokens[i][j][:])
+			addr := strings.ToLower(t.String())
 			poolTokens = append(poolTokens, &entity.PoolToken{
-				Address: tokenAddr,
+				Address: addr,
 				Weight:  defaultWeight,
 			})
 			poolReserves = append(poolReserves, "0")
-
-			lpTokenBalances = append(lpTokenBalances, integer.Zero())
+			lpTokenBalances[addr] = integer.Zero()
 		}
 
 		extra := Extra{LpTokenBalances: lpTokenBalances}
