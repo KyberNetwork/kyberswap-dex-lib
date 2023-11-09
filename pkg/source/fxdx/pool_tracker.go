@@ -57,7 +57,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	feeUtils, err := NewFeeUtilsV2Reader(d.ethrpcClient).Read(ctx, vault)
 	if err != nil {
-		log.Errorf("get fee utils v2 failed: %v", err)
+		log.Errorf("get fee utils failed: %v", err)
 		return entity.Pool{}, err
 	}
 

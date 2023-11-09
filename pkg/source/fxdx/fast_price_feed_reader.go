@@ -48,7 +48,6 @@ func (r *FastPriceFeedReader) Read(
 }
 
 func (r *FastPriceFeedReader) readData(ctx context.Context, address string, fastPriceFeed *FastPriceFeed) error {
-
 	callParamsFactory := CallParamsFactory(r.abi, address)
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
