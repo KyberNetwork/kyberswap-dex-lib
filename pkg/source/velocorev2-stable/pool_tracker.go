@@ -2,7 +2,6 @@ package velocorev2stable
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -42,9 +41,6 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		Params: []interface{}{common.HexToAddress(p.Address)},
 	}, []interface{}{&poolDataResp})
 
-	// query token info
+	poolDat := newPoolData(poolDataResp)
 
-	x, _ := json.Marshal(poolDataResp)
-	logger.Infof("poolDataResp: %s", string(x))
-	return entity.Pool{}, nil
 }

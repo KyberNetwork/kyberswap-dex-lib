@@ -3,8 +3,9 @@ package velocorev2stable
 import (
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 type Metadata struct {
@@ -21,7 +22,9 @@ type Extra struct {
 }
 
 type tokenInfo struct {
-	Scale uint8 `json:"scale"`
+	IndexPlus1 uint8          `json:"indexPlus1"`
+	Scale      uint8          `json:"scale"`
+	Gauge      common.Address `json:"-"`
 }
 
 type poolData struct {
