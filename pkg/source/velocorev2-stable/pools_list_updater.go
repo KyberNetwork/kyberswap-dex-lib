@@ -56,6 +56,10 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, nil
 	}
 
+	if len(newPoolAddresses) > p.Config.NewPoolLimit {
+		newPoolAddresses = newPoolAddresses[:p.Config.NewPoolLimit]
+	}
+
 	pools, err := p.getPools(ctx, newPoolAddresses)
 	if err != nil {
 		return nil, metadataBytes, err
