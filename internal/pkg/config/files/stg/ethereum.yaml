@@ -233,10 +233,10 @@ useCase:
         handler: kyber-pmm
         properties:
           http:
-            base_url: "https://kyberswap.knreserve.com"
+            base_url: "https://staging-kyberswap.knreserve.com"
             timeout: 10s
             retry_count: 3
-          rfq_contract_address: "0x7A819Fa46734a49D0112796f9377E024c350FB26"
+          rfq_contract_address: "0xd198885a138d3b1810a7363dd055c540d521c0c2"
       - id: kyberswap-limit-order-v2
         handler: limit-order
         properties:
