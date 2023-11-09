@@ -3,6 +3,7 @@ package velocorev2stable
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -23,9 +24,17 @@ type tokenInfo struct {
 	Scale uint8 `json:"scale"`
 }
 
+type poolData struct {
+	Tokens          []*entity.PoolToken
+	PoolReserves    entity.PoolReserves
+	Amp             *big.Int
+	Fee1e18         *big.Int
+	LpTokenBalances map[string]*big.Int
+}
+
 // rpc
 
-type poolData struct {
+type poolDataResp struct {
 	Data struct {
 		Pool           common.Address
 		PoolType       string

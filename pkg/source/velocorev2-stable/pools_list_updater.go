@@ -3,7 +3,6 @@ package velocorev2stable
 import (
 	"context"
 	"encoding/json"
-	"math/big"
 	"strings"
 	"time"
 
@@ -106,10 +105,11 @@ func (p *PoolsListUpdater) getNewPoolAddresses(ctx context.Context, metadata Met
 func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.Address) ([]entity.Pool, error) {
 	var (
 		pools    = make([]entity.Pool, len(poolAddreses))
-		poolData = make([]poolData, len(poolAddreses))
+		poolData = make([]poolDataResp, len(poolAddreses))
 	)
 
-	req := p.ethrpcClient.NewRequest()
+	req := p.ethrpcClient.R()
+
 	for i, poolAddress := range poolAddreses {
 		req.AddCall(&ethrpc.Call{
 			ABI:    lensABI,
@@ -125,29 +125,13 @@ func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.A
 	}
 
 	for i, poolAddress := range poolAddreses {
-		var (
-			poolAddr = strings.ToLower(poolAddress.Hex())
-			poolDat  = poolData[i].Data
-
-			poolTokens      = []*entity.PoolToken{}
-			poolReserves    = []string{}
-			lpTokenBalances = make(map[string]*big.Int)
-		)
-
-		for j, token := range poolDat.ListedTokens {
-			t := strings.ToLower(common.BytesToAddress(token[:]).Hex())
-			poolTokens = append(poolTokens, &entity.PoolToken{
-				Address: t,
-				Weight:  defaultWeight,
-			})
-			poolReserves = append(poolReserves, poolDat.Reserves[j].String())
-			lpTokenBalances[t] = new(big.Int).Sub(maxUint128, poolDat.MintedLPTokens[j])
-		}
+		poolAddr := strings.ToLower(poolAddress.Hex())
+		poolDat := newPoolData(poolData[i])
 
 		extra := Extra{
-			Amp:             nil,
-			Fee1e18:         nil,
-			LpTokenBalances: lpTokenBalances,
+			Amp:             poolDat.Amp,
+			Fee1e18:         poolDat.Fee1e18,
+			LpTokenBalances: poolDat.LpTokenBalances,
 			TokenInfo:       nil,
 		}
 		extraBytes, err := json.Marshal(extra)
@@ -161,8 +145,8 @@ func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.A
 			Exchange:  p.Config.DexID,
 			Type:      DexTypeVelocoreV2Stable,
 			Timestamp: time.Now().Unix(),
-			Reserves:  poolReserves,
-			Tokens:    poolTokens,
+			Reserves:  poolDat.PoolReserves,
+			Tokens:    poolDat.Tokens,
 			Extra:     string(extraBytes),
 		}
 	}

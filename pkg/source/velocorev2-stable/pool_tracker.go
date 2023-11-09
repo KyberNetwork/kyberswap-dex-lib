@@ -31,7 +31,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		"address": p.Address,
 	}).Infof("Start getting new state of pool")
 
-	var poolDataResp poolData
+	var poolDataResp poolDataResp
 
 	req := d.ethrpcClient.R()
 
