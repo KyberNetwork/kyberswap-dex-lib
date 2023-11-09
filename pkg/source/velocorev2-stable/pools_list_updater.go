@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -102,18 +101,20 @@ func (p *PoolsListUpdater) getNewPoolAddresses(ctx context.Context, metadata Met
 
 func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.Address) ([]entity.Pool, error) {
 	var (
-		pools  = make([]entity.Pool, len(poolAddreses))
-		tokens = make([][]bytes32, len(poolAddreses))
+		pools    = make([]entity.Pool, len(poolAddreses))
+		poolData = make([]poolData, len(poolAddreses))
 	)
 
-	req := p.ethrpcClient.R()
+	req := p.ethrpcClient.NewRequest()
 	for i, poolAddress := range poolAddreses {
 		req.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: poolAddress.Hex(),
-			Method: poolMethodGetTokenList,
-		}, []interface{}{&tokens[i]})
+			ABI:    lensABI,
+			Target: p.Config.LensAddress,
+			Method: lensMethodQueryPool,
+			Params: []interface{}{poolAddress},
+		}, []interface{}{&poolData[i]})
 	}
+
 	if _, err := req.Aggregate(); err != nil {
 		logger.Errorf("failed to get pools, err: %v", err)
 		return nil, err
@@ -121,25 +122,30 @@ func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.A
 
 	for i, poolAddress := range poolAddreses {
 		var (
-			poolAddr        = strings.ToLower(poolAddress.Hex())
-			tokenNbr        = len(tokens[i])
+			poolAddr = strings.ToLower(poolAddress.Hex())
+			poolDat  = poolData[i].Data
+
 			poolTokens      = []*entity.PoolToken{}
 			poolReserves    = []string{}
 			lpTokenBalances = make(map[string]*big.Int)
 		)
 
-		for j := 0; j < tokenNbr; j++ {
-			t := common.BytesToAddress(tokens[i][j][:])
-			addr := strings.ToLower(t.String())
+		for j, token := range poolDat.ListedTokens {
+			t := strings.ToLower(common.BytesToAddress(token[:]).Hex())
 			poolTokens = append(poolTokens, &entity.PoolToken{
-				Address: addr,
+				Address: t,
 				Weight:  defaultWeight,
 			})
-			poolReserves = append(poolReserves, "0")
-			lpTokenBalances[addr] = integer.Zero()
+			poolReserves = append(poolReserves, poolDat.Reserves[j].String())
+			lpTokenBalances[t] = new(big.Int).Sub(maxUint128, poolDat.MintedLPTokens[j])
 		}
 
-		extra := Extra{LpTokenBalances: lpTokenBalances}
+		extra := Extra{
+			Amp:             nil,
+			Fee1e18:         nil,
+			LpTokenBalances: lpTokenBalances,
+			TokenInfo:       nil,
+		}
 		extraBytes, err := json.Marshal(extra)
 		if err != nil {
 			logger.Errorf("failed to marshal extra data, err: %v", err)

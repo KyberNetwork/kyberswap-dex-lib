@@ -6,12 +6,10 @@ const (
 	DexTypeVelocoreV2Stable = "velocorev2-stable"
 
 	registryMethodGetPools = "getPools"
-
-	poolMethodGetTokenList = "getTokenList"
+	lensMethodQueryPool    = "queryPool"
 
 	defaultWeight = 1
-
-	defaultGas = 1000000
+	defaultGas    = 1000000
 )
 
 var (

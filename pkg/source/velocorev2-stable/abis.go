@@ -9,6 +9,7 @@ import (
 var (
 	poolABI     abi.ABI
 	registryABI abi.ABI
+	lensABI     abi.ABI
 )
 
 func init() {
@@ -16,12 +17,9 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{
-			&poolABI, poolABIJson,
-		},
-		{
-			&registryABI, registryABIJson,
-		},
+		{&poolABI, poolABIJson},
+		{&registryABI, registryABIJson},
+		{&lensABI, lensABIJson},
 	}
 
 	for _, b := range builder {
