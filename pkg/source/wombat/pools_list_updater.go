@@ -210,8 +210,10 @@ func (d *PoolsListUpdater) classifyPoolType(ctx context.Context, p *SubgraphPool
 	if relativePrice != nil {
 		return poolTypeWombatLSD, nil
 	}
+	// createForTokensHaircut to detect poolTypeWombatCrossChain.
+	// But following wombat team, poolTypeWombatCrossChain can swap on the same chain as poolTypeWombatMain
 	if creditForTokensHaircut != nil {
-		return poolTypeWombatCrossChain, nil
+		return poolTypeWombatMain, nil
 	}
 
 	return poolTypeWombatMain, nil
