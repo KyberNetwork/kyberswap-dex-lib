@@ -3,7 +3,11 @@ package velocorev2stable
 import (
 	"context"
 	"encoding/json"
+	"math/big"
+	"strings"
+	"time"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -49,7 +53,7 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	if len(newPoolAddresses) == 0 {
-		logger.Infof("[VelocoreV2 Stable] no new pool")
+		logger.Infof("no new pool")
 		return nil, metadataBytes, nil
 	}
 
@@ -67,7 +71,7 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	if len(pools) > 0 {
-		logger.Infof("[VelocoreV2 Stable] got %d new pools", len(pools))
+		logger.Infof("got %d new pools", len(pools))
 	}
 
 	return pools, newMetadataBytes, nil
@@ -80,7 +84,7 @@ func (p *PoolsListUpdater) getNewPoolAddresses(ctx context.Context, metadata Met
 	req.AddCall(&ethrpc.Call{
 		ABI:    registryABI,
 		Target: p.Config.RegistryAddress,
-		Method: p.Config.RegistryAddress,
+		Method: registryMethodGetPools,
 	}, []interface{}{&addresses})
 
 	if _, err := req.Call(); err != nil {
@@ -97,16 +101,61 @@ func (p *PoolsListUpdater) getNewPoolAddresses(ctx context.Context, metadata Met
 }
 
 func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.Address) ([]entity.Pool, error) {
-	var pools []entity.Pool
+	var (
+		pools  = make([]entity.Pool, len(poolAddreses))
+		tokens = make([][]bytes32, len(poolAddreses))
+	)
 
-	// for _, poolAddress := range poolAddreses {
-	// 	pool, err := p.getPool(ctx, poolAddress)
-	// 	if err != nil {
-	// 		return nil, err
-	// 	}
+	req := p.ethrpcClient.R()
+	for i, poolAddress := range poolAddreses {
+		req.AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: poolAddress.Hex(),
+			Method: poolMethodGetTokenList,
+		}, []interface{}{&tokens[i]})
+	}
+	if _, err := req.Aggregate(); err != nil {
+		logger.Errorf("failed to get pools, err: %v", err)
+		return nil, err
+	}
 
-	// 	pools = append(pools, pool)
-	// }
+	for i, poolAddress := range poolAddreses {
+		var (
+			poolAddr        = strings.ToLower(poolAddress.Hex())
+			tokenNbr        = len(tokens[i])
+			poolTokens      = []*entity.PoolToken{}
+			poolReserves    = []string{}
+			lpTokenBalances = []*big.Int{}
+		)
+
+		for j := 0; j < tokenNbr; j++ {
+			tokenAddr := strings.ToLower(decodeAddress(tokens[i][j]))
+			poolTokens = append(poolTokens, &entity.PoolToken{
+				Address: tokenAddr,
+				Weight:  defaultWeight,
+			})
+			poolReserves = append(poolReserves, "0")
+
+			lpTokenBalances = append(lpTokenBalances, integer.Zero())
+		}
+
+		extra := Extra{LpTokenBalances: lpTokenBalances}
+		extraBytes, err := json.Marshal(extra)
+		if err != nil {
+			logger.Errorf("failed to marshal extra data, err: %v", err)
+			return nil, err
+		}
+
+		pools[i] = entity.Pool{
+			Address:   poolAddr,
+			Exchange:  p.Config.DexID,
+			Type:      DexTypeVelocoreV2Stable,
+			Timestamp: time.Now().Unix(),
+			Reserves:  poolReserves,
+			Tokens:    poolTokens,
+			Extra:     string(extraBytes),
+		}
+	}
 
 	return pools, nil
 }

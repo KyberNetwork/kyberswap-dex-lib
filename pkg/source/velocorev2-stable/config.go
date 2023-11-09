@@ -1,6 +1,6 @@
 package velocorev2stable
 
 type Config struct {
-	DexID           string `json:"dexID"`
-	RegistryAddress string `json:"factoryAddress"`
+	DexID           string `json:"-"`
+	RegistryAddress string `json:"registryAddress"`
 }
