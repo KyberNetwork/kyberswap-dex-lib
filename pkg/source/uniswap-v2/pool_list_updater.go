@@ -146,7 +146,7 @@ func (u *PoolsListUpdater) listPairAddresses(ctx context.Context, offset int, ba
 	listPairAddressesRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i := 0; i < batchSize; i++ {
-		index := big.NewInt(int64(offset + i + 1))
+		index := big.NewInt(int64(offset + i))
 
 		listPairAddressesRequest.AddCall(&ethrpc.Call{
 			ABI:    uniswapV2FactoryABI,
