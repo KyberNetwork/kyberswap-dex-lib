@@ -24,18 +24,16 @@ func sqrt(x *big.Int) *big.Int {
 		log2(x)>>1,
 	)
 
-	v := new(big.Int).Div(x, result)
-
 	for i := 0; i < 7; i++ {
 		result = new(big.Int).Rsh(
 			new(big.Int).Add(
 				result,
-				v,
-			),
-			1,
+				new(big.Int).Div(x, result),
+			), 1,
 		)
 	}
 
+	v := new(big.Int).Div(x, result)
 	if result.Cmp(v) > 0 {
 		result = v
 	}
@@ -47,7 +45,7 @@ func log2(x *big.Int) uint {
 	result := 0
 	zero := integer.Zero()
 	for i := 7; i >= 0; i-- {
-		n := 2 << i
+		n := 1 << i
 		if new(big.Int).Rsh(x, uint(n)).Cmp(zero) > 0 {
 			x = new(big.Int).Rsh(x, uint(n))
 			result += n
