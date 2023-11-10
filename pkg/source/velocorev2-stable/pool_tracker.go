@@ -3,6 +3,7 @@ package velocorev2stable
 import (
 	"context"
 	"encoding/json"
+	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -82,6 +83,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 
 	p.Reserves = poolDat.PoolReserves
 	p.Extra = string(extraBytes)
+	p.Timestamp = time.Now().Unix()
 
 	return p, nil
 }
