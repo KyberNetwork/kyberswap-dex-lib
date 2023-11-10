@@ -16,6 +16,7 @@ require (
 	github.com/ethereum/go-ethereum v1.12.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/golang/mock v1.6.0
+	github.com/holiman/uint256 v1.2.2-0.20230321075855-87b91420868c
 	github.com/izumiFinance/iZiSwap-SDK-go v1.0.0
 	github.com/machinebox/graphql v0.2.2
 	github.com/orcaman/concurrent-map v1.0.0
@@ -38,7 +39,6 @@ require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b // indirect
 	github.com/google/uuid v1.3.1 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
-	github.com/holiman/uint256 v1.2.2-0.20230321075855-87b91420868c // indirect
 	github.com/matryer/is v1.4.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
