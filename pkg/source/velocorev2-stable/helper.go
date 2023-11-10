@@ -19,8 +19,9 @@ func newPoolData(p poolDataResp) *poolData {
 	for i, token := range p.Data.ListedTokens {
 		t := strings.ToLower(common.BytesToAddress(token[:]).Hex())
 		poolTokens = append(poolTokens, &entity.PoolToken{
-			Address: t,
-			Weight:  defaultWeight,
+			Address:   t,
+			Weight:    defaultWeight,
+			Swappable: true,
 		})
 		poolReserves = append(poolReserves, p.Data.Reserves[i].String())
 		lpTokenBalances[t] = new(big.Int).Sub(maxUint128, p.Data.MintedLPTokens[i])
