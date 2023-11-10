@@ -259,7 +259,7 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 	return metadataBytes, nil
 }
 
-func (u *PoolsListUpdater) newStaticExtra(fee int64, feePrecision int64) ([]byte, error) {
+func (u *PoolsListUpdater) newStaticExtra(fee uint64, feePrecision uint64) ([]byte, error) {
 	staticExtra := StaticExtra{
 		Fee:          fee,
 		FeePrecision: feePrecision,

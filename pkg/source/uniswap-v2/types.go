@@ -13,12 +13,12 @@ func (d ReserveData) IsZero() bool {
 }
 
 type StaticExtra struct {
-	Fee          int64 `json:"fee"`
-	FeePrecision int64 `json:"feePrecision"`
+	Fee          uint64 `json:"fee"`
+	FeePrecision uint64 `json:"feePrecision"`
 }
 
 type PoolMeta struct {
-	Fee          int64  `json:"fee"`
-	FeePrecision int64  `json:"feePrecision"`
+	Fee          uint64 `json:"fee"`
+	FeePrecision uint64 `json:"feePrecision"`
 	BlockNumber  uint64 `json:"blockNumber"`
 }
