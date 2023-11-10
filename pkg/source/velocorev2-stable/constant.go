@@ -7,6 +7,7 @@ const (
 
 	registryMethodGetPools = "getPools"
 	lensMethodQueryPool    = "queryPool"
+	poolMethodTokenInfo    = "tokenInfo"
 
 	defaultWeight = 1
 	defaultGas    = 1000000
