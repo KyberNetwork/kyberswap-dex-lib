@@ -104,14 +104,15 @@ type PoolToken struct {
 }
 
 type PoolInfo struct {
-	Address    string
-	ReserveUsd float64
-	SwapFee    *big.Int
-	Exchange   string
-	Type       string
-	Tokens     []string
-	Reserves   []*big.Int
-	Checked    bool
+	Address     string
+	ReserveUsd  float64
+	SwapFee     *big.Int
+	Exchange    string
+	Type        string
+	Tokens      []string
+	Reserves    []*big.Int
+	Checked     bool
+	BlockNumber uint64
 }
 
 func (t *PoolInfo) GetTokenIndex(address string) int {

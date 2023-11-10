@@ -3,6 +3,8 @@ package bignumber
 import (
 	"math"
 	"math/big"
+
+	"github.com/holiman/uint256"
 )
 
 var (
@@ -38,4 +40,10 @@ func NewBig10(s string) (res *big.Int) {
 func NewBig(s string) (res *big.Int) {
 	res, _ = new(big.Int).SetString(s, 0)
 	return res
+}
+
+func NewUint256(s string) (res *uint256.Int) {
+	res = new(uint256.Int)
+	_ = res.SetFromDecimal(s)
+	return
 }
