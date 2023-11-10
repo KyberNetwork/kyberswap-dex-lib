@@ -6,8 +6,9 @@ import (
 )
 
 var (
-	LiquidityPoolAbi abi.ABI
-	LevelOracleABI   abi.ABI
+	LiquidityPoolAbi       abi.ABI
+	LevelOracleABI         abi.ABI
+	LiquidityCalculatorABI abi.ABI
 )
 
 func init() {
@@ -17,6 +18,7 @@ func init() {
 	}{
 		{&LiquidityPoolAbi, LiquidityPoolABIBytes},
 		{&LevelOracleABI, LevelOracleABIBytes},
+		{&LiquidityCalculatorABI, LiquidityCalculatorABIBytes},
 	}
 
 	for _, b := range builder {

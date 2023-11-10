@@ -39,10 +39,12 @@ func (d *PoolTracker) GetNewPoolState(
 	}).Infof("[%s] Start getting new states of pool", p.Type)
 
 	var (
-		oracle        common.Address
-		trancheLength *big.Int
+		oracle              common.Address
+		liquidityCalculator common.Address
+		trancheLength       *big.Int
 	)
 
+	tranches := make([]common.Address, 0)
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	calls.AddCall(&ethrpc.Call{
 		ABI:    LiquidityPoolAbi,
@@ -53,9 +55,25 @@ func (d *PoolTracker) GetNewPoolState(
 	calls.AddCall(&ethrpc.Call{
 		ABI:    LiquidityPoolAbi,
 		Target: p.Address,
-		Method: liquidityPoolMethodGetAllTranchesLength,
+		Method: liquidityPoolMethodLiquidityCalculator,
 		Params: nil,
-	}, []interface{}{&trancheLength})
+	}, []interface{}{&liquidityCalculator})
+
+	if d.config.ChainID == int(valueobject.ChainIDBSC) {
+		calls.AddCall(&ethrpc.Call{
+			ABI:    LiquidityPoolAbi,
+			Target: p.Address,
+			Method: liquidityPoolMethodGetAllTranchesLength,
+			Params: nil,
+		}, []interface{}{&trancheLength})
+	} else {
+		calls.AddCall(&ethrpc.Call{
+			ABI:    LiquidityPoolAbi,
+			Target: p.Address,
+			Method: liquidityPoolMethodGetAllTranches,
+			Params: nil,
+		}, []interface{}{&tranches})
+	}
 
 	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -64,6 +82,13 @@ func (d *PoolTracker) GetNewPoolState(
 			"err":         err,
 		}).Errorf("failed to aggregate oracle and tranche length call")
 		return entity.Pool{}, err
+	}
+
+	var trancheIntLength int
+	if d.config.ChainID == int(valueobject.ChainIDBSC) {
+		trancheIntLength = int(trancheLength.Int64())
+	} else {
+		trancheIntLength = len(tranches)
 	}
 
 	type FeeResponse struct {
@@ -99,12 +124,6 @@ func (d *PoolTracker) GetNewPoolState(
 		Method: liquidityPoolMethodVirtualPoolValue,
 		Params: nil,
 	}, []interface{}{&virtualPoolValue})
-	calls.AddCall(&ethrpc.Call{
-		ABI:    LiquidityPoolAbi,
-		Target: p.Address,
-		Method: liquidityPoolMethodFee,
-		Params: nil,
-	}, []interface{}{&fee})
 	for i, tokenAddress := range p.Tokens {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    LiquidityPoolAbi,
@@ -138,11 +157,9 @@ func (d *PoolTracker) GetNewPoolState(
 			Params: []interface{}{common.HexToAddress(tokenAddress.Address), false},
 		}, []interface{}{&minPriceList[i]})
 	}
-
-	var tranches = make([]common.Address, 0)
 	if d.config.ChainID == int(valueobject.ChainIDBSC) {
-		tranches = make([]common.Address, trancheLength.Int64())
-		for i := 0; i < int(trancheLength.Int64()); i++ {
+		tranches = make([]common.Address, trancheIntLength)
+		for i := 0; i < trancheIntLength; i++ {
 			calls.AddCall(&ethrpc.Call{
 				ABI:    LiquidityPoolAbi,
 				Target: p.Address,
@@ -150,16 +167,58 @@ func (d *PoolTracker) GetNewPoolState(
 				Params: []interface{}{big.NewInt(int64(i))},
 			}, []interface{}{&tranches[i]})
 		}
+		calls.AddCall(&ethrpc.Call{
+			ABI:    LiquidityPoolAbi,
+			Target: p.Address,
+			Method: liquidityPoolMethodFee,
+			Params: nil,
+		}, []interface{}{&fee})
 	} else {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    LiquidityPoolAbi,
 			Target: p.Address,
-			Method: liquidityPoolMethodGetAllTranches,
+			Method: liquidityPoolMethodPositionFee,
 			Params: nil,
-		}, []interface{}{&tranches})
+		}, []interface{}{&fee.PositionFee})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    LiquidityPoolAbi,
+			Target: p.Address,
+			Method: liquidityPoolMethodLiquidationFee,
+			Params: nil,
+		}, []interface{}{&fee.LiquidationFee})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    LiquidityPoolAbi,
+			Target: p.Address,
+			Method: liquidityPoolMethodDaoFee,
+			Params: nil,
+		}, []interface{}{&fee.DaoFee})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    LiquidityCalculatorABI,
+			Target: liquidityCalculator.Hex(),
+			Method: liquidityCalculatorMethodBaseSwapFee,
+			Params: nil,
+		}, []interface{}{&fee.BaseSwapFee})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    LiquidityCalculatorABI,
+			Target: liquidityCalculator.Hex(),
+			Method: liquidityCalculatorMethodTaxBasicPoint,
+			Params: nil,
+		}, []interface{}{&fee.TaxBasisPoint})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    LiquidityCalculatorABI,
+			Target: liquidityCalculator.Hex(),
+			Method: liquidityCalculatorMethodStableCoinBaseSwapFee,
+			Params: nil,
+		}, []interface{}{&fee.StableCoinBaseSwapFee})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    LiquidityCalculatorABI,
+			Target: liquidityCalculator.Hex(),
+			Method: liquidityCalculatorMethodStableCoinTaxBasisPoint,
+			Params: nil,
+		}, []interface{}{&fee.StableCoinTaxBasisPoint})
 	}
 
-	if _, err := calls.Aggregate(); err != nil {
+	if _, err := calls.TryAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"type":        p.Type,
@@ -195,7 +254,7 @@ func (d *PoolTracker) GetNewPoolState(
 				ABI:    LiquidityPoolAbi,
 				Target: p.Address,
 				Method: liquidityPoolMethodRiskFactor,
-				Params: []interface{}{tranche, common.HexToAddress(tokenAddress.Address)},
+				Params: []interface{}{common.HexToAddress(tokenAddress.Address), tranche},
 			}, []interface{}{&riskFactors[i][j]})
 		}
 	}

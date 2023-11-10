@@ -24,8 +24,17 @@ const (
 	liquidityPoolMethodGetAllTranchesLength = "getAllTranchesLength"
 	liquidityPoolMethodAllTranches          = "allTranches"
 	liquidityPoolMethodGetAllTranches       = "getAllTranches"
+	liquidityPoolMethodLiquidityCalculator  = "liquidityCalculator"
+	liquidityPoolMethodDaoFee               = "daoFee"
+	liquidityPoolMethodLiquidationFee       = "liquidationFee"
+	liquidityPoolMethodPositionFee          = "positionFee"
 
 	oracleMethodGetPrice = "getPrice"
+
+	liquidityCalculatorMethodBaseSwapFee             = "baseSwapFee"
+	liquidityCalculatorMethodStableCoinBaseSwapFee   = "stableCoinBaseSwapFee"
+	liquidityCalculatorMethodStableCoinTaxBasisPoint = "stableCoinTaxBasisPoint"
+	liquidityCalculatorMethodTaxBasicPoint           = "taxBasisPoint"
 )
 
 var (
