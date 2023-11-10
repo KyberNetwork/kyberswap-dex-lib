@@ -28,12 +28,12 @@ func sqrt(x *big.Int) *big.Int {
 		result = new(big.Int).Rsh(
 			new(big.Int).Add(
 				result,
-				new(big.Int).Div(x, result),
+				new(big.Int).Quo(x, result),
 			), 1,
 		)
 	}
 
-	v := new(big.Int).Div(x, result)
+	v := new(big.Int).Quo(x, result)
 	if result.Cmp(v) > 0 {
 		result = v
 	}

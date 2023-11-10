@@ -128,14 +128,14 @@ func (p *PoolSimulator) swap(
 
 	newDu := new(big.Int).Sub(new(big.Int).Add(Dk, Du), newDk)
 	_4ac := new(big.Int).Mul(
-		new(big.Int).Div(
+		new(big.Int).Quo(
 			new(big.Int).Mul(new(big.Int).Mul(integer.Four(), p.amp), Lu),
 			integer.TenPow(18),
 		),
 		Lu,
 	)
 
-	newAu := new(big.Int).Div(
+	newAu := new(big.Int).Quo(
 		new(big.Int).Add(
 			newDu, new(big.Int).Add(
 				sqrtRounding(
@@ -192,9 +192,9 @@ func (p *PoolSimulator) partialInvariant(a *big.Int, l *big.Int) (*big.Int, erro
 		return integer.Zero(), nil
 	}
 	return new(big.Int).Sub(
-		a, new(big.Int).Div(
+		a, new(big.Int).Quo(
 			new(big.Int).Mul(
-				new(big.Int).Div(
+				new(big.Int).Quo(
 					new(big.Int).Mul(l, p.amp),
 					integer.TenPow(18),
 				), l,
@@ -208,7 +208,7 @@ func (p *PoolSimulator) upscale(t string, x *big.Int) *big.Int {
 }
 
 func (p *PoolSimulator) downscale(t string, x *big.Int) *big.Int {
-	return new(big.Int).Div(x, integer.TenPow(p.tokenInfo[t].Scale))
+	return new(big.Int).Quo(x, integer.TenPow(p.tokenInfo[t].Scale))
 }
 
 func (p *PoolSimulator) getReserve(token string) *big.Int {
