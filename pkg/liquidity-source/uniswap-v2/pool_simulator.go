@@ -58,10 +58,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (s *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOut string) (*poolpkg.CalcAmountOutResult, error) {
-	var tokenInIndex = s.GetTokenIndex(tokenAmountIn.Token)
-	var tokenOutIndex = s.GetTokenIndex(tokenOut)
+	indexIn := s.GetTokenIndex(tokenAmountIn.Token)
+	indexOut := s.GetTokenIndex(tokenOut)
 
-	if tokenInIndex < 0 || tokenOutIndex < 0 {
+	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrInvalidToken
 	}
 
@@ -70,8 +70,8 @@ func (s *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 		return nil, ErrInsufficientInputAmount
 	}
 
-	reserveIn := uint256.MustFromBig(s.Pool.Info.Reserves[tokenInIndex])
-	reserveOut := uint256.MustFromBig(s.Pool.Info.Reserves[tokenOutIndex])
+	reserveIn := uint256.MustFromBig(s.Pool.Info.Reserves[indexIn])
+	reserveOut := uint256.MustFromBig(s.Pool.Info.Reserves[indexOut])
 
 	if reserveIn.Cmp(zero) <= 0 || reserveOut.Cmp(zero) <= 0 {
 		return nil, ErrInsufficientLiquidity
@@ -100,21 +100,21 @@ func (s *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 	}
 
 	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[tokenOutIndex], Amount: amountOut.ToBig()},
+		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it zero to avoid null pointer exception
-		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[tokenInIndex], Amount: integer.Zero()},
+		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas: s.gas.Swap,
 	}, nil
 }
 
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-	var tokenInIndex = s.GetTokenIndex(params.TokenAmountIn.Token)
-	var tokenOutIndex = s.GetTokenIndex(params.TokenAmountOut.Token)
-	if tokenInIndex < 0 || tokenOutIndex < 0 {
+	indexIn := s.GetTokenIndex(params.TokenAmountIn.Token)
+	indexOut := s.GetTokenIndex(params.TokenAmountOut.Token)
+	if indexIn < 0 || indexOut < 0 {
 		return
 	}
-	s.Pool.Info.Reserves[tokenInIndex] = new(big.Int).Add(s.Pool.Info.Reserves[tokenInIndex], params.TokenAmountIn.Amount)
-	s.Pool.Info.Reserves[tokenOutIndex] = new(big.Int).Sub(s.Pool.Info.Reserves[tokenOutIndex], params.TokenAmountOut.Amount)
+	s.Pool.Info.Reserves[indexIn] = new(big.Int).Add(s.Pool.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
+	s.Pool.Info.Reserves[indexOut] = new(big.Int).Sub(s.Pool.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
