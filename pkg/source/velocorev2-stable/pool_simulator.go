@@ -150,7 +150,10 @@ func (p *PoolSimulator) swap(
 		integer.Two(),
 	)
 
-	return p.downscale(u, new(big.Int).Sub(newAu, Au)), nil
+	amountOut := p.downscale(u, new(big.Int).Sub(newAu, Au))
+	amountOut.Neg(amountOut)
+
+	return amountOut, nil
 }
 
 func (p *PoolSimulator) validateTokens(tokens []string) error {
@@ -173,7 +176,7 @@ func (p *PoolSimulator) tokenStatScaled(token string) (*big.Int, *big.Int, *big.
 		new(big.Int).Sub(maxUint128, p.lpTokenBalances[token]),
 		scale,
 	)
-	a := new(big.Int).Mul(p.lpTokenBalances[token], scale)
+	a := new(big.Int).Mul(p.getReserve(token), scale)
 	partialInvariant, err := p.partialInvariant(a, l)
 	if err != nil {
 		return nil, nil, nil, err
@@ -206,4 +209,9 @@ func (p *PoolSimulator) upscale(t string, x *big.Int) *big.Int {
 
 func (p *PoolSimulator) downscale(t string, x *big.Int) *big.Int {
 	return new(big.Int).Div(x, integer.TenPow(p.tokenInfo[t].Scale))
+}
+
+func (p *PoolSimulator) getReserve(token string) *big.Int {
+	idx := p.GetTokenIndex(token)
+	return p.Info.Reserves[idx]
 }
