@@ -58,50 +58,20 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (s *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOut string) (*poolpkg.CalcAmountOutResult, error) {
-	if tokenAmountIn.Token == s.Pool.Info.Tokens[0] && tokenOut == s.Pool.Info.Tokens[1] {
-		return s.swap0to1(tokenAmountIn.Amount)
+	var tokenInIndex = s.GetTokenIndex(tokenAmountIn.Token)
+	var tokenOutIndex = s.GetTokenIndex(tokenOut)
+
+	if tokenInIndex < 0 || tokenOutIndex < 0 {
+		return nil, ErrInvalidToken
 	}
 
-	if tokenAmountIn.Token == s.Pool.Info.Tokens[1] && tokenOut == s.Pool.Info.Tokens[0] {
-		return s.swap1to0(tokenAmountIn.Amount)
-	}
-
-	return nil, ErrInvalidToken
-}
-
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-	if params.TokenAmountIn.Token == s.Pool.Info.Tokens[0] && params.TokenAmountOut.Token == s.Pool.Info.Tokens[1] {
-		s.Pool.Info.Reserves[0] = new(big.Int).Add(s.Pool.Info.Reserves[0], params.TokenAmountIn.Amount)
-		s.Pool.Info.Reserves[1] = new(big.Int).Sub(s.Pool.Info.Reserves[1], params.TokenAmountOut.Amount)
-
-		return
-	}
-
-	if params.TokenAmountIn.Token == s.Pool.Info.Tokens[1] && params.TokenAmountOut.Token == s.Pool.Info.Tokens[0] {
-		s.Pool.Info.Reserves[0] = new(big.Int).Sub(s.Pool.Info.Reserves[0], params.TokenAmountOut.Amount)
-		s.Pool.Info.Reserves[1] = new(big.Int).Add(s.Pool.Info.Reserves[1], params.TokenAmountIn.Amount)
-
-		return
-	}
-}
-
-func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return PoolMeta{
-		Fee:          s.fee.Uint64(),
-		FeePrecision: s.feePrecision.Uint64(),
-		BlockNumber:  s.Pool.Info.BlockNumber,
-	}
-}
-
-func (s *PoolSimulator) swap0to1(amountInBig *big.Int) (*poolpkg.CalcAmountOutResult, error) {
-	amountIn := uint256.MustFromBig(amountInBig)
-
+	amountIn := uint256.MustFromBig(tokenAmountIn.Amount)
 	if amountIn.Cmp(zero) <= 0 {
 		return nil, ErrInsufficientInputAmount
 	}
 
-	reserveIn := uint256.MustFromBig(s.Pool.Info.Reserves[0])
-	reserveOut := uint256.MustFromBig(s.Pool.Info.Reserves[1])
+	reserveIn := uint256.MustFromBig(s.Pool.Info.Reserves[tokenInIndex])
+	reserveOut := uint256.MustFromBig(s.Pool.Info.Reserves[tokenOutIndex])
 
 	if reserveIn.Cmp(zero) <= 0 || reserveOut.Cmp(zero) <= 0 {
 		return nil, ErrInsufficientLiquidity
@@ -130,55 +100,29 @@ func (s *PoolSimulator) swap0to1(amountInBig *big.Int) (*poolpkg.CalcAmountOutRe
 	}
 
 	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[1], Amount: amountOut.ToBig()},
+		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[tokenOutIndex], Amount: amountOut.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it zero to avoid null pointer exception
-		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[0], Amount: integer.Zero()},
+		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[tokenInIndex], Amount: integer.Zero()},
 		Gas: s.gas.Swap,
 	}, nil
 }
 
-func (s *PoolSimulator) swap1to0(amountInBig *big.Int) (*poolpkg.CalcAmountOutResult, error) {
-	amountIn := uint256.MustFromBig(amountInBig)
-
-	if amountIn.Cmp(zero) <= 0 {
-		return nil, ErrInsufficientInputAmount
+func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+	var tokenInIndex = s.GetTokenIndex(params.TokenAmountIn.Token)
+	var tokenOutIndex = s.GetTokenIndex(params.TokenAmountOut.Token)
+	if tokenInIndex < 0 || tokenOutIndex < 0 {
+		return
 	}
+	s.Pool.Info.Reserves[tokenInIndex] = new(big.Int).Add(s.Pool.Info.Reserves[tokenInIndex], params.TokenAmountIn.Amount)
+	s.Pool.Info.Reserves[tokenOutIndex] = new(big.Int).Sub(s.Pool.Info.Reserves[tokenOutIndex], params.TokenAmountOut.Amount)
+}
 
-	reserveIn := uint256.MustFromBig(s.Pool.Info.Reserves[1])
-	reserveOut := uint256.MustFromBig(s.Pool.Info.Reserves[0])
-
-	if reserveIn.Cmp(zero) <= 0 || reserveOut.Cmp(zero) <= 0 {
-		return nil, ErrInsufficientLiquidity
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+	return PoolMeta{
+		Fee:          s.fee.Uint64(),
+		FeePrecision: s.feePrecision.Uint64(),
+		BlockNumber:  s.Pool.Info.BlockNumber,
 	}
-
-	amountOut := s.getAmountOut(amountIn, reserveIn, reserveOut)
-
-	if amountOut.Cmp(reserveOut) > 0 {
-		return nil, ErrInsufficientLiquidity
-	}
-
-	balance0 := new(uint256.Int).Sub(reserveOut, amountOut)
-	balance1 := new(uint256.Int).Add(reserveIn, amountIn)
-
-	balance0Adjusted := new(uint256.Int).Mul(balance0, s.feePrecision)
-	balance1Adjusted := new(uint256.Int).Sub(
-		new(uint256.Int).Mul(balance1, s.feePrecision),
-		new(uint256.Int).Mul(amountIn, s.fee),
-	)
-
-	kBefore := new(uint256.Int).Mul(new(uint256.Int).Mul(reserveIn, reserveOut), new(uint256.Int).Mul(s.feePrecision, s.feePrecision))
-	kAfter := new(uint256.Int).Mul(balance0Adjusted, balance1Adjusted)
-
-	if kAfter.Cmp(kBefore) < 0 {
-		return nil, ErrInvalidK
-	}
-
-	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[0], Amount: amountOut.ToBig()},
-		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it zero to avoid null pointer exception
-		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[1], Amount: integer.Zero()},
-		Gas: s.gas.Swap,
-	}, nil
 }
 
 func (s *PoolSimulator) getAmountOut(amountIn, reserveIn, reserveOut *uint256.Int) *uint256.Int {
