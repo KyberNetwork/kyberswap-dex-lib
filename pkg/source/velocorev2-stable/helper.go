@@ -11,19 +11,19 @@ import (
 
 func newPoolData(p poolDataResp) *poolData {
 	var (
-		poolTokens      = []*entity.PoolToken{}
-		poolReserves    = []string{}
+		poolTokens      = make([]*entity.PoolToken, len(p.Data.ListedTokens))
+		poolReserves    = make([]string, len(p.Data.ListedTokens))
 		lpTokenBalances = make(map[string]*big.Int)
 	)
 
 	for i, token := range p.Data.ListedTokens {
 		t := strings.ToLower(common.BytesToAddress(token[:]).Hex())
-		poolTokens = append(poolTokens, &entity.PoolToken{
+		poolTokens[i] = &entity.PoolToken{
 			Address:   t,
 			Weight:    defaultWeight,
 			Swappable: true,
-		})
-		poolReserves = append(poolReserves, p.Data.Reserves[i].String())
+		}
+		poolReserves[i] = p.Data.Reserves[i].String()
 		lpTokenBalances[t] = new(big.Int).Sub(maxUint128, p.Data.MintedLPTokens[i])
 	}
 
