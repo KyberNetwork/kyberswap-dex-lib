@@ -3,7 +3,7 @@ package velocorev2stable
 import "math/big"
 
 const (
-	DexTypeVelocoreV2Stable = "velocorev2-stable"
+	DexTypeVelocoreV2Stable = "velocore-v2-stable"
 
 	registryMethodGetPools = "getPools"
 	lensMethodQueryPool    = "queryPool"
