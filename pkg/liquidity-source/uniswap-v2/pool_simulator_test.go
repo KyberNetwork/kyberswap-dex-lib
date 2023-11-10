@@ -7,6 +7,7 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -30,8 +31,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 						Reserves: []*big.Int{utils.NewBig("10089138480746"), utils.NewBig("10066716097576")},
 					},
 				},
-				fee:          utils.NewUint256("3"),
-				feePrecision: utils.NewUint256("1000"),
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
 			},
 			tokenAmountIn: poolpkg.TokenAmount{
 				Amount: utils.NewBig("125224746"),
@@ -51,8 +52,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 						Reserves: []*big.Int{utils.NewBig("70361282326226590645832"), utils.NewBig("54150601005")},
 					},
 				},
-				fee:          utils.NewUint256("3"),
-				feePrecision: utils.NewUint256("1000"),
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
 			},
 			tokenAmountIn: poolpkg.TokenAmount{
 				Amount: utils.NewBig("124570062"),
@@ -94,8 +95,8 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 						Reserves: []*big.Int{utils.NewBig("10089138480746"), utils.NewBig("10066716097576")},
 					},
 				},
-				fee:          utils.NewUint256("3"),
-				feePrecision: utils.NewUint256("1000"),
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
 			},
 			params: poolpkg.UpdateBalanceParams{
 				TokenAmountIn:  poolpkg.TokenAmount{Token: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", Amount: utils.NewBig("125224746")},
@@ -114,8 +115,8 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 						Reserves: []*big.Int{utils.NewBig("70361282326226590645832"), utils.NewBig("54150601005")},
 					},
 				},
-				fee:          utils.NewUint256("3"),
-				feePrecision: utils.NewUint256("1000"),
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
 			},
 			params: poolpkg.UpdateBalanceParams{
 				TokenAmountIn:  poolpkg.TokenAmount{Token: "0xdac17f958d2ee523a2206206994597c13d831ec7", Amount: utils.NewBig("124570062")},
@@ -147,10 +148,10 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 		{
 			name:              "it should return correct amountOut",
 			poolSimulator:     PoolSimulator{fee: uint256.NewInt(3), feePrecision: uint256.NewInt(1000)},
-			reserveIn:         utils.NewUint256("10089138480746"),
-			reserveOut:        utils.NewUint256("10066716097576"),
-			amountIn:          utils.NewUint256("125224746"),
-			expectedAmountOut: utils.NewUint256("124570062"),
+			reserveIn:         number.NewUint256("10089138480746"),
+			reserveOut:        number.NewUint256("10066716097576"),
+			amountIn:          number.NewUint256("125224746"),
+			expectedAmountOut: number.NewUint256("124570062"),
 		},
 	}
 
@@ -182,8 +183,8 @@ func BenchmarkPoolSimulatorCalcAmountOut(b *testing.B) {
 						Reserves: []*big.Int{utils.NewBig("10089138480746"), utils.NewBig("10066716097576")},
 					},
 				},
-				fee:          utils.NewUint256("3"),
-				feePrecision: utils.NewUint256("1000"),
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
 			},
 			tokenAmountIn: poolpkg.TokenAmount{
 				Amount: utils.NewBig("125224746"),
@@ -201,8 +202,8 @@ func BenchmarkPoolSimulatorCalcAmountOut(b *testing.B) {
 						Reserves: []*big.Int{utils.NewBig("70361282326226590645832"), utils.NewBig("54150601005")},
 					},
 				},
-				fee:          utils.NewUint256("3"),
-				feePrecision: utils.NewUint256("1000"),
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
 			},
 			tokenAmountIn: poolpkg.TokenAmount{
 				Amount: utils.NewBig("124570062"),

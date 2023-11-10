@@ -9,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -66,14 +67,14 @@ func (s *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 	}
 
 	amountIn := uint256.MustFromBig(tokenAmountIn.Amount)
-	if amountIn.Cmp(zero) <= 0 {
+	if amountIn.Cmp(number.Zero) <= 0 {
 		return nil, ErrInsufficientInputAmount
 	}
 
 	reserveIn := uint256.MustFromBig(s.Pool.Info.Reserves[indexIn])
 	reserveOut := uint256.MustFromBig(s.Pool.Info.Reserves[indexOut])
 
-	if reserveIn.Cmp(zero) <= 0 || reserveOut.Cmp(zero) <= 0 {
+	if reserveIn.Cmp(number.Zero) <= 0 || reserveOut.Cmp(number.Zero) <= 0 {
 		return nil, ErrInsufficientLiquidity
 	}
 
@@ -101,7 +102,7 @@ func (s *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
-		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it zero to avoid null pointer exception
+		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
 		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas: s.gas.Swap,
 	}, nil
