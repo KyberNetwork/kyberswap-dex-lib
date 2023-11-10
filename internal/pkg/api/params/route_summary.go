@@ -19,6 +19,8 @@ type (
 		ExtraFee ExtraFee `json:"extraFee"`
 
 		Route [][]Swap `json:"route"`
+
+		Extra RouteExtraData `json:"extra"`
 	}
 
 	ExtraFee struct {
@@ -40,5 +42,16 @@ type (
 		PoolType          string      `json:"poolType"`
 		PoolExtra         interface{} `json:"poolExtra"`
 		Extra             interface{} `json:"extra"`
+	}
+
+	ChunkInfo struct {
+		AmountIn     string `json:"amountIn"`
+		AmountOut    string `json:"amountOut"`
+		AmountInUSD  string `json:"amountInUsd"`
+		AmountOutUSD string `json:"amountOutUsd"`
+	}
+
+	RouteExtraData struct {
+		ChunksInfo []ChunkInfo `json:"chunksInfo"`
 	}
 )
