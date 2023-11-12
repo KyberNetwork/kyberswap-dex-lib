@@ -16,7 +16,7 @@ require (
 	github.com/ethereum/go-ethereum v1.12.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/golang/mock v1.6.0
-	github.com/holiman/uint256 v1.2.2-0.20230321075855-87b91420868c
+	github.com/holiman/uint256 v1.2.3
 	github.com/izumiFinance/iZiSwap-SDK-go v1.0.0
 	github.com/machinebox/graphql v0.2.2
 	github.com/orcaman/concurrent-map v1.0.0

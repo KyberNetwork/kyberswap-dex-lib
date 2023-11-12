@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -17,6 +18,8 @@ import (
 
 var (
 	ErrInvalidToken            = errors.New("invalid token")
+	ErrInvalidReserve          = errors.New("invalid reserve")
+	ErrInvalidAmountIn         = errors.New("invalid amount in")
 	ErrInsufficientInputAmount = errors.New("INSUFFICIENT_INPUT_AMOUNT")
 	ErrInsufficientLiquidity   = errors.New("INSUFFICIENT_LIQUIDITY")
 	ErrInvalidK                = errors.New("K")
@@ -59,42 +62,50 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (s *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOut string) (*poolpkg.CalcAmountOutResult, error) {
-	indexIn := s.GetTokenIndex(tokenAmountIn.Token)
-	indexOut := s.GetTokenIndex(tokenOut)
-
+	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrInvalidToken
 	}
 
-	amountIn := uint256.MustFromBig(tokenAmountIn.Amount)
+	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
+	if overflow {
+		return nil, ErrInvalidAmountIn
+	}
+
 	if amountIn.Cmp(number.Zero) <= 0 {
 		return nil, ErrInsufficientInputAmount
 	}
 
-	reserveIn := uint256.MustFromBig(s.Pool.Info.Reserves[indexIn])
-	reserveOut := uint256.MustFromBig(s.Pool.Info.Reserves[indexOut])
+	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
+	if overflow {
+		return nil, ErrInvalidReserve
+	}
+
+	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
+	if overflow {
+		return nil, ErrInvalidReserve
+	}
 
 	if reserveIn.Cmp(number.Zero) <= 0 || reserveOut.Cmp(number.Zero) <= 0 {
 		return nil, ErrInsufficientLiquidity
 	}
 
 	amountOut := s.getAmountOut(amountIn, reserveIn, reserveOut)
-
 	if amountOut.Cmp(reserveOut) > 0 {
 		return nil, ErrInsufficientLiquidity
 	}
 
-	balance0 := new(uint256.Int).Add(reserveIn, amountIn)
-	balance1 := new(uint256.Int).Sub(reserveOut, amountOut)
+	balanceIn := new(uint256.Int).Add(reserveIn, amountIn)
+	balanceOut := new(uint256.Int).Sub(reserveOut, amountOut)
 
-	balance0Adjusted := new(uint256.Int).Sub(
-		new(uint256.Int).Mul(balance0, s.feePrecision),
+	balanceInAdjusted := new(uint256.Int).Sub(
+		new(uint256.Int).Mul(balanceIn, s.feePrecision),
 		new(uint256.Int).Mul(amountIn, s.fee),
 	)
-	balance1Adjusted := new(uint256.Int).Mul(balance1, s.feePrecision)
+	balanceOutAdjusted := new(uint256.Int).Mul(balanceOut, s.feePrecision)
 
 	kBefore := new(uint256.Int).Mul(new(uint256.Int).Mul(reserveIn, reserveOut), new(uint256.Int).Mul(s.feePrecision, s.feePrecision))
-	kAfter := new(uint256.Int).Mul(balance0Adjusted, balance1Adjusted)
+	kAfter := new(uint256.Int).Mul(balanceInAdjusted, balanceOutAdjusted)
 
 	if kAfter.Cmp(kBefore) < 0 {
 		return nil, ErrInvalidK
