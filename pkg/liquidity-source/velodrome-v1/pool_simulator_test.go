@@ -1,4 +1,4 @@
-package velodrome
+package velodromev1
 
 import (
 	"math/big"

@@ -15,6 +15,7 @@ require (
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/ethereum/go-ethereum v1.13.4
 	github.com/go-resty/resty/v2 v2.10.0
+	github.com/goccy/go-json v0.10.2
 	github.com/golang/mock v1.6.0
 	github.com/holiman/uint256 v1.2.3
 	github.com/izumiFinance/iZiSwap-SDK-go v1.0.0

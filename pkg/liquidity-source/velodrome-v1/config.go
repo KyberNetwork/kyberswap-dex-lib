@@ -1,4 +1,4 @@
-package velodrome
+package velodromev1
 
 type Config struct {
 	DexID          string `json:"dexID"`

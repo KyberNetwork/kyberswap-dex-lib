@@ -1,11 +1,11 @@
-package velodrome
+package velodromev1
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 

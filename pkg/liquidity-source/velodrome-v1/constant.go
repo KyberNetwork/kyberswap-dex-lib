@@ -1,4 +1,4 @@
-package velodrome
+package velodromev1
 
 const (
 	DexType = "velodrome"
