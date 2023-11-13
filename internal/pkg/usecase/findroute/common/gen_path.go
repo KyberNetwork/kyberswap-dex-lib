@@ -176,6 +176,7 @@ func getNextLayerFromToken(
 			// it is ok for prices[tokenTo] to default to zero
 			toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGas(pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, toTokenAddress, data.PriceUSDByAddress[toTokenAddress], toTokenInfo.Decimals, input.GasPrice, input.GasTokenPriceUSD)
 			if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Int64() == 0 {
+				logger.Errorf("cannot calculate amountOut, error:%v", err)
 				continue
 			}
 

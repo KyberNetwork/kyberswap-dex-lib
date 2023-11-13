@@ -109,11 +109,6 @@ func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.Token
 			)
 		}
 		calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, currentAmount, p.Tokens[i+1].Address)
-		if pool.GetType() == constant.PoolTypes.KyberPMM {
-			if ivt.GetBalance(p.Tokens[i+1].Address).Cmp(calcAmountOutResult.TokenAmountOut.Amount) < 0 {
-				return poolpkg.TokenAmount{}, 0, errors.New("not enough inventory")
-			}
-		}
 
 		if err != nil {
 			return poolpkg.TokenAmount{}, 0, errors.Wrapf(
@@ -126,6 +121,12 @@ func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.Token
 				p.Tokens[i+1].Address,
 				err,
 			)
+		}
+
+		if pool.GetType() == constant.PoolTypes.KyberPMM {
+			if ivt.GetBalance(p.Tokens[i+1].Address).Cmp(calcAmountOutResult.TokenAmountOut.Amount) < 0 {
+				return poolpkg.TokenAmount{}, 0, errors.New("not enough inventory")
+			}
 		}
 		swapTokenAmountOut, gas := calcAmountOutResult.TokenAmountOut, calcAmountOutResult.Gas
 		if swapTokenAmountOut == nil {
