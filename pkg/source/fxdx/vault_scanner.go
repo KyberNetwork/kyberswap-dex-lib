@@ -133,6 +133,10 @@ func (vs *VaultScanner) getPriceFeeds(
 	priceFeeds := make(map[string]*PriceFeed, len(priceFeedAddresses))
 
 	for tokenAddress, priceFeedAddress := range priceFeedAddresses {
+		if eth.IsZeroAddress(priceFeedAddress) {
+			logger.Warnf("price feed address of token %s is zero address", tokenAddress)
+			continue
+		}
 		priceFeed, err := vs.priceFeedReader.Read(ctx, priceFeedAddress.String(), roundCount)
 		if err != nil {
 			return nil, err
