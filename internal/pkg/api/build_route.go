@@ -39,7 +39,12 @@ func BuildRoute(
 			return
 		}
 
-		if err := validator.Validate(bodyParams); err != nil {
+		// if source param is empty, use clientID from header as the source
+		if bodyParams.Source == "" {
+			bodyParams.Source = clientIDFromHeader
+		}
+
+		if err := validator.Validate(ctx, bodyParams); err != nil {
 			RespondFailure(ginCtx, err)
 			return
 		}
@@ -48,11 +53,6 @@ func BuildRoute(
 		if err != nil {
 			RespondFailure(ginCtx, err)
 			return
-		}
-
-		// if source param is empty, use clientID from header as the source
-		if command.Source == "" {
-			command.Source = clientIDFromHeader
 		}
 
 		result, err := useCase.Handle(ctx, command)

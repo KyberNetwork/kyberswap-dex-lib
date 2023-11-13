@@ -67,7 +67,7 @@ type IGetRoutesParamsValidator interface {
 
 // IBuildRouteParamsValidator validates params.BuildRouteParams
 type IBuildRouteParamsValidator interface {
-	Validate(params params.BuildRouteParams) error
+	Validate(ctx context.Context, params params.BuildRouteParams) error
 	ApplyConfig(config validator.BuildRouteParamsConfig)
 }
 

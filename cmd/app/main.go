@@ -10,6 +10,7 @@ import (
 	"time"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
+	blackjackv1 "github.com/KyberNetwork/blackjack/proto/gen/blackjack/v1"
 	"github.com/KyberNetwork/ethrpc"
 	_ "github.com/KyberNetwork/kyber-trace-go/tools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -32,6 +33,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/job"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/blackjack"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pathgenerator"
@@ -61,6 +63,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute/synthetix"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/grpc"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
 	"github.com/KyberNetwork/router-service/internal/pkg/validator"
 	cryptopkg "github.com/KyberNetwork/router-service/pkg/crypto"
@@ -258,6 +261,13 @@ func apiAction(c *cli.Context) (err error) {
 	}
 
 	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
+
+	blackjackClient, err := grpc.NewClient[blackjackv1.ServiceClient](blackjackv1.NewServiceClient, cfg.BlackjackConfig.GrpcConfig)
+	if err != nil {
+		return err
+	}
+	blackjackRepo := blackjack.NewBlackjackRepository(blackjackClient.C)
+
 	// sealer
 
 	// init validators
@@ -265,7 +275,7 @@ func apiAction(c *cli.Context) (err error) {
 	getTokensParamsValidator := validator.NewGetTokensParamsValidator()
 	getRoutesParamsValidator := validator.NewGetRouteParamsValidator()
 	getRouteEncodeParamsValidator := validator.NewGetRouteEncodeParamsValidator(timeutil.NowFunc, cfg.Validator.GetRouteEncodeParams)
-	buildRouteParamsValidator := validator.NewBuildRouteParamsValidator(timeutil.NowFunc, cfg.Validator.BuildRouteParams)
+	buildRouteParamsValidator := validator.NewBuildRouteParamsValidator(timeutil.NowFunc, cfg.Validator.BuildRouteParams, blackjackRepo)
 
 	// init use cases
 	keyStorage, err := getKeyStorage(cfg.KeyPair.StorageFilePath)

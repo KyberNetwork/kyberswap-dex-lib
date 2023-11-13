@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"context"
 	"math/big"
 	"strings"
 	"sync"
@@ -10,27 +11,32 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/blackjack"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type buildRouteParamsValidator struct {
 	nowFunc func() time.Time
 
-	config BuildRouteParamsConfig
-	mu     sync.Mutex
+	config        BuildRouteParamsConfig
+	blackjackRepo blackjack.IBlackjackRepository
+	mu            sync.Mutex
 }
 
 func NewBuildRouteParamsValidator(
 	nowFunc func() time.Time,
 	config BuildRouteParamsConfig,
+	blackjackRepo blackjack.IBlackjackRepository,
 ) *buildRouteParamsValidator {
 	return &buildRouteParamsValidator{
-		nowFunc: nowFunc,
-		config:  config,
+		nowFunc:       nowFunc,
+		config:        config,
+		blackjackRepo: blackjackRepo,
 	}
 }
 
-func (v *buildRouteParamsValidator) Validate(params params.BuildRouteParams) error {
+func (v *buildRouteParamsValidator) Validate(ctx context.Context, params params.BuildRouteParams) error {
 	if err := v.validateRoute(params.RouteSummary); err != nil {
 		return err
 	}
@@ -63,7 +69,7 @@ func (v *buildRouteParamsValidator) Validate(params params.BuildRouteParams) err
 		return err
 	}
 
-	if err := v.validateRecipient(params.Recipient); err != nil {
+	if err := v.validateSenderAndRecipient(ctx, params.Source, params.Sender, params.Recipient); err != nil {
 		return err
 	}
 
@@ -174,7 +180,7 @@ func (v *buildRouteParamsValidator) validateDeadline(deadline int64) error {
 	return nil
 }
 
-func (v *buildRouteParamsValidator) validateRecipient(recipient string) error {
+func (v *buildRouteParamsValidator) validateSenderAndRecipient(ctx context.Context, clientID, sender, recipient string) error {
 	if len(recipient) == 0 {
 		return NewValidationError("recipient", "required")
 	}
@@ -183,8 +189,46 @@ func (v *buildRouteParamsValidator) validateRecipient(recipient string) error {
 		return NewValidationError("recipient", "invalid")
 	}
 
+	// We will not require `sender` for now.
+	// We will monitor this field with client-id, then make the decision later.
+	if len(sender) == 0 {
+		logger.Warnf("Client-id: %s, sender is empty", clientID)
+	} else {
+		if !IsEthereumAddress(sender) {
+			logger.Warnf("Client-id: %s , sender is not ethereum address: %s", clientID, sender)
+			sender = ""
+		}
+	}
+
+	if v.config.FeatureFlags.IsBlackjackEnabled {
+		return v.checkBlacklistedWallet(ctx, sender, recipient)
+	}
+
 	if v.config.BlacklistedRecipientSet[strings.ToLower(recipient)] {
 		return NewValidationError("recipient", "invalid")
+	}
+
+	return nil
+}
+
+func (v *buildRouteParamsValidator) checkBlacklistedWallet(ctx context.Context, sender, recipient string) error {
+	// Blackjack doesn't allow the wallet is empty
+	wallets := []string{recipient}
+	if len(sender) != 0 {
+		wallets = append(wallets, sender)
+	}
+
+	blacklistedWallet, err := v.blackjackRepo.GetAddressBlacklisted(ctx, wallets)
+	if err != nil {
+		return err
+	}
+
+	if blacklistedWallet[sender] {
+		return NewValidationError("sender", "blacklisted wallet")
+	}
+
+	if blacklistedWallet[recipient] {
+		return NewValidationError("recipient", "blacklisted wallet")
 	}
 
 	return nil

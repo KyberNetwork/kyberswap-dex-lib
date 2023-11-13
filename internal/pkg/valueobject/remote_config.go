@@ -32,6 +32,7 @@ type (
 	FeatureFlags struct {
 		IsPathGeneratorEnabled bool `mapstructure:"isPathGeneratorEnabled" json:"isPathGeneratorEnabled"`
 		IsGasEstimatorEnabled  bool `mapstructure:"isGasEstimatorEnabled" json:"isGasEstimatorEnabled"`
+		IsBlackjackEnabled     bool `mapstructure:"isBlackjackEnabled" json:"isBlackjackEnabled"`
 	}
 
 	Log struct {

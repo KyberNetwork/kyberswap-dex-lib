@@ -52,7 +52,7 @@ func TestBuildRoute(t *testing.T) {
 			prepare: func(ctrl *gomock.Controller) test.HTTPTestCase {
 				mockBuildRouteParamValidator := api.NewMockIBuildRouteParamsValidator(ctrl)
 				mockBuildRouteParamValidator.EXPECT().
-					Validate(gomock.Any()).
+					Validate(gomock.Any(), gomock.Any()).
 					Return(validator.NewValidationError("amountIn", "invalid"))
 
 				errResponse := ErrorResponse{
@@ -86,7 +86,7 @@ func TestBuildRoute(t *testing.T) {
 			prepare: func(ctrl *gomock.Controller) test.HTTPTestCase {
 				mockBuildRouteParamValidator := api.NewMockIBuildRouteParamsValidator(ctrl)
 				mockBuildRouteParamValidator.EXPECT().
-					Validate(gomock.Any()).
+					Validate(gomock.Any(), gomock.Any()).
 					Return(nil)
 
 				errResponse := ErrorResponse{
@@ -110,7 +110,7 @@ func TestBuildRoute(t *testing.T) {
 			prepare: func(ctrl *gomock.Controller) test.HTTPTestCase {
 				mockBuildRouteParamValidator := api.NewMockIBuildRouteParamsValidator(ctrl)
 				mockBuildRouteParamValidator.EXPECT().
-					Validate(gomock.Any()).
+					Validate(gomock.Any(), gomock.Any()).
 					Return(nil)
 
 				mockBuildRouteUseCase := api.NewMockIBuildRouteUseCase(ctrl)
@@ -139,7 +139,7 @@ func TestBuildRoute(t *testing.T) {
 			prepare: func(ctrl *gomock.Controller) test.HTTPTestCase {
 				mockBuildRouteParamValidator := api.NewMockIBuildRouteParamsValidator(ctrl)
 				mockBuildRouteParamValidator.EXPECT().
-					Validate(gomock.Any()).
+					Validate(gomock.Any(), gomock.Any()).
 					Return(nil)
 
 				mockBuildRouteUseCase := api.NewMockIBuildRouteUseCase(ctrl)
@@ -168,7 +168,7 @@ func TestBuildRoute(t *testing.T) {
 			prepare: func(ctrl *gomock.Controller) test.HTTPTestCase {
 				mockBuildRouteParamValidator := api.NewMockIBuildRouteParamsValidator(ctrl)
 				mockBuildRouteParamValidator.EXPECT().
-					Validate(gomock.Any()).
+					Validate(gomock.Any(), gomock.Any()).
 					Return(nil)
 
 				mockBuildRouteUseCase := api.NewMockIBuildRouteUseCase(ctrl)
@@ -268,7 +268,7 @@ func TestBuildRoute_EnableGasEstimation(t *testing.T) {
 				defer ctrl.Finish()
 
 				mockBuildRouteParamValidator := api.NewMockIBuildRouteParamsValidator(ctrl)
-				mockBuildRouteParamValidator.EXPECT().Validate(gomock.Any()).Return(nil)
+				mockBuildRouteParamValidator.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(nil)
 
 				var argCommand dto.BuildRouteCommand
 				mockBuildRouteUseCase := api.NewMockIBuildRouteUseCase(ctrl)

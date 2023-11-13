@@ -6,6 +6,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
 )
 
 type Common struct {
@@ -60,4 +61,9 @@ type ServerListen struct {
 // String return socket listen DSN
 func (l ServerListen) String() string {
 	return fmt.Sprintf("%s:%d", l.Host, l.Port)
+}
+
+type BlackjackConfig struct {
+	GrpcConfig     grpcclient.Config `mapstructure:"grpcConfig"`
+	CheckChunkSize int               `mapstructure:"checkChunkSize" default:"100"`
 }
