@@ -28,6 +28,7 @@ const (
 	liquidityPoolMethodDaoFee               = "daoFee"
 	liquidityPoolMethodLiquidationFee       = "liquidationFee"
 	liquidityPoolMethodPositionFee          = "positionFee"
+	liquidityPoolMethodMaxLiquidity         = "maxLiquidity"
 
 	oracleMethodGetPrice = "getPrice"
 

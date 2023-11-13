@@ -37,6 +37,7 @@ type TokenInfo struct {
 	TrancheAssets   map[string]*AssetInfo `json:"trancheAssets"`
 	RiskFactor      map[string]*big.Int   `json:"riskFactor"`
 	TotalRiskFactor *big.Int              `json:"totalRiskFactor"`
+	MaxLiquidity    *big.Int              `json:"maxLiquidity"`
 
 	// oracle.getPrice(_token, false)
 	MinPrice *big.Int `json:"minPrice"`

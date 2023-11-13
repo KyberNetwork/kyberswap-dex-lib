@@ -107,6 +107,7 @@ func (d *PoolTracker) GetNewPoolState(
 		isStableCoinList              = make([]bool, len(p.Tokens))
 		targetWeightList              = make([]*big.Int, len(p.Tokens))
 		totalRiskFactorList           = make([]*big.Int, len(p.Tokens))
+		maxLiquidityList              = make([]*big.Int, len(p.Tokens))
 		minPriceList                  = make([]*big.Int, len(p.Tokens))
 		maxPriceList                  = make([]*big.Int, len(p.Tokens))
 	)
@@ -143,6 +144,12 @@ func (d *PoolTracker) GetNewPoolState(
 			Method: liquidityPoolMethodTotalRiskFactor,
 			Params: []interface{}{common.HexToAddress(tokenAddress.Address)},
 		}, []interface{}{&totalRiskFactorList[i]})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    LiquidityPoolAbi,
+			Target: p.Address,
+			Method: liquidityPoolMethodMaxLiquidity,
+			Params: []interface{}{common.HexToAddress(tokenAddress.Address)},
+		}, []interface{}{&maxLiquidityList[i]})
 
 		calls.AddCall(&ethrpc.Call{
 			ABI:    LevelOracleABI,
@@ -298,6 +305,7 @@ func (d *PoolTracker) GetNewPoolState(
 			TrancheAssets:   trancheAssetsMap,
 			RiskFactor:      riskFactorMap,
 			TotalRiskFactor: totalRiskFactorList[i],
+			MaxLiquidity:    maxLiquidityList[i],
 
 			MinPrice: minPriceList[i],
 			MaxPrice: maxPriceList[i],

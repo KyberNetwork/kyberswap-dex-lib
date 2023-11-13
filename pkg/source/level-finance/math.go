@@ -8,8 +8,6 @@ import (
 )
 
 func swap(tokenIn, tokenOut string, amountIn *big.Int, state *PoolState) (*big.Int, error) {
-	// Check allowSwap
-
 	if tokenIn == tokenOut {
 		return nil, ErrSameTokenSwap
 	}
@@ -31,11 +29,12 @@ func swap(tokenIn, tokenOut string, amountIn *big.Int, state *PoolState) (*big.I
 		return nil, err
 	}
 
-	daoFee := calcDaoFee(swapFee, state)
+	_, lpFee := calcDaoFee(swapFee, state)
+	rebalanceTranches(tokenInInfo, new(big.Int).Sub(amountIn, swapFee), tokenOutInfo, amountOutAfterFee, lpFee, state)
 
-	rebalanceTranches(tokenInInfo, new(big.Int).Sub(amountIn, daoFee), tokenOutInfo, amountOutAfterFee, state)
-
-	// _validateMaxLiquidity
+	if err := validateMaxLiquidity(tokenInInfo); err != nil {
+		return nil, err
+	}
 
 	return amountOutAfterFee, nil
 }
@@ -150,12 +149,16 @@ func getPoolAsset(token *TokenInfo) *AssetInfo {
 	return asset
 }
 
-func calcDaoFee(feeAmount *big.Int, state *PoolState) *big.Int {
-	return frac(feeAmount, state.DaoFee, precision)
+func calcDaoFee(feeAmount *big.Int, state *PoolState) (*big.Int, *big.Int) {
+	daoFee := frac(feeAmount, state.DaoFee, precision)
+	lpFee := new(big.Int).Sub(feeAmount, daoFee)
+
+	return daoFee, lpFee
 }
 
-func rebalanceTranches(tokenIn *TokenInfo, amountIn *big.Int, tokenOut *TokenInfo, amountOut *big.Int, state *PoolState) {
+func rebalanceTranches(tokenIn *TokenInfo, amountIn *big.Int, tokenOut *TokenInfo, amountOut *big.Int, lpFee *big.Int, state *PoolState) {
 	outAmounts := calcTrancheSharesAmount(tokenIn, tokenOut, amountOut, false, state)
+	lpFeeAmounts := calcTrancheSharesAmount(tokenIn, tokenIn, lpFee, true, state)
 	for trancheAddress := range tokenIn.TrancheAssets {
 		tokenOut.TrancheAssets[trancheAddress].PoolAmount = new(big.Int).Sub(
 			tokenOut.TrancheAssets[trancheAddress].PoolAmount,
@@ -163,7 +166,10 @@ func rebalanceTranches(tokenIn *TokenInfo, amountIn *big.Int, tokenOut *TokenInf
 		)
 		tokenIn.TrancheAssets[trancheAddress].PoolAmount = new(big.Int).Add(
 			tokenIn.TrancheAssets[trancheAddress].PoolAmount,
-			frac(amountIn, outAmounts[trancheAddress], amountOut),
+			new(big.Int).Add(
+				frac(amountIn, outAmounts[trancheAddress], amountOut),
+				lpFeeAmounts[trancheAddress],
+			),
 		)
 	}
 }
@@ -219,6 +225,18 @@ func calcTrancheSharesAmount(indexToken, collateralToken *TokenInfo, amount *big
 	}
 
 	return reserves
+}
+
+func validateMaxLiquidity(token *TokenInfo) error {
+	if token.MaxLiquidity == nil || token.MaxLiquidity.Cmp(bignumber.ZeroBI) == 0 {
+		return nil
+	}
+	poolAmount := getPoolAsset(token).PoolAmount
+	if token.MaxLiquidity.Cmp(poolAmount) < 0 {
+		return ErrMaxLiquidityReach
+	}
+
+	return nil
 }
 
 func diff(a, b *big.Int) *big.Int {
