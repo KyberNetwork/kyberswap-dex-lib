@@ -75,6 +75,7 @@ type types struct {
 	LiquidityBookV21         string
 	LiquidityBookV20         string
 	Smardex                  string
+	Fxdx                     string
 }
 
 var (
@@ -153,5 +154,6 @@ var (
 		LiquidityBookV21:         "liquiditybook-v21",
 		LiquidityBookV20:         "liquiditybook-v20",
 		Smardex:                  "smardex",
+		Fxdx:                     "fxdx",
 	}
 )

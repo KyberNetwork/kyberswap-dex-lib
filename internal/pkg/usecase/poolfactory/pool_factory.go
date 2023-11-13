@@ -23,6 +23,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/equalizer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fxdx"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx"
 	gmxglp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx-glp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap"
@@ -318,6 +319,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newLiquidityBookV20(entityPool)
 	case constant.PoolTypes.Smardex:
 		return f.newSmardex(entityPool)
+	case constant.PoolTypes.Fxdx:
+		return f.newFxdx(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -1076,6 +1079,20 @@ func (f *PoolFactory) newSmardex(entityPool entity.Pool) (*smardex.PoolSimulator
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSmardex] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newFxdx(entityPool entity.Pool) (*fxdx.PoolSimulator, error) {
+	corePool, err := fxdx.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newFxdx] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

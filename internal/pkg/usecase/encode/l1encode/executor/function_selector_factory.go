@@ -164,6 +164,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeBMX, FunctionSelectorGMX)
 	RegisterFunctionSelector(valueobject.ExchangeSynthSwapPerp, FunctionSelectorGMX)
 	RegisterFunctionSelector(valueobject.ExchangeSwapBasedPerp, FunctionSelectorGMX)
+	RegisterFunctionSelector(valueobject.ExchangeFxdx, FunctionSelectorGMX)
 
 	// executeSynthetixSwap
 	RegisterFunctionSelector(valueobject.ExchangeSynthetix, FunctionSelectorSynthetix)
