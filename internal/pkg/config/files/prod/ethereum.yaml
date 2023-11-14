@@ -243,6 +243,7 @@ useCase:
           limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
   poolFactory:
     chainId: *chainId
+    useAEVM: false
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     capacity: 1000000

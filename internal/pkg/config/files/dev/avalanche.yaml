@@ -232,6 +232,7 @@ useCase:
     chainId: *chainId
   poolFactory:
     chainId: *chainId
+    useAEVM: false
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     capacity: 100000

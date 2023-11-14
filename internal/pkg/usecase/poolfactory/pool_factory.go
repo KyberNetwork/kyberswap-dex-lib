@@ -68,6 +68,9 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	liquiditybookv20aevm "github.com/KyberNetwork/router-service/internal/pkg/core/liquiditybookv20"
+	liquiditybookv21aevm "github.com/KyberNetwork/router-service/internal/pkg/core/liquiditybookv21"
+	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -166,6 +169,19 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 	}
 
 	return poolByAddress
+}
+
+func (f *PoolFactory) getBalanceSlots(pool *entity.Pool) map[common.Address]*routerentity.ERC20BalanceSlot {
+	balanceSlots := make(map[common.Address]*routerentity.ERC20BalanceSlot)
+	for _, token := range pool.Tokens {
+		tokenAddr := common.HexToAddress(token.Address)
+		bl, err := f.balanceSlotsUseCase.Get(context.Background(), tokenAddr, pool)
+		if err != nil {
+			continue
+		}
+		balanceSlots[tokenAddr] = bl
+	}
+	return balanceSlots
 }
 
 func (f *PoolFactory) getCurveMetaBasePoolByAddress(
@@ -315,8 +331,14 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 	case constant.PoolTypes.KokonutCrypto:
 		return f.newKokonutCrypto(entityPool)
 	case constant.PoolTypes.LiquidityBookV21:
+		if f.config.UseAEVM {
+			return f.newLiquidityBookV21AEVM(entityPool, stateRoot)
+		}
 		return f.newLiquidityBookV21(entityPool)
 	case constant.PoolTypes.LiquidityBookV20:
+		if f.config.UseAEVM {
+			return f.newLiquidityBookV20AEVM(entityPool, stateRoot)
+		}
 		return f.newLiquidityBookV20(entityPool)
 	case constant.PoolTypes.Smardex:
 		return f.newSmardex(entityPool)
@@ -1073,6 +1095,40 @@ func (f *PoolFactory) newLiquidityBookV20(entityPool entity.Pool) (*liquidityboo
 		)
 	}
 
+	return corePool, nil
+}
+
+func (f *PoolFactory) newLiquidityBookV21AEVM(entityPool entity.Pool, stateRoot common.Hash) (*liquiditybookv21aevm.Pool, error) {
+	if f.balanceSlotsUseCase == nil || f.client == nil {
+		return nil, errors.New("AEVM is not initialized")
+	}
+	balanceSlots := f.getBalanceSlots(&entityPool)
+	corePool, err := liquiditybookv21aevm.NewPoolAEVM(entityPool, f.client, stateRoot, balanceSlots)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newLiquidityBookV21AEVM] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+	return corePool, nil
+}
+
+func (f *PoolFactory) newLiquidityBookV20AEVM(entityPool entity.Pool, stateRoot common.Hash) (*liquiditybookv20aevm.Pool, error) {
+	if f.balanceSlotsUseCase == nil || f.client == nil {
+		return nil, errors.New("AEVM is not initialized")
+	}
+	balanceSlots := f.getBalanceSlots(&entityPool)
+	corePool, err := liquiditybookv20aevm.NewPoolAEVM(entityPool, f.client, stateRoot, balanceSlots)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newLiquidityBookV20AEVM] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
 	return corePool, nil
 }
 

@@ -239,6 +239,7 @@ useCase:
           rfq_contract_address: "0x9f9D5a8F4a6e1F40835cDB040a7a53B35C1b1400"
   poolFactory:
     chainId: *chainId
+    useAEVM: false
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     capacity: 100000

@@ -244,6 +244,7 @@ useCase:
           limitOrderHTTPUrl: https://limit-order.stg.kyberengineering.io
   poolFactory:
     chainId: *chainId
+    useAEVM: false
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     capacity: 1000000
