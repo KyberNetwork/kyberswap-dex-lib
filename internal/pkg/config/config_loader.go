@@ -208,6 +208,7 @@ func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
 	cl.config.UseCase.GetRoute.Aggregator.FeatureFlags = featureFlags
 	cl.config.UseCase.BuildRoute.FeatureFlags = featureFlags
 	cl.config.Validator.BuildRouteParams.FeatureFlags = featureFlags
+	cl.config.Validator.GetRouteEncodeParams.FeatureFlags = featureFlags
 }
 
 func (cl *ConfigLoader) setLog(log valueobject.Log) {

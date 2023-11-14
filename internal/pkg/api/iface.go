@@ -72,7 +72,7 @@ type IBuildRouteParamsValidator interface {
 }
 
 type IGetRouteEncodeParamsValidator interface {
-	Validate(params params.GetRouteEncodeParams) error
+	Validate(ctx context.Context, params params.GetRouteEncodeParams) error
 	ApplyConfig(config validator.GetRouteEncodeParamsConfig)
 }
 

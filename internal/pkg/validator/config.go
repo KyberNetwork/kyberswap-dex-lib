@@ -15,7 +15,8 @@ type BuildRouteParamsConfig struct {
 }
 
 type GetRouteEncodeParamsConfig struct {
-	SlippageToleranceLTE    int64           `mapstructure:"slippageToleranceLte"`
-	SlippageToleranceGTE    int64           `mapstructure:"slippageToleranceGte"`
-	BlacklistedRecipientSet map[string]bool `mapstructure:"blacklistedRecipientSet"`
+	SlippageToleranceLTE    int64                    `mapstructure:"slippageToleranceLte"`
+	SlippageToleranceGTE    int64                    `mapstructure:"slippageToleranceGte"`
+	BlacklistedRecipientSet map[string]bool          `mapstructure:"blacklistedRecipientSet"`
+	FeatureFlags            valueobject.FeatureFlags `mapstructure:"featureFlags"`
 }

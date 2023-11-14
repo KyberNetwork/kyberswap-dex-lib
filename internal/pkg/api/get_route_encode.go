@@ -48,7 +48,7 @@ func GetRouteEncode(
 			return
 		}
 
-		if err := validator.Validate(queryParams); err != nil {
+		if err := validator.Validate(ctx, queryParams); err != nil {
 			RespondFailure(ginCtx, err)
 			return
 		}

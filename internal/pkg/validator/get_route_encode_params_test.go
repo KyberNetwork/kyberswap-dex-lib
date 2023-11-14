@@ -1,11 +1,18 @@
 package validator
 
 import (
+	"context"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
 
+	blackjackv1 "github.com/KyberNetwork/blackjack/proto/gen/blackjack/v1"
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
+	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/blackjack"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func TestGetRouteEncodeParamsValidator_Validate(t *testing.T) {
@@ -141,7 +148,7 @@ func TestGetRouteEncodeParamsValidator_Validate(t *testing.T) {
 				},
 			}
 
-			err := validator.Validate(tc.params)
+			err := validator.Validate(context.Background(), tc.params)
 
 			assert.Equal(t, tc.err, err)
 		})
@@ -178,6 +185,119 @@ func TestGetRouteEncodeDexesValidator_validateSources(t *testing.T) {
 			validator := getRouteEncodeParamsValidator{}
 
 			err := validator.validateSources(tc.sources)
+
+			assert.Equal(t, tc.err, err)
+		})
+	}
+}
+
+func TestGetRouteEncodeDexesValidator_validateTo(t *testing.T) {
+	t.Parallel()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	var (
+		statusOk         = int32(codes.OK)
+		msgOk            = codes.OK.String()
+		blacklistedFalse = false
+		blacklistedTrue  = true
+	)
+
+	testCases := []struct {
+		name          string
+		to            string
+		config        GetRouteEncodeParamsConfig
+		callBlackjack func(client *usecase.MockServiceClient)
+		err           error
+	}{
+		{
+			name:          "it should return [to|required]",
+			to:            "",
+			config:        GetRouteEncodeParamsConfig{},
+			err:           NewValidationError("to", "required"),
+			callBlackjack: func(client *usecase.MockServiceClient) {},
+		},
+		{
+			name:          "it should return [to|invalid]",
+			to:            "abc",
+			config:        GetRouteEncodeParamsConfig{},
+			err:           NewValidationError("to", "invalid"),
+			callBlackjack: func(client *usecase.MockServiceClient) {},
+		},
+		{
+			name: "it should return [to][invalid], isBlackjackEnabled is false",
+			to:   "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+			config: GetRouteEncodeParamsConfig{
+				BlacklistedRecipientSet: map[string]bool{
+					"0x71c7656ec7ab88b098defb751b7401b5f6d8976f": true,
+				},
+			},
+			err:           NewValidationError("to", "invalid"),
+			callBlackjack: func(client *usecase.MockServiceClient) {},
+		},
+		{
+			name: "it should return [to][blacklisted wallet], isBlackjackEnabled is true",
+			to:   "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c764",
+			err:  NewValidationError("to", "blacklisted wallet"),
+			config: GetRouteEncodeParamsConfig{
+				FeatureFlags: valueobject.FeatureFlags{
+					IsBlackjackEnabled: true,
+				},
+			},
+			callBlackjack: func(client *usecase.MockServiceClient) {
+				to := "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c764"
+				client.EXPECT().Check(gomock.Any(), gomock.Any()).Return(&blackjackv1.CheckResponse{
+					Code:    &statusOk,
+					Message: &msgOk,
+					Data: &blackjackv1.CheckResponse_Data{
+						Wallets: []*blackjackv1.BlacklistData{
+							{
+								Wallet:      &to,
+								Blacklisted: &blacklistedTrue,
+							},
+						},
+					},
+				}, nil)
+			},
+		},
+		{
+			name: "it should return nil, isBlackjackEnabled is true",
+			to:   "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+			err:  nil,
+			config: GetRouteEncodeParamsConfig{
+				FeatureFlags: valueobject.FeatureFlags{
+					IsBlackjackEnabled: true,
+				},
+			},
+			callBlackjack: func(client *usecase.MockServiceClient) {
+				to := "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664"
+				client.EXPECT().Check(gomock.Any(), gomock.Any()).Return(&blackjackv1.CheckResponse{
+					Code:    &statusOk,
+					Message: &msgOk,
+					Data: &blackjackv1.CheckResponse_Data{
+						Wallets: []*blackjackv1.BlacklistData{
+							{
+								Wallet:      &to,
+								Blacklisted: &blacklistedFalse,
+							},
+						},
+					},
+				}, nil)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := usecase.NewMockServiceClient(ctrl)
+			validator := getRouteEncodeParamsValidator{
+				config:        tc.config,
+				blackjackRepo: blackjack.NewBlackjackRepository(client),
+			}
+
+			tc.callBlackjack(client)
+			err := validator.validateTo(context.Background(), tc.to)
 
 			assert.Equal(t, tc.err, err)
 		})

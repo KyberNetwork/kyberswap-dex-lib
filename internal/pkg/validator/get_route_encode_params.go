@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"context"
 	"math/big"
 	"strings"
 	"sync"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/blackjack"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -17,21 +19,24 @@ import (
 type getRouteEncodeParamsValidator struct {
 	nowFunc func() time.Time
 
-	config GetRouteEncodeParamsConfig
-	mu     sync.Mutex
+	config        GetRouteEncodeParamsConfig
+	blackjackRepo blackjack.IBlackjackRepository
+	mu            sync.Mutex
 }
 
 func NewGetRouteEncodeParamsValidator(
 	nowFunc func() time.Time,
 	config GetRouteEncodeParamsConfig,
+	blackjackRepo blackjack.IBlackjackRepository,
 ) *getRouteEncodeParamsValidator {
 	return &getRouteEncodeParamsValidator{
-		nowFunc: nowFunc,
-		config:  config,
+		nowFunc:       nowFunc,
+		config:        config,
+		blackjackRepo: blackjackRepo,
 	}
 }
 
-func (v *getRouteEncodeParamsValidator) Validate(params params.GetRouteEncodeParams) error {
+func (v *getRouteEncodeParamsValidator) Validate(ctx context.Context, params params.GetRouteEncodeParams) error {
 	if err := v.validateTokens(params.TokenIn, params.TokenOut); err != nil {
 		return err
 	}
@@ -76,7 +81,7 @@ func (v *getRouteEncodeParamsValidator) Validate(params params.GetRouteEncodePar
 		return err
 	}
 
-	if err := v.validateTo(params.To); err != nil {
+	if err := v.validateTo(ctx, params.To); err != nil {
 		return err
 	}
 
@@ -134,7 +139,7 @@ func (v *getRouteEncodeParamsValidator) validateTokenOut(tokenOut string) error 
 	return nil
 }
 
-func (v *getRouteEncodeParamsValidator) validateTo(to string) error {
+func (v *getRouteEncodeParamsValidator) validateTo(ctx context.Context, to string) error {
 	if len(to) == 0 {
 		return NewValidationError("to", "required")
 	}
@@ -143,8 +148,25 @@ func (v *getRouteEncodeParamsValidator) validateTo(to string) error {
 		return NewValidationError("to", "invalid")
 	}
 
+	if v.config.FeatureFlags.IsBlackjackEnabled {
+		return v.checkBlacklistedWallet(ctx, to)
+	}
+
 	if v.config.BlacklistedRecipientSet[strings.ToLower(to)] {
 		return NewValidationError("to", "invalid")
+	}
+
+	return nil
+}
+
+func (v *getRouteEncodeParamsValidator) checkBlacklistedWallet(ctx context.Context, to string) error {
+	blacklistedWallet, err := v.blackjackRepo.GetAddressBlacklisted(ctx, []string{to})
+	if err != nil {
+		return err
+	}
+
+	if blacklistedWallet[to] {
+		return NewValidationError("to", "blacklisted wallet")
 	}
 
 	return nil
