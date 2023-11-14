@@ -31,6 +31,10 @@ type PoolSimulator struct {
 	gas    Gas
 }
 
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	return nil
+}
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	if len(entityPool.StaticExtra) == 0 {
 		return nil, ErrStaticExtraEmpty
@@ -111,10 +115,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	var totalGas int64
 
 	if tokenAmountIn.Token == p.Info.Tokens[0] {

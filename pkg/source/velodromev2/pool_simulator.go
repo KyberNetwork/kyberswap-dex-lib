@@ -17,6 +17,10 @@ type PoolSimulator struct {
 	gas      Gas
 }
 
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	return nil
+}
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var swapFeeFl = new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), bignumber.BoneFloat)
 	var swapFee, _ = swapFeeFl.Int(nil)
@@ -57,10 +61,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	var tokenInIndex = p.GetTokenIndex(tokenAmountIn.Token)
 	var tokenOutIndex = p.GetTokenIndex(tokenOut)
 

@@ -41,7 +41,10 @@ func TestCalcAmountOut(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			amountIn := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
-			out, err := p.CalcAmountOut(amountIn, tc.out)
+			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: amountIn,
+				TokenOut:      tc.out,
+			})
 			require.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)

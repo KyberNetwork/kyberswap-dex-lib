@@ -32,6 +32,10 @@ type PoolSimulator struct {
 	tickMax     int
 }
 
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	return nil
+}
+
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -146,10 +150,9 @@ func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) *big.Int {
 	return sqrtPriceX96Limit
 }
 
-func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	var tokenInIndex = p.GetTokenIndex(tokenAmountIn.Token)
 	var tokenOutIndex = p.GetTokenIndex(tokenOut)
 	var tokenIn *coreEntities.Token

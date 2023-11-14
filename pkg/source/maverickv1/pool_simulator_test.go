@@ -1,12 +1,14 @@
 package maverickv1_test
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestPoolCalcAmountOut(t *testing.T) {
@@ -27,10 +29,14 @@ func TestPoolCalcAmountOut(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	result, err := maverickPool.CalcAmountOut(pool.TokenAmount{
-		Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-		Amount: bignumber.NewBig10("1000000000000000000"),
-	}, "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48")
+	result, err := maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			Amount: bignumber.NewBig10("1000000000000000000"),
+		},
+		TokenOut: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+		Limit:    nil,
+	})
 
 	assert.Nil(t, err)
 	assert.Equal(t, "1829711602", result.TokenAmountOut.Amount.String())

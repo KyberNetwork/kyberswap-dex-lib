@@ -1,12 +1,14 @@
 package kokonutcrypto_test
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	kokonutcrypto "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kokonut-crypto"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestCalcAmountOut(t *testing.T) {
@@ -31,13 +33,14 @@ func TestCalcAmountOut(t *testing.T) {
 
 	assert.Nil(t, err)
 
-	result, err := kokonutPool.CalcAmountOut(
-		pool.TokenAmount{
+	result, err := kokonutPool.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
 			Token:  "0xd9aaec86b65d86f6a7b5b1b0c42ffa531710b6ca",
 			Amount: bignumber.NewBig10("100000000000"),
 		},
-		"0x4200000000000000000000000000000000000006",
-	)
+		TokenOut: "0x4200000000000000000000000000000000000006",
+		Limit:    nil,
+	})
 
 	assert.Nil(t, err)
 	assert.Equal(t, "55682348597792425703", result.TokenAmountOut.Amount.String())

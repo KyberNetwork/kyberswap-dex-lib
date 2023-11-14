@@ -7,11 +7,12 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/samber/lo"
 )
 
 type StablePool struct {
@@ -23,6 +24,10 @@ type StablePool struct {
 	Decimals       []uint
 	ScalingFactors []*big.Int
 	gas            balancer.Gas
+}
+
+func (p *StablePool) CalculateLimit() map[string]*big.Int {
+	return nil
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*StablePool, error) {
@@ -70,10 +75,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*StablePool, error) {
 	}, nil
 }
 
-func (t *StablePool) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (t *StablePool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	var tokenIndexFrom = t.GetTokenIndex(tokenAmountIn.Token)
 	var tokenIndexTo = t.GetTokenIndex(tokenOut)
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {

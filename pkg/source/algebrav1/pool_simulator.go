@@ -10,10 +10,11 @@ import (
 	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/logger"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
 )
 
 type PoolSimulator struct {
@@ -25,6 +26,10 @@ type PoolSimulator struct {
 	tickMin     int
 	tickMax     int
 	tickSpacing int
+}
+
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	return nil
 }
 
 func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator, error) {
@@ -113,10 +118,9 @@ func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) *big.Int {
 	return sqrtPriceX96Limit
 }
 
-func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	var tokenInIndex = p.GetTokenIndex(tokenAmountIn.Token)
 	var tokenOutIndex = p.GetTokenIndex(tokenOut)
 	var zeroForOne bool

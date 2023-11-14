@@ -41,7 +41,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			out, err := p.CalcAmountOut(pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}, tc.out)
+			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
+				TokenOut:      tc.out,
+				Limit:         nil,
+			})
 			require.Nil(t, err)
 			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
@@ -74,7 +78,10 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			amountIn := pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}
-			out, err := p.CalcAmountOut(amountIn, tc.out)
+			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: amountIn,
+				TokenOut:      tc.out,
+			})
 			require.Nil(t, err)
 
 			fmt.Println(out.TokenAmountOut)

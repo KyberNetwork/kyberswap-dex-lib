@@ -3,9 +3,10 @@ package kokonutcrypto
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"math/big"
 	"strings"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -48,6 +49,10 @@ type PoolSimulator struct {
 
 type Gas struct {
 	Exchange int64
+}
+
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	return nil
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -121,10 +126,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (t *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	// swap from token to token
 	var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
 	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)

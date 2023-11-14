@@ -115,7 +115,11 @@ func TestPool_CalcAmountOut(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p, _ := NewPoolSimulator(tt.entityPool, tt.chainId)
-			calcAmountOutResult, err := p.CalcAmountOut(tt.tokenAmountIn, tt.tokenOut)
+			calcAmountOutResult, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: tt.tokenAmountIn,
+				TokenOut:      tt.tokenOut,
+				Limit:         nil,
+			})
 
 			assert.Equal(t, tt.expectAmountOut, calcAmountOutResult.TokenAmountOut.Amount)
 			assert.ErrorIs(t, err, tt.expectedErr)

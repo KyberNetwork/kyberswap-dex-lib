@@ -6,9 +6,10 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/logger"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/logger"
 )
 
 type Pool struct {
@@ -16,6 +17,10 @@ type Pool struct {
 	decimals []uint8
 	state    *MaverickPoolState
 	gas      Gas
+}
+
+func (p *Pool) CalculateLimit() map[string]*big.Int {
+	return nil
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
@@ -63,10 +68,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	}, nil
 }
 
-func (p *Pool) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	var tokenInIndex = p.GetTokenIndex(tokenAmountIn.Token)
 	var tokenOutIndex = p.GetTokenIndex(tokenOut)
 

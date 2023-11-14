@@ -29,6 +29,10 @@ type PoolSimulator struct {
 	mapTokenAddressToIndex           map[string]int
 }
 
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	return nil
+}
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
@@ -82,13 +86,15 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (c *PoolSimulator) CalcAmountOut(tokenAmountIn pool.TokenAmount, tokenOut string) (*pool.CalcAmountOutResult, error) {
+func (c *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	var (
-		indexIn   = c.mapTokenAddressToIndex[tokenAmountIn.Token]
-		indexOut  = c.mapTokenAddressToIndex[tokenOut]
-		amountOut *big.Int
-		fee       *pool.TokenAmount
-		err       error
+		tokenAmountIn = param.TokenAmountIn
+		tokenOut      = param.TokenOut
+		indexIn       = c.mapTokenAddressToIndex[tokenAmountIn.Token]
+		indexOut      = c.mapTokenAddressToIndex[tokenOut]
+		amountOut     *big.Int
+		fee           *pool.TokenAmount
+		err           error
 	)
 
 	if tokenAmountIn.Token == c.Info.Address || tokenOut == c.Info.Address {
