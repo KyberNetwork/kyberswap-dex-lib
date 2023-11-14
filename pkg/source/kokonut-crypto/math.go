@@ -603,7 +603,7 @@ func (t *PoolSimulator) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 		new(big.Int).Set(t.Pool.Info.Reserves[1]),
 	} // xp: uint256[N_COINS] = self.balances
 	xp1[i] = new(big.Int).Add(xp1[i], dx)
-	t.Info.Reserves[0] = new(big.Int).Set(xp1[i])
+	t.Info.Reserves[i] = new(big.Int).Set(xp1[i])
 	xp1 = t.standardize(xp1[0], xp1[1])
 
 	y, err := newtonY(mA, mGamma, xp1[i], t.D)
