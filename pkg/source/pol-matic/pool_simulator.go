@@ -53,12 +53,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (s *PoolSimulator) CalcAmountOut(
-	tokenAmountIn poolpkg.TokenAmount,
-	tokenOut string,
+	param poolpkg.CalcAmountOutParams,
+
 ) (*poolpkg.CalcAmountOutResult, error) {
 	var (
-		isMigrate bool
-		gas       int64
+		isMigrate     bool
+		gas           int64
+		tokenAmountIn = param.TokenAmountIn
+		tokenOut      = param.TokenOut
 	)
 	if tokenAmountIn.Token == s.Pool.Info.Tokens[0] {
 		if tokenAmountIn.Amount.Cmp(s.Pool.Info.Reserves[1]) > 0 {

@@ -56,9 +56,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
+	param pool.CalcAmountOutParams,
 ) (*pool.CalcAmountOutResult, error) {
+	var (
+		tokenAmountIn = param.TokenAmountIn
+		tokenOut      = param.TokenOut
+	)
 	amountOutAfterFees, feeAmount, err := p.getAmountOut(tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount)
 	if err != nil {
 		return &pool.CalcAmountOutResult{}, err
