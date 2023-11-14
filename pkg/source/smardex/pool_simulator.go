@@ -54,7 +54,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOut string) (*poolpkg.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+	var (
+		tokenAmountIn = param.TokenAmountIn
+		tokenOut      = param.TokenOut
+	)
 	if tokenAmountIn.Token == tokenOut {
 		return nil, ErrSameAddress
 	}
