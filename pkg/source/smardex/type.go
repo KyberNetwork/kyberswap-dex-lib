@@ -87,4 +87,6 @@ type SwapInfo struct {
 	NewPriceAverageIn         *big.Int
 	NewPriceAverageOut        *big.Int
 	PriceAverageLastTimestamp *big.Int
+	FeeToAmount0              *big.Int
+	FeeToAmount1              *big.Int
 }

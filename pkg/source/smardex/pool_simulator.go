@@ -110,14 +110,18 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 	}
 
 	amount0, amount1 := tokenAmountIn.Amount, result.amountOut
-	feeToAmount0 := new(big.Int).Add(
-		p.FeeToAmount.Fees0,
-		new(big.Int).Div(new(big.Int).Mul(amount0, p.PairFee.FeesPool), p.PairFee.FeesBase))
-	feeToAmount1 := new(big.Int).Add(
-		p.FeeToAmount.Fees1,
-		new(big.Int).Div(new(big.Int).Mul(amount1, p.PairFee.FeesPool), p.PairFee.FeesBase))
-	if !zeroForOne {
+	feeToAmount0, feeToAmount1 := p.FeeToAmount.Fees0, p.FeeToAmount.Fees1
+	newPriceAverageIn, newPriceAverageOut := priceAverageIn, priceAverageOut
+	if zeroForOne {
+		feeToAmount0 = feeToAmount0.Add(
+			feeToAmount0,
+			new(big.Int).Div(new(big.Int).Mul(amount0, p.PairFee.FeesPool), p.PairFee.FeesBase))
+	} else {
 		amount0, amount1 = result.amountOut, tokenAmountIn.Amount
+		feeToAmount1 = feeToAmount1.Add(
+			feeToAmount1,
+			new(big.Int).Div(new(big.Int).Mul(amount1, p.PairFee.FeesPool), p.PairFee.FeesBase))
+		newPriceAverageIn, newPriceAverageOut = priceAverageOut, priceAverageIn
 	}
 
 	if zeroForOne {
@@ -132,13 +136,15 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 			},
 			Gas: p.gas.Swap,
 			SwapInfo: SwapInfo{
-				NewReserveIn:              new(big.Int).Sub(result.newReserveIn, p.FeeToAmount.Fees0),
-				NewReserveOut:             new(big.Int).Sub(result.newReserveOut, p.FeeToAmount.Fees1),
+				NewReserveIn:              new(big.Int).Sub(result.newReserveIn, feeToAmount0),
+				NewReserveOut:             new(big.Int).Sub(result.newReserveOut, feeToAmount1),
 				NewFictiveReserveIn:       result.newFictiveReserveIn,
 				NewFictiveReserveOut:      result.newFictiveReserveOut,
-				NewPriceAverageIn:         priceAverageIn,
-				NewPriceAverageOut:        priceAverageOut,
+				NewPriceAverageIn:         newPriceAverageIn,
+				NewPriceAverageOut:        newPriceAverageOut,
 				PriceAverageLastTimestamp: big.NewInt(userTradeTimestamp),
+				FeeToAmount0:              feeToAmount0,
+				FeeToAmount1:              feeToAmount1,
 			},
 		}, nil
 	}
@@ -154,13 +160,15 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 		},
 		Gas: p.gas.Swap,
 		SwapInfo: SwapInfo{
-			NewReserveIn:              new(big.Int).Sub(result.newReserveIn, p.FeeToAmount.Fees0),
-			NewReserveOut:             new(big.Int).Sub(result.newReserveOut, p.FeeToAmount.Fees1),
+			NewReserveIn:              new(big.Int).Sub(result.newReserveIn, feeToAmount0),
+			NewReserveOut:             new(big.Int).Sub(result.newReserveOut, feeToAmount1),
 			NewFictiveReserveIn:       result.newFictiveReserveIn,
 			NewFictiveReserveOut:      result.newFictiveReserveOut,
-			NewPriceAverageIn:         priceAverageIn,
-			NewPriceAverageOut:        priceAverageOut,
+			NewPriceAverageIn:         newPriceAverageIn,
+			NewPriceAverageOut:        newPriceAverageOut,
 			PriceAverageLastTimestamp: big.NewInt(userTradeTimestamp),
+			FeeToAmount0:              feeToAmount0,
+			FeeToAmount1:              feeToAmount1,
 		},
 	}, nil
 
@@ -185,5 +193,9 @@ func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		si.NewPriceAverageIn,
 		si.NewPriceAverageOut,
 		si.PriceAverageLastTimestamp,
+	}
+	p.FeeToAmount = FeeToAmount{
+		si.FeeToAmount0,
+		si.FeeToAmount1,
 	}
 }
