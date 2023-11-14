@@ -1,7 +1,10 @@
 package swapdata
 
 import (
+	"encoding/json"
+
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -10,6 +13,11 @@ import (
 // TokenWeightInputUniSwap weight of tokenIn, it's 50 with Uniswap
 // TODO: Should read from extra field of the swap instead
 const TokenWeightInputUniSwap = 50
+
+type UniswapV2PoolExtra struct {
+	Fee          uint32 `json:"fee"`
+	FeePrecision uint32 `json:"feePrecision"`
+}
 
 func PackUniSwap(chainID valueobject.ChainID, encodingSwap types.EncodingSwap) ([]byte, error) {
 	swap, err := buildUniSwap(chainID, encodingSwap)
@@ -35,7 +43,10 @@ func UnpackUniSwap(data []byte) (Uniswap, error) {
 }
 
 func buildUniSwap(chainID valueobject.ChainID, swap types.EncodingSwap) (Uniswap, error) {
-	swapFee := GetFee(chainID, swap.Exchange)
+	swapFee, err := getFeeFromPoolExtra(swap)
+	if err != nil {
+		swapFee = GetFee(chainID, swap.Exchange)
+	}
 
 	fee := getCustomSwapFee(swap.Exchange, swapFee.Fee)
 
@@ -62,6 +73,36 @@ func packUniSwap(swap Uniswap) ([]byte, error) {
 		swap.FeePrecision,
 		swap.TokenWeightInput,
 	)
+}
+
+func getFeeFromPoolExtra(swap types.EncodingSwap) (Fee, error) {
+	byteData, err := json.Marshal(swap.PoolExtra)
+	if err != nil {
+		return Fee{}, errors.Wrapf(
+			ErrMarshalFailed,
+			"[getFeeFromPoolExtra] err :[%v]",
+			err,
+		)
+	}
+
+	var extra struct {
+		Fee          uint32 `json:"fee"`
+		FeePrecision uint32 `json:"feePrecision"`
+	}
+
+	if err = json.Unmarshal(byteData, &extra); err != nil {
+		return Fee{}, errors.Wrapf(
+			ErrUnmarshalFailed,
+			"[getFeeFromPoolExtra] err :[%v]",
+			err,
+		)
+	}
+
+	if extra.Fee == 0 || extra.FeePrecision == 0 {
+		return Fee{}, errors.New("invalid fee")
+	}
+
+	return Fee{Fee: extra.Fee, Precision: extra.FeePrecision}, nil
 }
 
 func getCustomSwapFee(exchange valueobject.Exchange, fee uint32) uint32 {

@@ -6,6 +6,7 @@ import (
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	balancerstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/stable"
@@ -321,6 +322,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newSmardex(entityPool)
 	case constant.PoolTypes.Fxdx:
 		return f.newFxdx(entityPool)
+	case constant.PoolTypes.UniswapV2:
+		return f.newUniswapV2(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -1093,6 +1096,20 @@ func (f *PoolFactory) newFxdx(entityPool entity.Pool) (*fxdx.PoolSimulator, erro
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newFxdx] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newUniswapV2(entityPool entity.Pool) (*uniswapv2.PoolSimulator, error) {
+	corePool, err := uniswapv2.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newUniswapV2] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

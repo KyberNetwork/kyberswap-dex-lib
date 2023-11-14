@@ -192,6 +192,8 @@ var (
 	ExchangePolMatic Exchange = "pol-matic"
 
 	ExchangeSmardex Exchange = "smardex"
+
+	ExchangeZebra Exchange = "zebra"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -353,6 +355,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangePolMatic:                 {},
 	ExchangeSmardex:                  {},
 	ExchangeFxdx:                     {},
+	ExchangeZebra:                    {},
 }
 
 func IsAnExchange(exchange Exchange) bool {
