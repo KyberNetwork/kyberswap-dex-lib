@@ -10,7 +10,7 @@ var (
 
 const (
 	pairFactoryMethodIsPaused       = "isPaused"
-	pairFactoryMethodGetPair        = "allPairs"
+	pairFactoryMethodAllPairs       = "allPairs"
 	pairFactoryMethodStableFee      = "stableFee"
 	pairFactoryMethodVolatileFee    = "volatileFee"
 	pairFactoryMethodAllPairsLength = "allPairsLength"

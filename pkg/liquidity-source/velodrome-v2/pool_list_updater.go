@@ -1,4 +1,4 @@
-package velodromev1
+package velodromev2
 
 import (
 	"context"
@@ -48,16 +48,16 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	ctx = util.NewContextWithTimestamp(ctx)
 
-	pairFactoryData, err := u.getPairFactoryData(ctx)
+	poolFactoryData, err := u.getPoolFactoryData(ctx)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID}).
-			Error("getPairFactoryData failed")
+			Error("getPoolFactoryData failed")
 
 		return nil, metadataBytes, err
 	}
 
-	if pairFactoryData.IsPaused {
+	if poolFactoryData.IsPaused {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID}).
 			Info("factory is paused")
@@ -71,18 +71,18 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Warn("getOffset failed")
 	}
 
-	batchSize := getBatchSize(int(pairFactoryData.AllPairsLength.Int64()), u.config.NewPoolLimit, offset)
+	batchSize := getBatchSize(int(poolFactoryData.AllPairsLength.Int64()), u.config.NewPoolLimit, offset)
 
-	pairAddresses, err := u.listPairAddresses(ctx, offset, batchSize)
+	poolAddresses, err := u.listPoolAddresses(ctx, offset, batchSize)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
-			Error("listPairAddresses failed")
+			Error("listPoolAddresses failed")
 
 		return nil, metadataBytes, err
 	}
 
-	pools, err := u.initPools(ctx, pairAddresses, pairFactoryData)
+	pools, err := u.initPools(ctx, poolAddresses, poolFactoryData)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
@@ -114,42 +114,28 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-// getPairFactoryData gets number of pairs from the factory contracts
-func (u *PoolsListUpdater) getPairFactoryData(ctx context.Context) (PairFactoryData, error) {
-	pairFactoryData := PairFactoryData{}
+// getPoolFactoryData gets number of pairs from the factory contracts
+func (u *PoolsListUpdater) getPoolFactoryData(ctx context.Context) (PoolFactoryData, error) {
+	pairFactoryData := PoolFactoryData{}
 
 	getAllPairsLengthRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
 	getAllPairsLengthRequest.AddCall(&ethrpc.Call{
-		ABI:    pairFactoryABI,
+		ABI:    poolFactoryABI,
 		Target: u.config.FactoryAddress,
-		Method: pairFactoryMethodIsPaused,
+		Method: poolFactoryMethodIsPaused,
 		Params: nil,
 	}, []interface{}{&pairFactoryData.IsPaused})
 
 	getAllPairsLengthRequest.AddCall(&ethrpc.Call{
-		ABI:    pairFactoryABI,
+		ABI:    poolFactoryABI,
 		Target: u.config.FactoryAddress,
-		Method: pairFactoryMethodAllPairsLength,
+		Method: poolFactoryMethodAllPoolsLength,
 		Params: nil,
 	}, []interface{}{&pairFactoryData.AllPairsLength})
 
-	getAllPairsLengthRequest.AddCall(&ethrpc.Call{
-		ABI:    pairFactoryABI,
-		Target: u.config.FactoryAddress,
-		Method: pairFactoryMethodStableFee,
-		Params: nil,
-	}, []interface{}{&pairFactoryData.StableFee})
-
-	getAllPairsLengthRequest.AddCall(&ethrpc.Call{
-		ABI:    pairFactoryABI,
-		Target: u.config.FactoryAddress,
-		Method: pairFactoryMethodVolatileFee,
-		Params: nil,
-	}, []interface{}{&pairFactoryData.VolatileFee})
-
 	if _, err := getAllPairsLengthRequest.TryBlockAndAggregate(); err != nil {
-		return PairFactoryData{}, err
+		return PoolFactoryData{}, err
 	}
 
 	return pairFactoryData, nil
@@ -169,71 +155,71 @@ func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
 	return metadata.Offset, nil
 }
 
-// listPairAddresses lists address of pairs from offset
-func (u *PoolsListUpdater) listPairAddresses(ctx context.Context, offset int, batchSize int) ([]common.Address, error) {
-	listPairAddressesResult := make([]common.Address, batchSize)
+// listPoolAddresses lists address of pairs from offset
+func (u *PoolsListUpdater) listPoolAddresses(ctx context.Context, offset int, batchSize int) ([]common.Address, error) {
+	listPoolAddressesResult := make([]common.Address, batchSize)
 
-	listPairAddressesRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
+	listPoolAddressesRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i := 0; i < batchSize; i++ {
 		index := big.NewInt(int64(offset + i))
 
-		listPairAddressesRequest.AddCall(&ethrpc.Call{
-			ABI:    pairFactoryABI,
+		listPoolAddressesRequest.AddCall(&ethrpc.Call{
+			ABI:    poolFactoryABI,
 			Target: u.config.FactoryAddress,
-			Method: pairFactoryMethodAllPairs,
+			Method: poolFactoryMethodAllPools,
 			Params: []interface{}{index},
-		}, []interface{}{&listPairAddressesResult[i]})
+		}, []interface{}{&listPoolAddressesResult[i]})
 	}
 
-	resp, err := listPairAddressesRequest.TryAggregate()
+	resp, err := listPoolAddressesRequest.TryAggregate()
 	if err != nil {
 		return nil, err
 	}
 
-	var pairAddresses []common.Address
+	var poolAddresses []common.Address
 	for i, isSuccess := range resp.Result {
 		if !isSuccess {
 			continue
 		}
 
-		pairAddresses = append(pairAddresses, listPairAddressesResult[i])
+		poolAddresses = append(poolAddresses, listPoolAddressesResult[i])
 	}
 
-	return pairAddresses, nil
+	return poolAddresses, nil
 }
 
 // initPools fetches token data and initializes pools
 func (u *PoolsListUpdater) initPools(
 	ctx context.Context,
-	pairAddresses []common.Address,
-	pairFactoryData PairFactoryData,
+	poolAddresses []common.Address,
+	poolFactoryData PoolFactoryData,
 ) ([]entity.Pool, error) {
-	metadataList, blockNumber, err := u.listMetadata(ctx, pairAddresses)
+	metadataList, feeList, blockNumber, err := u.listPoolData(ctx, poolAddresses)
 	if err != nil {
 		return nil, err
 	}
 
-	pools := make([]entity.Pool, 0, len(pairAddresses))
-	for i, pairAddress := range pairAddresses {
-		staticExtra, err := u.newStaticExtra(metadataList[i])
+	pools := make([]entity.Pool, 0, len(poolAddresses))
+	for i, poolAddress := range poolAddresses {
+		extra, err := u.newExtra(poolFactoryData.IsPaused, feeList[i])
 		if err != nil {
 			logger.
-				WithFields(logger.Fields{"pair_address": pairAddress, "dex_id": u.config.DexID, "err": err}).
-				Error("newStaticExtra failed")
-			continue
-		}
-
-		extra, err := u.newExtra(metadataList[i], pairFactoryData)
-		if err != nil {
-			logger.
-				WithFields(logger.Fields{"pair_address": pairAddress, "dex_id": u.config.DexID, "err": err}).
+				WithFields(logger.Fields{"pool_address": poolAddress, "dex_id": u.config.DexID, "err": err}).
 				Error("newExtra failed")
 			continue
 		}
 
+		staticExtra, err := u.newStaticExtra(metadataList[i])
+		if err != nil {
+			logger.
+				WithFields(logger.Fields{"pool_address": poolAddress, "dex_id": u.config.DexID, "err": err}).
+				Error("newStaticExtra failed")
+			continue
+		}
+
 		newPool := entity.Pool{
-			Address:     strings.ToLower(pairAddress.Hex()),
+			Address:     strings.ToLower(poolAddress.Hex()),
 			Exchange:    u.config.DexID,
 			Type:        DexType,
 			BlockNumber: blockNumber,
@@ -260,28 +246,47 @@ func (u *PoolsListUpdater) initPools(
 }
 
 // listPairTokens receives list of pair addresses and returns their token0 and token1
-func (u *PoolsListUpdater) listMetadata(ctx context.Context, pairAddresses []common.Address) ([]PairMetadata, uint64, error) {
-	var (
-		metadataList = make([]PairMetadata, len(pairAddresses))
-	)
+func (u *PoolsListUpdater) listPoolData(
+	ctx context.Context,
+	poolAddresses []common.Address,
+) ([]PoolMetadata, []*big.Int, uint64, error) {
+	poolMetadataList := make([]PoolMetadata, len(poolAddresses))
 
-	listMetadataRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
+	listPoolMetadataRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
-	for i, pairAddress := range pairAddresses {
-		listMetadataRequest.AddCall(&ethrpc.Call{
-			ABI:    pairABI,
-			Target: pairAddress.Hex(),
-			Method: pairMethodMetadata,
+	for i, poolAddress := range poolAddresses {
+		listPoolMetadataRequest.AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: poolAddress.Hex(),
+			Method: poolMethodMetadata,
 			Params: nil,
-		}, []interface{}{&metadataList[i]})
+		}, []interface{}{&poolMetadataList[i]})
 	}
 
-	resp, err := listMetadataRequest.Aggregate()
+	resp, err := listPoolMetadataRequest.Aggregate()
 	if err != nil {
-		return nil, 0, err
+		return nil, nil, 0, err
 	}
 
-	return metadataList, resp.BlockNumber.Uint64(), nil
+	feeList := make([]*big.Int, len(poolAddresses))
+
+	listPoolFeeRequest := u.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+
+	for i, poolAddress := range poolAddresses {
+		listPoolFeeRequest.AddCall(&ethrpc.Call{
+			ABI:    poolFactoryABI,
+			Target: u.config.FactoryAddress,
+			Method: poolFactoryMethodGetFee,
+			Params: []interface{}{poolAddress, poolMetadataList[i].St},
+		}, []interface{}{&feeList[i]})
+	}
+
+	resp, err = listPoolFeeRequest.Aggregate()
+	if err != nil {
+		return nil, nil, 0, err
+	}
+
+	return poolMetadataList, feeList, resp.BlockNumber.Uint64(), nil
 }
 
 func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
@@ -297,13 +302,22 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 	return metadataBytes, nil
 }
 
-func (u *PoolsListUpdater) newStaticExtra(pairMetadata PairMetadata) ([]byte, error) {
-	decimal0, overflow := uint256.FromBig(pairMetadata.Dec0)
+func (u *PoolsListUpdater) newExtra(isPaused bool, fee *big.Int) ([]byte, error) {
+	extra := PoolExtra{
+		IsPaused: isPaused,
+		Fee:      fee.Uint64(),
+	}
+
+	return json.Marshal(extra)
+}
+
+func (u *PoolsListUpdater) newStaticExtra(poolMetadata PoolMetadata) ([]byte, error) {
+	decimal0, overflow := uint256.FromBig(poolMetadata.Dec0)
 	if overflow {
 		return nil, errors.New("dec0 overflow")
 	}
 
-	decimal1, overflow := uint256.FromBig(pairMetadata.Dec1)
+	decimal1, overflow := uint256.FromBig(poolMetadata.Dec1)
 	if overflow {
 		return nil, errors.New("dec1 overflow")
 	}
@@ -312,26 +326,10 @@ func (u *PoolsListUpdater) newStaticExtra(pairMetadata PairMetadata) ([]byte, er
 		FeePrecision: u.config.FeePrecision,
 		Decimal0:     decimal0,
 		Decimal1:     decimal1,
-		Stable:       pairMetadata.St,
+		Stable:       poolMetadata.St,
 	}
 
 	return json.Marshal(staticExtra)
-}
-
-func (u *PoolsListUpdater) newExtra(pairMetadata PairMetadata, factoryData PairFactoryData) ([]byte, error) {
-	var fee uint64
-	if pairMetadata.St {
-		fee = factoryData.StableFee.Uint64()
-	} else {
-		fee = factoryData.VolatileFee.Uint64()
-	}
-
-	extra := PoolExtra{
-		IsPaused: factoryData.IsPaused,
-		Fee:      fee,
-	}
-
-	return json.Marshal(extra)
 }
 
 // getBatchSize
