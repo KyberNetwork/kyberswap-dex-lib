@@ -79,7 +79,12 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			p, err := NewPoolSimulator(tt.fields.entityPool)
 			assert.Nil(t1, err)
 
-			got, err := p.CalcAmountOut(tt.args.tokenAmountIn, tt.args.tokenOut)
+			got, err := p.CalcAmountOut(
+				pool.CalcAmountOutParams{
+					TokenAmountIn: tt.args.tokenAmountIn,
+					TokenOut:      tt.args.tokenOut,
+					Limit:         nil,
+				})
 
 			assert.ErrorIs(t, err, tt.wantErr)
 			assert.True(t, tt.want.TokenAmountOut.Amount.Cmp(got.TokenAmountOut.Amount) == 0)

@@ -4,8 +4,9 @@ import (
 	"context"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/ethereum/go-ethereum/core/types"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 type IPoolsListUpdater interface {
@@ -28,10 +29,7 @@ type IPoolTracker interface {
 
 type IPoolSimulator interface {
 	// CalcAmountOut amountOut, fee, gas
-	CalcAmountOut(
-		tokenAmountIn TokenAmount,
-		tokenOut string,
-	) (*CalcAmountOutResult, error)
+	CalcAmountOut(params CalcAmountOutParams) (*CalcAmountOutResult, error)
 	UpdateBalance(params UpdateBalanceParams)
 	CanSwapTo(address string) []string
 	CanSwapFrom(address string) []string
@@ -42,6 +40,7 @@ type IPoolSimulator interface {
 	GetType() string
 	GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	GetTokenIndex(address string) int
+	CalculateLimit() map[string]*big.Int
 }
 
 type RFQResult struct {

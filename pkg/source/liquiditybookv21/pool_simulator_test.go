@@ -30,6 +30,11 @@ func TestCalcAmountOut(t *testing.T) {
 	simulator, err := NewPoolSimulator(entityPool)
 	assert.Nil(t, err)
 
-	_, err = simulator.CalcAmountOut(tokenAmountIn, tokenOut)
+	_, err = simulator.CalcAmountOut(
+		pool.CalcAmountOutParams{
+			TokenAmountIn: tokenAmountIn,
+			TokenOut:      tokenOut,
+			Limit:         nil,
+		})
 	assert.Equal(t, ErrNotFoundBinID, err)
 }

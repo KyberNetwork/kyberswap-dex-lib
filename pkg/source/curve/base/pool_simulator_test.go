@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 func TestCalcAmountOut(t *testing.T) {
@@ -49,7 +50,11 @@ func TestCalcAmountOut(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			out, err := p.CalcAmountOut(pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}, tc.out)
+			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
+				TokenOut:      tc.out,
+				Limit:         nil,
+			})
 			require.Nil(t, err)
 			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
@@ -79,7 +84,11 @@ func TestCalcAmountOut_interpolate_from_initialA_and_futureA(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	out, err := p.CalcAmountOut(pool.TokenAmount{Token: "A", Amount: big.NewInt(510000)}, "B")
+	out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: "A", Amount: big.NewInt(510000)},
+		TokenOut:      "B",
+		Limit:         nil,
+	})
 	require.Nil(t, err)
 	assert.Equal(t, big.NewInt(509863), out.TokenAmountOut.Amount)
 	assert.Equal(t, big.NewInt(153), out.Fee.Amount)

@@ -93,10 +93,15 @@ func TestSwap(t *testing.T) {
 	}
 	for i, testcase := range testCases {
 		t.Run(fmt.Sprintf("testcase %d, tokenIn %s amountIn %s tokenOut %s", i, testcase.tokenIn, testcase.amountIn.String(), testcase.amountOut), func(t *testing.T) {
-			result, _ := p.CalcAmountOut(pool.TokenAmount{
-				Token:  testcase.tokenIn,
-				Amount: testcase.amountIn,
-			}, testcase.tokenOut)
+			result, _ := p.CalcAmountOut(
+				pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{
+						Token:  testcase.tokenIn,
+						Amount: testcase.amountIn,
+					},
+					TokenOut: testcase.tokenOut,
+					Limit:    nil,
+				})
 			assert.NotNil(t, result.TokenAmountOut)
 			assert.NotNil(t, result.Fee)
 			assert.NotNil(t, result.Gas)

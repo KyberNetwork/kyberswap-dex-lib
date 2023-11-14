@@ -3,15 +3,22 @@ package mantisswap
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
+
+	"github.com/KyberNetwork/logger"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/logger"
 )
 
 type PoolSimulator struct {
 	pool.Pool
 	state *PoolState
 	gas   Gas
+}
+
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	return nil
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {

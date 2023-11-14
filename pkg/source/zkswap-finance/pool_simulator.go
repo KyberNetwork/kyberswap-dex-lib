@@ -14,6 +14,10 @@ type PoolSimulator struct {
 	pool.Pool
 }
 
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	return nil
+}
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var (
 		swapFee  = new(big.Int).SetUint64(uint64(entityPool.SwapFee))
@@ -48,10 +52,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (t *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	tokenInIdx := t.Info.GetTokenIndex(tokenAmountIn.Token)
 	if tokenInIdx < 0 {
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("invalid token in: %s", tokenAmountIn.Token)

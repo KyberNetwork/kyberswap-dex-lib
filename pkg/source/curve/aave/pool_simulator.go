@@ -31,6 +31,10 @@ type Gas struct {
 	Exchange int64
 }
 
+func (p *AavePool) CalculateLimit() map[string]*big.Int {
+	return nil
+}
+
 func NewPoolSimulator(entityPool entity.Pool) (*AavePool, error) {
 	var staticExtra curve.PoolAaveStaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
@@ -82,10 +86,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*AavePool, error) {
 	}, nil
 }
 
-func (t *AavePool) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (t *AavePool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	var tokenIndexFrom = t.GetTokenIndex(tokenAmountIn.Token)
 	var tokenIndexTo = t.GetTokenIndex(tokenOut)
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {

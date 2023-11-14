@@ -51,6 +51,10 @@ type Gas struct {
 	ExchangeUnderlying int64
 }
 
+func (p *Pool) CalculateLimit() map[string]*big.Int {
+	return nil
+}
+
 func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*Pool, error) {
 	var staticExtra curve.PoolMetaStaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
@@ -106,10 +110,9 @@ func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*Pool, e
 	}, nil
 }
 
-func (t *Pool) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (t *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	// swap from token to token
 	var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
 	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)

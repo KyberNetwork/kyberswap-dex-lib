@@ -28,6 +28,10 @@ type (
 	}
 )
 
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	return nil
+}
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var numTokens = len(entityPool.Tokens)
 	var tokens = make([]string, numTokens)
@@ -86,11 +90,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
-	return p.calcAmountOut(tokenAmountIn, tokenOut)
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	return p.calcAmountOut(param.TokenAmountIn, param.TokenOut)
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

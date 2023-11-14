@@ -59,6 +59,10 @@ type (
 	}
 )
 
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	return nil
+}
+
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var poolExtra PoolExtra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &poolExtra); err != nil {

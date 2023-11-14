@@ -5,11 +5,12 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestCalcAmountOut(t *testing.T) {
@@ -75,7 +76,11 @@ func TestCalcAmountOut(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			out, err := p.CalcAmountOut(pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}, tc.out)
+			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)},
+				TokenOut:      tc.out,
+				Limit:         nil,
+			})
 			require.Nil(t, err)
 			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)

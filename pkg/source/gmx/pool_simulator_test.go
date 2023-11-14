@@ -365,7 +365,11 @@ func TestPool_CalcAmountOut(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			pool, _ := NewPoolSimulator(tc.entityPool)
 
-			calcAmountOutResult, err := pool.CalcAmountOut(tc.tokenAmountIn, tc.tokenOut)
+			calcAmountOutResult, err := pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
+				TokenAmountIn: tc.tokenAmountIn,
+				TokenOut:      tc.tokenOut,
+				Limit:         nil,
+			})
 
 			assert.Equal(t, tc.expectedAmountOut, calcAmountOutResult.TokenAmountOut)
 			assert.Equal(t, tc.expectedFee, calcAmountOutResult.Fee)
