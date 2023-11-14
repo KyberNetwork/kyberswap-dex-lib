@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -77,10 +78,15 @@ func TestCalcAmountOut(t *testing.T) {
 	now = func() time.Time {
 		return time.Unix(TIMESTAMP_JAN_2020, 0)
 	}
-	result, err := poolSimulator.CalcAmountOut(poolpkg.TokenAmount{
-		Token:  "token0",
-		Amount: amountInT0,
-	}, "token1")
+	result, err := poolSimulator.CalcAmountOut(
+		poolpkg.CalcAmountOutParams{
+			TokenAmountIn: poolpkg.TokenAmount{
+				Token:  "token0",
+				Amount: amountInT0,
+			},
+			TokenOut: "token1",
+			Limit:    nil,
+		})
 
 	if err != nil {
 		t.Fatalf(`Error thrown %v`, err)
@@ -299,7 +305,11 @@ func TestUpdateBalance(t *testing.T) {
 	now = func() time.Time {
 		return time.Unix(TIMESTAMP_JAN_2020, 0)
 	}
-	result, _ := poolSimulator.CalcAmountOut(tokenAmountIn, "token1")
+	result, _ := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		TokenAmountIn: tokenAmountIn,
+		TokenOut:      "token1",
+		Limit:         nil,
+	})
 
 	poolSimulator.UpdateBalance(poolpkg.UpdateBalanceParams{
 		TokenAmountIn:  tokenAmountIn,

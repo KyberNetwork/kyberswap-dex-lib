@@ -107,11 +107,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-	limit pool.SwapLimit,
+	param pool.CalcAmountOutParams,
 ) (result *pool.CalcAmountOutResult, err error) {
-	swapDirection := p.getSwapDirection(tokenAmountIn.Token)
+	var (
+		tokenAmountIn = param.TokenAmountIn
+		tokenOut      = param.TokenOut
+		limit         = param.Limit
+		swapDirection = p.getSwapDirection(tokenAmountIn.Token)
+	)
 
 	if swapDirection == SwapDirectionBaseToQuote {
 		result, err = p.swapBaseToQuote(tokenAmountIn, tokenOut)
@@ -122,7 +125,7 @@ func (p *PoolSimulator) CalcAmountOut(
 		return nil, err
 	}
 
-	var inventoryLimit = big.NewInt(0)
+	var inventoryLimit *big.Int
 
 	if swapDirection == SwapDirectionBaseToQuote {
 		inventoryLimit = limit.GetLimit(p.quoteToken.Address)
