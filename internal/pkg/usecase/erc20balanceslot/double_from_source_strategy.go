@@ -53,7 +53,7 @@ func (*DoubleFromSourceStrategy) Name(extraParams ProbeStrategyExtraParams) stri
 	return fmt.Sprintf("double_from_source,source=%s", strings.ToLower(_extraParams.Source.String()))
 }
 
-func (p *DoubleFromSourceStrategy) ProbeBalanceSlot(token common.Address, extraParams ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
+func (p *DoubleFromSourceStrategy) ProbeBalanceSlot(_ context.Context, token common.Address, extraParams ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
 	logger.Infof("[%s] probing balance slot for token %s", p.Name(extraParams), token)
 
 	_extraParams, ok := extraParams.(*DoubleFromSourceStrategyExtraParams)

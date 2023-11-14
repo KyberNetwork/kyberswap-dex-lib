@@ -6,6 +6,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/KyberNetwork/router-service/pkg/redis"
 	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
 )
 
@@ -35,7 +36,17 @@ type AEVM struct {
 	// The wallet to probe balance slot for new tokens.
 	FakeWallet string `mapstructure:"simulationWallet"`
 
+	// Balance slots defined maunally
 	PredefinedBalanceSlots map[string]*entity.ERC20BalanceSlot `mapstructure:"predefinedBalanceSlots"`
+
+	// Use holders list (if available for token) as fallback if all faking balance strategies failed.
+	UseHoldersListAsFallback bool `mapstructure:"useHoldersListAsFallback"`
+
+	// The Redis storage where holders lists are maintained.
+	TokenHoldersRedis redis.Config `mapstructure:"tokenHoldersRedis"`
+
+	// Time-to-live of cached holders lists.
+	CachedHoldersListTTLSec uint64 `mapstructure:"cachedHoldersListTTLSec"`
 }
 
 type Log struct {

@@ -36,9 +36,25 @@ var (
 			BalanceSlot: "0xcdd82b6bead1cac3d1e09d54b01220a76c9534fbd5cfb487b133d7568fced94a",
 		},
 	}
+	balanceSlotsWithHoldersList = map[common.Address]*routerentity.ERC20BalanceSlot{
+		common.HexToAddress(usdceAddr): {
+			Token:  usdceAddr,
+			Wallet: "0x47f3c2557364efc28f1269e3169773fa5236384d",
+			Holders: []string{
+				"0x3a2434c698f8d79af1f5a9e43013157ca8b11a66",
+			},
+		},
+		common.HexToAddress(usdcAddr): {
+			Token:  usdcAddr,
+			Wallet: "0x47F3C2557364EFC28f1269e3169773fa5236384D",
+			Holders: []string{
+				"0xe86a549cebab14ddff9741fd46e62a60ebff5b23",
+			},
+		},
+	}
 )
 
-func TestCalcAmountOutAEVMWithUSDCE_USDCPoolWithTCPClient(t *testing.T) {
+func TestCalcAmountOutAEVMWithUSDCE_USDCPoolWithGRPCClient(t *testing.T) {
 	t.Skip()
 
 	client, err := aevmclient.NewGRPCClient(aevmServerURL)
@@ -48,39 +64,45 @@ func TestCalcAmountOutAEVMWithUSDCE_USDCPoolWithTCPClient(t *testing.T) {
 	fmt.Printf("stateRoot = %s\n", stateRoot)
 	require.NoError(t, err)
 
-	p, err := NewPoolAEVM(
-		entity.Pool{
-			Address: usdceUSDCPool,
-			Tokens: []*entity.PoolToken{
-				{Address: usdceAddr},
-				{Address: usdcAddr},
-			},
-		},
-		client,
-		common.Hash(stateRoot),
-		balanceSlots,
-	)
-	require.NoError(t, err)
-	result, err := p.CalcAmountOutAEVM(
-		pool.TokenAmount{
-			Token:  usdceAddr,
-			Amount: big.NewInt(500_000_000), // 500 USDC.e
-		},
-		usdcAddr,
-	)
-	require.NoError(t, err)
-	fmt.Printf("swapping 500 USDC.e for USDC amountOut = %s, gas used = %v\n", result.TokenAmountOut.Amount, result.Gas)
-	usdcOut := new(big.Int).Set(result.TokenAmountOut.Amount)
+	names := []string{"without holders lists", "with holders lists"}
+	for i, balanceSlots := range []map[common.Address]*routerentity.ERC20BalanceSlot{balanceSlots, balanceSlotsWithHoldersList} {
+		balanceSlots := balanceSlots
+		t.Run(names[i], func(t *testing.T) {
+			p, err := NewPoolAEVM(
+				entity.Pool{
+					Address: usdceUSDCPool,
+					Tokens: []*entity.PoolToken{
+						{Address: usdceAddr},
+						{Address: usdcAddr},
+					},
+				},
+				client,
+				common.Hash(stateRoot),
+				balanceSlots,
+			)
+			require.NoError(t, err)
+			result, err := p.CalcAmountOutAEVM(
+				pool.TokenAmount{
+					Token:  usdceAddr,
+					Amount: big.NewInt(500_000_000), // 500 USDC.e
+				},
+				usdcAddr,
+			)
+			require.NoError(t, err)
+			fmt.Printf("swapping 500 USDC.e for USDC amountOut = %s, gas used = %v\n", result.TokenAmountOut.Amount, result.Gas)
+			usdcOut := new(big.Int).Set(result.TokenAmountOut.Amount)
 
-	p.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: result.SwapInfo})
+			p.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: result.SwapInfo})
 
-	result, err = p.CalcAmountOutAEVM(
-		pool.TokenAmount{
-			Token:  usdcAddr,
-			Amount: usdcOut,
-		},
-		usdceAddr,
-	)
-	require.NoError(t, err)
-	fmt.Printf("swapping %s USDC for USDC.e amountOut = %s, gas used = %v\n", usdcOut, result.TokenAmountOut.Amount, result.Gas)
+			result, err = p.CalcAmountOutAEVM(
+				pool.TokenAmount{
+					Token:  usdcAddr,
+					Amount: usdcOut,
+				},
+				usdceAddr,
+			)
+			require.NoError(t, err)
+			fmt.Printf("swapping %s USDC for USDC.e amountOut = %s, gas used = %v\n", usdcOut, result.TokenAmountOut.Amount, result.Gas)
+		})
+	}
 }

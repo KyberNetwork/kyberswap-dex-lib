@@ -49,6 +49,7 @@ func NewPoolAEVM(
 			},
 		},
 		aevmPool: &aevmcore.AEVMPool{
+			Address:           gethcommon.HexToAddress(entityPool.Address),
 			AEVMClient:        common.MakeNoClone(aevmClient),
 			StateRoot:         stateRoot,
 			TokenBalanceSlots: common.MakeNoClone(tokenBalanceSlots),

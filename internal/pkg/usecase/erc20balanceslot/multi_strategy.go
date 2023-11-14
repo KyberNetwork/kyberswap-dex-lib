@@ -1,6 +1,7 @@
 package erc20balanceslot
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	repo "github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -37,15 +39,27 @@ func NewMultipleStrategy(rpcClient *rpc.Client, wallet common.Address) *Multiple
 	}
 }
 
+func NewMultipleStrategyWithHoldersListAsFallback(rpcClient *rpc.Client, wallet common.Address, holdersListRepo *repo.HoldersListRedisRepositoryWithCache, watchlistRepo *repo.WatchlistRedisRepository) *MultipleStrategy {
+	return &MultipleStrategy{
+		strategies: []ProbeStrategy{
+			NewWholeSlotStrategy(rpcClient, wallet),
+			NewWholeSlotWithFStrategy(rpcClient, wallet),
+			NewDoubleFromSourceStrategy(rpcClient),
+			NewHoldersListStrategy(wallet, holdersListRepo, watchlistRepo),
+		},
+	}
+}
+
 func NewTestMultipleStrategy(strategies ...ProbeStrategy) *MultipleStrategy {
 	return &MultipleStrategy{strategies: strategies}
 }
 
-func (p *MultipleStrategy) ProbeBalanceSlot(token common.Address, oldBalanceSlots *entity.ERC20BalanceSlot, extraParams *MultipleStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
+func (p *MultipleStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, oldBalanceSlots *entity.ERC20BalanceSlot, extraParams *MultipleStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
 	var (
 		hadAttemptedList []string
 		hadAttempted     = make(map[string]struct{})
 		attempted        []string
+		holdersListName  = (&HoldersListStrategy{}).Name(nil)
 		bl               *entity.ERC20BalanceSlot
 		err              error
 	)
@@ -61,8 +75,11 @@ func (p *MultipleStrategy) ProbeBalanceSlot(token common.Address, oldBalanceSlot
 		if _, ok := hadAttempted[name]; ok {
 			continue
 		}
-		attempted = append(attempted, name)
-		bl, err = s.ProbeBalanceSlot(token, _extraParams)
+		// HoldersListStrategy can be attempted multiple times, so we don't record it
+		if name != holdersListName {
+			attempted = append(attempted, name)
+		}
+		bl, err = s.ProbeBalanceSlot(ctx, token, _extraParams)
 		if err == nil {
 			break
 		}

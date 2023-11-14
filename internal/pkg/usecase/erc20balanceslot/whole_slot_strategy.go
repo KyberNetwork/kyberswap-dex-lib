@@ -1,6 +1,7 @@
 package erc20balanceslot
 
 import (
+	"context"
 	"errors"
 	"math/rand"
 	"strings"
@@ -47,7 +48,7 @@ func (*WholeSlotStrategy) Name(_ ProbeStrategyExtraParams) string {
 
 // ProbeBalanceSlot For a ERC20 token and a wallet, find the storage slot of the token that contains the wallet's balance of the token.
 // This approach only works if the ERC20 token's contract reads and writes balances directly from and to a mapping.
-func (p *WholeSlotStrategy) ProbeBalanceSlot(token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
+func (p *WholeSlotStrategy) ProbeBalanceSlot(_ context.Context, token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
 	logger.Infof("probing balance slot for wallet %s in token %s\n", p.wallet, token)
 
 	/*

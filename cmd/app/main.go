@@ -322,7 +322,18 @@ func apiAction(c *cli.Context) (err error) {
 		if err != nil {
 			return fmt.Errorf("could not dial JSON-RPC node %w", err)
 		}
-		balanceSlotsProbe := erc20balanceslotuc.NewMultipleStrategy(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet))
+		var balanceSlotsProbe *erc20balanceslotuc.MultipleStrategy
+		if cfg.AEVM.UseHoldersListAsFallback {
+			tokenHoldersRedis, err := redis.New(&cfg.AEVM.TokenHoldersRedis)
+			if err != nil {
+				return err
+			}
+			holdersListRepo := erc20balanceslot.NewHoldersListRedisRepositoryWithCache(tokenHoldersRedis, cfg.AEVM.CachedHoldersListTTLSec)
+			watchlistRepo := erc20balanceslot.NewWatchlistRedisRepository(tokenHoldersRedis)
+			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategyWithHoldersListAsFallback(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet), holdersListRepo, watchlistRepo)
+		} else {
+			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategy(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet))
+		}
 		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe, cfg.AEVM.PredefinedBalanceSlots)
 		if err := balanceSlotsUseCase.PreloadAll(context.Background()); err != nil {
 			logger.Errorf("could not preload balance slots %s", err)
@@ -714,7 +725,18 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 		if err != nil {
 			return fmt.Errorf("could not dial JSON-RPC node %w", err)
 		}
-		balanceSlotsProbe := erc20balanceslotuc.NewMultipleStrategy(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet))
+		var balanceSlotsProbe *erc20balanceslotuc.MultipleStrategy
+		if cfg.AEVM.UseHoldersListAsFallback {
+			tokenHoldersRedis, err := redis.New(&cfg.AEVM.TokenHoldersRedis)
+			if err != nil {
+				return err
+			}
+			holdersListRepo := erc20balanceslot.NewHoldersListRedisRepositoryWithCache(tokenHoldersRedis, cfg.AEVM.CachedHoldersListTTLSec)
+			watchlistRepo := erc20balanceslot.NewWatchlistRedisRepository(tokenHoldersRedis)
+			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategyWithHoldersListAsFallback(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet), holdersListRepo, watchlistRepo)
+		} else {
+			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategy(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet))
+		}
 		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe, cfg.AEVM.PredefinedBalanceSlots)
 		if err := balanceSlotsUseCase.PreloadAll(context.Background()); err != nil {
 			logger.Errorf("could not preload balance slots %s", err)

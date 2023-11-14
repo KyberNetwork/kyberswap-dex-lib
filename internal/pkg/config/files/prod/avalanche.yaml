@@ -302,3 +302,15 @@ aevm:
   serverUrl: "localhost:8246"
   rpc: "http://localhost:9650/ext/bc/C/rpc"
   simulationWallet: "0x47f3c2557364efc28f1269e3169773fa5236384d"
+  useHoldersListAsFallback: false
+  tokenHoldersRedis:
+    addresses:
+    masterName: ""
+    dbNumber: 0
+    password: ""
+    prefix: *chainName
+    readTimeout: 3s
+    writeTimeout: 3s
+    readOnly: false
+    routeRandomly: false
+  cachedHoldersListTTLSec: 30

@@ -32,7 +32,7 @@ func (*testProbe) Name(_ ProbeStrategyExtraParams) string {
 	return "test_probe"
 }
 
-func (*testProbe) ProbeBalanceSlot(token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
+func (*testProbe) ProbeBalanceSlot(_ context.Context, token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
 	m := map[common.Address]common.Hash{
 		common.HexToAddress(btcbAddr):  common.HexToHash("0x4f1749155d837e5f5ef076382254c01af904c6ddb97b100fef402248f448ea99"),
 		common.HexToAddress(wetheAddr): common.HexToHash("0x4f1749155d837e5f5ef076382254c01af904c6ddb97b100fef402248f448ea99"),

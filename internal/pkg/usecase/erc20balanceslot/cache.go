@@ -85,7 +85,7 @@ func (c *Cache) Get(ctx context.Context, token common.Address, pool *dexentity.P
 				Source: common.HexToAddress(pool.Address),
 			}
 		}
-		bl, err := c.probe.ProbeBalanceSlot(token, oldBl, extraParams)
+		bl, err := c.probe.ProbeBalanceSlot(ctx, token, oldBl, extraParams)
 		// store the result
 		if bl != nil {
 			c.cache.Store(token, bl)

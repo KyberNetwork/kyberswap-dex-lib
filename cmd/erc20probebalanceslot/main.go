@@ -211,7 +211,7 @@ func probeBalanceSlotAction(c *cli.Context) error {
 				}
 			}
 		}
-		bl, err := probe.ProbeBalanceSlot(token, oldBl, extraParams)
+		bl, err := probe.ProbeBalanceSlot(context.TODO(), token, oldBl, extraParams)
 		if err != nil {
 			logger.Infof("ERROR: %s\n", err)
 		} else {

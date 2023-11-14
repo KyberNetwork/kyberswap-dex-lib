@@ -17,6 +17,15 @@ type ERC20BalanceSlot struct {
 	ExtraOverrides map[string]string `mapstructure:"extraOverrides" json:"extraOverrides,omitempty"`
 	// The list of attempted strategies.
 	StrategiesAttempted []string `mapstructure:"strategiesAttempted" json:"strategiesAttempted,omitempty"`
+	// Holders list
+	Holders []string `mapstructure:"-" json:"-"`
+}
+
+type ERC20HoldersList struct {
+	// The token itself.
+	Token string `mapstructure:"token" json:"token"`
+	// Holders list
+	Holders []string `mapstructure:"holders" json:"holders"`
 }
 
 type TokenBalanceSlots = map[common.Address]*ERC20BalanceSlot

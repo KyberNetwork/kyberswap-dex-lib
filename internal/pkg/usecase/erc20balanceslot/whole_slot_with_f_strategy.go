@@ -56,10 +56,10 @@ func (*WholeSlotWithFStrategy) Name(_ ProbeStrategyExtraParams) string {
 	return "whole_slot_with_f"
 }
 
-func (p *WholeSlotWithFStrategy) ProbeBalanceSlot(token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
+func (p *WholeSlotWithFStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
 	logger.Infof("[%s] probing balance slot for wallet %s in token %s", p.Name(nil), p.wallet, token)
 
-	blockNumber, err := p.ethClient.BlockNumber(context.Background())
+	blockNumber, err := p.ethClient.BlockNumber(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("could not get latest block number %w", err)
 	}

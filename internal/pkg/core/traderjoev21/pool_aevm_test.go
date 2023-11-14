@@ -8,10 +8,10 @@ import (
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-
-	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
 const (
@@ -36,9 +36,27 @@ var (
 			BalanceSlot: "0xcdd82b6bead1cac3d1e09d54b01220a76c9534fbd5cfb487b133d7568fced94a",
 		},
 	}
+	balanceSlotsWithHoldersList = map[common.Address]*routerentity.ERC20BalanceSlot{
+		common.HexToAddress(btcbAddr): {
+			Token:  btcbAddr,
+			Wallet: "0x47F3C2557364EFC28f1269e3169773fa5236384D",
+			Holders: []string{
+				"0x0000000000000000000000000000000000000000",
+				"0x984425ed5af89d93ed2f11b6b86020e3457bae21",
+			},
+		},
+		common.HexToAddress(usdcAddr): {
+			Token:  usdcAddr,
+			Wallet: "0x47F3C2557364EFC28f1269e3169773fa5236384D",
+			Holders: []string{
+				"0x0000000000000000000000000000000000000000",
+				"0xe86a549cebab14ddff9741fd46e62a60ebff5b23",
+			},
+		},
+	}
 )
 
-func TestCalcAmountOutAEVMWithUSDCE_USDCPoolWithTCPClient(t *testing.T) {
+func TestCalcAmountOutAEVMWithUSDCE_USDCPoolWithGRPCClient(t *testing.T) {
 	t.Skip()
 
 	client, err := aevmclient.NewGRPCClient(aevmServerURL)
@@ -47,39 +65,45 @@ func TestCalcAmountOutAEVMWithUSDCE_USDCPoolWithTCPClient(t *testing.T) {
 	stateRoot, err := client.LatestStateRoot()
 	require.NoError(t, err)
 
-	p, err := NewPoolAEVM(
-		entity.Pool{
-			Address: btcbUSDCPool,
-			Tokens: []*entity.PoolToken{
-				{Address: btcbAddr},
-				{Address: usdcAddr},
-			},
-		},
-		client,
-		common.Hash(stateRoot),
-		balanceSlots,
-	)
-	require.NoError(t, err)
-	result, err := p.CalcAmountOutAEVM(
-		pool.TokenAmount{
-			Token:  btcbAddr,
-			Amount: big.NewInt(1_000_000_00), // 1 BTC
-		},
-		usdcAddr,
-	)
-	require.NoError(t, err)
-	fmt.Printf("swapping 1 BTC.b for USDC amountOut = %s, gas used = %d\n", result.TokenAmountOut.Amount, result.Gas)
-	usdcOut := new(big.Int).Set(result.TokenAmountOut.Amount)
+	names := []string{"without holders lists", "with holders lists"}
+	for i, balanceSlots := range []map[common.Address]*routerentity.ERC20BalanceSlot{balanceSlots, balanceSlotsWithHoldersList} {
+		balanceSlots := balanceSlots
+		t.Run(names[i], func(t *testing.T) {
+			p, err := NewPoolAEVM(
+				entity.Pool{
+					Address: btcbUSDCPool,
+					Tokens: []*entity.PoolToken{
+						{Address: btcbAddr},
+						{Address: usdcAddr},
+					},
+				},
+				client,
+				common.Hash(stateRoot),
+				balanceSlots,
+			)
+			require.NoError(t, err)
+			result, err := p.CalcAmountOutAEVM(
+				pool.TokenAmount{
+					Token:  btcbAddr,
+					Amount: big.NewInt(1_000_000_00), // 1 BTC
+				},
+				usdcAddr,
+			)
+			require.NoError(t, err)
+			fmt.Printf("swapping 1 BTC.b for USDC amountOut = %s, gas used = %d\n", result.TokenAmountOut.Amount, result.Gas)
+			usdcOut := new(big.Int).Set(result.TokenAmountOut.Amount)
 
-	p.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: result.SwapInfo})
+			p.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: result.SwapInfo})
 
-	result, err = p.CalcAmountOutAEVM(
-		pool.TokenAmount{
-			Token:  usdcAddr,
-			Amount: usdcOut,
-		},
-		btcbAddr,
-	)
-	require.NoError(t, err)
-	fmt.Printf("swapping %s USDC for BTC.b amountOut = %s, gas used = %v\n", usdcOut, result.TokenAmountOut.Amount, result.Gas)
+			result, err = p.CalcAmountOutAEVM(
+				pool.TokenAmount{
+					Token:  usdcAddr,
+					Amount: usdcOut,
+				},
+				btcbAddr,
+			)
+			require.NoError(t, err)
+			fmt.Printf("swapping %s USDC for BTC.b amountOut = %s, gas used = %v\n", usdcOut, result.TokenAmountOut.Amount, result.Gas)
+		})
+	}
 }

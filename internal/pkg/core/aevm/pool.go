@@ -13,8 +13,13 @@ import (
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/abis"
 	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/common"
+)
+
+const (
+	maxNumberOfHoldersToTransfer = 10
 )
 
 // AEVMSwapInfo holds related data after a simulation. These data are used for the next simulation of the same pool.
@@ -24,6 +29,8 @@ type AEVMSwapInfo struct {
 
 // AEVMPool a AEVM-integrated pool
 type AEVMPool struct {
+	// Pool address
+	Address gethcommon.Address
 	// Client to communicate with AEVM server to do simulation
 	AEVMClient common.NoDeepClone // aevmclient.Client
 	// The state root to ensure that all simulations are consistent
@@ -185,25 +192,55 @@ func CalcAmountOutAEVM(
 	}
 	// make sure wallet have abundant native tokens
 	overrides.OverrideBalance(wallet, new(uint256.Int).SetUint64(math.MaxUint64))
-	// overriding amountIn if BalanceSlot is specified
-	if blIn.BalanceSlot != "" {
-		var overridedBalance aevmcommon.Hash
-		if blIn.PreferredValue != "" {
-			// Some token stores balance in specical way that we coud only handle case-by-case.
-			overridedBalance = aevmcommon.HexToHash(blIn.PreferredValue)
-			// if overridedBalance < amountIn
-			if new(big.Int).SetBytes(overridedBalance[:]).Cmp(amountIn) < 0 {
-				return nil, fmt.Errorf("overridedBalance must >= amountIn")
+	// if have to use holders
+	var numHolderTransfers int
+	if len(blIn.Holders) > 0 {
+		var sources []gethcommon.Address
+		for _, holder := range blIn.Holders {
+			addr := gethcommon.HexToAddress(holder)
+			// ignore the pool address
+			if addr != p.Address {
+				sources = append(sources, addr)
 			}
-		} else {
-			overridedBalance = uint256.MustFromBig(amountIn).Bytes32()
+			if len(sources) == maxNumberOfHoldersToTransfer {
+				break
+			}
 		}
-		// make sure wallet have enough amountIn
-		overrides.OverrideState(aevmcommon.Address(tokenIn), aevmcommon.HexToHash(blIn.BalanceSlot), overridedBalance)
-	}
-	// override extra if needed
-	for slot, val := range blIn.ExtraOverrides {
-		overrides.OverrideState(aevmcommon.Address(tokenIn), aevmcommon.HexToHash(slot), aevmcommon.HexToHash(val))
+		if len(sources) == 0 {
+			return nil, fmt.Errorf("there is no usable holder from holders list %v", blIn.Holders)
+		}
+		// exaggeratedAmountIn = 1.5 * amountIn to overcome transfer fee
+		exaggeratedAmountIn := new(big.Int).Mul(amountIn, big.NewInt(3))
+		exaggeratedAmountIn.Rsh(exaggeratedAmountIn, 1)
+		var transferCalls []aevmtypes.SingleCall
+		for _, source := range sources {
+			transferInput, _ := abis.ERC20.Pack("transfer", gethcommon.HexToAddress(blIn.Wallet), exaggeratedAmountIn)
+			transferCalls = append(transferCalls, aevmtypes.SingleCall{
+				From:  aevmcommon.Address(source),
+				To:    aevmcommon.Address(tokenIn),
+				Value: uint256.NewInt(0),
+				Data:  transferInput,
+			})
+		}
+		numHolderTransfers = len(transferCalls)
+		calls.PreCalls = append(transferCalls, calls.PreCalls...)
+	} else {
+		// overriding amountIn if BalanceSlot is specified
+		if blIn.BalanceSlot != "" {
+			var overridedBalance aevmcommon.Hash
+			if blIn.PreferredValue != "" {
+				// Some token stores balance in specical way that we coud only handle case-by-case.
+				overridedBalance = aevmcommon.HexToHash(blIn.PreferredValue)
+			} else {
+				overridedBalance = uint256.MustFromBig(amountIn).Bytes32()
+			}
+			// make sure wallet have enough amountIn
+			overrides.OverrideState(aevmcommon.Address(tokenIn), aevmcommon.HexToHash(blIn.BalanceSlot), overridedBalance)
+		}
+		// override extra if needed
+		for slot, val := range blIn.ExtraOverrides {
+			overrides.OverrideState(aevmcommon.Address(tokenIn), aevmcommon.HexToHash(slot), aevmcommon.HexToHash(val))
+		}
 	}
 
 	results, err := p.AEVMClient.Get().(aevmclient.Client).MultipleCall(&aevmtypes.MultipleCallParams{
@@ -224,9 +261,9 @@ func CalcAmountOutAEVM(
 	}
 
 	// make sure all calls are success
-	for _, result := range results.Results {
-		if !result.Success {
-			return nil, fmt.Errorf("simulation returns error %s", result.Error)
+	for i, result := range results.Results {
+		if i >= numHolderTransfers && !result.Success {
+			return nil, fmt.Errorf("simulation call %d/%d returns error: %s", i+1, len(results.Results), result.Error)
 		}
 	}
 
