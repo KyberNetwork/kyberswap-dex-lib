@@ -112,6 +112,7 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 	amount0, amount1 := tokenAmountIn.Amount, result.amountOut
 	feeToAmount0, feeToAmount1 := p.FeeToAmount.Fees0, p.FeeToAmount.Fees1
 	newPriceAverageIn, newPriceAverageOut := priceAverageIn, priceAverageOut
+	newFictiveReserveIn, newFictiveReserveOut := result.newFictiveReserveIn, result.newFictiveReserveOut
 	if zeroForOne {
 		feeToAmount0 = feeToAmount0.Add(
 			feeToAmount0,
@@ -122,6 +123,7 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 			feeToAmount1,
 			new(big.Int).Div(new(big.Int).Mul(amount1, p.PairFee.FeesPool), p.PairFee.FeesBase))
 		newPriceAverageIn, newPriceAverageOut = priceAverageOut, priceAverageIn
+		newFictiveReserveIn, newFictiveReserveOut = result.newFictiveReserveOut, result.newFictiveReserveIn
 	}
 
 	if zeroForOne {
@@ -138,8 +140,8 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 			SwapInfo: SwapInfo{
 				NewReserveIn:              new(big.Int).Sub(result.newReserveIn, feeToAmount0),
 				NewReserveOut:             new(big.Int).Sub(result.newReserveOut, feeToAmount1),
-				NewFictiveReserveIn:       result.newFictiveReserveIn,
-				NewFictiveReserveOut:      result.newFictiveReserveOut,
+				NewFictiveReserveIn:       newFictiveReserveIn,
+				NewFictiveReserveOut:      newFictiveReserveOut,
 				NewPriceAverageIn:         newPriceAverageIn,
 				NewPriceAverageOut:        newPriceAverageOut,
 				PriceAverageLastTimestamp: big.NewInt(userTradeTimestamp),
@@ -162,8 +164,8 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 		SwapInfo: SwapInfo{
 			NewReserveIn:              new(big.Int).Sub(result.newReserveIn, feeToAmount0),
 			NewReserveOut:             new(big.Int).Sub(result.newReserveOut, feeToAmount1),
-			NewFictiveReserveIn:       result.newFictiveReserveIn,
-			NewFictiveReserveOut:      result.newFictiveReserveOut,
+			NewFictiveReserveIn:       newFictiveReserveIn,
+			NewFictiveReserveOut:      newFictiveReserveOut,
 			NewPriceAverageIn:         newPriceAverageIn,
 			NewPriceAverageOut:        newPriceAverageOut,
 			PriceAverageLastTimestamp: big.NewInt(userTradeTimestamp),

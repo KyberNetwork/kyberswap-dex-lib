@@ -155,6 +155,25 @@ func TestGetAmountOut(t *testing.T) {
 			expectedResFictive0: parseString("85593526029"),
 			expectedResFictive1: parseString("7289358689105108450240064"),
 		},
+		{
+			name: "Test case 3",
+			amountParams: GetAmountParameters{
+				amount:            big.NewInt(2000000000000000000),
+				reserveIn:         parseString("3278796445628485066"),
+				reserveOut:        parseString("6213633437"),
+				fictiveReserveIn:  parseString("1602466039436492633"),
+				fictiveReserveOut: parseString("3179127537"),
+				priceAverageIn:    parseString("1602466039436492633"),
+				priceAverageOut:   parseString("3179127537"),
+				feesLP:            FEES_LP_DEFAULT_ETHEREUM,
+				feesPool:          FEES_POOL_DEFAULT_ETHEREUM,
+				feesBase:          FEES_BASE_ETHEREUM},
+			expectedAmountOutT0: parseString("1719846589"),
+			expectedReserve0:    parseString("5278396445628485066"),
+			expectedReserve1:    parseString("4493786848"),
+			expectedResFictive0: parseString("3530568934927624489"),
+			expectedResFictive1: parseString("1317438058"),
+		},
 	}
 
 	for _, tc := range testCases {
