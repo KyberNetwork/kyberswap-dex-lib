@@ -122,7 +122,17 @@ func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) 
 		}, nil
 	}
 
-	return PriceItem{}, nil, ErrNoPriceLevelsForPool
+	// this can happen if PMM remove a pair, we might want to remove it from pool list in the future
+	// for now just empty the pool data
+	logger.WithFields(logger.Fields{
+		"address": p.Address,
+	}).Warnf("no price levels for pool")
+
+	return PriceItem{Bids: [][]string{}, Asks: [][]string{}},
+		map[string]float64{
+			strings.ToLower(staticExtra.BaseTokenAddress):  0,
+			strings.ToLower(staticExtra.QuoteTokenAddress): 0,
+		}, nil
 }
 
 // For computing prices based on a quote token amount
