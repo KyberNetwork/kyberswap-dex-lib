@@ -162,8 +162,8 @@ func (p *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOu
 		SwapInfo: SwapInfo{
 			NewReserveIn:              new(big.Int).Sub(result.newReserveIn, feeToAmount0),
 			NewReserveOut:             new(big.Int).Sub(result.newReserveOut, feeToAmount1),
-			NewFictiveReserveIn:       result.newFictiveReserveIn,
-			NewFictiveReserveOut:      result.newFictiveReserveOut,
+			NewFictiveReserveIn:       result.newFictiveReserveOut,
+			NewFictiveReserveOut:      result.newFictiveReserveIn,
 			NewPriceAverageIn:         newPriceAverageIn,
 			NewPriceAverageOut:        newPriceAverageOut,
 			PriceAverageLastTimestamp: big.NewInt(userTradeTimestamp),
