@@ -19,7 +19,7 @@ func TestCalcAmountOut(t *testing.T) {
 
 	// block 37790183
 
-	amountIn, _ := new(big.Int).SetString("1000000000000000000000000", 10)
+	amountIn, _ := new(big.Int).SetString("800000000000000000000", 10)
 
 	var (
 		tokenAmountIn = pool.TokenAmount{
