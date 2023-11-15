@@ -12,6 +12,7 @@ type PoolStaticExtra struct {
 	Decimal0     *uint256.Int `json:"decimal0"`
 	Decimal1     *uint256.Int `json:"decimal1"`
 	Stable       bool         `json:"stable"`
+	DecBig       *big.Int     `json:"decBig"`
 }
 
 type PoolExtra struct {
