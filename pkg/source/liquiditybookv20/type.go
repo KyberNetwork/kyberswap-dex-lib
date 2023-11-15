@@ -40,9 +40,9 @@ type getSwapOutResult struct {
 }
 
 type SwapInfo struct {
-	BinsReserveChanges []binReserveChanges `json:"binsReserveChanges"`
-	NewFeeParameters   feeParameters       `json:"newFeeParameters"`
-	NewActiveID        uint32              `json:"newActiveId"`
+	BinsReserveChanges []binReserveChanges `json:"-"`
+	NewFeeParameters   feeParameters       `json:"-"`
+	NewActiveID        uint32              `json:"-"`
 }
 
 // rpc

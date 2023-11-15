@@ -17,10 +17,10 @@ type Extra struct {
 }
 
 type SwapInfo struct {
-	AmountsInLeft      *big.Int            `json:"amountsInLeft"`
-	NewParameters      *parameters         `json:"parameters"`
-	NewActiveID        uint32              `json:"newActiveId"`
-	BinsReserveChanges []binReserveChanges `json:"binsReserveChanges"`
+	AmountsInLeft      *big.Int            `json:"-"`
+	NewParameters      *parameters         `json:"-"`
+	NewActiveID        uint32              `json:"-"`
+	BinsReserveChanges []binReserveChanges `json:"-"`
 }
 
 type queryRpcPoolStateResult struct {

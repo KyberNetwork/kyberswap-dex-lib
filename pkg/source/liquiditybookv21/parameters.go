@@ -53,7 +53,7 @@ func (p *parameters) updateTimeOfLastUpdate(blockTimestamp uint64) *parameters {
 
 func (p *parameters) updateVolatilityAccumulator(activeID uint32) *parameters {
 	idReference := uint64(p.VariableFeeParams.IdReference)
-	deltaID := uint64(math.Abs(float64(uint64(activeID) - idReference)))
+	deltaID := uint64(math.Abs(float64(activeID) - float64(idReference)))
 	volAcc := uint64(p.VariableFeeParams.VolatilityReference) + deltaID*basisPointMax
 
 	maxVolAcc := uint64(p.StaticFeeParams.MaxVolatilityAccumulator)
