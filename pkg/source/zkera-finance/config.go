@@ -1,4 +1,4 @@
-package gmx
+package zkerafinance
 
 type Config struct {
 	DexID                   string `json:"-"`

@@ -1,4 +1,4 @@
-package gmx
+package zkerafinance
 
 type VaultAddress struct {
 	Vault string `json:"vault"`

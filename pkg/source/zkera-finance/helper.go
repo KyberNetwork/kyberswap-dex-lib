@@ -1,4 +1,4 @@
-package gmx
+package zkerafinance
 
 import (
 	"github.com/KyberNetwork/ethrpc"

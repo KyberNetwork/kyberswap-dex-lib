@@ -1,4 +1,4 @@
-package gmx
+package zkerafinance
 
 // NOTE: we generate mock files in the same package to avoid cycle dependencies
 //go:generate mockgen -destination ./mock_vault_reader.go -package gmx pool-service/internal/dex/gmx IVaultReader
