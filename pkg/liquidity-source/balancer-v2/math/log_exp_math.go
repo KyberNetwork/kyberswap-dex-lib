@@ -122,7 +122,7 @@ func (l *logExpMath) Pow(x *uint256.Int, y *uint256.Int) (*uint256.Int, error) {
 		ln36X := l._ln_36(x_int256)
 		logXTimesY = new(big.Int).Add(
 			new(big.Int).Mul(new(big.Int).Quo(ln36X, l.ONE_18), y_int256),
-			new(big.Int).Quo(new(big.Int).Mul(new(big.Int).Mod(ln36X, l.ONE_18), y_int256), l.ONE_18),
+			new(big.Int).Quo(new(big.Int).Mul(new(big.Int).Rem(ln36X, l.ONE_18), y_int256), l.ONE_18),
 		)
 	} else {
 		logXTimesY = new(big.Int).Mul(l._ln(y_int256), y_int256)
