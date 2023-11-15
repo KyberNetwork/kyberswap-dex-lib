@@ -17,31 +17,62 @@ func TestCalcAmountOut(t *testing.T) {
 	err := json.Unmarshal([]byte(entityPoolStr), &entityPool)
 	assert.Nil(t, err)
 
-	// block 37790183
-
-	amountIn, _ := new(big.Int).SetString("800000000000000000000", 10)
-
-	var (
-		tokenAmountIn = pool.TokenAmount{
-			Token:  "0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd",
-			Amount: amountIn,
-		}
-		tokenOut = "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
-	)
-
 	simulator, err := NewPoolSimulator(entityPool)
 	assert.Nil(t, err)
 
-	// golang
-	// 0 90948260153 24862109619100446399437
+	// block 37790183
 
-	// contract
-	// 0 90958757972 24731834448460156681880
+	t.Run("should return OK 1", func(t *testing.T) {
+		amountIn, _ := new(big.Int).SetString("800000000000000000000", 10)
 
-	result, err := simulator.CalcAmountOut(tokenAmountIn, tokenOut)
-	assert.Nil(t, err)
+		var (
+			tokenAmountIn = pool.TokenAmount{
+				Token:  "0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd",
+				Amount: amountIn,
+			}
+			tokenOut = "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+		)
 
-	resultMarshaled, err := json.Marshal(result)
-	assert.Nil(t, err)
-	t.Error(string(resultMarshaled))
+		result, err := simulator.CalcAmountOut(tokenAmountIn, tokenOut)
+		assert.Nil(t, err)
+
+		assert.Equal(t, "130852590", result.TokenAmountOut.Amount.String())
+		assert.Equal(t, "6402709418224206221", result.Fee.Amount.String())
+	})
+
+	t.Run("should return OK 2", func(t *testing.T) {
+		amountIn, _ := new(big.Int).SetString("1000000000000000000000000", 10)
+
+		var (
+			tokenAmountIn = pool.TokenAmount{
+				Token:  "0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd",
+				Amount: amountIn,
+			}
+			tokenOut = "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
+		)
+
+		result, err := simulator.CalcAmountOut(tokenAmountIn, tokenOut)
+		assert.Nil(t, err)
+
+		assert.Equal(t, "90958757972", result.TokenAmountOut.Amount.String())
+		assert.Equal(t, "24731834448460156681880", result.Fee.Amount.String())
+	})
+
+	t.Run("should return OK 3", func(t *testing.T) {
+		amountIn, _ := new(big.Int).SetString("6996", 10)
+
+		var (
+			tokenAmountIn = pool.TokenAmount{
+				Token:  "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e",
+				Amount: amountIn,
+			}
+			tokenOut = "0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd"
+		)
+
+		result, err := simulator.CalcAmountOut(tokenAmountIn, tokenOut)
+		assert.Nil(t, err)
+
+		assert.Equal(t, "13062729560279583", result.TokenAmountOut.Amount.String())
+		assert.Equal(t, "175", result.Fee.Amount.String())
+	})
 }
