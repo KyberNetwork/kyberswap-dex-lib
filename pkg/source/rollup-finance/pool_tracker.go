@@ -1,4 +1,4 @@
-package gmx
+package rollupfinance
 
 import (
 	"context"
@@ -34,7 +34,7 @@ func (d *PoolTracker) GetNewPoolState(
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	log := logger.WithFields(logger.Fields{
-		"liquiditySource": DexTypeGmx,
+		"liquiditySource": DexTypeRollupFinance,
 		"poolAddress":     p.Address,
 	})
 	log.Info("Start getting new state of pool")

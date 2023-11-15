@@ -1,4 +1,4 @@
-package gmx
+package rollupfinance
 
 type VaultAddress struct {
 	Vault string `json:"vault"`

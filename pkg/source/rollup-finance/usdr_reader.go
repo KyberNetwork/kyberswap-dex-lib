@@ -1,4 +1,4 @@
-package gmx
+package rollupfinance
 
 import (
 	"context"
@@ -20,7 +20,7 @@ func NewUSDRReader(ethrpcClient *ethrpc.Client) *USDRReader {
 		abi:          erc20ABI,
 		ethrpcClient: ethrpcClient,
 		log: logger.WithFields(logger.Fields{
-			"liquiditySource": DexTypeGmx,
+			"liquiditySource": DexTypeRollupFinance,
 			"reader":          "USDRReader",
 		}),
 	}

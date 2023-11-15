@@ -1,4 +1,4 @@
-package gmx
+package rollupfinance
 
 import (
 	"context"
@@ -39,7 +39,7 @@ func NewVaultScanner(
 		chainlinkFlagsReader:  NewChainlinkFlagsReader(ethrpcClient),
 		pancakePairReader:     NewPancakePairReader(ethrpcClient),
 		log: logger.WithFields(logger.Fields{
-			"liquiditySource": DexTypeGmx,
+			"liquiditySource": DexTypeRollupFinance,
 			"scanner":         "VaultScanner",
 		}),
 	}

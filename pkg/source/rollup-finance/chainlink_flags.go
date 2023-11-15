@@ -1,4 +1,4 @@
-package gmx
+package rollupfinance
 
 type ChainlinkFlags struct {
 	Flags map[string]bool `json:"flags"`

@@ -1,4 +1,4 @@
-package gmx
+package rollupfinance
 
 type Config struct {
 	DexID                   string `json:"-"`

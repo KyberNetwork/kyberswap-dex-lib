@@ -1,4 +1,4 @@
-package gmx
+package rollupfinance
 
 import (
 	"context"
@@ -30,7 +30,7 @@ func NewPoolsListUpdater(
 
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	log := logger.WithFields(logger.Fields{
-		"liquiditySource": DexTypeGmx,
+		"liquiditySource": DexTypeRollupFinance,
 		"kind":            "getNewPools",
 	})
 	if d.hasInitialized {
@@ -65,7 +65,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	pool := entity.Pool{
 		Address:   d.config.VaultAddress,
 		Exchange:  d.config.DexID,
-		Type:      DexTypeGmx,
+		Type:      DexTypeRollupFinance,
 		Tokens:    poolTokens,
 		Reserves:  reserves,
 		Extra:     string(extraBytes),

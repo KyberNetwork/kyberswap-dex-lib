@@ -1,4 +1,4 @@
-package gmx
+package rollupfinance
 
 import (
 	"encoding/json"

@@ -1,4 +1,4 @@
-package gmx
+package rollupfinance
 
 import (
 	"context"
@@ -20,7 +20,7 @@ func NewChainlinkFlagsReader(ethrpcClient *ethrpc.Client) *ChainlinkFlagsReader 
 		abi:          chainlinkABI,
 		ethrpcClient: ethrpcClient,
 		log: logger.WithFields(logger.Fields{
-			"liquiditySource": DexTypeGmx,
+			"liquiditySource": DexTypeRollupFinance,
 			"reader":          "ChainlinkFlagsReader",
 		}),
 	}

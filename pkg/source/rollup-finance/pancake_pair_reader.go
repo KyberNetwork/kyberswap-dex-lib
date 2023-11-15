@@ -1,4 +1,4 @@
-package gmx
+package rollupfinance
 
 import (
 	"context"
@@ -20,7 +20,7 @@ func NewPancakePairReader(ethrpcClient *ethrpc.Client) *PancakePairReader {
 		abi:          pancakePairABI,
 		ethrpcClient: ethrpcClient,
 		log: logger.WithFields(logger.Fields{
-			"liquiditySource": DexTypeGmx,
+			"liquiditySource": DexTypeRollupFinance,
 			"reader":          "PancakePairReader",
 		}),
 	}

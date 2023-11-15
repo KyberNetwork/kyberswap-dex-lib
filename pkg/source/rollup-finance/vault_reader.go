@@ -1,4 +1,4 @@
-package gmx
+package rollupfinance
 
 import (
 	"context"
@@ -22,7 +22,7 @@ func NewVaultReader(ethrpcClient *ethrpc.Client) *VaultReader {
 		abi:          vaultABI,
 		ethrpcClient: ethrpcClient,
 		log: logger.WithFields(logger.Fields{
-			"liquiditySource": DexTypeGmx,
+			"liquiditySource": DexTypeRollupFinance,
 			"reader":          "VaultReader",
 		}),
 	}
