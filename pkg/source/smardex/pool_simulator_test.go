@@ -93,7 +93,7 @@ func TestCalcAmountOut(t *testing.T) {
 	if !ok {
 		t.Fatal(`Swapinfo is nil`)
 	}
-	if newState.NewReserveIn.Cmp(expectedResT0) != 0 {
+	if newState.NewReserveIn.Cmp(new(big.Int).Sub(expectedResT0, newState.FeeToAmount0)) != 0 {
 		t.Fatalf(`Invalid value = %d, expected: %d`, newState.NewReserveIn, expectedResT0)
 	}
 	if newState.NewReserveOut.Cmp(expectedResT1) != 0 {
@@ -309,8 +309,8 @@ func TestUpdateBalance(t *testing.T) {
 	})
 	assert.Equal(t, poolSimulator.FictiveReserve.FictiveReserve0.Cmp(expectedResFicT0), 0)
 	assert.Equal(t, poolSimulator.FictiveReserve.FictiveReserve1.Cmp(expectedResFicT1), 0)
-	assert.Equal(t, poolSimulator.Info.Reserves[0].Cmp(expectedResT0), 0)
-	assert.Equal(t, poolSimulator.Info.Reserves[1].Cmp(expectedResT1), 0)
+	assert.Equal(t, poolSimulator.Info.Reserves[0].Cmp(new(big.Int).Sub(expectedResT0, poolSimulator.FeeToAmount.Fees0)), 0)
+	assert.Equal(t, poolSimulator.Info.Reserves[1].Cmp(new(big.Int).Sub(expectedResT1, poolSimulator.FeeToAmount.Fees1)), 0)
 	assert.Equal(t, poolSimulator.PriceAverage.PriceAverage0.Cmp(priceAvT0), 0)
 	assert.Equal(t, poolSimulator.PriceAverage.PriceAverage1.Cmp(priceAvT1), 0)
 	assert.Equal(t, poolSimulator.PriceAverage.PriceAverageLastTimestamp.Cmp(big.NewInt(TIMESTAMP_JAN_2020)), 0)
