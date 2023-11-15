@@ -15,6 +15,7 @@ require (
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/ethereum/go-ethereum v1.13.4
 	github.com/go-resty/resty/v2 v2.10.0
+	github.com/goccy/go-json v0.10.2
 	github.com/golang/mock v1.6.0
 	github.com/holiman/uint256 v1.2.3
 	github.com/izumiFinance/iZiSwap-SDK-go v1.0.0
@@ -22,13 +23,14 @@ require (
 	github.com/orcaman/concurrent-map v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/samber/lo v1.38.1
-	github.com/sirupsen/logrus v1.9.0
+	github.com/sirupsen/logrus v1.9.3
 	github.com/sourcegraph/conc v0.3.0
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/sync v0.5.0
 )
 
 require (
+	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/bits-and-blooms/bitset v1.11.0 // indirect
 	github.com/btcsuite/btcd/btcec/v2 v2.3.2 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -57,8 +59,10 @@ require (
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/crypto v0.15.0 // indirect
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa // indirect
+	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.18.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/tools v0.15.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	rsc.io/tmplfunc v0.0.3 // indirect
