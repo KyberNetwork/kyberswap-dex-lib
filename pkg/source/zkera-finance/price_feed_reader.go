@@ -20,7 +20,7 @@ func NewPriceFeedReader(ethrpcClient *ethrpc.Client) *PriceFeedReader {
 		abi:          priceFeedABI,
 		ethrpcClient: ethrpcClient,
 		log: logger.WithFields(logger.Fields{
-			"liquiditySource": DexTypeZkEra,
+			"liquiditySource": DexTypeZkEraFinance,
 			"reader":          "PriceFeedReader",
 		}),
 	}

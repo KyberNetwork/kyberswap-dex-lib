@@ -20,7 +20,7 @@ func NewUSDGReader(ethrpcClient *ethrpc.Client) *USDGReader {
 		abi:          erc20ABI,
 		ethrpcClient: ethrpcClient,
 		log: logger.WithFields(logger.Fields{
-			"liquiditySource": DexTypeZkEra,
+			"liquiditySource": DexTypeZkEraFinance,
 			"reader":          "USDGReader",
 		}),
 	}

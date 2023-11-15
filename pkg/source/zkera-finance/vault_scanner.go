@@ -37,7 +37,7 @@ func NewVaultScanner(
 		usdgReader:            NewUSDGReader(ethrpcClient),
 		pancakePairReader:     NewPancakePairReader(ethrpcClient),
 		log: logger.WithFields(logger.Fields{
-			"liquiditySource": DexTypeZkEra,
+			"liquiditySource": DexTypeZkEraFinance,
 			"scanner":         "VaultScanner",
 		}),
 	}

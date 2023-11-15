@@ -34,7 +34,7 @@ func (d *PoolTracker) GetNewPoolState(
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	log := logger.WithFields(logger.Fields{
-		"liquiditySource": DexTypeZkEra,
+		"liquiditySource": DexTypeZkEraFinance,
 		"poolAddress":     p.Address,
 	})
 	log.Info("Start getting new state of pool")

@@ -22,7 +22,7 @@ func NewVaultPriceFeedReader(ethrpcClient *ethrpc.Client) *VaultPriceFeedReader 
 		abi:          vaultPriceFeedABI,
 		ethrpcClient: ethrpcClient,
 		log: logger.WithFields(logger.Fields{
-			"liquiditySource": DexTypeZkEra,
+			"liquiditySource": DexTypeZkEraFinance,
 			"reader":          "VaultPriceFeedReader",
 		}),
 	}

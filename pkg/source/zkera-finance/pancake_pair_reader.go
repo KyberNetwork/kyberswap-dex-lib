@@ -20,7 +20,7 @@ func NewPancakePairReader(ethrpcClient *ethrpc.Client) *PancakePairReader {
 		abi:          pancakePairABI,
 		ethrpcClient: ethrpcClient,
 		log: logger.WithFields(logger.Fields{
-			"liquiditySource": DexTypeZkEra,
+			"liquiditySource": DexTypeZkEraFinance,
 			"reader":          "PancakePairReader",
 		}),
 	}

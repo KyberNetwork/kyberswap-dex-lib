@@ -21,7 +21,7 @@ func NewFastPriceFeedV2Reader(ethrpcClient *ethrpc.Client) *FastPriceFeedV2Reade
 		abi:          fastPriceFeedV2ABI,
 		ethrpcClient: ethrpcClient,
 		log: logger.WithFields(logger.Fields{
-			"liquiditySource": DexTypeZkEra,
+			"liquiditySource": DexTypeZkEraFinance,
 			"reader":          "FastPriceFeedV2Reader",
 		}),
 	}
