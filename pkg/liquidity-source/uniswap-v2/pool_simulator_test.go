@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -67,7 +68,11 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := tc.poolSimulator.CalcAmountOut(tc.tokenAmountIn, tc.tokenOut)
+			result, err := tc.poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tc.tokenAmountIn,
+				TokenOut:      tc.tokenOut,
+				Limit:         nil,
+			})
 
 			if tc.expectedError != nil {
 				assert.ErrorIs(t, tc.expectedError, err)
@@ -216,7 +221,11 @@ func BenchmarkPoolSimulatorCalcAmountOut(b *testing.B) {
 	for _, tc := range testCases {
 		b.Run(tc.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				_, _ = tc.poolSimulator.CalcAmountOut(tc.tokenAmountIn, tc.tokenOut)
+				_, _ = tc.poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+					TokenAmountIn: tc.tokenAmountIn,
+					TokenOut:      tc.tokenOut,
+					Limit:         nil,
+				})
 			}
 		})
 	}

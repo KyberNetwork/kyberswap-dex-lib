@@ -48,10 +48,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (t *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	tokenInIdx := t.Info.GetTokenIndex(tokenAmountIn.Token)
 	if tokenInIdx < 0 {
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("invalid token in: %s", tokenAmountIn.Token)

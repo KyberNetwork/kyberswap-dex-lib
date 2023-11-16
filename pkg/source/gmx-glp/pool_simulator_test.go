@@ -1,11 +1,13 @@
 package gmxglp
 
 import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestPoolSimulator_MintAndStakeGlp(t *testing.T) {
@@ -77,7 +79,11 @@ func TestPoolSimulator_MintAndStakeGlp(t *testing.T) {
 			pool, err := NewPoolSimulator(tc.entityPool)
 			assert.Nil(t, err)
 
-			_, err = pool.CalcAmountOut(tc.tokenAmountIn, tc.tokenOut)
+			_, err = pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
+				TokenAmountIn: tc.tokenAmountIn,
+				TokenOut:      tc.tokenOut,
+				Limit:         nil,
+			})
 
 			assert.Equal(t, tc.expectedErr, err)
 			//assert.Equal(t, tc.expectedAmountOut, calcAmountOutResult.TokenAmountOut.Amount.String())

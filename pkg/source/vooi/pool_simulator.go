@@ -90,9 +90,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 // CalcAmountOut calculate amount out from amount in, token in and token out
 // Reference: https://lineascan.build/address/0xBc7f67fA9C72f9fcCf917cBCEe2a50dEb031462A
 func (s *PoolSimulator) CalcAmountOut(
-	tokenAmountIn poolpkg.TokenAmount,
-	tokenOut string,
+	param poolpkg.CalcAmountOutParams,
 ) (*poolpkg.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	if s.paused {
 		return nil, ErrPoolIsPaused
 	}

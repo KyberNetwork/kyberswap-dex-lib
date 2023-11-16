@@ -75,10 +75,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 // Swapping between token0 and token1 has the same logic but using different configs, such as Token0FeePercent or Token1FeePercent
 // ,so I implemented two different functions to reduce if/else statements
 // https://arbiscan.deth.net/address/0x84652bb2539513BAf36e225c930Fdd8eaa63CE27
-func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	if strings.EqualFold(tokenAmountIn.Token, p.Info.Tokens[0]) {
 		return p._swap0To1(tokenAmountIn, tokenOut)
 	}

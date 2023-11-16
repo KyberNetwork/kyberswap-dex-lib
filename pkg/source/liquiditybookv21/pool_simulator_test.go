@@ -33,7 +33,11 @@ func TestCalcAmountOut(t *testing.T) {
 			tokenOut = "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
 		)
 
-		result, err := simulator.CalcAmountOut(tokenAmountIn, tokenOut)
+		result, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: tokenAmountIn,
+			TokenOut:      tokenOut,
+			Limit:         nil,
+		})
 		assert.Nil(t, err)
 
 		assert.Equal(t, "130852590", result.TokenAmountOut.Amount.String())
@@ -51,7 +55,11 @@ func TestCalcAmountOut(t *testing.T) {
 			tokenOut = "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
 		)
 
-		result, err := simulator.CalcAmountOut(tokenAmountIn, tokenOut)
+		result, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: tokenAmountIn,
+			TokenOut:      tokenOut,
+			Limit:         nil,
+		})
 		assert.Nil(t, err)
 
 		assert.Equal(t, "90958757972", result.TokenAmountOut.Amount.String())
@@ -69,7 +77,11 @@ func TestCalcAmountOut(t *testing.T) {
 			tokenOut = "0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd"
 		)
 
-		result, err := simulator.CalcAmountOut(tokenAmountIn, tokenOut)
+		result, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: tokenAmountIn,
+			TokenOut:      tokenOut,
+			Limit:         nil,
+		})
 		assert.Nil(t, err)
 
 		assert.Equal(t, "13062729560279583", result.TokenAmountOut.Amount.String())

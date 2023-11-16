@@ -26,7 +26,12 @@ func TestSwap_2token(t *testing.T) {
 	var p, err = NewPoolSimulator(poolInfo)
 	require.Nil(t, err)
 
-	result, err := p.CalcAmountOut(pool.TokenAmount{Token: "BAL", Amount: big.NewInt(1000)}, "WETH")
+	result, err := p.CalcAmountOut(
+		pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: "BAL", Amount: big.NewInt(1000)},
+			TokenOut:      "WETH",
+			Limit:         nil,
+		})
 	require.Nil(t, err)
 	assert.Equal(t, big.NewInt(5), result.TokenAmountOut.Amount)
 	assert.Equal(t, big.NewInt(3), result.Fee.Amount)
@@ -51,13 +56,21 @@ func TestSwap_3token(t *testing.T) {
 	assert.Equal(t, 0, len(p.CanSwapTo("BALxx")))
 
 	// weight(BAL)/weight(WETH) is still the same as above, so amount out should be the same
-	result, err := p.CalcAmountOut(pool.TokenAmount{Token: "BAL", Amount: big.NewInt(1000)}, "WETH")
+	result, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: "BAL", Amount: big.NewInt(1000)},
+		TokenOut:      "WETH",
+		Limit:         nil,
+	})
 	require.Nil(t, err)
 	assert.Equal(t, big.NewInt(5), result.TokenAmountOut.Amount)
 	assert.Equal(t, big.NewInt(3), result.Fee.Amount)
 
 	// BAL -> DAI
-	result, err = p.CalcAmountOut(pool.TokenAmount{Token: "BAL", Amount: big.NewInt(1000)}, "DAI")
+	result, err = p.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{Token: "BAL", Amount: big.NewInt(1000)},
+		TokenOut:      "DAI",
+		Limit:         nil,
+	})
 	require.Nil(t, err)
 	assert.Equal(t, big.NewInt(47), result.TokenAmountOut.Amount)
 	assert.Equal(t, big.NewInt(3), result.Fee.Amount)

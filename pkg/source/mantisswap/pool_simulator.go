@@ -3,9 +3,11 @@ package mantisswap
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/KyberNetwork/logger"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/logger"
 )
 
 type PoolSimulator struct {
@@ -48,7 +50,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(tokenAmountIn pool.TokenAmount, tokenOut string) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	tokenInIndex := p.GetTokenIndex(tokenAmountIn.Token)
 	tokenOutIndex := p.GetTokenIndex(tokenOut)
 

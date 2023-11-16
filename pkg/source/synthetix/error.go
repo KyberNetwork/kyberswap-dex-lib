@@ -24,4 +24,5 @@ var (
 	ErrDestSynthTooVolatile          = errors.New("dest synth too volatile")
 	ErrSurpassedVolumeLimit          = errors.New("surpassed volume limit")
 	ErrInvalidLastAtomicVolume       = errors.New("invalid LastAtomicVolume")
+	ErrNoSwapLimit                   = errors.New("swap limit is required for Synthetix")
 )

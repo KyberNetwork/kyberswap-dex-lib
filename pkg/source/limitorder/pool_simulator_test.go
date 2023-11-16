@@ -171,7 +171,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							MakerAsset:         "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
 							Maker:              "0xa246ec8bf7f2e54cc2f7bfdd869302ae4a08a590",
 							Receiver:           "0xa246ec8bf7f2e54cc2f7bfdd869302ae4a08a590",
-							FeeConfig:            "100",
+							FeeConfig:          "100",
 							FeeRecipient:       "0x0000000000000000000000000000000000000000",
 							AllowedSenders:     "0x0000000000000000000000000000000000000000",
 							MakerAssetData:     "",
@@ -844,7 +844,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p, err := NewPoolSimulator(tt.poolEntity)
 			assert.Equal(t, nil, err)
-			got, err := p.CalcAmountOut(tt.args.tokenAmountIn, tt.args.tokenOut)
+			got, err := p.CalcAmountOut(
+				pool.CalcAmountOutParams{
+					TokenAmountIn: tt.args.tokenAmountIn,
+					TokenOut:      tt.args.tokenOut,
+					Limit:         nil,
+				})
 			assert.Equal(t, tt.err, err)
 			assert.Equal(t, tt.want, got)
 		})
