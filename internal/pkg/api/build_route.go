@@ -86,6 +86,7 @@ func transformBuildRouteParams(params params.BuildRouteParams, nowFunc func() ti
 		Recipient:           params.Recipient,
 		Referral:            params.Referral,
 		Source:              params.Source,
+		Sender:              params.Sender,
 		Permit:              permit,
 		EnableGasEstimation: params.EnableGasEstimation,
 	}, nil

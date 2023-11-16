@@ -72,6 +72,12 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    "amountIn is greater than max allowed",
 	},
 
+	buildroute.ErrSenderEmptyWhenEnableEstimateGas: {
+		HTTPStatus: http.StatusBadRequest,
+		Code:       40010,
+		Message:    "sender address can not be empty when enable gas estimation",
+	},
+
 	getroute.ErrPoolSetEmpty: {
 		HTTPStatus: http.StatusBadRequest,
 		Code:       4010,

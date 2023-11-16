@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/helper"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -96,6 +97,9 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	estimatedGas := uint64(routeSummary.Gas)
 	gasInUSD := routeSummary.GasUSD
 	if uc.config.FeatureFlags.IsGasEstimatorEnabled && command.EnableGasEstimation {
+		if utils.IsEmptyString(command.Sender) {
+			return nil, ErrSenderEmptyWhenEnableEstimateGas
+		}
 		estimatedGas, gasInUSD, err = uc.estimateGas(ctx, command, encodedData)
 		if err != nil {
 			return nil, err
