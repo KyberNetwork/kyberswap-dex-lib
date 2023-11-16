@@ -31,10 +31,6 @@ type PoolSimulator struct {
 	gas    Gas
 }
 
-func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	return nil
-}
-
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	if len(entityPool.StaticExtra) == 0 {
 		return nil, ErrStaticExtraEmpty

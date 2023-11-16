@@ -14,10 +14,6 @@ import (
 
 var now = time.Now
 
-func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	return nil
-}
-
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var pair SmardexPair
 	if err := json.Unmarshal([]byte(entityPool.Extra), &pair); err != nil {

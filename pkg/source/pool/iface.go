@@ -29,6 +29,8 @@ type IPoolTracker interface {
 
 type IPoolSimulator interface {
 	// CalcAmountOut amountOut, fee, gas
+	// the required params is TokenAmountIn and TokenOut.
+	// SwapLimit is optional, individual dex logic will chose to ignore it if it is nill
 	CalcAmountOut(params CalcAmountOutParams) (*CalcAmountOutResult, error)
 	UpdateBalance(params UpdateBalanceParams)
 	CanSwapTo(address string) []string

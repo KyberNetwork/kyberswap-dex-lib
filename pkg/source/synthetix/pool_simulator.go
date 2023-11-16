@@ -71,7 +71,9 @@ func (p *PoolSimulator) CalcAmountOut(
 		tokenOut      = param.TokenOut
 		limit         = param.Limit
 	)
-
+	if limit == nil {
+		return nil, ErrNoSwapLimit
+	}
 	amountOutAfterFees, feeAmount, err := p.getAmountOut(
 		p.getCurrencyKeyFromToken(tokenAmountIn.Token),
 		p.getCurrencyKeyFromToken(tokenOut),

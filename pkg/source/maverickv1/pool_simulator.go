@@ -19,10 +19,6 @@ type Pool struct {
 	gas      Gas
 }
 
-func (p *Pool) CalculateLimit() map[string]*big.Int {
-	return nil
-}
-
 func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {

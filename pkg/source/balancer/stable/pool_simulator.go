@@ -26,10 +26,6 @@ type StablePool struct {
 	gas            balancer.Gas
 }
 
-func (p *StablePool) CalculateLimit() map[string]*big.Int {
-	return nil
-}
-
 func NewPoolSimulator(entityPool entity.Pool) (*StablePool, error) {
 	var staticExtra balancer.StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {

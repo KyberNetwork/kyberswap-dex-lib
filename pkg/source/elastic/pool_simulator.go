@@ -32,10 +32,6 @@ type PoolSimulator struct {
 	tickMax     int
 }
 
-func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	return nil
-}
-
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {

@@ -31,10 +31,6 @@ type Gas struct {
 	Exchange int64
 }
 
-func (p *AavePool) CalculateLimit() map[string]*big.Int {
-	return nil
-}
-
 func NewPoolSimulator(entityPool entity.Pool) (*AavePool, error) {
 	var staticExtra curve.PoolAaveStaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {

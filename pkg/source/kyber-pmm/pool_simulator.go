@@ -109,6 +109,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 func (p *PoolSimulator) CalcAmountOut(
 	param pool.CalcAmountOutParams,
 ) (result *pool.CalcAmountOutResult, err error) {
+	if param.Limit == nil {
+		return nil, ErrNoSwapLimit
+	}
 	var (
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut
@@ -126,7 +129,6 @@ func (p *PoolSimulator) CalcAmountOut(
 	}
 
 	var inventoryLimit *big.Int
-
 	if swapDirection == SwapDirectionBaseToQuote {
 		inventoryLimit = limit.GetLimit(p.quoteToken.Address)
 	} else {

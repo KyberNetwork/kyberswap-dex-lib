@@ -23,10 +23,6 @@ type PoolSimulator struct {
 	bins           []bin
 }
 
-func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	return nil
-}
-
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var (
 		tokens   = make([]string, 2)

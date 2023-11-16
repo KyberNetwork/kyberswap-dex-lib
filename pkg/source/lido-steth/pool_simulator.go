@@ -17,10 +17,6 @@ type PoolSimulator struct {
 	chainID valueobject.ChainID
 }
 
-func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	return nil
-}
-
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	numTokens := len(entityPool.Tokens)
 	if numTokens != 2 || !isWrappedEther(entityPool.Tokens[0].Address, chainID) {

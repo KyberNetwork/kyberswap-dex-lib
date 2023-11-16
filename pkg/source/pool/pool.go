@@ -27,6 +27,10 @@ func (t *Pool) GetReserves() []*big.Int {
 	return t.Info.Reserves
 }
 
+func (t *Pool) CalculateLimit() map[string]*big.Int {
+	return nil
+}
+
 // CanSwapTo is the base method to get all swappable tokens from a pool by a given token address
 // Pools with custom logic should override this method
 func (t *Pool) CanSwapTo(address string) []string {

@@ -46,10 +46,6 @@ type Gas struct {
 	Exchange int64
 }
 
-func (p *Pool) CalculateLimit() map[string]*big.Int {
-	return nil
-}
-
 func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	var staticExtra curve.PoolTricryptoStaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {

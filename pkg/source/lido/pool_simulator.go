@@ -24,10 +24,6 @@ type Gas struct {
 	Unwrap int64
 }
 
-func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	return nil
-}
-
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var numTokens = len(entityPool.Tokens)
 	var tokens = make([]string, numTokens)

@@ -23,10 +23,6 @@ type WeightedPool2Tokens struct {
 	gas          balancer.Gas
 }
 
-func (p *WeightedPool2Tokens) CalculateLimit() map[string]*big.Int {
-	return nil
-}
-
 func NewPoolSimulator(entityPool entity.Pool) (*WeightedPool2Tokens, error) {
 	var staticExtra balancer.StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
