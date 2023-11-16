@@ -3,16 +3,15 @@ package uniswapv2
 import "math/big"
 
 type ReserveData struct {
-	Reserve0    *big.Int
-	Reserve1    *big.Int
-	BlockNumber uint64
+	Reserve0 *big.Int
+	Reserve1 *big.Int
 }
 
 func (d ReserveData) IsZero() bool {
-	return d.Reserve0 == nil && d.Reserve1 == nil && d.BlockNumber == 0
+	return d.Reserve0 == nil && d.Reserve1 == nil
 }
 
-type StaticExtra struct {
+type Extra struct {
 	Fee          uint64 `json:"fee"`
 	FeePrecision uint64 `json:"feePrecision"`
 }

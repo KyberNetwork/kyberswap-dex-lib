@@ -1,6 +1,10 @@
 package uniswapv2
 
-import "github.com/ethereum/go-ethereum/core/types"
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/core/types"
+)
 
 type LogDecoder struct{}
 
@@ -8,28 +12,27 @@ func NewLogDecoder() *LogDecoder {
 	return &LogDecoder{}
 }
 
-func (d *LogDecoder) Decode(logs []types.Log) (ReserveData, error) {
+func (d *LogDecoder) Decode(logs []types.Log) (ReserveData, *big.Int, error) {
 	latestSyncEvent := d.findLatestSyncEvent(logs)
 
 	if len(latestSyncEvent.Data) == 0 {
-		return ReserveData{}, nil
+		return ReserveData{}, nil, nil
 	}
 
 	filterer, err := NewUniswapFilterer(latestSyncEvent.Address, nil)
 	if err != nil {
-		return ReserveData{}, err
+		return ReserveData{}, nil, err
 	}
 
 	syncEvent, err := filterer.ParseSync(latestSyncEvent)
 	if err != nil {
-		return ReserveData{}, err
+		return ReserveData{}, nil, err
 	}
 
 	return ReserveData{
-		Reserve0:    syncEvent.Reserve0,
-		Reserve1:    syncEvent.Reserve1,
-		BlockNumber: syncEvent.Raw.BlockNumber,
-	}, nil
+		Reserve0: syncEvent.Reserve0,
+		Reserve1: syncEvent.Reserve1,
+	}, new(big.Int).SetUint64(syncEvent.Raw.BlockNumber), nil
 }
 
 func (d *LogDecoder) findLatestSyncEvent(logs []types.Log) types.Log {
