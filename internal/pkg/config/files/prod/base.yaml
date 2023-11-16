@@ -262,7 +262,6 @@ useCase:
           chainID: *chainId
           limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
   poolFactory:
-  poolFactory:
     chainId: *chainId
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
