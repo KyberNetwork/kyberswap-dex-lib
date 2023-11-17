@@ -2,7 +2,6 @@ package uniswapv3
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
@@ -233,11 +233,11 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 
 func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]TickResp, error) {
 	allowSubgraphError := d.config.IsAllowSubgraphError()
-	skip := 0
+	lastTickIdx := ""
 	var ticks []TickResp
 
 	for {
-		req := graphql.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, skip))
+		req := graphql.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
 
 		var resp struct {
 			Pool *SubgraphPoolTicks        `json:"pool"`
@@ -279,11 +279,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 			break
 		}
 
-		skip += len(resp.Pool.Ticks)
-		if skip > graphSkipLimit {
-			logger.Infoln("hit skip limit, continue in next cycle")
-			break
-		}
+		lastTickIdx = resp.Pool.Ticks[len(resp.Pool.Ticks)-1].TickIdx
 	}
 
 	return ticks, nil
