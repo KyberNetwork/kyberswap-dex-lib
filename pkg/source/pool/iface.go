@@ -32,6 +32,10 @@ type IPoolSimulator interface {
 	// the required params is TokenAmountIn and TokenOut.
 	// SwapLimit is optional, individual dex logic will chose to ignore it if it is nill
 	CalcAmountOut(params CalcAmountOutParams) (*CalcAmountOutResult, error)
+	// CalcAmountIn returns amountIn, fee, gas
+	// the required params is TokenAmountOut and TokenIn.
+	// SwapLimit is optional, individual dex logic will chose to ignore it if it is nil
+	CalcAmountIn(param CalcAmountInParams) (*CalcAmountInResult, error)
 	UpdateBalance(params UpdateBalanceParams)
 	CanSwapTo(address string) []string
 	CanSwapFrom(address string) []string

@@ -17,12 +17,14 @@ import (
 )
 
 var (
-	ErrInvalidToken            = errors.New("invalid token")
-	ErrInvalidReserve          = errors.New("invalid reserve")
-	ErrInvalidAmountIn         = errors.New("invalid amount in")
-	ErrInsufficientInputAmount = errors.New("INSUFFICIENT_INPUT_AMOUNT")
-	ErrInsufficientLiquidity   = errors.New("INSUFFICIENT_LIQUIDITY")
-	ErrInvalidK                = errors.New("K")
+	ErrInvalidToken             = errors.New("invalid token")
+	ErrInvalidReserve           = errors.New("invalid reserve")
+	ErrInvalidAmountIn          = errors.New("invalid amount in")
+	ErrInsufficientInputAmount  = errors.New("INSUFFICIENT_INPUT_AMOUNT")
+	ErrInvalidAmountOut         = errors.New("invalid amount out")
+	ErrInsufficientOutputAmount = errors.New("INSUFFICIENT_OUTPUT_AMOUNT")
+	ErrInsufficientLiquidity    = errors.New("INSUFFICIENT_LIQUIDITY")
+	ErrInvalidK                 = errors.New("K")
 )
 
 type (
@@ -123,6 +125,68 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}, nil
 }
 
+func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
+	var (
+		tokenAmountOut = param.TokenAmountOut
+		tokenIn        = param.TokenIn
+	)
+	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenAmountOut.Token)
+	if indexIn < 0 || indexOut < 0 {
+		return nil, ErrInvalidToken
+	}
+
+	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
+	if overflow {
+		return nil, ErrInvalidAmountOut
+	}
+
+	if amountOut.Cmp(number.Zero) <= 0 {
+		return nil, ErrInsufficientOutputAmount
+	}
+
+	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
+	if overflow {
+		return nil, ErrInvalidReserve
+	}
+
+	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
+	if overflow {
+		return nil, ErrInvalidReserve
+	}
+
+	if reserveIn.Cmp(number.Zero) <= 0 || reserveOut.Cmp(number.Zero) <= 0 {
+		return nil, ErrInsufficientLiquidity
+	}
+
+	amountIn := s.getAmountIn(amountOut, reserveIn, reserveOut)
+	if amountIn.Cmp(reserveIn) > 0 {
+		return nil, ErrInsufficientLiquidity
+	}
+
+	balanceIn := new(uint256.Int).Add(reserveIn, amountIn)
+	balanceOut := new(uint256.Int).Sub(reserveOut, amountOut)
+
+	balanceInAdjusted := new(uint256.Int).Sub(
+		new(uint256.Int).Mul(balanceIn, s.feePrecision),
+		new(uint256.Int).Mul(amountIn, s.fee),
+	)
+	balanceOutAdjusted := new(uint256.Int).Mul(balanceOut, s.feePrecision)
+
+	kBefore := new(uint256.Int).Mul(new(uint256.Int).Mul(reserveIn, reserveOut), new(uint256.Int).Mul(s.feePrecision, s.feePrecision))
+	kAfter := new(uint256.Int).Mul(balanceInAdjusted, balanceOutAdjusted)
+
+	if kAfter.Cmp(kBefore) < 0 {
+		return nil, ErrInvalidK
+	}
+
+	return &poolpkg.CalcAmountInResult{
+		TokenAmountIn: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountIn.ToBig()},
+		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
+		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
+		Gas: s.gas.Swap,
+	}, nil
+}
+
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	indexIn := s.GetTokenIndex(params.TokenAmountIn.Token)
 	indexOut := s.GetTokenIndex(params.TokenAmountOut.Token)
@@ -147,4 +211,17 @@ func (s *PoolSimulator) getAmountOut(amountIn, reserveIn, reserveOut *uint256.In
 	denominator := new(uint256.Int).Add(new(uint256.Int).Mul(reserveIn, s.feePrecision), amountInWithFee)
 
 	return new(uint256.Int).Div(numerator, denominator)
+}
+
+func (s *PoolSimulator) getAmountIn(amountOut, reserveIn, reserveOut *uint256.Int) *uint256.Int {
+	numerator := new(uint256.Int).Mul(
+		new(uint256.Int).Mul(reserveIn, amountOut),
+		s.feePrecision,
+	)
+	denominator := new(uint256.Int).Mul(
+		new(uint256.Int).Sub(reserveOut, amountOut),
+		new(uint256.Int).Sub(s.feePrecision, s.fee),
+	)
+
+	return new(uint256.Int).Add(new(uint256.Int).Div(numerator, denominator), number.Number_1)
 }
