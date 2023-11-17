@@ -88,7 +88,13 @@ func getPoolTicksQuery(allowSubgraphError bool, poolAddress string, skip int) st
 			id: "{{.PoolAddress}}"
 		) {
 			id
-			ticks(orderBy: tickIdx, orderDirection: asc, first: 1000, skip: {{.Skip}}) {
+			ticks(
+				where: { liquidityGross_not: 0 }
+				orderBy: tickIdx,
+				orderDirection: asc,
+				first: 1000,
+				skip: {{.Skip}}
+			) {
 				tickIdx
 				liquidityNet
 				liquidityGross
