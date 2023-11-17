@@ -180,7 +180,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 		return nil, err
 	}
 
-	staticExtra, err := u.newStaticExtra(u.config.Fee, u.config.FeePrecision)
+	extra, err := u.newExtra(u.config.Fee, u.config.FeePrecision)
 	if err != nil {
 		return nil, err
 	}
@@ -199,13 +199,13 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 		}
 
 		var newPool = entity.Pool{
-			Address:     strings.ToLower(pairAddress.Hex()),
-			Exchange:    u.config.DexID,
-			Type:        DexType,
-			Timestamp:   time.Now().Unix(),
-			Reserves:    []string{"0", "0"},
-			Tokens:      []*entity.PoolToken{token0, token1},
-			StaticExtra: string(staticExtra),
+			Address:   strings.ToLower(pairAddress.Hex()),
+			Exchange:  u.config.DexID,
+			Type:      DexType,
+			Timestamp: time.Now().Unix(),
+			Reserves:  []string{"0", "0"},
+			Tokens:    []*entity.PoolToken{token0, token1},
+			Extra:     string(extra),
 		}
 
 		pools = append(pools, newPool)
@@ -259,13 +259,13 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 	return metadataBytes, nil
 }
 
-func (u *PoolsListUpdater) newStaticExtra(fee uint64, feePrecision uint64) ([]byte, error) {
-	staticExtra := StaticExtra{
+func (u *PoolsListUpdater) newExtra(fee uint64, feePrecision uint64) ([]byte, error) {
+	extra := Extra{
 		Fee:          fee,
 		FeePrecision: feePrecision,
 	}
 
-	return json.Marshal(staticExtra)
+	return json.Marshal(extra)
 }
 
 // getBatchSize
