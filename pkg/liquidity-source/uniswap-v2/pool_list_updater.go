@@ -260,12 +260,12 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 }
 
 func (u *PoolsListUpdater) newExtra(fee uint64, feePrecision uint64) ([]byte, error) {
-	staticExtra := Extra{
+	extra := Extra{
 		Fee:          fee,
 		FeePrecision: feePrecision,
 	}
 
-	return json.Marshal(staticExtra)
+	return json.Marshal(extra)
 }
 
 // getBatchSize
