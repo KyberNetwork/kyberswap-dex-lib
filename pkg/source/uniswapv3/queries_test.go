@@ -98,16 +98,24 @@ func TestQueriesUniswapV3_GetPoolTicksQuery(t *testing.T) {
 			id: "%v"
 		) {
 			id
-			ticks(orderBy: tickIdx, orderDirection: asc, first: 1000, skip: %v) {
+			ticks(
+				where: {
+					tickIdx_gt: %v,
+					liquidityGross_not: 0
+				},
+				orderBy: tickIdx,
+				orderDirection: asc,
+				first: 1000
+			) {
 				tickIdx
 				liquidityNet
 				liquidityGross
 			}
 		}
 		_meta { block { timestamp }}
-	}`, "abc", 0)
+	}`, "abc", "0")
 
-		actual := getPoolTicksQuery(true, "abc", 0)
+		actual := getPoolTicksQuery(true, "abc", "0")
 
 		assert.Equal(t, expect, actual)
 	})
@@ -119,16 +127,24 @@ func TestQueriesUniswapV3_GetPoolTicksQuery(t *testing.T) {
 			id: "%v"
 		) {
 			id
-			ticks(orderBy: tickIdx, orderDirection: asc, first: 1000, skip: %v) {
+			ticks(
+				where: {
+					tickIdx_gt: %v,
+					liquidityGross_not: 0
+				},
+				orderBy: tickIdx,
+				orderDirection: asc,
+				first: 1000
+			) {
 				tickIdx
 				liquidityNet
 				liquidityGross
 			}
 		}
 		_meta { block { timestamp }}
-	}`, "abc", 0)
+	}`, "abc", "0")
 
-		actual := getPoolTicksQuery(false, "abc", 0)
+		actual := getPoolTicksQuery(false, "abc", "0")
 
 		assert.Equal(t, expect, actual)
 	})
