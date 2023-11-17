@@ -23,7 +23,7 @@ type (
 		ethrpcClient *ethrpc.Client
 	}
 
-	// MMFFeeTracker gets fee from pair contract `getFee`
+	// MMFFeeTracker gets fee from pair contract `swapFee`
 	MMFFeeTracker struct {
 		ethrpcClient *ethrpc.Client
 	}
@@ -70,14 +70,14 @@ func (t *MMFFeeTracker) GetFee(
 	_ string,
 	blockNumber *big.Int,
 ) (uint64, error) {
-	var fee *big.Int
+	var fee uint32
 
 	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 
 	getFeeRequest.AddCall(&ethrpc.Call{
 		ABI:    meerkatPairABI,
 		Target: poolAddress,
-		Method: meerkatPairMethodGetFee,
+		Method: meerkatPairMethodSwapFee,
 		Params: nil,
 	}, []interface{}{&fee})
 
@@ -86,7 +86,7 @@ func (t *MMFFeeTracker) GetFee(
 		return 0, err
 	}
 
-	return fee.Uint64(), nil
+	return uint64(fee), nil
 }
 
 func (t *ShibaswapFeeTracker) GetFee(

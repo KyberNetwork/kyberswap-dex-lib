@@ -18,7 +18,7 @@ const (
 	pairMethodToken1      = "token1"
 	pairMethodGetReserves = "getReserves"
 
-	meerkatPairMethodGetFee                    = "getFee"
+	meerkatPairMethodSwapFee                   = "swapFee"
 	mdexFactoryMethodGetPairFees               = "getPairFees"
 	shibaswapPairMethodTotalFee                = "totalFee"
 	croDefiSwapFactoryMethodTotalFeeBasisPoint = "totalFeeBasisPoint"
