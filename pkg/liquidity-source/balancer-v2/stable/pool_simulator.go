@@ -94,9 +94,9 @@ func _upscaleArray(reserves []*big.Int, scalingFactors []*uint256.Int) ([]*uint2
 }
 
 func _upscale(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
-	return math.Math.Mul(amount, scalingFactor)
+	return math.FixedPoint.MulDown(amount, scalingFactor)
 }
 
 func _downscaleDown(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
-	return math.Math.DivDown(amount, scalingFactor)
+	return math.FixedPoint.DivDown(amount, scalingFactor)
 }
