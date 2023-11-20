@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	gEthCommon "github.com/ethereum/go-ethereum/common"
+	"github.com/huandu/go-clone"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
@@ -299,7 +300,7 @@ func (uc *useCase) generateBestPaths(
 				PoolBucket:        valueobject.NewPoolBucket(poolByAddress),
 				TokenByAddress:    tokenByAddress,
 				PriceUSDByAddress: tokenPriceUSDByAddress,
-				PMMInventory:      ivt,
+				PMMInventory:      clone.Slowly(ivt).(*poolpkg.Inventory),
 			},
 			tokenAmountIn,
 			uc.config.SPFAFinderOptions.MaxHops,

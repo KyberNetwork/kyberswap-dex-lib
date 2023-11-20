@@ -6,6 +6,7 @@ import (
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/huandu/go-clone"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -118,7 +119,7 @@ func (a *aggregator) findBestRoute(
 		PoolBucket:        valueobject.NewPoolBucket(poolByAddress),
 		TokenByAddress:    tokenByAddress,
 		PriceUSDByAddress: priceUSDByAddress,
-		PMMInventory:      ivt,
+		PMMInventory:      clone.Slowly(ivt).(*poolpkg.Inventory),
 	}
 
 	routes, err := a.routeFinder.Find(ctx, input, data)
