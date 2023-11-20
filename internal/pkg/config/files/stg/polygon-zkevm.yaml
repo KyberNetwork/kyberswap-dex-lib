@@ -264,3 +264,8 @@ validator:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
     blacklistedRecipientSet:
+blackjackConfig:
+  grpcConfig:
+    BaseURL: blackjack-global-api.blackjack.svc:9080
+    Insecure: true
+    Timeout: 100ms
