@@ -114,7 +114,7 @@ func (f *uniswapFinder) genPathsWithSplitAmountIn(input findroute.Input, data fi
 		for _, path := range paths {
 			splitPath, err := valueobject.NewPath(data.PoolBucket, path.PoolAddresses, path.Tokens, splitTokenAmountIn, input.TokenOutAddress,
 				data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[input.TokenOutAddress].Decimals,
-				valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}, data.PMMInventory,
+				valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}, data.SwapLimits,
 			)
 			if err != nil {
 				logger.WithFields(logger.Fields{"error": err}).

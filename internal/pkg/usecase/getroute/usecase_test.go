@@ -167,11 +167,12 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 	poolManager.EXPECT().
 		GetPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(
-			func(ctx context.Context, addresses, dex []string, stateRoot common.Hash) (map[string]pool.IPoolSimulator, *pool.Inventory, error) {
+			func(ctx context.Context, addresses, dex []string, stateRoot common.Hash) (map[string]pool.IPoolSimulator, map[string]pool.SwapLimit, error) {
 				addressesSet := mapset.NewSet(addresses...)
 				dexesSet := mapset.NewSet(dex...)
-				resultPMMInventory := make(map[string]*big.Int)
-
+				var limits = make(map[string]map[string]*big.Int)
+				limits[constant.PoolTypes.KyberPMM] = make(map[string]*big.Int)
+				limits[constant.PoolTypes.Synthetix] = make(map[string]*big.Int)
 				filteredPools := make([]pool.IPoolSimulator, 0, len(pools))
 				for _, pool := range pools {
 					if !addressesSet.Contains(pool.GetAddress()) {
@@ -181,18 +182,19 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 						continue
 					}
 					filteredPools = append(filteredPools, pool)
-					if pool.GetType() == constant.PoolTypes.KyberPMM {
-						tokens := pool.GetTokens()
-						rsv := pool.GetReserves()
-						for j, tok := range tokens {
-							resultPMMInventory[tok] = rsv[j]
-						}
+					dexLimit, avail := limits[pool.GetType()]
+					if !avail {
+						continue
+					}
+					limitMap := pool.CalculateLimit()
+					for k, v := range limitMap {
+						dexLimit[k] = v
 					}
 				}
 
 				return lo.Associate(filteredPools, func(item pool.IPoolSimulator) (string, pool.IPoolSimulator) {
 					return item.GetAddress(), item
-				}), pool.NewInventory(resultPMMInventory), nil
+				}), poolFactory.NewSwapLimit(limits), nil
 			},
 		).
 		AnyTimes()

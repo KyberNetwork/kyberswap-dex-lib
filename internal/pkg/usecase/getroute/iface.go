@@ -21,12 +21,12 @@ type IAggregator interface {
 
 //go:generate mockgen -destination ../../mocks/usecase/getroute/pool_manager.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IPoolManager
 type IPoolManager interface {
-	// GetPoolByAddress return a map of address - pools and a map of token-balance for pmm inventory
-	GetPoolByAddress(
+	// GetStateByPoolAddresses return a map of address - pools and a map of dexType- swapLimit for
+	GetStateByPoolAddresses(
 		ctx context.Context,
 		addresses, dex []string,
 		stateRoot common.Hash,
-	) (map[string]poolpkg.IPoolSimulator, *poolpkg.Inventory, error)
+	) (map[string]poolpkg.IPoolSimulator, map[string]poolpkg.SwapLimit, error)
 	GetAEVMClient() aevmclient.Client
 }
 

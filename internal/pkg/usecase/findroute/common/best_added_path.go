@@ -32,7 +32,7 @@ func BestPathAmongAddedPaths(
 	)
 
 	for _, path := range addedPaths {
-		amountOut, _, err = path.CalcAmountOut(data.PoolBucket, tokenAmountIn, data.PMMInventory)
+		amountOut, _, err = path.CalcAmountOut(data.PoolBucket, tokenAmountIn, data.SwapLimits)
 		if err != nil {
 			continue
 		}
@@ -60,7 +60,7 @@ func BestPathAmongAddedPaths(
 			Price:         big.NewFloat(0),
 			TokenPrice:    0,
 		},
-		data.PMMInventory,
+		data.SwapLimits,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error initalizing new best path among added paths")

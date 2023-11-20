@@ -103,7 +103,7 @@ func (f *bruteforceFinder) bestBruteforceRoute(
 			if bestPath == nil {
 				return nil, nil
 			}
-			if err = currentBestRoute.AddPath(data.PoolBucket, bestPath, data.PMMInventory); err != nil {
+			if err = currentBestRoute.AddPath(data.PoolBucket, bestPath, data.SwapLimits); err != nil {
 				return nil, fmt.Errorf("cannot add path to bestMultiPathRoute")
 			}
 		}

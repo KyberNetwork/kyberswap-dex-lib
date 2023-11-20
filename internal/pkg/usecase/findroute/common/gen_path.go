@@ -9,7 +9,6 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -174,17 +173,10 @@ func getNextLayerFromToken(
 				continue
 			}
 			// it is ok for prices[tokenTo] to default to zero
-			toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGas(pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, toTokenAddress, data.PriceUSDByAddress[toTokenAddress], toTokenInfo.Decimals, input.GasPrice, input.GasTokenPriceUSD)
+			toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGas(pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, toTokenAddress, data.PriceUSDByAddress[toTokenAddress], toTokenInfo.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[pool.GetType()])
 			if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Int64() == 0 {
 				logger.Errorf("cannot calculate amountOut, error:%v", err)
 				continue
-			}
-
-			if pool.GetType() == constant.PoolTypes.KyberPMM {
-
-				if data.PMMInventory.GetBalance(toTokenInfo.Address).Cmp(toTokenAmount.Amount) < 0 {
-					continue
-				}
 			}
 
 			// append pool and tokens to path
@@ -237,7 +229,7 @@ func getKthPathAtTokenOut(
 		tokenOut := pathInfo.tokensOnPath[len(pathInfo.tokensOnPath)-1].Address
 		path, err := valueobject.NewPath(data.PoolBucket, pathInfo.poolAddressesOnPath, pathInfo.tokensOnPath, tokenAmountIn, tokenOut,
 			data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[tokenOut].Decimals,
-			valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}, data.PMMInventory,
+			valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}, data.SwapLimits,
 		)
 		if err != nil {
 			logger.WithFields(logger.Fields{"error": err}).
@@ -270,8 +262,9 @@ func calcNewTokenAmountAndGas(
 	fromAmountIn poolpkg.TokenAmount, fromTotalGasAmount int64,
 	tokenOut string, tokenOutPrice float64, tokenOutDecimal uint8,
 	gasPrice *big.Float, gasTokenPrice float64,
+	swapLimit poolpkg.SwapLimit,
 ) (*poolpkg.TokenAmount, int64, error) {
-	calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, fromAmountIn, tokenOut)
+	calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, fromAmountIn, tokenOut, swapLimit)
 	if err != nil {
 		return nil, 0, err
 	}

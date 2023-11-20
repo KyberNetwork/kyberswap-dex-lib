@@ -42,7 +42,7 @@ func bestPathToPath(
 		// if the path requires calculating amount out for same (tokenIn, tokenOut, pool, amount) (share the same pools with previously calculated paths),
 		// we will read previous calcAmountOutResult from calcAmountOutResultBySwapKey
 		// otherwise, compute as usual and save the result to calcAmountOutResultBySwapKey
-		tokenAmountOut, totalGas, err := calcAmountOutAndUpdateCache(data.PoolBucket, tokenAmountIn, path, calcAmountOutResultBySwapKey)
+		tokenAmountOut, totalGas, err := calcAmountOutAndUpdateCache(data.PoolBucket, tokenAmountIn, path, calcAmountOutResultBySwapKey, data.SwapLimits)
 		if err != nil {
 			logger.WithFields(logger.Fields{"error": err}).Debug("[spfav2Finder.bestPathToPath] failed to calcAmountOut")
 			continue
@@ -110,6 +110,7 @@ func calcAmountOutAndUpdateCache(
 	tokenAmountIn poolpkg.TokenAmount,
 	p *valueobject.Path,
 	calcAmountOutResultBySwapKey map[string]*poolpkg.CalcAmountOutResult,
+	swapLimits map[string]poolpkg.SwapLimit,
 ) (poolpkg.TokenAmount, int64, error) {
 	var (
 		currentAmount       = tokenAmountIn
@@ -133,7 +134,11 @@ func calcAmountOutAndUpdateCache(
 		calcAmountOutResult, ok = calcAmountOutResultBySwapKey[swapKey]
 		// if no, then calculate amountOut as usual and save the result to `calcAmountOutResultBySwapKey`
 		if !ok {
-			calcAmountOutResult, err = pool.CalcAmountOut(currentAmount, p.Tokens[i+1].Address)
+			calcAmountOutResult, err = pool.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: currentAmount,
+				TokenOut:      p.Tokens[i+1].Address,
+				Limit:         swapLimits[pool.GetType()],
+			})
 			if err != nil {
 				return poolpkg.TokenAmount{}, 0, errors.Wrapf(
 					valueobject.ErrInvalidSwap,

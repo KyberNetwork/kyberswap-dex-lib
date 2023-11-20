@@ -29,11 +29,11 @@ type IBestPathRepository interface {
 }
 
 type IPoolManager interface {
-	GetPoolByAddress(
+	GetStateByPoolAddresses(
 		ctx context.Context,
 		addresses, dex []string,
 		stateRoot common.Hash,
-	) (map[string]poolpkg.IPoolSimulator, *poolpkg.Inventory, error)
+	) (map[string]poolpkg.IPoolSimulator, map[string]poolpkg.SwapLimit, error)
 	Reload() error
 	GetAEVMClient() aevmclient.Client
 }

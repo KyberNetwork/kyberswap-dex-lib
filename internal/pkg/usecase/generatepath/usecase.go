@@ -12,7 +12,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	gEthCommon "github.com/ethereum/go-ethereum/common"
-	"github.com/huandu/go-clone"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
@@ -244,7 +243,7 @@ func (uc *useCase) generateBestPaths(
 		}
 	}
 
-	poolByAddress, ivt, err := uc.poolManager.GetPoolByAddress(ctx, poolAddresses.List(), sources, gEthCommon.Hash(stateRoot))
+	poolByAddress, swapLimits, err := uc.poolManager.GetStateByPoolAddresses(ctx, poolAddresses.List(), sources, gEthCommon.Hash(stateRoot))
 	if err != nil {
 		return nil, err
 	}
@@ -296,12 +295,7 @@ func (uc *useCase) generateBestPaths(
 				GasTokenPriceUSD: gasTokenPriceUSD,
 				GasInclude:       true,
 			},
-			findroute.FinderData{
-				PoolBucket:        valueobject.NewPoolBucket(poolByAddress),
-				TokenByAddress:    tokenByAddress,
-				PriceUSDByAddress: tokenPriceUSDByAddress,
-				PMMInventory:      clone.Slowly(ivt).(*poolpkg.Inventory),
-			},
+			findroute.NewFinderData(poolByAddress, swapLimits, tokenByAddress, tokenPriceUSDByAddress),
 			tokenAmountIn,
 			uc.config.SPFAFinderOptions.MaxHops,
 			uc.config.SPFAFinderOptions.MaxPathsToGenerate,

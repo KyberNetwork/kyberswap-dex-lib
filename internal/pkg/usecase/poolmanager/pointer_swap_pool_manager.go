@@ -40,8 +40,20 @@ type PointerSwapPoolManager struct {
 
 type LockedState struct {
 	poolByAddress map[string]poolpkg.IPoolSimulator
-	pmmInventory  map[string]*big.Int
+	limits        map[string]map[string]*big.Int
 	lock          *sync.RWMutex
+}
+
+func NewLockedState() *LockedState {
+	var limits = make(map[string]map[string]*big.Int)
+	limits[constant.PoolTypes.KyberPMM] = make(map[string]*big.Int)
+	limits[constant.PoolTypes.Synthetix] = make(map[string]*big.Int)
+
+	return &LockedState{
+		poolByAddress: make(map[string]poolpkg.IPoolSimulator),
+		limits:        limits,
+		lock:          &sync.RWMutex{},
+	}
 }
 
 func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
@@ -49,12 +61,13 @@ func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
 	s.poolByAddress = poolByAddress
 	//update the inventory
 	for key := range poolByAddress {
-		if poolByAddress[key].GetType() == constant.PoolTypes.KyberPMM {
-			tokens := s.poolByAddress[key].GetTokens()
-			rsv := s.poolByAddress[key].GetReserves()
-			for i, tok := range tokens {
-				s.pmmInventory[tok] = big.NewInt(0).Set(rsv[i]) //clone here.
-			}
+		dexLimit, avail := s.limits[poolByAddress[key].GetType()]
+		if !avail {
+			continue
+		}
+		limitMap := poolByAddress[key].CalculateLimit()
+		for k, v := range limitMap {
+			dexLimit[k] = v
 		}
 	}
 	s.lock.Unlock()
@@ -71,11 +84,7 @@ func NewNonMaintenancePointerSwapPoolManager(
 ) (*PointerSwapPoolManager, error) {
 	states := [2]*LockedState{}
 	for i := 0; i < 2; i++ {
-		states[i] = &LockedState{
-			poolByAddress: make(map[string]poolpkg.IPoolSimulator),
-			pmmInventory:  make(map[string]*big.Int),
-			lock:          &sync.RWMutex{},
-		}
+		states[i] = NewLockedState()
 	}
 	//TODO try policies other than LRU
 	poolCache, err := cachePolicy.New[string, struct{}](config.Capacity)
@@ -129,11 +138,7 @@ func NewPointerSwapPoolManager(
 ) (*PointerSwapPoolManager, error) {
 	states := [2]*LockedState{}
 	for i := 0; i < 2; i++ {
-		states[i] = &LockedState{
-			poolByAddress: make(map[string]poolpkg.IPoolSimulator),
-			pmmInventory:  make(map[string]*big.Int),
-			lock:          &sync.RWMutex{},
-		}
+		states[i] = NewLockedState()
 	}
 	//TODO try policies other than LRU
 	poolCache, err := cachePolicy.New[string, struct{}](config.Capacity)
@@ -191,7 +196,7 @@ func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
 
 // GetPoolByAddress return a reference to pools maintained by `PointerSwapPoolManager`
 // Therefore, do not modify IPool returned here, clone IPool before UpdateBalance
-func (p *PointerSwapPoolManager) GetPoolByAddress(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (map[string]poolpkg.IPoolSimulator, *poolpkg.Inventory, error) {
+func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (map[string]poolpkg.IPoolSimulator, map[string]poolpkg.SwapLimit, error) {
 	filteredPoolAddress := p.filterBlacklistedAddresses(ctx, poolAddresses)
 
 	// update cache policy
@@ -200,14 +205,14 @@ func (p *PointerSwapPoolManager) GetPoolByAddress(ctx context.Context, poolAddre
 	}
 
 	readFrom := p.readFrom.Load()
-	pools, pmmInventory := p.getPools(ctx, filteredPoolAddress, dex, readFrom, stateRoot)
-	return pools, pmmInventory, nil
+	pools, swapLimits := p.getPools(ctx, filteredPoolAddress, dex, readFrom, stateRoot)
+	return pools, swapLimits, nil
 }
 
-func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, readFrom int32, stateRoot common.Hash) (map[string]poolpkg.IPoolSimulator, *poolpkg.Inventory) {
+func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, readFrom int32, stateRoot common.Hash) (map[string]poolpkg.IPoolSimulator, map[string]poolpkg.SwapLimit) {
 	var (
 		resultPoolByAddress = make(map[string]poolpkg.IPoolSimulator, len(poolAddresses))
-		resultPMMInventory  = make(map[string]*big.Int)
+		resultLimits        = make(map[string]map[string]*big.Int)
 		poolsToFetchFromDB  []string
 		dexSet              = sets.NewString(dex...)
 	)
@@ -222,9 +227,13 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 			poolsToFetchFromDB = append(poolsToFetchFromDB, key)
 		}
 	}
-	//given a clone of pmm balance
-	for token, balance := range p.states[readFrom].pmmInventory {
-		resultPMMInventory[token] = big.NewInt(0).Set(balance)
+	//given a clone of limit
+	for dexName, limits := range p.states[readFrom].limits {
+		resLimit := make(map[string]*big.Int, len(limits))
+		for key, l := range limits {
+			resLimit[key] = big.NewInt(0).Set(l)
+		}
+		resultLimits[dexName] = resLimit
 	}
 	p.states[readFrom].lock.RUnlock()
 
@@ -254,7 +263,7 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 		resultPoolByAddress[poolInterfaces[i].GetAddress()] = poolInterfaces[i]
 	}
 
-	return resultPoolByAddress, poolpkg.NewInventory(resultPMMInventory)
+	return resultPoolByAddress, p.poolFactory.NewSwapLimit(resultLimits)
 }
 
 func (p *PointerSwapPoolManager) Reload() error {

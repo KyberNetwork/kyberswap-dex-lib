@@ -7,7 +7,6 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
@@ -47,7 +46,7 @@ func NewPath(
 	tokenOutPrice float64,
 	tokenOutDecimals uint8,
 	gasOption GasOption,
-	inventory *poolpkg.Inventory,
+	limits map[string]poolpkg.SwapLimit,
 ) (*Path, error) {
 	var (
 		tokenLen = len(tokens)
@@ -76,7 +75,7 @@ func NewPath(
 		Tokens:        tokens,
 	}
 
-	tokenAmountOut, totalGas, err := path.CalcAmountOut(poolBucket, tokenAmountIn, inventory)
+	tokenAmountOut, totalGas, err := path.CalcAmountOut(poolBucket, tokenAmountIn, limits)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +91,7 @@ func NewPath(
 }
 
 // CalcAmountOut swaps through path with Input
-func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.TokenAmount, ivt *poolpkg.Inventory) (poolpkg.TokenAmount, int64, error) {
+func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.TokenAmount, limits map[string]poolpkg.SwapLimit) (poolpkg.TokenAmount, int64, error) {
 	var (
 		currentAmount = tokenAmountIn
 		pool          poolpkg.IPoolSimulator
@@ -108,7 +107,7 @@ func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.Token
 				poolAddress,
 			)
 		}
-		calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, currentAmount, p.Tokens[i+1].Address)
+		calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, currentAmount, p.Tokens[i+1].Address, limits[pool.GetType()])
 
 		if err != nil {
 			return poolpkg.TokenAmount{}, 0, errors.Wrapf(
@@ -121,12 +120,6 @@ func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.Token
 				p.Tokens[i+1].Address,
 				err,
 			)
-		}
-
-		if pool.GetType() == constant.PoolTypes.KyberPMM {
-			if ivt.GetBalance(p.Tokens[i+1].Address).Cmp(calcAmountOutResult.TokenAmountOut.Amount) < 0 {
-				return poolpkg.TokenAmount{}, 0, errors.New("not enough inventory")
-			}
 		}
 		swapTokenAmountOut, gas := calcAmountOutResult.TokenAmountOut, calcAmountOutResult.Gas
 		if swapTokenAmountOut == nil {

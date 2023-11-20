@@ -3,19 +3,22 @@ package poolmanager
 import (
 	"context"
 	"encoding/json"
+	"math/big"
 	"strings"
 	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
+
+	gethcommon "github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/common"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
-	gethcommon "github.com/ethereum/go-ethereum/common"
 )
 
 type PoolManager struct {
@@ -39,12 +42,12 @@ func NewPoolManager(
 	}
 }
 
-func (m *PoolManager) GetPoolByAddress(
+func (m *PoolManager) GetStateByPoolAddresses(
 	ctx context.Context,
 	addresses, dex []string,
 	stateRoot gethcommon.Hash,
-) (map[string]poolpkg.IPoolSimulator, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "poolManager.GetPoolByAddress")
+) (map[string]poolpkg.IPoolSimulator, map[string]poolpkg.SwapLimit, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "poolManager.GetStateByPoolAddresses")
 	defer span.End()
 
 	pools, err := m.listPools(
@@ -54,11 +57,28 @@ func (m *PoolManager) GetPoolByAddress(
 		common.PoolFilterHasReserveOrAmplifiedTvl,
 	)
 	defer mempool.ReserveMany(pools)
+	var (
+		resultLimits = make(map[string]map[string]*big.Int)
+		iPools       = m.poolFactory.NewPoolByAddress(ctx, pools, stateRoot)
+	)
+	resultLimits[constant.PoolTypes.KyberPMM] = make(map[string]*big.Int)
+	resultLimits[constant.PoolTypes.Synthetix] = make(map[string]*big.Int)
+	//given a clone of limit
+	for _, pool := range iPools {
+		dexLimit, avail := resultLimits[pool.GetType()]
+		if !avail {
+			continue
+		}
+		limitMap := pool.CalculateLimit()
+		for k, v := range limitMap {
+			dexLimit[k] = v
+		}
+	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return m.poolFactory.NewPoolByAddress(ctx, pools, stateRoot), nil
+	return iPools, m.poolFactory.NewSwapLimit(resultLimits), nil
 }
 
 func (m *PoolManager) ApplyConfig(config Config) {

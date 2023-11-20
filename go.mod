@@ -14,7 +14,7 @@ require (
 	github.com/KyberNetwork/blackjack v0.2.1
 	github.com/KyberNetwork/ethrpc v0.6.0
 	github.com/KyberNetwork/kyber-trace-go v0.1.0
-	github.com/KyberNetwork/kyberswap-dex-lib v0.22.3
+	github.com/KyberNetwork/kyberswap-dex-lib v0.22.4
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/KyberNetwork/service-framework v0.0.0-20231013164418-ed90293ad224

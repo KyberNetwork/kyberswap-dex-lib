@@ -93,11 +93,11 @@ func comparePoolManager(
 	poolManager *poolmanager.PoolManager,
 	addresses, dex []string,
 ) error {
-	p1, _, err := pointerSwapPoolManager.GetPoolByAddress(context.Background(), addresses, dex, common.Hash{})
+	p1, _, err := pointerSwapPoolManager.GetStateByPoolAddresses(context.Background(), addresses, dex, common.Hash{})
 	if err != nil {
 		return errors.Wrap(err, "pointerSwapPoolManager")
 	}
-	p2, err := poolManager.GetPoolByAddress(context.Background(), addresses, dex, common.Hash{})
+	p2, _, err := poolManager.GetStateByPoolAddresses(context.Background(), addresses, dex, common.Hash{})
 	if err != nil {
 		return errors.Wrap(err, "poolManager")
 	}

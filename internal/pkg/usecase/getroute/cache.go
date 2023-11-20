@@ -275,7 +275,7 @@ func (c *cache) summarizeSimpleRoute(
 			return nil, err
 		}
 	}
-	poolByAddress, ivt, err := c.poolManager.GetPoolByAddress(
+	poolByAddress, swapLimits, err := c.poolManager.GetStateByPoolAddresses(
 		ctx,
 		simpleRoute.ExtractPoolAddresses(),
 		params.Sources,
@@ -318,8 +318,9 @@ func (c *cache) summarizeSimpleRoute(
 				)
 			}
 
+			swapLimit := swapLimits[pool.GetType()]
 			// Step 3.1.2: simulate c swap through the pool
-			result, err := poolpkg.CalcAmountOut(pool, tokenAmountIn, simpleSwap.TokenOutAddress)
+			result, err := poolpkg.CalcAmountOut(pool, tokenAmountIn, simpleSwap.TokenOutAddress, swapLimit)
 			if err != nil {
 				return nil, errors.Wrapf(
 					ErrInvalidSwap,
@@ -327,12 +328,6 @@ func (c *cache) summarizeSimpleRoute(
 					simpleSwap.PoolAddress,
 					err,
 				)
-			}
-			if pool.GetType() == constant.PoolTypes.KyberPMM {
-
-				if ivt.GetBalance(simpleSwap.TokenOutAddress).Cmp(result.TokenAmountOut.Amount) < 0 {
-					return nil, errors.New("not enough inventory")
-				}
 			}
 
 			// Step 3.1.3: check if result is valid
@@ -350,7 +345,7 @@ func (c *cache) summarizeSimpleRoute(
 				TokenAmountOut: *result.TokenAmountOut,
 				Fee:            *result.Fee,
 				SwapInfo:       result.SwapInfo,
-				Inventory:      ivt,
+				SwapLimit:      swapLimit,
 			}
 			pool = poolBucket.ClonePool(simpleSwap.PoolAddress)
 			pool.UpdateBalance(updateBalanceParams)

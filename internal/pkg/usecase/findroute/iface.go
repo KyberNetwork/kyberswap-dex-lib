@@ -6,6 +6,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/huandu/go-clone"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -57,6 +58,15 @@ type FinderData struct {
 	// PriceUSDByAddress mapping from token address to price in USD
 	PriceUSDByAddress map[string]float64
 
-	//PMMInventory is the store PMM inventory
-	PMMInventory *poolpkg.Inventory
+	//SwapLimits is the map of dextype - Swap limit
+	SwapLimits map[string]poolpkg.SwapLimit
+}
+
+func NewFinderData(poolByAddress map[string]poolpkg.IPoolSimulator, swapLimits map[string]poolpkg.SwapLimit, tokenByAddress map[string]entity.Token, tokenPriceUSDByAddress map[string]float64) FinderData {
+	return FinderData{
+		PoolBucket:        valueobject.NewPoolBucket(poolByAddress),
+		TokenByAddress:    tokenByAddress,
+		PriceUSDByAddress: tokenPriceUSDByAddress,
+		SwapLimits:        clone.Slowly(swapLimits).(map[string]poolpkg.SwapLimit),
+	}
 }

@@ -51,12 +51,12 @@ func (mr *MockIPoolManagerMockRecorder) GetAEVMClient() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAEVMClient", reflect.TypeOf((*MockIPoolManager)(nil).GetAEVMClient))
 }
 
-// GetPoolByAddress mocks base method.
-func (m *MockIPoolManager) GetPoolByAddress(arg0 context.Context, arg1, arg2 []string, arg3 common.Hash) (map[string]pool.IPoolSimulator, *pool.Inventory, error) {
+// GetStateByPoolAddresses mocks base method.
+func (m *MockIPoolManager) GetStateByPoolAddresses(arg0 context.Context, arg1, arg2 []string, arg3 common.Hash) (map[string]pool.IPoolSimulator, map[string]pool.SwapLimit, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPoolByAddress", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "GetStateByPoolAddresses", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(map[string]pool.IPoolSimulator)
-	ret1, _ := ret[1].(*pool.Inventory)
+	ret1, _ := ret[1].(map[string]pool.SwapLimit)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
@@ -64,5 +64,5 @@ func (m *MockIPoolManager) GetPoolByAddress(arg0 context.Context, arg1, arg2 []s
 // GetPoolByAddress indicates an expected call of GetPoolByAddress.
 func (mr *MockIPoolManagerMockRecorder) GetPoolByAddress(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPoolByAddress", reflect.TypeOf((*MockIPoolManager)(nil).GetPoolByAddress), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStateByPoolAddresses", reflect.TypeOf((*MockIPoolManager)(nil).GetStateByPoolAddresses), arg0, arg1, arg2, arg3)
 }

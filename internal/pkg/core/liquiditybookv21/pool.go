@@ -58,10 +58,9 @@ func NewPoolAEVM(
 }
 
 func (p *Pool) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
+	params pool.CalcAmountOutParams,
 ) (*pool.CalcAmountOutResult, error) {
-	return p.CalcAmountOutAEVM(tokenAmountIn, tokenOut)
+	return p.CalcAmountOutAEVM(params.TokenAmountIn, params.TokenOut)
 }
 
 func (p *Pool) CalcAmountOutAEVM(

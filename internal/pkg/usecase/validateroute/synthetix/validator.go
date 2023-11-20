@@ -90,6 +90,7 @@ func Validate(poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobjec
 				pool,
 				tokenAmountIn,
 				path.Tokens[i+1].Address,
+				nil,
 			)
 
 			if err != nil {

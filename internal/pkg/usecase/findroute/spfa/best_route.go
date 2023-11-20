@@ -135,7 +135,7 @@ func (f *spfaFinder) bestMultiPathRoute(
 		if bestPath == nil {
 			return nil, nil
 		}
-		if err = bestMultiPathRoute.AddPath(data.PoolBucket, bestPath, data.PMMInventory); err != nil {
+		if err = bestMultiPathRoute.AddPath(data.PoolBucket, bestPath, data.SwapLimits); err != nil {
 			return nil, err
 		}
 	}

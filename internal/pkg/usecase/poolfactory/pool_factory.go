@@ -3,6 +3,7 @@ package poolfactory
 import (
 	"context"
 	"encoding/json"
+	"math/big"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -228,6 +229,24 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 
 	}
 	return basePoolByAddress, basePoolAddresses
+}
+
+func newSwapLimit(dex string, limit map[string]*big.Int) poolpkg.SwapLimit {
+	switch dex {
+	case constant.PoolTypes.KyberPMM:
+		return kyberpmm.NewInventory(limit)
+	case constant.PoolTypes.Synthetix:
+		return synthetix.NewLimits(limit)
+	}
+	return nil
+}
+
+func (f *PoolFactory) NewSwapLimit(limits map[string]map[string]*big.Int) map[string]poolpkg.SwapLimit {
+	var limitMap = make(map[string]poolpkg.SwapLimit, len(limits))
+	for dex, limit := range limits {
+		limitMap[dex] = newSwapLimit(dex, limit)
+	}
+	return limitMap
 }
 
 // newPool receives entity.Pool, based on its type to return matched factory method

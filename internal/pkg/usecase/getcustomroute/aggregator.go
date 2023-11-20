@@ -6,7 +6,6 @@ import (
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/huandu/go-clone"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -79,19 +78,23 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 	if err != nil {
 		return nil, err
 	}
-	resultPMMInventory := make(map[string]*big.Int)
 
-	for i := range poolInterfaces {
-		if poolInterfaces[i].GetType() == constant.PoolTypes.KyberPMM {
-			tokens := poolInterfaces[i].GetTokens()
-			rsv := poolInterfaces[i].GetReserves()
-			for j, tok := range tokens {
-				resultPMMInventory[tok] = rsv[j]
-			}
+	var limits = make(map[string]map[string]*big.Int)
+	limits[constant.PoolTypes.KyberPMM] = make(map[string]*big.Int)
+	limits[constant.PoolTypes.Synthetix] = make(map[string]*big.Int)
+	for _, pool := range poolInterfaces {
+		dexLimit, avail := limits[pool.GetType()]
+		if !avail {
+			continue
+		}
+		limitMap := pool.CalculateLimit()
+		for k, v := range limitMap {
+			dexLimit[k] = v
 		}
 	}
+
 	// Step 3: finds best route
-	return a.findBestRoute(ctx, params, poolByAddress, tokenByAddress, priceByAddress, poolpkg.NewInventory(resultPMMInventory))
+	return a.findBestRoute(ctx, params, poolByAddress, tokenByAddress, priceByAddress, a.poolFactory.NewSwapLimit(limits))
 }
 
 func (a *aggregator) ApplyConfig(config getroute.Config) {}
@@ -103,7 +106,7 @@ func (a *aggregator) findBestRoute(
 	poolByAddress map[string]poolpkg.IPoolSimulator,
 	tokenByAddress map[string]entity.Token,
 	priceUSDByAddress map[string]float64,
-	ivt *poolpkg.Inventory,
+	swapLimits map[string]poolpkg.SwapLimit,
 ) (*valueobject.RouteSummary, error) {
 	input := findroute.Input{
 		TokenInAddress:   params.TokenIn.Address,
@@ -115,12 +118,7 @@ func (a *aggregator) findBestRoute(
 		GasInclude:       params.GasInclude,
 	}
 
-	data := findroute.FinderData{
-		PoolBucket:        valueobject.NewPoolBucket(poolByAddress),
-		TokenByAddress:    tokenByAddress,
-		PriceUSDByAddress: priceUSDByAddress,
-		PMMInventory:      clone.Slowly(ivt).(*poolpkg.Inventory),
-	}
+	data := findroute.NewFinderData(poolByAddress, swapLimits, tokenByAddress, priceUSDByAddress)
 
 	routes, err := a.routeFinder.Find(ctx, input, data)
 	if err != nil {
@@ -133,7 +131,7 @@ func (a *aggregator) findBestRoute(
 		return nil, getroute.ErrRouteNotFound
 	}
 
-	return a.summarizeRoute(ctx, bestRoute, params, poolByAddress, ivt)
+	return a.summarizeRoute(ctx, bestRoute, params, poolByAddress, data.SwapLimits)
 }
 
 func (a *aggregator) summarizeRoute(
@@ -141,7 +139,7 @@ func (a *aggregator) summarizeRoute(
 	route *valueobject.Route,
 	params *types.AggregateParams,
 	poolByAddress map[string]poolpkg.IPoolSimulator,
-	ivt *poolpkg.Inventory,
+	swapLimits map[string]poolpkg.SwapLimit,
 ) (*valueobject.RouteSummary, error) {
 	// Step 1: prepare pool data
 	poolBucket := valueobject.NewPoolBucket(poolByAddress)
@@ -171,16 +169,10 @@ func (a *aggregator) summarizeRoute(
 					swapPoolAddress,
 				)
 			}
-
+			swapLimit := swapLimits[pool.GetType()]
 			// Step 2.1.2: simulate c swap through the pool
-			result, err := poolpkg.CalcAmountOut(pool, tokenAmountIn, path.Tokens[swapIdx+1].Address)
-			if pool.GetType() == constant.PoolTypes.KyberPMM {
+			result, err := poolpkg.CalcAmountOut(pool, tokenAmountIn, path.Tokens[swapIdx+1].Address, swapLimit)
 
-				if ivt.GetBalance(path.Tokens[swapIdx+1].Address).Cmp(result.TokenAmountOut.Amount) < 0 {
-					return nil, errors.Wrapf(getroute.ErrInvalidSwap,
-						errors.New("not enough inventory").Error())
-				}
-			}
 			if err != nil {
 				return nil, errors.Wrapf(
 					getroute.ErrInvalidSwap,
@@ -208,7 +200,7 @@ func (a *aggregator) summarizeRoute(
 				TokenAmountOut: *result.TokenAmountOut,
 				Fee:            *result.Fee,
 				SwapInfo:       result.SwapInfo,
-				Inventory:      ivt,
+				SwapLimit:      swapLimit,
 			}
 			pool.UpdateBalance(updateBalanceParams)
 
