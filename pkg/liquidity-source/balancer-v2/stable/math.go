@@ -1,9 +1,11 @@
 package stable
 
 import (
-	"github.com/KyberNetwork/blockchain-toolkit/number"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/blockchain-toolkit/number"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 )
 
 var StableMath *stableMath
@@ -132,16 +134,13 @@ func (l *stableMath) _calculateInvariant(
 
 		var denominator *uint256.Int
 		{
-			u, _ := math.FixedPoint.Add(numTokens, number.Number_1)
+			u := new(uint256.Int).Add(numTokens, number.Number_1)
 			u, err := math.Math.Mul(u, invariant)
 			if err != nil {
 				return nil, err
 			}
 
-			v, err := math.FixedPoint.Sub(ampTimesTotal, _AMP_PRECISION)
-			if err != nil {
-				return nil, err
-			}
+			v := new(uint256.Int).Sub(ampTimesTotal, _AMP_PRECISION)
 			v, err = math.Math.Mul(v, P_D)
 			if err != nil {
 				return nil, err
@@ -157,7 +156,8 @@ func (l *stableMath) _calculateInvariant(
 			}
 		}
 
-		invariant, err := math.Math.Div(numerator, denominator, roundUp)
+		var err error
+		invariant, err = math.Math.Div(numerator, denominator, roundUp)
 		if err != nil {
 			return nil, err
 		}
