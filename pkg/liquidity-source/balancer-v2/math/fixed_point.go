@@ -18,6 +18,7 @@ var (
 var FixedPoint *fixedPoint
 
 type fixedPoint struct {
+	ZERO                   *uint256.Int
 	ONE                    *uint256.Int
 	TWO                    *uint256.Int
 	FOUR                   *uint256.Int
@@ -25,11 +26,13 @@ type fixedPoint struct {
 }
 
 func init() {
+	zero := uint256.NewInt(0)
 	one := number.Number_1e18
 	two := new(uint256.Int).Mul(number.Number_2, one)
 	four := new(uint256.Int).Mul(number.Number_4, one)
 
 	FixedPoint = &fixedPoint{
+		ZERO:                   zero,
 		ONE:                    one,
 		TWO:                    two,
 		FOUR:                   four,
