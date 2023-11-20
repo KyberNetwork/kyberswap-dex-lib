@@ -243,11 +243,12 @@ useCase:
           limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
   poolFactory:
     chainId: *chainId
-    useAEVM: false
+    useAEVM: &useAEVM false
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     capacity: 1000000
     poolRenewalInterval: 12s
+    useAEVM: *useAEVM
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
