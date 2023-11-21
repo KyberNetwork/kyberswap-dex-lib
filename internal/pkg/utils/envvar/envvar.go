@@ -1,8 +1,14 @@
 package envvar
 
 const (
-	OTELEnabled = "OTEL_ENABLED"
-	OTELService = "OTEL_SERVICE_NAME"
+	OTELEnabled        = "OTEL_ENABLED"
+	OTELService        = "OTEL_SERVICE_NAME"
+	OTELEnv            = "OTEL_ENV"
+	OTELServiceVersion = "OTEL_SERVICE_VERSION"
+	OTELAgentHost      = "OTEL_AGENT_HOST"
+
+	PYROSCOPEEnabled = "PYROSCOPE_ENABLED"
+	PYROSCOPEHost    = "PYROSCOPE_HOST"
 
 	DDProfilerEnabled = "DD_PROFILER_ENABLED"
 	DDEnabled         = "DD_ENABLED"

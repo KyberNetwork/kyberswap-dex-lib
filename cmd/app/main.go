@@ -21,6 +21,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
+	"github.com/grafana/pyroscope-go"
 	"github.com/urfave/cli/v2"
 	_ "go.uber.org/automaxprocs"
 	"golang.org/x/sync/errgroup"
@@ -128,6 +129,47 @@ func main() {
 		}
 		defer profiler.Stop()
 	}
+
+	if env.StringFromEnv(envvar.PYROSCOPEEnabled, "") != "" {
+		pyroscopeServer := env.StringFromEnv(envvar.PYROSCOPEHost, "")
+		if pyroscopeServer == "" {
+			log.Fatal("pyroscope server is not set")
+			return
+		}
+		pyroscope.Start(pyroscope.Config{
+			ApplicationName: env.StringFromEnv(envvar.OTELService, "router-service-unknown"),
+
+			// replace this with the address of pyroscope server
+			ServerAddress: pyroscopeServer,
+
+			// you can disable logging by setting this to nil
+			Logger: pyroscope.StandardLogger,
+
+			// you can provide static tags via a map:
+			Tags: map[string]string{
+				"hostname": env.StringFromEnv(envvar.OTELService, "router-service-unknown"),
+				"env":      env.StringFromEnv(envvar.OTELEnv, ""),
+				"version":  env.StringFromEnv(envvar.OTELServiceVersion, ""),
+			},
+
+			ProfileTypes: []pyroscope.ProfileType{
+				// these profile types are enabled by default:
+				pyroscope.ProfileCPU,
+				pyroscope.ProfileAllocObjects,
+				pyroscope.ProfileAllocSpace,
+				pyroscope.ProfileInuseObjects,
+				pyroscope.ProfileInuseSpace,
+
+				// these profile types are optional:
+				//pyroscope.ProfileGoroutines,
+				//pyroscope.ProfileMutexCount,
+				//pyroscope.ProfileMutexDuration,
+				//pyroscope.ProfileBlockCount,
+				//pyroscope.ProfileBlockDuration,
+			},
+		})
+	}
+
 	app := &cli.App{
 		Flags: []cli.Flag{
 			&cli.StringFlag{
