@@ -20,7 +20,7 @@ var (
 )
 
 type (
-	PoolSimulatorV1 struct {
+	PoolSimulator struct {
 		poolpkg.Pool
 
 		// poolID       string
@@ -35,7 +35,7 @@ type (
 	}
 )
 
-func (s *PoolSimulatorV1) CalcAmountOut(
+func (s *PoolSimulator) CalcAmountOut(
 	tokenAmountIn poolpkg.TokenAmount,
 	tokenOut string,
 ) (*poolpkg.CalcAmountOutResult, error) {

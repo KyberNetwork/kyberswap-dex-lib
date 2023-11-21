@@ -13,7 +13,7 @@ import (
 func Test_CalcAmountOut(t *testing.T) {
 	t.Run("1. should return OK", func(t *testing.T) {
 		// input
-		s := PoolSimulatorV1{
+		s := PoolSimulator{
 			Pool: poolpkg.Pool{
 				Info: poolpkg.PoolInfo{
 					Tokens: []string{
@@ -64,7 +64,7 @@ func Test_CalcAmountOut(t *testing.T) {
 		reserve0, _ := new(big.Int).SetString("3360160080014532471350474", 10)
 		reserve1, _ := new(big.Int).SetString("1112301324508754708737", 10)
 
-		s := PoolSimulatorV1{
+		s := PoolSimulator{
 			Pool: poolpkg.Pool{
 				Info: poolpkg.PoolInfo{
 					Tokens: []string{
@@ -112,7 +112,7 @@ func Test_CalcAmountOut(t *testing.T) {
 		reserve0, _ := new(big.Int).SetString("3360160080014532471350474", 10)
 		reserve1, _ := new(big.Int).SetString("1112301324508754708737", 10)
 
-		s := PoolSimulatorV1{
+		s := PoolSimulator{
 			Pool: poolpkg.Pool{
 				Info: poolpkg.PoolInfo{
 					Tokens: []string{
