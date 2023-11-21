@@ -11,6 +11,7 @@ common:
   chainId: &chainId 199
   chainName: &chainName bttc
   rpc: "https://bttc.kyberengineering.io"
+  multicallAddress: "0xaf0936B1DC49B5c7444CA838A5f32080FC043AdD"
   executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x8d193c6efa90bcff940a98785d1ce9d093d3dc8a"
@@ -225,11 +226,15 @@ useCase:
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
+  trackExecutor:
+    subgraphURL: https://bttc-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-bttc
 job:
   indexPools:
     interval: 2s
   updateSuggestedGasPrice:
     interval: 15s
+  trackExecutorBalance:
+    interval: 1h
 repository:
   gas:
     redis:

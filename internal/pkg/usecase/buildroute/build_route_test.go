@@ -72,12 +72,17 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 						nil,
 					)
 
+				executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
+				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
 				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Times(0)
 
 				return NewBuildRouteUseCase(
 					tokenRepository,
 					priceRepository,
+					executorBalanceRepository,
 					gasEstimator,
 					nil,
 					clientDataEncoder,
@@ -153,6 +158,10 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 						nil,
 					)
 
+				executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
+				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
 				tx := NewUnsignedTransaction(
 					sender,
@@ -166,6 +175,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				return NewBuildRouteUseCase(
 					tokenRepository,
 					priceRepository,
+					executorBalanceRepository,
 					gasEstimator,
 					nil,
 					clientDataEncoder,
@@ -476,10 +486,15 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 					nil,
 				)
 
+			executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
+			executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+			executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+
 			gasEstimator := tc.estimateGas(ctrl)
 			usecase := NewBuildRouteUseCase(
 				tokenRepository,
 				priceRepository,
+				executorBalanceRepository,
 				gasEstimator,
 				nil,
 				clientDataEncoder,

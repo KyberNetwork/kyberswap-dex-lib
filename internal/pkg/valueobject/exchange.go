@@ -415,3 +415,74 @@ func HashSources(sources []string) uint64 {
 	}
 	return h.Sum64()
 }
+
+// `useApproveMaxExchangeSet` defines set of exchanges that we should track if executor `approveMax` for the pools,
+// to support optimizing gas cost when encode (not all pools need to call `approveMax` when swap with executor).
+// This data can be add by check the SC code, if the function of each pool type reads the SHOULD_APPROVE_MAX flag.
+var useApproveMaxExchangeSet = map[Exchange]struct{}{
+	// executeStableSwap
+	ExchangeOneSwap:             {},
+	ExchangeNerve:               {},
+	ExchangeIronStable:          {},
+	ExchangeSynapse:             {},
+	ExchangeSaddle:              {},
+	ExchangeAxial:               {},
+	ExchangeAlienBaseStableSwap: {},
+
+	// executeCurve
+	ExchangeCurve:         {},
+	ExchangeEllipsis:      {},
+	ExchangeKokonutCrypto: {},
+
+	// executePancakeStableSwap
+	ExchangePancakeStable: {},
+
+	// executeBalV2
+	ExchangeBalancer:                 {},
+	ExchangeBalancerComposableStable: {},
+	ExchangeBeethovenX:               {},
+
+	// executeDODO
+	ExchangeDodo: {},
+
+	// executeHashflow
+
+	// executeWrappedstETH
+	ExchangeMakerLido: {},
+
+	// executePlatypus
+	ExchangePlatypus: {},
+
+	// executePSM
+	ExchangeMakerPSM: {},
+
+	// executeBalancerBatch
+
+	// executeMantis
+	ExchangeMantisSwap: {},
+
+	// executeWombat
+	ExchangeWombat: {},
+
+	// executeRfq
+	ExchangeKyberPMM: {},
+
+	// executeKyberDSLO
+	ExchangeKyberSwapLimitOrderDS: {},
+
+	// executeVooi
+	ExchangeVooi: {},
+
+	// executeVelocoreV2
+
+	// executeMaticMigrate
+	ExchangePolMatic: {},
+
+	// executeSmardex
+	ExchangeSmardex: {},
+}
+
+func IsApproveMaxExchange(exchange Exchange) bool {
+	_, ok := useApproveMaxExchangeSet[exchange]
+	return ok
+}

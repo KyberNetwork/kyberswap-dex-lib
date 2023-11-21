@@ -17,6 +17,8 @@ type Config struct {
 	PoolFactory       poolfactory.Config  `mapstructure:"poolFactory" json:"poolFactory"`
 	PoolManager       poolmanager.Config  `mapstructure:"poolManager" json:"poolManager"`
 	GenerateBestPaths generatepath.Config `mapstructure:"generateBestPaths"`
+
+	TrackExecutor TrackExecutorConfig `mapstructure:"trackExecutor"`
 }
 
 type (
@@ -44,5 +46,9 @@ type (
 	IndexPoolsConfig struct {
 		WhitelistedTokenSet map[string]bool `mapstructure:"whitelistedTokenSet"`
 		ChunkSize           int             `mapstructure:"chunkSize"`
+	}
+
+	TrackExecutorConfig struct {
+		SubgraphURL string `mapstructure:"subgraphURL"`
 	}
 )

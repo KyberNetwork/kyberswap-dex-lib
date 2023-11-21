@@ -35,6 +35,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/blackjack"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/executorbalance"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pathgenerator"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
@@ -49,8 +50,10 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/decode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/helper"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l1encode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l2encode"
+	trackexecutor "github.com/KyberNetwork/router-service/internal/pkg/usecase/trackexecutorbalance"
 
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
@@ -152,6 +155,11 @@ func main() {
 				Aliases: []string{},
 				Usage:   "Periodically generate best paths for configured tokens",
 				Action:  pathGeneratorAction,
+			},
+			{
+				Name:   "executortracker",
+				Usage:  "Track executor's tokens & pool approval, to support optimize building route",
+				Action: executorTrackerAction,
 			},
 		}}
 
@@ -268,6 +276,12 @@ func apiAction(c *cli.Context) (err error) {
 	}
 	blackjackRepo := blackjack.NewBlackjackRepository(blackjackClient.C)
 
+	executorBalanceRepository := executorbalance.NewRedisRepository(
+		routerRedisClient.Client,
+		executorbalance.Config{
+			Prefix: cfg.Redis.Prefix,
+		},
+	)
 	// sealer
 
 	// init validators
@@ -378,6 +392,7 @@ func apiAction(c *cli.Context) (err error) {
 	buildRouteUseCase := buildroute.NewBuildRouteUseCase(
 		tokenRepository,
 		priceRepository,
+		executorBalanceRepository,
 		gasEstimator,
 		rfqHandlerByPoolType,
 		clientDataEncoder,
@@ -841,6 +856,88 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 	})
 
 	return g.Wait()
+}
+
+func executorTrackerAction(c *cli.Context) (err error) {
+	ctx := context.Background()
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// load config
+	configFile := c.String("config")
+	configLoader, err := config.NewConfigLoader(configFile)
+	if err != nil {
+		return err
+	}
+	cfg, err := configLoader.Get()
+	if err != nil {
+		return err
+	}
+
+	// init logger
+	_, err = logger.InitLogger(cfg.Log.Configuration, logger.LoggerBackendZap)
+	if err != nil {
+		return err
+	}
+
+	ethClient := ethrpc.New(cfg.Common.RPC)
+	ethClient.SetMulticallContract(common.HexToAddress(cfg.Common.MulticallAddress))
+
+	// init redis client
+	routerRedisClient, err := redis.New(&cfg.Redis)
+	if err != nil {
+		logger.Errorf("fail to init redis client for track executor balance")
+		return err
+	}
+	poolRedisClient, err := redis.New(&cfg.PoolRedis)
+	if err != nil {
+		logger.Errorf("fail to init redis client to pool service")
+		return err
+	}
+
+	// init repository
+	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil, nil)
+	executorBalanceRepository := executorbalance.NewRedisRepository(
+		routerRedisClient.Client,
+		executorbalance.Config{
+			Prefix: cfg.Redis.Prefix,
+		},
+	)
+	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
+
+	// init usecase
+	var trackExecutorAddresses []string
+
+	// Only track either L1 or L2 address
+	if helper.IsL2EncoderSupportedChains(cfg.Encoder.ChainID) {
+		trackExecutorAddresses = []string{cfg.Encoder.L2ExecutorAddress}
+	} else {
+		trackExecutorAddresses = []string{cfg.Encoder.ExecutorAddress}
+	}
+	trackExecutorBalanceUseCase := trackexecutor.NewUseCase(
+		ethClient,
+		poolFactory,
+		poolRepository,
+		executorBalanceRepository,
+		trackexecutor.Config{
+			SubgraphURL:       cfg.UseCase.TrackExecutor.SubgraphURL,
+			GasTokenAddress:   cfg.Common.GasTokenAddress,
+			ExecutorAddresses: trackExecutorAddresses,
+		},
+	)
+
+	// init job
+	trackExecutorBalanceJob := job.NewExecutorBalanceFetcherJob(
+		trackExecutorBalanceUseCase,
+		job.TrackExecutorBalanceConfig{
+			Interval: cfg.Job.TrackExecutorBalance.Interval,
+		},
+	)
+
+	logger.Info("Starting trackExecutorBalanceJob")
+
+	return trackExecutorBalanceJob.Run(ctx)
 }
 
 func getKeyStorage(storageFilePath string) (cryptopkg.KeyPairStorage, error) {

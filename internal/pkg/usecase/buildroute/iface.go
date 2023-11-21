@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 )
 
@@ -32,4 +33,10 @@ type IGasRepository interface {
 
 type IGasEstimator interface {
 	Execute(ctx context.Context, tx UnsignedTransaction) (uint64, float64, error)
+}
+
+//go:generate mockgen -destination ../../mocks/usecase/buildroute/executor_balance_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IExecutorBalanceRepository
+type IExecutorBalanceRepository interface {
+	HasToken(executorAddress string, queries []string) ([]bool, error)
+	HasPoolApproval(executorAddress string, queries []dto.PoolApprovalQuery) ([]bool, error)
 }

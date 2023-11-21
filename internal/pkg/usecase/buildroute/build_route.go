@@ -31,9 +31,10 @@ var OutputChangeNoChange = dto.OutputChange{
 }
 
 type BuildRouteUseCase struct {
-	tokenRepository ITokenRepository
-	priceRepository IPriceRepository
-	gasEstimator    IGasEstimator
+	tokenRepository           ITokenRepository
+	priceRepository           IPriceRepository
+	executorBalanceRepository IExecutorBalanceRepository
+	gasEstimator              IGasEstimator
 
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ
 	clientDataEncoder    IClientDataEncoder
@@ -49,6 +50,7 @@ type BuildRouteUseCase struct {
 func NewBuildRouteUseCase(
 	tokenRepository ITokenRepository,
 	priceRepository IPriceRepository,
+	executorBalanceRepository IExecutorBalanceRepository,
 	gasEstimator IGasEstimator,
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ,
 	clientDataEncoder IClientDataEncoder,
@@ -62,15 +64,16 @@ func NewBuildRouteUseCase(
 	}
 
 	return &BuildRouteUseCase{
-		tokenRepository:      tokenRepository,
-		priceRepository:      priceRepository,
-		gasEstimator:         gasEstimator,
-		rfqHandlerByPoolType: rfqHandlerByPoolType,
-		clientDataEncoder:    clientDataEncoder,
-		l1Encoder:            l1Encoder,
-		l2Encoder:            l2Encoder,
-		nowFunc:              nowFunc,
-		config:               config,
+		tokenRepository:           tokenRepository,
+		priceRepository:           priceRepository,
+		executorBalanceRepository: executorBalanceRepository,
+		gasEstimator:              gasEstimator,
+		rfqHandlerByPoolType:      rfqHandlerByPoolType,
+		clientDataEncoder:         clientDataEncoder,
+		l1Encoder:                 l1Encoder,
+		l2Encoder:                 l2Encoder,
+		nowFunc:                   nowFunc,
+		config:                    config,
 	}
 }
 
@@ -253,7 +256,9 @@ func (uc *BuildRouteUseCase) encode(ctx context.Context, command dto.BuildRouteC
 
 	encoder := uc.getEncoder(ctx, command)
 
-	encodingData := types.NewEncodingDataBuilder().
+	encodingData := types.NewEncodingDataBuilder(
+		uc.executorBalanceRepository,
+		uc.config.FeatureFlags.IsOptimizeExecutorFlagsEnabled).
 		SetRoute(&routeSummary, encoder.GetExecutorAddress(), command.Recipient).
 		SetDeadline(big.NewInt(command.Deadline)).
 		SetSlippageTolerance(big.NewInt(command.SlippageTolerance)).
