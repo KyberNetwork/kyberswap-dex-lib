@@ -23,14 +23,12 @@ type (
 	PoolSimulatorV1 struct {
 		poolpkg.Pool
 
-		poolID       string
-		vaultAddress string
+		// poolID       string
+		// vaultAddress string
 
 		swapFeePercentage *uint256.Int
 		scalingFactors    []*uint256.Int
 		normalizedWeights []*uint256.Int
-
-		gas Gas
 	}
 	Gas struct {
 		Swap int64
@@ -66,6 +64,7 @@ func (s *PoolSimulatorV1) CalcAmountOut(
 	scalingFactorTokenOut := s.scalingFactors[indexOut]
 	normalizedWeightIn := s.normalizedWeights[indexIn]
 	normalizedWeightOut := s.normalizedWeights[indexOut]
+
 	balanceTokenIn, err := _upscale(reserveIn, scalingFactorTokenIn)
 	if err != nil {
 		return nil, err
@@ -113,9 +112,9 @@ func (s *PoolSimulatorV1) CalcAmountOut(
 }
 
 func _upscale(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
-	return math.Math.Mul(amount, scalingFactor)
+	return math.FixedPoint.MulDown(amount, scalingFactor)
 }
 
 func _downscaleDown(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
-	return math.Math.DivDown(amount, scalingFactor)
+	return math.FixedPoint.DivDown(amount, scalingFactor)
 }

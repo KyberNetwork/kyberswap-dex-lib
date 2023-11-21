@@ -10,6 +10,8 @@ import (
 
 var (
 	ErrMaxInRatio = errors.New("MAX_IN_RATIO")
+
+	_MAX_IN_RATIO = uint256.NewInt(0.3e18)
 )
 
 var WeightedMath *weightedMath
@@ -28,6 +30,15 @@ func (l *weightedMath) _calcOutGivenIn(
 	weightOut *uint256.Int,
 	amountIn *uint256.Int,
 ) (*uint256.Int, error) {
+	maxIn, err := math.FixedPoint.MulDown(balanceIn, _MAX_IN_RATIO)
+	if err != nil {
+		return nil, err
+	}
+
+	if amountIn.Gt(maxIn) {
+		return nil, ErrMaxInRatio
+	}
+
 	denominator, err := math.FixedPoint.Add(balanceIn, amountIn)
 	if err != nil {
 		return nil, err
