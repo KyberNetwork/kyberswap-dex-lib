@@ -9,7 +9,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 )
 
-func Test_calculateInvariant(t *testing.T) {
+func Test_calculateInvariantV1(t *testing.T) {
 	t.Run("1. should return correct invariant", func(t *testing.T) {
 		// input
 		amp := uint256.NewInt(5000)
@@ -26,7 +26,7 @@ func Test_calculateInvariant(t *testing.T) {
 		expected := "19410511781031881171190"
 
 		// actual
-		result, err := StableMath._calculateInvariant(amp, balances, true)
+		result, err := StableMath._calculateInvariantV1(amp, balances, true)
 		assert.Nil(t, err)
 
 		// assert
@@ -46,7 +46,7 @@ func Test_calculateInvariant(t *testing.T) {
 		}
 
 		// actual
-		_, err := StableMath._calculateInvariant(amp, balances, true)
+		_, err := StableMath._calculateInvariantV1(amp, balances, true)
 		assert.ErrorIs(t, err, ErrStableGetBalanceDidntConverge)
 	})
 
@@ -66,7 +66,7 @@ func Test_calculateInvariant(t *testing.T) {
 		expected := "10463766246264892100"
 
 		// actual
-		result, err := StableMath._calculateInvariant(amp, balances, true)
+		result, err := StableMath._calculateInvariantV1(amp, balances, true)
 		assert.Nil(t, err)
 
 		// assert
@@ -89,7 +89,7 @@ func Test_calculateInvariant(t *testing.T) {
 		expected := "63504110862071166478"
 
 		// actual
-		result, err := StableMath._calculateInvariant(amp, balances, false)
+		result, err := StableMath._calculateInvariantV1(amp, balances, false)
 		assert.Nil(t, err)
 
 		// assert
@@ -109,7 +109,7 @@ func Test_calculateInvariant(t *testing.T) {
 		}
 
 		// actual
-		_, err := StableMath._calculateInvariant(amp, balances, false)
+		_, err := StableMath._calculateInvariantV1(amp, balances, false)
 		assert.ErrorIs(t, err, ErrStableGetBalanceDidntConverge)
 	})
 
@@ -129,7 +129,136 @@ func Test_calculateInvariant(t *testing.T) {
 		expected := "10463766246264891996"
 
 		// actual
-		result, err := StableMath._calculateInvariant(amp, balances, false)
+		result, err := StableMath._calculateInvariantV1(amp, balances, false)
+		assert.Nil(t, err)
+
+		// assert
+		assert.Equal(t, expected, result.Dec())
+	})
+}
+
+func Test_calculateInvariantV2(t *testing.T) {
+	t.Run("1. should return correct invariant", func(t *testing.T) {
+		// input
+		amp := uint256.NewInt(5000)
+		balances := []*uint256.Int{
+			uint256.MustFromDecimal("9999991000000000000000"),
+			uint256.MustFromDecimal("99999910000000000056"),
+			uint256.MustFromDecimal("8897791020011100123456"),
+			uint256.MustFromDecimal("13288977911102200123456"),
+			uint256.MustFromDecimal("199791011102200123456"),
+			uint256.MustFromDecimal("1997200112156340123456"),
+		}
+		//
+
+		// expected
+		expected := "19410511781031881171187"
+
+		// actual
+		result, err := StableMath._calculateInvariantV2(amp, balances)
+		assert.Nil(t, err)
+
+		// assert
+		assert.Equal(t, expected, result.Dec())
+	})
+
+	t.Run("2. should return error balance didn't converge", func(t *testing.T) {
+		// input
+		amp := uint256.NewInt(1500)
+		balances := []*uint256.Int{
+			uint256.MustFromDecimal("1243021482015219478129472423914"),
+			uint256.MustFromDecimal("184305801438975139127489247143"),
+			uint256.MustFromDecimal("14830215"),
+			uint256.MustFromDecimal("3018454729758945"),
+			uint256.MustFromDecimal("3145748925789256143057234"),
+			uint256.MustFromDecimal("127312951502507043571956954693255219"),
+		}
+
+		// actual
+		_, err := StableMath._calculateInvariantV2(amp, balances)
+		assert.ErrorIs(t, err, math.ErrMulOverflow)
+	})
+
+	t.Run("3. should return correct invariant", func(t *testing.T) {
+		// input
+		amp := uint256.NewInt(10000)
+		balances := []*uint256.Int{
+			uint256.MustFromDecimal("214321579579179247"),
+			uint256.MustFromDecimal("42179537589172147219"),
+			uint256.MustFromDecimal("1520481514459573495"),
+			uint256.MustFromDecimal("414759131324123123"),
+			uint256.MustFromDecimal("4219759729147925"),
+			uint256.MustFromDecimal("5197345436285624443"),
+		}
+
+		// expected
+		expected := "10463766246264892025"
+
+		// actual
+		result, err := StableMath._calculateInvariantV2(amp, balances)
+		assert.Nil(t, err)
+
+		// assert
+		assert.Equal(t, expected, result.Dec())
+	})
+
+	t.Run("4. should return correct invariant", func(t *testing.T) {
+		// input
+		amp := uint256.NewInt(5000)
+		balances := []*uint256.Int{
+			uint256.MustFromDecimal("9999991000000310000"),
+			uint256.MustFromDecimal("9999991000031400056"),
+			uint256.MustFromDecimal("88973215240111123456"),
+			uint256.MustFromDecimal("13288977911102513456"),
+			uint256.MustFromDecimal("199791414320012356"),
+			uint256.MustFromDecimal("1997200112152140156"),
+		}
+
+		// expected
+		expected := "63504110862071166482"
+
+		// actual
+		result, err := StableMath._calculateInvariantV2(amp, balances)
+		assert.Nil(t, err)
+
+		// assert
+		assert.Equal(t, expected, result.Dec())
+	})
+
+	t.Run("5. should return error balance didn't converge", func(t *testing.T) {
+		// input
+		amp := uint256.NewInt(1500)
+		balances := []*uint256.Int{
+			uint256.MustFromDecimal("1243021482015219478129472423914"),
+			uint256.MustFromDecimal("184305801438975139127489247143"),
+			uint256.MustFromDecimal("14830215"),
+			uint256.MustFromDecimal("3018454729758945"),
+			uint256.MustFromDecimal("3145748925789256143057234"),
+			uint256.MustFromDecimal("127312951502507043571956954693255219"),
+		}
+
+		// actual
+		_, err := StableMath._calculateInvariantV2(amp, balances)
+		assert.ErrorIs(t, err, math.ErrMulOverflow)
+	})
+
+	t.Run("6. should return correct invariant", func(t *testing.T) {
+		// input
+		amp := uint256.NewInt(10000)
+		balances := []*uint256.Int{
+			uint256.MustFromDecimal("214321579579179247"),
+			uint256.MustFromDecimal("42179537589172147219"),
+			uint256.MustFromDecimal("1520481514459573495"),
+			uint256.MustFromDecimal("414759131324123123"),
+			uint256.MustFromDecimal("4219759729147925"),
+			uint256.MustFromDecimal("5197345436285624443"),
+		}
+
+		// expected
+		expected := "10463766246264892025"
+
+		// actual
+		result, err := StableMath._calculateInvariantV2(amp, balances)
 		assert.Nil(t, err)
 
 		// assert
