@@ -1,4 +1,4 @@
-package stable
+package stablemeta
 
 import "github.com/holiman/uint256"
 

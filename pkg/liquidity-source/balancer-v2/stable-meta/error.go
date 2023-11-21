@@ -1,4 +1,4 @@
-package stable
+package stablemeta
 
 import "errors"
 
