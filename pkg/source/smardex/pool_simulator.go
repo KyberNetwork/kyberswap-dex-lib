@@ -143,15 +143,15 @@ func (p *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 			},
 			Gas: p.gas.Swap,
 			SwapInfo: SwapInfo{
-				NewReserveIn:              new(big.Int).Sub(result.newReserveIn, feeToAmount0),
-				NewReserveOut:             new(big.Int).Sub(result.newReserveOut, feeToAmount1),
-				NewFictiveReserveIn:       newFictiveReserveIn,
-				NewFictiveReserveOut:      newFictiveReserveOut,
-				NewPriceAverageIn:         newPriceAverageIn,
-				NewPriceAverageOut:        newPriceAverageOut,
-				PriceAverageLastTimestamp: big.NewInt(userTradeTimestamp),
-				FeeToAmount0:              feeToAmount0,
-				FeeToAmount1:              feeToAmount1,
+				newReserveIn:              new(big.Int).Sub(result.newReserveIn, feeToAmount0),
+				newReserveOut:             new(big.Int).Sub(result.newReserveOut, feeToAmount1),
+				newFictiveReserveIn:       newFictiveReserveIn,
+				newFictiveReserveOut:      newFictiveReserveOut,
+				newPriceAverageIn:         newPriceAverageIn,
+				newPriceAverageOut:        newPriceAverageOut,
+				priceAverageLastTimestamp: big.NewInt(userTradeTimestamp),
+				feeToAmount0:              feeToAmount0,
+				feeToAmount1:              feeToAmount1,
 			},
 		}, nil
 	}
@@ -167,15 +167,15 @@ func (p *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		},
 		Gas: p.gas.Swap,
 		SwapInfo: SwapInfo{
-			NewReserveIn:              new(big.Int).Sub(result.newReserveIn, feeToAmount0),
-			NewReserveOut:             new(big.Int).Sub(result.newReserveOut, feeToAmount1),
-			NewFictiveReserveIn:       newFictiveReserveIn,
-			NewFictiveReserveOut:      newFictiveReserveOut,
-			NewPriceAverageIn:         newPriceAverageIn,
-			NewPriceAverageOut:        newPriceAverageOut,
-			PriceAverageLastTimestamp: big.NewInt(userTradeTimestamp),
-			FeeToAmount0:              feeToAmount0,
-			FeeToAmount1:              feeToAmount1,
+			newReserveIn:              new(big.Int).Sub(result.newReserveIn, feeToAmount0),
+			newReserveOut:             new(big.Int).Sub(result.newReserveOut, feeToAmount1),
+			newFictiveReserveIn:       newFictiveReserveIn,
+			newFictiveReserveOut:      newFictiveReserveOut,
+			newPriceAverageIn:         newPriceAverageIn,
+			newPriceAverageOut:        newPriceAverageOut,
+			priceAverageLastTimestamp: big.NewInt(userTradeTimestamp),
+			feeToAmount0:              feeToAmount0,
+			feeToAmount1:              feeToAmount1,
 		},
 	}, nil
 
@@ -191,18 +191,18 @@ func (p *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		logger.Warnf("failed to UpdateBalance for Smardex %v %v pool, wrong swapInfo type", p.Info.Address, p.Info.Exchange)
 		return
 	}
-	p.Info.Reserves = []*big.Int{si.NewReserveIn, si.NewReserveOut}
+	p.Info.Reserves = []*big.Int{si.newReserveIn, si.newReserveOut}
 	p.FictiveReserve = FictiveReserve{
-		si.NewFictiveReserveIn,
-		si.NewFictiveReserveOut,
+		si.newFictiveReserveIn,
+		si.newFictiveReserveOut,
 	}
 	p.PriceAverage = PriceAverage{
-		si.NewPriceAverageIn,
-		si.NewPriceAverageOut,
-		si.PriceAverageLastTimestamp,
+		si.newPriceAverageIn,
+		si.newPriceAverageOut,
+		si.priceAverageLastTimestamp,
 	}
 	p.FeeToAmount = FeeToAmount{
-		si.FeeToAmount0,
-		si.FeeToAmount1,
+		si.feeToAmount0,
+		si.feeToAmount1,
 	}
 }

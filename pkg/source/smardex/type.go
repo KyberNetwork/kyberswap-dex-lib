@@ -80,13 +80,13 @@ type GetAmountResult struct {
 }
 
 type SwapInfo struct {
-	NewReserveIn              *big.Int
-	NewReserveOut             *big.Int
-	NewFictiveReserveIn       *big.Int
-	NewFictiveReserveOut      *big.Int
-	NewPriceAverageIn         *big.Int
-	NewPriceAverageOut        *big.Int
-	PriceAverageLastTimestamp *big.Int
-	FeeToAmount0              *big.Int
-	FeeToAmount1              *big.Int
+	newReserveIn              *big.Int
+	newReserveOut             *big.Int
+	newFictiveReserveIn       *big.Int
+	newFictiveReserveOut      *big.Int
+	newPriceAverageIn         *big.Int
+	newPriceAverageOut        *big.Int
+	priceAverageLastTimestamp *big.Int
+	feeToAmount0              *big.Int
+	feeToAmount1              *big.Int
 }

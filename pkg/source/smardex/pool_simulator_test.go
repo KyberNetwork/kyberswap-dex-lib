@@ -99,17 +99,17 @@ func TestCalcAmountOut(t *testing.T) {
 	if !ok {
 		t.Fatal(`Swapinfo is nil`)
 	}
-	if newState.NewReserveIn.Cmp(new(big.Int).Sub(expectedResT0, newState.FeeToAmount0)) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, newState.NewReserveIn, expectedResT0)
+	if newState.newReserveIn.Cmp(new(big.Int).Sub(expectedResT0, newState.feeToAmount0)) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newState.newReserveIn, expectedResT0)
 	}
-	if newState.NewReserveOut.Cmp(expectedResT1) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, newState.NewReserveOut, expectedResT1)
+	if newState.newReserveOut.Cmp(expectedResT1) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newState.newReserveOut, expectedResT1)
 	}
-	if newState.NewFictiveReserveIn.Cmp(expectedResFicT0) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, newState.NewFictiveReserveIn, expectedResFicT0)
+	if newState.newFictiveReserveIn.Cmp(expectedResFicT0) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newState.newFictiveReserveIn, expectedResFicT0)
 	}
-	if newState.NewFictiveReserveOut.Cmp(expectedResFicT1) != 0 {
-		t.Fatalf(`Invalid value = %d, expected: %d`, newState.NewFictiveReserveOut, expectedResFicT1)
+	if newState.newFictiveReserveOut.Cmp(expectedResFicT1) != 0 {
+		t.Fatalf(`Invalid value = %d, expected: %d`, newState.newFictiveReserveOut, expectedResFicT1)
 	}
 }
 

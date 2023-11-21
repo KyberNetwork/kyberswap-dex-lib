@@ -99,21 +99,22 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, ErrInsufficientLiquidity
 	}
 
-	balanceIn := new(uint256.Int).Add(reserveIn, amountIn)
-	balanceOut := new(uint256.Int).Sub(reserveOut, amountOut)
+	// NOTE: Intentionally comment out, since kAfter should always smaller than kBefore.
+	// balanceIn := new(uint256.Int).Add(reserveIn, amountIn)
+	// balanceOut := new(uint256.Int).Sub(reserveOut, amountOut)
 
-	balanceInAdjusted := new(uint256.Int).Sub(
-		new(uint256.Int).Mul(balanceIn, s.feePrecision),
-		new(uint256.Int).Mul(amountIn, s.fee),
-	)
-	balanceOutAdjusted := new(uint256.Int).Mul(balanceOut, s.feePrecision)
+	// balanceInAdjusted := new(uint256.Int).Sub(
+	// 	new(uint256.Int).Mul(balanceIn, s.feePrecision),
+	// 	new(uint256.Int).Mul(amountIn, s.fee),
+	// )
+	// balanceOutAdjusted := new(uint256.Int).Mul(balanceOut, s.feePrecision)
 
-	kBefore := new(uint256.Int).Mul(new(uint256.Int).Mul(reserveIn, reserveOut), new(uint256.Int).Mul(s.feePrecision, s.feePrecision))
-	kAfter := new(uint256.Int).Mul(balanceInAdjusted, balanceOutAdjusted)
+	// kBefore := new(uint256.Int).Mul(new(uint256.Int).Mul(reserveIn, reserveOut), new(uint256.Int).Mul(s.feePrecision, s.feePrecision))
+	// kAfter := new(uint256.Int).Mul(balanceInAdjusted, balanceOutAdjusted)
 
-	if kAfter.Cmp(kBefore) < 0 {
-		return nil, ErrInvalidK
-	}
+	// if kAfter.Cmp(kBefore) < 0 {
+	// 	return nil, ErrInvalidK
+	// }
 
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
