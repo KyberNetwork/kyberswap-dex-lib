@@ -23,6 +23,7 @@ func init() {
 	WeightedMath = &weightedMath{}
 }
 
+// https://etherscan.io/address/0x00612eb4f312eb6ace7acc8781196601078ae339#code#F8#L78
 func (l *weightedMath) _calcOutGivenIn(
 	balanceIn *uint256.Int,
 	weightIn *uint256.Int,
