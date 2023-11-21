@@ -17,16 +17,14 @@ func init() {
 }
 
 func (l *stableMath) _calcOutGivenIn(
+	invariant *uint256.Int,
 	amp *uint256.Int,
 	amountIn *uint256.Int,
 	balances []*uint256.Int,
 	indexIn int,
 	indexOut int,
 ) (*uint256.Int, error) {
-	invariant, err := l._calculateInvariant(amp, balances, true)
-	if err != nil {
-		return nil, err
-	}
+	var err error
 
 	balances[indexIn], err = math.FixedPoint.Add(balances[indexIn], amountIn)
 	if err != nil {
@@ -60,8 +58,7 @@ func (l *stableMath) _calcOutGivenIn(
 	return amountOut, nil
 }
 
-// https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F7#L49
-func (l *stableMath) _calculateInvariant(
+func (l *stableMath) _calculateInvariantV1(
 	amp *uint256.Int,
 	balances []*uint256.Int,
 	roundUp bool,
@@ -173,7 +170,117 @@ func (l *stableMath) _calculateInvariant(
 	return nil, ErrStableGetBalanceDidntConverge
 }
 
-// https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F7#L465
+func (l *stableMath) _calculateInvariantV2(
+	amp *uint256.Int,
+	balances []*uint256.Int,
+) (*uint256.Int, error) {
+	sum := uint256.NewInt(0)
+	numTokens := uint256.NewInt(uint64(len(balances)))
+
+	for _, b := range balances {
+		var err error
+		sum, err = math.FixedPoint.Add(sum, b)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if sum.IsZero() {
+		return sum, nil
+	}
+
+	invariant := new(uint256.Int).Set(sum)
+	ampTimesTotal := new(uint256.Int).Mul(amp, numTokens)
+
+	for i := 0; i < 255; i++ {
+		D_P := invariant
+		for j := 0; j < len(balances); j++ {
+			u, err := math.Math.Mul(D_P, invariant)
+			if err != nil {
+				return nil, err
+			}
+
+			v, err := math.Math.Mul(balances[j], numTokens)
+			if err != nil {
+				return nil, err
+			}
+
+			D_P, err = math.Math.DivDown(u, v)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		prevInvariant := invariant
+
+		// numerator
+		var numerator *uint256.Int
+		{
+			u, err := math.Math.Mul(ampTimesTotal, sum)
+			if err != nil {
+				return nil, err
+			}
+			u, err = math.Math.DivDown(u, _AMP_PRECISION)
+			if err != nil {
+				return nil, err
+			}
+
+			v, err := math.Math.Mul(D_P, numTokens)
+			if err != nil {
+				return nil, err
+			}
+
+			u, err = math.FixedPoint.Add(u, v)
+			if err != nil {
+				return nil, err
+			}
+
+			numerator, err = math.Math.Mul(u, invariant)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// denominator
+		var denominator *uint256.Int
+		{
+			u := new(uint256.Int).Sub(ampTimesTotal, _AMP_PRECISION)
+			u, err := math.Math.Mul(u, invariant)
+			if err != nil {
+				return nil, err
+			}
+			u, err = math.Math.DivDown(u, _AMP_PRECISION)
+			if err != nil {
+				return nil, err
+			}
+
+			v, err := math.Math.Mul(new(uint256.Int).Add(numTokens, number.Number_1), D_P)
+			if err != nil {
+				return nil, err
+			}
+
+			denominator, err = math.FixedPoint.Add(u, v)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		var err error
+		invariant, err = math.Math.DivDown(numerator, denominator)
+		if err != nil {
+			return nil, err
+		}
+
+		delta := new(uint256.Int).Abs(
+			new(uint256.Int).Sub(invariant, prevInvariant),
+		)
+		if delta.Cmp(number.Number_1) <= 0 {
+			return invariant, nil
+		}
+	}
+
+	return nil, ErrStableGetBalanceDidntConverge
+}
+
 func (l *stableMath) _getTokenBalanceGivenInvariantAndAllOtherBalances(
 	amp *uint256.Int,
 	balances []*uint256.Int,
@@ -315,7 +422,3 @@ func (l *stableMath) _getTokenBalanceGivenInvariantAndAllOtherBalances(
 
 	return nil, ErrStableGetBalanceDidntConverge
 }
-
-
-// TODO: stable v1 = metav1
-// stable v2 !=

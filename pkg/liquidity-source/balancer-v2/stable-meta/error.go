@@ -7,4 +7,5 @@ var (
 	ErrInvalidReserve                = errors.New("invalid reserve")
 	ErrInvalidAmountIn               = errors.New("invalid amount in")
 	ErrStableGetBalanceDidntConverge = errors.New("stable get balance didn't converge")
+	ErrInvalidPoolType               = errors.New("invalid pool type")
 )

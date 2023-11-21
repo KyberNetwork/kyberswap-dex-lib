@@ -18,6 +18,9 @@ type PoolSimulator struct {
 	swapFeePercentage *uint256.Int
 	amp               *uint256.Int
 	scalingFactors    []*uint256.Int
+
+	poolType        string
+	poolTypeVersion uint
 }
 
 func (s *PoolSimulator) CalcAmountOut(
@@ -54,7 +57,13 @@ func (s *PoolSimulator) CalcAmountOut(
 		return nil, err
 	}
 
+	invariant, err := calculateInvariant(s.poolType, s.poolTypeVersion, s.amp, balances)
+	if err != nil {
+		return nil, err
+	}
+
 	upScaledAmountOut, err := StableMath._calcOutGivenIn(
+		invariant,
 		s.amp,
 		upScaledAmountIn,
 		balances,
@@ -74,6 +83,23 @@ func (s *PoolSimulator) CalcAmountOut(
 		TokenAmountOut: &poolpkg.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
 		Gas:            defaultGas.Swap,
 	}, nil
+}
+
+func calculateInvariant(
+	poolType string,
+	poolTypeVersion uint,
+	amp *uint256.Int,
+	balances []*uint256.Int,
+) (*uint256.Int, error) {
+	if poolType == poolTypeMetaStable {
+		return StableMath._calculateInvariantV1(amp, balances, true)
+	}
+
+	if poolTypeVersion == poolTypeVersion1 {
+		return StableMath._calculateInvariantV1(amp, balances, true)
+	}
+
+	return StableMath._calculateInvariantV2(amp, balances)
 }
 
 func _upscaleArray(reserves []*big.Int, scalingFactors []*uint256.Int) ([]*uint256.Int, error) {
