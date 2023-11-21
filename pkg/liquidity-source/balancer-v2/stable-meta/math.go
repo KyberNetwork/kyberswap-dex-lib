@@ -1,4 +1,4 @@
-package stable
+package stablemeta
 
 import (
 	"github.com/holiman/uint256"
@@ -315,3 +315,7 @@ func (l *stableMath) _getTokenBalanceGivenInvariantAndAllOtherBalances(
 
 	return nil, ErrStableGetBalanceDidntConverge
 }
+
+
+// TODO: stable v1 = metav1
+// stable v2 !=
