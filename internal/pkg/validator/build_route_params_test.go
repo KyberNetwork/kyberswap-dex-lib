@@ -706,6 +706,31 @@ func TestBuildRouteParamsValidator_validateSenderAndRecipient(t *testing.T) {
 			},
 		},
 		{
+			name:      "it should return nil, Blackjack returns miss `blacklisted` value, isBlackjackEnabled is true",
+			recipient: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+			sender:    "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+			err:       nil,
+			config: BuildRouteParamsConfig{
+				FeatureFlags: valueobject.FeatureFlags{
+					IsBlackjackEnabled: true,
+				},
+			},
+			callBlackjack: func(client *usecase.MockServiceClient) {
+				sender := "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664"
+				client.EXPECT().Check(gomock.Any(), gomock.Any()).Return(&blackjackv1.CheckResponse{
+					Code:    &statusOk,
+					Message: &msgOk,
+					Data: &blackjackv1.CheckResponse_Data{
+						Wallets: []*blackjackv1.BlacklistData{
+							{
+								Wallet: &sender,
+							},
+						},
+					},
+				}, nil)
+			},
+		},
+		{
 			name:      "it should return [recipient][blacklisted wallet], isBlackjackEnabled is true",
 			recipient: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c764",
 			sender:    "0xccd7079b0fead91f3e65f86e8915cb59c1a4c664",

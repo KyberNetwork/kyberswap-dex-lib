@@ -2,6 +2,7 @@ package blackjack
 
 import (
 	"context"
+	"errors"
 
 	blackjackv1 "github.com/KyberNetwork/blackjack/proto/gen/blackjack/v1"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -30,8 +31,12 @@ func (b *blackjackRepository) GetAddressBlacklisted(ctx context.Context, wallets
 		return nil, err
 	}
 
+	if len(resp.Data.Wallets) == 0 {
+		return nil, errors.New("Blackjack's response is empty")
+	}
+
 	result := lo.SliceToMap(resp.Data.Wallets, func(data *blackjackv1.BlacklistData) (string, bool) {
-		return *data.Wallet, *data.Blacklisted
+		return data.GetWallet(), data.GetBlacklisted()
 	})
 
 	return result, nil
