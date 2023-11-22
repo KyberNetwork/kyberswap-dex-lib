@@ -150,13 +150,14 @@ func (b *EncodingDataBuilder) getRouteEncodingSwapFlags(route [][]EncodingSwap, 
 	}
 	hasTokens, err := b.executorBalanceRepository.HasToken(executorAddress, hasTokenQueries)
 	if err == nil {
-		for idx, hasToken := range hasTokens {
-			if !hasToken {
-				continue
+		idx := 0
+		for pathIdx, path := range route {
+			for swapIdx := range path {
+				if hasTokens[idx] {
+					flags[pathIdx][swapIdx] = append(flags[pathIdx][swapIdx], EncodingSwapFlagShouldNotKeepDustTokenOut)
+				}
+				idx++
 			}
-			pathIdx := idx / len(route)
-			swapIdx := idx % len(route)
-			flags[pathIdx][swapIdx] = append(flags[pathIdx][swapIdx], EncodingSwapFlagShouldNotKeepDustTokenOut)
 		}
 	}
 

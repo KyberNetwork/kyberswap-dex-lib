@@ -57,7 +57,7 @@ func (j *TrackExecutorBalanceJob) run(ctx context.Context) {
 			WithFields(
 				logger.Fields{
 					"job.id":      jobID,
-					"job.name":    IndexPools,
+					"job.name":    TrackExecutorBalance,
 					"duration_ms": time.Since(startTime).Milliseconds()},
 			).
 			Info("job duration")
