@@ -6,6 +6,7 @@ import "math/big"
 // i.e: SwapLimit must be something affect multiple pools once it is change.
 type SwapLimit interface {
 	// GetLimit return a limit for a certain key. Normally each dex will have different limit values
+	// return nil in case there is no limit
 	// For example: PMM's key is token's string and its value is the inventory's balance of that token
 	GetLimit(key string) *big.Int
 	// UpdateLimit update both limits for a trade (assuming each trade is from 1 token to another token)
