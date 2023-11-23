@@ -1122,7 +1122,7 @@ func (f *PoolFactory) newLiquidityBookV21AEVM(entityPool entity.Pool, stateRoot 
 		return nil, errors.New("AEVM is not initialized")
 	}
 	balanceSlots := f.getBalanceSlots(&entityPool)
-	corePool, err := liquiditybookv21aevm.NewPoolAEVM(entityPool, f.client, stateRoot, balanceSlots)
+	corePool, err := liquiditybookv21aevm.NewPoolAEVM(f.config.ChainID, entityPool, f.client, stateRoot, balanceSlots)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
@@ -1139,7 +1139,7 @@ func (f *PoolFactory) newLiquidityBookV20AEVM(entityPool entity.Pool, stateRoot 
 		return nil, errors.New("AEVM is not initialized")
 	}
 	balanceSlots := f.getBalanceSlots(&entityPool)
-	corePool, err := liquiditybookv20aevm.NewPoolAEVM(entityPool, f.client, stateRoot, balanceSlots)
+	corePool, err := liquiditybookv20aevm.NewPoolAEVM(f.config.ChainID, entityPool, f.client, stateRoot, balanceSlots)
 	if err != nil {
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,

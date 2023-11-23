@@ -11,6 +11,8 @@ import (
 	aevmtypes "github.com/KyberNetwork/aevm/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
@@ -18,6 +20,7 @@ import (
 	aevmcore "github.com/KyberNetwork/router-service/internal/pkg/core/aevm"
 	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/common"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type Pool struct {
@@ -26,6 +29,7 @@ type Pool struct {
 }
 
 func NewPoolAEVM(
+	chainID valueobject.ChainID,
 	entityPool entity.Pool,
 	aevmClient aevmclient.Client,
 	stateRoot gethcommon.Hash,
@@ -34,21 +38,31 @@ func NewPoolAEVM(
 	if len(entityPool.Tokens) != 2 {
 		return nil, errors.New("TraderJoe pool must have 2 tokens")
 	}
+	if len(entityPool.Reserves) != 2 {
+		return nil, errors.New("TraderJoe pool must have 2 reserves")
+	}
 	tokens := []string{
 		entityPool.Tokens[0].Address,
 		entityPool.Tokens[1].Address,
 	}
+	reserves := []*big.Int{
+		bignumber.NewBig10(entityPool.Reserves[0]),
+		bignumber.NewBig10(entityPool.Reserves[1]),
+	}
 	return &Pool{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
-				Address:  strings.ToLower(entityPool.Address),
-				Exchange: entityPool.Exchange,
-				Type:     entityPool.Type,
-				Tokens:   tokens,
-				Checked:  true,
+				Address:    strings.ToLower(entityPool.Address),
+				ReserveUsd: entityPool.ReserveUsd,
+				Exchange:   entityPool.Exchange,
+				Type:       entityPool.Type,
+				Tokens:     tokens,
+				Reserves:   reserves,
+				Checked:    false,
 			},
 		},
 		aevmPool: &aevmcore.AEVMPool{
+			ChainID:           chainID,
 			Address:           gethcommon.HexToAddress(entityPool.Address),
 			AEVMClient:        common.MakeNoClone(aevmClient),
 			StateRoot:         stateRoot,
@@ -141,8 +155,15 @@ func (p *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 }
 
 func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
-	if si, ok := params.SwapInfo.(*aevmcore.AEVMSwapInfo); ok {
-		p.aevmPool.NextSwapInfo = si
+	si, ok := params.SwapInfo.(*aevmcore.AEVMSwapInfo)
+	if !ok {
+		logger.WithFields(logger.Fields{"address": p.Info.Address}).Warn("invalid swap info")
+		return
+	}
+
+	p.aevmPool.NextSwapInfo = new(aevmcore.AEVMSwapInfo)
+	if si.StateAfter != nil {
+		p.aevmPool.NextSwapInfo.StateAfter = si.StateAfter.Clone()
 	}
 }
 

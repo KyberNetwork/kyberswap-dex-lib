@@ -8,6 +8,7 @@ import (
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
@@ -70,12 +71,14 @@ func TestCalcAmountOutAEVMWithUSDCE_USDCPoolWithGRPCClient(t *testing.T) {
 		balanceSlots := balanceSlots
 		t.Run(names[i], func(t *testing.T) {
 			p, err := NewPoolAEVM(
+				valueobject.ChainIDAvalancheCChain,
 				entity.Pool{
 					Address: btcbUSDCPool,
 					Tokens: []*entity.PoolToken{
 						{Address: btcbAddr},
 						{Address: usdcAddr},
 					},
+					Reserves: entity.PoolReserves{"0", "0"},
 				},
 				client,
 				common.Hash(stateRoot),

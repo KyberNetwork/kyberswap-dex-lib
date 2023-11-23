@@ -10,6 +10,7 @@ import (
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	aevmtypes "github.com/KyberNetwork/aevm/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
@@ -29,6 +30,8 @@ type AEVMSwapInfo struct {
 
 // AEVMPool a AEVM-integrated pool
 type AEVMPool struct {
+	// ChainID for handling chain-specific edge cases
+	ChainID valueobject.ChainID
 	// Pool address
 	Address gethcommon.Address
 	// Client to communicate with AEVM server to do simulation
@@ -235,11 +238,21 @@ func CalcAmountOutAEVM(
 				overridedBalance = uint256.MustFromBig(amountIn).Bytes32()
 			}
 			// make sure wallet have enough amountIn
-			overrides.OverrideState(aevmcommon.Address(tokenIn), aevmcommon.HexToHash(blIn.BalanceSlot), overridedBalance)
+			_slot := aevmcommon.HexToHash(blIn.BalanceSlot)
+			if p.ChainID == valueobject.ChainIDAvalancheCChain {
+				// TODO: make (aevmtypes.StateOverrides).OverrideState() accept ChainID and move this function to KyberNetwork/aevm library
+				AVAXNormalizeStateKey(&_slot)
+			}
+			overrides.OverrideState(aevmcommon.Address(tokenIn), _slot, overridedBalance)
 		}
 		// override extra if needed
 		for slot, val := range blIn.ExtraOverrides {
-			overrides.OverrideState(aevmcommon.Address(tokenIn), aevmcommon.HexToHash(slot), aevmcommon.HexToHash(val))
+			_slot := aevmcommon.HexToHash(slot)
+			if p.ChainID == valueobject.ChainIDAvalancheCChain {
+				// TODO: make (aevmtypes.StateOverrides).OverrideState() accept ChainID and move this function to KyberNetwork/aevm library
+				AVAXNormalizeStateKey(&_slot)
+			}
+			overrides.OverrideState(aevmcommon.Address(tokenIn), _slot, aevmcommon.HexToHash(val))
 		}
 	}
 
