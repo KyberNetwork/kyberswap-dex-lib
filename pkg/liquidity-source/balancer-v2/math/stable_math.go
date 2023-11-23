@@ -427,3 +427,186 @@ func (l *stableMath) GetTokenBalanceGivenInvariantAndAllOtherBalances(
 
 	return nil, ErrStableGetBalanceDidntConverge
 }
+
+func (l *stableMath) CalcBptOutGivenExactTokensIn(
+	amp *uint256.Int,
+	balances []*uint256.Int,
+	amountsIn []*uint256.Int,
+	bptTotalSupply *uint256.Int,
+	currentInvariant *uint256.Int,
+	swapFeePercentage *uint256.Int,
+) (*uint256.Int, error) {
+	sumBalances := uint256.NewInt(0)
+	for _, b := range balances {
+		var err error
+		sumBalances, err = FixedPoint.Add(sumBalances, b)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	balanceRatiosWithFee := make([]*uint256.Int, len(amountsIn))
+	invariantRatioWithFee := uint256.NewInt(0)
+
+	for i := 0; i < len(balances); i++ {
+		currentWeight, err := FixedPoint.DivDown(balances[i], sumBalances)
+		if err != nil {
+			return nil, err
+		}
+
+		u, err := FixedPoint.Add(balances[i], amountsIn[i])
+		if err != nil {
+			return nil, err
+		}
+		balanceRatiosWithFee[i], err = FixedPoint.DivDown(u, balances[i])
+		if err != nil {
+			return nil, err
+		}
+
+		u, err = FixedPoint.MulDown(balanceRatiosWithFee[i], currentWeight)
+		if err != nil {
+			return nil, err
+		}
+		invariantRatioWithFee, err = FixedPoint.Add(invariantRatioWithFee, u)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	newBalances := make([]*uint256.Int, len(balances))
+	for i := 0; i < len(balances); i++ {
+		var amountInWithoutFee *uint256.Int
+		if balanceRatiosWithFee[i].Gt(invariantRatioWithFee) {
+			var nonTaxableAmount *uint256.Int
+			{
+				u, err := FixedPoint.Sub(invariantRatioWithFee, FixedPoint.ONE)
+				if err != nil {
+					return nil, err
+				}
+				nonTaxableAmount, err = FixedPoint.MulDown(balances[i], u)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			taxableAmount, err := FixedPoint.Sub(amountsIn[i], nonTaxableAmount)
+			if err != nil {
+				return nil, err
+			}
+
+			// calculate amountInWithoutFee
+			u, err := FixedPoint.MulDown(taxableAmount, new(uint256.Int).Sub(FixedPoint.ONE, swapFeePercentage))
+			if err != nil {
+				return nil, err
+			}
+			amountInWithoutFee, err = FixedPoint.Add(nonTaxableAmount, u)
+			if err != nil {
+				return nil, err
+			}
+
+		} else {
+			amountInWithoutFee = amountsIn[i]
+		}
+
+		var err error
+		newBalances[i], err = FixedPoint.Add(balances[i], amountInWithoutFee)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	newInvariant, err := l.CalculateInvariantV2(amp, newBalances)
+	if err != nil {
+		return nil, err
+	}
+
+	invariantRatio, err := FixedPoint.DivDown(newInvariant, currentInvariant)
+	if err != nil {
+		return nil, err
+	}
+
+	if invariantRatio.Gt(FixedPoint.ONE) {
+		return FixedPoint.MulDown(bptTotalSupply, new(uint256.Int).Sub(invariantRatio, FixedPoint.ONE))
+	}
+
+	return uint256.NewInt(0), nil
+}
+
+func (l *stableMath) CalcTokenOutGivenExactBptIn(
+	amp *uint256.Int,
+	balances []*uint256.Int,
+	tokenIndex int,
+	bptAmountIn *uint256.Int,
+	bptTotalSupply *uint256.Int,
+	currentInvariant *uint256.Int,
+	swapFeePercentage *uint256.Int,
+) (*uint256.Int, error) {
+	var newInvariant *uint256.Int
+	{
+		u, err := FixedPoint.Sub(bptTotalSupply, bptAmountIn)
+		if err != nil {
+			return nil, err
+		}
+		u, err = FixedPoint.DivDown(u, bptTotalSupply)
+		if err != nil {
+			return nil, err
+		}
+		u, err = FixedPoint.MulUp(u, currentInvariant)
+		if err != nil {
+			return nil, err
+		}
+
+		newInvariant = u
+	}
+
+	newBalanceTokenIndex, err := l.GetTokenBalanceGivenInvariantAndAllOtherBalances(
+		amp,
+		balances,
+		newInvariant,
+		tokenIndex,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	amountOutWithoutFee, err := FixedPoint.Sub(balances[tokenIndex], newBalanceTokenIndex)
+	if err != nil {
+		return nil, err
+	}
+
+	sumBalances := uint256.NewInt(0)
+	for _, b := range balances {
+		var err error
+		sumBalances, err = FixedPoint.Add(sumBalances, b)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	currentWeight, err := FixedPoint.DivDown(balances[tokenIndex], sumBalances)
+	if err != nil {
+		return nil, err
+	}
+
+	taxablePercentage := FixedPoint.Complement(currentWeight)
+
+	taxableAmount, err := FixedPoint.MulUp(amountOutWithoutFee, taxablePercentage)
+	if err != nil {
+		return nil, err
+	}
+	nonTaxableAmount, err := FixedPoint.Sub(amountOutWithoutFee, taxableAmount)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := FixedPoint.MulDown(taxableAmount, new(uint256.Int).Sub(FixedPoint.ONE, swapFeePercentage))
+	if err != nil {
+		return nil, err
+	}
+	u, err = FixedPoint.Add(nonTaxableAmount, u)
+	if err != nil {
+		return nil, err
+	}
+
+	return u, nil
+}
