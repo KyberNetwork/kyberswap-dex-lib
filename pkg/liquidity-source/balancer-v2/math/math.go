@@ -61,3 +61,17 @@ func (m *math) Div(a *uint256.Int, b *uint256.Int, roundUp bool) (*uint256.Int, 
 	}
 	return m.DivDown(a, b)
 }
+
+func (m *math) Min(a *uint256.Int, b *uint256.Int) *uint256.Int {
+	if a.Lt(b) {
+		return a
+	}
+	return b
+}
+
+func (m *math) Max(a *uint256.Int, b *uint256.Int) *uint256.Int {
+	if a.Gt(b) {
+		return a
+	}
+	return b
+}

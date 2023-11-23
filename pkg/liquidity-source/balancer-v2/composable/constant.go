@@ -1,15 +1,14 @@
 package composable
 
-import "github.com/holiman/uint256"
-
 var (
-	_AMP_PRECISION = uint256.NewInt(1000)
-
 	DefaultGas = Gas{Swap: 80000}
 )
 
 const (
 	unknownInt = -1
+
+	feeTypeSwap  = 0
+	feeTypeYield = 1
 )
 
 const (
