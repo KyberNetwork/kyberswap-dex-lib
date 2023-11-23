@@ -1,4 +1,4 @@
-package stablemeta
+package stable
 
 import (
 	"math/big"
@@ -62,7 +62,7 @@ func (s *PoolSimulator) CalcAmountOut(
 		return nil, err
 	}
 
-	upScaledAmountOut, err := StableMath._calcOutGivenIn(
+	upScaledAmountOut, err := math.StableMath.CalcOutGivenIn(
 		invariant,
 		s.amp,
 		upScaledAmountIn,
@@ -92,14 +92,14 @@ func calculateInvariant(
 	balances []*uint256.Int,
 ) (*uint256.Int, error) {
 	if poolType == poolTypeMetaStable {
-		return StableMath._calculateInvariantV1(amp, balances, true)
+		return math.StableMath.CalculateInvariantV1(amp, balances, true)
 	}
 
 	if poolTypeVersion == poolTypeVersion1 {
-		return StableMath._calculateInvariantV1(amp, balances, true)
+		return math.StableMath.CalculateInvariantV1(amp, balances, true)
 	}
 
-	return StableMath._calculateInvariantV2(amp, balances)
+	return math.StableMath.CalculateInvariantV2(amp, balances)
 }
 
 func _upscaleArray(reserves []*big.Int, scalingFactors []*uint256.Int) ([]*uint256.Int, error) {
