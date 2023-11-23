@@ -1,4 +1,4 @@
-package stablemeta
+package stable
 
 import (
 	"math/big"
