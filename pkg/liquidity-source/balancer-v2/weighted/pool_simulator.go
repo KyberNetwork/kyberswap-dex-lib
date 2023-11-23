@@ -89,7 +89,7 @@ func (s *PoolSimulator) CalcAmountOut(
 		return nil, err
 	}
 
-	upScaledAmountOut, err := WeightedMath._calcOutGivenIn(
+	upScaledAmountOut, err := math.WeightedMath.CalcOutGivenIn(
 		balanceTokenIn,
 		normalizedWeightIn,
 		balanceTokenOut,

@@ -1,4 +1,4 @@
-package weighted
+package math
 
 import (
 	"testing"
@@ -20,7 +20,7 @@ func Test_calcOutGivenIn(t *testing.T) {
 		expected := "2760912942840907991"
 
 		// calculation
-		result, err := WeightedMath._calcOutGivenIn(balanceIn, weightIn, balanceOut, weightOut, amountIn)
+		result, err := WeightedMath.CalcOutGivenIn(balanceIn, weightIn, balanceOut, weightOut, amountIn)
 
 		// assert
 		assert.Nil(t, err)
@@ -39,7 +39,7 @@ func Test_calcOutGivenIn(t *testing.T) {
 		expected := "1389798609308"
 
 		// calculation
-		result, err := WeightedMath._calcOutGivenIn(balanceIn, weightIn, balanceOut, weightOut, amountIn)
+		result, err := WeightedMath.CalcOutGivenIn(balanceIn, weightIn, balanceOut, weightOut, amountIn)
 
 		// assert
 		assert.Nil(t, err)
@@ -55,7 +55,7 @@ func Test_calcOutGivenIn(t *testing.T) {
 		amountIn := uint256.MustFromDecimal("92174932794319461529478329")
 
 		// calculation
-		_, err := WeightedMath._calcOutGivenIn(balanceIn, weightIn, balanceOut, weightOut, amountIn)
+		_, err := WeightedMath.CalcOutGivenIn(balanceIn, weightIn, balanceOut, weightOut, amountIn)
 
 		// assert
 		assert.ErrorIs(t, err, ErrMaxInRatio)
