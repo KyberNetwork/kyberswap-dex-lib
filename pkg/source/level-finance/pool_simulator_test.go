@@ -31,13 +31,50 @@ func TestCalcAmountOut(t *testing.T) {
 	assert.Nil(t, err)
 
 	result, err := levelFinancePool.CalcAmountOut(
-		pool.TokenAmount{
-			Token:  "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
-			Amount: bignumber.NewBig10("1000000000000000000"),
+		pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
+				Amount: bignumber.NewBig10("1000000000000000000"),
+			},
+			TokenOut: "0x55d398326f99059ff775485246999027b3197955",
 		},
-		"0x55d398326f99059ff775485246999027b3197955",
 	)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "2047979446915897120965", result.TokenAmountOut.Amount.String())
+}
+
+func TestCalcAmountOutStalbeToken(t *testing.T) {
+	levelFinancePool, err := levelfinance.NewPoolSimulator(entity.Pool{
+		Address:  "0x32b7bf19cb8b95c27e644183837813d4b595dcc6",
+		Exchange: "level-finance",
+		Type:     "level-finance",
+		Reserves: entity.PoolReserves{"1522182766006", "466620964426"},
+		Tokens: []*entity.PoolToken{
+			{
+				Address:  "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+				Decimals: 18,
+			},
+			{
+				Address:  "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+				Decimals: 18,
+			},
+		},
+		Extra: "{\"oracle\":\"0x82B585a8F15701BBD671850f0a9F1feE57a8DCB5\",\"tokenInfos\":{\"0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f\":{\"isStableCoin\":false,\"targetWeight\":22000,\"trancheAssets\":{\"0x502697AF336F7413Bb4706262e7C506Edab4f3B9\":{\"poolAmount\":256502946,\"reserveAmount\":3548375},\"0x5573405636F4b895E511C9C54aAfbefa0E7Ee458\":{\"poolAmount\":3687504900,\"reserveAmount\":247367443},\"0xb076f79f8D1477165E2ff8fa99930381FB7d94c1\":{\"poolAmount\":219402575,\"reserveAmount\":3104828}},\"riskFactor\":{\"0x502697AF336F7413Bb4706262e7C506Edab4f3B9\":0,\"0x5573405636F4b895E511C9C54aAfbefa0E7Ee458\":1,\"0xb076f79f8D1477165E2ff8fa99930381FB7d94c1\":0},\"totalRiskFactor\":1,\"maxLiquidity\":0,\"minPrice\":373463781553900000000000000,\"maxPrice\":373463781553900000000000000},\"0x82af49447d8a07e3bd95bd0d56f35241523fbab1\":{\"isStableCoin\":false,\"targetWeight\":35000,\"trancheAssets\":{\"0x502697AF336F7413Bb4706262e7C506Edab4f3B9\":{\"poolAmount\":17458989988881172,\"reserveAmount\":17458989988881172},\"0x5573405636F4b895E511C9C54aAfbefa0E7Ee458\":{\"poolAmount\":897706368784770877858,\"reserveAmount\":53366506867359689166},\"0xb076f79f8D1477165E2ff8fa99930381FB7d94c1\":{\"poolAmount\":13579214435796465,\"reserveAmount\":13579214435796465}},\"riskFactor\":{\"0x502697AF336F7413Bb4706262e7C506Edab4f3B9\":0,\"0x5573405636F4b895E511C9C54aAfbefa0E7Ee458\":1,\"0xb076f79f8D1477165E2ff8fa99930381FB7d94c1\":0},\"totalRiskFactor\":1,\"maxLiquidity\":0,\"minPrice\":2068413620680000,\"maxPrice\":2068413620680000},\"0x912ce59144191c1204e64559fe8253a0e49e6548\":{\"isStableCoin\":false,\"targetWeight\":1000,\"trancheAssets\":{\"0x502697AF336F7413Bb4706262e7C506Edab4f3B9\":{\"poolAmount\":0,\"reserveAmount\":0},\"0x5573405636F4b895E511C9C54aAfbefa0E7Ee458\":{\"poolAmount\":53181849675852502167367,\"reserveAmount\":50255467926189998076758},\"0xb076f79f8D1477165E2ff8fa99930381FB7d94c1\":{\"poolAmount\":0,\"reserveAmount\":0}},\"riskFactor\":{\"0x502697AF336F7413Bb4706262e7C506Edab4f3B9\":0,\"0x5573405636F4b895E511C9C54aAfbefa0E7Ee458\":1,\"0xb076f79f8D1477165E2ff8fa99930381FB7d94c1\":0},\"totalRiskFactor\":1,\"maxLiquidity\":100000000000000000000000,\"minPrice\":1025605090000,\"maxPrice\":1025605090000},\"0xaf88d065e77c8cc2239327c5edb3a432268e5831\":{\"isStableCoin\":true,\"targetWeight\":10000,\"trancheAssets\":{\"0x502697AF336F7413Bb4706262e7C506Edab4f3B9\":{\"poolAmount\":37320430,\"reserveAmount\":0},\"0x5573405636F4b895E511C9C54aAfbefa0E7Ee458\":{\"poolAmount\":466546323566,\"reserveAmount\":55250639218},\"0xb076f79f8D1477165E2ff8fa99930381FB7d94c1\":{\"poolAmount\":37320430,\"reserveAmount\":0}},\"riskFactor\":{\"0x502697AF336F7413Bb4706262e7C506Edab4f3B9\":0,\"0x5573405636F4b895E511C9C54aAfbefa0E7Ee458\":0,\"0xb076f79f8D1477165E2ff8fa99930381FB7d94c1\":0},\"totalRiskFactor\":0,\"maxLiquidity\":0,\"minPrice\":1000099990000000000000000,\"maxPrice\":1000099990000000000000000},\"0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9\":{\"isStableCoin\":true,\"targetWeight\":32000,\"trancheAssets\":{\"0x502697AF336F7413Bb4706262e7C506Edab4f3B9\":{\"poolAmount\":49873143222,\"reserveAmount\":49867628734},\"0x5573405636F4b895E511C9C54aAfbefa0E7Ee458\":{\"poolAmount\":1433924520125,\"reserveAmount\":33543210917},\"0xb076f79f8D1477165E2ff8fa99930381FB7d94c1\":{\"poolAmount\":38385102659,\"reserveAmount\":38379588171}},\"riskFactor\":{\"0x502697AF336F7413Bb4706262e7C506Edab4f3B9\":0,\"0x5573405636F4b895E511C9C54aAfbefa0E7Ee458\":0,\"0xb076f79f8D1477165E2ff8fa99930381FB7d94c1\":0},\"totalRiskFactor\":0,\"maxLiquidity\":0,\"minPrice\":1000200010000000000000000,\"maxPrice\":1000200010000000000000000}},\"totalWeight\":100000,\"virtualPoolValue\":5436646567387990705054968055050223481,\"stableCoinBaseSwapFee\":1000000,\"stableCoinTaxBasisPoint\":5000000,\"baseSwapFee\":25000000,\"taxBasisPoint\":60000000,\"daoFee\":5500000000}",
+	})
+
+	assert.Nil(t, err)
+
+	result, err := levelFinancePool.CalcAmountOut(
+		pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+				Amount: bignumber.NewBig10("100000000"),
+			},
+			TokenOut: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+		},
+	)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "99992913", result.TokenAmountOut.Amount.String())
 }

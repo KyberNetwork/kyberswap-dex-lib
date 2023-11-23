@@ -80,7 +80,17 @@ func calcSwapFee(isStableSwap bool, token *TokenInfo, tokenPrice, valueChange *b
 		taxBasicPoint = new(big.Int).Set(state.TaxBasisPoint)
 	}
 
-	return calcFeeRate(token, tokenPrice, valueChange, baseSwapFee, taxBasicPoint, isSwapIn, state)
+	rate := calcFeeRate(token, tokenPrice, valueChange, baseSwapFee, taxBasicPoint, isSwapIn, state)
+
+	if isStableSwap {
+		return rate
+	}
+
+	if rate.Cmp(minSwapFee) > 0 {
+		return rate
+	} else {
+		return new(big.Int).Set(minSwapFee)
+	}
 }
 
 func calcFeeRate(token *TokenInfo, tokenPrice, valueChange, baseFee, taxBasicPoint *big.Int, isIncrease bool, state *PoolState) *big.Int {
