@@ -1,11 +1,9 @@
-package weighted
+package math
 
 import (
 	"errors"
 
 	"github.com/holiman/uint256"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 )
 
 var (
@@ -24,14 +22,14 @@ func init() {
 }
 
 // https://etherscan.io/address/0x00612eb4f312eb6ace7acc8781196601078ae339#code#F8#L78
-func (l *weightedMath) _calcOutGivenIn(
+func (l *weightedMath) CalcOutGivenIn(
 	balanceIn *uint256.Int,
 	weightIn *uint256.Int,
 	balanceOut *uint256.Int,
 	weightOut *uint256.Int,
 	amountIn *uint256.Int,
 ) (*uint256.Int, error) {
-	maxIn, err := math.FixedPoint.MulDown(balanceIn, _MAX_IN_RATIO)
+	maxIn, err := FixedPoint.MulDown(balanceIn, _MAX_IN_RATIO)
 	if err != nil {
 		return nil, err
 	}
@@ -40,25 +38,25 @@ func (l *weightedMath) _calcOutGivenIn(
 		return nil, ErrMaxInRatio
 	}
 
-	denominator, err := math.FixedPoint.Add(balanceIn, amountIn)
+	denominator, err := FixedPoint.Add(balanceIn, amountIn)
 	if err != nil {
 		return nil, err
 	}
 
-	base, err := math.FixedPoint.DivUp(balanceIn, denominator)
+	base, err := FixedPoint.DivUp(balanceIn, denominator)
 	if err != nil {
 		return nil, err
 	}
 
-	exponent, err := math.FixedPoint.DivDown(weightIn, weightOut)
+	exponent, err := FixedPoint.DivDown(weightIn, weightOut)
 	if err != nil {
 		return nil, err
 	}
 
-	power, err := math.FixedPoint.PowUp(base, exponent)
+	power, err := FixedPoint.PowUp(base, exponent)
 	if err != nil {
 		return nil, err
 	}
 
-	return math.FixedPoint.MulDown(balanceOut, math.FixedPoint.Complement(power))
+	return FixedPoint.MulDown(balanceOut, FixedPoint.Complement(power))
 }
