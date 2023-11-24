@@ -187,7 +187,13 @@ func getHighCovRatioFee(initCovRatio, finalCovRatio, startCovRatio, endCovRatio 
 func findUpperBound(fromAsset, toAsset wombat.Asset, toAmount, hairCutRate, ampFactor, startCovRatio, endCovRatio *big.Int) (*big.Int, error) {
 	decimals := fromAsset.UnderlyingTokenDecimals
 	toWadFactor := dsmath.ToWAD(big.NewInt(1), decimals)
-	high := new(big.Int).Sub(dsmath.WMul(fromAsset.Liability, endCovRatio), dsmath.FromWAD(fromAsset.Cash, decimals))
+	high := dsmath.FromWAD(
+		new(big.Int).Sub(
+			dsmath.WMul(fromAsset.Liability, endCovRatio),
+			fromAsset.Cash,
+		),
+		decimals,
+	)
 	low := big.NewInt(1)
 
 	quote, _, err := highCovRatioFeePoolV2QuoteFrom(fromAsset, toAsset, new(big.Int).Mul(high, toWadFactor), hairCutRate, ampFactor, startCovRatio, endCovRatio)
