@@ -19,16 +19,13 @@ type bptSimulator struct {
 	scalingFactors  []*uint256.Int
 	lastJoinExit    LastJoinExitData
 	rateProviders   []string
-	tokenRateCaches []TokenRateCache
+	tokenRateCaches map[int]TokenRateCache
 
-	swapFeePercentage                   *uint256.Int
-	protocolFeePercentageCacheSwapType  *uint256.Int
-	protocolFeePercentageCacheYieldType *uint256.Int
-	fixedProtocolSwapFeePercentage      *uint256.Int
-	tokensExemptFromYieldProtocolFee    []bool
-	exemptFromYieldProtocolFee          bool
-	delegatedProtocolSwapFees           bool
-	inRecoveryMode                      bool
+	swapFeePercentage                *uint256.Int
+	protocolFeePercentageCache       map[int]*uint256.Int
+	tokensExemptFromYieldProtocolFee []bool
+	exemptFromYieldProtocolFee       bool // >= V5
+	inRecoveryMode                   bool
 }
 
 func (s *bptSimulator) swap(
@@ -55,11 +52,11 @@ func (s *bptSimulator) swap(
 	var amountCalculated *uint256.Int
 	if indexOut == s.bptIndex {
 		amountCalculated, _, err = s._doJoinSwap(
-			amountIn, balances, indexIn, currentAmp, preJoinExitSupply, preJoinExitInvariant,
+			amountIn, balances, _skipBptIndex(indexIn, s.bptIndex), currentAmp, preJoinExitSupply, preJoinExitInvariant,
 		)
 	} else {
 		amountCalculated, _, err = s._doExitSwap(
-			amountIn, balances, indexOut, currentAmp, preJoinExitSupply, preJoinExitInvariant,
+			amountIn, balances, _skipBptIndex(indexOut, s.bptIndex), currentAmp, preJoinExitSupply, preJoinExitInvariant,
 		)
 	}
 	if err != nil {
@@ -101,6 +98,9 @@ func (s *bptSimulator) _joinSwapExactTokenInForBptOut(
 	preJoinExitInvariant *uint256.Int,
 ) (*uint256.Int, *uint256.Int, error) {
 	amountsIn := make([]*uint256.Int, len(balances))
+	for i := 0; i < len(balances); i++ {
+		amountsIn[i] = uint256.NewInt(0)
+	}
 	amountsIn[indexIn] = amount
 
 	bptOut, err := math.StableMath.CalcBptOutGivenExactTokensIn(
@@ -455,7 +455,7 @@ func (s *bptSimulator) _getAdjustedBalanceV1(
 		if s._isTokenExemptFromYieldProtocolFee(skipBptIndex) ||
 			(ignoreExemptFlags && s._hasRateProvider(skipBptIndex)) {
 			var err error
-			adjustedBalances[i], err = _adjustedBalance(balances[i], &s.tokenRateCaches[skipBptIndex])
+			adjustedBalances[i], err = _adjustedBalance(balances[i], s.tokenRateCaches[skipBptIndex])
 			if err != nil {
 				return nil, err
 			}
@@ -527,7 +527,7 @@ func (s *bptSimulator) _getAdjustedBalanceV2(balances []*uint256.Int) ([]*uint25
 
 		if s._hasRateProvider(skipBptIndex) {
 			var err error
-			adjustedBalances[i], err = _adjustedBalance(balances[i], &s.tokenRateCaches[skipBptIndex])
+			adjustedBalances[i], err = _adjustedBalance(balances[i], s.tokenRateCaches[skipBptIndex])
 			if err != nil {
 				return nil, err
 			}
@@ -567,14 +567,7 @@ func (s *bptSimulator) getProtocolFeePercentageCache(feeType int) *uint256.Int {
 		return uint256.NewInt(0)
 	}
 
-	if feeType == feeTypeSwap {
-		if s.delegatedProtocolSwapFees {
-			return s.protocolFeePercentageCacheSwapType
-		}
-		return s.fixedProtocolSwapFeePercentage
-	}
-
-	return s.protocolFeePercentageCacheYieldType
+	return s.protocolFeePercentageCache[feeType]
 }
 
 func (s *bptSimulator) protocolFeeAmount(
@@ -633,7 +626,7 @@ func (s *bptSimulator) _dropBptItemFromBalances(
 	return virtualSupply, balances, nil
 }
 
-func _adjustedBalance(balance *uint256.Int, cache *TokenRateCache) (*uint256.Int, error) {
+func _adjustedBalance(balance *uint256.Int, cache TokenRateCache) (*uint256.Int, error) {
 	u, err := math.Math.Mul(balance, cache.OldRate)
 	if err != nil {
 		return nil, err

@@ -8,7 +8,7 @@ const (
 	unknownInt = -1
 
 	feeTypeSwap  = 0
-	feeTypeYield = 1
+	feeTypeYield = 2
 )
 
 const (

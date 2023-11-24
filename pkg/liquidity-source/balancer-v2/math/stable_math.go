@@ -494,11 +494,11 @@ func (l *stableMath) CalcBptOutGivenExactTokensIn(
 				return nil, err
 			}
 
-			// calculate amountInWithoutFee
 			u, err := FixedPoint.MulDown(taxableAmount, new(uint256.Int).Sub(FixedPoint.ONE, swapFeePercentage))
 			if err != nil {
 				return nil, err
 			}
+
 			amountInWithoutFee, err = FixedPoint.Add(nonTaxableAmount, u)
 			if err != nil {
 				return nil, err
@@ -547,7 +547,7 @@ func (l *stableMath) CalcTokenOutGivenExactBptIn(
 		if err != nil {
 			return nil, err
 		}
-		u, err = FixedPoint.DivDown(u, bptTotalSupply)
+		u, err = FixedPoint.DivUp(u, bptTotalSupply)
 		if err != nil {
 			return nil, err
 		}

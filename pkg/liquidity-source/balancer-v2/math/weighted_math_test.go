@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_calcOutGivenIn(t *testing.T) {
+func TestCalcOutGivenIn(t *testing.T) {
 	t.Run("1.should return OK", func(t *testing.T) {
 		// input
 		balanceIn := uint256.MustFromDecimal("2133741937219414819371293")
