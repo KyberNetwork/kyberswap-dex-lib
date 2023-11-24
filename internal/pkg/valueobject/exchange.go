@@ -193,7 +193,8 @@ var (
 
 	ExchangeSmardex Exchange = "smardex"
 
-	ExchangeZebra Exchange = "zebra"
+	ExchangeZebra  Exchange = "zebra"
+	ExchangeZKSwap Exchange = "zkswap"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -356,6 +357,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSmardex:                  {},
 	ExchangeFxdx:                     {},
 	ExchangeZebra:                    {},
+	ExchangeZKSwap:                   {},
 }
 
 func IsAnExchange(exchange Exchange) bool {

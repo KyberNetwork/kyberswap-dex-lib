@@ -101,6 +101,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeKokonutCpmm, FunctionSelectorUniswap)
 
 	RegisterFunctionSelector(valueobject.ExchangeZebra, FunctionSelectorUniswap)
+	RegisterFunctionSelector(valueobject.ExchangeZKSwap, FunctionSelectorUniswap)
 
 	RegisterFunctionSelector(valueobject.ExchangeQuickSwapV3, FunctionSelectorAlgebraV1)
 	RegisterFunctionSelector(valueobject.ExchangeSynthSwapV3, FunctionSelectorAlgebraV1)
