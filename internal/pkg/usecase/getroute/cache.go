@@ -219,6 +219,7 @@ func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKe
 			GasInclude:             params.GasInclude,
 			Dexes:                  params.Sources,
 			IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
+			IsHillClimbingEnabled:  params.IsHillClimbEnabled,
 		}, ttlByAmount, nil
 	}
 
@@ -243,6 +244,7 @@ func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKe
 				GasInclude:             params.GasInclude,
 				Dexes:                  params.Sources,
 				IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
+				IsHillClimbingEnabled:  params.IsHillClimbEnabled,
 			}, cacheRange.TTL, nil
 		}
 	}
@@ -256,6 +258,7 @@ func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKe
 		GasInclude:             params.GasInclude,
 		Dexes:                  params.Sources,
 		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
+		IsHillClimbingEnabled:  params.IsHillClimbEnabled,
 	}, c.config.DefaultTTL, nil
 }
 

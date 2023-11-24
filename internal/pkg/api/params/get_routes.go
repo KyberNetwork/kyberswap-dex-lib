@@ -40,6 +40,9 @@ type GetRoutesParams struct {
 	// IsPathGeneratorEnabled is true, then router-service will use pregen paths from path-generator service
 	IsPathGeneratorEnabled bool `form:"isPathGeneratorEnabled"`
 
+	// IsHillClimbEnabled is true, then router-service will use hill climb finder
+	IsHillClimbEnabled bool `form:"isHillClimbEnabled"`
+
 	// ExcludedPools name of pool addresses are excluded when finding route, separated by comma
 	ExcludedPools string `form:"excludedPools"`
 }

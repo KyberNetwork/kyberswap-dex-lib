@@ -23,6 +23,7 @@ type GetRoutesQuery struct {
 	ExtraFee valueobject.ExtraFee
 
 	IsPathGeneratorEnabled bool
+	IsHillClimbEnabled     bool
 
 	ExcludedPools mapset.Set[string]
 }

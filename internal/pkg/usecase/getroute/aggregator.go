@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/hillclimb"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -30,9 +31,9 @@ type aggregator struct {
 	poolManager        IPoolManager
 	bestPathRepository IBestPathRepository
 
-	routeFinder findroute.IFinder
-
-	config AggregatorConfig
+	routeFinder          findroute.IFinder
+	hillClimbRouteFinder findroute.IFinder
+	config               AggregatorConfig
 
 	mu sync.RWMutex
 }
@@ -50,7 +51,7 @@ func NewAggregator(
 		getBestPaths = bestPathRepository.GetBestPaths
 	}
 
-	routeFinder := spfav2.NewSPFAv2Finder(
+	var routeFinder findroute.IFinder = spfav2.NewSPFAv2Finder(
 		config.FinderOptions.MaxHops,
 		config.FinderOptions.DistributionPercent,
 		config.FinderOptions.MaxPathsInRoute,
@@ -62,14 +63,22 @@ func NewAggregator(
 		getBestPaths,
 	)
 
+	hillClimbRouteFinder := hillclimb.NewHillClimbingFinder(
+		config.FinderOptions.HillClimbDistributionPercent,
+		config.FinderOptions.HillClimbIteration,
+		config.FinderOptions.HillClimbMinPartUSD,
+		routeFinder,
+	)
+
 	return &aggregator{
-		poolRankRepository: poolRankRepository,
-		tokenRepository:    tokenRepository,
-		priceRepository:    priceRepository,
-		poolManager:        poolManager,
-		routeFinder:        routeFinder,
-		config:             config,
-		bestPathRepository: bestPathRepository,
+		poolRankRepository:   poolRankRepository,
+		tokenRepository:      tokenRepository,
+		priceRepository:      priceRepository,
+		poolManager:          poolManager,
+		routeFinder:          routeFinder,
+		hillClimbRouteFinder: hillClimbRouteFinder,
+		config:               config,
+		bestPathRepository:   bestPathRepository,
 	}
 }
 
@@ -129,7 +138,7 @@ func (a *aggregator) ApplyConfig(config Config) {
 			getBestPaths = a.bestPathRepository.GetBestPaths
 		}
 
-		a.routeFinder = spfav2.NewSPFAv2Finder(
+		var routeFinder findroute.IFinder = spfav2.NewSPFAv2Finder(
 			config.Aggregator.FinderOptions.MaxHops,
 			config.Aggregator.FinderOptions.DistributionPercent,
 			config.Aggregator.FinderOptions.MaxPathsInRoute,
@@ -139,6 +148,14 @@ func (a *aggregator) ApplyConfig(config Config) {
 			config.Aggregator.FinderOptions.MinThresholdAmountInUSD,
 			config.Aggregator.FinderOptions.MaxThresholdAmountInUSD,
 			getBestPaths,
+		)
+
+		a.routeFinder = routeFinder
+		a.hillClimbRouteFinder = hillclimb.NewHillClimbingFinder(
+			config.Aggregator.FinderOptions.HillClimbDistributionPercent,
+			config.Aggregator.FinderOptions.HillClimbIteration,
+			config.Aggregator.FinderOptions.MinPartUSD,
+			routeFinder,
 		)
 	}
 
@@ -168,7 +185,15 @@ func (a *aggregator) findBestRoute(
 
 	data := findroute.NewFinderData(poolByAddress, swapLimits, tokenByAddress, priceUSDByAddress)
 
-	routes, err := a.routeFinder.Find(ctx, input, data)
+	var (
+		routes []*valueobject.Route
+		err    error
+	)
+	if params.IsHillClimbEnabled {
+		routes, err = a.hillClimbRouteFinder.Find(ctx, input, data)
+	} else {
+		routes, err = a.routeFinder.Find(ctx, input, data)
+	}
 	if err != nil {
 		return nil, errors.Wrapf(ErrRouteNotFound, "find route failed: [%v]", err)
 	}

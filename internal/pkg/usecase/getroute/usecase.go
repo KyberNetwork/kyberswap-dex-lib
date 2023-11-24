@@ -156,6 +156,12 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 	if query.ExcludedPools != nil && query.ExcludedPools.Cardinality() != 0 {
 		isPathGeneratorEnabled = false
 	}
+
+	isHillClimbEnabled := false
+	if query.IsHillClimbEnabled || u.config.Aggregator.FeatureFlags.IsHillClimbEnabled {
+		isHillClimbEnabled = true
+	}
+
 	return &types.AggregateParams{
 		TokenIn:                tokenIn,
 		TokenOut:               tokenOut,
@@ -170,6 +176,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		GasPrice:               gasPrice,
 		ExtraFee:               query.ExtraFee,
 		IsPathGeneratorEnabled: isPathGeneratorEnabled,
+		IsHillClimbEnabled:     isHillClimbEnabled,
 		ExcludedPools:          query.ExcludedPools,
 	}, nil
 }

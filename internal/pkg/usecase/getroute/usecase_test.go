@@ -234,6 +234,10 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 					MinPartUSD:              500,
 					MinThresholdAmountInUSD: 0,
 					MaxThresholdAmountInUSD: 100000000,
+
+					HillClimbDistributionPercent: 1,
+					HillClimbIteration:           2,
+					HillClimbMinPartUSD:          500,
 				},
 			},
 		},

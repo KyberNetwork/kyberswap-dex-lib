@@ -170,6 +170,7 @@ func transformFromGetRouteEncodeToGetRoutesQuery(params params.GetRouteEncodePar
 		GasPrice:               gasPrice,
 		ExtraFee:               extraFee,
 		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
+		IsHillClimbEnabled:     params.IsPathGeneratorEnabled,
 		ExcludedPools:          mapset.NewSet[string](),
 	}, nil
 }

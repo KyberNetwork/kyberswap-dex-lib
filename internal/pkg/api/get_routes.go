@@ -123,6 +123,7 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 		GasPrice:               gasPrice,
 		ExtraFee:               extraFee,
 		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
+		IsHillClimbEnabled:     params.IsHillClimbEnabled,
 		ExcludedPools:          mapset.NewSet(utils.TransformSliceParams(params.ExcludedPools)...),
 	}, nil
 }

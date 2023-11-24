@@ -31,6 +31,7 @@ type (
 	// should include variable which need not to restart pods.
 	FeatureFlags struct {
 		IsPathGeneratorEnabled         bool `mapstructure:"isPathGeneratorEnabled" json:"isPathGeneratorEnabled"`
+		IsHillClimbEnabled             bool `mapstructure:"isHillClimbEnabled" json:"isHillClimbEnabled"`
 		IsGasEstimatorEnabled          bool `mapstructure:"isGasEstimatorEnabled" json:"isGasEstimatorEnabled"`
 		IsBlackjackEnabled             bool `mapstructure:"isBlackjackEnabled" json:"isBlackjackEnabled"`
 		IsOptimizeExecutorFlagsEnabled bool `mapstructure:"isOptimizeExecutorFlagsEnabled" json:"isOptimizeExecutorFlagsEnabled"`
@@ -60,6 +61,10 @@ type (
 		MinPartUSD              float64 `mapstructure:"minPartUSD" json:"minPartUSD"`
 		MinThresholdAmountInUSD float64 `mapstructure:"minThresholdAmountInUSD" json:"minThresholdAmountInUSD"`
 		MaxThresholdAmountInUSD float64 `mapstructure:"maxThresholdAmountInUSD" json:"maxThresholdAmountInUSD"`
+
+		HillClimbDistributionPercent uint32  `mapstructure:"hillClimbDistributionPercent" json:"hillClimbDistributionPercent"`
+		HillClimbIteration           uint32  `mapstructure:"hillClimbIteration" json:"hillClimbIteration"`
+		HillClimbMinPartUSD          float64 `mapstructure:"hillClimbMinPartUSD" json:"hillClimbMinPartUSD"`
 	}
 
 	CacheConfig struct {

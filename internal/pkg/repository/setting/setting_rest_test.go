@@ -50,6 +50,10 @@ func mockHandleSuccess(w http.ResponseWriter, r *http.Request) {
 					MinPartUSD:              500,
 					MinThresholdAmountInUSD: 0,
 					MaxThresholdAmountInUSD: 100000000,
+
+					HillClimbDistributionPercent: 1,
+					HillClimbIteration:           2,
+					HillClimbMinPartUSD:          500,
 				},
 				CacheConfig: valueobject.CacheConfig{
 					DefaultTTL:           15,
@@ -130,6 +134,10 @@ func TestGetConfigs(t *testing.T) {
 			MinPartUSD:              500,
 			MinThresholdAmountInUSD: 0,
 			MaxThresholdAmountInUSD: 100000000,
+
+			HillClimbDistributionPercent: 1,
+			HillClimbIteration:           2,
+			HillClimbMinPartUSD:          500,
 		},
 		CacheConfig: valueobject.CacheConfig{
 			DefaultTTL:           15,

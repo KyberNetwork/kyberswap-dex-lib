@@ -43,6 +43,9 @@ type AggregateParams struct {
 	// IsPathGeneratorEnabled whether we should use pregen paths from path-generator
 	IsPathGeneratorEnabled bool
 
+	// IsHillClimbEnabled use hill climb finder to adjust split amountIn to get better amountOut
+	IsHillClimbEnabled bool
+
 	// ExcludedPools name of pool addresses are excluded when finding route, separated by comma
 	ExcludedPools mapset.Set[string]
 }

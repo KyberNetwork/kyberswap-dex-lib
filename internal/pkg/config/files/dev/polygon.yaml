@@ -164,6 +164,10 @@ useCase:
         minPartUSD: 500
         minThresholdAmountInUSD: 0
         maxThresholdAmountInUSD: 100000000
+        isHillClimbEnabled: false
+        hillClimbDistributionPercent: 1
+        hillClimbIteration: 2
+        hillClimbMinPartUSD: 500
         isPathGeneratorEnabled: true
   generateBestPaths:
     gasTokenAddress: 0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270

@@ -30,6 +30,7 @@ type RouteCacheKey struct {
 	Dexes                  []string
 	GasInclude             bool
 	IsPathGeneratorEnabled bool
+	IsHillClimbingEnabled  bool
 }
 
 // String receives prefix and returns cache key

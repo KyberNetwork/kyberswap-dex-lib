@@ -19,6 +19,7 @@ type GetRouteEncodeParams struct {
 	Referral               string `form:"referral"`
 	Permit                 string `form:"permit"`
 	IsPathGeneratorEnabled bool   `form:"isPathGeneratorEnabled"`
+	IsHillClimbEnabled     bool   `form:"isHillClimbEnabled"`
 }
 
 type (
