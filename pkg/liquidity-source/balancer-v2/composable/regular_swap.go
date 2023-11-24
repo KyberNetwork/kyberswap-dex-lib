@@ -75,7 +75,7 @@ func (s *regularSimulator) _onRegularSwap(
 	indexOut int,
 ) (*uint256.Int, error) {
 	balances := _dropBptItem(registeredBalances, s.bptIndex)
-	indexIn, indexOut = s._skipBptIndex(indexIn), s._skipBptIndex(indexOut)
+	indexIn, indexOut = _skipBptIndex(indexIn, s.bptIndex), _skipBptIndex(indexOut, s.bptIndex)
 
 	invariant, err := math.StableMath.CalculateInvariantV2(s.amp, balances)
 	if err != nil {
@@ -90,11 +90,4 @@ func (s *regularSimulator) _onRegularSwap(
 		indexIn,
 		indexOut,
 	)
-}
-
-func (s *regularSimulator) _skipBptIndex(index int) int {
-	if index < s.bptIndex {
-		return index
-	}
-	return index - 1
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_calculateInvariantV1(t *testing.T) {
+func TestCalculateInvariantV1(t *testing.T) {
 	t.Run("1. should return correct invariant", func(t *testing.T) {
 		// input
 		amp := uint256.NewInt(5000)
@@ -135,7 +135,7 @@ func Test_calculateInvariantV1(t *testing.T) {
 	})
 }
 
-func Test_calculateInvariantV2(t *testing.T) {
+func TestCalculateInvariantV2(t *testing.T) {
 	t.Run("1. should return correct invariant", func(t *testing.T) {
 		// input
 		amp := uint256.NewInt(5000)
@@ -264,7 +264,7 @@ func Test_calculateInvariantV2(t *testing.T) {
 	})
 }
 
-func Test_getTokenBalanceGivenInvariantAndAllOtherBalances(t *testing.T) {
+func TestGetTokenBalanceGivenInvariantAndAllOtherBalances(t *testing.T) {
 	t.Run("1. should return correct balance", func(t *testing.T) {
 		// input
 		amp := uint256.NewInt(5000)

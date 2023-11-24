@@ -95,3 +95,10 @@ func _dropBptItem(amounts []*uint256.Int, bptIndex int) []*uint256.Int {
 
 	return amountsWithoutBpt
 }
+
+func _skipBptIndex(index int, bptIndex int) int {
+	if index < bptIndex {
+		return index
+	}
+	return index - 1
+}

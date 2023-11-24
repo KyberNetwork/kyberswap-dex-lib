@@ -7,6 +7,7 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -31,6 +32,9 @@ func TestCalcAmountOut(t *testing.T) {
 			swapFeePercentage: uint256.NewInt(50000000000000),
 			amp:               uint256.NewInt(5000),
 			scalingFactors:    []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1), uint256.NewInt(100)},
+
+			poolType:        poolTypeStable,
+			poolTypeVersion: 1,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -39,7 +43,7 @@ func TestCalcAmountOut(t *testing.T) {
 		}
 		tokenOut := "0x6b175474e89094c44da98b954eedeac495271d0f"
 		_, err := s.CalcAmountOut(tokenAmountIn, tokenOut)
-		assert.ErrorIs(t, err, ErrStableGetBalanceDidntConverge)
+		assert.ErrorIs(t, err, math.ErrStableGetBalanceDidntConverge)
 	})
 
 	t.Run("2. should return OK", func(t *testing.T) {
@@ -63,6 +67,9 @@ func TestCalcAmountOut(t *testing.T) {
 			swapFeePercentage: uint256.NewInt(50000000000000),
 			amp:               uint256.NewInt(1390000),
 			scalingFactors:    []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1), uint256.NewInt(100)},
+
+			poolType:        poolTypeStable,
+			poolTypeVersion: 1,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -103,6 +110,9 @@ func TestCalcAmountOut(t *testing.T) {
 			swapFeePercentage: uint256.NewInt(53332221119995),
 			amp:               uint256.NewInt(1390000),
 			scalingFactors:    []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1000), uint256.NewInt(100)},
+
+			poolType:        poolTypeStable,
+			poolTypeVersion: 1,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
