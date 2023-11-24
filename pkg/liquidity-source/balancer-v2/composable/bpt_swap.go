@@ -13,23 +13,22 @@ type bptSimulator struct {
 
 	poolTypeVersion int
 
+	bptIndex        int
+	bptTotalSupply  *uint256.Int
+	amp             *uint256.Int
+	scalingFactors  []*uint256.Int
+	lastJoinExit    LastJoinExitData
+	rateProviders   []string
+	tokenRateCaches []TokenRateCache
+
 	swapFeePercentage                   *uint256.Int
-	scalingFactors                      []*uint256.Int
-	bptIndex                            *uint256.Int
-	amp                                 *uint256.Int
-	bptTotalSupply                      *uint256.Int
 	protocolFeePercentageCacheSwapType  *uint256.Int
-	fixedProtocolSwapFeePercentage      *uint256.Int
 	protocolFeePercentageCacheYieldType *uint256.Int
-
-	lastJoinExit                     LastJoinExitData
-	rateProviders                    []string
-	tokensExemptFromYieldProtocolFee []bool
-	tokenRateCaches                  []TokenRateCache
-	exemptFromYieldProtocolFee       bool
-
-	inRecoveryMode            bool
-	delegatedProtocolSwapFees bool
+	fixedProtocolSwapFeePercentage      *uint256.Int
+	tokensExemptFromYieldProtocolFee    []bool
+	exemptFromYieldProtocolFee          bool
+	delegatedProtocolSwapFees           bool
+	inRecoveryMode                      bool
 }
 
 func (s *bptSimulator) swap(
@@ -54,30 +53,25 @@ func (s *bptSimulator) swap(
 	}
 
 	var amountCalculated *uint256.Int
-
-	if indexOut == int(s.bptIndex.Uint64()) {
+	if indexOut == s.bptIndex {
 		amountCalculated, _, err = s._doJoinSwap(
 			amountIn, balances, indexIn, currentAmp, preJoinExitSupply, preJoinExitInvariant,
 		)
-		if err != nil {
-			return nil, nil, err
-		}
 	} else {
 		amountCalculated, _, err = s._doExitSwap(
 			amountIn, balances, indexOut, currentAmp, preJoinExitSupply, preJoinExitInvariant,
 		)
-		if err != nil {
-			return nil, nil, err
-		}
+	}
+	if err != nil {
+		return nil, nil, err
 	}
 
 	amountOut, err := _downscaleDown(amountCalculated, s.scalingFactors[indexOut])
 	if err != nil {
 		return nil, nil, err
 	}
-	fee := &poolpkg.TokenAmount{}
 
-	return amountOut, fee, nil
+	return amountOut, &poolpkg.TokenAmount{}, nil
 }
 
 func (s *bptSimulator) _doJoinSwap(
@@ -201,7 +195,9 @@ func (s *bptSimulator) _hasRateProvider(tokenIndex int) bool {
 	return true
 }
 
-func (s *bptSimulator) _beforeJoinExit(registeredBalances []*uint256.Int) (*uint256.Int, []*uint256.Int, *uint256.Int, *uint256.Int, error) {
+func (s *bptSimulator) _beforeJoinExit(
+	registeredBalances []*uint256.Int,
+) (*uint256.Int, []*uint256.Int, *uint256.Int, *uint256.Int, error) {
 	preJoinExitSupply, balances, oldAmpPreJoinExitInvariant, err := s._payProtocolFeesBeforeJoinExit(registeredBalances)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -223,7 +219,9 @@ func (s *bptSimulator) _beforeJoinExit(registeredBalances []*uint256.Int) (*uint
 	return preJoinExitSupply, balances, s.amp, preJoinExitInvariant, nil
 }
 
-func (s *bptSimulator) _payProtocolFeesBeforeJoinExit(registeredBalances []*uint256.Int) (*uint256.Int, []*uint256.Int, *uint256.Int, error) {
+func (s *bptSimulator) _payProtocolFeesBeforeJoinExit(
+	registeredBalances []*uint256.Int,
+) (*uint256.Int, []*uint256.Int, *uint256.Int, error) {
 	virtualSupply, balances, err := s._dropBptItemFromBalances(registeredBalances)
 	if err != nil {
 		return nil, nil, nil, err
@@ -239,17 +237,24 @@ func (s *bptSimulator) _payProtocolFeesBeforeJoinExit(registeredBalances []*uint
 		return nil, nil, nil, err
 	}
 
-	return new(uint256.Int).Add(virtualSupply, protocolFeeAmount), balances, currentInvariantWithLastJoinExitAmp, nil
+	return new(uint256.Int).Add(virtualSupply, protocolFeeAmount),
+		balances,
+		currentInvariantWithLastJoinExitAmp,
+		nil
 }
 
-func (s *bptSimulator) _getProtocolPoolOwnershipPercentage(balances []*uint256.Int) (*uint256.Int, *uint256.Int, error) {
+func (s *bptSimulator) _getProtocolPoolOwnershipPercentage(
+	balances []*uint256.Int,
+) (*uint256.Int, *uint256.Int, error) {
 	if s.poolTypeVersion == poolTypeVersion5 {
 		return s._getProtocolPoolOwnershipPercentageV2(balances)
 	}
 	return s._getProtocolPoolOwnershipPercentageV1(balances)
 }
 
-func (s *bptSimulator) _getProtocolPoolOwnershipPercentageV2(balances []*uint256.Int) (*uint256.Int, *uint256.Int, error) {
+func (s *bptSimulator) _getProtocolPoolOwnershipPercentageV2(
+	balances []*uint256.Int,
+) (*uint256.Int, *uint256.Int, error) {
 	swapFeeGrowthInvariant, totalNonExemptGrowthInvariant, totalGrowthInvariant, err := s._getGrowthInvariantsV2(balances)
 	if err != nil {
 		return nil, nil, err
@@ -304,7 +309,9 @@ func (s *bptSimulator) _getProtocolPoolOwnershipPercentageV2(balances []*uint256
 	return new(uint256.Int).Add(protocolSwapFeePercentage, protocolYieldPercentage), totalGrowthInvariant, nil
 }
 
-func (s *bptSimulator) _getProtocolPoolOwnershipPercentageV1(balances []*uint256.Int) (*uint256.Int, *uint256.Int, error) {
+func (s *bptSimulator) _getProtocolPoolOwnershipPercentageV1(
+	balances []*uint256.Int,
+) (*uint256.Int, *uint256.Int, error) {
 	swapFeeGrowthInvariant, totalNonExemptGrowthInvariant, totalGrowthInvariant, err := s._getGrowthInvariantsV1(balances)
 	if err != nil {
 		return nil, nil, err
@@ -365,7 +372,9 @@ func (s *bptSimulator) _isTokenExemptFromYieldProtocolFee(registeredTokenIndex i
 	return s.tokensExemptFromYieldProtocolFee[registeredTokenIndex]
 }
 
-func (s *bptSimulator) _getGrowthInvariantsV1(balances []*uint256.Int) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
+func (s *bptSimulator) _getGrowthInvariantsV1(
+	balances []*uint256.Int,
+) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
 	var (
 		swapFeeGrowthInvariant        *uint256.Int
 		totalNonExemptGrowthInvariant *uint256.Int
@@ -430,13 +439,16 @@ func (s *bptSimulator) _getGrowthInvariantsV1(balances []*uint256.Int) (*uint256
 	return swapFeeGrowthInvariant, totalNonExemptGrowthInvariant, totalGrowthInvariant, nil
 }
 
-func (s *bptSimulator) _getAdjustedBalanceV1(balances []*uint256.Int, ignoreExemptFlags bool) ([]*uint256.Int, error) {
+func (s *bptSimulator) _getAdjustedBalanceV1(
+	balances []*uint256.Int,
+	ignoreExemptFlags bool,
+) ([]*uint256.Int, error) {
 	totalTokensWithoutBpt := len(balances)
 	adjustedBalances := make([]*uint256.Int, totalTokensWithoutBpt)
 
 	for i := 0; i < totalTokensWithoutBpt; i++ {
 		skipBptIndex := i
-		if i >= int(s.bptIndex.Uint64()) {
+		if i >= s.bptIndex {
 			skipBptIndex++
 		}
 
@@ -447,6 +459,7 @@ func (s *bptSimulator) _getAdjustedBalanceV1(balances []*uint256.Int, ignoreExem
 			if err != nil {
 				return nil, err
 			}
+
 			continue
 		}
 
@@ -456,7 +469,9 @@ func (s *bptSimulator) _getAdjustedBalanceV1(balances []*uint256.Int, ignoreExem
 	return adjustedBalances, nil
 }
 
-func (s *bptSimulator) _getGrowthInvariantsV2(balances []*uint256.Int) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
+func (s *bptSimulator) _getGrowthInvariantsV2(
+	balances []*uint256.Int,
+) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
 	var (
 		swapFeeGrowthInvariant        *uint256.Int
 		totalNonExemptGrowthInvariant *uint256.Int
@@ -506,7 +521,7 @@ func (s *bptSimulator) _getAdjustedBalanceV2(balances []*uint256.Int) ([]*uint25
 
 	for i := 0; i < totalTokensWithoutBpt; i++ {
 		skipBptIndex := i
-		if i >= int(s.bptIndex.Uint64()) {
+		if i >= s.bptIndex {
 			skipBptIndex++
 		}
 
@@ -562,14 +577,21 @@ func (s *bptSimulator) getProtocolFeePercentageCache(feeType int) *uint256.Int {
 	return s.protocolFeePercentageCacheYieldType
 }
 
-func (s *bptSimulator) protocolFeeAmount(totalSupply *uint256.Int, poolOwnershipPercentage *uint256.Int) (*uint256.Int, error) {
+func (s *bptSimulator) protocolFeeAmount(
+	totalSupply *uint256.Int,
+	poolOwnershipPercentage *uint256.Int,
+) (*uint256.Int, error) {
 	if s.poolTypeVersion == poolTypeVersion1 {
 		return s._calculateAdjustedProtocolFeeAmount(totalSupply, poolOwnershipPercentage)
 	}
+
 	return s.bptForPoolOwnershipPercentage(totalSupply, poolOwnershipPercentage)
 }
 
-func (s *bptSimulator) _calculateAdjustedProtocolFeeAmount(totalSupply *uint256.Int, poolOwnershipPercentage *uint256.Int) (*uint256.Int, error) {
+func (s *bptSimulator) _calculateAdjustedProtocolFeeAmount(
+	totalSupply *uint256.Int,
+	poolOwnershipPercentage *uint256.Int,
+) (*uint256.Int, error) {
 	u, err := math.FixedPoint.MulDown(totalSupply, poolOwnershipPercentage)
 	if err != nil {
 		return nil, err
@@ -583,7 +605,10 @@ func (s *bptSimulator) _calculateAdjustedProtocolFeeAmount(totalSupply *uint256.
 	return u, nil
 }
 
-func (s *bptSimulator) bptForPoolOwnershipPercentage(totalSupply *uint256.Int, poolOwnershipPercentage *uint256.Int) (*uint256.Int, error) {
+func (s *bptSimulator) bptForPoolOwnershipPercentage(
+	totalSupply *uint256.Int,
+	poolOwnershipPercentage *uint256.Int,
+) (*uint256.Int, error) {
 	u, err := math.Math.Mul(totalSupply, poolOwnershipPercentage)
 	if err != nil {
 		return nil, err
@@ -595,13 +620,15 @@ func (s *bptSimulator) bptForPoolOwnershipPercentage(totalSupply *uint256.Int, p
 	return u, nil
 }
 
-func (s *bptSimulator) _dropBptItemFromBalances(registeredBalances []*uint256.Int) (*uint256.Int, []*uint256.Int, error) {
-	virtualSupply, err := s._getVirtualSupply(registeredBalances[int(s.bptIndex.Uint64())])
+func (s *bptSimulator) _dropBptItemFromBalances(
+	registeredBalances []*uint256.Int,
+) (*uint256.Int, []*uint256.Int, error) {
+	virtualSupply, err := s._getVirtualSupply(registeredBalances[s.bptIndex])
 	if err != nil {
 		return nil, nil, err
 	}
 
-	balances := _dropBptItem(registeredBalances, int(s.bptIndex.Uint64()))
+	balances := _dropBptItem(registeredBalances, s.bptIndex)
 
 	return virtualSupply, balances, nil
 }

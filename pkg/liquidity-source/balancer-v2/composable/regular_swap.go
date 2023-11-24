@@ -10,10 +10,10 @@ import (
 type regularSimulator struct {
 	poolpkg.Pool
 
-	swapFeePercentage *uint256.Int
+	bptIndex          int
 	scalingFactors    []*uint256.Int
-	bptIndex          *uint256.Int
 	amp               *uint256.Int
+	swapFeePercentage *uint256.Int
 }
 
 func (s *regularSimulator) swap(
@@ -74,7 +74,7 @@ func (s *regularSimulator) _onRegularSwap(
 	indexIn int,
 	indexOut int,
 ) (*uint256.Int, error) {
-	balances := _dropBptItem(registeredBalances, int(s.bptIndex.Uint64()))
+	balances := _dropBptItem(registeredBalances, s.bptIndex)
 	indexIn, indexOut = s._skipBptIndex(indexIn), s._skipBptIndex(indexOut)
 
 	invariant, err := math.StableMath.CalculateInvariantV2(s.amp, balances)
@@ -93,7 +93,7 @@ func (s *regularSimulator) _onRegularSwap(
 }
 
 func (s *regularSimulator) _skipBptIndex(index int) int {
-	if index < int(s.bptIndex.Uint64()) {
+	if index < s.bptIndex {
 		return index
 	}
 	return index - 1
