@@ -12,16 +12,14 @@ type PoolSimulator struct {
 
 	regularSimulator *regularSimulator
 	bptSimulator     *bptSimulator
-
-	mapTokenAddressToIndex map[string]int
 }
 
 func (s *PoolSimulator) CalcAmountOut(
 	tokenAmountIn poolpkg.TokenAmount,
 	tokenOut string,
 ) (*poolpkg.CalcAmountOutResult, error) {
-	indexIn := s.getTokenIndex(tokenAmountIn.Token)
-	indexOut := s.getTokenIndex(tokenOut)
+	indexIn := s.GetTokenIndex(tokenAmountIn.Token)
+	indexOut := s.GetTokenIndex(tokenOut)
 	if indexIn == unknownInt || indexOut == unknownInt {
 		return nil, ErrUnknownToken
 	}
@@ -62,14 +60,6 @@ func (s *PoolSimulator) CalcAmountOut(
 		Fee: fee,
 		Gas: DefaultGas.Swap,
 	}, nil
-}
-
-func (s *PoolSimulator) getTokenIndex(token string) int {
-	idx, ok := s.mapTokenAddressToIndex[token]
-	if !ok {
-		return unknownInt
-	}
-	return idx
 }
 
 func _downscaleDown(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
