@@ -13,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/subgraph"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
@@ -100,10 +101,13 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*subgr
 	pools := make([]entity.Pool, len(subgraphPools))
 
 	for i, subgraphPool := range subgraphPools {
-		poolTokens := make([]*entity.PoolToken, len(subgraphPool.Tokens))
-		reserves := make([]string, len(subgraphPool.Tokens))
+		var (
+			poolTokens     = make([]*entity.PoolToken, len(subgraphPool.Tokens))
+			reserves       = make([]string, len(subgraphPool.Tokens))
+			scalingFactors = make([]*big.Int, len(subgraphPool.Tokens))
+		)
+
 		for j, token := range subgraphPool.Tokens {
-			reserves[j] = "0"
 
 			w, err := strconv.ParseFloat(token.Weight, 64)
 			if err != nil {
@@ -113,11 +117,17 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*subgr
 			if weight == 0 {
 				weight = uint(1e18 / len(subgraphPool.Tokens))
 			}
-
 			poolTokens[j] = &entity.PoolToken{
 				Address:   token.Address,
 				Weight:    weight,
 				Swappable: true,
+			}
+
+			reserves[j] = "0"
+
+			scalingFactors[j] = bignumber.TenPowInt(18 - uint8(token.Decimals))
+			if subgraphPool.PoolTypeVersion.Int64() > poolTypeVer1 {
+				scalingFactors[j] = new(big.Int).Mul(scalingFactors[j], bignumber.BONE)
 			}
 		}
 
@@ -125,6 +135,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*subgr
 			PoolID:          subgraphPool.ID,
 			PoolType:        subgraphPool.PoolType,
 			PoolTypeVersion: int(subgraphPool.PoolTypeVersion.Int64()),
+			ScalingFactors:  scalingFactors,
 		}
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {

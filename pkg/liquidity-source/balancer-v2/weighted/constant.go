@@ -10,9 +10,11 @@ const (
 
 const (
 	poolMethodGetSwapFeePercentage = "getSwapFeePercentage"
-	poolMethodGetScalingFactors    = "getScalingFactors"
+	poolMethodGetPausedState       = "getPausedState"
 )
 
 const (
 	graphQLRequestTimeout = 20 * time.Second
+
+	poolTypeVer1 = 1
 )

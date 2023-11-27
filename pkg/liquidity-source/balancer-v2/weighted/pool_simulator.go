@@ -42,7 +42,8 @@ type (
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var (
-		extra Extra
+		extra       Extra
+		staticExtra StaticExtra
 
 		tokens            = make([]string, len(entityPool.Tokens))
 		reserves          = make([]*big.Int, len(entityPool.Tokens))
@@ -51,6 +52,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	)
 
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
@@ -63,7 +68,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tokens[idx] = entityPool.Tokens[idx].Address
 		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
 
-		scalingFactor, overflow := uint256.FromBig(extra.ScalingFactors[idx])
+		scalingFactor, overflow := uint256.FromBig(staticExtra.ScalingFactors[idx])
 		if overflow {
 			return nil, ErrInvalidReserve
 		}

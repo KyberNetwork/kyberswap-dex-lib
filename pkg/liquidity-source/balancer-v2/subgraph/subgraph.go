@@ -12,8 +12,9 @@ type Pool struct {
 	PoolTypeVersion *big.Int `json:"poolTypeVersion"`
 	CreateTime      *big.Int `json:"createTime"`
 	Tokens          []struct {
-		Address string `json:"address"`
-		Weight  string `json:"weight"`
+		Address  string `json:"address"`
+		Decimals int    `json:"decimals"`
+		Weight   string `json:"weight"`
 	} `json:"tokens"`
 }
 
@@ -41,6 +42,7 @@ func GetPoolsQuery(
 			createTime
 			tokens {
 			  address
+			  decimals
 			  weight
 			}
 		}
