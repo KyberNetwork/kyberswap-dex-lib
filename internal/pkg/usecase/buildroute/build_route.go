@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
@@ -370,11 +371,16 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.estimateGas")
 	defer span.End()
 
+	value := constant.Zero
+	if eth.IsEther(command.RouteSummary.TokenIn) {
+		value = command.RouteSummary.AmountIn
+	}
+
 	gas, gasUSD, err := uc.gasEstimator.Execute(ctx, UnsignedTransaction{
 		command.Sender,
 		command.Recipient,
 		encodedData,
-		command.RouteSummary.AmountIn,
+		value,
 		nil,
 	})
 	if err != nil {

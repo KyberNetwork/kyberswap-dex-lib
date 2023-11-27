@@ -14,7 +14,7 @@ func NewUnsignedTransaction(sender string, recipient string, data string,
 		sender,
 		recipient,
 		data,
-		big.NewInt(20000),
+		value,
 		nil,
 	}
 }
