@@ -3,7 +3,7 @@ package weighted
 import "time"
 
 const (
-	DexType = "balancer-weighted"
+	DexType = "balancer-v2-weighted"
 
 	poolTypeWeighted = "Weighted"
 )

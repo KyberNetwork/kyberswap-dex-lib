@@ -52,7 +52,10 @@ func Test_CalcAmountOut(t *testing.T) {
 		amountOut := "3442"
 
 		// calculation
-		result, err := s.CalcAmountOut(tokenAmountIn, tokenOut)
+		result, err := s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: tokenAmountIn,
+			TokenOut:      tokenOut,
+		})
 
 		// assert
 		assert.Nil(t, err)
@@ -100,7 +103,10 @@ func Test_CalcAmountOut(t *testing.T) {
 		amountOut := "76143667376405160244"
 
 		// calculation
-		result, err := s.CalcAmountOut(tokenAmountIn, tokenOut)
+		result, err := s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: tokenAmountIn,
+			TokenOut:      tokenOut,
+		})
 
 		// assert
 		assert.Nil(t, err)
@@ -148,7 +154,10 @@ func Test_CalcAmountOut(t *testing.T) {
 		amountOut := "4538893010907736440"
 
 		// calculation
-		result, err := s.CalcAmountOut(tokenAmountIn, tokenOut)
+		result, err := s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: tokenAmountIn,
+			TokenOut:      tokenOut,
+		})
 
 		// assert
 		assert.Nil(t, err)
