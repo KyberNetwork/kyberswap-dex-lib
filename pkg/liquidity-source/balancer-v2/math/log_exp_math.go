@@ -98,15 +98,15 @@ type logExpMath struct {
 
 // https://github.com/balancer/balancer-v2-monorepo/blob/c7d4abbea39834e7778f9ff7999aaceb4e8aa048/pkg/solidity-utils/contracts/math/LogExpMath.sol#L93
 func (l *logExpMath) Pow(x *uint256.Int, y *uint256.Int) (*uint256.Int, error) {
-	if y.Cmp(number.Zero) == 0 {
+	if y.IsZero() {
 		return number.Number_1e18, nil
 	}
 
-	if x.Cmp(number.Zero) == 0 {
+	if x.IsZero() {
 		return number.Zero, nil
 	}
 
-	if new(uint256.Int).Rsh(x, 255).Cmp(number.Zero) != 0 {
+	if !new(uint256.Int).Rsh(x, 255).IsZero() {
 		return nil, ErrXOutOfBounds
 	}
 	x_int256 := x.ToBig()

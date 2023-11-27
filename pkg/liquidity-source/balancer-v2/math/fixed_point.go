@@ -44,7 +44,7 @@ func init() {
 func (l *fixedPoint) Add(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
 	c := new(uint256.Int).Add(a, b)
 
-	if c.Cmp(a) < 0 {
+	if c.Lt(a) {
 		return nil, ErrAddOverflow
 	}
 
@@ -52,7 +52,7 @@ func (l *fixedPoint) Add(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
 }
 
 func (l *fixedPoint) Sub(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
-	if a.Cmp(b) < 0 {
+	if a.Lt(b) {
 		return nil, ErrSubOverflow
 	}
 
@@ -61,17 +61,17 @@ func (l *fixedPoint) Sub(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
 
 // https://github.com/balancer/balancer-v2-monorepo/blob/c7d4abbea39834e7778f9ff7999aaceb4e8aa048/pkg/solidity-utils/contracts/math/FixedPoint.sol#L83
 func (l *fixedPoint) DivUp(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
-	if b.Cmp(number.Zero) == 0 {
+	if b.IsZero() {
 		return nil, ErrZeroDivision
 	}
 
 	aInflated := new(uint256.Int).Mul(a, l.ONE)
 
-	if !(a.Cmp(number.Zero) == 0 || new(uint256.Int).Div(aInflated, a).Cmp(l.ONE) == 0) {
+	if !(a.IsZero() || new(uint256.Int).Div(aInflated, a).Eq(l.ONE)) {
 		return nil, ErrDivInternal
 	}
 
-	if aInflated.Cmp(number.Zero) == 0 {
+	if aInflated.IsZero() {
 		return number.Zero, nil
 	}
 
@@ -80,13 +80,13 @@ func (l *fixedPoint) DivUp(a *uint256.Int, b *uint256.Int) (*uint256.Int, error)
 
 // https://github.com/balancer/balancer-v2-monorepo/blob/c7d4abbea39834e7778f9ff7999aaceb4e8aa048/pkg/solidity-utils/contracts/math/FixedPoint.sol#L74
 func (l *fixedPoint) DivDown(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
-	if b.Cmp(number.Zero) == 0 {
+	if b.IsZero() {
 		return nil, ErrZeroDivision
 	}
 
 	aInflated := new(uint256.Int).Mul(a, l.ONE)
 
-	if !(a.Cmp(number.Zero) == 0 || new(uint256.Int).Div(aInflated, a).Cmp(l.ONE) == 0) {
+	if !(a.IsZero() || new(uint256.Int).Div(aInflated, a).Eq(l.ONE)) {
 		return nil, ErrDivInternal
 	}
 
@@ -95,14 +95,14 @@ func (l *fixedPoint) DivDown(a *uint256.Int, b *uint256.Int) (*uint256.Int, erro
 
 // https://github.com/balancer/balancer-v2-monorepo/blob/c7d4abbea39834e7778f9ff7999aaceb4e8aa048/pkg/solidity-utils/contracts/math/FixedPoint.sol#L132
 func (l *fixedPoint) PowUp(x *uint256.Int, y *uint256.Int) (*uint256.Int, error) {
-	if y.Cmp(l.ONE) == 0 {
+	if y.Eq(l.ONE) {
 		return x, nil
 	}
 
-	if y.Cmp(l.TWO) == 0 {
+	if y.Eq(l.TWO) {
 		return l.MulUp(x, x)
 	}
-	if y.Cmp(l.FOUR) == 0 {
+	if y.Eq(l.FOUR) {
 		square, err := l.MulUp(x, x)
 		if err != nil {
 			return nil, err
@@ -133,7 +133,7 @@ func (l *fixedPoint) PowUp(x *uint256.Int, y *uint256.Int) (*uint256.Int, error)
 func (l *fixedPoint) MulDown(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
 	product := new(uint256.Int).Mul(a, b)
 
-	if !(a.Cmp(number.Zero) == 0 || new(uint256.Int).Div(product, a).Cmp(b) == 0) {
+	if !(a.IsZero() || new(uint256.Int).Div(product, a).Eq(b)) {
 		return nil, ErrMulOverflow
 	}
 
@@ -144,11 +144,11 @@ func (l *fixedPoint) MulDown(a *uint256.Int, b *uint256.Int) (*uint256.Int, erro
 func (l *fixedPoint) MulUp(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
 	product := new(uint256.Int).Mul(a, b)
 
-	if !(a.Cmp(number.Zero) == 0 || new(uint256.Int).Div(product, a).Cmp(b) == 0) {
+	if !(a.IsZero() || new(uint256.Int).Div(product, a).Eq(b)) {
 		return nil, ErrMulOverflow
 	}
 
-	if product.Cmp(number.Zero) == 0 {
+	if product.IsZero() {
 		return number.Zero, nil
 	}
 
@@ -157,7 +157,7 @@ func (l *fixedPoint) MulUp(a *uint256.Int, b *uint256.Int) (*uint256.Int, error)
 
 // https://github.com/balancer/balancer-v2-monorepo/blob/c7d4abbea39834e7778f9ff7999aaceb4e8aa048/pkg/solidity-utils/contracts/math/FixedPoint.sol#L156
 func (l *fixedPoint) Complement(x *uint256.Int) *uint256.Int {
-	if x.Cmp(l.ONE) < 0 {
+	if x.Lt(l.ONE) {
 		return new(uint256.Int).Sub(l.ONE, x)
 	}
 
