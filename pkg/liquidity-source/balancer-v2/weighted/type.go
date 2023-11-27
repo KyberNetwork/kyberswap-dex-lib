@@ -7,15 +7,15 @@ import (
 )
 
 type Extra struct {
-	SwapFeePercentage *big.Int   `json:"swapFeePercentage"`
-	ScalingFactors    []*big.Int `json:"scalingFactors"`
-	Paused            bool       `json:"paused"`
+	SwapFeePercentage *big.Int `json:"swapFeePercentage"`
+	Paused            bool     `json:"paused"`
 }
 
 type StaticExtra struct {
-	PoolID          string `json:"poolId"`
-	PoolType        string `json:"poolType"`
-	PoolTypeVersion int    `json:"poolTypeVersion"`
+	PoolID          string     `json:"poolId"`
+	PoolType        string     `json:"poolType"`
+	PoolTypeVersion int        `json:"poolTypeVersion"`
+	ScalingFactors  []*big.Int `json:"scalingFactors"`
 }
 
 type PoolTokens struct {
@@ -26,4 +26,10 @@ type PoolTokens struct {
 
 type Metadata struct {
 	LastCreateTime *big.Int `json:"lastCreateTime"`
+}
+
+type PausedState struct {
+	Paused              bool
+	PauseWindowEndTime  *big.Int
+	BufferPeriodEndTime *big.Int
 }
