@@ -259,3 +259,8 @@ validator:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
     blacklistedRecipientSet:
+blackjackConfig:
+  grpcConfig:
+    BaseURL: blackjack.core-cluster.gke.production.internal:80
+    Insecure: true
+    Timeout: 100ms
