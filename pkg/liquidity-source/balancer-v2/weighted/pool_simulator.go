@@ -1,18 +1,24 @@
 package weighted
 
 import (
+	"encoding/json"
 	"errors"
+	"math/big"
 
 	"github.com/holiman/uint256"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
-	ErrTokenNotRegistered = errors.New("TOKEN_NOT_REGISTERED")
-	ErrInvalidReserve     = errors.New("invalid reserve")
-	ErrInvalidAmountIn    = errors.New("invalid amount in")
+	ErrTokenNotRegistered       = errors.New("TOKEN_NOT_REGISTERED")
+	ErrInvalidReserve           = errors.New("invalid reserve")
+	ErrInvalidAmountIn          = errors.New("invalid amount in")
+	ErrInvalidSwapFeePercentage = errors.New("invalid swap fee percentage")
+	ErrPoolPaused               = errors.New("pool is paused")
 )
 
 var (
@@ -23,8 +29,7 @@ type (
 	PoolSimulator struct {
 		poolpkg.Pool
 
-		// poolID       string
-		// vaultAddress string
+		paused bool
 
 		swapFeePercentage *uint256.Int
 		scalingFactors    []*uint256.Int
@@ -35,10 +40,66 @@ type (
 	}
 )
 
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+	var (
+		extra Extra
+
+		tokens            = make([]string, len(entityPool.Tokens))
+		reserves          = make([]*big.Int, len(entityPool.Tokens))
+		scalingFactors    = make([]*uint256.Int, len(entityPool.Tokens))
+		normalizedWeights = make([]*uint256.Int, len(entityPool.Tokens))
+	)
+
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	swapFeePercentage, overflow := uint256.FromBig(extra.SwapFeePercentage)
+	if overflow {
+		return nil, ErrInvalidSwapFeePercentage
+	}
+
+	for idx := 0; idx < len(entityPool.Tokens); idx++ {
+		tokens[idx] = entityPool.Tokens[idx].Address
+		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
+
+		scalingFactor, overflow := uint256.FromBig(extra.ScalingFactors[idx])
+		if overflow {
+			return nil, ErrInvalidReserve
+		}
+		scalingFactors[idx] = scalingFactor
+
+		normalizedWeight := uint256.NewInt(uint64(entityPool.Tokens[idx].Weight))
+		normalizedWeights[idx] = normalizedWeight
+	}
+
+	poolInfo := poolpkg.PoolInfo{
+		Address:     entityPool.Address,
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		Reserves:    reserves,
+		Checked:     true,
+		BlockNumber: uint64(entityPool.BlockNumber),
+	}
+
+	return &PoolSimulator{
+		Pool:              poolpkg.Pool{Info: poolInfo},
+		paused:            extra.Paused,
+		swapFeePercentage: swapFeePercentage,
+		scalingFactors:    scalingFactors,
+		normalizedWeights: normalizedWeights,
+	}, nil
+}
+
 func (s *PoolSimulator) CalcAmountOut(
 	tokenAmountIn poolpkg.TokenAmount,
 	tokenOut string,
 ) (*poolpkg.CalcAmountOutResult, error) {
+	if s.paused {
+		return nil, ErrPoolPaused
+	}
+
 	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
 
 	if indexIn == -1 || indexOut == -1 {
@@ -109,6 +170,28 @@ func (s *PoolSimulator) CalcAmountOut(
 		TokenAmountOut: &poolpkg.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
 		Gas:            defaultGas.Swap,
 	}, nil
+}
+
+func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+	for idx, token := range s.Info.Tokens {
+		if token == params.TokenAmountIn.Token {
+			s.Info.Reserves[idx] = new(big.Int).Add(
+				s.Info.Reserves[idx],
+				params.TokenAmountIn.Amount,
+			)
+		}
+
+		if token == params.TokenAmountOut.Token {
+			s.Info.Reserves[idx] = new(big.Int).Sub(
+				s.Info.Reserves[idx],
+				params.TokenAmountOut.Amount,
+			)
+		}
+	}
+}
+
+func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+	return nil
 }
 
 func _upscale(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
