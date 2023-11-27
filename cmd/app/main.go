@@ -55,7 +55,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l1encode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l2encode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/hillclimb"
 	trackexecutor "github.com/KyberNetwork/router-service/internal/pkg/usecase/trackexecutorbalance"
 
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
@@ -461,15 +460,6 @@ func apiAction(c *cli.Context) (err error) {
 		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxThresholdAmountInUSD,
 		getBestPaths,
 	)
-
-	if cfg.UseCase.GetRoute.Aggregator.FeatureFlags.IsHillClimbEnabled {
-		routeFinder = hillclimb.NewHillClimbingFinder(
-			cfg.UseCase.GetRoute.Aggregator.FinderOptions.HillClimbDistributionPercent,
-			cfg.UseCase.GetRoute.Aggregator.FinderOptions.HillClimbIteration,
-			cfg.UseCase.GetRoute.Aggregator.FinderOptions.HillClimbMinPartUSD,
-			routeFinder,
-		)
-	}
 
 	getCustomRoutesUseCase := getcustomroute.NewCustomRoutesUseCase(
 		poolFactory,
