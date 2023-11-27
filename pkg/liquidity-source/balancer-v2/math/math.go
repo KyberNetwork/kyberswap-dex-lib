@@ -17,7 +17,7 @@ func init() {
 func (m *math) Mul(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
 	c := new(uint256.Int).Mul(a, b)
 
-	if !(a.IsZero() || new(uint256.Int).Div(c, a).Cmp(b) == 0) {
+	if !(a.IsZero() || new(uint256.Int).Div(c, a).Eq(b)) {
 		return nil, ErrMulOverflow
 	}
 
