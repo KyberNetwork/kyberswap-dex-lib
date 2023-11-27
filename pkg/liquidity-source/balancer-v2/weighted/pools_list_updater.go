@@ -38,30 +38,35 @@ func NewPoolsListUpdater(
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	logger.WithFields(logger.Fields{
 		"dexId":   u.config.DexID,
-		"dexType": DexTypeBalancerWeighted,
+		"dexType": DexType,
 	}).Infof("Start updating pools list ...")
 	defer func() {
 		logger.WithFields(logger.Fields{
 			"dexId":   u.config.DexID,
-			"dexType": DexTypeBalancerWeighted,
+			"dexType": DexType,
 		}).Infof("Finish updating pools list.")
 	}()
 
 	var metadata Metadata
-	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":   u.config.DexID,
-			"dexType": DexTypeBalancerWeighted,
-		}).Error(err.Error())
+	if len(metadataBytes) > 0 {
+		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+			logger.WithFields(logger.Fields{
+				"dexId":   u.config.DexID,
+				"dexType": DexType,
+			}).Error(err.Error())
 
-		return nil, nil, err
+			return nil, nil, err
+		}
+	}
+	if metadata.LastCreateTime == nil {
+		metadata.LastCreateTime = big.NewInt(0)
 	}
 
 	subgraphPools, lastCreateTime, err := u.querySubgraph(ctx, metadata.LastCreateTime)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":   u.config.DexID,
-			"dexType": DexTypeBalancerWeighted,
+			"dexType": DexType,
 		}).Error(err.Error())
 
 		return nil, nil, err
@@ -75,7 +80,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":   u.config.DexID,
-			"dexType": DexTypeBalancerWeighted,
+			"dexType": DexType,
 		}).Error(err.Error())
 
 		return nil, nil, err
@@ -118,7 +123,8 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*subgr
 
 		staticExtra := StaticExtra{
 			PoolID:          subgraphPool.ID,
-			PoolTypeVersion: subgraphPool.PoolTypeVersion,
+			PoolType:        subgraphPool.PoolType,
+			PoolTypeVersion: int(subgraphPool.PoolTypeVersion.Int64()),
 		}
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {
@@ -128,7 +134,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*subgr
 		pools[i] = entity.Pool{
 			Address:     subgraphPool.Address,
 			Exchange:    u.config.DexID,
-			Type:        DexTypeBalancerWeighted,
+			Type:        DexType,
 			Timestamp:   time.Now().Unix(),
 			Tokens:      poolTokens,
 			Reserves:    reserves,
@@ -157,7 +163,7 @@ func (u *PoolsListUpdater) querySubgraph(ctx context.Context, lastCreateTime *bi
 	if err := u.graphqlClient.Run(ctx, req, &response); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":   u.config.DexID,
-			"dexType": DexTypeBalancerWeighted,
+			"dexType": DexType,
 		}).Error(err.Error())
 
 		return nil, nil, err
