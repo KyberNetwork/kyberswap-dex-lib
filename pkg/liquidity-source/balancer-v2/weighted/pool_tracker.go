@@ -37,7 +37,7 @@ func (t *PoolTracker) GetNewPoolState(
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"dexId":       t.config.DexID,
-		"dexType":     DexTypeBalancerWeighted,
+		"dexType":     DexType,
 		"poolAddress": p.Address,
 	}).Info("Start updating state ...")
 
@@ -45,7 +45,7 @@ func (t *PoolTracker) GetNewPoolState(
 	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
-			"dexType":     DexTypeBalancerWeighted,
+			"dexType":     DexType,
 			"poolAddress": p.Address,
 		}).Error(err.Error())
 
@@ -85,7 +85,7 @@ func (t *PoolTracker) GetNewPoolState(
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
-			"dexType":     DexTypeBalancerWeighted,
+			"dexType":     DexType,
 			"poolAddress": p.Address,
 		}).Error(err.Error())
 
@@ -100,7 +100,7 @@ func (t *PoolTracker) GetNewPoolState(
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
-			"dexType":     DexTypeBalancerWeighted,
+			"dexType":     DexType,
 			"poolAddress": p.Address,
 		}).Error(err.Error())
 

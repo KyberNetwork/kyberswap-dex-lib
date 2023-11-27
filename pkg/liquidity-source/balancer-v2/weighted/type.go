@@ -14,6 +14,7 @@ type Extra struct {
 
 type StaticExtra struct {
 	PoolID          string `json:"poolId"`
+	PoolType        string `json:"poolType"`
 	PoolTypeVersion int    `json:"poolTypeVersion"`
 }
 
