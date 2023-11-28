@@ -1,4 +1,4 @@
-package vault
+package shared
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	ABI abi.ABI
+	VaultABI abi.ABI
 )
 
 func init() {
@@ -15,7 +15,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&ABI, vaultJson},
+		{&VaultABI, vaultJson},
 	}
 
 	for _, b := range builder {

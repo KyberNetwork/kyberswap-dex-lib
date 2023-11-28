@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/vault"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -64,47 +64,18 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	var (
-		poolTokens        PoolTokens
-		swapFeePercentage *big.Int
-		pausedState       PausedState
-	)
-
 	// call RPC
-
-	req := t.ethrpcClient.R().
-		SetContext(ctx).
-		SetRequireSuccess(true)
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    vault.ABI,
-		Target: t.config.VaultAddress,
-		Method: vault.MethodGetPoolTokens,
-		Params: []interface{}{common.HexToHash(staticExtra.PoolID)},
-	}, []interface{}{&poolTokens})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    weightedPoolABI,
-		Target: p.Address,
-		Method: poolMethodGetSwapFeePercentage,
-	}, []interface{}{&swapFeePercentage})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    weightedPoolABI,
-		Target: p.Address,
-		Method: poolMethodGetPausedState,
-	}, []interface{}{&pausedState})
-
-	res, err := req.TryBlockAndAggregate()
+	rpcRes, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID)
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": p.Address,
-		}).Error(err.Error())
-
 		return p, err
 	}
+
+	var (
+		poolTokens        = rpcRes.PoolTokens
+		swapFeePercentage = rpcRes.SwapFeePercentage
+		pausedState       = rpcRes.PausedState
+		blockNumber       = rpcRes.BlockNumber
+	)
 
 	// update pool
 
@@ -123,11 +94,30 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
+	reserves, err := t.initReserves(ctx, p, poolTokens)
+	if err != nil {
+		return p, err
+	}
+
+	p.BlockNumber = blockNumber
+	p.Extra = string(extraBytes)
+	p.Timestamp = time.Now().Unix()
+	p.Reserves = reserves
+
+	return p, nil
+}
+
+func (t *PoolTracker) initReserves(
+	ctx context.Context,
+	p entity.Pool,
+	poolTokens PoolTokens,
+) ([]string, error) {
 	reserveByToken := make(map[string]*big.Int)
 	for idx, token := range poolTokens.Tokens {
 		addr := strings.ToLower(token.Hex())
 		reserveByToken[addr] = poolTokens.Balances[idx]
 	}
+
 	reserves := make([]string, len(p.Tokens))
 	for idx, token := range p.Tokens {
 		r, ok := reserveByToken[token.Address]
@@ -138,18 +128,66 @@ func (t *PoolTracker) GetNewPoolState(
 				"poolAddress": p.Address,
 			}).Error("can not get reserve")
 
-			return p, ErrReserveNotFound
+			return nil, ErrReserveNotFound
 		}
 
 		reserves[idx] = r.String()
 	}
 
-	p.BlockNumber = res.BlockNumber.Uint64()
-	p.Extra = string(extraBytes)
-	p.Timestamp = time.Now().Unix()
-	p.Reserves = reserves
+	return reserves, nil
+}
 
-	return p, nil
+func (t *PoolTracker) queryRPC(
+	ctx context.Context,
+	poolAddress string,
+	poolID string,
+) (*rpcRes, error) {
+	var (
+		poolTokens        PoolTokens
+		swapFeePercentage *big.Int
+		pausedState       PausedState
+	)
+
+	req := t.ethrpcClient.R().
+		SetContext(ctx).
+		SetRequireSuccess(true)
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    shared.VaultABI,
+		Target: t.config.VaultAddress,
+		Method: shared.VaultMethodGetPoolTokens,
+		Params: []interface{}{common.HexToHash(poolID)},
+	}, []interface{}{&poolTokens})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    weightedPoolABI,
+		Target: poolAddress,
+		Method: poolMethodGetSwapFeePercentage,
+	}, []interface{}{&swapFeePercentage})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    weightedPoolABI,
+		Target: poolAddress,
+		Method: poolMethodGetPausedState,
+	}, []interface{}{&pausedState})
+
+	res, err := req.TryBlockAndAggregate()
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId":       t.config.DexID,
+			"dexType":     DexType,
+			"poolAddress": poolAddress,
+		}).Error(err.Error())
+
+		return nil, err
+	}
+
+	return &rpcRes{
+		PoolTokens:        poolTokens,
+		SwapFeePercentage: swapFeePercentage,
+		PausedState:       pausedState,
+		BlockNumber:       res.BlockNumber.Uint64(),
+	}, nil
 }
 
 func isNotPaused(pausedState PausedState) bool {
