@@ -12,6 +12,8 @@ const (
 	poolMethodGetSwapFeePercentage      = "getSwapFeePercentage"
 	poolMethodGetPausedState            = "getPausedState"
 	poolMethodGetAmplificationParameter = "getAmplificationParameter"
+
+	defaultWeight = 1
 )
 
 var (
