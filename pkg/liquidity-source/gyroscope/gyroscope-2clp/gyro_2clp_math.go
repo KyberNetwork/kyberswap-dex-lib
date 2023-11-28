@@ -24,7 +24,13 @@ func (l *gyro2CLPMath) _calculateInvariant(
 	sqrtBeta *uint256.Int,
 ) (*uint256.Int, error) {
 	// TODO: implement
-	return nil, nil
+
+	a, mb, bSquare, mc, err := l._calculateQuadraticTerms(balances, sqrtAlpha, sqrtBeta)
+	if err != nil {
+		return nil, err
+	}
+
+	return l._calculateQuadratic(a, mb, bSquare, mc)
 }
 
 // _calculateQuadraticTerms
@@ -34,8 +40,63 @@ func (l *gyro2CLPMath) _calculateQuadraticTerms(
 	sqrtAlpha *uint256.Int,
 	sqrtBeta *uint256.Int,
 ) (*uint256.Int, *uint256.Int, *uint256.Int, *uint256.Int, error) {
-	// TODO: implement
-	return nil, nil, nil, nil, nil
+	a, err := math.NewCalculator(math.GyroFixedPoint.ONE).
+		SubWith(math.NewCalculator(sqrtAlpha).DivDown(sqrtBeta)).
+		Result()
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	bterm0, err := math.GyroFixedPoint.DivDown(balances[1], sqrtBeta)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	bterm1, err := math.GyroFixedPoint.DivDown(balances[0], sqrtAlpha)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	mb, err := math.GyroFixedPoint.Add(bterm0, bterm1)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	mc, err := math.GyroFixedPoint.MulDown(balances[0], balances[1])
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	bSquare, err := math.NewCalculator(balances[0]).
+		MulDown(balances[0]).
+		MulDown(sqrtAlpha).
+		MulDown(sqrtAlpha).
+		Result()
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	bSq2, err := math.NewCalculator(balances[0]).
+		MulDown(balances[1]).
+		MulDown(new(uint256.Int).Mul(number.Number_2, math.GyroFixedPoint.ONE)).
+		MulDown(sqrtAlpha).
+		DivDown(sqrtBeta).
+		Result()
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	bSq3, err := math.NewCalculator(balances[1]).
+		MulDown(balances[1]).
+		DivDownWith(math.NewCalculator(sqrtBeta).MulUp(sqrtBeta)).
+		Result()
+
+	bSquare, err = math.NewCalculator(bSquare).Add(bSq2).Add(bSq3).Result()
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	return a, mb, bSquare, mc, nil
 }
 
 // _calculateQuadratic
@@ -79,41 +140,26 @@ func (l *gyro2CLPMath) _calculateQuadratic(
 	return math.GyroFixedPoint.DivDown(numerator, denominator)
 }
 
+// _calcOutGivenIn
+// https://github.com/gyrostable/concentrated-lps/blob/7e9bd3b20dd52663afca04ca743808b1d6a9521f/contracts/2clp/Gyro2CLPMath.sol#L123
 func (l *gyro2CLPMath) _calcOutGivenIn(
 	balanceIn, balanceOut, amountIn, virtualOffsetIn, virtualOffsetOut *uint256.Int,
 ) (*uint256.Int, error) {
-	virtualParamIn, err := math.GyroFixedPoint.MulUp(
-		virtualOffsetIn,
-		new(uint256.Int).Add(math.GyroFixedPoint.ONE, number.Number_2),
-	)
+	virtInOver, err := math.NewCalculator(balanceIn).
+		AddWith(
+			math.NewCalculator(virtualOffsetIn).MulUp(new(uint256.Int).Add(math.GyroFixedPoint.ONE, number.Number_2)),
+		).Result()
+
+	virtOutUnder, err := math.NewCalculator(balanceOut).
+		AddWith(
+			math.NewCalculator(virtualOffsetOut).MulDown(new(uint256.Int).Sub(math.GyroFixedPoint.ONE, number.Number_1)),
+		).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	virtInOver, err := math.GyroFixedPoint.Add(balanceIn, virtualParamIn)
-	if err != nil {
-		return nil, err
-	}
-
-	virtualParamOut, err := math.GyroFixedPoint.MulDown(
-		virtualOffsetOut,
-		new(uint256.Int).Sub(math.GyroFixedPoint.ONE, number.Number_1),
-	)
-
-	virtOutUnder, err := math.GyroFixedPoint.Add(balanceOut, virtualParamOut)
-	if err != nil {
-		return nil, err
-	}
-
-	tmp1, err := math.GyroFixedPoint.MulUp(virtOutUnder, amountIn)
-	if err != nil {
-		return nil, err
-	}
-
-	tmp2, err := math.GyroFixedPoint.Add(virtInOver, amountIn)
-	if err != nil {
-		return nil, err
-	}
-
-	return math.GyroFixedPoint.DivDown(tmp1, tmp2)
+	return math.NewCalculator(virtOutUnder).
+		MulDown(amountIn).
+		DivDownWith(math.NewCalculator(virtInOver).Add(amountIn)).
+		Result()
 }
