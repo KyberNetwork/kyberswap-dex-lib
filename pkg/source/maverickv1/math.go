@@ -1,8 +1,9 @@
 package maverickv1
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func GetAmountOut(
@@ -234,7 +235,7 @@ func computeSwapExactOut(
 	feeBasis, err := mulDiv(
 		binAmountIn,
 		state.Fee,
-		new(big.Int).Sub(bignumber.TenPowInt(18), state.Fee),
+		new(big.Int).Sub(bignumber.BONE, state.Fee),
 		true,
 	)
 	if err != nil {
@@ -293,12 +294,12 @@ func computeSwapExactIn(
 
 	var feeBasis *big.Int
 
-	tmp, err := mul(amountIn, new(big.Int).Sub(bignumber.TenPowInt(18), state.Fee))
+	tmp, err := mul(amountIn, new(big.Int).Sub(bignumber.BONE, state.Fee))
 	if err != nil {
 		return nil, err
 	}
 	if tmp.Cmp(binAmountIn) >= 0 {
-		feeBasis, err = mulDiv(binAmountIn, state.Fee, new(big.Int).Sub(bignumber.TenPowInt(18), state.Fee), true)
+		feeBasis, err = mulDiv(binAmountIn, state.Fee, new(big.Int).Sub(bignumber.BONE, state.Fee), true)
 		if err != nil {
 			return nil, err
 		}
@@ -314,7 +315,7 @@ func computeSwapExactIn(
 			delta.Excess = clip(amountIn, delta.DeltaInErc)
 		}
 	} else {
-		binAmountIn, err = mul(amountIn, new(big.Int).Sub(bignumber.TenPowInt(18), state.Fee))
+		binAmountIn, err = mul(amountIn, new(big.Int).Sub(bignumber.BONE, state.Fee))
 		if err != nil {
 			return nil, err
 		}
@@ -577,7 +578,7 @@ func tickPrice(tickSpacing *big.Int, activeTick *big.Int) (*big.Int, error) {
 		)
 	}
 
-	ratio.Mul(ratio, bignumber.TenPowInt(18))
+	ratio.Mul(ratio, bignumber.BONE)
 	ratio.Rsh(ratio, 128)
 
 	return ratio, nil
@@ -1103,13 +1104,13 @@ func scaleFromAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
 	var scalingFactor *big.Int
 	if decimals > 18 {
 		scalingFactor = new(big.Int).Mul(
-			bignumber.TenPowInt(18),
+			bignumber.BONE,
 			bignumber.TenPowInt(decimals-18),
 		)
 		return sDivDownFixed(amount, scalingFactor)
 	} else {
 		scalingFactor = new(big.Int).Mul(
-			bignumber.TenPowInt(18),
+			bignumber.BONE,
 			bignumber.TenPowInt(18-decimals),
 		)
 		return sMulUpFixed(amount, scalingFactor)
@@ -1123,13 +1124,13 @@ func ScaleToAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
 	var scalingFactor *big.Int
 	if decimals > 18 {
 		scalingFactor = new(big.Int).Mul(
-			bignumber.TenPowInt(18),
+			bignumber.BONE,
 			bignumber.TenPowInt(decimals-18),
 		)
 		return sMulUpFixed(amount, scalingFactor)
 	} else {
 		scalingFactor = new(big.Int).Mul(
-			bignumber.TenPowInt(18),
+			bignumber.BONE,
 			bignumber.TenPowInt(18-decimals),
 		)
 		return sDivDownFixed(amount, scalingFactor)

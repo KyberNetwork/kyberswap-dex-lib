@@ -316,7 +316,7 @@ func TestPoolCalcAmountOut(t *testing.T) {
 
 func BenchmarkCalcAmountOut(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
+		_, err = maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{
 				Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 				Amount: bignumber.NewBig10("1000000000000000000"),
