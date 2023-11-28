@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
-	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -88,23 +87,18 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 	)
 
 	for j, token := range subgraphPool.Tokens {
-		w, err := strconv.ParseFloat(token.Weight, 64)
-		if err != nil {
-			return entity.Pool{}, err
-		}
-		weight := uint(w * 1e18)
-		if weight == 0 {
-			weight = uint(1e18 / len(subgraphPool.Tokens))
-		}
 		poolTokens[j] = &entity.PoolToken{
 			Address:   token.Address,
-			Weight:    weight,
+			Weight:    defaultWeight,
 			Swappable: true,
 		}
 
 		reserves[j] = "0"
 
-		scalingFactors[j] = bignumber.TenPowInt(18 - uint8(token.Decimals))
+		scalingFactors[j] = new(big.Int).Mul(
+			bignumber.TenPowInt(18-uint8(token.Decimals)),
+			bignumber.BONE,
+		)
 	}
 
 	staticExtra := StaticExtra{
