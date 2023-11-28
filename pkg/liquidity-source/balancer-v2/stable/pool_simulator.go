@@ -12,9 +12,6 @@ import (
 type PoolSimulator struct {
 	poolpkg.Pool
 
-	// poolID       string
-	// vaultAddress string
-
 	swapFeePercentage *uint256.Int
 	amp               *uint256.Int
 	scalingFactors    []*uint256.Int

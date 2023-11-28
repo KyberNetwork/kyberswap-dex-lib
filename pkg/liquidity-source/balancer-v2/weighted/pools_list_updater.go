@@ -9,27 +9,18 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/machinebox/graphql"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolsListUpdater struct {
 	config        Config
-	ethrpcClient  *ethrpc.Client
-	graphqlClient *graphql.Client
 	sharedUpdater *shared.PoolsListUpdater
 }
 
-func NewPoolsListUpdater(
-	config *Config,
-	ethrpcClient *ethrpc.Client,
-) *PoolsListUpdater {
-	graphqlClient := graphqlpkg.NewWithTimeout(config.SubgraphAPI, graphQLRequestTimeout)
-
+func NewPoolsListUpdater(config *Config, _ *ethrpc.Client) *PoolsListUpdater {
 	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
 		DexID:        config.DexID,
 		SubgraphAPI:  config.SubgraphAPI,
@@ -39,8 +30,6 @@ func NewPoolsListUpdater(
 
 	return &PoolsListUpdater{
 		config:        *config,
-		ethrpcClient:  ethrpcClient,
-		graphqlClient: graphqlClient,
 		sharedUpdater: sharedUpdater,
 	}
 }
@@ -79,58 +68,65 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*share
 	pools := make([]entity.Pool, len(subgraphPools))
 
 	for i, subgraphPool := range subgraphPools {
-		var (
-			poolTokens     = make([]*entity.PoolToken, len(subgraphPool.Tokens))
-			reserves       = make([]string, len(subgraphPool.Tokens))
-			scalingFactors = make([]*big.Int, len(subgraphPool.Tokens))
-		)
-
-		for j, token := range subgraphPool.Tokens {
-
-			w, err := strconv.ParseFloat(token.Weight, 64)
-			if err != nil {
-				return nil, err
-			}
-			weight := uint(w * 1e18)
-			if weight == 0 {
-				weight = uint(1e18 / len(subgraphPool.Tokens))
-			}
-			poolTokens[j] = &entity.PoolToken{
-				Address:   token.Address,
-				Weight:    weight,
-				Swappable: true,
-			}
-
-			reserves[j] = "0"
-
-			scalingFactors[j] = bignumber.TenPowInt(18 - uint8(token.Decimals))
-			if subgraphPool.PoolTypeVersion.Int64() > poolTypeVer1 {
-				scalingFactors[j] = new(big.Int).Mul(scalingFactors[j], bignumber.BONE)
-			}
-		}
-
-		staticExtra := StaticExtra{
-			PoolID:          subgraphPool.ID,
-			PoolType:        subgraphPool.PoolType,
-			PoolTypeVersion: int(subgraphPool.PoolTypeVersion.Int64()),
-			ScalingFactors:  scalingFactors,
-		}
-		staticExtraBytes, err := json.Marshal(staticExtra)
+		pool, err := u.initPool(ctx, subgraphPool)
 		if err != nil {
 			return nil, err
 		}
 
-		pools[i] = entity.Pool{
-			Address:     subgraphPool.Address,
-			Exchange:    u.config.DexID,
-			Type:        DexType,
-			Timestamp:   time.Now().Unix(),
-			Tokens:      poolTokens,
-			Reserves:    reserves,
-			StaticExtra: string(staticExtraBytes),
-		}
-
+		pools[i] = pool
 	}
 
 	return pools, nil
+}
+
+func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.SubgraphPool) (entity.Pool, error) {
+	var (
+		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.Tokens))
+		reserves       = make([]string, len(subgraphPool.Tokens))
+		scalingFactors = make([]*big.Int, len(subgraphPool.Tokens))
+	)
+
+	for j, token := range subgraphPool.Tokens {
+		w, err := strconv.ParseFloat(token.Weight, 64)
+		if err != nil {
+			return entity.Pool{}, err
+		}
+		weight := uint(w * 1e18)
+		if weight == 0 {
+			weight = uint(1e18 / len(subgraphPool.Tokens))
+		}
+		poolTokens[j] = &entity.PoolToken{
+			Address:   token.Address,
+			Weight:    weight,
+			Swappable: true,
+		}
+
+		reserves[j] = "0"
+
+		scalingFactors[j] = bignumber.TenPowInt(18 - uint8(token.Decimals))
+		if subgraphPool.PoolTypeVersion.Int64() > poolTypeVer1 {
+			scalingFactors[j] = new(big.Int).Mul(scalingFactors[j], bignumber.BONE)
+		}
+	}
+
+	staticExtra := StaticExtra{
+		PoolID:          subgraphPool.ID,
+		PoolType:        subgraphPool.PoolType,
+		PoolTypeVersion: int(subgraphPool.PoolTypeVersion.Int64()),
+		ScalingFactors:  scalingFactors,
+	}
+	staticExtraBytes, err := json.Marshal(staticExtra)
+	if err != nil {
+		return entity.Pool{}, err
+	}
+
+	return entity.Pool{
+		Address:     subgraphPool.Address,
+		Exchange:    u.config.DexID,
+		Type:        DexType,
+		Timestamp:   time.Now().Unix(),
+		Tokens:      poolTokens,
+		Reserves:    reserves,
+		StaticExtra: string(staticExtraBytes),
+	}, nil
 }

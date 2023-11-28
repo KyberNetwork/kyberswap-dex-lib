@@ -24,10 +24,6 @@ type PoolTokens struct {
 	LastChangeBlock *big.Int
 }
 
-type Metadata struct {
-	LastCreateTime *big.Int `json:"lastCreateTime"`
-}
-
 type PausedState struct {
 	Paused              bool
 	PauseWindowEndTime  *big.Int
