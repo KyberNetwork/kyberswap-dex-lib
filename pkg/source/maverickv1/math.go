@@ -692,7 +692,7 @@ func getTickL(
 	precisionBump := big.NewInt(0)
 	big40 := big.NewInt(40)
 
-	if reserveA.Bit(60) == 0 && reserveB.Bit(60) == 0 {
+	if new(big.Int).Rsh(reserveA, 60).Cmp(zeroBI) == 0 && new(big.Int).Rsh(reserveB, 60).Cmp(zeroBI) == 0 {
 		precisionBump.Set(big40)
 		reserveA = new(big.Int).Lsh(reserveA, uint(precisionBump.Int64()))
 		reserveB = new(big.Int).Lsh(reserveB, uint(precisionBump.Int64()))
