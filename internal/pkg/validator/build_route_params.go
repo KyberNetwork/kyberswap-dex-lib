@@ -220,7 +220,9 @@ func (v *buildRouteParamsValidator) checkBlacklistedWallet(ctx context.Context, 
 
 	blacklistedWallet, err := v.blackjackRepo.GetAddressBlacklisted(ctx, wallets)
 	if err != nil {
-		return err
+		// Blackjack is `nice to have` in Aggregator, so we will bypass it if the request gets error.
+		logger.Warnf("[checkBlacklistedWallet] blackjackRepo.GetAddressBlacklisted gets error, wallets: %v, error: %s", wallets, err)
+		return nil
 	}
 
 	if blacklistedWallet[sender] {

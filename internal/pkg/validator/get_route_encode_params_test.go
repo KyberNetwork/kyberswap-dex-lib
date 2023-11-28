@@ -2,6 +2,7 @@ package validator
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -284,6 +285,19 @@ func TestGetRouteEncodeDexesValidator_validateTo(t *testing.T) {
 						},
 					},
 				}, nil)
+			},
+		},
+		{
+			name: "it should return nil, isBlackjackEnabled is true, Blackjack returns an error",
+			to:   "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+			err:  nil,
+			config: GetRouteEncodeParamsConfig{
+				FeatureFlags: valueobject.FeatureFlags{
+					IsBlackjackEnabled: true,
+				},
+			},
+			callBlackjack: func(client *usecase.MockServiceClient) {
+				client.EXPECT().Check(gomock.Any(), gomock.Any()).Return(nil, errors.New("test"))
 			},
 		},
 	}

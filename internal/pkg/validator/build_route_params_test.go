@@ -2,6 +2,7 @@ package validator
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -780,6 +781,20 @@ func TestBuildRouteParamsValidator_validateSenderAndRecipient(t *testing.T) {
 						},
 					},
 				}, nil)
+			},
+		},
+		{
+			name:      "it should return nil, isBlackjackEnabled is true, Blackjack returns an error",
+			recipient: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+			sender:    "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+			err:       nil,
+			config: BuildRouteParamsConfig{
+				FeatureFlags: valueobject.FeatureFlags{
+					IsBlackjackEnabled: true,
+				},
+			},
+			callBlackjack: func(client *usecase.MockServiceClient) {
+				client.EXPECT().Check(gomock.Any(), gomock.Any()).Return(nil, errors.New("test"))
 			},
 		},
 	}

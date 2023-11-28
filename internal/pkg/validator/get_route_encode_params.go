@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/blackjack"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type getRouteEncodeParamsValidator struct {
@@ -162,7 +163,9 @@ func (v *getRouteEncodeParamsValidator) validateTo(ctx context.Context, to strin
 func (v *getRouteEncodeParamsValidator) checkBlacklistedWallet(ctx context.Context, to string) error {
 	blacklistedWallet, err := v.blackjackRepo.GetAddressBlacklisted(ctx, []string{to})
 	if err != nil {
-		return err
+		// Blackjack is `nice to have` in Aggregator, so we will bypass it if the request gets error.
+		logger.Warnf("[checkBlacklistedWallet] blackjackRepo.GetAddressBlacklisted gets error, to: %v, error: %s", to, err)
+		return nil
 	}
 
 	if blacklistedWallet[to] {
