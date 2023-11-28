@@ -163,3 +163,15 @@ func (l *gyro2CLPMath) _calcOutGivenIn(
 		DivDownWith(math.NewCalculator(virtInOver).Add(amountIn)).
 		Result()
 }
+
+// _calculateVirtualParameter0
+// https://github.com/gyrostable/concentrated-lps/blob/7e9bd3b20dd52663afca04ca743808b1d6a9521f/contracts/2clp/Gyro2CLPMath.sol#L197
+func (l *gyro2CLPMath) _calculateVirtualParameter0(invariant, _sqrtBeta *uint256.Int) (*uint256.Int, error) {
+	return math.GyroFixedPoint.DivDown(invariant, _sqrtBeta)
+}
+
+// _calculateVirtualParameter1
+// https://github.com/gyrostable/concentrated-lps/blob/7e9bd3b20dd52663afca04ca743808b1d6a9521f/contracts/2clp/Gyro2CLPMath.sol#L203
+func (l *gyro2CLPMath) _calculateVirtualParameter1(invariant, _sqrtAlpha *uint256.Int) (*uint256.Int, error) {
+	return math.GyroFixedPoint.MulDown(invariant, _sqrtAlpha)
+}

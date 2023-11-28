@@ -27,6 +27,9 @@ type PoolSimulator struct {
 
 	// swapFeePercentage: `getMicsData`
 	swapFeePercentage *uint256.Int
+
+	// sqrtParameters: `getSqrtParameters`
+	sqrtParameters []*uint256.Int
 }
 
 func (s *PoolSimulator) CalcAmountOut(
@@ -68,7 +71,10 @@ func (s *PoolSimulator) CalcAmountOut(
 		return nil, ErrInvalidAmountIn
 	}
 
-	_, virtualParamIn, virtualParamOut := s._calculateCurrentValues(balanceTokenIn, balanceTokenOut, indexIn == 0)
+	_, virtualParamIn, virtualParamOut, err := s._calculateCurrentValues(balanceTokenIn, balanceTokenOut, indexIn == 0)
+	if err != nil {
+		return nil, err
+	}
 
 	feeAmount, err := math.GyroFixedPoint.MulUp(amountIn, s.swapFeePercentage)
 	if err != nil {
@@ -116,6 +122,57 @@ func (s *PoolSimulator) _calculateCurrentValues(
 	*uint256.Int,
 	*uint256.Int,
 	*uint256.Int,
+	error,
 ) {
-	return nil, nil, nil
+	var balances []*uint256.Int
+	if tokenInIsToken0 {
+		balances = []*uint256.Int{balanceTokenIn, balanceTokenOut}
+	} else {
+		balances = []*uint256.Int{balanceTokenOut, balanceTokenIn}
+	}
+
+	currentInvariant, err := Gyro2CLPMath._calculateInvariant(balances, s.sqrtParameters[0], s.sqrtParameters[1])
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	virtualParam, err := s._getVirtualParameters(s.sqrtParameters, currentInvariant)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	var virtualParamIn, virtualParamOut *uint256.Int
+	if tokenInIsToken0 {
+		virtualParamIn, virtualParamOut = virtualParam[0], virtualParam[1]
+	} else {
+		virtualParamIn, virtualParamOut = virtualParam[1], virtualParam[0]
+	}
+
+	return currentInvariant, virtualParamIn, virtualParamOut, nil
+}
+
+// _getVirtualParameters
+// https://github.com/gyrostable/concentrated-lps/blob/7e9bd3b20dd52663afca04ca743808b1d6a9521f/contracts/2clp/Gyro2CLPPool.sol#L108C14-L108C35
+func (s *PoolSimulator) _getVirtualParameters(sqrtParams []*uint256.Int, invariant *uint256.Int) ([]*uint256.Int, error) {
+	virtualParameters0, err := s._virtualParameters(true, sqrtParams[1], invariant)
+	if err != nil {
+		return nil, err
+	}
+
+	virtualParameters1, err := s._virtualParameters(false, sqrtParams[0], invariant)
+	if err != nil {
+		return nil, err
+	}
+
+	return []*uint256.Int{virtualParameters0, virtualParameters1}, nil
+}
+
+// _virtualParameters
+// https://github.com/gyrostable/concentrated-lps/blob/7e9bd3b20dd52663afca04ca743808b1d6a9521f/contracts/2clp/Gyro2CLPPool.sol#L119
+func (s *PoolSimulator) _virtualParameters(parameter0 bool, sqrtParam, invariant *uint256.Int) (*uint256.Int, error) {
+	if parameter0 {
+		return Gyro2CLPMath._calculateVirtualParameter0(invariant, sqrtParam)
+	}
+
+	return Gyro2CLPMath._calculateVirtualParameter1(invariant, sqrtParam)
 }
