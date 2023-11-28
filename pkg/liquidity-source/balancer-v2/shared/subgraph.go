@@ -3,6 +3,7 @@ package shared
 import (
 	"fmt"
 	"math/big"
+	"strings"
 )
 
 type SubgraphPool struct {
@@ -19,7 +20,7 @@ type SubgraphPool struct {
 }
 
 func BuildSubgraphPoolsQuery(
-	poolType string,
+	poolTypes []string,
 	lastCreateTime *big.Int,
 	first int,
 	skip int,
@@ -27,7 +28,7 @@ func BuildSubgraphPoolsQuery(
 	q := `{
 		pools(
 			where : {
-				poolType: "%v",
+				poolType_in: %v,
 				createTime_gte: %v
 			},
 			first: %v,
@@ -48,5 +49,10 @@ func BuildSubgraphPoolsQuery(
 		}
 	}`
 
-	return fmt.Sprintf(q, poolType, lastCreateTime, first, skip)
+	poolTypesStr := fmt.Sprintf(
+		`["%v"]`,
+		strings.Join(poolTypes, `","`),
+	)
+
+	return fmt.Sprintf(q, poolTypesStr, lastCreateTime, first, skip)
 }

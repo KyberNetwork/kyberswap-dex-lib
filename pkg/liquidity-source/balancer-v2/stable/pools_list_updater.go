@@ -20,13 +20,11 @@ type PoolsListUpdater struct {
 }
 
 func NewPoolsListUpdater(config *Config, _ *ethrpc.Client) *PoolsListUpdater {
-	config.PoolType = NormalizePoolType(config.PoolType)
-
 	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
 		DexID:        config.DexID,
 		SubgraphAPI:  config.SubgraphAPI,
 		NewPoolLimit: config.NewPoolLimit,
-		PoolType:     config.PoolType,
+		PoolTypes:    []string{poolTypeStable, poolTypeMetaStable},
 	})
 
 	return &PoolsListUpdater{

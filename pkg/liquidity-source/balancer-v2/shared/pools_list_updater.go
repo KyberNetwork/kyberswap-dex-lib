@@ -20,7 +20,7 @@ type (
 		DexID        string
 		SubgraphAPI  string
 		NewPoolLimit int
-		PoolType     string
+		PoolTypes    []string
 	}
 
 	Metadata struct {
@@ -75,7 +75,7 @@ func (u *PoolsListUpdater) querySubgraph(ctx context.Context, lastCreateTime *bi
 	}
 
 	query := BuildSubgraphPoolsQuery(
-		u.config.PoolType,
+		u.config.PoolTypes,
 		lastCreateTime,
 		u.config.NewPoolLimit,
 		0,
