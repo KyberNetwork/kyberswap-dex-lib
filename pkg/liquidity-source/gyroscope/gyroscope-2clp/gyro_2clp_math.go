@@ -46,15 +46,6 @@ func (l *gyro2CLPMath) _calculateQuadratic(
 	bSquare,
 	mc *uint256.Int,
 ) (*uint256.Int, error) {
-	//uint256 denominator = a.mulUp(2 * GyroFixedPoint.ONE);
-	//// order multiplications for fixed point precision
-	//uint256 addTerm = (mc.mulDown(4 * GyroFixedPoint.ONE)).mulDown(a);
-	//// The minus sign in the radicand cancels out in this special case, so we add
-	//uint256 radicand = bSquare.add(addTerm);
-	//uint256 sqrResult = GyroPoolMath._sqrt(radicand, 5);
-	//// The minus sign in the numerator cancels out in this special case
-	//uint256 numerator = mb.add(sqrResult);
-	//invariant = numerator.divDown(denominator);
 	denominator, err := math.GyroFixedPoint.MulUp(a, new(uint256.Int).Mul(number.Number_2, math.GyroFixedPoint.ONE))
 	if err != nil {
 		return nil, err
@@ -75,6 +66,17 @@ func (l *gyro2CLPMath) _calculateQuadratic(
 		return nil, err
 	}
 
+	sqrResult, err := math.GyroPoolMath.Sqrt(radicand, number.Number_5)
+	if err != nil {
+		return nil, err
+	}
+
+	numerator, err := math.GyroFixedPoint.Add(mb, sqrResult)
+	if err != nil {
+		return nil, err
+	}
+
+	return math.GyroFixedPoint.DivDown(numerator, denominator)
 }
 
 func (l *gyro2CLPMath) _calcOutGivenIn(

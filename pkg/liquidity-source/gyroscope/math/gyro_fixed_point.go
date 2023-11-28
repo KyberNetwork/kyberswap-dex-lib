@@ -18,25 +18,14 @@ var (
 var GyroFixedPoint *gyroFixedPoint
 
 type gyroFixedPoint struct {
-	ZERO                   *uint256.Int
-	ONE                    *uint256.Int
-	TWO                    *uint256.Int
-	FOUR                   *uint256.Int
-	MAX_POW_RELATIVE_ERROR *uint256.Int
+	ONE *uint256.Int
 }
 
 func init() {
-	zero := uint256.NewInt(0)
 	one := number.Number_1e18
-	two := new(uint256.Int).Mul(number.Number_2, one)
-	four := new(uint256.Int).Mul(number.Number_4, one)
 
 	GyroFixedPoint = &gyroFixedPoint{
-		ZERO:                   zero,
-		ONE:                    one,
-		TWO:                    two,
-		FOUR:                   four,
-		MAX_POW_RELATIVE_ERROR: uint256.NewInt(10000),
+		ONE: one,
 	}
 }
 
