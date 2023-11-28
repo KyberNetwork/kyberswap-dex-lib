@@ -3,15 +3,15 @@ package stable
 import (
 	"context"
 	"encoding/json"
-	"math/big"
 	"time"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolsListUpdater struct {
@@ -81,7 +81,7 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 	var (
 		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.Tokens))
 		reserves       = make([]string, len(subgraphPool.Tokens))
-		scalingFactors = make([]*big.Int, len(subgraphPool.Tokens))
+		scalingFactors = make([]*uint256.Int, len(subgraphPool.Tokens))
 	)
 
 	for j, token := range subgraphPool.Tokens {
@@ -93,9 +93,9 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 
 		reserves[j] = "0"
 
-		scalingFactors[j] = new(big.Int).Mul(
-			bignumber.TenPowInt(18-uint8(token.Decimals)),
-			bignumber.BONE,
+		scalingFactors[j] = new(uint256.Int).Mul(
+			number.TenPow(18-uint8(token.Decimals)),
+			number.Number_1e18,
 		)
 	}
 

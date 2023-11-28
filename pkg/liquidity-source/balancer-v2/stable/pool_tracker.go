@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
@@ -71,16 +72,17 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	var (
-		poolTokens        = rpcRes.PoolTokens
-		swapFeePercentage = rpcRes.SwapFeePercentage
-		pausedState       = rpcRes.PausedState
-		blockNumber       = rpcRes.BlockNumber
+		amp, _               = uint256.FromBig(rpcRes.Amp)
+		swapFeePercentage, _ = uint256.FromBig(rpcRes.SwapFeePercentage)
+		poolTokens           = rpcRes.PoolTokens
+		pausedState          = rpcRes.PausedState
+		blockNumber          = rpcRes.BlockNumber
 	)
 
 	// update pool
 
 	extra := Extra{
-		Amp:               rpcRes.Amp,
+		Amp:               amp,
 		SwapFeePercentage: swapFeePercentage,
 		Paused:            !isNotPaused(pausedState),
 	}
