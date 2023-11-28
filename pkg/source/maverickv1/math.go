@@ -922,19 +922,15 @@ func msb(x *big.Int) *big.Int {
 // ------------- maverick basic math --------------------
 func mulDiv(a, b, c *big.Int, ceil bool) (*big.Int, error) {
 	product := new(big.Int).Mul(a, b)
-	if a.Cmp(zeroBI) == 0 || new(big.Int).Div(product, a).Cmp(b) == 0 {
-		if product.Cmp(zeroBI) == 0 {
-			return big.NewInt(0), nil
+	if product.Cmp(zeroBI) == 0 {
+		return big.NewInt(0), nil
+	} else {
+		if ceil && new(big.Int).Mod(product, c).Cmp(zeroBI) != 0 {
+			return new(big.Int).Add(new(big.Int).Div(product, c), bignumber.One), nil
 		} else {
-			if ceil && new(big.Int).Mod(product, c).Cmp(zeroBI) != 0 {
-				return new(big.Int).Add(new(big.Int).Div(product, c), bignumber.One), nil
-			} else {
-				return new(big.Int).Div(product, c), nil
-			}
+			return new(big.Int).Div(product, c), nil
 		}
 	}
-
-	return nil, ErrMulOverflow
 }
 
 func clip(x, y *big.Int) *big.Int {
@@ -1036,38 +1032,26 @@ func mul(a, b *big.Int) (*big.Int, error) {
 
 func mulUpFixed(a, b *big.Int) (*big.Int, error) {
 	product := new(big.Int).Mul(a, b)
+	isNegative := product.Sign() == -1
 
-	if a.Cmp(zeroBI) == 0 || new(big.Int).Div(product, a).Cmp(b) == 0 {
-		isNegative := false
-		if (a.Cmp(zeroBI) < 0 && b.Cmp(zeroBI) > 0) || (a.Cmp(zeroBI) > 0 && b.Cmp(zeroBI) < 0) {
-			isNegative = true
+	if product.Cmp(zeroBI) == 0 {
+		return big.NewInt(0), nil
+	} else {
+		result := new(big.Int).Sub(abs(product), bignumber.One)
+		result.Div(result, One)
+		result.Add(result, bignumber.One)
+
+		if isNegative {
+			result.Neg(result)
 		}
 
-		if product.Cmp(zeroBI) == 0 {
-			return big.NewInt(0), nil
-		} else {
-			result := new(big.Int).Sub(abs(product), bignumber.One)
-			result.Div(result, One)
-			result.Add(result, bignumber.One)
-
-			if isNegative {
-				result.Neg(result)
-			}
-
-			return result, nil
-		}
+		return result, nil
 	}
-
-	return nil, ErrMulOverflow
 }
 
 func sMulDownFixed(a, b *big.Int) (*big.Int, error) {
 	var product = new(big.Int).Mul(a, b)
-	if a.Cmp(zeroBI) == 0 || new(big.Int).Div(product, a).Cmp(b) == 0 {
-		return new(big.Int).Div(product, One), nil
-	}
-
-	return nil, ErrMulOverflow
+	return new(big.Int).Div(product, One), nil
 }
 
 func abs(x *big.Int) *big.Int {
