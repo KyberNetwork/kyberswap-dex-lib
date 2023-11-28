@@ -41,6 +41,11 @@ type AmplificationParameter struct {
 	Precision  *big.Int
 }
 
+type PoolMetaInfo struct {
+	T string `json:"t"`
+	V int    `json:"v"`
+}
+
 type rpcRes struct {
 	Amp               *big.Int
 	PoolTokens        PoolTokens

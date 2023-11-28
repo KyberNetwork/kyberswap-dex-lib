@@ -30,6 +30,11 @@ type PausedState struct {
 	BufferPeriodEndTime *big.Int
 }
 
+type PoolMetaInfo struct {
+	T string `json:"t"`
+	V int    `json:"v"`
+}
+
 type rpcRes struct {
 	PoolTokens        PoolTokens
 	SwapFeePercentage *big.Int
