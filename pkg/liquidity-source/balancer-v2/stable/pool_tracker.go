@@ -147,7 +147,7 @@ func (t *PoolTracker) queryRPC(
 		poolTokens        PoolTokens
 		swapFeePercentage *big.Int
 		pausedState       PausedState
-		amp               *big.Int
+		ampParams         AmplificationParameter
 	)
 
 	req := t.ethrpcClient.R().
@@ -165,7 +165,7 @@ func (t *PoolTracker) queryRPC(
 		ABI:    stablePoolABI,
 		Target: poolAddress,
 		Method: poolMethodGetAmplificationParameter,
-	}, []interface{}{&amp})
+	}, []interface{}{&ampParams})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    stablePoolABI,
@@ -191,7 +191,7 @@ func (t *PoolTracker) queryRPC(
 	}
 
 	return &rpcRes{
-		Amp:               amp,
+		Amp:               ampParams.Value,
 		PoolTokens:        poolTokens,
 		SwapFeePercentage: swapFeePercentage,
 		PausedState:       pausedState,

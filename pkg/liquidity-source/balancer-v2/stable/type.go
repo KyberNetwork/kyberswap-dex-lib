@@ -35,6 +35,12 @@ type PausedState struct {
 	BufferPeriodEndTime *big.Int
 }
 
+type AmplificationParameter struct {
+	Value      *big.Int
+	IsUpdating bool
+	Precision  *big.Int
+}
+
 type rpcRes struct {
 	Amp               *big.Int
 	PoolTokens        PoolTokens
