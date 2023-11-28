@@ -110,7 +110,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	extra := Extra{
 		SwapFeePercentage: swapFeePercentage,
-		Paused:            pausedState.Paused,
+		Paused:            !isNotPaused(pausedState),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -150,4 +150,8 @@ func (t *PoolTracker) GetNewPoolState(
 	p.Reserves = reserves
 
 	return p, nil
+}
+
+func isNotPaused(pausedState PausedState) bool {
+	return time.Now().Unix() > pausedState.BufferPeriodEndTime.Int64() || !pausedState.Paused
 }
