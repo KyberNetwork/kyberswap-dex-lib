@@ -1,4 +1,4 @@
-package gyroscope2clp
+package gyro2clp
 
 import (
 	"errors"
