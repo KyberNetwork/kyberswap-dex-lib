@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
@@ -182,9 +183,11 @@ func (t *PoolTracker) queryRPC(
 		return nil, err
 	}
 
+	swapFeePercentageU256, _ := uint256.FromBig(swapFeePercentage)
+
 	return &rpcRes{
 		PoolTokens:        poolTokens,
-		SwapFeePercentage: swapFeePercentage,
+		SwapFeePercentage: swapFeePercentageU256,
 		PausedState:       pausedState,
 		BlockNumber:       res.BlockNumber.Uint64(),
 	}, nil

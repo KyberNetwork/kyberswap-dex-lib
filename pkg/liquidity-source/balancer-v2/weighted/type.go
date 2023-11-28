@@ -4,18 +4,20 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type Extra struct {
-	SwapFeePercentage *big.Int `json:"swapFeePercentage"`
-	Paused            bool     `json:"paused"`
+	SwapFeePercentage *uint256.Int `json:"swapFeePercentage"`
+	Paused            bool         `json:"paused"`
 }
 
 type StaticExtra struct {
-	PoolID          string     `json:"poolId"`
-	PoolType        string     `json:"poolType"`
-	PoolTypeVersion int        `json:"poolTypeVersion"`
-	ScalingFactors  []*big.Int `json:"scalingFactors"`
+	PoolID            string         `json:"poolId"`
+	PoolType          string         `json:"poolType"`
+	PoolTypeVersion   int            `json:"poolTypeVersion"`
+	ScalingFactors    []*uint256.Int `json:"scalingFactors"`
+	NormalizedWeights []*uint256.Int `json:"normalizedWeights"`
 }
 
 type PoolTokens struct {
@@ -37,7 +39,7 @@ type PoolMetaInfo struct {
 
 type rpcRes struct {
 	PoolTokens        PoolTokens
-	SwapFeePercentage *big.Int
+	SwapFeePercentage *uint256.Int
 	PausedState       PausedState
 	BlockNumber       uint64
 }

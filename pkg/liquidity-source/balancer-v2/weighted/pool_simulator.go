@@ -47,10 +47,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		extra       Extra
 		staticExtra StaticExtra
 
-		tokens            = make([]string, len(entityPool.Tokens))
-		reserves          = make([]*big.Int, len(entityPool.Tokens))
-		scalingFactors    = make([]*uint256.Int, len(entityPool.Tokens))
-		normalizedWeights = make([]*uint256.Int, len(entityPool.Tokens))
+		tokens   = make([]string, len(entityPool.Tokens))
+		reserves = make([]*big.Int, len(entityPool.Tokens))
 	)
 
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -61,23 +59,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	swapFeePercentage, overflow := uint256.FromBig(extra.SwapFeePercentage)
-	if overflow {
-		return nil, ErrInvalidSwapFeePercentage
-	}
-
 	for idx := 0; idx < len(entityPool.Tokens); idx++ {
 		tokens[idx] = entityPool.Tokens[idx].Address
 		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
-
-		scalingFactor, overflow := uint256.FromBig(staticExtra.ScalingFactors[idx])
-		if overflow {
-			return nil, ErrInvalidReserve
-		}
-		scalingFactors[idx] = scalingFactor
-
-		normalizedWeight := uint256.NewInt(uint64(entityPool.Tokens[idx].Weight))
-		normalizedWeights[idx] = normalizedWeight
 	}
 
 	poolInfo := poolpkg.PoolInfo{
@@ -93,9 +77,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	return &PoolSimulator{
 		Pool:              poolpkg.Pool{Info: poolInfo},
 		paused:            extra.Paused,
-		swapFeePercentage: swapFeePercentage,
-		scalingFactors:    scalingFactors,
-		normalizedWeights: normalizedWeights,
+		swapFeePercentage: extra.SwapFeePercentage,
+		scalingFactors:    staticExtra.ScalingFactors,
+		normalizedWeights: staticExtra.NormalizedWeights,
 		poolTypeVersion:   staticExtra.PoolTypeVersion,
 	}, nil
 }
