@@ -34,6 +34,8 @@ type (
 		swapFeePercentage *uint256.Int
 		scalingFactors    []*uint256.Int
 		normalizedWeights []*uint256.Int
+
+		poolTypeVersion int
 	}
 	Gas struct {
 		Swap int64
@@ -94,6 +96,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		swapFeePercentage: swapFeePercentage,
 		scalingFactors:    scalingFactors,
 		normalizedWeights: normalizedWeights,
+		poolTypeVersion:   staticExtra.PoolTypeVersion,
 	}, nil
 }
 
@@ -203,7 +206,10 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	return nil
+	return PoolMetaInfo{
+		T: poolTypeWeighted,
+		V: s.poolTypeVersion,
+	}
 }
 
 func _upscale(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {

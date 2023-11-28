@@ -166,7 +166,10 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	return nil
+	return PoolMetaInfo{
+		T: s.poolType,
+		V: s.poolTypeVersion,
+	}
 }
 
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
