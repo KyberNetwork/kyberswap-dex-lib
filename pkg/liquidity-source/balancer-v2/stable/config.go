@@ -5,5 +5,4 @@ type Config struct {
 	VaultAddress string `json:"vaultAddress"`
 	SubgraphAPI  string `json:"subgraphAPI"`
 	NewPoolLimit int    `json:"newPoolLimit"`
-	PoolType     string `json:"poolType"`
 }

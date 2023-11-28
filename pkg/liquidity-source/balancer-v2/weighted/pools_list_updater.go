@@ -25,7 +25,7 @@ func NewPoolsListUpdater(config *Config, _ *ethrpc.Client) *PoolsListUpdater {
 		DexID:        config.DexID,
 		SubgraphAPI:  config.SubgraphAPI,
 		NewPoolLimit: config.NewPoolLimit,
-		PoolType:     poolTypeWeighted,
+		PoolTypes:    []string{poolTypeWeighted},
 	})
 
 	return &PoolsListUpdater{
