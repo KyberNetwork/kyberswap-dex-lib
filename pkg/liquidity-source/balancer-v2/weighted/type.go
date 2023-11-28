@@ -33,3 +33,10 @@ type PausedState struct {
 	PauseWindowEndTime  *big.Int
 	BufferPeriodEndTime *big.Int
 }
+
+type rpcRes struct {
+	PoolTokens        PoolTokens
+	SwapFeePercentage *big.Int
+	PausedState       PausedState
+	BlockNumber       uint64
+}

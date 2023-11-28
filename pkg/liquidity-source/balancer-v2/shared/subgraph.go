@@ -1,11 +1,11 @@
-package subgraph
+package shared
 
 import (
 	"fmt"
 	"math/big"
 )
 
-type Pool struct {
+type SubgraphPool struct {
 	ID              string   `json:"id"`
 	Address         string   `json:"address"`
 	PoolType        string   `json:"poolType"`
@@ -18,7 +18,7 @@ type Pool struct {
 	} `json:"tokens"`
 }
 
-func GetPoolsQuery(
+func BuildSubgraphPoolsQuery(
 	poolType string,
 	lastCreateTime *big.Int,
 	first int,

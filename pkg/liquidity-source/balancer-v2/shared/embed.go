@@ -1,4 +1,4 @@
-package vault
+package shared
 
 import _ "embed"
 
