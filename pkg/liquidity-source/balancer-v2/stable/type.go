@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type Gas struct {
@@ -11,16 +12,16 @@ type Gas struct {
 }
 
 type Extra struct {
-	Amp               *big.Int `json:"amp"`
-	SwapFeePercentage *big.Int `json:"swapFeePercentage"`
-	Paused            bool     `json:"paused"`
+	Amp               *uint256.Int `json:"amp"`
+	SwapFeePercentage *uint256.Int `json:"swapFeePercentage"`
+	Paused            bool         `json:"paused"`
 }
 
 type StaticExtra struct {
-	PoolID          string     `json:"poolId"`
-	PoolType        string     `json:"poolType"`
-	PoolTypeVersion int        `json:"poolTypeVersion"`
-	ScalingFactors  []*big.Int `json:"scalingFactors"`
+	PoolID          string         `json:"poolId"`
+	PoolType        string         `json:"poolType"`
+	PoolTypeVersion int            `json:"poolTypeVersion"`
+	ScalingFactors  []*uint256.Int `json:"scalingFactors"`
 }
 
 type PoolTokens struct {
