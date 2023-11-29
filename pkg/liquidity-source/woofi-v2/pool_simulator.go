@@ -22,15 +22,35 @@ var (
 	Number_1e5 = number.TenPow(5)
 )
 
-type PoolSimulator struct {
-	poolpkg.Pool
-	quoteToken string
-	tokenInfos map[string]TokenInfo
-	decimals   map[string]uint8
-	wooracle   Wooracle
+type (
+	PoolSimulator struct {
+		poolpkg.Pool
+		quoteToken string
+		tokenInfos map[string]TokenInfo
+		decimals   map[string]uint8
+		wooracle   Wooracle
 
-	gas Gas
-}
+		gas Gas
+	}
+
+	// DecimalInfo
+	// https://github.com/woonetwork/WooPoolV2/blob/e4fc06d357e5f14421c798bf57a251f865b26578/contracts/WooPPV2.sol#L58
+	DecimalInfo struct {
+		priceDec *uint256.Int // 10**(price_decimal)
+		quoteDec *uint256.Int // 10**(quote_decimal)
+		baseDec  *uint256.Int // 10**(base_decimal)
+	}
+
+	woofiV2SwapInfo struct {
+		newPrice      *uint256.Int
+		newBase1Price *uint256.Int
+		newBase2Price *uint256.Int
+	}
+
+	Gas struct {
+		Swap int64
+	}
+)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
@@ -40,6 +60,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	var tokens = make([]string, len(entityPool.Tokens))
 	var decimals = make(map[string]uint8)
+
 	for i, token := range entityPool.Tokens {
 		tokens[i] = token.Address
 		decimals[token.Address] = token.Decimals
@@ -56,10 +77,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			},
 		},
 		quoteToken: extra.QuoteToken,
+		tokenInfos: extra.TokenInfos,
 		decimals:   decimals,
 		wooracle:   extra.Wooracle,
 
-		gas: defaultGas,
+		gas: DefaultGas,
 	}, nil
 }
 
@@ -229,6 +251,8 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		}
 	}
 }
+
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} { return nil }
 
 // _sellBase
 // https://github.com/woonetwork/WooPoolV2/blob/e4fc06d357e5f14421c798bf57a251f865b26578/contracts/WooPPV2.sol#L361
