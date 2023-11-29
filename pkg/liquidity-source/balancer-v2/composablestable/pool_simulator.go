@@ -61,7 +61,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	regularSimulator := regularSimulator{
 		Pool:              pool,
 		bptIndex:          staticExtra.BptIndex,
-		scalingFactors:    staticExtra.ScalingFactors,
+		scalingFactors:    extra.ScalingFactors,
 		amp:               extra.Amp,
 		swapFeePercentage: extra.SwapFeePercentage,
 	}
@@ -71,7 +71,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		bptIndex:                        staticExtra.BptIndex,
 		bptTotalSupply:                  extra.BptTotalSupply,
 		amp:                             extra.Amp,
-		scalingFactors:                  staticExtra.ScalingFactors,
+		scalingFactors:                  extra.ScalingFactors,
 		lastJoinExit:                    extra.LastJoinExit,
 		rateProviders:                   extra.RateProviders,
 		tokenRateCaches:                 extra.TokenRateCaches,
