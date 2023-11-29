@@ -104,6 +104,7 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 		PoolType:       subgraphPool.PoolType,
 		PoolTypeVer:    int(subgraphPool.PoolTypeVersion.Int64()),
 		ScalingFactors: scalingFactors,
+		VaultAddress:   u.config.VaultAddress,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {

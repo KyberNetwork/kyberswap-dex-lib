@@ -22,6 +22,7 @@ type StaticExtra struct {
 	PoolType       string         `json:"poolType"`
 	PoolTypeVer    int            `json:"poolTypeVersion"`
 	ScalingFactors []*uint256.Int `json:"scalingFactors"`
+	VaultAddress   string         `json:"vaultAddress"`
 }
 
 type PoolTokens struct {
@@ -43,8 +44,10 @@ type AmplificationParameter struct {
 }
 
 type PoolMetaInfo struct {
-	T string `json:"t"`
-	V int    `json:"v"`
+	VaultAddress string `json:"vaultAddress"`
+	PoolID       string `json:"poolId"`
+	T            string `json:"t"`
+	V            int    `json:"v"`
 }
 
 type rpcRes struct {
