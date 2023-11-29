@@ -34,10 +34,10 @@ type PausedState struct {
 }
 
 type PoolMetaInfo struct {
-	VaultAddress string `json:"vaultAddress"`
-	PoolID       string `json:"poolId"`
-	T            string `json:"t"`
-	V            int    `json:"v"`
+	Vault  string `json:"vault"`
+	PoolID string `json:"poolId"`
+	T      string `json:"t"`
+	V      int    `json:"v"`
 }
 
 type rpcRes struct {
