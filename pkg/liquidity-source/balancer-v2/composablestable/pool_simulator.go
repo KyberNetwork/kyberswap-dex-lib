@@ -88,13 +88,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(
-	tokenAmountIn poolpkg.TokenAmount,
-	tokenOut string,
-) (*poolpkg.CalcAmountOutResult, error) {
+func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
 	if s.paused {
 		return nil, ErrPoolPaused
 	}
+
+	tokenAmountIn := params.TokenAmountIn
+	tokenOut := params.TokenOut
 
 	indexIn := s.GetTokenIndex(tokenAmountIn.Token)
 	indexOut := s.GetTokenIndex(tokenOut)
