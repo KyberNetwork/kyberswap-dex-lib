@@ -19,11 +19,11 @@ type bptSimulator struct {
 	rateProviders   []string
 	tokenRateCaches []TokenRateCache
 
-	swapFeePercentage                *uint256.Int
-	protocolFeePercentageCache       map[int]*uint256.Int
-	tokensExemptFromYieldProtocolFee []bool
-	exemptFromYieldProtocolFee       bool // >= V5
-	inRecoveryMode                   bool
+	swapFeePercentage               *uint256.Int
+	protocolFeePercentageCache      map[int]*uint256.Int
+	tokenExemptFromYieldProtocolFee []bool
+	exemptFromYieldProtocolFee      bool // >= V5
+	inRecoveryMode                  bool
 
 	poolTypeVer int
 }
@@ -369,7 +369,7 @@ func (s *bptSimulator) _getProtocolPoolOwnershipPercentageV1(
 }
 
 func (s *bptSimulator) _isTokenExemptFromYieldProtocolFee(registeredTokenIndex int) bool {
-	return s.tokensExemptFromYieldProtocolFee[registeredTokenIndex]
+	return s.tokenExemptFromYieldProtocolFee[registeredTokenIndex]
 }
 
 func (s *bptSimulator) _getGrowthInvariantsV1(
@@ -545,7 +545,7 @@ func (s *bptSimulator) isExemptFromYieldProtocolFee() bool {
 }
 
 func (s *bptSimulator) _areAllTokensExempt() bool {
-	for _, exempt := range s.tokensExemptFromYieldProtocolFee {
+	for _, exempt := range s.tokenExemptFromYieldProtocolFee {
 		if !exempt {
 			return false
 		}
@@ -554,7 +554,7 @@ func (s *bptSimulator) _areAllTokensExempt() bool {
 }
 
 func (s *bptSimulator) _areNoTokensExempt() bool {
-	for _, exempt := range s.tokensExemptFromYieldProtocolFee {
+	for _, exempt := range s.tokenExemptFromYieldProtocolFee {
 		if exempt {
 			return false
 		}

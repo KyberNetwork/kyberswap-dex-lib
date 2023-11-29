@@ -7,6 +7,11 @@ import (
 	"github.com/holiman/uint256"
 )
 
+type PoolMetaInfo struct {
+	T string `json:"t"`
+	V int    `json:"v"`
+}
+
 type LastJoinExitData struct {
 	LastJoinExitAmplification *uint256.Int `json:"lastJoinExitAmplification"`
 	LastPostJoinExitInvariant *uint256.Int `json:"lastPostJoinExitInvariant"`
