@@ -1,8 +1,9 @@
 package maverickv1
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func GetAmountOut(
@@ -234,7 +235,7 @@ func computeSwapExactOut(
 	feeBasis, err := mulDiv(
 		binAmountIn,
 		state.Fee,
-		new(big.Int).Sub(bignumber.TenPowInt(18), state.Fee),
+		new(big.Int).Sub(bignumber.BONE, state.Fee),
 		true,
 	)
 	if err != nil {
@@ -293,12 +294,12 @@ func computeSwapExactIn(
 
 	var feeBasis *big.Int
 
-	tmp, err := mul(amountIn, new(big.Int).Sub(bignumber.TenPowInt(18), state.Fee))
+	tmp, err := mul(amountIn, new(big.Int).Sub(bignumber.BONE, state.Fee))
 	if err != nil {
 		return nil, err
 	}
 	if tmp.Cmp(binAmountIn) >= 0 {
-		feeBasis, err = mulDiv(binAmountIn, state.Fee, new(big.Int).Sub(bignumber.TenPowInt(18), state.Fee), true)
+		feeBasis, err = mulDiv(binAmountIn, state.Fee, new(big.Int).Sub(bignumber.BONE, state.Fee), true)
 		if err != nil {
 			return nil, err
 		}
@@ -314,7 +315,7 @@ func computeSwapExactIn(
 			delta.Excess = clip(amountIn, delta.DeltaInErc)
 		}
 	} else {
-		binAmountIn, err = mul(amountIn, new(big.Int).Sub(bignumber.TenPowInt(18), state.Fee))
+		binAmountIn, err = mul(amountIn, new(big.Int).Sub(bignumber.BONE, state.Fee))
 		if err != nil {
 			return nil, err
 		}
@@ -481,89 +482,89 @@ func tickPrice(tickSpacing *big.Int, activeTick *big.Int) (*big.Int, error) {
 	}
 
 	var ratio *big.Int
-	if new(big.Int).And(tick, bignumber.NewBig("0x1")).Cmp(zeroBI) != 0 {
+	if tick.Bit(0) != 0 {
 		ratio = bignumber.NewBig("0xfffcb933bd6fad9d3af5f0b9f25db4d6")
 	} else {
 		ratio = bignumber.NewBig("0x100000000000000000000000000000000")
 	}
 
-	if new(big.Int).And(tick, bignumber.NewBig("0x2")).Cmp(zeroBI) != 0 {
+	if tick.Bit(1) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0xfff97272373d41fd789c8cb37ffcaa1c"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x4")).Cmp(zeroBI) != 0 {
+	if tick.Bit(2) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0xfff2e50f5f656ac9229c67059486f389"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x8")).Cmp(zeroBI) != 0 {
+	if tick.Bit(3) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0xffe5caca7e10e81259b3cddc7a064941"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x10")).Cmp(zeroBI) != 0 {
+	if tick.Bit(4) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0xffcb9843d60f67b19e8887e0bd251eb7"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x20")).Cmp(zeroBI) != 0 {
+	if tick.Bit(5) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0xff973b41fa98cd2e57b660be99eb2c4a"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x40")).Cmp(zeroBI) != 0 {
+	if tick.Bit(6) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0xff2ea16466c9838804e327cb417cafcb"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x80")).Cmp(zeroBI) != 0 {
+	if tick.Bit(7) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0xfe5dee046a99d51e2cc356c2f617dbe0"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x100")).Cmp(zeroBI) != 0 {
+	if tick.Bit(8) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0xfcbe86c7900aecf64236ab31f1f9dcb5"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x200")).Cmp(zeroBI) != 0 {
+	if tick.Bit(9) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0xf987a7253ac4d9194200696907cf2e37"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x400")).Cmp(zeroBI) != 0 {
+	if tick.Bit(10) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0xf3392b0822b88206f8abe8a3b44dd9be"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x800")).Cmp(zeroBI) != 0 {
+	if tick.Bit(11) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0xe7159475a2c578ef4f1d17b2b235d480"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x1000")).Cmp(zeroBI) != 0 {
+	if tick.Bit(12) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0xd097f3bdfd254ee83bdd3f248e7e785e"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x2000")).Cmp(zeroBI) != 0 {
+	if tick.Bit(13) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0xa9f746462d8f7dd10e744d913d033333"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x4000")).Cmp(zeroBI) != 0 {
+	if tick.Bit(14) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0x70d869a156ddd32a39e257bc3f50aa9b"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x8000")).Cmp(zeroBI) != 0 {
+	if tick.Bit(15) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0x31be135f97da6e09a19dc367e3b6da40"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x10000")).Cmp(zeroBI) != 0 {
+	if tick.Bit(16) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0x9aa508b5b7e5a9780b0cc4e25d61a56"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x20000")).Cmp(zeroBI) != 0 {
+	if tick.Bit(17) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0x5d6af8dedbcb3a6ccb7ce618d14225"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x40000")).Cmp(zeroBI) != 0 {
+	if tick.Bit(18) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0x2216e584f630389b2052b8db590e"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x80000")).Cmp(zeroBI) != 0 {
+	if tick.Bit(19) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0x48a1703920644d4030024fe"))
 		ratio.Rsh(ratio, 128)
 	}
-	if new(big.Int).And(tick, bignumber.NewBig("0x100000")).Cmp(zeroBI) != 0 {
+	if tick.Bit(20) != 0 {
 		ratio.Mul(ratio, bignumber.NewBig("0x149b34ee7b4532"))
 		ratio.Rsh(ratio, 128)
 	}
@@ -577,7 +578,7 @@ func tickPrice(tickSpacing *big.Int, activeTick *big.Int) (*big.Int, error) {
 		)
 	}
 
-	ratio.Mul(ratio, bignumber.TenPowInt(18))
+	ratio.Mul(ratio, bignumber.BONE)
 	ratio.Rsh(ratio, 128)
 
 	return ratio, nil
@@ -921,19 +922,15 @@ func msb(x *big.Int) *big.Int {
 // ------------- maverick basic math --------------------
 func mulDiv(a, b, c *big.Int, ceil bool) (*big.Int, error) {
 	product := new(big.Int).Mul(a, b)
-	if a.Cmp(zeroBI) == 0 || new(big.Int).Div(product, a).Cmp(b) == 0 {
-		if product.Cmp(zeroBI) == 0 {
-			return big.NewInt(0), nil
+	if product.Cmp(zeroBI) == 0 {
+		return big.NewInt(0), nil
+	} else {
+		if ceil && new(big.Int).Mod(product, c).Cmp(zeroBI) != 0 {
+			return new(big.Int).Add(new(big.Int).Div(product, c), bignumber.One), nil
 		} else {
-			if ceil && new(big.Int).Mod(product, c).Cmp(zeroBI) != 0 {
-				return new(big.Int).Add(new(big.Int).Div(product, c), bignumber.One), nil
-			} else {
-				return new(big.Int).Div(product, c), nil
-			}
+			return new(big.Int).Div(product, c), nil
 		}
 	}
-
-	return nil, ErrMulOverflow
 }
 
 func clip(x, y *big.Int) *big.Int {
@@ -1035,38 +1032,26 @@ func mul(a, b *big.Int) (*big.Int, error) {
 
 func mulUpFixed(a, b *big.Int) (*big.Int, error) {
 	product := new(big.Int).Mul(a, b)
+	isNegative := product.Sign() == -1
 
-	if a.Cmp(zeroBI) == 0 || new(big.Int).Div(product, a).Cmp(b) == 0 {
-		isNegative := false
-		if (a.Cmp(zeroBI) < 0 && b.Cmp(zeroBI) > 0) || (a.Cmp(zeroBI) > 0 && b.Cmp(zeroBI) < 0) {
-			isNegative = true
+	if product.Cmp(zeroBI) == 0 {
+		return big.NewInt(0), nil
+	} else {
+		result := new(big.Int).Sub(abs(product), bignumber.One)
+		result.Div(result, One)
+		result.Add(result, bignumber.One)
+
+		if isNegative {
+			result.Neg(result)
 		}
 
-		if product.Cmp(zeroBI) == 0 {
-			return big.NewInt(0), nil
-		} else {
-			result := new(big.Int).Sub(abs(product), bignumber.One)
-			result.Div(result, One)
-			result.Add(result, bignumber.One)
-
-			if isNegative {
-				result.Neg(result)
-			}
-
-			return result, nil
-		}
+		return result, nil
 	}
-
-	return nil, ErrMulOverflow
 }
 
 func sMulDownFixed(a, b *big.Int) (*big.Int, error) {
 	var product = new(big.Int).Mul(a, b)
-	if a.Cmp(zeroBI) == 0 || new(big.Int).Div(product, a).Cmp(b) == 0 {
-		return new(big.Int).Div(product, One), nil
-	}
-
-	return nil, ErrMulOverflow
+	return new(big.Int).Div(product, One), nil
 }
 
 func abs(x *big.Int) *big.Int {
@@ -1103,13 +1088,13 @@ func scaleFromAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
 	var scalingFactor *big.Int
 	if decimals > 18 {
 		scalingFactor = new(big.Int).Mul(
-			bignumber.TenPowInt(18),
+			bignumber.BONE,
 			bignumber.TenPowInt(decimals-18),
 		)
 		return sDivDownFixed(amount, scalingFactor)
 	} else {
 		scalingFactor = new(big.Int).Mul(
-			bignumber.TenPowInt(18),
+			bignumber.BONE,
 			bignumber.TenPowInt(18-decimals),
 		)
 		return sMulUpFixed(amount, scalingFactor)
@@ -1123,13 +1108,13 @@ func ScaleToAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
 	var scalingFactor *big.Int
 	if decimals > 18 {
 		scalingFactor = new(big.Int).Mul(
-			bignumber.TenPowInt(18),
+			bignumber.BONE,
 			bignumber.TenPowInt(decimals-18),
 		)
 		return sMulUpFixed(amount, scalingFactor)
 	} else {
 		scalingFactor = new(big.Int).Mul(
-			bignumber.TenPowInt(18),
+			bignumber.BONE,
 			bignumber.TenPowInt(18-decimals),
 		)
 		return sDivDownFixed(amount, scalingFactor)

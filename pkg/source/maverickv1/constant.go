@@ -1,9 +1,10 @@
 package maverickv1
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"math/big"
 	"time"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 const (
@@ -35,6 +36,6 @@ var (
 	Mask                        = big.NewInt(15)
 	BitMask                     = new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(256), nil), big.NewInt(1))
 	WordSize                    = big.NewInt(256)
-	One                         = bignumber.TenPowInt(18)
-	Unit                        = bignumber.TenPowInt(18)
+	One                         = bignumber.BONE
+	Unit                        = bignumber.BONE
 )
