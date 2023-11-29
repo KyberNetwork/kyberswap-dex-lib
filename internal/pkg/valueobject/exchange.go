@@ -129,6 +129,7 @@ var (
 	ExchangeBMX           Exchange = "bmx"
 	ExchangeBMXGLP        Exchange = "bmx-glp"
 	ExchangeFxdx          Exchange = "fxdx"
+	ExchangeQuickPerps    Exchange = "quickperps"
 
 	ExchangeSynthetix Exchange = "synthetix"
 
@@ -281,6 +282,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBMX:                      {},
 	ExchangeMadMex:                   {},
 	ExchangeMetavault:                {},
+	ExchangeQuickPerps:               {},
 	ExchangeSynthetix:                {},
 	ExchangeMakerPSM:                 {},
 	ExchangeMakerLido:                {},

@@ -98,6 +98,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeSynthSwapPerp, FunctionSelectorGMX)
 	RegisterFunctionSelector(valueobject.ExchangeSwapBasedPerp, FunctionSelectorGMX)
 	RegisterFunctionSelector(valueobject.ExchangeFxdx, FunctionSelectorGMX)
+	RegisterFunctionSelector(valueobject.ExchangeQuickPerps, FunctionSelectorGMX)
 
 	// executeVelodromeSwap
 	RegisterFunctionSelector(valueobject.ExchangeChronos, FunctionSelectorVelodrome)

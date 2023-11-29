@@ -45,6 +45,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
 	polmatic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pol-matic"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/quickperps"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/smardex"
 	swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
@@ -365,6 +366,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newFxdx(entityPool)
 	case constant.PoolTypes.UniswapV2:
 		return f.newUniswapV2(entityPool)
+	case constant.PoolTypes.QuickPerps:
+		return f.newQuickPerps(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -1185,6 +1188,20 @@ func (f *PoolFactory) newUniswapV2(entityPool entity.Pool) (*uniswapv2.PoolSimul
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newUniswapV2] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newQuickPerps(entityPool entity.Pool) (*quickperps.PoolSimulator, error) {
+	corePool, err := quickperps.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newQuickperps] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

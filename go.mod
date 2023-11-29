@@ -14,7 +14,7 @@ require (
 	github.com/KyberNetwork/blackjack v0.2.1
 	github.com/KyberNetwork/ethrpc v0.6.0
 	github.com/KyberNetwork/kyber-trace-go v0.1.1
-	github.com/KyberNetwork/kyberswap-dex-lib v0.24.1
+	github.com/KyberNetwork/kyberswap-dex-lib v0.24.2
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/KyberNetwork/service-framework v0.0.0-20231013164418-ed90293ad224
@@ -67,11 +67,6 @@ require (
 )
 
 require (
-	github.com/bits-and-blooms/bitset v1.11.0 // indirect
-	github.com/consensys/bavard v0.1.13 // indirect
-	github.com/consensys/gnark-crypto v0.12.1 // indirect
-	github.com/crate-crypto/go-kzg-4844 v0.7.0 // indirect
-	github.com/ethereum/c-kzg-4844 v0.4.0 // indirect
 	github.com/grafana/pyroscope-go/godeltaprof v0.1.4 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.1 // indirect
 	github.com/tdewolff/parse/v2 v2.6.6 // indirect
@@ -92,7 +87,7 @@ require (
 	github.com/DataDog/gostackparse v0.5.0 // indirect
 	github.com/DataDog/sketches-go v1.2.1 // indirect
 	github.com/KyberNetwork/blockchain-toolkit v0.3.0
-	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 // indirect
+	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
 	github.com/KyberNetwork/pancake-v3-sdk v0.1.0 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20200520072559-a9ecdc9d1d3a // indirect
@@ -128,7 +123,7 @@ require (
 	github.com/klauspost/compress v1.15.15 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
-	github.com/machinebox/graphql v0.2.2 // indirect
+	github.com/machinebox/graphql v0.2.2
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-isatty v0.0.19 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect

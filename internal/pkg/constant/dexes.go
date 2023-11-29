@@ -77,6 +77,7 @@ type types struct {
 	Smardex                  string
 	Fxdx                     string
 	UniswapV2                string
+	QuickPerps               string
 }
 
 var (
@@ -157,5 +158,6 @@ var (
 		Smardex:                  "smardex",
 		Fxdx:                     "fxdx",
 		UniswapV2:                "uniswap-v2",
+		QuickPerps:               "quickperps",
 	}
 )
