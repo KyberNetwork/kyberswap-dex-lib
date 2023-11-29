@@ -185,7 +185,7 @@ func TestBptSwap(t *testing.T) {
 				feeTypeSwap:  uint256.NewInt(0),
 				feeTypeYield: uint256.NewInt(0),
 			},
-			tokensExemptFromYieldProtocolFee: []bool{
+			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
 			},
 			inRecoveryMode: true,
@@ -272,7 +272,7 @@ func TestBptSwap(t *testing.T) {
 				feeTypeSwap:  uint256.NewInt(0),
 				feeTypeYield: uint256.NewInt(0),
 			},
-			tokensExemptFromYieldProtocolFee: []bool{
+			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
 			},
 			inRecoveryMode: true,
@@ -365,7 +365,7 @@ func TestBptSwap(t *testing.T) {
 				feeTypeSwap:  uint256.NewInt(500000000000000000),
 				feeTypeYield: uint256.NewInt(500000000000000000),
 			},
-			tokensExemptFromYieldProtocolFee: []bool{
+			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
 			},
 			exemptFromYieldProtocolFee: false,
@@ -459,7 +459,7 @@ func TestBptSwap(t *testing.T) {
 				feeTypeSwap:  uint256.NewInt(500000000000000000),
 				feeTypeYield: uint256.NewInt(500000000000000000),
 			},
-			tokensExemptFromYieldProtocolFee: []bool{
+			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
 			},
 			exemptFromYieldProtocolFee: false,
@@ -547,7 +547,7 @@ func TestBptSwap(t *testing.T) {
 				feeTypeSwap:  uint256.NewInt(0),
 				feeTypeYield: uint256.NewInt(0),
 			},
-			tokensExemptFromYieldProtocolFee: []bool{
+			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
 			},
 			inRecoveryMode: true,
@@ -636,7 +636,7 @@ func TestBptSwap(t *testing.T) {
 				feeTypeSwap:  uint256.NewInt(0),
 				feeTypeYield: uint256.NewInt(0),
 			},
-			tokensExemptFromYieldProtocolFee: []bool{
+			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
 			},
 			inRecoveryMode: true,
@@ -728,7 +728,7 @@ func TestBptSwap(t *testing.T) {
 				feeTypeSwap:  uint256.NewInt(500000000000000000),
 				feeTypeYield: uint256.NewInt(500000000000000000),
 			},
-			tokensExemptFromYieldProtocolFee: []bool{
+			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
 			},
 			exemptFromYieldProtocolFee: false,
@@ -822,7 +822,7 @@ func TestBptSwap(t *testing.T) {
 				feeTypeSwap:  uint256.NewInt(500000000000000000),
 				feeTypeYield: uint256.NewInt(500000000000000000),
 			},
-			tokensExemptFromYieldProtocolFee: []bool{
+			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
 			},
 			exemptFromYieldProtocolFee: false,
