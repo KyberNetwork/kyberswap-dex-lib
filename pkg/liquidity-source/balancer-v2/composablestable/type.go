@@ -31,6 +31,7 @@ type Gas struct {
 }
 
 type Extra struct {
+	ScalingFactors                    []*uint256.Int       `json:"scalingFactors"`
 	BptTotalSupply                    *uint256.Int         `json:"bptTotalSupply"`
 	Amp                               *uint256.Int         `json:"amp"`
 	LastJoinExit                      LastJoinExitData     `json:"lastJoinExit"`
@@ -45,12 +46,11 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	PoolID         string         `json:"poolId"`
-	PoolType       string         `json:"poolType"`
-	PoolTypeVer    int            `json:"poolTypeVer"`
-	ScalingFactors []*uint256.Int `json:"scalingFactors"`
-	BptIndex       int            `json:"bptIndex"`
-	VaultAddress   string         `json:"vaultAddress"`
+	PoolID       string `json:"poolId"`
+	PoolType     string `json:"poolType"`
+	PoolTypeVer  int    `json:"poolTypeVer"`
+	BptIndex     int    `json:"bptIndex"`
+	VaultAddress string `json:"vaultAddress"`
 }
 
 type AmplificationParameterResp struct {
@@ -85,6 +85,7 @@ type PausedStateResp struct {
 
 type rpcRes struct {
 	PoolTokens                        PoolTokensResp
+	ScalingFactors                    []*big.Int
 	BptTotalSupply                    *big.Int
 	Amp                               *big.Int
 	LastJoinExit                      LastJoinExitResp

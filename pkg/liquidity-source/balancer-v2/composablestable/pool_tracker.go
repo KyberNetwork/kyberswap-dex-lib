@@ -109,6 +109,7 @@ func (t *PoolTracker) queryRPC(
 		tokenNbr = len(tokens)
 
 		poolTokens                        PoolTokensResp
+		scalingFactors                    = make([]*big.Int, tokenNbr)
 		bptTotalSupply                    *big.Int
 		ampParams                         AmplificationParameterResp
 		lastJoinExit                      LastJoinExitResp
@@ -132,6 +133,12 @@ func (t *PoolTracker) queryRPC(
 		Method: shared.VaultMethodGetPoolTokens,
 		Params: []interface{}{poolID},
 	}, []interface{}{&poolTokens})
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: poolAddress,
+		Method: poolMethodGetScalingFactors,
+	}, []interface{}{&scalingFactors})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
@@ -226,6 +233,7 @@ func (t *PoolTracker) queryRPC(
 
 	return &rpcRes{
 		PoolTokens:                        poolTokens,
+		ScalingFactors:                    scalingFactors,
 		BptTotalSupply:                    bptTotalSupply,
 		Amp:                               ampParams.Value,
 		LastJoinExit:                      lastJoinExit,
@@ -245,6 +253,11 @@ func (t *PoolTracker) initExtra(
 	ctx context.Context,
 	rpcRes *rpcRes,
 ) (*Extra, error) {
+	scalingFactors := make([]*uint256.Int, len(rpcRes.ScalingFactors))
+	for i, scalingFactor := range rpcRes.ScalingFactors {
+		scalingFactors[i], _ = uint256.FromBig(scalingFactor)
+	}
+
 	bptTotalSupply, overflow := uint256.FromBig(rpcRes.BptTotalSupply)
 	if overflow {
 		return nil, ErrOverflow
@@ -298,6 +311,7 @@ func (t *PoolTracker) initExtra(
 	paused := !isNotPaused(rpcRes.PausedState)
 
 	extra := Extra{
+		ScalingFactors:                    scalingFactors,
 		BptTotalSupply:                    bptTotalSupply,
 		Amp:                               amp,
 		LastJoinExit:                      lastJoinExit,

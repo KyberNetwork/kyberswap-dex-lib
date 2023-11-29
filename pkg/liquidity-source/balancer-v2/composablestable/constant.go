@@ -26,6 +26,7 @@ const (
 	poolMethodIsTokenExemptFromYieldProtocolFee = "isTokenExemptFromYieldProtocolFee"
 	poolMethodInRecoveryMode                    = "inRecoveryMode"
 	poolMethodIsExemptFromYieldProtocolFee      = "isExemptFromYieldProtocolFee"
+	poolMethodGetScalingFactors                 = "getScalingFactors"
 
 	unknownInt = -1
 
