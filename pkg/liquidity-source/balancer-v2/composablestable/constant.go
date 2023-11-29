@@ -1,7 +1,7 @@
 package composablestable
 
 const (
-	DexType = "balancer-v2-composablestable"
+	DexType = "balancer-v2-composable-stable"
 )
 
 var (
