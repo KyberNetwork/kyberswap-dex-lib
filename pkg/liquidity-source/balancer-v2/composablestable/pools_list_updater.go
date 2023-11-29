@@ -142,7 +142,7 @@ func (u *PoolsListUpdater) initPool(
 		PoolTypeVer:    int(subgraphPool.PoolTypeVersion.Int64()),
 		ScalingFactors: scalingFactors,
 		BptIndex:       int(bptIndex.Int64()),
-		VaultAddress:   u.config.VaultAddress,
+		VaultAddress:   strings.ToLower(u.config.VaultAddress),
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {

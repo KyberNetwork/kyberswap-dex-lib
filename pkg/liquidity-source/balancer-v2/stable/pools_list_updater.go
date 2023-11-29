@@ -3,6 +3,7 @@ package stable
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -104,7 +105,7 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 		PoolType:       subgraphPool.PoolType,
 		PoolTypeVer:    int(subgraphPool.PoolTypeVersion.Int64()),
 		ScalingFactors: scalingFactors,
-		VaultAddress:   u.config.VaultAddress,
+		VaultAddress:   strings.ToLower(u.config.VaultAddress),
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {
