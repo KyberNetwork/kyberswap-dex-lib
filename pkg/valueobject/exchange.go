@@ -26,6 +26,7 @@ var (
 	ExchangeEmpireDex     Exchange = "empiredex"
 	ExchangePhotonSwap    Exchange = "photonswap"
 	ExchangeUniSwap       Exchange = "uniswap"
+	ExchangeUniSwapV2     Exchange = "uniswap-v2"
 	ExchangeShibaSwap     Exchange = "shibaswap"
 	ExchangeDefiSwap      Exchange = "defiswap"
 	ExchangeSpookySwap    Exchange = "spookyswap"
@@ -122,6 +123,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeEmpireDex:           {},
 	ExchangePhotonSwap:          {},
 	ExchangeUniSwap:             {},
+	ExchangeUniSwapV2:           {},
 	ExchangeShibaSwap:           {},
 	ExchangeDefiSwap:            {},
 	ExchangeSpookySwap:          {},
