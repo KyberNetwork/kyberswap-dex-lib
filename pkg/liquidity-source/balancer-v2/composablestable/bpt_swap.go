@@ -1,4 +1,4 @@
-package composable
+package composablestable
 
 import (
 	"github.com/holiman/uint256"
@@ -11,21 +11,21 @@ import (
 type bptSimulator struct {
 	poolpkg.Pool
 
-	poolTypeVersion int
-
 	bptIndex        int
 	bptTotalSupply  *uint256.Int
 	amp             *uint256.Int
 	scalingFactors  []*uint256.Int
 	lastJoinExit    LastJoinExitData
 	rateProviders   []string
-	tokenRateCaches map[int]TokenRateCache
+	tokenRateCaches []TokenRateCache
 
 	swapFeePercentage                *uint256.Int
 	protocolFeePercentageCache       map[int]*uint256.Int
 	tokensExemptFromYieldProtocolFee []bool
 	exemptFromYieldProtocolFee       bool // >= V5
 	inRecoveryMode                   bool
+
+	poolTypeVer int
 }
 
 func (s *bptSimulator) swap(
@@ -246,7 +246,7 @@ func (s *bptSimulator) _payProtocolFeesBeforeJoinExit(
 func (s *bptSimulator) _getProtocolPoolOwnershipPercentage(
 	balances []*uint256.Int,
 ) (*uint256.Int, *uint256.Int, error) {
-	if s.poolTypeVersion == poolTypeVersion5 {
+	if s.poolTypeVer == poolTypeVer5 {
 		return s._getProtocolPoolOwnershipPercentageV2(balances)
 	}
 	return s._getProtocolPoolOwnershipPercentageV1(balances)
@@ -574,7 +574,7 @@ func (s *bptSimulator) protocolFeeAmount(
 	totalSupply *uint256.Int,
 	poolOwnershipPercentage *uint256.Int,
 ) (*uint256.Int, error) {
-	if s.poolTypeVersion == poolTypeVersion1 {
+	if s.poolTypeVer == poolTypeVer1 {
 		return s._calculateAdjustedProtocolFeeAmount(totalSupply, poolOwnershipPercentage)
 	}
 

@@ -35,7 +35,7 @@ type (
 		scalingFactors    []*uint256.Int
 		normalizedWeights []*uint256.Int
 
-		poolTypeVersion int
+		poolTypeVer int
 	}
 	Gas struct {
 		Swap int64
@@ -80,7 +80,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		swapFeePercentage: extra.SwapFeePercentage,
 		scalingFactors:    staticExtra.ScalingFactors,
 		normalizedWeights: staticExtra.NormalizedWeights,
-		poolTypeVersion:   staticExtra.PoolTypeVersion,
+		poolTypeVer:       staticExtra.PoolTypeVer,
 	}, nil
 }
 
@@ -192,7 +192,7 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
 		T: poolTypeWeighted,
-		V: s.poolTypeVersion,
+		V: s.poolTypeVer,
 	}
 }
 

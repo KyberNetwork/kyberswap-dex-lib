@@ -1,4 +1,4 @@
-package composable
+package composablestable
 
 import (
 	"github.com/holiman/uint256"
@@ -12,7 +12,11 @@ type PoolSimulator struct {
 
 	regularSimulator *regularSimulator
 	bptSimulator     *bptSimulator
+
+	poolTypeVer int
 }
+
+
 
 func (s *PoolSimulator) CalcAmountOut(
 	tokenAmountIn poolpkg.TokenAmount,

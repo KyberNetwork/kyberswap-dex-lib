@@ -33,8 +33,8 @@ func TestCalcAmountOut(t *testing.T) {
 			amp:               uint256.NewInt(5000),
 			scalingFactors:    []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1), uint256.NewInt(100)},
 
-			poolType:        poolTypeStable,
-			poolTypeVersion: 1,
+			poolType:    poolTypeStable,
+			poolTypeVer: 1,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -71,8 +71,8 @@ func TestCalcAmountOut(t *testing.T) {
 			amp:               uint256.NewInt(1390000),
 			scalingFactors:    []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1), uint256.NewInt(100)},
 
-			poolType:        poolTypeStable,
-			poolTypeVersion: 1,
+			poolType:    poolTypeStable,
+			poolTypeVer: 1,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -117,8 +117,8 @@ func TestCalcAmountOut(t *testing.T) {
 			amp:               uint256.NewInt(1390000),
 			scalingFactors:    []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1000), uint256.NewInt(100)},
 
-			poolType:        poolTypeStable,
-			poolTypeVersion: 1,
+			poolType:    poolTypeStable,
+			poolTypeVer: 1,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{

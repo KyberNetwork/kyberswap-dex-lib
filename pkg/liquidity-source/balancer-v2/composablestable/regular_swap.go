@@ -1,4 +1,4 @@
-package composable
+package composablestable
 
 import (
 	"github.com/holiman/uint256"
