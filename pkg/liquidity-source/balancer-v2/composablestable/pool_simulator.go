@@ -77,6 +77,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tokenExemptFromYieldProtocolFee: extra.IsTokenExemptFromYieldProtocolFee,
 		exemptFromYieldProtocolFee:      extra.IsExemptFromYieldProtocolFee,
 		inRecoveryMode:                  extra.InRecoveryMode,
+
+		poolTypeVer: staticExtra.PoolTypeVer,
 	}
 
 	return &PoolSimulator{
