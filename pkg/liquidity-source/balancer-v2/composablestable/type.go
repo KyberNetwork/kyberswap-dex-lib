@@ -8,8 +8,10 @@ import (
 )
 
 type PoolMetaInfo struct {
-	T string `json:"t"`
-	V int    `json:"v"`
+	VaultAddress string `json:"vaultAddress"`
+	PoolID       string `json:"poolId"`
+	T            string `json:"t"`
+	V            int    `json:"v"`
 }
 
 type LastJoinExitData struct {
@@ -48,6 +50,7 @@ type StaticExtra struct {
 	PoolTypeVer    int            `json:"poolTypeVer"`
 	ScalingFactors []*uint256.Int `json:"scalingFactors"`
 	BptIndex       int            `json:"bptIndex"`
+	VaultAddress   string         `json:"vaultAddress"`
 }
 
 type AmplificationParameterResp struct {

@@ -35,7 +35,9 @@ type (
 		scalingFactors    []*uint256.Int
 		normalizedWeights []*uint256.Int
 
-		poolTypeVer int
+		vaultAddress string
+		poolID       string
+		poolTypeVer  int
 	}
 	Gas struct {
 		Swap int64
@@ -191,8 +193,10 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		T: poolTypeWeighted,
-		V: s.poolTypeVer,
+		VaultAddress: s.vaultAddress,
+		PoolID:       s.poolID,
+		T:            poolTypeWeighted,
+		V:            s.poolTypeVer,
 	}
 }
 
