@@ -100,10 +100,10 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 	}
 
 	staticExtra := StaticExtra{
-		PoolID:          subgraphPool.ID,
-		PoolType:        subgraphPool.PoolType,
-		PoolTypeVersion: int(subgraphPool.PoolTypeVersion.Int64()),
-		ScalingFactors:  scalingFactors,
+		PoolID:         subgraphPool.ID,
+		PoolType:       subgraphPool.PoolType,
+		PoolTypeVer:    int(subgraphPool.PoolTypeVersion.Int64()),
+		ScalingFactors: scalingFactors,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {

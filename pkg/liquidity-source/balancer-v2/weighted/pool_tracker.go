@@ -161,13 +161,13 @@ func (t *PoolTracker) queryRPC(
 	}, []interface{}{&poolTokens})
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    weightedPoolABI,
+		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetSwapFeePercentage,
 	}, []interface{}{&swapFeePercentage})
 
 	req.AddCall(&ethrpc.Call{
-		ABI:    weightedPoolABI,
+		ABI:    poolABI,
 		Target: poolAddress,
 		Method: poolMethodGetPausedState,
 	}, []interface{}{&pausedState})

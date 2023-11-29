@@ -28,8 +28,8 @@ type PoolSimulator struct {
 	amp               *uint256.Int
 	scalingFactors    []*uint256.Int
 
-	poolType        string
-	poolTypeVersion int
+	poolType    string
+	poolTypeVer int
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -71,7 +71,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		amp:               extra.Amp,
 		scalingFactors:    staticExtra.ScalingFactors,
 		poolType:          staticExtra.PoolType,
-		poolTypeVersion:   staticExtra.PoolTypeVersion,
+		poolTypeVer:       staticExtra.PoolTypeVer,
 	}, nil
 }
 
@@ -113,7 +113,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	invariant, err := calculateInvariant(s.poolType, s.poolTypeVersion, s.amp, balances)
+	invariant, err := calculateInvariant(s.poolType, s.poolTypeVer, s.amp, balances)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +151,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
 		T: s.poolType,
-		V: s.poolTypeVersion,
+		V: s.poolTypeVer,
 	}
 }
 
@@ -175,7 +175,7 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 func calculateInvariant(
 	poolType string,
-	poolTypeVersion int,
+	poolTypeVer int,
 	amp *uint256.Int,
 	balances []*uint256.Int,
 ) (*uint256.Int, error) {
@@ -183,7 +183,7 @@ func calculateInvariant(
 		return math.StableMath.CalculateInvariantV1(amp, balances, true)
 	}
 
-	if poolTypeVersion == poolTypeVersion1 {
+	if poolTypeVer == poolTypeVer1 {
 		return math.StableMath.CalculateInvariantV1(amp, balances, true)
 	}
 

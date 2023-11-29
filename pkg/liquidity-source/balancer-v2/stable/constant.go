@@ -6,8 +6,8 @@ const (
 	poolTypeStable     = "Stable"
 	poolTypeMetaStable = "MetaStable"
 
-	poolTypeVersion1 = 1
-	poolTypeVersion2 = 2
+	poolTypeVer1 = 1
+	poolTypeVer2 = 2
 
 	poolMethodGetSwapFeePercentage      = "getSwapFeePercentage"
 	poolMethodGetPausedState            = "getPausedState"

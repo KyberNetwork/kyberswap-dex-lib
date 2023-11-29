@@ -1,4 +1,4 @@
-package composable
+package composablestable
 
 import (
 	"math/big"
@@ -152,10 +152,10 @@ func TestBptSwap(t *testing.T) {
 		}
 
 		bptSimulator := &bptSimulator{
-			poolTypeVersion: poolTypeVersion1,
-			bptIndex:        1,
-			bptTotalSupply:  bptTotalSupply,
-			amp:             uint256.NewInt(600000),
+			poolTypeVer:    poolTypeVer1,
+			bptIndex:       1,
+			bptTotalSupply: bptTotalSupply,
+			amp:            uint256.NewInt(600000),
 			scalingFactors: []*uint256.Int{
 				uint256.NewInt(1000000000000000000),
 				uint256.NewInt(1000000000000000000),
@@ -170,8 +170,10 @@ func TestBptSwap(t *testing.T) {
 				"0x0000000000000000000000000000000000000000",
 				"0xA13a9247ea42D743238089903570127DdA72fE44",
 			},
-			tokenRateCaches: map[int]TokenRateCache{
-				2: {
+			tokenRateCaches: []TokenRateCache{
+				{},
+				{},
+				{
 					Rate:     uint256.MustFromDecimal("1003857034775170156"),
 					OldRate:  uint256.MustFromDecimal("1000977462514719154"),
 					Duration: uint256.NewInt(1000),
@@ -237,10 +239,10 @@ func TestBptSwap(t *testing.T) {
 		}
 
 		bptSimulator := &bptSimulator{
-			poolTypeVersion: poolTypeVersion1,
-			bptIndex:        1,
-			bptTotalSupply:  bptTotalSupply,
-			amp:             uint256.NewInt(600000),
+			poolTypeVer:    poolTypeVer1,
+			bptIndex:       1,
+			bptTotalSupply: bptTotalSupply,
+			amp:            uint256.NewInt(600000),
 			scalingFactors: []*uint256.Int{
 				uint256.NewInt(1000000000000000000),
 				uint256.NewInt(1000000000000000000),
@@ -255,8 +257,10 @@ func TestBptSwap(t *testing.T) {
 				"0x0000000000000000000000000000000000000000",
 				"0xA13a9247ea42D743238089903570127DdA72fE44",
 			},
-			tokenRateCaches: map[int]TokenRateCache{
-				2: {
+			tokenRateCaches: []TokenRateCache{
+				{},
+				{},
+				{
 					Rate:     uint256.MustFromDecimal("1003857034775170156"),
 					OldRate:  uint256.MustFromDecimal("1000977462514719154"),
 					Duration: uint256.NewInt(1000),
@@ -325,10 +329,10 @@ func TestBptSwap(t *testing.T) {
 		}
 
 		bptSimulator := &bptSimulator{
-			poolTypeVersion: poolTypeVersion5,
-			bptIndex:        0,
-			bptTotalSupply:  bptTotalSupply,
-			amp:             uint256.NewInt(200000),
+			poolTypeVer:    poolTypeVer5,
+			bptIndex:       0,
+			bptTotalSupply: bptTotalSupply,
+			amp:            uint256.NewInt(200000),
 			scalingFactors: []*uint256.Int{
 				uint256.MustFromDecimal("1000000000000000000"),
 				uint256.MustFromDecimal("1000000000000000000"),
@@ -345,8 +349,11 @@ func TestBptSwap(t *testing.T) {
 				"0x0000000000000000000000000000000000000000",
 				"0xd8689E8740C23d73136744817347fd6aC464E842",
 			},
-			tokenRateCaches: map[int]TokenRateCache{
-				3: {
+			tokenRateCaches: []TokenRateCache{
+				{},
+				{},
+				{},
+				{
 					Rate:     uint256.MustFromDecimal("1008130755672919714"),
 					OldRate:  uint256.MustFromDecimal("1008130755672919714"),
 					Duration: uint256.NewInt(10800),
@@ -416,10 +423,10 @@ func TestBptSwap(t *testing.T) {
 		}
 
 		bptSimulator := &bptSimulator{
-			poolTypeVersion: poolTypeVersion5,
-			bptIndex:        0,
-			bptTotalSupply:  bptTotalSupply,
-			amp:             uint256.NewInt(200000),
+			poolTypeVer:    poolTypeVer5,
+			bptIndex:       0,
+			bptTotalSupply: bptTotalSupply,
+			amp:            uint256.NewInt(200000),
 			scalingFactors: []*uint256.Int{
 				uint256.MustFromDecimal("1000000000000000000"),
 				uint256.MustFromDecimal("1000000000000000000"),
@@ -436,8 +443,11 @@ func TestBptSwap(t *testing.T) {
 				"0x0000000000000000000000000000000000000000",
 				"0xd8689E8740C23d73136744817347fd6aC464E842",
 			},
-			tokenRateCaches: map[int]TokenRateCache{
-				3: {
+			tokenRateCaches: []TokenRateCache{
+				{},
+				{},
+				{},
+				{
 					Rate:     uint256.MustFromDecimal("1008130755672919714"),
 					OldRate:  uint256.MustFromDecimal("1008130755672919714"),
 					Duration: uint256.NewInt(10800),
@@ -504,10 +514,10 @@ func TestBptSwap(t *testing.T) {
 		}
 
 		bptSimulator := &bptSimulator{
-			poolTypeVersion: poolTypeVersion1,
-			bptIndex:        1,
-			bptTotalSupply:  bptTotalSupply,
-			amp:             uint256.NewInt(600000),
+			poolTypeVer:    poolTypeVer1,
+			bptIndex:       1,
+			bptTotalSupply: bptTotalSupply,
+			amp:            uint256.NewInt(600000),
 			scalingFactors: []*uint256.Int{
 				uint256.NewInt(1000000000000000000),
 				uint256.NewInt(1000000000000000000),
@@ -522,8 +532,10 @@ func TestBptSwap(t *testing.T) {
 				"0x0000000000000000000000000000000000000000",
 				"0xA13a9247ea42D743238089903570127DdA72fE44",
 			},
-			tokenRateCaches: map[int]TokenRateCache{
-				2: {
+			tokenRateCaches: []TokenRateCache{
+				{},
+				{},
+				{
 					Rate:     uint256.MustFromDecimal("1003857034775170156"),
 					OldRate:  uint256.MustFromDecimal("1000977462514719154"),
 					Duration: uint256.NewInt(1000),
@@ -591,10 +603,10 @@ func TestBptSwap(t *testing.T) {
 		}
 
 		bptSimulator := &bptSimulator{
-			poolTypeVersion: poolTypeVersion1,
-			bptIndex:        1,
-			bptTotalSupply:  bptTotalSupply,
-			amp:             uint256.NewInt(600000),
+			poolTypeVer:    poolTypeVer1,
+			bptIndex:       1,
+			bptTotalSupply: bptTotalSupply,
+			amp:            uint256.NewInt(600000),
 			scalingFactors: []*uint256.Int{
 				uint256.NewInt(1000000000000000000),
 				uint256.NewInt(1000000000000000000),
@@ -609,8 +621,10 @@ func TestBptSwap(t *testing.T) {
 				"0x0000000000000000000000000000000000000000",
 				"0xA13a9247ea42D743238089903570127DdA72fE44",
 			},
-			tokenRateCaches: map[int]TokenRateCache{
-				2: {
+			tokenRateCaches: []TokenRateCache{
+				{},
+				{},
+				{
 					Rate:     uint256.MustFromDecimal("1003857034775170156"),
 					OldRate:  uint256.MustFromDecimal("1000977462514719154"),
 					Duration: uint256.NewInt(1000),
@@ -679,10 +693,10 @@ func TestBptSwap(t *testing.T) {
 		}
 
 		bptSimulator := &bptSimulator{
-			poolTypeVersion: poolTypeVersion5,
-			bptIndex:        0,
-			bptTotalSupply:  bptTotalSupply,
-			amp:             uint256.NewInt(200000),
+			poolTypeVer:    poolTypeVer5,
+			bptIndex:       0,
+			bptTotalSupply: bptTotalSupply,
+			amp:            uint256.NewInt(200000),
 			scalingFactors: []*uint256.Int{
 				uint256.MustFromDecimal("1000000000000000000"),
 				uint256.MustFromDecimal("1000000000000000000"),
@@ -699,12 +713,14 @@ func TestBptSwap(t *testing.T) {
 				"0x0000000000000000000000000000000000000000",
 				"0xd8689E8740C23d73136744817347fd6aC464E842",
 			},
-			tokenRateCaches: map[int]TokenRateCache{
-				3: {
+			tokenRateCaches: []TokenRateCache{
+				{},
+				{},
+				{},
+				{
 					Rate:     uint256.MustFromDecimal("1008130755672919714"),
 					OldRate:  uint256.MustFromDecimal("1008130755672919714"),
 					Duration: uint256.NewInt(10800),
-					Expires:  uint256.NewInt(1700764235),
 				},
 			},
 			swapFeePercentage: uint256.NewInt(500000000000000),
@@ -770,10 +786,10 @@ func TestBptSwap(t *testing.T) {
 		}
 
 		bptSimulator := &bptSimulator{
-			poolTypeVersion: poolTypeVersion5,
-			bptIndex:        0,
-			bptTotalSupply:  bptTotalSupply,
-			amp:             uint256.NewInt(200000),
+			poolTypeVer:    poolTypeVer5,
+			bptIndex:       0,
+			bptTotalSupply: bptTotalSupply,
+			amp:            uint256.NewInt(200000),
 			scalingFactors: []*uint256.Int{
 				uint256.MustFromDecimal("1000000000000000000"),
 				uint256.MustFromDecimal("1000000000000000000"),
@@ -790,8 +806,11 @@ func TestBptSwap(t *testing.T) {
 				"0x0000000000000000000000000000000000000000",
 				"0xd8689E8740C23d73136744817347fd6aC464E842",
 			},
-			tokenRateCaches: map[int]TokenRateCache{
-				3: {
+			tokenRateCaches: []TokenRateCache{
+				{},
+				{},
+				{},
+				{
 					Rate:     uint256.MustFromDecimal("1008130755672919714"),
 					OldRate:  uint256.MustFromDecimal("1008130755672919714"),
 					Duration: uint256.NewInt(10800),
