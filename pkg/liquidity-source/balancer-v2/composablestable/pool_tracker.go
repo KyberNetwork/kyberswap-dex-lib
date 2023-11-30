@@ -73,6 +73,12 @@ func (t *PoolTracker) GetNewPoolState(
 		p.Tokens,
 	)
 	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId":       t.config.DexID,
+			"dexType":     DexType,
+			"poolAddress": p.Address,
+		}).Error(err.Error())
+
 		return p, err
 	}
 
@@ -80,11 +86,23 @@ func (t *PoolTracker) GetNewPoolState(
 
 	reserves, err := t.initReserves(ctx, p.Tokens, rpcRes.PoolTokens)
 	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId":       t.config.DexID,
+			"dexType":     DexType,
+			"poolAddress": p.Address,
+		}).Error(err.Error())
+
 		return p, err
 	}
 
 	extra, err := t.initExtra(ctx, rpcRes, staticExtra)
 	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId":       t.config.DexID,
+			"dexType":     DexType,
+			"poolAddress": p.Address,
+		}).Error(err.Error())
+
 		return p, err
 	}
 	extraBytes, err := json.Marshal(extra)
@@ -234,12 +252,6 @@ func (t *PoolTracker) queryRPC(
 
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": poolAddress,
-		}).Error(err.Error())
-
 		return nil, err
 	}
 
@@ -268,17 +280,14 @@ func (t *PoolTracker) queryRPC(
 		}, []interface{}{&updatedRate[i]})
 	}
 	if len(rateUpdatedTokenIndexes) > 0 {
-		if _, err := req.Aggregate(); err != nil {
-			logger.WithFields(logger.Fields{
-				"dexId":       t.config.DexID,
-				"dexType":     DexType,
-				"poolAddress": poolAddress,
-			}).Error(err.Error())
-
+		if _, err := req.TryAggregate(); err != nil {
 			return nil, err
 		}
 
 		for _, i := range rateUpdatedTokenIndexes {
+			if updatedRate[i] == nil {
+				continue
+			}
 			tokenRateCaches[i].Rate = updatedRate[i]
 			tokenRateCaches[i].Expires = big.NewInt(time.Now().Unix() + tokenRateCaches[i].Duration.Int64())
 		}
@@ -306,7 +315,6 @@ func (t *PoolTracker) initExtra(
 	rpcRes *rpcRes,
 	staticExtra StaticExtra,
 ) (*Extra, error) {
-	// TODO: compute scaling factors
 	scalingFactors := make([]*uint256.Int, len(staticExtra.ScalingFactors))
 	for i, scalingFactor := range staticExtra.ScalingFactors {
 		var rate *uint256.Int
