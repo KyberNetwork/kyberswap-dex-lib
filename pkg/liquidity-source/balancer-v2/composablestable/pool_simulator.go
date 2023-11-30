@@ -126,12 +126,13 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	var (
 		amountOut *uint256.Int
 		fee       *poolpkg.TokenAmount
+		swapInfo  *SwapInfo
 		err       error
 	)
 	if tokenAmountIn.Token == s.Info.Address || tokenOut == s.Info.Address {
-		amountOut, fee, err = s.bptSimulator.swap(amountIn, balances, indexIn, indexOut)
+		amountOut, fee, swapInfo, err = s.bptSimulator.swap(amountIn, balances, indexIn, indexOut)
 	} else {
-		amountOut, fee, err = s.regularSimulator.swap(amountIn, balances, indexIn, indexOut)
+		amountOut, fee, swapInfo, err = s.regularSimulator.swap(amountIn, balances, indexIn, indexOut)
 	}
 	if err != nil {
 		return nil, err
@@ -142,8 +143,9 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 			Token:  tokenOut,
 			Amount: amountOut.ToBig(),
 		},
-		Fee: fee,
-		Gas: DefaultGas.Swap,
+		Fee:      fee,
+		Gas:      DefaultGas.Swap,
+		SwapInfo: swapInfo,
 	}, nil
 }
 
@@ -157,21 +159,12 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 }
 
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-	for idx, token := range s.Info.Tokens {
-		if token == params.TokenAmountIn.Token {
-			s.Info.Reserves[idx] = new(big.Int).Add(
-				s.Info.Reserves[idx],
-				params.TokenAmountIn.Amount,
-			)
-		}
-
-		if token == params.TokenAmountOut.Token {
-			s.Info.Reserves[idx] = new(big.Int).Sub(
-				s.Info.Reserves[idx],
-				params.TokenAmountOut.Amount,
-			)
-		}
+	if params.TokenAmountIn.Token == s.Info.Address || params.TokenAmountOut.Token == s.Info.Address {
+		s.bptSimulator.updateBalance(params)
+		return
 	}
+
+	s.regularSimulator.updateBalance(params)
 }
 
 func _downscaleDown(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {

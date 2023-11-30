@@ -14,6 +14,10 @@ type PoolMetaInfo struct {
 	V      int    `json:"v"`
 }
 
+type SwapInfo struct {
+	LastJoinExitData LastJoinExitData `json:"-"`
+}
+
 type LastJoinExitData struct {
 	LastJoinExitAmplification *uint256.Int `json:"lastJoinExitAmplification"`
 	LastPostJoinExitInvariant *uint256.Int `json:"lastPostJoinExitInvariant"`
@@ -46,11 +50,12 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	PoolID       string `json:"poolId"`
-	PoolType     string `json:"poolType"`
-	PoolTypeVer  int    `json:"poolTypeVer"`
-	BptIndex     int    `json:"bptIndex"`
-	VaultAddress string `json:"vaultAddress"`
+	PoolID         string         `json:"poolId"`
+	PoolType       string         `json:"poolType"`
+	PoolTypeVer    int            `json:"poolTypeVer"`
+	BptIndex       int            `json:"bptIndex"`
+	VaultAddress   string         `json:"vaultAddress"`
+	ScalingFactors []*uint256.Int `json:"scalingFactors"`
 }
 
 type AmplificationParameterResp struct {
@@ -85,7 +90,6 @@ type PausedStateResp struct {
 
 type rpcRes struct {
 	PoolTokens                        PoolTokensResp
-	ScalingFactors                    []*big.Int
 	BptTotalSupply                    *big.Int
 	Amp                               *big.Int
 	LastJoinExit                      LastJoinExitResp

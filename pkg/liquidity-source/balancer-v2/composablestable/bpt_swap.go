@@ -1,6 +1,8 @@
 package composablestable
 
 import (
+	"math/big"
+
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
@@ -33,23 +35,23 @@ func (s *bptSimulator) swap(
 	balances []*uint256.Int,
 	indexIn int,
 	indexOut int,
-) (*uint256.Int, *poolpkg.TokenAmount, error) {
+) (*uint256.Int, *poolpkg.TokenAmount, *SwapInfo, error) {
 	balances, err := _upscaleArray(balances, s.scalingFactors)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	amountIn, err = _upscale(amountIn, s.scalingFactors[indexIn])
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	preJoinExitSupply, balances, currentAmp, preJoinExitInvariant, err := s._beforeJoinExit(balances)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	var amountCalculated *uint256.Int
+	var amountCalculated, postJoinExitSupply *uint256.Int
 	if indexOut == s.bptIndex {
 		amountCalculated, _, err = s._doJoinSwap(
 			amountIn, balances, _skipBptIndex(indexIn, s.bptIndex), currentAmp, preJoinExitSupply, preJoinExitInvariant,
@@ -60,15 +62,26 @@ func (s *bptSimulator) swap(
 		)
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	amountOut, err := _downscaleDown(amountCalculated, s.scalingFactors[indexOut])
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	return amountOut, &poolpkg.TokenAmount{}, nil
+	swapInfo, err := s.initSwapInfo(
+		currentAmp,
+		balances,
+		preJoinExitInvariant,
+		preJoinExitSupply,
+		postJoinExitSupply,
+	)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return amountOut, &poolpkg.TokenAmount{}, swapInfo, nil
 }
 
 func (s *bptSimulator) _doJoinSwap(
@@ -624,6 +637,60 @@ func (s *bptSimulator) _dropBptItemFromBalances(
 	balances := _dropBptItem(registeredBalances, s.bptIndex)
 
 	return virtualSupply, balances, nil
+}
+
+func (s *bptSimulator) initSwapInfo(
+	currentAmp *uint256.Int,
+	balances []*uint256.Int,
+	preJoinExitInvariant *uint256.Int,
+	preJoinExitSupply *uint256.Int,
+	postJoinExitSupply *uint256.Int,
+) (*SwapInfo, error) {
+	postJoinExitInvariant, err := math.StableMath.CalculateInvariantV2(currentAmp, balances)
+	if err != nil {
+		return nil, err
+	}
+
+	swapInfo := &SwapInfo{
+		LastJoinExitData: LastJoinExitData{
+			LastJoinExitAmplification: currentAmp,
+			LastPostJoinExitInvariant: postJoinExitInvariant,
+		},
+	}
+
+	return swapInfo, nil
+}
+
+func (s *bptSimulator) updateBalance(params poolpkg.UpdateBalanceParams) {
+	for idx, token := range s.Info.Tokens {
+		// update reserves
+
+		if token == params.TokenAmountIn.Token {
+			s.Info.Reserves[idx] = new(big.Int).Add(
+				s.Info.Reserves[idx],
+				params.TokenAmountIn.Amount,
+			)
+		}
+
+		if token == params.TokenAmountOut.Token {
+			s.Info.Reserves[idx] = new(big.Int).Sub(
+				s.Info.Reserves[idx],
+				params.TokenAmountOut.Amount,
+			)
+		}
+
+		// update rates
+
+		if s._hasRateProvider(idx) {
+			s.tokenRateCaches[idx].OldRate = s.tokenRateCaches[idx].Rate
+		}
+	}
+
+	swapInfo, ok := params.SwapInfo.(*SwapInfo)
+	if !ok {
+		return
+	}
+	s.lastJoinExit = swapInfo.LastJoinExitData
 }
 
 func _adjustedBalance(balance *uint256.Int, cache TokenRateCache) (*uint256.Int, error) {
