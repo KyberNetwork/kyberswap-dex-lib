@@ -58,19 +58,19 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountOut(tokenAmountIn poolpkg.TokenAmount, tokenOut string) (*poolpkg.CalcAmountOutResult, error) {
-	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
+func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
 	if overflow {
 		return nil, ErrInvalidAmountIn
 	}
 
-	amountOut, _, err := s.swapExactAmountIn(tokenAmountIn.Token, amountIn, tokenOut, nil, nil)
+	amountOut, _, err := s.swapExactAmountIn(params.TokenAmountIn.Token, amountIn, params.TokenOut, nil, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: tokenOut, Amount: amountOut.ToBig()},
+		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
 		Gas:            s.gas.SwapExactAmountIn,
 	}, nil
 }
