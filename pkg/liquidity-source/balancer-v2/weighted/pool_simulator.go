@@ -22,7 +22,7 @@ var (
 )
 
 var (
-	defaultGas = Gas{Swap: 10}
+	defaultGas = Gas{Swap: 80000}
 )
 
 type (
@@ -88,6 +88,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
+// https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F7#L32
 func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
 	if s.paused {
 		return nil, ErrPoolPaused
@@ -202,6 +203,9 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	}
 }
 
+// Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F27#L529
+//
+// Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F13#L681
 func _upscale(poolTypeVer int, amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
 	if poolTypeVer == poolTypeVer1 {
 		return math.Math.Mul(amount, scalingFactor)
@@ -210,6 +214,9 @@ func _upscale(poolTypeVer int, amount *uint256.Int, scalingFactor *uint256.Int) 
 	return math.FixedPoint.MulDown(amount, scalingFactor)
 }
 
+// Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F27#L547
+//
+// Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F13#L706
 func _downscaleDown(poolTypeVer int, amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
 	if poolTypeVer == poolTypeVer1 {
 		return math.Math.DivDown(amount, scalingFactor)
