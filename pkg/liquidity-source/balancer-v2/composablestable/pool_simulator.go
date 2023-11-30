@@ -15,7 +15,9 @@ import (
 type PoolSimulator struct {
 	poolpkg.Pool
 
-	paused           bool
+	paused                 bool
+	canNotUpdateTokenRates bool
+
 	regularSimulator *regularSimulator
 	bptSimulator     *bptSimulator
 
@@ -85,19 +87,24 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:             pool,
-		paused:           extra.Paused,
-		regularSimulator: &regularSimulator,
-		bptSimulator:     &bptSimulator,
-		vaultAddress:     staticExtra.VaultAddress,
-		poolID:           staticExtra.PoolID,
-		poolTypeVer:      staticExtra.PoolTypeVer,
+		Pool:                   pool,
+		paused:                 extra.Paused,
+		canNotUpdateTokenRates: extra.CanNotUpdateTokenRates,
+		regularSimulator:       &regularSimulator,
+		bptSimulator:           &bptSimulator,
+		vaultAddress:           staticExtra.VaultAddress,
+		poolID:                 staticExtra.PoolID,
+		poolTypeVer:            staticExtra.PoolTypeVer,
 	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
 	if s.paused {
 		return nil, ErrPoolPaused
+	}
+
+	if s.canNotUpdateTokenRates {
+		return nil, ErrBeforeSwapJoinExit
 	}
 
 	tokenAmountIn := params.TokenAmountIn
