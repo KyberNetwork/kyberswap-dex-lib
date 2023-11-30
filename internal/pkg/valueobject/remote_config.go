@@ -35,6 +35,7 @@ type (
 		IsGasEstimatorEnabled          bool `mapstructure:"isGasEstimatorEnabled" json:"isGasEstimatorEnabled"`
 		IsBlackjackEnabled             bool `mapstructure:"isBlackjackEnabled" json:"isBlackjackEnabled"`
 		IsOptimizeExecutorFlagsEnabled bool `mapstructure:"isOptimizeExecutorFlagsEnabled" json:"isOptimizeExecutorFlagsEnabled"`
+		IsAEVMEnabled                  bool `mapstructure:"isAEVMEnabled" json:"isAEVMEnabled"`
 	}
 
 	Log struct {

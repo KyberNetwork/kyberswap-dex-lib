@@ -82,6 +82,10 @@ type IGetRouteUseCase interface {
 	ApplyConfig(config getroute.Config)
 }
 
+type IPoolFactory interface {
+	ApplyConfig(config poolfactory.Config)
+}
+
 type IPoolManager interface {
 	ApplyConfig(config poolmanager.Config)
 }
@@ -549,6 +553,7 @@ func apiAction(c *cli.Context) (err error) {
 			configLoader,
 			getRouteUseCase,
 			buildRouteUseCase,
+			poolFactory,
 			poolManager,
 			buildRouteParamsValidator,
 			getRouteEncodeParamsValidator,
@@ -873,7 +878,7 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 
 	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
 		logger.Infof("Received reloading signal: <%s>", id)
-		return applyLatestConfigForPathGenerator(ctx, generateBestPathsAllSourcesUseCase, generateBestPathsAmmSourcesUseCase, poolManager, configLoader)
+		return applyLatestConfigForPathGenerator(ctx, generateBestPathsAllSourcesUseCase, generateBestPathsAmmSourcesUseCase, poolFactory, poolManager, configLoader)
 	}))
 
 	g, ctx := errgroup.WithContext(ctx)
@@ -1011,6 +1016,7 @@ func applyLatestConfigForAPI(
 	configLoader *config.ConfigLoader,
 	getRouteUseCase IGetRouteUseCase,
 	buildRouteUseCase IBuildRouteUseCase,
+	poolFactory IPoolFactory,
 	poolManager IPoolManager,
 	buildRouteParamsValidator api.IBuildRouteParamsValidator,
 	getRouteEncodeParamsValidator api.IGetRouteEncodeParamsValidator,
@@ -1028,6 +1034,7 @@ func applyLatestConfigForAPI(
 	logger.Infoln("Applying new config to API")
 	getRouteUseCase.ApplyConfig(cfg.UseCase.GetRoute)
 	buildRouteUseCase.ApplyConfig(cfg.UseCase.BuildRoute)
+	poolFactory.ApplyConfig(cfg.UseCase.PoolFactory)
 	poolManager.ApplyConfig(cfg.UseCase.PoolManager)
 	buildRouteParamsValidator.ApplyConfig(cfg.Validator.BuildRouteParams)
 	getRouteEncodeParamsValidator.ApplyConfig(cfg.Validator.GetRouteEncodeParams)
@@ -1064,6 +1071,7 @@ func applyLatestConfigForPathGenerator(
 	_ context.Context,
 	generateBestPathsAllSourcesUseCase job.IGeneratePathUseCase,
 	generateBestPathsAmmSourcesUseCase job.IGeneratePathUseCase,
+	poolFactory IPoolFactory,
 	poolManager IPoolManager,
 	configLoader *config.ConfigLoader,
 ) error {
@@ -1076,6 +1084,9 @@ func applyLatestConfigForPathGenerator(
 	if err = logger.SetLogLevel(cfg.Log.ConsoleLevel); err != nil {
 		logger.Warnf("reload Log level error cause by <%v>", err)
 	}
+
+	logger.Infoln("Applying new config to PoolFactory")
+	poolFactory.ApplyConfig(cfg.UseCase.PoolFactory)
 
 	logger.Infoln("Applying new config to PoolManager")
 	poolManager.ApplyConfig(cfg.UseCase.PoolManager)

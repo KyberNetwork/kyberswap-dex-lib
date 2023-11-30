@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"sync"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -89,6 +90,8 @@ type PoolFactory struct {
 	config              Config
 	client              aevmclient.Client
 	balanceSlotsUseCase *erc20balanceslot.Cache
+
+	lock sync.Mutex
 }
 
 func NewPoolFactory(config Config, client aevmclient.Client, balanceSlotsUseCase *erc20balanceslot.Cache) *PoolFactory {
@@ -97,6 +100,13 @@ func NewPoolFactory(config Config, client aevmclient.Client, balanceSlotsUseCase
 		client:              client,
 		balanceSlotsUseCase: balanceSlotsUseCase,
 	}
+}
+
+func (f *PoolFactory) ApplyConfig(config Config) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
+
+	f.config = config
 }
 
 func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool, stateRoot common.Hash) []poolpkg.IPoolSimulator {
