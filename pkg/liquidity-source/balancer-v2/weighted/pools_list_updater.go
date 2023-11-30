@@ -99,8 +99,8 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 		if !ok {
 			return entity.Pool{}, ErrInvalidWeight
 		}
-		weightStr := new(big.Float).Mul(w, bignumber.BoneFloat).String()
-		normalizedWeights[j], err = uint256.FromDecimal(weightStr)
+		weight, _ := new(big.Float).Mul(w, bignumber.BoneFloat).Uint64()
+		normalizedWeights[j] = uint256.NewInt(weight)
 		if err != nil {
 			return entity.Pool{}, err
 		}
