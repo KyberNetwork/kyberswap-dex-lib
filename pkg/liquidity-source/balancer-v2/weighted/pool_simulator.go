@@ -82,6 +82,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		swapFeePercentage: extra.SwapFeePercentage,
 		scalingFactors:    staticExtra.ScalingFactors,
 		normalizedWeights: staticExtra.NormalizedWeights,
+		vaultAddress:      staticExtra.VaultAddress,
+		poolID:            staticExtra.PoolID,
 		poolTypeVer:       staticExtra.PoolTypeVer,
 	}, nil
 }
