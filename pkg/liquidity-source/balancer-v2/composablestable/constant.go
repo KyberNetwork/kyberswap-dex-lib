@@ -26,10 +26,12 @@ const (
 	poolMethodIsTokenExemptFromYieldProtocolFee = "isTokenExemptFromYieldProtocolFee"
 	poolMethodInRecoveryMode                    = "inRecoveryMode"
 	poolMethodIsExemptFromYieldProtocolFee      = "isExemptFromYieldProtocolFee"
-	poolMethodGetScalingFactors                 = "getScalingFactors"
+	poolMethodGetRate                           = "getRate"
 
 	unknownInt = -1
 
 	feeTypeSwap  = 0
 	feeTypeYield = 2
+
+	zeroAddress = "0x0000000000000000000000000000000000000000"
 )

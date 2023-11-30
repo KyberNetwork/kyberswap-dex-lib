@@ -1,6 +1,8 @@
 package composablestable
 
 import (
+	"math/big"
+
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
@@ -21,34 +23,34 @@ func (s *regularSimulator) swap(
 	balances []*uint256.Int,
 	indexIn int,
 	indexOut int,
-) (*uint256.Int, *poolpkg.TokenAmount, error) {
+) (*uint256.Int, *poolpkg.TokenAmount, *SwapInfo, error) {
 	feeAmount, err := math.FixedPoint.MulUp(amountIn, s.swapFeePercentage)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	amountInAfterFee, err := math.FixedPoint.Sub(amountIn, feeAmount)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	balances, err = _upscaleArray(balances, s.scalingFactors)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	upScaledAmountInAfterFee, err := _upscale(amountInAfterFee, s.scalingFactors[indexIn])
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	upscaledAmountOut, err := s._onSwapGivenIn(upScaledAmountInAfterFee, balances, indexIn, indexOut)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	amountOut, err := _downscaleDown(upscaledAmountOut, s.scalingFactors[indexOut])
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	fee := poolpkg.TokenAmount{
@@ -56,7 +58,7 @@ func (s *regularSimulator) swap(
 		Amount: feeAmount.ToBig(),
 	}
 
-	return amountOut, &fee, nil
+	return amountOut, &fee, &SwapInfo{}, nil
 }
 
 func (s *regularSimulator) _onSwapGivenIn(
@@ -90,4 +92,22 @@ func (s *regularSimulator) _onRegularSwap(
 		indexIn,
 		indexOut,
 	)
+}
+
+func (s *regularSimulator) updateBalance(params poolpkg.UpdateBalanceParams) {
+	for idx, token := range s.Info.Tokens {
+		if token == params.TokenAmountIn.Token {
+			s.Info.Reserves[idx] = new(big.Int).Add(
+				s.Info.Reserves[idx],
+				params.TokenAmountIn.Amount,
+			)
+		}
+
+		if token == params.TokenAmountOut.Token {
+			s.Info.Reserves[idx] = new(big.Int).Sub(
+				s.Info.Reserves[idx],
+				params.TokenAmountOut.Amount,
+			)
+		}
+	}
 }

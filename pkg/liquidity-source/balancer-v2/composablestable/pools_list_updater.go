@@ -7,8 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
@@ -113,8 +115,9 @@ func (u *PoolsListUpdater) initPool(
 	bptIndex *big.Int,
 ) (entity.Pool, error) {
 	var (
-		poolTokens = make([]*entity.PoolToken, len(subgraphPool.Tokens))
-		reserves   = make([]string, len(subgraphPool.Tokens))
+		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.Tokens))
+		reserves       = make([]string, len(subgraphPool.Tokens))
+		scalingFactors = make([]*uint256.Int, len(subgraphPool.Tokens))
 
 		err error
 	)
@@ -126,6 +129,11 @@ func (u *PoolsListUpdater) initPool(
 		}
 
 		reserves[j] = "0"
+
+		scalingFactors[j] = new(uint256.Int).Mul(
+			number.TenPow(18-uint8(token.Decimals)),
+			number.Number_1e18,
+		)
 	}
 
 	staticExtra := StaticExtra{

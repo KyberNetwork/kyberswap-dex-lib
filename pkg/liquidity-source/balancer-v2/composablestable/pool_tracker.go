@@ -7,12 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -81,7 +83,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	extra, err := t.initExtra(ctx, rpcRes)
+	extra, err := t.initExtra(ctx, rpcRes, staticExtra)
 	if err != nil {
 		return p, err
 	}
@@ -109,7 +111,6 @@ func (t *PoolTracker) queryRPC(
 		tokenNbr = len(tokens)
 
 		poolTokens                        PoolTokensResp
-		scalingFactors                    = make([]*big.Int, tokenNbr)
 		bptTotalSupply                    *big.Int
 		ampParams                         AmplificationParameterResp
 		lastJoinExit                      LastJoinExitResp
@@ -122,23 +123,34 @@ func (t *PoolTracker) queryRPC(
 		inRecoveryMode                    bool
 		pausedState                       PausedStateResp
 
+		blockNbr *big.Int
+
 		feeTypes = []int{feeTypeSwap, feeTypeYield}
 	)
 
-	req := t.ethrpcClient.R().SetContext(ctx)
+	/*
+		Call 1 get:
+		- poolTokens
+		- bptTotalSupply
+		- ampParams
+		- lastJoinExit
+		- rateProviders
+		- tokenRateCaches
+		- swapFeePercentage
+		- protocolFeePercentageCache
+		- isTokenExemptFromYieldProtocolFee
+		- isExemptFromYieldProtocolFee
+		- inRecoveryMode
+		- pausedState
+	*/
 
+	req := t.ethrpcClient.R().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    shared.VaultABI,
 		Target: t.config.VaultAddress,
 		Method: shared.VaultMethodGetPoolTokens,
 		Params: []interface{}{poolID},
 	}, []interface{}{&poolTokens})
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodGetScalingFactors,
-	}, []interface{}{&scalingFactors})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
@@ -231,9 +243,49 @@ func (t *PoolTracker) queryRPC(
 		return nil, err
 	}
 
+	blockNbr = res.BlockNumber
+
+	/*
+		Update token rate
+	*/
+
+	req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNbr)
+	rateUpdatedTokenIndexes := []int{}
+	updatedRate := make([]*big.Int, tokenNbr)
+	for i, token := range tokens {
+		if token.Address == poolAddress ||
+			rateProviders[i].Hex() == zeroAddress ||
+			time.Now().Unix() < tokenRateCaches[i].Expires.Int64() {
+			continue
+		}
+
+		rateUpdatedTokenIndexes = append(rateUpdatedTokenIndexes, i)
+
+		req.AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: rateProviders[i].Hex(),
+			Method: poolMethodGetRate,
+		}, []interface{}{&updatedRate[i]})
+	}
+	if len(rateUpdatedTokenIndexes) > 0 {
+		if _, err := req.Aggregate(); err != nil {
+			logger.WithFields(logger.Fields{
+				"dexId":       t.config.DexID,
+				"dexType":     DexType,
+				"poolAddress": poolAddress,
+			}).Error(err.Error())
+
+			return nil, err
+		}
+
+		for _, i := range rateUpdatedTokenIndexes {
+			tokenRateCaches[i].Rate = updatedRate[i]
+			tokenRateCaches[i].Expires = big.NewInt(time.Now().Unix() + tokenRateCaches[i].Duration.Int64())
+		}
+	}
+
 	return &rpcRes{
 		PoolTokens:                        poolTokens,
-		ScalingFactors:                    scalingFactors,
 		BptTotalSupply:                    bptTotalSupply,
 		Amp:                               ampParams.Value,
 		LastJoinExit:                      lastJoinExit,
@@ -252,10 +304,23 @@ func (t *PoolTracker) queryRPC(
 func (t *PoolTracker) initExtra(
 	ctx context.Context,
 	rpcRes *rpcRes,
+	staticExtra StaticExtra,
 ) (*Extra, error) {
-	scalingFactors := make([]*uint256.Int, len(rpcRes.ScalingFactors))
-	for i, scalingFactor := range rpcRes.ScalingFactors {
-		scalingFactors[i], _ = uint256.FromBig(scalingFactor)
+	// TODO: compute scaling factors
+	scalingFactors := make([]*uint256.Int, len(staticExtra.ScalingFactors))
+	for i, scalingFactor := range staticExtra.ScalingFactors {
+		var rate *uint256.Int
+		if i == staticExtra.BptIndex || rpcRes.RateProviders[i].Hex() == zeroAddress {
+			rate = number.Number_1e18
+		} else {
+			rate, _ = uint256.FromBig(rpcRes.TokenRateCaches[i].Rate)
+		}
+
+		var err error
+		scalingFactors[i], err = math.FixedPoint.MulDown(scalingFactor, rate)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	bptTotalSupply, overflow := uint256.FromBig(rpcRes.BptTotalSupply)
