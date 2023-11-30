@@ -137,11 +137,12 @@ func (u *PoolsListUpdater) initPool(
 	}
 
 	staticExtra := StaticExtra{
-		PoolID:       subgraphPool.ID,
-		PoolType:     subgraphPool.PoolType,
-		PoolTypeVer:  int(subgraphPool.PoolTypeVersion.Int64()),
-		BptIndex:     int(bptIndex.Int64()),
-		VaultAddress: strings.ToLower(u.config.VaultAddress),
+		PoolID:         subgraphPool.ID,
+		PoolType:       subgraphPool.PoolType,
+		PoolTypeVer:    int(subgraphPool.PoolTypeVersion.Int64()),
+		BptIndex:       int(bptIndex.Int64()),
+		VaultAddress:   strings.ToLower(u.config.VaultAddress),
+		ScalingFactors: scalingFactors,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {
