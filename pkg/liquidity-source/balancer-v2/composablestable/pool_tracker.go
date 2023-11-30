@@ -12,7 +12,6 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
-	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
@@ -74,15 +73,13 @@ func (t *PoolTracker) GetNewPoolState(
 		p.Tokens,
 	)
 	if err != nil {
-		if errors.Is(err, ErrBeforeSwapJoinExit) {
-			logger.WithFields(logger.Fields{
-				"dexId":       t.config.DexID,
-				"dexType":     DexType,
-				"poolAddress": p.Address,
-			}).Error(err.Error())
+		logger.WithFields(logger.Fields{
+			"dexId":       t.config.DexID,
+			"dexType":     DexType,
+			"poolAddress": p.Address,
+		}).Error(err.Error())
 
-			return p, err
-		}
+		return p, err
 	}
 
 	// update pool
@@ -285,6 +282,12 @@ func (t *PoolTracker) queryRPC(
 	}
 	if len(rateUpdatedTokenIndexes) > 0 {
 		if _, err := req.Aggregate(); err != nil {
+			logger.WithFields(logger.Fields{
+				"dexId":       t.config.DexID,
+				"dexType":     DexType,
+				"poolAddress": poolAddress,
+			}).Warnf("can not update token rates: %s", err.Error())
+
 			canNotUpdateTokenRates = true
 		}
 
