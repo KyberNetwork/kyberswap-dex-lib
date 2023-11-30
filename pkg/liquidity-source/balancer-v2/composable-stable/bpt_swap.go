@@ -30,6 +30,7 @@ type bptSimulator struct {
 	poolTypeVer int
 }
 
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F1#L301
 func (s *bptSimulator) swap(
 	amountIn *uint256.Int,
 	balances []*uint256.Int,
@@ -53,11 +54,11 @@ func (s *bptSimulator) swap(
 
 	var amountCalculated, postJoinExitSupply *uint256.Int
 	if indexOut == s.bptIndex {
-		amountCalculated, _, err = s._doJoinSwap(
+		amountCalculated, postJoinExitSupply, err = s._doJoinSwap(
 			amountIn, balances, _skipBptIndex(indexIn, s.bptIndex), currentAmp, preJoinExitSupply, preJoinExitInvariant,
 		)
 	} else {
-		amountCalculated, _, err = s._doExitSwap(
+		amountCalculated, postJoinExitSupply, err = s._doExitSwap(
 			amountIn, balances, _skipBptIndex(indexOut, s.bptIndex), currentAmp, preJoinExitSupply, preJoinExitInvariant,
 		)
 	}
