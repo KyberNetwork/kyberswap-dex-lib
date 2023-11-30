@@ -120,11 +120,11 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	normalizedWeightIn := s.normalizedWeights[indexIn]
 	normalizedWeightOut := s.normalizedWeights[indexOut]
 
-	balanceTokenIn, err := _upscale(reserveIn, scalingFactorTokenIn)
+	balanceTokenIn, err := _upscale(s.poolTypeVer, reserveIn, scalingFactorTokenIn)
 	if err != nil {
 		return nil, err
 	}
-	balanceTokenOut, err := _upscale(reserveOut, scalingFactorTokenOut)
+	balanceTokenOut, err := _upscale(s.poolTypeVer, reserveOut, scalingFactorTokenOut)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	upScaledAmountIn, err := _upscale(amountInAfterFee, scalingFactorTokenIn)
+	upScaledAmountIn, err := _upscale(s.poolTypeVer, amountInAfterFee, scalingFactorTokenIn)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	amountOut, err := _downscaleDown(upScaledAmountOut, scalingFactorTokenOut)
+	amountOut, err := _downscaleDown(s.poolTypeVer, upScaledAmountOut, scalingFactorTokenOut)
 	if err != nil {
 		return nil, err
 	}
@@ -200,10 +200,18 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	}
 }
 
-func _upscale(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
+func _upscale(poolTypeVer int, amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
+	if poolTypeVer == poolTypeVer1 {
+		return math.Math.Mul(amount, scalingFactor)
+	}
+
 	return math.FixedPoint.MulDown(amount, scalingFactor)
 }
 
-func _downscaleDown(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
+func _downscaleDown(poolTypeVer int, amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
+	if poolTypeVer == poolTypeVer1 {
+		return math.Math.DivDown(amount, scalingFactor)
+	}
+
 	return math.FixedPoint.DivDown(amount, scalingFactor)
 }
