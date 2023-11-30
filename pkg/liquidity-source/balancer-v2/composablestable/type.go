@@ -35,6 +35,7 @@ type Gas struct {
 }
 
 type Extra struct {
+	CanNotUpdateTokenRates            bool                 `json:"canNotUpdateTokenRates"`
 	ScalingFactors                    []*uint256.Int       `json:"scalingFactors"`
 	BptTotalSupply                    *uint256.Int         `json:"bptTotalSupply"`
 	Amp                               *uint256.Int         `json:"amp"`
@@ -89,6 +90,7 @@ type PausedStateResp struct {
 }
 
 type rpcRes struct {
+	CanNotUpdateTokenRates            bool
 	PoolTokens                        PoolTokensResp
 	BptTotalSupply                    *big.Int
 	Amp                               *big.Int

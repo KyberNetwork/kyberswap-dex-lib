@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
@@ -73,13 +74,15 @@ func (t *PoolTracker) GetNewPoolState(
 		p.Tokens,
 	)
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": p.Address,
-		}).Error(err.Error())
+		if errors.Is(err, ErrBeforeSwapJoinExit) {
+			logger.WithFields(logger.Fields{
+				"dexId":       t.config.DexID,
+				"dexType":     DexType,
+				"poolAddress": p.Address,
+			}).Error(err.Error())
 
-		return p, err
+			return p, err
+		}
 	}
 
 	// update pool
@@ -261,6 +264,7 @@ func (t *PoolTracker) queryRPC(
 		Update token rate
 	*/
 
+	canNotUpdateTokenRates := false
 	req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNbr)
 	rateUpdatedTokenIndexes := []int{}
 	updatedRate := make([]*big.Int, tokenNbr)
@@ -280,8 +284,8 @@ func (t *PoolTracker) queryRPC(
 		}, []interface{}{&updatedRate[i]})
 	}
 	if len(rateUpdatedTokenIndexes) > 0 {
-		if _, err := req.TryAggregate(); err != nil {
-			return nil, err
+		if _, err := req.Aggregate(); err != nil {
+			canNotUpdateTokenRates = true
 		}
 
 		for _, i := range rateUpdatedTokenIndexes {
@@ -294,6 +298,7 @@ func (t *PoolTracker) queryRPC(
 	}
 
 	return &rpcRes{
+		CanNotUpdateTokenRates:            canNotUpdateTokenRates,
 		PoolTokens:                        poolTokens,
 		BptTotalSupply:                    bptTotalSupply,
 		Amp:                               ampParams.Value,
@@ -383,7 +388,10 @@ func (t *PoolTracker) initExtra(
 
 	paused := !isNotPaused(rpcRes.PausedState)
 
+	canNotUpdateTokenRates := rpcRes.CanNotUpdateTokenRates
+
 	extra := Extra{
+		CanNotUpdateTokenRates:            canNotUpdateTokenRates,
 		ScalingFactors:                    scalingFactors,
 		BptTotalSupply:                    bptTotalSupply,
 		Amp:                               amp,
