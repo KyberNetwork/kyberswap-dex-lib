@@ -164,7 +164,7 @@ func (v *getRouteEncodeParamsValidator) checkBlacklistedWallet(ctx context.Conte
 	blacklistedWallet, err := v.blackjackRepo.GetAddressBlacklisted(ctx, []string{to})
 	if err != nil {
 		// Blackjack is `nice to have` in Aggregator, so we will bypass it if the request gets error.
-		logger.Warnf("[checkBlacklistedWallet] blackjackRepo.GetAddressBlacklisted gets error, to: %v, error: %s", to, err)
+		logger.Debugf("[checkBlacklistedWallet] blackjackRepo.GetAddressBlacklisted gets error, to: %v, error: %s", to, err)
 		return nil
 	}
 
