@@ -18,6 +18,7 @@ type regularSimulator struct {
 	swapFeePercentage *uint256.Int
 }
 
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F10#L49
 func (s *regularSimulator) swap(
 	amountIn *uint256.Int,
 	balances []*uint256.Int,
