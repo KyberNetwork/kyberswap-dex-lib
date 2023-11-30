@@ -80,6 +80,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
+// https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F5#L46
 func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
 	if s.paused {
 		return nil, ErrPoolPaused
@@ -180,6 +181,11 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	}
 }
 
+// MetaStable: https://etherscan.io/address/0x063c624672e390363b25f0c6c68ad9067c34595b#code#F29#L49
+//
+// Stable Version 1: https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F7#L49
+//
+// Stable Version 2: https://etherscan.io/address/0x13f2f70a951fb99d48ede6e25b0bdf06914db33f#code#F5#L57
 func calculateInvariant(
 	poolType string,
 	poolTypeVer int,
@@ -197,6 +203,7 @@ func calculateInvariant(
 	return math.StableMath.CalculateInvariantV2(amp, balances)
 }
 
+// https://etherscan.io/address/0x063c624672e390363b25f0c6c68ad9067c34595b#code#F31#L530
 func _upscaleArray(reserves []*big.Int, scalingFactors []*uint256.Int) ([]*uint256.Int, error) {
 	upscaled := make([]*uint256.Int, len(reserves))
 	for i, reserve := range reserves {
@@ -214,10 +221,12 @@ func _upscaleArray(reserves []*big.Int, scalingFactors []*uint256.Int) ([]*uint2
 	return upscaled, nil
 }
 
+// https://etherscan.io/address/0x063c624672e390363b25f0c6c68ad9067c34595b#code#F31#L518
 func _upscale(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
 	return math.FixedPoint.MulDown(amount, scalingFactor)
 }
 
+// https://etherscan.io/address/0x063c624672e390363b25f0c6c68ad9067c34595b#code#F31#L540
 func _downscaleDown(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
 	return math.FixedPoint.DivDown(amount, scalingFactor)
 }
