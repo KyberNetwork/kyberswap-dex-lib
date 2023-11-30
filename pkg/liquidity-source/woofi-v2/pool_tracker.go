@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/holiman/uint256"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -168,7 +169,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(&Extra{
-		QuoteToken: quoteToken.Hex(),
+		QuoteToken: strings.ToLower(quoteToken.Hex()),
 		TokenInfos: extraTokenInfos,
 		Wooracle: Wooracle{
 			Address:  wooracle.Hex(),

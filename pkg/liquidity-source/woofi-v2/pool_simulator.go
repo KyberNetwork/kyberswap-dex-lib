@@ -153,102 +153,18 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 }
 
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-	swapInfo, ok := params.SwapInfo.(woofiV2SwapInfo)
+	_, ok := params.SwapInfo.(woofiV2SwapInfo)
 	if !ok {
 		logger.Error("failed to UpdateBalancer for WooFiV2 pool, wrong swapInfo type")
 		return
 	}
 
-	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
-	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
-	swapFee, _ := uint256.FromBig(params.Fee.Amount)
-
 	if params.TokenAmountIn.Token == s.quoteToken {
-		newBaseReserves := new(uint256.Int).Sub(
-			s.tokenInfos[params.TokenAmountOut.Token].Reserve,
-			amountOut,
-		)
-		newQuoteReserve := new(uint256.Int).Add(
-			s.tokenInfos[params.TokenAmountIn.Token].Reserve,
-			new(uint256.Int).Sub(amountIn, swapFee),
-		)
-
-		s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
-			Reserve: newBaseReserves,
-			FeeRate: s.tokenInfos[params.TokenAmountOut.Token].FeeRate,
-		}
-		s.tokenInfos[params.TokenAmountIn.Token] = TokenInfo{
-			Reserve: newQuoteReserve,
-			FeeRate: s.tokenInfos[params.TokenAmountIn.Token].FeeRate,
-		}
-		s.wooracle.States[params.TokenAmountIn.Token] = State{
-			Price:      swapInfo.newPrice,
-			Spread:     s.wooracle.States[params.TokenAmountIn.Token].Spread,
-			Coeff:      s.wooracle.States[params.TokenAmountIn.Token].Coeff,
-			WoFeasible: s.wooracle.States[params.TokenAmountIn.Token].WoFeasible,
-		}
+		s.updateBalanceSellQuote(params)
 	} else if params.TokenAmountOut.Token == s.quoteToken {
-		newBaseReserves := new(uint256.Int).Add(
-			s.tokenInfos[params.TokenAmountIn.Token].Reserve,
-			amountIn,
-		)
-		newQuoteReserve := new(uint256.Int).Sub(
-			s.tokenInfos[params.TokenAmountOut.Token].Reserve,
-			new(uint256.Int).Sub(amountOut, swapFee),
-		)
-
-		s.tokenInfos[params.TokenAmountIn.Token] = TokenInfo{
-			Reserve: newBaseReserves,
-			FeeRate: s.tokenInfos[params.TokenAmountIn.Token].FeeRate,
-		}
-		s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
-			Reserve: newQuoteReserve,
-			FeeRate: s.tokenInfos[params.TokenAmountOut.Token].FeeRate,
-		}
-		s.wooracle.States[params.TokenAmountIn.Token] = State{
-			Price:      swapInfo.newPrice,
-			Spread:     s.wooracle.States[params.TokenAmountIn.Token].Spread,
-			Coeff:      s.wooracle.States[params.TokenAmountIn.Token].Coeff,
-			WoFeasible: s.wooracle.States[params.TokenAmountIn.Token].WoFeasible,
-		}
+		s.updateBalanceSellBase(params)
 	} else {
-		newBase1Reserves := new(uint256.Int).Add(
-			s.tokenInfos[params.TokenAmountIn.Token].Reserve,
-			amountIn,
-		)
-		newBase2Reserves := new(uint256.Int).Sub(
-			s.tokenInfos[params.TokenAmountOut.Token].Reserve,
-			amountOut,
-		)
-		newQuoteReserve := new(uint256.Int).Sub(
-			s.tokenInfos[s.quoteToken].Reserve,
-			swapFee,
-		)
-
-		s.tokenInfos[params.TokenAmountIn.Token] = TokenInfo{
-			Reserve: newBase1Reserves,
-			FeeRate: s.tokenInfos[params.TokenAmountIn.Token].FeeRate,
-		}
-		s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
-			Reserve: newBase2Reserves,
-			FeeRate: s.tokenInfos[params.TokenAmountOut.Token].FeeRate,
-		}
-		s.tokenInfos[s.quoteToken] = TokenInfo{
-			Reserve: newQuoteReserve,
-			FeeRate: s.tokenInfos[s.quoteToken].FeeRate,
-		}
-		s.wooracle.States[params.TokenAmountIn.Token] = State{
-			Price:      swapInfo.newBase1Price,
-			Spread:     s.wooracle.States[params.TokenAmountIn.Token].Spread,
-			Coeff:      s.wooracle.States[params.TokenAmountIn.Token].Coeff,
-			WoFeasible: s.wooracle.States[params.TokenAmountIn.Token].WoFeasible,
-		}
-		s.wooracle.States[params.TokenAmountOut.Token] = State{
-			Price:      swapInfo.newBase2Price,
-			Spread:     s.wooracle.States[params.TokenAmountOut.Token].Spread,
-			Coeff:      s.wooracle.States[params.TokenAmountOut.Token].Coeff,
-			WoFeasible: s.wooracle.States[params.TokenAmountOut.Token].WoFeasible,
-		}
+		s.updateBalanceSwapBaseToBase(params)
 	}
 }
 
@@ -349,6 +265,9 @@ func (s *PoolSimulator) _swapBaseToBase(
 	quoteAmount = new(uint256.Int).Sub(quoteAmount, swapFee)
 
 	base2Amount, newBase2Price, err := s._calcBaseAmountSellQuote(baseToken2, quoteAmount, state2)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
 
 	return base2Amount, swapFee, newBase1Price, newBase2Price, nil
 }
@@ -485,5 +404,115 @@ func (s *PoolSimulator) decimalInfo(baseToken string) DecimalInfo {
 		priceDec: number.TenPow(s.wooracle.Decimals[baseToken]), // 8
 		quoteDec: number.TenPow(s.decimals[s.quoteToken]),       // 18 or 6
 		baseDec:  number.TenPow(s.decimals[baseToken]),          // 18 or 8
+	}
+}
+
+func (s *PoolSimulator) updateBalanceSellBase(params poolpkg.UpdateBalanceParams) {
+	swapInfo := params.SwapInfo.(woofiV2SwapInfo)
+	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
+	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
+	swapFee, _ := uint256.FromBig(params.Fee.Amount)
+
+	newBaseReserves := new(uint256.Int).Add(
+		s.tokenInfos[params.TokenAmountIn.Token].Reserve,
+		amountIn,
+	)
+	newQuoteReserve := new(uint256.Int).Sub(
+		new(uint256.Int).Sub(
+			s.tokenInfos[params.TokenAmountOut.Token].Reserve,
+			amountOut,
+		),
+		swapFee,
+	)
+
+	s.tokenInfos[params.TokenAmountIn.Token] = TokenInfo{
+		Reserve: newBaseReserves,
+		FeeRate: s.tokenInfos[params.TokenAmountIn.Token].FeeRate,
+	}
+	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
+		Reserve: newQuoteReserve,
+		FeeRate: s.tokenInfos[params.TokenAmountOut.Token].FeeRate,
+	}
+	s.wooracle.States[params.TokenAmountIn.Token] = State{
+		Price:      swapInfo.newPrice,
+		Spread:     s.wooracle.States[params.TokenAmountIn.Token].Spread,
+		Coeff:      s.wooracle.States[params.TokenAmountIn.Token].Coeff,
+		WoFeasible: s.wooracle.States[params.TokenAmountIn.Token].WoFeasible,
+	}
+}
+
+func (s *PoolSimulator) updateBalanceSellQuote(params poolpkg.UpdateBalanceParams) {
+	swapInfo := params.SwapInfo.(woofiV2SwapInfo)
+	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
+	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
+	swapFee, _ := uint256.FromBig(params.Fee.Amount)
+
+	newBaseReserves := new(uint256.Int).Sub(
+		s.tokenInfos[params.TokenAmountOut.Token].Reserve,
+		amountOut,
+	)
+	newQuoteReserve := new(uint256.Int).Add(
+		s.tokenInfos[params.TokenAmountIn.Token].Reserve,
+		new(uint256.Int).Sub(amountIn, swapFee),
+	)
+
+	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
+		Reserve: newBaseReserves,
+		FeeRate: s.tokenInfos[params.TokenAmountOut.Token].FeeRate,
+	}
+	s.tokenInfos[params.TokenAmountIn.Token] = TokenInfo{
+		Reserve: newQuoteReserve,
+		FeeRate: s.tokenInfos[params.TokenAmountIn.Token].FeeRate,
+	}
+	s.wooracle.States[params.TokenAmountIn.Token] = State{
+		Price:      swapInfo.newPrice,
+		Spread:     s.wooracle.States[params.TokenAmountIn.Token].Spread,
+		Coeff:      s.wooracle.States[params.TokenAmountIn.Token].Coeff,
+		WoFeasible: s.wooracle.States[params.TokenAmountIn.Token].WoFeasible,
+	}
+}
+
+func (s *PoolSimulator) updateBalanceSwapBaseToBase(params poolpkg.UpdateBalanceParams) {
+	swapInfo := params.SwapInfo.(woofiV2SwapInfo)
+	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
+	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
+	swapFee, _ := uint256.FromBig(params.Fee.Amount)
+
+	newBase1Reserves := new(uint256.Int).Add(
+		s.tokenInfos[params.TokenAmountIn.Token].Reserve,
+		amountIn,
+	)
+	newBase2Reserves := new(uint256.Int).Sub(
+		s.tokenInfos[params.TokenAmountOut.Token].Reserve,
+		amountOut,
+	)
+	newQuoteReserve := new(uint256.Int).Sub(
+		s.tokenInfos[s.quoteToken].Reserve,
+		swapFee,
+	)
+
+	s.tokenInfos[params.TokenAmountIn.Token] = TokenInfo{
+		Reserve: newBase1Reserves,
+		FeeRate: s.tokenInfos[params.TokenAmountIn.Token].FeeRate,
+	}
+	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
+		Reserve: newBase2Reserves,
+		FeeRate: s.tokenInfos[params.TokenAmountOut.Token].FeeRate,
+	}
+	s.tokenInfos[s.quoteToken] = TokenInfo{
+		Reserve: newQuoteReserve,
+		FeeRate: s.tokenInfos[s.quoteToken].FeeRate,
+	}
+	s.wooracle.States[params.TokenAmountIn.Token] = State{
+		Price:      swapInfo.newBase1Price,
+		Spread:     s.wooracle.States[params.TokenAmountIn.Token].Spread,
+		Coeff:      s.wooracle.States[params.TokenAmountIn.Token].Coeff,
+		WoFeasible: s.wooracle.States[params.TokenAmountIn.Token].WoFeasible,
+	}
+	s.wooracle.States[params.TokenAmountOut.Token] = State{
+		Price:      swapInfo.newBase2Price,
+		Spread:     s.wooracle.States[params.TokenAmountOut.Token].Spread,
+		Coeff:      s.wooracle.States[params.TokenAmountOut.Token].Coeff,
+		WoFeasible: s.wooracle.States[params.TokenAmountOut.Token].WoFeasible,
 	}
 }
