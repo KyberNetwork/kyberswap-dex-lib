@@ -127,6 +127,7 @@ func (d *PoolTracker) GetNewPoolState(
 		logger.WithFields(logger.Fields{
 			"type":    p.Type,
 			"address": p.Address,
+
 		}).Errorf("failed to try aggregate call")
 
 		return entity.Pool{}, err

@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestCalcAmountOut(t *testing.T) {
+func TestCalcAmountOutOnBsc(t *testing.T) {
 	levelFinancePool, err := levelfinance.NewPoolSimulator(entity.Pool{
 		Address:  "0x73c3a78e5ff0d216a50b11d51b262ca839fcfe17",
 		Exchange: "level-finance",
@@ -44,7 +44,42 @@ func TestCalcAmountOut(t *testing.T) {
 	assert.Equal(t, "2047979446915897120965", result.TokenAmountOut.Amount.String())
 }
 
-func TestCalcAmountOutStalbeToken(t *testing.T) {
+func TestCalcAmountOutStalbeTokenOnBsc(t *testing.T) {
+	levelFinancePool, err := levelfinance.NewPoolSimulator(entity.Pool{
+		Address:  "0xa5abfb56a78d2bd4689b25b8a77fd49bb0675874",
+		Exchange: "level-finance",
+		Type:     "level-finance",
+		Reserves: entity.PoolReserves{"2807538590190519040769972", "4351267527855370"},
+		Tokens: []*entity.PoolToken{
+			{
+				Address:  "0x55d398326f99059ff775485246999027b3197955",
+				Decimals: 18,
+			},
+			{
+				Address:  "0xe9e7cea3dedca5984780bafc599bd69add087d56",
+				Decimals: 18,
+			},
+		},
+		Extra: "{\"oracle\":\"0x347a868537c96650608b0C38a40d65fA8668bb61\",\"tokenInfos\":{\"0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82\":{\"isStableCoin\":false,\"targetWeight\":0,\"trancheAssets\":{\"0x4265af66537F7BE1Ca60Ca6070D97531EC571BDd\":{\"poolAmount\":0,\"reserveAmount\":0},\"0xB5C42F84Ab3f786bCA9761240546AA9cEC1f8821\":{\"poolAmount\":0,\"reserveAmount\":0},\"0xcC5368f152453D497061CB1fB578D2d3C54bD0A0\":{\"poolAmount\":1515612264199876,\"reserveAmount\":0}},\"riskFactor\":{\"0x4265af66537F7BE1Ca60Ca6070D97531EC571BDd\":30000,\"0xB5C42F84Ab3f786bCA9761240546AA9cEC1f8821\":0,\"0xcC5368f152453D497061CB1fB578D2d3C54bD0A0\":70000},\"totalRiskFactor\":100000,\"maxLiquidity\":30000000000000000000000,\"minPrice\":2300345000000,\"maxPrice\":2300345000000},\"0x2170ed0880ac9a755fd29b2688956bd959f933f8\":{\"isStableCoin\":false,\"targetWeight\":25000,\"trancheAssets\":{\"0x4265af66537F7BE1Ca60Ca6070D97531EC571BDd\":{\"poolAmount\":3263162785608920700,\"reserveAmount\":2155442291510239883},\"0xB5C42F84Ab3f786bCA9761240546AA9cEC1f8821\":{\"poolAmount\":1052043265152883380711,\"reserveAmount\":27819557680428853053},\"0xcC5368f152453D497061CB1fB578D2d3C54bD0A0\":{\"poolAmount\":4193499373149369185,\"reserveAmount\":2769287309308208128}},\"riskFactor\":{\"0x4265af66537F7BE1Ca60Ca6070D97531EC571BDd\":0,\"0xB5C42F84Ab3f786bCA9761240546AA9cEC1f8821\":1,\"0xcC5368f152453D497061CB1fB578D2d3C54bD0A0\":0},\"totalRiskFactor\":1,\"maxLiquidity\":0,\"minPrice\":2087673104000000,\"maxPrice\":2087673104000000},\"0x55d398326f99059ff775485246999027b3197955\":{\"isStableCoin\":true,\"targetWeight\":41000,\"trancheAssets\":{\"0x4265af66537F7BE1Ca60Ca6070D97531EC571BDd\":{\"poolAmount\":7063123655693846589453,\"reserveAmount\":2456973300112924446212},\"0xB5C42F84Ab3f786bCA9761240546AA9cEC1f8821\":{\"poolAmount\":2789851422044486306196972,\"reserveAmount\":702092032289337815487579},\"0xcC5368f152453D497061CB1fB578D2d3C54bD0A0\":{\"poolAmount\":10624044490338887983547,\"reserveAmount\":3826577703900320094262}},\"riskFactor\":{\"0x4265af66537F7BE1Ca60Ca6070D97531EC571BDd\":0,\"0xB5C42F84Ab3f786bCA9761240546AA9cEC1f8821\":0,\"0xcC5368f152453D497061CB1fB578D2d3C54bD0A0\":0},\"totalRiskFactor\":0,\"maxLiquidity\":0,\"minPrice\":1000150000000,\"maxPrice\":1000150000000},\"0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c\":{\"isStableCoin\":false,\"targetWeight\":30800,\"trancheAssets\":{\"0x4265af66537F7BE1Ca60Ca6070D97531EC571BDd\":{\"poolAmount\":8960985922150923273,\"reserveAmount\":3304490445604667261},\"0xB5C42F84Ab3f786bCA9761240546AA9cEC1f8821\":{\"poolAmount\":51568233789803965511,\"reserveAmount\":9347884943684826606},\"0xcC5368f152453D497061CB1fB578D2d3C54bD0A0\":{\"poolAmount\":7246501669128176952,\"reserveAmount\":3747192127303688387}},\"riskFactor\":{\"0x4265af66537F7BE1Ca60Ca6070D97531EC571BDd\":0,\"0xB5C42F84Ab3f786bCA9761240546AA9cEC1f8821\":1,\"0xcC5368f152453D497061CB1fB578D2d3C54bD0A0\":0},\"totalRiskFactor\":1,\"maxLiquidity\":0,\"minPrice\":37933699201500000,\"maxPrice\":37933699201500000},\"0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c\":{\"isStableCoin\":false,\"targetWeight\":3000,\"trancheAssets\":{\"0x4265af66537F7BE1Ca60Ca6070D97531EC571BDd\":{\"poolAmount\":86848770936987931277,\"reserveAmount\":57288002510698643098},\"0xB5C42F84Ab3f786bCA9761240546AA9cEC1f8821\":{\"poolAmount\":788700406901459422570,\"reserveAmount\":784848255749683442035},\"0xcC5368f152453D497061CB1fB578D2d3C54bD0A0\":{\"poolAmount\":112335861432756827835,\"reserveAmount\":60714813704662884006}},\"riskFactor\":{\"0x4265af66537F7BE1Ca60Ca6070D97531EC571BDd\":0,\"0xB5C42F84Ab3f786bCA9761240546AA9cEC1f8821\":1,\"0xcC5368f152453D497061CB1fB578D2d3C54bD0A0\":0},\"totalRiskFactor\":1,\"maxLiquidity\":6000000000000000000000,\"minPrice\":228534275000000,\"maxPrice\":228534275000000},\"0xe9e7cea3dedca5984780bafc599bd69add087d56\":{\"isStableCoin\":true,\"targetWeight\":0,\"trancheAssets\":{\"0x4265af66537F7BE1Ca60Ca6070D97531EC571BDd\":{\"poolAmount\":0,\"reserveAmount\":0},\"0xB5C42F84Ab3f786bCA9761240546AA9cEC1f8821\":{\"poolAmount\":0,\"reserveAmount\":0},\"0xcC5368f152453D497061CB1fB578D2d3C54bD0A0\":{\"poolAmount\":4351267527855370,\"reserveAmount\":0}},\"riskFactor\":{\"0x4265af66537F7BE1Ca60Ca6070D97531EC571BDd\":0,\"0xB5C42F84Ab3f786bCA9761240546AA9cEC1f8821\":0,\"0xcC5368f152453D497061CB1fB578D2d3C54bD0A0\":0},\"totalRiskFactor\":0,\"maxLiquidity\":0,\"minPrice\":1000049990000,\"maxPrice\":1000049990000}},\"totalWeight\":99800,\"virtualPoolValue\":7633969814702628613500752920230234231,\"stableCoinBaseSwapFee\":1000000,\"stableCoinTaxBasisPoint\":5000000,\"baseSwapFee\":25000000,\"taxBasisPoint\":40000000,\"daoFee\":5500000000}",
+	})
+
+	assert.Nil(t, err)
+
+	result, err := levelFinancePool.CalcAmountOut(
+		pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0x55d398326f99059ff775485246999027b3197955",
+				Amount: bignumber.NewBig10("100000000000000000000"),
+			},
+			TokenOut: "0xe9e7cea3dedca5984780bafc599bd69add087d56",
+		},
+	)
+
+	assert.Nil(t, err)
+	assert.Equal(t, "99919983996799359871", result.TokenAmountOut.Amount.String())
+}
+
+func TestCalcAmountOutStalbeTokenOnArbitrum(t *testing.T) {
 	levelFinancePool, err := levelfinance.NewPoolSimulator(entity.Pool{
 		Address:  "0x32b7bf19cb8b95c27e644183837813d4b595dcc6",
 		Exchange: "level-finance",

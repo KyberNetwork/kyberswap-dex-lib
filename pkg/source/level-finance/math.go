@@ -127,10 +127,11 @@ func calcFeeRate(token *TokenInfo, tokenPrice, valueChange, baseFee, taxBasicPoi
 			targetValue,
 		)
 		rate := zeroCapSub(baseFee, feeAdjust)
-		if rate.Cmp(minSwapFee) > 0 {
-			return rate
-		}
-		return new(big.Int).Set(minSwapFee)
+		//if rate.Cmp(minSwapFee) > 0 {
+		//	return rate
+		//}
+		//return new(big.Int).Set(minSwapFee)
+		return rate
 	} else {
 		avgDiff := new(big.Int).Div(
 			new(big.Int).Add(initDiff, nextDiff),
