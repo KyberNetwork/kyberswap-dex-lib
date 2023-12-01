@@ -151,6 +151,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeWagmi, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeMMFV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeMetavaultV3, FunctionSelectorUniV3KSElastic)
+	RegisterFunctionSelector(valueobject.ExchangeSolidlyV3, FunctionSelectorUniV3KSElastic)
 
 	// executeBalV2Swap
 	RegisterFunctionSelector(valueobject.ExchangeBalancer, FunctionSelectorBalancerV2)
