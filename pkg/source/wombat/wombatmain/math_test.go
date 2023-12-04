@@ -1,8 +1,7 @@
-package wombatmain_test
+package wombatmain
 
 import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatmain"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -29,7 +28,7 @@ func TestQuotePotentialSwap(t *testing.T) {
 		},
 	}
 
-	potentialOutcome, haircut, err := wombatmain.Swap(
+	potentialOutcome, haircut, err := Swap(
 		fromToken, toToken, fromAmount, false,
 		haircutRate, ampFactor, startCovRatio, endCovRatio, assetMap)
 
@@ -60,9 +59,9 @@ func TestCovRatioLimitExceeded(t *testing.T) {
 		},
 	}
 
-	_, _, err := wombatmain.Swap(
+	_, _, err := Swap(
 		fromToken, toToken, fromAmount, false,
 		haircutRate, ampFactor, startCovRatio, endCovRatio, assetMap)
 
-	assert.Equal(t, wombatmain.ErrCovRatioLimitExceeded, err)
+	assert.Equal(t, ErrCovRatioLimitExceeded, err)
 }

@@ -45,7 +45,7 @@ func Swap(
 		return nil, nil, err
 	}
 
-	newToAssetCash := removeCash(toAsset.Cash, new(big.Int).Add(actualToAmount, haircut))
+	newToAssetCash := new(big.Int).Sub(toAsset.Cash, new(big.Int).Add(actualToAmount, haircut))
 	if dsmath.WDiv(newToAssetCash, toAsset.Liability).Cmp(new(big.Int).Div(WAD, big.NewInt(100))) < 0 {
 		return nil, nil, ErrWombatForbidden
 	}
@@ -322,12 +322,4 @@ func signedSafeMathSqrt(y, guess *big.Int) *big.Int {
 	}
 
 	return z
-}
-
-func addCash(cash, amount *big.Int) *big.Int {
-	return new(big.Int).Add(cash, amount)
-}
-
-func removeCash(cash, amount *big.Int) *big.Int {
-	return new(big.Int).Sub(cash, amount)
 }
