@@ -4,7 +4,9 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -39,7 +41,8 @@ func NewGasEstimator(gasEstimator IEthereumGasEstimator, gasRepo IGasRepository,
 	}
 }
 
-func (e *GasEstimator) Execute(ctx context.Context, tx UnsignedTransaction) (uint64, float64, error) {
+// dexIds are only used for metrics
+func (e *GasEstimator) EstimateGas(ctx context.Context, tx UnsignedTransaction) (uint64, error) {
 	var (
 		from             = common.HexToAddress(tx.sender)
 		to               = common.HexToAddress(tx.recipient)
@@ -47,7 +50,7 @@ func (e *GasEstimator) Execute(ctx context.Context, tx UnsignedTransaction) (uin
 	)
 	// We still return error incase data is empty because in router service, every transaction must contain data payload
 	if err != nil {
-		return 0, 0.0, err
+		return 0, err
 	}
 	estimatedGas, err := e.gasEstimator.EstimateGas(ctx, ethereum.CallMsg{
 		From:       from,
@@ -60,6 +63,16 @@ func (e *GasEstimator) Execute(ctx context.Context, tx UnsignedTransaction) (uin
 		Data:       encodedData,
 		AccessList: nil,
 	})
+	if err != nil {
+		logger.Infof("EstimateGas failed error %s", err)
+	}
+	metrics.IncrEstimateGas(err == nil, "allDexes")
+
+	return estimatedGas, err
+}
+
+func (e *GasEstimator) Execute(ctx context.Context, tx UnsignedTransaction) (uint64, float64, error) {
+	estimatedGas, err := e.EstimateGas(ctx, tx)
 	if err != nil {
 		return 0, 0.0, err
 	}

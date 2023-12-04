@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
@@ -98,16 +99,9 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	}
 
 	// estimate gas price for a transaction
-	estimatedGas := uint64(routeSummary.Gas)
-	gasInUSD := routeSummary.GasUSD
-	if uc.config.FeatureFlags.IsGasEstimatorEnabled && command.EnableGasEstimation {
-		if utils.IsEmptyString(command.Sender) {
-			return nil, ErrSenderEmptyWhenEnableEstimateGas
-		}
-		estimatedGas, gasInUSD, err = uc.estimateGas(ctx, command, encodedData)
-		if err != nil {
-			return nil, err
-		}
+	estimatedGas, gasInUSD, err := uc.estimateGas(ctx, command, encodedData)
+	if err != nil {
+		return nil, err
 	}
 
 	// NOTE: currently we don't check the route (check if there is a better route or the route returns different amounts)
@@ -375,17 +369,45 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 	if eth.IsEther(command.RouteSummary.TokenIn) {
 		value = command.RouteSummary.AmountIn
 	}
-
-	gas, gasUSD, err := uc.gasEstimator.Execute(ctx, UnsignedTransaction{
+	tx := UnsignedTransaction{
 		command.Sender,
 		command.Recipient,
 		encodedData,
 		value,
 		nil,
-	})
-	if err != nil {
-		return 0, 0.0, errors.Wrapf(ErrEstimateGasFailed, "Estimate gas failed due to %s", err.Error())
 	}
 
-	return gas, gasUSD, nil
+	if uc.config.FeatureFlags.IsGasEstimatorEnabled {
+		if command.EnableGasEstimation {
+			if utils.IsEmptyString(command.Sender) {
+				return 0, 0.0, ErrSenderEmptyWhenEnableEstimateGas
+			}
+
+			gas, gasUSD, err := uc.gasEstimator.Execute(ctx, tx)
+			uc.sendEstimateGasMetrics(command.RouteSummary, err == nil)
+			if err != nil {
+				return 0, 0.0, errors.Wrapf(ErrEstimateGasFailed, "Estimate gas failed due to %s", err.Error())
+			}
+
+			return gas, gasUSD, nil
+		} else {
+			if !utils.IsEmptyString(command.Sender) {
+				go func() {
+					_, err := uc.gasEstimator.EstimateGas(context.Background(), tx)
+					uc.sendEstimateGasMetrics(command.RouteSummary, err == nil)
+				}()
+			}
+		}
+
+	}
+	return uint64(command.RouteSummary.Gas), command.RouteSummary.GasUSD, nil
+
+}
+
+func (uc *BuildRouteUseCase) sendEstimateGasMetrics(routeSummary valueobject.RouteSummary, isSuccess bool) {
+	for _, path := range routeSummary.Route {
+		for _, swap := range path {
+			metrics.IncrEstimateGas(isSuccess, string(swap.Exchange))
+		}
+	}
 }

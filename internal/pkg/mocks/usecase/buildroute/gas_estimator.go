@@ -35,6 +35,21 @@ func (m *MockIGasEstimator) EXPECT() *MockIGasEstimatorMockRecorder {
 	return m.recorder
 }
 
+// EstimateGas mocks base method.
+func (m *MockIGasEstimator) EstimateGas(arg0 context.Context, arg1 buildroute.UnsignedTransaction) (uint64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EstimateGas", arg0, arg1)
+	ret0, _ := ret[0].(uint64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// EstimateGas indicates an expected call of EstimateGas.
+func (mr *MockIGasEstimatorMockRecorder) EstimateGas(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EstimateGas", reflect.TypeOf((*MockIGasEstimator)(nil).EstimateGas), arg0, arg1)
+}
+
 // Execute mocks base method.
 func (m *MockIGasEstimator) Execute(arg0 context.Context, arg1 buildroute.UnsignedTransaction) (uint64, float64, error) {
 	m.ctrl.T.Helper()

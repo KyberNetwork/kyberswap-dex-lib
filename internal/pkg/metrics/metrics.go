@@ -24,6 +24,7 @@ const (
 	RequestCountMetricsName           = "request.count"
 	InvalidSynthetixVolumeMetricsName = "invalid_synthetix_volume.count"
 	FindRoutePregenHitRateMetricsName = "find_route_pregen.count"
+	EstimateGasStatusMetricsName      = "estimate_gas.count"
 )
 
 var (
@@ -112,6 +113,19 @@ func IncrRequestCount(clientID string, responseStatus int) {
 
 func IncrInvalidSynthetixVolume() {
 	incr(InvalidSynthetixVolumeMetricsName, nil, 1)
+}
+
+func IncrEstimateGas(isSuccess bool, dexID string) {
+	state := "success"
+	if !isSuccess {
+		state = "failed"
+	}
+	tags := map[string]string{
+		"dex_id": dexID,
+		"state":  state,
+	}
+
+	incr(EstimateGasStatusMetricsName, tags, 1)
 }
 
 func Flush() {

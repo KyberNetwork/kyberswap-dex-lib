@@ -33,6 +33,7 @@ type IGasRepository interface {
 
 type IGasEstimator interface {
 	Execute(ctx context.Context, tx UnsignedTransaction) (uint64, float64, error)
+	EstimateGas(ctx context.Context, tx UnsignedTransaction) (uint64, error)
 }
 
 //go:generate mockgen -destination ../../mocks/usecase/buildroute/executor_balance_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IExecutorBalanceRepository

@@ -3,6 +3,7 @@ package buildroute_test
 import (
 	"context"
 	"math/big"
+	"sync"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -29,7 +30,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 
 	testCases := []struct {
 		name    string
-		prepare func(ctrl *gomock.Controller, config Config) *BuildRouteUseCase
+		prepare func(ctrl *gomock.Controller, config Config, wg *sync.WaitGroup) *BuildRouteUseCase
 		command dto.BuildRouteCommand
 		config  Config
 		result  *dto.BuildRouteResult
@@ -37,7 +38,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 	}{
 		{
 			name: "it should return correct error when encoder return error",
-			prepare: func(ctrl *gomock.Controller, config Config) *BuildRouteUseCase {
+			prepare: func(ctrl *gomock.Controller, config Config, wg *sync.WaitGroup) *BuildRouteUseCase {
 				clientDataEncoder := usecase.NewMockIClientDataEncoder(ctrl)
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
@@ -79,7 +80,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
 
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
-				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Times(0)
+				gasEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Any()).Times(0)
 
 				return NewBuildRouteUseCase(
 					tokenRepository,
@@ -120,7 +121,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 		},
 		{
 			name: "it should return correct result and run estimate Gas when there is no error and Feature flag is on",
-			prepare: func(ctrl *gomock.Controller, config Config) *BuildRouteUseCase {
+			prepare: func(ctrl *gomock.Controller, config Config, wg *sync.WaitGroup) *BuildRouteUseCase {
 				clientDataEncoder := usecase.NewMockIClientDataEncoder(ctrl)
 
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
@@ -230,8 +231,121 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			err: nil,
 		},
 		{
+			name: "it should return correct result and run estimate Gas async when there is no error and Feature flag is on",
+			prepare: func(ctrl *gomock.Controller, config Config, wg *sync.WaitGroup) *BuildRouteUseCase {
+				wg.Add(1)
+				clientDataEncoder := usecase.NewMockIClientDataEncoder(ctrl)
+
+				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
+
+				encoder := usecase.NewMockIEncoder(ctrl)
+				encodedData := "mockEncodedData"
+
+				encoder.EXPECT().
+					Encode(gomock.Any()).
+					Return(encodedData, nil)
+				encoder.EXPECT().
+					GetExecutorAddress().
+					Return("0x00").AnyTimes()
+				encoder.EXPECT().
+					GetRouterAddress().
+					Return("0x01").AnyTimes()
+
+				tokenRepository := usecase.NewMockITokenRepository(ctrl)
+				tokenRepository.EXPECT().
+					FindByAddresses(gomock.Any(), gomock.Any()).
+					Return(
+						[]*entity.Token{
+							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
+							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
+						},
+						nil,
+					)
+
+				priceRepository := usecase.NewMockIPriceRepository(ctrl)
+				priceRepository.EXPECT().
+					FindByAddresses(gomock.Any(), gomock.Any()).
+					Return(
+						[]*entity.Price{
+							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
+							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
+						},
+						nil,
+					)
+
+				executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
+				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+
+				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
+				tx := NewUnsignedTransaction(
+					sender,
+					recipient,
+					encodedData,
+					constant.Zero,
+					nil,
+				)
+				gasEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Eq(tx)).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(uint64(10), nil)
+
+				return NewBuildRouteUseCase(
+					tokenRepository,
+					priceRepository,
+					executorBalanceRepository,
+					gasEstimator,
+					nil,
+					clientDataEncoder,
+					encoder,
+					encoder,
+					nil,
+					config,
+				)
+			},
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:                     big.NewInt(20000),
+					AmountInUSD:                  0,
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:                    big.NewInt(10000),
+					AmountOutUSD:                 0,
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          15,
+					GasPrice:                     big.NewFloat(100.2),
+					GasUSD:                       100,
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:      "0xabc",
+								AmountOut: big.NewInt(10000),
+							},
+						},
+					},
+				},
+				SlippageTolerance: 5,
+				Recipient:         recipient,
+				Sender:            sender,
+			},
+			config: Config{ChainID: valueobject.ChainIDEthereum, FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true}},
+			result: &dto.BuildRouteResult{
+				AmountIn:      "20000",
+				AmountInUSD:   "0.02",
+				AmountOut:     "10000",
+				AmountOutUSD:  "0.01",
+				Gas:           "15",
+				GasUSD:        "100",
+				OutputChange:  OutputChangeNoChange,
+				Data:          "mockEncodedData",
+				RouterAddress: "0x01",
+			},
+			err: nil,
+		},
+		{
 			name: "it should return correct result and run estimate Gas when there is no error and Feature flag is on with token in is Ether",
-			prepare: func(ctrl *gomock.Controller, config Config) *BuildRouteUseCase {
+			prepare: func(ctrl *gomock.Controller, config Config, wg *sync.WaitGroup) *BuildRouteUseCase {
 				clientDataEncoder := usecase.NewMockIClientDataEncoder(ctrl)
 
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
@@ -342,19 +456,21 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 		},
 	}
 
+	wg := sync.WaitGroup{}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			uc := tc.prepare(ctrl, tc.config)
-
+			uc := tc.prepare(ctrl, tc.config, &wg)
 			result, err := uc.Handle(context.Background(), tc.command)
+			wg.Wait()
 
 			assert.Equal(t, tc.result, result)
 			assert.ErrorIs(t, err, tc.err)
 		})
 	}
+
 }
 
 func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
@@ -366,7 +482,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 	testCases := []struct {
 		name        string
 		command     dto.BuildRouteCommand
-		estimateGas func(ctrl *gomock.Controller) *buildroute.MockIGasEstimator
+		estimateGas func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator
 		result      *dto.BuildRouteResult
 		config      Config
 		err         error
@@ -412,7 +528,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				Data:          "mockEncodedData",
 				RouterAddress: "0x01",
 			},
-			estimateGas: func(ctrl *gomock.Controller) *buildroute.MockIGasEstimator {
+			estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
 				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(uint64(1234), float64(1.5), nil).Times(1)
 				return gasEstimator
@@ -460,7 +576,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				Data:          "mockEncodedData",
 				RouterAddress: "0x01",
 			},
-			estimateGas: func(ctrl *gomock.Controller) *buildroute.MockIGasEstimator {
+			estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
 				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Times(0)
 				return gasEstimator
@@ -469,7 +585,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			err:    nil,
 		},
 		{
-			name: "it should return correct result and disable run estimate Gas when there is no error because feature flag is off",
+			name: "it should return correct result and run estimate Gas in goroutine when there is no error because feature flag is on but disable estimateGas",
 			command: dto.BuildRouteCommand{
 				RouteSummary: valueobject.RouteSummary{
 					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
@@ -495,7 +611,8 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				},
 				SlippageTolerance:   5,
 				Recipient:           recipient,
-				EnableGasEstimation: true,
+				Sender:              "0xabc",
+				EnableGasEstimation: false,
 			},
 			result: &dto.BuildRouteResult{
 				AmountIn:      "20000",
@@ -508,12 +625,15 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				Data:          "mockEncodedData",
 				RouterAddress: "0x01",
 			},
-			estimateGas: func(ctrl *gomock.Controller) *buildroute.MockIGasEstimator {
+			estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
+				wg.Add(1)
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
-				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Times(0)
+				gasEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Any()).Times(1).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(uint64(10), nil)
 				return gasEstimator
 			},
-			config: Config{ChainID: valueobject.ChainIDEthereum, FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false}},
+			config: Config{ChainID: valueobject.ChainIDEthereum, FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true}},
 			err:    nil,
 		},
 		{
@@ -546,7 +666,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				EnableGasEstimation: true,
 			},
 			result: nil,
-			estimateGas: func(ctrl *gomock.Controller) *buildroute.MockIGasEstimator {
+			estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
 				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Times(0)
 				return gasEstimator
@@ -556,6 +676,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 		},
 	}
 
+	wg := sync.WaitGroup{}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ctrl := gomock.NewController(t)
@@ -603,7 +724,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
 			executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
 
-			gasEstimator := tc.estimateGas(ctrl)
+			gasEstimator := tc.estimateGas(ctrl, &wg)
 			usecase := NewBuildRouteUseCase(
 				tokenRepository,
 				priceRepository,
@@ -618,6 +739,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			)
 
 			result, err := usecase.Handle(context.Background(), tc.command)
+			wg.Wait()
 
 			assert.Equal(t, tc.result, result)
 			assert.ErrorIs(t, tc.err, err)
