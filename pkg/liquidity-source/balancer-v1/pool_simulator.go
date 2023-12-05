@@ -4,7 +4,6 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -33,8 +32,6 @@ type PoolSimulator struct {
 	publicSwap bool
 	swapFee    *uint256.Int
 
-	totalSwappedIn map[string]*uint256.Int
-
 	gas Gas
 }
 
@@ -54,11 +51,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		records:        extra.Records,
-		publicSwap:     extra.PublicSwap,
-		swapFee:        extra.SwapFee,
-		totalSwappedIn: lo.SliceToMap(entityPool.Tokens, func(token *entity.PoolToken) (string, *uint256.Int) { return token.Address, number.Zero }),
-		gas:            defaultGas,
+		records:    extra.Records,
+		publicSwap: extra.PublicSwap,
+		swapFee:    extra.SwapFee,
+		gas:        defaultGas,
 	}, nil
 }
 
@@ -104,7 +100,6 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 	s.records[params.TokenAmountIn.Token] = inRecord
 	s.records[params.TokenAmountOut.Token] = outRecord
-	s.totalSwappedIn[params.TokenAmountIn.Token] = new(uint256.Int).Add(s.totalSwappedIn[params.TokenAmountIn.Token], amountIn)
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
@@ -143,11 +138,6 @@ func (s *PoolSimulator) swapExactAmountIn(
 
 	if tokenAmountIn.Gt(bMulBalanceInAndMaxIn) {
 		return nil, nil, ErrMaxInRatio
-	}
-
-	if new(uint256.Int).Add(s.totalSwappedIn[tokenIn], tokenAmountIn).Gt(bMulBalanceInAndMaxIn) {
-		return nil, nil, ErrMaxInRatio
-
 	}
 
 	spotPriceBefore, err := BMath.CalcSpotPrice(
