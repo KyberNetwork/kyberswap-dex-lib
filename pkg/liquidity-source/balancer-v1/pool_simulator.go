@@ -109,7 +109,9 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 // https://github.com/balancer/balancer-core/blob/f4ed5d65362a8d6cec21662fb6eae233b0babc1f/contracts/BPool.sol#L423
-// NOTE: ignore minAmountOut and maxPrice because they are not necessary for our simulation
+// NOTE:
+// - ignore minAmountOut and maxPrice because they are not necessary for our simulation
+// - this implementation does not cover MAX_IN_RATIO validation when paths are merged
 func (s *PoolSimulator) swapExactAmountIn(
 	tokenIn string,
 	tokenAmountIn *uint256.Int,
