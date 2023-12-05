@@ -40,7 +40,7 @@ func (l *bNum) BFloor(a *uint256.Int) *uint256.Int {
 func (l *bNum) BAdd(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
 	c := new(uint256.Int).Add(a, b)
 
-	if c.Cmp(a) < 0 {
+	if c.Lt(a) {
 		return nil, ErrAddOverFlow
 	}
 
@@ -60,7 +60,7 @@ func (l *bNum) BSub(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
 
 // https://github.com/balancer/balancer-core/blob/f4ed5d65362a8d6cec21662fb6eae233b0babc1f/contracts/BNum.sol#L52
 func (l *bNum) BSubSign(a *uint256.Int, b *uint256.Int) (*uint256.Int, bool) {
-	if a.Cmp(b) >= 0 {
+	if !a.Lt(b) {
 		return new(uint256.Int).Sub(a, b), false
 	}
 
@@ -71,13 +71,13 @@ func (l *bNum) BSubSign(a *uint256.Int, b *uint256.Int) (*uint256.Int, bool) {
 func (l *bNum) BMul(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
 	c0 := new(uint256.Int).Mul(a, b)
 
-	if a.Cmp(number.Zero) != 0 && new(uint256.Int).Div(c0, a).Cmp(b) != 0 {
+	if !a.Eq(number.Zero) && !new(uint256.Int).Div(c0, a).Eq(b) {
 		return nil, ErrMulOverflow
 	}
 
 	c1 := new(uint256.Int).Add(c0, new(uint256.Int).Div(BConst.BONE, number.Number_2))
 
-	if c1.Cmp(c0) < 0 {
+	if c1.Lt(c0) {
 		return nil, ErrMulOverflow
 	}
 
@@ -88,19 +88,19 @@ func (l *bNum) BMul(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
 
 // https://github.com/balancer/balancer-core/blob/f4ed5d65362a8d6cec21662fb6eae233b0babc1f/contracts/BNum.sol#L75
 func (l *bNum) BDiv(a *uint256.Int, b *uint256.Int) (*uint256.Int, error) {
-	if b.Cmp(number.Zero) == 0 {
+	if b.Eq(number.Zero) {
 		return nil, ErrDivZero
 	}
 
 	c0 := new(uint256.Int).Mul(a, BConst.BONE)
 
-	if a.Cmp(number.Zero) != 0 && new(uint256.Int).Div(c0, a).Cmp(BConst.BONE) != 0 {
+	if !a.Eq(number.Zero) && !new(uint256.Int).Div(c0, a).Eq(BConst.BONE) {
 		return nil, ErrDivInternal
 	}
 
 	c1 := new(uint256.Int).Add(c0, new(uint256.Int).Div(b, number.Number_2))
 
-	if c1.Cmp(c0) < 0 {
+	if c1.Lt(c0) {
 		return nil, ErrDivInternal
 	}
 
@@ -116,19 +116,19 @@ func (l *bNum) BPowI(a *uint256.Int, n *uint256.Int) (*uint256.Int, error) {
 		err error
 	)
 
-	if new(uint256.Int).Mod(n, number.Number_2).Cmp(number.Zero) != 0 {
+	if !new(uint256.Int).Mod(n, number.Number_2).Eq(number.Zero) {
 		z = a
 	} else {
 		z = BConst.BONE
 	}
 
-	for n = new(uint256.Int).Div(n, number.Number_2); n.Cmp(number.Zero) != 0; n = new(uint256.Int).Div(n, number.Number_2) {
+	for n = new(uint256.Int).Div(n, number.Number_2); !n.Eq(number.Zero); n = new(uint256.Int).Div(n, number.Number_2) {
 		a, err = l.BMul(a, a)
 		if err != nil {
 			return nil, err
 		}
 
-		if new(uint256.Int).Mod(n, number.Number_2).Cmp(number.Zero) != 0 {
+		if !new(uint256.Int).Mod(n, number.Number_2).Eq(number.Zero) {
 			z, err = l.BMul(z, a)
 			if err != nil {
 				return nil, err
@@ -147,7 +147,7 @@ func (l *bNum) BPowApprox(base *uint256.Int, exp *uint256.Int, precision *uint25
 	sum := new(uint256.Int).Set(term)
 	negative := false
 
-	for i := number.Number_1; term.Cmp(precision) >= 0; i = new(uint256.Int).Add(i, number.Number_1) {
+	for i := number.Number_1; !term.Lt(precision); i = new(uint256.Int).Add(i, number.Number_1) {
 		bigK := new(uint256.Int).Mul(i, BConst.BONE)
 
 		bsubBigKAndBone, err := l.BSub(bigK, BConst.BONE)
@@ -172,7 +172,7 @@ func (l *bNum) BPowApprox(base *uint256.Int, exp *uint256.Int, precision *uint25
 			return nil, err
 		}
 
-		if term.Cmp(number.Zero) == 0 {
+		if term.Eq(number.Zero) {
 			break
 		}
 
@@ -202,11 +202,11 @@ func (l *bNum) BPowApprox(base *uint256.Int, exp *uint256.Int, precision *uint25
 
 // https://github.com/balancer/balancer-core/blob/f4ed5d65362a8d6cec21662fb6eae233b0babc1f/contracts/BNum.sol#L108
 func (l *bNum) BPow(base *uint256.Int, exp *uint256.Int) (*uint256.Int, error) {
-	if base.Cmp(BConst.MIN_BPOW_BASE) < 0 {
+	if base.Lt(BConst.MIN_BPOW_BASE) {
 		return nil, ErrBPowBaseTooLow
 	}
 
-	if base.Cmp(BConst.MAX_BPOW_BASE) > 0 {
+	if base.Gt(BConst.MAX_BPOW_BASE) {
 		return nil, ErrBPowBaseTooHigh
 	}
 
@@ -221,7 +221,7 @@ func (l *bNum) BPow(base *uint256.Int, exp *uint256.Int) (*uint256.Int, error) {
 		return nil, err
 	}
 
-	if remain.Cmp(number.Zero) == 0 {
+	if remain.Eq(number.Zero) {
 		return wholePow, nil
 	}
 

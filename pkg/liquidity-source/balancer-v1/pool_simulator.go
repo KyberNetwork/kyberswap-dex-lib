@@ -141,11 +141,11 @@ func (s *PoolSimulator) swapExactAmountIn(
 		return nil, nil, err
 	}
 
-	if tokenAmountIn.Cmp(bMulBalanceInAndMaxIn) > 0 {
+	if tokenAmountIn.Gt(bMulBalanceInAndMaxIn) {
 		return nil, nil, ErrMaxInRatio
 	}
 
-	if new(uint256.Int).Add(s.totalSwappedIn[tokenIn], tokenAmountIn).Cmp(bMulBalanceInAndMaxIn) > 0 {
+	if new(uint256.Int).Add(s.totalSwappedIn[tokenIn], tokenAmountIn).Gt(bMulBalanceInAndMaxIn) {
 		return nil, nil, ErrMaxInRatio
 
 	}
@@ -202,7 +202,7 @@ func (s *PoolSimulator) swapExactAmountIn(
 		return nil, nil, err
 	}
 
-	if spotPriceAfter.Cmp(spotPriceBefore) < 0 {
+	if spotPriceAfter.Lt(spotPriceBefore) {
 		return nil, nil, ErrMathApprox
 	}
 
@@ -215,7 +215,7 @@ func (s *PoolSimulator) swapExactAmountIn(
 		return nil, nil, err
 	}
 
-	if spotPriceBefore.Cmp(bDivTokenAmountInAndOut) > 0 {
+	if spotPriceBefore.Gt(bDivTokenAmountInAndOut) {
 		return nil, nil, ErrMathApprox
 	}
 

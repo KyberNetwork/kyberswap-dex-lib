@@ -50,7 +50,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			result, err := tc.poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{TokenAmountIn: tc.tokenAmountIn, TokenOut: tc.tokenOut})
 
-			assert.ErrorIs(t, tc.expectedError, err)
+			assert.ErrorIs(t, err, tc.expectedError)
 			if tc.expectedAmountOut != nil {
 				assert.Equal(t, 0, tc.expectedAmountOut.Cmp(result.TokenAmountOut.Amount))
 			}
