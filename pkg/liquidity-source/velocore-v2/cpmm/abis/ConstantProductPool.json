@@ -1,0 +1,951 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "contract ConstantProductLibrary",
+                "name": "lib_",
+                "type": "address"
+            },
+            {
+                "internalType": "contract IVault",
+                "name": "vault_",
+                "type": "address"
+            },
+            {
+                "internalType": "string",
+                "name": "_name",
+                "type": "string"
+            },
+            {
+                "internalType": "string",
+                "name": "_symbol",
+                "type": "string"
+            },
+            {
+                "internalType": "Token[]",
+                "name": "tokens",
+                "type": "bytes32[]"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "weights",
+                "type": "uint256[]"
+            },
+            {
+                "internalType": "uint32",
+                "name": "fee1e9_",
+                "type": "uint32"
+            },
+            {
+                "internalType": "uint32",
+                "name": "decay",
+                "type": "uint32"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "x",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "y",
+                "type": "uint256"
+            }
+        ],
+        "name": "PRBMath_MulDiv18_Overflow",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "x",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "y",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "denominator",
+                "type": "uint256"
+            }
+        ],
+        "name": "PRBMath_MulDiv_Overflow",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "int256",
+                "name": "x",
+                "type": "int256"
+            }
+        ],
+        "name": "PRBMath_SD59x18_Convert_Overflow",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "int256",
+                "name": "x",
+                "type": "int256"
+            }
+        ],
+        "name": "PRBMath_SD59x18_Convert_Underflow",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "PRBMath_SD59x18_Div_InputTooSmall",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "SD59x18",
+                "name": "x",
+                "type": "int256"
+            },
+            {
+                "internalType": "SD59x18",
+                "name": "y",
+                "type": "int256"
+            }
+        ],
+        "name": "PRBMath_SD59x18_Div_Overflow",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "SD59x18",
+                "name": "x",
+                "type": "int256"
+            }
+        ],
+        "name": "PRBMath_SD59x18_Exp2_InputTooBig",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "SD59x18",
+                "name": "x",
+                "type": "int256"
+            }
+        ],
+        "name": "PRBMath_SD59x18_Log_InputTooSmall",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "PRBMath_SD59x18_Mul_InputTooSmall",
+        "type": "error"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "SD59x18",
+                "name": "x",
+                "type": "int256"
+            },
+            {
+                "internalType": "SD59x18",
+                "name": "y",
+                "type": "int256"
+            }
+        ],
+        "name": "PRBMath_SD59x18_Mul_Overflow",
+        "type": "error"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "owner",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "spender",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+            }
+        ],
+        "name": "Approval",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "decay",
+                "type": "uint256"
+            }
+        ],
+        "name": "DecayChanged",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "fee1e18",
+                "type": "uint256"
+            }
+        ],
+        "name": "FeeChanged",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "from",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "value",
+                "type": "uint256"
+            }
+        ],
+        "name": "Transfer",
+        "type": "event"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "from",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "spender",
+                "type": "address"
+            }
+        ],
+        "name": "allowance",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "spender",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            }
+        ],
+        "name": "approve",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "addr",
+                "type": "address"
+            }
+        ],
+        "name": "balanceOf",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "contract IGauge",
+                "name": "gauge",
+                "type": "address"
+            }
+        ],
+        "name": "bribeRates",
+        "outputs": [
+            {
+                "internalType": "uint256[]",
+                "name": "",
+                "type": "uint256[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "contract IGauge",
+                "name": "gauge",
+                "type": "address"
+            }
+        ],
+        "name": "bribeTokens",
+        "outputs": [
+            {
+                "internalType": "Token[]",
+                "name": "",
+                "type": "bytes32[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "decayRate",
+        "outputs": [
+            {
+                "internalType": "uint32",
+                "name": "",
+                "type": "uint32"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "decimals",
+        "outputs": [
+            {
+                "internalType": "uint8",
+                "name": "",
+                "type": "uint8"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_spender",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_subtractedValue",
+                "type": "uint256"
+            }
+        ],
+        "name": "decreaseAllowance",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "user",
+                "type": "address"
+            }
+        ],
+        "name": "emissionShare",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "fee1e9",
+        "outputs": [
+            {
+                "internalType": "uint32",
+                "name": "",
+                "type": "uint32"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "feeMultiplier",
+        "outputs": [
+            {
+                "internalType": "uint128",
+                "name": "",
+                "type": "uint128"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "_spender",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "_addedValue",
+                "type": "uint256"
+            }
+        ],
+        "name": "increaseAllowance",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "lastWithdrawTimestamp",
+        "outputs": [
+            {
+                "internalType": "uint32",
+                "name": "",
+                "type": "uint32"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "listedTokens",
+        "outputs": [
+            {
+                "internalType": "Token[]",
+                "name": "",
+                "type": "bytes32[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "lpTokens",
+        "outputs": [
+            {
+                "internalType": "Token[]",
+                "name": "ret",
+                "type": "bytes32[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "name",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "naturalBribes",
+        "outputs": [
+            {
+                "internalType": "Token[]",
+                "name": "",
+                "type": "bytes32[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint128",
+                "name": "m",
+                "type": "uint128"
+            }
+        ],
+        "name": "notifyBurn",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint128",
+                "name": "m",
+                "type": "uint128"
+            }
+        ],
+        "name": "notifyMint",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint128",
+                "name": "m",
+                "type": "uint128"
+            }
+        ],
+        "name": "notifyWithdraw",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "poolBalances",
+        "outputs": [
+            {
+                "internalType": "uint256[]",
+                "name": "",
+                "type": "uint256[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "poolParams",
+        "outputs": [
+            {
+                "internalType": "bytes",
+                "name": "",
+                "type": "bytes"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "relevantTokens",
+        "outputs": [
+            {
+                "internalType": "Token[]",
+                "name": "",
+                "type": "bytes32[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "setFeeToZero",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "fee1e9_",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "decayRate_",
+                "type": "uint256"
+            }
+        ],
+        "name": "setParam",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "stake",
+        "outputs": [
+            {
+                "internalType": "Token",
+                "name": "",
+                "type": "bytes32"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "stakeableTokens",
+        "outputs": [
+            {
+                "internalType": "Token[]",
+                "name": "",
+                "type": "bytes32[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "user",
+                "type": "address"
+            }
+        ],
+        "name": "stakedTokens",
+        "outputs": [
+            {
+                "internalType": "uint256[]",
+                "name": "",
+                "type": "uint256[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "stakedTokens",
+        "outputs": [
+            {
+                "internalType": "uint256[]",
+                "name": "",
+                "type": "uint256[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "swapType",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "symbol",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "tokenWeights",
+        "outputs": [
+            {
+                "internalType": "uint256[]",
+                "name": "",
+                "type": "uint256[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "totalSupply",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            }
+        ],
+        "name": "transfer",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "from",
+                "type": "address"
+            },
+            {
+                "internalType": "address",
+                "name": "to",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            }
+        ],
+        "name": "transferFrom",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "Token",
+                "name": "tok",
+                "type": "bytes32"
+            }
+        ],
+        "name": "underlyingTokens",
+        "outputs": [
+            {
+                "internalType": "Token[]",
+                "name": "",
+                "type": "bytes32[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "contract IGauge",
+                "name": "gauge",
+                "type": "address"
+            },
+            {
+                "internalType": "uint256",
+                "name": "elapsed",
+                "type": "uint256"
+            }
+        ],
+        "name": "velocore__bribe",
+        "outputs": [
+            {
+                "internalType": "Token[]",
+                "name": "bribeTokens",
+                "type": "bytes32[]"
+            },
+            {
+                "internalType": "int128[]",
+                "name": "deltaGauge",
+                "type": "int128[]"
+            },
+            {
+                "internalType": "int128[]",
+                "name": "deltaPool",
+                "type": "int128[]"
+            },
+            {
+                "internalType": "int128[]",
+                "name": "deltaExternal",
+                "type": "int128[]"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "newEmissions",
+                "type": "uint256"
+            }
+        ],
+        "name": "velocore__emission",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            },
+            {
+                "internalType": "Token[]",
+                "name": "tokens",
+                "type": "bytes32[]"
+            },
+            {
+                "internalType": "int128[]",
+                "name": "r",
+                "type": "int128[]"
+            },
+            {
+                "internalType": "bytes",
+                "name": "data",
+                "type": "bytes"
+            }
+        ],
+        "name": "velocore__execute",
+        "outputs": [
+            {
+                "internalType": "int128[]",
+                "name": "",
+                "type": "int128[]"
+            },
+            {
+                "internalType": "int128[]",
+                "name": "",
+                "type": "int128[]"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "user",
+                "type": "address"
+            },
+            {
+                "internalType": "Token[]",
+                "name": "tokens",
+                "type": "bytes32[]"
+            },
+            {
+                "internalType": "int128[]",
+                "name": "amounts",
+                "type": "int128[]"
+            },
+            {
+                "internalType": "bytes",
+                "name": "",
+                "type": "bytes"
+            }
+        ],
+        "name": "velocore__gauge",
+        "outputs": [
+            {
+                "internalType": "int128[]",
+                "name": "deltaGauge",
+                "type": "int128[]"
+            },
+            {
+                "internalType": "int128[]",
+                "name": "deltaPool",
+                "type": "int128[]"
+            }
+        ],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+]
