@@ -88,18 +88,13 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	fromAsset, err := assetOf(params.TokenAmountIn.Token, p.assets)
-	if err != nil {
-		return
-	}
+	fromAsset, toAsset := p.assets[params.TokenAmountIn.Token], p.assets[params.TokenAmountOut.Token]
 
-	toAsset, err := assetOf(params.TokenAmountOut.Token, p.assets)
-	if err != nil {
-		return
-	}
+	fromAsset.Cash = new(big.Int).Add(fromAsset.Cash, params.TokenAmountIn.Amount)
+	toAsset.Cash = new(big.Int).Sub(toAsset.Cash, new(big.Int).Add(params.TokenAmountOut.Amount, params.Fee.Amount))
 
-	fromAsset.Cash = addCash(fromAsset.Cash, params.TokenAmountIn.Amount)
-	toAsset.Cash = removeCash(toAsset.Cash, params.TokenAmountOut.Amount)
+	p.assets[params.TokenAmountIn.Token] = fromAsset
+	p.assets[params.TokenAmountOut.Token] = toAsset
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
