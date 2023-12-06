@@ -32,9 +32,5 @@ const (
 var (
 	unknownBI = new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(127), nil), big.NewInt(1))
 
-	bigint0    = big.NewInt(0)
-	bigint1    = big.NewInt(1)
-	bigint2    = big.NewInt(2)
-	bigint1e9  = big.NewInt(1e9)
-	bigint1e18 = big.NewInt(1e18)
+	bigint1e9 = big.NewInt(1e9)
 )

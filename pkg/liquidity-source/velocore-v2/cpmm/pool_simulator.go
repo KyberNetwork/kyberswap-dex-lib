@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/logger"
 	"github.com/holiman/uint256"
@@ -80,10 +81,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
+
 	tokens, r := p.newVelocoreExecuteParams(tokenAmountIn, tokenOut)
 
 	result, err := p.velocoreExecute(tokens, r)
@@ -173,12 +173,12 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 		}
 
 		weights[i], _ = p.getTokenWeight(token)
-		a[i] = new(big.Int).Add(a[i], bigint1)
+		a[i] = new(big.Int).Add(a[i], integer.One())
 	}
 
 	var (
 		invariantMin, invariantMax *big.Int
-		k                          = bigint1e18
+		k                          = bignumber.BONE
 		lpInvolved                 = iLp != unknownInt
 		lpUnknown                  = lpInvolved && (r[iLp].Cmp(unknownBI) == 0)
 	)
@@ -191,7 +191,7 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 			return nil, err
 		}
 		if lpUnknown {
-			kw := bigint0
+			kw := integer.Zero()
 			for i := range tokens {
 				if r[i].Cmp(unknownBI) == 0 {
 					if i != iLp {
@@ -199,16 +199,16 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 					}
 					continue
 				}
-				balanceRatio := new(big.Int).Div(
-					new(big.Int).Mul(new(big.Int).Add(a[i], r[i]), bigint1e18),
+				balanceRatio := new(big.Int).Quo(
+					new(big.Int).Mul(new(big.Int).Add(a[i], r[i]), bignumber.BONE),
 					a[i],
 				)
 				k = new(big.Int).Add(k, new(big.Int).Mul(weights[i], balanceRatio))
 			}
-			k = new(big.Int).Div(k, new(big.Int).Sub(p.sumWeight, kw))
+			k = new(big.Int).Quo(k, new(big.Int).Sub(p.sumWeight, kw))
 		} else {
-			k = new(big.Int).Div(
-				new(big.Int).Mul(bigint1e18, new(big.Int).Sub(invariantMax, r[iLp])),
+			k = new(big.Int).Quo(
+				new(big.Int).Mul(bignumber.BONE, new(big.Int).Sub(invariantMax, r[iLp])),
 				invariantMax,
 			)
 		}
@@ -218,9 +218,9 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 	// which equals to:
 	// Pi[ ((b - fee(b - a)) / a) ^ w ]
 	var (
-		requestedGrowth1e18 = bigint1e18
-		sumUnknownWeight    = bigint0
-		sumKnownWeight      = bigint0
+		requestedGrowth1e18 = bignumber.BONE
+		sumUnknownWeight    = integer.Zero()
+		sumKnownWeight      = integer.Zero()
 	)
 	for i := range tokens {
 		if r[i].Cmp(unknownBI) == 0 {
@@ -233,8 +233,8 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 		var tokenGrowth1e18 *big.Int
 		if i == iLp {
 			newInvariant := new(big.Int).Sub(invariantMax, r[iLp])
-			tokenGrowth1e18 = new(big.Int).Div(
-				new(big.Int).Mul(bigint1e18, invariantMin),
+			tokenGrowth1e18 = new(big.Int).Quo(
+				new(big.Int).Mul(bignumber.BONE, invariantMin),
 				newInvariant,
 			)
 		} else {
@@ -244,13 +244,13 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 			var (
 				aPrime *big.Int
 				bPrime *big.Int
-				fee    = bigint0
+				fee    = integer.Zero()
 			)
-			if k.Cmp(bigint1e18) > 0 {
+			if k.Cmp(bignumber.BONE) > 0 {
 				aPrime = a[i]
-				bPrime = new(big.Int).Div(new(big.Int).Mul(b, bigint1e18), k)
+				bPrime = new(big.Int).Quo(new(big.Int).Mul(b, bignumber.BONE), k)
 			} else {
-				aPrime = new(big.Int).Div(new(big.Int).Mul(a[i], k), bigint1e18)
+				aPrime = new(big.Int).Quo(new(big.Int).Mul(a[i], k), bignumber.BONE)
 				bPrime = b
 			}
 
@@ -263,15 +263,15 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 				fee = f.ToBig()
 			}
 
-			tokenGrowth1e18 = new(big.Int).Div(
-				new(big.Int).Mul(bigint1e18, new(big.Int).Sub(b, fee)),
+			tokenGrowth1e18 = new(big.Int).Quo(
+				new(big.Int).Mul(bignumber.BONE, new(big.Int).Sub(b, fee)),
 				a[i],
 			)
 		}
 
 		oneHundred := big.NewInt(100)
-		lo := new(big.Int).Div(bigint1e18, oneHundred) // 0.01e18
-		hi := new(big.Int).Mul(bigint1e18, oneHundred) // 100e18
+		lo := new(big.Int).Quo(bignumber.BONE, oneHundred) // 0.01e18
+		hi := new(big.Int).Mul(bignumber.BONE, oneHundred) // 100e18
 		if tokenGrowth1e18.Cmp(lo) <= 0 || tokenGrowth1e18.Cmp(hi) >= 0 {
 			return p.velocoreExecuteFallback(tokens, r)
 		}
@@ -279,59 +279,65 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 		rpow, err := math.Common.RPow(
 			uint256.MustFromBig(tokenGrowth1e18),
 			uint256.MustFromBig(weights[i]),
-			uint256.NewInt(1e18),
+			number.Number_1e18,
 		)
 		if err != nil {
 			return nil, err
 		}
-		requestedGrowth1e18 = new(big.Int).Div(
+		requestedGrowth1e18 = new(big.Int).Quo(
 			new(big.Int).Mul(requestedGrowth1e18, rpow.ToBig()),
-			bigint1e18,
+			bignumber.BONE,
 		)
 
-		// this statement is not actually needed because we use *big.Int instead of uint256.
-		// it's here to make the code more similar to the original.
-		if requestedGrowth1e18.Cmp(bigint0) <= 0 {
+		if requestedGrowth1e18.Cmp(integer.Zero()) <= 0 {
 			return nil, ErrInvalidTokenGrowth
 		}
 	}
 
-	if k.Cmp(bigint1e18) < 0 {
-		x := new(big.Int).Sub(
-			bigint1e18,
-			new(big.Int).Div(
-				new(big.Int).Mul(new(big.Int).Sub(bigint1e18, k), effectiveFee1e9),
-				bigint1e9,
-			),
-		)
-		n := new(big.Int).Sub(new(big.Int).Sub(p.sumWeight, sumUnknownWeight), sumKnownWeight)
-		unaccountedFeeAsGrowth1e18, err := math.Common.RPow(
-			uint256.MustFromBig(x),
-			uint256.MustFromBig(n),
-			uint256.NewInt(1e18),
-		)
-		if err != nil {
-			return nil, err
+	// requestedGrowth1e18
+	{
+		unaccountedFeeAsGrowth1e18 := bignumber.BONE
+		if k.Cmp(bignumber.BONE) < 0 {
+			x := new(big.Int).Sub(
+				bignumber.BONE,
+				new(big.Int).Quo(
+					new(big.Int).Mul(new(big.Int).Sub(bignumber.BONE, k), effectiveFee1e9),
+					bigint1e9,
+				),
+			)
+			n := new(big.Int).Sub(new(big.Int).Sub(p.sumWeight, sumUnknownWeight), sumKnownWeight)
+			u, err := math.Common.RPow(
+				uint256.MustFromBig(x),
+				uint256.MustFromBig(n),
+				number.Number_1e18,
+			)
+			if err != nil {
+				return nil, err
+			}
+			unaccountedFeeAsGrowth1e18 = u.ToBig()
 		}
 
-		requestedGrowth1e18 = new(big.Int).Div(
-			new(big.Int).Mul(requestedGrowth1e18, unaccountedFeeAsGrowth1e18.ToBig()),
-			bigint1e18,
+		requestedGrowth1e18 = new(big.Int).Quo(
+			new(big.Int).Mul(requestedGrowth1e18, unaccountedFeeAsGrowth1e18),
+			bignumber.BONE,
 		)
 	}
 
 	var g_, g *big.Int
-	w := sumUnknownWeight
-	if lpUnknown {
-		w = new(big.Int).Sub(w, p.sumWeight)
-	}
-	if w.Cmp(bigint0) == 0 {
-		return nil, ErrInvalidR
-	}
 
-	g_, g, err = powReciprocal(requestedGrowth1e18, new(big.Int).Neg(w))
-	if err != nil {
-		return nil, err
+	{
+		w := sumUnknownWeight
+		if lpUnknown {
+			w = new(big.Int).Sub(w, p.sumWeight)
+		}
+		if w.Cmp(integer.Zero()) == 0 {
+			return nil, ErrInvalidR
+		}
+
+		g_, g, err = powReciprocal(requestedGrowth1e18, new(big.Int).Neg(w))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// calculate unknown "r_i"
@@ -343,20 +349,20 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 		if i != iLp {
 			bU256, err := math.Common.CeilDiv(
 				uint256.MustFromBig(new(big.Int).Mul(g, a[i])),
-				uint256.NewInt(1e18),
+				number.Number_1e18,
 			)
 			b := bU256.ToBig()
 			if err != nil {
 				return nil, err
 			}
 			var (
-				fee            = bigint0
+				fee            = integer.Zero()
 				aPrime, bPrime *big.Int
 			)
-			if k.Cmp(bigint1e18) > 0 {
+			if k.Cmp(bignumber.BONE) > 0 {
 				aPrime = a[i]
 				_bPrime, err := math.Common.CeilDiv(
-					uint256.MustFromBig(new(big.Int).Mul(b, bigint1e18)),
+					uint256.MustFromBig(new(big.Int).Mul(b, bignumber.BONE)),
 					uint256.MustFromBig(k),
 				)
 				if err != nil {
@@ -364,7 +370,7 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 				}
 				bPrime = _bPrime.ToBig()
 			} else {
-				aPrime = new(big.Int).Div(new(big.Int).Mul(a[i], k), bigint1e18)
+				aPrime = new(big.Int).Quo(new(big.Int).Mul(a[i], k), bignumber.BONE)
 				bPrime = b
 			}
 
@@ -388,20 +394,20 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 
 		// case unknown lp token "r"
 
-		b := new(big.Int).Div(new(big.Int).Mul(g_, invariantMin), bigint1e18)
+		b := new(big.Int).Quo(new(big.Int).Mul(g_, invariantMin), bignumber.BONE)
 		r[i] = new(big.Int).Neg(new(big.Int).Sub(b, invariantMax))
 	}
 
 	var (
 		isFeeMultiplierUpdated bool
-		newFeeMultiplier       = bigint0
+		newFeeMultiplier       = integer.Zero()
 	)
-	if lpInvolved && r[iLp].Cmp(bigint0) > 0 {
+	if lpInvolved && r[iLp].Cmp(integer.Zero()) > 0 {
 		newFeeMultiplier = p.feeMultiplier
 		if !p.isLastWithdrawInTheSameBlock {
 			newFeeMultiplier = bigint1e9
 		}
-		newFeeMultiplier = new(big.Int).Div(
+		newFeeMultiplier = new(big.Int).Quo(
 			new(big.Int).Mul(newFeeMultiplier, invariantMax),
 			new(big.Int).Sub(invariantMax, r[iLp]),
 		)
@@ -429,11 +435,14 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 
 	fee1e18 := new(big.Int).Mul(big.NewInt(int64(p.fee1e9)), bigint1e9)
 	if p.isLastWithdrawInTheSameBlock {
-		fee1e18 = new(big.Int).Div(new(big.Int).Mul(fee1e18, p.feeMultiplier), bigint1e9)
+		fee1e18 = new(big.Int).Quo(new(big.Int).Mul(fee1e18, p.feeMultiplier), bigint1e9)
 	}
 	additionalMultiplier := bigint1e9
 
 	r := make([]*big.Int, len(t))
+	for i := range r {
+		r[i] = integer.Zero()
+	}
 	j := 1
 	for i, token := range tokens {
 		if tokens[i] == t[0] {
@@ -449,7 +458,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 	}
 
 	for i := 1; i < len(w); i++ {
-		a[i] = new(big.Int).Add(a[i], bigint1)
+		a[i] = new(big.Int).Add(a[i], integer.One())
 	}
 
 	// pre convert
@@ -499,7 +508,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 		sumUnknownWeight = sd59x18.Zero
 	)
 	if r[0].Cmp(unknownBI) == 0 {
-		kw := bigint0
+		kw := integer.Zero()
 		for i := 1; i < len(w); i++ {
 			if r[i].Cmp(unknownBI) == 0 {
 				kw = new(big.Int).Add(kw, w[i])
@@ -531,13 +540,13 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 		}
 		sumUnknownWeight = new(sd59x18.SD59x18).Sub(sumUnknownWeight, w_SD59x18[0])
 
-	} else if r[0].Cmp(bigint0) != 0 {
+	} else if r[0].Cmp(integer.Zero()) != 0 {
 		x, err := sd59x18.NewExpr(logInvariantMin).Exp2().Sub(r_SD59x18[0]).Result()
 		if err != nil {
 			return nil, err
 		}
 
-		one_sd59x18, err := sd59x18.ConvertSD59x18(bigint1)
+		one_sd59x18, err := sd59x18.ConvertSD59x18(integer.One())
 		if err != nil {
 			return nil, err
 		}
@@ -590,7 +599,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 			a_SD59x18[i],
 			new(sd59x18.SD59x18).Ternary(
 				new(sd59x18.SD59x18).Gt(k, sd59x18.Zero),
-				sd59x18.SD(bigint1e18),
+				sd59x18.SD(bignumber.BONE),
 				k,
 			),
 		)
@@ -603,7 +612,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 			new(sd59x18.SD59x18).Ternary(
 				new(sd59x18.SD59x18).Gt(k, sd59x18.Zero),
 				k,
-				sd59x18.SD(bigint1e18),
+				sd59x18.SD(bignumber.BONE),
 			),
 		)
 		if err != nil {
@@ -648,7 +657,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 				a_SD59x18[i],
 				new(sd59x18.SD59x18).Ternary(
 					new(sd59x18.SD59x18).Gt(k, sd59x18.Zero),
-					sd59x18.SD(bigint1e18),
+					sd59x18.SD(bignumber.BONE),
 					k,
 				),
 			)
@@ -661,7 +670,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 				new(sd59x18.SD59x18).Ternary(
 					new(sd59x18.SD59x18).Gt(k, sd59x18.Zero),
 					k,
-					sd59x18.SD(bigint1e18),
+					sd59x18.SD(bignumber.BONE),
 				),
 			)
 			if err != nil {
@@ -670,7 +679,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 
 			if new(sd59x18.SD59x18).Gt(bPrime, aPrime) {
 				b, err = sd59x18.NewExpr(bPrime).Sub(aPrime).Div(
-					new(sd59x18.SD59x18).Sub(sd59x18.SD(bigint1e18), sd59x18.SD(fee1e18)),
+					new(sd59x18.SD59x18).Sub(sd59x18.SD(bignumber.BONE), sd59x18.SD(fee1e18)),
 				).Add(b).Sub(new(sd59x18.SD59x18).Sub(bPrime, aPrime)).Result()
 				if err != nil {
 					return nil, err
@@ -696,7 +705,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 			if err != nil {
 				return nil, err
 			}
-			additionalMultiplier = new(big.Int).Div(
+			additionalMultiplier = new(big.Int).Quo(
 				sd59x18.IntoInt256(u),
 				bigint1e9,
 			)
@@ -705,12 +714,12 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 
 	var (
 		isFeeMultiplierUpdated bool
-		newFeeMultiplier       = bigint0
+		newFeeMultiplier       = integer.Zero()
 	)
 	if additionalMultiplier.Cmp(bigint1e9) > 0 {
 		newFeeMultiplier = additionalMultiplier
 		if p.isLastWithdrawInTheSameBlock {
-			newFeeMultiplier = new(big.Int).Div(
+			newFeeMultiplier = new(big.Int).Quo(
 				new(big.Int).Mul(additionalMultiplier, p.feeMultiplier),
 				bigint1e9,
 			)
@@ -734,7 +743,7 @@ func (p *PoolSimulator) getEffectiveFee1e9() *big.Int {
 	if !p.isLastWithdrawInTheSameBlock {
 		return effectiveFee1e9
 	}
-	effectiveFee1e9 = new(big.Int).Div(
+	effectiveFee1e9 = new(big.Int).Quo(
 		new(big.Int).Mul(effectiveFee1e9, p.feeMultiplier),
 		bigint1e9,
 	)
@@ -790,23 +799,22 @@ func (p *PoolSimulator) getInvariant() (*big.Int, *big.Int, *big.Int, error) {
 	balances := p.Info.Reserves
 	if p.poolTokenNumber-lpTokenNumber == 2 && p.weights[1].Cmp(p.weights[2]) == 0 {
 		prod := new(big.Int).Mul(
-			new(big.Int).Add(balances[1], bigint1),
-			new(big.Int).Add(balances[2], bigint1),
+			new(big.Int).Add(balances[1], integer.One()),
+			new(big.Int).Add(balances[2], integer.One()),
 		)
 		inv := new(big.Int).Sqrt(prod)
 		ret0 := balances[0]
 		invariantMin := inv
 		invariantMax := inv
-		invSquare := new(big.Int).Mul(inv, inv)
-		if invSquare.Cmp(prod) < 0 {
-			invariantMax = new(big.Int).Add(inv, bigint1)
+		if new(big.Int).Mul(inv, inv).Cmp(prod) < 0 {
+			invariantMax = new(big.Int).Add(inv, integer.One())
 		}
 		return ret0, invariantMin, invariantMax, nil
 	}
 
 	logInvariant := sd59x18.Zero
 	for i := 1; i < len(p.weights); i++ {
-		b, err := sd59x18.ConvertSD59x18(new(big.Int).Add(balances[i], bigint1))
+		b, err := sd59x18.ConvertSD59x18(new(big.Int).Add(balances[i], integer.One()))
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -850,58 +858,55 @@ func (p *PoolSimulator) getInvariant() (*big.Int, *big.Int, *big.Int, error) {
 				uint256.MustFromBig(invMin),
 				uint256.NewInt(1e18+1e5),
 			),
-			uint256.NewInt(1e18),
+			number.Number_1e18,
 		)
 		if err != nil {
 			return nil, nil, nil, err
 		}
 
-		invMax = new(big.Int).Add(x.ToBig(), bigint1)
+		invMax = new(big.Int).Add(x.ToBig(), integer.One())
 	}
 
-	return bigint0, invMin, invMax, nil
+	return integer.Zero(), invMin, invMax, nil
 }
 
 func powReciprocal(x1e18, n *big.Int) (*big.Int, *big.Int, error) {
-	if n.Cmp(bigint0) == 0 || x1e18.Cmp(bigint1e18) == 0 {
-		return bigint1e18, bigint1e18, nil
+	if n.Cmp(integer.Zero()) == 0 || x1e18.Cmp(bignumber.BONE) == 0 {
+		return bignumber.BONE, bignumber.BONE, nil
 	}
 
-	if n.Cmp(bigint1) == 0 {
+	if n.Cmp(integer.One()) == 0 {
 		return x1e18, x1e18, nil
 	}
 
-	if n.Cmp(new(big.Int).Neg(bigint1)) == 0 {
-		bigint1e18Square := new(big.Int).Mul(bigint1e18, bigint1e18)
+	if n.Cmp(new(big.Int).Neg(integer.One())) == 0 {
+		bigint1e18Square := new(big.Int).Mul(bignumber.BONE, bignumber.BONE)
 
-		v, err := math.Common.CeilDiv(
+		v := math.Common.CeilDivUnsafe(
 			uint256.MustFromBig(bigint1e18Square),
 			uint256.MustFromBig(x1e18),
 		)
-		if err != nil {
-			return nil, nil, err
-		}
 
 		return new(big.Int).Quo(bigint1e18Square, x1e18), v.ToBig(), nil
 	}
 
-	if n.Cmp(bigint2) == 0 {
-		x1e18Mul1e18 := new(big.Int).Mul(x1e18, bigint1e18)
+	if n.Cmp(integer.Two()) == 0 {
+		x1e18Mul1e18 := new(big.Int).Mul(x1e18, bignumber.BONE)
 		s := new(big.Int).Sqrt(x1e18Mul1e18)
 		if new(big.Int).Mul(s, s).Cmp(x1e18Mul1e18) < 0 {
-			return s, new(big.Int).Add(s, bigint1), nil
+			return s, new(big.Int).Add(s, integer.One()), nil
 		}
 		return s, s, nil
 	}
 
-	if n.Cmp(new(big.Int).Neg(bigint2)) == 0 {
-		x1e18Mul1e18 := new(big.Int).Mul(x1e18, bigint1e18)
+	if n.Cmp(new(big.Int).Neg(integer.Two())) == 0 {
+		x1e18Mul1e18 := new(big.Int).Mul(x1e18, bignumber.BONE)
 		s := new(big.Int).Sqrt(x1e18Mul1e18)
 		ss := s
 		if new(big.Int).Mul(s, s).Cmp(x1e18Mul1e18) < 0 {
-			ss = new(big.Int).Add(s, bigint1)
+			ss = new(big.Int).Add(s, integer.One())
 		}
-		square1e18 := new(big.Int).Mul(bigint1e18, bigint1e18)
+		square1e18 := new(big.Int).Mul(bignumber.BONE, bignumber.BONE)
 
 		v, err := math.Common.CeilDiv(
 			uint256.MustFromBig(square1e18),
@@ -911,14 +916,17 @@ func powReciprocal(x1e18, n *big.Int) (*big.Int, *big.Int, error) {
 			return nil, nil, err
 		}
 
-		return new(big.Int).Div(square1e18, ss), v.ToBig(), nil
+		return new(big.Int).Quo(square1e18, ss), v.ToBig(), nil
 	}
 
 	var raw *big.Int
 	{
-		// uint256 raw = uint256((pow(sd(x1e18.toInt256()), sd(1e18) / convert(n))).intoInt256());
 		x := sd59x18.SD(x1e18)
-		y, err := new(sd59x18.SD59x18).Div(sd59x18.SD(bigint1e18), sd59x18.SD(n))
+		n_sd59x18, err := sd59x18.ConvertSD59x18(n)
+		if err != nil {
+			return nil, nil, err
+		}
+		y, err := new(sd59x18.SD59x18).Div(sd59x18.SD(bignumber.BONE), n_sd59x18)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -943,10 +951,10 @@ func powReciprocal(x1e18, n *big.Int) (*big.Int, *big.Int, error) {
 			return nil, nil, err
 		}
 
-		maxError = new(big.Int).Add(v.ToBig(), bigint1)
+		maxError = new(big.Int).Add(v.ToBig(), integer.One())
 	}
 
-	ret0 := bigint0
+	ret0 := integer.Zero()
 	if raw.Cmp(maxError) >= 0 {
 		ret0 = new(big.Int).Sub(raw, maxError)
 	}
