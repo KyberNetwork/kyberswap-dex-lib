@@ -243,4 +243,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangePolMatic, FunctionSelectorMaticMigrate)
 
 	RegisterFunctionSelector(valueobject.ExchangeSmardex, FunctionSelectorSmardex)
+
+	// executeBalancerV1
+	RegisterFunctionSelector(valueobject.ExchangeBalancerV1, FunctionSelectorBalancerV1)
 }

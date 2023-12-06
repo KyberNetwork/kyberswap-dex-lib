@@ -298,6 +298,8 @@ func (d *Decoder) decodeFunctionSelector(id executor.SwapSelector) string {
 		return executor.FunctionSelectorKyberPMM.RawName
 	case executor.FunctionSelectorSmardex.ID:
 		return executor.FunctionSelectorSmardex.RawName
+	case executor.FunctionSelectorBalancerV1.ID:
+		return executor.FunctionSelectorBalancerV1.RawName
 	default:
 		return ""
 	}
@@ -362,6 +364,8 @@ func (d *Decoder) decodeSwapData(sw executor.Swap) (interface{}, error) {
 		return swapdata.UnpackMaticMigrate(sw.Data)
 	case executor.FunctionSelectorSmardex.ID:
 		return swapdata.UnpackSmardex(sw.Data)
+	case executor.FunctionSelectorBalancerV1.ID:
+		return swapdata.UnpackBalancerV1(sw.Data)
 	default:
 		return nil, fmt.Errorf("unsupported function selector")
 	}

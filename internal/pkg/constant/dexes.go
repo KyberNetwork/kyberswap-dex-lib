@@ -78,6 +78,7 @@ type types struct {
 	Fxdx                     string
 	UniswapV2                string
 	QuickPerps               string
+	BalancerV1               string
 }
 
 var (
@@ -159,5 +160,6 @@ var (
 		Fxdx:                     "fxdx",
 		UniswapV2:                "uniswap-v2",
 		QuickPerps:               "quickperps",
+		BalancerV1:               "balancer-v1",
 	}
 )

@@ -239,4 +239,7 @@ func init() {
 
 	// Smardex
 	RegisterPackSwapDataFunc(valueobject.ExchangeSmardex, swapdata.PackSmardex)
+
+	// BalancerV1
+	RegisterPackSwapDataFunc(valueobject.ExchangeBalancerV1, swapdata.PackBalancerV1)
 }

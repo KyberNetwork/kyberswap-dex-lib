@@ -54,6 +54,7 @@ var (
 	FunctionSelectorVooi              FunctionSelector
 	FunctionSelectorMaticMigrate      FunctionSelector
 	FunctionSelectorSmardex           FunctionSelector
+	FunctionSelectorBalancerV1        FunctionSelector
 )
 
 func init() {
@@ -100,4 +101,6 @@ func init() {
 	FunctionSelectorMaticMigrate = NewFunctionSelector("executeMaticMigrate", []string{"bytes", "uint256"})
 
 	FunctionSelectorSmardex = NewFunctionSelector("executeSmardex", []string{"bytes", "uint256"})
+
+	FunctionSelectorBalancerV1 = NewFunctionSelector("executeBalancerV1", []string{"bytes", "uint256"})
 }

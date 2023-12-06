@@ -332,3 +332,11 @@ type Smardex struct {
 	Amount    *big.Int
 	Recipient common.Address
 }
+
+// BalancerV1
+type BalancerV1 struct {
+	Pool     common.Address
+	Amount   *big.Int
+	TokenIn  common.Address
+	TokenOut common.Address
+}
