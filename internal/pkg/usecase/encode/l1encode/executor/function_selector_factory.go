@@ -171,6 +171,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeFxdx, FunctionSelectorGMX)
 	RegisterFunctionSelector(valueobject.ExchangeQuickPerps, FunctionSelectorGMX)
 	RegisterFunctionSelector(valueobject.ExchangeMummyFinance, FunctionSelectorGMX)
+	RegisterFunctionSelector(valueobject.ExchangeOpx, FunctionSelectorGMX)
 
 	// executeSynthetixSwap
 	RegisterFunctionSelector(valueobject.ExchangeSynthetix, FunctionSelectorSynthetix)
