@@ -164,7 +164,7 @@ func (t *PoolTracker) updatePool(p entity.Pool, poolData PoolData, blockNumber *
 	reserves := make([]string, 0, len(poolData.Tokens))
 	for _, token := range poolData.Tokens {
 		poolTokens = append(poolTokens, &entity.PoolToken{Address: token, Swappable: true})
-		reserves = append(reserves, poolData.Records[token].Balance.String())
+		reserves = append(reserves, poolData.Records[token].Balance.ToBig().String())
 	}
 
 	p.Tokens = poolTokens
