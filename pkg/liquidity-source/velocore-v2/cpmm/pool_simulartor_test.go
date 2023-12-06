@@ -12,7 +12,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-// TODO: check this
 func TestCalcAmountOut(t *testing.T) {
 	t.Run("1. should return correct value", func(t *testing.T) {
 		desc := "pool 2 tokens, lp not involved"
@@ -48,7 +47,7 @@ func TestCalcAmountOut(t *testing.T) {
 		// contract:  -1310912514297532736758
 	})
 
-	t.Run("2. should return correct value", func(t *testing.T) {
+	t.Run("2. should return error", func(t *testing.T) {
 		desc := "pool 2 tokens, lp involved and known r"
 		t.Log(desc)
 
@@ -70,16 +69,13 @@ func TestCalcAmountOut(t *testing.T) {
 		simulator, err := NewPoolSimulator(entityPool)
 		assert.Nil(t, err)
 
-		result, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
+		_, err = simulator.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: tokenAmountIn,
 			TokenOut:      tokenOut,
 		})
-		assert.Nil(t, err)
+		assert.ErrorIs(t, err, ErrNonPositiveAmountOut)
 
-		assert.Equal(t, "0", result.TokenAmountOut.Amount.String())
-
-		// simulator: 0
-		// contract:  1
+		// contract:  0
 	})
 
 	t.Run("3. should return correct value", func(t *testing.T) {
@@ -118,7 +114,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestVelocoreExecute(t *testing.T) {
-	t.Run("1. should return correct value", func(t *testing.T) { // TODO: wrong
+	t.Run("1. should return correct value", func(t *testing.T) {
 		desc := "pool 2 tokens, all token involved, lp token included, lp token known r"
 		t.Log(desc)
 
@@ -152,7 +148,6 @@ func TestVelocoreExecute(t *testing.T) {
 		assert.Equal(t, "7", result.R[1].String())
 		assert.Equal(t, "908433084452167", result.R[2].String())
 
-		// simulator: [-69960000,7,908433084452167]
 		// contract:  [-69960000,7,908433084452167]
 	})
 
@@ -190,13 +185,12 @@ func TestVelocoreExecute(t *testing.T) {
 		assert.Equal(t, "7", result.R[0].String())
 		assert.Equal(t, "0", result.R[1].String())
 
-		// simulator: [7,0,-69960000]
 		// contract:  [7,0,-69960000]
 	})
 }
 
 func TestVelocoreExecuteFallback(t *testing.T) {
-	t.Run("1. should return correct value", func(t *testing.T) { // TODO: wrong
+	t.Run("1. should return correct value", func(t *testing.T) {
 		desc := "pool 2 tokens, all token involved, lp token included, lp token known r"
 		t.Log(desc)
 
@@ -230,12 +224,11 @@ func TestVelocoreExecuteFallback(t *testing.T) {
 		assert.Equal(t, "5", result.R[1].String())
 		assert.Equal(t, "908433163091179", result.R[2].String())
 
-		// simulator: [-69960000,5,908433163091179]
 		// contract:  [-69960000,5,908433163091179]
 	})
 
-	t.Run("2. should return correct value", func(t *testing.T) { // TODO: wrong
-		desc := "pool 2 tokens, all token involved, lp token included, lp token known r"
+	t.Run("2. should return correct value", func(t *testing.T) {
+		desc := "pool 2 tokens, all token involved, lp token included, lp token unknown r"
 		t.Log(desc)
 
 		// block 659738, linea
@@ -265,10 +258,9 @@ func TestVelocoreExecuteFallback(t *testing.T) {
 		result, err := simulator.velocoreExecuteFallback(tokens, r)
 		assert.Nil(t, err)
 
-		assert.Equal(t, "538775", result.R[0].String())
-		assert.Equal(t, "-1", result.R[1].String())
+		assert.Equal(t, "538774", result.R[0].String())
+		assert.Equal(t, "0", result.R[1].String())
 
-		// simulator: [538775,-1,-6996000000000]
 		// contract:  [538774,0,-6996000000000]
 	})
 }

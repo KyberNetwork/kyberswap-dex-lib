@@ -19,10 +19,11 @@ import (
 )
 
 var (
-	ErrInvalidToken       = errors.New("invalid token")
-	ErrInvalidTokenGrowth = errors.New("invalid token growth")
-	ErrInvalidR           = errors.New("invalid r")
-	ErrNotFoundR          = errors.New("r not found")
+	ErrInvalidToken         = errors.New("invalid token")
+	ErrInvalidTokenGrowth   = errors.New("invalid token growth")
+	ErrInvalidR             = errors.New("invalid r")
+	ErrNotFoundR            = errors.New("r not found")
+	ErrNonPositiveAmountOut = errors.New("non positive amount out")
 )
 
 type PoolSimulator struct {
@@ -93,13 +94,14 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	var amountOut *big.Int
 	for i, token := range tokens {
-		if strings.EqualFold(token, tokenOut) {
+		if token == tokenOut {
 			amountOut = new(big.Int).Neg(result.R[i])
 			break
 		}
 	}
-	if amountOut == nil {
-		return nil, ErrNotFoundR
+
+	if amountOut.Cmp(integer.Zero()) <= 0 {
+		return nil, ErrNonPositiveAmountOut
 	}
 
 	swapInfo := SwapInfo{
@@ -128,6 +130,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		}).Error("can not find token in pool")
 		return
 	}
+
 	tokenOutIdx := p.GetTokenIndex(params.TokenAmountOut.Token)
 	if tokenOutIdx < 0 {
 		logger.WithFields(logger.Fields{
@@ -378,7 +381,7 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 				bPrimeMinusAPrime := new(big.Int).Sub(bPrime, aPrime)
 
 				v, err := math.Common.CeilDiv(
-					uint256.MustFromBig(new(big.Int).Mul(bPrimeMinusAPrime, effectiveFee1e9)),
+					uint256.MustFromBig(new(big.Int).Mul(bPrimeMinusAPrime, bigint1e9)),
 					uint256.MustFromBig(new(big.Int).Sub(bigint1e9, effectiveFee1e9)),
 				)
 				if err != nil {
@@ -491,7 +494,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 			return nil, err
 		}
 
-		logInvariantMin, err = sd59x18.NewExpr(a_SD59x18[i]).Mul(w_SD59x18[i]).Add(logInvariantMin).Result()
+		logInvariantMin, err = sd59x18.NewExpr(logA[i]).Mul(w_SD59x18[i]).Add(logInvariantMin).Result()
 		if err != nil {
 			return nil, err
 		}
@@ -598,7 +601,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 		aPrime, err := new(sd59x18.SD59x18).Mul(
 			a_SD59x18[i],
 			new(sd59x18.SD59x18).Ternary(
-				new(sd59x18.SD59x18).Gt(k, sd59x18.Zero),
+				new(sd59x18.SD59x18).Gt(logK, sd59x18.Zero),
 				sd59x18.SD(bignumber.BONE),
 				k,
 			),
@@ -610,7 +613,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 		bPrime, err := new(sd59x18.SD59x18).Div(
 			b,
 			new(sd59x18.SD59x18).Ternary(
-				new(sd59x18.SD59x18).Gt(k, sd59x18.Zero),
+				new(sd59x18.SD59x18).Gt(logK, sd59x18.Zero),
 				k,
 				sd59x18.SD(bignumber.BONE),
 			),
@@ -656,7 +659,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 			aPrime, err := new(sd59x18.SD59x18).Mul(
 				a_SD59x18[i],
 				new(sd59x18.SD59x18).Ternary(
-					new(sd59x18.SD59x18).Gt(k, sd59x18.Zero),
+					new(sd59x18.SD59x18).Gt(logK, sd59x18.Zero),
 					sd59x18.SD(bignumber.BONE),
 					k,
 				),
@@ -668,7 +671,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 			bPrime, err := new(sd59x18.SD59x18).Div(
 				b,
 				new(sd59x18.SD59x18).Ternary(
-					new(sd59x18.SD59x18).Gt(k, sd59x18.Zero),
+					new(sd59x18.SD59x18).Gt(logK, sd59x18.Zero),
 					k,
 					sd59x18.SD(bignumber.BONE),
 				),
@@ -698,7 +701,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 		if err != nil {
 			return nil, err
 		}
-		r[i] = sd59x18.ConvertBI(t)
+		r[i] = new(big.Int).Neg(sd59x18.ConvertBI(t))
 
 		if new(sd59x18.SD59x18).Lt(logG, sd59x18.Zero) {
 			u, err := sd59x18.NewExpr(logG).Neg().Exp2().Result()
