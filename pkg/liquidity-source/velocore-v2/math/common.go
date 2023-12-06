@@ -314,7 +314,7 @@ func (*common) CeilDiv(x, y *uint256.Int) (*uint256.Int, error) {
 func (*common) RPow(x, n, base *uint256.Int) (*uint256.Int, error) {
 	if x.IsZero() {
 		if n.IsZero() {
-			return new(uint256.Int).Set(base), nil
+			return base, nil
 		}
 
 		return number.Zero, nil
@@ -338,7 +338,7 @@ func (*common) RPow(x, n, base *uint256.Int) (*uint256.Int, error) {
 			return nil, ErrOverflow
 		}
 
-		x := ASM.Div(xxRound, base)
+		x = ASM.Div(xxRound, base)
 		if !ASM.Mod(i, number.Number_2).IsZero() {
 			zx := ASM.Mul(z, x)
 
