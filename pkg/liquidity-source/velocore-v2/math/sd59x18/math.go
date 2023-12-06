@@ -4,8 +4,9 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/math"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/math"
 )
 
 // https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/lib/prb-math/src/sd59x18/Math.sol#L480
@@ -172,6 +173,10 @@ func (z *SD59x18) Mul(x, y *SD59x18) (*SD59x18, error) {
 
 // https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/lib/prb-math/src/sd59x18/Math.sol#L121
 func (z *SD59x18) Div(x, y *SD59x18) (*SD59x18, error) {
+	if y.value.Cmp(integer.Zero()) == 0 {
+		return nil, Err_PRBMath_SD59x18_Div_Overflow
+	}
+
 	xInt, yInt := x.value, y.value
 
 	if xInt.Cmp(uMIN_SD59x18) == 0 || yInt.Cmp(uMIN_SD59x18) == 0 {
