@@ -76,6 +76,7 @@ common:
     - "traderjoe-v21"
     - "traderjoe-v20"
     - "smardex"
+    - "mummy-finance"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
