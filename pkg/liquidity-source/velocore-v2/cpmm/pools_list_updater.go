@@ -36,78 +36,49 @@ func (d *PoolsListUpdater) InitPool(_ context.Context) error {
 }
 
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	var metadata Metadata
-	if len(metadataBytes) != 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
-		if err != nil {
-			return nil, metadataBytes, err
-		}
-	}
+	logger.WithFields(logger.Fields{
+		"dexId": d.config.DexID,
+		"type":  DexType,
+	}).Info("start get new pools")
 
-	// Add timestamp to the context so that each run iteration will have something different
 	ctx = util.NewContextWithTimestamp(ctx)
 
-	var lengthBI *big.Int
-	getNumPoolsRequest := d.ethrpcClient.NewRequest()
-	getNumPoolsRequest.AddCall(&ethrpc.Call{
-		ABI:    factoryABI,
-		Target: d.config.FactoryAddress,
-		Method: factoryMethodPoolsLength,
-		Params: nil,
-	}, []interface{}{&lengthBI})
-	if _, err := getNumPoolsRequest.Call(); err != nil {
-		logger.Errorf("failed to get number of pairs from factory, err: %v", err)
-		return nil, metadataBytes, err
-	}
-	totalNumberOfPools := int(lengthBI.Int64())
-
-	currentOffset := metadata.Offset
-	batchSize := d.config.NewPoolLimit
-	if currentOffset+batchSize > totalNumberOfPools {
-		batchSize = totalNumberOfPools - currentOffset
-		if batchSize <= 0 {
-			return nil, metadataBytes, nil
-		}
-	}
-
-	getPairAddressRequest := d.ethrpcClient.NewRequest()
-	var pairAddresses = make([]common.Address, batchSize)
-	for j := 0; j < batchSize; j++ {
-		getPairAddressRequest.AddCall(&ethrpc.Call{
-			ABI:    factoryABI,
-			Target: d.config.FactoryAddress,
-			Method: factoryMethodPoolList,
-			Params: []interface{}{big.NewInt(int64(currentOffset + j))},
-		}, []interface{}{&pairAddresses[j]})
-	}
-	resp, err := getPairAddressRequest.TryAggregate()
-	if err != nil {
-		logger.Errorf("failed to process aggregate, err: %v", err)
-		return nil, metadataBytes, err
-	}
-
-	var successPairAddresses []common.Address
-	for i, isSuccess := range resp.Result {
-		if isSuccess {
-			successPairAddresses = append(successPairAddresses, pairAddresses[i])
-		}
-	}
-
-	pools, err := d.processBatch(ctx, successPairAddresses)
-	if err != nil {
-		logger.Errorf("failed to process update new pool, err: %v", err)
-		return nil, metadataBytes, err
-	}
-
-	nextOffset := currentOffset + batchSize
-	newMetadataBytes, err := json.Marshal(Metadata{Offset: nextOffset})
+	totalNumberOfPools, err := d.getPoolsLength(ctx)
 	if err != nil {
 		return nil, metadataBytes, err
 	}
 
-	if len(pools) > 0 {
-		logger.Infof("scan VelocoreV2CPMM with batch size %v, progress: %d/%d", batchSize, currentOffset+batchSize, totalNumberOfPools)
+	offset, err := d.getOffset(metadataBytes)
+	if err != nil {
+		return nil, metadataBytes, err
 	}
+
+	batchSize := getBatchSize(totalNumberOfPools, d.config.NewPoolLimit, offset)
+	if batchSize == 0 {
+		return nil, metadataBytes, nil
+	}
+
+	poolAddresses, err := d.queryPoolAddresses(ctx, offset, batchSize)
+	if err != nil {
+		return nil, metadataBytes, err
+	}
+
+	pools, err := d.processBatch(ctx, poolAddresses)
+	if err != nil {
+		return nil, metadataBytes, err
+	}
+
+	newMetadataBytes, err := d.newMetadata(offset + batchSize)
+	if err != nil {
+		return nil, metadataBytes, err
+	}
+
+	logger.WithFields(logger.Fields{
+		"dexId":    d.config.DexID,
+		"type":     DexType,
+		"offset":   offset,
+		"newPools": len(pools),
+	}).Info("finish get new pools")
 
 	return pools, newMetadataBytes, nil
 }
@@ -121,32 +92,39 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		weights = make([][maxPoolTokenNumber]*big.Int, limit)
 	)
 
-	rpcRequest := d.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
+	req := d.ethrpcClient.R()
 	for i := 0; i < limit; i++ {
-		rpcRequest.AddCall(&ethrpc.Call{
+		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodRelevantTokens,
 			Params: nil,
 		}, []interface{}{&tokens[i]})
 
-		rpcRequest.AddCall(&ethrpc.Call{
+		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodTokenWeights,
 			Params: nil,
 		}, []interface{}{&weights[i]})
 	}
-	if _, err := rpcRequest.Aggregate(); err != nil {
-		logger.Errorf("failed to process aggregate to get tokens and weights from pool contract, err: %v", err)
+
+	if _, err := req.Aggregate(); err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId": d.config.DexID,
+			"type":  DexType,
+		}).Error(err.Error())
 		return nil, err
 	}
 
 	for i, poolAddress := range poolAddresses {
 		p := strings.ToLower(poolAddress.Hex())
-		poolTokens := []*entity.PoolToken{}
-		reserves := []string{}
+
+		var (
+			poolTokens   = []*entity.PoolToken{}
+			reserves     = []string{}
+			tokenWeights = []*big.Int{}
+		)
 
 		for j := 0; j < maxPoolTokenNumber; j++ {
 			t := tokens[i][j].unwrapToken()
@@ -154,20 +132,25 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			if t == valueobject.ZeroAddress {
 				break
 			}
+
 			poolTokens = append(poolTokens, &entity.PoolToken{
 				Address:   t,
-				Weight:    uint(w.Uint64()), // WARN: weight is uint64 in smart contract, but uint in entity
 				Swappable: true,
 			})
+			tokenWeights = append(tokenWeights, w)
 			reserves = append(reserves, reserveZero)
 		}
 
 		staticExtra := StaticExtra{
+			Weights:         tokenWeights,
 			PoolTokenNumber: uint(len(poolTokens)),
 		}
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {
-			logger.Errorf("failed to marshal static extra, err: %v", err)
+			logger.WithFields(logger.Fields{
+				"dexId": d.config.DexID,
+				"type":  DexType,
+			}).Error(err.Error())
 			return nil, err
 		}
 
@@ -186,4 +169,101 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 	}
 
 	return pools, nil
+}
+
+func (d *PoolsListUpdater) queryPoolAddresses(ctx context.Context, offset int, batchSize int) ([]common.Address, error) {
+	poolAddresses := make([]common.Address, batchSize)
+	req := d.ethrpcClient.R()
+	for j := 0; j < batchSize; j++ {
+		req.AddCall(&ethrpc.Call{
+			ABI:    factoryABI,
+			Target: d.config.FactoryAddress,
+			Method: factoryMethodPoolList,
+			Params: []interface{}{big.NewInt(int64(offset + j))},
+		}, []interface{}{&poolAddresses[j]})
+	}
+
+	resp, err := req.TryAggregate()
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId": d.config.DexID,
+			"type":  DexType,
+		}).Error(err.Error())
+		return nil, err
+	}
+
+	var ret []common.Address
+	for i, isSuccess := range resp.Result {
+		if isSuccess {
+			ret = append(ret, poolAddresses[i])
+		}
+	}
+
+	return ret, nil
+}
+
+func (d *PoolsListUpdater) getPoolsLength(ctx context.Context) (int, error) {
+	var l *big.Int
+	req := d.ethrpcClient.R()
+	req.AddCall(&ethrpc.Call{
+		ABI:    factoryABI,
+		Target: d.config.FactoryAddress,
+		Method: factoryMethodPoolsLength,
+		Params: nil,
+	}, []interface{}{&l})
+	if _, err := req.Call(); err != nil {
+		logger.WithFields(
+			logger.Fields{
+				"dexId": d.config.DexID,
+				"type":  DexType,
+			}).Error(err.Error())
+		return 0, err
+	}
+	return int(l.Uint64()), nil
+}
+
+func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
+	metadata := Metadata{
+		Offset: newOffset,
+	}
+
+	metadataBytes, err := json.Marshal(metadata)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId": u.config.DexID,
+			"type":  DexType,
+		}).Error(err.Error())
+		return nil, err
+	}
+
+	return metadataBytes, nil
+}
+
+func (d *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
+	if len(metadataBytes) == 0 {
+		return 0, nil
+	}
+
+	var metadata Metadata
+	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId": d.config.DexID,
+			"type":  DexType,
+		}).Error(err.Error())
+		return 0, err
+	}
+
+	return metadata.Offset, nil
+}
+
+func getBatchSize(length int, limit int, offset int) int {
+	if offset == length {
+		return 0
+	}
+
+	if offset+limit > length {
+		return length - offset
+	}
+
+	return limit
 }
