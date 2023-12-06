@@ -6,15 +6,15 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/KyberNetwork/logger"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/math/sd59x18"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
 )
 
 var (
@@ -42,33 +42,21 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		extra       Extra
 		staticExtra StaticExtra
 
-		poolTokenNumber uint
-		tokens          []string
-		weights         []*big.Int
-		reserves        []*big.Int
-
-		fee1e9        uint32
-		feeMultiplier *big.Int
+		tokens   []string
+		reserves []*big.Int
 	)
 
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
-	fee1e9 = extra.Fee1e9
-	feeMultiplier = bignumber.NewBig10(extra.FeeMultiplier)
 
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
-	poolTokenNumber = staticExtra.PoolTokenNumber
 
-	for _, token := range entityPool.Tokens {
-		tokens = append(tokens, token.Address)
-		weightBI := big.NewInt(int64(token.Weight))
-		weights = append(weights, weightBI)
-	}
-	for _, reserve := range entityPool.Reserves {
-		reserves = append(reserves, bignumber.NewBig10(reserve))
+	for idx := 0; idx < len(entityPool.Tokens); idx++ {
+		tokens = append(tokens, entityPool.Tokens[idx].Address)
+		reserves = append(reserves, bignumber.NewBig10(entityPool.Reserves[idx]))
 	}
 
 	info := pool.PoolInfo{
@@ -78,16 +66,16 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Type:       entityPool.Type,
 		Tokens:     tokens,
 		Reserves:   reserves,
-		Checked:    false,
+		Checked:    true,
 	}
 
 	return &PoolSimulator{
 		Pool:                         pool.Pool{Info: info},
-		poolTokenNumber:              poolTokenNumber,
-		weights:                      weights,
-		sumWeight:                    weights[0],
-		fee1e9:                       fee1e9,
-		feeMultiplier:                feeMultiplier,
+		poolTokenNumber:              staticExtra.PoolTokenNumber,
+		weights:                      staticExtra.Weights,
+		sumWeight:                    staticExtra.Weights[0],
+		fee1e9:                       extra.Fee1e9,
+		feeMultiplier:                extra.FeeMultiplier,
 		isLastWithdrawInTheSameBlock: false,
 	}, nil
 }

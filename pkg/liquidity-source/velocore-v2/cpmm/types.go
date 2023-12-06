@@ -3,6 +3,7 @@ package cpmm
 import (
 	"encoding/hex"
 	"math/big"
+	"strings"
 )
 
 type Metadata struct {
@@ -13,16 +14,18 @@ type bytes32 [32]byte
 
 func (b *bytes32) unwrapToken() string {
 	last20Bytes := b[12:]
-	return "0x" + hex.EncodeToString(last20Bytes)
+	address := "0x" + hex.EncodeToString(last20Bytes)
+	return strings.ToLower(address)
 }
 
 type StaticExtra struct {
-	PoolTokenNumber uint `json:"poolTokenNumber"`
+	Weights         []*big.Int `json:"weights"`
+	PoolTokenNumber uint       `json:"poolTokenNumber"`
 }
 
 type Extra struct {
-	Fee1e9        uint32 `json:"fee1e9"`
-	FeeMultiplier string `json:"feeMultiplier"`
+	Fee1e9        uint32   `json:"fee1e9"`
+	FeeMultiplier *big.Int `json:"feeMultiplier"`
 }
 
 type Meta struct {
@@ -31,8 +34,8 @@ type Meta struct {
 }
 
 type SwapInfo struct {
-	IsFeeMultiplierUpdated bool   `json:"isFeeMultiplierUpdated"`
-	FeeMultiplier          string `json:"feeMultiplier"`
+	IsFeeMultiplierUpdated bool   `json:"-"`
+	FeeMultiplier          string `json:"-"`
 }
 
 // internal types
