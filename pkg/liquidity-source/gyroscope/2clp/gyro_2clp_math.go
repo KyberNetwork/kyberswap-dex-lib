@@ -23,8 +23,6 @@ func (l *gyro2CLPMath) _calculateInvariant(
 	sqrtAlpha *uint256.Int,
 	sqrtBeta *uint256.Int,
 ) (*uint256.Int, error) {
-	// TODO: implement
-
 	a, mb, bSquare, mc, err := l._calculateQuadraticTerms(balances, sqrtAlpha, sqrtBeta)
 	if err != nil {
 		return nil, err
