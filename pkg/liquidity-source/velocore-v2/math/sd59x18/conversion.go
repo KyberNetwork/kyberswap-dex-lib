@@ -18,5 +18,5 @@ func ConvertSD59x18(x *big.Int) (*SD59x18, error) {
 }
 
 func ConvertBI(x *SD59x18) *big.Int {
-	return new(big.Int).Div(x.value, uUNIT)
+	return new(big.Int).Quo(x.value, uUNIT)
 }
