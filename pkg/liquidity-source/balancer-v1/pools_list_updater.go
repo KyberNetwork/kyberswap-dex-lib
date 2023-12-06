@@ -73,6 +73,20 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
+	if len(subgraphPools) == 0 {
+		logger.
+			WithFields(
+				logger.Fields{
+					"dex_id":            dexID,
+					"pools_len":         0,
+					"last_created_time": lastCreateTime,
+					"duration_ms":       time.Since(startTime).Milliseconds(),
+				},
+			).
+			Info("Finished getting new pools")
+		return nil, metadataBytes, nil
+	}
+
 	pools, err := u.initPools(ctx, subgraphPools)
 	if err != nil {
 		logger.
