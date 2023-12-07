@@ -357,3 +357,54 @@ func (*common) RPow(x, n, base *uint256.Int) (*uint256.Int, error) {
 
 	return z, nil
 }
+
+
+// https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/lib/openzeppelin-contracts/contracts/utils/math/Math.sol#L194
+func (*common) SqrtRounding(x *uint256.Int, up bool) *uint256.Int {
+	result := Common.Sqrt(x)
+	if up && x.Gt(new(uint256.Int).Mul(result, result)) {
+		result = new(uint256.Int).Add(result, number.Number_1)
+	}
+	return result
+}
+
+// https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/lib/openzeppelin-contracts/contracts/utils/math/Math.sol#L158
+func (*common) Sqrt(x *uint256.Int) *uint256.Int {
+	if x.IsZero() {
+		return number.Zero
+	}
+
+	result := new(uint256.Int).Lsh(
+		number.Number_1,
+		Common.Log2(x)>>1,
+	)
+
+	for i := 0; i < 7; i++ {
+		result = new(uint256.Int).Rsh(
+			new(uint256.Int).Add(
+				result,
+				new(uint256.Int).Div(x, result),
+			), 1,
+		)
+	}
+
+	v := new(uint256.Int).Div(x, result)
+	if result.Gt(v) {
+		result = v
+	}
+
+	return result
+}
+
+// https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/lib/openzeppelin-contracts/contracts/utils/math/Math.sol#L205
+func (*common) Log2(x *uint256.Int) uint {
+	result := 0
+	for i := 7; i >= 0; i-- {
+		n := 1 << i
+		if new(uint256.Int).Rsh(x, uint(n)).Gt(number.Zero) {
+			x = new(uint256.Int).Rsh(x, uint(n))
+			result += n
+		}
+	}
+	return uint(result)
+}
