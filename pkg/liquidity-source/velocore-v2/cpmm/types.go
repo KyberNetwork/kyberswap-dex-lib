@@ -19,8 +19,10 @@ func (b *bytes32) unwrapToken() string {
 }
 
 type StaticExtra struct {
-	Weights         []*big.Int `json:"weights"`
-	PoolTokenNumber uint       `json:"poolTokenNumber"`
+	Weights          []*big.Int `json:"weights"`
+	PoolTokenNumber  uint       `json:"poolTokenNumber"`
+	NativeTokenIndex int        `json:"nativeTokenIndex"`
+	Vault            string     `json:"vault"`
 }
 
 type Extra struct {
@@ -29,8 +31,8 @@ type Extra struct {
 }
 
 type Meta struct {
-	Fee1e9        uint32 `json:"fee1e9"`
-	FeeMultiplier string `json:"feeMultiplier"`
+	Vault            string `json:"vault"`
+	NativeTokenIndex int    `json:"nativeTokenIndex"`
 }
 
 type SwapInfo struct {

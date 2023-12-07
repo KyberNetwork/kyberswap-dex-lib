@@ -37,6 +37,9 @@ type PoolSimulator struct {
 	feeMultiplier *big.Int
 
 	isLastWithdrawInTheSameBlock bool
+
+	vault            string
+	nativeTokenIndex int
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -79,6 +82,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		fee1e9:                       extra.Fee1e9,
 		feeMultiplier:                extra.FeeMultiplier,
 		isLastWithdrawInTheSameBlock: false,
+		vault:                        staticExtra.Vault,
+		nativeTokenIndex:             staticExtra.NativeTokenIndex,
 	}, nil
 }
 
@@ -152,7 +157,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return Meta{}
+	return Meta{
+		Vault:            p.vault,
+		NativeTokenIndex: p.nativeTokenIndex,
+	}
 }
 
 // https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/src/pools/constant-product/ConstantProductPool.sol#L164

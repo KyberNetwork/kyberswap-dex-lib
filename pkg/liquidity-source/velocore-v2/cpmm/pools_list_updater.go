@@ -3,6 +3,7 @@ package cpmm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"strings"
 	"time"
@@ -15,6 +16,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
+
+var ErrWETHNotFound = errors.New("WETH not found")
 
 type PoolsListUpdater struct {
 	config       *Config
@@ -124,9 +127,10 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 	}
 
 	for i, poolAddress := range poolAddresses {
-		p := strings.ToLower(poolAddress.Hex())
-
 		var (
+			p                = strings.ToLower(poolAddress.Hex())
+			nativeTokenIndex = unknownInt
+
 			poolTokens   = []*entity.PoolToken{}
 			reserves     = []string{}
 			tokenWeights = []*big.Int{}
@@ -139,6 +143,15 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 				break
 			}
 
+			if strings.EqualFold(t, valueobject.EtherAddress) {
+				nativeTokenIndex = j
+				weth, ok := valueobject.WETHByChainID[d.config.ChainID]
+				if !ok {
+					return nil, ErrWETHNotFound
+				}
+				t = strings.ToLower(weth)
+			}
+
 			poolTokens = append(poolTokens, &entity.PoolToken{
 				Address:   t,
 				Swappable: true,
@@ -148,8 +161,10 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		}
 
 		staticExtra := StaticExtra{
-			Weights:         tokenWeights,
-			PoolTokenNumber: uint(len(poolTokens)),
+			Weights:          tokenWeights,
+			PoolTokenNumber:  uint(len(poolTokens)),
+			NativeTokenIndex: nativeTokenIndex,
+			Vault:            d.config.VaultAddress,
 		}
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {
