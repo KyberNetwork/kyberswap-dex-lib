@@ -1,11 +1,11 @@
-package stable
+package wombatstable
 
 import (
-	"encoding/json"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -20,6 +20,8 @@ type PoolSimulator struct {
 	amp             *big.Int
 	lpTokenBalances map[string]*big.Int
 	tokenInfo       map[string]tokenInfo
+
+	vault string
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -28,7 +30,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tokens   = make([]string, tokenNbr)
 		reserves = make([]*big.Int, tokenNbr)
 
-		extra Extra
+		extra       Extra
+		staticExtra StaticExtra
 	)
 
 	if len(entityPool.Reserves) == tokenNbr && len(entityPool.Tokens) == tokenNbr {
@@ -38,8 +41,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}
 	}
 
-	err := json.Unmarshal([]byte(entityPool.Extra), &extra)
-	if err != nil {
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
@@ -59,6 +65,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		amp:             extra.Amp,
 		lpTokenBalances: extra.LpTokenBalances,
 		tokenInfo:       extra.TokenInfo,
+		vault:           staticExtra.Vault,
 	}, nil
 }
 
@@ -85,7 +92,7 @@ func (p *PoolSimulator) CalcAmountOut(
 			Token:  tokenAmountIn.Token,
 			Amount: integer.Zero(),
 		},
-		Gas:      defaultGas,
+		Gas:      defaultGas.Swap,
 		SwapInfo: nil,
 	}, nil
 }
@@ -102,7 +109,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return nil
+	return Meta{
+		Vault: t.vault,
+	}
 }
 
 func (p *PoolSimulator) swap(
@@ -132,7 +141,7 @@ func (p *PoolSimulator) swap(
 	_4ac := new(big.Int).Mul(
 		new(big.Int).Quo(
 			new(big.Int).Mul(new(big.Int).Mul(integer.Four(), p.amp), Lu),
-			integer.TenPow(18),
+			bignumber.BONE,
 		),
 		Lu,
 	)
@@ -205,7 +214,7 @@ func (p *PoolSimulator) partialInvariant(a *big.Int, l *big.Int) (*big.Int, erro
 			new(big.Int).Mul(
 				new(big.Int).Quo(
 					new(big.Int).Mul(l, p.amp),
-					integer.TenPow(18),
+					bignumber.BONE,
 				), l,
 			), a,
 		),

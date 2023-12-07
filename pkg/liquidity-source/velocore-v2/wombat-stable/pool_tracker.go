@@ -1,13 +1,14 @@
-package stable
+package wombatstable
 
 import (
 	"context"
-	"encoding/json"
+	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -27,28 +28,47 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, err
 
 func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
-		"dexID":   d.cfg.DexID,
-		"dexType": DexTypeVelocoreV2Stable,
+		"dexId":   d.cfg.DexID,
+		"dexType": DexType,
 		"address": p.Address,
-	}).Infof("Start getting new state of pool")
+	}).Infof("start getting new state of pool")
+	defer func(start time.Time) {
+		logger.WithFields(logger.Fields{
+			"dexId":    d.cfg.DexID,
+			"dexType":  DexType,
+			"address":  p.Address,
+			"duration": time.Since(start).String(),
+		}).Infof("finish getting new state of pool")
+	}(time.Now())
 
 	// query lens
-	var poolDataResp poolDataResp
-	req := d.ethrpcClient.R()
+	var (
+		blockNbr     *big.Int
+		poolDataResp poolDataResp
+	)
+
+	req := d.ethrpcClient.R().SetRequireSuccess(true)
 	req.AddCall(&ethrpc.Call{
 		ABI:    lensABI,
 		Target: d.cfg.LensAddress,
 		Method: lensMethodQueryPool,
 		Params: []interface{}{common.HexToAddress(p.Address)},
 	}, []interface{}{&poolDataResp})
-	if _, err := req.Call(); err != nil {
-		logger.Error(err.Error())
+	resp, err := req.Call()
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId": d.cfg.DexID,
+			"type":  DexType,
+		}).Error(err.Error())
 		return p, err
 	}
 
+	blockNbr = resp.BlockNumber
+
 	// query pool
 	tokenInfos := make([]tokenInfo, len(poolDataResp.Data.ListedTokens))
-	req = d.ethrpcClient.R()
+
+	req = d.ethrpcClient.R().SetBlockNumber(blockNbr)
 	for i, tokenBytes32 := range poolDataResp.Data.ListedTokens {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
@@ -58,7 +78,10 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		}, []interface{}{&tokenInfos[i]})
 	}
 	if _, err := req.Aggregate(); err != nil {
-		logger.Error(err.Error())
+		logger.WithFields(logger.Fields{
+			"dexId": d.cfg.DexID,
+			"type":  DexType,
+		}).Error(err.Error())
 		return p, err
 	}
 
@@ -77,7 +100,10 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
-		logger.Errorf("failed to marshal extra data, err: %v", err)
+		logger.WithFields(logger.Fields{
+			"dexId": d.cfg.DexID,
+			"type":  DexType,
+		}).Error(err.Error())
 		return p, err
 	}
 

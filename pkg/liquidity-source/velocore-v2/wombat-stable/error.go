@@ -1,4 +1,4 @@
-package stable
+package wombatstable
 
 import "errors"
 

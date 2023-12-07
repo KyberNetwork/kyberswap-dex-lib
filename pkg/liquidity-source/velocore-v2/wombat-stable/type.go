@@ -1,4 +1,4 @@
-package stable
+package wombatstable
 
 import (
 	"math/big"
@@ -12,6 +12,14 @@ type Metadata struct {
 	Offset int `json:"offset"`
 }
 
+type Meta struct {
+	Vault string `json:"vault"`
+}
+
+type Gas struct {
+	Swap int64
+}
+
 type bytes32 [32]byte
 
 type Extra struct {
@@ -19,6 +27,10 @@ type Extra struct {
 	Fee1e18         *big.Int             `json:"fee1e18"`
 	LpTokenBalances map[string]*big.Int  `json:"lpTokenBalances"`
 	TokenInfo       map[string]tokenInfo `json:"tokenInfo"`
+}
+
+type StaticExtra struct {
+	Vault string `json:"vault"`
 }
 
 type tokenInfo struct {
