@@ -16,12 +16,8 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{
-			&factoryABI, factoryABIJson,
-		},
-		{
-			&poolABI, poolABIJson,
-		},
+		{&factoryABI, factoryABIJson},
+		{&poolABI, poolABIJson},
 	}
 
 	for _, b := range builder {

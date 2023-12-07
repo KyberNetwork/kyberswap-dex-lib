@@ -5,10 +5,6 @@ import "math/big"
 const (
 	DexType = "velocore-v2-cpmm"
 
-	reserveZero = "0"
-)
-
-const (
 	factoryMethodPoolsLength = "poolsLength"
 	factoryMethodPoolList    = "poolList"
 
@@ -17,6 +13,8 @@ const (
 	poolMethodTokenWeights   = "tokenWeights"
 	poolMethodFee1e9         = "fee1e9"
 	poolMethodFeeMultiplier  = "feeMultiplier"
+
+	reserveZero = "0"
 )
 
 const (
@@ -30,7 +28,12 @@ const (
 )
 
 var (
+	// (1 << 127) - 1
 	unknownBI = new(big.Int).Sub(new(big.Int).Exp(big.NewInt(2), big.NewInt(127), nil), big.NewInt(1))
 
 	bigint1e9 = big.NewInt(1e9)
+)
+
+var (
+	defaultGas = Gas{Swap: 125000}
 )

@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+type Gas struct {
+	Swap int64
+}
+
 type Metadata struct {
 	Offset int `json:"offset"`
 }

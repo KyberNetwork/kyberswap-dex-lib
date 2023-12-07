@@ -96,7 +96,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, err
 	}
 
-	var amountOut *big.Int
+	amountOut := integer.Zero()
 	for i, token := range tokens {
 		if token == tokenOut {
 			amountOut = new(big.Int).Neg(result.R[i])
@@ -119,7 +119,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Amount: amountOut,
 		},
 		Fee:      &pool.TokenAmount{},
-		Gas:      0,
+		Gas:      defaultGas.Swap,
 		SwapInfo: swapInfo,
 	}, nil
 }
@@ -252,12 +252,10 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 			}
 
 			if bPrime.Cmp(aPrime) > 0 {
-				f := math.Common.CeilDivUnsafe(
+				fee = math.Common.CeilDivUnsafe(
 					uint256.MustFromBig(new(big.Int).Mul(new(big.Int).Sub(bPrime, aPrime), effectiveFee1e9)),
 					uint256.NewInt(1e9),
-				)
-
-				fee = f.ToBig()
+				).ToBig()
 			}
 
 			tokenGrowth1e18 = new(big.Int).Quo(
@@ -348,10 +346,11 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 				uint256.MustFromBig(new(big.Int).Mul(g, a[i])),
 				number.Number_1e18,
 			)
-			b := bU256.ToBig()
 			if err != nil {
 				return nil, err
 			}
+			b := bU256.ToBig()
+
 			var (
 				fee            = integer.Zero()
 				aPrime, bPrime *big.Int
