@@ -41,6 +41,18 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		"type":  DexType,
 	}).Info("start get new pools")
 
+	var offset, newPools int
+
+	defer func(s time.Time) {
+		logger.WithFields(logger.Fields{
+			"dexId":    d.config.DexID,
+			"type":     DexType,
+			"offset":   offset,
+			"newPools": newPools,
+			"duration": time.Since(s).String(),
+		}).Info("finish get new pools")
+	}(time.Now())
+
 	ctx = util.NewContextWithTimestamp(ctx)
 
 	totalNumberOfPools, err := d.getPoolsLength(ctx)
@@ -48,7 +60,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	offset, err := d.getOffset(metadataBytes)
+	offset, err = d.getOffset(metadataBytes)
 	if err != nil {
 		return nil, metadataBytes, err
 	}
@@ -67,18 +79,12 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	if err != nil {
 		return nil, metadataBytes, err
 	}
+	newPools = len(pools)
 
 	newMetadataBytes, err := d.newMetadata(offset + batchSize)
 	if err != nil {
 		return nil, metadataBytes, err
 	}
-
-	logger.WithFields(logger.Fields{
-		"dexId":    d.config.DexID,
-		"type":     DexType,
-		"offset":   offset,
-		"newPools": len(pools),
-	}).Info("finish get new pools")
 
 	return pools, newMetadataBytes, nil
 }
