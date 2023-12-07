@@ -101,7 +101,6 @@ func TestQueriesUniswapV3_GetPoolTicksQuery(t *testing.T) {
 			ticks(
 				where: {
 					tickIdx_gt: %v,
-					liquidityGross_not: 0
 				},
 				orderBy: tickIdx,
 				orderDirection: asc,
@@ -130,7 +129,6 @@ func TestQueriesUniswapV3_GetPoolTicksQuery(t *testing.T) {
 			ticks(
 				where: {
 					tickIdx_gt: %v,
-					liquidityGross_not: 0
 				},
 				orderBy: tickIdx,
 				orderDirection: asc,

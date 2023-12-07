@@ -91,7 +91,6 @@ func getPoolTicksQuery(allowSubgraphError bool, poolAddress string, lastTickIdx 
 			ticks(
 				where: {
 					{{ if .LastTickIdx }}tickIdx_gt: {{.LastTickIdx}},{{ end }}
-					liquidityGross_not: 0
 				},
 				orderBy: tickIdx,
 				orderDirection: asc,
