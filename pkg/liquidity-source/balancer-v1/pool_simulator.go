@@ -71,6 +71,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
+		Fee:            &poolpkg.TokenAmount{Token: params.TokenAmountIn.Token, Amount: big.NewInt(0)},
 		Gas:            s.gas.SwapExactAmountIn,
 	}, nil
 }
