@@ -2,18 +2,15 @@ package validator
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	"google.golang.org/grpc/codes"
 
-	blackjackv1 "github.com/KyberNetwork/blackjack/proto/gen/blackjack/v1"
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
-	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/blackjack"
+	"github.com/KyberNetwork/router-service/internal/pkg/mocks/validator"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -378,8 +375,8 @@ func TestBuildRouteParamsValidator_validateTokenIn(t *testing.T) {
 		},
 		{
 			name:     "it should return [tokenIn|invalid]",
-			tokenIn:  "0x0000000000000000000000000000000000000000",
-			tokenOut: "0x0000000000000000000000000000000000000000",
+			tokenIn:  "0xc7198437980c041c805a1edcba50c1ce5db95118",
+			tokenOut: "0xc7198437980c041c805a1edcba50c1ce5db95118",
 			err:      NewValidationError("tokenIn", "identical with tokenOut"),
 		},
 		{
@@ -537,6 +534,11 @@ func TestBuildRouteParamsValidator_validateFeeReceiver(t *testing.T) {
 			err:         NewValidationError("feeReceiver", "invalid"),
 		},
 		{
+			name:        "it should return [feeReceiver|invalid]",
+			feeReceiver: "0x0000000000000000000000000000000000000000",
+			err:         NewValidationError("feeReceiver", "invalid"),
+		},
+		{
 			name:        "it should return nil",
 			feeReceiver: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
 			err:         nil,
@@ -548,6 +550,104 @@ func TestBuildRouteParamsValidator_validateFeeReceiver(t *testing.T) {
 			validator := buildRouteParamsValidator{}
 
 			err := validator.validateFeeReceiver(tc.feeReceiver)
+
+			assert.Equal(t, tc.err, err)
+		})
+	}
+}
+
+func TestBuildRouteParamsValidator_validateSender(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name                 string
+		shouldValidateSender bool
+		sender               string
+		err                  error
+	}{
+		{
+			name:   "it should return nil",
+			sender: "",
+			err:    nil,
+		},
+		{
+			name:                 "it should return [sender|required]",
+			shouldValidateSender: true,
+			sender:               "",
+			err:                  NewValidationError("sender", "required"),
+		},
+		{
+			name:                 "it should return [sender|invalid]",
+			shouldValidateSender: true,
+			sender:               "abc",
+			err:                  NewValidationError("sender", "invalid"),
+		},
+		{
+			name:                 "it should return [sender|invalid]",
+			shouldValidateSender: true,
+			sender:               "0x0000000000000000000000000000000000000000",
+			err:                  NewValidationError("sender", "invalid"),
+		},
+		{
+			name:                 "it should return nil",
+			shouldValidateSender: true,
+			sender:               "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+			err:                  nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			validator := buildRouteParamsValidator{
+				config: BuildRouteParamsConfig{
+					FeatureFlags: valueobject.FeatureFlags{
+						ShouldValidateSender: tc.shouldValidateSender,
+					},
+				},
+			}
+
+			err := validator.validateSender(tc.sender, &[]string{})
+
+			assert.Equal(t, tc.err, err)
+		})
+	}
+}
+
+func TestBuildRouteParamsValidator_validateRecipient(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name      string
+		recipient string
+		err       error
+	}{
+		{
+			name:      "it should return [recipient|required]",
+			recipient: "",
+			err:       NewValidationError("recipient", "required"),
+		},
+		{
+			name:      "it should return [recipient|invalid]",
+			recipient: "abc",
+			err:       NewValidationError("recipient", "invalid"),
+		},
+		{
+			name:      "it should return [recipient|invalid]",
+			recipient: "0x0000000000000000000000000000000000000000",
+			err:       NewValidationError("recipient", "invalid"),
+		},
+		{
+			name:      "it should return nil",
+			recipient: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+			err:       nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			validator := buildRouteParamsValidator{}
+
+			err := validator.validateRecipient(tc.recipient)
 
 			assert.Equal(t, tc.err, err)
 		})
@@ -625,190 +725,85 @@ func TestBuildRouteParamsValidator_validateDeadline(t *testing.T) {
 	}
 }
 
-func TestBuildRouteParamsValidator_validateSenderAndRecipient(t *testing.T) {
+func TestBuildRouteParamsValidator_validateWallets(t *testing.T) {
 	t.Parallel()
 
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	var (
-		statusOk         = int32(codes.OK)
-		msgOk            = codes.OK.String()
-		blacklistedFalse = false
-		blacklistedTrue  = true
-	)
-
 	testCases := []struct {
-		name          string
-		sender        string
-		recipient     string
-		config        BuildRouteParamsConfig
-		callBlackjack func(client *usecase.MockServiceClient)
-		err           error
+		name                 string
+		isBlackjackEnabled   bool
+		wallets              []string
+		prepareBlackjackRepo func(ctrl *gomock.Controller) IBlackjackRepository
+		err                  error
 	}{
 		{
-			name:          "it should return [recipient|required]",
-			recipient:     "",
-			config:        BuildRouteParamsConfig{},
-			err:           NewValidationError("recipient", "required"),
-			callBlackjack: func(client *usecase.MockServiceClient) {},
+			name:               "it should return nil",
+			isBlackjackEnabled: false,
+			wallets:            []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664", "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c665"},
+			prepareBlackjackRepo: func(ctrl *gomock.Controller) IBlackjackRepository {
+				return nil
+			},
+			err: nil,
 		},
 		{
-			name:          "it should return [recipient|invalid]",
-			recipient:     "abc",
-			config:        BuildRouteParamsConfig{},
-			err:           NewValidationError("recipient", "invalid"),
-			callBlackjack: func(client *usecase.MockServiceClient) {},
+			name:               "it should return nil",
+			isBlackjackEnabled: true,
+			wallets:            []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664", "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c665"},
+			prepareBlackjackRepo: func(ctrl *gomock.Controller) IBlackjackRepository {
+				mockBlackjacklRepo := validator.NewMockIBlackjackRepository(ctrl)
+				mockBlackjacklRepo.EXPECT().
+					Check(gomock.Any(), []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664", "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c665"}).
+					Return(nil, fmt.Errorf("some error"))
+
+				return mockBlackjacklRepo
+			},
+			err: nil,
 		},
 		{
-			name:      "it should return [recipient][invalid], isBlackjackEnabled is false",
-			recipient: "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-			sender:    "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-			config: BuildRouteParamsConfig{
-				BlacklistedRecipientSet: map[string]bool{
-					"0x71c7656ec7ab88b098defb751b7401b5f6d8976f": true,
-				},
+			name:               "it should return [wallets|invalid]",
+			isBlackjackEnabled: true,
+			wallets:            []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664", "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c665"},
+			prepareBlackjackRepo: func(ctrl *gomock.Controller) IBlackjackRepository {
+				mockBlackjacklRepo := validator.NewMockIBlackjackRepository(ctrl)
+				mockBlackjacklRepo.EXPECT().
+					Check(gomock.Any(), []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664", "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c665"}).
+					Return(map[string]bool{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664": true}, nil)
+
+				return mockBlackjacklRepo
 			},
-			err:           NewValidationError("recipient", "invalid"),
-			callBlackjack: func(client *usecase.MockServiceClient) {},
+			err: NewValidationError("wallets", "invalid"),
 		},
 		{
-			name:          "it should return nil, isBlackjackEnabled is false",
-			recipient:     "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-			sender:        "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-			config:        BuildRouteParamsConfig{},
-			err:           nil,
-			callBlackjack: func(client *usecase.MockServiceClient) {},
-		},
-		{
-			name:      "it should return [sender][blacklisted wallet], isBlackjackEnabled is true",
-			recipient: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-			sender:    "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-			err:       NewValidationError("sender", "blacklisted wallet"),
-			config: BuildRouteParamsConfig{
-				FeatureFlags: valueobject.FeatureFlags{
-					IsBlackjackEnabled: true,
-				},
+			name:               "it should return nil",
+			isBlackjackEnabled: true,
+			wallets:            []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664", "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c665"},
+			prepareBlackjackRepo: func(ctrl *gomock.Controller) IBlackjackRepository {
+				mockBlackjacklRepo := validator.NewMockIBlackjackRepository(ctrl)
+				mockBlackjacklRepo.EXPECT().
+					Check(gomock.Any(), []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664", "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c665"}).
+					Return(map[string]bool{}, nil)
+
+				return mockBlackjacklRepo
 			},
-			callBlackjack: func(client *usecase.MockServiceClient) {
-				sender := "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664"
-				client.EXPECT().Check(gomock.Any(), gomock.Any()).Return(&blackjackv1.CheckResponse{
-					Code:    &statusOk,
-					Message: &msgOk,
-					Data: &blackjackv1.CheckResponse_Data{
-						Wallets: []*blackjackv1.BlacklistData{
-							{
-								Wallet:      &sender,
-								Blacklisted: &blacklistedTrue,
-							},
-						},
-					},
-				}, nil)
-			},
-		},
-		{
-			name:      "it should return nil, Blackjack returns miss `blacklisted` value, isBlackjackEnabled is true",
-			recipient: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-			sender:    "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-			err:       nil,
-			config: BuildRouteParamsConfig{
-				FeatureFlags: valueobject.FeatureFlags{
-					IsBlackjackEnabled: true,
-				},
-			},
-			callBlackjack: func(client *usecase.MockServiceClient) {
-				sender := "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664"
-				client.EXPECT().Check(gomock.Any(), gomock.Any()).Return(&blackjackv1.CheckResponse{
-					Code:    &statusOk,
-					Message: &msgOk,
-					Data: &blackjackv1.CheckResponse_Data{
-						Wallets: []*blackjackv1.BlacklistData{
-							{
-								Wallet: &sender,
-							},
-						},
-					},
-				}, nil)
-			},
-		},
-		{
-			name:      "it should return [recipient][blacklisted wallet], isBlackjackEnabled is true",
-			recipient: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c764",
-			sender:    "0xccd7079b0fead91f3e65f86e8915cb59c1a4c664",
-			err:       NewValidationError("recipient", "blacklisted wallet"),
-			config: BuildRouteParamsConfig{
-				FeatureFlags: valueobject.FeatureFlags{
-					IsBlackjackEnabled: true,
-				},
-			},
-			callBlackjack: func(client *usecase.MockServiceClient) {
-				recipient := "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c764"
-				client.EXPECT().Check(gomock.Any(), gomock.Any()).Return(&blackjackv1.CheckResponse{
-					Code:    &statusOk,
-					Message: &msgOk,
-					Data: &blackjackv1.CheckResponse_Data{
-						Wallets: []*blackjackv1.BlacklistData{
-							{
-								Wallet:      &recipient,
-								Blacklisted: &blacklistedTrue,
-							},
-						},
-					},
-				}, nil)
-			},
-		},
-		{
-			name:      "it should return nil, isBlackjackEnabled is true",
-			recipient: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-			sender:    "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-			err:       nil,
-			config: BuildRouteParamsConfig{
-				FeatureFlags: valueobject.FeatureFlags{
-					IsBlackjackEnabled: true,
-				},
-			},
-			callBlackjack: func(client *usecase.MockServiceClient) {
-				sender := "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664"
-				client.EXPECT().Check(gomock.Any(), gomock.Any()).Return(&blackjackv1.CheckResponse{
-					Code:    &statusOk,
-					Message: &msgOk,
-					Data: &blackjackv1.CheckResponse_Data{
-						Wallets: []*blackjackv1.BlacklistData{
-							{
-								Wallet:      &sender,
-								Blacklisted: &blacklistedFalse,
-							},
-						},
-					},
-				}, nil)
-			},
-		},
-		{
-			name:      "it should return nil, isBlackjackEnabled is true, Blackjack returns an error",
-			recipient: "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-			sender:    "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-			err:       nil,
-			config: BuildRouteParamsConfig{
-				FeatureFlags: valueobject.FeatureFlags{
-					IsBlackjackEnabled: true,
-				},
-			},
-			callBlackjack: func(client *usecase.MockServiceClient) {
-				client.EXPECT().Check(gomock.Any(), gomock.Any()).Return(nil, errors.New("test"))
-			},
+			err: nil,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			client := usecase.NewMockServiceClient(ctrl)
-			validator := buildRouteParamsValidator{
-				config:        tc.config,
-				blackjackRepo: blackjack.NewBlackjackRepository(client),
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			ctx := context.Background()
+			v := buildRouteParamsValidator{
+				config: BuildRouteParamsConfig{
+					FeatureFlags: valueobject.FeatureFlags{
+						IsBlackjackEnabled: tc.isBlackjackEnabled,
+					},
+				},
+				blackjackRepo: tc.prepareBlackjackRepo(ctrl),
 			}
 
-			tc.callBlackjack(client)
-			err := validator.validateSenderAndRecipient(context.Background(), "", tc.sender, tc.recipient)
+			err := v.validateWallets(ctx, tc.wallets)
 
 			assert.Equal(t, tc.err, err)
 		})

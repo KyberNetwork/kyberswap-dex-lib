@@ -25,28 +25,27 @@ var (
 )
 
 type Config struct {
-	Env             string                    `mapstructure:"env" json:"env"`
-	Http            *http.HTTPConfig          `mapstructure:"http" json:"http"`
-	Common          Common                    `mapstructure:"common" json:"common"`
-	Log             *Log                      `mapstructure:"log" json:"log"`
-	Redis           redis.Config              `mapstructure:"redis" json:"redis"`
-	PregenRedis     redis.Config              `mapstructure:"pregenRedis" json:"pregenRedis"`
-	PoolRedis       redis.Config              `mapstructure:"poolRedis" json:"poolRedis"`
-	DogstatsdHost   string                    `mapstructure:"ddAgentHost" json:"ddAgentHost"`
-	KeyPair         KeyPairInfo               `mapstructure:"keyPair" json:"keyPair"`
-	ReloadConfig    reloadconfig.ReloadConfig `mapstructure:"reloadConfig" json:"reloadConfig"`
-	SecretKey       string                    `mapstructure:"secretKey" json:"-"`
-	Metrics         metrics.Config            `mapstructure:"metrics" json:"metrics"`
-	GRPC            ServerListen              `mapstructure:"grpc" json:"grpc"`
-	Encoder         encode.Config             `mapstructure:"encoder" json:"encoder"`
-	UseCase         usecase.Config            `mapstructure:"useCase" json:"useCase"`
-	Repository      repository.Config         `mapstructure:"repository" json:"repository"`
-	Job             job.Config                `mapstructure:"job" json:"job"`
-	Validator       validator.Config          `mapstructure:"validator" json:"validator"`
-	Pprof           bool                      `mapstructure:"pprof" json:"pprof"`
-	AEVMEnabled     bool                      `mapstructure:"aevmEnabled" json:"aevmEnabled"`
-	AEVM            *AEVM                     `mapstructure:"aevm" json:"aevm"`
-	BlackjackConfig BlackjackConfig           `mapstructure:"blackjackConfig" json:"blackjackConfig"`
+	Env           string                    `mapstructure:"env" json:"env"`
+	Http          *http.HTTPConfig          `mapstructure:"http" json:"http"`
+	Common        Common                    `mapstructure:"common" json:"common"`
+	Log           *Log                      `mapstructure:"log" json:"log"`
+	Redis         redis.Config              `mapstructure:"redis" json:"redis"`
+	PregenRedis   redis.Config              `mapstructure:"pregenRedis" json:"pregenRedis"`
+	PoolRedis     redis.Config              `mapstructure:"poolRedis" json:"poolRedis"`
+	DogstatsdHost string                    `mapstructure:"ddAgentHost" json:"ddAgentHost"`
+	KeyPair       KeyPairInfo               `mapstructure:"keyPair" json:"keyPair"`
+	ReloadConfig  reloadconfig.ReloadConfig `mapstructure:"reloadConfig" json:"reloadConfig"`
+	SecretKey     string                    `mapstructure:"secretKey" json:"-"`
+	Metrics       metrics.Config            `mapstructure:"metrics" json:"metrics"`
+	GRPC          ServerListen              `mapstructure:"grpc" json:"grpc"`
+	Encoder       encode.Config             `mapstructure:"encoder" json:"encoder"`
+	UseCase       usecase.Config            `mapstructure:"useCase" json:"useCase"`
+	Repository    repository.Config         `mapstructure:"repository" json:"repository"`
+	Job           job.Config                `mapstructure:"job" json:"job"`
+	Validator     validator.Config          `mapstructure:"validator" json:"validator"`
+	Pprof         bool                      `mapstructure:"pprof" json:"pprof"`
+	AEVMEnabled   bool                      `mapstructure:"aevmEnabled" json:"aevmEnabled"`
+	AEVM          *AEVM                     `mapstructure:"aevm" json:"aevm"`
 }
 
 func (c *Config) Validate() error {

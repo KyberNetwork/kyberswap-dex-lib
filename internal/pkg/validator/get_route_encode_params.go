@@ -11,8 +11,8 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/blackjack"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -21,14 +21,14 @@ type getRouteEncodeParamsValidator struct {
 	nowFunc func() time.Time
 
 	config        GetRouteEncodeParamsConfig
-	blackjackRepo blackjack.IBlackjackRepository
+	blackjackRepo IBlackjackRepository
 	mu            sync.Mutex
 }
 
 func NewGetRouteEncodeParamsValidator(
 	nowFunc func() time.Time,
 	config GetRouteEncodeParamsConfig,
-	blackjackRepo blackjack.IBlackjackRepository,
+	blackjackRepo IBlackjackRepository,
 ) *getRouteEncodeParamsValidator {
 	return &getRouteEncodeParamsValidator{
 		nowFunc:       nowFunc,
@@ -161,10 +161,11 @@ func (v *getRouteEncodeParamsValidator) validateTo(ctx context.Context, to strin
 }
 
 func (v *getRouteEncodeParamsValidator) checkBlacklistedWallet(ctx context.Context, to string) error {
-	blacklistedWallet, err := v.blackjackRepo.GetAddressBlacklisted(ctx, []string{to})
+	blacklistedWallet, err := v.blackjackRepo.Check(ctx, []string{to})
 	if err != nil {
-		// Blackjack is `nice to have` in Aggregator, so we will bypass it if the request gets error.
-		logger.Debugf("[checkBlacklistedWallet] blackjackRepo.GetAddressBlacklisted gets error, to: %v, error: %s", to, err)
+		logger.
+			WithFields(logger.Fields{"request_id": requestid.GetRequestIDFromCtx(ctx), "error": err.Error()}).
+			Debug("failed to check from blackjack")
 		return nil
 	}
 

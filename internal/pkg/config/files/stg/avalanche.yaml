@@ -300,6 +300,11 @@ repository:
       prefix: *chainName
       localCacheSize: 5000
       localCacheTtl: 30s
+  blackjack:
+    grpcClient:
+      baseURL: blackjack-global-api.blackjack.svc:9080
+      insecure: true
+      timeout: 100ms
 validator:
   buildRouteParams:
     slippageToleranceGte: 0
@@ -327,8 +332,3 @@ aevm:
     readOnly: false
     routeRandomly: false
   cachedHoldersListTTLSec: 30
-blackjackConfig:
-  grpcConfig:
-    BaseURL: blackjack-global-api.blackjack.svc:9080
-    Insecure: true
-    Timeout: 100ms

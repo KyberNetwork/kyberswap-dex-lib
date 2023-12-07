@@ -7,11 +7,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/KyberNetwork/blockchain-toolkit/account"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/blackjack"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -20,14 +21,14 @@ type buildRouteParamsValidator struct {
 	nowFunc func() time.Time
 
 	config        BuildRouteParamsConfig
-	blackjackRepo blackjack.IBlackjackRepository
+	blackjackRepo IBlackjackRepository
 	mu            sync.Mutex
 }
 
 func NewBuildRouteParamsValidator(
 	nowFunc func() time.Time,
 	config BuildRouteParamsConfig,
-	blackjackRepo blackjack.IBlackjackRepository,
+	blackjackRepo IBlackjackRepository,
 ) *buildRouteParamsValidator {
 	return &buildRouteParamsValidator{
 		nowFunc:       nowFunc,
@@ -37,6 +38,8 @@ func NewBuildRouteParamsValidator(
 }
 
 func (v *buildRouteParamsValidator) Validate(ctx context.Context, params params.BuildRouteParams) error {
+	wallets := []string{params.Recipient}
+
 	if err := v.validateRoute(params.RouteSummary); err != nil {
 		return err
 	}
@@ -69,7 +72,15 @@ func (v *buildRouteParamsValidator) Validate(ctx context.Context, params params.
 		return err
 	}
 
-	if err := v.validateSenderAndRecipient(ctx, params.Source, params.Sender, params.Recipient); err != nil {
+	if err := v.validateSender(params.Sender, &wallets); err != nil {
+		return err
+	}
+
+	if err := v.validateRecipient(params.Recipient); err != nil {
+		return err
+	}
+
+	if err := v.validateWallets(ctx, wallets); err != nil {
 		return err
 	}
 
@@ -99,7 +110,7 @@ func (v *buildRouteParamsValidator) validateTokenIn(tokenIn, tokenOut string) er
 		return NewValidationError("tokenIn", "required")
 	}
 
-	if !IsEthereumAddress(tokenIn) {
+	if !account.IsValidAddress(tokenIn) || account.IsZeroAddress(tokenIn) {
 		return NewValidationError("tokenIn", "invalid")
 	}
 
@@ -115,7 +126,7 @@ func (v *buildRouteParamsValidator) validateTokenOut(tokenOut string) error {
 		return NewValidationError("tokenOut", "required")
 	}
 
-	if !IsEthereumAddress(tokenOut) {
+	if !account.IsValidAddress(tokenOut) || account.IsZeroAddress(tokenOut) {
 		return NewValidationError("tokenOut", "invalid")
 	}
 
@@ -149,7 +160,7 @@ func (v *buildRouteParamsValidator) validateFeeReceiver(feeReceiver string) erro
 		return nil
 	}
 
-	if !IsEthereumAddress(feeReceiver) {
+	if !account.IsValidAddress(feeReceiver) || account.IsZeroAddress(feeReceiver) {
 		return NewValidationError("feeReceiver", "invalid")
 	}
 
@@ -180,57 +191,57 @@ func (v *buildRouteParamsValidator) validateDeadline(deadline int64) error {
 	return nil
 }
 
-func (v *buildRouteParamsValidator) validateSenderAndRecipient(ctx context.Context, clientID, sender, recipient string) error {
+func (v *buildRouteParamsValidator) validateSender(sender string, wallets *[]string) error {
+	if !v.config.FeatureFlags.ShouldValidateSender {
+		return nil
+	}
+
+	if len(sender) == 0 {
+		return NewValidationError("sender", "required")
+	}
+
+	if !account.IsValidAddress(sender) || account.IsZeroAddress(sender) {
+		return NewValidationError("sender", "invalid")
+	}
+
+	*wallets = append(*wallets, sender)
+
+	return nil
+}
+
+func (v *buildRouteParamsValidator) validateRecipient(recipient string) error {
 	if len(recipient) == 0 {
 		return NewValidationError("recipient", "required")
 	}
 
-	if !IsEthereumAddress(recipient) {
-		return NewValidationError("recipient", "invalid")
-	}
-
-	// We will not require `sender` for now.
-	// We will monitor this field with client-id, then make the decision later.
-	if len(sender) == 0 {
-		logger.Warnf("Client-id: %s, sender is empty", clientID)
-	} else {
-		if !IsEthereumAddress(sender) {
-			logger.Warnf("Client-id: %s , sender is not ethereum address: %s", clientID, sender)
-			sender = ""
-		}
-	}
-
-	if v.config.FeatureFlags.IsBlackjackEnabled {
-		return v.checkBlacklistedWallet(ctx, sender, recipient)
-	}
-
-	if v.config.BlacklistedRecipientSet[strings.ToLower(recipient)] {
+	if !account.IsValidAddress(recipient) || account.IsZeroAddress(recipient) {
 		return NewValidationError("recipient", "invalid")
 	}
 
 	return nil
 }
 
-func (v *buildRouteParamsValidator) checkBlacklistedWallet(ctx context.Context, sender, recipient string) error {
-	// Blackjack doesn't allow the wallet is empty
-	wallets := []string{recipient}
-	if len(sender) != 0 {
-		wallets = append(wallets, sender)
-	}
-
-	blacklistedWallet, err := v.blackjackRepo.GetAddressBlacklisted(ctx, wallets)
-	if err != nil {
-		// Blackjack is `nice to have` in Aggregator, so we will bypass it if the request gets error.
-		logger.Debugf("[checkBlacklistedWallet] blackjackRepo.GetAddressBlacklisted gets error, wallets: %v, error: %s", wallets, err)
+func (v *buildRouteParamsValidator) validateWallets(ctx context.Context, wallets []string) error {
+	if !v.config.FeatureFlags.IsBlackjackEnabled {
 		return nil
 	}
 
-	if blacklistedWallet[sender] {
-		return NewValidationError("sender", "blacklisted wallet")
+	checkResult, err := v.blackjackRepo.Check(ctx, wallets)
+	if err != nil {
+		logger.
+			WithFields(logger.Fields{"request_id": requestid.GetRequestIDFromCtx(ctx), "error": err.Error()}).
+			Debug("failed to check from blackjack")
+		return nil
 	}
 
-	if blacklistedWallet[recipient] {
-		return NewValidationError("recipient", "blacklisted wallet")
+	for wallet, isBlacklisted := range checkResult {
+		if isBlacklisted {
+			logger.
+				WithFields(logger.Fields{"wallet": wallet, "request_id": requestid.GetRequestIDFromCtx(ctx)}).
+				Info("blacklisted wallet")
+
+			return NewValidationError("wallets", "invalid")
+		}
 	}
 
 	return nil

@@ -317,6 +317,11 @@ repository:
       prefix: *chainName
       localCacheSize: 5000
       localCacheTtl: 30s
+  blackjack:
+    grpcClient:
+      baseURL: blackjack.core-cluster.gke.production.internal:80
+      insecure: true
+      timeout: 100ms
 validator:
   buildRouteParams:
     slippageToleranceGte: 0
@@ -344,8 +349,3 @@ aevm:
         # balance history length, must be > 0
         0x5a7df2e997858d39f2aef4861e79c3133f8533d36ea28b6a66fa8b4914908a5a: 0x0000000000000000000000000000000000000000000000000000000000000001
   useHoldersListAsFallback: false
-blackjackConfig:
-  grpcConfig:
-    BaseURL: blackjack.core-cluster.gke.production.internal:80
-    Insecure: true
-    Timeout: 100ms

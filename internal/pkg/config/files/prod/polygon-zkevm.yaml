@@ -265,6 +265,11 @@ repository:
       prefix: *chainName
       localCacheSize: 5000
       localCacheTtl: 30s
+  blackjack:
+    grpcClient:
+      baseURL: blackjack.core-cluster.gke.production.internal:80
+      insecure: true
+      timeout: 100ms
 validator:
   buildRouteParams:
     slippageToleranceGte: 0
@@ -274,8 +279,3 @@ validator:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
     blacklistedRecipientSet:
-blackjackConfig:
-  grpcConfig:
-    BaseURL: blackjack.core-cluster.gke.production.internal:80
-    Insecure: true
-    Timeout: 100ms

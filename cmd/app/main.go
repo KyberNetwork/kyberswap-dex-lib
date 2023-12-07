@@ -10,7 +10,6 @@ import (
 	"time"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
-	blackjackv1 "github.com/KyberNetwork/blackjack/proto/gen/blackjack/v1"
 	"github.com/KyberNetwork/ethrpc"
 	_ "github.com/KyberNetwork/kyber-trace-go/tools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -68,7 +67,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute/synthetix"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/grpc"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
 	"github.com/KyberNetwork/router-service/internal/pkg/validator"
 	cryptopkg "github.com/KyberNetwork/router-service/pkg/crypto"
@@ -317,11 +315,10 @@ func apiAction(c *cli.Context) (err error) {
 
 	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
 
-	blackjackClient, err := grpc.NewClient[blackjackv1.ServiceClient](blackjackv1.NewServiceClient, cfg.BlackjackConfig.GrpcConfig)
+	blackjackRepo, err := blackjack.NewGRPCClient(cfg.Repository.Blackjack.GRPCClient)
 	if err != nil {
 		return err
 	}
-	blackjackRepo := blackjack.NewBlackjackRepository(blackjackClient.C)
 
 	executorBalanceRepository := executorbalance.NewRedisRepository(
 		routerRedisClient.Client,

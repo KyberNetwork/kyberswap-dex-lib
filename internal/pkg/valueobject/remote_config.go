@@ -35,6 +35,7 @@ type (
 		IsGasEstimatorEnabled          bool `mapstructure:"isGasEstimatorEnabled" json:"isGasEstimatorEnabled"`
 		IsBlackjackEnabled             bool `mapstructure:"isBlackjackEnabled" json:"isBlackjackEnabled"`
 		IsOptimizeExecutorFlagsEnabled bool `mapstructure:"isOptimizeExecutorFlagsEnabled" json:"isOptimizeExecutorFlagsEnabled"`
+		ShouldValidateSender           bool `mapstructure:"shouldValidateSender" json:"shouldValidateSender"`
 		IsAEVMEnabled                  bool `mapstructure:"isAEVMEnabled" json:"isAEVMEnabled"`
 	}
 
