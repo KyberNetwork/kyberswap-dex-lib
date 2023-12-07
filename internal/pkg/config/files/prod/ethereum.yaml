@@ -59,7 +59,6 @@ common:
     - "pol-matic"
     - "traderjoe-v21"
     - "smardex"
-    - "solidly-v3"
     - "balancer-v1"
   featureFlags: &featureFlags
 log:

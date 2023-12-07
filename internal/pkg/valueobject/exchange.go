@@ -114,7 +114,6 @@ var (
 	ExchangeArbiDexV3        Exchange = "arbidex-v3"
 	ExchangeWagmi            Exchange = "wagmi"
 	ExchangeMetavaultV3      Exchange = "metavault-v3"
-	ExchangeSolidlyV3        Exchange = "solidly-v3"
 
 	ExchangeBalancer                 Exchange = "balancer"
 	ExchangeBalancerComposableStable Exchange = "balancer-composable-stable"
@@ -367,7 +366,6 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeFxdx:                     {},
 	ExchangeZebra:                    {},
 	ExchangeZKSwap:                   {},
-	ExchangeSolidlyV3:                {},
 	ExchangeBalancerV1:               {},
 }
 
