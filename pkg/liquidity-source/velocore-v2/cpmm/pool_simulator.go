@@ -151,9 +151,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
 	if ok && swapInfo.IsFeeMultiplierUpdated {
 		p.feeMultiplier, _ = new(big.Int).SetString(swapInfo.FeeMultiplier, 10)
+		p.isLastWithdrawInTheSameBlock = true
 	}
-
-	p.isLastWithdrawInTheSameBlock = true
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
