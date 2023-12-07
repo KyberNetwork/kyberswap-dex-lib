@@ -6,8 +6,10 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -135,20 +137,27 @@ func (p *PoolSimulator) swap(
 		Lu,
 	)
 
-	newAu := new(big.Int).Quo(
-		new(big.Int).Add(
-			newDu, new(big.Int).Add(
-				sqrtRounding(
-					new(big.Int).Add(
-						new(big.Int).Mul(newDu, newDu),
-						_4ac,
-					),
-					true,
-				), integer.One(),
+	var newAu *big.Int
+	{
+		v, overflow := uint256.FromBig(new(big.Int).Add(
+			new(big.Int).Mul(newDu, newDu),
+			_4ac,
+		))
+		if overflow {
+			return nil, ErrOverflow
+		}
+
+		newAu = new(big.Int).Quo(
+			new(big.Int).Add(
+				newDu,
+				new(big.Int).Add(
+					math.Common.SqrtRounding(v, true).ToBig(),
+					integer.One(),
+				),
 			),
-		),
-		integer.Two(),
-	)
+			integer.Two(),
+		)
+	}
 
 	amountOut := p.downscale(u, new(big.Int).Sub(newAu, Au))
 	amountOut.Neg(amountOut)
