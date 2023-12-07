@@ -8,7 +8,6 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
-	"github.com/KyberNetwork/logger"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -126,27 +125,15 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	tokenInIdx := p.GetTokenIndex(params.TokenAmountIn.Token)
-	if tokenInIdx < 0 {
-		logger.WithFields(logger.Fields{
-			"dexID":   p.Pool.Info.Exchange,
-			"dexType": p.Pool.Info.Type,
-			"token":   params.TokenAmountIn.Token,
-		}).Error("can not find token in pool")
-		return
-	}
+	for idx, token := range p.Info.Tokens {
+		if token == params.TokenAmountIn.Token {
+			p.Info.Reserves[idx] = new(big.Int).Add(p.Info.Reserves[idx], params.TokenAmountIn.Amount)
+		}
 
-	tokenOutIdx := p.GetTokenIndex(params.TokenAmountOut.Token)
-	if tokenOutIdx < 0 {
-		logger.WithFields(logger.Fields{
-			"dexID":   p.Pool.Info.Exchange,
-			"dexType": p.Pool.Info.Type,
-			"token":   params.TokenAmountOut.Token,
-		}).Error("can not find token in pool")
+		if token == params.TokenAmountOut.Token {
+			p.Info.Reserves[idx] = new(big.Int).Sub(p.Info.Reserves[idx], params.TokenAmountOut.Amount)
+		}
 	}
-
-	p.Info.Reserves[tokenInIdx] = new(big.Int).Add(p.Info.Reserves[tokenInIdx], params.TokenAmountIn.Amount)
-	p.Info.Reserves[tokenOutIdx] = new(big.Int).Sub(p.Info.Reserves[tokenOutIdx], params.TokenAmountOut.Amount)
 
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
 	if ok && swapInfo.IsFeeMultiplierUpdated {
