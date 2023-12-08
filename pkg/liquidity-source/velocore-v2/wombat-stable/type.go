@@ -13,7 +13,8 @@ type Metadata struct {
 }
 
 type Meta struct {
-	Vault string `json:"vault"`
+	Vault    string            `json:"vault"`
+	Wrappers map[string]string `json:"wrappers"`
 }
 
 type Gas struct {
@@ -30,7 +31,8 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	Vault string `json:"vault"`
+	Vault    string            `json:"vault"`
+	Wrappers map[string]string `json:"wrappers"`
 }
 
 type tokenInfo struct {

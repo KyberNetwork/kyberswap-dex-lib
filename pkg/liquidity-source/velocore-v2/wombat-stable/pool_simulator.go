@@ -28,7 +28,8 @@ type PoolSimulator struct {
 	lpTokenBalances map[string]*big.Int
 	tokenInfo       map[string]tokenInfo
 
-	vault string
+	vault    string
+	wrappers map[string]string
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -122,7 +123,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return Meta{
-		Vault: t.vault,
+		Vault:    t.vault,
+		Wrappers: t.wrappers,
 	}
 }
 

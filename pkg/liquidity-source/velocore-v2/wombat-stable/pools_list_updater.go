@@ -141,6 +141,11 @@ func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.A
 		return nil, err
 	}
 
+	wrappers := make(map[string]string)
+	for token, wrapper := range p.config.Wrappers {
+		wrappers[strings.ToLower(token)] = strings.ToLower(wrapper)
+	}
+
 	for i, poolAddress := range poolAddreses {
 		poolAddr := strings.ToLower(poolAddress.Hex())
 		poolDat := newPoolData(poolData[i])
@@ -161,7 +166,8 @@ func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.A
 		}
 
 		staticExtra := StaticExtra{
-			Vault: p.config.VaultAddress,
+			Vault:    p.config.VaultAddress,
+			Wrappers: wrappers,
 		}
 		staticExtraBytes, err := json.Marshal(staticExtra)
 		if err != nil {
