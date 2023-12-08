@@ -72,13 +72,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		lpTokenBalances: extra.LpTokenBalances,
 		tokenInfo:       extra.TokenInfo,
 		vault:           staticExtra.Vault,
+		wrappers:        staticExtra.Wrappers,
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
+
 	err := p.validateTokens([]string{tokenAmountIn.Token, tokenOut})
 	if err != nil {
 		return nil, err
