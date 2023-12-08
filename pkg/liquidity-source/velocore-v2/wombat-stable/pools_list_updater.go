@@ -142,8 +142,8 @@ func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.A
 	}
 
 	wrappers := make(map[string]string)
-	for token, wrapper := range p.config.Wrappers {
-		wrappers[strings.ToLower(token)] = strings.ToLower(wrapper)
+	for t, w := range p.config.Wrappers {
+		wrappers[strings.ToLower(t)] = strings.ToLower(w)
 	}
 
 	for i, poolAddress := range poolAddreses {
