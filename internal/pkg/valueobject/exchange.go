@@ -453,6 +453,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 	ExchangeBalancerComposableStable: {},
 	ExchangeBeethovenX:               {},
 
+	// executeBalancerV1
+	ExchangeBalancerV1: {},
+
 	// executeDODO
 	ExchangeDodo: {},
 
