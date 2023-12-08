@@ -1,8 +1,8 @@
 package wombatstable
 
 import (
+	"errors"
 	"math/big"
-	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/goccy/go-json"
@@ -12,6 +12,13 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+)
+
+var (
+	ErrInvalidToken         = errors.New("invalid token")
+	ErrInvariant            = errors.New("invariant")
+	ErrOverflow             = errors.New("overflow")
+	ErrNonPositiveAmountOut = errors.New("non positive amount out")
 )
 
 type PoolSimulator struct {
@@ -34,11 +41,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		staticExtra StaticExtra
 	)
 
-	if len(entityPool.Reserves) == tokenNbr && len(entityPool.Tokens) == tokenNbr {
-		for i := 0; i < tokenNbr; i++ {
-			tokens[i] = entityPool.Tokens[i].Address
-			reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
-		}
+	for i := 0; i < tokenNbr; i++ {
+		tokens[i] = entityPool.Tokens[i].Address
+		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 	}
 
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -50,14 +55,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	info := pool.PoolInfo{
-		Address:    strings.ToLower(entityPool.Address),
+		Address:    entityPool.Address,
 		ReserveUsd: entityPool.ReserveUsd,
 		SwapFee:    nil,
 		Exchange:   entityPool.Exchange,
 		Type:       entityPool.Type,
 		Tokens:     tokens,
 		Reserves:   reserves,
-		Checked:    false,
+		Checked:    true,
 	}
 
 	return &PoolSimulator{
@@ -78,9 +83,16 @@ func (p *PoolSimulator) CalcAmountOut(
 		return nil, err
 	}
 
+	// NOTE: LP swap is not supported
+	// because it does not have IERC20 standard.
 	amountOut, err := p.swap(tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount)
 	if err != nil {
 		return nil, err
+	}
+
+	amountOut = new(big.Int).Neg(amountOut)
+	if amountOut.Cmp(integer.Zero()) <= 0 {
+		return nil, ErrNonPositiveAmountOut
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -114,11 +126,8 @@ func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	}
 }
 
-func (p *PoolSimulator) swap(
-	k string,
-	u string,
-	dAk *big.Int,
-) (*big.Int, error) {
+// https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/src/pools/wombat/WombatPool.sol#L164
+func (p *PoolSimulator) swap(k string, u string, dAk *big.Int) (*big.Int, error) {
 	Au, Lu, Du, err := p.tokenStatScaled(u)
 	if err != nil {
 		return nil, err
@@ -168,10 +177,7 @@ func (p *PoolSimulator) swap(
 		)
 	}
 
-	amountOut := p.downscale(u, new(big.Int).Sub(newAu, Au))
-	amountOut.Neg(amountOut)
-
-	return amountOut, nil
+	return p.downscale(u, new(big.Int).Sub(newAu, Au)), nil
 }
 
 func (p *PoolSimulator) validateTokens(tokens []string) error {
@@ -188,6 +194,7 @@ func (p *PoolSimulator) validateTokens(tokens []string) error {
 	return nil
 }
 
+// https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/src/pools/wombat/WombatPool.sol#L145
 func (p *PoolSimulator) tokenStatScaled(token string) (*big.Int, *big.Int, *big.Int, error) {
 	scale := integer.TenPow(p.tokenInfo[token].Scale)
 	l := new(big.Int).Mul(
@@ -202,6 +209,7 @@ func (p *PoolSimulator) tokenStatScaled(token string) (*big.Int, *big.Int, *big.
 	return a, l, partialInvariant, nil
 }
 
+// https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/src/pools/wombat/WombatPool.sol#L137
 func (p *PoolSimulator) partialInvariant(a *big.Int, l *big.Int) (*big.Int, error) {
 	if a.Cmp(integer.Zero()) == 0 {
 		if l.Cmp(integer.Zero()) != 0 {
@@ -221,10 +229,12 @@ func (p *PoolSimulator) partialInvariant(a *big.Int, l *big.Int) (*big.Int, erro
 	), nil
 }
 
+// https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/src/pools/wombat/WombatPool.sol#L152
 func (p *PoolSimulator) upscale(t string, x *big.Int) *big.Int {
 	return new(big.Int).Mul(x, integer.TenPow(p.tokenInfo[t].Scale))
 }
 
+// https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/src/pools/wombat/WombatPool.sol#L158
 func (p *PoolSimulator) downscale(t string, x *big.Int) *big.Int {
 	return new(big.Int).Quo(x, integer.TenPow(p.tokenInfo[t].Scale))
 }
