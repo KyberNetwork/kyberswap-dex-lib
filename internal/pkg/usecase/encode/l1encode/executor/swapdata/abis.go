@@ -369,8 +369,8 @@ func init() {
 
 	BalancerV1Arguments = abi.Arguments{
 		{Name: "pool", Type: abitypes.Address},
-		{Name: "amount", Type: abitypes.Uint256},
 		{Name: "tokenIn", Type: abitypes.Address},
 		{Name: "tokenOut", Type: abitypes.Address},
+		{Name: "amount", Type: abitypes.Uint256},
 	}
 }

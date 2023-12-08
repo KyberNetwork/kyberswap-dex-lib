@@ -10,9 +10,9 @@ import (
 func PackBalancerV1(_ valueobject.ChainID, encodingSwap types.EncodingSwap) ([]byte, error) {
 	swap := BalancerV1{
 		Pool:     common.HexToAddress(encodingSwap.Pool),
-		Amount:   encodingSwap.SwapAmount,
 		TokenIn:  common.HexToAddress(encodingSwap.TokenIn),
 		TokenOut: common.HexToAddress(encodingSwap.TokenOut),
+		Amount:   encodingSwap.SwapAmount,
 	}
 
 	return packBalancerV1(swap)
@@ -35,8 +35,8 @@ func UnpackBalancerV1(encodedSwap []byte) (BalancerV1, error) {
 func packBalancerV1(swap BalancerV1) ([]byte, error) {
 	return BalancerV1Arguments.Pack(
 		swap.Pool,
-		swap.Amount,
 		swap.TokenIn,
 		swap.TokenOut,
+		swap.Amount,
 	)
 }
