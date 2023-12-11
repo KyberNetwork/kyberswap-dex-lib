@@ -238,6 +238,10 @@ func (p *PoolSimulator) validateTokens(tokens []string) error {
 }
 
 func (p *PoolSimulator) findBinArrIndex(binID uint32) (uint32, error) {
+	if len(p.bins) == 0 {
+		return 0, ErrNotFoundBinID
+	}
+
 	var (
 		l = 0
 		r = len(p.bins)
