@@ -9,8 +9,9 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
+	"github.com/sourcegraph/conc/pool"
 )
 
 type PoolTracker struct {
@@ -31,7 +32,7 @@ func NewPoolTracker(
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ pool.GetNewPoolStateParams,
+	_ sourcePool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
@@ -101,16 +102,47 @@ func (d *PoolTracker) GetNewPoolState(
 
 	binLength := int(binCounter.Int64())
 	binRaws := make([]GetBinResult, binLength+1)
-	binCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
-	for i := 0; i <= binLength; i++ {
-		binCalls.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: p.Address,
-			Method: poolMethodGetBin,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&binRaws[i]})
+
+	// NOTE:
+	// binLength of pool 0xd0b2f5018b5d22759724af6d4281ac0b13266360 can reach 2751, cause entity too large error when using multicall
+	// split bins into chunk to get concurrency
+	chunk := d.config.GetBinChunk
+	if chunk == 0 {
+		chunk = defaultChunk
 	}
-	if _, err := binCalls.Aggregate(); err != nil {
+	g := pool.New().WithContext(ctx)
+	for i := 0; i <= binLength; i += chunk {
+		startBin := i
+		endBin := startBin + chunk - 1
+		if endBin > binLength {
+			endBin = binLength
+		}
+		g.Go(func(context.Context) error {
+			return func(startBin, endBin int) error {
+				binCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
+				for j := startBin; j <= endBin; j++ {
+					binCalls.AddCall(&ethrpc.Call{
+						ABI:    poolABI,
+						Target: p.Address,
+						Method: poolMethodGetBin,
+						Params: []interface{}{big.NewInt(int64(j))},
+					}, []interface{}{&binRaws[j]})
+				}
+				if _, err := binCalls.Aggregate(); err != nil {
+					logger.WithFields(logger.Fields{
+						"poolAddress": p.Address,
+						"error":       err,
+						"startBin":    startBin,
+						"endBin":      endBin,
+					}).Errorf("failed to aggregate to get bins data")
+
+					return err
+				}
+				return nil
+			}(startBin, endBin)
+		})
+	}
+	if err := g.Wait(); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
