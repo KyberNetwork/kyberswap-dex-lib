@@ -35,6 +35,7 @@ var (
 	requestCountCounter           metric.Float64Counter
 	invalidSynthetixVolumeCounter metric.Float64Counter
 	findRoutePregenHitRateCounter metric.Float64Counter
+	estimateGasStatusCounter      metric.Float64Counter
 	mapMetricNameToCounter        map[string]metric.Float64Counter
 )
 
@@ -46,6 +47,7 @@ func init() {
 	requestCountCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(RequestCountMetricsName))
 	invalidSynthetixVolumeCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(InvalidSynthetixVolumeMetricsName))
 	findRoutePregenHitRateCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(FindRoutePregenHitRateMetricsName))
+	estimateGasStatusCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(EstimateGasStatusMetricsName))
 	mapMetricNameToCounter = map[string]metric.Float64Counter{
 		DexHitRateMetricsName:             dexHitRateCounter,
 		PoolTypeHitRateMetricsName:        poolTypeHitRateCounter,
@@ -54,6 +56,7 @@ func init() {
 		RequestCountMetricsName:           requestCountCounter,
 		InvalidSynthetixVolumeMetricsName: invalidSynthetixVolumeCounter,
 		FindRoutePregenHitRateMetricsName: findRoutePregenHitRateCounter,
+		EstimateGasStatusMetricsName:      estimateGasStatusCounter,
 	}
 }
 
