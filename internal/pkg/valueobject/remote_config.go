@@ -15,7 +15,6 @@ type (
 		PregenFinderOptions   FinderOptions       `json:"pregenFinderOptions"`
 		CacheConfig           CacheConfig         `json:"cache"`
 		BlacklistedRecipients []string            `json:"blacklistedRecipients"`
-		L2EncodePartners      []string            `json:"l2EncodePartners"`
 	}
 
 	Source string

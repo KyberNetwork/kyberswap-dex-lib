@@ -126,7 +126,6 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 func (uc *BuildRouteUseCase) ApplyConfig(config Config) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
-	uc.config.L2EncodePartners = config.L2EncodePartners
 	uc.config.FeatureFlags = config.FeatureFlags
 }
 
@@ -348,17 +347,10 @@ func (uc *BuildRouteUseCase) getPrices(
 }
 
 func (uc *BuildRouteUseCase) getEncoder(ctx context.Context, command dto.BuildRouteCommand) IEncoder {
-	if !helper.IsL2EncoderSupportedChains(uc.config.ChainID) {
-		return uc.l1Encoder
-	}
-	if _, exist := uc.config.L2EncodePartners[strings.ToLower(command.Source)]; exist {
+	if helper.IsL2EncoderSupportedChains(uc.config.ChainID) {
 		return uc.l2Encoder
 	}
-
-	if !uc.config.UseL2OptimizeByDefault {
-		return uc.l1Encoder
-	}
-	return uc.l2Encoder
+	return uc.l1Encoder
 }
 
 func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildRouteCommand, encodedData string) (uint64, float64, error) {

@@ -259,7 +259,6 @@ useCase:
       shrinkFuncLogPercent: 1.01
   buildRoute:
     chainId: *chainId
-    useL2OptimizeByDefault: false
     rfq:
       - id: kyberswap-limit-order-v2
         handler: limit-order
