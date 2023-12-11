@@ -18,7 +18,9 @@ type Meta struct {
 }
 
 type Gas struct {
-	Swap int64
+	SwapNoConvert  int64
+	SwapConvertIn  int64
+	SwapConvertOut int64
 }
 
 type bytes32 [32]byte
