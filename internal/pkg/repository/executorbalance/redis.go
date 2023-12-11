@@ -37,6 +37,10 @@ func NewRedisRepository(
 }
 
 func (r *RedisRepository) HasToken(executorAddress string, queries []string) ([]bool, error) {
+	if len(queries) == 0 {
+		return nil, nil
+	}
+
 	key := utils.Join(r.tokenBalancePrefix, executorAddress)
 	members := lo.Map(queries, func(query string, _ int) interface{} { return query })
 
@@ -50,6 +54,10 @@ func (r *RedisRepository) HasToken(executorAddress string, queries []string) ([]
 }
 
 func (r *RedisRepository) HasPoolApproval(executorAddress string, queries []dto.PoolApprovalQuery) ([]bool, error) {
+	if len(queries) == 0 {
+		return nil, nil
+	}
+
 	cmds, err := r.redisClient.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
 		for _, query := range queries {
 			key := utils.Join(r.poolApprovalPrefix, executorAddress, query.TokenIn)
@@ -71,6 +79,10 @@ func (r *RedisRepository) HasPoolApproval(executorAddress string, queries []dto.
 }
 
 func (r *RedisRepository) AddToken(executorAddress string, data []string) error {
+	if len(data) == 0 {
+		return nil
+	}
+
 	key := utils.Join(r.tokenBalancePrefix, executorAddress)
 	members := lo.Map(data, func(query string, _ int) interface{} { return query })
 
@@ -79,6 +91,10 @@ func (r *RedisRepository) AddToken(executorAddress string, data []string) error 
 }
 
 func (r *RedisRepository) ApprovePool(executorAddress string, data []dto.PoolApprovalQuery) error {
+	if len(data) == 0 {
+		return nil
+	}
+
 	_, err := r.redisClient.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
 		for _, query := range data {
 			key := utils.Join(r.poolApprovalPrefix, executorAddress, query.TokenIn)
