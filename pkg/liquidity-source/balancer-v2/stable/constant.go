@@ -17,5 +17,5 @@ const (
 )
 
 var (
-	defaultGas = Gas{Swap: 10}
+	defaultGas = Gas{Swap: 80000}
 )
