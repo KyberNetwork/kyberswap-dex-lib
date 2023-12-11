@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/KyberNetwork/logger"
 	"github.com/holiman/uint256"
 )
 
@@ -141,6 +142,12 @@ func (l *bNum) BPowI(a *uint256.Int, n *uint256.Int) (*uint256.Int, error) {
 
 // https://github.com/balancer/balancer-core/blob/f4ed5d65362a8d6cec21662fb6eae233b0babc1f/contracts/BNum.sol#L128C14-L128C24
 func (l *bNum) BPowApprox(base *uint256.Int, exp *uint256.Int, precision *uint256.Int) (*uint256.Int, error) {
+	logger.WithFields(logger.Fields{
+		"base":      base,
+		"exp":       exp,
+		"precision": precision,
+	}).Infof("BPowApprox Input data")
+
 	a := new(uint256.Int).Set(exp)
 	x, xneg := l.BSubSign(base, BConst.BONE)
 	term := new(uint256.Int).Set(BConst.BONE)
