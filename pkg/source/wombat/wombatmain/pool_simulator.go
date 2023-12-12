@@ -3,6 +3,7 @@ package wombatmain
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/KyberNetwork/logger"
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -19,6 +20,11 @@ type PoolSimulator struct {
 	endCovRatio   *big.Int
 	assets        map[string]wombat.Asset
 	gas           wombat.Gas
+}
+
+type wombatSwapInfo struct {
+	newFromAssetCash *big.Int
+	newToAssetCash   *big.Int
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -62,11 +68,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
-	amountOut, haircut, err := Swap(
+	amountOut, haircut, newFromAssetCash, newToAssetCash, err := Swap(
 		tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount,
 		p.paused, p.haircutRate, p.ampFactor, p.startCovRatio, p.endCovRatio,
 		p.assets,
 	)
+
 	if err != nil {
 		return &pool.CalcAmountOutResult{}, err
 	}
@@ -84,14 +91,24 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		TokenAmountOut: tokenAmountOut,
 		Fee:            fee,
 		Gas:            p.gas.Swap,
+		SwapInfo: wombatSwapInfo{
+			newFromAssetCash: newFromAssetCash,
+			newToAssetCash:   newToAssetCash,
+		},
 	}, nil
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	swapInfo, ok := params.SwapInfo.(wombatSwapInfo)
+	if !ok {
+		logger.Warn("failed to UpdateBalance for wombat-main pool, wrong swapInfo type")
+		return
+	}
+
 	fromAsset, toAsset := p.assets[params.TokenAmountIn.Token], p.assets[params.TokenAmountOut.Token]
 
-	fromAsset.Cash = new(big.Int).Add(fromAsset.Cash, params.TokenAmountIn.Amount)
-	toAsset.Cash = new(big.Int).Sub(toAsset.Cash, new(big.Int).Add(params.TokenAmountOut.Amount, params.Fee.Amount))
+	fromAsset.Cash = new(big.Int).Set(swapInfo.newFromAssetCash)
+	toAsset.Cash = new(big.Int).Set(swapInfo.newToAssetCash)
 
 	p.assets[params.TokenAmountIn.Token] = fromAsset
 	p.assets[params.TokenAmountOut.Token] = toAsset

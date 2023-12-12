@@ -16,39 +16,40 @@ func Swap(
 	paused bool,
 	haircutRate, ampFactor, startCovRatio, endCovRatio *big.Int,
 	assetMap map[string]wombat.Asset,
-) (*big.Int, *big.Int, error) {
+) (*big.Int, *big.Int, *big.Int, *big.Int, error) {
 	if paused {
-		return nil, nil, ErrWombatPoolAlreadyPaused
+		return nil, nil, nil, nil, ErrWombatPoolAlreadyPaused
 	}
 	if err := checkSameAddress(fromToken, toToken); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	if fromAmount.Cmp(bignumber.ZeroBI) == 0 {
-		return nil, nil, ErrFromAmountIsZero
+		return nil, nil, nil, nil, ErrFromAmountIsZero
 	}
 
 	fromAsset, err := assetOf(fromToken, assetMap)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	toAsset, err := assetOf(toToken, assetMap)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	if fromAsset.IsPause {
-		return nil, nil, ErrWombatAssetAlreadyPaused
+		return nil, nil, nil, nil, ErrWombatAssetAlreadyPaused
 	}
 
 	fromAmount = dsmath.ToWAD(fromAmount, fromAsset.UnderlyingTokenDecimals)
 	actualToAmount, haircut, err := highCovRatioFeePoolV2QuoteFrom(fromAsset, toAsset, fromAmount, haircutRate, ampFactor, startCovRatio, endCovRatio)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
+	newFromAssetCash := new(big.Int).Add(fromAsset.Cash, fromAmount)
 	newToAssetCash := new(big.Int).Sub(toAsset.Cash, new(big.Int).Add(actualToAmount, haircut))
 	if dsmath.WDiv(newToAssetCash, toAsset.Liability).Cmp(new(big.Int).Div(WAD, big.NewInt(100))) < 0 {
-		return nil, nil, ErrWombatForbidden
+		return nil, nil, nil, nil, ErrWombatForbidden
 	}
 
 	actualToAmount = dsmath.FromWAD(actualToAmount, toAsset.UnderlyingTokenDecimals)
@@ -58,7 +59,7 @@ func Swap(
 		haircut = dsmath.FromWAD(haircut, fromAsset.UnderlyingTokenDecimals)
 	}
 
-	return actualToAmount, haircut, nil
+	return actualToAmount, haircut, newFromAssetCash, newToAssetCash, nil
 }
 
 func highCovRatioFeePoolV2QuoteFrom(
