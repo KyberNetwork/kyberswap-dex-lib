@@ -167,9 +167,12 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeMetavaultV3, swapdata.PackUniswapV3KSElastic)
 
 	// BalancerV2
-	RegisterPackSwapDataFunc(valueobject.ExchangeBalancer, swapdata.PackBalancerV2)
-	RegisterPackSwapDataFunc(valueobject.ExchangeBalancerComposableStable, swapdata.PackBalancerV2)
-	RegisterPackSwapDataFunc(valueobject.ExchangeBeethovenX, swapdata.PackBalancerV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBalancerV2Weighted, swapdata.PackBalancerV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBalancerV2Stable, swapdata.PackBalancerV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBalancerV2ComposableStable, swapdata.PackBalancerV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBeethovenXWeighted, swapdata.PackBalancerV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBeethovenXStable, swapdata.PackBalancerV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBeethovenXComposableStable, swapdata.PackBalancerV2)
 
 	// DODO
 	RegisterPackSwapDataFunc(valueobject.ExchangeDodo, swapdata.PackDODO)
@@ -243,4 +246,8 @@ func init() {
 
 	// BalancerV1
 	RegisterPackSwapDataFunc(valueobject.ExchangeBalancerV1, swapdata.PackBalancerV1)
+
+	// VelocoreV2
+	RegisterPackSwapDataFunc(valueobject.ExchangeVelocoreV2CPMM, swapdata.PackVelocoreV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeVelocoreV2WombatStable, swapdata.PackVelocoreV2)
 }

@@ -9,11 +9,13 @@ import (
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v1"
+	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
+	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
+	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
+	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
+	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
-	balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
-	balancerstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/stable"
-	balancerweighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/weighted"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
 	curveAave "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/aave"
 	curveBase "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/base"
@@ -285,12 +287,6 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newCurveTricrypto(entityPool)
 	case constant.PoolTypes.CurveTwo:
 		return f.newCurveTwo(entityPool)
-	case constant.PoolTypes.BalancerWeighted:
-		return f.newBalancerWeighted(entityPool)
-	case constant.PoolTypes.BalancerStable, constant.PoolTypes.BalancerMetaStable:
-		return f.newBalancerStable(entityPool)
-	case constant.PoolTypes.BalancerComposableStable:
-		return f.newBalancerComposableStable(entityPool)
 	case constant.PoolTypes.DodoClassical, constant.PoolTypes.DodoStable,
 		constant.PoolTypes.DodoVendingMachine, constant.PoolTypes.DodoPrivate:
 		return f.newDoDo(entityPool)
@@ -381,6 +377,16 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newQuickPerps(entityPool)
 	case constant.PoolTypes.BalancerV1:
 		return f.newBalancerV1(entityPool)
+	case constant.PoolTypes.BalancerV2Weighted:
+		return f.newBalancerV2Weighted(entityPool)
+	case constant.PoolTypes.BalancerV2Stable:
+		return f.newBalancerV2Stable(entityPool)
+	case constant.PoolTypes.BalancerV2ComposableStable:
+		return f.newBalancerV2ComposableStable(entityPool)
+	case constant.PoolTypes.VelocoreV2CPMM:
+		return f.newVelocoreV2CPMM(entityPool)
+	case constant.PoolTypes.VelocoreV2WombatStable:
+		return f.newVelocoreV2WombatStable(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -577,48 +583,6 @@ func (f *PoolFactory) newCurveTwo(entityPool entity.Pool) (*curveTwo.Pool, error
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newCurveTwo] pool: [%s] » type: [%s]",
-			entityPool.Address,
-			entityPool.Type,
-		)
-	}
-
-	return corePool, nil
-}
-
-func (f *PoolFactory) newBalancerWeighted(entityPool entity.Pool) (*balancerweighted.WeightedPool2Tokens, error) {
-	corePool, err := balancerweighted.NewPoolSimulator(entityPool)
-	if err != nil {
-		return nil, errors.Wrapf(
-			ErrInitializePoolFailed,
-			"[PoolFactory.newBalancerWeighted] pool: [%s] » type: [%s]",
-			entityPool.Address,
-			entityPool.Type,
-		)
-	}
-
-	return corePool, nil
-}
-
-func (f *PoolFactory) newBalancerStable(entityPool entity.Pool) (*balancerstable.StablePool, error) {
-	corePool, err := balancerstable.NewPoolSimulator(entityPool)
-	if err != nil {
-		return nil, errors.Wrapf(
-			ErrInitializePoolFailed,
-			"[PoolFactory.newBalancerStable] pool: [%s] » type: [%s]",
-			entityPool.Address,
-			entityPool.Type,
-		)
-	}
-
-	return corePool, nil
-}
-
-func (f *PoolFactory) newBalancerComposableStable(entityPool entity.Pool) (*balancercomposablestable.PoolSimulator, error) {
-	corePool, err := balancercomposablestable.NewPoolSimulator(entityPool)
-	if err != nil {
-		return nil, errors.Wrapf(
-			ErrInitializePoolFailed,
-			"[PoolFactory.newBalancerComposableStable] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
@@ -1229,6 +1193,76 @@ func (f *PoolFactory) newBalancerV1(entityPool entity.Pool) (*balancerv1.PoolSim
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newBalancerV1] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newBalancerV2Weighted(entityPool entity.Pool) (*balancerv2weighted.PoolSimulator, error) {
+	corePool, err := balancerv2weighted.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newBalancerV2Weighted] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newBalancerV2Stable(entityPool entity.Pool) (*balancerv2stable.PoolSimulator, error) {
+	corePool, err := balancerv2stable.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newBalancerV2Stable] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newBalancerV2ComposableStable(entityPool entity.Pool) (*balancerv2composablestable.PoolSimulator, error) {
+	corePool, err := balancerv2composablestable.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newBalancerV2ComposableStable] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newVelocoreV2CPMM(entityPool entity.Pool) (*velocorev2cpmm.PoolSimulator, error) {
+	corePool, err := velocorev2cpmm.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newVelocoreV2CPMM] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newVelocoreV2WombatStable(entityPool entity.Pool) (*velocorev2wombatstable.PoolSimulator, error) {
+	corePool, err := velocorev2wombatstable.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newVelocoreV2WombatStable] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

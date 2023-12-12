@@ -84,9 +84,12 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeHoriza, FunctionSelectorUniV3KSElastic)
 
 	// executeBalV2Swap
-	RegisterFunctionSelector(valueobject.ExchangeBalancer, FunctionSelectorBalancerV2)
-	RegisterFunctionSelector(valueobject.ExchangeBalancerComposableStable, FunctionSelectorBalancerV2)
-	RegisterFunctionSelector(valueobject.ExchangeBeethovenX, FunctionSelectorBalancerV2)
+	RegisterFunctionSelector(valueobject.ExchangeBalancerV2Weighted, FunctionSelectorBalancerV2)
+	RegisterFunctionSelector(valueobject.ExchangeBalancerV2Stable, FunctionSelectorBalancerV2)
+	RegisterFunctionSelector(valueobject.ExchangeBalancerV2ComposableStable, FunctionSelectorBalancerV2)
+	RegisterFunctionSelector(valueobject.ExchangeBeethovenXWeighted, FunctionSelectorBalancerV2)
+	RegisterFunctionSelector(valueobject.ExchangeBeethovenXStable, FunctionSelectorBalancerV2)
+	RegisterFunctionSelector(valueobject.ExchangeBeethovenXComposableStable, FunctionSelectorBalancerV2)
 
 	// executeDODOSwap
 	RegisterFunctionSelector(valueobject.ExchangeDodo, FunctionSelectorDODO)

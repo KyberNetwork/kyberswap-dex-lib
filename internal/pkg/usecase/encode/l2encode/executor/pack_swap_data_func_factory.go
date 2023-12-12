@@ -87,9 +87,12 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeHoriza, swapdata.PackUniswapV3KSElastic)
 
 	// BalancerV2
-	RegisterPackSwapDataFunc(valueobject.ExchangeBalancer, swapdata.PackBalancerV2)
-	RegisterPackSwapDataFunc(valueobject.ExchangeBalancerComposableStable, swapdata.PackBalancerV2)
-	RegisterPackSwapDataFunc(valueobject.ExchangeBeethovenX, swapdata.PackBalancerV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBalancerV2Weighted, swapdata.PackBalancerV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBalancerV2Stable, swapdata.PackBalancerV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBalancerV2ComposableStable, swapdata.PackBalancerV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBeethovenXWeighted, swapdata.PackBalancerV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBeethovenXStable, swapdata.PackBalancerV2)
+	RegisterPackSwapDataFunc(valueobject.ExchangeBeethovenXComposableStable, swapdata.PackBalancerV2)
 
 	// DODO
 	RegisterPackSwapDataFunc(valueobject.ExchangeDodo, swapdata.PackDODO)

@@ -16,7 +16,6 @@ import (
 
 	"github.com/KyberNetwork/elastic-go-sdk/v2/constants"
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -309,14 +308,36 @@ func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress
 // which executor should approve max for. By default, it returns pool address.
 func getAddressToApproveMax(pool *PoolInfo) (string, error) {
 	switch valueobject.Exchange(pool.simulator.GetExchange()) {
-	case valueobject.ExchangeBalancer,
-		valueobject.ExchangeBalancerComposableStable,
-		valueobject.ExchangeBeethovenX:
-		var staticExtra balancer.StaticExtra
-		if err := json.Unmarshal([]byte(pool.entity.StaticExtra), &staticExtra); err != nil {
-			return "", err
+	case
+		valueobject.ExchangeBalancerV2Weighted,
+		valueobject.ExchangeBalancerV2Stable,
+		valueobject.ExchangeBalancerV2ComposableStable,
+		valueobject.ExchangeBeethovenXWeighted,
+		valueobject.ExchangeBeethovenXStable,
+		valueobject.ExchangeBeethovenXComposableStable:
+		{
+			var staticExtra struct {
+				VaultAddress string `json:"vaultAddress"`
+			}
+			if err := json.Unmarshal([]byte(pool.entity.StaticExtra), &staticExtra); err != nil {
+				return "", err
+			}
+
+			return staticExtra.VaultAddress, nil
 		}
-		return staticExtra.VaultAddress, nil
+	case
+		valueobject.ExchangeVelocoreV2CPMM,
+		valueobject.ExchangeVelocoreV2WombatStable:
+		{
+			var staticExtra struct {
+				Vault string `json:"vault"`
+			}
+			if err := json.Unmarshal([]byte(pool.entity.StaticExtra), &staticExtra); err != nil {
+				return "", err
+			}
+
+			return staticExtra.Vault, nil
+		}
 	default:
 		return pool.entity.Address, nil
 	}

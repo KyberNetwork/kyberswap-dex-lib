@@ -37,8 +37,6 @@ common:
     - "uniswapv3"
     - "sushiswap"
     - "curve"
-    - "balancer"
-    - "balancer-composable-stable"
     - "synapse"
     - "shibaswap"
     - "defiswap"
@@ -61,6 +59,9 @@ common:
     - "traderjoe-v21"
     - "smardex"
     - "balancer-v1"
+    - "balancer-v2-weighted"
+    - "balancer-v2-stable"
+    - "balancer-v2-composable-stable"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"

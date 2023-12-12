@@ -30,8 +30,6 @@ common:
     - "maverick-v1"
     - "bvm"
     - "kyberswap-elastic"
-    - "balancer"
-    - "balancer-composable-stable"
     - "horizon-dex"
     - "baso"
     - "synthswap-v3"
@@ -63,6 +61,9 @@ common:
     - "wombat"
     - "fxdx"
     - "mummy-finance"
+    - "balancer-v2-weighted"
+    - "balancer-v2-stable"
+    - "balancer-v2-composable-stable"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"

@@ -51,6 +51,8 @@ var (
 	MaticMigrateArguments abi.Arguments
 	SmardexArguments      abi.Arguments
 	BalancerV1Arguments   abi.Arguments
+
+	VelocoreV2Arguments abi.Arguments
 )
 
 func init() {
@@ -372,5 +374,16 @@ func init() {
 		{Name: "tokenIn", Type: abitypes.Address},
 		{Name: "tokenOut", Type: abitypes.Address},
 		{Name: "amount", Type: abitypes.Uint256},
+	}
+
+	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/3f9af867bd74dfb9d23321f500ed266c15d9d59e/src/contracts-zksync/ExecutorHelper4.sol#L674
+	VelocoreV2Arguments = abi.Arguments{
+		{Name: "vault", Type: abitypes.Address},
+		{Name: "amount", Type: abitypes.Uint256},
+		{Name: "tokenIn", Type: abitypes.Address},
+		{Name: "tokenOut", Type: abitypes.Address},
+		{Name: "stablePool", Type: abitypes.Address},
+		{Name: "wrapToken", Type: abitypes.Address},
+		{Name: "isConvertFirst", Type: abitypes.Bool},
 	}
 }

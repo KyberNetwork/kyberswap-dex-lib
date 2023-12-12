@@ -340,3 +340,14 @@ type BalancerV1 struct {
 	TokenOut common.Address
 	Amount   *big.Int
 }
+
+// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/3f9af867bd74dfb9d23321f500ed266c15d9d59e/src/contracts-zksync/ExecutorHelper4.sol#L674
+type VelocoreV2 struct {
+	Vault          common.Address
+	Amount         *big.Int
+	TokenIn        common.Address
+	TokenOut       common.Address
+	StablePool     common.Address
+	WrapToken      common.Address
+	IsConvertFirst bool
+}

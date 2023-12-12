@@ -34,7 +34,6 @@ common:
     - "jetswap"
     - "paintswap"
     - "sushiswap"
-    - "beethovenx"
     - "synapse"
     - "morpheus"
     - "saddle"
@@ -45,6 +44,9 @@ common:
     - "sushiswap-v3"
     - "woofi-v2"
     - "mummy-finance"
+    - "beethovenx-weighted"
+    - "beethovenx-stable"
+    - "beethovenx-composable-stable"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"

@@ -54,13 +54,14 @@ common:
     - "fraxswap"
     - "kyberswap-limit-order"
     - "sushiswap-v3"
-    - "balancer"
-    - "balancer-composable-stable"
     - "woofi-v2"
     - "crowdswap-v2"
     - "traderjoe-v21"
     - "traderjoe-v20"
     - "wombat"
+    - "balancer-v2-weighted"
+    - "balancer-v2-stable"
+    - "balancer-v2-composable-stable"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"

@@ -332,22 +332,46 @@ func canSwapSimpleMode(tokenIn string, route [][]valueobject.Swap) bool {
 
 func getAddressToApproveMax(swap EncodingSwap) (string, error) {
 	switch swap.Exchange {
-	case valueobject.ExchangeBalancer,
-		valueobject.ExchangeBalancerComposableStable,
-		valueobject.ExchangeBeethovenX:
-		byteData, err := json.Marshal(swap.PoolExtra)
-		if err != nil {
-			return "", nil
-		}
+	case
+		valueobject.ExchangeBalancerV2Weighted,
+		valueobject.ExchangeBalancerV2Stable,
+		valueobject.ExchangeBalancerV2ComposableStable,
+		valueobject.ExchangeBeethovenXWeighted,
+		valueobject.ExchangeBeethovenXStable,
+		valueobject.ExchangeBeethovenXComposableStable:
+		{
+			poolExtraBytes, err := json.Marshal(swap.PoolExtra)
+			if err != nil {
+				return "", nil
+			}
 
-		var extra struct {
-			VaultAddress string `json:"vault"`
-		}
+			var poolExtra struct {
+				Vault string `json:"vault"`
+			}
+			if err = json.Unmarshal(poolExtraBytes, &poolExtra); err != nil {
+				return "", nil
+			}
 
-		if err = json.Unmarshal(byteData, &extra); err != nil {
-			return "", nil
+			return poolExtra.Vault, nil
 		}
-		return extra.VaultAddress, nil
+	case
+		valueobject.ExchangeVelocoreV2CPMM,
+		valueobject.ExchangeVelocoreV2WombatStable:
+		{
+			poolExtraBytes, err := json.Marshal(swap.PoolExtra)
+			if err != nil {
+				return "", nil
+			}
+
+			var poolExtra struct {
+				Vault string `json:"vault"`
+			}
+			if err = json.Unmarshal(poolExtraBytes, &poolExtra); err != nil {
+				return "", nil
+			}
+
+			return poolExtra.Vault, nil
+		}
 	default:
 		return swap.Pool, nil
 	}

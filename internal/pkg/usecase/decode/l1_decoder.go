@@ -300,6 +300,8 @@ func (d *Decoder) decodeFunctionSelector(id executor.SwapSelector) string {
 		return executor.FunctionSelectorSmardex.RawName
 	case executor.FunctionSelectorBalancerV1.ID:
 		return executor.FunctionSelectorBalancerV1.RawName
+	case executor.FunctionSelectorVelocoreV2.ID:
+		return executor.FunctionSelectorVelocoreV2.RawName
 	default:
 		return ""
 	}
@@ -366,6 +368,8 @@ func (d *Decoder) decodeSwapData(sw executor.Swap) (interface{}, error) {
 		return swapdata.UnpackSmardex(sw.Data)
 	case executor.FunctionSelectorBalancerV1.ID:
 		return swapdata.UnpackBalancerV1(sw.Data)
+	case executor.FunctionSelectorVelocoreV2.ID:
+		return swapdata.UnpackVelocoreV2(sw.Data)
 	default:
 		return nil, fmt.Errorf("unsupported function selector")
 	}

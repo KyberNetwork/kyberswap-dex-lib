@@ -55,6 +55,7 @@ var (
 	FunctionSelectorMaticMigrate      FunctionSelector
 	FunctionSelectorSmardex           FunctionSelector
 	FunctionSelectorBalancerV1        FunctionSelector
+	FunctionSelectorVelocoreV2        FunctionSelector
 )
 
 func init() {
@@ -103,4 +104,7 @@ func init() {
 	FunctionSelectorSmardex = NewFunctionSelector("executeSmardex", []string{"bytes", "uint256"})
 
 	FunctionSelectorBalancerV1 = NewFunctionSelector("executeBalancerV1", []string{"bytes", "uint256"})
+
+	// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/3f9af867bd74dfb9d23321f500ed266c15d9d59e/src/contracts-zksync/ExecutorHelper4.sol#L934
+	FunctionSelectorVelocoreV2 = NewFunctionSelector("executeVelocoreV2", []string{"bytes", "uint256"})
 }
