@@ -32,7 +32,7 @@ type (
 
 	FetchPoolsResponsePool struct {
 		ID         string   `json:"id"`
-		TokensList []string `json:"tokenList"`
+		TokensList []string `json:"tokensList"`
 		CreateTime int      `json:"createTime"`
 	}
 )
@@ -191,6 +191,7 @@ func newFetchPoolIDsQuery(lastCreateTime int, first int) string {
 			orderDirection: asc,
 		) {
 			id
+			tokensList
 			createTime
 		}
 	}`, lastCreateTime, first)

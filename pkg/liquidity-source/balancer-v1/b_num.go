@@ -162,7 +162,7 @@ func (l *bNum) BPowApprox(base *uint256.Int, exp *uint256.Int, precision *uint25
 			return nil, err
 		}
 
-		term, err := l.BMul(term, bmulCAndX)
+		term, err = l.BMul(term, bmulCAndX)
 		if err != nil {
 			return nil, err
 		}
