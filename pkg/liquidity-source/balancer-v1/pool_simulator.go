@@ -2,6 +2,7 @@ package balancerv1
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/logger"
@@ -59,6 +60,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+	fmt.Println("??? CalcAMountOut Balancer-v1")
 	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
 	if overflow {
 		return nil, ErrInvalidAmountIn

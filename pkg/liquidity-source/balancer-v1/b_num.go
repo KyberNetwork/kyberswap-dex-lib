@@ -2,6 +2,7 @@ package balancerv1
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/logger"
@@ -25,6 +26,7 @@ type bNum struct {
 
 func init() {
 	BNum = &bNum{}
+	fmt.Println("wtf bedug bnum")
 }
 
 // https://github.com/balancer/balancer-core/blob/f4ed5d65362a8d6cec21662fb6eae233b0babc1f/contracts/BNum.sol#L20
@@ -147,6 +149,7 @@ func (l *bNum) BPowApprox(base *uint256.Int, exp *uint256.Int, precision *uint25
 		"exp":       exp,
 		"precision": precision,
 	}).Infof("BPowApprox Input data")
+	fmt.Println("BPowApprox Input data", base, exp, precision)
 
 	a := new(uint256.Int).Set(exp)
 	x, xneg := l.BSubSign(base, BConst.BONE)
@@ -155,6 +158,7 @@ func (l *bNum) BPowApprox(base *uint256.Int, exp *uint256.Int, precision *uint25
 	negative := false
 
 	for i := number.Number_1; !term.Lt(precision); i = new(uint256.Int).Add(i, number.Number_1) {
+		fmt.Println("counter i ", i)
 		bigK := new(uint256.Int).Mul(i, BConst.BONE)
 
 		bsubBigKAndBone, err := l.BSub(bigK, BConst.BONE)
@@ -234,6 +238,7 @@ func (l *bNum) BPow(base *uint256.Int, exp *uint256.Int) (*uint256.Int, error) {
 
 	partialResult, err := l.BPowApprox(base, remain, BConst.BPOW_PRECISION)
 	if err != nil {
+		fmt.Println("BPowApprox err", err)
 		return nil, err
 	}
 
