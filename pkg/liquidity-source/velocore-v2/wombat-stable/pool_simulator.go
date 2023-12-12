@@ -105,9 +105,24 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  tokenAmountIn.Token,
 			Amount: integer.Zero(),
 		},
-		Gas:      defaultGas.Swap,
+		Gas:      p.gas(params),
 		SwapInfo: nil,
 	}, nil
+}
+
+func (p *PoolSimulator) gas(params pool.CalcAmountOutParams) int64 {
+	// NOTE: with sc execution, tx failed if swap between
+	// USDT+ and USD+ through a pool containing them.
+
+	if _, ok := p.wrappers[params.TokenAmountIn.Token]; ok {
+		return defaultGas.SwapConvertIn
+	}
+
+	if _, ok := p.wrappers[params.TokenOut]; ok {
+		return defaultGas.SwapConvertOut
+	}
+
+	return defaultGas.SwapNoConvert
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

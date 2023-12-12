@@ -35,5 +35,5 @@ var (
 )
 
 var (
-	defaultGas = Gas{Swap: 125000}
+	defaultGas = Gas{Swap: 145000}
 )
