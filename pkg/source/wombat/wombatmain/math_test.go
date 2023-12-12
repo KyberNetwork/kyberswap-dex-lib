@@ -28,7 +28,7 @@ func TestQuotePotentialSwap(t *testing.T) {
 		},
 	}
 
-	potentialOutcome, haircut, err := Swap(
+	potentialOutcome, haircut, _, _, err := Swap(
 		fromToken, toToken, fromAmount, false,
 		haircutRate, ampFactor, startCovRatio, endCovRatio, assetMap)
 
@@ -59,7 +59,7 @@ func TestCovRatioLimitExceeded(t *testing.T) {
 		},
 	}
 
-	_, _, err := Swap(
+	_, _, _, _, err := Swap(
 		fromToken, toToken, fromAmount, false,
 		haircutRate, ampFactor, startCovRatio, endCovRatio, assetMap)
 

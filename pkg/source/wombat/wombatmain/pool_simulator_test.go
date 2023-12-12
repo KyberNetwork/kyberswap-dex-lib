@@ -56,12 +56,35 @@ func TestPoolSimulatorDeepUpdateBalance(t *testing.T) {
 			Token:  "0xA35b1B31Ce002FBF2058D22F30f95D405200A15b",
 			Amount: bignumber.NewBig10("100653"),
 		},
+		SwapInfo: wombatSwapInfo{
+			newFromAssetCash: bignumber.NewBig10("1100000000"),
+			newToAssetCash:   bignumber.NewBig10("1006432688"),
+		},
 	}
 
 	p.UpdateBalance(params)
 	fromAsset1 := p.assets[params.TokenAmountIn.Token]
 
-	p.UpdateBalance(params)
+	params2 := pool.UpdateBalanceParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0xA35b1B31Ce002FBF2058D22F30f95D405200A15b",
+			Amount: bignumber.NewBig10("1000000000"),
+		},
+		TokenAmountOut: pool.TokenAmount{
+			Token:  "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+			Amount: bignumber.NewBig10("1006432688"),
+		},
+		Fee: pool.TokenAmount{
+			Token:  "0xA35b1B31Ce002FBF2058D22F30f95D405200A15b",
+			Amount: bignumber.NewBig10("100653"),
+		},
+		SwapInfo: wombatSwapInfo{
+			newFromAssetCash: bignumber.NewBig10("1200000000"),
+			newToAssetCash:   bignumber.NewBig10("1006432688"),
+		},
+	}
+
+	p.UpdateBalance(params2)
 	fromAsset2 := p.assets[params.TokenAmountIn.Token]
 
 	assert.NotEqual(t, fromAsset1.Cash.String(), fromAsset2.Cash.String())
