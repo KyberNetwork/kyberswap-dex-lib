@@ -139,6 +139,41 @@ func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) *big.Int {
 	return sqrtPriceX96Limit
 }
 
+func (p *PoolSimulator) CalcAmountIn(
+	tokenAmountOut pool.TokenAmount,
+	tokenIn string,
+) (*big.Int, error) {
+	var tokenInIndex = p.GetTokenIndex(tokenIn)
+	var tokenOutIndex = p.GetTokenIndex(tokenAmountOut.Token)
+	var tokenOut *coreEntities.Token
+	var zeroForOne bool
+
+	if tokenInIndex >= 0 && tokenOutIndex >= 0 {
+		if strings.EqualFold(tokenAmountOut.Token, p.V3Pool.Token0.Address.String()) {
+			zeroForOne = false
+			tokenOut = p.V3Pool.Token0
+		} else {
+			tokenOut = p.V3Pool.Token1
+			zeroForOne = true
+		}
+		amountOut := coreEntities.FromRawAmount(tokenOut, tokenAmountOut.Amount)
+		amountIn, _, err := p.V3Pool.GetInputAmount(amountOut, p.getSqrtPriceLimit(zeroForOne))
+
+		if err != nil {
+			return nil, fmt.Errorf("can not GetInputAmount, err: %+v", err)
+		}
+
+		amountInBI := amountIn.Quotient()
+		if amountInBI.Cmp(zeroBI) > 0 {
+			return amountInBI, nil
+		}
+
+		return nil, errors.New("amountIn is 0")
+	}
+
+	return nil, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
+}
+
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
