@@ -44,7 +44,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		feeMultiplier *big.Int
 	)
 
-	req := d.ethrpcClient.R()
+	req := d.ethrpcClient.R().SetRequireSuccess(true)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
@@ -67,7 +67,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		Params: nil,
 	}, []interface{}{&feeMultiplier})
 
-	_, err := req.Aggregate()
+	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"pool": p.Address,
@@ -104,6 +104,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		return entity.Pool{}, err
 	}
 
+	p.BlockNumber = resp.BlockNumber.Uint64()
 	p.Reserves = poolReserves
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()

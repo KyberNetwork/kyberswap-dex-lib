@@ -138,8 +138,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return Meta{
-		Vault:    t.vault,
-		Wrappers: t.wrappers,
+		Vault:       t.vault,
+		Wrappers:    t.wrappers,
+		BlockNumber: t.Info.BlockNumber,
 	}
 }
 

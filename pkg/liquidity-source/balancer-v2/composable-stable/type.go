@@ -8,10 +8,11 @@ import (
 )
 
 type PoolMetaInfo struct {
-	Vault  string `json:"vault"`
-	PoolID string `json:"poolId"`
-	T      string `json:"t"`
-	V      int    `json:"v"`
+	Vault       string `json:"vault"`
+	PoolID      string `json:"poolId"`
+	T           string `json:"t"`
+	V           int    `json:"v"`
+	BlockNumber uint64 `json:"blockNumber"`
 }
 
 type SwapInfo struct {

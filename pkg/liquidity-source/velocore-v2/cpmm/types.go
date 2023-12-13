@@ -37,6 +37,7 @@ type Extra struct {
 type Meta struct {
 	Vault            string `json:"vault"`
 	NativeTokenIndex int    `json:"nativeTokenIndex"`
+	BlockNumber      uint64 `json:"blockNumber"`
 }
 
 type SwapInfo struct {

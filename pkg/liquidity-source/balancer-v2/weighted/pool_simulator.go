@@ -196,10 +196,11 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:  s.vaultAddress,
-		PoolID: s.poolID,
-		T:      poolTypeWeighted,
-		V:      s.poolTypeVer,
+		Vault:       s.vaultAddress,
+		PoolID:      s.poolID,
+		T:           poolTypeWeighted,
+		V:           s.poolTypeVer,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 
