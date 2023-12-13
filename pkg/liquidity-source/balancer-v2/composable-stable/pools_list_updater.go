@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -78,17 +79,17 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([]string, error) {
+	vaultAddresses := make([]common.Address, len(subgraphPools))
 	vaults := make([]string, len(subgraphPools))
-	req := u.ethrpcClient.R()
 
+	req := u.ethrpcClient.R()
 	for idx, subgraphPool := range subgraphPools {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
 			Target: subgraphPool.Address,
 			Method: poolMethodGetVault,
-		}, []interface{}{&vaults[idx]})
+		}, []interface{}{&vaultAddresses[idx]})
 	}
-
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":   u.config.DexID,
@@ -97,8 +98,8 @@ func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*share
 		return nil, err
 	}
 
-	for idx, vault := range vaults {
-		vaults[idx] = strings.ToLower(vault)
+	for idx, addr := range vaultAddresses {
+		vaults[idx] = strings.ToLower(addr.Hex())
 	}
 
 	return vaults, nil
