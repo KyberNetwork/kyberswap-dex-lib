@@ -184,7 +184,10 @@ func NewPointerSwapPoolManager(
 }
 
 func (p *PointerSwapPoolManager) GetAEVMClient() aevmclient.Client {
-	return p.aevmClient
+	if p.config.UseAEVM {
+		return p.aevmClient
+	}
+	return nil
 }
 
 func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
