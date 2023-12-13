@@ -2,6 +2,7 @@ package getroute
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"strconv"
 	"sync"
@@ -275,7 +276,7 @@ func (c *cache) summarizeSimpleRoute(
 	if aevmClient := c.poolManager.GetAEVMClient(); aevmClient != nil {
 		stateRoot, err = aevmClient.LatestStateRoot()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
 	poolByAddress, swapLimits, err := c.poolManager.GetStateByPoolAddresses(

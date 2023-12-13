@@ -2,6 +2,7 @@ package getroute
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -94,7 +95,7 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 	if aevmClient := a.poolManager.GetAEVMClient(); aevmClient != nil {
 		stateRoot, err = aevmClient.LatestStateRoot()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
 	poolByAddress, pmmInventory, err := a.getPoolByAddress(ctx, params, common.Hash(stateRoot))

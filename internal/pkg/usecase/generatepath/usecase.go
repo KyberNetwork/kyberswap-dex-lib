@@ -2,6 +2,7 @@ package generatepath
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"runtime"
 	"strings"
@@ -239,7 +240,7 @@ func (uc *useCase) generateBestPaths(
 	if aevmClient := uc.poolManager.GetAEVMClient(); aevmClient != nil {
 		stateRoot, err = aevmClient.LatestStateRoot()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
 

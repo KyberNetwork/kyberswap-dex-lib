@@ -2,6 +2,7 @@ package poolmanager
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -118,7 +119,7 @@ func NewNonMaintenancePointerSwapPoolManager(
 		stateRoot, err = aevmClient.LatestStateRoot()
 		if err != nil {
 			logger.Errorf("could not get latest state root for aevm %s", err)
-			return nil, err
+			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
 	if err = p.preparePoolsData(context.Background(), poolAddresses, common.Hash(stateRoot)); err != nil {
@@ -172,7 +173,7 @@ func NewPointerSwapPoolManager(
 		stateRoot, err = aevmClient.LatestStateRoot()
 		if err != nil {
 			logger.Errorf("could not get latest state root for aevm %s", err)
-			return nil, err
+			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
 	if err = p.preparePoolsData(context.Background(), poolAddresses, common.Hash(stateRoot)); err != nil {
@@ -276,7 +277,7 @@ func (p *PointerSwapPoolManager) Reload() error {
 		stateRoot, err = p.aevmClient.LatestStateRoot()
 		if err != nil {
 			logger.Errorf("could not get latest state root for aevm %s", err)
-			return err
+			return fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
 
