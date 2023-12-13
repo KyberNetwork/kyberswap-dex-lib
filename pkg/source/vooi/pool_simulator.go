@@ -3,6 +3,7 @@ package vooi
 import (
 	"encoding/json"
 	"errors"
+	"github.com/KyberNetwork/logger"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/dsmath"
@@ -56,6 +57,11 @@ type (
 
 	Gas struct {
 		Swap int64
+	}
+
+	vooiSwapInfo struct {
+		newFromAssetCash *big.Int
+		newToAssetCash   *big.Int
 	}
 )
 
@@ -120,7 +126,7 @@ func (s *PoolSimulator) CalcAmountOut(
 		return nil, ErrMaxSupplyExceeded
 	}
 
-	actualToAmount, lpFeeAmount, err := s._swap(
+	actualToAmount, lpFeeAmount, newFromAssetCash, newToAssetCash, err := s._swap(
 		fromAsset,
 		toAsset,
 		dsmath.ToWAD(tokenAmountIn.Amount, fromAsset.Decimals),
@@ -137,17 +143,23 @@ func (s *PoolSimulator) CalcAmountOut(
 		TokenAmountOut: &poolpkg.TokenAmount{Token: tokenOut, Amount: actualToAmount},
 		Fee:            &poolpkg.TokenAmount{Token: tokenOut, Amount: lpFeeAmount},
 		Gas:            s.gas.Swap,
+		SwapInfo: vooiSwapInfo{
+			newFromAssetCash: newFromAssetCash,
+			newToAssetCash:   newToAssetCash,
+		},
 	}, nil
 }
 
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-	//indexToAsset[fromAsset].cash += fromAmount;
-	//indexToAsset[toAsset].cash -= actualToAmount + lpFeeAmount;
-
+	swapInfo, ok := params.SwapInfo.(vooiSwapInfo)
+	if !ok {
+		logger.Warnf("failed to UpdateBalance for Vooi %v %v pool, wrong swapInfo type", s.Info.Address, s.Info.Exchange)
+		return
+	}
 	fromAsset, toAsset := s.assetByToken[params.TokenAmountIn.Token], s.assetByToken[params.TokenAmountOut.Token]
 
-	fromAsset.Cash = new(big.Int).Add(fromAsset.Cash, params.TokenAmountIn.Amount)
-	toAsset.Cash = new(big.Int).Add(new(big.Int).Sub(toAsset.Cash, params.TokenAmountOut.Amount), params.Fee.Amount)
+	fromAsset.Cash = new(big.Int).Set(swapInfo.newFromAssetCash)
+	toAsset.Cash = new(big.Int).Set(swapInfo.newToAssetCash)
 
 	s.assetByToken[params.TokenAmountIn.Token] = fromAsset
 	s.assetByToken[params.TokenAmountOut.Token] = toAsset
@@ -166,20 +178,21 @@ func (s *PoolSimulator) _swap(
 	toAsset Asset,
 	fromAmount *big.Int,
 	minimumToAmount *big.Int,
-) (*big.Int, *big.Int, error) {
+) (*big.Int, *big.Int, *big.Int, *big.Int, error) {
 	if !_isConvertableToInt256(new(big.Int).Add(fromAmount, fromAsset.Cash)) {
-		return nil, nil, ErrInitialAmountTooHigh
+		return nil, nil, nil, nil, ErrInitialAmountTooHigh
 	}
 
 	actualToAmount, lpFeeAmount, err := s._quoteFrom(fromAsset, toAsset, fromAmount)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	if minimumToAmount.Cmp(actualToAmount) > 0 {
-		return nil, nil, ErrAmountTooLow
+		return nil, nil, nil, nil, ErrAmountTooLow
 	}
 
+	newFromAssetCash := new(big.Int).Add(fromAsset.Cash, fromAmount)
 	newToAssetCash := new(big.Int).Add(
 		new(big.Int).Sub(toAsset.Cash, actualToAmount),
 		lpFeeAmount,
@@ -187,10 +200,10 @@ func (s *PoolSimulator) _swap(
 
 	// revert if cov ratio < 1% to avoid precision error
 	if dsmath.WDiv(newToAssetCash, toAsset.Liability).Cmp(new(big.Int).Div(dsmath.WAD, big.NewInt(100))) < 0 {
-		return nil, nil, ErrForbidden
+		return nil, nil, nil, nil, ErrForbidden
 	}
 
-	return actualToAmount, lpFeeAmount, nil
+	return actualToAmount, lpFeeAmount, newFromAssetCash, newToAssetCash, nil
 }
 
 // _quoteFrom Quotes the actual amount user would receive in a swap, taking in account slippage and lpFeeAmount

@@ -320,10 +320,14 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			TokenAmountIn:  poolpkg.TokenAmount{Token: "0x176211869ca2b568f2a7d4ee941e073a821ee1ff", Amount: big.NewInt(1000000)},
 			TokenAmountOut: poolpkg.TokenAmount{Token: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5", Amount: big.NewInt(937047)},
 			Fee:            poolpkg.TokenAmount{Token: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5", Amount: big.NewInt(12)},
+			SwapInfo: vooiSwapInfo{
+				newFromAssetCash: utils.NewBig10("109756508503386757517651"),
+				newToAssetCash:   utils.NewBig10("31981154708194793575825"),
+			},
 		})
 
-		assert.Equal(t, poolSimulator.assetByToken["0x176211869ca2b568f2a7d4ee941e073a821ee1ff"].Cash.Cmp(utils.NewBig("109755508503386758517651")), 0)
-		assert.Equal(t, poolSimulator.assetByToken["0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5"].Cash.Cmp(utils.NewBig("31982154523056911872506")), 0)
+		assert.Equal(t, poolSimulator.assetByToken["0x176211869ca2b568f2a7d4ee941e073a821ee1ff"].Cash.Cmp(utils.NewBig("109756508503386757517651")), 0)
+		assert.Equal(t, poolSimulator.assetByToken["0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5"].Cash.Cmp(utils.NewBig("31981154708194793575825")), 0)
 	})
 }
 
