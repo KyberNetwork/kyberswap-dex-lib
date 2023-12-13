@@ -22,7 +22,7 @@ type StaticExtra struct {
 	PoolType       string         `json:"poolType"`
 	PoolTypeVer    int            `json:"poolTypeVersion"`
 	ScalingFactors []*uint256.Int `json:"scalingFactors"`
-	VaultAddress   string         `json:"vaultAddress"`
+	Vault          string         `json:"vault"`
 }
 
 type PoolTokens struct {

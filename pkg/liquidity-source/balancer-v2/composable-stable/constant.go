@@ -27,6 +27,7 @@ const (
 	poolMethodInRecoveryMode                    = "inRecoveryMode"
 	poolMethodIsExemptFromYieldProtocolFee      = "isExemptFromYieldProtocolFee"
 	poolMethodGetRate                           = "getRate"
+	poolMethodGetVault                          = "getVault"
 
 	unknownInt = -1
 

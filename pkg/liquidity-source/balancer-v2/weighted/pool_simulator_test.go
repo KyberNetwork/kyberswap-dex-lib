@@ -40,6 +40,12 @@ func Test_CalcAmountOut(t *testing.T) {
 				uint256.NewInt(333300000000000000),
 				uint256.NewInt(333400000000000000),
 			},
+			totalAmountsIn: []*uint256.Int{uint256.NewInt(0), uint256.NewInt(0), uint256.NewInt(0)},
+			scaledMaxTotalAmountsIn: []*uint256.Int{
+				uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
+				uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
+				uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
+			},
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -89,6 +95,11 @@ func Test_CalcAmountOut(t *testing.T) {
 			normalizedWeights: []*uint256.Int{
 				uint256.NewInt(800000000000000000),
 				uint256.NewInt(200000000000000000),
+			},
+			totalAmountsIn: []*uint256.Int{uint256.NewInt(0), uint256.NewInt(0)},
+			scaledMaxTotalAmountsIn: []*uint256.Int{
+				uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
+				uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
 			},
 		}
 
@@ -140,6 +151,11 @@ func Test_CalcAmountOut(t *testing.T) {
 			normalizedWeights: []*uint256.Int{
 				uint256.NewInt(800000000000000000),
 				uint256.NewInt(200000000000000000),
+			},
+			totalAmountsIn: []*uint256.Int{uint256.NewInt(0), uint256.NewInt(0)},
+			scaledMaxTotalAmountsIn: []*uint256.Int{
+				uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
+				uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
 			},
 		}
 

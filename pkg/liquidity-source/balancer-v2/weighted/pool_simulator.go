@@ -19,10 +19,13 @@ var (
 	ErrInvalidAmountIn          = errors.New("invalid amount in")
 	ErrInvalidSwapFeePercentage = errors.New("invalid swap fee percentage")
 	ErrPoolPaused               = errors.New("pool is paused")
+	ErrTotalMaxInRatio          = errors.New("TOTAL_MAX_IN_RATIO")
 )
 
 var (
 	defaultGas = Gas{Swap: 80000}
+
+	_MAX_IN_RATIO = uint256.NewInt(0.3e18)
 )
 
 type (
@@ -35,10 +38,14 @@ type (
 		scalingFactors    []*uint256.Int
 		normalizedWeights []*uint256.Int
 
-		vaultAddress string
-		poolID       string
-		poolTypeVer  int
+		vault       string
+		poolID      string
+		poolTypeVer int
+
+		totalAmountsIn          []*uint256.Int
+		scaledMaxTotalAmountsIn []*uint256.Int
 	}
+
 	Gas struct {
 		Swap int64
 	}
@@ -51,6 +58,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 		tokens   = make([]string, len(entityPool.Tokens))
 		reserves = make([]*big.Int, len(entityPool.Tokens))
+
+		totalAmountsIn          = make([]*uint256.Int, len(entityPool.Tokens))
+		scaledMaxTotalAmountsIn = make([]*uint256.Int, len(entityPool.Tokens))
 	)
 
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -61,9 +71,21 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
+	scaledInitialBalances, err := _upscaleArray(staticExtra.PoolTypeVer, reserves, staticExtra.ScalingFactors)
+	if err != nil {
+		return nil, err
+	}
+
 	for idx := 0; idx < len(entityPool.Tokens); idx++ {
 		tokens[idx] = entityPool.Tokens[idx].Address
 		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
+		totalAmountsIn[idx] = uint256.NewInt(0)
+
+		maxIn, err := math.FixedPoint.MulDown(scaledInitialBalances[idx], _MAX_IN_RATIO)
+		if err != nil {
+			return nil, err
+		}
+		scaledMaxTotalAmountsIn[idx] = maxIn
 	}
 
 	poolInfo := poolpkg.PoolInfo{
@@ -77,14 +99,16 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:              poolpkg.Pool{Info: poolInfo},
-		paused:            extra.Paused,
-		swapFeePercentage: extra.SwapFeePercentage,
-		scalingFactors:    staticExtra.ScalingFactors,
-		normalizedWeights: staticExtra.NormalizedWeights,
-		vaultAddress:      staticExtra.VaultAddress,
-		poolID:            staticExtra.PoolID,
-		poolTypeVer:       staticExtra.PoolTypeVer,
+		Pool:                    poolpkg.Pool{Info: poolInfo},
+		paused:                  extra.Paused,
+		swapFeePercentage:       extra.SwapFeePercentage,
+		scalingFactors:          staticExtra.ScalingFactors,
+		normalizedWeights:       staticExtra.NormalizedWeights,
+		vault:                   staticExtra.Vault,
+		poolID:                  staticExtra.PoolID,
+		poolTypeVer:             staticExtra.PoolTypeVer,
+		totalAmountsIn:          totalAmountsIn,
+		scaledMaxTotalAmountsIn: scaledMaxTotalAmountsIn,
 	}, nil
 }
 
@@ -142,6 +166,10 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
+	if err := s.validateMaxInRatio(indexIn, amountInAfterFee); err != nil {
+		return nil, err
+	}
+
 	upScaledAmountIn, err := _upscale(s.poolTypeVer, amountInAfterFee, scalingFactorTokenIn)
 	if err != nil {
 		return nil, err
@@ -176,12 +204,31 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	}, nil
 }
 
+func (s *PoolSimulator) validateMaxInRatio(tokenIndex int, amountIn *uint256.Int) error {
+	sum := new(uint256.Int).Add(s.totalAmountsIn[tokenIndex], amountIn)
+	upscaledSum, err := _upscale(s.poolTypeVer, sum, s.scalingFactors[tokenIndex])
+	if err != nil {
+		return err
+	}
+
+	if upscaledSum.Gt(s.scaledMaxTotalAmountsIn[tokenIndex]) {
+		return ErrTotalMaxInRatio
+	}
+
+	return nil
+}
+
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	for idx, token := range s.Info.Tokens {
 		if token == params.TokenAmountIn.Token {
 			s.Info.Reserves[idx] = new(big.Int).Add(
 				s.Info.Reserves[idx],
 				params.TokenAmountIn.Amount,
+			)
+
+			s.totalAmountsIn[idx] = new(uint256.Int).Add(
+				s.totalAmountsIn[idx],
+				uint256.MustFromBig(params.TokenAmountIn.Amount),
 			)
 		}
 
@@ -196,7 +243,7 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:       s.vaultAddress,
+		Vault:       s.vault,
 		PoolID:      s.poolID,
 		T:           poolTypeWeighted,
 		V:           s.poolTypeVer,
@@ -224,4 +271,16 @@ func _downscaleDown(poolTypeVer int, amount *uint256.Int, scalingFactor *uint256
 	}
 
 	return math.FixedPoint.DivDown(amount, scalingFactor)
+}
+
+func _upscaleArray(poolTypeVer int, balances []*big.Int, scalingFactors []*uint256.Int) ([]*uint256.Int, error) {
+	upscaled := make([]*uint256.Int, len(balances))
+	for i, balance := range balances {
+		upscaledI, err := _upscale(poolTypeVer, uint256.MustFromBig(balance), scalingFactors[i])
+		if err != nil {
+			return nil, err
+		}
+		upscaled[i] = upscaledI
+	}
+	return upscaled, nil
 }

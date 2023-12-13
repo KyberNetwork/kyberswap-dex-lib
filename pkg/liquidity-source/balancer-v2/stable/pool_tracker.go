@@ -66,7 +66,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	// call RPC
-	rpcRes, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID)
+	rpcRes, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID, staticExtra.Vault)
 	if err != nil {
 		return p, err
 	}
@@ -144,6 +144,7 @@ func (t *PoolTracker) queryRPC(
 	ctx context.Context,
 	poolAddress string,
 	poolID string,
+	vault string,
 ) (*rpcRes, error) {
 	var (
 		poolTokens        PoolTokens
@@ -158,7 +159,7 @@ func (t *PoolTracker) queryRPC(
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    shared.VaultABI,
-		Target: t.config.VaultAddress,
+		Target: vault,
 		Method: shared.VaultMethodGetPoolTokens,
 		Params: []interface{}{common.HexToHash(poolID)},
 	}, []interface{}{&poolTokens})

@@ -28,8 +28,8 @@ type PoolSimulator struct {
 	amp               *uint256.Int
 	scalingFactors    []*uint256.Int
 
-	vaultAddress string
-	poolID       string
+	vault  string
+	poolID string
 
 	poolType    string
 	poolTypeVer int
@@ -73,7 +73,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		swapFeePercentage: extra.SwapFeePercentage,
 		amp:               extra.Amp,
 		scalingFactors:    staticExtra.ScalingFactors,
-		vaultAddress:      staticExtra.VaultAddress,
+		vault:             staticExtra.Vault,
 		poolID:            staticExtra.PoolID,
 		poolType:          staticExtra.PoolType,
 		poolTypeVer:       staticExtra.PoolTypeVer,
@@ -156,7 +156,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:       s.vaultAddress,
+		Vault:       s.vault,
 		PoolID:      s.poolID,
 		T:           s.poolType,
 		V:           s.poolTypeVer,
