@@ -104,6 +104,7 @@ func init() {
 	RegisterFunctionSelector(valueobject.ExchangeQuickPerps, FunctionSelectorGMX)
 	RegisterFunctionSelector(valueobject.ExchangeMummyFinance, FunctionSelectorGMX)
 	RegisterFunctionSelector(valueobject.ExchangeOpx, FunctionSelectorGMX)
+	RegisterFunctionSelector(valueobject.ExchangeFulcrom, FunctionSelectorGMX)
 
 	// executeVelodromeSwap
 	RegisterFunctionSelector(valueobject.ExchangeChronos, FunctionSelectorVelodrome)

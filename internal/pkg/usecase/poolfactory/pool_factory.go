@@ -29,6 +29,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/equalizer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fulcrom"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fxdx"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx"
 	gmxglp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/gmx-glp"
@@ -387,6 +388,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newVelocoreV2CPMM(entityPool)
 	case constant.PoolTypes.VelocoreV2WombatStable:
 		return f.newVelocoreV2WombatStable(entityPool)
+	case constant.PoolTypes.Fulcrom:
+		return f.newFulcrom(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -1193,6 +1196,20 @@ func (f *PoolFactory) newBalancerV1(entityPool entity.Pool) (*balancerv1.PoolSim
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newBalancerV1] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newFulcrom(entityPool entity.Pool) (*fulcrom.PoolSimulator, error) {
+	corePool, err := fulcrom.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newFulcrom] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

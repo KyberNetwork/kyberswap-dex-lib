@@ -80,6 +80,7 @@ type types struct {
 	BalancerV2ComposableStable string
 	VelocoreV2CPMM             string
 	VelocoreV2WombatStable     string
+	Fulcrom                    string
 }
 
 var (
@@ -163,5 +164,6 @@ var (
 		BalancerV2ComposableStable: "balancer-v2-composable-stable",
 		VelocoreV2CPMM:             "velocore-v2-cpmm",
 		VelocoreV2WombatStable:     "velocore-v2-wombat-stable",
+		Fulcrom:                    "fulcrom",
 	}
 )
