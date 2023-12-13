@@ -7,6 +7,7 @@ import (
 
 	"github.com/holiman/uint256"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -19,7 +20,7 @@ var (
 	ErrInvalidAmountIn          = errors.New("invalid amount in")
 	ErrInvalidSwapFeePercentage = errors.New("invalid swap fee percentage")
 	ErrPoolPaused               = errors.New("pool is paused")
-	ErrTotalMaxInRatio          = errors.New("TOTAL_MAX_IN_RATIO")
+	ErrMaxTotalInRatio          = errors.New("MAX_TOTAL_IN_RATIO")
 )
 
 var (
@@ -79,7 +80,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	for idx := 0; idx < len(entityPool.Tokens); idx++ {
 		tokens[idx] = entityPool.Tokens[idx].Address
 		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
-		totalAmountsIn[idx] = uint256.NewInt(0)
+		totalAmountsIn[idx] = number.Zero
 
 		maxIn, err := math.FixedPoint.MulDown(scaledInitialBalances[idx], _MAX_IN_RATIO)
 		if err != nil {
@@ -212,7 +213,7 @@ func (s *PoolSimulator) validateMaxInRatio(tokenIndex int, amountIn *uint256.Int
 	}
 
 	if upscaledSum.Gt(s.scaledMaxTotalAmountsIn[tokenIndex]) {
-		return ErrTotalMaxInRatio
+		return ErrMaxTotalInRatio
 	}
 
 	return nil

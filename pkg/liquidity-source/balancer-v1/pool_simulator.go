@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -20,7 +21,7 @@ var (
 	ErrMathApprox      = errors.New("ERR_MATH_APPROX")
 	ErrInvalidAmountIn = errors.New("invalid amount in")
 	ErrMaxInRatio      = errors.New("ERR_MAX_IN_RATIO")
-	ErrTotalMaxInRatio = errors.New("ERR_TOTAL_MAX_IN_RATIO")
+	ErrMaxTotalInRatio = errors.New("ERR_MAX_TOTAL_IN_RATIO")
 )
 
 type PoolSimulator struct {
@@ -56,7 +57,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}
 		maxTotalAmountsIn[tokenAddr] = maxIn
 
-		totalAmountsIn[tokenAddr] = uint256.NewInt(0)
+		totalAmountsIn[tokenAddr] = number.Zero
 	}
 
 	return &PoolSimulator{
@@ -255,7 +256,7 @@ func (s *PoolSimulator) validateAmountIn(tokenIn string, amountIn *uint256.Int) 
 	}
 
 	if bAddTotalAmountInAndAmountIn.Gt(s.maxTotalAmountsIn[tokenIn]) {
-		return ErrTotalMaxInRatio
+		return ErrMaxTotalInRatio
 	}
 
 	return nil
