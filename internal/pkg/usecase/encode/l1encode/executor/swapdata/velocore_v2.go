@@ -45,23 +45,23 @@ func packVelocoreV2(swap VelocoreV2) ([]byte, error) {
 }
 
 func buildVelocoreV2(chainID valueobject.ChainID, swap types.EncodingSwap) (VelocoreV2, error) {
-	type Extra struct {
+	type PoolExtra struct {
 		Vault    string            `json:"vault"`
 		Wrappers map[string]string `json:"wrappers"`
 	}
 
-	extraBytes, err := json.Marshal(swap.Extra)
+	poolExtraBytes, err := json.Marshal(swap.PoolExtra)
 	if err != nil {
 		return VelocoreV2{}, err
 	}
 
-	var extra Extra
-	if err := json.Unmarshal(extraBytes, &extra); err != nil {
+	var poolExtra PoolExtra
+	if err := json.Unmarshal(poolExtraBytes, &poolExtra); err != nil {
 		return VelocoreV2{}, err
 	}
 
 	var (
-		vault    = common.HexToAddress(extra.Vault)
+		vault    = common.HexToAddress(poolExtra.Vault)
 		amount   = swap.SwapAmount
 		tokenIn  = common.HexToAddress(swap.TokenIn)
 		tokenOut = common.HexToAddress(swap.TokenOut)
@@ -73,11 +73,11 @@ func buildVelocoreV2(chainID valueobject.ChainID, swap types.EncodingSwap) (Velo
 
 	if swap.Exchange == valueobject.ExchangeVelocoreV2WombatStable {
 		stablePool = common.HexToAddress(swap.Pool)
-		if wToken, ok := extra.Wrappers[swap.TokenIn]; ok {
+		if wToken, ok := poolExtra.Wrappers[swap.TokenIn]; ok {
 			wrapToken = common.HexToAddress(wToken)
 			isConvertFirst = true
 		}
-		if wToken, ok := extra.Wrappers[swap.TokenOut]; ok {
+		if wToken, ok := poolExtra.Wrappers[swap.TokenOut]; ok {
 			wrapToken = common.HexToAddress(wToken)
 			isConvertFirst = false
 		}
