@@ -189,6 +189,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeMummyFinance, swapdata.PackGMX)
 	RegisterPackSwapDataFunc(valueobject.ExchangeOpx, swapdata.PackGMX)
 	RegisterPackSwapDataFunc(valueobject.ExchangeFulcrom, swapdata.PackGMX)
+	RegisterPackSwapDataFunc(valueobject.ExchangeVodoo, swapdata.PackGMX)
 
 	// Synthetix
 	RegisterPackSwapDataFunc(valueobject.ExchangeSynthetix, swapdata.PackSynthetix)

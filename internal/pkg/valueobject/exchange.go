@@ -136,6 +136,7 @@ var (
 	ExchangeMummyFinance  Exchange = "mummy-finance"
 	ExchangeOpx           Exchange = "opx"
 	ExchangeFulcrom       Exchange = "fulcrom"
+	ExchangeVodoo         Exchange = "vodoo"
 
 	ExchangeSynthetix Exchange = "synthetix"
 
@@ -291,6 +292,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMummyFinance:               {},
 	ExchangeOpx:                        {},
 	ExchangeFulcrom:                    {},
+	ExchangeVodoo:                      {},
 	ExchangeMadMex:                     {},
 	ExchangeMetavault:                  {},
 	ExchangeQuickPerps:                 {},

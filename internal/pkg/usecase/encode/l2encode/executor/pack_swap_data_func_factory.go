@@ -108,6 +108,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeMummyFinance, swapdata.PackGMX)
 	RegisterPackSwapDataFunc(valueobject.ExchangeOpx, swapdata.PackGMX)
 	RegisterPackSwapDataFunc(valueobject.ExchangeFulcrom, swapdata.PackGMX)
+	RegisterPackSwapDataFunc(valueobject.ExchangeVodoo, swapdata.PackGMX)
 
 	// KyberLimitOrder
 	RegisterPackSwapDataFunc(valueobject.ExchangeKyberSwapLimitOrder, swapdata.PackKyberLimitOrder)
