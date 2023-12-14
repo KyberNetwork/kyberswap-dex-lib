@@ -314,18 +314,7 @@ func getAddressToApproveMax(pool *PoolInfo) (string, error) {
 		valueobject.ExchangeBalancerV2ComposableStable,
 		valueobject.ExchangeBeethovenXWeighted,
 		valueobject.ExchangeBeethovenXStable,
-		valueobject.ExchangeBeethovenXComposableStable:
-		{
-			var staticExtra struct {
-				VaultAddress string `json:"vaultAddress"`
-			}
-			if err := json.Unmarshal([]byte(pool.entity.StaticExtra), &staticExtra); err != nil {
-				return "", err
-			}
-
-			return staticExtra.VaultAddress, nil
-		}
-	case
+		valueobject.ExchangeBeethovenXComposableStable,
 		valueobject.ExchangeVelocoreV2CPMM,
 		valueobject.ExchangeVelocoreV2WombatStable:
 		{

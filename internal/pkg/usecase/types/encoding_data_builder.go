@@ -338,23 +338,7 @@ func getAddressToApproveMax(swap EncodingSwap) (string, error) {
 		valueobject.ExchangeBalancerV2ComposableStable,
 		valueobject.ExchangeBeethovenXWeighted,
 		valueobject.ExchangeBeethovenXStable,
-		valueobject.ExchangeBeethovenXComposableStable:
-		{
-			poolExtraBytes, err := json.Marshal(swap.PoolExtra)
-			if err != nil {
-				return "", nil
-			}
-
-			var poolExtra struct {
-				Vault string `json:"vault"`
-			}
-			if err = json.Unmarshal(poolExtraBytes, &poolExtra); err != nil {
-				return "", nil
-			}
-
-			return poolExtra.Vault, nil
-		}
-	case
+		valueobject.ExchangeBeethovenXComposableStable,
 		valueobject.ExchangeVelocoreV2CPMM,
 		valueobject.ExchangeVelocoreV2WombatStable:
 		{
