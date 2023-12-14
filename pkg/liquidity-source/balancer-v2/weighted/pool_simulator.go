@@ -21,6 +21,7 @@ var (
 	ErrInvalidSwapFeePercentage = errors.New("invalid swap fee percentage")
 	ErrPoolPaused               = errors.New("pool is paused")
 	ErrMaxTotalInRatio          = errors.New("MAX_TOTAL_IN_RATIO")
+	ErrOverflow                 = errors.New("OVERFLOW")
 )
 
 var (
@@ -72,14 +73,16 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
+	for idx := 0; idx < len(entityPool.Tokens); idx++ {
+		tokens[idx] = entityPool.Tokens[idx].Address
+		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
+	}
+
 	scaledInitialBalances, err := _upscaleArray(staticExtra.PoolTypeVer, reserves, staticExtra.ScalingFactors)
 	if err != nil {
 		return nil, err
 	}
-
 	for idx := 0; idx < len(entityPool.Tokens); idx++ {
-		tokens[idx] = entityPool.Tokens[idx].Address
-		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
 		totalAmountsIn[idx] = number.Zero
 
 		maxIn, err := math.FixedPoint.MulDown(scaledInitialBalances[idx], _MAX_IN_RATIO)
@@ -277,7 +280,12 @@ func _downscaleDown(poolTypeVer int, amount *uint256.Int, scalingFactor *uint256
 func _upscaleArray(poolTypeVer int, balances []*big.Int, scalingFactors []*uint256.Int) ([]*uint256.Int, error) {
 	upscaled := make([]*uint256.Int, len(balances))
 	for i, balance := range balances {
-		upscaledI, err := _upscale(poolTypeVer, uint256.MustFromBig(balance), scalingFactors[i])
+		b, overflow := uint256.FromBig(balance)
+		if overflow {
+			return nil, ErrOverflow
+		}
+
+		upscaledI, err := _upscale(poolTypeVer, b, scalingFactors[i])
 		if err != nil {
 			return nil, err
 		}
