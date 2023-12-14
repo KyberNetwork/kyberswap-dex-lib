@@ -19,6 +19,15 @@ func TestLogExpMath_Pow(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Zero(t, result.Cmp(number.NewUint256("999823108860218333")))
 	})
+
+	t.Run("it should return correct result", func(t *testing.T) {
+		result, err := LogExpMath.Pow(number.NewUint256("877904152923774542"), number.NewUint256("250000000000000000"))
+
+		fmt.Printf("result: %s\n", result.ToBig().String())
+
+		assert.Nil(t, err)
+		assert.Zero(t, result.Cmp(number.NewUint256("967969728761424232")))
+	})
 }
 
 func TestLogExpMath_Exp(t *testing.T) {

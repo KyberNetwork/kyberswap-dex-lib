@@ -1,12 +1,14 @@
 package weighted
 
 import (
+	"encoding/json"
 	"math/big"
 	"testing"
 
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -179,4 +181,62 @@ func Test_CalcAmountOut(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, amountOut, result.TokenAmountOut.Amount.String())
 	})
+}
+
+func TestX(t *testing.T) {
+	// block 18783187
+	p := `{
+		"address": "0x5c6ee304399dbdb9c8ef030ab642b10820db8f56",
+		"reserveUsd": 153314467.24136648,
+		"amplifiedTvl": 153314467.24136648,
+		"exchange": "balancer-v2-weighted",
+		"type": "balancer-v2-weighted",
+		"timestamp": 1702542461,
+		"reserves": [
+			"31686717298564222587034828",
+			"14236767788701850247952"
+		],
+		"tokens": [
+			{
+				"address": "0xba100000625a3754423978a60c9317c58a424e3d",
+				"name": "",
+				"symbol": "",
+				"decimals": 0,
+				"weight": 0,
+				"swappable": true
+			},
+			{
+				"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+				"name": "",
+				"symbol": "",
+				"decimals": 0,
+				"weight": 0,
+				"swappable": true
+			}
+		],
+		"extra": "{\"swapFeePercentage\":\"0x2386f26fc10000\",\"paused\":false}",
+		"staticExtra": "{\"poolId\":\"0x5c6ee304399dbdb9c8ef030ab642b10820db8f56000200000000000000000014\",\"poolType\":\"Weighted\",\"poolTypeVer\":1,\"scalingFactors\":[\"0x1\",\"0x1\"],\"normalizedWeights\":[\"0xb1a2bc2ec500000\",\"0x2c68af0bb140000\"],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
+	}`
+	var pool entity.Pool
+	_ = json.Unmarshal([]byte(p), &pool)
+
+	simulator, err := NewPoolSimulator(pool)
+	if err != nil {
+		panic(err)
+	}
+
+	amountIn, _ := new(big.Int).SetString("2000000000000000000000", 10)
+
+	result, err := simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		TokenAmountIn: poolpkg.TokenAmount{
+			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			Amount: amountIn,
+		},
+		TokenOut: "0xba100000625a3754423978a60c9317c58a424e3d",
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	t.Error(result.TokenAmountOut.Amount.String())
 }
