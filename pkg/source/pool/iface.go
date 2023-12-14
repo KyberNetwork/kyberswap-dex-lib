@@ -50,6 +50,15 @@ type RFQResult struct {
 	Extra        any
 }
 
+type IPoolExactOutSimulator interface {
+	// CalcAmountIn calculate the `amountIn` of `tokenIn` needed to get `tokenAmountOut`
+	// caller might need to run `CalcAmountOut` again to determine if the returned `amountIn` is good enough
+	CalcAmountIn(
+		tokenAmountOut TokenAmount,
+		tokenIn string,
+	) (*big.Int, error)
+}
+
 type IPoolRFQ interface {
 	RFQ(ctx context.Context, recipient string, params any) (RFQResult, error)
 }
