@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -17,10 +18,11 @@ import (
 
 type PoolsListUpdater struct {
 	config        *Config
+	ethrpcClient  *ethrpc.Client
 	sharedUpdater *shared.PoolsListUpdater
 }
 
-func NewPoolsListUpdater(config *Config, _ *ethrpc.Client) *PoolsListUpdater {
+func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
 	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
 		DexID:        config.DexID,
 		SubgraphAPI:  config.SubgraphAPI,
@@ -30,6 +32,7 @@ func NewPoolsListUpdater(config *Config, _ *ethrpc.Client) *PoolsListUpdater {
 
 	return &PoolsListUpdater{
 		config:        config,
+		ethrpcClient:  ethrpcClient,
 		sharedUpdater: sharedUpdater,
 	}
 }
@@ -51,7 +54,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, err
 	}
 
-	pools, err := u.initPools(ctx, subgraphPools)
+	vaults, err := u.getVaults(ctx, subgraphPools)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pools, err := u.initPools(ctx, subgraphPools, vaults)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":   u.config.DexID,
@@ -64,10 +72,37 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([]entity.Pool, error) {
+func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([]string, error) {
+	vaultAddresses := make([]common.Address, len(subgraphPools))
+	vaults := make([]string, len(subgraphPools))
+
+	req := u.ethrpcClient.R()
+	for idx, subgraphPool := range subgraphPools {
+		req.AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: subgraphPool.Address,
+			Method: poolMethodGetVault,
+		}, []interface{}{&vaultAddresses[idx]})
+	}
+	if _, err := req.Aggregate(); err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId":   u.config.DexID,
+			"dexType": DexType,
+		}).Error(err.Error())
+		return nil, err
+	}
+
+	for idx, addr := range vaultAddresses {
+		vaults[idx] = strings.ToLower(addr.Hex())
+	}
+
+	return vaults, nil
+}
+
+func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*shared.SubgraphPool, vaults []string) ([]entity.Pool, error) {
 	pools := make([]entity.Pool, 0, len(subgraphPools))
-	for _, subgraphPool := range subgraphPools {
-		pool, err := u.initPool(ctx, subgraphPool)
+	for idx := range subgraphPools {
+		pool, err := u.initPool(ctx, subgraphPools[idx], vaults[idx])
 		if err != nil {
 			return nil, err
 		}
@@ -78,7 +113,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, subgraphPools []*share
 	return pools, nil
 }
 
-func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.SubgraphPool) (entity.Pool, error) {
+func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.SubgraphPool, vault string) (entity.Pool, error) {
 	var (
 		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.Tokens))
 		reserves       = make([]string, len(subgraphPool.Tokens))
@@ -105,7 +140,7 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 		PoolType:       subgraphPool.PoolType,
 		PoolTypeVer:    int(subgraphPool.PoolTypeVersion.Int64()),
 		ScalingFactors: scalingFactors,
-		VaultAddress:   strings.ToLower(u.config.VaultAddress),
+		Vault:          vault,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {

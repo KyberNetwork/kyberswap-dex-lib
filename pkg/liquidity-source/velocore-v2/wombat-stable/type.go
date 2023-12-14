@@ -13,8 +13,9 @@ type Metadata struct {
 }
 
 type Meta struct {
-	Vault    string            `json:"vault"`
-	Wrappers map[string]string `json:"wrappers"`
+	Vault       string            `json:"vault"`
+	Wrappers    map[string]string `json:"wrappers"`
+	BlockNumber uint64            `json:"blockNumber"`
 }
 
 type Gas struct {

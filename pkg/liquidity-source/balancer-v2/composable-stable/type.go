@@ -8,10 +8,11 @@ import (
 )
 
 type PoolMetaInfo struct {
-	Vault  string `json:"vault"`
-	PoolID string `json:"poolId"`
-	T      string `json:"t"`
-	V      int    `json:"v"`
+	Vault       string `json:"vault"`
+	PoolID      string `json:"poolId"`
+	T           string `json:"t"`
+	V           int    `json:"v"`
+	BlockNumber uint64 `json:"blockNumber"`
 }
 
 type SwapInfo struct {
@@ -55,8 +56,8 @@ type StaticExtra struct {
 	PoolType       string         `json:"poolType"`
 	PoolTypeVer    int            `json:"poolTypeVer"`
 	BptIndex       int            `json:"bptIndex"`
-	VaultAddress   string         `json:"vaultAddress"`
 	ScalingFactors []*uint256.Int `json:"scalingFactors"`
+	Vault          string         `json:"vault"`
 }
 
 type AmplificationParameterResp struct {

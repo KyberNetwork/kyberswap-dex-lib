@@ -38,6 +38,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				},
 				publicSwap: true,
 				swapFee:    number.NewUint256("4000000000000000"),
+				totalAmountsIn: map[string]*uint256.Int{
+					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": uint256.NewInt(0),
+					"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": uint256.NewInt(0),
+				},
+				maxTotalAmountsIn: map[string]*uint256.Int{
+					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
+					"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
+				},
 			},
 			tokenAmountIn:     poolpkg.TokenAmount{Token: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Amount: utils.NewBig("81275824825923290")},
 			tokenOut:          "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
@@ -82,6 +90,14 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				},
 				publicSwap: true,
 				swapFee:    number.NewUint256("4000000000000000"),
+				totalAmountsIn: map[string]*uint256.Int{
+					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": uint256.NewInt(0),
+					"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": uint256.NewInt(0),
+				},
+				maxTotalAmountsIn: map[string]*uint256.Int{
+					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
+					"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
+				},
 			},
 			params: poolpkg.UpdateBalanceParams{
 				TokenAmountIn:  poolpkg.TokenAmount{Token: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Amount: utils.NewBig("81275824825923290")},

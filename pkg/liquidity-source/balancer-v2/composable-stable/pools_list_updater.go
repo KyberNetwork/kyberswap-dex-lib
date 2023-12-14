@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -54,12 +55,17 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, err
 	}
 
+	vaults, err := u.getVaults(ctx, subgraphPools)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	bptIndexes, err := u.getBptIndex(ctx, subgraphPools)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	pools, err := u.initPools(ctx, subgraphPools, bptIndexes)
+	pools, err := u.initPools(ctx, subgraphPools, bptIndexes, vaults)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":   u.config.DexID,
@@ -70,6 +76,33 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	return pools, newMetadataBytes, nil
+}
+
+func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([]string, error) {
+	vaultAddresses := make([]common.Address, len(subgraphPools))
+	vaults := make([]string, len(subgraphPools))
+
+	req := u.ethrpcClient.R()
+	for idx, subgraphPool := range subgraphPools {
+		req.AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: subgraphPool.Address,
+			Method: poolMethodGetVault,
+		}, []interface{}{&vaultAddresses[idx]})
+	}
+	if _, err := req.Aggregate(); err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId":   u.config.DexID,
+			"dexType": DexType,
+		}).Error(err.Error())
+		return nil, err
+	}
+
+	for idx, addr := range vaultAddresses {
+		vaults[idx] = strings.ToLower(addr.Hex())
+	}
+
+	return vaults, nil
 }
 
 func (u *PoolsListUpdater) getBptIndex(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([]*big.Int, error) {
@@ -95,15 +128,16 @@ func (u *PoolsListUpdater) initPools(
 	ctx context.Context,
 	subgraphPools []*shared.SubgraphPool,
 	bptIndexes []*big.Int,
+	vaults []string,
 ) ([]entity.Pool, error) {
-	pools := make([]entity.Pool, len(subgraphPools))
-	for i, subgraphPool := range subgraphPools {
-		pool, err := u.initPool(ctx, subgraphPool, bptIndexes[i])
+	pools := make([]entity.Pool, 0, len(subgraphPools))
+	for idx := range subgraphPools {
+		pool, err := u.initPool(ctx, subgraphPools[idx], bptIndexes[idx], vaults[idx])
 		if err != nil {
 			return nil, err
 		}
 
-		pools[i] = pool
+		pools = append(pools, pool)
 	}
 
 	return pools, nil
@@ -113,6 +147,7 @@ func (u *PoolsListUpdater) initPool(
 	ctx context.Context,
 	subgraphPool *shared.SubgraphPool,
 	bptIndex *big.Int,
+	vault string,
 ) (entity.Pool, error) {
 	var (
 		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.Tokens))
@@ -141,8 +176,8 @@ func (u *PoolsListUpdater) initPool(
 		PoolType:       subgraphPool.PoolType,
 		PoolTypeVer:    int(subgraphPool.PoolTypeVersion.Int64()),
 		BptIndex:       int(bptIndex.Int64()),
-		VaultAddress:   strings.ToLower(u.config.VaultAddress),
 		ScalingFactors: scalingFactors,
+		Vault:          vault,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {

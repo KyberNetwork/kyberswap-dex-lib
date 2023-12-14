@@ -107,6 +107,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		return p, err
 	}
 
+	p.BlockNumber = blockNbr.Uint64()
 	p.Reserves = poolDat.PoolReserves
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()

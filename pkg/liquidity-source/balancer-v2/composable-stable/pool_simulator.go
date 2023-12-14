@@ -21,9 +21,9 @@ type PoolSimulator struct {
 	regularSimulator *regularSimulator
 	bptSimulator     *bptSimulator
 
-	vaultAddress string
-	poolID       string
-	poolTypeVer  int
+	vault       string
+	poolID      string
+	poolTypeVer int
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -92,7 +92,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		canNotUpdateTokenRates: extra.CanNotUpdateTokenRates,
 		regularSimulator:       &regularSimulator,
 		bptSimulator:           &bptSimulator,
-		vaultAddress:           staticExtra.VaultAddress,
+		vault:                  staticExtra.Vault,
 		poolID:                 staticExtra.PoolID,
 		poolTypeVer:            staticExtra.PoolTypeVer,
 	}, nil
@@ -158,10 +158,11 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:  s.vaultAddress,
-		PoolID: s.poolID,
-		T:      poolTypeComposableStable,
-		V:      s.poolTypeVer,
+		Vault:       s.vault,
+		PoolID:      s.poolID,
+		T:           poolTypeComposableStable,
+		V:           s.poolTypeVer,
+		BlockNumber: s.Info.BlockNumber,
 	}
 }
 

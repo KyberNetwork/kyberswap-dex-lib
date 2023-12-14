@@ -18,7 +18,7 @@ type StaticExtra struct {
 	PoolTypeVer       int            `json:"poolTypeVer"`
 	ScalingFactors    []*uint256.Int `json:"scalingFactors"`
 	NormalizedWeights []*uint256.Int `json:"normalizedWeights"`
-	VaultAddress      string         `json:"vaultAddress"`
+	Vault             string         `json:"vault"`
 }
 
 type PoolTokens struct {
@@ -34,10 +34,11 @@ type PausedState struct {
 }
 
 type PoolMetaInfo struct {
-	Vault  string `json:"vault"`
-	PoolID string `json:"poolId"`
-	T      string `json:"t"`
-	V      int    `json:"v"`
+	Vault       string `json:"vault"`
+	PoolID      string `json:"poolId"`
+	T           string `json:"t"`
+	V           int    `json:"v"`
+	BlockNumber uint64 `json:"blockNumber"`
 }
 
 type rpcRes struct {

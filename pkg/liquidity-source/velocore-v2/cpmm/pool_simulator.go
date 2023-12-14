@@ -146,6 +146,7 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return Meta{
 		Vault:            p.vault,
 		NativeTokenIndex: p.nativeTokenIndex,
+		BlockNumber:      p.Info.BlockNumber,
 	}
 }
 
