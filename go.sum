@@ -72,8 +72,8 @@ github.com/KyberNetwork/ethrpc v0.6.0 h1:pBEXrRf87vZmIf3Gb5kdOWhTJ7WNdeoiBWmqaZs
 github.com/KyberNetwork/ethrpc v0.6.0/go.mod h1:oKysvDWevrWSW6sgb/3pDrBjiKw6IUbS3LytN+aKz/M=
 github.com/KyberNetwork/kyber-trace-go v0.1.1 h1:YgzZb7jSg0Rgj7zFv9zUnSlB13Iksv1eVO5MSWAvjmM=
 github.com/KyberNetwork/kyber-trace-go v0.1.1/go.mod h1:X6hVacmKMeOEOlFh4TyfEHaEVRerFQ5YLuQ4keRV3hw=
-github.com/KyberNetwork/kyberswap-dex-lib v0.26.2 h1:rFmmujU2wXiGp4T3C1Gd4GgApqICYP6zLcVK8CH3cnc=
-github.com/KyberNetwork/kyberswap-dex-lib v0.26.2/go.mod h1:0vnUj34aW+zw5s40QlsTCt/ZbwfmznGJ14T5ARD98zk=
+github.com/KyberNetwork/kyberswap-dex-lib v0.26.3 h1:pIVzDdGiUk8ybS1Je2KR67LrItBddEYWEBehvu90UPw=
+github.com/KyberNetwork/kyberswap-dex-lib v0.26.3/go.mod h1:mB8ikUEzkjVhigFChAz5yKI5q2bhOF/sw5FWVUpq11s=
 github.com/KyberNetwork/logger v0.1.0 h1:Iibu9Ls+tipjR+C0iXhzUYM1VtRgmmR1HHWGufPYcbs=
 github.com/KyberNetwork/logger v0.1.0/go.mod h1:zBqHbtJ3nJn6HQnp6UW8pbQkR+U6tSRFd5CzfiKL3Kw=
 github.com/KyberNetwork/pancake-v3-sdk v0.1.0 h1:HVUD13Qbwl4kiU1uSprQVpkis6fYYp3A32mVuK+f1Iw=
@@ -82,8 +82,8 @@ github.com/KyberNetwork/reload v0.1.1 h1:d2gu8KK8C34tiyPQongjLzwy5w73fYHbwP1P9Mo
 github.com/KyberNetwork/reload v0.1.1/go.mod h1:0qlzJAjsqBf1ZBw93qPpucFXre/0FMtQWwD/BidcYtM=
 github.com/KyberNetwork/service-framework v0.1.0 h1:TX3rtQUg6blgDfAcAgjDmqkkHLx6sgse5tkyoREbdDk=
 github.com/KyberNetwork/service-framework v0.1.0/go.mod h1:iunFvpNA52rNTcs2YaNk8S40kiVG6UVzlWRDkeWxYzE=
-github.com/KyberNetwork/uniswapv3-sdk v0.4.3 h1:OSFsc/CXq3b7B8MRN6Ei3Wcx6CytwZt1WshQkAJaWPI=
-github.com/KyberNetwork/uniswapv3-sdk v0.4.3/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
+github.com/KyberNetwork/uniswapv3-sdk v0.4.4 h1:Kn0agJawAAk0oFwQHL6voJXjgswe3sWG6qNLZoPqbo4=
+github.com/KyberNetwork/uniswapv3-sdk v0.4.4/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
 github.com/Microsoft/go-winio v0.5.0/go.mod h1:JPGBdM1cNvN/6ISo+n8V5iA4v8pBzdOpzfwIujj1a84=
 github.com/Microsoft/go-winio v0.5.1/go.mod h1:JPGBdM1cNvN/6ISo+n8V5iA4v8pBzdOpzfwIujj1a84=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
