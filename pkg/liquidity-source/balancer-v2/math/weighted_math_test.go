@@ -46,7 +46,26 @@ func TestCalcOutGivenIn(t *testing.T) {
 		assert.Equal(t, expected, result.Dec())
 	})
 
-	t.Run("3.should return error exceed amount in ratio", func(t *testing.T) {
+	t.Run("3.should return OK", func(t *testing.T) {
+		// input
+		balanceIn := uint256.MustFromDecimal("28430120665864259131432")
+		weightIn := uint256.MustFromDecimal("100000000000000000")
+		balanceOut := uint256.MustFromDecimal("10098902157921113397")
+		weightOut := uint256.MustFromDecimal("30000000000000000")
+		amountIn := uint256.MustFromDecimal("6125185803357185587126")
+
+		// expected
+		expected := "4828780052665314529"
+
+		// calculation
+		result, err := WeightedMath.CalcOutGivenIn(balanceIn, weightIn, balanceOut, weightOut, amountIn)
+
+		// assert
+		assert.Nil(t, err)
+		assert.Equal(t, expected, result.Dec())
+	})
+
+	t.Run("4.should return error exceed amount in ratio", func(t *testing.T) {
 		// input
 		balanceIn := uint256.MustFromDecimal("92174932794319461529478329")
 		weightIn := uint256.MustFromDecimal("15")
