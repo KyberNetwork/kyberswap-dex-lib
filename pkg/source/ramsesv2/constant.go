@@ -17,12 +17,11 @@ const (
 )
 
 const (
-	methodGetLiquidity                    = "liquidity"
-	methodGetSlot0                        = "slot0"
-	methodCurrentFee                      = "currentFee"
-	methodTickSpacing                     = "tickSpacing"
-	tickLensMethodGetPopulatedTicksInWord = "getPopulatedTicksInWord"
-	erc20MethodBalanceOf                  = "balanceOf"
+	methodGetLiquidity   = "liquidity"
+	methodGetSlot0       = "slot0"
+	methodCurrentFee     = "currentFee"
+	methodTickSpacing    = "tickSpacing"
+	erc20MethodBalanceOf = "balanceOf"
 )
 
 var (
