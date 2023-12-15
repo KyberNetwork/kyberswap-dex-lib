@@ -7,7 +7,8 @@ import (
 )
 
 type Gas struct {
-	Swap int64
+	BaseGas          int64
+	CrossInitTickGas int64
 }
 
 // UniV3SwapInfo present the after state of a swap

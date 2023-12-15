@@ -191,13 +191,16 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			zeroForOne = true
 		}
 		amountIn := coreEntities.FromRawAmount(tokenIn, tokenAmountIn.Amount)
-		amountOut, newPoolState, err := p.V3Pool.GetOutputAmount(amountIn, p.getSqrtPriceLimit(zeroForOne))
+		amountOutResult, err := p.V3Pool.GetOutputAmount(amountIn, p.getSqrtPriceLimit(zeroForOne))
 
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
 		}
 
-		var totalGas = p.gas.Swap
+		amountOut := amountOutResult.ReturnedAmount
+		newPoolState := amountOutResult.NewPoolState
+
+		var totalGas = p.gas.BaseGas + p.gas.CrossInitTickGas*int64(amountOutResult.CrossInitTickLoops)
 
 		//p.nextState.SqrtRatioX96 = newPoolState.SqrtRatioX96
 		//p.nextState.Liquidity = newPoolState.Liquidity
