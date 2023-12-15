@@ -1,10 +1,10 @@
 package weighted
 
 import (
-	"encoding/json"
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
