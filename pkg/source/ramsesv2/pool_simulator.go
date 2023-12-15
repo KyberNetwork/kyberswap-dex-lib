@@ -164,7 +164,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		amountOut := amountOutResult.ReturnedAmount
 		newPoolState := amountOutResult.NewPoolState
 
-		var totalGas = p.gas.Swap
+		var totalGas = p.gas.BaseGas + p.gas.CrossInitTickGas*int64(amountOutResult.CrossInitTickLoops)
 
 		if amountOut.Quotient().Cmp(zeroBI) > 0 {
 			return &pool.CalcAmountOutResult{
