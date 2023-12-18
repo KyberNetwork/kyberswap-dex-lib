@@ -148,9 +148,9 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Liquidity:    rpcData.liquidity,
-		SqrtPriceX96: rpcData.slot0.SqrtPriceX96,
-		Tick:         rpcData.slot0.Tick,
+		Liquidity:    rpcData.Liquidity,
+		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
+		Tick:         rpcData.Slot0.Tick,
 		Ticks:        ticks,
 	})
 	if err != nil {
@@ -164,13 +164,27 @@ func (d *PoolTracker) GetNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		rpcData.reserve0.String(),
-		rpcData.reserve1.String(),
+		rpcData.Reserve0.String(),
+		rpcData.Reserve1.String(),
 	}
 
 	logger.Infof("[%s] Finish updating state of pool: %v", d.config.DexID, p.Address)
 
 	return p, nil
+}
+
+func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool) ([]byte, error) {
+	rpcData, err := d.fetchRPCData(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	rpcDataBytes, err := json.Marshal(rpcData)
+	if err != nil {
+		return nil, err
+	}
+
+	return rpcDataBytes, nil
 }
 
 func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPCResult, error) {
@@ -224,10 +238,10 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 	}
 
 	return FetchRPCResult{
-		liquidity: liquidity,
-		slot0:     slot0,
-		reserve0:  reserve0,
-		reserve1:  reserve1,
+		Liquidity: liquidity,
+		Slot0:     slot0,
+		Reserve0:  reserve0,
+		Reserve1:  reserve1,
 	}, err
 }
 

@@ -107,10 +107,10 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Liquidity:   rpcData.liquidity,
-		GlobalState: rpcData.state,
+		Liquidity:   rpcData.Liquidity,
+		GlobalState: rpcData.State,
 		Ticks:       ticks,
-		TickSpacing: int24(rpcData.tickSpacing.Int64()),
+		TickSpacing: int24(rpcData.TickSpacing.Int64()),
 	})
 
 	if err != nil {
@@ -124,13 +124,27 @@ func (d *PoolTracker) GetNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		rpcData.reserve0.String(),
-		rpcData.reserve1.String(),
+		rpcData.Reserve0.String(),
+		rpcData.Reserve1.String(),
 	}
 
-	logger.Infof("[%v] Finish updating state of pool: %v, approximate fee %v %v", d.config.DexID, p.Address, rpcData.state.FeeZto, rpcData.state.FeeOtz)
+	logger.Infof("[%v] Finish updating state of pool: %v, approximate fee %v %v", d.config.DexID, p.Address, rpcData.State.FeeZto, rpcData.State.FeeOtz)
 
 	return p, nil
+}
+
+func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool) ([]byte, error) {
+	rpcData, err := d.fetchRPCData(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	rpcDataBytes, err := json.Marshal(rpcData)
+	if err != nil {
+		return nil, err
+	}
+
+	return rpcDataBytes, nil
 }
 
 func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPCResult, error) {
@@ -147,7 +161,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 		Target: p.Address,
 		Method: methodGetLiquidity,
 		Params: nil,
-	}, []interface{}{&res.liquidity})
+	}, []interface{}{&res.Liquidity})
 
 	// the globalstate abi are slightly different across versions
 	var rpcState interface{}
@@ -181,7 +195,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 		Target: p.Address,
 		Method: methodGetTickSpacing,
 		Params: nil,
-	}, []interface{}{&res.tickSpacing})
+	}, []interface{}{&res.TickSpacing})
 
 	if len(p.Tokens) == 2 {
 		rpcRequest.AddCall(&ethrpc.Call{
@@ -189,14 +203,14 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 			Target: p.Tokens[0].Address,
 			Method: erc20MethodBalanceOf,
 			Params: []interface{}{common.HexToAddress(p.Address)},
-		}, []interface{}{&res.reserve0})
+		}, []interface{}{&res.Reserve0})
 
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[1].Address,
 			Method: erc20MethodBalanceOf,
 			Params: []interface{}{common.HexToAddress(p.Address)},
-		}, []interface{}{&res.reserve1})
+		}, []interface{}{&res.Reserve1})
 	}
 
 	_, err := rpcRequest.Aggregate()
@@ -210,7 +224,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 
 	if d.config.UseDirectionalFee {
 		rpcStateRes := rpcState.(*rpcGlobalStateDirFee)
-		res.state = GlobalState{
+		res.State = GlobalState{
 			Price:              rpcStateRes.Price,
 			Tick:               rpcStateRes.Tick,
 			FeeZto:             rpcStateRes.FeeZto,
@@ -223,7 +237,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 	} else {
 		// for v1 without directional fee, we'll use Fee for both FeeZto/FeeOtz
 		rpcStateRes := rpcState.(*rpcGlobalStateSingleFee)
-		res.state = GlobalState{
+		res.State = GlobalState{
 			Price:              rpcStateRes.Price,
 			Tick:               rpcStateRes.Tick,
 			FeeZto:             rpcStateRes.Fee,
@@ -236,13 +250,13 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 	}
 
 	if !d.config.SkipFeeCalculating {
-		err = d.approximateFee(ctx, p.Address, dataStorageOperator.Hex(), &res.state, res.liquidity)
+		err = d.approximateFee(ctx, p.Address, dataStorageOperator.Hex(), &res.State, res.Liquidity)
 		if err != nil {
 			return res, err
 		}
 	}
 
-	if !res.state.Unlocked {
+	if !res.State.Unlocked {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 		}).Info("pool has been locked and not usable")
