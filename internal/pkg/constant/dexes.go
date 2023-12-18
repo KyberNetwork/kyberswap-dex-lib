@@ -33,6 +33,7 @@ type types struct {
 	Pearl                      string
 	PearlV2                    string
 	Ramses                     string
+	RamsesV2                   string
 	Dystopia                   string
 	PlatypusBase               string
 	PlatypusPure               string
@@ -117,6 +118,7 @@ var (
 		Pearl:                      "pearl",
 		PearlV2:                    "pearl-v2",
 		Ramses:                     "ramses",
+		RamsesV2:                   "ramses-v2",
 		Dystopia:                   "dystopia",
 		PlatypusBase:               "platypus-base",
 		PlatypusPure:               "platypus-pure",

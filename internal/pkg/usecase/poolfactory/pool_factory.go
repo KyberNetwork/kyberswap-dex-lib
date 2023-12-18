@@ -52,6 +52,7 @@ import (
 	polmatic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pol-matic"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/quickperps"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/smardex"
 	swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
@@ -276,6 +277,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 	case constant.PoolTypes.Saddle, constant.PoolTypes.Nerve,
 		constant.PoolTypes.OneSwap, constant.PoolTypes.IronStable:
 		return f.newSaddle(entityPool)
+	case constant.PoolTypes.RamsesV2:
+		return f.newRamsesV2(entityPool)
 	case constant.PoolTypes.Dmm:
 		return f.newDMM(entityPool)
 	case constant.PoolTypes.Elastic:
@@ -435,6 +438,20 @@ func (f *PoolFactory) newSaddle(entityPool entity.Pool) (*saddle.PoolSimulator, 
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSaddle] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newRamsesV2(entityPool entity.Pool) (*ramsesv2.PoolSimulator, error) {
+	corePool, err := ramsesv2.NewPoolSimulator(entityPool, f.config.ChainID)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newRamsesV2] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

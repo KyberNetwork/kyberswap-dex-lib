@@ -13,6 +13,8 @@ func IsUniV3Type(poolType string) bool {
 		return true
 	case constant.PoolTypes.PancakeV3:
 		return true
+	case constant.PoolTypes.RamsesV2:
+		return true
 	default:
 		return false
 	}
