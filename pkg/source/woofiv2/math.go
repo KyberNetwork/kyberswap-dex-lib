@@ -43,6 +43,7 @@ func sellQuote(
 		new(big.Int).Mul(quoteAmount, baseTokenInfo.FeeRate),
 		big.NewInt(1e5),
 	)
+
 	quoteAmountAfterFee := new(big.Int).Sub(quoteAmount, swapFee)
 	state.UnclaimedFee = new(big.Int).Add(state.UnclaimedFee, swapFee)
 
