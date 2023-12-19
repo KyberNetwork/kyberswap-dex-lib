@@ -45,7 +45,12 @@ func (d *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	_ sourcePool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	logger.Infof("[%v] Start getting new state of pool: %v", d.config.DexID, p.Address)
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": p.Address,
+		"dexID":       d.config.DexID,
+	})
+
+	l.Info("Start getting new state of pool")
 
 	var (
 		rpcData   FetchRPCResult
@@ -57,10 +62,9 @@ func (d *PoolTracker) GetNewPoolState(
 		var err error
 		rpcData, err = d.fetchRPCData(ctx, p)
 		if err != nil {
-			logger.WithFields(logger.Fields{
-				"poolAddress": p.Address,
-				"error":       err,
-			}).Errorf("failed to fetch data from RPC")
+			l.WithFields(logger.Fields{
+				"error": err,
+			}).Error("failed to fetch data from RPC")
 
 		}
 
@@ -70,20 +74,18 @@ func (d *PoolTracker) GetNewPoolState(
 		var err error
 		poolTicks, err = d.getPoolTicks(ctx, p.Address)
 		if err != nil {
-			logger.WithFields(logger.Fields{
-				"poolAddress": p.Address,
-				"error":       err,
-			}).Errorf("failed to query subgraph for pool ticks")
+			l.WithFields(logger.Fields{
+				"error": err,
+			}).Error("failed to query subgraph for pool ticks")
 		}
 
 		return err
 	})
 
 	if err := g.Wait(); err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-			"error":       err,
-		}).Errorf("failed to fetch pool state, pool: %v, err: %v", p.Address, err)
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch pool state")
 		return entity.Pool{}, err
 	}
 
@@ -91,10 +93,9 @@ func (d *PoolTracker) GetNewPoolState(
 	for _, tickResp := range poolTicks {
 		tick, err := transformTickRespToTick(tickResp)
 		if err != nil {
-			logger.WithFields(logger.Fields{
-				"poolAddress": p.Address,
-				"error":       err,
-			}).Errorf("failed to transform tickResp to tick")
+			l.WithFields(logger.Fields{
+				"error": err,
+			}).Error("failed to transform tickResp to tick")
 			continue
 		}
 
@@ -114,10 +115,9 @@ func (d *PoolTracker) GetNewPoolState(
 	})
 
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-			"error":       err,
-		}).Errorf("failed to marshal extra data")
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to marshal extra data")
 		return entity.Pool{}, err
 	}
 
@@ -128,7 +128,10 @@ func (d *PoolTracker) GetNewPoolState(
 		rpcData.Reserve1.String(),
 	}
 
-	logger.Infof("[%v] Finish updating state of pool: %v, approximate fee %v %v", d.config.DexID, p.Address, rpcData.State.FeeZto, rpcData.State.FeeOtz)
+	l.WithFields(logger.Fields{
+		"feeZto": rpcData.State.FeeZto,
+		"feeOtz": rpcData.State.FeeOtz,
+	}).Info("Finish updating state of pool")
 
 	return p, nil
 }
@@ -148,6 +151,11 @@ func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool) ([]b
 }
 
 func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPCResult, error) {
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": p.Address,
+		"dexID":       d.config.DexID,
+	})
+
 	var (
 		dataStorageOperator common.Address
 	)
@@ -215,10 +223,9 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 
 	_, err := rpcRequest.Aggregate()
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-			"error":       err,
-		}).Errorf("failed to process tryAggregate")
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to process tryAggregate")
 		return res, err
 	}
 
@@ -257,23 +264,25 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 	}
 
 	if !res.State.Unlocked {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-		}).Info("pool has been locked and not usable")
+		l.Info("pool has been locked and not usable")
 	}
 
 	return res, err
 }
 
 func (d *PoolTracker) approximateFee(ctx context.Context, poolAddress, dataStorageOperator string, state *GlobalState, currentLiquidity *big.Int) error {
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": poolAddress,
+		"dexID":       d.config.DexID,
+	})
+
 	// fee approximation: assume that the swap will be soon after this
 	blockTimestamp := uint32(time.Now().Unix())
 	yesterday := blockTimestamp - WINDOW
 	timepoints, err := d.getPoolTimepoints(ctx, state.TimepointIndex, poolAddress, yesterday)
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": poolAddress,
-			"error":       err,
+		l.WithFields(logger.Fields{
+			"error": err,
 		}).Error("failed to fetch pool timepoints")
 		return err
 	}
@@ -352,7 +361,7 @@ func (d *PoolTracker) getPoolFeeConfig(ctx context.Context, dataStorageOperatorA
 		logger.WithFields(logger.Fields{
 			"dataStorageAddress": dataStorageOperatorAddress,
 			"error":              err,
-		}).Errorf("failed to fetch from data storage operator")
+		}).Error("failed to fetch from data storage operator")
 		return err
 	}
 	return nil
@@ -380,13 +389,18 @@ func (d *PoolTracker) getPoolDirectionalFeeConfig(ctx context.Context, dataStora
 		logger.WithFields(logger.Fields{
 			"dataStorageAddress": dataStorageOperatorAddress,
 			"error":              err,
-		}).Errorf("failed to fetch from data storage operator")
+		}).Error("failed to fetch from data storage operator")
 		return err
 	}
 	return nil
 }
 
 func (d *PoolTracker) getPoolTimepoints(ctx context.Context, currentIndex uint16, poolAddress string, yesterday uint32) (map[uint16]Timepoint, error) {
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": poolAddress,
+		"dexID":       d.config.DexID,
+	})
+
 	timepoints := make(map[uint16]Timepoint, UINT16_MODULO)
 
 	currentIndexPrev := currentIndex - 1
@@ -417,10 +431,9 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, currentIndex uint16
 		}
 		_, err := rpcRequest.Aggregate()
 		if err != nil {
-			logger.WithFields(logger.Fields{
-				"poolAddress": poolAddress,
-				"error":       err,
-			}).Errorf("failed to fetch pool timepoints")
+			l.WithFields(logger.Fields{
+				"error": err,
+			}).Error("failed to fetch pool timepoints")
 			return nil, err
 		}
 
@@ -488,10 +501,9 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, currentIndex uint16
 
 			_, err = rpcRequest.Aggregate()
 			if err != nil {
-				logger.WithFields(logger.Fields{
-					"poolAddress": poolAddress,
-					"error":       err,
-				}).Errorf("failed to fetch pool timepoints")
+				l.WithFields(logger.Fields{
+					"error": err,
+				}).Error("failed to fetch pool timepoints")
 				return nil, err
 			}
 
@@ -532,6 +544,11 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, currentIndex uint16
 }
 
 func (d *PoolTracker) getPoolVolumePerLiquidityInBlock(ctx context.Context, poolAddress common.Address) (*big.Int, error) {
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": poolAddress,
+		"dexID":       d.config.DexID,
+	})
+
 	abiUint256, _ := abi.NewType("uint256", "", nil)
 	abi := abi.Arguments{
 		// 2 variables are stored in 1 slot, need to read the whole and shift out later
@@ -544,10 +561,9 @@ func (d *PoolTracker) getPoolVolumePerLiquidityInBlock(ctx context.Context, pool
 		abi,
 	)
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": poolAddress,
-			"error":       err,
-		}).Errorf("failed to fetch pool volumePerLiquidityInBlock")
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch pool volumePerLiquidityInBlock")
 		return nil, err
 	}
 
@@ -556,14 +572,18 @@ func (d *PoolTracker) getPoolVolumePerLiquidityInBlock(ctx context.Context, pool
 			return new(big.Int).Rsh(bi, 128), nil
 		}
 	}
-	logger.WithFields(logger.Fields{
-		"poolAddress": poolAddress,
-		"resp":        resp,
-	}).Errorf("failed to unmarshal volumePerLiquidityInBlock")
+	l.WithFields(logger.Fields{
+		"resp": resp,
+	}).Error("failed to unmarshal volumePerLiquidityInBlock")
 	return nil, ErrUnmarshalVolLiq
 }
 
 func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]TickResp, error) {
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": poolAddress,
+		"dexID":       d.config.DexID,
+	})
+
 	allowSubgraphError := d.config.AllowSubgraphError
 	skip := 0
 	var ticks []TickResp
@@ -579,20 +599,18 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			if allowSubgraphError {
 				if resp.Pool == nil {
-					logger.WithFields(logger.Fields{
-						"poolAddress":        poolAddress,
+					l.WithFields(logger.Fields{
 						"error":              err,
 						"allowSubgraphError": allowSubgraphError,
-					}).Errorf("failed to query subgraph")
+					}).Error("failed to query subgraph")
 
 					return nil, err
 				}
 			} else {
-				logger.WithFields(logger.Fields{
-					"poolAddress":        poolAddress,
+				l.WithFields(logger.Fields{
 					"error":              err,
 					"allowSubgraphError": allowSubgraphError,
-				}).Errorf("failed to query subgraph")
+				}).Error("failed to query subgraph")
 
 				return nil, err
 			}
