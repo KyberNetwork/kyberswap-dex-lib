@@ -88,6 +88,9 @@ func (l *gyro2CLPMath) _calculateQuadraticTerms(
 		MulDown(balances[1]).
 		DivDownWith(math.NewCalculator(sqrtBeta).MulUp(sqrtBeta)).
 		Result()
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
 
 	bSquare, err = math.NewCalculator(bSquare).Add(bSq2).Add(bSq3).Result()
 	if err != nil {
@@ -147,6 +150,9 @@ func (l *gyro2CLPMath) _calcOutGivenIn(
 		AddWith(
 			math.NewCalculator(virtualOffsetIn).MulUp(new(uint256.Int).Add(math.GyroFixedPoint.ONE, number.Number_2)),
 		).Result()
+	if err != nil {
+		return nil, err
+	}
 
 	virtOutUnder, err := math.NewCalculator(balanceOut).
 		AddWith(

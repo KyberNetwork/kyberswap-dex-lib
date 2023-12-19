@@ -1,12 +1,16 @@
 package gyro2clp
 
 import (
+	"encoding/json"
 	"errors"
+	"math/big"
 
 	"github.com/holiman/uint256"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/math"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
@@ -30,6 +34,57 @@ type PoolSimulator struct {
 
 	// sqrtParameters: `getSqrtParameters`
 	sqrtParameters []*uint256.Int
+
+	vault  string
+	poolID string
+
+	poolType    string
+	poolTypeVer int
+}
+
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+	var (
+		extra       Extra
+		staticExtra StaticExtra
+
+		tokens   = make([]string, len(entityPool.Tokens))
+		reserves = make([]*big.Int, len(entityPool.Tokens))
+	)
+
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+		return nil, err
+	}
+
+	for idx := 0; idx < len(entityPool.Tokens); idx++ {
+		tokens[idx] = entityPool.Tokens[idx].Address
+		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
+	}
+
+	poolInfo := poolpkg.PoolInfo{
+		Address:     entityPool.Address,
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		Reserves:    reserves,
+		Checked:     true,
+		BlockNumber: entityPool.BlockNumber,
+	}
+
+	return &PoolSimulator{
+		Pool:              poolpkg.Pool{Info: poolInfo},
+		paused:            extra.Paused,
+		scalingFactors:    staticExtra.ScalingFactors,
+		swapFeePercentage: extra.SwapFeePercentage,
+		sqrtParameters:    staticExtra.SqrtParameters,
+		vault:             staticExtra.Vault,
+		poolID:            staticExtra.PoolID,
+		poolType:          staticExtra.PoolType,
+		poolTypeVer:       staticExtra.PoolTypeVer,
+	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(
@@ -104,6 +159,34 @@ func (s *PoolSimulator) CalcAmountOut(
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
 	}, nil
+}
+
+func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+	return PoolMetaInfo{
+		Vault:       s.vault,
+		PoolID:      s.poolID,
+		T:           s.poolType,
+		V:           s.poolTypeVer,
+		BlockNumber: s.Info.BlockNumber,
+	}
+}
+
+func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+	for idx, token := range s.Info.Tokens {
+		if token == params.TokenAmountIn.Token {
+			s.Info.Reserves[idx] = new(big.Int).Add(
+				s.Info.Reserves[idx],
+				params.TokenAmountIn.Amount,
+			)
+		}
+
+		if token == params.TokenAmountOut.Token {
+			s.Info.Reserves[idx] = new(big.Int).Sub(
+				s.Info.Reserves[idx],
+				params.TokenAmountOut.Amount,
+			)
+		}
+	}
 }
 
 func (s *PoolSimulator) _upscale(amount, scalingFactor *uint256.Int) (*uint256.Int, error) {
