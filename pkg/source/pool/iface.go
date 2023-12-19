@@ -62,3 +62,7 @@ type IPoolExactOutSimulator interface {
 type IPoolRFQ interface {
 	RFQ(ctx context.Context, recipient string, params any) (RFQResult, error)
 }
+
+type ITicksBasedPoolTracker interface {
+	FetchStateFromRPC(ctx context.Context, pool entity.Pool) ([]byte, error)
+}

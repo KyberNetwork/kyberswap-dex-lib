@@ -87,10 +87,10 @@ type populatedTick struct {
 }
 
 type FetchRPCResult struct {
-	liquidity *big.Int
-	slot0     Slot0
-	reserve0  *big.Int
-	reserve1  *big.Int
+	Liquidity *big.Int `json:"liquidity"`
+	Slot0     Slot0    `json:"slot0"`
+	Reserve0  *big.Int `json:"reserve0"`
+	Reserve1  *big.Int `json:"reserve1"`
 }
 
 func transformTickRespToTick(tickResp TickResp) (Tick, error) {
