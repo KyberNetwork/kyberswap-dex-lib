@@ -89,7 +89,6 @@ func TestGyro2CLPMath_calculateInvariant(t *testing.T) {
 
 	t.Run("6. should return correct result", func(t *testing.T) {
 		balances := []*uint256.Int{
-			// [4321905210421421,51432251214241,31930124850124,1230185209186432553]
 			uint256.MustFromDecimal("4321905210421421"),
 			uint256.MustFromDecimal("51432251214241"),
 			uint256.MustFromDecimal("31930124850124"),
