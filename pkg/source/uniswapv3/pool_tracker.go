@@ -84,6 +84,14 @@ func (d *PoolTracker) GetNewPoolState(
 
 	l.Info("Start getting new state of pool")
 
+	blockNumber, err := d.ethrpcClient.GetBlockNumber(ctx)
+	if err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to get block number")
+		return entity.Pool{}, err
+	}
+
 	var (
 		rpcData   FetchRPCResult
 		poolTicks []TickResp
@@ -167,6 +175,7 @@ func (d *PoolTracker) GetNewPoolState(
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
 	}
+	p.BlockNumber = blockNumber
 
 	l.Infof("Finish updating state of pool")
 
