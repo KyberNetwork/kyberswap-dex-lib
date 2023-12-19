@@ -2,12 +2,14 @@ package pool
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/redis/go-redis/v9"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -19,6 +21,7 @@ type redisRepository struct {
 	keyPools    string
 
 	keyBlacklistedPools string
+	keyFaultyPools      string
 }
 
 func NewRedisRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig) *redisRepository {
@@ -30,12 +33,35 @@ func NewRedisRepository(redisClient redis.UniversalClient, config RedisRepositor
 		keyPools: utils.Join(config.Prefix, KeyPools),
 
 		keyBlacklistedPools: utils.Join(config.Prefix, KeyBlacklistedPools),
+
+		keyFaultyPools: util.Join(config.Prefix, KeyPools, KeyFaulty),
 	}
 }
 
 // FindAllAddresses returns all pool addresses
 func (r *redisRepository) FindAllAddresses(ctx context.Context) ([]string, error) {
 	return r.redisClient.HKeys(ctx, r.keyPools).Result()
+}
+
+/*
+ * Faulty pools are stored in Redis as a sorted Set.
+ * In the sorted set, we set the score as the Unix time at which a pool should expire.
+ * To retrieve a list of unexpired faulty pools, we use this command
+ * ZRANGE <chainID>:faultyPools (current_unix_timestamp +inf BYSCORE
+ **/
+func (r *redisRepository) GetFaultyPools(ctx context.Context, startTime, offset, count int64) ([]string, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[pool] redisRepository.GetFaultyPools")
+	defer span.End()
+
+	arg := redis.ZRangeArgs{
+		Key:     r.keyFaultyPools,
+		Start:   fmt.Sprintf("(%d", startTime),
+		Stop:    "+inf",
+		ByScore: true,
+		Offset:  offset,
+		Count:   count,
+	}
+	return r.redisClient.ZRangeArgs(ctx, arg).Result()
 }
 
 func (r *redisRepository) CheckPoolsInBlacklist(ctx context.Context, addresses []string) ([]bool, error) {

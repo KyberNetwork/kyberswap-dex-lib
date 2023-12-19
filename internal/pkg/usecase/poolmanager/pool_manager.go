@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -90,6 +91,8 @@ func (m *PoolManager) ApplyConfig(config Config) {
 
 func (m *PoolManager) listPools(ctx context.Context, addresses []string, filters ...common.PoolFilter) ([]*entity.Pool, error) {
 	filteredAddresses := m.filterBlacklistedAddresses(ctx, addresses)
+
+	filteredAddresses = m.filterFaultyPools(ctx, filteredAddresses, m.config)
 
 	pools, err := m.poolRepository.FindByAddresses(ctx, filteredAddresses)
 	if err != nil {
@@ -198,4 +201,37 @@ func (m *PoolManager) filterBlacklistedAddresses(ctx context.Context, addresses 
 	}
 
 	return validPools
+}
+
+func (m *PoolManager) filterFaultyPools(ctx context.Context, addresses []string, config Config) []string {
+	// we need to add threshold for expire time, any faulty pools are not expired but have the expire time near threshold considered as expired
+	start := time.Now().UnixMilli() + config.FaultyPoolsExpireThreshold.Milliseconds()
+	offset := int64(0)
+
+	poolSet := make(map[string]struct{})
+	for {
+		faultyPools, err := m.poolRepository.GetFaultyPools(ctx, start, offset, config.MaxFaultyPoolSize)
+		if err != nil {
+			return addresses
+		}
+
+		for _, pool := range faultyPools {
+			poolSet[pool] = struct{}{}
+		}
+
+		// if faulty pool size is smaller than max config, then we already got the whole list
+		if int64(len(faultyPools)) < config.MaxFaultyPoolSize {
+			break
+		}
+		offset += config.MaxFaultyPoolSize
+	}
+
+	result := make([]string, 0, len(addresses))
+	for _, addr := range addresses {
+		if _, ok := poolSet[addr]; !ok {
+			result = append(result, addr)
+		}
+	}
+
+	return result
 }

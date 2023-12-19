@@ -18,7 +18,7 @@ require (
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/KyberNetwork/service-framework v0.1.0
-	github.com/alicebob/miniredis v2.5.0+incompatible
+	github.com/alicebob/miniredis/v2 v2.31.0
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/cespare/xxhash/v2 v2.2.0
 	github.com/deckarep/golang-set/v2 v2.3.1
@@ -114,7 +114,6 @@ require (
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/golang/glog v1.1.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/gomodule/redigo v1.8.9 // indirect
 	github.com/google/pprof v0.0.0-20230207041349-798e818bf904 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.1 // indirect
@@ -154,7 +153,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.5 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
-	github.com/yuin/gopher-lua v0.0.0-20220504180219-658193537a64 // indirect
+	github.com/yuin/gopher-lua v1.1.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.44.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v0.44.0 // indirect

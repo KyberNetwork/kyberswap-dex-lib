@@ -250,6 +250,8 @@ useCase:
     capacity: 1000000
     poolRenewalInterval: 3s
     useAEVM: *useAEVM
+    faultyPoolsExpireThreshold: 3s
+    maxFaultyPoolSize: 500
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000

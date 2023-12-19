@@ -225,6 +225,8 @@ useCase:
     blacklistedPoolSet: *blacklistedPoolSet
     capacity: 100000
     poolRenewalInterval: 3s
+    faultyPoolsExpireThreshold: 3s
+    maxFaultyPoolSize: 10
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000

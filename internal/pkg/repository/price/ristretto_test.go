@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/alicebob/miniredis"
+	"github.com/alicebob/miniredis/v2"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/router-service/pkg/redis"

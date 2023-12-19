@@ -18,6 +18,7 @@ type IPoolFactory interface {
 type IPoolRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Pool, error)
 	CheckPoolsInBlacklist(ctx context.Context, addresses []string) ([]bool, error)
+	GetFaultyPools(ctx context.Context, startTime, offset, count int64) ([]string, error)
 }
 
 type IPoolRankRepository interface {

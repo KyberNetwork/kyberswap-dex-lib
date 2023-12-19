@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alicebob/miniredis"
+	"github.com/alicebob/miniredis/v2"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"

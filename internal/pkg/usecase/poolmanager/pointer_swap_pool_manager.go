@@ -203,6 +203,8 @@ func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
 func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (map[string]poolpkg.IPoolSimulator, map[string]poolpkg.SwapLimit, error) {
 	filteredPoolAddress := p.filterBlacklistedAddresses(ctx, poolAddresses)
 
+	filteredPoolAddress = p.excludeFaultyPools(ctx, filteredPoolAddress, p.config)
+
 	// update cache policy
 	for _, poolAddress := range filteredPoolAddress {
 		p.poolCache.Add(poolAddress, struct{}{})
@@ -303,6 +305,8 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 
 	filteredPoolAddress := p.filterBlacklistedAddresses(ctx, poolAddresses)
 
+	filteredPoolAddress = p.excludeFaultyPools(ctx, filteredPoolAddress, p.config)
+
 	poolEntities, err := p.poolRepository.FindByAddresses(ctx, filteredPoolAddress)
 	defer mempool.ReserveMany(poolEntities)
 	if err != nil {
@@ -344,4 +348,37 @@ func (p *PointerSwapPoolManager) filterBlacklistedAddresses(ctx context.Context,
 	}
 
 	return validPools
+}
+
+func (m *PointerSwapPoolManager) excludeFaultyPools(ctx context.Context, addresses []string, config Config) []string {
+	// we need to add threshold for expire time, any faulty pools are not expired but have the expire time near threshold considered as expired
+	start := time.Now().UnixMilli() + config.FaultyPoolsExpireThreshold.Milliseconds()
+	offset := int64(0)
+
+	poolSet := make(map[string]struct{})
+	for {
+		faultyPools, err := m.poolRepository.GetFaultyPools(ctx, start, offset, config.MaxFaultyPoolSize)
+		if err != nil {
+			return addresses
+		}
+
+		for _, pool := range faultyPools {
+			poolSet[pool] = struct{}{}
+		}
+
+		// if faulty pool size is smaller than max config, then we already got the whole list
+		if int64(len(faultyPools)) < config.MaxFaultyPoolSize {
+			break
+		}
+		offset += config.MaxFaultyPoolSize
+	}
+
+	result := make([]string, 0, len(addresses))
+	for _, addr := range addresses {
+		if _, ok := poolSet[addr]; !ok {
+			result = append(result, addr)
+		}
+	}
+
+	return result
 }

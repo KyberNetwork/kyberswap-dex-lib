@@ -41,7 +41,6 @@ func NewGasEstimator(gasEstimator IEthereumGasEstimator, gasRepo IGasRepository,
 	}
 }
 
-// dexIds are only used for metrics
 func (e *GasEstimator) EstimateGas(ctx context.Context, tx UnsignedTransaction) (uint64, error) {
 	var (
 		from             = common.HexToAddress(tx.sender)
