@@ -50,7 +50,7 @@ func (l *gyro2CLPMath) _calculateQuadraticTerms(
 		return nil, nil, nil, nil, err
 	}
 
-	bterm1, err := math.GyroFixedPoint.DivDown(balances[0], sqrtAlpha)
+	bterm1, err := math.GyroFixedPoint.MulDown(balances[0], sqrtAlpha)
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}

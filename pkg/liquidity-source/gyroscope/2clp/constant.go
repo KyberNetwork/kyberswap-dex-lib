@@ -14,3 +14,5 @@ const (
 
 	defaultWeight = 1
 )
+
+var defaultGas = Gas{Swap: 100000}

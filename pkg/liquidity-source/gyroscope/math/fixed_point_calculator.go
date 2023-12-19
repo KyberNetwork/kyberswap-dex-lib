@@ -44,7 +44,7 @@ func (c *fixedPointCalculator) MulUpWith(right *fixedPointCalculator) *fixedPoin
 }
 
 func (c *fixedPointCalculator) DivDownWith(right *fixedPointCalculator) *fixedPointCalculator {
-	return c.executeWith(OperatorMulDown, right)
+	return c.executeWith(OperatorDivDown, right)
 }
 
 func (c *fixedPointCalculator) DivUpWith(right *fixedPointCalculator) *fixedPointCalculator {
@@ -52,7 +52,7 @@ func (c *fixedPointCalculator) DivUpWith(right *fixedPointCalculator) *fixedPoin
 }
 
 func (c *fixedPointCalculator) MulDownWith(right *fixedPointCalculator) *fixedPointCalculator {
-	return c.executeWith(OperatorDivDown, right)
+	return c.executeWith(OperatorMulDown, right)
 }
 
 func (c *fixedPointCalculator) Add(target *uint256.Int) *fixedPointCalculator {
@@ -68,7 +68,7 @@ func (c *fixedPointCalculator) MulUp(target *uint256.Int) *fixedPointCalculator 
 }
 
 func (c *fixedPointCalculator) DivDown(target *uint256.Int) *fixedPointCalculator {
-	return c.execute(OperatorMulDown, target)
+	return c.execute(OperatorDivDown, target)
 }
 
 func (c *fixedPointCalculator) DivUp(target *uint256.Int) *fixedPointCalculator {
@@ -76,7 +76,7 @@ func (c *fixedPointCalculator) DivUp(target *uint256.Int) *fixedPointCalculator 
 }
 
 func (c *fixedPointCalculator) MulDown(target *uint256.Int) *fixedPointCalculator {
-	return c.execute(OperatorDivDown, target)
+	return c.execute(OperatorMulDown, target)
 }
 
 func (c *fixedPointCalculator) execute(operator Operator, target *uint256.Int) *fixedPointCalculator {

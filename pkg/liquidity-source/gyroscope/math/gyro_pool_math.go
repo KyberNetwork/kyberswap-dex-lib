@@ -61,13 +61,13 @@ func init() {
 // Sqrt
 // https://github.com/gyrostable/concentrated-lps/blob/7e9bd3b20dd52663afca04ca743808b1d6a9521f/libraries/GyroPoolMath.sol#L121
 func (l *gyroPoolMath) Sqrt(input, tolerance *uint256.Int) (*uint256.Int, error) {
-	if input.Eq(number.Zero) {
+	if input.IsZero() {
 		return number.Zero, nil
 	}
 
 	guess := l._makeInitialGuess(input)
 
-	//guess = (guess + ((input * GyroFixedPoint.ONE) / guess)) / 2
+	// 7 iterations of newton's method
 	guess = new(uint256.Int).Div(new(uint256.Int).Add(guess, new(uint256.Int).Div(new(uint256.Int).Mul(input, GyroFixedPoint.ONE), guess)), number.Number_2)
 	guess = new(uint256.Int).Div(new(uint256.Int).Add(guess, new(uint256.Int).Div(new(uint256.Int).Mul(input, GyroFixedPoint.ONE), guess)), number.Number_2)
 	guess = new(uint256.Int).Div(new(uint256.Int).Add(guess, new(uint256.Int).Div(new(uint256.Int).Mul(input, GyroFixedPoint.ONE), guess)), number.Number_2)
@@ -100,13 +100,13 @@ func (l *gyroPoolMath) Sqrt(input, tolerance *uint256.Int) (*uint256.Int, error)
 		return nil, ErrSqrtFailed
 	}
 
-	return guessSquared, nil
+	return guess, nil
 }
 
 // _makeInitialGuess
 // https://github.com/gyrostable/concentrated-lps/blob/7e9bd3b20dd52663afca04ca743808b1d6a9521f/libraries/GyroPoolMath.sol#L163
 func (l *gyroPoolMath) _makeInitialGuess(input *uint256.Int) *uint256.Int {
-	if !input.Lt(GyroFixedPoint.ONE) {
+	if input.Cmp(GyroFixedPoint.ONE) >= 0 {
 		return new(uint256.Int).Mul(
 			new(uint256.Int).Lsh(
 				number.Number_1,
@@ -116,71 +116,71 @@ func (l *gyroPoolMath) _makeInitialGuess(input *uint256.Int) *uint256.Int {
 		)
 	}
 
-	if !input.Lt(number.Number_10) {
+	if input.Cmp(number.Number_10) <= 0 {
 		return l.SQRT_1E_NEG_17
 	}
 
-	if !input.Lt(number_1e2) {
+	if input.Cmp(number_1e2) <= 0 {
 		return number_1e10
 	}
 
-	if !input.Lt(number_1e3) {
+	if input.Cmp(number_1e3) <= 0 {
 		return l.SQRT_1E_NEG_15
 	}
 
-	if !input.Lt(number_1e4) {
+	if input.Cmp(number_1e4) <= 0 {
 		return number_1e11
 	}
 
-	if !input.Lt(number_1e5) {
+	if input.Cmp(number_1e5) <= 0 {
 		return l.SQRT_1E_NEG_13
 	}
 
-	if !input.Lt(number_1e6) {
+	if input.Cmp(number_1e6) <= 0 {
 		return number_1e12
 	}
 
-	if !input.Lt(number_1e7) {
+	if input.Cmp(number_1e7) <= 0 {
 		return l.SQRT_1E_NEG_11
 	}
 
-	if !input.Lt(number_1e8) {
+	if input.Cmp(number_1e8) <= 0 {
 		return number_1e13
 	}
 
-	if !input.Lt(number_1e9) {
+	if input.Cmp(number_1e9) <= 0 {
 		return l.SQRT_1E_NEG_9
 	}
 
-	if !input.Lt(number_1e10) {
+	if input.Cmp(number_1e10) <= 0 {
 		return number_1e14
 	}
 
-	if !input.Lt(number_1e11) {
+	if input.Cmp(number_1e11) <= 0 {
 		return l.SQRT_1E_NEG_7
 	}
 
-	if !input.Lt(number_1e12) {
+	if input.Cmp(number_1e12) <= 0 {
 		return number_1e15
 	}
 
-	if !input.Lt(number_1e13) {
+	if input.Cmp(number_1e13) <= 0 {
 		return l.SQRT_1E_NEG_5
 	}
 
-	if !input.Lt(number_1e14) {
+	if input.Cmp(number_1e14) <= 0 {
 		return number_1e16
 	}
 
-	if !input.Lt(number_1e15) {
+	if input.Cmp(number_1e15) <= 0 {
 		return l.SQRT_1E_NEG_3
 	}
 
-	if !input.Lt(number_1e16) {
+	if input.Cmp(number_1e16) <= 0 {
 		return number_1e17
 	}
 
-	if !input.Lt(number_1e17) {
+	if input.Cmp(number_1e17) <= 0 {
 		return l.SQRT_1E_NEG_1
 	}
 
@@ -221,7 +221,7 @@ func (l *gyroPoolMath) _intLog2Halved(x *uint256.Int) (n uint) {
 	}
 
 	if !x.Lt(new(uint256.Int).Lsh(number.Number_1, 2)) {
-		x = new(uint256.Int).Rsh(x, 2)
+		// x = new(uint256.Int).Rsh(x, 2)
 		n += 1
 	}
 
