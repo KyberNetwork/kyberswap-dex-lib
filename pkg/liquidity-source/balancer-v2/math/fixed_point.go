@@ -17,6 +17,8 @@ var (
 
 var FixedPoint *fixedPoint
 
+const poolTypeVer1 = 1
+
 type fixedPoint struct {
 	ZERO                   *uint256.Int
 	ONE                    *uint256.Int
@@ -94,21 +96,22 @@ func (l *fixedPoint) DivDown(a *uint256.Int, b *uint256.Int) (*uint256.Int, erro
 }
 
 // https://github.com/balancer/balancer-v2-monorepo/blob/c7d4abbea39834e7778f9ff7999aaceb4e8aa048/pkg/solidity-utils/contracts/math/FixedPoint.sol#L132
-func (l *fixedPoint) PowUp(x *uint256.Int, y *uint256.Int) (*uint256.Int, error) {
-	if y.Eq(l.ONE) {
-		return x, nil
-	}
-
-	if y.Eq(l.TWO) {
-		return l.MulUp(x, x)
-	}
-	if y.Eq(l.FOUR) {
-		square, err := l.MulUp(x, x)
-		if err != nil {
-			return nil, err
+func (l *fixedPoint) PowUp(poolTypeVer int, x *uint256.Int, y *uint256.Int) (*uint256.Int, error) {
+	if poolTypeVer > poolTypeVer1 {
+		if y.Eq(l.ONE) {
+			return x, nil
 		}
+		if y.Eq(l.TWO) {
+			return l.MulUp(x, x)
+		}
+		if y.Eq(l.FOUR) {
+			square, err := l.MulUp(x, x)
+			if err != nil {
+				return nil, err
+			}
 
-		return l.MulUp(square, square)
+			return l.MulUp(square, square)
+		}
 	}
 
 	raw, err := LogExpMath.Pow(x, y)

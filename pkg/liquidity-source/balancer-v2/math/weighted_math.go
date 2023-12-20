@@ -23,6 +23,7 @@ func init() {
 
 // https://etherscan.io/address/0x00612eb4f312eb6ace7acc8781196601078ae339#code#F8#L78
 func (l *weightedMath) CalcOutGivenIn(
+	poolTypeVer int,
 	balanceIn *uint256.Int,
 	weightIn *uint256.Int,
 	balanceOut *uint256.Int,
@@ -53,7 +54,7 @@ func (l *weightedMath) CalcOutGivenIn(
 		return nil, err
 	}
 
-	power, err := FixedPoint.PowUp(base, exponent)
+	power, err := FixedPoint.PowUp(poolTypeVer, base, exponent)
 	if err != nil {
 		return nil, err
 	}

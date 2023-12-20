@@ -180,6 +180,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	}
 
 	upScaledAmountOut, err := math.WeightedMath.CalcOutGivenIn(
+		s.poolTypeVer,
 		balanceTokenIn,
 		normalizedWeightIn,
 		balanceTokenOut,

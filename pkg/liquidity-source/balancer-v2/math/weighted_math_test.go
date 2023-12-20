@@ -20,7 +20,7 @@ func TestCalcOutGivenIn(t *testing.T) {
 		expected := "2760912942840907991"
 
 		// calculation
-		result, err := WeightedMath.CalcOutGivenIn(balanceIn, weightIn, balanceOut, weightOut, amountIn)
+		result, err := WeightedMath.CalcOutGivenIn(2, balanceIn, weightIn, balanceOut, weightOut, amountIn)
 
 		// assert
 		assert.Nil(t, err)
@@ -39,7 +39,7 @@ func TestCalcOutGivenIn(t *testing.T) {
 		expected := "1389798609308"
 
 		// calculation
-		result, err := WeightedMath.CalcOutGivenIn(balanceIn, weightIn, balanceOut, weightOut, amountIn)
+		result, err := WeightedMath.CalcOutGivenIn(3, balanceIn, weightIn, balanceOut, weightOut, amountIn)
 
 		// assert
 		assert.Nil(t, err)
@@ -58,7 +58,7 @@ func TestCalcOutGivenIn(t *testing.T) {
 		expected := "4828780052665314529"
 
 		// calculation
-		result, err := WeightedMath.CalcOutGivenIn(balanceIn, weightIn, balanceOut, weightOut, amountIn)
+		result, err := WeightedMath.CalcOutGivenIn(4, balanceIn, weightIn, balanceOut, weightOut, amountIn)
 
 		// assert
 		assert.Nil(t, err)
@@ -74,7 +74,7 @@ func TestCalcOutGivenIn(t *testing.T) {
 		amountIn := uint256.MustFromDecimal("92174932794319461529478329")
 
 		// calculation
-		_, err := WeightedMath.CalcOutGivenIn(balanceIn, weightIn, balanceOut, weightOut, amountIn)
+		_, err := WeightedMath.CalcOutGivenIn(5, balanceIn, weightIn, balanceOut, weightOut, amountIn)
 
 		// assert
 		assert.ErrorIs(t, err, ErrMaxInRatio)
