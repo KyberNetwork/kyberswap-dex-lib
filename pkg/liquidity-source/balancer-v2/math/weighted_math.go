@@ -54,7 +54,12 @@ func (l *weightedMath) CalcOutGivenIn(
 		return nil, err
 	}
 
-	power, err := FixedPoint.PowUp(poolTypeVer, base, exponent)
+	var power *uint256.Int
+	if poolTypeVer == poolTypeVer1 {
+		power, err = FixedPoint.PowUpV1(base, exponent)
+	} else {
+		power, err = FixedPoint.PowUp(base, exponent)
+	}
 	if err != nil {
 		return nil, err
 	}
