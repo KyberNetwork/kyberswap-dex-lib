@@ -78,8 +78,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	return pools, newMetadataBytes, nil
 }
 
-func (u *PoolsListUpdater) getSqrtParameters(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([][]*big.Int, error) {
-	sqrtParameters := make([][]*big.Int, len(subgraphPools))
+func (u *PoolsListUpdater) getSqrtParameters(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([][2]*big.Int, error) {
+	sqrtParameters := make([][2]*big.Int, len(subgraphPools))
 
 	req := u.ethrpcClient.R()
 	for idx, subgraphPool := range subgraphPools {
@@ -131,7 +131,7 @@ func (u *PoolsListUpdater) initPools(
 	ctx context.Context,
 	subgraphPools []*shared.SubgraphPool,
 	vaults []string,
-	sqrtParameters [][]*big.Int,
+	sqrtParameters [][2]*big.Int,
 ) ([]entity.Pool, error) {
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 
@@ -151,13 +151,14 @@ func (u *PoolsListUpdater) initPool(
 	ctx context.Context,
 	subgraphPool *shared.SubgraphPool,
 	vault string,
-	sqrtParameters []*big.Int,
+	sqrtParameters [2]*big.Int,
 ) (entity.Pool, error) {
 	var (
-		poolTokens     = make([]*entity.PoolToken, len(subgraphPool.Tokens))
-		reserves       = make([]string, len(subgraphPool.Tokens))
-		scalingFactors = make([]*uint256.Int, len(subgraphPool.Tokens))
-		sqrtParams     = make([]*uint256.Int, len(sqrtParameters))
+		poolTokens      = make([]*entity.PoolToken, len(subgraphPool.Tokens))
+		reserves        = make([]string, len(subgraphPool.Tokens))
+		scalingFactors  = make([]*uint256.Int, len(subgraphPool.Tokens))
+		sqrtParams      = make([]*uint256.Int, len(sqrtParameters))
+		poolTypeVersion int
 	)
 
 	for j, token := range subgraphPool.Tokens {
@@ -179,10 +180,14 @@ func (u *PoolsListUpdater) initPool(
 		sqrtParams[j], _ = uint256.FromBig(s)
 	}
 
+	if subgraphPool.PoolTypeVersion != nil {
+		poolTypeVersion = int(subgraphPool.PoolTypeVersion.Int64())
+	}
+
 	staticExtra := StaticExtra{
 		PoolID:         subgraphPool.ID,
 		PoolType:       subgraphPool.PoolType,
-		PoolTypeVer:    int(subgraphPool.PoolTypeVersion.Int64()),
+		PoolTypeVer:    poolTypeVersion,
 		ScalingFactors: scalingFactors,
 		SqrtParameters: sqrtParams,
 		Vault:          vault,

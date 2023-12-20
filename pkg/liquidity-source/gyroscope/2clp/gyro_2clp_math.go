@@ -1,6 +1,8 @@
 package gyro2clp
 
 import (
+	"errors"
+
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/holiman/uint256"
 
@@ -8,6 +10,8 @@ import (
 )
 
 var Gyro2CLPMath *gyro2CLPMath
+
+var ErrAssetBoundsExceeded = errors.New("ASSET_BOUNDS_EXCEEDED")
 
 type gyro2CLPMath struct {
 }
@@ -162,10 +166,19 @@ func (l *gyro2CLPMath) _calcOutGivenIn(
 		return nil, err
 	}
 
-	return math.NewCalculator(virtOutUnder).
+	amountOut, err := math.NewCalculator(virtOutUnder).
 		MulDown(amountIn).
 		DivDownWith(math.NewCalculator(virtInOver).Add(amountIn)).
 		Result()
+	if err != nil {
+		return nil, err
+	}
+
+	if amountOut.Gt(balanceOut) {
+		return nil, ErrAssetBoundsExceeded
+	}
+
+	return amountOut, nil
 }
 
 // _calculateVirtualParameter0
