@@ -17,8 +17,6 @@ var (
 
 var FixedPoint *fixedPoint
 
-const poolTypeVer1 = 1
-
 type fixedPoint struct {
 	ZERO                   *uint256.Int
 	ONE                    *uint256.Int

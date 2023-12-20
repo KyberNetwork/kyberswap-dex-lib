@@ -179,8 +179,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	upScaledAmountOut, err := math.WeightedMath.CalcOutGivenIn(
-		s.poolTypeVer,
+	upScaledAmountOut, err := s.calcOutGivenIn(
 		balanceTokenIn,
 		normalizedWeightIn,
 		balanceTokenOut,
@@ -207,6 +206,32 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		},
 		Gas: defaultGas.Swap,
 	}, nil
+}
+
+func (s *PoolSimulator) calcOutGivenIn(
+	balanceTokenIn *uint256.Int,
+	normalizedWeightIn *uint256.Int,
+	balanceTokenOut *uint256.Int,
+	normalizedWeightOut *uint256.Int,
+	upScaledAmountIn *uint256.Int,
+) (*uint256.Int, error) {
+	if s.poolTypeVer == poolTypeVer1 {
+		return math.WeightedMath.CalcOutGivenInV1(
+			balanceTokenIn,
+			normalizedWeightIn,
+			balanceTokenOut,
+			normalizedWeightOut,
+			upScaledAmountIn,
+		)
+	}
+
+	return math.WeightedMath.CalcOutGivenIn(
+		balanceTokenIn,
+		normalizedWeightIn,
+		balanceTokenOut,
+		normalizedWeightOut,
+		upScaledAmountIn,
+	)
 }
 
 func (s *PoolSimulator) validateMaxInRatio(tokenIndex int, amountIn *uint256.Int) error {
