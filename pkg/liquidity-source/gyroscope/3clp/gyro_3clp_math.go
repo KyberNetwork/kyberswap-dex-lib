@@ -2,13 +2,11 @@ package gyro3clp
 
 import (
 	"errors"
-	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/math"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
@@ -40,12 +38,12 @@ type gyro3CLPMath struct {
 
 func init() {
 	Gyro3CLPMath = &gyro3CLPMath{
-		_L_VS_LPLUS_MIN:                      uint256.NewInt(1.3e18),                                                        // 1.3e18
-		_L_MAX:                               uint256.MustFromBig(bignumber.TenPowInt(34)),                                  // 1e34
-		_L_THRESHOLD_SIMPLE_NUMERICS:         uint256.MustFromBig(new(big.Int).Mul(big.NewInt(2), bignumber.TenPowInt(31))), // 2e31
+		_L_VS_LPLUS_MIN:                      uint256.NewInt(1.3e18),                                   // 1.3e18
+		_L_MAX:                               number.TenPow(34),                                        // 1e34
+		_L_THRESHOLD_SIMPLE_NUMERICS:         new(uint256.Int).Mul(number.Number_2, number.TenPow(31)), // 2e31
 		_INVARIANT_MIN_ITERATIONS:            5,
 		_INVARIANT_SHRINKING_FACTOR_PER_STEP: uint256.NewInt(8),
-		_MAX_BALANCES:                        uint256.MustFromBig(bignumber.TenPowInt(29)),
+		_MAX_BALANCES:                        number.TenPow(29),
 	}
 }
 
