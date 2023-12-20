@@ -1,8 +1,11 @@
 package l1encode
 
 import (
+	"strings"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/helper"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l1encode/executor"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l1encode/router"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -43,7 +46,8 @@ func (e *Encoder) Encode(data types.EncodingData) (string, error) {
 		return "", err
 	}
 
-	routerData, err := encodeRouter(e.config.ExecutorAddress, executorData, data)
+	executorAddress := e.GetExecutorAddress(data.ClientID)
+	routerData, err := encodeRouter(executorAddress, executorData, data)
 	if err != nil {
 		return "", err
 	}
@@ -51,7 +55,13 @@ func (e *Encoder) Encode(data types.EncodingData) (string, error) {
 	return hexutil.Encode(routerData), nil
 }
 
-func (e *Encoder) GetExecutorAddress() string {
+func (e *Encoder) GetExecutorAddress(clientID string) string {
+	clientID = strings.ToLower(clientID) // Normalize
+	if executorByClientID, exist := helper.ExecutorAddressByClientID(e.config.ExecutorAddressByClientID, clientID); exist {
+		return executorByClientID
+	}
+
+	// Fallback to default executor address
 	return e.config.ExecutorAddress
 }
 

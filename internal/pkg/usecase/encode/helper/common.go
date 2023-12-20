@@ -12,3 +12,8 @@ func IsL2EncoderSupportedChains(chainID valueobject.ChainID) bool {
 	_, exist := l2EncoderSupportedChains[chainID]
 	return exist
 }
+
+func ExecutorAddressByClientID(mapClientIDToExecutorAddress map[string]string, clientID string) (string, bool) {
+	value, ok := mapClientIDToExecutorAddress[clientID]
+	return value, ok && value != ""
+}

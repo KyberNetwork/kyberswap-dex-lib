@@ -11,4 +11,5 @@ type Config struct {
 	IsPositiveSlippageEnabled bool                `mapstructure:"isPositiveSlippageEnabled"`
 	MinimumPSThreshold        int64               `mapstructure:"minimumPSThreshold"`
 	FunctionSelectorMappingID map[string]byte     `mapstructure:"functionSelectorMappingID"`
+	ExecutorAddressByClientID map[string]string   `mapstructure:"executorAddressByClientID"`
 }

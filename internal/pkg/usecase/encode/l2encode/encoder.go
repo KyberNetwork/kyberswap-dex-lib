@@ -1,6 +1,9 @@
 package l2encode
 
 import (
+	"strings"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/helper"
 	l1router "github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l1encode/router"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l2encode/executor"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -48,10 +51,11 @@ func (e *Encoder) Encode(data types.EncodingData) (string, error) {
 		encodeExecutor, encodeRouter = e.encodeExecutorSimpleMode, e.encodeRouterSimpleMode
 	}
 
+	executorAddress := e.GetExecutorAddress(data.ClientID)
 	executorData, err := encodeExecutor(
 		e.config.ChainID,
 		e.config.RouterAddress,
-		e.config.ExecutorAddress,
+		executorAddress,
 		e.config.FunctionSelectorMappingID,
 		e.config.IsPositiveSlippageEnabled,
 		e.config.MinimumPSThreshold,
@@ -60,7 +64,7 @@ func (e *Encoder) Encode(data types.EncodingData) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	routerData, err := encodeRouter(e.config.ExecutorAddress, executorData, data)
+	routerData, err := encodeRouter(executorAddress, executorData, data)
 	if err != nil {
 		return "", err
 	}
@@ -68,7 +72,13 @@ func (e *Encoder) Encode(data types.EncodingData) (string, error) {
 	return hexutil.Encode(routerData), nil
 }
 
-func (e *Encoder) GetExecutorAddress() string {
+func (e *Encoder) GetExecutorAddress(clientID string) string {
+	clientID = strings.ToLower(clientID) // Normalize
+	if executorByClientID, exist := helper.ExecutorAddressByClientID(e.config.ExecutorAddressByClientID, clientID); exist {
+		return executorByClientID
+	}
+
+	// Fallback to default executor address
 	return e.config.ExecutorAddress
 }
 

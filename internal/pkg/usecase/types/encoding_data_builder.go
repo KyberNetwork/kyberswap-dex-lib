@@ -45,6 +45,12 @@ func (b *EncodingDataBuilder) SetDeadline(deadline *big.Int) *EncodingDataBuilde
 	return b
 }
 
+func (b *EncodingDataBuilder) SetClientID(clientID string) *EncodingDataBuilder {
+	b.data.ClientID = clientID
+
+	return b
+}
+
 func (b *EncodingDataBuilder) SetClientData(clientData []byte) *EncodingDataBuilder {
 	b.data.ClientData = clientData
 

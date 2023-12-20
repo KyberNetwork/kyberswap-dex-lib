@@ -253,9 +253,10 @@ func (uc *BuildRouteUseCase) encode(ctx context.Context, command dto.BuildRouteC
 	encodingData := types.NewEncodingDataBuilder(
 		uc.executorBalanceRepository,
 		uc.config.FeatureFlags.IsOptimizeExecutorFlagsEnabled).
-		SetRoute(&routeSummary, encoder.GetExecutorAddress(), command.Recipient).
+		SetRoute(&routeSummary, encoder.GetExecutorAddress(command.Source), command.Recipient).
 		SetDeadline(big.NewInt(command.Deadline)).
 		SetSlippageTolerance(big.NewInt(command.SlippageTolerance)).
+		SetClientID(command.Source).
 		SetClientData(clientData).
 		SetPermit(command.Permit).
 		GetData()

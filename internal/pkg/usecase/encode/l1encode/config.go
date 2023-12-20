@@ -10,4 +10,5 @@ type Config struct {
 	ChainID                   valueobject.ChainID `mapstructure:"chainId"`
 	IsPositiveSlippageEnabled bool                `mapstructure:"isPositiveSlippageEnabled"`
 	MinimumPSThreshold        int64               `mapstructure:"minimumPSThreshold"`
+	ExecutorAddressByClientID map[string]string   `mapstructure:"executorAddressByClientID"`
 }

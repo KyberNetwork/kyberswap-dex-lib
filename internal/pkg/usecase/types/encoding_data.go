@@ -31,6 +31,7 @@ type EncodingData struct {
 	ExtraFee valueobject.ExtraFee
 	Flags    []EncodingFlag
 
+	ClientID   string
 	ClientData []byte
 
 	// Allow user to swap without approving token beforehand

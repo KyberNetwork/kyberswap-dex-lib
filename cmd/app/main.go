@@ -354,6 +354,7 @@ func apiAction(c *cli.Context) (err error) {
 		ChainID:                   cfg.Encoder.ChainID,
 		IsPositiveSlippageEnabled: cfg.Encoder.IsPositiveSlippageEnabled,
 		MinimumPSThreshold:        cfg.Encoder.MinimumPSThreshold,
+		ExecutorAddressByClientID: cfg.Encoder.ExecutorAddressByClientID,
 	})
 	l2Encoder := l2encode.NewEncoder(l2encode.Config{
 		RouterAddress:             cfg.Encoder.RouterAddress,
@@ -362,6 +363,7 @@ func apiAction(c *cli.Context) (err error) {
 		IsPositiveSlippageEnabled: cfg.Encoder.IsPositiveSlippageEnabled,
 		MinimumPSThreshold:        cfg.Encoder.MinimumPSThreshold,
 		FunctionSelectorMappingID: cfg.Encoder.FunctionSelectorMappingID,
+		ExecutorAddressByClientID: cfg.Encoder.ExecutorAddressByClientID,
 	})
 
 	validateRouteUseCase := validateroute.NewValidateRouteUseCase()

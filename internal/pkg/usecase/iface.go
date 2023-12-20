@@ -65,6 +65,6 @@ type IClientDataEncoder interface {
 // IEncoder encodes swap data
 type IEncoder interface {
 	Encode(data types.EncodingData) (string, error)
-	GetExecutorAddress() string
+	GetExecutorAddress(clientID string) string
 	GetRouterAddress() string
 }

@@ -139,6 +139,8 @@ encoder:
   routerAddress: *routerAddress
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
+  executorAddressByClientID:
+    unibot-tg: 0x159847C49f80e65166A299D3E9B68935Ba39f264
 useCase:
   getRoute:
     chainId: *chainId

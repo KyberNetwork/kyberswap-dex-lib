@@ -47,7 +47,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					Encode(gomock.Any()).
 					Return("", theErr).AnyTimes()
 				encoder.EXPECT().
-					GetExecutorAddress().
+					GetExecutorAddress(gomock.Any()).
 					Return("0x00").AnyTimes()
 				encoder.EXPECT().
 					GetRouterAddress().
@@ -133,7 +133,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					Encode(gomock.Any()).
 					Return(encodedData, nil)
 				encoder.EXPECT().
-					GetExecutorAddress().
+					GetExecutorAddress(gomock.Any()).
 					Return("0x00").AnyTimes()
 				encoder.EXPECT().
 					GetRouterAddress().
@@ -245,7 +245,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					Encode(gomock.Any()).
 					Return(encodedData, nil)
 				encoder.EXPECT().
-					GetExecutorAddress().
+					GetExecutorAddress(gomock.Any()).
 					Return("0x00").AnyTimes()
 				encoder.EXPECT().
 					GetRouterAddress().
@@ -357,7 +357,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					Encode(gomock.Any()).
 					Return(encodedData, nil)
 				encoder.EXPECT().
-					GetExecutorAddress().
+					GetExecutorAddress(gomock.Any()).
 					Return("0x00").AnyTimes()
 				encoder.EXPECT().
 					GetRouterAddress().
@@ -692,7 +692,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				Encode(gomock.Any()).
 				Return(encodedData, nil)
 			encoder.EXPECT().
-				GetExecutorAddress().
+				GetExecutorAddress(gomock.Any()).
 				Return("0x00").AnyTimes()
 			encoder.EXPECT().
 				GetRouterAddress().

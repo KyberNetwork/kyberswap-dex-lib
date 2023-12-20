@@ -104,3 +104,44 @@ func TestEncoder_Encode(t *testing.T) {
 		})
 	}
 }
+
+func TestEncoder_GetExecutorAddress(t *testing.T) {
+	config := Config{
+		ExecutorAddress: "0xd250aF9a5c439294b1B4baba2EBE4308382d1a41",
+		ExecutorAddressByClientID: map[string]string{
+			"unibot":    "0x159847C49f80e65166A299D3E9B68935Ba39f264",
+			"kyberswap": "",
+		},
+	}
+
+	encoder := NewEncoder(config)
+
+	testCases := []struct {
+		name                    string
+		clientID                string
+		expectedExecutorAddress string
+	}{
+		{
+			name:                    "it should return correct result if configured",
+			clientID:                "unibot",
+			expectedExecutorAddress: "0x159847C49f80e65166A299D3E9B68935Ba39f264",
+		},
+		{
+			name:                    "it should fallback to default client if client is not configured",
+			clientID:                "dextools",
+			expectedExecutorAddress: "0xd250aF9a5c439294b1B4baba2EBE4308382d1a41",
+		},
+		{
+			name:                    "it should still fallback to default client if executor is misconfigured",
+			clientID:                "kyberswap",
+			expectedExecutorAddress: "0xd250aF9a5c439294b1B4baba2EBE4308382d1a41",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			executorAddress := encoder.GetExecutorAddress(tc.clientID)
+			assert.Equal(t, tc.expectedExecutorAddress, executorAddress)
+		})
+	}
+}
