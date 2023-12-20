@@ -15,6 +15,8 @@ func IsUniV3Type(poolType string) bool {
 		return true
 	case constant.PoolTypes.RamsesV2:
 		return true
+	case constant.PoolTypes.SolidlyV3:
+		return true
 	default:
 		return false
 	}

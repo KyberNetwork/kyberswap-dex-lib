@@ -55,6 +55,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/smardex"
+	solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3"
 	swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap/syncswapclassic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap/syncswapstable"
@@ -279,6 +280,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newSaddle(entityPool)
 	case constant.PoolTypes.RamsesV2:
 		return f.newRamsesV2(entityPool)
+	case constant.PoolTypes.SolidlyV3:
+		return f.newSolidlyV3(entityPool)
 	case constant.PoolTypes.Dmm:
 		return f.newDMM(entityPool)
 	case constant.PoolTypes.Elastic:
@@ -452,6 +455,20 @@ func (f *PoolFactory) newRamsesV2(entityPool entity.Pool) (*ramsesv2.PoolSimulat
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newRamsesV2] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newSolidlyV3(entityPool entity.Pool) (*solidlyv3.PoolSimulator, error) {
+	corePool, err := solidlyv3.NewPoolSimulator(entityPool, f.config.ChainID)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newSolidlyV3] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

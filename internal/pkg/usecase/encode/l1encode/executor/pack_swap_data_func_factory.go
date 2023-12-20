@@ -165,6 +165,7 @@ func init() {
 	RegisterPackSwapDataFunc(valueobject.ExchangeWagmi, swapdata.PackUniswapV3KSElastic)
 	RegisterPackSwapDataFunc(valueobject.ExchangeMMFV3, swapdata.PackUniswapV3KSElastic)
 	RegisterPackSwapDataFunc(valueobject.ExchangeMetavaultV3, swapdata.PackUniswapV3KSElastic)
+	RegisterPackSwapDataFunc(valueobject.ExchangeSolidlyV3, swapdata.PackUniswapV3KSElastic)
 
 	// BalancerV2
 	RegisterPackSwapDataFunc(valueobject.ExchangeBalancerV2Weighted, swapdata.PackBalancerV2)

@@ -114,6 +114,7 @@ var (
 	ExchangeArbiDexV3        Exchange = "arbidex-v3"
 	ExchangeWagmi            Exchange = "wagmi"
 	ExchangeMetavaultV3      Exchange = "metavault-v3"
+	ExchangeSolidlyV3        Exchange = "solidly-v3"
 
 	ExchangeBalancerV2Weighted         Exchange = "balancer-v2-weighted"
 	ExchangeBalancerV2Stable           Exchange = "balancer-v2-stable"
@@ -328,6 +329,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeDoveSwapV3:                 {},
 	ExchangeSushiSwapV3:                {},
 	ExchangeRamsesV2:                   {},
+	ExchangeSolidlyV3:                  {},
 	ExchangeBaseSwap:                   {},
 	ExchangeAlienBase:                  {},
 	ExchangeSwapBased:                  {},

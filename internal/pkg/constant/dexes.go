@@ -82,6 +82,7 @@ type types struct {
 	VelocoreV2CPMM             string
 	VelocoreV2WombatStable     string
 	Fulcrom                    string
+	SolidlyV3                  string
 }
 
 var (
@@ -167,5 +168,6 @@ var (
 		VelocoreV2CPMM:             "velocore-v2-cpmm",
 		VelocoreV2WombatStable:     "velocore-v2-wombat-stable",
 		Fulcrom:                    "fulcrom",
+		SolidlyV3:                  "solidly-v3",
 	}
 )
