@@ -14,12 +14,13 @@ type fixedPointCalculator struct {
 type Operator string
 
 var (
-	OperatorAdd     Operator = "add"
-	OperatorSub     Operator = "sub"
-	OperatorMulUp   Operator = "mulUp"
-	OperatorMulDown Operator = "mulDown"
-	OperatorDivUp   Operator = "divUp"
-	OperatorDivDown Operator = "divDown"
+	OperatorAdd      Operator = "add"
+	OperatorSub      Operator = "sub"
+	OperatorMulUp    Operator = "mulUp"
+	OperatorMulDown  Operator = "mulDown"
+	OperatorDivUp    Operator = "divUp"
+	OperatorDivDown  Operator = "divDown"
+	OperatorMulDownU Operator = "mulDownU"
 )
 
 var (
@@ -79,6 +80,10 @@ func (c *fixedPointCalculator) MulDown(target *uint256.Int) *fixedPointCalculato
 	return c.execute(OperatorMulDown, target)
 }
 
+func (c *fixedPointCalculator) MulDownU(target *uint256.Int) *fixedPointCalculator {
+	return c.execute(OperatorMulDownU, target)
+}
+
 func (c *fixedPointCalculator) execute(operator Operator, target *uint256.Int) *fixedPointCalculator {
 	if c.err != nil {
 		return c
@@ -102,6 +107,9 @@ func (c *fixedPointCalculator) execute(operator Operator, target *uint256.Int) *
 
 	case OperatorDivDown:
 		c.result, c.err = GyroFixedPoint.DivDown(c.result, target)
+
+	case OperatorMulDownU:
+		c.result = GyroFixedPoint.MulDownU(c.result, target)
 
 	default:
 		c.err = ErrUnsupportedOperator
