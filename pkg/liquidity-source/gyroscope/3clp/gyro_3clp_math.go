@@ -15,6 +15,8 @@ var (
 	ErrInvariantTooLarge      = errors.New("INVARIANT_TOO_LARGE")
 	ErrInvariantUnderflow     = errors.New("INVARIANT_UNDERFLOW")
 	ErrInvariantDidntConverge = errors.New("INVARIANT_DIDNT_CONVERGE")
+	ErrBalancesTooLarge       = errors.New("BALANCES_TOO_LARGE")
+	ErrAssetBoundsExceeded    = errors.New("ASSET_BOUNDS_EXCEEDED")
 )
 
 var (
@@ -33,23 +35,70 @@ type gyro3CLPMath struct {
 	_L_THRESHOLD_SIMPLE_NUMERICS         *uint256.Int
 	_INVARIANT_MIN_ITERATIONS            int
 	_INVARIANT_SHRINKING_FACTOR_PER_STEP *uint256.Int
+	_MAX_BALANCES                        *uint256.Int
 }
 
 func init() {
 	Gyro3CLPMath = &gyro3CLPMath{
-		_L_VS_LPLUS_MIN:                      uint256.NewInt(1.3e18), // 1.3e18
-		_L_MAX:                               uint256.MustFromBig(bignumber.TenPowInt(34)), // 1e34
+		_L_VS_LPLUS_MIN:                      uint256.NewInt(1.3e18),                                                        // 1.3e18
+		_L_MAX:                               uint256.MustFromBig(bignumber.TenPowInt(34)),                                  // 1e34
 		_L_THRESHOLD_SIMPLE_NUMERICS:         uint256.MustFromBig(new(big.Int).Mul(big.NewInt(2), bignumber.TenPowInt(31))), // 2e31
 		_INVARIANT_MIN_ITERATIONS:            5,
 		_INVARIANT_SHRINKING_FACTOR_PER_STEP: uint256.NewInt(8),
+		_MAX_BALANCES:                        uint256.MustFromBig(bignumber.TenPowInt(29)),
 	}
+}
+
+func (l *gyro3CLPMath) _calcOutGivenIn(
+	balanceIn *uint256.Int,
+	balanceOut *uint256.Int,
+	amountIn *uint256.Int,
+	virtualOffset *uint256.Int,
+) (*uint256.Int, error) {
+	virtInOver := new(uint256.Int).Add(
+		balanceIn,
+		math.GyroFixedPoint.MulUpU(
+			virtualOffset,
+			new(uint256.Int).Add(math.GyroFixedPoint.ONE, number.Number_2),
+		),
+	)
+
+	virtOutUnder := new(uint256.Int).Add(
+		balanceOut,
+		math.GyroFixedPoint.MulDownU(
+			virtualOffset,
+			new(uint256.Int).Sub(math.GyroFixedPoint.ONE, number.Number_1),
+		),
+	)
+
+	amountOut, err := math.NewCalculator(virtOutUnder).
+		MulDown(amountIn).
+		DivDownWith(math.NewCalculator(virtInOver).Add(amountIn)).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+
+	if amountOut.Gt(balanceOut) {
+		return nil, ErrAssetBoundsExceeded
+	}
+
+	return amountOut, nil
 }
 
 // _calculateInvariant
 // https://github.com/gyrostable/concentrated-lps/blob/7e9bd3b20dd52663afca04ca743808b1d6a9521f/contracts/3clp/Gyro3CLPMath.sol#L63C104-L63C111
 func (l *gyro3CLPMath) _calculateInvariant(balances []*uint256.Int, root3Alpha *uint256.Int) (*uint256.Int, error) {
-	// TODO: implement
-	return nil, nil
+	if balances[0].Gt(l._MAX_BALANCES) || balances[1].Gt(l._MAX_BALANCES) || balances[2].Gt(l._MAX_BALANCES) {
+		return nil, ErrBalancesTooLarge
+	}
+
+	a, mb, mc, md, err := l._calculateCubicTerms(balances, root3Alpha)
+	if err != nil {
+		return nil, err
+	}
+
+	return l._calculateCubic(a, mb, mc, md, root3Alpha)
 }
 
 func (l *gyro3CLPMath) _calculateCubicTerms(
@@ -265,7 +314,7 @@ func (l *gyro3CLPMath) _calcNewtonDelta(
 			return nil, false, err
 		}
 
-		deltaPlus := math.GyroFixedPoint.MulDownLargeSmallU(rootEst2, mb)
+		deltaPlus = math.GyroFixedPoint.MulDownLargeSmallU(rootEst2, mb)
 
 		deltaPlus = new(uint256.Int).Add(
 			deltaPlus,

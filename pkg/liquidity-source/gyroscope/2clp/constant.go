@@ -15,4 +15,4 @@ const (
 	defaultWeight = 1
 )
 
-var defaultGas = Gas{Swap: 100000}
+var defaultGas = Gas{Swap: 100000} // TODO: benchmark
