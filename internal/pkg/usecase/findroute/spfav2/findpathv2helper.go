@@ -5,10 +5,9 @@ import (
 	"context"
 	"math/big"
 
-	"k8s.io/apimachinery/pkg/util/sets"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -24,6 +23,8 @@ type findPathV2Helper struct {
 
 	maxPathsInRoute int
 	currentSplit    int
+
+	archivedPathIds []int
 }
 
 func NewFindPathV2Helper(numberOfPaths, maxPathsInRoute int, tokenAmountIn poolpkg.TokenAmount, cmpFunc func(a, b int) bool) *findPathV2Helper {
@@ -35,6 +36,7 @@ func NewFindPathV2Helper(numberOfPaths, maxPathsInRoute int, tokenAmountIn poolp
 		NewPriorityQueue(numberOfPaths, cmpFunc),
 		maxPathsInRoute,
 		0,
+		[]int{},
 	}
 }
 
@@ -48,6 +50,14 @@ func (h *findPathV2Helper) bestPathExactInV2(
 	span, _ := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestPathExactInV2")
 	defer span.End()
 
+	// in previous calls of the function "bestPathExactInV2",
+	// some paths that could not swap with "newAmountIn" (!= "h.tokenAmountIn") were archived.
+	// these paths will be pushed back to the priority queue when "newAmountIn" is equal to "h.tokenAmountIn",
+	// which is used for K paths generation.
+	if h.tokenAmountIn.CompareTo(&newAmountIn) == 0 {
+		h.pushArchivedPathIdsIntoHeap(paths)
+	}
+
 	for h.pq.Len() > 0 {
 		pathId := h.pq.Top().(int)
 		// if we only want to use added path, and this path was not added. skip this path
@@ -60,17 +70,23 @@ func (h *findPathV2Helper) bestPathExactInV2(
 		// if no pool of this path is updated after the last time we calculate this path, we can reuse this path
 		// otherwise, we recalculate the path
 		if !h.needToRecalculatePath(pathId, paths[pathId]) {
-			for _, poolAddress := range paths[pathId].PoolAddresses {
-				h.poolAddressToLastUsedSplit[poolAddress] = h.currentSplit
-			}
-			h.addedPathIds.Insert(pathId)
-			h.currentSplit += 1
-
 			var bestPath = paths[pathId]
 			// if amount used to generate is different from splitAmountIn, this is possible when amountInUsd is small
 			if h.tokenAmountIn.CompareTo(&newAmountIn) != 0 {
 				bestPath = newPath(input, data, bestPath.PoolAddresses, bestPath.Tokens, newAmountIn, h.addedPathIds.Has(pathId))
 			}
+
+			if bestPath == nil {
+				h.archivedPathIds = append(h.archivedPathIds, pathId)
+				heap.Pop(h.pq)
+				continue
+			}
+
+			for _, poolAddress := range paths[pathId].PoolAddresses {
+				h.poolAddressToLastUsedSplit[poolAddress] = h.currentSplit
+			}
+			h.addedPathIds.Insert(pathId)
+			h.currentSplit += 1
 
 			return bestPath
 		}
@@ -84,6 +100,20 @@ func (h *findPathV2Helper) bestPathExactInV2(
 		}
 	}
 	return nil
+}
+
+func (h *findPathV2Helper) pushArchivedPathIdsIntoHeap(paths []*valueobject.Path) {
+	if len(h.archivedPathIds) == 0 {
+		return
+	}
+
+	for _, pathId := range h.archivedPathIds {
+		if paths[pathId] != nil {
+			heap.Push(h.pq, pathId)
+		}
+	}
+
+	h.archivedPathIds = h.archivedPathIds[:0]
 }
 
 func (h *findPathV2Helper) needToRecalculatePath(pathId int, path *valueobject.Path) bool {
