@@ -1,13 +1,14 @@
 package woofiv2
 
 import (
+	"testing"
+
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestPoolSimulator_NewPool(t *testing.T) {
@@ -124,7 +125,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				},
 				Gas: DefaultGas.Swap,
 				SwapInfo: woofiV2SwapInfo{
-					newPrice: number.NewUint256("115792089237316195423570985008687907853269984665640563798290"),
+					newPrice: number.NewUint256("159708806577"),
 				},
 			},
 		},
@@ -256,7 +257,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				},
 				Gas: DefaultGas.Swap,
 				SwapInfo: woofiV2SwapInfo{
-					newBase1Price: number.NewUint256("115792089237316195423570985008687907853269984665639197809239"),
+					newBase1Price: number.NewUint256("2660728721692"),
 					newBase2Price: number.NewUint256("159827793868"),
 				},
 			},

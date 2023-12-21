@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -375,9 +376,9 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 	)
 
 	newPrice := new(uint256.Int).Div(
-		new(uint256.Int).Sub(
-			number.Number_1e18,
-			new(uint256.Int).Mul(
+		new(uint256.Int).Mul(
+			new(uint256.Int).Sub(
+				number.Number_1e18,
 				new(uint256.Int).Div(
 					new(uint256.Int).Div(
 						new(uint256.Int).Mul(
@@ -388,8 +389,8 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 					),
 					decs.baseDec,
 				),
-				state.Price,
 			),
+			state.Price,
 		),
 		number.Number_1e18,
 	)
