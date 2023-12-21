@@ -98,7 +98,6 @@ func (l *fixedPoint) PowUp(x *uint256.Int, y *uint256.Int) (*uint256.Int, error)
 	if y.Eq(l.ONE) {
 		return x, nil
 	}
-
 	if y.Eq(l.TWO) {
 		return l.MulUp(x, x)
 	}
@@ -111,6 +110,25 @@ func (l *fixedPoint) PowUp(x *uint256.Int, y *uint256.Int) (*uint256.Int, error)
 		return l.MulUp(square, square)
 	}
 
+	raw, err := LogExpMath.Pow(x, y)
+	if err != nil {
+		return nil, err
+	}
+
+	mulUpRawAndMaxPow, err := l.MulUp(raw, l.MAX_POW_RELATIVE_ERROR)
+	if err != nil {
+		return nil, err
+	}
+
+	maxError, err := l.Add(mulUpRawAndMaxPow, number.Number_1)
+	if err != nil {
+		return nil, err
+	}
+
+	return l.Add(raw, maxError)
+}
+
+func (l *fixedPoint) PowUpV1(x *uint256.Int, y *uint256.Int) (*uint256.Int, error) {
 	raw, err := LogExpMath.Pow(x, y)
 	if err != nil {
 		return nil, err

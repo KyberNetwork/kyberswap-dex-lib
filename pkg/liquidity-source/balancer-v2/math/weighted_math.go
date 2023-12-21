@@ -60,3 +60,42 @@ func (l *weightedMath) CalcOutGivenIn(
 
 	return FixedPoint.MulDown(balanceOut, FixedPoint.Complement(power))
 }
+
+func (l *weightedMath) CalcOutGivenInV1(
+	balanceIn *uint256.Int,
+	weightIn *uint256.Int,
+	balanceOut *uint256.Int,
+	weightOut *uint256.Int,
+	amountIn *uint256.Int,
+) (*uint256.Int, error) {
+	maxIn, err := FixedPoint.MulDown(balanceIn, _MAX_IN_RATIO)
+	if err != nil {
+		return nil, err
+	}
+
+	if amountIn.Gt(maxIn) {
+		return nil, ErrMaxInRatio
+	}
+
+	denominator, err := FixedPoint.Add(balanceIn, amountIn)
+	if err != nil {
+		return nil, err
+	}
+
+	base, err := FixedPoint.DivUp(balanceIn, denominator)
+	if err != nil {
+		return nil, err
+	}
+
+	exponent, err := FixedPoint.DivDown(weightIn, weightOut)
+	if err != nil {
+		return nil, err
+	}
+
+	power, err := FixedPoint.PowUpV1(base, exponent)
+	if err != nil {
+		return nil, err
+	}
+
+	return FixedPoint.MulDown(balanceOut, FixedPoint.Complement(power))
+}
