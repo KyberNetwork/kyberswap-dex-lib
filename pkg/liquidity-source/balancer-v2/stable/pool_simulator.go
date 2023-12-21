@@ -33,6 +33,8 @@ type PoolSimulator struct {
 
 	poolType    string
 	poolTypeVer int
+
+	mapTokenAddressToIndex map[string]int
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -42,6 +44,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 		tokens   = make([]string, len(entityPool.Tokens))
 		reserves = make([]*big.Int, len(entityPool.Tokens))
+
+		mapTokenAddressToIndex = make(map[string]int)
 	)
 
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -55,6 +59,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	for idx := 0; idx < len(entityPool.Tokens); idx++ {
 		tokens[idx] = entityPool.Tokens[idx].Address
 		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
+		mapTokenAddressToIndex[entityPool.Tokens[idx].Address] = idx
 	}
 
 	poolInfo := poolpkg.PoolInfo{
@@ -68,15 +73,16 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:              poolpkg.Pool{Info: poolInfo},
-		paused:            extra.Paused,
-		swapFeePercentage: extra.SwapFeePercentage,
-		amp:               extra.Amp,
-		scalingFactors:    staticExtra.ScalingFactors,
-		vault:             staticExtra.Vault,
-		poolID:            staticExtra.PoolID,
-		poolType:          staticExtra.PoolType,
-		poolTypeVer:       staticExtra.PoolTypeVer,
+		Pool:                   poolpkg.Pool{Info: poolInfo},
+		paused:                 extra.Paused,
+		swapFeePercentage:      extra.SwapFeePercentage,
+		amp:                    extra.Amp,
+		scalingFactors:         staticExtra.ScalingFactors,
+		vault:                  staticExtra.Vault,
+		poolID:                 staticExtra.PoolID,
+		poolType:               staticExtra.PoolType,
+		poolTypeVer:            staticExtra.PoolTypeVer,
+		mapTokenAddressToIndex: mapTokenAddressToIndex,
 	}, nil
 }
 
@@ -156,11 +162,12 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:       s.vault,
-		PoolID:      s.poolID,
-		T:           s.poolType,
-		V:           s.poolTypeVer,
-		BlockNumber: s.Info.BlockNumber,
+		Vault:                  s.vault,
+		PoolID:                 s.poolID,
+		MapTokenAddressToIndex: s.mapTokenAddressToIndex,
+		T:                      s.poolType,
+		V:                      s.poolTypeVer,
+		BlockNumber:            s.Info.BlockNumber,
 	}
 }
 
