@@ -72,9 +72,9 @@ func buildBalancerV2(swap types.L2EncodingSwap) (BalancerV2, error) {
 	}
 
 	var extra struct {
-		VaultAddress           string         `json:"vault"`
-		PoolId                 string         `json:"poolId"`
-		MapTokenAddressToIndex map[string]int `json:"mapTokenAddressToIndex"`
+		VaultAddress  string `json:"vault"`
+		PoolId        string `json:"poolId"`
+		TokenOutIndex int    `json:"tokenOutIndex"`
 	}
 
 	if err = json.Unmarshal(byteData, &extra); err != nil {
@@ -88,17 +88,11 @@ func buildBalancerV2(swap types.L2EncodingSwap) (BalancerV2, error) {
 	var pool [32]byte
 	copy(pool[:], common.FromHex(extra.PoolId))
 
-	var assetOutIndex int
-	assetOutIndex, exist := extra.MapTokenAddressToIndex[swap.TokenOut]
-	if !exist {
-		return BalancerV2{}, errors.Errorf("[BuildBalancerV2] cannot find asset out %s in pool %s", swap.TokenOut, swap.Pool)
-	}
-
 	return BalancerV2{
 		VaultMappingID: swap.PoolMappingID,
 		Vault:          common.HexToAddress(extra.VaultAddress),
 		PoolId:         pool,
-		AssetOut:       uint8(assetOutIndex),
+		AssetOut:       uint8(extra.TokenOutIndex),
 		Amount:         swap.SwapAmount,
 
 		isFirstSwap: swap.IsFirstSwap,
