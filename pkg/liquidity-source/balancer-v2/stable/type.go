@@ -44,11 +44,10 @@ type AmplificationParameter struct {
 }
 
 type PoolMetaInfo struct {
-	Vault       string `json:"vault"`
-	PoolID      string `json:"poolId"`
-	T           string `json:"t"`
-	V           int    `json:"v"`
-	BlockNumber uint64 `json:"blockNumber"`
+	Vault         string `json:"vault"`
+	PoolID        string `json:"poolId"`
+	TokenOutIndex int    `json:"tokenOutIndex"`
+	BlockNumber   uint64 `json:"blockNumber"`
 }
 
 type rpcRes struct {

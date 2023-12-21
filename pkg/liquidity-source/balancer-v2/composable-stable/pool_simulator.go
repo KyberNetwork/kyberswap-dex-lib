@@ -158,11 +158,10 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:       s.vault,
-		PoolID:      s.poolID,
-		T:           poolTypeComposableStable,
-		V:           s.poolTypeVer,
-		BlockNumber: s.Info.BlockNumber,
+		Vault:         s.vault,
+		PoolID:        s.poolID,
+		TokenOutIndex: s.GetTokenIndex(tokenOut),
+		BlockNumber:   s.Info.BlockNumber,
 	}
 }
 
