@@ -20,3 +20,17 @@ type PoolMetaInfo struct {
 	V           int    `json:"v"`
 	BlockNumber uint64 `json:"blockNumber"`
 }
+
+type Extra struct {
+	SwapFeePercentage *uint256.Int `json:"swapFeePercentage"`
+	Paused            bool         `json:"paused"`
+}
+
+type StaticExtra struct {
+	PoolID         string         `json:"poolId"`
+	PoolType       string         `json:"poolType"`
+	PoolTypeVer    int            `json:"poolTypeVersion"`
+	ScalingFactors []*uint256.Int `json:"scalingFactors"`
+	Root3Alpha     *uint256.Int   `json:"root3Alpha"`
+	Vault          string         `json:"vault"`
+}
