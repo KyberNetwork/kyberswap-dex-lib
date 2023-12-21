@@ -5,9 +5,9 @@ import "time"
 const (
 	DexTypeWombat = "wombat"
 
-	poolTypeWombatLSD        = "wombat-lsd"
-	poolTypeWombatMain       = "wombat-main"
-	poolTypeWombatCrossChain = "wombat-cross-chain"
+	PoolTypeWombatLSD        = "wombat-lsd"
+	PoolTypeWombatMain       = "wombat-main"
+	PoolTypeWombatCrossChain = "wombat-cross-chain"
 
 	assetMethodGetRelativePrice = "getRelativePrice"
 	assetMethodCash             = "cash"

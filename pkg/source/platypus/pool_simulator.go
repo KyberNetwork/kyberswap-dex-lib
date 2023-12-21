@@ -241,7 +241,7 @@ func (p *PoolSimulator) _quoteIdealToAmount(
 	toAsset Asset,
 	fromAmount *big.Int,
 ) (*big.Int, error) {
-	if p.Info.Type == poolTypePlatypusAvax {
+	if p.Info.Type == PoolTypePlatypusAvax {
 		return p._quoteIdealToAmountSAvax(fromAsset, toAsset, fromAmount)
 	}
 

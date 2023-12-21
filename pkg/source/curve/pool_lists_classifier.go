@@ -105,25 +105,25 @@ func (d *PoolsListUpdater) classifyPoolsFromMainRegistry(
 	for i := range poolAddresses {
 		if gammaList[i] != nil {
 			if d.isTwo(coins[i]) {
-				poolTypes[i] = poolTypeTwo
+				poolTypes[i] = PoolTypeTwo
 			} else {
-				poolTypes[i] = poolTypeTricrypto
+				poolTypes[i] = PoolTypeTricrypto
 			}
 			continue
 		}
 
 		if isMetaList[i] {
-			poolTypes[i] = poolTypeMeta
+			poolTypes[i] = PoolTypeMeta
 			continue
 		}
 
 		if d.isPlainOraclePool(plainOracleSignatures[i]) {
-			poolTypes[i] = poolTypePlainOracle
+			poolTypes[i] = PoolTypePlainOracle
 			continue
 		}
 
 		if d.isAavePool(aaveSignatures[i], underlyingCoins[i]) {
-			poolTypes[i] = poolTypeAave
+			poolTypes[i] = PoolTypeAave
 			continue
 		}
 
@@ -137,16 +137,16 @@ func (d *PoolsListUpdater) classifyPoolsFromMainRegistry(
 			return nil, err
 		}
 		if ok {
-			poolTypes[i] = poolTypeCompound
+			poolTypes[i] = PoolTypeCompound
 			continue
 		}
 
 		if d.isBasePool(coins[i], underlyingCoins[i]) {
-			poolTypes[i] = poolTypeBase
+			poolTypes[i] = PoolTypeBase
 			continue
 		}
 
-		poolTypes[i] = poolTypeLending
+		poolTypes[i] = PoolTypeLending
 	}
 
 	return poolTypes, nil
@@ -182,7 +182,7 @@ func (d *PoolsListUpdater) classifyPoolsFromMetaPoolsFactory(
 	var poolTypes = make([]string, len(poolAddresses))
 	for i := range poolAddresses {
 		if isMetaList[i] {
-			poolTypes[i] = poolTypeMeta
+			poolTypes[i] = PoolTypeMeta
 		}
 	}
 
@@ -216,12 +216,12 @@ func (d *PoolsListUpdater) classifyCurveV2PoolTypes(
 	var poolTypes = make([]string, len(poolAddresses))
 	for i := range poolAddresses {
 		if d.isTwo(coins[i]) {
-			poolTypes[i] = poolTypeTwo
+			poolTypes[i] = PoolTypeTwo
 		} else if d.isTricrypto(coins[i]) {
-			poolTypes[i] = poolTypeTricrypto
+			poolTypes[i] = PoolTypeTricrypto
 		} else {
 			logger.Infof("unsupported curve v2 pool: %s", poolAddresses[i].Hex())
-			poolTypes[i] = poolTypeUnsupported
+			poolTypes[i] = PoolTypeUnsupported
 		}
 	}
 

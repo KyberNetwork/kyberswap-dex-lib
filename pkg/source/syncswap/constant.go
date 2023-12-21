@@ -3,8 +3,8 @@ package syncswap
 var (
 	DexTypeSyncSwap = "syncswap"
 
-	poolTypeSyncSwapClassic = "syncswap-classic"
-	poolTypeSyncSwapStable  = "syncswap-stable"
+	PoolTypeSyncSwapClassic = "syncswap-classic"
+	PoolTypeSyncSwapStable  = "syncswap-stable"
 
 	// poolTypeSyncSwapClassicInContract = 1
 	poolTypeSyncSwapStableInContract = 2

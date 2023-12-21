@@ -150,9 +150,9 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		token0Address := strings.ToLower(assets[i][0].Hex())
 		token1Address := strings.ToLower(assets[i][1].Hex())
 
-		var poolType = poolTypeSyncSwapClassic
+		var poolType = PoolTypeSyncSwapClassic
 		if int(poolTypes[i]) == poolTypeSyncSwapStableInContract {
-			poolType = poolTypeSyncSwapStable
+			poolType = PoolTypeSyncSwapStable
 		}
 
 		var token0 = entity.PoolToken{

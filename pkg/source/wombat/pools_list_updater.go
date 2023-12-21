@@ -4,15 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
-	"github.com/KyberNetwork/logger"
-	"github.com/machinebox/graphql"
 	"math/big"
 	"strconv"
 	"time"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/machinebox/graphql"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
+	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolsListUpdater struct {
@@ -104,7 +106,7 @@ func (d *PoolsListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreat
 		if err != nil {
 			return nil, lastCreateTime, err
 		}
-		if poolType == poolTypeWombatCrossChain {
+		if poolType == PoolTypeWombatCrossChain {
 			continue
 		}
 
@@ -173,9 +175,9 @@ func (d *PoolsListUpdater) querySubgraph(
 }
 
 // classifyPoolType
-// poolTypeWombatLSD has relativePrice in assets
-// poolTypeWombatCrossChain has creditForTokensHaircut
-// poolTypeWombatMain do not has creditForTokensHaircut and relativePrice in assets
+// PoolTypeWombatLSD has relativePrice in assets
+// PoolTypeWombatCrossChain has creditForTokensHaircut
+// PoolTypeWombatMain do not has creditForTokensHaircut and relativePrice in assets
 func (d *PoolsListUpdater) classifyPoolType(ctx context.Context, p *SubgraphPool) (string, error) {
 	var relativePrice, creditForTokensHaircut *big.Int
 
@@ -208,13 +210,13 @@ func (d *PoolsListUpdater) classifyPoolType(ctx context.Context, p *SubgraphPool
 	}
 
 	if relativePrice != nil {
-		return poolTypeWombatLSD, nil
+		return PoolTypeWombatLSD, nil
 	}
-	// createForTokensHaircut to detect poolTypeWombatCrossChain.
-	// But following wombat team, poolTypeWombatCrossChain can swap on the same chain as poolTypeWombatMain
+	// createForTokensHaircut to detect PoolTypeWombatCrossChain.
+	// But following wombat team, PoolTypeWombatCrossChain can swap on the same chain as PoolTypeWombatMain
 	if creditForTokensHaircut != nil {
-		return poolTypeWombatMain, nil
+		return PoolTypeWombatMain, nil
 	}
 
-	return poolTypeWombatMain, nil
+	return PoolTypeWombatMain, nil
 }

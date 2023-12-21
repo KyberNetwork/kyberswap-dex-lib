@@ -36,9 +36,9 @@ func (d *PoolTracker) GetNewPoolState(
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	switch p.Type {
-	case poolTypeSyncSwapClassic:
+	case PoolTypeSyncSwapClassic:
 		return d.getClassicPoolState(ctx, p)
-	case poolTypeSyncSwapStable:
+	case PoolTypeSyncSwapStable:
 		return d.getStablePoolState(ctx, p)
 	default:
 		err := fmt.Errorf("can not get new pool state of address %s with type %s", p.Address, p.Type)

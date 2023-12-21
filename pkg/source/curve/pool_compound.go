@@ -97,7 +97,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeCompound(
 		pools[i] = entity.Pool{
 			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
 			Exchange:    DexTypeCurve,
-			Type:        poolTypeCompound,
+			Type:        PoolTypeCompound,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    reserves,
 			Tokens:      tokens,
