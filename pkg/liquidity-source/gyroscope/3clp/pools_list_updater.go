@@ -3,6 +3,7 @@ package gyro3clp
 import (
 	"context"
 	"encoding/json"
+	"math/big"
 	"strings"
 	"time"
 
@@ -59,7 +60,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, err
 	}
 
-	pools, err := u.initPools(ctx, subgraphPools, vaults)
+	root3Alphas, err := u.getRoot3Alphas(ctx, subgraphPools)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	pools, err := u.initPools(ctx, subgraphPools, vaults, root3Alphas)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":   u.config.DexID,
@@ -70,6 +76,28 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	return pools, newMetadataBytes, nil
+}
+
+func (u *PoolsListUpdater) getRoot3Alphas(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([]*big.Int, error) {
+	values := make([]*big.Int, len(subgraphPools))
+
+	req := u.ethrpcClient.R()
+	for idx, subgraphPool := range subgraphPools {
+		req.AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: subgraphPool.Address,
+			Method: poolMethodGetRoot3Alpha,
+		}, []interface{}{&values[idx]})
+	}
+	if _, err := req.Aggregate(); err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId":   u.config.DexID,
+			"dexType": DexType,
+		}).Error(err.Error())
+		return nil, err
+	}
+
+	return values, nil
 }
 
 func (u *PoolsListUpdater) getVaults(ctx context.Context, subgraphPools []*shared.SubgraphPool) ([]string, error) {
@@ -103,11 +131,12 @@ func (u *PoolsListUpdater) initPools(
 	ctx context.Context,
 	subgraphPools []*shared.SubgraphPool,
 	vaults []string,
+	root3Alphas []*big.Int,
 ) ([]entity.Pool, error) {
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 
 	for idx := range subgraphPools {
-		pool, err := u.initPool(ctx, subgraphPools[idx], vaults[idx])
+		pool, err := u.initPool(ctx, subgraphPools[idx], vaults[idx], root3Alphas[idx])
 		if err != nil {
 			return nil, err
 		}
@@ -122,6 +151,7 @@ func (u *PoolsListUpdater) initPool(
 	ctx context.Context,
 	subgraphPool *shared.SubgraphPool,
 	vault string,
+	root3Alpha *big.Int,
 ) (entity.Pool, error) {
 	var (
 		poolTokens      = make([]*entity.PoolToken, len(subgraphPool.Tokens))
@@ -149,11 +179,14 @@ func (u *PoolsListUpdater) initPool(
 		poolTypeVersion = int(subgraphPool.PoolTypeVersion.Int64())
 	}
 
+	root3AlphaU256, _ := uint256.FromBig(root3Alpha)
+
 	staticExtra := StaticExtra{
 		PoolID:         subgraphPool.ID,
 		PoolType:       subgraphPool.PoolType,
 		PoolTypeVer:    poolTypeVersion,
 		ScalingFactors: scalingFactors,
+		Root3Alpha:     root3AlphaU256,
 		Vault:          vault,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)

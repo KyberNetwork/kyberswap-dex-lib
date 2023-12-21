@@ -1,6 +1,11 @@
 package gyro3clp
 
-import "github.com/holiman/uint256"
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
+)
 
 type PoolTokenInfo struct {
 	Cash            *uint256.Int `json:"cash"`
@@ -22,8 +27,9 @@ type PoolMetaInfo struct {
 }
 
 type Extra struct {
-	SwapFeePercentage *uint256.Int `json:"swapFeePercentage"`
-	Paused            bool         `json:"paused"`
+	PoolTokenInfos    []PoolTokenInfo `json:"poolTokenInfos"`
+	SwapFeePercentage *uint256.Int    `json:"swapFeePercentage"`
+	Paused            bool            `json:"paused"`
 }
 
 type StaticExtra struct {
@@ -33,4 +39,31 @@ type StaticExtra struct {
 	ScalingFactors []*uint256.Int `json:"scalingFactors"`
 	Root3Alpha     *uint256.Int   `json:"root3Alpha"`
 	Vault          string         `json:"vault"`
+}
+
+type PoolTokensResp struct {
+	Tokens          []common.Address
+	Balances        []*big.Int
+	LastChangeBlock *big.Int
+}
+
+type PausedStateResp struct {
+	Paused              bool
+	PauseWindowEndTime  *big.Int
+	BufferPeriodEndTime *big.Int
+}
+
+type PoolTokenInfoResp struct {
+	Cash            *big.Int
+	Managed         *big.Int
+	LastChangeBlock *big.Int
+	AssetManager    common.Address
+}
+
+type rpcRes struct {
+	PoolTokens        PoolTokensResp
+	PoolTokenInfos    []PoolTokenInfoResp
+	SwapFeePercentage *big.Int
+	PausedState       PausedStateResp
+	BlockNumber       uint64
 }

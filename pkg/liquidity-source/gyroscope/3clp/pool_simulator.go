@@ -1,13 +1,16 @@
 package gyro3clp
 
 import (
+	"encoding/json"
 	"errors"
 	"math/big"
 
 	"github.com/holiman/uint256"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/math"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
@@ -25,13 +28,59 @@ type PoolSimulator struct {
 	scalingFactors    []*uint256.Int
 	swapFeePercentage *uint256.Int
 	root3Alpha        *uint256.Int
-	poolTokenInfos    []*PoolTokenInfo
+	poolTokenInfos    []PoolTokenInfo
 
 	vault  string
 	poolID string
 
 	poolType    string
 	poolTypeVer int
+}
+
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+	var (
+		extra       Extra
+		staticExtra StaticExtra
+
+		tokens   = make([]string, len(entityPool.Tokens))
+		reserves = make([]*big.Int, len(entityPool.Tokens))
+	)
+
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+		return nil, err
+	}
+
+	for idx := 0; idx < len(entityPool.Tokens); idx++ {
+		tokens[idx] = entityPool.Tokens[idx].Address
+		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
+	}
+
+	poolInfo := poolpkg.PoolInfo{
+		Address:     entityPool.Address,
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		Reserves:    reserves,
+		Checked:     true,
+		BlockNumber: entityPool.BlockNumber,
+	}
+
+	return &PoolSimulator{
+		Pool:              poolpkg.Pool{Info: poolInfo},
+		paused:            extra.Paused,
+		scalingFactors:    staticExtra.ScalingFactors,
+		swapFeePercentage: extra.SwapFeePercentage,
+		root3Alpha:        staticExtra.Root3Alpha,
+		poolTokenInfos:    extra.PoolTokenInfos,
+		vault:             staticExtra.Vault,
+		poolID:            staticExtra.PoolID,
+		poolType:          staticExtra.PoolType,
+		poolTypeVer:       staticExtra.PoolTypeVer,
+	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {

@@ -1,5 +1,6 @@
 package shared
 
 const (
-	VaultMethodGetPoolTokens = "getPoolTokens"
+	VaultMethodGetPoolTokens    = "getPoolTokens"
+	VaultMethodGetPoolTokenInfo = "getPoolTokenInfo"
 )
