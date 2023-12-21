@@ -46,8 +46,6 @@ type (
 
 		totalAmountsIn          []*uint256.Int
 		scaledMaxTotalAmountsIn []*uint256.Int
-
-		mapTokenAddressToIndex map[string]int
 	}
 
 	Gas struct {
@@ -65,8 +63,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 		totalAmountsIn          = make([]*uint256.Int, len(entityPool.Tokens))
 		scaledMaxTotalAmountsIn = make([]*uint256.Int, len(entityPool.Tokens))
-
-		mapTokenAddressToIndex = make(map[string]int)
 	)
 
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -80,7 +76,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	for idx := 0; idx < len(entityPool.Tokens); idx++ {
 		tokens[idx] = entityPool.Tokens[idx].Address
 		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
-		mapTokenAddressToIndex[entityPool.Tokens[idx].Address] = idx
 	}
 
 	scaledInitialBalances, err := _upscaleArray(staticExtra.PoolTypeVer, reserves, staticExtra.ScalingFactors)
@@ -118,7 +113,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		poolTypeVer:             staticExtra.PoolTypeVer,
 		totalAmountsIn:          totalAmountsIn,
 		scaledMaxTotalAmountsIn: scaledMaxTotalAmountsIn,
-		mapTokenAddressToIndex:  mapTokenAddressToIndex,
 	}, nil
 }
 
@@ -279,12 +273,10 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:                  s.vault,
-		PoolID:                 s.poolID,
-		MapTokenAddressToIndex: s.mapTokenAddressToIndex,
-		T:                      poolTypeWeighted,
-		V:                      s.poolTypeVer,
-		BlockNumber:            s.Info.BlockNumber,
+		Vault:         s.vault,
+		PoolID:        s.poolID,
+		TokenOutIndex: s.GetTokenIndex(tokenOut),
+		BlockNumber:   s.Info.BlockNumber,
 	}
 }
 
