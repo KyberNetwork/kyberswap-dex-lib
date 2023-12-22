@@ -69,9 +69,9 @@ func (l *gyro3CLPMath) _calcOutGivenIn(
 		),
 	)
 
-	amountOut, err := math.NewCalculator(virtOutUnder).
+	amountOut, err := math.NewFixedPointCalculator(virtOutUnder).
 		MulDown(amountIn).
-		DivDownWith(math.NewCalculator(virtInOver).Add(amountIn)).
+		DivDownWith(math.NewFixedPointCalculator(virtInOver).Add(amountIn)).
 		Result()
 	if err != nil {
 		return nil, err

@@ -6,109 +6,109 @@ import (
 	"github.com/holiman/uint256"
 )
 
-type fixedPointCalculator struct {
+type FixedPointCalculator struct {
 	result *uint256.Int
 	err    error
 }
 
-type Operator string
+type FixedPointOperator string
 
 var (
-	OperatorAdd      Operator = "add"
-	OperatorSub      Operator = "sub"
-	OperatorMulUp    Operator = "mulUp"
-	OperatorMulDown  Operator = "mulDown"
-	OperatorDivUp    Operator = "divUp"
-	OperatorDivDown  Operator = "divDown"
-	OperatorMulDownU Operator = "mulDownU"
+	FixedPointOperatorAdd      FixedPointOperator = "add"
+	FixedPointOperatorSub      FixedPointOperator = "sub"
+	FixedPointOperatorMulUp    FixedPointOperator = "mulUp"
+	FixedPointOperatorMulDown  FixedPointOperator = "mulDown"
+	FixedPointOperatorDivUp    FixedPointOperator = "divUp"
+	FixedPointOperatorDivDown  FixedPointOperator = "divDown"
+	FixedPointOperatorMulDownU FixedPointOperator = "mulDownU"
 )
 
 var (
 	ErrUnsupportedOperator = errors.New("unsupported operator")
 )
 
-func NewCalculator(value *uint256.Int) *fixedPointCalculator {
-	return &fixedPointCalculator{
+func NewFixedPointCalculator(value *uint256.Int) *FixedPointCalculator {
+	return &FixedPointCalculator{
 		result: value,
 	}
 }
-func (c *fixedPointCalculator) AddWith(right *fixedPointCalculator) *fixedPointCalculator {
-	return c.executeWith(OperatorAdd, right)
+func (c *FixedPointCalculator) AddWith(right *FixedPointCalculator) *FixedPointCalculator {
+	return c.executeWith(FixedPointOperatorAdd, right)
 }
 
-func (c *fixedPointCalculator) SubWith(right *fixedPointCalculator) *fixedPointCalculator {
-	return c.executeWith(OperatorSub, right)
+func (c *FixedPointCalculator) SubWith(right *FixedPointCalculator) *FixedPointCalculator {
+	return c.executeWith(FixedPointOperatorSub, right)
 }
 
-func (c *fixedPointCalculator) MulUpWith(right *fixedPointCalculator) *fixedPointCalculator {
-	return c.executeWith(OperatorMulUp, right)
+func (c *FixedPointCalculator) MulUpWith(right *FixedPointCalculator) *FixedPointCalculator {
+	return c.executeWith(FixedPointOperatorMulUp, right)
 }
 
-func (c *fixedPointCalculator) DivDownWith(right *fixedPointCalculator) *fixedPointCalculator {
-	return c.executeWith(OperatorDivDown, right)
+func (c *FixedPointCalculator) DivDownWith(right *FixedPointCalculator) *FixedPointCalculator {
+	return c.executeWith(FixedPointOperatorDivDown, right)
 }
 
-func (c *fixedPointCalculator) DivUpWith(right *fixedPointCalculator) *fixedPointCalculator {
-	return c.executeWith(OperatorDivUp, right)
+func (c *FixedPointCalculator) DivUpWith(right *FixedPointCalculator) *FixedPointCalculator {
+	return c.executeWith(FixedPointOperatorDivUp, right)
 }
 
-func (c *fixedPointCalculator) MulDownWith(right *fixedPointCalculator) *fixedPointCalculator {
-	return c.executeWith(OperatorMulDown, right)
+func (c *FixedPointCalculator) MulDownWith(right *FixedPointCalculator) *FixedPointCalculator {
+	return c.executeWith(FixedPointOperatorMulDown, right)
 }
 
-func (c *fixedPointCalculator) Add(target *uint256.Int) *fixedPointCalculator {
-	return c.execute(OperatorAdd, target)
+func (c *FixedPointCalculator) Add(target *uint256.Int) *FixedPointCalculator {
+	return c.execute(FixedPointOperatorAdd, target)
 }
 
-func (c *fixedPointCalculator) Sub(target *uint256.Int) *fixedPointCalculator {
-	return c.execute(OperatorSub, target)
+func (c *FixedPointCalculator) Sub(target *uint256.Int) *FixedPointCalculator {
+	return c.execute(FixedPointOperatorSub, target)
 }
 
-func (c *fixedPointCalculator) MulUp(target *uint256.Int) *fixedPointCalculator {
-	return c.execute(OperatorMulUp, target)
+func (c *FixedPointCalculator) MulUp(target *uint256.Int) *FixedPointCalculator {
+	return c.execute(FixedPointOperatorMulUp, target)
 }
 
-func (c *fixedPointCalculator) DivDown(target *uint256.Int) *fixedPointCalculator {
-	return c.execute(OperatorDivDown, target)
+func (c *FixedPointCalculator) DivDown(target *uint256.Int) *FixedPointCalculator {
+	return c.execute(FixedPointOperatorDivDown, target)
 }
 
-func (c *fixedPointCalculator) DivUp(target *uint256.Int) *fixedPointCalculator {
-	return c.execute(OperatorDivUp, target)
+func (c *FixedPointCalculator) DivUp(target *uint256.Int) *FixedPointCalculator {
+	return c.execute(FixedPointOperatorDivUp, target)
 }
 
-func (c *fixedPointCalculator) MulDown(target *uint256.Int) *fixedPointCalculator {
-	return c.execute(OperatorMulDown, target)
+func (c *FixedPointCalculator) MulDown(target *uint256.Int) *FixedPointCalculator {
+	return c.execute(FixedPointOperatorMulDown, target)
 }
 
-func (c *fixedPointCalculator) MulDownU(target *uint256.Int) *fixedPointCalculator {
-	return c.execute(OperatorMulDownU, target)
+func (c *FixedPointCalculator) MulDownU(target *uint256.Int) *FixedPointCalculator {
+	return c.execute(FixedPointOperatorMulDownU, target)
 }
 
-func (c *fixedPointCalculator) execute(operator Operator, target *uint256.Int) *fixedPointCalculator {
+func (c *FixedPointCalculator) execute(operator FixedPointOperator, target *uint256.Int) *FixedPointCalculator {
 	if c.err != nil {
 		return c
 	}
 
 	switch operator {
-	case OperatorAdd:
+	case FixedPointOperatorAdd:
 		c.result, c.err = GyroFixedPoint.Add(c.result, target)
 
-	case OperatorSub:
+	case FixedPointOperatorSub:
 		c.result, c.err = GyroFixedPoint.Sub(c.result, target)
 
-	case OperatorMulUp:
+	case FixedPointOperatorMulUp:
 		c.result, c.err = GyroFixedPoint.MulUp(c.result, target)
 
-	case OperatorMulDown:
+	case FixedPointOperatorMulDown:
 		c.result, c.err = GyroFixedPoint.MulDown(c.result, target)
 
-	case OperatorDivUp:
+	case FixedPointOperatorDivUp:
 		c.result, c.err = GyroFixedPoint.DivUp(c.result, target)
 
-	case OperatorDivDown:
+	case FixedPointOperatorDivDown:
 		c.result, c.err = GyroFixedPoint.DivDown(c.result, target)
 
-	case OperatorMulDownU:
+	case FixedPointOperatorMulDownU:
 		c.result = GyroFixedPoint.MulDownU(c.result, target)
 
 	default:
@@ -118,7 +118,7 @@ func (c *fixedPointCalculator) execute(operator Operator, target *uint256.Int) *
 	return c
 }
 
-func (c *fixedPointCalculator) executeWith(operator Operator, right *fixedPointCalculator) *fixedPointCalculator {
+func (c *FixedPointCalculator) executeWith(operator FixedPointOperator, right *FixedPointCalculator) *FixedPointCalculator {
 	if c.err != nil {
 		return c
 	}
@@ -132,6 +132,6 @@ func (c *fixedPointCalculator) executeWith(operator Operator, right *fixedPointC
 	return c.execute(operator, rightResult)
 }
 
-func (c *fixedPointCalculator) Result() (*uint256.Int, error) {
+func (c *FixedPointCalculator) Result() (*uint256.Int, error) {
 	return c.result, c.err
 }
