@@ -49,6 +49,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/polydex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/quickperps"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramses"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/smardex"
 	solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3"
@@ -181,7 +182,7 @@ var (
 		Velocimeter:                    velocimeter.DexTypeVelocimeter,
 		Pearl:                          pearl.DexTypePearl,
 		Ramses:                         ramses.DexTypeRamses,
-		RamsesV2:                       ramses.DexTypeRamses,
+		RamsesV2:                       ramsesv2.DexTypeRamsesV2,
 		Dystopia:                       dystopia.DexTypeDystopia,
 		PlatypusBase:                   platypus.PoolTypePlatypusBase,
 		PlatypusPure:                   platypus.PoolTypePlatypusPure,
