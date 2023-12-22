@@ -126,7 +126,7 @@ func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
 		pools[i] = entity.Pool{
 			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
 			Exchange:    DexTypeCurve,
-			Type:        poolTypePlainOracle,
+			Type:        PoolTypePlainOracle,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    reserves,
 			Tokens:      tokens,

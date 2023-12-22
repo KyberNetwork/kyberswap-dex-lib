@@ -8,10 +8,10 @@ import (
 const (
 	DexTypeDodo = "dodo"
 
-	poolTypeDodoClassical      = "dodo-classical"
-	poolTypeDodoVendingMachine = "dodo-dvm"
-	poolTypeDodoStable         = "dodo-dsp"
-	poolTypeDodoPrivate        = "dodo-dpp"
+	PoolTypeDodoClassical      = "dodo-classical"
+	PoolTypeDodoVendingMachine = "dodo-dvm"
+	PoolTypeDodoStable         = "dodo-dsp"
+	PoolTypeDodoPrivate        = "dodo-dpp"
 
 	// SubgraphPoolType DodoV1
 	subgraphPoolTypeDodoClassical = "CLASSICAL"
@@ -53,10 +53,10 @@ var (
 	zeroBI = big.NewInt(0)
 
 	subgraphTypeToPoolTypeMap = map[string]string{
-		subgraphPoolTypeDodoClassical:      poolTypeDodoClassical,
-		subgraphPoolTypeDodoStable:         poolTypeDodoStable,
-		subgraphPoolTypeDodoVendingMachine: poolTypeDodoVendingMachine,
-		subgraphPoolTypeDodoPrivate:        poolTypeDodoPrivate,
+		subgraphPoolTypeDodoClassical:      PoolTypeDodoClassical,
+		subgraphPoolTypeDodoStable:         PoolTypeDodoStable,
+		subgraphPoolTypeDodoVendingMachine: PoolTypeDodoVendingMachine,
+		subgraphPoolTypeDodoPrivate:        PoolTypeDodoPrivate,
 	}
 
 	DefaultGas = Gas{

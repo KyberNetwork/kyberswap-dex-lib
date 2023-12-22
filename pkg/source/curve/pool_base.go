@@ -134,7 +134,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeBase(
 		newPool := entity.Pool{
 			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
 			Exchange:    DexTypeCurve,
-			Type:        poolTypeBase,
+			Type:        PoolTypeBase,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    reserves,
 			Tokens:      tokens,

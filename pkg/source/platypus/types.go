@@ -73,7 +73,7 @@ func newExtra(poolState PoolState, assetStates []AssetState, sAvaxRate *big.Int)
 	}
 
 	poolType := getPoolTypeByPriceOracle(priceOracle)
-	if poolType == poolTypePlatypusAvax {
+	if poolType == PoolTypePlatypusAvax {
 		extra.SAvaxRate = sAvaxRate
 	}
 

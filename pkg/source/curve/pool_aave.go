@@ -93,7 +93,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeAave(
 		pools = append(pools, entity.Pool{
 			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
 			Exchange:    DexTypeCurve,
-			Type:        poolTypeAave,
+			Type:        PoolTypeAave,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    reserves,
 			Tokens:      tokens,

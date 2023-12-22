@@ -38,19 +38,19 @@ func (d *PoolTracker) GetNewPoolState(
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	switch p.Type {
-	case poolTypeBase:
+	case PoolTypeBase:
 		return d.getNewPoolStateTypeBase(ctx, p)
-	case poolTypePlainOracle:
+	case PoolTypePlainOracle:
 		return d.getNewPoolStateTypePlainOracle(ctx, p)
-	case poolTypeMeta:
+	case PoolTypeMeta:
 		return d.getNewPoolStateTypeMeta(ctx, p)
-	case poolTypeAave:
+	case PoolTypeAave:
 		return d.getNewPoolStateTypeAave(ctx, p)
-	case poolTypeCompound:
+	case PoolTypeCompound:
 		return d.getNewPoolStateTypeCompound(ctx, p)
-	case poolTypeTwo:
+	case PoolTypeTwo:
 		return d.getNewPoolStateTypeTwo(ctx, p)
-	case poolTypeTricrypto:
+	case PoolTypeTricrypto:
 		return d.getNewPoolStateTypeTricrypto(ctx, p)
 	default:
 		logger.WithFields(logger.Fields{

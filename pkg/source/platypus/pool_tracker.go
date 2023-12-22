@@ -68,7 +68,7 @@ func (t *PoolTracker) GetNewPoolState(
 	p.Type = getPoolTypeByPriceOracle(strings.ToLower(poolState.PriceOracle.Hex()))
 
 	sAvaxRate := big.NewInt(0)
-	if p.Type == poolTypePlatypusAvax {
+	if p.Type == PoolTypePlatypusAvax {
 		sAvaxRate, err = t.getSAvaxRate(ctx, addressStakedAvax)
 		if err != nil {
 			logger.WithFields(logger.Fields{

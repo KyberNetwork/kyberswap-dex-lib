@@ -127,7 +127,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeMeta(
 		pools[i] = entity.Pool{
 			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
 			Exchange:    DexTypeCurve,
-			Type:        poolTypeMeta,
+			Type:        PoolTypeMeta,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    reserves,
 			Tokens:      tokens,

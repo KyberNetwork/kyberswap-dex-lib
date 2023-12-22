@@ -14,9 +14,9 @@ const (
 )
 
 const (
-	poolTypePlatypusBase = "platypus-base"
-	poolTypePlatypusAvax = "platypus-avax"
-	poolTypePlatypusPure = "platypus-pure"
+	PoolTypePlatypusBase = "platypus-base"
+	PoolTypePlatypusAvax = "platypus-avax"
+	PoolTypePlatypusPure = "platypus-pure"
 )
 
 const (

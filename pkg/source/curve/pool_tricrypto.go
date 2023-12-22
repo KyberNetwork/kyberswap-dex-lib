@@ -89,7 +89,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeTricrypto(
 		pools[i] = entity.Pool{
 			Address:     strings.ToLower(poolAndRegistries[i].PoolAddress.Hex()),
 			Exchange:    DexTypeCurve,
-			Type:        poolTypeTricrypto,
+			Type:        PoolTypeTricrypto,
 			Timestamp:   time.Now().Unix(),
 			Reserves:    reserves,
 			Tokens:      tokens,

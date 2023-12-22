@@ -62,15 +62,15 @@ const (
 )
 
 const (
-	poolTypeBase        = "curve-base"
-	poolTypePlainOracle = "curve-plain-oracle"
-	poolTypeMeta        = "curve-meta"
-	poolTypeLending     = "curve-lending"
-	poolTypeAave        = "curve-aave"
-	poolTypeCompound    = "curve-compound"
-	poolTypeTricrypto   = "curve-tricrypto"
-	poolTypeTwo         = "curve-two"
-	poolTypeUnsupported = "unsupported"
+	PoolTypeBase        = "curve-base"
+	PoolTypePlainOracle = "curve-plain-oracle"
+	PoolTypeMeta        = "curve-meta"
+	PoolTypeLending     = "curve-lending"
+	PoolTypeAave        = "curve-aave"
+	PoolTypeCompound    = "curve-compound"
+	PoolTypeTricrypto   = "curve-tricrypto"
+	PoolTypeTwo         = "curve-two"
+	PoolTypeUnsupported = "unsupported"
 )
 
 // Curve pool types
