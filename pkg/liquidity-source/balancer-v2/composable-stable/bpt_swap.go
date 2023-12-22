@@ -410,7 +410,7 @@ func (s *bptSimulator) _getGrowthInvariantsV1(
 	}
 
 	if s._areNoTokensExempt() {
-		totalNonExemptGrowthInvariant, err := math.StableMath.CalculateInvariantV2(
+		totalNonExemptGrowthInvariant, err = math.StableMath.CalculateInvariantV2(
 			s.lastJoinExit.LastJoinExitAmplification,
 			balances,
 		)
