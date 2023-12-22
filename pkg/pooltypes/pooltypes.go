@@ -77,7 +77,6 @@ type Types struct {
 	Uni                        string
 	UniswapV3                  string
 	Biswap                     string
-	CrowdswapV2                string
 	Polydex                    string
 	Firebird                   string
 	Dmm                        string
@@ -92,11 +91,8 @@ type Types struct {
 	DodoPrivate                string
 	Velodrome                  string
 	VelodromeV2                string
-	Aerodrome                  string
 	Velocimeter                string
-	Thena                      string
 	Pearl                      string
-	PearlV2                    string
 	Ramses                     string
 	RamsesV2                   string
 	Dystopia                   string
@@ -163,7 +159,6 @@ var (
 		Uni:                        uniswap.DexTypeUniswap,
 		UniswapV3:                  uniswapv3.DexTypeUniswapV3,
 		Biswap:                     biswap.DexTypeBiswap,
-		CrowdswapV2:                "crowdswap-v2",
 		Polydex:                    polydex.DexTypePolydex,
 		Dmm:                        dmm.DexTypeDMM,
 		Elastic:                    elastic.DexTypeElastic,
@@ -177,11 +172,8 @@ var (
 		DodoPrivate:                dodo.PoolTypeDodoPrivate,
 		Velodrome:                  velodrome.DexTypeVelodrome,
 		VelodromeV2:                velodromev2.DexTypeVelodromeV2,
-		Aerodrome:                  "aerodrome",
 		Velocimeter:                velocimeter.DexTypeVelocimeter,
-		Thena:                      "thena",
 		Pearl:                      pearl.DexTypePearl,
-		PearlV2:                    "pearl-v2",
 		Ramses:                     ramses.DexTypeRamses,
 		RamsesV2:                   ramses.DexTypeRamses,
 		Dystopia:                   dystopia.DexTypeDystopia,
