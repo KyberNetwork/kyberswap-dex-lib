@@ -1,18 +1,8 @@
 package math
 
 import (
-	"errors"
-
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/holiman/uint256"
-)
-
-var (
-	ErrAddOverflow  = errors.New("ADD_OVERFLOW")
-	ErrSubOverflow  = errors.New("SUB_OVERFLOW")
-	ErrZeroDivision = errors.New("ZERO_DIVISION")
-	ErrDivInternal  = errors.New("DIV_INTERNAL")
-	ErrMulOverflow  = errors.New("MUL_OVERFLOW")
 )
 
 var GyroFixedPoint *gyroFixedPoint
