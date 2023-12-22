@@ -17,6 +17,8 @@ var (
 
 	ErrBaseTokenIsQuoteToken = errors.New("WooPPV2: baseToken==quoteToken")
 	ErrOracleIsNotFeasible   = errors.New("WooPPV2: !ORACLE_FEASIBLE")
+
+	ErrArithmeticOverflowUnderflow = errors.New("arithmetic overflow / underflow")
 )
 
 var (
@@ -198,6 +200,11 @@ func (s *PoolSimulator) _sellBase(
 
 	quoteAmount = new(uint256.Int).Sub(quoteAmount, swapFee)
 
+	// tokenInfos[quoteToken].reserve = uint192(tokenInfos[quoteToken].reserve - quoteAmount - swapFee);
+	if s.tokenInfos[s.quoteToken].Reserve.Cmp(new(uint256.Int).Add(quoteAmount, swapFee)) < 0 {
+		return nil, nil, nil, ErrArithmeticOverflowUnderflow
+	}
+
 	return quoteAmount, swapFee, newPrice, nil
 }
 
@@ -226,6 +233,11 @@ func (s *PoolSimulator) _sellQuote(
 	baseAmount, newPrice, err := s._calcBaseAmountSellQuote(baseToken, quoteAmount, state)
 	if err != nil {
 		return nil, nil, nil, err
+	}
+
+	// tokenInfos[baseToken].reserve = uint192(tokenInfos[baseToken].reserve - baseAmount);
+	if s.tokenInfos[baseToken].Reserve.Cmp(baseAmount) < 0 {
+		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
 	return baseAmount, swapFee, newPrice, nil
@@ -268,6 +280,11 @@ func (s *PoolSimulator) _swapBaseToBase(
 	base2Amount, newBase2Price, err := s._calcBaseAmountSellQuote(baseToken2, quoteAmount, state2)
 	if err != nil {
 		return nil, nil, nil, nil, err
+	}
+
+	// tokenInfos[baseToken2].reserve = uint192(tokenInfos[baseToken2].reserve - base2Amount);
+	if s.tokenInfos[baseToken2].Reserve.Cmp(base2Amount) < 0 {
+		return nil, nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
 	return base2Amount, swapFee, newBase1Price, newBase2Price, nil
