@@ -5,11 +5,14 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/math"
 )
 
 var GyroECLPMath *gyroECLPMath
+
+var ErrAssetBoundsExceeded = errors.New("ASSET_BOUNDS_EXCEEDED")
 
 type gyroECLPMath struct {
 	ONEHALF *big.Int
@@ -587,4 +590,143 @@ func (g *gyroECLPMath) calcInvariantSqrt(x, y *big.Int, p *params, d *derivedPar
 	}
 
 	return val, errValue, nil
+}
+
+func (g *gyroECLPMath) calcSpotPrice0in1(
+	balances []*big.Int,
+	params *params,
+	derived *derivedParams,
+	invariant *big.Int,
+) (*big.Int, error) {
+	r := &vector2{X: invariant, Y: invariant}
+
+	var ab *vector2
+	{
+		x, err := g.virtualOffset0(params, derived, r)
+		if err != nil {
+			return nil, err
+		}
+
+		y, err := g.virtualOffset1(params, derived, r)
+		if err != nil {
+			return nil, err
+		}
+
+		ab = &vector2{X: x, Y: y}
+	}
+
+	var vec *vector2
+	{
+		x, err := math.NewSignedFixedPointCalculator(balances[0]).
+			Sub(ab.X).
+			Result()
+		if err != nil {
+			return nil, err
+		}
+
+		y, err := math.NewSignedFixedPointCalculator(balances[1]).
+			Sub(ab.Y).
+			Result()
+		if err != nil {
+			return nil, err
+		}
+
+		vec = &vector2{X: x, Y: y}
+	}
+
+	vec, err := g.mulA(params, vec)
+	if err != nil {
+		return nil, err
+	}
+
+	var pc *vector2
+	{
+		x, err := math.NewSignedFixedPointCalculator(vec.X).
+			DivDownMagU(vec.Y).
+			Result()
+		if err != nil {
+			return nil, err
+		}
+
+		pc = &vector2{X: x, Y: g.ONE}
+	}
+
+	var pgx *big.Int
+	{
+		t2, err := g.mulA(params, &vector2{X: g.ONE, Y: integer.Zero()})
+		if err != nil {
+			return nil, err
+		}
+
+		pgx, err = g.scalarProd(pc, t2)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var t *big.Int
+	{
+		t2, err := g.mulA(params, &vector2{X: integer.Zero(), Y: g.ONE})
+		if err != nil {
+			return nil, err
+		}
+
+		t, err = g.scalarProd(pc, t2)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	px, err := math.NewSignedFixedPointCalculator(pgx).
+		DivDownMagU(t).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+
+	return px, nil
+}
+
+func (g *gyroECLPMath) checkAssetBounds(
+	params *params,
+	derived *derivedParams,
+	invariant *vector2,
+	newBal *big.Int,
+	assetIndex int,
+) error {
+	if assetIndex == 0 {
+		xPlus, err := g.maxBalances0(params, derived, invariant)
+		if err != nil {
+			return err
+		}
+
+		if newBal.Cmp(g._MAX_BALANCES) > 0 || newBal.Cmp(xPlus) > 0 {
+			return ErrAssetBoundsExceeded
+		}
+
+		return nil
+	}
+
+	yPlus, err := g.maxBalances1(params, derived, invariant)
+	if err != nil {
+		return err
+	}
+
+	if newBal.Cmp(g._MAX_BALANCES) > 0 || newBal.Cmp(yPlus) > 0 {
+		return ErrAssetBoundsExceeded
+	}
+
+	return nil
+}
+
+func (g *gyroECLPMath) calcXpXpDivLambdaLambda(
+	x *big.Int,
+	r *vector2,
+	lambda *big.Int,
+	s *big.Int,
+	c *big.Int,
+	tauBeta *vector2,
+	dSq *big.Int,
+) (*big.Int, error) {
+	
 }
