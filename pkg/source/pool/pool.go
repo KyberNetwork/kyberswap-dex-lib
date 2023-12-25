@@ -157,6 +157,7 @@ func CalcAmountOut(pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut stri
 			logger.WithFields(
 				logger.Fields{
 					"recover":     r,
+					"poolType":    pool.GetType(),
 					"poolAddress": pool.GetAddress(),
 				}).Warn(err.Error())
 		}
