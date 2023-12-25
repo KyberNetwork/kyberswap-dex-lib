@@ -201,7 +201,7 @@ func (s *PoolSimulator) _sellBase(
 	quoteAmount = new(uint256.Int).Sub(quoteAmount, swapFee)
 
 	// tokenInfos[quoteToken].reserve = uint192(tokenInfos[quoteToken].reserve - quoteAmount - swapFee);
-	if s.tokenInfos[s.quoteToken].Reserve.Cmp(new(uint256.Int).Add(quoteAmount, swapFee)) < 0 {
+	if s.tokenInfos[s.quoteToken].Reserve.Lt(new(uint256.Int).Add(quoteAmount, swapFee)) {
 		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
@@ -236,7 +236,7 @@ func (s *PoolSimulator) _sellQuote(
 	}
 
 	// tokenInfos[baseToken].reserve = uint192(tokenInfos[baseToken].reserve - baseAmount);
-	if s.tokenInfos[baseToken].Reserve.Cmp(baseAmount) < 0 {
+	if s.tokenInfos[baseToken].Reserve.Lt(baseAmount) {
 		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
@@ -283,7 +283,7 @@ func (s *PoolSimulator) _swapBaseToBase(
 	}
 
 	// tokenInfos[baseToken2].reserve = uint192(tokenInfos[baseToken2].reserve - base2Amount);
-	if s.tokenInfos[baseToken2].Reserve.Cmp(base2Amount) < 0 {
+	if s.tokenInfos[baseToken2].Reserve.Lt(base2Amount) {
 		return nil, nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
