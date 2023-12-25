@@ -42,8 +42,8 @@ func (l *gyro2CLPMath) _calculateQuadraticTerms(
 	sqrtAlpha *uint256.Int,
 	sqrtBeta *uint256.Int,
 ) (*uint256.Int, *uint256.Int, *uint256.Int, *uint256.Int, error) {
-	a, err := math.NewCalculator(math.GyroFixedPoint.ONE).
-		SubWith(math.NewCalculator(sqrtAlpha).DivDown(sqrtBeta)).
+	a, err := math.NewFixedPointCalculator(math.GyroFixedPoint.ONE).
+		SubWith(math.NewFixedPointCalculator(sqrtAlpha).DivDown(sqrtBeta)).
 		Result()
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -69,7 +69,7 @@ func (l *gyro2CLPMath) _calculateQuadraticTerms(
 		return nil, nil, nil, nil, err
 	}
 
-	bSquare, err := math.NewCalculator(balances[0]).
+	bSquare, err := math.NewFixedPointCalculator(balances[0]).
 		MulDown(balances[0]).
 		MulDown(sqrtAlpha).
 		MulDown(sqrtAlpha).
@@ -78,7 +78,7 @@ func (l *gyro2CLPMath) _calculateQuadraticTerms(
 		return nil, nil, nil, nil, err
 	}
 
-	bSq2, err := math.NewCalculator(balances[0]).
+	bSq2, err := math.NewFixedPointCalculator(balances[0]).
 		MulDown(balances[1]).
 		MulDown(new(uint256.Int).Mul(number.Number_2, math.GyroFixedPoint.ONE)).
 		MulDown(sqrtAlpha).
@@ -88,15 +88,15 @@ func (l *gyro2CLPMath) _calculateQuadraticTerms(
 		return nil, nil, nil, nil, err
 	}
 
-	bSq3, err := math.NewCalculator(balances[1]).
+	bSq3, err := math.NewFixedPointCalculator(balances[1]).
 		MulDown(balances[1]).
-		DivDownWith(math.NewCalculator(sqrtBeta).MulUp(sqrtBeta)).
+		DivDownWith(math.NewFixedPointCalculator(sqrtBeta).MulUp(sqrtBeta)).
 		Result()
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
 
-	bSquare, err = math.NewCalculator(bSquare).Add(bSq2).Add(bSq3).Result()
+	bSquare, err = math.NewFixedPointCalculator(bSquare).Add(bSq2).Add(bSq3).Result()
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -150,25 +150,25 @@ func (l *gyro2CLPMath) _calculateQuadratic(
 func (l *gyro2CLPMath) _calcOutGivenIn(
 	balanceIn, balanceOut, amountIn, virtualOffsetIn, virtualOffsetOut *uint256.Int,
 ) (*uint256.Int, error) {
-	virtInOver, err := math.NewCalculator(balanceIn).
+	virtInOver, err := math.NewFixedPointCalculator(balanceIn).
 		AddWith(
-			math.NewCalculator(virtualOffsetIn).MulUp(new(uint256.Int).Add(math.GyroFixedPoint.ONE, number.Number_2)),
+			math.NewFixedPointCalculator(virtualOffsetIn).MulUp(new(uint256.Int).Add(math.GyroFixedPoint.ONE, number.Number_2)),
 		).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	virtOutUnder, err := math.NewCalculator(balanceOut).
+	virtOutUnder, err := math.NewFixedPointCalculator(balanceOut).
 		AddWith(
-			math.NewCalculator(virtualOffsetOut).MulDown(new(uint256.Int).Sub(math.GyroFixedPoint.ONE, number.Number_1)),
+			math.NewFixedPointCalculator(virtualOffsetOut).MulDown(new(uint256.Int).Sub(math.GyroFixedPoint.ONE, number.Number_1)),
 		).Result()
 	if err != nil {
 		return nil, err
 	}
 
-	amountOut, err := math.NewCalculator(virtOutUnder).
+	amountOut, err := math.NewFixedPointCalculator(virtOutUnder).
 		MulDown(amountIn).
-		DivDownWith(math.NewCalculator(virtInOver).Add(amountIn)).
+		DivDownWith(math.NewFixedPointCalculator(virtInOver).Add(amountIn)).
 		Result()
 	if err != nil {
 		return nil, err
