@@ -256,7 +256,7 @@ func (g *gyroECLPMath) calculateInvariantWithError(
 		u = new(big.Int).Quo(
 			new(big.Int).Mul(
 				new(big.Int).Mul(
-					t,
+					u,
 					new(big.Int).Quo(
 						new(big.Int).Mul(params.Lambda, params.Lambda),
 						g.NUMBER_1E36,
@@ -429,48 +429,6 @@ func (g *gyroECLPMath) calcAtAChi(x, y *big.Int, p *params, d *derivedParams) (*
 	}
 
 	return val, nil
-}
-
-func (g *gyroECLPMath) scalarProd(t1 *vector2, t2 *vector2) (*big.Int, error) {
-	return math.NewSignedFixedPointCalculator(t1.X).
-		MulDownMag(t2.X).
-		AddWith(
-			math.NewSignedFixedPointCalculator(t1.Y).MulDownMag(t2.Y),
-		).Result()
-}
-
-func (g *gyroECLPMath) scalarProdXp(t1, t2 *vector2) (*big.Int, error) {
-	return math.NewSignedFixedPointCalculator(t1.X).
-		MulXp(t2.X).
-		AddWith(
-			math.NewSignedFixedPointCalculator(t1.Y).MulDownMag(t2.Y),
-		).Result()
-}
-
-func (g *gyroECLPMath) mulA(params *params, tp *vector2) (*vector2, error) {
-	x, err := math.NewSignedFixedPointCalculator(params.C).
-		MulDownMagU(tp.X).
-		DivDownMagU(params.Lambda).
-		SubWith(
-			math.NewSignedFixedPointCalculator(params.S).
-				MulDownMag(tp.Y).
-				DivDownMag(params.Lambda),
-		).Result()
-	if err != nil {
-		return nil, err
-	}
-
-	y, err := math.NewSignedFixedPointCalculator(params.S).
-		MulDownMag(tp.X).
-		AddWith(
-			math.NewSignedFixedPointCalculator(params.C).
-				MulDownMag(tp.Y),
-		).Result()
-	if err != nil {
-		return nil, err
-	}
-
-	return &vector2{X: x, Y: y}, nil
 }
 
 func (g *gyroECLPMath) virtualOffset0(p *params, d *derivedParams, r *vector2) (*big.Int, error) {
@@ -961,101 +919,6 @@ func (g *gyroECLPMath) calcInvariantSqrt(x, y *big.Int, p *params, d *derivedPar
 	}
 
 	return val, errValue, nil
-}
-
-func (g *gyroECLPMath) calcSpotPrice0in1(
-	balances []*big.Int,
-	params *params,
-	derived *derivedParams,
-	invariant *big.Int,
-) (*big.Int, error) {
-	r := &vector2{X: invariant, Y: invariant}
-
-	var ab *vector2
-	{
-		x, err := g.virtualOffset0(params, derived, r)
-		if err != nil {
-			return nil, err
-		}
-
-		y, err := g.virtualOffset1(params, derived, r)
-		if err != nil {
-			return nil, err
-		}
-
-		ab = &vector2{X: x, Y: y}
-	}
-
-	var vec *vector2
-	{
-		x, err := math.NewSignedFixedPointCalculator(balances[0]).
-			Sub(ab.X).
-			Result()
-		if err != nil {
-			return nil, err
-		}
-
-		y, err := math.NewSignedFixedPointCalculator(balances[1]).
-			Sub(ab.Y).
-			Result()
-		if err != nil {
-			return nil, err
-		}
-
-		vec = &vector2{X: x, Y: y}
-	}
-
-	vec, err := g.mulA(params, vec)
-	if err != nil {
-		return nil, err
-	}
-
-	var pc *vector2
-	{
-		x, err := math.NewSignedFixedPointCalculator(vec.X).
-			DivDownMagU(vec.Y).
-			Result()
-		if err != nil {
-			return nil, err
-		}
-
-		pc = &vector2{X: x, Y: g.ONE}
-	}
-
-	var pgx *big.Int
-	{
-		t2, err := g.mulA(params, &vector2{X: g.ONE, Y: integer.Zero()})
-		if err != nil {
-			return nil, err
-		}
-
-		pgx, err = g.scalarProd(pc, t2)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	var t *big.Int
-	{
-		t2, err := g.mulA(params, &vector2{X: integer.Zero(), Y: g.ONE})
-		if err != nil {
-			return nil, err
-		}
-
-		t, err = g.scalarProd(pc, t2)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	px, err := math.NewSignedFixedPointCalculator(pgx).
-		DivDownMagU(t).
-		Result()
-	if err != nil {
-		return nil, err
-	}
-
-	return px, nil
 }
 
 func (g *gyroECLPMath) checkAssetBounds(
