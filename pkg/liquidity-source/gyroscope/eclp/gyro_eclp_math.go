@@ -60,6 +60,75 @@ type (
 	}
 )
 
+type calcGiven func(*big.Int, *params, *derivedParams, *vector2) (*big.Int, error)
+
+func init() {
+	GyroECLPMath = &gyroECLPMath{
+		ONEHALF: big.NewInt(0.5e18),
+		ONE:     big.NewInt(1e18),
+		ONE_XP:  integer.TenPow(38),
+
+		_ROTATION_VECTOR_NORM_ACCURACY:    big.NewInt(1e3),
+		_MAX_STRETCH_FACTOR:               integer.TenPow(26),
+		_DERIVED_TAU_NORM_ACCURACY_XP:     integer.TenPow(23),
+		_MAX_INV_INVARIANT_DENOMINATOR_XP: integer.TenPow(43),
+		_DERIVED_DSQ_NORM_ACCURACY_XP:     integer.TenPow(23),
+
+		_MAX_BALANCES:  integer.TenPow(34),
+		_MAX_INVARIANT: integer.TenPow(37),
+	}
+}
+
+func (g *gyroECLPMath) calcOutGivenIn(
+	balances []*big.Int,
+	amountIn *big.Int,
+	tokenInIsToken0 bool,
+	params *params,
+	derived *derivedParams,
+	invariant *vector2,
+) (*big.Int, error) {
+	var calcGive calcGiven
+	var ixIn, ixOut int
+
+	if tokenInIsToken0 {
+		ixIn = 0
+		ixOut = 1
+		calcGive = g.calcYGivenX
+	} else {
+		ixIn = 1
+		ixOut = 0
+		calcGive = g.calcXGivenY
+	}
+
+	balInNewU256, err := math.GyroFixedPoint.Add(
+		uint256.MustFromBig(balances[ixIn]),
+		uint256.MustFromBig(amountIn),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = g.checkAssetBounds(params, derived, invariant, balInNewU256.ToBig(), ixIn)
+	if err != nil {
+		return nil, err
+	}
+
+	balOutNew, err := calcGive(amountIn, params, derived, invariant)
+	if err != nil {
+		return nil, err
+	}
+
+	balOutNewU256, err := math.GyroFixedPoint.Sub(
+		uint256.MustFromBig(balances[ixOut]),
+		uint256.MustFromBig(balOutNew),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return balOutNewU256.ToBig(), nil
+}
+
 func (g *gyroECLPMath) scalarProd(t1 *vector2, t2 *vector2) (*big.Int, error) {
 	return math.NewSignedFixedPointCalculator(t1.X).
 		MulDownMag(t2.X).
@@ -728,5 +797,443 @@ func (g *gyroECLPMath) calcXpXpDivLambdaLambda(
 	tauBeta *vector2,
 	dSq *big.Int,
 ) (*big.Int, error) {
-	
+	var sqVars *vector2
+	{
+		x, err := math.NewSignedFixedPointCalculator(dSq).
+			MulXpU(dSq).
+			Result()
+		if err != nil {
+			return nil, err
+		}
+
+		y, err := math.NewSignedFixedPointCalculator(r.X).
+			MulUpMagU(r.X).
+			Result()
+		if err != nil {
+			return nil, err
+		}
+
+		sqVars = &vector2{X: x, Y: y}
+	}
+
+	q := &qParams{}
+
+	termXp, err := math.NewSignedFixedPointCalculator(tauBeta.X).
+		MulXpU(tauBeta.Y).
+		DivXpU(sqVars.X).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+	if termXp.Cmp(integer.Zero()) > 0 {
+		a, err := math.NewSignedFixedPointCalculator(sqVars.Y).
+			MulUpMagU(new(big.Int).Mul(integer.Two(), s)).
+			Result()
+		if err != nil {
+			return nil, err
+		}
+
+		a, err = math.NewSignedFixedPointCalculator(a).
+			MulUpMagU(c).
+			MulUpXpToNpUWith(
+				math.NewSignedFixedPointCalculator(termXp).
+					Add(big.NewInt(7)),
+			).Result()
+		if err != nil {
+			return nil, err
+		}
+
+		q.A = a
+	} else {
+		a, err := math.NewSignedFixedPointCalculator(r.Y).
+			MulDownMagU(r.Y).
+			MulDownMagU(new(big.Int).Mul(integer.Two(), s)).
+			Result()
+		if err != nil {
+			return nil, err
+		}
+
+		a, err = math.NewSignedFixedPointCalculator(a).
+			MulDownMagU(c).
+			MulUpXpToNpU(termXp).
+			Result()
+		if err != nil {
+			return nil, err
+		}
+
+		q.A = a
+	}
+
+	if tauBeta.X.Cmp(integer.Zero()) < 0 {
+		b, err := math.NewSignedFixedPointCalculator(r.X).
+			MulUpMagU(x).
+			MulUpMagU(new(big.Int).Mul(integer.Two(), c)).
+			MulUpXpToNpUWith(
+				math.NewSignedFixedPointCalculator(integer.Zero()).
+					SubWith(
+						math.NewSignedFixedPointCalculator(tauBeta.X).
+							DivXpU(dSq),
+					).Add(big.NewInt(3)),
+			).Result()
+		if err != nil {
+			return nil, err
+		}
+
+		q.B = b
+	} else {
+		b, err := math.NewSignedFixedPointCalculator(new(big.Int).Neg(r.Y)).
+			MulDownMagU(x).
+			MulDownMagU(new(big.Int).Mul(integer.Two(), c)).
+			MulUpXpToNpUWith(
+				math.NewSignedFixedPointCalculator(tauBeta.X).
+					DivXpU(dSq),
+			).Result()
+		if err != nil {
+			return nil, err
+		}
+
+		q.B = b
+	}
+
+	termXp, err = math.NewSignedFixedPointCalculator(tauBeta.Y).
+		MulXpU(tauBeta.Y).
+		DivXpU(sqVars.X).
+		Add(big.NewInt(7)).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+
+	q.B, err = math.NewSignedFixedPointCalculator(sqVars.Y).
+		MulUpMagU(s).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+
+	q.B, err = math.NewSignedFixedPointCalculator(q.B).
+		MulUpMagU(s).
+		MulUpXpToNpU(termXp).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+
+	q.C, err = math.NewSignedFixedPointCalculator(new(big.Int).Neg(r.Y)).
+		MulDownMagU(x).
+		MulDownMagU(new(big.Int).Mul(integer.Two(), s)).
+		MulUpXpToNpUWith(
+			math.NewSignedFixedPointCalculator(tauBeta.Y).
+				DivXpU(dSq),
+		).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	q.B, err = math.NewSignedFixedPointCalculator(q.B).
+		Add(q.C).
+		AddWith(
+			math.NewSignedFixedPointCalculator(x).
+				MulUpMagU(x),
+		).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	q.B, err = math.NewSignedFixedPointCalculator(nil).
+		TernaryWith(
+			q.B.Cmp(integer.Zero()) > 0,
+
+			math.NewSignedFixedPointCalculator(q.B).
+				DivUpMagU(lambda),
+
+			math.NewSignedFixedPointCalculator(q.B).
+				DivDownMagU(lambda),
+		).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	q.A, err = math.NewSignedFixedPointCalculator(q.A).
+		Add(q.B).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+
+	q.A, err = math.NewSignedFixedPointCalculator(nil).
+		TernaryWith(
+			q.A.Cmp(integer.Zero()) > 0,
+
+			math.NewSignedFixedPointCalculator(q.A).
+				DivUpMagU(lambda),
+
+			math.NewSignedFixedPointCalculator(q.A).
+				DivDownMagU(lambda),
+		).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	termXp, err = math.NewSignedFixedPointCalculator(tauBeta.X).
+		MulXpU(tauBeta.X).
+		DivXpU(sqVars.X).
+		Add(big.NewInt(7)).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+
+	val, err := math.NewSignedFixedPointCalculator(sqVars.Y).
+		MulUpMagU(c).
+		MulUpMagU(c).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+
+	val, err = math.NewSignedFixedPointCalculator(val).
+		MulUpXpToNpU(termXp).
+		Add(q.A).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+
+	return val, nil
+}
+
+func (g *gyroECLPMath) solveQuadraticSwap(
+	lambda *big.Int,
+	x *big.Int,
+	s *big.Int,
+	c *big.Int,
+	r *vector2,
+	ab *vector2,
+	tauBeta *vector2,
+	dSq *big.Int,
+) (*big.Int, error) {
+	lamBar := &vector2{}
+	{
+		x, err := math.NewSignedFixedPointCalculator(g.ONE_XP).
+			SubWith(
+				math.NewSignedFixedPointCalculator(g.ONE_XP).
+					DivDownMagU(lambda).
+					DivDownMagU(lambda),
+			).Result()
+		if err != nil {
+			return nil, err
+		}
+
+		lamBar.X = x
+	}
+	{
+		y, err := math.NewSignedFixedPointCalculator(g.ONE_XP).
+			SubWith(
+				math.NewSignedFixedPointCalculator(g.ONE_XP).
+					DivUpMagU(lambda).
+					DivUpMagU(lambda),
+			).Result()
+		if err != nil {
+			return nil, err
+		}
+
+		lamBar.Y = y
+	}
+
+	q := &qParams{}
+	xp, err := math.SignedFixedPoint.Sub(x, ab.X)
+	if err != nil {
+		return nil, err
+	}
+	q.B, err = math.NewSignedFixedPointCalculator(nil).
+		TernaryWith(
+			xp.Cmp(integer.Zero()) > 0,
+
+			math.NewSignedFixedPointCalculator(new(big.Int).Sub(integer.Zero(), xp)).
+				MulDownMagU(s).
+				MulDownMagU(c).
+				MulUpXpToNpUWith(
+					math.NewSignedFixedPointCalculator(lamBar.Y).
+						DivXpU(dSq),
+				),
+
+			math.NewSignedFixedPointCalculator(new(big.Int).Sub(integer.Zero(), xp)).
+				MulUpMagU(s).
+				MulUpMagU(c).
+				MulUpXpToNpUWith(
+					math.NewSignedFixedPointCalculator(lamBar.X).
+						DivXpU(dSq).
+						Add(integer.One()),
+				),
+		).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	sTerm := &vector2{}
+	sTerm.X, err = math.NewSignedFixedPointCalculator(lamBar.Y).
+		MulDownMagU(s).
+		MulDownMagU(s).
+		DivXpU(dSq).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+
+	sTerm.Y, err = math.NewSignedFixedPointCalculator(lamBar.X).
+		MulUpMagU(s).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+
+	sTerm.Y, err = math.NewSignedFixedPointCalculator(sTerm.Y).
+		MulUpMagU(s).
+		DivXpUWith(
+			math.NewSignedFixedPointCalculator(dSq).
+				Add(integer.One()),
+		).Add(integer.One()).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+
+	sTerm.X, err = math.NewSignedFixedPointCalculator(g.ONE_XP).
+		Sub(sTerm.X).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+	sTerm.Y, err = math.NewSignedFixedPointCalculator(g.ONE_XP).
+		Sub(sTerm.Y).
+		Result()
+	if err != nil {
+		return nil, err
+	}
+
+	q.C, err = g.calcXpXpDivLambdaLambda(x, r, lambda, s, c, tauBeta, dSq)
+	if err != nil {
+		return nil, err
+	}
+	q.C = new(big.Int).Neg(q.C)
+
+	q.C, err = math.NewSignedFixedPointCalculator(q.C).
+		AddWith(
+			math.NewSignedFixedPointCalculator(r.Y).
+				MulDownMagU(r.Y).
+				MulDownXpToNpU(sTerm.Y),
+		).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	if q.C.Cmp(integer.Zero()) > 0 {
+		qC, _ := uint256.FromBig(q.C)
+
+		qC, err = math.GyroPoolMath.Sqrt(qC, uint256.NewInt(5))
+		if err != nil {
+			return nil, err
+		}
+
+		q.C = qC.ToBig()
+	} else {
+		q.C = integer.Zero()
+	}
+
+	if q.B.Cmp(q.C) > 0 {
+		q.A, err = math.NewSignedFixedPointCalculator(q.B).
+			Sub(q.C).
+			MulUpXpToNpUWith(
+				math.NewSignedFixedPointCalculator(g.ONE_XP).
+					DivXpU(sTerm.Y).
+					Add(integer.One()),
+			).Result()
+	} else {
+		q.A, err = math.NewSignedFixedPointCalculator(q.B).
+			Sub(q.C).
+			MulUpXpToNpUWith(
+				math.NewSignedFixedPointCalculator(g.ONE_XP).
+					DivXpU(sTerm.X),
+			).Result()
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return math.NewSignedFixedPointCalculator(q.A).
+		Add(ab.Y).
+		Result()
+}
+
+func (g *gyroECLPMath) calcYGivenX(
+	x *big.Int,
+	params *params,
+	d *derivedParams,
+	r *vector2,
+) (*big.Int, error) {
+	ab := &vector2{}
+	{
+		x, err := g.virtualOffset0(params, d, r)
+		if err != nil {
+			return nil, err
+		}
+
+		ab.X = x
+	}
+	{
+		y, err := g.virtualOffset1(params, d, r)
+		if err != nil {
+			return nil, err
+		}
+
+		ab.Y = y
+	}
+
+	y, err := g.solveQuadraticSwap(params.Lambda, x, params.S, params.C, r, ab, d.TauBeta, d.DSq)
+	if err != nil {
+		return nil, err
+	}
+
+	return y, nil
+}
+
+func (g *gyroECLPMath) calcXGivenY(
+	y *big.Int,
+	params *params,
+	d *derivedParams,
+	r *vector2,
+) (*big.Int, error) {
+	ab := &vector2{}
+	{
+		x, err := g.virtualOffset1(params, d, r)
+		if err != nil {
+			return nil, err
+		}
+
+		ab.X = x
+	}
+	{
+		y, err := g.virtualOffset0(params, d, r)
+		if err != nil {
+			return nil, err
+		}
+
+		ab.Y = y
+	}
+
+	x, err := g.solveQuadraticSwap(
+		params.Lambda,
+		y,
+		params.C,
+		params.S,
+		r,
+		ab,
+		&vector2{X: new(big.Int).Neg(d.TauAlpha.X), Y: d.TauAlpha.Y},
+		d.DSq)
+	if err != nil {
+		return nil, err
+	}
+
+	return x, nil
 }
