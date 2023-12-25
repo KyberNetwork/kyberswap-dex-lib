@@ -243,6 +243,9 @@ useCase:
         properties:
           chainID: *chainId
           limitOrderHTTPUrl: https://limit-order.stg.kyberengineering.io
+    faultyPools:
+      windowSize: 15m
+      faultyExpiredTime: 3m
   poolFactory:
     chainId: *chainId
     useAEVM: &useAEVM false

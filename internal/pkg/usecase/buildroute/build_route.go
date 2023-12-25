@@ -2,6 +2,7 @@ package buildroute
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
@@ -35,6 +36,7 @@ var OutputChangeNoChange = dto.OutputChange{
 type BuildRouteUseCase struct {
 	tokenRepository           ITokenRepository
 	priceRepository           IPriceRepository
+	poolRepository            IPoolRepository
 	executorBalanceRepository IExecutorBalanceRepository
 	gasEstimator              IGasEstimator
 
@@ -52,6 +54,7 @@ type BuildRouteUseCase struct {
 func NewBuildRouteUseCase(
 	tokenRepository ITokenRepository,
 	priceRepository IPriceRepository,
+	poolRepository IPoolRepository,
 	executorBalanceRepository IExecutorBalanceRepository,
 	gasEstimator IGasEstimator,
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ,
@@ -68,6 +71,7 @@ func NewBuildRouteUseCase(
 	return &BuildRouteUseCase{
 		tokenRepository:           tokenRepository,
 		priceRepository:           priceRepository,
+		poolRepository:            poolRepository,
 		executorBalanceRepository: executorBalanceRepository,
 		gasEstimator:              gasEstimator,
 		rfqHandlerByPoolType:      rfqHandlerByPoolType,
@@ -97,6 +101,11 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	if err != nil {
 		return nil, err
 	}
+
+	// track total count of pool for every build route request, using for calculating fault density
+	go func() {
+		uc.trackFaultyPoolsKeyTotalCount(context.Background(), routeSummary, uc.nowFunc().UTC())
+	}()
 
 	// estimate gas price for a transaction
 	estimatedGas, gasInUSD, err := uc.estimateGas(ctx, command, encodedData)
@@ -402,5 +411,23 @@ func (uc *BuildRouteUseCase) sendEstimateGasMetrics(routeSummary valueobject.Rou
 		for _, swap := range path {
 			metrics.IncrEstimateGas(isSuccess, string(swap.Exchange))
 		}
+	}
+}
+
+func (uc *BuildRouteUseCase) trackFaultyPoolsKeyTotalCount(ctx context.Context, routeSummary valueobject.RouteSummary, currentTime time.Time) {
+	windowSize := int(uc.config.FaultyPoolsConfig.WindowSize.Minutes())
+	currentWindow := ((currentTime.Minute() / windowSize) + 1) * windowSize
+	currentWindowKey := fmt.Sprintf("%02d:%02d:%02d", currentTime.Day(), currentTime.Hour(), currentWindow)
+
+	// tracking total count of pool address related to build route API
+	counter := make(map[string]int64)
+	for _, path := range routeSummary.Route {
+		for _, swap := range path {
+			counter[fmt.Sprintf("%s:%s", swap.Pool, currentWindowKey)]++
+		}
+	}
+	_, errors := uc.poolRepository.IncreasePoolsTotalCount(ctx, counter, 2*uc.config.FaultyPoolsConfig.WindowSize)
+	for _, err := range errors {
+		logger.Errorf("[TrackFaultyPoolsUseCase] HIncreaseByMultiple err: %v", err)
 	}
 }

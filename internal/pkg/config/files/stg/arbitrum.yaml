@@ -288,6 +288,9 @@ useCase:
           limitOrderHTTPUrl: https://limit-order.stg.kyberengineering.io
   poolFactory:
     chainId: *chainId
+    faultyPools:
+      windowSize: 15m
+      faultyExpiredTime: 3m
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     capacity: 1000000

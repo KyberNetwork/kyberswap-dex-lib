@@ -249,6 +249,9 @@ useCase:
         properties:
           chainID: *chainId
           limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
+    faultyPools:
+      windowSize: 15m
+      faultyExpiredTime: 3m
   poolFactory:
     chainId: *chainId
     useAEVM: &useAEVM false

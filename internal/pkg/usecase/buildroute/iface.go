@@ -3,6 +3,7 @@ package buildroute
 import (
 	"context"
 	"math/big"
+	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -40,4 +41,8 @@ type IGasEstimator interface {
 type IExecutorBalanceRepository interface {
 	HasToken(executorAddress string, queries []string) ([]bool, error)
 	HasPoolApproval(executorAddress string, queries []dto.PoolApprovalQuery) ([]bool, error)
+}
+
+type IPoolRepository interface {
+	IncreasePoolsTotalCount(ctx context.Context, counter map[string]int64, expiration time.Duration) (map[string]int64, []error)
 }

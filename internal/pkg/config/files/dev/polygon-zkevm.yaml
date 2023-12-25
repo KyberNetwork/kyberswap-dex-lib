@@ -210,6 +210,9 @@ useCase:
       shrinkFuncLogPercent: 1.01
   buildRoute:
     chainId: *chainId
+    faultyPools:
+      windowSize: 15m
+      faultyExpiredTime: 3m
   poolFactory:
     chainId: *chainId
   poolManager:

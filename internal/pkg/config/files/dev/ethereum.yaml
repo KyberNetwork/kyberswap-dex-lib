@@ -245,6 +245,9 @@ useCase:
             timeout: 10s
             retry_count: 3
           rfq_contract_address: "0x9f9D5a8F4a6e1F40835cDB040a7a53B35C1b1400"
+    faultyPools:
+      windowSize: 15m
+      faultyExpiredTime: 3m
   poolFactory:
     chainId: *chainId
     useAEVM: false

@@ -438,6 +438,7 @@ func apiAction(c *cli.Context) (err error) {
 	buildRouteUseCase := buildroute.NewBuildRouteUseCase(
 		tokenRepository,
 		priceRepository,
+		poolRepository,
 		executorBalanceRepository,
 		gasEstimator,
 		rfqHandlerByPoolType,

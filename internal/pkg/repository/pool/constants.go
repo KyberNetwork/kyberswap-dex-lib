@@ -6,4 +6,8 @@ const (
 	KeyBlacklistedPools = "blacklistedPools"
 
 	KeyFaulty = "faulty"
+
+	KeyTotalCount = "TotalCount"
+
+	Separator = ":"
 )
