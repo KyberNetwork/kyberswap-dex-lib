@@ -2,8 +2,6 @@ package math
 
 import (
 	"math/big"
-
-	"github.com/holiman/uint256"
 )
 
 type SignedFixedPointCalculator struct {
@@ -36,14 +34,21 @@ const (
 	SignedFixedPointOperatorComplement     SignedFixedPointOperator = "complement"
 )
 
-func NewSignedFixedPointCalculator(value *uint256.Int) *FixedPointCalculator {
-	return &FixedPointCalculator{
+func NewSignedFixedPointCalculator(value *big.Int) *SignedFixedPointCalculator {
+	return &SignedFixedPointCalculator{
 		result: value,
 	}
 }
 
 func (c *SignedFixedPointCalculator) Result() (*big.Int, error) {
 	return c.result, c.err
+}
+
+func (c *SignedFixedPointCalculator) Ternary(condition bool, trueValue, falseValue *big.Int) *SignedFixedPointCalculator {
+	if condition {
+		return NewSignedFixedPointCalculator(trueValue)
+	}
+	return NewSignedFixedPointCalculator(falseValue)
 }
 
 func (c *SignedFixedPointCalculator) Add(other *big.Int) *SignedFixedPointCalculator {
@@ -124,6 +129,15 @@ func (c *SignedFixedPointCalculator) MulUpXpToNpU(other *big.Int) *SignedFixedPo
 
 func (c *SignedFixedPointCalculator) Complement() *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorComplement, nil)
+}
+
+func (c *SignedFixedPointCalculator) TernaryWith(condition bool, trueValue, falseValue *SignedFixedPointCalculator) *SignedFixedPointCalculator {
+	if condition {
+		c = trueValue
+	} else {
+		c = falseValue
+	}
+	return c
 }
 
 func (c *SignedFixedPointCalculator) AddWith(right *SignedFixedPointCalculator) *SignedFixedPointCalculator {
