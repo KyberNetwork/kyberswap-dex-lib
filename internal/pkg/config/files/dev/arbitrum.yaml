@@ -137,7 +137,7 @@ encoder:
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
   executorAddressByClientID:
-    unibot-tg: 0x14158F88e6622704235e3dcE311143B4639DCa6b
+    unibot-tg: 0x1BC5cF80f308518f000dDE4c8f8139268aA014DB
   functionSelectorMappingID: # This map can be updated when we change l2 executor address
     executeUniSwap: 0
     executeKyberClassic: 1
