@@ -2,6 +2,7 @@ package woofiv2
 
 import (
 	"testing"
+	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -51,6 +52,10 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 
 	pool, err := NewPoolSimulator(entityPool)
 	assert.Nil(t, err)
+
+	pool.wooracle.Timestamp = time.Now().Unix()
+	pool.wooracle.StaleDuration = 300
+	pool.wooracle.Bound = 10000000000000000
 
 	result, err := pool.CalcAmountOut(params)
 
@@ -122,6 +127,10 @@ func TestPoolSimulator_CalcAmountOut_Arithmetic_OverflowUnderflow(t *testing.T) 
 	pool, err := NewPoolSimulator(entityPool)
 	assert.Nil(t, err)
 
+	pool.wooracle.Timestamp = time.Now().Unix()
+	pool.wooracle.StaleDuration = 300
+	pool.wooracle.Bound = 10000000000000000
+
 	_, err = pool.CalcAmountOut(params)
 
 	assert.Equal(t, ErrArithmeticOverflowUnderflow, err)
@@ -174,6 +183,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": 8,
 					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 8,
 				},
+				Timestamp:     time.Now().Unix(),
+				StaleDuration: 300,
+				Bound:         10000000000000000,
 			},
 			params: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -234,6 +246,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": 8,
 					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 8,
 				},
+				Timestamp:     time.Now().Unix(),
+				StaleDuration: 300,
+				Bound:         10000000000000000,
 			},
 			params: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -306,6 +321,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 8,
 					"0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f": 8,
 				},
+				Timestamp:     time.Now().Unix(),
+				StaleDuration: 300,
+				Bound:         10000000000000000,
 			},
 			params: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -405,6 +423,9 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": 8,
 					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 8,
 				},
+				Timestamp:     time.Now().Unix(),
+				StaleDuration: 300,
+				Bound:         10000000000000000,
 			},
 			params: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -455,6 +476,9 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": 8,
 					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 8,
 				},
+				Timestamp:     time.Now().Unix(),
+				StaleDuration: 300,
+				Bound:         10000000000000000,
 			},
 			params: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -517,6 +541,9 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 8,
 					"0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f": 8,
 				},
+				Timestamp:     time.Now().Unix(),
+				StaleDuration: 300,
+				Bound:         10000000000000000,
 			},
 			params: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{

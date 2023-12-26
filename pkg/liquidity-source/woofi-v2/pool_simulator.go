@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -32,6 +33,7 @@ type (
 		tokenInfos map[string]TokenInfo
 		decimals   map[string]uint8
 		wooracle   Wooracle
+		cloracle   map[string]Cloracle
 
 		gas Gas
 	}
@@ -183,7 +185,7 @@ func (s *PoolSimulator) _sellBase(
 		return nil, nil, nil, ErrBaseTokenIsQuoteToken
 	}
 
-	state := s.wooracle.States[baseToken]
+	state := s._wooracleV2State(baseToken)
 
 	quoteAmount, newPrice, err := s._calcQuoteAmountSellBase(baseToken, baseAmount, state)
 	if err != nil {
@@ -228,7 +230,7 @@ func (s *PoolSimulator) _sellQuote(
 
 	quoteAmount = new(uint256.Int).Sub(quoteAmount, swapFee)
 
-	state := s.wooracle.States[baseToken]
+	state := s._wooracleV2State(baseToken)
 
 	baseAmount, newPrice, err := s._calcBaseAmountSellQuote(baseToken, quoteAmount, state)
 	if err != nil {
@@ -250,7 +252,8 @@ func (s *PoolSimulator) _swapBaseToBase(
 	baseToken2 string,
 	base1Amount *uint256.Int,
 ) (*uint256.Int, *uint256.Int, *uint256.Int, *uint256.Int, error) {
-	state1, state2 := s.wooracle.States[baseToken1], s.wooracle.States[baseToken2]
+	state1 := s._wooracleV2State(baseToken1)
+	state2 := s._wooracleV2State(baseToken2)
 
 	var spread uint64
 	if state1.Spread > state2.Spread {
@@ -457,6 +460,86 @@ func (s *PoolSimulator) updateBalanceSellBase(params poolpkg.UpdateBalanceParams
 		Coeff:      s.wooracle.States[params.TokenAmountIn.Token].Coeff,
 		WoFeasible: s.wooracle.States[params.TokenAmountIn.Token].WoFeasible,
 	}
+}
+
+// WooracleV2.state
+// https://github.com/woonetwork/WooPoolV2/blob/fb94e2bf4882f51340c66357e8c566edc2a767a9/contracts/wooracle/WooracleV2.sol#L281-L285
+func (s *PoolSimulator) _wooracleV2State(base string) State {
+	info := s.wooracle.States[base]
+	basePrice, feasible := s._wooracleV2Price(base)
+	return State{
+		Price:      basePrice,
+		Spread:     info.Spread,
+		Coeff:      info.Coeff,
+		WoFeasible: feasible,
+	}
+}
+
+// WooracleV2.price
+// https://github.com/woonetwork/WooPoolV2/blob/fb94e2bf4882f51340c66357e8c566edc2a767a9/contracts/wooracle/WooracleV2.sol#L223-L240
+func (s *PoolSimulator) _wooracleV2Price(base string) (*uint256.Int, bool) {
+	woPrice := s.wooracle.States[base].Price
+
+	cloPrice, _ := s._wooracleCloPriceInQuote(base, s.quoteToken)
+
+	woFeasible := !woPrice.Eq(number.Zero) && time.Now().Unix() <= s.wooracle.Timestamp+s.wooracle.StaleDuration
+
+	bound := uint256.NewInt(s.wooracle.Bound)
+	priceLowerBound := new(uint256.Int).Div(
+		new(uint256.Int).Mul(
+			cloPrice,
+			new(uint256.Int).Sub(number.Number_1e18, bound),
+		),
+		number.Number_1e18,
+	)
+	priceUpperBound := new(uint256.Int).Div(
+		new(uint256.Int).Mul(
+			cloPrice,
+			new(uint256.Int).Add(number.Number_1e18, bound),
+		),
+		number.Number_1e18,
+	)
+	woPriceInbound := cloPrice.Eq(number.Zero) || (priceLowerBound.Cmp(woPrice) <= 0 && woPrice.Cmp(priceUpperBound) <= 0)
+
+	if woFeasible {
+		return woPrice, woPriceInbound
+	}
+
+	priceOut := cloPrice
+	if !s.cloracle[base].CloPreferred {
+		priceOut = number.Zero
+	}
+
+	return priceOut, !priceOut.Eq(number.Zero)
+}
+
+// WooracleV2._cloPriceInQuote
+// https://github.com/woonetwork/WooPoolV2/blob/fb94e2bf4882f51340c66357e8c566edc2a767a9/contracts/wooracle/WooracleV2.sol#L304-L325
+func (s *PoolSimulator) _wooracleCloPriceInQuote(fromToken string, toToken string) (*uint256.Int, int64) {
+	if _, ok := s.cloracle[fromToken]; !ok {
+		return number.Zero, 0
+	}
+
+	quoteDecimal := uint64(s.decimals[toToken])
+
+	baseRefPrice := s.cloracle[fromToken].Answer
+	baseUpdatedAt := s.cloracle[fromToken].UpdatedAt
+
+	quoteRefPrice := s.cloracle[toToken].Answer
+	quoteUpdatedAt := s.cloracle[toToken].UpdatedAt
+
+	ceoff := new(uint256.Int).Exp(number.Number_10, uint256.NewInt(quoteDecimal))
+
+	refPrice := new(uint256.Int).Div(
+		new(uint256.Int).Mul(baseRefPrice, ceoff),
+		quoteRefPrice,
+	)
+	refTimestamp := quoteUpdatedAt
+	if baseUpdatedAt.Lt(quoteUpdatedAt) {
+		refTimestamp = baseUpdatedAt
+	}
+
+	return refPrice, int64(refTimestamp.Uint64())
 }
 
 func (s *PoolSimulator) updateBalanceSellQuote(params poolpkg.UpdateBalanceParams) {
