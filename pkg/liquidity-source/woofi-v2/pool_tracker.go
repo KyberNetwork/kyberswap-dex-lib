@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/holiman/uint256"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -61,7 +62,12 @@ func (d *PoolTracker) GetNewPoolState(
 			Reserve *big.Int `json:"reserve"`
 			FeeRate uint16   `json:"feeRate"`
 		}, len(p.Tokens))
-		woState = make([]struct{ WoStateContractType }, len(p.Tokens))
+		woState   = make([]struct{ WoStateContractType }, len(p.Tokens))
+		clOracles = make([]struct {
+			Oracle       common.Address `json:"oracle"`
+			Decimal      uint8          `json:"decimal"`
+			CloPreferred bool           `json:"cloPreferred"`
+		}, len(p.Tokens))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -129,6 +135,12 @@ func (d *PoolTracker) GetNewPoolState(
 			Method: wooracleMethodDecimals,
 			Params: []interface{}{common.HexToAddress(token.Address)},
 		}, []interface{}{&priceTokenDecimals[i]})
+		oracleCalls.AddCall(&ethrpc.Call{
+			ABI:    WooracleV2ABI,
+			Target: wooracle.Hex(),
+			Method: wooracleMethodClOracles,
+			Params: []interface{}{common.HexToAddress(token.Address)},
+		}, []interface{}{&clOracles[i]})
 	}
 	if _, err := oracleCalls.TryBlockAndAggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -136,6 +148,45 @@ func (d *PoolTracker) GetNewPoolState(
 			"err":         err,
 		}).Errorf("[WooFiV2] failed to aggregate call")
 		return entity.Pool{}, err
+	}
+
+	// Call ChainLink Oracle to get lastestRoundData
+	latestRoundData := make([]struct {
+		RoundId         *big.Int `json:"roundId" abi:"roundId"`
+		Answer          *big.Int `json:"answer" abi:"answer"`
+		StartedAt       *big.Int `json:"startedAt" abi:"startedAt"`
+		UpdatedAt       *big.Int `json:"updatedAt" abi:"updatedAt"`
+		AnsweredInRound *big.Int `json:"answeredInRound" abi:"answeredInRound"`
+	}, len(p.Tokens))
+
+	cloracleCalls := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+	for i := range p.Tokens {
+		cloracleCalls.AddCall(&ethrpc.Call{
+			ABI:    CloracleABI,
+			Target: clOracles[i].Oracle.Hex(),
+			Method: cloracleMethodLatestRoundData,
+			Params: nil,
+		}, []interface{}{&latestRoundData[i]})
+	}
+	if _, err := cloracleCalls.TryBlockAndAggregate(); err != nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"err":         err,
+		}).Errorf("[WooFiV2] failed to aggregate call to chainlink oracle")
+		return entity.Pool{}, err
+	}
+
+	poolCloracle := make(map[string]Cloracle, len(p.Tokens))
+	for i, token := range p.Tokens {
+		answer, _ := uint256.FromBig(latestRoundData[i].Answer)
+		updatedAt, _ := uint256.FromBig(latestRoundData[i].UpdatedAt)
+
+		poolCloracle[token.Address] = Cloracle{
+			OracleAddress: clOracles[i].Oracle,
+			Answer:        answer,
+			UpdatedAt:     updatedAt,
+			CloPreferred:  clOracles[i].CloPreferred,
+		}
 	}
 
 	extraTokenInfos := make(map[string]TokenInfo)
@@ -172,10 +223,14 @@ func (d *PoolTracker) GetNewPoolState(
 		QuoteToken: strings.ToLower(quoteToken.Hex()),
 		TokenInfos: extraTokenInfos,
 		Wooracle: Wooracle{
-			Address:  wooracle.Hex(),
-			States:   extraStates,
-			Decimals: extraDecimals,
+			Address:       wooracle.Hex(),
+			States:        extraStates,
+			Decimals:      extraDecimals,
+			Timestamp:     timestamp.Int64(),
+			StaleDuration: staleDuration.Int64(),
+			Bound:         bound,
 		},
+		Cloracle: poolCloracle,
 	})
 
 	if err != nil {

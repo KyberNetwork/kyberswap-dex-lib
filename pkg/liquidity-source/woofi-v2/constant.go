@@ -11,9 +11,12 @@ const (
 
 	wooracleMethodWoState       = "woState"
 	wooracleMethodDecimals      = "decimals"
+	wooracleMethodClOracles     = "clOracles"
 	wooracleMethodTimestamp     = "timestamp"
 	wooracleMethodBound         = "bound"
 	wooracleMethodStaleDuration = "staleDuration"
+
+	cloracleMethodLatestRoundData = "latestRoundData"
 
 	erc20MethodDecimals = "decimals"
 
