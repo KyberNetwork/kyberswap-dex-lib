@@ -286,11 +286,11 @@ useCase:
         properties:
           chainID: *chainId
           limitOrderHTTPUrl: https://limit-order.stg.kyberengineering.io
-  poolFactory:
-    chainId: *chainId
     faultyPools:
       windowSize: 15m
       faultyExpiredTime: 3m
+  poolFactory:
+    chainId: *chainId
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     capacity: 1000000
