@@ -85,6 +85,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tokenInfos: extra.TokenInfos,
 		decimals:   decimals,
 		wooracle:   extra.Wooracle,
+		cloracle:   extra.Cloracle,
 
 		gas: DefaultGas,
 	}, nil
@@ -279,6 +280,11 @@ func (s *PoolSimulator) _swapBaseToBase(
 	swapFee := new(uint256.Int).Div(new(uint256.Int).Mul(quoteAmount, uint256.NewInt(uint64(feeRate))), Number_1e5)
 
 	quoteAmount = new(uint256.Int).Sub(quoteAmount, swapFee)
+
+	// tokenInfos[quoteToken].reserve = uint192(tokenInfos[quoteToken].reserve - swapFee);
+	if s.tokenInfos[s.quoteToken].Reserve.Lt(swapFee) {
+		return nil, nil, nil, nil, ErrArithmeticOverflowUnderflow
+	}
 
 	base2Amount, newBase2Price, err := s._calcBaseAmountSellQuote(baseToken2, quoteAmount, state2)
 	if err != nil {
@@ -520,7 +526,7 @@ func (s *PoolSimulator) _wooracleCloPriceInQuote(fromToken string, toToken strin
 		return number.Zero, 0
 	}
 
-	quoteDecimal := uint64(s.decimals[toToken])
+	quoteDecimal := uint64(s.wooracle.Decimals[toToken])
 
 	baseRefPrice := s.cloracle[fromToken].Answer
 	baseUpdatedAt := s.cloracle[fromToken].UpdatedAt
