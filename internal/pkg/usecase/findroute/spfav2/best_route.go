@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
@@ -36,7 +37,13 @@ func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Inp
 		}
 	}
 
-	hopsToTokenOut, err := common.MinHopsToTokenOut(data.PoolBucket.PerRequestPoolsByAddress, data.TokenByAddress, tokenToPoolAddress, input.TokenOutAddress)
+	hopsToTokenOut, err := f.findMinHopsToTokenOut(
+		data.PoolBucket.PerRequestPoolsByAddress,
+		data.TokenByAddress,
+		tokenToPoolAddress,
+		input.TokenInAddress,
+		input.TokenOutAddress,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -57,6 +64,32 @@ func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Inp
 	} else {
 		return f.findrouteV1(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
 	}
+}
+
+func (f *spfav2Finder) findMinHopsToTokenOut(
+	poolByAddress map[string]poolpkg.IPoolSimulator,
+	tokenByAddress map[string]entity.Token,
+	tokenToPoolAddresses map[string][]string,
+	tokenIn string,
+	tokenOut string,
+) (map[string]uint32, error) {
+	if len(f.whitelistedTokenSet) == 0 {
+		return common.MinHopsToTokenOut(
+			poolByAddress,
+			tokenByAddress,
+			tokenToPoolAddresses,
+			tokenOut,
+		)
+	}
+
+	return common.MinHopsToTokenOutWithWhitelist(
+		poolByAddress,
+		tokenByAddress,
+		tokenToPoolAddresses,
+		f.whitelistedTokenSet,
+		tokenIn,
+		tokenOut,
+	)
 }
 
 // split amount in into portions of f.distributionPercent% such that each split has value >= minUsdPerSplit

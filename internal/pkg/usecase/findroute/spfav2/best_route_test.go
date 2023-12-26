@@ -15,6 +15,7 @@ func Test_BestRoute(t *testing.T) {
 	t.Skip("Skip due to new pregen kpath algo implementation, should impl another testcase")
 
 	maxHops := uint32(3)
+	whitelistedTokenSet := map[string]bool{}
 	distributionPercent := uint32(5)
 	maxPathsInRoute := uint32(20)
 	maxPathsToGenerate := uint32(5)
@@ -25,6 +26,7 @@ func Test_BestRoute(t *testing.T) {
 
 	finder := NewSPFAv2Finder(
 		maxHops,
+		whitelistedTokenSet,
 		distributionPercent,
 		maxPathsInRoute,
 		maxPathsToGenerate,

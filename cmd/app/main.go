@@ -455,6 +455,7 @@ func apiAction(c *cli.Context) (err error) {
 	}
 	var routeFinder findroute.IFinder = spfav2.NewSPFAv2Finder(
 		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxHops,
+		cfg.UseCase.GetRoute.Aggregator.WhitelistedTokenSet,
 		cfg.UseCase.GetRoute.Aggregator.FinderOptions.DistributionPercent,
 		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxPathsInRoute,
 		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxPathsToGenerate,

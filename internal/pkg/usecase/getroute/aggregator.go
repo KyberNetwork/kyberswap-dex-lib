@@ -54,6 +54,7 @@ func NewAggregator(
 
 	var routeFinder findroute.IFinder = spfav2.NewSPFAv2Finder(
 		config.FinderOptions.MaxHops,
+		config.WhitelistedTokenSet,
 		config.FinderOptions.DistributionPercent,
 		config.FinderOptions.MaxPathsInRoute,
 		config.FinderOptions.MaxPathsToGenerate,
@@ -141,6 +142,7 @@ func (a *aggregator) ApplyConfig(config Config) {
 
 		var routeFinder findroute.IFinder = spfav2.NewSPFAv2Finder(
 			config.Aggregator.FinderOptions.MaxHops,
+			config.Aggregator.WhitelistedTokenSet,
 			config.Aggregator.FinderOptions.DistributionPercent,
 			config.Aggregator.FinderOptions.MaxPathsInRoute,
 			config.Aggregator.FinderOptions.MaxPathsToGenerate,

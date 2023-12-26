@@ -23,10 +23,17 @@ const (
 	defaultSpfav2MaxThresholdAmountInUSD float64 = 100_000_000
 )
 
+var (
+	defaultSpfav2WhitelistedTokenSet = map[string]bool{}
+)
+
 // spfav2Finder finds route by splitting amountIn and sequentially finding the best paths multiple times
 type spfav2Finder struct {
 	// maxHops maximum hops performed
 	maxHops uint32
+
+	// whitelistedTokenSet tokens that are allowed to be used as hop tokens
+	whitelistedTokenSet map[string]bool
 
 	// distributionPercent the portion of amountIn to split. It should be a divisor of 100.
 	// e.g. distributionPercent = 5, we split amountIn into portions of 5%, 10%, 15%, ..., 100%
@@ -52,21 +59,42 @@ type spfav2Finder struct {
 }
 
 func NewSPFAv2Finder(
-	maxHops, distributionPercent, maxPathsInRoute, maxPathsToGenerate, maxPathsToReturn uint32,
-	minPartUSD, minThresholdAmountInUSD, maxThresholdAmountInUSD float64,
+	maxHops uint32,
+	whitelistedTokenSet map[string]bool,
+	distributionPercent uint32,
+	maxPathsInRoute uint32,
+	maxPathsToGenerate,
+	maxPathsToReturn uint32,
+	minPartUSD float64,
+	minThresholdAmountInUSD float64,
+	maxThresholdAmountInUSD float64,
 	getGeneratedBestPaths func(sourceHash uint64, tokenIn string, tokenOut string) []*entity.MinimalPath,
 ) *spfav2Finder {
 	return &spfav2Finder{
-		maxHops, distributionPercent, maxPathsInRoute, maxPathsToGenerate, maxPathsToReturn,
-		minPartUSD, minThresholdAmountInUSD, maxThresholdAmountInUSD,
-		getGeneratedBestPaths,
+		maxHops:                 maxHops,
+		whitelistedTokenSet:     whitelistedTokenSet,
+		distributionPercent:     distributionPercent,
+		maxPathsInRoute:         maxPathsInRoute,
+		maxPathsToGenerate:      maxPathsToGenerate,
+		maxPathsToReturn:        maxPathsToReturn,
+		minPartUSD:              minPartUSD,
+		minThresholdAmountInUSD: minThresholdAmountInUSD,
+		maxThresholdAmountInUSD: maxThresholdAmountInUSD,
+		getGeneratedBestPaths:   getGeneratedBestPaths,
 	}
 }
 
 func NewDefaultSPFAv2Finder() *spfav2Finder {
 	return NewSPFAv2Finder(
-		defaultSpfav2MaxHops, defaultSpfav2DistributionPercent, defaultSpfav2MaxPathsInRoute, defaultSpfav2MaxPathsToGenerate, defaultSpfav2MaxPathsToReturn,
-		defaultSpfav2MinPartUSD, defaultSpfav2MinThresholdAmountInUSD, defaultSpfav2MaxThresholdAmountInUSD,
+		defaultSpfav2MaxHops,
+		defaultSpfav2WhitelistedTokenSet,
+		defaultSpfav2DistributionPercent,
+		defaultSpfav2MaxPathsInRoute,
+		defaultSpfav2MaxPathsToGenerate,
+		defaultSpfav2MaxPathsToReturn,
+		defaultSpfav2MinPartUSD,
+		defaultSpfav2MinThresholdAmountInUSD,
+		defaultSpfav2MaxThresholdAmountInUSD,
 		func(sourceHash uint64, tokenIn string, tokenOut string) []*entity.MinimalPath { return nil },
 	)
 }
