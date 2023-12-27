@@ -1,10 +1,10 @@
 package weighted
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"

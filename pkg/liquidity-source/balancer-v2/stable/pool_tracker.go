@@ -2,7 +2,6 @@ package stable
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -65,6 +65,18 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
+	var oldExtra Extra
+	if err := json.Unmarshal([]byte(p.Extra), &oldExtra); err != nil {
+		logger.WithFields(logger.Fields{
+			"dexId":       t.config.DexID,
+			"dexType":     DexType,
+			"poolAddress": p.Address,
+		}).Error(err.Error())
+
+		return p, err
+	}
+	scalingFactors := oldExtra.ScalingFactors
+
 	// call RPC
 	rpcRes, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID, staticExtra.Vault, staticExtra.PoolType)
 	if err != nil {
@@ -77,21 +89,24 @@ func (t *PoolTracker) GetNewPoolState(
 		poolTokens           = rpcRes.PoolTokens
 		pausedState          = rpcRes.PausedState
 		blockNumber          = rpcRes.BlockNumber
-
-		dynamicScalingFactors = make([]*uint256.Int, len(rpcRes.DynamicScalingFactors))
 	)
 
-	for idx, factor := range rpcRes.DynamicScalingFactors {
-		dynamicScalingFactors[idx], _ = uint256.FromBig(factor)
+	if staticExtra.PoolType == poolTypeMetaStable {
+		factors := make([]*uint256.Int, len(rpcRes.ScalingFactors))
+		for idx, factor := range rpcRes.ScalingFactors {
+			factors[idx], _ = uint256.FromBig(factor)
+		}
+
+		scalingFactors = factors
 	}
 
 	// update pool
 
 	extra := Extra{
-		Amp:                   amp,
-		SwapFeePercentage:     swapFeePercentage,
-		DynamicScalingFactors: dynamicScalingFactors,
-		Paused:                !isNotPaused(pausedState),
+		Amp:               amp,
+		SwapFeePercentage: swapFeePercentage,
+		ScalingFactors:    scalingFactors,
+		Paused:            !isNotPaused(pausedState),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -155,11 +170,11 @@ func (t *PoolTracker) queryRPC(
 	poolType string,
 ) (*rpcRes, error) {
 	var (
-		poolTokens            PoolTokens
-		swapFeePercentage     *big.Int
-		pausedState           PausedState
-		ampParams             AmplificationParameter
-		dynamicScalingFactors []*big.Int
+		poolTokens        PoolTokens
+		swapFeePercentage *big.Int
+		pausedState       PausedState
+		ampParams         AmplificationParameter
+		scalingFactors    []*big.Int
 	)
 
 	req := t.ethrpcClient.R().
@@ -196,7 +211,7 @@ func (t *PoolTracker) queryRPC(
 			ABI:    poolABI,
 			Target: poolAddress,
 			Method: poolMethodGetScalingFactors,
-		}, []interface{}{&dynamicScalingFactors})
+		}, []interface{}{&scalingFactors})
 	}
 
 	res, err := req.TryBlockAndAggregate()
@@ -211,12 +226,12 @@ func (t *PoolTracker) queryRPC(
 	}
 
 	return &rpcRes{
-		Amp:                   ampParams.Value,
-		PoolTokens:            poolTokens,
-		SwapFeePercentage:     swapFeePercentage,
-		DynamicScalingFactors: dynamicScalingFactors,
-		PausedState:           pausedState,
-		BlockNumber:           res.BlockNumber.Uint64(),
+		Amp:               ampParams.Value,
+		PoolTokens:        poolTokens,
+		SwapFeePercentage: swapFeePercentage,
+		ScalingFactors:    scalingFactors,
+		PausedState:       pausedState,
+		BlockNumber:       res.BlockNumber.Uint64(),
 	}, nil
 }
 

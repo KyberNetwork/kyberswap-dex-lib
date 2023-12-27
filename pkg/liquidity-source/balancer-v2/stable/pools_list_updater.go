@@ -2,7 +2,6 @@ package stable
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 
@@ -146,11 +146,16 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 		PoolID:             subgraphPool.ID,
 		PoolType:           subgraphPool.PoolType,
 		PoolTypeVer:        int(subgraphPool.PoolTypeVersion.Int64()),
-		ScalingFactors:     scalingFactors,
 		PoolSpecialization: poolSpec,
 		Vault:              vault,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
+	if err != nil {
+		return entity.Pool{}, err
+	}
+
+	extra := Extra{ScalingFactors: scalingFactors}
+	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return entity.Pool{}, err
 	}
@@ -163,6 +168,7 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 		Tokens:      poolTokens,
 		Reserves:    reserves,
 		StaticExtra: string(staticExtraBytes),
+		Extra:       string(extraBytes),
 	}, nil
 }
 

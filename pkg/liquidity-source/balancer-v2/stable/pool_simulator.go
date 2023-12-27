@@ -1,10 +1,10 @@
 package stable
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -28,8 +28,7 @@ type PoolSimulator struct {
 	swapFeePercentage *uint256.Int
 	amp               *uint256.Int
 
-	scalingFactors        []*uint256.Int
-	dynamicScalingFactors []*uint256.Int
+	scalingFactors []*uint256.Int
 
 	vault    string
 	poolID   string
@@ -72,17 +71,16 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:                  poolpkg.Pool{Info: poolInfo},
-		paused:                extra.Paused,
-		swapFeePercentage:     extra.SwapFeePercentage,
-		amp:                   extra.Amp,
-		scalingFactors:        staticExtra.ScalingFactors,
-		dynamicScalingFactors: extra.DynamicScalingFactors,
-		vault:                 staticExtra.Vault,
-		poolID:                staticExtra.PoolID,
-		poolSpec:              staticExtra.PoolSpecialization,
-		poolType:              staticExtra.PoolType,
-		poolTypeVer:           staticExtra.PoolTypeVer,
+		Pool:              poolpkg.Pool{Info: poolInfo},
+		paused:            extra.Paused,
+		swapFeePercentage: extra.SwapFeePercentage,
+		amp:               extra.Amp,
+		scalingFactors:    extra.ScalingFactors,
+		vault:             staticExtra.Vault,
+		poolID:            staticExtra.PoolID,
+		poolSpec:          staticExtra.PoolSpecialization,
+		poolType:          staticExtra.PoolType,
+		poolTypeVer:       staticExtra.PoolTypeVer,
 	}, nil
 }
 
@@ -115,7 +113,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	if err != nil {
 		return nil, err
 	}
-	amountIn, err = _upscale(amountInAfterFee, s.getScalingFactor(indexIn))
+	amountIn, err = _upscale(amountInAfterFee, s.scalingFactors[indexIn])
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +140,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	amountOut, err = _downscaleDown(amountOut, s.getScalingFactor(indexOut))
+	amountOut, err = _downscaleDown(amountOut, s.scalingFactors[indexOut])
 	if err != nil {
 		return nil, err
 	}
@@ -168,32 +166,18 @@ func (s *PoolSimulator) initParamBalances(indexIn, indexOut int) ([]*uint256.Int
 
 	if s.poolSpec == poolSpecializationGeneral {
 		reserves = s.Info.Reserves
-		scalingFactors = s.getScalingFactors()
+		scalingFactors = s.scalingFactors
 	} else {
 		reserves = make([]*big.Int, 2)
 		reserves[indexIn] = s.Info.Reserves[indexIn]
 		reserves[indexOut] = s.Info.Reserves[indexOut]
 
 		scalingFactors = make([]*uint256.Int, 2)
-		scalingFactors[indexIn] = s.getScalingFactor(indexIn)
-		scalingFactors[indexOut] = s.getScalingFactor(indexOut)
+		scalingFactors[indexIn] = s.scalingFactors[indexIn]
+		scalingFactors[indexOut] = s.scalingFactors[indexOut]
 	}
 
 	return _upscaleArray(reserves, scalingFactors)
-}
-
-func (s *PoolSimulator) getScalingFactors() []*uint256.Int {
-	if s.poolType == poolTypeMetaStable {
-		return s.dynamicScalingFactors
-	}
-	return s.scalingFactors
-}
-
-func (s *PoolSimulator) getScalingFactor(index int) *uint256.Int {
-	if s.poolType == poolTypeMetaStable {
-		return s.dynamicScalingFactors[index]
-	}
-	return s.scalingFactors[index]
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
