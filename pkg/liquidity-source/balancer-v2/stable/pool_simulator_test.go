@@ -146,11 +146,9 @@ func TestCalcAmountOut(t *testing.T) {
 	t.Run("4. should return OK", func(t *testing.T) {
 		poolStr := `{
 			"address": "0x851523a36690bf267bbfec389c823072d82921a9",
-			"reserveUsd": 4450.421771978679,
-			"amplifiedTvl": 4450.421771978679,
 			"exchange": "balancer-v2-stable",
 			"type": "balancer-v2-stable",
-			"timestamp": 1703650401,
+			"timestamp": 1703665632,
 			"reserves": [
 			  "1152882153159026494",
 			  "873225053252443292"
@@ -173,8 +171,8 @@ func TestCalcAmountOut(t *testing.T) {
 				"swappable": true
 			  }
 			],
-			"extra": "{\"amp\":\"0xf4240\",\"swapFeePercentage\":\"0x16bcc41e90000\",\"paused\":false}",
-			"staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"MetaStable\",\"poolTypeVersion\":1,\"scalingFactors\":[\"0xde0b6b3a7640000\",\"0xde0b6b3a7640000\"],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
+			"extra": "{\"amp\":\"0xf4240\",\"swapFeePercentage\":\"0x16bcc41e90000\",\"dynamicScalingFactors\":[\"0xFFB10F9BCF7D41A\",\"0xde0b6b3a7640000\"],\"paused\":false}",
+			"staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"MetaStable\",\"poolTypeVersion\":1,\"scalingFactors\":[\"0xde0b6b3a7640000\",\"0xde0b6b3a7640000\"],\"poolSpecialization\":2,\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
 		  }`
 		var pool entity.Pool
 		json.Unmarshal([]byte(poolStr), &pool)
@@ -192,7 +190,6 @@ func TestCalcAmountOut(t *testing.T) {
 		expected := "63551050657042642"
 
 		// actual
-
 		result, err := s.CalcAmountOut(poolpkg.CalcAmountOutParams{
 			TokenAmountIn: tokenAmountIn,
 			TokenOut:      tokenOut,

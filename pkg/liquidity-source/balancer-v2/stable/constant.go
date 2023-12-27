@@ -16,6 +16,8 @@ const (
 	poolMethodGetScalingFactors         = "getScalingFactors"
 
 	defaultWeight = 1
+
+	poolSpecializationGeneral = 0
 )
 
 var (

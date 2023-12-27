@@ -19,11 +19,12 @@ type Extra struct {
 }
 
 type StaticExtra struct {
-	PoolID         string         `json:"poolId"`
-	PoolType       string         `json:"poolType"`
-	PoolTypeVer    int            `json:"poolTypeVersion"`
-	ScalingFactors []*uint256.Int `json:"scalingFactors"`
-	Vault          string         `json:"vault"`
+	PoolID             string         `json:"poolId"`
+	PoolType           string         `json:"poolType"`
+	PoolTypeVer        int            `json:"poolTypeVersion"`
+	ScalingFactors     []*uint256.Int `json:"scalingFactors"`
+	PoolSpecialization uint8          `json:"poolSpecialization"`
+	Vault              string         `json:"vault"`
 }
 
 type PoolTokens struct {

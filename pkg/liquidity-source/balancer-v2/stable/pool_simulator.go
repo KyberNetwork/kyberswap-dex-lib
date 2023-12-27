@@ -17,6 +17,7 @@ var (
 	ErrInvalidSwapFeePercentage = errors.New("invalid swap fee percentage")
 	ErrPoolPaused               = errors.New("pool is paused")
 	ErrInvalidAmp               = errors.New("invalid amp")
+	ErrNotTwoTokens             = errors.New("not two tokens")
 )
 
 type PoolSimulator struct {
@@ -30,8 +31,9 @@ type PoolSimulator struct {
 	scalingFactors        []*uint256.Int
 	dynamicScalingFactors []*uint256.Int
 
-	vault  string
-	poolID string
+	vault    string
+	poolID   string
+	poolSpec uint8
 
 	poolType    string
 	poolTypeVer int
@@ -70,15 +72,17 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:              poolpkg.Pool{Info: poolInfo},
-		paused:            extra.Paused,
-		swapFeePercentage: extra.SwapFeePercentage,
-		amp:               extra.Amp,
-		scalingFactors:    staticExtra.ScalingFactors,
-		vault:             staticExtra.Vault,
-		poolID:            staticExtra.PoolID,
-		poolType:          staticExtra.PoolType,
-		poolTypeVer:       staticExtra.PoolTypeVer,
+		Pool:                  poolpkg.Pool{Info: poolInfo},
+		paused:                extra.Paused,
+		swapFeePercentage:     extra.SwapFeePercentage,
+		amp:                   extra.Amp,
+		scalingFactors:        staticExtra.ScalingFactors,
+		dynamicScalingFactors: extra.DynamicScalingFactors,
+		vault:                 staticExtra.Vault,
+		poolID:                staticExtra.PoolID,
+		poolSpec:              staticExtra.PoolSpecialization,
+		poolType:              staticExtra.PoolType,
+		poolTypeVer:           staticExtra.PoolTypeVer,
 	}, nil
 }
 
@@ -88,16 +92,16 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrPoolPaused
 	}
 
-	tokenAmountIn := params.TokenAmountIn
-	tokenOut := params.TokenOut
+	if s.poolSpec != poolSpecializationGeneral && len(s.Info.Tokens) != 2 {
+		return nil, ErrNotTwoTokens
+	}
+
+	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
 
 	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
 	if indexIn == -1 || indexOut == -1 {
 		return nil, ErrTokenNotRegistered
 	}
-
-	scalingFactorTokenIn := s.getScalingFactor(indexIn)
-	scalingFactorTokenOut := s.getScalingFactor(indexOut)
 
 	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
 	if overflow {
@@ -111,12 +115,12 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	if err != nil {
 		return nil, err
 	}
-	upScaledAmountIn, err := _upscale(amountInAfterFee, scalingFactorTokenIn)
+	amountIn, err = _upscale(amountInAfterFee, s.getScalingFactor(indexIn))
 	if err != nil {
 		return nil, err
 	}
 
-	balances, err := _upscaleArray(s.Info.Reserves, s.scalingFactors)
+	balances, err := s.initParamBalances(indexIn, indexOut)
 	if err != nil {
 		return nil, err
 	}
@@ -126,10 +130,10 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	upScaledAmountOut, err := math.StableMath.CalcOutGivenIn(
+	amountOut, err := math.StableMath.CalcOutGivenIn(
 		invariant,
 		s.amp,
-		upScaledAmountIn,
+		amountIn,
 		balances,
 		indexIn,
 		indexOut,
@@ -138,7 +142,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	amountOut, err := _downscaleDown(upScaledAmountOut, scalingFactorTokenOut)
+	amountOut, err = _downscaleDown(amountOut, s.getScalingFactor(indexOut))
 	if err != nil {
 		return nil, err
 	}
@@ -154,6 +158,35 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		},
 		Gas: defaultGas.Swap,
 	}, nil
+}
+
+func (s *PoolSimulator) initParamBalances(indexIn, indexOut int) ([]*uint256.Int, error) {
+	var (
+		reserves       []*big.Int
+		scalingFactors []*uint256.Int
+	)
+
+	if s.poolSpec == poolSpecializationGeneral {
+		reserves = s.Info.Reserves
+		scalingFactors = s.getScalingFactors()
+	} else {
+		reserves = make([]*big.Int, 2)
+		reserves[indexIn] = s.Info.Reserves[indexIn]
+		reserves[indexOut] = s.Info.Reserves[indexOut]
+
+		scalingFactors = make([]*uint256.Int, 2)
+		scalingFactors[indexIn] = s.getScalingFactor(indexIn)
+		scalingFactors[indexOut] = s.getScalingFactor(indexOut)
+	}
+
+	return _upscaleArray(reserves, scalingFactors)
+}
+
+func (s *PoolSimulator) getScalingFactors() []*uint256.Int {
+	if s.poolType == poolTypeMetaStable {
+		return s.dynamicScalingFactors
+	}
+	return s.scalingFactors
 }
 
 func (s *PoolSimulator) getScalingFactor(index int) *uint256.Int {

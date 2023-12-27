@@ -3,6 +3,7 @@ package stable
 import (
 	"context"
 	"encoding/json"
+	"math/big"
 	"strings"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
@@ -135,12 +137,18 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 		)
 	}
 
+	poolSpec, err := _getPoolSpecialization(subgraphPool.ID)
+	if err != nil {
+		return entity.Pool{}, err
+	}
+
 	staticExtra := StaticExtra{
-		PoolID:         subgraphPool.ID,
-		PoolType:       subgraphPool.PoolType,
-		PoolTypeVer:    int(subgraphPool.PoolTypeVersion.Int64()),
-		ScalingFactors: scalingFactors,
-		Vault:          vault,
+		PoolID:             subgraphPool.ID,
+		PoolType:           subgraphPool.PoolType,
+		PoolTypeVer:        int(subgraphPool.PoolTypeVersion.Int64()),
+		ScalingFactors:     scalingFactors,
+		PoolSpecialization: poolSpec,
+		Vault:              vault,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {
@@ -156,4 +164,21 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 		Reserves:    reserves,
 		StaticExtra: string(staticExtraBytes),
 	}, nil
+}
+
+func _getPoolSpecialization(poolID string) (uint8, error) {
+	// uint256(poolId >> (10 * 8)) & (2**(2 * 8) - 1);
+
+	id, _ := strings.CutPrefix(poolID, "0x")
+	value, ok := new(big.Int).SetString(id, 16)
+	if !ok {
+		return 0, errors.Wrapf(ErrInvalidPoolID, "poolId: %s", poolID)
+	}
+
+	value = new(big.Int).And(
+		new(big.Int).Rsh(value, 80),
+		big.NewInt(65535),
+	)
+
+	return uint8(value.Uint64()), nil
 }
