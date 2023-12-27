@@ -46,9 +46,11 @@ func (c *SignedFixedPointCalculator) Result() (*big.Int, error) {
 
 func (c *SignedFixedPointCalculator) Ternary(condition bool, trueValue, falseValue *big.Int) *SignedFixedPointCalculator {
 	if condition {
-		return NewSignedFixedPointCalculator(trueValue)
+		c.result = trueValue
+	} else {
+		c.result = falseValue
 	}
-	return NewSignedFixedPointCalculator(falseValue)
+	return c
 }
 
 func (c *SignedFixedPointCalculator) Add(other *big.Int) *SignedFixedPointCalculator {
