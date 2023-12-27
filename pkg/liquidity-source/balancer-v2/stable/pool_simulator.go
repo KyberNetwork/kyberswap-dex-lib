@@ -26,7 +26,9 @@ type PoolSimulator struct {
 
 	swapFeePercentage *uint256.Int
 	amp               *uint256.Int
-	scalingFactors    []*uint256.Int
+
+	scalingFactors        []*uint256.Int
+	dynamicScalingFactors []*uint256.Int
 
 	vault  string
 	poolID string
@@ -94,8 +96,8 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrTokenNotRegistered
 	}
 
-	scalingFactorTokenIn := s.scalingFactors[indexIn]
-	scalingFactorTokenOut := s.scalingFactors[indexOut]
+	scalingFactorTokenIn := s.getScalingFactor(indexIn)
+	scalingFactorTokenOut := s.getScalingFactor(indexOut)
 
 	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
 	if overflow {
@@ -152,6 +154,13 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		},
 		Gas: defaultGas.Swap,
 	}, nil
+}
+
+func (s *PoolSimulator) getScalingFactor(index int) *uint256.Int {
+	if s.poolType == poolTypeMetaStable {
+		return s.dynamicScalingFactors[index]
+	}
+	return s.scalingFactors[index]
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {

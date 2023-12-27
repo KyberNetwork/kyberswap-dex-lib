@@ -66,7 +66,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	// call RPC
-	rpcRes, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID, staticExtra.Vault)
+	rpcRes, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID, staticExtra.Vault, staticExtra.PoolType)
 	if err != nil {
 		return p, err
 	}
@@ -77,14 +77,21 @@ func (t *PoolTracker) GetNewPoolState(
 		poolTokens           = rpcRes.PoolTokens
 		pausedState          = rpcRes.PausedState
 		blockNumber          = rpcRes.BlockNumber
+
+		dynamicScalingFactors = make([]*uint256.Int, len(rpcRes.DynamicScalingFactors))
 	)
+
+	for idx, factor := range rpcRes.DynamicScalingFactors {
+		dynamicScalingFactors[idx], _ = uint256.FromBig(factor)
+	}
 
 	// update pool
 
 	extra := Extra{
-		Amp:               amp,
-		SwapFeePercentage: swapFeePercentage,
-		Paused:            !isNotPaused(pausedState),
+		Amp:                   amp,
+		SwapFeePercentage:     swapFeePercentage,
+		DynamicScalingFactors: dynamicScalingFactors,
+		Paused:                !isNotPaused(pausedState),
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -145,12 +152,14 @@ func (t *PoolTracker) queryRPC(
 	poolAddress string,
 	poolID string,
 	vault string,
+	poolType string,
 ) (*rpcRes, error) {
 	var (
-		poolTokens        PoolTokens
-		swapFeePercentage *big.Int
-		pausedState       PausedState
-		ampParams         AmplificationParameter
+		poolTokens            PoolTokens
+		swapFeePercentage     *big.Int
+		pausedState           PausedState
+		ampParams             AmplificationParameter
+		dynamicScalingFactors []*big.Int
 	)
 
 	req := t.ethrpcClient.R().
@@ -182,6 +191,14 @@ func (t *PoolTracker) queryRPC(
 		Method: poolMethodGetPausedState,
 	}, []interface{}{&pausedState})
 
+	if poolType == poolTypeMetaStable {
+		req.AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: poolAddress,
+			Method: poolMethodGetScalingFactors,
+		}, []interface{}{&dynamicScalingFactors})
+	}
+
 	res, err := req.TryBlockAndAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -194,11 +211,12 @@ func (t *PoolTracker) queryRPC(
 	}
 
 	return &rpcRes{
-		Amp:               ampParams.Value,
-		PoolTokens:        poolTokens,
-		SwapFeePercentage: swapFeePercentage,
-		PausedState:       pausedState,
-		BlockNumber:       res.BlockNumber.Uint64(),
+		Amp:                   ampParams.Value,
+		PoolTokens:            poolTokens,
+		SwapFeePercentage:     swapFeePercentage,
+		DynamicScalingFactors: dynamicScalingFactors,
+		PausedState:           pausedState,
+		BlockNumber:           res.BlockNumber.Uint64(),
 	}, nil
 }
 
