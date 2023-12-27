@@ -2,6 +2,7 @@ package woofiv2
 
 import (
 	"testing"
+	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -38,7 +39,7 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 				Swappable: true,
 			},
 		},
-		Extra:       "{\"quoteToken\":\"0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E\",\"tokenInfos\":{\"0x152b9d0fdc40c096757f570a51e494bd4b943e50\":{\"reserve\":\"0x7740c638\",\"feeRate\":25},\"0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab\":{\"reserve\":\"0x578a140f80838f553\",\"feeRate\":25},\"0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7\":{\"reserve\":\"0x346d31eef7\",\"feeRate\":5},\"0xabc9547b534519ff73921b1fba6e672b5f58d083\":{\"reserve\":\"0x7035061b20231788979b\",\"feeRate\":25},\"0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7\":{\"reserve\":\"0x8fb9547642a62f887d8\",\"feeRate\":25},\"0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e\":{\"reserve\":\"0x90835f3d02\",\"feeRate\":0}},\"wooracle\":{\"address\":\"0xc13843aE0D2C5ca9E0EfB93a78828446D8173d19\",\"states\":{\"0x152b9d0fdc40c096757f570a51e494bd4b943e50\":{\"price\":\"0x3766a090400\",\"spread\":500000000000000,\"coeff\":2910510000,\"woFeasible\":true},\"0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab\":{\"price\":\"0x2ff660c540\",\"spread\":500000000000000,\"coeff\":3676430000,\"woFeasible\":true},\"0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7\":{\"price\":\"0x5f69798\",\"spread\":160022000000000,\"coeff\":2466840000,\"woFeasible\":true},\"0xabc9547b534519ff73921b1fba6e672b5f58d083\":{\"price\":\"0x1526f74\",\"spread\":2750000000000000,\"coeff\":157506000000,\"woFeasible\":true},\"0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7\":{\"price\":\"0x7eb16f1c\",\"spread\":868270000000000,\"coeff\":2668470000,\"woFeasible\":true},\"0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e\":{\"price\":\"0x5f5e100\",\"spread\":0,\"coeff\":0,\"woFeasible\":true}},\"decimals\":{\"0x152b9d0fdc40c096757f570a51e494bd4b943e50\":8,\"0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab\":8,\"0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7\":8,\"0xabc9547b534519ff73921b1fba6e672b5f58d083\":8,\"0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7\":8,\"0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e\":8}}}",
+		Extra:       "{\"quoteToken\":\"0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e\",\"tokenInfos\":{\"0x152b9d0fdc40c096757f570a51e494bd4b943e50\":{\"reserve\":\"0x7740c638\",\"feeRate\":25},\"0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab\":{\"reserve\":\"0x578a140f80838f553\",\"feeRate\":25},\"0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7\":{\"reserve\":\"0x346d31eef7\",\"feeRate\":5},\"0xabc9547b534519ff73921b1fba6e672b5f58d083\":{\"reserve\":\"0x7035061b20231788979b\",\"feeRate\":25},\"0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7\":{\"reserve\":\"0x8fb9547642a62f887d8\",\"feeRate\":25},\"0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e\":{\"reserve\":\"0x90835f3d02\",\"feeRate\":0}},\"wooracle\":{\"address\":\"0xc13843aE0D2C5ca9E0EfB93a78828446D8173d19\",\"states\":{\"0x152b9d0fdc40c096757f570a51e494bd4b943e50\":{\"price\":\"0x3766a090400\",\"spread\":500000000000000,\"coeff\":2910510000,\"woFeasible\":true},\"0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab\":{\"price\":\"0x2ff660c540\",\"spread\":500000000000000,\"coeff\":3676430000,\"woFeasible\":true},\"0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7\":{\"price\":\"0x5f69798\",\"spread\":160022000000000,\"coeff\":2466840000,\"woFeasible\":true},\"0xabc9547b534519ff73921b1fba6e672b5f58d083\":{\"price\":\"0x1526f74\",\"spread\":2750000000000000,\"coeff\":157506000000,\"woFeasible\":true},\"0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7\":{\"price\":\"0x7eb16f1c\",\"spread\":868270000000000,\"coeff\":2668470000,\"woFeasible\":true},\"0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e\":{\"price\":\"0x5f5e100\",\"spread\":0,\"coeff\":0,\"woFeasible\":true}},\"decimals\":{\"0x152b9d0fdc40c096757f570a51e494bd4b943e50\":8,\"0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab\":8,\"0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7\":8,\"0xabc9547b534519ff73921b1fba6e672b5f58d083\":8,\"0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7\":8,\"0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e\":8}}}",
 		BlockNumber: 0,
 	}
 	params := poolpkg.CalcAmountOutParams{
@@ -51,6 +52,10 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 
 	pool, err := NewPoolSimulator(entityPool)
 	assert.Nil(t, err)
+
+	pool.wooracle.Timestamp = time.Now().Unix()
+	pool.wooracle.StaleDuration = 300
+	pool.wooracle.Bound = 10000000000000000
 
 	result, err := pool.CalcAmountOut(params)
 
@@ -122,6 +127,10 @@ func TestPoolSimulator_CalcAmountOut_Arithmetic_OverflowUnderflow(t *testing.T) 
 	pool, err := NewPoolSimulator(entityPool)
 	assert.Nil(t, err)
 
+	pool.wooracle.Timestamp = time.Now().Unix()
+	pool.wooracle.StaleDuration = 300
+	pool.wooracle.Bound = 10000000000000000
+
 	_, err = pool.CalcAmountOut(params)
 
 	assert.Equal(t, ErrArithmeticOverflowUnderflow, err)
@@ -174,6 +183,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": 8,
 					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 8,
 				},
+				Timestamp:     time.Now().Unix(),
+				StaleDuration: 300,
+				Bound:         10000000000000000,
 			},
 			params: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -234,6 +246,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": 8,
 					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 8,
 				},
+				Timestamp:     time.Now().Unix(),
+				StaleDuration: 300,
+				Bound:         10000000000000000,
 			},
 			params: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -306,6 +321,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 8,
 					"0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f": 8,
 				},
+				Timestamp:     time.Now().Unix(),
+				StaleDuration: 300,
+				Bound:         10000000000000000,
 			},
 			params: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -405,6 +423,9 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": 8,
 					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 8,
 				},
+				Timestamp:     time.Now().Unix(),
+				StaleDuration: 300,
+				Bound:         10000000000000000,
 			},
 			params: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -455,6 +476,9 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": 8,
 					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 8,
 				},
+				Timestamp:     time.Now().Unix(),
+				StaleDuration: 300,
+				Bound:         10000000000000000,
 			},
 			params: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -517,6 +541,9 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": 8,
 					"0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f": 8,
 				},
+				Timestamp:     time.Now().Unix(),
+				StaleDuration: 300,
+				Bound:         10000000000000000,
 			},
 			params: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{

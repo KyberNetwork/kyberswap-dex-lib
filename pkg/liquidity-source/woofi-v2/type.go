@@ -1,6 +1,7 @@
 package woofiv2
 
 import (
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
@@ -9,12 +10,23 @@ type (
 		QuoteToken string               `json:"quoteToken"`
 		TokenInfos map[string]TokenInfo `json:"tokenInfos"`
 		Wooracle   Wooracle             `json:"wooracle"`
+		Cloracle   map[string]Cloracle  `json:"cloracle"`
 	}
 
 	Wooracle struct {
-		Address  string           `json:"address"`
-		States   map[string]State `json:"states"`
-		Decimals map[string]uint8 `json:"decimals"`
+		Address       string           `json:"address"`
+		States        map[string]State `json:"states"`
+		Decimals      map[string]uint8 `json:"decimals"`
+		Timestamp     int64            `json:"timestamp"`
+		StaleDuration int64            `json:"staleDuration"`
+		Bound         uint64           `json:"bound"`
+	}
+
+	Cloracle struct {
+		OracleAddress common.Address `json:"oracleAddress"`
+		Answer        *uint256.Int   `json:"answer"`
+		UpdatedAt     *uint256.Int   `json:"updatedAt"`
+		CloPreferred  bool           `json:"cloPreferred"`
 	}
 
 	TokenInfo struct {
