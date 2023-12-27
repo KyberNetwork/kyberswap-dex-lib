@@ -175,7 +175,8 @@ func TestCalcAmountOut(t *testing.T) {
 			"staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"MetaStable\",\"poolTypeVersion\":1,\"poolSpecialization\":2,\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
 		  }`
 		var pool entity.Pool
-		json.Unmarshal([]byte(poolStr), &pool)
+		err := json.Unmarshal([]byte(poolStr), &pool)
+		assert.Nil(t, err)
 
 		s, err := NewPoolSimulator(pool)
 		assert.Nil(t, err)
