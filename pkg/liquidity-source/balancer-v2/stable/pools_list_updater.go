@@ -12,7 +12,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
-	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
@@ -175,12 +174,7 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 func _getPoolSpecialization(poolID string) (uint8, error) {
 	// uint256(poolId >> (10 * 8)) & (2**(2 * 8) - 1);
 
-	id, _ := strings.CutPrefix(poolID, "0x")
-	value, ok := new(big.Int).SetString(id, 16)
-	if !ok {
-		return 0, errors.Wrapf(ErrInvalidPoolID, "poolId: %s", poolID)
-	}
-
+	value := new(big.Int).SetBytes(common.FromHex(poolID))
 	value = new(big.Int).And(
 		new(big.Int).Rsh(value, 80),
 		big.NewInt(65535),
