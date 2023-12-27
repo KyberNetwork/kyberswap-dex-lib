@@ -1,5 +1,7 @@
 package woofiv2
 
+import "github.com/ethereum/go-ethereum/common"
+
 const (
 	DexTypeWooFiV2 = "woofi-v2"
 
@@ -25,5 +27,6 @@ const (
 )
 
 var (
-	DefaultGas = Gas{Swap: 125000}
+	DefaultGas  = Gas{Swap: 125000}
+	zeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
 )
