@@ -116,6 +116,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenOut := param.TokenOut
 	var totalGas int64
 
+	for i := range p.Info.Tokens {
+		if p.Info.Reserves[i].Cmp(big.NewInt(0)) <= 0 {
+			return &pool.CalcAmountOutResult{}, errors.New("reserve depleted")
+		}
+	}
+
 	if tokenAmountIn.Token == p.Info.Tokens[0] {
 		if strings.EqualFold(p.Meta.Type, TypeV1Pool) {
 			totalGas = p.gas.SellBaseV1
