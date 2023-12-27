@@ -1,9 +1,9 @@
 package composablestable
 
 import (
-	"encoding/json"
 	"math/big"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

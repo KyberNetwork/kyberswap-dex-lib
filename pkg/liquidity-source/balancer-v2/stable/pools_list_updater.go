@@ -2,7 +2,7 @@ package stable
 
 import (
 	"context"
-	"encoding/json"
+	"math/big"
 	"strings"
 	"time"
 
@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -135,14 +136,25 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 		)
 	}
 
+	poolSpec, err := _getPoolSpecialization(subgraphPool.ID)
+	if err != nil {
+		return entity.Pool{}, err
+	}
+
 	staticExtra := StaticExtra{
-		PoolID:         subgraphPool.ID,
-		PoolType:       subgraphPool.PoolType,
-		PoolTypeVer:    int(subgraphPool.PoolTypeVersion.Int64()),
-		ScalingFactors: scalingFactors,
-		Vault:          vault,
+		PoolID:             subgraphPool.ID,
+		PoolType:           subgraphPool.PoolType,
+		PoolTypeVer:        int(subgraphPool.PoolTypeVersion.Int64()),
+		PoolSpecialization: poolSpec,
+		Vault:              vault,
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
+	if err != nil {
+		return entity.Pool{}, err
+	}
+
+	extra := Extra{ScalingFactors: scalingFactors}
+	extraBytes, err := json.Marshal(extra)
 	if err != nil {
 		return entity.Pool{}, err
 	}
@@ -155,5 +167,18 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, subgraphPool *shared.Su
 		Tokens:      poolTokens,
 		Reserves:    reserves,
 		StaticExtra: string(staticExtraBytes),
+		Extra:       string(extraBytes),
 	}, nil
+}
+
+func _getPoolSpecialization(poolID string) (uint8, error) {
+	// uint256(poolId >> (10 * 8)) & (2**(2 * 8) - 1);
+
+	value := new(big.Int).SetBytes(common.FromHex(poolID))
+	value = new(big.Int).And(
+		new(big.Int).Rsh(value, 80),
+		big.NewInt(65535),
+	)
+
+	return uint8(value.Uint64()), nil
 }

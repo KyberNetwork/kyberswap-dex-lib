@@ -4,9 +4,11 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -139,5 +141,65 @@ func TestCalcAmountOut(t *testing.T) {
 
 		// assert
 		assert.Equal(t, expected, result.TokenAmountOut.Amount.String())
+	})
+
+	t.Run("4. should return OK", func(t *testing.T) {
+		poolStr := `{
+			"address": "0x851523a36690bf267bbfec389c823072d82921a9",
+			"exchange": "balancer-v2-stable",
+			"type": "balancer-v2-stable",
+			"timestamp": 1703667290,
+			"reserves": [
+			  "1152882153159026494",
+			  "873225053252443292"
+			],
+			"tokens": [
+			  {
+				"address": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+				"name": "",
+				"symbol": "",
+				"decimals": 0,
+				"weight": 1,
+				"swappable": true
+			  },
+			  {
+				"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+				"name": "",
+				"symbol": "",
+				"decimals": 0,
+				"weight": 1,
+				"swappable": true
+			  }
+			],
+			"extra": "{\"amp\":\"0xf4240\",\"swapFeePercentage\":\"0x16bcc41e90000\",\"scalingFactors\":[\"0xFFB10F9BCF7D41A\",\"0xde0b6b3a7640000\"],\"paused\":false}",
+			"staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"MetaStable\",\"poolTypeVersion\":1,\"poolSpecialization\":2,\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
+		  }`
+		var pool entity.Pool
+		err := json.Unmarshal([]byte(poolStr), &pool)
+		assert.Nil(t, err)
+
+		s, err := NewPoolSimulator(pool)
+		assert.Nil(t, err)
+
+		tokenAmountIn := poolpkg.TokenAmount{
+			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			Amount: big.NewInt(73183418984294781),
+		}
+		tokenOut := "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0"
+
+		// expected
+		expected := "63551050657042642"
+
+		// actual
+		result, err := s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: tokenAmountIn,
+			TokenOut:      tokenOut,
+		})
+
+		assert.Nil(t, err)
+
+		// assert
+		assert.Equal(t, expected, result.TokenAmountOut.Amount.String())
+
 	})
 }

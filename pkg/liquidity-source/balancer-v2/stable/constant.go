@@ -13,8 +13,11 @@ const (
 	poolMethodGetPausedState            = "getPausedState"
 	poolMethodGetAmplificationParameter = "getAmplificationParameter"
 	poolMethodGetVault                  = "getVault"
+	poolMethodGetScalingFactors         = "getScalingFactors"
 
 	defaultWeight = 1
+
+	poolSpecializationGeneral = 0
 )
 
 var (

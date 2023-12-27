@@ -1,10 +1,10 @@
 package stable
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -17,6 +17,7 @@ var (
 	ErrInvalidSwapFeePercentage = errors.New("invalid swap fee percentage")
 	ErrPoolPaused               = errors.New("pool is paused")
 	ErrInvalidAmp               = errors.New("invalid amp")
+	ErrNotTwoTokens             = errors.New("not two tokens")
 )
 
 type PoolSimulator struct {
@@ -26,10 +27,12 @@ type PoolSimulator struct {
 
 	swapFeePercentage *uint256.Int
 	amp               *uint256.Int
-	scalingFactors    []*uint256.Int
 
-	vault  string
-	poolID string
+	scalingFactors []*uint256.Int
+
+	vault    string
+	poolID   string
+	poolSpec uint8
 
 	poolType    string
 	poolTypeVer int
@@ -72,9 +75,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		paused:            extra.Paused,
 		swapFeePercentage: extra.SwapFeePercentage,
 		amp:               extra.Amp,
-		scalingFactors:    staticExtra.ScalingFactors,
+		scalingFactors:    extra.ScalingFactors,
 		vault:             staticExtra.Vault,
 		poolID:            staticExtra.PoolID,
+		poolSpec:          staticExtra.PoolSpecialization,
 		poolType:          staticExtra.PoolType,
 		poolTypeVer:       staticExtra.PoolTypeVer,
 	}, nil
@@ -86,16 +90,18 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrPoolPaused
 	}
 
-	tokenAmountIn := params.TokenAmountIn
-	tokenOut := params.TokenOut
+	// NOTE: if pool specialization is not "General", then the pool must have 2 tokens
+	// https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F1#L130
+	if s.poolSpec != poolSpecializationGeneral && len(s.Info.Tokens) != 2 {
+		return nil, ErrNotTwoTokens
+	}
+
+	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
 
 	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
 	if indexIn == -1 || indexOut == -1 {
 		return nil, ErrTokenNotRegistered
 	}
-
-	scalingFactorTokenIn := s.scalingFactors[indexIn]
-	scalingFactorTokenOut := s.scalingFactors[indexOut]
 
 	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
 	if overflow {
@@ -109,7 +115,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	if err != nil {
 		return nil, err
 	}
-	upScaledAmountIn, err := _upscale(amountInAfterFee, scalingFactorTokenIn)
+	amountIn, err = _upscale(amountInAfterFee, s.scalingFactors[indexIn])
 	if err != nil {
 		return nil, err
 	}
@@ -124,10 +130,10 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	upScaledAmountOut, err := math.StableMath.CalcOutGivenIn(
+	amountOut, err := math.StableMath.CalcOutGivenIn(
 		invariant,
 		s.amp,
-		upScaledAmountIn,
+		amountIn,
 		balances,
 		indexIn,
 		indexOut,
@@ -136,7 +142,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	amountOut, err := _downscaleDown(upScaledAmountOut, scalingFactorTokenOut)
+	amountOut, err = _downscaleDown(amountOut, s.scalingFactors[indexOut])
 	if err != nil {
 		return nil, err
 	}
