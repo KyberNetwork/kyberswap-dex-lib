@@ -90,6 +90,8 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrPoolPaused
 	}
 
+	// NOTE: if pool specialization is not "General", then the pool must have 2 tokens
+	// https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F1#L130
 	if s.poolSpec != poolSpecializationGeneral && len(s.Info.Tokens) != 2 {
 		return nil, ErrNotTwoTokens
 	}
@@ -118,7 +120,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	balances, err := s.initParamBalances(indexIn, indexOut)
+	balances, err := _upscaleArray(s.Info.Reserves, s.scalingFactors)
 	if err != nil {
 		return nil, err
 	}
@@ -156,28 +158,6 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		},
 		Gas: defaultGas.Swap,
 	}, nil
-}
-
-func (s *PoolSimulator) initParamBalances(indexIn, indexOut int) ([]*uint256.Int, error) {
-	var (
-		reserves       []*big.Int
-		scalingFactors []*uint256.Int
-	)
-
-	if s.poolSpec == poolSpecializationGeneral {
-		reserves = s.Info.Reserves
-		scalingFactors = s.scalingFactors
-	} else {
-		reserves = make([]*big.Int, 2)
-		reserves[indexIn] = s.Info.Reserves[indexIn]
-		reserves[indexOut] = s.Info.Reserves[indexOut]
-
-		scalingFactors = make([]*uint256.Int, 2)
-		scalingFactors[indexIn] = s.scalingFactors[indexIn]
-		scalingFactors[indexOut] = s.scalingFactors[indexOut]
-	}
-
-	return _upscaleArray(reserves, scalingFactors)
 }
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
