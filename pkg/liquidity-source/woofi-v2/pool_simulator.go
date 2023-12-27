@@ -522,7 +522,7 @@ func (s *PoolSimulator) _wooracleV2Price(base string) (*uint256.Int, bool) {
 // WooracleV2._cloPriceInQuote
 // https://github.com/woonetwork/WooPoolV2/blob/fb94e2bf4882f51340c66357e8c566edc2a767a9/contracts/wooracle/WooracleV2.sol#L304-L325
 func (s *PoolSimulator) _wooracleCloPriceInQuote(fromToken string, toToken string) (*uint256.Int, int64) {
-	if _, ok := s.cloracle[fromToken]; !ok {
+	if v, ok := s.cloracle[fromToken]; !ok || v.OracleAddress.Cmp(zeroAddress) == 0 {
 		return number.Zero, 0
 	}
 
