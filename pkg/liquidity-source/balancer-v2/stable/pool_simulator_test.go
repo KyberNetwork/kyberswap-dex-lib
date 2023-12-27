@@ -148,7 +148,7 @@ func TestCalcAmountOut(t *testing.T) {
 			"address": "0x851523a36690bf267bbfec389c823072d82921a9",
 			"exchange": "balancer-v2-stable",
 			"type": "balancer-v2-stable",
-			"timestamp": 1703665632,
+			"timestamp": 1703667290,
 			"reserves": [
 			  "1152882153159026494",
 			  "873225053252443292"
@@ -171,8 +171,8 @@ func TestCalcAmountOut(t *testing.T) {
 				"swappable": true
 			  }
 			],
-			"extra": "{\"amp\":\"0xf4240\",\"swapFeePercentage\":\"0x16bcc41e90000\",\"dynamicScalingFactors\":[\"0xFFB10F9BCF7D41A\",\"0xde0b6b3a7640000\"],\"paused\":false}",
-			"staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"MetaStable\",\"poolTypeVersion\":1,\"scalingFactors\":[\"0xde0b6b3a7640000\",\"0xde0b6b3a7640000\"],\"poolSpecialization\":2,\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
+			"extra": "{\"amp\":\"0xf4240\",\"swapFeePercentage\":\"0x16bcc41e90000\",\"scalingFactors\":[\"0xFFB10F9BCF7D41A\",\"0xde0b6b3a7640000\"],\"paused\":false}",
+			"staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"MetaStable\",\"poolTypeVersion\":1,\"poolSpecialization\":2,\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
 		  }`
 		var pool entity.Pool
 		json.Unmarshal([]byte(poolStr), &pool)
