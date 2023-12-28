@@ -54,7 +54,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		Method: lensMethodQueryPool,
 		Params: []interface{}{common.HexToAddress(p.Address)},
 	}, []interface{}{&poolDataResp})
-	resp, err := req.Call()
+	resp, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId": d.cfg.DexID,
