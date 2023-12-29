@@ -73,6 +73,54 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			},
 			wantErr: nil,
 		},
+		{
+			name: "it should return result correctly",
+			fields: fields{
+				entityPool: entity.Pool{
+					Exchange:  "kyberswap",
+					Type:      "dmm",
+					Timestamp: 1685615099,
+					Reserves:  entity.PoolReserves{"60677330", "10587210000000000"},
+					Tokens: entity.PoolTokens{
+						{
+							Address:   "0x3355df6d4c9c3035724fd0e3914de96a5a83aaf4",
+							Weight:    50,
+							Swappable: true,
+						},
+						{
+							Address:   "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91",
+							Weight:    50,
+							Swappable: true,
+						},
+					},
+					Extra:        "{\"vReserves\":[\"1213546600\",\"211744200000000000\"],\"feeInPrecision\":\"80000000000000\"}",
+					ReserveUsd:   100000,
+					AmplifiedTvl: 100000,
+				},
+			},
+			args: args{
+				tokenAmountIn: pool.TokenAmount{
+					Token:     "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91",
+					Amount:    big.NewInt(2367951447046257),
+					AmountUsd: 0,
+				},
+				tokenOut: "0x3355df6d4c9c3035724fd0e3914de96a5a83aaf4",
+			},
+			want: &pool.CalcAmountOutResult{
+				TokenAmountOut: &pool.TokenAmount{
+					Token:     "0x3355df6d4c9c3035724fd0e3914de96a5a83aaf4",
+					Amount:    big.NewInt(13420032),
+					AmountUsd: 0,
+				},
+				Fee: &pool.TokenAmount{
+					Token:     "0x3355df6d4c9c3035724fd0e3914de96a5a83aaf4",
+					Amount:    nil,
+					AmountUsd: 0,
+				},
+				Gas: 65000,
+			},
+			wantErr: nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t1 *testing.T) {
