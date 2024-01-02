@@ -121,20 +121,15 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrOverflow
 	}
 
-	balances := make([]*uint256.Int, len(s.Info.Reserves))
-	for i, reserve := range s.Info.Reserves {
-		r, overflow := uint256.FromBig(reserve)
-		if overflow {
-			return nil, ErrOverflow
-		}
-		balances[i] = r
+	balances, err := initBalances(s.Info.Reserves)
+	if err != nil {
+		return nil, err
 	}
 
 	var (
 		amountOut *uint256.Int
 		fee       *poolpkg.TokenAmount
 		swapInfo  *SwapInfo
-		err       error
 	)
 	if tokenAmountIn.Token == s.Info.Address || tokenOut == s.Info.Address {
 		amountOut, fee, swapInfo, err = s.bptSimulator.swap(amountIn, balances, indexIn, indexOut)
@@ -172,6 +167,37 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	}
 
 	s.regularSimulator.updateBalance(params)
+}
+
+func (s *PoolSimulator) ExitExactBPTInForTokensOut(bptAmount *big.Int) ([]*poolpkg.TokenAmount, error) {
+	balances, err := initBalances(s.Info.Reserves)
+	if err != nil {
+		return nil, err
+	}
+
+	bptAmountU256, overflow := uint256.FromBig(bptAmount)
+	if overflow {
+		return nil, ErrOverflow
+	}
+
+	amountsOut, err := s.bptSimulator.exitExactBPTInForTokensOut(balances, bptAmountU256)
+	if err != nil {
+		return nil, err
+	}
+
+	tokenAmounts := make([]*poolpkg.TokenAmount, len(amountsOut))
+	for i, token := range s.Info.Tokens {
+		tokenAmounts[i] = &poolpkg.TokenAmount{
+			Token:  token,
+			Amount: amountsOut[i].ToBig(),
+		}
+	}
+
+	return tokenAmounts, nil
+}
+
+func (s *PoolSimulator) IsPaused() bool {
+	return s.paused
 }
 
 func _downscaleDown(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
@@ -213,4 +239,16 @@ func _skipBptIndex(index int, bptIndex int) int {
 		return index
 	}
 	return index - 1
+}
+
+func initBalances(reserves []*big.Int) ([]*uint256.Int, error) {
+	balances := make([]*uint256.Int, len(reserves))
+	for i, reserve := range reserves {
+		r, overflow := uint256.FromBig(reserve)
+		if overflow {
+			return nil, ErrOverflow
+		}
+		balances[i] = r
+	}
+	return balances, nil
 }
