@@ -339,7 +339,7 @@ func BenchmarkNextActive(b *testing.B) {
 	require.Nil(b, err)
 
 	for i := 0; i < b.N; i++ {
-		_, err = maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
+		_, _ = maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{
 				Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 				Amount: bignumber.NewBig10("1000000000"),
