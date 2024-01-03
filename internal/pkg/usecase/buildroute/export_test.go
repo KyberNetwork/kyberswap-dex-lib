@@ -12,17 +12,16 @@ func NewUnsignedTransaction(sender string, recipient string, data string,
 	value *big.Int, gasPrice *big.Int) UnsignedTransaction {
 	return UnsignedTransaction{
 		sender,
-		recipient,
 		data,
 		value,
 		nil,
 	}
 }
 
-func ConvertTransactionToMsg(tx UnsignedTransaction) ethereum.CallMsg {
+func ConvertTransactionToMsg(tx UnsignedTransaction, routerAddress string) ethereum.CallMsg {
 	var (
 		from           = common.HexToAddress(tx.sender)
-		to             = common.HexToAddress(tx.recipient)
+		to             = common.HexToAddress(routerAddress)
 		encodedData, _ = hexutil.Decode(tx.data)
 	)
 	return ethereum.CallMsg{

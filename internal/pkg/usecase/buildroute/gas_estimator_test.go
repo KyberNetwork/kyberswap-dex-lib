@@ -28,14 +28,15 @@ func TestGasEstimator(t *testing.T) {
 			name: "it should return correct gas",
 			input: NewUnsignedTransaction(
 				"0xc7198437980c041c805a1edcba50c1ce5db95118",
-				"0xc7198437980c041c805a1edcba50c1ce5db95118",
+				"0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
 				"0xc7198437980c041c805a1edcba50c1ce5db95118",
 				big.NewInt(123),
 				big.NewInt(123),
 			),
 			prepare: func(ctrl *gomock.Controller, tx UnsignedTransaction) *GasEstimator {
 				ethEstimator := mocks.NewMockIEthereumGasEstimator(ctrl)
-				ethEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx))).
+				routerAddress := "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+				ethEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx, routerAddress))).
 					Return(uint64(123), nil).Times(1)
 				gasRep := mocks.NewMockIGasRepository(ctrl)
 				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Return(big.NewInt(2), nil)
@@ -47,7 +48,7 @@ func TestGasEstimator(t *testing.T) {
 				}
 				priceRepo := mocks.NewMockIPriceRepository(ctrl)
 				priceRepo.EXPECT().FindByAddresses(gomock.Any(), []string{priceTokenAddress}).Return(prices, nil)
-				return NewGasEstimator(ethEstimator, gasRep, priceRepo, priceTokenAddress)
+				return NewGasEstimator(ethEstimator, gasRep, priceRepo, priceTokenAddress, routerAddress)
 			},
 			wantedGas:    uint64(123),
 			wantedGasUSD: utils.CalcGasUsd(big.NewFloat(2), int64(123), 0.5),
@@ -57,15 +58,16 @@ func TestGasEstimator(t *testing.T) {
 			name: "it should return valid gas when sender address is empty",
 			input: NewUnsignedTransaction(
 				"",
-				"0xc7198437980c041c805a1edcba50c1ce5db95118",
+				"0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
 				"0xc7198437980c041c805a1edcba50c1ce5db95118",
 				big.NewInt(123),
 				big.NewInt(123),
 			),
 			prepare: func(ctrl *gomock.Controller, tx UnsignedTransaction) *GasEstimator {
 				ethEstimator := mocks.NewMockIEthereumGasEstimator(ctrl)
+				routerAddress := "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
 				ethEstimator.EXPECT().EstimateGas(
-					gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx))).
+					gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx, routerAddress))).
 					Return(uint64(123), nil).Times(1)
 				gasRep := mocks.NewMockIGasRepository(ctrl)
 				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Return(big.NewInt(2), nil)
@@ -77,7 +79,7 @@ func TestGasEstimator(t *testing.T) {
 				}
 				priceRepo := mocks.NewMockIPriceRepository(ctrl)
 				priceRepo.EXPECT().FindByAddresses(gomock.Any(), []string{priceTokenAddress}).Return(prices, nil)
-				return NewGasEstimator(ethEstimator, gasRep, priceRepo, priceTokenAddress)
+				return NewGasEstimator(ethEstimator, gasRep, priceRepo, priceTokenAddress, routerAddress)
 			},
 			wantedGas:    uint64(123),
 			wantedGasUSD: utils.CalcGasUsd(big.NewFloat(2), int64(123), 0.5),
@@ -87,21 +89,22 @@ func TestGasEstimator(t *testing.T) {
 			name: "it should return error when repository return error",
 			input: NewUnsignedTransaction(
 				"0xc7198437980c041c805a1edcba50c1ce5db95118",
-				"0xc7198437980c041c805a1edcba50c1ce5db95118",
+				"0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
 				"0xc7198437980c041c805a1edcba50c1ce5db95118",
 				big.NewInt(123),
 				big.NewInt(123),
 			),
 			prepare: func(ctrl *gomock.Controller, tx UnsignedTransaction) *GasEstimator {
 				ethEstimator := mocks.NewMockIEthereumGasEstimator(ctrl)
+				routerAddress := "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
 				ethEstimator.EXPECT().EstimateGas(
-					gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx))).
+					gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx, routerAddress))).
 					Return(uint64(0), mockError).Times(1)
 				gasRep := mocks.NewMockIGasRepository(ctrl)
 				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Times(0)
 				priceRepo := mocks.NewMockIPriceRepository(ctrl)
 				priceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Times(0)
-				return NewGasEstimator(ethEstimator, gasRep, priceRepo, "0xc7198437980c041c805a1edcba50c1ce5db95118")
+				return NewGasEstimator(ethEstimator, gasRep, priceRepo, "0xc7198437980c041c805a1edcba50c1ce5db95118", routerAddress)
 			},
 			wantedGas:    0,
 			wantedGasUSD: 0.0,
@@ -111,20 +114,21 @@ func TestGasEstimator(t *testing.T) {
 			name: "it should return error when data is empty",
 			input: NewUnsignedTransaction(
 				"0xc7198437980c041c805a1edcba50c1ce5db95118",
-				"0xc7198437980c041c805a1edcba50c1ce5db95118",
+				"0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
 				"",
 				big.NewInt(123),
 				big.NewInt(123),
 			),
 			prepare: func(ctrl *gomock.Controller, tx UnsignedTransaction) *GasEstimator {
+				routerAddress := "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
 				ethEstimator := mocks.NewMockIEthereumGasEstimator(ctrl)
 				ethEstimator.EXPECT().EstimateGas(
-					gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx))).Times(0)
+					gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx, routerAddress))).Times(0)
 				gasRep := mocks.NewMockIGasRepository(ctrl)
 				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Times(0)
 				priceRepo := mocks.NewMockIPriceRepository(ctrl)
 				priceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Times(0)
-				return NewGasEstimator(ethEstimator, gasRep, priceRepo, "0xc7198437980c041c805a1edcba50c1ce5db95118")
+				return NewGasEstimator(ethEstimator, gasRep, priceRepo, "0xc7198437980c041c805a1edcba50c1ce5db95118", routerAddress)
 			},
 			wantedGas:   0,
 			wantedError: errors.New("empty hex string"),
@@ -133,20 +137,21 @@ func TestGasEstimator(t *testing.T) {
 			name: "it should return error when get gas price failed",
 			input: NewUnsignedTransaction(
 				"0xc7198437980c041c805a1edcba50c1ce5db95118",
-				"0xc7198437980c041c805a1edcba50c1ce5db95118",
+				"0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
 				"0xc7198437980c041c805a1edcba50c1ce5db95118",
 				big.NewInt(123),
 				big.NewInt(123),
 			),
 			prepare: func(ctrl *gomock.Controller, tx UnsignedTransaction) *GasEstimator {
 				ethEstimator := mocks.NewMockIEthereumGasEstimator(ctrl)
-				ethEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx))).
+				routerAddress := "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+				ethEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx, routerAddress))).
 					Return(uint64(123), nil).Times(1)
 				gasRep := mocks.NewMockIGasRepository(ctrl)
 				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Return(nil, mockError)
 				priceRepo := mocks.NewMockIPriceRepository(ctrl)
 				priceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Times(0)
-				return NewGasEstimator(ethEstimator, gasRep, priceRepo, "0xc7198437980c041c805a1edcba50c1ce5db95118")
+				return NewGasEstimator(ethEstimator, gasRep, priceRepo, "0xc7198437980c041c805a1edcba50c1ce5db95118", routerAddress)
 			},
 			wantedGas:    0,
 			wantedGasUSD: 0.0,
@@ -156,21 +161,22 @@ func TestGasEstimator(t *testing.T) {
 			name: "it should return error when get gas token price failed",
 			input: NewUnsignedTransaction(
 				"0xc7198437980c041c805a1edcba50c1ce5db95118",
-				"0xc7198437980c041c805a1edcba50c1ce5db95118",
+				"0x6131B5fae19EA4f9D964eAc0408E4408b66337b5",
 				"0xc7198437980c041c805a1edcba50c1ce5db95118",
 				big.NewInt(123),
 				big.NewInt(123),
 			),
 			prepare: func(ctrl *gomock.Controller, tx UnsignedTransaction) *GasEstimator {
 				ethEstimator := mocks.NewMockIEthereumGasEstimator(ctrl)
-				ethEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx))).
+				routerAddress := "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+				ethEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Eq(ConvertTransactionToMsg(tx, routerAddress))).
 					Return(uint64(123), nil).Times(1)
 				gasRep := mocks.NewMockIGasRepository(ctrl)
 				gasRep.EXPECT().GetSuggestedGasPrice(gomock.Any()).Return(big.NewInt(2), nil)
 				priceTokenAddress := "0xc7198437980c041c805a1edcba50c1ce5db95118"
 				priceRepo := mocks.NewMockIPriceRepository(ctrl)
 				priceRepo.EXPECT().FindByAddresses(gomock.Any(), []string{priceTokenAddress}).Return(nil, mockError)
-				return NewGasEstimator(ethEstimator, gasRep, priceRepo, priceTokenAddress)
+				return NewGasEstimator(ethEstimator, gasRep, priceRepo, priceTokenAddress, routerAddress)
 			},
 			wantedGas:    0,
 			wantedGasUSD: 0.0,

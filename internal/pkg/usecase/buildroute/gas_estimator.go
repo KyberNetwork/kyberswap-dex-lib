@@ -16,15 +16,15 @@ type GasEstimator struct {
 	gasEstimator    IEthereumGasEstimator
 	gasRepository   IGasRepository
 	priceRepository IPriceRepository
-	GasTokenAddress string
+	gasTokenAddress string
+	routerAddress   string
 }
 
 type UnsignedTransaction struct {
-	sender    string
-	recipient string
-	data      string
-	value     *big.Int
-	gasPrice  *big.Int
+	sender   string
+	data     string
+	value    *big.Int
+	gasPrice *big.Int
 }
 
 type IEthereumGasEstimator interface {
@@ -32,19 +32,20 @@ type IEthereumGasEstimator interface {
 }
 
 func NewGasEstimator(gasEstimator IEthereumGasEstimator, gasRepo IGasRepository,
-	priceRepo IPriceRepository, gasToken string) *GasEstimator {
+	priceRepo IPriceRepository, gasToken string, routerAddress string) *GasEstimator {
 	return &GasEstimator{
 		gasEstimator:    gasEstimator,
 		gasRepository:   gasRepo,
 		priceRepository: priceRepo,
-		GasTokenAddress: gasToken,
+		gasTokenAddress: gasToken,
+		routerAddress:   routerAddress,
 	}
 }
 
 func (e *GasEstimator) EstimateGas(ctx context.Context, tx UnsignedTransaction) (uint64, error) {
 	var (
 		from             = common.HexToAddress(tx.sender)
-		to               = common.HexToAddress(tx.recipient)
+		to               = common.HexToAddress(e.routerAddress)
 		encodedData, err = hexutil.Decode(tx.data)
 	)
 	// We still return error incase data is empty because in router service, every transaction must contain data payload
@@ -79,11 +80,11 @@ func (e *GasEstimator) Execute(ctx context.Context, tx UnsignedTransaction) (uin
 	if err != nil {
 		return 0, 0.0, err
 	}
-	gasTokenPriceUSD, err := e.getPriceUSDByAddress(ctx, e.GasTokenAddress)
+	gasTokenPriceUSD, err := e.getPriceUSDByAddress(ctx, e.gasTokenAddress)
 	if err != nil {
 		return 0, 0.0, err
 	}
-	priceInUSD := utils.CalcGasUsd(gasPrice, int64(estimatedGas), gasTokenPriceUSD[e.GasTokenAddress])
+	priceInUSD := utils.CalcGasUsd(gasPrice, int64(estimatedGas), gasTokenPriceUSD[e.gasTokenAddress])
 
 	return estimatedGas, priceInUSD, nil
 }

@@ -373,7 +373,6 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 	}
 	tx := UnsignedTransaction{
 		command.Sender,
-		command.Recipient,
 		encodedData,
 		value,
 		nil,

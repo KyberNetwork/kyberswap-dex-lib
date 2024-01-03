@@ -434,7 +434,7 @@ func apiAction(c *cli.Context) (err error) {
 		rfqHandlerByPoolType[s.Handler] = rfqHandler
 	}
 
-	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, priceRepository, cfg.Common.GasTokenAddress)
+	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, priceRepository, cfg.Common.GasTokenAddress, cfg.Common.RouterAddress)
 	buildRouteUseCase := buildroute.NewBuildRouteUseCase(
 		tokenRepository,
 		priceRepository,
