@@ -694,33 +694,6 @@ func (s *bptSimulator) updateBalance(params poolpkg.UpdateBalanceParams) {
 	s.lastJoinExit = swapInfo.LastJoinExitData
 }
 
-func (s *bptSimulator) exitExactBPTInForTokensOut(balances []*uint256.Int, bptAmount *uint256.Int) ([]*uint256.Int, error) {
-	balances, err := _upscaleArray(balances, s.scalingFactors)
-	if err != nil {
-		return nil, err
-	}
-
-	preJoinExitSupply, balances, _, _, err := s._beforeJoinExit(balances)
-	if err != nil {
-		return nil, err
-	}
-
-	bptRatio, err := math.FixedPoint.DivDown(bptAmount, preJoinExitSupply)
-	if err != nil {
-		return nil, err
-	}
-
-	amountsOut := make([]*uint256.Int, len(balances))
-	for i := 0; i < len(balances); i++ {
-		amountsOut[i], err = math.FixedPoint.MulDown(balances[i], bptRatio)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return amountsOut, nil
-}
-
 func _adjustedBalance(balance *uint256.Int, cache TokenRateCache) (*uint256.Int, error) {
 	u, err := math.Math.Mul(balance, cache.OldRate)
 	if err != nil {

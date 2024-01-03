@@ -180,24 +180,43 @@ func (s *PoolSimulator) ExitExactBPTInForTokensOut(bptAmount *big.Int) ([]*poolp
 		return nil, ErrOverflow
 	}
 
-	amountsOut, err := s.bptSimulator.exitExactBPTInForTokensOut(balances, bptAmountU256)
+	virtualSupply, balances, err := s.bptSimulator._dropBptItemFromBalances(balances)
 	if err != nil {
 		return nil, err
 	}
 
+	bptRatio, err := math.FixedPoint.DivDown(bptAmountU256, virtualSupply)
+	if err != nil {
+		return nil, err
+	}
+
+	amountsOut := make([]*uint256.Int, len(balances))
+	for i := 0; i < len(balances); i++ {
+		amountsOut[i], err = math.FixedPoint.MulDown(balances[i], bptRatio)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	tokenAmounts := make([]*poolpkg.TokenAmount, len(amountsOut))
 	for i, token := range s.Info.Tokens {
-		tokenAmounts[i] = &poolpkg.TokenAmount{
+		if i == s.bptSimulator.bptIndex {
+			continue
+		}
+
+		idx := _skipBptIndex(i, s.bptSimulator.bptIndex)
+		amount, err := _downscaleDown(amountsOut[idx], s.bptSimulator.scalingFactors[i])
+		if err != nil {
+			return nil, err
+		}
+
+		tokenAmounts[idx] = &poolpkg.TokenAmount{
 			Token:  token,
-			Amount: amountsOut[i].ToBig(),
+			Amount: amount.ToBig(),
 		}
 	}
 
 	return tokenAmounts, nil
-}
-
-func (s *PoolSimulator) IsPaused() bool {
-	return s.paused
 }
 
 func _downscaleDown(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {

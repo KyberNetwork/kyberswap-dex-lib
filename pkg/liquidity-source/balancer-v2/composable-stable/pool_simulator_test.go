@@ -4,10 +4,13 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestRegularSwap(t *testing.T) {
@@ -881,4 +884,50 @@ func TestBptSwap(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 	})
+}
+
+func TestXxx(t *testing.T) {
+	dataJSON := `{
+		"address": "0xd7621e87fea8771e91b7ba75882c21c71a6a24ac",
+		"reserveUsd": 9.995684963654998e-7,
+		"amplifiedTvl": 9.995684963654998e-7,
+		"exchange": "balancer-v2-composable-stable",
+		"type": "balancer-v2-composable-stable",
+		"timestamp": 1704179120,
+		"reserves": [
+		  "500000",
+		  "2596148429267403814265248164610048",
+		  "1"
+		],
+		"tokens": [
+		  {
+			"address": "0x6a7661795c374c0bfc635934efaddff3a7ee23b6",
+			"swappable": true
+		  },
+		  {
+			"address": "0xd7621e87fea8771e91b7ba75882c21c71a6a24ac",
+			"swappable": true
+		  },
+		  {
+			"address": "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+			"swappable": true
+		  }
+		],
+		"extra": "{\"canNotUpdateTokenRates\":false,\"scalingFactors\":[\"0xde0b6b3a7640000\",\"0xde0b6b3a7640000\",\"0xc9f2c9cd04674edea40000000\"],\"bptTotalSupply\":\"0x7fffffffffff7538dcfb76274240\",\"amp\":\"0x30d40\",\"lastJoinExit\":{\"lastJoinExitAmplification\":\"0x30d40\",\"lastPostJoinExitInvariant\":\"0xf4240\"},\"rateProviders\":[\"0x0000000000000000000000000000000000000000\",\"0x0000000000000000000000000000000000000000\",\"0x0000000000000000000000000000000000000000\"],\"tokenRateCaches\":[{\"rate\":null,\"oldRate\":null,\"duration\":null,\"expires\":null},{\"rate\":null,\"oldRate\":null,\"duration\":null,\"expires\":null},{\"rate\":null,\"oldRate\":null,\"duration\":null,\"expires\":null}],\"swapFeePercentage\":\"0x16bcc41e90000\",\"protocolFeePercentageCache\":{\"0\":\"0x0\",\"2\":\"0x0\"},\"isTokenExemptFromYieldProtocolFee\":[false,false,false],\"isExemptFromYieldProtocolFee\":false,\"inRecoveryMode\":true,\"paused\":false}",
+		"staticExtra": "{\"poolId\":\"0xd7621e87fea8771e91b7ba75882c21c71a6a24ac00000000000000000000044f\",\"poolType\":\"ComposableStable\",\"poolTypeVer\":4,\"bptIndex\":1,\"scalingFactors\":[\"0xde0b6b3a7640000\",\"0xde0b6b3a7640000\",\"0xc9f2c9cd04674edea40000000\"],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}",
+		"blockNumber": 166235333
+	  }`
+
+	var pool entity.Pool
+	err := json.Unmarshal([]byte(dataJSON), &pool)
+	assert.Nil(t, err)
+
+	s, err := NewPoolSimulator(pool)
+	assert.Nil(t, err)
+
+	amountsOut, err := s.ExitExactBPTInForTokensOut(bignumber.BONE)
+	assert.Nil(t, err)
+
+	x, _ := json.Marshal(amountsOut)
+	t.Error(string(x))
 }
