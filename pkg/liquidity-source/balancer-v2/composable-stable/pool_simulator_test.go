@@ -886,7 +886,7 @@ func TestBptSwap(t *testing.T) {
 	})
 }
 
-func TestXxx(t *testing.T) {
+func TestExitExactBPTInForTokensOut(t *testing.T) {
 	dataJSON := `{
 		"address": "0xd7621e87fea8771e91b7ba75882c21c71a6a24ac",
 		"reserveUsd": 9.995684963654998e-7,
@@ -928,6 +928,6 @@ func TestXxx(t *testing.T) {
 	amountsOut, err := s.ExitExactBPTInForTokensOut(bignumber.BONE)
 	assert.Nil(t, err)
 
-	x, _ := json.Marshal(amountsOut)
-	t.Error(string(x))
+	assert.Equal(t, amountsOut[0].Amount.String(), "500000000000000000")
+	assert.Equal(t, amountsOut[1].Amount.String(), "1")
 }
