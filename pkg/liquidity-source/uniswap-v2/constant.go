@@ -26,8 +26,9 @@ const (
 )
 
 const (
-	FeeTrackerIDMMF       = "mmf"
-	FeeTrackerIDMdex      = "mdex"
-	FeeTrackerIDShibaswap = "shibaswap"
-	FeeTrackerIDDefiswap  = "defiswap"
+	FeeTrackerIDMMF         = "mmf"
+	FeeTrackerIDMdex        = "mdex"
+	FeeTrackerIDShibaswap   = "shibaswap"
+	FeeTrackerIDDefiswap    = "defiswap"
+	FeeTrackerZkSwapFinance = "zkswap-finance"
 )
