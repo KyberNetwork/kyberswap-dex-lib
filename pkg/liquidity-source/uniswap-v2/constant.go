@@ -30,5 +30,5 @@ const (
 	FeeTrackerIDMdex        = "mdex"
 	FeeTrackerIDShibaswap   = "shibaswap"
 	FeeTrackerIDDefiswap    = "defiswap"
-	FeeTrackerZkSwapFinance = "zkswap-finance"
+	FeeTrackerZKSwapFinance = "zkswap-finance"
 )

@@ -46,7 +46,7 @@ func NewPoolTracker(
 			FeeTrackerIDMdex:        &MDexFeeTracker{ethrpcClient: ethrpcClient},
 			FeeTrackerIDShibaswap:   &ShibaswapFeeTracker{ethrpcClient: ethrpcClient},
 			FeeTrackerIDDefiswap:    &DefiSwapFeeTracker{ethrpcClient: ethrpcClient},
-			FeeTrackerZkSwapFinance: &ZKSwapFinanceFeeTracker{ethrpcClient: ethrpcClient},
+			FeeTrackerZKSwapFinance: &ZKSwapFinanceFeeTracker{ethrpcClient: ethrpcClient},
 		},
 	}, nil
 }
