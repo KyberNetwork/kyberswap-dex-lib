@@ -65,7 +65,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodromev2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/vooi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat"
-	zkswapfinance "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkswap-finance"
 )
 
 type Types struct {
@@ -213,7 +212,6 @@ var (
 		Equalizer:                      equalizer.DexTypeEqualizer,
 		SwapBasedPerp:                  swapbasedperp.DexTypeSwapBasedPerp,
 		USDFi:                          usdfi.DexTypeUSDFi,
-		ZkSwapFinance:                  zkswapfinance.DexTypeZkSwapFinance,
 		MantisSwap:                     mantisswap.DexTypeMantisSwap,
 		Vooi:                           vooi.DexTypeVooi,
 		PolMatic:                       polmatic.DexTypePolMatic,
