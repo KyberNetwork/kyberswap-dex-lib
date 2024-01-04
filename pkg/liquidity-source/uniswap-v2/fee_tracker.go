@@ -59,7 +59,7 @@ func (t *ZKSwapFinanceFeeTracker) GetFee(
 		ABI:    zkSwapFinancePairABI,
 		Target: poolAddress,
 		Method: zkSwapFinancePairMethodGetSwapFee,
-		Params: []interface{}{common.HexToAddress(poolAddress)},
+		Params: nil,
 	}, []interface{}{&fee})
 
 	_, err := getFeeRequest.Call()
