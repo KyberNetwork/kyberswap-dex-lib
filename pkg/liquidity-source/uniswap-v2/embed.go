@@ -19,3 +19,6 @@ var shibaswapPairABIJson []byte
 
 //go:embed abis/CroDefiSwapFactory.json
 var croDefiSwapFactoryABIJson []byte
+
+//go:embed abis/ZFPair.json
+var zkSwapFinancePairABIJson []byte

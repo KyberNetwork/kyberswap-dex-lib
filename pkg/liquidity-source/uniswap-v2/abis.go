@@ -13,6 +13,7 @@ var (
 	mdexFactoryABI        abi.ABI
 	shibaswapPairABI      abi.ABI
 	croDefiSwapFactoryABI abi.ABI
+	zkSwapFinancePairABI  abi.ABI
 )
 
 func init() {
@@ -37,6 +38,9 @@ func init() {
 		},
 		{
 			&croDefiSwapFactoryABI, croDefiSwapFactoryABIJson,
+		},
+		{
+			&zkSwapFinancePairABI, zkSwapFinancePairABIJson,
 		},
 	}
 

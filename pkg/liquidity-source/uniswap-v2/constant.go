@@ -22,6 +22,7 @@ const (
 	mdexFactoryMethodGetPairFees               = "getPairFees"
 	shibaswapPairMethodTotalFee                = "totalFee"
 	croDefiSwapFactoryMethodTotalFeeBasisPoint = "totalFeeBasisPoint"
+	zkSwapFinancePairMethodGetSwapFee          = "getSwapFee"
 )
 
 const (
