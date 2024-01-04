@@ -82,6 +82,10 @@ type FetchRPCResult struct {
 	Reserve1  *big.Int `json:"reserve1"`
 }
 
+type PoolMeta struct {
+	BlockNumber uint64 `json:"blockNumber"`
+}
+
 func transformTickRespToTick(tickResp TickResp) (Tick, error) {
 	liquidityGross := new(big.Int)
 	liquidityGross, ok := liquidityGross.SetString(tickResp.LiquidityGross, 10)
