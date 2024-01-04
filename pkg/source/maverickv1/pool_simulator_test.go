@@ -1,9 +1,11 @@
 package maverickv1_test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
@@ -322,6 +324,27 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 				Amount: bignumber.NewBig10("1000000000000000000"),
 			},
 			TokenOut: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			Limit:    nil,
+		})
+	}
+}
+
+func BenchmarkNextActive(b *testing.B) {
+	poolRedis := "{\"address\":\"0x012245db1919bbb6d727b9ce787c3169f963a898\",\"reserveUsd\":1.3045263641356901,\"amplifiedTvl\":8.068244485638408e+40,\"swapFee\":0.00008,\"exchange\":\"maverick-v1\",\"type\":\"maverick-v1\",\"timestamp\":1704265258,\"reserves\":[\"1171608824435142257\",\"76716840233381\"],\"tokens\":[{\"address\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"decimals\":6,\"weight\":50,\"swappable\":true},{\"address\":\"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2\",\"decimals\":18,\"weight\":50,\"swappable\":true}],\"extra\":\"{\\\"fee\\\":80000000000000,\\\"protocolFeeRatio\\\":0,\\\"activeTick\\\":1502,\\\"binCounter\\\":36,\\\"bins\\\":{\\\"1\\\":{\\\"reserveA\\\":314516285521548227,\\\"reserveB\\\":0,\\\"lowerTick\\\":1500,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"2\\\":{\\\"reserveA\\\":191245215895503843,\\\"reserveB\\\":0,\\\"lowerTick\\\":1501,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"3\\\":{\\\"reserveA\\\":114504301688631519,\\\"reserveB\\\":963774576010,\\\"lowerTick\\\":1502,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"31\\\":{\\\"reserveA\\\":108753991059500386,\\\"reserveB\\\":0,\\\"lowerTick\\\":1500,\\\"kind\\\":2,\\\"mergeId\\\":0},\\\"32\\\":{\\\"reserveA\\\":25486000000000000,\\\"reserveB\\\":0,\\\"lowerTick\\\":1495,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"33\\\":{\\\"reserveA\\\":42126000000000000,\\\"reserveB\\\":0,\\\"lowerTick\\\":1496,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"34\\\":{\\\"reserveA\\\":69628000000000000,\\\"reserveB\\\":0,\\\"lowerTick\\\":1497,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"35\\\":{\\\"reserveA\\\":115099589497454909,\\\"reserveB\\\":0,\\\"lowerTick\\\":1498,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"36\\\":{\\\"reserveA\\\":190249440772503320,\\\"reserveB\\\":0,\\\"lowerTick\\\":1499,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"4\\\":{\\\"reserveA\\\":0,\\\"reserveB\\\":38435140947772,\\\"lowerTick\\\":1503,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"5\\\":{\\\"reserveA\\\":0,\\\"reserveB\\\":23251195184809,\\\"lowerTick\\\":1504,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"6\\\":{\\\"reserveA\\\":0,\\\"reserveB\\\":14066729524731,\\\"lowerTick\\\":1505,\\\"kind\\\":0,\\\"mergeId\\\":0}},\\\"binPositions\\\":{\\\"1495\\\":{\\\"0\\\":32},\\\"1496\\\":{\\\"0\\\":33},\\\"1497\\\":{\\\"0\\\":34},\\\"1498\\\":{\\\"0\\\":35},\\\"1499\\\":{\\\"0\\\":36},\\\"1500\\\":{\\\"0\\\":1,\\\"2\\\":31},\\\"1501\\\":{\\\"0\\\":2},\\\"1502\\\":{\\\"0\\\":3},\\\"1503\\\":{\\\"0\\\":4},\\\"1504\\\":{\\\"0\\\":5},\\\"1505\\\":{\\\"0\\\":6}},\\\"binMap\\\":{\\\"23\\\":5807506497971120465074964654080854589440},\\\"liquidity\\\":1087229757983496926,\\\"sqrtPriceX96\\\":42831515231783862772}\",\"staticExtra\":\"{\\\"tickSpacing\\\":50}\"}"
+	var poolEnt entity.Pool
+	err := json.Unmarshal([]byte(poolRedis), &poolEnt)
+	require.Nil(b, err)
+
+	maverickPool, err := maverickv1.NewPoolSimulator(poolEnt)
+	require.Nil(b, err)
+
+	for i := 0; i < b.N; i++ {
+		_, _ = maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+				Amount: bignumber.NewBig10("1000000000"),
+			},
+			TokenOut: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 			Limit:    nil,
 		})
 	}

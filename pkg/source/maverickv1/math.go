@@ -777,17 +777,23 @@ func nextActive(binMap map[string]*big.Int, tick *big.Int, isRight bool) *big.In
 		if nextWord == nil {
 			nextWord = big.NewInt(0)
 		}
-		if isRight {
-			nextWord = new(big.Int).Rsh(nextWord, uint(shift.Uint64()))
-		} else {
-			nextWord = new(big.Int).Lsh(nextWord, uint(shift.Uint64()))
+		if i == 0 {
+			// after the 1st iteration `shift` will be set to 0, so we can skip this to avoid over allocating
+			if isRight {
+				nextWord = new(big.Int).Rsh(nextWord, uint(shift.Uint64()))
+			} else {
+				nextWord = new(big.Int).Lsh(nextWord, uint(shift.Uint64()))
+			}
 		}
 		nextWord = new(big.Int).And(nextWord, BitMask)
 		if nextWord.Cmp(zeroBI) != 0 {
 			break
 		}
-		shift = big.NewInt(0)
-		mapIndex = new(big.Int).Add(mapIndex, tack)
+		if i == 0 {
+			shift = big.NewInt(0)
+		}
+		// mapIndex already get allocated within `getMapPointer`, so we can safely overwrite it here
+		mapIndex = mapIndex.Add(mapIndex, tack)
 	}
 
 	if nextWord != nil && nextWord.Cmp(zeroBI) != 0 {
