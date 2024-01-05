@@ -68,7 +68,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/vooi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatlsd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatmain"
-	zkswapfinance "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkswap-finance"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -351,8 +350,6 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newSwapBasedPerp(entityPool)
 	case constant.PoolTypes.USDFi:
 		return f.newUSDFi(entityPool)
-	case constant.PoolTypes.ZkSwapFinance:
-		return f.newZkSwapFinance(entityPool)
 	case constant.PoolTypes.MantisSwap:
 		return f.newMantisSwap(entityPool)
 	case constant.PoolTypes.Vooi:
@@ -1010,20 +1007,6 @@ func (f *PoolFactory) newUSDFi(entityPool entity.Pool) (*usdfi.PoolSimulator, er
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newUSDFi] pool: [%s] » type: [%s]",
-			entityPool.Address,
-			entityPool.Type,
-		)
-	}
-
-	return corePool, nil
-}
-
-func (f *PoolFactory) newZkSwapFinance(entityPool entity.Pool) (*zkswapfinance.PoolSimulator, error) {
-	corePool, err := zkswapfinance.NewPoolSimulator(entityPool)
-	if err != nil {
-		return nil, errors.Wrapf(
-			ErrInitializePoolFailed,
-			"[PoolFactory.newZkSwapFinance] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

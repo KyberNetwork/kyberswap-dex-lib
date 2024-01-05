@@ -64,7 +64,6 @@ type types struct {
 	Equalizer                  string
 	SwapBasedPerp              string
 	USDFi                      string
-	ZkSwapFinance              string
 	MantisSwap                 string
 	Vooi                       string
 	PolMatic                   string
@@ -149,7 +148,6 @@ var (
 		Equalizer:                  "equalizer",
 		SwapBasedPerp:              "swapbased-perp",
 		USDFi:                      "usdfi",
-		ZkSwapFinance:              "zkswap-finance",
 		MantisSwap:                 "mantisswap",
 		Vooi:                       "vooi",
 		PolMatic:                   "pol-matic",
