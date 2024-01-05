@@ -19,7 +19,9 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/helper"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -385,7 +387,7 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 			}
 
 			gas, gasUSD, err := uc.gasEstimator.Execute(ctx, tx)
-			uc.sendEstimateGasMetrics(command.RouteSummary, err == nil)
+			uc.sendEstimateGasLogsAndMetrics(ctx, command.RouteSummary, err, command.SlippageTolerance)
 			if err != nil {
 				return 0, 0.0, errors.Wrapf(ErrEstimateGasFailed, "Estimate gas failed due to %s", err.Error())
 			}
@@ -395,7 +397,7 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 			if !utils.IsEmptyString(command.Sender) {
 				go func() {
 					_, err := uc.gasEstimator.EstimateGas(context.Background(), tx)
-					uc.sendEstimateGasMetrics(command.RouteSummary, err == nil)
+					uc.sendEstimateGasLogsAndMetrics(ctx, command.RouteSummary, err, command.SlippageTolerance)
 				}()
 			}
 		}
@@ -405,10 +407,31 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 
 }
 
-func (uc *BuildRouteUseCase) sendEstimateGasMetrics(routeSummary valueobject.RouteSummary, isSuccess bool) {
+func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
+	routeSummary valueobject.RouteSummary, err error, slippage int64) {
+	clientId := clientid.GetClientIDFromCtx(ctx)
+	poolTags := make([]string, 0)
+
 	for _, path := range routeSummary.Route {
 		for _, swap := range path {
-			metrics.IncrEstimateGas(isSuccess, string(swap.Exchange))
+			metrics.IncrEstimateGas(err == nil, string(swap.Exchange), clientId)
+			poolTags = append(poolTags, fmt.Sprintf("%s:%s", swap.Exchange, swap.Pool))
+		}
+	}
+
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"requestId": requestid.GetRequestIDFromCtx(ctx),
+			"clientId":  clientId,
+			"pool":      strings.Join(poolTags, ","),
+		}).Infof("EstimateGas failed error %s", err)
+
+		if strings.Contains(err.Error(), ErrReturnAmountIsNotEnough.Error()) {
+			// send failed metrics with slippage when error is Return amount is not enough
+			metrics.HistogramEstimateGasWithSlippage(float64(slippage), false)
+		} else {
+			// send success metrics with slippage
+			metrics.HistogramEstimateGasWithSlippage(float64(slippage), true)
 		}
 	}
 }

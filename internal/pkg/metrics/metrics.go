@@ -17,14 +17,15 @@ import (
 )
 
 const (
-	DexHitRateMetricsName             = "dex_hit_rate.count"
-	PoolTypeHitRateMetricsName        = "pool_hit_rate.count"
-	RequestPairCountMetricsName       = "request_pair.count"
-	FindRouteCacheCountMetricsName    = "find_route_cache.count"
-	RequestCountMetricsName           = "request.count"
-	InvalidSynthetixVolumeMetricsName = "invalid_synthetix_volume.count"
-	FindRoutePregenHitRateMetricsName = "find_route_pregen.count"
-	EstimateGasStatusMetricsName      = "estimate_gas.count"
+	DexHitRateMetricsName              = "dex_hit_rate.count"
+	PoolTypeHitRateMetricsName         = "pool_hit_rate.count"
+	RequestPairCountMetricsName        = "request_pair.count"
+	FindRouteCacheCountMetricsName     = "find_route_cache.count"
+	RequestCountMetricsName            = "request.count"
+	InvalidSynthetixVolumeMetricsName  = "invalid_synthetix_volume.count"
+	FindRoutePregenHitRateMetricsName  = "find_route_pregen.count"
+	EstimateGasStatusMetricsName       = "estimate_gas.count"
+	EstimateGasWithSlippageMetricsName = "estimate_gas_slippage"
 )
 
 var (
@@ -118,17 +119,29 @@ func IncrInvalidSynthetixVolume() {
 	incr(InvalidSynthetixVolumeMetricsName, nil, 1)
 }
 
-func IncrEstimateGas(isSuccess bool, dexID string) {
+func IncrEstimateGas(isSuccess bool, dexID string, clientId string) {
 	state := "success"
 	if !isSuccess {
 		state = "failed"
 	}
 	tags := map[string]string{
-		"dex_id": dexID,
-		"state":  state,
+		"dex_id":    dexID,
+		"state":     state,
+		"client_id": clientId,
 	}
 
 	incr(EstimateGasStatusMetricsName, tags, 1)
+}
+
+func HistogramEstimateGasWithSlippage(slippage float64, isSuccess bool) {
+	state := "success"
+	if !isSuccess {
+		state = "failed"
+	}
+	tags := map[string]string{
+		"state": state,
+	}
+	histogram(EstimateGasWithSlippageMetricsName, slippage, tags, 1)
 }
 
 func Flush() {

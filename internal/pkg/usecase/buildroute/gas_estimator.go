@@ -6,7 +6,7 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
-	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -63,10 +63,8 @@ func (e *GasEstimator) EstimateGas(ctx context.Context, tx UnsignedTransaction) 
 		Data:       encodedData,
 		AccessList: nil,
 	})
-	if err != nil {
-		logger.Infof("EstimateGas failed error %s", err)
-	}
-	metrics.IncrEstimateGas(err == nil, "allDexes")
+	clientid := clientid.GetClientIDFromCtx(ctx)
+	metrics.IncrEstimateGas(err == nil, "allDexes", clientid)
 
 	return estimatedGas, err
 }
