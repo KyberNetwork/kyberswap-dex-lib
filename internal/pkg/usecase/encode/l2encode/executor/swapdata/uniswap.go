@@ -71,7 +71,10 @@ func UnpackUniswap(data []byte, isFirstSwap bool) (Uniswap, error) {
 }
 
 func buildUniswap(chainID valueobject.ChainID, swap types.L2EncodingSwap) (Uniswap, error) {
-	swapFee := swapdata.GetFee(chainID, swap.Exchange)
+	swapFee, err := swapdata.GetFeeFromPoolExtra(swap.PoolExtra)
+	if err != nil {
+		swapFee = swapdata.GetFee(chainID, swap.Exchange)
+	}
 
 	return Uniswap{
 		PoolMappingID:    swap.PoolMappingID,
