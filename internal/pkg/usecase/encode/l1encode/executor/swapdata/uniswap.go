@@ -43,7 +43,7 @@ func UnpackUniSwap(data []byte) (Uniswap, error) {
 }
 
 func buildUniSwap(chainID valueobject.ChainID, swap types.EncodingSwap) (Uniswap, error) {
-	swapFee, err := GetFeeFromPoolExtra(swap)
+	swapFee, err := GetFeeFromPoolExtra(swap.PoolExtra)
 	if err != nil {
 		swapFee = GetFee(chainID, swap.Exchange)
 	}
