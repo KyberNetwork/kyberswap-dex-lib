@@ -27,7 +27,6 @@ common:
   availableSources: &availableSources
     - "kyberswap"
     - "kyberswap-static"
-    - "kyberswap-elastic"
     - "spookyswap"
     - "spiritswap"
     - "curve"

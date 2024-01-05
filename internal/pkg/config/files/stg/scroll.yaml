@@ -23,7 +23,6 @@ common:
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
     - "kyberswap-static"
-    - "kyberswap-elastic"
     - "skydrome"
     - "spacefi"
     - "scrollswap"

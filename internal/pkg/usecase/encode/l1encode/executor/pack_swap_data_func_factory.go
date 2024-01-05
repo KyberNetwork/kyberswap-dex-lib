@@ -149,11 +149,9 @@ func init() {
 
 	// UniSwapV3ProMM
 	RegisterPackSwapDataFunc(valueobject.ExchangeUniSwapV3, swapdata.PackUniswapV3KSElastic)
-	RegisterPackSwapDataFunc(valueobject.ExchangeKyberswapElastic, swapdata.PackUniswapV3KSElastic)
 	RegisterPackSwapDataFunc(valueobject.ExchangePancakeV3, swapdata.PackUniswapV3KSElastic)
 	RegisterPackSwapDataFunc(valueobject.ExchangeChronosV3, swapdata.PackUniswapV3KSElastic)
 	RegisterPackSwapDataFunc(valueobject.ExchangeRetroV3, swapdata.PackUniswapV3KSElastic)
-	RegisterPackSwapDataFunc(valueobject.ExchangeHorizonDex, swapdata.PackUniswapV3KSElastic)
 	RegisterPackSwapDataFunc(valueobject.ExchangeDoveSwapV3, swapdata.PackUniswapV3KSElastic)
 	RegisterPackSwapDataFunc(valueobject.ExchangeSushiSwapV3, swapdata.PackUniswapV3KSElastic)
 	RegisterPackSwapDataFunc(valueobject.ExchangeRamsesV2, swapdata.PackUniswapV3KSElastic)

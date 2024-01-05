@@ -71,14 +71,12 @@ func init() {
 
 	// executeUniV3KSElastic
 	RegisterFunctionSelector(valueobject.ExchangeChronosV3, FunctionSelectorUniV3KSElastic)
-	RegisterFunctionSelector(valueobject.ExchangeKyberswapElastic, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangePancakeV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeRamsesV2, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeSushiSwapV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeUniSwapV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeArbiDexV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeMMFV3, FunctionSelectorUniV3KSElastic)
-	RegisterFunctionSelector(valueobject.ExchangeHorizonDex, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeDackieV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeBaseSwapV3, FunctionSelectorUniV3KSElastic)
 	RegisterFunctionSelector(valueobject.ExchangeHoriza, FunctionSelectorUniV3KSElastic)

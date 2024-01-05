@@ -26,7 +26,6 @@ common:
   availableSources: &availableSources
     - "kyberswap"
     - "kyberswap-static"
-    - "kyberswap-elastic"
     - "vvs"
     - "cronaswap"
     - "crodex"

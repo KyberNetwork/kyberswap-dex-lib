@@ -14,7 +14,7 @@ import (
 	"github.com/machinebox/graphql"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/elastic-go-sdk/v2/constants"
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/ethrpc"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -171,13 +171,13 @@ func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress stri
 	}
 
 	updateTokens := lo.Filter(candidateTokenOuts, func(item string, idx int) bool {
-		return rpcResponse.Result[idx] && tokenBalances[idx] != nil && tokenBalances[idx].Cmp(constants.Zero) > 0
+		return rpcResponse.Result[idx] && tokenBalances[idx] != nil && tokenBalances[idx].Cmp(integer.Zero()) > 0
 	})
 
 	// missTokens are tokens that have Exchange events,
 	// however executor still does not have 1 wei of them.
 	missTokens := lo.Filter(candidateTokenOuts, func(item string, idx int) bool {
-		return !rpcResponse.Result[idx] || tokenBalances[idx] == nil || tokenBalances[idx].Cmp(constants.Zero) == 0
+		return !rpcResponse.Result[idx] || tokenBalances[idx] == nil || tokenBalances[idx].Cmp(integer.Zero()) == 0
 	})
 
 	logger.WithFields(logger.Fields{
@@ -286,7 +286,7 @@ func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress
 	}
 
 	updatePoolApprovals := lo.Filter(poolApprovalCandidates, func(item dto.PoolApprovalQuery, idx int) bool {
-		return rpcResponse.Result[idx] && poolApprovals[idx] != nil && poolApprovals[idx].Cmp(constants.Zero) > 0
+		return rpcResponse.Result[idx] && poolApprovals[idx] != nil && poolApprovals[idx].Cmp(integer.Zero()) > 0
 	})
 
 	logger.WithFields(logger.Fields{

@@ -38,7 +38,6 @@ common:
   availableSources: &availableSources
     - "kyberswap"
     - "kyberswap-static"
-    - "kyberswap-elastic"
     - "iron-stable"
     - "pangolin"
     - "traderjoe"
