@@ -107,7 +107,9 @@ func (f *spfav2Finder) bestRouteV2(
 		}
 	}
 
-	cmpFunc := func(a, b int) bool { return paths[a].CompareTo(paths[b], input.GasInclude) < 0 }
+	cmpFunc := func(a, b int) bool {
+		return paths[a].CompareTo(paths[b], input.GasInclude && data.PriceUSDByAddress[paths[a].Output.Token] != 0) < 0
+	}
 	sort.Slice(paths, cmpFunc)
 
 	// step 2: Find single-path route
@@ -144,7 +146,7 @@ func (f *spfav2Finder) bestSinglePathRouteV2(
 			continue
 		}
 		path := newPath(input, data, paths[i].PoolAddresses, paths[i].Tokens, tokenAmountIn, false)
-		if path != nil && (bestPath == nil || path.CompareTo(bestPath, input.GasInclude) < 0) {
+		if path != nil && (bestPath == nil || path.CompareTo(bestPath, input.GasInclude && data.PriceUSDByAddress[path.Output.Token] != 0) < 0) {
 			bestPath = path
 		}
 	}

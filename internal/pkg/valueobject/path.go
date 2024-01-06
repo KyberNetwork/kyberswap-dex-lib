@@ -191,6 +191,8 @@ func (p *Path) Merge(other *Path) bool {
 //	-1: if other path is nil or worse than current path
 //	1: if other path is better than current path
 //	0: if other path is same as current path
+//
+// gasInclude should only be true if tokenOut has USD price
 func (p *Path) CompareTo(other *Path, gasInclude bool) int {
 	if other == nil {
 		return -1

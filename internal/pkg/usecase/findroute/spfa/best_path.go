@@ -4,6 +4,7 @@ import (
 	"context"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -44,7 +45,7 @@ func (f *spfaFinder) bestPathExactIn(
 	}
 	var bestPath *valueobject.Path
 	for _, path := range paths {
-		if path != nil && path.CompareTo(bestPath, input.GasInclude) < 0 {
+		if path != nil && path.CompareTo(bestPath, input.GasInclude && data.PriceUSDByAddress[path.Output.Token] != 0) < 0 {
 			bestPath = path
 		}
 	}

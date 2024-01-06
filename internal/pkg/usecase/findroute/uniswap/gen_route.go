@@ -125,7 +125,7 @@ func (f *uniswapFinder) genPathsWithSplitAmountIn(input findroute.Input, data fi
 		}
 		// better path first
 		sort.Slice(splitPaths, func(i, j int) bool {
-			return splitPaths[i].CompareTo(splitPaths[j], input.GasInclude) < 0
+			return splitPaths[i].CompareTo(splitPaths[j], input.GasInclude && data.PriceUSDByAddress[splitPaths[i].Output.Token] != 0) < 0
 		})
 		percentToPath[percent] = splitPaths
 	}
