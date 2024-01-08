@@ -115,6 +115,7 @@ var (
 	ExchangeWagmi            Exchange = "wagmi"
 	ExchangeMetavaultV3      Exchange = "metavault-v3"
 	ExchangeSolidlyV3        Exchange = "solidly-v3"
+	ExchangeZero             Exchange = "zero"
 
 	ExchangeBalancerV2Weighted         Exchange = "balancer-v2-weighted"
 	ExchangeBalancerV2Stable           Exchange = "balancer-v2-stable"
@@ -384,6 +385,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBeethovenXComposableStable: {},
 	ExchangeVelocoreV2CPMM:             {},
 	ExchangeVelocoreV2WombatStable:     {},
+	ExchangeZero:                       {},
 }
 
 func IsAnExchange(exchange Exchange) bool {
