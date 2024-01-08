@@ -468,104 +468,104 @@ func currentTickLiquidity(activeTick *big.Int, state *MaverickPoolState) (*big.I
 }
 
 func tickPrice(tickSpacing *big.Int, activeTick *big.Int) (*big.Int, error) {
-	var tick *big.Int
+	var tick big.Int
 	if activeTick.Cmp(zeroBI) < 0 {
-		tick = new(big.Int).Neg(activeTick)
+		tick.Neg(activeTick)
 	} else {
-		tick = new(big.Int).Set(activeTick)
+		tick.Set(activeTick)
 	}
 
-	tick = new(big.Int).Mul(tick, tickSpacing)
+	tick.Mul(&tick, tickSpacing)
 
-	if tick.Cmp(big.NewInt(int64(MaxTick))) > 0 {
+	if tick.Cmp(MaxTickBI) > 0 {
 		return nil, ErrLargerThanMaxTick
 	}
 
 	var ratio *big.Int
 	if tick.Bit(0) != 0 {
-		ratio = bignumber.NewBig("0xfffcb933bd6fad9d3af5f0b9f25db4d6")
+		ratio = new(big.Int).Set(CompareConst1)
 	} else {
-		ratio = bignumber.NewBig("0x100000000000000000000000000000000")
+		ratio = new(big.Int).Set(CompareConst2)
 	}
 
 	if tick.Bit(1) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0xfff97272373d41fd789c8cb37ffcaa1c"))
+		ratio.Mul(ratio, MulConst1)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(2) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0xfff2e50f5f656ac9229c67059486f389"))
+		ratio.Mul(ratio, MulConst2)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(3) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0xffe5caca7e10e81259b3cddc7a064941"))
+		ratio.Mul(ratio, MulConst3)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(4) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0xffcb9843d60f67b19e8887e0bd251eb7"))
+		ratio.Mul(ratio, MulConst4)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(5) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0xff973b41fa98cd2e57b660be99eb2c4a"))
+		ratio.Mul(ratio, MulConst5)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(6) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0xff2ea16466c9838804e327cb417cafcb"))
+		ratio.Mul(ratio, MulConst6)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(7) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0xfe5dee046a99d51e2cc356c2f617dbe0"))
+		ratio.Mul(ratio, MulConst7)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(8) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0xfcbe86c7900aecf64236ab31f1f9dcb5"))
+		ratio.Mul(ratio, MulConst8)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(9) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0xf987a7253ac4d9194200696907cf2e37"))
+		ratio.Mul(ratio, MulConst9)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(10) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0xf3392b0822b88206f8abe8a3b44dd9be"))
+		ratio.Mul(ratio, MulConst10)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(11) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0xe7159475a2c578ef4f1d17b2b235d480"))
+		ratio.Mul(ratio, MulConst11)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(12) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0xd097f3bdfd254ee83bdd3f248e7e785e"))
+		ratio.Mul(ratio, MulConst12)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(13) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0xa9f746462d8f7dd10e744d913d033333"))
+		ratio.Mul(ratio, MulConst13)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(14) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0x70d869a156ddd32a39e257bc3f50aa9b"))
+		ratio.Mul(ratio, MulConst14)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(15) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0x31be135f97da6e09a19dc367e3b6da40"))
+		ratio.Mul(ratio, MulConst15)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(16) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0x9aa508b5b7e5a9780b0cc4e25d61a56"))
+		ratio.Mul(ratio, MulConst16)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(17) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0x5d6af8dedbcb3a6ccb7ce618d14225"))
+		ratio.Mul(ratio, MulConst17)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(18) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0x2216e584f630389b2052b8db590e"))
+		ratio.Mul(ratio, MulConst18)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(19) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0x48a1703920644d4030024fe"))
+		ratio.Mul(ratio, MulConst19)
 		ratio.Rsh(ratio, 128)
 	}
 	if tick.Bit(20) != 0 {
-		ratio.Mul(ratio, bignumber.NewBig("0x149b34ee7b4532"))
+		ratio.Mul(ratio, MulConst20)
 		ratio.Rsh(ratio, 128)
 	}
 
@@ -755,7 +755,7 @@ func getTickL(
 // ------------- maverick bin map -----------------------
 
 func nextActive(binMap map[string]*big.Int, tick *big.Int, isRight bool) *big.Int {
-	var refTick, shift, tack, nextWord, subIndex, nextTick *big.Int
+	var refTick, shift, tack, subIndex, nextTick *big.Int
 
 	refTick = new(big.Int).Set(tick)
 	if isRight {
@@ -772,20 +772,24 @@ func nextActive(binMap map[string]*big.Int, tick *big.Int, isRight bool) *big.In
 		nextTick = big.NewInt(-1000000000)
 	}
 
+	// we'll use a single bigInt for nextWord through the loop, instead of allocating every times
+	var nextWord big.Int
 	for i := 0; i < 4000; i++ {
-		nextWord = binMap[mapIndex.String()]
-		if nextWord == nil {
-			nextWord = big.NewInt(0)
+		bin := binMap[mapIndex.String()]
+		if bin == nil {
+			nextWord.Set(zeroBI)
+		} else {
+			nextWord.Set(bin)
 		}
 		if i == 0 {
 			// after the 1st iteration `shift` will be set to 0, so we can skip this to avoid over allocating
 			if isRight {
-				nextWord = new(big.Int).Rsh(nextWord, uint(shift.Uint64()))
+				nextWord.Rsh(&nextWord, uint(shift.Uint64()))
 			} else {
-				nextWord = new(big.Int).Lsh(nextWord, uint(shift.Uint64()))
+				nextWord.Lsh(&nextWord, uint(shift.Uint64()))
 			}
 		}
-		nextWord = new(big.Int).And(nextWord, BitMask)
+		nextWord.And(&nextWord, BitMask)
 		if nextWord.Cmp(zeroBI) != 0 {
 			break
 		}
@@ -796,11 +800,11 @@ func nextActive(binMap map[string]*big.Int, tick *big.Int, isRight bool) *big.In
 		mapIndex = mapIndex.Add(mapIndex, tack)
 	}
 
-	if nextWord != nil && nextWord.Cmp(zeroBI) != 0 {
+	if nextWord.Cmp(zeroBI) != 0 {
 		if isRight {
-			subIndex = new(big.Int).Add(lsb(nextWord), shift)
+			subIndex = new(big.Int).Add(lsb(&nextWord), shift)
 		} else {
-			subIndex = new(big.Int).Sub(msb(nextWord), shift)
+			subIndex = new(big.Int).Sub(msb(&nextWord), shift)
 		}
 		posFirst := new(big.Int).Add(new(big.Int).Mul(mapIndex, WordSize), subIndex)
 		pos := new(big.Int).Set(posFirst)
@@ -977,38 +981,39 @@ func sqrt(x *big.Int) *big.Int {
 	// Set the initial guess to the least power of two that is greater than or equal to sqrt(x).
 	xAux := new(big.Int).Set(x)
 	result := big.NewInt(1)
-	if xAux.Cmp(bignumber.NewBig("0x100000000000000000000000000000000")) >= 0 {
+	if xAux.Cmp(XAuxConst64) >= 0 {
 		xAux.Rsh(xAux, 128)
 		result.Lsh(result, 64)
 	}
-	if xAux.Cmp(bignumber.NewBig("0x10000000000000000")) >= 0 {
+	if xAux.Cmp(XAuxConst32) >= 0 {
 		xAux.Rsh(xAux, 64)
 		result.Lsh(result, 32)
 	}
-	if xAux.Cmp(bignumber.NewBig("0x100000000")) >= 0 {
+	if xAux.Cmp(XAuxConst16) >= 0 {
 		xAux.Rsh(xAux, 32)
 		result.Lsh(result, 16)
 	}
-	if xAux.Cmp(bignumber.NewBig("0x10000")) >= 0 {
+	if xAux.Cmp(XAuxConst8) >= 0 {
 		xAux.Rsh(xAux, 16)
 		result.Lsh(result, 8)
 	}
-	if xAux.Cmp(bignumber.NewBig("0x100")) >= 0 {
+	if xAux.Cmp(XAuxConst4) >= 0 {
 		xAux.Rsh(xAux, 8)
 		result.Lsh(result, 4)
 	}
-	if xAux.Cmp(bignumber.NewBig("0x10")) >= 0 {
+	if xAux.Cmp(XAuxConst2) >= 0 {
 		xAux.Rsh(xAux, 4)
 		result.Lsh(result, 2)
 	}
-	if xAux.Cmp(bignumber.NewBig("0x8")) >= 0 {
+	if xAux.Cmp(XAuxConst1) >= 0 {
 		result.Lsh(result, 1)
 	}
 
+	var xDiv big.Int
 	for i := 0; i < 7; i++ { // Seven iterations should be enough
-		xDiv := new(big.Int).Div(x, result)
-		result = new(big.Int).Add(result, xDiv)
-		result = new(big.Int).Rsh(result, 1)
+		xDiv.Div(x, result)
+		result.Add(result, &xDiv)
+		result.Rsh(result, 1)
 	}
 
 	roundedDownResult := new(big.Int).Div(x, result)
@@ -1029,7 +1034,7 @@ func mul(a, b *big.Int) (*big.Int, error) {
 	if new(big.Int).Mod(
 		new(big.Int).Mul(abs(a), abs(b)),
 		Unit,
-	).Cmp(bignumber.NewBig("499999999999999999")) > 0 {
+	).Cmp(MulConst49_17) > 0 {
 		return mulUpFixed(a, b)
 	} else {
 		return sMulDownFixed(a, b)
