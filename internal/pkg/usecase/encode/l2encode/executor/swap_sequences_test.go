@@ -36,9 +36,9 @@ func TestPackingSwapSequences(t *testing.T) {
 						SwapAmount:        swapAmount,
 						AmountOut:         amountOut,
 						LimitReturnAmount: big.NewInt(0),
-						Exchange:          valueobject.ExchangeUniSwapV3,
+						Exchange:          valueobject.ExchangeKyberswapElastic,
 						PoolLength:        2,
-						PoolType:          "uniswapv3",
+						PoolType:          "elastic",
 						PoolExtra:         nil,
 						Extra:             "{}",
 						Flags:             []types.EncodingSwapFlag{{Value: 0x02}},
@@ -49,7 +49,7 @@ func TestPackingSwapSequences(t *testing.T) {
 			},
 			packFunc:        packSwapSequencesNormalMode,
 			executorAddress: "0xcaa00aaf6fbc769d627d825b4faedc3aad880597",
-			expectedResult:  "01010000002902000000683860e93fab18b8e2e52f9be310d9b36b49677a00000000000000000de0b6b3a76400000108",
+			expectedResult:  "01010000002902000000683860e93fab18b8e2e52f9be310d9b36b49677a00000000000000000de0b6b3a76400000008",
 		},
 	}
 

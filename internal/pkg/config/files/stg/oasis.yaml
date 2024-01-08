@@ -23,6 +23,7 @@ common:
   availableSources: &availableSources
     - "kyberswap"
     - "kyberswap-static"
+    - "kyberswap-elastic"
     - "valleyswap"
     - "yuzuswap"
     - "gemkeeper"

@@ -25,6 +25,8 @@ common:
     - "pancake"
     - "syncswap"
     - "echo-dex"
+    - "horizon-dex"
+    - "kyberswap-elastic"
     - "echo-dex-v3"
     - "pancake-v3"
     - "sushiswap-v3"

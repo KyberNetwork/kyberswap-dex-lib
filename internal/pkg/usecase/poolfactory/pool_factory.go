@@ -27,6 +27,7 @@ import (
 	curveTwo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/two"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dodo"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/equalizer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fulcrom"
@@ -282,6 +283,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newSolidlyV3(entityPool)
 	case constant.PoolTypes.Dmm:
 		return f.newDMM(entityPool)
+	case constant.PoolTypes.Elastic:
+		return f.newElastic(entityPool)
 	case constant.PoolTypes.CurveAave:
 		return f.newCurveAAVE(entityPool)
 	case constant.PoolTypes.CurveCompound:
@@ -477,6 +480,20 @@ func (f *PoolFactory) newDMM(entityPool entity.Pool) (*dmm.PoolSimulator, error)
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newDMM] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newElastic(entityPool entity.Pool) (*elastic.PoolSimulator, error) {
+	corePool, err := elastic.NewPoolSimulator(entityPool, f.config.ChainID)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newElastic] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

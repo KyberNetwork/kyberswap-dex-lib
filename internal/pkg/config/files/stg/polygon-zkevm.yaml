@@ -25,6 +25,7 @@ common:
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
     - "doveswap-v3"
+    - "kyberswap-elastic"
     - "kyberswap-static"
     - "pancake-v3"
     - "pancake"

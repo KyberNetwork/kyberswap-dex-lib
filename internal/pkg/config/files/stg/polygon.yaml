@@ -43,6 +43,7 @@ common:
   availableSources: &availableSources
     - "kyberswap"
     - "kyberswap-static"
+    - "kyberswap-elastic"
     - "uniswapv3"
     - "sushiswap"
     - "quickswap"

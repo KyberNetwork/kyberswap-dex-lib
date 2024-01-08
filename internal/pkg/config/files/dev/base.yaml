@@ -29,6 +29,8 @@ common:
     - "sushiswap-v3"
     - "maverick-v1"
     - "bvm"
+    - "kyberswap-elastic"
+    - "horizon-dex"
     - "baso"
     - "synthswap-v3"
     - "synthswap"

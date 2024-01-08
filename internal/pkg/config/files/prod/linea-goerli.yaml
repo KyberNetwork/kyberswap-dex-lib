@@ -18,6 +18,7 @@ common:
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
     - "kyberswap"
+    - "kyberswap-elastic"
     - "echo-dex"
   featureFlags: &featureFlags
 log:

@@ -101,6 +101,7 @@ var (
 		Polydex:                    "polydex",
 		Firebird:                   "firebird",
 		Dmm:                        "dmm",
+		Elastic:                    "elastic",
 		Saddle:                     "saddle",
 		Nerve:                      "nerve",
 		OneSwap:                    "oneswap",

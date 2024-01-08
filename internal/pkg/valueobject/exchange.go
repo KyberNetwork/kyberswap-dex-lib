@@ -100,19 +100,21 @@ var (
 	ExchangeEllipsis      Exchange = "ellipsis"
 	ExchangeKokonutCrypto Exchange = "kokonut-crypto"
 
-	ExchangeUniSwapV3   Exchange = "uniswapv3"
-	ExchangeChronosV3   Exchange = "chronos-v3"
-	ExchangeRetroV3     Exchange = "retro-v3"
-	ExchangeDoveSwapV3  Exchange = "doveswap-v3"
-	ExchangeSushiSwapV3 Exchange = "sushiswap-v3"
-	ExchangeRamsesV2    Exchange = "ramses-v2"
-	ExchangeDackieV3    Exchange = "dackie-v3"
-	ExchangeHoriza      Exchange = "horiza"
-	ExchangeBaseSwapV3  Exchange = "baseswap-v3"
-	ExchangeArbiDexV3   Exchange = "arbidex-v3"
-	ExchangeWagmi       Exchange = "wagmi"
-	ExchangeMetavaultV3 Exchange = "metavault-v3"
-	ExchangeSolidlyV3   Exchange = "solidly-v3"
+	ExchangeUniSwapV3        Exchange = "uniswapv3"
+	ExchangeKyberswapElastic Exchange = "kyberswap-elastic"
+	ExchangeChronosV3        Exchange = "chronos-v3"
+	ExchangeRetroV3          Exchange = "retro-v3"
+	ExchangeHorizonDex       Exchange = "horizon-dex"
+	ExchangeDoveSwapV3       Exchange = "doveswap-v3"
+	ExchangeSushiSwapV3      Exchange = "sushiswap-v3"
+	ExchangeRamsesV2         Exchange = "ramses-v2"
+	ExchangeDackieV3         Exchange = "dackie-v3"
+	ExchangeHoriza           Exchange = "horiza"
+	ExchangeBaseSwapV3       Exchange = "baseswap-v3"
+	ExchangeArbiDexV3        Exchange = "arbidex-v3"
+	ExchangeWagmi            Exchange = "wagmi"
+	ExchangeMetavaultV3      Exchange = "metavault-v3"
+	ExchangeSolidlyV3        Exchange = "solidly-v3"
 
 	ExchangeBalancerV2Weighted         Exchange = "balancer-v2-weighted"
 	ExchangeBalancerV2Stable           Exchange = "balancer-v2-stable"
@@ -281,6 +283,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeKokonutCrypto:              {},
 	ExchangePancakeStable:              {},
 	ExchangeUniSwapV3:                  {},
+	ExchangeKyberswapElastic:           {},
 	ExchangeChronosV3:                  {},
 	ExchangeRetroV3:                    {},
 	ExchangeDodo:                       {},
@@ -321,6 +324,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSyncSwap:                   {},
 	ExchangeKyberSwapLimitOrder:        {},
 	ExchangeMaverickV1:                 {},
+	ExchangeHorizonDex:                 {},
 	ExchangeRetro:                      {},
 	ExchangeDoveSwapV3:                 {},
 	ExchangeSushiSwapV3:                {},

@@ -38,6 +38,7 @@ common:
   availableSources: &availableSources
     - "curve"
     - "kyberswap-static"
+    - "kyberswap-elastic"
     - "synapse"
     - "uniswapv3"
     - "zipswap"
