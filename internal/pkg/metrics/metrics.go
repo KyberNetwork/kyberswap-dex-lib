@@ -38,6 +38,10 @@ var (
 	findRoutePregenHitRateCounter metric.Float64Counter
 	estimateGasStatusCounter      metric.Float64Counter
 	mapMetricNameToCounter        map[string]metric.Float64Counter
+
+	// histogram metrics
+	estimateGasSlippageHistogram metric.Int64Histogram
+	mapMetricNameToHistogram     map[string]metric.Int64Histogram
 )
 
 func init() {
@@ -49,6 +53,7 @@ func init() {
 	invalidSynthetixVolumeCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(InvalidSynthetixVolumeMetricsName))
 	findRoutePregenHitRateCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(FindRoutePregenHitRateMetricsName))
 	estimateGasStatusCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(EstimateGasStatusMetricsName))
+	estimateGasSlippageHistogram, _ = kybermetric.Meter().Int64Histogram(formatMetricName(EstimateGasWithSlippageMetricsName))
 	mapMetricNameToCounter = map[string]metric.Float64Counter{
 		DexHitRateMetricsName:             dexHitRateCounter,
 		PoolTypeHitRateMetricsName:        poolTypeHitRateCounter,
@@ -58,6 +63,9 @@ func init() {
 		InvalidSynthetixVolumeMetricsName: invalidSynthetixVolumeCounter,
 		FindRoutePregenHitRateMetricsName: findRoutePregenHitRateCounter,
 		EstimateGasStatusMetricsName:      estimateGasStatusCounter,
+	}
+	mapMetricNameToHistogram = map[string]metric.Int64Histogram{
+		EstimateGasWithSlippageMetricsName: estimateGasSlippageHistogram,
 	}
 }
 
@@ -210,7 +218,17 @@ func gauge(name string, value float64, tags map[string]string, rate float64) {
 
 // NOTE: Still keep this unused function in case we further need to use histogram metrics
 // nolint:golint,unused
-func histogram(name string, value float64, tags map[string]string, rate float64) {
+func histogram(name string, value float64, tags map[string]string, rate int64) {
+	if histogramMetric, exist := mapMetricNameToHistogram[name]; histogramMetric != nil && exist {
+		attributes := make([]attribute.KeyValue, 0, len(tags))
+		for key, value := range tags {
+			attributes = append(attributes, attribute.String(key, value))
+		}
+		histogramMetric.Record(context.Background(), rate, metric.WithAttributes(attributes...))
+	} else {
+		logger.Warnf("histogram for %s metrics not found", name)
+	}
+
 	if client == nil {
 		return
 	}
@@ -218,7 +236,7 @@ func histogram(name string, value float64, tags map[string]string, rate float64)
 	ddTags := lo.MapToSlice(tags, func(k, v string) string {
 		return fmt.Sprintf("%s:%s", k, v)
 	})
-	if err := client.Histogram(name, value, ddTags, rate); err != nil {
+	if err := client.Histogram(name, value, ddTags, float64(rate)); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Warnf("failed to push %s metrics", name)
