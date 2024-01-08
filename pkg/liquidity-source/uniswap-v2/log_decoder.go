@@ -47,7 +47,9 @@ func (d *LogDecoder) findLatestSyncEvent(logs []types.Log) types.Log {
 			continue
 		}
 
-		if latestEvent.BlockNumber < log.BlockNumber || (latestEvent.BlockNumber == log.BlockNumber && latestEvent.Index < log.Index) {
+		if latestEvent.BlockNumber < log.BlockNumber ||
+			(latestEvent.BlockNumber == log.BlockNumber && latestEvent.TxIndex < log.TxIndex) ||
+			(latestEvent.BlockNumber == log.BlockNumber && latestEvent.TxIndex == log.TxIndex && latestEvent.Index < log.Index) {
 			latestEvent = log
 		}
 	}
