@@ -755,7 +755,7 @@ func getTickL(
 // ------------- maverick bin map -----------------------
 
 func nextActive(binMap map[string]*big.Int, tick *big.Int, isRight bool) *big.Int {
-	var refTick, shift, tack, nextWord, subIndex, nextTick *big.Int
+	var refTick, shift, tack, subIndex, nextTick *big.Int
 
 	refTick = new(big.Int).Set(tick)
 	if isRight {
@@ -772,20 +772,24 @@ func nextActive(binMap map[string]*big.Int, tick *big.Int, isRight bool) *big.In
 		nextTick = big.NewInt(-1000000000)
 	}
 
+	// we'll use a single bigInt for nextWord through the loop, instead of allocating every times
+	var nextWord big.Int
 	for i := 0; i < 4000; i++ {
-		nextWord = binMap[mapIndex.String()]
-		if nextWord == nil {
-			nextWord = big.NewInt(0)
+		bin := binMap[mapIndex.String()]
+		if bin == nil {
+			nextWord.Set(zeroBI)
+		} else {
+			nextWord.Set(bin)
 		}
 		if i == 0 {
 			// after the 1st iteration `shift` will be set to 0, so we can skip this to avoid over allocating
 			if isRight {
-				nextWord = new(big.Int).Rsh(nextWord, uint(shift.Uint64()))
+				nextWord.Rsh(&nextWord, uint(shift.Uint64()))
 			} else {
-				nextWord = new(big.Int).Lsh(nextWord, uint(shift.Uint64()))
+				nextWord.Lsh(&nextWord, uint(shift.Uint64()))
 			}
 		}
-		nextWord = new(big.Int).And(nextWord, BitMask)
+		nextWord.And(&nextWord, BitMask)
 		if nextWord.Cmp(zeroBI) != 0 {
 			break
 		}
@@ -796,11 +800,11 @@ func nextActive(binMap map[string]*big.Int, tick *big.Int, isRight bool) *big.In
 		mapIndex = mapIndex.Add(mapIndex, tack)
 	}
 
-	if nextWord != nil && nextWord.Cmp(zeroBI) != 0 {
+	if nextWord.Cmp(zeroBI) != 0 {
 		if isRight {
-			subIndex = new(big.Int).Add(lsb(nextWord), shift)
+			subIndex = new(big.Int).Add(lsb(&nextWord), shift)
 		} else {
-			subIndex = new(big.Int).Sub(msb(nextWord), shift)
+			subIndex = new(big.Int).Sub(msb(&nextWord), shift)
 		}
 		posFirst := new(big.Int).Add(new(big.Int).Mul(mapIndex, WordSize), subIndex)
 		pos := new(big.Int).Set(posFirst)
