@@ -27,6 +27,7 @@ type PoolBaseSimulator struct {
 	LpSupply     *big.Int
 	APrecision   *big.Int
 	gas          Gas
+	numTokensBI  *big.Int
 }
 
 type Gas struct {
@@ -90,6 +91,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolBaseSimulator, error) {
 		LpSupply:     bignumber.NewBig10(entityPool.Reserves[numTokens]),
 		APrecision:   aPrecision,
 		gas:          DefaultGas,
+		numTokensBI:  big.NewInt(int64(numTokens)),
 	}, nil
 }
 
