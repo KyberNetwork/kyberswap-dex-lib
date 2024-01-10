@@ -93,3 +93,30 @@ func TestCalcAmountOut_interpolate_from_initialA_and_futureA(t *testing.T) {
 	assert.Equal(t, big.NewInt(509863), out.TokenAmountOut.Amount)
 	assert.Equal(t, big.NewInt(153), out.Fee.Amount)
 }
+
+func BenchmarkCalcAmountOut(b *testing.B) {
+	p, err := NewPoolSimulator(entity.Pool{
+		Exchange: "",
+		Type:     "",
+		Reserves: entity.PoolReserves{"101940884", "107546110", "208092128367874420986"},
+		Tokens:   []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
+		Extra: fmt.Sprintf("{\"swapFee\": \"%v\", \"adminFee\": \"%v\", \"initialA\": \"%v\", \"futureA\": \"%v\"}",
+			"3000000",    // 0.0003
+			"5000000000", // 0.5
+			150000, 150000),
+		StaticExtra: fmt.Sprintf("{\"lpToken\": \"LP\", \"aPrecision\": \"%v\", \"precisionMultipliers\": [\"%v\", \"%v\"], \"rates\": [\"%v\", \"%v\"]}",
+			"100",
+			"1000000000000", "1000000000000",
+			"1000000000000000000000000000000", "1000000000000000000000000000000"),
+	})
+	require.Nil(b, err)
+
+	for i := 0; i < b.N; i++ {
+		_, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: "A", Amount: big.NewInt(5000)},
+			TokenOut:      "B",
+			Limit:         nil,
+		})
+		require.Nil(b, err)
+	}
+}
