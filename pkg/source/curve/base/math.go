@@ -100,18 +100,18 @@ func (t *PoolBaseSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 		D: uint256 = S
 		Ann: uint256 = amp * N_COINS
 		for _i in range(255):
-				D_P: uint256 = D
-				for _x in xp:
-						D_P = D_P * D / (_x * N_COINS)  # If division by 0, this will be borked: only withdrawal will work. And that is good
-				Dprev = D
-				D = (Ann * S / A_PRECISION + D_P * N_COINS) * D / ((Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P)
-				# Equality with the precision of 1
-				if D > Dprev:
-						if D - Dprev <= 1:
-								return D
-				else:
-						if Dprev - D <= 1:
-								return D
+		  D_P: uint256 = D
+		  for _x in xp:
+		    D_P = D_P * D / (_x * N_COINS)  # If division by 0, this will be borked: only withdrawal will work. And that is good
+		  Dprev = D
+		  D = (Ann * S / A_PRECISION + D_P * N_COINS) * D / ((Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P)
+		  # Equality with the precision of 1
+		  if D > Dprev:
+		    if D - Dprev <= 1:
+		      return D
+		  else:
+		    if Dprev - D <= 1:
+		      return D
 	*/
 	var d, dP, numTokensPlus1, nA, nA_mul_s_div_APrec, nA_sub_APrec, diff, prevD, tmp1, tmp2, tmp3, tmp4, tmp5 big.Int
 	numTokensPlus1.SetInt64(int64(numTokens + 1))
@@ -232,11 +232,11 @@ func (t *PoolBaseSimulator) getY(
 			y = (y*y + c) / (2 * y + b - D)
 			# Equality with the precision of 1
 			if y > y_prev:
-					if y - y_prev <= 1:
-							return y
+		  	if y - y_prev <= 1:
+		    	return y
 			else:
-					if y_prev - y <= 1:
-							return y
+		  	if y_prev - y <= 1:
+		    	return y
 	*/
 	var tmp big.Int
 	var yPrev big.Int
