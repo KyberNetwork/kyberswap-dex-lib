@@ -57,10 +57,10 @@ func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
 		activeTick = new(big.Int).Sub(state.ActiveTick, bignumber.One)
 	}
 
-	var active = getKindsAtTick(state.BinMap, activeTick)
+	var active = getKindsAtTick(state.BinMap, state.BinMapHex, activeTick)
 
 	if active.Word.Cmp(zeroBI) == 0 {
-		activeTick = nextActive(state.BinMap, activeTick, delta.TokenAIn)
+		activeTick = nextActive(state.BinMap, state.BinMapHex, activeTick, delta.TokenAIn)
 	}
 
 	var currentReserveA, currentReserveB, currentLiquidity *big.Int
@@ -423,7 +423,7 @@ func combine(delta, newDelta *Delta) {
 }
 
 func currentTickLiquidity(activeTick *big.Int, state *MaverickPoolState) (*big.Int, *big.Int, *big.Int, *big.Int, []Bin, error) {
-	var active = getKindsAtTick(state.BinMap, activeTick)
+	var active = getKindsAtTick(state.BinMap, state.BinMapHex, activeTick)
 
 	var reserveA = big.NewInt(0)
 	var reserveB = big.NewInt(0)
@@ -633,7 +633,7 @@ func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount, activeTick *bi
 	}
 
 	// Custom code to update state.Bin
-	var active = getKindsAtTick(state.BinMap, activeTick)
+	var active = getKindsAtTick(state.BinMap, state.BinMapHex, activeTick)
 	bigI := big.NewInt(bin.Kind.Int64())
 	if new(big.Int).And(active.Word, new(big.Int).Lsh(big.NewInt(1), uint(bin.Kind.Int64()))).Cmp(zeroBI) > 0 {
 		if state.BinPositions[activeTick.String()] == nil {
@@ -754,7 +754,7 @@ func getTickL(
 
 // ------------- maverick bin map -----------------------
 
-func nextActive(binMap map[string]*big.Int, tick *big.Int, isRight bool) *big.Int {
+func nextActive(binMap map[string]*big.Int, binMapHex map[string]*big.Int, tick *big.Int, isRight bool) *big.Int {
 	var refTick, shift, tack, subIndex, nextTick *big.Int
 
 	refTick = new(big.Int).Set(tick)
@@ -774,8 +774,13 @@ func nextActive(binMap map[string]*big.Int, tick *big.Int, isRight bool) *big.In
 
 	// we'll use a single bigInt for nextWord through the loop, instead of allocating every times
 	var nextWord big.Int
+	var bin *big.Int
 	for i := 0; i < 4000; i++ {
-		bin := binMap[mapIndex.String()]
+		if len(binMapHex) > 0 {
+			bin = binMapHex[mapIndex.Text(16)]
+		} else {
+			bin = binMap[mapIndex.String()]
+		}
 		if bin == nil {
 			nextWord.Set(zeroBI)
 		} else {
@@ -820,9 +825,14 @@ func nextActive(binMap map[string]*big.Int, tick *big.Int, isRight bool) *big.In
 	return nextTick
 }
 
-func getKindsAtTick(binMap map[string]*big.Int, tick *big.Int) Active {
+func getKindsAtTick(binMap map[string]*big.Int, binMapHex map[string]*big.Int, tick *big.Int) Active {
 	offset, mapIndex := getMapPointer(new(big.Int).Mul(tick, Kinds))
-	subMap := binMap[mapIndex.String()]
+	var subMap *big.Int
+	if len(binMapHex) > 0 {
+		subMap = binMapHex[mapIndex.Text(16)]
+	} else {
+		subMap = binMap[mapIndex.String()]
+	}
 	if subMap == nil {
 		subMap = big.NewInt(0)
 	}
