@@ -113,7 +113,7 @@ func (t *PoolBaseSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 		    if Dprev - D <= 1:
 		      return D
 	*/
-	var d, dP, numTokensPlus1, nA, nA_mul_s_div_APrec, nA_sub_APrec, diff, prevD, tmp1, tmp2, tmp3, tmp4, tmp5 big.Int
+	var d, dP, numTokensPlus1, nA, nA_mul_s_div_APrec, nA_sub_APrec, diff, prevD, tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7 big.Int
 	numTokensPlus1.SetInt64(int64(numTokens + 1))
 	d.Set(s)
 	nA.Mul(a, t.numTokensBI)
@@ -130,15 +130,14 @@ func (t *PoolBaseSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 			// +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
 
 			// nominator
-			dP.Mul(&dP, &d)
+			tmp0.Mul(&dP, &d)
 
 			// denominator
-			tmp1.Set(xp[j])
-			tmp1.Mul(&tmp1, t.numTokensBI)
+			tmp1.Mul(xp[j], t.numTokensBI)
 			tmp1.Add(&tmp1, bignumber.One)
 
 			// update dP
-			dP.Div(&dP, &tmp1)
+			dP.Div(&tmp0, &tmp1)
 		}
 		// Dprev = D
 		prevD.Set(&d)
@@ -146,12 +145,12 @@ func (t *PoolBaseSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 		// D = (Ann * S / A_PRECISION + D_P * N_COINS) * D / ((Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P)
 
 		// nominator
-		tmp2.Add(&nA_mul_s_div_APrec, tmp3.Mul(&dP, t.numTokensBI)) // (Ann * S / A_PRECISION + D_P * N_COINS)
-		tmp2.Mul(&tmp2, &d)                                         // (Ann * S / A_PRECISION + D_P * N_COINS) * D
+		tmp6.Add(&nA_mul_s_div_APrec, tmp3.Mul(&dP, t.numTokensBI)) // (Ann * S / A_PRECISION + D_P * N_COINS)
+		tmp2.Mul(&tmp6, &d)                                         // (Ann * S / A_PRECISION + D_P * N_COINS) * D
 
 		// denominator
-		tmp4.Mul(&nA_sub_APrec, &d)    // (Ann - A_PRECISION) * D
-		tmp4.Div(&tmp4, t.APrecision)  // (Ann - A_PRECISION) * D / A_PRECISION
+		tmp7.Mul(&nA_sub_APrec, &d)    // (Ann - A_PRECISION) * D
+		tmp4.Div(&tmp7, t.APrecision)  // (Ann - A_PRECISION) * D / A_PRECISION
 		tmp5.Mul(&dP, &numTokensPlus1) // (N_COINS + 1) * D_P
 		tmp4.Add(&tmp4, &tmp5)         // (Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P
 
@@ -238,7 +237,7 @@ func (t *PoolBaseSimulator) getY(
 		  	if y_prev - y <= 1:
 		    	return y
 	*/
-	var tmp big.Int
+	var tmp, tmp1 big.Int
 	var yPrev big.Int
 	var y big.Int
 	y.Set(d)
@@ -248,15 +247,15 @@ func (t *PoolBaseSimulator) getY(
 		yPrev.Set(&y)
 
 		// y = (y*y + c) / (2 * y + b - D)
-		// first calc denominator into tmp (before changing y)
+		// first calc denominator into tmp
 		tmp.Mul(&y, bignumber.Two)
 		tmp.Add(&tmp, b)
 		tmp.Sub(&tmp, d)
-		// then calc nominator into y itself
-		y.Mul(&y, &y)
-		y.Add(&y, c)
+		// then calc nominator into tmp1
+		tmp1.Mul(&y, &y)
+		tmp1.Add(&tmp1, c)
 		// then the whole y
-		y.Div(&y, &tmp)
+		y.Div(&tmp1, &tmp)
 
 		// calc abs(y - y_prev) and compare against 1
 		diff.Sub(&y, &yPrev)
