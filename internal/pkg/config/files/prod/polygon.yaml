@@ -286,7 +286,7 @@ useCase:
     pathGeneratorDataTtl: 2h
     maintainingInterval: 360s
   trackExecutor:
-    subgraphURL: https://polygon-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-polygon
+    subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-polygon
 job:
   indexPools:
     interval: 2s
