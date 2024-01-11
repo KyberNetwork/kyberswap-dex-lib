@@ -620,15 +620,19 @@ func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount, activeTick *bi
 
 	if delta.TokenAIn {
 		bin.ReserveA = new(big.Int).Add(bin.ReserveA, deltaIn)
-		bin.ReserveB = big.NewInt(0)
+
 		if delta.Excess.Cmp(zeroBI) <= 0 {
 			bin.ReserveB = clip(bin.ReserveB, deltaOut)
+		} else {
+			bin.ReserveB = big.NewInt(0)
 		}
 	} else {
 		bin.ReserveB = new(big.Int).Add(bin.ReserveB, deltaIn)
-		bin.ReserveA = big.NewInt(0)
+
 		if delta.Excess.Cmp(zeroBI) <= 0 {
 			bin.ReserveA = clip(bin.ReserveA, deltaOut)
+		} else {
+			bin.ReserveA = big.NewInt(0)
 		}
 	}
 
@@ -772,11 +776,18 @@ func nextActive(binMap map[string]*big.Int, binMapHex map[string]*big.Int, tick 
 		nextTick = big.NewInt(-1000000000)
 	}
 
+	binMapCount := len(binMap)
+	binMapHexCount := len(binMapHex)
+	if binMapHexCount == 0 && binMapCount == 0 {
+		// we can never find anything so don't bother going to the expensive loop
+		return nextTick
+	}
+
 	// we'll use a single bigInt for nextWord through the loop, instead of allocating every times
 	var nextWord big.Int
 	var bin *big.Int
 	for i := 0; i < 4000; i++ {
-		if len(binMapHex) > 0 {
+		if binMapHexCount > 0 {
 			bin = binMapHex[mapIndex.Text(16)]
 		} else {
 			bin = binMap[mapIndex.String()]
