@@ -3,8 +3,10 @@ package common
 import (
 	"fmt"
 	"math/big"
+	"sync"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -20,22 +22,39 @@ func BestPathAmongAddedPaths(
 	addedPaths []*valueobject.Path,
 ) (*valueobject.Path, error) {
 	var (
-		bestPath      *valueobject.Path = nil
-		bestAmountOut                   = poolpkg.TokenAmount{
+		bestPath      *valueobject.Path
+		bestAmountOut = poolpkg.TokenAmount{
 			Token:     input.TokenOutAddress,
 			Amount:    constant.Zero,
 			AmountUsd: 0,
 		}
 
-		amountOut poolpkg.TokenAmount
-		err       error
+		err error
+
+		intermediateResults sync.Map // map[int]pookpkg.TokenAmount
+		wg                  errgroup.Group
 	)
 
-	for _, path := range addedPaths {
-		amountOut, _, err = path.CalcAmountOut(data.PoolBucket, tokenAmountIn, data.SwapLimits)
-		if err != nil {
+	for itr, path := range addedPaths {
+		_itr, _path := itr, path
+		wg.Go(func() error {
+			amountOut, _, err := _path.CalcAmountOut(data.PoolBucket, tokenAmountIn, data.SwapLimits)
+			if err != nil {
+				return nil
+			}
+			intermediateResults.Store(_itr, amountOut)
+			return nil
+		})
+	}
+
+	wg.Wait()
+
+	for itr, path := range addedPaths {
+		_amountOut, ok := intermediateResults.Load(itr)
+		if !ok {
 			continue
 		}
+		amountOut := _amountOut.(poolpkg.TokenAmount)
 		// only compare token amount (not AmountUsd) as fee should be disregarded here
 		if amountOut.Token == input.TokenOutAddress && amountOut.Amount.Cmp(bestAmountOut.Amount) > 0 {
 			bestAmountOut = amountOut

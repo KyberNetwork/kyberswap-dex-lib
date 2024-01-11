@@ -4,9 +4,11 @@ import (
 	"context"
 	"math/big"
 	"sort"
+	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -105,17 +107,40 @@ func genNextLayerOfPaths(
 	currentHop uint32,
 	currentLayer map[string][]*nodeInfo,
 ) (map[string][]*nodeInfo, error) {
-	nextLayer := make(map[string][]*nodeInfo)
+	var (
+		intermediateResults sync.Map // map[int][]*nodeInfo
+		wg                  errgroup.Group
+		numItr              int
+	)
+
 	for fromToken, pathsToToken := range currentLayer {
 		for _, fromNodeInfo := range pathsToToken {
-			// get possible path of length currentHop + 1 by traveling one edge/ appending a pool
-			nextNodeInfo, err := getNextLayerFromToken(input, data, tokenToPoolAddresses, hopsToTokenOut, maxHops, currentHop, fromToken, fromNodeInfo)
-			if err != nil {
-				return nil, err
-			}
-			for _, info := range nextNodeInfo {
-				nextLayer[info.tokenAmount.Token] = append(nextLayer[info.tokenAmount.Token], info)
-			}
+			itr, _fromToken, _fromNodeInfo := numItr, fromToken, fromNodeInfo
+
+			wg.Go(func() error {
+				// get possible path of length currentHop + 1 by traveling one edge/ appending a pool
+				nextNodeInfo, err := getNextLayerFromToken(input, data, tokenToPoolAddresses, hopsToTokenOut, maxHops, currentHop, _fromToken, _fromNodeInfo)
+				if err != nil {
+					return err
+				}
+				intermediateResults.Store(itr, nextNodeInfo)
+				return nil
+			})
+
+			numItr++
+		}
+	}
+
+	if err := wg.Wait(); err != nil {
+		return nil, err
+	}
+
+	nextLayer := make(map[string][]*nodeInfo)
+	for itr := 0; itr < numItr; itr++ {
+		_nextNodeInfo, _ := intermediateResults.Load(itr)
+		nextNodeInfo := _nextNodeInfo.([]*nodeInfo)
+		for _, info := range nextNodeInfo {
+			nextLayer[info.tokenAmount.Token] = append(nextLayer[info.tokenAmount.Token], info)
 		}
 	}
 	return nextLayer, nil
@@ -131,6 +156,22 @@ func getNextLayerFromToken(
 	fromTokenAddress string,
 	fromNodeInfo *nodeInfo,
 ) ([]*nodeInfo, error) {
+	type IntermediateParam struct {
+		pool           poolpkg.IPoolSimulator
+		toTokenAddress string
+		toTokenInfo    entity.Token
+	}
+	type IntermediateResult struct {
+		toTokenAmount    *poolpkg.TokenAmount
+		toTotalGasAmount int64
+	}
+	var (
+		intermediateParams  []IntermediateParam
+		intermediateResults sync.Map // map[int]IntermediateResult
+		wg                  errgroup.Group
+		numItr              int
+	)
+
 	usedTokens := sets.NewString()
 	usedPools := sets.NewString()
 	for _, tokenOnPath := range fromNodeInfo.tokensOnPath {
@@ -172,22 +213,51 @@ func getNextLayerFromToken(
 			if remainingHopToTokenOut, ok = hopsToTokenOut[toTokenAddress]; !ok || currentHop+1+remainingHopToTokenOut > maxHops {
 				continue
 			}
-			// it is ok for prices[tokenTo] to default to zero
-			toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGas(pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, toTokenAddress, data.PriceUSDByAddress[toTokenAddress], toTokenInfo.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[pool.GetType()])
-			if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Int64() == 0 {
-				logger.Debugf("cannot calculate amountOut, error:%v", err)
-				continue
-			}
 
-			// append pool and tokens to path
-			nextNodeInfos = append(nextNodeInfos, &nodeInfo{
-				tokenAmount:         *toTokenAmount,
-				totalGasAmount:      toTotalGasAmount,
-				poolAddressesOnPath: append(append([]string{}, fromNodeInfo.poolAddressesOnPath...), pool.GetAddress()),
-				tokensOnPath:        append(append([]entity.Token{}, fromNodeInfo.tokensOnPath...), toTokenInfo),
+			itr, _pool, _toTokenAddress, _toTokenInfo := numItr, pool, toTokenAddress, toTokenInfo
+			wg.Go(func() error {
+				// it is ok for prices[tokenTo] to default to zero
+				toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGas(_pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenAddress, data.PriceUSDByAddress[_toTokenAddress], _toTokenInfo.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[_pool.GetType()])
+				if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Int64() == 0 {
+					logger.Debugf("cannot calculate amountOut, error:%v", err)
+					return nil
+				}
+
+				intermediateResults.Store(itr, IntermediateResult{toTokenAmount, toTotalGasAmount})
+				return nil
 			})
+
+			intermediateParams = append(intermediateParams, IntermediateParam{pool, toTokenAddress, toTokenInfo})
+
+			numItr++
 		}
 	}
+
+	wg.Wait()
+
+	for itr, param := range intermediateParams {
+		_result, ok := intermediateResults.Load(itr)
+		if !ok {
+			continue
+		}
+		result := _result.(IntermediateResult)
+
+		var (
+			pool             = param.pool
+			toTokenInfo      = param.toTokenInfo
+			toTokenAmount    = result.toTokenAmount
+			toTotalGasAmount = result.toTotalGasAmount
+		)
+
+		// append pool and tokens to path
+		nextNodeInfos = append(nextNodeInfos, &nodeInfo{
+			tokenAmount:         *toTokenAmount,
+			totalGasAmount:      toTotalGasAmount,
+			poolAddressesOnPath: append(append([]string{}, fromNodeInfo.poolAddressesOnPath...), pool.GetAddress()),
+			tokensOnPath:        append(append([]entity.Token{}, fromNodeInfo.tokensOnPath...), toTokenInfo),
+		})
+	}
+
 	return nextNodeInfos, nil
 }
 
@@ -225,16 +295,33 @@ func getKthPathAtTokenOut(
 		nodeInfoAtTokenOut = nodeInfoAtTokenOut[:maxPathsToReturn]
 	}
 
+	var (
+		intermediateResults = make([]*valueobject.Path, len(nodeInfoAtTokenOut))
+		wg                  errgroup.Group
+	)
+
 	for kthPath, pathInfo := range nodeInfoAtTokenOut {
-		tokenOut := pathInfo.tokensOnPath[len(pathInfo.tokensOnPath)-1].Address
-		path, err := valueobject.NewPath(data.PoolBucket, pathInfo.poolAddressesOnPath, pathInfo.tokensOnPath, tokenAmountIn, tokenOut,
-			data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[tokenOut].Decimals,
-			valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}, data.SwapLimits,
-		)
-		if err != nil {
-			logger.WithFields(logger.Fields{"error": err}).
-				Errorf("cannot generate %v_th path (hop = %v) from token %v to token %v %v", kthPath, len(pathInfo.poolAddressesOnPath), input.TokenInAddress, tokenOut, input.AmountIn)
-		} else {
+		_kthPath, _pathInfo := kthPath, pathInfo
+		wg.Go(func() error {
+			tokenOut := _pathInfo.tokensOnPath[len(_pathInfo.tokensOnPath)-1].Address
+			path, err := valueobject.NewPath(data.PoolBucket, _pathInfo.poolAddressesOnPath, _pathInfo.tokensOnPath, tokenAmountIn, tokenOut,
+				data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[tokenOut].Decimals,
+				valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}, data.SwapLimits,
+			)
+			if err != nil {
+				logger.WithFields(logger.Fields{"error": err}).
+					Errorf("cannot generate %v_th path (hop = %v) from token %v to token %v %v", _kthPath, len(_pathInfo.poolAddressesOnPath), input.TokenInAddress, tokenOut, input.AmountIn)
+			} else {
+				intermediateResults[_kthPath] = path
+			}
+			return nil
+		})
+	}
+
+	wg.Wait()
+
+	for kthPath := range nodeInfoAtTokenOut {
+		if path := intermediateResults[kthPath]; path != nil {
 			paths = append(paths, path)
 		}
 	}
