@@ -37,7 +37,38 @@ type (
 	DefiSwapFeeTracker struct {
 		ethrpcClient *ethrpc.Client
 	}
+
+	// ZKSwapFinanceFeeTracker gets fee from pair contract `getSwapFee`
+
+	ZKSwapFinanceFeeTracker struct {
+		ethrpcClient *ethrpc.Client
+	}
 )
+
+func (t *ZKSwapFinanceFeeTracker) GetFee(
+	ctx context.Context,
+	poolAddress string,
+	factoryAddress string,
+	blockNumber *big.Int,
+) (uint64, error) {
+	var fee uint16
+
+	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
+
+	getFeeRequest.AddCall(&ethrpc.Call{
+		ABI:    zkSwapFinancePairABI,
+		Target: poolAddress,
+		Method: zkSwapFinancePairMethodGetSwapFee,
+		Params: nil,
+	}, []interface{}{&fee})
+
+	_, err := getFeeRequest.Call()
+	if err != nil {
+		return 0, err
+	}
+
+	return uint64(fee), nil
+}
 
 func (t *MDexFeeTracker) GetFee(
 	ctx context.Context,

@@ -42,10 +42,11 @@ func NewPoolTracker(
 		ethrpcClient: ethrpcClient,
 		logDecoder:   NewLogDecoder(),
 		feeTrackerRegistry: map[string]IFeeTracker{
-			FeeTrackerIDMMF:       &MMFFeeTracker{ethrpcClient: ethrpcClient},
-			FeeTrackerIDMdex:      &MDexFeeTracker{ethrpcClient: ethrpcClient},
-			FeeTrackerIDShibaswap: &ShibaswapFeeTracker{ethrpcClient: ethrpcClient},
-			FeeTrackerIDDefiswap:  &DefiSwapFeeTracker{ethrpcClient: ethrpcClient},
+			FeeTrackerIDMMF:         &MMFFeeTracker{ethrpcClient: ethrpcClient},
+			FeeTrackerIDMdex:        &MDexFeeTracker{ethrpcClient: ethrpcClient},
+			FeeTrackerIDShibaswap:   &ShibaswapFeeTracker{ethrpcClient: ethrpcClient},
+			FeeTrackerIDDefiswap:    &DefiSwapFeeTracker{ethrpcClient: ethrpcClient},
+			FeeTrackerZKSwapFinance: &ZKSwapFinanceFeeTracker{ethrpcClient: ethrpcClient},
 		},
 	}, nil
 }

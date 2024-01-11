@@ -22,11 +22,13 @@ const (
 	mdexFactoryMethodGetPairFees               = "getPairFees"
 	shibaswapPairMethodTotalFee                = "totalFee"
 	croDefiSwapFactoryMethodTotalFeeBasisPoint = "totalFeeBasisPoint"
+	zkSwapFinancePairMethodGetSwapFee          = "getSwapFee"
 )
 
 const (
-	FeeTrackerIDMMF       = "mmf"
-	FeeTrackerIDMdex      = "mdex"
-	FeeTrackerIDShibaswap = "shibaswap"
-	FeeTrackerIDDefiswap  = "defiswap"
+	FeeTrackerIDMMF         = "mmf"
+	FeeTrackerIDMdex        = "mdex"
+	FeeTrackerIDShibaswap   = "shibaswap"
+	FeeTrackerIDDefiswap    = "defiswap"
+	FeeTrackerZKSwapFinance = "zkswap-finance"
 )

@@ -131,6 +131,10 @@ type StateUpdate struct {
 	GlobalState GlobalState
 }
 
+type PoolMeta struct {
+	BlockNumber uint64 `json:"blockNumber"`
+}
+
 func transformTickRespToTick(tickResp TickResp) (v3Entities.Tick, error) {
 	liquidityGross := new(big.Int)
 	liquidityGross, ok := liquidityGross.SetString(tickResp.LiquidityGross, 10)
