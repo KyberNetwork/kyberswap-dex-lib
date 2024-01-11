@@ -25,6 +25,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 		return nil, err
 	}
 
+	if len(extra.Bins) == 0 {
+		return nil, ErrEmptyBins
+	}
+
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err

@@ -7,4 +7,5 @@ var (
 	ErrMulOverflow       = errors.New("mul overflow")
 	ErrDividedByZero     = errors.New("divided by zero")
 	ErrInvalidLiquidity  = errors.New("invalid liquidity")
+	ErrEmptyBins         = errors.New("maverick pool has no bin")
 )
