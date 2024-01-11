@@ -151,6 +151,10 @@ type Types struct {
 	LegacyBalancerStable           string
 	LegacyBalancerMetaStable       string
 	LegacyBalancerComposableStable string
+	CrowdswapV2                    string
+	Aerodrome                      string
+	Thena                          string
+	PearlV2                        string
 }
 
 var (
@@ -236,5 +240,9 @@ var (
 		LegacyBalancerStable:           string(balancer.DexTypeBalancerStable),
 		LegacyBalancerMetaStable:       string(balancer.DexTypeBalancerMetaStable),
 		LegacyBalancerComposableStable: string(balancercomposablestable.DexTypeBalancerComposableStable),
+		CrowdswapV2:                    "crowdswap-v2",
+		Aerodrome:                      "aerodrome",
+		Thena:                          "thena",
+		PearlV2:                        "pearl-v2",
 	}
 )
