@@ -1,8 +1,6 @@
 package maverickv1
 
-import (
-	"math/big"
-)
+import "math/big"
 
 type Metadata struct {
 	LastCreateTime uint64
@@ -51,32 +49,12 @@ type MaverickPoolState struct {
 	BinPositions     map[string]map[string]*big.Int `json:"binPositions"`
 	BinMap           map[string]*big.Int            `json:"binMap"`
 	BinMapHex        map[string]*big.Int            `json:"binMapHex"`
-
-	// don't modify `Bins` directly, put update here instead
-	binsUpdated map[string]Bin
-}
-
-func (state *MaverickPoolState) GetBin(binID *big.Int) Bin {
-	idx := binID.String()
-	// check in updated map first
-	if bin, ok := state.binsUpdated[idx]; ok {
-		return bin
-	}
-	return state.Bins[idx]
-}
-
-func (state *MaverickPoolState) UpdateBin(binID *big.Int, bin Bin) {
-	idx := binID.String()
-	if state.binsUpdated == nil {
-		state.binsUpdated = make(map[string]Bin)
-	}
-	state.binsUpdated[idx] = bin
 }
 
 // maverickSwapInfo present the after state of a swap
 type maverickSwapInfo struct {
-	binsUpdated map[string]Bin
-	activeTick  *big.Int
+	bins       map[string]Bin
+	activeTick *big.Int
 }
 
 type Bin struct {
