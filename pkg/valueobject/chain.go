@@ -24,8 +24,12 @@ const (
 	ChainIDArbitrumRinkeby ChainID = 421611
 	ChainIDEthereumW       ChainID = 10001
 	ChainIDFuji            ChainID = 43113
+	ChainIDLineaGoerli     ChainID = 59140
 	ChainIDLinea           ChainID = 59144
 	ChainIDZKSync          ChainID = 324
+	ChainIDPolygonZkEVM    ChainID = 1101
+	ChainIDBase            ChainID = 8453
+	ChainIDScroll          ChainID = 534352
 
 	// ChainIDSolana is currently used in case of store price to db, that we should transform token addr into lowercase or not.
 	ChainIDSolana ChainID = 0
