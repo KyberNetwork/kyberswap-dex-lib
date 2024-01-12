@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type Gas struct {
@@ -57,6 +59,12 @@ type Tick struct {
 	Index          int      `json:"index"`
 	LiquidityGross *big.Int `json:"liquidityGross"`
 	LiquidityNet   *big.Int `json:"liquidityNet"`
+}
+
+type TickGob struct {
+	Index          int                  `json:"index"`
+	LiquidityGross *bignumber.GobBigInt `json:"liquidityGross"`
+	LiquidityNet   *bignumber.GobBigInt `json:"liquidityNet"`
 }
 
 type Extra struct {

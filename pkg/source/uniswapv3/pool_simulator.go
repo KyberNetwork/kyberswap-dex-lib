@@ -1,11 +1,15 @@
 package uniswapv3
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"strings"
+	"unsafe"
+
+	"encoding/json"
+
+	gojson "github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/logger"
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
@@ -33,7 +37,12 @@ type PoolSimulator struct {
 }
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
-	var extra Extra
+	var extra struct {
+		Liquidity    *big.Int `json:"liquidity"`
+		SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
+		Tick         *big.Int `json:"tick"`
+		Ticks        []Tick   `json:"ticks"`
+	}
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
@@ -117,6 +126,97 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		tickMin: tickMin,
 		tickMax: tickMax,
 	}, nil
+}
+
+type PoolSimulatorV2 struct {
+	PoolSimulator
+	extra struct {
+		Liquidity    *big.Int  `json:"liquidity"`
+		SqrtPriceX96 *big.Int  `json:"sqrtPriceX96"`
+		Tick         *big.Int  `json:"tick"`
+		Ticks        []TickGob `json:"ticksGob"`
+	}
+}
+
+func NewPoolSimulatorV2(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulatorV2, error) {
+	p := &PoolSimulatorV2{}
+	err := InitPoolSimulatorV2(entityPool, p, chainID)
+	return p, err
+}
+
+type v3TickList []v3Entities.Tick
+
+func InitPoolSimulatorV2(entityPool entity.Pool, p *PoolSimulatorV2, chainID valueobject.ChainID) error {
+	// we'll unmarshal directly into `p.extra` to reuse the allocated tick array there
+	if err := gojson.Unmarshal([]byte(entityPool.Extra), &p.extra); err != nil {
+		return err
+	}
+
+	if p.extra.Tick == nil {
+		return ErrTickNil
+	}
+
+	token0 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[0].Address), uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, entityPool.Tokens[0].Name)
+	token1 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[1].Address), uint(entityPool.Tokens[1].Decimals), entityPool.Tokens[1].Symbol, entityPool.Tokens[1].Name)
+
+	swapFeeFl := big.NewFloat(entityPool.SwapFee)
+	swapFee, _ := swapFeeFl.Int(nil)
+	tokens := make([]string, 2)
+	reserves := make([]*big.Int, 2)
+	if len(entityPool.Reserves) == 2 && len(entityPool.Tokens) == 2 {
+		tokens[0] = entityPool.Tokens[0].Address
+		reserves[0] = NewBig10(entityPool.Reserves[0])
+		tokens[1] = entityPool.Tokens[1].Address
+		reserves[1] = NewBig10(entityPool.Reserves[1])
+	}
+
+	// TickGob should be fully compatible with v3Entities.Tick (GobBigInt is just a wrapper around bigInt)
+	// this should always be checked with a unit test
+	// also, uninitialized tick should be ignored at pool-tracker/tick-based-worker already, so no need to check here
+	v3Ticks := *(*v3TickList)(unsafe.Pointer(&p.extra.Ticks))
+
+	// if the tick list is empty, the pool should be ignored
+	if len(v3Ticks) == 0 {
+		return ErrV3TicksEmpty
+	}
+
+	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, constants.TickSpacings[constants.FeeAmount(entityPool.SwapFee)])
+	if err != nil {
+		fmt.Println("tick err", entityPool.Address, err)
+		return err
+	}
+
+	p.V3Pool, err = v3Entities.NewPool(
+		token0,
+		token1,
+		constants.FeeAmount(entityPool.SwapFee),
+		p.extra.SqrtPriceX96,
+		p.extra.Liquidity,
+		int(p.extra.Tick.Int64()),
+		ticks,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	tickMin := v3Ticks[0].Index
+	tickMax := v3Ticks[len(v3Ticks)-1].Index
+
+	p.Pool.Info.Address = strings.ToLower(entityPool.Address)
+	p.Pool.Info.ReserveUsd = entityPool.ReserveUsd
+	p.Pool.Info.SwapFee = swapFee
+	p.Pool.Info.Exchange = entityPool.Exchange
+	p.Pool.Info.Type = entityPool.Type
+	p.Pool.Info.Tokens = tokens
+	p.Pool.Info.Reserves = reserves
+	p.Pool.Info.Checked = false
+
+	p.gas = defaultGas
+	p.tickMin = tickMin
+	p.tickMax = tickMax
+
+	return nil
 }
 
 /**
