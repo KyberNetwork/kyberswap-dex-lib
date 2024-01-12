@@ -155,7 +155,6 @@ func (d *PoolTracker) GetNewPoolState(
 	bins := make(map[string]Bin)
 	binPositions := make(map[string]map[string]*big.Int)
 	binMap := make(map[string]*big.Int)
-	binMapHex := make(map[string]*big.Int)
 	for i, binRaw := range binRaws {
 		if binRaw.BinState.MergeID.Cmp(zeroBI) != 0 ||
 			(binRaw.BinState.ReserveA.Cmp(zeroBI) == 0 && binRaw.BinState.ReserveB.Cmp(zeroBI) == 0) {
@@ -173,7 +172,7 @@ func (d *PoolTracker) GetNewPoolState(
 		bins[strI] = bin
 
 		if bin.MergeID.Int64() == 0 {
-			d.putTypeAtTick(binMap, binMapHex, bin.Kind, bin.LowerTick)
+			d.putTypeAtTick(binMap, bin.Kind, bin.LowerTick)
 			if binPositions[bin.LowerTick.String()] == nil {
 				binPositions[bin.LowerTick.String()] = make(map[string]*big.Int)
 			}
@@ -199,7 +198,6 @@ func (d *PoolTracker) GetNewPoolState(
 		Bins:             bins,
 		BinPositions:     binPositions,
 		BinMap:           binMap,
-		BinMapHex:        binMapHex,
 	})
 
 	var extra = Extra{
@@ -210,7 +208,6 @@ func (d *PoolTracker) GetNewPoolState(
 		Bins:             bins,
 		BinPositions:     binPositions,
 		BinMap:           binMap,
-		BinMapHex:        binMapHex,
 
 		SqrtPriceX96: sqrtPrice,
 		Liquidity:    liquidity,
@@ -238,7 +235,6 @@ func (d *PoolTracker) GetNewPoolState(
 
 func (d *PoolTracker) putTypeAtTick(
 	binMap map[string]*big.Int,
-	binMapHex map[string]*big.Int,
 	kind, tick *big.Int,
 ) {
 	offset, mapIndex := d.getMapPointer(
@@ -256,7 +252,6 @@ func (d *PoolTracker) putTypeAtTick(
 		new(big.Int).Lsh(big.NewInt(1), uint(offset.Int64())))
 
 	binMap[mapIndex.String()] = value
-	binMapHex[mapIndex.Text(16)] = value
 }
 
 func (d *PoolTracker) getMapPointer(tick *big.Int) (*big.Int, *big.Int) {

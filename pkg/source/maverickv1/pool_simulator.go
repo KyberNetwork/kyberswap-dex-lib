@@ -63,7 +63,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 			Bins:             extra.Bins,
 			BinPositions:     extra.BinPositions,
 			BinMap:           extra.BinMap,
-			BinMapHex:        extra.BinMapHex,
 		},
 		gas: DefaultGas,
 	}, nil
@@ -97,7 +96,7 @@ func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 			}
 		}
 
-		newState, err := DeepcopyState(p.state)
+		newState, err := p.deepcopyState(p.state)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not deepcopy maverick state, err: %v", err)
 		}
@@ -155,7 +154,7 @@ func (p *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return nil
 }
 
-func DeepcopyState(state *MaverickPoolState) (*MaverickPoolState, error) {
+func (p *Pool) deepcopyState(state *MaverickPoolState) (*MaverickPoolState, error) {
 	newState := &MaverickPoolState{
 		TickSpacing:      new(big.Int).Set(state.TickSpacing),
 		Fee:              new(big.Int).Set(state.Fee),
@@ -186,17 +185,9 @@ func DeepcopyState(state *MaverickPoolState) (*MaverickPoolState, error) {
 	}
 
 	// Clone state.BinMap
-	binMapHexLen := len(state.BinMapHex)
-	if binMapHexLen > 0 {
-		newState.BinMapHex = make(map[string]*big.Int, binMapHexLen)
-		for k, v := range state.BinMapHex {
-			newState.BinMapHex[k] = new(big.Int).Set(v)
-		}
-	} else {
-		newState.BinMap = make(map[string]*big.Int, len(state.BinMap))
-		for k, v := range state.BinMap {
-			newState.BinMap[k] = new(big.Int).Set(v)
-		}
+	newState.BinMap = make(map[string]*big.Int, len(state.BinMap))
+	for k, v := range state.BinMap {
+		newState.BinMap[k] = new(big.Int).Set(v)
 	}
 
 	return newState, nil

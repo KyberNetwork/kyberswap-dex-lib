@@ -32,7 +32,6 @@ type Extra struct {
 	Bins             map[string]Bin                 `json:"bins"`
 	BinPositions     map[string]map[string]*big.Int `json:"binPositions"`
 	BinMap           map[string]*big.Int            `json:"binMap"`
-	BinMapHex        map[string]*big.Int            `json:"binMapHex"`
 
 	// State to calculate TVL
 	Liquidity    *big.Int `json:"liquidity"`
@@ -48,7 +47,6 @@ type MaverickPoolState struct {
 	Bins             map[string]Bin                 `json:"bins"`
 	BinPositions     map[string]map[string]*big.Int `json:"binPositions"`
 	BinMap           map[string]*big.Int            `json:"binMap"`
-	BinMapHex        map[string]*big.Int            `json:"binMapHex"`
 }
 
 // maverickSwapInfo present the after state of a swap
