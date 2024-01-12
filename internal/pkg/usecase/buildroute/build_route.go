@@ -257,12 +257,6 @@ func (uc *BuildRouteUseCase) encode(ctx context.Context, command dto.BuildRouteC
 	if err != nil {
 		return "", err
 	}
-	// We still get successful encoding data but the data is signed unsuccessfully, means that we encode unsign data
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"error": err,
-		}).Warnf("failed to sign clientData")
-	}
 
 	encoder := uc.encodeBuilder.GetEncoder(dexValueObject.ChainID(uc.config.ChainID))
 
