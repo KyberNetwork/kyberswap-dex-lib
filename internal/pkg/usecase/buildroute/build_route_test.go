@@ -16,6 +16,8 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/buildroute"
+	mockEncode "github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/encode"
+	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/encode/clientdata"
 	. "github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -40,10 +42,12 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 		{
 			name: "it should return correct error when encoder return error",
 			prepare: func(ctrl *gomock.Controller, config Config, wg *sync.WaitGroup) *BuildRouteUseCase {
-				clientDataEncoder := usecase.NewMockIClientDataEncoder(ctrl)
+				clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
-				encoder := usecase.NewMockIEncoder(ctrl)
+				encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+				encoder := mockEncode.NewMockIEncoder(ctrl)
+				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).Return(encoder)
 				encoder.EXPECT().
 					Encode(gomock.Any()).
 					Return("", theErr).AnyTimes()
@@ -94,8 +98,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					gasEstimator,
 					nil,
 					clientDataEncoder,
-					encoder,
-					encoder,
+					encodeBuilder,
 					nil,
 					config,
 				)
@@ -133,11 +136,13 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 		{
 			name: "it should return correct result and run estimate Gas when there is no error and Feature flag is on",
 			prepare: func(ctrl *gomock.Controller, config Config, wg *sync.WaitGroup) *BuildRouteUseCase {
-				clientDataEncoder := usecase.NewMockIClientDataEncoder(ctrl)
+				clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
 
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
-				encoder := usecase.NewMockIEncoder(ctrl)
+				encoder := mockEncode.NewMockIEncoder(ctrl)
+				encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 				encodedData := "mockEncodedData"
 
 				encoder.EXPECT().
@@ -199,8 +204,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					gasEstimator,
 					nil,
 					clientDataEncoder,
-					encoder,
-					encoder,
+					encodeBuilder,
 					nil,
 					config,
 				)
@@ -257,11 +261,13 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			name: "it should return correct result and run estimate Gas async when there is no error and Feature flag is on",
 			prepare: func(ctrl *gomock.Controller, config Config, wg *sync.WaitGroup) *BuildRouteUseCase {
 				wg.Add(1)
-				clientDataEncoder := usecase.NewMockIClientDataEncoder(ctrl)
+				clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
 
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
-				encoder := usecase.NewMockIEncoder(ctrl)
+				encoder := mockEncode.NewMockIEncoder(ctrl)
+				encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 				encodedData := "mockEncodedData"
 
 				encoder.EXPECT().
@@ -325,8 +331,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					gasEstimator,
 					nil,
 					clientDataEncoder,
-					encoder,
-					encoder,
+					encodeBuilder,
 					nil,
 					config,
 				)
@@ -381,11 +386,13 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 		{
 			name: "it should return correct result and run estimate Gas when there is no error and Feature flag is on with token in is Ether",
 			prepare: func(ctrl *gomock.Controller, config Config, wg *sync.WaitGroup) *BuildRouteUseCase {
-				clientDataEncoder := usecase.NewMockIClientDataEncoder(ctrl)
+				clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
 
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
-				encoder := usecase.NewMockIEncoder(ctrl)
+				encoder := mockEncode.NewMockIEncoder(ctrl)
+				encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 				encodedData := "mockEncodedData"
 
 				encoder.EXPECT().
@@ -447,8 +454,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					gasEstimator,
 					nil,
 					clientDataEncoder,
-					encoder,
-					encoder,
+					encodeBuilder,
 					nil,
 					config,
 				)
@@ -753,10 +759,12 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			clientDataEncoder := usecase.NewMockIClientDataEncoder(ctrl)
+			clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
 			clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
-			encoder := usecase.NewMockIEncoder(ctrl)
+			encoder := mockEncode.NewMockIEncoder(ctrl)
+			encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+			encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 			encodedData := "mockEncodedData"
 
 			encoder.EXPECT().
@@ -809,8 +817,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				gasEstimator,
 				nil,
 				clientDataEncoder,
-				encoder,
-				encoder,
+				encodeBuilder,
 				nil,
 				tc.config,
 			)
@@ -995,10 +1002,12 @@ func TestBuildRouteUseCase_HandleWithTrackingKeyTotalCountFaultyPools(t *testing
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			clientDataEncoder := usecase.NewMockIClientDataEncoder(ctrl)
+			clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
 			clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
-			encoder := usecase.NewMockIEncoder(ctrl)
+			encoder := mockEncode.NewMockIEncoder(ctrl)
+			encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+			encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 			encodedData := "mockEncodedData"
 
 			encoder.EXPECT().
@@ -1048,8 +1057,7 @@ func TestBuildRouteUseCase_HandleWithTrackingKeyTotalCountFaultyPools(t *testing
 				gasEstimator,
 				nil,
 				clientDataEncoder,
-				encoder,
-				encoder,
+				encodeBuilder,
 				tc.nowFunc,
 				tc.config,
 			)

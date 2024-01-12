@@ -30,3 +30,14 @@ const (
 	ChainIDBase            ChainID = 8453
 	ChainIDScroll          ChainID = 534352
 )
+
+var l2EncoderSupportedChains = map[ChainID]struct{}{
+	ChainIDArbitrumOne: {},
+	ChainIDOptimism:    {},
+	ChainIDBase:        {},
+}
+
+func IsL2EncoderSupportedChains(chainID ChainID) bool {
+	_, exist := l2EncoderSupportedChains[chainID]
+	return exist
+}

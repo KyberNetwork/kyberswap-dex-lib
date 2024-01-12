@@ -5,9 +5,11 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/KyberNetwork/aggregator-encoding/pkg/encode"
+	"github.com/KyberNetwork/aggregator-encoding/pkg/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 )
 
 type ITokenRepository interface {
@@ -22,14 +24,12 @@ type IClientDataEncoder interface {
 	Encode(ctx context.Context, data types.ClientData) ([]byte, error)
 }
 
-type IEncoder interface {
-	Encode(data types.EncodingData) (string, error)
-	GetExecutorAddress(clientID string) string
-	GetRouterAddress() string
-}
-
 type IGasRepository interface {
 	GetSuggestedGasPrice(ctx context.Context) (*big.Int, error)
+}
+
+type IEncodeBuilder interface {
+	GetEncoder(chainId dexValueObject.ChainID) encode.IEncoder
 }
 
 type IGasEstimator interface {

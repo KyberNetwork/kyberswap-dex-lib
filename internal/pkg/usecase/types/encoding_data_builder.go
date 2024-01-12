@@ -5,6 +5,9 @@ import (
 	"math/big"
 	"strings"
 
+	encodeValueObject "github.com/KyberNetwork/aggregator-encoding/pkg/constant/valueobject"
+	"github.com/KyberNetwork/aggregator-encoding/pkg/types"
+	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
@@ -17,7 +20,7 @@ type IExecutorBalanceRepository interface {
 }
 
 type EncodingDataBuilder struct {
-	data                           EncodingData
+	data                           types.EncodingData
 	executorBalanceRepository      IExecutorBalanceRepository
 	isOptimizeExecutorFlagsEnabled bool
 }
@@ -27,7 +30,7 @@ func NewEncodingDataBuilder(
 	isOptimizeExecutorFlagsEnabled bool,
 ) *EncodingDataBuilder {
 	return &EncodingDataBuilder{
-		data:                           EncodingData{},
+		data:                           types.EncodingData{},
 		executorBalanceRepository:      executorBalanceRepository,
 		isOptimizeExecutorFlagsEnabled: isOptimizeExecutorFlagsEnabled,
 	}
@@ -81,7 +84,7 @@ func (b *EncodingDataBuilder) SetRoute(
 	b.data.InputAmount = routeSummary.AmountIn
 	b.data.OutputAmount = routeSummary.AmountOut
 	b.data.TotalAmountOut = getTotalAmountOut(encodingRoute)
-	b.data.ExtraFee = routeSummary.ExtraFee
+	b.data.ExtraFee = encodeValueObject.ExtraFee{}
 	b.data.Recipient = recipient
 	b.data.Route = encodingRoute
 	b.data.EncodingMode = encodingMode
@@ -90,32 +93,32 @@ func (b *EncodingDataBuilder) SetRoute(
 	return b
 }
 
-func (b *EncodingDataBuilder) GetData() EncodingData {
+func (b *EncodingDataBuilder) GetData() types.EncodingData {
 	return b.data
 }
 
 func (b *EncodingDataBuilder) updateSwapRecipientAndCollectAmount(
-	route [][]EncodingSwap,
-	encodingMode EncodingMode,
+	route [][]types.EncodingSwap,
+	encodingMode types.EncodingMode,
 	executorAddress string,
-) [][]EncodingSwap {
+) [][]types.EncodingSwap {
 	flags := b.getRouteEncodingSwapFlags(route, executorAddress)
 
 	for pathIdx, path := range route {
 		for swapIdx, swap := range path {
 			var (
-				nextSwap EncodingSwap
-				prevSwap EncodingSwap
+				nextSwap types.EncodingSwap
+				prevSwap types.EncodingSwap
 			)
 
 			if swapIdx == len(path)-1 {
-				nextSwap = ZeroEncodingSwap
+				nextSwap = types.ZeroEncodingSwap
 			} else {
 				nextSwap = path[swapIdx+1]
 			}
 
 			if swapIdx == 0 {
-				prevSwap = ZeroEncodingSwap
+				prevSwap = types.ZeroEncodingSwap
 			} else {
 				prevSwap = path[swapIdx-1]
 			}
@@ -129,17 +132,17 @@ func (b *EncodingDataBuilder) updateSwapRecipientAndCollectAmount(
 	return route
 }
 
-func (b *EncodingDataBuilder) getRouteEncodingSwapFlags(route [][]EncodingSwap, executorAddress string) [][][]EncodingSwapFlag {
-	flags := make([][][]EncodingSwapFlag, len(route))
+func (b *EncodingDataBuilder) getRouteEncodingSwapFlags(route [][]types.EncodingSwap, executorAddress string) [][][]types.EncodingSwapFlag {
+	flags := make([][][]types.EncodingSwapFlag, len(route))
 	for pathIdx, path := range route {
-		flags[pathIdx] = make([][]EncodingSwapFlag, len(path))
+		flags[pathIdx] = make([][]types.EncodingSwapFlag, len(path))
 	}
 
 	// If not use optimization, unset ShouldNotKeepDustTokenOut & set ShouldApproveMax
 	if !b.isOptimizeExecutorFlagsEnabled {
 		for pathIdx, path := range route {
 			for swapIdx := range path {
-				flags[pathIdx][swapIdx] = append(flags[pathIdx][swapIdx], EncodingSwapFlagShouldApproveMax)
+				flags[pathIdx][swapIdx] = append(flags[pathIdx][swapIdx], types.EncodingSwapFlagShouldApproveMax)
 			}
 		}
 		return flags
@@ -160,7 +163,7 @@ func (b *EncodingDataBuilder) getRouteEncodingSwapFlags(route [][]EncodingSwap, 
 		for pathIdx, path := range route {
 			for swapIdx := range path {
 				if hasTokens[idx] {
-					flags[pathIdx][swapIdx] = append(flags[pathIdx][swapIdx], EncodingSwapFlagShouldNotKeepDustTokenOut)
+					flags[pathIdx][swapIdx] = append(flags[pathIdx][swapIdx], types.EncodingSwapFlagShouldNotKeepDustTokenOut)
 				}
 				idx++
 			}
@@ -173,7 +176,7 @@ func (b *EncodingDataBuilder) getRouteEncodingSwapFlags(route [][]EncodingSwap, 
 
 	for pathIdx, path := range route {
 		for swapIdx, swap := range path {
-			if !valueobject.IsApproveMaxExchange(swap.Exchange) {
+			if !valueobject.IsApproveMaxExchange(valueobject.Exchange(swap.Exchange)) {
 				continue
 			}
 			approveAddress, err := getAddressToApproveMax(swap)
@@ -202,13 +205,13 @@ func (b *EncodingDataBuilder) getRouteEncodingSwapFlags(route [][]EncodingSwap, 
 			}
 			pathIdx := routeIdx[0]
 			swapIdx := routeIdx[1]
-			flags[pathIdx][swapIdx] = append(flags[pathIdx][swapIdx], EncodingSwapFlagShouldApproveMax)
+			flags[pathIdx][swapIdx] = append(flags[pathIdx][swapIdx], types.EncodingSwapFlagShouldApproveMax)
 		}
 	} else {
 		// In case of error, set ShouldApproveMax for every swap
 		for pathIdx, path := range route {
 			for swapIdx := range path {
-				flags[pathIdx][swapIdx] = append(flags[pathIdx][swapIdx], EncodingSwapFlagShouldApproveMax)
+				flags[pathIdx][swapIdx] = append(flags[pathIdx][swapIdx], types.EncodingSwapFlagShouldApproveMax)
 			}
 		}
 	}
@@ -216,49 +219,49 @@ func (b *EncodingDataBuilder) getRouteEncodingSwapFlags(route [][]EncodingSwap, 
 	return flags
 }
 
-func getEncodingMode(tokenIn string, route [][]valueobject.Swap) EncodingMode {
+func getEncodingMode(tokenIn string, route [][]valueobject.Swap) types.EncodingMode {
 	if canSwapSimpleMode(tokenIn, route) {
-		return EncodingModeSimple
+		return types.EncodingModeSimple
 	}
 
-	return EncodingModeNormal
+	return types.EncodingModeNormal
 }
 
-func getEncodingFlags(mode EncodingMode, extraFee valueobject.ExtraFee) []EncodingFlag {
-	var flags []EncodingFlag
+func getEncodingFlags(mode types.EncodingMode, extraFee valueobject.ExtraFee) []types.EncodingFlag {
+	var flags []types.EncodingFlag
 
 	if mode.IsSimple() {
-		flags = append(flags, EncodingFlagSimpleSwap)
+		flags = append(flags, types.EncodingFlagSimpleSwap)
 	}
 
 	if len(extraFee.FeeReceiver) > 0 && extraFee.FeeAmount != nil {
 		if extraFee.IsInBps {
-			flags = append(flags, EncodingFlagFeeInBps)
+			flags = append(flags, types.EncodingFlagFeeInBps)
 		}
 
 		if extraFee.IsChargeFeeByCurrencyOut() {
-			flags = append(flags, EncodingFlagFeeOnDst)
+			flags = append(flags, types.EncodingFlagFeeOnDst)
 		}
 	}
 
 	return flags
 }
 
-func transformRoute(route [][]valueobject.Swap) [][]EncodingSwap {
-	encodingRoute := make([][]EncodingSwap, 0, len(route))
+func transformRoute(route [][]valueobject.Swap) [][]types.EncodingSwap {
+	encodingRoute := make([][]types.EncodingSwap, 0, len(route))
 
 	for _, path := range route {
-		encodingPath := make([]EncodingSwap, 0, len(path))
+		encodingPath := make([]types.EncodingSwap, 0, len(path))
 
 		for _, swap := range path {
-			encodingPath = append(encodingPath, EncodingSwap{
+			encodingPath = append(encodingPath, types.EncodingSwap{
 				Pool:              swap.Pool,
 				TokenIn:           swap.TokenIn,
 				TokenOut:          swap.TokenOut,
 				SwapAmount:        swap.SwapAmount,
 				AmountOut:         swap.AmountOut,
 				LimitReturnAmount: swap.LimitReturnAmount,
-				Exchange:          swap.Exchange,
+				Exchange:          dexValueObject.Exchange(swap.Exchange),
 				PoolLength:        swap.PoolLength,
 				PoolType:          swap.PoolType,
 				PoolExtra:         swap.PoolExtra,
@@ -272,7 +275,7 @@ func transformRoute(route [][]valueobject.Swap) [][]EncodingSwap {
 	return encodingRoute
 }
 
-func getTotalAmountOut(route [][]EncodingSwap) *big.Int {
+func getTotalAmountOut(route [][]types.EncodingSwap) *big.Int {
 	totalAmountOut := big.NewInt(0)
 
 	for _, path := range route {
@@ -283,8 +286,8 @@ func getTotalAmountOut(route [][]EncodingSwap) *big.Int {
 }
 
 func getRecipient(
-	curSwap EncodingSwap,
-	nextSwap EncodingSwap,
+	curSwap types.EncodingSwap,
+	nextSwap types.EncodingSwap,
 	executorAddress string,
 ) string {
 	// curSwap is the last swap
@@ -292,7 +295,7 @@ func getRecipient(
 		return executorAddress
 	}
 
-	if business.CanReceiveTokenBeforeSwap(curSwap.Exchange) && business.CanReceiveTokenBeforeSwap(nextSwap.Exchange) {
+	if business.CanReceiveTokenBeforeSwap(valueobject.Exchange(curSwap.Exchange)) && business.CanReceiveTokenBeforeSwap(valueobject.Exchange(nextSwap.Exchange)) {
 		return nextSwap.Pool
 	}
 
@@ -300,16 +303,16 @@ func getRecipient(
 }
 
 func getCollectAmount(
-	curSwap EncodingSwap,
-	prevSwap EncodingSwap,
-	encodingMode EncodingMode,
+	curSwap types.EncodingSwap,
+	prevSwap types.EncodingSwap,
+	encodingMode types.EncodingMode,
 ) *big.Int {
 	if prevSwap.IsZero() && encodingMode.IsSimple() {
-		return ZeroCollectAmount
+		return types.ZeroCollectAmount
 	}
 
-	if business.CanReceiveTokenBeforeSwap(prevSwap.Exchange) && business.CanReceiveTokenBeforeSwap(curSwap.Exchange) {
-		return ZeroCollectAmount
+	if business.CanReceiveTokenBeforeSwap(valueobject.Exchange(prevSwap.Exchange)) && business.CanReceiveTokenBeforeSwap(valueobject.Exchange(curSwap.Exchange)) {
+		return types.ZeroCollectAmount
 	}
 
 	return curSwap.SwapAmount
@@ -336,8 +339,8 @@ func canSwapSimpleMode(tokenIn string, route [][]valueobject.Swap) bool {
 	return true
 }
 
-func getAddressToApproveMax(swap EncodingSwap) (string, error) {
-	switch swap.Exchange {
+func getAddressToApproveMax(swap types.EncodingSwap) (string, error) {
+	switch valueobject.Exchange(swap.Exchange) {
 	case
 		valueobject.ExchangeBalancerV2Weighted,
 		valueobject.ExchangeBalancerV2Stable,

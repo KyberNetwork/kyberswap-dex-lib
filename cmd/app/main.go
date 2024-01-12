@@ -10,6 +10,11 @@ import (
 	"time"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
+	"github.com/KyberNetwork/aggregator-encoding/pkg/decode"
+	"github.com/KyberNetwork/aggregator-encoding/pkg/encode"
+	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/clientdata"
+	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/l1encode"
+	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/l2encode"
 	"github.com/KyberNetwork/ethrpc"
 	_ "github.com/KyberNetwork/kyber-trace-go/tools"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -48,13 +53,9 @@ import (
 	httppkg "github.com/KyberNetwork/router-service/internal/pkg/server/http"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/decode"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/helper"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l1encode"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/l2encode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	trackexecutor "github.com/KyberNetwork/router-service/internal/pkg/usecase/trackexecutorbalance"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
@@ -365,6 +366,7 @@ func apiAction(c *cli.Context) (err error) {
 		FunctionSelectorMappingID: cfg.Encoder.FunctionSelectorMappingID,
 		ExecutorAddressByClientID: cfg.Encoder.ExecutorAddressByClientID,
 	})
+	encodeBuilder := encode.NewEncodeBuilder(l1Encoder, l2Encoder)
 
 	validateRouteUseCase := validateroute.NewValidateRouteUseCase()
 	validateRouteUseCase.RegisterValidator(synthetix.NewSynthetixValidator())
@@ -441,8 +443,7 @@ func apiAction(c *cli.Context) (err error) {
 		gasEstimator,
 		rfqHandlerByPoolType,
 		clientDataEncoder,
-		l1Encoder,
-		l2Encoder,
+		encodeBuilder,
 		timeutil.NowFunc,
 		cfg.UseCase.BuildRoute,
 	)
@@ -955,7 +956,7 @@ func executorTrackerAction(c *cli.Context) (err error) {
 	var trackExecutorAddresses []string
 
 	// Only track either L1 or L2 address
-	if helper.IsL2EncoderSupportedChains(cfg.Encoder.ChainID) {
+	if valueobject.IsL2EncoderSupportedChains(cfg.Common.ChainID) {
 		trackExecutorAddresses = []string{cfg.Encoder.L2ExecutorAddress}
 	} else {
 		trackExecutorAddresses = []string{cfg.Encoder.ExecutorAddress}

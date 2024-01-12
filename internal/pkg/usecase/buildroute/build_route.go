@@ -9,14 +9,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/KyberNetwork/aggregator-encoding/pkg/encode"
+	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/clientdata"
+	encodeTypes "github.com/KyberNetwork/aggregator-encoding/pkg/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/clientdata"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/encode/helper"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
@@ -44,8 +46,7 @@ type BuildRouteUseCase struct {
 
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ
 	clientDataEncoder    IClientDataEncoder
-	l1Encoder            IEncoder
-	l2Encoder            IEncoder
+	encodeBuilder        encode.IEncodeBuilder
 	nowFunc              func() time.Time
 
 	config Config
@@ -61,8 +62,7 @@ func NewBuildRouteUseCase(
 	gasEstimator IGasEstimator,
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ,
 	clientDataEncoder IClientDataEncoder,
-	l1Encoder IEncoder,
-	l2Encoder IEncoder,
+	encodeBuilder encode.IEncodeBuilder,
 	nowFunc func() time.Time,
 	config Config,
 ) *BuildRouteUseCase {
@@ -78,8 +78,7 @@ func NewBuildRouteUseCase(
 		gasEstimator:              gasEstimator,
 		rfqHandlerByPoolType:      rfqHandlerByPoolType,
 		clientDataEncoder:         clientDataEncoder,
-		l1Encoder:                 l1Encoder,
-		l2Encoder:                 l2Encoder,
+		encodeBuilder:             encodeBuilder,
 		nowFunc:                   nowFunc,
 		config:                    config,
 	}
@@ -130,7 +129,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		OutputChange: OutputChangeNoChange,
 
 		Data:          encodedData,
-		RouterAddress: uc.getEncoder(ctx, command).GetRouterAddress(),
+		RouterAddress: uc.encodeBuilder.GetEncoder(dexValueObject.ChainID(uc.config.ChainID)).GetRouterAddress(),
 	}, nil
 }
 
@@ -258,8 +257,14 @@ func (uc *BuildRouteUseCase) encode(ctx context.Context, command dto.BuildRouteC
 	if err != nil {
 		return "", err
 	}
+	// We still get successful encoding data but the data is signed unsuccessfully, means that we encode unsign data
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"error": err,
+		}).Warnf("failed to sign clientData")
+	}
 
-	encoder := uc.getEncoder(ctx, command)
+	encoder := uc.encodeBuilder.GetEncoder(dexValueObject.ChainID(uc.config.ChainID))
 
 	encodingData := types.NewEncodingDataBuilder(
 		uc.executorBalanceRepository,
@@ -277,7 +282,7 @@ func (uc *BuildRouteUseCase) encode(ctx context.Context, command dto.BuildRouteC
 
 // encodeClientData recalculates amountInUSD and amountOutUSD then perform encoding
 func (uc *BuildRouteUseCase) encodeClientData(ctx context.Context, command dto.BuildRouteCommand, routeSummary valueobject.RouteSummary) ([]byte, error) {
-	flags, err := clientdata.ConvertFlagsToBitInteger(valueobject.Flags{
+	flags, err := clientdata.ConvertFlagsToBitInteger(encodeTypes.Flags{
 		TokenInMarketPriceAvailable:  routeSummary.TokenInMarketPriceAvailable,
 		TokenOutMarketPriceAvailable: routeSummary.TokenOutMarketPriceAvailable,
 	})
@@ -285,7 +290,7 @@ func (uc *BuildRouteUseCase) encodeClientData(ctx context.Context, command dto.B
 		return nil, err
 	}
 
-	return uc.clientDataEncoder.Encode(ctx, types.ClientData{
+	return uc.clientDataEncoder.Encode(ctx, encodeTypes.ClientData{
 		Source:       command.Source,
 		AmountInUSD:  strconv.FormatFloat(routeSummary.AmountInUSD, 'f', -1, 64),
 		AmountOutUSD: strconv.FormatFloat(routeSummary.AmountOutUSD, 'f', -1, 64),
@@ -356,13 +361,6 @@ func (uc *BuildRouteUseCase) getPrices(
 	}
 
 	return tokenInPrice, tokenOutPrice, nil
-}
-
-func (uc *BuildRouteUseCase) getEncoder(ctx context.Context, command dto.BuildRouteCommand) IEncoder {
-	if helper.IsL2EncoderSupportedChains(uc.config.ChainID) {
-		return uc.l2Encoder
-	}
-	return uc.l1Encoder
 }
 
 func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildRouteCommand, encodedData string) (uint64, float64, error) {
