@@ -159,9 +159,7 @@ func probeBalanceSlotAction(c *cli.Context) error {
 		slices.SortFunc(pools, func(a, b *dexentity.Pool) int { return cmp.Compare(b.ReserveUsd, a.ReserveUsd) })
 	}
 
-	balanceSlotRepo := erc20balanceslot.NewRedisRepository(poolRedisClient.Client, erc20balanceslot.RedisRepositoryConfig{
-		Prefix: cfg.PoolRedis.Prefix,
-	})
+	balanceSlotRepo := erc20balanceslot.NewRedisRepository(poolRedisClient.Client, cfg.Repository.ERC20BalanceSlot.Redis)
 
 	tokens := make(map[common.Address]struct{})
 	if len(c.StringSlice("tokens")) > 0 {
@@ -262,9 +260,7 @@ func convertToPreloadedAction(c *cli.Context) error {
 		return err
 	}
 
-	balanceSlotRepo := erc20balanceslot.NewRedisRepository(poolRedisClient.Client, erc20balanceslot.RedisRepositoryConfig{
-		Prefix: cfg.PoolRedis.Prefix,
-	})
+	balanceSlotRepo := erc20balanceslot.NewRedisRepository(poolRedisClient.Client, cfg.Repository.ERC20BalanceSlot.Redis)
 
 	bls, err := balanceSlotRepo.GetAll(context.Background())
 	if err != nil {

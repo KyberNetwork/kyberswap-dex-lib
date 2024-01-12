@@ -375,9 +375,7 @@ func apiAction(c *cli.Context) (err error) {
 	var balanceSlotsUseCase *erc20balanceslotuc.Cache
 	var aevmClient aevmclient.Client
 	if cfg.AEVMEnabled {
-		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client, erc20balanceslot.RedisRepositoryConfig{
-			Prefix: cfg.PoolRedis.Prefix,
-		})
+		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client, cfg.Repository.ERC20BalanceSlot.Redis)
 		rpcClient, err := rpc.Dial(cfg.AEVM.RPC)
 		if err != nil {
 			return fmt.Errorf("could not dial JSON-RPC node %w", err)
@@ -782,9 +780,7 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 	var balanceSlotsUseCase *erc20balanceslotuc.Cache
 	var aevmClient aevmclient.Client
 	if cfg.AEVMEnabled {
-		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client, erc20balanceslot.RedisRepositoryConfig{
-			Prefix: cfg.PoolRedis.Prefix,
-		})
+		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client, cfg.Repository.ERC20BalanceSlot.Redis)
 		rpcClient, err := rpc.Dial(cfg.AEVM.RPC)
 		if err != nil {
 			return fmt.Errorf("could not dial JSON-RPC node %w", err)

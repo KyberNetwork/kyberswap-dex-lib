@@ -339,6 +339,9 @@ repository:
       baseURL: blackjack.core-cluster.gke.production.internal:80
       insecure: true
       timeout: 100ms
+  erc20balanceslot:
+    redis:
+      prefix: *chainName
 validator:
   buildRouteParams:
     slippageToleranceGte: 0

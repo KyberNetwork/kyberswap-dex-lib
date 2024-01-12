@@ -342,6 +342,9 @@ repository:
       baseURL: blackjack-global-api.blackjack.svc:9080
       insecure: true
       timeout: 100ms
+  erc20balanceslot:
+    redis:
+      prefix: *chainName
 validator:
   buildRouteParams:
     slippageToleranceGte: 0

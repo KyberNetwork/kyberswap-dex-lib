@@ -310,6 +310,9 @@ repository:
       prefix: *chainName
       localCacheSize: 5000
       localCacheTtl: 30s
+  erc20balanceslot:
+    redis:
+      prefix: *chainName
 validator:
   buildRouteParams:
     slippageToleranceGte: 0
