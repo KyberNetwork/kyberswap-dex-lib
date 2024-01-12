@@ -97,27 +97,14 @@ func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 			}
 		}
 
-		// backup old data
-		oldActiveTick := new(big.Int).Set(p.state.ActiveTick)
-
-		// swap
-		_, amountOut, err := GetAmountOut(p.state, scaleAmount, tokenAIn, false, false)
+		newState, err := DeepcopyState(p.state)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not get amount out, err: %v", err)
+			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not deepcopy maverick state, err: %v", err)
 		}
 
-		// get new state & restore old state
-		newActiveTick := new(big.Int).Set(p.state.ActiveTick)
-		p.state.ActiveTick.Set(oldActiveTick)
-
-		var binsUpdated map[string]Bin
-		updatedCount := len(p.state.binsUpdated)
-		if updatedCount > 0 {
-			binsUpdated = make(map[string]Bin, updatedCount)
-			for k := range p.state.binsUpdated {
-				binsUpdated[k] = p.state.binsUpdated[k]
-				delete(p.state.binsUpdated, k)
-			}
+		_, amountOut, err := GetAmountOut(newState, scaleAmount, tokenAIn, false, false)
+		if err != nil {
+			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not get amount out, err: %v", err)
 		}
 
 		var scaleAmountOut *big.Int
@@ -144,8 +131,8 @@ func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 			},
 			Gas: p.gas.Swap,
 			SwapInfo: maverickSwapInfo{
-				activeTick:  newActiveTick,
-				binsUpdated: binsUpdated,
+				activeTick: newState.ActiveTick,
+				bins:       newState.Bins,
 			},
 		}, nil
 	}
@@ -160,7 +147,7 @@ func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	p.state.binsUpdated = newState.binsUpdated
+	p.state.Bins = newState.bins
 	p.state.ActiveTick = newState.activeTick
 }
 

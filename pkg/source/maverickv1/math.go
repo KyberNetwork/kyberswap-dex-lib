@@ -440,7 +440,7 @@ func currentTickLiquidity(activeTick *big.Int, state *MaverickPoolState) (*big.I
 				binID = big.NewInt(0)
 			}
 			if binID.Cmp(zeroBI) > 0 {
-				var bin = state.GetBin(binID)
+				var bin = state.Bins[binID.String()]
 				reserveA = new(big.Int).Add(reserveA, bin.ReserveA)
 				reserveB = new(big.Int).Add(reserveB, bin.ReserveB)
 				bins = append(bins, bin)
@@ -648,7 +648,7 @@ func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount, activeTick *bi
 			binID = big.NewInt(0)
 		}
 		if binID.Cmp(zeroBI) > 0 {
-			state.UpdateBin(binID, *bin)
+			state.Bins[binID.String()] = *bin
 		}
 	}
 
