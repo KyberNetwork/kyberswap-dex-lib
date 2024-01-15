@@ -13,6 +13,11 @@ var (
 	concurrentFactor = runtime.NumCPU() * 10
 )
 
+type valueAndError struct {
+	value any
+	err   error
+}
+
 func mustReturnSameOutputAndConcurrentSafe[R any](t *testing.T, f func() (any, error)) (ret R, err error) {
 	if concurrentFactor <= 0 {
 		panic("n must > 0")
@@ -22,21 +27,16 @@ func mustReturnSameOutputAndConcurrentSafe[R any](t *testing.T, f func() (any, e
 		panic("race detector must be enabled, please run/build with -race options")
 	}
 
-	type result struct {
-		value any
-		err   error
-	}
-
 	var (
 		wg      sync.WaitGroup
-		outputs = make([]result, concurrentFactor)
+		outputs = make([]valueAndError, concurrentFactor)
 	)
 	for i := 0; i < concurrentFactor; i++ {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
 			value, err := f()
-			outputs[i] = result{value, err}
+			outputs[i] = valueAndError{value, err}
 		}(i)
 	}
 	wg.Wait()
