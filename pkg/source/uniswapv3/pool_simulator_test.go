@@ -146,4 +146,8 @@ func TestTickGob(t *testing.T) {
 	xs := v3TickList{x}
 	ys := []TickGob{y}
 	assert.Equal(t, xs, *(*v3TickList)(unsafe.Pointer(&ys)))
+
+	xsEmpty := v3TickList{}
+	ysEmpty := []TickGob{}
+	assert.Equal(t, xsEmpty, *(*v3TickList)(unsafe.Pointer(&ysEmpty)))
 }
