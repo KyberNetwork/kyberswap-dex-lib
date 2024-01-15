@@ -835,7 +835,7 @@ func nextActive(binMap map[string]*big.Int, binMapHex map[string]*big.Int, tick 
 		if posFirst.Cmp(zeroBI) < 0 {
 			pos = new(big.Int).Add(pos, bignumber.One)
 		}
-		nextTick = new(big.Int).Div(pos, Kinds)
+		nextTick = new(big.Int).Quo(pos, Kinds) // use truncated div here instead of Euclidean div (-1427/4 = -356 instead of -357)
 		if posFirst.Cmp(zeroBI) < 0 {
 			nextTick = new(big.Int).Sub(nextTick, bignumber.One)
 		}
@@ -873,44 +873,45 @@ func getMapPointer(tick *big.Int) (*big.Int, *big.Int) {
 func lsb(x *big.Int) *big.Int {
 	r := big.NewInt(255)
 	// bigint in typescript is pass by value. So I do not want this function change the input X
+	var tmp big.Int
 	tmpX := new(big.Int).Set(x)
 
-	if tmpX.And(tmpX, bignumber.NewBig("0xffffffffffffffffffffffffffffffff")).Cmp(zeroBI) > 0 {
+	if tmp.And(tmpX, bignumber.NewBig("0xffffffffffffffffffffffffffffffff")).Cmp(zeroBI) > 0 {
 		r.Sub(r, big.NewInt(128))
 	} else {
 		tmpX.Rsh(tmpX, 128)
 	}
-	if tmpX.And(tmpX, bignumber.NewBig("0xffffffffffffffff")).Cmp(zeroBI) > 0 {
+	if tmp.And(tmpX, bignumber.NewBig("0xffffffffffffffff")).Cmp(zeroBI) > 0 {
 		r.Sub(r, big.NewInt(64))
 	} else {
 		tmpX.Rsh(tmpX, 64)
 	}
-	if tmpX.And(tmpX, bignumber.NewBig("0xffffffff")).Cmp(zeroBI) > 0 {
+	if tmp.And(tmpX, bignumber.NewBig("0xffffffff")).Cmp(zeroBI) > 0 {
 		r.Sub(r, big.NewInt(32))
 	} else {
 		tmpX.Rsh(tmpX, 32)
 	}
-	if tmpX.And(tmpX, bignumber.NewBig("0xffff")).Cmp(zeroBI) > 0 {
+	if tmp.And(tmpX, bignumber.NewBig("0xffff")).Cmp(zeroBI) > 0 {
 		r.Sub(r, big.NewInt(16))
 	} else {
 		tmpX.Rsh(tmpX, 16)
 	}
-	if tmpX.And(tmpX, bignumber.NewBig("0xff")).Cmp(zeroBI) > 0 {
+	if tmp.And(tmpX, bignumber.NewBig("0xff")).Cmp(zeroBI) > 0 {
 		r.Sub(r, big.NewInt(8))
 	} else {
 		tmpX.Rsh(tmpX, 8)
 	}
-	if tmpX.And(tmpX, bignumber.NewBig("0xf")).Cmp(zeroBI) > 0 {
+	if tmp.And(tmpX, bignumber.NewBig("0xf")).Cmp(zeroBI) > 0 {
 		r.Sub(r, big.NewInt(4))
 	} else {
 		tmpX.Rsh(tmpX, 4)
 	}
-	if tmpX.And(tmpX, bignumber.NewBig("0x3")).Cmp(zeroBI) > 0 {
+	if tmp.And(tmpX, bignumber.NewBig("0x3")).Cmp(zeroBI) > 0 {
 		r.Sub(r, big.NewInt(2))
 	} else {
 		tmpX.Rsh(tmpX, 2)
 	}
-	if tmpX.And(tmpX, bignumber.NewBig("0x1")).Cmp(zeroBI) > 0 {
+	if tmp.And(tmpX, bignumber.NewBig("0x1")).Cmp(zeroBI) > 0 {
 		r.Sub(r, big.NewInt(1))
 	}
 
