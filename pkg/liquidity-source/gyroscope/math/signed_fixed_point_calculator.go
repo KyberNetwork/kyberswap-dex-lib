@@ -1,11 +1,11 @@
 package math
 
 import (
-	"math/big"
+	"github.com/KyberNetwork/int256"
 )
 
 type SignedFixedPointCalculator struct {
-	result *big.Int
+	result *int256.Int
 	err    error
 }
 
@@ -34,17 +34,17 @@ const (
 	SignedFixedPointOperatorComplement     SignedFixedPointOperator = "complement"
 )
 
-func NewSignedFixedPointCalculator(value *big.Int) *SignedFixedPointCalculator {
+func NewSignedFixedPointCalculator(value *int256.Int) *SignedFixedPointCalculator {
 	return &SignedFixedPointCalculator{
 		result: value,
 	}
 }
 
-func (c *SignedFixedPointCalculator) Result() (*big.Int, error) {
+func (c *SignedFixedPointCalculator) Result() (*int256.Int, error) {
 	return c.result, c.err
 }
 
-func (c *SignedFixedPointCalculator) Ternary(condition bool, trueValue, falseValue *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) Ternary(condition bool, trueValue, falseValue *int256.Int) *SignedFixedPointCalculator {
 	if condition {
 		c.result = trueValue
 	} else {
@@ -53,79 +53,79 @@ func (c *SignedFixedPointCalculator) Ternary(condition bool, trueValue, falseVal
 	return c
 }
 
-func (c *SignedFixedPointCalculator) Add(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) Add(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorAdd, other)
 }
 
-func (c *SignedFixedPointCalculator) AddMag(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) AddMag(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorAddMag, other)
 }
 
-func (c *SignedFixedPointCalculator) Sub(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) Sub(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorSub, other)
 }
 
-func (c *SignedFixedPointCalculator) MulDownMag(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) MulDownMag(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorMulDownMag, other)
 }
 
-func (c *SignedFixedPointCalculator) MulDownMagU(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) MulDownMagU(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorMulDownMagU, other)
 }
 
-func (c *SignedFixedPointCalculator) MulUpMag(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) MulUpMag(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorMulUpMag, other)
 }
 
-func (c *SignedFixedPointCalculator) MulUpMagU(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) MulUpMagU(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorMulUpMagU, other)
 }
 
-func (c *SignedFixedPointCalculator) DivDownMag(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) DivDownMag(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorDivDownMag, other)
 }
 
-func (c *SignedFixedPointCalculator) DivDownMagU(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) DivDownMagU(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorDivDownMagU, other)
 }
 
-func (c *SignedFixedPointCalculator) DivUpMag(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) DivUpMag(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorDivUpMag, other)
 }
 
-func (c *SignedFixedPointCalculator) DivUpMagU(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) DivUpMagU(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorDivUpMagU, other)
 }
 
-func (c *SignedFixedPointCalculator) MulXp(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) MulXp(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorMulXp, other)
 }
 
-func (c *SignedFixedPointCalculator) MulXpU(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) MulXpU(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorMulXpU, other)
 }
 
-func (c *SignedFixedPointCalculator) DivXp(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) DivXp(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorDivXp, other)
 }
 
-func (c *SignedFixedPointCalculator) DivXpU(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) DivXpU(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorDivXpU, other)
 }
 
-func (c *SignedFixedPointCalculator) MulDownXpToNp(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) MulDownXpToNp(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorMulDownXpToNp, other)
 }
 
-func (c *SignedFixedPointCalculator) MulDownXpToNpU(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) MulDownXpToNpU(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorMulDownXpToNpU, other)
 }
 
-func (c *SignedFixedPointCalculator) MulUpXpToNp(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) MulUpXpToNp(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorMulUpXpToNp, other)
 }
 
-func (c *SignedFixedPointCalculator) MulUpXpToNpU(other *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) MulUpXpToNpU(other *int256.Int) *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorMulUpXpToNpU, other)
 }
 
@@ -236,7 +236,7 @@ func (c *SignedFixedPointCalculator) executeWith(op SignedFixedPointOperator, ri
 	return c.execute(op, rightResult)
 }
 
-func (c *SignedFixedPointCalculator) execute(op SignedFixedPointOperator, target *big.Int) *SignedFixedPointCalculator {
+func (c *SignedFixedPointCalculator) execute(op SignedFixedPointOperator, target *int256.Int) *SignedFixedPointCalculator {
 	if c.err != nil {
 		return c
 	}

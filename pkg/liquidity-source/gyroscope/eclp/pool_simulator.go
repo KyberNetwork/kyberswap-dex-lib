@@ -1,9 +1,7 @@
 package gyroeclp
 
 import (
-	"math/big"
-
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/math"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -23,20 +21,20 @@ type PoolSimulator struct {
 
 	paused bool
 
-	_paramsAlpha  *big.Int
-	_paramsBeta   *big.Int
-	_paramsC      *big.Int
-	_paramsS      *big.Int
-	_paramsLambda *big.Int
-	_tauAlphaX    *big.Int
-	_tauAlphaY    *big.Int
-	_tauBetaX     *big.Int
-	_tauBetaY     *big.Int
-	_u            *big.Int
-	_v            *big.Int
-	_w            *big.Int
-	_z            *big.Int
-	_dSq          *big.Int
+	_paramsAlpha  *int256.Int
+	_paramsBeta   *int256.Int
+	_paramsC      *int256.Int
+	_paramsS      *int256.Int
+	_paramsLambda *int256.Int
+	_tauAlphaX    *int256.Int
+	_tauAlphaY    *int256.Int
+	_tauBetaX     *int256.Int
+	_tauBetaY     *int256.Int
+	_u            *int256.Int
+	_v            *int256.Int
+	_w            *int256.Int
+	_z            *int256.Int
+	_dSq          *int256.Int
 
 	swapFeePercentage *uint256.Int
 	scalingFactors    []*uint256.Int
@@ -109,9 +107,9 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 			return nil, err
 		}
 
-		invariant.X = new(big.Int).Add(
+		invariant.X = new(int256.Int).Add(
 			currentInvariant,
-			new(big.Int).Mul(integer.Two(), invErr),
+			new(int256.Int).Mul(GyroECLPMath._number_2, invErr),
 		)
 
 		invariant.Y = currentInvariant

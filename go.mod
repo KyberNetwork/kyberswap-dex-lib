@@ -27,6 +27,7 @@ require (
 	github.com/sourcegraph/conc v0.3.0
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/sync v0.5.0
+	github.com/KyberNetwork/int256 v0.1.2
 )
 
 require (

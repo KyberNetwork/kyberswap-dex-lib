@@ -8,4 +8,5 @@ var (
 	ErrZeroDivision = errors.New("ZERO_DIVISION")
 	ErrDivInternal  = errors.New("DIV_INTERNAL")
 	ErrMulOverflow  = errors.New("MUL_OVERFLOW")
+	ErrSafeCast     = errors.New("SAFE_CAST")
 )
