@@ -156,6 +156,7 @@ func (d *PoolTracker) GetNewPoolState(
 	binPositions := make(map[string]map[string]*big.Int)
 	binMap := make(map[string]*big.Int)
 	binMapHex := make(map[string]*big.Int)
+	var minBinMapIndex, maxBinMapIndex *big.Int
 	for i, binRaw := range binRaws {
 		if binRaw.BinState.MergeID.Cmp(zeroBI) != 0 ||
 			(binRaw.BinState.ReserveA.Cmp(zeroBI) == 0 && binRaw.BinState.ReserveB.Cmp(zeroBI) == 0) {
@@ -173,11 +174,22 @@ func (d *PoolTracker) GetNewPoolState(
 		bins[strI] = bin
 
 		if bin.MergeID.Int64() == 0 {
-			d.putTypeAtTick(binMap, binMapHex, bin.Kind, bin.LowerTick)
+			binIndex := d.putTypeAtTick(binMap, binMapHex, bin.Kind, bin.LowerTick)
 			if binPositions[bin.LowerTick.String()] == nil {
 				binPositions[bin.LowerTick.String()] = make(map[string]*big.Int)
 			}
 			binPositions[bin.LowerTick.String()][bin.Kind.String()] = big.NewInt(int64(i))
+
+			if minBinMapIndex == nil {
+				minBinMapIndex = new(big.Int).Set(binIndex)
+			} else if minBinMapIndex.Cmp(binIndex) > 0 {
+				minBinMapIndex.Set(binIndex)
+			}
+			if maxBinMapIndex == nil {
+				maxBinMapIndex = new(big.Int).Set(binIndex)
+			} else if maxBinMapIndex.Cmp(binIndex) < 0 {
+				maxBinMapIndex.Set(binIndex)
+			}
 		}
 	}
 
@@ -200,6 +212,8 @@ func (d *PoolTracker) GetNewPoolState(
 		BinPositions:     binPositions,
 		BinMap:           binMap,
 		BinMapHex:        binMapHex,
+		minBinMapIndex:   minBinMapIndex,
+		maxBinMapIndex:   maxBinMapIndex,
 	})
 
 	var extra = Extra{
@@ -214,6 +228,9 @@ func (d *PoolTracker) GetNewPoolState(
 
 		SqrtPriceX96: sqrtPrice,
 		Liquidity:    liquidity,
+
+		MinBinMapIndex: minBinMapIndex,
+		MaxBinMapIndex: maxBinMapIndex,
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -240,7 +257,7 @@ func (d *PoolTracker) putTypeAtTick(
 	binMap map[string]*big.Int,
 	binMapHex map[string]*big.Int,
 	kind, tick *big.Int,
-) {
+) *big.Int {
 	offset, mapIndex := d.getMapPointer(
 		new(big.Int).Add(
 			new(big.Int).Mul(tick, Kinds),
@@ -257,6 +274,7 @@ func (d *PoolTracker) putTypeAtTick(
 
 	binMap[mapIndex.String()] = value
 	binMapHex[mapIndex.Text(16)] = value
+	return mapIndex
 }
 
 func (d *PoolTracker) getMapPointer(tick *big.Int) (*big.Int, *big.Int) {
