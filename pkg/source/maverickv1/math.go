@@ -60,7 +60,7 @@ func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
 	var active = getKindsAtTick(state.BinMap, state.BinMapHex, activeTick)
 
 	if active.Word.Cmp(zeroBI) == 0 {
-		activeTick = nextActive(state.BinMap, state.BinMapHex, activeTick, delta.TokenAIn)
+		activeTick = nextActive(state.BinMap, state.BinMapHex, activeTick, delta.TokenAIn, state.minBinMapIndex, state.maxBinMapIndex)
 	}
 
 	var currentReserveA, currentReserveB, currentLiquidity *big.Int
@@ -758,7 +758,7 @@ func getTickL(
 
 // ------------- maverick bin map -----------------------
 
-func nextActive(binMap map[string]*big.Int, binMapHex map[string]*big.Int, tick *big.Int, isRight bool) *big.Int {
+func nextActive(binMap map[string]*big.Int, binMapHex map[string]*big.Int, tick *big.Int, isRight bool, minBinMapIndex, maxBinMapIndex *big.Int) *big.Int {
 	var refTick, shift, tack, subIndex, nextTick *big.Int
 
 	refTick = new(big.Int).Set(tick)
@@ -814,6 +814,14 @@ func nextActive(binMap map[string]*big.Int, binMapHex map[string]*big.Int, tick 
 		}
 		// mapIndex already get allocated within `getMapPointer`, so we can safely overwrite it here
 		mapIndex = mapIndex.Add(mapIndex, tack)
+		// mapIndex will always either increase or decrease, not both
+		// so we can check against min/max index and terminate early
+		if tack.Sign() > 0 && mapIndex.Cmp(maxBinMapIndex) > 0 {
+			break
+		}
+		if tack.Sign() < 0 && mapIndex.Cmp(minBinMapIndex) < 0 {
+			break
+		}
 	}
 
 	if nextWord.Cmp(zeroBI) != 0 {

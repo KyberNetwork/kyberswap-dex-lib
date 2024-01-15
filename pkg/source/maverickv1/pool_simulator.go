@@ -42,6 +42,38 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	decimals[0] = entityPool.Tokens[0].Decimals
 	decimals[1] = entityPool.Tokens[1].Decimals
 
+	var minBinMapIndex, maxBinMapIndex *big.Int
+	if extra.MinBinMapIndex != nil && extra.MaxBinMapIndex != nil {
+		minBinMapIndex = extra.MinBinMapIndex
+		maxBinMapIndex = extra.MaxBinMapIndex
+	} else {
+		// after new pool-service deployed we'll have extra.MinBinMapIndex and extra.MaxBinMapIndex
+		// if missing then calculate here
+		binMap := extra.BinMap
+		binIndexBase := 10
+		if len(extra.BinMapHex) > 0 {
+			binMap = extra.BinMapHex
+			binIndexBase = 16
+		}
+		var binIndex big.Int
+		for k := range binMap {
+			binIndex.SetString(k, binIndexBase)
+			if minBinMapIndex == nil {
+				minBinMapIndex = new(big.Int).Set(&binIndex)
+			} else if minBinMapIndex.Cmp(&binIndex) > 0 {
+				minBinMapIndex.Set(&binIndex)
+			}
+			if maxBinMapIndex == nil {
+				maxBinMapIndex = new(big.Int).Set(&binIndex)
+			} else if maxBinMapIndex.Cmp(&binIndex) < 0 {
+				maxBinMapIndex.Set(&binIndex)
+			}
+		}
+		if minBinMapIndex == nil || maxBinMapIndex == nil {
+			return nil, ErrEmptyBinMap
+		}
+	}
+
 	return &Pool{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
@@ -64,6 +96,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 			BinPositions:     extra.BinPositions,
 			BinMap:           extra.BinMap,
 			BinMapHex:        extra.BinMapHex,
+			minBinMapIndex:   minBinMapIndex,
+			maxBinMapIndex:   maxBinMapIndex,
 		},
 		gas: DefaultGas,
 	}, nil
@@ -162,6 +196,8 @@ func DeepcopyState(state *MaverickPoolState) (*MaverickPoolState, error) {
 		ProtocolFeeRatio: new(big.Int).Set(state.ProtocolFeeRatio),
 		ActiveTick:       new(big.Int).Set(state.ActiveTick),
 		BinCounter:       new(big.Int).Set(state.BinCounter),
+		minBinMapIndex:   new(big.Int).Set(state.minBinMapIndex),
+		maxBinMapIndex:   new(big.Int).Set(state.maxBinMapIndex),
 	}
 
 	// Clone state.Bins
