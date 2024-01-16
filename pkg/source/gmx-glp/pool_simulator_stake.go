@@ -1,15 +1,16 @@
 package gmxglp
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-func (p *PoolSimulator) MintAndStakeGlp(tokenIn string, amount *big.Int) (*big.Int, error) {
+func (p *PoolSimulator) MintAndStakeGlp(swapInfo *gmxGlpSwapInfo, tokenIn string, amount *big.Int) (*big.Int, error) {
 	if amount.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrRewardRouterInvalidAmount
 	}
-	glpAmount, err := p.addLiquidityForAccount(tokenIn, amount)
+	glpAmount, err := p.addLiquidityForAccount(swapInfo, tokenIn, amount)
 	if err != nil {
 		return nil, err
 	}
@@ -17,7 +18,7 @@ func (p *PoolSimulator) MintAndStakeGlp(tokenIn string, amount *big.Int) (*big.I
 	return glpAmount, nil
 }
 
-func (p *PoolSimulator) addLiquidityForAccount(tokenIn string, amount *big.Int) (*big.Int, error) {
+func (p *PoolSimulator) addLiquidityForAccount(swapInfo *gmxGlpSwapInfo, tokenIn string, amount *big.Int) (*big.Int, error) {
 	// _addLiquidity
 	if amount.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrGlpManagerInvalidAmount
@@ -27,7 +28,7 @@ func (p *PoolSimulator) addLiquidityForAccount(tokenIn string, amount *big.Int) 
 	aumInUsdg := new(big.Int).Set(p.glpManager.MaximiseAumInUsdg)
 	glpSupply := new(big.Int).Set(p.glpManager.GlpTotalSupply)
 
-	usdgAmount, err := p.BuyUSDG(tokenIn, amount)
+	usdgAmount, err := p.BuyUSDG(swapInfo, tokenIn, amount)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +53,7 @@ func (p *PoolSimulator) addLiquidityForAccount(tokenIn string, amount *big.Int) 
 	return mintAmount, nil
 }
 
-func (p *PoolSimulator) BuyUSDG(token string, tokenAmount *big.Int) (*big.Int, error) {
+func (p *PoolSimulator) BuyUSDG(swapInfo *gmxGlpSwapInfo, token string, tokenAmount *big.Int) (*big.Int, error) {
 	//_validate(whitelistedTokens[_token], 16);  // canSwapTo vaildated it
 	p.vault.UseSwapPricing = true
 
@@ -100,8 +101,8 @@ func (p *PoolSimulator) BuyUSDG(token string, tokenAmount *big.Int) (*big.Int, e
 	mintAmount = p.vault.AdjustForDecimals(mintAmount, token, p.vault.USDG.Address)
 
 	// swapInfo for caching result to updateBalance
-	p.swapInfo.mintAmount = new(big.Int).Set(mintAmount)
-	p.swapInfo.amountAfterFees = new(big.Int).Set(amountAfterFees)
+	swapInfo.mintAmount = new(big.Int).Set(mintAmount)
+	swapInfo.amountAfterFees = new(big.Int).Set(amountAfterFees)
 	//p.vault.IncreaseUSDGAmount(tokenIn, mintAmount)
 	if err = p.validateMaxUsdgExceed(token, mintAmount); err != nil {
 		return nil, err
