@@ -626,7 +626,7 @@ func (g *gyroECLPMath) maxBalances0(p *params, d *derivedParams, r *vector2) (*i
 
 func (g *gyroECLPMath) maxBalances1(p *params, d *derivedParams, r *vector2) (*int256.Int, error) {
 	termXp1, err := math.NewSignedFixedPointCalculator(d.TauBeta.X).
-		Sub(d.TauAlpha.X).
+		SubNormal(d.TauAlpha.X).
 		DivXpU(d.DSq).
 		Result()
 	if err != nil {
@@ -634,7 +634,7 @@ func (g *gyroECLPMath) maxBalances1(p *params, d *derivedParams, r *vector2) (*i
 	}
 
 	termXp2, err := math.NewSignedFixedPointCalculator(d.TauAlpha.Y).
-		Sub(d.TauBeta.Y).
+		SubNormal(d.TauBeta.Y).
 		DivXpU(d.DSq).
 		Result()
 	if err != nil {
@@ -651,7 +651,7 @@ func (g *gyroECLPMath) maxBalances1(p *params, d *derivedParams, r *vector2) (*i
 	}
 
 	yp, err = math.NewSignedFixedPointCalculator(yp).
-		AddWith(
+		AddNormalWith(
 			math.NewSignedFixedPointCalculator(nil).
 				TernaryWith(
 					termXp2.Gt(g._number_0),
@@ -660,9 +660,9 @@ func (g *gyroECLPMath) maxBalances1(p *params, d *derivedParams, r *vector2) (*i
 						MulDownMagU(p.C),
 
 					math.NewSignedFixedPointCalculator(r.X).
-						MulUpMagU(p.C).
-						MulDownXpToNpU(termXp2),
-				),
+						MulUpMagU(p.C),
+				).
+				MulDownXpToNpU(termXp2),
 		).Result()
 	if err != nil {
 		return nil, err
