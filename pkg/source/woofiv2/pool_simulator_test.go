@@ -2,7 +2,9 @@ package woofiv2
 
 import (
 	"encoding/json"
+	"math/big"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -73,6 +75,16 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 			poolEntity := new(entity.Pool)
 			err := json.Unmarshal([]byte(tc.poolEncoded), poolEntity)
 			require.NoError(t, err)
+
+			extra := new(Extra)
+			err = json.Unmarshal([]byte(poolEntity.Extra), extra)
+			require.NoError(t, err)
+			// bypass stale oracle error
+			extra.Timestamp = big.NewInt(time.Now().Unix())
+
+			extraEncoded, err := json.Marshal(extra)
+			require.NoError(t, err)
+			poolEntity.Extra = string(extraEncoded)
 
 			poolSim, err := NewPoolSimulator(*poolEntity)
 			require.NoError(t, err)
