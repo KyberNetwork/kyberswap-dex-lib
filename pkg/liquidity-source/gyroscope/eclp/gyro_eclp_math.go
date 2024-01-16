@@ -753,10 +753,10 @@ func (g *gyroECLPMath) calcMinAtxAChiySqPlusAtxSq(x, y *int256.Int, p *params, d
 
 func (g *gyroECLPMath) calc2AtxAtyAChixAChiy(x, y *int256.Int, p *params, d *derivedParams) (*int256.Int, error) {
 	termNp, err := math.NewSignedFixedPointCalculator(x).
-		MulUpMagU(x).
-		SubWith(
+		MulDownMagU(x).
+		SubNormalWith(
 			math.NewSignedFixedPointCalculator(y).
-				MulDownMagU(y),
+				MulUpMagU(y),
 		).
 		MulDownMagU(new(int256.Int).Mul(g._number_2, p.C)).
 		MulDownMagU(p.S).
@@ -773,22 +773,23 @@ func (g *gyroECLPMath) calc2AtxAtyAChixAChiy(x, y *int256.Int, p *params, d *der
 	}
 
 	termNp, err = math.NewSignedFixedPointCalculator(termNp).
-		AddWith(
+		AddNormalWith(
 			math.NewSignedFixedPointCalculator(xy).
 				MulDownMagU(p.C).
 				MulDownMagU(p.C),
-		).SubWith(
-		math.NewSignedFixedPointCalculator(xy).
-			MulDownMagU(p.S).
-			MulDownMagU(p.S),
-	).Result()
+		).
+		SubNormalWith(
+			math.NewSignedFixedPointCalculator(xy).
+				MulDownMagU(p.S).
+				MulDownMagU(p.S),
+		).Result()
 	if err != nil {
 		return nil, err
 	}
 
 	termXp, err := math.NewSignedFixedPointCalculator(d.Z).
 		MulXpU(d.U).
-		AddWith(
+		AddNormalWith(
 			math.NewSignedFixedPointCalculator(d.W).
 				MulXpU(d.V).
 				DivDownMagU(p.Lambda).
@@ -799,13 +800,14 @@ func (g *gyroECLPMath) calc2AtxAtyAChixAChiy(x, y *int256.Int, p *params, d *der
 	}
 
 	termXp, err = math.NewSignedFixedPointCalculator(termXp).
-		AddWith(
+		AddNormalWith(
 			math.NewSignedFixedPointCalculator(d.W).
 				MulXpU(d.U).
-				AddWith(
+				AddNormalWith(
 					math.NewSignedFixedPointCalculator(d.Z).
 						MulXpU(d.V),
-				).DivDownMagU(p.Lambda),
+				).
+				DivDownMagU(p.Lambda),
 		).Result()
 	if err != nil {
 		return nil, err
