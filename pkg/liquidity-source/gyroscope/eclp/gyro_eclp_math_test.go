@@ -2016,11 +2016,93 @@ func Test_calcInvariantSqrt(t *testing.T) {
 	})
 }
 
-func Test_checkAssetBounds(t *testing.T) {
-
-}
-
 func Test_calcXpXpDivLambdaLambda(t *testing.T) {
+	t.Run("1. should return correct result", func(t *testing.T) {
+		var (
+			x = int256.MustFromDec("2153421421514125231432")
+
+			r = &vector2{
+				X: int256.MustFromDec("152142154332623423"),
+				Y: int256.MustFromDec("55353432140214225325"),
+			}
+			// [152142154332623423, 55353432140214225325]
+
+			lambda = int256.MustFromDec("532142342142142144365")
+			s      = int256.MustFromDec("552142314423142324214")
+			c      = int256.MustFromDec("4542142342121424214")
+
+			tauBeta = &vector2{
+				X: int256.MustFromDec("215432632543253245215"),
+				Y: int256.MustFromDec("6421521532542534246431"),
+			}
+			// [215432632543253245215, 6421521532542534246431]
+
+			dSq = int256.MustFromDec("241249320158430253431242")
+		)
+
+		expected := "2185825998716267202"
+		actual, err := GyroECLPMath.calcXpXpDivLambdaLambda(x, r, lambda, s, c, tauBeta, dSq)
+		assert.Nil(t, err)
+		assert.Equal(t, expected, actual.Dec())
+	})
+
+	t.Run("2. should return correct result", func(t *testing.T) {
+		var (
+			x = int256.MustFromDec("21534214241234721514125231432")
+
+			r = &vector2{
+				X: int256.MustFromDec("15214532534232452780174242154332623423"),
+				Y: int256.MustFromDec("55353436235354325352452140214225325"),
+			}
+			// [15214532534232452780174242154332623423, 55353436235354325352452140214225325]
+
+			lambda = int256.MustFromDec("5321412347982342142142144365")
+			s      = int256.MustFromDec("5521422352936314423142324214")
+			c      = int256.MustFromDec("4542142622174925192415214342121424214")
+
+			tauBeta = &vector2{
+				X: int256.MustFromDec("215432632543514253263253253245215"),
+				Y: int256.MustFromDec("64215215325412534532612415432534246431"),
+			}
+			// [215432632543514253263253253245215, 64215215325412534532612415432534246431]
+
+			dSq = int256.MustFromDec("241249320158432142554654360253431242")
+		)
+
+		expected := "18803939728747314045828797487254974975501024739888467"
+		actual, err := GyroECLPMath.calcXpXpDivLambdaLambda(x, r, lambda, s, c, tauBeta, dSq)
+		assert.Nil(t, err)
+		assert.Equal(t, expected, actual.Dec())
+	})
+
+	t.Run("3. should return correct result", func(t *testing.T) {
+		var (
+			x = int256.MustFromDec("2153421242142513124215214241234721514125231432")
+
+			r = &vector2{
+				X: int256.MustFromDec("152145325432532344232452780174242154332623423"),
+				Y: int256.MustFromDec("5535343623632534521421255354325352452140214225325"),
+			}
+			// [152145325432532344232452780174242154332623423, 5535343623632534521421255354325352452140214225325]
+
+			lambda = int256.MustFromDec("53214654365451254325252312347982342142142144365")
+			s      = int256.MustFromDec("55214223529337219473213951974932146314423142324214")
+			c      = int256.MustFromDec("4542142421917419242622174925192415214342121424214")
+
+			tauBeta = &vector2{
+				X: int256.MustFromDec("215432432142314632543514253263253253245215"),
+				Y: int256.MustFromDec("6421521534252355325412534532612415432534246431"),
+			}
+			// [215432432142314632543514253263253253245215, 6421521534252355325412534532612415432534246431]
+
+			dSq = int256.MustFromDec("241249320158432142554654360253431242")
+		)
+
+		expected := "5405765673461192275201551919962254805675948250112889194988"
+		actual, err := GyroECLPMath.calcXpXpDivLambdaLambda(x, r, lambda, s, c, tauBeta, dSq)
+		assert.Nil(t, err)
+		assert.Equal(t, expected, actual.Dec())
+	})
 
 }
 
