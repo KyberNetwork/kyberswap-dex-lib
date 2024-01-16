@@ -24,7 +24,7 @@ type ICurveBasePool interface {
 	GetInfo() pool.PoolInfo
 	GetTokenIndex(address string) int
 	// return both vPrice and D
-	GetVirtualPrice() (*big.Int, *big.Int, error)
+	GetVirtualPrice() (vPrice *big.Int, D *big.Int, err error)
 	// if `dCached` is nil then will be recalculated
 	GetDy(i int, j int, dx *big.Int, dCached *big.Int) (*big.Int, *big.Int, error)
 	CalculateTokenAmount(amounts []*big.Int, deposit bool) (*big.Int, error)
