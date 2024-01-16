@@ -152,7 +152,6 @@ func (g *gyroECLPMath) calcOutGivenIn(
 	if err != nil {
 		return nil, err
 	}
-
 	balInNew, err := math.SafeCast.ToInt256(balInNewU256)
 	if err != nil {
 		return nil, err
@@ -163,22 +162,18 @@ func (g *gyroECLPMath) calcOutGivenIn(
 		return nil, err
 	}
 
-	amountInI256, err := math.SafeCast.ToInt256(amountIn)
+	balOutNewI256, err := calcGive(balInNew, params, derived, invariant)
 	if err != nil {
 		return nil, err
 	}
-	balOutNew, err := calcGive(amountInI256, params, derived, invariant)
-	if err != nil {
-		return nil, err
-	}
-	balOutNewU256, err := math.SafeCast.ToUint256(balOutNew)
+	balOutNew, err := math.SafeCast.ToUint256(balOutNewI256)
 	if err != nil {
 		return nil, err
 	}
 
 	out, err := math.GyroFixedPoint.Sub(
 		balances[ixOut],
-		balOutNewU256,
+		balOutNew,
 	)
 	if err != nil {
 		return nil, err
