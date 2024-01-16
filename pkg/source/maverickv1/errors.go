@@ -8,4 +8,5 @@ var (
 	ErrDividedByZero     = errors.New("divided by zero")
 	ErrInvalidLiquidity  = errors.New("invalid liquidity")
 	ErrEmptyBins         = errors.New("maverick pool has no bin")
+	ErrEmptyBinMap       = errors.New("maverick pool has no bin map")
 )

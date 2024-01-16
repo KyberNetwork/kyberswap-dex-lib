@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,6 +32,10 @@ var maverickPool, err = NewPoolSimulator(entity.Pool{
 
 func TestPoolCalcAmountOut(t *testing.T) {
 	assert.Nil(t, err)
+
+	// make sure that we can calculate min/max index if pool-service hasn't done that yet
+	assert.Equal(t, big.NewInt(5), maverickPool.state.minBinMapIndex)
+	assert.Equal(t, big.NewInt(6), maverickPool.state.maxBinMapIndex)
 
 	result, err := maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{
@@ -331,7 +336,7 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 }
 
 func BenchmarkNextActive(b *testing.B) {
-	poolRedis := "{\"address\":\"0x012245db1919bbb6d727b9ce787c3169f963a898\",\"reserveUsd\":1.3045263641356901,\"amplifiedTvl\":8.068244485638408e+40,\"swapFee\":0.00008,\"exchange\":\"maverick-v1\",\"type\":\"maverick-v1\",\"timestamp\":1704265258,\"reserves\":[\"1171608824435142257\",\"76716840233381\"],\"tokens\":[{\"address\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"decimals\":6,\"weight\":50,\"swappable\":true},{\"address\":\"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2\",\"decimals\":18,\"weight\":50,\"swappable\":true}],\"extra\":\"{\\\"fee\\\":80000000000000,\\\"protocolFeeRatio\\\":0,\\\"activeTick\\\":1502,\\\"binCounter\\\":36,\\\"bins\\\":{\\\"1\\\":{\\\"reserveA\\\":314516285521548227,\\\"reserveB\\\":0,\\\"lowerTick\\\":1500,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"2\\\":{\\\"reserveA\\\":191245215895503843,\\\"reserveB\\\":0,\\\"lowerTick\\\":1501,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"3\\\":{\\\"reserveA\\\":114504301688631519,\\\"reserveB\\\":963774576010,\\\"lowerTick\\\":1502,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"31\\\":{\\\"reserveA\\\":108753991059500386,\\\"reserveB\\\":0,\\\"lowerTick\\\":1500,\\\"kind\\\":2,\\\"mergeId\\\":0},\\\"32\\\":{\\\"reserveA\\\":25486000000000000,\\\"reserveB\\\":0,\\\"lowerTick\\\":1495,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"33\\\":{\\\"reserveA\\\":42126000000000000,\\\"reserveB\\\":0,\\\"lowerTick\\\":1496,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"34\\\":{\\\"reserveA\\\":69628000000000000,\\\"reserveB\\\":0,\\\"lowerTick\\\":1497,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"35\\\":{\\\"reserveA\\\":115099589497454909,\\\"reserveB\\\":0,\\\"lowerTick\\\":1498,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"36\\\":{\\\"reserveA\\\":190249440772503320,\\\"reserveB\\\":0,\\\"lowerTick\\\":1499,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"4\\\":{\\\"reserveA\\\":0,\\\"reserveB\\\":38435140947772,\\\"lowerTick\\\":1503,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"5\\\":{\\\"reserveA\\\":0,\\\"reserveB\\\":23251195184809,\\\"lowerTick\\\":1504,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"6\\\":{\\\"reserveA\\\":0,\\\"reserveB\\\":14066729524731,\\\"lowerTick\\\":1505,\\\"kind\\\":0,\\\"mergeId\\\":0}},\\\"binPositions\\\":{\\\"1495\\\":{\\\"0\\\":32},\\\"1496\\\":{\\\"0\\\":33},\\\"1497\\\":{\\\"0\\\":34},\\\"1498\\\":{\\\"0\\\":35},\\\"1499\\\":{\\\"0\\\":36},\\\"1500\\\":{\\\"0\\\":1,\\\"2\\\":31},\\\"1501\\\":{\\\"0\\\":2},\\\"1502\\\":{\\\"0\\\":3},\\\"1503\\\":{\\\"0\\\":4},\\\"1504\\\":{\\\"0\\\":5},\\\"1505\\\":{\\\"0\\\":6}},\\\"binMap\\\":{\\\"23\\\":5807506497971120465074964654080854589440},\\\"binMapHex\\\":{\\\"17\\\":5807506497971120465074964654080854589440},\\\"liquidity\\\":1087229757983496926,\\\"sqrtPriceX96\\\":42831515231783862772}\",\"staticExtra\":\"{\\\"tickSpacing\\\":50}\"}"
+	poolRedis := "{\"address\":\"0x012245db1919bbb6d727b9ce787c3169f963a898\",\"reserveUsd\":1.3045263641356901,\"amplifiedTvl\":8.068244485638408e+40,\"swapFee\":0.00008,\"exchange\":\"maverick-v1\",\"type\":\"maverick-v1\",\"timestamp\":1704265258,\"reserves\":[\"1171608824435142257\",\"76716840233381\"],\"tokens\":[{\"address\":\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"decimals\":6,\"weight\":50,\"swappable\":true},{\"address\":\"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2\",\"decimals\":18,\"weight\":50,\"swappable\":true}],\"extra\":\"{\\\"minBinMapIndex\\\":23,\\\"maxBinMapIndex\\\":23,\\\"fee\\\":80000000000000,\\\"protocolFeeRatio\\\":0,\\\"activeTick\\\":1502,\\\"binCounter\\\":36,\\\"bins\\\":{\\\"1\\\":{\\\"reserveA\\\":314516285521548227,\\\"reserveB\\\":0,\\\"lowerTick\\\":1500,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"2\\\":{\\\"reserveA\\\":191245215895503843,\\\"reserveB\\\":0,\\\"lowerTick\\\":1501,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"3\\\":{\\\"reserveA\\\":114504301688631519,\\\"reserveB\\\":963774576010,\\\"lowerTick\\\":1502,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"31\\\":{\\\"reserveA\\\":108753991059500386,\\\"reserveB\\\":0,\\\"lowerTick\\\":1500,\\\"kind\\\":2,\\\"mergeId\\\":0},\\\"32\\\":{\\\"reserveA\\\":25486000000000000,\\\"reserveB\\\":0,\\\"lowerTick\\\":1495,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"33\\\":{\\\"reserveA\\\":42126000000000000,\\\"reserveB\\\":0,\\\"lowerTick\\\":1496,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"34\\\":{\\\"reserveA\\\":69628000000000000,\\\"reserveB\\\":0,\\\"lowerTick\\\":1497,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"35\\\":{\\\"reserveA\\\":115099589497454909,\\\"reserveB\\\":0,\\\"lowerTick\\\":1498,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"36\\\":{\\\"reserveA\\\":190249440772503320,\\\"reserveB\\\":0,\\\"lowerTick\\\":1499,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"4\\\":{\\\"reserveA\\\":0,\\\"reserveB\\\":38435140947772,\\\"lowerTick\\\":1503,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"5\\\":{\\\"reserveA\\\":0,\\\"reserveB\\\":23251195184809,\\\"lowerTick\\\":1504,\\\"kind\\\":0,\\\"mergeId\\\":0},\\\"6\\\":{\\\"reserveA\\\":0,\\\"reserveB\\\":14066729524731,\\\"lowerTick\\\":1505,\\\"kind\\\":0,\\\"mergeId\\\":0}},\\\"binPositions\\\":{\\\"1495\\\":{\\\"0\\\":32},\\\"1496\\\":{\\\"0\\\":33},\\\"1497\\\":{\\\"0\\\":34},\\\"1498\\\":{\\\"0\\\":35},\\\"1499\\\":{\\\"0\\\":36},\\\"1500\\\":{\\\"0\\\":1,\\\"2\\\":31},\\\"1501\\\":{\\\"0\\\":2},\\\"1502\\\":{\\\"0\\\":3},\\\"1503\\\":{\\\"0\\\":4},\\\"1504\\\":{\\\"0\\\":5},\\\"1505\\\":{\\\"0\\\":6}},\\\"binMap\\\":{\\\"23\\\":5807506497971120465074964654080854589440},\\\"binMapHex\\\":{\\\"17\\\":5807506497971120465074964654080854589440},\\\"liquidity\\\":1087229757983496926,\\\"sqrtPriceX96\\\":42831515231783862772}\",\"staticExtra\":\"{\\\"tickSpacing\\\":50}\"}"
 	var poolEnt entity.Pool
 	err := json.Unmarshal([]byte(poolRedis), &poolEnt)
 	require.Nil(b, err)
@@ -383,6 +388,9 @@ func TestUpdateBalance(t *testing.T) {
 	sim, err := NewPoolSimulator(poolEnt)
 	require.Nil(t, err)
 
+	assert.Equal(t, int64(-1), sim.state.minBinMapIndex.Int64())
+	assert.Equal(t, int64(0), sim.state.maxBinMapIndex.Int64())
+
 	testCases := []struct {
 		tokenIn      string
 		tokenOut     string
@@ -429,6 +437,9 @@ func TestUpdateBalanceNextTick(t *testing.T) {
 	sim, err := NewPoolSimulator(poolEnt)
 	require.Nil(t, err)
 
+	assert.Equal(t, big.NewInt(6), sim.state.minBinMapIndex)
+	assert.Equal(t, big.NewInt(7), sim.state.maxBinMapIndex)
+
 	testCases := []struct {
 		tokenIn      string
 		tokenOut     string
@@ -466,4 +477,68 @@ func TestUpdateBalanceNextTick(t *testing.T) {
 			sim.UpdateBalance(updateBalanceParams)
 		})
 	}
+}
+
+func TestNextActive(t *testing.T) {
+	poolRedis := `{"address":"0xbd278792260a68ee81a42adba23befdba87e30eb","reserveUsd":15864.05368210012,"amplifiedTvl":4.188628090182823e+41,"swapFee":0.0001,"exchange":"maverick-v1","type":"maverick-v1","timestamp":1705301925,"reserves":["2938066235974926310","4262165529103738357"],"tokens":[{"address":"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0","decimals":18,"weight":50,"swappable":true},{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","decimals":18,"weight":50,"swappable":true}],"extra":"{\"fee\":100000000000000,\"protocolFeeRatio\":0,\"activeTick\":-8,\"binCounter\":52,\"bins\":{\"12\":{\"reserveA\":0,\"reserveB\":4242237013037562,\"lowerTick\":-7,\"kind\":3,\"mergeId\":0},\"43\":{\"reserveA\":0,\"reserveB\":1000000000000000000,\"lowerTick\":343,\"kind\":0,\"mergeId\":0},\"44\":{\"reserveA\":0,\"reserveB\":978339781816359,\"lowerTick\":693,\"kind\":0,\"mergeId\":0},\"45\":{\"reserveA\":0,\"reserveB\":957148728684,\"lowerTick\":1043,\"kind\":0,\"mergeId\":0},\"46\":{\"reserveA\":0,\"reserveB\":936416678,\"lowerTick\":1393,\"kind\":0,\"mergeId\":0},\"47\":{\"reserveA\":0,\"reserveB\":916133,\"lowerTick\":1743,\"kind\":0,\"mergeId\":0},\"48\":{\"reserveA\":1000000000000000000,\"reserveB\":0,\"lowerTick\":-357,\"kind\":0,\"mergeId\":0},\"49\":{\"reserveA\":978339781816359,\"reserveB\":0,\"lowerTick\":-707,\"kind\":0,\"mergeId\":0},\"5\":{\"reserveA\":1937086938107048420,\"reserveB\":516466083168804034,\"lowerTick\":-8,\"kind\":0,\"mergeId\":0},\"50\":{\"reserveA\":957148728684,\"reserveB\":0,\"lowerTick\":-1057,\"kind\":0,\"mergeId\":0},\"51\":{\"reserveA\":936416678,\"reserveB\":0,\"lowerTick\":-1407,\"kind\":0,\"mergeId\":0},\"52\":{\"reserveA\":916133,\"reserveB\":0,\"lowerTick\":-1757,\"kind\":0,\"mergeId\":0},\"6\":{\"reserveA\":0,\"reserveB\":2740477911054018869,\"lowerTick\":-7,\"kind\":0,\"mergeId\":0}},\"binPositions\":{\"-1057\":{\"0\":50},\"-1407\":{\"0\":51},\"-1757\":{\"0\":52},\"-357\":{\"0\":48},\"-7\":{\"0\":6,\"3\":12},\"-707\":{\"0\":49},\"-8\":{\"0\":5},\"1043\":{\"0\":45},\"1393\":{\"0\":46},\"1743\":{\"0\":47},\"343\":{\"0\":43},\"693\":{\"0\":44}},\"binMap\":{\"-1\":3909192266736842770226717187617846447677385941268383009760023486136320,\"-12\":28269553036454149273332760011886696253239742350009903329945699220681916416,\"-17\":21267647932558653966460912964485513216,\"-22\":16,\"-28\":1393796574908163946345982392040522594123776,\"-6\":324518553658426726783156020576256,\"10\":6582018229284824168619876730229402019930943462534319453394436096,\"16\":75557863725914323419136,\"21\":100433627766186892221372630771322662657637687111424552206336,\"27\":1152921504606846976,\"5\":4951760157141521099596496896},\"binMapHex\":{\"-1\":3909192266736842770226717187617846447677385941268383009760023486136320,\"-11\":21267647932558653966460912964485513216,\"-16\":16,\"-1c\":1393796574908163946345982392040522594123776,\"-6\":324518553658426726783156020576256,\"-c\":28269553036454149273332760011886696253239742350009903329945699220681916416,\"10\":75557863725914323419136,\"15\":100433627766186892221372630771322662657637687111424552206336,\"1b\":1152921504606846976,\"5\":4951760157141521099596496896,\"a\":6582018229284824168619876730229402019930943462534319453394436096},\"liquidity\":259584104169810274047,\"sqrtPriceX96\":931321064190656607}","staticExtra":"{\"tickSpacing\":198}"}`
+	var poolEnt entity.Pool
+	err := json.Unmarshal([]byte(poolRedis), &poolEnt)
+	require.Nil(t, err)
+
+	sim, err := NewPoolSimulator(poolEnt)
+	require.Nil(t, err)
+
+	testCases := []struct {
+		tokenIn      string
+		tokenOut     string
+		amountIn     string
+		expAmountOut string
+		expNextTick  string
+	}{
+		{"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "10000000000000000", "11527622736373110", "-8"},
+		{"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "1000000000000000000", "1148063760188665172", "-7"},
+		{"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "1900000000000000000", "2173275581711676990", "-7"},
+		{"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "2890000000000000000", "3261217293522172144", "343"},
+		{"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "2900000000000000000", "3261228530154579452", "343"},
+
+		{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "50000000000000000", "43355832734019328", "-8"},
+		{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "500000000000000000", "432859677357507302", "-8"},
+		{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "5000000000000000000", "1939474350528474792", "-357"},
+		{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "5000000000000000000000", "2938066235974285626", "-1757"},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+			in := pool.TokenAmount{
+				Token:  tc.tokenIn,
+				Amount: bignumber.NewBig10(tc.amountIn),
+			}
+			result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: in,
+				TokenOut:      tc.tokenOut,
+				Limit:         nil,
+			})
+			require.Nil(t, err)
+			assert.Equal(t, tc.expAmountOut, result.TokenAmountOut.Amount.String())
+			assert.Equal(t, tc.expNextTick, result.SwapInfo.(maverickSwapInfo).activeTick.String())
+		})
+	}
+}
+
+func TestLSBMSB(t *testing.T) {
+	assert.Equal(t, big.NewInt(92), lsb(bignumber.NewBig10("4951760157141521099596496896")))
+	assert.Equal(t, big.NewInt(196), lsb(bignumber.NewBig10("100433627766186892221372630771322662657637687111424552206336")))
+	assert.Equal(t, big.NewInt(1), lsb(bignumber.NewBig10("126")))
+	assert.Equal(t, int64(0), lsb(bignumber.NewBig10("-2923")).Int64())
+	assert.Equal(t, big.NewInt(244), lsb(bignumber.NewBig10("28269553036454149273332760011886696253239742350009903329945699220681916416")))
+	assert.Equal(t, big.NewInt(128), lsb(bignumber.NewBig("0x100000000000000000000000000000000")))
+	assert.Equal(t, int64(0), lsb(bignumber.NewBig("0x100000000000000000000000000000001")).Int64())
+
+	assert.Equal(t, big.NewInt(92), msb(bignumber.NewBig10("4951760157141521099596496896")))
+	assert.Equal(t, big.NewInt(196), msb(bignumber.NewBig10("100433627766186892221372630771322662657637687111424552206336")))
+	assert.Equal(t, big.NewInt(6), msb(bignumber.NewBig10("126")))
+	assert.Equal(t, int64(0), msb(bignumber.NewBig10("-2923")).Int64())
+	assert.Equal(t, big.NewInt(244), msb(bignumber.NewBig10("28269553036454149273332760011886696253239742350009903329945699220681916416")))
+	assert.Equal(t, big.NewInt(128), msb(bignumber.NewBig("0x100000000000000000000000000000000")))
+	assert.Equal(t, big.NewInt(128), msb(bignumber.NewBig("0x100000000000000000000000000000001")))
 }
