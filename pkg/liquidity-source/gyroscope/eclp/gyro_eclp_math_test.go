@@ -1844,7 +1844,176 @@ func Test_calcMinAtyAChixSqPlusAtySq(t *testing.T) {
 }
 
 func Test_calcInvariantSqrt(t *testing.T) {
+	t.Run("1. should return correct result", func(t *testing.T) {
+		var (
+			alpha  = int256.MustFromDec("2153421421514125231432")
+			beta   = int256.MustFromDec("351242142152144352142315")
+			c      = int256.MustFromDec("4542142342121424214")
+			s      = int256.MustFromDec("552142314423142324214")
+			lambda = int256.MustFromDec("532142342142142144365")
 
+			tauAlphaX = int256.MustFromDec("152142154332623423")
+			tauAlphaY = int256.MustFromDec("55353432140214225325")
+			tauBetaX  = int256.MustFromDec("215432632543253245215")
+			tauBetaY  = int256.MustFromDec("6421521532542534246431")
+			u         = int256.MustFromDec("1153452543263253253524")
+			v         = int256.MustFromDec("326533539257394275394645")
+			w         = int256.MustFromDec("269304283058430853402583532")
+			z         = int256.MustFromDec("64430286340583402583905215")
+			dSq       = int256.MustFromDec("20000000000000000000000000000000000000000")
+
+			p = &params{
+				Alpha:  alpha,
+				Beta:   beta,
+				C:      c,
+				S:      s,
+				Lambda: lambda,
+			}
+
+			d = &derivedParams{
+				TauAlpha: &vector2{
+					X: tauAlphaX,
+					Y: tauAlphaY,
+				},
+				TauBeta: &vector2{
+					X: tauBetaX,
+					Y: tauBetaY,
+				},
+				U:   u,
+				V:   v,
+				W:   w,
+				Z:   z,
+				DSq: dSq,
+			}
+
+			x = int256.MustFromDec("2153421421514125231432")
+			y = int256.MustFromDec("351242142152144352142315")
+		)
+
+		// [2153421421514125231432, 351242142152144352142315, 4542142342121424214, 552142314423142324214, 532142342142142144365]
+		// [[152142154332623423, 55353432140214225325], [215432632543253245215, 6421521532542534246431], 1153452543263253253524, 326533539257394275394645, 269304283058430853402583532, 64430286340583402583905215, 20000000000000000000000000000000000000000]
+
+		expectedVal := "198565049938062974786397"
+		expectedErrValue := "0"
+		actualVal, actualErrValue, err := GyroECLPMath.calcInvariantSqrt(x, y, p, d)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedVal, actualVal.Dec())
+		assert.Equal(t, expectedErrValue, actualErrValue.Dec())
+	})
+
+	t.Run("2. should return correct result", func(t *testing.T) {
+		var (
+			alpha  = int256.MustFromDec("2153443253253221421514125231432")
+			beta   = int256.MustFromDec("35124214523562352152144352142315")
+			c      = int256.MustFromDec("45421645523553256342342121424214")
+			s      = int256.MustFromDec("5526346462535342314423142324214")
+			lambda = int256.MustFromDec("53264326325632142342142142144365")
+
+			tauAlphaX = int256.MustFromDec("1535235325264362142154332623423")
+			tauAlphaY = int256.MustFromDec("5535325634765453432140214225325")
+			tauBetaX  = int256.MustFromDec("236625463415432632543253245215")
+			tauBetaY  = int256.MustFromDec("647352355436421521532542534246431")
+			u         = int256.MustFromDec("1153523464374352543263253253524")
+			v         = int256.MustFromDec("326564536374637539257394275394645")
+			w         = int256.MustFromDec("26938453647504283058430853402583532")
+			z         = int256.MustFromDec("644302632286523252340583402583905215")
+			dSq       = int256.MustFromDec("20000532000000054325083200062350000000000")
+
+			p = &params{
+				Alpha:  alpha,
+				Beta:   beta,
+				C:      c,
+				S:      s,
+				Lambda: lambda,
+			}
+
+			d = &derivedParams{
+				TauAlpha: &vector2{
+					X: tauAlphaX,
+					Y: tauAlphaY,
+				},
+				TauBeta: &vector2{
+					X: tauBetaX,
+					Y: tauBetaY,
+				},
+				U:   u,
+				V:   v,
+				W:   w,
+				Z:   z,
+				DSq: dSq,
+			}
+
+			x = int256.MustFromDec("215353254255432532421514125231432")
+			y = int256.MustFromDec("3516623436253242142152144352142315")
+		)
+
+		// [2153443253253221421514125231432, 35124214523562352152144352142315, 45421645523553256342342121424214, 5526346462535342314423142324214, 53264326325632142342142142144365]
+		// [[1535235325264362142154332623423, 5535325634765453432140214225325], [236625463415432632543253245215, 647352355436421521532542534246431], 1153523464374352543263253253524, 326564536374637539257394275394645, 26938453647504283058430853402583532, 644302632286523252340583402583905215, 20000532000000054325083200062350000000000]
+
+		expectedVal := "14401926292624205522534918431581807251"
+		expectedErrValue := "124130174165"
+		actualVal, actualErrValue, err := GyroECLPMath.calcInvariantSqrt(x, y, p, d)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedVal, actualVal.Dec())
+		assert.Equal(t, expectedErrValue, actualErrValue.Dec())
+	})
+
+	t.Run("3. should return correct result", func(t *testing.T) {
+		var (
+			alpha  = int256.MustFromDec("215344325325322205823905125231432")
+			beta   = int256.MustFromDec("3552532573896795325144352142315")
+			c      = int256.MustFromDec("452355325652357239532759342342121424214")
+			s      = int256.MustFromDec("55263464625353423144521894712947214823142324214")
+			lambda = int256.MustFromDec("5326432632179512142342142142144365")
+
+			tauAlphaX = int256.MustFromDec("1535236239362142154332623423")
+			tauAlphaY = int256.MustFromDec("55353256257234765453432140214225325")
+			tauBetaX  = int256.MustFromDec("2366254634732955432632543253245215")
+			tauBetaY  = int256.MustFromDec("647352355625752935789354436421521532542534246431")
+			u         = int256.MustFromDec("11535234625645319571964374352543263253253524")
+			v         = int256.MustFromDec("3265645363746235325353525637539257394275394645")
+			w         = int256.MustFromDec("269384536475283058430853402583532")
+			z         = int256.MustFromDec("644302632286532534266523252340583402583905215")
+			dSq       = int256.MustFromDec("20000234718594738942174921543205730553000000000")
+
+			p = &params{
+				Alpha:  alpha,
+				Beta:   beta,
+				C:      c,
+				S:      s,
+				Lambda: lambda,
+			}
+
+			d = &derivedParams{
+				TauAlpha: &vector2{
+					X: tauAlphaX,
+					Y: tauAlphaY,
+				},
+				TauBeta: &vector2{
+					X: tauBetaX,
+					Y: tauBetaY,
+				},
+				U:   u,
+				V:   v,
+				W:   w,
+				Z:   z,
+				DSq: dSq,
+			}
+
+			x = int256.MustFromDec("21535343421514125231432")
+			y = int256.MustFromDec("3516623543214436244352142315")
+		)
+
+		// [215344325325322205823905125231432, 3552532573896795325144352142315, 452355325652357239532759342342121424214, 55263464625353423144521894712947214823142324214, 5326432632179512142342142142144365]
+		// [[1535236239362142154332623423, 55353256257234765453432140214225325], [2366254634732955432632543253245215, 647352355625752935789354436421521532542534246431], 11535234625645319571964374352543263253253524, 3265645363746235325353525637539257394275394645, 269384536475283058430853402583532, 644302632286532534266523252340583402583905215, 20000234718594738942174921543205730553000000000]
+
+		expectedVal := "51736587128591863361589831774789891737"
+		expectedErrValue := "0"
+		actualVal, actualErrValue, err := GyroECLPMath.calcInvariantSqrt(x, y, p, d)
+		assert.Nil(t, err)
+		assert.Equal(t, expectedVal, actualVal.Dec())
+		assert.Equal(t, expectedErrValue, actualErrValue.Dec())
+	})
 }
 
 func Test_checkAssetBounds(t *testing.T) {

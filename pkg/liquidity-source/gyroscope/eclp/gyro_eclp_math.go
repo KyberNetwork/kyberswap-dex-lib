@@ -930,11 +930,7 @@ func (g *gyroECLPMath) calcInvariantSqrt(x, y *int256.Int, p *params, d *derived
 			return nil, nil, err
 		}
 
-		val, err = math.NewSignedFixedPointCalculator(l).
-			Add(r).Result()
-		if err != nil {
-			return nil, nil, err
-		}
+		val = new(int256.Int).Add(l, r)
 	}
 
 	var (
@@ -947,16 +943,12 @@ func (g *gyroECLPMath) calcInvariantSqrt(x, y *int256.Int, p *params, d *derived
 			return nil, nil, err
 		}
 	}
-	val, err = math.NewSignedFixedPointCalculator(val).
-		Add(a).Result()
-	if err != nil {
-		return nil, nil, err
-	}
+	val.Add(val, a)
 
 	{
 		a, err = math.NewSignedFixedPointCalculator(x).
 			MulUpMagU(x).
-			AddWith(
+			AddNormalWith(
 				math.NewSignedFixedPointCalculator(y).
 					MulUpMagU(y),
 			).Result()
@@ -968,8 +960,11 @@ func (g *gyroECLPMath) calcInvariantSqrt(x, y *int256.Int, p *params, d *derived
 
 	{
 		valU256, err := math.SafeCast.ToUint256(val)
+		if err != nil {
+			return nil, nil, err
+		}
 
-		b, err := math.GyroPoolMath.Sqrt(valU256, uint256.NewInt(5))
+		b, err := math.GyroPoolMath.Sqrt(valU256, g._uint256_number_5)
 		if err != nil {
 			return nil, nil, err
 		}
