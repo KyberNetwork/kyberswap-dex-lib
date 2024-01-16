@@ -1446,14 +1446,14 @@ func (g *gyroECLPMath) calcXGivenY(
 	d *derivedParams,
 	r *vector2,
 ) (*int256.Int, error) {
-	ab := &vector2{}
+	ba := &vector2{}
 	{
 		x, err := g.virtualOffset1(params, d, r)
 		if err != nil {
 			return nil, err
 		}
 
-		ab.X = x
+		ba.X = x
 	}
 	{
 		y, err := g.virtualOffset0(params, d, r)
@@ -1461,7 +1461,7 @@ func (g *gyroECLPMath) calcXGivenY(
 			return nil, err
 		}
 
-		ab.Y = y
+		ba.Y = y
 	}
 
 	x, err := g.solveQuadraticSwap(
@@ -1470,9 +1470,10 @@ func (g *gyroECLPMath) calcXGivenY(
 		params.C,
 		params.S,
 		r,
-		ab,
+		ba,
 		&vector2{X: new(int256.Int).Neg(d.TauAlpha.X), Y: d.TauAlpha.Y},
-		d.DSq)
+		d.DSq,
+	)
 	if err != nil {
 		return nil, err
 	}
