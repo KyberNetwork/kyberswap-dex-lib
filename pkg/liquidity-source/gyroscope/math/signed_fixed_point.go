@@ -19,7 +19,7 @@ func init() {
 	zero := int256.NewInt(0)
 	ten := int256.NewInt(10)
 	one := int256.NewInt(1)
-	number_1e19 := new(int256.Int).Lsh(one, 19)
+	number_1e19 := new(int256.Int).Pow(ten, 19)
 
 	SignedFixedPoint = &signedFixedPoint{
 		ONE:    new(int256.Int).Pow(ten, 18),
