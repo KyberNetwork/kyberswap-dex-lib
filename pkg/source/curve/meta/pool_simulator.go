@@ -23,8 +23,10 @@ import (
 type ICurveBasePool interface {
 	GetInfo() pool.PoolInfo
 	GetTokenIndex(address string) int
-	GetVirtualPrice() (*big.Int, error)
-	GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error)
+	// return both vPrice and D
+	GetVirtualPrice() (*big.Int, *big.Int, error)
+	// if `dCached` is nil then will be recalculated
+	GetDy(i int, j int, dx *big.Int, dCached *big.Int) (*big.Int, *big.Int, error)
 	CalculateTokenAmount(amounts []*big.Int, deposit bool) (*big.Int, error)
 	CalculateWithdrawOneCoin(tokenAmount *big.Int, i int) (*big.Int, *big.Int, error)
 	AddLiquidity(amounts []*big.Int) (*big.Int, error)

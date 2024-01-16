@@ -161,6 +161,7 @@ func getY(
 	tokenIndexTo int,
 	x *big.Int,
 	xp []*big.Int,
+	dCached *big.Int,
 ) (*big.Int, error) {
 	var numTokens = len(xp)
 	if tokenIndexFrom == tokenIndexTo {
@@ -171,9 +172,13 @@ func getY(
 	}
 	var numTokensBI = big.NewInt(int64(numTokens))
 	var a = _getAPrecise(futureATime, futureA, initialATime, initialA)
-	var d, err = getD(xp, a)
-	if err != nil {
-		return nil, err
+	d := dCached
+	if d == nil {
+		var err error
+		d, err = getD(xp, a)
+		if err != nil {
+			return nil, err
+		}
 	}
 	var c = new(big.Int).Set(d)
 	var s = big.NewInt(0)
@@ -253,7 +258,7 @@ func _calculateSwap(
 		return nil, nil, err
 	}
 	var x = new(big.Int).Add(new(big.Int).Mul(dx, tokenPrecisionMultipliers[tokenIndexFrom]), xp[tokenIndexFrom])
-	y, err := getY(futureATime, futureA, initialATime, initialA, tokenIndexFrom, tokenIndexTo, x, xp)
+	y, err := getY(futureATime, futureA, initialATime, initialA, tokenIndexFrom, tokenIndexTo, x, xp, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -712,6 +717,7 @@ func GetDyUnderlying(
 		tokenIndexTo,
 		x,
 		xp,
+		nil,
 	)
 	if err != nil {
 		return nil, nil, err

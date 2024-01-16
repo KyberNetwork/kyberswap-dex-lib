@@ -101,6 +101,7 @@ func (t *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 			tokenIndexFrom,
 			tokenIndexTo,
 			tokenAmountIn.Amount,
+			nil,
 		)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err

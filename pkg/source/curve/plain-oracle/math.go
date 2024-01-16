@@ -124,6 +124,7 @@ func (t *Pool) getY(
 	tokenIndexTo int,
 	x *big.Int,
 	xp []*big.Int,
+	dCached *big.Int,
 ) (*big.Int, error) {
 	var numTokens = len(xp)
 	if tokenIndexFrom == tokenIndexTo {
@@ -138,9 +139,13 @@ func (t *Pool) getY(
 		return nil, ErrInvalidAValue
 	}
 
-	var d, err = t.getD(xp, a)
-	if err != nil {
-		return nil, err
+	d := dCached
+	if d == nil {
+		var err error
+		d, err = t.getD(xp, a)
+		if err != nil {
+			return nil, err
+		}
 	}
 	var c = new(big.Int).Set(d)
 	var s = big.NewInt(0)
@@ -193,13 +198,14 @@ func (t *Pool) GetDy(
 	i int,
 	j int,
 	dx *big.Int,
+	dCached *big.Int,
 ) (*big.Int, *big.Int, error) {
 	var xp = t._xp()
 	// x: uint256 = xp[i] + (dx * rates[i] / PRECISION)
 	var x = new(big.Int).Add(xp[i], new(big.Int).Div(new(big.Int).Mul(dx, t.Rates[i]), Precision))
 
 	// y: uint256 = self.get_y(i, j, x, xp)
-	var y, err = t.getY(i, j, x, xp)
+	var y, err = t.getY(i, j, x, xp, dCached)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -414,15 +420,15 @@ func (t *Pool) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, er
 	return dy, nil
 }
 
-func (t *Pool) GetVirtualPrice() (*big.Int, error) {
+func (t *Pool) GetVirtualPrice() (*big.Int, *big.Int, error) {
 	var xp = t._xp()
 	var A = t._A()
 	var D, err = t.getD(xp, A)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if t.LpSupply.Cmp(constant.ZeroBI) == 0 {
-		return nil, ErrDenominatorZero
+		return nil, nil, ErrDenominatorZero
 	}
-	return new(big.Int).Div(new(big.Int).Mul(D, Precision), t.LpSupply), nil
+	return new(big.Int).Div(new(big.Int).Mul(D, Precision), t.LpSupply), D, nil
 }
