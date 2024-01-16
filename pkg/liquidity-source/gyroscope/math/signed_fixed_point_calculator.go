@@ -32,6 +32,10 @@ const (
 	SignedFixedPointOperatorMulUpXpToNp    SignedFixedPointOperator = "mulUpXpToNp"
 	SignedFixedPointOperatorMulUpXpToNpU   SignedFixedPointOperator = "mulUpXpToNpU"
 	SignedFixedPointOperatorComplement     SignedFixedPointOperator = "complement"
+	SignedFixedPointOperatorAddNormal      SignedFixedPointOperator = "addNormal"
+	SignedFixedPointOperatorSubNormal      SignedFixedPointOperator = "subNormal"
+	SignedFixedPointOperatorMulNormal      SignedFixedPointOperator = "mulNormal"
+	SignedFixedPointOperatorDivNormal      SignedFixedPointOperator = "divNormal"
 )
 
 func NewSignedFixedPointCalculator(value *int256.Int) *SignedFixedPointCalculator {
@@ -133,6 +137,22 @@ func (c *SignedFixedPointCalculator) Complement() *SignedFixedPointCalculator {
 	return c.execute(SignedFixedPointOperatorComplement, nil)
 }
 
+func (s *SignedFixedPointCalculator) AddNormal(other *int256.Int) *SignedFixedPointCalculator {
+	return s.execute(SignedFixedPointOperatorAddNormal, other)
+}
+
+func (s *SignedFixedPointCalculator) SubNormal(other *int256.Int) *SignedFixedPointCalculator {
+	return s.execute(SignedFixedPointOperatorSubNormal, other)
+}
+
+func (s *SignedFixedPointCalculator) MulNormal(other *int256.Int) *SignedFixedPointCalculator {
+	return s.execute(SignedFixedPointOperatorMulNormal, other)
+}
+
+func (s *SignedFixedPointCalculator) DivNormal(other *int256.Int) *SignedFixedPointCalculator {
+	return s.execute(SignedFixedPointOperatorDivNormal, other)
+}
+
 func (c *SignedFixedPointCalculator) TernaryWith(condition bool, trueValue, falseValue *SignedFixedPointCalculator) *SignedFixedPointCalculator {
 	if condition {
 		c = trueValue
@@ -222,6 +242,22 @@ func (c *SignedFixedPointCalculator) ComplementWith(right *SignedFixedPointCalcu
 	return c.executeWith(SignedFixedPointOperatorComplement, right)
 }
 
+func (c *SignedFixedPointCalculator) AddNormalWith(right *SignedFixedPointCalculator) *SignedFixedPointCalculator {
+	return c.executeWith(SignedFixedPointOperatorAddNormal, right)
+}
+
+func (c *SignedFixedPointCalculator) SubNormalWith(right *SignedFixedPointCalculator) *SignedFixedPointCalculator {
+	return c.executeWith(SignedFixedPointOperatorSubNormal, right)
+}
+
+func (c *SignedFixedPointCalculator) MulNormalWith(right *SignedFixedPointCalculator) *SignedFixedPointCalculator {
+	return c.executeWith(SignedFixedPointOperatorMulNormal, right)
+}
+
+func (c *SignedFixedPointCalculator) DivNormalWith(right *SignedFixedPointCalculator) *SignedFixedPointCalculator {
+	return c.executeWith(SignedFixedPointOperatorDivNormal, right)
+}
+
 func (c *SignedFixedPointCalculator) executeWith(op SignedFixedPointOperator, right *SignedFixedPointCalculator) *SignedFixedPointCalculator {
 	if c.err != nil {
 		return c
@@ -282,6 +318,14 @@ func (c *SignedFixedPointCalculator) execute(op SignedFixedPointOperator, target
 		c.result = SignedFixedPoint.MulUpXpToNpU(c.result, target)
 	case SignedFixedPointOperatorComplement:
 		c.result = SignedFixedPoint.Complement(c.result)
+	case SignedFixedPointOperatorAddNormal:
+		c.result = new(int256.Int).Add(c.result, target)
+	case SignedFixedPointOperatorSubNormal:
+		c.result = new(int256.Int).Sub(c.result, target)
+	case SignedFixedPointOperatorMulNormal:
+		c.result = new(int256.Int).Mul(c.result, target)
+	case SignedFixedPointOperatorDivNormal:
+		c.result = new(int256.Int).Quo(c.result, target)
 	default:
 		c.err = ErrUnsupportedOperator
 	}
