@@ -115,7 +115,7 @@ func (p *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}
 
 	amount0, amount1 := tokenAmountIn.Amount, result.amountOut
-	feeToAmount0, feeToAmount1 := p.FeeToAmount.Fees0, p.FeeToAmount.Fees1
+	feeToAmount0, feeToAmount1 := new(big.Int).Set(p.FeeToAmount.Fees0), new(big.Int).Set(p.FeeToAmount.Fees1)
 	newPriceAverageIn, newPriceAverageOut := priceAverageIn, priceAverageOut
 	newFictiveReserveIn, newFictiveReserveOut := result.newFictiveReserveIn, result.newFictiveReserveOut
 	if zeroForOne {
