@@ -1253,7 +1253,7 @@ func (g *gyroECLPMath) solveQuadraticSwap(
 	lamBar := &vector2{}
 	{
 		x, err := math.NewSignedFixedPointCalculator(g.ONE_XP).
-			SubWith(
+			SubNormalWith(
 				math.NewSignedFixedPointCalculator(g.ONE_XP).
 					DivDownMagU(lambda).
 					DivDownMagU(lambda),
@@ -1266,7 +1266,7 @@ func (g *gyroECLPMath) solveQuadraticSwap(
 	}
 	{
 		y, err := math.NewSignedFixedPointCalculator(g.ONE_XP).
-			SubWith(
+			SubNormalWith(
 				math.NewSignedFixedPointCalculator(g.ONE_XP).
 					DivUpMagU(lambda).
 					DivUpMagU(lambda),
@@ -1278,11 +1278,9 @@ func (g *gyroECLPMath) solveQuadraticSwap(
 		lamBar.Y = y
 	}
 
+	var err error
 	q := &qParams{}
-	xp, err := math.SignedFixedPoint.Sub(x, ab.X)
-	if err != nil {
-		return nil, err
-	}
+	xp := new(int256.Int).Sub(x, ab.X)
 	q.B, err = math.NewSignedFixedPointCalculator(nil).
 		TernaryWith(
 			xp.Gt(g._number_0),
@@ -1301,7 +1299,7 @@ func (g *gyroECLPMath) solveQuadraticSwap(
 				MulUpXpToNpUWith(
 					math.NewSignedFixedPointCalculator(lamBar.X).
 						DivXpU(dSq).
-						Add(g._number_1),
+						AddNormal(g._number_1),
 				),
 		).Result()
 	if err != nil {
@@ -1329,21 +1327,22 @@ func (g *gyroECLPMath) solveQuadraticSwap(
 		MulUpMagU(s).
 		DivXpUWith(
 			math.NewSignedFixedPointCalculator(dSq).
-				Add(g._number_1),
-		).Add(g._number_1).
+				AddNormal(g._number_1),
+		).
+		AddNormal(g._number_1).
 		Result()
 	if err != nil {
 		return nil, err
 	}
 
 	sTerm.X, err = math.NewSignedFixedPointCalculator(g.ONE_XP).
-		Sub(sTerm.X).
+		SubNormal(sTerm.X).
 		Result()
 	if err != nil {
 		return nil, err
 	}
 	sTerm.Y, err = math.NewSignedFixedPointCalculator(g.ONE_XP).
-		Sub(sTerm.Y).
+		SubNormal(sTerm.Y).
 		Result()
 	if err != nil {
 		return nil, err
@@ -1356,7 +1355,7 @@ func (g *gyroECLPMath) solveQuadraticSwap(
 	q.C = new(int256.Int).Neg(q.C)
 
 	q.C, err = math.NewSignedFixedPointCalculator(q.C).
-		AddWith(
+		AddNormalWith(
 			math.NewSignedFixedPointCalculator(r.Y).
 				MulDownMagU(r.Y).
 				MulDownXpToNpU(sTerm.Y),
@@ -1371,7 +1370,7 @@ func (g *gyroECLPMath) solveQuadraticSwap(
 			return nil, err
 		}
 
-		qC, err = math.GyroPoolMath.Sqrt(qC, uint256.NewInt(5))
+		qC, err = math.GyroPoolMath.Sqrt(qC, g._uint256_number_5)
 		if err != nil {
 			return nil, err
 		}
@@ -1384,17 +1383,17 @@ func (g *gyroECLPMath) solveQuadraticSwap(
 		q.C = g._number_0
 	}
 
-	if q.B.Cmp(q.C) > 0 {
+	if q.B.Gt(q.C) {
 		q.A, err = math.NewSignedFixedPointCalculator(q.B).
-			Sub(q.C).
+			SubNormal(q.C).
 			MulUpXpToNpUWith(
 				math.NewSignedFixedPointCalculator(g.ONE_XP).
 					DivXpU(sTerm.Y).
-					Add(g._number_1),
+					AddNormal(g._number_1),
 			).Result()
 	} else {
 		q.A, err = math.NewSignedFixedPointCalculator(q.B).
-			Sub(q.C).
+			SubNormal(q.C).
 			MulUpXpToNpUWith(
 				math.NewSignedFixedPointCalculator(g.ONE_XP).
 					DivXpU(sTerm.X),
@@ -1405,7 +1404,7 @@ func (g *gyroECLPMath) solveQuadraticSwap(
 	}
 
 	return math.NewSignedFixedPointCalculator(q.A).
-		Add(ab.Y).
+		AddNormal(ab.Y).
 		Result()
 }
 
