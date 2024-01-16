@@ -442,7 +442,7 @@ func (g *gyroECLPMath) calcAtAChi(x, y *int256.Int, p *params, d *derivedParams)
 			math.NewSignedFixedPointCalculator(y).
 				MulDownMagU(p.S),
 		).
-		MulDownXpToNpU(termXp). // FIXME: wrong here
+		MulDownXpToNpU(termXp).
 		Result()
 	if err != nil {
 		return nil, err
@@ -508,7 +508,8 @@ func (g *gyroECLPMath) virtualOffset0(p *params, d *derivedParams, r *vector2) (
 			d.TauBeta.X.Gt(g._number_0),
 
 			math.NewSignedFixedPointCalculator(r.X).
-				MulUpMagU(p.Lambda).MulUpMagU(p.C).
+				MulUpMagU(p.Lambda).
+				MulUpMagU(p.C).
 				MulUpXpToNpU(termXp),
 
 			math.NewSignedFixedPointCalculator(r.Y).
@@ -521,7 +522,7 @@ func (g *gyroECLPMath) virtualOffset0(p *params, d *derivedParams, r *vector2) (
 	}
 
 	a, err = math.NewSignedFixedPointCalculator(a).
-		AddWith(
+		AddNormalWith(
 			math.NewSignedFixedPointCalculator(r.X).
 				MulUpMagU(p.S).
 				MulUpXpToNpUWith(
