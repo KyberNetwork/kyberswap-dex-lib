@@ -562,11 +562,13 @@ func (g *gyroECLPMath) virtualOffset1(p *params, d *derivedParams, r *vector2) (
 	}
 
 	b, err = math.NewSignedFixedPointCalculator(b).
-		AddWith(
+		AddNormalWith(
 			math.NewSignedFixedPointCalculator(r.X).
 				MulUpMagU(p.C).
-				MulUpXpToNpU(d.TauAlpha.Y).
-				DivXpU(d.DSq),
+				MulUpXpToNpUWith(
+					math.NewSignedFixedPointCalculator(d.TauAlpha.Y).
+						DivXpU(d.DSq),
+				),
 		).Result()
 	if err != nil {
 		return nil, err
