@@ -23,7 +23,6 @@ type PoolSimulator struct {
 	glpManager      *GlpManager
 	yearnTokenVault *YearnTokenVault
 	gas             Gas
-	swapInfo        *gmxGlpSwapInfo
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -61,10 +60,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenOut := param.TokenOut
 	var amountOut, feeAmount *big.Int
 	var err error
-	p.swapInfo = &gmxGlpSwapInfo{}
+	swapInfo := &gmxGlpSwapInfo{}
 
 	if strings.EqualFold(tokenOut, p.yearnTokenVault.Address) {
-		amountOut, err = p.MintAndStakeGlp(tokenAmountIn.Token, tokenAmountIn.Amount)
+		amountOut, err = p.MintAndStakeGlp(swapInfo, tokenAmountIn.Token, tokenAmountIn.Amount)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
@@ -72,17 +71,17 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
-		p.swapInfo.calcAmountOutType = calcAmountOutTypeStake
+		swapInfo.calcAmountOutType = calcAmountOutTypeStake
 	} else if strings.EqualFold(tokenAmountIn.Token, p.yearnTokenVault.Address) {
 		amountOut, err = p.yearnTokenVault.Withdraw(tokenAmountIn.Amount)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
-		amountOut, err = p.UnstakeAndRedeemGlp(tokenOut, amountOut)
+		amountOut, err = p.UnstakeAndRedeemGlp(swapInfo, tokenOut, amountOut)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
-		p.swapInfo.calcAmountOutType = calcAmountOutTypeUnStake
+		swapInfo.calcAmountOutType = calcAmountOutTypeUnStake
 	} else {
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("pool gmx-glp %v only allows from/to wBLT token %v", p.Info.Address, p.yearnTokenVault.Address)
 	}
@@ -101,11 +100,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Fee:            tokenAmountFee,
 		Gas:            p.gas.Swap,
 		SwapInfo: gmxGlpSwapInfo{
-			calcAmountOutType: p.swapInfo.calcAmountOutType,
-			mintAmount:        p.swapInfo.mintAmount,
-			amountAfterFees:   p.swapInfo.amountAfterFees,
-			redemptionAmount:  p.swapInfo.redemptionAmount,
-			usdgAmount:        p.swapInfo.usdgAmount,
+			calcAmountOutType: swapInfo.calcAmountOutType,
+			mintAmount:        swapInfo.mintAmount,
+			amountAfterFees:   swapInfo.amountAfterFees,
+			redemptionAmount:  swapInfo.redemptionAmount,
+			usdgAmount:        swapInfo.usdgAmount,
 		},
 	}, nil
 }
