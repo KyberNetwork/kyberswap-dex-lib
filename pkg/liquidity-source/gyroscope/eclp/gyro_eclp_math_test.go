@@ -1,7 +1,6 @@
 package gyroeclp
 
 import (
-	"math/big"
 	"testing"
 
 	"github.com/KyberNetwork/int256"
@@ -55,16 +54,16 @@ func Test_calcAChiAChiInXp(t *testing.T) {
 			}
 		)
 
-		expected, _ := new(big.Int).SetString("7519295519963", 10)
+		expected := "7519295519963"
 
 		actual, err := GyroECLPMath.calcAChiAChiInXp(p, d)
 		assert.Nil(t, err)
 
-		assert.Equal(t, expected.String(), actual.Dec())
+		assert.Equal(t, expected, actual.Dec())
 	})
 
 	t.Run("2. should return correct result", func(t *testing.T) {
-
+		
 	})
 
 	t.Run("3. should return correct result", func(t *testing.T) {

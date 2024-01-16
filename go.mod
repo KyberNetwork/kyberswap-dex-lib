@@ -2,6 +2,10 @@ module github.com/KyberNetwork/kyberswap-dex-lib
 
 go 1.21
 
+replace (
+	github.com/KyberNetwork/int256 v0.1.2 => /Users/quangle/go/src/github.com/kyber/int256
+)
+
 require (
 	github.com/KyberNetwork/blockchain-toolkit v0.3.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
