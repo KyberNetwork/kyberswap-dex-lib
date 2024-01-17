@@ -2,9 +2,10 @@ package gmxglp
 
 import (
 	"fmt"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"math/big"
 	"time"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
@@ -18,6 +19,13 @@ type YearnStrategy struct {
 	EstimatedTotalAssets *big.Int `json:"estimatedTotalAssets"`
 }
 
+func (y *YearnStrategy) Clone() *YearnStrategy {
+	return &YearnStrategy{
+		TotalDebt:            new(big.Int).Set(y.TotalDebt),
+		EstimatedTotalAssets: new(big.Int).Set(y.EstimatedTotalAssets),
+	}
+}
+
 type YearnTokenVault struct {
 	Address                 string                    `json:"address"`
 	TotalSupply             *big.Int                  `json:"totalSupply"`
@@ -29,6 +37,15 @@ type YearnTokenVault struct {
 	TotalIdle               *big.Int                  `json:"totalIdle"`
 	YearnStrategyMap        map[string]*YearnStrategy `json:"yearnStrategyMap"`
 	WithdrawalQueue         []string                  `json:"withdrawalQueue"`
+}
+
+func (y *YearnTokenVault) Merge(source *YearnTokenVault) {
+	if source.TotalIdle != nil {
+		y.TotalIdle.Set(source.TotalIdle)
+	}
+	for k, s := range source.YearnStrategyMap {
+		y.YearnStrategyMap[k] = s.Clone()
+	}
 }
 
 func (y *YearnTokenVault) GetStrategy(address string) (IStrategy, error) {
@@ -52,14 +69,19 @@ func (y *YearnTokenVault) Deposit(amount *big.Int) (*big.Int, error) {
 	return y.issueSharesForAmount(amount), nil
 }
 
-func (y *YearnTokenVault) Withdraw(maxShares *big.Int) (*big.Int, error) {
+func (y *YearnTokenVault) Withdraw(maxShares *big.Int, yModified *YearnTokenVault) (*big.Int, error) {
 	shares := new(big.Int).Set(maxShares)
 	if shares.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrYearnTokenVaultWithdrawNothing
 	}
 
 	value := y.shareValue(shares)
-	vaultBalance := new(big.Int).Set(y.TotalIdle)
+	var vaultBalance *big.Int
+	if yModified.TotalIdle != nil {
+		vaultBalance = new(big.Int).Set(yModified.TotalIdle)
+	} else {
+		vaultBalance = new(big.Int).Set(y.TotalIdle)
+	}
 
 	if value.Cmp(vaultBalance) > 0 {
 		for _, strategy := range y.WithdrawalQueue {
@@ -67,7 +89,16 @@ func (y *YearnTokenVault) Withdraw(maxShares *big.Int) (*big.Int, error) {
 				break
 			}
 			amountNeeded := new(big.Int).Sub(value, vaultBalance)
-			yStrategy := y.YearnStrategyMap[strategy]
+			var yStrategy *YearnStrategy
+			if s, ok := yModified.YearnStrategyMap[strategy]; ok {
+				yStrategy = s
+			} else {
+				yStrategy = y.YearnStrategyMap[strategy].Clone()
+				if yModified.YearnStrategyMap == nil {
+					yModified.YearnStrategyMap = make(map[string]*YearnStrategy)
+				}
+				yModified.YearnStrategyMap[strategy] = yStrategy
+			}
 			if amountNeeded.Cmp(yStrategy.TotalDebt) < 0 {
 				amountNeeded = new(big.Int).Set(yStrategy.TotalDebt)
 			}
@@ -92,7 +123,7 @@ func (y *YearnTokenVault) Withdraw(maxShares *big.Int) (*big.Int, error) {
 			yStrategy.TotalDebt = new(big.Int).Sub(yStrategy.TotalDebt, withdrawn)
 		}
 
-		y.TotalIdle = new(big.Int).Set(vaultBalance)
+		yModified.TotalIdle = new(big.Int).Set(vaultBalance)
 		if value.Cmp(vaultBalance) > 0 {
 			value = new(big.Int).Set(vaultBalance)
 		}
