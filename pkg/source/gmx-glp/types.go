@@ -32,9 +32,10 @@ type ChainID uint
 type SecondaryPriceFeedVersion int
 
 type gmxGlpSwapInfo struct {
-	calcAmountOutType string
-	mintAmount        *big.Int
-	amountAfterFees   *big.Int
-	redemptionAmount  *big.Int
-	usdgAmount        *big.Int
+	calcAmountOutType       string
+	mintAmount              *big.Int
+	amountAfterFees         *big.Int
+	redemptionAmount        *big.Int
+	usdgAmount              *big.Int
+	yearnTokenVaultModified *YearnTokenVault
 }

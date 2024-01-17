@@ -55,7 +55,7 @@ func (p *PoolSimulator) addLiquidityForAccount(swapInfo *gmxGlpSwapInfo, tokenIn
 
 func (p *PoolSimulator) BuyUSDG(swapInfo *gmxGlpSwapInfo, token string, tokenAmount *big.Int) (*big.Int, error) {
 	//_validate(whitelistedTokens[_token], 16);  // canSwapTo vaildated it
-	p.vault.UseSwapPricing = true
+	useSwapPricing := true
 
 	// uint256 tokenAmount = _transferIn(_token);
 
@@ -66,7 +66,7 @@ func (p *PoolSimulator) BuyUSDG(swapInfo *gmxGlpSwapInfo, token string, tokenAmo
 
 	// updateCumulativeFundingRate(_token, _token);
 
-	price, err := p.vault.GetMinPrice(token)
+	price, err := p.vault.GetMinPrice(token, useSwapPricing)
 	if err != nil {
 		return nil, err
 	}
@@ -110,8 +110,6 @@ func (p *PoolSimulator) BuyUSDG(swapInfo *gmxGlpSwapInfo, token string, tokenAmo
 	//p.vault.IncreasePoolAmount(tokenIn, amountAfterFees)
 
 	//IUSDG(usdg).mint(_receiver, mintAmount);
-
-	p.vault.UseSwapPricing = false
 
 	return mintAmount, nil
 }

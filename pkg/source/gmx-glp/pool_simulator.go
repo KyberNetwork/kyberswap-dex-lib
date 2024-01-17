@@ -60,7 +60,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenOut := param.TokenOut
 	var amountOut, feeAmount *big.Int
 	var err error
-	swapInfo := &gmxGlpSwapInfo{}
+	swapInfo := &gmxGlpSwapInfo{yearnTokenVaultModified: &YearnTokenVault{}}
 
 	if strings.EqualFold(tokenOut, p.yearnTokenVault.Address) {
 		amountOut, err = p.MintAndStakeGlp(swapInfo, tokenAmountIn.Token, tokenAmountIn.Amount)
@@ -73,7 +73,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}
 		swapInfo.calcAmountOutType = calcAmountOutTypeStake
 	} else if strings.EqualFold(tokenAmountIn.Token, p.yearnTokenVault.Address) {
-		amountOut, err = p.yearnTokenVault.Withdraw(tokenAmountIn.Amount)
+		amountOut, err = p.yearnTokenVault.Withdraw(tokenAmountIn.Amount, swapInfo.yearnTokenVaultModified)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
@@ -99,13 +99,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		TokenAmountOut: tokenAmountOut,
 		Fee:            tokenAmountFee,
 		Gas:            p.gas.Swap,
-		SwapInfo: gmxGlpSwapInfo{
-			calcAmountOutType: swapInfo.calcAmountOutType,
-			mintAmount:        swapInfo.mintAmount,
-			amountAfterFees:   swapInfo.amountAfterFees,
-			redemptionAmount:  swapInfo.redemptionAmount,
-			usdgAmount:        swapInfo.usdgAmount,
-		},
+		SwapInfo:       *swapInfo,
 	}, nil
 }
 
@@ -126,6 +120,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		p.vault.DecreaseUSDGAmount(params.TokenAmountOut.Token, swapInfo.usdgAmount)
 		p.vault.DecreasePoolAmount(params.TokenAmountOut.Token, swapInfo.redemptionAmount)
 	}
+
+	p.yearnTokenVault.Merge(swapInfo.yearnTokenVaultModified)
 }
 
 // CanSwapFrom only allows wBLT swap to other tokens or other tokens to wBLT
