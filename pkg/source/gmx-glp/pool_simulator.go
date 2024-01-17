@@ -60,7 +60,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenOut := param.TokenOut
 	var amountOut, feeAmount *big.Int
 	var err error
-	var yModified *YearnTokenVault
 	swapInfo := &gmxGlpSwapInfo{}
 
 	if strings.EqualFold(tokenOut, p.yearnTokenVault.Address) {
@@ -74,7 +73,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}
 		swapInfo.calcAmountOutType = calcAmountOutTypeStake
 	} else if strings.EqualFold(tokenAmountIn.Token, p.yearnTokenVault.Address) {
-		amountOut, yModified, err = p.yearnTokenVault.Withdraw(tokenAmountIn.Amount)
+		amountOut, swapInfo.yearnTokenVaultModified, err = p.yearnTokenVault.Withdraw(tokenAmountIn.Amount)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
@@ -100,14 +99,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		TokenAmountOut: tokenAmountOut,
 		Fee:            tokenAmountFee,
 		Gas:            p.gas.Swap,
-		SwapInfo: gmxGlpSwapInfo{
-			calcAmountOutType:       swapInfo.calcAmountOutType,
-			mintAmount:              swapInfo.mintAmount,
-			amountAfterFees:         swapInfo.amountAfterFees,
-			redemptionAmount:        swapInfo.redemptionAmount,
-			usdgAmount:              swapInfo.usdgAmount,
-			yearnTokenVaultModified: yModified,
-		},
+		SwapInfo:       *swapInfo,
 	}, nil
 }
 
