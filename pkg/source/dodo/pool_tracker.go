@@ -1,8 +1,6 @@
 package dodo
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -12,7 +10,6 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	cmap "github.com/orcaman/concurrent-map"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -21,22 +18,15 @@ import (
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
-	blackList    cmap.ConcurrentMap
 }
 
 func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
-	blackList, err := initBlackList(cfg.BlacklistFilePath)
-	if err != nil {
-		return nil, err
-	}
-
 	return &PoolTracker{
 		config:       cfg,
 		ethrpcClient: ethrpcClient,
-		blackList:    blackList,
 	}, nil
 }
 
@@ -177,15 +167,6 @@ func (d *PoolTracker) getNewPoolStateDodoV1(ctx context.Context, p entity.Pool) 
 func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) (entity.Pool, error) {
 	logger.Infof("[Dodo] Start getting new state of dodoV2 pool: %v", p.Address)
 
-	_, ok := d.blackList.Get(p.Address)
-	if ok {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-		}).Error(ErrPoolAddressBanned.Error())
-
-		return entity.Pool{}, ErrPoolAddressBanned
-	}
-
 	var (
 		state     PoolState
 		feeRate   FeeRate
@@ -225,15 +206,21 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 		Params: []interface{}{common.HexToAddress(p.Address)},
 	}, []interface{}{&feeRate})
 	if _, err := calls.Call(); err != nil {
-		// retry 1 time before adding to blacklist
+		// retry 1 time
 		if _, errRetry := calls.Call(); errRetry != nil {
 			logger.WithFields(logger.Fields{
 				"poolAddress": p.Address,
 				"error":       errRetry,
-			}).Errorf("[DodoV2] failed to call getUserFeeRate, add pool address to blacklist")
-			d.blackList.Set(p.Address, true)
+			}).Errorf("[DodoV2] failed to call getUserFeeRate, clear pool data")
 
-			return entity.Pool{}, err
+			// clear pool data instead of adding to blacklist
+			p.Extra = ""
+			p.Reserves = entity.PoolReserves{zeroString, zeroString}
+			p.Timestamp = time.Now().Unix()
+
+			logger.Infof("[Dodo] Finish clearing state of dodoV2 pool: %v", p.Address)
+
+			return p, nil
 		}
 	}
 
@@ -290,34 +277,6 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 	logger.Infof("[Dodo] Finish updating state of dodoV2 pool: %v", p.Address)
 
 	return p, nil
-}
-
-func initBlackList(blackListPath string) (cmap.ConcurrentMap, error) {
-	blackListMap := cmap.New()
-
-	if blackListPath == "" {
-		return blackListMap, nil
-	}
-
-	byteData, ok := bytesByPath[blackListPath]
-	if !ok {
-		logger.WithFields(logger.Fields{
-			"blacklistFilePath": blackListPath,
-		}).Error(ErrInitializeBlacklistFailed.Error())
-
-		return blackListMap, ErrInitializeBlacklistFailed
-	}
-
-	file := bytes.NewReader(byteData)
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		poolAddress := scanner.Text()
-		if poolAddress != "" {
-			blackListMap.Set(poolAddress, true)
-		}
-	}
-
-	return blackListMap, nil
 }
 
 func bigToFloat64(b *big.Float) float64 {
