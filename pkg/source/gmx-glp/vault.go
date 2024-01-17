@@ -35,8 +35,6 @@ type Vault struct {
 	USDG        *USDG          `json:"usdg"`
 
 	WhitelistedTokensCount *big.Int `json:"-"`
-
-	UseSwapPricing bool // not used, always false for now
 }
 
 func NewVault() *Vault {
@@ -78,12 +76,12 @@ const (
 	vaultMethodTokenWeights    = "tokenWeights"
 )
 
-func (v *Vault) GetMinPrice(token string) (*big.Int, error) {
-	return v.PriceFeed.GetPrice(token, false, v.IncludeAmmPrice, v.UseSwapPricing)
+func (v *Vault) GetMinPrice(token string, useSwapPricing bool) (*big.Int, error) {
+	return v.PriceFeed.GetPrice(token, false, v.IncludeAmmPrice, useSwapPricing)
 }
 
-func (v *Vault) GetMaxPrice(token string) (*big.Int, error) {
-	return v.PriceFeed.GetPrice(token, true, v.IncludeAmmPrice, v.UseSwapPricing)
+func (v *Vault) GetMaxPrice(token string, useSwapPricing bool) (*big.Int, error) {
+	return v.PriceFeed.GetPrice(token, true, v.IncludeAmmPrice, useSwapPricing)
 }
 
 func (v *Vault) GetTargetUSDGAmount(token string) *big.Int {
