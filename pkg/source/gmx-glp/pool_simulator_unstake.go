@@ -53,13 +53,13 @@ func (p *PoolSimulator) removeLiquidityForAccount(swapInfo *gmxGlpSwapInfo, toke
 
 func (p *PoolSimulator) SellUSDG(swapInfo *gmxGlpSwapInfo, token string, usdgAmount *big.Int) (*big.Int, error) {
 	//_validate(whitelistedTokens[_token], 19);  // handled at canSwapTo
-	p.vault.UseSwapPricing = true
+	useSwapPricing := true
 
 	if usdgAmount.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrVaultNegativeUsdgAmount
 	}
 
-	redemptionAmount, err := p.getRedemptionAmount(token, usdgAmount)
+	redemptionAmount, err := p.getRedemptionAmount(token, usdgAmount, useSwapPricing)
 	if err != nil {
 		return nil, err
 	}
@@ -85,13 +85,11 @@ func (p *PoolSimulator) SellUSDG(swapInfo *gmxGlpSwapInfo, token string, usdgAmo
 		return nil, ErrVaultNegativeAmountOut
 	}
 
-	p.vault.UseSwapPricing = false
-
 	return amountOut, nil
 }
 
-func (p *PoolSimulator) getRedemptionAmount(token string, usdgAmount *big.Int) (*big.Int, error) {
-	price, err := p.vault.GetMaxPrice(token)
+func (p *PoolSimulator) getRedemptionAmount(token string, usdgAmount *big.Int, useSwapPricing bool) (*big.Int, error) {
+	price, err := p.vault.GetMaxPrice(token, useSwapPricing)
 	if err != nil {
 		return nil, err
 	}
