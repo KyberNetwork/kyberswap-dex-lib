@@ -153,6 +153,11 @@ func (d *PoolTracker) GetNewPoolState(
 			continue
 		}
 
+		// LiquidityGross = 0 means that the tick is uninitialized
+		if tick.LiquidityGross.Cmp(zeroBI) == 0 {
+			continue
+		}
+
 		ticks = append(ticks, tick)
 	}
 
