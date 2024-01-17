@@ -69,16 +69,19 @@ func (y *YearnTokenVault) Deposit(amount *big.Int) (*big.Int, error) {
 	return y.issueSharesForAmount(amount), nil
 }
 
-func (y *YearnTokenVault) Withdraw(maxShares *big.Int) (*big.Int, *YearnTokenVault, error) {
+func (y *YearnTokenVault) Withdraw(maxShares *big.Int, yModified *YearnTokenVault) (*big.Int, error) {
 	shares := new(big.Int).Set(maxShares)
 	if shares.Cmp(bignumber.ZeroBI) <= 0 {
-		return nil, nil, ErrYearnTokenVaultWithdrawNothing
+		return nil, ErrYearnTokenVaultWithdrawNothing
 	}
 
 	value := y.shareValue(shares)
-	vaultBalance := new(big.Int).Set(y.TotalIdle)
-
-	yModified := &YearnTokenVault{YearnStrategyMap: map[string]*YearnStrategy{}}
+	var vaultBalance *big.Int
+	if yModified.TotalIdle != nil {
+		vaultBalance = new(big.Int).Set(yModified.TotalIdle)
+	} else {
+		vaultBalance = new(big.Int).Set(y.TotalIdle)
+	}
 
 	if value.Cmp(vaultBalance) > 0 {
 		for _, strategy := range y.WithdrawalQueue {
@@ -91,6 +94,9 @@ func (y *YearnTokenVault) Withdraw(maxShares *big.Int) (*big.Int, *YearnTokenVau
 				yStrategy = s
 			} else {
 				yStrategy = y.YearnStrategyMap[strategy].Clone()
+				if yModified.YearnStrategyMap == nil {
+					yModified.YearnStrategyMap = make(map[string]*YearnStrategy)
+				}
 				yModified.YearnStrategyMap[strategy] = yStrategy
 			}
 			if amountNeeded.Cmp(yStrategy.TotalDebt) < 0 {
@@ -102,7 +108,7 @@ func (y *YearnTokenVault) Withdraw(maxShares *big.Int) (*big.Int, *YearnTokenVau
 
 			withdrawalStrategy, err := y.GetStrategy(strategy)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 
 			amountFreed, loss := withdrawalStrategy.Withdraw(amountNeeded)
@@ -123,7 +129,7 @@ func (y *YearnTokenVault) Withdraw(maxShares *big.Int) (*big.Int, *YearnTokenVau
 		}
 	}
 
-	return value, yModified, nil
+	return value, nil
 }
 
 func (y *YearnTokenVault) issueSharesForAmount(amount *big.Int) *big.Int {

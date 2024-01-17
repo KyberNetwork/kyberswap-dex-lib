@@ -35,8 +35,6 @@ type Vault struct {
 	USDG        *USDG          `json:"usdg"`
 
 	WhitelistedTokensCount *big.Int `json:"-"`
-
-	UseSwapPricing bool // not used, always false for now
 }
 
 func NewVault() *Vault {
