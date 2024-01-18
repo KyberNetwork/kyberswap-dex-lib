@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -81,7 +82,9 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			amountOut, err := getAmountOut(tt.args.amountIn, tt.args.priceLevels)
+			amountOut, err := testutil.MustConcurrentSafe[*big.Float](t, func() (any, error) {
+				return getAmountOut(tt.args.amountIn, tt.args.priceLevels)
+			})
 			assert.Equal(t, tt.expectedErr, err)
 
 			if amountOut != nil {

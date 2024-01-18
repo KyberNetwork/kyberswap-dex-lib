@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -204,12 +205,14 @@ func TestPool_CalcAmountOut(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			pool, _ := NewPoolSimulator(tc.entityPool, tc.chainId)
 			fmt.Println("atomic vol", pool.poolState.AtomicMaxVolumePerBlock.String())
-			result, err := pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
-				TokenAmountIn: tc.tokenAmountIn,
-				TokenOut:      tc.tokenOut,
-				Limit: NewLimits(map[string]*big.Int{
-					strconv.FormatUint(pool.poolState.BlockTimestamp, 10): big.NewInt(0).Set(pool.poolState.AtomicMaxVolumePerBlock),
-				}),
+			result, err := testutil.MustConcurrentSafe[*poolPkg.CalcAmountOutResult](t, func() (any, error) {
+				return pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
+					TokenAmountIn: tc.tokenAmountIn,
+					TokenOut:      tc.tokenOut,
+					Limit: NewLimits(map[string]*big.Int{
+						strconv.FormatUint(pool.poolState.BlockTimestamp, 10): big.NewInt(0).Set(pool.poolState.AtomicMaxVolumePerBlock),
+					}),
+				})
 			})
 
 			assert.Equal(t, tc.expectedAmountOut, result.TokenAmountOut)

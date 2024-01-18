@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestCalcAmountOut(t *testing.T) {
@@ -33,10 +34,12 @@ func TestCalcAmountOut(t *testing.T) {
 			tokenOut = "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
 		)
 
-		result, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
-			Limit:         nil,
+		result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			return simulator.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+				Limit:         nil,
+			})
 		})
 		assert.Nil(t, err)
 
@@ -55,10 +58,12 @@ func TestCalcAmountOut(t *testing.T) {
 			tokenOut = "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e"
 		)
 
-		result, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
-			Limit:         nil,
+		result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			return simulator.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+				Limit:         nil,
+			})
 		})
 		assert.Nil(t, err)
 
@@ -77,10 +82,12 @@ func TestCalcAmountOut(t *testing.T) {
 			tokenOut = "0x6e84a6216ea6dacc71ee8e6b0a5b7322eebc0fdd"
 		)
 
-		result, err := simulator.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
-			Limit:         nil,
+		result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			return simulator.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+				Limit:         nil,
+			})
 		})
 		assert.Nil(t, err)
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 var (
@@ -78,15 +79,17 @@ func TestCalcAmountOut(t *testing.T) {
 	now = func() time.Time {
 		return time.Unix(TIMESTAMP_JAN_2020, 0)
 	}
-	result, err := poolSimulator.CalcAmountOut(
-		poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  "token0",
-				Amount: amountInT0,
-			},
-			TokenOut: "token1",
-			Limit:    nil,
-		})
+	result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		return poolSimulator.CalcAmountOut(
+			poolpkg.CalcAmountOutParams{
+				TokenAmountIn: poolpkg.TokenAmount{
+					Token:  "token0",
+					Amount: amountInT0,
+				},
+				TokenOut: "token1",
+				Limit:    nil,
+			})
+	})
 
 	if err != nil {
 		t.Fatalf(`Error thrown %v`, err)
@@ -185,7 +188,9 @@ func TestGetAmountOut(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name,
 			func(t *testing.T) {
-				result, err := getAmountOut(tc.amountParams)
+				result, err := testutil.MustConcurrentSafe[GetAmountResult](t, func() (any, error) {
+					return getAmountOut(tc.amountParams)
+				})
 				if err != nil {
 					t.Fatalf(`Error thrown %v`, err)
 				}
@@ -324,10 +329,12 @@ func TestUpdateBalance(t *testing.T) {
 	now = func() time.Time {
 		return time.Unix(TIMESTAMP_JAN_2020, 0)
 	}
-	result, _ := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-		TokenAmountIn: tokenAmountIn,
-		TokenOut:      "token1",
-		Limit:         nil,
+	result, _ := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: tokenAmountIn,
+			TokenOut:      "token1",
+			Limit:         nil,
+		})
 	})
 
 	poolSimulator.UpdateBalance(poolpkg.UpdateBalanceParams{
