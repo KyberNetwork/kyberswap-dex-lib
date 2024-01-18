@@ -258,4 +258,3 @@ func (s *PoolSimulator) _virtualParameters(parameter0 bool, sqrtParam, invariant
 
 	return Gyro2CLPMath._calculateVirtualParameter1(invariant, sqrtParam)
 }
-

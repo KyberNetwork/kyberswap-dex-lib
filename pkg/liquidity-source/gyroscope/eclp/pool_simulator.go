@@ -1,6 +1,8 @@
 package gyroeclp
 
 import (
+	"math/big"
+
 	"github.com/KyberNetwork/int256"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
@@ -187,6 +189,33 @@ func (s *PoolSimulator) _scalingFactor(token0 bool) *uint256.Int {
 		return s.scalingFactors[0]
 	}
 	return s.scalingFactors[1]
+}
+
+func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+	for idx, token := range s.Info.Tokens {
+		if token == params.TokenAmountIn.Token {
+			s.Info.Reserves[idx] = new(big.Int).Add(
+				s.Info.Reserves[idx],
+				params.TokenAmountIn.Amount,
+			)
+		}
+
+		if token == params.TokenAmountOut.Token {
+			s.Info.Reserves[idx] = new(big.Int).Sub(
+				s.Info.Reserves[idx],
+				params.TokenAmountOut.Amount,
+			)
+		}
+	}
+}
+
+func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+	return PoolMetaInfo{
+		Vault:         s.vault,
+		PoolID:        s.poolID,
+		TokenOutIndex: s.GetTokenIndex(tokenOut),
+		BlockNumber:   s.Info.BlockNumber,
+	}
 }
 
 func _upscale(amount, scalingFactor *uint256.Int) (*uint256.Int, error) {

@@ -221,11 +221,10 @@ func (s *PoolSimulator) _downscaleDown(amount, scalingFactor *uint256.Int) (*uin
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:       s.vault,
-		PoolID:      s.poolID,
-		T:           s.poolType,
-		V:           s.poolTypeVer,
-		BlockNumber: s.Info.BlockNumber,
+		Vault:         s.vault,
+		PoolID:        s.poolID,
+		TokenOutIndex: s.GetTokenIndex(tokenOut),
+		BlockNumber:   s.Info.BlockNumber,
 	}
 }
 

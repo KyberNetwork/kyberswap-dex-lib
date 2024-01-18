@@ -12,6 +12,13 @@ type Gas struct {
 	Swap int64
 }
 
+type PoolMetaInfo struct {
+	Vault         string `json:"vault"`
+	PoolID        string `json:"poolId"`
+	TokenOutIndex int    `json:"tokenOutIndex"`
+	BlockNumber   uint64 `json:"blockNumber"`
+}
+
 type StaticExtra struct {
 	PoolID        string `json:"poolId"`
 	PoolType      string `json:"poolType"`
