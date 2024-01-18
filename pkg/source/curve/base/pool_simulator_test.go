@@ -1,6 +1,7 @@
 package base
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -123,5 +125,61 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 			Limit:         nil,
 		})
 		require.Nil(b, err)
+	}
+}
+
+func TestGetDyVirtualPrice(t *testing.T) {
+	// test data from https://etherscan.io/address/0x1005f7406f32a61bd760cfa14accd2737913d546#readContract
+	testcases := []struct {
+		i      int
+		j      int
+		dx     string
+		expOut string
+	}{
+		{0, 1, "100000000000000", "140254485"},
+		{0, 1, "1000000000000", "140254485"},
+		{0, 1, "100000000", "99936588"},
+		{0, 1, "100002233", "99938816"},
+		{1, 0, "20000", "19982"},
+		{1, 0, "3000200", "2997456"},
+		{1, 0, "88001800", "69067695"},
+		{1, 0, "100000000000000", "69244498"},
+	}
+	poolRedis := `{
+		"address": "0x1005f7406f32a61bd760cfa14accd2737913d546",
+		"reserveUsd": 209.42969262729198,
+		"amplifiedTvl": 209.42969262729198,
+		"exchange": "curve",
+		"type": "curve-base",
+		"timestamp": 1705393976,
+		"reserves": ["69265278", "140296574", "208111994100559113335"],
+		"tokens": [
+			{ "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "weight": 1, "swappable": true },
+			{ "address": "0xdac17f958d2ee523a2206206994597c13d831ec7", "weight": 1, "swappable": true }
+		],
+		"extra": "{\"initialA\":\"150000\",\"futureA\":\"150000\",\"initialATime\":0,\"futureATime\":0,\"swapFee\":\"3000000\",\"adminFee\":\"5000000000\"}",
+		"staticExtra": "{\"lpToken\":\"0x1005f7406f32a61bd760cfa14accd2737913d546\",\"aPrecision\":\"100\",\"precisionMultipliers\":[\"1000000000000\",\"1000000000000\"],\"rates\":[\"1000000000000000000000000000000\",\"1000000000000000000000000000000\"]}"
+	}`
+	var poolEntity entity.Pool
+	err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+	require.Nil(t, err)
+	p, err := NewPoolSimulator(poolEntity)
+	require.Nil(t, err)
+
+	v, dCached, err := p.GetVirtualPrice()
+	require.Nil(t, err)
+	assert.Equal(t, bignumber.NewBig10("1006923185919753102"), v)
+
+	for idx, tc := range testcases {
+		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
+			dy, _, err := p.GetDy(tc.i, tc.j, bignumber.NewBig10(tc.dx), nil)
+			require.Nil(t, err)
+			assert.Equal(t, bignumber.NewBig10(tc.expOut), dy)
+
+			// test using cached D
+			dy, _, err = p.GetDy(tc.i, tc.j, bignumber.NewBig10(tc.dx), dCached)
+			require.Nil(t, err)
+			assert.Equal(t, bignumber.NewBig10(tc.expOut), dy)
+		})
 	}
 }
