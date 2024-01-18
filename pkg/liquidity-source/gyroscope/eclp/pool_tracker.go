@@ -234,9 +234,9 @@ func isNotPaused(pausedState PausedStateResp) bool {
 
 func getScalingFactors(tokenDecimals []int, tokenRates TokenRatesResp) []*uint256.Int {
 	rate0U256, _ := uint256.FromBig(tokenRates.Rate0)
-	f0 := new(uint256.Int).Mul(rate0U256, computeScalingFactor(tokenDecimals[0]))
+	f0, _ := math.GyroFixedPoint.MulDown(computeScalingFactor(tokenDecimals[0]), rate0U256)
 	rate1U256, _ := uint256.FromBig(tokenRates.Rate1)
-	f1 := new(uint256.Int).Mul(rate1U256, computeScalingFactor(tokenDecimals[1]))
+	f1, _ := math.GyroFixedPoint.MulDown(computeScalingFactor(tokenDecimals[1]), rate1U256)
 	return []*uint256.Int{f0, f1}
 }
 
