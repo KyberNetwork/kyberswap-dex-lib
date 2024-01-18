@@ -2,11 +2,12 @@ package gyroeclp
 
 import (
 	"github.com/KyberNetwork/int256"
+	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/math"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/holiman/uint256"
-	"github.com/pkg/errors"
 )
 
 var (
@@ -44,9 +45,6 @@ type PoolSimulator struct {
 
 	vault  string
 	poolID string
-
-	poolType    string
-	poolTypeVer int
 }
 
 func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
