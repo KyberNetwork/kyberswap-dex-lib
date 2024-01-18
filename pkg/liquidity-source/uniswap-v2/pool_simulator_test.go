@@ -11,6 +11,7 @@ import (
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
@@ -68,10 +69,12 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := tc.poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-				TokenAmountIn: tc.tokenAmountIn,
-				TokenOut:      tc.tokenOut,
-				Limit:         nil,
+			result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+				return tc.poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+					TokenAmountIn: tc.tokenAmountIn,
+					TokenOut:      tc.tokenOut,
+					Limit:         nil,
+				})
 			})
 
 			if tc.expectedError != nil {

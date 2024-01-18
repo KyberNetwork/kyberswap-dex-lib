@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestRegularSwap(t *testing.T) {
@@ -61,9 +62,11 @@ func TestRegularSwap(t *testing.T) {
 		expectedAmountOut := "998507669837625986"
 
 		// calculation
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
 		})
 
 		// assert
@@ -121,9 +124,11 @@ func TestRegularSwap(t *testing.T) {
 		expectedAmountOut := "23155810259460675"
 
 		// calculation
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
 		})
 
 		// assert
@@ -213,9 +218,11 @@ func TestBptSwap(t *testing.T) {
 		expectedAmountOut := "22005850083674"
 
 		// calculation
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
 		})
 
 		// assert
@@ -303,9 +310,11 @@ func TestBptSwap(t *testing.T) {
 		expectedAmountOut := "128189688116719916203223884786015"
 
 		// calculation
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
 		})
 
 		// assert
@@ -400,9 +409,11 @@ func TestBptSwap(t *testing.T) {
 		expectedAmountOut := "72153658150470669505066070"
 
 		// calculation
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
 		})
 
 		// assert
@@ -497,9 +508,11 @@ func TestBptSwap(t *testing.T) {
 		expectedAmountOut := "4071333855617864209"
 
 		// calculation
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
 		})
 
 		// assert
@@ -588,9 +601,11 @@ func TestBptSwap(t *testing.T) {
 		expectedAmountOut := "473156052715491"
 
 		// calculation
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
 		})
 
 		// assert
@@ -679,9 +694,11 @@ func TestBptSwap(t *testing.T) {
 		expectedAmountOut := "17329834826337"
 
 		// calculation
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
 		})
 
 		// assert
@@ -775,9 +792,11 @@ func TestBptSwap(t *testing.T) {
 		expectedAmountOut := "2027780845478092"
 
 		// calculation
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
 		})
 
 		// assert
@@ -872,9 +891,11 @@ func TestBptSwap(t *testing.T) {
 		expectedAmountOut := "4023147984636196801"
 
 		// calculation
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
 		})
 
 		// assert

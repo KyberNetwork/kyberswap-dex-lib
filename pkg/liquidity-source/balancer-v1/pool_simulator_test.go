@@ -8,8 +8,10 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
@@ -55,7 +57,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := tc.poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{TokenAmountIn: tc.tokenAmountIn, TokenOut: tc.tokenOut})
+			result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return tc.poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{TokenAmountIn: tc.tokenAmountIn, TokenOut: tc.tokenOut})
+			})
 
 			assert.ErrorIs(t, err, tc.expectedError)
 			if tc.expectedAmountOut != nil {
