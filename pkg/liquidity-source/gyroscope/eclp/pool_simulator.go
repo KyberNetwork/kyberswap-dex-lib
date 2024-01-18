@@ -49,7 +49,6 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	}
 
 	var tokenInIsToken0 bool
-
 	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenOut)
 	if indexIn == 0 && indexOut == 1 {
 		tokenInIsToken0 = true
@@ -66,7 +65,6 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	if overflow {
 		return nil, ErrInvalidReserve
 	}
-
 	balanceTokenOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
 	if overflow {
 		return nil, ErrInvalidReserve
@@ -76,7 +74,6 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	if err != nil {
 		return nil, ErrInvalidReserve
 	}
-
 	balanceTokenOut, err = _upscale(balanceTokenOut, scalingFactorTokenOut)
 	if err != nil {
 		return nil, ErrInvalidReserve
@@ -107,17 +104,14 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	if overflow {
 		return nil, ErrInvalidAmountIn
 	}
-
 	feeAmount, err := math.GyroFixedPoint.MulUp(amountIn, s.swapFeePercentage)
 	if err != nil {
 		return nil, err
 	}
-
 	amountInAfterFee, err := math.GyroFixedPoint.Sub(amountIn, feeAmount)
 	if err != nil {
 		return nil, err
 	}
-
 	amountInAfterFee, err = _upscale(amountInAfterFee, scalingFactorTokenIn)
 	if err != nil {
 		return nil, err
