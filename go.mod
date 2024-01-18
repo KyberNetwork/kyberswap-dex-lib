@@ -2,14 +2,11 @@ module github.com/KyberNetwork/kyberswap-dex-lib
 
 go 1.21
 
-replace (
-	github.com/KyberNetwork/int256 v0.1.2 => /Users/quangle/go/src/github.com/kyber/int256
-)
-
 require (
 	github.com/KyberNetwork/blockchain-toolkit v0.3.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
 	github.com/KyberNetwork/ethrpc v0.7.0
+	github.com/KyberNetwork/int256 v0.1.3
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/pancake-v3-sdk v0.1.0
 	github.com/daoleno/uniswap-sdk-core v0.1.7
@@ -31,7 +28,6 @@ require (
 	github.com/sourcegraph/conc v0.3.0
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/sync v0.5.0
-	github.com/KyberNetwork/int256 v0.1.2
 )
 
 require (
