@@ -7,12 +7,8 @@ import (
 	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-func (t *Pool) _xp_mem(_balances []*big.Int) ([]*big.Int, error) {
+func (t *Pool) _xp_mem(_balances []*big.Int, vPrice *big.Int) ([]*big.Int, error) {
 	var nCoins = len(_balances)
-	vPrice, err := t.BasePool.GetVirtualPrice()
-	if err != nil {
-		return nil, err
-	}
 	var ret = []*big.Int{t.RateMultiplier, vPrice}
 	for i := 0; i < nCoins; i += 1 {
 		ret[i] = new(big.Int).Div(new(big.Int).Mul(ret[i], _balances[i]), Precision)
@@ -175,12 +171,12 @@ func (t *Pool) _get_y(
 }
 
 func (t *Pool) _get_dy_mem(i int, j int, _dx *big.Int, _balances []*big.Int) (*big.Int, *big.Int, error) {
-	vPrice, err := t.BasePool.GetVirtualPrice()
+	vPrice, _, err := t.BasePool.GetVirtualPrice()
 	if err != nil {
 		return nil, nil, err
 	}
 	var rates = []*big.Int{t.RateMultiplier, vPrice}
-	xp, err := t._xp_mem(_balances)
+	xp, err := t._xp_mem(_balances, vPrice)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -207,12 +203,12 @@ func (t *Pool) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *big.Int, 
 	var nCoins = len(t.Info.Tokens)
 	var maxCoin = nCoins - 1
 	var baseNCoins = len(t.BasePool.GetInfo().Tokens)
-	vPrice, err := t.BasePool.GetVirtualPrice()
+	vPrice, D, err := t.BasePool.GetVirtualPrice()
 	if err != nil {
 		return nil, nil, err
 	}
 	var rates = []*big.Int{t.RateMultiplier, vPrice}
-	xp, err := t._xp_mem(t.Info.Reserves)
+	xp, err := t._xp_mem(t.Info.Reserves, vPrice)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -245,7 +241,7 @@ func (t *Pool) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *big.Int, 
 			x = new(big.Int).Sub(x, new(big.Int).Div(new(big.Int).Mul(x, t.BasePool.GetInfo().SwapFee), new(big.Int).Mul(constant.Two, FeeDenominator)))
 			x = new(big.Int).Add(x, xp[maxCoin])
 		} else {
-			return t.BasePool.GetDy(base_i, base_j, _dx)
+			return t.BasePool.GetDy(base_i, base_j, _dx, D)
 		}
 	}
 	y, err := t._get_y(meta_i, meta_j, x, xp)
@@ -268,7 +264,7 @@ func (t *Pool) GetDyUnderlying(i int, j int, _dx *big.Int) (*big.Int, *big.Int, 
 
 func (t *Pool) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 	var nCoins = len(t.Info.Tokens)
-	vPrice, err := t.BasePool.GetVirtualPrice()
+	vPrice, _, err := t.BasePool.GetVirtualPrice()
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +276,7 @@ func (t *Pool) Exchange(i int, j int, dx *big.Int) (*big.Int, error) {
 	for k := 0; k < nCoins; k += 1 {
 		old_balances[k] = t.Info.Reserves[k]
 	}
-	xp, err := t._xp_mem(old_balances)
+	xp, err := t._xp_mem(old_balances, vPrice)
 	if err != nil {
 		return nil, err
 	}
@@ -303,7 +299,7 @@ func (t *Pool) ExchangeUnderlying(i int, j int, dx *big.Int) (*big.Int, error) {
 	var nCoins = len(t.Info.Tokens)
 	var maxCoins = nCoins - 1
 	var baseNCoins = len(t.BasePool.GetInfo().Tokens)
-	vPrice, err := t.BasePool.GetVirtualPrice()
+	vPrice, _, err := t.BasePool.GetVirtualPrice()
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +323,7 @@ func (t *Pool) ExchangeUnderlying(i int, j int, dx *big.Int) (*big.Int, error) {
 		for k := 0; k < nCoins; k += 1 {
 			old_balances[k] = t.Info.Reserves[k]
 		}
-		xp, err := t._xp_mem(old_balances)
+		xp, err := t._xp_mem(old_balances, vPrice)
 		if err != nil {
 			return nil, err
 		}
