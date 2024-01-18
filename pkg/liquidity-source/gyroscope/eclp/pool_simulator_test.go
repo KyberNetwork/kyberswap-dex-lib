@@ -267,56 +267,6 @@ func TestCalcAmountOut(t *testing.T) {
 
 	t.Run("6. should return correct result", func(t *testing.T) {
 		p := `{
-			"address": "0x8d2ea84b1bb33d956096e5d4dccbc8e6dbe8dbbc",
-			"exchange": "gyroscope-eclp",
-			"type": "gyroscope-eclp",
-			"timestamp": 1705571365,
-			"reserves": [
-			  "1999799893965774007",
-			  "2000399787392128640"
-			],
-			"tokens": [
-			  {
-				"address": "0x15e86be6084c6a5a8c17732d398dfbc2ec574cec",
-				"weight": 1,
-				"swappable": true
-			  },
-			  {
-				"address": "0x37b8e1152fb90a867f3dcca6e8d537681b04705e",
-				"weight": 1,
-				"swappable": true
-			  }
-			],
-			"extra": "{\"paused\":false,\"swapFeePercentage\":\"0x5af3107a4000\",\"paramsAlpha\":\"999000999000999000\",\"paramsBeta\":\"1001001001001001001\",\"paramsC\":\"707106781186547524\",\"paramsS\":\"707106781186547524\",\"paramsLambda\":\"3500000000000000000000\",\"tauAlphaX\":\"-86813627444881502269005830178453760968\",\"tauAlphaY\":\"49632591004916489211256720438426352580\",\"tauBetaX\":\"86834999582601090763959787675832339395\",\"tauBetaY\":\"49595189761605594460186269922864521705\",\"u\":\"86824313513741296418044956281446571633\",\"v\":\"49613890383261041779471297130369607773\",\"w\":\"-18700621655447375514023258428389530\",\"z\":\"10686068859794247464863321233410621\",\"dSq\":\"99999999999999999886624093342106115200\",\"tokenRates\":[\"0xe0e6fbed38485a6\",\"0xde0b6b3a7640000\"]}",
-			"staticExtra": "{\"poolId\":\"0x8d2ea84b1bb33d956096e5d4dccbc8e6dbe8dbbc000200000000000000000c78\",\"poolType\":\"GyroE\",\"poolTypeVersion\":2,\"tokenDecimals\":[18,18],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}",
-			"blockNumber": 52464093
-		  }`
-		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
-		assert.Nil(t, err)
-
-		// expected
-		expectedAmountOut := "23410401128383078500983"
-
-		// calculation
-		simulator, err := NewPoolSimulator(pool)
-		assert.Nil(t, err)
-		amountIn, _ := new(big.Int).SetString("22252824081417471523809", 10)
-		result, err := simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  "0x83f20f44975d03b1b09e64809b757c47f942beea",
-				Amount: amountIn,
-			},
-			TokenOut: "0xe07f9d810a48ab5c3c914ba3ca53af14e4491e8a",
-		})
-
-		// assert
-		assert.Nil(t, err)
-		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
-	})
-
-	t.Run("7. should return correct result", func(t *testing.T) {
-		p := `{
 			"address": "0x97469e6236bd467cd147065f77752b00efadce8a",
 			"exchange": "gyroscope-eclp",
 			"type": "gyroscope-eclp",
@@ -365,7 +315,7 @@ func TestCalcAmountOut(t *testing.T) {
 		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 	})
 
-	t.Run("8. should return correct result", func(t *testing.T) {
+	t.Run("7. should return correct result", func(t *testing.T) {
 		p := `{
 			"address": "0x97469e6236bd467cd147065f77752b00efadce8a",
 			"exchange": "gyroscope-eclp",
