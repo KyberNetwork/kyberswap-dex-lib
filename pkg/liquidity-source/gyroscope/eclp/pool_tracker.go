@@ -3,6 +3,7 @@ package gyroeclp
 import (
 	"context"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -12,12 +13,15 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
+
+var ErrReserveNotFound = errors.New("reserve not found")
 
 type PoolTracker struct {
 	config       *Config
@@ -110,10 +114,46 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	p.Timestamp = time.Now().Unix()
+	reserves, err := t.initReserves(ctx, p, rpcResp.PoolTokens)
+	if err != nil {
+		return p, err
+	}
+
+	p.Reserves = reserves
 	p.Extra = string(extraBytes)
+	p.BlockNumber = rpcResp.BlockNumber
+	p.Timestamp = time.Now().Unix()
 
 	return p, nil
+}
+
+func (t *PoolTracker) initReserves(
+	ctx context.Context,
+	p entity.Pool,
+	poolTokens PoolTokensResp,
+) ([]string, error) {
+	reserveByToken := make(map[string]*big.Int)
+	for idx, token := range poolTokens.Tokens {
+		addr := strings.ToLower(token.Hex())
+		reserveByToken[addr] = poolTokens.Balances[idx]
+	}
+
+	reserves := make([]string, len(p.Tokens))
+	for idx, token := range p.Tokens {
+		r, ok := reserveByToken[token.Address]
+		if !ok {
+			logger.WithFields(logger.Fields{
+				"dexId":       t.config.DexID,
+				"dexType":     DexType,
+				"poolAddress": p.Address,
+			}).Error("can not get reserve")
+			return nil, ErrReserveNotFound
+		}
+
+		reserves[idx] = r.String()
+	}
+
+	return reserves, nil
 }
 
 func (t *PoolTracker) queryRPC(

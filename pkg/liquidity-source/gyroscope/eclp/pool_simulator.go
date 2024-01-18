@@ -7,7 +7,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/math"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
@@ -40,9 +39,6 @@ type PoolSimulator struct {
 	swapFeePercentage *uint256.Int
 	scalingFactors    []*uint256.Int
 
-	rateProviders []string
-	rates         map[string]*uint256.Int
-
 	vault  string
 	poolID string
 }
@@ -63,14 +59,8 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrTokenInIsNotToken0
 	}
 
-	scalingFactorTokenIn, err := s._scalingFactor(tokenInIsToken0)
-	if err != nil {
-		return nil, err
-	}
-	scalingFactorTokenOut, err := s._scalingFactor(!tokenInIsToken0)
-	if err != nil {
-		return nil, err
-	}
+	scalingFactorTokenIn := s._scalingFactor(tokenInIsToken0)
+	scalingFactorTokenOut := s._scalingFactor(!tokenInIsToken0)
 
 	balanceTokenIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
 	if overflow {
@@ -82,12 +72,12 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrInvalidReserve
 	}
 
-	balanceTokenIn, err = s._upscale(balanceTokenIn, scalingFactorTokenIn)
+	balanceTokenIn, err := _upscale(balanceTokenIn, scalingFactorTokenIn)
 	if err != nil {
 		return nil, ErrInvalidReserve
 	}
 
-	balanceTokenOut, err = s._upscale(balanceTokenOut, scalingFactorTokenOut)
+	balanceTokenOut, err = _upscale(balanceTokenOut, scalingFactorTokenOut)
 	if err != nil {
 		return nil, ErrInvalidReserve
 	}
@@ -128,7 +118,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	amountInAfterFee, err = s._upscale(amountInAfterFee, scalingFactorTokenIn)
+	amountInAfterFee, err = _upscale(amountInAfterFee, scalingFactorTokenIn)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +130,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	amountOut, err = s._downscaleDown(amountOut, scalingFactorTokenOut)
+	amountOut, err = _downscaleDown(amountOut, scalingFactorTokenOut)
 	if err != nil {
 		return nil, err
 	}
@@ -198,36 +188,17 @@ func (s *PoolSimulator) _balancesFromTokenInOut(
 	return balances
 }
 
-func (s *PoolSimulator) _scalingFactor(token0 bool) (*uint256.Int, error) {
-	var (
-		rateProvider  string
-		scalingFactor *uint256.Int
-	)
-
+func (s *PoolSimulator) _scalingFactor(token0 bool) *uint256.Int {
 	if token0 {
-		rateProvider = s.rateProviders[0]
-		scalingFactor = s.scalingFactors[0]
-	} else {
-		rateProvider = s.rateProviders[1]
-		scalingFactor = s.scalingFactors[1]
+		return s.scalingFactors[0]
 	}
-
-	rate, ok := s.rates[rateProvider]
-	if ok && rateProvider != valueobject.ZeroAddress {
-		var err error
-		scalingFactor, err = math.GyroFixedPoint.MulDown(scalingFactor, rate)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return scalingFactor, nil
+	return s.scalingFactors[1]
 }
 
-func (s *PoolSimulator) _upscale(amount, scalingFactor *uint256.Int) (*uint256.Int, error) {
+func _upscale(amount, scalingFactor *uint256.Int) (*uint256.Int, error) {
 	return math.GyroFixedPoint.MulDown(amount, scalingFactor)
 }
 
-func (s *PoolSimulator) _downscaleDown(amount, scalingFactor *uint256.Int) (*uint256.Int, error) {
+func _downscaleDown(amount, scalingFactor *uint256.Int) (*uint256.Int, error) {
 	return math.GyroFixedPoint.DivDown(amount, scalingFactor)
 }
