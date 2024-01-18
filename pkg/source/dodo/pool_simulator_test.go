@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestCalcAmountOut(t *testing.T) {
@@ -54,10 +55,12 @@ func TestCalcAmountOut(t *testing.T) {
 			require.Nil(t, err)
 
 			amountIn := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
-			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: amountIn,
-				TokenOut:      tc.out,
-				Limit:         nil,
+			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: amountIn,
+					TokenOut:      tc.out,
+					Limit:         nil,
+				})
 			})
 			require.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)
@@ -121,10 +124,12 @@ func TestCalcAmountOut_PoolDepleted(t *testing.T) {
 	// 1st swap 500 USDT
 	{
 		amountIn := pool.TokenAmount{Token: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f", Amount: bignumber.NewBig10("500000000")}
-		out, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: amountIn,
-			TokenOut:      "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-			Limit:         nil,
+		out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: amountIn,
+				TokenOut:      "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+				Limit:         nil,
+			})
 		})
 		require.Nil(t, err)
 
@@ -139,10 +144,12 @@ func TestCalcAmountOut_PoolDepleted(t *testing.T) {
 	// 2nd swap 1000 USDT, if there are no reserve check then this will yield negative output
 	{
 		amountIn := pool.TokenAmount{Token: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f", Amount: bignumber.NewBig10("1000000000")}
-		_, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: amountIn,
-			TokenOut:      "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-			Limit:         nil,
+		_, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			return poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: amountIn,
+				TokenOut:      "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+				Limit:         nil,
+			})
 		})
 		require.NotNil(t, err)
 		fmt.Println(err)

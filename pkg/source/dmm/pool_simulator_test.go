@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
@@ -79,12 +80,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			p, err := NewPoolSimulator(tt.fields.entityPool)
 			assert.Nil(t1, err)
 
-			got, err := p.CalcAmountOut(
-				pool.CalcAmountOutParams{
-					TokenAmountIn: tt.args.tokenAmountIn,
-					TokenOut:      tt.args.tokenOut,
-					Limit:         nil,
-				})
+			got, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return p.CalcAmountOut(
+					pool.CalcAmountOutParams{
+						TokenAmountIn: tt.args.tokenAmountIn,
+						TokenOut:      tt.args.tokenOut,
+						Limit:         nil,
+					})
+			})
 
 			assert.ErrorIs(t, err, tt.wantErr)
 			assert.True(t, tt.want.TokenAmountOut.Amount.Cmp(got.TokenAmountOut.Amount) == 0)

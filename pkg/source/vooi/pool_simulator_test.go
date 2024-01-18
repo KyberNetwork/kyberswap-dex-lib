@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestNewPoolSimulator(t *testing.T) {
@@ -89,13 +90,15 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			gas: defaultGas,
 		}
 
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
-				Amount: utils.NewBig("1000000"),
-			},
-			TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
-			Limit:    nil,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: poolpkg.TokenAmount{
+					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
+					Amount: utils.NewBig("1000000"),
+				},
+				TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
+				Limit:    nil,
+			})
 		})
 
 		assert.Nil(t, err)
@@ -107,13 +110,15 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			paused: true,
 		}
 
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
-				Amount: utils.NewBig("1000000"),
-			},
-			TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
-			Limit:    nil,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: poolpkg.TokenAmount{
+					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
+					Amount: utils.NewBig("1000000"),
+				},
+				TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
+				Limit:    nil,
+			})
 		})
 
 		assert.Nil(t, result)
@@ -125,13 +130,15 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			paused: false,
 		}
 
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
-				Amount: utils.NewBig("1000000"),
-			},
-			TokenOut: "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
-			Limit:    nil,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: poolpkg.TokenAmount{
+					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
+					Amount: utils.NewBig("1000000"),
+				},
+				TokenOut: "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
+				Limit:    nil,
+			})
 		})
 
 		assert.Nil(t, result)
@@ -143,13 +150,15 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			paused: false,
 		}
 
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
-				Amount: utils.NewBig("-1"),
-			},
-			TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
-			Limit:    nil,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: poolpkg.TokenAmount{
+					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
+					Amount: utils.NewBig("-1"),
+				},
+				TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
+				Limit:    nil,
+			})
 		})
 
 		assert.Nil(t, result)
@@ -200,13 +209,15 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			gas: defaultGas,
 		}
 
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
-				Amount: utils.NewBig("1000000"),
-			},
-			TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
-			Limit:    nil,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: poolpkg.TokenAmount{
+					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
+					Amount: utils.NewBig("1000000"),
+				},
+				TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
+				Limit:    nil,
+			})
 		})
 
 		assert.Nil(t, result)
@@ -257,13 +268,15 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			gas: defaultGas,
 		}
 
-		result, err := poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
-				Amount: utils.NewBig("1000000"),
-			},
-			TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
-			Limit:    nil,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return poolSimulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: poolpkg.TokenAmount{
+					Token:  "0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
+					Amount: utils.NewBig("1000000"),
+				},
+				TokenOut: "0x4af15ec2a0bd43db75dd04e62faa3b8ef36b00d5",
+				Limit:    nil,
+			})
 		})
 
 		assert.Nil(t, result)

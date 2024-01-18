@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestCalcAmountOut(t *testing.T) {
@@ -41,9 +42,11 @@ func TestCalcAmountOut(t *testing.T) {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 
 			amountIn := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
-			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
-				TokenAmountIn: amountIn,
-				TokenOut:      tc.out,
+			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: amountIn,
+					TokenOut:      tc.out,
+				})
 			})
 			require.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)

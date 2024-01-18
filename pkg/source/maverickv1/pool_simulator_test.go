@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 var maverickPool, err = maverickv1.NewPoolSimulator(entity.Pool{
@@ -31,13 +32,15 @@ var maverickPool, err = maverickv1.NewPoolSimulator(entity.Pool{
 func TestPoolCalcAmountOut(t *testing.T) {
 	assert.Nil(t, err)
 
-	result, err := maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: pool.TokenAmount{
-			Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-			Amount: bignumber.NewBig10("1000000000000000000"),
-		},
-		TokenOut: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-		Limit:    nil,
+	result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+		return maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+				Amount: bignumber.NewBig10("1000000000000000000"),
+			},
+			TokenOut: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			Limit:    nil,
+		})
 	})
 
 	assert.Nil(t, err)

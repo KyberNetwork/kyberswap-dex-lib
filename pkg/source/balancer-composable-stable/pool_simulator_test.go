@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestSwap(t *testing.T) {
@@ -93,15 +94,17 @@ func TestSwap(t *testing.T) {
 	}
 	for i, testcase := range testCases {
 		t.Run(fmt.Sprintf("testcase %d, tokenIn %s amountIn %s tokenOut %s", i, testcase.tokenIn, testcase.amountIn.String(), testcase.amountOut), func(t *testing.T) {
-			result, _ := p.CalcAmountOut(
-				pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{
-						Token:  testcase.tokenIn,
-						Amount: testcase.amountIn,
-					},
-					TokenOut: testcase.tokenOut,
-					Limit:    nil,
-				})
+			result, _ := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return p.CalcAmountOut(
+					pool.CalcAmountOutParams{
+						TokenAmountIn: pool.TokenAmount{
+							Token:  testcase.tokenIn,
+							Amount: testcase.amountIn,
+						},
+						TokenOut: testcase.tokenOut,
+						Limit:    nil,
+					})
+			})
 			assert.NotNil(t, result.TokenAmountOut)
 			assert.NotNil(t, result.Fee)
 			assert.NotNil(t, result.Gas)
@@ -120,6 +123,8 @@ func TestCalculateInvariant(t *testing.T) {
 	balances := []*big.Int{
 		b1, b2, b3,
 	}
-	_, err := CalculateInvariant(a, balances, false)
+	_, err := testutil.MustConcurrentSafe[*big.Int](t, func() (any, error) {
+		return CalculateInvariant(a, balances, false)
+	})
 	assert.Equal(t, err, ErrorStableGetBalanceDidntConverge)
 }
