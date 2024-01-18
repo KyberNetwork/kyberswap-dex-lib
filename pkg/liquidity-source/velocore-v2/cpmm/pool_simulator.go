@@ -3,7 +3,6 @@ package cpmm
 import (
 	"errors"
 	"math/big"
-	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
@@ -426,7 +425,7 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 		t = p.Info.Tokens
 		// we have to clone p.Info.Reserves because we're going to assign its by index,
 		// shallow clone is enough since its elements are read-only in this method
-		a   = slices.Clone(p.Info.Reserves)
+		a   = append(([]*big.Int)(nil), p.Info.Reserves...)
 		idx = make([]int, len(tokens))
 		w   = p.weights
 
