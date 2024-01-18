@@ -356,8 +356,21 @@ validator:
     blacklistedRecipientSet:
 aevmEnabled: false
 aevm:
+  serverUrl: "localhost:8246"
   rpc: "http://localhost:8545"
   simulationWallet: "0x19767032471665df0fd7f6160381a103ece6261a"
+  useHoldersListAsFallback: false
+  tokenHoldersRedis:
+    addresses:
+    masterName: ""
+    dbNumber: 0
+    password: ""
+    prefix: *chainName
+    readTimeout: 3s
+    writeTimeout: 3s
+    readOnly: false
+    routeRandomly: false
+  cachedHoldersListTTLSec: 30
   predefinedBalanceSlots:
     # LIDO token
     0x5a98fcbea516cf06857215779fd812ca3bef1b32:
@@ -371,4 +384,3 @@ aevm:
       extraOverrides:
         # balance history length, must be > 0
         0x5a7df2e997858d39f2aef4861e79c3133f8533d36ea28b6a66fa8b4914908a5a: 0x0000000000000000000000000000000000000000000000000000000000000001
-  useHoldersListAsFallback: false
