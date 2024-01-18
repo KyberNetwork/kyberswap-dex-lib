@@ -4,11 +4,14 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/int256"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/math"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 var (
@@ -43,6 +46,62 @@ type PoolSimulator struct {
 
 	vault  string
 	poolID string
+}
+
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+	var (
+		extra       Extra
+		staticExtra StaticExtra
+
+		tokens   = make([]string, len(entityPool.Tokens))
+		reserves = make([]*big.Int, len(entityPool.Tokens))
+	)
+
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+		return nil, err
+	}
+
+	for idx := 0; idx < len(entityPool.Tokens); idx++ {
+		tokens[idx] = entityPool.Tokens[idx].Address
+		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
+	}
+
+	poolInfo := poolpkg.PoolInfo{
+		Address:     entityPool.Address,
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		Reserves:    reserves,
+		Checked:     true,
+		BlockNumber: entityPool.BlockNumber,
+	}
+
+	return &PoolSimulator{
+		Pool:              poolpkg.Pool{Info: poolInfo},
+		paused:            extra.Paused,
+		_paramsAlpha:      extra.ParamsAlpha,
+		_paramsBeta:       extra.ParamsBeta,
+		_paramsC:          extra.ParamsC,
+		_paramsS:          extra.ParamsS,
+		_paramsLambda:     extra.ParamsLambda,
+		_tauAlphaX:        extra.TauAlphaX,
+		_tauAlphaY:        extra.TauAlphaY,
+		_tauBetaX:         extra.TauBetaX,
+		_tauBetaY:         extra.TauBetaY,
+		_u:                extra.U,
+		_v:                extra.V,
+		_w:                extra.W,
+		_z:                extra.Z,
+		_dSq:              extra.DSq,
+		swapFeePercentage: extra.SwapFeePercentage,
+		scalingFactors:    extra.ScalingFactors,
+		vault:             staticExtra.Vault,
+		poolID:            staticExtra.PoolID,
+	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
