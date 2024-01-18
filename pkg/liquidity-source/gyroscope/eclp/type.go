@@ -29,7 +29,6 @@ type StaticExtra struct {
 
 type Extra struct {
 	Paused            bool           `json:"paused"`
-	ScalingFactors    []*uint256.Int `json:"scalingFactors"`
 	SwapFeePercentage *uint256.Int   `json:"swapFeePercentage"`
 	ParamsAlpha       *int256.Int    `json:"paramsAlpha"`
 	ParamsBeta        *int256.Int    `json:"paramsBeta"`
@@ -45,6 +44,7 @@ type Extra struct {
 	W                 *int256.Int    `json:"w"`
 	Z                 *int256.Int    `json:"z"`
 	DSq               *int256.Int    `json:"dSq"`
+	TokenRates        []*uint256.Int `json:"tokenRates"`
 }
 
 type TokenRatesResp struct {

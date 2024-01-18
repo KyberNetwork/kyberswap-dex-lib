@@ -3,6 +3,7 @@ package gyroeclp
 import (
 	"math/big"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/int256"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -70,6 +71,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
 	}
 
+	scalingFactors := getScalingFactors(staticExtra.TokenDecimals, extra.TokenRates)
+
 	poolInfo := poolpkg.PoolInfo{
 		Address:     entityPool.Address,
 		Exchange:    entityPool.Exchange,
@@ -98,7 +101,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		_z:                extra.Z,
 		_dSq:              extra.DSq,
 		swapFeePercentage: extra.SwapFeePercentage,
-		scalingFactors:    extra.ScalingFactors,
+		scalingFactors:    scalingFactors,
 		vault:             staticExtra.Vault,
 		poolID:            staticExtra.PoolID,
 	}, nil
@@ -283,4 +286,21 @@ func _upscale(amount, scalingFactor *uint256.Int) (*uint256.Int, error) {
 
 func _downscaleDown(amount, scalingFactor *uint256.Int) (*uint256.Int, error) {
 	return math.GyroFixedPoint.DivDown(amount, scalingFactor)
+}
+
+func getScalingFactors(tokenDecimals []int, tokenRates []*uint256.Int) []*uint256.Int {
+	// NOTE: token rates are achieved by calling `IRateProvider` contracts, some of them
+	// calculate the rate using block.timestamp, so the rate can be changed over time and
+	// out of sync between actual onchain execution and previous simulation.
+
+	f0, _ := math.GyroFixedPoint.MulDown(computeScalingFactor(tokenDecimals[0]), tokenRates[0])
+	f1, _ := math.GyroFixedPoint.MulDown(computeScalingFactor(tokenDecimals[1]), tokenRates[1])
+	return []*uint256.Int{f0, f1}
+}
+
+func computeScalingFactor(decimal int) *uint256.Int {
+	return new(uint256.Int).Mul(
+		number.TenPow(uint8(18-decimal)),
+		math.GyroFixedPoint.ONE,
+	)
 }

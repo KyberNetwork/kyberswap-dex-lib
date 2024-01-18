@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/logger"
@@ -16,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -73,7 +71,6 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	paused := !isNotPaused(rpcResp.PausedState)
-	scalingFactors := getScalingFactors(staticExtra.TokenDecimals, rpcResp.TokenRatesResp)
 	swapFeePercentage, _ := uint256.FromBig(rpcResp.SwapFeePercentage)
 	paramsAlpha, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.Alpha)
 	paramsBeta, _ := int256.FromBig(rpcResp.ECLPParamsResp.Params.Beta)
@@ -89,10 +86,12 @@ func (t *PoolTracker) GetNewPoolState(
 	w, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.W)
 	z, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.Z)
 	dSq, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.DSq)
+	tokenRates := make([]*uint256.Int, 2)
+	tokenRates[0], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate0)
+	tokenRates[1], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate1)
 
 	extra := Extra{
 		Paused:            paused,
-		ScalingFactors:    scalingFactors,
 		SwapFeePercentage: swapFeePercentage,
 		ParamsAlpha:       paramsAlpha,
 		ParamsBeta:        paramsBeta,
@@ -108,6 +107,7 @@ func (t *PoolTracker) GetNewPoolState(
 		W:                 w,
 		Z:                 z,
 		DSq:               dSq,
+		TokenRates:        tokenRates,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -230,19 +230,4 @@ func (t *PoolTracker) queryRPC(
 
 func isNotPaused(pausedState PausedStateResp) bool {
 	return time.Now().Unix() > pausedState.BufferPeriodEndTime.Int64() || !pausedState.Paused
-}
-
-func getScalingFactors(tokenDecimals []int, tokenRates TokenRatesResp) []*uint256.Int {
-	rate0U256, _ := uint256.FromBig(tokenRates.Rate0)
-	f0, _ := math.GyroFixedPoint.MulDown(computeScalingFactor(tokenDecimals[0]), rate0U256)
-	rate1U256, _ := uint256.FromBig(tokenRates.Rate1)
-	f1, _ := math.GyroFixedPoint.MulDown(computeScalingFactor(tokenDecimals[1]), rate1U256)
-	return []*uint256.Int{f0, f1}
-}
-
-func computeScalingFactor(decimal int) *uint256.Int {
-	return new(uint256.Int).Mul(
-		number.TenPow(uint8(18-decimal)),
-		math.GyroFixedPoint.ONE,
-	)
 }
