@@ -65,7 +65,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	rpcResp, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID, staticExtra.Vault, p.Tokens)
+	rpcResp, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID, staticExtra.Vault, p.Tokens, staticExtra.PoolTypeVer)
 	if err != nil {
 		return p, err
 	}
@@ -86,9 +86,13 @@ func (t *PoolTracker) GetNewPoolState(
 	w, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.W)
 	z, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.Z)
 	dSq, _ := int256.FromBig(rpcResp.ECLPParamsResp.D.DSq)
-	tokenRates := make([]*uint256.Int, 2)
-	tokenRates[0], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate0)
-	tokenRates[1], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate1)
+
+	var tokenRates []*uint256.Int
+	if staticExtra.PoolTypeVer > poolTypeVer1 {
+		tokenRates := make([]*uint256.Int, 2)
+		tokenRates[0], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate0)
+		tokenRates[1], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate1)
+	}
 
 	extra := Extra{
 		Paused:            paused,
@@ -162,6 +166,7 @@ func (t *PoolTracker) queryRPC(
 	poolID string,
 	vault string,
 	tokens []*entity.PoolToken,
+	poolTypeVer int,
 ) (*rpcResp, error) {
 	var (
 		poolTokens        PoolTokensResp
@@ -190,11 +195,13 @@ func (t *PoolTracker) queryRPC(
 		Method: poolMethodGetSwapFeePercentage,
 	}, []interface{}{&swapFeePercentage})
 
-	req.AddCall(&ethrpc.Call{
-		ABI:    poolABI,
-		Target: poolAddress,
-		Method: poolMethodGetTokenRates,
-	}, []interface{}{&tokenRates})
+	if poolTypeVer > poolTypeVer1 {
+		req.AddCall(&ethrpc.Call{
+			ABI:    poolABI,
+			Target: poolAddress,
+			Method: poolMethodGetTokenRates,
+		}, []interface{}{&tokenRates})
+	}
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolABI,

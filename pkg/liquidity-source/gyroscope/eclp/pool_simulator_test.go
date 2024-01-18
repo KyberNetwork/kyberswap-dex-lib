@@ -264,4 +264,154 @@ func TestCalcAmountOut(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 	})
+
+	t.Run("6. should return correct result", func(t *testing.T) {
+		p := `{
+			"address": "0x8d2ea84b1bb33d956096e5d4dccbc8e6dbe8dbbc",
+			"exchange": "gyroscope-eclp",
+			"type": "gyroscope-eclp",
+			"timestamp": 1705571365,
+			"reserves": [
+			  "1999799893965774007",
+			  "2000399787392128640"
+			],
+			"tokens": [
+			  {
+				"address": "0x15e86be6084c6a5a8c17732d398dfbc2ec574cec",
+				"weight": 1,
+				"swappable": true
+			  },
+			  {
+				"address": "0x37b8e1152fb90a867f3dcca6e8d537681b04705e",
+				"weight": 1,
+				"swappable": true
+			  }
+			],
+			"extra": "{\"paused\":false,\"swapFeePercentage\":\"0x5af3107a4000\",\"paramsAlpha\":\"999000999000999000\",\"paramsBeta\":\"1001001001001001001\",\"paramsC\":\"707106781186547524\",\"paramsS\":\"707106781186547524\",\"paramsLambda\":\"3500000000000000000000\",\"tauAlphaX\":\"-86813627444881502269005830178453760968\",\"tauAlphaY\":\"49632591004916489211256720438426352580\",\"tauBetaX\":\"86834999582601090763959787675832339395\",\"tauBetaY\":\"49595189761605594460186269922864521705\",\"u\":\"86824313513741296418044956281446571633\",\"v\":\"49613890383261041779471297130369607773\",\"w\":\"-18700621655447375514023258428389530\",\"z\":\"10686068859794247464863321233410621\",\"dSq\":\"99999999999999999886624093342106115200\",\"tokenRates\":[\"0xe0e6fbed38485a6\",\"0xde0b6b3a7640000\"]}",
+			"staticExtra": "{\"poolId\":\"0x8d2ea84b1bb33d956096e5d4dccbc8e6dbe8dbbc000200000000000000000c78\",\"poolType\":\"GyroE\",\"poolTypeVersion\":2,\"tokenDecimals\":[18,18],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}",
+			"blockNumber": 52464093
+		  }`
+		var pool entity.Pool
+		err := json.Unmarshal([]byte(p), &pool)
+		assert.Nil(t, err)
+
+		// expected
+		expectedAmountOut := "23410401128383078500983"
+
+		// calculation
+		simulator, err := NewPoolSimulator(pool)
+		assert.Nil(t, err)
+		amountIn, _ := new(big.Int).SetString("22252824081417471523809", 10)
+		result, err := simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: poolpkg.TokenAmount{
+				Token:  "0x83f20f44975d03b1b09e64809b757c47f942beea",
+				Amount: amountIn,
+			},
+			TokenOut: "0xe07f9d810a48ab5c3c914ba3ca53af14e4491e8a",
+		})
+
+		// assert
+		assert.Nil(t, err)
+		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
+	})
+
+	t.Run("7. should return correct result", func(t *testing.T) {
+		p := `{
+			"address": "0x97469e6236bd467cd147065f77752b00efadce8a",
+			"exchange": "gyroscope-eclp",
+			"type": "gyroscope-eclp",
+			"timestamp": 1705572412,
+			"reserves": [
+			  "1892570",
+			  "15002094566676268805213"
+			],
+			"tokens": [
+			  {
+				"address": "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+				"weight": 1,
+				"swappable": true
+			  },
+			  {
+				"address": "0x2e1ad108ff1d8c782fcbbb89aad783ac49586756",
+				"weight": 1,
+				"swappable": true
+			  }
+			],
+			"extra": "{\"paused\":false,\"swapFeePercentage\":\"0xb5e620f48000\",\"paramsAlpha\":\"980000000000000000\",\"paramsBeta\":\"1020408163265306122\",\"paramsC\":\"707106781186547524\",\"paramsS\":\"707106781186547524\",\"paramsLambda\":\"2500000000000000000000\",\"tauAlphaX\":\"-99921684096872623630266893017017594088\",\"tauAlphaY\":\"3956898690236155895758568963473896725\",\"tauBetaX\":\"99921684096872623626859806443439155895\",\"tauBetaY\":\"3956898690236155981796108700303143085\",\"u\":\"99921684096872623515276234437562471024\",\"v\":\"3956898690236155934291169066298950059\",\"w\":\"43018769868414623130\",\"z\":\"-1703543286789219094\",\"dSq\":\"99999999999999999886624093342106115200\",\"tokenRates\":null}",
+			"staticExtra": "{\"poolId\":\"0x97469e6236bd467cd147065f77752b00efadce8a0002000000000000000008c0\",\"poolType\":\"GyroE\",\"poolTypeVersion\":1,\"tokenDecimals\":[6,18],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}",
+			"blockNumber": 52464697
+		  }`
+		var pool entity.Pool
+		err := json.Unmarshal([]byte(p), &pool)
+		assert.Nil(t, err)
+
+		// expected
+		expectedAmountOut := "602743318267653364"
+
+		// calculation
+		simulator, err := NewPoolSimulator(pool)
+		assert.Nil(t, err)
+		amountIn, _ := new(big.Int).SetString("592570", 10)
+		result, err := simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: poolpkg.TokenAmount{
+				Token:  "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+				Amount: amountIn,
+			},
+			TokenOut: "0x2e1ad108ff1d8c782fcbbb89aad783ac49586756",
+		})
+
+		// assert
+		assert.Nil(t, err)
+		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
+	})
+
+	t.Run("8. should return correct result", func(t *testing.T) {
+		p := `{
+			"address": "0x97469e6236bd467cd147065f77752b00efadce8a",
+			"exchange": "gyroscope-eclp",
+			"type": "gyroscope-eclp",
+			"timestamp": 1705572412,
+			"reserves": [
+			  "1892570",
+			  "15002094566676268805213"
+			],
+			"tokens": [
+			  {
+				"address": "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+				"weight": 1,
+				"swappable": true
+			  },
+			  {
+				"address": "0x2e1ad108ff1d8c782fcbbb89aad783ac49586756",
+				"weight": 1,
+				"swappable": true
+			  }
+			],
+			"extra": "{\"paused\":false,\"swapFeePercentage\":\"0xb5e620f48000\",\"paramsAlpha\":\"980000000000000000\",\"paramsBeta\":\"1020408163265306122\",\"paramsC\":\"707106781186547524\",\"paramsS\":\"707106781186547524\",\"paramsLambda\":\"2500000000000000000000\",\"tauAlphaX\":\"-99921684096872623630266893017017594088\",\"tauAlphaY\":\"3956898690236155895758568963473896725\",\"tauBetaX\":\"99921684096872623626859806443439155895\",\"tauBetaY\":\"3956898690236155981796108700303143085\",\"u\":\"99921684096872623515276234437562471024\",\"v\":\"3956898690236155934291169066298950059\",\"w\":\"43018769868414623130\",\"z\":\"-1703543286789219094\",\"dSq\":\"99999999999999999886624093342106115200\",\"tokenRates\":null}",
+			"staticExtra": "{\"poolId\":\"0x97469e6236bd467cd147065f77752b00efadce8a0002000000000000000008c0\",\"poolType\":\"GyroE\",\"poolTypeVersion\":1,\"tokenDecimals\":[6,18],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}",
+			"blockNumber": 52464697
+		  }`
+		var pool entity.Pool
+		err := json.Unmarshal([]byte(p), &pool)
+		assert.Nil(t, err)
+
+		// expected
+		expectedAmountOut := "1472449"
+
+		// calculation
+		simulator, err := NewPoolSimulator(pool)
+		assert.Nil(t, err)
+		amountIn, _ := new(big.Int).SetString("1500209456667626880", 10)
+		result, err := simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: poolpkg.TokenAmount{
+				Token:  "0x2e1ad108ff1d8c782fcbbb89aad783ac49586756",
+				Amount: amountIn,
+			},
+			TokenOut: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+		})
+
+		// assert
+		assert.Nil(t, err)
+		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
+	})
 }

@@ -12,6 +12,8 @@ const (
 	poolMethodGetECLPParams        = "getECLPParams"
 
 	defaultWeight = 1
+
+	poolTypeVer1 = 1
 )
 
 var (

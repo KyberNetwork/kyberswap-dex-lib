@@ -71,7 +71,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
 	}
 
-	scalingFactors := getScalingFactors(staticExtra.TokenDecimals, extra.TokenRates)
+	scalingFactors := getScalingFactors(staticExtra.PoolTypeVer, staticExtra.TokenDecimals, extra.TokenRates)
 
 	poolInfo := poolpkg.PoolInfo{
 		Address:     entityPool.Address,
@@ -288,10 +288,17 @@ func _downscaleDown(amount, scalingFactor *uint256.Int) (*uint256.Int, error) {
 	return math.GyroFixedPoint.DivDown(amount, scalingFactor)
 }
 
-func getScalingFactors(tokenDecimals []int, tokenRates []*uint256.Int) []*uint256.Int {
+func getScalingFactors(poolTypeVer int, tokenDecimals []int, tokenRates []*uint256.Int) []*uint256.Int {
 	// NOTE: token rates are achieved by calling `IRateProvider` contracts, some of them
 	// calculate the rate using block.timestamp, so the rate can be changed over time and
 	// out of sync between actual onchain execution and previous simulation.
+
+	if poolTypeVer == poolTypeVer1 {
+		return []*uint256.Int{
+			computeScalingFactor(tokenDecimals[0]),
+			computeScalingFactor(tokenDecimals[1]),
+		}
+	}
 
 	f0, _ := math.GyroFixedPoint.MulDown(computeScalingFactor(tokenDecimals[0]), tokenRates[0])
 	f1, _ := math.GyroFixedPoint.MulDown(computeScalingFactor(tokenDecimals[1]), tokenRates[1])
