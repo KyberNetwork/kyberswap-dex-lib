@@ -172,12 +172,18 @@ func TestGetDyVirtualPrice(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			dy, _, err := p.GetDy(tc.i, tc.j, bignumber.NewBig10(tc.dx), nil)
+			dy, err := testutil.MustConcurrentSafe[*big.Int](t, func() (any, error) {
+				dy, _, err := p.GetDy(tc.i, tc.j, bignumber.NewBig10(tc.dx), nil)
+				return dy, err
+			})
 			require.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.expOut), dy)
 
 			// test using cached D
-			dy, _, err = p.GetDy(tc.i, tc.j, bignumber.NewBig10(tc.dx), dCached)
+			dy, err = testutil.MustConcurrentSafe[*big.Int](t, func() (any, error) {
+				dy, _, err := p.GetDy(tc.i, tc.j, bignumber.NewBig10(tc.dx), dCached)
+				return dy, err
+			})
 			require.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.expOut), dy)
 		})
