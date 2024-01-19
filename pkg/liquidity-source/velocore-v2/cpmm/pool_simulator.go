@@ -422,8 +422,10 @@ func (p *PoolSimulator) velocoreExecute(tokens []string, r []*big.Int) (*velocor
 // https://github.com/velocore/velocore-contracts/blob/c29678e5acbe5e60fc018e08289b49e53e1492f3/src/pools/constant-product/ConstantProductLibrary.sol#L25
 func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) (*velocoreExecuteResult, error) {
 	var (
-		t   = p.Info.Tokens
-		a   = p.Info.Reserves
+		t = p.Info.Tokens
+		// we have to clone p.Info.Reserves because we're going to assign its by index,
+		// shallow clone is enough since its elements are read-only in this method
+		a   = append(([]*big.Int)(nil), p.Info.Reserves...)
 		idx = make([]int, len(tokens))
 		w   = p.weights
 
