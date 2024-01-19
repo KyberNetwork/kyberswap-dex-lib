@@ -6,9 +6,10 @@ require (
 	github.com/KyberNetwork/blockchain-toolkit v0.5.2
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
 	github.com/KyberNetwork/ethrpc v0.7.1
-	github.com/KyberNetwork/int256 v0.1.3
+	github.com/KyberNetwork/int256 v0.1.4
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/pancake-v3-sdk v0.1.0
+	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.0.1
 	github.com/daoleno/uniswap-sdk-core v0.1.7
 	github.com/daoleno/uniswapv3-sdk v0.4.0
 	github.com/davecgh/go-spew v1.1.1
@@ -69,6 +70,7 @@ require (
 )
 
 replace (
+	github.com/KyberNetwork/uniswapv3-sdk-uint256 => github.com/KyberNetwork/uniswapv3-sdk v0.4.6-0.20240315085941-293573613c6a
 	github.com/daoleno/uniswap-sdk-core v0.1.5 => github.com/KyberNetwork/uniswap-sdk-core v0.1.5
 	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.4.5
 )
