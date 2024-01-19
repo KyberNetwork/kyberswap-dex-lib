@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestCalcAmountOut(t *testing.T) {
@@ -44,9 +45,11 @@ func TestCalcAmountOut(t *testing.T) {
 			Amount: new(big.Int).SetUint64(99999910000000),
 		}
 		tokenOut := "0x6b175474e89094c44da98b954eedeac495271d0f"
-		_, err := s.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
+		_, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
 		})
 		assert.ErrorIs(t, err, math.ErrStableGetBalanceDidntConverge)
 	})
@@ -87,9 +90,11 @@ func TestCalcAmountOut(t *testing.T) {
 		expected := "1000000000000000000"
 
 		// actual
-		result, err := s.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
 		})
 		assert.Nil(t, err)
 
@@ -133,9 +138,11 @@ func TestCalcAmountOut(t *testing.T) {
 		expected := "590000000000000000"
 
 		// actual
-		result, err := s.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
 		})
 		assert.Nil(t, err)
 
@@ -191,9 +198,11 @@ func TestCalcAmountOut(t *testing.T) {
 		expected := "63551050657042642"
 
 		// actual
-		result, err := s.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: tokenAmountIn,
-			TokenOut:      tokenOut,
+		result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+			return s.CalcAmountOut(poolpkg.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
 		})
 
 		assert.Nil(t, err)
