@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 )
@@ -57,7 +58,9 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 	pool.wooracle.StaleDuration = 300
 	pool.wooracle.Bound = 10000000000000000
 
-	result, err := pool.CalcAmountOut(params)
+	result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		return pool.CalcAmountOut(params)
+	})
 
 	assert.Nil(t, err)
 	assert.Equal(t, "102869361275421525", result.TokenAmountOut.Amount.String())
@@ -136,7 +139,9 @@ func TestPoolSimulator_CalcAmountOut_Nil_Oracle(t *testing.T) {
 
 	pool.wooracle.Timestamp = time.Now().Unix()
 
-	result, err := pool.CalcAmountOut(params)
+	result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		return pool.CalcAmountOut(params)
+	})
 
 	assert.Nil(t, err)
 	assert.Equal(t, "58285296607413161", result.TokenAmountOut.Amount.String())
@@ -210,7 +215,9 @@ func TestPoolSimulator_CalcAmountOut_Arithmetic_OverflowUnderflow(t *testing.T) 
 	pool.wooracle.StaleDuration = 300
 	pool.wooracle.Bound = 10000000000000000
 
-	_, err = pool.CalcAmountOut(params)
+	_, err = testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+		return pool.CalcAmountOut(params)
+	})
 
 	assert.Equal(t, ErrArithmeticOverflowUnderflow, err)
 }
@@ -448,7 +455,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				gas:        DefaultGas,
 			}
 
-			result, err := pool.CalcAmountOut(tc.params)
+			result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+				return pool.CalcAmountOut(tc.params)
+			})
 			assert.Equal(t, tc.expectedErr, err)
 			assert.Equal(t, tc.expectedResult, result)
 		})
@@ -658,7 +667,9 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				gas:        DefaultGas,
 			}
 
-			result, err := pool.CalcAmountOut(tc.params)
+			result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountOutResult](t, func() (any, error) {
+				return pool.CalcAmountOut(tc.params)
+			})
 			assert.Equal(t, tc.expectedErr, err)
 
 			updateBalanceParams := poolpkg.UpdateBalanceParams{
