@@ -8,11 +8,14 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 func TestMinHopToTokenOut(t *testing.T) {
 	t.Run("test correctness of minHopToTokenOut", func(t *testing.T) {
-		tokenByAddress := map[string]entity.Token{
+		tokenByAddress := map[string]*entity.Token{
 			"a": {Address: "a"},
 			"b": {Address: "b"},
 			"c": {Address: "c"},
@@ -53,10 +56,13 @@ func TestMinHopToTokenOut(t *testing.T) {
 			assert.Nil(t, err)
 			poolByAddress[pool.GetAddress()] = pool
 		}
-		tokenToPoolAddress := make(map[string][]string)
+		tokenToPoolAddress := make(map[string]*types.AddressList)
 		for poolAddress, pool := range poolByAddress {
 			for _, tokenAddress := range pool.GetTokens() {
-				tokenToPoolAddress[tokenAddress] = append(tokenToPoolAddress[tokenAddress], poolAddress)
+				if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
+					tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
+				}
+				tokenToPoolAddress[tokenAddress].AddAddress(poolAddress)
 			}
 		}
 		tokenOut := "a"
@@ -75,10 +81,14 @@ func TestMinHopToTokenOut(t *testing.T) {
 		}
 		poolByAddress, err := GenerateRandomPoolByAddress(nPools, tokenAddressList)
 		assert.Nil(t, err)
-		tokenToPoolAddress := make(map[string][]string)
+		tokenToPoolAddress := make(map[string]*types.AddressList)
 		for poolAddress, pool := range poolByAddress {
+
 			for _, tokenAddress := range pool.GetTokens() {
-				tokenToPoolAddress[tokenAddress] = append(tokenToPoolAddress[tokenAddress], poolAddress)
+				if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
+					tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
+				}
+				tokenToPoolAddress[tokenAddress].AddAddress(poolAddress)
 			}
 		}
 		tokenOut := tokenAddressList[RandInt(0, nTokens)]

@@ -4,11 +4,11 @@ import (
 	"context"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -81,16 +81,8 @@ func (f *uniswapFinder) Find(
 		return nil, findroute.ErrNoInfoTokenOut
 	}
 
-	// Step 1: Optimize graph traversal by using adjacent list
-	tokenToPoolAddress := make(map[string][]string)
-	for poolAddress, pool := range data.PoolBucket.PerRequestPoolsByAddress {
-		for _, fromToken := range pool.GetTokens() {
-			tokenToPoolAddress[fromToken] = append(tokenToPoolAddress[fromToken], poolAddress)
-		}
-	}
-
 	// Step 2: Find min number of hop from tokenA -> tokenOut for all tokenA
-	hopsToTokenOut, err := common.MinHopsToTokenOut(data.PoolBucket.PerRequestPoolsByAddress, data.TokenByAddress, tokenToPoolAddress, input.TokenOutAddress)
+	hopsToTokenOut, err := common.MinHopsToTokenOut(data.PoolBucket.PerRequestPoolsByAddress, data.TokenByAddress, data.TokenToPoolAddress, input.TokenOutAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -107,11 +99,10 @@ func (f *uniswapFinder) Find(
 		AmountUsd: utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, data.PriceUSDByAddress[input.TokenInAddress]),
 	}
 
-	paths, err := common.GenKthBestPaths(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut, f.maxHops, f.maxPathsToGenerate, f.maxPathsToGenerate)
+	paths, err := common.GenKthBestPaths(ctx, input, data, tokenAmountIn, hopsToTokenOut, f.maxHops, f.maxPathsToGenerate, f.maxPathsToGenerate)
 	if err != nil {
 		return nil, err
 	}
-
 	if input.SaveGas {
 		return f.genSinglePathRoutes(ctx, input, paths), nil
 	}

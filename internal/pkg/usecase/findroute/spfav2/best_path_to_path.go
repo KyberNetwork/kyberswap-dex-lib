@@ -69,7 +69,7 @@ func getSwapKey(tokenInAddress, tokenOutAddress, poolAddress, amountInStr string
 	return fmt.Sprintf("%s_%s_%s_%s", tokenInAddress, tokenOutAddress, poolAddress, amountInStr)
 }
 
-func newPathFromBestPathWithoutInputOutput(tokenByAddress map[string]entity.Token, tokenInAddress, tokenOutAddress string, bestPath *entity.MinimalPath) (*valueobject.Path, error) {
+func newPathFromBestPathWithoutInputOutput(tokenByAddress map[string]*entity.Token, tokenInAddress, tokenOutAddress string, bestPath *entity.MinimalPath) (*valueobject.Path, error) {
 	var (
 		tokenLen = len(bestPath.Tokens)
 		poolLen  = len(bestPath.Pools)
@@ -91,7 +91,7 @@ func newPathFromBestPathWithoutInputOutput(tokenByAddress map[string]entity.Toke
 		return nil, valueobject.ErrInvalidTokenOut
 	}
 
-	var tokens []entity.Token
+	var tokens []*entity.Token
 	for _, tokenAddress := range bestPath.Tokens {
 		token, ok := tokenByAddress[tokenAddress]
 		if !ok {
@@ -99,10 +99,16 @@ func newPathFromBestPathWithoutInputOutput(tokenByAddress map[string]entity.Toke
 		}
 		tokens = append(tokens, token)
 	}
-	return &valueobject.Path{
-		PoolAddresses: bestPath.Pools,
-		Tokens:        tokens,
-	}, nil
+	path := valueobject.PathsPool.Get().(*valueobject.Path)
+
+	//have to zero out other values
+	path.Input = poolpkg.TokenAmount{}
+	path.Output = poolpkg.TokenAmount{}
+	path.TotalGas = 0
+	//set new bestPath and tokens
+	path.PoolAddresses = bestPath.Pools
+	path.Tokens = tokens
+	return path, nil
 }
 
 func calcAmountOutAndUpdateCache(

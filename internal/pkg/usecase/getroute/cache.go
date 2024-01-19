@@ -279,7 +279,7 @@ func (c *cache) summarizeSimpleRoute(
 			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
-	poolByAddress, swapLimits, err := c.poolManager.GetStateByPoolAddresses(
+	state, err := c.poolManager.GetStateByPoolAddresses(
 		ctx,
 		simpleRoute.ExtractPoolAddresses(),
 		params.Sources,
@@ -289,7 +289,7 @@ func (c *cache) summarizeSimpleRoute(
 		return nil, err
 	}
 
-	poolBucket := valueobject.NewPoolBucket(poolByAddress)
+	poolBucket := valueobject.NewPoolBucket(state.Pools)
 	var (
 		amountOut = new(big.Int).Set(constant.Zero)
 		gas       = business.BaseGas
@@ -322,7 +322,7 @@ func (c *cache) summarizeSimpleRoute(
 				)
 			}
 
-			swapLimit := swapLimits[pool.GetType()]
+			swapLimit := state.SwapLimit[pool.GetType()]
 			// Step 3.1.2: simulate c swap through the pool
 			result, err := poolpkg.CalcAmountOut(pool, tokenAmountIn, simpleSwap.TokenOutAddress, swapLimit)
 			if err != nil {

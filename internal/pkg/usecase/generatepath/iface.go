@@ -7,8 +7,9 @@ import (
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 )
 
 type ITokenRepository interface {
@@ -33,7 +34,7 @@ type IPoolManager interface {
 		ctx context.Context,
 		addresses, dex []string,
 		stateRoot common.Hash,
-	) (map[string]poolpkg.IPoolSimulator, map[string]poolpkg.SwapLimit, error)
+	) (*types.FindRouteState, error)
 	Reload() error
 	GetAEVMClient() aevmclient.Client
 }

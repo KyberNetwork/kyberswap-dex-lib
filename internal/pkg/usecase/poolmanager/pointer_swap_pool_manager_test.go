@@ -7,11 +7,12 @@ import (
 	"testing"
 	"time"
 
-	mocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/poolmanager"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
 	"github.com/golang/mock/gomock"
 	cachePolicy "github.com/hashicorp/golang-lru/v2"
 	"github.com/stretchr/testify/assert"
+
+	mocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/poolmanager"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
 )
 
 func TestExcludeFaultyPools(t *testing.T) {
@@ -19,7 +20,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		states := [2]*poolmanager.LockedState{}
+		states := [3]*poolmanager.LockedState{}
 		for i := 0; i < 2; i++ {
 			states[i] = poolmanager.NewLockedState()
 		}
@@ -58,7 +59,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		states := [2]*poolmanager.LockedState{}
+		states := [3]*poolmanager.LockedState{}
 		for i := 0; i < 2; i++ {
 			states[i] = poolmanager.NewLockedState()
 		}
@@ -111,7 +112,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		states := [2]*poolmanager.LockedState{}
+		states := [3]*poolmanager.LockedState{}
 		for i := 0; i < 2; i++ {
 			states[i] = poolmanager.NewLockedState()
 		}
@@ -148,7 +149,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 
-		states := [2]*poolmanager.LockedState{}
+		states := [3]*poolmanager.LockedState{}
 		for i := 0; i < 2; i++ {
 			states[i] = poolmanager.NewLockedState()
 		}

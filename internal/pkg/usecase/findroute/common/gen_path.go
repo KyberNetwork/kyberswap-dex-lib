@@ -11,6 +11,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -22,7 +23,7 @@ import (
 type nodeInfo struct {
 	tokenAmount         poolpkg.TokenAmount
 	poolAddressesOnPath []string
-	tokensOnPath        []entity.Token
+	tokensOnPath        []*entity.Token
 	totalGasAmount      int64
 }
 
@@ -38,12 +39,12 @@ type nodeInfo struct {
 // => return the best maxPathsToGenerate paths of each length (from 1 -> maxHops) from tokenIn to tokenOut
 //
 // The maximum number of paths returned is maxPathsToGenerate * maxHops
+// The paths returns here are taken from a memPool. Be sure to call valueobject.ReturnPaths once its scope is finished
 func GenKthBestPaths(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolpkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 	maxHops, maxPathsToGenerate, maxPathsToReturn uint32,
 ) ([]*valueobject.Path, error) {
@@ -74,12 +75,12 @@ func GenKthBestPaths(
 		{
 			tokenAmount:    tokenAmountIn,
 			totalGasAmount: 0,
-			tokensOnPath:   []entity.Token{data.TokenByAddress[input.TokenInAddress]},
+			tokensOnPath:   []*entity.Token{data.TokenByAddress[input.TokenInAddress]},
 		},
 	}
 	for currentHop := uint32(0); currentHop < maxHops; currentHop++ {
 
-		nextLayer, err := genNextLayerOfPaths(input, data, tokenToPoolAddress, hopsToTokenOut, maxHops, currentHop, prevLayer)
+		nextLayer, err := genNextLayerOfPaths(input, data, data.TokenToPoolAddress, hopsToTokenOut, maxHops, currentHop, prevLayer)
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +102,7 @@ func GenKthBestPaths(
 func genNextLayerOfPaths(
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenToPoolAddresses map[string][]string,
+	tokenToPoolAddresses map[string]*types.AddressList,
 	hopsToTokenOut map[string]uint32,
 	maxHops uint32,
 	currentHop uint32,
@@ -149,7 +150,7 @@ func genNextLayerOfPaths(
 func getNextLayerFromToken(
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenToPoolAddresses map[string][]string,
+	tokenToPoolAddresses map[string]*types.AddressList,
 	hopsToTokenOut map[string]uint32,
 	maxHops uint32,
 	currentHop uint32,
@@ -159,7 +160,7 @@ func getNextLayerFromToken(
 	type IntermediateParam struct {
 		pool           poolpkg.IPoolSimulator
 		toTokenAddress string
-		toTokenInfo    entity.Token
+		toTokenInfo    *entity.Token
 	}
 	type IntermediateResult struct {
 		toTokenAmount    *poolpkg.TokenAmount
@@ -183,13 +184,18 @@ func getNextLayerFromToken(
 
 	var (
 		nextNodeInfos []*nodeInfo
-		toTokenInfo   entity.Token
+		toTokenInfo   *entity.Token
 		pool          poolpkg.IPoolSimulator
 
 		remainingHopToTokenOut uint32
 		ok                     bool
 	)
-	for _, poolAddress := range tokenToPoolAddresses[fromTokenAddress] {
+	// if there is no adjacent from this token
+	if tokenToPoolAddresses[fromTokenAddress] == nil {
+		return nil, nil
+	}
+	for i := 0; i < tokenToPoolAddresses[fromTokenAddress].TrueLen; i++ {
+		poolAddress := tokenToPoolAddresses[fromTokenAddress].Arr[i]
 		// If next pool addr == current pool addr -> skip because we have not update reserve balance on GenKBestPaths,
 		// so the way which go two same pools on a path will give wrong result.
 		if usedPools.Has(poolAddress) {
@@ -198,7 +204,8 @@ func getNextLayerFromToken(
 
 		pool, ok = data.PoolBucket.GetPool(poolAddress)
 		if !ok {
-			return nil, findroute.ErrNoIPool
+			// the adjacent list might include pool which is not in this particular bucket
+			continue
 		}
 		for _, toTokenAddress := range pool.CanSwapFrom(fromTokenAddress) {
 			// must-have info for fromToken on path
@@ -254,7 +261,7 @@ func getNextLayerFromToken(
 			tokenAmount:         *toTokenAmount,
 			totalGasAmount:      toTotalGasAmount,
 			poolAddressesOnPath: append(append([]string{}, fromNodeInfo.poolAddressesOnPath...), pool.GetAddress()),
-			tokensOnPath:        append(append([]entity.Token{}, fromNodeInfo.tokensOnPath...), toTokenInfo),
+			tokensOnPath:        append(append([]*entity.Token{}, fromNodeInfo.tokensOnPath...), toTokenInfo),
 		})
 	}
 

@@ -7,6 +7,7 @@ import (
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -30,14 +31,6 @@ func (f *spfaFinder) bestRouteExactIn(ctx context.Context, input findroute.Input
 		return nil, findroute.ErrNoInfoTokenOut
 	}
 
-	// Optimize graph traversal by using adjacent list
-	tokenToPoolAddress := make(map[string][]string)
-	for poolAddress, pool := range data.PoolBucket.PerRequestPoolsByAddress {
-		for _, fromToken := range pool.GetTokens() {
-			tokenToPoolAddress[fromToken] = append(tokenToPoolAddress[fromToken], poolAddress)
-		}
-	}
-
 	// it is fine if prices[token] is not set because it would default to zero
 	tokenAmountIn := poolpkg.TokenAmount{
 		Token:     input.TokenInAddress,
@@ -45,7 +38,7 @@ func (f *spfaFinder) bestRouteExactIn(ctx context.Context, input findroute.Input
 		AmountUsd: utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, data.PriceUSDByAddress[input.TokenInAddress]),
 	}
 
-	hopsToTokenOut, err := common.MinHopsToTokenOut(data.PoolBucket.PerRequestPoolsByAddress, data.TokenByAddress, tokenToPoolAddress, input.TokenOutAddress)
+	hopsToTokenOut, err := common.MinHopsToTokenOut(data.PoolBucket.PerRequestPoolsByAddress, data.TokenByAddress, data.TokenToPoolAddress, input.TokenOutAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +47,7 @@ func (f *spfaFinder) bestRouteExactIn(ctx context.Context, input findroute.Input
 		return nil, nil
 	}
 
-	bestSinglePathRoute, errFindSinglePathRoute := f.bestSinglePathRoute(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
+	bestSinglePathRoute, errFindSinglePathRoute := f.bestSinglePathRoute(ctx, input, data, tokenAmountIn, data.TokenToPoolAddress, hopsToTokenOut)
 
 	// if SaveGas option enabled, consider only single-path route
 	if input.SaveGas && errFindSinglePathRoute != nil {
@@ -64,7 +57,7 @@ func (f *spfaFinder) bestRouteExactIn(ctx context.Context, input findroute.Input
 		return bestSinglePathRoute, nil
 	}
 
-	bestMultiPathRoute, errFindMultiPathRoute := f.bestMultiPathRoute(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
+	bestMultiPathRoute, errFindMultiPathRoute := f.bestMultiPathRoute(ctx, input, data, tokenAmountIn, data.TokenToPoolAddress, hopsToTokenOut)
 
 	// cannot find any route
 	if errFindSinglePathRoute != nil && errFindMultiPathRoute != nil {
@@ -92,10 +85,10 @@ func (f *spfaFinder) bestSinglePathRoute(
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolpkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
+	tokenToPoolAddress map[string]*types.AddressList,
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Route, error) {
-	bestPath, err := f.bestPathExactIn(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
+	bestPath, err := f.bestPathExactIn(ctx, input, data, tokenAmountIn, hopsToTokenOut)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +106,7 @@ func (f *spfaFinder) bestMultiPathRoute(
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolpkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
+	tokenToPoolAddress map[string]*types.AddressList,
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Route, error) {
 	var (
@@ -122,7 +115,7 @@ func (f *spfaFinder) bestMultiPathRoute(
 	)
 
 	for _, amountInPerSplit := range splits {
-		bestPath, err := f.bestPathExactIn(ctx, input, data, amountInPerSplit, tokenToPoolAddress, hopsToTokenOut)
+		bestPath, err := f.bestPathExactIn(ctx, input, data, amountInPerSplit, hopsToTokenOut)
 		if err != nil {
 			logger.WithFields(logger.Fields{"error": err}).
 				Debugf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",

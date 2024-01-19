@@ -10,7 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 func TestGenKthBestPaths(t *testing.T) {
@@ -30,10 +32,14 @@ func TestGenKthBestPaths(t *testing.T) {
 		priceUSDByAddress := GenerateRandomPriceUSDByAddress(tokenAddressList)
 		poolByAddress, err := GenerateRandomPoolByAddress(nPools, tokenAddressList)
 		assert.Nil(t, err)
-		tokenToPoolAddress := make(map[string][]string)
+		tokenToPoolAddress := make(map[string]*types.AddressList)
 		for poolAddress, pool := range poolByAddress {
+
 			for _, tokenAddress := range pool.GetTokens() {
-				tokenToPoolAddress[tokenAddress] = append(tokenToPoolAddress[tokenAddress], poolAddress)
+				if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
+					tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
+				}
+				tokenToPoolAddress[tokenAddress].AddAddress(poolAddress)
 			}
 		}
 		var (
@@ -64,7 +70,7 @@ func TestGenKthBestPaths(t *testing.T) {
 		paths, err := GenKthBestPaths(
 			context.TODO(),
 			input, data, tokenAmountIn,
-			tokenToPoolAddress, minHopToTokenOut,
+			minHopToTokenOut,
 			maxHop, maxPathToGenerate, maxPathToReturn,
 		)
 		assert.Nil(t, err)

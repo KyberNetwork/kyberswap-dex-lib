@@ -10,16 +10,16 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 )
 
-func GenerateRandomTokenByAddress(nTokens int) map[string]entity.Token {
+func GenerateRandomTokenByAddress(nTokens int) map[string]*entity.Token {
 	var (
-		tokens       = make(map[string]entity.Token)
+		tokens       = make(map[string]*entity.Token)
 		tokenAddress string
 		tokenDecimal uint8
 	)
 	for i := 0; i < nTokens; i++ {
 		tokenAddress = "token" + strconv.Itoa(i)
 		tokenDecimal = uint8(RandInt(6, 10))
-		tokens[tokenAddress] = entity.Token{
+		tokens[tokenAddress] = &entity.Token{
 			Address:  tokenAddress,
 			Decimals: tokenDecimal,
 		}

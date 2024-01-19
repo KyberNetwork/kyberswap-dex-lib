@@ -17,16 +17,25 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
+
+const NState = 3
 
 type PointerSwapPoolManager struct {
 	poolFactory        IPoolFactory
 	poolRepository     IPoolRepository
 	poolRankRepository IPoolRankRepository
 
-	states   [2]*LockedState
+	// We know that fastest state rotation happened every 3 seconds. most requests are done under 1 second.
+	// To prevent data corruption without locking, we will use tri-state swapping
+	// readFrom: return data requests to the request.
+	// writeTo = readFrom+1 % Nstate: data to update to
+	// dangling = writeTo+1 % Nstate: data is using by other requests.
+	// assumption is that dangling state will soon be freed (all the requests calling into it has exited)
+	states   [NState]*LockedState
 	readFrom atomic.Int32
 	config   Config
 
@@ -46,6 +55,7 @@ type LockedState struct {
 }
 
 func NewLockedState() *LockedState {
+
 	var limits = make(map[string]map[string]*big.Int)
 	limits[constant.PoolTypes.KyberPMM] = make(map[string]*big.Int)
 	limits[constant.PoolTypes.Synthetix] = make(map[string]*big.Int)
@@ -60,16 +70,19 @@ func NewLockedState() *LockedState {
 func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
 	s.lock.Lock()
 	s.poolByAddress = poolByAddress
-	//update the inventory
-	for key := range poolByAddress {
-		dexLimit, avail := s.limits[poolByAddress[key].GetType()]
+	// Optimize graph traversal by using tokenToPoolAddress list
+
+	//update the inventory and tokenToPoolAddress list
+	for poolAddress := range poolByAddress {
+		dexLimit, avail := s.limits[poolByAddress[poolAddress].GetType()]
 		if !avail {
 			continue
 		}
-		limitMap := poolByAddress[key].CalculateLimit()
+		limitMap := poolByAddress[poolAddress].CalculateLimit()
 		for k, v := range limitMap {
 			dexLimit[k] = v
 		}
+
 	}
 	s.lock.Unlock()
 }
@@ -83,8 +96,8 @@ func NewNonMaintenancePointerSwapPoolManager(
 	config Config,
 	aevmClient aevmclient.Client,
 ) (*PointerSwapPoolManager, error) {
-	states := [2]*LockedState{}
-	for i := 0; i < 2; i++ {
+	states := [NState]*LockedState{}
+	for i := 0; i < NState; i++ {
 		states[i] = NewLockedState()
 	}
 	//TODO try policies other than LRU
@@ -137,8 +150,8 @@ func NewPointerSwapPoolManager(
 	config Config,
 	aevmClient aevmclient.Client,
 ) (*PointerSwapPoolManager, error) {
-	states := [2]*LockedState{}
-	for i := 0; i < 2; i++ {
+	states := [NState]*LockedState{}
+	for i := 0; i < NState; i++ {
 		states[i] = NewLockedState()
 	}
 	//TODO try policies other than LRU
@@ -200,7 +213,7 @@ func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
 
 // GetPoolByAddress return a reference to pools maintained by `PointerSwapPoolManager`
 // Therefore, do not modify IPool returned here, clone IPool before UpdateBalance
-func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (map[string]poolpkg.IPoolSimulator, map[string]poolpkg.SwapLimit, error) {
+func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (*types.FindRouteState, error) {
 	filteredPoolAddress := p.filterBlacklistedAddresses(ctx, poolAddresses)
 
 	filteredPoolAddress = p.excludeFaultyPools(ctx, filteredPoolAddress, p.config)
@@ -211,11 +224,12 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, po
 	}
 
 	readFrom := p.readFrom.Load()
-	pools, swapLimits := p.getPools(ctx, filteredPoolAddress, dex, readFrom, stateRoot)
-	return pools, swapLimits, nil
+	state := p.getPools(ctx, filteredPoolAddress, dex, readFrom, stateRoot)
+
+	return state, nil
 }
 
-func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, readFrom int32, stateRoot common.Hash) (map[string]poolpkg.IPoolSimulator, map[string]poolpkg.SwapLimit) {
+func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, readFrom int32, stateRoot common.Hash) *types.FindRouteState {
 	var (
 		resultPoolByAddress = make(map[string]poolpkg.IPoolSimulator, len(poolAddresses))
 		resultLimits        = make(map[string]map[string]*big.Int)
@@ -241,11 +255,15 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 		}
 		resultLimits[dexName] = resLimit
 	}
+
 	p.states[readFrom].lock.RUnlock()
 
 	poolEntities, err := p.poolRepository.FindByAddresses(ctx, poolsToFetchFromDB)
 	if err != nil {
-		return resultPoolByAddress, nil
+		return &types.FindRouteState{
+			Pools:     resultPoolByAddress,
+			SwapLimit: nil,
+		}
 	}
 
 	defer mempool.ReserveMany(poolEntities)
@@ -260,7 +278,10 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 	curveMetaBasePools, err := listCurveMetaBasePools(ctx, p.poolRepository, filteredPoolEntities)
 	if err != nil {
 		logger.Debugf("failed to load curve-meta base pool %v", err)
-		return resultPoolByAddress, nil
+		return &types.FindRouteState{
+			Pools:     resultPoolByAddress,
+			SwapLimit: nil,
+		}
 	}
 	filteredPoolEntities = append(filteredPoolEntities, curveMetaBasePools...)
 
@@ -269,7 +290,10 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 		resultPoolByAddress[poolInterfaces[i].GetAddress()] = poolInterfaces[i]
 	}
 
-	return resultPoolByAddress, p.poolFactory.NewSwapLimit(resultLimits)
+	return &types.FindRouteState{
+		Pools:     resultPoolByAddress,
+		SwapLimit: p.poolFactory.NewSwapLimit(resultLimits),
+	}
 }
 
 func (p *PointerSwapPoolManager) Reload() error {
@@ -300,8 +324,17 @@ func (p *PointerSwapPoolManager) maintain() {
 	}
 }
 
+func (p *PointerSwapPoolManager) swapPointer(writeTo int32) {
+	//TODO: zero out dangling ref but for now we dont need it.
+	// release resources from dangling
+
+	//from now on we read from the latest state.
+	p.readFrom.Store(writeTo)
+
+}
+
 func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddresses []string, stateRoot common.Hash) error {
-	writeTo := 1 - p.readFrom.Load()
+	writeTo := (p.readFrom.Load() + 1) % NState
 
 	filteredPoolAddress := p.filterBlacklistedAddresses(ctx, poolAddresses)
 
@@ -314,9 +347,10 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 	}
 
 	poolByAddress := p.poolFactory.NewPoolByAddress(ctx, poolEntities, stateRoot)
+
 	p.states[writeTo].update(poolByAddress)
 	//swapping here
-	p.readFrom.Store(writeTo)
+	p.swapPointer(writeTo)
 	logger.Debugf("PointerSwapPoolManager.preparePoolsData > Prepared %v pools", len(poolByAddress))
 	return nil
 }

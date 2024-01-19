@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -77,7 +77,6 @@ func (f *bruteforceFinder) bestBruteforceRoute(
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolpkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Route, error) {
 	bestBruteforceRoute := valueobject.NewRoute(input.TokenInAddress, input.TokenOutAddress)
@@ -90,7 +89,7 @@ func (f *bruteforceFinder) bestBruteforceRoute(
 		data.PoolBucket.ClearChangedPools()
 		currentBestRoute := valueobject.NewRoute(input.TokenInAddress, input.TokenOutAddress)
 		for _, amountInPerSplit := range split {
-			bestPath, err := f.bestPathExactIn(ctx, input, data, amountInPerSplit, tokenToPoolAddress, hopsToTokenOut)
+			bestPath, err := f.bestPathExactIn(ctx, input, data, amountInPerSplit, hopsToTokenOut)
 			if err != nil {
 				logger.WithFields(logger.Fields{"error": err}).
 					Debugf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
@@ -128,21 +127,13 @@ func (f *bruteforceFinder) bestRouteExactIn(ctx context.Context, input findroute
 		return nil, findroute.ErrNoInfoTokenOut
 	}
 
-	// Optimize graph traversal by using adjacent list
-	tokenToPoolAddress := make(map[string][]string)
-	for poolAddress, pool := range data.PoolBucket.PerRequestPoolsByAddress {
-		for _, fromToken := range pool.GetTokens() {
-			tokenToPoolAddress[fromToken] = append(tokenToPoolAddress[fromToken], poolAddress)
-		}
-	}
-
 	// it is fine if prices[token] is not set because it would default to zero
 	tokenAmountIn := poolpkg.TokenAmount{
 		Token:     input.TokenInAddress,
 		Amount:    input.AmountIn,
 		AmountUsd: utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, data.PriceUSDByAddress[input.TokenInAddress]),
 	}
-	hopsToTokenOut, err := common.MinHopsToTokenOut(data.PoolBucket.PerRequestPoolsByAddress, data.TokenByAddress, tokenToPoolAddress, input.TokenOutAddress)
+	hopsToTokenOut, err := common.MinHopsToTokenOut(data.PoolBucket.PerRequestPoolsByAddress, data.TokenByAddress, data.TokenToPoolAddress, input.TokenOutAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +142,7 @@ func (f *bruteforceFinder) bestRouteExactIn(ctx context.Context, input findroute
 		return nil, nil
 	}
 
-	bestSinglePathRoute, errFindSinglePathRoute := f.bestSinglePathRoute(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
+	bestSinglePathRoute, errFindSinglePathRoute := f.bestSinglePathRoute(ctx, input, data, tokenAmountIn, hopsToTokenOut)
 
 	// if SaveGas option enabled, consider only single-path route
 	if input.SaveGas && errFindSinglePathRoute != nil {
@@ -166,7 +157,7 @@ func (f *bruteforceFinder) bestRouteExactIn(ctx context.Context, input findroute
 		errFindMultiPathRoute error
 	)
 
-	bestMultiPathRoute, errFindMultiPathRoute = f.bestBruteforceRoute(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
+	bestMultiPathRoute, errFindMultiPathRoute = f.bestBruteforceRoute(ctx, input, data, tokenAmountIn, hopsToTokenOut)
 
 	// fmt.Println(bestMultiPathRoute.Output.AmountUsd, f.bruteforce)
 	// cannot find any route
@@ -195,10 +186,9 @@ func (f *bruteforceFinder) bestSinglePathRoute(
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolpkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Route, error) {
-	bestPath, err := f.bestPathExactIn(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
+	bestPath, err := f.bestPathExactIn(ctx, input, data, tokenAmountIn, hopsToTokenOut)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +207,6 @@ func (f *bruteforceFinder) bestPathExactIn(
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolpkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Path, error) {
 	span, _ := tracer.StartSpanFromContext(ctx, "bruteforceFinder.bestPathExactIn")
@@ -233,7 +222,8 @@ func (f *bruteforceFinder) bestPathExactIn(
 	}
 
 	// only pick one best path, so set maxPathsToGenerate = 1.
-	paths, err := common.GenKthBestPaths(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut, f.maxHops, defaultBruteforceMaxPathsToGenerate, defaultBruteforceMaxPathsToReturn)
+	paths, err := common.GenKthBestPaths(ctx, input, data, tokenAmountIn, hopsToTokenOut, f.maxHops, defaultBruteforceMaxPathsToGenerate, defaultBruteforceMaxPathsToReturn)
+	defer valueobject.ReturnPaths(paths)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +233,8 @@ func (f *bruteforceFinder) bestPathExactIn(
 			bestPath = path
 		}
 	}
-	return bestPath, nil
+
+	return bestPath.Clone(), nil
 }
 
 // generateSplits spawn all possible splits

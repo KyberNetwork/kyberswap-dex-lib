@@ -5,10 +5,9 @@ import (
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -23,7 +22,6 @@ func (f *spfaFinder) bestPathExactIn(
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolpkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Path, error) {
 	span, _ := tracer.StartSpanFromContext(ctx, "spfaFinder.bestPathExactIn")
@@ -39,7 +37,8 @@ func (f *spfaFinder) bestPathExactIn(
 	}
 
 	// only pick one best path, so set maxPathsToGenerate = 1.
-	paths, err := common.GenKthBestPaths(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut, f.maxHops, defaultSpfaMaxPathsToGenerate, defaultSpfaMaxPathsToReturn)
+	paths, err := common.GenKthBestPaths(ctx, input, data, tokenAmountIn, hopsToTokenOut, f.maxHops, defaultSpfaMaxPathsToGenerate, defaultSpfaMaxPathsToReturn)
+	defer valueobject.ReturnPaths(paths)
 	if err != nil {
 		return nil, err
 	}
@@ -49,5 +48,5 @@ func (f *spfaFinder) bestPathExactIn(
 			bestPath = path
 		}
 	}
-	return bestPath, nil
+	return bestPath.Clone(), nil
 }

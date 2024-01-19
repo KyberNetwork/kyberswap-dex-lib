@@ -244,12 +244,12 @@ func (uc *useCase) generateBestPaths(
 		}
 	}
 
-	poolByAddress, swapLimits, err := uc.poolManager.GetStateByPoolAddresses(ctx, poolAddresses.List(), sources, gEthCommon.Hash(stateRoot))
+	state, err := uc.poolManager.GetStateByPoolAddresses(ctx, poolAddresses.List(), sources, gEthCommon.Hash(stateRoot))
 	if err != nil {
 		return nil, err
 	}
 
-	allTokens := getroute.CollectTokenAddresses(poolByAddress, append([]string{tokenIn, uc.config.GasTokenAddress}, tokenOuts...)...)
+	allTokens := getroute.CollectTokenAddresses(state.Pools, append([]string{tokenIn, uc.config.GasTokenAddress}, tokenOuts...)...)
 	tokenByAddress, err := uc.getTokenByAddress(ctx, allTokens)
 	if err != nil {
 		return nil, err
@@ -286,7 +286,7 @@ func (uc *useCase) generateBestPaths(
 		gasTokenAddress := strings.ToLower(uc.config.GasTokenAddress)
 		gasTokenPrice := tokenPriceByAddress[gasTokenAddress]
 		gasTokenPriceUSD, _ := gasTokenPrice.GetPreferredPrice()
-
+		data := findroute.NewFinderData(tokenByAddress, tokenPriceUSDByAddress, state)
 		pathsByTokenOutAddress, err := common.GenKthBestPathsV2(
 			ctx,
 			findroute.Input{
@@ -296,12 +296,13 @@ func (uc *useCase) generateBestPaths(
 				GasTokenPriceUSD: gasTokenPriceUSD,
 				GasInclude:       true,
 			},
-			findroute.NewFinderData(poolByAddress, swapLimits, tokenByAddress, tokenPriceUSDByAddress),
+			data,
 			tokenAmountIn,
 			uc.config.SPFAFinderOptions.MaxHops,
 			uc.config.SPFAFinderOptions.MaxPathsToGenerate,
 			uc.config.SPFAFinderOptions.MaxPathsToReturn,
 		)
+		data.ReleaseResources()
 		if err != nil {
 			return nil, err
 		}
@@ -316,15 +317,15 @@ func (uc *useCase) generateBestPaths(
 func (uc *useCase) getTokenByAddress(
 	ctx context.Context,
 	tokenAddresses []string,
-) (map[string]entity.Token, error) {
+) (map[string]*entity.Token, error) {
 	tokens, err := uc.tokenRepository.FindByAddresses(ctx, tokenAddresses)
 	if err != nil {
 		return nil, err
 	}
 
-	tokenByAddress := make(map[string]entity.Token, len(tokens))
+	tokenByAddress := make(map[string]*entity.Token, len(tokens))
 	for _, token := range tokens {
-		tokenByAddress[token.Address] = *token
+		tokenByAddress[token.Address] = token
 	}
 
 	return tokenByAddress, nil

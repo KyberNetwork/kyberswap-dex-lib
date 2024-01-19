@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
-	pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	types "github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	common "github.com/ethereum/go-ethereum/common"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -52,17 +52,16 @@ func (mr *MockIPoolManagerMockRecorder) GetAEVMClient() *gomock.Call {
 }
 
 // GetStateByPoolAddresses mocks base method.
-func (m *MockIPoolManager) GetStateByPoolAddresses(arg0 context.Context, arg1, arg2 []string, arg3 common.Hash) (map[string]pool.IPoolSimulator, map[string]pool.SwapLimit, error) {
+func (m *MockIPoolManager) GetStateByPoolAddresses(arg0 context.Context, arg1, arg2 []string, arg3 common.Hash) (*types.FindRouteState, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetStateByPoolAddresses", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(map[string]pool.IPoolSimulator)
-	ret1, _ := ret[1].(map[string]pool.SwapLimit)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(*types.FindRouteState)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// GetPoolByAddress indicates an expected call of GetPoolByAddress.
-func (mr *MockIPoolManagerMockRecorder) GetPoolByAddress(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+// GetStateByPoolAddresses indicates an expected call of GetStateByPoolAddresses.
+func (mr *MockIPoolManagerMockRecorder) GetStateByPoolAddresses(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStateByPoolAddresses", reflect.TypeOf((*MockIPoolManager)(nil).GetStateByPoolAddresses), arg0, arg1, arg2, arg3)
 }

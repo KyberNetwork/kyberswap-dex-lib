@@ -33,7 +33,7 @@ func TestBruteforceFinder_GenerateSplits(t *testing.T) {
 		PriceUSDByAddress: map[string]float64{
 			"tokenIn": 1,
 		},
-		TokenByAddress: map[string]entity.Token{
+		TokenByAddress: map[string]*entity.Token{
 			"tokenIn": {Decimals: 0},
 		},
 	}

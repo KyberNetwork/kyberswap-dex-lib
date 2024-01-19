@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 type aggregator struct {
@@ -92,9 +93,29 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 			dexLimit[k] = v
 		}
 	}
+	// Optimize graph traversal by using adjacent list
+	tokenToPoolAddress := make(map[string]*types.AddressList)
+	for poolAddress, pool := range poolByAddress {
+		for _, fromToken := range pool.GetTokens() {
+			if _, ok := tokenToPoolAddress[fromToken]; !ok {
+				tokenToPoolAddress[fromToken] = mempool.AddressListPool.Get().(*types.AddressList)
+			}
+
+			tokenToPoolAddress[fromToken].AddAddress(poolAddress)
+		}
+	}
+	defer func() {
+		//return the data back to mem pool
+		for key := range tokenToPoolAddress {
+			mempool.ReturnAddressList(tokenToPoolAddress[key])
+		}
+	}()
 
 	// Step 3: finds best route
-	return a.findBestRoute(ctx, params, poolByAddress, tokenByAddress, priceByAddress, a.poolFactory.NewSwapLimit(limits))
+	return a.findBestRoute(ctx, params, tokenByAddress, priceByAddress, &types.FindRouteState{
+		Pools:     poolByAddress,
+		SwapLimit: a.poolFactory.NewSwapLimit(limits),
+	})
 }
 
 func (a *aggregator) ApplyConfig(config getroute.Config) {}
@@ -103,10 +124,9 @@ func (a *aggregator) ApplyConfig(config getroute.Config) {}
 func (a *aggregator) findBestRoute(
 	ctx context.Context,
 	params *types.AggregateParams,
-	poolByAddress map[string]poolpkg.IPoolSimulator,
-	tokenByAddress map[string]entity.Token,
+	tokenByAddress map[string]*entity.Token,
 	priceUSDByAddress map[string]float64,
-	swapLimits map[string]poolpkg.SwapLimit,
+	state *types.FindRouteState,
 ) (*valueobject.RouteSummary, error) {
 	input := findroute.Input{
 		TokenInAddress:   params.TokenIn.Address,
@@ -118,8 +138,8 @@ func (a *aggregator) findBestRoute(
 		GasInclude:       params.GasInclude,
 	}
 
-	data := findroute.NewFinderData(poolByAddress, swapLimits, tokenByAddress, priceUSDByAddress)
-
+	data := findroute.NewFinderData(tokenByAddress, priceUSDByAddress, state)
+	defer data.ReleaseResources()
 	routes, err := a.routeFinder.Find(ctx, input, data)
 	if err != nil {
 		return nil, errors.Wrapf(getroute.ErrRouteNotFound, "find route failed: [%v]", err)
@@ -131,7 +151,7 @@ func (a *aggregator) findBestRoute(
 		return nil, getroute.ErrRouteNotFound
 	}
 
-	return a.summarizeRoute(ctx, bestRoute, params, poolByAddress, data.SwapLimits)
+	return a.summarizeRoute(ctx, bestRoute, params, state.Pools, data.SwapLimits)
 }
 
 func (a *aggregator) summarizeRoute(
@@ -258,15 +278,15 @@ func (a *aggregator) summarizeRoute(
 }
 
 // getTokenByAddress receives a list of address and returns a map of address to entity.Token
-func (a *aggregator) getTokenByAddress(ctx context.Context, tokenAddresses []string) (map[string]entity.Token, error) {
+func (a *aggregator) getTokenByAddress(ctx context.Context, tokenAddresses []string) (map[string]*entity.Token, error) {
 	tokens, err := a.tokenRepository.FindByAddresses(ctx, tokenAddresses)
 	if err != nil {
 		return nil, err
 	}
 
-	tokenByAddress := make(map[string]entity.Token, len(tokens))
+	tokenByAddress := make(map[string]*entity.Token, len(tokens))
 	for _, token := range tokens {
-		tokenByAddress[token.Address] = *token
+		tokenByAddress[token.Address] = token
 	}
 
 	return tokenByAddress, nil

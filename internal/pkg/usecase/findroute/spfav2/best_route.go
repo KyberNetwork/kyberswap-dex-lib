@@ -7,6 +7,8 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -29,18 +31,10 @@ func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Inp
 		return nil, findroute.ErrNoInfoTokenOut
 	}
 
-	// Optimize graph traversal by using adjacent list
-	tokenToPoolAddress := make(map[string][]string)
-	for poolAddress := range data.PoolBucket.PerRequestPoolsByAddress {
-		for _, fromToken := range data.PoolBucket.PerRequestPoolsByAddress[poolAddress].GetTokens() {
-			tokenToPoolAddress[fromToken] = append(tokenToPoolAddress[fromToken], poolAddress)
-		}
-	}
-
 	hopsToTokenOut, err := f.findMinHopsToTokenOut(
 		data.PoolBucket.PerRequestPoolsByAddress,
 		data.TokenByAddress,
-		tokenToPoolAddress,
+		data.TokenToPoolAddress,
 		input.TokenInAddress,
 		input.TokenOutAddress,
 	)
@@ -60,16 +54,16 @@ func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Inp
 	}
 
 	if f.minThresholdAmountInUSD <= tokenAmountIn.AmountUsd && tokenAmountIn.AmountUsd <= f.maxThresholdAmountInUSD {
-		return f.findrouteV2(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
+		return f.findrouteV2(ctx, input, data, tokenAmountIn, hopsToTokenOut)
 	} else {
-		return f.findrouteV1(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
+		return f.findrouteV1(ctx, input, data, tokenAmountIn, hopsToTokenOut)
 	}
 }
 
 func (f *spfav2Finder) findMinHopsToTokenOut(
 	poolByAddress map[string]poolpkg.IPoolSimulator,
-	tokenByAddress map[string]entity.Token,
-	tokenToPoolAddresses map[string][]string,
+	tokenByAddress map[string]*entity.Token,
+	tokenToPoolAddresses map[string]*types.AddressList,
 	tokenIn string,
 	tokenOut string,
 ) (map[string]uint32, error) {

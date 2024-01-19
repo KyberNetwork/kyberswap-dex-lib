@@ -10,7 +10,8 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 func TestSpfaFinder(t *testing.T) {
@@ -26,10 +27,14 @@ func TestSpfaFinder(t *testing.T) {
 	priceUSDByAddress := common.GenerateRandomPriceUSDByAddress(tokenAddressList)
 	poolByAddress, err := common.GenerateRandomPoolByAddress(nPools, tokenAddressList)
 	assert.Nil(t, err)
-	tokenToPoolAddress := make(map[string][]string)
+	tokenToPoolAddress := make(map[string]*types.AddressList)
 	for poolAddress, pool := range poolByAddress {
+
 		for _, tokenAddress := range pool.GetTokens() {
-			tokenToPoolAddress[tokenAddress] = append(tokenToPoolAddress[tokenAddress], poolAddress)
+			if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
+				tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
+			}
+			tokenToPoolAddress[tokenAddress].AddAddress(poolAddress)
 		}
 	}
 	var (
@@ -45,11 +50,11 @@ func TestSpfaFinder(t *testing.T) {
 		GasTokenPriceUSD: 1500,
 		GasInclude:       true,
 	}
-	data := findroute.FinderData{
-		PoolBucket:        valueobject.NewPoolBucket(poolByAddress),
-		TokenByAddress:    tokenByAddress,
-		PriceUSDByAddress: priceUSDByAddress,
-	}
+	data := findroute.NewFinderData(tokenByAddress, priceUSDByAddress, &types.FindRouteState{
+		Pools:     poolByAddress,
+		SwapLimit: nil,
+	})
+
 	finder := NewDefaultSPFAFinder()
 	routes, err := finder.Find(context.TODO(), input, data)
 	assert.Nil(t, err)

@@ -8,11 +8,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -22,21 +21,20 @@ func (f *spfav2Finder) findrouteV2(
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolpkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.findrouteV2")
 	defer span.End()
 
 	if input.SaveGas {
-		bestSinglePathRoute, errFindSinglePathRoute := f.bestSinglePathRouteV1(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
+		bestSinglePathRoute, errFindSinglePathRoute := f.bestSinglePathRouteV1(ctx, input, data, tokenAmountIn, hopsToTokenOut)
 		if errFindSinglePathRoute != nil {
 			return nil, errFindSinglePathRoute
 		}
 		return bestSinglePathRoute, nil
 	}
 
-	bestMultiPathRoute, errFindMultiPathRoute := f.bestRouteV2(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
+	bestMultiPathRoute, errFindMultiPathRoute := f.bestRouteV2(ctx, input, data, tokenAmountIn, hopsToTokenOut)
 
 	if errFindMultiPathRoute != nil {
 		return nil, errFindMultiPathRoute
@@ -50,7 +48,6 @@ func (f *spfav2Finder) bestRouteV2(
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolpkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestRouteV2")
@@ -98,7 +95,7 @@ func (f *spfav2Finder) bestRouteV2(
 		)
 
 		var errGenPath error
-		paths, errGenPath = common.GenKthBestPaths(ctx, input, data, amountInToGeneratePath, tokenToPoolAddress, hopsToTokenOut, f.maxHops, numberOfPathToGenerate, f.maxPathsToReturn)
+		paths, errGenPath = common.GenKthBestPaths(ctx, input, data, amountInToGeneratePath, hopsToTokenOut, f.maxHops, numberOfPathToGenerate, f.maxPathsToReturn)
 		if errGenPath != nil {
 			logger.WithFields(logger.Fields{"error": errGenPath}).
 				Debugf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
@@ -106,6 +103,8 @@ func (f *spfav2Finder) bestRouteV2(
 			return nil, nil
 		}
 	}
+
+	defer valueobject.ReturnPaths(paths)
 
 	cmpFunc := func(a, b int) bool {
 		return paths[a].CompareTo(paths[b], input.GasInclude && data.PriceUSDByAddress[paths[a].Output.Token] != 0) < 0
@@ -180,7 +179,7 @@ func (f *spfav2Finder) bestMultiPathRouteV2(
 			return nil, nil
 		}
 
-		if err := bestMultiPathRoute.AddPath(data.PoolBucket, bestPath, data.SwapLimits); err != nil {
+		if err := bestMultiPathRoute.AddPath(data.PoolBucket, bestPath.Clone(), data.SwapLimits); err != nil {
 			return nil, err
 		}
 	}

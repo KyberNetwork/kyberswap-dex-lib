@@ -2,6 +2,7 @@ package valueobject
 
 import (
 	"math/big"
+	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -9,6 +10,24 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
+
+var PathsPool = sync.Pool{
+	New: func() interface{} {
+		return &Path{
+			Input:         poolpkg.TokenAmount{},
+			Output:        poolpkg.TokenAmount{},
+			TotalGas:      0,
+			PoolAddresses: nil,
+			Tokens:        nil,
+		}
+	},
+}
+
+func ReturnPaths(paths []*Path) {
+	for i := 0; i < len(paths); i++ {
+		PathsPool.Put(paths[i])
+	}
+}
 
 var (
 	ErrInvalidTokenLength = errors.New("invalid token length, token length should be more than 1")
@@ -34,13 +53,33 @@ type Path struct {
 	PoolAddresses []string `json:"poolAddresses"`
 
 	// Tokens list tokens that path swap through
-	Tokens []entity.Token `json:"tokens"`
+	Tokens []*entity.Token `json:"tokens"`
+}
+
+func (p *Path) Clone() *Path {
+	poolAddresses := make([]string, len(p.PoolAddresses))
+	copy(poolAddresses, p.PoolAddresses)
+	return &Path{
+		Input: poolpkg.TokenAmount{
+			Token:     p.Input.Token,
+			Amount:    new(big.Int).Set(p.Input.Amount),
+			AmountUsd: p.Input.AmountUsd,
+		},
+		Output: poolpkg.TokenAmount{
+			Token:     p.Output.Token,
+			Amount:    new(big.Int).Set(p.Output.Amount),
+			AmountUsd: p.Output.AmountUsd,
+		},
+		TotalGas:      p.TotalGas,
+		PoolAddresses: poolAddresses,
+		Tokens:        p.Tokens,
+	}
 }
 
 func NewPath(
 	poolBucket *PoolBucket,
 	poolAddresses []string,
-	tokens []entity.Token,
+	tokens []*entity.Token,
 	tokenAmountIn poolpkg.TokenAmount,
 	tokenOut string,
 	tokenOutPrice float64,
@@ -69,11 +108,11 @@ func NewPath(
 		return nil, ErrInvalidTokenOut
 	}
 
-	path := Path{
-		Input:         tokenAmountIn,
-		PoolAddresses: poolAddresses,
-		Tokens:        tokens,
-	}
+	path := PathsPool.Get().(*Path)
+
+	path.Input = tokenAmountIn
+	path.PoolAddresses = poolAddresses
+	path.Tokens = tokens
 
 	tokenAmountOut, totalGas, err := path.CalcAmountOut(poolBucket, tokenAmountIn, limits)
 	if err != nil {
@@ -87,7 +126,7 @@ func NewPath(
 	path.Output = tokenAmountOut
 	path.TotalGas = totalGas
 
-	return &path, nil
+	return path, nil
 }
 
 // CalcAmountOut swaps through path with Input

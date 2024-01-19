@@ -99,18 +99,19 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
-	poolByAddress, pmmInventory, err := a.getPoolByAddress(ctx, params, common.Hash(stateRoot))
+
+	state, err := a.getStateByAddress(ctx, params, common.Hash(stateRoot))
 	if err != nil {
 		return nil, err
 	}
 
-	if len(poolByAddress) == 0 {
+	if len(state.Pools) == 0 {
 		return nil, ErrPoolSetEmpty
 	}
 
 	// Step 2: collect tokens and price data
 	tokenAddresses := CollectTokenAddresses(
-		poolByAddress,
+		state.Pools,
 		params.TokenIn.Address,
 		params.TokenOut.Address,
 		params.GasToken.Address,
@@ -127,7 +128,7 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 	}
 
 	// Step 3: finds best route
-	return a.findBestRoute(ctx, params, poolByAddress, tokenByAddress, priceByAddress, pmmInventory)
+	return a.findBestRoute(ctx, params, tokenByAddress, priceByAddress, state)
 }
 
 func (a *aggregator) ApplyConfig(config Config) {
@@ -169,10 +170,9 @@ func (a *aggregator) ApplyConfig(config Config) {
 func (a *aggregator) findBestRoute(
 	ctx context.Context,
 	params *types.AggregateParams,
-	poolByAddress map[string]poolpkg.IPoolSimulator,
-	tokenByAddress map[string]entity.Token,
+	tokenByAddress map[string]*entity.Token,
 	priceUSDByAddress map[string]float64,
-	swapLimits map[string]poolpkg.SwapLimit,
+	state *types.FindRouteState,
 ) (*valueobject.RouteSummary, error) {
 	input := findroute.Input{
 		TokenInAddress:         params.TokenIn.Address,
@@ -186,8 +186,8 @@ func (a *aggregator) findBestRoute(
 		SourceHash:             valueobject.HashSources(params.Sources),
 	}
 
-	data := findroute.NewFinderData(poolByAddress, swapLimits, tokenByAddress, priceUSDByAddress)
-
+	data := findroute.NewFinderData(tokenByAddress, priceUSDByAddress, state)
+	defer data.ReleaseResources()
 	var (
 		routes []*valueobject.Route
 		err    error
@@ -207,7 +207,7 @@ func (a *aggregator) findBestRoute(
 		return nil, ErrRouteNotFound
 	}
 
-	return a.summarizeRoute(ctx, bestRoute, params, poolByAddress, data.SwapLimits)
+	return a.summarizeRoute(ctx, bestRoute, params, state.Pools, data.SwapLimits)
 }
 
 func (a *aggregator) summarizeRoute(
@@ -330,11 +330,11 @@ func (a *aggregator) summarizeRoute(
 	}, nil
 }
 
-func (a *aggregator) getPoolByAddress(
+func (a *aggregator) getStateByAddress(
 	ctx context.Context,
 	params *types.AggregateParams,
 	stateRoot common.Hash,
-) (map[string]poolpkg.IPoolSimulator, map[string]poolpkg.SwapLimit, error) {
+) (*types.FindRouteState, error) {
 	bestPoolIDs, err := a.poolRankRepository.FindBestPoolIDs(
 		ctx,
 		params.TokenIn.Address,
@@ -342,7 +342,7 @@ func (a *aggregator) getPoolByAddress(
 		a.config.GetBestPoolsOptions,
 	)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	filteredPoolIDs := make([]string, 0, len(bestPoolIDs))
@@ -362,15 +362,15 @@ func (a *aggregator) getPoolByAddress(
 }
 
 // getTokenByAddress receives a list of address and returns a map of address to entity.Token
-func (a *aggregator) getTokenByAddress(ctx context.Context, tokenAddresses []string) (map[string]entity.Token, error) {
+func (a *aggregator) getTokenByAddress(ctx context.Context, tokenAddresses []string) (map[string]*entity.Token, error) {
 	tokens, err := a.tokenRepository.FindByAddresses(ctx, tokenAddresses)
 	if err != nil {
 		return nil, err
 	}
 
-	tokenByAddress := make(map[string]entity.Token, len(tokens))
+	tokenByAddress := make(map[string]*entity.Token, len(tokens))
 	for _, token := range tokens {
-		tokenByAddress[token.Address] = *token
+		tokenByAddress[token.Address] = token
 	}
 
 	return tokenByAddress, nil

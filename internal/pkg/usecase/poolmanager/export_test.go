@@ -9,7 +9,7 @@ import (
 )
 
 func NewPointerSwapPoolManagerInstance(
-	states [2]*LockedState,
+	states [3]*LockedState,
 	poolFactory IPoolFactory,
 	poolRepository IPoolRepository,
 	poolRankRepository IPoolRankRepository,

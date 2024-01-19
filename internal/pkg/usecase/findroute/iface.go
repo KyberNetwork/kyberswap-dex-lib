@@ -8,7 +8,9 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/huandu/go-clone"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 // IFinder is an interface of finding route algorithm
@@ -53,7 +55,10 @@ type FinderData struct {
 	PoolBucket *valueobject.PoolBucket
 
 	// TokenByAddress mapping from token address to token info (decimals, symbol, ...)
-	TokenByAddress map[string]entity.Token
+	TokenByAddress map[string]*entity.Token
+
+	//TokenToPoolAddress store the adjacent list on our bfs traversal
+	TokenToPoolAddress map[string]*types.AddressList
 
 	// PriceUSDByAddress mapping from token address to price in USD
 	PriceUSDByAddress map[string]float64
@@ -65,13 +70,30 @@ type FinderData struct {
 	originSwapLimits map[string]poolpkg.SwapLimit
 }
 
-func NewFinderData(poolByAddress map[string]poolpkg.IPoolSimulator, swapLimits map[string]poolpkg.SwapLimit, tokenByAddress map[string]entity.Token, tokenPriceUSDByAddress map[string]float64) FinderData {
+func NewFinderData(tokenByAddress map[string]*entity.Token, tokenPriceUSDByAddress map[string]float64, state *types.FindRouteState) FinderData {
+	tokenToPoolAddress := make(map[string]*types.AddressList)
+	for _, pool := range state.Pools {
+		for _, tokenAddress := range pool.GetTokens() {
+			if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
+				tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
+			}
+			tokenToPoolAddress[tokenAddress].AddAddress(pool.GetAddress())
+		}
+	}
+
 	return FinderData{
-		PoolBucket:        valueobject.NewPoolBucket(poolByAddress),
-		TokenByAddress:    tokenByAddress,
-		PriceUSDByAddress: tokenPriceUSDByAddress,
-		SwapLimits:        clone.Slowly(swapLimits).(map[string]poolpkg.SwapLimit),
-		originSwapLimits:  clone.Slowly(swapLimits).(map[string]poolpkg.SwapLimit),
+		PoolBucket:         valueobject.NewPoolBucket(state.Pools),
+		TokenByAddress:     tokenByAddress,
+		TokenToPoolAddress: tokenToPoolAddress,
+		PriceUSDByAddress:  tokenPriceUSDByAddress,
+		SwapLimits:         clone.Slowly(state.SwapLimit).(map[string]poolpkg.SwapLimit),
+		originSwapLimits:   clone.Slowly(state.SwapLimit).(map[string]poolpkg.SwapLimit),
+	}
+}
+
+func (f *FinderData) ReleaseResources() {
+	for _, al := range f.TokenToPoolAddress {
+		mempool.ReturnAddressList(al)
 	}
 }
 

@@ -19,7 +19,9 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 func TestGetRouteUseCase_Handle(t *testing.T) {
@@ -165,16 +167,25 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 	// Mock IPoolManager
 	poolManager := getroute.NewMockIPoolManager(ctrl)
 	poolManager.EXPECT().
-		GetPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		GetStateByPoolAddresses(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(
-			func(ctx context.Context, addresses, dex []string, stateRoot common.Hash) (map[string]pool.IPoolSimulator, map[string]pool.SwapLimit, error) {
+			func(ctx context.Context, addresses, dex []string, stateRoot common.Hash) (*types.FindRouteState, error) {
 				addressesSet := mapset.NewSet(addresses...)
 				dexesSet := mapset.NewSet(dex...)
+				tokenToPoolAddress := make(map[string]*types.AddressList)
+
 				var limits = make(map[string]map[string]*big.Int)
 				limits[constant.PoolTypes.KyberPMM] = make(map[string]*big.Int)
 				limits[constant.PoolTypes.Synthetix] = make(map[string]*big.Int)
 				filteredPools := make([]pool.IPoolSimulator, 0, len(pools))
 				for _, pool := range pools {
+
+					for _, tokenAddress := range pool.GetTokens() {
+						if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
+							tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
+						}
+						tokenToPoolAddress[tokenAddress].AddAddress(pool.GetAddress())
+					}
 					if !addressesSet.Contains(pool.GetAddress()) {
 						continue
 					}
@@ -192,9 +203,12 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 					}
 				}
 
-				return lo.Associate(filteredPools, func(item pool.IPoolSimulator) (string, pool.IPoolSimulator) {
-					return item.GetAddress(), item
-				}), poolFactory.NewSwapLimit(limits), nil
+				return &types.FindRouteState{
+					Pools: lo.Associate(filteredPools, func(item pool.IPoolSimulator) (string, pool.IPoolSimulator) {
+						return item.GetAddress(), item
+					}),
+					SwapLimit: poolFactory.NewSwapLimit(limits),
+				}, nil
 			},
 		).
 		AnyTimes()

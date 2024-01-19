@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	gethcommon "github.com/ethereum/go-ethereum/common"
@@ -47,7 +47,7 @@ func (m *PoolManager) GetStateByPoolAddresses(
 	ctx context.Context,
 	addresses, dex []string,
 	stateRoot gethcommon.Hash,
-) (map[string]poolpkg.IPoolSimulator, map[string]poolpkg.SwapLimit, error) {
+) (*types.FindRouteState, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "poolManager.GetStateByPoolAddresses")
 	defer span.End()
 
@@ -64,8 +64,10 @@ func (m *PoolManager) GetStateByPoolAddresses(
 	)
 	resultLimits[constant.PoolTypes.KyberPMM] = make(map[string]*big.Int)
 	resultLimits[constant.PoolTypes.Synthetix] = make(map[string]*big.Int)
+	tokenToPoolAddress := make(map[string]*types.AddressList)
+
 	//given a clone of limit
-	for _, pool := range iPools {
+	for poolAddress, pool := range iPools {
 		dexLimit, avail := resultLimits[pool.GetType()]
 		if !avail {
 			continue
@@ -74,12 +76,21 @@ func (m *PoolManager) GetStateByPoolAddresses(
 		for k, v := range limitMap {
 			dexLimit[k] = v
 		}
+		for _, tokenAddress := range pool.GetTokens() {
+			if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
+				tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
+			}
+			tokenToPoolAddress[tokenAddress].AddAddress(poolAddress)
+		}
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	return iPools, m.poolFactory.NewSwapLimit(resultLimits), nil
+	return &types.FindRouteState{
+		Pools:     iPools,
+		SwapLimit: m.poolFactory.NewSwapLimit(resultLimits),
+	}, nil
 }
 
 func (m *PoolManager) ApplyConfig(config Config) {

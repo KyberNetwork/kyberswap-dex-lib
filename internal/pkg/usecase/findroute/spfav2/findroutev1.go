@@ -5,10 +5,9 @@ import (
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -18,13 +17,12 @@ func (f *spfav2Finder) findrouteV1(
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolpkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.findrouteV1")
 	defer span.End()
 
-	bestSinglePathRoute, errFindSinglePathRoute := f.bestSinglePathRouteV1(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
+	bestSinglePathRoute, errFindSinglePathRoute := f.bestSinglePathRouteV1(ctx, input, data, tokenAmountIn, hopsToTokenOut)
 
 	// if SaveGas option enabled, consider only single-path route
 	if input.SaveGas && errFindSinglePathRoute != nil {
@@ -34,7 +32,7 @@ func (f *spfav2Finder) findrouteV1(
 		return bestSinglePathRoute, nil
 	}
 
-	bestMultiPathRoute, errFindMultiPathRoute := f.bestMultiPathRouteV1(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
+	bestMultiPathRoute, errFindMultiPathRoute := f.bestMultiPathRouteV1(ctx, input, data, tokenAmountIn, hopsToTokenOut)
 
 	// cannot find any route
 	if errFindSinglePathRoute != nil && errFindMultiPathRoute != nil {
@@ -62,13 +60,12 @@ func (f *spfav2Finder) bestSinglePathRouteV1(
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolpkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestSinglePathRouteV1")
 	defer span.End()
 
-	bestPath, err := f.bestPathExactInV1(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut)
+	bestPath, err := f.bestPathExactInV1(ctx, input, data, tokenAmountIn, hopsToTokenOut)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +83,6 @@ func (f *spfav2Finder) bestMultiPathRouteV1(
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolpkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestMultiPathRouteV1")
@@ -101,7 +97,7 @@ func (f *spfav2Finder) bestMultiPathRouteV1(
 		return nil, nil
 	}
 	for _, amountInPerSplit := range splits {
-		bestPath, err := f.bestPathExactInV1(ctx, input, data, amountInPerSplit, tokenToPoolAddress, hopsToTokenOut)
+		bestPath, err := f.bestPathExactInV1(ctx, input, data, amountInPerSplit, hopsToTokenOut)
 		if err != nil {
 			logger.WithFields(logger.Fields{"error": err}).
 				Debugf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
@@ -127,7 +123,6 @@ func (f *spfav2Finder) bestPathExactInV1(
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolpkg.TokenAmount,
-	tokenToPoolAddress map[string][]string,
 	hopsToTokenOut map[string]uint32,
 ) (*valueobject.Path, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestPathExactInV1")
@@ -143,7 +138,9 @@ func (f *spfav2Finder) bestPathExactInV1(
 	}
 
 	// only pick one best path, so set maxPathsToGenerate = 1.
-	paths, err := common.GenKthBestPaths(ctx, input, data, tokenAmountIn, tokenToPoolAddress, hopsToTokenOut, f.maxHops, 1, 1)
+	paths, err := common.GenKthBestPaths(ctx, input, data, tokenAmountIn, hopsToTokenOut, f.maxHops, 1, 1)
+	defer valueobject.ReturnPaths(paths)
+
 	if err != nil {
 		return nil, err
 	}
@@ -153,5 +150,5 @@ func (f *spfav2Finder) bestPathExactInV1(
 			bestPath = path
 		}
 	}
-	return bestPath, nil
+	return bestPath.Clone(), nil
 }

@@ -5,14 +5,14 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/oleiade/lane"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 )
 
 // MinHopsToTokenOut perform BFS from tokenOut
 func MinHopsToTokenOut(
 	poolByAddress map[string]poolpkg.IPoolSimulator,
-	tokenByAddress map[string]entity.Token,
-	tokenToPoolAddresses map[string][]string,
+	tokenByAddress map[string]*entity.Token,
+	tokenToPoolAddresses map[string]*types.AddressList,
 	tokenOut string,
 ) (map[string]uint32, error) {
 	var (
@@ -27,9 +27,15 @@ func MinHopsToTokenOut(
 
 	for !queue.Empty() {
 		var token = queue.Dequeue().(string)
-		for _, poolAddress := range tokenToPoolAddresses[token] {
+		//no pool from this token
+		if tokenToPoolAddresses[token] == nil {
+			continue
+		}
+		for i := 0; i < tokenToPoolAddresses[token].TrueLen; i++ {
+			poolAddress := tokenToPoolAddresses[token].Arr[i]
+			//the adjacent map might include pools not in this particular bucket
 			if pool, ok = poolByAddress[poolAddress]; !ok {
-				return nil, findroute.ErrNoIPool
+				continue
 			}
 			for _, tokenTo := range pool.CanSwapTo(token) {
 				// must-have info for token on path
@@ -51,8 +57,8 @@ func MinHopsToTokenOut(
 // only considering `tokenIn` and "hop tokens" that are in the whitelist.
 func MinHopsToTokenOutWithWhitelist(
 	poolByAddress map[string]poolpkg.IPoolSimulator,
-	tokenByAddress map[string]entity.Token,
-	tokenToPoolAddresses map[string][]string,
+	tokenByAddress map[string]*entity.Token,
+	tokenToPoolAddresses map[string]*types.AddressList,
 	whitelistedHopTokens map[string]bool,
 	tokenIn string,
 	tokenOut string,
@@ -69,9 +75,15 @@ func MinHopsToTokenOutWithWhitelist(
 
 	for !queue.Empty() {
 		var token = queue.Dequeue().(string)
-		for _, poolAddress := range tokenToPoolAddresses[token] {
+		if tokenToPoolAddresses[token] == nil {
+			//there is no adjacent from this token
+			continue
+		}
+		for i := 0; i < tokenToPoolAddresses[token].TrueLen; i++ {
+			poolAddress := tokenToPoolAddresses[token].Arr[i]
 			if pool, ok = poolByAddress[poolAddress]; !ok {
-				return nil, findroute.ErrNoIPool
+				//this pool might not be available in current bucket
+				continue
 			}
 			for _, tokenTo := range pool.CanSwapTo(token) {
 				// must-have info for token on path
