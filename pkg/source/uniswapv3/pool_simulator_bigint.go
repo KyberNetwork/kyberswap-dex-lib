@@ -8,12 +8,11 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/logger"
-	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
-	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
-	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
+	"github.com/daoleno/uniswapv3-sdk/constants"
+	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
+	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -21,10 +20,11 @@ import (
 )
 
 var (
-	ErrOverflow = errors.New("bigInt overflow int/uint256")
+	ErrTickNil      = errors.New("tick is nil")
+	ErrV3TicksEmpty = errors.New("v3Ticks empty")
 )
 
-type PoolSimulator struct {
+type PoolSimulatorBigInt struct {
 	V3Pool *v3Entities.Pool
 	pool.Pool
 	gas     Gas
@@ -32,8 +32,8 @@ type PoolSimulator struct {
 	tickMax int
 }
 
-func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
-	var extra ExtraTickU256
+func NewPoolSimulatorBigInt(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulatorBigInt, error) {
+	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
@@ -56,13 +56,13 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		reserves[1] = NewBig10(entityPool.Reserves[1])
 	}
 
-	v3Ticks := make([]v3Entities.Tick, 0, len(extra.Ticks))
+	var v3Ticks []v3Entities.Tick
 
 	// Ticks are sorted from the pool service, so we don't have to do it again here
 	// Purpose: to improve the latency
 	for _, t := range extra.Ticks {
 		// LiquidityGross = 0 means that the tick is uninitialized
-		if t.LiquidityGross.IsZero() {
+		if t.LiquidityGross.Cmp(zeroBI) == 0 {
 			continue
 		}
 
@@ -83,13 +83,13 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, err
 	}
 
-	v3Pool, err := v3Entities.NewPoolV2(
+	v3Pool, err := v3Entities.NewPool(
 		token0,
 		token1,
 		constants.FeeAmount(entityPool.SwapFee),
 		extra.SqrtPriceX96,
 		extra.Liquidity,
-		*extra.Tick,
+		int(extra.Tick.Int64()),
 		ticks,
 	)
 	if err != nil {
@@ -110,7 +110,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		Checked:    false,
 	}
 
-	return &PoolSimulator{
+	return &PoolSimulatorBigInt{
 		Pool:    pool.Pool{Info: info},
 		V3Pool:  v3Pool,
 		gas:     defaultGas,
@@ -122,7 +122,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 /**
  * getSqrtPriceLimit get the price limit of pool based on the initialized ticks that this pool has
  */
-func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) *v3Utils.Uint160 {
+func (p *PoolSimulatorBigInt) getSqrtPriceLimit(zeroForOne bool) *big.Int {
 	var tickLimit int
 	if zeroForOne {
 		tickLimit = p.tickMin
@@ -130,7 +130,7 @@ func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) *v3Utils.Uint160 {
 		tickLimit = p.tickMax
 	}
 
-	sqrtPriceX96Limit, err := v3Utils.GetSqrtRatioAtTickV2(tickLimit)
+	sqrtPriceX96Limit, err := v3Utils.GetSqrtRatioAtTick(tickLimit)
 
 	if err != nil {
 		return nil
@@ -139,7 +139,7 @@ func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) *v3Utils.Uint160 {
 	return sqrtPriceX96Limit
 }
 
-func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+func (p *PoolSimulatorBigInt) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
 	var tokenInIndex = p.GetTokenIndex(param.TokenIn)
 	var tokenOutIndex = p.GetTokenIndex(param.TokenAmountOut.Token)
 	var tokenOut *coreEntities.Token
@@ -174,9 +174,9 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 					Amount: nil,
 				},
 				Gas: totalGas,
-				SwapInfo: UniV3SwapInfo{
-					nextStateSqrtRatioX96: new(uint256.Int).Set(newPoolState.SqrtRatioX96),
-					nextStateLiquidity:    new(uint256.Int).Set(newPoolState.Liquidity),
+				SwapInfo: UniV3SwapInfoBigInt{
+					nextStateSqrtRatioX96: new(big.Int).Set(newPoolState.SqrtRatioX96),
+					nextStateLiquidity:    new(big.Int).Set(newPoolState.Liquidity),
 					nextStateTickCurrent:  newPoolState.TickCurrent,
 				},
 			}, nil
@@ -188,7 +188,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	return nil, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 }
 
-func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulatorBigInt) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 	var tokenInIndex = p.GetTokenIndex(tokenAmountIn.Token)
@@ -239,9 +239,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 					Amount: nil,
 				},
 				Gas: totalGas,
-				SwapInfo: UniV3SwapInfo{
-					nextStateSqrtRatioX96: new(uint256.Int).Set(newPoolState.SqrtRatioX96),
-					nextStateLiquidity:    new(uint256.Int).Set(newPoolState.Liquidity),
+				SwapInfo: UniV3SwapInfoBigInt{
+					nextStateSqrtRatioX96: new(big.Int).Set(newPoolState.SqrtRatioX96),
+					nextStateLiquidity:    new(big.Int).Set(newPoolState.Liquidity),
 					nextStateTickCurrent:  newPoolState.TickCurrent,
 				},
 			}, nil
@@ -253,8 +253,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 }
 
-func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	si, ok := params.SwapInfo.(UniV3SwapInfo)
+func (p *PoolSimulatorBigInt) UpdateBalance(params pool.UpdateBalanceParams) {
+	si, ok := params.SwapInfo.(UniV3SwapInfoBigInt)
 	if !ok {
 		logger.Warn("failed to UpdateBalance for UniV3 pool, wrong swapInfo type")
 		return
@@ -264,7 +264,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.V3Pool.TickCurrent = si.nextStateTickCurrent
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulatorBigInt) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
 		BlockNumber: p.Pool.Info.BlockNumber,
 	}
