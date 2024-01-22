@@ -248,6 +248,9 @@ useCase:
   poolFactory:
     chainId: *chainId
     useAEVM: &useAEVM false
+    dexUseAEVM:
+      liquiditybook-v20: true
+      liquiditybook-v21: true
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     capacity: 1000000

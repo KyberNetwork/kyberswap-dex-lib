@@ -256,11 +256,19 @@ useCase:
       faultyExpiredTime: 3m
   poolFactory:
     chainId: *chainId
-    useAEVM: false
+    useAEVM: &useAEVM false
+    dexUseAEVM:
+      uniswapv3: true
+      liquiditybook-v20: true
+      liquiditybook-v21: true
+    addressesByDex:
+      uniswapv3:
+        routerAddress: 0xe592427a0aece92de3edee1f18e0157c05861564
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     capacity: 100000
     poolRenewalInterval: 12s
+    useAEVM: *useAEVM
     faultyPoolsExpireThreshold: 3s
     maxFaultyPoolSize: 10
   indexPools:
