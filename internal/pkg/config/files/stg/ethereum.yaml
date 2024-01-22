@@ -244,7 +244,7 @@ useCase:
         handler: kyber-pmm
         properties:
           http:
-            base_url: "https://staging-kyberswap.knreserve.com"
+            base_url: "https://kyberswap.knreserve.com"
             timeout: 10s
             retry_count: 3
           rfq_contract_address: "0x7A819Fa46734a49D0112796f9377E024c350FB26"
