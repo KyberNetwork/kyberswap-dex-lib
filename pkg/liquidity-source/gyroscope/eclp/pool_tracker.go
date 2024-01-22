@@ -89,7 +89,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	var tokenRates []*uint256.Int
 	if staticExtra.PoolTypeVer > poolTypeVer1 {
-		tokenRates := make([]*uint256.Int, 2)
+		tokenRates = make([]*uint256.Int, 2)
 		tokenRates[0], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate0)
 		tokenRates[1], _ = uint256.FromBig(rpcResp.TokenRatesResp.Rate1)
 	}
