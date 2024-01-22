@@ -14,8 +14,8 @@ github.com/KyberNetwork/pancake-v3-sdk v0.1.0 h1:HVUD13Qbwl4kiU1uSprQVpkis6fYYp3
 github.com/KyberNetwork/pancake-v3-sdk v0.1.0/go.mod h1:AhHu1v2KZAXKFZ9AnjwYPPx1+dDFHBqmSpSeg4fnvzg=
 github.com/KyberNetwork/uniswapv3-sdk v0.4.5 h1:/CBvZymypq6g3XzNpOAyhK7vfg7Mj1EJA5sAy+C7BoE=
 github.com/KyberNetwork/uniswapv3-sdk v0.4.5/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
-github.com/KyberNetwork/uniswapv3-sdk v0.4.6-0.20240315085941-293573613c6a h1:ADructSNn3mfquTuSuxaasUrqbUgi1Xtm/kRHDyU1ss=
-github.com/KyberNetwork/uniswapv3-sdk v0.4.6-0.20240315085941-293573613c6a/go.mod h1:VQNKmTwlX6gyW1gzaSQjYG+xCBpqmgH0VQslYMtqzAg=
+github.com/KyberNetwork/uniswapv3-sdk v0.4.6-0.20240315094947-b9b1e1d0c671 h1:yfP0PlZ9WDFGIVnHrnZQI1YQcxxnhdex4U9JaRSOLzc=
+github.com/KyberNetwork/uniswapv3-sdk v0.4.6-0.20240315094947-b9b1e1d0c671/go.mod h1:VQNKmTwlX6gyW1gzaSQjYG+xCBpqmgH0VQslYMtqzAg=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
 github.com/Microsoft/go-winio v0.6.1/go.mod h1:LRdKpFKfdobln8UmuiYcKPot9D2v6svN5+sAH+4kjUM=
 github.com/VictoriaMetrics/fastcache v1.12.1 h1:i0mICQuojGDL3KblA7wUNlY5lOK6a4bwt3uRKnkZU40=

@@ -116,6 +116,7 @@ func TestComparePoolSimulatorV2(t *testing.T) {
 			if err == nil {
 				assert.Equal(t, result.TokenAmountOut, resultV2.TokenAmountOut)
 				assert.Equal(t, result.Fee, resultV2.Fee)
+				assert.Equal(t, result.RemainingTokenAmountIn.Amount.String(), resultV2.RemainingTokenAmountIn.Amount.String())
 
 				poolSim.UpdateBalance(pool.UpdateBalanceParams{
 					TokenAmountIn:  in.TokenAmountIn,
@@ -177,6 +178,7 @@ func TestComparePoolSimulatorV2(t *testing.T) {
 			if err == nil {
 				assert.Equal(t, result.TokenAmountOut, resultV2.TokenAmountOut)
 				assert.Equal(t, result.Fee, resultV2.Fee)
+				assert.Equal(t, result.RemainingTokenAmountIn.Amount.String(), resultV2.RemainingTokenAmountIn.Amount.String())
 
 				poolSim.UpdateBalance(pool.UpdateBalanceParams{
 					TokenAmountIn:  in.TokenAmountIn,
