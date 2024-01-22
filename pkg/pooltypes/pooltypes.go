@@ -5,6 +5,7 @@ import (
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
+	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
@@ -150,6 +151,7 @@ type Types struct {
 	LegacyBalancerStable           string
 	LegacyBalancerMetaStable       string
 	LegacyBalancerComposableStable string
+	SwaapV2                        string
 }
 
 var (
@@ -234,5 +236,6 @@ var (
 		LegacyBalancerStable:           string(balancer.DexTypeBalancerStable),
 		LegacyBalancerMetaStable:       string(balancer.DexTypeBalancerMetaStable),
 		LegacyBalancerComposableStable: string(balancercomposablestable.DexTypeBalancerComposableStable),
+		SwaapV2:                        swaapv2.DexType,
 	}
 )
