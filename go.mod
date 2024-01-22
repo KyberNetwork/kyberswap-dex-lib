@@ -11,11 +11,11 @@ replace (
 require (
 	github.com/DataDog/datadog-go v4.8.2+incompatible
 	github.com/KyberNetwork/aevm v1.0.6
-	github.com/KyberNetwork/aggregator-encoding v0.1.2
+	github.com/KyberNetwork/aggregator-encoding v0.1.3
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/ethrpc v0.7.0
 	github.com/KyberNetwork/kyber-trace-go v0.1.1
-	github.com/KyberNetwork/kyberswap-dex-lib v0.27.22
+	github.com/KyberNetwork/kyberswap-dex-lib v0.28.2
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/KyberNetwork/service-framework v0.1.0
@@ -68,6 +68,7 @@ require (
 )
 
 require (
+	github.com/KyberNetwork/int256 v0.1.3 // indirect
 	github.com/grafana/pyroscope-go/godeltaprof v0.1.4 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.1 // indirect
 	github.com/tdewolff/parse/v2 v2.6.6 // indirect

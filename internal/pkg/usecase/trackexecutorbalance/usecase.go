@@ -316,7 +316,10 @@ func getAddressToApproveMax(pool *PoolInfo) (string, error) {
 		valueobject.ExchangeBeethovenXStable,
 		valueobject.ExchangeBeethovenXComposableStable,
 		valueobject.ExchangeVelocoreV2CPMM,
-		valueobject.ExchangeVelocoreV2WombatStable:
+		valueobject.ExchangeVelocoreV2WombatStable,
+		valueobject.ExchangeGyroscope2CLP,
+		valueobject.ExchangeGyroscope3CLP,
+		valueobject.ExchangeGyroscopeECLP:
 		{
 			var staticExtra struct {
 				Vault string `json:"vault"`

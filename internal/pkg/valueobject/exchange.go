@@ -124,6 +124,9 @@ var (
 	ExchangeBeethovenXWeighted         Exchange = "beethovenx-weighted"
 	ExchangeBeethovenXStable           Exchange = "beethovenx-stable"
 	ExchangeBeethovenXComposableStable Exchange = "beethovenx-composable-stable"
+	ExchangeGyroscope2CLP              Exchange = "gyroscope-2clp"
+	ExchangeGyroscope3CLP              Exchange = "gyroscope-3clp"
+	ExchangeGyroscopeECLP              Exchange = "gyroscope-eclp"
 
 	ExchangeDodo Exchange = "dodo"
 
@@ -384,6 +387,9 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBeethovenXWeighted:         {},
 	ExchangeBeethovenXStable:           {},
 	ExchangeBeethovenXComposableStable: {},
+	ExchangeGyroscope2CLP:              {},
+	ExchangeGyroscope3CLP:              {},
+	ExchangeGyroscopeECLP:              {},
 	ExchangeVelocoreV2CPMM:             {},
 	ExchangeVelocoreV2WombatStable:     {},
 	ExchangeZero:                       {},
@@ -476,6 +482,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 	ExchangeBeethovenXWeighted:         {},
 	ExchangeBeethovenXStable:           {},
 	ExchangeBeethovenXComposableStable: {},
+	ExchangeGyroscope2CLP:              {},
+	ExchangeGyroscope3CLP:              {},
+	ExchangeGyroscopeECLP:              {},
 
 	// executeBalancerV1
 	ExchangeBalancerV1: {},

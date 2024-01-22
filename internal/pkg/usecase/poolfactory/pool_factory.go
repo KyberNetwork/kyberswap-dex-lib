@@ -12,6 +12,9 @@ import (
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
+	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
+	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
+	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
@@ -393,6 +396,12 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newVelocoreV2WombatStable(entityPool)
 	case constant.PoolTypes.Fulcrom:
 		return f.newFulcrom(entityPool)
+	case constant.PoolTypes.Gyroscope2CLP:
+		return f.newGyroscope2CLP(entityPool)
+	case constant.PoolTypes.Gyroscope3CLP:
+		return f.newGyroscope3CLP(entityPool)
+	case constant.PoolTypes.GyroscopeECLP:
+		return f.newGyroscopeECLP(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -1297,6 +1306,48 @@ func (f *PoolFactory) newVelocoreV2WombatStable(entityPool entity.Pool) (*veloco
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newVelocoreV2WombatStable] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newGyroscope2CLP(entityPool entity.Pool) (*gyro2clp.PoolSimulator, error) {
+	corePool, err := gyro2clp.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newGyroscope2CLP] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newGyroscope3CLP(entityPool entity.Pool) (*gyro3clp.PoolSimulator, error) {
+	corePool, err := gyro3clp.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newGyroscope3CLP] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newGyroscopeECLP(entityPool entity.Pool) (*gyroeclp.PoolSimulator, error) {
+	corePool, err := gyroeclp.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newGyroscopeECLP] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

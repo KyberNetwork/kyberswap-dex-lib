@@ -78,6 +78,9 @@ type types struct {
 	BalancerV2Weighted         string
 	BalancerV2Stable           string
 	BalancerV2ComposableStable string
+	Gyroscope2CLP              string
+	Gyroscope3CLP              string
+	GyroscopeECLP              string
 	VelocoreV2CPMM             string
 	VelocoreV2WombatStable     string
 	Fulcrom                    string
@@ -167,5 +170,8 @@ var (
 		VelocoreV2WombatStable:     "velocore-v2-wombat-stable",
 		Fulcrom:                    "fulcrom",
 		SolidlyV3:                  "solidly-v3",
+		Gyroscope2CLP:              "gyroscope-2clp",
+		Gyroscope3CLP:              "gyroscope-3clp",
+		GyroscopeECLP:              "gyroscope-eclp",
 	}
 )
