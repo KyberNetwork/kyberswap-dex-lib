@@ -3,6 +3,7 @@ package poolfactory
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -81,6 +82,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	liquiditybookv20aevm "github.com/KyberNetwork/router-service/internal/pkg/core/liquiditybookv20"
 	liquiditybookv21aevm "github.com/KyberNetwork/router-service/internal/pkg/core/liquiditybookv21"
+	uniswapaevm "github.com/KyberNetwork/router-service/internal/pkg/core/uni"
 	uniswapv3aevm "github.com/KyberNetwork/router-service/internal/pkg/core/univ3"
 	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
@@ -274,6 +276,9 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 	switch entityPool.Type {
 	case constant.PoolTypes.Uni, constant.PoolTypes.Firebird,
 		constant.PoolTypes.Biswap, constant.PoolTypes.Polydex:
+		if f.config.UseAEVM && f.config.DexUseAEVM[constant.PoolTypes.Uni] {
+			return f.newUniAEVM(entityPool, stateRoot)
+		}
 		return f.newUni(entityPool)
 	case constant.PoolTypes.UniV3:
 		if f.config.UseAEVM && f.config.DexUseAEVM[constant.PoolTypes.UniV3] {
@@ -430,6 +435,30 @@ func (f *PoolFactory) newUni(entityPool entity.Pool) (*uniswap.PoolSimulator, er
 	return corePool, nil
 }
 
+func (f *PoolFactory) newUniAEVM(entityPool entity.Pool, stateRoot common.Hash) (*uniswapaevm.Pool, error) {
+	balanceSlots := f.getBalanceSlots(&entityPool)
+	routerAddress, ok := f.config.AddressesByDex[constant.PoolTypes.Uni]["routerAddress"]
+	if !ok {
+		return nil, fmt.Errorf("addressesByDex.%s.routerAddress must be specified", constant.PoolTypes.Uni)
+	}
+	corePool, err := uniswapaevm.NewPoolAEVM(
+		entityPool,
+		common.HexToAddress(routerAddress),
+		f.client,
+		stateRoot,
+		balanceSlots,
+	)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newUniAEVM] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+	return corePool, nil
+}
+
 func (f *PoolFactory) newUniV3(entityPool entity.Pool) (*uniswapv3.PoolSimulator, error) {
 	corePool, err := uniswapv3.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
@@ -446,9 +475,13 @@ func (f *PoolFactory) newUniV3(entityPool entity.Pool) (*uniswapv3.PoolSimulator
 
 func (f *PoolFactory) newUniV3AEVM(entityPool entity.Pool, stateRoot common.Hash) (*uniswapv3aevm.Pool, error) {
 	balanceSlots := f.getBalanceSlots(&entityPool)
+	routerAddress, ok := f.config.AddressesByDex[constant.PoolTypes.UniV3]["routerAddress"]
+	if !ok {
+		return nil, fmt.Errorf("addressesByDex.%s.routerAddress must be specified", constant.PoolTypes.UniV3)
+	}
 	corePool, err := uniswapv3aevm.NewPoolAEVM(
 		entityPool,
-		common.HexToAddress(f.config.AddressesByDex[constant.PoolTypes.UniV3]["routerAddress"]),
+		common.HexToAddress(routerAddress),
 		f.config.ChainID,
 		f.client,
 		stateRoot,

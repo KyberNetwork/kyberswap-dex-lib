@@ -263,10 +263,13 @@ useCase:
     chainId: *chainId
     useAEVM: &useAEVM false
     dexUseAEVM:
+      uniswap: true
       uniswapv3: true
       liquiditybook-v20: true
       liquiditybook-v21: true
     addressesByDex: 
+      uniswap:
+        routerAddress: 0x7a250d5630b4cf539739df2c5dacb4c659f2488d
       uniswapv3:
         routerAddress: 0xe592427a0aece92de3edee1f18e0157c05861564
   poolManager:
