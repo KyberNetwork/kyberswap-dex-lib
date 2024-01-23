@@ -17,7 +17,6 @@ import (
 )
 
 var (
-	ErrNoSwapLimit           = errors.New("no swap limit")
 	ErrEmptyPriceLevels      = errors.New("empty price levels")
 	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
 )
@@ -84,20 +83,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	if params.Limit == nil {
-		return nil, ErrNoSwapLimit
+	if params.TokenAmountIn.Token == p.baseToken.Address {
+		return p.swapBaseToQuote(params.TokenAmountIn.Amount)
+	} else {
+		return p.swapQuoteToBase(params.TokenAmountIn.Amount)
 	}
-
-	result, err := p.swap(params.TokenAmountIn)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = p.validateInventory(params.Limit, result.TokenAmountOut); err != nil {
-		return nil, err
-	}
-
-	return result, nil
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -116,40 +106,6 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return MetaInfo{
 		Timestamp: p.timestamp,
 	}
-}
-
-func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	balances := make(map[string]*big.Int, len(p.Info.Tokens))
-
-	for i, token := range p.Info.Tokens {
-		balances[token] = new(big.Int).Set(p.Info.Reserves[i])
-	}
-
-	return balances
-}
-
-func (p *PoolSimulator) swap(tokenAmountIn pool.TokenAmount) (*pool.CalcAmountOutResult, error) {
-	if tokenAmountIn.Token == p.baseToken.Address {
-		return p.swapBaseToQuote(tokenAmountIn.Amount)
-	}
-
-	return p.swapQuoteToBase(tokenAmountIn.Amount)
-}
-
-func (p *PoolSimulator) validateInventory(limit pool.SwapLimit, tokenAmountOut *pool.TokenAmount) error {
-	var maxAmountOut *big.Int
-
-	if tokenAmountOut.Token == p.baseToken.Address {
-		maxAmountOut = limit.GetLimit(p.baseToken.Address)
-	} else {
-		maxAmountOut = limit.GetLimit(p.quoteToken.Address)
-	}
-
-	if tokenAmountOut.Amount.Cmp(maxAmountOut) > 0 {
-		return ErrInsufficientLiquidity
-	}
-
-	return nil
 }
 
 func (p *PoolSimulator) swapBaseToQuote(amountIn *big.Int) (*pool.CalcAmountOutResult, error) {
