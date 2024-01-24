@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
 var (
@@ -168,7 +169,7 @@ func (r *Route) AddPath(poolBucket *PoolBucket, p *Path, swapLimits map[string]p
 }
 
 func (r *Route) CompareTo(other *Route, gasInclude bool) int {
-	if gasInclude {
+	if gasInclude && !utils.Float64AlmostEqual(r.Output.AmountUsd, other.Output.AmountUsd) {
 		if r.Output.Amount.Cmp(constant.Zero) > 0 && r.Output.AmountUsd > other.Output.AmountUsd {
 			return 1
 		}

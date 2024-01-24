@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/pkg/errors"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -36,6 +37,7 @@ func NewUseCase(
 	gasRepository IGasRepository,
 	poolManager IPoolManager,
 	bestPathRepository IBestPathRepository,
+	finder findroute.IFinder,
 	config Config,
 ) *useCase {
 	aggregator := NewAggregator(
@@ -45,6 +47,7 @@ func NewUseCase(
 		poolManager,
 		config.Aggregator,
 		bestPathRepository,
+		finder,
 	)
 	aggregatorWithCache := NewCache(aggregator, routeCacheRepository, poolManager, config.Cache)
 	aggregatorWitchChargeExtraFee := NewChargeExtraFee(aggregatorWithCache)

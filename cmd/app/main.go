@@ -53,12 +53,10 @@ import (
 	httppkg "github.com/KyberNetwork/router-service/internal/pkg/server/http"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	trackexecutor "github.com/KyberNetwork/router-service/internal/pkg/usecase/trackexecutorbalance"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/generatepath"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getcustomroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
@@ -413,6 +411,13 @@ func apiAction(c *cli.Context) (err error) {
 		return err
 	}
 
+	var getBestPaths func(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath
+	if bestPathRepository != nil {
+		getBestPaths = bestPathRepository.GetBestPaths
+	}
+
+	routeFinder := usecase.NewFinder(cfg.UseCase.GetRoute.Aggregator.FinderOptions, getBestPaths, cfg.UseCase.GetRoute.Aggregator.WhitelistedTokenSet)
+
 	getRouteUseCase := getroute.NewUseCase(
 		poolRankRepository,
 		tokenRepository,
@@ -421,6 +426,7 @@ func apiAction(c *cli.Context) (err error) {
 		gasRepository,
 		poolManager,
 		bestPathRepository,
+		routeFinder,
 		cfg.UseCase.GetRoute,
 	)
 
@@ -446,23 +452,6 @@ func apiAction(c *cli.Context) (err error) {
 		encodeBuilder,
 		timeutil.NowFunc,
 		cfg.UseCase.BuildRoute,
-	)
-
-	var getBestPaths func(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath
-	if bestPathRepository != nil {
-		getBestPaths = bestPathRepository.GetBestPaths
-	}
-	var routeFinder findroute.IFinder = spfav2.NewSPFAv2Finder(
-		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxHops,
-		cfg.UseCase.GetRoute.Aggregator.WhitelistedTokenSet,
-		cfg.UseCase.GetRoute.Aggregator.FinderOptions.DistributionPercent,
-		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxPathsInRoute,
-		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxPathsToGenerate,
-		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxPathsToReturn,
-		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MinPartUSD,
-		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MinThresholdAmountInUSD,
-		cfg.UseCase.GetRoute.Aggregator.FinderOptions.MaxThresholdAmountInUSD,
-		getBestPaths,
 	)
 
 	getCustomRoutesUseCase := getcustomroute.NewCustomRoutesUseCase(

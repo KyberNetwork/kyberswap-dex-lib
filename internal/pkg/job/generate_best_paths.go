@@ -73,7 +73,8 @@ func (j *GeneratePathsJob) run(ctx context.Context) {
 		},
 	).Info("job start")
 
-	j.useCase.Handle(ctx)
+	// Pregen should only find AMM dex (exclude PMM dex since those change very quickly)
+	//j.useCase.Handle(ctx)
 	j.excludedSourcesUseCase.Handle(ctx)
 	logger.WithFields(
 		logger.Fields{

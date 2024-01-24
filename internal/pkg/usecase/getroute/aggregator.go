@@ -18,6 +18,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/hillclimb"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getrouteencode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -46,24 +47,8 @@ func NewAggregator(
 	poolManager IPoolManager,
 	config AggregatorConfig,
 	bestPathRepository IBestPathRepository,
+	routeFinder findroute.IFinder,
 ) *aggregator {
-	var getBestPaths func(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath
-	if bestPathRepository != nil {
-		getBestPaths = bestPathRepository.GetBestPaths
-	}
-
-	var routeFinder findroute.IFinder = spfav2.NewSPFAv2Finder(
-		config.FinderOptions.MaxHops,
-		config.WhitelistedTokenSet,
-		config.FinderOptions.DistributionPercent,
-		config.FinderOptions.MaxPathsInRoute,
-		config.FinderOptions.MaxPathsToGenerate,
-		config.FinderOptions.MaxPathsToReturn,
-		config.FinderOptions.MinPartUSD,
-		config.FinderOptions.MinThresholdAmountInUSD,
-		config.FinderOptions.MaxThresholdAmountInUSD,
-		getBestPaths,
-	)
 
 	hillClimbRouteFinder := hillclimb.NewHillClimbingFinder(
 		config.FinderOptions.HillClimbDistributionPercent,
@@ -186,6 +171,10 @@ func (a *aggregator) findBestRoute(
 		SourceHash:             valueobject.HashSources(params.Sources),
 	}
 
+	if input.IsPathGeneratorEnabled {
+		input.SourceHash = valueobject.HashSources(getrouteencode.GetSourcesAfterExclude(params.Sources))
+	}
+
 	data := findroute.NewFinderData(tokenByAddress, priceUSDByAddress, state)
 	defer data.ReleaseResources()
 	var (
@@ -207,6 +196,7 @@ func (a *aggregator) findBestRoute(
 		return nil, ErrRouteNotFound
 	}
 
+	data.Refresh()
 	return a.summarizeRoute(ctx, bestRoute, params, state.Pools, data.SwapLimits)
 }
 

@@ -78,6 +78,8 @@ func (p *Path) Clone() *Path {
 	}
 }
 
+// NewPath create new Path from state and input
+// note that TokenAmountOut will be re-calculated here.
 func NewPath(
 	poolBucket *PoolBucket,
 	poolAddresses []string,

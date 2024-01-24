@@ -211,7 +211,7 @@ func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
 	p.poolCache.Resize(config.Capacity)
 }
 
-// GetPoolByAddress return a reference to pools maintained by `PointerSwapPoolManager`
+// GetStateByPoolAddresses return a reference to pools maintained by `PointerSwapPoolManager`
 // Therefore, do not modify IPool returned here, clone IPool before UpdateBalance
 func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (*types.FindRouteState, error) {
 	filteredPoolAddress := p.filterBlacklistedAddresses(ctx, poolAddresses)

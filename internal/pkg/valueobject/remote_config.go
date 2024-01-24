@@ -54,6 +54,7 @@ type (
 	}
 
 	FinderOptions struct {
+		Type                    string  `mapstructure:"type" json:"type"`
 		MaxHops                 uint32  `mapstructure:"maxHops" json:"maxHops"`
 		DistributionPercent     uint32  `mapstructure:"distributionPercent" json:"distributionPercent"`
 		MaxPathsInRoute         uint32  `mapstructure:"maxPathsInRoute" json:"maxPathsInRoute"`
@@ -130,3 +131,15 @@ func (c CacheConfig) Equals(other CacheConfig) bool {
 
 	return true
 }
+
+type finderTypes struct {
+	SPFAv2            string
+	RetryDynamicPools string
+}
+
+var (
+	FinderTypes = finderTypes{
+		SPFAv2:            "spfaV2",
+		RetryDynamicPools: "retry",
+	}
+)

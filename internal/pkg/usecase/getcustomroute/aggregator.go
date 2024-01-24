@@ -133,6 +133,7 @@ func (a *aggregator) findBestRoute(
 		return nil, getroute.ErrRouteNotFound
 	}
 
+	data.Refresh()
 	return a.summarizeRoute(ctx, bestRoute, params, state.Pools, data.SwapLimits)
 }
 

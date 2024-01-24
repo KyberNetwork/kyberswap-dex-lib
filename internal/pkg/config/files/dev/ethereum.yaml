@@ -144,6 +144,7 @@ useCase:
         amplifiedTvlTokenInPoolsCount: 100
         amplifiedTvlTokenOutPoolCount: 100
       finderOptions:
+        type: "retry"
         maxHops: 3
         distributionPercent: 5
         maxPathsInRoute: 20

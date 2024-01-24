@@ -18,6 +18,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -221,6 +222,30 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		Return(nil).
 		AnyTimes()
 
+	var getBestPaths func(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath
+	config := valueobject.FinderOptions{
+		Type:                    valueobject.FinderTypes.SPFAv2,
+		MaxHops:                 3,
+		DistributionPercent:     5,
+		MaxPathsInRoute:         20,
+		MaxPathsToGenerate:      5,
+		MaxPathsToReturn:        200,
+		MinPartUSD:              500,
+		MinThresholdAmountInUSD: 0,
+		MaxThresholdAmountInUSD: 100000000}
+	routeFinder := spfav2.NewSPFAv2Finder(
+		config.MaxHops,
+		map[string]bool{},
+		config.DistributionPercent,
+		config.MaxPathsInRoute,
+		config.MaxPathsToGenerate,
+		config.MaxPathsToReturn,
+		config.MinPartUSD,
+		config.MinThresholdAmountInUSD,
+		config.MaxThresholdAmountInUSD,
+		getBestPaths,
+	)
+
 	return NewUseCase(
 		poolRankRepository,
 		tokenRepository,
@@ -229,6 +254,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		gasRepository,
 		poolManager,
 		bestPathRepository,
+		routeFinder,
 		Config{
 			ChainID:          valueobject.ChainIDEthereum,
 			GasTokenAddress:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
