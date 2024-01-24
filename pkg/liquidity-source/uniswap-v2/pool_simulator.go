@@ -105,7 +105,10 @@ func InitPoolSimulator(entityPool entity.Pool, sim *PoolSimulator) error {
 	}
 	var tmp uint256.Int
 	for i := range entityPool.Reserves {
-		tmp.SetFromDecimal(entityPool.Reserves[i])
+		err := tmp.SetFromDecimal(entityPool.Reserves[i])
+		if err != nil {
+			return err
+		}
 		if sim.Pool.Info.Reserves[i] == nil {
 			sim.Pool.Info.Reserves[i] = new(big.Int)
 		}
