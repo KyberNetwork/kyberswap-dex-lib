@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
@@ -74,12 +75,12 @@ func TestMinHopToTokenOut(t *testing.T) {
 	t.Run("stress test minHopToTokenOut", func(t *testing.T) {
 		nTokens := 100_000
 		nPools := 200_000
-		tokenByAddress := GenerateRandomTokenByAddress(nTokens)
+		tokenByAddress := valueobject.GenerateRandomTokenByAddress(nTokens)
 		var tokenAddressList []string
 		for tokenAddress := range tokenByAddress {
 			tokenAddressList = append(tokenAddressList, tokenAddress)
 		}
-		poolByAddress, err := GenerateRandomPoolByAddress(nPools, tokenAddressList)
+		poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList)
 		assert.Nil(t, err)
 		tokenToPoolAddress := make(map[string]*types.AddressList)
 		for poolAddress, pool := range poolByAddress {
@@ -91,7 +92,7 @@ func TestMinHopToTokenOut(t *testing.T) {
 				tokenToPoolAddress[tokenAddress].AddAddress(poolAddress)
 			}
 		}
-		tokenOut := tokenAddressList[RandInt(0, nTokens)]
+		tokenOut := tokenAddressList[valueobject.RandInt(0, nTokens)]
 		_, err = MinHopsToTokenOut(poolByAddress, tokenByAddress, tokenToPoolAddress, tokenOut)
 		assert.Nil(t, err)
 		// spew.Dump(minHopToTokenOut)

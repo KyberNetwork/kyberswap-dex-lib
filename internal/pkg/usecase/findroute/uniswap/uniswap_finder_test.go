@@ -9,7 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
@@ -20,13 +19,13 @@ func TestUniswapFinder(t *testing.T) {
 		nTokens = 100
 		nPools  = 2000
 	)
-	tokenByAddress := common.GenerateRandomTokenByAddress(nTokens)
+	tokenByAddress := valueobject.GenerateRandomTokenByAddress(nTokens)
 	var tokenAddressList []string
 	for tokenAddress := range tokenByAddress {
 		tokenAddressList = append(tokenAddressList, tokenAddress)
 	}
-	priceUSDByAddress := common.GenerateRandomPriceUSDByAddress(tokenAddressList)
-	poolByAddress, err := common.GenerateRandomPoolByAddress(nPools, tokenAddressList)
+	priceUSDByAddress := valueobject.GenerateRandomPriceUSDByAddress(tokenAddressList)
+	poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList)
 	assert.Nil(t, err)
 	tokenToPoolAddress := make(map[string]*types.AddressList)
 	for poolAddress, pool := range poolByAddress {
@@ -39,8 +38,8 @@ func TestUniswapFinder(t *testing.T) {
 		}
 	}
 	var (
-		tokenIn  = tokenAddressList[common.RandInt(0, nTokens)]
-		tokenOut = tokenAddressList[common.RandInt(0, nTokens)]
+		tokenIn  = tokenAddressList[valueobject.RandInt(0, nTokens)]
+		tokenOut = tokenAddressList[valueobject.RandInt(0, nTokens)]
 	)
 
 	input := findroute.Input{
@@ -92,13 +91,13 @@ func BenchmarkUniswapFinder(b *testing.B) {
 			nTokens = test.nTokens
 		)
 		b.Run(fmt.Sprintf("nPools_%d_nTokens_%d", nPools, nTokens), func(b *testing.B) {
-			tokenByAddress := common.GenerateRandomTokenByAddress(nTokens)
+			tokenByAddress := valueobject.GenerateRandomTokenByAddress(nTokens)
 			var tokenAddressList []string
 			for tokenAddress := range tokenByAddress {
 				tokenAddressList = append(tokenAddressList, tokenAddress)
 			}
-			priceUSDByAddress := common.GenerateRandomPriceUSDByAddress(tokenAddressList)
-			poolByAddress, err := common.GenerateRandomPoolByAddress(nPools, tokenAddressList)
+			priceUSDByAddress := valueobject.GenerateRandomPriceUSDByAddress(tokenAddressList)
+			poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList)
 			assert.Nil(b, err)
 			tokenToPoolAddress := make(map[string][]string)
 			for poolAddress, pool := range poolByAddress {
@@ -107,16 +106,16 @@ func BenchmarkUniswapFinder(b *testing.B) {
 				}
 			}
 			var (
-				tokenIn  = tokenAddressList[common.RandInt(0, nTokens)]
-				tokenOut = tokenAddressList[common.RandInt(0, nTokens)]
+				tokenIn  = tokenAddressList[valueobject.RandInt(0, nTokens)]
+				tokenOut = tokenAddressList[valueobject.RandInt(0, nTokens)]
 			)
 			for tokenIn == tokenOut {
-				tokenOut = tokenAddressList[common.RandInt(0, nTokens)]
+				tokenOut = tokenAddressList[valueobject.RandInt(0, nTokens)]
 			}
 			input := findroute.Input{
 				TokenInAddress:   tokenIn,
 				TokenOutAddress:  tokenOut,
-				AmountIn:         big.NewInt(int64(common.RandInt(100_000_000, 1_000_000_000))),
+				AmountIn:         big.NewInt(int64(valueobject.RandInt(100_000_000, 1_000_000_000))),
 				GasPrice:         big.NewFloat(8654684620),
 				GasTokenPriceUSD: 1500,
 				GasInclude:       true,

@@ -24,13 +24,13 @@ func TestGenKthBestPaths(t *testing.T) {
 			maxPathToGenerate uint32 = 5
 			maxPathToReturn   uint32 = 5
 		)
-		tokenByAddress := GenerateRandomTokenByAddress(nTokens)
+		tokenByAddress := valueobject.GenerateRandomTokenByAddress(nTokens)
 		var tokenAddressList []string
 		for tokenAddress := range tokenByAddress {
 			tokenAddressList = append(tokenAddressList, tokenAddress)
 		}
-		priceUSDByAddress := GenerateRandomPriceUSDByAddress(tokenAddressList)
-		poolByAddress, err := GenerateRandomPoolByAddress(nPools, tokenAddressList)
+		priceUSDByAddress := valueobject.GenerateRandomPriceUSDByAddress(tokenAddressList)
+		poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList)
 		assert.Nil(t, err)
 		tokenToPoolAddress := make(map[string]*types.AddressList)
 		for poolAddress, pool := range poolByAddress {
@@ -43,11 +43,11 @@ func TestGenKthBestPaths(t *testing.T) {
 			}
 		}
 		var (
-			tokenIn  = tokenAddressList[RandInt(0, nTokens)]
-			tokenOut = tokenAddressList[RandInt(0, nTokens)]
+			tokenIn  = tokenAddressList[valueobject.RandInt(0, nTokens)]
+			tokenOut = tokenAddressList[valueobject.RandInt(0, nTokens)]
 		)
 		for tokenIn == tokenOut {
-			tokenOut = tokenAddressList[RandInt(0, nTokens)]
+			tokenOut = tokenAddressList[valueobject.RandInt(0, nTokens)]
 		}
 		minHopToTokenOut, err := MinHopsToTokenOut(poolByAddress, tokenByAddress, tokenToPoolAddress, tokenOut)
 		assert.Nil(t, err)

@@ -25,7 +25,9 @@ var PathsPool = sync.Pool{
 
 func ReturnPaths(paths []*Path) {
 	for i := 0; i < len(paths); i++ {
-		PathsPool.Put(paths[i])
+		if paths[i] != nil {
+			PathsPool.Put(paths[i])
+		}
 	}
 }
 
@@ -109,7 +111,9 @@ func NewPath(
 	}
 
 	path := PathsPool.Get().(*Path)
-
+	for path == nil {
+		path = PathsPool.Get().(*Path)
+	}
 	path.Input = tokenAmountIn
 	path.PoolAddresses = poolAddresses
 	path.Tokens = tokens

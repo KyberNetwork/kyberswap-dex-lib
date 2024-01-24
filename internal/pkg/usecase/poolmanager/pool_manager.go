@@ -64,10 +64,9 @@ func (m *PoolManager) GetStateByPoolAddresses(
 	)
 	resultLimits[constant.PoolTypes.KyberPMM] = make(map[string]*big.Int)
 	resultLimits[constant.PoolTypes.Synthetix] = make(map[string]*big.Int)
-	tokenToPoolAddress := make(map[string]*types.AddressList)
 
 	//given a clone of limit
-	for poolAddress, pool := range iPools {
+	for _, pool := range iPools {
 		dexLimit, avail := resultLimits[pool.GetType()]
 		if !avail {
 			continue
@@ -75,12 +74,6 @@ func (m *PoolManager) GetStateByPoolAddresses(
 		limitMap := pool.CalculateLimit()
 		for k, v := range limitMap {
 			dexLimit[k] = v
-		}
-		for _, tokenAddress := range pool.GetTokens() {
-			if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
-				tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
-			}
-			tokenToPoolAddress[tokenAddress].AddAddress(poolAddress)
 		}
 	}
 	if err != nil {

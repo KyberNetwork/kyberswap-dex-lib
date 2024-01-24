@@ -17,7 +17,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 type aggregator struct {
@@ -93,23 +92,6 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 			dexLimit[k] = v
 		}
 	}
-	// Optimize graph traversal by using adjacent list
-	tokenToPoolAddress := make(map[string]*types.AddressList)
-	for poolAddress, pool := range poolByAddress {
-		for _, fromToken := range pool.GetTokens() {
-			if _, ok := tokenToPoolAddress[fromToken]; !ok {
-				tokenToPoolAddress[fromToken] = mempool.AddressListPool.Get().(*types.AddressList)
-			}
-
-			tokenToPoolAddress[fromToken].AddAddress(poolAddress)
-		}
-	}
-	defer func() {
-		//return the data back to mem pool
-		for key := range tokenToPoolAddress {
-			mempool.ReturnAddressList(tokenToPoolAddress[key])
-		}
-	}()
 
 	// Step 3: finds best route
 	return a.findBestRoute(ctx, params, tokenByAddress, priceByAddress, &types.FindRouteState{

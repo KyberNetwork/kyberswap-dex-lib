@@ -34,16 +34,6 @@ func GenKthBestPathsV2(
 		return nil, findroute.ErrNoInfoTokenIn
 	}
 
-	// Optimize graph traversal by using adjacent list
-	tokenToPoolAddress := make(map[string][]string)
-	for poolAddress, pool := range data.PoolBucket.PerRequestPoolsByAddress {
-		for _, fromToken := range pool.GetTokens() {
-			if _, ok := data.TokenByAddress[fromToken]; ok {
-				tokenToPoolAddress[fromToken] = append(tokenToPoolAddress[fromToken], poolAddress)
-			}
-		}
-	}
-
 	// Perform BFS with layers, layer ith contains paths of length i.
 	// For each token in each layer, we store at most kth paths
 	var (
@@ -60,7 +50,7 @@ func GenKthBestPathsV2(
 	}
 	for currentHop := uint32(0); currentHop < maxHops; currentHop++ {
 
-		nextLayer, err := genNextLayerOfPathsV2(input, data, tokenToPoolAddress, prevLayer)
+		nextLayer, err := genNextLayerOfPathsV2(input, data, prevLayer)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +74,6 @@ func GenKthBestPathsV2(
 func genNextLayerOfPathsV2(
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenToPoolAddresses map[string][]string,
 	currentLayer map[string][]*nodeInfo,
 ) (map[string][]*nodeInfo, error) {
 	var (
@@ -99,7 +88,7 @@ func genNextLayerOfPathsV2(
 
 			wg.Go(func() error {
 				// get possible path of length currentHop + 1 by traveling one edge/ appending a pool
-				nextNodeInfo, err := getNextLayerFromTokenV2(input, data, tokenToPoolAddresses, _fromToken, _fromNodeInfo)
+				nextNodeInfo, err := getNextLayerFromTokenV2(input, data, _fromToken, _fromNodeInfo)
 				if err != nil {
 					return err
 				}
@@ -129,7 +118,6 @@ func genNextLayerOfPathsV2(
 func getNextLayerFromTokenV2(
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenToPoolAddresses map[string][]string,
 	fromTokenAddress string,
 	fromNodeInfo *nodeInfo,
 ) ([]*nodeInfo, error) {
@@ -166,7 +154,12 @@ func getNextLayerFromTokenV2(
 
 		ok bool
 	)
-	for _, poolAddress := range tokenToPoolAddresses[fromTokenAddress] {
+
+	if data.TokenToPoolAddress[fromTokenAddress] == nil {
+		return nil, findroute.ErrNoPoolsFromToken
+	}
+	for i := 0; i < data.TokenToPoolAddress[fromTokenAddress].TrueLen; i++ {
+		poolAddress := data.TokenToPoolAddress[fromTokenAddress].Arr[i]
 		// If next pool addr == current pool addr -> skip because we have not update reserve balance on GenKBestPaths,
 		// so the way which go two same pools on a path will give wrong result.
 		if usedPools.Has(poolAddress) {

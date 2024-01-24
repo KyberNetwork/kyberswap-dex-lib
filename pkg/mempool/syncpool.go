@@ -31,6 +31,9 @@ var AddressListPool = sync.Pool{
 }
 
 func ReturnAddressList(l *types.AddressList) {
+	if l == nil {
+		return
+	}
 	l.TrueLen = 0
 	AddressListPool.Put(l)
 }
