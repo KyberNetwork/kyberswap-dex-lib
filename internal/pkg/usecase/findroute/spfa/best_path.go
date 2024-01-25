@@ -48,5 +48,8 @@ func (f *spfaFinder) bestPathExactIn(
 			bestPath = path
 		}
 	}
+	if bestPath == nil {
+		return nil, findroute.ErrNoPath
+	}
 	return bestPath.Clone(), nil
 }

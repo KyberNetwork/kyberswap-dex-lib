@@ -150,5 +150,8 @@ func (f *spfav2Finder) bestPathExactInV1(
 			bestPath = path
 		}
 	}
+	if bestPath == nil {
+		return nil, findroute.ErrNoPath
+	}
 	return bestPath.Clone(), nil
 }

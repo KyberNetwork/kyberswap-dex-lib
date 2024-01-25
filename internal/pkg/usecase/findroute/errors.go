@@ -7,4 +7,5 @@ var (
 	ErrNoPoolsFromToken = errors.New("no pool for fromToken")
 	ErrNoInfoTokenIn    = errors.New("cannot get info for tokenIn")
 	ErrNoInfoTokenOut   = errors.New("cannot get info for tokenOut")
+	ErrNoPath           = errors.New("path not found")
 )

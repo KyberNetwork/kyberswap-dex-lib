@@ -234,6 +234,9 @@ func (f *bruteforceFinder) bestPathExactIn(
 		}
 	}
 
+	if bestPath == nil {
+		return nil, findroute.ErrNoPath
+	}
 	return bestPath.Clone(), nil
 }
 
