@@ -73,6 +73,10 @@ func NewPoolSimulatorV2(entityPool entity.Pool) (*PoolSimulator, error) {
 const NUM_TOKEN = 2
 
 func InitPoolSimulator(entityPool entity.Pool, sim *PoolSimulator) error {
+	if len(entityPool.Tokens) != NUM_TOKEN || len(entityPool.Reserves) != NUM_TOKEN {
+		return errors.New("Invalid number of token")
+	}
+
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return err
@@ -85,10 +89,7 @@ func InitPoolSimulator(entityPool entity.Pool, sim *PoolSimulator) error {
 	sim.Pool.Info.BlockNumber = entityPool.BlockNumber
 	sim.gas = defaultGas
 
-	if len(entityPool.Tokens) != NUM_TOKEN || len(entityPool.Reserves) != NUM_TOKEN {
-		return errors.New("Invalid number of token")
-	}
-
+	// try to re-use existing array if possible, if not then allocate new one
 	if cap(sim.Pool.Info.Tokens) >= NUM_TOKEN {
 		sim.Pool.Info.Tokens = sim.Pool.Info.Tokens[:NUM_TOKEN]
 	} else {
@@ -105,6 +106,9 @@ func InitPoolSimulator(entityPool entity.Pool, sim *PoolSimulator) error {
 	}
 	var tmp uint256.Int
 	for i := range entityPool.Reserves {
+		// still not sure why, but uint256.SetFromDecimal doesn't use `strings.NewReader` like bigInt.SetString
+		// so it's cheaper to convert string to uint256 then to bigInt
+		// (in the far future if we can replace pool's reserves with uint256 then we can remove the last step)
 		err := tmp.SetFromDecimal(entityPool.Reserves[i])
 		if err != nil {
 			return err
