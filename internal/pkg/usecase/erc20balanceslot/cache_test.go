@@ -18,6 +18,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -68,7 +69,7 @@ func TestPreload(t *testing.T) {
 	repo := erc20balanceslot.NewRedisRepository(redisClient, erc20balanceslot.RedisRepositoryConfig{
 		Prefix: prefix,
 	})
-	c := NewCache(repo, NewTestMultipleStrategy(&testProbe{}), nil)
+	c := NewCache(repo, NewTestMultipleStrategy(&testProbe{}), nil, valueobject.ChainIDAvalancheCChain)
 	require.NoError(t, c.PreloadAll(context.Background()))
 }
 
@@ -86,7 +87,7 @@ func TestGetBalanceSlot(t *testing.T) {
 	repo := erc20balanceslot.NewRedisRepository(redisClient, erc20balanceslot.RedisRepositoryConfig{
 		Prefix: prefix,
 	})
-	c := NewCache(repo, NewTestMultipleStrategy(&testProbe{}), nil)
+	c := NewCache(repo, NewTestMultipleStrategy(&testProbe{}), nil, valueobject.ChainIDAvalancheCChain)
 
 	bl, err := c.Get(context.Background(), common.HexToAddress(btcbAddr), nil)
 	require.NoError(t, err)

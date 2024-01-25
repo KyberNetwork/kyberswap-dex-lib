@@ -392,7 +392,7 @@ func apiAction(c *cli.Context) (err error) {
 		} else {
 			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategy(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet))
 		}
-		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe, cfg.AEVM.PredefinedBalanceSlots)
+		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe, cfg.AEVM.PredefinedBalanceSlots, cfg.Common.ChainID)
 		if err := balanceSlotsUseCase.PreloadAll(context.Background()); err != nil {
 			logger.Errorf("could not preload balance slots %s", err)
 			return err
@@ -787,7 +787,7 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 		} else {
 			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategy(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet))
 		}
-		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe, cfg.AEVM.PredefinedBalanceSlots)
+		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe, cfg.AEVM.PredefinedBalanceSlots, cfg.Common.ChainID)
 		if err := balanceSlotsUseCase.PreloadAll(context.Background()); err != nil {
 			logger.Errorf("could not preload balance slots %s", err)
 			return err

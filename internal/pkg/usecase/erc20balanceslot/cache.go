@@ -11,10 +11,12 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type Cache struct {
+	chainID    valueobject.ChainID
 	repo       erc20balanceslot.IRepository
 	probe      *MultipleStrategy
 	predefined map[common.Address]*entity.ERC20BalanceSlot
@@ -23,8 +25,9 @@ type Cache struct {
 	group      singleflight.Group
 }
 
-func NewCache(repo erc20balanceslot.IRepository, probe *MultipleStrategy, predefined map[string]*entity.ERC20BalanceSlot) *Cache {
+func NewCache(repo erc20balanceslot.IRepository, probe *MultipleStrategy, predefined map[string]*entity.ERC20BalanceSlot, chainID valueobject.ChainID) *Cache {
 	c := &Cache{
+		chainID:    chainID,
 		repo:       repo,
 		probe:      probe,
 		predefined: make(map[common.Address]*entity.ERC20BalanceSlot),
@@ -38,7 +41,7 @@ func NewCache(repo erc20balanceslot.IRepository, probe *MultipleStrategy, predef
 
 func (c *Cache) PreloadAll(ctx context.Context) error {
 	// preload from preloaded first
-	if data, ok := preloadedByPrefix[c.repo.GetPrefix()]; ok {
+	if data, ok := preloadedByPrefix[c.chainID]; ok {
 		preloaded, err := DeserializePreloaded(data)
 		if err != nil {
 			return fmt.Errorf("could not deserialize preloaded ERC20 balance slots %w", err)
@@ -53,10 +56,19 @@ func (c *Cache) PreloadAll(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	var numRedisPreloaded int
 	for token, entry := range entries {
+		if _oldEntry, ok := c.cache.Load(token); ok {
+			oldEntry := _oldEntry.(*entity.ERC20BalanceSlot)
+			if oldEntry.Found && !entry.Found {
+				// only skip if old entry is found but new entry is not found
+				continue
+			}
+		}
 		c.cache.Store(token, entry)
+		numRedisPreloaded++
 	}
-	logger.Infof("preloaded %v token balance slots from Redis", len(entries))
+	logger.Infof("preloaded %v token balance slots from Redis", numRedisPreloaded)
 	return nil
 }
 

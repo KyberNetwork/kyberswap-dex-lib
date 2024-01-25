@@ -28,10 +28,6 @@ func NewRedisRepository(redisClient redis.UniversalClient, config RedisRepositor
 	}
 }
 
-func (r *RedisRepository) GetPrefix() string {
-	return r.prefix
-}
-
 func (r *RedisRepository) Get(ctx context.Context, token common.Address) (*entity.ERC20BalanceSlot, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[erc20balanceslot] redisRepository.Get")
 	defer span.End()
