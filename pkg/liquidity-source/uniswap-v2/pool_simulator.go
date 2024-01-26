@@ -76,6 +76,10 @@ func InitPoolSimulator(entityPool entity.Pool, sim *PoolSimulator) error {
 	if len(entityPool.Tokens) != NUM_TOKEN || len(entityPool.Reserves) != NUM_TOKEN {
 		return errors.New("Invalid number of token")
 	}
+	// in case the caller mess thing up
+	if sim == nil {
+		return errors.New("Invalid simulator instance")
+	}
 
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
