@@ -437,9 +437,9 @@ func (f *PoolFactory) newUni(entityPool entity.Pool) (*uniswap.PoolSimulator, er
 
 func (f *PoolFactory) newUniAEVM(entityPool entity.Pool, stateRoot common.Hash) (*uniswapaevm.Pool, error) {
 	balanceSlots := f.getBalanceSlots(&entityPool)
-	routerAddress, ok := f.config.AddressesByDex[constant.PoolTypes.Uni]["routerAddress"]
+	routerAddress, ok := f.config.AddressesByDex[constant.PoolTypes.Uni]["router-address"]
 	if !ok {
-		return nil, fmt.Errorf("addressesByDex.%s.routerAddress must be specified", constant.PoolTypes.Uni)
+		return nil, fmt.Errorf("addressesByDex.%s.router-address must be specified", constant.PoolTypes.Uni)
 	}
 	corePool, err := uniswapaevm.NewPoolAEVM(
 		entityPool,
@@ -475,9 +475,9 @@ func (f *PoolFactory) newUniV3(entityPool entity.Pool) (*uniswapv3.PoolSimulator
 
 func (f *PoolFactory) newUniV3AEVM(entityPool entity.Pool, stateRoot common.Hash) (*uniswapv3aevm.Pool, error) {
 	balanceSlots := f.getBalanceSlots(&entityPool)
-	routerAddress, ok := f.config.AddressesByDex[constant.PoolTypes.UniV3]["routerAddress"]
+	routerAddress, ok := f.config.AddressesByDex[constant.PoolTypes.UniV3]["router-address"]
 	if !ok {
-		return nil, fmt.Errorf("addressesByDex.%s.routerAddress must be specified", constant.PoolTypes.UniV3)
+		return nil, fmt.Errorf("addressesByDex.%s.router-address must be specified", constant.PoolTypes.UniV3)
 	}
 	corePool, err := uniswapv3aevm.NewPoolAEVM(
 		entityPool,
