@@ -167,6 +167,7 @@ var (
 	ExchangeOpx           Exchange = "opx"
 	ExchangeFulcrom       Exchange = "fulcrom"
 	ExchangeVodoo         Exchange = "vodoo"
+	ExchangeZkEraFinance  Exchange = "zkera-finance"
 
 	ExchangeMakerLidoStETH Exchange = "lido-steth"
 
