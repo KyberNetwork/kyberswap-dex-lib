@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/rand"
 	"strings"
 	"testing"
@@ -104,10 +103,6 @@ func TestGetBalanceSlot(t *testing.T) {
 	_, err = c.Get(context.Background(), common.HexToAddress(wetheAddr), nil)
 	require.NoError(t, err)
 
-	// must commit newly probed token to redis
-	_, err = c.CommitToRedis(context.Background())
-	require.NoError(t, err)
-
 	bls, err := redisClient.HGetAll(context.Background(), utils.Join(prefix, erc20balanceslot.KeyERC20BalanceSlot)).Result()
 	require.NoError(t, err)
 	require.Truef(t, len(bls) == 2, "there must be 2 balance slots")
@@ -121,17 +116,4 @@ func TestGetBalanceSlot(t *testing.T) {
 		require.NotEmptyf(t, bl.BalanceSlot, "balance slot must available")
 		require.EqualValuesf(t, []string{"test_probe"}, bl.StrategiesAttempted, "must record strategy attempted")
 	}
-
-	// must ignore failed strategy
-	_entry, _ := c.cache.Load(common.HexToAddress(btcbAddr))
-	entry := _entry.(*entity.ERC20BalanceSlot)
-	entry.Found = false
-	_, err = c.Get(context.Background(), common.HexToAddress(btcbAddr), nil)
-	require.Error(t, err)
-	fmt.Printf("%s\n", err)
-
-	// subsequent commit should commit nothing
-	numCommit, err := c.CommitToRedis(context.Background())
-	require.NoError(t, err)
-	require.Equalf(t, numCommit, 0, "there must nothing to commit")
 }

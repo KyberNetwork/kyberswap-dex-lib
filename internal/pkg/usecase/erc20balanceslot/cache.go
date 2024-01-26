@@ -21,7 +21,6 @@ type Cache struct {
 	probe      *MultipleStrategy
 	predefined map[common.Address]*entity.ERC20BalanceSlot
 	cache      sync.Map // common.Address => *entity.ERC20BalanceSlot
-	newEntries sync.Map // common.Address => *entity.ERC20BalanceSlot
 	group      singleflight.Group
 }
 
@@ -84,7 +83,14 @@ func (c *Cache) Get(ctx context.Context, token common.Address, pool *dexentity.P
 			return entry, nil
 		}
 	}
-	// try to (re)probe the token
+	// then try Redis
+	if entry, _ := c.repo.Get(ctx, token); entry != nil {
+		if entry.Found {
+			c.cache.Store(token, entry)
+			return entry, nil
+		}
+	}
+	// then try to (re)probe the token
 	_bl, err, _ := c.group.Do(token.String(), func() (interface{}, error) {
 		var oldBl *entity.ERC20BalanceSlot
 		if _oldBl, ok := c.cache.Load(token); ok {
@@ -98,10 +104,12 @@ func (c *Cache) Get(ctx context.Context, token common.Address, pool *dexentity.P
 			}
 		}
 		bl, err := c.probe.ProbeBalanceSlot(ctx, token, oldBl, extraParams)
-		// store the result
+		// store the result to cache and Redis
 		if bl != nil {
 			c.cache.Store(token, bl)
-			c.newEntries.Store(token, bl)
+			if err := c.repo.Put(ctx, bl); err != nil {
+				logger.Errorf("could not store balance slot: %s", err)
+			}
 		}
 		// err != nil implies bl == nil
 		if err != nil {
@@ -116,23 +124,4 @@ func (c *Cache) Get(ctx context.Context, token common.Address, pool *dexentity.P
 		return nil, err
 	}
 	return _bl.(*entity.ERC20BalanceSlot), nil
-}
-
-// CommitToRedis writes all new entries to Redis.
-func (c *Cache) CommitToRedis(ctx context.Context) (int, error) {
-	logger.Infof("committing newly probed balance slots to Redis")
-	var newEntries []*entity.ERC20BalanceSlot
-	c.newEntries.Range(func(_, value any) bool {
-		bl := value.(*entity.ERC20BalanceSlot)
-		newEntries = append(newEntries, bl)
-		return true
-	})
-	if err := c.repo.PutMany(ctx, newEntries); err != nil {
-		return 0, err
-	}
-	for _, bl := range newEntries {
-		c.newEntries.Delete(common.HexToAddress(bl.Token))
-	}
-	logger.Infof("committed %d balance slots to Redis", len(newEntries))
-	return len(newEntries), nil
 }

@@ -65,6 +65,16 @@ func (r *RedisRepository) GetAll(ctx context.Context) (map[common.Address]*entit
 	return result, nil
 }
 
+func (r *RedisRepository) Put(ctx context.Context, balanceSlot *entity.ERC20BalanceSlot) error {
+	encoded, err := json.Marshal(balanceSlot)
+	if err != nil {
+		logger.WithFields(logger.Fields{"entity": balanceSlot}).Warn("could not marshal entity.ERC20BalanceSlot")
+		return err
+	}
+	_, err = r.redisClient.HSet(ctx, r.redisKey, strings.ToLower(balanceSlot.Token), string(encoded)).Result()
+	return err
+}
+
 func (r *RedisRepository) PutMany(ctx context.Context, balanceSlots []*entity.ERC20BalanceSlot) error {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[erc20balanceslot] redisRepository.Put")
 	defer span.End()

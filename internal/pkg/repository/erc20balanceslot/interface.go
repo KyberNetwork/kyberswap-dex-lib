@@ -10,5 +10,6 @@ import (
 type IRepository interface {
 	Get(ctx context.Context, token common.Address) (*entity.ERC20BalanceSlot, error)
 	GetAll(ctx context.Context) (map[common.Address]*entity.ERC20BalanceSlot, error)
+	Put(ctx context.Context, balanceSlot *entity.ERC20BalanceSlot) error
 	PutMany(ctx context.Context, balanceSlots []*entity.ERC20BalanceSlot) error
 }

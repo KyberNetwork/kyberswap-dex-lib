@@ -397,7 +397,6 @@ func apiAction(c *cli.Context) (err error) {
 			logger.Errorf("could not preload balance slots %s", err)
 			return err
 		}
-		defer balanceSlotsUseCase.CommitToRedis(context.Background())
 
 		aevmClient, err = aevmclient.NewGRPCClient(cfg.AEVM.AEVMServerURL)
 		if err != nil {
@@ -792,7 +791,6 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 			logger.Errorf("could not preload balance slots %s", err)
 			return err
 		}
-		defer balanceSlotsUseCase.CommitToRedis(context.Background())
 
 		aevmClient, err = aevmclient.NewGRPCClient(cfg.AEVM.AEVMServerURL)
 		if err != nil {
