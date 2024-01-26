@@ -16,8 +16,9 @@ const (
 )
 
 const (
-	RouteCacheKeyTokensDelimiter = "-"
-	RouteCacheKeyDexesDelimiter  = "-"
+	RouteCacheKeyTokensDelimiter        = "-"
+	RouteCacheKeyDexesDelimiter         = "-"
+	RouteCacheKeyExcludedPoolsDelimiter = "-"
 )
 
 // RouteCacheKey contains data to build route cache key
@@ -31,6 +32,7 @@ type RouteCacheKey struct {
 	GasInclude             bool
 	IsPathGeneratorEnabled bool
 	IsHillClimbingEnabled  bool
+	ExcludedPools          []string
 }
 
 // String receives prefix and returns cache key
@@ -44,6 +46,8 @@ func (k *RouteCacheKey) String(prefix string) string {
 		strings.Join(k.Dexes, RouteCacheKeyDexesDelimiter),
 		k.GasInclude,
 		k.IsPathGeneratorEnabled,
+		k.IsHillClimbingEnabled,
+		strings.Join(k.ExcludedPools, RouteCacheKeyExcludedPoolsDelimiter),
 	)
 }
 

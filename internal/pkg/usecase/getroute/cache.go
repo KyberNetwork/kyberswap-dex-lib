@@ -12,6 +12,7 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/slices"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
@@ -201,8 +202,8 @@ func (c *cache) getCachePointTTL(amount float64) (time.Duration, bool) {
 // genKey retrieves the key required to access the cacheRoute.
 // It returns an error if these parameters do not correspond to a cache point and lack pricing information.
 func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKey, time.Duration, error) {
-	// If request has excluded pools, we will not hit cache.
-	if params.ExcludedPools != nil && params.ExcludedPools.Cardinality() != 0 {
+	// If request has excluded more than 1 pool, we will not hit cache.
+	if params.ExcludedPools != nil && params.ExcludedPools.Cardinality() > 1 {
 		return nil, 0, nil
 	}
 
@@ -211,6 +212,8 @@ func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKe
 
 	ttlByAmount, ok := c.getCachePointTTL(amountInWithoutDecimalsFloat64)
 	if ok {
+		excludedPools := params.ExcludedPools.ToSlice()
+		slices.Sort(excludedPools)
 		return &valueobject.RouteCacheKey{
 			CacheMode:              valueobject.RouteCacheModePoint,
 			TokenIn:                params.TokenIn.Address,
@@ -221,6 +224,7 @@ func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKe
 			Dexes:                  params.Sources,
 			IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
 			IsHillClimbingEnabled:  params.IsHillClimbEnabled,
+			ExcludedPools:          excludedPools,
 		}, ttlByAmount, nil
 	}
 

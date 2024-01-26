@@ -2,6 +2,7 @@ package route_test
 
 import (
 	"context"
+	"strconv"
 	"testing"
 	"time"
 
@@ -38,18 +39,19 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 				LocalCacheSize: 2,
 				LocalCacheTTL:  time.Second,
 			})
+		cacheKey := &valueobject.RouteCacheKey{
+			TokenIn:                "addressIn",
+			TokenOut:               "addressOut",
+			SaveGas:                false,
+			CacheMode:              "normal",
+			AmountIn:               "100",
+			Dexes:                  []string{"dodo"},
+			GasInclude:             false,
+			IsPathGeneratorEnabled: false,
+		}
 		err = cache.Set(
 			context.Background(),
-			&valueobject.RouteCacheKey{
-				TokenIn:                "addressIn",
-				TokenOut:               "addressOut",
-				SaveGas:                false,
-				CacheMode:              "normal",
-				AmountIn:               "100",
-				Dexes:                  []string{"dodo"},
-				GasInclude:             false,
-				IsPathGeneratorEnabled: false,
-			},
+			cacheKey,
 			&valueobject.SimpleRoute{
 				Distributions: []uint64{1},
 				Paths:         nil,
@@ -59,7 +61,7 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		dbResult, err := redisServer.Get("1839672685618436818")
+		dbResult, err := redisServer.Get(strconv.FormatUint(cacheKey.Hash(""), 10))
 		if err != nil {
 			t.Fatalf("failed to get redis data: %v", err.Error())
 		}

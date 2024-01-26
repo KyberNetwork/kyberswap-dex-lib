@@ -17,8 +17,10 @@ func TestRouteCacheKey_String(t *testing.T) {
 			Dexes:                  []string{"gmx", "uniswap"},
 			GasInclude:             true,
 			IsPathGeneratorEnabled: false,
+			IsHillClimbingEnabled:  false,
+			ExcludedPools:          []string{"0x"},
 		}
 
-		assert.Equal(t, key.String("prefix"), "prefix:0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be-0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7:1:token:5000000000000000000000:gmx-uniswap:1:0")
+		assert.Equal(t, key.String("prefix"), "prefix:0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be-0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7:1:token:5000000000000000000000:gmx-uniswap:1:0:0:0x")
 	})
 }
