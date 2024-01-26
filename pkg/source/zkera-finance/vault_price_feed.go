@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 type VaultPriceFeed struct {
