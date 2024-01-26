@@ -35,7 +35,7 @@ type IFastPriceFeedV2Reader interface {
 
 // IPriceFeedReader reads price feed smart contract
 type IPriceFeedReader interface {
-	Read(ctx context.Context, address string, roundCount int) (*PriceFeed, error)
+	Read(ctx context.Context, address string) (*PriceFeed, error)
 }
 
 // IUSDGReader reads usdg smart contract

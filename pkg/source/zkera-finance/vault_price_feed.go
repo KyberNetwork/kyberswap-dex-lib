@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -35,7 +36,7 @@ type VaultPriceFeed struct {
 	ETHBNBAddress common.Address `json:"-"`
 	ETHBNB        *PancakePair   `json:"ethBnb,omitempty"`
 
-	SecondaryPriceFeedAddress common.Address `json:"-"`
+	SecondaryPriceFeedAddress common.Address `json:"secondaryPriceFeedAddress"`
 	SecondaryPriceFeed        IFastPriceFeed `json:"secondaryPriceFeed"`
 	SecondaryPriceFeedVersion int            `json:"secondaryPriceFeedVersion"`
 
@@ -89,7 +90,6 @@ func (pf *VaultPriceFeed) UnmarshalJSON(bytes []byte) error {
 		IsAmmEnabled               bool                  `json:"isAmmEnabled"`
 		IsSecondaryPriceEnabled    bool                  `json:"isSecondaryPriceEnabled"`
 		MaxStrictPriceDeviation    *big.Int              `json:"maxStrictPriceDeviation"`
-		PriceSampleSpace           *big.Int              `json:"priceSampleSpace"`
 		SpreadThresholdBasisPoints *big.Int              `json:"spreadThresholdBasisPoints"`
 		UseV2Pricing               bool                  `json:"useV2Pricing"`
 		PriceDecimals              map[string]*big.Int   `json:"priceDecimals"`
@@ -115,7 +115,6 @@ func (pf *VaultPriceFeed) UnmarshalJSON(bytes []byte) error {
 	pf.IsAmmEnabled = priceFeed.IsAmmEnabled
 	pf.IsSecondaryPriceEnabled = priceFeed.IsSecondaryPriceEnabled
 	pf.MaxStrictPriceDeviation = priceFeed.MaxStrictPriceDeviation
-	pf.PriceSampleSpace = priceFeed.PriceSampleSpace
 	pf.SpreadThresholdBasisPoints = priceFeed.SpreadThresholdBasisPoints
 	pf.UseV2Pricing = priceFeed.UseV2Pricing
 	pf.PriceDecimals = priceFeed.PriceDecimals
@@ -137,6 +136,10 @@ func (pf *VaultPriceFeed) UnmarshalJSON(bytes []byte) error {
 }
 
 func (pf *VaultPriceFeed) UnmarshalJSONSecondaryPriceFeed(bytes []byte) error {
+	if eth.IsZeroAddress(pf.SecondaryPriceFeedAddress) {
+		return nil
+	}
+
 	switch pf.SecondaryPriceFeedVersion {
 	case 1:
 		var priceFeed struct {

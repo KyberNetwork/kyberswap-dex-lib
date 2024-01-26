@@ -30,7 +30,7 @@ func NewPoolsListUpdater(
 
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	log := logger.WithFields(logger.Fields{
-		"liquiditySource": DexTypeZkEraFinance,
+		"liquiditySource": DexType,
 		"kind":            "getNewPools",
 	})
 	if d.hasInitialized {
@@ -65,7 +65,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	pool := entity.Pool{
 		Address:   d.config.VaultAddress,
 		Exchange:  d.config.DexID,
-		Type:      DexTypeZkEraFinance,
+		Type:      DexType,
 		Tokens:    poolTokens,
 		Reserves:  reserves,
 		Extra:     string(extraBytes),
@@ -73,7 +73,6 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	d.hasInitialized = true
-	log.Infof("got %v vault", d.config.VaultAddress)
 
 	return []entity.Pool{pool}, nil, nil
 }

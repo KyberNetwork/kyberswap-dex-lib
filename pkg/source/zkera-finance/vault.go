@@ -35,7 +35,7 @@ type Vault struct {
 
 	WhitelistedTokensCount *big.Int `json:"-"`
 
-	UseSwapPricing bool // not used, always false for now
+	UseSwapPricing bool `json:"useSwapPricing"` // not used, always false for now
 }
 
 func NewVault() *Vault {

@@ -4,18 +4,26 @@ import (
 	"math/big"
 )
 
+var (
+	maximizeTrue  = "true"
+	maximizeFalse = "false"
+)
+
 type PriceFeed struct {
-	LatestAnswers map[bool]*big.Int `json:"latestAnswers"`
+	LatestAnswers map[string]*big.Int `json:"latestAnswers"`
 }
 
 func NewPriceFeed() *PriceFeed {
 	return &PriceFeed{
-		LatestAnswers: make(map[bool]*big.Int),
+		LatestAnswers: make(map[string]*big.Int),
 	}
 }
 
 const priceFeedMethodLatestAnswer = "latestAnswer"
 
 func (pf *PriceFeed) LatestAnswer(maximize bool) *big.Int {
-	return pf.LatestAnswers[maximize]
+	if maximize {
+		return pf.LatestAnswers[maximizeTrue]
+	}
+	return pf.LatestAnswers[maximizeFalse]
 }

@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
@@ -20,13 +21,13 @@ func NewPriceFeedReader(ethrpcClient *ethrpc.Client) *PriceFeedReader {
 		abi:          priceFeedABI,
 		ethrpcClient: ethrpcClient,
 		log: logger.WithFields(logger.Fields{
-			"liquiditySource": DexTypeZkEraFinance,
+			"liquiditySource": DexType,
 			"reader":          "PriceFeedReader",
 		}),
 	}
 }
 
-func (r *PriceFeedReader) Read(ctx context.Context, address string, roundCount int) (*PriceFeed, error) {
+func (r *PriceFeedReader) Read(ctx context.Context, address string) (*PriceFeed, error) {
 	priceFeed := NewPriceFeed()
 
 	var v0, v1 *big.Int
@@ -47,12 +48,20 @@ func (r *PriceFeedReader) Read(ctx context.Context, address string, roundCount i
 		Params: []interface{}{false},
 	}, []interface{}{&v1})
 
-	if _, err := rpcRequest.Aggregate(); err != nil {
+	if _, err := rpcRequest.TryAggregate(); err != nil {
+		logger.Errorf("error when call rpcRequest.Aggregate: %s | %s", err.Error(), address)
 		return nil, err
 	}
 
-	priceFeed.LatestAnswers[true] = v0
-	priceFeed.LatestAnswers[false] = v1
+	if v0 == nil {
+		v0 = bignumber.ZeroBI
+	}
+	if v1 == nil {
+		v1 = bignumber.ZeroBI
+	}
+
+	priceFeed.LatestAnswers[maximizeTrue] = v0
+	priceFeed.LatestAnswers[maximizeFalse] = v1
 
 	return priceFeed, nil
 }

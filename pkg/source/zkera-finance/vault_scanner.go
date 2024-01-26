@@ -2,7 +2,6 @@ package zkerafinance
 
 import (
 	"context"
-	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -37,7 +36,7 @@ func NewVaultScanner(
 		usdgReader:            NewUSDGReader(ethrpcClient),
 		pancakePairReader:     NewPancakePairReader(ethrpcClient),
 		log: logger.WithFields(logger.Fields{
-			"liquiditySource": DexTypeZkEraFinance,
+			"liquiditySource": DexType,
 			"scanner":         "VaultScanner",
 		}),
 	}
@@ -121,7 +120,7 @@ func (vs *VaultScanner) getVaultPriceFeed(ctx context.Context, address string, t
 		vaultPriceFeed.SecondaryPriceFeed = fastPriceFeed
 	}
 
-	priceFeeds, err := vs.getPriceFeeds(ctx, vaultPriceFeed.PriceFeedsAddresses, vaultPriceFeed.PriceSampleSpace)
+	priceFeeds, err := vs.getPriceFeeds(ctx, vaultPriceFeed.PriceFeedsAddresses)
 	if err != nil {
 		return nil, err
 	}
@@ -134,18 +133,16 @@ func (vs *VaultScanner) getVaultPriceFeed(ctx context.Context, address string, t
 func (vs *VaultScanner) getPriceFeeds(
 	ctx context.Context,
 	priceFeedAddresses map[string]common.Address,
-	priceSampleSpace *big.Int,
 ) (map[string]*PriceFeed, error) {
-	roundCount := int(priceSampleSpace.Int64())
 	priceFeeds := make(map[string]*PriceFeed, len(priceFeedAddresses))
 
 	for tokenAddress, priceFeedAddress := range priceFeedAddresses {
-		if !eth.IsZeroAddress(priceFeedAddress) {
+		if eth.IsZeroAddress(priceFeedAddress) {
 			logger.Warnf("priceFeedAddress for token %s is zero address: %s", tokenAddress, priceFeedAddress.Hex())
 			continue
 		}
 
-		priceFeed, err := vs.priceFeedReader.Read(ctx, priceFeedAddress.String(), roundCount)
+		priceFeed, err := vs.priceFeedReader.Read(ctx, priceFeedAddress.String())
 		if err != nil {
 			return nil, err
 		}

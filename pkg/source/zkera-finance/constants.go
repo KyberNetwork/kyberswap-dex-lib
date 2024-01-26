@@ -2,7 +2,7 @@ package zkerafinance
 
 import "math/big"
 
-const DexTypeZkEraFinance = "zkera-finance"
+const DexType = "zkera-finance"
 
 var (
 	DefaultGas         = Gas{Swap: 165000}
