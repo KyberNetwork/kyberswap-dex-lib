@@ -223,6 +223,9 @@ var (
 	ExchangeVelocoreV2CPMM         Exchange = "velocore-v2-cpmm"
 	ExchangeVelocoreV2WombatStable Exchange = "velocore-v2-wombat-stable"
 	ExchangeAlienBaseStableSwap    Exchange = "alien-base-stableswap"
+
+	ExchangeNile   Exchange = "nile"
+	ExchangeNileV2 Exchange = "nile-v2"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -409,6 +412,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAlienBaseStableSwap:        {},
 	ExchangeZebraV2:                    {},
 	ExchangePharaohV2:                  {},
+	ExchangeNile:                       {},
+	ExchangeNileV2:                     {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
