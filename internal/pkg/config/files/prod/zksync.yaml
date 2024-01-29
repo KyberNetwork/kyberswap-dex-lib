@@ -41,6 +41,7 @@ common:
     - "velocore-v2-cpmm"
     - "velocore-v2-wombat-stable"
     - "fulcrom"
+    - "zkera-finance"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"

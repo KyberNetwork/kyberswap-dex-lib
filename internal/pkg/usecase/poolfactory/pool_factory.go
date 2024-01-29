@@ -73,6 +73,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/vooi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatlsd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatmain"
+	zkera "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkera-finance"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -410,6 +411,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newGyroscope3CLP(entityPool)
 	case constant.PoolTypes.GyroscopeECLP:
 		return f.newGyroscopeECLP(entityPool)
+	case constant.PoolTypes.ZkEraFinance:
+		return f.newZkEraFinance(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -1405,6 +1408,20 @@ func (f *PoolFactory) newGyroscopeECLP(entityPool entity.Pool) (*gyroeclp.PoolSi
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newGyroscopeECLP] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newZkEraFinance(entityPool entity.Pool) (*zkera.PoolSimulator, error) {
+	corePool, err := zkera.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newZkEraFinance] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
