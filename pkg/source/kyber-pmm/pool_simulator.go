@@ -135,7 +135,7 @@ func (p *PoolSimulator) CalcAmountOut(
 		inventoryLimit = limit.GetLimit(p.baseToken.Address)
 	}
 
-	if result.TokenAmountOut.Amount.Cmp(inventoryLimit) > 0 {
+	if inventoryLimit != nil && result.TokenAmountOut.Amount.Cmp(inventoryLimit) > 0 {
 		return nil, errors.New("not enough inventory")
 	}
 	return result, nil
@@ -349,12 +349,13 @@ func NewInventory(balance map[string]*big.Int) *Inventory {
 }
 
 // GetLimit returns a copy of balance for the token in Inventory
+// return nil if there is no limit
 func (i *Inventory) GetLimit(tokenAddress string) *big.Int {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 	balance, avail := i.Balance[tokenAddress]
 	if !avail {
-		return big.NewInt(0)
+		return nil
 	}
 	return big.NewInt(0).Set(balance)
 }
