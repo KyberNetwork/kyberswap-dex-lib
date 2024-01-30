@@ -136,7 +136,7 @@ func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not deepcopy maverick state, err: %v", err)
 		}
 
-		_, amountOut, err := GetAmountOut(newState, scaleAmount, tokenAIn, false, false)
+		_, amountOut, binCrossed, err := GetAmountOut(newState, scaleAmount, tokenAIn, false, false)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not get amount out, err: %v", err)
 		}
@@ -154,6 +154,10 @@ func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 			}
 		}
 
+		// this is not really correct, because some tick required `nextActive` while some doesn't
+		// but should be good enough for now
+		crossBinGas := p.gas.CrossBin * int64(binCrossed)
+
 		return &pool.CalcAmountOutResult{
 			TokenAmountOut: &pool.TokenAmount{
 				Token:  tokenOut,
@@ -163,7 +167,7 @@ func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 				Token:  tokenAmountIn.Token,
 				Amount: nil,
 			},
-			Gas: p.gas.Swap,
+			Gas: p.gas.Swap + crossBinGas,
 			SwapInfo: maverickSwapInfo{
 				activeTick: newState.ActiveTick,
 				bins:       newState.Bins,

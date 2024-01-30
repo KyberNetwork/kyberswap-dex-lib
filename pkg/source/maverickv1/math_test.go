@@ -189,7 +189,7 @@ func TestSwapAForBWithoutExactOut(t *testing.T) {
 	require.Nil(t, err)
 
 	var amountIn = elastic.NewBig10("1850163333337788672")
-	_, amountOut, err := GetAmountOut(state, amountIn, true, false, false)
+	_, amountOut, _, err := GetAmountOut(state, amountIn, true, false, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "1676945827577881677", amountOut.String())
@@ -199,7 +199,7 @@ func TestSwapAForBWithoutExactOut(t *testing.T) {
 		state, err = DeepcopyState(orgState)
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
-		_, amountOut, err := GetAmountOut(state, amountIn, true, false, false)
+		_, amountOut, _, err := GetAmountOut(state, amountIn, true, false, false)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "1676945827577881677", amountOut.String())
@@ -210,7 +210,7 @@ func TestSwapAForBWithoutExactOut(t *testing.T) {
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
 		state.BinMap = nil
-		_, amountOut, err := GetAmountOut(state, amountIn, true, false, false)
+		_, amountOut, _, err := GetAmountOut(state, amountIn, true, false, false)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "1676945827577881677", amountOut.String())
@@ -396,7 +396,7 @@ func TestSwapAForBExactOut(t *testing.T) {
 	require.Nil(t, err)
 
 	var amountIn = elastic.NewBig10("2963297000000000000")
-	_, amountOut, err := GetAmountOut(state, amountIn, true, true, false)
+	_, amountOut, _, err := GetAmountOut(state, amountIn, true, true, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "2963297000000000000", amountOut.String())
@@ -406,7 +406,7 @@ func TestSwapAForBExactOut(t *testing.T) {
 		state, err = DeepcopyState(orgState)
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
-		_, amountOut, err := GetAmountOut(state, amountIn, true, true, false)
+		_, amountOut, _, err := GetAmountOut(state, amountIn, true, true, false)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "2963297000000000000", amountOut.String())
@@ -417,7 +417,7 @@ func TestSwapAForBExactOut(t *testing.T) {
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
 		state.BinMap = nil
-		_, amountOut, err := GetAmountOut(state, amountIn, true, true, false)
+		_, amountOut, _, err := GetAmountOut(state, amountIn, true, true, false)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "2963297000000000000", amountOut.String())
@@ -609,7 +609,7 @@ func TestSwapBForAExactOut(t *testing.T) {
 	require.Nil(t, err)
 
 	var amountIn = elastic.NewBig10("1894736241169897472")
-	_, amountOut, err := GetAmountOut(state, amountIn, false, true, false)
+	_, amountOut, _, err := GetAmountOut(state, amountIn, false, true, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "1894736241169897472", amountOut.String())
@@ -619,7 +619,7 @@ func TestSwapBForAExactOut(t *testing.T) {
 		state, err = DeepcopyState(orgState)
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
-		_, amountOut, err := GetAmountOut(state, amountIn, false, true, false)
+		_, amountOut, _, err := GetAmountOut(state, amountIn, false, true, false)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "1894736241169897472", amountOut.String())
@@ -630,7 +630,7 @@ func TestSwapBForAExactOut(t *testing.T) {
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
 		state.BinMap = nil
-		_, amountOut, err := GetAmountOut(state, amountIn, false, true, false)
+		_, amountOut, _, err := GetAmountOut(state, amountIn, false, true, false)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "1894736241169897472", amountOut.String())
@@ -835,7 +835,7 @@ func TestSwapBForAWithoutExactOut(t *testing.T) {
 	require.Nil(t, err)
 
 	var amountIn = elastic.NewBig10("4221332000000000000")
-	_, amountOut, err := GetAmountOut(state, amountIn, false, false, false)
+	_, amountOut, _, err := GetAmountOut(state, amountIn, false, false, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "4629465618898435945", amountOut.String())
@@ -845,7 +845,7 @@ func TestSwapBForAWithoutExactOut(t *testing.T) {
 		state, err = DeepcopyState(orgState)
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
-		_, amountOut, err := GetAmountOut(state, amountIn, false, false, false)
+		_, amountOut, _, err := GetAmountOut(state, amountIn, false, false, false)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "4629465618898435945", amountOut.String())
@@ -856,7 +856,7 @@ func TestSwapBForAWithoutExactOut(t *testing.T) {
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
 		state.BinMap = nil
-		_, amountOut, err := GetAmountOut(state, amountIn, false, false, false)
+		_, amountOut, _, err := GetAmountOut(state, amountIn, false, false, false)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "4629465618898435945", amountOut.String())
