@@ -22,7 +22,7 @@ require (
 	github.com/alicebob/miniredis/v2 v2.31.0
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/cespare/xxhash/v2 v2.2.0
-	github.com/deckarep/golang-set/v2 v2.3.1
+	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/envoyproxy/protoc-gen-validate v1.0.2
 	github.com/ethereum/go-ethereum v1.13.8

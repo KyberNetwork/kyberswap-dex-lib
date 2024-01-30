@@ -1,6 +1,7 @@
 package getroute
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"math/big"
@@ -10,9 +11,9 @@ import (
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/slices"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
@@ -105,7 +106,8 @@ func (c *cache) ApplyConfig(config Config) {
 	c.aggregator.ApplyConfig(config)
 }
 
-func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregateParams, key *valueobject.RouteCacheKey) (*valueobject.RouteSummary, error) {
+func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregateParams,
+	key *valueobject.RouteCacheKey) (*valueobject.RouteSummary, error) {
 	simpleRoute, err := c.routeCacheRepository.Get(ctx, key)
 
 	if err != nil {
@@ -179,7 +181,8 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 	return routeSummary, nil
 }
 
-func (c *cache) setRouteToCache(ctx context.Context, routeSummary *valueobject.RouteSummary, key *valueobject.RouteCacheKey, ttl time.Duration) {
+func (c *cache) setRouteToCache(ctx context.Context, routeSummary *valueobject.RouteSummary,
+	key *valueobject.RouteCacheKey, ttl time.Duration) {
 	simpleRoute := simplifyRouteSummary(routeSummary)
 
 	if err := c.routeCacheRepository.Set(ctx, key, simpleRoute, ttl); err != nil {
@@ -212,8 +215,6 @@ func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKe
 
 	ttlByAmount, ok := c.getCachePointTTL(amountInWithoutDecimalsFloat64)
 	if ok {
-		excludedPools := params.ExcludedPools.ToSlice()
-		slices.Sort(excludedPools)
 		return &valueobject.RouteCacheKey{
 			CacheMode:              valueobject.RouteCacheModePoint,
 			TokenIn:                params.TokenIn.Address,
@@ -224,7 +225,7 @@ func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKe
 			Dexes:                  params.Sources,
 			IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
 			IsHillClimbingEnabled:  params.IsHillClimbEnabled,
-			ExcludedPools:          excludedPools,
+			ExcludedPools:          setToSlice(params.ExcludedPools),
 		}, ttlByAmount, nil
 	}
 
@@ -250,6 +251,7 @@ func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKe
 				Dexes:                  params.Sources,
 				IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
 				IsHillClimbingEnabled:  params.IsHillClimbEnabled,
+				ExcludedPools:          setToSlice(params.ExcludedPools),
 			}, cacheRange.TTL, nil
 		}
 	}
@@ -264,7 +266,15 @@ func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKe
 		Dexes:                  params.Sources,
 		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
 		IsHillClimbingEnabled:  params.IsHillClimbEnabled,
+		ExcludedPools:          setToSlice(params.ExcludedPools),
 	}, c.config.DefaultTTL, nil
+}
+
+func setToSlice[T cmp.Ordered](set mapset.Set[T]) []T {
+	if set == nil {
+		return nil
+	}
+	return mapset.Sorted(set)
 }
 
 func (c *cache) summarizeSimpleRoute(
