@@ -549,3 +549,50 @@ func TestLSBMSB(t *testing.T) {
 	assert.Equal(t, big.NewInt(128), msb(bignumber.NewBig("0x100000000000000000000000000000000")))
 	assert.Equal(t, big.NewInt(128), msb(bignumber.NewBig("0x100000000000000000000000000000001")))
 }
+
+func TestGas(t *testing.T) {
+	poolRedis := `{"address":"0xbd278792260a68ee81a42adba23befdba87e30eb","reserveUsd":15059.478927527987,"amplifiedTvl":4.184931466034053e+41,"swapFee":0.0001,"exchange":"maverick-v1","type":"maverick-v1","timestamp":1706603958,"reserves":["2722240380725257133","4511247270069585288"],"tokens":[{"address":"A","decimals":18,"weight":50,"swappable":true},{"address":"B","decimals":18,"weight":50,"swappable":true}],"extra":"{\"fee\":100000000000000,\"protocolFeeRatio\":0,\"activeTick\":-8,\"binCounter\":52,\"bins\":{\"12\":{\"reserveA\":0,\"reserveB\":4242237013037562,\"lowerTick\":-7,\"kind\":3,\"mergeId\":0},\"43\":{\"reserveA\":0,\"reserveB\":1000000000000000000,\"lowerTick\":343,\"kind\":0,\"mergeId\":0},\"44\":{\"reserveA\":0,\"reserveB\":978339781816359,\"lowerTick\":693,\"kind\":0,\"mergeId\":0},\"45\":{\"reserveA\":0,\"reserveB\":957148728684,\"lowerTick\":1043,\"kind\":0,\"mergeId\":0},\"46\":{\"reserveA\":0,\"reserveB\":936416678,\"lowerTick\":1393,\"kind\":0,\"mergeId\":0},\"47\":{\"reserveA\":0,\"reserveB\":916133,\"lowerTick\":1743,\"kind\":0,\"mergeId\":0},\"48\":{\"reserveA\":1000000000000000000,\"reserveB\":0,\"lowerTick\":-357,\"kind\":0,\"mergeId\":0},\"49\":{\"reserveA\":978339781816359,\"reserveB\":0,\"lowerTick\":-707,\"kind\":0,\"mergeId\":0},\"5\":{\"reserveA\":1721261082857379243,\"reserveB\":765547824134650965,\"lowerTick\":-8,\"kind\":0,\"mergeId\":0},\"50\":{\"reserveA\":957148728684,\"reserveB\":0,\"lowerTick\":-1057,\"kind\":0,\"mergeId\":0},\"51\":{\"reserveA\":936416678,\"reserveB\":0,\"lowerTick\":-1407,\"kind\":0,\"mergeId\":0},\"52\":{\"reserveA\":916133,\"reserveB\":0,\"lowerTick\":-1757,\"kind\":0,\"mergeId\":0},\"6\":{\"reserveA\":0,\"reserveB\":2740477911054018869,\"lowerTick\":-7,\"kind\":0,\"mergeId\":0}},\"binPositions\":{\"-1057\":{\"0\":50},\"-1407\":{\"0\":51},\"-1757\":{\"0\":52},\"-357\":{\"0\":48},\"-7\":{\"0\":6,\"3\":12},\"-707\":{\"0\":49},\"-8\":{\"0\":5},\"1043\":{\"0\":45},\"1393\":{\"0\":46},\"1743\":{\"0\":47},\"343\":{\"0\":43},\"693\":{\"0\":44}},\"binMap\":{\"-1\":3909192266736842770226717187617846447677385941268383009760023486136320,\"-12\":28269553036454149273332760011886696253239742350009903329945699220681916416,\"-17\":21267647932558653966460912964485513216,\"-22\":16,\"-28\":1393796574908163946345982392040522594123776,\"-6\":324518553658426726783156020576256,\"10\":6582018229284824168619876730229402019930943462534319453394436096,\"16\":75557863725914323419136,\"21\":100433627766186892221372630771322662657637687111424552206336,\"27\":1152921504606846976,\"5\":4951760157141521099596496896},\"binMapHex\":{\"-1\":3909192266736842770226717187617846447677385941268383009760023486136320,\"-11\":21267647932558653966460912964485513216,\"-16\":16,\"-1c\":1393796574908163946345982392040522594123776,\"-6\":324518553658426726783156020576256,\"-c\":28269553036454149273332760011886696253239742350009903329945699220681916416,\"10\":75557863725914323419136,\"15\":100433627766186892221372630771322662657637687111424552206336,\"1b\":1152921504606846976,\"5\":4951760157141521099596496896,\"a\":6582018229284824168619876730229402019930943462534319453394436096},\"liquidity\":259586774308826574234,\"sqrtPriceX96\":930489566587878568,\"minBinMapIndex\":-28,\"maxBinMapIndex\":27}","staticExtra":"{\"tickSpacing\":198}"}`
+	var poolEnt entity.Pool
+	err := json.Unmarshal([]byte(poolRedis), &poolEnt)
+	require.Nil(t, err)
+
+	sim, err := NewPoolSimulator(poolEnt)
+	require.Nil(t, err)
+
+	testCases := []struct {
+		tokenIn     string
+		tokenOut    string
+		amountIn    string
+		expNextTick string
+		expGas      int64
+	}{
+		{"A", "B", "10000000000000000", "-8", 145000},    // use 1 tick, sim 110969
+		{"A", "B", "1000000000000000000", "-7", 165000},  // use 2 tick, sim 144530
+		{"A", "B", "1900000000000000000", "-7", 165000},  // use 2 tick, sim 144530
+		{"A", "B", "3890000000000000000", "343", 185000}, // use 3 tick, sim 173534
+		{"A", "B", "4000000000000000000", "343", 185000}, // use 3 tick, sim 173534
+
+		{"B", "A", "50000000000000000", "-8", 145000},         // use 1 tick, sim 106139
+		{"B", "A", "500000000000000000", "-8", 145000},        // use 1 tick, sim 106139
+		{"B", "A", "5000000000000000000", "-357", 165000},     // use 2 tick, sim 138592
+		{"B", "A", "5000000000000000000000", "-1757", 245000}, // use 6 tick, sim 273005
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("test %d", i), func(t *testing.T) {
+			in := pool.TokenAmount{
+				Token:  tc.tokenIn,
+				Amount: bignumber.NewBig10(tc.amountIn),
+			}
+			result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: in,
+				TokenOut:      tc.tokenOut,
+				Limit:         nil,
+			})
+			require.Nil(t, err)
+
+			assert.Equal(t, tc.expNextTick, result.SwapInfo.(maverickSwapInfo).activeTick.String())
+			assert.Equal(t, tc.expGas, result.Gas)
+		})
+	}
+}

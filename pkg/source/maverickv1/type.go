@@ -72,7 +72,8 @@ type Bin struct {
 }
 
 type Gas struct {
-	Swap int64
+	Swap     int64
+	CrossBin int64
 }
 
 type Delta struct {

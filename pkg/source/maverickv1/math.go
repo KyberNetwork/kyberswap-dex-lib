@@ -12,7 +12,7 @@ func GetAmountOut(
 	tokenAIn bool,
 	exactOutput bool,
 	isForPricing bool,
-) (*big.Int, *big.Int, error) {
+) (*big.Int, *big.Int, int, error) {
 	delta := &Delta{
 		DeltaInBinInternal: big.NewInt(0),
 		DeltaInErc:         big.NewInt(0),
@@ -34,7 +34,7 @@ func GetAmountOut(
 	for delta.Excess.Cmp(zeroBI) > 0 {
 		newDelta, err := swapTick(delta, state)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, 0, err
 		}
 		combine(delta, newDelta)
 
@@ -42,13 +42,13 @@ func GetAmountOut(
 		// as reasonable threshold
 		counter += 1
 		if isForPricing && counter > MaxSwapIterationCalculation {
-			return zeroBI, zeroBI, nil
+			return zeroBI, zeroBI, counter, nil
 		}
 	}
 	var amountIn = delta.DeltaInErc
 	var amountOut = delta.DeltaOutErc
 
-	return amountIn, amountOut, nil
+	return amountIn, amountOut, counter, nil
 }
 
 func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {

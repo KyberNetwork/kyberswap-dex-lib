@@ -23,7 +23,7 @@ const (
 )
 
 var (
-	DefaultGas              = Gas{Swap: 125000}
+	DefaultGas              = Gas{Swap: 125000, CrossBin: 20000}
 	zeroBI                  = big.NewInt(0)
 	zeroString              = "0"
 	defaultTokenWeight uint = 50
