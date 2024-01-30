@@ -55,7 +55,7 @@ type IPoolExactOutSimulator interface {
 }
 
 type IPoolRFQ interface {
-	RFQ(ctx context.Context, recipient string, params any) (RFQResult, error)
+	RFQ(ctx context.Context, params RFQParams) (*RFQResult, error)
 }
 
 type ITicksBasedPoolTracker interface {

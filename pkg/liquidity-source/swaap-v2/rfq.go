@@ -11,7 +11,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-type Config struct{}
+type Config struct {
+	DexID string                  `json:"dexId"`
+	HTTP  client.HTTPClientConfig `mapstructure:"http" json:"http"`
+}
 
 type IClient interface {
 	Quote(ctx context.Context, params client.QuoteParams) (client.QuoteResult, error)
