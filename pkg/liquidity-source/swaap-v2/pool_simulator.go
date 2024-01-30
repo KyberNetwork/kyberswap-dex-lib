@@ -52,6 +52,12 @@ type (
 		BaseToQuotePriceLevels []PriceLevel `json:"baseToQuotePriceLevels"`
 		QuoteToBasePriceLevels []PriceLevel `json:"quoteToBasePriceLevels"`
 	}
+
+	SwapInfo struct {
+		TokenIn  string
+		TokenOut string
+		AmountIn string
+	}
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
