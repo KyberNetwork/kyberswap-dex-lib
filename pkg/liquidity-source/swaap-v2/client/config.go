@@ -1,9 +1,10 @@
 package client
 
-import "time"
+import "github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 
 type HTTPClientConfig struct {
-	BaseURL    string        `mapstructure:"baseUrl" json:"baseUrl"`
-	Timeout    time.Duration `mapstructure:"timeout" json:"timeout"`
-	RetryCount int           `mapstructure:"retryCount" json:"retryCount"`
+	BaseURL    string                `mapstructure:"base_url" json:"base_url"`
+	Timeout    durationjson.Duration `mapstructure:"timeout" json:"timeout"`
+	RetryCount int                   `mapstructure:"retry_count" json:"retry_count"`
+	APIKey     string                `mapstructure:"api_key" json:"api_key"`
 }

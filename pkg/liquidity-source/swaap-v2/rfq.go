@@ -2,7 +2,6 @@ package swaapv2
 
 import (
 	"context"
-	"errors"
 	"math/big"
 	"time"
 
@@ -11,8 +10,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
-
-var ErrRFQFailed = errors.New("swaap-v2 rfq failed")
 
 type Config struct {
 	DexID string                  `json:"dexId"`
@@ -59,10 +56,6 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	if !result.Success {
-		return nil, ErrRFQFailed
 	}
 
 	amount, _ := new(big.Int).SetString(result.Amount, 10)

@@ -54,9 +54,9 @@ type (
 	}
 
 	SwapInfo struct {
-		TokenIn  string
-		TokenOut string
-		AmountIn string
+		TokenIn  string `json:"tokenIn"`
+		TokenOut string `json:"tokenOut"`
+		AmountIn string `json:"amountIn"`
 	}
 )
 
@@ -128,9 +128,14 @@ func (p *PoolSimulator) swapBaseToQuote(amountIn *big.Int) (*pool.CalcAmountOutR
 	).Int(nil)
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: p.baseToken.Address, Amount: amountOut},
+		TokenAmountOut: &pool.TokenAmount{Token: p.quoteToken.Address, Amount: amountOut},
 		Fee:            &pool.TokenAmount{Token: p.quoteToken.Address, Amount: integer.Zero()},
 		Gas:            p.gas.Swap,
+		SwapInfo: SwapInfo{
+			TokenIn:  p.baseToken.Address,
+			TokenOut: p.quoteToken.Address,
+			AmountIn: amountIn.String(),
+		},
 	}, nil
 }
 
@@ -148,9 +153,14 @@ func (p *PoolSimulator) swapQuoteToBase(amountIn *big.Int) (*pool.CalcAmountOutR
 	).Int(nil)
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: p.quoteToken.Address, Amount: amountOut},
+		TokenAmountOut: &pool.TokenAmount{Token: p.baseToken.Address, Amount: amountOut},
 		Fee:            &pool.TokenAmount{Token: p.baseToken.Address, Amount: integer.Zero()},
 		Gas:            p.gas.Swap,
+		SwapInfo: SwapInfo{
+			TokenIn:  p.quoteToken.Address,
+			TokenOut: p.baseToken.Address,
+			AmountIn: amountIn.String(),
+		},
 	}, nil
 }
 

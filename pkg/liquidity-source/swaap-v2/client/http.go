@@ -8,7 +8,9 @@ import (
 )
 
 const (
-	quoteEndpoint = "v1/rfq/prices"
+	quoteEndpoint = "v1/rfq/quote"
+
+	headerAPIKey = "X-API-KEY"
 )
 
 var (
@@ -17,14 +19,14 @@ var (
 
 type HTTPClient struct {
 	config *HTTPClientConfig
-
 	client *resty.Client
 }
 
 func NewHTTPClient(config *HTTPClientConfig) *HTTPClient {
 	client := resty.New().
+		SetHeader(headerAPIKey, config.APIKey).
 		SetBaseURL(config.BaseURL).
-		SetTimeout(config.Timeout).
+		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount)
 
 	return &HTTPClient{
@@ -44,7 +46,11 @@ func (c *HTTPClient) Quote(ctx context.Context, params QuoteParams) (QuoteResult
 		return QuoteResult{}, err
 	}
 
-	if !resp.IsSuccess() || !result.Success {
+	if !resp.IsSuccess() {
+		return QuoteResult{}, errors.Wrapf(ErrQuoteFailed, "status code(%d), body(%s)", resp.StatusCode(), resp.Body())
+	}
+
+	if !result.Success {
 		return QuoteResult{}, ErrQuoteFailed
 	}
 
