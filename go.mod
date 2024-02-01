@@ -11,7 +11,7 @@ replace (
 require (
 	github.com/DataDog/datadog-go v4.8.2+incompatible
 	github.com/KyberNetwork/aevm v1.0.6
-	github.com/KyberNetwork/aggregator-encoding v0.1.6
+	github.com/KyberNetwork/aggregator-encoding v0.1.7
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/ethrpc v0.7.0
 	github.com/KyberNetwork/kyber-trace-go v0.1.1
