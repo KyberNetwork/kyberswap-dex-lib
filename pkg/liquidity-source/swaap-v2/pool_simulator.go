@@ -32,6 +32,8 @@ type (
 
 		timestamp int64
 
+		priceTolerance *big.Int
+
 		gas Gas
 	}
 
@@ -51,6 +53,7 @@ type (
 	PoolExtra struct {
 		BaseToQuotePriceLevels []PriceLevel `json:"baseToQuotePriceLevels"`
 		QuoteToBasePriceLevels []PriceLevel `json:"quoteToBasePriceLevels"`
+		PriceTolerance         uint         `json:"priceTolerance"`
 	}
 
 	SwapInfo struct {
@@ -83,6 +86,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		quoteToBasePriceLevels: extra.QuoteToBasePriceLevels,
 
 		timestamp: entityPool.Timestamp,
+
+		priceTolerance: big.NewInt(int64(extra.PriceTolerance)),
 
 		gas: DefaultGas,
 	}, nil
@@ -127,6 +132,14 @@ func (p *PoolSimulator) swapBaseToQuote(amountIn *big.Int) (*pool.CalcAmountOutR
 		bignumber.TenPowDecimals(p.quoteToken.Decimals),
 	).Int(nil)
 
+	amountOut = new(big.Int).Quo(
+		new(big.Int).Mul(
+			amountOut,
+			new(big.Int).Sub(priceToleranceBps, p.priceTolerance),
+		),
+		priceToleranceBps,
+	)
+
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: p.quoteToken.Address, Amount: amountOut},
 		Fee:            &pool.TokenAmount{Token: p.quoteToken.Address, Amount: integer.Zero()},
@@ -151,6 +164,14 @@ func (p *PoolSimulator) swapQuoteToBase(amountIn *big.Int) (*pool.CalcAmountOutR
 		amountOutAfterDecimals,
 		bignumber.TenPowDecimals(p.baseToken.Decimals),
 	).Int(nil)
+
+	amountOut = new(big.Int).Quo(
+		new(big.Int).Mul(
+			amountOut,
+			new(big.Int).Sub(priceToleranceBps, p.priceTolerance),
+		),
+		priceToleranceBps,
+	)
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: p.baseToken.Address, Amount: amountOut},
