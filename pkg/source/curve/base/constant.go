@@ -1,13 +1,17 @@
 package base
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/holiman/uint256"
 )
 
-const MaxLoopLimit = 256
+const (
+	MaxLoopLimit = 256
+
+	MaxTokenCount = 10
+)
 
 var (
 	DefaultGas     = Gas{Exchange: 128000}
-	Precision      = bignumber.NewBig10("1000000000000000000")
-	FeeDenominator = bignumber.NewBig10("10000000000")
+	Precision      = uint256.MustFromDecimal("1000000000000000000")
+	FeeDenominator = uint256.MustFromDecimal("10000000000")
 )

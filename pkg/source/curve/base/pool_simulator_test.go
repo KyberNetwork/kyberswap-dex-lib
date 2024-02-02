@@ -117,10 +117,11 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 			"1000000000000000000000000000000", "1000000000000000000000000000000"),
 	})
 	require.Nil(b, err)
+	ain := big.NewInt(5000)
 
 	for i := 0; i < b.N; i++ {
 		_, err := p.CalcAmountOut(pool.CalcAmountOutParams{
-			TokenAmountIn: pool.TokenAmount{Token: "A", Amount: big.NewInt(5000)},
+			TokenAmountIn: pool.TokenAmount{Token: "A", Amount: ain},
 			TokenOut:      "B",
 			Limit:         nil,
 		})

@@ -7,27 +7,31 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/holiman/uint256"
 )
 
 type PoolBaseSimulator struct {
 	pool.Pool
-	Multipliers []*big.Int
-	Rates       []*big.Int
+	Multipliers []uint256.Int
+	Rates       []uint256.Int
+	Reserves    []uint256.Int // same as pool.Reserves but use uint256.Int
 	// extra fields
-	InitialA     *big.Int
-	FutureA      *big.Int
+	InitialA     uint256.Int
+	FutureA      uint256.Int
 	InitialATime int64
 	FutureATime  int64
-	AdminFee     *big.Int
+	AdminFee     uint256.Int
+	SwapFee      uint256.Int
 	LpToken      string
-	LpSupply     *big.Int
-	APrecision   *big.Int
+	LpSupply     uint256.Int
+	APrecision   uint256.Int
 	gas          Gas
-	numTokensBI  *big.Int
+	numTokensBI  uint256.Int
 }
 
 type Gas struct {
@@ -50,24 +54,31 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolBaseSimulator, error) {
 		return nil, errors.New("empty reserve")
 	}
 
+	if numTokens > MaxTokenCount {
+		return nil, errors.New("exceed max number of tokens")
+	}
+
 	var tokens = make([]string, numTokens)
-	var reserves = make([]*big.Int, numTokens)
-	var multipliers = make([]*big.Int, numTokens)
-	var rates = make([]*big.Int, numTokens)
+	var reservesBI = make([]*big.Int, numTokens)
+	var reserves = make([]uint256.Int, numTokens)
+	var multipliers = make([]uint256.Int, numTokens)
+	var rates = make([]uint256.Int, numTokens)
 
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
-		multipliers[i] = bignumber.NewBig10(staticExtra.PrecisionMultipliers[i])
-		rates[i] = bignumber.NewBig10(staticExtra.Rates[i])
+		reservesBI[i] = bignumber.NewBig10(entityPool.Reserves[i])
+		if err := multipliers[i].SetFromDecimal(staticExtra.PrecisionMultipliers[i]); err != nil {
+			return nil, err
+		}
+		if err := rates[i].SetFromDecimal(staticExtra.Rates[i]); err != nil {
+			return nil, err
+		}
+		if err := reserves[i].SetFromDecimal(entityPool.Reserves[i]); err != nil {
+			return nil, err
+		}
 	}
 
-	var aPrecision = bignumber.One
-	if len(staticExtra.APrecision) > 0 {
-		aPrecision = bignumber.NewBig10(staticExtra.APrecision)
-	}
-
-	return &PoolBaseSimulator{
+	sim := &PoolBaseSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
 				Address:    strings.ToLower(entityPool.Address),
@@ -76,23 +87,43 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolBaseSimulator, error) {
 				Exchange:   entityPool.Exchange,
 				Type:       entityPool.Type,
 				Tokens:     tokens,
-				Reserves:   reserves,
+				Reserves:   reservesBI,
 				Checked:    false,
 			},
 		},
 		Multipliers:  multipliers,
 		Rates:        rates,
-		InitialA:     bignumber.NewBig10(extra.InitialA),
-		FutureA:      bignumber.NewBig10(extra.FutureA),
+		Reserves:     reserves,
 		InitialATime: extra.InitialATime,
 		FutureATime:  extra.FutureATime,
-		AdminFee:     bignumber.NewBig10(extra.AdminFee),
 		LpToken:      staticExtra.LpToken,
-		LpSupply:     bignumber.NewBig10(entityPool.Reserves[numTokens]),
-		APrecision:   aPrecision,
 		gas:          DefaultGas,
-		numTokensBI:  big.NewInt(int64(numTokens)),
-	}, nil
+	}
+	if err := sim.InitialA.SetFromDecimal(extra.InitialA); err != nil {
+		return nil, err
+	}
+	if err := sim.FutureA.SetFromDecimal(extra.FutureA); err != nil {
+		return nil, err
+	}
+	if err := sim.AdminFee.SetFromDecimal(extra.AdminFee); err != nil {
+		return nil, err
+	}
+	if err := sim.SwapFee.SetFromDecimal(extra.SwapFee); err != nil {
+		return nil, err
+	}
+	if err := sim.LpSupply.SetFromDecimal(entityPool.Reserves[numTokens]); err != nil {
+		return nil, err
+	}
+
+	if len(staticExtra.APrecision) > 0 {
+		if err := sim.APrecision.SetFromDecimal(staticExtra.APrecision); err != nil {
+			return nil, err
+		}
+	} else {
+		sim.APrecision.SetUint64(1)
+	}
+	sim.numTokensBI.SetUint64(uint64(numTokens))
+	return sim, nil
 }
 
 func (t *PoolBaseSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -102,25 +133,27 @@ func (t *PoolBaseSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool
 	var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
 	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
-		amountOut, fee, err := t.GetDy(
+		var amountOut, fee, amount uint256.Int
+		amount.SetFromBig(tokenAmountIn.Amount)
+		err := t.GetDyU256(
 			tokenIndexFrom,
 			tokenIndexTo,
-			tokenAmountIn.Amount,
+			&amount,
 			nil,
+			&amountOut, &fee,
 		)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
-		if amountOut.Cmp(bignumber.ZeroBI) > 0 {
-
+		if amountOut.Sign() > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,
-					Amount: amountOut,
+					Amount: amountOut.ToBig(),
 				},
 				Fee: &pool.TokenAmount{
 					Token:  tokenOut,
-					Amount: fee,
+					Amount: fee.ToBig(),
 				},
 				Gas: t.gas.Exchange,
 			}, nil
@@ -139,18 +172,20 @@ func (t *PoolBaseSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		outputAmount,
 		new(big.Int).Div(
 			new(big.Int).Mul(
-				new(big.Int).Div(new(big.Int).Mul(outputAmount, t.Info.SwapFee), FeeDenominator),
-				t.AdminFee,
+				new(big.Int).Div(new(big.Int).Mul(outputAmount, t.Info.SwapFee), FeeDenominator.ToBig()),
+				t.AdminFee.ToBig(),
 			),
-			FeeDenominator,
+			FeeDenominator.ToBig(),
 		),
 	)
 	for i := range t.Info.Tokens {
 		if t.Info.Tokens[i] == input.Token {
 			t.Info.Reserves[i] = new(big.Int).Add(t.Info.Reserves[i], inputAmount)
+			t.Reserves[i].Add(&t.Reserves[i], number.SetFromBig(inputAmount))
 		}
 		if t.Info.Tokens[i] == output.Token {
 			t.Info.Reserves[i] = new(big.Int).Sub(t.Info.Reserves[i], outputAmount)
+			t.Reserves[i].Sub(&t.Reserves[i], number.SetFromBig(outputAmount))
 		}
 	}
 }
