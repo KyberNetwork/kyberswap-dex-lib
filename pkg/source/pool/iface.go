@@ -45,11 +45,6 @@ type IPoolSimulator interface {
 	CalculateLimit() map[string]*big.Int
 }
 
-type RFQResult struct {
-	NewAmountOut *big.Int
-	Extra        any
-}
-
 type IPoolExactOutSimulator interface {
 	// CalcAmountIn calculate the `amountIn` of `tokenIn` needed to get `tokenAmountOut`
 	// caller might need to run `CalcAmountOut` again to determine if the returned `amountIn` is good enough
@@ -60,7 +55,7 @@ type IPoolExactOutSimulator interface {
 }
 
 type IPoolRFQ interface {
-	RFQ(ctx context.Context, recipient string, params any) (RFQResult, error)
+	RFQ(ctx context.Context, params RFQParams) (*RFQResult, error)
 }
 
 type ITicksBasedPoolTracker interface {

@@ -23,15 +23,15 @@ func NewRFQHandler(config *Config) *RFQHandler {
 	}
 }
 
-func (h *RFQHandler) RFQ(ctx context.Context, recipient string, params any) (pool.RFQResult, error) {
-	paramsByteData, err := json.Marshal(params)
+func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQResult, error) {
+	swapInfoBytes, err := json.Marshal(params.SwapInfo)
 	if err != nil {
-		return pool.RFQResult{}, err
+		return nil, err
 	}
 
 	var swapInfo SwapInfo
-	if err = json.Unmarshal(paramsByteData, &swapInfo); err != nil {
-		return pool.RFQResult{}, InvalidSwapInfo
+	if err = json.Unmarshal(swapInfoBytes, &swapInfo); err != nil {
+		return nil, InvalidSwapInfo
 	}
 
 	orderIds := lo.Map(swapInfo.FilledOrders, func(o *FilledOrderInfo, _ int) int64 { return o.OrderID })
@@ -41,10 +41,10 @@ func (h *RFQHandler) RFQ(ctx context.Context, recipient string, params any) (poo
 			"params": params,
 			"error":  err,
 		}).Errorf("failed to get operator signatures")
-		return pool.RFQResult{}, err
+		return nil, err
 	}
 
-	return pool.RFQResult{
+	return &pool.RFQResult{
 		NewAmountOut: nil, // at the moment we don't use the new amount out of Limit Order, nil will ignore it
 		Extra: OpSignatureExtra{
 			SwapInfo:               swapInfo,
