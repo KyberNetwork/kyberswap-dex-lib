@@ -84,7 +84,12 @@ func (b *EncodingDataBuilder) SetRoute(
 	b.data.InputAmount = routeSummary.AmountIn
 	b.data.OutputAmount = routeSummary.AmountOut
 	b.data.TotalAmountOut = getTotalAmountOut(encodingRoute)
-	b.data.ExtraFee = encodeValueObject.ExtraFee{}
+	b.data.ExtraFee = encodeValueObject.ExtraFee{
+		FeeAmount:   routeSummary.ExtraFee.FeeAmount,
+		ChargeFeeBy: encodeValueObject.ChargeFeeBy(routeSummary.ExtraFee.ChargeFeeBy),
+		IsInBps:     routeSummary.ExtraFee.IsInBps,
+		FeeReceiver: routeSummary.ExtraFee.FeeReceiver,
+	}
 	b.data.Recipient = recipient
 	b.data.Route = encodingRoute
 	b.data.EncodingMode = encodingMode
