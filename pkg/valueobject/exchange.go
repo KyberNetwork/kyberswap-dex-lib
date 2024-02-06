@@ -228,6 +228,8 @@ var (
 	ExchangeNileV2 Exchange = "nile-v2"
 
 	ExchangePharaoh Exchange = "pharaoh"
+
+	ExchangeBlueprint Exchange = "blueprint"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -417,6 +419,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeNile:                       {},
 	ExchangeNileV2:                     {},
 	ExchangePharaoh:                    {},
+	ExchangeBlueprint:                  {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
