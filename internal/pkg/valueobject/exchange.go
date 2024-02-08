@@ -117,6 +117,7 @@ var (
 	ExchangeSolidlyV3        Exchange = "solidly-v3"
 	ExchangeZero             Exchange = "zero"
 	ExchangeZebraV2          Exchange = "zebra-v2"
+	ExchangeBlueprint        Exchange = "blueprint"
 
 	ExchangeBalancerV2Weighted         Exchange = "balancer-v2-weighted"
 	ExchangeBalancerV2Stable           Exchange = "balancer-v2-stable"
@@ -406,6 +407,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeNileV2:                     {},
 	ExchangePharaoh:                    {},
 	ExchangePharaohV2:                  {},
+	ExchangeBlueprint:                  {},
 }
 
 func IsAnExchange(exchange Exchange) bool {

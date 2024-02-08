@@ -67,6 +67,7 @@ common:
     - "gyroscope-2clp"
     - "gyroscope-3clp"
     - "gyroscope-eclp"
+    - "blueprint"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
@@ -267,7 +268,7 @@ useCase:
       uniswapv3: true
       liquiditybook-v20: true
       liquiditybook-v21: true
-    addressesByDex: 
+    addressesByDex:
       uniswap:
         router-address: 0x7a250d5630b4cf539739df2c5dacb4c659f2488d
       uniswapv3:
