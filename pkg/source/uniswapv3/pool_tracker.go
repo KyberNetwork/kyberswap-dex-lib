@@ -17,7 +17,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -272,8 +271,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 		req := graphql.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
 
 		var resp struct {
-			Pool *SubgraphPoolTicks        `json:"pool"`
-			Meta *valueobject.SubgraphMeta `json:"_meta"`
+			Pool *SubgraphPoolTicks `json:"pool"`
 		}
 
 		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
@@ -296,8 +294,6 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 				return nil, err
 			}
 		}
-
-		resp.Meta.CheckIsLagging(d.config.DexID, poolAddress)
 
 		if resp.Pool == nil || len(resp.Pool.Ticks) == 0 {
 			break

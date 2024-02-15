@@ -102,7 +102,6 @@ func getPoolTicksQuery(allowSubgraphError bool, poolAddress string, lastTickIdx 
 				liquidityGross
 			}
 		}
-		_meta { block { timestamp }}
 	}`)
 
 	if err != nil {
