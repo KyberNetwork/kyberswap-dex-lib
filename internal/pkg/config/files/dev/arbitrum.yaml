@@ -80,7 +80,9 @@ common:
     - "gyroscope-3clp"
     - "gyroscope-eclp"
     - "solidly-v3"
+    - "swaap-v2"
   featureFlags: &featureFlags
+  swaapAPIKey:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -137,7 +139,7 @@ encoder:
   chainId: *chainId
   executorAddress: *executorAddress
   routerAddress: *routerAddress
-  l2ExecutorAddress: "0x412F0F6D644C61452D2c85a0c6cEeB00103bb877"
+  l2ExecutorAddress: "0x11ddd59c33c73c44733b4123a86ea5ce57f6e854"
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
   executorAddressByClientID:
@@ -165,6 +167,7 @@ encoder:
     executeIziSwap: 26
     executeTraderJoeV2: 27
     executeSmardex: 34
+    executeSwaapV2: 38
 useCase:
   getRoute:
     chainId: *chainId
@@ -281,6 +284,15 @@ useCase:
       shrinkFuncLogPercent: 1.01
   buildRoute:
     chainId: *chainId
+    rfq:
+      - id: swaap-v2
+        handler: swaap-v2
+        properties:
+          http:
+            base_url: "https://api.swaap.finance"
+            timeout: 10s
+            retry_count: 3
+            api_key:
     faultyPools:
       windowSize: 15m
       faultyExpiredTime: 3m

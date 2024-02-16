@@ -86,6 +86,7 @@ type types struct {
 	Fulcrom                    string
 	SolidlyV3                  string
 	ZkEraFinance               string
+	SwaapV2                    string
 }
 
 var (
@@ -175,5 +176,6 @@ var (
 		Gyroscope3CLP:              "gyroscope-3clp",
 		GyroscopeECLP:              "gyroscope-eclp",
 		ZkEraFinance:               "zkera-finance",
+		SwaapV2:                    "swaap-v2",
 	}
 )

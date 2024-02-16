@@ -22,6 +22,7 @@ type Common struct {
 	BlacklistedPoolsSet map[string]bool          `mapstructure:"blacklistedPoolsSet"`
 	AvailableSources    []string                 `mapstructure:"availableSources"`
 	FeatureFlags        valueobject.FeatureFlags `mapstructure:"featureFlags"`
+	SwaapAPIKey         string                   `mapstructure:"swaapAPIKey" json:"-"`
 }
 
 type AEVM struct {

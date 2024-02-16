@@ -47,7 +47,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 
 				encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
 				encoder := mockEncode.NewMockIEncoder(ctrl)
-				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).Return(encoder)
+				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).Return(encoder).AnyTimes()
 				encoder.EXPECT().
 					Encode(gomock.Any()).
 					Return("", theErr).AnyTimes()

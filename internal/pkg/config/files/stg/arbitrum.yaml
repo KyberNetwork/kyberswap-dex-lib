@@ -82,7 +82,9 @@ common:
     - "gyroscope-3clp"
     - "gyroscope-eclp"
     - "solidly-v3"
+    - "swaap-v2"
   featureFlags: &featureFlags
+  swaapAPIKey:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -168,6 +170,7 @@ encoder:
     executeTraderJoeV2: 27
     executeKyberDSLO: 28
     executeSmardex: 34
+    executeSwaapV2: 38
 useCase:
   getRoute:
     chainId: *chainId
@@ -290,6 +293,14 @@ useCase:
         properties:
           chainID: *chainId
           limitOrderHTTPUrl: https://limit-order.stg.kyberengineering.io
+      - id: swaap-v2
+        handler: swaap-v2
+        properties:
+          http:
+            base_url: "https://api.swaap.finance"
+            timeout: 10s
+            retry_count: 3
+            api_key:
     faultyPools:
       windowSize: 15m
       faultyExpiredTime: 3m

@@ -88,7 +88,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.Handle")
 	defer span.End()
 
-	routeSummary, err := uc.rfq(ctx, command.Recipient, command.RouteSummary)
+	routeSummary, err := uc.rfq(ctx, command.Sender, command.Recipient, command.Source, command.RouteSummary)
 	if err != nil {
 		return nil, err
 	}
@@ -141,9 +141,15 @@ func (uc *BuildRouteUseCase) ApplyConfig(config Config) {
 
 func (uc *BuildRouteUseCase) rfq(
 	ctx context.Context,
+	sender string,
 	recipient string,
+	source string,
 	routeSummary valueobject.RouteSummary,
 ) (valueobject.RouteSummary, error) {
+	executorAddress := uc.encodeBuilder.
+		GetEncoder(dexValueObject.ChainID(uc.config.ChainID)).
+		GetExecutorAddress(source)
+
 	for pathIdx, path := range routeSummary.Route {
 		for swapIdx, swap := range path {
 			rfqHandler, found := uc.rfqHandlerByPoolType[swap.PoolType]
@@ -154,7 +160,26 @@ func (uc *BuildRouteUseCase) rfq(
 				continue
 			}
 
-			result, err := rfqHandler.RFQ(ctx, recipient, swap.Extra)
+			var rfqRecipient string
+			if swapIdx < len(path)-1 &&
+				business.CanReceiveTokenBeforeSwap(path[swapIdx+1].Exchange) &&
+				business.CanReceiveTokenBeforeSwap(swap.Exchange) {
+				// NOTE: We also need to ensure that current swap
+				// can receive token before swap due to smart contract logic
+
+				rfqRecipient = path[swapIdx+1].Pool
+			} else {
+				rfqRecipient = executorAddress
+			}
+
+			result, err := rfqHandler.RFQ(ctx, pool.RFQParams{
+				NetworkID:    uint(uc.config.ChainID),
+				Sender:       sender,
+				Recipient:    recipient,
+				RFQSender:    executorAddress,
+				RFQRecipient: rfqRecipient,
+				SwapInfo:     swap.Extra,
+			})
 			if err != nil {
 				return routeSummary, errors.Wrapf(err, "rfq failed, swap data: %v", swap)
 			}

@@ -431,7 +431,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	rfqHandlerByPoolType := make(map[string]poolpkg.IPoolRFQ)
 	for _, s := range cfg.UseCase.BuildRoute.RFQ {
-		rfqHandler, err := bootstrap.NewRFQHandler(s)
+		rfqHandler, err := bootstrap.NewRFQHandler(s, cfg.Common)
 		if err != nil {
 			return fmt.Errorf("can not create RFQ handler: %v, err: %v", s.Handler, err)
 		}

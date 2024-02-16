@@ -222,6 +222,8 @@ var (
 
 	ExchangePharaoh   Exchange = "pharaoh"
 	ExchangePharaohV2 Exchange = "pharaoh-v2"
+
+	ExchangeSwaapV2 Exchange = "swaap-v2"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -435,6 +437,8 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeKyberPMM: {},
 
 	ExchangeKyberSwapLimitOrderDS: {},
+
+	ExchangeSwaapV2: {},
 }
 
 func IsRFQSource(exchange Exchange) bool {
@@ -545,6 +549,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 	// executeVelocoreV2
 	ExchangeVelocoreV2CPMM:         {},
 	ExchangeVelocoreV2WombatStable: {},
+
+	// executeSwaapV2
+	ExchangeSwaapV2: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {
