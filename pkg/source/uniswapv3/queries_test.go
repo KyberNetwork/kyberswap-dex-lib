@@ -112,7 +112,6 @@ func TestQueriesUniswapV3_GetPoolTicksQuery(t *testing.T) {
 				liquidityGross
 			}
 		}
-		_meta { block { timestamp }}
 	}`, "abc", "0")
 
 		actual := getPoolTicksQuery(true, "abc", "0")
@@ -141,7 +140,6 @@ func TestQueriesUniswapV3_GetPoolTicksQuery(t *testing.T) {
 				liquidityGross
 			}
 		}
-		_meta { block { timestamp }}
 	}`, "abc", "0")
 
 		actual := getPoolTicksQuery(false, "abc", "0")
