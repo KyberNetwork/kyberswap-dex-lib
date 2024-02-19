@@ -44,7 +44,7 @@ func (u *IndexPoolsJob) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			logger.
-				WithFields(
+				WithFields(ctx,
 					logger.Fields{
 						"job.name": IndexPools,
 						"error":    ctx.Err(),
@@ -62,7 +62,7 @@ func (u *IndexPoolsJob) run(ctx context.Context) {
 	startTime := time.Now()
 	defer func() {
 		logger.
-			WithFields(
+			WithFields(ctx,
 				logger.Fields{
 					"job.id":      jobID,
 					"job.name":    IndexPools,
@@ -74,7 +74,7 @@ func (u *IndexPoolsJob) run(ctx context.Context) {
 	poolAddresses, err := u.getAllPoolAddressesUseCase.Handle(ctx)
 	if err != nil {
 		logger.
-			WithFields(
+			WithFields(ctx,
 				logger.Fields{
 					"job.id":   jobID,
 					"job.name": IndexPools,
@@ -97,7 +97,7 @@ func (u *IndexPoolsJob) run(ctx context.Context) {
 
 	if failedCount > 0 {
 		logger.
-			WithFields(
+			WithFields(ctx,
 				logger.Fields{
 					"job.id":       jobID,
 					"job.name":     IndexPools,
@@ -109,7 +109,7 @@ func (u *IndexPoolsJob) run(ctx context.Context) {
 	}
 
 	logger.
-		WithFields(
+		WithFields(ctx,
 			logger.Fields{
 				"job.id":      jobID,
 				"job.name":    IndexPools,

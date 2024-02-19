@@ -9,7 +9,6 @@ import (
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
-	"go.uber.org/zap"
 	gintracer "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
@@ -18,6 +17,7 @@ import (
 	clientidpkg "github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	requestidpkg "github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
@@ -26,7 +26,7 @@ const (
 	liveAPIPath  = "/api/v1/health/ready"
 )
 
-func GinServer(cfg *HTTPConfig, zapLogger *zap.Logger) (*gin.Engine, *gin.RouterGroup, error) {
+func GinServer(cfg *HTTPConfig, logCfg logger.Configuration, logBackend logger.LoggerBackend) (*gin.Engine, *gin.RouterGroup, error) {
 	gin.SetMode(cfg.Mode)
 	gin.EnableJsonDecoderUseNumber()
 
@@ -84,7 +84,7 @@ func GinServer(cfg *HTTPConfig, zapLogger *zap.Logger) (*gin.Engine, *gin.Router
 	)
 
 	server.Use(middlewares...)
-	server.Use(loggermiddleware.New(skipPathSet))
+	server.Use(loggermiddleware.New(skipPathSet, logCfg, logBackend))
 	server.Use(gin.CustomRecovery(api.RecoveryFunc))
 
 	setCORS(server)

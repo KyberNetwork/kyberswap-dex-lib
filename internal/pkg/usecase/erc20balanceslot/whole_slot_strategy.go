@@ -48,8 +48,8 @@ func (*WholeSlotStrategy) Name(_ ProbeStrategyExtraParams) string {
 
 // ProbeBalanceSlot For a ERC20 token and a wallet, find the storage slot of the token that contains the wallet's balance of the token.
 // This approach only works if the ERC20 token's contract reads and writes balances directly from and to a mapping.
-func (p *WholeSlotStrategy) ProbeBalanceSlot(_ context.Context, token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
-	logger.Infof("probing balance slot for wallet %s in token %s\n", p.wallet, token)
+func (p *WholeSlotStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
+	logger.Infof(ctx, "probing balance slot for wallet %s in token %s\n", p.wallet, token)
 
 	/*
 		Step 1: Trace all SLOAD instructions after calling balanceOf(wallet)
@@ -96,7 +96,7 @@ func (p *WholeSlotStrategy) ProbeBalanceSlot(_ context.Context, token common.Add
 		}
 
 		testValue := randomizeHash()
-		logger.Debugf("    probing slot %s with test value %s\n", common.HexToHash(sload.Slot), testValue)
+		logger.Debugf(ctx, "    probing slot %s with test value %s\n", common.HexToHash(sload.Slot), testValue)
 		result, err := jsonrpc.EthCall(
 			p.rpcClient,
 			&jsonrpc.EthCallCalldataParam{
@@ -117,15 +117,15 @@ func (p *WholeSlotStrategy) ProbeBalanceSlot(_ context.Context, token common.Add
 		if err != nil {
 			return nil, err
 		}
-		logger.Debugf("    result = %+v\n", *result)
+		logger.Debugf(ctx, "    result = %+v\n", *result)
 		if common.HexToHash(*result) == testValue {
-			logger.Debugf("        slot %s is a candidate\n", common.HexToHash(sload.Slot))
+			logger.Debugf(ctx, "        slot %s is a candidate\n", common.HexToHash(sload.Slot))
 			possibleSlots = append(possibleSlots, common.HexToHash(sload.Slot))
 		}
 	}
 
 	if len(possibleSlots) != 1 {
-		logger.Debugf("    EXPECTED 1 CANDIDATE, GOT %v\n", len(possibleSlots))
+		logger.Debugf(ctx, "    EXPECTED 1 CANDIDATE, GOT %v\n", len(possibleSlots))
 		return nil, errors.New("could not probe")
 	}
 

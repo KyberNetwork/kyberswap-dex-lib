@@ -106,7 +106,7 @@ func probeBalanceSlotAction(c *cli.Context) error {
 	}
 
 	if err := cfg.Validate(); err != nil {
-		logger.Errorf("failed to validate config, err: %v", err)
+		logger.Errorf(c.Context, "failed to validate config, err: %v", err)
 		panic(err)
 	}
 
@@ -117,7 +117,7 @@ func probeBalanceSlotAction(c *cli.Context) error {
 		walletAddr = randomizeAddress()
 	}
 
-	logger.Infof("wallet address: %s\n", walletAddr)
+	logger.Infof(c.Context, "wallet address: %s\n", walletAddr)
 
 	var jsonrpcURL string
 	if c.IsSet("jsonrpcurl-override") {
@@ -126,13 +126,13 @@ func probeBalanceSlotAction(c *cli.Context) error {
 		jsonrpcURL = cfg.Common.RPC
 	}
 
-	logger.Infof("JSONRPC URL: %s\n", jsonrpcURL)
+	logger.Infof(c.Context, "JSONRPC URL: %s\n", jsonrpcURL)
 
 	retryNotFoundTokens := c.Bool("retry-not-found-tokens")
 
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf("fail to init redis client to pool service")
+		logger.Errorf(c.Context, "fail to init redis client to pool service")
 		return err
 	}
 
@@ -177,7 +177,7 @@ func probeBalanceSlotAction(c *cli.Context) error {
 
 	balanceSlots, err := balanceSlotRepo.GetAll(context.Background())
 	if err != nil {
-		logger.Errorf("could not get balance slots %s", err)
+		logger.Errorf(c.Context, "could not get balance slots %s", err)
 	}
 
 	if c.Bool("skip-existing-tokens") {
@@ -189,7 +189,7 @@ func probeBalanceSlotAction(c *cli.Context) error {
 			}
 		}
 	}
-	logger.Infof("number of tokens to probe = %v\n", len(tokens))
+	logger.Infof(c.Context, "number of tokens to probe = %v\n", len(tokens))
 
 	rpcClient, err := rpc.DialHTTP(jsonrpcURL)
 	if err != nil {
@@ -211,9 +211,9 @@ func probeBalanceSlotAction(c *cli.Context) error {
 		}
 		bl, err := probe.ProbeBalanceSlot(context.TODO(), token, oldBl, extraParams)
 		if err != nil {
-			logger.Infof("ERROR: %s\n", err)
+			logger.Infof(c.Context, "ERROR: %s\n", err)
 		} else {
-			logger.Infof("(%d/%d) %s : %+v\n", i+1, len(tokens), token, bl)
+			logger.Infof(c.Context, "(%d/%d) %s : %+v\n", i+1, len(tokens), token, bl)
 			newBalanceSlots = append(newBalanceSlots, bl)
 		}
 
@@ -250,13 +250,13 @@ func convertToPreloadedAction(c *cli.Context) error {
 	}
 
 	if err := cfg.Validate(); err != nil {
-		logger.Errorf("failed to validate config, err: %v", err)
+		logger.Errorf(c.Context, "failed to validate config, err: %v", err)
 		panic(err)
 	}
 
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf("fail to init redis client to pool service")
+		logger.Errorf(c.Context, "fail to init redis client to pool service")
 		return err
 	}
 

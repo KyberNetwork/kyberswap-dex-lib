@@ -49,7 +49,7 @@ func (r *redisRepository) FindByAddresses(ctx context.Context, addresses []strin
 		tokenDataStr, ok := tokenData.(string)
 		if !ok {
 			logger.
-				WithFields(logger.Fields{"key": addresses[i]}).
+				WithFields(ctx, logger.Fields{"key": addresses[i]}).
 				Warn("invalid token data")
 			continue
 		}
@@ -57,7 +57,7 @@ func (r *redisRepository) FindByAddresses(ctx context.Context, addresses []strin
 		token, err := decodeToken(addresses[i], tokenDataStr)
 		if err != nil {
 			logger.
-				WithFields(logger.Fields{"error": err, "key": addresses[i]}).
+				WithFields(ctx, logger.Fields{"error": err, "key": addresses[i]}).
 				Warn("decode token data failed")
 			continue
 		}

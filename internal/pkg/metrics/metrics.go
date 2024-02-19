@@ -69,65 +69,65 @@ func init() {
 	}
 }
 
-func IncrDexHitRate(dex string) {
+func IncrDexHitRate(ctx context.Context, dex string) {
 	tags := map[string]string{
 		"dex": dex,
 	}
 
-	incr(DexHitRateMetricsName, tags, 0.1)
+	incr(ctx, DexHitRateMetricsName, tags, 0.1)
 }
 
-func IncrPoolTypeHitRate(poolType string) {
+func IncrPoolTypeHitRate(ctx context.Context, poolType string) {
 	tags := map[string]string{
 		"pool_type": poolType,
 	}
 
-	incr(PoolTypeHitRateMetricsName, tags, 0.1)
+	incr(ctx, PoolTypeHitRateMetricsName, tags, 0.1)
 }
 
-func IncrRequestPairCount(tokenInAddress, tokenOutAddress string) {
+func IncrRequestPairCount(ctx context.Context, tokenInAddress, tokenOutAddress string) {
 	tags := map[string]string{
 		"token0": tokenInAddress,
 		"token1": tokenOutAddress,
 	}
 
-	incr(RequestPairCountMetricsName, tags, 0.5)
+	incr(ctx, RequestPairCountMetricsName, tags, 0.5)
 }
 
-func IncrFindRoutePregenCount(pregenHit bool, otherTags map[string]string) {
+func IncrFindRoutePregenCount(ctx context.Context, pregenHit bool, otherTags map[string]string) {
 	tags := map[string]string{
 		"hit": strconv.FormatBool(pregenHit),
 	}
 
 	maps.Copy(tags, otherTags)
 
-	incr(FindRoutePregenHitRateMetricsName, tags, 1)
+	incr(ctx, FindRoutePregenHitRateMetricsName, tags, 1)
 }
 
-func IncrFindRouteCacheCount(cacheHit bool, otherTags map[string]string) {
+func IncrFindRouteCacheCount(ctx context.Context, cacheHit bool, otherTags map[string]string) {
 	tags := map[string]string{
 		"hit": strconv.FormatBool(cacheHit),
 	}
 
 	maps.Copy(tags, otherTags)
 
-	incr(FindRouteCacheCountMetricsName, tags, 1)
+	incr(ctx, FindRouteCacheCountMetricsName, tags, 1)
 }
 
-func IncrRequestCount(clientID string, responseStatus int) {
+func IncrRequestCount(ctx context.Context, clientID string, responseStatus int) {
 	tags := map[string]string{
 		"client_id":   clientID,
 		"http_status": strconv.FormatInt(int64(responseStatus), 10),
 	}
 
-	incr(RequestCountMetricsName, tags, 1)
+	incr(ctx, RequestCountMetricsName, tags, 1)
 }
 
-func IncrInvalidSynthetixVolume() {
-	incr(InvalidSynthetixVolumeMetricsName, nil, 1)
+func IncrInvalidSynthetixVolume(ctx context.Context) {
+	incr(ctx, InvalidSynthetixVolumeMetricsName, nil, 1)
 }
 
-func IncrEstimateGas(isSuccess bool, dexID string, clientId string) {
+func IncrEstimateGas(ctx context.Context, isSuccess bool, dexID string, clientId string) {
 	state := "success"
 	if !isSuccess {
 		state = "failed"
@@ -138,10 +138,10 @@ func IncrEstimateGas(isSuccess bool, dexID string, clientId string) {
 		"client_id": clientId,
 	}
 
-	incr(EstimateGasStatusMetricsName, tags, 1)
+	incr(ctx, EstimateGasStatusMetricsName, tags, 1)
 }
 
-func HistogramEstimateGasWithSlippage(slippage float64, isSuccess bool) {
+func HistogramEstimateGasWithSlippage(ctx context.Context, slippage float64, isSuccess bool) {
 	state := "success"
 	if !isSuccess {
 		state = "failed"
@@ -149,13 +149,13 @@ func HistogramEstimateGasWithSlippage(slippage float64, isSuccess bool) {
 	tags := map[string]string{
 		"state": state,
 	}
-	histogram(EstimateGasWithSlippageMetricsName, slippage, tags, 1)
+	histogram(ctx, EstimateGasWithSlippageMetricsName, slippage, tags, 1)
 }
 
 func Flush() {
 	// Flush VanPT
 	if err := kybermetric.Flush(context.Background()); err != nil {
-		logger.WithFields(logger.Fields{
+		logger.WithFieldsNonContext(logger.Fields{
 			"error": err,
 		}).Warn("failed to flush VanPT metrics")
 	}
@@ -166,13 +166,13 @@ func Flush() {
 	}
 
 	if err := client.Flush(); err != nil {
-		logger.WithFields(logger.Fields{
+		logger.WithFieldsNonContext(logger.Fields{
 			"error": err,
 		}).Warn("failed to flush metrics")
 	}
 }
 
-func incr(name string, tags map[string]string, rate float64) {
+func incr(ctx context.Context, name string, tags map[string]string, rate float64) {
 	// Incr VanPT
 	if counter, exist := mapMetricNameToCounter[name]; counter != nil && exist {
 		attributes := make([]attribute.KeyValue, 0, len(tags))
@@ -181,7 +181,7 @@ func incr(name string, tags map[string]string, rate float64) {
 		}
 		counter.Add(context.Background(), rate, metric.WithAttributes(attributes...))
 	} else {
-		logger.Warnf("counter for %s metrics not found", name)
+		logger.Warnf(ctx, "counter for %s metrics not found", name)
 	}
 
 	// Incr DataDog
@@ -193,7 +193,7 @@ func incr(name string, tags map[string]string, rate float64) {
 		return fmt.Sprintf("%s:%s", k, v)
 	})
 	if err := client.Incr(name, ddTags, rate); err != nil {
-		logger.WithFields(logger.Fields{
+		logger.WithFields(ctx, logger.Fields{
 			"error": err,
 		}).Warnf("failed to push %s metrics", name)
 	}
@@ -201,7 +201,7 @@ func incr(name string, tags map[string]string, rate float64) {
 
 // NOTE: Still keep this unused function in case we further need to use gauge metrics
 // nolint:golint,unused
-func gauge(name string, value float64, tags map[string]string, rate float64) {
+func gauge(ctx context.Context, name string, value float64, tags map[string]string, rate float64) {
 	if client == nil {
 		return
 	}
@@ -210,7 +210,7 @@ func gauge(name string, value float64, tags map[string]string, rate float64) {
 		return fmt.Sprintf("%s:%s", k, v)
 	})
 	if err := client.Gauge(name, value, ddTags, rate); err != nil {
-		logger.WithFields(logger.Fields{
+		logger.WithFields(ctx, logger.Fields{
 			"error": err,
 		}).Warnf("failed to push %s metrics", name)
 	}
@@ -218,7 +218,7 @@ func gauge(name string, value float64, tags map[string]string, rate float64) {
 
 // NOTE: Still keep this unused function in case we further need to use histogram metrics
 // nolint:golint,unused
-func histogram(name string, value float64, tags map[string]string, rate int64) {
+func histogram(ctx context.Context, name string, value float64, tags map[string]string, rate int64) {
 	if histogramMetric, exist := mapMetricNameToHistogram[name]; histogramMetric != nil && exist {
 		attributes := make([]attribute.KeyValue, 0, len(tags))
 		for key, value := range tags {
@@ -226,7 +226,7 @@ func histogram(name string, value float64, tags map[string]string, rate int64) {
 		}
 		histogramMetric.Record(context.Background(), rate, metric.WithAttributes(attributes...))
 	} else {
-		logger.Warnf("histogram for %s metrics not found", name)
+		logger.Warnf(ctx, "histogram for %s metrics not found", name)
 	}
 
 	if client == nil {
@@ -237,7 +237,7 @@ func histogram(name string, value float64, tags map[string]string, rate int64) {
 		return fmt.Sprintf("%s:%s", k, v)
 	})
 	if err := client.Histogram(name, value, ddTags, float64(rate)); err != nil {
-		logger.WithFields(logger.Fields{
+		logger.WithFields(ctx, logger.Fields{
 			"error": err,
 		}).Warnf("failed to push %s metrics", name)
 	}

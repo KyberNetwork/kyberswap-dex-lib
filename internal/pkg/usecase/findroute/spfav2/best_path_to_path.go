@@ -32,7 +32,7 @@ func bestPathToPath(
 		// construct path from bestPath and perform some sanity check regarding pool length and token addresses
 		path, err := newPathFromBestPathWithoutInputOutput(data.TokenByAddress, input.TokenInAddress, input.TokenOutAddress, bestPath)
 		if err != nil {
-			logger.WithFields(logger.Fields{"error": err}).Debug("[spfav2Finder.bestPathToPath] does not pass sanity check")
+			logger.WithFields(ctx, logger.Fields{"error": err}).Debug("[spfav2Finder.bestPathToPath] does not pass sanity check")
 			continue
 		}
 
@@ -44,7 +44,7 @@ func bestPathToPath(
 		// otherwise, compute as usual and save the result to calcAmountOutResultBySwapKey
 		tokenAmountOut, totalGas, err := calcAmountOutAndUpdateCache(data.PoolBucket, tokenAmountIn, path, calcAmountOutResultBySwapKey, data.SwapLimits)
 		if err != nil {
-			logger.WithFields(logger.Fields{"error": err}).Debug("[spfav2Finder.bestPathToPath] failed to calcAmountOut")
+			logger.WithFields(ctx, logger.Fields{"error": err}).Debug("[spfav2Finder.bestPathToPath] failed to calcAmountOut")
 			continue
 		}
 

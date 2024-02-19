@@ -51,7 +51,7 @@ func logRedisOption(universalClient redis.UniversalClient) {
 	clusterClient, ok := universalClient.(*redis.ClusterClient)
 
 	if ok {
-		logger.WithFields(logger.Fields{
+		logger.WithFieldsNonContext(logger.Fields{
 			"clusterClientOpts.PoolSize":        clusterClient.Options().PoolSize,
 			"clusterClientOpts.MinIdleConns":    clusterClient.Options().MinIdleConns,
 			"clusterClientOpts.PoolTimeout":     clusterClient.Options().PoolTimeout,
@@ -65,7 +65,7 @@ func logRedisOption(universalClient redis.UniversalClient) {
 
 	client, ok := universalClient.(*redis.Client)
 	if ok {
-		logger.WithFields(logger.Fields{
+		logger.WithFieldsNonContext(logger.Fields{
 			"client.PoolSize":        client.Options().PoolSize,
 			"client.MinIdleConns":    client.Options().MinIdleConns,
 			"client.PoolTimeout":     client.Options().PoolTimeout,

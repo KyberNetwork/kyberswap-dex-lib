@@ -79,7 +79,7 @@ func (r *redisRepository) FindByAddresses(ctx context.Context, addresses []strin
 		poolDataStr, ok := poolData.(string)
 		if !ok {
 			logger.
-				WithFields(logger.Fields{"key": addresses[i]}).
+				WithFields(ctx, logger.Fields{"key": addresses[i]}).
 				Warn("invalid pool data")
 			continue
 		}
@@ -87,7 +87,7 @@ func (r *redisRepository) FindByAddresses(ctx context.Context, addresses []strin
 		pool, err := decodePool(addresses[i], poolDataStr)
 		if err != nil {
 			logger.
-				WithFields(logger.Fields{"error": err, "key": addresses[i]}).
+				WithFields(ctx, logger.Fields{"error": err, "key": addresses[i]}).
 				Warn("decode pool data failed")
 			continue
 		}

@@ -157,7 +157,7 @@ func (p *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	si, ok := params.SwapInfo.(*aevmcore.AEVMSwapInfo)
 	if !ok {
-		logger.WithFields(logger.Fields{"address": p.Info.Address}).Warn("invalid swap info")
+		logger.WithFieldsNonContext(logger.Fields{"address": p.Info.Address}).Warn("invalid swap info")
 		return
 	}
 

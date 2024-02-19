@@ -61,7 +61,7 @@ func (f *uniswapFinder) genBestRoutes(
 	// Step 1: for each multiple distributionPercent (<=100), we try swap using generated "paths" with amountIn=input.AmountIn*.../100
 	// percentToPath = {5:{path1,path2,...}, 10:{path3,path4,...},...,100:{path_x,path_y,...}}
 	// percents = {5,10,15,20,...,100}
-	percentToPath, percents := f.genPathsWithSplitAmountIn(input, data, paths)
+	percentToPath, percents := f.genPathsWithSplitAmountIn(ctx, input, data, paths)
 
 	var (
 		// currentLayer now contains routes that consist of exactly one path
@@ -87,7 +87,7 @@ func (f *uniswapFinder) genBestRoutes(
 	return routes[:f.maxRoutes], nil
 }
 
-func (f *uniswapFinder) genPathsWithSplitAmountIn(input findroute.Input, data findroute.FinderData, paths []*valueobject.Path) (percentToPath map[int][]*valueobject.Path, percents []int) {
+func (f *uniswapFinder) genPathsWithSplitAmountIn(ctx context.Context, input findroute.Input, data findroute.FinderData, paths []*valueobject.Path) (percentToPath map[int][]*valueobject.Path, percents []int) {
 	percentToPath = make(map[int][]*valueobject.Path)
 
 	for percentIndex := 1; int(f.distributionPercent)*percentIndex <= constant.OneHundredPercent; percentIndex++ {
@@ -117,7 +117,7 @@ func (f *uniswapFinder) genPathsWithSplitAmountIn(input findroute.Input, data fi
 				valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}, data.SwapLimits,
 			)
 			if err != nil {
-				logger.WithFields(logger.Fields{"error": err}).
+				logger.WithFields(ctx, logger.Fields{"error": err}).
 					Debug("cannot init new path with split amount")
 			} else {
 				splitPaths = append(splitPaths, splitPath)

@@ -185,7 +185,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 						if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
 							tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
 						}
-						tokenToPoolAddress[tokenAddress].AddAddress(pool.GetAddress())
+						tokenToPoolAddress[tokenAddress].AddAddress(ctx, pool.GetAddress())
 					}
 					if !addressesSet.Contains(pool.GetAddress()) {
 						continue

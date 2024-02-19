@@ -18,7 +18,7 @@ func GetTokens(
 	useCase IGetTokensUseCase,
 ) func(ginCtx *gin.Context) {
 	return func(ginCtx *gin.Context) {
-		span, ctx := tracer.StartSpanFromContext(ginCtx.Request.Context(), "GetTokens")
+		span, ctx := tracer.StartSpanFromGinContext(ginCtx, "GetTokens")
 		defer span.End()
 
 		var queryParams params.GetTokensParams

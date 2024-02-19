@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"math/big"
 	"net/http"
@@ -32,7 +33,7 @@ func GetRouteEncode(
 	nowFunc func() time.Time,
 ) func(ginCtx *gin.Context) {
 	return func(ginCtx *gin.Context) {
-		span, ctx := tracer.StartSpanFromContext(ginCtx.Request.Context(), "GetRouteEncode")
+		span, ctx := tracer.StartSpanFromGinContext(ginCtx, "GetRouteEncode")
 		defer span.End()
 
 		span.SetTag("request-uri", ginCtx.Request.URL.RequestURI())
@@ -70,7 +71,7 @@ func GetRouteEncode(
 			return
 		}
 
-		buildRouteCommand, err := buildBuildRouteCommand(queryParams, getRoutesResult, nowFunc)
+		buildRouteCommand, err := buildBuildRouteCommand(ctx, queryParams, getRoutesResult, nowFunc)
 		if err != nil {
 			RespondFailure(ginCtx, err)
 			return
@@ -176,6 +177,7 @@ func transformFromGetRouteEncodeToGetRoutesQuery(params params.GetRouteEncodePar
 }
 
 func buildBuildRouteCommand(
+	ctx context.Context,
 	params params.GetRouteEncodeParams,
 	getRoutesResult *dto.GetRoutesResult,
 	nowFunc func() time.Time,
@@ -190,7 +192,7 @@ func buildBuildRouteCommand(
 	}
 	if err := json.Unmarshal([]byte(params.ClientData), &clientData); err != nil {
 		logger.
-			WithFields(logger.Fields{"error": err}).
+			WithFields(ctx, logger.Fields{"error": err}).
 			Warn("unmarshal client data failed")
 	}
 

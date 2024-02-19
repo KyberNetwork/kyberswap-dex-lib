@@ -175,7 +175,7 @@ func (a *aggregator) findBestRoute(
 		input.SourceHash = valueobject.HashSources(getrouteencode.GetSourcesAfterExclude(params.Sources))
 	}
 
-	data := findroute.NewFinderData(tokenByAddress, priceUSDByAddress, state)
+	data := findroute.NewFinderData(ctx, tokenByAddress, priceUSDByAddress, state)
 	defer data.ReleaseResources()
 	var (
 		routes []*valueobject.Route
@@ -201,7 +201,7 @@ func (a *aggregator) findBestRoute(
 }
 
 func (a *aggregator) summarizeRoute(
-	_ context.Context,
+	ctx context.Context,
 	route *valueobject.Route,
 	params *types.AggregateParams,
 	poolByAddress map[string]poolpkg.IPoolSimulator,
@@ -293,8 +293,8 @@ func (a *aggregator) summarizeRoute(
 			// Step 2.1.8: update input of the next swap is output of current swap
 			tokenAmountIn = *result.TokenAmountOut
 
-			metrics.IncrDexHitRate(string(swap.Exchange))
-			metrics.IncrPoolTypeHitRate(swap.PoolType)
+			metrics.IncrDexHitRate(ctx, string(swap.Exchange))
+			metrics.IncrPoolTypeHitRate(ctx, swap.PoolType)
 		}
 
 		// Step 2.2: add up amountOut
@@ -302,7 +302,7 @@ func (a *aggregator) summarizeRoute(
 		summarizedRoute = append(summarizedRoute, summarizedPath)
 	}
 
-	metrics.IncrRequestPairCount(params.TokenIn.Address, params.TokenOut.Address)
+	metrics.IncrRequestPairCount(ctx, params.TokenIn.Address, params.TokenOut.Address)
 
 	return &valueobject.RouteSummary{
 		TokenIn:      params.TokenIn.Address,

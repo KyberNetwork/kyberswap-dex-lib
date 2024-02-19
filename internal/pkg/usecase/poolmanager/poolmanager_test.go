@@ -23,6 +23,7 @@ import (
 const configFile = "../../config/files/dev/polygon.yaml"
 
 func newMockPointerSwapPoolManager(configFile string) (*poolmanager.PointerSwapPoolManager, error) {
+	ctx := context.TODO()
 	configLoader, err := config.NewConfigLoader(configFile)
 	if err != nil {
 		return nil, err
@@ -34,7 +35,7 @@ func newMockPointerSwapPoolManager(configFile string) (*poolmanager.PointerSwapP
 	}
 
 	if err = cfg.Validate(); err != nil {
-		logger.Errorf("failed to validate config, err: %v", err)
+		logger.Errorf(ctx, "failed to validate config, err: %v", err)
 		panic(err)
 	}
 
@@ -45,16 +46,17 @@ func newMockPointerSwapPoolManager(configFile string) (*poolmanager.PointerSwapP
 
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf("fail to init redis client to pool service")
+		logger.Errorf(ctx, "fail to init redis client to pool service")
 		return nil, err
 	}
 	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil, nil)
-	return poolmanager.NewPointerSwapPoolManager(poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager, nil)
+	return poolmanager.NewPointerSwapPoolManager(ctx, poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager, nil)
 }
 
 func newMockPoolManager(configFile string) (*poolmanager.PoolManager, error) {
+	ctx := context.TODO()
 	configLoader, err := config.NewConfigLoader(configFile)
 	if err != nil {
 		return nil, err
@@ -66,13 +68,13 @@ func newMockPoolManager(configFile string) (*poolmanager.PoolManager, error) {
 	}
 
 	if err = cfg.Validate(); err != nil {
-		logger.Errorf("failed to validate config, err: %v", err)
+		logger.Errorf(ctx, "failed to validate config, err: %v", err)
 		panic(err)
 	}
 
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf("fail to init redis client to pool service")
+		logger.Errorf(ctx, "fail to init redis client to pool service")
 		return nil, err
 	}
 	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
@@ -108,6 +110,7 @@ func comparePoolManager(
 }
 
 func listAddresses(configFile, tokenIn, tokenOut string) ([]string, []string, error) {
+	ctx := context.TODO()
 	configLoader, err := config.NewConfigLoader(configFile)
 	if err != nil {
 		return nil, nil, err
@@ -119,7 +122,7 @@ func listAddresses(configFile, tokenIn, tokenOut string) ([]string, []string, er
 	}
 
 	if err = cfg.Validate(); err != nil {
-		logger.Errorf("failed to validate config, err: %v", err)
+		logger.Errorf(ctx, "failed to validate config, err: %v", err)
 		panic(err)
 	}
 

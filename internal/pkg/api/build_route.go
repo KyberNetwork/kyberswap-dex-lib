@@ -23,7 +23,7 @@ func BuildRoute(
 	nowFunc func() time.Time,
 ) func(ginCtx *gin.Context) {
 	return func(ginCtx *gin.Context) {
-		span, ctx := tracer.StartSpanFromContext(ginCtx.Request.Context(), "BuildRoute")
+		span, ctx := tracer.StartSpanFromGinContext(ginCtx, "BuildRoute")
 		defer span.End()
 
 		clientIDFromHeader := clientid.ExtractClientID(ginCtx)

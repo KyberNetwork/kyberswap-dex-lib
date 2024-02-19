@@ -36,7 +36,7 @@ func (j *TrackExecutorBalanceJob) Run(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			logger.
-				WithFields(
+				WithFields(ctx,
 					logger.Fields{
 						"job.name": TrackExecutorBalance,
 						"error":    ctx.Err(),
@@ -54,7 +54,7 @@ func (j *TrackExecutorBalanceJob) run(ctx context.Context) {
 	startTime := time.Now()
 	defer func() {
 		logger.
-			WithFields(
+			WithFields(ctx,
 				logger.Fields{
 					"job.id":      jobID,
 					"job.name":    TrackExecutorBalance,

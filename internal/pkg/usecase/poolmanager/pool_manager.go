@@ -159,7 +159,7 @@ func listCurveMetaBasePools(
 		}
 
 		if err := json.Unmarshal([]byte(pool.StaticExtra), &staticExtra); err != nil {
-			logger.WithFields(logger.Fields{
+			logger.WithFields(ctx, logger.Fields{
 				"pool.Address": pool.Address,
 				"pool.Type":    pool.Type,
 				"error":        err,
@@ -192,7 +192,7 @@ func (m *PoolManager) filterBlacklistedAddresses(ctx context.Context, addresses 
 	// check again with Redis
 	isInBlacklist, err := m.poolRepository.CheckPoolsInBlacklist(ctx, filtered)
 	if err != nil {
-		logger.Errorf("error checking pool blacklist %v", err)
+		logger.Errorf(ctx, "error checking pool blacklist %v", err)
 		return nil
 	}
 	validPools := make([]string, 0, len(filtered))

@@ -156,7 +156,7 @@ func (uc *BuildRouteUseCase) rfq(
 			if !found {
 				// This pool type does not have RFQ handler
 				// It means that this swap does not need to be processed via RFQ
-				logger.Debugf("no RFQ handler for pool type: %v", swap.PoolType)
+				logger.Debugf(ctx, "no RFQ handler for pool type: %v", swap.PoolType)
 				continue
 			}
 
@@ -431,13 +431,13 @@ func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
 
 	for _, path := range routeSummary.Route {
 		for _, swap := range path {
-			metrics.IncrEstimateGas(err == nil, string(swap.Exchange), clientId)
+			metrics.IncrEstimateGas(ctx, err == nil, string(swap.Exchange), clientId)
 			poolTags = append(poolTags, fmt.Sprintf("%s:%s", swap.Exchange, swap.Pool))
 		}
 	}
 
 	if err != nil {
-		logger.WithFields(logger.Fields{
+		logger.WithFields(ctx, logger.Fields{
 			"requestId": requestid.GetRequestIDFromCtx(ctx),
 			"clientId":  clientId,
 			"pool":      strings.Join(poolTags, ","),
@@ -445,10 +445,10 @@ func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
 
 		if strings.Contains(err.Error(), ErrReturnAmountIsNotEnough.Error()) {
 			// send failed metrics with slippage when error is Return amount is not enough
-			metrics.HistogramEstimateGasWithSlippage(float64(slippage), false)
+			metrics.HistogramEstimateGasWithSlippage(ctx, float64(slippage), false)
 		} else {
 			// send success metrics with slippage
-			metrics.HistogramEstimateGasWithSlippage(float64(slippage), true)
+			metrics.HistogramEstimateGasWithSlippage(ctx, float64(slippage), true)
 		}
 	}
 }
@@ -467,6 +467,6 @@ func (uc *BuildRouteUseCase) trackFaultyPoolsKeyTotalCount(ctx context.Context, 
 	}
 	_, errors := uc.poolRepository.IncreasePoolsTotalCount(ctx, counter, 2*uc.config.FaultyPoolsConfig.WindowSize)
 	for _, err := range errors {
-		logger.Errorf("[TrackFaultyPoolsUseCase] HIncreaseByMultiple err: %v", err)
+		logger.Errorf(ctx, "[TrackFaultyPoolsUseCase] HIncreaseByMultiple err: %v", err)
 	}
 }

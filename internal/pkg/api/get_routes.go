@@ -23,7 +23,7 @@ func GetRoutes(
 	useCase IGetRoutesUseCase,
 ) func(ginCtx *gin.Context) {
 	return func(ginCtx *gin.Context) {
-		span, ctx := tracer.StartSpanFromContext(ginCtx.Request.Context(), "GetRoutes")
+		span, ctx := tracer.StartSpanFromGinContext(ginCtx, "GetRoutes")
 		defer span.End()
 
 		span.SetTag("request-uri", ginCtx.Request.URL.RequestURI())

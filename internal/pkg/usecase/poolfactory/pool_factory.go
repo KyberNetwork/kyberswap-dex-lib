@@ -126,7 +126,7 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool, stateR
 	span, _ := tracer.StartSpanFromContext(ctx, "poolFactory.NewPoolByAddress")
 	defer span.End()
 
-	curveBasePoolByAddress, curveBasePoolAddressSet := f.getCurveMetaBasePoolByAddress(pools)
+	curveBasePoolByAddress, curveBasePoolAddressSet := f.getCurveMetaBasePoolByAddress(ctx, pools)
 
 	iPoolSimulators := make([]poolpkg.IPoolSimulator, 0, len(pools))
 	for _, pool := range pools {
@@ -140,7 +140,7 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool, stateR
 		} else if pool.Type == constant.PoolTypes.CurveMeta {
 			iPool, err := f.newCurveMeta(*pool, curveBasePoolByAddress)
 			if err != nil {
-				logger.Debugf(err.Error())
+				logger.Debugf(ctx, err.Error())
 				continue
 			}
 
@@ -148,7 +148,7 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool, stateR
 		} else {
 			iPool, err := f.newPool(*pool, stateRoot)
 			if err != nil {
-				logger.Debug(err.Error())
+				logger.Debug(ctx, err.Error())
 				continue
 			}
 
@@ -163,7 +163,7 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 	span, _ := tracer.StartSpanFromContext(ctx, "poolFactory.NewPoolByAddress")
 	defer span.End()
 
-	curveBasePoolByAddress, curveBasePoolAddressSet := f.getCurveMetaBasePoolByAddress(pools)
+	curveBasePoolByAddress, curveBasePoolAddressSet := f.getCurveMetaBasePoolByAddress(ctx, pools)
 
 	poolByAddress := make(map[string]poolpkg.IPoolSimulator, len(pools))
 	for _, pool := range pools {
@@ -177,7 +177,7 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 		} else if pool.Type == constant.PoolTypes.CurveMeta {
 			IPoolSimulator, err := f.newCurveMeta(*pool, curveBasePoolByAddress)
 			if err != nil {
-				logger.Debugf(err.Error())
+				logger.Debugf(ctx, err.Error())
 				continue
 			}
 
@@ -185,7 +185,7 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 		} else {
 			iPool, err := f.newPool(*pool, stateRoot)
 			if err != nil {
-				logger.Debugf(err.Error())
+				logger.Debugf(ctx, err.Error())
 				continue
 			}
 
@@ -209,6 +209,7 @@ func (f *PoolFactory) getBalanceSlots(pool *entity.Pool) map[common.Address]*rou
 }
 
 func (f *PoolFactory) getCurveMetaBasePoolByAddress(
+	ctx context.Context,
 	entityPools []*entity.Pool,
 ) (map[string]curveMeta.ICurveBasePool, sets.String) {
 	basePoolByAddress := make(map[string]curveMeta.ICurveBasePool)
@@ -221,7 +222,7 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 				basePoolAddresses.Insert(entityPool.Address)
 				basePool, err := f.newCurveBase(*entityPool)
 				if err != nil {
-					logger.Warn(err.Error())
+					logger.Warn(ctx, err.Error())
 					continue
 				}
 				basePoolByAddress[basePool.GetAddress()] = basePool
@@ -231,7 +232,7 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 				basePoolAddresses.Insert(entityPool.Address)
 				basePool, err := f.newCurvePlainOracle(*entityPool)
 				if err != nil {
-					logger.Warn(err.Error())
+					logger.Warn(ctx, err.Error())
 					continue
 				}
 				basePoolByAddress[basePool.GetAddress()] = basePool
@@ -241,7 +242,7 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 				basePoolAddresses.Insert(entityPool.Address)
 				basePool, err := f.newCurveAAVE(*entityPool)
 				if err != nil {
-					logger.Warn(err.Error())
+					logger.Warn(ctx, err.Error())
 					continue
 				}
 				basePoolByAddress[basePool.GetAddress()] = basePool

@@ -53,8 +53,8 @@ func (*DoubleFromSourceStrategy) Name(extraParams ProbeStrategyExtraParams) stri
 	return fmt.Sprintf("double_from_source,source=%s", strings.ToLower(_extraParams.Source.String()))
 }
 
-func (p *DoubleFromSourceStrategy) ProbeBalanceSlot(_ context.Context, token common.Address, extraParams ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
-	logger.Infof("[%s] probing balance slot for token %s", p.Name(extraParams), token)
+func (p *DoubleFromSourceStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, extraParams ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
+	logger.Infof(ctx, "[%s] probing balance slot for token %s", p.Name(extraParams), token)
 
 	_extraParams, ok := extraParams.(*DoubleFromSourceStrategyExtraParams)
 	if !ok || _extraParams == nil {
@@ -90,10 +90,10 @@ func (p *DoubleFromSourceStrategy) ProbeBalanceSlot(_ context.Context, token com
 
 	for i := 0; i < maxDoublingIterations; i++ {
 		var nextSource *common.Address
-		nextBalance, nextSource, nextOverrides, err := p.doubleBalance(blockNumberHex, token, source, srcOverrides)
+		nextBalance, nextSource, nextOverrides, err := p.doubleBalance(ctx, blockNumberHex, token, source, srcOverrides)
 		// stop if err while doubling
 		if err != nil {
-			logger.Warnf("could not double balance: %s", err)
+			logger.Warnf(ctx, "could not double balance: %s", err)
 			break
 		}
 		// stop if balance stop doubling
@@ -155,7 +155,7 @@ See the diagram by pasting the following code into https://edotor.net.
 	    wallet3 -> wallet3_state;
 	}
 */
-func (p *DoubleFromSourceStrategy) doubleBalance(blockNumberHex string, token, source common.Address, srcOverrides map[common.Hash]common.Hash) (
+func (p *DoubleFromSourceStrategy) doubleBalance(ctx context.Context, blockNumberHex string, token, source common.Address, srcOverrides map[common.Hash]common.Hash) (
 	balance *big.Int, nextSource *common.Address, nextOverrides map[common.Hash]common.Hash, err error) {
 	// transfer from source to randomized wallet1
 	wallet1 := randomizeAddress()
@@ -204,7 +204,7 @@ func (p *DoubleFromSourceStrategy) doubleBalance(blockNumberHex string, token, s
 		return nil, nil, nil, fmt.Errorf("could not balanceOf() after doubling: %w", err)
 	}
 	balance = new(big.Int).SetBytes(common.HexToHash(*result).Bytes())
-	logger.Debugf("balance after doubling = %s", balance)
+	logger.Debugf(ctx, "balance after doubling = %s", balance)
 
 	// check if transfer success
 	transferCall, _ := abis.ERC20.Pack("transfer", randomizeAddress(), balance)

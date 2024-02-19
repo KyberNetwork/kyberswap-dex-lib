@@ -12,7 +12,6 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -229,7 +228,7 @@ func (v *buildRouteParamsValidator) validateWallets(ctx context.Context, wallets
 	checkResult, err := v.blackjackRepo.Check(ctx, wallets)
 	if err != nil {
 		logger.
-			WithFields(logger.Fields{"request_id": requestid.GetRequestIDFromCtx(ctx), "error": err.Error()}).
+			WithFields(ctx, logger.Fields{"error": err.Error()}).
 			Debug("failed to check from blackjack")
 		return nil
 	}
@@ -237,7 +236,7 @@ func (v *buildRouteParamsValidator) validateWallets(ctx context.Context, wallets
 	for wallet, isBlacklisted := range checkResult {
 		if isBlacklisted {
 			logger.
-				WithFields(logger.Fields{"wallet": wallet, "request_id": requestid.GetRequestIDFromCtx(ctx)}).
+				WithFields(ctx, logger.Fields{"wallet": wallet}).
 				Info("blacklisted wallet")
 
 			return NewValidationError("wallets", "invalid")

@@ -112,7 +112,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 
 	if err != nil {
 		logger.
-			WithFields(logger.Fields{
+			WithFields(ctx, logger.Fields{
 				"key":        key.String(""),
 				"reason":     "get cache failed",
 				"error":      err,
@@ -120,7 +120,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 				"client_id":  clientid.GetClientIDFromCtx(ctx),
 			}).
 			Debug("cache missed")
-		metrics.IncrFindRouteCacheCount(false, map[string]string{"reason": "getCachedRouteFailed"})
+		metrics.IncrFindRouteCacheCount(ctx, false, map[string]string{"reason": "getCachedRouteFailed"})
 
 		return nil, err
 	}
@@ -128,7 +128,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 	routeSummary, err := c.summarizeSimpleRoute(ctx, simpleRoute, params)
 	if err != nil {
 		logger.
-			WithFields(logger.Fields{
+			WithFields(ctx, logger.Fields{
 				"key":        key.String(""),
 				"reason":     "summarize simple route failed",
 				"error":      err,
@@ -136,7 +136,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 				"client_id":  clientid.GetClientIDFromCtx(ctx),
 			}).
 			Debug("cache missed")
-		metrics.IncrFindRouteCacheCount(false, map[string]string{"reason": "summarizeCachedRouteFailed"})
+		metrics.IncrFindRouteCacheCount(ctx, false, map[string]string{"reason": "summarizeCachedRouteFailed"})
 
 		return nil, err
 	}
@@ -145,7 +145,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 
 	if priceImpact > c.config.PriceImpactThreshold {
 		logger.
-			WithFields(logger.Fields{
+			WithFields(ctx, logger.Fields{
 				"key":        key.String(""),
 				"reason":     "price impact is greater than threshold",
 				"error":      err,
@@ -154,6 +154,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 			}).
 			Debug("cache missed")
 		metrics.IncrFindRouteCacheCount(
+			ctx,
 			false,
 			map[string]string{
 				"reason": "priceImpactIsGreaterThanEpsilon",
@@ -170,13 +171,13 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 	}
 
 	logger.
-		WithFields(logger.Fields{
+		WithFields(ctx, logger.Fields{
 			"key":        key.String(""),
 			"request_id": requestid.GetRequestIDFromCtx(ctx),
 			"client_id":  clientid.GetClientIDFromCtx(ctx),
 		}).
 		Debug("cache hit")
-	metrics.IncrFindRouteCacheCount(true, nil)
+	metrics.IncrFindRouteCacheCount(ctx, true, nil)
 
 	return routeSummary, nil
 }
@@ -187,7 +188,7 @@ func (c *cache) setRouteToCache(ctx context.Context, routeSummary *valueobject.R
 
 	if err := c.routeCacheRepository.Set(ctx, key, simpleRoute, ttl); err != nil {
 		logger.
-			WithFields(logger.Fields{"error": err}).
+			WithFields(ctx, logger.Fields{"error": err}).
 			Error("cache.setRouteToCache failed")
 	}
 }

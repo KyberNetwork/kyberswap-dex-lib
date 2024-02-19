@@ -70,14 +70,14 @@ type FinderData struct {
 	originSwapLimits map[string]poolpkg.SwapLimit
 }
 
-func NewFinderData(tokenByAddress map[string]*entity.Token, tokenPriceUSDByAddress map[string]float64, state *types.FindRouteState) FinderData {
+func NewFinderData(ctx context.Context, tokenByAddress map[string]*entity.Token, tokenPriceUSDByAddress map[string]float64, state *types.FindRouteState) FinderData {
 	tokenToPoolAddress := make(map[string]*types.AddressList)
 	for _, pool := range state.Pools {
 		for _, tokenAddress := range pool.GetTokens() {
 			if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
 				tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
 			}
-			tokenToPoolAddress[tokenAddress].AddAddress(pool.GetAddress())
+			tokenToPoolAddress[tokenAddress].AddAddress(ctx, pool.GetAddress())
 		}
 	}
 

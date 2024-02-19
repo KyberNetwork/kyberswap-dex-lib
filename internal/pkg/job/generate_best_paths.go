@@ -39,7 +39,7 @@ func (j *GeneratePathsJob) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			logger.
-				WithFields(
+				WithFields(ctx,
 					logger.Fields{
 						"job.name": GenerateBestPaths,
 						"error":    ctx.Err(),
@@ -57,7 +57,7 @@ func (j *GeneratePathsJob) run(ctx context.Context) {
 	start := time.Now()
 	defer func() {
 		logger.
-			WithFields(
+			WithFields(ctx,
 				logger.Fields{
 					"job.id":      jobID,
 					"job.name":    GenerateBestPaths,
@@ -66,7 +66,7 @@ func (j *GeneratePathsJob) run(ctx context.Context) {
 			Info("job duration")
 	}()
 
-	logger.WithFields(
+	logger.WithFields(ctx,
 		logger.Fields{
 			"job.id":   jobID,
 			"job.name": GenerateBestPaths,
@@ -76,7 +76,7 @@ func (j *GeneratePathsJob) run(ctx context.Context) {
 	// Pregen should only find AMM dex (exclude PMM dex since those change very quickly)
 	//j.useCase.Handle(ctx)
 	j.excludedSourcesUseCase.Handle(ctx)
-	logger.WithFields(
+	logger.WithFields(ctx,
 		logger.Fields{
 			"job.id":   jobID,
 			"job.name": GenerateBestPaths,

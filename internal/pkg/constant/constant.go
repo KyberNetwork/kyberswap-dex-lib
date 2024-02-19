@@ -6,7 +6,15 @@ import (
 
 const OneHundredPercent = 100
 
-const EmptyHex = "0x"
+const (
+	EmptyHex = "0x"
+
+	CtxLoggerKey CtxLoggerKeyType = "logger"
+
+	DebugHeader = "x-debug"
+)
+
+type CtxLoggerKeyType string
 
 // PermitBytesLength The permit can only be empty or 32 * 7 bytes
 // https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/974c6c248fd536292c3a9eac7306c62f8bace4da/contracts/dependency/Permitable.sol#L34

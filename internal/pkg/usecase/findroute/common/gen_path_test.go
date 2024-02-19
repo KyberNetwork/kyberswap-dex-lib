@@ -16,6 +16,7 @@ import (
 )
 
 func TestGenKthBestPaths(t *testing.T) {
+	ctx := context.TODO()
 	t.Run("stress test GenKthBestPaths", func(t *testing.T) {
 		var (
 			nTokens                  = 100
@@ -39,7 +40,7 @@ func TestGenKthBestPaths(t *testing.T) {
 				if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
 					tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
 				}
-				tokenToPoolAddress[tokenAddress].AddAddress(poolAddress)
+				tokenToPoolAddress[tokenAddress].AddAddress(ctx, poolAddress)
 			}
 		}
 		var (

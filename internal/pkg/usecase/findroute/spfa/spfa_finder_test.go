@@ -15,6 +15,7 @@ import (
 )
 
 func TestSpfaFinder(t *testing.T) {
+	ctx := context.TODO()
 	var (
 		nTokens = 100
 		nPools  = 2000
@@ -34,7 +35,7 @@ func TestSpfaFinder(t *testing.T) {
 			if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
 				tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
 			}
-			tokenToPoolAddress[tokenAddress].AddAddress(poolAddress)
+			tokenToPoolAddress[tokenAddress].AddAddress(ctx, poolAddress)
 		}
 	}
 	var (
@@ -50,7 +51,7 @@ func TestSpfaFinder(t *testing.T) {
 		GasTokenPriceUSD: 1500,
 		GasInclude:       true,
 	}
-	data := findroute.NewFinderData(tokenByAddress, priceUSDByAddress, &types.FindRouteState{
+	data := findroute.NewFinderData(ctx, tokenByAddress, priceUSDByAddress, &types.FindRouteState{
 		Pools:     poolByAddress,
 		SwapLimit: nil,
 	})

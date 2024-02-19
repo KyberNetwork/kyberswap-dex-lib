@@ -83,7 +83,7 @@ func (p *MultipleStrategy) ProbeBalanceSlot(ctx context.Context, token common.Ad
 		if err == nil {
 			break
 		}
-		logger.Debugf("strategy %s failed: %s", name, err)
+		logger.Debugf(ctx, "strategy %s failed: %s", name, err)
 	}
 	if len(attempted) == 0 {
 		return nil, fmt.Errorf("there is no more strategies to attempted, already attempted %v", hadAttemptedList)

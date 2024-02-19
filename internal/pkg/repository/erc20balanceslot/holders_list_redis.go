@@ -58,7 +58,7 @@ func (r *HoldersListRedisRepositoryWithCache) Get(ctx context.Context, token com
 
 	result := new(entity.ERC20HoldersList)
 	if err := json.Unmarshal([]byte(rawResult), result); err != nil {
-		logger.WithFields(logger.Fields{"token": token}).Warn("could not unmarshal entity.ERC20HoldersList")
+		logger.WithFields(ctx, logger.Fields{"token": token}).Warn("could not unmarshal entity.ERC20HoldersList")
 		return nil, err
 	}
 	r.cache.Set(key, result, cache.DefaultExpiration)

@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"testing"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -15,6 +16,7 @@ import (
 )
 
 func TestMinHopToTokenOut(t *testing.T) {
+	ctx := context.TODO()
 	t.Run("test correctness of minHopToTokenOut", func(t *testing.T) {
 		tokenByAddress := map[string]*entity.Token{
 			"a": {Address: "a"},
@@ -63,7 +65,7 @@ func TestMinHopToTokenOut(t *testing.T) {
 				if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
 					tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
 				}
-				tokenToPoolAddress[tokenAddress].AddAddress(poolAddress)
+				tokenToPoolAddress[tokenAddress].AddAddress(ctx, poolAddress)
 			}
 		}
 		tokenOut := "a"
@@ -89,7 +91,7 @@ func TestMinHopToTokenOut(t *testing.T) {
 				if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
 					tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
 				}
-				tokenToPoolAddress[tokenAddress].AddAddress(poolAddress)
+				tokenToPoolAddress[tokenAddress].AddAddress(ctx, poolAddress)
 			}
 		}
 		tokenOut := tokenAddressList[valueobject.RandInt(0, nTokens)]

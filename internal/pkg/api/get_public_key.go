@@ -7,7 +7,7 @@ import (
 
 func GetPublicKey(useCase IGetPublicKeyUseCase) func(ginCtx *gin.Context) {
 	return func(ginCtx *gin.Context) {
-		span, ctx := tracer.StartSpanFromContext(ginCtx.Request.Context(), "GetPublicKey")
+		span, ctx := tracer.StartSpanFromGinContext(ginCtx, "GetPublicKey")
 		defer span.End()
 
 		result, err := useCase.Handle(ctx, getKeyIDFromParamRequest(ginCtx))

@@ -57,7 +57,7 @@ func (*WholeSlotWithFStrategy) Name(_ ProbeStrategyExtraParams) string {
 }
 
 func (p *WholeSlotWithFStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
-	logger.Infof("[%s] probing balance slot for wallet %s in token %s", p.Name(nil), p.wallet, token)
+	logger.Infof(ctx, "[%s] probing balance slot for wallet %s in token %s", p.Name(nil), p.wallet, token)
 
 	blockNumber, err := p.ethClient.BlockNumber(ctx)
 	if err != nil {
@@ -72,10 +72,10 @@ func (p *WholeSlotWithFStrategy) ProbeBalanceSlot(ctx context.Context, token com
 	*/
 	sload, err := p.isolateExactOneBalanceSlot(blockNumberHex, token)
 	if err != nil {
-		logger.Debugf("could not isolate exact 1 balance slot %s", err)
+		logger.Debugf(ctx, "could not isolate exact 1 balance slot %s", err)
 		return nil, fmt.Errorf("could not isolate exact 1 balance slot %w", err)
 	}
-	logger.Debugf("slot = %s", sload.Slot)
+	logger.Debugf(ctx, "slot = %s", sload.Slot)
 
 	/*
 		Step 2: Analyze the relationship between the slot value and the output of balanceOf().
@@ -103,7 +103,7 @@ func (p *WholeSlotWithFStrategy) ProbeBalanceSlot(ctx context.Context, token com
 	for _, incOrDec = range []bool{true, false} {
 		for _, n := range []int{4, 8, 16, 32} {
 			overrideValues = geometricSequenceN(n, maxUint256)
-			balances = p.balanceOfWithOverridedSlot(blockNumberHex, token, sload, overrideValues)
+			balances = p.balanceOfWithOverridedSlot(ctx, blockNumberHex, token, sload, overrideValues)
 			begin, length, err := longestMonotonicAndPositiveSequence(balances, incOrDec)
 			if err != nil {
 				// the pattern is broken a n[i], don't analyze with n[i+1:]
@@ -154,9 +154,9 @@ func (p *WholeSlotWithFStrategy) ProbeBalanceSlot(ctx context.Context, token com
 		mid := new(big.Int).Add(lower, upper)
 		mid = mid.Rsh(mid, 1)
 
-		balance := p.balanceOfWithOverridedSlot(blockNumberHex, token, sload, []*big.Int{mid})[0]
+		balance := p.balanceOfWithOverridedSlot(ctx, blockNumberHex, token, sload, []*big.Int{mid})[0]
 
-		if balance.Cmp(prevBalance) > 0 && p.canTransferAmountWithOverride(blockNumberHex, token, anotherWallet, balance, sload, mid) {
+		if balance.Cmp(prevBalance) > 0 && p.canTransferAmountWithOverride(ctx, blockNumberHex, token, anotherWallet, balance, sload, mid) {
 			// stop if could not improve
 			if len(largerBalances) > 0 && balance.Cmp(largerBalances[len(largerBalances)-1]) == 0 {
 				break
@@ -218,7 +218,7 @@ func (p *WholeSlotWithFStrategy) isolateExactOneBalanceSlot(blockNumber string, 
 	return &sload, nil
 }
 
-func (p *WholeSlotWithFStrategy) balanceOfWithOverridedSlot(blockNumberHex string, token common.Address, sload *tracingResultSload, overrideValues []*big.Int) []*big.Int {
+func (p *WholeSlotWithFStrategy) balanceOfWithOverridedSlot(ctx context.Context, blockNumberHex string, token common.Address, sload *tracingResultSload, overrideValues []*big.Int) []*big.Int {
 	data, err := abis.ERC20.Pack("balanceOf", p.wallet)
 	if err != nil {
 		panic("must pack balanceOf()")
@@ -244,18 +244,18 @@ func (p *WholeSlotWithFStrategy) balanceOfWithOverridedSlot(blockNumberHex strin
 			},
 		)
 		if err != nil {
-			logger.Debugf("    could not eth_call: %s", err)
+			logger.Debugf(ctx, "    could not eth_call: %s", err)
 			balances = append(balances, big.NewInt(0))
 			continue
 		}
 		balance := new(big.Int).SetBytes(common.HexToHash(*result).Bytes())
 		balances = append(balances, balance)
-		logger.Debugf("slot value = %s, balance = %s", common.BigToHash(value), balance)
+		logger.Debugf(ctx, "slot value = %s, balance = %s", common.BigToHash(value), balance)
 	}
 	return balances
 }
 
-func (p *WholeSlotWithFStrategy) canTransferAmountWithOverride(blockNumber string, token, to common.Address, amount *big.Int, sload *tracingResultSload, overrideValue *big.Int) bool {
+func (p *WholeSlotWithFStrategy) canTransferAmountWithOverride(ctx context.Context, blockNumber string, token, to common.Address, amount *big.Int, sload *tracingResultSload, overrideValue *big.Int) bool {
 	transferData, err := abis.ERC20.Pack("transfer", to, amount)
 	if err != nil {
 		panic("must pack transfer()")
@@ -279,9 +279,9 @@ func (p *WholeSlotWithFStrategy) canTransferAmountWithOverride(blockNumber strin
 	)
 	ok := err == nil && common.HexToHash(*result) == common.HexToHash("0x1")
 	if !ok {
-		logger.Debugf("err = %v", err)
+		logger.Debugf(ctx, "err = %v", err)
 	} else {
-		logger.Debugf("result = %s err = %v", *result, err)
+		logger.Debugf(ctx, "result = %s err = %v", *result, err)
 	}
 	return ok
 }

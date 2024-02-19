@@ -120,7 +120,7 @@ func (a *aggregator) findBestRoute(
 		GasInclude:       params.GasInclude,
 	}
 
-	data := findroute.NewFinderData(tokenByAddress, priceUSDByAddress, state)
+	data := findroute.NewFinderData(ctx, tokenByAddress, priceUSDByAddress, state)
 	defer data.ReleaseResources()
 	routes, err := a.routeFinder.Find(ctx, input, data)
 	if err != nil {

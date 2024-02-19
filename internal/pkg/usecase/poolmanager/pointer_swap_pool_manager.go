@@ -90,6 +90,7 @@ func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
 // NewNonMaintenancePointerSwapPoolManager return a Pool Manager with only pool addresses and not pool data
 // any service using this implementation will have to call Reload() on its own
 func NewNonMaintenancePointerSwapPoolManager(
+	ctx context.Context,
 	poolRepository IPoolRepository,
 	poolFactory IPoolFactory,
 	poolRankRepository IPoolRankRepository,
@@ -131,7 +132,7 @@ func NewNonMaintenancePointerSwapPoolManager(
 	if p.config.UseAEVM {
 		stateRoot, err = aevmClient.LatestStateRoot()
 		if err != nil {
-			logger.Errorf("could not get latest state root for aevm %s", err)
+			logger.Errorf(ctx, "could not get latest state root for aevm %s", err)
 			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
@@ -144,6 +145,7 @@ func NewNonMaintenancePointerSwapPoolManager(
 
 // NewPointerSwapPoolManager This will take a while to start since it will generate a copy of all Pool
 func NewPointerSwapPoolManager(
+	ctx context.Context,
 	poolRepository IPoolRepository,
 	poolFactory IPoolFactory,
 	poolRankRepository IPoolRankRepository,
@@ -185,14 +187,14 @@ func NewPointerSwapPoolManager(
 	if p.config.UseAEVM {
 		stateRoot, err = aevmClient.LatestStateRoot()
 		if err != nil {
-			logger.Errorf("could not get latest state root for aevm %s", err)
+			logger.Errorf(ctx, "could not get latest state root for aevm %s", err)
 			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
 	if err = p.preparePoolsData(context.Background(), poolAddresses, common.Hash(stateRoot)); err != nil {
 		return nil, err
 	}
-	go p.maintain()
+	go p.maintain(ctx)
 	return &p, nil
 }
 
@@ -277,7 +279,7 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 
 	curveMetaBasePools, err := listCurveMetaBasePools(ctx, p.poolRepository, filteredPoolEntities)
 	if err != nil {
-		logger.Debugf("failed to load curve-meta base pool %v", err)
+		logger.Debugf(ctx, "failed to load curve-meta base pool %v", err)
 		return &types.FindRouteState{
 			Pools:     resultPoolByAddress,
 			SwapLimit: nil,
@@ -296,7 +298,7 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 	}
 }
 
-func (p *PointerSwapPoolManager) Reload() error {
+func (p *PointerSwapPoolManager) Reload(ctx context.Context) error {
 	var (
 		stateRoot aevmcommon.Hash
 		err       error
@@ -305,7 +307,7 @@ func (p *PointerSwapPoolManager) Reload() error {
 	if p.config.UseAEVM {
 		stateRoot, err = p.aevmClient.LatestStateRoot()
 		if err != nil {
-			logger.Errorf("could not get latest state root for aevm %s", err)
+			logger.Errorf(ctx, "could not get latest state root for aevm %s", err)
 			return fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
@@ -313,13 +315,13 @@ func (p *PointerSwapPoolManager) Reload() error {
 	return p.preparePoolsData(context.Background(), p.poolCache.Keys(), common.Hash(stateRoot))
 }
 
-func (p *PointerSwapPoolManager) maintain() {
+func (p *PointerSwapPoolManager) maintain(ctx context.Context) {
 	for {
 		time.Sleep(p.config.PoolRenewalInterval)
 
 		// p.poolCache.Keys() return the list of pool address to maintain
-		if err := p.Reload(); err != nil {
-			logger.Errorf("could not update pool's stateData, error:%s", err)
+		if err := p.Reload(ctx); err != nil {
+			logger.Errorf(ctx, "could not update pool's stateData, error:%s", err)
 		}
 	}
 }
@@ -351,7 +353,7 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 	p.states[writeTo].update(poolByAddress)
 	//swapping here
 	p.swapPointer(writeTo)
-	logger.Debugf("PointerSwapPoolManager.preparePoolsData > Prepared %v pools", len(poolByAddress))
+	logger.Debugf(ctx, "PointerSwapPoolManager.preparePoolsData > Prepared %v pools", len(poolByAddress))
 	return nil
 }
 
@@ -369,7 +371,7 @@ func (p *PointerSwapPoolManager) filterBlacklistedAddresses(ctx context.Context,
 	// check again with Redis
 	isInBlacklist, err := p.poolRepository.CheckPoolsInBlacklist(ctx, filtered)
 	if err != nil {
-		logger.Errorf("error checking pool blacklist %v", err)
+		logger.Errorf(ctx, "error checking pool blacklist %v", err)
 		return nil
 	}
 	validPools := make([]string, 0, len(filtered))

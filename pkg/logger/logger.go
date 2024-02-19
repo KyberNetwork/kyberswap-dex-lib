@@ -1,8 +1,11 @@
 package logger
 
 import (
+	"context"
 	"errors"
 	"sync"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
 // A global variable so that log functions can be directly accessed
@@ -113,51 +116,55 @@ func NewLogger(config Configuration, backend LoggerBackend) (Logger, error) {
 	}
 }
 
-func Debug(msg string) {
-	log.Debugf(msg)
+func Debug(ctx context.Context, msg string) {
+	fromCtx(ctx).Debugf(msg)
 }
 
-func Debugf(format string, args ...interface{}) {
-	log.Debugf(format, args...)
+func Debugf(ctx context.Context, format string, args ...interface{}) {
+	fromCtx(ctx).Debugf(format, args...)
 }
 
-func Info(msg string) {
-	log.Infof(msg)
+func Info(ctx context.Context, msg string) {
+	fromCtx(ctx).Infof(msg)
 }
 
-func Infof(format string, args ...interface{}) {
-	log.Infof(format, args...)
+func Infof(ctx context.Context, format string, args ...interface{}) {
+	fromCtx(ctx).Infof(format, args...)
 }
 
-func Infoln(msg string) {
-	log.Infoln(msg)
+func Infoln(ctx context.Context, msg string) {
+	fromCtx(ctx).Infoln(msg)
 }
 
-func Warn(msg string) {
-	log.Warnf(msg)
+func Warn(ctx context.Context, msg string) {
+	fromCtx(ctx).Warnf(msg)
 }
 
-func Warnf(format string, args ...interface{}) {
-	log.Warnf(format, args...)
+func Warnf(ctx context.Context, format string, args ...interface{}) {
+	fromCtx(ctx).Warnf(format, args...)
 }
 
-func Error(msg string) {
-	log.Errorf(msg)
+func Error(ctx context.Context, msg string) {
+	fromCtx(ctx).Errorf(msg)
 }
 
-func Errorf(format string, args ...interface{}) {
-	log.Errorf(format, args...)
+func Errorf(ctx context.Context, format string, args ...interface{}) {
+	fromCtx(ctx).Errorf(format, args...)
 }
 
-func Fatal(msg string) {
-	log.Fatalf(msg)
+func Fatal(ctx context.Context, msg string) {
+	fromCtx(ctx).Fatalf(msg)
 }
 
-func Fatalf(format string, args ...interface{}) {
-	log.Fatalf(format, args...)
+func Fatalf(ctx context.Context, format string, args ...interface{}) {
+	fromCtx(ctx).Fatalf(format, args...)
 }
 
-func WithFields(keyValues Fields) Logger {
+func WithFields(ctx context.Context, keyValues Fields) Logger {
+	return fromCtx(ctx).WithFields(keyValues)
+}
+
+func WithFieldsNonContext(keyValues Fields) Logger {
 	return log.WithFields(keyValues)
 }
 
@@ -167,4 +174,12 @@ func GetDelegate() interface{} {
 
 func SetLogLevel(level string) error {
 	return log.SetLogLevel(level)
+}
+
+func fromCtx(ctx context.Context) Logger {
+	l := ctx.Value(constant.CtxLoggerKey)
+	if ctxLogger, ok := l.(Logger); ok && ctxLogger != nil {
+		return ctxLogger
+	}
+	return log
 }

@@ -117,7 +117,7 @@ func (f *spfaFinder) bestMultiPathRoute(
 	for _, amountInPerSplit := range splits {
 		bestPath, err := f.bestPathExactIn(ctx, input, data, amountInPerSplit, hopsToTokenOut)
 		if err != nil {
-			logger.WithFields(logger.Fields{"error": err}).
+			logger.WithFields(ctx, logger.Fields{"error": err}).
 				Debugf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
 					input.TokenInAddress, input.TokenOutAddress, amountInPerSplit.Amount, amountInPerSplit.AmountUsd)
 		}

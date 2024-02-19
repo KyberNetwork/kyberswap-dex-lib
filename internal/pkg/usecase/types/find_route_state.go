@@ -1,6 +1,8 @@
 package types
 
 import (
+	"context"
+
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -28,14 +30,14 @@ type AddressList struct {
 }
 
 // AddAddress is a bit hacky, we use the underlying arr to store the address
-func (a *AddressList) AddAddress(address string) {
+func (a *AddressList) AddAddress(ctx context.Context, address string) {
 	if a.TrueLen == len(a.Arr) {
 		// have to do append here
 		a.Arr = append(a.Arr, address)
 	} else if a.TrueLen < len(a.Arr) {
 		a.Arr[a.TrueLen] = address
 	} else {
-		logger.Errorf("AddressList TrueLen %d is greater than underlying a.Arr's len %d", a.TrueLen, len(a.Arr))
+		logger.Errorf(ctx, "AddressList TrueLen %d is greater than underlying a.Arr's len %d", a.TrueLen, len(a.Arr))
 	}
 
 	a.TrueLen++

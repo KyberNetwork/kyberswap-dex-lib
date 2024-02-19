@@ -37,7 +37,7 @@ func NewServer(httpServer *http.Server,
 }
 
 func (s *server) Run(ctx context.Context) error {
-	logger.WithFields(logger.Fields{
+	logger.WithFields(ctx, logger.Fields{
 		"grpc_addr":    s.cfg.GRPC.Host,
 		"grpc_port":    s.cfg.GRPC.Port,
 		"bind_address": s.cfg.Http.BindAddress,
@@ -60,7 +60,7 @@ func (s *server) run(ctx context.Context) error {
 	}()
 
 	go func() {
-		logger.Infof("Starting reload manager")
+		logger.Infof(ctx, "Starting reload manager")
 		errCh <- s.reloadManager.Run(ctx)
 	}()
 
@@ -69,7 +69,7 @@ func (s *server) run(ctx context.Context) error {
 	s.reloadManager.RegisterNotifier(reload.NotifierChan(reloadChan))
 
 	go func() {
-		logger.Infoln("Starting reload config reporter")
+		logger.Infoln(ctx, "Starting reload config reporter")
 		s.reloadConfigReporter.Report(ctx, reloadChan)
 	}()
 	for {
@@ -79,7 +79,7 @@ func (s *server) run(ctx context.Context) error {
 			defer cancelFn()
 
 			if err := s.httpServer.Shutdown(ctx); err != nil {
-				logger.Errorf("failed to stop server: %w", err)
+				logger.Errorf(ctx, "failed to stop server: %w", err)
 			}
 
 			return nil

@@ -91,8 +91,8 @@ func (uc *useCase) ApplyConfig(config Config, isExcludeRFQ bool) {
 }
 
 func (uc *useCase) Handle(ctx context.Context) {
-	if err := uc.poolManager.Reload(); err != nil {
-		logger.Errorf("could not reload Pools", err)
+	if err := uc.poolManager.Reload(ctx); err != nil {
+		logger.Errorf(ctx, "could not reload Pools", err)
 		return
 	}
 
@@ -101,19 +101,19 @@ func (uc *useCase) Handle(ctx context.Context) {
 	// get token and amounts generated from k-mean cluster algo
 	tokensToMaintain, timestamp, err := uc.bestPathRepository.GetPregenTokenAmounts(ctx)
 	if err != nil {
-		logger.WithFields(logger.Fields{
+		logger.WithFields(ctx, logger.Fields{
 			"err": err,
 		}).Error("failed to get pregen kmeans data")
 		return
 	} else {
-		logger.Infof("Using kmeans-data, sourceHash %v", uc.sourceHash)
+		logger.Infof(ctx, "Using kmeans-data, sourceHash %v", uc.sourceHash)
 		// use 7d duration log data after processing instead of default pregen config data.
 	}
 
 	deadline := time.Unix(timestamp, 0).Add(uc.config.ConfigGeneratorDataTtl)
 	// if kMeansData is stale, skip
 	if deadline.Before(time.Now()) {
-		logger.WithFields(logger.Fields{}).Error("kMeans data is too stale")
+		logger.WithFields(ctx, logger.Fields{}).Error("kMeans data is too stale")
 		return
 	}
 
@@ -136,7 +136,7 @@ func (uc *useCase) Handle(ctx context.Context) {
 	tasks := make(chan genBestPathsTask, numWorkers*2)
 	results := make(chan *genBestPathsResult, numWorkers*2)
 
-	logger.Infof("numworkers: %d Total task: %d", numWorkers, numTasks)
+	logger.Infof(ctx, "numworkers: %d Total task: %d", numWorkers, numTasks)
 	// Create worker goroutines
 	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
@@ -193,22 +193,22 @@ func (uc *useCase) Handle(ctx context.Context) {
 			err = uc.bestPathRepository.SetBestPaths(uc.sourceHash, tokenIn, tokenOut, paths, uc.config.PathGeneratorDataTtl)
 			uniquePaths := dedupBestPaths(paths)
 			if err != nil {
-				logger.Errorf("Error while saving path %s", err)
+				logger.Errorf(ctx, "Error while saving path %s", err)
 				pathFail = pathFail + len(uniquePaths)
 			} else {
 				pathSuccess = pathSuccess + len(uniquePaths)
-				logger.Infof("Done gen paths for: sourceHash %v, tokenIn %v, tokenOut %v, total %d paths", uc.sourceHash, tokenIn, tokenOut, len(uniquePaths))
+				logger.Infof(ctx, "Done gen paths for: sourceHash %v, tokenIn %v, tokenOut %v, total %d paths", uc.sourceHash, tokenIn, tokenOut, len(uniquePaths))
 			}
 		}
 	}
 
-	logger.Infof("Successfully generated and saved paths to redis-> Detail: sourceHash %v, success %d paths, fail %d paths", uc.sourceHash, pathSuccess, pathFail)
+	logger.Infof(ctx, "Successfully generated and saved paths to redis-> Detail: sourceHash %v, success %d paths, fail %d paths", uc.sourceHash, pathSuccess, pathFail)
 
 }
 
 func (uc *useCase) worker(ctx context.Context, task genBestPathsTask) *genBestPathsResult {
 	paths, err := uc.generateBestPaths(ctx, task.tokenIn, task.tokenOuts, task.amountIns)
-	log := logger.WithFields(logger.Fields{
+	log := logger.WithFields(ctx, logger.Fields{
 		"tokenIn":   task.tokenIn,
 		"tokenOuts": task.tokenOuts,
 	})
@@ -286,7 +286,7 @@ func (uc *useCase) generateBestPaths(
 		gasTokenAddress := strings.ToLower(uc.config.GasTokenAddress)
 		gasTokenPrice := tokenPriceByAddress[gasTokenAddress]
 		gasTokenPriceUSD, _ := gasTokenPrice.GetPreferredPrice()
-		data := findroute.NewFinderData(tokenByAddress, tokenPriceUSDByAddress, state)
+		data := findroute.NewFinderData(ctx, tokenByAddress, tokenPriceUSDByAddress, state)
 		pathsByTokenOutAddress, err := common.GenKthBestPathsV2(
 			ctx,
 			findroute.Input{

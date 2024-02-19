@@ -35,7 +35,7 @@ type IPoolManager interface {
 		addresses, dex []string,
 		stateRoot common.Hash,
 	) (*types.FindRouteState, error)
-	Reload() error
+	Reload(ctx context.Context) error
 	GetAEVMClient() aevmclient.Client
 }
 

@@ -164,7 +164,7 @@ func (v *getRouteEncodeParamsValidator) checkBlacklistedWallet(ctx context.Conte
 	blacklistedWallet, err := v.blackjackRepo.Check(ctx, []string{to})
 	if err != nil {
 		logger.
-			WithFields(logger.Fields{"request_id": requestid.GetRequestIDFromCtx(ctx), "error": err.Error()}).
+			WithFields(ctx, logger.Fields{"request_id": requestid.GetRequestIDFromCtx(ctx), "error": err.Error()}).
 			Debug("failed to check from blackjack")
 		return nil
 	}

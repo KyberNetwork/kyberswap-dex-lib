@@ -1,6 +1,7 @@
 package synthetix
 
 import (
+	"context"
 	"errors"
 	"math/big"
 
@@ -21,7 +22,7 @@ func NewSynthetixValidator() *SynthetixValidator {
 }
 
 // Validate will reapply pool update and will have to modify the pool state. Do not use original pools for this
-func (v *SynthetixValidator) Validate(poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobject.Route) error {
+func (v *SynthetixValidator) Validate(ctx context.Context, poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobject.Route) error {
 	err := Validate(poolByAddress, route)
 
 	if errors.Is(err, synthetix.ErrInvalidLastAtomicVolume) {
@@ -31,7 +32,7 @@ func (v *SynthetixValidator) Validate(poolByAddress map[string]poolpkg.IPoolSimu
 	if errors.Is(err, synthetix.ErrSurpassedVolumeLimit) {
 		logger.Error("invalid Synthetix volume for route")
 
-		metrics.IncrInvalidSynthetixVolume()
+		metrics.IncrInvalidSynthetixVolume(ctx)
 	}
 
 	return nil

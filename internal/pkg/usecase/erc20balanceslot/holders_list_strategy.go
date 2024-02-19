@@ -33,19 +33,19 @@ func (*HoldersListStrategy) Name(_ ProbeStrategyExtraParams) string {
 }
 
 func (p *HoldersListStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
-	logger.Debugf("[%s] getting holders list for token %s", p.Name(nil), token)
+	logger.Debugf(ctx, "[%s] getting holders list for token %s", p.Name(nil), token)
 
 	holdersList, err := p.holdersListRepo.Get(ctx, token)
 	if err != nil {
 		if errors.Is(err, repo.ErrNotFound) {
 			// add to watchlist
-			logger.WithFields(logger.Fields{"token": token}).Debugf("adding token to watchlist")
+			logger.WithFields(ctx, logger.Fields{"token": token}).Debugf("adding token to watchlist")
 			_, err, _ := p.redisGroup.Do(strings.ToLower(token.String()), func() (interface{}, error) {
 				err := p.watchlistRepo.Notify(ctx, token)
 				return nil, err
 			})
 			if err != nil {
-				logger.WithFields(logger.Fields{"token": token, "err": err}).Warnf("could not add token to watchlist")
+				logger.WithFields(ctx, logger.Fields{"token": token, "err": err}).Warnf("could not add token to watchlist")
 			}
 		}
 		return nil, err

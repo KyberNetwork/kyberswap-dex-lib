@@ -39,7 +39,7 @@ func (r *RedisRepository) Get(ctx context.Context, token common.Address) (*entit
 
 	result := new(entity.ERC20BalanceSlot)
 	if err := json.Unmarshal([]byte(rawResult), result); err != nil {
-		logger.WithFields(logger.Fields{"token": token}).Warn("could not unmarshal entity.ERC20BalanceSlot")
+		logger.WithFields(ctx, logger.Fields{"token": token}).Warn("could not unmarshal entity.ERC20BalanceSlot")
 		return nil, err
 	}
 
@@ -56,7 +56,7 @@ func (r *RedisRepository) GetAll(ctx context.Context) (map[common.Address]*entit
 		token = strings.ToLower(token)
 		balanceSlot := new(entity.ERC20BalanceSlot)
 		if err := json.Unmarshal([]byte(rawValue), balanceSlot); err != nil {
-			logger.WithFields(logger.Fields{"token": token}).Warn("could not unmarshal entity.ERC20BalanceSlot")
+			logger.WithFields(ctx, logger.Fields{"token": token}).Warn("could not unmarshal entity.ERC20BalanceSlot")
 			continue
 		}
 		result[common.HexToAddress(token)] = balanceSlot
@@ -68,7 +68,7 @@ func (r *RedisRepository) GetAll(ctx context.Context) (map[common.Address]*entit
 func (r *RedisRepository) Put(ctx context.Context, balanceSlot *entity.ERC20BalanceSlot) error {
 	encoded, err := json.Marshal(balanceSlot)
 	if err != nil {
-		logger.WithFields(logger.Fields{"entity": balanceSlot}).Warn("could not marshal entity.ERC20BalanceSlot")
+		logger.WithFields(ctx, logger.Fields{"entity": balanceSlot}).Warn("could not marshal entity.ERC20BalanceSlot")
 		return err
 	}
 	_, err = r.redisClient.HSet(ctx, r.redisKey, strings.ToLower(balanceSlot.Token), string(encoded)).Result()
@@ -87,7 +87,7 @@ func (r *RedisRepository) PutMany(ctx context.Context, balanceSlots []*entity.ER
 	for _, bl := range balanceSlots {
 		encoded, err := json.Marshal(bl)
 		if err != nil {
-			logger.WithFields(logger.Fields{"entity": bl}).Warn("could not marshal entity.ERC20BalanceSlot")
+			logger.WithFields(ctx, logger.Fields{"entity": bl}).Warn("could not marshal entity.ERC20BalanceSlot")
 			return err
 		}
 		pipe.HSet(ctx, r.redisKey, strings.ToLower(bl.Token), string(encoded))
@@ -95,7 +95,7 @@ func (r *RedisRepository) PutMany(ctx context.Context, balanceSlots []*entity.ER
 	_, err := pipe.Exec(ctx)
 
 	if err != nil {
-		logger.WithFields(logger.Fields{"err": err}).Warn("could not exect multiple HMSET")
+		logger.WithFields(ctx, logger.Fields{"err": err}).Warn("could not exect multiple HMSET")
 		return err
 	}
 

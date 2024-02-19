@@ -1,6 +1,7 @@
 package findroute
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -27,6 +28,7 @@ func BenchmarkTokenToPoolAddressWithoutMemPool(b *testing.B) {
 }
 
 func BenchmarkTokenToPoolAddressWithMemPool(b *testing.B) {
+	ctx := context.TODO()
 
 	perRequestPoolsByAddress := make(map[string][]string)
 	for i := 0; i < 100000; i++ {
@@ -41,7 +43,7 @@ func BenchmarkTokenToPoolAddressWithMemPool(b *testing.B) {
 				if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
 					tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
 				}
-				tokenToPoolAddress[tokenAddress].AddAddress(key)
+				tokenToPoolAddress[tokenAddress].AddAddress(ctx, key)
 			}
 		}
 

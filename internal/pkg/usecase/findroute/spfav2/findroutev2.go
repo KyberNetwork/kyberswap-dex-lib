@@ -79,25 +79,25 @@ func (f *spfav2Finder) bestRouteV2(
 
 	// if api params set IsPathGeneratorEnabled = true, or we have isPathGeneratorEnabled on the yaml config
 	if input.IsPathGeneratorEnabled && len(generatedBestPaths) > 0 {
-		metrics.IncrFindRoutePregenCount(true, nil)
-		logger.WithFields(logger.Fields{"pre_computed_bestPaths_len": len(generatedBestPaths)}).Infof(
+		metrics.IncrFindRoutePregenCount(ctx, true, nil)
+		logger.WithFields(ctx, logger.Fields{"pre_computed_bestPaths_len": len(generatedBestPaths)}).Infof(
 			"used precomputated_paths. sourceHash %v tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
 			input.SourceHash, input.TokenInAddress, input.TokenOutAddress, amountInToGeneratePath, amountInToGeneratePath.AmountUsd,
 		)
 
 		paths = bestPathToPath(ctx, input, data, amountInToGeneratePath, generatedBestPaths)
 	} else {
-		metrics.IncrFindRoutePregenCount(false, map[string]string{
+		metrics.IncrFindRoutePregenCount(ctx, false, map[string]string{
 			"reason": "doesn't hit",
 		})
-		logger.Infof("manually gen Path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
+		logger.Infof(ctx, "manually gen Path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
 			input.TokenInAddress, input.TokenOutAddress, amountInToGeneratePath, amountInToGeneratePath.AmountUsd,
 		)
 
 		var errGenPath error
 		paths, errGenPath = common.GenKthBestPaths(ctx, input, data, amountInToGeneratePath, hopsToTokenOut, f.maxHops, numberOfPathToGenerate, f.maxPathsToReturn)
 		if errGenPath != nil {
-			logger.WithFields(logger.Fields{"error": errGenPath}).
+			logger.WithFields(ctx, logger.Fields{"error": errGenPath}).
 				Debugf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
 					input.TokenInAddress, input.TokenOutAddress, amountInToGeneratePath, amountInToGeneratePath.AmountUsd)
 			return nil, nil
@@ -116,6 +116,8 @@ func (f *spfav2Finder) bestRouteV2(
 
 	// step 3: Find multi-path route
 	bestMultiPathRoute, errFindMultiPathRoute := f.bestMultiPathRouteV2(ctx, input, data, paths, amountInToGeneratePath, splits, cmpFunc)
+
+	logger.Debugf(ctx, "bestSinglePathRoute %v, bestMultiPathRoute %v, errFindMultiPathRoute %v", bestSinglePathRoute, bestMultiPathRoute, errFindMultiPathRoute)
 
 	// step 4: compare and return the best route
 	if bestSinglePathRoute == nil {

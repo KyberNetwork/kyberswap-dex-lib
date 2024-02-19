@@ -18,7 +18,7 @@ func GetPools(
 	useCase IGetPoolsUseCase,
 ) func(ginCtx *gin.Context) {
 	return func(ginCtx *gin.Context) {
-		span, ctx := tracer.StartSpanFromContext(ginCtx.Request.Context(), "GetPools")
+		span, ctx := tracer.StartSpanFromGinContext(ginCtx, "GetPools")
 		defer span.End()
 
 		var reqParams params.GetPoolsParams

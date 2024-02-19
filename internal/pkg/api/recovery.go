@@ -10,7 +10,7 @@ import (
 
 func RecoveryFunc(c *gin.Context, err any) {
 	logger.
-		WithFields(logger.Fields{"err": err}).
+		WithFields(c, logger.Fields{"err": err}).
 		Error("internal server error")
 
 	c.JSON(

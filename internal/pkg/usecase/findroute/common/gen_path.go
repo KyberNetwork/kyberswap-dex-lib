@@ -80,12 +80,12 @@ func GenKthBestPaths(
 	}
 	for currentHop := uint32(0); currentHop < maxHops; currentHop++ {
 
-		nextLayer, err := genNextLayerOfPaths(input, data, data.TokenToPoolAddress, hopsToTokenOut, maxHops, currentHop, prevLayer)
+		nextLayer, err := genNextLayerOfPaths(ctx, input, data, data.TokenToPoolAddress, hopsToTokenOut, maxHops, currentHop, prevLayer)
 		if err != nil {
 			return nil, err
 		}
 		// fmt.Printf("This layer has %v paths\n", len(nextLayer[input.TokenOutAddress]))
-		paths = append(paths, getKthPathAtTokenOut(input, data, tokenAmountIn, nextLayer[input.TokenOutAddress], maxPathsToReturn)...)
+		paths = append(paths, getKthPathAtTokenOut(ctx, input, data, tokenAmountIn, nextLayer[input.TokenOutAddress], maxPathsToReturn)...)
 
 		nextLayer[input.TokenOutAddress] = nil
 
@@ -100,6 +100,7 @@ func GenKthBestPaths(
 }
 
 func genNextLayerOfPaths(
+	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenToPoolAddresses map[string]*types.AddressList,
@@ -120,7 +121,7 @@ func genNextLayerOfPaths(
 
 			wg.Go(func() error {
 				// get possible path of length currentHop + 1 by traveling one edge/ appending a pool
-				nextNodeInfo, err := getNextLayerFromToken(input, data, tokenToPoolAddresses, hopsToTokenOut, maxHops, currentHop, _fromToken, _fromNodeInfo)
+				nextNodeInfo, err := getNextLayerFromToken(ctx, input, data, tokenToPoolAddresses, hopsToTokenOut, maxHops, currentHop, _fromToken, _fromNodeInfo)
 				if err != nil {
 					return err
 				}
@@ -148,6 +149,7 @@ func genNextLayerOfPaths(
 }
 
 func getNextLayerFromToken(
+	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenToPoolAddresses map[string]*types.AddressList,
@@ -226,7 +228,7 @@ func getNextLayerFromToken(
 				// it is ok for prices[tokenTo] to default to zero
 				toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGas(_pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenAddress, data.PriceUSDByAddress[_toTokenAddress], _toTokenInfo.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[_pool.GetType()])
 				if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Int64() == 0 {
-					logger.Debugf("cannot calculate amountOut, error:%v", err)
+					logger.Debugf(ctx, "cannot calculate amountOut, error:%v", err)
 					return nil
 				}
 
@@ -288,6 +290,7 @@ func getKthBestPathsForEachToken(
 }
 
 func getKthPathAtTokenOut(
+	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn poolpkg.TokenAmount,
@@ -316,7 +319,7 @@ func getKthPathAtTokenOut(
 				valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}, data.SwapLimits,
 			)
 			if err != nil {
-				logger.WithFields(logger.Fields{"error": err}).
+				logger.WithFields(ctx, logger.Fields{"error": err}).
 					Errorf("cannot generate %v_th path (hop = %v) from token %v to token %v %v", _kthPath, len(_pathInfo.poolAddressesOnPath), input.TokenInAddress, tokenOut, input.AmountIn)
 			} else {
 				intermediateResults[_kthPath] = path

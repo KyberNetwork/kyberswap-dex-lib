@@ -216,7 +216,7 @@ func RespondFailure(c *gin.Context, err error) {
 	response.RequestID = requestID
 
 	logger.
-		WithFields(logger.Fields{"request.id": requestID, "error": err}).
+		WithFields(c, logger.Fields{"request.id": requestID, "error": err}).
 		Warn("respond failure")
 
 	c.JSON(

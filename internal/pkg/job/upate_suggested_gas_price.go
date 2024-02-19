@@ -32,7 +32,7 @@ func (j *UpdateSuggestedGasPriceJob) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			logger.
-				WithFields(
+				WithFields(ctx,
 					logger.Fields{
 						"job.name": UpdateSuggestedGasPrice,
 						"error":    ctx.Err(),
@@ -50,7 +50,7 @@ func (j *UpdateSuggestedGasPriceJob) run(ctx context.Context) {
 	startTime := time.Now()
 	defer func() {
 		logger.
-			WithFields(
+			WithFields(ctx,
 				logger.Fields{
 					"job.id":      jobID,
 					"job.name":    UpdateSuggestedGasPrice,
@@ -62,7 +62,7 @@ func (j *UpdateSuggestedGasPriceJob) run(ctx context.Context) {
 	result, err := j.useCase.Handle(ctx)
 	if err != nil {
 		logger.
-			WithFields(
+			WithFields(ctx,
 				logger.Fields{
 					"job.id":   jobID,
 					"job.name": UpdateSuggestedGasPrice,
@@ -78,7 +78,7 @@ func (j *UpdateSuggestedGasPriceJob) run(ctx context.Context) {
 	}
 
 	logger.
-		WithFields(
+		WithFields(ctx,
 			logger.Fields{
 				"job.id":              jobID,
 				"job.name":            UpdateSuggestedGasPrice,

@@ -59,7 +59,7 @@ func (u *useCase) Handle(ctx context.Context) error {
 
 			err := u.trackExecutor(ctx, executorAddress)
 			if err != nil {
-				logger.Errorf("fail to track executor %s, err: %v", executorAddress, err)
+				logger.Errorf(ctx, "fail to track executor %s, err: %v", executorAddress, err)
 			}
 		}(executorAddress)
 	}
@@ -85,14 +85,14 @@ func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) err
 		if err != nil {
 			return err
 		}
-		logger.WithFields(logger.Fields{
+		logger.WithFields(ctx, logger.Fields{
 			"executor":         executorAddress,
 			"startBlockNumber": blockNumber,
 			"numEvents":        len(events),
 		}).Info("Fetch Exchange events from executor")
 
 		if len(events) == 0 {
-			logger.Info("No new Exchange events, skip to the next interval")
+			logger.Info(ctx, "No new Exchange events, skip to the next interval")
 			return nil
 		}
 
@@ -117,7 +117,7 @@ func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) err
 		if lastBlockNumber >= blockNumberCheckpoint {
 			break
 		} else {
-			logger.WithFields(logger.Fields{
+			logger.WithFields(ctx, logger.Fields{
 				"currentBlock": lastBlockNumber,
 				"latestBlock":  blockNumberCheckpoint,
 			}).Info("Continue catching up with the latest events")
@@ -149,7 +149,7 @@ func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress stri
 	})
 
 	if len(candidateTokenOuts) == 0 {
-		logger.Info("No new tokens to track, skip to the next interval")
+		logger.Info(ctx, "No new tokens to track, skip to the next interval")
 		return nil
 	}
 
@@ -180,7 +180,7 @@ func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress stri
 		return !rpcResponse.Result[idx] || tokenBalances[idx] == nil || tokenBalances[idx].Cmp(constants.Zero) == 0
 	})
 
-	logger.WithFields(logger.Fields{
+	logger.WithFields(ctx, logger.Fields{
 		"executor":        executorAddress,
 		"numUpdateTokens": len(updateTokens),
 		"missTokens":      missTokens,
@@ -214,7 +214,7 @@ func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress
 	}
 
 	poolSimulators := u.poolFactory.NewPools(ctx, poolEntities, common.Hash{})
-	logger.WithFields(logger.Fields{
+	logger.WithFields(ctx, logger.Fields{
 		"executor":          executorAddress,
 		"numPoolAddresses":  len(poolAddresses),
 		"numPoolEntities":   len(poolEntities),
@@ -261,7 +261,7 @@ func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress
 	})
 
 	if len(poolApprovalCandidates) == 0 {
-		logger.Info("No new pool approvals to track, skip to the next interval")
+		logger.Info(ctx, "No new pool approvals to track, skip to the next interval")
 		return nil
 	}
 
@@ -289,7 +289,7 @@ func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress
 		return rpcResponse.Result[idx] && poolApprovals[idx] != nil && poolApprovals[idx].Cmp(constants.Zero) > 0
 	})
 
-	logger.WithFields(logger.Fields{
+	logger.WithFields(ctx, logger.Fields{
 		"executor":               executorAddress,
 		"numUpdatePoolApprovals": len(updatePoolApprovals),
 		"numMissPoolApprovals":   len(poolApprovalCandidates) - len(updatePoolApprovals),

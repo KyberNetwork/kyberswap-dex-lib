@@ -46,18 +46,18 @@ func (f *hillClimbFinder) Find(ctx context.Context,
 	data.Refresh()
 	baseBestRoutes, err := f.baseIFinder.Find(ctx, input, data)
 	if err != nil {
-		logger.Errorf("hill climb: baseIFinder failed %s", err)
+		logger.Errorf(ctx, "hill climb: baseIFinder failed %s", err)
 		return nil, err
 	}
 
 	baseBestRoute := extractBestRoute(baseBestRoutes)
 	if baseBestRoute == nil {
-		logger.Infof("hill climb: extract best base route failed %s", err)
+		logger.Infof(ctx, "hill climb: extract best base route failed %s", err)
 		return nil, nil
 	}
 
 	if len(baseBestRoute.Paths) == 1 {
-		logger.Infof("hill climb: return baseBestRoute due to lenPaths == 1")
+		logger.Infof(ctx, "hill climb: return baseBestRoute due to lenPaths == 1")
 		return []*valueobject.Route{baseBestRoute}, nil
 	}
 
@@ -65,7 +65,7 @@ func (f *hillClimbFinder) Find(ctx context.Context,
 	data.Refresh()
 	baseBestRoute = recalculateRoute(input, data, baseBestRoute)
 	if baseBestRoute == nil {
-		logger.Infof("hill climb: return nil due to cannot recalculateRoute base")
+		logger.Infof(ctx, "hill climb: return nil due to cannot recalculateRoute base")
 		return nil, nil
 	}
 
@@ -74,7 +74,7 @@ func (f *hillClimbFinder) Find(ctx context.Context,
 	data.Refresh()
 	hillClimbBestRoute, err := f.optimizeRoute(ctx, input, data, baseBestRoute)
 	if err != nil {
-		logger.Infof("hill climb: optimizeRoute failed %s", err)
+		logger.Infof(ctx, "hill climb: optimizeRoute failed %s", err)
 		return []*valueobject.Route{baseBestRoute}, nil
 	}
 
@@ -82,19 +82,19 @@ func (f *hillClimbFinder) Find(ctx context.Context,
 	data.Refresh()
 	hillClimbBestRoute = recalculateRoute(input, data, hillClimbBestRoute)
 
-	logger.Infof(
+	logger.Infof(ctx,
 		"successfully using hill climb to optimize route from token %v to token %v", input.TokenInAddress, input.TokenOutAddress,
 	)
 
 	// if the route cannot be optimized or the input is different from the input of base best route
 	if hillClimbBestRoute == nil || hillClimbBestRoute.Input.CompareTo(&baseBestRoute.Input) != 0 {
-		logger.Infof(
+		logger.Infof(ctx,
 			"hill climb: used baseRoute which better",
 		)
 		return []*valueobject.Route{baseBestRoute}, nil
 	}
 	if hillClimbBestRoute.CompareTo(baseBestRoute, input.GasInclude) > 0 {
-		logger.Infof(
+		logger.Infof(ctx,
 			"hill climb: used hillClimb Route which better",
 		)
 		return []*valueobject.Route{hillClimbBestRoute}, nil

@@ -38,7 +38,7 @@ func (r *RedisRepository) GetPregenTokenAmounts(ctx context.Context) ([]generate
 		fmt.Println("Error decoding JSON:", err)
 		return nil, 0, err
 	}
-	logger.Infof("Got pregen kMeans data at: %s", data.Timestamp)
+	logger.Infof(ctx, "Got pregen kMeans data at: %s", data.Timestamp)
 	return data.TokenAmounts, data.Timestamp, err
 }
 
@@ -77,7 +77,7 @@ func (r *RedisRepository) set(sourcesHash uint64, key string, data []*entity.Min
 
 	if err != nil {
 		logger.
-			WithFields(logger.Fields{"error": err, "key": fmtKey}).
+			WithFields(ctx, logger.Fields{"error": err, "key": fmtKey}).
 			Error("set best paths failed")
 		return err
 	}
@@ -91,7 +91,7 @@ func (r *RedisRepository) get(sourcesHash uint64, key string) []*entity.MinimalP
 
 	if err != nil {
 		logger.
-			WithFields(logger.Fields{"error": err, "key": fmtKey}).
+			WithFields(ctx, logger.Fields{"error": err, "key": fmtKey}).
 			Error("get best paths failed")
 		return nil
 	}

@@ -38,11 +38,11 @@ func (r *RetryFinder) Find(ctx context.Context,
 	data.Refresh()
 	routes, err := r.baseIFinder.Find(ctx, input, data)
 	if err != nil {
-		logger.Errorf("retry finder: baseIFinder failed %s", err)
+		logger.Errorf(ctx, "retry finder: baseIFinder failed %s", err)
 		return nil, err
 	}
 	if len(routes) == 0 {
-		logger.Errorf("retry finder: extract best base route failed %s", err)
+		logger.Errorf(ctx, "retry finder: extract best base route failed %s", err)
 		return nil, nil
 	}
 	//clear/ restart.
@@ -52,7 +52,7 @@ func (r *RetryFinder) Find(ctx context.Context,
 	if baseBestRoute == nil {
 		return routes, nil
 	}
-	newRoute := r.retryDynamicPools(baseBestRoute, []string{kyberpmm.DexTypeKyberPMM, limitorder.DexTypeLimitOrder},
+	newRoute := r.retryDynamicPools(ctx, baseBestRoute, []string{kyberpmm.DexTypeKyberPMM, limitorder.DexTypeLimitOrder},
 		data,
 		valueobject.GasOption{
 			GasFeeInclude: input.GasInclude,
@@ -60,7 +60,7 @@ func (r *RetryFinder) Find(ctx context.Context,
 			TokenPrice:    input.GasTokenPriceUSD,
 		})
 	if newRoute != nil && newRoute.CompareTo(baseBestRoute, input.GasInclude) > 0 {
-		logger.Infof(
+		logger.Infof(ctx,
 			"retry finder: success retry with better rate baseAmountOut: %s baseAmountOutUsd %s poolAddr %s, and newAmountOut %s newAmountOutUsd %s poolAddr %s",
 			baseBestRoute.Output.Amount.String(),
 			baseBestRoute.Output.AmountUsd,
@@ -76,7 +76,7 @@ func (r *RetryFinder) Find(ctx context.Context,
 
 // retryDynamicPools will re try the found route with dyanmic pools type (i.e, pools given higher amount out ratio at higher amountin).
 // WARNING: finderData must be a fresh copy.
-func (r *RetryFinder) retryDynamicPools(route *valueobject.Route, dynamicTypes []string, data findroute.FinderData, gasOption valueobject.GasOption) *valueobject.Route {
+func (r *RetryFinder) retryDynamicPools(ctx context.Context, route *valueobject.Route, dynamicTypes []string, data findroute.FinderData, gasOption valueobject.GasOption) *valueobject.Route {
 	var newRoute = valueobject.NewRoute(route.Input.Token, route.Output.Token)
 	typeSet := sets.NewString(dynamicTypes...)
 	for i := 0; i < len(route.Paths); i++ {
@@ -99,19 +99,19 @@ func (r *RetryFinder) retryDynamicPools(route *valueobject.Route, dynamicTypes [
 		for pIndex := 0; pIndex < len(currPath.PoolAddresses); pIndex++ {
 			currPool, avail := data.PoolBucket.GetPool(currPath.PoolAddresses[pIndex])
 			if !avail {
-				logger.Errorf("pool is removed from pool bucket, poolAddress: %s", currPath.PoolAddresses[pIndex])
+				logger.Errorf(ctx, "pool is removed from pool bucket, poolAddress: %s", currPath.PoolAddresses[pIndex])
 				return route
 			}
 			result, err := poolpkg.CalcAmountOut(currPool, *inp, currPath.Tokens[pIndex+1].Address, data.SwapLimits[currPool.GetType()])
 			if err != nil {
-				logger.Errorf("cannot calculate amount out for pool %s, error: %s", currPool.GetAddress(), err)
+				logger.Errorf(ctx, "cannot calculate amount out for pool %s, error: %s", currPool.GetAddress(), err)
 				return route
 			}
 			currOutput = result.TokenAmountOut
 			bestNewPool, newAmount := findNewBestPoolWithAmount(data, inp, result.TokenAmountOut, typeSet)
 
 			if bestNewPool != "" {
-				logger.Infof("found better pool %s. Old pool", bestNewPool, currPool.GetAddress())
+				logger.Infof(ctx, "found better pool %s. Old pool", bestNewPool, currPool.GetAddress())
 				modified = true
 				poolsOnNewPath[pIndex] = bestNewPool
 				currOutput = newAmount
@@ -125,7 +125,7 @@ func (r *RetryFinder) retryDynamicPools(route *valueobject.Route, dynamicTypes [
 			var err error
 			newPath, err = valueobject.NewPath(data.PoolBucket, poolsOnNewPath, currPath.Tokens, currPath.Input, currPath.Output.Token, data.PriceUSDByAddress[currPath.Output.Token], data.TokenByAddress[currPath.Output.Token].Decimals, gasOption, data.SwapLimits)
 			if err != nil {
-				logger.Errorf("cannot create new path, error: %s", err.Error())
+				logger.Errorf(ctx, "cannot create new path, error: %s", err.Error())
 				newPath = currPath
 			}
 		} else {

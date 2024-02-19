@@ -40,7 +40,7 @@ func (r *Reporter) Report(ctx context.Context, reloadChan chan string) {
 
 			shouldReload, err := r.reloadConfigUseCase.ShouldReload(ctx, getServiceCode(r.cfg.ServiceName, r.cfg.ChainID))
 			if err != nil {
-				logger.Errorf("failed to check should reload, err: %v", err)
+				logger.Errorf(ctx, "failed to check should reload, err: %v", err)
 				continue
 			}
 
