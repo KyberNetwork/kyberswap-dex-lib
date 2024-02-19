@@ -145,7 +145,7 @@ func (t *PoolBaseSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
-		if amountOut.Sign() > 0 {
+		if !amountOut.IsZero() {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,
