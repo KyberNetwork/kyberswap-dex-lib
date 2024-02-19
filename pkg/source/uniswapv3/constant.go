@@ -13,7 +13,7 @@ const (
 	defaultTokenWeight    = 50
 	zeroString            = "0"
 	emptyString           = ""
-	graphQLRequestTimeout = 20 * time.Second
+	graphQLRequestTimeout = 60 * time.Second
 )
 
 const (
