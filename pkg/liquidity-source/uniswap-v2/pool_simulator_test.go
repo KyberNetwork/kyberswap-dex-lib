@@ -1,14 +1,18 @@
 package uniswapv2
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -229,6 +233,70 @@ func BenchmarkPoolSimulatorCalcAmountOut(b *testing.B) {
 					TokenOut:      tc.tokenOut,
 					Limit:         nil,
 				})
+			}
+		})
+	}
+}
+
+var (
+	poolRedisBench = `{
+		"address": "0x3f3ee751ab00246cb0beec2e904ef51e18ac4d77",
+		"reserveUsd": 0.036380575233191714,
+		"amplifiedTvl": 0.036380575233191714,
+		"exchange": "uniswap",
+		"type": "uniswap-v2",
+		"timestamp": 1705851986,
+		"reserves": ["7535596323597", "8596033702378"],
+		"tokens": [
+			{ "address": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0", "swappable": true },
+			{ "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", "swappable": true }
+		],
+		"extra": "{\"fee\":3,\"feePrecision\":1000}",
+		"blockNumber": 19056224
+	}`
+
+	poolEnt entity.Pool
+	_       = json.Unmarshal([]byte(poolRedisBench), &poolEnt)
+)
+
+func BenchmarkNewPoolSimulator(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, _ = NewPoolSimulator(poolEnt)
+	}
+}
+
+func BenchmarkNewPoolSimulatorV2(b *testing.B) {
+	sim, _ := NewPoolSimulatorV2(poolEnt)
+	for i := 0; i < b.N; i++ {
+		_ = InitPoolSimulator(poolEnt, sim)
+	}
+}
+
+func TestComparePoolSimulatorV2(t *testing.T) {
+	sim, err := NewPoolSimulator(poolEnt)
+	require.Nil(t, err)
+	simV2, err := NewPoolSimulatorV2(poolEnt)
+	require.Nil(t, err)
+
+	for i := 0; i < 500; i++ {
+		amt := testutil.RandNumberString(15)
+		t.Run(fmt.Sprintf("test %s", amt), func(t *testing.T) {
+			in := poolpkg.CalcAmountOutParams{
+				TokenAmountIn: poolpkg.TokenAmount{
+					Amount: utils.NewBig(amt),
+					Token:  "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+				},
+				TokenOut: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+				Limit:    nil,
+			}
+			res, err := sim.CalcAmountOut(in)
+			resV2, errV2 := simV2.CalcAmountOut(in)
+
+			if err == nil {
+				require.Nil(t, errV2)
+				assert.Equal(t, res, resV2)
+			} else {
+				require.NotNil(t, errV2)
 			}
 		})
 	}

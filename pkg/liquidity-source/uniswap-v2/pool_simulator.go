@@ -61,6 +61,81 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
+func NewPoolSimulatorV2(entityPool entity.Pool) (*PoolSimulator, error) {
+	sim := &PoolSimulator{}
+	err := InitPoolSimulator(entityPool, sim)
+	if err != nil {
+		return nil, err
+	}
+	return sim, nil
+}
+
+const NUM_TOKEN = 2
+
+func InitPoolSimulator(entityPool entity.Pool, sim *PoolSimulator) error {
+	if len(entityPool.Tokens) != NUM_TOKEN || len(entityPool.Reserves) != NUM_TOKEN {
+		return errors.New("Invalid number of token")
+	}
+	// in case the caller mess thing up
+	if sim == nil {
+		return errors.New("Invalid simulator instance")
+	}
+
+	var extra Extra
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return err
+	}
+
+	sim.Pool.Info.Address = entityPool.Address
+	sim.Pool.Info.ReserveUsd = entityPool.ReserveUsd
+	sim.Pool.Info.Exchange = entityPool.Exchange
+	sim.Pool.Info.Type = entityPool.Type
+	sim.Pool.Info.BlockNumber = entityPool.BlockNumber
+	sim.gas = defaultGas
+
+	// try to re-use existing array if possible, if not then allocate new one
+	if cap(sim.Pool.Info.Tokens) >= NUM_TOKEN {
+		sim.Pool.Info.Tokens = sim.Pool.Info.Tokens[:NUM_TOKEN]
+	} else {
+		sim.Pool.Info.Tokens = make([]string, NUM_TOKEN)
+	}
+	for i := range entityPool.Tokens {
+		sim.Pool.Info.Tokens[i] = entityPool.Tokens[i].Address
+	}
+
+	if cap(sim.Pool.Info.Reserves) >= NUM_TOKEN {
+		sim.Pool.Info.Reserves = sim.Pool.Info.Reserves[:NUM_TOKEN]
+	} else {
+		sim.Pool.Info.Reserves = make([]*big.Int, NUM_TOKEN)
+	}
+	var tmp uint256.Int
+	for i := range entityPool.Reserves {
+		// still not sure why, but uint256.SetFromDecimal doesn't use `strings.NewReader` like bigInt.SetString
+		// so it's cheaper to convert string to uint256 then to bigInt
+		// (in the far future if we can replace pool's reserves with uint256 then we can remove the last step)
+		err := tmp.SetFromDecimal(entityPool.Reserves[i])
+		if err != nil {
+			return err
+		}
+		if sim.Pool.Info.Reserves[i] == nil {
+			sim.Pool.Info.Reserves[i] = new(big.Int)
+		}
+		utils.FillBig(&tmp, sim.Pool.Info.Reserves[i])
+	}
+
+	if sim.fee == nil {
+		sim.fee = new(uint256.Int)
+	}
+	sim.fee.SetUint64(extra.Fee)
+
+	if sim.feePrecision == nil {
+		sim.feePrecision = new(uint256.Int)
+	}
+	sim.feePrecision.SetUint64(extra.FeePrecision)
+
+	return nil
+}
+
 func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
 	var (
 		tokenAmountIn = param.TokenAmountIn
