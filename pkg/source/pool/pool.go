@@ -81,6 +81,7 @@ func (t *Pool) GetType() string {
 type CalcAmountOutResult struct {
 	TokenAmountOut *TokenAmount
 	Fee            *TokenAmount
+	RemainInput    *TokenAmount
 	Gas            int64
 	SwapInfo       interface{}
 }

@@ -12,8 +12,8 @@ github.com/KyberNetwork/logger v0.1.0 h1:Iibu9Ls+tipjR+C0iXhzUYM1VtRgmmR1HHWGufP
 github.com/KyberNetwork/logger v0.1.0/go.mod h1:zBqHbtJ3nJn6HQnp6UW8pbQkR+U6tSRFd5CzfiKL3Kw=
 github.com/KyberNetwork/pancake-v3-sdk v0.1.0 h1:HVUD13Qbwl4kiU1uSprQVpkis6fYYp3A32mVuK+f1Iw=
 github.com/KyberNetwork/pancake-v3-sdk v0.1.0/go.mod h1:AhHu1v2KZAXKFZ9AnjwYPPx1+dDFHBqmSpSeg4fnvzg=
-github.com/KyberNetwork/uniswapv3-sdk v0.4.4 h1:Kn0agJawAAk0oFwQHL6voJXjgswe3sWG6qNLZoPqbo4=
-github.com/KyberNetwork/uniswapv3-sdk v0.4.4/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
+github.com/KyberNetwork/uniswapv3-sdk v0.4.5 h1:/CBvZymypq6g3XzNpOAyhK7vfg7Mj1EJA5sAy+C7BoE=
+github.com/KyberNetwork/uniswapv3-sdk v0.4.5/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
 github.com/VictoriaMetrics/fastcache v1.6.0 h1:C/3Oi3EiBCqufydp1neRZkqcwmEiuRT9c3fqvvgKm5o=
 github.com/VictoriaMetrics/fastcache v1.6.0/go.mod h1:0qHz5QP0GMX4pfmMA/zt5RgfNuXJrTP0zS7DqpHGGTw=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
