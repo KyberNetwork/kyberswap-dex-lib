@@ -139,33 +139,47 @@ func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) *big.Int {
 	return sqrtPriceX96Limit
 }
 
-func (p *PoolSimulator) CalcAmountIn(
-	tokenAmountOut pool.TokenAmount,
-	tokenIn string,
-) (*big.Int, error) {
-	var tokenInIndex = p.GetTokenIndex(tokenIn)
-	var tokenOutIndex = p.GetTokenIndex(tokenAmountOut.Token)
+func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	var tokenInIndex = p.GetTokenIndex(param.TokenIn)
+	var tokenOutIndex = p.GetTokenIndex(param.TokenAmountOut.Token)
 	var tokenOut *coreEntities.Token
 	var zeroForOne bool
 
 	if tokenInIndex >= 0 && tokenOutIndex >= 0 {
-		if strings.EqualFold(tokenAmountOut.Token, p.V3Pool.Token0.Address.String()) {
+		if strings.EqualFold(param.TokenAmountOut.Token, p.V3Pool.Token0.Address.String()) {
 			zeroForOne = false
 			tokenOut = p.V3Pool.Token0
 		} else {
 			tokenOut = p.V3Pool.Token1
 			zeroForOne = true
 		}
-		amountOut := coreEntities.FromRawAmount(tokenOut, tokenAmountOut.Amount)
-		amountIn, _, err := p.V3Pool.GetInputAmount(amountOut, p.getSqrtPriceLimit(zeroForOne))
+		amountOut := coreEntities.FromRawAmount(tokenOut, param.TokenAmountOut.Amount)
+		amountIn, newPoolState, err := p.V3Pool.GetInputAmount(amountOut, p.getSqrtPriceLimit(zeroForOne))
 
 		if err != nil {
 			return nil, fmt.Errorf("can not GetInputAmount, err: %+v", err)
 		}
 
+		totalGas := p.gas.BaseGas // TODO: update GetInputAmount to return crossed tick if we ever need this
+
 		amountInBI := amountIn.Quotient()
 		if amountInBI.Cmp(zeroBI) > 0 {
-			return amountInBI, nil
+			return &pool.CalcAmountInResult{
+				TokenAmountIn: &pool.TokenAmount{
+					Token:  param.TokenIn,
+					Amount: amountInBI,
+				},
+				Fee: &pool.TokenAmount{
+					Token:  param.TokenIn,
+					Amount: nil,
+				},
+				Gas: totalGas,
+				SwapInfo: UniV3SwapInfo{
+					nextStateSqrtRatioX96: new(big.Int).Set(newPoolState.SqrtRatioX96),
+					nextStateLiquidity:    new(big.Int).Set(newPoolState.Liquidity),
+					nextStateTickCurrent:  newPoolState.TickCurrent,
+				},
+			}, nil
 		}
 
 		return nil, errors.New("amountIn is 0")

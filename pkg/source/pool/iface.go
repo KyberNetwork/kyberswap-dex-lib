@@ -46,12 +46,10 @@ type IPoolSimulator interface {
 }
 
 type IPoolExactOutSimulator interface {
-	// CalcAmountIn calculate the `amountIn` of `tokenIn` needed to get `tokenAmountOut`
-	// caller might need to run `CalcAmountOut` again to determine if the returned `amountIn` is good enough
-	CalcAmountIn(
-		tokenAmountOut TokenAmount,
-		tokenIn string,
-	) (*big.Int, error)
+	// CalcAmountIn returns amountIn, fee, gas
+	// the required params is TokenAmountOut and TokenIn.
+	// SwapLimit is optional, individual dex logic will chose to ignore it if it is nil
+	CalcAmountIn(param CalcAmountInParams) (*CalcAmountInResult, error)
 }
 
 type IPoolRFQ interface {
