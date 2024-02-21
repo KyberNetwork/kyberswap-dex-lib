@@ -79,11 +79,11 @@ func (t *Pool) GetType() string {
 }
 
 type CalcAmountOutResult struct {
-	TokenAmountOut *TokenAmount
-	Fee            *TokenAmount
-	RemainInput    *TokenAmount
-	Gas            int64
-	SwapInfo       interface{}
+	TokenAmountOut         *TokenAmount
+	Fee                    *TokenAmount
+	RemainingTokenAmountIn *TokenAmount
+	Gas                    int64
+	SwapInfo               interface{}
 }
 
 func (r *CalcAmountOutResult) IsValid() bool {
