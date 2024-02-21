@@ -19,27 +19,27 @@ var (
 
 type (
 	poolCollection struct {
-		NetworkFeePMM *uint256.Int
-		PoolData      map[string]*pool
-		BNT           string
+		NetworkFeePMM *uint256.Int     `json:"networkFeePMM"`
+		PoolData      map[string]*pool `json:"poolData"`
+		BNT           string           `json:"bnt"`
+	}
+
+	pool struct {
+		PoolToken      string        `json:"poolToken"`
+		TradingFeePPM  *uint256.Int  `json:"tradingFeePPM"`
+		TradingEnabled bool          `json:"tradingEnabled"`
+		Liquidity      poolLiquidity `json:"liquidity"`
+	}
+
+	poolLiquidity struct {
+		BNTTradingLiquidity       *uint256.Int `json:"bntTradingLiquidity"`
+		BaseTokenTradingLiquidity *uint256.Int `json:"baseTokenTradingLiquidity"`
+		StakedBalance             *uint256.Int `json:"stakedBalance"`
 	}
 
 	tradeAmountAndTradingFee struct {
 		Amount           *uint256.Int
 		TradingFeeAmount *uint256.Int
-	}
-
-	pool struct {
-		PoolToken      string
-		TradingFeePPM  *uint256.Int
-		TradingEnabled bool
-		Liquidity      poolLiquidity
-	}
-
-	poolLiquidity struct {
-		BNTTradingLiquidity       *uint256.Int
-		BaseTokenTradingLiquidity *uint256.Int
-		StakedBalance             *uint256.Int
 	}
 
 	tradeIntermediateResult struct {

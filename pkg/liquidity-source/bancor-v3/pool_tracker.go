@@ -18,8 +18,9 @@ import (
 )
 
 var (
-	ErrPoolCollectionNotFound = errors.New("pool collection not found")
-	ErrPoolDataNotFound       = errors.New("pool data not found")
+	ErrPoolCollectionNotFound   = errors.New("pool collection not found")
+	ErrCollectionByPoolNotFound = errors.New("collection by pool not found")
+	ErrPoolDataNotFound         = errors.New("pool data not found")
 )
 
 type PoolTracker struct {
@@ -165,6 +166,14 @@ func (t *PoolTracker) updateTokensAndReserves(
 	collectionByPool map[string]string,
 	poolCollections map[string]*poolCollectionResp,
 ) error {
+	var extra Extra
+	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+		return err
+	}
+	if extra.NativeIdx >= 0 {
+		p.Tokens[extra.NativeIdx].Address = strings.ToLower(valueobject.EtherAddress)
+	}
+
 	exists := map[string]struct{}{}
 	for _, token := range p.Tokens {
 		exists[token.Address] = struct{}{}
@@ -178,27 +187,9 @@ func (t *PoolTracker) updateTokensAndReserves(
 		p.Reserves = append(p.Reserves, "0")
 	}
 
-	for idx, token := range p.Tokens {
-		poolCollectionAddr, ok := collectionByPool[token.Address]
-		if !ok {
-			return ErrPoolCollectionNotFound
-		}
-		poolCollection, ok := poolCollections[poolCollectionAddr]
-		if !ok {
-			return ErrPoolCollectionNotFound
-		}
-		poolData, ok := poolCollection.PoolData[token.Address]
-		if !ok {
-			return ErrPoolDataNotFound
-		}
-		p.Reserves[idx] = poolData.PoolLiquidity.StakedBalance.String()
-	}
-
-	var extra Extra
-	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-		return err
-	}
-	if extra.NativeIdx < 0 {
+	if extra.NativeIdx >= 0 {
+		p.Tokens[extra.NativeIdx].Address = strings.ToLower(valueobject.WETHByChainID[t.config.ChainID])
+	} else {
 		for idx, token := range p.Tokens {
 			if strings.EqualFold(token.Address, valueobject.EtherAddress) {
 				extra.NativeIdx = idx
@@ -213,7 +204,71 @@ func (t *PoolTracker) updateTokensAndReserves(
 		p.Extra = string(extraBytes)
 	}
 
+	for idx, token := range p.Tokens {
+		poolCollection, err := t.findPoolCollectionByPoolAddr(
+			ctx,
+			collectionByPool,
+			poolCollections,
+			token.Address,
+			extra.NativeIdx == idx,
+		)
+		if err != nil {
+			return ErrPoolCollectionNotFound
+		}
+
+		poolData, err := t.findPoolData(
+			ctx,
+			poolCollection,
+			token.Address,
+			extra.NativeIdx == idx,
+		)
+		if err != nil {
+			return err
+		}
+
+		p.Reserves[idx] = poolData.PoolLiquidity.StakedBalance.String()
+	}
+
 	return nil
+}
+
+func (t *PoolTracker) findPoolData(
+	ctx context.Context,
+	poolCollection *poolCollectionResp,
+	poolAddr string, // token
+	isNative bool,
+) (*poolDataResp, error) {
+	key := poolAddr
+	if isNative {
+		key = strings.ToLower(valueobject.EtherAddress)
+	}
+	poolData, ok := poolCollection.PoolData[key]
+	if !ok {
+		return nil, ErrPoolDataNotFound
+	}
+	return poolData, nil
+}
+
+func (t *PoolTracker) findPoolCollectionByPoolAddr(
+	ct context.Context,
+	collectionByPool map[string]string,
+	poolCollections map[string]*poolCollectionResp,
+	poolAddr string, // token
+	isNative bool,
+) (*poolCollectionResp, error) {
+	key := poolAddr
+	if isNative {
+		key = strings.ToLower(valueobject.EtherAddress)
+	}
+	poolCollectionAddr, ok := collectionByPool[key]
+	if !ok {
+		return nil, errors.Wrapf(ErrCollectionByPoolNotFound, "tokenAddress(%s)", key)
+	}
+	poolCollection, ok := poolCollections[poolCollectionAddr]
+	if !ok {
+		return nil, errors.Wrapf(ErrPoolCollectionNotFound, "poolCollectionAddr(%s)", poolCollectionAddr)
+	}
+	return poolCollection, nil
 }
 
 func (t *PoolTracker) getPoolCollections(
@@ -244,23 +299,25 @@ func (t *PoolTracker) getPoolCollection(
 	poolCollection string,
 	pools []string,
 ) (*poolCollectionResp, error) {
-	req := t.ethrpcClient.R()
+	req := t.ethrpcClient.R().SetBlockNumber(blockNbr)
 
 	poolDatResp := make([]*poolDataResp, len(pools))
 	for idx, p := range pools {
+		poolDatResp[idx] = &poolDataResp{}
+
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolCollectionABI,
 			Target: poolCollection,
 			Method: poolCollectionMethodPoolData,
 			Params: []interface{}{common.HexToAddress(p)},
-		}, []interface{}{poolDatResp[idx]})
+		}, []interface{}{&poolDatResp[idx]})
 	}
 
 	var fee uint32
 	req.AddCall(&ethrpc.Call{
 		ABI:    poolCollectionABI,
 		Target: poolCollection,
-		Method: poolCollectionMethodPoolData,
+		Method: poolCollectionMethodNetworkFeePPM,
 	}, []interface{}{&fee})
 
 	if _, err := req.Aggregate(); err != nil {
@@ -284,8 +341,8 @@ func (t *PoolTracker) getCollectionByPool(
 	bancorNetworkAddress string,
 	liquidityPools []string,
 ) (map[string]string, error) {
-	req := t.ethrpcClient.R()
-	poolCollections := make([]string, len(liquidityPools))
+	req := t.ethrpcClient.R().SetBlockNumber(blockNbr)
+	poolCollections := make([]common.Address, len(liquidityPools))
 	for idx, liquidityPool := range liquidityPools {
 		req.AddCall(&ethrpc.Call{
 			ABI:    bancorNetworkABI,
@@ -301,7 +358,7 @@ func (t *PoolTracker) getCollectionByPool(
 
 	poolByCollection := make(map[string]string)
 	for idx, liquidityPool := range liquidityPools {
-		poolByCollection[liquidityPool] = poolCollections[idx]
+		poolByCollection[liquidityPool] = strings.ToLower(poolCollections[idx].Hex())
 	}
 
 	return poolByCollection, nil
