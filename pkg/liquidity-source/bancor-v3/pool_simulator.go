@@ -1,17 +1,24 @@
 package bancorv3
 
 import (
+	"encoding/json"
+	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
 	ErrInvalidToken = errors.New("invalid token")
 	ErrZeroValue    = errors.New("zero value")
+	ErrOverflow     = errors.New("overflow")
 )
 
 type (
@@ -21,6 +28,7 @@ type (
 		collectionByPool map[string]string
 		poolCollections  map[string]*poolCollection
 		bnt              string
+		chainID          valueobject.ChainID
 	}
 
 	tradeTokens struct {
@@ -45,13 +53,167 @@ type (
 	}
 )
 
-func (p *PoolSimulator) tradeBySourceAmount(
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+	var (
+		extra       Extra
+		staticExtra StaticExtra
+
+		tokens   = make([]string, len(entityPool.Tokens))
+		reserves = make([]*big.Int, len(entityPool.Tokens))
+	)
+
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+		return nil, err
+	}
+
+	for idx := 0; idx < len(entityPool.Tokens); idx++ {
+		tokens[idx] = entityPool.Tokens[idx].Address
+		reserves[idx] = bignumber.NewBig10(entityPool.Reserves[idx])
+	}
+
+	poolInfo := poolpkg.PoolInfo{
+		Address:     entityPool.Address,
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		Reserves:    reserves,
+		Checked:     true,
+		BlockNumber: uint64(entityPool.BlockNumber),
+	}
+
+	return &PoolSimulator{
+		Pool:             poolpkg.Pool{Info: poolInfo},
+		collectionByPool: extra.CollectionByPool,
+		poolCollections:  extra.PoolCollections,
+		bnt:              staticExtra.BNT,
+	}, nil
+}
+
+func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+	tokenAmountIn, tokenOut := params.TokenAmountIn, params.TokenOut
+
+	sourceToken, targetToken, isSourceNative, isTargetNative, err := s.transformTokens(tokenAmountIn.Token, tokenOut)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.verifyTokens(sourceToken, targetToken); err != nil {
+		return nil, err
+	}
+
+	sourceAmount, ok := uint256.FromBig(tokenAmountIn.Amount)
+	if !ok {
+		return nil, ErrOverflow
+	}
+
+	amountOut, tradeInfo, err := s.tradeBySourceAmount(
+		sourceToken,
+		targetToken,
+		sourceAmount,
+		number.Number_1,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &poolpkg.CalcAmountOutResult{
+		TokenAmountOut: &poolpkg.TokenAmount{
+			Token:  tokenOut,
+			Amount: amountOut.ToBig(),
+		},
+		Fee: &poolpkg.TokenAmount{},
+		Gas: 0,
+		SwapInfo: SwapInfo{
+			IsSourceNative: isSourceNative,
+			IsTargetNative: isTargetNative,
+			TradeInfo:      tradeInfo,
+		},
+	}, nil
+}
+
+func (s *PoolSimulator) verifyTokens(sourceToken, targetToken string) error {
+	if _, err := s.getPoolData(sourceToken); err != nil {
+		return err
+	}
+
+	if _, err := s.getPoolData(targetToken); err != nil {
+		return err
+	}
+
+	if sourceToken == targetToken {
+		return ErrInvalidToken
+	}
+
+	return nil
+}
+
+func (s *PoolSimulator) transformTokens(tokenIn, tokenOut string) (string, string, bool, bool, error) {
+	weth := strings.ToLower(valueobject.WETHByChainID[s.chainID])
+	if tokenIn != weth && tokenOut != weth {
+		return tokenIn, tokenOut, false, false, nil
+	}
+
+	var (
+		sourceToken = tokenIn
+		targetToken = tokenOut
+
+		isSourceNative, isTargetNative bool
+	)
+
+	var (
+		eth = strings.ToLower(valueobject.EtherAddress)
+
+		ethReserve  *uint256.Int
+		wethReserve *uint256.Int
+	)
+
+	ethPoolData, err := s.getPoolData(eth)
+	if err != nil {
+		ethReserve = number.Zero
+	} else {
+		ethReserve = ethPoolData.Liquidity.StakedBalance
+	}
+
+	wethPoolData, err := s.getPoolData(weth)
+	if err != nil {
+		wethReserve = number.Zero
+	} else {
+		wethReserve = wethPoolData.Liquidity.StakedBalance
+	}
+
+	if tokenIn == weth && ethReserve.Cmp(wethReserve) > 0 {
+		sourceToken = eth
+		isSourceNative = true
+	}
+
+	if tokenOut == weth {
+		if tokenIn != weth {
+
+			if ethReserve.Cmp(wethReserve) > 0 {
+				targetToken = eth
+				isTargetNative = true
+			}
+
+		} else if !isSourceNative {
+			targetToken = eth
+			isTargetNative = true
+		}
+	}
+
+	return sourceToken, targetToken, isSourceNative, isTargetNative, nil
+}
+
+func (s *PoolSimulator) tradeBySourceAmount(
 	sourceToken,
 	targetToken string,
 	sourceAmount,
 	minReturnAmount *uint256.Int,
 ) (*uint256.Int, []*poolCollectionTradeInfo, error) {
-	if err := p._verifyTradeParams(
+	if err := s._verifyTradeParams(
 		sourceToken,
 		targetToken,
 		sourceAmount,
@@ -60,7 +222,7 @@ func (p *PoolSimulator) tradeBySourceAmount(
 		return nil, nil, err
 	}
 
-	return p._trade(
+	return s._trade(
 		&tradeTokens{SourceToken: sourceToken, TargetToken: targetToken},
 		&tradeParams{
 			BySourceAmount: true,
@@ -71,16 +233,12 @@ func (p *PoolSimulator) tradeBySourceAmount(
 	)
 }
 
-func (p *PoolSimulator) _verifyTradeParams(
+func (s *PoolSimulator) _verifyTradeParams(
 	sourceToken,
 	targetToken string,
 	amount,
 	limit *uint256.Int,
 ) error {
-	if sourceToken == targetToken {
-		return ErrInvalidToken
-	}
-
 	if !amount.Gt(number.Zero) || !limit.Gt(number.Zero) {
 		return ErrZeroValue
 	}
@@ -88,7 +246,7 @@ func (p *PoolSimulator) _verifyTradeParams(
 	return nil
 }
 
-func (p *PoolSimulator) _trade(
+func (s *PoolSimulator) _trade(
 	tokens *tradeTokens,
 	params *tradeParams,
 ) (*uint256.Int, []*poolCollectionTradeInfo, error) {
@@ -101,8 +259,8 @@ func (p *PoolSimulator) _trade(
 		err error
 	)
 
-	if strings.EqualFold(tokens.SourceToken, p.bnt) {
-		lastHopTradeResult, err = p._tradeBNT(
+	if strings.EqualFold(tokens.SourceToken, s.bnt) {
+		lastHopTradeResult, err = s._tradeBNT(
 			tokens.TargetToken, true, params,
 		)
 		if err != nil {
@@ -112,8 +270,8 @@ func (p *PoolSimulator) _trade(
 
 		tradeInfo = append(tradeInfo, lastHopTradeResult.PoolCollectionTradeInfo)
 
-	} else if strings.EqualFold(tokens.TargetToken, p.bnt) {
-		lastHopTradeResult, err = p._tradeBNT(tokens.SourceToken, false, params)
+	} else if strings.EqualFold(tokens.TargetToken, s.bnt) {
+		lastHopTradeResult, err = s._tradeBNT(tokens.SourceToken, false, params)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -123,7 +281,7 @@ func (p *PoolSimulator) _trade(
 		tradeInfo = append(tradeInfo, lastHopTradeResult.PoolCollectionTradeInfo)
 
 	} else {
-		firstHopTradeResult, lastHopTradeResult, err = p._tradeBaseTokens(tokens, params)
+		firstHopTradeResult, lastHopTradeResult, err = s._tradeBaseTokens(tokens, params)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -138,13 +296,13 @@ func (p *PoolSimulator) _trade(
 	return lastHopTradeResult.TargetAmount, tradeInfo, nil
 }
 
-func (p *PoolSimulator) _tradeBaseTokens(
+func (s *PoolSimulator) _tradeBaseTokens(
 	tokens *tradeTokens,
 	params *tradeParams,
 ) (*tradeResult, *tradeResult, error) {
 	sourceAmount, minReturnAmount := params.Amount, params.Limit
 
-	targetHop1, err := p._tradeBNT(
+	targetHop1, err := s._tradeBNT(
 		tokens.SourceToken,
 		false,
 		&tradeParams{
@@ -158,7 +316,7 @@ func (p *PoolSimulator) _tradeBaseTokens(
 		return nil, nil, err
 	}
 
-	targetHop2, err := p._tradeBNT(
+	targetHop2, err := s._tradeBNT(
 		tokens.TargetToken,
 		true,
 		&tradeParams{
@@ -168,11 +326,14 @@ func (p *PoolSimulator) _tradeBaseTokens(
 			IgnoreFees:     params.IgnoreFees,
 		},
 	)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	return targetHop1, targetHop2, nil
 }
 
-func (p *PoolSimulator) _tradeBNT(
+func (s *PoolSimulator) _tradeBNT(
 	pool string, // token
 	fromBNT bool,
 	params *tradeParams,
@@ -180,18 +341,17 @@ func (p *PoolSimulator) _tradeBNT(
 	var tokens tradeTokens
 	if fromBNT {
 		tokens = tradeTokens{
-			SourceToken: p.bnt,
+			SourceToken: s.bnt,
 			TargetToken: pool,
 		}
 	} else {
 		tokens = tradeTokens{
 			SourceToken: pool,
-			TargetToken: p.bnt,
+			TargetToken: s.bnt,
 		}
 	}
 
-	// TODO: get pool collection
-	poolCollection, err := p.getPoolCollection(pool)
+	poolCollection, err := s.getPoolCollection(pool)
 	if err != nil {
 		return nil, err
 	}
@@ -219,14 +379,26 @@ func (p *PoolSimulator) _tradeBNT(
 	return &tradeResult, nil
 }
 
-func (p *PoolSimulator) getPoolCollection(pool string) (*poolCollection, error) {
-	poolCollectionAddr, ok := p.collectionByPool[pool]
+func (s *PoolSimulator) getPoolCollection(pool string) (*poolCollection, error) {
+	poolCollectionAddr, ok := s.collectionByPool[pool]
 	if !ok {
 		return nil, ErrInvalidToken
 	}
-	poolCollection, ok := p.poolCollections[poolCollectionAddr]
+	poolCollection, ok := s.poolCollections[poolCollectionAddr]
 	if !ok {
 		return nil, ErrPoolCollectionNotFound
 	}
 	return poolCollection, nil
+}
+
+func (s *PoolSimulator) getPoolData(pool string) (*pool, error) {
+	poolCollection, err := s.getPoolCollection(pool)
+	if err != nil {
+		return nil, err
+	}
+	p, ok := poolCollection.PoolData[pool]
+	if !ok {
+		return nil, ErrPoolDataNotFound
+	}
+	return p, nil
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolsListUpdater struct {
@@ -46,7 +47,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	staticExtra := StaticExtra{
-		BNT: strings.ToLower(u.config.BNT),
+		BNT:     strings.ToLower(u.config.BNT),
+		ChainID: valueobject.ChainID(u.config.ChainID),
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {

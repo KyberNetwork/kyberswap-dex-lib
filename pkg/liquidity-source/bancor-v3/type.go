@@ -4,10 +4,19 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
+type SwapInfo struct {
+	IsSourceNative bool                       `json:"isSourceNative"`
+	IsTargetNative bool                       `json:"isTargetNative"`
+	TradeInfo      []*poolCollectionTradeInfo `json:"-"`
+}
+
 type StaticExtra struct {
-	BNT string `json:"bnt"`
+	BNT     string              `json:"bnt"`
+	ChainID valueobject.ChainID `json:"chainId"`
 }
 
 type Extra struct {

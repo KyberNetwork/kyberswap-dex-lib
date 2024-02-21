@@ -3,10 +3,10 @@ package bancorv3
 import (
 	"strings"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3/math"
 )
 
@@ -83,6 +83,10 @@ func (p *poolCollection) tradeBySourceAmount(
 		minReturnAmount,
 		true,
 	)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	if ignoreFees {
 		result.TradingFeePPM = number.Zero
 	}
