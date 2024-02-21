@@ -87,7 +87,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	staticExtra := StaticExtra{
-		BNT: u.config.BNT,
+		BNT: strings.ToLower(u.config.BNT),
 	}
 	staticExtraBytes, err := json.Marshal(staticExtra)
 	if err != nil {
@@ -99,7 +99,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	p := entity.Pool{
-		Address:     u.config.BancorNetwork,
+		Address:     strings.ToLower(u.config.BancorNetwork),
 		Exchange:    u.config.DexID,
 		Type:        DexType,
 		Timestamp:   time.Now().Unix(),
