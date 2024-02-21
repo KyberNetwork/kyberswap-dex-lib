@@ -88,16 +88,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	if err := t.updateTokensAndReserves(ctx, &p, liquidityPools, collectionByPool, poolCollections); err != nil {
-		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
-			"dexType":     DexType,
-			"poolAddress": p.Address,
-		}).Error(err.Error())
-		return p, err
-	}
-
-	if err := t.updatePoolCollections(ctx, &p, collectionByPool, poolCollections); err != nil {
+	if err := t.updatePool(ctx, &p, collectionByPool, poolCollections); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
 			"dexType":     DexType,
@@ -109,36 +100,56 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) updatePoolCollections(
+func (t *PoolTracker) updatePool(
 	ctx context.Context,
 	p *entity.Pool,
 	collectionByPool map[string]string,
 	poolCollections map[string]*poolCollectionResp,
 ) error {
-	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		return err
-	}
-
-	var extra Extra
-	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-		return err
-	}
-	extra.CollectionByPool = collectionByPool
+	var (
+		nativeIdx = -1
+		tokens    = []*entity.PoolToken{}
+		reserves  = entity.PoolReserves{}
+	)
 
 	poolCols := make(map[string]*poolCollection)
 	for pcAddr, pc := range poolCollections {
 		poolData := make(map[string]*pool)
+
 		for poolAddr, poolDat := range pc.PoolData {
-			poolData[poolAddr] = &pool{
-				PoolToken:      poolDat.PoolToken.Hex(),
+			if !poolDat.TradingEnabled {
+				continue
+			}
+
+			var (
+				tokenAddr                    = strings.ToLower(poolDat.PoolToken.Hex())
+				bntTradingLiquidity, _       = uint256.FromBig(poolDat.PoolLiquidity.BntTradingLiquidity)
+				baseTokenTradingLiquidity, _ = uint256.FromBig(poolDat.PoolLiquidity.BaseTokenTradingLiquidity)
+				stakedBalance, _             = uint256.FromBig(poolDat.PoolLiquidity.StakedBalance)
+			)
+
+			pool := pool{
+				PoolToken:      tokenAddr,
 				TradingFeePPM:  uint256.NewInt(uint64(poolDat.TradingFeePPM)),
 				TradingEnabled: poolDat.TradingEnabled,
 				Liquidity: poolLiquidity{
-					BNTTradingLiquidity:       uint256.MustFromBig(poolDat.PoolLiquidity.BntTradingLiquidity),
-					BaseTokenTradingLiquidity: uint256.MustFromBig(poolDat.PoolLiquidity.BaseTokenTradingLiquidity),
-					StakedBalance:             uint256.MustFromBig(poolDat.PoolLiquidity.StakedBalance),
+					BNTTradingLiquidity:       bntTradingLiquidity,
+					BaseTokenTradingLiquidity: baseTokenTradingLiquidity,
+					StakedBalance:             stakedBalance,
 				},
+			}
+			poolData[poolAddr] = &pool
+			reserves = append(reserves, pool.Liquidity.StakedBalance.String())
+
+			if strings.EqualFold(tokenAddr, valueobject.EtherAddress) {
+				nativeIdx = len(tokens)
+				tokens = append(tokens, &entity.PoolToken{
+					Address: strings.ToLower(valueobject.WETHByChainID[t.config.ChainID]),
+				})
+			} else {
+				tokens = append(tokens, &entity.PoolToken{
+					Address: tokenAddr,
+				})
 			}
 		}
 
@@ -148,127 +159,20 @@ func (t *PoolTracker) updatePoolCollections(
 			PoolData:      poolData,
 		}
 	}
-	extra.PoolCollections = poolCols
 
-	newExtraBytes, err := json.Marshal(extra)
+	p.Tokens = tokens
+	p.Reserves = reserves
+	extraBytes, err := json.Marshal(Extra{
+		NativeIdx:        nativeIdx,
+		CollectionByPool: collectionByPool,
+		PoolCollections:  poolCols,
+	})
 	if err != nil {
 		return err
 	}
-	p.Extra = string(newExtraBytes)
+	p.Extra = string(extraBytes)
 
 	return nil
-}
-
-func (t *PoolTracker) updateTokensAndReserves(
-	ctx context.Context,
-	p *entity.Pool,
-	liquidityPools []string,
-	collectionByPool map[string]string,
-	poolCollections map[string]*poolCollectionResp,
-) error {
-	var extra Extra
-	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
-		return err
-	}
-	if extra.NativeIdx >= 0 {
-		p.Tokens[extra.NativeIdx].Address = strings.ToLower(valueobject.EtherAddress)
-	}
-
-	exists := map[string]struct{}{}
-	for _, token := range p.Tokens {
-		exists[token.Address] = struct{}{}
-	}
-
-	for _, liquidityPool := range liquidityPools {
-		if _, ok := exists[liquidityPool]; ok {
-			continue
-		}
-		p.Tokens = append(p.Tokens, &entity.PoolToken{Address: liquidityPool})
-		p.Reserves = append(p.Reserves, "0")
-	}
-
-	if extra.NativeIdx >= 0 {
-		p.Tokens[extra.NativeIdx].Address = strings.ToLower(valueobject.WETHByChainID[t.config.ChainID])
-	} else {
-		for idx, token := range p.Tokens {
-			if strings.EqualFold(token.Address, valueobject.EtherAddress) {
-				extra.NativeIdx = idx
-				p.Tokens[idx].Address = valueobject.WETHByChainID[t.config.ChainID]
-				break
-			}
-		}
-		extraBytes, err := json.Marshal(extra)
-		if err != nil {
-			return err
-		}
-		p.Extra = string(extraBytes)
-	}
-
-	for idx, token := range p.Tokens {
-		poolCollection, err := t.findPoolCollectionByPoolAddr(
-			ctx,
-			collectionByPool,
-			poolCollections,
-			token.Address,
-			extra.NativeIdx == idx,
-		)
-		if err != nil {
-			return ErrPoolCollectionNotFound
-		}
-
-		poolData, err := t.findPoolData(
-			ctx,
-			poolCollection,
-			token.Address,
-			extra.NativeIdx == idx,
-		)
-		if err != nil {
-			return err
-		}
-
-		p.Reserves[idx] = poolData.PoolLiquidity.StakedBalance.String()
-	}
-
-	return nil
-}
-
-func (t *PoolTracker) findPoolData(
-	ctx context.Context,
-	poolCollection *poolCollectionResp,
-	poolAddr string, // token
-	isNative bool,
-) (*poolDataResp, error) {
-	key := poolAddr
-	if isNative {
-		key = strings.ToLower(valueobject.EtherAddress)
-	}
-	poolData, ok := poolCollection.PoolData[key]
-	if !ok {
-		return nil, ErrPoolDataNotFound
-	}
-	return poolData, nil
-}
-
-func (t *PoolTracker) findPoolCollectionByPoolAddr(
-	ct context.Context,
-	collectionByPool map[string]string,
-	poolCollections map[string]*poolCollectionResp,
-	poolAddr string, // token
-	isNative bool,
-) (*poolCollectionResp, error) {
-	key := poolAddr
-	if isNative {
-		key = strings.ToLower(valueobject.EtherAddress)
-	}
-	poolCollectionAddr, ok := collectionByPool[key]
-	if !ok {
-		return nil, errors.Wrapf(ErrCollectionByPoolNotFound, "tokenAddress(%s)", key)
-	}
-	poolCollection, ok := poolCollections[poolCollectionAddr]
-	if !ok {
-		return nil, errors.Wrapf(ErrPoolCollectionNotFound, "poolCollectionAddr(%s)", poolCollectionAddr)
-	}
-	return poolCollection, nil
 }
 
 func (t *PoolTracker) getPoolCollections(
