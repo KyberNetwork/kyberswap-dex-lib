@@ -11,7 +11,6 @@ import (
 const (
 	authorizationHeaderKey = "Authorization"
 	rfqPath                = "/taker/v3/rfq"
-	baseChainType          = "evm" // Only fetch for evm chains for now
 )
 
 var (
@@ -21,10 +20,10 @@ var (
 
 type httpClient struct {
 	client *resty.Client
-	config *HTTPClientConfig
+	config *hashflowv3.HTTPClientConfig
 }
 
-func NewHTTPClient(config *HTTPClientConfig) *httpClient {
+func NewHTTPClient(config *hashflowv3.HTTPClientConfig) *httpClient {
 	client := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout).

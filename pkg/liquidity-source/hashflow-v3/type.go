@@ -1,17 +1,28 @@
 package hashflowv3
 
-type QuoteParams struct {
-	Source    string               `json:"source"`
-	BaseChain QuoteParamsBaseChain `json:"baseChain"`
-	RFQs      []QuoteParamsRFQ     `json:"rfqs"`
+import "time"
+
+type HTTPClientConfig struct {
+	BaseURL    string        `mapstructure:"base_url" json:"baseUrl"`
+	Source     string        `mapstructure:"source" json:"source"`
+	APIKey     string        `mapstructure:"api_key" json:"apiKey"`
+	Timeout    time.Duration `mapstructure:"timeout" json:"timeout"`
+	RetryCount int           `mapstructure:"retry_count" json:"retryCount"`
 }
 
-type QuoteParamsBaseChain struct {
+type QuoteParams struct {
+	Source     string     `json:"source"`
+	BaseChain  QuoteChain `json:"baseChain"`
+	QuoteChain QuoteChain `json:"quoteChain"`
+	RFQs       []QuoteRFQ `json:"rfqs"`
+}
+
+type QuoteChain struct {
 	ChainType string `json:"chainType"`
 	ChainId   uint   `json:"chainId"`
 }
 
-type QuoteParamsRFQ struct {
+type QuoteRFQ struct {
 	BaseToken           string   `json:"baseToken"`
 	QuoteToken          string   `json:"quoteToken"`
 	BaseTokenAmount     string   `json:"baseTokenAmount"`
