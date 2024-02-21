@@ -87,7 +87,8 @@ type CalcAmountOutResult struct {
 }
 
 func (r *CalcAmountOutResult) IsValid() bool {
-	return r.TokenAmountOut != nil && r.TokenAmountOut.Amount != nil && r.TokenAmountOut.Amount.Cmp(ZeroBI) > 0
+	is_remaining_valid := r.RemainingTokenAmountIn != nil && r.RemainingTokenAmountIn.Amount.Cmp(ZeroBI) >= 0
+	return r.TokenAmountOut != nil && r.TokenAmountOut.Amount != nil && r.TokenAmountOut.Amount.Cmp(ZeroBI) > 0 && is_remaining_valid
 }
 
 type UpdateBalanceParams struct {
