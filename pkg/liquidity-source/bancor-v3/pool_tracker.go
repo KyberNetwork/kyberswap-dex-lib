@@ -2,13 +2,13 @@ package bancorv3
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 
@@ -198,10 +198,10 @@ func (t *PoolTracker) updateTokensAndReserves(
 	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
 		return err
 	}
-	if extra.NativeIdxPlus1 <= 0 {
+	if extra.NativeIdx < 0 {
 		for idx, token := range p.Tokens {
 			if strings.EqualFold(token.Address, valueobject.EtherAddress) {
-				extra.NativeIdxPlus1 = uint(idx) + 1
+				extra.NativeIdx = idx
 				p.Tokens[idx].Address = valueobject.WETHByChainID[t.config.ChainID]
 				break
 			}

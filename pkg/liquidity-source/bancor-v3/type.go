@@ -11,7 +11,7 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	NativeIdxPlus1   uint                       `json:"nativeIdxPlus1"`
+	NativeIdx        int                        `json:"nativeIdx"`
 	CollectionByPool map[string]string          `json:"collectionByPool"`
 	PoolCollections  map[string]*poolCollection `json:"poolCollections"`
 }
