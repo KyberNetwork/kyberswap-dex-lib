@@ -9,6 +9,7 @@ require (
 	github.com/KyberNetwork/int256 v0.1.3
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/pancake-v3-sdk v0.1.0
+	github.com/cockroachdb/redact v1.1.3
 	github.com/daoleno/uniswap-sdk-core v0.1.7
 	github.com/daoleno/uniswapv3-sdk v0.4.0
 	github.com/davecgh/go-spew v1.1.1

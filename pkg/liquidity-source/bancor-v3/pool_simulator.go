@@ -18,8 +18,9 @@ type (
 	PoolSimulator struct {
 		poolpkg.Pool
 
-		_collectionByPool map[string]*poolCollection
-		_bnt              string
+		collectionByPool map[string]string
+		poolCollections  map[string]*poolCollection
+		bnt              string
 	}
 
 	tradeTokens struct {
@@ -100,7 +101,7 @@ func (p *PoolSimulator) _trade(
 		err error
 	)
 
-	if strings.EqualFold(tokens.SourceToken, p._bnt) {
+	if strings.EqualFold(tokens.SourceToken, p.bnt) {
 		lastHopTradeResult, err = p._tradeBNT(
 			tokens.TargetToken, true, params,
 		)
@@ -111,7 +112,7 @@ func (p *PoolSimulator) _trade(
 
 		tradeInfo = append(tradeInfo, lastHopTradeResult.PoolCollectionTradeInfo)
 
-	} else if strings.EqualFold(tokens.TargetToken, p._bnt) {
+	} else if strings.EqualFold(tokens.TargetToken, p.bnt) {
 		lastHopTradeResult, err = p._tradeBNT(tokens.SourceToken, false, params)
 		if err != nil {
 			return nil, nil, err
@@ -179,19 +180,20 @@ func (p *PoolSimulator) _tradeBNT(
 	var tokens tradeTokens
 	if fromBNT {
 		tokens = tradeTokens{
-			SourceToken: p._bnt,
+			SourceToken: p.bnt,
 			TargetToken: pool,
 		}
 	} else {
 		tokens = tradeTokens{
 			SourceToken: pool,
-			TargetToken: p._bnt,
+			TargetToken: p.bnt,
 		}
 	}
 
-	poolCollection, ok := p._collectionByPool[pool]
-	if !ok {
-		return nil, ErrInvalidToken
+	// TODO: get pool collection
+	poolCollection, err := p.getPoolCollection(pool)
+	if err != nil {
+		return nil, err
 	}
 
 	tradeAmountsAndFee, poolCollectionTradeInfo, err := poolCollection.tradeBySourceAmount(
@@ -215,4 +217,16 @@ func (p *PoolSimulator) _tradeBNT(
 	}
 
 	return &tradeResult, nil
+}
+
+func (p *PoolSimulator) getPoolCollection(pool string) (*poolCollection, error) {
+	poolCollectionAddr, ok := p.collectionByPool[pool]
+	if !ok {
+		return nil, ErrInvalidToken
+	}
+	poolCollection, ok := p.poolCollections[poolCollectionAddr]
+	if !ok {
+		return nil, ErrPoolCollectionNotFound
+	}
+	return poolCollection, nil
 }
