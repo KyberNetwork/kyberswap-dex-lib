@@ -15,7 +15,7 @@ type Config struct {
 }
 
 type IClient interface {
-	Quote(ctx context.Context, params QuoteParams) (QuoteResult, error)
+	RFQ(ctx context.Context, params QuoteParams) (QuoteResult, error)
 }
 
 type RFQHandler struct {
@@ -41,7 +41,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		return nil, err
 	}
 
-	result, err := h.client.Quote(ctx, QuoteParams{
+	result, err := h.client.RFQ(ctx, QuoteParams{
 		BaseChain: Chain{
 			ChainType: rfqDefaultChainType,
 			ChainId:   params.NetworkID,
