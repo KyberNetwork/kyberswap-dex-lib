@@ -21,3 +21,12 @@ type Pool struct {
 type PoolListUpdaterMetadata struct {
 	LastCreateTime uint64 `json:"lastCreateTime"`
 }
+
+type StaticExtra struct {
+	Base    string `json:"base"`
+	Quote   string `json:"quote"`
+	PoolIdx string `json:"pool_idx"`
+}
+
+type PoolData struct {
+}

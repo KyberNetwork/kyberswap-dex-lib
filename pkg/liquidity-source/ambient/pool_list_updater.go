@@ -15,16 +15,16 @@ import (
 )
 
 type PoolListUpdater struct {
-	cfg           Config
-	graphqlClient *graphql.Client
+	cfg      Config
+	subgraph *graphql.Client
 }
 
 func NewPoolsListUpdater(
 	cfg Config,
 ) *PoolListUpdater {
 	return &PoolListUpdater{
-		cfg:           cfg,
-		graphqlClient: graphqlPkg.NewWithTimeout(cfg.SubgraphURL, cfg.SubgraphRequestTimeout.Duration),
+		cfg:      cfg,
+		subgraph: graphqlPkg.NewWithTimeout(cfg.SubgraphURL, cfg.SubgraphRequestTimeout.Duration),
 	}
 }
 
@@ -108,7 +108,7 @@ func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint
 		resp FetchPoolsResponse
 	)
 
-	if err := u.graphqlClient.Run(ctx, req, &resp); err != nil {
+	if err := u.subgraph.Run(ctx, req, &resp); err != nil {
 		return nil, err
 	}
 
@@ -132,12 +132,23 @@ func (u *PoolListUpdater) toEntPools(subgraphPools []Pool) ([]entity.Pool, error
 		}
 		reserves := []string{"0", "0"}
 
+		sExtra := StaticExtra{
+			Base:    sPool.Base,
+			Quote:   sPool.Quote,
+			PoolIdx: sPool.PoolIdx,
+		}
+		sExtraBytes, err := json.Marshal(sExtra)
+		if err != nil {
+			return nil, err
+		}
+
 		pools = append(pools, entity.Pool{
-			Address:  sPool.ID,
-			Exchange: u.cfg.DexID,
-			Type:     DexType,
-			Tokens:   tokens,
-			Reserves: reserves,
+			Address:     sPool.ID,
+			Exchange:    u.cfg.DexID,
+			Type:        DexType,
+			Tokens:      tokens,
+			Reserves:    reserves,
+			StaticExtra: string(sExtraBytes),
 		})
 	}
 
