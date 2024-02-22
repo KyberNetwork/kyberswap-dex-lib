@@ -110,7 +110,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrOverflow
 	}
 
-	amountOut, tradeInfo, err := s.tradeBySourceAmount(
+	amountOut, feeAmount, tradeInfo, err := s.tradeBySourceAmount(
 		sourceToken,
 		targetToken,
 		sourceAmount,
@@ -125,14 +125,37 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 			Token:  tokenOut,
 			Amount: amountOut.ToBig(),
 		},
-		Fee: &poolpkg.TokenAmount{},
-		Gas: 0,
+		Fee: &poolpkg.TokenAmount{
+			Token:  tokenOut,
+			Amount: feeAmount.ToBig(),
+		},
+		Gas: 0, // TODO: benchmark gas
 		SwapInfo: SwapInfo{
 			IsSourceNative: isSourceNative,
 			IsTargetNative: isTargetNative,
 			TradeInfo:      tradeInfo,
 		},
 	}, nil
+}
+
+func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
+	swapInfoBytes, err := json.Marshal(params.SwapInfo)
+	if err != nil {
+		return
+	}
+	var swapInfo SwapInfo
+	if err := json.Unmarshal([]byte(swapInfoBytes), &swapInfo); err != nil {
+		return
+	}
+
+	for _, info := range swapInfo.TradeInfo {
+		polCol := s.collectionByPool[info.Pool]
+		s.poolCollections[polCol].PoolData[info.Pool].Liquidity = info.NewPoolLiquidity
+	}
+}
+
+func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
+	return PoolMetaInfo{}
 }
 
 func (s *PoolSimulator) verifyTokens(sourceToken, targetToken string) error {
@@ -212,14 +235,14 @@ func (s *PoolSimulator) tradeBySourceAmount(
 	targetToken string,
 	sourceAmount,
 	minReturnAmount *uint256.Int,
-) (*uint256.Int, []*poolCollectionTradeInfo, error) {
+) (*uint256.Int, *uint256.Int, []*poolCollectionTradeInfo, error) {
 	if err := s._verifyTradeParams(
 		sourceToken,
 		targetToken,
 		sourceAmount,
 		minReturnAmount,
 	); err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	return s._trade(
@@ -249,7 +272,7 @@ func (s *PoolSimulator) _verifyTradeParams(
 func (s *PoolSimulator) _trade(
 	tokens *tradeTokens,
 	params *tradeParams,
-) (*uint256.Int, []*poolCollectionTradeInfo, error) {
+) (*uint256.Int, *uint256.Int, []*poolCollectionTradeInfo, error) {
 	var (
 		firstHopTradeResult *tradeResult
 		lastHopTradeResult  *tradeResult
@@ -264,7 +287,7 @@ func (s *PoolSimulator) _trade(
 			tokens.TargetToken, true, params,
 		)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 		firstHopTradeResult = lastHopTradeResult
 
@@ -273,7 +296,7 @@ func (s *PoolSimulator) _trade(
 	} else if strings.EqualFold(tokens.TargetToken, s.bnt) {
 		lastHopTradeResult, err = s._tradeBNT(tokens.SourceToken, false, params)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		firstHopTradeResult = lastHopTradeResult
@@ -283,7 +306,7 @@ func (s *PoolSimulator) _trade(
 	} else {
 		firstHopTradeResult, lastHopTradeResult, err = s._tradeBaseTokens(tokens, params)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		tradeInfo = append(
@@ -293,7 +316,7 @@ func (s *PoolSimulator) _trade(
 		)
 	}
 
-	return lastHopTradeResult.TargetAmount, tradeInfo, nil
+	return lastHopTradeResult.TargetAmount, lastHopTradeResult.TradingFeeAmount, tradeInfo, nil
 }
 
 func (s *PoolSimulator) _tradeBaseTokens(

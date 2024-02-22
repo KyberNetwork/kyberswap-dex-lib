@@ -67,7 +67,6 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	// get collection by pool
 	collectionByPool, err := t.getCollectionByPool(ctx, blockNbr, p.Address, liquidityPools)
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -118,6 +117,7 @@ func (t *PoolTracker) updatePool(
 
 		for poolAddr, poolDat := range pc.PoolData {
 			if !poolDat.TradingEnabled {
+				delete(collectionByPool, poolAddr)
 				continue
 			}
 
@@ -132,7 +132,7 @@ func (t *PoolTracker) updatePool(
 				PoolToken:      tokenAddr,
 				TradingFeePPM:  uint256.NewInt(uint64(poolDat.TradingFeePPM)),
 				TradingEnabled: poolDat.TradingEnabled,
-				Liquidity: poolLiquidity{
+				Liquidity: &poolLiquidity{
 					BNTTradingLiquidity:       bntTradingLiquidity,
 					BaseTokenTradingLiquidity: baseTokenTradingLiquidity,
 					StakedBalance:             stakedBalance,

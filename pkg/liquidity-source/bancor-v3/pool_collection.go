@@ -25,10 +25,10 @@ type (
 	}
 
 	pool struct {
-		PoolToken      string        `json:"poolToken"`
-		TradingFeePPM  *uint256.Int  `json:"tradingFeePPM"`
-		TradingEnabled bool          `json:"tradingEnabled"`
-		Liquidity      poolLiquidity `json:"liquidity"`
+		PoolToken      string         `json:"poolToken"`
+		TradingFeePPM  *uint256.Int   `json:"tradingFeePPM"`
+		TradingEnabled bool           `json:"tradingEnabled"`
+		Liquidity      *poolLiquidity `json:"liquidity"`
 	}
 
 	poolLiquidity struct {

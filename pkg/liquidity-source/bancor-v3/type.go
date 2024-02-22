@@ -14,6 +14,8 @@ type SwapInfo struct {
 	TradeInfo      []*poolCollectionTradeInfo `json:"-"`
 }
 
+type PoolMetaInfo struct{}
+
 type StaticExtra struct {
 	BNT     string              `json:"bnt"`
 	ChainID valueobject.ChainID `json:"chainId"`
