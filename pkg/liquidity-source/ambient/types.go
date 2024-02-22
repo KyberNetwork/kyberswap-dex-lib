@@ -6,7 +6,7 @@ const (
 )
 
 type FetchPoolsResponse struct {
-	Data Data `json:"data"`
+	Pools []Pool `json:"pools"`
 }
 
 type Pool struct {
@@ -16,10 +16,6 @@ type Pool struct {
 	Base        string `json:"base"`
 	Quote       string `json:"quote"`
 	PoolIdx     string `json:"poolIdx"`
-}
-
-type Data struct {
-	Pools []Pool `json:"pools"`
 }
 
 type PoolListUpdaterMetadata struct {

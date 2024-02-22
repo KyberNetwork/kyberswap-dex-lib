@@ -112,9 +112,7 @@ func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint
 		return nil, err
 	}
 
-	fmt.Println("[DEBUG] subgraph", req, resp)
-
-	return resp.Data.Pools, nil
+	return resp.Pools, nil
 }
 
 func (u *PoolListUpdater) toEntPools(subgraphPools []Pool) ([]entity.Pool, error) {
