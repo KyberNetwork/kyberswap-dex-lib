@@ -222,18 +222,11 @@ func (s *PoolSimulator) transformTokens(tokenIn, tokenOut string) (string, strin
 		isSourceNative = true
 	}
 
-	if tokenOut == weth {
-		if tokenIn != weth {
-
-			if ethReserve.Cmp(wethReserve) > 0 {
-				targetToken = eth
-				isTargetNative = true
-			}
-
-		} else if !isSourceNative {
-			targetToken = eth
-			isTargetNative = true
-		}
+	if (tokenOut == weth) &&
+		((tokenIn != weth && ethReserve.Cmp(wethReserve) > 0) ||
+			(tokenIn == weth && !isSourceNative)) {
+		targetToken = eth
+		isTargetNative = true
 	}
 
 	return sourceToken, targetToken, isSourceNative, isTargetNative, nil
