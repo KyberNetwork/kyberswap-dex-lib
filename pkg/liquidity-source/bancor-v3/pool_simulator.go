@@ -90,6 +90,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		collectionByPool: extra.CollectionByPool,
 		poolCollections:  extra.PoolCollections,
 		bnt:              staticExtra.BNT,
+		chainID:          staticExtra.ChainID,
 	}, nil
 }
 
@@ -105,8 +106,8 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	sourceAmount, ok := uint256.FromBig(tokenAmountIn.Amount)
-	if !ok {
+	sourceAmount, overflow := uint256.FromBig(tokenAmountIn.Amount)
+	if overflow {
 		return nil, ErrOverflow
 	}
 

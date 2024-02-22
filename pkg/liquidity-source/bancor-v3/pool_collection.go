@@ -117,7 +117,17 @@ func (p *poolCollection) _initTrade(
 	limit *uint256.Int,
 	bySourceAmount bool,
 ) (*tradeIntermediateResult, error) {
-	var result tradeIntermediateResult
+	result := tradeIntermediateResult{
+		SourceAmount:     number.Zero,
+		TargetAmount:     number.Zero,
+		Limit:            number.Zero,
+		TradingFeeAmount: number.Zero,
+		NetworkFeeAmount: number.Zero,
+		SourceBalance:    number.Zero,
+		TargetBalance:    number.Zero,
+		StakedBalance:    number.Zero,
+		TradingFeePPM:    number.Zero,
+	}
 
 	isSourceBNT := strings.EqualFold(sourceToken, p.BNT)
 	isTargetBNT := strings.EqualFold(targetToken, p.BNT)
@@ -149,7 +159,7 @@ func (p *poolCollection) _initTrade(
 	}
 
 	result.Limit = limit
-	result.TradingFeeAmount = data.TradingFeePPM
+	result.TradingFeePPM = data.TradingFeePPM
 
 	liquidity := data.Liquidity
 	if result.IsSourceBNT {
@@ -206,6 +216,8 @@ func (p *poolCollection) _processTrade(result *tradeIntermediateResult) error {
 	if err != nil {
 		return err
 	}
+
+	result.TargetAmount = tradeAmountAndFee.Amount
 
 	result.TradingFeeAmount = tradeAmountAndFee.TradingFeeAmount
 

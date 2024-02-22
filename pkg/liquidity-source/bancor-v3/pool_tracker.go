@@ -145,7 +145,7 @@ func (t *PoolTracker) updatePool(
 
 		poolCols[pcAddr] = &poolCollection{
 			NetworkFeePMM: uint256.NewInt(uint64(pc.NetworkFeePMM)),
-			BNT:           t.config.BNT,
+			BNT:           strings.ToLower(t.config.BNT),
 			PoolData:      poolData,
 		}
 	}

@@ -9,7 +9,6 @@ require (
 	github.com/KyberNetwork/int256 v0.1.3
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/pancake-v3-sdk v0.1.0
-	github.com/cockroachdb/redact v1.1.3
 	github.com/daoleno/uniswap-sdk-core v0.1.7
 	github.com/daoleno/uniswapv3-sdk v0.4.0
 	github.com/davecgh/go-spew v1.1.1
@@ -19,7 +18,7 @@ require (
 	github.com/go-resty/resty/v2 v2.10.0
 	github.com/goccy/go-json v0.10.2
 	github.com/golang/mock v1.6.0
-	github.com/holiman/uint256 v1.2.3
+	github.com/holiman/uint256 v1.2.4
 	github.com/izumiFinance/iZiSwap-SDK-go v1.0.0
 	github.com/machinebox/graphql v0.2.2
 	github.com/orcaman/concurrent-map v1.0.0
