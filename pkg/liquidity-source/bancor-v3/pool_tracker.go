@@ -87,7 +87,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	if err := t.updatePool(ctx, &p, collectionByPool, poolCollections); err != nil {
+	if err := t.updatePool(ctx, &p, blockNbr, collectionByPool, poolCollections); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
 			"dexType":     DexType,
@@ -102,6 +102,7 @@ func (t *PoolTracker) GetNewPoolState(
 func (t *PoolTracker) updatePool(
 	ctx context.Context,
 	p *entity.Pool,
+	blockNbr *big.Int,
 	collectionByPool map[string]string,
 	poolCollections map[string]*poolCollectionResp,
 ) error {
@@ -109,27 +110,28 @@ func (t *PoolTracker) updatePool(
 		nativeIdx = -1
 		tokens    = []*entity.PoolToken{}
 		reserves  = entity.PoolReserves{}
+		poolCols  = map[string]*poolCollection{}
+		colByPool = map[string]string{}
 	)
 
-	poolCols := make(map[string]*poolCollection)
+	// pool collections
 	for pcAddr, pc := range poolCollections {
 		poolData := make(map[string]*pool)
 
 		for poolAddr, poolDat := range pc.PoolData {
 			if !poolDat.TradingEnabled {
-				delete(collectionByPool, poolAddr)
 				continue
 			}
 
 			var (
-				tokenAddr                    = strings.ToLower(poolDat.PoolToken.Hex())
+				poolToken                    = strings.ToLower(poolDat.PoolToken.Hex())
 				bntTradingLiquidity, _       = uint256.FromBig(poolDat.PoolLiquidity.BntTradingLiquidity)
 				baseTokenTradingLiquidity, _ = uint256.FromBig(poolDat.PoolLiquidity.BaseTokenTradingLiquidity)
 				stakedBalance, _             = uint256.FromBig(poolDat.PoolLiquidity.StakedBalance)
 			)
 
 			pool := pool{
-				PoolToken:      tokenAddr,
+				PoolToken:      poolToken,
 				TradingFeePPM:  uint256.NewInt(uint64(poolDat.TradingFeePPM)),
 				TradingEnabled: poolDat.TradingEnabled,
 				Liquidity: &poolLiquidity{
@@ -139,18 +141,6 @@ func (t *PoolTracker) updatePool(
 				},
 			}
 			poolData[poolAddr] = &pool
-			reserves = append(reserves, pool.Liquidity.StakedBalance.String())
-
-			if strings.EqualFold(tokenAddr, valueobject.EtherAddress) {
-				nativeIdx = len(tokens)
-				tokens = append(tokens, &entity.PoolToken{
-					Address: strings.ToLower(valueobject.WETHByChainID[t.config.ChainID]),
-				})
-			} else {
-				tokens = append(tokens, &entity.PoolToken{
-					Address: tokenAddr,
-				})
-			}
 		}
 
 		poolCols[pcAddr] = &poolCollection{
@@ -160,17 +150,39 @@ func (t *PoolTracker) updatePool(
 		}
 	}
 
+	// collection by pool
+	for pool, col := range collectionByPool {
+		poolData, ok := poolCols[col].PoolData[pool]
+		if !ok {
+			continue
+		}
+		colByPool[pool] = col
+		reserves = append(reserves, poolData.Liquidity.StakedBalance.String())
+		if strings.EqualFold(pool, valueobject.EtherAddress) {
+			nativeIdx = len(tokens)
+			tokens = append(tokens, &entity.PoolToken{
+				Address: strings.ToLower(valueobject.WETHByChainID[t.config.ChainID]),
+			})
+		} else {
+			tokens = append(tokens, &entity.PoolToken{
+				Address: pool,
+			})
+		}
+	}
+
+	// update data
 	p.Tokens = tokens
 	p.Reserves = reserves
 	extraBytes, err := json.Marshal(Extra{
 		NativeIdx:        nativeIdx,
-		CollectionByPool: collectionByPool,
+		CollectionByPool: colByPool,
 		PoolCollections:  poolCols,
 	})
 	if err != nil {
 		return err
 	}
 	p.Extra = string(extraBytes)
+	p.BlockNumber = blockNbr.Uint64()
 
 	return nil
 }
