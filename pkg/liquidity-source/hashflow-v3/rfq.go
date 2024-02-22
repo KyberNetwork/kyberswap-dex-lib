@@ -11,7 +11,8 @@ import (
 const rfqDefaultChainType = "evm"
 
 type Config struct {
-	DexID string `json:"dexId"`
+	DexID string           `json:"dexId"`
+	HTTP  HTTPClientConfig `mapstructure:"http" json:"http"`
 }
 
 type IClient interface {
