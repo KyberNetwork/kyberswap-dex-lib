@@ -148,15 +148,10 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 }
 
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-	swapInfoBytes, err := json.Marshal(params.SwapInfo)
-	if err != nil {
+	swapInfo, ok := params.SwapInfo.(SwapInfo)
+	if !ok {
 		return
 	}
-	var swapInfo SwapInfo
-	if err := json.Unmarshal([]byte(swapInfoBytes), &swapInfo); err != nil {
-		return
-	}
-
 	for _, info := range swapInfo.TradeInfo {
 		polCol := s.collectionByPool[info.Pool]
 		s.poolCollections[polCol].PoolData[info.Pool].Liquidity = info.NewPoolLiquidity
