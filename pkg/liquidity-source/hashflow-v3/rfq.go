@@ -42,15 +42,15 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	}
 
 	result, err := h.client.Quote(ctx, QuoteParams{
-		BaseChain: QuoteChain{
+		BaseChain: Chain{
 			ChainType: rfqDefaultChainType,
 			ChainId:   params.NetworkID,
 		},
-		QuoteChain: QuoteChain{
+		QuoteChain: Chain{
 			ChainType: rfqDefaultChainType,
 			ChainId:   params.NetworkID,
 		},
-		RFQs: []QuoteRFQ{
+		RFQs: []RFQ{
 			{
 				BaseToken:        swapInfo.BaseToken,
 				QuoteToken:       swapInfo.QuoteToken,
@@ -67,6 +67,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	}
 
 	return &pool.RFQResult{
-		Extra: result,
+		NewAmountOut: nil,
+		Extra:        result,
 	}, nil
 }

@@ -11,18 +11,18 @@ type HTTPClientConfig struct {
 }
 
 type QuoteParams struct {
-	Source     string     `json:"source"`
-	BaseChain  QuoteChain `json:"baseChain"`
-	QuoteChain QuoteChain `json:"quoteChain"`
-	RFQs       []QuoteRFQ `json:"rfqs"`
+	Source     string `json:"source"`
+	BaseChain  Chain  `json:"baseChain"`
+	QuoteChain Chain  `json:"quoteChain"`
+	RFQs       []RFQ  `json:"rfqs"`
 }
 
-type QuoteChain struct {
+type Chain struct {
 	ChainType string `json:"chainType"`
 	ChainId   uint   `json:"chainId"`
 }
 
-type QuoteRFQ struct {
+type RFQ struct {
 	BaseToken           string   `json:"baseToken"`
 	QuoteToken          string   `json:"quoteToken"`
 	BaseTokenAmount     string   `json:"baseTokenAmount"`
@@ -40,5 +40,19 @@ type QuoteResult struct {
 	Error  string `json:"error"`
 	RfqId  string `json:"rfqId"`
 	Quotes []struct {
+		QuoteData struct {
+			BaseChain  Chain `json:"baseChain"`
+			QuoteChain Chain `json:"quoteChain"`
+		}
+		BaseToken        string `json:"baseToken"`
+		BaseTokenAmount  string `json:"baseTokenAmount"`
+		QuoteToken       string `json:"quoteToken"`
+		QuoteTokenAmount string `json:"quoteTokenAmount"`
+		Trader           string `json:"trader"`
+		TxID             string `json:"txid"`
+		Pool             string `json:"pool"`
+		QuoteExpiry      string `json:"quoteExpiry"`
+		Nonce            string `json:"nonce"`
+		Signature        string `json:"signature"`
 	} `json:"quotes"`
 }
