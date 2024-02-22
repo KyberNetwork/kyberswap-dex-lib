@@ -161,11 +161,14 @@ func (t *PoolTracker) updatePool(
 		if strings.EqualFold(pool, valueobject.EtherAddress) {
 			nativeIdx = len(tokens)
 			tokens = append(tokens, &entity.PoolToken{
-				Address: strings.ToLower(valueobject.WETHByChainID[t.config.ChainID]),
+				Address:   strings.ToLower(valueobject.WETHByChainID[t.config.ChainID]),
+				Swappable: true,
 			})
+
 		} else {
 			tokens = append(tokens, &entity.PoolToken{
-				Address: pool,
+				Address:   pool,
+				Swappable: true,
 			})
 		}
 	}

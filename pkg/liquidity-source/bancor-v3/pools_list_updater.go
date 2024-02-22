@@ -66,7 +66,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		if strings.EqualFold(tokenAddress, valueobject.EtherAddress) {
 			addr = strings.ToLower(valueobject.WETHByChainID[u.config.ChainID])
 		}
-		poolTokens = append(poolTokens, &entity.PoolToken{Address: addr})
+		poolTokens = append(poolTokens, &entity.PoolToken{Address: addr, Swappable: true})
 		reserves = append(reserves, "0")
 	}
 
