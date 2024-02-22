@@ -128,6 +128,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Reserves:   lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			},
 		},
+		MarketMaker:          staticExtra.MarketMaker,
 		Token0:               entityPool.Tokens[0],
 		Token1:               entityPool.Tokens[1],
 		ZeroToOnePriceLevels: zeroToOnePriceLevels,
