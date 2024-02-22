@@ -51,6 +51,14 @@ type (
 
 		PoolCollectionTradeInfo *poolCollectionTradeInfo
 	}
+
+	Gas struct {
+		Swap int64
+	}
+)
+
+var (
+	defaultGas = Gas{Swap: 150000}
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -130,7 +138,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 			Token:  tokenOut,
 			Amount: feeAmount.ToBig(),
 		},
-		Gas: 0, // TODO: benchmark gas
+		Gas: defaultGas.Swap,
 		SwapInfo: SwapInfo{
 			IsSourceNative: isSourceNative,
 			IsTargetNative: isTargetNative,
