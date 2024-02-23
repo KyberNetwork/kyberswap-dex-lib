@@ -69,6 +69,7 @@ common:
     - "gyroscope-eclp"
     - "blueprint"
     - "swaap-v2"
+    - "bancor-v3"
   featureFlags: &featureFlags
   swaapAPIKey:
 log:
