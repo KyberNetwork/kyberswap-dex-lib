@@ -86,6 +86,76 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	}
 }
 
+func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	testCases := []struct {
+		name             string
+		poolSimulator    PoolSimulator
+		tokenAmountOut   poolpkg.TokenAmount
+		tokenIn          string
+		expectedAmountIn *big.Int
+		expectedError    error
+	}{
+		{
+			name: "[swap0to1] it should return correct amountIn and fee",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:  "0x3041cbd36888becc7bbcbc0045e3b1f144466f5f",
+						Tokens:   []string{"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "0xdac17f958d2ee523a2206206994597c13d831ec7"},
+						Reserves: []*big.Int{utils.NewBig("100000000"), utils.NewBig("100000000")},
+					},
+				},
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
+			},
+			tokenAmountOut: poolpkg.TokenAmount{
+				Amount: utils.NewBig("20000000"),
+				Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			},
+			tokenIn:          "0xdac17f958d2ee523a2206206994597c13d831ec7",
+			expectedAmountIn: utils.NewBig("25075226"),
+			expectedError:    nil,
+		},
+		{
+			name: "[swap1to0] it should return correct amountIn and fee",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:  "0x576cea6d4461fcb3a9d43e922c9b54c0f791599a",
+						Tokens:   []string{"0x32a7c02e79c4ea1008dd6564b35f131428673c41", "0xdac17f958d2ee523a2206206994597c13d831ec7"},
+						Reserves: []*big.Int{utils.NewBig("100000000000000000000"), utils.NewBig("100000000")},
+					},
+				},
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
+			},
+			tokenAmountOut: poolpkg.TokenAmount{
+				Amount: utils.NewBig("20000000"),
+				Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
+			},
+			tokenIn:          "0x32a7c02e79c4ea1008dd6564b35f131428673c41",
+			expectedAmountIn: utils.NewBig("25075225677031093280"),
+			expectedError:    nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := tc.poolSimulator.CalcAmountIn(poolpkg.CalcAmountInParams{
+				TokenAmountOut: tc.tokenAmountOut,
+				TokenIn:        tc.tokenIn,
+				Limit:          nil,
+			})
+
+			if tc.expectedError != nil {
+				assert.ErrorIs(t, tc.expectedError, err)
+			} else {
+				assert.Equal(t, tc.expectedAmountIn, result.TokenAmountIn.Amount)
+			}
+		})
+	}
+}
+
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	testCases := []struct {
 		name             string
@@ -172,6 +242,33 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 	}
 }
 
+func TestPoolSimulator_getAmountIn(t *testing.T) {
+	testCases := []struct {
+		name             string
+		poolSimulator    PoolSimulator
+		reserveIn        *uint256.Int
+		reserveOut       *uint256.Int
+		amountOut        *uint256.Int
+		expectedAmountIn *uint256.Int
+	}{
+		{
+			name:             "it should return correct amountIn",
+			poolSimulator:    PoolSimulator{fee: uint256.NewInt(3), feePrecision: uint256.NewInt(1000)},
+			reserveIn:        number.NewUint256("100000000"),
+			reserveOut:       number.NewUint256("100000000000000000000"),
+			amountOut:        number.NewUint256("20000000000000000000"),
+			expectedAmountIn: number.NewUint256("25075226"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			amountIn := tc.poolSimulator.getAmountIn(tc.amountOut, tc.reserveIn, tc.reserveOut)
+			assert.Equal(t, 0, tc.expectedAmountIn.Cmp(amountIn))
+		})
+	}
+}
+
 func BenchmarkPoolSimulatorCalcAmountOut(b *testing.B) {
 	testCases := []struct {
 		name              string
@@ -228,6 +325,72 @@ func BenchmarkPoolSimulatorCalcAmountOut(b *testing.B) {
 					TokenAmountIn: tc.tokenAmountIn,
 					TokenOut:      tc.tokenOut,
 					Limit:         nil,
+				})
+			}
+		})
+	}
+}
+
+func BenchmarkPoolSimulatorCalcAmountIn(b *testing.B) {
+	testCases := []struct {
+		name             string
+		poolSimulator    PoolSimulator
+		tokenAmountOut   poolpkg.TokenAmount
+		tokenIn          string
+		expectedAmountIn *big.Int
+		expectedError    error
+	}{
+		{
+			name: "[swap0to1] it should return correct amountIn and fee",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:  "0x3041cbd36888becc7bbcbc0045e3b1f144466f5f",
+						Tokens:   []string{"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "0xdac17f958d2ee523a2206206994597c13d831ec7"},
+						Reserves: []*big.Int{utils.NewBig("100000000"), utils.NewBig("100000000")},
+					},
+				},
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
+			},
+			tokenAmountOut: poolpkg.TokenAmount{
+				Amount: utils.NewBig("20000000"),
+				Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			},
+			tokenIn:          "0xdac17f958d2ee523a2206206994597c13d831ec7",
+			expectedAmountIn: utils.NewBig("25075226"),
+			expectedError:    nil,
+		},
+		{
+			name: "[swap1to0] it should return correct amountIn and fee",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:  "0x576cea6d4461fcb3a9d43e922c9b54c0f791599a",
+						Tokens:   []string{"0x32a7c02e79c4ea1008dd6564b35f131428673c41", "0xdac17f958d2ee523a2206206994597c13d831ec7"},
+						Reserves: []*big.Int{utils.NewBig("100000000000000000000"), utils.NewBig("100000000")},
+					},
+				},
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
+			},
+			tokenAmountOut: poolpkg.TokenAmount{
+				Amount: utils.NewBig("20000000"),
+				Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
+			},
+			tokenIn:          "0x32a7c02e79c4ea1008dd6564b35f131428673c41",
+			expectedAmountIn: utils.NewBig("25075225677031093280"),
+			expectedError:    nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		b.Run(tc.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_, _ = tc.poolSimulator.CalcAmountIn(poolpkg.CalcAmountInParams{
+					TokenAmountOut: tc.tokenAmountOut,
+					TokenIn:        tc.tokenIn,
+					Limit:          nil,
 				})
 			}
 		})
