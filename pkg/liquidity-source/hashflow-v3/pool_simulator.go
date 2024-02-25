@@ -261,12 +261,12 @@ func getNewPriceLevelsState(amountIn *big.Float, priceLevels []PriceLevel) []Pri
 		} else {
 			// Only increase the step if the current level is fully filled
 			amountLeft.Sub(amountLeft, priceLevels[currentLevelIdx].Quote)
+			priceLevels[currentLevelIdx].Quote.Set(zeroBF)
 			currentLevelIdx += 1
 		}
 
 		if amountLeft.Cmp(zeroBF) == 0 || currentLevelIdx == len(priceLevels) {
-			// Get the remaining price levels
-			priceLevels = priceLevels[currentLevelIdx:]
+			// We don't skip the used price levels, but just reset its quote to zero.
 			break
 		}
 	}
