@@ -187,8 +187,8 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken *entity.Po
 	amountOut, _ := amountOutBF.Int(nil)
 
 	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{Token: baseToken.Address, Amount: amountOut},
-		Fee:            &pool.TokenAmount{Token: quoteToken.Address, Amount: bignumber.ZeroBI},
+		TokenAmountOut: &pool.TokenAmount{Token: quoteToken.Address, Amount: amountOut},
+		Fee:            &pool.TokenAmount{Token: baseToken.Address, Amount: bignumber.ZeroBI},
 		Gas:            p.gas.Quote,
 		SwapInfo: SwapInfo{
 			BaseToken:        baseToken.Address,

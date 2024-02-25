@@ -30,6 +30,10 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 	assert.Equal(t, "mm22", poolSimulator.MarketMaker)
 	assert.NotNil(t, poolSimulator.ZeroToOnePriceLevels)
 	assert.NotNil(t, poolSimulator.OneToZeroPriceLevels)
+	assert.Equal(t, []string{"0xdac17f958d2ee523a2206206994597c13d831ec7"}, poolSimulator.CanSwapTo("0xd26114cd6ee289accf82350c8d8487fedb8a0c07"))
+	assert.Equal(t, []string{"0xdac17f958d2ee523a2206206994597c13d831ec7"}, poolSimulator.CanSwapFrom("0xd26114cd6ee289accf82350c8d8487fedb8a0c07"))
+	assert.Equal(t, []string{"0xd26114cd6ee289accf82350c8d8487fedb8a0c07"}, poolSimulator.CanSwapTo("0xdac17f958d2ee523a2206206994597c13d831ec7"))
+	assert.Equal(t, []string{"0xd26114cd6ee289accf82350c8d8487fedb8a0c07"}, poolSimulator.CanSwapFrom("0xdac17f958d2ee523a2206206994597c13d831ec7"))
 }
 
 func TestPoolSimulator_GetAmountOut(t *testing.T) {
