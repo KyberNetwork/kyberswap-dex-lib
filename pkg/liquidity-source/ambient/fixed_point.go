@@ -3,7 +3,7 @@ package ambient
 import "math/big"
 
 var (
-	fixedPointQ48 = big1
+	fixedPointQ48, _ = new(big.Int).SetString("0x1000000000000", 16)
 )
 
 // /* @notice Multiplies two Q64.64 numbers by each other. */
@@ -23,4 +23,13 @@ func divQ64(x, y *big.Int) *big.Int {
 	z.Div(z, y)
 
 	return z
+}
+
+/* @notice Multiplies a Q64.64 by a Q16.48. */
+func mulQ48(x *big.Int, y *big.Int) *big.Int {
+	//     return uint144((uint256(x) * uint256(y)) >> 48);
+	tmp := new(big.Int).Mul(x, y)
+	tmp.Rsh(tmp, 48)
+
+	return tmp
 }
