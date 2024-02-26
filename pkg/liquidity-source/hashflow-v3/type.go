@@ -3,11 +3,11 @@ package hashflowv3
 import "github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 
 type HTTPClientConfig struct {
-	BaseURL    string                `mapstructure:"base_url" json:"baseUrl"`
+	BaseURL    string                `mapstructure:"base_url" json:"base_url"`
 	Source     string                `mapstructure:"source" json:"source"`
-	APIKey     string                `mapstructure:"api_key" json:"apiKey"`
+	APIKey     string                `mapstructure:"api_key" json:"api_key"`
 	Timeout    durationjson.Duration `mapstructure:"timeout" json:"timeout"`
-	RetryCount int                   `mapstructure:"retry_count" json:"retryCount"`
+	RetryCount int                   `mapstructure:"retry_count" json:"retry_count"`
 }
 
 type QuoteParams struct {
@@ -36,8 +36,11 @@ type RFQ struct {
 }
 
 type QuoteResult struct {
-	Status string  `json:"status"`
-	Error  string  `json:"error"`
+	Status string `json:"status"`
+	Error  struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
 	RfqId  string  `json:"rfqId"`
 	Quotes []Quote `json:"quotes"`
 }

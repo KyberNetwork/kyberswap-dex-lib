@@ -2,6 +2,8 @@ package hashflowv3
 
 import (
 	"context"
+	"errors"
+	"math/big"
 
 	"github.com/goccy/go-json"
 
@@ -53,13 +55,13 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		},
 		RFQs: []RFQ{
 			{
-				BaseToken:        swapInfo.BaseToken,
-				QuoteToken:       swapInfo.QuoteToken,
-				BaseTokenAmount:  swapInfo.BaseTokenAmount,
-				QuoteTokenAmount: swapInfo.QuoteTokenAmount,
+				BaseToken:       swapInfo.BaseToken,
+				QuoteToken:      swapInfo.QuoteToken,
+				BaseTokenAmount: swapInfo.BaseTokenAmount,
 
-				Trader:       params.Recipient,
-				MarketMakers: []string{swapInfo.MarketMaker},
+				Trader:          params.RFQRecipient,
+				EffectiveTrader: params.Recipient,
+				MarketMakers:    []string{swapInfo.MarketMaker},
 			},
 		},
 	})
@@ -67,8 +69,14 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		return nil, err
 	}
 
+	if len(result.Quotes) != 1 {
+		return nil, errors.New("mismatch quotes length")
+	}
+
+	newAmountOut, _ := new(big.Int).SetString(result.Quotes[0].QuoteData.QuoteTokenAmount, 10)
+
 	return &pool.RFQResult{
-		NewAmountOut: nil,
-		Extra:        result,
+		NewAmountOut: newAmountOut,
+		Extra:        result.Quotes[0],
 	}, nil
 }

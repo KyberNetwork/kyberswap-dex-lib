@@ -43,12 +43,12 @@ func (c *httpClient) RFQ(ctx context.Context, params hashflowv3.QuoteParams) (ha
 	var result hashflowv3.QuoteResult
 	resp, err := req.SetResult(&result).Post(rfqPath)
 	if err != nil {
-		return hashflowv3.QuoteResult{}, nil
+		return hashflowv3.QuoteResult{}, err
 	}
 
 	if !resp.IsSuccess() || result.Status != "success" {
 		return hashflowv3.QuoteResult{}, errors.Wrapf(ErrRFQFailed, "status code(%d), body(%s)", resp.StatusCode(), resp.Body())
 	}
 
-	return hashflowv3.QuoteResult{}, nil
+	return result, nil
 }
