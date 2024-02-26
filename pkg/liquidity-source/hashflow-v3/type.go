@@ -36,23 +36,27 @@ type RFQ struct {
 }
 
 type QuoteResult struct {
-	Status string `json:"status"`
-	Error  string `json:"error"`
-	RfqId  string `json:"rfqId"`
-	Quotes []struct {
-		QuoteData struct {
-			BaseChain  Chain `json:"baseChain"`
-			QuoteChain Chain `json:"quoteChain"`
-		}
+	Status string  `json:"status"`
+	Error  string  `json:"error"`
+	RfqId  string  `json:"rfqId"`
+	Quotes []Quote `json:"quotes"`
+}
+
+type Quote struct {
+	QuoteData struct {
+		BaseChain  Chain `json:"baseChain"`
+		QuoteChain Chain `json:"quoteChain"`
+
 		BaseToken        string `json:"baseToken"`
 		BaseTokenAmount  string `json:"baseTokenAmount"`
 		QuoteToken       string `json:"quoteToken"`
 		QuoteTokenAmount string `json:"quoteTokenAmount"`
 		Trader           string `json:"trader"`
+		EffectiveTrader  string `json:"effectiveTrader"`
 		TxID             string `json:"txid"`
 		Pool             string `json:"pool"`
-		QuoteExpiry      string `json:"quoteExpiry"`
-		Nonce            string `json:"nonce"`
-		Signature        string `json:"signature"`
-	} `json:"quotes"`
+		QuoteExpiry      int64  `json:"quoteExpiry"`
+		Nonce            int64  `json:"nonce"`
+	}
+	Signature string `json:"signature"`
 }
