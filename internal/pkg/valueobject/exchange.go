@@ -546,8 +546,6 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 	// executeVooi
 	ExchangeVooi: {},
 
-	// executeVelocoreV2
-
 	// executeMaticMigrate
 	ExchangePolMatic: {},
 
@@ -560,6 +558,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeSwaapV2
 	ExchangeSwaapV2: {},
+
+	// executeBancorV3
+	ExchangeBancorV3: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {
