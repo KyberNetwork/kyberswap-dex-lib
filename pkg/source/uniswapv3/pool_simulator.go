@@ -213,7 +213,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 		amountOut := amountOutResult.ReturnedAmount
 		newPoolState := amountOutResult.NewPoolState
-
+		var remainingTokenAmountIn = &pool.TokenAmount{
+			Token: tokenAmountIn.Token,
+		}
+		if amountOutResult.RemainingAmountIn != nil {
+			remainingTokenAmountIn.Amount = amountOutResult.RemainingAmountIn.Quotient()
+		} else {
+			remainingTokenAmountIn.Amount = big.NewInt(0)
+		}
 		var totalGas = p.gas.BaseGas + p.gas.CrossInitTickGas*int64(amountOutResult.CrossInitTickLoops)
 
 		//p.nextState.SqrtRatioX96 = newPoolState.SqrtRatioX96
@@ -226,6 +233,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 					Token:  tokenOut,
 					Amount: amountOut.Quotient(),
 				},
+				RemainingTokenAmountIn: remainingTokenAmountIn,
 				Fee: &pool.TokenAmount{
 					Token:  tokenAmountIn.Token,
 					Amount: nil,
