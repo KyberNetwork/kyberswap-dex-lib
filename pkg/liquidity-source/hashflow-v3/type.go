@@ -60,6 +60,7 @@ type Quote struct {
 		Pool             string `json:"pool"`
 		QuoteExpiry      int64  `json:"quoteExpiry"`
 		Nonce            int64  `json:"nonce"`
+		ExternalAccount  string `json:"externalAccount"`
 	}
 	Signature string `json:"signature"`
 }

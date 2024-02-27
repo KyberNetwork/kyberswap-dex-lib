@@ -27,8 +27,8 @@ type (
 		pool.Pool
 
 		MarketMaker          string
-		Token0               *entity.PoolToken
-		Token1               *entity.PoolToken
+		Token0               entity.PoolToken
+		Token1               entity.PoolToken
 		ZeroToOnePriceLevels []PriceLevel
 		OneToZeroPriceLevels []PriceLevel
 
@@ -129,8 +129,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			},
 		},
 		MarketMaker:          staticExtra.MarketMaker,
-		Token0:               entityPool.Tokens[0],
-		Token1:               entityPool.Tokens[1],
+		Token0:               *entityPool.Tokens[0],
+		Token1:               *entityPool.Tokens[1],
 		ZeroToOnePriceLevels: zeroToOnePriceLevels,
 		OneToZeroPriceLevels: oneToZeroPriceLevels,
 
@@ -168,7 +168,7 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return MetaInfo{Timestamp: p.timestamp}
 }
 
-func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken *entity.PoolToken, priceLevel []PriceLevel) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.PoolToken, priceLevel []PriceLevel) (*pool.CalcAmountOutResult, error) {
 	var amountInAfterDecimals, decimalsPow, amountInBF, amountOutBF big.Float
 
 	amountInBF.SetInt(amountIn)

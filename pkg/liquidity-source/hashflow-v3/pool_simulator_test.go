@@ -61,6 +61,11 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 			amountIn:          big.NewInt(3_000_000),
 			expectedAmountOut: bigIntFromString("4244627899174255799"),
 		},
+		{
+			name:              "it should return correct amountOut when swap in all levels",
+			amountIn:          big.NewInt(152_000_000),
+			expectedAmountOut: bigIntFromString("215061146891495627168"),
+		},
 	}
 
 	for _, tc := range tests {

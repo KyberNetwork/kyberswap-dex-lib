@@ -61,7 +61,8 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 
 				Trader:          params.RFQRecipient,
 				EffectiveTrader: params.Recipient,
-				MarketMakers:    []string{swapInfo.MarketMaker},
+
+				MarketMakers: []string{swapInfo.MarketMaker},
 			},
 		},
 	})
