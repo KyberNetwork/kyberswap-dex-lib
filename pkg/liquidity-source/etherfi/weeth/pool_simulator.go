@@ -4,6 +4,10 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/goccy/go-json"
+	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -19,6 +23,27 @@ type PoolSimulator struct {
 	totalPooledEther *big.Int
 
 	gas Gas
+}
+
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+	var extra PoolExtra
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	return &PoolSimulator{
+		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+			Address:     entityPool.Address,
+			ReserveUsd:  entityPool.ReserveUsd,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
+			BlockNumber: entityPool.BlockNumber,
+		}},
+		totalPooledEther: extra.TotalPooledEther,
+		totalShares:      extra.TotalShares,
+		gas:              defaultGas,
+	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
@@ -39,6 +64,16 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		Fee:            &poolpkg.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            s.gas.Unwrap,
 	}, nil
+}
+
+func (s *PoolSimulator) UpdateBalance(_ poolpkg.UpdateBalanceParams) {
+	return
+}
+
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+	return PoolMeta{
+		BlockNumber: s.Pool.Info.BlockNumber,
+	}
 }
 
 func (s *PoolSimulator) shareForAmount(eETHAmount *big.Int) *big.Int {
