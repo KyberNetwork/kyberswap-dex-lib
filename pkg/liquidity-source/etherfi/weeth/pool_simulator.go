@@ -66,9 +66,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(_ poolpkg.UpdateBalanceParams) {
-	return
-}
+func (s *PoolSimulator) UpdateBalance(_ poolpkg.UpdateBalanceParams) {}
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
