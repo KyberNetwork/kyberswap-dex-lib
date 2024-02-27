@@ -80,7 +80,7 @@ func (d *PoolTracker) GetNewPoolState(
 }
 
 func (d *PoolTracker) updatePool(pool entity.Pool, reserveData []*big.Int, fee uint64, blockNumber *big.Int) (entity.Pool, error) {
-	extra := Extra{
+	extra := ExtraInner{
 		conversionFee: fee,
 	}
 

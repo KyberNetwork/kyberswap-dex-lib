@@ -66,7 +66,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		startTime = time.Now()
 	)
 
-	logger.WithFields(logger.Fields{"dex_id": dexID}).Info("Started getting new pools")
+	logger.WithFields(logger.Fields{"dex_id": dexID}).Info("Started getting new innerPools")
 	ctx = util.NewContextWithTimestamp(ctx)
 
 	allPairsLength, err := u.getAllPairsLength(ctx)
@@ -78,16 +78,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	offset, err := u.getOffset(metadataBytes)
-	if err != nil {
-		logger.
-			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
-			Warn("getOffset failed")
-	}
-
-	batchSize := getBatchSize(allPairsLength, u.config.NewPoolLimit, offset)
-
-	pairAddresses, anchors, err := u.listPairAddresses(ctx, offset, batchSize)
+	pairAddresses, anchors, err := u.listPairAddresses(ctx, allPairsLength)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
@@ -95,21 +86,16 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		return nil, metadataBytes, err
 	}
-
-	pools, err := u.initPools(ctx, pairAddresses, anchors)
-	if err != nil {
-		logger.
-			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
-			Error("initPools failed")
-
-		return nil, metadataBytes, err
+	anchorMap := make(map[string]struct{})
+	for _, anchor := range anchors {
+		anchorMap[anchor.Hex()] = struct{}{}
 	}
 
-	newMetadataBytes, err := u.newMetadata(offset + batchSize)
+	innerPools, err := u.initInnerPools(ctx, pairAddresses, anchors)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
-			Error("newMetadata failed")
+			Error("initInnerPools failed")
 
 		return nil, metadataBytes, err
 	}
@@ -118,14 +104,28 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		WithFields(
 			logger.Fields{
 				"dex_id":      dexID,
-				"pools_len":   len(pools),
-				"offset":      offset,
+				"pools_len":   len(innerPools),
 				"duration_ms": time.Since(startTime).Milliseconds(),
 			},
 		).
-		Info("Finished getting new pools")
+		Info("Finished getting new innerPools")
 
-	return pools, newMetadataBytes, nil
+	onePool := entity.Pool{
+		Address:      u.config.BancorNetworkAddress,
+		ReserveUsd:   0,
+		AmplifiedTvl: 0,
+		SwapFee:      0,
+		Exchange:     DexTypeBancorV21,
+		Type:         DexTypeBancorV21,
+		Timestamp:    time.Now().Unix(),
+		Reserves:     nil,
+		Tokens:       nil,
+		Extra:        "",
+		StaticExtra:  "",
+		TotalSupply:  "",
+		BlockNumber:  0,
+	}
+	return innerPools, metadataBytes, nil
 }
 
 func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
@@ -178,16 +178,55 @@ func (u *PoolsListUpdater) listPairTokens(ctx context.Context, pairAddresses []c
 
 	return tokens, nil
 }
-func (u *PoolsListUpdater) newExtra(anchorAddress string) ([]byte, error) {
-	extra := Extra{
+func (u *PoolsListUpdater) newExtraInner(anchorAddress string) ([]byte, error) {
+	extra := ExtraInner{
 		anchorAddress: anchorAddress,
 	}
 
 	return json.Marshal(extra)
 }
 
-// initPools fetches token data and initializes pools
-func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses, anchors []common.Address) ([]entity.Pool, error) {
+func (u *PoolsListUpdater) buildConvertibleTokensAnchorState(ctx context.Context) (map[string][]string, error) {
+	convertibleTokens := make([]common.Address, 0)
+	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
+		ABI:    converterRegistryABI,
+		Target: u.config.ConverterRegistry,
+		Method: getConvertibleTokens,
+		Params: nil,
+	}, []interface{}{&convertibleTokens}).Call(); err != nil {
+		return nil, err
+	}
+
+	anchorsByConvertibleTokens := make(map[string][]string)
+	anchorsRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
+	anchors := make([][]common.Address, len(convertibleTokens))
+
+	for i, convertibleToken := range convertibleTokens {
+		anchors[i] = make([]common.Address, 0)
+		anchorsRequest.AddCall(&ethrpc.Call{
+			ABI:    converterRegistryABI,
+			Target: u.config.ConverterRegistry,
+			Method: getConvertibleTokenAnchors,
+			Params: []interface{}{convertibleToken},
+		}, []interface{}{&anchors[i]})
+	}
+
+	if _, err := anchorsRequest.Aggregate(); err != nil {
+		return nil, err
+	}
+
+	for i, convertibleToken := range convertibleTokens {
+		anchorsByConvertibleTokens[convertibleToken.Hex()] = make([]string, len(anchors[i]))
+		for j, anchor := range anchors[i] {
+			anchorsByConvertibleTokens[convertibleToken.Hex()][j] = anchor.Hex()
+		}
+	}
+
+	return anchorsByConvertibleTokens, nil
+}
+
+// initInnerPools fetches token data and initializes pools
+func (u *PoolsListUpdater) initInnerPools(ctx context.Context, pairAddresses, anchors []common.Address) ([]entity.Pool, error) {
 	tokens, err := u.listPairTokens(ctx, pairAddresses)
 	if err != nil {
 		return nil, err
@@ -204,7 +243,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses, anchors
 			}
 		}
 
-		extra, err := u.newExtra(anchors[i].Hex())
+		extra, err := u.newExtraInner(anchors[i].Hex())
 		if err != nil {
 			return nil, err
 		}
@@ -212,7 +251,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses, anchors
 		var newPool = entity.Pool{
 			Address:   strings.ToLower(pairAddress.Hex()),
 			Exchange:  u.config.DexID,
-			Type:      DexTypeBancorV21,
+			Type:      DexTypeBancorV21InnerPool,
 			Timestamp: time.Now().Unix(),
 			Reserves:  []string{reserveZero, reserveZero},
 			Tokens:    entityTokens,
@@ -227,20 +266,15 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses, anchors
 
 // listPairAddresses lists address of pairs from offset
 // return: poolAddresses, lpAddresses, error
-func (u *PoolsListUpdater) listPairAddresses(ctx context.Context, offset int, batchSize int) ([]common.Address, []common.Address, error) {
-	anchors := make([]common.Address, batchSize)
+func (u *PoolsListUpdater) listPairAddresses(ctx context.Context, allPairLength int) ([]common.Address, []common.Address, error) {
+	anchors := make([]common.Address, allPairLength)
 	listAnchorAddressesRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
-	for i := 0; i < batchSize; i++ {
-		index := big.NewInt(int64(offset + i))
-
-		listAnchorAddressesRequest.AddCall(&ethrpc.Call{
-			ABI:    converterRegistryABI,
-			Target: u.config.ConverterRegistry,
-			Method: registryGetAnchor,
-			Params: []interface{}{index},
-		}, []interface{}{&anchors[i]})
-	}
+	listAnchorAddressesRequest.AddCall(&ethrpc.Call{
+		ABI:    converterRegistryABI,
+		Target: u.config.ConverterRegistry,
+		Method: registryGetAnchors,
+	}, []interface{}{&anchors})
 
 	_, err := listAnchorAddressesRequest.TryAggregate()
 	if err != nil {
@@ -248,7 +282,7 @@ func (u *PoolsListUpdater) listPairAddresses(ctx context.Context, offset int, ba
 	}
 
 	// get pool address (converters) from anchorResults (lp address)
-	poolAddresses := make([]common.Address, batchSize)
+	poolAddresses := make([]common.Address, allPairLength)
 	if _, err := u.ethrpcClient.NewRequest().SetContext(ctx).AddCall(
 		&ethrpc.Call{
 			ABI:    converterRegistryABI,

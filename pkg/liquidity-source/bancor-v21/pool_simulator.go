@@ -28,7 +28,7 @@ var (
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	var extra Extra
+	var extra ExtraInner
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
@@ -156,7 +156,7 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return PoolMeta{
+	return PoolMetaInner{
 		Fee:         s.fee.Uint64(),
 		BlockNumber: s.Pool.Info.BlockNumber,
 	}
