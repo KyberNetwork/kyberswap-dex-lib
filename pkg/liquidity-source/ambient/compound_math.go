@@ -12,7 +12,7 @@ import (
 * @return The ending value = seed * (1 + growth). Rounded down to nearest
 *         integer value */
 var (
-	maxUint128, _ = new(big.Int).SetString("340282366920938463463374607431768211455", 10)
+	bigMaxUint128, _ = new(big.Int).SetString("340282366920938463463374607431768211455", 10)
 )
 
 func inflateLiqSeed(seed *big.Int, growth uint64) *big.Int {
@@ -27,8 +27,8 @@ func inflateLiqSeed(seed *big.Int, growth uint64) *big.Int {
 	// 	 if (inflated > type(uint128).max) { return type(uint128).max; }
 	// 	 return uint128(inflated);
 	// 	 }
-	if inflated.Cmp(maxUint128) == 1 {
-		return new(big.Int).Set(maxUint128)
+	if inflated.Cmp(bigMaxUint128) == 1 {
+		return new(big.Int).Set(bigMaxUint128)
 	}
 
 	return inflated

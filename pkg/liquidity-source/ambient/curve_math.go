@@ -89,7 +89,7 @@ type curveState struct {
 *    set this parameter in the correct direction. I.e. buys should be the boundary
 *    from above and sells from below. Represented as a price tick index.
 */
-func (c *curveState) swapToLimit(accum *pairFlow, swap swapDirective, p swapPool, bumpTick types.Int24) error {
+func (c *curveState) swapToLimit(accum *pairFlow, swap *swapDirective, p swapPool, bumpTick types.Int24) error {
 	// uint128 limitPrice = determineLimit(bumpTick, swap.limitPrice_, swap.isBuy_);
 	limitPrice, err := c.determineLimit(bumpTick, swap.limitPrice, swap.isBuy)
 	if err != nil {
@@ -366,7 +366,7 @@ func invertFlow(liq *big.Int, price *big.Int, denowFlow *big.Int, isBuy bool, in
 
 	// if (endReserve == 0) { return type(uint128).max; }
 	if endReserve.Cmp(big0) == 0 {
-		return new(big.Int).Set(maxUint128)
+		return new(big.Int).Set(bigMaxUint128)
 	}
 
 	// uint256 endInvert = uint256(liq) * uint256(liq) / endReserve;

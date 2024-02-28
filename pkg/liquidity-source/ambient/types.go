@@ -1,6 +1,7 @@
 package ambient
 
 import (
+	"math"
 	"math/big"
 )
 
@@ -82,4 +83,21 @@ type swapDirective struct {
 	rollType   uint8
 	qty        *big.Int
 	limitPrice *big.Int
+}
+
+var (
+	bigMaxUint32 = big.NewInt(math.MaxUint32)
+	bigMaxUint16 = big.NewInt(math.MaxUint16)
+	bigMaxUint8  = big.NewInt(math.MaxUint8)
+)
+
+//	struct BookLevel {
+//		uint96 bidLots_;
+//		uint96 askLots_;
+//		uint64 feeOdometer_;
+//	}
+type BookLevel struct {
+	bidLots     *big.Int
+	askLots     *big.Int
+	feeOdometer uint64
 }
