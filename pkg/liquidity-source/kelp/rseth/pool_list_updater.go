@@ -165,9 +165,13 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 			Params: []interface{}{asset},
 		}, []interface{}{&priceByAsset[i]})
 
+		assetAddress := strings.ToLower(asset.String())
+		if assetAddress == common.ETH {
+			assetAddress = common.WETH
+		}
 		getAssetStateRequest.AddCall(&ethrpc.Call{
 			ABI:    common.Erc20ABI,
-			Target: asset.Hex(),
+			Target: assetAddress,
 			Method: common.Erc20MethodDecimals,
 			Params: nil,
 		}, []interface{}{&tokenDecimals[i]})
