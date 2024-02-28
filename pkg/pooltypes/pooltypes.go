@@ -5,8 +5,13 @@ import (
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
+	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
+	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
+	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
+	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
@@ -68,6 +73,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodromev2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/vooi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat"
+	zkerafinance "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkera-finance"
 )
 
 type Types struct {
@@ -153,9 +159,15 @@ type Types struct {
 	LegacyBalancerStable           string
 	LegacyBalancerMetaStable       string
 	LegacyBalancerComposableStable string
+	Gyroscope2CLP                  string
+	Gyroscope3CLP                  string
+	GyroscopeECLP                  string
+	ZkEraFinance                   string
 	SwaapV2                        string
 	EtherfiEETH                    string
 	EtherfiWEETH                   string
+	BancorV3                       string
+	CurveStablePlain               string
 }
 
 var (
@@ -240,8 +252,14 @@ var (
 		LegacyBalancerStable:           string(balancer.DexTypeBalancerStable),
 		LegacyBalancerMetaStable:       string(balancer.DexTypeBalancerMetaStable),
 		LegacyBalancerComposableStable: string(balancercomposablestable.DexTypeBalancerComposableStable),
+		Gyroscope2CLP:                  gyro2clp.DexType,
+		Gyroscope3CLP:                  gyro3clp.DexType,
+		GyroscopeECLP:                  gyroeclp.DexType,
+		ZkEraFinance:                   zkerafinance.DexType,
 		SwaapV2:                        swaapv2.DexType,
 		EtherfiEETH:                    eeth.DexType,
 		EtherfiWEETH:                   weeth.DexType,
+		BancorV3:                       bancorv3.DexType,
+		CurveStablePlain:               plain.DexType,
 	}
 )
