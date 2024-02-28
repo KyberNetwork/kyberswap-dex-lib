@@ -9,6 +9,8 @@ import (
 var (
 	LRTDepositPoolABI abi.ABI
 	LRTConfigABI      abi.ABI
+	LRTOracleABI      abi.ABI
+	Erc20ABI          abi.ABI
 )
 
 func init() {
@@ -21,6 +23,12 @@ func init() {
 		},
 		{
 			&LRTDepositPoolABI, lrtDepositPoolABIJson,
+		},
+		{
+			&LRTOracleABI, lrtOracleABIJson,
+		},
+		{
+			&Erc20ABI, erc20ABIJson,
 		},
 	}
 

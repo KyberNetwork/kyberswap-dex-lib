@@ -1,6 +1,10 @@
 package rseth
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+)
 
 type PoolMeta struct {
 	BlockNumber uint64 `json:"blockNumber"`
@@ -12,4 +16,6 @@ type PoolExtra struct {
 	DepositLimitByAsset map[string]*big.Int `json:"depositLimitByAsset"`
 	PriceByAsset        map[string]*big.Int `json:"priceByAsset"`
 	RSETHPrice          *big.Int            `json:"rsETHPrice"`
+
+	supportedTokens []*entity.PoolToken
 }
