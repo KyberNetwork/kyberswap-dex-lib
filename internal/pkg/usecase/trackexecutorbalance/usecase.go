@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/elastic-go-sdk/v2/constants"
 	"github.com/KyberNetwork/ethrpc"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -309,17 +310,17 @@ func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress
 func getAddressToApproveMax(pool *PoolInfo) (string, error) {
 	switch valueobject.Exchange(pool.simulator.GetExchange()) {
 	case
-		valueobject.ExchangeBalancerV2Weighted,
-		valueobject.ExchangeBalancerV2Stable,
-		valueobject.ExchangeBalancerV2ComposableStable,
-		valueobject.ExchangeBeethovenXWeighted,
-		valueobject.ExchangeBeethovenXStable,
-		valueobject.ExchangeBeethovenXComposableStable,
-		valueobject.ExchangeVelocoreV2CPMM,
-		valueobject.ExchangeVelocoreV2WombatStable,
-		valueobject.ExchangeGyroscope2CLP,
-		valueobject.ExchangeGyroscope3CLP,
-		valueobject.ExchangeGyroscopeECLP:
+		dexValueObject.ExchangeBalancerV2Weighted,
+		dexValueObject.ExchangeBalancerV2Stable,
+		dexValueObject.ExchangeBalancerV2ComposableStable,
+		dexValueObject.ExchangeBeethovenXWeighted,
+		dexValueObject.ExchangeBeethovenXStable,
+		dexValueObject.ExchangeBeethovenXComposableStable,
+		dexValueObject.ExchangeVelocoreV2CPMM,
+		dexValueObject.ExchangeVelocoreV2WombatStable,
+		dexValueObject.ExchangeGyroscope2CLP,
+		dexValueObject.ExchangeGyroscope3CLP,
+		dexValueObject.ExchangeGyroscopeECLP:
 		{
 			var staticExtra struct {
 				Vault string `json:"vault"`

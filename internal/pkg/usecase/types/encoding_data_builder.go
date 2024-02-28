@@ -347,17 +347,17 @@ func canSwapSimpleMode(tokenIn string, route [][]valueobject.Swap) bool {
 func getAddressToApproveMax(swap types.EncodingSwap) (string, error) {
 	switch valueobject.Exchange(swap.Exchange) {
 	case
-		valueobject.ExchangeBalancerV2Weighted,
-		valueobject.ExchangeBalancerV2Stable,
-		valueobject.ExchangeBalancerV2ComposableStable,
-		valueobject.ExchangeBeethovenXWeighted,
-		valueobject.ExchangeBeethovenXStable,
-		valueobject.ExchangeBeethovenXComposableStable,
-		valueobject.ExchangeVelocoreV2CPMM,
-		valueobject.ExchangeVelocoreV2WombatStable,
-		valueobject.ExchangeGyroscope2CLP,
-		valueobject.ExchangeGyroscope3CLP,
-		valueobject.ExchangeGyroscopeECLP:
+		dexValueObject.ExchangeBalancerV2Weighted,
+		dexValueObject.ExchangeBalancerV2Stable,
+		dexValueObject.ExchangeBalancerV2ComposableStable,
+		dexValueObject.ExchangeBeethovenXWeighted,
+		dexValueObject.ExchangeBeethovenXStable,
+		dexValueObject.ExchangeBeethovenXComposableStable,
+		dexValueObject.ExchangeVelocoreV2CPMM,
+		dexValueObject.ExchangeVelocoreV2WombatStable,
+		dexValueObject.ExchangeGyroscope2CLP,
+		dexValueObject.ExchangeGyroscope3CLP,
+		dexValueObject.ExchangeGyroscopeECLP:
 		{
 			poolExtraBytes, err := json.Marshal(swap.PoolExtra)
 			if err != nil {

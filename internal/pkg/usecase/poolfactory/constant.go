@@ -1,6 +1,6 @@
 package poolfactory
 
-import "github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 
 var (
 	DefaultGasAlgebra = map[valueobject.Exchange]int64{

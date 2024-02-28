@@ -55,7 +55,7 @@ func (b *PoolBucket) ClonePool(poolAddress string) poolpkg.IPoolSimulator {
 	// Note: When we need to clone a curve-meta pool, we should clone its base pool as well (as the code below)
 	//We will omit that adhoc logic here for simplicity -> expect some miscalculation in algorithm
 
-	//if pool.GetType() == constant.PoolTypes.CurveMeta {
+	//if pool.GetType() == pooltypes.PoolTypes.CurveMeta {
 	//	curveMetaPool, ok := pool.(*curveMeta.Pool)
 	//	if !ok {
 	//		return pool
