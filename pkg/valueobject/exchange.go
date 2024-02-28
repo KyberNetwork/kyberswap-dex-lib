@@ -240,6 +240,8 @@ var (
 
 	ExchangeEtherfiEETH  Exchange = "etherfi-eeth"
 	ExchangeEtherfiWEETH Exchange = "etherfi-weeth"
+
+	ExchangeKelpRSETH Exchange = "kelp-rseth"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
