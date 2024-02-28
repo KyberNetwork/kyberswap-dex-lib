@@ -8,6 +8,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/common"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -52,6 +53,20 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		totalShares:      extra.TotalShares,
 		gas:              defaultGas,
 	}, nil
+}
+
+func (s *PoolSimulator) CanSwapTo(token string) []string {
+	if token == common.EETH {
+		return []string{common.WETH}
+	}
+	return []string{}
+}
+
+func (s *PoolSimulator) CanSwapFrom(token string) []string {
+	if token == common.WETH {
+		return []string{common.EETH}
+	}
+	return []string{}
 }
 
 func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
