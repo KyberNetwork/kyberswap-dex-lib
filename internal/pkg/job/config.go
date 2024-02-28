@@ -2,6 +2,8 @@ package job
 
 import (
 	"time"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/consumer"
 )
 
 type (
@@ -13,7 +15,13 @@ type (
 	}
 
 	IndexPoolsJobConfig struct {
-		Interval time.Duration `mapstructure:"interval"`
+		Interval  time.Duration `mapstructure:"interval"`
+		PoolEvent struct {
+			ConsumerConfig consumer.Config `mapstructure:"consumerConfig"`
+			BatchRate      time.Duration   `mapstructure:"batchRate"`
+			BatchSize      int             `mapstructure:"batchSize"`
+			RetryInterval  time.Duration   `mapstructure:"retryInterval"`
+		} `mapstructure:"poolEvent"`
 	}
 
 	UpdateSuggestedGasPriceConfig struct {

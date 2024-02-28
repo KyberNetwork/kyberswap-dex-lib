@@ -99,6 +99,16 @@ poolRedis:
   writeTimeout: 3s
   readOnly: false
   routeRandomly: false
+poolEventRedis:
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: *chainName
+  readTimeout: 3s
+  writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
 ddAgentHost: ""
 keyPair:
   storageFilePath: ""
@@ -290,6 +300,19 @@ useCase:
 job:
   indexPools:
     interval: 2s
+    poolEvent:
+      consumerConfig:
+        prefix: *chainName
+        stream: "pool_event"
+        group: "router_indexPools"
+        key: "message"
+        block: 300ms
+        count: 100
+        bufferSize: 20
+        ackBufferSize: 10
+      batchRate: 700ms
+      batchSize: 100
+      retryInterval: 5s
   updateSuggestedGasPrice:
     interval: 15s
   trackExecutorBalance:

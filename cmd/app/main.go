@@ -35,6 +35,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
 	"github.com/KyberNetwork/router-service/internal/pkg/bootstrap"
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
+	"github.com/KyberNetwork/router-service/internal/pkg/consumer"
 	"github.com/KyberNetwork/router-service/internal/pkg/job"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/reloadconfig"
@@ -53,9 +54,6 @@ import (
 	httppkg "github.com/KyberNetwork/router-service/internal/pkg/server/http"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
-	trackexecutor "github.com/KyberNetwork/router-service/internal/pkg/usecase/trackexecutorbalance"
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/generatepath"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getcustomroute"
@@ -63,11 +61,13 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getrouteencode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
+	trackexecutor "github.com/KyberNetwork/router-service/internal/pkg/usecase/trackexecutorbalance"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute/synthetix"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
 	"github.com/KyberNetwork/router-service/internal/pkg/validator"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	cryptopkg "github.com/KyberNetwork/router-service/pkg/crypto"
 	"github.com/KyberNetwork/router-service/pkg/crypto/keystorage"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -122,9 +122,9 @@ func main() {
 				// The profiles below are disabled by default to keep overhead
 				// low, but can be enabled as needed.
 
-				//profiler.BlockProfile,
-				//profiler.MutexProfile,
-				//profiler.GoroutineProfile,
+				// profiler.BlockProfile,
+				// profiler.MutexProfile,
+				// profiler.GoroutineProfile,
 			))
 		if err != nil {
 			log.Fatal(err)
@@ -163,11 +163,11 @@ func main() {
 				pyroscope.ProfileInuseSpace,
 
 				// these profile types are optional:
-				//pyroscope.ProfileGoroutines,
-				//pyroscope.ProfileMutexCount,
-				//pyroscope.ProfileMutexDuration,
-				//pyroscope.ProfileBlockCount,
-				//pyroscope.ProfileBlockDuration,
+				// pyroscope.ProfileGoroutines,
+				// pyroscope.ProfileMutexCount,
+				// pyroscope.ProfileMutexDuration,
+				// pyroscope.ProfileBlockCount,
+				// pyroscope.ProfileBlockDuration,
 			},
 		})
 	}
@@ -296,7 +296,8 @@ func apiAction(c *cli.Context) (err error) {
 
 	var bestPathRepository *pathgenerator.RedisRepository
 	if pregenRedisClient != nil {
-		bestPathRepository = pathgenerator.NewRedisRepository(pregenRedisClient.Client, pathgenerator.RedisRepositoryConfig{Prefix: cfg.PregenRedis.Prefix})
+		bestPathRepository = pathgenerator.NewRedisRepository(pregenRedisClient.Client,
+			pathgenerator.RedisRepositoryConfig{Prefix: cfg.PregenRedis.Prefix})
 	}
 
 	tokenRepository := token.NewGoCacheRepository(
@@ -331,8 +332,10 @@ func apiAction(c *cli.Context) (err error) {
 	getPoolsParamsValidator := validator.NewGetPoolsParamsValidator()
 	getTokensParamsValidator := validator.NewGetTokensParamsValidator()
 	getRoutesParamsValidator := validator.NewGetRouteParamsValidator()
-	getRouteEncodeParamsValidator := validator.NewGetRouteEncodeParamsValidator(timeutil.NowFunc, cfg.Validator.GetRouteEncodeParams, blackjackRepo)
-	buildRouteParamsValidator := validator.NewBuildRouteParamsValidator(timeutil.NowFunc, cfg.Validator.BuildRouteParams, blackjackRepo)
+	getRouteEncodeParamsValidator := validator.NewGetRouteEncodeParamsValidator(timeutil.NowFunc,
+		cfg.Validator.GetRouteEncodeParams, blackjackRepo)
+	buildRouteParamsValidator := validator.NewBuildRouteParamsValidator(timeutil.NowFunc,
+		cfg.Validator.BuildRouteParams, blackjackRepo)
 
 	// init use cases
 	keyStorage, err := getKeyStorage(cfg.KeyPair.StorageFilePath)
@@ -375,7 +378,8 @@ func apiAction(c *cli.Context) (err error) {
 	var balanceSlotsUseCase *erc20balanceslotuc.Cache
 	var aevmClient aevmclient.Client
 	if cfg.AEVMEnabled {
-		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client, cfg.Repository.ERC20BalanceSlot.Redis)
+		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client,
+			cfg.Repository.ERC20BalanceSlot.Redis)
 		rpcClient, err := rpc.Dial(cfg.AEVM.RPC)
 		if err != nil {
 			return fmt.Errorf("could not dial JSON-RPC node %w", err)
@@ -386,13 +390,17 @@ func apiAction(c *cli.Context) (err error) {
 			if err != nil {
 				return err
 			}
-			holdersListRepo := erc20balanceslot.NewHoldersListRedisRepositoryWithCache(tokenHoldersRedis, cfg.AEVM.CachedHoldersListTTLSec)
+			holdersListRepo := erc20balanceslot.NewHoldersListRedisRepositoryWithCache(tokenHoldersRedis,
+				cfg.AEVM.CachedHoldersListTTLSec)
 			watchlistRepo := erc20balanceslot.NewWatchlistRedisRepository(tokenHoldersRedis)
-			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategyWithHoldersListAsFallback(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet), holdersListRepo, watchlistRepo)
+			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategyWithHoldersListAsFallback(rpcClient,
+				common.HexToAddress(cfg.AEVM.FakeWallet), holdersListRepo, watchlistRepo)
 		} else {
-			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategy(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet))
+			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategy(rpcClient,
+				common.HexToAddress(cfg.AEVM.FakeWallet))
 		}
-		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe, cfg.AEVM.PredefinedBalanceSlots, cfg.Common.ChainID)
+		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe,
+			cfg.AEVM.PredefinedBalanceSlots, cfg.Common.ChainID)
 		if err := balanceSlotsUseCase.PreloadAll(context.Background()); err != nil {
 			logger.Errorf(ctx, "could not preload balance slots %s", err)
 			return err
@@ -405,7 +413,8 @@ func apiAction(c *cli.Context) (err error) {
 	}
 
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
-	poolManager, err := poolmanager.NewPointerSwapPoolManager(ctx, poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager, aevmClient)
+	poolManager, err := poolmanager.NewPointerSwapPoolManager(ctx, poolRepository, poolFactory, poolRankRepository,
+		cfg.UseCase.PoolManager, aevmClient)
 	if err != nil {
 		return err
 	}
@@ -415,7 +424,8 @@ func apiAction(c *cli.Context) (err error) {
 		getBestPaths = bestPathRepository.GetBestPaths
 	}
 
-	routeFinder := usecase.NewFinder(cfg.UseCase.GetRoute.Aggregator.FinderOptions, getBestPaths, cfg.UseCase.GetRoute.Aggregator.WhitelistedTokenSet)
+	routeFinder := usecase.NewFinder(cfg.UseCase.GetRoute.Aggregator.FinderOptions, getBestPaths,
+		cfg.UseCase.GetRoute.Aggregator.WhitelistedTokenSet)
 
 	getRouteUseCase := getroute.NewUseCase(
 		poolRankRepository,
@@ -439,7 +449,8 @@ func apiAction(c *cli.Context) (err error) {
 		rfqHandlerByPoolType[s.Handler] = rfqHandler
 	}
 
-	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, priceRepository, cfg.Common.GasTokenAddress, cfg.Common.RouterAddress)
+	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, priceRepository, cfg.Common.GasTokenAddress,
+		cfg.Common.RouterAddress)
 	buildRouteUseCase := buildroute.NewBuildRouteUseCase(
 		tokenRepository,
 		priceRepository,
@@ -608,10 +619,17 @@ func indexerAction(c *cli.Context) (err error) {
 		return err
 	}
 
+	poolEventRedisClient, err := redis.New(&cfg.PoolEventRedis)
+	if err != nil {
+		logger.Errorf(ctx, "fail to init redis client to pool service")
+		return err
+	}
+
 	// init repository
 	poolRepo := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
-	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient, gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
+	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient,
+		gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
 	// init use case
 	getAllPoolAddressesUseCase := usecase.NewGetAllPoolAddressesUseCase(poolRepo)
@@ -620,13 +638,17 @@ func indexerAction(c *cli.Context) (err error) {
 		poolRankRepository,
 		cfg.UseCase.IndexPools,
 	)
-	updateSuggestedGasPriceUseCase := usecase.NewUpdateSuggestedGasPrice(gasRepository)
+	poolEventStreamConsumer := consumer.NewPoolEventsStreamConsumer(poolEventRedisClient.Client,
+		&cfg.Job.IndexPools.PoolEvent.ConsumerConfig)
 
 	indexPoolsJob := job.NewIndexPoolsJob(
 		getAllPoolAddressesUseCase,
 		indexPoolsUseCase,
+		poolEventStreamConsumer,
 		cfg.Job.IndexPools,
 	)
+
+	updateSuggestedGasPriceUseCase := usecase.NewUpdateSuggestedGasPrice(gasRepository)
 	updateSuggestedGasPriceJob := job.NewUpdateSuggestedGasPriceJob(
 		updateSuggestedGasPriceUseCase,
 		cfg.Job.UpdateSuggestedGasPrice,
@@ -765,7 +787,8 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 	var balanceSlotsUseCase *erc20balanceslotuc.Cache
 	var aevmClient aevmclient.Client
 	if cfg.AEVMEnabled {
-		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client, cfg.Repository.ERC20BalanceSlot.Redis)
+		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client,
+			cfg.Repository.ERC20BalanceSlot.Redis)
 		rpcClient, err := rpc.Dial(cfg.AEVM.RPC)
 		if err != nil {
 			return fmt.Errorf("could not dial JSON-RPC node %w", err)
@@ -776,13 +799,17 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 			if err != nil {
 				return err
 			}
-			holdersListRepo := erc20balanceslot.NewHoldersListRedisRepositoryWithCache(tokenHoldersRedis, cfg.AEVM.CachedHoldersListTTLSec)
+			holdersListRepo := erc20balanceslot.NewHoldersListRedisRepositoryWithCache(tokenHoldersRedis,
+				cfg.AEVM.CachedHoldersListTTLSec)
 			watchlistRepo := erc20balanceslot.NewWatchlistRedisRepository(tokenHoldersRedis)
-			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategyWithHoldersListAsFallback(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet), holdersListRepo, watchlistRepo)
+			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategyWithHoldersListAsFallback(rpcClient,
+				common.HexToAddress(cfg.AEVM.FakeWallet), holdersListRepo, watchlistRepo)
 		} else {
-			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategy(rpcClient, common.HexToAddress(cfg.AEVM.FakeWallet))
+			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategy(rpcClient,
+				common.HexToAddress(cfg.AEVM.FakeWallet))
 		}
-		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe, cfg.AEVM.PredefinedBalanceSlots, cfg.Common.ChainID)
+		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe,
+			cfg.AEVM.PredefinedBalanceSlots, cfg.Common.ChainID)
 		if err := balanceSlotsUseCase.PreloadAll(context.Background()); err != nil {
 			logger.Errorf(ctx, "could not preload balance slots %s", err)
 			return err
@@ -795,7 +822,8 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 	}
 
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
-	poolManager, err := poolmanager.NewNonMaintenancePointerSwapPoolManager(ctx, poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager, aevmClient)
+	poolManager, err := poolmanager.NewNonMaintenancePointerSwapPoolManager(ctx, poolRepository, poolFactory,
+		poolRankRepository, cfg.UseCase.PoolManager, aevmClient)
 	if err != nil {
 		return err
 	}
@@ -807,7 +835,8 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 
 	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient, cfg.Repository.Gas.Redis)
 
-	bestPathRepository := pathgenerator.NewRedisRepository(pregenRedisClient.Client, pathgenerator.RedisRepositoryConfig{Prefix: cfg.PregenRedis.Prefix})
+	bestPathRepository := pathgenerator.NewRedisRepository(pregenRedisClient.Client,
+		pathgenerator.RedisRepositoryConfig{Prefix: cfg.PregenRedis.Prefix})
 
 	// Pre-gen paths for all sources
 	generateBestPathsAllSourcesUseCase := generatepath.NewUseCase(
@@ -859,7 +888,8 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 
 	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
 		logger.Infof(ctx, "Received reloading signal: <%s>", id)
-		return applyLatestConfigForPathGenerator(ctx, generateBestPathsAllSourcesUseCase, generateBestPathsAmmSourcesUseCase, poolFactory, poolManager, configLoader)
+		return applyLatestConfigForPathGenerator(ctx, generateBestPathsAllSourcesUseCase,
+			generateBestPathsAmmSourcesUseCase, poolFactory, poolManager, configLoader)
 	}))
 
 	g, ctx := errgroup.WithContext(ctx)

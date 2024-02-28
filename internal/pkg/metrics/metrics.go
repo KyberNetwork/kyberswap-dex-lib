@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -26,6 +27,7 @@ const (
 	FindRoutePregenHitRateMetricsName  = "find_route_pregen.count"
 	EstimateGasStatusMetricsName       = "estimate_gas.count"
 	EstimateGasWithSlippageMetricsName = "estimate_gas_slippage"
+	IndexPoolsDelayMetricsName         = "index_pools_delay"
 )
 
 var (
@@ -41,6 +43,7 @@ var (
 
 	// histogram metrics
 	estimateGasSlippageHistogram metric.Int64Histogram
+	indexPoolsDelayHistogram     metric.Int64Histogram
 	mapMetricNameToHistogram     map[string]metric.Int64Histogram
 )
 
@@ -54,6 +57,8 @@ func init() {
 	findRoutePregenHitRateCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(FindRoutePregenHitRateMetricsName))
 	estimateGasStatusCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(EstimateGasStatusMetricsName))
 	estimateGasSlippageHistogram, _ = kybermetric.Meter().Int64Histogram(formatMetricName(EstimateGasWithSlippageMetricsName))
+	indexPoolsDelayHistogram, _ = kybermetric.Meter().Int64Histogram(formatMetricName(IndexPoolsDelayMetricsName),
+		metric.WithExplicitBucketBoundaries(0, 50, 300, 1200, 2500, 5000, 10e3, 30e3, 90e3, 300e3, 1200e3, 3600e3))
 	mapMetricNameToCounter = map[string]metric.Float64Counter{
 		DexHitRateMetricsName:             dexHitRateCounter,
 		PoolTypeHitRateMetricsName:        poolTypeHitRateCounter,
@@ -66,6 +71,7 @@ func init() {
 	}
 	mapMetricNameToHistogram = map[string]metric.Int64Histogram{
 		EstimateGasWithSlippageMetricsName: estimateGasSlippageHistogram,
+		IndexPoolsDelayMetricsName:         indexPoolsDelayHistogram,
 	}
 }
 
@@ -152,6 +158,22 @@ func HistogramEstimateGasWithSlippage(ctx context.Context, slippage float64, isS
 	histogram(ctx, EstimateGasWithSlippageMetricsName, slippage, tags, 1)
 }
 
+func HistogramIndexPoolsDelay(ctx context.Context, jobName string, delay time.Duration, okCnt, totalCnt int) {
+	delayMs := float64(delay / time.Millisecond)
+	if okCnt > 0 {
+		histogram(ctx, IndexPoolsDelayMetricsName, delayMs, map[string]string{
+			"job_name": jobName,
+			"state":    "success",
+		}, int64(okCnt))
+	}
+	if failCnt := totalCnt - okCnt; failCnt > 0 {
+		histogram(ctx, IndexPoolsDelayMetricsName, delayMs, map[string]string{
+			"job_name": jobName,
+			"state":    "failed",
+		}, int64(failCnt))
+	}
+}
+
 func Flush() {
 	// Flush VanPT
 	if err := kybermetric.Flush(context.Background()); err != nil {
@@ -216,8 +238,6 @@ func gauge(ctx context.Context, name string, value float64, tags map[string]stri
 	}
 }
 
-// NOTE: Still keep this unused function in case we further need to use histogram metrics
-// nolint:golint,unused
 func histogram(ctx context.Context, name string, value float64, tags map[string]string, rate int64) {
 	if histogramMetric, exist := mapMetricNameToHistogram[name]; histogramMetric != nil && exist {
 		attributes := make([]attribute.KeyValue, 0, len(tags))
