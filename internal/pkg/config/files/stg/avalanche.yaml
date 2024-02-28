@@ -45,6 +45,7 @@ common:
     - "traderjoe-v20"
     - "traderjoe-v21"
     - "curve"
+    - "curve-stable-plain"
     - "synapse"
     - "axial"
     - "lydia"

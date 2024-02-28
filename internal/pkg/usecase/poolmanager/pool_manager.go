@@ -140,6 +140,10 @@ func listCurveMetaBasePools(
 			alreadyFetchedSet[pool.Address] = true
 		}
 
+		if pool.Type == pooltypes.PoolTypes.CurveStablePlain {
+			alreadyFetchedSet[pool.Address] = true
+		}
+
 		if pool.Type == pooltypes.PoolTypes.CurvePlainOracle {
 			alreadyFetchedSet[pool.Address] = true
 		}

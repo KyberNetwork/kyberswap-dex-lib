@@ -41,6 +41,7 @@ common:
     - "pancake"
     - "pancake-v3"
     - "curve"
+    - "curve-stable-plain"
     - "alien-base-stableswap"
     - "iziswap"
     - "baseswap-v3"

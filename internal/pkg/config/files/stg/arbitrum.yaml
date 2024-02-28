@@ -42,6 +42,7 @@ common:
     - "uniswapv3"
     - "sushiswap"
     - "curve"
+    - "curve-stable-plain"
     - "swapr"
     - "synapse"
     - "saddle"

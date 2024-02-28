@@ -31,6 +31,7 @@ common:
     - "spookyswap"
     - "spiritswap"
     - "curve"
+    - "curve-stable-plain"
     - "jetswap"
     - "paintswap"
     - "sushiswap"

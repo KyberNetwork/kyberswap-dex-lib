@@ -43,6 +43,7 @@ common:
     - "pangolin"
     - "traderjoe"
     - "curve"
+    - "curve-stable-plain"
     - "synapse"
     - "axial"
     - "lydia"

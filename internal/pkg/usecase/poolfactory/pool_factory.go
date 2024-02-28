@@ -14,6 +14,7 @@ import (
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
@@ -222,6 +223,16 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 			{
 				basePoolAddresses.Insert(entityPool.Address)
 				basePool, err := f.newCurveBase(*entityPool)
+				if err != nil {
+					logger.Warn(ctx, err.Error())
+					continue
+				}
+				basePoolByAddress[basePool.GetAddress()] = basePool
+			}
+		case pooltypes.PoolTypes.CurveStablePlain:
+			{
+				basePoolAddresses.Insert(entityPool.Address)
+				basePool, err := f.newCurveStablePlain(*entityPool)
 				if err != nil {
 					logger.Warn(ctx, err.Error())
 					continue
@@ -590,6 +601,20 @@ func (f *PoolFactory) newCurveBase(entityPool entity.Pool) (*curveBase.PoolBaseS
 	}
 
 	return corePool, nil
+}
+
+func (f *PoolFactory) newCurveStablePlain(entityPool entity.Pool) (*plain.PoolSimulator, error) {
+	pool, err := plain.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newCurveStablePlain] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return pool, nil
 }
 
 func (f *PoolFactory) newCurvePlainOracle(entityPool entity.Pool) (*curvePlainOracle.Pool, error) {

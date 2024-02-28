@@ -37,6 +37,7 @@ common:
     0xd8afa96459787fd45165b0b912407d136b866f00: true
   availableSources: &availableSources
     - "curve"
+    - "curve-stable-plain"
     - "kyberswap-static"
     - "kyberswap-elastic"
     - "synapse"

@@ -55,6 +55,7 @@ common:
     - "oneswap"
     - "iron-stable"
     - "curve"
+    - "curve-stable-plain"
     - "synapse"
     - "gravity"
     - "cometh"
