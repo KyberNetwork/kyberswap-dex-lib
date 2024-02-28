@@ -22,6 +22,7 @@ import (
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
 	curveAave "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/aave"
@@ -82,7 +83,6 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	liquiditybookv20aevm "github.com/KyberNetwork/router-service/internal/pkg/core/liquiditybookv20"
 	liquiditybookv21aevm "github.com/KyberNetwork/router-service/internal/pkg/core/liquiditybookv21"
 	uniswapaevm "github.com/KyberNetwork/router-service/internal/pkg/core/uni"
@@ -138,7 +138,7 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool, stateR
 			}
 
 			iPoolSimulators = append(iPoolSimulators, iPoolSimulator.(poolpkg.IPoolSimulator)) // iPoolSimulator here is ICurveBasePool and surely is a poolpkg.IPoolSimulator
-		} else if pool.Type == constant.PoolTypes.CurveMeta {
+		} else if pool.Type == pooltypes.PoolTypes.CurveMeta {
 			iPool, err := f.newCurveMeta(*pool, curveBasePoolByAddress)
 			if err != nil {
 				logger.Debugf(ctx, err.Error())
@@ -175,7 +175,7 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 			}
 
 			poolByAddress[IPoolSimulator.GetInfo().Address] = IPoolSimulator.(poolpkg.IPoolSimulator) // IPoolSimulator here is ICurveBasePool and surely is a poolpkg.IPoolSimulator
-		} else if pool.Type == constant.PoolTypes.CurveMeta {
+		} else if pool.Type == pooltypes.PoolTypes.CurveMeta {
 			IPoolSimulator, err := f.newCurveMeta(*pool, curveBasePoolByAddress)
 			if err != nil {
 				logger.Debugf(ctx, err.Error())
@@ -218,7 +218,7 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 
 	for _, entityPool := range entityPools {
 		switch entityPool.Type {
-		case constant.PoolTypes.CurveBase:
+		case pooltypes.PoolTypes.CurveBase:
 			{
 				basePoolAddresses.Insert(entityPool.Address)
 				basePool, err := f.newCurveBase(*entityPool)
@@ -228,7 +228,7 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 				}
 				basePoolByAddress[basePool.GetAddress()] = basePool
 			}
-		case constant.PoolTypes.CurvePlainOracle:
+		case pooltypes.PoolTypes.CurvePlainOracle:
 			{
 				basePoolAddresses.Insert(entityPool.Address)
 				basePool, err := f.newCurvePlainOracle(*entityPool)
@@ -238,7 +238,7 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 				}
 				basePoolByAddress[basePool.GetAddress()] = basePool
 			}
-		case constant.PoolTypes.CurveAave:
+		case pooltypes.PoolTypes.CurveAave:
 			{
 				basePoolAddresses.Insert(entityPool.Address)
 				basePool, err := f.newCurveAAVE(*entityPool)
@@ -258,9 +258,9 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 
 func newSwapLimit(dex string, limit map[string]*big.Int) poolpkg.SwapLimit {
 	switch dex {
-	case constant.PoolTypes.KyberPMM:
+	case pooltypes.PoolTypes.KyberPMM:
 		return kyberpmm.NewInventory(limit)
-	case constant.PoolTypes.Synthetix:
+	case pooltypes.PoolTypes.Synthetix:
 		return synthetix.NewLimits(limit)
 	}
 	return nil
@@ -278,147 +278,147 @@ func (f *PoolFactory) NewSwapLimit(limits map[string]map[string]*big.Int) map[st
 // if there is no matched factory method, it returns ErrPoolTypeFactoryNotFound
 func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (poolpkg.IPoolSimulator, error) {
 	switch entityPool.Type {
-	case constant.PoolTypes.Uni, constant.PoolTypes.Firebird,
-		constant.PoolTypes.Biswap, constant.PoolTypes.Polydex:
-		if f.config.UseAEVM && f.config.DexUseAEVM[constant.PoolTypes.Uni] {
+	case pooltypes.PoolTypes.Uni, pooltypes.PoolTypes.Firebird,
+		pooltypes.PoolTypes.Biswap, pooltypes.PoolTypes.Polydex:
+		if f.config.UseAEVM && f.config.DexUseAEVM[pooltypes.PoolTypes.Uni] {
 			return f.newUniAEVM(entityPool, stateRoot)
 		}
 		return f.newUni(entityPool)
-	case constant.PoolTypes.UniV3:
-		if f.config.UseAEVM && f.config.DexUseAEVM[constant.PoolTypes.UniV3] {
+	case pooltypes.PoolTypes.UniswapV3:
+		if f.config.UseAEVM && f.config.DexUseAEVM[pooltypes.PoolTypes.UniswapV3] {
 			return f.newUniV3AEVM(entityPool, stateRoot)
 		}
 		return f.newUniV3(entityPool)
-	case constant.PoolTypes.Saddle, constant.PoolTypes.Nerve,
-		constant.PoolTypes.OneSwap, constant.PoolTypes.IronStable:
+	case pooltypes.PoolTypes.Saddle, pooltypes.PoolTypes.Nerve,
+		pooltypes.PoolTypes.OneSwap, pooltypes.PoolTypes.IronStable:
 		return f.newSaddle(entityPool)
-	case constant.PoolTypes.RamsesV2:
+	case pooltypes.PoolTypes.RamsesV2:
 		return f.newRamsesV2(entityPool)
-	case constant.PoolTypes.SolidlyV3:
+	case pooltypes.PoolTypes.SolidlyV3:
 		return f.newSolidlyV3(entityPool)
-	case constant.PoolTypes.Dmm:
+	case pooltypes.PoolTypes.Dmm:
 		return f.newDMM(entityPool)
-	case constant.PoolTypes.Elastic:
+	case pooltypes.PoolTypes.Elastic:
 		return f.newElastic(entityPool)
-	case constant.PoolTypes.CurveAave:
+	case pooltypes.PoolTypes.CurveAave:
 		return f.newCurveAAVE(entityPool)
-	case constant.PoolTypes.CurveCompound:
+	case pooltypes.PoolTypes.CurveCompound:
 		return f.newCurveCompound(entityPool)
-	case constant.PoolTypes.CurveTricrypto:
+	case pooltypes.PoolTypes.CurveTricrypto:
 		return f.newCurveTricrypto(entityPool)
-	case constant.PoolTypes.CurveTwo:
+	case pooltypes.PoolTypes.CurveTwo:
 		return f.newCurveTwo(entityPool)
-	case constant.PoolTypes.DodoClassical, constant.PoolTypes.DodoStable,
-		constant.PoolTypes.DodoVendingMachine, constant.PoolTypes.DodoPrivate:
+	case pooltypes.PoolTypes.DodoClassical, pooltypes.PoolTypes.DodoStable,
+		pooltypes.PoolTypes.DodoVendingMachine, pooltypes.PoolTypes.DodoPrivate:
 		return f.newDoDo(entityPool)
-	case constant.PoolTypes.Velodrome, constant.PoolTypes.Ramses,
-		constant.PoolTypes.MuteSwitch, constant.PoolTypes.Dystopia, constant.PoolTypes.Pearl:
+	case pooltypes.PoolTypes.Velodrome, pooltypes.PoolTypes.Ramses,
+		pooltypes.PoolTypes.MuteSwitch, pooltypes.PoolTypes.Dystopia, pooltypes.PoolTypes.Pearl:
 		return f.newVelodrome(entityPool)
-	case constant.PoolTypes.VelodromeV2:
+	case pooltypes.PoolTypes.VelodromeV2:
 		return f.newVelodromeV2(entityPool)
-	case constant.PoolTypes.Velocimeter:
+	case pooltypes.PoolTypes.Velocimeter:
 		return f.newVelocimeter(entityPool)
-	case constant.PoolTypes.PlatypusBase, constant.PoolTypes.PlatypusPure, constant.PoolTypes.PlatypusAvax:
+	case pooltypes.PoolTypes.PlatypusBase, pooltypes.PoolTypes.PlatypusPure, pooltypes.PoolTypes.PlatypusAvax:
 		return f.newPlatypus(entityPool)
-	case constant.PoolTypes.WombatMain:
+	case pooltypes.PoolTypes.WombatMain:
 		return f.newWombatMain(entityPool)
-	case constant.PoolTypes.WombatLsd:
+	case pooltypes.PoolTypes.WombatLsd:
 		return f.newWombatLsd(entityPool)
-	case constant.PoolTypes.GMX:
+	case pooltypes.PoolTypes.GMX:
 		return f.newGMX(entityPool)
-	case constant.PoolTypes.GMXGLP:
+	case pooltypes.PoolTypes.GMXGLP:
 		return f.newGmxGlp(entityPool)
-	case constant.PoolTypes.MakerPSM:
+	case pooltypes.PoolTypes.MakerPSM:
 		return f.newMakerPSm(entityPool)
-	case constant.PoolTypes.Synthetix:
+	case pooltypes.PoolTypes.Synthetix:
 		return f.newSynthetix(entityPool)
-	case constant.PoolTypes.MadMex:
+	case pooltypes.PoolTypes.MadMex:
 		return f.newMadMex(entityPool)
-	case constant.PoolTypes.Metavault:
+	case pooltypes.PoolTypes.Metavault:
 		return f.newMetavault(entityPool)
-	case constant.PoolTypes.Lido:
+	case pooltypes.PoolTypes.Lido:
 		return f.newLido(entityPool)
-	case constant.PoolTypes.LidoStEth:
+	case pooltypes.PoolTypes.LidoStEth:
 		return f.newLidoStEth(entityPool)
-	case constant.PoolTypes.Fraxswap:
+	case pooltypes.PoolTypes.Fraxswap:
 		return f.newFraxswap(entityPool)
-	case constant.PoolTypes.Camelot:
+	case pooltypes.PoolTypes.Camelot:
 		return f.newCamelot(entityPool)
-	case constant.PoolTypes.LimitOrder:
+	case pooltypes.PoolTypes.LimitOrder:
 		return f.newLimitOrder(entityPool)
-	case constant.PoolTypes.SyncSwapClassic:
+	case pooltypes.PoolTypes.SyncSwapClassic:
 		return f.newSyncswapClassic(entityPool)
-	case constant.PoolTypes.SyncSwapStable:
+	case pooltypes.PoolTypes.SyncSwapStable:
 		return f.newSyncswapStable(entityPool)
-	case constant.PoolTypes.PancakeV3:
+	case pooltypes.PoolTypes.PancakeV3:
 		return f.newPancakeV3(entityPool)
-	case constant.PoolTypes.MaverickV1:
+	case pooltypes.PoolTypes.MaverickV1:
 		return f.newMaverickV1(entityPool)
-	case constant.PoolTypes.AlgebraV1:
+	case pooltypes.PoolTypes.AlgebraV1:
 		return f.newAlgebraV1(entityPool)
-	case constant.PoolTypes.KyberPMM:
+	case pooltypes.PoolTypes.KyberPMM:
 		return f.newKyberPMM(entityPool)
-	case constant.PoolTypes.IZiSwap:
+	case pooltypes.PoolTypes.IZiSwap:
 		return f.newIZiSwap(entityPool)
-	case constant.PoolTypes.WooFiV2:
+	case pooltypes.PoolTypes.WooFiV2:
 		return f.newWooFiV2(entityPool)
-	case constant.PoolTypes.Equalizer:
+	case pooltypes.PoolTypes.Equalizer:
 		return f.newEqualizer(entityPool)
-	case constant.PoolTypes.SwapBasedPerp:
+	case pooltypes.PoolTypes.SwapBasedPerp:
 		return f.newSwapBasedPerp(entityPool)
-	case constant.PoolTypes.USDFi:
+	case pooltypes.PoolTypes.USDFi:
 		return f.newUSDFi(entityPool)
-	case constant.PoolTypes.MantisSwap:
+	case pooltypes.PoolTypes.MantisSwap:
 		return f.newMantisSwap(entityPool)
-	case constant.PoolTypes.Vooi:
+	case pooltypes.PoolTypes.Vooi:
 		return f.newVooi(entityPool)
-	case constant.PoolTypes.PolMatic:
+	case pooltypes.PoolTypes.PolMatic:
 		return f.newPolMatic(entityPool)
-	case constant.PoolTypes.KokonutCrypto:
+	case pooltypes.PoolTypes.KokonutCrypto:
 		return f.newKokonutCrypto(entityPool)
-	case constant.PoolTypes.LiquidityBookV21:
-		if f.config.UseAEVM && f.config.DexUseAEVM[constant.PoolTypes.LiquidityBookV21] {
+	case pooltypes.PoolTypes.LiquidityBookV21:
+		if f.config.UseAEVM && f.config.DexUseAEVM[pooltypes.PoolTypes.LiquidityBookV21] {
 			return f.newLiquidityBookV21AEVM(entityPool, stateRoot)
 		}
 		return f.newLiquidityBookV21(entityPool)
-	case constant.PoolTypes.LiquidityBookV20:
-		if f.config.UseAEVM && f.config.DexUseAEVM[constant.PoolTypes.LiquidityBookV20] {
+	case pooltypes.PoolTypes.LiquidityBookV20:
+		if f.config.UseAEVM && f.config.DexUseAEVM[pooltypes.PoolTypes.LiquidityBookV20] {
 			return f.newLiquidityBookV20AEVM(entityPool, stateRoot)
 		}
 		return f.newLiquidityBookV20(entityPool)
-	case constant.PoolTypes.Smardex:
+	case pooltypes.PoolTypes.Smardex:
 		return f.newSmardex(entityPool)
-	case constant.PoolTypes.Fxdx:
+	case pooltypes.PoolTypes.Fxdx:
 		return f.newFxdx(entityPool)
-	case constant.PoolTypes.UniswapV2:
+	case pooltypes.PoolTypes.UniswapV2:
 		return f.newUniswapV2(entityPool)
-	case constant.PoolTypes.QuickPerps:
+	case pooltypes.PoolTypes.QuickPerps:
 		return f.newQuickPerps(entityPool)
-	case constant.PoolTypes.BalancerV1:
+	case pooltypes.PoolTypes.BalancerV1:
 		return f.newBalancerV1(entityPool)
-	case constant.PoolTypes.BalancerV2Weighted:
+	case pooltypes.PoolTypes.BalancerV2Weighted:
 		return f.newBalancerV2Weighted(entityPool)
-	case constant.PoolTypes.BalancerV2Stable:
+	case pooltypes.PoolTypes.BalancerV2Stable:
 		return f.newBalancerV2Stable(entityPool)
-	case constant.PoolTypes.BalancerV2ComposableStable:
+	case pooltypes.PoolTypes.BalancerV2ComposableStable:
 		return f.newBalancerV2ComposableStable(entityPool)
-	case constant.PoolTypes.VelocoreV2CPMM:
+	case pooltypes.PoolTypes.VelocoreV2CPMM:
 		return f.newVelocoreV2CPMM(entityPool)
-	case constant.PoolTypes.VelocoreV2WombatStable:
+	case pooltypes.PoolTypes.VelocoreV2WombatStable:
 		return f.newVelocoreV2WombatStable(entityPool)
-	case constant.PoolTypes.Fulcrom:
+	case pooltypes.PoolTypes.Fulcrom:
 		return f.newFulcrom(entityPool)
-	case constant.PoolTypes.Gyroscope2CLP:
+	case pooltypes.PoolTypes.Gyroscope2CLP:
 		return f.newGyroscope2CLP(entityPool)
-	case constant.PoolTypes.Gyroscope3CLP:
+	case pooltypes.PoolTypes.Gyroscope3CLP:
 		return f.newGyroscope3CLP(entityPool)
-	case constant.PoolTypes.GyroscopeECLP:
+	case pooltypes.PoolTypes.GyroscopeECLP:
 		return f.newGyroscopeECLP(entityPool)
-	case constant.PoolTypes.ZkEraFinance:
+	case pooltypes.PoolTypes.ZkEraFinance:
 		return f.newZkEraFinance(entityPool)
-	case constant.PoolTypes.SwaapV2:
+	case pooltypes.PoolTypes.SwaapV2:
 		return f.newSwaapV2(entityPool)
-	case constant.PoolTypes.BancorV3:
+	case pooltypes.PoolTypes.BancorV3:
 		return f.newBancorV3(entityPool)
 	default:
 		return nil, errors.Wrapf(
@@ -447,9 +447,9 @@ func (f *PoolFactory) newUni(entityPool entity.Pool) (*uniswap.PoolSimulator, er
 
 func (f *PoolFactory) newUniAEVM(entityPool entity.Pool, stateRoot common.Hash) (*uniswapaevm.Pool, error) {
 	balanceSlots := f.getBalanceSlots(&entityPool)
-	routerAddress, ok := f.config.AddressesByDex[constant.PoolTypes.Uni]["router-address"]
+	routerAddress, ok := f.config.AddressesByDex[pooltypes.PoolTypes.Uni]["router-address"]
 	if !ok {
-		return nil, fmt.Errorf("addressesByDex.%s.router-address must be specified", constant.PoolTypes.Uni)
+		return nil, fmt.Errorf("addressesByDex.%s.router-address must be specified", pooltypes.PoolTypes.Uni)
 	}
 	corePool, err := uniswapaevm.NewPoolAEVM(
 		entityPool,
@@ -485,9 +485,9 @@ func (f *PoolFactory) newUniV3(entityPool entity.Pool) (*uniswapv3.PoolSimulator
 
 func (f *PoolFactory) newUniV3AEVM(entityPool entity.Pool, stateRoot common.Hash) (*uniswapv3aevm.Pool, error) {
 	balanceSlots := f.getBalanceSlots(&entityPool)
-	routerAddress, ok := f.config.AddressesByDex[constant.PoolTypes.UniV3]["router-address"]
+	routerAddress, ok := f.config.AddressesByDex[pooltypes.PoolTypes.UniswapV3]["router-address"]
 	if !ok {
-		return nil, fmt.Errorf("addressesByDex.%s.router-address must be specified", constant.PoolTypes.UniV3)
+		return nil, fmt.Errorf("addressesByDex.%s.router-address must be specified", pooltypes.PoolTypes.UniswapV3)
 	}
 	corePool, err := uniswapv3aevm.NewPoolAEVM(
 		entityPool,

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
 	"github.com/KyberNetwork/logger"
@@ -56,7 +57,7 @@ func Validate(poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobjec
 			if !ok {
 				continue
 			}
-			if pool.GetType() == constant.PoolTypes.Synthetix {
+			if pool.GetType() == pooltypes.PoolTypes.Synthetix {
 				synthetixPool, ok := pool.(*synthetix.PoolSimulator)
 				if !ok {
 					continue

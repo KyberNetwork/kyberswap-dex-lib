@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -16,7 +17,6 @@ import (
 
 	gethcommon "github.com/ethereum/go-ethereum/common"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/common"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
@@ -62,8 +62,8 @@ func (m *PoolManager) GetStateByPoolAddresses(
 		resultLimits = make(map[string]map[string]*big.Int)
 		iPools       = m.poolFactory.NewPoolByAddress(ctx, pools, stateRoot)
 	)
-	resultLimits[constant.PoolTypes.KyberPMM] = make(map[string]*big.Int)
-	resultLimits[constant.PoolTypes.Synthetix] = make(map[string]*big.Int)
+	resultLimits[pooltypes.PoolTypes.KyberPMM] = make(map[string]*big.Int)
+	resultLimits[pooltypes.PoolTypes.Synthetix] = make(map[string]*big.Int)
 
 	//given a clone of limit
 	for _, pool := range iPools {
@@ -136,21 +136,21 @@ func listCurveMetaBasePools(
 	)
 
 	for _, pool := range pools {
-		if pool.Type == constant.PoolTypes.CurveBase {
+		if pool.Type == pooltypes.PoolTypes.CurveBase {
 			alreadyFetchedSet[pool.Address] = true
 		}
 
-		if pool.Type == constant.PoolTypes.CurvePlainOracle {
+		if pool.Type == pooltypes.PoolTypes.CurvePlainOracle {
 			alreadyFetchedSet[pool.Address] = true
 		}
 
-		if pool.Type == constant.PoolTypes.CurveAave {
+		if pool.Type == pooltypes.PoolTypes.CurveAave {
 			alreadyFetchedSet[pool.Address] = true
 		}
 	}
 
 	for _, pool := range pools {
-		if pool.Type != constant.PoolTypes.CurveMeta {
+		if pool.Type != pooltypes.PoolTypes.CurveMeta {
 			continue
 		}
 

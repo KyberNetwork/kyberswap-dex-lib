@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
@@ -14,7 +15,6 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -176,8 +176,8 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 				tokenToPoolAddress := make(map[string]*types.AddressList)
 
 				var limits = make(map[string]map[string]*big.Int)
-				limits[constant.PoolTypes.KyberPMM] = make(map[string]*big.Int)
-				limits[constant.PoolTypes.Synthetix] = make(map[string]*big.Int)
+				limits[pooltypes.PoolTypes.KyberPMM] = make(map[string]*big.Int)
+				limits[pooltypes.PoolTypes.Synthetix] = make(map[string]*big.Int)
 				filteredPools := make([]pool.IPoolSimulator, 0, len(pools))
 				for _, pool := range pools {
 

@@ -15,7 +15,7 @@ require (
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/ethrpc v0.7.0
 	github.com/KyberNetwork/kyber-trace-go v0.1.1
-	github.com/KyberNetwork/kyberswap-dex-lib v0.33.2
+	github.com/KyberNetwork/kyberswap-dex-lib v0.34.0
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/KyberNetwork/service-framework v0.1.0
@@ -25,7 +25,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/envoyproxy/protoc-gen-validate v1.0.2
-	github.com/ethereum/go-ethereum v1.13.8
+	github.com/ethereum/go-ethereum v1.13.9
 	github.com/getsentry/sentry-go v0.18.0
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-contrib/pprof v1.4.0
@@ -88,7 +88,7 @@ require (
 	github.com/DataDog/go-tuf v0.3.0--fix-localmeta-fork // indirect
 	github.com/DataDog/gostackparse v0.5.0 // indirect
 	github.com/DataDog/sketches-go v1.2.1 // indirect
-	github.com/KyberNetwork/blockchain-toolkit v0.3.0
+	github.com/KyberNetwork/blockchain-toolkit v0.5.1
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
 	github.com/KyberNetwork/pancake-v3-sdk v0.1.0 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect

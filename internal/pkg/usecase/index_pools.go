@@ -6,10 +6,10 @@ import (
 	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/iter"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
@@ -110,7 +110,7 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) bo
 		}
 	}
 	// curve metapool underlying
-	if pool.Type == constant.PoolTypes.CurveMeta || pool.Type == constant.PoolTypes.CurveAave {
+	if pool.Type == pooltypes.PoolTypes.CurveMeta || pool.Type == pooltypes.PoolTypes.CurveAave {
 		var extra struct {
 			UnderlyingTokens []string `json:"underlyingTokens"`
 		}

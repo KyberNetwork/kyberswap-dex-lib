@@ -4,6 +4,7 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
@@ -80,8 +81,8 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 	}
 
 	var limits = make(map[string]map[string]*big.Int)
-	limits[constant.PoolTypes.KyberPMM] = make(map[string]*big.Int)
-	limits[constant.PoolTypes.Synthetix] = make(map[string]*big.Int)
+	limits[pooltypes.PoolTypes.KyberPMM] = make(map[string]*big.Int)
+	limits[pooltypes.PoolTypes.Synthetix] = make(map[string]*big.Int)
 	for _, pool := range poolInterfaces {
 		dexLimit, avail := limits[pool.GetType()]
 		if !avail {

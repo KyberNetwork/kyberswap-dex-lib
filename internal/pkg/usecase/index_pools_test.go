@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 )
@@ -82,7 +82,7 @@ func mockPoolsTestIndexPools() []*entity.Pool {
 			AmplifiedTvl: 0,
 			SwapFee:      200,
 			Exchange:     "exchange2",
-			Type:         constant.PoolTypes.CurveMeta,
+			Type:         pooltypes.PoolTypes.CurveMeta,
 			Timestamp:    1658373335,
 			Reserves:     []string{"20000", "30000"},
 			Tokens:       []*entity.PoolToken{poolTokens[1], poolTokens[0]},
@@ -96,7 +96,7 @@ func mockPoolsTestIndexPools() []*entity.Pool {
 			AmplifiedTvl: 30,
 			SwapFee:      300,
 			Exchange:     "exchange3",
-			Type:         constant.PoolTypes.CurveAave,
+			Type:         pooltypes.PoolTypes.CurveAave,
 			Timestamp:    1658373335,
 			Reserves:     []string{},
 			Tokens:       []*entity.PoolToken{poolTokens[0], poolTokens[1]},
@@ -110,7 +110,7 @@ func mockPoolsTestIndexPools() []*entity.Pool {
 			AmplifiedTvl: 0,
 			SwapFee:      300,
 			Exchange:     "exchange3",
-			Type:         constant.PoolTypes.CurveAave,
+			Type:         pooltypes.PoolTypes.CurveAave,
 			Timestamp:    1658373335,
 			Reserves:     []string{},
 			Tokens:       []*entity.PoolToken{poolTokens[0], poolTokens[1]},

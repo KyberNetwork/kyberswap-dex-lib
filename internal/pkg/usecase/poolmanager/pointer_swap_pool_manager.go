@@ -11,12 +11,12 @@ import (
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
 	cachePolicy "github.com/hashicorp/golang-lru/v2"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
@@ -57,8 +57,8 @@ type LockedState struct {
 func NewLockedState() *LockedState {
 
 	var limits = make(map[string]map[string]*big.Int)
-	limits[constant.PoolTypes.KyberPMM] = make(map[string]*big.Int)
-	limits[constant.PoolTypes.Synthetix] = make(map[string]*big.Int)
+	limits[pooltypes.PoolTypes.KyberPMM] = make(map[string]*big.Int)
+	limits[pooltypes.PoolTypes.Synthetix] = make(map[string]*big.Int)
 
 	return &LockedState{
 		poolByAddress: make(map[string]poolpkg.IPoolSimulator),
