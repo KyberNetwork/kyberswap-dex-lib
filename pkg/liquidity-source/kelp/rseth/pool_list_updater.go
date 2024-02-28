@@ -38,7 +38,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	startTime := time.Now()
 	u.hasInitialized = true
 
-	extra, blockNumber, err := u.getExtra(ctx)
+	extra, blockNumber, err := getExtra(ctx, u.ethrpcClient)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -47,6 +47,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	if err != nil {
 		return nil, nil, err
 	}
+
 	tokens := []*entity.PoolToken{
 		{
 			Address:   strings.ToLower(common.RSETH),
@@ -85,7 +86,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	}, nil, nil
 }
 
-func (u *PoolListUpdater) getExtra(ctx context.Context) (PoolExtra, uint64, error) {
+func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint64, error) {
 	// Step 1:
 	// - call LRTConfig.getSupportedAssetList to get supported assets
 	// Step 2:
@@ -106,7 +107,7 @@ func (u *PoolListUpdater) getExtra(ctx context.Context) (PoolExtra, uint64, erro
 	)
 
 	// Get supportedAssetList, minAmountToDeposit & rsETHPrice
-	getPoolStateRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
+	getPoolStateRequest := ethrpcClient.NewRequest().SetContext(ctx)
 
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    common.LRTConfigABI,
@@ -141,7 +142,7 @@ func (u *PoolListUpdater) getExtra(ctx context.Context) (PoolExtra, uint64, erro
 		tokenDecimals       = make([]uint8, len(assets))
 	)
 
-	getAssetStateRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
+	getAssetStateRequest := ethrpcClient.NewRequest().SetContext(ctx)
 	for i, asset := range assets {
 		getAssetStateRequest.AddCall(&ethrpc.Call{
 			ABI:    common.LRTConfigABI,

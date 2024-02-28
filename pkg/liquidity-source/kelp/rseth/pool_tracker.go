@@ -3,12 +3,12 @@ package rseth
 import (
 	"context"
 	"encoding/json"
-	"math/big"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/common"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -27,7 +27,7 @@ func (t *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	extra, blockNumber, err := t.getExtra(ctx)
+	extra, blockNumber, err := getExtra(ctx, t.ethrpcClient)
 	if err != nil {
 		return p, err
 	}
@@ -37,42 +37,26 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
+	tokens := []*entity.PoolToken{
+		{
+			Address:   strings.ToLower(common.RSETH),
+			Symbol:    "rsETH",
+			Decimals:  18,
+			Name:      "rsETH",
+			Swappable: true,
+		},
+	}
+	tokens = append(tokens, extra.supportedTokens...)
+	reserves := make([]string, len(extra.supportedTokens)+1)
+	for i := 0; i < len(reserves); i++ {
+		reserves[i] = defaultReserves
+	}
+
+	p.Tokens = tokens
+	p.Reserves = reserves
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
 
 	return p, nil
-}
-
-func (t *PoolTracker) getExtra(ctx context.Context) (PoolExtra, uint64, error) {
-	var (
-		totalShares      *big.Int
-		totalPooledEther *big.Int
-	)
-
-	getPoolStateRequest := t.ethrpcClient.NewRequest().SetContext(ctx)
-
-	getPoolStateRequest.AddCall(&ethrpc.Call{
-		ABI:    common.LiquidityPoolABI,
-		Target: common.LiquidityPool,
-		Method: common.LiquidityPoolMethodGetTotalPooledEther,
-		Params: []interface{}{},
-	}, []interface{}{&totalPooledEther})
-
-	getPoolStateRequest.AddCall(&ethrpc.Call{
-		ABI:    common.EETHABI,
-		Target: common.EETH,
-		Method: common.EETHMethodTotalShares,
-		Params: []interface{}{},
-	}, []interface{}{&totalShares})
-
-	resp, err := getPoolStateRequest.TryAggregate()
-	if err != nil {
-		return PoolExtra{}, 0, err
-	}
-	if resp.BlockNumber == nil {
-		resp.BlockNumber = big.NewInt(0)
-	}
-
-	return PoolExtra{}, resp.BlockNumber.Uint64(), nil
 }
