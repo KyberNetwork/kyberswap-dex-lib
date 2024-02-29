@@ -21,6 +21,7 @@ import (
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
@@ -439,6 +440,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newEtherfiWEETH(entityPool)
 	case pooltypes.PoolTypes.KelpRSETH:
 		return f.newKelpRSETH(entityPool)
+	case pooltypes.PoolTypes.RocketPoolRETH:
+		return f.newRocketPoolRETH(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -1536,6 +1539,21 @@ func (f *PoolFactory) newKelpRSETH(entityPool entity.Pool) (*rseth.PoolSimulator
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newKelpRSETH] pool: [%s] » type: [%s] cause by %v",
+			entityPool.Address,
+			entityPool.Type,
+			err,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newRocketPoolRETH(entityPool entity.Pool) (*reth.PoolSimulator, error) {
+	corePool, err := reth.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newRocketPoolRETH] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
 			entityPool.Type,
 			err,

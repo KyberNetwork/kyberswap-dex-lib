@@ -74,6 +74,7 @@ common:
     - "etherfi-eeth"
     - "etherfi-weeth"
     - "kelp-rseth"
+    - "rocketpool-reth"
   featureFlags: &featureFlags
   swaapAPIKey:
 log:

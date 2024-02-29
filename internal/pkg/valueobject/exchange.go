@@ -158,6 +158,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeKelp
 	dexValueObject.ExchangeKelpRSETH: {},
+
+	// executeRocketPool
+	dexValueObject.ExchangeRocketPoolRETH: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {
