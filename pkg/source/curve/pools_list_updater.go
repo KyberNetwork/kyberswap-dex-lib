@@ -189,10 +189,11 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 	newPoolBytes, ok := bytesByPath[d.config.PoolPath]
 	if !ok {
+		// if we don't have any hardcoded pool then just ignore
 		logger.WithFields(logger.Fields{
 			"poolPath": d.config.PoolPath,
-		}).Errorf("not found the pool path bytes data")
-		return nil, errors.New("not found the pool path bytes data")
+		}).Info("not found the pool path bytes data")
+		return nil, nil
 	}
 
 	var poolItems []PoolItem
