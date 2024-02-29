@@ -1,17 +1,17 @@
-package bancor_v21
+package bancorv21
 
 import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
 type ExtraInner struct {
-	anchorAddress string `json:"anchorAddress"`
-	conversionFee uint64 `json:"conversionFee"`
+	AnchorAddress string `json:"AnchorAddress"`
+	ConversionFee uint64 `json:"ConversionFee"`
 }
 
 type Extra struct {
-	InnerPoolByAnchor         map[string]entity.Pool `json:"innerPoolByAnchor"`
-	AnchorsByConvertibleToken map[string][]string    `json:"anchorsByConvertibleToken"`
-	InnerPools                []entity.Pool          `json:"innerPools"`
-	TokensByLpAddress         map[string][]string    `json:"tokensByLpAddress"`
+	InnerPoolByAnchor         map[string]*entity.Pool `json:"innerPoolByAnchor"`
+	AnchorsByConvertibleToken map[string][]string     `json:"anchorsByConvertibleToken"`
+	InnerPools                []entity.Pool           `json:"innerPools"`
+	TokensByLpAddress         map[string][]string     `json:"tokensByLpAddress"`
 }
 
 type Gas struct {

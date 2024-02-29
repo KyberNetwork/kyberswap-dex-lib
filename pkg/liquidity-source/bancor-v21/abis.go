@@ -1,4 +1,4 @@
-package bancor_v21
+package bancorv21
 
 import (
 	"bytes"
