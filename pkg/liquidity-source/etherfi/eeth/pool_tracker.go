@@ -71,6 +71,9 @@ func (t *PoolTracker) getExtra(ctx context.Context) (PoolExtra, uint64, error) {
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}
+	if resp.BlockNumber == nil {
+		resp.BlockNumber = big.NewInt(0)
+	}
 
 	return PoolExtra{
 		TotalPooledEther: totalPooledEther,
