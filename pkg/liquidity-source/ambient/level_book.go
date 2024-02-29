@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 )
 
@@ -46,7 +45,7 @@ import (
 * @return knockoutFlag - Indicates that the liquidity of the cross level has a
 *                        knockout flag toggled. Upstream caller should handle
 *                        appropriately */
-func crossLevel(poolIdx string, tick types.Int24, isBuy bool, feeGlobal uint64) (*big.Int, bool) {
+func crossLevel(poolIdx string, tick Int24, isBuy bool, feeGlobal uint64) (*big.Int, bool) {
 	// 	 BookLevel storage lvl = fetchLevel(poolIdx, tick);
 	lvl := fetchLevel(poolIdx, tick)
 
@@ -102,7 +101,7 @@ func hasKnockoutLiq(lots *big.Int) bool {
 // }
 
 /* @notice Retrieves a storage pointer to the level associated with the tick. */
-func fetchLevel(poolIdx string, tick types.Int24) BookLevel {
+func fetchLevel(poolIdx string, tick Int24) *BookLevel {
 	//     return levels_[keccak256(abi.encodePacked(poolIdx, tick))];
 	tmp := make([]byte, 4)
 	binary.LittleEndian.PutUint32(tmp, uint32(tick))
@@ -111,7 +110,71 @@ func fetchLevel(poolIdx string, tick types.Int24) BookLevel {
 	return levels(string(s))
 }
 
+/* @dev Internally we checkpoint the last global accumulator value from the last
+ *      time the level was crossed. Because fees can only accumulate when price
+ *      is in range, the checkpoint represents the global fees that accumulated
+ *      on the outside of the tick level. (Though this may be faked for fees that
+ *      that accumulated prior to level initialization. It doesn't matter, because
+ *      all we use this value for is calculating the delta of fee accumulation
+ *      between two different post-initialization points in time.)
+ *
+ *      For more explanation on how the per-tick fee odometer related to the
+ *      cumulative fees in a give range, reference the documenation at
+ *      [docs/FeeOdometer.md] in the project repository. */
+func pivotFeeBelow(poolIdx string, lvlTick Int24, currentTick Int24, feeGlobal uint64) uint64 {
+	// BookLevel storage lvl = fetchLevel(poolIdx, lvlTick);
+	lvl := fetchLevel(poolIdx, lvlTick)
+
+	// return lvlTick <= currentTick ?
+	// lvl.feeOdometer_ :
+	// feeGlobal - lvl.feeOdometer_;
+	if lvlTick <= currentTick {
+		return lvl.feeOdometer
+	}
+
+	return feeGlobal - lvl.feeOdometer
+}
+
+/* @notice Calculates the current accumulated fee rewards in a given concentrated
+*         liquidity tick range. The difference between this value at two different
+*         times is guaranteed to reflect the accumulated rewards in the tick range
+*         between those two times.
+*
+*         For more explanation on how the fee rewards accumulated is calculated for
+*         a given range order, reference the documenation at [docs/FeeOdometer.md]
+*         in the project repository.
+*
+* @dev This returned result only has meaning when compared against the result
+*      from the same method call on the same range at a different time. Any
+*      given range could have an arbitrary offset relative to the pool's actual
+*      cumulative rewards.
+*
+* @param poolIdx The hash key specifying the pool being operated on.
+* @param currentTick The price tick of the curve's current price
+* @param lowerTick The prick tick of the lower boundary of the range order
+* @param upperTick The prick tick of the upper boundary of the range order
+* @param feeGlobal The cumulative rewards accumulated to a single unit of
+*                  concentrated liquidity that was active since pool inception.
+*
+* @return The cumulative growth rate to a single unit of concentrated liquidity
+*         within the range. (Adjusted for an arbitrary offset that stays consistent
+*         over time. Only use this number to compare growth in the range over two
+*         points in time) */
+func clockFeeOdometer(poolIdx string, currentTick Int24, lowerTick Int24, upperTick Int24, feeGlobal uint64) uint64 {
+	// uint64 feeLower = pivotFeeBelow(poolIdx, lowerTick, currentTick, feeGlobal);
+	feeLower := pivotFeeBelow(poolIdx, lowerTick, currentTick, feeGlobal)
+
+	// uint64 feeUpper = pivotFeeBelow(poolIdx, upperTick, currentTick, feeGlobal);
+	feeUpper := pivotFeeBelow(poolIdx, upperTick, currentTick, feeGlobal)
+
+	// // This is unchecked because we often rely on circular overflow arithmetic
+	// // when ticks are initialized at different times. Remember the output of this
+	// // function is only used to compare across time.
+	// return feeUpper - feeLower;
+	return feeUpper - feeLower
+}
+
 // TODO: how to get levels
-func levels(_ string) BookLevel {
-	return BookLevel{}
+func levels(_ string) *BookLevel {
+	return &BookLevel{}
 }

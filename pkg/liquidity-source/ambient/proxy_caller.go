@@ -2,12 +2,10 @@ package ambient
 
 import (
 	"math/big"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient/types"
 )
 
-// TODO: proxy call implementation
-func callCrossFlag(poolHash string, tick types.Int24, isBuy bool, feeGlobal uint64) *big.Int {
+// TODO: check require?
+func callCrossFlag(poolHash string, tick Int24, isBuy bool, feeGlobal uint64) *big.Int {
 	// function callCrossFlag (bytes32 poolHash, int24 tick,
 	// 	bool isBuy, uint64 feeGlobal)
 	// internal returns (int128 concLiqDelta) {
@@ -23,5 +21,5 @@ func callCrossFlag(poolHash string, tick types.Int24, isBuy bool, feeGlobal uint
 	// concLiqDelta = abi.decode(cmd, (int128));
 	// }
 
-	return nil
+	return crossCurveFlag(poolHash, tick, isBuy, feeGlobal)
 }

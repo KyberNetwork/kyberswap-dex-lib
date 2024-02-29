@@ -31,6 +31,8 @@ func (c *curveState) assimilateLiq(feesPaid *big.Int, isSwapInBase bool) error {
 		return err
 	}
 
+	// // In zero liquidity curves, it makes no sense to assimilate, since
+	// // it will run prices to infinity.
 	// if (liq == 0) { return; }
 	if liq.Cmp(big0) == 0 {
 		return nil
@@ -59,14 +61,6 @@ func (c *curveState) assimilateLiq(feesPaid *big.Int, isSwapInBase bool) error {
 
 	return nil
 }
-
-// function assimilateLiq (CurveMath.CurveState memory curve, uint128 feesPaid,
-// bool isSwapInBase) internal pure {
-// // In zero liquidity curves, it makes no sense to assimilate, since
-// // it will run prices to infinity.
-//
-
-// }
 
 /* @notice Converts a fixed fee collection into a constant product liquidity
 *         multiplier.

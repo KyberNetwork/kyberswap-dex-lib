@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/abi"
 	"golang.org/x/crypto/sha3"
 )
@@ -27,15 +26,15 @@ import (
 *
 * @return (int24) - The tick index of the next tick boundary with an active
 *   liquidity bump. The result is assymetric boundary for upper/lower ticks. */
-func seekMezzSpill(poolIdx string, borderTick types.Int24, isUpper bool) (types.Int24, error) {
+func seekMezzSpill(poolIdx string, borderTick Int24, isUpper bool) (Int24, error) {
 	// 	 if (isUpper && borderTick == type(int24).max) { return type(int24).max; }
-	if isUpper && borderTick == types.Int24Max {
-		return types.Int24Max, nil
+	if isUpper && borderTick == Int24Max {
+		return Int24Max, nil
 	}
 
 	// 	 if (!isUpper && borderTick == type(int24).min) { return type(int24).min; }
-	if !isUpper && borderTick == types.Int24Min {
-		return types.Int24Min, nil
+	if !isUpper && borderTick == Int24Min {
+		return Int24Min, nil
 	}
 
 	// 	 (uint8 lobbyBorder, uint8 mezzBorder) = rootsForBorder(borderTick, isUpper);
@@ -74,7 +73,7 @@ func seekMezzSpill(poolIdx string, borderTick types.Int24, isUpper bool) (types.
 }
 
 /* @notice Seeks the next tick bitmap by searching in the adjacent neighborhood. */
-func seekAtTerm(poolIdx string, lobbyBit uint8, mezzBit uint8, isUpper bool) (types.Int24, bool, error) {
+func seekAtTerm(poolIdx string, lobbyBit uint8, mezzBit uint8, isUpper bool) (Int24, bool, error) {
 	//     uint256 neighborBitmap = terminus_
 	//         [encodeTermWord(poolIdx, lobbyBit, mezzBit)];
 	neighborBitmap := terminus(encodeTermWord(poolIdx, lobbyBit, mezzBit))
@@ -98,7 +97,7 @@ func seekAtTerm(poolIdx string, lobbyBit uint8, mezzBit uint8, isUpper bool) (ty
 /* @notice Seeks the next tick bitmap by searching in the current mezzanine
  *         neighborhood.
  * @dev This covers a span of 65 thousand ticks, so should capture most cases. */
-func seekAtMezz(poolIdx string, lobbyBit uint8, mezzBorder uint8, isUpper bool) (types.Int24, bool, error) {
+func seekAtMezz(poolIdx string, lobbyBit uint8, mezzBorder uint8, isUpper bool) (Int24, bool, error) {
 	// uint256 neighborMezz = mezzanine_
 	// [encodeMezzWord(poolIdx, lobbyBit)];
 	neighborMezz := mezzanine(encodeMezzWord(poolIdx, int8(lobbyBit)))
@@ -140,11 +139,11 @@ func encodeTermWord(poolIdx string, lobbyPos uint8, mezzPos uint8) string {
 /* @notice Splits out the lobby bits and the mezzanine bits from the 24-bit price
 *         tick index associated with the type of border tick used in seekMezzSpill()
 *         call */
-func rootsForBorder(borderTick types.Int24, isUpper bool) (uint8, uint8) {
+func rootsForBorder(borderTick Int24, isUpper bool) (uint8, uint8) {
 	// Because pinTermMezz returns a border *on* the previous bitmap, we need to
 	// decrement by one to get the seek starting point.
 	// int24 pinTick = isUpper ? borderTick : (borderTick - 1);
-	var pinTick types.Int24
+	var pinTick Int24
 	if isUpper {
 		pinTick = borderTick
 	} else {
@@ -172,7 +171,7 @@ func encodeMezzWord(poolIdx string, lobbyPos int8) string {
 
 /* @notice Used when the tick is not contained in the mezzanine. We walk through the
  *         the mezzanine tick bitmaps one by one until we find an active tick bit. */
-func seekOverLobby(poolIdx string, lobbyBit uint8, isUpper bool) (types.Int24, error) {
+func seekOverLobby(poolIdx string, lobbyBit uint8, isUpper bool) (Int24, error) {
 	if isUpper {
 		return seekLobbyUp(poolIdx, lobbyBit)
 	}
@@ -185,7 +184,7 @@ func seekOverLobby(poolIdx string, lobbyBit uint8, isUpper bool) (types.Int24, e
  * mezzanine. This requires a maximum of 256 iterations, and can be gas intensive.
  * However moves at this level represent 65,000% price changes and are very rare. */
 //  function seekLobbyUp (bytes32 poolIdx, uint8 lobbyBit)
-func seekLobbyUp(poolIdx string, lobbyBit uint8) (types.Int24, error) {
+func seekLobbyUp(poolIdx string, lobbyBit uint8) (Int24, error) {
 	// 	 uint8 MAX_MEZZ = 0;
 	var MAX_MEZZ uint8 = 0
 
@@ -208,7 +207,7 @@ func seekLobbyUp(poolIdx string, lobbyBit uint8) (types.Int24, error) {
 }
 
 /* Same logic as seekLobbyUp(), but the inverse direction. */
-func seekLobbyDown(poolIdx string, lobbyBit uint8) (types.Int24, error) {
+func seekLobbyDown(poolIdx string, lobbyBit uint8) (Int24, error) {
 	// 	 uint8 MIN_MEZZ = 255;
 	var MIN_MEZZ = 255
 
@@ -258,7 +257,7 @@ func seekLobbyDown(poolIdx string, lobbyBit uint8) (types.Int24, error) {
 * @param poolIdx The hash key associated with the pool being queried.
 * @param tick A price tick index within the neighborhood that we want the bitmap for.
 * @return The bitmap of the 256-tick neighborhood. */
-func terminusBitmap(poolIdx string, tick types.Int24) *big.Int {
+func terminusBitmap(poolIdx string, tick Int24) *big.Int {
 	// bytes32 idx = encodeTerm(poolIdx, tick);
 	idx := encodeTerm(poolIdx, tick)
 
@@ -267,7 +266,7 @@ func terminusBitmap(poolIdx string, tick types.Int24) *big.Int {
 }
 
 /* @notice Encodes the hash key for the terminus neighborhood of the tick. */
-func encodeTerm(poolIdx string, tick types.Int24) string {
+func encodeTerm(poolIdx string, tick Int24) string {
 	// 	int16 wordPos = tick.mezzKey();
 	wordPos := tick.MezzKey()
 
@@ -283,7 +282,7 @@ func encodeTerm(poolIdx string, tick types.Int24) string {
 
 /* @notice Formats the tick bit horizon index and sets the flag for whether it
  *          represents whether the seeks spills over the terminus neighborhood */
-func pinTermMezz(isUpper bool, shiftTerm uint16, tickMezz int16, termBitMap *big.Int) (types.Int24, bool, error) {
+func pinTermMezz(isUpper bool, shiftTerm uint16, tickMezz int16, termBitMap *big.Int) (Int24, bool, error) {
 	// (uint8 nextTerm, bool spillTrunc) =
 	// termBitmap.bitAfterTrunc(shiftTerm, isUpper);
 	nextTerm, spillTrunc, err := bitAfterTrunc(termBitMap, shiftTerm, isUpper)
@@ -300,7 +299,7 @@ func pinTermMezz(isUpper bool, shiftTerm uint16, tickMezz int16, termBitMap *big
 	// nextTick = spillBit ?
 	// spillOverPin(isUpper, tickMezz) :
 	// Bitmaps.weldMezzTerm(tickMezz, nextTerm);
-	var nextTick types.Int24
+	var nextTick Int24
 	if spillBit {
 		nextTick = spillOverPin(isUpper, tickMezz)
 	} else {
@@ -349,7 +348,7 @@ func doesSpillBit(isUpper bool, spillTrunc bool, termBitMap *big.Int) (bool, err
 /* @notice Formats the censored horizon tick index when the seek has spilled out of
 *         the terminus bitmap neighborhood. */
 //  function spillOverPin (bool isUpper, int16 tickMezz) private pure returns (int24) {
-func spillOverPin(isUpper bool, tickMezz int16) types.Int24 {
+func spillOverPin(isUpper bool, tickMezz int16) Int24 {
 	//     if (isUpper) {
 	if isUpper {
 		//         return tickMezz == Bitmaps.zeroMezz(isUpper) ?
@@ -365,12 +364,77 @@ func spillOverPin(isUpper bool, tickMezz int16) types.Int24 {
 	return weldMezzTerm(tickMezz, 0)
 }
 
+/* @notice Unset the tick index as no longer active. Take care of any book keeping
+*   related to the recursive bitmap levels.
+* @dev Idempontent. Can be called repeatedly even if tick was previously
+*   forgotten.
+* @param poolIdx The hash key associated with the pool being queried.
+* @param tick The price tick that we're marking as disabled. */
+func forgetTick(poolIdx string, tick Int24) {
+	//     uint256 mezzMask = ~(1 << tick.mezzBit());
+	mezzMask := big.NewInt(1)
+	mezzMask.Lsh(mezzMask, uint(tick.MezzBit()))
+	mezzMask.Not(mezzMask)
+
+	// uint256 termMask = ~(1 << tick.termBit());
+	termMask := big.NewInt(1)
+	termMask.Lsh(termMask, uint(termBit(tick)))
+	termMask.Not(termMask)
+
+	//     bytes32 termIdx = encodeTerm(poolIdx, tick);
+	termIdx := encodeTerm(poolIdx, tick)
+
+	//     uint256 termUpdate = terminus_[termIdx] & termMask;
+	termUpdate := terminus(termIdx)
+	termUpdate.And(termUpdate, termMask)
+
+	// terminus_[termIdx] = termUpdate;
+	setTerminus(termIdx, termUpdate)
+
+	//     if (termUpdate == 0) {
+	//         bytes32 mezzIdx = encodeMezz(poolIdx, tick);
+	//         uint256 mezzUpdate = mezzanine_[mezzIdx] & mezzMask;
+	//         mezzanine_[mezzIdx] = mezzUpdate;
+	//     }
+	if termUpdate.Cmp(big0) == 0 {
+		mezzIdx := encodeMezz(poolIdx, tick)
+		mezzUpdate := mezzanine(mezzIdx)
+		mezzUpdate.And(mezzUpdate, mezzMask)
+		setMezzanine(mezzIdx, mezzUpdate)
+	}
+}
+
+/* @notice Encodes the hash key for the mezzanine neighborhood of the tick. */
+func encodeMezz(poolIdx string, tick Int24) string {
+	wordPos := lobbyKey(tick)
+
+	h := sha3.NewLegacyKeccak256()
+	h.Write(abi.EncodePacked([]byte(poolIdx), []byte{byte(wordPos)}))
+
+	return string(h.Sum(nil))
+}
+
+// function encodeMezz (bytes32 poolIdx, int24 tick) private pure returns (bytes32) {
+//     int8 wordPos = tick.lobbyKey();
+//     return keccak256(abi.encodePacked(poolIdx, wordPos));
+// }
+
 // TODO: how to get the terminus map???
 func terminus(_ string) *big.Int {
 	return nil
 }
 
+// TODO: how to set the terminus map???
+func setTerminus(_ string, _ *big.Int) {
+	return
+}
+
 // TODO: how to get the mezzanine map???
 func mezzanine(_ string) *big.Int {
 	return nil
+}
+
+// TODO: how to set the mezzanine map???
+func setMezzanine(_ string, _ *big.Int) {
+	return
 }

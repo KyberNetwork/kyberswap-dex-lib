@@ -4,13 +4,11 @@ import (
 	"errors"
 	"math"
 	"math/big"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient/types"
 )
 
 /* @notice Converts an 8-bit lobby index, an 8-bit mezzanine bit, and an 8-bit
  *   terminus bit into a full 24-bit tick index. */
-func weldLobbyMezzTerm(lobbyIdx int8, mezzBitArg uint8, termBitArg uint8) types.Int24 {
+func weldLobbyMezzTerm(lobbyIdx int8, mezzBitArg uint8, termBitArg uint8) Int24 {
 	// First term will always be  <= 0x8F0000. Second term, starting as a uint8
 	// will always be positive and <= 0xFF00. Thir term will always be positive
 	// and <= 0xFF. Therefore the sum will never overflow int24
@@ -18,9 +16,9 @@ func weldLobbyMezzTerm(lobbyIdx int8, mezzBitArg uint8, termBitArg uint8) types.
 	// 		 (int24(uint24(mezzBitArg)) << 8) +
 	// 		 int24(uint24(termBitArg));
 	// 	 }
-	return (types.Int24(lobbyIdx) << 16) +
-		(types.Int24(types.Uint24(mezzBitArg)) << 8) +
-		types.Int24(types.Uint24(termBitArg))
+	return (Int24(lobbyIdx) << 16) +
+		(Int24(Uint24(mezzBitArg)) << 8) +
+		Int24(Uint24(termBitArg))
 }
 
 /* @notice Converts an 8-bit lobby index and an 8-bit mezzanine bit into a 16-bit
@@ -214,7 +212,6 @@ func mostSignificantBit(x *big.Int) (uint8, error) {
 // / @return r the index of the least significant bit
 var (
 	big0xf, _ = new(big.Int).SetString("0xf", 16)
-	big0x3, _ = new(big.Int).SetString("0x3", 16)
 	big0x1, _ = new(big.Int).SetString("0x1", 16)
 )
 
@@ -331,12 +328,12 @@ func bitRelate(bit uint8, isUpper bool) uint8 {
 }
 
 /* @notice Returns the zero horizon point for the full 24-bit tick index. */
-func zeroTick(isUpper bool) types.Int24 {
+func zeroTick(isUpper bool) Int24 {
 	//     return isUpper ? type(int24).max : type(int24).min;
 	if isUpper {
-		return types.Int24Max
+		return Int24Max
 	}
-	return types.Int24Min
+	return Int24Min
 }
 
 /* @notice The minimum and maximum 24-bit integers are used to represent -/+
@@ -344,10 +341,10 @@ func zeroTick(isUpper bool) types.Int24 {
 *   price shifts past the last representable tick.
 * @param tick The tick index value being tested
 * @return True if the tick index represents a positive or negative infinity. */
-func isTickFinite(tick types.Int24) bool {
+func isTickFinite(tick Int24) bool {
 	//     return tick > type(int24).min &&
 	//         tick < type(int24).max;
-	return tick > types.Int24Min && tick < types.Int24Max
+	return tick > Int24Min && tick < Int24Max
 }
 
 /* @notice Determines the next shift bump from a starting terminus value. Note for
@@ -359,24 +356,28 @@ func isTickFinite(tick types.Int24) bool {
 *   left.
 * @return - Returns the bumped terminus bit indexed directionally based on param
 *   isUpper. Can be 256, if the terminus bit occurs at the last slot. */
-func termBump(tick types.Int24, isUpper bool) uint16 {
-	return 0
-}
+func termBump(tick Int24, isUpper bool) uint16 {
+	// 	uint8 bit = termBit(tick);
+	bit := termBit(tick)
 
-// 	function termBump (int24 tick, bool isUpper) internal pure returns (uint16) {
-// 	unchecked {
-// 	uint8 bit = termBit(tick);
-// 	// Bump moves up for upper, but occurs at the bottom of the same tick for lower.
-// 	uint16 shiftTerm = isUpper ? 1 : 0;
-// 	return uint16(bitRelate(bit, isUpper)) + shiftTerm;
-// 	}
-// }
+	// Bump moves up for upper, but occurs at the bottom of the same tick for lower.
+	// 	uint16 shiftTerm = isUpper ? 1 : 0;
+	var shiftTerm uint16
+	if isUpper {
+		shiftTerm = 1
+	} else {
+		shiftTerm = 0
+	}
+
+	// 	return uint16(bitRelate(bit, isUpper)) + shiftTerm;
+	return uint16(bitRelate(bit, isUpper)) + shiftTerm
+}
 
 /* @notice Extracts the 8-bit terminus bits (the last 8-bits) from the full 24-bit
 * tick index. Result can be used to index on a terminus bitmap. */
-func termBit(tick types.Int24) uint8 {
+func termBit(tick Int24) uint8 {
 	//     return uint8(uint24(tick % 256)); // Modulo 256 will always <= 255, and fit in uint8
-	return uint8(types.Uint24(tick % 256))
+	return uint8(Uint24(tick % 256))
 }
 
 /* @notice Returns true if the bitmap's Nth bit slot is set.
@@ -417,9 +418,9 @@ func zeroTerm(isUpper bool) uint8 {
 
 /* @notice Converts a 16-bit tick base and an 8-bit terminus tick to a full 24-bit
 *   tick index. */
-func weldMezzTerm(mezzBase int16, termBitArg uint8) types.Int24 {
+func weldMezzTerm(mezzBase int16, termBitArg uint8) Int24 {
 	// 	 // First term will always be <= 0x8FFF00 and second term (as a uint8) will always
 	// 	 // be positive and <= 0xFF. Therefore the sum will never overflow int24
 	// 	 return (int24(mezzBase) << 8) + int24(uint24(termBitArg));
-	return (types.Int24(mezzBase) << 8) + types.Int24(types.Uint24(termBitArg))
+	return (Int24(mezzBase) << 8) + Int24(Uint24(termBitArg))
 }

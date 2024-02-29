@@ -72,3 +72,10 @@ func addDelta(x *big.Int, y *big.Int) *big.Int {
 
 	return z
 }
+
+/* @notice Same as minusDelta, but operates on lots of liquidity rather than outright
+*         liquiidty. */
+func minusLots(x *big.Int, y *big.Int) *big.Int {
+	// z = x - y;
+	return new(big.Int).Sub(x, y)
+}

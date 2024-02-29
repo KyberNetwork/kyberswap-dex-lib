@@ -2,9 +2,6 @@ package ambient
 
 import (
 	"math/big"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient/tickmath"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient/types"
 )
 
 /* All CrocSwap swaps occur as legs across locally stable constant-product AMM
@@ -89,7 +86,7 @@ type curveState struct {
 *    set this parameter in the correct direction. I.e. buys should be the boundary
 *    from above and sells from below. Represented as a price tick index.
 */
-func (c *curveState) swapToLimit(accum *pairFlow, swap *swapDirective, p swapPool, bumpTick types.Int24) error {
+func (c *curveState) swapToLimit(accum *pairFlow, swap *swapDirective, p *swapPool, bumpTick Int24) error {
 	// uint128 limitPrice = determineLimit(bumpTick, swap.limitPrice_, swap.isBuy_);
 	limitPrice, err := c.determineLimit(bumpTick, swap.limitPrice, swap.isBuy)
 	if err != nil {
@@ -121,7 +118,7 @@ func (c *curveState) swapToLimit(accum *pairFlow, swap *swapDirective, p swapPoo
 *   matter, and either over or undershooting is fine from a collateral stability
 *   perspective. */
 func (c *curveState) bookExchFees(
-	swapQty *big.Int, p swapPool, inBaseQty bool, limitPrice *big.Int,
+	swapQty *big.Int, p *swapPool, inBaseQty bool, limitPrice *big.Int,
 ) (*big.Int, *big.Int, *big.Int, error) {
 	// (uint128 liqFees, uint128 exchFees) = calcFeeOverSwap
 	// (curve, swapQty, pool.feeRate_, pool.protocolTake_, inBaseQty, limitPrice);
@@ -152,7 +149,7 @@ var (
 	big1 = big.NewInt(1)
 )
 
-func (c curveState) determineLimit(bumpTick types.Int24, limitPrice *big.Int, isBuy bool) (*big.Int, error) {
+func (c curveState) determineLimit(bumpTick Int24, limitPrice *big.Int, isBuy bool) (*big.Int, error) {
 	// uint128 bounded = boundLimit(bumpTick, limitPrice, isBuy);
 	bounded, err := c.boundLimit(bumpTick, limitPrice, isBuy)
 	if err != nil {
@@ -160,13 +157,13 @@ func (c curveState) determineLimit(bumpTick types.Int24, limitPrice *big.Int, is
 	}
 
 	// if (bounded < TickMath.MIN_SQRT_RATIO)  return TickMath.MIN_SQRT_RATIO;
-	if bounded.Cmp(tickmath.MIN_SQRT_RATIO) == -1 {
-		return new(big.Int).Set(tickmath.MIN_SQRT_RATIO), nil
+	if bounded.Cmp(MIN_SQRT_RATIO) == -1 {
+		return new(big.Int).Set(MIN_SQRT_RATIO), nil
 	}
 
 	// if (bounded >= TickMath.MAX_SQRT_RATIO) return TickMath.MAX_SQRT_RATIO - 1; // Well above 0, cannot underflow
-	if bounded.Cmp(tickmath.MAX_SQRT_RATIO) > -1 {
-		r := new(big.Int).Set(tickmath.MAX_SQRT_RATIO)
+	if bounded.Cmp(MAX_SQRT_RATIO) > -1 {
+		r := new(big.Int).Set(MAX_SQRT_RATIO)
 		r.Sub(r, big1)
 		return r, nil
 	}
@@ -194,11 +191,11 @@ var (
 	TICK_STEP_SHAVE_DOWN = big.NewInt(1)
 )
 
-func (c curveState) boundLimit(bumpTick types.Int24, limitPrice *big.Int, isBuy bool) (*big.Int, error) {
+func (c curveState) boundLimit(bumpTick Int24, limitPrice *big.Int, isBuy bool) (*big.Int, error) {
 	// if (bumpTick <= TickMath.MIN_TICK || bumpTick >= TickMath.MAX_TICK) {
 	// 	   return limitPrice;
 	//  }
-	if bumpTick <= tickmath.MIN_TICK || bumpTick >= tickmath.MAX_TICK {
+	if bumpTick <= MIN_TICK || bumpTick >= MAX_TICK {
 		return limitPrice, nil
 	}
 
@@ -212,7 +209,7 @@ func (c curveState) boundLimit(bumpTick types.Int24, limitPrice *big.Int, isBuy 
 	// }
 
 	if isBuy {
-		bumpPrice, err := tickmath.GetSqrtRatioAtTick(bumpTick)
+		bumpPrice, err := getSqrtRatioAtTick(bumpTick)
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +222,7 @@ func (c curveState) boundLimit(bumpTick types.Int24, limitPrice *big.Int, isBuy 
 
 	// uint128 bumpPrice = TickMath.getSqrtRatioAtTick(bumpTick);
 	// return bumpPrice > limitPrice ? bumpPrice : limitPrice;
-	bumpPrice, err := tickmath.GetSqrtRatioAtTick(bumpTick)
+	bumpPrice, err := getSqrtRatioAtTick(bumpTick)
 	if err != nil {
 		return nil, err
 	}

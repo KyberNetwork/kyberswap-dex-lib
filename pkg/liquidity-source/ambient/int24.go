@@ -1,4 +1,4 @@
-package types
+package ambient
 
 type Int24 int32
 
