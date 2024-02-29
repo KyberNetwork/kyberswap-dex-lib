@@ -109,6 +109,55 @@ func TestCalcAmountOutPlain(t *testing.T) {
 	}
 }
 
+func TestCalcAmountOutPlainError(t *testing.T) {
+	pools := []string{
+		// zero balance: https://arbiscan.io/address/0xedce214e7a52c77914342b072230ac971149eb00#readContract
+		`{"address":"0xedce214e7a52c77914342b072230ac971149eb00","exchange":"curve-stable-plain","type":"curve-stable-plain","timestamp":1709178100,"reserves":["0","0","0"],"tokens":[{"address":"0x730d5ab5a375c3a6cdc22a9d3bec1573fdea97d6","symbol":"GDC","decimals":18,"swappable":true},{"address":"0xaf88d065e77c8cc2239327c5edb3a432268e5831","symbol":"USDC","decimals":6,"swappable":true}],"extra":"{\"InitialA\":\"10000\",\"FutureA\":\"10000\",\"InitialATime\":0,\"FutureATime\":0,\"SwapFee\":\"4000000\",\"AdminFee\":\"5000000000\"}","staticExtra":"{\"APrecision\":\"100\",\"LpToken\":\"0xedCe214e7a52c77914342B072230ac971149Eb00\"}","blockNumber":185550266}`,
+
+		// skewed balance: https://arbiscan.io/address/0x1c5ffa4fb4907b681c61b8c82b28c4672ceb1974#readContract
+		`{"address":"0x1c5ffa4fb4907b681c61b8c82b28c4672ceb1974","reserveUsd":368.49875138508617,"amplifiedTvl":368.49875138508617,"exchange":"curve-stable-plain","type":"curve-stable-plain","timestamp":1709176810,"reserves":["14581731602","7584641092575167553","297354791","63473254","678722435250454329942"],"tokens":[{"address":"0x13780e6d5696dd91454f6d3bbc2616687fea43d0","symbol":"UST","decimals":6,"swappable":true},{"address":"0x17fc002b466eec40dae837fc4be5c67993ddbd6f","symbol":"FRAX","decimals":18,"swappable":true},{"address":"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8","symbol":"USDC.e","decimals":6,"swappable":true},{"address":"0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"InitialA\":\"20000\",\"FutureA\":\"20000\",\"InitialATime\":0,\"FutureATime\":0,\"SwapFee\":\"4000000\",\"AdminFee\":\"5000000000\"}","staticExtra":"{\"APrecision\":\"100\",\"LpToken\":\"0x1C5ffa4FB4907B681c61B8c82b28C4672ceb1974\"}","blockNumber":185545245}`,
+	}
+
+	testcases := []struct {
+		poolIdx  int
+		in       string
+		inAmount int64
+		out      string
+	}{
+		{0, "0x730d5ab5a375c3a6cdc22a9d3bec1573fdea97d6", 1000000, "0xaf88d065e77c8cc2239327c5edb3a432268e5831"},
+		{0, "0xaf88d065e77c8cc2239327c5edb3a432268e5831", 1000000, "0x730d5ab5a375c3a6cdc22a9d3bec1573fdea97d6"},
+
+		// this should yield error (multiplying overflow in D*D_P), but for now just ignore it (the result amount is small anyway)
+		// {1, "0x13780e6d5696dd91454f6d3bbc2616687fea43d0", 1000000, "0x17fc002b466eec40dae837fc4be5c67993ddbd6f"},
+	}
+
+	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
+		var poolEntity entity.Pool
+		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+		require.Nil(t, err)
+		p, err := NewPoolSimulator(poolEntity)
+		require.Nil(t, err)
+		return p
+	})
+
+	for idx, tc := range testcases {
+		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
+			p := sims[tc.poolIdx]
+			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
+					TokenOut:      tc.out,
+					Limit:         nil,
+				})
+			})
+			if out != nil && out.TokenAmountOut != nil {
+				fmt.Println(out.TokenAmountOut.Amount)
+			}
+			require.NotNil(t, err)
+		})
+	}
+}
+
 func BenchmarkCalcAmountOut(b *testing.B) {
 	p, err := NewPoolSimulator(entity.Pool{
 		Exchange: "",

@@ -275,6 +275,13 @@ func (t *PoolSimulator) GetDyU256(
 		return err
 	}
 
+	// in SC, `xp[j] - y - 1` will check for underflow and raise exception
+	// here we're using uint256.Int so have to check manually
+	yPlus1 := number.AddUint64(&y, 1)
+	if xp[j].Cmp(yPlus1) < 0 {
+		return ErrReserveTooSmall
+	}
+
 	// dy: uint256 = xp[j] - y - 1
 	dy.SubUint64(number.Sub(&xp[j], &y), 1)
 
@@ -282,6 +289,9 @@ func (t *PoolSimulator) GetDyU256(
 	fee.Div(number.Mul(t.extra.SwapFee, dy), FeeDenominator)
 
 	// (dy - fee) * PRECISION / rates[j]
+	if dy.Cmp(fee) < 0 {
+		return ErrReserveTooSmall
+	}
 	dy.Div(number.Mul(dy.Sub(dy, fee), Precision), &t.extra.RateMultipliers[j])
 
 	// fee * PRECISION / rates[j]
