@@ -24,11 +24,9 @@ type (
 		Deposit int64
 	}
 
-	SwapInfo struct {
-		Shares *uint256.Int
+	PoolMetaInfo struct {
+		BlockNumber uint64 `json:"blockNumber"`
 	}
-
-	PoolMetaInfo struct{}
 )
 
 var (
@@ -110,21 +108,22 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 			Token:  tokenOut,
 			Amount: bignumber.ZeroBI,
 		},
-		Gas:      defaultGas.Deposit,
-		SwapInfo: SwapInfo{Shares: shares},
+		Gas: defaultGas.Deposit,
 	}, nil
 }
 
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-	swapInfo, ok := params.SwapInfo.(SwapInfo)
-	if !ok {
+	shares, overflow := uint256.FromBig(params.TokenAmountOut.Amount)
+	if overflow {
 		return
 	}
-	s.totalSupply.Add(s.totalSupply, swapInfo.Shares)
+	s.totalSupply.Add(s.totalSupply, shares)
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
-	return PoolMetaInfo{}
+	return PoolMetaInfo{
+		BlockNumber: s.Info.BlockNumber,
+	}
 }
 
 func (s *PoolSimulator) validate(tokenIn string, tokenOut string) error {

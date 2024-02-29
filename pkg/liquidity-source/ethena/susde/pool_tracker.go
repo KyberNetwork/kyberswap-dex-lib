@@ -13,15 +13,11 @@ import (
 )
 
 type PoolTracker struct {
-	config       *Config
 	ethrpcClient *ethrpc.Client
 }
 
-func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
-	return &PoolTracker{
-		config:       config,
-		ethrpcClient: ethrpcClient,
-	}, nil
+func NewPoolTracker(ethrpcClient *ethrpc.Client) *PoolTracker {
+	return &PoolTracker{ethrpcClient: ethrpcClient}
 }
 
 func (t *PoolTracker) GetNewPoolState(
@@ -30,14 +26,12 @@ func (t *PoolTracker) GetNewPoolState(
 	_ poolpkg.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
-		"dexId":       t.config.DexID,
 		"dexType":     DexType,
 		"poolAddress": p.Address,
 	}).Info("Start updating state ...")
 
 	defer func() {
 		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
 			"dexType":     DexType,
 			"poolAddress": p.Address,
 		}).Info("Finish updating state.")
@@ -65,7 +59,6 @@ func (t *PoolTracker) GetNewPoolState(
 	result, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
-			"dexId":       t.config.DexID,
 			"dexType":     DexType,
 			"poolAddress": p.Address,
 		}).Error(err.Error())

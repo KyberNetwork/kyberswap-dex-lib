@@ -7,6 +7,7 @@ import (
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
@@ -172,6 +173,7 @@ type Types struct {
 	CurveStablePlain               string
 	KelpRSETH                      string
 	RocketPoolRETH                 string
+	EthenaSusde                    string
 }
 
 var (
@@ -267,5 +269,6 @@ var (
 		CurveStablePlain:               plain.DexType,
 		KelpRSETH:                      rseth.DexType,
 		RocketPoolRETH:                 reth.DexType,
+		EthenaSusde:                    susde.DexType,
 	}
 )
