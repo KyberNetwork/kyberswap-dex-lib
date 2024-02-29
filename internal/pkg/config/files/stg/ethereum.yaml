@@ -71,6 +71,9 @@ common:
     - "blueprint"
     - "swaap-v2"
     - "bancor-v3"
+    - "etherfi-eeth"
+    - "etherfi-weeth"
+    - "kelp-rseth"
   featureFlags: &featureFlags
   swaapAPIKey:
 log:

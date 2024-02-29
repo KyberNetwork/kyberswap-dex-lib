@@ -152,6 +152,12 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeBancorV3
 	dexValueObject.ExchangeBancorV3: {},
+
+	// executeEtherFiWeETH
+	dexValueObject.ExchangeEtherfiWEETH: {},
+
+	// executeKelp
+	dexValueObject.ExchangeKelpRSETH: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {
