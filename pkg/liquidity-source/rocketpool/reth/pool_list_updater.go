@@ -3,12 +3,12 @@ package reth
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -64,6 +64,12 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 
 func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint64, error) {
 	var poolExtra PoolExtra
+	balanceAt, err := ethrpcClient.BalanceAt(ctx, common.HexToAddress(RocketTokenRETH), nil)
+	if err != nil {
+		return poolExtra, 0, err
+	}
+	poolExtra.RETHBalance = balanceAt
+
 	rpcCalls := ethrpcClient.NewRequest().SetContext(ctx)
 
 	rpcCalls.AddCall(&ethrpc.Call{
@@ -144,8 +150,6 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 	if resp.BlockNumber == nil {
 		resp.BlockNumber = big.NewInt(0)
 	}
-
-	fmt.Println(poolExtra)
 
 	return poolExtra, resp.BlockNumber.Uint64(), nil
 }
