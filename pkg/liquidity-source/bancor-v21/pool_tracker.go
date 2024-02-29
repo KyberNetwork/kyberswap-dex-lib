@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -152,7 +153,7 @@ func (d *PoolTracker) updatePool(ctx context.Context, pool entity.Pool, innerPoo
 	// 2. prepare and set state for PathFinder
 	entityPoolByAnchor := make(map[string]*entity.Pool)
 	for i, anchor := range anchors {
-		entityPoolByAnchor[anchor.Hex()] = &innerPools[i]
+		entityPoolByAnchor[strings.ToLower(anchor.Hex())] = &innerPools[i]
 	}
 	convertibleTokenAnchors, err := getConvertibleTokensAnchorState(ctx, d.ethrpcClient, d.config.ConverterRegistry)
 	if err != nil {

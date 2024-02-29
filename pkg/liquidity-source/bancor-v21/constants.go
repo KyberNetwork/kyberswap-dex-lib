@@ -27,4 +27,5 @@ var (
 	ErrPairAddressNotMatchAnchor = errors.New("pair address not match anchor")
 	ErrInvalidToken              = errors.New("invalid token")
 	ErrInvalidPath               = errors.New("invalid inner anchor path")
+	ErrInvalidAnchor             = errors.New("invalid anchor")
 )
