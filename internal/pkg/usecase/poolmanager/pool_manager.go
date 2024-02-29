@@ -228,7 +228,8 @@ func (m *PoolManager) filterFaultyPools(ctx context.Context, addresses []string,
 		}
 
 		// if faulty pool size is smaller than max config, then we already got the whole list
-		if int64(len(faultyPools)) < config.MaxFaultyPoolSize {
+		// adding len(faultyPools) == 0 to easy unit test (because MaxFaultyPoolSize is usually configured to 0 when unit test)
+		if len(faultyPools) == 0 || int64(len(faultyPools)) < config.MaxFaultyPoolSize {
 			break
 		}
 		offset += config.MaxFaultyPoolSize
