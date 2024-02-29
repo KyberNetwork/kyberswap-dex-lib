@@ -254,8 +254,8 @@ func (s *PoolSimulator) tradeBySourceAmount(
 }
 
 func (s *PoolSimulator) _verifyTradeParams(
-	sourceToken,
-	targetToken string,
+	_,
+	_ string,
 	amount,
 	limit *uint256.Int,
 ) error {

@@ -100,7 +100,7 @@ func (t *PoolTracker) GetNewPoolState(
 }
 
 func (t *PoolTracker) updatePool(
-	ctx context.Context,
+	_ context.Context,
 	p *entity.Pool,
 	blockNbr *big.Int,
 	collectionByPool map[string]string,
@@ -218,7 +218,9 @@ func (t *PoolTracker) getPoolCollection(
 	poolCollection string,
 	pools []string,
 ) (*poolCollectionResp, error) {
-	req := t.ethrpcClient.R().SetBlockNumber(blockNbr)
+	req := t.ethrpcClient.R().
+		SetContext(ctx).
+		SetBlockNumber(blockNbr)
 
 	poolDatResp := make([]*poolDataResp, len(pools))
 	for idx, p := range pools {
@@ -260,7 +262,9 @@ func (t *PoolTracker) getCollectionByPool(
 	bancorNetworkAddress string,
 	liquidityPools []string,
 ) (map[string]string, error) {
-	req := t.ethrpcClient.R().SetBlockNumber(blockNbr)
+	req := t.ethrpcClient.R().
+		SetContext(ctx).
+		SetBlockNumber(blockNbr)
 	poolCollections := make([]common.Address, len(liquidityPools))
 	for idx, liquidityPool := range liquidityPools {
 		req.AddCall(&ethrpc.Call{
@@ -288,7 +292,7 @@ func (t *PoolTracker) getLiquidityPools(
 	bancorNetworkAddress string,
 ) ([]string, *big.Int, error) {
 	var addresses []common.Address
-	req := t.ethrpcClient.R()
+	req := t.ethrpcClient.R().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    bancorNetworkABI,
 		Target: bancorNetworkAddress,
