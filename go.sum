@@ -4,8 +4,8 @@ github.com/KyberNetwork/blockchain-toolkit v0.5.1 h1:ZgCOEa9+B0uPSw2uKLITgM4XKNR
 github.com/KyberNetwork/blockchain-toolkit v0.5.1/go.mod h1:/Nn+ZIK2GW5WoQwt/RY8q2cVGthgtwBfphSNBJH5vaI=
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 h1:kN7ez6MPJEaFbacmvR+22PRa5pJkzwYN4h3RyRhjUnU=
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2/go.mod h1:3DThBH6zHAYSWUVmtj9deQO1XuiwbawdKxj5yV4SuMo=
-github.com/KyberNetwork/ethrpc v0.7.0 h1:DczGLtfolr0wRDZSZgRTz/Uyqr7AKO0mW1V71tBKm7c=
-github.com/KyberNetwork/ethrpc v0.7.0/go.mod h1:oKysvDWevrWSW6sgb/3pDrBjiKw6IUbS3LytN+aKz/M=
+github.com/KyberNetwork/ethrpc v0.7.1 h1:ePGFNKMM2U/aJZCX75WtClH5MOD2DqCF0bitPI13slw=
+github.com/KyberNetwork/ethrpc v0.7.1/go.mod h1:oKysvDWevrWSW6sgb/3pDrBjiKw6IUbS3LytN+aKz/M=
 github.com/KyberNetwork/int256 v0.1.3 h1:SAIe6IsU6ahlaXUvyp5P3vTv1aLrXuDwRbEkghW75HQ=
 github.com/KyberNetwork/int256 v0.1.3/go.mod h1:qE/Ikpo86fn60sIB7CwcfiqJTjK2p+k+ASvuO79Rq4g=
 github.com/KyberNetwork/logger v0.1.0 h1:Iibu9Ls+tipjR+C0iXhzUYM1VtRgmmR1HHWGufPYcbs=
