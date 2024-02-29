@@ -20,6 +20,12 @@ type (
 	}
 )
 
+func NewPoolsListUpdater(config *Config) *PoolsListUpdater {
+	return &PoolsListUpdater{
+		config: config,
+	}
+}
+
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	var (
 		dexID     = u.config.DexID
