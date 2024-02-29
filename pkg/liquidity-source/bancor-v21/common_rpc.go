@@ -111,7 +111,7 @@ func listPairTokens(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddres
 	tokens := make([][]common.Address, len(pairAddresses))
 
 	for index, pairAddress := range pairAddresses {
-		var numToken *big.Int
+		var numToken uint16
 		if _, err := ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
 			ABI:    converterABI,
 			Target: pairAddress.Hex(),
@@ -120,7 +120,7 @@ func listPairTokens(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddres
 		}, []interface{}{&numToken}).Call(); err != nil {
 			return nil, err
 		}
-		nTokens := int(numToken.Int64())
+		nTokens := int(numToken)
 		tokens[index] = make([]common.Address, nTokens)
 
 		for i := 0; i < nTokens; i++ {
