@@ -76,9 +76,9 @@ func getConvertibleTokensAnchorState(ctx context.Context, ethrpcClient *ethrpc.C
 	}
 
 	for i, convertibleToken := range convertibleTokens {
-		anchorsByConvertibleTokens[convertibleToken.Hex()] = make([]string, len(anchors[i]))
+		anchorsByConvertibleTokens[strings.ToLower(convertibleToken.Hex())] = make([]string, len(anchors[i]))
 		for j, anchor := range anchors[i] {
-			anchorsByConvertibleTokens[convertibleToken.Hex()][j] = anchor.Hex()
+			anchorsByConvertibleTokens[strings.ToLower(convertibleToken.Hex())][j] = anchor.Hex()
 		}
 	}
 
@@ -152,9 +152,10 @@ func initInnerPools(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddres
 
 	tokensByAnchors := make(map[string][]string, len(anchors)*2)
 	for i, anchor := range anchors {
-		tokensByAnchors[anchor.Hex()] = make([]string, len(tokens[i]))
+		anchorAddress := strings.ToLower(anchor.Hex())
+		tokensByAnchors[anchorAddress] = make([]string, len(tokens[i]))
 		for tokenIndex, token := range tokens[i] {
-			tokensByAnchors[anchor.Hex()][tokenIndex] = token.Hex()
+			tokensByAnchors[anchorAddress][tokenIndex] = strings.ToLower(token.Hex())
 		}
 	}
 
@@ -169,7 +170,7 @@ func initInnerPools(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddres
 			}
 		}
 
-		extra, err := newExtraInner(anchors[i].Hex())
+		extra, err := newExtraInner(strings.ToLower(anchors[i].Hex()))
 		if err != nil {
 			return nil, nil, err
 		}

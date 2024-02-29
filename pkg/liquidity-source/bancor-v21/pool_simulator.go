@@ -293,9 +293,13 @@ func (s *PoolSimulator) getReturn(anchor, sourceToken, targetToken string, sourc
 		sourceReserve, targetReserve *big.Int
 	)
 
-	p := s.innerPoolByAnchor[anchor]
+	p, exist := s.innerPoolByAnchor[anchor]
+	if !exist {
+		return nil, nil, ErrInvalidAnchor
+	}
 	tokenIndexFrom := -1
 
+	fmt.Println(p)
 	for i, token := range p.Tokens {
 		if token.Address == sourceToken {
 			tokenIndexFrom = i
@@ -306,6 +310,7 @@ func (s *PoolSimulator) getReturn(anchor, sourceToken, targetToken string, sourc
 			break
 		}
 	}
+	fmt.Println("tokenIndexFrom", tokenIndexFrom)
 	if tokenIndexFrom < 0 {
 		return nil, nil, ErrInvalidToken
 	}
