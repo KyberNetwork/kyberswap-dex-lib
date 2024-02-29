@@ -7,7 +7,6 @@ const (
 
 	getAnchorCount             = "getAnchorCount"
 	registryGetAnchors         = "getAnchors"
-	registryGetAnchor          = "getAnchor"
 	getConvertersByAnchors     = "getConvertersByAnchors"
 	getConvertibleTokenAnchors = "getConvertibleTokenAnchors"
 	getConvertibleTokens       = "getConvertibleTokens"

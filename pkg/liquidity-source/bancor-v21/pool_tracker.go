@@ -182,7 +182,7 @@ func (d *PoolTracker) updatePool(ctx context.Context, pool entity.Pool, innerPoo
 }
 
 func (d *PoolTracker) getFee(ctx context.Context, pools []entity.Pool) ([]uint64, error) {
-	fees := make([]*big.Int, len(pools))
+	fees := make([]uint32, len(pools))
 	getFeeRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
 	for i, pool := range pools {
 		getFeeRequest.AddCall(&ethrpc.Call{
@@ -200,7 +200,7 @@ func (d *PoolTracker) getFee(ctx context.Context, pools []entity.Pool) ([]uint64
 
 	results := make([]uint64, len(fees))
 	for i, fee := range fees {
-		results[i] = fee.Uint64()
+		results[i] = uint64(fee)
 	}
 	return results, nil
 }
