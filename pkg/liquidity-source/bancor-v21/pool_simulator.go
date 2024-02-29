@@ -3,11 +3,10 @@ package bancor_v21
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
-	"github.com/KyberNetwork/blockchain-toolkit/number"
-	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -18,8 +17,12 @@ import (
 type (
 	PoolSimulator struct {
 		poolpkg.Pool
-		fee *uint256.Int
-		gas Gas
+		gas                       Gas
+		innerPoolByAnchor         map[string]entity.Pool `json:"innerPoolByAnchor"`
+		anchorsByConvertibleToken map[string][]string    `json:"anchorsByConvertibleToken"`
+		innerPools                []entity.Pool          `json:"innerPools"`
+		tokensByLpAddress         map[string][]string
+		anchorTokenPathFinder     string
 	}
 )
 
@@ -28,7 +31,7 @@ var (
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	var extra ExtraInner
+	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
@@ -43,8 +46,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		fee: uint256.NewInt(extra.conversionFee),
-		gas: defaultGas,
+		gas:                       defaultGas,
+		innerPoolByAnchor:         extra.InnerPoolByAnchor,
+		anchorsByConvertibleToken: extra.AnchorsByConvertibleToken,
+		tokensByLpAddress:         nil,
+		anchorTokenPathFinder:     BancorTokenAddress,
+		innerPools:                extra.InnerPools,
 	}, nil
 }
 
@@ -82,65 +89,35 @@ func calculateFee(targetAmount *big.Int, conversionFee *big.Int) *big.Int {
 	return fee
 }
 
+func targetAmountAndFee(sourceToken, targetToken string, sourceBalance, targetBalance, sourceAmount, conversionFee *big.Int) (*big.Int, *big.Int, error) {
+	targetAmount, err := crossReserveTargetAmount(sourceBalance, targetBalance, sourceAmount)
+	if err != nil {
+		return nil, nil, err
+	}
+	fee := calculateFee(targetAmount, conversionFee)
+	targetAmount = targetAmount.Sub(targetAmount, fee)
+	return targetAmount, fee, nil
+}
+
 func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
 	var (
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut
 	)
-	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
-	if indexIn < 0 || indexOut < 0 {
-		return nil, ErrInvalidToken
+
+	path := s.findPath(tokenAmountIn.Token, tokenOut)
+	if len(path) == 0 {
+		return nil, ErrInvalidPath
 	}
-
-	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
-	if overflow {
-		return nil, ErrInvalidAmountIn
+	amountOut, err := s.rateByPath(path, tokenAmountIn.Amount)
+	if err != nil {
+		return nil, err
 	}
-
-	if amountIn.Cmp(number.Zero) <= 0 {
-		return nil, ErrInsufficientInputAmount
-	}
-
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
-	if overflow {
-		return nil, ErrInvalidReserve
-	}
-
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
-	if overflow {
-		return nil, ErrInvalidReserve
-	}
-
-	if reserveIn.Cmp(number.Zero) <= 0 || reserveOut.Cmp(number.Zero) <= 0 {
-		return nil, ErrInsufficientLiquidity
-	}
-
-	amountOut := s.getAmountOut(amountIn, reserveIn, reserveOut)
-	if amountOut.Cmp(reserveOut) > 0 {
-		return nil, ErrInsufficientLiquidity
-	}
-
-	// NOTE: Intentionally comment out, since kAfter should always smaller than kBefore.
-	// balanceIn := new(uint256.Int).Add(reserveIn, amountIn)
-	// balanceOut := new(uint256.Int).Sub(reserveOut, amountOut)
-
-	// balanceInAdjusted := new(uint256.Int).Sub(
-	// 	new(uint256.Int).Mul(balanceIn, s.feePrecision),
-	// 	new(uint256.Int).Mul(amountIn, s.fee),
-	// )
-	// balanceOutAdjusted := new(uint256.Int).Mul(balanceOut, s.feePrecision)
-
-	// kBefore := new(uint256.Int).Mul(new(uint256.Int).Mul(reserveIn, reserveOut), new(uint256.Int).Mul(s.feePrecision, s.feePrecision))
-	// kAfter := new(uint256.Int).Mul(balanceInAdjusted, balanceOutAdjusted)
-
-	// if kAfter.Cmp(kBefore) < 0 {
-	// 	return nil, ErrInvalidK
-	// }
 
 	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
+		TokenAmountOut: &poolpkg.TokenAmount{Token: tokenOut, Amount: amountOut},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
+		Fee: &poolpkg.TokenAmount{Token: tokenAmountIn.Token, Amount: integer.Zero()},
 		Gas: s.gas.Swap,
 	}, nil
 }
@@ -157,7 +134,173 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMetaInner{
-		Fee:         s.fee.Uint64(),
 		BlockNumber: s.Pool.Info.BlockNumber,
 	}
+}
+
+// Simulates the _getExtendedArray Solidity function
+func getExtendedArray(item0, item1 string, array []string) []string {
+	newArray := make([]string, 2+len(array))
+	newArray[0] = item0
+	newArray[1] = item1
+	copy(newArray[2:], array)
+	return newArray
+}
+
+// getInitialArray creates a new slice containing a single Ethereum address.
+func getInitialArray(item string) []string {
+	newArray := make([]string, 1)
+	newArray[0] = item
+
+	return newArray
+}
+
+// getPartialArray extracts the prefix of a given slice of Ethereum addresses.
+func getPartialArray(array []string, length uint) []string {
+	// Ensure length does not exceed the length of the input slice
+	if length > uint(len(array)) {
+		length = uint(len(array))
+	}
+
+	newArray := make([]string, length)
+	for i := 0; i < int(length); i++ {
+		newArray[i] = array[i]
+	}
+
+	return newArray
+}
+
+func (s *PoolSimulator) findPath(sourceToken string, targetToken string) []string {
+	sourcePath := s.getPath(sourceToken)
+	targetPath := s.getPath(targetToken)
+	return getShortestPath(sourcePath, targetPath)
+}
+
+func (s *PoolSimulator) getPath(reserveToken string) []string {
+	if reserveToken == s.anchorTokenPathFinder {
+		return getInitialArray(reserveToken)
+	}
+
+	anchors := s.anchorsByConvertibleToken[reserveToken]
+
+	for _, anchor := range anchors {
+		tokens := s.tokensByLpAddress[anchor]
+		for i := 0; i < len(tokens); i++ {
+			connectorToken := tokens[i]
+			if connectorToken != reserveToken {
+				path := s.getPath(connectorToken)
+				if len(path) > 0 {
+					return getExtendedArray(reserveToken, anchor, path)
+				}
+			}
+		}
+	}
+
+	return []string{}
+}
+
+// getShortestPath merges two paths with a common suffix into one, while avoiding the copy function for specific parts as requested.
+func getShortestPath(sourcePath []string, targetPath []string) []string {
+	if len(sourcePath) > 0 && len(targetPath) > 0 {
+		i := len(sourcePath)
+		j := len(targetPath)
+		for i > 0 && j > 0 && sourcePath[i-1] == targetPath[j-1] {
+			i--
+			j--
+		}
+
+		path := make([]string, i+j+1)
+		for m := 0; m <= i; m++ {
+			path[m] = sourcePath[m]
+		}
+		for n := j; n > 0; n-- {
+			path[len(path)-n] = targetPath[n-1]
+		}
+
+		length := 0
+		for p := 0; p < len(path); p++ {
+			for q := p + 2; q < len(path)-(p%2); q += 2 {
+				if path[p] == path[q] {
+					p = q
+				}
+			}
+			path[length] = path[p]
+			length++
+		}
+
+		return getPartialArray(path, uint(length))
+	}
+
+	return []string{}
+}
+
+func (s *PoolSimulator) getReturn(anchor, sourceToken, targetToken string, sourceAmount *big.Int) (*big.Int, *big.Int, error) {
+	var (
+		ok                           bool
+		sourceReserve, targetReserve *big.Int
+	)
+
+	p := s.innerPoolByAnchor[anchor]
+	tokenIndexFrom := -1
+
+	for i, token := range p.Tokens {
+		if token.Address == sourceToken {
+			tokenIndexFrom = i
+			sourceReserve, ok = new(big.Int).SetString(p.Reserves[i], 10)
+			if !ok {
+				return nil, nil, ErrInvalidReserve
+			}
+			break
+		}
+	}
+	if tokenIndexFrom < 0 {
+		return nil, nil, ErrInvalidToken
+	}
+
+	tokenIndexTo := -1
+	for i, token := range p.Tokens {
+		if token.Address == targetToken {
+			tokenIndexTo = i
+			targetReserve, ok = new(big.Int).SetString(p.Reserves[i], 10)
+			if !ok {
+				return nil, nil, ErrInvalidReserve
+			}
+			break
+		}
+	}
+	if tokenIndexTo < 0 {
+		return nil, nil, ErrInvalidToken
+	}
+
+	conversionFee := new(big.Int).SetInt64(int64(p.SwapFee))
+
+	amountOut, fee, err := targetAmountAndFee(sourceToken, targetToken, sourceReserve, targetReserve, sourceAmount, conversionFee)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return amountOut, fee, nil
+}
+
+func (s *PoolSimulator) rateByPath(path []string, sourceAmount *big.Int) (*big.Int, error) {
+	var err error
+	// Verify that the number of elements is larger than 2 and odd.
+	if len(path) <= 2 || len(path)%2 != 1 {
+		return nil, fmt.Errorf("ERR_INVALID_PATH")
+	}
+
+	amount := new(big.Int).Set(sourceAmount)
+
+	// Iterate over the conversion path.
+	for i := 2; i < len(path); i += 2 {
+		sourceToken := path[i-2]
+		anchor := path[i-1]
+		targetToken := path[i]
+		amount, _, err = s.getReturn(anchor, sourceToken, targetToken, amount)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return amount, nil
 }
