@@ -13,6 +13,7 @@ import (
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
@@ -170,6 +171,7 @@ type Types struct {
 	BancorV3                       string
 	CurveStablePlain               string
 	KelpRSETH                      string
+	RocketPoolRETH                 string
 }
 
 var (
@@ -264,5 +266,6 @@ var (
 		BancorV3:                       bancorv3.DexType,
 		CurveStablePlain:               plain.DexType,
 		KelpRSETH:                      rseth.DexType,
+		RocketPoolRETH:                 reth.DexType,
 	}
 )

@@ -113,6 +113,12 @@ func (s *PoolSimulator) UpdateBalance(param poolpkg.UpdateBalanceParams) {
 
 }
 
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+	return PoolMeta{
+		BlockNumber: s.Pool.Info.BlockNumber,
+	}
+}
+
 // deposit ETH and mint rETH
 func (s *PoolSimulator) deposit(amount *big.Int) (*poolpkg.CalcAmountOutResult, error) {
 	if !s.depositEnabled {
