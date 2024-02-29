@@ -216,7 +216,7 @@ func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, pools []entity
 				ABI:    converterABI,
 				Target: pool.Address,
 				Method: converterGetReserve,
-				Params: []interface{}{token.Address},
+				Params: []interface{}{common.HexToAddress(token.Address)},
 			}, []interface{}{&reserves[i][j]})
 		}
 	}
