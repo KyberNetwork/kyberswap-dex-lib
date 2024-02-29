@@ -242,6 +242,8 @@ var (
 	ExchangeEtherfiWEETH Exchange = "etherfi-weeth"
 
 	ExchangeKelpRSETH Exchange = "kelp-rseth"
+
+	ExchangeRocketPoolRETH Exchange = "rocketpool-reth"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -440,6 +442,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeEtherfiWEETH:               {},
 	ExchangeZkEraFinance:               {},
 	ExchangeKelpRSETH:                  {},
+	ExchangeRocketPoolRETH:             {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

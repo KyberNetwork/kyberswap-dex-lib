@@ -110,7 +110,7 @@ func (s *PoolSimulator) UpdateBalance(param poolpkg.UpdateBalanceParams) {
 
 		return
 	}
-	
+
 }
 
 // deposit ETH and mint rETH
