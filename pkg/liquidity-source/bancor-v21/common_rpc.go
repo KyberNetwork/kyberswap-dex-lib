@@ -1,4 +1,4 @@
-package bancor_v21
+package bancorv21
 
 import (
 	"context"
@@ -40,6 +40,7 @@ func listPairAddresses(ctx context.Context, ethrpcClient *ethrpc.Client, convert
 			Method: getConvertersByAnchors,
 			Params: []interface{}{anchors},
 		}, []interface{}{&poolAddresses}).Call(); err != nil {
+		return nil, nil, err
 	}
 
 	return poolAddresses, anchors, nil
@@ -176,7 +177,7 @@ func initInnerPools(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddres
 		var newPool = entity.Pool{
 			Address:   strings.ToLower(pairAddress.Hex()),
 			Exchange:  DexTypeBancorV21InnerPool,
-			Type:      DexTypeBancorV21,
+			Type:      DexType,
 			Timestamp: time.Now().Unix(),
 			Reserves:  []string{reserveZero, reserveZero},
 			Tokens:    entityTokens,
@@ -191,7 +192,7 @@ func initInnerPools(ctx context.Context, ethrpcClient *ethrpc.Client, pairAddres
 
 func newExtraInner(anchorAddress string) ([]byte, error) {
 	extra := ExtraInner{
-		anchorAddress: anchorAddress,
+		AnchorAddress: anchorAddress,
 	}
 
 	return json.Marshal(extra)

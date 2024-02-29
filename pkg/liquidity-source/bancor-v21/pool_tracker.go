@@ -1,4 +1,4 @@
-package bancor_v21
+package bancorv21
 
 import (
 	"context"
@@ -100,6 +100,8 @@ func (d *PoolTracker) GetNewPoolState(
 	return d.updatePool(ctx, p, innerPools, latestAnchors, reservesData, fees, blockNumber, tokensByAnchor)
 }
 
+// getAllPairsLength gets number of pairs from the factory contracts
+// nolint: unused
 func (d *PoolTracker) getAnchorCount(ctx context.Context) (int, error) {
 	anchorCount := new(big.Int)
 	if _, err := d.ethrpcClient.NewRequest().SetContext(ctx).AddCall(&ethrpc.Call{
@@ -122,7 +124,7 @@ func (d *PoolTracker) updatePool(ctx context.Context, pool entity.Pool, innerPoo
 		if err := json.Unmarshal([]byte(innerPool.Extra), &currentExtraInner); err != nil {
 			return pool, err
 		}
-		currentExtraInner.conversionFee = fees[i]
+		currentExtraInner.ConversionFee = fees[i]
 
 		extraBytes, err := json.Marshal(currentExtraInner)
 		if err != nil {
@@ -148,9 +150,9 @@ func (d *PoolTracker) updatePool(ctx context.Context, pool entity.Pool, innerPoo
 	currentExtra.InnerPools = newInnerPools
 
 	// 2. prepare and set state for PathFinder
-	entityPoolByAnchor := make(map[string]entity.Pool)
+	entityPoolByAnchor := make(map[string]*entity.Pool)
 	for i, anchor := range anchors {
-		entityPoolByAnchor[anchor.Hex()] = innerPools[i]
+		entityPoolByAnchor[anchor.Hex()] = &innerPools[i]
 	}
 	convertibleTokenAnchors, err := getConvertibleTokensAnchorState(ctx, d.ethrpcClient, d.config.ConverterRegistry)
 	if err != nil {

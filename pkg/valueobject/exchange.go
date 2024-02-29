@@ -236,7 +236,8 @@ var (
 	ExchangeNuri   Exchange = "nuri"
 	ExchangeNuriV2 Exchange = "nuri-v2"
 
-	ExchangeBancorV3 Exchange = "bancor-v3"
+	ExchangebancorV21 Exchange = "bancor-v21"
+	ExchangeBancorV3  Exchange = "bancor-v3"
 
 	ExchangeEtherfiEETH  Exchange = "etherfi-eeth"
 	ExchangeEtherfiWEETH Exchange = "etherfi-weeth"
@@ -437,6 +438,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBlueprint:                  {},
 	ExchangeNuri:                       {},
 	ExchangeNuriV2:                     {},
+	ExchangebancorV21:                  {},
 	ExchangeBancorV3:                   {},
 	ExchangeEtherfiEETH:                {},
 	ExchangeEtherfiWEETH:               {},

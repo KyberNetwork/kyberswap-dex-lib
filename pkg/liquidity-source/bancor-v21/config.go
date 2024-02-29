@@ -1,8 +1,7 @@
-package bancor_v21
+package bancorv21
 
 type Config struct {
-	DexID        string `json:"dexID"`
-	NewPoolLimit int    `json:"newPoolLimit"`
+	DexID string `json:"dexID"`
 
 	ConverterRegistry    string `json:"converterRegistry"`
 	BancorNetworkAddress string `json:"bancorNetworkAddress"`

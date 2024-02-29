@@ -1,4 +1,4 @@
-package bancor_v21
+package bancorv21
 
 import "errors"
 
@@ -11,14 +11,14 @@ const (
 	getConvertersByAnchors     = "getConvertersByAnchors"
 	getConvertibleTokenAnchors = "getConvertibleTokenAnchors"
 	getConvertibleTokens       = "getConvertibleTokens"
-	DexTypeBancorV21           = "bancor-v21"
+	DexType                    = "bancor-v21"
 	DexTypeBancorV21InnerPool  = "bancor-v21-inner-pool"
 
 	reserveZero            = "0"
 	converterGetTokenCount = "connectorTokenCount"
 	converterGetTokens     = "connectorTokens"
 	converterGetReserve    = "getConnectorBalance"
-	converterGetFee        = "conversionFee"
+	converterGetFee        = "ConversionFee"
 	// BancorTokenAddress bnt anchor token as anchor token for path finder
 	BancorTokenAddress = "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C"
 )

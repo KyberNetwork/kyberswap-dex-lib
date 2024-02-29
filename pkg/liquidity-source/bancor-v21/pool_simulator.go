@@ -1,4 +1,4 @@
-package bancor_v21
+package bancorv21
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/logger"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -18,9 +19,8 @@ type (
 	PoolSimulator struct {
 		poolpkg.Pool
 		gas                       Gas
-		innerPoolByAnchor         map[string]entity.Pool `json:"innerPoolByAnchor"`
-		anchorsByConvertibleToken map[string][]string    `json:"anchorsByConvertibleToken"`
-		innerPools                []entity.Pool          `json:"innerPools"`
+		innerPoolByAnchor         map[string]*entity.Pool
+		anchorsByConvertibleToken map[string][]string
 		tokensByLpAddress         map[string][]string
 		anchorTokenPathFinder     string
 	}
@@ -51,7 +51,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		anchorsByConvertibleToken: extra.AnchorsByConvertibleToken,
 		tokensByLpAddress:         nil,
 		anchorTokenPathFinder:     BancorTokenAddress,
-		innerPools:                extra.InnerPools,
 	}, nil
 }
 
@@ -80,10 +79,10 @@ func calculateFee(targetAmount *big.Int, conversionFee *big.Int) *big.Int {
 	// Convert PPM_RESOLUTION to big.Int
 	ppmResolution := big.NewInt(PPM_RESOLUTION)
 
-	// Calculate targetAmount * conversionFee
+	// Calculate targetAmount * ConversionFee
 	numerator := new(big.Int).Mul(targetAmount, conversionFee)
 
-	// Calculate the fee: (targetAmount * conversionFee) / PPM_RESOLUTION
+	// Calculate the fee: (targetAmount * ConversionFee) / PPM_RESOLUTION
 	fee := new(big.Int).Div(numerator, ppmResolution)
 
 	return fee
@@ -114,22 +113,76 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, err
 	}
 
+	swapInfo, err := json.Marshal(path)
+	if err != nil {
+		return nil, err
+	}
+
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: tokenOut, Amount: amountOut},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee: &poolpkg.TokenAmount{Token: tokenAmountIn.Token, Amount: integer.Zero()},
-		Gas: s.gas.Swap,
+		Fee:      &poolpkg.TokenAmount{Token: tokenAmountIn.Token, Amount: integer.Zero()},
+		Gas:      s.gas.Swap,
+		SwapInfo: string(swapInfo),
 	}, nil
 }
 
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenAmountOut.Token)
-	if indexIn < 0 || indexOut < 0 {
+	var path []string
+	if err := json.Unmarshal([]byte(params.SwapInfo.(string)), &path); err != nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": s.Pool.Info.Address,
+		}).Errorf("failed to unmarshal banchor conversionPath")
+
 		return
 	}
+	for i := 2; i < len(path); i += 2 {
+		sourceToken := path[i-2]
+		anchor := path[i-1]
+		targetToken := path[i]
+		p, exist := s.innerPoolByAnchor[anchor]
+		if !exist {
+			logger.WithFields(logger.Fields{
+				"poolAddress": s.Pool.Info.Address,
+			}).Errorf("path contains invalid anchor")
+			return
+		}
 
-	s.Pool.Info.Reserves[indexIn] = new(big.Int).Add(s.Pool.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
-	s.Pool.Info.Reserves[indexOut] = new(big.Int).Sub(s.Pool.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+		indexIn := -1
+		indexOut := -1
+		for j, token := range p.Tokens {
+			if token.Address == sourceToken {
+				indexIn = j
+			}
+			if token.Address == targetToken {
+				indexOut = j
+			}
+		}
+		if indexIn < 0 || indexOut < 0 {
+			logger.WithFields(logger.Fields{
+				"poolAddress": s.Pool.Info.Address,
+			}).Errorf("path contains invalid token")
+			return
+		}
+
+		oldReserveIn, ok := new(big.Int).SetString(p.Reserves[indexIn], 10)
+		if !ok {
+			logger.WithFields(logger.Fields{
+				"poolAddress": s.Pool.Info.Address,
+			}).Errorf("failed to parse reserve")
+			return
+		}
+		oldReserveOut, ok := new(big.Int).SetString(p.Reserves[indexOut], 10)
+		if !ok {
+			logger.WithFields(logger.Fields{
+				"poolAddress": s.Pool.Info.Address,
+			}).Errorf("failed to parse reserve")
+			return
+		}
+
+		p.Reserves[indexIn] = new(big.Int).Add(oldReserveIn, params.TokenAmountIn.Amount).String()
+		p.Reserves[indexOut] = new(big.Int).Sub(oldReserveOut, params.TokenAmountOut.Amount).String()
+	}
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
