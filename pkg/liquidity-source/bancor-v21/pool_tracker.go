@@ -120,6 +120,7 @@ func (d *PoolTracker) updatePool(ctx context.Context, pool entity.Pool, innerPoo
 	pool.BlockNumber = blockNumber.Uint64()
 	// 1. update inner pools fee and reserves for inner pools
 	newInnerPools := make([]entity.Pool, len(innerPools))
+
 	for i, innerPool := range innerPools {
 		currentExtraInner := ExtraInner{}
 		if err := json.Unmarshal([]byte(innerPool.Extra), &currentExtraInner); err != nil {
@@ -144,6 +145,7 @@ func (d *PoolTracker) updatePool(ctx context.Context, pool entity.Pool, innerPoo
 
 		newInnerPools[i] = innerPool
 	}
+
 	currentExtra := Extra{}
 	if err := json.Unmarshal([]byte(pool.Extra), &currentExtra); err != nil {
 		return pool, err
@@ -153,7 +155,7 @@ func (d *PoolTracker) updatePool(ctx context.Context, pool entity.Pool, innerPoo
 	// 2. prepare and set state for PathFinder
 	entityPoolByAnchor := make(map[string]*entity.Pool)
 	for i, anchor := range anchors {
-		entityPoolByAnchor[strings.ToLower(anchor.Hex())] = &innerPools[i]
+		entityPoolByAnchor[strings.ToLower(anchor.Hex())] = &newInnerPools[i]
 	}
 	convertibleTokenAnchors, err := getConvertibleTokensAnchorState(ctx, d.ethrpcClient, d.config.ConverterRegistry)
 	if err != nil {

@@ -299,7 +299,6 @@ func (s *PoolSimulator) getReturn(anchor, sourceToken, targetToken string, sourc
 	}
 	tokenIndexFrom := -1
 
-	fmt.Println(p)
 	for i, token := range p.Tokens {
 		if token.Address == sourceToken {
 			tokenIndexFrom = i
@@ -310,7 +309,6 @@ func (s *PoolSimulator) getReturn(anchor, sourceToken, targetToken string, sourc
 			break
 		}
 	}
-	fmt.Println("tokenIndexFrom", tokenIndexFrom)
 	if tokenIndexFrom < 0 {
 		return nil, nil, ErrInvalidToken
 	}
