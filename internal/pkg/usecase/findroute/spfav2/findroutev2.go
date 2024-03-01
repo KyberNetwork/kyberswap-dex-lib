@@ -185,7 +185,7 @@ func (f *spfav2Finder) bestMultiPathRouteV2(
 			}
 
 			if err := bestMultiPathRoute.AddPath(data.PoolBucket, bestPath.Clone(), data.SwapLimits); err != nil {
-				logger.Errorf(ctx, "AddPath crash into error, pop next path. Error :%s", err)
+				logger.Debugf(ctx, "AddPath crash into error, pop next path. Error :%s", err)
 			} else {
 				break
 			}
