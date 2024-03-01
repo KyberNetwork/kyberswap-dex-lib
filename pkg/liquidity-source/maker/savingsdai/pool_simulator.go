@@ -39,8 +39,8 @@ type (
 
 var (
 	defaultGas = Gas{
-		Deposit: 0,
-		Redeem:  0,
+		Deposit: 161300,
+		Redeem:  235500,
 	}
 )
 
