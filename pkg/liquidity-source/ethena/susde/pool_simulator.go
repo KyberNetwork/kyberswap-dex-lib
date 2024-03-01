@@ -35,7 +35,7 @@ var (
 )
 
 var (
-	defaultGas = Gas{Deposit: 0}
+	defaultGas = Gas{Deposit: 58500}
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
