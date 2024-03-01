@@ -90,7 +90,7 @@ func (t *PoolTracker) GetNewPoolState(
 	chi_, _ := uint256.FromBig(chi)
 
 	extraBytes, err := json.Marshal(Extra{
-		BlockTimestamp: uint256.NewInt(blockTimestamp),
+		BlockTimestamp: uint256.NewInt(blockTimestamp + blocktime),
 		DSR:            dsr_,
 		RHO:            rho_,
 		CHI:            chi_,

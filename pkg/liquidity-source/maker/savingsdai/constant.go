@@ -14,6 +14,8 @@ const (
 	potMethodCHI                = "chi"
 	savingsdaiMethodTotalAssets = "totalAssets"
 	savingsdaiMethodTotalSupply = "totalSupply"
+
+	blocktime = 12
 )
 
 var (
