@@ -101,7 +101,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		weights = make([][maxPoolTokenNumber]*big.Int, limit)
 	)
 
-	req := d.ethrpcClient.R()
+	req := d.ethrpcClient.R().SetContext(ctx)
 	for i := 0; i < limit; i++ {
 		req.AddCall(&ethrpc.Call{
 			ABI:    poolABI,
@@ -194,7 +194,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 
 func (d *PoolsListUpdater) queryPoolAddresses(ctx context.Context, offset int, batchSize int) ([]common.Address, error) {
 	poolAddresses := make([]common.Address, batchSize)
-	req := d.ethrpcClient.R()
+	req := d.ethrpcClient.R().SetContext(ctx)
 	for j := 0; j < batchSize; j++ {
 		req.AddCall(&ethrpc.Call{
 			ABI:    factoryABI,
@@ -225,7 +225,7 @@ func (d *PoolsListUpdater) queryPoolAddresses(ctx context.Context, offset int, b
 
 func (d *PoolsListUpdater) getPoolsLength(ctx context.Context) (int, error) {
 	var l *big.Int
-	req := d.ethrpcClient.R()
+	req := d.ethrpcClient.R().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: d.config.FactoryAddress,
