@@ -41,7 +41,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		samplePath := []string{eth, anchor1, bnt}
 		result, err := poolSim.rateByPath(samplePath, new(big.Int).SetUint64(1000))
 		assert.Nil(t, err)
-		assert.Equal(t, result.String(), "3898108")
+		assert.Equal(t, "3899370", result.String())
 	})
 
 	t.Run("Test rateByPath can't calc with 0 reserves of pools", func(t *testing.T) {
@@ -59,6 +59,13 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		path := poolSim.findPath(
 			strings.ToLower("0x4Fabb145d64652a948d72533023f6E7A623C7C53"),
 			strings.ToLower("0xB8c77482e45F1F44dE1745F52C74426C631bDD52"))
+		assert.Nil(t, err)
+		assert.Equal(t, path, []string{
+			"0x4fabb145d64652a948d72533023f6e7a623c7c53",
+			"0x7b86306d72103ccd5405df9dbff4b794c46ebbc9",
+			"0x1f573d6fb3f13d689ff844b4ce37794d79a7ff1c",
+			"0xe6b31fb3f29fbde1b92794b0867a315ff605a324",
+			"0xb8c77482e45f1f44de1745f52c74426c631bdd52"})
 		t.Log(path, err)
 	})
 }

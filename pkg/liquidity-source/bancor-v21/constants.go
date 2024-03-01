@@ -1,6 +1,9 @@
 package bancorv21
 
-import "errors"
+import (
+	"errors"
+	"strings"
+)
 
 const (
 	PPM_RESOLUTION = 1000000
@@ -19,11 +22,12 @@ const (
 	converterGetReserve    = "getConnectorBalance"
 	converterGetFee        = "conversionFee"
 	// BancorTokenAddress bnt anchor token as anchor token for path finder
-	BancorTokenAddress = "0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C"
 )
 
 var (
-	defaultGas                   = Gas{Swap: 60000}
+	defaultGas         = Gas{Swap: 60000}
+	BancorTokenAddress = strings.ToLower("0x1F573D6Fb3F13d689FF844B4cE37794d79a7FF1C")
+
 	ErrPairAddressNotMatchAnchor = errors.New("pair address not match anchor")
 	ErrInvalidToken              = errors.New("invalid token")
 	ErrInvalidPath               = errors.New("invalid inner anchor path")
