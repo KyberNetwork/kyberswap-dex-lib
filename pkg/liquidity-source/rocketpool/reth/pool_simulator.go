@@ -133,7 +133,7 @@ func (s *PoolSimulator) deposit(amount *big.Int) (*poolpkg.CalcAmountOutResult, 
 
 	if capacityNeeded.Cmp(s.maximumDepositPoolSize) > 0 {
 		if s.assignDepositsEnabled {
-			if capacityNeeded.Cmp(new(big.Int).Add(s.maximumDepositPoolSize, s.effectiveCapacity)) <= 0 {
+			if capacityNeeded.Cmp(new(big.Int).Add(s.maximumDepositPoolSize, s.effectiveCapacity)) > 0 {
 				return nil, ErrDepositMatchWithMinipoolsMoreThanMaximum
 			}
 		} else {

@@ -111,7 +111,7 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 		ABI:    RocketVaultABI,
 		Target: RocketVault,
 		Method: "balanceOf",
-		Params: []interface{}{RocketDepositPool},
+		Params: []interface{}{"rocketDepositPool"},
 	}, []interface{}{&poolExtra.Balance})
 
 	rpcCalls.AddCall(&ethrpc.Call{
