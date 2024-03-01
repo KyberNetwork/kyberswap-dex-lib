@@ -100,7 +100,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 func (u *PoolsListUpdater) getTokenAddresses(ctx context.Context) ([]string, error) {
 	var addresses []common.Address
-	req := u.ethrpcClient.R()
+	req := u.ethrpcClient.R().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    bancorNetworkABI,
 		Target: u.config.BancorNetwork,
