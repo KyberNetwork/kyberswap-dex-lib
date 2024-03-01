@@ -113,17 +113,12 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, err
 	}
 
-	swapInfo, err := json.Marshal(path)
-	if err != nil {
-		return nil, err
-	}
-
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: tokenOut, Amount: amountOut},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
 		Fee:      &poolpkg.TokenAmount{Token: tokenAmountIn.Token, Amount: integer.Zero()},
 		Gas:      s.gas.Swap,
-		SwapInfo: string(swapInfo),
+		SwapInfo: SwapInfo{ConversionPath: path},
 	}, nil
 }
 

@@ -22,3 +22,7 @@ type PoolMetaInner struct {
 	Fee         uint64 `json:"fee"`
 	BlockNumber uint64 `json:"blockNumber"`
 }
+
+type SwapInfo struct {
+	ConversionPath []string `json:"conversionPath"`
+}
