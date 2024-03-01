@@ -30,6 +30,18 @@ type (
 	PoolMetaInfo struct {
 		BlockNumber uint64 `json:"blockNumber"`
 	}
+
+	Gas struct {
+		Deposit int64
+		Redeem  int64
+	}
+)
+
+var (
+	defaultGas = Gas{
+		Deposit: 0,
+		Redeem:  0,
+	}
 )
 
 var (
@@ -105,6 +117,11 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 			Token:  tokenOut,
 			Amount: bignumber.ZeroBI,
 		},
+		Gas: lo.Ternary(
+			tokenAmountIn.Token == dai,
+			defaultGas.Deposit,
+			defaultGas.Redeem,
+		),
 		SwapInfo: SwapInfo{
 			chi: chi,
 		},
