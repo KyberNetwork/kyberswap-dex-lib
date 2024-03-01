@@ -223,12 +223,15 @@ func getPartialArray(array []string, length uint) []string {
 	return newArray
 }
 
+// findPath
 func (s *PoolSimulator) findPath(sourceToken string, targetToken string) []string {
 	sourcePath := s.getPath(sourceToken)
 	targetPath := s.getPath(targetToken)
 	return getShortestPath(sourcePath, targetPath)
 }
 
+// getPath
+// ref: // ref: https://github.com/bancorprotocol/contracts-solidity/blob/c6e79a330a1c3f97df3fb3d02925886eba98259d/contracts/ConversionPathFinder.sol#L61
 func (s *PoolSimulator) getPath(reserveToken string) []string {
 	if reserveToken == s.anchorTokenPathFinder {
 		return getInitialArray(reserveToken)
@@ -252,6 +255,7 @@ func (s *PoolSimulator) getPath(reserveToken string) []string {
 }
 
 // getShortestPath merges two paths with a common suffix into one, while avoiding the copy function for specific parts as requested.
+// https://github.com/bancorprotocol/contracts-solidity/blob/c6e79a330a1c3f97df3fb3d02925886eba98259d/contracts/ConversionPathFinder.sol#L98
 func getShortestPath(sourcePath []string, targetPath []string) []string {
 	if len(sourcePath) > 0 && len(targetPath) > 0 {
 		i := len(sourcePath)
@@ -286,6 +290,8 @@ func getShortestPath(sourcePath []string, targetPath []string) []string {
 	return []string{}
 }
 
+// getReturn calculates the amount of tokenOut to receive for a given amount of tokenIn
+// https://github.com/bancorprotocol/contracts-solidity/blob/dc378ab9d57d1b4a41dfa95fc5142fac2f4ee307/contracts/converter/types/standard-pool/StandardPoolConverter.sol#L1255
 func (s *PoolSimulator) getReturn(anchor, sourceToken, targetToken string, sourceAmount *big.Int) (*big.Int, *big.Int, error) {
 	var (
 		ok                           bool
@@ -337,6 +343,8 @@ func (s *PoolSimulator) getReturn(anchor, sourceToken, targetToken string, sourc
 	return amountOut, fee, nil
 }
 
+// rateByPath calculates amountOut for given path and sourceAmount
+// https://github.com/bancorprotocol/contracts-solidity/blob/c6e79a330a1c3f97df3fb3d02925886eba98259d/contracts/BancorNetwork.sol#L100
 func (s *PoolSimulator) rateByPath(path []string, sourceAmount *big.Int) (*big.Int, error) {
 	var err error
 	// Verify that the number of elements is larger than 2 and odd.
