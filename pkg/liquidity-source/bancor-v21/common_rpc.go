@@ -78,7 +78,7 @@ func getConvertibleTokensAnchorState(ctx context.Context, ethrpcClient *ethrpc.C
 	for i, convertibleToken := range convertibleTokens {
 		anchorsByConvertibleTokens[strings.ToLower(convertibleToken.Hex())] = make([]string, len(anchors[i]))
 		for j, anchor := range anchors[i] {
-			anchorsByConvertibleTokens[strings.ToLower(convertibleToken.Hex())][j] = anchor.Hex()
+			anchorsByConvertibleTokens[strings.ToLower(convertibleToken.Hex())][j] = strings.ToLower(anchor.Hex())
 		}
 	}
 
