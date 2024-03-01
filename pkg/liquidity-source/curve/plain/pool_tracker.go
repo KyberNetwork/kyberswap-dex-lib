@@ -136,7 +136,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    numTokenDependedABIs[numTokens],
-		Target: staticExtra.LpToken,
+		Target: p.Address,
 		Method: poolMethodStoredRates,
 		Params: nil,
 	}, []interface{}{&storedRates})

@@ -75,6 +75,10 @@ func (t *PoolSimulator) getD(xp []uint256.Int, a *uint256.Int, D *uint256.Int) e
 	var S uint256.Int
 	S.Clear()
 	for i := range xp {
+		if xp[i].IsZero() {
+			// this will cause div by zero down below
+			return ErrZero
+		}
 		S.Add(&S, &xp[i])
 	}
 	if S.IsZero() {
@@ -103,11 +107,13 @@ func (t *PoolSimulator) getD(xp []uint256.Int, a *uint256.Int, D *uint256.Int) e
 		D_P.Set(D)
 
 		for j := range xp {
-			// D_P = D_P * D / (_x * N_COINS +1)
-			// +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
+			// D_P = D_P * D / (_x * N_COINS)
+			// some pools (very few) will divide by `(_x * N_COINS +1)` instead to avoid div by zero (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
+			// but we can't apply that to other pools because it will lead to incorrect result (return high amount while the pool cannot be used anymore)
+			// so here we'll use the original formula and do the zero check at the beginning
 			D_P.Div(
 				number.Mul(&D_P, D),
-				number.AddUint64(number.Mul(&xp[j], &t.numTokensU256), 1),
+				number.Mul(&xp[j], &t.numTokensU256),
 			)
 		}
 		// Dprev = D
