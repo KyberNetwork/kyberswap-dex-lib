@@ -103,7 +103,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	}
 
 	amountOut := lo.Ternary(
-		tokenAmountIn.Token == dai,
+		tokenAmountIn.Token == Dai,
 		s.deposit(amountIn, chi),
 		s.redeem(amountIn, chi),
 	)
@@ -118,7 +118,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 			Amount: bignumber.ZeroBI,
 		},
 		Gas: lo.Ternary(
-			tokenAmountIn.Token == dai,
+			tokenAmountIn.Token == Dai,
 			defaultGas.Deposit,
 			defaultGas.Redeem,
 		),

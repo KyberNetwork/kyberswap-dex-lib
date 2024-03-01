@@ -39,13 +39,13 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	pool := entity.Pool{
-		Address:  savingsdai,
+		Address:  Savingsdai,
 		Exchange: string(valueobject.ExchangeMakerSavingsDai),
 		Type:     DexType,
 		Reserves: entity.PoolReserves{"0", "0"},
 		Tokens: []*entity.PoolToken{
 			{
-				Address:   dai,
+				Address:   Dai,
 				Name:      "Dai Stablecoin",
 				Symbol:    "DAI",
 				Decimals:  18,
@@ -53,7 +53,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 				Swappable: true,
 			},
 			{
-				Address:   savingsdai,
+				Address:   Savingsdai,
 				Name:      "Savings Dai",
 				Symbol:    "sDAI",
 				Decimals:  18,

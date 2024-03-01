@@ -65,13 +65,13 @@ func (t *PoolTracker) GetNewPoolState(
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    savingsdaiABI,
-		Target: savingsdai,
+		Target: Savingsdai,
 		Method: savingsdaiMethodTotalAssets,
 	}, []interface{}{&totalAssets})
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    savingsdaiABI,
-		Target: savingsdai,
+		Target: Savingsdai,
 		Method: savingsdaiMethodTotalSupply,
 	}, []interface{}{&totalSupply})
 
