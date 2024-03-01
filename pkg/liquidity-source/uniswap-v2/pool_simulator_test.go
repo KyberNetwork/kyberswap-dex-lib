@@ -1,13 +1,13 @@
 package uniswapv2
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -250,6 +250,7 @@ func TestPoolSimulator_getAmountIn(t *testing.T) {
 		reserveOut       *uint256.Int
 		amountOut        *uint256.Int
 		expectedAmountIn *uint256.Int
+		expectedErr      error
 	}{
 		{
 			name:             "it should return correct amountIn",
@@ -258,13 +259,28 @@ func TestPoolSimulator_getAmountIn(t *testing.T) {
 			reserveOut:       number.NewUint256("100000000000000000000"),
 			amountOut:        number.NewUint256("20000000000000000000"),
 			expectedAmountIn: number.NewUint256("25075226"),
+			expectedErr:      nil,
+		},
+		{
+			name:             "it should return correct ErrDSMathSubUnderflow error",
+			poolSimulator:    PoolSimulator{fee: uint256.NewInt(3), feePrecision: uint256.NewInt(1000)},
+			reserveIn:        number.NewUint256("1160689189059097452"),
+			reserveOut:       number.NewUint256("1161607"),
+			amountOut:        number.NewUint256("500000000"),
+			expectedAmountIn: nil,
+			expectedErr:      ErrDSMathSubUnderflow,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			amountIn := tc.poolSimulator.getAmountIn(tc.amountOut, tc.reserveIn, tc.reserveOut)
-			assert.Equal(t, 0, tc.expectedAmountIn.Cmp(amountIn))
+			amountIn, err := tc.poolSimulator.getAmountIn(tc.amountOut, tc.reserveIn, tc.reserveOut)
+			assert.ErrorIs(t, err, tc.expectedErr)
+
+			if err == nil {
+				fmt.Printf("amountIn: %s\n", amountIn.String())
+				assert.Equal(t, 0, tc.expectedAmountIn.Cmp(amountIn))
+			}
 		})
 	}
 }
