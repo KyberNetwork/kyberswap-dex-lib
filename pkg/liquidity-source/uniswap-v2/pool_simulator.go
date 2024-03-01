@@ -4,12 +4,11 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/holiman/uint256"
-	"github.com/samber/lo"
-
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -159,7 +158,11 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, ErrInsufficientLiquidity
 	}
 
-	amountIn := s.getAmountIn(amountOut, reserveIn, reserveOut)
+	amountIn, err := s.getAmountIn(amountOut, reserveIn, reserveOut)
+	if err != nil {
+		return nil, err
+	}
+
 	if amountIn.Cmp(reserveIn) > 0 {
 		return nil, ErrInsufficientLiquidity
 	}
@@ -214,15 +217,21 @@ func (s *PoolSimulator) getAmountOut(amountIn, reserveIn, reserveOut *uint256.In
 	return new(uint256.Int).Div(numerator, denominator)
 }
 
-func (s *PoolSimulator) getAmountIn(amountOut, reserveIn, reserveOut *uint256.Int) *uint256.Int {
-	numerator := new(uint256.Int).Mul(
-		new(uint256.Int).Mul(reserveIn, amountOut),
+func (s *PoolSimulator) getAmountIn(amountOut, reserveIn, reserveOut *uint256.Int) (amountIn *uint256.Int, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+
+	numerator := SafeMul(
+		SafeMul(reserveIn, amountOut),
 		s.feePrecision,
 	)
-	denominator := new(uint256.Int).Mul(
-		new(uint256.Int).Sub(reserveOut, amountOut),
-		new(uint256.Int).Sub(s.feePrecision, s.fee),
+	denominator := SafeMul(
+		SafeSub(reserveOut, amountOut),
+		SafeSub(s.feePrecision, s.fee),
 	)
 
-	return new(uint256.Int).Add(new(uint256.Int).Div(numerator, denominator), number.Number_1)
+	return SafeAdd(new(uint256.Int).Div(numerator, denominator), number.Number_1), nil
 }
