@@ -49,7 +49,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		gas:                       defaultGas,
 		innerPoolByAnchor:         extra.InnerPoolByAnchor,
 		anchorsByConvertibleToken: extra.AnchorsByConvertibleToken,
-		tokensByLpAddress:         nil,
+		tokensByLpAddress:         extra.TokensByLpAddress,
 		anchorTokenPathFinder:     BancorTokenAddress,
 	}, nil
 }
@@ -235,7 +235,6 @@ func (s *PoolSimulator) getPath(reserveToken string) []string {
 	}
 
 	anchors := s.anchorsByConvertibleToken[reserveToken]
-
 	for _, anchor := range anchors {
 		tokens := s.tokensByLpAddress[anchor]
 		for i := 0; i < len(tokens); i++ {
