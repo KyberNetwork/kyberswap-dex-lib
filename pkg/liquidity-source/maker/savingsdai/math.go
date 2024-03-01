@@ -62,5 +62,5 @@ func rmul(x, y *uint256.Int) (*uint256.Int, error) {
 	if overflow {
 		return nil, ErrOverflow
 	}
-	return z, nil
+	return z.Div(z, one), nil
 }

@@ -14,6 +14,7 @@ import (
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
@@ -174,6 +175,7 @@ type Types struct {
 	KelpRSETH                      string
 	RocketPoolRETH                 string
 	EthenaSusde                    string
+	MakerSavingsDai                string
 }
 
 var (
@@ -270,5 +272,6 @@ var (
 		KelpRSETH:                      rseth.DexType,
 		RocketPoolRETH:                 reth.DexType,
 		EthenaSusde:                    susde.DexType,
+		MakerSavingsDai:                savingsdai.DexType,
 	}
 )

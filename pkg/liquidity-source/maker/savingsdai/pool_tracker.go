@@ -75,7 +75,8 @@ func (t *PoolTracker) GetNewPoolState(
 		Method: savingsdaiMethodTotalSupply,
 	}, []interface{}{&totalSupply})
 
-	if _, err := req.Aggregate(); err != nil {
+	result, err := req.Aggregate()
+	if err != nil {
 		return p, err
 	}
 
@@ -102,6 +103,7 @@ func (t *PoolTracker) GetNewPoolState(
 	p.Reserves = entity.PoolReserves{totalAssets.String(), totalSupply.String()}
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
+	p.BlockNumber = result.BlockNumber.Uint64()
 
 	return p, nil
 }
