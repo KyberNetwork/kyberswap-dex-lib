@@ -14,6 +14,7 @@ type (
 		Decimals          interface{}
 		IsBasePoolLpToken bool
 		Symbol            string
+		IsOrgNative       bool // if this is an native coin (we'll convert native to wrapped, so need this to track the original data)
 	}
 
 	CurvePool struct {

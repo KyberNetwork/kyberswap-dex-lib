@@ -113,6 +113,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 		poolTokens := make([]*entity.PoolToken, 0, len(curvePool.Coins))
 		reserves := make([]string, 0, len(curvePool.Coins)+1) // N coins & totalSupply
 		invalidDecimal := false
+		isNativeCoin := make([]bool, 0, len(curvePool.Coins))
 		for _, c := range curvePool.Coins {
 			dec := c.GetDecimals()
 			if dec == 0 {
@@ -125,6 +126,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 				Decimals:  dec,
 				Swappable: true,
 			})
+			isNativeCoin = append(isNativeCoin, c.IsOrgNative)
 			reserves = append(reserves, "0")
 		}
 		if invalidDecimal {
@@ -139,7 +141,8 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 		}
 
 		var staticExtra = StaticExtra{
-			LpToken: curvePool.LpTokenAddress,
+			LpToken:      curvePool.LpTokenAddress,
+			IsNativeCoin: isNativeCoin,
 		}
 
 		if aList[i] != nil && aPreciseList[i] != nil {
