@@ -112,8 +112,8 @@ func (t *PoolSimulator) getD(xp []uint256.Int, a *uint256.Int, D *uint256.Int) e
 			// but we can't apply that to other pools because it will lead to incorrect result (return high amount while the pool cannot be used anymore)
 			// so here we'll use the original formula and do the zero check at the beginning
 			D_P.Div(
-				number.Mul(&D_P, D),
-				number.Mul(&xp[j], &t.numTokensU256),
+				number.SafeMul(&D_P, D),
+				number.SafeMul(&xp[j], &t.numTokensU256),
 			)
 		}
 		// Dprev = D
@@ -121,13 +121,13 @@ func (t *PoolSimulator) getD(xp []uint256.Int, a *uint256.Int, D *uint256.Int) e
 
 		// D = (Ann * S / A_PRECISION + D_P * N_COINS) * D / ((Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P)
 		D.Div(
-			number.Mul(
-				number.Add(&Ann_mul_S_div_APrec, number.Mul(&D_P, &t.numTokensU256)),
+			number.SafeMul(
+				number.SafeAdd(&Ann_mul_S_div_APrec, number.SafeMul(&D_P, &t.numTokensU256)),
 				D,
 			),
-			number.Add(
-				number.Div(number.Mul(&Ann_sub_APrec, D), t.staticExtra.APrecision),
-				number.Mul(&D_P, numTokensPlus1),
+			number.SafeAdd(
+				number.Div(number.SafeMul(&Ann_sub_APrec, D), t.staticExtra.APrecision),
+				number.SafeMul(&D_P, numTokensPlus1),
 			),
 		)
 
@@ -177,7 +177,7 @@ func (t *PoolSimulator) getY(
 		}
 	}
 	var c = number.Set(&d)
-	var nA = number.Mul(a, &t.numTokensU256)
+	var nA = number.SafeMul(a, &t.numTokensU256)
 	var _x, s uint256.Int
 	s.Clear()
 	for i := 0; i < t.numTokens; i++ {
@@ -193,20 +193,20 @@ func (t *PoolSimulator) getY(
 		}
 		s.Add(&s, &_x)
 		c.Div(
-			number.Mul(c, &d),
-			number.Mul(&_x, &t.numTokensU256),
+			number.SafeMul(c, &d),
+			number.SafeMul(&_x, &t.numTokensU256),
 		)
 	}
 	if nA.IsZero() {
 		return ErrZero
 	}
 	c.Div(
-		number.Mul(number.Mul(c, &d), t.staticExtra.APrecision),
-		number.Mul(nA, &t.numTokensU256),
+		number.SafeMul(number.SafeMul(c, &d), t.staticExtra.APrecision),
+		number.SafeMul(nA, &t.numTokensU256),
 	)
-	var b = number.Add(
+	var b = number.SafeAdd(
 		&s,
-		number.Div(number.Mul(&d, t.staticExtra.APrecision), nA),
+		number.Div(number.SafeMul(&d, t.staticExtra.APrecision), nA),
 	)
 
 	var yPrev uint256.Int
@@ -217,10 +217,10 @@ func (t *PoolSimulator) getY(
 
 		// y = (y*y + c) / (2 * y + b - D)
 		y.Div(
-			number.Add(number.Mul(y, y), c),
-			number.Sub(
-				number.Add(
-					number.Add(y, y), // 2 * y
+			number.SafeAdd(number.SafeMul(y, y), c),
+			number.SafeSub(
+				number.SafeAdd(
+					number.SafeAdd(y, y), // 2 * y
 					b),
 				&d),
 		)
