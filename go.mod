@@ -12,14 +12,14 @@ require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/KyberNetwork/aevm v1.0.6
-	github.com/KyberNetwork/aggregator-encoding v0.8.1
+	github.com/KyberNetwork/aggregator-encoding v0.8.3
 	github.com/KyberNetwork/blackjack v0.3.0
-	github.com/KyberNetwork/blockchain-toolkit v0.5.1
+	github.com/KyberNetwork/blockchain-toolkit v0.5.2
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
 	github.com/KyberNetwork/ethrpc v0.7.1
 	github.com/KyberNetwork/kutils v0.2.2
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.35.2
+	github.com/KyberNetwork/kyberswap-dex-lib v0.35.5
 	github.com/KyberNetwork/logger v0.2.0
 	github.com/KyberNetwork/pool-service v1.38.0-test.0.20240228063435-8d79a991792d
 	github.com/KyberNetwork/reload v0.1.1
@@ -34,7 +34,7 @@ require (
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/dranikpg/gtrs v0.6.0
 	github.com/envoyproxy/protoc-gen-validate v1.0.4
-	github.com/ethereum/go-ethereum v1.13.12
+	github.com/ethereum/go-ethereum v1.13.14
 	github.com/getsentry/sentry-go v0.18.0
 	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-contrib/pprof v1.4.0
@@ -59,7 +59,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/sourcegraph/conc v0.3.0
 	github.com/spf13/viper v1.18.2
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/tdewolff/minify/v2 v2.12.4
 	github.com/urfave/cli/v2 v2.27.1
 	go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.43.0
@@ -68,7 +68,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.23.1
 	go.uber.org/automaxprocs v1.5.2
 	go.uber.org/zap v1.27.0
-	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
+	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225
 	golang.org/x/sync v0.6.0
 	google.golang.org/grpc v1.61.1
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.2.0
@@ -173,7 +173,7 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.7.0 // indirect
-	golang.org/x/crypto v0.19.0 // indirect
+	golang.org/x/crypto v0.20.0 // indirect
 	golang.org/x/mod v0.15.0 // indirect
 	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect

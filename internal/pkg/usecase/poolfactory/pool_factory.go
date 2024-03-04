@@ -15,12 +15,14 @@ import (
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
@@ -442,6 +444,10 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newKelpRSETH(entityPool)
 	case pooltypes.PoolTypes.RocketPoolRETH:
 		return f.newRocketPoolRETH(entityPool)
+	case pooltypes.PoolTypes.EthenaSusde:
+		return f.newEthenaSusde(entityPool)
+	case pooltypes.PoolTypes.MakerSavingsDai:
+		return f.newMakerSavingsDai(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -1554,6 +1560,36 @@ func (f *PoolFactory) newRocketPoolRETH(entityPool entity.Pool) (*reth.PoolSimul
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newRocketPoolRETH] pool: [%s] » type: [%s] cause by %v",
+			entityPool.Address,
+			entityPool.Type,
+			err,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newEthenaSusde(entityPool entity.Pool) (*susde.PoolSimulator, error) {
+	corePool, err := susde.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newEthenaSusde] pool: [%s] » type: [%s] cause by %v",
+			entityPool.Address,
+			entityPool.Type,
+			err,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newMakerSavingsDai(entityPool entity.Pool) (*savingsdai.PoolSimulator, error) {
+	corePool, err := savingsdai.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newMakerSavingsDai] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
 			entityPool.Type,
 			err,
