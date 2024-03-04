@@ -116,6 +116,8 @@ func TestCalcAmountOutPlainError(t *testing.T) {
 
 		// skewed balance: https://arbiscan.io/address/0x1c5ffa4fb4907b681c61b8c82b28c4672ceb1974#readContract
 		`{"address":"0x1c5ffa4fb4907b681c61b8c82b28c4672ceb1974","reserveUsd":368.49875138508617,"amplifiedTvl":368.49875138508617,"exchange":"curve-stable-plain","type":"curve-stable-plain","timestamp":1709176810,"reserves":["14581731602","7584641092575167553","297354791","63473254","678722435250454329942"],"tokens":[{"address":"0x13780e6d5696dd91454f6d3bbc2616687fea43d0","symbol":"UST","decimals":6,"swappable":true},{"address":"0x17fc002b466eec40dae837fc4be5c67993ddbd6f","symbol":"FRAX","decimals":18,"swappable":true},{"address":"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8","symbol":"USDC.e","decimals":6,"swappable":true},{"address":"0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9","symbol":"USDT","decimals":6,"swappable":true}],"extra":"{\"InitialA\":\"20000\",\"FutureA\":\"20000\",\"InitialATime\":0,\"FutureATime\":0,\"SwapFee\":\"4000000\",\"AdminFee\":\"5000000000\"}","staticExtra":"{\"APrecision\":\"100\",\"LpToken\":\"0x1C5ffa4FB4907B681c61B8c82b28C4672ceb1974\"}","blockNumber":185545245}`,
+
+		`{"address":"0x7c1aa4989df27970381196d3ef32a7410e3f2748","reserveUsd":0.8184891049392782,"amplifiedTvl":0.8184891049392782,"exchange":"curve-stable-plain","type":"curve-stable-plain","timestamp":1709547325,"reserves":["72225117545986","327323206812225085","106781139290107161","44963556946649101174851397","1001002528959797128391"],"tokens":[{"address":"0x7ceb23fd6bc0add59e62ac25578270cff1b9f619","name":"","symbol":"WETH","decimals":18,"weight":0,"swappable":true},{"address":"0xe0b52e49357fd4daf2c15e02058dce6bc0057db4","name":"","symbol":"agEUR","decimals":18,"weight":0,"swappable":true},{"address":"0x3a58a54c066fdc0f2d55fc9c89f0415c92ebf3c4","name":"","symbol":"stMATIC","decimals":18,"weight":0,"swappable":true},{"address":"0x7d645cbbcade2a130bf1bf0528b8541d32d3f8cf","name":"","symbol":"ALRTO","decimals":18,"weight":0,"swappable":true}],"extra":"{\"InitialA\":\"20000\",\"FutureA\":\"20000\",\"InitialATime\":0,\"FutureATime\":0,\"SwapFee\":\"4000000\",\"AdminFee\":\"5000000000\"}","staticExtra":"{\"APrecision\":\"100\",\"LpToken\":\"0x7C1aa4989DF27970381196D3EF32A7410E3F2748\",\"IsNativeCoin\":[false,false,false,false]}"}`,
 	}
 
 	testcases := []struct {
@@ -131,6 +133,8 @@ func TestCalcAmountOutPlainError(t *testing.T) {
 		{1, "0x13780e6d5696dd91454f6d3bbc2616687fea43d0", 1, "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"},
 		{1, "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", 1, "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"},
 		{1, "0x17fc002b466eec40dae837fc4be5c67993ddbd6f", 4443317428734351594, "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8"},
+
+		{2, "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619", 1000000000000000000, "0xe0b52e49357fd4daf2c15e02058dce6bc0057db4"},
 	}
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
@@ -146,11 +150,7 @@ func TestCalcAmountOutPlainError(t *testing.T) {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			p := sims[tc.poolIdx]
 			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
-				return p.CalcAmountOut(pool.CalcAmountOutParams{
-					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
-					TokenOut:      tc.out,
-					Limit:         nil,
-				})
+				return pool.CalcAmountOut(p, pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}, tc.out, nil)
 			})
 			if out != nil && out.TokenAmountOut != nil {
 				fmt.Println(out.TokenAmountOut.Amount)

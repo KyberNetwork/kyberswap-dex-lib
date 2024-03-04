@@ -3,7 +3,7 @@ module github.com/KyberNetwork/kyberswap-dex-lib
 go 1.21
 
 require (
-	github.com/KyberNetwork/blockchain-toolkit v0.5.1
+	github.com/KyberNetwork/blockchain-toolkit v0.5.2
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
 	github.com/KyberNetwork/ethrpc v0.7.1
 	github.com/KyberNetwork/int256 v0.1.3
