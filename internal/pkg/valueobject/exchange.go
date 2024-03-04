@@ -161,6 +161,12 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeRocketPool
 	dexValueObject.ExchangeRocketPoolRETH: {},
+
+	// executeEthenaSusde
+	dexValueObject.ExchangeEthenaSusde: {},
+
+	// executeMakersDAI
+	dexValueObject.ExchangeMakerSavingsDai: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {
