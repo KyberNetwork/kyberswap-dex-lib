@@ -45,7 +45,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		u.logger.Infof("Finish updating pools list.")
 	}()
 
-	includedTypes := mapset.NewSet(shared.CURVE_POOL_TYPE_STABLE_NG_META, shared.CURVE_POOL_TYPE_STABLE_NG_PLAIN)
+	includedTypes := mapset.NewSet(shared.CURVE_POOL_TYPE_STABLE_NG_PLAIN)
 	curvePools, newMetadataBytes, err := u.sharedUpdater.GetNewPools(ctx, metadataBytes, includedTypes)
 	if err != nil {
 		return nil, nil, err
