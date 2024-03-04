@@ -58,7 +58,8 @@ func (t *PoolTracker) GetNewPoolState(
 
 		numTokens = len(p.Tokens)
 
-		balances = make([]*big.Int, numTokens)
+		balances   = make([]*big.Int, numTokens)
+		balancesV1 = make([]*big.Int, numTokens)
 
 		// for pools that have non-standard rate multipliers
 		storedRates   [shared.MaxTokenCount]*big.Int
@@ -168,6 +169,13 @@ func (t *PoolTracker) GetNewPoolState(
 			Method: poolMethodBalances,
 			Params: []interface{}{big.NewInt(int64(i))},
 		}, []interface{}{&balances[i]})
+
+		calls.AddCall(&ethrpc.Call{
+			ABI:    getBalances128ABI,
+			Target: p.Address,
+			Method: poolMethodBalances,
+			Params: []interface{}{big.NewInt(int64(i))},
+		}, []interface{}{&balancesV1[i]})
 	}
 
 	if res, err := calls.TryBlockAndAggregate(); err != nil {
@@ -211,7 +219,13 @@ func (t *PoolTracker) GetNewPoolState(
 
 	var reserves = make(entity.PoolReserves, 0, len(balances)+1)
 	for i := range balances {
-		reserves = append(reserves, balances[i].String())
+		if balances[i] != nil {
+			reserves = append(reserves, balances[i].String())
+		} else if balancesV1[i] != nil {
+			reserves = append(reserves, balancesV1[i].String())
+		} else {
+			reserves = append(reserves, "0")
+		}
 	}
 	reserves = append(reserves, lpSupply.String())
 
