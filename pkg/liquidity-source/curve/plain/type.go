@@ -10,6 +10,9 @@ type (
 		// some Plain pools have oracle for 2nd coin's rate
 		// (not to be confused with Plain2Price that use multiple oracles for all of its coins)
 		Oracle string `json:",omitempty"`
+
+		// which coins are originally native (before being converted to wrapped)
+		IsNativeCoin []bool
 	}
 
 	Extra struct {

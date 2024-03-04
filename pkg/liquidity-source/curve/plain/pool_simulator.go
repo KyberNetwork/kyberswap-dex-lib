@@ -221,9 +221,14 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	var fromId = t.GetTokenIndex(tokenIn)
 	var toId = t.GetTokenIndex(tokenOut)
-	return curve.Meta{
+	meta := curve.Meta{
 		TokenInIndex:  fromId,
 		TokenOutIndex: toId,
 		Underlying:    false,
 	}
+	if len(t.staticExtra.IsNativeCoin) == t.numTokens {
+		meta.TokenInIsNative = &t.staticExtra.IsNativeCoin[fromId]
+		meta.TokenOutIsNative = &t.staticExtra.IsNativeCoin[toId]
+	}
+	return meta
 }
