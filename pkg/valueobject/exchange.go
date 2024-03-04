@@ -248,6 +248,16 @@ var (
 	ExchangeEthenaSusde Exchange = "ethena-susde"
 
 	ExchangeMakerSavingsDai Exchange = "maker-savingsdai"
+
+	ExchangeRingSwap        Exchange = "ring-swap"
+	ExchangeThrusterV2      Exchange = "thruster-v2"
+	ExchangeThrusterV2Degen Exchange = "thruster-v2-degen"
+	ExchangeDyorSwap        Exchange = "dyor-swap"
+	ExchangeSwapBlast       Exchange = "swap-blast"
+	ExchangeMonoswap        Exchange = "monoswap"
+	ExchangeThrusterV3      Exchange = "thruster-v3"
+	ExchangeCyberblastV3    Exchange = "cyberblast-v3"
+	ExchangeMonoswapV3      Exchange = "monoswap-v3"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -449,6 +459,15 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeRocketPoolRETH:             {},
 	ExchangeEthenaSusde:                {},
 	ExchangeMakerSavingsDai:            {},
+	ExchangeRingSwap:                   {},
+	ExchangeThrusterV2:                 {},
+	ExchangeThrusterV2Degen:            {},
+	ExchangeDyorSwap:                   {},
+	ExchangeSwapBlast:                  {},
+	ExchangeMonoswap:                   {},
+	ExchangeThrusterV3:                 {},
+	ExchangeCyberblastV3:               {},
+	ExchangeMonoswapV3:                 {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
