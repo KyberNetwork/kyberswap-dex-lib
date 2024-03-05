@@ -66,6 +66,7 @@ var (
 	ExchangePancakeStable Exchange = "pancake-stable"
 
 	ExchangeCurveStablePlain Exchange = "curve-stable-plain"
+	ExchangeCurveStableNg    Exchange = "curve-stable-ng"
 
 	ExchangeUniSwapV3        Exchange = "uniswapv3"
 	ExchangeKyberswapElastic Exchange = "kyberswap-elastic"
@@ -309,6 +310,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAxial:                      {},
 	ExchangeCurve:                      {},
 	ExchangeCurveStablePlain:           {},
+	ExchangeCurveStableNg:              {},
 	ExchangeEllipsis:                   {},
 	ExchangePancakeStable:              {},
 	ExchangeUniSwapV3:                  {},
