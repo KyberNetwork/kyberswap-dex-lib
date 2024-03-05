@@ -12,14 +12,14 @@ require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/KyberNetwork/aevm v1.0.6
-	github.com/KyberNetwork/aggregator-encoding v0.8.3
+	github.com/KyberNetwork/aggregator-encoding v0.8.4
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.5.2
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
 	github.com/KyberNetwork/ethrpc v0.7.1
 	github.com/KyberNetwork/kutils v0.2.2
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.35.5
+	github.com/KyberNetwork/kyberswap-dex-lib v0.35.7
 	github.com/KyberNetwork/logger v0.2.0
 	github.com/KyberNetwork/pool-service v1.38.0-test.0.20240228063435-8d79a991792d
 	github.com/KyberNetwork/reload v0.1.1

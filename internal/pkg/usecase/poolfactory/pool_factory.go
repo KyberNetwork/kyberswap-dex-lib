@@ -15,6 +15,7 @@ import (
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
+	curveStableNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
@@ -324,6 +325,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newCurveTricrypto(entityPool)
 	case pooltypes.PoolTypes.CurveTwo:
 		return f.newCurveTwo(entityPool)
+	case pooltypes.PoolTypes.CurveStableNg:
+		return f.newCurveStableNg(entityPool)
 	case pooltypes.PoolTypes.DodoClassical, pooltypes.PoolTypes.DodoStable,
 		pooltypes.PoolTypes.DodoVendingMachine, pooltypes.PoolTypes.DodoPrivate:
 		return f.newDoDo(entityPool)
@@ -626,6 +629,20 @@ func (f *PoolFactory) newCurveStablePlain(entityPool entity.Pool) (*plain.PoolSi
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newCurveStablePlain] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return pool, nil
+}
+
+func (f *PoolFactory) newCurveStableNg(entityPool entity.Pool) (*curveStableNg.PoolSimulator, error) {
+	pool, err := curveStableNg.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			err,
+			"[PoolFactory.newCurveStableNg] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
