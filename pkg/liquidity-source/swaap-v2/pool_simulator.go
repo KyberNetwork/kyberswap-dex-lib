@@ -1,14 +1,13 @@
 package swaapv2
 
 import (
-	"encoding/json"
 	"errors"
+	"math"
 	"math/big"
 	"strings"
 
-	"github.com/KyberNetwork/blockchain-toolkit/float"
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
-	"github.com/KyberNetwork/blockchain-toolkit/unit"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -19,22 +18,22 @@ import (
 var (
 	ErrEmptyPriceLevels      = errors.New("empty price levels")
 	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
+	ErrPoolSwapped           = errors.New("pool swapped")
+	ErrOutOfLiquidity        = errors.New("out of liquidity")
 )
 
 type (
 	PoolSimulator struct {
 		pool.Pool
-
+		isBaseSwapped          bool
+		isQuoteSwapped         bool
 		baseToken              *entity.PoolToken
 		quoteToken             *entity.PoolToken
 		baseToQuotePriceLevels []PriceLevel
 		quoteToBasePriceLevels []PriceLevel
-
-		timestamp int64
-
-		priceTolerance *big.Int
-
-		gas Gas
+		timestamp              int64
+		priceTolerance         float64
+		gas                    Gas
 	}
 
 	MetaInfo struct {
@@ -42,8 +41,8 @@ type (
 	}
 
 	PriceLevel struct {
-		Price  float64 `json:"price"`
-		Amount float64 `json:"amount"`
+		Price float64 `json:"price"`
+		Level float64 `json:"level"`
 	}
 
 	Gas struct {
@@ -80,37 +79,32 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Reserves:   lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			},
 		},
+		isBaseSwapped:          false,
+		isQuoteSwapped:         false,
 		baseToken:              entityPool.Tokens[0],
 		quoteToken:             entityPool.Tokens[1],
 		baseToQuotePriceLevels: extra.BaseToQuotePriceLevels,
 		quoteToBasePriceLevels: extra.QuoteToBasePriceLevels,
-
-		timestamp: entityPool.Timestamp,
-
-		priceTolerance: big.NewInt(int64(extra.PriceTolerance)),
-
-		gas: DefaultGas,
+		timestamp:              entityPool.Timestamp,
+		priceTolerance:         float64(extra.PriceTolerance),
+		gas:                    DefaultGas,
 	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if params.TokenAmountIn.Token == p.baseToken.Address {
 		return p.swapBaseToQuote(params.TokenAmountIn.Amount)
-	} else {
-		return p.swapQuoteToBase(params.TokenAmountIn.Amount)
 	}
+
+	return p.swapQuoteToBase(params.TokenAmountIn.Amount)
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if params.TokenAmountIn.Token == p.baseToken.Address {
-		amountInAfterDecimals := unit.ToDecimal(params.TokenAmountIn.Amount, p.baseToken.Decimals)
-
-		p.baseToQuotePriceLevels = getNewPriceLevelsState(amountInAfterDecimals, p.baseToQuotePriceLevels)
-	} else {
-		amountInAfterDecimals := unit.ToDecimal(params.TokenAmountIn.Amount, p.quoteToken.Decimals)
-
-		p.quoteToBasePriceLevels = getNewPriceLevelsState(amountInAfterDecimals, p.quoteToBasePriceLevels)
+		p.isBaseSwapped = true
+		return
 	}
+	p.isQuoteSwapped = true
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
@@ -120,25 +114,22 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (p *PoolSimulator) swapBaseToQuote(amountIn *big.Int) (*pool.CalcAmountOutResult, error) {
-	amountInAfterDecimals := unit.ToDecimal(amountIn, p.baseToken.Decimals)
+	if p.isBaseSwapped {
+		return nil, ErrPoolSwapped
+	}
+
+	amountInFl, _ := amountIn.Float64()
+	amountInAfterDecimals := amountInFl / math.Pow10(int(p.baseToken.Decimals))
 
 	amountOutAfterDecimals, err := getAmountOut(amountInAfterDecimals, p.baseToQuotePriceLevels)
 	if err != nil {
 		return nil, err
 	}
 
-	amountOut, _ := new(big.Float).Mul(
-		amountOutAfterDecimals,
-		bignumber.TenPowDecimals(p.quoteToken.Decimals),
-	).Int(nil)
+	amountOutFl := amountOutAfterDecimals * math.Pow10(int(p.quoteToken.Decimals))
+	amountOutFl = amountOutFl * (priceToleranceBps - p.priceTolerance) / priceToleranceBps
 
-	amountOut = new(big.Int).Quo(
-		new(big.Int).Mul(
-			amountOut,
-			new(big.Int).Sub(priceToleranceBps, p.priceTolerance),
-		),
-		priceToleranceBps,
-	)
+	amountOut, _ := new(big.Float).SetFloat64(amountOutFl).Int(nil)
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: p.quoteToken.Address, Amount: amountOut},
@@ -153,25 +144,22 @@ func (p *PoolSimulator) swapBaseToQuote(amountIn *big.Int) (*pool.CalcAmountOutR
 }
 
 func (p *PoolSimulator) swapQuoteToBase(amountIn *big.Int) (*pool.CalcAmountOutResult, error) {
-	amountInAfterDecimals := unit.ToDecimal(amountIn, p.quoteToken.Decimals)
+	if p.isQuoteSwapped {
+		return nil, ErrPoolSwapped
+	}
+
+	amountInFl, _ := amountIn.Float64()
+	amountInAfterDecimals := amountInFl / math.Pow10(int(p.quoteToken.Decimals))
 
 	amountOutAfterDecimals, err := getAmountOut(amountInAfterDecimals, p.quoteToBasePriceLevels)
 	if err != nil {
 		return nil, err
 	}
 
-	amountOut, _ := new(big.Float).Mul(
-		amountOutAfterDecimals,
-		bignumber.TenPowDecimals(p.baseToken.Decimals),
-	).Int(nil)
+	amountOutFl := amountOutAfterDecimals * math.Pow10(int(p.baseToken.Decimals))
+	amountOutFl = amountOutFl * (priceToleranceBps - p.priceTolerance) / priceToleranceBps
 
-	amountOut = new(big.Int).Quo(
-		new(big.Int).Mul(
-			amountOut,
-			new(big.Int).Sub(priceToleranceBps, p.priceTolerance),
-		),
-		priceToleranceBps,
-	)
+	amountOut, _ := new(big.Float).SetFloat64(amountOutFl).Int(nil)
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: p.baseToken.Address, Amount: amountOut},
@@ -185,87 +173,34 @@ func (p *PoolSimulator) swapQuoteToBase(amountIn *big.Int) (*pool.CalcAmountOutR
 	}, nil
 }
 
-func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel) (*big.Float, error) {
+func getAmountOut(amountIn float64, priceLevels []PriceLevel) (float64, error) {
 	if len(priceLevels) == 0 {
-		return nil, ErrEmptyPriceLevels
+		return 0, ErrEmptyPriceLevels
 	}
 
-	// Calculate the total available amount in the price levels
-	availableAmount := lo.Reduce(priceLevels, func(acc float64, priceLevel PriceLevel, _ int) float64 {
-		return acc + priceLevel.Amount
-	}, 0.0)
-
-	availableAmountBF := new(big.Float).SetFloat64(availableAmount)
-
-	// If the amount in is greater than the available amount that price levels can provide, return error insufficient liquidity
-	if amountIn.Cmp(availableAmountBF) > 0 {
-		return nil, ErrInsufficientLiquidity
+	if amountIn > priceLevels[len(priceLevels)-1].Level {
+		return 0, ErrOutOfLiquidity
 	}
 
-	amountOut := float.Zero()
-	amountInLeft := amountIn
-	currentLevelIdx := 0
+	var (
+		amountOut    = float64(0)
+		amountInLeft = amountIn
+		levelIdx     = 0
+	)
 
 	for {
-		currentLevelAvailableAmount := new(big.Float).SetFloat64(priceLevels[currentLevelIdx].Amount)
-		swappableAmount := currentLevelAvailableAmount
-
-		if currentLevelAvailableAmount.Cmp(amountInLeft) > 0 {
-			swappableAmount = amountInLeft
+		availableAmount := priceLevels[levelIdx].Level
+		if levelIdx > 0 {
+			availableAmount -= priceLevels[levelIdx-1].Level
 		}
-
-		amountOut = new(big.Float).Add(
-			amountOut,
-			new(big.Float).Mul(
-				swappableAmount, new(big.Float).SetFloat64(priceLevels[currentLevelIdx].Price),
-			),
-		)
-
-		amountInLeft = new(big.Float).Sub(amountInLeft, swappableAmount)
-		currentLevelIdx += 1
-
-		if amountInLeft.Cmp(float.Zero()) == 0 || currentLevelIdx > len(priceLevels)-1 {
+		swappableAmount := math.Min(availableAmount, amountInLeft)
+		amountOut += swappableAmount * priceLevels[levelIdx].Price
+		amountInLeft -= swappableAmount
+		levelIdx += 1
+		if amountInLeft == 0 || levelIdx >= len(priceLevels) {
 			break
 		}
 	}
 
 	return amountOut, nil
-}
-
-func getNewPriceLevelsState(
-	amountIn *big.Float,
-	priceLevels []PriceLevel,
-) []PriceLevel {
-	if len(priceLevels) == 0 {
-		return priceLevels
-	}
-
-	amountInLeft := amountIn
-	currentLevelIdx := 0
-
-	for {
-		currentLevelAvailableAmount := new(big.Float).SetFloat64(priceLevels[currentLevelIdx].Amount)
-		swappableAmount := currentLevelAvailableAmount
-
-		if currentLevelAvailableAmount.Cmp(amountInLeft) > 0 {
-			// Update the price level at the current step because it's partially filled
-			priceLevels[currentLevelIdx].Amount, _ = new(big.Float).Sub(currentLevelAvailableAmount, amountInLeft).Float64()
-
-			swappableAmount = amountInLeft
-		} else {
-			// Only increase the step if the current level is fully filled
-			currentLevelIdx += 1
-		}
-
-		amountInLeft = new(big.Float).Sub(amountInLeft, swappableAmount)
-
-		if amountInLeft.Cmp(float.Zero()) == 0 || currentLevelIdx > len(priceLevels)-1 {
-			// Get the remaining price levels
-			priceLevels = priceLevels[currentLevelIdx:]
-
-			break
-		}
-	}
-
-	return priceLevels
 }
