@@ -2,6 +2,7 @@ package swaapv2
 
 import (
 	"errors"
+	"math"
 	"math/big"
 	"strings"
 
@@ -192,18 +193,10 @@ func getAmountOut(amountIn float64, priceLevels []PriceLevel) (float64, error) {
 		if levelIdx > 0 {
 			availableAmount -= priceLevels[levelIdx-1].Level
 		}
-		var swappableAmount float64
-		if availableAmount > amountInLeft {
-			swappableAmount = amountInLeft
-		} else {
-			swappableAmount = availableAmount
-		}
-
+		swappableAmount := math.Min(availableAmount, amountInLeft)
 		amountOut += swappableAmount * priceLevels[levelIdx].Price
-
 		amountInLeft -= swappableAmount
 		levelIdx += 1
-
 		if amountInLeft == 0 || levelIdx >= len(priceLevels) {
 			break
 		}
