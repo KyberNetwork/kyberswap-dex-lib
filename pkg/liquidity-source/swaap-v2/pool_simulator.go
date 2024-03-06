@@ -119,14 +119,14 @@ func (p *PoolSimulator) swapBaseToQuote(amountIn *big.Int) (*pool.CalcAmountOutR
 	}
 
 	amountInFl, _ := amountIn.Float64()
-	amountInAfterDecimals := amountInFl / pow10(p.baseToken.Decimals)
+	amountInAfterDecimals := amountInFl / math.Pow10(int(p.baseToken.Decimals))
 
 	amountOutAfterDecimals, err := getAmountOut(amountInAfterDecimals, p.baseToQuotePriceLevels)
 	if err != nil {
 		return nil, err
 	}
 
-	amountOutFl := amountOutAfterDecimals * pow10(p.quoteToken.Decimals)
+	amountOutFl := amountOutAfterDecimals * math.Pow10(int(p.quoteToken.Decimals))
 	amountOutFl = amountOutFl * (priceToleranceBps - p.priceTolerance) / priceToleranceBps
 
 	amountOut, _ := new(big.Float).SetFloat64(amountOutFl).Int(nil)
@@ -149,14 +149,14 @@ func (p *PoolSimulator) swapQuoteToBase(amountIn *big.Int) (*pool.CalcAmountOutR
 	}
 
 	amountInFl, _ := amountIn.Float64()
-	amountInAfterDecimals := amountInFl / pow10(p.quoteToken.Decimals)
+	amountInAfterDecimals := amountInFl / math.Pow10(int(p.quoteToken.Decimals))
 
 	amountOutAfterDecimals, err := getAmountOut(amountInAfterDecimals, p.quoteToBasePriceLevels)
 	if err != nil {
 		return nil, err
 	}
 
-	amountOutFl := amountOutAfterDecimals * pow10(p.baseToken.Decimals)
+	amountOutFl := amountOutAfterDecimals * math.Pow10(int(p.baseToken.Decimals))
 	amountOutFl = amountOutFl * (priceToleranceBps - p.priceTolerance) / priceToleranceBps
 
 	amountOut, _ := new(big.Float).SetFloat64(amountOutFl).Int(nil)
@@ -203,15 +203,4 @@ func getAmountOut(amountIn float64, priceLevels []PriceLevel) (float64, error) {
 	}
 
 	return amountOut, nil
-}
-
-func pow10(b uint8) float64 {
-	c := 1.0
-	a := 10.0
-	for ; b > 0; b, a = b/2, a*a {
-		if (b & 1) == 1 {
-			c = c * a
-		}
-	}
-	return c
 }
