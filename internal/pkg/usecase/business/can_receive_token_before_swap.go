@@ -101,13 +101,19 @@ var (
 		valueobject.ExchangeKokonutCpmm:     true,
 		valueobject.ExchangeZebra:           true,
 		valueobject.ExchangeZKSwap:          true,
+		valueobject.ExchangeRingSwap:        true,
+		valueobject.ExchangeThrusterV2:      true,
+		valueobject.ExchangeThrusterV2Degen: true,
+		valueobject.ExchangeDyorSwap:        true,
+		valueobject.ExchangeSwapBlast:       true,
+		valueobject.ExchangeMonoswap:        true,
 
 		// GMX and GMX-like exchanges are also able to receive token before calling swap.
 		// However, they validate balance before swapping, so it's not possible to execute two gmx swaps consecutively without transferring token back to executor
 		// I disable gmx exchanges here to reduce ad-hoc logic on back end side (do not allow two consecutive gmx swap)
-		//valueobject.ExchangeGMX: true,
-		//valueobject.ExchangeMadMex: true,
-		//valueobject.ExchangeMetavault: true,
+		// valueobject.ExchangeGMX: true,
+		// valueobject.ExchangeMadMex: true,
+		// valueobject.ExchangeMetavault: true,
 	}
 )
 

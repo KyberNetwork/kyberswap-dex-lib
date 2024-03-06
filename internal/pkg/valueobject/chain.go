@@ -29,12 +29,14 @@ const (
 	ChainIDPolygonZkEVM    ChainID = 1101
 	ChainIDBase            ChainID = 8453
 	ChainIDScroll          ChainID = 534352
+	ChainIDBlast           ChainID = 81457
 )
 
 var l2EncoderSupportedChains = map[ChainID]struct{}{
 	ChainIDArbitrumOne: {},
 	ChainIDOptimism:    {},
 	ChainIDBase:        {},
+	ChainIDBlast:       {},
 }
 
 func IsL2EncoderSupportedChains(chainID ChainID) bool {
