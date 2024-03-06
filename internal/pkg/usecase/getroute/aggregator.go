@@ -18,7 +18,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/hillclimb"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getrouteencode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -169,10 +168,6 @@ func (a *aggregator) findBestRoute(
 		GasInclude:             params.GasInclude,
 		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
 		SourceHash:             valueobject.HashSources(params.Sources),
-	}
-
-	if input.IsPathGeneratorEnabled {
-		input.SourceHash = valueobject.HashSources(getrouteencode.GetSourcesAfterExclude(params.Sources))
 	}
 
 	data := findroute.NewFinderData(ctx, tokenByAddress, priceUSDByAddress, state)

@@ -16,6 +16,7 @@ type (
 		AvailableSources       []string                        `mapstructure:"availableSources"`
 		PathGeneratorDataTtl   time.Duration                   `mapstructure:"pathGeneratorDataTtl"`
 		ConfigGeneratorDataTtl time.Duration                   `mapstructure:"configGeneratorDataTtl"`
+		ChainID                valueobject.ChainID             `mapstructure:"chainId"`
 	}
 
 	TokenAndAmounts struct {

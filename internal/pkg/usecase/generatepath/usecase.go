@@ -19,6 +19,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getrouteencode"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -157,11 +158,19 @@ func (uc *useCase) Handle(ctx context.Context) {
 	// Dynamically create and send tasks to workers
 	go func() {
 		for _, t := range tokensToMaintain {
-			tokenIn := strings.ToLower(t.TokenAddress)
+			tokenIn, err := eth.ConvertEtherToWETH(t.TokenAddress, uc.config.ChainID)
+			if err != nil {
+				logger.Errorf(ctx, "failed to try convert token %s to weth", t.TokenAddress)
+				continue
+			}
 
 			var tokenOuts []string
 			for _, t := range tokensToMaintain {
-				tokenOut := strings.ToLower(t.TokenAddress)
+				tokenOut, err := eth.ConvertEtherToWETH(t.TokenAddress, uc.config.ChainID)
+				if err != nil {
+					logger.Errorf(ctx, "failed to try convert token %s to weth", t.TokenAddress)
+					continue
+				}
 				if tokenOut != tokenIn {
 					tokenOuts = append(tokenOuts, tokenOut)
 				}

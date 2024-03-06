@@ -330,6 +330,7 @@ useCase:
     configGeneratorDataTtl: 12h
     pathGeneratorDataTtl: 2h
     maintainingInterval: 360s
+    chainId: *chainId
   trackExecutor:
     subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-ethereum
 job:

@@ -25,6 +25,7 @@ const (
 	RequestCountMetricsName            = "request.count"
 	InvalidSynthetixVolumeMetricsName  = "invalid_synthetix_volume.count"
 	FindRoutePregenHitRateMetricsName  = "find_route_pregen.count"
+	IsPregenPathValidMetricsName       = "is_pregen_path_valid.count"
 	EstimateGasStatusMetricsName       = "estimate_gas.count"
 	EstimateGasWithSlippageMetricsName = "estimate_gas_slippage"
 	IndexPoolsDelayMetricsName         = "index_pools_delay"
@@ -39,6 +40,7 @@ var (
 	invalidSynthetixVolumeCounter metric.Float64Counter
 	findRoutePregenHitRateCounter metric.Float64Counter
 	estimateGasStatusCounter      metric.Float64Counter
+	isPregenPathValidCounter      metric.Float64Counter
 	mapMetricNameToCounter        map[string]metric.Float64Counter
 
 	// histogram metrics
@@ -56,6 +58,7 @@ func init() {
 	invalidSynthetixVolumeCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(InvalidSynthetixVolumeMetricsName))
 	findRoutePregenHitRateCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(FindRoutePregenHitRateMetricsName))
 	estimateGasStatusCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(EstimateGasStatusMetricsName))
+	isPregenPathValidCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(IsPregenPathValidMetricsName))
 	estimateGasSlippageHistogram, _ = kybermetric.Meter().Int64Histogram(formatMetricName(EstimateGasWithSlippageMetricsName))
 	indexPoolsDelayHistogram, _ = kybermetric.Meter().Int64Histogram(formatMetricName(IndexPoolsDelayMetricsName),
 		metric.WithExplicitBucketBoundaries(0, 50, 300, 1200, 2500, 5000, 10e3, 30e3, 90e3, 300e3, 1200e3, 3600e3))
@@ -68,6 +71,7 @@ func init() {
 		InvalidSynthetixVolumeMetricsName: invalidSynthetixVolumeCounter,
 		FindRoutePregenHitRateMetricsName: findRoutePregenHitRateCounter,
 		EstimateGasStatusMetricsName:      estimateGasStatusCounter,
+		IsPregenPathValidMetricsName:      isPregenPathValidCounter,
 	}
 	mapMetricNameToHistogram = map[string]metric.Int64Histogram{
 		EstimateGasWithSlippageMetricsName: estimateGasSlippageHistogram,
@@ -108,6 +112,16 @@ func IncrFindRoutePregenCount(ctx context.Context, pregenHit bool, otherTags map
 	maps.Copy(tags, otherTags)
 
 	incr(ctx, FindRoutePregenHitRateMetricsName, tags, 1)
+}
+
+func IncrIsPregenPathValidCount(ctx context.Context, valid bool, otherTags map[string]string) {
+	tags := map[string]string{
+		"valid": strconv.FormatBool(valid),
+	}
+
+	maps.Copy(tags, otherTags)
+
+	incr(ctx, IsPregenPathValidMetricsName, tags, 1)
 }
 
 func IncrFindRouteCacheCount(ctx context.Context, cacheHit bool, otherTags map[string]string) {

@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
@@ -41,6 +42,48 @@ func (f *spfav2Finder) findrouteV2(
 	}
 
 	return bestMultiPathRoute, nil
+}
+
+func (f *spfav2Finder) isPregenPathValid(
+	ctx context.Context,
+	data findroute.FinderData,
+	paths []*entity.MinimalPath,
+) bool {
+	span, _ := tracer.StartSpanFromContext(ctx, "spfav2Finder.isPregenPathValid")
+	defer span.End()
+	for _, path := range paths {
+		for _, pool := range path.Pools {
+			iPool, exist := data.PoolBucket.GetPool(pool)
+			if !exist {
+				logger.WithFields(ctx, logger.Fields{
+					"poolAddress": pool,
+				}).Warnf("Pregen check fail: pool in the pregenPaths is not exist")
+				return false
+			}
+
+			// we check if the pool is kyber pmm and all reserves are zero
+			reserves := iPool.GetReserves()
+			zeroReserves := true
+			for _, reserve := range reserves {
+				if reserve.Cmp(constant.Zero) > 0 {
+					zeroReserves = false
+					break
+				}
+			}
+
+			// a pmm pool is delete if all reserves are zero
+			if zeroReserves {
+				logger.WithFields(ctx, logger.Fields{
+					"poolAddress": pool,
+					"poolType":    iPool.GetType(),
+					"reserves":    iPool.GetReserves(),
+				}).Warnf("Pregen check fail: pool in the pregenPaths is deleted or has zero reserves %s", iPool.GetReserves())
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func (f *spfav2Finder) bestRouteV2(
@@ -77,8 +120,11 @@ func (f *spfav2Finder) bestRouteV2(
 		generatedBestPaths = f.getGeneratedBestPaths(input.SourceHash, input.TokenInAddress, input.TokenOutAddress)
 	}
 
+	isPregenPathValid := f.isPregenPathValid(ctx, data, generatedBestPaths)
+	metrics.IncrIsPregenPathValidCount(ctx, isPregenPathValid, nil)
+
 	// if api params set IsPathGeneratorEnabled = true, or we have isPathGeneratorEnabled on the yaml config
-	if input.IsPathGeneratorEnabled && len(generatedBestPaths) > 0 {
+	if input.IsPathGeneratorEnabled && len(generatedBestPaths) > 0 && isPregenPathValid {
 		metrics.IncrFindRoutePregenCount(ctx, true, nil)
 		logger.WithFields(ctx, logger.Fields{"pre_computed_bestPaths_len": len(generatedBestPaths)}).Infof(
 			"used precomputated_paths. sourceHash %v tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
