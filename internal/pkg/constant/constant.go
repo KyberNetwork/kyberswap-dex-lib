@@ -2,6 +2,7 @@ package constant
 
 import (
 	"math/big"
+	"time"
 )
 
 const OneHundredPercent = 100
@@ -120,3 +121,5 @@ func init() {
 	}
 	LowReserve = new(big.Float).SetFloat64(1e-6)
 }
+
+const DefaultPMMStalledTime = 30 * time.Second

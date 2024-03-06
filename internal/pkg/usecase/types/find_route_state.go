@@ -14,6 +14,8 @@ type FindRouteState struct {
 	Pools map[string]poolpkg.IPoolSimulator
 	// map LimitType-SwapLimit
 	SwapLimit map[string]poolpkg.SwapLimit
+	// IS PMM staled is set to true if the reserve of PMM doesnt change for config.PoolManager.StallingPMMThreshold sec
+	IsPMMStalled bool
 }
 
 type AdjacentList struct {

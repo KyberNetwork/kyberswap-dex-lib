@@ -10,6 +10,7 @@ import (
 	"time"
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
@@ -337,6 +338,11 @@ func (c *cache) summarizeSimpleRoute(
 				)
 			}
 
+			if pool.GetType() == pooltypes.PoolTypes.KyberPMM && state.IsPMMStalled {
+				return nil, errors.WithMessage(
+					ErrInvalidSwap,
+					"there is stalled PMM pools")
+			}
 			swapLimit := state.SwapLimit[pool.GetType()]
 			// Step 3.1.2: simulate c swap through the pool
 			result, err := poolpkg.CalcAmountOut(pool, tokenAmountIn, simpleSwap.TokenOutAddress, swapLimit)

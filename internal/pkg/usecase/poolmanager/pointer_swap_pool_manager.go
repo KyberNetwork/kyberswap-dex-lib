@@ -17,7 +17,9 @@ import (
 	cachePolicy "github.com/hashicorp/golang-lru/v2"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/pools"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
@@ -48,14 +50,22 @@ type PointerSwapPoolManager struct {
 	lock *sync.RWMutex
 }
 
+type StallingDeterrence struct {
+	lastUpdatePMM        time.Time
+	PMMStallingThreshold time.Duration
+	isPMMStalled         bool
+}
 type LockedState struct {
-	poolByAddress map[string]poolpkg.IPoolSimulator
-	limits        map[string]map[string]*big.Int
-	lock          *sync.RWMutex
+	poolByAddress      map[string]poolpkg.IPoolSimulator
+	limits             map[string]map[string]*big.Int
+	stallingDeterrence *StallingDeterrence
+	lock               *sync.RWMutex
 }
 
-func NewLockedState() *LockedState {
-
+func NewLockedState(stallingPMMThreshold time.Duration) *LockedState {
+	if stallingPMMThreshold == 0 {
+		stallingPMMThreshold = constant.DefaultPMMStalledTime
+	}
 	var limits = make(map[string]map[string]*big.Int)
 	limits[pooltypes.PoolTypes.KyberPMM] = make(map[string]*big.Int)
 	limits[pooltypes.PoolTypes.Synthetix] = make(map[string]*big.Int)
@@ -64,26 +74,45 @@ func NewLockedState() *LockedState {
 		poolByAddress: make(map[string]poolpkg.IPoolSimulator),
 		limits:        limits,
 		lock:          &sync.RWMutex{},
+		stallingDeterrence: &StallingDeterrence{
+			PMMStallingThreshold: stallingPMMThreshold,
+			isPMMStalled:         false,
+		},
 	}
 }
 
 func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
 	s.lock.Lock()
-	s.poolByAddress = poolByAddress
-	// Optimize graph traversal by using tokenToPoolAddress list
 
 	//update the inventory and tokenToPoolAddress list
 	for poolAddress := range poolByAddress {
-		dexLimit, avail := s.limits[poolByAddress[poolAddress].GetType()]
+		//soft copy to save some lookupTime:
+		pool := poolByAddress[poolAddress]
+
+		dexLimit, avail := s.limits[pool.GetType()]
 		if !avail {
 			continue
 		}
-		limitMap := poolByAddress[poolAddress].CalculateLimit()
+		limitMap := pool.CalculateLimit()
 		for k, v := range limitMap {
 			dexLimit[k] = v
 		}
-
+		// custom logic of PMM pools:
+		if pool.GetType() == pooltypes.PoolTypes.KyberPMM {
+			if pmmPool, pmmAvail := s.poolByAddress[poolAddress]; pmmAvail {
+				if !pools.IsTheSameReserve(pmmPool, pool) {
+					s.stallingDeterrence.lastUpdatePMM = time.Now()
+				}
+			} else {
+				//newPool, set the update
+				s.stallingDeterrence.lastUpdatePMM = time.Now()
+			}
+		}
 	}
+	s.stallingDeterrence.isPMMStalled = time.Since(s.stallingDeterrence.lastUpdatePMM) > s.stallingDeterrence.PMMStallingThreshold
+	s.poolByAddress = poolByAddress
+	// Optimize graph traversal by using tokenToPoolAddress list
+
 	s.lock.Unlock()
 }
 
@@ -99,7 +128,7 @@ func NewNonMaintenancePointerSwapPoolManager(
 ) (*PointerSwapPoolManager, error) {
 	states := [NState]*LockedState{}
 	for i := 0; i < NState; i++ {
-		states[i] = NewLockedState()
+		states[i] = NewLockedState(config.StallingPMMThreshold)
 	}
 	//TODO try policies other than LRU
 	poolCache, err := cachePolicy.New[string, struct{}](config.Capacity)
@@ -154,7 +183,7 @@ func NewPointerSwapPoolManager(
 ) (*PointerSwapPoolManager, error) {
 	states := [NState]*LockedState{}
 	for i := 0; i < NState; i++ {
-		states[i] = NewLockedState()
+		states[i] = NewLockedState(config.StallingPMMThreshold)
 	}
 	//TODO try policies other than LRU
 	poolCache, err := cachePolicy.New[string, struct{}](config.Capacity)
@@ -217,7 +246,6 @@ func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
 // Therefore, do not modify IPool returned here, clone IPool before UpdateBalance
 func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (*types.FindRouteState, error) {
 	filteredPoolAddress := p.filterBlacklistedAddresses(ctx, poolAddresses)
-
 	filteredPoolAddress = p.excludeFaultyPools(ctx, filteredPoolAddress, p.config)
 
 	// update cache policy
@@ -240,9 +268,14 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 	)
 
 	p.states[readFrom].lock.RLock()
+	isPMMStalled := p.states[readFrom].stallingDeterrence.isPMMStalled
+
 	for _, key := range poolAddresses {
 		if pool, ok := p.states[readFrom].poolByAddress[key]; ok {
 			if dexSet.Has(pool.GetExchange()) {
+				if pool.GetType() == pooltypes.PoolTypes.KyberPMM && isPMMStalled {
+					continue
+				}
 				resultPoolByAddress[key] = pool
 			}
 		} else {
@@ -275,6 +308,11 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 		if dexSet.Has(poolEntities[i].Exchange) {
 			filteredPoolEntities = append(filteredPoolEntities, poolEntities[i])
 		}
+		// got new PMM Pool from redis, cancel stalling status
+		// this is an edge case since we normally have all PMM in our lockedStates.
+		if poolEntities[i].Type == pooltypes.PoolTypes.KyberPMM {
+			isPMMStalled = false
+		}
 	}
 
 	curveMetaBasePools, err := listCurveMetaBasePools(ctx, p.poolRepository, filteredPoolEntities)
@@ -293,8 +331,9 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 	}
 
 	return &types.FindRouteState{
-		Pools:     resultPoolByAddress,
-		SwapLimit: p.poolFactory.NewSwapLimit(resultLimits),
+		Pools:        resultPoolByAddress,
+		SwapLimit:    p.poolFactory.NewSwapLimit(resultLimits),
+		IsPMMStalled: isPMMStalled,
 	}
 }
 
@@ -349,7 +388,6 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 	}
 
 	poolByAddress := p.poolFactory.NewPoolByAddress(ctx, poolEntities, stateRoot)
-
 	p.states[writeTo].update(poolByAddress)
 	//swapping here
 	p.swapPointer(writeTo)

@@ -9,4 +9,5 @@ type Config struct {
 	UseAEVM                    bool            `mapstructure:"useAEVM" json:"useAEVM"`
 	FaultyPoolsExpireThreshold time.Duration   `mapstructure:"faultyPoolsExpireThreshold" json:"faultyPoolsExpireThreshold"`
 	MaxFaultyPoolSize          int64           `mapstructure:"maxFaultyPoolSize" json:"maxFaultyPoolSize"`
+	StallingPMMThreshold       time.Duration   `mapstructure:"stallingPMMThreshold" json:"stallingPMMThreshold"`
 }

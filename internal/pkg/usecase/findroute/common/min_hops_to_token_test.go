@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 	"github.com/stretchr/testify/assert"
@@ -82,7 +83,7 @@ func TestMinHopToTokenOut(t *testing.T) {
 		for tokenAddress := range tokenByAddress {
 			tokenAddressList = append(tokenAddressList, tokenAddress)
 		}
-		poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList)
+		poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList, pooltypes.PoolTypes.UniswapV2)
 		assert.Nil(t, err)
 		tokenToPoolAddress := make(map[string]*types.AddressList)
 		for poolAddress, pool := range poolByAddress {

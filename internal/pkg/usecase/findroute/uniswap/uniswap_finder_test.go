@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -26,7 +27,7 @@ func TestUniswapFinder(t *testing.T) {
 		tokenAddressList = append(tokenAddressList, tokenAddress)
 	}
 	priceUSDByAddress := valueobject.GenerateRandomPriceUSDByAddress(tokenAddressList)
-	poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList)
+	poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList, pooltypes.PoolTypes.UniswapV2)
 	assert.Nil(t, err)
 	tokenToPoolAddress := make(map[string]*types.AddressList)
 	for poolAddress, pool := range poolByAddress {
@@ -98,7 +99,7 @@ func BenchmarkUniswapFinder(b *testing.B) {
 				tokenAddressList = append(tokenAddressList, tokenAddress)
 			}
 			priceUSDByAddress := valueobject.GenerateRandomPriceUSDByAddress(tokenAddressList)
-			poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList)
+			poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList, pooltypes.PoolTypes.UniswapV2)
 			assert.Nil(b, err)
 			tokenToPoolAddress := make(map[string][]string)
 			for poolAddress, pool := range poolByAddress {

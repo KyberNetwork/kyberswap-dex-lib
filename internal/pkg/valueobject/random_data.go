@@ -35,7 +35,7 @@ func GenerateRandomPriceUSDByAddress(tokenAddressList []string) map[string]float
 	return prices
 }
 
-func GenerateRandomPoolByAddress(nPools int, tokenAddressList []string) (map[string]poolpkg.IPoolSimulator, error) {
+func GenerateRandomPoolByAddress(nPools int, tokenAddressList []string, poolType string) (map[string]poolpkg.IPoolSimulator, error) {
 	if nPools < len(tokenAddressList)-1 {
 		return nil, fmt.Errorf("not enough poolByAddress to make a connected graph")
 	}
@@ -72,6 +72,7 @@ func GenerateRandomPoolByAddress(nPools int, tokenAddressList []string) (map[str
 				strconv.Itoa(RandInt(1_000_000, 1_000_000_000)),
 				strconv.Itoa(RandInt(1_000_000, 1_000_000_000)),
 			},
+			Type: poolType,
 		}
 		// using uni pool for simplicity
 		if swap, err = uniswap.NewPoolSimulator(data); err != nil {

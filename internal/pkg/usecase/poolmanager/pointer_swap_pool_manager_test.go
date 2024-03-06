@@ -7,12 +7,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/mock/gomock"
 	cachePolicy "github.com/hashicorp/golang-lru/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	mocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/poolmanager"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func TestExcludeFaultyPools(t *testing.T) {
@@ -22,7 +29,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 
 		states := [3]*poolmanager.LockedState{}
 		for i := 0; i < 2; i++ {
-			states[i] = poolmanager.NewLockedState()
+			states[i] = poolmanager.NewLockedState(constant.DefaultPMMStalledTime)
 		}
 		poolCache, _ := cachePolicy.New[string, struct{}](2)
 
@@ -61,7 +68,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 
 		states := [3]*poolmanager.LockedState{}
 		for i := 0; i < 2; i++ {
-			states[i] = poolmanager.NewLockedState()
+			states[i] = poolmanager.NewLockedState(constant.DefaultPMMStalledTime)
 		}
 		poolCache, _ := cachePolicy.New[string, struct{}](2)
 
@@ -114,7 +121,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 
 		states := [3]*poolmanager.LockedState{}
 		for i := 0; i < 2; i++ {
-			states[i] = poolmanager.NewLockedState()
+			states[i] = poolmanager.NewLockedState(constant.DefaultPMMStalledTime)
 		}
 		poolCache, _ := cachePolicy.New[string, struct{}](2)
 
@@ -151,7 +158,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 
 		states := [3]*poolmanager.LockedState{}
 		for i := 0; i < 2; i++ {
-			states[i] = poolmanager.NewLockedState()
+			states[i] = poolmanager.NewLockedState(constant.DefaultPMMStalledTime)
 		}
 		poolCache, _ := cachePolicy.New[string, struct{}](2)
 
@@ -183,4 +190,74 @@ func TestExcludeFaultyPools(t *testing.T) {
 		assert.ElementsMatch(t, result, addresses)
 	})
 
+}
+
+func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
+	var (
+		nTokens = 10
+		nPools  = 100
+	)
+	config := poolmanager.Config{
+		StallingPMMThreshold:       500 * time.Millisecond,
+		PoolRenewalInterval:        500 * time.Millisecond,
+		FaultyPoolsExpireThreshold: 30 * time.Second,
+		MaxFaultyPoolSize:          int64(500),
+		Capacity:                   nPools,
+	}
+
+	var ctrl = gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tokenByAddress := valueobject.GenerateRandomTokenByAddress(nTokens)
+	var (
+		tokenAddressList = make([]string, len(tokenByAddress))
+		i                = 0
+	)
+
+	for tokenAddress := range tokenByAddress {
+		tokenAddressList[i] = tokenAddress
+		i++
+	}
+	poolByAddresses, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList, pooltypes.PoolTypes.KyberPMM)
+
+	//change Them all to PMM type
+	require.NoError(t, err)
+	//poolCache, _ := cachePolicy.New[string, struct{}](2)
+	poolRankRepository := mocks.NewMockIPoolRankRepository(ctrl)
+	poolRepository := mocks.NewMockIPoolRepository(ctrl)
+	poolFactory := mocks.NewMockIPoolFactory(ctrl)
+
+	var (
+		poolAddressList = make([]string, len(poolByAddresses))
+		poolList        = make([]poolpkg.IPoolSimulator, len(poolByAddresses))
+		isBlackList     = make([]bool, len(poolByAddresses))
+	)
+	//reuse index
+	i = 0
+	for address := range poolByAddresses {
+		poolAddressList[i] = address
+		isBlackList[i] = false
+		poolList[i] = poolByAddresses[address]
+		i++
+	}
+	// Mocked PoolRank always return the poolAddressList above
+	poolRankRepository.EXPECT().FindGlobalBestPools(gomock.Any(), gomock.Any()).Return(poolAddressList).AnyTimes()
+	poolRepository.EXPECT().CheckPoolsInBlacklist(gomock.Any(), gomock.Any()).Return(isBlackList, nil).AnyTimes()
+	poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return([]string{}, nil).AnyTimes()
+	poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Return([]*entity.Pool{}, nil).AnyTimes()
+	poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).Return(poolList).AnyTimes()
+	poolFactory.EXPECT().NewSwapLimit(gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
+	poolFactory.EXPECT().NewPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any()).Return(poolByAddresses).AnyTimes()
+
+	pm, err := poolmanager.NewPointerSwapPoolManager(
+		context.Background(),
+		poolRepository, poolFactory, poolRankRepository, config, nil,
+	)
+	require.NoError(t, err)
+	// let sleep for 2 sec
+	time.Sleep(2 * time.Second)
+	state, err := pm.GetStateByPoolAddresses(context.Background(), poolAddressList, []string{pooltypes.PoolTypes.KyberPMM}, common.Hash{0x00})
+	require.NoError(t, err)
+	assert.Equal(t, state.IsPMMStalled, true)
 }

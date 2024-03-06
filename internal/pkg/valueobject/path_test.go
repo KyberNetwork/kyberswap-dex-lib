@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/stretchr/testify/assert"
 
@@ -37,7 +38,7 @@ func TestNewPath(t *testing.T) {
 	for tokenAddress := range tokenByAddress {
 		tokenAddressList = append(tokenAddressList, tokenAddress)
 	}
-	poolByAddress, err := GenerateRandomPoolByAddress(nPool, tokenAddressList)
+	poolByAddress, err := GenerateRandomPoolByAddress(nPool, tokenAddressList, pooltypes.PoolTypes.UniswapV2)
 	assert.NoError(t, err, "must be able to generate random pool")
 	poolBucket := NewPoolBucket(poolByAddress)
 	poolAddressOnPaths := make([]string, nPoolOnPaths)
