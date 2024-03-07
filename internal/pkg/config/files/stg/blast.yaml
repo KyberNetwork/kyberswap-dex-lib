@@ -29,6 +29,14 @@ common:
     - "thruster-v3"
     - "cyberblast-v3"
     - "monoswap-v3"
+    - "blastdex"
+    - "sushiswap"
+    - "hyper-blast"
+    - "synapse"
+    - "iziswap"
+    - "sushiswap-v3"
+    - "roguex"
+    - "blasterswap"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
