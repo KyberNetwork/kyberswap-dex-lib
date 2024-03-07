@@ -73,6 +73,7 @@ var (
 
 	ExchangeUniSwapV3        Exchange = "uniswapv3"
 	ExchangeKyberswapElastic Exchange = "kyberswap-elastic"
+	ExchangeRoguex           Exchange = "roguex"
 
 	ExchangeBalancer   Exchange = "balancer"
 	ExchangeBeethovenX Exchange = "beethovenx"
@@ -479,6 +480,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBladeSwap:                  {},
 	ExchangeBlastDex:                   {},
 	ExchangeHyperBlast:                 {},
+	ExchangeRoguex:                     {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
