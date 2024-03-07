@@ -53,6 +53,7 @@ var (
 	ExchangeAstroSwap     Exchange = "astroswap"
 	ExchangeCamelot       Exchange = "camelot"
 	ExchangeFraxSwap      Exchange = "fraxswap"
+	ExchangeBlasterSwap   Exchange = "blasterswap"
 
 	ExchangeOneSwap    Exchange = "oneswap"
 	ExchangeNerve      Exchange = "nerve"
