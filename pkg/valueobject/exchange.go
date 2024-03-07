@@ -53,6 +53,9 @@ var (
 	ExchangeAstroSwap     Exchange = "astroswap"
 	ExchangeCamelot       Exchange = "camelot"
 	ExchangeFraxSwap      Exchange = "fraxswap"
+	ExchangeBlasterSwap   Exchange = "blasterswap"
+	ExchangeBlastDex      Exchange = "blastdex"
+	ExchangeHyperBlast    Exchange = "hyper-blast"
 
 	ExchangeOneSwap    Exchange = "oneswap"
 	ExchangeNerve      Exchange = "nerve"
@@ -70,6 +73,7 @@ var (
 
 	ExchangeUniSwapV3        Exchange = "uniswapv3"
 	ExchangeKyberswapElastic Exchange = "kyberswap-elastic"
+	ExchangeRoguex           Exchange = "roguex"
 
 	ExchangeBalancer   Exchange = "balancer"
 	ExchangeBeethovenX Exchange = "beethovenx"
@@ -226,6 +230,8 @@ var (
 	ExchangeVelocoreV2CPMM         Exchange = "velocore-v2-cpmm"
 	ExchangeVelocoreV2WombatStable Exchange = "velocore-v2-wombat-stable"
 	ExchangeAlienBaseStableSwap    Exchange = "alien-base-stableswap"
+
+	ExchangeBladeSwap Exchange = "blade-swap"
 
 	ExchangeNile   Exchange = "nile"
 	ExchangeNileV2 Exchange = "nile-v2"
@@ -470,6 +476,11 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeThrusterV3:                 {},
 	ExchangeCyberblastV3:               {},
 	ExchangeMonoswapV3:                 {},
+	ExchangeBlasterSwap:                {},
+	ExchangeBladeSwap:                  {},
+	ExchangeBlastDex:                   {},
+	ExchangeHyperBlast:                 {},
+	ExchangeRoguex:                     {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
