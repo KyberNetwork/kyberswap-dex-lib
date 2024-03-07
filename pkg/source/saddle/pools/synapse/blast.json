@@ -1,0 +1,30 @@
+[
+  {
+    "id": "0x999fcd13c54b26e02a6ccd185f71550b3a4641c0",
+    "tokens": [
+      {
+        "address": "0xce971282faac9fabcf121944956da7142cccc855",
+        "precision": "1"
+      },
+      {
+        "address": "0x4300000000000000000000000000000000000004",
+        "precision": "1"
+      }
+    ],
+    "swapFee": 0.0004
+  },
+  {
+    "id": "0xa4bd1aad7cf04567c10f38fc4355e91bba32ac9c",
+    "tokens": [
+      {
+        "address": "0x3194b0a295d87fdaa54df852c248f7a6baf6c6e0",
+        "precision": "1"
+      },
+      {
+        "address": "0x4300000000000000000000000000000000000003",
+        "precision": "1"
+      }
+    ],
+    "swapFee": 0.0004
+  }
+]
