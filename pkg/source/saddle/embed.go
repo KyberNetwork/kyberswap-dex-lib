@@ -45,6 +45,9 @@ var synapsePolygonPoolData []byte
 //go:embed pools/synapse/base.json
 var synapseBasePoolData []byte
 
+//go:embed pools/synapse/blast.json
+var synapseBlastPoolData []byte
+
 // Axial pool data
 
 //go:embed pools/axial/avalanche.json
@@ -68,6 +71,7 @@ var bytesByPath = map[string][]byte{
 	"pools/synapse/optimism.json":  synapseOptimismPoolData,
 	"pools/synapse/polygon.json":   synapsePolygonPoolData,
 	"pools/synapse/base.json":      synapseBasePoolData,
+	"pools/synapse/blast.json":     synapseBlastPoolData,
 
 	"pools/axial/avalanche.json": axialAvalanchePoolData,
 
