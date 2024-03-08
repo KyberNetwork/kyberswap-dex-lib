@@ -29,6 +29,27 @@ type PoolSimulator struct {
 	timestamp              int64
 }
 
+func samePrice(p1, p2 []PriceLevel) bool {
+	if len(p1) != len(p2) {
+		return false
+	}
+	priceMap := make(map[float64]float64, len(p1))
+	for _, price := range p1 {
+		priceMap[price.Price] = price.Amount
+	}
+	for _, price := range p2 {
+		amount, avail := priceMap[price.Price]
+		if !avail || amount != price.Amount {
+			return false
+		}
+	}
+	return true
+}
+
+func (p *PoolSimulator) IsTheSamePrice(p2 *PoolSimulator) bool {
+	return samePrice(p.baseToQuotePriceLevels, p2.baseToQuotePriceLevels) && samePrice(p.quoteToBasePriceLevels, p2.quoteToBasePriceLevels)
+}
+
 func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 	var pmmInventory = make(map[string]*big.Int, len(p.GetTokens()))
 	tokens := p.GetTokens()
