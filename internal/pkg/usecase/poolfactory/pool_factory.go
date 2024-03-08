@@ -186,7 +186,7 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 		} else if pool.Type == pooltypes.PoolTypes.CurveMeta {
 			IPoolSimulator, err := f.newCurveMeta(*pool, curveBasePoolByAddress)
 			if err != nil {
-				//logger.Debugf(ctx, err.Error())
+				logger.Debugf(ctx, err.Error())
 				continue
 			}
 
@@ -194,6 +194,7 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 		} else {
 			iPool, err := f.newPool(*pool, stateRoot)
 			if err != nil {
+				logger.Debugf(ctx, err.Error())
 				continue
 			}
 

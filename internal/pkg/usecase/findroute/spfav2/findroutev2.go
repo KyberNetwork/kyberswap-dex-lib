@@ -222,21 +222,14 @@ func (f *spfav2Finder) bestMultiPathRouteV2(
 	h := NewFindPathV2Helper(len(paths), int(f.maxPathsInRoute), amountInToGeneratePath, cmpFunc)
 
 	for _, amountInPerSplit := range splits {
-		//continuously pop the bestPath and add it until we either has no path left or we got a valid path for route
-		for {
-			bestPath := h.bestPathExactInV2(ctx, input, data, paths, amountInPerSplit)
-			if bestPath == nil {
-				logger.Warn(ctx, "no more paths to try.")
-				return nil, nil
-			}
-
-			if err := bestMultiPathRoute.AddPath(data.PoolBucket, bestPath.Clone(), data.SwapLimits); err != nil {
-				logger.Debugf(ctx, "AddPath crash into error, pop next path. Error :%s", err)
-			} else {
-				break
-			}
+		bestPath := h.bestPathExactInV2(ctx, input, data, paths, amountInPerSplit)
+		if bestPath == nil {
+			return nil, nil
 		}
 
+		if err := bestMultiPathRoute.AddPath(data.PoolBucket, bestPath.Clone(), data.SwapLimits); err != nil {
+			return nil, err
+		}
 	}
 	return bestMultiPathRoute, nil
 }
