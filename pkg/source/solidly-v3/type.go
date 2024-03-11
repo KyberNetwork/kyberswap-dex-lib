@@ -71,11 +71,11 @@ type Slot0 struct {
 }
 
 type FetchRPCResult struct {
-	liquidity   *big.Int
-	slot0       Slot0
-	tickSpacing *big.Int
-	reserve0    *big.Int
-	reserve1    *big.Int
+	Liquidity   *big.Int
+	Slot0       Slot0
+	TickSpacing *big.Int
+	Reserve0    *big.Int
+	Reserve1    *big.Int
 }
 
 func transformTickRespToTick(tickResp TickResp) (Tick, error) {
