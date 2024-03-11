@@ -196,18 +196,29 @@ func (t *PoolTracker) GetNewPoolState(
 
 	// first check `stored_rates`
 	if checkValidCustomRates(&p, storedRates) {
+		lg.Infof("use custom stored rate %v", storedRates)
 		if err := t.updateRateMultipliers(lg, &extra, numTokens, storedRates[:numTokens]); err != nil {
 			return entity.Pool{}, err
 		}
 	} else if oracleRate != nil && oracleRate.Sign() != 0 && numTokens == 2 {
 		// then check if there is valid answer from oracle (only valid for 2 coins pool)
+		lg.Infof("use custom oracle rate %v", oracleRate)
 		if err := t.updateRateMultipliers(lg, &extra, 2, []*big.Int{bignumber.TenPowInt(18), oracleRate}); err != nil {
 			return entity.Pool{}, err
 		}
-	} else if checkValidCustomRates(&p, registryRates) {
+	} else {
 		// check rates from main registry
-		if err := t.updateRateMultipliers(lg, &extra, numTokens, registryRates[:numTokens]); err != nil {
-			return entity.Pool{}, err
+		// `rates` from registry need to be multiplied with Precision first
+		for i, token := range p.Tokens {
+			if registryRates[i] != nil {
+				registryRates[i].Mul(registryRates[i], bignumber.TenPowInt(18-token.Decimals))
+			}
+		}
+		if checkValidCustomRates(&p, registryRates) {
+			lg.Infof("use custom registry rate %v", registryRates)
+			if err := t.updateRateMultipliers(lg, &extra, numTokens, registryRates[:numTokens]); err != nil {
+				return entity.Pool{}, err
+			}
 		}
 	}
 
