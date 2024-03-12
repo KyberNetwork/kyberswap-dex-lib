@@ -6,14 +6,14 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 )
 
-type bin struct {
+type Bin struct {
 	ID          uint32   `json:"id"`
 	ReserveX    *big.Int `json:"reserveX"`
 	ReserveY    *big.Int `json:"reserveY"`
-	TotalSupply *big.Int `json:"totalSupply"`
+	TotalSupply *big.Int `json:"totalSupply,omitempty"`
 }
 
-func (b *bin) isEmptyForSwap(swapForX bool) bool {
+func (b *Bin) isEmptyForSwap(swapForX bool) bool {
 	zero := integer.Zero()
 	if swapForX {
 		return b.ReserveX.Cmp(zero) == 0
@@ -21,12 +21,12 @@ func (b *bin) isEmptyForSwap(swapForX bool) bool {
 	return b.ReserveY.Cmp(zero) == 0
 }
 
-func (b *bin) isEmpty() bool {
+func (b *Bin) isEmpty() bool {
 	zero := integer.Zero()
 	return b.ReserveX.Cmp(zero) == 0 && b.ReserveY.Cmp(zero) == 0
 }
 
-func (b *bin) getAmounts(
+func (b *Bin) getAmounts(
 	parameters *parameters,
 	binStep uint16,
 	swapForY bool,
@@ -94,7 +94,7 @@ func (b *bin) getAmounts(
 	return amountIn128, amountOut128, fee128, nil
 }
 
-func (b *bin) getReserveOut(swapForX bool) *big.Int {
+func (b *Bin) getReserveOut(swapForX bool) *big.Int {
 	if swapForX {
 		return b.ReserveX
 	}
