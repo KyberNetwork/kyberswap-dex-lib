@@ -143,7 +143,13 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	if err := t.updateRateMultipliers(lg, &extra, numTokens, storedRates[:numTokens]); err != nil {
-		return entity.Pool{}, err
+		// if the rates is invalid then clear the pool and return err=nil
+		p.Timestamp = time.Now().Unix()
+		p.Reserves = make(entity.PoolReserves, len(balances)+1)
+		for i := range p.Reserves {
+			p.Reserves[i] = "0"
+		}
+		return p, nil
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -170,6 +176,9 @@ func (t *PoolTracker) updateRateMultipliers(lg logger.Logger, extra *Extra, numT
 	lg.Debugf("pool use stored rate %v", customRates)
 
 	for i := 0; i < numTokens; i++ {
+		if customRates[i] == nil {
+			return ErrInvalidStoredRates
+		}
 		if overflow := extra.RateMultipliers[i].SetFromBig(customRates[i]); overflow {
 			lg.WithFields(logger.Fields{"storedRates": customRates}).Error("invalid stored rates")
 			return ErrInvalidStoredRates
