@@ -25,6 +25,8 @@ type (
 		Implementation string
 		LpTokenAddress string
 		IsMetaPool     bool
+
+		BasePoolAddress string
 	}
 
 	GetPoolsResult struct {

@@ -19,7 +19,7 @@ type PoolSimulator struct {
 	pool.Pool
 
 	precisionMultipliers []uint256.Int
-	reserves             []uint256.Int // same as pool.Reserves but use uint256.Int
+	Reserves             []uint256.Int // same as pool.Reserves but use uint256.Int
 
 	LpSupply uint256.Int
 	gas      Gas
@@ -27,8 +27,8 @@ type PoolSimulator struct {
 	numTokens     int
 	numTokensU256 uint256.Int
 
-	extra       Extra
-	staticExtra StaticExtra
+	Extra       Extra
+	StaticExtra StaticExtra
 }
 
 type Gas struct {
@@ -38,11 +38,11 @@ type Gas struct {
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	sim := &PoolSimulator{}
 
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &sim.staticExtra); err != nil {
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &sim.StaticExtra); err != nil {
 		return nil, err
 	}
 
-	if err := json.Unmarshal([]byte(entityPool.Extra), &sim.extra); err != nil {
+	if err := json.Unmarshal([]byte(entityPool.Extra), &sim.Extra); err != nil {
 		return nil, err
 	}
 
@@ -59,14 +59,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var tokens = make([]string, numTokens)
 	var reservesBI = make([]*big.Int, numTokens)
 
-	sim.reserves = make([]uint256.Int, numTokens)
+	sim.Reserves = make([]uint256.Int, numTokens)
 	sim.precisionMultipliers = make([]uint256.Int, numTokens)
 
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
 
 		reservesBI[i] = bignumber.NewBig10(entityPool.Reserves[i])
-		if err := sim.reserves[i].SetFromDecimal(entityPool.Reserves[i]); err != nil {
+		if err := sim.Reserves[i].SetFromDecimal(entityPool.Reserves[i]); err != nil {
 			return nil, err
 		}
 
@@ -80,7 +80,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Info: pool.PoolInfo{
 			Address:    strings.ToLower(entityPool.Address),
 			ReserveUsd: entityPool.ReserveUsd,
-			SwapFee:    sim.extra.SwapFee.ToBig(),
+			SwapFee:    sim.Extra.SwapFee.ToBig(),
 			Exchange:   entityPool.Exchange,
 			Type:       entityPool.Type,
 			Tokens:     tokens,
@@ -148,11 +148,11 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	for i := range t.Info.Tokens {
 		if t.Info.Tokens[i] == input.Token {
 			t.Info.Reserves[i] = new(big.Int).Add(t.Info.Reserves[i], inputAmount)
-			t.reserves[i].Add(&t.reserves[i], number.SetFromBig(inputAmount))
+			t.Reserves[i].Add(&t.Reserves[i], number.SetFromBig(inputAmount))
 		}
 		if t.Info.Tokens[i] == output.Token {
 			t.Info.Reserves[i] = new(big.Int).Sub(t.Info.Reserves[i], outputAmount)
-			t.reserves[i].Sub(&t.reserves[i], number.SetFromBig(outputAmount))
+			t.Reserves[i].Sub(&t.Reserves[i], number.SetFromBig(outputAmount))
 		}
 	}
 }
@@ -165,9 +165,9 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 		TokenOutIndex: toId,
 		Underlying:    false,
 	}
-	if len(t.staticExtra.IsNativeCoins) == t.numTokens {
-		meta.TokenInIsNative = &t.staticExtra.IsNativeCoins[fromId]
-		meta.TokenOutIsNative = &t.staticExtra.IsNativeCoins[toId]
+	if len(t.StaticExtra.IsNativeCoins) == t.numTokens {
+		meta.TokenInIsNative = &t.StaticExtra.IsNativeCoins[fromId]
+		meta.TokenOutIsNative = &t.StaticExtra.IsNativeCoins[toId]
 	}
 	return meta
 }
