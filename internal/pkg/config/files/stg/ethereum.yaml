@@ -308,6 +308,7 @@ useCase:
     useAEVM: *useAEVM
     faultyPoolsExpireThreshold: 3s
     maxFaultyPoolSize: 500
+    stallingPMMThreshold: 30s
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000

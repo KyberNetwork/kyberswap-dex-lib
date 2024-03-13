@@ -235,6 +235,10 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, po
 }
 
 func (p *PointerSwapPoolManager) isPMMStalled(pool poolpkg.IPoolSimulator) bool {
+	//special case, non-configured stalling threshold is treat as non-enabling stalling threshold
+	if p.config.StallingPMMThreshold == 0 {
+		return false
+	}
 	if pool.GetType() == pooltypes.PoolTypes.KyberPMM {
 		if pmmPoolMeta, ok := pool.GetMetaInfo("", "").(kyberpmm.RFQMeta); ok {
 			createdTime := time.Unix(pmmPoolMeta.Timestamp, 0)
