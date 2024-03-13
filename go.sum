@@ -25,8 +25,8 @@ github.com/DataDog/zstd v1.5.2/go.mod h1:g4AWEaM3yOg3HYfnJ3YIawPnVdXJh9QME85blwS
 github.com/DmitriyVTitov/size v1.5.0/go.mod h1:le6rNI4CoLQV1b9gzp1+3d7hMAD/uu2QcJ+aYbNgiU0=
 github.com/KyberNetwork/aevm v1.0.6 h1:yKHSC0R8g1H0A98vFvlVAR5+kzGj1SGnoV9IYe3EHoE=
 github.com/KyberNetwork/aevm v1.0.6/go.mod h1:U/sxdIwhj+l9NoO1VlSitokO/P0L9y4qem0wd1IlUj4=
-github.com/KyberNetwork/aggregator-encoding v0.8.6 h1:3l80nIPEBFXiqQfAUaE3qIDkW64WSrKSZ/bTwG6lEXY=
-github.com/KyberNetwork/aggregator-encoding v0.8.6/go.mod h1:H5d6OR5DIuLWy3fCu/c5PUon+ow2evkiWf77ZM5Sa5o=
+github.com/KyberNetwork/aggregator-encoding v0.9.0 h1:hA5NftcbVuVfrNDMPsvcdv7R8eQu8g3e8Gat10Deo8k=
+github.com/KyberNetwork/aggregator-encoding v0.9.0/go.mod h1:BAPhgn9itfBve8ln8/K8eXHD4UE8Z+3m9R6v7J9xTZk=
 github.com/KyberNetwork/blackjack v0.3.0 h1:gYn3VRDZjsyJJmJOFZ217A3INh0g+DCm4wNjgHXnd5U=
 github.com/KyberNetwork/blackjack v0.3.0/go.mod h1:UmBTVq/Ia1AJzozJv0pinQTF8DTm+RcZJwvqHeY1JvM=
 github.com/KyberNetwork/blockchain-toolkit v0.5.2 h1:1Fi1iLzXa+REcy3enc3hme9qWhC4a1ydy5r9kCMZ2Dk=
@@ -41,8 +41,8 @@ github.com/KyberNetwork/kutils v0.2.2 h1:BgZPQeilzmVI39hf4YaGPRqWU0WWhLbfZ2IxzZP
 github.com/KyberNetwork/kutils v0.2.2/go.mod h1:v+vg2VJf7SKFMsH7M1LAPBfa7I3QFEaZg5ApjmW9jHg=
 github.com/KyberNetwork/kyber-trace-go v0.1.2 h1:x82SuCYTj4naoGNQ02DoSQgl7f07grl8RL8cKGAFNLw=
 github.com/KyberNetwork/kyber-trace-go v0.1.2/go.mod h1:X6hVacmKMeOEOlFh4TyfEHaEVRerFQ5YLuQ4keRV3hw=
-github.com/KyberNetwork/kyberswap-dex-lib v0.35.11 h1:dcMz/HgSRkcZZegDo7Z3o9rRWftqdSUJFfALLcqtQq0=
-github.com/KyberNetwork/kyberswap-dex-lib v0.35.11/go.mod h1:mn3zB9vUfIZjfgIG4XpKbQOdAD/rZNMPSS1BgIF+19w=
+github.com/KyberNetwork/kyberswap-dex-lib v0.36.0 h1:Bx7+UAmU4V4XGkeofixyyOwREBsGBBTk5urDAXXEcLY=
+github.com/KyberNetwork/kyberswap-dex-lib v0.36.0/go.mod h1:mn3zB9vUfIZjfgIG4XpKbQOdAD/rZNMPSS1BgIF+19w=
 github.com/KyberNetwork/logger v0.2.0 h1:5QNGP84uXpwVt4rtvLq9ATwy4grRwdjBNEc/RF7oJK4=
 github.com/KyberNetwork/logger v0.2.0/go.mod h1:zBqHbtJ3nJn6HQnp6UW8pbQkR+U6tSRFd5CzfiKL3Kw=
 github.com/KyberNetwork/pancake-v3-sdk v0.1.0 h1:HVUD13Qbwl4kiU1uSprQVpkis6fYYp3A32mVuK+f1Iw=
