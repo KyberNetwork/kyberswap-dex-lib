@@ -192,6 +192,7 @@ var (
 	ExchangeScale       Exchange = "scale"
 	ExchangeUSDFi       Exchange = "usdfi"
 	ExchangeSkydrome    Exchange = "skydrome"
+	ExchangeEqual       Exchange = "equal"
 
 	ExchangeWombat     Exchange = "wombat"
 	ExchangeMantisSwap Exchange = "mantisswap"
@@ -481,6 +482,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBlastDex:                   {},
 	ExchangeHyperBlast:                 {},
 	ExchangeRoguex:                     {},
+	ExchangeEqual:                      {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
