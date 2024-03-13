@@ -4,8 +4,12 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
 )
@@ -91,4 +95,58 @@ func RandInt(min int, max int) int {
 // RandFloat return random float within [min,max)
 func RandFloat(min float64, max float64) float64 {
 	return min + rand.Float64()*(max-min)
+}
+
+func GenPMMPool(token1, token2 *entity.Token) (*kyberpmm.PoolSimulator, error) {
+	var entityPool = entity.Pool{
+		Type:      pooltypes.PoolTypes.KyberPMM,
+		Exchange:  kyberpmm.DexTypeKyberPMM,
+		Address:   strings.Join([]string{"kyber_pmm", token1.Address, token2.Address}, "_"),
+		Timestamp: time.Now().Unix(),
+		Tokens: []*entity.PoolToken{
+			{
+				Address:   token1.Address,
+				Name:      token1.Name,
+				Symbol:    token1.Symbol,
+				Decimals:  token1.Decimals,
+				Weight:    0,
+				Swappable: true,
+			},
+			{
+				Address:   token2.Address,
+				Name:      token2.Name,
+				Symbol:    token2.Symbol,
+				Decimals:  token2.Decimals,
+				Weight:    0,
+				Swappable: true,
+			}},
+		StaticExtra: `{
+		"pairID":            "ID",
+		"baseTokenAddress":  "base",
+		"quoteTokenAddress": "quote"}`,
+		Reserves: []string{"123554545", "5555555"},
+		Extra: `{
+  "baseToQuotePriceLevels": [
+    {
+      "price": 100.5,
+      "amount": 10.0
+    },
+    {
+      "price": 101.2,
+      "amount": 15.0
+    }
+  ],
+  "quoteToBasePriceLevels": [
+    {
+      "price": 0.0098,
+      "amount": 500.0
+    },
+    {
+      "price": 0.0099,
+      "amount": 700.0
+    }
+  ]
+}`,
+	}
+	return kyberpmm.NewPoolSimulator(entityPool)
 }

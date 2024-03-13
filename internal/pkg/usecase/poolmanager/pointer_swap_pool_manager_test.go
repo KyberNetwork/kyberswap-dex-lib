@@ -16,7 +16,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	mocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/poolmanager"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -29,7 +28,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 
 		states := [3]*poolmanager.LockedState{}
 		for i := 0; i < 2; i++ {
-			states[i] = poolmanager.NewLockedState(constant.DefaultPMMStalledTime)
+			states[i] = poolmanager.NewLockedState()
 		}
 		poolCache, _ := cachePolicy.New[string, struct{}](2)
 
@@ -68,7 +67,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 
 		states := [3]*poolmanager.LockedState{}
 		for i := 0; i < 2; i++ {
-			states[i] = poolmanager.NewLockedState(constant.DefaultPMMStalledTime)
+			states[i] = poolmanager.NewLockedState()
 		}
 		poolCache, _ := cachePolicy.New[string, struct{}](2)
 
@@ -121,7 +120,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 
 		states := [3]*poolmanager.LockedState{}
 		for i := 0; i < 2; i++ {
-			states[i] = poolmanager.NewLockedState(constant.DefaultPMMStalledTime)
+			states[i] = poolmanager.NewLockedState()
 		}
 		poolCache, _ := cachePolicy.New[string, struct{}](2)
 
@@ -158,7 +157,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 
 		states := [3]*poolmanager.LockedState{}
 		for i := 0; i < 2; i++ {
-			states[i] = poolmanager.NewLockedState(constant.DefaultPMMStalledTime)
+			states[i] = poolmanager.NewLockedState()
 		}
 		poolCache, _ := cachePolicy.New[string, struct{}](2)
 
@@ -218,10 +217,15 @@ func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
 		tokenAddressList[i] = tokenAddress
 		i++
 	}
-	poolByAddresses, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList, pooltypes.PoolTypes.KyberPMM)
 
-	//change Them all to PMM type
+	pool1, err := valueobject.GenPMMPool(tokenByAddress[tokenAddressList[0]], tokenByAddress[tokenAddressList[1]])
 	require.NoError(t, err)
+	pool2, err := valueobject.GenPMMPool(tokenByAddress[tokenAddressList[1]], tokenByAddress[tokenAddressList[2]])
+	require.NoError(t, err)
+	poolByAddresses := map[string]poolpkg.IPoolSimulator{
+		pool1.GetAddress(): pool1,
+		pool2.GetAddress(): pool2}
+
 	//poolCache, _ := cachePolicy.New[string, struct{}](2)
 	poolRankRepository := mocks.NewMockIPoolRankRepository(ctrl)
 	poolRepository := mocks.NewMockIPoolRepository(ctrl)
@@ -256,8 +260,11 @@ func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
 	)
 	require.NoError(t, err)
 	// let sleep for 2 sec
-	time.Sleep(2 * time.Second)
+	time.Sleep(3 * time.Second)
 	state, err := pm.GetStateByPoolAddresses(context.Background(), poolAddressList, []string{pooltypes.PoolTypes.KyberPMM}, common.Hash{0x00})
 	require.NoError(t, err)
-	assert.Equal(t, state.IsPMMStalled, true)
+	_, pool1Avail := state.Pools[pool1.GetAddress()]
+	assert.Equal(t, false, pool1Avail)
+	_, pool2Avail := state.Pools[pool1.GetAddress()]
+	assert.Equal(t, false, pool2Avail)
 }
