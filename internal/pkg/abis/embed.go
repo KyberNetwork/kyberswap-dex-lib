@@ -10,3 +10,6 @@ var erc20 []byte
 
 //go:embed MetaAggregationRouterV2Optimistic.json
 var metaAggregationRouterV2Optimistic []byte
+
+//go:embed ScrolL1GasPriceOracle.json
+var scrolL1GasPriceOracle []byte

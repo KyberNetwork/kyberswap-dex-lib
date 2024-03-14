@@ -247,6 +247,9 @@ job:
     interval: 2s
   trackExecutorBalance:
     interval: 1h
+  updateL1Fee:
+    interval: 2s
+    oracle_address: "0x5300000000000000000000000000000000000002"
 repository:
   gas:
     redis:

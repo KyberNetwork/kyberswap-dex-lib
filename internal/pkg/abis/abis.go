@@ -10,6 +10,7 @@ var (
 	MetaAggregationRouterV2           abi.ABI
 	ERC20                             abi.ABI
 	MetaAggregationRouterV2Optimistic abi.ABI
+	ScrolL1GasPriceOracle             abi.ABI
 )
 
 func init() {
@@ -20,6 +21,7 @@ func init() {
 		{&MetaAggregationRouterV2, metaAggregationRouterV2},
 		{&ERC20, erc20},
 		{&MetaAggregationRouterV2Optimistic, metaAggregationRouterV2Optimistic},
+		{&ScrolL1GasPriceOracle, scrolL1GasPriceOracle},
 	}
 
 	for _, b := range builder {

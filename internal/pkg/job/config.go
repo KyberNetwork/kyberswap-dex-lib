@@ -12,6 +12,7 @@ type (
 		UpdateSuggestedGasPrice UpdateSuggestedGasPriceConfig `mapstructure:"updateSuggestedGasPrice"`
 		GenerateBestPaths       GenerateBestPathsJobConfig    `mapstructure:"generateBestPaths"`
 		TrackExecutorBalance    TrackExecutorBalanceConfig    `mapstructure:"trackExecutorBalance"`
+		UpdateL1Fee             UpdateL1FeeConfig             `mapstructure:"updateL1Fee"`
 	}
 
 	IndexPoolsJobConfig struct {
@@ -34,5 +35,10 @@ type (
 
 	TrackExecutorBalanceConfig struct {
 		Interval time.Duration `mapstructure:"interval"`
+	}
+
+	UpdateL1FeeConfig struct {
+		Interval      time.Duration `mapstructure:"interval" default:"0s"`
+		OracleAddress string        `mapstructure:"oracle_address"`
 	}
 )

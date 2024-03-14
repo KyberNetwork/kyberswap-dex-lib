@@ -27,3 +27,8 @@ type IGeneratePathUseCase interface {
 	Handle(ctx context.Context)
 	ApplyConfig(config generatepath.Config, isExcludeRFQ bool)
 }
+
+// IUpdateL1FeeUseCase get L1 fee parameters for L2 chains and save to Redis
+type IUpdateL1FeeUseCase interface {
+	Handle(ctx context.Context) error
+}

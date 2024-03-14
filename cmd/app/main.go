@@ -43,6 +43,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/executorbalance"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/l2fee"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pathgenerator"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
@@ -605,6 +606,7 @@ func indexerAction(c *cli.Context) (err error) {
 	}
 
 	ethClient := ethrpc.New(cfg.Common.RPC)
+	ethClient.SetMulticallContract(common.HexToAddress(cfg.Common.MulticallAddress))
 
 	// init redis client
 	routerRedisClient, err := redis.New(&cfg.Redis)
@@ -654,6 +656,22 @@ func indexerAction(c *cli.Context) (err error) {
 		cfg.Job.UpdateSuggestedGasPrice,
 	)
 
+	var updateL1FeeJob *job.UpdateL1FeeJob
+	if cfg.Job.UpdateL1Fee.Interval > 0 {
+		l1FeeParamsRepository := l2fee.NewRedisRepository(routerRedisClient.Client, l2fee.RedisL1FeeRepositoryConfig{Prefix: cfg.Redis.Prefix})
+
+		updateL1FeeUseCase := usecase.NewUpdateL1FeeParams(
+			cfg.Common.ChainID,
+			ethClient,
+			cfg.Job.UpdateL1Fee.OracleAddress,
+			l1FeeParamsRepository,
+		)
+		updateL1FeeJob = job.NewUpdateL1FeeJob(
+			updateL1FeeUseCase,
+			cfg.Job.UpdateL1Fee.Interval,
+		)
+	}
+
 	reloadManager := reload.NewManager()
 
 	// Run hot-reload manager.
@@ -702,6 +720,16 @@ func indexerAction(c *cli.Context) (err error) {
 
 		return nil
 	})
+
+	if updateL1FeeJob != nil {
+		g.Go(func() error {
+			logger.Info(ctx, "Starting updateL1FeeJob")
+
+			updateL1FeeJob.Run(ctx)
+
+			return nil
+		})
+	}
 
 	// Register notifier
 	reloadChan := make(chan string)
