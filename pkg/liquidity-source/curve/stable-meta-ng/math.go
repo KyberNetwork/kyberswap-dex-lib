@@ -1,10 +1,7 @@
 package stablemetang
 
 import (
-	"fmt"
-
 	"github.com/KyberNetwork/blockchain-toolkit/number"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/holiman/uint256"
 )
@@ -14,8 +11,9 @@ func (t *PoolSimulator) GetDyUnderlying(
 
 	// output
 	dy *uint256.Int,
-	adminFee *uint256.Int,
-	withdrawFee *uint256.Int,
+	addLiquidityInfo *BasePoolAddLiquidityInfo, // in case input is a base coin
+	metaSwapInfo *MetaPoolSwapInfo, // the meta swap component
+	withdrawInfo *BasePoolWithdrawInfo, // in case output is a base coin
 ) error {
 	var baseNCoins = len(t.basePool.GetInfo().Tokens)
 	xp := stableng.XpMem(t.Extra.RateMultipliers, t.Reserves)
@@ -53,7 +51,6 @@ func (t *PoolSimulator) GetDyUnderlying(
 
 	var base_i = i - MAX_METAPOOL_COIN_INDEX
 	var base_j = j - MAX_METAPOOL_COIN_INDEX
-	var meta_i, meta_j int
 
 	input_is_base_coin := base_i >= 0
 	output_is_base_coin := base_j >= 0
@@ -67,11 +64,11 @@ func (t *PoolSimulator) GetDyUnderlying(
 	}
 
 	if output_is_base_coin {
-		meta_i = i                       // input is meta coin
-		meta_j = MAX_METAPOOL_COIN_INDEX // output of meta swap is LPtoken
+		metaSwapInfo.TokenInIndex = i                        // input is meta coin
+		metaSwapInfo.TokenOutIndex = MAX_METAPOOL_COIN_INDEX // output of meta swap is LPtoken
 	} else {
-		meta_i = MAX_METAPOOL_COIN_INDEX
-		meta_j = j
+		metaSwapInfo.TokenInIndex = MAX_METAPOOL_COIN_INDEX
+		metaSwapInfo.TokenOutIndex = j
 	}
 
 	// determine input amount
@@ -80,25 +77,25 @@ func (t *PoolSimulator) GetDyUnderlying(
 		// input is from meta pool, so just add dx directly into meta balances
 		// x = xp[i] + dx * rates[0] / 10**18
 		x = number.SafeAdd(&xp[i], number.SafeMul(_dx, number.Div(&t.Extra.RateMultipliers[i], Precision)))
+		metaSwapInfo.AmountIn.Set(_dx)
 	} else {
 		// input is base coin, need to call base pool to get amount of LPtoken we'll get after depositing `_dx` input coin to base pool
 		// then add that to meta balances of LPtoken
-		var base_inputs [shared.MaxTokenCount]uint256.Int
 
 		// x = self._base_calc_token_amount(
 		//   dx, base_i, base_n_coins, BASE_POOL, True
 		// ) * rates[1] / PRECISION
 		for k := 0; k < baseNCoins; k += 1 {
-			base_inputs[k].Clear()
+			addLiquidityInfo.Amounts[k].Clear()
 		}
-		base_inputs[base_i].Set(_dx)
-		var mintAmount uint256.Int
-		if err := t.basePool.CalculateTokenAmount(base_inputs[:baseNCoins], true, &mintAmount); err != nil {
+		addLiquidityInfo.Amounts[base_i].Set(_dx)
+
+		if err := t.basePool.CalculateTokenAmountU256(addLiquidityInfo.Amounts[:baseNCoins], true, &addLiquidityInfo.MintAmount, addLiquidityInfo.FeeAmounts[:baseNCoins]); err != nil {
 			return err
 		}
-		fmt.Println("mintAmount", mintAmount.Dec())
 
-		x = number.Div(number.SafeMul(&mintAmount, &t.Extra.RateMultipliers[MAX_METAPOOL_COIN_INDEX]), Precision)
+		metaSwapInfo.AmountIn.Set(&addLiquidityInfo.MintAmount)
+		x = number.Div(number.SafeMul(&addLiquidityInfo.MintAmount, &t.Extra.RateMultipliers[MAX_METAPOOL_COIN_INDEX]), Precision)
 
 		// Adding number of pool tokens
 		// x += xp[1]
@@ -106,19 +103,23 @@ func (t *PoolSimulator) GetDyUnderlying(
 	}
 
 	// perform normal swap at meta pool
-	err := t.PoolSimulator.GetDyByX(meta_i, meta_j, x, xp, nil, dy, adminFee)
+	err := t.PoolSimulator.GetDyByX(metaSwapInfo.TokenInIndex, metaSwapInfo.TokenOutIndex, x, xp, nil, &metaSwapInfo.AmountOut, &metaSwapInfo.AdminFee)
 	if err != nil {
 		return err
 	}
 
 	if output_is_base_coin {
 		// withdraw output from base pool using `dy` of LPtoken
-		var baseDy uint256.Int
-		err = t.basePool.CalculateWithdrawOneCoin(dy, base_j, &baseDy, withdrawFee)
+		withdrawInfo.TokenAmount.Set(&metaSwapInfo.AmountOut)
+		withdrawInfo.TokenIndex = base_j
+		err = t.basePool.CalculateWithdrawOneCoinU256(&withdrawInfo.TokenAmount, withdrawInfo.TokenIndex, &withdrawInfo.Dy, &withdrawInfo.DyFee)
 		if err != nil {
 			return err
 		}
-		dy.Set(&baseDy)
+		dy.Set(&withdrawInfo.Dy)
+	} else {
+		// output is a meta coins, we're done
+		dy.Set(&metaSwapInfo.AmountOut)
 	}
 	return nil
 }

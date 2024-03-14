@@ -88,7 +88,7 @@ func (t *PoolSimulator) getD(xp []uint256.Int, a *uint256.Int, D *uint256.Int) e
 	D.Set(&S)
 
 	// Ann: uint256 = amp * N_COINS
-	Ann.Mul(a, &t.numTokensU256)
+	Ann.Mul(a, &t.NumTokensU256)
 
 	// pre-calculate some values to be used in the loop
 	// Ann * S / A_PRECISION
@@ -96,8 +96,8 @@ func (t *PoolSimulator) getD(xp []uint256.Int, a *uint256.Int, D *uint256.Int) e
 	// Ann - A_PRECISION
 	Ann_sub_APrec.Sub(&Ann, t.StaticExtra.APrecision)
 
-	numTokensPlus1 := uint256.NewInt(uint64(t.numTokens + 1))
-	numTokensPow := uint256.NewInt(uint64(math.Pow(float64(t.numTokens), float64(t.numTokens))))
+	numTokensPlus1 := uint256.NewInt(uint64(t.NumTokens + 1))
+	numTokensPow := uint256.NewInt(uint64(math.Pow(float64(t.NumTokens), float64(t.NumTokens))))
 
 	for i := 0; i < MaxLoopLimit; i++ {
 		// D_P: uint256 = D
@@ -119,7 +119,7 @@ func (t *PoolSimulator) getD(xp []uint256.Int, a *uint256.Int, D *uint256.Int) e
 		// D = (Ann * S / A_PRECISION + D_P * N_COINS) * D / ((Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P)
 		D.Div(
 			number.SafeMul(
-				number.SafeAdd(&Ann_mul_S_div_APrec, number.SafeMul(&D_P, &t.numTokensU256)),
+				number.SafeAdd(&Ann_mul_S_div_APrec, number.SafeMul(&D_P, &t.NumTokensU256)),
 				D,
 			),
 			number.SafeAdd(
@@ -150,7 +150,7 @@ func (t *PoolSimulator) GetY(
 	if tokenIndexFrom == tokenIndexTo {
 		return ErrTokenFromEqualsTokenTo
 	}
-	if tokenIndexFrom >= t.numTokens && tokenIndexTo >= t.numTokens {
+	if tokenIndexFrom >= t.NumTokens && tokenIndexTo >= t.NumTokens {
 		return ErrTokenIndexesOutOfRange
 	}
 
@@ -169,10 +169,10 @@ func (t *PoolSimulator) GetY(
 		}
 	}
 	var c = number.Set(&d)
-	var Ann = number.Mul(a, &t.numTokensU256)
+	var Ann = number.Mul(a, &t.NumTokensU256)
 	var _x, s uint256.Int
 	s.Clear()
-	for i := 0; i < t.numTokens; i++ {
+	for i := 0; i < t.NumTokens; i++ {
 		if i == tokenIndexFrom {
 			_x.Set(x)
 		} else if i != tokenIndexTo {
@@ -186,7 +186,7 @@ func (t *PoolSimulator) GetY(
 		s.Add(&s, &_x)
 		c.Div(
 			number.SafeMul(c, &d),
-			number.SafeMul(&_x, &t.numTokensU256),
+			number.SafeMul(&_x, &t.NumTokensU256),
 		)
 	}
 	if Ann.IsZero() {
@@ -194,7 +194,7 @@ func (t *PoolSimulator) GetY(
 	}
 	c.Div(
 		number.SafeMul(number.SafeMul(c, &d), t.StaticExtra.APrecision),
-		number.SafeMul(Ann, &t.numTokensU256),
+		number.SafeMul(Ann, &t.NumTokensU256),
 	)
 	var b = number.SafeAdd(
 		&s,
@@ -326,7 +326,14 @@ func (t *PoolSimulator) DynamicFee(xpi *uint256.Int, xpj *uint256.Int, swapFee *
 }
 
 // Calculate addition or reduction in token supply from a deposit or withdrawal
-func (t *PoolSimulator) CalculateTokenAmount(amounts []uint256.Int, deposit bool, mintAmount *uint256.Int) error {
+func (t *PoolSimulator) CalculateTokenAmountU256(
+	amounts []uint256.Int,
+	deposit bool,
+
+	// output
+	mintAmount *uint256.Int,
+	feeAmounts []uint256.Int,
+) error {
 	var a = t._A()
 	var d0, d1, d2 uint256.Int
 	var xp = XpMem(t.Extra.RateMultipliers, t.Reserves)
@@ -338,7 +345,7 @@ func (t *PoolSimulator) CalculateTokenAmount(amounts []uint256.Int, deposit bool
 	}
 
 	var newBalances [shared.MaxTokenCount]uint256.Int
-	for i := 0; i < t.numTokens; i++ {
+	for i := 0; i < t.NumTokens; i++ {
 		if deposit {
 			number.SafeAddZ(&t.Reserves[i], &amounts[i], &newBalances[i])
 		} else {
@@ -347,7 +354,7 @@ func (t *PoolSimulator) CalculateTokenAmount(amounts []uint256.Int, deposit bool
 	}
 
 	// Invariant after change
-	xp = XpMem(t.Extra.RateMultipliers, newBalances[:t.numTokens])
+	xp = XpMem(t.Extra.RateMultipliers, newBalances[:t.NumTokens])
 	err = t.getD(xp, a, &d1)
 	if err != nil {
 		return err
@@ -359,13 +366,13 @@ func (t *PoolSimulator) CalculateTokenAmount(amounts []uint256.Int, deposit bool
 	if !totalSupply.IsZero() {
 		// Only account for fees if we are not the first to deposit
 		var baseFee = number.Div(
-			number.Mul(t.Extra.SwapFee, &t.numTokensU256),
-			uint256.NewInt(4*uint64(t.numTokens-1)),
+			number.Mul(t.Extra.SwapFee, &t.NumTokensU256),
+			uint256.NewInt(4*uint64(t.NumTokens-1)),
 		)
 		var _dynamic_fee_i, difference, xs, ys uint256.Int
 		// ys: uint256 = (D0 + D1) / N_COINS
-		ys.Div(number.SafeAdd(&d0, &d1), &t.numTokensU256)
-		for i := 0; i < t.numTokens; i++ {
+		ys.Div(number.SafeAdd(&d0, &d1), &t.NumTokensU256)
+		for i := 0; i < t.NumTokens; i++ {
 			// ideal_balance: uint256 = D1 * old_balances[i] / D0
 			ideal_balance := number.Div(number.SafeMul(&d1, &t.Reserves[i]), &d0)
 			if ideal_balance.Cmp(&newBalances[i]) > 0 {
@@ -385,12 +392,15 @@ func (t *PoolSimulator) CalculateTokenAmount(amounts []uint256.Int, deposit bool
 			t.DynamicFee(&xs, &ys, baseFee, &_dynamic_fee_i)
 
 			// new_balances[i] -= _dynamic_fee_i * difference / FEE_DENOMINATOR
-			number.SafeSubZ(&newBalances[i],
-				number.Div(number.SafeMul(&_dynamic_fee_i, &difference), FeeDenominator),
-				&newBalances[i])
+			fee := number.Div(number.SafeMul(&_dynamic_fee_i, &difference), FeeDenominator)
+			number.SafeSubZ(&newBalances[i], fee, &newBalances[i])
+
+			// record fee so we can update balance later
+			// self.admin_balances[i] += unsafe_div(fees[i] * admin_fee, FEE_DENOMINATOR)
+			feeAmounts[i].Div(number.SafeMul(fee, t.Extra.AdminFee), FeeDenominator)
 		}
 
-		for i := 0; i < t.numTokens; i++ {
+		for i := 0; i < t.NumTokens; i++ {
 			// xp[idx] = rates[idx] * new_balances[idx] / PRECISION
 			xp[i].Div(number.SafeMul(&t.Extra.RateMultipliers[i], &newBalances[i]), Precision)
 		}
@@ -416,7 +426,7 @@ func (t *PoolSimulator) CalculateTokenAmount(amounts []uint256.Int, deposit bool
 	return nil
 }
 
-func (t *PoolSimulator) CalculateWithdrawOneCoin(tokenAmount *uint256.Int, i int, dy *uint256.Int, fee *uint256.Int) error {
+func (t *PoolSimulator) CalculateWithdrawOneCoinU256(tokenAmount *uint256.Int, i int, dy *uint256.Int, dyFee *uint256.Int) error {
 	var amp = t._A()
 	var xp = XpMem(t.Extra.RateMultipliers, t.Reserves)
 
@@ -437,15 +447,15 @@ func (t *PoolSimulator) CalculateWithdrawOneCoin(tokenAmount *uint256.Int, i int
 	}
 
 	var baseFee = number.Div(
-		number.Mul(t.Extra.SwapFee, &t.numTokensU256),
-		number.Mul(number.Number_4, uint256.NewInt(uint64(t.numTokens-1))),
+		number.Mul(t.Extra.SwapFee, &t.NumTokensU256),
+		number.Mul(number.Number_4, uint256.NewInt(uint64(t.NumTokens-1))),
 	)
 	var xpReduced [shared.MaxTokenCount]uint256.Int
 	// ys: uint256 = unsafe_div((D0 + D1), unsafe_mul(2, N_COINS))
-	var ys = number.Div(number.SafeAdd(&D0, &D1), uint256.NewInt(uint64(t.numTokens*2)))
+	var ys = number.Div(number.SafeAdd(&D0, &D1), uint256.NewInt(uint64(t.NumTokens*2)))
 
 	var dxExpected, xavg, dynamicFee uint256.Int
-	for j := 0; j < t.numTokens; j += 1 {
+	for j := 0; j < t.NumTokens; j += 1 {
 		if j == i {
 			// dx_expected = xp_j * D1 / D0 - new_y
 			number.SafeSubZ(number.Div(number.SafeMul(&xp[j], &D1), &D0), &newY, &dxExpected)
@@ -466,7 +476,7 @@ func (t *PoolSimulator) CalculateWithdrawOneCoin(tokenAmount *uint256.Int, i int
 	}
 
 	// dy: uint256 = xp_reduced[i] - self.get_y_D(amp, i, xp_reduced, D1)
-	err = t.getYD(amp, i, xpReduced[:t.numTokens], &D1, &newYD)
+	err = t.getYD(amp, i, xpReduced[:t.NumTokens], &D1, &newYD)
 	if err != nil {
 		return err
 	}
@@ -477,7 +487,8 @@ func (t *PoolSimulator) CalculateWithdrawOneCoin(tokenAmount *uint256.Int, i int
 	// dy = unsafe_div((dy - 1) * PRECISION, rates[i])  # Withdraw less to account for rounding errors
 	dy.Div(number.SafeMul(number.SafeSub(dy, number.Number_1), Precision), &t.Extra.RateMultipliers[i])
 
-	number.SafeSubZ(dy0, dy, fee)
+	number.SafeSubZ(dy0, dy, dyFee)
+
 	return nil
 }
 
@@ -490,19 +501,19 @@ func (t *PoolSimulator) getYD(
 	// output
 	y *uint256.Int,
 ) error {
-	if tokenIndex >= t.numTokens {
+	if tokenIndex >= t.NumTokens {
 		return ErrTokenIndexesOutOfRange
 	}
 	var c, s uint256.Int
 	c.Set(d)
 	s.Clear()
-	var nA = number.Mul(a, &t.numTokensU256)
-	for i := 0; i < t.numTokens; i++ {
+	var nA = number.Mul(a, &t.NumTokensU256)
+	for i := 0; i < t.NumTokens; i++ {
 		if i != tokenIndex {
 			number.SafeAddZ(&s, &xp[i], &s)
 			c.Div(
 				number.SafeMul(&c, d),
-				number.SafeMul(&xp[i], &t.numTokensU256),
+				number.SafeMul(&xp[i], &t.NumTokensU256),
 			)
 		}
 	}
@@ -511,7 +522,7 @@ func (t *PoolSimulator) getYD(
 	}
 	c.Div(
 		number.SafeMul(number.SafeMul(&c, d), t.StaticExtra.APrecision),
-		number.SafeMul(nA, &t.numTokensU256),
+		number.SafeMul(nA, &t.NumTokensU256),
 	)
 	var b = number.SafeAdd(
 		&s,
@@ -540,4 +551,40 @@ func (t *PoolSimulator) getYD(
 		}
 	}
 	return ErrAmountOutNotConverge
+}
+
+func (t *PoolSimulator) ApplyRemoveLiquidityOneCoinU256(i int, tokenAmount, dy, dyFee *uint256.Int) error {
+	number.SafeSubZ(
+		&t.Reserves[i],
+		number.SafeAdd(dy, number.Div(number.SafeMul(dyFee, t.Extra.AdminFee), FeeDenominator)),
+		&t.Reserves[i])
+	number.FillBig(&t.Reserves[i], t.Info.Reserves[i]) // always sync back update to t.Info, will be removed later
+	t.LpSupply.Sub(&t.LpSupply, tokenAmount)
+	return nil
+}
+
+func (t *PoolSimulator) ApplyAddLiquidity(amounts, feeAmounts []uint256.Int, mintAmount *uint256.Int) error {
+	for i := 0; i < t.NumTokens; i++ {
+		number.SafeAddZ(&t.Reserves[i], &amounts[i], &t.Reserves[i])
+		number.SafeSubZ(&t.Reserves[i], &feeAmounts[i], &t.Reserves[i])
+		number.FillBig(&t.Reserves[i], t.Info.Reserves[i]) // always sync back update to t.Info, will be removed later
+	}
+
+	t.LpSupply.Add(&t.LpSupply, mintAmount)
+
+	return nil
+}
+
+func (t *PoolSimulator) GetVirtualPriceU256(vPrice *uint256.Int, D *uint256.Int) error {
+	var xp = XpMem(t.Extra.RateMultipliers, t.Reserves)
+	var A = t._A()
+	var err = t.getD(xp, A, D)
+	if err != nil {
+		return err
+	}
+	if t.LpSupply.IsZero() {
+		return ErrZero
+	}
+	vPrice.Div(number.Mul(D, Precision), &t.LpSupply)
+	return nil
 }

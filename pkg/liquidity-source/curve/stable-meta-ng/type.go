@@ -1,6 +1,9 @@
 package stablemetang
 
-import "github.com/holiman/uint256"
+import (
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
+	"github.com/holiman/uint256"
+)
 
 type (
 	StaticExtra struct {
@@ -20,5 +23,32 @@ type (
 		AdminFee     *uint256.Int
 
 		RateMultipliers []uint256.Int `json:",omitempty"`
+	}
+
+	MetaPoolSwapInfo struct {
+		TokenInIndex  int
+		TokenOutIndex int
+		AmountIn      uint256.Int
+		AmountOut     uint256.Int
+		AdminFee      uint256.Int
+	}
+
+	BasePoolAddLiquidityInfo struct {
+		Amounts    [shared.MaxTokenCount]uint256.Int
+		MintAmount uint256.Int
+		FeeAmounts [shared.MaxTokenCount]uint256.Int
+	}
+
+	BasePoolWithdrawInfo struct {
+		TokenAmount uint256.Int
+		TokenIndex  int
+		Dy          uint256.Int
+		DyFee       uint256.Int
+	}
+
+	SwapInfo struct {
+		AddLiquidity *BasePoolAddLiquidityInfo
+		Meta         *MetaPoolSwapInfo
+		Withdraw     *BasePoolWithdrawInfo
 	}
 )

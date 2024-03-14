@@ -3,10 +3,12 @@ package stablemetang
 import (
 	"fmt"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/logger"
 	"github.com/holiman/uint256"
 )
 
@@ -15,9 +17,32 @@ import (
 type ICurveBasePool interface {
 	GetInfo() pool.PoolInfo
 	GetTokenIndex(address string) int
-	CalculateTokenAmount(amounts []uint256.Int, deposit bool, mintAmount *uint256.Int) error
-	CalculateWithdrawOneCoin(tokenAmount *uint256.Int, i int, dy *uint256.Int, fee *uint256.Int) error
+
+	GetVirtualPriceU256(vPrice *uint256.Int, D *uint256.Int) error
+
+	CalculateTokenAmountU256(amounts []uint256.Int, deposit bool, mintAmount *uint256.Int, feeAmounts []uint256.Int) error
+	CalculateWithdrawOneCoinU256(tokenAmount *uint256.Int, i int, dy *uint256.Int, dyFee *uint256.Int) error
+
+	// similar to RemoveLiquidityOneCoinU256, but pass in result from CalculateWithdrawOneCoinU256
+	ApplyRemoveLiquidityOneCoinU256(i int, tokenAmount, dy, dyFee *uint256.Int) error
+
+	// similar to AddLiquidity, but pass in result from CalculateTokenAmountU256
+	ApplyAddLiquidity(amounts, feeAmounts []uint256.Int, mintAmount *uint256.Int) error
 }
+
+// old pools still follow this interface, we'll convert them to new one
+// type ICurveBasePoolLegacy interface {
+// 	GetInfo() pool.PoolInfo
+// 	GetTokenIndex(address string) int
+// 	// return both vPrice and D
+// 	GetVirtualPrice() (vPrice *big.Int, D *big.Int, err error)
+// 	// if `dCached` is nil then will be recalculated
+// 	GetDy(i int, j int, dx *big.Int, dCached *big.Int) (*big.Int, *big.Int, error)
+// 	CalculateTokenAmount(amounts []*big.Int, deposit bool) (*big.Int, error)
+// 	CalculateWithdrawOneCoin(tokenAmount *big.Int, i int) (*big.Int, *big.Int, error)
+// 	AddLiquidity(amounts []*big.Int) (*big.Int, error)
+// 	RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, error)
+// }
 
 // the normal swap at meta pool is identical to stable-ng,
 // so we'll inherit from stableng.PoolSimulator to reuse its methods
@@ -43,7 +68,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
 
 	// cannot swap between the last meta coin and base pool's coins (because the last coin is LPtoken of base pool)
-	if (tokenIndexFrom == len(t.Info.Tokens)-1 && tokenIndexTo < 0) || (tokenIndexTo == len(t.Info.Tokens)-1 && tokenIndexFrom < 0) {
+	if (tokenIndexFrom == t.NumTokens-1 && tokenIndexTo < 0) || (tokenIndexTo == t.NumTokens-1 && tokenIndexFrom < 0) {
 		return &pool.CalcAmountOutResult{}, ErrTokenToUnderLyingNotSupported
 	}
 
@@ -60,7 +85,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return &pool.CalcAmountOutResult{}, ErrAllBasePoolTokens
 	}
 
-	var maxCoin = len(t.Info.Tokens) - 1
+	var maxCoin = t.NumTokens - 1
 	if tokenIndexFrom < 0 && baseInputIndex >= 0 {
 		tokenIndexFrom = maxCoin + baseInputIndex
 	}
@@ -69,19 +94,32 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
 		// get_dy_underlying
-		var amountIn, amountOut, adminFee, withdrawFee uint256.Int
+		var amountIn, amountOut, adminFee uint256.Int
+		var addLiquidityInfo BasePoolAddLiquidityInfo
+		var metaswapInfo MetaPoolSwapInfo
+		var withdrawInfo BasePoolWithdrawInfo
 		amountIn.SetFromBig(tokenAmountIn.Amount)
 		err := t.GetDyUnderlying(
 			tokenIndexFrom,
 			tokenIndexTo,
 			&amountIn,
 			&amountOut,
-			&adminFee, &withdrawFee,
+			&addLiquidityInfo, &metaswapInfo, &withdrawInfo,
 		)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
 		if !amountOut.IsZero() {
+			swapInfo := SwapInfo{
+				Meta: &metaswapInfo,
+			}
+			if !addLiquidityInfo.MintAmount.IsZero() {
+				swapInfo.AddLiquidity = &addLiquidityInfo
+			}
+			if !withdrawInfo.TokenAmount.IsZero() {
+				swapInfo.Withdraw = &withdrawInfo
+			}
+
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,
@@ -91,7 +129,8 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 					Token:  tokenOut,
 					Amount: adminFee.ToBig(),
 				},
-				Gas: DefaultGasUnderlying,
+				Gas:      DefaultGasUnderlying,
+				SwapInfo: swapInfo,
 			}, nil
 		}
 	}
@@ -107,8 +146,43 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		t.PoolSimulator.UpdateBalance(params)
 		return
 	}
-	// check exchange_underlying
-	panic("aaaa")
+
+	// meta <-> base swap
+	swapInfo, ok := params.SwapInfo.(SwapInfo)
+	if !ok {
+		logger.Warnf("failed to UpdateBalance for curve-stable-meta-ng %v %v pool, wrong swapInfo type", t.Info.Address, t.Info.Exchange)
+		return
+	}
+
+	// if input coin is from base pool
+	addLiq := swapInfo.AddLiquidity
+	if addLiq != nil {
+		baseNTokens := len(t.basePool.GetInfo().Tokens)
+		t.basePool.ApplyAddLiquidity(addLiq.Amounts[:baseNTokens], addLiq.FeeAmounts[:baseNTokens], &addLiq.MintAmount)
+	}
+
+	// update balance from the meta swap component
+	metaInfo := swapInfo.Meta
+	t.Reserves[metaInfo.TokenInIndex].Add(&t.Reserves[metaInfo.TokenInIndex], &metaInfo.AmountIn)
+	number.FillBig(&t.Reserves[metaInfo.TokenInIndex], t.Info.Reserves[metaInfo.TokenInIndex])
+
+	t.Reserves[metaInfo.TokenOutIndex].Sub(&t.Reserves[metaInfo.TokenOutIndex], number.Add(&metaInfo.AmountOut, &metaInfo.AdminFee))
+	number.FillBig(&t.Reserves[metaInfo.TokenOutIndex], t.Info.Reserves[metaInfo.TokenOutIndex])
+
+	// if output coin is from base pool
+	withDraw := swapInfo.Withdraw
+	if withDraw != nil {
+		t.basePool.ApplyRemoveLiquidityOneCoinU256(
+			withDraw.TokenIndex,
+			&withDraw.TokenAmount,
+			&withDraw.Dy,
+			&withDraw.DyFee,
+		)
+	}
+
+	// the base pool has been updated, so we need to recalculate its vPrice (last component in stored_rates)
+	var dummyD uint256.Int
+	t.basePool.GetVirtualPriceU256(&t.Extra.RateMultipliers[t.NumTokens-1], &dummyD)
 }
 
 func (t *PoolSimulator) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
@@ -121,7 +195,7 @@ func (t *PoolSimulator) CanSwapTo(address string) []string {
 		tokenIndex = t.basePool.GetTokenIndex(address)
 		if tokenIndex >= 0 {
 			// base token can be swapped to anything other than the last meta token
-			for i := 0; i < len(t.Info.Tokens)-1; i += 1 {
+			for i := 0; i < t.NumTokens-1; i += 1 {
 				ret = append(ret, t.Info.Tokens[i])
 			}
 			underlyingTokens := t.basePool.GetInfo().Tokens
@@ -134,14 +208,14 @@ func (t *PoolSimulator) CanSwapTo(address string) []string {
 		return ret
 	}
 	// exchange
-	for i := 0; i < len(t.Info.Tokens); i += 1 {
+	for i := 0; i < t.NumTokens; i += 1 {
 		if i != tokenIndex {
 			ret = append(ret, t.Info.Tokens[i])
 		}
 	}
 	// exchange_underlying
 	// last meta token can't be swapped with underlying tokens
-	if tokenIndex != len(t.Info.Tokens)-1 {
+	if tokenIndex != t.NumTokens-1 {
 		ret = append(ret, t.basePool.GetInfo().Tokens...)
 	}
 	return ret
@@ -179,7 +253,7 @@ func (t *PoolSimulator) getUnderlyingIndex(token string) int {
 		return tokenIndex
 	}
 	var baseIndex = t.basePool.GetTokenIndex(token)
-	var maxCoin = len(t.Info.Tokens) - 1
+	var maxCoin = t.NumTokens - 1
 	if tokenIndex < 0 && baseIndex >= 0 {
 		tokenIndex = maxCoin + baseIndex
 	}

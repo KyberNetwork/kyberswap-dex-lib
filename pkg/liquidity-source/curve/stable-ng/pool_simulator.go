@@ -24,8 +24,8 @@ type PoolSimulator struct {
 	LpSupply uint256.Int
 	gas      Gas
 
-	numTokens     int
-	numTokensU256 uint256.Int
+	NumTokens     int
+	NumTokensU256 uint256.Int
 
 	Extra       Extra
 	StaticExtra StaticExtra
@@ -95,8 +95,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	sim.numTokens = numTokens
-	sim.numTokensU256.SetUint64(uint64(numTokens))
+	sim.NumTokens = numTokens
+	sim.NumTokensU256.SetUint64(uint64(numTokens))
 	return sim, nil
 }
 
@@ -165,7 +165,7 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 		TokenOutIndex: toId,
 		Underlying:    false,
 	}
-	if len(t.StaticExtra.IsNativeCoins) == t.numTokens {
+	if len(t.StaticExtra.IsNativeCoins) == t.NumTokens {
 		meta.TokenInIsNative = &t.StaticExtra.IsNativeCoins[fromId]
 		meta.TokenOutIsNative = &t.StaticExtra.IsNativeCoins[toId]
 	}
