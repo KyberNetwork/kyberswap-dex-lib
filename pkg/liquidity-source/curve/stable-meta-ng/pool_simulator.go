@@ -30,20 +30,6 @@ type ICurveBasePool interface {
 	ApplyAddLiquidity(amounts, feeAmounts []uint256.Int, mintAmount *uint256.Int) error
 }
 
-// old pools still follow this interface, we'll convert them to new one
-// type ICurveBasePoolLegacy interface {
-// 	GetInfo() pool.PoolInfo
-// 	GetTokenIndex(address string) int
-// 	// return both vPrice and D
-// 	GetVirtualPrice() (vPrice *big.Int, D *big.Int, err error)
-// 	// if `dCached` is nil then will be recalculated
-// 	GetDy(i int, j int, dx *big.Int, dCached *big.Int) (*big.Int, *big.Int, error)
-// 	CalculateTokenAmount(amounts []*big.Int, deposit bool) (*big.Int, error)
-// 	CalculateWithdrawOneCoin(tokenAmount *big.Int, i int) (*big.Int, *big.Int, error)
-// 	AddLiquidity(amounts []*big.Int) (*big.Int, error)
-// 	RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int, error)
-// }
-
 // the normal swap at meta pool is identical to stable-ng,
 // so we'll inherit from stableng.PoolSimulator to reuse its methods
 type PoolSimulator struct {
@@ -51,13 +37,20 @@ type PoolSimulator struct {
 	basePool ICurveBasePool
 }
 
-func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*PoolSimulator, error) {
+func NewPoolSimulator(entityPool entity.Pool, basePool any) (*PoolSimulator, error) {
+	_basePool, ok := basePool.(ICurveBasePool)
+	if !ok {
+		// try to wrap old pool to new interface
+		if legacy, ok := basePool.(ICurveBasePoolLegacy); ok {
+			_basePool = &legacyWrapper{legacy}
+		}
+	}
 	sim, err := stableng.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, err
 	}
 
-	return &PoolSimulator{*sim, basePool}, err
+	return &PoolSimulator{*sim, _basePool}, err
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -245,6 +238,10 @@ func (t *PoolSimulator) GetTokens() []string {
 	result = append(result, t.GetInfo().Tokens...)
 	result = append(result, t.basePool.GetInfo().Tokens...)
 	return result
+}
+
+func (t *PoolSimulator) GetBasePoolTokens() []string {
+	return t.basePool.GetInfo().Tokens
 }
 
 func (t *PoolSimulator) getUnderlyingIndex(token string) int {
