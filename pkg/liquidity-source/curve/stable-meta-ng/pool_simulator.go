@@ -41,8 +41,8 @@ func NewPoolSimulator(entityPool entity.Pool, basePool any) (*PoolSimulator, err
 	_basePool, ok := basePool.(ICurveBasePool)
 	if !ok {
 		// try to wrap old pool to new interface
-		if legacy, ok := basePool.(ICurveBasePoolLegacy); ok {
-			_basePool = &legacyWrapper{legacy}
+		if legacy, ok := basePool.(ICurveBasePoolLegacy2); ok {
+			_basePool = &legacyWrapper2{legacy}
 		}
 	}
 	sim, err := stableng.NewPoolSimulator(entityPool)

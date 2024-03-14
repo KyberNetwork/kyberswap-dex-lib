@@ -13,8 +13,6 @@ type ICurveBasePoolLegacy interface {
 	GetTokenIndex(address string) int
 	// return both vPrice and D
 	GetVirtualPrice() (vPrice *big.Int, D *big.Int, err error)
-	// if `dCached` is nil then will be recalculated
-	GetDy(i int, j int, dx *big.Int, dCached *big.Int) (*big.Int, *big.Int, error)
 	CalculateTokenAmount(amounts []*big.Int, deposit bool) (*big.Int, error)
 	CalculateWithdrawOneCoin(tokenAmount *big.Int, i int) (*big.Int, *big.Int, error)
 	AddLiquidity(amounts []*big.Int) (*big.Int, error)
@@ -69,5 +67,73 @@ func (w legacyWrapper) ApplyAddLiquidity(amounts, feeAmounts []uint256.Int, mint
 	}
 
 	_, err := w.AddLiquidity(amountsBI)
+	return err
+}
+
+type ICurveBasePoolLegacy2 interface {
+	GetInfo() pool.PoolInfo
+	GetTokenIndex(address string) int
+
+	GetVirtualPriceU256(vPrice, D *uint256.Int) error
+
+	CalculateTokenAmountU256(
+		amounts []uint256.Int,
+		deposit bool,
+	) (*uint256.Int, error)
+	// CalculateWithdrawOneCoinU256(
+	// 	tokenAmount *uint256.Int,
+	// 	i int,
+	// ) (*uint256.Int, *uint256.Int, error)
+	CalculateWithdrawOneCoinU256(
+		tokenAmount *uint256.Int,
+		i int,
+
+		// output
+		dy *uint256.Int, dyFee *uint256.Int,
+	) error
+	AddLiquidityU256(amounts []uint256.Int) (*uint256.Int, error)
+	RemoveLiquidityOneCoinU256(tokenAmount *uint256.Int, i int) (*uint256.Int, error)
+
+	ApplyRemoveLiquidityOneCoinU256(i int, tokenAmount, dy, dyFee *uint256.Int) error
+}
+
+type legacyWrapper2 struct{ ICurveBasePoolLegacy2 }
+
+// func (w legacyWrapper2) GetVirtualPriceU256(vPrice *uint256.Int, D *uint256.Int) (err error) {
+// 	_vPrice, _D, err := w.ICurveBasePoolLegacy2.GetVirtualPriceU256()
+// 	if err != nil {
+// 		return
+// 	}
+// 	vPrice.Set(_vPrice)
+// 	D.Set(_D)
+// 	return
+// }
+
+func (w legacyWrapper2) CalculateTokenAmountU256(amounts []uint256.Int, deposit bool, mintAmount *uint256.Int, feeAmounts []uint256.Int) (err error) {
+	_mintAmount, err := w.ICurveBasePoolLegacy2.CalculateTokenAmountU256(amounts, deposit)
+	if err != nil {
+		return
+	}
+	mintAmount.Set(_mintAmount)
+	return
+}
+
+// func (w legacyWrapper2) CalculateWithdrawOneCoinU256(tokenAmount *uint256.Int, i int, dy *uint256.Int, dyFee *uint256.Int) (err error) {
+// 	_dy, _dyFee, err := w.ICurveBasePoolLegacy2.CalculateWithdrawOneCoinU256(tokenAmount, i)
+// 	if err != nil {
+// 		return
+// 	}
+// 	dy.Set(_dy)
+// 	dyFee.Set(_dyFee)
+// 	return
+// }
+
+// func (w legacyWrapper2) ApplyRemoveLiquidityOneCoinU256(i int, tokenAmount, dy, dyFee *uint256.Int) error {
+// 	_, err := w.RemoveLiquidityOneCoinU256(tokenAmount, i)
+// 	return err
+// }
+
+func (w legacyWrapper2) ApplyAddLiquidity(amounts, feeAmounts []uint256.Int, mintAmount *uint256.Int) error {
+	_, err := w.AddLiquidityU256(amounts)
 	return err
 }
