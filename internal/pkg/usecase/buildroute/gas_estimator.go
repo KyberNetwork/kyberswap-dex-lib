@@ -78,13 +78,21 @@ func (e *GasEstimator) Execute(ctx context.Context, tx UnsignedTransaction) (uin
 	if err != nil {
 		return 0, 0.0, err
 	}
-	gasTokenPriceUSD, err := e.getPriceUSDByAddress(ctx, e.gasTokenAddress)
+	gasTokenPriceUSD, err := e.GetGasTokenPriceUSD(ctx)
 	if err != nil {
 		return 0, 0.0, err
 	}
-	priceInUSD := utils.CalcGasUsd(gasPrice, int64(estimatedGas), gasTokenPriceUSD[e.gasTokenAddress])
+	priceInUSD := utils.CalcGasUsd(gasPrice, int64(estimatedGas), gasTokenPriceUSD)
 
 	return estimatedGas, priceInUSD, nil
+}
+
+func (e *GasEstimator) GetGasTokenPriceUSD(ctx context.Context) (float64, error) {
+	gasTokenPriceUSD, err := e.getPriceUSDByAddress(ctx, e.gasTokenAddress)
+	if err != nil || gasTokenPriceUSD == nil {
+		return 0, err
+	}
+	return gasTokenPriceUSD[e.gasTokenAddress], nil
 }
 
 func (e *GasEstimator) getGasPrice(ctx context.Context) (*big.Float, error) {

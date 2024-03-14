@@ -10,6 +10,10 @@ type BuildRouteResult struct {
 	Gas    string `json:"gas"`
 	GasUSD string `json:"gasUsd"`
 
+	// L1 fee and other costs if any
+	AdditionalCostUsd     string `json:"additionalCostUsd"`
+	AdditionalCostMessage string `json:"additionalCostMessage"`
+
 	OutputChange OutputChange `json:"outputChange"`
 
 	Data          string `json:"data"`

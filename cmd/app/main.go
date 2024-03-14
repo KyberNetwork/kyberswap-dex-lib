@@ -295,6 +295,9 @@ func apiAction(c *cli.Context) (err error) {
 		gas.NewRedisRepository(routerRedisClient.Client, ethClient, cfg.Repository.Gas.Redis),
 		cfg.Repository.Gas.Ristretto)
 
+	l1FeeParamsRepository := l2fee.NewRedisRepository(routerRedisClient.Client, l2fee.RedisL1FeeRepositoryConfig{Prefix: cfg.Redis.Prefix})
+	l1FeeCalculator := usecase.NewL1FeeCalculator(l1FeeParamsRepository, common.HexToAddress(cfg.Encoder.RouterAddress))
+
 	var bestPathRepository *pathgenerator.RedisRepository
 	if pregenRedisClient != nil {
 		bestPathRepository = pathgenerator.NewRedisRepository(pregenRedisClient.Client,
@@ -458,6 +461,7 @@ func apiAction(c *cli.Context) (err error) {
 		poolRepository,
 		executorBalanceRepository,
 		gasEstimator,
+		l1FeeCalculator,
 		rfqHandlerByPoolType,
 		clientDataEncoder,
 		encodeBuilder,

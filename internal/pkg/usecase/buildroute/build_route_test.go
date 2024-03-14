@@ -23,6 +23,12 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
+type dummyL1FeeCalculator struct{}
+
+func (d *dummyL1FeeCalculator) CalculateL1Fee(ctx context.Context, chainId valueobject.ChainID, encodedSwapData string) (*big.Int, error) {
+	return nil, nil
+}
+
 func TestBuildRouteUseCase_Handle(t *testing.T) {
 	t.Parallel()
 
@@ -30,6 +36,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 	recipient := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 	sender := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c759bc2"
 	amountIn := big.NewInt(20000)
+
+	dummyL1FeeCalculator := &dummyL1FeeCalculator{}
 
 	testCases := []struct {
 		name    string
@@ -96,6 +104,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					poolRepository,
 					executorBalanceRepository,
 					gasEstimator,
+					dummyL1FeeCalculator,
 					nil,
 					clientDataEncoder,
 					encodeBuilder,
@@ -202,6 +211,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					poolRepository,
 					executorBalanceRepository,
 					gasEstimator,
+					dummyL1FeeCalculator,
 					nil,
 					clientDataEncoder,
 					encodeBuilder,
@@ -254,6 +264,9 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				OutputChange:  OutputChangeNoChange,
 				Data:          "mockEncodedData",
 				RouterAddress: "0x01",
+
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
 			},
 			err: nil,
 		},
@@ -329,6 +342,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					poolRepository,
 					executorBalanceRepository,
 					gasEstimator,
+					dummyL1FeeCalculator,
 					nil,
 					clientDataEncoder,
 					encodeBuilder,
@@ -380,6 +394,9 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				OutputChange:  OutputChangeNoChange,
 				Data:          "mockEncodedData",
 				RouterAddress: "0x01",
+
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
 			},
 			err: nil,
 		},
@@ -452,6 +469,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					poolRepository,
 					executorBalanceRepository,
 					gasEstimator,
+					dummyL1FeeCalculator,
 					nil,
 					clientDataEncoder,
 					encodeBuilder,
@@ -504,6 +522,9 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				OutputChange:  OutputChangeNoChange,
 				Data:          "mockEncodedData",
 				RouterAddress: "0x01",
+
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
 			},
 			err: nil,
 		},
@@ -580,6 +601,9 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				OutputChange:  OutputChangeNoChange,
 				Data:          "mockEncodedData",
 				RouterAddress: "0x01",
+
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
 			},
 			estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
@@ -634,6 +658,9 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				OutputChange:  OutputChangeNoChange,
 				Data:          "mockEncodedData",
 				RouterAddress: "0x01",
+
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
 			},
 			estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
@@ -689,6 +716,9 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				OutputChange:  OutputChangeNoChange,
 				Data:          "mockEncodedData",
 				RouterAddress: "0x01",
+
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
 			},
 			estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
 				wg.Add(1)
@@ -815,6 +845,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				poolRepository,
 				executorBalanceRepository,
 				gasEstimator,
+				&dummyL1FeeCalculator{},
 				nil,
 				clientDataEncoder,
 				encodeBuilder,
@@ -898,6 +929,9 @@ func TestBuildRouteUseCase_HandleWithTrackingKeyTotalCountFaultyPools(t *testing
 				OutputChange:  OutputChangeNoChange,
 				Data:          "mockEncodedData",
 				RouterAddress: "0x01",
+
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
 			},
 			countTotalPools: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
 				wg.Add(1)
@@ -971,6 +1005,9 @@ func TestBuildRouteUseCase_HandleWithTrackingKeyTotalCountFaultyPools(t *testing
 				OutputChange:  OutputChangeNoChange,
 				Data:          "mockEncodedData",
 				RouterAddress: "0x01",
+
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
 			},
 			countTotalPools: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
 				wg.Add(1)
@@ -1055,6 +1092,7 @@ func TestBuildRouteUseCase_HandleWithTrackingKeyTotalCountFaultyPools(t *testing
 				poolRepository,
 				executorBalanceRepository,
 				gasEstimator,
+				&dummyL1FeeCalculator{},
 				nil,
 				clientDataEncoder,
 				encodeBuilder,

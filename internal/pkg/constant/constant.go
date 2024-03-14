@@ -13,6 +13,8 @@ const (
 	CtxLoggerKey CtxLoggerKeyType = "logger"
 
 	DebugHeader = "x-debug"
+
+	AdditionalCostMessageL1Fee = "L1 fee that pays for rolls up cost"
 )
 
 type CtxLoggerKeyType string

@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type ITokenRepository interface {
@@ -32,9 +33,15 @@ type IEncodeBuilder interface {
 	GetEncoder(chainId dexValueObject.ChainID) encode.IEncoder
 }
 
+//go:generate mockgen -destination ../../mocks/usecase/buildroute/gas_estimator.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IGasEstimator
 type IGasEstimator interface {
 	Execute(ctx context.Context, tx UnsignedTransaction) (uint64, float64, error)
 	EstimateGas(ctx context.Context, tx UnsignedTransaction) (uint64, error)
+	GetGasTokenPriceUSD(ctx context.Context) (float64, error)
+}
+
+type IL1FeeCalculator interface {
+	CalculateL1Fee(ctx context.Context, chainId valueobject.ChainID, encodedSwapData string) (*big.Int, error)
 }
 
 //go:generate mockgen -destination ../../mocks/usecase/buildroute/executor_balance_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IExecutorBalanceRepository

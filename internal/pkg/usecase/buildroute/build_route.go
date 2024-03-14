@@ -43,6 +43,7 @@ type BuildRouteUseCase struct {
 	poolRepository            IPoolRepository
 	executorBalanceRepository IExecutorBalanceRepository
 	gasEstimator              IGasEstimator
+	l1FeeCalculator           IL1FeeCalculator
 
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ
 	clientDataEncoder    IClientDataEncoder
@@ -60,6 +61,7 @@ func NewBuildRouteUseCase(
 	poolRepository IPoolRepository,
 	executorBalanceRepository IExecutorBalanceRepository,
 	gasEstimator IGasEstimator,
+	l1FeeCalculator IL1FeeCalculator,
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ,
 	clientDataEncoder IClientDataEncoder,
 	encodeBuilder encode.IEncodeBuilder,
@@ -76,6 +78,7 @@ func NewBuildRouteUseCase(
 		poolRepository:            poolRepository,
 		executorBalanceRepository: executorBalanceRepository,
 		gasEstimator:              gasEstimator,
+		l1FeeCalculator:           l1FeeCalculator,
 		rfqHandlerByPoolType:      rfqHandlerByPoolType,
 		clientDataEncoder:         clientDataEncoder,
 		encodeBuilder:             encodeBuilder,
@@ -109,9 +112,15 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	}()
 
 	// estimate gas price for a transaction
-	estimatedGas, gasInUSD, err := uc.estimateGas(ctx, command, encodedData)
+	estimatedGas, gasInUSD, l1FeeUSD, err := uc.estimateGas(ctx, command, encodedData)
 	if err != nil {
 		return nil, err
+	}
+
+	// the only additional cost for now is L1 fee
+	additionalCostMessage := ""
+	if l1FeeUSD > 0 {
+		additionalCostMessage = constant.AdditionalCostMessageL1Fee
 	}
 
 	// NOTE: currently we don't check the route (check if there is a better route or the route returns different amounts)
@@ -125,6 +134,9 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 
 		Gas:    strconv.FormatUint(estimatedGas, 10),
 		GasUSD: strconv.FormatFloat(gasInUSD, 'f', -1, 64),
+
+		AdditionalCostUsd:     strconv.FormatFloat(l1FeeUSD, 'f', -1, 64),
+		AdditionalCostMessage: additionalCostMessage,
 
 		OutputChange: OutputChangeNoChange,
 
@@ -382,7 +394,7 @@ func (uc *BuildRouteUseCase) getPrices(
 	return tokenInPrice, tokenOutPrice, nil
 }
 
-func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildRouteCommand, encodedData string) (uint64, float64, error) {
+func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildRouteCommand, encodedData string) (uint64, float64, float64, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.estimateGas")
 	defer span.End()
 
@@ -397,19 +409,20 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 		nil,
 	}
 
+	gas := uint64(command.RouteSummary.Gas)
+	gasUSD := command.RouteSummary.GasUSD
+	var err error
 	if uc.config.FeatureFlags.IsGasEstimatorEnabled {
 		if command.EnableGasEstimation {
 			if utils.IsEmptyString(command.Sender) {
-				return 0, 0.0, ErrSenderEmptyWhenEnableEstimateGas
+				return 0, 0.0, 0, ErrSenderEmptyWhenEnableEstimateGas
 			}
 
-			gas, gasUSD, err := uc.gasEstimator.Execute(ctx, tx)
+			gas, gasUSD, err = uc.gasEstimator.Execute(ctx, tx)
 			uc.sendEstimateGasLogsAndMetrics(ctx, command.RouteSummary, err, command.SlippageTolerance)
 			if err != nil {
-				return 0, 0.0, errors.Wrapf(ErrEstimateGasFailed, "Estimate gas failed due to %s", err.Error())
+				return 0, 0.0, 0, errors.Wrapf(ErrEstimateGasFailed, "Estimate gas failed due to %s", err.Error())
 			}
-
-			return gas, gasUSD, nil
 		} else {
 			if !utils.IsEmptyString(command.Sender) {
 				go func() {
@@ -418,10 +431,38 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 				}()
 			}
 		}
-
 	}
-	return uint64(command.RouteSummary.Gas), command.RouteSummary.GasUSD, nil
 
+	// for some L2 chains we'll need to account for L1 fee as well
+	l1FeeUSDFloat, err := uc.calculateL1FeeUSD(ctx, encodedData)
+	if err != nil {
+		return 0, 0.0, 0, fmt.Errorf("Failed to estimate L1 fee %s", err.Error())
+	}
+
+	return gas, gasUSD, l1FeeUSDFloat, nil
+}
+
+func (uc *BuildRouteUseCase) calculateL1FeeUSD(ctx context.Context, encodedData string) (float64, error) {
+	l1Fee, err := uc.l1FeeCalculator.CalculateL1Fee(ctx, uc.config.ChainID, encodedData)
+	if err != nil {
+		return 0, fmt.Errorf("Failed to estimate L1 fee %s", err.Error())
+	}
+	l1FeeUSDFloat := 0.0
+	if l1Fee != nil {
+		// the fee calculated is already in GasToken unit, so just multiply with GasTokenPriceUSD only without GasPrice
+		gasPriceUsd, err := uc.gasEstimator.GetGasTokenPriceUSD(ctx)
+		if err != nil {
+			return 0, fmt.Errorf("Failed to get gas token price in USD %s", err.Error())
+		}
+		l1FeeUSD := new(big.Float).Quo(
+			new(big.Float).Mul(
+				new(big.Float).SetFloat64(gasPriceUsd),
+				new(big.Float).SetInt(l1Fee),
+			),
+			constant.BoneFloat)
+		l1FeeUSDFloat, _ = l1FeeUSD.Float64()
+	}
+	return l1FeeUSDFloat, nil
 }
 
 func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,

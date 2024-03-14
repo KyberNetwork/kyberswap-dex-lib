@@ -300,6 +300,10 @@ func TestBuildRoute(t *testing.T) {
 						AmountOutUSD string `json:"amountOutUsd"`
 						Gas          string `json:"gas"`
 						GasUSD       string `json:"gasUsd"`
+
+						AdditionalCostUsd     string `json:"additionalCostUsd"`
+						AdditionalCostMessage string `json:"additionalCostMessage"`
+
 						OutputChange struct {
 							Amount  string  `json:"amount"`
 							Percent float64 `json:"percent"`
@@ -314,6 +318,10 @@ func TestBuildRoute(t *testing.T) {
 						AmountOutUSD: "",
 						Gas:          "",
 						GasUSD:       "",
+
+						AdditionalCostUsd:     "",
+						AdditionalCostMessage: "",
+
 						OutputChange: struct {
 							Amount  string  `json:"amount"`
 							Percent float64 `json:"percent"`
@@ -403,6 +411,10 @@ func TestBuildRoute_EnableGasEstimation(t *testing.T) {
 						AmountOutUSD string `json:"amountOutUsd"`
 						Gas          string `json:"gas"`
 						GasUSD       string `json:"gasUsd"`
+
+						AdditionalCostUsd     string `json:"additionalCostUsd"`
+						AdditionalCostMessage string `json:"additionalCostMessage"`
+
 						OutputChange struct {
 							Amount  string  `json:"amount"`
 							Percent float64 `json:"percent"`
@@ -417,6 +429,10 @@ func TestBuildRoute_EnableGasEstimation(t *testing.T) {
 						AmountOutUSD: "",
 						Gas:          "",
 						GasUSD:       "",
+
+						AdditionalCostUsd:     "",
+						AdditionalCostMessage: "",
+
 						OutputChange: struct {
 							Amount  string  `json:"amount"`
 							Percent float64 `json:"percent"`
