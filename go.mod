@@ -12,7 +12,7 @@ require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/KyberNetwork/aevm v1.0.6
-	github.com/KyberNetwork/aggregator-encoding v0.9.0
+	github.com/KyberNetwork/aggregator-encoding v0.9.1
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.5.2
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
