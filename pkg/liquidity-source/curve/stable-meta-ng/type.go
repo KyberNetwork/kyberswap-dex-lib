@@ -12,6 +12,9 @@ type (
 		// which coins are originally native (before being converted to wrapped)
 		IsNativeCoins []bool
 		BasePool      string
+
+		// for router-service indexer
+		UnderlyingTokens []string `json:"underlyingTokens"`
 	}
 
 	Extra struct {

@@ -26,7 +26,9 @@ type (
 		LpTokenAddress string
 		IsMetaPool     bool
 
+		// for meta pool
 		BasePoolAddress string
+		UnderlyingCoins []CurveCoin
 	}
 
 	GetPoolsResult struct {

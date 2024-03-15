@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/holiman/uint256"
+	"github.com/samber/lo"
 )
 
 type PoolsListUpdater struct {
@@ -132,8 +133,9 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 		}
 
 		var staticExtra = StaticExtra{
-			IsNativeCoins: isNativeCoins,
-			BasePool:      strings.ToLower(curvePool.BasePoolAddress),
+			IsNativeCoins:    isNativeCoins,
+			BasePool:         strings.ToLower(curvePool.BasePoolAddress),
+			UnderlyingTokens: lo.Map(curvePool.UnderlyingCoins, func(c shared.CurveCoin, _ int) string { return strings.ToLower(c.Address) }),
 		}
 
 		if aList[i] != nil && aPreciseList[i] != nil {
