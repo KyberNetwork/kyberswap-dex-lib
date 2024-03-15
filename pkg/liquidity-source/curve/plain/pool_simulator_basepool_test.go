@@ -37,11 +37,11 @@ func TestCalcAmountOutAsBasePool(t *testing.T) {
 		{"A", 1000000000000000, "B", 999},
 		{"A", 1000000000000000, "C", 1000},
 
-		{"B", 3, "Am", 92475148432038},
+		{"B", 3, "Am", 92474249943422}, // get_dy_underlying return 92475148432038, but the actual swap is different
 		{"B", 1, "A", 999909687790},
 		{"B", 100, "C", 100},
 
-		{"C", 2, "Am", 61628215439376},
+		{"C", 2, "Am", 61627616659617}, // get_dy_underlying return 61628215439376, but the actual swap is different
 		{"C", 3, "A", 2998664269827},
 		{"C", 30, "B", 29},
 	}
