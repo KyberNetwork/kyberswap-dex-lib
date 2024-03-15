@@ -144,7 +144,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	addLiq := swapInfo.AddLiquidity
 	if addLiq != nil {
 		baseNTokens := len(t.basePool.GetInfo().Tokens)
-		t.basePool.ApplyAddLiquidity(addLiq.Amounts[:baseNTokens], addLiq.FeeAmounts[:baseNTokens], &addLiq.MintAmount)
+		_ = t.basePool.ApplyAddLiquidity(addLiq.Amounts[:baseNTokens], addLiq.FeeAmounts[:baseNTokens], &addLiq.MintAmount)
 	}
 
 	// update balance from the meta swap component
@@ -158,7 +158,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// if output coin is from base pool
 	withDraw := swapInfo.Withdraw
 	if withDraw != nil {
-		t.basePool.ApplyRemoveLiquidityOneCoinU256(
+		_ = t.basePool.ApplyRemoveLiquidityOneCoinU256(
 			withDraw.TokenIndex,
 			&withDraw.TokenAmount,
 			&withDraw.Dy,
@@ -168,7 +168,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	// the base pool has been updated, so we need to recalculate its vPrice (last component in stored_rates)
 	var dummyD uint256.Int
-	t.basePool.GetVirtualPriceU256(&t.Extra.RateMultipliers[t.NumTokens-1], &dummyD)
+	_ = t.basePool.GetVirtualPriceU256(&t.Extra.RateMultipliers[t.NumTokens-1], &dummyD)
 }
 
 func (t *PoolSimulator) CanSwapFrom(address string) []string { return t.CanSwapTo(address) }
