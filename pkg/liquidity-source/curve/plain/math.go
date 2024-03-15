@@ -433,23 +433,29 @@ func (t *PoolSimulator) CalculateTokenAmount(
 	for i, amount := range amounts {
 		amountsU256[i].SetFromBig(amount)
 	}
-	res, err := t.CalculateTokenAmountU256(amountsU256, deposit)
+	var mintAmount uint256.Int
+	var feeAmounts [shared.MaxTokenCount]uint256.Int
+	err := t.CalculateTokenAmountU256(amountsU256, deposit, &mintAmount, feeAmounts[:t.numTokens])
 	if err != nil {
 		return nil, err
 	}
-	return res.ToBig(), nil
+	return mintAmount.ToBig(), nil
 }
 
 func (t *PoolSimulator) CalculateTokenAmountU256(
 	amounts []uint256.Int,
 	deposit bool,
-) (*uint256.Int, error) {
+
+	// output
+	mintAmount *uint256.Int,
+	feeAmounts []uint256.Int,
+) error {
 	var numTokens = len(t.Info.Tokens)
 	var a = t._A()
-	var d0, d1 uint256.Int
+	var d0, d1, d2 uint256.Int
 	err := t.get_D_mem(t.extra.RateMultipliers, t.reserves, a, &d0)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	var balances1 [shared.MaxTokenCount]uint256.Int
 	for i := 0; i < numTokens; i++ {
@@ -457,23 +463,45 @@ func (t *PoolSimulator) CalculateTokenAmountU256(
 			balances1[i].Add(&t.reserves[i], &amounts[i])
 		} else {
 			if t.reserves[i].Cmp(&amounts[i]) < 0 {
-				return nil, ErrWithdrawMoreThanAvailable
+				return ErrWithdrawMoreThanAvailable
 			}
 			balances1[i].Sub(&t.reserves[i], &amounts[i])
 		}
 	}
 	err = t.get_D_mem(t.extra.RateMultipliers, balances1[:numTokens], a, &d1)
 	if err != nil {
-		return nil, err
+		return err
 	}
+
+	// in SC, this method won't take fee into account, so the result is different than the actual add_liquidity method
+	// we'll copy that code here
+
+	// We need to recalculate the invariant accounting for fees
+	// to calculate fair user's share
 	var totalSupply = t.LpSupply
-	var diff uint256.Int
-	if deposit {
-		diff.Sub(&d1, &d0)
+	var difference uint256.Int
+	if !totalSupply.IsZero() {
+		var _fee = number.Div(number.Mul(t.extra.SwapFee, &t.numTokensU256),
+			number.Mul(number.Number_4, uint256.NewInt(uint64(t.numTokens-1))))
+		var _admin_fee = t.extra.AdminFee
+		for i := 0; i < t.numTokens; i += 1 {
+			var ideal_balance = number.Div(number.Mul(&d1, &t.reserves[i]), &d0)
+			if ideal_balance.Cmp(&balances1[i]) > 0 {
+				difference.Sub(ideal_balance, &balances1[i])
+			} else {
+				difference.Sub(&balances1[i], ideal_balance)
+			}
+			var fee = number.Div(number.Mul(_fee, &difference), FeeDenominator)
+			feeAmounts[i].Set(number.Div(number.Mul(fee, _admin_fee), FeeDenominator))
+			balances1[i].Sub(&balances1[i], fee)
+		}
+		_ = t.get_D_mem(t.extra.RateMultipliers, balances1[:t.numTokens], a, &d2)
+		mintAmount.Div(number.Mul(&totalSupply, number.Sub(&d2, &d0)), &d0)
 	} else {
-		diff.Sub(&d0, &d1)
+		mintAmount.Set(&d1)
 	}
-	return number.Div(number.Mul(&diff, &totalSupply), &d0), nil
+
+	return nil
 }
 
 // need to keep big.Int for interface method, will be removed later
@@ -543,6 +571,18 @@ func (t *PoolSimulator) AddLiquidityU256(amounts []uint256.Int) (*uint256.Int, e
 	}
 	t.LpSupply.Add(&t.LpSupply, &mint_amount)
 	return &mint_amount, nil
+}
+
+func (t *PoolSimulator) ApplyAddLiquidity(amounts, feeAmounts []uint256.Int, mintAmount *uint256.Int) error {
+	for i := 0; i < t.numTokens; i++ {
+		number.SafeAddZ(&t.reserves[i], &amounts[i], &t.reserves[i])
+		number.SafeSubZ(&t.reserves[i], &feeAmounts[i], &t.reserves[i])
+		number.FillBig(&t.reserves[i], t.Info.Reserves[i]) // always sync back update to t.Info, will be removed later
+	}
+
+	t.LpSupply.Add(&t.LpSupply, mintAmount)
+
+	return nil
 }
 
 // need to keep big.Int for interface method, will be removed later

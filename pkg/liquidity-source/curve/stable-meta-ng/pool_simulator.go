@@ -37,20 +37,13 @@ type PoolSimulator struct {
 	basePool ICurveBasePool
 }
 
-func NewPoolSimulator(entityPool entity.Pool, basePool any) (*PoolSimulator, error) {
-	_basePool, ok := basePool.(ICurveBasePool)
-	if !ok {
-		// try to wrap old pool to new interface
-		if legacy, ok := basePool.(ICurveBasePoolLegacy2); ok {
-			_basePool = &legacyWrapper2{legacy}
-		}
-	}
+func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*PoolSimulator, error) {
 	sim, err := stableng.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, err
 	}
 
-	return &PoolSimulator{*sim, _basePool}, err
+	return &PoolSimulator{*sim, basePool}, err
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {

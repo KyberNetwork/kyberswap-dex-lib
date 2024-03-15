@@ -23,18 +23,18 @@ var (
 )
 
 /*
-BenchmarkGetDy-8                                 	  578199	      2068 ns/op	     240 B/op	       7 allocs/op
-BenchmarkGetDyUnderlying_meta2base-8             	  237098	      4972 ns/op	    1064 B/op	      11 allocs/op
-BenchmarkGetDyUnderlying_base2meta-8             	  209702	      5681 ns/op	    1064 B/op	      11 allocs/op
-BenchmarkGetDy_plainbase-8                       	  521000	      2275 ns/op	     240 B/op	       7 allocs/op
-BenchmarkGetDyUnderlying_plainbase_meta2base-8   	  241144	      4964 ns/op	    1480 B/op	      22 allocs/op
-BenchmarkGetDyUnderlying_plainbase_base2meta-8   	  277958	      4322 ns/op	    1568 B/op	      23 allocs/op
+BenchmarkGetDy-8                                 	  577413	      2083 ns/op	     240 B/op	       7 allocs/op
+BenchmarkGetDyUnderlying_meta2base-8             	  237134	      4975 ns/op	    1064 B/op	      11 allocs/op
+BenchmarkGetDyUnderlying_base2meta-8             	  210609	      5673 ns/op	    1064 B/op	      11 allocs/op
+BenchmarkGetDy_plainbase-8                       	  521269	      2283 ns/op	     240 B/op	       7 allocs/op
+BenchmarkGetDyUnderlying_plainbase_meta2base-8   	  251290	      4722 ns/op	    1064 B/op	      11 allocs/op
+BenchmarkGetDyUnderlying_plainbase_base2meta-8   	  227568	      5134 ns/op	    1064 B/op	      11 allocs/op
 */
 
 func doBench(b *testing.B, basepoolRedis, poolRedis, tokIn, tokOut, amount string) {
 	var poolEntity entity.Pool
 	require.Nil(b, json.Unmarshal([]byte(basepoolRedis), &poolEntity))
-	var baseSim any
+	var baseSim ICurveBasePool
 	var err error
 	if poolEntity.Exchange == stableng.DexType {
 		baseSim, err = stableng.NewPoolSimulator(poolEntity)
