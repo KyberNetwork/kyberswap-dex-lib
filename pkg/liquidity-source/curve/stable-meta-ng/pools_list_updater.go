@@ -102,6 +102,11 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 	for i, curvePool := range curvePools {
 		lg := u.logger.WithFields(logger.Fields{"poolAddress": curvePool.Address})
 
+		if len(curvePool.LpTokenAddress) == 0 {
+			lg.Warn("ignore pool with invalid LpTokenAddress")
+			continue
+		}
+
 		poolTokens := make([]*entity.PoolToken, 0, len(curvePool.Coins))
 		reserves := make([]string, 0, len(curvePool.Coins)+1) // N coins & totalSupply
 		invalidDecimal := false
@@ -126,11 +131,6 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, curvePools []shared.Cu
 			continue
 		}
 		reserves = append(reserves, "0")
-
-		if len(curvePool.LpTokenAddress) == 0 {
-			lg.Warn("ignore pool with invalid LpTokenAddress")
-			continue
-		}
 
 		var staticExtra = StaticExtra{
 			IsNativeCoins:    isNativeCoins,
