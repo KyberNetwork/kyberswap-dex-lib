@@ -55,7 +55,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	// cannot swap between the last meta coin and base pool's coins (because the last coin is LPtoken of base pool)
 	if (tokenIndexFrom == t.NumTokens-1 && tokenIndexTo < 0) || (tokenIndexTo == t.NumTokens-1 && tokenIndexFrom < 0) {
-		return &pool.CalcAmountOutResult{}, ErrTokenToUnderLyingNotSupported
+		return &pool.CalcAmountOutResult{}, ErrTokenToUnderlyingNotSupported
 	}
 
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
@@ -156,13 +156,13 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	number.FillBig(&t.Reserves[metaInfo.TokenOutIndex], t.Info.Reserves[metaInfo.TokenOutIndex])
 
 	// if output coin is from base pool
-	withDraw := swapInfo.Withdraw
-	if withDraw != nil {
+	withdraw := swapInfo.Withdraw
+	if withdraw != nil {
 		_ = t.basePool.ApplyRemoveLiquidityOneCoinU256(
-			withDraw.TokenIndex,
-			&withDraw.TokenAmount,
-			&withDraw.Dy,
-			&withDraw.DyFee,
+			withdraw.TokenIndex,
+			&withdraw.TokenAmount,
+			&withdraw.Dy,
+			&withdraw.DyFee,
 		)
 	}
 
@@ -227,7 +227,7 @@ func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 }
 
 func (t *PoolSimulator) GetTokens() []string {
-	var result []string
+	result := make([]string, 0, len(t.GetInfo().Tokens)+len(t.basePool.GetInfo().Tokens))
 	result = append(result, t.GetInfo().Tokens...)
 	result = append(result, t.basePool.GetInfo().Tokens...)
 	return result

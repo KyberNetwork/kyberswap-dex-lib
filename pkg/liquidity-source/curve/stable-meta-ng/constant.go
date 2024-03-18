@@ -46,7 +46,7 @@ var (
 	ErrTokenIndexesOutOfRange       = errors.New("token index out of range")
 	ErrAmountOutNotConverge         = errors.New("approximation did not converge")
 
-	ErrTokenToUnderLyingNotSupported = errors.New("not support exchange from base pool token to its underlying")
+	ErrTokenToUnderlyingNotSupported = errors.New("not support exchange from base pool token to its underlying")
 	ErrAllBasePoolTokens             = errors.New("base pool swap should be done at base pool")
 	ErrAllMetaPoolTokens             = errors.New("meta pool swap should be done using GetDy")
 )
