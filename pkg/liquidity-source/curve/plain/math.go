@@ -624,14 +624,14 @@ func (t *PoolSimulator) GetVirtualPrice() (*big.Int, *big.Int, error) {
 }
 
 func (t *PoolSimulator) GetVirtualPriceU256(vPrice, D *uint256.Int) error {
+	if t.LpSupply.IsZero() {
+		return ErrDenominatorZero
+	}
 	var xp = xpMem(t.extra.RateMultipliers, t.reserves)
 	var A = t._A()
 	var err = t.getD(xp, A, D)
 	if err != nil {
 		return err
-	}
-	if t.LpSupply.IsZero() {
-		return ErrDenominatorZero
 	}
 	vPrice.Div(number.Mul(D, Precision), &t.LpSupply)
 	return nil
