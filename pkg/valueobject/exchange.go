@@ -330,6 +330,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeCurve:                      {},
 	ExchangeCurveStablePlain:           {},
 	ExchangeCurveStableNg:              {},
+	ExchangeCurveStableMetaNg:          {},
 	ExchangeEllipsis:                   {},
 	ExchangePancakeStable:              {},
 	ExchangeUniSwapV3:                  {},
