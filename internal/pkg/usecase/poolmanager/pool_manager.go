@@ -154,7 +154,7 @@ func listCurveMetaBasePools(
 	}
 
 	for _, pool := range pools {
-		if pool.Type != pooltypes.PoolTypes.CurveMeta {
+		if pool.Type != pooltypes.PoolTypes.CurveMeta && pool.Type != pooltypes.PoolTypes.CurveStableMetaNg {
 			continue
 		}
 

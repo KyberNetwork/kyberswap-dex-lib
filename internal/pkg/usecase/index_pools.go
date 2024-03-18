@@ -109,8 +109,8 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) bo
 			}
 		}
 	}
-	// curve metapool underlying
-	if pool.Type == pooltypes.PoolTypes.CurveMeta || pool.Type == pooltypes.PoolTypes.CurveAave {
+	// curve aave underlying
+	if pool.Type == pooltypes.PoolTypes.CurveAave {
 		var extra struct {
 			UnderlyingTokens []string `json:"underlyingTokens"`
 		}
@@ -141,6 +141,61 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) bo
 							if err != nil {
 								result = false
 							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if pool.Type == pooltypes.PoolTypes.CurveMeta || pool.Type == pooltypes.PoolTypes.CurveStableMetaNg {
+		// `underlyingTokens` here are metaCoin[0:numMetaCoin-1] ++ baseCoin[0:numBaseCoin]
+		// we'll index for each pair of metaCoin and baseCoin
+		// note that technically we can use this pool to swap between base coins, but we shouldn't, because:
+		// - it cost less gas to swap base coins directly at base pool instead
+		// - router might return incorrect output, because:
+		//		- router find 2 paths, one through base pool and one through meta pool
+		//		- router consume the 1st path and update balance for base pool accordingly
+		//		- but that won't affect meta pool, because we're storing them separatedly in pool bucket
+		//		- so router will incorrectly think that the 2nd path is still usable, while it's not
+		// 	so rejecting base coin swap here will help us avoid that (note that we might still get another edge case:
+		//		path1: basecoin1 -> basepool -> basecoin2
+		// 		path2: basecoin1 -> metapool -> metacoin1 -> anotherpool -> basecoin2
+		//		after consuming path1, router still assuming that path2 is usable while it's not
+		//		to fix this we'll need to change the way we update balance for base & meta pool, which is much more complicated
+		// 	)
+		numUsableMetaCoin := len(poolTokens) - 1
+		var extra struct {
+			UnderlyingTokens []string `json:"underlyingTokens"`
+		}
+		var err = json.Unmarshal([]byte(pool.StaticExtra), &extra)
+		numUnderlyingCoins := len(extra.UnderlyingTokens)
+		if err == nil && numUnderlyingCoins > numUsableMetaCoin {
+			for i := 0; i < numUsableMetaCoin; i++ {
+				if !pool.HasReserve(pool.Reserves[i]) {
+					continue
+				}
+
+				tokenI := poolTokens[i].Address
+				whiteListI := u.isWhitelistedToken(tokenI)
+
+				for j := numUsableMetaCoin; j < numUnderlyingCoins; j++ {
+					tokenJ := extra.UnderlyingTokens[j]
+					whiteListJ := u.isWhitelistedToken(tokenJ)
+
+					if pool.HasReserves() {
+						err := u.poolRankRepo.AddToSortedSetScoreByTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
+
+						if err != nil {
+							result = false
+						}
+					}
+
+					if pool.HasAmplifiedTvl() {
+						err := u.poolRankRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
+
+						if err != nil {
+							result = false
 						}
 					}
 				}

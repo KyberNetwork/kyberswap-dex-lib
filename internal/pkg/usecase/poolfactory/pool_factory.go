@@ -15,6 +15,7 @@ import (
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
+	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
 	curveStableNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
@@ -136,6 +137,8 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool, stateR
 	defer span.End()
 
 	curveBasePoolByAddress, curveBasePoolAddressSet := f.getCurveMetaBasePoolByAddress(ctx, pools)
+	// for now the NG version of meta only support plain/stable-ng as base pool
+	curveBaseNGPoolByAddress, curveBaseNGPoolAddressSet := f.getCurveMetaBaseNGPoolByAddress(ctx, pools)
 
 	iPoolSimulators := make([]poolpkg.IPoolSimulator, 0, len(pools))
 	for _, pool := range pools {
@@ -146,8 +149,23 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool, stateR
 			}
 
 			iPoolSimulators = append(iPoolSimulators, iPoolSimulator.(poolpkg.IPoolSimulator)) // iPoolSimulator here is ICurveBasePool and surely is a poolpkg.IPoolSimulator
+		} else if curveBaseNGPoolAddressSet.Has(pool.Address) {
+			iPoolSimulator, ok := curveBaseNGPoolByAddress[pool.Address]
+			if !ok {
+				continue
+			}
+
+			iPoolSimulators = append(iPoolSimulators, iPoolSimulator.(poolpkg.IPoolSimulator))
 		} else if pool.Type == pooltypes.PoolTypes.CurveMeta {
 			iPool, err := f.newCurveMeta(*pool, curveBasePoolByAddress)
+			if err != nil {
+				logger.Debugf(ctx, err.Error())
+				continue
+			}
+
+			iPoolSimulators = append(iPoolSimulators, iPool)
+		} else if pool.Type == pooltypes.PoolTypes.CurveStableMetaNg {
+			iPool, err := f.newCurveMetaNG(*pool, curveBaseNGPoolByAddress)
 			if err != nil {
 				logger.Debugf(ctx, err.Error())
 				continue
@@ -173,6 +191,7 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 	defer span.End()
 
 	curveBasePoolByAddress, curveBasePoolAddressSet := f.getCurveMetaBasePoolByAddress(ctx, pools)
+	curveBaseNGPoolByAddress, curveBaseNGPoolAddressSet := f.getCurveMetaBaseNGPoolByAddress(ctx, pools)
 
 	poolByAddress := make(map[string]poolpkg.IPoolSimulator, len(pools))
 	for _, pool := range pools {
@@ -183,8 +202,23 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 			}
 
 			poolByAddress[IPoolSimulator.GetInfo().Address] = IPoolSimulator.(poolpkg.IPoolSimulator) // IPoolSimulator here is ICurveBasePool and surely is a poolpkg.IPoolSimulator
+		} else if curveBaseNGPoolAddressSet.Has(pool.Address) {
+			IPoolSimulator, ok := curveBaseNGPoolByAddress[pool.Address]
+			if !ok {
+				continue
+			}
+
+			poolByAddress[IPoolSimulator.GetInfo().Address] = IPoolSimulator.(poolpkg.IPoolSimulator)
 		} else if pool.Type == pooltypes.PoolTypes.CurveMeta {
 			IPoolSimulator, err := f.newCurveMeta(*pool, curveBasePoolByAddress)
+			if err != nil {
+				logger.Debugf(ctx, err.Error())
+				continue
+			}
+
+			poolByAddress[IPoolSimulator.GetAddress()] = IPoolSimulator
+		} else if pool.Type == pooltypes.PoolTypes.CurveStableMetaNg {
+			IPoolSimulator, err := f.newCurveMetaNG(*pool, curveBaseNGPoolByAddress)
 			if err != nil {
 				logger.Debugf(ctx, err.Error())
 				continue
@@ -260,6 +294,43 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 			{
 				basePoolAddresses.Insert(entityPool.Address)
 				basePool, err := f.newCurveAAVE(*entityPool)
+				if err != nil {
+					logger.Warn(ctx, err.Error())
+					continue
+				}
+				basePoolByAddress[basePool.GetAddress()] = basePool
+			}
+		default:
+			continue
+		}
+
+	}
+	return basePoolByAddress, basePoolAddresses
+}
+
+func (f *PoolFactory) getCurveMetaBaseNGPoolByAddress(
+	ctx context.Context,
+	entityPools []*entity.Pool,
+) (map[string]curveStableMetaNg.ICurveBasePool, sets.String) {
+	basePoolByAddress := make(map[string]curveStableMetaNg.ICurveBasePool)
+	basePoolAddresses := sets.NewString()
+
+	for _, entityPool := range entityPools {
+		switch entityPool.Type {
+		case pooltypes.PoolTypes.CurveStablePlain:
+			{
+				basePoolAddresses.Insert(entityPool.Address)
+				basePool, err := f.newCurveStablePlain(*entityPool)
+				if err != nil {
+					logger.Warn(ctx, err.Error())
+					continue
+				}
+				basePoolByAddress[basePool.GetAddress()] = basePool
+			}
+		case pooltypes.PoolTypes.CurveStableNg:
+			{
+				basePoolAddresses.Insert(entityPool.Address)
+				basePool, err := f.newCurveStableNg(*entityPool)
 				if err != nil {
 					logger.Warn(ctx, err.Error())
 					continue
@@ -759,6 +830,45 @@ func (f *PoolFactory) newCurveTwo(entityPool entity.Pool) (*curveTwo.Pool, error
 	}
 
 	return corePool, nil
+}
+
+func (f *PoolFactory) newCurveMetaNG(
+	entityPool entity.Pool, curveBasePoolByAddress map[string]curveStableMetaNg.ICurveBasePool,
+) (*curveStableMetaNg.PoolSimulator, error) {
+	var staticExtra struct {
+		BasePool string `json:"basePool"`
+	}
+
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+		return nil, errors.WithMessagef(
+			err,
+			"[PoolFactory.newCurveMetaNG] pool: [%s] » basePool: [%s]",
+			entityPool.Address,
+			staticExtra.BasePool,
+		)
+	}
+
+	basePool, ok := curveBasePoolByAddress[staticExtra.BasePool]
+	if !ok {
+		return nil, errors.WithMessagef(
+			ErrBasePoolNotFound,
+			"[PoolFactory.newCurveMetaNG] pool: [%s] » basePool: [%s]",
+			entityPool.Address,
+			staticExtra.BasePool,
+		)
+	}
+
+	curveMetaPool, err := curveStableMetaNg.NewPoolSimulator(entityPool, basePool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			err,
+			"[PoolFactory.newCurveMeta] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return curveMetaPool, nil
 }
 
 func (f *PoolFactory) newDoDo(entityPool entity.Pool) (*dodo.PoolSimulator, error) {

@@ -87,7 +87,7 @@ func mockPoolsTestIndexPools() []*entity.Pool {
 			Reserves:     []string{"20000", "30000"},
 			Tokens:       []*entity.PoolToken{poolTokens[1], poolTokens[0]},
 			Extra:        "extra2",
-			StaticExtra:  fmt.Sprintf(`{"underlyingTokens": ["%s", "%s"]}`, poolTokens[3].Address, poolTokens[4].Address),
+			StaticExtra:  fmt.Sprintf(`{"underlyingTokens": ["%s", "%s", "%s"]}`, poolTokens[1].Address, poolTokens[3].Address, poolTokens[4].Address),
 			TotalSupply:  "20000",
 		},
 		{
@@ -190,9 +190,17 @@ func TestIndexPools_Handle(t *testing.T) {
 				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
 					gomock.Any(),
 					mockPools[1],
+					mockTokens[1].Address,
 					mockTokens[3].Address,
-					mockTokens[4].Address,
+					false,
 					true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
+					gomock.Any(),
+					mockPools[1],
+					mockTokens[1].Address,
+					mockTokens[4].Address,
+					false,
 					false,
 				).Return(nil)
 
@@ -260,9 +268,17 @@ func TestIndexPools_Handle(t *testing.T) {
 				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
 					gomock.Any(),
 					mockPools[1],
+					mockTokens[1].Address,
 					mockTokens[3].Address,
-					mockTokens[4].Address,
+					false,
 					true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
+					gomock.Any(),
+					mockPools[1],
+					mockTokens[1].Address,
+					mockTokens[4].Address,
+					false,
 					false,
 				).Return(nil)
 
