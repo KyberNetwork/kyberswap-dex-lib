@@ -1,7 +1,7 @@
 package velodromev1
 
 const (
-	DexType = "velodrome"
+	DexType = "velodrome-v1"
 )
 
 var (
