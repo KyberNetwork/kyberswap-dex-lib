@@ -90,7 +90,6 @@ func (u *PoolsListUpdater) initPools(_ context.Context, curvePools []shared.Curv
 			lg.Warn("ignore pool with invalid coin decimal")
 			continue
 		}
-		reserves = append(reserves, "0")
 
 		var staticExtra = StaticExtra{
 			IsNativeCoins: isNativeCoins,

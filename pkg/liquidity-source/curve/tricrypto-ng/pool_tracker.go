@@ -241,7 +241,6 @@ func (t *PoolTracker) GetNewPoolState(
 	for i := range balances {
 		reserves = append(reserves, balances[i].String())
 	}
-	reserves = append(reserves, lpSupply.String())
 
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
