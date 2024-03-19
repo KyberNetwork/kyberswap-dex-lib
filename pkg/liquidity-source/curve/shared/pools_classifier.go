@@ -21,7 +21,7 @@ func (u *PoolsListUpdater) ClassifyPools(ctx context.Context, dataSource CurveDa
 	return u.classifyPoolsFromFactory(ctx, dataSource, pools)
 }
 
-func (u *PoolsListUpdater) classifyPoolsFromCryptoRegistry(ctx context.Context, dataSource CurveDataSource, pools []CurvePool) (map[string]CurvePoolType, error) {
+func (u *PoolsListUpdater) classifyPoolsFromCryptoRegistry(_ context.Context, _ CurveDataSource, pools []CurvePool) (map[string]CurvePoolType, error) {
 	typeMap := make(map[string]CurvePoolType, len(pools))
 	for _, pool := range pools {
 		if pool.IsMetaPool {
@@ -35,7 +35,7 @@ func (u *PoolsListUpdater) classifyPoolsFromCryptoRegistry(ctx context.Context, 
 
 // (only for factory-xxx source, not `main` and `crypto`)
 // https://github.com/curvefi/curve-js/blob/cb26335/src/factory/factory-api.ts#L72
-func (u *PoolsListUpdater) classifyPoolsFromFactory(ctx context.Context, dataSource CurveDataSource, pools []CurvePool) (map[string]CurvePoolType, error) {
+func (u *PoolsListUpdater) classifyPoolsFromFactory(_ context.Context, dataSource CurveDataSource, pools []CurvePool) (map[string]CurvePoolType, error) {
 	typeMap := make(map[string]CurvePoolType, len(pools))
 
 	isCrypto := dataSource == CURVE_DATASOURCE_FACTORY_CRYPTO || dataSource == CURVE_DATASOURCE_FACTORY_TRICRYPTO
@@ -45,6 +45,8 @@ func (u *PoolsListUpdater) classifyPoolsFromFactory(ctx context.Context, dataSou
 			if pool.IsMetaPool {
 				// only factory-crypto has meta pool, factory-tricrypto doesn't (yet), anw we have the flag already
 				typeMap[pool.Address] = CURVE_POOL_TYPE_CRYPTO_META
+			} else if dataSource == CURVE_DATASOURCE_FACTORY_TRICRYPTO {
+				typeMap[pool.Address] = CURVE_POOL_TYPE_TRICRYPTO_NG
 			} else {
 				typeMap[pool.Address] = CURVE_POOL_TYPE_CRYPTO
 			}
@@ -68,7 +70,7 @@ func (u *PoolsListUpdater) classifyPoolsFromFactory(ctx context.Context, dataSou
 	return typeMap, nil
 }
 
-func (u *PoolsListUpdater) classifyPoolsFromMainRegistry(ctx context.Context, dataSource CurveDataSource, pools []CurvePool) (map[string]CurvePoolType, error) {
+func (u *PoolsListUpdater) classifyPoolsFromMainRegistry(ctx context.Context, _ CurveDataSource, pools []CurvePool) (map[string]CurvePoolType, error) {
 	typeMap := make(map[string]CurvePoolType, len(pools))
 
 	// Curve's offchain API doesn't have enough info, so fetch them via RPC
