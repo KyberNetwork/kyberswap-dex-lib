@@ -366,7 +366,7 @@ repository:
       bufferItems: 64
       suggestedGasPrice:
         cost: 1
-        ttl: 2m
+        ttl: 15s
   pool:
     redis:
       prefix: *chainName
