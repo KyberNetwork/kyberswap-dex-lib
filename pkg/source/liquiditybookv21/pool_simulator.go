@@ -22,7 +22,7 @@ type PoolSimulator struct {
 	variableFeeParams variableFeeParams
 	activeBinID       uint32
 	binStep           uint16
-	bins              []bin
+	bins              []Bin
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -146,9 +146,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 		totalBinReserveChanges[b.BinID] = changes
 	}
-	newBins := []bin{}
+	newBins := []Bin{}
 	for _, b := range p.bins {
-		newBin := bin{
+		newBin := Bin{
 			ID:          b.ID,
 			ReserveX:    new(big.Int).Set(b.ReserveX),
 			ReserveY:    new(big.Int).Set(b.ReserveY),

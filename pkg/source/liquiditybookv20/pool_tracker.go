@@ -42,7 +42,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}).Infof("[%s] Start getting new state of pool", p.Type)
 
 	var (
-		rpcResult      *queryRpcPoolStateResult
+		rpcResult      *QueryRpcPoolStateResult
 		subgraphResult *querySubgraphPoolStateResult
 		err            error
 	)
@@ -92,12 +92,20 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	return p, nil
 }
 
-func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*queryRpcPoolStateResult, error) {
+func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, pool entity.Pool) ([]byte, error) {
+	result, err := d.queryRpc(ctx, pool)
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(result)
+}
+
+func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*QueryRpcPoolStateResult, error) {
 	var (
 		blockTimestamp uint64
 
-		feeParamsResp  feeParametersRpcResp
-		reservesAndID  reservesAndID
+		feeParamsResp feeParametersRpcResp
+		reservesAndID reservesAndID
 
 		err error
 	)
@@ -141,7 +149,7 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*queryRpcPoo
 		Time:                     uint64(feeParamsResp.State.Time.Uint64()),
 	}
 
-	return &queryRpcPoolStateResult{
+	return &QueryRpcPoolStateResult{
 		BlockTimestamp: blockTimestamp,
 		FeeParameters:  feeParameters,
 		ReservesAndID:  reservesAndID,
@@ -150,7 +158,7 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*queryRpcPoo
 
 func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*querySubgraphPoolStateResult, error) {
 	var (
-		bins           []bin
+		bins           []Bin
 		blockTimestamp int64
 		unitX          *big.Float
 		unitY          *big.Float
