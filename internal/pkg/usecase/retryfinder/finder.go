@@ -79,6 +79,7 @@ func (r *RetryFinder) Find(ctx context.Context,
 func (r *RetryFinder) retryDynamicPools(ctx context.Context, route *valueobject.Route, dynamicTypes []string, data findroute.FinderData, gasOption valueobject.GasOption) *valueobject.Route {
 	var newRoute = valueobject.NewRoute(route.Input.Token, route.Output.Token)
 	typeSet := sets.NewString(dynamicTypes...)
+	poolsInRoute := route.ExtractPoolAddresses()
 	for i := 0; i < len(route.Paths); i++ {
 		var (
 			newPath  *valueobject.Path
@@ -108,13 +109,13 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, route *valueobject.
 				return route
 			}
 			currOutput = result.TokenAmountOut
-			bestNewPool, newAmount := findNewBestPoolWithAmount(data, inp, result.TokenAmountOut, typeSet)
+			bestNewPool, newAmount := findNewBestPoolWithAmount(data, inp, result.TokenAmountOut, typeSet, poolsInRoute)
 
 			if bestNewPool != "" {
-				logger.Infof(ctx, "found better pool %s. Old pool", bestNewPool, currPool.GetAddress())
 				modified = true
 				poolsOnNewPath[pIndex] = bestNewPool
 				currOutput = newAmount
+				poolsInRoute.Insert(bestNewPool)
 			} else {
 				poolsOnNewPath[pIndex] = currPath.PoolAddresses[pIndex]
 			}
@@ -133,13 +134,14 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, route *valueobject.
 		}
 		newRoute.AddPath(data.PoolBucket, newPath, data.SwapLimits)
 	}
+	logger.Infof(ctx, "found better route %v. Old pool %v", newRoute, route)
 	return newRoute
 }
 
-func findNewBestPoolWithAmount(data findroute.FinderData, inp, out *poolpkg.TokenAmount, typeSet sets.String) (string, *poolpkg.TokenAmount) {
+func findNewBestPoolWithAmount(data findroute.FinderData, inp, out *poolpkg.TokenAmount, typeSet sets.String, poolsUsed sets.String) (string, *poolpkg.TokenAmount) {
 	var bestNewPool = ""
 	for _, poolVal := range data.PoolBucket.PerRequestPoolsByAddress {
-		if typeSet.Has(poolVal.GetType()) {
+		if typeSet.Has(poolVal.GetType()) && !poolsUsed.Has(poolVal.GetAddress()) {
 			counter := 0
 			for _, token := range poolVal.GetTokens() {
 				if token == inp.Token || token == out.Token {

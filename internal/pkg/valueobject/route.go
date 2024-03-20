@@ -5,6 +5,7 @@ import (
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
@@ -180,19 +181,14 @@ func (r *Route) CompareTo(other *Route, gasInclude bool) int {
 	return r.Output.Amount.Cmp(other.Output.Amount)
 }
 
-func (r *Route) ExtractPoolAddresses() []string {
-	poolAddressSet := make(map[string]struct{})
+func (r *Route) ExtractPoolAddresses() sets.String {
+	poolAddressSet := sets.NewString()
 
 	for _, path := range r.Paths {
 		for _, poolAddress := range path.PoolAddresses {
-			poolAddressSet[poolAddress] = struct{}{}
+			poolAddressSet.Insert(poolAddress)
 		}
 	}
 
-	poolAddresses := make([]string, 0, len(poolAddressSet))
-	for poolAddress := range poolAddressSet {
-		poolAddresses = append(poolAddresses, poolAddress)
-	}
-
-	return poolAddresses
+	return poolAddressSet
 }
