@@ -27,8 +27,8 @@ type (
 		pool.Pool
 		isBaseSwapped          bool
 		isQuoteSwapped         bool
-		baseToken              *entity.PoolToken
-		quoteToken             *entity.PoolToken
+		baseToken              entity.PoolToken
+		quoteToken             entity.PoolToken
 		baseToQuotePriceLevels []PriceLevel
 		quoteToBasePriceLevels []PriceLevel
 		timestamp              int64
@@ -81,8 +81,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		},
 		isBaseSwapped:          false,
 		isQuoteSwapped:         false,
-		baseToken:              entityPool.Tokens[0],
-		quoteToken:             entityPool.Tokens[1],
+		baseToken:              *entityPool.Tokens[0],
+		quoteToken:             *entityPool.Tokens[1],
 		baseToQuotePriceLevels: extra.BaseToQuotePriceLevels,
 		quoteToBasePriceLevels: extra.QuoteToBasePriceLevels,
 		timestamp:              entityPool.Timestamp,
