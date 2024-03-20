@@ -102,7 +102,8 @@ func (d *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		}).Infof("scan VelodromeFactory")
 	}
 
-	nextOffset := currentOffset + len(pools)
+	// nextOffset is calculated using batchSize instead, since the len(pools) may smaller than batchSize.
+	nextOffset := currentOffset + batchSize
 	newMetadataBytes, err := json.Marshal(Metadata{
 		Offset: nextOffset,
 	})
@@ -133,7 +134,8 @@ func (d *PoolListUpdater) processBatch(ctx context.Context, poolAddresses []comm
 		}, []interface{}{&poolMetadata[i]})
 	}
 
-	if _, err := calls.Aggregate(); err != nil {
+	resp, err := calls.TryAggregate()
+	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to aggregate to get tokens from pool")
@@ -141,7 +143,12 @@ func (d *PoolListUpdater) processBatch(ctx context.Context, poolAddresses []comm
 		return nil, err
 	}
 
-	for i, pAddr := range poolAddresses {
+	for i, isSuccess := range resp.Result {
+		if !isSuccess {
+			continue
+		}
+
+		pAddr := poolAddresses[i]
 		poolAddress := strings.ToLower(pAddr.Hex())
 		token0Address := strings.ToLower(poolMetadata[i].T0.Hex())
 		token1Address := strings.ToLower(poolMetadata[i].T1.Hex())
