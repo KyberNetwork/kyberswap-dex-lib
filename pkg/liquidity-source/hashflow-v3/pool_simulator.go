@@ -32,9 +32,9 @@ type (
 		ZeroToOnePriceLevels []PriceLevel
 		OneToZeroPriceLevels []PriceLevel
 
-		timestamp int64
-
-		gas Gas
+		timestamp      int64
+		priceTolerance int64
+		gas            Gas
 	}
 
 	PriceLevel struct {
@@ -49,6 +49,7 @@ type (
 	Extra struct {
 		ZeroToOnePriceLevels []PriceLevelRaw `json:"zeroToOnePriceLevels"`
 		OneToZeroPriceLevels []PriceLevelRaw `json:"oneToZeroPriceLevels"`
+		PriceTolerance       int64           `json:"priceTolerance"`
 	}
 	PriceLevelRaw struct {
 		Quote string `json:"q"`
@@ -134,8 +135,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		ZeroToOnePriceLevels: zeroToOnePriceLevels,
 		OneToZeroPriceLevels: oneToZeroPriceLevels,
 
-		timestamp: entityPool.Timestamp,
-		gas:       defaultGas,
+		timestamp:      entityPool.Timestamp,
+		priceTolerance: extra.PriceTolerance,
+		gas:            defaultGas,
 	}, nil
 }
 
@@ -169,7 +171,7 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.PoolToken, priceLevel []PriceLevel) (*pool.CalcAmountOutResult, error) {
-	var amountInAfterDecimals, decimalsPow, amountInBF, amountOutBF big.Float
+	var amountInAfterDecimals, decimalsPow, amountInBF, amountOutBF, priceToleranceBF, amountOutToleranceBF big.Float
 
 	amountInBF.SetInt(amountIn)
 	decimalsPow.SetFloat64(math.Pow10(int(baseToken.Decimals)))
@@ -184,6 +186,11 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.Poo
 
 	decimalsPow.SetFloat64(math.Pow10(int(quoteToken.Decimals)))
 	amountOutBF.Mul(&amountOutAfterDecimals, &decimalsPow)
+
+	priceToleranceBF.SetFloat64(float64(p.priceTolerance) / float64(priceToleranceBps))
+	amountOutToleranceBF.Mul(&priceToleranceBF, &amountOutBF)
+	amountOutBF.Sub(&amountOutBF, &amountOutToleranceBF)
+
 	amountOut, _ := amountOutBF.Int(nil)
 
 	return &pool.CalcAmountOutResult{
