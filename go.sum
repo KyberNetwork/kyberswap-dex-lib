@@ -41,8 +41,8 @@ github.com/KyberNetwork/kutils v0.2.2 h1:BgZPQeilzmVI39hf4YaGPRqWU0WWhLbfZ2IxzZP
 github.com/KyberNetwork/kutils v0.2.2/go.mod h1:v+vg2VJf7SKFMsH7M1LAPBfa7I3QFEaZg5ApjmW9jHg=
 github.com/KyberNetwork/kyber-trace-go v0.1.2 h1:x82SuCYTj4naoGNQ02DoSQgl7f07grl8RL8cKGAFNLw=
 github.com/KyberNetwork/kyber-trace-go v0.1.2/go.mod h1:X6hVacmKMeOEOlFh4TyfEHaEVRerFQ5YLuQ4keRV3hw=
-github.com/KyberNetwork/kyberswap-dex-lib v0.37.1 h1:YQTdvGGxrJHt03VDlABoEPBrJqI6AVz/zKak8Uw/VH8=
-github.com/KyberNetwork/kyberswap-dex-lib v0.37.1/go.mod h1:mn3zB9vUfIZjfgIG4XpKbQOdAD/rZNMPSS1BgIF+19w=
+github.com/KyberNetwork/kyberswap-dex-lib v0.37.2 h1:tRvEm0GH2eY3JxwW2FtjhICnzROt9dz1ih+1hyYfvXg=
+github.com/KyberNetwork/kyberswap-dex-lib v0.37.2/go.mod h1:mn3zB9vUfIZjfgIG4XpKbQOdAD/rZNMPSS1BgIF+19w=
 github.com/KyberNetwork/logger v0.2.0 h1:5QNGP84uXpwVt4rtvLq9ATwy4grRwdjBNEc/RF7oJK4=
 github.com/KyberNetwork/logger v0.2.0/go.mod h1:zBqHbtJ3nJn6HQnp6UW8pbQkR+U6tSRFd5CzfiKL3Kw=
 github.com/KyberNetwork/pancake-v3-sdk v0.1.0 h1:HVUD13Qbwl4kiU1uSprQVpkis6fYYp3A32mVuK+f1Iw=
