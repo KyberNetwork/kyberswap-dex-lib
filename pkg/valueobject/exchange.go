@@ -270,7 +270,7 @@ var (
 	ExchangeMonoswapV3      Exchange = "monoswap-v3"
 
 	ExchangeAgniFinance    Exchange = "agni-finance"
-	ExchangeMerchantMoe    Exchange = "merchange-moe"
+	ExchangeMerchantMoe    Exchange = "merchant-moe"
 	ExchangeFusionX        Exchange = "fusion-x"
 	ExchangeFusionXV3      Exchange = "fusion-x-v3"
 	ExchangeKTX            Exchange = "ktx"
