@@ -27,14 +27,14 @@ var (
 type PoolSimulator struct {
 	poolpkg.Pool
 
-	records    map[string]Record
-	publicSwap bool
-	swapFee    *uint256.Int
+	Records    map[string]Record
+	PublicSwap bool
+	SwapFee    *uint256.Int
 
-	totalAmountsIn    map[string]*uint256.Int
-	maxTotalAmountsIn map[string]*uint256.Int
+	TotalAmountsIn    map[string]*uint256.Int
+	MaxTotalAmountsIn map[string]*uint256.Int
 
-	gas Gas
+	Gas Gas
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -70,12 +70,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		records:           extra.Records,
-		publicSwap:        extra.PublicSwap,
-		swapFee:           extra.SwapFee,
-		totalAmountsIn:    totalAmountsIn,
-		maxTotalAmountsIn: maxTotalAmountsIn,
-		gas:               defaultGas,
+		Records:           extra.Records,
+		PublicSwap:        extra.PublicSwap,
+		SwapFee:           extra.SwapFee,
+		TotalAmountsIn:    totalAmountsIn,
+		MaxTotalAmountsIn: maxTotalAmountsIn,
+		Gas:               defaultGas,
 	}, nil
 }
 
@@ -93,14 +93,14 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
 		Fee:            &poolpkg.TokenAmount{Token: params.TokenAmountIn.Token, Amount: big.NewInt(0)},
-		Gas:            s.gas.SwapExactAmountIn,
+		Gas:            s.Gas.SwapExactAmountIn,
 	}, nil
 }
 
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-	inRecord, outRecord := s.records[params.TokenAmountIn.Token], s.records[params.TokenAmountOut.Token]
+	inRecord, outRecord := s.Records[params.TokenAmountIn.Token], s.Records[params.TokenAmountOut.Token]
 	amountIn, amountOut := uint256.MustFromBig(params.TokenAmountIn.Amount), uint256.MustFromBig(params.TokenAmountOut.Amount)
-	newTotalAmountIn := s.totalAmountsIn[params.TokenAmountIn.Token]
+	newTotalAmountIn := s.TotalAmountsIn[params.TokenAmountIn.Token]
 
 	newBalanceIn, err := BNum.BAdd(inRecord.Balance, amountIn)
 	if err != nil {
@@ -129,9 +129,9 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	inRecord.Balance = newBalanceIn
 	outRecord.Balance = newBalanceOut
 
-	s.records[params.TokenAmountIn.Token] = inRecord
-	s.records[params.TokenAmountOut.Token] = outRecord
-	s.totalAmountsIn[params.TokenAmountIn.Token] = newTotalAmountIn
+	s.Records[params.TokenAmountIn.Token] = inRecord
+	s.Records[params.TokenAmountOut.Token] = outRecord
+	s.TotalAmountsIn[params.TokenAmountIn.Token] = newTotalAmountIn
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
@@ -151,15 +151,15 @@ func (s *PoolSimulator) swapExactAmountIn(
 	_ *uint256.Int, // minAmountOut
 	_ *uint256.Int, // maxPrice
 ) (*uint256.Int, *uint256.Int, error) {
-	if !s.records[tokenIn].Bound {
+	if !s.Records[tokenIn].Bound {
 		return nil, nil, ErrNotBound
 	}
 
-	if !s.records[tokenOut].Bound {
+	if !s.Records[tokenOut].Bound {
 		return nil, nil, ErrNotBound
 	}
 
-	if !s.publicSwap {
+	if !s.PublicSwap {
 		return nil, nil, ErrSwapNotPublic
 	}
 
@@ -167,13 +167,13 @@ func (s *PoolSimulator) swapExactAmountIn(
 		return nil, nil, err
 	}
 
-	inRecord, outRecord := s.records[tokenIn], s.records[tokenOut]
+	inRecord, outRecord := s.Records[tokenIn], s.Records[tokenOut]
 	spotPriceBefore, err := BMath.CalcSpotPrice(
 		inRecord.Balance,
 		inRecord.Denorm,
 		outRecord.Balance,
 		outRecord.Denorm,
-		s.swapFee,
+		s.SwapFee,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -189,7 +189,7 @@ func (s *PoolSimulator) swapExactAmountIn(
 		outRecord.Balance,
 		outRecord.Denorm,
 		tokenAmountIn,
-		s.swapFee,
+		s.SwapFee,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -214,7 +214,7 @@ func (s *PoolSimulator) swapExactAmountIn(
 		inRecord.Denorm,
 		outRecord.Balance,
 		outRecord.Denorm,
-		s.swapFee,
+		s.SwapFee,
 	)
 	if err != nil {
 		return nil, nil, err
@@ -241,7 +241,7 @@ func (s *PoolSimulator) swapExactAmountIn(
 }
 
 func (s *PoolSimulator) validateAmountIn(tokenIn string, amountIn *uint256.Int) error {
-	bMulBalanceInAndMaxIn, err := BNum.BMul(s.records[tokenIn].Balance, BConst.MAX_IN_RATIO)
+	bMulBalanceInAndMaxIn, err := BNum.BMul(s.Records[tokenIn].Balance, BConst.MAX_IN_RATIO)
 	if err != nil {
 		return err
 	}
@@ -250,12 +250,12 @@ func (s *PoolSimulator) validateAmountIn(tokenIn string, amountIn *uint256.Int) 
 		return ErrMaxInRatio
 	}
 
-	bAddTotalAmountInAndAmountIn, err := BNum.BAdd(s.totalAmountsIn[tokenIn], amountIn)
+	bAddTotalAmountInAndAmountIn, err := BNum.BAdd(s.TotalAmountsIn[tokenIn], amountIn)
 	if err != nil {
 		return err
 	}
 
-	if bAddTotalAmountInAndAmountIn.Gt(s.maxTotalAmountsIn[tokenIn]) {
+	if bAddTotalAmountInAndAmountIn.Gt(s.MaxTotalAmountsIn[tokenIn]) {
 		return ErrMaxTotalInRatio
 	}
 

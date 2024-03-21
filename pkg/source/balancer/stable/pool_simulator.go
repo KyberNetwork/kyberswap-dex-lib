@@ -23,7 +23,7 @@ type StablePool struct {
 	PoolId         string
 	Decimals       []uint
 	ScalingFactors []*big.Int
-	gas            balancer.Gas
+	Gas            balancer.Gas
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*StablePool, error) {
@@ -67,7 +67,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*StablePool, error) {
 		Precision:      extra.AmplificationParameter.Precision,
 		ScalingFactors: extra.ScalingFactors,
 		Decimals:       lo.Map(staticExtra.TokenDecimals, func(dec int, _ int) uint { return uint(dec) }),
-		gas:            balancer.DefaultGas,
+		Gas:            balancer.DefaultGas,
 	}, nil
 }
 
@@ -109,7 +109,7 @@ func (t *StablePool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAm
 				Token:  tokenAmountIn.Token,
 				Amount: feeAmount,
 			},
-			Gas: t.gas.Swap,
+			Gas: t.Gas.Swap,
 		}, nil
 
 	}

@@ -9,23 +9,23 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
-type regularSimulator struct {
+type RegularSimulator struct {
 	poolpkg.Pool
 
-	bptIndex          int
-	scalingFactors    []*uint256.Int
-	amp               *uint256.Int
-	swapFeePercentage *uint256.Int
+	BptIndex          int
+	ScalingFactors    []*uint256.Int
+	Amp               *uint256.Int
+	SwapFeePercentage *uint256.Int
 }
 
 // https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F10#L49
-func (s *regularSimulator) swap(
+func (s *RegularSimulator) swap(
 	amountIn *uint256.Int,
 	balances []*uint256.Int,
 	indexIn int,
 	indexOut int,
 ) (*uint256.Int, *poolpkg.TokenAmount, *SwapInfo, error) {
-	feeAmount, err := math.FixedPoint.MulUp(amountIn, s.swapFeePercentage)
+	feeAmount, err := math.FixedPoint.MulUp(amountIn, s.SwapFeePercentage)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -34,12 +34,12 @@ func (s *regularSimulator) swap(
 		return nil, nil, nil, err
 	}
 
-	balances, err = _upscaleArray(balances, s.scalingFactors)
+	balances, err = _upscaleArray(balances, s.ScalingFactors)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	upScaledAmountInAfterFee, err := _upscale(amountInAfterFee, s.scalingFactors[indexIn])
+	upScaledAmountInAfterFee, err := _upscale(amountInAfterFee, s.ScalingFactors[indexIn])
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -49,7 +49,7 @@ func (s *regularSimulator) swap(
 		return nil, nil, nil, err
 	}
 
-	amountOut, err := _downscaleDown(upscaledAmountOut, s.scalingFactors[indexOut])
+	amountOut, err := _downscaleDown(upscaledAmountOut, s.ScalingFactors[indexOut])
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -62,7 +62,7 @@ func (s *regularSimulator) swap(
 	return amountOut, &fee, &SwapInfo{}, nil
 }
 
-func (s *regularSimulator) _onSwapGivenIn(
+func (s *RegularSimulator) _onSwapGivenIn(
 	amountIn *uint256.Int,
 	balances []*uint256.Int,
 	indexIn int,
@@ -71,23 +71,23 @@ func (s *regularSimulator) _onSwapGivenIn(
 	return s._onRegularSwap(amountIn, balances, indexIn, indexOut)
 }
 
-func (s *regularSimulator) _onRegularSwap(
+func (s *RegularSimulator) _onRegularSwap(
 	amountIn *uint256.Int,
 	registeredBalances []*uint256.Int,
 	indexIn int,
 	indexOut int,
 ) (*uint256.Int, error) {
-	balances := _dropBptItem(registeredBalances, s.bptIndex)
-	indexIn, indexOut = _skipBptIndex(indexIn, s.bptIndex), _skipBptIndex(indexOut, s.bptIndex)
+	balances := _dropBptItem(registeredBalances, s.BptIndex)
+	indexIn, indexOut = _skipBptIndex(indexIn, s.BptIndex), _skipBptIndex(indexOut, s.BptIndex)
 
-	invariant, err := math.StableMath.CalculateInvariantV2(s.amp, balances)
+	invariant, err := math.StableMath.CalculateInvariantV2(s.Amp, balances)
 	if err != nil {
 		return nil, err
 	}
 
 	return math.StableMath.CalcOutGivenIn(
 		invariant,
-		s.amp,
+		s.Amp,
 		amountIn,
 		balances,
 		indexIn,
@@ -95,7 +95,7 @@ func (s *regularSimulator) _onRegularSwap(
 	)
 }
 
-func (s *regularSimulator) updateBalance(params poolpkg.UpdateBalanceParams) {
+func (s *RegularSimulator) updateBalance(params poolpkg.UpdateBalanceParams) {
 	for idx, token := range s.Info.Tokens {
 		if token == params.TokenAmountIn.Token {
 			s.Info.Reserves[idx] = new(big.Int).Add(

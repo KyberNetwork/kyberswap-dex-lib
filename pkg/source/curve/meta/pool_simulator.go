@@ -45,7 +45,7 @@ type Pool struct {
 	LpToken        string
 	LpSupply       *big.Int
 	APrecision     *big.Int
-	gas            Gas
+	Gas            Gas
 }
 
 type Gas struct {
@@ -104,7 +104,7 @@ func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*Pool, e
 		LpToken:        staticExtra.LpToken,
 		LpSupply:       utils.NewBig10(entityPool.Reserves[numTokens]),
 		APrecision:     aPrecision,
-		gas:            DefaultGas,
+		Gas:            DefaultGas,
 	}, nil
 }
 
@@ -138,7 +138,7 @@ func (t *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 					Token:  tokenOut,
 					Amount: fee,
 				},
-				Gas: t.gas.Exchange,
+				Gas: t.Gas.Exchange,
 			}, nil
 		}
 	}
@@ -171,13 +171,13 @@ func (t *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 					Token:  tokenOut,
 					Amount: fee,
 				},
-				Gas: t.gas.ExchangeUnderlying,
+				Gas: t.Gas.ExchangeUnderlying,
 			}, nil
 
 		}
 	}
 	return &pool.CalcAmountOutResult{
-		Gas: t.gas.ExchangeUnderlying,
+		Gas: t.Gas.ExchangeUnderlying,
 	}, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
 }
 

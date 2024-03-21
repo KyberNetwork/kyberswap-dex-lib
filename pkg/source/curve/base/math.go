@@ -116,7 +116,7 @@ func (t *PoolBaseSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	var d, dP, numTokensPlus1, nA, nA_mul_s_div_APrec, nA_sub_APrec, diff, prevD, tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7 big.Int
 	numTokensPlus1.SetInt64(int64(numTokens + 1))
 	d.Set(s)
-	nA.Mul(a, t.numTokensBI)
+	nA.Mul(a, t.NumTokensBI)
 	nA_mul_s_div_APrec.Mul(&nA, s)
 	nA_mul_s_div_APrec.Div(&nA_mul_s_div_APrec, t.APrecision)
 	nA_sub_APrec.Sub(&nA, t.APrecision)
@@ -133,7 +133,7 @@ func (t *PoolBaseSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 			tmp0.Mul(&dP, &d)
 
 			// denominator
-			tmp1.Mul(xp[j], t.numTokensBI)
+			tmp1.Mul(xp[j], t.NumTokensBI)
 			tmp1.Add(&tmp1, bignumber.One)
 
 			// update dP
@@ -145,7 +145,7 @@ func (t *PoolBaseSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 		// D = (Ann * S / A_PRECISION + D_P * N_COINS) * D / ((Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P)
 
 		// nominator
-		tmp6.Add(&nA_mul_s_div_APrec, tmp3.Mul(&dP, t.numTokensBI)) // (Ann * S / A_PRECISION + D_P * N_COINS)
+		tmp6.Add(&nA_mul_s_div_APrec, tmp3.Mul(&dP, t.NumTokensBI)) // (Ann * S / A_PRECISION + D_P * N_COINS)
 		tmp2.Mul(&tmp6, &d)                                         // (Ann * S / A_PRECISION + D_P * N_COINS) * D
 
 		// denominator
@@ -196,7 +196,7 @@ func (t *PoolBaseSimulator) getY(
 	}
 	var c = new(big.Int).Set(d)
 	var s = big.NewInt(0)
-	var nA = new(big.Int).Mul(a, t.numTokensBI)
+	var nA = new(big.Int).Mul(a, t.NumTokensBI)
 	var _x *big.Int
 	for i := 0; i < numTokens; i++ {
 		if i == tokenIndexFrom {
@@ -212,7 +212,7 @@ func (t *PoolBaseSimulator) getY(
 		s = new(big.Int).Add(s, _x)
 		c = new(big.Int).Div(
 			new(big.Int).Mul(c, d),
-			new(big.Int).Mul(_x, t.numTokensBI),
+			new(big.Int).Mul(_x, t.NumTokensBI),
 		)
 	}
 	if nA.Cmp(bignumber.ZeroBI) == 0 {
@@ -220,7 +220,7 @@ func (t *PoolBaseSimulator) getY(
 	}
 	c = new(big.Int).Div(
 		new(big.Int).Mul(new(big.Int).Mul(c, d), t.APrecision),
-		new(big.Int).Mul(nA, t.numTokensBI),
+		new(big.Int).Mul(nA, t.NumTokensBI),
 	)
 	var b = new(big.Int).Add(
 		s,
@@ -314,13 +314,13 @@ func (t *PoolBaseSimulator) getYD(
 	}
 	var c = new(big.Int).Set(d)
 	var s = big.NewInt(0)
-	var nA = new(big.Int).Mul(a, t.numTokensBI)
+	var nA = new(big.Int).Mul(a, t.NumTokensBI)
 	for i := 0; i < numTokens; i++ {
 		if i != tokenIndex {
 			s = new(big.Int).Add(s, xp[i])
 			c = new(big.Int).Div(
 				new(big.Int).Mul(c, d),
-				new(big.Int).Mul(xp[i], t.numTokensBI),
+				new(big.Int).Mul(xp[i], t.NumTokensBI),
 			)
 		}
 	}
@@ -329,7 +329,7 @@ func (t *PoolBaseSimulator) getYD(
 	}
 	c = new(big.Int).Div(
 		new(big.Int).Mul(new(big.Int).Mul(c, d), t.APrecision),
-		new(big.Int).Mul(nA, t.numTokensBI),
+		new(big.Int).Mul(nA, t.NumTokensBI),
 	)
 	var b = new(big.Int).Add(
 		s,

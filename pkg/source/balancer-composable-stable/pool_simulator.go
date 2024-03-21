@@ -26,7 +26,7 @@ type PoolSimulator struct {
 	RateProviders                    []string
 	TokensExemptFromYieldProtocolFee []bool
 	TokenRateCaches                  []TokenRateCache
-	mapTokenAddressToIndex           map[string]int
+	MapTokenAddressToIndex           map[string]int
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -78,7 +78,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		TokenRateCaches:                     extra.TokenRateCaches,
 		ProtocolFeePercentageCacheSwapType:  extra.ProtocolFeePercentageCacheSwapType,
 		ProtocolFeePercentageCacheYieldType: extra.ProtocolFeePercentageCacheYieldType,
-		mapTokenAddressToIndex:              mapTokenAddressToIndex,
+		MapTokenAddressToIndex:              mapTokenAddressToIndex,
 	}, nil
 }
 
@@ -86,8 +86,8 @@ func (c *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	var (
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut
-		indexIn       = c.mapTokenAddressToIndex[tokenAmountIn.Token]
-		indexOut      = c.mapTokenAddressToIndex[tokenOut]
+		indexIn       = c.MapTokenAddressToIndex[tokenAmountIn.Token]
+		indexOut      = c.MapTokenAddressToIndex[tokenOut]
 		amountOut     *big.Int
 		fee           *pool.TokenAmount
 		err           error
@@ -128,7 +128,7 @@ func (c *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	return Meta{
 		VaultAddress:           c.VaultAddress,
 		PoolId:                 c.PoolId,
-		MapTokenAddressToIndex: c.mapTokenAddressToIndex,
+		MapTokenAddressToIndex: c.MapTokenAddressToIndex,
 	}
 }
 

@@ -22,7 +22,7 @@ type AavePool struct {
 	FutureATime         int64
 	AdminFee            *big.Int
 	OffpegFeeMultiplier *big.Int
-	gas                 Gas
+	Gas                 Gas
 
 	LpSupply *big.Int
 }
@@ -77,7 +77,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*AavePool, error) {
 		FutureATime:         extra.FutureATime,
 		AdminFee:            bignumber.NewBig10(extra.AdminFee),
 		OffpegFeeMultiplier: bignumber.NewBig10(extra.OffpegFeeMultiplier),
-		gas:                 DefaultGas,
+		Gas:                 DefaultGas,
 		LpSupply:            lpSupply,
 	}, nil
 }
@@ -114,7 +114,7 @@ func (t *AavePool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmou
 					Token:  tokenOut,
 					Amount: fee,
 				},
-				Gas: t.gas.Exchange,
+				Gas: t.Gas.Exchange,
 			}, nil
 		}
 	}

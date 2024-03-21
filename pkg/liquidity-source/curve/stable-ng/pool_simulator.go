@@ -18,11 +18,11 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 
-	precisionMultipliers []uint256.Int
+	PrecisionMultipliers []uint256.Int
 	Reserves             []uint256.Int // same as pool.Reserves but use uint256.Int
 
 	LpSupply uint256.Int
-	gas      Gas
+	Gas      Gas
 
 	NumTokens     int
 	NumTokensU256 uint256.Int
@@ -60,7 +60,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var reservesBI = make([]*big.Int, numTokens)
 
 	sim.Reserves = make([]uint256.Int, numTokens)
-	sim.precisionMultipliers = make([]uint256.Int, numTokens)
+	sim.PrecisionMultipliers = make([]uint256.Int, numTokens)
 
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
@@ -70,7 +70,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			return nil, err
 		}
 
-		sim.precisionMultipliers[i].Exp(
+		sim.PrecisionMultipliers[i].Exp(
 			uint256.NewInt(10),
 			uint256.NewInt(uint64(18-entityPool.Tokens[i].Decimals)),
 		)
@@ -89,7 +89,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		},
 	}
 
-	sim.gas = DefaultGas
+	sim.Gas = DefaultGas
 
 	if err := sim.LpSupply.SetFromDecimal(entityPool.Reserves[numTokens]); err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 					Token:  tokenOut,
 					Amount: adminFee.ToBig(),
 				},
-				Gas: t.gas.Exchange,
+				Gas: t.Gas.Exchange,
 			}, nil
 		}
 	}

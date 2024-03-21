@@ -34,18 +34,18 @@ type (
 	PoolSimulator struct {
 		poolpkg.Pool
 
-		paused bool
+		Paused bool
 
-		swapFeePercentage *uint256.Int
-		scalingFactors    []*uint256.Int
-		normalizedWeights []*uint256.Int
+		SwapFeePercentage *uint256.Int
+		ScalingFactors    []*uint256.Int
+		NormalizedWeights []*uint256.Int
 
-		vault       string
-		poolID      string
-		poolTypeVer int
+		Vault       string
+		PoolID      string
+		PoolTypeVer int
 
-		totalAmountsIn          []*uint256.Int
-		scaledMaxTotalAmountsIn []*uint256.Int
+		TotalAmountsIn          []*uint256.Int
+		ScaledMaxTotalAmountsIn []*uint256.Int
 	}
 
 	Gas struct {
@@ -104,21 +104,21 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	return &PoolSimulator{
 		Pool:                    poolpkg.Pool{Info: poolInfo},
-		paused:                  extra.Paused,
-		swapFeePercentage:       extra.SwapFeePercentage,
-		scalingFactors:          staticExtra.ScalingFactors,
-		normalizedWeights:       staticExtra.NormalizedWeights,
-		vault:                   staticExtra.Vault,
-		poolID:                  staticExtra.PoolID,
-		poolTypeVer:             staticExtra.PoolTypeVer,
-		totalAmountsIn:          totalAmountsIn,
-		scaledMaxTotalAmountsIn: scaledMaxTotalAmountsIn,
+		Paused:                  extra.Paused,
+		SwapFeePercentage:       extra.SwapFeePercentage,
+		ScalingFactors:          staticExtra.ScalingFactors,
+		NormalizedWeights:       staticExtra.NormalizedWeights,
+		Vault:                   staticExtra.Vault,
+		PoolID:                  staticExtra.PoolID,
+		PoolTypeVer:             staticExtra.PoolTypeVer,
+		TotalAmountsIn:          totalAmountsIn,
+		ScaledMaxTotalAmountsIn: scaledMaxTotalAmountsIn,
 	}, nil
 }
 
 // https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F7#L32
 func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
-	if s.paused {
+	if s.Paused {
 		return nil, ErrPoolPaused
 	}
 
@@ -146,21 +146,21 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrInvalidAmountIn
 	}
 
-	scalingFactorTokenIn := s.scalingFactors[indexIn]
-	scalingFactorTokenOut := s.scalingFactors[indexOut]
-	normalizedWeightIn := s.normalizedWeights[indexIn]
-	normalizedWeightOut := s.normalizedWeights[indexOut]
+	scalingFactorTokenIn := s.ScalingFactors[indexIn]
+	scalingFactorTokenOut := s.ScalingFactors[indexOut]
+	normalizedWeightIn := s.NormalizedWeights[indexIn]
+	normalizedWeightOut := s.NormalizedWeights[indexOut]
 
-	balanceTokenIn, err := _upscale(s.poolTypeVer, reserveIn, scalingFactorTokenIn)
+	balanceTokenIn, err := _upscale(s.PoolTypeVer, reserveIn, scalingFactorTokenIn)
 	if err != nil {
 		return nil, err
 	}
-	balanceTokenOut, err := _upscale(s.poolTypeVer, reserveOut, scalingFactorTokenOut)
+	balanceTokenOut, err := _upscale(s.PoolTypeVer, reserveOut, scalingFactorTokenOut)
 	if err != nil {
 		return nil, err
 	}
 
-	feeAmount, err := math.FixedPoint.MulUp(amountIn, s.swapFeePercentage)
+	feeAmount, err := math.FixedPoint.MulUp(amountIn, s.SwapFeePercentage)
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	upScaledAmountIn, err := _upscale(s.poolTypeVer, amountInAfterFee, scalingFactorTokenIn)
+	upScaledAmountIn, err := _upscale(s.PoolTypeVer, amountInAfterFee, scalingFactorTokenIn)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +190,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	amountOut, err := _downscaleDown(s.poolTypeVer, upScaledAmountOut, scalingFactorTokenOut)
+	amountOut, err := _downscaleDown(s.PoolTypeVer, upScaledAmountOut, scalingFactorTokenOut)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +215,7 @@ func (s *PoolSimulator) calcOutGivenIn(
 	normalizedWeightOut *uint256.Int,
 	upScaledAmountIn *uint256.Int,
 ) (*uint256.Int, error) {
-	if s.poolTypeVer == poolTypeVer1 {
+	if s.PoolTypeVer == poolTypeVer1 {
 		return math.WeightedMath.CalcOutGivenInV1(
 			balanceTokenIn,
 			normalizedWeightIn,
@@ -235,13 +235,13 @@ func (s *PoolSimulator) calcOutGivenIn(
 }
 
 func (s *PoolSimulator) validateMaxInRatio(tokenIndex int, amountIn *uint256.Int) error {
-	sum := new(uint256.Int).Add(s.totalAmountsIn[tokenIndex], amountIn)
-	upscaledSum, err := _upscale(s.poolTypeVer, sum, s.scalingFactors[tokenIndex])
+	sum := new(uint256.Int).Add(s.TotalAmountsIn[tokenIndex], amountIn)
+	upscaledSum, err := _upscale(s.PoolTypeVer, sum, s.ScalingFactors[tokenIndex])
 	if err != nil {
 		return err
 	}
 
-	if upscaledSum.Gt(s.scaledMaxTotalAmountsIn[tokenIndex]) {
+	if upscaledSum.Gt(s.ScaledMaxTotalAmountsIn[tokenIndex]) {
 		return ErrMaxTotalInRatio
 	}
 
@@ -256,8 +256,8 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 				params.TokenAmountIn.Amount,
 			)
 
-			s.totalAmountsIn[idx] = new(uint256.Int).Add(
-				s.totalAmountsIn[idx],
+			s.TotalAmountsIn[idx] = new(uint256.Int).Add(
+				s.TotalAmountsIn[idx],
 				uint256.MustFromBig(params.TokenAmountIn.Amount),
 			)
 		}
@@ -273,8 +273,8 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:         s.vault,
-		PoolID:        s.poolID,
+		Vault:         s.Vault,
+		PoolID:        s.PoolID,
 		TokenOutIndex: s.GetTokenIndex(tokenOut),
 		BlockNumber:   s.Info.BlockNumber,
 	}

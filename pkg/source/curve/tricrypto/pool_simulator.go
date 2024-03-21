@@ -39,7 +39,7 @@ type Pool struct {
 	AdjustmentStep     *big.Int
 	MaHalfTime         *big.Int
 	NotAdjusted        bool
-	gas                Gas
+	Gas                Gas
 }
 
 type Gas struct {
@@ -118,7 +118,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 		AdjustmentStep:      bignumber.NewBig10(extraStr.AdjustmentStep),
 		MaHalfTime:          bignumber.NewBig10(extraStr.MaHalfTime),
 		NotAdjusted:         false,
-		gas:                 DefaultGas,
+		Gas:                 DefaultGas,
 	}, nil
 }
 
@@ -147,7 +147,7 @@ func (t *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 					Token:  tokenOut,
 					Amount: fee,
 				},
-				Gas: t.gas.Exchange,
+				Gas: t.Gas.Exchange,
 			}, nil
 
 		}

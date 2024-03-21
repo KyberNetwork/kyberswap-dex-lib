@@ -18,7 +18,7 @@ type CompoundPool struct {
 	Multipliers []*big.Int
 	AdminFee    *big.Int
 	Rates       []*big.Int
-	gas         Gas
+	Gas         Gas
 }
 
 type Gas struct {
@@ -70,7 +70,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*CompoundPool, error) {
 		A:           bignumber.NewBig10(extra.A),
 		AdminFee:    bignumber.NewBig10(extra.AdminFee),
 		Rates:       rates,
-		gas:         DefaultGas,
+		Gas:         DefaultGas,
 	}, nil
 }
 
@@ -104,7 +104,7 @@ func (t *CompoundPool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Calc
 					Token:  tokenOut,
 					Amount: fee,
 				},
-				Gas: t.gas.ExchangeUnderlying,
+				Gas: t.Gas.ExchangeUnderlying,
 			}, nil
 
 		}
