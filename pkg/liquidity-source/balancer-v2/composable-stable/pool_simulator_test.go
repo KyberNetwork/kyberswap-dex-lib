@@ -1,6 +1,10 @@
 package composablestable
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/gob"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -33,22 +37,22 @@ func TestRegularSwap(t *testing.T) {
 			},
 		}
 
-		regularSimulator := &regularSimulator{
+		regularSimulator := &RegularSimulator{
 			Pool:              pool,
-			swapFeePercentage: uint256.NewInt(100000000000000),
-			scalingFactors: []*uint256.Int{
+			SwapFeePercentage: uint256.NewInt(100000000000000),
+			ScalingFactors: []*uint256.Int{
 				uint256.NewInt(1000000000000000000),
 				uint256.NewInt(1000052057863883934),
 				uint256.NewInt(1000000000000000000),
 			},
 
-			bptIndex: 0,
-			amp:      uint256.NewInt(1500000),
+			BptIndex: 0,
+			Amp:      uint256.NewInt(1500000),
 		}
 
 		poolSimulator := &PoolSimulator{
 			Pool:             pool,
-			regularSimulator: regularSimulator,
+			RegularSimulator: regularSimulator,
 		}
 
 		// input
@@ -95,22 +99,22 @@ func TestRegularSwap(t *testing.T) {
 			},
 		}
 
-		regularSimulator := &regularSimulator{
+		regularSimulator := &RegularSimulator{
 			Pool:              pool,
-			swapFeePercentage: uint256.NewInt(100000000000000),
-			scalingFactors: []*uint256.Int{
+			SwapFeePercentage: uint256.NewInt(100000000000000),
+			ScalingFactors: []*uint256.Int{
 				uint256.NewInt(10000000000),
 				uint256.NewInt(10000520578),
 				uint256.NewInt(10000000000),
 			},
 
-			bptIndex: 0,
-			amp:      uint256.NewInt(1500000),
+			BptIndex: 0,
+			Amp:      uint256.NewInt(1500000),
 		}
 
 		poolSimulator := &PoolSimulator{
 			Pool:             pool,
-			regularSimulator: regularSimulator,
+			RegularSimulator: regularSimulator,
 		}
 
 		// input
@@ -162,26 +166,26 @@ func TestBptSwap(t *testing.T) {
 			},
 		}
 
-		bptSimulator := &bptSimulator{
-			poolTypeVer:    poolTypeVer1,
-			bptIndex:       1,
-			bptTotalSupply: bptTotalSupply,
-			amp:            uint256.NewInt(600000),
-			scalingFactors: []*uint256.Int{
+		bptSimulator := &BptSimulator{
+			PoolTypeVer:    poolTypeVer1,
+			BptIndex:       1,
+			BptTotalSupply: bptTotalSupply,
+			Amp:            uint256.NewInt(600000),
+			ScalingFactors: []*uint256.Int{
 				uint256.NewInt(1000000000000000000),
 				uint256.NewInt(1000000000000000000),
 				uint256.NewInt(366332019912307),
 			},
-			lastJoinExit: LastJoinExitData{
+			LastJoinExit: LastJoinExitData{
 				LastJoinExitAmplification: uint256.NewInt(600000),
 				LastPostJoinExitInvariant: uint256.MustFromDecimal("114012967613307699384"),
 			},
-			rateProviders: []string{
+			RateProviders: []string{
 				"0x0000000000000000000000000000000000000000",
 				"0x0000000000000000000000000000000000000000",
 				"0xA13a9247ea42D743238089903570127DdA72fE44",
 			},
-			tokenRateCaches: []TokenRateCache{
+			TokenRateCaches: []TokenRateCache{
 				{},
 				{},
 				{
@@ -191,20 +195,20 @@ func TestBptSwap(t *testing.T) {
 					Expires:  uint256.NewInt(1677904371),
 				},
 			},
-			swapFeePercentage: uint256.NewInt(100000000000000),
-			protocolFeePercentageCache: map[int]*uint256.Int{
+			SwapFeePercentage: uint256.NewInt(100000000000000),
+			ProtocolFeePercentageCache: map[int]*uint256.Int{
 				feeTypeSwap:  uint256.NewInt(0),
 				feeTypeYield: uint256.NewInt(0),
 			},
-			tokenExemptFromYieldProtocolFee: []bool{
+			TokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
 			},
-			inRecoveryMode: true,
+			InRecoveryMode: true,
 		}
 
 		poolSimulator := &PoolSimulator{
 			Pool:         pool,
-			bptSimulator: bptSimulator,
+			BptSimulator: bptSimulator,
 		}
 
 		// input
@@ -254,26 +258,26 @@ func TestBptSwap(t *testing.T) {
 			},
 		}
 
-		bptSimulator := &bptSimulator{
-			poolTypeVer:    poolTypeVer1,
-			bptIndex:       1,
-			bptTotalSupply: bptTotalSupply,
-			amp:            uint256.NewInt(600000),
-			scalingFactors: []*uint256.Int{
+		bptSimulator := &BptSimulator{
+			PoolTypeVer:    poolTypeVer1,
+			BptIndex:       1,
+			BptTotalSupply: bptTotalSupply,
+			Amp:            uint256.NewInt(600000),
+			ScalingFactors: []*uint256.Int{
 				uint256.NewInt(1000000000000000000),
 				uint256.NewInt(1000000000000000000),
 				uint256.NewInt(366332019912307),
 			},
-			lastJoinExit: LastJoinExitData{
+			LastJoinExit: LastJoinExitData{
 				LastJoinExitAmplification: uint256.NewInt(600000),
 				LastPostJoinExitInvariant: uint256.MustFromDecimal("114012967613307699384"),
 			},
-			rateProviders: []string{
+			RateProviders: []string{
 				"0x0000000000000000000000000000000000000000",
 				"0x0000000000000000000000000000000000000000",
 				"0xA13a9247ea42D743238089903570127DdA72fE44",
 			},
-			tokenRateCaches: []TokenRateCache{
+			TokenRateCaches: []TokenRateCache{
 				{},
 				{},
 				{
@@ -283,20 +287,20 @@ func TestBptSwap(t *testing.T) {
 					Expires:  uint256.NewInt(1677904371),
 				},
 			},
-			swapFeePercentage: uint256.NewInt(100000000000000),
-			protocolFeePercentageCache: map[int]*uint256.Int{
+			SwapFeePercentage: uint256.NewInt(100000000000000),
+			ProtocolFeePercentageCache: map[int]*uint256.Int{
 				feeTypeSwap:  uint256.NewInt(0),
 				feeTypeYield: uint256.NewInt(0),
 			},
-			tokenExemptFromYieldProtocolFee: []bool{
+			TokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
 			},
-			inRecoveryMode: true,
+			InRecoveryMode: true,
 		}
 
 		poolSimulator := &PoolSimulator{
 			Pool:         pool,
-			bptSimulator: bptSimulator,
+			BptSimulator: bptSimulator,
 		}
 
 		// input
@@ -349,28 +353,28 @@ func TestBptSwap(t *testing.T) {
 			},
 		}
 
-		bptSimulator := &bptSimulator{
-			poolTypeVer:    poolTypeVer5,
-			bptIndex:       0,
-			bptTotalSupply: bptTotalSupply,
-			amp:            uint256.NewInt(200000),
-			scalingFactors: []*uint256.Int{
+		bptSimulator := &BptSimulator{
+			PoolTypeVer:    poolTypeVer5,
+			BptIndex:       0,
+			BptTotalSupply: bptTotalSupply,
+			Amp:            uint256.NewInt(200000),
+			ScalingFactors: []*uint256.Int{
 				uint256.MustFromDecimal("1000000000000000000"),
 				uint256.MustFromDecimal("1000000000000000000"),
 				uint256.MustFromDecimal("1000000000000000000000000000000"),
 				uint256.MustFromDecimal("1008208139884891050"),
 			},
-			lastJoinExit: LastJoinExitData{
+			LastJoinExit: LastJoinExitData{
 				LastJoinExitAmplification: uint256.NewInt(200000),
 				LastPostJoinExitInvariant: uint256.MustFromDecimal("51369044740270984486699"),
 			},
-			rateProviders: []string{
+			RateProviders: []string{
 				"0x0000000000000000000000000000000000000000",
 				"0x0000000000000000000000000000000000000000",
 				"0x0000000000000000000000000000000000000000",
 				"0xd8689E8740C23d73136744817347fd6aC464E842",
 			},
-			tokenRateCaches: []TokenRateCache{
+			TokenRateCaches: []TokenRateCache{
 				{},
 				{},
 				{},
@@ -381,22 +385,26 @@ func TestBptSwap(t *testing.T) {
 					Expires:  uint256.NewInt(1700764235),
 				},
 			},
-			swapFeePercentage: uint256.NewInt(500000000000000),
-			protocolFeePercentageCache: map[int]*uint256.Int{
+			SwapFeePercentage: uint256.NewInt(500000000000000),
+			ProtocolFeePercentageCache: map[int]*uint256.Int{
 				feeTypeSwap:  uint256.NewInt(500000000000000000),
 				feeTypeYield: uint256.NewInt(500000000000000000),
 			},
-			tokenExemptFromYieldProtocolFee: []bool{
+			TokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
 			},
-			exemptFromYieldProtocolFee: false,
-			inRecoveryMode:             false,
+			ExemptFromYieldProtocolFee: false,
+			InRecoveryMode:             false,
 		}
 
 		poolSimulator := &PoolSimulator{
 			Pool:         pool,
-			bptSimulator: bptSimulator,
+			BptSimulator: bptSimulator,
 		}
+
+		var gobBuf bytes.Buffer
+		assert.NoError(t, gob.NewEncoder(&gobBuf).Encode(poolSimulator))
+		fmt.Printf("%s\n", base64.StdEncoding.EncodeToString(gobBuf.Bytes()))
 
 		// input
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -448,28 +456,28 @@ func TestBptSwap(t *testing.T) {
 			},
 		}
 
-		bptSimulator := &bptSimulator{
-			poolTypeVer:    poolTypeVer5,
-			bptIndex:       0,
-			bptTotalSupply: bptTotalSupply,
-			amp:            uint256.NewInt(200000),
-			scalingFactors: []*uint256.Int{
+		bptSimulator := &BptSimulator{
+			PoolTypeVer:    poolTypeVer5,
+			BptIndex:       0,
+			BptTotalSupply: bptTotalSupply,
+			Amp:            uint256.NewInt(200000),
+			ScalingFactors: []*uint256.Int{
 				uint256.MustFromDecimal("1000000000000000000"),
 				uint256.MustFromDecimal("1000000000000000000"),
 				uint256.MustFromDecimal("1000000000000000000000000000000"),
 				uint256.MustFromDecimal("1008208139884891050"),
 			},
-			lastJoinExit: LastJoinExitData{
+			LastJoinExit: LastJoinExitData{
 				LastJoinExitAmplification: uint256.NewInt(200000),
 				LastPostJoinExitInvariant: uint256.MustFromDecimal("51369044740270984486699"),
 			},
-			rateProviders: []string{
+			RateProviders: []string{
 				"0x0000000000000000000000000000000000000000",
 				"0x0000000000000000000000000000000000000000",
 				"0x0000000000000000000000000000000000000000",
 				"0xd8689E8740C23d73136744817347fd6aC464E842",
 			},
-			tokenRateCaches: []TokenRateCache{
+			TokenRateCaches: []TokenRateCache{
 				{},
 				{},
 				{},
@@ -480,21 +488,21 @@ func TestBptSwap(t *testing.T) {
 					Expires:  uint256.NewInt(1700764235),
 				},
 			},
-			swapFeePercentage: uint256.NewInt(500000000000000),
-			protocolFeePercentageCache: map[int]*uint256.Int{
+			SwapFeePercentage: uint256.NewInt(500000000000000),
+			ProtocolFeePercentageCache: map[int]*uint256.Int{
 				feeTypeSwap:  uint256.NewInt(500000000000000000),
 				feeTypeYield: uint256.NewInt(500000000000000000),
 			},
-			tokenExemptFromYieldProtocolFee: []bool{
+			TokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
 			},
-			exemptFromYieldProtocolFee: false,
-			inRecoveryMode:             false,
+			ExemptFromYieldProtocolFee: false,
+			InRecoveryMode:             false,
 		}
 
 		poolSimulator := &PoolSimulator{
 			Pool:         pool,
-			bptSimulator: bptSimulator,
+			BptSimulator: bptSimulator,
 		}
 
 		// input
@@ -544,26 +552,26 @@ func TestBptSwap(t *testing.T) {
 			},
 		}
 
-		bptSimulator := &bptSimulator{
-			poolTypeVer:    poolTypeVer1,
-			bptIndex:       1,
-			bptTotalSupply: bptTotalSupply,
-			amp:            uint256.NewInt(600000),
-			scalingFactors: []*uint256.Int{
+		bptSimulator := &BptSimulator{
+			PoolTypeVer:    poolTypeVer1,
+			BptIndex:       1,
+			BptTotalSupply: bptTotalSupply,
+			Amp:            uint256.NewInt(600000),
+			ScalingFactors: []*uint256.Int{
 				uint256.NewInt(1000000000000000000),
 				uint256.NewInt(1000000000000000000),
 				uint256.NewInt(366332019912307),
 			},
-			lastJoinExit: LastJoinExitData{
+			LastJoinExit: LastJoinExitData{
 				LastJoinExitAmplification: uint256.NewInt(600000),
 				LastPostJoinExitInvariant: uint256.MustFromDecimal("114012967613307699384"),
 			},
-			rateProviders: []string{
+			RateProviders: []string{
 				"0x0000000000000000000000000000000000000000",
 				"0x0000000000000000000000000000000000000000",
 				"0xA13a9247ea42D743238089903570127DdA72fE44",
 			},
-			tokenRateCaches: []TokenRateCache{
+			TokenRateCaches: []TokenRateCache{
 				{},
 				{},
 				{
@@ -573,20 +581,20 @@ func TestBptSwap(t *testing.T) {
 					Expires:  uint256.NewInt(1677904371),
 				},
 			},
-			swapFeePercentage: uint256.NewInt(100000000000000),
-			protocolFeePercentageCache: map[int]*uint256.Int{
+			SwapFeePercentage: uint256.NewInt(100000000000000),
+			ProtocolFeePercentageCache: map[int]*uint256.Int{
 				feeTypeSwap:  uint256.NewInt(0),
 				feeTypeYield: uint256.NewInt(0),
 			},
-			tokenExemptFromYieldProtocolFee: []bool{
+			TokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
 			},
-			inRecoveryMode: true,
+			InRecoveryMode: true,
 		}
 
 		poolSimulator := &PoolSimulator{
 			Pool:         pool,
-			bptSimulator: bptSimulator,
+			BptSimulator: bptSimulator,
 		}
 
 		// input
@@ -638,26 +646,26 @@ func TestBptSwap(t *testing.T) {
 			},
 		}
 
-		bptSimulator := &bptSimulator{
-			poolTypeVer:    poolTypeVer1,
-			bptIndex:       1,
-			bptTotalSupply: bptTotalSupply,
-			amp:            uint256.NewInt(600000),
-			scalingFactors: []*uint256.Int{
+		bptSimulator := &BptSimulator{
+			PoolTypeVer:    poolTypeVer1,
+			BptIndex:       1,
+			BptTotalSupply: bptTotalSupply,
+			Amp:            uint256.NewInt(600000),
+			ScalingFactors: []*uint256.Int{
 				uint256.NewInt(1000000000000000000),
 				uint256.NewInt(1000000000000000000),
 				uint256.NewInt(366332019912307),
 			},
-			lastJoinExit: LastJoinExitData{
+			LastJoinExit: LastJoinExitData{
 				LastJoinExitAmplification: uint256.NewInt(600000),
 				LastPostJoinExitInvariant: uint256.MustFromDecimal("114012967613307699384"),
 			},
-			rateProviders: []string{
+			RateProviders: []string{
 				"0x0000000000000000000000000000000000000000",
 				"0x0000000000000000000000000000000000000000",
 				"0xA13a9247ea42D743238089903570127DdA72fE44",
 			},
-			tokenRateCaches: []TokenRateCache{
+			TokenRateCaches: []TokenRateCache{
 				{},
 				{},
 				{
@@ -667,20 +675,20 @@ func TestBptSwap(t *testing.T) {
 					Expires:  uint256.NewInt(1677904371),
 				},
 			},
-			swapFeePercentage: uint256.NewInt(100000000000000),
-			protocolFeePercentageCache: map[int]*uint256.Int{
+			SwapFeePercentage: uint256.NewInt(100000000000000),
+			ProtocolFeePercentageCache: map[int]*uint256.Int{
 				feeTypeSwap:  uint256.NewInt(0),
 				feeTypeYield: uint256.NewInt(0),
 			},
-			tokenExemptFromYieldProtocolFee: []bool{
+			TokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
 			},
-			inRecoveryMode: true,
+			InRecoveryMode: true,
 		}
 
 		poolSimulator := &PoolSimulator{
 			Pool:         pool,
-			bptSimulator: bptSimulator,
+			BptSimulator: bptSimulator,
 		}
 
 		// input
@@ -733,28 +741,28 @@ func TestBptSwap(t *testing.T) {
 			},
 		}
 
-		bptSimulator := &bptSimulator{
-			poolTypeVer:    poolTypeVer5,
-			bptIndex:       0,
-			bptTotalSupply: bptTotalSupply,
-			amp:            uint256.NewInt(200000),
-			scalingFactors: []*uint256.Int{
+		bptSimulator := &BptSimulator{
+			PoolTypeVer:    poolTypeVer5,
+			BptIndex:       0,
+			BptTotalSupply: bptTotalSupply,
+			Amp:            uint256.NewInt(200000),
+			ScalingFactors: []*uint256.Int{
 				uint256.MustFromDecimal("1000000000000000000"),
 				uint256.MustFromDecimal("1000000000000000000"),
 				uint256.MustFromDecimal("1000000000000000000000000000000"),
 				uint256.MustFromDecimal("1008208139884891050"),
 			},
-			lastJoinExit: LastJoinExitData{
+			LastJoinExit: LastJoinExitData{
 				LastJoinExitAmplification: uint256.NewInt(200000),
 				LastPostJoinExitInvariant: uint256.MustFromDecimal("51369044740270984486699"),
 			},
-			rateProviders: []string{
+			RateProviders: []string{
 				"0x0000000000000000000000000000000000000000",
 				"0x0000000000000000000000000000000000000000",
 				"0x0000000000000000000000000000000000000000",
 				"0xd8689E8740C23d73136744817347fd6aC464E842",
 			},
-			tokenRateCaches: []TokenRateCache{
+			TokenRateCaches: []TokenRateCache{
 				{},
 				{},
 				{},
@@ -764,21 +772,21 @@ func TestBptSwap(t *testing.T) {
 					Duration: uint256.NewInt(10800),
 				},
 			},
-			swapFeePercentage: uint256.NewInt(500000000000000),
-			protocolFeePercentageCache: map[int]*uint256.Int{
+			SwapFeePercentage: uint256.NewInt(500000000000000),
+			ProtocolFeePercentageCache: map[int]*uint256.Int{
 				feeTypeSwap:  uint256.NewInt(500000000000000000),
 				feeTypeYield: uint256.NewInt(500000000000000000),
 			},
-			tokenExemptFromYieldProtocolFee: []bool{
+			TokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
 			},
-			exemptFromYieldProtocolFee: false,
-			inRecoveryMode:             false,
+			ExemptFromYieldProtocolFee: false,
+			InRecoveryMode:             false,
 		}
 
 		poolSimulator := &PoolSimulator{
 			Pool:         pool,
-			bptSimulator: bptSimulator,
+			BptSimulator: bptSimulator,
 		}
 
 		// input
@@ -831,28 +839,28 @@ func TestBptSwap(t *testing.T) {
 			},
 		}
 
-		bptSimulator := &bptSimulator{
-			poolTypeVer:    poolTypeVer5,
-			bptIndex:       0,
-			bptTotalSupply: bptTotalSupply,
-			amp:            uint256.NewInt(200000),
-			scalingFactors: []*uint256.Int{
+		bptSimulator := &BptSimulator{
+			PoolTypeVer:    poolTypeVer5,
+			BptIndex:       0,
+			BptTotalSupply: bptTotalSupply,
+			Amp:            uint256.NewInt(200000),
+			ScalingFactors: []*uint256.Int{
 				uint256.MustFromDecimal("1000000000000000000"),
 				uint256.MustFromDecimal("1000000000000000000"),
 				uint256.MustFromDecimal("1000000000000000000000000000000"),
 				uint256.MustFromDecimal("1008208139884891050"),
 			},
-			lastJoinExit: LastJoinExitData{
+			LastJoinExit: LastJoinExitData{
 				LastJoinExitAmplification: uint256.NewInt(200000),
 				LastPostJoinExitInvariant: uint256.MustFromDecimal("51369044740270984486699"),
 			},
-			rateProviders: []string{
+			RateProviders: []string{
 				"0x0000000000000000000000000000000000000000",
 				"0x0000000000000000000000000000000000000000",
 				"0x0000000000000000000000000000000000000000",
 				"0xd8689E8740C23d73136744817347fd6aC464E842",
 			},
-			tokenRateCaches: []TokenRateCache{
+			TokenRateCaches: []TokenRateCache{
 				{},
 				{},
 				{},
@@ -863,21 +871,21 @@ func TestBptSwap(t *testing.T) {
 					Expires:  uint256.NewInt(1700764235),
 				},
 			},
-			swapFeePercentage: uint256.NewInt(500000000000000),
-			protocolFeePercentageCache: map[int]*uint256.Int{
+			SwapFeePercentage: uint256.NewInt(500000000000000),
+			ProtocolFeePercentageCache: map[int]*uint256.Int{
 				feeTypeSwap:  uint256.NewInt(500000000000000000),
 				feeTypeYield: uint256.NewInt(500000000000000000),
 			},
-			tokenExemptFromYieldProtocolFee: []bool{
+			TokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
 			},
-			exemptFromYieldProtocolFee: false,
-			inRecoveryMode:             false,
+			ExemptFromYieldProtocolFee: false,
+			InRecoveryMode:             false,
 		}
 
 		poolSimulator := &PoolSimulator{
 			Pool:         pool,
-			bptSimulator: bptSimulator,
+			BptSimulator: bptSimulator,
 		}
 
 		// input

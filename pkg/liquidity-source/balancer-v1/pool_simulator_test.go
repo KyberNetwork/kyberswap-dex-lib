@@ -26,7 +26,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		{
 			name: "it should return correct amountOut",
 			poolSimulator: PoolSimulator{
-				records: map[string]Record{
+				Records: map[string]Record{
 					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
 						Bound:   true,
 						Balance: number.NewUint256("181453339134494385762"),
@@ -38,13 +38,13 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 						Denorm:  number.NewUint256("25000000000000000000"),
 					},
 				},
-				publicSwap: true,
-				swapFee:    number.NewUint256("4000000000000000"),
-				totalAmountsIn: map[string]*uint256.Int{
+				PublicSwap: true,
+				SwapFee:    number.NewUint256("4000000000000000"),
+				TotalAmountsIn: map[string]*uint256.Int{
 					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": uint256.NewInt(0),
 					"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": uint256.NewInt(0),
 				},
-				maxTotalAmountsIn: map[string]*uint256.Int{
+				MaxTotalAmountsIn: map[string]*uint256.Int{
 					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
 					"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
 				},
@@ -80,7 +80,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 		{
 			name: "it should return correct amountOut",
 			poolSimulator: PoolSimulator{
-				records: map[string]Record{
+				Records: map[string]Record{
 					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
 						Bound:   true,
 						Balance: number.NewUint256("181453339134494385762"),
@@ -92,13 +92,13 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 						Denorm:  number.NewUint256("25000000000000000000"),
 					},
 				},
-				publicSwap: true,
-				swapFee:    number.NewUint256("4000000000000000"),
-				totalAmountsIn: map[string]*uint256.Int{
+				PublicSwap: true,
+				SwapFee:    number.NewUint256("4000000000000000"),
+				TotalAmountsIn: map[string]*uint256.Int{
 					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": uint256.NewInt(0),
 					"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": uint256.NewInt(0),
 				},
-				maxTotalAmountsIn: map[string]*uint256.Int{
+				MaxTotalAmountsIn: map[string]*uint256.Int{
 					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
 					"0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": uint256.MustFromDecimal("115792089237316195423570985008687907853269984665640564039457584007913129639935"),
 				},
@@ -116,8 +116,8 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tc.poolSimulator.UpdateBalance(tc.params)
 
-			assert.Equal(t, 0, tc.expectedBalanceIn.Cmp(tc.poolSimulator.records[tc.params.TokenAmountIn.Token].Balance))
-			assert.Equal(t, 0, tc.expectedBalanceOut.Cmp(tc.poolSimulator.records[tc.params.TokenAmountOut.Token].Balance))
+			assert.Equal(t, 0, tc.expectedBalanceIn.Cmp(tc.poolSimulator.Records[tc.params.TokenAmountIn.Token].Balance))
+			assert.Equal(t, 0, tc.expectedBalanceOut.Cmp(tc.poolSimulator.Records[tc.params.TokenAmountOut.Token].Balance))
 		})
 	}
 }

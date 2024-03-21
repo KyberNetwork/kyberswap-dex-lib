@@ -26,8 +26,8 @@ type PoolBaseSimulator struct {
 	LpToken      string
 	LpSupply     *big.Int
 	APrecision   *big.Int
-	gas          Gas
-	numTokensBI  *big.Int
+	Gas          Gas
+	NumTokensBI  *big.Int
 }
 
 type Gas struct {
@@ -90,8 +90,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolBaseSimulator, error) {
 		LpToken:      staticExtra.LpToken,
 		LpSupply:     bignumber.NewBig10(entityPool.Reserves[numTokens]),
 		APrecision:   aPrecision,
-		gas:          DefaultGas,
-		numTokensBI:  big.NewInt(int64(numTokens)),
+		Gas:          DefaultGas,
+		NumTokensBI:  big.NewInt(int64(numTokens)),
 	}, nil
 }
 
@@ -122,7 +122,7 @@ func (t *PoolBaseSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool
 					Token:  tokenOut,
 					Amount: fee,
 				},
-				Gas: t.gas.Exchange,
+				Gas: t.Gas.Exchange,
 			}, nil
 		}
 	}

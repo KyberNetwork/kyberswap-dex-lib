@@ -20,7 +20,7 @@ type WeightedPool2Tokens struct {
 	PoolId       string
 	Decimals     []uint
 	Weights      []*big.Int
-	gas          balancer.Gas
+	Gas          balancer.Gas
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*WeightedPool2Tokens, error) {
@@ -62,7 +62,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*WeightedPool2Tokens, error) {
 		PoolId:       strings.ToLower(staticExtra.PoolId),
 		Decimals:     decimals,
 		Weights:      weights,
-		gas:          balancer.DefaultGas,
+		Gas:          balancer.DefaultGas,
 	}, nil
 }
 
@@ -112,7 +112,7 @@ func (t *WeightedPool2Tokens) CalcAmountOut(param pool.CalcAmountOutParams) (*po
 				Token:  tokenAmountIn.Token,
 				Amount: feeAmount,
 			},
-			Gas: t.gas.Swap,
+			Gas: t.Gas.Swap,
 		}, nil
 
 	}

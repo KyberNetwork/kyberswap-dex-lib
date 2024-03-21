@@ -1,7 +1,11 @@
 package uniswapv3
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/gob"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -68,6 +72,10 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 
 			poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
 			require.NoError(t, err)
+
+			var gobBuf bytes.Buffer
+			require.NoError(t, gob.NewEncoder(&gobBuf).Encode(poolSim))
+			fmt.Printf("%s\n", base64.StdEncoding.EncodeToString(gobBuf.Bytes()))
 
 			result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
 				return poolSim.CalcAmountOut(pool.CalcAmountOutParams{

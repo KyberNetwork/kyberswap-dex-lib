@@ -32,12 +32,12 @@ func TestCalcAmountOut(t *testing.T) {
 					},
 				},
 			},
-			swapFeePercentage: uint256.NewInt(50000000000000),
-			amp:               uint256.NewInt(5000),
-			scalingFactors:    []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1), uint256.NewInt(100)},
+			SwapFeePercentage: uint256.NewInt(50000000000000),
+			Amp:               uint256.NewInt(5000),
+			ScalingFactors:    []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1), uint256.NewInt(100)},
 
-			poolType:    poolTypeStable,
-			poolTypeVer: 1,
+			PoolType:    poolTypeStable,
+			PoolTypeVer: 1,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -72,12 +72,12 @@ func TestCalcAmountOut(t *testing.T) {
 					},
 				},
 			},
-			swapFeePercentage: uint256.NewInt(50000000000000),
-			amp:               uint256.NewInt(1390000),
-			scalingFactors:    []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1), uint256.NewInt(100)},
+			SwapFeePercentage: uint256.NewInt(50000000000000),
+			Amp:               uint256.NewInt(1390000),
+			ScalingFactors:    []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1), uint256.NewInt(100)},
 
-			poolType:    poolTypeStable,
-			poolTypeVer: 1,
+			PoolType:    poolTypeStable,
+			PoolTypeVer: 1,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{
@@ -120,12 +120,12 @@ func TestCalcAmountOut(t *testing.T) {
 					},
 				},
 			},
-			swapFeePercentage: uint256.NewInt(53332221119995),
-			amp:               uint256.NewInt(1390000),
-			scalingFactors:    []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1000), uint256.NewInt(100)},
+			SwapFeePercentage: uint256.NewInt(53332221119995),
+			Amp:               uint256.NewInt(1390000),
+			ScalingFactors:    []*uint256.Int{uint256.NewInt(100), uint256.NewInt(1000), uint256.NewInt(100)},
 
-			poolType:    poolTypeStable,
-			poolTypeVer: 1,
+			PoolType:    poolTypeStable,
+			PoolTypeVer: 1,
 		}
 
 		tokenAmountIn := poolpkg.TokenAmount{

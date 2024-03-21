@@ -23,19 +23,19 @@ var (
 type PoolSimulator struct {
 	poolpkg.Pool
 
-	paused bool
+	Paused bool
 
-	swapFeePercentage *uint256.Int
-	amp               *uint256.Int
+	SwapFeePercentage *uint256.Int
+	Amp               *uint256.Int
 
-	scalingFactors []*uint256.Int
+	ScalingFactors []*uint256.Int
 
-	vault    string
-	poolID   string
-	poolSpec uint8
+	Vault    string
+	PoolID   string
+	PoolSpec uint8
 
-	poolType    string
-	poolTypeVer int
+	PoolType    string
+	PoolTypeVer int
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -72,27 +72,27 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	return &PoolSimulator{
 		Pool:              poolpkg.Pool{Info: poolInfo},
-		paused:            extra.Paused,
-		swapFeePercentage: extra.SwapFeePercentage,
-		amp:               extra.Amp,
-		scalingFactors:    extra.ScalingFactors,
-		vault:             staticExtra.Vault,
-		poolID:            staticExtra.PoolID,
-		poolSpec:          staticExtra.PoolSpecialization,
-		poolType:          staticExtra.PoolType,
-		poolTypeVer:       staticExtra.PoolTypeVer,
+		Paused:            extra.Paused,
+		SwapFeePercentage: extra.SwapFeePercentage,
+		Amp:               extra.Amp,
+		ScalingFactors:    extra.ScalingFactors,
+		Vault:             staticExtra.Vault,
+		PoolID:            staticExtra.PoolID,
+		PoolSpec:          staticExtra.PoolSpecialization,
+		PoolType:          staticExtra.PoolType,
+		PoolTypeVer:       staticExtra.PoolTypeVer,
 	}, nil
 }
 
 // https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F5#L46
 func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
-	if s.paused {
+	if s.Paused {
 		return nil, ErrPoolPaused
 	}
 
 	// NOTE: if pool specialization is not "General", then the pool must have 2 tokens
 	// https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F1#L130
-	if s.poolSpec != poolSpecializationGeneral && len(s.Info.Tokens) != 2 {
+	if s.PoolSpec != poolSpecializationGeneral && len(s.Info.Tokens) != 2 {
 		return nil, ErrNotTwoTokens
 	}
 
@@ -107,7 +107,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	if overflow {
 		return nil, ErrInvalidAmountIn
 	}
-	feeAmount, err := math.FixedPoint.MulUp(amountIn, s.swapFeePercentage)
+	feeAmount, err := math.FixedPoint.MulUp(amountIn, s.SwapFeePercentage)
 	if err != nil {
 		return nil, err
 	}
@@ -115,24 +115,24 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	if err != nil {
 		return nil, err
 	}
-	amountIn, err = _upscale(amountInAfterFee, s.scalingFactors[indexIn])
+	amountIn, err = _upscale(amountInAfterFee, s.ScalingFactors[indexIn])
 	if err != nil {
 		return nil, err
 	}
 
-	balances, err := _upscaleArray(s.Info.Reserves, s.scalingFactors)
+	balances, err := _upscaleArray(s.Info.Reserves, s.ScalingFactors)
 	if err != nil {
 		return nil, err
 	}
 
-	invariant, err := calculateInvariant(s.poolType, s.poolTypeVer, s.amp, balances)
+	invariant, err := calculateInvariant(s.PoolType, s.PoolTypeVer, s.Amp, balances)
 	if err != nil {
 		return nil, err
 	}
 
 	amountOut, err := math.StableMath.CalcOutGivenIn(
 		invariant,
-		s.amp,
+		s.Amp,
 		amountIn,
 		balances,
 		indexIn,
@@ -142,7 +142,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	amountOut, err = _downscaleDown(amountOut, s.scalingFactors[indexOut])
+	amountOut, err = _downscaleDown(amountOut, s.ScalingFactors[indexOut])
 	if err != nil {
 		return nil, err
 	}
@@ -162,8 +162,8 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:         s.vault,
-		PoolID:        s.poolID,
+		Vault:         s.Vault,
+		PoolID:        s.PoolID,
 		TokenOutIndex: s.GetTokenIndex(tokenOut),
 		BlockNumber:   s.Info.BlockNumber,
 	}

@@ -15,15 +15,15 @@ import (
 type PoolSimulator struct {
 	poolpkg.Pool
 
-	paused                 bool
-	canNotUpdateTokenRates bool
+	Paused                 bool
+	CanNotUpdateTokenRates bool
 
-	regularSimulator *regularSimulator
-	bptSimulator     *bptSimulator
+	RegularSimulator *RegularSimulator
+	BptSimulator     *BptSimulator
 
-	vault       string
-	poolID      string
-	poolTypeVer int
+	Vault       string
+	PoolID      string
+	PoolTypeVer int
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -60,50 +60,50 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		},
 	}
 
-	regularSimulator := regularSimulator{
+	regularSimulator := RegularSimulator{
 		Pool:              pool,
-		bptIndex:          staticExtra.BptIndex,
-		scalingFactors:    extra.ScalingFactors,
-		amp:               extra.Amp,
-		swapFeePercentage: extra.SwapFeePercentage,
+		BptIndex:          staticExtra.BptIndex,
+		ScalingFactors:    extra.ScalingFactors,
+		Amp:               extra.Amp,
+		SwapFeePercentage: extra.SwapFeePercentage,
 	}
 
-	bptSimulator := bptSimulator{
+	bptSimulator := BptSimulator{
 		Pool:                            pool,
-		bptIndex:                        staticExtra.BptIndex,
-		bptTotalSupply:                  extra.BptTotalSupply,
-		amp:                             extra.Amp,
-		scalingFactors:                  extra.ScalingFactors,
-		lastJoinExit:                    extra.LastJoinExit,
-		rateProviders:                   extra.RateProviders,
-		tokenRateCaches:                 extra.TokenRateCaches,
-		swapFeePercentage:               extra.SwapFeePercentage,
-		protocolFeePercentageCache:      extra.ProtocolFeePercentageCache,
-		tokenExemptFromYieldProtocolFee: extra.IsTokenExemptFromYieldProtocolFee,
-		exemptFromYieldProtocolFee:      extra.IsExemptFromYieldProtocolFee,
-		inRecoveryMode:                  extra.InRecoveryMode,
+		BptIndex:                        staticExtra.BptIndex,
+		BptTotalSupply:                  extra.BptTotalSupply,
+		Amp:                             extra.Amp,
+		ScalingFactors:                  extra.ScalingFactors,
+		LastJoinExit:                    extra.LastJoinExit,
+		RateProviders:                   extra.RateProviders,
+		TokenRateCaches:                 extra.TokenRateCaches,
+		SwapFeePercentage:               extra.SwapFeePercentage,
+		ProtocolFeePercentageCache:      extra.ProtocolFeePercentageCache,
+		TokenExemptFromYieldProtocolFee: extra.IsTokenExemptFromYieldProtocolFee,
+		ExemptFromYieldProtocolFee:      extra.IsExemptFromYieldProtocolFee,
+		InRecoveryMode:                  extra.InRecoveryMode,
 
-		poolTypeVer: staticExtra.PoolTypeVer,
+		PoolTypeVer: staticExtra.PoolTypeVer,
 	}
 
 	return &PoolSimulator{
 		Pool:                   pool,
-		paused:                 extra.Paused,
-		canNotUpdateTokenRates: extra.CanNotUpdateTokenRates,
-		regularSimulator:       &regularSimulator,
-		bptSimulator:           &bptSimulator,
-		vault:                  staticExtra.Vault,
-		poolID:                 staticExtra.PoolID,
-		poolTypeVer:            staticExtra.PoolTypeVer,
+		Paused:                 extra.Paused,
+		CanNotUpdateTokenRates: extra.CanNotUpdateTokenRates,
+		RegularSimulator:       &regularSimulator,
+		BptSimulator:           &bptSimulator,
+		Vault:                  staticExtra.Vault,
+		PoolID:                 staticExtra.PoolID,
+		PoolTypeVer:            staticExtra.PoolTypeVer,
 	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
-	if s.paused {
+	if s.Paused {
 		return nil, ErrPoolPaused
 	}
 
-	if s.canNotUpdateTokenRates {
+	if s.CanNotUpdateTokenRates {
 		return nil, ErrBeforeSwapJoinExit
 	}
 
@@ -137,9 +137,9 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		err       error
 	)
 	if tokenAmountIn.Token == s.Info.Address || tokenOut == s.Info.Address {
-		amountOut, fee, swapInfo, err = s.bptSimulator.swap(amountIn, balances, indexIn, indexOut)
+		amountOut, fee, swapInfo, err = s.BptSimulator.swap(amountIn, balances, indexIn, indexOut)
 	} else {
-		amountOut, fee, swapInfo, err = s.regularSimulator.swap(amountIn, balances, indexIn, indexOut)
+		amountOut, fee, swapInfo, err = s.RegularSimulator.swap(amountIn, balances, indexIn, indexOut)
 	}
 	if err != nil {
 		return nil, err
@@ -158,8 +158,8 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 
 func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return PoolMetaInfo{
-		Vault:         s.vault,
-		PoolID:        s.poolID,
+		Vault:         s.Vault,
+		PoolID:        s.PoolID,
 		TokenOutIndex: s.GetTokenIndex(tokenOut),
 		BlockNumber:   s.Info.BlockNumber,
 	}
@@ -167,11 +167,11 @@ func (s *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	if params.TokenAmountIn.Token == s.Info.Address || params.TokenAmountOut.Token == s.Info.Address {
-		s.bptSimulator.updateBalance(params)
+		s.BptSimulator.updateBalance(params)
 		return
 	}
 
-	s.regularSimulator.updateBalance(params)
+	s.RegularSimulator.updateBalance(params)
 }
 
 func _downscaleDown(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
