@@ -30,6 +30,7 @@ const (
 	ChainIDBase            ChainID = 8453
 	ChainIDScroll          ChainID = 534352
 	ChainIDBlast           ChainID = 81457
+	ChainIDMantle          ChainID = 5000
 )
 
 var l2EncoderSupportedChains = map[ChainID]struct{}{

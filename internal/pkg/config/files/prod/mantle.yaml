@@ -1,0 +1,308 @@
+env: "production"
+pprof: false
+http:
+  bindAddress: ":8080"
+  mode: debug #(debug,release,test)
+  prefix: /mantle
+grpc:
+  host: 0.0.0.0
+  port: 10443
+common:
+  chainId: &chainId 5000
+  chainName: &chainName mantle
+  rpc: "https://rpc.mantle.xyz"
+  multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
+  executorAddress: &executorAddress "0xf40442E1Cb0BdFb496E8B7405d0c1c48a81BC897"
+  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
+  gasTokenAddress: &gasTokenAddress "0x78c1b0c915c4faa5fffa6cabf0219da63d7f4cb8"
+  whitelistedTokenSet: &whitelistedTokenSet
+    0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000: true # MNT
+    0xdEAddEaDdeadDEadDEADDEAddEADDEAddead1111: true # WETH
+    0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9: true # USDC
+    0x201EBa5CC46D216Ce6DC03F6a759e8E766e956aE: true # USDT
+    0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8: true # WMNT
+  blacklistedPoolSet: &blacklistedPoolSet
+  availableSources: &availableSources
+    - "agni-finance"
+    - "merchange-moe"
+    - "fusion-x"
+    - "fusion-x-v3"
+    - "ktx"
+    - "tsunami-x"
+    - "cleopatra"
+    - "cleopatra-v2"
+    - "stratum-finance"
+    - "mvm"
+    - "butter-fi"
+    - "iziswap"
+  featureFlags: &featureFlags
+log:
+  sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
+  consoleLevel: info
+  enableConsole: true
+  enableJSONFormat: true
+redis:
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: *chainName
+  readTimeout: 3s
+  writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
+poolRedis:
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: *chainName
+  readTimeout: 3s
+  writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
+poolEventRedis:
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: *chainName
+  readTimeout: 3s
+  writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
+ddAgentHost: ""
+keyPair:
+  storageFilePath: ""
+  keyIDForSealingData:
+    clientData: "1"
+reloadConfig:
+  httpUrl: ""
+  interval: 10s
+  serviceName: "aggregator"
+  chainID: *chainId
+secretKey:
+metrics:
+  host:
+  port: 8125
+  namespace: "kybernetwork."
+encoder:
+  chainId: *chainId
+  executorAddress: *executorAddress
+  routerAddress: *routerAddress
+  isPositiveSlippageEnabled: true
+  minimumPSThreshold: 1000000
+  executorAddressByClientID:
+    unibot-tg: 0x1BC5cF80f308518f000dDE4c8f8139268aA014DB
+useCase:
+  getRoute:
+    chainId: *chainId
+    gasTokenAddress: *gasTokenAddress
+    routerAddress: *routerAddress
+    availableSources: *availableSources
+    aggregator:
+      whitelistedTokenSet: *whitelistedTokenSet
+      getBestPoolsOptions:
+        directPoolsCount: 100
+        whitelistPoolsCount: 500
+        tokenInPoolsCount: 200
+        tokenOutPoolCount: 200
+        amplifiedTvlDirectPoolsCount: 50
+        amplifiedTvlWhitelistPoolsCount: 200
+        amplifiedTvlTokenInPoolsCount: 100
+        amplifiedTvlTokenOutPoolCount: 100
+      finderOptions:
+        maxHops: 3
+        distributionPercent: 5
+        maxPathsInRoute: 20
+        maxPathsToGenerate: 5
+        maxPathsToReturn: 200
+        minPartUSD: 500
+        minThresholdAmountInUSD: 0
+        maxThresholdAmountInUSD: 100000000
+        isHillClimbEnabled: false
+        hillClimbDistributionPercent: 1
+        hillClimbIteration: 2
+        hillClimbMinPartUSD: 500
+    cache:
+      defaultTtl: 15s
+      ttlByAmount:
+        - amount: 1
+          ttl: 30s
+        - amount: 2
+          ttl: 10s
+        - amount: 5
+          ttl: 10s
+        - amount: 10
+          ttl: 10s
+        - amount: 11
+          ttl: 30s
+        - amount: 15
+          ttl: 10s
+        - amount: 20
+          ttl: 10s
+        - amount: 22
+          ttl: 30s
+        - amount: 25
+          ttl: 10s
+        - amount: 30
+          ttl: 10s
+        - amount: 33
+          ttl: 30s
+        - amount: 35
+          ttl: 10s
+        - amount: 40
+          ttl: 10s
+        - amount: 44
+          ttl: 30s
+        - amount: 45
+          ttl: 10s
+        - amount: 50
+          ttl: 10s
+        - amount: 55
+          ttl: 30s
+        - amount: 60
+          ttl: 10s
+        - amount: 66
+          ttl: 30s
+        - amount: 70
+          ttl: 10s
+        - amount: 77
+          ttl: 30s
+        - amount: 80
+          ttl: 10s
+        - amount: 88
+          ttl: 30s
+        - amount: 90
+          ttl: 10s
+        - amount: 99
+          ttl: 30s
+        - amount: 100
+          ttl: 10s
+        - amount: 500
+          ttl: 10s
+        - amount: 1000
+          ttl: 10s
+        - amount: 10000
+          ttl: 10s
+        - amount: 100000
+          ttl: 10s
+      ttlByAmountUsdRange:
+        - amountUSDLowerBound: 0
+          ttl: 10s
+        - amountUSDLowerBound: 101
+          ttl: 10s
+        - amountUSDLowerBound: 500
+          ttl: 10s
+        - amountUSDLowerBound: 1001
+          ttl: 10s
+        - amountUSDLowerBound: 2000
+          ttl: 10s
+        - amountUSDLowerBound: 5000
+          ttl: 10s
+        - amountUSDLowerBound: 10000
+          ttl: 10s
+      priceImpactThreshold: 0.005
+      shrinkFuncName: "round"
+      shrinkDecimalBase: 10
+      shrinkFuncPowExp: 0.7
+      shrinkFuncLogPercent: 1.01
+  buildRoute:
+    chainId: *chainId
+    faultyPools:
+      windowSize: 15m
+      faultyExpiredTime: 3m
+    rfq:
+      - id: kyberswap-limit-order-v2
+        handler: limit-order
+        properties:
+          chainID: *chainId
+          limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
+  poolFactory:
+    chainId: *chainId
+  poolManager:
+    blacklistedPoolSet: *blacklistedPoolSet
+    capacity: 100000
+    poolRenewalInterval: 3s
+    faultyPoolsExpireThreshold: 3s
+    maxFaultyPoolSize: 500
+  indexPools:
+    whitelistedTokenSet: *whitelistedTokenSet
+    chunkSize: 3000
+  trackExecutor:
+    subgraphURL: https://mantle-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-mantle
+job:
+  indexPools:
+    interval: 2s
+    poolEvent:
+      consumerConfig:
+        prefix: *chainName
+        stream: "pool_event"
+        group: "router_indexPools"
+        key: "message"
+        block: 300ms
+        count: 100
+        bufferSize: 20
+        ackBufferSize: 10
+      batchRate: 700ms
+      batchSize: 100
+      retryInterval: 5s
+  updateSuggestedGasPrice:
+    interval: 2s
+  trackExecutorBalance:
+    interval: 1h
+repository:
+  gas:
+    redis:
+      prefix: *chainName
+    ristretto:
+      numCounters: 5000
+      maxCost: 500
+      bufferItems: 64
+      suggestedGasPrice:
+        cost: 1
+        ttl: 2m
+  pool:
+    redis:
+      prefix: *chainName
+  price:
+    redis:
+      prefix: *chainName
+    ristretto:
+      numCounters: 10000
+      maxCost: 1000
+      bufferItems: 64
+      price:
+        cost: 1
+        ttl: 1m
+  token:
+    redis:
+      prefix: *chainName
+    goCache:
+      expiration: -1
+      cleanupInterval: -1
+  poolRank:
+    redis:
+      prefix: *chainName
+  route:
+    redisCache:
+      prefix: *chainName
+      localCacheSize: 1000
+      localCacheTtl: 30s
+  blackjack:
+    grpcClient:
+      baseURL: blackjack.core-cluster.gke.production.internal:80
+      insecure: true
+      timeout: 100ms
+  erc20balanceslot:
+    redis:
+      prefix: *chainName
+validator:
+  buildRouteParams:
+    slippageToleranceGte: 0
+    slippageToleranceLte: 5000
+    blacklistedRecipientSet:
+  getRouteEncodeParams:
+    slippageToleranceGte: 0
+    slippageToleranceLte: 5000
+    blacklistedRecipientSet:
