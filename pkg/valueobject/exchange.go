@@ -268,6 +268,18 @@ var (
 	ExchangeThrusterV3      Exchange = "thruster-v3"
 	ExchangeCyberblastV3    Exchange = "cyberblast-v3"
 	ExchangeMonoswapV3      Exchange = "monoswap-v3"
+
+	ExchangeAgniFinance    Exchange = "agni-finance"
+	ExchangeMerchantMoe    Exchange = "merchant-moe"
+	ExchangeFusionX        Exchange = "fusion-x"
+	ExchangeFusionXV3      Exchange = "fusion-x-v3"
+	ExchangeKTX            Exchange = "ktx"
+	ExchangeTsunamiX       Exchange = "tsunami-x"
+	ExchangeCleopatra      Exchange = "cleopatra"
+	ExchangeCleopatraV2    Exchange = "cleopatra-v2"
+	ExchangeStratumFinance Exchange = "stratum-finance"
+	ExchangeMVM            Exchange = "mvm"
+	ExchangeButterFi       Exchange = "butter-fi"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -487,6 +499,17 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeRoguex:                     {},
 	ExchangeEqual:                      {},
 	ExchangeEqualizerCL:                {},
+	ExchangeAgniFinance:                {},
+	ExchangeMerchantMoe:                {},
+	ExchangeFusionX:                    {},
+	ExchangeFusionXV3:                  {},
+	ExchangeKTX:                        {},
+	ExchangeTsunamiX:                   {},
+	ExchangeCleopatra:                  {},
+	ExchangeCleopatraV2:                {},
+	ExchangeStratumFinance:             {},
+	ExchangeMVM:                        {},
+	ExchangeButterFi:                   {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
