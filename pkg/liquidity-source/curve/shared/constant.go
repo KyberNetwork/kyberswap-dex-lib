@@ -7,6 +7,7 @@ const (
 	CURVE_POOL_TYPE_STABLE_NG_PLAIN CurvePoolType = "curve-stable-ng-plain"
 	CURVE_POOL_TYPE_STABLE_NG_META  CurvePoolType = "curve-stable-ng-meta"
 	CURVE_POOL_TYPE_CRYPTO          CurvePoolType = "curve-crypto"
+	CURVE_POOL_TYPE_TRICRYPTO_NG    CurvePoolType = "curve-tricrypto-ng"
 	CURVE_POOL_TYPE_CRYPTO_META     CurvePoolType = "curve-crypto-meta"
 
 	// https://github.com/curvefi/curve-js/blob/cb26335/src/interfaces.ts#L11
