@@ -70,5 +70,5 @@ require (
 
 replace (
 	github.com/daoleno/uniswap-sdk-core v0.1.7 => github.com/phqb/uniswap-sdk-core v0.1.5-exported-fields-1
-	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.4.5-exported-fields-2
+	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.4.5-exported-fields-3
 )

@@ -12,8 +12,8 @@ github.com/KyberNetwork/logger v0.1.0 h1:Iibu9Ls+tipjR+C0iXhzUYM1VtRgmmR1HHWGufP
 github.com/KyberNetwork/logger v0.1.0/go.mod h1:zBqHbtJ3nJn6HQnp6UW8pbQkR+U6tSRFd5CzfiKL3Kw=
 github.com/KyberNetwork/pancake-v3-sdk v0.1.0 h1:HVUD13Qbwl4kiU1uSprQVpkis6fYYp3A32mVuK+f1Iw=
 github.com/KyberNetwork/pancake-v3-sdk v0.1.0/go.mod h1:AhHu1v2KZAXKFZ9AnjwYPPx1+dDFHBqmSpSeg4fnvzg=
-github.com/KyberNetwork/uniswapv3-sdk v0.4.5-exported-fields-2 h1:JQosOXcCbH38NNuiloFhGu8Tkfmfik3BD64l6a8Gryc=
-github.com/KyberNetwork/uniswapv3-sdk v0.4.5-exported-fields-2/go.mod h1:B4Ix67lLZigAe//XNUbez4EV/kuZ2yp4+ZRDg8vnrcA=
+github.com/KyberNetwork/uniswapv3-sdk v0.4.5-exported-fields-3 h1:Co2fxpkiNPymA4oNpE2CnQ069FIks74TSJpFJTcgw9c=
+github.com/KyberNetwork/uniswapv3-sdk v0.4.5-exported-fields-3/go.mod h1:B4Ix67lLZigAe//XNUbez4EV/kuZ2yp4+ZRDg8vnrcA=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
 github.com/Microsoft/go-winio v0.6.1/go.mod h1:LRdKpFKfdobln8UmuiYcKPot9D2v6svN5+sAH+4kjUM=
 github.com/VictoriaMetrics/fastcache v1.12.1 h1:i0mICQuojGDL3KblA7wUNlY5lOK6a4bwt3uRKnkZU40=
