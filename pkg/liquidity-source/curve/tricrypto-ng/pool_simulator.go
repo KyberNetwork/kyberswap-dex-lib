@@ -6,10 +6,12 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
 	"github.com/holiman/uint256"
 )
 
@@ -93,11 +95,13 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
 		var amountOut, fee, amount uint256.Int
 		amount.SetFromBig(tokenAmountIn.Amount)
+
+		swapInfo := SwapInfo{}
 		err := t.GetDy(
 			tokenIndexFrom,
 			tokenIndexTo,
 			&amount,
-			&amountOut, &fee,
+			&amountOut, &fee, &swapInfo.K0, swapInfo.Xp[:],
 		)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
@@ -112,7 +116,8 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 					Token:  tokenOut,
 					Amount: fee.ToBig(),
 				},
-				Gas: t.gas,
+				Gas:      t.gas,
+				SwapInfo: swapInfo,
 			}, nil
 		}
 	}
@@ -120,11 +125,26 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	swapInfo, ok := params.SwapInfo.(SwapInfo)
+	if !ok {
+		logger.Warnf("failed to UpdateBalance for curve-tricrypto-ng %v %v pool, wrong swapInfo type", t.Info.Address, t.Info.Exchange)
+		return
+	}
+
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var inputAmount = input.Amount
+	var outputAmount = output.Amount
 	var inputIndex = t.GetTokenIndex(input.Token)
 	var outputIndex = t.GetTokenIndex(output.Token)
-	_, _ = t.Exchange(inputIndex, outputIndex, inputAmount)
+
+	t.Info.Reserves[inputIndex] = new(big.Int).Add(t.Info.Reserves[inputIndex], inputAmount)
+	t.Reserves[inputIndex].Add(&t.Reserves[inputIndex], number.SetFromBig(inputAmount))
+
+	t.Info.Reserves[outputIndex] = new(big.Int).Sub(t.Info.Reserves[outputIndex], outputAmount)
+	t.Reserves[outputIndex].Sub(&t.Reserves[outputIndex], number.SetFromBig(outputAmount))
+
+	A, gamma := t._A_gamma()
+	t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0)
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {

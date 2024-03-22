@@ -67,6 +67,11 @@ func (u *PoolsListUpdater) initPools(_ context.Context, curvePools []shared.Curv
 			continue
 		}
 
+		if !SupportedImplementation.Contains(curvePool.Implementation) {
+			lg.Debugf("ignore pool with implementation=%s", curvePool.Implementation)
+			continue
+		}
+
 		poolTokens := make([]*entity.PoolToken, 0, len(curvePool.Coins))
 		reserves := make([]string, 0, len(curvePool.Coins)+1) // N coins & totalSupply
 		invalidDecimal := false

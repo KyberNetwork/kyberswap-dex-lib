@@ -32,6 +32,10 @@ type (
 		VirtualPrice       *uint256.Int
 		AllowedExtraProfit *uint256.Int
 		AdjustmentStep     *uint256.Int
-		MaTime             *uint256.Int
+	}
+
+	SwapInfo struct {
+		K0 uint256.Int
+		Xp [NumTokens]uint256.Int
 	}
 )

@@ -50,7 +50,7 @@ func (t *PoolTracker) GetNewPoolState(
 	var (
 		d, feeGamma, midFee, outFee, futureAGammaTime, futureAGamma, initialAGammaTime, initialAGamma *big.Int
 
-		lastPriceTimestamp, xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, maTime, lpSupply *big.Int
+		lastPriceTimestamp, xcpProfit, virtualPrice, allowedExtraProfit, adjustmentStep, lpSupply *big.Int
 
 		balances = make([]*big.Int, len(p.Tokens))
 
@@ -156,13 +156,6 @@ func (t *PoolTracker) GetNewPoolState(
 	calls.AddCall(&ethrpc.Call{
 		ABI:    curveTricryptoNGABI,
 		Target: p.Address,
-		Method: poolMethodMaTime,
-		Params: nil,
-	}, []interface{}{&maTime})
-
-	calls.AddCall(&ethrpc.Call{
-		ABI:    curveTricryptoNGABI,
-		Target: p.Address,
 		Method: shared.ERC20MethodTotalSupply,
 		Params: nil,
 	}, []interface{}{&lpSupply})
@@ -222,7 +215,6 @@ func (t *PoolTracker) GetNewPoolState(
 		VirtualPrice:        number.SetFromBig(virtualPrice),
 		AllowedExtraProfit:  number.SetFromBig(allowedExtraProfit),
 		AdjustmentStep:      number.SetFromBig(adjustmentStep),
-		MaTime:              number.SetFromBig(maTime),
 	}
 	extra.PriceScale = make([]uint256.Int, len(priceScales))
 	lo.ForEach(priceScales, func(item *big.Int, i int) { extra.PriceScale[i].SetFromBig(item) })
