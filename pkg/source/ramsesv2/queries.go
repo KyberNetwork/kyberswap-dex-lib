@@ -84,24 +84,20 @@ func getPoolTicksQuery(allowSubgraphError bool, poolAddress string, lastTickIdx 
 	}
 
 	t, err := template.New("poolTicksQuery").Parse(`{
-		pool(
+		ticks(
 			{{ if .AllowSubgraphError }}subgraphError: allow,{{ end }}
-			id: "{{.PoolAddress}}"
-		) {
-			id
-			ticks(
-				where: {
-					{{ if .LastTickIdx }}tickIdx_gt: {{.LastTickIdx}},{{ end }}
-					liquidityGross_not: 0
-				},
-				orderBy: tickIdx,
-				orderDirection: asc,
-				first: 1000
-			) {
-				tickIdx
-				liquidityNet
-				liquidityGross
+			where: {
+				pool: "{{.PoolAddress}}"
+				{{ if .LastTickIdx }}tickIdx_gt: {{.LastTickIdx}},{{ end }}
+				liquidityGross_not: 0
 			}
+			orderBy: tickIdx,
+			orderDirection: asc,
+			first: 1000
+		) {
+			tickIdx
+			liquidityNet
+			liquidityGross
 		}
 		_meta { block { timestamp }}
 	}`)
