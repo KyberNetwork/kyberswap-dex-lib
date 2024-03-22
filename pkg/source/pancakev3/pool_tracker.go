@@ -216,11 +216,11 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 	})
 
 	allowSubgraphError := d.config.IsAllowSubgraphError()
-	skip := 0
+	lastTickIdx := ""
 	var ticks []TickResp
 
 	for {
-		req := graphql.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, skip))
+		req := graphql.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
 
 		var resp struct {
 			Ticks []TickResp                `json:"ticks"`
@@ -249,11 +249,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 			break
 		}
 
-		skip += len(resp.Ticks)
-		if skip > graphSkipLimit {
-			logger.Infoln("hit skip limit, continue in next cycle")
-			break
-		}
+		lastTickIdx = resp.Ticks[len(resp.Ticks)-1].TickIdx
 	}
 
 	return ticks, nil

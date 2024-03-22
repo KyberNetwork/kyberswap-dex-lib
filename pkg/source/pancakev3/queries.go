@@ -16,7 +16,7 @@ type PoolsListQueryParams struct {
 type PoolTicksQueryParams struct {
 	AllowSubgraphError bool
 	PoolAddress        string
-	Skip               int
+	LastTickIdx        string
 }
 
 func getPoolsListQuery(allowSubgraphError bool, lastCreatedAtTimestamp *big.Int, first, skip int) string {
@@ -74,12 +74,12 @@ func getPoolsListQuery(allowSubgraphError bool, lastCreatedAtTimestamp *big.Int,
 	return tpl.String()
 }
 
-func getPoolTicksQuery(allowSubgraphError bool, poolAddress string, skip int) string {
+func getPoolTicksQuery(allowSubgraphError bool, poolAddress string, lastTickIdx string) string {
 	var tpl bytes.Buffer
 	td := PoolTicksQueryParams{
 		allowSubgraphError,
 		poolAddress,
-		skip,
+		lastTickIdx,
 	}
 
 	t, err := template.New("poolTicksQuery").Parse(`{
@@ -87,12 +87,12 @@ func getPoolTicksQuery(allowSubgraphError bool, poolAddress string, skip int) st
 			{{ if .AllowSubgraphError }}subgraphError: allow,{{ end }}
 			where: {
 				pool: "{{.PoolAddress}}"
+				{{ if .LastTickIdx }}tickIdx_gt: {{.LastTickIdx}},{{ end }}
 				liquidityGross_not: 0
-			}
-			orderBy: tickIdx, 
-			orderDirection: asc, 
-			first: 1000, 
-			skip: {{.Skip}}
+			},
+			orderBy: tickIdx,
+			orderDirection: asc,
+			first: 1000
 		) {
 			tickIdx
 			liquidityNet

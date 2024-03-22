@@ -109,9 +109,9 @@ func TestQueriesPancakeV3_GetPoolTicksQuery(t *testing.T) {
 			liquidityGross
 		}
 		_meta { block { timestamp }}
-	}`, "abc", 0)
+	}`, "abc", "0")
 
-		actual := getPoolTicksQuery(true, "abc", 0)
+		actual := getPoolTicksQuery(true, "abc", "0")
 
 		assert.Equal(t, expect, actual)
 	})
@@ -119,7 +119,7 @@ func TestQueriesPancakeV3_GetPoolTicksQuery(t *testing.T) {
 	t.Run("it should return correct query when subgraph error is not allowed", func(t *testing.T) {
 		expect := fmt.Sprintf(`{
 		ticks(
-
+			
 			where: {
 				pool: "%v"
 				tickIdx_gt: %v,
@@ -134,9 +134,9 @@ func TestQueriesPancakeV3_GetPoolTicksQuery(t *testing.T) {
 			liquidityGross
 		}
 		_meta { block { timestamp }}
-	}`, "abc", 0)
+	}`, "abc", "0")
 
-		actual := getPoolTicksQuery(false, "abc", 0)
+		actual := getPoolTicksQuery(false, "abc", "0")
 
 		assert.Equal(t, expect, actual)
 	})
