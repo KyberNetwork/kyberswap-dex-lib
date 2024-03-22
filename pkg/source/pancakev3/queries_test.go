@@ -93,16 +93,20 @@ func TestQueriesPancakeV3_GetPoolTicksQuery(t *testing.T) {
 
 	t.Run("it should return correct query when allowing subgraph error", func(t *testing.T) {
 		expect := fmt.Sprintf(`{
-		pool(
+		ticks(
 			subgraphError: allow,
-			id: "%v"
+			where: {
+				pool: "%v"
+				tickIdx_gt: %v,
+				liquidityGross_not: 0
+			},
+			orderBy: tickIdx,
+			orderDirection: asc,
+			first: 1000
 		) {
-			id
-			ticks(orderBy: tickIdx, orderDirection: asc, first: 1000, skip: %v) {
-				tickIdx
-				liquidityNet
-				liquidityGross
-			}
+			tickIdx
+			liquidityNet
+			liquidityGross
 		}
 		_meta { block { timestamp }}
 	}`, "abc", 0)
@@ -114,16 +118,20 @@ func TestQueriesPancakeV3_GetPoolTicksQuery(t *testing.T) {
 
 	t.Run("it should return correct query when subgraph error is not allowed", func(t *testing.T) {
 		expect := fmt.Sprintf(`{
-		pool(
-			
-			id: "%v"
+		ticks(
+
+			where: {
+				pool: "%v"
+				tickIdx_gt: %v,
+				liquidityGross_not: 0
+			},
+			orderBy: tickIdx,
+			orderDirection: asc,
+			first: 1000
 		) {
-			id
-			ticks(orderBy: tickIdx, orderDirection: asc, first: 1000, skip: %v) {
-				tickIdx
-				liquidityNet
-				liquidityGross
-			}
+			tickIdx
+			liquidityNet
+			liquidityGross
 		}
 		_meta { block { timestamp }}
 	}`, "abc", 0)

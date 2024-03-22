@@ -225,14 +225,14 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 		req := graphql.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
 
 		var resp struct {
-			Pool *SubgraphPoolTicks        `json:"pool"`
-			Meta *valueobject.SubgraphMeta `json:"_meta"`
+			Ticks []TickResp                `json:"ticks"`
+			Meta  *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
 		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			// Workaround at the moment to live with the error subgraph on Arbitrum
 			if allowSubgraphError {
-				if resp.Pool == nil {
+				if resp.Ticks == nil {
 					logger.WithFields(logger.Fields{
 						"poolAddress":        poolAddress,
 						"error":              err,
@@ -254,17 +254,17 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 
 		resp.Meta.CheckIsLagging(d.config.DexID, poolAddress)
 
-		if resp.Pool == nil || len(resp.Pool.Ticks) == 0 {
+		if resp.Ticks == nil || len(resp.Ticks) == 0 {
 			break
 		}
 
-		ticks = append(ticks, resp.Pool.Ticks...)
+		ticks = append(ticks, resp.Ticks...)
 
-		if len(resp.Pool.Ticks) < graphFirstLimit {
+		if len(resp.Ticks) < graphFirstLimit {
 			break
 		}
 
-		lastTickIdx = resp.Pool.Ticks[len(resp.Pool.Ticks)-1].TickIdx
+		lastTickIdx = resp.Ticks[len(resp.Ticks)-1].TickIdx
 	}
 
 	return ticks, nil

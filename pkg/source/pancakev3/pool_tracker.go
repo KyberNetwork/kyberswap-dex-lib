@@ -223,13 +223,13 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 		req := graphql.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, skip))
 
 		var resp struct {
-			Pool *SubgraphPoolTicks        `json:"pool"`
-			Meta *valueobject.SubgraphMeta `json:"_meta"`
+			Ticks []TickResp                `json:"ticks"`
+			Meta  *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
 		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			// Workaround at the moment to live with the error subgraph on Arbitrum
-			if allowSubgraphError && resp.Pool == nil {
+			if allowSubgraphError && resp.Ticks == nil {
 				l.WithFields(logger.Fields{
 					"error": err,
 				}).Error("failed to query subgraph")
@@ -239,17 +239,17 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 
 		resp.Meta.CheckIsLagging(d.config.DexID, poolAddress)
 
-		if resp.Pool == nil || len(resp.Pool.Ticks) == 0 {
+		if resp.Ticks == nil || len(resp.Ticks) == 0 {
 			break
 		}
 
-		ticks = append(ticks, resp.Pool.Ticks...)
+		ticks = append(ticks, resp.Ticks...)
 
-		if len(resp.Pool.Ticks) < graphFirstLimit {
+		if len(resp.Ticks) < graphFirstLimit {
 			break
 		}
 
-		skip += len(resp.Pool.Ticks)
+		skip += len(resp.Ticks)
 		if skip > graphSkipLimit {
 			logger.Infoln("hit skip limit, continue in next cycle")
 			break
