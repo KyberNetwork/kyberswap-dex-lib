@@ -144,7 +144,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	t.Reserves[outputIndex].Sub(&t.Reserves[outputIndex], number.SetFromBig(outputAmount))
 
 	A, gamma := t._A_gamma()
-	t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0)
+	_ = t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0)
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {

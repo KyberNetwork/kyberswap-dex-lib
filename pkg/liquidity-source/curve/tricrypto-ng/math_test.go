@@ -137,9 +137,9 @@ func TestGetP(t *testing.T) {
 
 	for _, tc := range testcases {
 		var xp [NumTokens]uint256.Int
-		xp[0].SetFromDecimal(tc.xp0)
-		xp[1].SetFromDecimal(tc.xp1)
-		xp[2].SetFromDecimal(tc.xp2)
+		_ = xp[0].SetFromDecimal(tc.xp0)
+		_ = xp[1].SetFromDecimal(tc.xp1)
+		_ = xp[2].SetFromDecimal(tc.xp2)
 		var out [NumTokens - 1]uint256.Int
 		err := get_p(xp, uint256.MustFromDecimal(tc.d), uint256.MustFromDecimal(tc.a), uint256.MustFromDecimal(tc.gamma), out[:])
 		require.Nil(t, err)

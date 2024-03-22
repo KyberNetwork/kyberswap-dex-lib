@@ -456,29 +456,26 @@ func get_y(
 		return newton_y(_ann, _gamma, x, _D, i, y)
 	}
 
-	b_cbrt := new(int256.Int)
+	var b_cbrt *int256.Int
 	if b.Sign() >= 0 {
-		i256.SafeConvertToInt256(cbrt(i256.SafeConvertToUInt256(b)), b_cbrt)
+		b_cbrt = i256.SafeToInt256(cbrt(i256.SafeConvertToUInt256(b)))
 	} else {
-		i256.SafeConvertToInt256(cbrt(i256.SafeConvertToUInt256(i256.Neg(b))), b_cbrt)
-		b_cbrt = i256.Neg(b_cbrt)
+		b_cbrt = i256.Neg(i256.SafeToInt256(cbrt(i256.SafeConvertToUInt256(i256.Neg(b)))))
 	}
 
-	second_cbrt := new(int256.Int)
+	var second_cbrt *int256.Int
 	if delta1.Sign() > 0 {
 		// # convert(self._cbrt(convert((delta1 + sqrt_val), uint256)/2), int256)
-		i256.SafeConvertToInt256(
+		second_cbrt = i256.SafeToInt256(
 			cbrt(number.Div(
 				i256.SafeConvertToUInt256(i256.Add(delta1, sqrt_val)),
-				number.Number_2)),
-			second_cbrt)
+				number.Number_2)))
 	} else {
-		i256.SafeConvertToInt256(
+		second_cbrt = i256.Neg(i256.SafeToInt256(
 			cbrt(number.Div(
 				i256.SafeConvertToUInt256(new(int256.Int).Neg(i256.Sub(delta1, sqrt_val))),
-				number.Number_2)),
-			second_cbrt)
-		second_cbrt = new(int256.Int).Neg(second_cbrt)
+				number.Number_2))),
+		)
 	}
 
 	// # b_cbrt*b_cbrt/10**18*second_cbrt/10**18
@@ -577,9 +574,9 @@ func _cbrt(x *uint256.Int, a *uint256.Int) {
 	a.Div(number.Add(number.Mul(number.Number_2, a), number.Div(xx, number.Mul(a, a))), number.Number_3)
 
 	if x.Cmp(CbrtConst1) >= 0 {
-		a = number.Mul(a, U_1e12)
+		a.Mul(a, U_1e12)
 	} else if x.Cmp(CbrtConst2) >= 0 {
-		a = number.Mul(a, U_1e6)
+		a.Mul(a, U_1e6)
 	}
 }
 
@@ -839,7 +836,6 @@ func _snekmate_wad_exp(x *int256.Int) (*uint256.Int, error) {
 	   @param x The 32-byte variable.
 	   @return int256 The 32-byte calculation result.
 	*/
-	value := i256.Set(x)
 
 	// # If the result is `< 0.5`, we return zero. This happens when we have the following:
 	// # "x <= floor(log(0.5e18) * 1e18) ~ -42e18".
@@ -856,7 +852,7 @@ func _snekmate_wad_exp(x *int256.Int) (*uint256.Int, error) {
 	// # `x` is now in the range "(-42, 136) * 1e18". Convert to "(-42, 136) * 2 ** 96" for higher
 	// # intermediate precision and a binary base. This base conversion is a multiplication with
 	// # "1e18 / 2 ** 96 = 5 ** 18 / 2 ** 78".
-	value = i256.Div(i256.Lsh(x, 78), i256.MustFromDecimal("3814697265625"))
+	value := i256.Div(i256.Lsh(x, 78), i256.MustFromDecimal("3814697265625"))
 
 	// # Reduce the range of `x` to "(-½ ln 2, ½ ln 2) * 2 ** 96" by factoring out powers of two
 	// # so that "exp(x) = exp(x') * 2 ** k", where `k` is a signer integer. Solving this gives
