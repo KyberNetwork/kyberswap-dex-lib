@@ -23,6 +23,7 @@ type Common struct {
 	AvailableSources    []string                 `mapstructure:"availableSources"`
 	FeatureFlags        valueobject.FeatureFlags `mapstructure:"featureFlags"`
 	SwaapAPIKey         string                   `mapstructure:"swaapAPIKey" json:"-"`
+	HashflowAPIKey      string                   `mapstructure:"hashflowAPIKey" json:"-"`
 }
 
 type AEVM struct {

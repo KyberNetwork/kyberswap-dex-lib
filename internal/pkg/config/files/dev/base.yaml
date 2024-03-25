@@ -142,7 +142,7 @@ encoder:
     executeCamelotSwap: 4
     executeKyberLimitOrder: 5
     executeRfqSwap: 6
-    executeHashflowSwap: 7
+    executeHashflow: 7
     executeStableSwap: 8
     executeCurveSwap: 9
     executeUniV3KSElastic: 10

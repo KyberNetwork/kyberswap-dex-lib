@@ -76,8 +76,10 @@ common:
     - "rocketpool-reth"
     - "ethena-susde"
     - "maker-savingsdai"
+    - "hashflow-v3"
   featureFlags: &featureFlags
   swaapAPIKey:
+  hashflowAPIKey:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -280,6 +282,15 @@ useCase:
             timeout: 10s
             retry_count: 3
             api_key:
+      - id: hashflow-v3
+        handler: hashflow-v3
+        properties:
+          http:
+            base_url: "https://api.hashflow.com"
+            source: kyber
+            api_key: # NOTE: This will be configured in the `common` section.
+            timeout: 3s
+            retry_count: 1
     faultyPools:
       windowSize: 15m
       faultyExpiredTime: 3m
@@ -299,7 +310,7 @@ useCase:
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     capacity: 100000
-    poolRenewalInterval: 12s
+    poolRenewalInterval: 3s
     useAEVM: *useAEVM
     faultyPoolsExpireThreshold: 3s
     maxFaultyPoolSize: 10

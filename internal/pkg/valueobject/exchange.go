@@ -35,7 +35,8 @@ var RFQSourceSet = map[Exchange]struct{}{
 
 	dexValueObject.ExchangeKyberSwapLimitOrderDS: {},
 
-	dexValueObject.ExchangeSwaapV2: {},
+	dexValueObject.ExchangeSwaapV2:    {},
+	dexValueObject.ExchangeHashflowV3: {},
 }
 
 func IsRFQSource(exchange Exchange) bool {
@@ -112,6 +113,7 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 	dexValueObject.ExchangeDodo: {},
 
 	// executeHashflow
+	dexValueObject.ExchangeHashflowV3: {},
 
 	// executeWrappedstETH
 	dexValueObject.ExchangeMakerLido: {},
@@ -169,6 +171,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeMakersDAI
 	dexValueObject.ExchangeMakerSavingsDai: {},
+
+	// executeHashflow
+	dexValueObject.ExchangeHashflowV3: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {
