@@ -30,13 +30,10 @@ func transformSubgraphBins(
 		}
 		reserveYInt, _ := new(big.Float).Mul(reserveY, unitY).Int(nil)
 
-		totalSupply, _ := new(big.Int).SetString(b.TotalSupply, 10)
-
 		ret = append(ret, Bin{
-			ID:          uint32(id),
-			ReserveX:    reserveXInt,
-			ReserveY:    reserveYInt,
-			TotalSupply: totalSupply,
+			ID:       uint32(id),
+			ReserveX: reserveXInt,
+			ReserveY: reserveYInt,
 		})
 	}
 

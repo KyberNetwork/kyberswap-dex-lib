@@ -7,10 +7,9 @@ import (
 )
 
 type Bin struct {
-	ID          uint32   `json:"id"`
-	ReserveX    *big.Int `json:"reserveX"`
-	ReserveY    *big.Int `json:"reserveY"`
-	TotalSupply *big.Int `json:"totalSupply,omitempty"`
+	ID       uint32   `json:"id"`
+	ReserveX *big.Int `json:"reserveX"`
+	ReserveY *big.Int `json:"reserveY"`
 }
 
 func (b *Bin) isEmptyForSwap(swapForX bool) bool {

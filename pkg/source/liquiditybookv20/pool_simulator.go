@@ -202,10 +202,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	newBins := []Bin{}
 	for _, b := range p.bins {
 		newBin := Bin{
-			ID:          b.ID,
-			ReserveX:    new(big.Int).Set(b.ReserveX),
-			ReserveY:    new(big.Int).Set(b.ReserveY),
-			TotalSupply: new(big.Int).Set(b.TotalSupply),
+			ID:       b.ID,
+			ReserveX: new(big.Int).Set(b.ReserveX),
+			ReserveY: new(big.Int).Set(b.ReserveY),
 		}
 
 		changes, ok := totalBinReserveChanges[newBin.ID]
