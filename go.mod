@@ -9,7 +9,7 @@ require (
 	github.com/KyberNetwork/int256 v0.1.4
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/pancake-v3-sdk v0.1.0
-	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.0.1
+	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.0
 	github.com/daoleno/uniswap-sdk-core v0.1.7
 	github.com/daoleno/uniswapv3-sdk v0.4.0
 	github.com/davecgh/go-spew v1.1.1
@@ -70,7 +70,6 @@ require (
 )
 
 replace (
-	github.com/KyberNetwork/uniswapv3-sdk-uint256 => github.com/KyberNetwork/uniswapv3-sdk v0.4.6-0.20240315094947-b9b1e1d0c671
 	github.com/daoleno/uniswap-sdk-core v0.1.5 => github.com/KyberNetwork/uniswap-sdk-core v0.1.5
 	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.4.5
 )
