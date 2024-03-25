@@ -207,8 +207,9 @@ var (
 
 	ExchangeKyberSwapLimitOrderDS Exchange = "kyberswap-limit-order-v2"
 
-	ExchangeKyberPMM Exchange = "kyber-pmm"
-	ExchangeSwaapV2  Exchange = "swaap-v2"
+	ExchangeKyberPMM   Exchange = "kyber-pmm"
+	ExchangeSwaapV2    Exchange = "swaap-v2"
+	ExchangeHashflowV3 Exchange = "hashflow-v3"
 
 	ExchangeTraderJoeV20 Exchange = "traderjoe-v20"
 	ExchangeTraderJoeV21 Exchange = "traderjoe-v21"
@@ -523,8 +524,9 @@ func IsAMMSource(exchange Exchange) bool {
 }
 
 var RFQSourceSet = map[Exchange]struct{}{
-	ExchangeKyberPMM: {},
-	ExchangeSwaapV2:  {},
+	ExchangeKyberPMM:   {},
+	ExchangeSwaapV2:    {},
+	ExchangeHashflowV3: {},
 
 	ExchangeKyberSwapLimitOrderDS: {},
 }
