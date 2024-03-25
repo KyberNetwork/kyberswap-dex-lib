@@ -70,7 +70,7 @@ require (
 )
 
 replace (
-	github.com/KyberNetwork/uniswapv3-sdk-uint256 => github.com/KyberNetwork/uniswapv3-sdk v0.4.6-0.20240315085941-293573613c6a
+	github.com/KyberNetwork/uniswapv3-sdk-uint256 => github.com/KyberNetwork/uniswapv3-sdk v0.4.6-0.20240315094947-b9b1e1d0c671
 	github.com/daoleno/uniswap-sdk-core v0.1.5 => github.com/KyberNetwork/uniswap-sdk-core v0.1.5
 	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.4.5
 )
