@@ -19,7 +19,7 @@ require (
 	github.com/KyberNetwork/ethrpc v0.7.1
 	github.com/KyberNetwork/kutils v0.2.2
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.38.3
+	github.com/KyberNetwork/kyberswap-dex-lib v0.39.0
 	github.com/KyberNetwork/logger v0.2.0
 	github.com/KyberNetwork/pool-service v1.38.0-test.0.20240228063435-8d79a991792d
 	github.com/KyberNetwork/reload v0.1.1
@@ -90,6 +90,7 @@ require (
 	github.com/DataDog/sketches-go v1.4.4 // indirect
 	github.com/KyberNetwork/int256 v0.1.4 // indirect
 	github.com/KyberNetwork/pancake-v3-sdk v0.1.0 // indirect
+	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.0 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20230218143504-906a9b012302 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect

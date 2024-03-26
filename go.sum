@@ -41,8 +41,8 @@ github.com/KyberNetwork/kutils v0.2.2 h1:BgZPQeilzmVI39hf4YaGPRqWU0WWhLbfZ2IxzZP
 github.com/KyberNetwork/kutils v0.2.2/go.mod h1:v+vg2VJf7SKFMsH7M1LAPBfa7I3QFEaZg5ApjmW9jHg=
 github.com/KyberNetwork/kyber-trace-go v0.1.2 h1:x82SuCYTj4naoGNQ02DoSQgl7f07grl8RL8cKGAFNLw=
 github.com/KyberNetwork/kyber-trace-go v0.1.2/go.mod h1:X6hVacmKMeOEOlFh4TyfEHaEVRerFQ5YLuQ4keRV3hw=
-github.com/KyberNetwork/kyberswap-dex-lib v0.38.3 h1:UbCjynnZ3wyPHGW9eH93WvYj0Pwwr2QE49KdYsyjWfM=
-github.com/KyberNetwork/kyberswap-dex-lib v0.38.3/go.mod h1:mn3zB9vUfIZjfgIG4XpKbQOdAD/rZNMPSS1BgIF+19w=
+github.com/KyberNetwork/kyberswap-dex-lib v0.39.0 h1:AIbjzBe02rF/pnjG31DRkNlnckuLre7lw16VEssETJw=
+github.com/KyberNetwork/kyberswap-dex-lib v0.39.0/go.mod h1:9VTqpQ4J3j75Q6GXd5mbyOx5LthqSuQmYz/tpE2vdc8=
 github.com/KyberNetwork/logger v0.2.0 h1:5QNGP84uXpwVt4rtvLq9ATwy4grRwdjBNEc/RF7oJK4=
 github.com/KyberNetwork/logger v0.2.0/go.mod h1:zBqHbtJ3nJn6HQnp6UW8pbQkR+U6tSRFd5CzfiKL3Kw=
 github.com/KyberNetwork/pancake-v3-sdk v0.1.0 h1:HVUD13Qbwl4kiU1uSprQVpkis6fYYp3A32mVuK+f1Iw=
@@ -55,6 +55,8 @@ github.com/KyberNetwork/service-framework v0.1.0 h1:TX3rtQUg6blgDfAcAgjDmqkkHLx6
 github.com/KyberNetwork/service-framework v0.1.0/go.mod h1:iunFvpNA52rNTcs2YaNk8S40kiVG6UVzlWRDkeWxYzE=
 github.com/KyberNetwork/uniswapv3-sdk v0.4.5 h1:/CBvZymypq6g3XzNpOAyhK7vfg7Mj1EJA5sAy+C7BoE=
 github.com/KyberNetwork/uniswapv3-sdk v0.4.5/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
+github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.0 h1:AkEmCEBmyYAUU+WHGrgw9uaXHteqNn66CD36FaXoUig=
+github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.0/go.mod h1:VQNKmTwlX6gyW1gzaSQjYG+xCBpqmgH0VQslYMtqzAg=
 github.com/Microsoft/go-winio v0.5.0/go.mod h1:JPGBdM1cNvN/6ISo+n8V5iA4v8pBzdOpzfwIujj1a84=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
 github.com/Microsoft/go-winio v0.6.1/go.mod h1:LRdKpFKfdobln8UmuiYcKPot9D2v6svN5+sAH+4kjUM=
