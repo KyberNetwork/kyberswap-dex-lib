@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -222,14 +223,33 @@ func (f *spfav2Finder) bestMultiPathRouteV2(
 	h := NewFindPathV2Helper(len(paths), int(f.maxPathsInRoute), amountInToGeneratePath, cmpFunc)
 
 	for _, amountInPerSplit := range splits {
-		bestPath := h.bestPathExactInV2(ctx, input, data, paths, amountInPerSplit)
-		if bestPath == nil {
-			return nil, nil
+		//continuously pop the bestPath and add it until we either has no path left or we got a valid path for route
+		count := 0
+		for {
+			bestPath := h.bestPathExactInV2(ctx, input, data, paths, amountInPerSplit)
+			if bestPath == nil {
+				logger.Warn(ctx, "no more paths to try.")
+				return nil, nil
+			}
+
+			if err := bestMultiPathRoute.AddPath(data.PoolBucket, bestPath.Clone(), data.SwapLimits); err == nil {
+				break
+			} else {
+				// the below logic fixes specifically a PMM swapLimit issue, if bestPath doesn't have PMM pool, just return
+				if !bestPath.HasPoolType(data.PoolBucket.PerRequestPoolsByAddress, pooltypes.PoolTypes.KyberPMM) {
+					return nil, err
+				}
+
+				count++
+				if count >= 3 {
+					logger.Error(ctx, "AddPath failed 3 times, no more try.")
+					return nil, err
+				}
+
+				logger.Warnf(ctx, "AddPath crash into error, pop next path. Error :%s", err)
+			}
 		}
 
-		if err := bestMultiPathRoute.AddPath(data.PoolBucket, bestPath.Clone(), data.SwapLimits); err != nil {
-			return nil, err
-		}
 	}
 	return bestMultiPathRoute, nil
 }

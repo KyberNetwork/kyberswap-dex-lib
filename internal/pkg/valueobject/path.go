@@ -4,9 +4,10 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/pkg/errors"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
@@ -320,4 +321,15 @@ func (p *Path) cmpTokenLen(other *Path) int {
 	}
 
 	return 0
+}
+
+func (p *Path) HasPoolType(pools map[string]poolpkg.IPoolSimulator, poolType string) bool {
+	for _, address := range p.PoolAddresses {
+		if pool, ok := pools[address]; ok {
+			if pool.GetType() == poolType {
+				return true
+			}
+		}
+	}
+	return false
 }

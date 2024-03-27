@@ -21,6 +21,16 @@ func NewPoolBucket(perRequestPoolsByAddress map[string]poolpkg.IPoolSimulator) *
 	}
 }
 
+func (b *PoolBucket) RollBackPools(backUpPools []poolpkg.IPoolSimulator) {
+	for i := 0; i < len(backUpPools); i++ {
+		if backUpPools[i] == nil {
+			continue
+		}
+		if _, avail := b.ChangedPools[backUpPools[i].GetAddress()]; avail {
+			b.ChangedPools[backUpPools[i].GetAddress()] = backUpPools[i]
+		}
+	}
+}
 func (b *PoolBucket) ClearChangedPools() {
 	b.ChangedPools = nil
 }

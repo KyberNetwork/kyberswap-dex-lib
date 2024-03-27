@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/huandu/go-clone"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -86,9 +87,9 @@ func NewRouteFromPaths(
 // AddPath will add the path into Route.
 // it will also modify request's copy of IPool( poolByAddress). Once the Path is added,
 // the poolByAddress of the modified pool will be assigned to a different pointer to avoid changing data of other's request
-func (r *Route) AddPath(poolBucket *PoolBucket, p *Path, swapLimits map[string]poolpkg.SwapLimit) error {
+func (r *Route) AddPath(poolBucket *PoolBucket, p *Path, swapLimits map[string]poolpkg.SwapLimit) (fErr error) {
 	if r.Input.Token != p.Input.Token || r.Output.Token != p.Output.Token {
-		return errors.Wrapf(
+		return errors.WithMessagef(
 			ErrPathMismatchedToken,
 			"[Route.AddPath] Expecting tokenInAddress: [%s] , tokenOutAddress: [%s] | Received tokenInAddress: [%s] , tokenOutAddress: [%s] ",
 			r.Input.Token, r.Output.Token, p.Input.Token, p.Output.Token,
@@ -99,31 +100,39 @@ func (r *Route) AddPath(poolBucket *PoolBucket, p *Path, swapLimits map[string]p
 		currentAmount = p.Input
 		pool          poolpkg.IPoolSimulator
 		ok            bool
+		backUpPools   = make([]poolpkg.IPoolSimulator, len(p.PoolAddresses))
 	)
-
+	defer func() {
+		if fErr != nil {
+			poolBucket.RollBackPools(backUpPools)
+		}
+	}()
 	for i, poolAddress := range p.PoolAddresses {
 		if pool, ok = poolBucket.GetPool(poolAddress); !ok {
-			return errors.Wrapf(
+			fErr = errors.WithMessagef(
 				ErrNoIPool,
 				"[Route.AddPath] poolAddress: [%s]",
 				poolAddress,
 			)
+			return fErr
 		}
 		swapLimit := swapLimits[pool.GetType()]
 
 		calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, currentAmount, p.Tokens[i+1].Address, swapLimit)
 		if err != nil {
-			return errors.Wrapf(
+			fErr = errors.WithMessagef(
 				ErrInvalidSwap,
 				"[Route.AddPath] CalcAmountOut returns error | poolAddress: [%s], exchange: [%s], tokenIn: [%s], amountIn: [%s], tokenOut: [%s], err: [%v]",
 				poolAddress, pool.GetExchange(), currentAmount.Token, currentAmount.Amount, p.Tokens[i+1].Address, err,
 			)
+			return fErr
 		}
 		if calcAmountOutResult.TokenAmountOut == nil || calcAmountOutResult.TokenAmountOut.Amount.Cmp(constant.Zero) <= 0 {
-			return errors.Wrapf(
+			fErr = errors.WithMessagef(
 				ErrInvalidSwap,
 				"[Route.AddPath] CalcAmountOut returns nil or invalid amountOut | poolAddress: [%s], exchange: [%s], tokenIn: [%s], amountIn: [%s], tokenOut: [%s], tokenAmountOut: [%v]", pool.GetAddress(), pool.GetExchange(), currentAmount.Token, currentAmount.Amount, p.Tokens[i+1].Address, calcAmountOutResult.TokenAmountOut,
 			)
+			return fErr
 		}
 
 		tokenAmountOut, fee := calcAmountOutResult.TokenAmountOut, calcAmountOutResult.Fee
@@ -135,6 +144,9 @@ func (r *Route) AddPath(poolBucket *PoolBucket, p *Path, swapLimits map[string]p
 			SwapInfo:       calcAmountOutResult.SwapInfo,
 			SwapLimit:      swapLimit,
 		}
+
+		//backing up the pool if there were error and we need to roll back
+		backUpPools[i] = clone.Slowly(pool).(poolpkg.IPoolSimulator)
 		// clone the pool before updating it, so it doesn't modify the original data copied from pool manager
 		pool = poolBucket.ClonePool(poolAddress)
 
@@ -143,6 +155,7 @@ func (r *Route) AddPath(poolBucket *PoolBucket, p *Path, swapLimits map[string]p
 		currentAmount = *tokenAmountOut
 	}
 
+	//no more error from here
 	var merged = false
 	for i := range r.Paths {
 		if r.Paths[i].Merge(p) {
