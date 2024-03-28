@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -161,6 +162,11 @@ func (v *getRouteEncodeParamsValidator) validateTo(ctx context.Context, to strin
 }
 
 func (v *getRouteEncodeParamsValidator) checkBlacklistedWallet(ctx context.Context, to string) error {
+	if clientid.GetClientIDFromCtx(ctx) != clientid.KyberSwap {
+		logger.Debug(ctx, "skip blacklist check because it's not a request from kyberswap UI")
+		return nil
+	}
+
 	blacklistedWallet, err := v.blackjackRepo.Check(ctx, []string{to})
 	if err != nil {
 		logger.

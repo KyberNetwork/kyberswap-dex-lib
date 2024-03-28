@@ -3,6 +3,7 @@ package clientid
 import "context"
 
 const clientIDContextKey = ctxKey(0)
+const KyberSwap = "kyberswap"
 
 type ctxKey int8
 

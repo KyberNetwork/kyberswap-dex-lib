@@ -9,11 +9,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 

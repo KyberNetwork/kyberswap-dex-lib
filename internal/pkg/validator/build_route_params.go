@@ -12,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -222,6 +223,11 @@ func (v *buildRouteParamsValidator) validateRecipient(recipient string) error {
 
 func (v *buildRouteParamsValidator) validateWallets(ctx context.Context, wallets []string) error {
 	if !v.config.FeatureFlags.IsBlackjackEnabled {
+		return nil
+	}
+
+	if clientid.GetClientIDFromCtx(ctx) != clientid.KyberSwap {
+		logger.Debug(ctx, "skip blacklist check because it's not a request from kyberswap UI")
 		return nil
 	}
 

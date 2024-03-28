@@ -11,6 +11,7 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/validator"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -728,7 +729,11 @@ func TestBuildRouteParamsValidator_validateDeadline(t *testing.T) {
 func TestBuildRouteParamsValidator_validateWallets(t *testing.T) {
 	t.Parallel()
 
+	kyberswapCtx := clientid.SetClientIDToContext(context.Background(), "kyberswap")
+	notKyberswapCtx := clientid.SetClientIDToContext(context.Background(), "abc")
+
 	testCases := []struct {
+		context              context.Context
 		name                 string
 		isBlackjackEnabled   bool
 		wallets              []string
@@ -736,6 +741,7 @@ func TestBuildRouteParamsValidator_validateWallets(t *testing.T) {
 		err                  error
 	}{
 		{
+			context:            kyberswapCtx,
 			name:               "it should return nil",
 			isBlackjackEnabled: false,
 			wallets:            []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664", "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c665"},
@@ -745,6 +751,7 @@ func TestBuildRouteParamsValidator_validateWallets(t *testing.T) {
 			err: nil,
 		},
 		{
+			context:            kyberswapCtx,
 			name:               "it should return nil",
 			isBlackjackEnabled: true,
 			wallets:            []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664", "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c665"},
@@ -759,6 +766,7 @@ func TestBuildRouteParamsValidator_validateWallets(t *testing.T) {
 			err: nil,
 		},
 		{
+			context:            kyberswapCtx,
 			name:               "it should return [wallets|invalid]",
 			isBlackjackEnabled: true,
 			wallets:            []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664", "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c665"},
@@ -773,6 +781,7 @@ func TestBuildRouteParamsValidator_validateWallets(t *testing.T) {
 			err: NewValidationError("wallets", "invalid"),
 		},
 		{
+			context:            kyberswapCtx,
 			name:               "it should return nil",
 			isBlackjackEnabled: true,
 			wallets:            []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664", "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c665"},
@@ -786,6 +795,16 @@ func TestBuildRouteParamsValidator_validateWallets(t *testing.T) {
 			},
 			err: nil,
 		},
+		{
+			context:            notKyberswapCtx,
+			name:               "it should return nil, request is not from kyberswap UI",
+			isBlackjackEnabled: true,
+			wallets:            []string{"0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664", "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c665"},
+			prepareBlackjackRepo: func(ctrl *gomock.Controller) IBlackjackRepository {
+				return nil
+			},
+			err: nil,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -793,7 +812,6 @@ func TestBuildRouteParamsValidator_validateWallets(t *testing.T) {
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
-			ctx := context.Background()
 			v := buildRouteParamsValidator{
 				config: BuildRouteParamsConfig{
 					FeatureFlags: valueobject.FeatureFlags{
@@ -803,7 +821,7 @@ func TestBuildRouteParamsValidator_validateWallets(t *testing.T) {
 				blackjackRepo: tc.prepareBlackjackRepo(ctrl),
 			}
 
-			err := v.validateWallets(ctx, tc.wallets)
+			err := v.validateWallets(tc.context, tc.wallets)
 
 			assert.Equal(t, tc.err, err)
 		})

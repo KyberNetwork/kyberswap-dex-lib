@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/validator"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -192,7 +193,11 @@ func TestGetRouteEncodeDexesValidator_validateSources(t *testing.T) {
 func TestGetRouteEncodeDexesValidator_validateTo(t *testing.T) {
 	t.Parallel()
 
+	kyberswapCtx := clientid.SetClientIDToContext(context.Background(), "kyberswap")
+	notKyberswapCtx := clientid.SetClientIDToContext(context.Background(), "abc")
+
 	testCases := []struct {
+		context              context.Context
 		name                 string
 		to                   string
 		config               GetRouteEncodeParamsConfig
@@ -200,26 +205,29 @@ func TestGetRouteEncodeDexesValidator_validateTo(t *testing.T) {
 		err                  error
 	}{
 		{
-			name:   "it should return [to|required]",
-			to:     "",
-			config: GetRouteEncodeParamsConfig{},
-			err:    NewValidationError("to", "required"),
+			context: kyberswapCtx,
+			name:    "it should return [to|required]",
+			to:      "",
+			config:  GetRouteEncodeParamsConfig{},
+			err:     NewValidationError("to", "required"),
 			prepareBlackjackRepo: func(ctrl *gomock.Controller) IBlackjackRepository {
 				return nil
 			},
 		},
 		{
-			name:   "it should return [to|invalid]",
-			to:     "abc",
-			config: GetRouteEncodeParamsConfig{},
-			err:    NewValidationError("to", "invalid"),
+			context: kyberswapCtx,
+			name:    "it should return [to|invalid]",
+			to:      "abc",
+			config:  GetRouteEncodeParamsConfig{},
+			err:     NewValidationError("to", "invalid"),
 			prepareBlackjackRepo: func(ctrl *gomock.Controller) IBlackjackRepository {
 				return nil
 			},
 		},
 		{
-			name: "it should return [to][invalid], isBlackjackEnabled is false",
-			to:   "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
+			context: kyberswapCtx,
+			name:    "it should return [to][invalid], isBlackjackEnabled is false",
+			to:      "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
 			config: GetRouteEncodeParamsConfig{
 				BlacklistedRecipientSet: map[string]bool{
 					"0x71c7656ec7ab88b098defb751b7401b5f6d8976f": true,
@@ -231,9 +239,10 @@ func TestGetRouteEncodeDexesValidator_validateTo(t *testing.T) {
 			},
 		},
 		{
-			name: "it should return [to][blacklisted wallet], isBlackjackEnabled is true",
-			to:   "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c764",
-			err:  NewValidationError("to", "blacklisted wallet"),
+			context: kyberswapCtx,
+			name:    "it should return [to][blacklisted wallet], isBlackjackEnabled is true",
+			to:      "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c764",
+			err:     NewValidationError("to", "blacklisted wallet"),
 			config: GetRouteEncodeParamsConfig{
 				FeatureFlags: valueobject.FeatureFlags{
 					IsBlackjackEnabled: true,
@@ -249,9 +258,10 @@ func TestGetRouteEncodeDexesValidator_validateTo(t *testing.T) {
 			},
 		},
 		{
-			name: "it should return nil, isBlackjackEnabled is true",
-			to:   "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-			err:  nil,
+			context: kyberswapCtx,
+			name:    "it should return nil, isBlackjackEnabled is true",
+			to:      "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+			err:     nil,
 			config: GetRouteEncodeParamsConfig{
 				FeatureFlags: valueobject.FeatureFlags{
 					IsBlackjackEnabled: true,
@@ -267,9 +277,24 @@ func TestGetRouteEncodeDexesValidator_validateTo(t *testing.T) {
 			},
 		},
 		{
-			name: "it should return nil, isBlackjackEnabled is true, Blackjack returns an error",
-			to:   "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
-			err:  nil,
+			context: notKyberswapCtx,
+			name:    "it should return nil, request is not from kyberswap UI",
+			to:      "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+			err:     nil,
+			config: GetRouteEncodeParamsConfig{
+				FeatureFlags: valueobject.FeatureFlags{
+					IsBlackjackEnabled: true,
+				},
+			},
+			prepareBlackjackRepo: func(ctrl *gomock.Controller) IBlackjackRepository {
+				return nil
+			},
+		},
+		{
+			context: kyberswapCtx,
+			name:    "it should return nil, isBlackjackEnabled is true, Blackjack returns an error",
+			to:      "0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664",
+			err:     nil,
 			config: GetRouteEncodeParamsConfig{
 				FeatureFlags: valueobject.FeatureFlags{
 					IsBlackjackEnabled: true,
@@ -293,7 +318,7 @@ func TestGetRouteEncodeDexesValidator_validateTo(t *testing.T) {
 				config:        tc.config,
 				blackjackRepo: mockBlackjackRepo,
 			}
-			err := validator.validateTo(context.Background(), tc.to)
+			err := validator.validateTo(tc.context, tc.to)
 
 			assert.Equal(t, tc.err, err)
 		})
