@@ -1,7 +1,7 @@
 github.com/DataDog/zstd v1.4.5 h1:EndNeuB0l9syBZhut0wns3gV1hL8zX8LIu6ZiVHWLIQ=
 github.com/DataDog/zstd v1.4.5/go.mod h1:1jcaCB/ufaK+sKp1NBhlGmpz41jOoPQ35bpF36t7BBo=
-github.com/KyberNetwork/blockchain-toolkit v0.5.2 h1:1Fi1iLzXa+REcy3enc3hme9qWhC4a1ydy5r9kCMZ2Dk=
-github.com/KyberNetwork/blockchain-toolkit v0.5.2/go.mod h1:/Nn+ZIK2GW5WoQwt/RY8q2cVGthgtwBfphSNBJH5vaI=
+github.com/KyberNetwork/blockchain-toolkit v0.6.0 h1:5YEwxYaknRz+rsxU0paW0AfUXithTb2Tmlq4l2H68Xc=
+github.com/KyberNetwork/blockchain-toolkit v0.6.0/go.mod h1:u9xac2rhiKPU24KmzLRTY5af8YZQ0xCqfWQrYjVyf2Q=
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 h1:kN7ez6MPJEaFbacmvR+22PRa5pJkzwYN4h3RyRhjUnU=
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2/go.mod h1:3DThBH6zHAYSWUVmtj9deQO1XuiwbawdKxj5yV4SuMo=
 github.com/KyberNetwork/ethrpc v0.7.1 h1:ePGFNKMM2U/aJZCX75WtClH5MOD2DqCF0bitPI13slw=
