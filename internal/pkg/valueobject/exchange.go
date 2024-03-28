@@ -91,6 +91,7 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 	dexValueObject.ExchangeCurveStablePlain:  {},
 	dexValueObject.ExchangeCurveStableNg:     {},
 	dexValueObject.ExchangeCurveStableMetaNg: {},
+	dexValueObject.ExchangeCurveTriCryptoNg:  {},
 
 	// executePancakeStableSwap
 	dexValueObject.ExchangePancakeStable: {},
