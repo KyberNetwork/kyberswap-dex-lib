@@ -4,6 +4,7 @@ import (
 	"context"
 
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
+	"github.com/KyberNetwork/logger"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 )
@@ -11,11 +12,20 @@ import (
 const (
 	authorizationHeaderKey = "Authorization"
 	rfqPath                = "/taker/v3/rfq"
+
+	errRFQRateLimitText              = "Rate Limit"
+	errRFQBelowMinimumAmountText     = "Below minimum amount"
+	errRFQExceedsSupportedAmountText = "Exceeds supported amounts"
+	errRFQNoMakerSupportsText        = "No maker supports this request"
 )
 
 var (
-	ErrRFQFailed    = errors.New("rfq failed")
-	ErrInvalidValue = errors.New("invalid value")
+	ErrRFQFailed = errors.New("rfq failed")
+
+	ErrRFQRateLimit               = errors.New(errRFQRateLimitText)
+	ErrRFQBelowMinimumAmount      = errors.New(errRFQBelowMinimumAmountText)
+	ErrRFQExceedsSupportedAmounts = errors.New(errRFQExceedsSupportedAmountText)
+	ErrRFQNoMakerSupports         = errors.New(errRFQNoMakerSupportsText)
 )
 
 type httpClient struct {
@@ -47,8 +57,24 @@ func (c *httpClient) RFQ(ctx context.Context, params hashflowv3.QuoteParams) (ha
 	}
 
 	if !resp.IsSuccess() || result.Status != "success" {
-		return hashflowv3.QuoteResult{}, errors.Wrapf(ErrRFQFailed, "status code(%d), body(%s)", resp.StatusCode(), resp.Body())
+		logger.Errorf("hashflow rfq failed: status code(%d), body(%s)", resp.StatusCode(), resp.Body())
+		return hashflowv3.QuoteResult{}, parseRFQError(result.Error.Message)
 	}
 
 	return result, nil
+}
+
+func parseRFQError(errorMessage string) error {
+	switch errorMessage {
+	case errRFQRateLimitText:
+		return ErrRFQRateLimit
+	case errRFQBelowMinimumAmountText:
+		return ErrRFQBelowMinimumAmount
+	case errRFQExceedsSupportedAmountText:
+		return ErrRFQExceedsSupportedAmounts
+	case errRFQNoMakerSupportsText:
+		return ErrRFQNoMakerSupports
+	default:
+		return ErrRFQFailed
+	}
 }
