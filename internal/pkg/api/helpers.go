@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	hashflowclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
 	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm/client"
 	"github.com/gin-gonic/gin"
 
@@ -148,6 +149,42 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		HTTPStatus: http.StatusUnprocessableEntity,
 		Code:       4227,
 		Message:    buildroute.ErrEstimateGasFailed.Error(),
+	},
+
+	hashflowclient.ErrRFQFailed: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4228,
+		Message:    "hashflow RFQ failed",
+	},
+	hashflowclient.ErrRFQRateLimit: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4229,
+		Message:    "hashflow RFQ failed",
+		Details:    []interface{}{hashflowclient.ErrRFQRateLimit.Error()},
+	},
+	hashflowclient.ErrRFQBelowMinimumAmount: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       42210,
+		Message:    "hashflow RFQ failed",
+		Details:    []interface{}{hashflowclient.ErrRFQBelowMinimumAmount.Error()},
+	},
+	hashflowclient.ErrRFQExceedsSupportedAmounts: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       42211,
+		Message:    "hashflow RFQ failed",
+		Details:    []interface{}{hashflowclient.ErrRFQExceedsSupportedAmounts.Error()},
+	},
+	hashflowclient.ErrRFQNoMakerSupports: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       42212,
+		Message:    "hashflow RFQ failed",
+		Details:    []interface{}{hashflowclient.ErrRFQNoMakerSupports.Error()},
+	},
+	hashflowclient.ErrRFQRateLimit: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       42213,
+		Message:    "hashflow RFQ failed",
+		Details:    []interface{}{hashflowclient.ErrRFQRateLimit.Error()},
 	},
 }
 
