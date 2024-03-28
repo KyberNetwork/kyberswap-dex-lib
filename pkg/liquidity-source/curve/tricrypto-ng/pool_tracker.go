@@ -54,10 +54,12 @@ func (t *PoolTracker) GetNewPoolState(
 
 		balances = make([]*big.Int, len(p.Tokens))
 
+		numDepCoins = len(p.Tokens) - 1 // other coins will have price based on the 1st coin
+
 		// These 3 slices only has length = number of tokens - 1 (check in the contract)
-		priceScales  = make([]*big.Int, len(p.Tokens)-1)
-		priceOracles = make([]*big.Int, len(p.Tokens)-1)
-		lastPrices   = make([]*big.Int, len(p.Tokens)-1)
+		priceScales  = make([]*big.Int, numDepCoins)
+		priceOracles = make([]*big.Int, numDepCoins)
+		lastPrices   = make([]*big.Int, numDepCoins)
 	)
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
@@ -169,7 +171,7 @@ func (t *PoolTracker) GetNewPoolState(
 		}, []interface{}{&balances[i]})
 	}
 
-	for i := 0; i < len(p.Tokens)-1; i++ {
+	for i := 0; i < numDepCoins; i++ {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    curveTricryptoNGABI,
 			Target: p.Address,
