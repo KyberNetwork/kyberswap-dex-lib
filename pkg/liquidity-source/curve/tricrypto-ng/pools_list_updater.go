@@ -73,7 +73,7 @@ func (u *PoolsListUpdater) initPools(_ context.Context, curvePools []shared.Curv
 		}
 
 		poolTokens := make([]*entity.PoolToken, 0, len(curvePool.Coins))
-		reserves := make([]string, 0, len(curvePool.Coins)+1) // N coins & totalSupply
+		reserves := make([]string, 0, len(curvePool.Coins))
 		invalidDecimal := false
 		isNativeCoins := make([]bool, 0, len(curvePool.Coins))
 		for _, c := range curvePool.Coins {
