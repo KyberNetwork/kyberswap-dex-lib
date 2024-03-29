@@ -42,7 +42,7 @@ func (r *RetryFinder) Find(ctx context.Context,
 		return nil, err
 	}
 	if len(routes) == 0 {
-		logger.Errorf(ctx, "retry finder: extract best base route failed %s", err)
+		logger.Debugf(ctx, "retry finder: extract best base route failed %s", err)
 		return nil, nil
 	}
 	//clear/ restart.
