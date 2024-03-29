@@ -5,6 +5,7 @@ import (
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
+	bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
@@ -174,6 +175,7 @@ type Types struct {
 	SwaapV2                        string
 	EtherfiEETH                    string
 	EtherfiWEETH                   string
+	BancorV21                      string
 	BancorV3                       string
 	CurveStablePlain               string
 	CurveStableNg                  string
@@ -275,6 +277,7 @@ var (
 		SwaapV2:                        swaapv2.DexType,
 		EtherfiEETH:                    eeth.DexType,
 		EtherfiWEETH:                   weeth.DexType,
+		BancorV21:                      bancorv21.DexType,
 		BancorV3:                       bancorv3.DexType,
 		CurveStablePlain:               plain.DexType,
 		CurveStableNg:                  curveStableNg.DexType,
