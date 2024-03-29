@@ -145,10 +145,11 @@ type CalcAmountInParams struct {
 }
 
 type CalcAmountInResult struct {
-	TokenAmountIn *TokenAmount
-	Fee           *TokenAmount
-	Gas           int64
-	SwapInfo      interface{}
+	TokenAmountIn           *TokenAmount
+	RemainingTokenAmountOut *TokenAmount
+	Fee                     *TokenAmount
+	Gas                     int64
+	SwapInfo                interface{}
 }
 
 // wrap around pool.CalcAmountOut and catch panic
