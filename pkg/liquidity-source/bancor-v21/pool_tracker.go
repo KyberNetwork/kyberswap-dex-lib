@@ -87,16 +87,18 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	defer logger.
-		WithFields(
-			logger.Fields{
-				"pool_id":          p.Address,
-				"old_block_number": p.BlockNumber,
-				"new_block_number": blockNumber,
-				"duration_ms":      time.Since(startTime).Milliseconds(),
-			},
-		).
-		Info("Finished getting new pool state")
+	defer func() {
+		logger.
+			WithFields(
+				logger.Fields{
+					"pool_id":          p.Address,
+					"old_block_number": p.BlockNumber,
+					"new_block_number": blockNumber,
+					"duration_ms":      time.Since(startTime).Milliseconds(),
+				},
+			).
+			Info("Finished getting new pool state")
+	}()
 
 	return d.updatePool(ctx, p, innerPools, latestAnchors, reservesData, fees, blockNumber, tokensByAnchor)
 }
