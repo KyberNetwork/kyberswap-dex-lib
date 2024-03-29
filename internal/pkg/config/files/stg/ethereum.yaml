@@ -78,6 +78,7 @@ common:
     - "ethena-susde"
     - "maker-savingsdai"
     - "hashflow-v3"
+    - "bancor-v21"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:

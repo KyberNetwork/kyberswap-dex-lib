@@ -76,6 +76,7 @@ common:
     - "rocketpool-reth"
     - "ethena-susde"
     - "maker-savingsdai"
+    - "bancor-v21"
   featureFlags: &featureFlags
   swaapAPIKey:
 log:
