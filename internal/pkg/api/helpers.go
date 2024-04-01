@@ -186,6 +186,12 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    "hashflow RFQ failed",
 		Details:    []interface{}{hashflowclient.ErrRFQRateLimit.Error()},
 	},
+	hashflowclient.ErrRFQMarketsTooVolatile: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       42214,
+		Message:    "hashflow RFQ failed",
+		Details:    []interface{}{hashflowclient.ErrRFQMarketsTooVolatile.Error()},
+	},
 }
 
 type SuccessResponse struct {
