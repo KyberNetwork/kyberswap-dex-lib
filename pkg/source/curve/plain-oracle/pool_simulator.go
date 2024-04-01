@@ -1,6 +1,7 @@
 package plainoracle
 
 import (
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,10 @@ import (
 	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
+
+func init() {
+	gob.Register(&Pool{})
+}
 
 type Pool struct {
 	pool.Pool

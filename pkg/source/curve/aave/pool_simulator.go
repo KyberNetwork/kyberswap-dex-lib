@@ -1,6 +1,7 @@
 package aave
 
 import (
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -11,6 +12,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
+
+func init() {
+	gob.Register(&AavePool{})
+}
 
 type AavePool struct {
 	pool.Pool

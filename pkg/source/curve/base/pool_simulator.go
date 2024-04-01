@@ -1,6 +1,7 @@
 package base
 
 import (
+	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
+
+func init() {
+	gob.Register(&PoolBaseSimulator{})
+}
 
 type PoolBaseSimulator struct {
 	pool.Pool

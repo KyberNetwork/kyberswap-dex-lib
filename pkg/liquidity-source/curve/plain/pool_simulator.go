@@ -1,6 +1,7 @@
 package plain
 
 import (
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -14,6 +15,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/holiman/uint256"
 )
+
+func init() {
+	gob.Register(&PoolSimulator{})
+}
 
 type PoolSimulator struct {
 	pool.Pool
