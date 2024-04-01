@@ -78,12 +78,12 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 	if err != nil {
 		return nil, err
 	}
-	metrics.HistogramAmountInWithTokens(ctx, float64(params.AmountIn.Int64()), params.TokenIn.Name, params.TokenOut.Name)
 
 	amountInUSD := utils.CalcTokenAmountUsd(params.AmountIn, params.TokenIn.Decimals, params.TokenInPriceUSD)
 	if amountInUSD > MaxAmountInUSD {
 		return nil, ErrAmountInIsGreaterThanMaxAllowed
 	}
+	metrics.HistogramAmountInWithTokens(ctx, amountInUSD, params.TokenIn.Name, params.TokenOut.Name)
 
 	routeSummary, err := u.aggregator.Aggregate(ctx, params)
 	if err != nil {
