@@ -17,6 +17,7 @@ const (
 	errRFQBelowMinimumAmountText     = "Below minimum amount"
 	errRFQExceedsSupportedAmountText = "Exceeds supported amounts"
 	errRFQNoMakerSupportsText        = "No maker supports this request"
+	errRFQMarketsTooVolatile         = "Markets too volatile"
 )
 
 var (
@@ -26,6 +27,7 @@ var (
 	ErrRFQBelowMinimumAmount      = errors.New(errRFQBelowMinimumAmountText)
 	ErrRFQExceedsSupportedAmounts = errors.New(errRFQExceedsSupportedAmountText)
 	ErrRFQNoMakerSupports         = errors.New(errRFQNoMakerSupportsText)
+	ErrRFQMarketsTooVolatile      = errors.New(errRFQMarketsTooVolatile)
 )
 
 type httpClient struct {
@@ -74,6 +76,8 @@ func parseRFQError(errorMessage string) error {
 		return ErrRFQExceedsSupportedAmounts
 	case errRFQNoMakerSupportsText:
 		return ErrRFQNoMakerSupports
+	case errRFQMarketsTooVolatile:
+		return ErrRFQMarketsTooVolatile
 	default:
 		return ErrRFQFailed
 	}
