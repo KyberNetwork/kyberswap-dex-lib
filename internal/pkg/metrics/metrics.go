@@ -29,6 +29,8 @@ const (
 	EstimateGasStatusMetricsName       = "estimate_gas.count"
 	EstimateGasWithSlippageMetricsName = "estimate_gas_slippage"
 	IndexPoolsDelayMetricsName         = "index_pools_delay"
+	PriceImpactOnTokenMetricsName      = "price_impact_on_token"
+	AmountInWithTokensMetricsName      = "amount_in_with_tokens"
 )
 
 var (
@@ -46,7 +48,10 @@ var (
 	// histogram metrics
 	estimateGasSlippageHistogram metric.Int64Histogram
 	indexPoolsDelayHistogram     metric.Int64Histogram
-	mapMetricNameToHistogram     map[string]metric.Int64Histogram
+	priceImpactOnTokenHistogram  metric.Int64Histogram
+	amountInWithTokensHistogram  metric.Int64Histogram
+
+	mapMetricNameToHistogram map[string]metric.Int64Histogram
 )
 
 func init() {
@@ -62,6 +67,9 @@ func init() {
 	estimateGasSlippageHistogram, _ = kybermetric.Meter().Int64Histogram(formatMetricName(EstimateGasWithSlippageMetricsName))
 	indexPoolsDelayHistogram, _ = kybermetric.Meter().Int64Histogram(formatMetricName(IndexPoolsDelayMetricsName),
 		metric.WithExplicitBucketBoundaries(0, 50, 300, 1200, 2500, 5000, 10e3, 30e3, 90e3, 300e3, 1200e3, 3600e3))
+	priceImpactOnTokenHistogram, _ = kybermetric.Meter().Int64Histogram(PriceImpactOnTokenMetricsName)
+	amountInWithTokensHistogram, _ = kybermetric.Meter().Int64Histogram(AmountInWithTokensMetricsName)
+
 	mapMetricNameToCounter = map[string]metric.Float64Counter{
 		DexHitRateMetricsName:             dexHitRateCounter,
 		PoolTypeHitRateMetricsName:        poolTypeHitRateCounter,
@@ -76,6 +84,8 @@ func init() {
 	mapMetricNameToHistogram = map[string]metric.Int64Histogram{
 		EstimateGasWithSlippageMetricsName: estimateGasSlippageHistogram,
 		IndexPoolsDelayMetricsName:         indexPoolsDelayHistogram,
+		PriceImpactOnTokenMetricsName:      priceImpactOnTokenHistogram,
+		AmountInWithTokensMetricsName:      amountInWithTokensHistogram,
 	}
 }
 
@@ -170,6 +180,22 @@ func HistogramEstimateGasWithSlippage(ctx context.Context, slippage float64, isS
 		"state": state,
 	}
 	histogram(ctx, EstimateGasWithSlippageMetricsName, slippage, tags, 1)
+}
+
+func HistogramPriceImpactOnToken(ctx context.Context, priceImpact float64, tokenIn string, tokenOut string) {
+	tags := map[string]string{
+		"tokenIn":  tokenIn,
+		"tokenOut": tokenOut,
+	}
+	histogram(ctx, PriceImpactOnTokenMetricsName, priceImpact, tags, 1)
+}
+
+func HistogramAmountInWithTokens(ctx context.Context, amountIn float64, tokenIn string, tokenOut string) {
+	tags := map[string]string{
+		"tokenIn":  tokenIn,
+		"tokenOut": tokenOut,
+	}
+	histogram(ctx, AmountInWithTokensMetricsName, amountIn, tags, 1)
 }
 
 func HistogramIndexPoolsDelay(ctx context.Context, jobName string, delay time.Duration, okCnt, totalCnt int) {
