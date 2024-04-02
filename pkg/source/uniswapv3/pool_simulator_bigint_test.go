@@ -82,8 +82,8 @@ func TestPoolSimulatorBigInt_CalcAmountIn(t *testing.T) {
 				})
 			})
 			require.NoError(t, err)
-			assert.Equal(t, result.TokenAmountIn.Amount, big.NewInt(7074025631378098))
-			assert.Equal(t, result.RemainingTokenAmountOut.Amount, big.NewInt(-480436293))
+			assert.Equal(t, big.NewInt(7074025631378098), result.TokenAmountIn.Amount)
+			assert.Equal(t, big.NewInt(-480436293), result.RemainingTokenAmountOut.Amount)
 		})
 	}
 }

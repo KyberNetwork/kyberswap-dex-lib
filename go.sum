@@ -10,8 +10,8 @@ github.com/KyberNetwork/int256 v0.1.4 h1:SbnhxqcsZXrP+5pSkolpSo2ViEWiq3K/hjfl5OQ
 github.com/KyberNetwork/int256 v0.1.4/go.mod h1:qE/Ikpo86fn60sIB7CwcfiqJTjK2p+k+ASvuO79Rq4g=
 github.com/KyberNetwork/logger v0.1.0 h1:Iibu9Ls+tipjR+C0iXhzUYM1VtRgmmR1HHWGufPYcbs=
 github.com/KyberNetwork/logger v0.1.0/go.mod h1:zBqHbtJ3nJn6HQnp6UW8pbQkR+U6tSRFd5CzfiKL3Kw=
-github.com/KyberNetwork/pancake-v3-sdk v0.1.0 h1:HVUD13Qbwl4kiU1uSprQVpkis6fYYp3A32mVuK+f1Iw=
-github.com/KyberNetwork/pancake-v3-sdk v0.1.0/go.mod h1:AhHu1v2KZAXKFZ9AnjwYPPx1+dDFHBqmSpSeg4fnvzg=
+github.com/KyberNetwork/pancake-v3-sdk v0.2.0 h1:dd5k2Z223kkzSky8SFgRy2/eQGp4bf586SS71XqqBlM=
+github.com/KyberNetwork/pancake-v3-sdk v0.2.0/go.mod h1:AhHu1v2KZAXKFZ9AnjwYPPx1+dDFHBqmSpSeg4fnvzg=
 github.com/KyberNetwork/uniswapv3-sdk v0.5.0 h1:Akl6KR27K+gVMOf9x9u9dV32j9YTIEnY99R9z+WlVGI=
 github.com/KyberNetwork/uniswapv3-sdk v0.5.0/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
 github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.0 h1:AkEmCEBmyYAUU+WHGrgw9uaXHteqNn66CD36FaXoUig=
