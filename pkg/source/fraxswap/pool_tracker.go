@@ -74,7 +74,18 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	p.Reserves = entity.PoolReserves{reserveAfterTwammOutput.Reserve0.String(), reserveAfterTwammOutput.Reserve1.String()}
+	var rev0, rev1 string
+	if reserveAfterTwammOutput.Reserve0 != nil {
+		rev0 = reserveAfterTwammOutput.Reserve0.String()
+	} else {
+		rev0 = "0"
+	}
+	if reserveAfterTwammOutput.Reserve1 != nil {
+		rev1 = reserveAfterTwammOutput.Reserve1.String()
+	} else {
+		rev1 = "0"
+	}
+	p.Reserves = entity.PoolReserves{rev0, rev1}
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
 
