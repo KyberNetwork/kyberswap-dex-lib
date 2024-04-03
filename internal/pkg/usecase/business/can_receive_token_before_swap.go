@@ -86,6 +86,7 @@ var (
 		valueobject.ExchangeMerchantMoe:     true,
 		valueobject.ExchangeFusionX:         true,
 		valueobject.ExchangeSquadSwap:       true,
+		valueobject.ExchangeLiquidusFinance: true,
 
 		// KSClassic
 		valueobject.ExchangeDMM:             true,

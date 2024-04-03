@@ -66,6 +66,7 @@ common:
     - "smardex"
     - "hashflow-v3"
     - "squadswap"
+    - "liquidus-finance"
   featureFlags: &featureFlags
   hashflowAPIKey:
 log:
