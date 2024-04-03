@@ -51,7 +51,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			logger.WithFields(logger.Fields{
 				"reserve": reserve_s,
 				"address": entityPool.Address,
-			}).Error(err.Error())
+			}).Debug(err.Error())
 
 			return nil, err
 		}
