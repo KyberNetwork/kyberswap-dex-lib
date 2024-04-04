@@ -80,6 +80,7 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, route *valueobject.
 	var newRoute = valueobject.NewRoute(route.Input.Token, route.Output.Token)
 	typeSet := sets.NewString(dynamicTypes...)
 	poolsInRoute := route.ExtractPoolAddresses()
+	routeModified := false
 	for i := 0; i < len(route.Paths); i++ {
 		var (
 			newPath  *valueobject.Path
@@ -129,12 +130,15 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, route *valueobject.
 				logger.Errorf(ctx, "cannot create new path, error: %s", err.Error())
 				newPath = currPath
 			}
+			routeModified = true
 		} else {
 			newPath = currPath
 		}
 		newRoute.AddPath(data.PoolBucket, newPath, data.SwapLimits)
 	}
-	logger.Infof(ctx, "found better route %v. Old pool %v", newRoute, route)
+	if routeModified {
+		logger.Infof(ctx, "found better route %v. Old pool %v", newRoute, route)
+	}
 	return newRoute
 }
 
