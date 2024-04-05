@@ -39,6 +39,11 @@ type QuoteParams struct {
 }
 
 type QuoteResult struct {
+	// The http status code
+	StatusCode int `json:"statusCode"`
+	// The error message if any
+	Message string `json:"message"`
+
 	// Indicates if the signing of the firm quote was successful.
 	Success bool `json:"success"`
 	// Array of order objects.

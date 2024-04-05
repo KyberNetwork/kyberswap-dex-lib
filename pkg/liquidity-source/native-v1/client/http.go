@@ -14,10 +14,20 @@ const (
 	headerApiKey = "apiKey"
 
 	pathFirmQuote = "v1/firm-quote"
+
+	errMsgThrottled           = "ThrottlerException: Too Many Requests"
+	errMsgInternalServerError = "Internal server error"
+	errMsgBadRequest          = "Bad Request"
+	errMsgAllPricerFailed     = "All pricer failed"
 )
 
 var (
-	ErrQuoteFailed = errors.New("quote failed")
+	ErrRFQFailed = errors.New("rfq failed")
+
+	ErrRFQRateLimit               = errors.New("rfq: rate limited")
+	ErrRFQInternalServerError     = errors.New("rfq: internal server error")
+	ErrRFQBadRequest              = errors.New("rfq: bad request")
+	ErrRFQAllPricerFailed         = errors.New("rfq: all pricer failed")
 )
 
 type HTTPClient struct {
@@ -57,14 +67,24 @@ func (c *HTTPClient) Quote(ctx context.Context, params nativev1.QuoteParams) (na
 		return nativev1.QuoteResult{}, err
 	}
 
-	if !resp.IsSuccess() {
-		return nativev1.QuoteResult{}, errors.Wrapf(ErrQuoteFailed, "status code(%d), body(%s)", resp.StatusCode(),
-			resp.Body())
-	}
-
-	if !result.Success {
-		return nativev1.QuoteResult{}, ErrQuoteFailed
+	if !resp.IsSuccess() || !result.Success {
+		return nativev1.QuoteResult{}, parseRFQError(result.Message)
 	}
 
 	return result, nil
+}
+
+func parseRFQError(errorMessage string) error {
+	switch errorMessage {
+	case errMsgThrottled:
+		return ErrRFQRateLimit
+	case errMsgInternalServerError:
+		return ErrRFQInternalServerError
+	case errMsgBadRequest:
+		return ErrRFQBadRequest
+	case errMsgAllPricerFailed:
+		return ErrRFQAllPricerFailed
+	default:
+		return ErrRFQFailed
+	}
 }
