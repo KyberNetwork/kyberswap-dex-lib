@@ -368,3 +368,400 @@ func Test_CalcAmountOut(t *testing.T) {
 		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 	})
 }
+
+func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	amountOutTest1, _ := new(big.Int).SetString("1014934149732776116160723", 10)
+	expectedAmountInTest1, _ := new(big.Int).SetString("1979999999999513367997", 10)
+
+	amountOutTest2, _ := new(big.Int).SetString("49523009318781117474536", 10)
+	expectedAmountInTest2, _ := new(big.Int).SetString("76229999999999997187", 10)
+
+	type fields struct {
+		p string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		params  poolpkg.CalcAmountInParams
+		want    *poolpkg.CalcAmountInResult
+		wantErr error
+	}{
+		{
+			name: "1. should return OK",
+			fields: fields{
+				p: `{
+					"address": "0x5c6ee304399dbdb9c8ef030ab642b10820db8f56",
+					"reserveUsd": 153314467.24136648,
+					"amplifiedTvl": 153314467.24136648,
+					"exchange": "balancer-v2-weighted",
+					"type": "balancer-v2-weighted",
+					"timestamp": 1702542461,
+					"reserves": [
+						"31686717298564222587034828",
+						"14236767788701850247952"
+					],
+					"tokens": [
+						{
+							"address": "0xba100000625a3754423978a60c9317c58a424e3d",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						}
+					],
+					"extra": "{\"swapFeePercentage\":\"0x2386f26fc10000\",\"paused\":false}",
+					"staticExtra": "{\"poolId\":\"0x5c6ee304399dbdb9c8ef030ab642b10820db8f56000200000000000000000014\",\"poolType\":\"Weighted\",\"poolTypeVer\":1,\"scalingFactors\":[\"0x1\",\"0x1\"],\"normalizedWeights\":[\"0xb1a2bc2ec500000\",\"0x2c68af0bb140000\"],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
+				}`,
+			},
+			params: poolpkg.CalcAmountInParams{
+				TokenAmountOut: poolpkg.TokenAmount{
+					Token:  "0xba100000625a3754423978a60c9317c58a424e3d",
+					Amount: amountOutTest1,
+				},
+				TokenIn: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			},
+			want: &poolpkg.CalcAmountInResult{
+				TokenAmountIn: &poolpkg.TokenAmount{
+					Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					Amount: expectedAmountInTest1,
+				},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "2. should return OK",
+			fields: fields{
+				p: `{
+					"address": "0x32fc95287b14eaef3afa92cccc48c285ee3a280a",
+					"reserveUsd": 3454.483888331181,
+					"amplifiedTvl": 3454.483888331181,
+					"exchange": "balancer-v2-weighted",
+					"type": "balancer-v2-weighted",
+					"timestamp": 1703033832,
+					"reserves": [
+						"382259350067562080018",
+						"563895201975090444069",
+						"432276836",
+						"415858931425966091248020",
+						"198780894165507591",
+						"9187067339281421763",
+						"111172932376992452571",
+						"1835599921140802978251"
+					],
+					"tokens": [
+						{
+							"address": "0x0b3f868e0be5597d5db7feb59e1cadbb0fdda50a",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x580a84c73811e1839f75d86d75d88cca0c241ff4",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x831753dd7087cac61ab5644b308642cc1c33dc13",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x9a71012b13ca4d3d0cdc72a177df3ef03b0e76a3",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0xc3fdbadc7c795ef1d6ba111e06ff8f16a20ea539",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						}
+					],
+					"extra": "{\"swapFeePercentage\":\"0x2386f26fc10000\",\"paused\":false}",
+					"staticExtra": "{\"poolId\":\"0x32fc95287b14eaef3afa92cccc48c285ee3a280a000100000000000000000005\",\"poolType\":\"Weighted\",\"poolTypeVer\":1,\"scalingFactors\":[\"0x1\",\"0x1\",\"0xe8d4a51000\",\"0x1\",\"0x1\",\"0x1\",\"0x1\",\"0x1\"],\"normalizedWeights\":[\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\"],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
+				}`,
+			},
+			params: poolpkg.CalcAmountInParams{
+				TokenAmountOut: poolpkg.TokenAmount{
+					Token:  "0x580a84c73811e1839f75d86d75d88cca0c241ff4",
+					Amount: amountOutTest2,
+				},
+				TokenIn: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+			},
+			want: &poolpkg.CalcAmountInResult{
+				TokenAmountIn: &poolpkg.TokenAmount{
+					Token:  "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+					Amount: expectedAmountInTest2,
+				},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "3. should return error ErrPoolPaused",
+			fields: fields{
+				p: `{
+					"address": "0x32fc95287b14eaef3afa92cccc48c285ee3a280a",
+					"reserveUsd": 3454.483888331181,
+					"amplifiedTvl": 3454.483888331181,
+					"exchange": "balancer-v2-weighted",
+					"type": "balancer-v2-weighted",
+					"timestamp": 1703033832,
+					"reserves": [
+						"382259350067562080018",
+						"563895201975090444069",
+						"432276836",
+						"415858931425966091248020",
+						"198780894165507591",
+						"9187067339281421763",
+						"111172932376992452571",
+						"1835599921140802978251"
+					],
+					"tokens": [
+						{
+							"address": "0x0b3f868e0be5597d5db7feb59e1cadbb0fdda50a",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x580a84c73811e1839f75d86d75d88cca0c241ff4",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x831753dd7087cac61ab5644b308642cc1c33dc13",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x9a71012b13ca4d3d0cdc72a177df3ef03b0e76a3",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0xc3fdbadc7c795ef1d6ba111e06ff8f16a20ea539",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						}
+					],
+					"extra": "{\"swapFeePercentage\":\"0x2386f26fc10000\",\"paused\":true}",
+					"staticExtra": "{\"poolId\":\"0x32fc95287b14eaef3afa92cccc48c285ee3a280a000100000000000000000005\",\"poolType\":\"Weighted\",\"poolTypeVer\":1,\"scalingFactors\":[\"0x1\",\"0x1\",\"0xe8d4a51000\",\"0x1\",\"0x1\",\"0x1\",\"0x1\",\"0x1\"],\"normalizedWeights\":[\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\"],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
+				}`,
+			},
+			params: poolpkg.CalcAmountInParams{
+				TokenAmountOut: poolpkg.TokenAmount{
+					Token:  "0x580a84c73811e1839f75d86d75d88cca0c241ff5", // not registered token, last character should be 4
+					Amount: amountOutTest2,
+				},
+				TokenIn: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+			},
+			want:    nil,
+			wantErr: ErrPoolPaused,
+		},
+		{
+			name: "4. should return error ErrTokenNotRegistered",
+			fields: fields{
+				p: `{
+					"address": "0x32fc95287b14eaef3afa92cccc48c285ee3a280a",
+					"reserveUsd": 3454.483888331181,
+					"amplifiedTvl": 3454.483888331181,
+					"exchange": "balancer-v2-weighted",
+					"type": "balancer-v2-weighted",
+					"timestamp": 1703033832,
+					"reserves": [
+						"382259350067562080018",
+						"563895201975090444069",
+						"432276836",
+						"415858931425966091248020",
+						"198780894165507591",
+						"9187067339281421763",
+						"111172932376992452571",
+						"1835599921140802978251"
+					],
+					"tokens": [
+						{
+							"address": "0x0b3f868e0be5597d5db7feb59e1cadbb0fdda50a",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x580a84c73811e1839f75d86d75d88cca0c241ff4",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x831753dd7087cac61ab5644b308642cc1c33dc13",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0x9a71012b13ca4d3d0cdc72a177df3ef03b0e76a3",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						},
+						{
+							"address": "0xc3fdbadc7c795ef1d6ba111e06ff8f16a20ea539",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 0,
+							"swappable": true
+						}
+					],
+					"extra": "{\"swapFeePercentage\":\"0x2386f26fc10000\",\"paused\":false}",
+					"staticExtra": "{\"poolId\":\"0x32fc95287b14eaef3afa92cccc48c285ee3a280a000100000000000000000005\",\"poolType\":\"Weighted\",\"poolTypeVer\":1,\"scalingFactors\":[\"0x1\",\"0x1\",\"0xe8d4a51000\",\"0x1\",\"0x1\",\"0x1\",\"0x1\",\"0x1\"],\"normalizedWeights\":[\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\"],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
+				}`,
+			},
+			params: poolpkg.CalcAmountInParams{
+				TokenAmountOut: poolpkg.TokenAmount{
+					Token:  "0x580a84c73811e1839f75d86d75d88cca0c241ff5", // not registered token, last character should be 4
+					Amount: amountOutTest2,
+				},
+				TokenIn: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
+			},
+			want:    nil,
+			wantErr: ErrTokenNotRegistered,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var pool entity.Pool
+			err := json.Unmarshal([]byte(tt.fields.p), &pool)
+			assert.Nil(t, err)
+
+			simulator, err := NewPoolSimulator(pool)
+			assert.Nil(t, err)
+
+			got, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountInResult](t, func() (any, error) {
+				return simulator.CalcAmountIn(tt.params)
+			})
+			if err != nil {
+				assert.ErrorIsf(t, err, tt.wantErr, "PoolSimulator.CalcAmountIn() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equalf(t, tt.want.TokenAmountIn.Token, got.TokenAmountIn.Token, "tokenIn = %v, want %v", got.TokenAmountIn.Token, tt.want.TokenAmountIn.Token)
+			assert.Equalf(t, tt.want.TokenAmountIn.Amount, got.TokenAmountIn.Amount, "amountIn = %v, want %v", got.TokenAmountIn.Amount.String(), tt.want.TokenAmountIn.Amount.String())
+		})
+	}
+}
