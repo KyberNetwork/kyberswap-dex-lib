@@ -1,8 +1,6 @@
 package nomiswapstable
 
 import (
-	"time"
-
 	"github.com/holiman/uint256"
 )
 
@@ -14,12 +12,7 @@ func getAmountOut(
 	tokenInPrecisionMultiplier *uint256.Int,
 	tokenOutPrecisionMultiplier *uint256.Int,
 	A *uint256.Int,
-	// futureATime int64,
-	// futureA *uint256.Int,
-	// initialATime int64,
-	// initialA *uint256.Int,
 ) *uint256.Int {
-	// A := getA(futureATime, futureA, initialATime, initialA)
 	amountOut, _ := getExactQuote(swapFee, amountIn, reserveIn, reserveOut, tokenInPrecisionMultiplier, tokenOutPrecisionMultiplier, A)
 	return amountOut
 }
@@ -103,48 +96,6 @@ func calAmountAfterFee(amountIn, swapFee *uint256.Int) (*uint256.Int, *uint256.I
 	var feeDeductedAmountIn = new(uint256.Int).Sub(amountIn, feeIn)
 
 	return feeDeductedAmountIn, feeIn
-}
-
-func getA(
-	futureATime int64,
-	futureA *uint256.Int,
-	initialATime int64,
-	initialA *uint256.Int,
-) *uint256.Int {
-
-	var t1 = futureATime
-	var a1 = futureA
-	var now = time.Now().Unix()
-	if t1 > now {
-		var t0 = initialATime
-		var a0 = initialA
-
-		uint256.NewInt(uint64(now - t0))
-		if a1.Cmp(a0) > 0 {
-			return new(uint256.Int).Add(
-				a0,
-				new(uint256.Int).Div(
-					new(uint256.Int).Mul(
-						new(uint256.Int).Sub(a1, a0),
-						uint256.NewInt(uint64(now-t0)),
-					),
-					uint256.NewInt(uint64(t1-t0)),
-				),
-			)
-		} else {
-			return new(uint256.Int).Sub(
-				a0,
-				new(uint256.Int).Div(
-					new(uint256.Int).Mul(
-						new(uint256.Int).Sub(a0, a1),
-						uint256.NewInt(uint64(now-t0)),
-					),
-					uint256.NewInt(uint64(t1-t0)),
-				),
-			)
-		}
-	}
-	return a1
 }
 
 func computeDFromAdjustedBalances(xp0, xp1, A *uint256.Int) *uint256.Int {
