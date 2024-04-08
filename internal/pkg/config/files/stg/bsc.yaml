@@ -30,6 +30,7 @@ common:
     0xfeafe253802b77456b4627f8c2306a9cebb5d681: true
     0xffe166ceabef3af31977fb76b93892e8c4c504e6: true
   availableSources: &availableSources
+    - "nomiswap-stable"
     - "kyberswap"
     - "kyberswap-static"
     - "kyberswap-elastic"

@@ -27,6 +27,7 @@ import (
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
@@ -529,6 +530,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newMakerSavingsDai(entityPool)
 	case pooltypes.PoolTypes.HashflowV3:
 		return f.newHashflowV3(entityPool)
+	case pooltypes.PoolTypes.NomiSwapStable:
+		return f.newNomiswapStable(entityPool)
 	default:
 		return nil, errors.Wrapf(
 			ErrPoolTypeFactoryNotFound,
@@ -1756,6 +1759,20 @@ func (f *PoolFactory) newHashflowV3(entityPool entity.Pool) (*hashflowv3.PoolSim
 			entityPool.Address,
 			entityPool.Type,
 			err,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newNomiswapStable(entityPool entity.Pool) (*nomiswapstable.PoolSimulator, error) {
+	corePool, err := nomiswapstable.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newNomiswapStable] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
 		)
 	}
 
