@@ -20,6 +20,7 @@ import (
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
+	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
@@ -188,6 +189,7 @@ type Types struct {
 	MakerSavingsDai                string
 	HashflowV3                     string
 	NomiSwapStable                 string
+	NativeV1                       string
 }
 
 var (
@@ -291,5 +293,6 @@ var (
 		MakerSavingsDai:                savingsdai.DexType,
 		HashflowV3:                     hashflowv3.DexType,
 		NomiSwapStable:                 nomiswap.DexType,
+		NativeV1:                       nativev1.DexType,
 	}
 )
