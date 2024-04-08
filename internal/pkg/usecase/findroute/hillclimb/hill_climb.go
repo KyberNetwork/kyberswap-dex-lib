@@ -143,6 +143,15 @@ func (f *hillClimbFinder) calcAdjustedTokenAmount(
 		return nil, nil, nil
 	}
 
+	// if splits==0 then don't bother to do the duplicated calculation (same input)
+	if splits == 0 {
+		return &poolpkg.TokenAmount{
+			Token:     input.TokenOutAddress,
+			Amount:    new(big.Int).Add(baseFirstPath.Output.Amount, baseSecondPath.Output.Amount),
+			AmountUsd: baseFirstPath.Output.AmountUsd + baseSecondPath.Output.AmountUsd,
+		}, baseFirstPath, baseSecondPath
+	}
+
 	// Step 2: recalculate the rate of two paths with the new input
 
 	var (
