@@ -67,8 +67,10 @@ common:
     - "pharaoh"
     - "pharaoh-v2"
     - "hashflow-v3"
+    - "native-v1"
   featureFlags: &featureFlags
   hashflowAPIKey:
+  nativeAPIKey:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -264,8 +266,14 @@ useCase:
           http:
             base_url: "https://api.hashflow.com"
             source: kyber
-            api_key: # NOTE: This will be configured in the `common` section.
             timeout: 3s
+            retry_count: 3
+      - id: native-v1
+        handler: native-v1
+        properties:
+          http:
+            base_url: "https://newapi.native.org"
+            timeout: 10s
             retry_count: 3
     faultyPools:
       windowSize: 15m

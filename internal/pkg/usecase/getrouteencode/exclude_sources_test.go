@@ -15,7 +15,9 @@ func TestGetExcludedSources(t *testing.T) {
 	}{
 		{
 			name: "it should get excluded sources correctly",
-			want: []string{string(valueobject.ExchangeKyberPMM), string(valueobject.ExchangeKyberSwapLimitOrderDS), string(valueobject.ExchangeSwaapV2), string(valueobject.ExchangeHashflowV3)},
+			want: []string{string(valueobject.ExchangeKyberPMM), string(valueobject.ExchangeKyberSwapLimitOrderDS),
+				string(valueobject.ExchangeSwaapV2), string(valueobject.ExchangeHashflowV3),
+				string(valueobject.ExchangeNativeV1)},
 		},
 	}
 	for _, tt := range tests {

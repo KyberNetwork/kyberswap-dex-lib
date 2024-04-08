@@ -3,11 +3,12 @@ package config
 import (
 	"fmt"
 
+	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/redis"
-	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
 )
 
 type Common struct {
@@ -24,6 +25,7 @@ type Common struct {
 	FeatureFlags        valueobject.FeatureFlags `mapstructure:"featureFlags"`
 	SwaapAPIKey         string                   `mapstructure:"swaapAPIKey" json:"-"`
 	HashflowAPIKey      string                   `mapstructure:"hashflowAPIKey" json:"-"`
+	NativeAPIKey        string                   `mapstructure:"nativeAPIKey" json:"-"`
 }
 
 type AEVM struct {

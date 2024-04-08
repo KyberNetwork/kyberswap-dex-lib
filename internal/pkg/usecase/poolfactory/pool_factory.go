@@ -27,6 +27,7 @@ import (
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
+	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
@@ -530,6 +531,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newMakerSavingsDai(entityPool)
 	case pooltypes.PoolTypes.HashflowV3:
 		return f.newHashflowV3(entityPool)
+	case pooltypes.PoolTypes.NativeV1:
+		return f.newNativeV1(entityPool)
 	case pooltypes.PoolTypes.NomiSwapStable:
 		return f.newNomiswapStable(entityPool)
 	default:
@@ -1756,6 +1759,21 @@ func (f *PoolFactory) newHashflowV3(entityPool entity.Pool) (*hashflowv3.PoolSim
 		return nil, errors.Wrapf(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newHashflowV3] pool: [%s] » type: [%s] cause by %v",
+			entityPool.Address,
+			entityPool.Type,
+			err,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newNativeV1(entityPool entity.Pool) (*nativev1.PoolSimulator, error) {
+	corePool, err := nativev1.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.Wrapf(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newNativeV1] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
 			entityPool.Type,
 			err,

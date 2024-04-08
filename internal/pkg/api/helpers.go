@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	hashflowclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
+	nativeclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
 	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm/client"
 	"github.com/gin-gonic/gin"
 
@@ -191,6 +192,36 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Code:       42214,
 		Message:    "hashflow RFQ failed",
 		Details:    []interface{}{hashflowclient.ErrRFQMarketsTooVolatile.Error()},
+	},
+
+	nativeclient.ErrRFQFailed: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4228,
+		Message:    "native RFQ failed",
+	},
+	nativeclient.ErrRFQRateLimit: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4229,
+		Message:    "native RFQ failed",
+		Details:    []interface{}{nativeclient.ErrRFQRateLimit.Error()},
+	},
+	nativeclient.ErrRFQInternalServerError: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4228,
+		Message:    "native RFQ failed",
+		Details:    []interface{}{nativeclient.ErrRFQInternalServerError.Error()},
+	},
+	nativeclient.ErrRFQBadRequest: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4228,
+		Message:    "native RFQ failed",
+		Details:    []interface{}{nativeclient.ErrRFQBadRequest.Error()},
+	},
+	nativeclient.ErrRFQAllPricerFailed: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4228,
+		Message:    "native RFQ failed",
+		Details:    []interface{}{nativeclient.ErrRFQAllPricerFailed.Error()},
 	},
 }
 

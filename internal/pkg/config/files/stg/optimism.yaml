@@ -289,7 +289,6 @@ useCase:
           http:
             base_url: "https://api.hashflow.com"
             source: kyber
-            api_key: # NOTE: This will be configured in the `common` section.
             timeout: 3s
             retry_count: 3
     faultyPools:

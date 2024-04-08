@@ -15,6 +15,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/pkg/errors"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
@@ -28,7 +30,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
-	"github.com/pkg/errors"
 )
 
 var OutputChangeNoChange = dto.OutputChange{
@@ -91,7 +92,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.Handle")
 	defer span.End()
 
-	routeSummary, err := uc.rfq(ctx, command.Sender, command.Recipient, command.Source, command.RouteSummary)
+	routeSummary, err := uc.rfq(ctx, command.Sender, command.Recipient, command.Source, command.RouteSummary, command.SlippageTolerance)
 	if err != nil {
 		return nil, err
 	}
@@ -157,6 +158,7 @@ func (uc *BuildRouteUseCase) rfq(
 	recipient string,
 	source string,
 	routeSummary valueobject.RouteSummary,
+	slippageTolerance int64,
 ) (valueobject.RouteSummary, error) {
 	executorAddress := uc.encodeBuilder.
 		GetEncoder(dexValueObject.ChainID(uc.config.ChainID)).
@@ -190,6 +192,7 @@ func (uc *BuildRouteUseCase) rfq(
 				Recipient:    recipient,
 				RFQSender:    executorAddress,
 				RFQRecipient: rfqRecipient,
+				Slippage:     slippageTolerance,
 				SwapInfo:     swap.Extra,
 			})
 			if err != nil {
@@ -215,6 +218,8 @@ func (uc *BuildRouteUseCase) rfq(
 	// NOTE: if afterRFQAmountOut < oldAmountOut due to any RFQ hop, we will return error.
 	// Reference: https://www.notion.so/kybernetwork/Build-route-behavior-discussion-5a0765555e1e47c1866db5df3d01a0b5
 	if afterRFQAmountOut.Cmp(routeSummary.AmountOut) < 0 {
+		logger.Errorf(ctx, "afterRFQAmountOut: %v < oldAmountOut: %v, diff = %.2f%%",
+			afterRFQAmountOut, routeSummary.AmountOut, 100*float64(afterRFQAmountOut.Uint64())/float64(routeSummary.AmountOut.Uint64()))
 		return routeSummary, ErrQuotedAmountSmallerThanEstimated
 	}
 

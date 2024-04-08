@@ -40,7 +40,9 @@ common:
     - "nuri"
     - "nuri-v2"
     - "skydrome-v2"
+    - "native-v1"
   featureFlags: &featureFlags
+  nativeAPIKey:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -215,6 +217,14 @@ useCase:
     faultyPools:
       windowSize: 15m
       faultyExpiredTime: 3m
+    rfq:
+      - id: native-v1
+        handler: native-v1
+        properties:
+          http:
+            base_url: "https://newapi.native.org"
+            timeout: 10s
+            retry_count: 3
   poolFactory:
     chainId: *chainId
   poolManager:
