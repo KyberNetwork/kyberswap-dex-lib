@@ -212,3 +212,141 @@ func TestCalcAmountOut(t *testing.T) {
 
 	})
 }
+
+func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	type fields struct {
+		poolStr string
+	}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		params  poolpkg.CalcAmountInParams
+		want    *poolpkg.CalcAmountInResult
+		wantErr error
+	}{
+		{
+			name: "1. should return error ErrStableGetBalanceDidntConverge",
+			fields: fields{
+				poolStr: `{
+					"address": "0x851523a36690bf267bbfec389c823072d82921a9",
+					"exchange": "balancer-v2-stable",
+					"type": "balancer-v2-stable",
+					"timestamp": 1703667290,
+					"reserves": [
+					  "9999991000000000000",
+					  "99999910000000000056",
+					  "8897791020011100123456"
+					],
+					"tokens": [
+						{
+							"address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 1,
+							"swappable": true
+						},
+						{
+							"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 1,
+							"swappable": true
+						},
+						{
+							"address": "0x6b175474e89094c44da98b954eedeac495271d0f",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 1,
+							"swappable": true
+						}
+					],
+					"extra": "{\"amp\":\"0x1388\",\"swapFeePercentage\":\"0x2D79883D2000\",\"scalingFactors\":[\"100\",\"1\",\"100\"],\"paused\":false}",
+					"staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"Stable\",\"poolTypeVersion\":1,\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
+					}`,
+			},
+			params: poolpkg.CalcAmountInParams{
+				TokenAmountOut: poolpkg.TokenAmount{
+					Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
+					Amount: big.NewInt(999999100000),
+				},
+				TokenIn: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			},
+			want:    nil,
+			wantErr: math.ErrStableGetBalanceDidntConverge,
+		},
+		{
+			name: "2. should return OK",
+			fields: fields{
+				poolStr: `{
+					"address": "0x851523a36690bf267bbfec389c823072d82921a9",
+					"exchange": "balancer-v2-stable",
+					"type": "balancer-v2-stable",
+					"timestamp": 1703667290,
+					"reserves": [
+					  "1152882153159026494",
+					  "873225053252443292"
+					],
+					"tokens": [
+					  {
+						"address": "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+						"name": "",
+						"symbol": "",
+						"decimals": 0,
+						"weight": 1,
+						"swappable": true
+					  },
+					  {
+						"address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+						"name": "",
+						"symbol": "",
+						"decimals": 0,
+						"weight": 1,
+						"swappable": true
+					  }
+					],
+					"extra": "{\"amp\":\"0xf4240\",\"swapFeePercentage\":\"0x16bcc41e90000\",\"scalingFactors\":[\"0xFFB10F9BCF7D41A\",\"0xde0b6b3a7640000\"],\"paused\":false}",
+					"staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"MetaStable\",\"poolTypeVersion\":1,\"poolSpecialization\":2,\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
+					}`,
+			},
+			params: poolpkg.CalcAmountInParams{
+				TokenAmountOut: poolpkg.TokenAmount{
+					Token:  "0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+					Amount: big.NewInt(63551050657042642),
+				},
+				TokenIn: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			},
+			want: &poolpkg.CalcAmountInResult{
+				TokenAmountIn: &poolpkg.TokenAmount{
+					Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					Amount: big.NewInt(73154145616700748),
+				},
+			},
+			wantErr: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var pool entity.Pool
+			err := json.Unmarshal([]byte(tt.fields.poolStr), &pool)
+			assert.Nil(t, err)
+
+			simulator, err := NewPoolSimulator(pool)
+			assert.Nil(t, err)
+
+			got, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountInResult](t, func() (any, error) {
+				return simulator.CalcAmountIn(tt.params)
+			})
+			if err != nil {
+				assert.ErrorIsf(t, err, tt.wantErr, "PoolSimulator.CalcAmountIn() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equalf(t, tt.want.TokenAmountIn.Token, got.TokenAmountIn.Token, "tokenIn = %v, want %v", got.TokenAmountIn.Token, tt.want.TokenAmountIn.Token)
+			assert.Equalf(t, tt.want.TokenAmountIn.Amount, got.TokenAmountIn.Amount, "amountIn = %v, want %v", got.TokenAmountIn.Amount.String(), tt.want.TokenAmountIn.Amount.String())
+		})
+	}
+}

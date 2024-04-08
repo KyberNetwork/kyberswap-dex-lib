@@ -21,6 +21,11 @@ func init() {
 	StableMath = &stableMath{}
 }
 
+// MetaStable: https://etherscan.io/address/0x063c624672e390363b25f0c6c68ad9067c34595b#code#F30#L109
+//
+// Stable Version 1: https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F8#L109
+//
+// Stable Version 2: https://etherscan.io/address/0x13f2f70a951fb99d48ede6e25b0bdf06914db33f#code#F5#L125
 func (l *stableMath) CalcOutGivenIn(
 	invariant *uint256.Int,
 	amp *uint256.Int,
@@ -61,6 +66,55 @@ func (l *stableMath) CalcOutGivenIn(
 	}
 
 	return amountOut, nil
+}
+
+// MetaStable: https://etherscan.io/address/0x063c624672e390363b25f0c6c68ad9067c34595b#code#F30#L152
+//
+// Stable Version 1: https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F8#L152
+//
+// Stable Version 2: https://etherscan.io/address/0x13f2f70a951fb99d48ede6e25b0bdf06914db33f#code#F5#L166
+func (l *stableMath) CalcInGivenOut(
+	invariant *uint256.Int,
+	amp *uint256.Int,
+	amountOut *uint256.Int,
+	balances []*uint256.Int,
+	indexIn int,
+	indexOut int,
+) (*uint256.Int, error) {
+	var err error
+
+	balances[indexOut], err = FixedPoint.Sub(balances[indexOut], amountOut)
+	if err != nil {
+		return nil, err
+	}
+
+	finalBalanceIn, err := l.GetTokenBalanceGivenInvariantAndAllOtherBalances(
+		amp,
+		balances,
+		invariant,
+		indexIn,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	balances[indexOut], err = FixedPoint.Add(balances[indexOut], amountOut)
+	if err != nil {
+		return nil, err
+	}
+
+	// return finalBalanceIn.sub(balances[tokenIndexIn]).add(1);
+	amountIn, err := FixedPoint.Sub(finalBalanceIn, balances[indexIn])
+	if err != nil {
+		return nil, err
+	}
+
+	amountIn, err = FixedPoint.Add(amountIn, number.Number_1)
+	if err != nil {
+		return nil, err
+	}
+
+	return amountIn, nil
 }
 
 func (l *stableMath) CalculateInvariantV1(
