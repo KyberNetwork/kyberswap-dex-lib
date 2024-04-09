@@ -31,18 +31,35 @@ type bptSimulator struct {
 }
 
 // https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F1#L301
-func (s *bptSimulator) swap(
-	amountIn *uint256.Int,
+/**
+ * @dev Perform a swap involving the BPT token, equivalent to a single-token join or exit. As with the standard
+ * joins and swaps, we first pay any protocol fees pending from swaps that occurred since the previous join or
+ * exit, then perform the operation (joinSwap or exitSwap), and finally store the "post operation" invariant and
+ * amp, which establishes the new basis for protocol fees.
+ *
+ * At this point, the scaling factors (including rates) have been computed by the base class, but not yet applied
+ * to the balances.
+ */
+func (s *bptSimulator) _swapWithBpt(
+	isGivenIn bool,
+	swapRequestAmount *uint256.Int,
 	balances []*uint256.Int,
-	indexIn int,
-	indexOut int,
+	registeredIndexIn int,
+	registeredIndexOut int,
 ) (*uint256.Int, *poolpkg.TokenAmount, *SwapInfo, error) {
 	balances, err := _upscaleArray(balances, s.scalingFactors)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	amountIn, err = _upscale(amountIn, s.scalingFactors[indexIn])
+	var swapRequestTokenIndex int
+	if isGivenIn {
+		swapRequestTokenIndex = registeredIndexIn
+	} else {
+		swapRequestTokenIndex = registeredIndexOut
+	}
+
+	swapRequestAmount, err = _upscale(swapRequestAmount, s.scalingFactors[swapRequestTokenIndex])
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -53,22 +70,30 @@ func (s *bptSimulator) swap(
 	}
 
 	var amountCalculated, postJoinExitSupply *uint256.Int
-	if indexOut == s.bptIndex {
+	if registeredIndexOut == s.bptIndex {
 		amountCalculated, postJoinExitSupply, err = s._doJoinSwap(
-			amountIn, balances, _skipBptIndex(indexIn, s.bptIndex), currentAmp, preJoinExitSupply, preJoinExitInvariant,
+			isGivenIn, swapRequestAmount, balances, _skipBptIndex(registeredIndexIn, s.bptIndex), currentAmp, preJoinExitSupply, preJoinExitInvariant,
 		)
 	} else {
 		amountCalculated, postJoinExitSupply, err = s._doExitSwap(
-			amountIn, balances, _skipBptIndex(indexOut, s.bptIndex), currentAmp, preJoinExitSupply, preJoinExitInvariant,
+			isGivenIn, swapRequestAmount, balances, _skipBptIndex(registeredIndexOut, s.bptIndex), currentAmp, preJoinExitSupply, preJoinExitInvariant,
 		)
 	}
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	amountOut, err := _downscaleDown(amountCalculated, s.scalingFactors[indexOut])
-	if err != nil {
-		return nil, nil, nil, err
+	var downscaledAmountCalculated *uint256.Int
+	if isGivenIn {
+		downscaledAmountCalculated, err = _downscaleDown(amountCalculated, s.scalingFactors[registeredIndexOut])
+		if err != nil {
+			return nil, nil, nil, err
+		}
+	} else {
+		downscaledAmountCalculated, err = _downscaleUp(amountCalculated, s.scalingFactors[registeredIndexIn])
+		if err != nil {
+			return nil, nil, nil, err
+		}
 	}
 
 	swapInfo, err := s.initSwapInfo(
@@ -82,10 +107,16 @@ func (s *bptSimulator) swap(
 		return nil, nil, nil, err
 	}
 
-	return amountOut, &poolpkg.TokenAmount{}, swapInfo, nil
+	return downscaledAmountCalculated, &poolpkg.TokenAmount{}, swapInfo, nil
 }
 
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F1#L362
+/**
+ * @dev This mutates `balances` so that they become the post-joinswap balances. The StableMath interfaces
+ * are different depending on the swap direction, so we forward to the appropriate low-level join function.
+ */
 func (s *bptSimulator) _doJoinSwap(
+	isGivenIn bool,
 	amount *uint256.Int,
 	balances []*uint256.Int,
 	indexIn int,
@@ -93,7 +124,18 @@ func (s *bptSimulator) _doJoinSwap(
 	actualSupply *uint256.Int,
 	preJoinExitInvariant *uint256.Int,
 ) (*uint256.Int, *uint256.Int, error) {
-	return s._joinSwapExactTokenInForBptOut(
+	if isGivenIn {
+		return s._joinSwapExactTokenInForBptOut(
+			amount,
+			balances,
+			indexIn,
+			currentAmp,
+			actualSupply,
+			preJoinExitInvariant,
+		)
+	}
+
+	return s._joinSwapExactBptOutForTokenIn(
 		amount,
 		balances,
 		indexIn,
@@ -103,8 +145,14 @@ func (s *bptSimulator) _doJoinSwap(
 	)
 }
 
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F1#L396
+/**
+ * @dev Since this is a join, we know the tokenOut is BPT. Since it is GivenIn, we know the tokenIn amount,
+ * and must calculate the BPT amount out.
+ * We are moving preminted BPT out of the Vault, which increases the virtual supply.
+ */
 func (s *bptSimulator) _joinSwapExactTokenInForBptOut(
-	amount *uint256.Int,
+	amountIn *uint256.Int,
 	balances []*uint256.Int,
 	indexIn int,
 	currentAmp *uint256.Int,
@@ -115,7 +163,7 @@ func (s *bptSimulator) _joinSwapExactTokenInForBptOut(
 	for i := 0; i < len(balances); i++ {
 		amountsIn[i] = uint256.NewInt(0)
 	}
-	amountsIn[indexIn] = amount
+	amountsIn[indexIn] = amountIn
 
 	bptOut, err := math.StableMath.CalcBptOutGivenExactTokensIn(
 		currentAmp,
@@ -129,7 +177,7 @@ func (s *bptSimulator) _joinSwapExactTokenInForBptOut(
 		return nil, nil, err
 	}
 
-	balances[indexIn], err = math.FixedPoint.Add(balances[indexIn], amount)
+	balances[indexIn], err = math.FixedPoint.Add(balances[indexIn], amountIn)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -142,7 +190,53 @@ func (s *bptSimulator) _joinSwapExactTokenInForBptOut(
 	return bptOut, postJoinExitSupply, nil
 }
 
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F1#L429
+/**
+ * @dev Since this is a join, we know the tokenOut is BPT. Since it is GivenOut, we know the BPT amount,
+ * and must calculate the token amount in.
+ * We are moving preminted BPT out of the Vault, which increases the virtual supply.
+ */
+func (s *bptSimulator) _joinSwapExactBptOutForTokenIn(
+	bptOut *uint256.Int,
+	balances []*uint256.Int,
+	indexIn int,
+	currentAmp *uint256.Int,
+	actualSupply *uint256.Int,
+	preJoinExitInvariant *uint256.Int,
+) (*uint256.Int, *uint256.Int, error) {
+	amountIn, err := math.StableMath.CalcTokenInGivenExactBptOut(
+		currentAmp,
+		balances,
+		indexIn,
+		bptOut,
+		actualSupply,
+		preJoinExitInvariant,
+		s.swapFeePercentage,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	balances[indexIn], err = math.FixedPoint.Add(balances[indexIn], amountIn)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	postJoinExitSupply, err := math.FixedPoint.Add(actualSupply, bptOut)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return amountIn, postJoinExitSupply, nil
+}
+
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F1#L457
+/**
+ * @dev This mutates balances so that they become the post-exitswap balances. The StableMath interfaces are
+ * different depending on the swap direction, so we forward to the appropriate low-level exit function.
+ */
 func (s *bptSimulator) _doExitSwap(
+	isGivenIn bool,
 	amount *uint256.Int,
 	balances []*uint256.Int,
 	indexOut int,
@@ -150,7 +244,18 @@ func (s *bptSimulator) _doExitSwap(
 	actualSupply *uint256.Int,
 	preJoinExitInvariant *uint256.Int,
 ) (*uint256.Int, *uint256.Int, error) {
-	return s._exitSwapExactBptInForTokenOut(
+	if isGivenIn {
+		return s._exitSwapExactBptInForTokenOut(
+			amount,
+			balances,
+			indexOut,
+			currentAmp,
+			actualSupply,
+			preJoinExitInvariant,
+		)
+	}
+
+	return s._exitSwapExactTokenOutForBptIn(
 		amount,
 		balances,
 		indexOut,
@@ -160,6 +265,12 @@ func (s *bptSimulator) _doExitSwap(
 	)
 }
 
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F1#L491
+/**
+ * @dev Since this is an exit, we know the tokenIn is BPT. Since it is GivenIn, we know the BPT amount,
+ * and must calculate the token amount out.
+ * We are moving BPT out of circulation and into the Vault, which decreases the virtual supply.
+ */
 func (s *bptSimulator) _exitSwapExactBptInForTokenOut(
 	bptAmount *uint256.Int,
 	balances []*uint256.Int,
@@ -192,6 +303,54 @@ func (s *bptSimulator) _exitSwapExactBptInForTokenOut(
 	}
 
 	return amountOut, postJoinExitSupply, nil
+}
+
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F1#L520
+/**
+ * @dev Since this is an exit, we know the tokenIn is BPT. Since it is GivenOut, we know the token amount out,
+ * and must calculate the BPT amount in.
+ * We are moving BPT out of circulation and into the Vault, which decreases the virtual supply.
+ */
+func (s *bptSimulator) _exitSwapExactTokenOutForBptIn(
+	amountOut *uint256.Int,
+	balances []*uint256.Int,
+	indexOut int,
+	currentAmp *uint256.Int,
+	actualSupply *uint256.Int,
+	preJoinExitInvariant *uint256.Int,
+) (*uint256.Int, *uint256.Int, error) {
+	// The StableMath function was created with exits in mind, so it expects a full amounts array. We create an
+	// empty one and only set the amount for the token involved.
+
+	amountsOut := make([]*uint256.Int, len(balances))
+	for i := 0; i < len(balances); i++ {
+		amountsOut[i] = uint256.NewInt(0)
+	}
+	amountsOut[indexOut] = amountOut
+
+	bptAmount, err := math.StableMath.CalcBptInGivenExactTokensOut(
+		currentAmp,
+		balances,
+		amountsOut,
+		actualSupply,
+		preJoinExitInvariant,
+		s.swapFeePercentage,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	balances[indexOut], err = math.FixedPoint.Sub(balances[indexOut], amountOut)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	postJoinExitSupply, err := math.FixedPoint.Sub(actualSupply, bptAmount)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return bptAmount, postJoinExitSupply, nil
 }
 
 func (s *bptSimulator) _getVirtualSupply(bptBalance *uint256.Int) (*uint256.Int, error) {
