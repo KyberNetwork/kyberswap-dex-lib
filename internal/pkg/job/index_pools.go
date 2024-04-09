@@ -104,16 +104,20 @@ func (u *IndexPoolsJob) scanAndIndex(ctx context.Context) {
 	if result != nil {
 		failedCount = len(result.FailedPoolAddresses)
 	}
-	totalCnt := len(poolAddresses)
-	metrics.HistogramIndexPoolsDelay(ctx, IndexPools, time.Since(startTime), totalCnt-failedCount, totalCnt)
-
+	totalCount := len(poolAddresses)
+	if successCount := totalCount - failedCount; successCount > 0 {
+		metrics.HistogramIndexPoolsDelay(ctx, IndexPools, time.Since(startTime), true)
+		metrics.IncrIndexPoolsCounter(ctx, IndexPools, true, successCount)
+	}
 	if failedCount > 0 {
+		metrics.HistogramIndexPoolsDelay(ctx, IndexPools, time.Since(startTime), false)
+		metrics.IncrIndexPoolsCounter(ctx, IndexPools, false, failedCount)
 		logger.
 			WithFields(ctx,
 				logger.Fields{
 					"job.id":       jobID,
 					"job.name":     IndexPools,
-					"total_count":  totalCnt,
+					"total_count":  totalCount,
 					"failed_count": failedCount,
 				}).
 			Warn("job done")
@@ -125,7 +129,7 @@ func (u *IndexPoolsJob) scanAndIndex(ctx context.Context) {
 			logger.Fields{
 				"job.id":      jobID,
 				"job.name":    IndexPools,
-				"total_count": totalCnt,
+				"total_count": totalCount,
 			}).
 		Info("job done")
 }
@@ -186,9 +190,13 @@ func (u *IndexPoolsJob) handleStreamEvents(msgs []*BatchedPoolAddress) {
 	}
 	totalCnt := len(poolAddresses)
 	startTime := time.UnixMilli(msgs[0].Ret.TimeMs)
-	metrics.HistogramIndexPoolsDelay(ctx, consumer.PoolEvents, time.Since(startTime), totalCnt-failedCount, totalCnt)
-
+	if successCount := totalCnt - failedCount; successCount > 0 {
+		metrics.HistogramIndexPoolsDelay(ctx, consumer.PoolEvents, time.Since(startTime), true)
+		metrics.IncrIndexPoolsCounter(ctx, consumer.PoolEvents, true, successCount)
+	}
 	if failedCount > 0 {
+		metrics.HistogramIndexPoolsDelay(ctx, consumer.PoolEvents, time.Since(startTime), false)
+		metrics.IncrIndexPoolsCounter(ctx, consumer.PoolEvents, false, failedCount)
 		logger.
 			WithFields(ctx,
 				logger.Fields{

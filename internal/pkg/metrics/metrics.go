@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -12,7 +11,6 @@ import (
 	"golang.org/x/exp/maps"
 
 	kybermetric "github.com/KyberNetwork/kyber-trace-go/pkg/metric"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -28,6 +26,7 @@ const (
 	IsPregenPathValidMetricsName       = "is_pregen_path_valid.count"
 	EstimateGasStatusMetricsName       = "estimate_gas.count"
 	EstimateGasWithSlippageMetricsName = "estimate_gas_slippage"
+	IndexPoolsMetricsCounterName       = "index_pools_count"
 	IndexPoolsDelayMetricsName         = "index_pools_delay"
 	PriceImpactOnTokenMetricsName      = "price_impact_on_token"
 	AmountInWithTokensMetricsName      = "amount_in_with_tokens"
@@ -44,14 +43,16 @@ var (
 	estimateGasStatusCounter      metric.Float64Counter
 	isPregenPathValidCounter      metric.Float64Counter
 	mapMetricNameToCounter        map[string]metric.Float64Counter
+	indexPoolsDelayCounter        metric.Float64Counter
 
 	// histogram metrics
 	estimateGasSlippageHistogram metric.Int64Histogram
 	indexPoolsDelayHistogram     metric.Int64Histogram
-	priceImpactOnTokenHistogram  metric.Int64Histogram
-	amountInWithTokensHistogram  metric.Int64Histogram
+	priceImpactOnTokenHistogram  metric.Float64Histogram
+	amountInWithTokensHistogram  metric.Float64Histogram
 
-	mapMetricNameToHistogram map[string]metric.Int64Histogram
+	mapMetricNameToHistogram        map[string]metric.Int64Histogram
+	mapMetricNameToFloat64Histogram map[string]metric.Float64Histogram
 )
 
 func init() {
@@ -65,10 +66,11 @@ func init() {
 	estimateGasStatusCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(EstimateGasStatusMetricsName))
 	isPregenPathValidCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(IsPregenPathValidMetricsName))
 	estimateGasSlippageHistogram, _ = kybermetric.Meter().Int64Histogram(formatMetricName(EstimateGasWithSlippageMetricsName))
-	indexPoolsDelayHistogram, _ = kybermetric.Meter().Int64Histogram(formatMetricName(IndexPoolsDelayMetricsName),
+	indexPoolsDelayHistogram, _ = kybermetric.Meter().Int64Histogram(IndexPoolsDelayMetricsName,
 		metric.WithExplicitBucketBoundaries(0, 50, 300, 1200, 2500, 5000, 10e3, 30e3, 90e3, 300e3, 1200e3, 3600e3))
-	priceImpactOnTokenHistogram, _ = kybermetric.Meter().Int64Histogram(PriceImpactOnTokenMetricsName)
-	amountInWithTokensHistogram, _ = kybermetric.Meter().Int64Histogram(AmountInWithTokensMetricsName)
+	indexPoolsDelayCounter, _ = kybermetric.Meter().Float64Counter(IndexPoolsMetricsCounterName)
+	priceImpactOnTokenHistogram, _ = kybermetric.Meter().Float64Histogram(PriceImpactOnTokenMetricsName)
+	amountInWithTokensHistogram, _ = kybermetric.Meter().Float64Histogram(AmountInWithTokensMetricsName)
 
 	mapMetricNameToCounter = map[string]metric.Float64Counter{
 		DexHitRateMetricsName:             dexHitRateCounter,
@@ -80,13 +82,17 @@ func init() {
 		FindRoutePregenHitRateMetricsName: findRoutePregenHitRateCounter,
 		EstimateGasStatusMetricsName:      estimateGasStatusCounter,
 		IsPregenPathValidMetricsName:      isPregenPathValidCounter,
+		IndexPoolsMetricsCounterName:      indexPoolsDelayCounter,
 	}
 	mapMetricNameToHistogram = map[string]metric.Int64Histogram{
 		EstimateGasWithSlippageMetricsName: estimateGasSlippageHistogram,
 		IndexPoolsDelayMetricsName:         indexPoolsDelayHistogram,
-		PriceImpactOnTokenMetricsName:      priceImpactOnTokenHistogram,
-		AmountInWithTokensMetricsName:      amountInWithTokensHistogram,
 	}
+	mapMetricNameToFloat64Histogram = map[string]metric.Float64Histogram{
+		PriceImpactOnTokenMetricsName: priceImpactOnTokenHistogram,
+		AmountInWithTokensMetricsName: amountInWithTokensHistogram,
+	}
+
 }
 
 func IncrDexHitRate(ctx context.Context, dex string) {
@@ -122,6 +128,17 @@ func IncrFindRoutePregenCount(ctx context.Context, pregenHit bool, otherTags map
 	maps.Copy(tags, otherTags)
 
 	incr(ctx, FindRoutePregenHitRateMetricsName, tags, 1)
+}
+
+func IncrIndexPoolsCounter(ctx context.Context, jobName string, isSuccess bool, counter int) {
+	state := "failed"
+	if isSuccess {
+		state = "success"
+	}
+	incr(ctx, IndexPoolsMetricsCounterName, map[string]string{
+		"job_name": jobName,
+		"state":    state,
+	}, float64(counter))
 }
 
 func IncrIsPregenPathValidCount(ctx context.Context, valid bool, otherTags map[string]string) {
@@ -179,39 +196,33 @@ func HistogramEstimateGasWithSlippage(ctx context.Context, slippage float64, isS
 	tags := map[string]string{
 		"state": state,
 	}
-	histogram(ctx, EstimateGasWithSlippageMetricsName, slippage, tags, 1)
+	histogram(ctx, EstimateGasWithSlippageMetricsName, slippage, tags)
 }
 
 func HistogramPriceImpactOnToken(ctx context.Context, priceImpact float64, tokenIn string, tokenOut string) {
 	tags := map[string]string{
-		"tokenIn":  tokenIn,
-		"tokenOut": tokenOut,
+		"tokenIn": tokenIn,
 	}
-	histogram(ctx, PriceImpactOnTokenMetricsName, priceImpact, tags, 1)
+	histogram(ctx, PriceImpactOnTokenMetricsName, priceImpact, tags)
 }
 
 func HistogramAmountInWithTokens(ctx context.Context, amountIn float64, tokenIn string, tokenOut string) {
 	tags := map[string]string{
-		"tokenIn":  tokenIn,
-		"tokenOut": tokenOut,
+		"tokenIn": tokenIn,
 	}
-	histogram(ctx, AmountInWithTokensMetricsName, amountIn, tags, 1)
+	histogram(ctx, AmountInWithTokensMetricsName, amountIn, tags)
 }
 
-func HistogramIndexPoolsDelay(ctx context.Context, jobName string, delay time.Duration, okCnt, totalCnt int) {
+func HistogramIndexPoolsDelay(ctx context.Context, jobName string, delay time.Duration, isSuccess bool) {
+	state := "failed"
+	if isSuccess {
+		state = "success"
+	}
 	delayMs := float64(delay / time.Millisecond)
-	if okCnt > 0 {
-		histogram(ctx, IndexPoolsDelayMetricsName, delayMs, map[string]string{
-			"job_name": jobName,
-			"state":    "success",
-		}, int64(okCnt))
-	}
-	if failCnt := totalCnt - okCnt; failCnt > 0 {
-		histogram(ctx, IndexPoolsDelayMetricsName, delayMs, map[string]string{
-			"job_name": jobName,
-			"state":    "failed",
-		}, int64(failCnt))
-	}
+	histogram(ctx, IndexPoolsDelayMetricsName, delayMs, map[string]string{
+		"job_name": jobName,
+		"state":    state,
+	})
 }
 
 func Flush() {
@@ -220,17 +231,6 @@ func Flush() {
 		logger.WithFieldsNonContext(logger.Fields{
 			"error": err,
 		}).Warn("failed to flush VanPT metrics")
-	}
-
-	// Flush DataDog
-	if client == nil {
-		return
-	}
-
-	if err := client.Flush(); err != nil {
-		logger.WithFieldsNonContext(logger.Fields{
-			"error": err,
-		}).Warn("failed to flush metrics")
 	}
 }
 
@@ -245,62 +245,29 @@ func incr(ctx context.Context, name string, tags map[string]string, rate float64
 	} else {
 		logger.Warnf(ctx, "counter for %s metrics not found", name)
 	}
-
-	// Incr DataDog
-	if client == nil {
-		return
-	}
-
-	ddTags := lo.MapToSlice(tags, func(k, v string) string {
-		return fmt.Sprintf("%s:%s", k, v)
-	})
-	if err := client.Incr(name, ddTags, rate); err != nil {
-		logger.WithFields(ctx, logger.Fields{
-			"error": err,
-		}).Warnf("failed to push %s metrics", name)
-	}
 }
 
-// NOTE: Still keep this unused function in case we further need to use gauge metrics
-// nolint:golint,unused
-func gauge(ctx context.Context, name string, value float64, tags map[string]string, rate float64) {
-	if client == nil {
-		return
+func histogram[T int64 | float64](ctx context.Context, name string, value T, tags map[string]string) {
+	attributes := make([]attribute.KeyValue, 0, len(tags))
+	for key, value := range tags {
+		attributes = append(attributes, attribute.String(key, value))
 	}
 
-	ddTags := lo.MapToSlice(tags, func(k, v string) string {
-		return fmt.Sprintf("%s:%s", k, v)
-	})
-	if err := client.Gauge(name, value, ddTags, rate); err != nil {
-		logger.WithFields(ctx, logger.Fields{
-			"error": err,
-		}).Warnf("failed to push %s metrics", name)
-	}
-}
-
-func histogram(ctx context.Context, name string, value float64, tags map[string]string, rate int64) {
-	if histogramMetric, exist := mapMetricNameToHistogram[name]; histogramMetric != nil && exist {
-		attributes := make([]attribute.KeyValue, 0, len(tags))
-		for key, value := range tags {
-			attributes = append(attributes, attribute.String(key, value))
+	switch val := any(value).(type) {
+	case int64:
+		if histogramMetric, exist := mapMetricNameToHistogram[name]; histogramMetric != nil && exist {
+			histogramMetric.Record(context.Background(), val, metric.WithAttributes(attributes...))
+		} else {
+			logger.Warnf(ctx, "int64histogram for %s metrics not found", name)
 		}
-		histogramMetric.Record(context.Background(), rate, metric.WithAttributes(attributes...))
-	} else {
-		logger.Warnf(ctx, "histogram for %s metrics not found", name)
+	case float64:
+		if histogramMetric, exist := mapMetricNameToFloat64Histogram[name]; histogramMetric != nil && exist {
+			histogramMetric.Record(context.Background(), val, metric.WithAttributes(attributes...))
+		} else {
+			logger.Warnf(ctx, "float64histogram for %s metrics not found", name)
+		}
 	}
 
-	if client == nil {
-		return
-	}
-
-	ddTags := lo.MapToSlice(tags, func(k, v string) string {
-		return fmt.Sprintf("%s:%s", k, v)
-	})
-	if err := client.Histogram(name, value, ddTags, float64(rate)); err != nil {
-		logger.WithFields(ctx, logger.Fields{
-			"error": err,
-		}).Warnf("failed to push %s metrics", name)
-	}
 }
 
 func formatMetricName(name string) string {
