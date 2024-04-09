@@ -216,7 +216,7 @@ func TestBuildRoute(t *testing.T) {
 				mockBuildRouteUseCase := api.NewMockIBuildRouteUseCase(ctrl)
 				mockBuildRouteUseCase.EXPECT().
 					Handle(gomock.Any(), gomock.Any()).
-					Return(&dto.BuildRouteResult{}, pkgErrors.Wrapf(buildroute.ErrEstimateGasFailed, "Estimate gas failed due to %s", "some error"))
+					Return(&dto.BuildRouteResult{}, pkgErrors.WithMessagef(buildroute.ErrEstimateGasFailed, "Estimate gas failed due to %s", "some error"))
 
 				errResponse := ErrorResponse{
 					HTTPStatus: http.StatusUnprocessableEntity,

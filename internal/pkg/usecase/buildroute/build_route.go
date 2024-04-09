@@ -196,7 +196,7 @@ func (uc *BuildRouteUseCase) rfq(
 				SwapInfo:     swap.Extra,
 			})
 			if err != nil {
-				return routeSummary, errors.Wrapf(err, "rfq failed, swap data: %v", swap)
+				return routeSummary, errors.WithMessagef(err, "rfq failed, swap data: %v", swap)
 			}
 
 			// Enrich the swap extra with the RFQ extra
@@ -250,11 +250,11 @@ func (uc *BuildRouteUseCase) updateRouteSummary(ctx context.Context, routeSummar
 	}
 
 	if tokenIn == nil {
-		return routeSummary, errors.Wrapf(ErrTokenNotFound, "tokenIn: [%s]", tokenInAddress)
+		return routeSummary, errors.WithMessagef(ErrTokenNotFound, "tokenIn: [%s]", tokenInAddress)
 	}
 
 	if tokenOut == nil {
-		return routeSummary, errors.Wrapf(ErrTokenNotFound, "tokenOut: [%s]", tokenOutAddress)
+		return routeSummary, errors.WithMessagef(ErrTokenNotFound, "tokenOut: [%s]", tokenOutAddress)
 	}
 
 	tokenInPrice, tokenOutPrice, err := uc.getPrices(ctx, tokenInAddress, tokenOutAddress)
@@ -426,7 +426,7 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 			gas, gasUSD, err = uc.gasEstimator.Execute(ctx, tx)
 			uc.sendEstimateGasLogsAndMetrics(ctx, command.RouteSummary, err, command.SlippageTolerance)
 			if err != nil {
-				return 0, 0.0, 0, errors.Wrapf(ErrEstimateGasFailed, "Estimate gas failed due to %s", err.Error())
+				return 0, 0.0, 0, errors.WithMessagef(ErrEstimateGasFailed, "Estimate gas failed due to %s", err.Error())
 			}
 		} else {
 			if !utils.IsEmptyString(command.Sender) {

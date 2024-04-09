@@ -135,12 +135,12 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 
 	tokenIn, ok := tokenByAddress[query.TokenIn]
 	if !ok {
-		return nil, errors.Wrapf(ErrTokenNotFound, "tokenIn: [%s]", query.TokenIn)
+		return nil, errors.WithMessagef(ErrTokenNotFound, "tokenIn: [%s]", query.TokenIn)
 	}
 
 	tokenOut, ok := tokenByAddress[query.TokenOut]
 	if !ok {
-		return nil, errors.Wrapf(ErrTokenNotFound, "tokenOut: [%s]", query.TokenOut)
+		return nil, errors.WithMessagef(ErrTokenNotFound, "tokenOut: [%s]", query.TokenOut)
 	}
 
 	priceUSDByAddress, err := u.getPriceUSDByAddress(ctx, query.TokenIn, query.TokenOut, u.config.GasTokenAddress)

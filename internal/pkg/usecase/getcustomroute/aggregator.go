@@ -125,7 +125,7 @@ func (a *aggregator) findBestRoute(
 	defer data.ReleaseResources()
 	routes, err := a.routeFinder.Find(ctx, input, data)
 	if err != nil {
-		return nil, errors.Wrapf(getroute.ErrRouteNotFound, "find route failed: [%v]", err)
+		return nil, errors.WithMessagef(getroute.ErrRouteNotFound, "find route failed: [%v]", err)
 	}
 
 	bestRoute := extractBestRoute(routes)
@@ -167,7 +167,7 @@ func (a *aggregator) summarizeRoute(
 			// Step 2.1.1: take the pool with fresh data
 			pool, ok := poolBucket.GetPool(swapPoolAddress)
 			if !ok {
-				return nil, errors.Wrapf(
+				return nil, errors.WithMessagef(
 					getroute.ErrInvalidSwap,
 					"aggregator.summarizeRoute > pool not found [%s]",
 					swapPoolAddress,
@@ -178,7 +178,7 @@ func (a *aggregator) summarizeRoute(
 			result, err := poolpkg.CalcAmountOut(pool, tokenAmountIn, path.Tokens[swapIdx+1].Address, swapLimit)
 
 			if err != nil {
-				return nil, errors.Wrapf(
+				return nil, errors.WithMessagef(
 					getroute.ErrInvalidSwap,
 					"aggregator.summarizeRoute > swap failed > pool: [%s] > error : [%v]",
 					swapPoolAddress,
@@ -188,7 +188,7 @@ func (a *aggregator) summarizeRoute(
 
 			// Step 2.1.3: check if result is valid
 			if !result.IsValid() {
-				return nil, errors.Wrapf(
+				return nil, errors.WithMessagef(
 					getroute.ErrInvalidSwap,
 					"aggregator.summarizeRoute > invalid swap > pool : [%s]",
 					swapPoolAddress,

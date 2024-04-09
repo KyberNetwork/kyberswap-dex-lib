@@ -14,7 +14,7 @@ func DecodeSwapData(l1Decoder, l2Decoder IDecodeSwapDataUseCase) func(ginCtx *gi
 		if err := ginCtx.ShouldBindJSON(&bodyParams); err != nil {
 			RespondFailure(
 				ginCtx,
-				errors.Wrapf(
+				errors.WithMessagef(
 					ErrBindRequestBodyFailed,
 					"[DecodeRoute] err: [%v]", err),
 			)
@@ -30,7 +30,7 @@ func DecodeSwapData(l1Decoder, l2Decoder IDecodeSwapDataUseCase) func(ginCtx *gi
 		if err != nil {
 			RespondFailure(
 				ginCtx,
-				errors.Wrapf(
+				errors.WithMessagef(
 					ErrInvalidValue,
 					"[DecodeRoute] err: [%v]", err),
 			)

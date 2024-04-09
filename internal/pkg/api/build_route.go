@@ -32,7 +32,7 @@ func BuildRoute(
 		if err := ginCtx.ShouldBindJSON(&bodyParams); err != nil {
 			RespondFailure(
 				ginCtx,
-				errors.Wrapf(
+				errors.WithMessagef(
 					ErrBindRequestBodyFailed,
 					"[BuildRoute] err: [%v]", err),
 			)
@@ -100,7 +100,7 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 
 	amountIn, ok := new(big.Int).SetString(params.AmountIn, 10)
 	if !ok {
-		return valueobject.RouteSummary{}, errors.Wrapf(
+		return valueobject.RouteSummary{}, errors.WithMessagef(
 			ErrInvalidRoute,
 			"invalid routeSummary.amountIn [%s]",
 			params.AmountIn,
@@ -109,7 +109,7 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 
 	amountOut, ok := new(big.Int).SetString(params.AmountOut, 10)
 	if !ok {
-		return valueobject.RouteSummary{}, errors.Wrapf(
+		return valueobject.RouteSummary{}, errors.WithMessagef(
 			ErrInvalidRoute,
 			"invalid routeSummary.amountOut [%s]",
 			params.AmountOut,
@@ -119,7 +119,7 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 	if len(params.GasPrice) > 0 {
 		gasPrice, ok = new(big.Float).SetString(params.GasPrice)
 		if !ok {
-			return valueobject.RouteSummary{}, errors.Wrapf(
+			return valueobject.RouteSummary{}, errors.WithMessagef(
 				ErrInvalidRoute,
 				"invalid routeSummary.gasPrice [%s]",
 				params.GasPrice,
@@ -129,7 +129,7 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 
 	amountInUSD, err := strconv.ParseFloat(params.AmountInUSD, 64)
 	if err != nil {
-		return valueobject.RouteSummary{}, errors.Wrapf(
+		return valueobject.RouteSummary{}, errors.WithMessagef(
 			ErrInvalidRoute,
 			"invalid routeSummary.amountInUsd [%s]",
 			params.AmountInUSD,
@@ -138,7 +138,7 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 
 	amountOutUSD, err := strconv.ParseFloat(params.AmountOutUSD, 64)
 	if err != nil {
-		return valueobject.RouteSummary{}, errors.Wrapf(
+		return valueobject.RouteSummary{}, errors.WithMessagef(
 			ErrInvalidRoute,
 			"invalid routeSummary.amountOutUsd [%s]",
 			params.AmountOutUSD,
@@ -147,7 +147,7 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 
 	gas, err := strconv.ParseInt(params.Gas, 10, 64)
 	if err != nil {
-		return valueobject.RouteSummary{}, errors.Wrapf(
+		return valueobject.RouteSummary{}, errors.WithMessagef(
 			ErrInvalidRoute,
 			"invalid routerouteSummary.gas [%s]",
 			params.Gas,
@@ -156,7 +156,7 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 
 	gasUSD, err := strconv.ParseFloat(params.GasUSD, 64)
 	if err != nil {
-		return valueobject.RouteSummary{}, errors.Wrapf(
+		return valueobject.RouteSummary{}, errors.WithMessagef(
 			ErrInvalidRoute,
 			"invalid routerouteSummary.gasUsd [%s]",
 			params.GasUSD,
@@ -172,7 +172,7 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 		actualFeeAmount := extraFee.CalcActualFeeAmount(amountIn)
 
 		if actualFeeAmount.Cmp(amountIn) > 0 {
-			return valueobject.RouteSummary{}, errors.Wrapf(
+			return valueobject.RouteSummary{}, errors.WithMessagef(
 				ErrFeeAmountGreaterThanAmountIn,
 				"feeAmount: [%s], amountIn: [%s]",
 				actualFeeAmount.String(),
@@ -185,7 +185,7 @@ func transformRouteSummaryParams(params params.RouteSummary) (valueobject.RouteS
 		actualFeeAmount := extraFee.CalcActualFeeAmount(amountOut)
 
 		if actualFeeAmount.Cmp(amountOut) > 0 {
-			return valueobject.RouteSummary{}, errors.Wrapf(
+			return valueobject.RouteSummary{}, errors.WithMessagef(
 				ErrFeeAmountGreaterThanAmountOut,
 				"feeAmount: [%s], amountOut: [%s]",
 				actualFeeAmount.String(),
@@ -238,7 +238,7 @@ func transformExtraFeeParams(params params.ExtraFee) (valueobject.ExtraFee, erro
 
 	feeAmount, ok := new(big.Int).SetString(params.FeeAmount, 10)
 	if !ok {
-		return valueobject.ExtraFee{}, errors.Wrapf(
+		return valueobject.ExtraFee{}, errors.WithMessagef(
 			ErrInvalidRoute,
 			"invalid routeSummary.extraFee.feeAmount [%s]",
 			params.FeeAmount,
@@ -257,7 +257,7 @@ func transformExtraFeeParams(params params.ExtraFee) (valueobject.ExtraFee, erro
 func transformSwapParams(params params.Swap) (valueobject.Swap, error) {
 	limitReturnAmount, ok := new(big.Int).SetString(params.LimitReturnAmount, 10)
 	if !ok {
-		return valueobject.Swap{}, errors.Wrapf(
+		return valueobject.Swap{}, errors.WithMessagef(
 			ErrInvalidRoute,
 			"invalid swap.limitReturnAmount [%s]",
 			params.LimitReturnAmount,
@@ -266,7 +266,7 @@ func transformSwapParams(params params.Swap) (valueobject.Swap, error) {
 
 	swapAmount, ok := new(big.Int).SetString(params.SwapAmount, 10)
 	if !ok {
-		return valueobject.Swap{}, errors.Wrapf(
+		return valueobject.Swap{}, errors.WithMessagef(
 			ErrInvalidRoute,
 			"invalid swap.SwapAmount [%s]",
 			params.SwapAmount,
@@ -275,7 +275,7 @@ func transformSwapParams(params params.Swap) (valueobject.Swap, error) {
 
 	amountOut, ok := new(big.Int).SetString(params.AmountOut, 10)
 	if !ok {
-		return valueobject.Swap{}, errors.Wrapf(
+		return valueobject.Swap{}, errors.WithMessagef(
 			ErrInvalidRoute,
 			"invalid swap.AmountOut [%s]",
 			params.AmountOut,

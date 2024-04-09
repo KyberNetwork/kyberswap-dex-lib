@@ -163,7 +163,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 
 		// it's meaningless to keep a route which cannot be used
 		c.routeCacheRepository.Del(ctx, key)
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrPriceImpactIsGreaterThanThreshold,
 			"priceImpact: [%f]",
 			priceImpact,
@@ -330,7 +330,7 @@ func (c *cache) summarizeSimpleRoute(
 			// Step 3.1.1: take the pool with fresh data
 			pool, ok := poolBucket.GetPool(simpleSwap.PoolAddress)
 			if !ok {
-				return nil, errors.Wrapf(
+				return nil, errors.WithMessagef(
 					ErrInvalidSwap,
 					"cache.summarizeSimpleRoute > pool not found [%s]",
 					simpleSwap.PoolAddress,
@@ -341,7 +341,7 @@ func (c *cache) summarizeSimpleRoute(
 			// Step 3.1.2: simulate c swap through the pool
 			result, err := poolpkg.CalcAmountOut(pool, tokenAmountIn, simpleSwap.TokenOutAddress, swapLimit)
 			if err != nil {
-				return nil, errors.Wrapf(
+				return nil, errors.WithMessagef(
 					ErrInvalidSwap,
 					"cache.summarizeSimpleRoute > swap failed > pool: [%s] > error : [%v]",
 					simpleSwap.PoolAddress,
@@ -351,7 +351,7 @@ func (c *cache) summarizeSimpleRoute(
 
 			// Step 3.1.3: check if result is valid
 			if !result.IsValid() {
-				return nil, errors.Wrapf(
+				return nil, errors.WithMessagef(
 					ErrInvalidSwap,
 					"cache.summarizeSimpleRoute > invalid swap > pool : [%s]",
 					simpleSwap.PoolAddress,

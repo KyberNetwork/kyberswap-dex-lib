@@ -31,7 +31,7 @@ func GetRoutes(
 		if err := ginCtx.ShouldBindQuery(&queryParams); err != nil {
 			RespondFailure(
 				ginCtx,
-				errors.Wrapf(ErrBindQueryFailed, "[GetRoutes] err: [%v]", err),
+				errors.WithMessagef(ErrBindQueryFailed, "[GetRoutes] err: [%v]", err),
 			)
 			return
 		}
@@ -62,7 +62,7 @@ func GetRoutes(
 func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery, error) {
 	amountIn, ok := new(big.Int).SetString(params.AmountIn, 10)
 	if !ok {
-		return dto.GetRoutesQuery{}, errors.Wrapf(
+		return dto.GetRoutesQuery{}, errors.WithMessagef(
 			ErrInvalidValue,
 			"amountIn: [%s]",
 			params.AmountIn,
@@ -73,7 +73,7 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 	if params.GasPrice != "" {
 		gasPrice, ok = new(big.Float).SetString(params.GasPrice)
 		if !ok {
-			return dto.GetRoutesQuery{}, errors.Wrapf(
+			return dto.GetRoutesQuery{}, errors.WithMessagef(
 				ErrInvalidValue,
 				"gasPrice: [%s]",
 				params.GasPrice,
@@ -85,7 +85,7 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 	if params.FeeAmount != "" {
 		feeAmount, ok := new(big.Int).SetString(params.FeeAmount, 10)
 		if !ok {
-			return dto.GetRoutesQuery{}, errors.Wrapf(
+			return dto.GetRoutesQuery{}, errors.WithMessagef(
 				ErrInvalidValue,
 				"feeAmount: [%s]",
 				params.FeeAmount,
@@ -102,7 +102,7 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 		actualFeeAmount := extraFee.CalcActualFeeAmount(amountIn)
 
 		if extraFee.IsChargeFeeByCurrencyIn() && actualFeeAmount.Cmp(amountIn) > 0 {
-			return dto.GetRoutesQuery{}, errors.Wrapf(
+			return dto.GetRoutesQuery{}, errors.WithMessagef(
 				ErrFeeAmountGreaterThanAmountIn,
 				"feeAmount: [%s], amountIn: [%s]",
 				actualFeeAmount.String(),

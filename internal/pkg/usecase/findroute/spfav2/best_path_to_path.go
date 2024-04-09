@@ -128,7 +128,7 @@ func calcAmountOutAndUpdateCache(
 	for i, poolAddr := range p.PoolAddresses {
 		pool, ok := poolBucket.PerRequestPoolsByAddress[poolAddr]
 		if !ok {
-			return poolpkg.TokenAmount{}, 0, errors.Wrapf(
+			return poolpkg.TokenAmount{}, 0, errors.WithMessagef(
 				findroute.ErrNoIPool,
 				"[spfav2Finder.calcAmountOutAndUpdateCache] poolAddress: [%s]",
 				poolAddr,
@@ -146,7 +146,7 @@ func calcAmountOutAndUpdateCache(
 				Limit:         swapLimits[pool.GetType()],
 			})
 			if err != nil {
-				return poolpkg.TokenAmount{}, 0, errors.Wrapf(
+				return poolpkg.TokenAmount{}, 0, errors.WithMessagef(
 					valueobject.ErrInvalidSwap,
 					"[spfav2Finder.calcAmountOutAndUpdateCache] CalcAmountOut returns error | poolAddress: [%s], exchange: [%s], tokenIn: [%s], amountIn: [%s], tokenOut: [%s], err: [%v]",
 					pool.GetAddress(),
@@ -164,7 +164,7 @@ func calcAmountOutAndUpdateCache(
 
 		swapTokenAmountOut, gas := calcAmountOutResult.TokenAmountOut, calcAmountOutResult.Gas
 		if swapTokenAmountOut == nil {
-			return poolpkg.TokenAmount{}, 0, errors.Wrapf(
+			return poolpkg.TokenAmount{}, 0, errors.WithMessagef(
 				valueobject.ErrInvalidSwap,
 				"[spfav2Finder.calcAmountOutAndUpdateCache] returns nil | poolAddress: [%s], exchange: [%s], tokenIn: [%s], amountIn: [%s], tokenOut: [%s]",
 				pool.GetAddress(),

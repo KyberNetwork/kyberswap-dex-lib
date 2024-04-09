@@ -19,7 +19,7 @@ func GetCustomRoutes(
 		if err := ginCtx.ShouldBindQuery(&queryParams); err != nil {
 			RespondFailure(
 				ginCtx,
-				errors.Wrapf(ErrBindQueryFailed, "[GetCustomRoutes] err: [%v]", err),
+				errors.WithMessagef(ErrBindQueryFailed, "[GetCustomRoutes] err: [%v]", err),
 			)
 			return
 		}

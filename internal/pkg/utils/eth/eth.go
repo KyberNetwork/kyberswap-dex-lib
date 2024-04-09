@@ -24,7 +24,7 @@ func ConvertEtherToWETH(tokenAddress string, chainID valueobject.ChainID) (strin
 
 	weth, ok := valueobject.WETHByChainID[chainID]
 	if !ok {
-		return tokenAddress, errors.Wrapf(
+		return tokenAddress, errors.WithMessagef(
 			ErrWETHNotFound,
 			"chainID: [%v]",
 			chainID,
@@ -37,7 +37,7 @@ func ConvertEtherToWETH(tokenAddress string, chainID valueobject.ChainID) (strin
 func ConvertWETHToEther(tokenAddress string, chainID valueobject.ChainID) (string, error) {
 	wethAddress, ok := valueobject.WETHByChainID[chainID]
 	if !ok {
-		return tokenAddress, errors.Wrapf(
+		return tokenAddress, errors.WithMessagef(
 			ErrWETHNotFound,
 			"chainID: [%v]",
 			chainID,
