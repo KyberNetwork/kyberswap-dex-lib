@@ -268,6 +268,8 @@ var (
 
 	ExchangeMakerSavingsDai Exchange = "maker-savingsdai"
 
+	ExchangeRenzoEZETH Exchange = "renzo-ezeth"
+
 	ExchangeSwellSWETH  Exchange = "swell-sweth"
 	ExchangeSwellRSWETH Exchange = "swell-rsweth"
 

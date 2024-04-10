@@ -1,0 +1,171 @@
+package ezeth
+
+import (
+	"context"
+	"encoding/json"
+	"math/big"
+	"strings"
+	"time"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
+type PoolListUpdater struct {
+	ethrpcClient *ethrpc.Client
+
+	hasInitialized bool
+}
+
+func NewPoolListUpdater(
+	ethrpcClient *ethrpc.Client,
+) *PoolListUpdater {
+	return &PoolListUpdater{
+		ethrpcClient: ethrpcClient,
+	}
+}
+
+func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
+	if u.hasInitialized {
+		return nil, nil, nil
+	}
+
+	startTime := time.Now()
+	u.hasInitialized = true
+
+	extra, blockNumber, err := getExtra(ctx, u.ethrpcClient)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	extraBytes, err := json.Marshal(extra)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	tokens := []*entity.PoolToken{
+		{
+			Address:   strings.ToLower(EzEthToken),
+			Symbol:    "ezETH",
+			Decimals:  18,
+			Name:      "Renzo Restaked ETH",
+			Swappable: true,
+		},
+		{
+			Address:   strings.ToLower(WETH),
+			Symbol:    "WETH",
+			Decimals:  18,
+			Name:      "Wrapped Ether",
+			Swappable: true,
+		},
+	}
+	tokens = append(tokens, extra.collaterals...)
+	reserves := make([]string, len(extra.collaterals)+1)
+	for i := 0; i < len(reserves); i++ {
+		reserves[i] = defaultReserves
+	}
+
+	logger.
+		WithFields(
+			logger.Fields{
+				"dex_id":      DexType,
+				"duration_ms": time.Since(startTime).Milliseconds(),
+			},
+		).
+		Info("Finished getting new pools")
+
+	return []entity.Pool{
+		{
+			Address:     strings.ToLower(RestakeManager),
+			Exchange:    string(valueobject.ExchangeRenzoEZETH),
+			Type:        DexType,
+			Timestamp:   time.Now().Unix(),
+			Reserves:    reserves,
+			Tokens:      tokens,
+			BlockNumber: blockNumber,
+			Extra:       string(extraBytes),
+		},
+	}, nil, nil
+}
+
+func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint64, error) {
+	var (
+		calculateTVLsResult struct {
+			OperatorDelegatorTokenTVLs [][]*big.Int
+			OperatorDelegatorTVLs      []*big.Int
+			TotalTVL                   *big.Int
+		}
+		collateralTokenLength *big.Int
+		maxDepositTVL         *big.Int
+		paused                bool
+		renzoOracle           common.Address
+	)
+
+	getPoolStateRequest := ethrpcClient.NewRequest().SetContext(ctx)
+
+	getPoolStateRequest.AddCall(&ethrpc.Call{
+		ABI:    RestakeManagerABI,
+		Target: RestakeManager,
+		Method: RestakeManagerMethodCalculateTVLs,
+		Params: []interface{}{},
+	}, []interface{}{&calculateTVLsResult})
+	getPoolStateRequest.AddCall(&ethrpc.Call{
+		ABI:    RestakeManagerABI,
+		Target: RestakeManager,
+		Method: RestakeManagerMethodGetCollateralTokensLength,
+		Params: []interface{}{},
+	}, []interface{}{&collateralTokenLength})
+	getPoolStateRequest.AddCall(&ethrpc.Call{
+		ABI:    RestakeManagerABI,
+		Target: RestakeManager,
+		Method: RestakeManagerMethodMaxDepositTVL,
+		Params: []interface{}{},
+	}, []interface{}{&maxDepositTVL})
+	getPoolStateRequest.AddCall(&ethrpc.Call{
+		ABI:    RestakeManagerABI,
+		Target: RestakeManager,
+		Method: RestakeManagerMethodPaused,
+		Params: []interface{}{},
+	}, []interface{}{&paused})
+	getPoolStateRequest.AddCall(&ethrpc.Call{
+		ABI:    RestakeManagerABI,
+		Target: RestakeManager,
+		Method: RestakeManagerMethodRenzoOracle,
+		Params: []interface{}{},
+	}, []interface{}{&renzoOracle})
+
+	resp, err := getPoolStateRequest.TryAggregate()
+	if err != nil {
+		return PoolExtra{}, 0, err
+	}
+
+	collateralsLen := collateralTokenLength.Int64()
+
+	var (
+		collaterals = make([]common.Address, collateralsLen)
+	)
+
+	getCollateralsRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+	for i := 0; i < int(collateralsLen); i++ {
+		getCollateralsRequest.AddCall(&ethrpc.Call{
+			ABI:    RestakeManagerABI,
+			Target: RestakeManager,
+			Method: RestakeManagerMethodCollateralTokens,
+			Params: []interface{}{i},
+		}, []interface{}{&collaterals[i]})
+	}
+
+	poolExtra := PoolExtra{
+		Paused:                     paused,
+		OperatorDelegatorTokenTVLs: calculateTVLsResult.OperatorDelegatorTokenTVLs,
+		OperatorDelegatorTVLs:      calculateTVLsResult.OperatorDelegatorTVLs,
+		TotalTVL:                   calculateTVLsResult.TotalTVL,
+		MaxDepositTVL:              maxDepositTVL,
+	}
+
+	return poolExtra, resp.BlockNumber.Uint64(), nil
+}
