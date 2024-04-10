@@ -18,8 +18,10 @@ type regularSimulator struct {
 	swapFeePercentage *uint256.Int
 }
 
-// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F10#L49
-func (s *regularSimulator) swap(
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F1#L184
+// It calls `super._swapGivenIn`, which is the code below:
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F11#L49
+func (s *regularSimulator) _swapGivenIn(
 	amountIn *uint256.Int,
 	balances []*uint256.Int,
 	indexIn int,
@@ -62,33 +64,117 @@ func (s *regularSimulator) swap(
 	return amountOut, &fee, &SwapInfo{}, nil
 }
 
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F1#L215
+// It calls `super._swapGivenOut`, which is the code below:
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F11#L68
+func (s *regularSimulator) _swapGivenOut(
+	amountOut *uint256.Int,
+	balances []*uint256.Int,
+	indexIn int,
+	indexOut int,
+) (*uint256.Int, *poolpkg.TokenAmount, *SwapInfo, error) {
+	balances, err := _upscaleArray(balances, s.scalingFactors)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	upScaledAmountOut, err := _upscale(amountOut, s.scalingFactors[indexOut])
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	upscaledAmountIn, err := s._onSwapGivenOut(upScaledAmountOut, balances, indexIn, indexOut)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	amountIn, err := _downscaleUp(upscaledAmountIn, s.scalingFactors[indexIn])
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	// Fees are added after scaling happens, to reduce the complexity of the rounding direction analysis.
+	amountInAfterFee, err := s._addSwapFeeAmount(amountIn)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	feeAmount, err := math.FixedPoint.Sub(amountInAfterFee, amountIn)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	fee := poolpkg.TokenAmount{
+		Token:  s.Info.Tokens[indexIn],
+		Amount: feeAmount.ToBig(),
+	}
+
+	return amountIn, &fee, &SwapInfo{}, nil
+}
+
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F1#L229
 func (s *regularSimulator) _onSwapGivenIn(
 	amountIn *uint256.Int,
 	balances []*uint256.Int,
 	indexIn int,
 	indexOut int,
 ) (*uint256.Int, error) {
-	return s._onRegularSwap(amountIn, balances, indexIn, indexOut)
+	return s._onRegularSwap(
+		true, // given in
+		amountIn,
+		balances,
+		indexIn,
+		indexOut,
+	)
 }
 
-func (s *regularSimulator) _onRegularSwap(
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F1#L250
+func (s *regularSimulator) _onSwapGivenOut(
 	amountIn *uint256.Int,
-	registeredBalances []*uint256.Int,
+	balances []*uint256.Int,
 	indexIn int,
 	indexOut int,
 ) (*uint256.Int, error) {
+	return s._onRegularSwap(
+		false, // given out
+		amountIn,
+		balances,
+		indexIn,
+		indexOut,
+	)
+}
+
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F1#L270
+func (s *regularSimulator) _onRegularSwap(
+	isGivenIn bool,
+	amountGiven *uint256.Int,
+	registeredBalances []*uint256.Int,
+	registeredIndexIn int,
+	registeredIndexOut int,
+) (*uint256.Int, error) {
 	balances := _dropBptItem(registeredBalances, s.bptIndex)
-	indexIn, indexOut = _skipBptIndex(indexIn, s.bptIndex), _skipBptIndex(indexOut, s.bptIndex)
+	indexIn, indexOut := _skipBptIndex(registeredIndexIn, s.bptIndex), _skipBptIndex(registeredIndexOut, s.bptIndex)
 
 	invariant, err := math.StableMath.CalculateInvariantV2(s.amp, balances)
 	if err != nil {
 		return nil, err
 	}
 
-	return math.StableMath.CalcOutGivenIn(
+	if isGivenIn {
+		return math.StableMath.CalcOutGivenIn(
+			invariant,
+			s.amp,
+			amountGiven,
+			balances,
+			indexIn,
+			indexOut,
+		)
+	}
+
+	return math.StableMath.CalcInGivenOut(
 		invariant,
 		s.amp,
-		amountIn,
+		amountGiven,
 		balances,
 		indexIn,
 		indexOut,
@@ -111,4 +197,10 @@ func (s *regularSimulator) updateBalance(params poolpkg.UpdateBalanceParams) {
 			)
 		}
 	}
+}
+
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F22#L609
+func (s *regularSimulator) _addSwapFeeAmount(amount *uint256.Int) (*uint256.Int, error) {
+	// This returns amount + fee amount, so we round up (favoring a higher fee amount).
+	return math.FixedPoint.DivUp(amount, math.FixedPoint.Complement(s.swapFeePercentage))
 }

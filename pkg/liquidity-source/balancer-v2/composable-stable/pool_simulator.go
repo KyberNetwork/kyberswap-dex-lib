@@ -137,9 +137,9 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		err       error
 	)
 	if tokenAmountIn.Token == s.Info.Address || tokenOut == s.Info.Address {
-		amountOut, fee, swapInfo, err = s.bptSimulator.swap(amountIn, balances, indexIn, indexOut)
+		amountOut, fee, swapInfo, err = s.bptSimulator._swapWithBpt(true, amountIn, balances, indexIn, indexOut)
 	} else {
-		amountOut, fee, swapInfo, err = s.regularSimulator.swap(amountIn, balances, indexIn, indexOut)
+		amountOut, fee, swapInfo, err = s.regularSimulator._swapGivenIn(amountIn, balances, indexIn, indexOut)
 	}
 	if err != nil {
 		return nil, err
@@ -148,6 +148,64 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{
 			Token:  tokenOut,
+			Amount: amountOut.ToBig(),
+		},
+		Fee:      fee,
+		Gas:      DefaultGas.Swap,
+		SwapInfo: swapInfo,
+	}, nil
+}
+
+func (s *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
+	if s.paused {
+		return nil, ErrPoolPaused
+	}
+
+	if s.canNotUpdateTokenRates {
+		return nil, ErrBeforeSwapJoinExit
+	}
+
+	tokenAmountOut := params.TokenAmountOut
+	tokenIn := params.TokenIn
+
+	indexIn := s.GetTokenIndex(tokenIn)
+	indexOut := s.GetTokenIndex(tokenAmountOut.Token)
+	if indexIn == unknownInt || indexOut == unknownInt {
+		return nil, ErrUnknownToken
+	}
+
+	amountIn, overflow := uint256.FromBig(tokenAmountOut.Amount)
+	if overflow {
+		return nil, ErrOverflow
+	}
+
+	balances := make([]*uint256.Int, len(s.Info.Reserves))
+	for i, reserve := range s.Info.Reserves {
+		r, overflow := uint256.FromBig(reserve)
+		if overflow {
+			return nil, ErrOverflow
+		}
+		balances[i] = r
+	}
+
+	var (
+		amountOut *uint256.Int
+		fee       *poolpkg.TokenAmount
+		swapInfo  *SwapInfo
+		err       error
+	)
+	if tokenAmountOut.Token == s.Info.Address || tokenIn == s.Info.Address {
+		amountOut, fee, swapInfo, err = s.bptSimulator._swapWithBpt(false, amountIn, balances, indexIn, indexOut)
+	} else {
+		amountOut, fee, swapInfo, err = s.regularSimulator._swapGivenOut(amountIn, balances, indexIn, indexOut)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &poolpkg.CalcAmountInResult{
+		TokenAmountIn: &poolpkg.TokenAmount{
+			Token:  tokenIn,
 			Amount: amountOut.ToBig(),
 		},
 		Fee:      fee,
@@ -174,10 +232,29 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	s.regularSimulator.updateBalance(params)
 }
 
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F22#L696
+/**
+ * @dev Reverses the `scalingFactor` applied to `amount`, resulting in a smaller or equal value depending on
+ * whether it needed scaling or not. The result is rounded down.
+ */
 func _downscaleDown(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
 	return math.FixedPoint.DivDown(amount, scalingFactor)
 }
 
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F22#L717
+/**
+ * @dev Reverses the `scalingFactor` applied to `amount`, resulting in a smaller or equal value depending on
+ * whether it needed scaling or not. The result is rounded up.
+ */
+func _downscaleUp(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
+	return math.FixedPoint.DivUp(amount, scalingFactor)
+}
+
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F22#L683
+/**
+ * @dev Same as `_upscale`, but for an entire array. This function does not return anything, but instead *mutates*
+ * the `amounts` array.
+ */
 func _upscaleArray(balances []*uint256.Int, scalingFactors []*uint256.Int) ([]*uint256.Int, error) {
 	upscaled := make([]*uint256.Int, len(balances))
 	for i, balance := range balances {
@@ -190,6 +267,11 @@ func _upscaleArray(balances []*uint256.Int, scalingFactors []*uint256.Int) ([]*u
 	return upscaled, nil
 }
 
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F22#L671
+/**
+ * @dev Applies `scalingFactor` to `amount`, resulting in a larger or equal value depending on whether it needed
+ * scaling or not.
+ */
 func _upscale(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
 	return math.FixedPoint.MulDown(amount, scalingFactor)
 }
