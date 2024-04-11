@@ -217,8 +217,10 @@ useCase:
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
+    maxGoroutines: 0
 job:
   indexPools:
+    forceScanAllEveryNth: 10
     interval: 12s
     poolEvent:
       consumerConfig:

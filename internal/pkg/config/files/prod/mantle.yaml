@@ -239,10 +239,12 @@ useCase:
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
+    maxGoroutines: 0
   trackExecutor:
     subgraphURL: https://mantle-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-mantle
 job:
   indexPools:
+    forceScanAllEveryNth: 10
     interval: 2s
     poolEvent:
       consumerConfig:

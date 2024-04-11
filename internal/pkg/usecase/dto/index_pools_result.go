@@ -3,13 +3,14 @@ package dto
 type IndexPoolsResult struct {
 	// List of pool addresses that was failed to index
 	FailedPoolAddresses []string
+
+	// Number of old pool skipped
+	OldPoolCount int
 }
 
-func NewIndexPoolsResult(failedPoolAddresses []string) *IndexPoolsResult {
-	if len(failedPoolAddresses) == 0 {
-		return nil
-	}
+func NewIndexPoolsResult(failedPoolAddresses []string, oldPoolCount int) *IndexPoolsResult {
 	return &IndexPoolsResult{
 		FailedPoolAddresses: failedPoolAddresses,
+		OldPoolCount:        oldPoolCount,
 	}
 }

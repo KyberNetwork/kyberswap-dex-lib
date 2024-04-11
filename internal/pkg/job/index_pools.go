@@ -21,6 +21,8 @@ type IndexPoolsJob struct {
 	indexPoolsUseCase          IIndexPoolsUseCase
 	poolEventsStreamConsumer   consumer.Consumer[*message.EventMessage]
 
+	lastScanSuccessTime int64
+
 	config IndexPoolsJobConfig
 	mu     sync.RWMutex
 }
@@ -50,6 +52,7 @@ func (u *IndexPoolsJob) RunScanJob(ctx context.Context) {
 	ticker := time.NewTicker(u.config.Interval)
 	defer ticker.Stop()
 
+	count := 0
 	for {
 		select {
 		case <-ctx.Done():
@@ -62,12 +65,14 @@ func (u *IndexPoolsJob) RunScanJob(ctx context.Context) {
 				Errorf("job error")
 			return
 		case <-ticker.C:
-			u.scanAndIndex(ctxutils.NewJobCtx(ctx))
+			forceScanAllPools := count%u.config.ForceScanAllEveryNth == 0
+			u.scanAndIndex(ctxutils.NewJobCtx(ctx), forceScanAllPools)
+			count += 1
 		}
 	}
 }
 
-func (u *IndexPoolsJob) scanAndIndex(ctx context.Context) {
+func (u *IndexPoolsJob) scanAndIndex(ctx context.Context, forceScanAllPools bool) {
 	jobID := ctxutils.GetJobID(ctx)
 	startTime := time.Now()
 	defer func() {
@@ -98,6 +103,10 @@ func (u *IndexPoolsJob) scanAndIndex(ctx context.Context) {
 	indexPoolsCmd := dto.IndexPoolsCommand{
 		PoolAddresses: poolAddresses,
 	}
+	if !forceScanAllPools {
+		indexPoolsCmd.IgnorePoolsBeforeTimestamp = u.lastScanSuccessTime
+	}
+	indexStartTime := time.Now().Unix()
 	result := u.indexPoolsUseCase.Handle(ctx, indexPoolsCmd)
 
 	var failedCount int
@@ -122,6 +131,9 @@ func (u *IndexPoolsJob) scanAndIndex(ctx context.Context) {
 				}).
 			Warn("job done")
 		return
+	} else {
+		// only set if no pool failed, and set to start time instead of end time, in case there are pools updated in between
+		u.lastScanSuccessTime = indexStartTime
 	}
 
 	logger.
@@ -130,6 +142,8 @@ func (u *IndexPoolsJob) scanAndIndex(ctx context.Context) {
 				"job.id":      jobID,
 				"job.name":    IndexPools,
 				"total_count": totalCount,
+				"total_skip":  result.OldPoolCount,
+				"forced":      forceScanAllPools,
 			}).
 		Info("job done")
 }

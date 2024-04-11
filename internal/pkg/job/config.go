@@ -23,6 +23,8 @@ type (
 			BatchSize      int             `mapstructure:"batchSize"`
 			RetryInterval  time.Duration   `mapstructure:"retryInterval"`
 		} `mapstructure:"poolEvent"`
+
+		ForceScanAllEveryNth int `mapstructure:"forceScanAllEveryNth" default:"10"`
 	}
 
 	UpdateSuggestedGasPriceConfig struct {

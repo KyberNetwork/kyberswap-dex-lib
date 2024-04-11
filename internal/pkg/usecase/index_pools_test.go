@@ -213,7 +213,7 @@ func TestIndexPools_Handle(t *testing.T) {
 				mockPools[3].Address,
 				"pooladdress5",
 			}},
-			result: nil,
+			result: dto.NewIndexPoolsResult(nil, 0),
 		},
 		{
 			name: "it should return correct failed pool addresses when some pools were failed to index",
@@ -291,7 +291,7 @@ func TestIndexPools_Handle(t *testing.T) {
 				mockPools[3].Address,
 				"pooladdress5",
 			}},
-			result: dto.NewIndexPoolsResult([]string{"pooladdress2"}),
+			result: dto.NewIndexPoolsResult([]string{"pooladdress2"}, 0),
 		},
 		{
 			name: "it should return correct failed pool addresses when repository returns error",
@@ -308,7 +308,7 @@ func TestIndexPools_Handle(t *testing.T) {
 				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, mockConfig)
 			},
 			command: dto.IndexPoolsCommand{PoolAddresses: []string{"pooladdress1", "pooladdress2", "pooladdress3"}},
-			result:  dto.NewIndexPoolsResult([]string{"pooladdress1", "pooladdress2", "pooladdress3"}),
+			result:  dto.NewIndexPoolsResult([]string{"pooladdress1", "pooladdress2", "pooladdress3"}, 0),
 		},
 	}
 

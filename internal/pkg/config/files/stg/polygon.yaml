@@ -320,6 +320,7 @@ useCase:
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
+    maxGoroutines: 0
   generateBestPaths:
     gasTokenAddress: *gasTokenAddress
     getBestPoolsOptions: *getBestPoolsOptions
@@ -344,6 +345,7 @@ useCase:
     subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-polygon
 job:
   indexPools:
+    forceScanAllEveryNth: 10
     interval: 2s
     poolEvent:
       consumerConfig:

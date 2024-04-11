@@ -46,6 +46,7 @@ type (
 	IndexPoolsConfig struct {
 		WhitelistedTokenSet map[string]bool `mapstructure:"whitelistedTokenSet"`
 		ChunkSize           int             `mapstructure:"chunkSize"`
+		MaxGoroutines       int             `mapstructure:"maxGoroutines"`
 	}
 
 	TrackExecutorConfig struct {

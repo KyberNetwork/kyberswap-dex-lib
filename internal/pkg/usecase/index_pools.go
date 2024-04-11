@@ -23,6 +23,14 @@ type IndexPoolsUseCase struct {
 	mu sync.RWMutex
 }
 
+type IndexResult int
+
+const (
+	INDEX_RESULT_SUCCESS IndexResult = iota
+	INDEX_RESULT_FAIL
+	INDEX_RESULT_SKIP_OLD
+)
+
 func NewIndexPoolsUseCase(
 	poolRepo IPoolRepository,
 	poolRankRepo IPoolRankRepository,
@@ -43,6 +51,7 @@ func (u *IndexPoolsUseCase) ApplyConfig(config IndexPoolsConfig) {
 
 func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCommand) *dto.IndexPoolsResult {
 	var failedPoolAddresses []string
+	var oldPoolCount = 0
 
 	// process chunk by chunk
 	chunks := lo.Chunk(command.PoolAddresses, u.config.ChunkSize)
@@ -52,30 +61,38 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 			failedPoolAddresses = append(failedPoolAddresses, poolAddresses...)
 		}
 
-		// Map always uses at most runtime.GOMAXPROCS goroutines
-		// https://pkg.go.dev/github.com/sourcegraph/conc/iter#Map
-		indexPoolsResults := iter.Map(pools, func(pool **entity.Pool) bool {
+		// if `u.config.NumParallel==0` (default) then will use GOMAXPROCS
+		// should be set to higher since indexing wait for IO a lot
+		mapper := iter.Mapper[*entity.Pool, IndexResult]{MaxGoroutines: u.config.MaxGoroutines}
+
+		indexPoolsResults := mapper.Map(pools, func(pool **entity.Pool) IndexResult {
+			if command.IgnorePoolsBeforeTimestamp > 0 && (*pool).Timestamp < command.IgnorePoolsBeforeTimestamp {
+				// this pool has not been updated recently, skip it
+				return INDEX_RESULT_SKIP_OLD
+			}
 			return u.indexPool(ctx, *pool)
 		})
 
 		for i, p := range pools {
-			if !indexPoolsResults[i] {
+			if indexPoolsResults[i] == INDEX_RESULT_FAIL {
 				failedPoolAddresses = append(failedPoolAddresses, p.Address)
+			} else if indexPoolsResults[i] == INDEX_RESULT_SKIP_OLD {
+				oldPoolCount += 1
 			}
 		}
 		mempool.ReserveMany(pools)
 	}
 
-	return dto.NewIndexPoolsResult(failedPoolAddresses)
+	return dto.NewIndexPoolsResult(failedPoolAddresses, oldPoolCount)
 }
 
 // indexPool returns false if any errors occur and vice versa
-func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) bool {
+func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) IndexResult {
 	if !pool.HasReserves() && !pool.HasAmplifiedTvl() {
-		return true
+		return INDEX_RESULT_SUCCESS
 	}
 
-	result := true
+	result := INDEX_RESULT_SUCCESS
 	poolTokens := pool.Tokens
 	for i := 0; i < len(poolTokens); i++ {
 		tokenI := poolTokens[i]
@@ -95,7 +112,7 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) bo
 					err := u.poolRankRepo.AddToSortedSetScoreByTvl(ctx, pool, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ)
 
 					if err != nil {
-						result = false
+						result = INDEX_RESULT_FAIL
 					}
 				}
 
@@ -103,7 +120,7 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) bo
 					err := u.poolRankRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ)
 
 					if err != nil {
-						result = false
+						result = INDEX_RESULT_FAIL
 					}
 				}
 			}
@@ -131,7 +148,7 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) bo
 							err := u.poolRankRepo.AddToSortedSetScoreByTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
 
 							if err != nil {
-								result = false
+								result = INDEX_RESULT_FAIL
 							}
 						}
 
@@ -139,7 +156,7 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) bo
 							err := u.poolRankRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
 
 							if err != nil {
-								result = false
+								result = INDEX_RESULT_FAIL
 							}
 						}
 					}
@@ -187,7 +204,7 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) bo
 						err := u.poolRankRepo.AddToSortedSetScoreByTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
 
 						if err != nil {
-							result = false
+							result = INDEX_RESULT_FAIL
 						}
 					}
 
@@ -195,7 +212,7 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) bo
 						err := u.poolRankRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
 
 						if err != nil {
-							result = false
+							result = INDEX_RESULT_FAIL
 						}
 					}
 				}

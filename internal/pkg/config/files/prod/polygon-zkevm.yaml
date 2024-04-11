@@ -238,10 +238,12 @@ useCase:
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
+    maxGoroutines: 0
   trackExecutor:
     subgraphURL: https://polygon-zkevm-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-polygon-zkevm
 job:
   indexPools:
+    forceScanAllEveryNth: 10
     interval: 2s
     poolEvent:
       consumerConfig:
