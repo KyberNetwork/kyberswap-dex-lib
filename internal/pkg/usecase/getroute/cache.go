@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -47,6 +48,8 @@ func NewCache(
 	poolManager IPoolManager,
 	config valueobject.CacheConfig,
 ) *cache {
+	// reverse the order to get correct TTL in genKey func
+	slices.Reverse(config.TTLByAmountUSDRange)
 	return &cache{
 		aggregator:           aggregator,
 		routeCacheRepository: routeCacheRepository,
