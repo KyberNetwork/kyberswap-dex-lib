@@ -24,6 +24,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
@@ -177,6 +179,8 @@ type Types struct {
 	SwaapV2                        string
 	EtherfiEETH                    string
 	EtherfiWEETH                   string
+	SwellSWETH                     string
+	SwellRSWETH                    string
 	BancorV21                      string
 	BancorV3                       string
 	CurveStablePlain               string
@@ -289,6 +293,8 @@ var (
 		CurveTriCryptoNg:               curveTricryptoNg.DexType,
 		KelpRSETH:                      rseth.DexType,
 		RocketPoolRETH:                 reth.DexType,
+		SwellSWETH:                     sweth.DexType,
+		SwellRSWETH:                    rsweth.DexType,
 		EthenaSusde:                    susde.DexType,
 		MakerSavingsDai:                savingsdai.DexType,
 		HashflowV3:                     hashflowv3.DexType,

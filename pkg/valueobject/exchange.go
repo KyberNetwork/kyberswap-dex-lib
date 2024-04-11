@@ -267,6 +267,9 @@ var (
 
 	ExchangeMakerSavingsDai Exchange = "maker-savingsdai"
 
+	ExchangeSwellSWETH  Exchange = "swell-sweth"
+	ExchangeSwellRSWETH Exchange = "swell-rsweth"
+
 	ExchangeRingSwap        Exchange = "ring-swap"
 	ExchangeThrusterV2      Exchange = "thruster-v2"
 	ExchangeThrusterV2Degen Exchange = "thruster-v2-degen"
