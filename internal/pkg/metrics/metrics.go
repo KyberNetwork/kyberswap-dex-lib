@@ -27,7 +27,7 @@ const (
 	EstimateGasStatusMetricsName       = "estimate_gas.count"
 	EstimateGasWithSlippageMetricsName = "estimate_gas_slippage"
 	IndexPoolsMetricsCounterName       = "index_pools_count"
-	IndexPoolsDelayMetricsName         = "index_pools_delay"
+	IndexPoolsDelayMetricsName         = "index_job_pools_delay"
 	PriceImpactOnTokenMetricsName      = "price_impact_on_token"
 	AmountInWithTokensMetricsName      = "amount_in_with_tokens"
 )
@@ -46,8 +46,8 @@ var (
 	indexPoolsDelayCounter        metric.Float64Counter
 
 	// histogram metrics
-	estimateGasSlippageHistogram metric.Int64Histogram
 	indexPoolsDelayHistogram     metric.Int64Histogram
+	estimateGasSlippageHistogram metric.Float64Histogram
 	priceImpactOnTokenHistogram  metric.Float64Histogram
 	amountInWithTokensHistogram  metric.Float64Histogram
 
@@ -65,7 +65,7 @@ func init() {
 	findRoutePregenHitRateCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(FindRoutePregenHitRateMetricsName))
 	estimateGasStatusCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(EstimateGasStatusMetricsName))
 	isPregenPathValidCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(IsPregenPathValidMetricsName))
-	estimateGasSlippageHistogram, _ = kybermetric.Meter().Int64Histogram(formatMetricName(EstimateGasWithSlippageMetricsName))
+	estimateGasSlippageHistogram, _ = kybermetric.Meter().Float64Histogram(formatMetricName(EstimateGasWithSlippageMetricsName))
 	indexPoolsDelayHistogram, _ = kybermetric.Meter().Int64Histogram(IndexPoolsDelayMetricsName,
 		metric.WithExplicitBucketBoundaries(0, 50, 300, 1200, 2500, 5000, 10e3, 30e3, 90e3, 300e3, 1200e3, 3600e3))
 	indexPoolsDelayCounter, _ = kybermetric.Meter().Float64Counter(IndexPoolsMetricsCounterName)
@@ -85,12 +85,12 @@ func init() {
 		IndexPoolsMetricsCounterName:      indexPoolsDelayCounter,
 	}
 	mapMetricNameToHistogram = map[string]metric.Int64Histogram{
-		EstimateGasWithSlippageMetricsName: estimateGasSlippageHistogram,
-		IndexPoolsDelayMetricsName:         indexPoolsDelayHistogram,
+		IndexPoolsDelayMetricsName: indexPoolsDelayHistogram,
 	}
 	mapMetricNameToFloat64Histogram = map[string]metric.Float64Histogram{
-		PriceImpactOnTokenMetricsName: priceImpactOnTokenHistogram,
-		AmountInWithTokensMetricsName: amountInWithTokensHistogram,
+		PriceImpactOnTokenMetricsName:      priceImpactOnTokenHistogram,
+		AmountInWithTokensMetricsName:      amountInWithTokensHistogram,
+		EstimateGasWithSlippageMetricsName: estimateGasSlippageHistogram,
 	}
 
 }
