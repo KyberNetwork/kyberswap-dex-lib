@@ -19,7 +19,7 @@ require (
 	github.com/KyberNetwork/ethrpc v0.7.1
 	github.com/KyberNetwork/kutils v0.2.2
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.43.2
+	github.com/KyberNetwork/kyberswap-dex-lib v0.46.1
 	github.com/KyberNetwork/logger v0.2.0
 	github.com/KyberNetwork/pool-service v0.45.1
 	github.com/KyberNetwork/reload v0.1.1
