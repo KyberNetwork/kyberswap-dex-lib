@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	RestakeManagerABI abi.ABI
-	RenzoOracleABI    abi.ABI
-	PriceFeedABI      abi.ABI
+	RestakeManagerABI  abi.ABI
+	RenzoOracleABI     abi.ABI
+	PriceFeedABI       abi.ABI
+	StrategyManagerABI abi.ABI
 )
 
 func init() {
@@ -25,6 +26,9 @@ func init() {
 		},
 		{
 			&PriceFeedABI, priceFeedABIJson,
+		},
+		{
+			&StrategyManagerABI, strategyManagerABIJson,
 		},
 	}
 

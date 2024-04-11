@@ -13,7 +13,5 @@ type PoolExtra struct {
 	TotalTVL                   *big.Int     `json:"totalTvl"`
 	MaxDepositTVL              *big.Int     `json:"maxDepositTvl"`
 
-	CollateralTokenIndex map[string]int `json:"collateralTokenIndex"`
-
 	collaterals []*entity.PoolToken
 }

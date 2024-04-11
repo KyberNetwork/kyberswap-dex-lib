@@ -94,7 +94,8 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 
 func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint64, error) {
 	var (
-		calculateTVLsResult struct {
+		calculateTVLsResult [3]interface{}
+		calculateTVLs       struct {
 			OperatorDelegatorTokenTVLs [][]*big.Int
 			OperatorDelegatorTVLs      []*big.Int
 			TotalTVL                   *big.Int
@@ -102,6 +103,7 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 		collateralTokenLength *big.Int
 		maxDepositTVL         *big.Int
 		paused                bool
+		strategyManagerPaused bool
 		renzoOracle           common.Address
 	)
 
@@ -137,11 +139,20 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 		Method: RestakeManagerMethodRenzoOracle,
 		Params: []interface{}{},
 	}, []interface{}{&renzoOracle})
+	getPoolStateRequest.AddCall(&ethrpc.Call{
+		ABI:    StrategyManagerABI,
+		Target: StrategyManager,
+		Method: StrategyManagerMethodPaused,
+		Params: []interface{}{},
+	}, []interface{}{&strategyManagerPaused})
 
 	resp, err := getPoolStateRequest.TryAggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}
+	calculateTVLs.OperatorDelegatorTokenTVLs = calculateTVLsResult[0].([][]*big.Int)
+	calculateTVLs.OperatorDelegatorTVLs = calculateTVLsResult[1].([]*big.Int)
+	calculateTVLs.TotalTVL = calculateTVLsResult[2].(*big.Int)
 
 	collateralsLen := collateralTokenLength.Int64()
 
@@ -161,10 +172,14 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 
 	poolExtra := PoolExtra{
 		Paused:                     paused,
-		OperatorDelegatorTokenTVLs: calculateTVLsResult.OperatorDelegatorTokenTVLs,
-		OperatorDelegatorTVLs:      calculateTVLsResult.OperatorDelegatorTVLs,
-		TotalTVL:                   calculateTVLsResult.TotalTVL,
+		OperatorDelegatorTokenTVLs: calculateTVLs.OperatorDelegatorTokenTVLs,
+		OperatorDelegatorTVLs:      calculateTVLs.OperatorDelegatorTVLs,
+		TotalTVL:                   calculateTVLs.TotalTVL,
 		MaxDepositTVL:              maxDepositTVL,
+	}
+
+	if resp.BlockNumber == nil {
+		resp.BlockNumber = big.NewInt(0)
 	}
 
 	return poolExtra, resp.BlockNumber.Uint64(), nil

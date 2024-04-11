@@ -10,3 +10,6 @@ var renzoOracleABIJson []byte
 
 //go:embed abis/PriceFeed.json
 var priceFeedABIJson []byte
+
+//go:embed abis/StrategyManager.json
+var strategyManagerABIJson []byte

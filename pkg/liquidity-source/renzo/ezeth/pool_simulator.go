@@ -11,15 +11,18 @@ import (
 )
 
 var (
-	ErrInvalidCollateral  = errors.New("invalid collateral")
-	ErrInvalidTokenOut    = errors.New("invalid tokenOut")
-	ErrMaxTVLReached      = errors.New("max tvl reached")
-	ErrMaxTokenTVLReached = errors.New("max token tvl reached")
-	ErrInvalidTokenAmount = errors.New("invalid tokenAmount")
-	ErrOracleNotFound     = errors.New("oracle not found")
-	ErrOracleExpired      = errors.New("oracle expired")
-	ErrInvalidOraclePrice = errors.New("invalid oracle price")
-	ErrPoolPaused         = errors.New("pool paused")
+	ErrInvalidCollateral      = errors.New("invalid collateral")
+	ErrInvalidTokenOut        = errors.New("invalid tokenOut")
+	ErrMaxTVLReached          = errors.New("max tvl reached")
+	ErrMaxTokenTVLReached     = errors.New("max token tvl reached")
+	ErrInvalidTokenAmount     = errors.New("invalid tokenAmount")
+	ErrOracleNotFound         = errors.New("oracle not found")
+	ErrOracleExpired          = errors.New("oracle expired")
+	ErrInvalidOraclePrice     = errors.New("invalid oracle price")
+	ErrPoolPaused             = errors.New("pool paused")
+	ErrStrategyManagerPaused  = errors.New("strategy manager paused")
+	ErrRevertNotFound         = errors.New("revert not found")
+	ErrRevertInvalidZeroInput = errors.New("revert invalid zero input")
 )
 
 var (
@@ -44,6 +47,12 @@ type PoolSimulator struct {
 	operatorDelegatorTokenTVLs [][]*big.Int
 	operatorDelegatorTVLs      []*big.Int
 	totalTVL                   *big.Int
+
+	// RestakeManager.chooseOperatorDelegatorForDeposit
+	operatorDelegatorAllocations []*big.Int
+
+	// OperatorDelegator.tokenStrategyMapping
+	tokenStrategyMapping []map[string]bool
 
 	// ezETH.totalSupply
 	totalSupply *big.Int
@@ -127,6 +136,10 @@ func (s *PoolSimulator) deposit(collateralToken string, amount *big.Int) (*big.I
 		}
 	}
 
+	if err := s.checkAbleToDeposit(collateralToken, amount); err != nil {
+		return nil, err
+	}
+
 	return s.calculateMintAmount(
 		s.totalTVL,
 		collateralTokenValue,
@@ -184,4 +197,58 @@ func (s *PoolSimulator) lookupTokenValue(
 	}
 
 	return new(big.Int).Div(new(big.Int).Mul(value, SCALE_FACTOR), price), nil
+}
+
+func (s *PoolSimulator) checkAbleToDeposit(collateralToken string, amount *big.Int) error {
+	if s.strategyManagerPaused {
+		return ErrStrategyManagerPaused
+	}
+
+	operatorDelegatorIndex, err := s.chooseOperatorDelegatorForDeposit()
+	if err != nil {
+		return err
+	}
+
+	if operatorDelegatorIndex >= len(s.tokenStrategyMapping) {
+		return ErrRevertNotFound
+	}
+
+	tokenStrategyMapping := s.tokenStrategyMapping[operatorDelegatorIndex]
+	if _, exist := tokenStrategyMapping[collateralToken]; !exist {
+		return ErrRevertInvalidZeroInput
+	}
+	if amount.Cmp(bignumber.ZeroBI) == 0 {
+		return ErrRevertInvalidZeroInput
+	}
+
+	return nil
+}
+
+// chooseOperatorDelegatorForDeposit: RestakeManager.chooseOperatorDelegatorForDeposit.
+// Returns the index instead of the address of the chosen operator delegator.
+func (s *PoolSimulator) chooseOperatorDelegatorForDeposit() (int, error) {
+	if len(s.operatorDelegatorAllocations) == 0 {
+		return 0, ErrRevertNotFound
+	}
+	if len(s.operatorDelegatorAllocations) == 1 {
+		return 0, nil
+	}
+
+	var operatorDelegatorAllocationValue big.Int
+	for i := 0; i < len(s.operatorDelegatorTVLs); i++ {
+		operatorDelegatorAllocationValue.Mul(
+			s.operatorDelegatorAllocations[i],
+			s.totalTVL,
+		)
+		operatorDelegatorAllocationValue.Div(
+			&operatorDelegatorAllocationValue,
+			big.NewInt(10000),
+		)
+
+		if s.operatorDelegatorTVLs[i].Cmp(&operatorDelegatorAllocationValue) < 0 {
+			return i, nil
+		}
+	}
+
+	return 0, nil
 }
