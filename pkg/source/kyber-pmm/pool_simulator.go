@@ -391,6 +391,6 @@ func (i *Inventory) UpdateLimit(decreaseTokenAddress, increaseTokenAddress strin
 	if !avail {
 		return big.NewInt(0), big.NewInt(0), pool.ErrTokenNotAvailable
 	}
-	i.Balance[increaseTokenAddress] = increasedTokenBalance.Add(decreasedTokenBalance, increaseDelta)
+	i.Balance[increaseTokenAddress] = increasedTokenBalance.Add(increasedTokenBalance, increaseDelta)
 	return big.NewInt(0).Set(i.Balance[decreaseTokenAddress]), big.NewInt(0).Set(i.Balance[increaseTokenAddress]), nil
 }
