@@ -536,7 +536,7 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 	case pooltypes.PoolTypes.NomiSwapStable:
 		return f.newNomiswapStable(entityPool)
 	default:
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
 			"[PoolFactory.NewPoolSimulator] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -549,7 +549,7 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 func (f *PoolFactory) newUni(entityPool entity.Pool) (*uniswap.PoolSimulator, error) {
 	corePool, err := uniswap.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newUni] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -574,7 +574,7 @@ func (f *PoolFactory) newUniAEVM(entityPool entity.Pool, stateRoot common.Hash) 
 		balanceSlots,
 	)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newUniAEVM] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -587,7 +587,7 @@ func (f *PoolFactory) newUniAEVM(entityPool entity.Pool, stateRoot common.Hash) 
 func (f *PoolFactory) newUniV3(entityPool entity.Pool) (*uniswapv3.PoolSimulator, error) {
 	corePool, err := uniswapv3.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newUniV3] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -613,7 +613,7 @@ func (f *PoolFactory) newUniV3AEVM(entityPool entity.Pool, stateRoot common.Hash
 		balanceSlots,
 	)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newUniV3] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -626,7 +626,7 @@ func (f *PoolFactory) newUniV3AEVM(entityPool entity.Pool, stateRoot common.Hash
 func (f *PoolFactory) newSaddle(entityPool entity.Pool) (*saddle.PoolSimulator, error) {
 	corePool, err := saddle.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSaddle] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -640,7 +640,7 @@ func (f *PoolFactory) newSaddle(entityPool entity.Pool) (*saddle.PoolSimulator, 
 func (f *PoolFactory) newRamsesV2(entityPool entity.Pool) (*ramsesv2.PoolSimulator, error) {
 	corePool, err := ramsesv2.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newRamsesV2] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -654,7 +654,7 @@ func (f *PoolFactory) newRamsesV2(entityPool entity.Pool) (*ramsesv2.PoolSimulat
 func (f *PoolFactory) newSolidlyV3(entityPool entity.Pool) (*solidlyv3.PoolSimulator, error) {
 	corePool, err := solidlyv3.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSolidlyV3] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -668,7 +668,7 @@ func (f *PoolFactory) newSolidlyV3(entityPool entity.Pool) (*solidlyv3.PoolSimul
 func (f *PoolFactory) newDMM(entityPool entity.Pool) (*dmm.PoolSimulator, error) {
 	corePool, err := dmm.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newDMM] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -682,7 +682,7 @@ func (f *PoolFactory) newDMM(entityPool entity.Pool) (*dmm.PoolSimulator, error)
 func (f *PoolFactory) newElastic(entityPool entity.Pool) (*elastic.PoolSimulator, error) {
 	corePool, err := elastic.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newElastic] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -696,7 +696,7 @@ func (f *PoolFactory) newElastic(entityPool entity.Pool) (*elastic.PoolSimulator
 func (f *PoolFactory) newCurveBase(entityPool entity.Pool) (*curveBase.PoolBaseSimulator, error) {
 	corePool, err := curveBase.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newCurveBase] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -710,7 +710,7 @@ func (f *PoolFactory) newCurveBase(entityPool entity.Pool) (*curveBase.PoolBaseS
 func (f *PoolFactory) newCurveStablePlain(entityPool entity.Pool) (*plain.PoolSimulator, error) {
 	pool, err := plain.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newCurveStablePlain] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -752,7 +752,7 @@ func (f *PoolFactory) newCurveTriCryptoNg(entityPool entity.Pool) (*curveTriCryp
 func (f *PoolFactory) newCurvePlainOracle(entityPool entity.Pool) (*curvePlainOracle.Pool, error) {
 	corePool, err := curvePlainOracle.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newCurvePlainOracle] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -771,7 +771,7 @@ func (f *PoolFactory) newCurveMeta(
 	}
 
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrUnmarshalDataFailed,
 			"[PoolFactory.newCurveMeta] pool: [%s] » basePool: [%s]",
 			entityPool.Address,
@@ -781,7 +781,7 @@ func (f *PoolFactory) newCurveMeta(
 
 	basePool, ok := curveBasePoolByAddress[staticExtra.BasePool]
 	if !ok {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrBasePoolNotFound,
 			"[PoolFactory.newCurveMeta] pool: [%s] » basePool: [%s]",
 			entityPool.Address,
@@ -791,7 +791,7 @@ func (f *PoolFactory) newCurveMeta(
 
 	curveMetaPool, err := curveMeta.NewPoolSimulator(entityPool, basePool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newCurveMeta] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -805,7 +805,7 @@ func (f *PoolFactory) newCurveMeta(
 func (f *PoolFactory) newCurveAAVE(entityPool entity.Pool) (*curveAave.AavePool, error) {
 	corePool, err := curveAave.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newCurveAAVE] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -819,7 +819,7 @@ func (f *PoolFactory) newCurveAAVE(entityPool entity.Pool) (*curveAave.AavePool,
 func (f *PoolFactory) newCurveCompound(entityPool entity.Pool) (*curveCompound.CompoundPool, error) {
 	corePool, err := curveCompound.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newCurveCompound] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -833,7 +833,7 @@ func (f *PoolFactory) newCurveCompound(entityPool entity.Pool) (*curveCompound.C
 func (f *PoolFactory) newCurveTricrypto(entityPool entity.Pool) (*curveTricrypto.Pool, error) {
 	corePool, err := curveTricrypto.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newCurveTricrypto] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -847,7 +847,7 @@ func (f *PoolFactory) newCurveTricrypto(entityPool entity.Pool) (*curveTricrypto
 func (f *PoolFactory) newCurveTwo(entityPool entity.Pool) (*curveTwo.Pool, error) {
 	corePool, err := curveTwo.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newCurveTwo] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -900,7 +900,7 @@ func (f *PoolFactory) newCurveMetaNG(
 func (f *PoolFactory) newDoDo(entityPool entity.Pool) (*dodo.PoolSimulator, error) {
 	corePool, err := dodo.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newDoDo] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -914,7 +914,7 @@ func (f *PoolFactory) newDoDo(entityPool entity.Pool) (*dodo.PoolSimulator, erro
 func (f *PoolFactory) newVelodrome(entityPool entity.Pool) (*velodrome.PoolSimulator, error) {
 	corePool, err := velodrome.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newVelodrome] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -928,7 +928,7 @@ func (f *PoolFactory) newVelodrome(entityPool entity.Pool) (*velodrome.PoolSimul
 func (f *PoolFactory) newVelodromeV2(entityPool entity.Pool) (*velodromev2.PoolSimulator, error) {
 	corePool, err := velodromev2.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newVelodromeV2] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -942,7 +942,7 @@ func (f *PoolFactory) newVelodromeV2(entityPool entity.Pool) (*velodromev2.PoolS
 func (f *PoolFactory) newVelocimeter(entityPool entity.Pool) (*velocimeter.Pool, error) {
 	corePool, err := velocimeter.NewPool(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newVelocimeter] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -956,7 +956,7 @@ func (f *PoolFactory) newVelocimeter(entityPool entity.Pool) (*velocimeter.Pool,
 func (f *PoolFactory) newPlatypus(entityPool entity.Pool) (*platypus.PoolSimulator, error) {
 	corePool, err := platypus.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newPlatypus] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -970,7 +970,7 @@ func (f *PoolFactory) newPlatypus(entityPool entity.Pool) (*platypus.PoolSimulat
 func (f *PoolFactory) newWombatMain(entityPool entity.Pool) (*wombatmain.PoolSimulator, error) {
 	corePool, err := wombatmain.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newWombatMain] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -984,7 +984,7 @@ func (f *PoolFactory) newWombatMain(entityPool entity.Pool) (*wombatmain.PoolSim
 func (f *PoolFactory) newWombatLsd(entityPool entity.Pool) (*wombatlsd.PoolSimulator, error) {
 	corePool, err := wombatlsd.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newWombatLsd] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -998,7 +998,7 @@ func (f *PoolFactory) newWombatLsd(entityPool entity.Pool) (*wombatlsd.PoolSimul
 func (f *PoolFactory) newGMX(entityPool entity.Pool) (*gmx.PoolSimulator, error) {
 	corePool, err := gmx.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newGMX] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1012,7 +1012,7 @@ func (f *PoolFactory) newGMX(entityPool entity.Pool) (*gmx.PoolSimulator, error)
 func (f *PoolFactory) newGmxGlp(entityPool entity.Pool) (*gmxglp.PoolSimulator, error) {
 	corePool, err := gmxglp.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newGmxGlp] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1026,7 +1026,7 @@ func (f *PoolFactory) newGmxGlp(entityPool entity.Pool) (*gmxglp.PoolSimulator, 
 func (f *PoolFactory) newMadMex(entityPool entity.Pool) (*madmex.PoolSimulator, error) {
 	corePool, err := madmex.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newMadMex] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1040,7 +1040,7 @@ func (f *PoolFactory) newMadMex(entityPool entity.Pool) (*madmex.PoolSimulator, 
 func (f *PoolFactory) newMetavault(entityPool entity.Pool) (*metavault.PoolSimulator, error) {
 	corePool, err := metavault.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newMetavault] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1054,7 +1054,7 @@ func (f *PoolFactory) newMetavault(entityPool entity.Pool) (*metavault.PoolSimul
 func (f *PoolFactory) newMakerPSm(entityPool entity.Pool) (*makerpsm.PoolSimulator, error) {
 	corePool, err := makerpsm.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newMakerPSm] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1068,7 +1068,7 @@ func (f *PoolFactory) newMakerPSm(entityPool entity.Pool) (*makerpsm.PoolSimulat
 func (f *PoolFactory) newSynthetix(entityPool entity.Pool) (*synthetix.PoolSimulator, error) {
 	corePool, err := synthetix.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSynthetix] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1082,7 +1082,7 @@ func (f *PoolFactory) newSynthetix(entityPool entity.Pool) (*synthetix.PoolSimul
 func (f *PoolFactory) newLido(entityPool entity.Pool) (*lido.PoolSimulator, error) {
 	corePool, err := lido.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newLido] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1096,7 +1096,7 @@ func (f *PoolFactory) newLido(entityPool entity.Pool) (*lido.PoolSimulator, erro
 func (f *PoolFactory) newLidoStEth(entityPool entity.Pool) (*lidosteth.PoolSimulator, error) {
 	corePool, err := lidosteth.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newLidoStEth] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1110,7 +1110,7 @@ func (f *PoolFactory) newLidoStEth(entityPool entity.Pool) (*lidosteth.PoolSimul
 func (f *PoolFactory) newFraxswap(entityPool entity.Pool) (*fraxswap.PoolSimulator, error) {
 	corePool, err := fraxswap.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newFraxswap] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1123,7 +1123,7 @@ func (f *PoolFactory) newFraxswap(entityPool entity.Pool) (*fraxswap.PoolSimulat
 func (f *PoolFactory) newLimitOrder(entityPool entity.Pool) (*limitorder.PoolSimulator, error) {
 	corePool, err := limitorder.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newLimitOrder] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
@@ -1138,7 +1138,7 @@ func (f *PoolFactory) newLimitOrder(entityPool entity.Pool) (*limitorder.PoolSim
 func (f *PoolFactory) newCamelot(entityPool entity.Pool) (*camelot.PoolSimulator, error) {
 	corePool, err := camelot.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newCamelot] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1152,7 +1152,7 @@ func (f *PoolFactory) newCamelot(entityPool entity.Pool) (*camelot.PoolSimulator
 func (f *PoolFactory) newSyncswapClassic(entityPool entity.Pool) (*syncswapclassic.PoolSimulator, error) {
 	corePool, err := syncswapclassic.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSyncswapClassic] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1166,7 +1166,7 @@ func (f *PoolFactory) newSyncswapClassic(entityPool entity.Pool) (*syncswapclass
 func (f *PoolFactory) newSyncswapStable(entityPool entity.Pool) (*syncswapstable.PoolSimulator, error) {
 	corePool, err := syncswapstable.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSyncswapClassic] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1180,7 +1180,7 @@ func (f *PoolFactory) newSyncswapStable(entityPool entity.Pool) (*syncswapstable
 func (f *PoolFactory) newPancakeV3(entityPool entity.Pool) (*pancakev3.PoolSimulator, error) {
 	corePool, err := pancakev3.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newPancakeV3] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1194,7 +1194,7 @@ func (f *PoolFactory) newPancakeV3(entityPool entity.Pool) (*pancakev3.PoolSimul
 func (f *PoolFactory) newMaverickV1(entityPool entity.Pool) (*maverickv1.Pool, error) {
 	corePool, err := maverickv1.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newMaverickV1] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1208,7 +1208,7 @@ func (f *PoolFactory) newAlgebraV1(entityPool entity.Pool) (*algebrav1.PoolSimul
 	defaultGas := DefaultGasAlgebra[valueobject.Exchange(entityPool.Exchange)]
 	corePool, err := algebrav1.NewPoolSimulator(entityPool, defaultGas)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newAlgebraV1] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1221,7 +1221,7 @@ func (f *PoolFactory) newAlgebraV1(entityPool entity.Pool) (*algebrav1.PoolSimul
 func (f *PoolFactory) newKyberPMM(entityPool entity.Pool) (*kyberpmm.PoolSimulator, error) {
 	corePool, err := kyberpmm.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newKyberPMM] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
@@ -1236,7 +1236,7 @@ func (f *PoolFactory) newKyberPMM(entityPool entity.Pool) (*kyberpmm.PoolSimulat
 func (f *PoolFactory) newIZiSwap(entityPool entity.Pool) (*iziswap.PoolSimulator, error) {
 	corePool, err := iziswap.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newIZiSwap] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
@@ -1251,7 +1251,7 @@ func (f *PoolFactory) newIZiSwap(entityPool entity.Pool) (*iziswap.PoolSimulator
 func (f *PoolFactory) newWooFiV2(entityPool entity.Pool) (*woofiv2.PoolSimulator, error) {
 	corePool, err := woofiv2.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newWooFiV2] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1265,7 +1265,7 @@ func (f *PoolFactory) newWooFiV2(entityPool entity.Pool) (*woofiv2.PoolSimulator
 func (f *PoolFactory) newEqualizer(entityPool entity.Pool) (*equalizer.PoolSimulator, error) {
 	corePool, err := equalizer.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newEqualizer] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1279,7 +1279,7 @@ func (f *PoolFactory) newEqualizer(entityPool entity.Pool) (*equalizer.PoolSimul
 func (f *PoolFactory) newSwapBasedPerp(entityPool entity.Pool) (*swapbasedperp.PoolSimulator, error) {
 	corePool, err := swapbasedperp.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSwapBasedPerp] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1293,7 +1293,7 @@ func (f *PoolFactory) newSwapBasedPerp(entityPool entity.Pool) (*swapbasedperp.P
 func (f *PoolFactory) newUSDFi(entityPool entity.Pool) (*usdfi.PoolSimulator, error) {
 	corePool, err := usdfi.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newUSDFi] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1307,7 +1307,7 @@ func (f *PoolFactory) newUSDFi(entityPool entity.Pool) (*usdfi.PoolSimulator, er
 func (f *PoolFactory) newMantisSwap(entityPool entity.Pool) (*mantisswap.PoolSimulator, error) {
 	corePool, err := mantisswap.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newMantisSwap] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1321,7 +1321,7 @@ func (f *PoolFactory) newMantisSwap(entityPool entity.Pool) (*mantisswap.PoolSim
 func (f *PoolFactory) newVooi(entityPool entity.Pool) (*vooi.PoolSimulator, error) {
 	corePool, err := vooi.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.vooi] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1335,7 +1335,7 @@ func (f *PoolFactory) newVooi(entityPool entity.Pool) (*vooi.PoolSimulator, erro
 func (f *PoolFactory) newPolMatic(entityPool entity.Pool) (*polmatic.PoolSimulator, error) {
 	corePool, err := polmatic.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.polmatic] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1349,7 +1349,7 @@ func (f *PoolFactory) newPolMatic(entityPool entity.Pool) (*polmatic.PoolSimulat
 func (f *PoolFactory) newKokonutCrypto(entityPool entity.Pool) (*kokonutcrypto.PoolSimulator, error) {
 	corePool, err := kokonutcrypto.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.kokonutCrypto] pool: [%s] » type: [%s]",
 
@@ -1364,7 +1364,7 @@ func (f *PoolFactory) newKokonutCrypto(entityPool entity.Pool) (*kokonutcrypto.P
 func (f *PoolFactory) newLiquidityBookV21(entityPool entity.Pool) (*liquiditybookv21.PoolSimulator, error) {
 	corePool, err := liquiditybookv21.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newLiquidityBookV21] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1378,7 +1378,7 @@ func (f *PoolFactory) newLiquidityBookV21(entityPool entity.Pool) (*liquidityboo
 func (f *PoolFactory) newLiquidityBookV20(entityPool entity.Pool) (*liquiditybookv20.PoolSimulator, error) {
 	corePool, err := liquiditybookv20.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newLiquidityBookV20] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1396,7 +1396,7 @@ func (f *PoolFactory) newLiquidityBookV21AEVM(entityPool entity.Pool, stateRoot 
 	balanceSlots := f.getBalanceSlots(&entityPool)
 	corePool, err := liquiditybookv21aevm.NewPoolAEVM(f.config.ChainID, entityPool, f.client, stateRoot, balanceSlots)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newLiquidityBookV21AEVM] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1413,7 +1413,7 @@ func (f *PoolFactory) newLiquidityBookV20AEVM(entityPool entity.Pool, stateRoot 
 	balanceSlots := f.getBalanceSlots(&entityPool)
 	corePool, err := liquiditybookv20aevm.NewPoolAEVM(f.config.ChainID, entityPool, f.client, stateRoot, balanceSlots)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newLiquidityBookV20AEVM] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1426,7 +1426,7 @@ func (f *PoolFactory) newLiquidityBookV20AEVM(entityPool entity.Pool, stateRoot 
 func (f *PoolFactory) newSmardex(entityPool entity.Pool) (*smardex.PoolSimulator, error) {
 	corePool, err := smardex.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSmardex] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1440,7 +1440,7 @@ func (f *PoolFactory) newSmardex(entityPool entity.Pool) (*smardex.PoolSimulator
 func (f *PoolFactory) newFxdx(entityPool entity.Pool) (*fxdx.PoolSimulator, error) {
 	corePool, err := fxdx.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newFxdx] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1454,7 +1454,7 @@ func (f *PoolFactory) newFxdx(entityPool entity.Pool) (*fxdx.PoolSimulator, erro
 func (f *PoolFactory) newUniswapV2(entityPool entity.Pool) (*uniswapv2.PoolSimulator, error) {
 	corePool, err := uniswapv2.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newUniswapV2] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1468,7 +1468,7 @@ func (f *PoolFactory) newUniswapV2(entityPool entity.Pool) (*uniswapv2.PoolSimul
 func (f *PoolFactory) newQuickPerps(entityPool entity.Pool) (*quickperps.PoolSimulator, error) {
 	corePool, err := quickperps.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newQuickperps] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1482,7 +1482,7 @@ func (f *PoolFactory) newQuickPerps(entityPool entity.Pool) (*quickperps.PoolSim
 func (f *PoolFactory) newBalancerV1(entityPool entity.Pool) (*balancerv1.PoolSimulator, error) {
 	corePool, err := balancerv1.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newBalancerV1] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1496,7 +1496,7 @@ func (f *PoolFactory) newBalancerV1(entityPool entity.Pool) (*balancerv1.PoolSim
 func (f *PoolFactory) newFulcrom(entityPool entity.Pool) (*fulcrom.PoolSimulator, error) {
 	corePool, err := fulcrom.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newFulcrom] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1510,7 +1510,7 @@ func (f *PoolFactory) newFulcrom(entityPool entity.Pool) (*fulcrom.PoolSimulator
 func (f *PoolFactory) newBalancerV2Weighted(entityPool entity.Pool) (*balancerv2weighted.PoolSimulator, error) {
 	corePool, err := balancerv2weighted.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newBalancerV2Weighted] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1524,7 +1524,7 @@ func (f *PoolFactory) newBalancerV2Weighted(entityPool entity.Pool) (*balancerv2
 func (f *PoolFactory) newBalancerV2Stable(entityPool entity.Pool) (*balancerv2stable.PoolSimulator, error) {
 	corePool, err := balancerv2stable.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newBalancerV2Stable] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1538,7 +1538,7 @@ func (f *PoolFactory) newBalancerV2Stable(entityPool entity.Pool) (*balancerv2st
 func (f *PoolFactory) newBalancerV2ComposableStable(entityPool entity.Pool) (*balancerv2composablestable.PoolSimulator, error) {
 	corePool, err := balancerv2composablestable.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newBalancerV2ComposableStable] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1552,7 +1552,7 @@ func (f *PoolFactory) newBalancerV2ComposableStable(entityPool entity.Pool) (*ba
 func (f *PoolFactory) newVelocoreV2CPMM(entityPool entity.Pool) (*velocorev2cpmm.PoolSimulator, error) {
 	corePool, err := velocorev2cpmm.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newVelocoreV2CPMM] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1566,7 +1566,7 @@ func (f *PoolFactory) newVelocoreV2CPMM(entityPool entity.Pool) (*velocorev2cpmm
 func (f *PoolFactory) newVelocoreV2WombatStable(entityPool entity.Pool) (*velocorev2wombatstable.PoolSimulator, error) {
 	corePool, err := velocorev2wombatstable.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newVelocoreV2WombatStable] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1580,7 +1580,7 @@ func (f *PoolFactory) newVelocoreV2WombatStable(entityPool entity.Pool) (*veloco
 func (f *PoolFactory) newGyroscope2CLP(entityPool entity.Pool) (*gyro2clp.PoolSimulator, error) {
 	corePool, err := gyro2clp.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newGyroscope2CLP] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1594,7 +1594,7 @@ func (f *PoolFactory) newGyroscope2CLP(entityPool entity.Pool) (*gyro2clp.PoolSi
 func (f *PoolFactory) newGyroscope3CLP(entityPool entity.Pool) (*gyro3clp.PoolSimulator, error) {
 	corePool, err := gyro3clp.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newGyroscope3CLP] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1608,7 +1608,7 @@ func (f *PoolFactory) newGyroscope3CLP(entityPool entity.Pool) (*gyro3clp.PoolSi
 func (f *PoolFactory) newGyroscopeECLP(entityPool entity.Pool) (*gyroeclp.PoolSimulator, error) {
 	corePool, err := gyroeclp.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newGyroscopeECLP] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1622,7 +1622,7 @@ func (f *PoolFactory) newGyroscopeECLP(entityPool entity.Pool) (*gyroeclp.PoolSi
 func (f *PoolFactory) newZkEraFinance(entityPool entity.Pool) (*zkera.PoolSimulator, error) {
 	corePool, err := zkera.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newZkEraFinance] pool: [%s] » type: [%s]",
 			entityPool.Address,
@@ -1636,7 +1636,7 @@ func (f *PoolFactory) newZkEraFinance(entityPool entity.Pool) (*zkera.PoolSimula
 func (f *PoolFactory) newSwaapV2(entityPool entity.Pool) (*swaapv2.PoolSimulator, error) {
 	corePool, err := swaapv2.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSwaapV2] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
@@ -1651,7 +1651,7 @@ func (f *PoolFactory) newSwaapV2(entityPool entity.Pool) (*swaapv2.PoolSimulator
 func (f *PoolFactory) newBancorV3(entityPool entity.Pool) (*bancorv3.PoolSimulator, error) {
 	corePool, err := bancorv3.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newBancorV3] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
@@ -1666,7 +1666,7 @@ func (f *PoolFactory) newBancorV3(entityPool entity.Pool) (*bancorv3.PoolSimulat
 func (f *PoolFactory) newEtherfiEETH(entityPool entity.Pool) (*eeth.PoolSimulator, error) {
 	corePool, err := eeth.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newEtherfiEETH] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
@@ -1681,7 +1681,7 @@ func (f *PoolFactory) newEtherfiEETH(entityPool entity.Pool) (*eeth.PoolSimulato
 func (f *PoolFactory) newEtherfiWEETH(entityPool entity.Pool) (*weeth.PoolSimulator, error) {
 	corePool, err := weeth.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newEtherfiWEETH] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
@@ -1696,7 +1696,7 @@ func (f *PoolFactory) newEtherfiWEETH(entityPool entity.Pool) (*weeth.PoolSimula
 func (f *PoolFactory) newKelpRSETH(entityPool entity.Pool) (*rseth.PoolSimulator, error) {
 	corePool, err := rseth.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newKelpRSETH] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
@@ -1711,7 +1711,7 @@ func (f *PoolFactory) newKelpRSETH(entityPool entity.Pool) (*rseth.PoolSimulator
 func (f *PoolFactory) newRocketPoolRETH(entityPool entity.Pool) (*reth.PoolSimulator, error) {
 	corePool, err := reth.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newRocketPoolRETH] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
@@ -1726,7 +1726,7 @@ func (f *PoolFactory) newRocketPoolRETH(entityPool entity.Pool) (*reth.PoolSimul
 func (f *PoolFactory) newEthenaSusde(entityPool entity.Pool) (*susde.PoolSimulator, error) {
 	corePool, err := susde.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newEthenaSusde] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
@@ -1741,7 +1741,7 @@ func (f *PoolFactory) newEthenaSusde(entityPool entity.Pool) (*susde.PoolSimulat
 func (f *PoolFactory) newMakerSavingsDai(entityPool entity.Pool) (*savingsdai.PoolSimulator, error) {
 	corePool, err := savingsdai.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newMakerSavingsDai] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
@@ -1756,7 +1756,7 @@ func (f *PoolFactory) newMakerSavingsDai(entityPool entity.Pool) (*savingsdai.Po
 func (f *PoolFactory) newHashflowV3(entityPool entity.Pool) (*hashflowv3.PoolSimulator, error) {
 	corePool, err := hashflowv3.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newHashflowV3] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
@@ -1771,7 +1771,7 @@ func (f *PoolFactory) newHashflowV3(entityPool entity.Pool) (*hashflowv3.PoolSim
 func (f *PoolFactory) newNativeV1(entityPool entity.Pool) (*nativev1.PoolSimulator, error) {
 	corePool, err := nativev1.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newNativeV1] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
@@ -1786,7 +1786,7 @@ func (f *PoolFactory) newNativeV1(entityPool entity.Pool) (*nativev1.PoolSimulat
 func (f *PoolFactory) newNomiswapStable(entityPool entity.Pool) (*nomiswapstable.PoolSimulator, error) {
 	corePool, err := nomiswapstable.NewPoolSimulator(entityPool)
 	if err != nil {
-		return nil, errors.Wrapf(
+		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newNomiswapStable] pool: [%s] » type: [%s]",
 			entityPool.Address,

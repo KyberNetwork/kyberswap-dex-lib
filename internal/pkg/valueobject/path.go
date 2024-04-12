@@ -147,7 +147,7 @@ func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.Token
 
 	for i, poolAddress := range p.PoolAddresses {
 		if pool, ok = poolBucket.GetPool(poolAddress); !ok {
-			return poolpkg.TokenAmount{}, 0, errors.Wrapf(
+			return poolpkg.TokenAmount{}, 0, errors.WithMessagef(
 				ErrNoIPool,
 				"[Path.CalcAmountOut] poolAddress: [%s]",
 				poolAddress,
@@ -156,7 +156,7 @@ func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.Token
 		calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, currentAmount, p.Tokens[i+1].Address, limits[pool.GetType()])
 
 		if err != nil {
-			return poolpkg.TokenAmount{}, 0, errors.Wrapf(
+			return poolpkg.TokenAmount{}, 0, errors.WithMessagef(
 				ErrInvalidSwap,
 				"[Path.CalcAmountOut] CalcAmountOut returns error | poolAddress: [%s], exchange: [%s], tokenIn: [%s], amountIn: [%s], tokenOut: [%s], err: [%v]",
 				pool.GetAddress(),
@@ -169,7 +169,7 @@ func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.Token
 		}
 		swapTokenAmountOut, gas := calcAmountOutResult.TokenAmountOut, calcAmountOutResult.Gas
 		if swapTokenAmountOut == nil {
-			return poolpkg.TokenAmount{}, 0, errors.Wrapf(
+			return poolpkg.TokenAmount{}, 0, errors.WithMessagef(
 				ErrInvalidSwap,
 				"[Path.CalcAmountOut] CalcAmountOut returns nil | poolAddress: [%s], exchange: [%s], tokenIn: [%s], amountIn: [%s], tokenOut: [%s]",
 				pool.GetAddress(),
