@@ -218,7 +218,7 @@ func HistogramIndexPoolsDelay(ctx context.Context, jobName string, delay time.Du
 	if isSuccess {
 		state = "success"
 	}
-	delayMs := (delay / time.Millisecond).Milliseconds()
+	delayMs := delay.Milliseconds()
 	histogram(ctx, IndexPoolsDelayMetricsName, delayMs, map[string]string{
 		"job_name": jobName,
 		"state":    state,
