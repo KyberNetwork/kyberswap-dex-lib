@@ -270,6 +270,8 @@ var (
 	ExchangeSwellSWETH  Exchange = "swell-sweth"
 	ExchangeSwellRSWETH Exchange = "swell-rsweth"
 
+	ExchangeBedrockUniETH Exchange = "bedrock-unieth"
+
 	ExchangeRingSwap        Exchange = "ring-swap"
 	ExchangeThrusterV2      Exchange = "thruster-v2"
 	ExchangeThrusterV2Degen Exchange = "thruster-v2-degen"
