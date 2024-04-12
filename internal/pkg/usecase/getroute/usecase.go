@@ -8,7 +8,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
@@ -83,7 +82,6 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 	if amountInUSD > MaxAmountInUSD {
 		return nil, ErrAmountInIsGreaterThanMaxAllowed
 	}
-	metrics.HistogramAmountInWithTokens(ctx, amountInUSD, params.TokenIn.Name, params.TokenOut.Name)
 
 	routeSummary, err := u.aggregator.Aggregate(ctx, params)
 	if err != nil {
@@ -92,8 +90,6 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 
 	routeSummary.TokenIn = originalTokenIn
 	routeSummary.TokenOut = originalTokenOut
-
-	metrics.HistogramPriceImpactOnToken(ctx, routeSummary.GetPriceImpact(), params.TokenIn.Name, params.TokenOut.Name)
 
 	return &dto.GetRoutesResult{
 		RouteSummary:  routeSummary,

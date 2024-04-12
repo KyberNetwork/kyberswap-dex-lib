@@ -70,7 +70,7 @@ func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] cache.Aggregate")
 	defer span.End()
 
-	key, ttl, err = c.genKey(params)
+	key, ttl, err = c.genKey(ctx, params)
 
 	// if this tokenIn has price and we successfully gen cache key
 	if err == nil && key != nil {
@@ -208,9 +208,12 @@ func (c *cache) getCachePointTTL(amount float64) (time.Duration, bool) {
 
 // genKey retrieves the key required to access the cacheRoute.
 // It returns an error if these parameters do not correspond to a cache point and lack pricing information.
-func (c *cache) genKey(params *types.AggregateParams) (*valueobject.RouteCacheKey, time.Duration, error) {
+func (c *cache) genKey(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteCacheKey, time.Duration, error) {
 	// If request has excluded more than 1 pool, we will not hit cache.
 	if params.ExcludedPools != nil && params.ExcludedPools.Cardinality() > 1 {
+		metrics.IncrFindRouteCacheCount(ctx, false, map[string]string{
+			"excludePools": "true",
+		})
 		return nil, 0, nil
 	}
 

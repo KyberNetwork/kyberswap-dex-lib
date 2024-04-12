@@ -1,6 +1,7 @@
 package getroute
 
 import (
+	"context"
 	"math/big"
 	"strconv"
 	"testing"
@@ -104,7 +105,7 @@ func TestCache_GenKey_ExactCachedPoint(t *testing.T) {
 			}
 
 			cache := &cache{config: config}
-			key, duration, err := cache.genKey(tc.param)
+			key, duration, err := cache.genKey(context.Background(), tc.param)
 
 			assert.Equal(t, *tc.cacheKey, *key)
 			assert.Equal(t, tc.duration, duration)
@@ -179,7 +180,7 @@ func TestCache_GenKey_CachePointUSD(t *testing.T) {
 			}
 
 			cache := NewCache(nil, nil, nil, config)
-			key, duration, err := cache.genKey(tc.param)
+			key, duration, err := cache.genKey(context.Background(), tc.param)
 
 			assert.Equal(t, *tc.cacheKey, *key)
 			assert.Equal(t, tc.duration, duration)
