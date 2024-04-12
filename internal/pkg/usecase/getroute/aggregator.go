@@ -22,6 +22,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 // aggregator finds best route within amm liquidity sources
@@ -330,12 +331,23 @@ func (a *aggregator) getStateByAddress(
 		return nil, err
 	}
 
+	if len(bestPoolIDs) == 0 {
+		logger.Error(ctx, "empty bestPoolIDs ")
+		return nil, ErrPoolSetEmpty
+	}
+
 	filteredPoolIDs := make([]string, 0, len(bestPoolIDs))
 	for _, bestPoolID := range bestPoolIDs {
 		if params.ExcludedPools != nil && params.ExcludedPools.Contains(bestPoolID) {
 			continue
 		}
 		filteredPoolIDs = append(filteredPoolIDs, bestPoolID)
+	}
+
+	if len(filteredPoolIDs) == 0 {
+		logger.Errorf(ctx, "empty filtered pool IDs. bestPoolIDs %v, excludedPools: %v",
+			bestPoolIDs, params.ExcludedPools.String())
+		return nil, ErrPoolSetEmpty
 	}
 
 	return a.poolManager.GetStateByPoolAddresses(

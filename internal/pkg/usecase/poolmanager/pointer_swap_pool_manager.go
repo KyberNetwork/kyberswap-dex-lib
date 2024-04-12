@@ -18,6 +18,7 @@ import (
 	cachePolicy "github.com/hashicorp/golang-lru/v2"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
@@ -221,8 +222,15 @@ func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
 // Therefore, do not modify IPool returned here, clone IPool before UpdateBalance
 func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (*types.FindRouteState, error) {
 	filteredPoolAddress := p.filterBlacklistedAddresses(ctx, poolAddresses)
+	if len(filteredPoolAddress) == 0 {
+		logger.Errorf(ctx, "filtered Pool addresses after filterBlacklistedAddresses now equal to 0. Blacklist config %v. PoolAddresses original len: %d", p.config.BlacklistedPoolSet, len(poolAddresses))
+		return nil, getroute.ErrPoolSetEmpty
+	}
 	filteredPoolAddress = p.excludeFaultyPools(ctx, filteredPoolAddress, p.config)
-
+	if len(filteredPoolAddress) == 0 {
+		logger.Errorf(ctx, "filtered Pool address after excludeFaultyPools now equal to 0. faulty config %v. PoolAddresses original len: %d", p.config.FaultyPoolsExpireThreshold, len(poolAddresses))
+		return nil, getroute.ErrPoolSetEmpty
+	}
 	// update cache policy
 	for _, poolAddress := range filteredPoolAddress {
 		p.poolCache.Add(poolAddress, struct{}{})
@@ -286,6 +294,7 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 
 	poolEntities, err := p.poolRepository.FindByAddresses(ctx, poolsToFetchFromDB)
 	if err != nil {
+		logger.Errorf(ctx, "poolRepository.FindByAddresses crashed into err", err)
 		return &types.FindRouteState{
 			Pools:     resultPoolByAddress,
 			SwapLimit: nil,

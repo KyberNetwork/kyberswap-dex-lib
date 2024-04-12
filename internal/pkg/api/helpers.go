@@ -81,8 +81,8 @@ var ErrorResponseByError = map[error]ErrorResponse{
 	},
 
 	getroute.ErrPoolSetEmpty: {
-		HTTPStatus: http.StatusBadRequest,
-		Code:       4010,
+		HTTPStatus: http.StatusInternalServerError,
+		Code:       5001,
 		Message:    "route not found",
 	},
 
