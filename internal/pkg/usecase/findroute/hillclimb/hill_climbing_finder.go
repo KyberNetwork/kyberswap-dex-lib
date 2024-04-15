@@ -105,9 +105,10 @@ func (f *hillClimbFinder) Find(ctx context.Context,
 
 func recalculateRoute(input findroute.Input, data findroute.FinderData, route *valueobject.Route) *valueobject.Route {
 	var (
-		tokenOutPriceUSD = data.PriceUSDByAddress[input.TokenOutAddress]
-		tokenOutDecimal  = data.TokenByAddress[input.TokenOutAddress].Decimals
-		gasOption        = valueobject.GasOption{
+		tokenOutPriceUSD    = data.PriceUSDByAddress[input.TokenOutAddress]
+		tokenOutPriceNative = data.TokenNativeBuyPrice(input.TokenOutAddress)
+		tokenOutDecimal     = data.TokenByAddress[input.TokenOutAddress].Decimals
+		gasOption           = valueobject.GasOption{
 			TokenPrice:    input.GasTokenPriceUSD,
 			Price:         input.GasPrice,
 			GasFeeInclude: input.GasInclude,
@@ -117,7 +118,7 @@ func recalculateRoute(input findroute.Input, data findroute.FinderData, route *v
 
 	for i := 0; i < len(route.Paths); i++ {
 		pathRecalculated, err := valueobject.NewPath(data.PoolBucket, route.Paths[i].PoolAddresses, route.Paths[i].Tokens,
-			route.Paths[i].Input, input.TokenOutAddress, tokenOutPriceUSD, tokenOutDecimal, gasOption, data.SwapLimits)
+			route.Paths[i].Input, input.TokenOutAddress, tokenOutPriceUSD, tokenOutPriceNative, tokenOutDecimal, gasOption, data.SwapLimits)
 		if err != nil {
 			return nil
 		}

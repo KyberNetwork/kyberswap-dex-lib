@@ -18,7 +18,7 @@ import (
 func TestRoute_AddPathRollBack(t *testing.T) {
 	type fields struct {
 		Input    poolpkg.TokenAmount
-		Output   poolpkg.TokenAmount
+		Output   TokenAmount
 		Paths    []*Path
 		TotalGas int64
 		Extra    RouteExtraData
@@ -100,7 +100,7 @@ func TestRoute_AddPathRollBack(t *testing.T) {
 	//bucket.ClonePool(poolToAdd.GetAddress())
 	path := Path{
 		Input: tokenAmountIn,
-		Output: poolpkg.TokenAmount{
+		Output: TokenAmount{
 			Token:     tokenOut.Address,
 			Amount:    big.NewInt(1000),
 			AmountUsd: 0,
@@ -120,7 +120,7 @@ func TestRoute_AddPathRollBack(t *testing.T) {
 			name: "Once path got error it will roll back successfully",
 			fields: fields{
 				Input: tokenAmountIn,
-				Output: poolpkg.TokenAmount{
+				Output: TokenAmount{
 					Token:     tokenOut.Address,
 					Amount:    big.NewInt(1000),
 					AmountUsd: 0,

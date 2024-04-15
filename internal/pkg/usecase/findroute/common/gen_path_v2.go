@@ -244,7 +244,7 @@ func getKthPathAtTokenOutV2(
 	for _, pathInfo := range nodeInfoAtTokenOut {
 		paths = append(paths, &valueobject.Path{
 			Input:         tokenAmountIn,
-			Output:        *pathInfo.tokenAmount.ToDexLibAmount(),
+			Output:        pathInfo.tokenAmount,
 			TotalGas:      pathInfo.totalGasAmount,
 			PoolAddresses: pathInfo.poolAddressesOnPath,
 			Tokens:        pathInfo.tokensOnPath,

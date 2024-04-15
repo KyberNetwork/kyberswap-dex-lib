@@ -141,7 +141,7 @@ func newPath(
 		gasOption = valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}
 	}
 	path, err := valueobject.NewPath(data.PoolBucket, poolAddresses, tokens, tokenAmountIn, input.TokenOutAddress,
-		data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[input.TokenOutAddress].Decimals, gasOption, data.SwapLimits,
+		data.PriceUSDByAddress[input.TokenOutAddress], data.TokenNativeBuyPrice(input.TokenOutAddress), data.TokenByAddress[input.TokenOutAddress].Decimals, gasOption, data.SwapLimits,
 	)
 	if err != nil {
 		return nil

@@ -320,7 +320,7 @@ func getKthPathAtTokenOut(
 		wg.Go(func() error {
 			tokenOut := _pathInfo.tokensOnPath[len(_pathInfo.tokensOnPath)-1].Address
 			path, err := valueobject.NewPath(data.PoolBucket, _pathInfo.poolAddressesOnPath, _pathInfo.tokensOnPath, tokenAmountIn, tokenOut,
-				data.PriceUSDByAddress[input.TokenOutAddress], data.TokenByAddress[tokenOut].Decimals,
+				data.PriceUSDByAddress[input.TokenOutAddress], data.TokenNativeBuyPrice(input.TokenOutAddress), data.TokenByAddress[tokenOut].Decimals,
 				valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}, data.SwapLimits,
 			)
 			if err != nil {
@@ -436,13 +436,9 @@ func calcNewTokenAmountAndGas(
 ) (*valueobject.TokenAmount, int64, error) {
 	if data.PriceNativeByAddress != nil {
 		// this will be called for tokenOut and intermediate tokens, so should use buy price
-		var tokenBuyPrice *big.Float = nil // if no price found then set to nil to ignore
-		if price, ok := data.PriceNativeByAddress[tokenOut.Address]; ok {
-			tokenBuyPrice = price.NativePriceRaw.Buy
-		}
 		return calcNewTokenAmountAndGasInNative(
 			pool, fromAmountIn, fromTotalGasAmount,
-			tokenOut.Address, tokenBuyPrice,
+			tokenOut.Address, data.TokenNativeBuyPrice(tokenOut.Address),
 			input.GasPrice, data.SwapLimits[pool.GetType()])
 	}
 	return calcNewTokenAmountAndGasInUSD(

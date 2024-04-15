@@ -5,40 +5,38 @@ import (
 	"fmt"
 	"testing"
 
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func TestPathPQ(t *testing.T) {
 	paths := []*valueobject.Path{
 		{
-			Output: poolpkg.TokenAmount{
+			Output: valueobject.TokenAmount{
 				AmountUsd: 100,
 			},
 		},
 		{
-			Output: poolpkg.TokenAmount{
+			Output: valueobject.TokenAmount{
 				AmountUsd: 300,
 			},
 		},
 		{
-			Output: poolpkg.TokenAmount{
+			Output: valueobject.TokenAmount{
 				AmountUsd: 200,
 			},
 		},
 		{
-			Output: poolpkg.TokenAmount{
+			Output: valueobject.TokenAmount{
 				AmountUsd: 101,
 			},
 		},
 		{
-			Output: poolpkg.TokenAmount{
+			Output: valueobject.TokenAmount{
 				AmountUsd: 302,
 			},
 		},
 		{
-			Output: poolpkg.TokenAmount{
+			Output: valueobject.TokenAmount{
 				AmountUsd: 200,
 			},
 		},

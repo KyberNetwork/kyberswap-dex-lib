@@ -16,7 +16,7 @@ var PathsPool = sync.Pool{
 	New: func() interface{} {
 		return &Path{
 			Input:         poolpkg.TokenAmount{},
-			Output:        poolpkg.TokenAmount{},
+			Output:        TokenAmount{},
 			TotalGas:      0,
 			PoolAddresses: nil,
 			Tokens:        nil,
@@ -47,7 +47,7 @@ type Path struct {
 	Input poolpkg.TokenAmount `json:"input"`
 
 	// Output consists of tokenOut and amountOut
-	Output poolpkg.TokenAmount `json:"output"`
+	Output TokenAmount `json:"output"`
 
 	// TotalGas estimated gas required swapping through this path
 	TotalGas int64 `json:"totalGas"`
@@ -62,16 +62,23 @@ type Path struct {
 func (p *Path) Clone() *Path {
 	poolAddresses := make([]string, len(p.PoolAddresses))
 	copy(poolAddresses, p.PoolAddresses)
+
+	var amountAfterGas *big.Int
+	if p.Output.AmountAfterGas != nil {
+		amountAfterGas = new(big.Int).Set(p.Output.AmountAfterGas)
+	}
+
 	return &Path{
 		Input: poolpkg.TokenAmount{
 			Token:     p.Input.Token,
 			Amount:    new(big.Int).Set(p.Input.Amount),
 			AmountUsd: p.Input.AmountUsd,
 		},
-		Output: poolpkg.TokenAmount{
-			Token:     p.Output.Token,
-			Amount:    new(big.Int).Set(p.Output.Amount),
-			AmountUsd: p.Output.AmountUsd,
+		Output: TokenAmount{
+			Token:          p.Output.Token,
+			Amount:         new(big.Int).Set(p.Output.Amount),
+			AmountAfterGas: amountAfterGas,
+			AmountUsd:      p.Output.AmountUsd,
 		},
 		TotalGas:      p.TotalGas,
 		PoolAddresses: poolAddresses,
@@ -87,7 +94,8 @@ func NewPath(
 	tokens []*entity.Token,
 	tokenAmountIn poolpkg.TokenAmount,
 	tokenOut string,
-	tokenOutPrice float64,
+	tokenOutPriceUSD float64,
+	tokenOutPriceNative *big.Float,
 	tokenOutDecimals uint8,
 	gasOption GasOption,
 	limits map[string]poolpkg.SwapLimit,
@@ -126,11 +134,24 @@ func NewPath(
 		return nil, err
 	}
 
-	amountUSD := utils.CalcTokenAmountUsd(tokenAmountOut.Amount, tokenOutDecimals, tokenOutPrice)
-	totalGasUSD := utils.CalcGasUsd(gasOption.Price, totalGas, gasOption.TokenPrice)
-	tokenAmountOut.AmountUsd = amountUSD - totalGasUSD
+	var amountOutAfterGas *big.Int
+	if tokenOutPriceNative != nil {
+		// gas amount doesn't have decimal, so just multiply with gasPrice directly
+		gasAmountInNative, _ := new(big.Float).Mul(gasOption.Price, new(big.Float).SetInt64(totalGas)).Int(&big.Int{})
+		// tokenOutPriceNative should have been divided by token decimal already, so here just multiply
+		amountOutInNative, _ := new(big.Float).Mul(tokenOutPriceNative, new(big.Float).SetInt(tokenAmountOut.Amount)).Int(&big.Int{})
+		amountOutAfterGas = new(big.Int).Sub(amountOutInNative, gasAmountInNative)
+	}
 
-	path.Output = tokenAmountOut
+	amountUSD := utils.CalcTokenAmountUsd(tokenAmountOut.Amount, tokenOutDecimals, tokenOutPriceUSD)
+	totalGasUSD := utils.CalcGasUsd(gasOption.Price, totalGas, gasOption.TokenPrice)
+
+	path.Output = TokenAmount{
+		Token:          tokenAmountOut.Token,
+		Amount:         new(big.Int).Set(tokenAmountOut.Amount),
+		AmountAfterGas: amountOutAfterGas,
+		AmountUsd:      amountUSD - totalGasUSD,
+	}
 	path.TotalGas = totalGas
 
 	return path, nil
@@ -220,10 +241,20 @@ func (p *Path) Merge(other *Path) bool {
 		AmountUsd: p.Input.AmountUsd + other.Input.AmountUsd,
 	}
 
-	newOutput := poolpkg.TokenAmount{
-		Token:     p.Output.Token,
-		Amount:    new(big.Int).Add(p.Output.Amount, other.Output.Amount),
-		AmountUsd: p.Output.AmountUsd + other.Output.AmountUsd,
+	amountAfterGas := big.NewInt(0)
+	if p.Output.AmountAfterGas != nil {
+		amountAfterGas.Set(p.Output.AmountAfterGas)
+	}
+	otherAmountAfterGas := big.NewInt(0)
+	if other.Output.AmountAfterGas != nil {
+		otherAmountAfterGas.Set(other.Output.AmountAfterGas)
+	}
+
+	newOutput := TokenAmount{
+		Token:          p.Output.Token,
+		Amount:         new(big.Int).Add(p.Output.Amount, other.Output.Amount),
+		AmountAfterGas: new(big.Int).Add(amountAfterGas, otherAmountAfterGas),
+		AmountUsd:      p.Output.AmountUsd + other.Output.AmountUsd,
 	}
 
 	p.Input = newInput
@@ -259,6 +290,15 @@ func (p *Path) CompareTo(other *Path, gasInclude bool) int {
 
 func (p *Path) cmpAmounts(other *Path, gasInclude bool) int {
 	if gasInclude {
+		// if we're using amount in native unit
+		if p.Output.AmountAfterGas != nil && other.Output.AmountAfterGas != nil {
+			// need to invert the sign here (this function should return -1 if p > other)
+			cmp := -p.Output.AmountAfterGas.Cmp(other.Output.AmountAfterGas)
+			if cmp != 0 {
+				return cmp
+			}
+		}
+		// otherwise compare amount in usd
 		if amountUSDCmp := p.cmpAmountUSD(other); amountUSDCmp != 0 {
 			return amountUSDCmp
 		}

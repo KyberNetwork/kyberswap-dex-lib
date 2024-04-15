@@ -27,9 +27,10 @@ type RouteExtraData struct {
 	ChunksInfo []ChunkInfo `json:"chunksInfo"`
 }
 
+// TODO: migrate to non-usd valueobject.TokenAmount
 type Route struct {
 	Input    poolpkg.TokenAmount `json:"input"`
-	Output   poolpkg.TokenAmount `json:"output"`
+	Output   TokenAmount         `json:"output"`
 	Paths    []*Path             `json:"paths"`
 	TotalGas int64               `json:"totalGas"`
 	Extra    RouteExtraData      `json:"extra"`
@@ -45,10 +46,11 @@ func NewRoute(
 			Amount:    constant.Zero,
 			AmountUsd: 0,
 		},
-		Output: poolpkg.TokenAmount{
-			Token:     tokenOutAddress,
-			Amount:    constant.Zero,
-			AmountUsd: 0,
+		Output: TokenAmount{
+			Token:          tokenOutAddress,
+			Amount:         big.NewInt(0),
+			AmountAfterGas: big.NewInt(0),
+			AmountUsd:      0,
 		},
 		Paths: nil,
 		Extra: RouteExtraData{
@@ -71,12 +73,15 @@ func NewRouteFromPaths(
 	for _, path := range paths {
 		route.Input.Amount = new(big.Int).Add(route.Input.Amount, path.Input.Amount)
 		route.Input.AmountUsd += path.Input.AmountUsd
-		route.Output.Amount = new(big.Int).Add(route.Output.Amount, path.Output.Amount)
+		route.Output.Amount.Add(route.Output.Amount, path.Output.Amount)
+		if path.Output.AmountAfterGas != nil {
+			route.Output.AmountAfterGas.Add(route.Output.AmountAfterGas, path.Output.AmountAfterGas)
+		}
 		route.Output.AmountUsd += path.Output.AmountUsd
 		route.TotalGas += path.TotalGas
 		route.Extra.ChunksInfo = append(route.Extra.ChunksInfo, ChunkInfo{
 			AmountIn:     new(big.Int).Set(path.Input.Amount),
-			AmountOut:    new(big.Int).Set(path.Output.Amount),
+			AmountOut:    path.Output.Amount,
 			AmountInUsd:  path.Input.AmountUsd,
 			AmountOutUsd: path.Output.AmountUsd,
 		})
@@ -169,12 +174,15 @@ func (r *Route) AddPath(poolBucket *PoolBucket, p *Path, swapLimits map[string]p
 
 	r.Input.Amount = new(big.Int).Add(r.Input.Amount, p.Input.Amount)
 	r.Input.AmountUsd += p.Input.AmountUsd
-	r.Output.Amount = new(big.Int).Add(r.Output.Amount, p.Output.Amount)
+	r.Output.Amount.Add(r.Output.Amount, p.Output.Amount)
+	if p.Output.AmountAfterGas != nil {
+		r.Output.AmountAfterGas.Add(r.Output.AmountAfterGas, p.Output.AmountAfterGas)
+	}
 	r.Output.AmountUsd += p.Output.AmountUsd
 
 	r.Extra.ChunksInfo = append(r.Extra.ChunksInfo, ChunkInfo{
 		AmountIn:     new(big.Int).Set(p.Input.Amount),
-		AmountOut:    new(big.Int).Set(p.Output.Amount),
+		AmountOut:    p.Output.Amount,
 		AmountInUsd:  p.Input.AmountUsd,
 		AmountOutUsd: p.Output.AmountUsd,
 	})
@@ -183,12 +191,21 @@ func (r *Route) AddPath(poolBucket *PoolBucket, p *Path, swapLimits map[string]p
 }
 
 func (r *Route) CompareTo(other *Route, gasInclude bool) int {
-	if gasInclude && !utils.Float64AlmostEqual(r.Output.AmountUsd, other.Output.AmountUsd) {
-		if r.Output.Amount.Cmp(constant.Zero) > 0 && r.Output.AmountUsd > other.Output.AmountUsd {
-			return 1
+	if gasInclude {
+		// compare amount in native unit if available
+		if r.Output.AmountAfterGas != nil && other.Output.AmountAfterGas != nil &&
+			r.Output.AmountAfterGas.Sign() != 0 && other.Output.AmountAfterGas.Sign() != 0 {
+			return r.Output.AmountAfterGas.Cmp(other.Output.AmountAfterGas)
 		}
-		if other.Output.Amount.Cmp(constant.Zero) > 0 && r.Output.AmountUsd < other.Output.AmountUsd {
-			return -1
+
+		// otherwise use usd amount
+		if !utils.Float64AlmostEqual(r.Output.AmountUsd, other.Output.AmountUsd) {
+			if r.Output.Amount.Sign() != 0 && r.Output.AmountUsd > other.Output.AmountUsd {
+				return 1
+			}
+			if other.Output.Amount.Sign() != 0 && r.Output.AmountUsd < other.Output.AmountUsd {
+				return -1
+			}
 		}
 	}
 	return r.Output.Amount.Cmp(other.Output.Amount)

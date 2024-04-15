@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -169,7 +170,7 @@ func TestFindRoute(t *testing.T) {
 	finder := NewHillClimbingFinder(1, 2, 500, baseFinder)
 
 	for _, tc := range testCases {
-		f := func(t *testing.T, tc testcase, priceUSDByAddress map[string]float64) {
+		f := func(t *testing.T, tc testcase, priceUSDByAddress map[string]float64, priceInNative map[string]*big.Float) {
 			params := &types.AggregateParams{
 				TokenIn:          *tokenByAddress[tc.tokenIn],
 				TokenOut:         *tokenByAddress[tc.tokenOut],
@@ -195,7 +196,11 @@ func TestFindRoute(t *testing.T) {
 				GasInclude:       params.GasInclude,
 			}
 
-			data := findroute.NewFinderData(context.Background(), tokenByAddress, priceUSDByAddress, nil, &types.FindRouteState{
+			priceByAddress := lo.MapValues(priceInNative, func(v *big.Float, _ string) *routerEntity.OnchainPrice {
+				return &routerEntity.OnchainPrice{NativePriceRaw: routerEntity.Price{Buy: v}}
+			})
+
+			data := findroute.NewFinderData(context.Background(), tokenByAddress, priceUSDByAddress, priceByAddress, &types.FindRouteState{
 				Pools:     poolByAddress,
 				SwapLimit: make(map[string]poolpkg.SwapLimit),
 			})
@@ -230,9 +235,26 @@ func TestFindRoute(t *testing.T) {
 
 		normalPriceUSD := lo.SliceToMap(tokenAddressList, func(adr string) (string, float64) { return adr, 1 })
 		normalPriceUSD["gas"] = 20000000000
+		normalPriceNative := lo.SliceToMap(tokenAddressList, func(adr string) (string, *big.Float) { return adr, big.NewFloat(100000000) })
 
 		// use usd alone
-		t.Run(fmt.Sprintf("%s - use USD price", tc.name), func(t *testing.T) { f(t, tc, normalPriceUSD) })
+		t.Run(fmt.Sprintf("%s - use USD price", tc.name), func(t *testing.T) { f(t, tc, normalPriceUSD, nil) })
+
+		// if all tokens has the same Native price then the result should be the same
+		t.Run(fmt.Sprintf("%s - use Native price", tc.name), func(t *testing.T) { f(t, tc, normalPriceUSD, normalPriceNative) })
+
+		// if we're missing price for all or some tokens, then will fallback to compare amountOut
+		// the result should be different (because now `pool-ab-1-highgas` is better than `pool-ab-1`)
+		// but when comparing path we're still using usd, so should give the same result for now
+		// will be split into another test later
+		t.Run(fmt.Sprintf("%s - use Native price (none)", tc.name), func(t *testing.T) { f(t, tc, normalPriceUSD, map[string]*big.Float{}) })
+
+		t.Run(fmt.Sprintf("%s - use Native price (some)", tc.name), func(t *testing.T) {
+			f(t, tc, normalPriceUSD, map[string]*big.Float{
+				"a": big.NewFloat(100000000),
+				"c": big.NewFloat(100000000),
+			})
+		})
 	}
 }
 

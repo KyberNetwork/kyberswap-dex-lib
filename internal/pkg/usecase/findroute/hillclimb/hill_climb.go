@@ -57,12 +57,12 @@ func (f *hillClimbFinder) binarySearch(
 ) (*valueobject.Path, *valueobject.Path, error) {
 	var (
 		bestFirstPath, bestSecondPath, firstPath, secondPath *valueobject.Path
-		bestTokenAmountOut                                   *poolpkg.TokenAmount
+		bestTokenAmountOut                                   *valueobject.TokenAmount
 
 		low  = -int(f.hillClimbIteration)
 		high = int(f.hillClimbIteration) - 1
 
-		tokenAmountOutResult = make(map[int]*poolpkg.TokenAmount)
+		tokenAmountOutResult = make(map[int]*valueobject.TokenAmount)
 	)
 
 	for low <= high {
@@ -113,7 +113,7 @@ func (f *hillClimbFinder) calcAdjustedTokenAmount(
 	input findroute.Input, data findroute.FinderData,
 	baseFirstPath, baseSecondPath *valueobject.Path,
 	splits int,
-) (*poolpkg.TokenAmount, *valueobject.Path, *valueobject.Path) {
+) (*valueobject.TokenAmount, *valueobject.Path, *valueobject.Path) {
 	// Step 1: calculate the adjust input for the two paths
 
 	var (
@@ -145,19 +145,25 @@ func (f *hillClimbFinder) calcAdjustedTokenAmount(
 
 	// if splits==0 then don't bother to do the duplicated calculation (same input)
 	if splits == 0 {
-		return &poolpkg.TokenAmount{
-			Token:     input.TokenOutAddress,
-			Amount:    new(big.Int).Add(baseFirstPath.Output.Amount, baseSecondPath.Output.Amount),
-			AmountUsd: baseFirstPath.Output.AmountUsd + baseSecondPath.Output.AmountUsd,
+		var amountAfterGas *big.Int
+		if baseFirstPath.Output.AmountAfterGas != nil && baseSecondPath.Output.AmountAfterGas != nil {
+			amountAfterGas = new(big.Int).Add(baseFirstPath.Output.AmountAfterGas, baseSecondPath.Output.AmountAfterGas)
+		}
+		return &valueobject.TokenAmount{
+			Token:          input.TokenOutAddress,
+			Amount:         new(big.Int).Add(baseFirstPath.Output.Amount, baseSecondPath.Output.Amount),
+			AmountUsd:      baseFirstPath.Output.AmountUsd + baseSecondPath.Output.AmountUsd,
+			AmountAfterGas: amountAfterGas,
 		}, baseFirstPath, baseSecondPath
 	}
 
 	// Step 2: recalculate the rate of two paths with the new input
 
 	var (
-		tokenOutPriceUSD = data.PriceUSDByAddress[input.TokenOutAddress]
-		tokenOutDecimal  = data.TokenByAddress[input.TokenOutAddress].Decimals
-		gasOption        = valueobject.GasOption{
+		tokenOutPriceUSD    = data.PriceUSDByAddress[input.TokenOutAddress]
+		tokenOutPriceNative = data.TokenNativeBuyPrice(input.TokenOutAddress)
+		tokenOutDecimal     = data.TokenByAddress[input.TokenOutAddress].Decimals
+		gasOption           = valueobject.GasOption{
 			TokenPrice:    input.GasTokenPriceUSD,
 			Price:         input.GasPrice,
 			GasFeeInclude: input.GasInclude,
@@ -165,41 +171,55 @@ func (f *hillClimbFinder) calcAdjustedTokenAmount(
 	)
 
 	firstPathAdjusted, err := valueobject.NewPath(data.PoolBucket, baseFirstPath.PoolAddresses, baseFirstPath.Tokens,
-		firstPathInput, input.TokenOutAddress, tokenOutPriceUSD, tokenOutDecimal, gasOption, data.SwapLimits)
+		firstPathInput, input.TokenOutAddress, tokenOutPriceUSD, tokenOutPriceNative, tokenOutDecimal, gasOption, data.SwapLimits)
 
 	if err != nil {
 		return nil, nil, nil
 	}
 
 	secondPathAdjusted, err := valueobject.NewPath(data.PoolBucket, baseSecondPath.PoolAddresses, baseSecondPath.Tokens, secondPathInput,
-		input.TokenOutAddress, tokenOutPriceUSD, tokenOutDecimal, gasOption, data.SwapLimits)
+		input.TokenOutAddress, tokenOutPriceUSD, tokenOutPriceNative, tokenOutDecimal, gasOption, data.SwapLimits)
 
 	if err != nil {
 		return nil, nil, nil
 	}
 
-	return &poolpkg.TokenAmount{
-		Token:     input.TokenOutAddress,
-		Amount:    new(big.Int).Add(firstPathAdjusted.Output.Amount, secondPathAdjusted.Output.Amount),
-		AmountUsd: firstPathAdjusted.Output.AmountUsd + secondPathAdjusted.Output.AmountUsd,
+	var amountAfterGas *big.Int
+	if firstPathAdjusted.Output.AmountAfterGas != nil && secondPathAdjusted.Output.AmountAfterGas != nil {
+		amountAfterGas = new(big.Int).Add(firstPathAdjusted.Output.AmountAfterGas, secondPathAdjusted.Output.AmountAfterGas)
+	}
+	return &valueobject.TokenAmount{
+		Token:          input.TokenOutAddress,
+		Amount:         new(big.Int).Add(firstPathAdjusted.Output.Amount, secondPathAdjusted.Output.Amount),
+		AmountUsd:      firstPathAdjusted.Output.AmountUsd + secondPathAdjusted.Output.AmountUsd,
+		AmountAfterGas: amountAfterGas,
 	}, firstPathAdjusted, secondPathAdjusted
 }
 
 // return 1 if a greater than b
 // return 0 if a == b
 // return -1 otherwise
-func cmpTokenAmount(a, b *poolpkg.TokenAmount, gasFeeInclude bool) int {
+func cmpTokenAmount(a, b *valueobject.TokenAmount, gasFeeInclude bool) int {
 	if a == nil {
 		return -1
 	}
 	if b == nil {
 		return 1
 	}
-	if gasFeeInclude && !utils.Float64AlmostEqual(a.AmountUsd, b.AmountUsd) {
-		if a.AmountUsd > b.AmountUsd {
-			return 1
-		} else {
-			return -1
+	if gasFeeInclude {
+		if a.AmountAfterGas != nil && b.AmountAfterGas != nil {
+			cmp := a.AmountAfterGas.Cmp(b.AmountAfterGas)
+			if cmp != 0 {
+				return cmp
+			}
+		}
+
+		if !utils.Float64AlmostEqual(a.AmountUsd, b.AmountUsd) {
+			if a.AmountUsd > b.AmountUsd {
+				return 1
+			} else {
+				return -1
+			}
 		}
 	}
 	// Otherwise, prioritize node with more token Amount

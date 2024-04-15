@@ -125,7 +125,7 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, route *valueobject.
 		//found better path
 		if modified {
 			var err error
-			newPath, err = valueobject.NewPath(data.PoolBucket, poolsOnNewPath, currPath.Tokens, currPath.Input, currPath.Output.Token, data.PriceUSDByAddress[currPath.Output.Token], data.TokenByAddress[currPath.Output.Token].Decimals, gasOption, data.SwapLimits)
+			newPath, err = valueobject.NewPath(data.PoolBucket, poolsOnNewPath, currPath.Tokens, currPath.Input, currPath.Output.Token, data.PriceUSDByAddress[currPath.Output.Token], data.TokenNativeBuyPrice(currPath.Output.Token), data.TokenByAddress[currPath.Output.Token].Decimals, gasOption, data.SwapLimits)
 			if err != nil {
 				logger.Errorf(ctx, "cannot create new path, error: %s", err.Error())
 				newPath = currPath

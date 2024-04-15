@@ -108,3 +108,10 @@ func (f *FinderData) Refresh() {
 	f.PoolBucket.ClearChangedPools()
 	f.SwapLimits = clone.Slowly(f.originSwapLimits).(map[string]poolpkg.SwapLimit)
 }
+
+func (f *FinderData) TokenNativeBuyPrice(address string) *big.Float {
+	if price, ok := f.PriceNativeByAddress[address]; ok {
+		return price.NativePriceRaw.Buy
+	}
+	return nil
+}

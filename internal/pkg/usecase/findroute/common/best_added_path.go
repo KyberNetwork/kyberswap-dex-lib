@@ -73,6 +73,7 @@ func BestPathAmongAddedPaths(
 		tokenAmountIn,
 		input.TokenOutAddress,
 		data.PriceUSDByAddress[input.TokenOutAddress],
+		data.TokenNativeBuyPrice(input.TokenOutAddress),
 		data.TokenByAddress[input.TokenOutAddress].Decimals,
 		valueobject.GasOption{
 			GasFeeInclude: false,

@@ -56,7 +56,7 @@ func bestPathToPath(
 		totalGasUSD := utils.CalcGasUsd(input.GasPrice, totalGas, input.GasTokenPriceUSD)
 		tokenAmountOut.AmountUsd = amountUSD - totalGasUSD
 
-		path.Output = tokenAmountOut
+		path.Output = *valueobject.FromDexLibAmount(&tokenAmountOut)
 		path.TotalGas = totalGas
 
 		paths = append(paths, path)
@@ -103,7 +103,7 @@ func newPathFromBestPathWithoutInputOutput(tokenByAddress map[string]*entity.Tok
 
 	//have to zero out other values
 	path.Input = poolpkg.TokenAmount{}
-	path.Output = poolpkg.TokenAmount{}
+	path.Output = valueobject.TokenAmount{}
 	path.TotalGas = 0
 	//set new bestPath and tokens
 	path.PoolAddresses = bestPath.Pools
