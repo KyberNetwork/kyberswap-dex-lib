@@ -2,7 +2,6 @@ package reth
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/goccy/go-json"
@@ -170,7 +169,6 @@ func (s *PoolSimulator) burn(amount *big.Int) (*poolpkg.CalcAmountOutResult, err
 	ethAmount := s.getEthValue(amount)
 	ethBalance := new(big.Int).Add(s.excessBalance, s.rETHBalance)
 
-	fmt.Printf("ethBalance: [%s]\n", ethBalance)
 	if ethBalance.Cmp(ethAmount) < 0 {
 		return nil, ErrInsufficientETHBalance
 	}
