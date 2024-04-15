@@ -21,7 +21,7 @@ import (
 )
 
 type nodeInfo struct {
-	tokenAmount         poolpkg.TokenAmount
+	tokenAmount         valueobject.TokenAmount
 	poolAddressesOnPath []string
 	tokensOnPath        []*entity.Token
 	totalGasAmount      int64
@@ -73,7 +73,12 @@ func GenKthBestPaths(
 
 	prevLayer[input.TokenInAddress] = []*nodeInfo{
 		{
-			tokenAmount:    tokenAmountIn,
+			tokenAmount: valueobject.TokenAmount{
+				Token:          tokenAmountIn.Token,
+				Amount:         tokenAmountIn.Amount,
+				AmountAfterGas: tokenAmountIn.Amount,
+				AmountUsd:      tokenAmountIn.AmountUsd,
+			},
 			totalGasAmount: 0,
 			tokensOnPath:   []*entity.Token{data.TokenByAddress[input.TokenInAddress]},
 		},
@@ -165,7 +170,7 @@ func getNextLayerFromToken(
 		toTokenInfo    *entity.Token
 	}
 	type IntermediateResult struct {
-		toTokenAmount    *poolpkg.TokenAmount
+		toTokenAmount    *valueobject.TokenAmount
 		toTotalGasAmount int64
 	}
 	var (
@@ -223,11 +228,11 @@ func getNextLayerFromToken(
 				continue
 			}
 
-			itr, _pool, _toTokenAddress, _toTokenInfo := numItr, pool, toTokenAddress, toTokenInfo
+			itr, _pool, _toTokenInfo := numItr, pool, toTokenInfo
 			wg.Go(func() error {
 				// it is ok for prices[tokenTo] to default to zero
-				toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGas(_pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenAddress, data.PriceUSDByAddress[_toTokenAddress], _toTokenInfo.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[_pool.GetType()])
-				if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Int64() == 0 {
+				toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGas(_pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenInfo, data, input)
+				if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Sign() == 0 {
 					logger.Debugf(ctx, "cannot calculate amountOut, error:%v", err)
 					return nil
 				}
@@ -341,8 +346,18 @@ func getKthPathAtTokenOut(
 func betterAmountOut(nodeA, nodeB *nodeInfo, gasFeeInclude bool) bool {
 	// If we consider gas fee, prioritize node with more AmountUsd
 	// If amountUsd is the same, compare amountOut regardless of gasFeeInclude
-	if gasFeeInclude && !utils.Float64AlmostEqual(nodeA.tokenAmount.AmountUsd, nodeB.tokenAmount.AmountUsd) {
-		return nodeA.tokenAmount.AmountUsd > nodeB.tokenAmount.AmountUsd
+	if gasFeeInclude {
+		// if we're using amount in native unit
+		if nodeA.tokenAmount.AmountAfterGas != nil && nodeB.tokenAmount.AmountAfterGas != nil {
+			cmp := nodeA.tokenAmount.AmountAfterGas.Cmp(nodeB.tokenAmount.AmountAfterGas)
+			if cmp != 0 {
+				return cmp > 0
+			}
+		}
+		// otherwise compare amount in usd
+		if !utils.Float64AlmostEqual(nodeA.tokenAmount.AmountUsd, nodeB.tokenAmount.AmountUsd) {
+			return nodeA.tokenAmount.AmountUsd > nodeB.tokenAmount.AmountUsd
+		}
 	}
 	// Otherwise, prioritize node with more token Amount
 	cmp := nodeA.tokenAmount.Amount.Cmp(nodeB.tokenAmount.Amount)
@@ -354,20 +369,84 @@ func betterAmountOut(nodeA, nodeB *nodeInfo, gasFeeInclude bool) bool {
 }
 
 // return newTokenAmount, newTotalGasAmount, error
-func calcNewTokenAmountAndGas(
+func calcNewTokenAmountAndGasInUSD(
 	pool poolpkg.IPoolSimulator,
-	fromAmountIn poolpkg.TokenAmount, fromTotalGasAmount int64,
+	fromAmountIn valueobject.TokenAmount, fromTotalGasAmount int64,
 	tokenOut string, tokenOutPrice float64, tokenOutDecimal uint8,
 	gasPrice *big.Float, gasTokenPrice float64,
 	swapLimit poolpkg.SwapLimit,
-) (*poolpkg.TokenAmount, int64, error) {
-	calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, fromAmountIn, tokenOut, swapLimit)
+) (*valueobject.TokenAmount, int64, error) {
+	calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, poolpkg.TokenAmount{
+		Token:  fromAmountIn.Token,
+		Amount: fromAmountIn.Amount,
+	}, tokenOut, swapLimit)
 	if err != nil {
 		return nil, 0, err
 	}
 	newTotalGasAmount := calcAmountOutResult.Gas + fromTotalGasAmount
+
 	calcAmountOutResult.TokenAmountOut.AmountUsd =
 		utils.CalcTokenAmountUsd(calcAmountOutResult.TokenAmountOut.Amount, tokenOutDecimal, tokenOutPrice) -
 			utils.CalcGasUsd(gasPrice, newTotalGasAmount, gasTokenPrice)
-	return calcAmountOutResult.TokenAmountOut, newTotalGasAmount, nil
+	return valueobject.FromDexLibAmount(calcAmountOutResult.TokenAmountOut), newTotalGasAmount, nil
+}
+
+func calcNewTokenAmountAndGasInNative(
+	pool poolpkg.IPoolSimulator,
+	fromAmountIn valueobject.TokenAmount, fromTotalGasAmount int64,
+	tokenOut string, tokenOutPriceNative *big.Float,
+	gasPrice *big.Float,
+	swapLimit poolpkg.SwapLimit,
+) (*valueobject.TokenAmount, int64, error) {
+	calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, poolpkg.TokenAmount{
+		Token:  fromAmountIn.Token,
+		Amount: fromAmountIn.Amount,
+	}, tokenOut, swapLimit)
+	if err != nil {
+		return nil, 0, err
+	}
+	newTotalGasAmount := calcAmountOutResult.Gas + fromTotalGasAmount
+
+	tokenAmountOut := &valueobject.TokenAmount{
+		Token:          tokenOut,
+		Amount:         calcAmountOutResult.TokenAmountOut.Amount,
+		AmountAfterGas: big.NewInt(0),
+	}
+
+	// if we don't have price for tokenOut, then let's just keep AmountAfterGas to zero, `betterAmountOut` will fallback to comparing `Amount`
+	if tokenOutPriceNative == nil {
+		return tokenAmountOut, newTotalGasAmount, nil
+	}
+
+	// gas amount doesn't have decimal, so just multiply with gasPrice directly
+	gasAmountInNative, _ := new(big.Float).Mul(gasPrice, new(big.Float).SetInt64(newTotalGasAmount)).Int(&big.Int{})
+	// tokenOutPriceNative should have been divided by token decimal already, so here just multiply
+	amountOutInNative, _ := new(big.Float).Mul(tokenOutPriceNative, new(big.Float).SetInt(calcAmountOutResult.TokenAmountOut.Amount)).Int(&big.Int{})
+	tokenAmountOut.AmountAfterGas.Sub(amountOutInNative, gasAmountInNative)
+
+	return tokenAmountOut, newTotalGasAmount, nil
+}
+
+func calcNewTokenAmountAndGas(
+	pool poolpkg.IPoolSimulator,
+	fromAmountIn valueobject.TokenAmount, fromTotalGasAmount int64,
+	tokenOut *entity.Token,
+	data findroute.FinderData,
+	input findroute.Input,
+) (*valueobject.TokenAmount, int64, error) {
+	if data.PriceNativeByAddress != nil {
+		// this will be called for tokenOut and intermediate tokens, so should use buy price
+		var tokenBuyPrice *big.Float = nil // if no price found then set to nil to ignore
+		if price, ok := data.PriceNativeByAddress[tokenOut.Address]; ok {
+			tokenBuyPrice = price.NativePriceRaw.Buy
+		}
+		return calcNewTokenAmountAndGasInNative(
+			pool, fromAmountIn, fromTotalGasAmount,
+			tokenOut.Address, tokenBuyPrice,
+			input.GasPrice, data.SwapLimits[pool.GetType()])
+	}
+	return calcNewTokenAmountAndGasInUSD(
+		pool, fromAmountIn, fromTotalGasAmount,
+		tokenOut.Address, data.PriceUSDByAddress[tokenOut.Address],
+		tokenOut.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[pool.GetType()])
 }

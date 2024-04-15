@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 	"testing"
 
 	composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -37,6 +39,15 @@ type testSwap struct {
 }
 type testPaths []testSwap
 
+type testcase struct {
+	name          string
+	tokenIn       string
+	tokenOut      string
+	amountIn      *big.Int
+	saveGas       bool
+	expectedPaths []testPaths
+}
+
 var (
 	tokenByAddress = map[string]*entity.Token{
 		"a":   {Address: "a"},
@@ -59,6 +70,9 @@ var (
 		{"pool-de-1", "d", 10, "e", 10},
 		{"pool-ef-1", "e", 10, "f", 10},
 		{"pool-fe-1", "f", 10, "g", 10},
+
+		// this pool has better raw rate than `pool-ab-1`, but use much more gas -> amountOutAfterGas and amountOutUSD will be worse
+		{"pool-ab-1-highgas", "a", 11, "b", 11},
 	}
 
 	/*
@@ -73,14 +87,7 @@ var (
 	                                                                                                       f <--[pool-fg-1]--> g
 	*/
 
-	testCases = []struct {
-		name          string
-		tokenIn       string
-		tokenOut      string
-		amountIn      *big.Int
-		saveGas       bool
-		expectedPaths []testPaths
-	}{
+	testCases = []testcase{
 		// single hop
 		{"a->b saveGas should use pool-ab-2", "a", "b", big.NewInt(1000), true,
 			[]testPaths{{{"pool-ab-2", 1000, 19}}}}, // ab2 yield more than ab1
@@ -143,9 +150,11 @@ func TestFindRoute(t *testing.T) {
 	})
 
 	tokenAddressList := lo.MapToSlice(tokenByAddress, func(adr string, _ *entity.Token) string { return adr })
-	priceUSDByAddress := lo.SliceToMap(tokenAddressList, func(adr string) (string, float64) { return adr, 1 })
 	poolByAddress := lo.SliceToMap(poolEntities, func(poolEntity entity.Pool) (string, poolpkg.IPoolSimulator) {
 		pool, _ := uni.NewPoolSimulator(poolEntity)
+		if strings.Contains(poolEntity.Address, "-highgas") {
+			return pool.GetAddress(), &HighGasSim{pool, 150000}
+		}
 		return pool.GetAddress(), pool
 	})
 
@@ -163,7 +172,7 @@ func TestFindRoute(t *testing.T) {
 	)
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		f := func(t *testing.T, tc testcase, priceUSDByAddress map[string]float64, priceInNative map[string]*big.Float) {
 			params := &types.AggregateParams{
 				TokenIn:          *tokenByAddress[tc.tokenIn],
 				TokenOut:         *tokenByAddress[tc.tokenOut],
@@ -175,7 +184,7 @@ func TestFindRoute(t *testing.T) {
 				Sources:          []string{},
 				SaveGas:          tc.saveGas,
 				GasInclude:       true,
-				GasPrice:         big.NewFloat(1),
+				GasPrice:         big.NewFloat(1000),
 				ExtraFee:         valueobject.ZeroExtraFee,
 			}
 
@@ -189,7 +198,10 @@ func TestFindRoute(t *testing.T) {
 				GasInclude:       params.GasInclude,
 			}
 
-			data := findroute.NewFinderData(context.Background(), tokenByAddress, priceUSDByAddress, nil, &types.FindRouteState{
+			priceByAddress := lo.MapValues(priceInNative, func(v *big.Float, _ string) *routerEntity.OnchainPrice {
+				return &routerEntity.OnchainPrice{NativePriceRaw: routerEntity.Price{Buy: v}}
+			})
+			data := findroute.NewFinderData(context.Background(), tokenByAddress, priceUSDByAddress, priceByAddress, &types.FindRouteState{
 				Pools:     poolByAddress,
 				SwapLimit: make(map[string]poolpkg.SwapLimit),
 			})
@@ -228,9 +240,45 @@ func TestFindRoute(t *testing.T) {
 				// assert.Equal(t, expectedPool.amountIn, actualPool.Input.Amount.Uint64())
 				// assert.Equal(t, expectedPool.amountOut, actualPool.Output.Amount.Uint64())
 			})
+		}
+
+		normalPriceUSD := lo.SliceToMap(tokenAddressList, func(adr string) (string, float64) { return adr, 1 })
+		normalPriceUSD["gas"] = 20000000000
+		normalPriceNative := lo.SliceToMap(tokenAddressList, func(adr string) (string, *big.Float) { return adr, big.NewFloat(100000000) })
+
+		// use usd alone
+		t.Run(fmt.Sprintf("%s - use USD price", tc.name), func(t *testing.T) { f(t, tc, normalPriceUSD, nil) })
+
+		// if all tokens has the same Native price then the result should be the same
+		t.Run(fmt.Sprintf("%s - use Native price", tc.name), func(t *testing.T) { f(t, tc, normalPriceUSD, normalPriceNative) })
+
+		// if we're missing price for all or some tokens, then will fallback to compare amountOut
+		// the result should be different (because now `pool-ab-1-highgas` is better than `pool-ab-1`)
+		// but when comparing path we're still using usd, so should give the same result for now
+		// will be split into another test later
+		t.Run(fmt.Sprintf("%s - use Native price (none)", tc.name), func(t *testing.T) { f(t, tc, normalPriceUSD, map[string]*big.Float{}) })
+
+		t.Run(fmt.Sprintf("%s - use Native price (some)", tc.name), func(t *testing.T) {
+			f(t, tc, normalPriceUSD, map[string]*big.Float{
+				"a": big.NewFloat(100000000),
+				"c": big.NewFloat(100000000),
+			})
 		})
 	}
+}
 
+type HighGasSim struct {
+	poolpkg.IPoolSimulator
+	GasAdd int64
+}
+
+func (s *HighGasSim) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+	res, err := s.IPoolSimulator.CalcAmountOut(params)
+	if err != nil {
+		return nil, err
+	}
+	res.Gas += s.GasAdd
+	return res, nil
 }
 
 type balancerPool struct {

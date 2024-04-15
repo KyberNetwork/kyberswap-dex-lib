@@ -43,7 +43,7 @@ func GenKthBestPathsV2(
 
 	prevLayer[input.TokenInAddress] = []*nodeInfo{
 		{
-			tokenAmount:    tokenAmountIn,
+			tokenAmount:    *valueobject.FromDexLibAmount(&tokenAmountIn),
 			totalGasAmount: 0,
 			tokensOnPath:   []*entity.Token{data.TokenByAddress[input.TokenInAddress]},
 		},
@@ -127,7 +127,7 @@ func getNextLayerFromTokenV2(
 		toTokenInfo    *entity.Token
 	}
 	type IntermediateResult struct {
-		toTokenAmount    *poolpkg.TokenAmount
+		toTokenAmount    *valueobject.TokenAmount
 		toTotalGasAmount int64
 	}
 	var (
@@ -184,8 +184,8 @@ func getNextLayerFromTokenV2(
 			itr, _pool, _toTokenAddress, _toTokenInfo := numItr, pool, toTokenAddress, toTokenInfo
 			wg.Go(func() error {
 				// it is ok for prices[tokenTo] to default to zero
-				toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGas(_pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenAddress, data.PriceUSDByAddress[_toTokenAddress], _toTokenInfo.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[_pool.GetType()])
-				if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Int64() == 0 {
+				toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGasInUSD(_pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenAddress, data.PriceUSDByAddress[_toTokenAddress], _toTokenInfo.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[_pool.GetType()])
+				if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Sign() == 0 {
 					return nil
 				}
 
@@ -244,7 +244,7 @@ func getKthPathAtTokenOutV2(
 	for _, pathInfo := range nodeInfoAtTokenOut {
 		paths = append(paths, &valueobject.Path{
 			Input:         tokenAmountIn,
-			Output:        pathInfo.tokenAmount,
+			Output:        *pathInfo.tokenAmount.ToDexLibAmount(),
 			TotalGas:      pathInfo.totalGasAmount,
 			PoolAddresses: pathInfo.poolAddressesOnPath,
 			Tokens:        pathInfo.tokensOnPath,
