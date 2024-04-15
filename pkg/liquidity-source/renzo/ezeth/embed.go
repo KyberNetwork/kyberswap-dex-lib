@@ -13,3 +13,6 @@ var priceFeedABIJson []byte
 
 //go:embed abis/StrategyManager.json
 var strategyManagerABIJson []byte
+
+//go:embed abis/OperatorDelegator.json
+var operatorDelegatorABIJson []byte

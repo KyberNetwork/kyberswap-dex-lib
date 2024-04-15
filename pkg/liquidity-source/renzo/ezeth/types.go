@@ -11,7 +11,8 @@ type PoolExtra struct {
 	OperatorDelegatorTokenTVLs [][]*big.Int `json:"operatorDelegatorTokenTvls"`
 	OperatorDelegatorTVLs      []*big.Int   `json:"operatorDelegatorTvls"`
 	TotalTVL                   *big.Int     `json:"totalTvl"`
-	MaxDepositTVL              *big.Int     `json:"maxDepositTvl"`
+
+	MaxDepositTVL *big.Int `json:"maxDepositTvl"`
 
 	collaterals []*entity.PoolToken
 }

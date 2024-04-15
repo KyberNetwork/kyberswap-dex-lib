@@ -103,8 +103,10 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 		collateralTokenLength *big.Int
 		maxDepositTVL         *big.Int
 		paused                bool
-		strategyManagerPaused bool
+		strategyManagerPaused *big.Int
 		renzoOracle           common.Address
+
+		operatorDelegatorsLength *big.Int
 	)
 
 	getPoolStateRequest := ethrpcClient.NewRequest().SetContext(ctx)
@@ -140,6 +142,12 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 		Params: []interface{}{},
 	}, []interface{}{&renzoOracle})
 	getPoolStateRequest.AddCall(&ethrpc.Call{
+		ABI:    RestakeManagerABI,
+		Target: RestakeManager,
+		Method: RestakeManagerMethodGetOperatorDelegatorsLength,
+		Params: []interface{}{},
+	}, []interface{}{&operatorDelegatorsLength})
+	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    StrategyManagerABI,
 		Target: StrategyManager,
 		Method: StrategyManagerMethodPaused,
@@ -166,8 +174,62 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 			ABI:    RestakeManagerABI,
 			Target: RestakeManager,
 			Method: RestakeManagerMethodCollateralTokens,
-			Params: []interface{}{i},
+			Params: []interface{}{big.NewInt(int64(i))},
 		}, []interface{}{&collaterals[i]})
+	}
+	resp, err = getCollateralsRequest.TryAggregate()
+	if err != nil {
+		return PoolExtra{}, 0, err
+	}
+
+	// Get OperatorDelegators addresses
+	operatorDelegatorsLen := operatorDelegatorsLength.Int64()
+	var operatorDelegators = make([]common.Address, operatorDelegatorsLen)
+
+	operatorDelegatorsRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+	for i := 0; i < int(operatorDelegatorsLen); i++ {
+		operatorDelegatorsRequest.AddCall(&ethrpc.Call{
+			ABI:    RestakeManagerABI,
+			Target: RestakeManager,
+			Method: RestakeManagerMethodOperatorDelegators,
+			Params: []interface{}{big.NewInt(int64(i))},
+		}, []interface{}{&operatorDelegators[i]})
+	}
+	resp, err = operatorDelegatorsRequest.TryAggregate()
+	if err != nil {
+		return PoolExtra{}, 0, err
+	}
+
+	// Get OperatorDelegatorAllocation & TokenStrategyMapping for each OperatorDelegator
+	var (
+		operatorDelegatorAllocations = make([]*big.Int, operatorDelegatorsLen)
+		tokenStrategyMapping         = make([][]common.Address, operatorDelegatorsLen)
+	)
+	operatorDelegatorInfoRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+	for i := 0; i < int(operatorDelegatorsLen); i++ {
+		operatorDelegatorInfoRequest.AddCall(&ethrpc.Call{
+			ABI:    RestakeManagerABI,
+			Target: RestakeManager,
+			Method: RestakeManagerMethodOperatorDelegatorAllocations,
+			Params: []interface{}{operatorDelegators[i]},
+		}, []interface{}{&operatorDelegatorAllocations[i]})
+	}
+
+	for i := 0; i < int(operatorDelegatorsLen); i++ {
+		tokenStrategyMapping[i] = make([]common.Address, collateralsLen)
+		for j := 0; j < int(collateralsLen); j++ {
+			operatorDelegatorInfoRequest.AddCall(&ethrpc.Call{
+				ABI:    OperatorDelegatorABI,
+				Target: operatorDelegators[i].String(),
+				Method: OperatorDelegatorMethodTokenStrategyMapping,
+				Params: []interface{}{collaterals[j]},
+			}, []interface{}{&tokenStrategyMapping[i][j]})
+		}
+	}
+
+	resp, err = operatorDelegatorInfoRequest.TryAggregate()
+	if err != nil {
+		return PoolExtra{}, 0, err
 	}
 
 	poolExtra := PoolExtra{

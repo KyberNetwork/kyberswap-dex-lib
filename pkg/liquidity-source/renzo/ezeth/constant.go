@@ -23,5 +23,11 @@ const (
 	RestakeManagerMethodPaused                    = "paused"
 	RestakeManagerMethodRenzoOracle               = "renzoOracle"
 
+	RestakeManagerMethodGetOperatorDelegatorsLength  = "getOperatorDelegatorsLength"
+	RestakeManagerMethodOperatorDelegators           = "operatorDelegators"
+	RestakeManagerMethodOperatorDelegatorAllocations = "operatorDelegatorAllocations"
+
+	OperatorDelegatorMethodTokenStrategyMapping = "tokenStrategyMapping"
+
 	StrategyManagerMethodPaused = "paused"
 )

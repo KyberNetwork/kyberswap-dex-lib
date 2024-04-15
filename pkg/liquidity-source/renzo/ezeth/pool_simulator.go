@@ -250,5 +250,6 @@ func (s *PoolSimulator) chooseOperatorDelegatorForDeposit() (int, error) {
 		}
 	}
 
+	// Default to the first operator delegator
 	return 0, nil
 }
