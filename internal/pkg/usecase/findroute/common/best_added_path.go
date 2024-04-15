@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"sync"
 
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -18,12 +17,12 @@ import (
 func BestPathAmongAddedPaths(
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenAmountIn poolpkg.TokenAmount,
+	tokenAmountIn valueobject.TokenAmount,
 	addedPaths []*valueobject.Path,
 ) (*valueobject.Path, error) {
 	var (
 		bestPath      *valueobject.Path
-		bestAmountOut = poolpkg.TokenAmount{
+		bestAmountOut = valueobject.TokenAmount{
 			Token:     input.TokenOutAddress,
 			Amount:    constant.Zero,
 			AmountUsd: 0,
@@ -54,7 +53,7 @@ func BestPathAmongAddedPaths(
 		if !ok {
 			continue
 		}
-		amountOut := _amountOut.(poolpkg.TokenAmount)
+		amountOut := _amountOut.(valueobject.TokenAmount)
 		// only compare token amount (not AmountUsd) as fee should be disregarded here
 		if amountOut.Token == input.TokenOutAddress && amountOut.Amount.Cmp(bestAmountOut.Amount) > 0 {
 			bestAmountOut = amountOut

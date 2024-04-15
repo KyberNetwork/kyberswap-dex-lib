@@ -47,7 +47,7 @@ func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Inp
 	}
 
 	// it is fine if prices[token] is not set because it would default to zero
-	tokenAmountIn := poolpkg.TokenAmount{
+	tokenAmountIn := valueobject.TokenAmount{
 		Token:     input.TokenInAddress,
 		Amount:    input.AmountIn,
 		AmountUsd: utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, data.PriceUSDByAddress[input.TokenInAddress]),
@@ -89,12 +89,12 @@ func (f *spfav2Finder) findMinHopsToTokenOut(
 // split amount in into portions of f.distributionPercent% such that each split has value >= minUsdPerSplit
 // if there are remaining amount after splitting, we add to the first split (because it is always the best possible path)
 // e.g. distributionPercent = 10, but we need 30% amountIn to be > minUsdPerSplit -> split 40, 30, 30
-func (f *spfav2Finder) splitAmountIn(input findroute.Input, data findroute.FinderData, totalAmountIn poolpkg.TokenAmount) []poolpkg.TokenAmount {
+func (f *spfav2Finder) splitAmountIn(input findroute.Input, data findroute.FinderData, totalAmountIn valueobject.TokenAmount) []valueobject.TokenAmount {
 	tokenInPrice := data.PriceUSDByAddress[input.TokenInAddress]
 	tokenInDecimal := data.TokenByAddress[input.TokenInAddress].Decimals
 
 	if f.distributionPercent == constant.OneHundredPercent || tokenInPrice == 0 || totalAmountIn.AmountUsd <= f.minPartUSD {
-		return []poolpkg.TokenAmount{totalAmountIn}
+		return []valueobject.TokenAmount{totalAmountIn}
 	}
 	var (
 		amountInBigInt = totalAmountIn.Amount
@@ -130,16 +130,16 @@ func (f *spfav2Finder) splitAmountIn(input findroute.Input, data findroute.Finde
 		remainingAmountIn    = new(big.Int).Sub(amountInBigInt, new(big.Int).Mul(trueAmountInPerSplit, big.NewInt(trueNumSplits)))
 		remainingAmountInUsd = amountInUsd - trueAmountInPerSplitUsd*float64(trueNumSplits)
 
-		splits = make([]poolpkg.TokenAmount, trueNumSplits)
+		splits = make([]valueobject.TokenAmount, trueNumSplits)
 	)
 
-	splits[0] = poolpkg.TokenAmount{
+	splits[0] = valueobject.TokenAmount{
 		Token:     totalAmountIn.Token,
 		Amount:    new(big.Int).Add(trueAmountInPerSplit, remainingAmountIn),
 		AmountUsd: trueAmountInPerSplitUsd + remainingAmountInUsd,
 	}
 	for i := 1; i < int(trueNumSplits); i++ {
-		splits[i] = poolpkg.TokenAmount{
+		splits[i] = valueobject.TokenAmount{
 			Token:     totalAmountIn.Token,
 			Amount:    new(big.Int).Set(trueAmountInPerSplit),
 			AmountUsd: trueAmountInPerSplitUsd,

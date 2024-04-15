@@ -44,7 +44,7 @@ func GenKthBestPaths(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenAmountIn poolpkg.TokenAmount,
+	tokenAmountIn valueobject.TokenAmount,
 	hopsToTokenOut map[string]uint32,
 	maxHops, maxPathsToGenerate, maxPathsToReturn uint32,
 ) ([]*valueobject.Path, error) {
@@ -73,12 +73,7 @@ func GenKthBestPaths(
 
 	prevLayer[input.TokenInAddress] = []*nodeInfo{
 		{
-			tokenAmount: valueobject.TokenAmount{
-				Token:          tokenAmountIn.Token,
-				Amount:         tokenAmountIn.Amount,
-				AmountAfterGas: tokenAmountIn.Amount,
-				AmountUsd:      tokenAmountIn.AmountUsd,
-			},
+			tokenAmount:    tokenAmountIn,
 			totalGasAmount: 0,
 			tokensOnPath:   []*entity.Token{data.TokenByAddress[input.TokenInAddress]},
 		},
@@ -298,7 +293,7 @@ func getKthPathAtTokenOut(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenAmountIn poolpkg.TokenAmount,
+	tokenAmountIn valueobject.TokenAmount,
 	nodeInfoAtTokenOut []*nodeInfo,
 	maxPathsToReturn uint32,
 ) (paths []*valueobject.Path) {
@@ -344,26 +339,11 @@ func getKthPathAtTokenOut(
 }
 
 func betterAmountOut(nodeA, nodeB *nodeInfo, gasFeeInclude bool) bool {
-	// If we consider gas fee, prioritize node with more AmountUsd
-	// If amountUsd is the same, compare amountOut regardless of gasFeeInclude
-	if gasFeeInclude {
-		// if we're using amount in native unit
-		if nodeA.tokenAmount.AmountAfterGas != nil && nodeB.tokenAmount.AmountAfterGas != nil {
-			cmp := nodeA.tokenAmount.AmountAfterGas.Cmp(nodeB.tokenAmount.AmountAfterGas)
-			if cmp != 0 {
-				return cmp > 0
-			}
-		}
-		// otherwise compare amount in usd
-		if !utils.Float64AlmostEqual(nodeA.tokenAmount.AmountUsd, nodeB.tokenAmount.AmountUsd) {
-			return nodeA.tokenAmount.AmountUsd > nodeB.tokenAmount.AmountUsd
-		}
-	}
-	// Otherwise, prioritize node with more token Amount
-	cmp := nodeA.tokenAmount.Amount.Cmp(nodeB.tokenAmount.Amount)
-	if cmp != 0 {
+	// compare amountUsd and amount first
+	if cmp := nodeA.tokenAmount.Compare(&nodeB.tokenAmount, gasFeeInclude); cmp != 0 {
 		return cmp > 0
 	}
+
 	// if that amount is equal, we compare nodeId in alphabetical order
 	return utils.CompareStringSlices(nodeA.poolAddressesOnPath, nodeB.poolAddressesOnPath) == -1
 }

@@ -23,7 +23,7 @@ func GenKthBestPathsV2(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenAmountIn poolpkg.TokenAmount,
+	tokenAmountIn valueobject.TokenAmount,
 	maxHops, maxPathsToGenerate, maxPathsToReturn uint32,
 ) (map[string][]*valueobject.Path, error) {
 	span, _ := tracer.StartSpanFromContext(ctx, "GenKthBestPathsV2")
@@ -43,7 +43,7 @@ func GenKthBestPathsV2(
 
 	prevLayer[input.TokenInAddress] = []*nodeInfo{
 		{
-			tokenAmount:    *valueobject.FromDexLibAmount(&tokenAmountIn),
+			tokenAmount:    tokenAmountIn,
 			totalGasAmount: 0,
 			tokensOnPath:   []*entity.Token{data.TokenByAddress[input.TokenInAddress]},
 		},
@@ -229,7 +229,7 @@ func getNextLayerFromTokenV2(
 
 func getKthPathAtTokenOutV2(
 	input findroute.Input,
-	tokenAmountIn poolpkg.TokenAmount,
+	tokenAmountIn valueobject.TokenAmount,
 	nodeInfoAtTokenOut []*nodeInfo,
 	maxPathsToReturn uint32,
 ) (paths []*valueobject.Path) {

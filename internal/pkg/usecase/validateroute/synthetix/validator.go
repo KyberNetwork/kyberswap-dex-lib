@@ -81,7 +81,7 @@ func Validate(poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobjec
 	totalVolume := constant.Zero
 
 	for _, path := range route.Paths {
-		var tokenAmountIn = path.Input
+		var tokenAmountIn = *path.Input.ToDexLibAmount()
 		for i, poolAddress := range path.PoolAddresses {
 			pool, ok := poolBucket.GetPool(poolAddress)
 			if !ok {

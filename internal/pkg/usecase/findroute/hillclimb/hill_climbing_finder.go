@@ -87,7 +87,7 @@ func (f *hillClimbFinder) Find(ctx context.Context,
 	)
 
 	// if the route cannot be optimized or the input is different from the input of base best route
-	if hillClimbBestRoute == nil || hillClimbBestRoute.Input.CompareTo(&baseBestRoute.Input) != 0 {
+	if hillClimbBestRoute == nil || hillClimbBestRoute.Input.CompareRaw(&baseBestRoute.Input) != 0 {
 		logger.Infof(ctx,
 			"hill climb: used baseRoute which better",
 		)

@@ -27,13 +27,12 @@ type RouteExtraData struct {
 	ChunksInfo []ChunkInfo `json:"chunksInfo"`
 }
 
-// TODO: migrate to non-usd valueobject.TokenAmount
 type Route struct {
-	Input    poolpkg.TokenAmount `json:"input"`
-	Output   TokenAmount         `json:"output"`
-	Paths    []*Path             `json:"paths"`
-	TotalGas int64               `json:"totalGas"`
-	Extra    RouteExtraData      `json:"extra"`
+	Input    TokenAmount    `json:"input"`
+	Output   TokenAmount    `json:"output"`
+	Paths    []*Path        `json:"paths"`
+	TotalGas int64          `json:"totalGas"`
+	Extra    RouteExtraData `json:"extra"`
 }
 
 func NewRoute(
@@ -41,10 +40,11 @@ func NewRoute(
 	tokenOutAddress string,
 ) *Route {
 	return &Route{
-		Input: poolpkg.TokenAmount{
-			Token:     tokenInAddress,
-			Amount:    constant.Zero,
-			AmountUsd: 0,
+		Input: TokenAmount{
+			Token:          tokenInAddress,
+			Amount:         big.NewInt(0),
+			AmountAfterGas: big.NewInt(0),
+			AmountUsd:      0,
 		},
 		Output: TokenAmount{
 			Token:          tokenOutAddress,
@@ -102,7 +102,7 @@ func (r *Route) AddPath(poolBucket *PoolBucket, p *Path, swapLimits map[string]p
 	}
 
 	var (
-		currentAmount = p.Input
+		currentAmount = *p.Input.ToDexLibAmount()
 		pool          poolpkg.IPoolSimulator
 		ok            bool
 		backUpPools   = make([]poolpkg.IPoolSimulator, len(p.PoolAddresses))

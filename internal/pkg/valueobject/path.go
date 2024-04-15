@@ -15,7 +15,7 @@ import (
 var PathsPool = sync.Pool{
 	New: func() interface{} {
 		return &Path{
-			Input:         poolpkg.TokenAmount{},
+			Input:         TokenAmount{},
 			Output:        TokenAmount{},
 			TotalGas:      0,
 			PoolAddresses: nil,
@@ -44,7 +44,7 @@ var (
 
 type Path struct {
 	// Input consists of tokenIn and amountIn
-	Input poolpkg.TokenAmount `json:"input"`
+	Input TokenAmount `json:"input"`
 
 	// Output consists of tokenOut and amountOut
 	Output TokenAmount `json:"output"`
@@ -63,16 +63,20 @@ func (p *Path) Clone() *Path {
 	poolAddresses := make([]string, len(p.PoolAddresses))
 	copy(poolAddresses, p.PoolAddresses)
 
-	var amountAfterGas *big.Int
+	var amountAfterGas, inputAmountAfterGas *big.Int
 	if p.Output.AmountAfterGas != nil {
 		amountAfterGas = new(big.Int).Set(p.Output.AmountAfterGas)
 	}
+	if p.Input.AmountAfterGas != nil {
+		inputAmountAfterGas = new(big.Int).Set(p.Input.AmountAfterGas)
+	}
 
 	return &Path{
-		Input: poolpkg.TokenAmount{
-			Token:     p.Input.Token,
-			Amount:    new(big.Int).Set(p.Input.Amount),
-			AmountUsd: p.Input.AmountUsd,
+		Input: TokenAmount{
+			Token:          p.Input.Token,
+			Amount:         new(big.Int).Set(p.Input.Amount),
+			AmountAfterGas: inputAmountAfterGas,
+			AmountUsd:      p.Input.AmountUsd,
 		},
 		Output: TokenAmount{
 			Token:          p.Output.Token,
@@ -92,7 +96,7 @@ func NewPath(
 	poolBucket *PoolBucket,
 	poolAddresses []string,
 	tokens []*entity.Token,
-	tokenAmountIn poolpkg.TokenAmount,
+	tokenAmountIn TokenAmount,
 	tokenOut string,
 	tokenOutPriceUSD float64,
 	tokenOutPriceNative *big.Float,
@@ -158,9 +162,9 @@ func NewPath(
 }
 
 // CalcAmountOut swaps through path with Input
-func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.TokenAmount, limits map[string]poolpkg.SwapLimit) (poolpkg.TokenAmount, int64, error) {
+func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn TokenAmount, limits map[string]poolpkg.SwapLimit) (TokenAmount, int64, error) {
 	var (
-		currentAmount = tokenAmountIn
+		currentAmount = *tokenAmountIn.ToDexLibAmount()
 		pool          poolpkg.IPoolSimulator
 		ok            bool
 		totalGas      int64
@@ -168,7 +172,7 @@ func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.Token
 
 	for i, poolAddress := range p.PoolAddresses {
 		if pool, ok = poolBucket.GetPool(poolAddress); !ok {
-			return poolpkg.TokenAmount{}, 0, errors.WithMessagef(
+			return TokenAmount{}, 0, errors.WithMessagef(
 				ErrNoIPool,
 				"[Path.CalcAmountOut] poolAddress: [%s]",
 				poolAddress,
@@ -177,7 +181,7 @@ func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.Token
 		calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, currentAmount, p.Tokens[i+1].Address, limits[pool.GetType()])
 
 		if err != nil {
-			return poolpkg.TokenAmount{}, 0, errors.WithMessagef(
+			return TokenAmount{}, 0, errors.WithMessagef(
 				ErrInvalidSwap,
 				"[Path.CalcAmountOut] CalcAmountOut returns error | poolAddress: [%s], exchange: [%s], tokenIn: [%s], amountIn: [%s], tokenOut: [%s], err: [%v]",
 				pool.GetAddress(),
@@ -190,7 +194,7 @@ func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.Token
 		}
 		swapTokenAmountOut, gas := calcAmountOutResult.TokenAmountOut, calcAmountOutResult.Gas
 		if swapTokenAmountOut == nil {
-			return poolpkg.TokenAmount{}, 0, errors.WithMessagef(
+			return TokenAmount{}, 0, errors.WithMessagef(
 				ErrInvalidSwap,
 				"[Path.CalcAmountOut] CalcAmountOut returns nil | poolAddress: [%s], exchange: [%s], tokenIn: [%s], amountIn: [%s], tokenOut: [%s]",
 				pool.GetAddress(),
@@ -205,7 +209,7 @@ func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn poolpkg.Token
 		totalGas += gas
 	}
 
-	return currentAmount, totalGas, nil
+	return *FromDexLibAmount(&currentAmount), totalGas, nil
 }
 
 // Equals returns true when two paths have same token and pool in respective order
@@ -235,10 +239,19 @@ func (p *Path) Merge(other *Path) bool {
 		return false
 	}
 
-	newInput := poolpkg.TokenAmount{
-		Token:     p.Input.Token,
-		Amount:    new(big.Int).Add(p.Input.Amount, other.Input.Amount),
-		AmountUsd: p.Input.AmountUsd + other.Input.AmountUsd,
+	inputAmountAfterGas := big.NewInt(0)
+	if p.Input.AmountAfterGas != nil {
+		inputAmountAfterGas.Set(p.Input.AmountAfterGas)
+	}
+	otherInputAmountAfterGas := big.NewInt(0)
+	if other.Input.AmountAfterGas != nil {
+		otherInputAmountAfterGas.Set(other.Input.AmountAfterGas)
+	}
+	newInput := TokenAmount{
+		Token:          p.Input.Token,
+		Amount:         new(big.Int).Add(p.Input.Amount, other.Input.Amount),
+		AmountAfterGas: new(big.Int).Add(inputAmountAfterGas, otherInputAmountAfterGas),
+		AmountUsd:      p.Input.AmountUsd + other.Input.AmountUsd,
 	}
 
 	amountAfterGas := big.NewInt(0)

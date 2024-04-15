@@ -7,7 +7,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/stretchr/testify/assert"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -26,7 +25,7 @@ func TestNewPath(t *testing.T) {
 		poolBucket       *PoolBucket
 		poolAddresses    []string
 		tokens           []*entity.Token
-		tokenAmountIn    pool.TokenAmount
+		tokenAmountIn    TokenAmount
 		tokenOut         string
 		tokenOutPrice    float64
 		tokenOutDecimals uint8
@@ -59,7 +58,7 @@ func TestNewPath(t *testing.T) {
 			break
 		}
 	}
-	tokenAmounIn := pool.TokenAmount{
+	tokenAmounIn := TokenAmount{
 		Token:     tokensOnPaths[0].Address,
 		Amount:    big.NewInt(1_000_000_000),
 		AmountUsd: 0,

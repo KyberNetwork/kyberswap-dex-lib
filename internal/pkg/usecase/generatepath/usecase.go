@@ -11,7 +11,6 @@ import (
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	gEthCommon "github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -278,7 +277,7 @@ func (uc *useCase) generateBestPaths(
 	// For each amountIn, we do GenKBestPathV2 to find all possible paths tokenOuts
 	bestPathsByTokenOutAddress := make(map[string][]*entity.MinimalPath)
 	for _, amountIn := range amountIns {
-		tokenAmountIn := poolpkg.TokenAmount{
+		tokenAmountIn := valueobject.TokenAmount{
 			Token:  tokenIn,
 			Amount: new(big.Int).Set(amountIn),
 			AmountUsd: utils.CalcTokenAmountUsd(

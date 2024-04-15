@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/huandu/go-clone"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -72,7 +71,7 @@ func (f *hillClimbFinder) binarySearch(
 		if _, ok := tokenAmountOutResult[mid]; !ok {
 			tokenAmountOutResult[mid], firstPath, secondPath = f.calcAdjustedTokenAmount(input, data, baseFirstPath, baseSecondPath, mid)
 			// if better than the best found way to adjust the distribution
-			if cmpTokenAmount(tokenAmountOutResult[mid], bestTokenAmountOut, input.GasInclude) == 1 {
+			if tokenAmountOutResult[mid].Compare(bestTokenAmountOut, input.GasInclude) == 1 {
 				bestTokenAmountOut = tokenAmountOutResult[mid]
 				bestFirstPath = firstPath
 				bestSecondPath = secondPath
@@ -83,7 +82,7 @@ func (f *hillClimbFinder) binarySearch(
 		if _, ok := tokenAmountOutResult[mid+1]; !ok {
 			tokenAmountOutResult[mid+1], firstPath, secondPath = f.calcAdjustedTokenAmount(input, data, baseFirstPath, baseSecondPath, mid+1)
 			// if better than the best found way to adjust the distribution
-			if cmpTokenAmount(tokenAmountOutResult[mid+1], bestTokenAmountOut, input.GasInclude) == 1 {
+			if tokenAmountOutResult[mid+1].Compare(bestTokenAmountOut, input.GasInclude) == 1 {
 				bestTokenAmountOut = tokenAmountOutResult[mid+1]
 				bestFirstPath = firstPath
 				bestSecondPath = secondPath
@@ -91,7 +90,7 @@ func (f *hillClimbFinder) binarySearch(
 		}
 
 		// if tokenAmountOutResult[mid] > tokenAmountOutResult[mid+1]
-		if cmpTokenAmount(tokenAmountOutResult[mid], tokenAmountOutResult[mid+1], input.GasInclude) == 1 {
+		if tokenAmountOutResult[mid].Compare(tokenAmountOutResult[mid+1], input.GasInclude) == 1 {
 			high = mid - 1
 		} else {
 			low = mid + 1
@@ -126,12 +125,12 @@ func (f *hillClimbFinder) calcAdjustedTokenAmount(
 		amountInPerSplit    = new(big.Int).Div(amountInBigInt, big.NewInt(maxNumSplits))
 		amountInPerSplitUsd = utils.CalcTokenAmountUsd(amountInPerSplit, tokenInDecimal, tokenInPriceUSD)
 
-		firstPathInput = poolpkg.TokenAmount{
+		firstPathInput = valueobject.TokenAmount{
 			Token:     input.TokenInAddress,
 			Amount:    new(big.Int).Add(baseFirstPath.Input.Amount, new(big.Int).Mul(big.NewInt(int64(splits)), amountInPerSplit)),
 			AmountUsd: baseFirstPath.Input.AmountUsd + float64(splits)*amountInPerSplitUsd,
 		}
-		secondPathInput = poolpkg.TokenAmount{
+		secondPathInput = valueobject.TokenAmount{
 			Token:     input.TokenInAddress,
 			Amount:    new(big.Int).Sub(baseSecondPath.Input.Amount, new(big.Int).Mul(big.NewInt(int64(splits)), amountInPerSplit)),
 			AmountUsd: baseSecondPath.Input.AmountUsd - float64(splits)*amountInPerSplitUsd,
@@ -194,34 +193,4 @@ func (f *hillClimbFinder) calcAdjustedTokenAmount(
 		AmountUsd:      firstPathAdjusted.Output.AmountUsd + secondPathAdjusted.Output.AmountUsd,
 		AmountAfterGas: amountAfterGas,
 	}, firstPathAdjusted, secondPathAdjusted
-}
-
-// return 1 if a greater than b
-// return 0 if a == b
-// return -1 otherwise
-func cmpTokenAmount(a, b *valueobject.TokenAmount, gasFeeInclude bool) int {
-	if a == nil {
-		return -1
-	}
-	if b == nil {
-		return 1
-	}
-	if gasFeeInclude {
-		if a.AmountAfterGas != nil && b.AmountAfterGas != nil {
-			cmp := a.AmountAfterGas.Cmp(b.AmountAfterGas)
-			if cmp != 0 {
-				return cmp
-			}
-		}
-
-		if !utils.Float64AlmostEqual(a.AmountUsd, b.AmountUsd) {
-			if a.AmountUsd > b.AmountUsd {
-				return 1
-			} else {
-				return -1
-			}
-		}
-	}
-	// Otherwise, prioritize node with more token Amount
-	return a.Amount.Cmp(b.Amount)
 }

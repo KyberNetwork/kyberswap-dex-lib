@@ -17,7 +17,7 @@ import (
 
 func TestRoute_AddPathRollBack(t *testing.T) {
 	type fields struct {
-		Input    poolpkg.TokenAmount
+		Input    TokenAmount
 		Output   TokenAmount
 		Paths    []*Path
 		TotalGas int64
@@ -50,7 +50,7 @@ func TestRoute_AddPathRollBack(t *testing.T) {
 		tokenOut    = tokenByAddress[tokenAddressList[2]]
 
 		//tokensOnPaths = []*entity.Token{tokenIn, tokenOut}
-		tokenAmountIn = poolpkg.TokenAmount{
+		tokenAmountIn = TokenAmount{
 			Token:     tokenIn.Address,
 			Amount:    big.NewInt(100_000),
 			AmountUsd: 0,

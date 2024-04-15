@@ -233,7 +233,7 @@ func (a *aggregator) summarizeRoute(
 		summarizedPath := make([]valueobject.Swap, 0, len(path.PoolAddresses))
 
 		// Step 2.1.0: prepare input of the first swap
-		tokenAmountIn := path.Input
+		tokenAmountIn := *path.Input.ToDexLibAmount()
 
 		for swapIdx, swapPoolAddress := range path.PoolAddresses {
 			// Step 2.1.1: take the pool with fresh data

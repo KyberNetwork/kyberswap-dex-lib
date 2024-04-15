@@ -6,7 +6,6 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -15,7 +14,7 @@ import (
 )
 
 type findPathV2Helper struct {
-	tokenAmountIn               poolpkg.TokenAmount
+	tokenAmountIn               valueobject.TokenAmount
 	poolAddressToLastUsedSplit  map[string]int
 	pathIdToLastCalculatedSplit []int
 	addedPathIds                sets.Int
@@ -27,7 +26,7 @@ type findPathV2Helper struct {
 	archivedPathIds []int
 }
 
-func NewFindPathV2Helper(numberOfPaths, maxPathsInRoute int, tokenAmountIn poolpkg.TokenAmount, cmpFunc func(a, b int) bool) *findPathV2Helper {
+func NewFindPathV2Helper(numberOfPaths, maxPathsInRoute int, tokenAmountIn valueobject.TokenAmount, cmpFunc func(a, b int) bool) *findPathV2Helper {
 	return &findPathV2Helper{
 		tokenAmountIn,
 		make(map[string]int),
@@ -45,7 +44,7 @@ func (h *findPathV2Helper) bestPathExactInV2(
 	input findroute.Input,
 	data findroute.FinderData,
 	paths []*valueobject.Path,
-	newAmountIn poolpkg.TokenAmount,
+	newAmountIn valueobject.TokenAmount,
 ) *valueobject.Path {
 	span, _ := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestPathExactInV2")
 	defer span.End()
@@ -54,7 +53,7 @@ func (h *findPathV2Helper) bestPathExactInV2(
 	// some paths that could not swap with "newAmountIn" (!= "h.tokenAmountIn") were archived.
 	// these paths will be pushed back to the priority queue when "newAmountIn" is equal to "h.tokenAmountIn",
 	// which is used for K paths generation.
-	if h.tokenAmountIn.CompareTo(&newAmountIn) == 0 {
+	if h.tokenAmountIn.CompareRaw(&newAmountIn) == 0 {
 		h.pushArchivedPathIdsIntoHeap(paths)
 	}
 
@@ -72,7 +71,7 @@ func (h *findPathV2Helper) bestPathExactInV2(
 		if !h.needToRecalculatePath(pathId, paths[pathId]) {
 			var bestPath = paths[pathId]
 			// if amount used to generate is different from splitAmountIn, this is possible when amountInUsd is small
-			if h.tokenAmountIn.CompareTo(&newAmountIn) != 0 {
+			if h.tokenAmountIn.CompareRaw(&newAmountIn) != 0 {
 				bestPath = newPath(input, data, bestPath.PoolAddresses, bestPath.Tokens, newAmountIn, h.addedPathIds.Has(pathId))
 			}
 
@@ -130,7 +129,7 @@ func newPath(
 	data findroute.FinderData,
 	poolAddresses []string,
 	tokens []*entity.Token,
-	tokenAmountIn poolpkg.TokenAmount,
+	tokenAmountIn valueobject.TokenAmount,
 	disregardGasFee bool,
 ) *valueobject.Path {
 	// if the path is added, we set disregardGasFee = true

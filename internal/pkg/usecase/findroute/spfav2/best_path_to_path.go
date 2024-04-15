@@ -20,7 +20,7 @@ func bestPathToPath(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenAmountIn poolpkg.TokenAmount,
+	tokenAmountIn valueobject.TokenAmount,
 	bestPaths []*entity.MinimalPath,
 ) []*valueobject.Path {
 	var paths []*valueobject.Path
@@ -56,7 +56,7 @@ func bestPathToPath(
 		totalGasUSD := utils.CalcGasUsd(input.GasPrice, totalGas, input.GasTokenPriceUSD)
 		tokenAmountOut.AmountUsd = amountUSD - totalGasUSD
 
-		path.Output = *valueobject.FromDexLibAmount(&tokenAmountOut)
+		path.Output = tokenAmountOut
 		path.TotalGas = totalGas
 
 		paths = append(paths, path)
@@ -102,7 +102,7 @@ func newPathFromBestPathWithoutInputOutput(tokenByAddress map[string]*entity.Tok
 	path := valueobject.PathsPool.Get().(*valueobject.Path)
 
 	//have to zero out other values
-	path.Input = poolpkg.TokenAmount{}
+	path.Input = valueobject.TokenAmount{}
 	path.Output = valueobject.TokenAmount{}
 	path.TotalGas = 0
 	//set new bestPath and tokens
@@ -113,13 +113,13 @@ func newPathFromBestPathWithoutInputOutput(tokenByAddress map[string]*entity.Tok
 
 func calcAmountOutAndUpdateCache(
 	poolBucket *valueobject.PoolBucket,
-	tokenAmountIn poolpkg.TokenAmount,
+	tokenAmountIn valueobject.TokenAmount,
 	p *valueobject.Path,
 	calcAmountOutResultBySwapKey map[string]*poolpkg.CalcAmountOutResult,
 	swapLimits map[string]poolpkg.SwapLimit,
-) (poolpkg.TokenAmount, int64, error) {
+) (valueobject.TokenAmount, int64, error) {
 	var (
-		currentAmount       = tokenAmountIn
+		currentAmount       = *tokenAmountIn.ToDexLibAmount()
 		calcAmountOutResult *poolpkg.CalcAmountOutResult
 		err                 error
 		totalGas            int64
@@ -128,7 +128,7 @@ func calcAmountOutAndUpdateCache(
 	for i, poolAddr := range p.PoolAddresses {
 		pool, ok := poolBucket.PerRequestPoolsByAddress[poolAddr]
 		if !ok {
-			return poolpkg.TokenAmount{}, 0, errors.WithMessagef(
+			return valueobject.TokenAmount{}, 0, errors.WithMessagef(
 				findroute.ErrNoIPool,
 				"[spfav2Finder.calcAmountOutAndUpdateCache] poolAddress: [%s]",
 				poolAddr,
@@ -146,7 +146,7 @@ func calcAmountOutAndUpdateCache(
 				Limit:         swapLimits[pool.GetType()],
 			})
 			if err != nil {
-				return poolpkg.TokenAmount{}, 0, errors.WithMessagef(
+				return valueobject.TokenAmount{}, 0, errors.WithMessagef(
 					valueobject.ErrInvalidSwap,
 					"[spfav2Finder.calcAmountOutAndUpdateCache] CalcAmountOut returns error | poolAddress: [%s], exchange: [%s], tokenIn: [%s], amountIn: [%s], tokenOut: [%s], err: [%v]",
 					pool.GetAddress(),
@@ -164,7 +164,7 @@ func calcAmountOutAndUpdateCache(
 
 		swapTokenAmountOut, gas := calcAmountOutResult.TokenAmountOut, calcAmountOutResult.Gas
 		if swapTokenAmountOut == nil {
-			return poolpkg.TokenAmount{}, 0, errors.WithMessagef(
+			return valueobject.TokenAmount{}, 0, errors.WithMessagef(
 				valueobject.ErrInvalidSwap,
 				"[spfav2Finder.calcAmountOutAndUpdateCache] returns nil | poolAddress: [%s], exchange: [%s], tokenIn: [%s], amountIn: [%s], tokenOut: [%s]",
 				pool.GetAddress(),
@@ -179,5 +179,5 @@ func calcAmountOutAndUpdateCache(
 		totalGas += gas
 	}
 
-	return currentAmount, totalGas, nil
+	return *valueobject.FromDexLibAmount(&currentAmount), totalGas, nil
 }
