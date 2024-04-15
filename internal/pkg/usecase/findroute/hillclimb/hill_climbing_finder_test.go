@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/KyberNetwork/blockchain-toolkit/float"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -197,7 +198,11 @@ func TestFindRoute(t *testing.T) {
 			}
 
 			priceByAddress := lo.MapValues(priceInNative, func(v *big.Float, _ string) *routerEntity.OnchainPrice {
-				return &routerEntity.OnchainPrice{NativePriceRaw: routerEntity.Price{Buy: v}}
+				priceDecimals := new(big.Float).Quo(v, float.TenPow(18))
+				return &routerEntity.OnchainPrice{
+					NativePriceRaw: routerEntity.Price{Buy: v, Sell: v},
+					NativePrice:    routerEntity.Price{Buy: priceDecimals, Sell: priceDecimals},
+				}
 			})
 
 			data := findroute.NewFinderData(context.Background(), tokenByAddress, priceUSDByAddress, priceByAddress, &types.FindRouteState{
@@ -255,6 +260,9 @@ func TestFindRoute(t *testing.T) {
 				"c": big.NewFloat(100000000),
 			})
 		})
+
+		// still need usd for native token (gas token)
+		t.Run(fmt.Sprintf("%s - use Native price only", tc.name), func(t *testing.T) { f(t, tc, map[string]float64{"gas": 10000000000}, normalPriceNative) })
 	}
 }
 

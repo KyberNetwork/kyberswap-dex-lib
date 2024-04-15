@@ -153,7 +153,11 @@ func (f *spfav2Finder) bestRouteV2(
 	defer valueobject.ReturnPaths(paths)
 
 	cmpFunc := func(a, b int) bool {
-		return paths[a].CompareTo(paths[b], input.GasInclude && data.PriceUSDByAddress[paths[a].Output.Token] != 0) < 0
+		// actually we might not need this condition, because if price is not available then `CompareTo` will fallback to comparing raw amount
+		// but include this here just in case
+		priceAvailable := data.PriceUSDByAddress[paths[a].Output.Token] != 0 ||
+			(data.PriceNativeByAddress != nil && data.PriceNativeByAddress[paths[a].Output.Token] != nil)
+		return paths[a].CompareTo(paths[b], input.GasInclude && priceAvailable) < 0
 	}
 	sort.Slice(paths, cmpFunc)
 

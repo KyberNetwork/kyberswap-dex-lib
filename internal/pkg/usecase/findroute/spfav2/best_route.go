@@ -47,10 +47,24 @@ func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Inp
 	}
 
 	// it is fine if prices[token] is not set because it would default to zero
+	var amountInUsd float64
+	var amountInNative *big.Int
+	if priceInUsd, ok := data.PriceUSDByAddress[input.TokenInAddress]; ok {
+		amountInUsd = utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, priceInUsd)
+	} else if data.PriceNativeByAddress != nil {
+		// if we have native price of token then use that to calculate both amountInNative and amountInUsd
+		if price, ok := data.PriceNativeByAddress[input.TokenInAddress]; ok && price.NativePriceRaw.Sell != nil {
+			amountInNativeBF := new(big.Float).Mul(price.NativePriceRaw.Sell, new(big.Float).SetInt(input.AmountIn))
+			amountInNative, _ = amountInNativeBF.Int(&big.Int{})
+			amountInUsd, _ = new(big.Float).Quo(new(big.Float).Mul(amountInNativeBF, big.NewFloat(input.GasTokenPriceUSD)), constant.BoneFloat).Float64()
+		}
+	}
+
 	tokenAmountIn := valueobject.TokenAmount{
-		Token:     input.TokenInAddress,
-		Amount:    input.AmountIn,
-		AmountUsd: utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, data.PriceUSDByAddress[input.TokenInAddress]),
+		Token:          input.TokenInAddress,
+		Amount:         input.AmountIn,
+		AmountUsd:      amountInUsd,
+		AmountAfterGas: amountInNative,
 	}
 
 	if f.minThresholdAmountInUSD <= tokenAmountIn.AmountUsd && tokenAmountIn.AmountUsd <= f.maxThresholdAmountInUSD {
@@ -92,13 +106,25 @@ func (f *spfav2Finder) findMinHopsToTokenOut(
 func (f *spfav2Finder) splitAmountIn(input findroute.Input, data findroute.FinderData, totalAmountIn valueobject.TokenAmount) []valueobject.TokenAmount {
 	tokenInPrice := data.PriceUSDByAddress[input.TokenInAddress]
 	tokenInDecimal := data.TokenByAddress[input.TokenInAddress].Decimals
+	amountInUsd := totalAmountIn.AmountUsd
 
-	if f.distributionPercent == constant.OneHundredPercent || tokenInPrice == 0 || totalAmountIn.AmountUsd <= f.minPartUSD {
+	if tokenInPrice == 0 {
+		// if we're using onchain-price-service, use token's price in Native and Native price in USD
+		tokenPriceInNative := data.PriceNativeByAddress[input.TokenInAddress]
+		if tokenPriceInNative != nil && tokenPriceInNative.NativePrice.Sell != nil {
+			// this is for tokenIn so should use sell price
+			tokenInPriceBF := new(big.Float).Mul(tokenPriceInNative.NativePrice.Sell, big.NewFloat(input.GasTokenPriceUSD))
+			tokenInPrice, _ = tokenInPriceBF.Float64()
+
+			amountInUsd = utils.CalcTokenAmountUsd(totalAmountIn.Amount, tokenInDecimal, tokenInPrice)
+		}
+	}
+
+	if f.distributionPercent == constant.OneHundredPercent || tokenInPrice == 0 || amountInUsd <= f.minPartUSD {
 		return []valueobject.TokenAmount{totalAmountIn}
 	}
 	var (
 		amountInBigInt = totalAmountIn.Amount
-		amountInUsd    = totalAmountIn.AmountUsd
 
 		// f.distributionPercent should be a divisor of 100
 		// maxNumSplits is the max number of splits with each split contains a portion of f.distributionPercent% of amountIn

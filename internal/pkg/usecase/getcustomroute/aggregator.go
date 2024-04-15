@@ -79,15 +79,21 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 		return nil, err
 	}
 
-	priceUSDByAddress, err := a.getPriceUSDByAddress(ctx, tokenAddresses)
-	if err != nil {
-		return nil, err
-	}
+	var priceUSDByAddress map[string]float64
 
 	// only get price from onchain-price-service if enabled
 	var priceByAddress map[string]*routerEntity.OnchainPrice
 	if a.onchainpriceRepository != nil {
 		priceByAddress, err = a.onchainpriceRepository.FindByAddresses(ctx, tokenAddresses)
+		if err != nil {
+			return nil, err
+		}
+
+		// if we're using native price from onchain-price-service, then only need USD price for the native token
+		// TODO: get this from onchain-price-service once API available
+		priceUSDByAddress = map[string]float64{params.GasToken.Address: params.GasTokenPriceUSD}
+	} else {
+		priceUSDByAddress, err = a.getPriceUSDByAddress(ctx, tokenAddresses)
 		if err != nil {
 			return nil, err
 		}
