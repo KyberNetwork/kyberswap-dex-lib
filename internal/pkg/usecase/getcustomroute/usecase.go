@@ -33,6 +33,7 @@ func NewCustomRoutesUseCase(
 	poolFactory IPoolFactory,
 	tokenRepository ITokenRepository,
 	priceRepository IPriceRepository,
+	onchainpriceRepository IOnchainPriceRepository,
 	gasRepository IGasRepository,
 	poolRepository IPoolRepository,
 	routeFinder findroute.IFinder,
@@ -42,6 +43,7 @@ func NewCustomRoutesUseCase(
 		poolFactory,
 		tokenRepository,
 		priceRepository,
+		onchainpriceRepository,
 		poolRepository,
 		routeFinder,
 	)

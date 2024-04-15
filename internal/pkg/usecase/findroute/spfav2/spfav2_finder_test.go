@@ -189,7 +189,7 @@ func TestFindRoute(t *testing.T) {
 				GasInclude:       params.GasInclude,
 			}
 
-			data := findroute.NewFinderData(context.Background(), tokenByAddress, priceUSDByAddress, &types.FindRouteState{
+			data := findroute.NewFinderData(context.Background(), tokenByAddress, priceUSDByAddress, nil, &types.FindRouteState{
 				Pools:     poolByAddress,
 				SwapLimit: make(map[string]poolpkg.SwapLimit),
 			})
@@ -487,7 +487,7 @@ func initBalancerPools() findroute.FinderData {
 		pool, _ := composablestable.NewPoolSimulator(poolEntity)
 		return pool.GetAddress(), pool
 	})
-	return findroute.NewFinderData(context.Background(), balancerTokenByAddress, priceUSDByAddress, &types.FindRouteState{
+	return findroute.NewFinderData(context.Background(), balancerTokenByAddress, priceUSDByAddress, nil, &types.FindRouteState{
 		Pools:     poolByAddress,
 		SwapLimit: make(map[string]poolpkg.SwapLimit),
 	})

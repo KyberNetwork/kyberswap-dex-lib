@@ -8,6 +8,7 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/huandu/go-clone"
 
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
@@ -63,6 +64,9 @@ type FinderData struct {
 	// PriceUSDByAddress mapping from token address to price in USD
 	PriceUSDByAddress map[string]float64
 
+	// price in Native with decimal already factored in
+	PriceNativeByAddress map[string]*routerEntity.OnchainPrice
+
 	//SwapLimits is the map of dextype - Swap limit
 	SwapLimits map[string]poolpkg.SwapLimit
 
@@ -70,7 +74,7 @@ type FinderData struct {
 	originSwapLimits map[string]poolpkg.SwapLimit
 }
 
-func NewFinderData(ctx context.Context, tokenByAddress map[string]*entity.Token, tokenPriceUSDByAddress map[string]float64, state *types.FindRouteState) FinderData {
+func NewFinderData(ctx context.Context, tokenByAddress map[string]*entity.Token, tokenPriceUSDByAddress map[string]float64, tokenPriceNativeByAddress map[string]*routerEntity.OnchainPrice, state *types.FindRouteState) FinderData {
 	tokenToPoolAddress := make(map[string]*types.AddressList)
 	for _, pool := range state.Pools {
 		for _, tokenAddress := range pool.GetTokens() {
@@ -88,6 +92,8 @@ func NewFinderData(ctx context.Context, tokenByAddress map[string]*entity.Token,
 		PriceUSDByAddress:  tokenPriceUSDByAddress,
 		SwapLimits:         clone.Slowly(state.SwapLimit).(map[string]poolpkg.SwapLimit),
 		originSwapLimits:   clone.Slowly(state.SwapLimit).(map[string]poolpkg.SwapLimit),
+
+		PriceNativeByAddress: tokenPriceNativeByAddress,
 	}
 }
 

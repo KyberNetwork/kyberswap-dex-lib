@@ -195,7 +195,7 @@ func TestFindRoute(t *testing.T) {
 				GasInclude:       params.GasInclude,
 			}
 
-			data := findroute.NewFinderData(context.Background(), tokenByAddress, priceUSDByAddress, &types.FindRouteState{
+			data := findroute.NewFinderData(context.Background(), tokenByAddress, priceUSDByAddress, nil, &types.FindRouteState{
 				Pools:     poolByAddress,
 				SwapLimit: make(map[string]poolpkg.SwapLimit),
 			})

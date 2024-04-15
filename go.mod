@@ -17,13 +17,14 @@ require (
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
 	github.com/KyberNetwork/ethrpc v0.7.1
+	github.com/KyberNetwork/grpc-service v0.0.0-20240320074613-569fa1f7a547
 	github.com/KyberNetwork/kutils v0.2.2
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
 	github.com/KyberNetwork/kyberswap-dex-lib v0.46.1
 	github.com/KyberNetwork/logger v0.2.0
 	github.com/KyberNetwork/pool-service v0.45.1
 	github.com/KyberNetwork/reload v0.1.1
-	github.com/KyberNetwork/service-framework v0.1.0
+	github.com/KyberNetwork/service-framework v0.5.0
 	github.com/alicebob/miniredis/v2 v2.31.1
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/cespare/xxhash/v2 v2.2.0
@@ -169,6 +170,7 @@ require (
 	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.47.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.23.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.23.1 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.23.1 // indirect

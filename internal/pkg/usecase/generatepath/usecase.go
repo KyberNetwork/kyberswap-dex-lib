@@ -295,7 +295,7 @@ func (uc *useCase) generateBestPaths(
 		gasTokenAddress := strings.ToLower(uc.config.GasTokenAddress)
 		gasTokenPrice := tokenPriceByAddress[gasTokenAddress]
 		gasTokenPriceUSD, _ := gasTokenPrice.GetPreferredPrice()
-		data := findroute.NewFinderData(ctx, tokenByAddress, tokenPriceUSDByAddress, state)
+		data := findroute.NewFinderData(ctx, tokenByAddress, tokenPriceUSDByAddress, nil, state)
 		pathsByTokenOutAddress, err := common.GenKthBestPathsV2(
 			ctx,
 			findroute.Input{

@@ -1,0 +1,127 @@
+package onchainprice
+
+import (
+	"context"
+	"math/big"
+	"strconv"
+
+	"github.com/KyberNetwork/blockchain-toolkit/float"
+	onchainpricev1 "github.com/KyberNetwork/grpc-service/go/onchainprice/v1"
+	dexlibEntity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
+	"github.com/samber/lo"
+	"google.golang.org/grpc/metadata"
+)
+
+type grpcRepository struct {
+	chainId            valueobject.ChainID
+	grpcClient         onchainpricev1.OnchainPriceServiceClient
+	tokenRepository    ITokenRepository
+	nativeTokenAddress string
+}
+
+type ITokenRepository interface {
+	FindByAddresses(ctx context.Context, addresses []string) ([]*dexlibEntity.Token, error)
+}
+
+func NewGRPCRepository(config GrpcConfig, chainId valueobject.ChainID, tokenRepository ITokenRepository, nativeTokenAddress string) (*grpcRepository, error) {
+	grpcConfig := grpcclient.Config{
+		BaseURL:  config.BaseURL,
+		Timeout:  config.Timeout,
+		Insecure: config.Insecure,
+		ClientID: config.ClientID,
+	}
+
+	grpcClient, err := grpcclient.New(onchainpricev1.NewOnchainPriceServiceClient, grpcclient.WithConfig(&grpcConfig))
+	if err != nil {
+		return nil, err
+	}
+
+	return &grpcRepository{
+		chainId:            chainId,
+		grpcClient:         grpcClient.C,
+		tokenRepository:    tokenRepository,
+		nativeTokenAddress: nativeTokenAddress,
+	}, nil
+}
+
+func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string) (map[string]*entity.OnchainPrice, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[onchainprice] grpcRepository.FindByAddresses")
+	defer span.End()
+
+	if len(addresses) == 0 {
+		return nil, nil
+	}
+
+	// get token info (decimal)
+	tokens, err := r.tokenRepository.FindByAddresses(ctx, addresses)
+	if err != nil {
+		logger.Errorf(ctx, "failed to get token info %v %v", addresses, err)
+		return nil, err
+	}
+	decimalsByToken := lo.SliceToMap(tokens, func(t *dexlibEntity.Token) (string, *big.Float) {
+		pow := float.TenPow(t.Decimals)
+		return t.Address, pow
+	})
+	nativeDecimals := float.TenPow(18)
+
+	// fetch price
+	ctxHeader := metadata.AppendToOutgoingContext(ctx, "X-Chain-Id", strconv.Itoa(int(r.chainId)))
+	res, err := r.grpcClient.ListPrices(ctxHeader, &onchainpricev1.ListPricesRequest{
+		Tokens: addresses,
+		Quotes: []string{r.nativeTokenAddress},
+		Debug:  false,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	prices := make(map[string]*entity.OnchainPrice, len(addresses))
+	for _, p := range res.Result.Prices {
+		decimals, ok := decimalsByToken[p.Address]
+		if !ok {
+			logger.Warnf(ctx, "unknown token info %v", p.Address)
+			continue
+		}
+
+		if _, ok := prices[p.Address]; !ok {
+			prices[p.Address] = &entity.OnchainPrice{}
+		}
+
+		for _, detail := range p.Buy {
+			if detail.Quote == r.nativeTokenAddress {
+				price, ok := new(big.Float).SetString(detail.PriceByQuote)
+				if !ok || price.Sign() < 0 {
+					logger.Debugf(ctx, "invalid price %v (%v)", p.Address, detail.PriceByQuote)
+					continue
+				}
+				prices[p.Address].NativePrice.Buy = price
+				prices[p.Address].NativePriceRaw.Buy = new(big.Float).Quo(
+					new(big.Float).Mul(price, nativeDecimals),
+					decimals)
+			}
+		}
+
+		for _, detail := range p.Sell {
+			if detail.Quote == r.nativeTokenAddress {
+				price, ok := new(big.Float).SetString(detail.PriceByQuote)
+				if !ok || price.Sign() < 0 {
+					logger.Debugf(ctx, "invalid price %v (%v)", p.Address, detail.PriceByQuote)
+					continue
+				}
+				prices[p.Address].NativePrice.Sell = price
+				prices[p.Address].NativePriceRaw.Sell = new(big.Float).Quo(
+					new(big.Float).Mul(price, nativeDecimals),
+					decimals)
+			}
+		}
+	}
+
+	logger.Infof(ctx, "fetched prices %v", prices)
+
+	return prices, nil
+}

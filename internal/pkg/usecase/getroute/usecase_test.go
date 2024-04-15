@@ -250,6 +250,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		poolRankRepository,
 		tokenRepository,
 		priceRepository,
+		nil,
 		routeCacheRepository,
 		gasRepository,
 		poolManager,

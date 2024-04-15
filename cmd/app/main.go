@@ -44,6 +44,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/executorbalance"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/l2fee"
+	onchainprice "github.com/KyberNetwork/router-service/internal/pkg/repository/onchain-price"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pathgenerator"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
@@ -317,6 +318,23 @@ func apiAction(c *cli.Context) (err error) {
 		return err
 	}
 
+	var onchainpriceRepository getroute.IOnchainPriceRepository
+	if cfg.Repository.OnchainPrice.Enabled {
+		grpcRepository, err := onchainprice.NewGRPCRepository(
+			cfg.Repository.OnchainPrice.Grpc,
+			cfg.Common.ChainID,
+			tokenRepository,
+			cfg.Common.GasTokenAddress)
+		if err != nil {
+			return err
+		}
+
+		onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository, cfg.Repository.OnchainPrice.Ristretto)
+		if err != nil {
+			return err
+		}
+	}
+
 	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
 
 	blackjackRepo, err := blackjack.NewGRPCClient(cfg.Repository.Blackjack.GRPCClient)
@@ -435,6 +453,7 @@ func apiAction(c *cli.Context) (err error) {
 		poolRankRepository,
 		tokenRepository,
 		priceRepository,
+		onchainpriceRepository,
 		routeRepository,
 		gasRepository,
 		poolManager,
@@ -473,6 +492,7 @@ func apiAction(c *cli.Context) (err error) {
 		poolFactory,
 		tokenRepository,
 		priceRepository,
+		onchainpriceRepository,
 		gasRepository,
 		poolRepository,
 		routeFinder,

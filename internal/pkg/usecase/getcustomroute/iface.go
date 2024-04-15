@@ -8,6 +8,7 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
 
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -42,4 +43,8 @@ type ITokenRepository interface {
 
 type IPriceRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Price, error)
+}
+
+type IOnchainPriceRepository interface {
+	FindByAddresses(ctx context.Context, addresses []string) (map[string]*routerEntity.OnchainPrice, error)
 }

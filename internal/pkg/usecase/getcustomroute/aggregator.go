@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
@@ -21,10 +22,11 @@ import (
 )
 
 type aggregator struct {
-	poolFactory     IPoolFactory
-	tokenRepository ITokenRepository
-	priceRepository IPriceRepository
-	poolRepository  IPoolRepository
+	poolFactory            IPoolFactory
+	tokenRepository        ITokenRepository
+	priceRepository        IPriceRepository
+	onchainpriceRepository IOnchainPriceRepository
+	poolRepository         IPoolRepository
 
 	routeFinder findroute.IFinder
 }
@@ -33,15 +35,17 @@ func NewCustomAggregator(
 	poolFactory IPoolFactory,
 	tokenRepository ITokenRepository,
 	priceRepository IPriceRepository,
+	onchainpriceRepository IOnchainPriceRepository,
 	poolRepository IPoolRepository,
 	routeFinder findroute.IFinder,
 ) *aggregator {
 	return &aggregator{
-		poolFactory:     poolFactory,
-		tokenRepository: tokenRepository,
-		priceRepository: priceRepository,
-		poolRepository:  poolRepository,
-		routeFinder:     routeFinder,
+		poolFactory:            poolFactory,
+		tokenRepository:        tokenRepository,
+		priceRepository:        priceRepository,
+		onchainpriceRepository: onchainpriceRepository,
+		poolRepository:         poolRepository,
+		routeFinder:            routeFinder,
 	}
 }
 
@@ -75,9 +79,18 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 		return nil, err
 	}
 
-	priceByAddress, err := a.getPriceUSDByAddress(ctx, tokenAddresses)
+	priceUSDByAddress, err := a.getPriceUSDByAddress(ctx, tokenAddresses)
 	if err != nil {
 		return nil, err
+	}
+
+	// only get price from onchain-price-service if enabled
+	var priceByAddress map[string]*routerEntity.OnchainPrice
+	if a.onchainpriceRepository != nil {
+		priceByAddress, err = a.onchainpriceRepository.FindByAddresses(ctx, tokenAddresses)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var limits = make(map[string]map[string]*big.Int)
@@ -95,7 +108,7 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 	}
 
 	// Step 3: finds best route
-	return a.findBestRoute(ctx, params, tokenByAddress, priceByAddress, &types.FindRouteState{
+	return a.findBestRoute(ctx, params, tokenByAddress, priceUSDByAddress, priceByAddress, &types.FindRouteState{
 		Pools:     poolByAddress,
 		SwapLimit: a.poolFactory.NewSwapLimit(limits),
 	})
@@ -109,6 +122,7 @@ func (a *aggregator) findBestRoute(
 	params *types.AggregateParams,
 	tokenByAddress map[string]*entity.Token,
 	priceUSDByAddress map[string]float64,
+	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
 ) (*valueobject.RouteSummary, error) {
 	input := findroute.Input{
@@ -121,7 +135,7 @@ func (a *aggregator) findBestRoute(
 		GasInclude:       params.GasInclude,
 	}
 
-	data := findroute.NewFinderData(ctx, tokenByAddress, priceUSDByAddress, state)
+	data := findroute.NewFinderData(ctx, tokenByAddress, priceUSDByAddress, priceByAddress, state)
 	defer data.ReleaseResources()
 	routes, err := a.routeFinder.Find(ctx, input, data)
 	if err != nil {

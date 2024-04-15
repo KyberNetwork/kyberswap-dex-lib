@@ -1,3 +1,8 @@
+cloud.google.com/go v0.112.0 h1:tpFCD7hpHFlQ8yPwT3x+QeXqc2T6+n6T+hmABHfDUSM=
+cloud.google.com/go/compute v1.24.0 h1:phWcR2eWzRJaL/kOiJwfFsPs4BaKq1j6vnpZrc1YlVg=
+cloud.google.com/go/compute v1.24.0/go.mod h1:kw1/T+h/+tK2LJK0wiPPx1intgdAM3j/g3hFDlscY40=
+cloud.google.com/go/compute/metadata v0.2.3 h1:mg4jlk7mCAj6xXp9UJ4fjI9VUI5rubuGBW5aJ7UnBMY=
+cloud.google.com/go/compute/metadata v0.2.3/go.mod h1:VAV5nSsACxMJvgaAuX6Pk2AawlZn8kiOGuCv6gTkwuA=
 github.com/ALTree/bigfloat v0.2.0 h1:AwNzawrpFuw55/YDVlcPw0F0cmmXrmngBHhVrvdXPvM=
 github.com/ALTree/bigfloat v0.2.0/go.mod h1:+NaH2gLeY6RPBPPQf4aRotPPStg+eXc8f9ZaE4vRfD4=
 github.com/DataDog/appsec-internal-go v1.4.1 h1:xpAS/hBo429pVh7rngquAK2DezUaJjfsX7Wd8cw0aIk=
@@ -35,6 +40,8 @@ github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 h1:kN7ez6MPJEaFbacmvR+22PRa5pJk
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2/go.mod h1:3DThBH6zHAYSWUVmtj9deQO1XuiwbawdKxj5yV4SuMo=
 github.com/KyberNetwork/ethrpc v0.7.1 h1:ePGFNKMM2U/aJZCX75WtClH5MOD2DqCF0bitPI13slw=
 github.com/KyberNetwork/ethrpc v0.7.1/go.mod h1:oKysvDWevrWSW6sgb/3pDrBjiKw6IUbS3LytN+aKz/M=
+github.com/KyberNetwork/grpc-service v0.0.0-20240320074613-569fa1f7a547 h1:NRazlg+8n7JFLuwq8AIYnZXxqoalK+wp95xNzwhT2Jo=
+github.com/KyberNetwork/grpc-service v0.0.0-20240320074613-569fa1f7a547/go.mod h1:Rbne2Ye43p3jdKfS0rHGINSJEeSGSbuShMN8qYQB4q8=
 github.com/KyberNetwork/int256 v0.1.4 h1:SbnhxqcsZXrP+5pSkolpSo2ViEWiq3K/hjfl5OQgX/4=
 github.com/KyberNetwork/int256 v0.1.4/go.mod h1:qE/Ikpo86fn60sIB7CwcfiqJTjK2p+k+ASvuO79Rq4g=
 github.com/KyberNetwork/kutils v0.2.2 h1:BgZPQeilzmVI39hf4YaGPRqWU0WWhLbfZ2IxzZPhbVc=
@@ -51,8 +58,8 @@ github.com/KyberNetwork/pool-service v0.45.1 h1:v2Sh8KXfaDGBtYOGBPTB6YTokTqZC2ZS
 github.com/KyberNetwork/pool-service v0.45.1/go.mod h1:GsIOjGL28d/1/cbmDfz70BvEKoP5F+2bFgdrX2MIdYE=
 github.com/KyberNetwork/reload v0.1.1 h1:d2gu8KK8C34tiyPQongjLzwy5w73fYHbwP1P9MobXuo=
 github.com/KyberNetwork/reload v0.1.1/go.mod h1:0qlzJAjsqBf1ZBw93qPpucFXre/0FMtQWwD/BidcYtM=
-github.com/KyberNetwork/service-framework v0.1.0 h1:TX3rtQUg6blgDfAcAgjDmqkkHLx6sgse5tkyoREbdDk=
-github.com/KyberNetwork/service-framework v0.1.0/go.mod h1:iunFvpNA52rNTcs2YaNk8S40kiVG6UVzlWRDkeWxYzE=
+github.com/KyberNetwork/service-framework v0.5.0 h1:CtDHIOX37E0OpC0XgQgU8z5fDeJovzQf7ytDVDQFs30=
+github.com/KyberNetwork/service-framework v0.5.0/go.mod h1:ox1XRpBP5BFLUtOYQQYRk63H6gMrClFI1FiY+cS+Cs0=
 github.com/KyberNetwork/uniswapv3-sdk v0.5.0 h1:Akl6KR27K+gVMOf9x9u9dV32j9YTIEnY99R9z+WlVGI=
 github.com/KyberNetwork/uniswapv3-sdk v0.5.0/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
 github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.0 h1:AkEmCEBmyYAUU+WHGrgw9uaXHteqNn66CD36FaXoUig=
@@ -101,6 +108,8 @@ github.com/chenzhuoyu/iasm v0.9.1/go.mod h1:Xjy2NpN3h7aUqeqM+woSuuvxmIe6+DDsiNLI
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=
+github.com/cncf/xds/go v0.0.0-20231109132714-523115ebc101 h1:7To3pQ+pZo0i3dsWEbinPNFs5gPSBOsJtx3wTT94VBY=
+github.com/cncf/xds/go v0.0.0-20231109132714-523115ebc101/go.mod h1:eXthEFrGJvWHgFFCl3hGmgk+/aYT6PnTQLykKQRLhEs=
 github.com/cockroachdb/errors v1.8.1 h1:A5+txlVZfOqFBDa4mGz2bUWSp0aHElvHX2bKkdbQu+Y=
 github.com/cockroachdb/errors v1.8.1/go.mod h1:qGwQn6JmZ+oMjuLwjWzUNqblqk0xl4CVV3SQbGwK7Ac=
 github.com/cockroachdb/logtags v0.0.0-20190617123548-eb05cc24525f h1:o/kfcElHqOiXqcou5a3rIlMc7oJbMQkeLk0VQJ7zgqY=
@@ -532,6 +541,8 @@ github.com/yusufpapurcu/wmi v1.2.4 h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo
 github.com/yusufpapurcu/wmi v1.2.4/go.mod h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0=
 go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.43.0 h1:B8JzkALYp9VVR85AE7geXia+D4shAoUjaCEaBxn8NO8=
 go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin v0.43.0/go.mod h1:b4/TD3x8cVgX8ZCRioLqE0jAw1918mq95Q6tSYyc+g4=
+go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.47.0 h1:UNQQKPfTDe1J81ViolILjTKPr9WetKW6uei2hFgJmFs=
+go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.47.0/go.mod h1:r9vWsPS/3AQItv3OSlEJ/E4mbrhUbbw18meOjArPtKQ=
 go.opentelemetry.io/contrib/propagators/b3 v1.18.0 h1:hhSlPVi9AQwOmbMmptPNLfRZOLgENdRM2kb7z9LFe1A=
 go.opentelemetry.io/contrib/propagators/b3 v1.18.0/go.mod h1:qtt+pEu23D7UVP+j33G4i7LopmVu8/6/IwGu3hEm100=
 go.opentelemetry.io/otel v1.23.1 h1:Za4UzOqJYS+MUczKI320AtqZHZb7EqxO00jAHE0jmQY=
@@ -611,6 +622,8 @@ golang.org/x/net v0.10.0/go.mod h1:0qNGK6F8kojg2nk9dLZ2mShWaEBan6FAoqfSigmmuDg=
 golang.org/x/net v0.17.0/go.mod h1:NxSsAGuq816PNPmqtQdLE42eU2Fs7NoRIZrHJAlaCOE=
 golang.org/x/net v0.21.0 h1:AQyQV4dYCvJ7vGmJyKki9+PBdyvhkSd8EIx/qb0AYv4=
 golang.org/x/net v0.21.0/go.mod h1:bIjVDfnllIU7BJ2DNgfnXvpSvtn8VRwhlsaeUTyUS44=
+golang.org/x/oauth2 v0.16.0 h1:aDkGMBSYxElaoP81NpoUoz2oo2R2wHdZpGToUxfyQrQ=
+golang.org/x/oauth2 v0.16.0/go.mod h1:hqZ+0LWXsiVoZpeld6jVt06P3adbS2Uu911W1SsJv2o=
 golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20190423024810-112230192c58/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
@@ -701,6 +714,8 @@ golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8T
 golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
 golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 h1:+cNy6SZtPcJQH3LJVLOSmiC7MMxXNOb3PU/VUEz+EhU=
 golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028/go.mod h1:NDW/Ps6MPRej6fsCIbMTohpP40sJ/P/vI1MoTEGwX90=
+google.golang.org/appengine v1.6.8 h1:IhEN5q69dyKagZPYMSdIjS2HqprW324FRQZJcGqPAsM=
+google.golang.org/appengine v1.6.8/go.mod h1:1jJ3jBArFh5pcgW8gCtRJnepW8FzD1V44FJffLiz/Ds=
 google.golang.org/genproto v0.0.0-20240213162025-012b6fc9bca9 h1:9+tzLLstTlPTRyJTh+ah5wIMsBW5c4tQwGTN3thOW9Y=
 google.golang.org/genproto v0.0.0-20240213162025-012b6fc9bca9/go.mod h1:mqHbVIp48Muh7Ywss/AD6I5kNVKZMmAa/QEW58Gxp2s=
 google.golang.org/genproto/googleapis/api v0.0.0-20240221002015-b0ce06bbee7c h1:9g7erC9qu44ks7UK4gDNlnk4kOxZG707xKm4jVniy6o=

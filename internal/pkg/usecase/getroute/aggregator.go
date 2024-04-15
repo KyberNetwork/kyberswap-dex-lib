@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -27,11 +28,12 @@ import (
 
 // aggregator finds best route within amm liquidity sources
 type aggregator struct {
-	poolRankRepository IPoolRankRepository
-	tokenRepository    ITokenRepository
-	priceRepository    IPriceRepository
-	poolManager        IPoolManager
-	bestPathRepository IBestPathRepository
+	poolRankRepository     IPoolRankRepository
+	tokenRepository        ITokenRepository
+	priceRepository        IPriceRepository
+	onchainpriceRepository IOnchainPriceRepository
+	poolManager            IPoolManager
+	bestPathRepository     IBestPathRepository
 
 	routeFinder          findroute.IFinder
 	hillClimbRouteFinder findroute.IFinder
@@ -44,6 +46,7 @@ func NewAggregator(
 	poolRankRepository IPoolRankRepository,
 	tokenRepository ITokenRepository,
 	priceRepository IPriceRepository,
+	onchainpriceRepository IOnchainPriceRepository,
 	poolManager IPoolManager,
 	config AggregatorConfig,
 	bestPathRepository IBestPathRepository,
@@ -58,14 +61,15 @@ func NewAggregator(
 	)
 
 	return &aggregator{
-		poolRankRepository:   poolRankRepository,
-		tokenRepository:      tokenRepository,
-		priceRepository:      priceRepository,
-		poolManager:          poolManager,
-		routeFinder:          routeFinder,
-		hillClimbRouteFinder: hillClimbRouteFinder,
-		config:               config,
-		bestPathRepository:   bestPathRepository,
+		poolRankRepository:     poolRankRepository,
+		tokenRepository:        tokenRepository,
+		priceRepository:        priceRepository,
+		onchainpriceRepository: onchainpriceRepository,
+		poolManager:            poolManager,
+		routeFinder:            routeFinder,
+		hillClimbRouteFinder:   hillClimbRouteFinder,
+		config:                 config,
+		bestPathRepository:     bestPathRepository,
 	}
 }
 
@@ -107,13 +111,22 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 		return nil, err
 	}
 
-	priceByAddress, err := a.getPriceUSDByAddress(ctx, tokenAddresses)
+	priceUSDByAddress, err := a.getPriceUSDByAddress(ctx, tokenAddresses)
 	if err != nil {
 		return nil, err
 	}
 
+	// only get price from onchain-price-service if enabled
+	var priceByAddress map[string]*routerEntity.OnchainPrice
+	if a.onchainpriceRepository != nil {
+		priceByAddress, err = a.onchainpriceRepository.FindByAddresses(ctx, tokenAddresses)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Step 3: finds best route
-	return a.findBestRoute(ctx, params, tokenByAddress, priceByAddress, state)
+	return a.findBestRoute(ctx, params, tokenByAddress, priceUSDByAddress, priceByAddress, state)
 }
 
 func (a *aggregator) ApplyConfig(config Config) {
@@ -157,6 +170,7 @@ func (a *aggregator) findBestRoute(
 	params *types.AggregateParams,
 	tokenByAddress map[string]*entity.Token,
 	priceUSDByAddress map[string]float64,
+	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
 ) (*valueobject.RouteSummary, error) {
 	input := findroute.Input{
@@ -171,7 +185,7 @@ func (a *aggregator) findBestRoute(
 		SourceHash:             valueobject.HashSources(params.Sources),
 	}
 
-	data := findroute.NewFinderData(ctx, tokenByAddress, priceUSDByAddress, state)
+	data := findroute.NewFinderData(ctx, tokenByAddress, priceUSDByAddress, priceByAddress, state)
 	defer data.ReleaseResources()
 	var (
 		routes []*valueobject.Route
