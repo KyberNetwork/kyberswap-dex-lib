@@ -1,6 +1,6 @@
 package pufeth
 
-var (
+const (
 	DexType = "puffer-pufeth"
 )
 

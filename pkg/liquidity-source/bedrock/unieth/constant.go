@@ -1,6 +1,6 @@
 package unieth
 
-var (
+const (
 	DexType = "bedrock-unieth"
 )
 
