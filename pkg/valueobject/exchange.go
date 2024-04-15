@@ -272,6 +272,8 @@ var (
 
 	ExchangeBedrockUniETH Exchange = "bedrock-unieth"
 
+	ExchangePufferPufETH Exchange = "puffer-pufeth"
+
 	ExchangeRingSwap        Exchange = "ring-swap"
 	ExchangeThrusterV2      Exchange = "thruster-v2"
 	ExchangeThrusterV2Degen Exchange = "thruster-v2-degen"
