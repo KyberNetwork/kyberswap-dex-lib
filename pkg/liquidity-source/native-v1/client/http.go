@@ -13,7 +13,7 @@ import (
 const (
 	headerApiKey = "apiKey"
 
-	pathFirmQuote = "v1/firm-quote"
+	pathCalldata = "v1/firm-quote/calldata"
 
 	errMsgThrottled           = "ThrottlerException: Too Many Requests"
 	errMsgInternalServerError = "Internal server error"
@@ -62,12 +62,12 @@ func (c *HTTPClient) Quote(ctx context.Context, params nativev1.QuoteParams) (na
 		SetQueryParam(nativev1.ParamsSlippage, params.Slippage)
 
 	var result nativev1.QuoteResult
-	resp, err := req.SetResult(&result).Get(pathFirmQuote)
+	resp, err := req.SetResult(&result).Get(pathCalldata)
 	if err != nil {
 		return nativev1.QuoteResult{}, err
 	}
 
-	if !resp.IsSuccess() || !result.Success {
+	if !resp.IsSuccess() {
 		return nativev1.QuoteResult{}, parseRFQError(result.Message)
 	}
 
