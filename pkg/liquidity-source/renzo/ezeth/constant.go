@@ -15,6 +15,8 @@ const (
 )
 
 const (
+	EzEthTokenMethodTotalSupply = "totalSupply"
+
 	RestakeManagerMethodCalculateTVLs             = "calculateTVLs"
 	RestakeManagerMethodCollateralTokenTvlLimits  = "collateralTokenTvlLimits"
 	RestakeManagerMethodCollateralTokens          = "collateralTokens"
@@ -22,6 +24,9 @@ const (
 	RestakeManagerMethodMaxDepositTVL             = "maxDepositTVL"
 	RestakeManagerMethodPaused                    = "paused"
 	RestakeManagerMethodRenzoOracle               = "renzoOracle"
+
+	RenzoOracleMethodTokenOracleLookUp = "tokenOracleLookup"
+	TokenOracleMethodLatestRoundData   = "latestRoundData"
 
 	RestakeManagerMethodGetOperatorDelegatorsLength  = "getOperatorDelegatorsLength"
 	RestakeManagerMethodOperatorDelegators           = "operatorDelegators"

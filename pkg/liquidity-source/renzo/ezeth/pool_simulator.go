@@ -1,11 +1,14 @@
 package ezeth
 
 import (
+	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -64,6 +67,37 @@ type PoolSimulator struct {
 	tokenOracleLookup map[string]Oracle
 
 	collateralTokenTvlLimits map[string]*big.Int
+}
+
+func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+	var extra PoolExtra
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	return &PoolSimulator{
+		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+			Address:     entityPool.Address,
+			ReserveUsd:  entityPool.ReserveUsd,
+			Exchange:    entityPool.Exchange,
+			Type:        entityPool.Type,
+			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
+			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
+			BlockNumber: entityPool.BlockNumber,
+		}},
+		paused:                       extra.Paused,
+		strategyManagerPaused:        extra.StrategyManagerPaused,
+		collateralTokenIndex:         extra.CollateralTokenIndex,
+		operatorDelegatorTokenTVLs:   extra.OperatorDelegatorTokenTVLs,
+		operatorDelegatorTVLs:        extra.OperatorDelegatorTVLs,
+		totalTVL:                     extra.TotalTVL,
+		operatorDelegatorAllocations: extra.OperatorDelegatorAllocations,
+		tokenStrategyMapping:         extra.TokenStrategyMapping,
+		totalSupply:                  extra.TotalSupply,
+		maxDepositTVL:                extra.MaxDepositTVL,
+		tokenOracleLookup:            nil, // TODO
+		collateralTokenTvlLimits:     nil, // TODO
+	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {

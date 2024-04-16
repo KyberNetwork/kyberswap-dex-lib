@@ -10,8 +10,10 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -101,6 +103,7 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 			TotalTVL                   *big.Int
 		}
 		collateralTokenLength *big.Int
+		totalSupply           *big.Int
 		maxDepositTVL         *big.Int
 		paused                bool
 		strategyManagerPaused *big.Int
@@ -123,6 +126,12 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 		Method: RestakeManagerMethodGetCollateralTokensLength,
 		Params: []interface{}{},
 	}, []interface{}{&collateralTokenLength})
+	getPoolStateRequest.AddCall(&ethrpc.Call{
+		ABI:    EzETHTokenABI,
+		Target: EzEthToken,
+		Method: EzEthTokenMethodTotalSupply,
+		Params: []interface{}{},
+	}, []interface{}{&totalSupply})
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    RestakeManagerABI,
 		Target: RestakeManager,
@@ -182,9 +191,13 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 		return PoolExtra{}, 0, err
 	}
 
-	// Get OperatorDelegators addresses
-	operatorDelegatorsLen := operatorDelegatorsLength.Int64()
-	var operatorDelegators = make([]common.Address, operatorDelegatorsLen)
+	// Get OperatorDelegators & Oracle addresses
+	var (
+		operatorDelegatorsLen    = operatorDelegatorsLength.Int64()
+		operatorDelegators       = make([]common.Address, operatorDelegatorsLen)
+		tokenOracleAddresses     = make([]common.Address, len(collaterals))
+		collateralTokenTvlLimits = make([]*big.Int, len(collaterals))
+	)
 
 	operatorDelegatorsRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
 	for i := 0; i < int(operatorDelegatorsLen); i++ {
@@ -195,15 +208,31 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 			Params: []interface{}{big.NewInt(int64(i))},
 		}, []interface{}{&operatorDelegators[i]})
 	}
+	for i := 0; i < len(collaterals); i++ {
+		operatorDelegatorsRequest.AddCall(&ethrpc.Call{
+			ABI:    RenzoOracleABI,
+			Target: renzoOracle.Hex(),
+			Method: RenzoOracleMethodTokenOracleLookUp,
+			Params: []interface{}{collaterals[i]},
+		}, []interface{}{&tokenOracleAddresses[i]})
+		operatorDelegatorsRequest.AddCall(&ethrpc.Call{
+			ABI:    RestakeManagerABI,
+			Target: renzoOracle.Hex(),
+			Method: RestakeManagerMethodCollateralTokenTvlLimits,
+			Params: []interface{}{collaterals[i]},
+		}, []interface{}{&collateralTokenTvlLimits[i]})
+	}
 	resp, err = operatorDelegatorsRequest.TryAggregate()
 	if err != nil {
 		return PoolExtra{}, 0, err
 	}
 
-	// Get OperatorDelegatorAllocation & TokenStrategyMapping for each OperatorDelegator
+	// 1. Get OperatorDelegatorAllocation & TokenStrategyMapping for each OperatorDelegator
+	// 2. Get TokenOracle.latestRoundData for each TokenOracleAddress
 	var (
 		operatorDelegatorAllocations = make([]*big.Int, operatorDelegatorsLen)
-		tokenStrategyMapping         = make([][]common.Address, operatorDelegatorsLen)
+		tokenStrategies              = make([][]common.Address, operatorDelegatorsLen)
+		oracleInfo                   = make([]Oracle, len(tokenOracleAddresses))
 	)
 	operatorDelegatorInfoRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
 	for i := 0; i < int(operatorDelegatorsLen); i++ {
@@ -216,15 +245,24 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 	}
 
 	for i := 0; i < int(operatorDelegatorsLen); i++ {
-		tokenStrategyMapping[i] = make([]common.Address, collateralsLen)
+		tokenStrategies[i] = make([]common.Address, collateralsLen)
 		for j := 0; j < int(collateralsLen); j++ {
 			operatorDelegatorInfoRequest.AddCall(&ethrpc.Call{
 				ABI:    OperatorDelegatorABI,
 				Target: operatorDelegators[i].String(),
 				Method: OperatorDelegatorMethodTokenStrategyMapping,
 				Params: []interface{}{collaterals[j]},
-			}, []interface{}{&tokenStrategyMapping[i][j]})
+			}, []interface{}{&tokenStrategies[i][j]})
 		}
+	}
+
+	for i := 0; i < len(tokenOracleAddresses); i++ {
+		operatorDelegatorInfoRequest.AddCall(&ethrpc.Call{
+			ABI:    TokenOracleABI,
+			Target: tokenOracleAddresses[i].String(),
+			Method: TokenOracleMethodLatestRoundData,
+			Params: []interface{}{},
+		}, []interface{}{&oracleInfo[i]})
 	}
 
 	resp, err = operatorDelegatorInfoRequest.TryAggregate()
@@ -232,12 +270,47 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 		return PoolExtra{}, 0, err
 	}
 
+	tokenStrategyMapping := make([]map[string]bool, operatorDelegatorsLen)
+	for i := 0; i < int(operatorDelegatorsLen); i++ {
+		tokenStrategyMapping[i] = map[string]bool{}
+		for j := 0; j < len(tokenStrategies[i]); j++ {
+			address := strings.ToLower(tokenStrategies[i][j].Hex())
+			tokenStrategyMapping[i][address] = true
+		}
+	}
+
+	var (
+		collateralTokenIndex        = make(map[string]int, len(collaterals))
+		tokenOracleLookup           = make(map[string]Oracle, len(collaterals))
+		collateralTokenTvlLimitsMap = make(map[string]*big.Int, len(collaterals))
+	)
+	for i := 0; i < len(collaterals); i++ {
+		address := strings.ToLower(collaterals[i].Hex())
+		collateralTokenIndex[address] = i
+		tokenOracleLookup[address] = oracleInfo[i]
+		collateralTokenTvlLimitsMap[address] = collateralTokenTvlLimits[i]
+	}
+
 	poolExtra := PoolExtra{
-		Paused:                     paused,
-		OperatorDelegatorTokenTVLs: calculateTVLs.OperatorDelegatorTokenTVLs,
-		OperatorDelegatorTVLs:      calculateTVLs.OperatorDelegatorTVLs,
-		TotalTVL:                   calculateTVLs.TotalTVL,
-		MaxDepositTVL:              maxDepositTVL,
+		Paused:                       paused,
+		StrategyManagerPaused:        strategyManagerPaused.Cmp(bignumber.One) > 0,
+		CollateralTokenIndex:         collateralTokenIndex,
+		OperatorDelegatorTokenTVLs:   calculateTVLs.OperatorDelegatorTokenTVLs,
+		OperatorDelegatorTVLs:        calculateTVLs.OperatorDelegatorTVLs,
+		TotalTVL:                     calculateTVLs.TotalTVL,
+		OperatorDelegatorAllocations: operatorDelegatorAllocations,
+		TokenStrategyMapping:         tokenStrategyMapping,
+		TotalSupply:                  totalSupply,
+		MaxDepositTVL:                maxDepositTVL,
+		TokenOracleLookup:            tokenOracleLookup,
+		CollateralTokenTvlLimits:     collateralTokenTvlLimitsMap,
+		collaterals: lo.Map(collaterals,
+			func(item common.Address, _ int) *entity.PoolToken {
+				return &entity.PoolToken{
+					Address:   strings.ToLower(item.Hex()),
+					Swappable: true,
+				}
+			}),
 	}
 
 	if resp.BlockNumber == nil {

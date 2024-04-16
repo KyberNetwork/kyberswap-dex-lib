@@ -2,6 +2,9 @@ package ezeth
 
 import _ "embed"
 
+//go:embed abis/EzETHToken.json
+var ezETHTokenABIJson []byte
+
 //go:embed abis/RestakeManager.json
 var restakeManagerABIJson []byte
 
@@ -16,3 +19,6 @@ var strategyManagerABIJson []byte
 
 //go:embed abis/OperatorDelegator.json
 var operatorDelegatorABIJson []byte
+
+//go:embed abis/TokenOracle.json
+var tokenOracleABIJson []byte

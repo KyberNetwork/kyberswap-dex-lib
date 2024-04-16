@@ -7,11 +7,13 @@ import (
 )
 
 var (
+	EzETHTokenABI        abi.ABI
 	RestakeManagerABI    abi.ABI
 	RenzoOracleABI       abi.ABI
 	PriceFeedABI         abi.ABI
 	StrategyManagerABI   abi.ABI
 	OperatorDelegatorABI abi.ABI
+	TokenOracleABI       abi.ABI
 )
 
 func init() {
@@ -19,6 +21,9 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
+		{
+			&EzETHTokenABI, ezETHTokenABIJson,
+		},
 		{
 			&RestakeManagerABI, restakeManagerABIJson,
 		},
@@ -33,6 +38,9 @@ func init() {
 		},
 		{
 			&OperatorDelegatorABI, operatorDelegatorABIJson,
+		},
+		{
+			&TokenOracleABI, tokenOracleABIJson,
 		},
 	}
 
