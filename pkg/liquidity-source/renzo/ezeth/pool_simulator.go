@@ -95,8 +95,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tokenStrategyMapping:         extra.TokenStrategyMapping,
 		totalSupply:                  extra.TotalSupply,
 		maxDepositTVL:                extra.MaxDepositTVL,
-		tokenOracleLookup:            nil, // TODO
-		collateralTokenTvlLimits:     nil, // TODO
+		tokenOracleLookup:            extra.TokenOracleLookup,
+		collateralTokenTvlLimits:     extra.CollateralTokenTvlLimits,
 	}, nil
 }
 
@@ -131,6 +131,26 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: amountOut},
 		Fee:            &poolpkg.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
 	}, nil
+}
+
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	return []string{s.Info.Tokens[0]}
+}
+
+func (s *PoolSimulator) CanSwapFrom(address string) []string {
+	if address != s.Info.Tokens[0] {
+		return []string{}
+	}
+
+	result := make([]string, 0, len(s.Info.Tokens))
+	var tokenIndex = s.GetTokenIndex(address)
+	for i := 0; i < len(s.Info.Tokens); i += 1 {
+		if i != tokenIndex {
+			result = append(result, s.Info.Tokens[i])
+		}
+	}
+
+	return result
 }
 
 func (s *PoolSimulator) depositETH(amountIn *big.Int) (*big.Int, error) {
