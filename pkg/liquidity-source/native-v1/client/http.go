@@ -40,6 +40,7 @@ func NewHTTPClient(config *nativev1.HTTPClientConfig) *HTTPClient {
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
+		SetDebug(true).
 		SetHeaderVerbatim(headerApiKey, config.APIKey)
 
 	return &HTTPClient{
