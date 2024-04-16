@@ -39,6 +39,50 @@ func GenerateRandomPriceUSDByAddress(tokenAddressList []string) map[string]float
 	return prices
 }
 
+// GenerateUniv2PoolByTokenAddress generate a tokenAddressList[i]-tokenAddressList[i+1] pools.
+// all the pool will have the same reserve 1_000_000 - 1_000_000
+func GenerateUniv2PoolByTokenAddress(tokenAddressList []string) (map[string]poolpkg.IPoolSimulator, error) {
+	if len(tokenAddressList) <= 1 {
+		return nil, fmt.Errorf("tokenAddressList must has at least 2 tokens")
+	}
+	var (
+		poolByAddress          = make(map[string]poolpkg.IPoolSimulator)
+		swapAddress, nextToken string
+		swapFee                = 0.0
+		data                   entity.Pool
+		swap                   poolpkg.IPoolSimulator
+		err                    error
+	)
+	for i := 0; i < len(tokenAddressList); i++ {
+		if i == len(tokenAddressList)-1 {
+			//Gen a tokenN-token0 pool
+			nextToken = tokenAddressList[0]
+		} else {
+			nextToken = tokenAddressList[i+1]
+		}
+		swapAddress = "pool_" + strconv.Itoa(i)
+		data = entity.Pool{
+			Address: swapAddress,
+			SwapFee: swapFee,
+			Tokens: entity.PoolTokens{
+				&entity.PoolToken{Address: tokenAddressList[i]},
+				&entity.PoolToken{Address: nextToken},
+			},
+			Reserves: entity.PoolReserves{
+				strconv.Itoa(1_000_000),
+				strconv.Itoa(1_000_000),
+			},
+			Type: "uniswap",
+		}
+		// using uni pool for simplicity
+		if swap, err = uniswap.NewPoolSimulator(data); err != nil {
+			return nil, err
+		}
+		poolByAddress[swapAddress] = swap
+	}
+	return poolByAddress, nil
+}
+
 func GenerateRandomPoolByAddress(nPools int, tokenAddressList []string, poolType string) (map[string]poolpkg.IPoolSimulator, error) {
 	if nPools < len(tokenAddressList)-1 {
 		return nil, fmt.Errorf("not enough poolByAddress to make a connected graph")
