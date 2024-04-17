@@ -29,6 +29,7 @@ type (
 		Token1               entity.PoolToken
 		ZeroToOnePriceLevels []PriceLevel
 		OneToZeroPriceLevels []PriceLevel
+		MinIn0, MinIn1       float64
 
 		timestamp      int64
 		priceTolerance uint
@@ -36,22 +37,19 @@ type (
 		gas            Gas
 	}
 
-	PriceLevel struct {
-		Quote *big.Float
-		Price *big.Float
-	}
-
 	StaticExtra struct {
 		MarketMaker string `json:"marketMaker"`
 	}
 
 	Extra struct {
-		ZeroToOnePriceLevels []PriceLevelRaw `json:"0to1"`
-		OneToZeroPriceLevels []PriceLevelRaw `json:"1to0"`
-		PriceTolerance       uint            `json:"tlrnce,omitempty"`
-		ExpirySecs           uint            `json:"exp,omitempty"`
+		ZeroToOnePriceLevels []PriceLevel `json:"0to1"`
+		OneToZeroPriceLevels []PriceLevel `json:"1to0"`
+		MinIn0               float64      `json:"min0"`
+		MinIn1               float64      `json:"min1"`
+		PriceTolerance       uint         `json:"tlrnce,omitempty"`
+		ExpirySecs           uint         `json:"exp,omitempty"`
 	}
-	PriceLevelRaw struct {
+	PriceLevel struct {
 		Quote float64 `json:"q"`
 		Price float64 `json:"p"`
 	}
@@ -80,19 +78,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	zeroToOnePriceLevels := lo.Map(extra.ZeroToOnePriceLevels, func(item PriceLevelRaw, index int) PriceLevel {
-		return PriceLevel{
-			Quote: big.NewFloat(item.Quote),
-			Price: big.NewFloat(item.Price),
-		}
-	})
-	oneToZeroPriceLevels := lo.Map(extra.OneToZeroPriceLevels, func(item PriceLevelRaw, index int) PriceLevel {
-		return PriceLevel{
-			Quote: big.NewFloat(item.Quote),
-			Price: big.NewFloat(item.Price),
-		}
-	})
-
 	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: pool.PoolInfo{
@@ -108,8 +93,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		},
 		Token0:               *entityPool.Tokens[0],
 		Token1:               *entityPool.Tokens[1],
-		ZeroToOnePriceLevels: zeroToOnePriceLevels,
-		OneToZeroPriceLevels: oneToZeroPriceLevels,
+		ZeroToOnePriceLevels: extra.ZeroToOnePriceLevels,
+		OneToZeroPriceLevels: extra.OneToZeroPriceLevels,
+		MinIn0:               extra.MinIn0,
+		MinIn1:               extra.MinIn1,
 
 		timestamp:      entityPool.Timestamp,
 		priceTolerance: extra.PriceTolerance,
@@ -120,26 +107,20 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if params.TokenAmountIn.Token == p.Token0.Address {
-		return p.swap(params.TokenAmountIn.Amount, p.Token0, p.Token1, p.ZeroToOnePriceLevels)
+		return p.swap(params.TokenAmountIn.Amount, p.Token0, p.Token1, p.MinIn0, p.ZeroToOnePriceLevels)
 	} else {
-		return p.swap(params.TokenAmountIn.Amount, p.Token1, p.Token0, p.OneToZeroPriceLevels)
+		return p.swap(params.TokenAmountIn.Amount, p.Token1, p.Token0, p.MinIn1, p.OneToZeroPriceLevels)
 	}
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	var amountInAfterDecimals, decimalsPow, amountInBF big.Float
-	amountInBF.SetInt(params.TokenAmountIn.Amount)
-
+	amountInF, _ := params.TokenAmountIn.Amount.Float64()
 	if params.TokenAmountIn.Token == p.Token0.Address {
-		decimalsPow.SetFloat64(math.Pow10(int(p.Token0.Decimals)))
-		amountInAfterDecimals.Quo(&amountInBF, &decimalsPow)
-
-		p.ZeroToOnePriceLevels = getNewPriceLevelsState(&amountInAfterDecimals, p.ZeroToOnePriceLevels)
+		amountInAfterDecimalsF := amountInF / math.Pow10(int(p.Token0.Decimals))
+		p.ZeroToOnePriceLevels = getNewPriceLevelsState(amountInAfterDecimalsF, p.ZeroToOnePriceLevels)
 	} else {
-		decimalsPow.SetFloat64(math.Pow10(int(p.Token1.Decimals)))
-		amountInAfterDecimals.Quo(&amountInBF, &decimalsPow)
-
-		p.OneToZeroPriceLevels = getNewPriceLevelsState(&amountInAfterDecimals, p.OneToZeroPriceLevels)
+		amountInAfterDecimalsF := amountInF / math.Pow10(int(p.Token1.Decimals))
+		p.OneToZeroPriceLevels = getNewPriceLevelsState(amountInAfterDecimalsF, p.OneToZeroPriceLevels)
 	}
 }
 
@@ -147,29 +128,17 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return MetaInfo{Timestamp: p.timestamp}
 }
 
-func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.PoolToken,
+func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.PoolToken, minBase float64,
 	priceLevel []PriceLevel) (*pool.CalcAmountOutResult, error) {
-	var amountInAfterDecimals, decimalsPow, amountInBF, amountOutBF, priceToleranceBF, amountOutToleranceBF big.Float
-
-	amountInBF.SetInt(amountIn)
-	decimalsPow.SetFloat64(math.Pow10(int(baseToken.Decimals)))
-	amountInAfterDecimals.Quo(&amountInBF, &decimalsPow)
-
-	var amountOutAfterDecimals big.Float
-	// Passing amountOutAfterDecimals to the function to avoid allocation
-	err := getAmountOut(&amountInAfterDecimals, priceLevel, &amountOutAfterDecimals)
+	amountInF, _ := amountIn.Float64()
+	amountInAfterDecimalsF := amountInF / math.Pow10(int(baseToken.Decimals))
+	amountOutAfterDecimalsF, err := getAmountOut(amountInAfterDecimalsF, minBase, priceLevel)
 	if err != nil {
 		return nil, err
 	}
-
-	decimalsPow.SetFloat64(math.Pow10(int(quoteToken.Decimals)))
-	amountOutBF.Mul(&amountOutAfterDecimals, &decimalsPow)
-
-	priceToleranceBF.SetFloat64(float64(p.priceTolerance) / float64(priceToleranceBps))
-	amountOutToleranceBF.Mul(&priceToleranceBF, &amountOutBF)
-	amountOutBF.Sub(&amountOutBF, &amountOutToleranceBF)
-
-	amountOut, _ := amountOutBF.Int(nil)
+	amountOutF := amountOutAfterDecimalsF * math.Pow10(int(quoteToken.Decimals))
+	amountOutF = amountOutF * (1 - float64(p.priceTolerance)/bps)
+	amountOut, _ := big.NewFloat(amountOutF).Int(nil)
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: quoteToken.Address, Amount: amountOut},
@@ -186,76 +155,38 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.Poo
 	}, nil
 }
 
-func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel, amountOut *big.Float) error {
+func getAmountOut(amountIn, minAmount float64, priceLevels []PriceLevel) (amountOut float64, err error) {
 	if len(priceLevels) == 0 {
-		return ErrEmptyPriceLevels
+		return 0, ErrEmptyPriceLevels
 	}
 
-	// Check lower bound
-	if amountIn.Cmp(priceLevels[0].Quote) < 0 {
-		return ErrAmountInIsLessThanLowestPriceLevel
+	if amountIn < minAmount {
+		return 0, ErrAmountInIsLessThanLowestPriceLevel
 	}
 
-	// Check upper bound
-	var supportedAmount big.Float
 	for _, priceLevel := range priceLevels {
-		supportedAmount.Add(&supportedAmount, priceLevel.Quote)
-	}
-	if amountIn.Cmp(&supportedAmount) > 0 {
-		return ErrAmountInIsGreaterThanHighestPriceLevel
-	}
-
-	var currentLevelAmount, tmp big.Float // Use tmp for temporary calculation
-	amountLeft := amountIn
-	currentLevelIdx := 0
-
-	for {
-		currentLevel := priceLevels[currentLevelIdx]
-		if amountLeft.Cmp(currentLevel.Quote) < 0 {
-			currentLevelAmount.Set(amountLeft)
-		} else {
-			currentLevelAmount.Set(currentLevel.Quote)
+		if amountIn <= priceLevel.Quote {
+			return amountOut + amountIn*priceLevel.Price, nil
 		}
-
-		amountOut.Add(amountOut, tmp.Mul(&currentLevelAmount, currentLevel.Price))
-		amountLeft.Sub(amountLeft, &currentLevelAmount)
-		currentLevelIdx++
-
-		if amountLeft.Cmp(zeroBF) == 0 || currentLevelIdx == len(priceLevels) {
-			break
-		}
+		amountIn -= priceLevel.Quote
+		amountOut += priceLevel.Quote * priceLevel.Price
 	}
-
-	return nil
+	return 0, ErrAmountInIsGreaterThanHighestPriceLevel
 }
 
-func getNewPriceLevelsState(amountIn *big.Float, priceLevels []PriceLevel) []PriceLevel {
+func getNewPriceLevelsState(amountIn float64, priceLevels []PriceLevel) []PriceLevel {
 	if len(priceLevels) == 0 {
 		return priceLevels
 	}
 
-	amountLeft := amountIn
-	currentLevelIdx := 0
-
-	for {
-		currentLevelAvailableAmount := priceLevels[currentLevelIdx].Quote
-
-		if currentLevelAvailableAmount.Cmp(amountLeft) > 0 {
-			// Update the price level at the current step because it's partially filled
-			priceLevels[currentLevelIdx].Quote.Sub(currentLevelAvailableAmount, amountLeft)
-			amountLeft.Set(zeroBF)
-		} else {
-			// Only increase the step if the current level is fully filled
-			amountLeft.Sub(amountLeft, priceLevels[currentLevelIdx].Quote)
-			priceLevels[currentLevelIdx].Quote.Set(zeroBF)
-			currentLevelIdx += 1
+	for i, priceLevel := range priceLevels {
+		if amountIn < priceLevel.Quote {
+			priceLevel.Quote -= amountIn
+			priceLevels[i] = priceLevel
+			return priceLevels[i:]
 		}
-
-		if amountLeft.Cmp(zeroBF) == 0 || currentLevelIdx == len(priceLevels) {
-			// We don't skip the used price levels, but just reset its quote to zero.
-			break
-		}
+		amountIn -= priceLevel.Quote
 	}
 
-	return priceLevels
+	return nil
 }
