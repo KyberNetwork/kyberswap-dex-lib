@@ -9,6 +9,10 @@ type PoolExtra struct {
 	TotalShares      *uint256.Int `json:"totalShares"`
 }
 
+type SwapExtra struct {
+	IsStETH bool `json:"isStETH"`
+}
+
 type PoolMeta struct {
 	BlockNumber uint64 `json:"blockNumber"`
 }
