@@ -7,6 +7,7 @@ import (
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
 	bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
@@ -198,6 +199,7 @@ type Types struct {
 	HashflowV3                     string
 	NomiSwapStable                 string
 	NativeV1                       string
+	Bebop                          string
 }
 
 var (
@@ -306,5 +308,6 @@ var (
 		HashflowV3:                     hashflowv3.DexType,
 		NomiSwapStable:                 nomiswap.DexType,
 		NativeV1:                       nativev1.DexType,
+		Bebop:                          bebop.DexType,
 	}
 )
