@@ -268,6 +268,8 @@ var (
 
 	ExchangeMakerSavingsDai Exchange = "maker-savingsdai"
 
+	ExchangeRenzoEZETH Exchange = "renzo-ezeth"
+
 	ExchangeSwellSWETH  Exchange = "swell-sweth"
 	ExchangeSwellRSWETH Exchange = "swell-rsweth"
 
@@ -541,6 +543,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeLiquidusFinance:            {},
 	ExchangeNomiswapStable:             {},
 	ExchangeKellerFinance:              {},
+	ExchangeRenzoEZETH:                 {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
