@@ -78,6 +78,7 @@ common:
     - "maker-savingsdai"
     - "bancor-v21"
     - "native-v1"
+    - "renzo-ezeth"
   featureFlags: &featureFlags
   swaapAPIKey:
   nativeAPIKey:

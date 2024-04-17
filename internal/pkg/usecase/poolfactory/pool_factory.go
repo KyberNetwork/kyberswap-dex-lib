@@ -29,6 +29,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
@@ -535,6 +536,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newNativeV1(entityPool)
 	case pooltypes.PoolTypes.NomiSwapStable:
 		return f.newNomiswapStable(entityPool)
+	case pooltypes.PoolTypes.RenzoEZETH:
+		return f.newRenzoEzETH(entityPool)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -1789,6 +1792,20 @@ func (f *PoolFactory) newNomiswapStable(entityPool entity.Pool) (*nomiswapstable
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newNomiswapStable] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newRenzoEzETH(entityPool entity.Pool) (*ezeth.PoolSimulator, error) {
+	corePool, err := ezeth.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newRenzoEzETH] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

@@ -80,6 +80,7 @@ common:
     - "hashflow-v3"
     - "bancor-v21"
     - "native-v1"
+    - "renzo-ezeth"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:
