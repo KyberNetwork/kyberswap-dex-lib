@@ -134,23 +134,37 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 }
 
 func (s *PoolSimulator) CanSwapTo(address string) []string {
-	return []string{s.Info.Tokens[0]}
-}
-
-func (s *PoolSimulator) CanSwapFrom(address string) []string {
 	if address != s.Info.Tokens[0] {
 		return []string{}
 	}
 
 	result := make([]string, 0, len(s.Info.Tokens))
 	var tokenIndex = s.GetTokenIndex(address)
-	for i := 0; i < len(s.Info.Tokens); i += 1 {
+	for i := 0; i < len(s.Info.Tokens); i++ {
 		if i != tokenIndex {
 			result = append(result, s.Info.Tokens[i])
 		}
 	}
 
 	return result
+}
+
+func (s *PoolSimulator) CanSwapFrom(address string) []string {
+	if address == s.Info.Tokens[0] {
+		return []string{}
+	}
+
+	return []string{s.Info.Tokens[0]}
+}
+
+func (s *PoolSimulator) UpdateBalance(param poolpkg.UpdateBalanceParams) {
+	s.totalSupply.Add(s.totalSupply, param.TokenAmountOut.Amount)
+}
+
+func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+	return PoolMeta{
+		BlockNumber: s.Pool.Info.BlockNumber,
+	}
 }
 
 func (s *PoolSimulator) depositETH(amountIn *big.Int) (*big.Int, error) {

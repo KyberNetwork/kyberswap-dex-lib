@@ -53,7 +53,7 @@ func (t *PoolTracker) GetNewPoolState(
 		},
 	}
 	tokens = append(tokens, extra.collaterals...)
-	reserves := make([]string, len(extra.collaterals)+1)
+	reserves := make([]string, len(extra.collaterals)+2)
 	for i := 0; i < len(reserves); i++ {
 		reserves[i] = defaultReserves
 	}

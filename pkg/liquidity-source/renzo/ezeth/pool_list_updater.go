@@ -66,7 +66,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		},
 	}
 	tokens = append(tokens, extra.collaterals...)
-	reserves := make([]string, len(extra.collaterals)+1)
+	reserves := make([]string, len(extra.collaterals)+2)
 	for i := 0; i < len(reserves); i++ {
 		reserves[i] = defaultReserves
 	}
@@ -217,7 +217,7 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 		}, []interface{}{&tokenOracleAddresses[i]})
 		operatorDelegatorsRequest.AddCall(&ethrpc.Call{
 			ABI:    RestakeManagerABI,
-			Target: renzoOracle.Hex(),
+			Target: RestakeManager,
 			Method: RestakeManagerMethodCollateralTokenTvlLimits,
 			Params: []interface{}{collaterals[i]},
 		}, []interface{}{&collateralTokenTvlLimits[i]})
@@ -274,8 +274,10 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 	for i := 0; i < int(operatorDelegatorsLen); i++ {
 		tokenStrategyMapping[i] = map[string]bool{}
 		for j := 0; j < len(tokenStrategies[i]); j++ {
-			address := strings.ToLower(tokenStrategies[i][j].Hex())
-			tokenStrategyMapping[i][address] = true
+			collateral := strings.ToLower(collaterals[j].Hex())
+			address := tokenStrategies[i][j]
+			hasTokenStrategyMapping := address.Hex() == valueobject.ZeroAddress
+			tokenStrategyMapping[i][collateral] = hasTokenStrategyMapping
 		}
 	}
 

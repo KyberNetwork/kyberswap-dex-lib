@@ -36,3 +36,7 @@ type PoolExtra struct {
 
 	collaterals []*entity.PoolToken
 }
+
+type PoolMeta struct {
+	BlockNumber uint64 `json:"blockNumber"`
+}
