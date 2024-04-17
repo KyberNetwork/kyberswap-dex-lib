@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
@@ -18,6 +19,7 @@ var (
 	ErrEmptyPriceLevels                       = errors.New("empty price levels")
 	ErrAmountInIsLessThanLowestPriceLevel     = errors.New("amountIn is less than lowest price level")
 	ErrAmountInIsGreaterThanHighestPriceLevel = errors.New("amountIn is greater than highest price level")
+	ErrAmountOutIsGreaterThanInventory        = errors.New("amountOut is greater than inventory")
 )
 
 type (
@@ -107,21 +109,41 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if params.TokenAmountIn.Token == p.Token0.Address {
-		return p.swap(params.TokenAmountIn.Amount, p.Token0, p.Token1, p.MinIn0, p.ZeroToOnePriceLevels)
+		return p.swap(params.TokenAmountIn.Amount, p.Token0, p.Token1,
+			p.MinIn0, params.Limit.GetLimit(p.Token1.Address), p.ZeroToOnePriceLevels)
 	} else {
-		return p.swap(params.TokenAmountIn.Amount, p.Token1, p.Token0, p.MinIn1, p.OneToZeroPriceLevels)
+		return p.swap(params.TokenAmountIn.Amount, p.Token1, p.Token0,
+			p.MinIn1, params.Limit.GetLimit(p.Token0.Address), p.OneToZeroPriceLevels)
 	}
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	amountInF, _ := params.TokenAmountIn.Amount.Float64()
+	amtIn, amtOut := params.TokenAmountIn.Amount, params.TokenAmountOut.Amount
+	amtInF, _ := amtIn.Float64()
 	if params.TokenAmountIn.Token == p.Token0.Address {
-		amountInAfterDecimalsF := amountInF / math.Pow10(int(p.Token0.Decimals))
+		amountInAfterDecimalsF := amtInF / math.Pow10(int(p.Token0.Decimals))
 		p.ZeroToOnePriceLevels = getNewPriceLevelsState(amountInAfterDecimalsF, p.ZeroToOnePriceLevels)
+		_, _, err := params.SwapLimit.UpdateLimit(p.Token1.Address, p.Token0.Address, amtOut, amtIn)
+		if err != nil {
+			logger.Errorf("unable to update native limit, error: %v", err)
+		}
 	} else {
-		amountInAfterDecimalsF := amountInF / math.Pow10(int(p.Token1.Decimals))
+		amountInAfterDecimalsF := amtInF / math.Pow10(int(p.Token1.Decimals))
 		p.OneToZeroPriceLevels = getNewPriceLevelsState(amountInAfterDecimalsF, p.OneToZeroPriceLevels)
+		_, _, err := params.SwapLimit.UpdateLimit(p.Token0.Address, p.Token1.Address, amtOut, amtIn)
+		if err != nil {
+			logger.Errorf("unable to update native limit, error: %v", err)
+		}
 	}
+}
+
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	tokens, reserves := p.GetTokens(), p.GetReserves()
+	nativeTreasury := make(map[string]*big.Int, len(tokens))
+	for i, token := range tokens {
+		nativeTreasury[token] = new(big.Int).Set(reserves[i])
+	}
+	return nativeTreasury
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
@@ -129,10 +151,12 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.PoolToken, minBase float64,
-	priceLevel []PriceLevel) (*pool.CalcAmountOutResult, error) {
+	inventoryLimit *big.Int, priceLevel []PriceLevel) (*pool.CalcAmountOutResult, error) {
 	amountInF, _ := amountIn.Float64()
 	amountInAfterDecimalsF := amountInF / math.Pow10(int(baseToken.Decimals))
-	amountOutAfterDecimalsF, err := getAmountOut(amountInAfterDecimalsF, minBase, priceLevel)
+	maxQuoteF, _ := inventoryLimit.Float64()
+	maxQuoteAfterDecimalsF := maxQuoteF / math.Pow10(int(quoteToken.Decimals))
+	amountOutAfterDecimalsF, err := getAmountOut(amountInAfterDecimalsF, minBase, maxQuoteAfterDecimalsF, priceLevel)
 	if err != nil {
 		return nil, err
 	}
@@ -155,21 +179,25 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.Poo
 	}, nil
 }
 
-func getAmountOut(amountIn, minAmount float64, priceLevels []PriceLevel) (amountOut float64, err error) {
+func getAmountOut(amtIn, minAmtIn, maxAmtOut float64, priceLevels []PriceLevel) (amountOut float64, err error) {
 	if len(priceLevels) == 0 {
 		return 0, ErrEmptyPriceLevels
 	}
 
-	if amountIn < minAmount {
+	if amtIn < minAmtIn {
 		return 0, ErrAmountInIsLessThanLowestPriceLevel
 	}
 
 	for _, priceLevel := range priceLevels {
-		if amountIn <= priceLevel.Quote {
-			return amountOut + amountIn*priceLevel.Price, nil
+		if amtIn <= priceLevel.Quote {
+			amountOut += amtIn*priceLevel.Price
+			if amountOut > maxAmtOut {
+				return 0, ErrAmountOutIsGreaterThanInventory
+			}
+			return amountOut, nil
 		}
-		amountIn -= priceLevel.Quote
 		amountOut += priceLevel.Quote * priceLevel.Price
+		amtIn -= priceLevel.Quote
 	}
 	return 0, ErrAmountInIsGreaterThanHighestPriceLevel
 }

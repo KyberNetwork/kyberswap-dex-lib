@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -14,7 +15,7 @@ var entityPool = entity.Pool{
 	Address:  "native_v1_0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270_0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
 	Exchange: "native-v1",
 	Type:     "native-v1",
-	Reserves: []string{"9320038994403940352", "166143156993"},
+	Reserves: []string{"181716_295903804_000000000", "8_489139"},
 	Tokens: []*entity.PoolToken{
 		{Address: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270", Decimals: 18, Swappable: true},
 		{Address: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f", Decimals: 6, Swappable: true},
@@ -45,9 +46,6 @@ func TestPoolSimulator_NewPool(t *testing.T) {
 }
 
 func TestPoolSimulator_GetAmountOut(t *testing.T) {
-	poolSimulator, err := NewPoolSimulator(entityPool)
-	assert.NoError(t, err)
-
 	tests := []struct {
 		name                 string
 		amountIn0, amountIn1 *big.Int
@@ -84,10 +82,18 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 			amountIn1:         big.NewInt(152_000_000),
 			expectedAmountOut: bigIntFromString("166324460693065564160"),
 		},
+		{
+			name:        "it should return error when swap more than inventory",
+			amountIn1:   big.NewInt(166143_156993),
+			expectedErr: ErrAmountOutIsGreaterThanInventory,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			poolSimulator, err := NewPoolSimulator(entityPool)
+			assert.NoError(t, err)
+
 			tokenIn, tokenOut, amountIn := entityPool.Tokens[0].Address, entityPool.Tokens[1].Address, tt.amountIn0
 			if amountIn == nil {
 				tokenIn, tokenOut, amountIn = tokenOut, tokenIn, tt.amountIn1
@@ -95,11 +101,11 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 			params := pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn},
 				TokenOut:      tokenOut,
+				Limit:         kyberpmm.NewInventory(poolSimulator.CalculateLimit()),
 			}
 
 			result, err := poolSimulator.CalcAmountOut(params)
-			assert.Equal(t, tt.expectedErr, err)
-			if tt.expectedErr == nil {
+			if assert.Equal(t, tt.expectedErr, err) && tt.expectedErr == nil {
 				assert.Equal(t, tt.expectedAmountOut, result.TokenAmountOut.Amount)
 			}
 		})
@@ -173,7 +179,17 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			if amountIn == nil {
 				token, amountIn = entityPool.Tokens[1].Address, tt.amountIn1
 			}
-			p.UpdateBalance(pool.UpdateBalanceParams{TokenAmountIn: pool.TokenAmount{Token: token, Amount: amountIn}})
+			limit := kyberpmm.NewInventory(p.CalculateLimit())
+			amountOut, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{Token: token, Amount: amountIn},
+				Limit:         limit,
+			})
+			assert.NoError(t, err)
+			p.UpdateBalance(pool.UpdateBalanceParams{
+				TokenAmountIn:  pool.TokenAmount{Token: token, Amount: amountIn},
+				TokenAmountOut: *amountOut.TokenAmountOut,
+				SwapLimit:      limit,
+			})
 			assert.Equal(t, tt.expectedZeroToOnePriceLevels, p.ZeroToOnePriceLevels)
 			assert.Equal(t, tt.expectedOneToZeroPriceLevels, p.OneToZeroPriceLevels)
 		})
