@@ -183,23 +183,24 @@ var (
 
 	ExchangeMakerLidoStETH Exchange = "lido-steth"
 
-	ExchangeVelodromeV2 Exchange = "velodrome-v2"
-	ExchangeAerodrome   Exchange = "aerodrome"
-	ExchangeFvm         Exchange = "fvm"
-	ExchangeBvm         Exchange = "bvm"
-	ExchangeMuteSwitch  Exchange = "muteswitch"
-	ExchangeRetro       Exchange = "retro"
-	ExchangeThena       Exchange = "thena"
-	ExchangeThenaFusion Exchange = "thena-fusion"
-	ExchangePearlV2     Exchange = "pearl-v2"
-	ExchangeBaso        Exchange = "baso"
-	ExchangeLyve        Exchange = "lyve"
-	ExchangeScale       Exchange = "scale"
-	ExchangeUSDFi       Exchange = "usdfi"
-	ExchangeSkydrome    Exchange = "skydrome"
-	ExchangeEqual       Exchange = "equal"
-	ExchangeLynexV1     Exchange = "lynex-v1"
-	ExchangeSkydromeV2  Exchange = "skydrome-v2"
+	ExchangeVelodromeV2   Exchange = "velodrome-v2"
+	ExchangeAerodrome     Exchange = "aerodrome"
+	ExchangeFvm           Exchange = "fvm"
+	ExchangeBvm           Exchange = "bvm"
+	ExchangeMuteSwitch    Exchange = "muteswitch"
+	ExchangeRetro         Exchange = "retro"
+	ExchangeThena         Exchange = "thena"
+	ExchangeThenaFusion   Exchange = "thena-fusion"
+	ExchangePearlV2       Exchange = "pearl-v2"
+	ExchangeBaso          Exchange = "baso"
+	ExchangeLyve          Exchange = "lyve"
+	ExchangeScale         Exchange = "scale"
+	ExchangeUSDFi         Exchange = "usdfi"
+	ExchangeSkydrome      Exchange = "skydrome"
+	ExchangeEqual         Exchange = "equal"
+	ExchangeLynexV1       Exchange = "lynex-v1"
+	ExchangeSkydromeV2    Exchange = "skydrome-v2"
+	ExchangeKellerFinance Exchange = "keller-finance"
 
 	ExchangeWombat     Exchange = "wombat"
 	ExchangeMantisSwap Exchange = "mantisswap"
@@ -502,6 +503,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeRocketPoolRETH:             {},
 	ExchangeEthenaSusde:                {},
 	ExchangeMakerSavingsDai:            {},
+	ExchangeSwellSWETH:                 {},
+	ExchangeSwellRSWETH:                {},
+	ExchangeBedrockUniETH:              {},
+	ExchangePufferPufETH:               {},
 	ExchangeRingSwap:                   {},
 	ExchangeThrusterV2:                 {},
 	ExchangeThrusterV2Degen:            {},
@@ -535,6 +540,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMerchantMoeV22:             {},
 	ExchangeLiquidusFinance:            {},
 	ExchangeNomiswapStable:             {},
+	ExchangeKellerFinance:              {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
