@@ -79,6 +79,10 @@ common:
     - "bancor-v21"
     - "native-v1"
     - "renzo-ezeth"
+    - "bedrock-unieth"
+    - "puffer-pufeth"
+    - "swell-rsweth"
+    - "swell-sweth"
   featureFlags: &featureFlags
   swaapAPIKey:
   nativeAPIKey:

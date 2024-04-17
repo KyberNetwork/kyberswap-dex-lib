@@ -41,6 +41,7 @@ common:
     - "nuri-v2"
     - "skydrome-v2"
     - "native-v1"
+    - "keller-finance"
   featureFlags: &featureFlags
   nativeAPIKey:
 log:
