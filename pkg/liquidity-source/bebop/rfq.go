@@ -48,10 +48,16 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		return nil, err
 	}
 
-	newAmountOut, _ := new(big.Int).SetString(result.ToSign.MakerAmounts[0][0], 10)
+	newTotalAmountOut := big.NewInt(0)
+	for _, mA := range result.ToSign.MakerAmounts {
+		for _, amount := range mA {
+			newAmountOut, _ := new(big.Int).SetString(amount, 10)
+			newTotalAmountOut = new(big.Int).Add(newTotalAmountOut, newAmountOut)
+		}
+	}
 
 	return &pool.RFQResult{
-		NewAmountOut: newAmountOut,
+		NewAmountOut: newTotalAmountOut,
 		Extra:        result,
 	}, nil
 }

@@ -11,23 +11,30 @@ import (
 )
 
 const (
-	headerApiKey = "apiKey"
+	headerNameKey = "name"
+	headerAuthKey = "Authorization"
 
 	pathQuote = "v2/quote"
 
-	errMsgThrottled           = "ThrottlerException: Too Many Requests"
-	errMsgInternalServerError = "Internal server error"
-	errMsgBadRequest          = "Bad Request"
-	errMsgAllPricerFailed     = "All pricer failed"
+	errCodeBadRequest             = 101
+	errCodeInsufficientLiquidity  = 102
+	errCodeGasCalculationError    = 103
+	errCodeMinSize                = 104
+	errCodeTokenNotSupported      = 105
+	errCodeGasExceedsSize         = 106
+	errCodeUnexpectedPermitsError = 107
 )
 
 var (
 	ErrRFQFailed = errors.New("rfq failed")
 
-	ErrRFQRateLimit           = errors.New("rfq: rate limited")
-	ErrRFQInternalServerError = errors.New("rfq: internal server error")
-	ErrRFQBadRequest          = errors.New("rfq: bad request")
-	ErrRFQAllPricerFailed     = errors.New("rfq: all pricer failed")
+	ErrRFQBadRequest             = errors.New("rfq: The API request is invalid - incorrect format or missing required fields")
+	ErrRFQInsufficientLiquidity  = errors.New("rfq: There is insufficient liquidity to serve the requested trade size for the given tokens")
+	ErrRFQGasCalculationError    = errors.New("rfq: There was a failure in calculating the gas estimate for this quotes transaction cost - this can occur when gas is fluctuating wildly")
+	ErrRFQMinSize                = errors.New("rfq: User is trying to trade smaller than the minimum acceptable size for the given tokens")
+	ErrRFQTokenNotSupported      = errors.New("rfq: The token user is trying to trade is not supported by Bebop at the moment")
+	ErrRFQGasExceedsSize         = errors.New("rfq: Execution cost (gas) doesn't cover the trade size")
+	ErrRFQUnexpectedPermitsError = errors.New("rfq: Unexpected error when a user approves tokens via Permit or Permit2 signatures")
 )
 
 type HTTPClient struct {
@@ -40,7 +47,8 @@ func NewHTTPClient(config *bebop.HTTPClientConfig) *HTTPClient {
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
-		SetHeaderVerbatim(headerApiKey, config.APIKey)
+		SetHeader(headerNameKey, config.Name).
+		SetHeader(headerAuthKey, config.Authorization)
 
 	return &HTTPClient{
 		config: config,
@@ -71,22 +79,28 @@ func (c *HTTPClient) Quote(ctx context.Context, params bebop.QuoteParams) (bebop
 	_ = json.Unmarshal(bytes, &result)
 	_ = json.Unmarshal(bytes, &fail)
 	if !resp.IsSuccess() || fail.Failed() {
-		return bebop.QuoteResult{}, parseRFQError(fail.Error.Message)
+		return bebop.QuoteResult{}, parseRFQError(fail.Error.ErrorCode)
 	}
 
 	return result, nil
 }
 
-func parseRFQError(errorMessage string) error {
-	switch errorMessage {
-	case errMsgThrottled:
-		return ErrRFQRateLimit
-	case errMsgInternalServerError:
-		return ErrRFQInternalServerError
-	case errMsgBadRequest:
+func parseRFQError(errorCode int) error {
+	switch errorCode {
+	case errCodeBadRequest:
 		return ErrRFQBadRequest
-	case errMsgAllPricerFailed:
-		return ErrRFQAllPricerFailed
+	case errCodeInsufficientLiquidity:
+		return ErrRFQInsufficientLiquidity
+	case errCodeGasCalculationError:
+		return ErrRFQGasCalculationError
+	case errCodeMinSize:
+		return ErrRFQMinSize
+	case errCodeTokenNotSupported:
+		return ErrRFQTokenNotSupported
+	case errCodeGasExceedsSize:
+		return ErrRFQGasExceedsSize
+	case errCodeUnexpectedPermitsError:
+		return ErrRFQUnexpectedPermitsError
 	default:
 		return ErrRFQFailed
 	}
