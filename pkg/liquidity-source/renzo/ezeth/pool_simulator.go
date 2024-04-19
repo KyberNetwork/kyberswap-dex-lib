@@ -264,7 +264,7 @@ func (s *PoolSimulator) lookupTokenValue(
 		return nil, ErrInvalidOraclePrice
 	}
 
-	return new(big.Int).Div(new(big.Int).Mul(value, SCALE_FACTOR), price), nil
+	return new(big.Int).Div(new(big.Int).Mul(value, price), SCALE_FACTOR), nil
 }
 
 func (s *PoolSimulator) checkAbleToDeposit(collateralToken string, amount *big.Int) error {
