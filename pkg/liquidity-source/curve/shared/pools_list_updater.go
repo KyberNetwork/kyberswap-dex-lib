@@ -124,7 +124,7 @@ func (u *PoolsListUpdater) GetNewPoolsFromDataSource(ctx context.Context, dataSo
 	}
 
 	if !resp.IsSuccess() || !result.Success {
-		return nil, errors.Wrapf(ErrGetPoolsFailed, "response status: %v, response error: %v, result status %v", resp.Status(), resp.Error(), result.Success)
+		return nil, errors.WithMessagef(ErrGetPoolsFailed, "[curve] response status: %v, response error: %v, result status %v", resp.Status(), resp.Error(), result.Success)
 	}
 
 	// normalize
