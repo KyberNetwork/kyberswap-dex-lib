@@ -183,23 +183,24 @@ var (
 
 	ExchangeMakerLidoStETH Exchange = "lido-steth"
 
-	ExchangeVelodromeV2 Exchange = "velodrome-v2"
-	ExchangeAerodrome   Exchange = "aerodrome"
-	ExchangeFvm         Exchange = "fvm"
-	ExchangeBvm         Exchange = "bvm"
-	ExchangeMuteSwitch  Exchange = "muteswitch"
-	ExchangeRetro       Exchange = "retro"
-	ExchangeThena       Exchange = "thena"
-	ExchangeThenaFusion Exchange = "thena-fusion"
-	ExchangePearlV2     Exchange = "pearl-v2"
-	ExchangeBaso        Exchange = "baso"
-	ExchangeLyve        Exchange = "lyve"
-	ExchangeScale       Exchange = "scale"
-	ExchangeUSDFi       Exchange = "usdfi"
-	ExchangeSkydrome    Exchange = "skydrome"
-	ExchangeEqual       Exchange = "equal"
-	ExchangeLynexV1     Exchange = "lynex-v1"
-	ExchangeSkydromeV2  Exchange = "skydrome-v2"
+	ExchangeVelodromeV2   Exchange = "velodrome-v2"
+	ExchangeAerodrome     Exchange = "aerodrome"
+	ExchangeFvm           Exchange = "fvm"
+	ExchangeBvm           Exchange = "bvm"
+	ExchangeMuteSwitch    Exchange = "muteswitch"
+	ExchangeRetro         Exchange = "retro"
+	ExchangeThena         Exchange = "thena"
+	ExchangeThenaFusion   Exchange = "thena-fusion"
+	ExchangePearlV2       Exchange = "pearl-v2"
+	ExchangeBaso          Exchange = "baso"
+	ExchangeLyve          Exchange = "lyve"
+	ExchangeScale         Exchange = "scale"
+	ExchangeUSDFi         Exchange = "usdfi"
+	ExchangeSkydrome      Exchange = "skydrome"
+	ExchangeEqual         Exchange = "equal"
+	ExchangeLynexV1       Exchange = "lynex-v1"
+	ExchangeSkydromeV2    Exchange = "skydrome-v2"
+	ExchangeKellerFinance Exchange = "keller-finance"
 
 	ExchangeWombat     Exchange = "wombat"
 	ExchangeMantisSwap Exchange = "mantisswap"
@@ -266,6 +267,15 @@ var (
 	ExchangeEthenaSusde Exchange = "ethena-susde"
 
 	ExchangeMakerSavingsDai Exchange = "maker-savingsdai"
+
+	ExchangeRenzoEZETH Exchange = "renzo-ezeth"
+
+	ExchangeSwellSWETH  Exchange = "swell-sweth"
+	ExchangeSwellRSWETH Exchange = "swell-rsweth"
+
+	ExchangeBedrockUniETH Exchange = "bedrock-unieth"
+
+	ExchangePufferPufETH Exchange = "puffer-pufeth"
 
 	ExchangeRingSwap        Exchange = "ring-swap"
 	ExchangeThrusterV2      Exchange = "thruster-v2"
@@ -495,6 +505,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeRocketPoolRETH:             {},
 	ExchangeEthenaSusde:                {},
 	ExchangeMakerSavingsDai:            {},
+	ExchangeSwellSWETH:                 {},
+	ExchangeSwellRSWETH:                {},
+	ExchangeBedrockUniETH:              {},
+	ExchangePufferPufETH:               {},
 	ExchangeRingSwap:                   {},
 	ExchangeThrusterV2:                 {},
 	ExchangeThrusterV2Degen:            {},
@@ -528,6 +542,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMerchantMoeV22:             {},
 	ExchangeLiquidusFinance:            {},
 	ExchangeNomiswapStable:             {},
+	ExchangeKellerFinance:              {},
+	ExchangeRenzoEZETH:                 {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

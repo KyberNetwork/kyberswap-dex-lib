@@ -7,6 +7,7 @@ import (
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
 	bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
 	curveStableNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
@@ -22,8 +23,12 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
@@ -177,6 +182,10 @@ type Types struct {
 	SwaapV2                        string
 	EtherfiEETH                    string
 	EtherfiWEETH                   string
+	SwellSWETH                     string
+	SwellRSWETH                    string
+	BedrockUniETH                  string
+	PufferPufETH                   string
 	BancorV21                      string
 	BancorV3                       string
 	CurveStablePlain               string
@@ -190,6 +199,7 @@ type Types struct {
 	HashflowV3                     string
 	NomiSwapStable                 string
 	NativeV1                       string
+	RenzoEZETH                     string
 }
 
 var (
@@ -289,10 +299,15 @@ var (
 		CurveTriCryptoNg:               curveTricryptoNg.DexType,
 		KelpRSETH:                      rseth.DexType,
 		RocketPoolRETH:                 reth.DexType,
+		SwellSWETH:                     sweth.DexType,
+		SwellRSWETH:                    rsweth.DexType,
+		BedrockUniETH:                  unieth.DexType,
+		PufferPufETH:                   pufeth.DexType,
 		EthenaSusde:                    susde.DexType,
 		MakerSavingsDai:                savingsdai.DexType,
 		HashflowV3:                     hashflowv3.DexType,
 		NomiSwapStable:                 nomiswap.DexType,
 		NativeV1:                       nativev1.DexType,
+		RenzoEZETH:                     ezeth.DexType,
 	}
 )
