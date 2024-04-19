@@ -176,6 +176,12 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeNative
 	dexValueObject.ExchangeNativeV1: {},
+
+	// executeRenzo
+	dexValueObject.ExchangeRenzoEZETH: {},
+
+	// executePufferFinance
+	dexValueObject.ExchangePufferPufETH: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {
