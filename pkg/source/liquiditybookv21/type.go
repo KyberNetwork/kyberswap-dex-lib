@@ -59,6 +59,14 @@ type reserves struct {
 	ReserveY *big.Int `json:"reserveY"`
 }
 
+type getSwapInResult struct {
+	AmountIn           *big.Int
+	Fee                *big.Int
+	BinsReserveChanges []binReserveChanges
+	Parameters         *parameters
+	NewActiveID        uint32
+}
+
 type getSwapOutResult struct {
 	AmountOut          *big.Int
 	Fee                *big.Int

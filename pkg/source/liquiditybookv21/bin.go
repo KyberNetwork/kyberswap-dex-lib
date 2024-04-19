@@ -100,6 +100,27 @@ func (b *Bin) getReserveOut(swapForX bool) *big.Int {
 	return b.ReserveY
 }
 
+// https://github.com/traderjoe-xyz/joe-v2/blob/1297c3822f0605e643155c35948959c0a0d05e17/src/libraries/math/PackedUint128Math.sol#L131
+/**
+ * @dev Decodes a bytes32 into a uint128 as the first or second uint128
+ * @param z The encoded bytes32 as follows:
+ * if first:
+ * [0 - 128[: x1
+ * [128 - 256[: empty
+ * else:
+ * [0 - 128[: empty
+ * [128 - 256[: x2
+ * @param first Whether to decode as the first or second uint128
+ * @return x The decoded uint128
+ */
+func (b *Bin) decode(first bool) *big.Int {
+	if first {
+		return b.ReserveX
+	}
+	return b.ReserveY
+
+}
+
 type binReserveChanges struct {
 	BinID      uint32   `json:"binId"`
 	AmountXIn  *big.Int `json:"amountInX"`
