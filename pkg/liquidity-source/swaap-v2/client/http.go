@@ -47,7 +47,7 @@ func (c *HTTPClient) Quote(ctx context.Context, params QuoteParams) (QuoteResult
 	}
 
 	if !resp.IsSuccess() {
-		return QuoteResult{}, errors.Wrapf(ErrQuoteFailed, "status code(%d), body(%s)", resp.StatusCode(), resp.Body())
+		return QuoteResult{}, errors.WithMessagef(ErrQuoteFailed, "[swaap-v2] status code(%d), body(%s)", resp.StatusCode(), resp.Body())
 	}
 
 	if !result.Success {

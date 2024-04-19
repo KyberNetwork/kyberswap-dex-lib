@@ -7,7 +7,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 )
 
 const (
@@ -45,7 +45,7 @@ func (c *httpClient) ListTokens(ctx context.Context) (map[string]kyberpmm.TokenI
 	}
 
 	if !resp.IsSuccess() {
-		return nil, errors.Wrapf(ErrListTokensFailed, "response status: %v, response error: %v", resp.Status(), resp.Error())
+		return nil, errors.WithMessagef(ErrListTokensFailed, "[kyberPMM] response status: %v, response error: %v", resp.Status(), resp.Error())
 	}
 
 	return result.Tokens, nil
@@ -62,7 +62,7 @@ func (c *httpClient) ListPairs(ctx context.Context) (map[string]kyberpmm.PairIte
 	}
 
 	if !resp.IsSuccess() {
-		return nil, errors.Wrapf(ErrListPairsFailed, "response status: %v, response error: %v", resp.Status(), resp.Error())
+		return nil, errors.WithMessagef(ErrListPairsFailed, "[kyberPMM] response status: %v, response error: %v", resp.Status(), resp.Error())
 	}
 
 	return result.Pairs, nil
@@ -79,7 +79,7 @@ func (c *httpClient) ListPriceLevels(ctx context.Context) (kyberpmm.ListPriceLev
 	}
 
 	if !resp.IsSuccess() {
-		return result, errors.Wrapf(ErrListPriceLevelsFailed, "response status: %v, response error: %v", resp.Status(), resp.Error())
+		return result, errors.WithMessagef(ErrListPriceLevelsFailed, "[kyberPMM] response status: %v, response error: %v", resp.Status(), resp.Error())
 	}
 
 	return result, nil
@@ -97,7 +97,7 @@ func (c *httpClient) Firm(ctx context.Context, params kyberpmm.FirmRequestParams
 	}
 
 	if !resp.IsSuccess() {
-		return kyberpmm.FirmResult{}, errors.Wrapf(ErrFirmQuoteFailed, "response status: %v, response error: %v", resp.Status(), resp.Error())
+		return kyberpmm.FirmResult{}, errors.WithMessagef(ErrFirmQuoteFailed, "[kyberPMM] response status: %v, response error: %v", resp.Status(), resp.Error())
 	}
 
 	if result.Error != "" {

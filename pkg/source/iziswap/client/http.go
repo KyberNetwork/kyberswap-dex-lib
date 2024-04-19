@@ -55,7 +55,7 @@ func (c *httpClient) ListPools(ctx context.Context, params iziswap.ListPoolsPara
 		return nil, err
 	}
 	if !resp.IsSuccess() {
-		return nil, errors.Wrapf(ErrListPoolsFailed, "response status: %v, response error %v", resp.Status(), resp.Error())
+		return nil, errors.WithMessagef(ErrListPoolsFailed, "[iziswap] response status: %v, response error %v", resp.Status(), resp.Error())
 	}
 
 	return result.Data, nil
