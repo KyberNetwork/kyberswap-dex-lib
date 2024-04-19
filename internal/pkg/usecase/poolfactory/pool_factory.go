@@ -357,6 +357,7 @@ func (f *PoolFactory) getCurveMetaBaseNGPoolByAddress(
 func newSwapLimit(dex string, limit map[string]*big.Int) poolpkg.SwapLimit {
 	switch dex {
 	case pooltypes.PoolTypes.KyberPMM:
+	case pooltypes.PoolTypes.NativeV1:
 		return kyberpmm.NewInventory(limit)
 	case pooltypes.PoolTypes.Synthetix:
 		return synthetix.NewLimits(limit)

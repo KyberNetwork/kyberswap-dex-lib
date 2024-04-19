@@ -61,6 +61,7 @@ func NewLockedState() *LockedState {
 	var limits = make(map[string]map[string]*big.Int)
 	limits[pooltypes.PoolTypes.KyberPMM] = make(map[string]*big.Int)
 	limits[pooltypes.PoolTypes.Synthetix] = make(map[string]*big.Int)
+	limits[pooltypes.PoolTypes.NativeV1] = make(map[string]*big.Int)
 
 	return &LockedState{
 		poolByAddress: make(map[string]poolpkg.IPoolSimulator),

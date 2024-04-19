@@ -178,6 +178,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 				var limits = make(map[string]map[string]*big.Int)
 				limits[pooltypes.PoolTypes.KyberPMM] = make(map[string]*big.Int)
 				limits[pooltypes.PoolTypes.Synthetix] = make(map[string]*big.Int)
+				limits[pooltypes.PoolTypes.NativeV1] = make(map[string]*big.Int)
 				filteredPools := make([]pool.IPoolSimulator, 0, len(pools))
 				for _, pool := range pools {
 

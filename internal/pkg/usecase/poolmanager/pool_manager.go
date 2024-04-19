@@ -64,6 +64,7 @@ func (m *PoolManager) GetStateByPoolAddresses(
 	)
 	resultLimits[pooltypes.PoolTypes.KyberPMM] = make(map[string]*big.Int)
 	resultLimits[pooltypes.PoolTypes.Synthetix] = make(map[string]*big.Int)
+	resultLimits[pooltypes.PoolTypes.NativeV1] = make(map[string]*big.Int)
 
 	//given a clone of limit
 	for _, pool := range iPools {
