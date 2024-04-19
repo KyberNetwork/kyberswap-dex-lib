@@ -37,7 +37,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	if err := mapstructure.WeakDecode(params.SwapInfo, &swapInfo); err != nil {
 		return nil, err
 	}
-	logger.Infof("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)
+	logger.Debugf("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)
 
 	result, err := h.client.Quote(ctx, QuoteParams{
 		ChainID:            params.NetworkID,
