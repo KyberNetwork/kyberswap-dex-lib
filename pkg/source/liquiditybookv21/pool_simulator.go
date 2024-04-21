@@ -88,6 +88,10 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  tokenOut,
 			Amount: swapOutResult.AmountOut,
 		},
+		RemainingTokenAmountIn: &pool.TokenAmount{
+			Token:  tokenAmountIn.Token,
+			Amount: integer.Zero(),
+		},
 		Fee: &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
 			Amount: swapOutResult.Fee,
@@ -97,6 +101,43 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			BinsReserveChanges: swapOutResult.BinsReserveChanges,
 			NewParameters:      swapOutResult.Parameters,
 			NewActiveID:        swapOutResult.NewActiveID,
+		},
+	}, nil
+}
+
+func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	tokenIn := params.TokenIn
+	tokenAmountOut := params.TokenAmountOut
+	err := p.validateTokens([]string{tokenIn, tokenAmountOut.Token})
+	if err != nil {
+		return nil, err
+	}
+	amountOut := tokenAmountOut.Amount
+	swapForY := tokenIn == p.Info.Tokens[0]
+
+	swapInResult, err := p.getSwapIn(amountOut, swapForY)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{
+			Token:  tokenIn,
+			Amount: swapInResult.AmountIn,
+		},
+		RemainingTokenAmountOut: &pool.TokenAmount{
+			Token:  tokenAmountOut.Token,
+			Amount: integer.Zero(),
+		},
+		Fee: &pool.TokenAmount{
+			Token:  tokenIn,
+			Amount: swapInResult.Fee,
+		},
+		Gas: defaultGas,
+		SwapInfo: SwapInfo{
+			BinsReserveChanges: swapInResult.BinsReserveChanges,
+			NewParameters:      swapInResult.Parameters,
+			NewActiveID:        swapInResult.NewActiveID,
 		},
 	}, nil
 }
@@ -170,10 +211,121 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.bins = newBins
 }
 
-func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
 }
 
+// https://github.com/traderjoe-xyz/joe-v2/blob/main/src/LBPair.sol#L373
+/**
+ * @notice Simulates a swap in.
+ * @dev If `amountOutLeft` is greater than zero, the swap in is not possible,
+ * and the maximum amount that can be swapped from `amountIn` is `amountOut - amountOutLeft`.
+ * @param amountOut The amount of token X or Y to swap in
+ * @param swapForY Whether the swap is for token Y (true) or token X (false)
+ * @return amountIn The amount of token X or Y that can be swapped in, including the fee
+ * @return amountOutLeft The amount of token Y or X that cannot be swapped out
+ * @return fee The fee of the swap
+ */
+func (p *PoolSimulator) getSwapIn(amountOut *big.Int, swapForY bool) (*getSwapInResult, error) {
+	var (
+		amountsOutLeft     = amountOut
+		binStep            = p.binStep
+		amountIn           = integer.Zero()
+		swapFee            = integer.Zero()
+		binsReserveChanges []binReserveChanges
+	)
+
+	parameters := p.copyParameters()
+	id := parameters.ActiveBinID
+
+	parameters = parameters.updateReferences(p.blockTimestamp)
+
+	for {
+		binArrIdx, err := p.findBinArrIndex(id)
+		if err != nil {
+			return nil, err
+		}
+		binReserves := p.bins[binArrIdx].decode(!swapForY)
+		if binReserves.Cmp(integer.Zero()) > 0 {
+			price, err := getPriceFromID(id, binStep)
+			if err != nil {
+				return nil, err
+			}
+
+			var amountOutOfBin *big.Int
+			if binReserves.Cmp(amountsOutLeft) > 0 {
+				amountOutOfBin = amountsOutLeft
+			} else {
+				amountOutOfBin = binReserves
+			}
+
+			parameters = parameters.updateVolatilityAccumulator(id)
+
+			var amountInWithoutFee *big.Int
+
+			if swapForY {
+				amountInWithoutFee, err = shiftDivRoundUp(amountOutOfBin, scaleOffset, price)
+			} else {
+				amountInWithoutFee, err = mulShiftRoundUp(amountOutOfBin, price, scaleOffset)
+			}
+			if err != nil {
+				return nil, err
+			}
+
+			totalFees := parameters.getTotalFee(binStep)
+
+			feeAmount, err := getFeeAmount(amountInWithoutFee, totalFees)
+			if err != nil {
+				return nil, err
+			}
+
+			amountIn.Add(amountIn, new(big.Int).Add(amountInWithoutFee, feeAmount))
+			amountsOutLeft = new(big.Int).Sub(amountsOutLeft, amountOutOfBin)
+
+			swapFee = new(big.Int).Add(swapFee, feeAmount)
+
+			newBinReserveChanges := newBinReserveChanges(
+				id, !swapForY, amountIn, amountOutOfBin,
+			)
+			binsReserveChanges = append(binsReserveChanges, newBinReserveChanges)
+		}
+
+		if amountsOutLeft.Cmp(integer.Zero()) == 0 {
+			break
+		}
+
+		nextID, err := p.getNextNonEmptyBin(swapForY, id)
+		if err != nil {
+			return nil, ErrNotFoundBinID
+		}
+
+		id = nextID
+	}
+
+	parameters.ActiveBinID = id
+
+	ret := getSwapInResult{
+		AmountIn:           amountIn,
+		Fee:                swapFee,
+		BinsReserveChanges: binsReserveChanges,
+		Parameters:         parameters,
+		NewActiveID:        id,
+	}
+
+	return &ret, nil
+}
+
+// https://github.com/traderjoe-xyz/joe-v2/blob/main/src/LBPair.sol#L434
+/**
+ * @notice Simulates a swap out.
+ * @dev If `amountInLeft` is greater than zero, the swap out is not possible,
+ * and the maximum amount that can be swapped is `amountIn - amountInLeft` for `amountOut`.
+ * @param amountIn The amount of token X or Y to swap in
+ * @param swapForY Whether the swap is for token Y (true) or token X (false)
+ * @return amountInLeft The amount of token X or Y that cannot be swapped in
+ * @return amountOut The amount of token Y or X that can be swapped out
+ * @return fee The fee of the swap
+ */
 func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOutResult, error) {
 	var (
 		amountsInLeft      = amountIn
@@ -193,11 +345,11 @@ func (p *PoolSimulator) getSwapOut(amountIn *big.Int, swapForY bool) (*getSwapOu
 		if err != nil {
 			return nil, err
 		}
-		bin := p.bins[binArrIdx]
-		if !bin.isEmptyForSwap(!swapForY) {
+		binReserves := p.bins[binArrIdx]
+		if !binReserves.isEmptyForSwap(!swapForY) {
 			parameters = parameters.updateVolatilityAccumulator(id)
 
-			amountsInWithFees, amountsOutOfBin, totalFees, err := bin.getAmounts(
+			amountsInWithFees, amountsOutOfBin, totalFees, err := binReserves.getAmounts(
 				parameters, binStep, swapForY, id, amountsInLeft,
 			)
 			if err != nil {
