@@ -99,12 +99,13 @@ var (
 	ExchangeKyberSwap       Exchange = "kyberswap"
 	ExchangeKyberSwapStatic Exchange = "kyberswap-static"
 
-	ExchangeVelodrome Exchange = "velodrome"
-	ExchangeDystopia  Exchange = "dystopia"
-	ExchangeChronos   Exchange = "chronos"
-	ExchangeRamses    Exchange = "ramses"
-	ExchangeVelocore  Exchange = "velocore"
-	ExchangePearl     Exchange = "pearl"
+	ExchangeVelodrome    Exchange = "velodrome"
+	ExchangeDystopia     Exchange = "dystopia"
+	ExchangeChronos      Exchange = "chronos"
+	ExchangeRamses       Exchange = "ramses"
+	ExchangeVelocore     Exchange = "velocore"
+	ExchangePearl        Exchange = "pearl"
+	ExchangeDegenExpress Exchange = "degen-express"
 
 	ExchangePlatypus Exchange = "platypus"
 
@@ -544,6 +545,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeNomiswapStable:             {},
 	ExchangeKellerFinance:              {},
 	ExchangeRenzoEZETH:                 {},
+	ExchangeDegenExpress:               {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
