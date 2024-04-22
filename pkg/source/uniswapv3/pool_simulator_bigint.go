@@ -78,7 +78,18 @@ func NewPoolSimulatorBigInt(entityPool entity.Pool, chainID valueobject.ChainID)
 		return nil, ErrV3TicksEmpty
 	}
 
-	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, constants.TickSpacings[constants.FeeAmount(entityPool.SwapFee)])
+	tickSpacing := int(extra.TickSpacing)
+	// For some pools that not yet initialized tickSpacing in their extra,
+	// we will get the tickSpacing through feeTier mapping.
+	if tickSpacing == 0 {
+		feeTier := constants.FeeAmount(entityPool.SwapFee)
+		if _, ok := constants.TickSpacings[feeTier]; !ok {
+			return nil, ErrInvalidFeeTier
+		}
+		tickSpacing = constants.TickSpacings[feeTier]
+	}
+
+	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, tickSpacing)
 	if err != nil {
 		return nil, err
 	}

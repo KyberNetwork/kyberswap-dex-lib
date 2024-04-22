@@ -78,6 +78,7 @@ type TickU256 struct {
 type Extra struct {
 	Liquidity    *big.Int `json:"liquidity"`
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
+	TickSpacing  uint64   `json:"tickSpacing"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
 }
@@ -85,6 +86,7 @@ type Extra struct {
 type ExtraTickU256 struct {
 	Liquidity    *uint256.Int `json:"liquidity"`
 	SqrtPriceX96 *uint256.Int `json:"sqrtPriceX96"`
+	TickSpacing  uint64       `json:"tickSpacing"`
 	Tick         *int         `json:"tick"`
 	Ticks        []TickU256   `json:"ticks"`
 }
@@ -110,10 +112,11 @@ type populatedTick struct {
 }
 
 type FetchRPCResult struct {
-	Liquidity *big.Int `json:"liquidity"`
-	Slot0     Slot0    `json:"slot0"`
-	Reserve0  *big.Int `json:"reserve0"`
-	Reserve1  *big.Int `json:"reserve1"`
+	Liquidity   *big.Int `json:"liquidity"`
+	Slot0       Slot0    `json:"slot0"`
+	TickSpacing *big.Int `json:"tickSpacing"`
+	Reserve0    *big.Int `json:"reserve0"`
+	Reserve1    *big.Int `json:"reserve1"`
 }
 
 type PoolMeta struct {
