@@ -1,4 +1,4 @@
-package plain
+package plain_test
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/meta"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -45,7 +46,7 @@ func TestCalcAmountOutAsBasePool(t *testing.T) {
 		{"C", 3, "A", 2998664269827},
 		{"C", 30, "B", 29},
 	}
-	base, err := NewPoolSimulator(entity.Pool{
+	base, err := plain.NewPoolSimulator(entity.Pool{
 		Exchange:    "",
 		Type:        "",
 		Reserves:    entity.PoolReserves{"93649867132724477811796755", "92440712316473", "175421309630243", "352290453972395231054279357"},
@@ -98,7 +99,7 @@ func TestUpdateBalanceAsBasePool(t *testing.T) {
 		{"Am", 1000000000000000, "B", []string{"4763102572534863472314821", "15272752407518134109468"}},
 		{"C", 2, "Am", []string{"4763102572473232773721712", "15272752409466747992850"}},
 	}
-	base, err := NewPoolSimulator(entity.Pool{
+	base, err := plain.NewPoolSimulator(entity.Pool{
 		Exchange:    "",
 		Type:        "",
 		Reserves:    entity.PoolReserves{"93650900813860355891321787", "92392098150103", "175345980953129", "352170672490633463630226070"},
