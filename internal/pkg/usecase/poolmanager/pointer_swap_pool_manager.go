@@ -84,7 +84,9 @@ func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
 		}
 		limitMap := pool.CalculateLimit()
 		for k, v := range limitMap {
-			dexLimit[k] = v
+			if old, exist := dexLimit[k]; !exist || old.Cmp(v) < 0 {
+				dexLimit[k] = v
+			}
 		}
 	}
 	s.poolByAddress = poolByAddress

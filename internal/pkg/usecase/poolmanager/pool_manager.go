@@ -74,7 +74,9 @@ func (m *PoolManager) GetStateByPoolAddresses(
 		}
 		limitMap := pool.CalculateLimit()
 		for k, v := range limitMap {
-			dexLimit[k] = v
+			if old, exist := dexLimit[k]; !exist || old.Cmp(v) < 0 {
+				dexLimit[k] = v
+			}
 		}
 	}
 	if err != nil {
