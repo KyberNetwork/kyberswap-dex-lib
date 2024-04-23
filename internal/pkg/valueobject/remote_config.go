@@ -1,6 +1,9 @@
 package valueobject
 
-import "time"
+import (
+	"math/big"
+	"time"
+)
 
 type (
 	RemoteConfig struct {
@@ -81,12 +84,21 @@ type (
 		// key is lower bound of the range
 		TTLByAmountUSDRange []CacheRange `mapstructure:"ttlByAmountUsdRange" json:"ttlByAmountUsdRange"`
 
+		TTLByAmountRange []AmountInCacheRange `mapstructure:"ttlByAmountRange" json:"ttlByAmountRange"`
+
 		PriceImpactThreshold float64 `mapstructure:"priceImpactThreshold" json:"priceImpactThreshold"`
 
+		// cache config for amount in usd
 		ShrinkFuncName       string  `mapstructure:"shrinkFuncName" json:"shrinkFuncName"`
 		ShrinkFuncPowExp     float64 `mapstructure:"shrinkFuncPowExp" json:"shrinkFuncPowExp"`
 		ShrinkDecimalBase    float64 `mapstructure:"shrinkDecimalBase" json:"shrinkDecimalBase"`
 		ShrinkFuncLogPercent float64 `mapstructure:"shrinkFuncLogPercent" json:"shrinkFuncLogPercent"`
+
+		// cache config for amount in
+		ShrinkAmountInConfig    ShrinkFunctionConfig `mapstructure:"shrinkAmountInConfig" json:"shrinkAmountInConfig"`
+		ShrinkAmountInThreshold float64              `mapstructure:"shrinkAmountInThreshold" json:"shrinkAmountInThreshold"`
+
+		EnableNewCacheKeyGenerator bool `mapstructure:"enableNewCacheKeyGenerator" json:"enableNewCacheKeyGenerator"`
 	}
 
 	CachePoint struct {
@@ -98,14 +110,40 @@ type (
 		AmountUSDLowerBound float64       `mapstructure:"amountUSDLowerBound" json:"amountUSDLowerBound"`
 		TTL                 time.Duration `mapstructure:"ttl" json:"ttl"`
 	}
+
+	AmountInCacheRange struct {
+		AmountLowerBound *big.Int      `mapstructure:"amountLowerBound" json:"amountLowerBound"`
+		TTL              time.Duration `mapstructure:"ttl" json:"ttl"`
+	}
+
+	ShrinkFunctionConfig struct {
+		ShrinkFuncName       string  `mapstructure:"shrinkFuncName" json:"shrinkFuncName"`
+		ShrinkFuncPowExp     float64 `mapstructure:"shrinkFuncPowExp" json:"shrinkFuncPowExp"`
+		ShrinkDecimalBase    float64 `mapstructure:"shrinkDecimalBase" json:"shrinkDecimalBase"`
+		ShrinkFuncLogPercent float64 `mapstructure:"shrinkFuncLogPercent" json:"shrinkFuncLogPercent"`
+	}
 )
+
+func (c ShrinkFunctionConfig) Equals(other ShrinkFunctionConfig) bool {
+	if c.ShrinkFuncName != other.ShrinkFuncName ||
+		c.ShrinkFuncPowExp != other.ShrinkFuncPowExp ||
+		c.ShrinkFuncLogPercent != other.ShrinkFuncLogPercent ||
+		c.ShrinkDecimalBase != other.ShrinkDecimalBase {
+		return false
+	}
+
+	return true
+}
 
 func (c CacheConfig) Equals(other CacheConfig) bool {
 	if c.DefaultTTL != other.DefaultTTL ||
 		c.PriceImpactThreshold != other.PriceImpactThreshold ||
 		c.ShrinkFuncName != other.ShrinkFuncName ||
+		c.ShrinkAmountInConfig != other.ShrinkAmountInConfig ||
 		c.ShrinkFuncPowExp != other.ShrinkFuncPowExp ||
-		c.ShrinkFuncLogPercent != other.ShrinkFuncLogPercent {
+		c.ShrinkFuncLogPercent != other.ShrinkFuncLogPercent ||
+		c.EnableNewCacheKeyGenerator != other.EnableNewCacheKeyGenerator ||
+		c.ShrinkAmountInThreshold != other.ShrinkAmountInThreshold {
 		return false
 	}
 

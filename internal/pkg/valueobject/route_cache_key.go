@@ -11,8 +11,9 @@ import (
 type RouteCacheMode string
 
 const (
-	RouteCacheModePoint = "token"
-	RouteCacheModeRange = "usd"
+	RouteCacheModePoint         = "token"
+	RouteCacheModeRangeByUSD    = "usd"
+	RouteCacheModeRangeByAmount = "amount"
 )
 
 const (

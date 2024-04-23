@@ -63,6 +63,10 @@ func mockHandleSuccess(w http.ResponseWriter, r *http.Request) {
 					ShrinkFuncName:       "decimal",
 					ShrinkFuncPowExp:     0.7,
 					ShrinkFuncLogPercent: 1.01,
+					ShrinkAmountInConfig: valueobject.ShrinkFunctionConfig{
+						ShrinkFuncName:    "decimal",
+						ShrinkDecimalBase: 100,
+					},
 				},
 				FeatureFlags: valueobject.FeatureFlags{
 					IsPathGeneratorEnabled: true,
@@ -147,6 +151,10 @@ func TestGetConfigs(t *testing.T) {
 			ShrinkFuncName:       "decimal",
 			ShrinkFuncPowExp:     0.7,
 			ShrinkFuncLogPercent: 1.01,
+			ShrinkAmountInConfig: valueobject.ShrinkFunctionConfig{
+				ShrinkFuncName:    "decimal",
+				ShrinkDecimalBase: 100,
+			},
 		},
 		FeatureFlags: valueobject.FeatureFlags{
 			IsPathGeneratorEnabled: true,

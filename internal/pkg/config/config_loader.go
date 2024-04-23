@@ -11,6 +11,7 @@ import (
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/mcuadros/go-defaults"
+	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -75,7 +76,13 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "__"))
 	viper.AutomaticEnv()
 
-	if err := viper.Unmarshal(c); err != nil {
+	decoder := mapstructure.ComposeDecodeHookFunc(
+		mapstructure.StringToTimeDurationHookFunc(),
+		mapstructure.StringToSliceHookFunc(","),
+		StringToBigIntHookFunc(),
+	)
+	decodeConfigOption := viper.DecodeHook(decoder)
+	if err := viper.Unmarshal(c, decodeConfigOption); err != nil {
 		log.Printf("failed to unmarshal config %v\n", err)
 		return nil, err
 	}

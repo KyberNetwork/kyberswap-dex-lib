@@ -198,7 +198,11 @@ useCase:
           ttl: 10s
       ttlByAmountUsdRange:
         - amountUSDLowerBound: 0
-          ttl: 10s
+          ttl: 60s
+        - amountUSDLowerBound: 4
+          ttl: 30s
+        - amountUSDLowerBound: 21
+          ttl: 30s
         - amountUSDLowerBound: 101
           ttl: 10s
         - amountUSDLowerBound: 500
@@ -211,11 +215,21 @@ useCase:
           ttl: 10s
         - amountUSDLowerBound: 10000
           ttl: 10s
+      ttlByAmountRange:
+        - amountLowerBound: "0"
+          ttl: 10s
       priceImpactThreshold: 0.005
-      shrinkFuncName: "round"
+      shrinkFuncName: "decimal"
       shrinkDecimalBase: 10
       shrinkFuncPowExp: 0.7
       shrinkFuncLogPercent: 1.01
+      enableNewCacheKeyGenerator: false
+      shrinkAmountInConfig:
+        shrinkFuncName: "decimal"
+        shrinkDecimalBase: 100
+        shrinkFuncPowExp: 0.7
+        shrinkFuncLogPercent: 1.05
+      shrinkAmountInThreshold: 100000
   buildRoute:
     chainId: *chainId
     faultyPools:

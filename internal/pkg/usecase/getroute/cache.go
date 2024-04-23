@@ -5,9 +5,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"slices"
-	"strconv"
-	"sync"
 	"time"
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
@@ -36,11 +33,8 @@ type cache struct {
 	routeCacheRepository IRouteCacheRepository
 	poolManager          IPoolManager
 
-	shrinkFunc ShrinkFunc
-
-	config valueobject.CacheConfig
-
-	mu sync.RWMutex
+	config       valueobject.CacheConfig
+	keyGenerator *routeKeyGenerator
 }
 
 func NewCache(
@@ -49,14 +43,12 @@ func NewCache(
 	poolManager IPoolManager,
 	config valueobject.CacheConfig,
 ) *cache {
-	// reverse the order to get correct TTL in genKey func
-	slices.Reverse(config.TTLByAmountUSDRange)
 	return &cache{
 		aggregator:           aggregator,
 		routeCacheRepository: routeCacheRepository,
 		poolManager:          poolManager,
-		shrinkFunc:           ShrinkFuncFactory(config),
 		config:               config,
+		keyGenerator:         newCacheKeyGenerator(config),
 	}
 }
 
@@ -71,7 +63,7 @@ func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] cache.Aggregate")
 	defer span.End()
 
-	key, ttl, err = c.genKey(ctx, params)
+	key, ttl, err = c.keyGenerator.genKey(ctx, params)
 
 	// if this tokenIn has price and we successfully gen cache key
 	if err == nil && key != nil {
@@ -98,15 +90,7 @@ func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*
 }
 
 func (c *cache) ApplyConfig(config Config) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	// only apply cache only if it changed
-	if !c.config.Equals(config.Cache) {
-		c.shrinkFunc = ShrinkFuncFactory(config.Cache)
-	}
-	c.config = config.Cache
-
+	c.keyGenerator.applyConfig(config)
 	c.aggregator.ApplyConfig(config)
 }
 
@@ -195,87 +179,6 @@ func (c *cache) setRouteToCache(ctx context.Context, routeSummary *valueobject.R
 			WithFields(ctx, logger.Fields{"error": err}).
 			Error("cache.setRouteToCache failed")
 	}
-}
-
-func (c *cache) getCachePointTTL(amount float64) (time.Duration, bool) {
-	for _, cachePoint := range c.config.TTLByAmount {
-		if utils.Float64AlmostEqual(cachePoint.Amount, amount) {
-			return cachePoint.TTL, true
-		}
-	}
-
-	return 0, false
-}
-
-// genKey retrieves the key required to access the cacheRoute.
-// It returns an error if these parameters do not correspond to a cache point and lack pricing information.
-func (c *cache) genKey(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteCacheKey, time.Duration, error) {
-	// If request has excluded more than 1 pool, we will not hit cache.
-	if params.ExcludedPools != nil && params.ExcludedPools.Cardinality() > 1 {
-		metrics.IncrFindRouteCacheCount(ctx, false, map[string]string{
-			"excludePools": "true",
-		})
-		return nil, 0, nil
-	}
-
-	amountInWithoutDecimals := business.AmountWithoutDecimals(params.AmountIn, params.TokenIn.Decimals)
-	amountInWithoutDecimalsFloat64, _ := amountInWithoutDecimals.Float64()
-
-	ttlByAmount, ok := c.getCachePointTTL(amountInWithoutDecimalsFloat64)
-	if ok {
-		return &valueobject.RouteCacheKey{
-			CacheMode:              valueobject.RouteCacheModePoint,
-			TokenIn:                params.TokenIn.Address,
-			TokenOut:               params.TokenOut.Address,
-			AmountIn:               strconv.FormatFloat(amountInWithoutDecimalsFloat64, 'f', -1, 64),
-			SaveGas:                params.SaveGas,
-			GasInclude:             params.GasInclude,
-			Dexes:                  params.Sources,
-			IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
-			IsHillClimbingEnabled:  params.IsHillClimbEnabled,
-			ExcludedPools:          setToSlice(params.ExcludedPools),
-		}, ttlByAmount, nil
-	}
-
-	// if this token in doesn't have price, return error
-	if params.TokenInPriceUSD <= 0 {
-		return nil, 0, ErrNoTokenInPrice
-	}
-
-	amountInUSD := business.CalcAmountUSD(params.AmountIn, params.TokenIn.Decimals, params.TokenInPriceUSD)
-	amountInUSDFloat64, _ := amountInUSD.Float64()
-
-	shrunkAmountInUSD := c.shrinkFunc(amountInUSDFloat64)
-
-	for _, cacheRange := range c.config.TTLByAmountUSDRange {
-		if shrunkAmountInUSD > cacheRange.AmountUSDLowerBound {
-			return &valueobject.RouteCacheKey{
-				CacheMode:              valueobject.RouteCacheModeRange,
-				TokenIn:                params.TokenIn.Address,
-				TokenOut:               params.TokenOut.Address,
-				AmountIn:               strconv.FormatFloat(shrunkAmountInUSD, 'f', -1, 64),
-				SaveGas:                params.SaveGas,
-				GasInclude:             params.GasInclude,
-				Dexes:                  params.Sources,
-				IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
-				IsHillClimbingEnabled:  params.IsHillClimbEnabled,
-				ExcludedPools:          setToSlice(params.ExcludedPools),
-			}, cacheRange.TTL, nil
-		}
-	}
-
-	return &valueobject.RouteCacheKey{
-		CacheMode:              valueobject.RouteCacheModeRange,
-		TokenIn:                params.TokenIn.Address,
-		TokenOut:               params.TokenOut.Address,
-		AmountIn:               strconv.FormatFloat(shrunkAmountInUSD, 'f', -1, 64),
-		SaveGas:                params.SaveGas,
-		GasInclude:             params.GasInclude,
-		Dexes:                  params.Sources,
-		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
-		IsHillClimbingEnabled:  params.IsHillClimbEnabled,
-		ExcludedPools:          setToSlice(params.ExcludedPools),
-	}, c.config.DefaultTTL, nil
 }
 
 func setToSlice[T cmp.Ordered](set mapset.Set[T]) []T {

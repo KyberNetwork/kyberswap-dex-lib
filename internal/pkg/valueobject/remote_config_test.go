@@ -24,6 +24,12 @@ func TestCacheConfig_Equals(t *testing.T) {
 		ShrinkFuncName:       "abc",
 		ShrinkFuncPowExp:     2,
 		ShrinkFuncLogPercent: 2,
+		ShrinkAmountInConfig: ShrinkFunctionConfig{
+			ShrinkFuncName:       "xyz",
+			ShrinkFuncPowExp:     4,
+			ShrinkFuncLogPercent: 4,
+		},
+		ShrinkAmountInThreshold: 60,
 	}
 
 	og := CacheConfig{
@@ -43,6 +49,12 @@ func TestCacheConfig_Equals(t *testing.T) {
 		ShrinkFuncName:       "abc",
 		ShrinkFuncPowExp:     2,
 		ShrinkFuncLogPercent: 2,
+		ShrinkAmountInConfig: ShrinkFunctionConfig{
+			ShrinkFuncName:       "xyz",
+			ShrinkFuncPowExp:     4,
+			ShrinkFuncLogPercent: 4,
+		},
+		ShrinkAmountInThreshold: 60,
 	}
 	assert.Equal(t, want.Equals(og), true)
 	og.TTLByAmountUSDRange[0].TTL = 123
