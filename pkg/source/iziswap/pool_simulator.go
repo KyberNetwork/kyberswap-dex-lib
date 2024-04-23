@@ -42,12 +42,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	reserves0, ok := new(big.Int).SetString(entityPool.Reserves[0], 10)
 	if !ok {
-		return nil, errors.Wrapf(ErrInvalidReserve, "fail to parse reserve[0] %s to big.Int", entityPool.Reserves[0])
+		return nil, errors.WithMessagef(ErrInvalidReserve, "[iziswap] fail to parse reserve[0] %s to big.Int", entityPool.Reserves[0])
 	}
 
 	reserves1, ok := new(big.Int).SetString(entityPool.Reserves[1], 10)
 	if !ok {
-		return nil, errors.Wrapf(ErrInvalidReserve, "fail to parse reserve[1] %s to big.Int", entityPool.Reserves[1])
+		return nil, errors.WithMessagef(ErrInvalidReserve, "[iziswap] fail to parse reserve[1] %s to big.Int", entityPool.Reserves[1])
 	}
 
 	// swapFeeFl := new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), boneFloat)

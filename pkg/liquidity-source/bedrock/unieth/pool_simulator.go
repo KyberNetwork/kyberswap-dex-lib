@@ -64,10 +64,14 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrUnsupportedSwap
 	}
 
-	amountOut := new(big.Int).Div(
-		new(big.Int).Mul(s.totalSupply, params.TokenAmountIn.Amount),
-		s.currentReserve,
-	)
+	amountOut := new(big.Int).Set(params.TokenAmountIn.Amount) // default exchange ratio 1:1
+
+	if s.currentReserve.Cmp(bignumber.ZeroBI) > 0 { // avert division overflow
+		amountOut.Div(
+			new(big.Int).Mul(s.totalSupply, params.TokenAmountIn.Amount),
+			s.currentReserve,
+		)
+	}
 
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut},

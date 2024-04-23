@@ -90,10 +90,15 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
+	isStETH := params.TokenAmountIn.Token == s.Info.Tokens[1]
+
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
 		Fee:            &poolpkg.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            gas,
+		SwapInfo: SwapExtra{
+			IsStETH: isStETH,
+		},
 	}, nil
 }
 

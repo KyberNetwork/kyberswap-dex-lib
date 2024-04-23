@@ -2,8 +2,10 @@ package solidlyv3
 
 import (
 	"encoding/json"
+	"math/big"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -78,6 +80,51 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 			})
 			require.NoError(t, err)
 			_ = result
+		})
+	}
+}
+
+func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	type testcase struct {
+		name        string
+		poolEncoded string
+		tokenOut    string
+		amountOut   string
+		tokenIn     string
+	}
+	testcases := []testcase{
+		{
+			name: "swap WETH for AI",
+			poolEncoded: `{
+				"address":"0xfc9e7373109adacd18152cc24658bf8b34ac3dba","reserveUsd":516.1427089129024,"amplifiedTvl":4.126356361103288e+47,"swapFee":10000,"exchange":"solidly-v3","type":"solidly-v3","timestamp":1710154644,"reserves":["6897657865010157199229186","34285160896988154"],"tokens":[{"address":"0x2598c30330d5771ae9f983979209486ae26de875","name":"Any Inu","symbol":"AI","decimals":18,"weight":50,"swappable":true},{"address":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2","name":"Wrapped Ether","symbol":"WETH","decimals":18,"weight":50,"swappable":true}],"extra":"{\"liquidity\":11420043566174051417,\"sqrtPriceX96\":9374274824798812391640411,\"tickSpacing\":100,\"tick\":-180852,\"ticks\":[{\"index\":-887200,\"liquidityGross\":11420043566174051417,\"liquidityNet\":11420043566174051417},{\"index\":-191100,\"liquidityGross\":84172845905035329535,\"liquidityNet\":84172845905035329535},{\"index\":-185000,\"liquidityGross\":84172845905035329535,\"liquidityNet\":-84172845905035329535},{\"index\":887200,\"liquidityGross\":11420043566174051417,\"liquidityNet\":-11420043566174051417}]}"
+			}`,
+			tokenOut:  "0x2598c30330d5771ae9f983979209486ae26de875",
+			amountOut: "10000000000000000000000", // 10000 AI
+			tokenIn:   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			poolEntity := new(entity.Pool)
+			err := json.Unmarshal([]byte(tc.poolEncoded), poolEntity)
+			require.NoError(t, err)
+
+			poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
+			require.NoError(t, err)
+
+			result, err := testutil.MustConcurrentSafe[*pool.CalcAmountInResult](t, func() (any, error) {
+				return poolSim.CalcAmountIn(pool.CalcAmountInParams{
+					TokenAmountOut: pool.TokenAmount{
+						Token:  tc.tokenOut,
+						Amount: bignumber.NewBig10(tc.amountOut),
+					},
+					TokenIn: tc.tokenIn,
+				})
+			})
+			require.NoError(t, err)
+			assert.Equal(t, big.NewInt(157754838261356), result.TokenAmountIn.Amount)
+			assert.Equal(t, big.NewInt(0), result.RemainingTokenAmountOut.Amount)
 		})
 	}
 }

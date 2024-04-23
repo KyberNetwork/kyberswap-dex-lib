@@ -135,7 +135,52 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 			Amount: amountOut.ToBig(),
 		},
 		Fee: &poolpkg.TokenAmount{
-			Token:  tokenOut,
+			Token:  tokenOut, // fee is applied on the target token https://github.com/bancorprotocol/contracts-v3/blob/4d3070bf3a759106ec8e6c9ab5ad5d71ff15f3ee/contracts/pools/PoolCollection.sol#L1534
+			Amount: feeAmount.ToBig(),
+		},
+		Gas: defaultGas.Swap,
+		SwapInfo: SwapInfo{
+			IsSourceNative: isSourceNative,
+			IsTargetNative: isTargetNative,
+			TradeInfo:      tradeInfo,
+		},
+	}, nil
+}
+
+func (s *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
+	tokenAmountOut, tokenIn := params.TokenAmountOut, params.TokenIn
+
+	sourceToken, targetToken, isSourceNative, isTargetNative, err := s.transformTokens(tokenIn, tokenAmountOut.Token)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.verifyTokens(sourceToken, targetToken); err != nil {
+		return nil, err
+	}
+
+	targetAmount, overflow := uint256.FromBig(tokenAmountOut.Amount)
+	if overflow {
+		return nil, ErrOverflow
+	}
+
+	amountIn, feeAmount, tradeInfo, err := s.tradeByTargetAmount(
+		sourceToken,
+		targetToken,
+		targetAmount,
+		number.MaxU256,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &poolpkg.CalcAmountInResult{
+		TokenAmountIn: &poolpkg.TokenAmount{
+			Token:  tokenIn,
+			Amount: amountIn.ToBig(),
+		},
+		Fee: &poolpkg.TokenAmount{
+			Token:  tokenAmountOut.Token, // fee is applied on the target token https://github.com/bancorprotocol/contracts-v3/blob/4d3070bf3a759106ec8e6c9ab5ad5d71ff15f3ee/contracts/pools/PoolCollection.sol#L1553
 			Amount: feeAmount.ToBig(),
 		},
 		Gas: defaultGas.Swap,
@@ -171,6 +216,8 @@ func (s *PoolSimulator) verifyTokens(sourceToken, targetToken string) error {
 		return err
 	}
 
+	// https://github.com/bancorprotocol/contracts-v3/blob/4d3070bf3a759106ec8e6c9ab5ad5d71ff15f3ee/contracts/network/BancorNetwork.sol#L1100
+	// This is a part of _verifyTradeParams function
 	if sourceToken == targetToken {
 		return ErrInvalidToken
 	}
@@ -227,6 +274,10 @@ func (s *PoolSimulator) transformTokens(tokenIn, tokenOut string) (string, strin
 	return sourceToken, targetToken, isSourceNative, isTargetNative, nil
 }
 
+// https://github.com/bancorprotocol/contracts-v3/blob/4d3070bf3a759106ec8e6c9ab5ad5d71ff15f3ee/contracts/network/BancorNetwork.sol#L1115
+/**
+ * @dev internal trade by source amount logic
+ */
 func (s *PoolSimulator) tradeBySourceAmount(
 	sourceToken,
 	targetToken string,
@@ -253,6 +304,40 @@ func (s *PoolSimulator) tradeBySourceAmount(
 	)
 }
 
+// https://github.com/bancorprotocol/contracts-v3/blob/4d3070bf3a759106ec8e6c9ab5ad5d71ff15f3ee/contracts/network/BancorNetwork.sol#L1147
+/**
+ * @dev internal trade by source amount logic
+ */
+func (s *PoolSimulator) tradeByTargetAmount(
+	sourceToken,
+	targetToken string,
+	targetAmount,
+	maxSourceAmount *uint256.Int,
+) (*uint256.Int, *uint256.Int, []*poolCollectionTradeInfo, error) {
+	if err := s._verifyTradeParams(
+		sourceToken,
+		targetToken,
+		targetAmount,
+		maxSourceAmount,
+	); err != nil {
+		return nil, nil, nil, err
+	}
+
+	return s._trade(
+		&tradeTokens{SourceToken: sourceToken, TargetToken: targetToken},
+		&tradeParams{
+			BySourceAmount: false,
+			Amount:         targetAmount,
+			Limit:          maxSourceAmount,
+			IgnoreFees:     false,
+		},
+	)
+}
+
+// https://github.com/bancorprotocol/contracts-v3/blob/4d3070bf3a759106ec8e6c9ab5ad5d71ff15f3ee/contracts/network/BancorNetwork.sol#L1090
+/**
+ * @dev verifies that the provided trade params are valid
+ */
 func (s *PoolSimulator) _verifyTradeParams(
 	_,
 	_ string,
@@ -266,6 +351,20 @@ func (s *PoolSimulator) _verifyTradeParams(
 	return nil
 }
 
+// https://github.com/bancorprotocol/contracts-v3/blob/4d3070bf3a759106ec8e6c9ab5ad5d71ff15f3ee/contracts/network/BancorNetwork.sol#L1189
+/**
+ * @dev performs a trade by providing either the source or target amount:
+ *
+ * - when trading by the source amount, the amount represents the source amount and the limit is the minimum return
+ *   amount
+ * - when trading by the target amount, the amount represents the target amount and the limit is the maximum source
+ *   amount
+ *
+ * requirements:
+ *
+ * - the caller must have approved the network to transfer the source tokens on its behalf (except for in the
+ *   native token case)
+ */
 func (s *PoolSimulator) _trade(
 	tokens *tradeTokens,
 	params *tradeParams,
@@ -313,36 +412,73 @@ func (s *PoolSimulator) _trade(
 		)
 	}
 
-	return lastHopTradeResult.TargetAmount, lastHopTradeResult.TradingFeeAmount, tradeInfo, nil
+	if params.BySourceAmount {
+		return lastHopTradeResult.TargetAmount, lastHopTradeResult.TradingFeeAmount, tradeInfo, nil
+	}
+
+	return firstHopTradeResult.SourceAmount, firstHopTradeResult.TradingFeeAmount, tradeInfo, nil
 }
 
+// https://github.com/bancorprotocol/contracts-v3/blob/4d3070bf3a759106ec8e6c9ab5ad5d71ff15f3ee/contracts/network/BancorNetwork.sol#L1352
+/**
+ * @dev performs a double hop trade between two base tokens by providing either the source or the target amount
+ *
+ * - when trading by the source amount, the amount represents the source amount and the limit is the minimum return
+ *   amount
+ * - when trading by the target amount, the amount represents the target amount and the limit is the maximum source
+ *   amount
+ */
 func (s *PoolSimulator) _tradeBaseTokens(
 	tokens *tradeTokens,
 	params *tradeParams,
 ) (*tradeResult, *tradeResult, error) {
-	sourceAmount, minReturnAmount := params.Amount, params.Limit
+	if params.BySourceAmount {
+		sourceAmount, minReturnAmount := params.Amount, params.Limit
 
-	targetHop1, err := s._tradeBNT(
-		tokens.SourceToken,
-		false,
-		&tradeParams{
-			BySourceAmount: true,
-			Amount:         sourceAmount,
-			Limit:          number.Number_1,
-			IgnoreFees:     params.IgnoreFees,
-		},
-	)
-	if err != nil {
-		return nil, nil, err
+		// trade source tokens to BNT (while accepting any return amount)
+		targetHop1, err := s._tradeBNT(
+			tokens.SourceToken,
+			false,
+			&tradeParams{
+				BySourceAmount: true,
+				Amount:         sourceAmount,
+				Limit:          number.Number_1,
+				IgnoreFees:     params.IgnoreFees,
+			},
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// trade the received BNT target amount to target tokens (while respecting the minimum return amount)
+		targetHop2, err := s._tradeBNT(
+			tokens.TargetToken,
+			true,
+			&tradeParams{
+				BySourceAmount: true,
+				Amount:         targetHop1.TargetAmount,
+				Limit:          minReturnAmount,
+				IgnoreFees:     params.IgnoreFees,
+			},
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return targetHop1, targetHop2, nil
 	}
 
-	targetHop2, err := s._tradeBNT(
+	targetAmount, maxSourceAmount := params.Amount, params.Limit
+
+	// trade any amount of BNT to get the requested target amount (we will use the actual traded amount to restrict
+	// the trade from the source)
+	sourceHop2, err := s._tradeBNT(
 		tokens.TargetToken,
 		true,
 		&tradeParams{
-			BySourceAmount: true,
-			Amount:         targetHop1.TargetAmount,
-			Limit:          minReturnAmount,
+			BySourceAmount: false,
+			Amount:         targetAmount,
+			Limit:          number.MaxU256,
 			IgnoreFees:     params.IgnoreFees,
 		},
 	)
@@ -350,9 +486,33 @@ func (s *PoolSimulator) _tradeBaseTokens(
 		return nil, nil, err
 	}
 
-	return targetHop1, targetHop2, nil
+	// trade source tokens to the required amount of BNT (while respecting the maximum source amount)
+	sourceHop1, err := s._tradeBNT(
+		tokens.SourceToken,
+		false,
+		&tradeParams{
+			BySourceAmount: false,
+			Amount:         sourceHop2.SourceAmount,
+			Limit:          maxSourceAmount,
+			IgnoreFees:     params.IgnoreFees,
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return sourceHop1, sourceHop2, nil
 }
 
+// https://github.com/bancorprotocol/contracts-v3/blob/4d3070bf3a759106ec8e6c9ab5ad5d71ff15f3ee/contracts/network/BancorNetwork.sol#L1297
+/**
+ * @dev performs a single hop between BNT and a base token trade by providing either the source or the target amount
+ *
+ * - when trading by the source amount, the amount represents the source amount and the limit is the minimum return
+ *   amount
+ * - when trading by the target amount, the amount represents the target amount and the limit is the maximum source
+ *   amount
+ */
 func (s *PoolSimulator) _tradeBNT(
 	pool string, // token
 	fromBNT bool,
@@ -376,27 +536,57 @@ func (s *PoolSimulator) _tradeBNT(
 		return nil, err
 	}
 
-	tradeAmountsAndFee, poolCollectionTradeInfo, err := poolCollection.tradeBySourceAmount(
-		tokens.SourceToken,
-		tokens.TargetToken,
-		params.Amount,
-		params.Limit,
-		params.IgnoreFees,
+	var (
+		tradeAmountsAndFee      *tradeAmountAndFee
+		poolCollectionTradeInfo *poolCollectionTradeInfo
 	)
-	if err != nil {
-		return nil, err
+
+	if params.BySourceAmount {
+		tradeAmountsAndFee, poolCollectionTradeInfo, err = poolCollection.tradeBySourceAmount(
+			tokens.SourceToken,
+			tokens.TargetToken,
+			params.Amount,
+			params.Limit,
+			params.IgnoreFees,
+		)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		tradeAmountsAndFee, poolCollectionTradeInfo, err = poolCollection.tradeByTargetAmount(
+			tokens.SourceToken,
+			tokens.TargetToken,
+			params.Amount,
+			params.Limit,
+			params.IgnoreFees,
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	tradeResult := tradeResult{
-		SourceAmount:     params.Amount,
-		TargetAmount:     tradeAmountsAndFee.Amount,
-		TradingFeeAmount: tradeAmountsAndFee.TradingFeeAmount,
-		NetworkFeeAmount: tradeAmountsAndFee.NetworkFeeAmount,
+	var tr tradeResult
+	if params.BySourceAmount {
+		tr = tradeResult{
+			SourceAmount:     params.Amount,
+			TargetAmount:     tradeAmountsAndFee.Amount,
+			TradingFeeAmount: tradeAmountsAndFee.TradingFeeAmount,
+			NetworkFeeAmount: tradeAmountsAndFee.NetworkFeeAmount,
 
-		PoolCollectionTradeInfo: poolCollectionTradeInfo,
+			PoolCollectionTradeInfo: poolCollectionTradeInfo,
+		}
+	} else {
+		tr = tradeResult{
+			SourceAmount:     tradeAmountsAndFee.Amount,
+			TargetAmount:     params.Amount,
+			TradingFeeAmount: tradeAmountsAndFee.TradingFeeAmount,
+			NetworkFeeAmount: tradeAmountsAndFee.NetworkFeeAmount,
+
+			PoolCollectionTradeInfo: poolCollectionTradeInfo,
+		}
 	}
 
-	return &tradeResult, nil
+	return &tr, nil
 }
 
 func (s *PoolSimulator) getPoolCollection(pool string) (*poolCollection, error) {

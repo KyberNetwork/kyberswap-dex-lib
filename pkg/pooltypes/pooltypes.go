@@ -25,6 +25,7 @@ import (
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
@@ -200,6 +201,7 @@ type Types struct {
 	NomiSwapStable                 string
 	NativeV1                       string
 	Bebop                          string
+	RenzoEZETH                     string
 }
 
 var (
@@ -309,5 +311,6 @@ var (
 		NomiSwapStable:                 nomiswap.DexType,
 		NativeV1:                       nativev1.DexType,
 		Bebop:                          bebop.DexType,
+		RenzoEZETH:                     ezeth.DexType,
 	}
 )
