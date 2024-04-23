@@ -6,6 +6,7 @@ type Config struct {
 	BlacklistedPoolSet         map[string]bool `mapstructure:"blacklistedPoolSet"`
 	Capacity                   int             `mapstructure:"capacity" json:"capacity"`
 	PoolRenewalInterval        time.Duration   `mapstructure:"poolRenewalInterval" json:"poolRenewalInterval"`
+	BlackListRenewalInterval   time.Duration   `mapstructure:"BlackListRenewalInterval" json:"BlackListRenewalInterval"`
 	UseAEVM                    bool            `mapstructure:"useAEVM" json:"useAEVM"`
 	FaultyPoolsExpireThreshold time.Duration   `mapstructure:"faultyPoolsExpireThreshold" json:"faultyPoolsExpireThreshold"`
 	MaxFaultyPoolSize          int64           `mapstructure:"maxFaultyPoolSize" json:"maxFaultyPoolSize"`
@@ -13,3 +14,5 @@ type Config struct {
 	// non-configured stalling threshold is treat as non-enabling stalling threshold
 	StallingPMMThreshold time.Duration `mapstructure:"stallingPMMThreshold" json:"stallingPMMThreshold"`
 }
+
+const DefaultBlackListRenewalInterval = 30 * time.Second

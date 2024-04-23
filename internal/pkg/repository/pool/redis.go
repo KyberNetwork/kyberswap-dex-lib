@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/redis/go-redis/v9"
-	"github.com/samber/lo"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
@@ -44,16 +44,11 @@ func (r *redisRepository) FindAllAddresses(ctx context.Context) ([]string, error
 	return r.redisClient.HKeys(ctx, r.keyPools).Result()
 }
 
-func (r *redisRepository) CheckPoolsInBlacklist(ctx context.Context, addresses []string) ([]bool, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "[pool] redisRepository.CheckPoolsInBlacklist")
+func (r *redisRepository) GetPoolsInBlacklist(ctx context.Context) ([]string, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[pool] redisRepository.GetPoolsInBlacklist")
 	defer span.End()
 
-	if len(addresses) == 0 {
-		return nil, nil
-	}
-
-	addresses_interface := lo.Map(addresses, func(address string, _ int) interface{} { return address })
-	return r.redisClient.SMIsMember(ctx, r.keyBlacklistedPools, addresses_interface...).Result()
+	return r.redisClient.SMembers(ctx, r.keyBlacklistedPools).Result()
 }
 
 // FindByAddresses returns pools by addresses

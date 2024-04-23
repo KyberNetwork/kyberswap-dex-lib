@@ -302,6 +302,7 @@ useCase:
       liquiditybook-v21: true
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
+    blackListRenewalInterval: 30s
     capacity: 1000000
     poolRenewalInterval: 3s
     useAEVM: *useAEVM

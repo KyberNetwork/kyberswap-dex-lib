@@ -197,14 +197,16 @@ func (m *PoolManager) filterBlacklistedAddresses(ctx context.Context, addresses 
 	}
 
 	// check again with Redis
-	isInBlacklist, err := m.poolRepository.CheckPoolsInBlacklist(ctx, filtered)
+	blacklist, err := m.poolRepository.GetPoolsInBlacklist(ctx)
 	if err != nil {
 		logger.Errorf(ctx, "error checking pool blacklist %v", err)
 		return nil
 	}
+	blackListSet := sets.NewString(blacklist...)
+
 	validPools := make([]string, 0, len(filtered))
-	for idx, address := range filtered {
-		if isInBlacklist[idx] {
+	for _, address := range filtered {
+		if blackListSet.Has(address) {
 			continue
 		}
 

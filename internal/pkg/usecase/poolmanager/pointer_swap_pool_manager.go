@@ -41,6 +41,7 @@ type PointerSwapPoolManager struct {
 	readFrom atomic.Int32
 	config   Config
 
+	blackListPools []string
 	// poolCache control which pool to maintain when there are too many pools
 	// currently poolCache use LRU policy
 	poolCache *cachePolicy.Cache[string, struct{}]
@@ -144,6 +145,8 @@ func NewNonMaintenancePointerSwapPoolManager(
 			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
+	p.updateBlackListPool(ctx)
+
 	if err = p.preparePoolsData(context.Background(), poolAddresses, common.Hash(stateRoot)); err != nil {
 		return nil, err
 	}
@@ -199,6 +202,10 @@ func NewPointerSwapPoolManager(
 			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
+	if p.config.BlackListRenewalInterval == 0 {
+		p.config.BlackListRenewalInterval = DefaultBlackListRenewalInterval
+	}
+	p.updateBlackListPool(ctx)
 	if err = p.preparePoolsData(context.Background(), poolAddresses, common.Hash(stateRoot)); err != nil {
 		return nil, err
 	}
@@ -221,10 +228,38 @@ func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
 	p.poolCache.Resize(config.Capacity)
 }
 
+func (p *PointerSwapPoolManager) updateBlackListPool(ctx context.Context) {
+	var (
+		blackedList []string
+		err         error
+		counter     = 0
+	)
+	//since the wait time of updateBlackList can be quite long, we retry 3 times if it gets err
+	for {
+		blackedList, err = p.poolRepository.GetPoolsInBlacklist(ctx)
+		if err != nil {
+			logger.Errorf(ctx, "error checking pool blacklist. Err: %s", err)
+			counter++
+		} else {
+			break
+		}
+		if counter > 3 {
+			logger.Errorf(ctx, "failed to get blackList data 3 times")
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	if err == nil {
+		p.lock.Lock()
+		p.blackListPools = blackedList
+		p.lock.Unlock()
+	}
+}
+
 // GetStateByPoolAddresses return a reference to pools maintained by `PointerSwapPoolManager`
 // Therefore, do not modify IPool returned here, clone IPool before UpdateBalance
 func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (*types.FindRouteState, error) {
-	filteredPoolAddress := p.filterBlacklistedAddresses(ctx, poolAddresses)
+	filteredPoolAddress := p.filterBlacklistedAddresses(poolAddresses)
 	if len(filteredPoolAddress) == 0 {
 		logger.Errorf(ctx, "filtered Pool addresses after filterBlacklistedAddresses now equal to 0. Blacklist config %v. PoolAddresses original len: %d", p.config.BlacklistedPoolSet, len(poolAddresses))
 		return nil, getroute.ErrPoolSetEmpty
@@ -355,7 +390,16 @@ func (p *PointerSwapPoolManager) Reload(ctx context.Context) error {
 	return p.preparePoolsData(context.Background(), p.poolCache.Keys(), common.Hash(stateRoot))
 }
 
+func (p *PointerSwapPoolManager) reloadBlackListPool(ctx context.Context) {
+	for {
+		p.updateBlackListPool(ctx)
+		time.Sleep(p.config.BlackListRenewalInterval)
+	}
+}
+
 func (p *PointerSwapPoolManager) maintain(ctx context.Context) {
+	go p.reloadBlackListPool(ctx)
+
 	for {
 		time.Sleep(p.config.PoolRenewalInterval)
 
@@ -378,7 +422,7 @@ func (p *PointerSwapPoolManager) swapPointer(writeTo int32) {
 func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddresses []string, stateRoot common.Hash) error {
 	writeTo := (p.readFrom.Load() + 1) % NState
 
-	filteredPoolAddress := p.filterBlacklistedAddresses(ctx, poolAddresses)
+	filteredPoolAddress := p.filterBlacklistedAddresses(poolAddresses)
 
 	filteredPoolAddress = p.excludeFaultyPools(ctx, filteredPoolAddress, p.config)
 
@@ -396,7 +440,14 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 	return nil
 }
 
-func (p *PointerSwapPoolManager) filterBlacklistedAddresses(ctx context.Context, poolAddresses []string) []string {
+func (p *PointerSwapPoolManager) getBlackListSet() sets.String {
+	p.lock.RLock()
+	defer p.lock.RUnlock()
+	//sets.NewString return a copy
+	return sets.NewString(p.blackListPools...)
+}
+
+func (p *PointerSwapPoolManager) filterBlacklistedAddresses(poolAddresses []string) []string {
 	filtered := make([]string, 0, len(poolAddresses))
 
 	for _, address := range poolAddresses {
@@ -407,15 +458,10 @@ func (p *PointerSwapPoolManager) filterBlacklistedAddresses(ctx context.Context,
 		filtered = append(filtered, address)
 	}
 
-	// check again with Redis
-	isInBlacklist, err := p.poolRepository.CheckPoolsInBlacklist(ctx, filtered)
-	if err != nil {
-		logger.Errorf(ctx, "error checking pool blacklist %v", err)
-		return nil
-	}
+	blackListSet := p.getBlackListSet()
 	validPools := make([]string, 0, len(filtered))
-	for idx, address := range filtered {
-		if isInBlacklist[idx] {
+	for _, address := range filtered {
+		if blackListSet.Has(address) {
 			continue
 		}
 

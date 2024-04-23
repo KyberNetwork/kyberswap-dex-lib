@@ -341,6 +341,7 @@ useCase:
         router-address: 0xe592427a0aece92de3edee1f18e0157c05861564
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
+    blackListRenewalInterval: 30s
     capacity: 1000000
     poolRenewalInterval: 12s
     useAEVM: *useAEVM

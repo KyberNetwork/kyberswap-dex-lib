@@ -245,6 +245,7 @@ useCase:
     chainId: *chainId
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
+    blackListRenewalInterval: 30s
     capacity: 100000
     poolRenewalInterval: 2s
     faultyPoolsExpireThreshold: 3s

@@ -232,21 +232,20 @@ func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
 	poolFactory := mocks.NewMockIPoolFactory(ctrl)
 
 	var (
-		poolAddressList = make([]string, len(poolByAddresses))
-		poolList        = make([]poolpkg.IPoolSimulator, len(poolByAddresses))
-		isBlackList     = make([]bool, len(poolByAddresses))
+		poolAddressList  = make([]string, len(poolByAddresses))
+		poolList         = make([]poolpkg.IPoolSimulator, len(poolByAddresses))
+		poolsInBlackList = []string{"none"}
 	)
 	//reuse index
 	i = 0
 	for address := range poolByAddresses {
 		poolAddressList[i] = address
-		isBlackList[i] = false
 		poolList[i] = poolByAddresses[address]
 		i++
 	}
 	// Mocked PoolRank always return the poolAddressList above
 	poolRankRepository.EXPECT().FindGlobalBestPools(gomock.Any(), gomock.Any()).Return(poolAddressList).AnyTimes()
-	poolRepository.EXPECT().CheckPoolsInBlacklist(gomock.Any(), gomock.Any()).Return(isBlackList, nil).AnyTimes()
+	poolRepository.EXPECT().PoolsInBlacklist(gomock.Any()).Return(poolsInBlackList, nil).AnyTimes()
 	poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return([]string{}, nil).AnyTimes()
 	poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Return([]*entity.Pool{}, nil).AnyTimes()
