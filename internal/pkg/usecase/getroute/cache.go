@@ -22,6 +22,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
+	ctxUtils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -83,7 +84,7 @@ func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*
 			return nil, err
 		}
 		if routeSummary.GetPriceImpact() <= c.config.PriceImpactThreshold {
-			c.setRouteToCache(ctx, routeSummary, key, ttl)
+			go c.setRouteToCache(ctxUtils.NewBackgroundCtxWithReqId(ctx), routeSummary, key, ttl)
 		}
 	} else {
 		// we have no key cacheRoute -> recalculate new route.

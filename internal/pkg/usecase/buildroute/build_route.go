@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	ctxUtils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -426,14 +427,14 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 			gas, gasUSD, err = uc.gasEstimator.Execute(ctx, tx)
 			uc.sendEstimateGasLogsAndMetrics(ctx, command.RouteSummary, err, command.SlippageTolerance)
 			if err != nil {
-				return 0, 0.0, 0, errors.WithMessagef(ErrEstimateGasFailed, "Estimate gas failed due to %s", err.Error())
+				return 0, 0.0, 0, errors.WithMessagef(ErrEstimateGasFailed, "estimate gas failed due to %s", err.Error())
 			}
 		} else {
 			if !utils.IsEmptyString(command.Sender) {
-				go func() {
-					_, err := uc.gasEstimator.EstimateGas(context.Background(), tx)
+				go func(ctx context.Context) {
+					_, err := uc.gasEstimator.EstimateGas(ctx, tx)
 					uc.sendEstimateGasLogsAndMetrics(ctx, command.RouteSummary, err, command.SlippageTolerance)
-				}()
+				}(ctxUtils.NewBackgroundCtxWithReqId(ctx))
 			}
 		}
 	}
@@ -441,7 +442,7 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 	// for some L2 chains we'll need to account for L1 fee as well
 	l1FeeUSDFloat, err := uc.calculateL1FeeUSD(ctx, encodedData)
 	if err != nil {
-		return 0, 0.0, 0, fmt.Errorf("Failed to estimate L1 fee %s", err.Error())
+		return 0, 0.0, 0, fmt.Errorf("failed to estimate L1 fee %s", err.Error())
 	}
 
 	return gas, gasUSD, l1FeeUSDFloat, nil
@@ -450,14 +451,14 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 func (uc *BuildRouteUseCase) calculateL1FeeUSD(ctx context.Context, encodedData string) (float64, error) {
 	l1Fee, err := uc.l1FeeCalculator.CalculateL1Fee(ctx, uc.config.ChainID, encodedData)
 	if err != nil {
-		return 0, fmt.Errorf("Failed to estimate L1 fee %s", err.Error())
+		return 0, fmt.Errorf("failed to estimate L1 fee %s", err.Error())
 	}
 	l1FeeUSDFloat := 0.0
 	if l1Fee != nil {
 		// the fee calculated is already in GasToken unit, so just multiply with GasTokenPriceUSD only without GasPrice
 		gasPriceUsd, err := uc.gasEstimator.GetGasTokenPriceUSD(ctx)
 		if err != nil {
-			return 0, fmt.Errorf("Failed to get gas token price in USD %s", err.Error())
+			return 0, fmt.Errorf("failed to get gas token price in USD %s", err.Error())
 		}
 		l1FeeUSD := new(big.Float).Quo(
 			new(big.Float).Mul(
