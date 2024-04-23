@@ -4,10 +4,11 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestSwapAForBWithoutExactOut(t *testing.T) {
@@ -189,7 +190,7 @@ func TestSwapAForBWithoutExactOut(t *testing.T) {
 	require.Nil(t, err)
 
 	var amountIn = elastic.NewBig10("1850163333337788672")
-	_, amountOut, _, err := GetAmountOut(state, amountIn, true, false, false)
+	_, amountOut, _, err := swap(state, amountIn, true, false, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "1676945827577881677", amountOut.String())
@@ -199,7 +200,7 @@ func TestSwapAForBWithoutExactOut(t *testing.T) {
 		state, err = DeepcopyState(orgState)
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
-		_, amountOut, _, err := GetAmountOut(state, amountIn, true, false, false)
+		_, amountOut, _, err := swap(state, amountIn, true, false, false)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "1676945827577881677", amountOut.String())
@@ -210,7 +211,7 @@ func TestSwapAForBWithoutExactOut(t *testing.T) {
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
 		state.BinMap = nil
-		_, amountOut, _, err := GetAmountOut(state, amountIn, true, false, false)
+		_, amountOut, _, err := swap(state, amountIn, true, false, false)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "1676945827577881677", amountOut.String())
@@ -395,21 +396,21 @@ func TestSwapAForBExactOut(t *testing.T) {
 	orgState, err := DeepcopyState(state)
 	require.Nil(t, err)
 
-	var amountIn = elastic.NewBig10("2963297000000000000")
-	_, amountOut, _, err := GetAmountOut(state, amountIn, true, true, false)
+	var amountOut = elastic.NewBig10("2963297000000000000")
+	amountIn, _, _, err := swap(state, amountOut, true, true, false)
 
 	assert.Nil(t, err)
-	assert.Equal(t, "2963297000000000000", amountOut.String())
+	assert.Equal(t, "3269386145352608663", amountIn.String())
 
 	// should work with both binMap and binMapHex
 	{
 		state, err = DeepcopyState(orgState)
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
-		_, amountOut, _, err := GetAmountOut(state, amountIn, true, true, false)
+		amountIn, _, _, err := swap(state, amountOut, true, true, false)
 
 		assert.Nil(t, err)
-		assert.Equal(t, "2963297000000000000", amountOut.String())
+		assert.Equal(t, "3269386145352608663", amountIn.String())
 	}
 	// should work with binMapHex only
 	{
@@ -417,10 +418,10 @@ func TestSwapAForBExactOut(t *testing.T) {
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
 		state.BinMap = nil
-		_, amountOut, _, err := GetAmountOut(state, amountIn, true, true, false)
+		amountIn, _, _, err := swap(state, amountOut, true, true, false)
 
 		assert.Nil(t, err)
-		assert.Equal(t, "2963297000000000000", amountOut.String())
+		assert.Equal(t, "3269386145352608663", amountIn.String())
 	}
 
 	//var amountIn = elastic.NewBig10("1676945827577881677")
@@ -608,21 +609,21 @@ func TestSwapBForAExactOut(t *testing.T) {
 	orgState, err := DeepcopyState(state)
 	require.Nil(t, err)
 
-	var amountIn = elastic.NewBig10("1894736241169897472")
-	_, amountOut, _, err := GetAmountOut(state, amountIn, false, true, false)
+	var amountOut = elastic.NewBig10("1894736241169897472")
+	amountIn, _, _, err := swap(state, amountOut, false, true, false)
 
 	assert.Nil(t, err)
-	assert.Equal(t, "1894736241169897472", amountOut.String())
+	assert.Equal(t, "1727696322824790157", amountIn.String())
 
 	// should work with both binMap and binMapHex
 	{
 		state, err = DeepcopyState(orgState)
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
-		_, amountOut, _, err := GetAmountOut(state, amountIn, false, true, false)
+		amountIn, _, _, err := swap(state, amountOut, false, true, false)
 
 		assert.Nil(t, err)
-		assert.Equal(t, "1894736241169897472", amountOut.String())
+		assert.Equal(t, "1727696322824790157", amountIn.String())
 	}
 	// should work with binMapHex only
 	{
@@ -630,10 +631,10 @@ func TestSwapBForAExactOut(t *testing.T) {
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
 		state.BinMap = nil
-		_, amountOut, _, err := GetAmountOut(state, amountIn, false, true, false)
+		amountIn, _, _, err := swap(state, amountOut, false, true, false)
 
 		assert.Nil(t, err)
-		assert.Equal(t, "1894736241169897472", amountOut.String())
+		assert.Equal(t, "1727696322824790157", amountIn.String())
 	}
 }
 
@@ -835,7 +836,7 @@ func TestSwapBForAWithoutExactOut(t *testing.T) {
 	require.Nil(t, err)
 
 	var amountIn = elastic.NewBig10("4221332000000000000")
-	_, amountOut, _, err := GetAmountOut(state, amountIn, false, false, false)
+	_, amountOut, _, err := swap(state, amountIn, false, false, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "4629465618898435945", amountOut.String())
@@ -845,7 +846,7 @@ func TestSwapBForAWithoutExactOut(t *testing.T) {
 		state, err = DeepcopyState(orgState)
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
-		_, amountOut, _, err := GetAmountOut(state, amountIn, false, false, false)
+		_, amountOut, _, err := swap(state, amountIn, false, false, false)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "4629465618898435945", amountOut.String())
@@ -856,7 +857,7 @@ func TestSwapBForAWithoutExactOut(t *testing.T) {
 		require.Nil(t, err)
 		state.BinMapHex = binMapHex
 		state.BinMap = nil
-		_, amountOut, _, err := GetAmountOut(state, amountIn, false, false, false)
+		_, amountOut, _, err := swap(state, amountIn, false, false, false)
 
 		assert.Nil(t, err)
 		assert.Equal(t, "4629465618898435945", amountOut.String())
