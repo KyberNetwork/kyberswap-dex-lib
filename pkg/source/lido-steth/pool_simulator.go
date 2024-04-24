@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator
+//msgp:shim valueobject.ChainID as:uint using:uint/valueobject.ChainID
+
 package lido_steth
 
 import (

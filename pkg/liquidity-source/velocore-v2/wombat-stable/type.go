@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple tokenInfo
+//msgp:ignore Metadata Meta Gas bytes32 Extra StaticExtra poolData poolDataResp
+//msgp:shim common.Address as:[]byte using:(common.Address).Bytes/common.BytesToAddress
+
 package wombatstable
 
 import (

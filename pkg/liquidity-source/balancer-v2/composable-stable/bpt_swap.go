@@ -1,7 +1,12 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple bptSimulator
+//msgp:shim *uint256.Int as:[]byte using:msgpencode.EncodeUint256/msgpencode.DecodeUint256
+
 package composablestable
 
 import (
 	"math/big"
+	"strconv"
 
 	"github.com/holiman/uint256"
 
@@ -22,7 +27,7 @@ type bptSimulator struct {
 	tokenRateCaches []TokenRateCache
 
 	swapFeePercentage               *uint256.Int
-	protocolFeePercentageCache      map[int]*uint256.Int
+	protocolFeePercentageCache      map[string]*uint256.Int
 	tokenExemptFromYieldProtocolFee []bool
 	exemptFromYieldProtocolFee      bool // >= V5
 	inRecoveryMode                  bool
@@ -740,7 +745,7 @@ func (s *bptSimulator) getProtocolFeePercentageCache(feeType int) *uint256.Int {
 		return uint256.NewInt(0)
 	}
 
-	return s.protocolFeePercentageCache[feeType]
+	return s.protocolFeePercentageCache[strconv.FormatInt(int64(feeType), 10)]
 }
 
 func (s *bptSimulator) protocolFeeAmount(

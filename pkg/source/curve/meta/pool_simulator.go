@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple CompoundPool Gas
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+
 package meta
 
 import (
@@ -35,7 +39,7 @@ type ICurveBasePool interface {
 
 type Pool struct {
 	pool.Pool
-	BasePool       ICurveBasePool
+	BasePool       basePool
 	RateMultiplier *big.Int
 	InitialA       *big.Int
 	FutureA        *big.Int
@@ -94,7 +98,7 @@ func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*Pool, e
 				Checked:    false,
 			},
 		},
-		BasePool:       basePool,
+		BasePool:       newBasePool(basePool),
 		RateMultiplier: utils.NewBig10(staticExtra.RateMultiplier),
 		InitialA:       utils.NewBig10(extraStr.InitialA),
 		FutureA:        utils.NewBig10(extraStr.FutureA),

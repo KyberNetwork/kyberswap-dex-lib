@@ -395,7 +395,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 		entityPool          entity.Pool
 		tokenAmountIn       poolPkg.TokenAmount
 		tokenAmountOut      poolPkg.TokenAmount
-		expectedPool        PoolSimulator
+		expectedPool        *PoolSimulator
 		expectedUSDGAmounts map[string]*big.Int
 	}{
 		{

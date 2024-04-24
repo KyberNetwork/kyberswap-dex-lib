@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple LastJoinExitData TokenRateCache
+//msgp:ignore Metadata PoolTypeMetadata SubgraphPool StaticExtra Extra PoolTokens AmplificationParameter Gas Meta
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+
 package balancercomposablestable
 
 import (

@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator Gas
+//msgp:ignore DecimalInfo woofiV2SwapInfo
+
 package woofiv2
 
 import (

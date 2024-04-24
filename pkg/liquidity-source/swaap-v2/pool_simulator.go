@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator PriceLevel
+//msgp:ignore MetaInfo PoolExtra SwapInfo
+
 package swaapv2
 
 import (

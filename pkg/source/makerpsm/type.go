@@ -1,3 +1,9 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PSM Vat ILK Gas
+//msgp:ignore DexConfig PSMConfig Token Extra
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+//msgp:shim common.Address as:[]byte using:(common.Address).Bytes/common.BytesToAddress
+
 package makerpsm
 
 import (

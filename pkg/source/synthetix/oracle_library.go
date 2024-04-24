@@ -2,6 +2,7 @@ package synthetix
 
 import (
 	"math/big"
+	"strconv"
 
 	"github.com/KyberNetwork/elastic-go-sdk/v2/utils"
 	uniswapV3Utils "github.com/daoleno/uniswapv3-sdk/utils"
@@ -97,7 +98,7 @@ func getBlockStartingTick(state *DexPriceAggregatorUniswapV3, pool common.Addres
 	// If the latest observation occurred in the past, then no tick-changing trades have happened in this block
 	// therefore the tick in `slot0` is the same as at the beginning of the current block.
 	// We don't need to check if this observation is initialized - it is guaranteed to be.
-	observation := state.UniswapV3Observations[pool.String()][observationIndex]
+	observation := state.UniswapV3Observations[pool.String()][strconv.FormatUint(uint64(observationIndex), 10)]
 	observationTimestamp := observation.BlockTimestamp
 	tickCumulative := observation.TickCumulative
 
@@ -107,7 +108,7 @@ func getBlockStartingTick(state *DexPriceAggregatorUniswapV3, pool common.Addres
 
 	prevIndex := (observationIndex + observationCardinality - 1) % observationCardinality
 
-	prevObservation := state.UniswapV3Observations[pool.String()][prevIndex]
+	prevObservation := state.UniswapV3Observations[pool.String()][strconv.FormatUint(uint64(prevIndex), 10)]
 	prevObservationTimestamp := prevObservation.BlockTimestamp
 	prevTickCumulative := prevObservation.TickCumulative
 	prevInitialized := prevObservation.Initialized

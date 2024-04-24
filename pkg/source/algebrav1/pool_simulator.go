@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+//msgp:shim *v3Entities.TickListDataProvider as:[]byte using:uniswapv3mspg.EncodeTickListDataProvider/uniswapv3mspg.DecodeTickListDataProvider
+
 package algebrav1
 
 import (

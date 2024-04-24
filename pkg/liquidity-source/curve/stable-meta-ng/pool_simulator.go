@@ -1,3 +1,6 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator
+
 package stablemetang
 
 import (
@@ -34,7 +37,7 @@ type ICurveBasePool interface {
 // so we'll inherit from stableng.PoolSimulator to reuse its methods
 type PoolSimulator struct {
 	stableng.PoolSimulator
-	basePool ICurveBasePool
+	basePool basePool
 }
 
 func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*PoolSimulator, error) {
@@ -43,7 +46,7 @@ func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*PoolSim
 		return nil, err
 	}
 
-	return &PoolSimulator{*sim, basePool}, err
+	return &PoolSimulator{*sim, newBasePool(basePool)}, err
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {

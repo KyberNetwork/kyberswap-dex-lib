@@ -1,3 +1,6 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator Gas
+
 package gmxglp
 
 import (
@@ -5,6 +8,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 
 	"github.com/KyberNetwork/logger"
 
@@ -19,10 +23,12 @@ type Gas struct {
 type PoolSimulator struct {
 	pool.Pool
 	vault           *Vault
-	vaultUtils      *VaultUtils
+	vaultUtils      *VaultUtils `msg:"-"`
 	glpManager      *GlpManager
 	yearnTokenVault *YearnTokenVault
 	gas             Gas
+
+	_initializeOnce sync.Once `msg:"-"`
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -43,7 +49,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Tokens:   tokens,
 	}
 
-	return &PoolSimulator{
+	p := &PoolSimulator{
 		Pool: pool.Pool{
 			Info: info,
 		},
@@ -52,10 +58,32 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		glpManager:      extra.GlpManager,
 		yearnTokenVault: extra.YearnTokenVault,
 		gas:             DefaultGas,
-	}, nil
+	}
+	if err := p.initializeOnce(); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+// initializeOnce PoolSimulator.vault and PoolSimulator.vaultUtils when PoolSimulator is constructed via unmarshaling
+func (p *PoolSimulator) initializeOnce() error {
+	var err error
+	p._initializeOnce.Do(func() {
+		if err = p.vault.initialize(); err != nil {
+			return
+		}
+		if p.vaultUtils == nil {
+			p.vaultUtils = NewVaultUtils(p.vault)
+		}
+	})
+	return err
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if err := p.initializeOnce(); err != nil {
+		return nil, err
+	}
+
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 	var amountOut, feeAmount *big.Int
