@@ -16,8 +16,8 @@ func (z *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 10 {
-		err = msgp.ArrayError{Wanted: 10, Got: zb0001}
+	if zb0001 != 12 {
+		err = msgp.ArrayError{Wanted: 12, Got: zb0001}
 		return
 	}
 	err = z.Pool.DecodeMsg(dc)
@@ -187,13 +187,75 @@ func (z *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 			}
 		}
 	}
+	var zb0011 uint32
+	zb0011, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err, "totalAmountsOut")
+		return
+	}
+	if cap(z.totalAmountsOut) >= int(zb0011) {
+		z.totalAmountsOut = (z.totalAmountsOut)[:zb0011]
+	} else {
+		z.totalAmountsOut = make([]*uint256.Int, zb0011)
+	}
+	for za0005 := range z.totalAmountsOut {
+		if dc.IsNil() {
+			err = dc.ReadNil()
+			if err != nil {
+				err = msgp.WrapError(err, "totalAmountsOut", za0005)
+				return
+			}
+			z.totalAmountsOut[za0005] = nil
+		} else {
+			{
+				var zb0012 []byte
+				zb0012, err = dc.ReadBytes(msgpencode.EncodeUint256(z.totalAmountsOut[za0005]))
+				if err != nil {
+					err = msgp.WrapError(err, "totalAmountsOut", za0005)
+					return
+				}
+				z.totalAmountsOut[za0005] = msgpencode.DecodeUint256(zb0012)
+			}
+		}
+	}
+	var zb0013 uint32
+	zb0013, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err, "scaledMaxTotalAmountsOut")
+		return
+	}
+	if cap(z.scaledMaxTotalAmountsOut) >= int(zb0013) {
+		z.scaledMaxTotalAmountsOut = (z.scaledMaxTotalAmountsOut)[:zb0013]
+	} else {
+		z.scaledMaxTotalAmountsOut = make([]*uint256.Int, zb0013)
+	}
+	for za0006 := range z.scaledMaxTotalAmountsOut {
+		if dc.IsNil() {
+			err = dc.ReadNil()
+			if err != nil {
+				err = msgp.WrapError(err, "scaledMaxTotalAmountsOut", za0006)
+				return
+			}
+			z.scaledMaxTotalAmountsOut[za0006] = nil
+		} else {
+			{
+				var zb0014 []byte
+				zb0014, err = dc.ReadBytes(msgpencode.EncodeUint256(z.scaledMaxTotalAmountsOut[za0006]))
+				if err != nil {
+					err = msgp.WrapError(err, "scaledMaxTotalAmountsOut", za0006)
+					return
+				}
+				z.scaledMaxTotalAmountsOut[za0006] = msgpencode.DecodeUint256(zb0014)
+			}
+		}
+	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 10
-	err = en.Append(0x9a)
+	// array header, size 12
+	err = en.Append(0x9c)
 	if err != nil {
 		return
 	}
@@ -310,14 +372,52 @@ func (z *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
 			}
 		}
 	}
+	err = en.WriteArrayHeader(uint32(len(z.totalAmountsOut)))
+	if err != nil {
+		err = msgp.WrapError(err, "totalAmountsOut")
+		return
+	}
+	for za0005 := range z.totalAmountsOut {
+		if z.totalAmountsOut[za0005] == nil {
+			err = en.WriteNil()
+			if err != nil {
+				return
+			}
+		} else {
+			err = en.WriteBytes(msgpencode.EncodeUint256(z.totalAmountsOut[za0005]))
+			if err != nil {
+				err = msgp.WrapError(err, "totalAmountsOut", za0005)
+				return
+			}
+		}
+	}
+	err = en.WriteArrayHeader(uint32(len(z.scaledMaxTotalAmountsOut)))
+	if err != nil {
+		err = msgp.WrapError(err, "scaledMaxTotalAmountsOut")
+		return
+	}
+	for za0006 := range z.scaledMaxTotalAmountsOut {
+		if z.scaledMaxTotalAmountsOut[za0006] == nil {
+			err = en.WriteNil()
+			if err != nil {
+				return
+			}
+		} else {
+			err = en.WriteBytes(msgpencode.EncodeUint256(z.scaledMaxTotalAmountsOut[za0006]))
+			if err != nil {
+				err = msgp.WrapError(err, "scaledMaxTotalAmountsOut", za0006)
+				return
+			}
+		}
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *PoolSimulator) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 10
-	o = append(o, 0x9a)
+	// array header, size 12
+	o = append(o, 0x9c)
 	o, err = z.Pool.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "Pool")
@@ -364,6 +464,22 @@ func (z *PoolSimulator) MarshalMsg(b []byte) (o []byte, err error) {
 			o = msgp.AppendBytes(o, msgpencode.EncodeUint256(z.scaledMaxTotalAmountsIn[za0004]))
 		}
 	}
+	o = msgp.AppendArrayHeader(o, uint32(len(z.totalAmountsOut)))
+	for za0005 := range z.totalAmountsOut {
+		if z.totalAmountsOut[za0005] == nil {
+			o = msgp.AppendNil(o)
+		} else {
+			o = msgp.AppendBytes(o, msgpencode.EncodeUint256(z.totalAmountsOut[za0005]))
+		}
+	}
+	o = msgp.AppendArrayHeader(o, uint32(len(z.scaledMaxTotalAmountsOut)))
+	for za0006 := range z.scaledMaxTotalAmountsOut {
+		if z.scaledMaxTotalAmountsOut[za0006] == nil {
+			o = msgp.AppendNil(o)
+		} else {
+			o = msgp.AppendBytes(o, msgpencode.EncodeUint256(z.scaledMaxTotalAmountsOut[za0006]))
+		}
+	}
 	return
 }
 
@@ -375,8 +491,8 @@ func (z *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 10 {
-		err = msgp.ArrayError{Wanted: 10, Got: zb0001}
+	if zb0001 != 12 {
+		err = msgp.ArrayError{Wanted: 12, Got: zb0001}
 		return
 	}
 	bts, err = z.Pool.UnmarshalMsg(bts)
@@ -541,6 +657,66 @@ func (z *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			}
 		}
 	}
+	var zb0011 uint32
+	zb0011, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "totalAmountsOut")
+		return
+	}
+	if cap(z.totalAmountsOut) >= int(zb0011) {
+		z.totalAmountsOut = (z.totalAmountsOut)[:zb0011]
+	} else {
+		z.totalAmountsOut = make([]*uint256.Int, zb0011)
+	}
+	for za0005 := range z.totalAmountsOut {
+		if msgp.IsNil(bts) {
+			bts, err = msgp.ReadNilBytes(bts)
+			if err != nil {
+				return
+			}
+			z.totalAmountsOut[za0005] = nil
+		} else {
+			{
+				var zb0012 []byte
+				zb0012, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeUint256(z.totalAmountsOut[za0005]))
+				if err != nil {
+					err = msgp.WrapError(err, "totalAmountsOut", za0005)
+					return
+				}
+				z.totalAmountsOut[za0005] = msgpencode.DecodeUint256(zb0012)
+			}
+		}
+	}
+	var zb0013 uint32
+	zb0013, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "scaledMaxTotalAmountsOut")
+		return
+	}
+	if cap(z.scaledMaxTotalAmountsOut) >= int(zb0013) {
+		z.scaledMaxTotalAmountsOut = (z.scaledMaxTotalAmountsOut)[:zb0013]
+	} else {
+		z.scaledMaxTotalAmountsOut = make([]*uint256.Int, zb0013)
+	}
+	for za0006 := range z.scaledMaxTotalAmountsOut {
+		if msgp.IsNil(bts) {
+			bts, err = msgp.ReadNilBytes(bts)
+			if err != nil {
+				return
+			}
+			z.scaledMaxTotalAmountsOut[za0006] = nil
+		} else {
+			{
+				var zb0014 []byte
+				zb0014, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeUint256(z.scaledMaxTotalAmountsOut[za0006]))
+				if err != nil {
+					err = msgp.WrapError(err, "scaledMaxTotalAmountsOut", za0006)
+					return
+				}
+				z.scaledMaxTotalAmountsOut[za0006] = msgpencode.DecodeUint256(zb0014)
+			}
+		}
+	}
 	o = bts
 	return
 }
@@ -583,6 +759,22 @@ func (z *PoolSimulator) Msgsize() (s int) {
 			s += msgp.NilSize
 		} else {
 			s += msgp.BytesPrefixSize + len(msgpencode.EncodeUint256(z.scaledMaxTotalAmountsIn[za0004]))
+		}
+	}
+	s += msgp.ArrayHeaderSize
+	for za0005 := range z.totalAmountsOut {
+		if z.totalAmountsOut[za0005] == nil {
+			s += msgp.NilSize
+		} else {
+			s += msgp.BytesPrefixSize + len(msgpencode.EncodeUint256(z.totalAmountsOut[za0005]))
+		}
+	}
+	s += msgp.ArrayHeaderSize
+	for za0006 := range z.scaledMaxTotalAmountsOut {
+		if z.scaledMaxTotalAmountsOut[za0006] == nil {
+			s += msgp.NilSize
+		} else {
+			s += msgp.BytesPrefixSize + len(msgpencode.EncodeUint256(z.scaledMaxTotalAmountsOut[za0006]))
 		}
 	}
 	return
