@@ -110,7 +110,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	if tokenAmountOut.Amount.Cmp(p.Info.Reserves[tokenOutIndex]) > 0 {
-		return &pool.CalcAmountInResult{}, fmt.Errorf("amountOut is %d bigger then reserve %d", tokenAmountOut.Amount.Int64(), p.Info.Reserves[tokenOutIndex])
+		return &pool.CalcAmountInResult{}, fmt.Errorf("expected amountOut is %v bigger than reserve %v", tokenAmountOut.Amount.String(), p.Info.Reserves[tokenOutIndex])
 	}
 
 	amountIn := _getAmountIn(
@@ -121,7 +121,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	)
 
 	if amountIn.Cmp(integer.Zero()) <= 0 {
-		return &pool.CalcAmountInResult{}, fmt.Errorf("amountOut is %d", amountIn.Int64())
+		return &pool.CalcAmountInResult{}, fmt.Errorf("amountOut is %v", amountIn.String())
 	}
 
 	return &pool.CalcAmountInResult{
