@@ -3,6 +3,7 @@ package synthetix
 import (
 	"context"
 	"math/big"
+	"strconv"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -275,9 +276,9 @@ func (r *DexPriceAggregatorUniswapV3Reader) readPoolObservationsData(
 
 		prevIndex := (observationIndex + observationCardinality - 1) % observationCardinality
 
-		dexPriceAggregator.UniswapV3Observations[poolAddress] = map[uint16]OracleObservation{
-			observationIndex: observations[i],
-			prevIndex:        prevObservations[i],
+		dexPriceAggregator.UniswapV3Observations[poolAddress] = map[string]OracleObservation{
+			strconv.FormatUint(uint64(observationIndex), 10): observations[i],
+			strconv.FormatUint(uint64(prevIndex), 10):        prevObservations[i],
 		}
 	}
 

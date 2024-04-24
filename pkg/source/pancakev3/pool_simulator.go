@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator
+//msgp:shim *v3Entities.Pool as:[]byte using:pancakev3msgp.EncodePool/pancakev3msgp.DecodePool
+
 package pancakev3
 
 import (

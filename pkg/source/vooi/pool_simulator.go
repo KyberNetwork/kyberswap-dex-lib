@@ -1,10 +1,16 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator Gas
+//msgp:ignore PoolExtra PoolSimulatorMetadata vooiSwapInfo
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+
 package vooi
 
 import (
 	"encoding/json"
 	"errors"
-	"github.com/KyberNetwork/logger"
 	"math/big"
+
+	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/blockchain-toolkit/dsmath"
 	"github.com/KyberNetwork/blockchain-toolkit/integer"

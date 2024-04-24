@@ -1,9 +1,14 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+
 package limitorder
 
 import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
@@ -19,7 +24,7 @@ type (
 	PoolSimulator struct {
 		pool.Pool
 		tokens        []*entity.PoolToken
-		ordersMapping map[int64]*order
+		ordersMapping map[string]*order
 		// extra fields
 		sellOrderIDs []int64
 		buyOrderIDs  []int64
@@ -54,14 +59,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	if err != nil {
 		return nil, err
 	}
-	ordersMapping := make(map[int64]*order, (len(extra.BuyOrders) + len(extra.SellOrders)))
+	ordersMapping := make(map[string]*order, (len(extra.BuyOrders) + len(extra.SellOrders)))
 	sellOrderIDs, buyOrderIDs := make([]int64, len(extra.SellOrders)), make([]int64, len(extra.BuyOrders))
 	for i, buyOrder := range extra.BuyOrders {
-		ordersMapping[buyOrder.ID] = buyOrder
+		ordersMapping[strconv.FormatInt(buyOrder.ID, 10)] = buyOrder
 		buyOrderIDs[i] = buyOrder.ID
 	}
 	for j, sellOrder := range extra.SellOrders {
-		ordersMapping[sellOrder.ID] = sellOrder
+		ordersMapping[strconv.FormatInt(sellOrder.ID, 10)] = sellOrder
 		sellOrderIDs[j] = sellOrder.ID
 	}
 	return &PoolSimulator{
@@ -101,7 +106,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 	for _, filledOrderInfo := range swapInfo.FilledOrders {
-		order := p.ordersMapping[filledOrderInfo.OrderID]
+		order := p.ordersMapping[strconv.FormatInt(filledOrderInfo.OrderID, 10)]
 
 		filledTakingAmount, _ := new(big.Int).SetString(filledOrderInfo.FilledTakingAmount, 10)
 		filledMakingAmount, _ := new(big.Int).SetString(filledOrderInfo.FilledMakingAmount, 10)
@@ -155,7 +160,7 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 
 	totalMakingAmountWei := new(big.Int)
 	for i, orderID := range orderIDs {
-		order, ok := p.ordersMapping[orderID]
+		order, ok := p.ordersMapping[strconv.FormatInt(orderID, 10)]
 		if !ok {
 			return nil, swapInfo, nil, fmt.Errorf("order %d is not existed in pool", orderID)
 		}
@@ -190,7 +195,7 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 				if new(big.Float).SetInt(totalMakingAmountWei).Cmp(new(big.Float).Mul(totalAmountOutWeiBigFloat, FallbackPercentageOfTotalMakingAmount)) >= 0 {
 					break
 				}
-				order, ok := p.ordersMapping[orderIDs[j]]
+				order, ok := p.ordersMapping[strconv.FormatInt(orderIDs[j], 10)]
 				if !ok {
 					continue
 				}

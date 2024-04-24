@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator Gas
+//msgp:ignore Meta
+//msgp:shim PoolStateVersion as:uint using:uint/PoolStateVersion
+
 package synthetix
 
 import (
@@ -33,6 +38,8 @@ type PoolSimulator struct {
 	poolStateVersion PoolStateVersion
 	poolState        *PoolState
 	gas              Gas
+
+	_initializeOnce sync.Once `msg:"-"`
 }
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
@@ -53,19 +60,35 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		Tokens:   tokens,
 	}
 
-	return &PoolSimulator{
+	p := &PoolSimulator{
 		Pool: pool.Pool{
 			Info: info,
 		},
 		poolStateVersion: getPoolStateVersion(chainID),
 		poolState:        extra.PoolState,
 		gas:              DefaultGas,
-	}, nil
+	}
+	if err := p.initializeOnce(); err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+func (p *PoolSimulator) initializeOnce() error {
+	var err error
+	p._initializeOnce.Do(func() {
+		err = p.poolState.initialize()
+	})
+	return err
 }
 
 func (p *PoolSimulator) CalcAmountOut(
 	param pool.CalcAmountOutParams,
 ) (*pool.CalcAmountOutResult, error) {
+	if err := p.initializeOnce(); err != nil {
+		return nil, err
+	}
+
 	var (
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut

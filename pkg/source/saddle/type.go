@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Gas
+//msgp:ignore SwapStorage Extra PoolItem PoolToken StaticExtra Meta
+
 package saddle
 
 import (

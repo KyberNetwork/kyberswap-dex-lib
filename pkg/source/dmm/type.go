@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Gas
+//msgp:ignore PoolModelReserves Extra Metadata TradeInfo ExtraField
+
 package dmm
 
 import (

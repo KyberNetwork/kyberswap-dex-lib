@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Vault
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+//msgp:shim common.Address as:[]byte using:(common.Address).Bytes/common.BytesToAddress
+
 package metavault
 
 import (
@@ -49,6 +54,11 @@ func NewVault() *Vault {
 		MaxUSDMAmounts:  make(map[string]*big.Int),
 		TokenWeights:    make(map[string]*big.Int),
 	}
+}
+
+// initialize Vault.PriceFeed when Vault is constructed via unmarshaling
+func (v *Vault) initialize() error {
+	return v.PriceFeed.initialize()
 }
 
 const (

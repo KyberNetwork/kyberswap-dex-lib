@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple FeeUtilsV2
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+
 package fxdx
 
 import (
@@ -17,7 +21,7 @@ type FeeUtilsV2 struct {
 	TaxBasisPoints     map[string]*big.Int `json:"taxBasisPoints"`
 	SwapFeeBasisPoints map[string]*big.Int `json:"swapFeeBasisPoints"`
 
-	Vault *Vault `json:"-"`
+	Vault *Vault `json:"-" msg:"-"`
 }
 
 func NewFeeUtilsV2() *FeeUtilsV2 {

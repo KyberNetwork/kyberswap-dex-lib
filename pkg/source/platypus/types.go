@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Asset Gas
+//msgp:ignore Config SubgraphPool Metadata Extra PoolState AssetState
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+
 package platypus
 
 import (

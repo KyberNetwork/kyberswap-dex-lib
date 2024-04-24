@@ -1,3 +1,6 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple ChainlinkFlags
+
 package gmxglp
 
 type ChainlinkFlags struct {

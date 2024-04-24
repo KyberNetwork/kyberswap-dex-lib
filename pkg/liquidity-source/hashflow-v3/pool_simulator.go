@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator PriceLevel Gas
+//msgp:ignore StaticExtra Extra PriceLevelRaw SwapInfo MetaInfo
+//msgp:shim *big.Float as:[]byte using:msgpencode.EncodeFloat/msgpencode.DecodeFloat
+
 package hashflowv3
 
 import (

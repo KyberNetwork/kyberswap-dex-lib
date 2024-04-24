@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple staticFeeParams variableFeeParams
+//msgp:ignore Metadata Extra SwapInfo QueryRpcPoolStateResult querySubgraphPoolStateResult reserves getSwapOutResult lbpairSubgraphResp binSubgraphResp tokenSubgraphResp staticFeeParamsResp variableFeeParamsResp
+
 package liquiditybookv21
 
 import "math/big"

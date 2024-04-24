@@ -1,3 +1,9 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator
+//msgp:ignore traceTokens traceParams tradeResult Gas
+//msgp:shim *uint256.Int as:[]byte using:msgpencode.EncodeUint256/msgpencode.DecodeUint256
+//msgp:shim valueobject.ChainID as:uint using:uint/valueobject.ChainID
+
 package bancorv3
 
 import (

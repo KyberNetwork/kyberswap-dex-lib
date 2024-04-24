@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PriceLevel Gas
+//msgp:ignore TokenItem ListTokensResult ListPairsResult PriceItem ListPriceLevelsResult StaticExtra Extra SwapExtra FirmRequestParams FirmResult RFQExtra RFQMeta
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+
 package kyberpmm
 
 type TokenItem struct {

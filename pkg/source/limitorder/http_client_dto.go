@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple order
+//msgp:ignore listOrdersResult getOpSignaturesResult listAllPairsResult listAllPairsData limitOrderPair listOrdersData orderData listOrdersFilter operatorSignatures
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+
 package limitorder
 
 import (
