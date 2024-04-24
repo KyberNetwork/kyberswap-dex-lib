@@ -9,6 +9,7 @@ import (
 	pkg_liquiditysource_balancerv2_weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
 	pkg_liquiditysource_bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
 	pkg_liquiditysource_bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
+	pkg_liquiditysource_bedrock_unieth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	pkg_liquiditysource_curve_plain "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	pkg_liquiditysource_curve_stablemetang "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
 	pkg_liquiditysource_curve_stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
@@ -24,8 +25,12 @@ import (
 	pkg_liquiditysource_maker_savingsdai "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	pkg_liquiditysource_nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	pkg_liquiditysource_nomiswap_nomiswapstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
+	pkg_liquiditysource_puffer_pufeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
+	pkg_liquiditysource_renzo_ezeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	pkg_liquiditysource_rocketpool_reth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	pkg_liquiditysource_swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
+	pkg_liquiditysource_swell_rsweth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
+	pkg_liquiditysource_swell_sweth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
 	pkg_liquiditysource_uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	pkg_liquiditysource_velocorev2_cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	pkg_liquiditysource_velocorev2_wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
@@ -114,6 +119,9 @@ func dispatchPoolSimulator(sim pool.IPoolSimulator) (dexName string, encodable m
 	case *pkg_liquiditysource_bancorv3.PoolSimulator:
 		dexName = "pkg_liquiditysource_bancorv3"
 		encodable = sim
+	case *pkg_liquiditysource_bedrock_unieth.PoolSimulator:
+		dexName = "pkg_liquiditysource_bedrock_unieth"
+		encodable = sim
 	case *pkg_liquiditysource_curve_plain.PoolSimulator:
 		dexName = "pkg_liquiditysource_curve_plain"
 		encodable = sim
@@ -159,11 +167,23 @@ func dispatchPoolSimulator(sim pool.IPoolSimulator) (dexName string, encodable m
 	case *pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator:
 		dexName = "pkg_liquiditysource_nomiswap_nomiswapstable"
 		encodable = sim
+	case *pkg_liquiditysource_puffer_pufeth.PoolSimulator:
+		dexName = "pkg_liquiditysource_puffer_pufeth"
+		encodable = sim
+	case *pkg_liquiditysource_renzo_ezeth.PoolSimulator:
+		dexName = "pkg_liquiditysource_renzo_ezeth"
+		encodable = sim
 	case *pkg_liquiditysource_rocketpool_reth.PoolSimulator:
 		dexName = "pkg_liquiditysource_rocketpool_reth"
 		encodable = sim
 	case *pkg_liquiditysource_swaapv2.PoolSimulator:
 		dexName = "pkg_liquiditysource_swaapv2"
+		encodable = sim
+	case *pkg_liquiditysource_swell_rsweth.PoolSimulator:
+		dexName = "pkg_liquiditysource_swell_rsweth"
+		encodable = sim
+	case *pkg_liquiditysource_swell_sweth.PoolSimulator:
+		dexName = "pkg_liquiditysource_swell_sweth"
 		encodable = sim
 	case *pkg_liquiditysource_uniswapv2.PoolSimulator:
 		dexName = "pkg_liquiditysource_uniswapv2"
@@ -384,6 +404,10 @@ func undispatchPoolSimulator(dexName string) (sim pool.IPoolSimulator, decodable
 		pool := new(pkg_liquiditysource_bancorv3.PoolSimulator)
 		sim = pool
 		decodable = pool
+	case "pkg_liquiditysource_bedrock_unieth":
+		pool := new(pkg_liquiditysource_bedrock_unieth.PoolSimulator)
+		sim = pool
+		decodable = pool
 	case "pkg_liquiditysource_curve_plain":
 		pool := new(pkg_liquiditysource_curve_plain.PoolSimulator)
 		sim = pool
@@ -444,12 +468,28 @@ func undispatchPoolSimulator(dexName string) (sim pool.IPoolSimulator, decodable
 		pool := new(pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator)
 		sim = pool
 		decodable = pool
+	case "pkg_liquiditysource_puffer_pufeth":
+		pool := new(pkg_liquiditysource_puffer_pufeth.PoolSimulator)
+		sim = pool
+		decodable = pool
+	case "pkg_liquiditysource_renzo_ezeth":
+		pool := new(pkg_liquiditysource_renzo_ezeth.PoolSimulator)
+		sim = pool
+		decodable = pool
 	case "pkg_liquiditysource_rocketpool_reth":
 		pool := new(pkg_liquiditysource_rocketpool_reth.PoolSimulator)
 		sim = pool
 		decodable = pool
 	case "pkg_liquiditysource_swaapv2":
 		pool := new(pkg_liquiditysource_swaapv2.PoolSimulator)
+		sim = pool
+		decodable = pool
+	case "pkg_liquiditysource_swell_rsweth":
+		pool := new(pkg_liquiditysource_swell_rsweth.PoolSimulator)
+		sim = pool
+		decodable = pool
+	case "pkg_liquiditysource_swell_sweth":
+		pool := new(pkg_liquiditysource_swell_sweth.PoolSimulator)
 		sim = pool
 		decodable = pool
 	case "pkg_liquiditysource_uniswapv2":
