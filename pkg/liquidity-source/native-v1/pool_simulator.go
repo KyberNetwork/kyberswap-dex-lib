@@ -1,6 +1,6 @@
 //go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
 //msgp:tuple PoolSimulator PriceLevel Gas
-//msgp:ignore StaticExtra Extra PriceLevelRaw SwapInfo MetaInfo
+//msgp:ignore StaticExtra Extra SwapInfo MetaInfo
 //msgp:shim *big.Float as:[]byte using:msgpencode.EncodeFloat/msgpencode.DecodeFloat
 
 package nativev1
@@ -195,7 +195,7 @@ func getAmountOut(amtIn, minAmtIn, maxAmtOut float64, priceLevels []PriceLevel) 
 
 	for _, priceLevel := range priceLevels {
 		if amtIn <= priceLevel.Quote {
-			amountOut += amtIn*priceLevel.Price
+			amountOut += amtIn * priceLevel.Price
 			if amountOut > maxAmtOut {
 				return 0, ErrAmountOutIsGreaterThanInventory
 			}
