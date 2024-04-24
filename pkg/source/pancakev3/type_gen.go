@@ -14,13 +14,18 @@ func (z *Gas) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 1 {
-		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.Swap, err = dc.ReadInt64()
+	z.BaseGas, err = dc.ReadInt64()
 	if err != nil {
-		err = msgp.WrapError(err, "Swap")
+		err = msgp.WrapError(err, "BaseGas")
+		return
+	}
+	z.CrossInitTickGas, err = dc.ReadInt64()
+	if err != nil {
+		err = msgp.WrapError(err, "CrossInitTickGas")
 		return
 	}
 	return
@@ -28,14 +33,19 @@ func (z *Gas) DecodeMsg(dc *msgp.Reader) (err error) {
 
 // EncodeMsg implements msgp.Encodable
 func (z Gas) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 1
-	err = en.Append(0x91)
+	// array header, size 2
+	err = en.Append(0x92)
 	if err != nil {
 		return
 	}
-	err = en.WriteInt64(z.Swap)
+	err = en.WriteInt64(z.BaseGas)
 	if err != nil {
-		err = msgp.WrapError(err, "Swap")
+		err = msgp.WrapError(err, "BaseGas")
+		return
+	}
+	err = en.WriteInt64(z.CrossInitTickGas)
+	if err != nil {
+		err = msgp.WrapError(err, "CrossInitTickGas")
 		return
 	}
 	return
@@ -44,9 +54,10 @@ func (z Gas) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z Gas) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 1
-	o = append(o, 0x91)
-	o = msgp.AppendInt64(o, z.Swap)
+	// array header, size 2
+	o = append(o, 0x92)
+	o = msgp.AppendInt64(o, z.BaseGas)
+	o = msgp.AppendInt64(o, z.CrossInitTickGas)
 	return
 }
 
@@ -58,13 +69,18 @@ func (z *Gas) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 1 {
-		err = msgp.ArrayError{Wanted: 1, Got: zb0001}
+	if zb0001 != 2 {
+		err = msgp.ArrayError{Wanted: 2, Got: zb0001}
 		return
 	}
-	z.Swap, bts, err = msgp.ReadInt64Bytes(bts)
+	z.BaseGas, bts, err = msgp.ReadInt64Bytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "Swap")
+		err = msgp.WrapError(err, "BaseGas")
+		return
+	}
+	z.CrossInitTickGas, bts, err = msgp.ReadInt64Bytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "CrossInitTickGas")
 		return
 	}
 	o = bts
@@ -73,6 +89,6 @@ func (z *Gas) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z Gas) Msgsize() (s int) {
-	s = 1 + msgp.Int64Size
+	s = 1 + msgp.Int64Size + msgp.Int64Size
 	return
 }
