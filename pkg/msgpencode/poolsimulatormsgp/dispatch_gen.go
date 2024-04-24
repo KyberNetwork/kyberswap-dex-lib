@@ -22,6 +22,7 @@ import (
 	pkg_liquiditysource_hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	pkg_liquiditysource_kelp_rseth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	pkg_liquiditysource_maker_savingsdai "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
+	pkg_liquiditysource_nomiswap_nomiswapstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
 	pkg_liquiditysource_rocketpool_reth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	pkg_liquiditysource_swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	pkg_liquiditysource_uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
@@ -150,6 +151,9 @@ func dispatchPoolSimulator(sim pool.IPoolSimulator) (dexName string, encodable m
 		encodable = sim
 	case *pkg_liquiditysource_maker_savingsdai.PoolSimulator:
 		dexName = "pkg_liquiditysource_maker_savingsdai"
+		encodable = sim
+	case *pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator:
+		dexName = "pkg_liquiditysource_nomiswap_nomiswapstable"
 		encodable = sim
 	case *pkg_liquiditysource_rocketpool_reth.PoolSimulator:
 		dexName = "pkg_liquiditysource_rocketpool_reth"
@@ -426,6 +430,10 @@ func undispatchPoolSimulator(dexName string) (sim pool.IPoolSimulator, decodable
 		decodable = pool
 	case "pkg_liquiditysource_maker_savingsdai":
 		pool := new(pkg_liquiditysource_maker_savingsdai.PoolSimulator)
+		sim = pool
+		decodable = pool
+	case "pkg_liquiditysource_nomiswap_nomiswapstable":
+		pool := new(pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator)
 		sim = pool
 		decodable = pool
 	case "pkg_liquiditysource_rocketpool_reth":
