@@ -149,7 +149,7 @@ func (r *redisRepository) AddToSortedSetScoreByTvl(
 	isToken0Whitelisted, isToken1Whitelisted bool,
 ) error {
 	return r.AddToSortedSet(ctx, token0, token1, isToken0Whitelisted, isToken1Whitelisted,
-		SortByTVL, pool.Address, pool.ReserveUsd)
+		SortByTVL, pool.Address, pool.ReserveUsd, true)
 }
 
 func (r *redisRepository) AddToSortedSet(
@@ -157,6 +157,7 @@ func (r *redisRepository) AddToSortedSet(
 	token0, token1 string,
 	isToken0Whitelisted, isToken1Whitelisted bool,
 	key string, memberName string, score float64,
+	useGlobal bool,
 ) error {
 	member := redis.Z{
 		Score:  score,
@@ -165,7 +166,9 @@ func (r *redisRepository) AddToSortedSet(
 
 	_, err := r.redisClient.TxPipelined(
 		ctx, func(tx redis.Pipeliner) error {
-			tx.ZAdd(ctx, r.keyGenerator.globalSortedSetKey(key), member)
+			if useGlobal {
+				tx.ZAdd(ctx, r.keyGenerator.globalSortedSetKey(key), member)
+			}
 			tx.ZAdd(ctx, r.keyGenerator.directPairKey(key, token0, token1), member)
 
 			if isToken0Whitelisted && isToken1Whitelisted {
@@ -193,30 +196,6 @@ func (r *redisRepository) AddToSortedSetScoreByAmplifiedTvl(
 	token0, token1 string,
 	isToken0Whitelisted, isToken1Whitelisted bool,
 ) error {
-	member := redis.Z{
-		Score:  pool.AmplifiedTvl,
-		Member: pool.Address,
-	}
-
-	_, err := r.redisClient.TxPipelined(
-		ctx, func(tx redis.Pipeliner) error {
-			tx.ZAdd(ctx, r.keyGenerator.directPairKey(SortByAmplifiedTvl, token0, token1), member)
-
-			if isToken0Whitelisted && isToken1Whitelisted {
-				tx.ZAdd(ctx, r.keyGenerator.whitelistToWhitelistPairKey(SortByAmplifiedTvl), member)
-			}
-
-			if isToken0Whitelisted {
-				tx.ZAdd(ctx, r.keyGenerator.whitelistToTokenPairKey(SortByAmplifiedTvl, token1), member)
-			}
-
-			if isToken1Whitelisted {
-				tx.ZAdd(ctx, r.keyGenerator.whitelistToTokenPairKey(SortByAmplifiedTvl, token0), member)
-			}
-
-			return nil
-		},
-	)
-
-	return err
+	return r.AddToSortedSet(ctx, token0, token1, isToken0Whitelisted, isToken1Whitelisted,
+		SortByAmplifiedTvl, pool.Address, pool.AmplifiedTvl, false)
 }

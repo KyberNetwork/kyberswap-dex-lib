@@ -4,7 +4,8 @@ const (
 	SortByTVL          = "tvl"
 	SortByAmplifiedTvl = "amplifiedTvl"
 
-	SortByTVLNative = "nativeTvl"
+	SortByTVLNative          = "nativeTvl"
+	SortByAmplifiedTVLNative = "nativeAmplifiedTvl"
 )
 
 const (

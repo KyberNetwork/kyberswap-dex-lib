@@ -64,10 +64,16 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 	// process chunk by chunk
 	chunks := lo.Chunk(command.PoolAddresses, u.config.ChunkSize)
 	for _, poolAddresses := range chunks {
-		pools, err := u.poolRepo.FindByAddresses(ctx, poolAddresses)
+		allPools, err := u.poolRepo.FindByAddresses(ctx, poolAddresses)
 		if err != nil {
 			failedPoolAddresses = append(failedPoolAddresses, poolAddresses...)
 		}
+
+		// filter out pools that haven't been updated recently
+		pools := lo.Filter(allPools, func(pool *entity.Pool, _ int) bool {
+			return command.IgnorePoolsBeforeTimestamp <= 0 || (*pool).Timestamp >= command.IgnorePoolsBeforeTimestamp
+		})
+		oldPoolCount = len(allPools) - len(pools)
 
 		var nativePriceByToken map[string]*routerEntity.OnchainPrice
 		if u.config.EnableRankByNative && u.onchainPriceRepo != nil {
@@ -85,18 +91,12 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 		mapper := iter.Mapper[*entity.Pool, IndexResult]{MaxGoroutines: u.config.MaxGoroutines}
 
 		indexPoolsResults := mapper.Map(pools, func(pool **entity.Pool) IndexResult {
-			if command.IgnorePoolsBeforeTimestamp > 0 && (*pool).Timestamp < command.IgnorePoolsBeforeTimestamp {
-				// this pool has not been updated recently, skip it
-				return INDEX_RESULT_SKIP_OLD
-			}
 			return u.indexPool(ctx, *pool, nativePriceByToken)
 		})
 
 		for i, p := range pools {
 			if indexPoolsResults[i] == INDEX_RESULT_FAIL {
 				failedPoolAddresses = append(failedPoolAddresses, p.Address)
-			} else if indexPoolsResults[i] == INDEX_RESULT_SKIP_OLD {
-				oldPoolCount += 1
 			}
 		}
 		mempool.ReserveMany(pools)
@@ -111,13 +111,22 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool, na
 		return INDEX_RESULT_SUCCESS
 	}
 
-	var tvlNative float64
+	var tvlNative, amplifiedTvlNative float64
 	var err error
 	if nativePriceByToken != nil {
 		tvlNative, err = business.CalculatePoolTVL(ctx, pool, nativePriceByToken)
 		if err != nil {
 			// just reset score here without returning error
 			tvlNative = 0
+		}
+
+		var useTvl bool
+		amplifiedTvlNative, useTvl, err = business.CalculatePoolAmplifiedTVL(ctx, pool, nativePriceByToken)
+		if err != nil {
+			// just reset score here without returning error
+			amplifiedTvlNative = 0
+		} else if useTvl {
+			amplifiedTvlNative = tvlNative
 		}
 	}
 
@@ -137,7 +146,7 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool, na
 			whiteListJ := u.isWhitelistedToken(tokenJ.Address)
 
 			if pool.HasReserve(pool.Reserves[i]) && pool.HasReserve(pool.Reserves[j]) {
-				if u.savePoolToIndex(ctx, pool, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ, tvlNative) == INDEX_RESULT_FAIL {
+				if u.savePoolToIndex(ctx, pool, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ, tvlNative, amplifiedTvlNative) == INDEX_RESULT_FAIL {
 					result = INDEX_RESULT_FAIL
 				}
 			}
@@ -161,7 +170,7 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool, na
 					whiteListJ := u.isWhitelistedToken(tokenJ)
 
 					if pool.HasReserve(pool.Reserves[i]) && pool.HasReserve(pool.Reserves[j]) {
-						if u.savePoolToIndex(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ, tvlNative) == INDEX_RESULT_FAIL {
+						if u.savePoolToIndex(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ, tvlNative, amplifiedTvlNative) == INDEX_RESULT_FAIL {
 							result = INDEX_RESULT_FAIL
 						}
 					}
@@ -205,7 +214,7 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool, na
 					tokenJ := extra.UnderlyingTokens[j]
 					whiteListJ := u.isWhitelistedToken(tokenJ)
 
-					if u.savePoolToIndex(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ, tvlNative) == INDEX_RESULT_FAIL {
+					if u.savePoolToIndex(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ, tvlNative, amplifiedTvlNative) == INDEX_RESULT_FAIL {
 						result = INDEX_RESULT_FAIL
 					}
 				}
@@ -267,7 +276,7 @@ func (u *IndexPoolsUseCase) savePoolToIndex(
 	ctx context.Context, pool *entity.Pool,
 	token0 string, token1 string,
 	isToken0Whitelisted bool, isToken1Whitelisted bool,
-	tvlNative float64,
+	tvlNative, amplifiedTvlNative float64,
 ) IndexResult {
 	result := INDEX_RESULT_SUCCESS
 
@@ -289,7 +298,15 @@ func (u *IndexPoolsUseCase) savePoolToIndex(
 
 	if tvlNative > 0 {
 		if err := u.poolRankRepo.AddToSortedSet(ctx, token0, token1, isToken0Whitelisted, isToken1Whitelisted,
-			poolrank.SortByTVLNative, pool.Address, tvlNative); err != nil {
+			poolrank.SortByTVLNative, pool.Address, tvlNative, true); err != nil {
+			// result = INDEX_RESULT_FAIL
+			// do not mark fail here as we haven't fully switched to this yet
+			logger.Debugf(ctx, "failed to add to sorted set %v", err)
+		}
+	}
+	if amplifiedTvlNative > 0 {
+		if err := u.poolRankRepo.AddToSortedSet(ctx, token0, token1, isToken0Whitelisted, isToken1Whitelisted,
+			poolrank.SortByAmplifiedTVLNative, pool.Address, amplifiedTvlNative, false); err != nil {
 			// result = INDEX_RESULT_FAIL
 			// do not mark fail here as we haven't fully switched to this yet
 			logger.Debugf(ctx, "failed to add to sorted set %v", err)

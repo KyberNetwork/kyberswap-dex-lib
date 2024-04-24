@@ -61,6 +61,7 @@ type IPoolRankRepository interface {
 		token0, token1 string,
 		isToken0Whitelisted, isToken1Whitelisted bool,
 		key string, memberName string, score float64,
+		useGlobal bool,
 	) error
 }
 
