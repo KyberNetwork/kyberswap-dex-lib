@@ -1,0 +1,21 @@
+[
+  {
+    "id": "0x73ed25e04aa673ddf7411441098fc5ae19976ce0",
+    "name": "PENDLE / mPendle",
+    "type": "curve-base",
+    "lpToken": "0x1a2329546f11e4fe55b853d98bba2c4678e3105a",
+    "aPrecision": "1",
+    "tokens": [
+      {
+        "address": "0x0c880f6761f1af8d9aa9c466984b80dab9a8c9e8",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      },
+      {
+        "address": "0xb688ba096b7bb75d7841e47163cd12d18b36a5bf",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      }
+    ]
+  }
+]
