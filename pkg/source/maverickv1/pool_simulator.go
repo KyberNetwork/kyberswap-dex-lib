@@ -146,12 +146,12 @@ func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 
 		var scaleAmountOut *big.Int
 		if strings.EqualFold(tokenAmountIn.Token, p.Pool.Info.Tokens[0]) {
-			scaleAmountOut, err = scaleToAmount(amountOut, p.decimals[1])
+			scaleAmountOut, err = ScaleToAmount(amountOut, p.decimals[1])
 			if err != nil {
 				return &pool.CalcAmountOutResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
 			}
 		} else {
-			scaleAmountOut, err = scaleToAmount(amountOut, p.decimals[0])
+			scaleAmountOut, err = ScaleToAmount(amountOut, p.decimals[0])
 			if err != nil {
 				return &pool.CalcAmountOutResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
 			}
@@ -221,12 +221,12 @@ func (p *Pool) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInRe
 
 		var scaleAmountIn *big.Int
 		if strings.EqualFold(tokenIn, p.Pool.Info.Tokens[0]) {
-			scaleAmountIn, err = scaleToAmount(amountIn, p.decimals[0])
+			scaleAmountIn, err = ScaleToAmount(amountIn, p.decimals[0])
 			if err != nil {
 				return &pool.CalcAmountInResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
 			}
 		} else {
-			scaleAmountIn, err = scaleToAmount(amountIn, p.decimals[1])
+			scaleAmountIn, err = ScaleToAmount(amountIn, p.decimals[1])
 			if err != nil {
 				return &pool.CalcAmountInResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
 			}
