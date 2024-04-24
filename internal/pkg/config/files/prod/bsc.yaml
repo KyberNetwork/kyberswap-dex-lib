@@ -300,6 +300,7 @@ useCase:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
     maxGoroutines: 0
+    enableRankByNative: false
   trackExecutor:
     subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-bsc
 job:

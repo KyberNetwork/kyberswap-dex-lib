@@ -7,6 +7,7 @@ import (
 	"github.com/KyberNetwork/aggregator-encoding/pkg/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -34,6 +35,10 @@ type IPriceRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Price, error)
 }
 
+type IOnchainPriceRepository interface {
+	FindByAddresses(ctx context.Context, addresses []string) (map[string]*routerEntity.OnchainPrice, error)
+}
+
 type IConfigFetcherRepository interface {
 	GetConfigs(ctx context.Context, serviceCode string, currentHash string) (valueobject.RemoteConfig, error)
 }
@@ -50,6 +55,12 @@ type IPoolRankRepository interface {
 		pool *entity.Pool,
 		token0, token1 string,
 		isToken0Whitelisted, isToken1Whitelisted bool,
+	) error
+	AddToSortedSet(
+		ctx context.Context,
+		token0, token1 string,
+		isToken0Whitelisted, isToken1Whitelisted bool,
+		key string, memberName string, score float64,
 	) error
 }
 

@@ -10,13 +10,19 @@ import (
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/iter"
 
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 type IndexPoolsUseCase struct {
 	poolRepo     IPoolRepository
 	poolRankRepo IPoolRankRepository
+
+	onchainPriceRepo IOnchainPriceRepository
 
 	config IndexPoolsConfig
 
@@ -34,12 +40,14 @@ const (
 func NewIndexPoolsUseCase(
 	poolRepo IPoolRepository,
 	poolRankRepo IPoolRankRepository,
+	onchainPriceRepo IOnchainPriceRepository,
 	config IndexPoolsConfig,
 ) *IndexPoolsUseCase {
 	return &IndexPoolsUseCase{
-		poolRepo:     poolRepo,
-		poolRankRepo: poolRankRepo,
-		config:       config,
+		poolRepo:         poolRepo,
+		poolRankRepo:     poolRankRepo,
+		onchainPriceRepo: onchainPriceRepo,
+		config:           config,
 	}
 }
 
@@ -61,6 +69,17 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 			failedPoolAddresses = append(failedPoolAddresses, poolAddresses...)
 		}
 
+		var nativePriceByToken map[string]*routerEntity.OnchainPrice
+		if u.config.EnableRankByNative && u.onchainPriceRepo != nil {
+			// collect prices for all pools' tokens first
+			nativePriceByToken, err = u.getPricesForAllTokens(ctx, pools)
+			if err != nil {
+				// for now still keep indexing with tvl in USD
+				logger.Errorf(ctx, "error fetching pool tokens prices %v", err)
+				nativePriceByToken = nil
+			}
+		}
+
 		// if `u.config.NumParallel==0` (default) then will use GOMAXPROCS
 		// should be set to higher since indexing wait for IO a lot
 		mapper := iter.Mapper[*entity.Pool, IndexResult]{MaxGoroutines: u.config.MaxGoroutines}
@@ -70,7 +89,7 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 				// this pool has not been updated recently, skip it
 				return INDEX_RESULT_SKIP_OLD
 			}
-			return u.indexPool(ctx, *pool)
+			return u.indexPool(ctx, *pool, nativePriceByToken)
 		})
 
 		for i, p := range pools {
@@ -87,9 +106,19 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 }
 
 // indexPool returns false if any errors occur and vice versa
-func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) IndexResult {
+func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool, nativePriceByToken map[string]*routerEntity.OnchainPrice) IndexResult {
 	if !pool.HasReserves() && !pool.HasAmplifiedTvl() {
 		return INDEX_RESULT_SUCCESS
+	}
+
+	var tvlNative float64
+	var err error
+	if nativePriceByToken != nil {
+		tvlNative, err = business.CalculatePoolTVL(ctx, pool, nativePriceByToken)
+		if err != nil {
+			// just reset score here without returning error
+			tvlNative = 0
+		}
 	}
 
 	result := INDEX_RESULT_SUCCESS
@@ -108,20 +137,8 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) In
 			whiteListJ := u.isWhitelistedToken(tokenJ.Address)
 
 			if pool.HasReserve(pool.Reserves[i]) && pool.HasReserve(pool.Reserves[j]) {
-				if pool.HasReserves() {
-					err := u.poolRankRepo.AddToSortedSetScoreByTvl(ctx, pool, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ)
-
-					if err != nil {
-						result = INDEX_RESULT_FAIL
-					}
-				}
-
-				if pool.HasAmplifiedTvl() {
-					err := u.poolRankRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ)
-
-					if err != nil {
-						result = INDEX_RESULT_FAIL
-					}
+				if u.savePoolToIndex(ctx, pool, tokenI.Address, tokenJ.Address, whiteListI, whiteListJ, tvlNative) == INDEX_RESULT_FAIL {
+					result = INDEX_RESULT_FAIL
 				}
 			}
 		}
@@ -144,20 +161,8 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) In
 					whiteListJ := u.isWhitelistedToken(tokenJ)
 
 					if pool.HasReserve(pool.Reserves[i]) && pool.HasReserve(pool.Reserves[j]) {
-						if pool.HasReserves() {
-							err := u.poolRankRepo.AddToSortedSetScoreByTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
-
-							if err != nil {
-								result = INDEX_RESULT_FAIL
-							}
-						}
-
-						if pool.HasAmplifiedTvl() {
-							err := u.poolRankRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
-
-							if err != nil {
-								result = INDEX_RESULT_FAIL
-							}
+						if u.savePoolToIndex(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ, tvlNative) == INDEX_RESULT_FAIL {
+							result = INDEX_RESULT_FAIL
 						}
 					}
 				}
@@ -200,20 +205,8 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) In
 					tokenJ := extra.UnderlyingTokens[j]
 					whiteListJ := u.isWhitelistedToken(tokenJ)
 
-					if pool.HasReserves() {
-						err := u.poolRankRepo.AddToSortedSetScoreByTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
-
-						if err != nil {
-							result = INDEX_RESULT_FAIL
-						}
-					}
-
-					if pool.HasAmplifiedTvl() {
-						err := u.poolRankRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ)
-
-						if err != nil {
-							result = INDEX_RESULT_FAIL
-						}
+					if u.savePoolToIndex(ctx, pool, tokenI, tokenJ, whiteListI, whiteListJ, tvlNative) == INDEX_RESULT_FAIL {
+						result = INDEX_RESULT_FAIL
 					}
 				}
 			}
@@ -225,4 +218,83 @@ func (u *IndexPoolsUseCase) indexPool(ctx context.Context, pool *entity.Pool) In
 
 func (u *IndexPoolsUseCase) isWhitelistedToken(tokenAddress string) bool {
 	return u.config.WhitelistedTokenSet[tokenAddress]
+}
+
+type priceAndError struct {
+	prices map[string]*routerEntity.OnchainPrice
+	err    error
+}
+
+func (u *IndexPoolsUseCase) getPricesForAllTokens(ctx context.Context, pools []*entity.Pool) (map[string]*routerEntity.OnchainPrice, error) {
+
+	// collect all tokens
+	tokens := make([]string, 0, len(pools)*3)
+	for _, p := range pools {
+		if !p.HasReserves() {
+			continue
+		}
+		for _, t := range p.Tokens {
+			tokens = append(tokens, t.Address)
+		}
+	}
+
+	// then get price for each chunks in parallel
+	prices := make(map[string]*routerEntity.OnchainPrice, len(tokens))
+	chunks := lo.Chunk(tokens, 100)
+
+	mapper := iter.Mapper[[]string, priceAndError]{MaxGoroutines: u.config.MaxGoroutines}
+	chunkResults := mapper.Map(chunks, func(chunk *[]string) priceAndError {
+		chunkPrices, err := u.onchainPriceRepo.FindByAddresses(ctx, *chunk)
+		if err != nil {
+			return priceAndError{nil, err}
+		}
+		return priceAndError{chunkPrices, nil}
+	})
+
+	for _, res := range chunkResults {
+		if res.err != nil {
+			return nil, res.err
+		}
+		for token, price := range res.prices {
+			prices[token] = price
+		}
+	}
+
+	return prices, nil
+}
+
+func (u *IndexPoolsUseCase) savePoolToIndex(
+	ctx context.Context, pool *entity.Pool,
+	token0 string, token1 string,
+	isToken0Whitelisted bool, isToken1Whitelisted bool,
+	tvlNative float64,
+) IndexResult {
+	result := INDEX_RESULT_SUCCESS
+
+	if pool.HasReserves() {
+		err := u.poolRankRepo.AddToSortedSetScoreByTvl(ctx, pool, token0, token1, isToken0Whitelisted, isToken1Whitelisted)
+
+		if err != nil {
+			result = INDEX_RESULT_FAIL
+		}
+	}
+
+	if pool.HasAmplifiedTvl() {
+		err := u.poolRankRepo.AddToSortedSetScoreByAmplifiedTvl(ctx, pool, token0, token1, isToken0Whitelisted, isToken1Whitelisted)
+
+		if err != nil {
+			result = INDEX_RESULT_FAIL
+		}
+	}
+
+	if tvlNative > 0 {
+		if err := u.poolRankRepo.AddToSortedSet(ctx, token0, token1, isToken0Whitelisted, isToken1Whitelisted,
+			poolrank.SortByTVLNative, pool.Address, tvlNative); err != nil {
+			// result = INDEX_RESULT_FAIL
+			// do not mark fail here as we haven't fully switched to this yet
+			logger.Debugf(ctx, "failed to add to sorted set %v", err)
+		}
+	}
+
+	return result
 }

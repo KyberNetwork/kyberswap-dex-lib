@@ -148,26 +148,36 @@ func (r *redisRepository) AddToSortedSetScoreByTvl(
 	token0, token1 string,
 	isToken0Whitelisted, isToken1Whitelisted bool,
 ) error {
+	return r.AddToSortedSet(ctx, token0, token1, isToken0Whitelisted, isToken1Whitelisted,
+		SortByTVL, pool.Address, pool.ReserveUsd)
+}
+
+func (r *redisRepository) AddToSortedSet(
+	ctx context.Context,
+	token0, token1 string,
+	isToken0Whitelisted, isToken1Whitelisted bool,
+	key string, memberName string, score float64,
+) error {
 	member := redis.Z{
-		Score:  pool.ReserveUsd,
-		Member: pool.Address,
+		Score:  score,
+		Member: memberName,
 	}
 
 	_, err := r.redisClient.TxPipelined(
 		ctx, func(tx redis.Pipeliner) error {
-			tx.ZAdd(ctx, r.keyGenerator.globalSortedSetKey(SortByTVL), member)
-			tx.ZAdd(ctx, r.keyGenerator.directPairKey(SortByTVL, token0, token1), member)
+			tx.ZAdd(ctx, r.keyGenerator.globalSortedSetKey(key), member)
+			tx.ZAdd(ctx, r.keyGenerator.directPairKey(key, token0, token1), member)
 
 			if isToken0Whitelisted && isToken1Whitelisted {
-				tx.ZAdd(ctx, r.keyGenerator.whitelistToWhitelistPairKey(SortByTVL), member)
+				tx.ZAdd(ctx, r.keyGenerator.whitelistToWhitelistPairKey(key), member)
 			}
 
 			if isToken0Whitelisted {
-				tx.ZAdd(ctx, r.keyGenerator.whitelistToTokenPairKey(SortByTVL, token1), member)
+				tx.ZAdd(ctx, r.keyGenerator.whitelistToTokenPairKey(key, token1), member)
 			}
 
 			if isToken1Whitelisted {
-				tx.ZAdd(ctx, r.keyGenerator.whitelistToTokenPairKey(SortByTVL, token0), member)
+				tx.ZAdd(ctx, r.keyGenerator.whitelistToTokenPairKey(key, token0), member)
 			}
 
 			return nil

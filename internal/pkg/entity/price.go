@@ -14,6 +14,8 @@ type Price struct {
 }
 
 type OnchainPrice struct {
+	Decimals uint8
+
 	// price in native token unit
 	NativePrice Price
 

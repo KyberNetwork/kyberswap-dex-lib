@@ -254,6 +254,7 @@ useCase:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
     maxGoroutines: 0
+    enableRankByNative: false
   trackExecutor:
     subgraphURL: https://polygon-zkevm-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-polygon-zkevm
 job:

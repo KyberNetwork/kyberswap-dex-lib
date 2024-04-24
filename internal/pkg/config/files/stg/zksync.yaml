@@ -258,6 +258,7 @@ useCase:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
     maxGoroutines: 0
+    enableRankByNative: false
   trackExecutor:
     subgraphURL: https://zksync-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-zksync
 job:

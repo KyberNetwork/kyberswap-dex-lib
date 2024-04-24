@@ -657,11 +657,34 @@ func indexerAction(c *cli.Context) (err error) {
 	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient,
 		gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
+	tokenRepository := token.NewGoCacheRepository(
+		token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis),
+		cfg.Repository.Token.GoCache,
+	)
+
+	var onchainpriceRepository getroute.IOnchainPriceRepository
+	if cfg.Repository.OnchainPrice.Enabled {
+		grpcRepository, err := onchainprice.NewGRPCRepository(
+			cfg.Repository.OnchainPrice.Grpc,
+			cfg.Common.ChainID,
+			tokenRepository,
+			cfg.Common.GasTokenAddress)
+		if err != nil {
+			return err
+		}
+
+		onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository, cfg.Repository.OnchainPrice.Ristretto)
+		if err != nil {
+			return err
+		}
+	}
+
 	// init use case
 	getAllPoolAddressesUseCase := usecase.NewGetAllPoolAddressesUseCase(poolRepo)
 	indexPoolsUseCase := usecase.NewIndexPoolsUseCase(
 		poolRepo,
 		poolRankRepository,
+		onchainpriceRepository,
 		cfg.UseCase.IndexPools,
 	)
 	poolEventStreamConsumer := consumer.NewPoolEventsStreamConsumer(poolEventRedisClient.Client,

@@ -248,6 +248,7 @@ useCase:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
     maxGoroutines: 0
+    enableRankByNative: false
   trackExecutor:
     subgraphURL: https://cronos-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-cronos
 job:

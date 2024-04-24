@@ -323,6 +323,7 @@ useCase:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
     maxGoroutines: 0
+    enableRankByNative: false
   trackExecutor:
     subgraphURL: https://base-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-base
 job:

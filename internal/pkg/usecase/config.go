@@ -47,6 +47,7 @@ type (
 		WhitelistedTokenSet map[string]bool `mapstructure:"whitelistedTokenSet"`
 		ChunkSize           int             `mapstructure:"chunkSize"`
 		MaxGoroutines       int             `mapstructure:"maxGoroutines"`
+		EnableRankByNative  bool            `mapstructure:"enableRankByNative"`
 	}
 
 	TrackExecutorConfig struct {

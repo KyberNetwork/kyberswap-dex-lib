@@ -229,6 +229,7 @@ useCase:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
     maxGoroutines: 0
+    enableRankByNative: false
 job:
   indexPools:
     forceScanAllEveryNth: 10

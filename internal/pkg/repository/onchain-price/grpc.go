@@ -9,11 +9,11 @@ import (
 	onchainpricev1 "github.com/KyberNetwork/grpc-service/go/onchainprice/v1"
 	dexlibEntity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
-	"github.com/samber/lo"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -63,10 +63,10 @@ func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string
 		logger.Errorf(ctx, "failed to get token info %v %v", addresses, err)
 		return nil, err
 	}
-	decimalsByToken := lo.SliceToMap(tokens, func(t *dexlibEntity.Token) (string, *big.Float) {
-		pow := float.TenPow(t.Decimals)
-		return t.Address, pow
-	})
+	decimalsByToken := make(map[string]uint8, len(tokens))
+	for _, t := range tokens {
+		decimalsByToken[t.Address] = t.Decimals
+	}
 	nativeDecimals := float.TenPow(18)
 
 	// fetch price
@@ -84,12 +84,18 @@ func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string
 	for _, p := range res.Result.Prices {
 		decimals, ok := decimalsByToken[p.Address]
 		if !ok {
-			logger.Warnf(ctx, "unknown token info %v", p.Address)
+			logger.Debugf(ctx, "unknown token info %v", p.Address)
+			continue
+		}
+
+		tenPowDecimals := utils.TenPowDecimalsFloat(int(decimals))
+		if tenPowDecimals == nil {
+			logger.Debugf(ctx, "invalid token decimals %v %v", p.Address, decimals)
 			continue
 		}
 
 		if _, ok := prices[p.Address]; !ok {
-			prices[p.Address] = &entity.OnchainPrice{}
+			prices[p.Address] = &entity.OnchainPrice{Decimals: decimals}
 		}
 
 		for _, detail := range p.Buy {
@@ -102,7 +108,7 @@ func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string
 				prices[p.Address].NativePrice.Buy = price
 				prices[p.Address].NativePriceRaw.Buy = new(big.Float).Quo(
 					new(big.Float).Mul(price, nativeDecimals),
-					decimals)
+					tenPowDecimals)
 			}
 		}
 
@@ -116,12 +122,12 @@ func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string
 				prices[p.Address].NativePrice.Sell = price
 				prices[p.Address].NativePriceRaw.Sell = new(big.Float).Quo(
 					new(big.Float).Mul(price, nativeDecimals),
-					decimals)
+					tenPowDecimals)
 			}
 		}
 	}
 
-	logger.Infof(ctx, "fetched prices %v", prices)
+	logger.Debugf(ctx, "fetched prices %v", prices)
 
 	return prices, nil
 }

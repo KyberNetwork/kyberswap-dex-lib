@@ -342,6 +342,7 @@ useCase:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
     maxGoroutines: 0
+    enableRankByNative: false
   generateBestPaths:
     gasTokenAddress: *gasTokenAddress
     getBestPoolsOptions: *getBestPoolsOptions

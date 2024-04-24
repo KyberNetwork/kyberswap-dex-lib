@@ -204,7 +204,7 @@ func TestIndexPools_Handle(t *testing.T) {
 					false,
 				).Return(nil)
 
-				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, mockConfig)
+				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, nil, mockConfig)
 			},
 			command: dto.IndexPoolsCommand{PoolAddresses: []string{
 				mockPools[0].Address,
@@ -282,7 +282,7 @@ func TestIndexPools_Handle(t *testing.T) {
 					false,
 				).Return(nil)
 
-				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, mockConfig)
+				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, nil, mockConfig)
 			},
 			command: dto.IndexPoolsCommand{PoolAddresses: []string{
 				mockPools[0].Address,
@@ -305,7 +305,7 @@ func TestIndexPools_Handle(t *testing.T) {
 					FindByAddresses(gomock.Any(), []string{"pooladdress1", "pooladdress2", "pooladdress3"}).
 					Return(nil, theError)
 				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
-				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, mockConfig)
+				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, nil, mockConfig)
 			},
 			command: dto.IndexPoolsCommand{PoolAddresses: []string{"pooladdress1", "pooladdress2", "pooladdress3"}},
 			result:  dto.NewIndexPoolsResult([]string{"pooladdress1", "pooladdress2", "pooladdress3"}, 0),
