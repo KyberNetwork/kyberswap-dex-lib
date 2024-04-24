@@ -157,6 +157,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	extraBytes, err := json.Marshal(Extra{
 		Liquidity:    rpcData.Liquidity,
+		TickSpacing:  rpcData.TickSpacing.Uint64(),
 		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
 		Tick:         rpcData.Slot0.Tick,
 		Ticks:        ticks,
@@ -202,10 +203,11 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 	})
 
 	var (
-		liquidity *big.Int
-		slot0     Slot0
-		reserve0  = zeroBI
-		reserve1  = zeroBI
+		liquidity   *big.Int
+		slot0       Slot0
+		tickSpacing *big.Int
+		reserve0    = zeroBI
+		reserve1    = zeroBI
 	)
 
 	rpcRequest := d.ethrpcClient.NewRequest()
@@ -224,6 +226,13 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 		Method: methodGetSlot0,
 		Params: nil,
 	}, []interface{}{&slot0})
+
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    uniswapV3PoolABI,
+		Target: p.Address,
+		Method: methodTickSpacing,
+		Params: nil,
+	}, []interface{}{&tickSpacing})
 
 	if len(p.Tokens) == 2 {
 		rpcRequest.AddCall(&ethrpc.Call{
@@ -250,10 +259,11 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 	}
 
 	return FetchRPCResult{
-		Liquidity: liquidity,
-		Slot0:     slot0,
-		Reserve0:  reserve0,
-		Reserve1:  reserve1,
+		Liquidity:   liquidity,
+		Slot0:       slot0,
+		TickSpacing: tickSpacing,
+		Reserve0:    reserve0,
+		Reserve1:    reserve1,
 	}, err
 }
 
