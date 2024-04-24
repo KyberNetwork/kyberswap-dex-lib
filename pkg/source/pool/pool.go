@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Pool PoolToken PoolInfo
+//msgp:ignore CalcAmountOutResult UpdateBalanceParams CalcAmountOutParams CalcAmountInParams CalcAmountInResult ApproxAmountInParams ApproxAmountInResult
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+
 package pool
 
 import (
