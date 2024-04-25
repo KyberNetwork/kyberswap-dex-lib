@@ -43,7 +43,7 @@ func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Inp
 	}
 
 	if minHopFromTokenIn, ok := hopsToTokenOut[input.TokenInAddress]; !ok || minHopFromTokenIn > f.maxHops {
-		return nil, nil
+		return nil, findroute.ErrInvalidHopsToTokenOuts
 	}
 
 	// it is fine if prices[token] is not set because it would default to zero

@@ -149,8 +149,11 @@ func (f *spfav2Finder) bestRouteV2(
 			return nil, nil
 		}
 	}
-
 	defer valueobject.ReturnPaths(paths)
+
+	if len(paths) == 0 {
+		return nil, findroute.ErrNoPath
+	}
 
 	cmpFunc := func(a, b int) bool {
 		// actually we might not need this condition, because if price is not available then `CompareTo` will fallback to comparing raw amount
