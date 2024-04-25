@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -31,6 +32,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
+	mapset "github.com/deckarep/golang-set/v2"
 )
 
 var OutputChangeNoChange = dto.OutputChange{
@@ -109,9 +111,10 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	}
 
 	// track total count of pool for every build route request, using for calculating fault density
-	go func() {
-		uc.trackFaultyPoolsKeyTotalCount(context.Background(), routeSummary, uc.nowFunc().UTC())
-	}()
+	// only track request with sender, because sender is a required field when we estimate gas
+	if !utils.IsEmptyString(command.Sender) {
+		go uc.trackFaultyPoolsKeyTotalCount(ctxUtils.NewBackgroundCtxWithReqId(ctx), routeSummary, uc.nowFunc().UTC())
+	}
 
 	// estimate gas price for a transaction
 	estimatedGas, gasInUSD, l1FeeUSD, err := uc.estimateGas(ctx, command, encodedData)
@@ -418,25 +421,23 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 	gas := uint64(command.RouteSummary.Gas)
 	gasUSD := command.RouteSummary.GasUSD
 	var err error
-	if uc.config.FeatureFlags.IsGasEstimatorEnabled {
-		if command.EnableGasEstimation {
-			if utils.IsEmptyString(command.Sender) {
-				return 0, 0.0, 0, ErrSenderEmptyWhenEnableEstimateGas
-			}
-
-			gas, gasUSD, err = uc.gasEstimator.Execute(ctx, tx)
-			uc.sendEstimateGasLogsAndMetrics(ctx, command.RouteSummary, err, command.SlippageTolerance)
-			if err != nil {
-				return 0, 0.0, 0, errors.WithMessagef(ErrEstimateGasFailed, "estimate gas failed due to %s", err.Error())
-			}
-		} else {
-			if !utils.IsEmptyString(command.Sender) {
-				go func(ctx context.Context) {
-					_, err := uc.gasEstimator.EstimateGas(ctx, tx)
-					uc.sendEstimateGasLogsAndMetrics(ctx, command.RouteSummary, err, command.SlippageTolerance)
-				}(ctxUtils.NewBackgroundCtxWithReqId(ctx))
-			}
+	if uc.config.FeatureFlags.IsGasEstimatorEnabled && command.EnableGasEstimation {
+		if utils.IsEmptyString(command.Sender) {
+			return 0, 0.0, 0, ErrSenderEmptyWhenEnableEstimateGas
 		}
+
+		gas, gasUSD, err = uc.gasEstimator.Execute(ctx, tx)
+		uc.sendEstimateGasLogsAndMetrics(ctx, command.RouteSummary, err, command.SlippageTolerance)
+		if err != nil {
+			go uc.trackFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx), command.RouteSummary, err)
+			return 0, 0.0, 0, errors.WithMessagef(ErrEstimateGasFailed, "estimate gas failed due to %s", err.Error())
+		}
+	} else if uc.config.FeatureFlags.IsFaultyPoolDetectorEnable && !utils.IsEmptyString(command.Sender) {
+		go func(ctx context.Context) {
+			_, err := uc.gasEstimator.EstimateGas(ctx, tx)
+			uc.sendEstimateGasLogsAndMetrics(ctx, command.RouteSummary, err, command.SlippageTolerance)
+			uc.trackFaultyPools(ctx, command.RouteSummary, err)
+		}(ctxUtils.NewBackgroundCtxWithReqId(ctx))
 	}
 
 	// for some L2 chains we'll need to account for L1 fee as well
@@ -490,7 +491,7 @@ func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
 			"pool":      strings.Join(poolTags, ","),
 		}).Infof("EstimateGas failed error %s", err)
 
-		if strings.Contains(err.Error(), ErrReturnAmountIsNotEnough.Error()) {
+		if IsErrReturnAmountIsNotEnough(err) {
 			// send failed metrics with slippage when error is Return amount is not enough
 			metrics.HistogramEstimateGasWithSlippage(ctx, float64(slippage), false)
 		} else {
@@ -500,7 +501,37 @@ func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
 	}
 }
 
+func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, routeSummary valueobject.RouteSummary, err error) {
+	// track faulty pool if error is "return amount not enough"
+	if !uc.config.FeatureFlags.IsFaultyPoolDetectorEnable || !IsErrReturnAmountIsNotEnough(err) {
+		return
+	}
+	addresses := []string{}
+	for _, path := range routeSummary.Route {
+		for _, swap := range path {
+			addresses = append(addresses, swap.Pool)
+		}
+	}
+	addedAddresses, err := uc.poolRepository.TrackFaultyPools(ctx, addresses)
+	if err != nil {
+		addedSet := mapset.NewSet(addedAddresses...)
+		totalSet := mapset.NewSet(addresses...)
+
+		logger.WithFields(
+			ctx,
+			logger.Fields{
+				"error":            err,
+				"stacktrace":       string(debug.Stack()),
+				"failedTrackPools": totalSet.Difference(addedSet),
+			}).Error("fail to add faulty pools")
+	}
+
+}
+
 func (uc *BuildRouteUseCase) trackFaultyPoolsKeyTotalCount(ctx context.Context, routeSummary valueobject.RouteSummary, currentTime time.Time) {
+	if !uc.config.FeatureFlags.IsFaultyPoolDetectorEnable {
+		return
+	}
 	windowSize := int(uc.config.FaultyPoolsConfig.WindowSize.Minutes())
 	currentWindow := ((currentTime.Minute() / windowSize) + 1) * windowSize
 	currentWindowKey := fmt.Sprintf("%02d:%02d:%02d", currentTime.Day(), currentTime.Hour(), currentWindow)
@@ -514,6 +545,11 @@ func (uc *BuildRouteUseCase) trackFaultyPoolsKeyTotalCount(ctx context.Context, 
 	}
 	_, errors := uc.poolRepository.IncreasePoolsTotalCount(ctx, counter, 2*uc.config.FaultyPoolsConfig.WindowSize)
 	for _, err := range errors {
-		logger.Errorf(ctx, "[TrackFaultyPoolsUseCase] HIncreaseByMultiple err: %v", err)
+		logger.WithFields(
+			ctx,
+			logger.Fields{
+				"error":      err,
+				"stacktrace": string(debug.Stack()),
+			}).Error("fail to trackFaultyPoolsKeyTotalCount")
 	}
 }

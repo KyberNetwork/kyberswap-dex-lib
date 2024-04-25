@@ -423,6 +423,11 @@ repository:
       insecure: true
       client_id: router-service
     ristretto: *pricecache
+  poolService:
+    baseUrl: "0.0.0.0:10443"
+    insecure: true
+    timeout: 100ms
+    chainId: *chainId
   token:
     redis:
       prefix: *chainName

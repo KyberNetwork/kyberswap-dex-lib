@@ -372,6 +372,11 @@ repository:
       price:
         cost: 1
         ttl: 1m
+  poolService:
+    baseUrl: "0.0.0.0:10443"
+    insecure: true
+    timeout: 100ms
+    chainId: *chainId
   token:
     redis:
       prefix: *chainName

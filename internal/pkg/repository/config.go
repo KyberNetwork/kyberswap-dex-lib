@@ -6,6 +6,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/gas"
 	onchainprice "github.com/KyberNetwork/router-service/internal/pkg/repository/onchain-price"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
+	poolservice "github.com/KyberNetwork/router-service/internal/pkg/repository/pool-service"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/price"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/route"
@@ -22,4 +23,5 @@ type Config struct {
 	Route            route.Config            `json:"route" mapstructure:"route"`
 	Blackjack        blackjack.Config        `json:"blackjack" mapstructure:"blackjack"`
 	ERC20BalanceSlot erc20balanceslot.Config `json:"erc20balanceslot" mapstructure:"erc20balanceslot"`
+	PoolService      poolservice.Config      `json:"poolService" mapstructure:"poolService"`
 }

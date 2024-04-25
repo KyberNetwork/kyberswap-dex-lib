@@ -1,6 +1,9 @@
 package buildroute
 
-import "errors"
+import (
+	"errors"
+	"strings"
+)
 
 var (
 	ErrTokenNotFound                    = errors.New("token not found")
@@ -9,3 +12,7 @@ var (
 	ErrSenderEmptyWhenEnableEstimateGas = errors.New("sender address is empty when enable estimate gas")
 	ErrReturnAmountIsNotEnough          = errors.New("execution reverted: Return amount is not enough")
 )
+
+func IsErrReturnAmountIsNotEnough(err error) bool {
+	return err != nil && strings.Contains(err.Error(), ErrReturnAmountIsNotEnough.Error())
+}

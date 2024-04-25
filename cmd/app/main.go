@@ -47,6 +47,7 @@ import (
 	onchainprice "github.com/KyberNetwork/router-service/internal/pkg/repository/onchain-price"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pathgenerator"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
+	poolservice "github.com/KyberNetwork/router-service/internal/pkg/repository/pool-service"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/price"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/route"
@@ -335,7 +336,8 @@ func apiAction(c *cli.Context) (err error) {
 		}
 	}
 
-	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
+	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
+	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool.Redis)
 
 	blackjackRepo, err := blackjack.NewGRPCClient(cfg.Repository.Blackjack.GRPCClient)
 	if err != nil {
@@ -651,8 +653,9 @@ func indexerAction(c *cli.Context) (err error) {
 		return err
 	}
 
+	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
 	// init repository
-	poolRepo := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
+	poolRepo := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool.Redis)
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
 	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient,
 		gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
@@ -855,7 +858,8 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 		return err
 	}
 
-	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
+	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
+	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool.Redis)
 	priceRepository := price.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Price.Redis)
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
 
@@ -1038,7 +1042,8 @@ func executorTrackerAction(c *cli.Context) (err error) {
 			Prefix: cfg.Redis.Prefix,
 		},
 	)
-	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Pool.Redis)
+	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
+	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool.Redis)
 
 	// init usecase
 	var trackExecutorAddresses []string

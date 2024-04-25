@@ -38,7 +38,7 @@ func TestRedisRepository_FindAllAddresses(t *testing.T) {
 			Prefix: "",
 		}
 
-		repo := NewRedisRepository(db.Client, redisRepositoryConfig)
+		repo := NewRedisRepository(db.Client, nil, redisRepositoryConfig)
 
 		redisPools := []entity.Pool{
 			{
@@ -78,7 +78,7 @@ func TestRedisRepository_FindAllAddresses(t *testing.T) {
 			Prefix: "",
 		}
 
-		redisRepository := NewRedisRepository(db.Client, redisRepositoryConfig)
+		redisRepository := NewRedisRepository(db.Client, nil, redisRepositoryConfig)
 		redisServer.Close()
 
 		addresses, err := redisRepository.FindAllAddresses(context.Background())
@@ -109,7 +109,7 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			Prefix: "",
 		}
 
-		redisRepository := NewRedisRepository(db.Client, redisRepositoryConfig)
+		redisRepository := NewRedisRepository(db.Client, nil, redisRepositoryConfig)
 
 		// Prepare data
 		redisPools := []entity.Pool{
@@ -305,7 +305,7 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			Prefix: "",
 		}
 
-		redisRepository := NewRedisRepository(db.Client, redisRepositoryConfig)
+		redisRepository := NewRedisRepository(db.Client, nil, redisRepositoryConfig)
 		pools, err := redisRepository.FindByAddresses(context.Background(), nil)
 		defer mempool.ReserveMany(pools)
 
@@ -333,7 +333,7 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			Prefix: "",
 		}
 
-		redisRepository := NewRedisRepository(db.Client, redisRepositoryConfig)
+		redisRepository := NewRedisRepository(db.Client, nil, redisRepositoryConfig)
 		redisServer.Close()
 		pools, err := redisRepository.FindByAddresses(context.Background(), []string{"address1"})
 		defer mempool.ReserveMany(pools)
@@ -341,135 +341,6 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, pools)
 	})
-}
-
-func TestRedisRepository_GetFaultyPools(t *testing.T) {
-	testCases := []struct {
-		name        string
-		executeFunc func(server *miniredis.Miniredis, repo *redisRepository, t *testing.T)
-	}{
-		{
-			name: "it should return correct faulty pools when there are faulty pools exists in redis",
-			executeFunc: func(redisServer *miniredis.Miniredis, repo *redisRepository, t *testing.T) {
-				// Prepare data
-				faultyPools := []string{
-					"address1",
-					"address2",
-					"address3",
-				}
-				currentTime := time.Now()
-				for _, address := range faultyPools {
-					redisServer.ZAdd(
-						utils.Join(repo.config.Prefix, KeyPools, KeyFaulty),
-						float64(currentTime.Add(time.Minute*1).UnixMilli()),
-						address)
-				}
-				redisServer.ZAdd(
-					utils.Join(repo.config.Prefix, KeyPools, KeyFaulty),
-					float64(currentTime.Add(-time.Minute*1).UnixMilli()),
-					"address4")
-
-				pools, err := repo.GetFaultyPools(context.Background(), currentTime.UnixMilli(), 0, -1)
-
-				expectedPools := []string{
-					"address1",
-					"address2",
-					"address3",
-				}
-
-				assert.ElementsMatch(t, expectedPools, pools)
-				assert.Nil(t, err)
-			},
-		},
-		{
-			name: "it should return empty faulty pool list when there are only expired faulty pools exists in redis",
-			executeFunc: func(redisServer *miniredis.Miniredis, repo *redisRepository, t *testing.T) {
-				// Prepare data
-				faultyPools := []string{
-					"address5",
-					"address6",
-					"address7",
-				}
-				currentTime := time.Now()
-				for _, address := range faultyPools {
-					redisServer.ZAdd(
-						utils.Join(repo.config.Prefix, KeyPools, KeyFaulty),
-						float64(currentTime.Add(-time.Minute*1).UnixMilli()),
-						address)
-				}
-
-				pools, err := repo.GetFaultyPools(context.Background(), currentTime.UnixMilli(), 0, -1)
-
-				expectedPools := []string{}
-
-				assert.ElementsMatch(t, expectedPools, pools)
-				assert.Nil(t, err)
-			},
-		},
-		{
-			name: "it should return empty faulty pool list when the key doesn't exist in Redis",
-			executeFunc: func(redisServer *miniredis.Miniredis, repo *redisRepository, t *testing.T) {
-				currentTime := time.Now()
-
-				pools, err := repo.GetFaultyPools(context.Background(), currentTime.UnixMilli(), 0, -1)
-
-				assert.Empty(t, pools)
-				assert.Nil(t, err)
-			},
-		},
-		{
-			name: "it should return correct faulty pools when there are faulty pools exists in redis with paging options",
-			executeFunc: func(redisServer *miniredis.Miniredis, repo *redisRepository, t *testing.T) {
-				currentTime := time.Now()
-				for i := 0; i < 11; i++ {
-					redisServer.ZAdd(
-						utils.Join(repo.config.Prefix, KeyPools, KeyFaulty),
-						float64(currentTime.Add(time.Minute*1).UnixMilli()),
-						fmt.Sprintf("address%d", i))
-				}
-				redisServer.ZAdd(
-					utils.Join(repo.config.Prefix, KeyPools, KeyFaulty),
-					float64(currentTime.Add(-time.Minute*1).UnixMilli()),
-					"address9")
-
-				pools, err := repo.GetFaultyPools(context.Background(), currentTime.UnixMilli(), 0, 4)
-				assert.Nil(t, err)
-				assert.Equal(t, len(pools), 4)
-
-				pools, err = repo.GetFaultyPools(context.Background(), currentTime.UnixMilli(), 8, 6)
-				assert.Nil(t, err)
-				assert.Equal(t, len(pools), 2)
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			redisServer, err := miniredis.Run()
-			if err != nil {
-				t.Fatalf("failed to setup redis server: %v", err.Error())
-			}
-
-			chainId := "ethereum"
-			redisConfig := &redis.Config{
-				Addresses: []string{redisServer.Addr()},
-				Prefix:    chainId,
-			}
-
-			db, err := redis.New(redisConfig)
-			if err != nil {
-				t.Fatalf("failed to setup redis client: %v", err.Error())
-			}
-
-			repo := NewRedisRepository(db.Client, RedisRepositoryConfig{
-				Prefix: chainId,
-			})
-
-			tc.executeFunc(redisServer, repo, t)
-			redisServer.Close()
-		})
-	}
-
 }
 
 func TestRedisRepository_HIncreaseByMultiple(t *testing.T) {
@@ -662,7 +533,7 @@ func TestRedisRepository_HIncreaseByMultiple(t *testing.T) {
 				t.Fatalf("failed to setup redis client: %v", err.Error())
 			}
 
-			repo := NewRedisRepository(db.Client, RedisRepositoryConfig{
+			repo := NewRedisRepository(db.Client, nil, RedisRepositoryConfig{
 				Prefix: chainId,
 			})
 

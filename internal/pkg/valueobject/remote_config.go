@@ -39,6 +39,7 @@ type (
 		IsOptimizeExecutorFlagsEnabled bool `mapstructure:"isOptimizeExecutorFlagsEnabled" json:"isOptimizeExecutorFlagsEnabled"`
 		ShouldValidateSender           bool `mapstructure:"shouldValidateSender" json:"shouldValidateSender"`
 		IsAEVMEnabled                  bool `mapstructure:"isAEVMEnabled" json:"isAEVMEnabled"`
+		IsFaultyPoolDetectorEnable     bool `mapstructure:"isFaultyPoolDetectorEnable" json:"isFaultyPoolDetectorEnable"`
 	}
 
 	Log struct {

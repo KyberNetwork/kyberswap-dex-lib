@@ -50,6 +50,9 @@ type IExecutorBalanceRepository interface {
 	HasPoolApproval(executorAddress string, queries []dto.PoolApprovalQuery) ([]bool, error)
 }
 
+//go:generate mockgen -destination ../../mocks/usecase/buildroute/pool_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IPoolRepository
 type IPoolRepository interface {
 	IncreasePoolsTotalCount(ctx context.Context, counter map[string]int64, expiration time.Duration) (map[string]int64, []error)
+	TrackFaultyPools(ctx context.Context, poolAddresses []string) ([]string, error)
+	GetFaultyPools(ctx context.Context, offset, count int64) ([]string, error)
 }

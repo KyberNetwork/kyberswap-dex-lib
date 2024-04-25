@@ -23,11 +23,14 @@ type redisRepository struct {
 
 	keyBlacklistedPools string
 	keyFaultyPools      string
+
+	poolClient IPoolClient
 }
 
-func NewRedisRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig) *redisRepository {
+func NewRedisRepository(redisClient redis.UniversalClient, poolClient IPoolClient, config RedisRepositoryConfig) *redisRepository {
 	return &redisRepository{
 		redisClient: redisClient,
+		poolClient:  poolClient,
 
 		config: config,
 
@@ -99,19 +102,11 @@ func (r *redisRepository) FindByAddresses(ctx context.Context, addresses []strin
  * To retrieve a list of unexpired faulty pools, we use this command
  * ZRANGE <chainID>:faultyPools (current_unix_timestamp +inf BYSCORE
  **/
-func (r *redisRepository) GetFaultyPools(ctx context.Context, startTime, offset, count int64) ([]string, error) {
+func (r *redisRepository) GetFaultyPools(ctx context.Context, offset, count int64) ([]string, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[pool] redisRepository.GetFaultyPools")
 	defer span.End()
 
-	arg := redis.ZRangeArgs{
-		Key:     r.keyFaultyPools,
-		Start:   fmt.Sprintf("(%d", startTime),
-		Stop:    "+inf",
-		ByScore: true,
-		Offset:  offset,
-		Count:   count,
-	}
-	return r.redisClient.ZRangeArgs(ctx, arg).Result()
+	return r.poolClient.GetFaultyPools(ctx, offset, count)
 }
 
 func (r *redisRepository) IncreasePoolsTotalCount(ctx context.Context, counter map[string]int64, expiration time.Duration) (map[string]int64, []error) {
@@ -168,4 +163,11 @@ func (r *redisRepository) IncreasePoolsTotalCount(ctx context.Context, counter m
 	}
 
 	return results, errors
+}
+
+func (r *redisRepository) TrackFaultyPools(ctx context.Context, poolAddresses []string) ([]string, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[pool] redisRepository.TrackFaultyPools")
+	defer span.End()
+
+	return r.poolClient.TrackFaultyPools(ctx, poolAddresses)
 }

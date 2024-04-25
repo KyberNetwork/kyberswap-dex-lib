@@ -473,12 +473,11 @@ func (p *PointerSwapPoolManager) filterBlacklistedAddresses(poolAddresses []stri
 
 func (m *PointerSwapPoolManager) excludeFaultyPools(ctx context.Context, addresses []string, config Config) []string {
 	// we need to add threshold for expire time, any faulty pools are not expired but have the expire time near threshold considered as expired
-	start := time.Now().UnixMilli() + config.FaultyPoolsExpireThreshold.Milliseconds()
 	offset := int64(0)
 
 	poolSet := make(map[string]struct{})
 	for {
-		faultyPools, err := m.poolRepository.GetFaultyPools(ctx, start, offset, config.MaxFaultyPoolSize)
+		faultyPools, err := m.poolRepository.GetFaultyPools(ctx, offset, config.MaxFaultyPoolSize)
 		if err != nil {
 			return addresses
 		}

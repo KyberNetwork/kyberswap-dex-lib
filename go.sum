@@ -42,6 +42,8 @@ github.com/KyberNetwork/ethrpc v0.7.1 h1:ePGFNKMM2U/aJZCX75WtClH5MOD2DqCF0bitPI1
 github.com/KyberNetwork/ethrpc v0.7.1/go.mod h1:oKysvDWevrWSW6sgb/3pDrBjiKw6IUbS3LytN+aKz/M=
 github.com/KyberNetwork/grpc-service v0.0.0-20240320074613-569fa1f7a547 h1:NRazlg+8n7JFLuwq8AIYnZXxqoalK+wp95xNzwhT2Jo=
 github.com/KyberNetwork/grpc-service v0.0.0-20240320074613-569fa1f7a547/go.mod h1:Rbne2Ye43p3jdKfS0rHGINSJEeSGSbuShMN8qYQB4q8=
+github.com/KyberNetwork/grpc-service v0.2.0 h1:ol6NL9dlY5y3U47Q7Uo4nZT9uEb3KBJt4PnmIYt/KCA=
+github.com/KyberNetwork/grpc-service v0.2.0/go.mod h1:Rbne2Ye43p3jdKfS0rHGINSJEeSGSbuShMN8qYQB4q8=
 github.com/KyberNetwork/int256 v0.1.4 h1:SbnhxqcsZXrP+5pSkolpSo2ViEWiq3K/hjfl5OQgX/4=
 github.com/KyberNetwork/int256 v0.1.4/go.mod h1:qE/Ikpo86fn60sIB7CwcfiqJTjK2p+k+ASvuO79Rq4g=
 github.com/KyberNetwork/kutils v0.2.2 h1:BgZPQeilzmVI39hf4YaGPRqWU0WWhLbfZ2IxzZPhbVc=

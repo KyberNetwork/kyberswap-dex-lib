@@ -69,8 +69,9 @@ func mockHandleSuccess(w http.ResponseWriter, r *http.Request) {
 					},
 				},
 				FeatureFlags: valueobject.FeatureFlags{
-					IsPathGeneratorEnabled: true,
-					IsGasEstimatorEnabled:  true,
+					IsPathGeneratorEnabled:     true,
+					IsGasEstimatorEnabled:      true,
+					IsFaultyPoolDetectorEnable: true,
 				},
 				BlacklistedRecipients: []string{"0xaa"},
 			},
@@ -157,8 +158,9 @@ func TestGetConfigs(t *testing.T) {
 			},
 		},
 		FeatureFlags: valueobject.FeatureFlags{
-			IsPathGeneratorEnabled: true,
-			IsGasEstimatorEnabled:  true,
+			IsPathGeneratorEnabled:     true,
+			IsGasEstimatorEnabled:      true,
+			IsFaultyPoolDetectorEnable: true,
 		},
 		BlacklistedRecipients: []string{"0xaa"},
 	}

@@ -45,7 +45,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 			"address2",
 			"address3",
 		}
-		poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Any(), gomock.Eq(int64(0)), gomock.Eq(config.MaxFaultyPoolSize)).
+		poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Eq(int64(0)), gomock.Eq(config.MaxFaultyPoolSize)).
 			Return(faultyPools, nil).Times(1)
 		addresses := []string{
 			faultyPools[0],
@@ -85,10 +85,9 @@ func TestExcludeFaultyPools(t *testing.T) {
 			"address3",
 			"address4",
 		}
-		poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Any(), gomock.Eq(int64(0)), gomock.Eq(config.MaxFaultyPoolSize)).
+		poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Eq(int64(0)), gomock.Eq(config.MaxFaultyPoolSize)).
 			Return(faultyPools, nil).Times(1)
 		poolRepository.EXPECT().GetFaultyPools(
-			gomock.Any(),
 			gomock.Any(),
 			gomock.Eq(config.MaxFaultyPoolSize),
 			gomock.Eq(config.MaxFaultyPoolSize)).
@@ -132,7 +131,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 			FaultyPoolsExpireThreshold: 30 * time.Second,
 			MaxFaultyPoolSize:          int64(500),
 		}
-		poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Any(), gomock.Eq(int64(0)), gomock.Eq(config.MaxFaultyPoolSize)).
+		poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Eq(int64(0)), gomock.Eq(config.MaxFaultyPoolSize)).
 			Return([]string{}, nil).Times(1)
 
 		addresses := []string{
@@ -170,7 +169,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 			MaxFaultyPoolSize:          int64(500),
 		}
 		testError := errors.New("test error")
-		poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Any(), gomock.Eq(int64(0)), gomock.Eq(config.MaxFaultyPoolSize)).
+		poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Eq(int64(0)), gomock.Eq(config.MaxFaultyPoolSize)).
 			Return([]string{}, testError).Times(1)
 
 		addresses := []string{
@@ -246,7 +245,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
 	// Mocked PoolRank always return the poolAddressList above
 	poolRankRepository.EXPECT().FindGlobalBestPools(gomock.Any(), gomock.Any()).Return(poolAddressList).AnyTimes()
 	poolRepository.EXPECT().PoolsInBlacklist(gomock.Any()).Return(poolsInBlackList, nil).AnyTimes()
-	poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+	poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Any(), gomock.Any()).
 		Return([]string{}, nil).AnyTimes()
 	poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Return([]*entity.Pool{}, nil).AnyTimes()
 	poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).Return(poolList).AnyTimes()
