@@ -430,7 +430,7 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 		uc.sendEstimateGasLogsAndMetrics(ctx, command.RouteSummary, err, command.SlippageTolerance)
 		if err != nil {
 			go uc.trackFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx), command.RouteSummary, err)
-			return 0, 0.0, 0, errors.WithMessagef(ErrEstimateGasFailed, "estimate gas failed due to %s", err.Error())
+			return 0, 0.0, 0, ErrEstimateGasFailed(err)
 		}
 	} else if uc.config.FeatureFlags.IsFaultyPoolDetectorEnable && !utils.IsEmptyString(command.Sender) {
 		go func(ctx context.Context) {

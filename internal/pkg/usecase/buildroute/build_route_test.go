@@ -869,7 +869,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 					WindowSize:        time.Minute * 15,
 					FaultyExpiredTime: time.Minute * 3,
 				}},
-			err: errors.WithMessagef(ErrEstimateGasFailed, "estimate gas failed due to %s", returnAmountNotEnoughError.Error()),
+			err: ErrEstimateGasFailed(returnAmountNotEnoughError),
 		},
 		{
 			name: "it should not count faulty pools when estimate gas error is some error, feature flag is on",

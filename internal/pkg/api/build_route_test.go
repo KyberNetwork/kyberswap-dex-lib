@@ -9,8 +9,6 @@ import (
 	"testing"
 	"time"
 
-	pkgErrors "github.com/pkg/errors"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -26,6 +24,7 @@ import (
 )
 
 func TestBuildRoute(t *testing.T) {
+	testError := errors.New("some error")
 	testCases := []struct {
 		name    string
 		prepare func(ctrl *gomock.Controller) test.HTTPTestCase
@@ -214,14 +213,16 @@ func TestBuildRoute(t *testing.T) {
 					Return(nil)
 
 				mockBuildRouteUseCase := api.NewMockIBuildRouteUseCase(ctrl)
+				estimateGasFailedErr := buildroute.ErrEstimateGasFailed(testError)
 				mockBuildRouteUseCase.EXPECT().
 					Handle(gomock.Any(), gomock.Any()).
-					Return(&dto.BuildRouteResult{}, pkgErrors.WithMessagef(buildroute.ErrEstimateGasFailed, "Estimate gas failed due to %s", "some error"))
+					Return(&dto.BuildRouteResult{}, estimateGasFailedErr)
 
 				errResponse := ErrorResponse{
 					HTTPStatus: http.StatusUnprocessableEntity,
-					Code:       4227,
-					Message:    "estimate gas failed",
+					Code:       estimateGasFailedErr.Code(),
+					Message:    estimateGasFailedErr.Error(),
+					Details:    []interface{}{estimateGasFailedErr.Error()},
 				}
 
 				return test.HTTPTestCase{

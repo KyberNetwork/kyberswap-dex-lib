@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/validator"
@@ -146,12 +147,6 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    "firm API: the maker reject signing due market price updated",
 	},
 
-	buildroute.ErrEstimateGasFailed: {
-		HTTPStatus: http.StatusUnprocessableEntity,
-		Code:       4227,
-		Message:    buildroute.ErrEstimateGasFailed.Error(),
-	},
-
 	hashflowclient.ErrRFQFailed: {
 		HTTPStatus: http.StatusUnprocessableEntity,
 		Code:       4228,
@@ -223,6 +218,22 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    "native RFQ failed",
 		Details:    []interface{}{nativeclient.ErrRFQAllPricerFailed.Error()},
 	},
+}
+
+var httpCodeMapping = map[int]int{
+	buildroute.ErrEstimateGasFailedCode: http.StatusUnprocessableEntity,
+}
+
+var ErrorResponseByWrappedError = func(err error) (ErrorResponse, bool) {
+	if wrappedErr, ok := err.(utils.WrappedError); ok {
+		return ErrorResponse{
+			HTTPStatus: httpCodeMapping[wrappedErr.Code()],
+			Code:       wrappedErr.Code(),
+			Details:    []interface{}{wrappedErr.Error()},
+			Message:    wrappedErr.Error(),
+		}, true
+	}
+	return ErrorResponse{}, false
 }
 
 type SuccessResponse struct {
@@ -303,6 +314,11 @@ func responseFromErr(err error) ErrorResponse {
 	for {
 		if err == nil {
 			return DefaultErrorResponse
+		}
+
+		// return custom error that wrapped different error messages from server
+		if resp, ok := ErrorResponseByWrappedError(err); ok {
+			return resp
 		}
 
 		if resp, ok := ErrorResponseByError[err]; ok {
