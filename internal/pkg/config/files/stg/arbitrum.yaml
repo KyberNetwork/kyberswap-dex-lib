@@ -184,6 +184,7 @@ encoder:
     executeIziSwap: 26
     executeTraderJoeV2: 27
     executeKyberDSLO: 28
+    executePancakeStableSwap: 31
     executeSmardex: 34
     executeSwaapV2: 38
     executeNative: 44

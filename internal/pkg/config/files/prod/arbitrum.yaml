@@ -86,6 +86,7 @@ common:
     - "swaap-v2"
     - "hashflow-v3"
     - "native-v1"
+    - "pancake-stable"
   featureFlags: &featureFlags
   swaapAPIKey:
   nativeAPIKey:
@@ -184,6 +185,7 @@ encoder:
     executeIziSwap: 26
     executeTraderJoeV2: 27
     executeKyberDSLO: 28
+    executePancakeStableSwap: 31
     executeSmardex: 34
     executeSwaapV2: 38
     executeNative: 44
