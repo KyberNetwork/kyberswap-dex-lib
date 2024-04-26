@@ -72,8 +72,11 @@ var ellipsisBscPoolsBytes []byte
 
 // Pancake-stable pool bytes
 
+//go:embed pools/pancake-stable/arbitrum.json
+var arbitrumPancakeStablePoolsBytes []byte
+
 //go:embed pools/pancake-stable/bsc.json
-var pancakeStablePoolsBytes []byte
+var bscPancakeStablePoolsBytes []byte
 
 var bytesByPath = map[string][]byte{
 	"pools/arbitrum.json":  arbitrumPoolsBytes,
@@ -84,6 +87,7 @@ var bytesByPath = map[string][]byte{
 	"pools/polygon.json":   polygonPoolsBytes,
 	"pools/base.json":      basePoolsBytes,
 
-	"pools/ellipsis/bsc.json":       ellipsisBscPoolsBytes,
-	"pools/pancake-stable/bsc.json": pancakeStablePoolsBytes,
+	"pools/ellipsis/bsc.json":            ellipsisBscPoolsBytes,
+	"pools/pancake-stable/arbitrum.json": arbitrumPancakeStablePoolsBytes,
+	"pools/pancake-stable/bsc.json":      bscPancakeStablePoolsBytes,
 }
