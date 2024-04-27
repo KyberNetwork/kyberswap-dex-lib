@@ -23,7 +23,7 @@ type Addresses struct {
 type PoolState struct {
 	BlockTimestamp         uint64                    `json:"blockTimestamp"`
 	Synths                 map[string]common.Address `json:"synths"`
-	CurrencyKeyBySynth     map[common.Address]string `json:"currencyKeyBySynth" msgp:"-"`
+	CurrencyKeyBySynth     map[common.Address]string `json:"currencyKeyBySynth" msg:"-"`
 	CurrencyKeyBySynthMsgp map[string]string         `json:"-"` // for msgp marshal/unmarshal
 	AvailableSynthCount    *big.Int                  `json:"availableSynthCount"`
 	SynthsTotalSupply      map[string]*big.Int       `json:"synthsTotalSupply"`
