@@ -169,6 +169,8 @@ func (z *bptSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 			delete(z.protocolFeePercentageCache, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0009 > 0 {
 		zb0009--
 		var za0004 string
@@ -616,6 +618,8 @@ func (z *bptSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			delete(z.protocolFeePercentageCache, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0009 > 0 {
 		var za0004 string
 		var za0005 *uint256.Int

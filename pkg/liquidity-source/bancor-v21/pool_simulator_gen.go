@@ -42,6 +42,8 @@ func (z *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 			delete(z.innerPoolByAnchor, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0002 > 0 {
 		zb0002--
 		var za0001 string
@@ -342,6 +344,8 @@ func (z *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			delete(z.innerPoolByAnchor, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0002 > 0 {
 		var za0001 string
 		var za0002 *entity.Pool

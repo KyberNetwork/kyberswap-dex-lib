@@ -147,6 +147,8 @@ func (z *FastPriceFeedV1) DecodeMsg(dc *msgp.Reader) (err error) {
 			delete(z.Prices, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0008 > 0 {
 		zb0008--
 		var za0001 string
@@ -470,6 +472,8 @@ func (z *FastPriceFeedV1) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			delete(z.Prices, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0008 > 0 {
 		var za0001 string
 		var za0002 *big.Int

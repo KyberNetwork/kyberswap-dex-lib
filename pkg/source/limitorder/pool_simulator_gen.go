@@ -67,6 +67,8 @@ func (z *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 			delete(z.ordersMapping, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0003 > 0 {
 		zb0003--
 		var za0002 string
@@ -332,6 +334,8 @@ func (z *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			delete(z.ordersMapping, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0003 > 0 {
 		var za0002 string
 		var za0003 *order

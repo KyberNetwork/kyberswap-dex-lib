@@ -254,6 +254,8 @@ func (z *poolCollection) DecodeMsg(dc *msgp.Reader) (err error) {
 			delete(z.PoolData, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0003 > 0 {
 		zb0003--
 		var za0001 string
@@ -410,6 +412,8 @@ func (z *poolCollection) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			delete(z.PoolData, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0003 > 0 {
 		var za0001 string
 		var za0002 *pool
