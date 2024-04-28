@@ -2,12 +2,13 @@
 //msgp:tuple VaultPriceFeed
 //msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
 //msgp:shim common.Address as:[]byte using:(common.Address).Bytes/common.BytesToAddress
+//msgp:shim IFastPriceFeed as:[]byte using:encodePriceFeed/decodePriceFeed
+//msgp:ignore IFastPriceFeed
 
 package metavault
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -26,10 +27,8 @@ type VaultPriceFeed struct {
 	IsAdjustmentAdditive  map[string]bool     `json:"isAdjustmentAdditive"`
 
 	SecondaryPriceFeedAddress common.Address `json:"-"`
-	SecondaryPriceFeed        IFastPriceFeed `json:"secondaryPriceFeed" msg:"-"`
+	SecondaryPriceFeed        IFastPriceFeed `json:"secondaryPriceFeed"`
 	SecondaryPriceFeedVersion int            `json:"secondaryPriceFeedVersion"`
-
-	SecondaryPriceFeedEnum *PriceFeedEnum
 
 	PriceFeedsAddresses map[string]common.Address `json:"-"`
 	PriceFeeds          map[string]*PriceFeed     `json:"priceFeeds"`
@@ -45,25 +44,6 @@ func NewVaultPriceFeed() *VaultPriceFeed {
 		PriceFeedsAddresses:   make(map[string]common.Address),
 		PriceFeeds:            make(map[string]*PriceFeed),
 	}
-}
-
-// initialize VaultPriceFeed.SecondaryPriceFeed and VaultPriceFeed.SecondaryPriceFeedUnion when VaultPriceFeed is constructed via unmarshaling
-func (pf *VaultPriceFeed) initialize() error {
-	if pf.SecondaryPriceFeed == nil {
-		if pf.SecondaryPriceFeedEnum != nil {
-			pf.SecondaryPriceFeed = pf.SecondaryPriceFeedEnum.get()
-		} else {
-			return fmt.Errorf("both SecondaryPriceFeed and SecondaryPriceFeedUnion are nil")
-		}
-	} else {
-		if pf.SecondaryPriceFeedEnum == nil {
-			pf.SecondaryPriceFeedEnum = &PriceFeedEnum{}
-			return pf.SecondaryPriceFeedEnum.set(pf.SecondaryPriceFeed)
-		} else if pf.SecondaryPriceFeed != pf.SecondaryPriceFeedEnum.get() {
-			return fmt.Errorf("SecondaryPriceFeed and SecondaryPriceFeedUnion don't point to the same struct")
-		}
-	}
-	return nil
 }
 
 const (
