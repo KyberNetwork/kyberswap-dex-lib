@@ -56,11 +56,6 @@ func NewVault() *Vault {
 	}
 }
 
-// initialize Vault.PriceFeed when Vault is constructed via unmarshaling
-func (v *Vault) initialize() error {
-	return v.PriceFeed.initialize()
-}
-
 const (
 	vaultMethodHasDynamicFees           = "hasDynamicFees"
 	vaultMethodIncludeAmmPrice          = "includeAmmPrice"

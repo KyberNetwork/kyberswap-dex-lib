@@ -62,16 +62,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 // initializeOnce PoolSimulator.vault and PoolSimulator.vaultUtils when PoolSimulator is constructed via unmarshaling
 func (p *PoolSimulator) initializeOnce() error {
-	var err error
 	p._initializeOnce.Do(func() {
-		if err = p.vault.initialize(); err != nil {
-			return
-		}
 		if p.vaultUtils == nil {
 			p.vaultUtils = NewVaultUtils(p.vault)
 		}
 	})
-	return err
+	return nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {

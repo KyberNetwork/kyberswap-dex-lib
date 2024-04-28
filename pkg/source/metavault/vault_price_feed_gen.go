@@ -258,43 +258,35 @@ func (z *VaultPriceFeed) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		z.SecondaryPriceFeedAddress = common.BytesToAddress(zb0012)
 	}
+	{
+		var zb0013 []byte
+		zb0013, err = dc.ReadBytes(encodePriceFeed(z.SecondaryPriceFeed))
+		if err != nil {
+			err = msgp.WrapError(err, "SecondaryPriceFeed")
+			return
+		}
+		z.SecondaryPriceFeed = decodePriceFeed(zb0013)
+	}
 	z.SecondaryPriceFeedVersion, err = dc.ReadInt()
 	if err != nil {
 		err = msgp.WrapError(err, "SecondaryPriceFeedVersion")
 		return
 	}
-	if dc.IsNil() {
-		err = dc.ReadNil()
-		if err != nil {
-			err = msgp.WrapError(err, "SecondaryPriceFeedEnum")
-			return
-		}
-		z.SecondaryPriceFeedEnum = nil
-	} else {
-		if z.SecondaryPriceFeedEnum == nil {
-			z.SecondaryPriceFeedEnum = new(PriceFeedEnum)
-		}
-		err = z.SecondaryPriceFeedEnum.DecodeMsg(dc)
-		if err != nil {
-			err = msgp.WrapError(err, "SecondaryPriceFeedEnum")
-			return
-		}
-	}
-	var zb0013 uint32
-	zb0013, err = dc.ReadMapHeader()
+	var zb0014 uint32
+	zb0014, err = dc.ReadMapHeader()
 	if err != nil {
 		err = msgp.WrapError(err, "PriceFeedsAddresses")
 		return
 	}
 	if z.PriceFeedsAddresses == nil {
-		z.PriceFeedsAddresses = make(map[string]common.Address, zb0013)
+		z.PriceFeedsAddresses = make(map[string]common.Address, zb0014)
 	} else if len(z.PriceFeedsAddresses) > 0 {
 		for key := range z.PriceFeedsAddresses {
 			delete(z.PriceFeedsAddresses, key)
 		}
 	}
-	for zb0013 > 0 {
-		zb0013--
+	for zb0014 > 0 {
+		zb0014--
 		var za0011 string
 		var za0012 common.Address
 		za0011, err = dc.ReadString()
@@ -303,31 +295,31 @@ func (z *VaultPriceFeed) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		{
-			var zb0014 []byte
-			zb0014, err = dc.ReadBytes((common.Address).Bytes(za0012))
+			var zb0015 []byte
+			zb0015, err = dc.ReadBytes((common.Address).Bytes(za0012))
 			if err != nil {
 				err = msgp.WrapError(err, "PriceFeedsAddresses", za0011)
 				return
 			}
-			za0012 = common.BytesToAddress(zb0014)
+			za0012 = common.BytesToAddress(zb0015)
 		}
 		z.PriceFeedsAddresses[za0011] = za0012
 	}
-	var zb0015 uint32
-	zb0015, err = dc.ReadMapHeader()
+	var zb0016 uint32
+	zb0016, err = dc.ReadMapHeader()
 	if err != nil {
 		err = msgp.WrapError(err, "PriceFeeds")
 		return
 	}
 	if z.PriceFeeds == nil {
-		z.PriceFeeds = make(map[string]*PriceFeed, zb0015)
+		z.PriceFeeds = make(map[string]*PriceFeed, zb0016)
 	} else if len(z.PriceFeeds) > 0 {
 		for key := range z.PriceFeeds {
 			delete(z.PriceFeeds, key)
 		}
 	}
-	for zb0015 > 0 {
-		zb0015--
+	for zb0016 > 0 {
+		zb0016--
 		var za0013 string
 		var za0014 *PriceFeed
 		za0013, err = dc.ReadString()
@@ -504,22 +496,15 @@ func (z *VaultPriceFeed) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "SecondaryPriceFeedAddress")
 		return
 	}
+	err = en.WriteBytes(encodePriceFeed(z.SecondaryPriceFeed))
+	if err != nil {
+		err = msgp.WrapError(err, "SecondaryPriceFeed")
+		return
+	}
 	err = en.WriteInt(z.SecondaryPriceFeedVersion)
 	if err != nil {
 		err = msgp.WrapError(err, "SecondaryPriceFeedVersion")
 		return
-	}
-	if z.SecondaryPriceFeedEnum == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		err = z.SecondaryPriceFeedEnum.EncodeMsg(en)
-		if err != nil {
-			err = msgp.WrapError(err, "SecondaryPriceFeedEnum")
-			return
-		}
 	}
 	err = en.WriteMapHeader(uint32(len(z.PriceFeedsAddresses)))
 	if err != nil {
@@ -619,16 +604,8 @@ func (z *VaultPriceFeed) MarshalMsg(b []byte) (o []byte, err error) {
 		o = msgp.AppendBool(o, za0010)
 	}
 	o = msgp.AppendBytes(o, (common.Address).Bytes(z.SecondaryPriceFeedAddress))
+	o = msgp.AppendBytes(o, encodePriceFeed(z.SecondaryPriceFeed))
 	o = msgp.AppendInt(o, z.SecondaryPriceFeedVersion)
-	if z.SecondaryPriceFeedEnum == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		o, err = z.SecondaryPriceFeedEnum.MarshalMsg(o)
-		if err != nil {
-			err = msgp.WrapError(err, "SecondaryPriceFeedEnum")
-			return
-		}
-	}
 	o = msgp.AppendMapHeader(o, uint32(len(z.PriceFeedsAddresses)))
 	for za0011, za0012 := range z.PriceFeedsAddresses {
 		o = msgp.AppendString(o, za0011)
@@ -893,77 +870,70 @@ func (z *VaultPriceFeed) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		z.SecondaryPriceFeedAddress = common.BytesToAddress(zb0012)
 	}
+	{
+		var zb0013 []byte
+		zb0013, bts, err = msgp.ReadBytesBytes(bts, encodePriceFeed(z.SecondaryPriceFeed))
+		if err != nil {
+			err = msgp.WrapError(err, "SecondaryPriceFeed")
+			return
+		}
+		z.SecondaryPriceFeed = decodePriceFeed(zb0013)
+	}
 	z.SecondaryPriceFeedVersion, bts, err = msgp.ReadIntBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "SecondaryPriceFeedVersion")
 		return
 	}
-	if msgp.IsNil(bts) {
-		bts, err = msgp.ReadNilBytes(bts)
-		if err != nil {
-			return
-		}
-		z.SecondaryPriceFeedEnum = nil
-	} else {
-		if z.SecondaryPriceFeedEnum == nil {
-			z.SecondaryPriceFeedEnum = new(PriceFeedEnum)
-		}
-		bts, err = z.SecondaryPriceFeedEnum.UnmarshalMsg(bts)
-		if err != nil {
-			err = msgp.WrapError(err, "SecondaryPriceFeedEnum")
-			return
-		}
-	}
-	var zb0013 uint32
-	zb0013, bts, err = msgp.ReadMapHeaderBytes(bts)
+	var zb0014 uint32
+	zb0014, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "PriceFeedsAddresses")
 		return
 	}
 	if z.PriceFeedsAddresses == nil {
-		z.PriceFeedsAddresses = make(map[string]common.Address, zb0013)
+		z.PriceFeedsAddresses = make(map[string]common.Address, zb0014)
 	} else if len(z.PriceFeedsAddresses) > 0 {
 		for key := range z.PriceFeedsAddresses {
 			delete(z.PriceFeedsAddresses, key)
 		}
 	}
-	for zb0013 > 0 {
+	for zb0014 > 0 {
 		var za0011 string
 		var za0012 common.Address
-		zb0013--
+		zb0014--
 		za0011, bts, err = msgp.ReadStringBytes(bts)
 		if err != nil {
 			err = msgp.WrapError(err, "PriceFeedsAddresses")
 			return
 		}
 		{
-			var zb0014 []byte
-			zb0014, bts, err = msgp.ReadBytesBytes(bts, (common.Address).Bytes(za0012))
+			var zb0015 []byte
+			zb0015, bts, err = msgp.ReadBytesBytes(bts, (common.Address).Bytes(za0012))
 			if err != nil {
 				err = msgp.WrapError(err, "PriceFeedsAddresses", za0011)
 				return
 			}
-			za0012 = common.BytesToAddress(zb0014)
+			za0012 = common.BytesToAddress(zb0015)
 		}
 		z.PriceFeedsAddresses[za0011] = za0012
 	}
-	var zb0015 uint32
-	zb0015, bts, err = msgp.ReadMapHeaderBytes(bts)
+	var zb0016 uint32
+	zb0016, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "PriceFeeds")
 		return
 	}
 	if z.PriceFeeds == nil {
-		z.PriceFeeds = make(map[string]*PriceFeed, zb0015)
+		z.PriceFeeds = make(map[string]*PriceFeed, zb0016)
 	} else if len(z.PriceFeeds) > 0 {
 		for key := range z.PriceFeeds {
 			delete(z.PriceFeeds, key)
 		}
 	}
-	for zb0015 > 0 {
+	for zb0016 > 0 {
 		var za0013 string
 		var za0014 *PriceFeed
-		zb0015--
+		zb0016--
 		za0013, bts, err = msgp.ReadStringBytes(bts)
 		if err != nil {
 			err = msgp.WrapError(err, "PriceFeeds")
@@ -1054,13 +1024,7 @@ func (z *VaultPriceFeed) Msgsize() (s int) {
 			s += msgp.StringPrefixSize + len(za0009) + msgp.BoolSize
 		}
 	}
-	s += msgp.BytesPrefixSize + len((common.Address).Bytes(z.SecondaryPriceFeedAddress)) + msgp.IntSize
-	if z.SecondaryPriceFeedEnum == nil {
-		s += msgp.NilSize
-	} else {
-		s += z.SecondaryPriceFeedEnum.Msgsize()
-	}
-	s += msgp.MapHeaderSize
+	s += msgp.BytesPrefixSize + len((common.Address).Bytes(z.SecondaryPriceFeedAddress)) + msgp.BytesPrefixSize + len(encodePriceFeed(z.SecondaryPriceFeed)) + msgp.IntSize + msgp.MapHeaderSize
 	if z.PriceFeedsAddresses != nil {
 		for za0011, za0012 := range z.PriceFeedsAddresses {
 			_ = za0012
