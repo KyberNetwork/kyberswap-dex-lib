@@ -2,7 +2,6 @@ package composablestable
 
 import (
 	"math/big"
-	"strconv"
 	"testing"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -101,9 +100,9 @@ func TestMsgpackMarshalUnmarshal(t *testing.T) {
 					},
 				},
 				swapFeePercentage: uint256.NewInt(100000000000000),
-				protocolFeePercentageCache: map[string]*uint256.Int{
-					strconv.FormatInt(int64(feeTypeSwap), 10):  uint256.NewInt(0),
-					strconv.FormatInt(int64(feeTypeYield), 10): uint256.NewInt(0),
+				protocolFeePercentageCache: map[intAsStr]*uint256.Int{
+					intAsStr(feeTypeSwap):  uint256.NewInt(0),
+					intAsStr(feeTypeYield): uint256.NewInt(0),
 				},
 				tokenExemptFromYieldProtocolFee: []bool{
 					false, false, true,

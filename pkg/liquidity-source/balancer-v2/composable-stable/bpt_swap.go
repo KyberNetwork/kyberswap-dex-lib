@@ -1,6 +1,8 @@
 //go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
 //msgp:tuple bptSimulator
 //msgp:shim *uint256.Int as:[]byte using:msgpencode.EncodeUint256/msgpencode.DecodeUint256
+//msgp:shim intAsStr as:string using:intToString/stringToInt
+//msgp:ignore intAsStr
 
 package composablestable
 
@@ -15,6 +17,11 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
+type intAsStr int
+
+func intToString(i intAsStr) string { return strconv.FormatInt(int64(i), 10) }
+func stringToInt(s string) intAsStr { i, _ := strconv.ParseInt(s, 10, 64); return intAsStr(i) }
+
 type bptSimulator struct {
 	poolpkg.Pool
 
@@ -27,7 +34,7 @@ type bptSimulator struct {
 	tokenRateCaches []TokenRateCache
 
 	swapFeePercentage               *uint256.Int
-	protocolFeePercentageCache      map[string]*uint256.Int
+	protocolFeePercentageCache      map[intAsStr]*uint256.Int
 	tokenExemptFromYieldProtocolFee []bool
 	exemptFromYieldProtocolFee      bool // >= V5
 	inRecoveryMode                  bool
@@ -745,7 +752,7 @@ func (s *bptSimulator) getProtocolFeePercentageCache(feeType int) *uint256.Int {
 		return uint256.NewInt(0)
 	}
 
-	return s.protocolFeePercentageCache[strconv.FormatInt(int64(feeType), 10)]
+	return s.protocolFeePercentageCache[intAsStr(feeType)]
 }
 
 func (s *bptSimulator) protocolFeeAmount(

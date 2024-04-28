@@ -156,6 +156,7 @@ func (z *bptSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 			z.swapFeePercentage = msgpencode.DecodeUint256(zb0008)
 		}
 	}
+	var zb0010 string
 	var zb0009 uint32
 	zb0009, err = dc.ReadMapHeader()
 	if err != nil {
@@ -163,7 +164,7 @@ func (z *bptSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 		return
 	}
 	if z.protocolFeePercentageCache == nil {
-		z.protocolFeePercentageCache = make(map[string]*uint256.Int, zb0009)
+		z.protocolFeePercentageCache = make(map[intAsStr]*uint256.Int, zb0009)
 	} else if len(z.protocolFeePercentageCache) > 0 {
 		for key := range z.protocolFeePercentageCache {
 			delete(z.protocolFeePercentageCache, key)
@@ -173,13 +174,14 @@ func (z *bptSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 	_ = field
 	for zb0009 > 0 {
 		zb0009--
-		var za0004 string
+		var za0004 intAsStr
 		var za0005 *uint256.Int
-		za0004, err = dc.ReadString()
+		zb0010, err = dc.ReadString()
 		if err != nil {
 			err = msgp.WrapError(err, "protocolFeePercentageCache")
 			return
 		}
+		za0004 = stringToInt(zb0010)
 		if dc.IsNil() {
 			err = dc.ReadNil()
 			if err != nil {
@@ -189,27 +191,27 @@ func (z *bptSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 			za0005 = nil
 		} else {
 			{
-				var zb0010 []byte
-				zb0010, err = dc.ReadBytes(msgpencode.EncodeUint256(za0005))
+				var zb0011 []byte
+				zb0011, err = dc.ReadBytes(msgpencode.EncodeUint256(za0005))
 				if err != nil {
 					err = msgp.WrapError(err, "protocolFeePercentageCache", za0004)
 					return
 				}
-				za0005 = msgpencode.DecodeUint256(zb0010)
+				za0005 = msgpencode.DecodeUint256(zb0011)
 			}
 		}
 		z.protocolFeePercentageCache[za0004] = za0005
 	}
-	var zb0011 uint32
-	zb0011, err = dc.ReadArrayHeader()
+	var zb0012 uint32
+	zb0012, err = dc.ReadArrayHeader()
 	if err != nil {
 		err = msgp.WrapError(err, "tokenExemptFromYieldProtocolFee")
 		return
 	}
-	if cap(z.tokenExemptFromYieldProtocolFee) >= int(zb0011) {
-		z.tokenExemptFromYieldProtocolFee = (z.tokenExemptFromYieldProtocolFee)[:zb0011]
+	if cap(z.tokenExemptFromYieldProtocolFee) >= int(zb0012) {
+		z.tokenExemptFromYieldProtocolFee = (z.tokenExemptFromYieldProtocolFee)[:zb0012]
 	} else {
-		z.tokenExemptFromYieldProtocolFee = make([]bool, zb0011)
+		z.tokenExemptFromYieldProtocolFee = make([]bool, zb0012)
 	}
 	for za0006 := range z.tokenExemptFromYieldProtocolFee {
 		z.tokenExemptFromYieldProtocolFee[za0006], err = dc.ReadBool()
@@ -343,7 +345,7 @@ func (z *bptSimulator) EncodeMsg(en *msgp.Writer) (err error) {
 		return
 	}
 	for za0004, za0005 := range z.protocolFeePercentageCache {
-		err = en.WriteString(za0004)
+		err = en.WriteString(intToString(za0004))
 		if err != nil {
 			err = msgp.WrapError(err, "protocolFeePercentageCache")
 			return
@@ -444,7 +446,7 @@ func (z *bptSimulator) MarshalMsg(b []byte) (o []byte, err error) {
 	}
 	o = msgp.AppendMapHeader(o, uint32(len(z.protocolFeePercentageCache)))
 	for za0004, za0005 := range z.protocolFeePercentageCache {
-		o = msgp.AppendString(o, za0004)
+		o = msgp.AppendString(o, intToString(za0004))
 		if za0005 == nil {
 			o = msgp.AppendNil(o)
 		} else {
@@ -605,6 +607,7 @@ func (z *bptSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			z.swapFeePercentage = msgpencode.DecodeUint256(zb0008)
 		}
 	}
+	var zb0010 string
 	var zb0009 uint32
 	zb0009, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
@@ -612,7 +615,7 @@ func (z *bptSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		return
 	}
 	if z.protocolFeePercentageCache == nil {
-		z.protocolFeePercentageCache = make(map[string]*uint256.Int, zb0009)
+		z.protocolFeePercentageCache = make(map[intAsStr]*uint256.Int, zb0009)
 	} else if len(z.protocolFeePercentageCache) > 0 {
 		for key := range z.protocolFeePercentageCache {
 			delete(z.protocolFeePercentageCache, key)
@@ -621,14 +624,15 @@ func (z *bptSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
 	for zb0009 > 0 {
-		var za0004 string
+		var za0004 intAsStr
 		var za0005 *uint256.Int
 		zb0009--
-		za0004, bts, err = msgp.ReadStringBytes(bts)
+		zb0010, bts, err = msgp.ReadStringBytes(bts)
 		if err != nil {
 			err = msgp.WrapError(err, "protocolFeePercentageCache")
 			return
 		}
+		za0004 = stringToInt(zb0010)
 		if msgp.IsNil(bts) {
 			bts, err = msgp.ReadNilBytes(bts)
 			if err != nil {
@@ -637,27 +641,27 @@ func (z *bptSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			za0005 = nil
 		} else {
 			{
-				var zb0010 []byte
-				zb0010, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeUint256(za0005))
+				var zb0011 []byte
+				zb0011, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeUint256(za0005))
 				if err != nil {
 					err = msgp.WrapError(err, "protocolFeePercentageCache", za0004)
 					return
 				}
-				za0005 = msgpencode.DecodeUint256(zb0010)
+				za0005 = msgpencode.DecodeUint256(zb0011)
 			}
 		}
 		z.protocolFeePercentageCache[za0004] = za0005
 	}
-	var zb0011 uint32
-	zb0011, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	var zb0012 uint32
+	zb0012, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "tokenExemptFromYieldProtocolFee")
 		return
 	}
-	if cap(z.tokenExemptFromYieldProtocolFee) >= int(zb0011) {
-		z.tokenExemptFromYieldProtocolFee = (z.tokenExemptFromYieldProtocolFee)[:zb0011]
+	if cap(z.tokenExemptFromYieldProtocolFee) >= int(zb0012) {
+		z.tokenExemptFromYieldProtocolFee = (z.tokenExemptFromYieldProtocolFee)[:zb0012]
 	} else {
-		z.tokenExemptFromYieldProtocolFee = make([]bool, zb0011)
+		z.tokenExemptFromYieldProtocolFee = make([]bool, zb0012)
 	}
 	for za0006 := range z.tokenExemptFromYieldProtocolFee {
 		z.tokenExemptFromYieldProtocolFee[za0006], bts, err = msgp.ReadBoolBytes(bts)
@@ -723,7 +727,7 @@ func (z *bptSimulator) Msgsize() (s int) {
 	if z.protocolFeePercentageCache != nil {
 		for za0004, za0005 := range z.protocolFeePercentageCache {
 			_ = za0005
-			s += msgp.StringPrefixSize + len(za0004)
+			s += msgp.StringPrefixSize + len(intToString(za0004))
 			if za0005 == nil {
 				s += msgp.NilSize
 			} else {
