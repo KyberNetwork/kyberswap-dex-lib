@@ -30,8 +30,8 @@ github.com/DataDog/zstd v1.5.2/go.mod h1:g4AWEaM3yOg3HYfnJ3YIawPnVdXJh9QME85blwS
 github.com/DmitriyVTitov/size v1.5.0/go.mod h1:le6rNI4CoLQV1b9gzp1+3d7hMAD/uu2QcJ+aYbNgiU0=
 github.com/KyberNetwork/aevm v1.0.6 h1:yKHSC0R8g1H0A98vFvlVAR5+kzGj1SGnoV9IYe3EHoE=
 github.com/KyberNetwork/aevm v1.0.6/go.mod h1:U/sxdIwhj+l9NoO1VlSitokO/P0L9y4qem0wd1IlUj4=
-github.com/KyberNetwork/aggregator-encoding v0.14.10 h1:jI2MiSwkKg6xb7Y6EBVjHLTWfId5a9pIF/6kQ2JN+Zc=
-github.com/KyberNetwork/aggregator-encoding v0.14.10/go.mod h1:o0QHi5anvmtbCsh74y5/fFynO7rGJ8Ucjw8pHcI3dQk=
+github.com/KyberNetwork/aggregator-encoding v0.14.11 h1:9lSnc39vWOTfa/JAKC7R1KRCnTKv25DN8cdMo0cM3jQ=
+github.com/KyberNetwork/aggregator-encoding v0.14.11/go.mod h1:o0QHi5anvmtbCsh74y5/fFynO7rGJ8Ucjw8pHcI3dQk=
 github.com/KyberNetwork/blackjack v0.3.0 h1:gYn3VRDZjsyJJmJOFZ217A3INh0g+DCm4wNjgHXnd5U=
 github.com/KyberNetwork/blackjack v0.3.0/go.mod h1:UmBTVq/Ia1AJzozJv0pinQTF8DTm+RcZJwvqHeY1JvM=
 github.com/KyberNetwork/blockchain-toolkit v0.6.0 h1:5YEwxYaknRz+rsxU0paW0AfUXithTb2Tmlq4l2H68Xc=
@@ -40,8 +40,6 @@ github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 h1:kN7ez6MPJEaFbacmvR+22PRa5pJk
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2/go.mod h1:3DThBH6zHAYSWUVmtj9deQO1XuiwbawdKxj5yV4SuMo=
 github.com/KyberNetwork/ethrpc v0.7.1 h1:ePGFNKMM2U/aJZCX75WtClH5MOD2DqCF0bitPI13slw=
 github.com/KyberNetwork/ethrpc v0.7.1/go.mod h1:oKysvDWevrWSW6sgb/3pDrBjiKw6IUbS3LytN+aKz/M=
-github.com/KyberNetwork/grpc-service v0.0.0-20240320074613-569fa1f7a547 h1:NRazlg+8n7JFLuwq8AIYnZXxqoalK+wp95xNzwhT2Jo=
-github.com/KyberNetwork/grpc-service v0.0.0-20240320074613-569fa1f7a547/go.mod h1:Rbne2Ye43p3jdKfS0rHGINSJEeSGSbuShMN8qYQB4q8=
 github.com/KyberNetwork/grpc-service v0.2.0 h1:ol6NL9dlY5y3U47Q7Uo4nZT9uEb3KBJt4PnmIYt/KCA=
 github.com/KyberNetwork/grpc-service v0.2.0/go.mod h1:Rbne2Ye43p3jdKfS0rHGINSJEeSGSbuShMN8qYQB4q8=
 github.com/KyberNetwork/int256 v0.1.4 h1:SbnhxqcsZXrP+5pSkolpSo2ViEWiq3K/hjfl5OQgX/4=

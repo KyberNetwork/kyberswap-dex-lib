@@ -12,7 +12,7 @@ require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/KyberNetwork/aevm v1.0.6
-	github.com/KyberNetwork/aggregator-encoding v0.14.10
+	github.com/KyberNetwork/aggregator-encoding v0.14.11
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
@@ -49,6 +49,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.3
 	github.com/holiman/uint256 v1.2.4
 	github.com/huandu/go-clone v1.6.0
+	github.com/izumiFinance/iZiSwap-SDK-go v1.0.0
 	github.com/json-iterator/go v1.1.12
 	github.com/machinebox/graphql v0.2.2
 	github.com/mcuadros/go-defaults v1.2.0
@@ -131,7 +132,6 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.5 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
-	github.com/izumiFinance/iZiSwap-SDK-go v1.0.0 // indirect
 	github.com/klauspost/compress v1.17.1 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
