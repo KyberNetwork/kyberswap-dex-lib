@@ -211,7 +211,6 @@ func TestMsgpackMarshalUnmarshal(t *testing.T) {
 				Swap: rand.Int63(),
 			},
 		}
-		require.NoError(t, p.initializeOnce())
 		pools = append(pools, p)
 	}
 	{
@@ -413,7 +412,6 @@ func TestMsgpackMarshalUnmarshal(t *testing.T) {
 				Swap: rand.Int63(),
 			},
 		}
-		require.NoError(t, p.initializeOnce())
 		pools = append(pools, p)
 	}
 	for _, pool := range pools {
@@ -422,7 +420,8 @@ func TestMsgpackMarshalUnmarshal(t *testing.T) {
 		actual := new(PoolSimulator)
 		_, err = actual.UnmarshalMsg(b)
 		require.NoError(t, err)
-		require.NoError(t, actual.initializeOnce())
+		require.NoError(t, actual.AfterMsgpDecode())
+		require.NoError(t, pool.AfterMsgpDecode())
 		require.Empty(t, cmp.Diff(pool, actual, testutil.CmpOpts(PoolSimulator{})...))
 	}
 }

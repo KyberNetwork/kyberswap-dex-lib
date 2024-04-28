@@ -89,7 +89,7 @@ func TestMsgpackMarshalUnmarshal(t *testing.T) {
 		actual := new(PoolSimulator)
 		_, err = actual.UnmarshalMsg(b)
 		require.NoError(t, err)
-		actual.initializeOnce()
+		require.NoError(t, actual.AfterMsgpDecode())
 		require.Empty(t, cmp.Diff(pool, actual, testutil.CmpOpts(PoolSimulator{})...))
 	}
 }
