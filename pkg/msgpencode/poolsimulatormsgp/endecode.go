@@ -81,5 +81,11 @@ func DecodePoolSimulator(encoded []byte) pool.IPoolSimulator {
 		panic(fmt.Sprintf("could not decode msgp.Decodable: %s", err))
 	}
 
+	if hookable, ok := sim.(MsgpHookable); ok {
+		if err := hookable.AfterMsgpDecode(); err != nil {
+			panic(fmt.Sprintf("AfterDecode() returns an error: %s", err))
+		}
+	}
+
 	return sim
 }

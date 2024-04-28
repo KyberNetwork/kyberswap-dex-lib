@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"math/big"
 	"strings"
-	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -24,8 +23,6 @@ type PoolSimulator struct {
 	vault      *Vault
 	vaultUtils *VaultUtils `msg:"-"`
 	gas        Gas
-
-	_initializeOnce sync.Once `msg:"-"`
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -46,30 +43,17 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Tokens:   tokens,
 	}
 
-	p := &PoolSimulator{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: info,
 		},
 		vault:      extra.Vault,
 		vaultUtils: NewVaultUtils(extra.Vault),
 		gas:        DefaultGas,
-	}
-	p.initializeOnce()
-	return p, nil
-}
-
-// initializeOnce PoolSimulator.vaultUtils when PoolSimulator is constructed via unmarshaling
-func (p *PoolSimulator) initializeOnce() {
-	p._initializeOnce.Do(func() {
-		if p.vaultUtils == nil {
-			p.vaultUtils = NewVaultUtils(p.vault)
-		}
-	})
+	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	p.initializeOnce()
-
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 	amountOutAfterFees, feeAmount, err := p.getAmountOut(tokenAmountIn.Token, tokenOut, tokenAmountIn.Amount)
@@ -238,5 +222,12 @@ func (p *PoolSimulator) validateBufferAmount(token string, amount *big.Int) erro
 		return ErrVaultPoolAmountLessThanBufferAmount
 	}
 
+	return nil
+}
+
+func (p *PoolSimulator) AfterMsgpDecode() error {
+	if p.vaultUtils == nil {
+		p.vaultUtils = NewVaultUtils(p.vault)
+	}
 	return nil
 }

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"math/big"
 	"strings"
-	"sync"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 
@@ -25,8 +24,6 @@ type PoolSimulator struct {
 	vault    *Vault
 	feeUtils *FeeUtilsV2
 	gas      Gas
-
-	_initializeOnce sync.Once `msg:"-"`
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -51,32 +48,19 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	feeUtils := extra.FeeUtils
 	feeUtils.Vault = vault
 
-	p := &PoolSimulator{
+	return &PoolSimulator{
 		Pool: pool.Pool{
 			Info: info,
 		},
 		vault:    vault,
 		feeUtils: feeUtils,
 		gas:      DefaultGas,
-	}
-	p.initializeOnce()
-	return p, nil
-}
-
-// initializeOnce PoolSimulator.feeUtils.Vault when PoolSimulator is constructed via unmarshaling
-func (p *PoolSimulator) initializeOnce() {
-	p._initializeOnce.Do(func() {
-		if p.feeUtils.Vault == nil {
-			p.feeUtils.Vault = p.vault
-		}
-	})
+	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(
 	param pool.CalcAmountOutParams,
 ) (*pool.CalcAmountOutResult, error) {
-	p.initializeOnce()
-
 	var (
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut
@@ -247,5 +231,12 @@ func (p *PoolSimulator) validateBufferAmount(token string, amount *big.Int) erro
 		return ErrVaultPoolAmountLessThanBufferAmount
 	}
 
+	return nil
+}
+
+func (p *PoolSimulator) AfterMsgpDecode() error {
+	if p.feeUtils.Vault == nil {
+		p.feeUtils.Vault = p.vault
+	}
 	return nil
 }
