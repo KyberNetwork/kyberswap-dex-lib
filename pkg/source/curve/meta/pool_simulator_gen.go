@@ -119,10 +119,14 @@ func (z *Pool) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "BasePool":
-			err = z.BasePool.DecodeMsg(dc)
-			if err != nil {
-				err = msgp.WrapError(err, "BasePool")
-				return
+			{
+				var zb0002 []byte
+				zb0002, err = dc.ReadBytes(encodeBasePool(z.BasePool))
+				if err != nil {
+					err = msgp.WrapError(err, "BasePool")
+					return
+				}
+				z.BasePool = decodeBasePool(zb0002)
 			}
 		case "RateMultiplier":
 			if dc.IsNil() {
@@ -134,13 +138,13 @@ func (z *Pool) DecodeMsg(dc *msgp.Reader) (err error) {
 				z.RateMultiplier = nil
 			} else {
 				{
-					var zb0002 []byte
-					zb0002, err = dc.ReadBytes(msgpencode.EncodeInt(z.RateMultiplier))
+					var zb0003 []byte
+					zb0003, err = dc.ReadBytes(msgpencode.EncodeInt(z.RateMultiplier))
 					if err != nil {
 						err = msgp.WrapError(err, "RateMultiplier")
 						return
 					}
-					z.RateMultiplier = msgpencode.DecodeInt(zb0002)
+					z.RateMultiplier = msgpencode.DecodeInt(zb0003)
 				}
 			}
 		case "InitialA":
@@ -153,13 +157,13 @@ func (z *Pool) DecodeMsg(dc *msgp.Reader) (err error) {
 				z.InitialA = nil
 			} else {
 				{
-					var zb0003 []byte
-					zb0003, err = dc.ReadBytes(msgpencode.EncodeInt(z.InitialA))
+					var zb0004 []byte
+					zb0004, err = dc.ReadBytes(msgpencode.EncodeInt(z.InitialA))
 					if err != nil {
 						err = msgp.WrapError(err, "InitialA")
 						return
 					}
-					z.InitialA = msgpencode.DecodeInt(zb0003)
+					z.InitialA = msgpencode.DecodeInt(zb0004)
 				}
 			}
 		case "FutureA":
@@ -172,13 +176,13 @@ func (z *Pool) DecodeMsg(dc *msgp.Reader) (err error) {
 				z.FutureA = nil
 			} else {
 				{
-					var zb0004 []byte
-					zb0004, err = dc.ReadBytes(msgpencode.EncodeInt(z.FutureA))
+					var zb0005 []byte
+					zb0005, err = dc.ReadBytes(msgpencode.EncodeInt(z.FutureA))
 					if err != nil {
 						err = msgp.WrapError(err, "FutureA")
 						return
 					}
-					z.FutureA = msgpencode.DecodeInt(zb0004)
+					z.FutureA = msgpencode.DecodeInt(zb0005)
 				}
 			}
 		case "InitialATime":
@@ -203,13 +207,13 @@ func (z *Pool) DecodeMsg(dc *msgp.Reader) (err error) {
 				z.AdminFee = nil
 			} else {
 				{
-					var zb0005 []byte
-					zb0005, err = dc.ReadBytes(msgpencode.EncodeInt(z.AdminFee))
+					var zb0006 []byte
+					zb0006, err = dc.ReadBytes(msgpencode.EncodeInt(z.AdminFee))
 					if err != nil {
 						err = msgp.WrapError(err, "AdminFee")
 						return
 					}
-					z.AdminFee = msgpencode.DecodeInt(zb0005)
+					z.AdminFee = msgpencode.DecodeInt(zb0006)
 				}
 			}
 		case "LpToken":
@@ -228,13 +232,13 @@ func (z *Pool) DecodeMsg(dc *msgp.Reader) (err error) {
 				z.LpSupply = nil
 			} else {
 				{
-					var zb0006 []byte
-					zb0006, err = dc.ReadBytes(msgpencode.EncodeInt(z.LpSupply))
+					var zb0007 []byte
+					zb0007, err = dc.ReadBytes(msgpencode.EncodeInt(z.LpSupply))
 					if err != nil {
 						err = msgp.WrapError(err, "LpSupply")
 						return
 					}
-					z.LpSupply = msgpencode.DecodeInt(zb0006)
+					z.LpSupply = msgpencode.DecodeInt(zb0007)
 				}
 			}
 		case "APrecision":
@@ -247,24 +251,24 @@ func (z *Pool) DecodeMsg(dc *msgp.Reader) (err error) {
 				z.APrecision = nil
 			} else {
 				{
-					var zb0007 []byte
-					zb0007, err = dc.ReadBytes(msgpencode.EncodeInt(z.APrecision))
+					var zb0008 []byte
+					zb0008, err = dc.ReadBytes(msgpencode.EncodeInt(z.APrecision))
 					if err != nil {
 						err = msgp.WrapError(err, "APrecision")
 						return
 					}
-					z.APrecision = msgpencode.DecodeInt(zb0007)
+					z.APrecision = msgpencode.DecodeInt(zb0008)
 				}
 			}
 		case "gas":
-			var zb0008 uint32
-			zb0008, err = dc.ReadArrayHeader()
+			var zb0009 uint32
+			zb0009, err = dc.ReadArrayHeader()
 			if err != nil {
 				err = msgp.WrapError(err, "gas")
 				return
 			}
-			if zb0008 != 2 {
-				err = msgp.ArrayError{Wanted: 2, Got: zb0008}
+			if zb0009 != 2 {
+				err = msgp.ArrayError{Wanted: 2, Got: zb0009}
 				return
 			}
 			z.gas.Exchange, err = dc.ReadInt64()
@@ -306,7 +310,7 @@ func (z *Pool) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = z.BasePool.EncodeMsg(en)
+	err = en.WriteBytes(encodeBasePool(z.BasePool))
 	if err != nil {
 		err = msgp.WrapError(err, "BasePool")
 		return
@@ -479,11 +483,7 @@ func (z *Pool) MarshalMsg(b []byte) (o []byte, err error) {
 	}
 	// string "BasePool"
 	o = append(o, 0xa8, 0x42, 0x61, 0x73, 0x65, 0x50, 0x6f, 0x6f, 0x6c)
-	o, err = z.BasePool.MarshalMsg(o)
-	if err != nil {
-		err = msgp.WrapError(err, "BasePool")
-		return
-	}
+	o = msgp.AppendBytes(o, encodeBasePool(z.BasePool))
 	// string "RateMultiplier"
 	o = append(o, 0xae, 0x52, 0x61, 0x74, 0x65, 0x4d, 0x75, 0x6c, 0x74, 0x69, 0x70, 0x6c, 0x69, 0x65, 0x72)
 	if z.RateMultiplier == nil {
@@ -569,10 +569,14 @@ func (z *Pool) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "BasePool":
-			bts, err = z.BasePool.UnmarshalMsg(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "BasePool")
-				return
+			{
+				var zb0002 []byte
+				zb0002, bts, err = msgp.ReadBytesBytes(bts, encodeBasePool(z.BasePool))
+				if err != nil {
+					err = msgp.WrapError(err, "BasePool")
+					return
+				}
+				z.BasePool = decodeBasePool(zb0002)
 			}
 		case "RateMultiplier":
 			if msgp.IsNil(bts) {
@@ -583,13 +587,13 @@ func (z *Pool) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				z.RateMultiplier = nil
 			} else {
 				{
-					var zb0002 []byte
-					zb0002, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.RateMultiplier))
+					var zb0003 []byte
+					zb0003, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.RateMultiplier))
 					if err != nil {
 						err = msgp.WrapError(err, "RateMultiplier")
 						return
 					}
-					z.RateMultiplier = msgpencode.DecodeInt(zb0002)
+					z.RateMultiplier = msgpencode.DecodeInt(zb0003)
 				}
 			}
 		case "InitialA":
@@ -601,13 +605,13 @@ func (z *Pool) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				z.InitialA = nil
 			} else {
 				{
-					var zb0003 []byte
-					zb0003, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.InitialA))
+					var zb0004 []byte
+					zb0004, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.InitialA))
 					if err != nil {
 						err = msgp.WrapError(err, "InitialA")
 						return
 					}
-					z.InitialA = msgpencode.DecodeInt(zb0003)
+					z.InitialA = msgpencode.DecodeInt(zb0004)
 				}
 			}
 		case "FutureA":
@@ -619,13 +623,13 @@ func (z *Pool) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				z.FutureA = nil
 			} else {
 				{
-					var zb0004 []byte
-					zb0004, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.FutureA))
+					var zb0005 []byte
+					zb0005, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.FutureA))
 					if err != nil {
 						err = msgp.WrapError(err, "FutureA")
 						return
 					}
-					z.FutureA = msgpencode.DecodeInt(zb0004)
+					z.FutureA = msgpencode.DecodeInt(zb0005)
 				}
 			}
 		case "InitialATime":
@@ -649,13 +653,13 @@ func (z *Pool) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				z.AdminFee = nil
 			} else {
 				{
-					var zb0005 []byte
-					zb0005, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.AdminFee))
+					var zb0006 []byte
+					zb0006, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.AdminFee))
 					if err != nil {
 						err = msgp.WrapError(err, "AdminFee")
 						return
 					}
-					z.AdminFee = msgpencode.DecodeInt(zb0005)
+					z.AdminFee = msgpencode.DecodeInt(zb0006)
 				}
 			}
 		case "LpToken":
@@ -673,13 +677,13 @@ func (z *Pool) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				z.LpSupply = nil
 			} else {
 				{
-					var zb0006 []byte
-					zb0006, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.LpSupply))
+					var zb0007 []byte
+					zb0007, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.LpSupply))
 					if err != nil {
 						err = msgp.WrapError(err, "LpSupply")
 						return
 					}
-					z.LpSupply = msgpencode.DecodeInt(zb0006)
+					z.LpSupply = msgpencode.DecodeInt(zb0007)
 				}
 			}
 		case "APrecision":
@@ -691,24 +695,24 @@ func (z *Pool) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				z.APrecision = nil
 			} else {
 				{
-					var zb0007 []byte
-					zb0007, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.APrecision))
+					var zb0008 []byte
+					zb0008, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.APrecision))
 					if err != nil {
 						err = msgp.WrapError(err, "APrecision")
 						return
 					}
-					z.APrecision = msgpencode.DecodeInt(zb0007)
+					z.APrecision = msgpencode.DecodeInt(zb0008)
 				}
 			}
 		case "gas":
-			var zb0008 uint32
-			zb0008, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			var zb0009 uint32
+			zb0009, bts, err = msgp.ReadArrayHeaderBytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "gas")
 				return
 			}
-			if zb0008 != 2 {
-				err = msgp.ArrayError{Wanted: 2, Got: zb0008}
+			if zb0009 != 2 {
+				err = msgp.ArrayError{Wanted: 2, Got: zb0009}
 				return
 			}
 			z.gas.Exchange, bts, err = msgp.ReadInt64Bytes(bts)
@@ -735,7 +739,7 @@ func (z *Pool) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Pool) Msgsize() (s int) {
-	s = 1 + 5 + z.Pool.Msgsize() + 9 + z.BasePool.Msgsize() + 15
+	s = 1 + 5 + z.Pool.Msgsize() + 9 + msgp.BytesPrefixSize + len(encodeBasePool(z.BasePool)) + 15
 	if z.RateMultiplier == nil {
 		s += msgp.NilSize
 	} else {
