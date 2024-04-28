@@ -158,6 +158,8 @@ func (z *Vault) DecodeMsg(dc *msgp.Reader) (err error) {
 			delete(z.PoolAmounts, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0008 > 0 {
 		zb0008--
 		var za0002 string
@@ -1156,6 +1158,8 @@ func (z *Vault) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			delete(z.PoolAmounts, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0008 > 0 {
 		var za0002 string
 		var za0003 *big.Int

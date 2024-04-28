@@ -551,6 +551,8 @@ func (z *MaverickPoolState) DecodeMsg(dc *msgp.Reader) (err error) {
 			delete(z.Bins, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0007 > 0 {
 		zb0007--
 		var za0001 string
@@ -1144,6 +1146,8 @@ func (z *MaverickPoolState) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			delete(z.Bins, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0007 > 0 {
 		var za0001 string
 		var za0002 Bin

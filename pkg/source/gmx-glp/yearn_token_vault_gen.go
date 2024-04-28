@@ -332,6 +332,8 @@ func (z *YearnTokenVault) DecodeMsg(dc *msgp.Reader) (err error) {
 			delete(z.YearnStrategyMap, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0009 > 0 {
 		zb0009--
 		var za0001 string
@@ -726,6 +728,8 @@ func (z *YearnTokenVault) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			delete(z.YearnStrategyMap, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0009 > 0 {
 		var za0001 string
 		var za0002 *YearnStrategy

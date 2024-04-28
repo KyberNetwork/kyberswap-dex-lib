@@ -244,6 +244,8 @@ func (z *ChainlinkDataFeed) DecodeMsg(dc *msgp.Reader) (err error) {
 			delete(z.Answers, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0007 > 0 {
 		zb0007--
 		var za0001 string
@@ -502,6 +504,8 @@ func (z *ChainlinkDataFeed) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			delete(z.Answers, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0007 > 0 {
 		var za0001 string
 		var za0002 RoundData
@@ -626,6 +630,8 @@ func (z *DexPriceAggregatorUniswapV3) DecodeMsg(dc *msgp.Reader) (err error) {
 			delete(z.OverriddenPoolForRoute, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0005 > 0 {
 		zb0005--
 		var za0001 string
@@ -1037,6 +1043,8 @@ func (z *DexPriceAggregatorUniswapV3) UnmarshalMsg(bts []byte) (o []byte, err er
 			delete(z.OverriddenPoolForRoute, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0005 > 0 {
 		var za0001 string
 		var za0002 common.Address
@@ -1892,6 +1900,8 @@ func (z *PoolState) DecodeMsg(dc *msgp.Reader) (err error) {
 			delete(z.Synths, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0002 > 0 {
 		zb0002--
 		var za0001 string
@@ -2792,6 +2802,8 @@ func (z *PoolState) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			delete(z.Synths, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0002 > 0 {
 		var za0001 string
 		var za0002 common.Address
@@ -3968,6 +3980,8 @@ func (z *SystemSettings) DecodeMsg(dc *msgp.Reader) (err error) {
 			delete(z.PureChainlinkPriceForAtomicSwapsEnabled, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0002 > 0 {
 		zb0002--
 		var za0001 string
@@ -4609,6 +4623,8 @@ func (z *SystemSettings) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			delete(z.PureChainlinkPriceForAtomicSwapsEnabled, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0002 > 0 {
 		var za0001 string
 		var za0002 bool

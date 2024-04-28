@@ -76,6 +76,8 @@ func (z *VaultPriceFeed) DecodeMsg(dc *msgp.Reader) (err error) {
 			delete(z.PriceDecimals, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0004 > 0 {
 		zb0004--
 		var za0001 string
@@ -712,6 +714,8 @@ func (z *VaultPriceFeed) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			delete(z.PriceDecimals, key)
 		}
 	}
+	var field []byte
+	_ = field
 	for zb0004 > 0 {
 		var za0001 string
 		var za0002 *big.Int
