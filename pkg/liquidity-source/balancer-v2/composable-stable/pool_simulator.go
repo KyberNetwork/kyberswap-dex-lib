@@ -6,7 +6,6 @@ package composablestable
 
 import (
 	"math/big"
-	"strconv"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -73,9 +72,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		swapFeePercentage: extra.SwapFeePercentage,
 	}
 
-	protocolFeePercentageCache := make(map[string]*uint256.Int, len(extra.ProtocolFeePercentageCache))
+	protocolFeePercentageCache := make(map[intAsStr]*uint256.Int, len(extra.ProtocolFeePercentageCache))
 	for ty, fee := range extra.ProtocolFeePercentageCache {
-		protocolFeePercentageCache[strconv.FormatInt(int64(ty), 10)] = fee
+		protocolFeePercentageCache[intAsStr(ty)] = fee
 	}
 	bptSimulator := bptSimulator{
 		Pool:                            pool,

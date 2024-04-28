@@ -2,7 +2,6 @@ package composablestable
 
 import (
 	"math/big"
-	"strconv"
 	"testing"
 
 	"github.com/goccy/go-json"
@@ -195,9 +194,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(100000000000000),
-			protocolFeePercentageCache: map[string]*uint256.Int{
-				strconv.FormatInt(int64(feeTypeSwap), 10):  uint256.NewInt(0),
-				strconv.FormatInt(int64(feeTypeYield), 10): uint256.NewInt(0),
+			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
+				intAsStr(feeTypeSwap):  uint256.NewInt(0),
+				intAsStr(feeTypeYield): uint256.NewInt(0),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
@@ -287,9 +286,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(100000000000000),
-			protocolFeePercentageCache: map[string]*uint256.Int{
-				strconv.FormatInt(int64(feeTypeSwap), 10):  uint256.NewInt(0),
-				strconv.FormatInt(int64(feeTypeYield), 10): uint256.NewInt(0),
+			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
+				intAsStr(feeTypeSwap):  uint256.NewInt(0),
+				intAsStr(feeTypeYield): uint256.NewInt(0),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
@@ -385,9 +384,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(500000000000000),
-			protocolFeePercentageCache: map[string]*uint256.Int{
-				strconv.FormatInt(int64(feeTypeSwap), 10):  uint256.NewInt(500000000000000000),
-				strconv.FormatInt(int64(feeTypeYield), 10): uint256.NewInt(500000000000000000),
+			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
+				intAsStr(feeTypeSwap):  uint256.NewInt(500000000000000000),
+				intAsStr(feeTypeYield): uint256.NewInt(500000000000000000),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
@@ -484,9 +483,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(500000000000000),
-			protocolFeePercentageCache: map[string]*uint256.Int{
-				strconv.FormatInt(int64(feeTypeSwap), 10):  uint256.NewInt(500000000000000000),
-				strconv.FormatInt(int64(feeTypeYield), 10): uint256.NewInt(500000000000000000),
+			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
+				intAsStr(feeTypeSwap):  uint256.NewInt(500000000000000000),
+				intAsStr(feeTypeYield): uint256.NewInt(500000000000000000),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
@@ -577,9 +576,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(100000000000000),
-			protocolFeePercentageCache: map[string]*uint256.Int{
-				strconv.FormatInt(int64(feeTypeSwap), 10):  uint256.NewInt(0),
-				strconv.FormatInt(int64(feeTypeYield), 10): uint256.NewInt(0),
+			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
+				intAsStr(feeTypeSwap):  uint256.NewInt(0),
+				intAsStr(feeTypeYield): uint256.NewInt(0),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
@@ -671,9 +670,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(100000000000000),
-			protocolFeePercentageCache: map[string]*uint256.Int{
-				strconv.FormatInt(int64(feeTypeSwap), 10):  uint256.NewInt(0),
-				strconv.FormatInt(int64(feeTypeYield), 10): uint256.NewInt(0),
+			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
+				intAsStr(feeTypeSwap):  uint256.NewInt(0),
+				intAsStr(feeTypeYield): uint256.NewInt(0),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
@@ -768,9 +767,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(500000000000000),
-			protocolFeePercentageCache: map[string]*uint256.Int{
-				strconv.FormatInt(int64(feeTypeSwap), 10):  uint256.NewInt(500000000000000000),
-				strconv.FormatInt(int64(feeTypeYield), 10): uint256.NewInt(500000000000000000),
+			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
+				intAsStr(feeTypeSwap):  uint256.NewInt(500000000000000000),
+				intAsStr(feeTypeYield): uint256.NewInt(500000000000000000),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
@@ -867,9 +866,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(500000000000000),
-			protocolFeePercentageCache: map[string]*uint256.Int{
-				strconv.FormatInt(int64(feeTypeSwap), 10):  uint256.NewInt(500000000000000000),
-				strconv.FormatInt(int64(feeTypeYield), 10): uint256.NewInt(500000000000000000),
+			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
+				intAsStr(feeTypeSwap):  uint256.NewInt(500000000000000000),
+				intAsStr(feeTypeYield): uint256.NewInt(500000000000000000),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
