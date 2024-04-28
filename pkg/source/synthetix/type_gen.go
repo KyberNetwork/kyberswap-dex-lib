@@ -1922,34 +1922,36 @@ func (z *PoolState) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		z.Synths[za0001] = za0002
 	}
+	var zb0005 string
 	var zb0004 uint32
 	zb0004, err = dc.ReadMapHeader()
 	if err != nil {
-		err = msgp.WrapError(err, "CurrencyKeyBySynthMsgp")
+		err = msgp.WrapError(err, "CurrencyKeyBySynth")
 		return
 	}
-	if z.CurrencyKeyBySynthMsgp == nil {
-		z.CurrencyKeyBySynthMsgp = make(map[string]string, zb0004)
-	} else if len(z.CurrencyKeyBySynthMsgp) > 0 {
-		for key := range z.CurrencyKeyBySynthMsgp {
-			delete(z.CurrencyKeyBySynthMsgp, key)
+	if z.CurrencyKeyBySynth == nil {
+		z.CurrencyKeyBySynth = make(map[Address]string, zb0004)
+	} else if len(z.CurrencyKeyBySynth) > 0 {
+		for key := range z.CurrencyKeyBySynth {
+			delete(z.CurrencyKeyBySynth, key)
 		}
 	}
 	for zb0004 > 0 {
 		zb0004--
-		var za0003 string
+		var za0003 Address
 		var za0004 string
-		za0003, err = dc.ReadString()
+		zb0005, err = dc.ReadString()
 		if err != nil {
-			err = msgp.WrapError(err, "CurrencyKeyBySynthMsgp")
+			err = msgp.WrapError(err, "CurrencyKeyBySynth")
 			return
 		}
+		za0003 = common.HexToAddress(zb0005)
 		za0004, err = dc.ReadString()
 		if err != nil {
-			err = msgp.WrapError(err, "CurrencyKeyBySynthMsgp", za0003)
+			err = msgp.WrapError(err, "CurrencyKeyBySynth", za0003)
 			return
 		}
-		z.CurrencyKeyBySynthMsgp[za0003] = za0004
+		z.CurrencyKeyBySynth[za0003] = za0004
 	}
 	if dc.IsNil() {
 		err = dc.ReadNil()
@@ -1960,30 +1962,30 @@ func (z *PoolState) DecodeMsg(dc *msgp.Reader) (err error) {
 		z.AvailableSynthCount = nil
 	} else {
 		{
-			var zb0005 []byte
-			zb0005, err = dc.ReadBytes(msgpencode.EncodeInt(z.AvailableSynthCount))
+			var zb0006 []byte
+			zb0006, err = dc.ReadBytes(msgpencode.EncodeInt(z.AvailableSynthCount))
 			if err != nil {
 				err = msgp.WrapError(err, "AvailableSynthCount")
 				return
 			}
-			z.AvailableSynthCount = msgpencode.DecodeInt(zb0005)
+			z.AvailableSynthCount = msgpencode.DecodeInt(zb0006)
 		}
 	}
-	var zb0006 uint32
-	zb0006, err = dc.ReadMapHeader()
+	var zb0007 uint32
+	zb0007, err = dc.ReadMapHeader()
 	if err != nil {
 		err = msgp.WrapError(err, "SynthsTotalSupply")
 		return
 	}
 	if z.SynthsTotalSupply == nil {
-		z.SynthsTotalSupply = make(map[string]*big.Int, zb0006)
+		z.SynthsTotalSupply = make(map[string]*big.Int, zb0007)
 	} else if len(z.SynthsTotalSupply) > 0 {
 		for key := range z.SynthsTotalSupply {
 			delete(z.SynthsTotalSupply, key)
 		}
 	}
-	for zb0006 > 0 {
-		zb0006--
+	for zb0007 > 0 {
+		zb0007--
 		var za0005 string
 		var za0006 *big.Int
 		za0005, err = dc.ReadString()
@@ -2000,13 +2002,13 @@ func (z *PoolState) DecodeMsg(dc *msgp.Reader) (err error) {
 			za0006 = nil
 		} else {
 			{
-				var zb0007 []byte
-				zb0007, err = dc.ReadBytes(msgpencode.EncodeInt(za0006))
+				var zb0008 []byte
+				zb0008, err = dc.ReadBytes(msgpencode.EncodeInt(za0006))
 				if err != nil {
 					err = msgp.WrapError(err, "SynthsTotalSupply", za0005)
 					return
 				}
-				za0006 = msgpencode.DecodeInt(zb0007)
+				za0006 = msgpencode.DecodeInt(zb0008)
 			}
 		}
 		z.SynthsTotalSupply[za0005] = za0006
@@ -2020,25 +2022,25 @@ func (z *PoolState) DecodeMsg(dc *msgp.Reader) (err error) {
 		z.TotalIssuedSUSD = nil
 	} else {
 		{
-			var zb0008 []byte
-			zb0008, err = dc.ReadBytes(msgpencode.EncodeInt(z.TotalIssuedSUSD))
+			var zb0009 []byte
+			zb0009, err = dc.ReadBytes(msgpencode.EncodeInt(z.TotalIssuedSUSD))
 			if err != nil {
 				err = msgp.WrapError(err, "TotalIssuedSUSD")
 				return
 			}
-			z.TotalIssuedSUSD = msgpencode.DecodeInt(zb0008)
+			z.TotalIssuedSUSD = msgpencode.DecodeInt(zb0009)
 		}
 	}
-	var zb0009 uint32
-	zb0009, err = dc.ReadArrayHeader()
+	var zb0010 uint32
+	zb0010, err = dc.ReadArrayHeader()
 	if err != nil {
 		err = msgp.WrapError(err, "CurrencyKeys")
 		return
 	}
-	if cap(z.CurrencyKeys) >= int(zb0009) {
-		z.CurrencyKeys = (z.CurrencyKeys)[:zb0009]
+	if cap(z.CurrencyKeys) >= int(zb0010) {
+		z.CurrencyKeys = (z.CurrencyKeys)[:zb0010]
 	} else {
-		z.CurrencyKeys = make([]string, zb0009)
+		z.CurrencyKeys = make([]string, zb0010)
 	}
 	for za0007 := range z.CurrencyKeys {
 		z.CurrencyKeys[za0007], err = dc.ReadString()
@@ -2095,13 +2097,13 @@ func (z *PoolState) DecodeMsg(dc *msgp.Reader) (err error) {
 		z.AtomicMaxVolumePerBlock = nil
 	} else {
 		{
-			var zb0010 []byte
-			zb0010, err = dc.ReadBytes(msgpencode.EncodeInt(z.AtomicMaxVolumePerBlock))
+			var zb0011 []byte
+			zb0011, err = dc.ReadBytes(msgpencode.EncodeInt(z.AtomicMaxVolumePerBlock))
 			if err != nil {
 				err = msgp.WrapError(err, "AtomicMaxVolumePerBlock")
 				return
 			}
-			z.AtomicMaxVolumePerBlock = msgpencode.DecodeInt(zb0010)
+			z.AtomicMaxVolumePerBlock = msgpencode.DecodeInt(zb0011)
 		}
 	}
 	if dc.IsNil() {
@@ -2115,14 +2117,14 @@ func (z *PoolState) DecodeMsg(dc *msgp.Reader) (err error) {
 		if z.LastAtomicVolume == nil {
 			z.LastAtomicVolume = new(ExchangeVolumeAtPeriod)
 		}
-		var zb0011 uint32
-		zb0011, err = dc.ReadArrayHeader()
+		var zb0012 uint32
+		zb0012, err = dc.ReadArrayHeader()
 		if err != nil {
 			err = msgp.WrapError(err, "LastAtomicVolume")
 			return
 		}
-		if zb0011 != 2 {
-			err = msgp.ArrayError{Wanted: 2, Got: zb0011}
+		if zb0012 != 2 {
+			err = msgp.ArrayError{Wanted: 2, Got: zb0012}
 			return
 		}
 		z.LastAtomicVolume.Time, err = dc.ReadUint64()
@@ -2139,31 +2141,31 @@ func (z *PoolState) DecodeMsg(dc *msgp.Reader) (err error) {
 			z.LastAtomicVolume.Volume = nil
 		} else {
 			{
-				var zb0012 []byte
-				zb0012, err = dc.ReadBytes(msgpencode.EncodeInt(z.LastAtomicVolume.Volume))
+				var zb0013 []byte
+				zb0013, err = dc.ReadBytes(msgpencode.EncodeInt(z.LastAtomicVolume.Volume))
 				if err != nil {
 					err = msgp.WrapError(err, "LastAtomicVolume", "Volume")
 					return
 				}
-				z.LastAtomicVolume.Volume = msgpencode.DecodeInt(zb0012)
+				z.LastAtomicVolume.Volume = msgpencode.DecodeInt(zb0013)
 			}
 		}
 	}
-	var zb0013 uint32
-	zb0013, err = dc.ReadMapHeader()
+	var zb0014 uint32
+	zb0014, err = dc.ReadMapHeader()
 	if err != nil {
 		err = msgp.WrapError(err, "AggregatorAddresses")
 		return
 	}
 	if z.AggregatorAddresses == nil {
-		z.AggregatorAddresses = make(map[string]common.Address, zb0013)
+		z.AggregatorAddresses = make(map[string]common.Address, zb0014)
 	} else if len(z.AggregatorAddresses) > 0 {
 		for key := range z.AggregatorAddresses {
 			delete(z.AggregatorAddresses, key)
 		}
 	}
-	for zb0013 > 0 {
-		zb0013--
+	for zb0014 > 0 {
+		zb0014--
 		var za0008 string
 		var za0009 common.Address
 		za0008, err = dc.ReadString()
@@ -2172,31 +2174,31 @@ func (z *PoolState) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		{
-			var zb0014 []byte
-			zb0014, err = dc.ReadBytes((common.Address).Bytes(za0009))
+			var zb0015 []byte
+			zb0015, err = dc.ReadBytes((common.Address).Bytes(za0009))
 			if err != nil {
 				err = msgp.WrapError(err, "AggregatorAddresses", za0008)
 				return
 			}
-			za0009 = common.BytesToAddress(zb0014)
+			za0009 = common.BytesToAddress(zb0015)
 		}
 		z.AggregatorAddresses[za0008] = za0009
 	}
-	var zb0015 uint32
-	zb0015, err = dc.ReadMapHeader()
+	var zb0016 uint32
+	zb0016, err = dc.ReadMapHeader()
 	if err != nil {
 		err = msgp.WrapError(err, "CurrencyKeyDecimals")
 		return
 	}
 	if z.CurrencyKeyDecimals == nil {
-		z.CurrencyKeyDecimals = make(map[string]uint8, zb0015)
+		z.CurrencyKeyDecimals = make(map[string]uint8, zb0016)
 	} else if len(z.CurrencyKeyDecimals) > 0 {
 		for key := range z.CurrencyKeyDecimals {
 			delete(z.CurrencyKeyDecimals, key)
 		}
 	}
-	for zb0015 > 0 {
-		zb0015--
+	for zb0016 > 0 {
+		zb0016--
 		var za0010 string
 		var za0011 uint8
 		za0010, err = dc.ReadString()
@@ -2211,21 +2213,21 @@ func (z *PoolState) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		z.CurrencyKeyDecimals[za0010] = za0011
 	}
-	var zb0016 uint32
-	zb0016, err = dc.ReadMapHeader()
+	var zb0017 uint32
+	zb0017, err = dc.ReadMapHeader()
 	if err != nil {
 		err = msgp.WrapError(err, "CurrentRoundIds")
 		return
 	}
 	if z.CurrentRoundIds == nil {
-		z.CurrentRoundIds = make(map[string]*big.Int, zb0016)
+		z.CurrentRoundIds = make(map[string]*big.Int, zb0017)
 	} else if len(z.CurrentRoundIds) > 0 {
 		for key := range z.CurrentRoundIds {
 			delete(z.CurrentRoundIds, key)
 		}
 	}
-	for zb0016 > 0 {
-		zb0016--
+	for zb0017 > 0 {
+		zb0017--
 		var za0012 string
 		var za0013 *big.Int
 		za0012, err = dc.ReadString()
@@ -2242,32 +2244,32 @@ func (z *PoolState) DecodeMsg(dc *msgp.Reader) (err error) {
 			za0013 = nil
 		} else {
 			{
-				var zb0017 []byte
-				zb0017, err = dc.ReadBytes(msgpencode.EncodeInt(za0013))
+				var zb0018 []byte
+				zb0018, err = dc.ReadBytes(msgpencode.EncodeInt(za0013))
 				if err != nil {
 					err = msgp.WrapError(err, "CurrentRoundIds", za0012)
 					return
 				}
-				za0013 = msgpencode.DecodeInt(zb0017)
+				za0013 = msgpencode.DecodeInt(zb0018)
 			}
 		}
 		z.CurrentRoundIds[za0012] = za0013
 	}
-	var zb0018 uint32
-	zb0018, err = dc.ReadMapHeader()
+	var zb0019 uint32
+	zb0019, err = dc.ReadMapHeader()
 	if err != nil {
 		err = msgp.WrapError(err, "SynthTooVolatileForAtomicExchanges")
 		return
 	}
 	if z.SynthTooVolatileForAtomicExchanges == nil {
-		z.SynthTooVolatileForAtomicExchanges = make(map[string]bool, zb0018)
+		z.SynthTooVolatileForAtomicExchanges = make(map[string]bool, zb0019)
 	} else if len(z.SynthTooVolatileForAtomicExchanges) > 0 {
 		for key := range z.SynthTooVolatileForAtomicExchanges {
 			delete(z.SynthTooVolatileForAtomicExchanges, key)
 		}
 	}
-	for zb0018 > 0 {
-		zb0018--
+	for zb0019 > 0 {
+		zb0019--
 		var za0014 string
 		var za0015 bool
 		za0014, err = dc.ReadString()
@@ -2283,29 +2285,29 @@ func (z *PoolState) DecodeMsg(dc *msgp.Reader) (err error) {
 		z.SynthTooVolatileForAtomicExchanges[za0014] = za0015
 	}
 	{
-		var zb0019 []byte
-		zb0019, err = dc.ReadBytes((common.Address).Bytes(z.DexPriceAggregatorAddress))
+		var zb0020 []byte
+		zb0020, err = dc.ReadBytes((common.Address).Bytes(z.DexPriceAggregatorAddress))
 		if err != nil {
 			err = msgp.WrapError(err, "DexPriceAggregatorAddress")
 			return
 		}
-		z.DexPriceAggregatorAddress = common.BytesToAddress(zb0019)
+		z.DexPriceAggregatorAddress = common.BytesToAddress(zb0020)
 	}
-	var zb0020 uint32
-	zb0020, err = dc.ReadMapHeader()
+	var zb0021 uint32
+	zb0021, err = dc.ReadMapHeader()
 	if err != nil {
 		err = msgp.WrapError(err, "Aggregators")
 		return
 	}
 	if z.Aggregators == nil {
-		z.Aggregators = make(map[string]*ChainlinkDataFeed, zb0020)
+		z.Aggregators = make(map[string]*ChainlinkDataFeed, zb0021)
 	} else if len(z.Aggregators) > 0 {
 		for key := range z.Aggregators {
 			delete(z.Aggregators, key)
 		}
 	}
-	for zb0020 > 0 {
-		zb0020--
+	for zb0021 > 0 {
+		zb0021--
 		var za0016 string
 		var za0017 *ChainlinkDataFeed
 		za0016, err = dc.ReadString()
@@ -2381,20 +2383,20 @@ func (z *PoolState) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
-	err = en.WriteMapHeader(uint32(len(z.CurrencyKeyBySynthMsgp)))
+	err = en.WriteMapHeader(uint32(len(z.CurrencyKeyBySynth)))
 	if err != nil {
-		err = msgp.WrapError(err, "CurrencyKeyBySynthMsgp")
+		err = msgp.WrapError(err, "CurrencyKeyBySynth")
 		return
 	}
-	for za0003, za0004 := range z.CurrencyKeyBySynthMsgp {
-		err = en.WriteString(za0003)
+	for za0003, za0004 := range z.CurrencyKeyBySynth {
+		err = en.WriteString((common.Address).Hex(za0003))
 		if err != nil {
-			err = msgp.WrapError(err, "CurrencyKeyBySynthMsgp")
+			err = msgp.WrapError(err, "CurrencyKeyBySynth")
 			return
 		}
 		err = en.WriteString(za0004)
 		if err != nil {
-			err = msgp.WrapError(err, "CurrencyKeyBySynthMsgp", za0003)
+			err = msgp.WrapError(err, "CurrencyKeyBySynth", za0003)
 			return
 		}
 	}
@@ -2658,9 +2660,9 @@ func (z *PoolState) MarshalMsg(b []byte) (o []byte, err error) {
 		o = msgp.AppendString(o, za0001)
 		o = msgp.AppendBytes(o, (common.Address).Bytes(za0002))
 	}
-	o = msgp.AppendMapHeader(o, uint32(len(z.CurrencyKeyBySynthMsgp)))
-	for za0003, za0004 := range z.CurrencyKeyBySynthMsgp {
-		o = msgp.AppendString(o, za0003)
+	o = msgp.AppendMapHeader(o, uint32(len(z.CurrencyKeyBySynth)))
+	for za0003, za0004 := range z.CurrencyKeyBySynth {
+		o = msgp.AppendString(o, (common.Address).Hex(za0003))
 		o = msgp.AppendString(o, za0004)
 	}
 	if z.AvailableSynthCount == nil {
@@ -2824,34 +2826,36 @@ func (z *PoolState) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		z.Synths[za0001] = za0002
 	}
+	var zb0005 string
 	var zb0004 uint32
 	zb0004, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
-		err = msgp.WrapError(err, "CurrencyKeyBySynthMsgp")
+		err = msgp.WrapError(err, "CurrencyKeyBySynth")
 		return
 	}
-	if z.CurrencyKeyBySynthMsgp == nil {
-		z.CurrencyKeyBySynthMsgp = make(map[string]string, zb0004)
-	} else if len(z.CurrencyKeyBySynthMsgp) > 0 {
-		for key := range z.CurrencyKeyBySynthMsgp {
-			delete(z.CurrencyKeyBySynthMsgp, key)
+	if z.CurrencyKeyBySynth == nil {
+		z.CurrencyKeyBySynth = make(map[Address]string, zb0004)
+	} else if len(z.CurrencyKeyBySynth) > 0 {
+		for key := range z.CurrencyKeyBySynth {
+			delete(z.CurrencyKeyBySynth, key)
 		}
 	}
 	for zb0004 > 0 {
-		var za0003 string
+		var za0003 Address
 		var za0004 string
 		zb0004--
-		za0003, bts, err = msgp.ReadStringBytes(bts)
+		zb0005, bts, err = msgp.ReadStringBytes(bts)
 		if err != nil {
-			err = msgp.WrapError(err, "CurrencyKeyBySynthMsgp")
+			err = msgp.WrapError(err, "CurrencyKeyBySynth")
 			return
 		}
+		za0003 = common.HexToAddress(zb0005)
 		za0004, bts, err = msgp.ReadStringBytes(bts)
 		if err != nil {
-			err = msgp.WrapError(err, "CurrencyKeyBySynthMsgp", za0003)
+			err = msgp.WrapError(err, "CurrencyKeyBySynth", za0003)
 			return
 		}
-		z.CurrencyKeyBySynthMsgp[za0003] = za0004
+		z.CurrencyKeyBySynth[za0003] = za0004
 	}
 	if msgp.IsNil(bts) {
 		bts, err = msgp.ReadNilBytes(bts)
@@ -2861,32 +2865,32 @@ func (z *PoolState) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		z.AvailableSynthCount = nil
 	} else {
 		{
-			var zb0005 []byte
-			zb0005, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.AvailableSynthCount))
+			var zb0006 []byte
+			zb0006, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.AvailableSynthCount))
 			if err != nil {
 				err = msgp.WrapError(err, "AvailableSynthCount")
 				return
 			}
-			z.AvailableSynthCount = msgpencode.DecodeInt(zb0005)
+			z.AvailableSynthCount = msgpencode.DecodeInt(zb0006)
 		}
 	}
-	var zb0006 uint32
-	zb0006, bts, err = msgp.ReadMapHeaderBytes(bts)
+	var zb0007 uint32
+	zb0007, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "SynthsTotalSupply")
 		return
 	}
 	if z.SynthsTotalSupply == nil {
-		z.SynthsTotalSupply = make(map[string]*big.Int, zb0006)
+		z.SynthsTotalSupply = make(map[string]*big.Int, zb0007)
 	} else if len(z.SynthsTotalSupply) > 0 {
 		for key := range z.SynthsTotalSupply {
 			delete(z.SynthsTotalSupply, key)
 		}
 	}
-	for zb0006 > 0 {
+	for zb0007 > 0 {
 		var za0005 string
 		var za0006 *big.Int
-		zb0006--
+		zb0007--
 		za0005, bts, err = msgp.ReadStringBytes(bts)
 		if err != nil {
 			err = msgp.WrapError(err, "SynthsTotalSupply")
@@ -2900,13 +2904,13 @@ func (z *PoolState) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			za0006 = nil
 		} else {
 			{
-				var zb0007 []byte
-				zb0007, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(za0006))
+				var zb0008 []byte
+				zb0008, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(za0006))
 				if err != nil {
 					err = msgp.WrapError(err, "SynthsTotalSupply", za0005)
 					return
 				}
-				za0006 = msgpencode.DecodeInt(zb0007)
+				za0006 = msgpencode.DecodeInt(zb0008)
 			}
 		}
 		z.SynthsTotalSupply[za0005] = za0006
@@ -2919,25 +2923,25 @@ func (z *PoolState) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		z.TotalIssuedSUSD = nil
 	} else {
 		{
-			var zb0008 []byte
-			zb0008, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.TotalIssuedSUSD))
+			var zb0009 []byte
+			zb0009, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.TotalIssuedSUSD))
 			if err != nil {
 				err = msgp.WrapError(err, "TotalIssuedSUSD")
 				return
 			}
-			z.TotalIssuedSUSD = msgpencode.DecodeInt(zb0008)
+			z.TotalIssuedSUSD = msgpencode.DecodeInt(zb0009)
 		}
 	}
-	var zb0009 uint32
-	zb0009, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	var zb0010 uint32
+	zb0010, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "CurrencyKeys")
 		return
 	}
-	if cap(z.CurrencyKeys) >= int(zb0009) {
-		z.CurrencyKeys = (z.CurrencyKeys)[:zb0009]
+	if cap(z.CurrencyKeys) >= int(zb0010) {
+		z.CurrencyKeys = (z.CurrencyKeys)[:zb0010]
 	} else {
-		z.CurrencyKeys = make([]string, zb0009)
+		z.CurrencyKeys = make([]string, zb0010)
 	}
 	for za0007 := range z.CurrencyKeys {
 		z.CurrencyKeys[za0007], bts, err = msgp.ReadStringBytes(bts)
@@ -2991,13 +2995,13 @@ func (z *PoolState) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		z.AtomicMaxVolumePerBlock = nil
 	} else {
 		{
-			var zb0010 []byte
-			zb0010, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.AtomicMaxVolumePerBlock))
+			var zb0011 []byte
+			zb0011, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.AtomicMaxVolumePerBlock))
 			if err != nil {
 				err = msgp.WrapError(err, "AtomicMaxVolumePerBlock")
 				return
 			}
-			z.AtomicMaxVolumePerBlock = msgpencode.DecodeInt(zb0010)
+			z.AtomicMaxVolumePerBlock = msgpencode.DecodeInt(zb0011)
 		}
 	}
 	if msgp.IsNil(bts) {
@@ -3010,14 +3014,14 @@ func (z *PoolState) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		if z.LastAtomicVolume == nil {
 			z.LastAtomicVolume = new(ExchangeVolumeAtPeriod)
 		}
-		var zb0011 uint32
-		zb0011, bts, err = msgp.ReadArrayHeaderBytes(bts)
+		var zb0012 uint32
+		zb0012, bts, err = msgp.ReadArrayHeaderBytes(bts)
 		if err != nil {
 			err = msgp.WrapError(err, "LastAtomicVolume")
 			return
 		}
-		if zb0011 != 2 {
-			err = msgp.ArrayError{Wanted: 2, Got: zb0011}
+		if zb0012 != 2 {
+			err = msgp.ArrayError{Wanted: 2, Got: zb0012}
 			return
 		}
 		z.LastAtomicVolume.Time, bts, err = msgp.ReadUint64Bytes(bts)
@@ -3033,66 +3037,66 @@ func (z *PoolState) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			z.LastAtomicVolume.Volume = nil
 		} else {
 			{
-				var zb0012 []byte
-				zb0012, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.LastAtomicVolume.Volume))
+				var zb0013 []byte
+				zb0013, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.LastAtomicVolume.Volume))
 				if err != nil {
 					err = msgp.WrapError(err, "LastAtomicVolume", "Volume")
 					return
 				}
-				z.LastAtomicVolume.Volume = msgpencode.DecodeInt(zb0012)
+				z.LastAtomicVolume.Volume = msgpencode.DecodeInt(zb0013)
 			}
 		}
 	}
-	var zb0013 uint32
-	zb0013, bts, err = msgp.ReadMapHeaderBytes(bts)
+	var zb0014 uint32
+	zb0014, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "AggregatorAddresses")
 		return
 	}
 	if z.AggregatorAddresses == nil {
-		z.AggregatorAddresses = make(map[string]common.Address, zb0013)
+		z.AggregatorAddresses = make(map[string]common.Address, zb0014)
 	} else if len(z.AggregatorAddresses) > 0 {
 		for key := range z.AggregatorAddresses {
 			delete(z.AggregatorAddresses, key)
 		}
 	}
-	for zb0013 > 0 {
+	for zb0014 > 0 {
 		var za0008 string
 		var za0009 common.Address
-		zb0013--
+		zb0014--
 		za0008, bts, err = msgp.ReadStringBytes(bts)
 		if err != nil {
 			err = msgp.WrapError(err, "AggregatorAddresses")
 			return
 		}
 		{
-			var zb0014 []byte
-			zb0014, bts, err = msgp.ReadBytesBytes(bts, (common.Address).Bytes(za0009))
+			var zb0015 []byte
+			zb0015, bts, err = msgp.ReadBytesBytes(bts, (common.Address).Bytes(za0009))
 			if err != nil {
 				err = msgp.WrapError(err, "AggregatorAddresses", za0008)
 				return
 			}
-			za0009 = common.BytesToAddress(zb0014)
+			za0009 = common.BytesToAddress(zb0015)
 		}
 		z.AggregatorAddresses[za0008] = za0009
 	}
-	var zb0015 uint32
-	zb0015, bts, err = msgp.ReadMapHeaderBytes(bts)
+	var zb0016 uint32
+	zb0016, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "CurrencyKeyDecimals")
 		return
 	}
 	if z.CurrencyKeyDecimals == nil {
-		z.CurrencyKeyDecimals = make(map[string]uint8, zb0015)
+		z.CurrencyKeyDecimals = make(map[string]uint8, zb0016)
 	} else if len(z.CurrencyKeyDecimals) > 0 {
 		for key := range z.CurrencyKeyDecimals {
 			delete(z.CurrencyKeyDecimals, key)
 		}
 	}
-	for zb0015 > 0 {
+	for zb0016 > 0 {
 		var za0010 string
 		var za0011 uint8
-		zb0015--
+		zb0016--
 		za0010, bts, err = msgp.ReadStringBytes(bts)
 		if err != nil {
 			err = msgp.WrapError(err, "CurrencyKeyDecimals")
@@ -3105,23 +3109,23 @@ func (z *PoolState) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		z.CurrencyKeyDecimals[za0010] = za0011
 	}
-	var zb0016 uint32
-	zb0016, bts, err = msgp.ReadMapHeaderBytes(bts)
+	var zb0017 uint32
+	zb0017, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "CurrentRoundIds")
 		return
 	}
 	if z.CurrentRoundIds == nil {
-		z.CurrentRoundIds = make(map[string]*big.Int, zb0016)
+		z.CurrentRoundIds = make(map[string]*big.Int, zb0017)
 	} else if len(z.CurrentRoundIds) > 0 {
 		for key := range z.CurrentRoundIds {
 			delete(z.CurrentRoundIds, key)
 		}
 	}
-	for zb0016 > 0 {
+	for zb0017 > 0 {
 		var za0012 string
 		var za0013 *big.Int
-		zb0016--
+		zb0017--
 		za0012, bts, err = msgp.ReadStringBytes(bts)
 		if err != nil {
 			err = msgp.WrapError(err, "CurrentRoundIds")
@@ -3135,34 +3139,34 @@ func (z *PoolState) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			za0013 = nil
 		} else {
 			{
-				var zb0017 []byte
-				zb0017, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(za0013))
+				var zb0018 []byte
+				zb0018, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(za0013))
 				if err != nil {
 					err = msgp.WrapError(err, "CurrentRoundIds", za0012)
 					return
 				}
-				za0013 = msgpencode.DecodeInt(zb0017)
+				za0013 = msgpencode.DecodeInt(zb0018)
 			}
 		}
 		z.CurrentRoundIds[za0012] = za0013
 	}
-	var zb0018 uint32
-	zb0018, bts, err = msgp.ReadMapHeaderBytes(bts)
+	var zb0019 uint32
+	zb0019, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "SynthTooVolatileForAtomicExchanges")
 		return
 	}
 	if z.SynthTooVolatileForAtomicExchanges == nil {
-		z.SynthTooVolatileForAtomicExchanges = make(map[string]bool, zb0018)
+		z.SynthTooVolatileForAtomicExchanges = make(map[string]bool, zb0019)
 	} else if len(z.SynthTooVolatileForAtomicExchanges) > 0 {
 		for key := range z.SynthTooVolatileForAtomicExchanges {
 			delete(z.SynthTooVolatileForAtomicExchanges, key)
 		}
 	}
-	for zb0018 > 0 {
+	for zb0019 > 0 {
 		var za0014 string
 		var za0015 bool
-		zb0018--
+		zb0019--
 		za0014, bts, err = msgp.ReadStringBytes(bts)
 		if err != nil {
 			err = msgp.WrapError(err, "SynthTooVolatileForAtomicExchanges")
@@ -3176,31 +3180,31 @@ func (z *PoolState) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		z.SynthTooVolatileForAtomicExchanges[za0014] = za0015
 	}
 	{
-		var zb0019 []byte
-		zb0019, bts, err = msgp.ReadBytesBytes(bts, (common.Address).Bytes(z.DexPriceAggregatorAddress))
+		var zb0020 []byte
+		zb0020, bts, err = msgp.ReadBytesBytes(bts, (common.Address).Bytes(z.DexPriceAggregatorAddress))
 		if err != nil {
 			err = msgp.WrapError(err, "DexPriceAggregatorAddress")
 			return
 		}
-		z.DexPriceAggregatorAddress = common.BytesToAddress(zb0019)
+		z.DexPriceAggregatorAddress = common.BytesToAddress(zb0020)
 	}
-	var zb0020 uint32
-	zb0020, bts, err = msgp.ReadMapHeaderBytes(bts)
+	var zb0021 uint32
+	zb0021, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "Aggregators")
 		return
 	}
 	if z.Aggregators == nil {
-		z.Aggregators = make(map[string]*ChainlinkDataFeed, zb0020)
+		z.Aggregators = make(map[string]*ChainlinkDataFeed, zb0021)
 	} else if len(z.Aggregators) > 0 {
 		for key := range z.Aggregators {
 			delete(z.Aggregators, key)
 		}
 	}
-	for zb0020 > 0 {
+	for zb0021 > 0 {
 		var za0016 string
 		var za0017 *ChainlinkDataFeed
-		zb0020--
+		zb0021--
 		za0016, bts, err = msgp.ReadStringBytes(bts)
 		if err != nil {
 			err = msgp.WrapError(err, "Aggregators")
@@ -3254,10 +3258,10 @@ func (z *PoolState) Msgsize() (s int) {
 		}
 	}
 	s += msgp.MapHeaderSize
-	if z.CurrencyKeyBySynthMsgp != nil {
-		for za0003, za0004 := range z.CurrencyKeyBySynthMsgp {
+	if z.CurrencyKeyBySynth != nil {
+		for za0003, za0004 := range z.CurrencyKeyBySynth {
 			_ = za0004
-			s += msgp.StringPrefixSize + len(za0003) + msgp.StringPrefixSize + len(za0004)
+			s += msgp.StringPrefixSize + len((common.Address).Hex(za0003)) + msgp.StringPrefixSize + len(za0004)
 		}
 	}
 	if z.AvailableSynthCount == nil {
