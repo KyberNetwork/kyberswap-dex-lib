@@ -1,13 +1,13 @@
 //go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
 //msgp:tuple Addresses PoolState SystemSettings DynamicFeeConfig ExchangeVolumeAtPeriod ChainlinkDataFeed Slot0 OracleObservation DexPriceAggregatorUniswapV3 RoundData Token
-//msgp:ignore Extra
 //msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
 //msgp:shim common.Address as:[]byte using:(common.Address).Bytes/common.BytesToAddress
+//msgp:shim Address as:string using:(common.Address).Hex/common.HexToAddress
+//msgp:ignore Address Extra
 
 package synthetix
 
 import (
-	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -20,17 +20,18 @@ type Addresses struct {
 	SystemSettings string `json:"systemSettings"`
 }
 
+type Address = common.Address
+
 type PoolState struct {
-	BlockTimestamp         uint64                    `json:"blockTimestamp"`
-	Synths                 map[string]common.Address `json:"synths"`
-	CurrencyKeyBySynth     map[common.Address]string `json:"currencyKeyBySynth" msg:"-"`
-	CurrencyKeyBySynthMsgp map[string]string         `json:"-"` // for msgp marshal/unmarshal
-	AvailableSynthCount    *big.Int                  `json:"availableSynthCount"`
-	SynthsTotalSupply      map[string]*big.Int       `json:"synthsTotalSupply"`
-	TotalIssuedSUSD        *big.Int                  `json:"totalIssuedSUSD"`
-	CurrencyKeys           []string                  `json:"availableCurrencyKeys"`
-	SUSDCurrencyKey        string                    `json:"sUSDCurrencyKey"`
-	Addresses              *Addresses                `json:"addresses"`
+	BlockTimestamp      uint64                    `json:"blockTimestamp"`
+	Synths              map[string]common.Address `json:"synths"`
+	CurrencyKeyBySynth  map[Address]string        `json:"currencyKeyBySynth"`
+	AvailableSynthCount *big.Int                  `json:"availableSynthCount"`
+	SynthsTotalSupply   map[string]*big.Int       `json:"synthsTotalSupply"`
+	TotalIssuedSUSD     *big.Int                  `json:"totalIssuedSUSD"`
+	CurrencyKeys        []string                  `json:"availableCurrencyKeys"`
+	SUSDCurrencyKey     string                    `json:"sUSDCurrencyKey"`
+	Addresses           *Addresses                `json:"addresses"`
 
 	// SystemSettings data, will be updated by SystemSettingsReader
 	SystemSettings *SystemSettings `json:"systemSettings"`
@@ -64,29 +65,6 @@ func NewPoolState() *PoolState {
 		AggregatorAddresses:                make(map[string]common.Address),
 		Aggregators:                        make(map[string]*ChainlinkDataFeed),
 	}
-}
-
-func (p *PoolState) initialize() error {
-	if p.CurrencyKeyBySynth == nil {
-		if p.CurrencyKeyBySynthMsgp != nil {
-			p.CurrencyKeyBySynth = make(map[common.Address]string, len(p.CurrencyKeyBySynthMsgp))
-			for addr, val := range p.CurrencyKeyBySynthMsgp {
-				p.CurrencyKeyBySynth[common.HexToAddress(addr)] = val
-			}
-		} else {
-			return fmt.Errorf("both CurrencyKeyBySynth and CurrencyKeyBySynthMsgp are nil")
-		}
-	} else {
-		if p.CurrencyKeyBySynthMsgp == nil {
-			p.CurrencyKeyBySynthMsgp = make(map[string]string, len(p.CurrencyKeyBySynth))
-			for addr, val := range p.CurrencyKeyBySynth {
-				p.CurrencyKeyBySynthMsgp[addr.Hex()] = val
-			}
-		} else {
-			return fmt.Errorf("CurrencyKeyBySynth and CurrencyKeyBySynthMsgp don't point to the same map")
-		}
-	}
-	return nil
 }
 
 type ExchangeVolumeAtPeriod struct {
