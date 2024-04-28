@@ -23,10 +23,14 @@ func (z *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err, "PoolSimulator")
 		return
 	}
-	err = z.basePool.DecodeMsg(dc)
-	if err != nil {
-		err = msgp.WrapError(err, "basePool")
-		return
+	{
+		var zb0002 []byte
+		zb0002, err = dc.ReadBytes(encodeBasePool(z.basePool))
+		if err != nil {
+			err = msgp.WrapError(err, "basePool")
+			return
+		}
+		z.basePool = decodeBasePool(zb0002)
 	}
 	return
 }
@@ -43,7 +47,7 @@ func (z *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "PoolSimulator")
 		return
 	}
-	err = z.basePool.EncodeMsg(en)
+	err = en.WriteBytes(encodeBasePool(z.basePool))
 	if err != nil {
 		err = msgp.WrapError(err, "basePool")
 		return
@@ -61,11 +65,7 @@ func (z *PoolSimulator) MarshalMsg(b []byte) (o []byte, err error) {
 		err = msgp.WrapError(err, "PoolSimulator")
 		return
 	}
-	o, err = z.basePool.MarshalMsg(o)
-	if err != nil {
-		err = msgp.WrapError(err, "basePool")
-		return
-	}
+	o = msgp.AppendBytes(o, encodeBasePool(z.basePool))
 	return
 }
 
@@ -86,10 +86,14 @@ func (z *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err, "PoolSimulator")
 		return
 	}
-	bts, err = z.basePool.UnmarshalMsg(bts)
-	if err != nil {
-		err = msgp.WrapError(err, "basePool")
-		return
+	{
+		var zb0002 []byte
+		zb0002, bts, err = msgp.ReadBytesBytes(bts, encodeBasePool(z.basePool))
+		if err != nil {
+			err = msgp.WrapError(err, "basePool")
+			return
+		}
+		z.basePool = decodeBasePool(zb0002)
 	}
 	o = bts
 	return
@@ -97,6 +101,6 @@ func (z *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *PoolSimulator) Msgsize() (s int) {
-	s = 1 + z.PoolSimulator.Msgsize() + z.basePool.Msgsize()
+	s = 1 + z.PoolSimulator.Msgsize() + msgp.BytesPrefixSize + len(encodeBasePool(z.basePool))
 	return
 }
