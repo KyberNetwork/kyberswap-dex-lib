@@ -7,10 +7,44 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math"
+	"reflect"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/tinylib/msgp/msgp"
 )
+
+var (
+	poolSimulatorTypes = make(map[string]reflect.Type)
+)
+
+// RegisterPoolSimulator registers the concrete types of an IPoolSimulator and its discriminator string.
+// This function is not thread-safe and should be only call in init().
+func RegisterPoolSimulator(dexType string, sim pool.IPoolSimulator) {
+	poolSimulatorTypes[dexType] = reflect.ValueOf(sim).Elem().Type()
+}
+
+func dispatchRegisteredPoolSimulator(sim pool.IPoolSimulator) (dexName string, encodable msgp.Encodable) {
+	typ := reflect.ValueOf(sim).Elem().Type()
+	for name, t := range poolSimulatorTypes {
+		if typ == t {
+			dexName = name
+			encodable = reflect.ValueOf(sim).Interface().(msgp.Encodable)
+			break
+		}
+	}
+	return
+}
+
+func undispatchRegisteredPoolSimulator(dexName string) (sim pool.IPoolSimulator, decodable msgp.Decodable) {
+	for name, typ := range poolSimulatorTypes {
+		if dexName == name {
+			impl := reflect.New(typ)
+			sim = impl.Interface().(pool.IPoolSimulator)
+			decodable = impl.Interface().(msgp.Decodable)
+		}
+	}
+	return
+}
 
 // EncodePoolSimulator encodes [pool.IPoolSimulator] as the following format
 //
