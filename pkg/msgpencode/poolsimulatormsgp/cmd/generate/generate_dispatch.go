@@ -85,6 +85,8 @@ func main() {
 		fmt.Fprintf(outFileBuf, "\t\tdexName = \"%s\"\n", dexName)
 		fmt.Fprintf(outFileBuf, "\t\tencodable = sim\n")
 	}
+	fmt.Fprintf(outFileBuf, "\tdefault:\n")
+	fmt.Fprintf(outFileBuf, "\t\treturn dispatchRegisteredPoolSimulator(sim)\n")
 	fmt.Fprintf(outFileBuf, "\t}\n")
 	fmt.Fprintf(outFileBuf, "\treturn\n")
 	fmt.Fprintf(outFileBuf, "}\n")
@@ -102,6 +104,8 @@ func main() {
 		fmt.Fprintf(outFileBuf, "\t\tsim = pool\n")
 		fmt.Fprintf(outFileBuf, "\t\tdecodable = pool\n")
 	}
+	fmt.Fprintf(outFileBuf, "\tdefault:\n")
+	fmt.Fprintf(outFileBuf, "\t\treturn undispatchRegisteredPoolSimulator(dexName)\n")
 	fmt.Fprintf(outFileBuf, "\t}\n")
 	fmt.Fprintf(outFileBuf, "\treturn\n")
 	fmt.Fprintf(outFileBuf, "}\n")

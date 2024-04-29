@@ -374,6 +374,8 @@ func dispatchPoolSimulator(sim pool.IPoolSimulator) (dexName string, encodable m
 	case *pkg_source_zkerafinance.PoolSimulator:
 		dexName = "pkg_source_zkerafinance"
 		encodable = sim
+	default:
+		return dispatchRegisteredPoolSimulator(sim)
 	}
 	return
 }
@@ -744,6 +746,8 @@ func undispatchPoolSimulator(dexName string) (sim pool.IPoolSimulator, decodable
 		pool := new(pkg_source_zkerafinance.PoolSimulator)
 		sim = pool
 		decodable = pool
+	default:
+		return undispatchRegisteredPoolSimulator(dexName)
 	}
 	return
 }
