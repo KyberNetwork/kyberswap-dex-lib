@@ -301,6 +301,13 @@ var (
 	ExchangeButterFi       Exchange = "butter-fi"
 	ExchangeMerchantMoeV22 Exchange = "merchant-moe-v22"
 	ExchangeNomiswapStable Exchange = "nomiswap-stable"
+
+	ExchangeStationDexV2 Exchange = "station-dex-v2"
+	ExchangeAbstra       Exchange = "abstra"
+	ExchangeRevoSwap     Exchange = "revo-swap"
+	ExchangePotatoSwap   Exchange = "potato-swap"
+	ExchangeXLayerSwap   Exchange = "xlayer-swap"
+	ExchangeStationDexV3 Exchange = "station-dex-v3"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -546,6 +553,12 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeKellerFinance:              {},
 	ExchangeRenzoEZETH:                 {},
 	ExchangeDegenExpress:               {},
+	ExchangeStationDexV2:               {},
+	ExchangeAbstra:                     {},
+	ExchangeRevoSwap:                   {},
+	ExchangePotatoSwap:                 {},
+	ExchangeXLayerSwap:                 {},
+	ExchangeStationDexV3:               {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
