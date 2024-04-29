@@ -2,13 +2,17 @@ package limitorder
 
 import (
 	"encoding/json"
+	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
@@ -867,4 +871,102 @@ func parseBigInt(value string) *big.Int {
 func marshalPoolExtra(extra *Extra) string {
 	bytesData, _ := json.Marshal(extra)
 	return string(bytesData)
+}
+
+func TestPool_CalcAmountOut_v2(t *testing.T) {
+	type testorder struct {
+		id               int64
+		makingAmount     string
+		takingAmount     string
+		avaiMakingAmount string
+	}
+
+	pools := map[string][]testorder{
+		"pool1": {
+			{1001, "100", "1000", "100"},
+			{1002, "100", "2000", "50"},
+		},
+		"pool2": {
+			{1001, "100", "1000", "100"},
+			{1002, "100", "2000", "50"},
+			{1003, "100", "2000", "100"},
+		},
+	}
+
+	testcases := []struct {
+		name         string
+		pool         string
+		amountIn     string
+		expAmountOut string
+		expOrderIds  []int64
+	}{
+		{"fully fill 1st order", "pool1", "100", "10", []int64{1001}},
+		{"f-fill 1st order, p-fill 2nd one", "pool1", "1100", "105", []int64{1001, 1002}},
+		{"f-fill both orders", "pool1", "2000", "150", []int64{1001, 1002}}, // reach 1002's avaiFillAmount (50)
+		{"cannot be filled", "pool1", "2001", "", nil},                      // cannot exceed 1002's avaiFillAmount (50)
+
+		{"f-fill 1st order, p-fill 2nd one", "pool2", "1100", "105", []int64{1001, 1002}},
+		{"f-fill 1st/2nd order", "pool2", "2000", "150", []int64{1001, 1002, 1003}}, // include 1003 with fill=0 as fallback
+		{"f-fill 1st/2nd order, p-fill 3rd one", "pool2", "2100", "155", []int64{1001, 1002, 1003}},
+		{"f-fill all order", "pool2", "4000", "250", []int64{1001, 1002, 1003}},
+		{"cannot be filled", "pool1", "4001", "", nil},
+	}
+
+	sims := lo.MapValues(pools, func(orders []testorder, _ string) *PoolSimulator {
+		extra := Extra{
+			BuyOrders: lo.Map(orders, func(o testorder, _ int) *order {
+				return &order{
+					ID:                    o.id,
+					MakingAmount:          bignumber.NewBig10(o.makingAmount),
+					TakingAmount:          bignumber.NewBig10(o.takingAmount),
+					AvailableMakingAmount: bignumber.NewBig10(o.avaiMakingAmount),
+				}
+			}),
+		}
+		sExtra, _ := json.Marshal(extra)
+		poolEnt := entity.Pool{
+			Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
+			Reserves:    entity.PoolReserves{"0", "0"},
+			StaticExtra: `{"ContractAddress":""}`,
+			Extra:       string(sExtra),
+		}
+		p, err := NewPoolSimulator(poolEnt)
+		require.Nil(t, err)
+		return p
+	})
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{
+					Token:  "A",
+					Amount: bignumber.NewBig10(tc.amountIn),
+				},
+				TokenOut: "B",
+				Limit:    nil,
+			})
+
+			if tc.expOrderIds == nil {
+				require.NotNil(t, err)
+				return
+			}
+
+			require.Nil(t, err)
+
+			assert.Equal(t, tc.expAmountOut, res.TokenAmountOut.Amount.String())
+
+			si := res.SwapInfo.(SwapInfo)
+			oid := make([]int64, 0, len(si.FilledOrders))
+			oinfo := ""
+			for _, o := range si.FilledOrders {
+				if o.FilledTakingAmount == "" {
+					break
+				}
+				oid = append(oid, o.OrderID)
+				oinfo += fmt.Sprintf("order %v %v %v\n", o.OrderID, o.FilledMakingAmount, o.FilledTakingAmount)
+			}
+			assert.Equal(t, tc.expOrderIds, oid, oinfo)
+			fmt.Println(oinfo)
+		})
+	}
 }

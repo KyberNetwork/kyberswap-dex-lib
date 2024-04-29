@@ -18,7 +18,6 @@ import (
 type (
 	PoolSimulator struct {
 		pool.Pool
-		tokens        []*entity.PoolToken
 		ordersMapping map[int64]*order
 		// extra fields
 		sellOrderIDs []int64
@@ -80,7 +79,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		sellOrderIDs:  sellOrderIDs,
 		buyOrderIDs:   buyOrderIDs,
 		ordersMapping: ordersMapping,
-		tokens:        entity.ClonePoolTokens(entityPool.Tokens),
 
 		contractAddress: contractAddress,
 	}, nil
@@ -162,8 +160,14 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 		// rate should be the result of making amount/taking amount when dividing decimals per token.
 		// However, we can also use rate with making amount/taking amount (wei) to calculate the amount out instead of converting to measure per token. Because we will return amount out(wei) (we have to multip amountOut(taken out) with decimals)
 		rate := new(big.Float).Quo(new(big.Float).SetInt(order.MakingAmount), new(big.Float).SetInt(order.TakingAmount))
-		remainingMakingAmountWei := new(big.Int).Sub(order.MakingAmount, order.FilledMakingAmount)
-		remainingTakingAmountWei := new(big.Int).Sub(order.TakingAmount, order.FilledTakingAmount)
+		var remainingMakingAmountWei, remainingTakingAmountWei *big.Int
+		if order.AvailableMakingAmount == nil {
+			remainingMakingAmountWei = new(big.Int).Sub(order.MakingAmount, order.FilledMakingAmount)
+			remainingTakingAmountWei = new(big.Int).Sub(order.TakingAmount, order.FilledTakingAmount)
+		} else {
+			remainingMakingAmountWei = order.AvailableMakingAmount
+			remainingTakingAmountWei = new(big.Int).Div(new(big.Int).Mul(remainingMakingAmountWei, order.TakingAmount), order.MakingAmount)
+		}
 		totalMakingAmountWei = new(big.Int).Add(totalMakingAmountWei, remainingMakingAmountWei)
 		// Order was filled out.
 		if remainingMakingAmountWei.Cmp(constant.ZeroBI) <= 0 {
@@ -194,7 +198,12 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 				if !ok {
 					continue
 				}
-				remainingMakingAmountWei := new(big.Int).Sub(order.MakingAmount, order.FilledMakingAmount)
+				var remainingMakingAmountWei *big.Int
+				if order.AvailableMakingAmount == nil {
+					remainingMakingAmountWei = new(big.Int).Sub(order.MakingAmount, order.FilledMakingAmount)
+				} else {
+					remainingMakingAmountWei = order.AvailableMakingAmount
+				}
 				if remainingMakingAmountWei.Cmp(constant.ZeroBI) == 0 {
 					continue
 				}
