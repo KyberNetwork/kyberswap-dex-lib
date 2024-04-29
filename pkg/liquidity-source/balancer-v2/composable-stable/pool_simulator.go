@@ -72,9 +72,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		swapFeePercentage: extra.SwapFeePercentage,
 	}
 
-	protocolFeePercentageCache := make(map[intAsStr]*uint256.Int, len(extra.ProtocolFeePercentageCache))
+	protocolFeePercentageCache := make(map[int]*uint256.Int, len(extra.ProtocolFeePercentageCache))
 	for ty, fee := range extra.ProtocolFeePercentageCache {
-		protocolFeePercentageCache[intAsStr(ty)] = fee
+		protocolFeePercentageCache[ty] = fee
 	}
 	bptSimulator := bptSimulator{
 		Pool:                            pool,

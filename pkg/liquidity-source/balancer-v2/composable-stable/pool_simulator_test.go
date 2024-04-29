@@ -194,9 +194,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(100000000000000),
-			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
-				intAsStr(feeTypeSwap):  uint256.NewInt(0),
-				intAsStr(feeTypeYield): uint256.NewInt(0),
+			protocolFeePercentageCache: map[int]*uint256.Int{
+				feeTypeSwap:  uint256.NewInt(0),
+				feeTypeYield: uint256.NewInt(0),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
@@ -286,9 +286,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(100000000000000),
-			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
-				intAsStr(feeTypeSwap):  uint256.NewInt(0),
-				intAsStr(feeTypeYield): uint256.NewInt(0),
+			protocolFeePercentageCache: map[int]*uint256.Int{
+				feeTypeSwap:  uint256.NewInt(0),
+				feeTypeYield: uint256.NewInt(0),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
@@ -384,9 +384,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(500000000000000),
-			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
-				intAsStr(feeTypeSwap):  uint256.NewInt(500000000000000000),
-				intAsStr(feeTypeYield): uint256.NewInt(500000000000000000),
+			protocolFeePercentageCache: map[int]*uint256.Int{
+				feeTypeSwap:  uint256.NewInt(500000000000000000),
+				feeTypeYield: uint256.NewInt(500000000000000000),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
@@ -483,9 +483,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(500000000000000),
-			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
-				intAsStr(feeTypeSwap):  uint256.NewInt(500000000000000000),
-				intAsStr(feeTypeYield): uint256.NewInt(500000000000000000),
+			protocolFeePercentageCache: map[int]*uint256.Int{
+				feeTypeSwap:  uint256.NewInt(500000000000000000),
+				feeTypeYield: uint256.NewInt(500000000000000000),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
@@ -576,9 +576,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(100000000000000),
-			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
-				intAsStr(feeTypeSwap):  uint256.NewInt(0),
-				intAsStr(feeTypeYield): uint256.NewInt(0),
+			protocolFeePercentageCache: map[int]*uint256.Int{
+				feeTypeSwap:  uint256.NewInt(0),
+				feeTypeYield: uint256.NewInt(0),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
@@ -670,9 +670,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(100000000000000),
-			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
-				intAsStr(feeTypeSwap):  uint256.NewInt(0),
-				intAsStr(feeTypeYield): uint256.NewInt(0),
+			protocolFeePercentageCache: map[int]*uint256.Int{
+				feeTypeSwap:  uint256.NewInt(0),
+				feeTypeYield: uint256.NewInt(0),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, true,
@@ -767,9 +767,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(500000000000000),
-			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
-				intAsStr(feeTypeSwap):  uint256.NewInt(500000000000000000),
-				intAsStr(feeTypeYield): uint256.NewInt(500000000000000000),
+			protocolFeePercentageCache: map[int]*uint256.Int{
+				feeTypeSwap:  uint256.NewInt(500000000000000000),
+				feeTypeYield: uint256.NewInt(500000000000000000),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,
@@ -866,9 +866,9 @@ func TestBptSwap(t *testing.T) {
 				},
 			},
 			swapFeePercentage: uint256.NewInt(500000000000000),
-			protocolFeePercentageCache: map[intAsStr]*uint256.Int{
-				intAsStr(feeTypeSwap):  uint256.NewInt(500000000000000000),
-				intAsStr(feeTypeYield): uint256.NewInt(500000000000000000),
+			protocolFeePercentageCache: map[int]*uint256.Int{
+				feeTypeSwap:  uint256.NewInt(500000000000000000),
+				feeTypeYield: uint256.NewInt(500000000000000000),
 			},
 			tokenExemptFromYieldProtocolFee: []bool{
 				false, false, false, false,

@@ -17,7 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
-type intAsStr int
+type intAsStr = int
 
 func intToString(i intAsStr) string { return strconv.FormatInt(int64(i), 10) }
 func stringToInt(s string) intAsStr { i, _ := strconv.ParseInt(s, 10, 64); return intAsStr(i) }
@@ -752,7 +752,7 @@ func (s *bptSimulator) getProtocolFeePercentageCache(feeType int) *uint256.Int {
 		return uint256.NewInt(0)
 	}
 
-	return s.protocolFeePercentageCache[intAsStr(feeType)]
+	return s.protocolFeePercentageCache[feeType]
 }
 
 func (s *bptSimulator) protocolFeeAmount(
