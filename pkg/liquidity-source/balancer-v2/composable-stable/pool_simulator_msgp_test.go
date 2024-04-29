@@ -100,9 +100,9 @@ func TestMsgpackMarshalUnmarshal(t *testing.T) {
 					},
 				},
 				swapFeePercentage: uint256.NewInt(100000000000000),
-				protocolFeePercentageCache: map[intAsStr]*uint256.Int{
-					intAsStr(feeTypeSwap):  uint256.NewInt(0),
-					intAsStr(feeTypeYield): uint256.NewInt(0),
+				protocolFeePercentageCache: map[int]*uint256.Int{
+					feeTypeSwap:  uint256.NewInt(0),
+					feeTypeYield: uint256.NewInt(0),
 				},
 				tokenExemptFromYieldProtocolFee: []bool{
 					false, false, true,
