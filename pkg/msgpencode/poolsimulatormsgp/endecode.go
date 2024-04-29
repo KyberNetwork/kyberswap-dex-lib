@@ -50,6 +50,10 @@ func undispatchRegisteredPoolSimulator(dexName string) (sim pool.IPoolSimulator,
 //
 // [2-byte len(DexType)] + [DexType] + [encoded msgp.Encodable]
 func EncodePoolSimulator(sim pool.IPoolSimulator) []byte {
+	if sim == nil {
+		return nil
+	}
+
 	dexType, encodable := dispatchPoolSimulator(sim)
 	if dexType == "" {
 		panic("empty dexType")
@@ -87,6 +91,10 @@ func EncodePoolSimulator(sim pool.IPoolSimulator) []byte {
 //
 // [2-byte len(DexType)] + [DexType] + [encoded msgp.Encodable]
 func DecodePoolSimulator(encoded []byte) pool.IPoolSimulator {
+	if encoded == nil {
+		return nil
+	}
+
 	var (
 		buf           = bytes.NewBuffer(encoded)
 		dexTypeLenBuf = [2]byte{}
