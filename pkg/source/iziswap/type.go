@@ -3,7 +3,7 @@ package iziswap
 import (
 	"math/big"
 
-	"github.com/izumiFinance/iZiSwap-SDK-go/swap"
+	"github.com/KyberNetwork/iZiSwap-SDK-go/swap"
 )
 
 type PoolInfo struct {
