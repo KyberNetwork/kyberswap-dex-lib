@@ -82,6 +82,8 @@ type (
 		TakerAsset          string
 		ContractAddress     string
 		ExcludeExpiredOrder bool
+
+		IncludeInsufficientBalanceOrder bool
 	}
 
 	order struct {
