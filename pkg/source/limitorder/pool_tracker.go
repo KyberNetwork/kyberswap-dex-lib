@@ -64,6 +64,8 @@ func (d *PoolTracker) GetNewPoolState(
 			MakerAsset:      token0.Address,
 			TakerAsset:      token1.Address,
 			ContractAddress: contractAddress,
+
+			IncludeInsufficientBalanceOrder: !d.config.DisableInsufficientBalance,
 		})
 		if err != nil {
 			logger.WithFields(logger.Fields{
@@ -81,6 +83,8 @@ func (d *PoolTracker) GetNewPoolState(
 			MakerAsset:      token1.Address,
 			TakerAsset:      token0.Address,
 			ContractAddress: contractAddress,
+
+			IncludeInsufficientBalanceOrder: !d.config.DisableInsufficientBalance,
 		})
 		if err != nil {
 			logger.WithFields(logger.Fields{
