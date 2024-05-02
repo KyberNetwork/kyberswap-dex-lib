@@ -1,34 +1,38 @@
-env: "staging"
+env: "production"
 pprof: false
 http:
   bindAddress: ":8080"
-  mode: release #(debug,release,test)
-  prefix: /oasis
+  mode: debug #(debug,release,test)
+  prefix: /xlayer
 grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainId: &chainId 42262
-  chainName: &chainName oasis
-  rpc: "https://oasis.kyberengineering.io"
-  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
+  chainId: &chainId 196
+  chainName: &chainName xlayer
+  rpc: "https://rpc.xlayer.tech/unlimited"
+  multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
+  executorAddress: &executorAddress "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-  gasTokenAddress: &gasTokenAddress "0x21c718c22d52d0f3a789b752d4c2fd5908a8a733"
+  gasTokenAddress: &gasTokenAddress "0xe538905cf8410324e03A5A23C1c177a474D59b2b"
   whitelistedTokenSet: &whitelistedTokenSet
-    0x21c718c22d52d0f3a789b752d4c2fd5908a8a733: true # WROSE
-    0x6cb9750a92643382e020ea9a170abb83df05f30b: true # USDT
-    0x010cdf0db2737f9407f8cfcb4dcaeca4de54c815: true # BTC
-    0xbc033203796cc2c8c543a5aae93a9a643320433d: true # VS
+    0x1E4a5963aBFD975d8c9021ce480b42188849D41d: true # USDT
+    0x5A77f1443D16ee5761d310e38b62f77f726bC71c: true # WETH
+    0xe538905cf8410324e03A5A23C1c177a474D59b2b: true # WOKB
+    0x74b7F16337b8972027F6196A17a631aC6dE26d22: true # USDC
+    0xC5015b9d9161Dca7e18e32f6f25C4aD850731Fd4: true # DAI
+    0xEA034fb02eB1808C2cc3adbC15f447B93CbE08e1: true # WBTC
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
-    - "kyberswap"
-    - "kyberswap-static"
-    - "kyberswap-elastic"
-    - "valleyswap"
-    - "yuzuswap"
-    - "gemkeeper"
-    - "lizard"
-    - "valleyswap-v2"
+    - "station-dex-v2"
+    - "abstra"
+    - "revo-swap"
+    - "potato-swap"
+    - "iziswap"
+    - "dyor-swap"
+    - "xlayer-swap"
+    - "station-dex-v3"
+    - "quickswap-v3"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
@@ -36,16 +40,6 @@ log:
   enableConsole: true
   enableJSONFormat: true
 redis:
-  addresses:
-  masterName: ""
-  dbNumber: 0
-  password: ""
-  prefix: *chainName
-  readTimeout: 3s
-  writeTimeout: 3s
-  readOnly: false
-  routeRandomly: false
-pregenRedis:
   addresses:
   masterName: ""
   dbNumber: 0
@@ -96,6 +90,8 @@ encoder:
   routerAddress: *routerAddress
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
+  executorAddressByClientID:
+    unibot-tg: 0x1BC5cF80f308518f000dDE4c8f8139268aA014DB
 useCase:
   getRoute:
     chainId: *chainId
@@ -126,7 +122,6 @@ useCase:
         hillClimbDistributionPercent: 1
         hillClimbIteration: 2
         hillClimbMinPartUSD: 500
-        isPathGeneratorEnabled: false
     cache:
       defaultTtl: 15s
       ttlByAmount:
@@ -192,14 +187,12 @@ useCase:
           ttl: 10s
       ttlByAmountUsdRange:
         - amountUSDLowerBound: 0
-          ttl: 30s
-        - amountUSDLowerBound: 51
+          ttl: 10s
+        - amountUSDLowerBound: 101
           ttl: 10s
         - amountUSDLowerBound: 500
           ttl: 10s
-        - amountUSDLowerBound: 701
-          ttl: 20s
-        - amountUSDLowerBound: 1101
+        - amountUSDLowerBound: 1001
           ttl: 10s
         - amountUSDLowerBound: 2000
           ttl: 10s
@@ -227,12 +220,18 @@ useCase:
     faultyPools:
       windowSize: 15m
       faultyExpiredTime: 3m
+    rfq:
+      - id: kyberswap-limit-order-v2
+        handler: limit-order
+        properties:
+          chainID: *chainId
+          limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
   poolFactory:
     chainId: *chainId
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     blackListRenewalInterval: 30s
-    capacity: 1000000
+    capacity: 100000
     poolRenewalInterval: 3s
     faultyPoolsExpireThreshold: 3s
     maxFaultyPoolSize: 500
@@ -241,6 +240,8 @@ useCase:
     chunkSize: 3000
     maxGoroutines: 0
     enableRankByNative: false
+  trackExecutor:
+    subgraphURL: https://xlayer-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-xlayer
 job:
   indexPools:
     forceScanAllEveryNth: 10
@@ -259,7 +260,9 @@ job:
       batchSize: 100
       retryInterval: 5s
   updateSuggestedGasPrice:
-    interval: 15s
+    interval: 2s
+  trackExecutorBalance:
+    interval: 1h
 repository:
   gas:
     redis:
@@ -301,11 +304,11 @@ repository:
   route:
     redisCache:
       prefix: *chainName
-      localCacheSize: 5000
+      localCacheSize: 1000
       localCacheTtl: 30s
   blackjack:
     grpcClient:
-      baseURL: blackjack-global-api.blackjack.svc:9080
+      baseURL: blackjack.core-cluster.gke.production.internal:80
       insecure: true
       timeout: 100ms
   erc20balanceslot:

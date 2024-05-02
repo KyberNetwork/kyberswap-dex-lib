@@ -257,7 +257,7 @@ job:
     poolEvent:
       consumerConfig:
         prefix: *chainName
-        stream: "pool_event"
+        stream: "pool_events"
         group: "router_indexPools"
         key: "message"
         block: 300ms
