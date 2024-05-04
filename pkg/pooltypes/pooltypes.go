@@ -75,6 +75,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramses"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/slipstream"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/smardex"
 	solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3"
 	swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
@@ -200,6 +201,7 @@ type Types struct {
 	NomiSwapStable                 string
 	NativeV1                       string
 	RenzoEZETH                     string
+	Slipstream                     string
 }
 
 var (
@@ -309,5 +311,6 @@ var (
 		NomiSwapStable:                 nomiswap.DexType,
 		NativeV1:                       nativev1.DexType,
 		RenzoEZETH:                     ezeth.DexType,
+		Slipstream:                     slipstream.DexType,
 	}
 )
