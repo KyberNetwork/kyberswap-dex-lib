@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator
+//msgp:shim *elasticEntities.Pool as:[]byte using:elasticmsgp.EncodePool/elasticmsgp.DecodePool
+
 package elastic
 
 import (
