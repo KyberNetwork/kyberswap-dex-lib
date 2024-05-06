@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Gas
+//msgp:ignore KSElasticSwapInfo Metadata Token SubgraphPool TickResp SubgraphPoolTicks StaticExtra Tick Extra PoolState LiquidityState FetchRPCResult
+
 package elastic
 
 import (
