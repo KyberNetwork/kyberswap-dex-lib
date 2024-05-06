@@ -5,7 +5,7 @@
 //msgp:shim FeeAmount as:uint64 using:uint64/FeeAmount
 //msgp:shim common.Address as:[]byte using:(common.Address).Bytes/common.BytesToAddress
 
-package uniswapv3mspg
+package uniswapv3msgp
 
 import (
 	"math/big"

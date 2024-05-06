@@ -1,4 +1,4 @@
-package uniswapv3uint256mspg
+package uniswapv3uint256msgp
 
 import (
 	"bytes"

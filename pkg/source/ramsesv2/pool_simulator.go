@@ -1,6 +1,6 @@
 //go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
 //msgp:tuple PoolSimulator
-//msgp:shim *v3Entities.Pool as:[]byte using:uniswapv3mspg.EncodePool/uniswapv3mspg.DecodePool
+//msgp:shim *v3Entities.Pool as:[]byte using:uniswapv3msgp.EncodePool/uniswapv3msgp.DecodePool
 
 package ramsesv2
 

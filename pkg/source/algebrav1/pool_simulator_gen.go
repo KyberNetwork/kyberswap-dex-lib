@@ -4,7 +4,7 @@ package algebrav1
 
 import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/msgpencode"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/msgpencode/uniswapv3mspg"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/msgpencode/uniswapv3msgp"
 	"github.com/tinylib/msgp/msgp"
 )
 
@@ -58,12 +58,12 @@ func (z *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 	} else {
 		{
 			var zb0003 []byte
-			zb0003, err = dc.ReadBytes(uniswapv3mspg.EncodeTickListDataProvider(z.ticks))
+			zb0003, err = dc.ReadBytes(uniswapv3msgp.EncodeTickListDataProvider(z.ticks))
 			if err != nil {
 				err = msgp.WrapError(err, "ticks")
 				return
 			}
-			z.ticks = uniswapv3mspg.DecodeTickListDataProvider(zb0003)
+			z.ticks = uniswapv3msgp.DecodeTickListDataProvider(zb0003)
 		}
 	}
 	z.gas, err = dc.ReadInt64()
@@ -124,7 +124,7 @@ func (z *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	} else {
-		err = en.WriteBytes(uniswapv3mspg.EncodeTickListDataProvider(z.ticks))
+		err = en.WriteBytes(uniswapv3msgp.EncodeTickListDataProvider(z.ticks))
 		if err != nil {
 			err = msgp.WrapError(err, "ticks")
 			return
@@ -176,7 +176,7 @@ func (z *PoolSimulator) MarshalMsg(b []byte) (o []byte, err error) {
 	if z.ticks == nil {
 		o = msgp.AppendNil(o)
 	} else {
-		o = msgp.AppendBytes(o, uniswapv3mspg.EncodeTickListDataProvider(z.ticks))
+		o = msgp.AppendBytes(o, uniswapv3msgp.EncodeTickListDataProvider(z.ticks))
 	}
 	o = msgp.AppendInt64(o, z.gas)
 	o = msgp.AppendInt(o, z.tickMin)
@@ -233,12 +233,12 @@ func (z *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	} else {
 		{
 			var zb0003 []byte
-			zb0003, bts, err = msgp.ReadBytesBytes(bts, uniswapv3mspg.EncodeTickListDataProvider(z.ticks))
+			zb0003, bts, err = msgp.ReadBytesBytes(bts, uniswapv3msgp.EncodeTickListDataProvider(z.ticks))
 			if err != nil {
 				err = msgp.WrapError(err, "ticks")
 				return
 			}
-			z.ticks = uniswapv3mspg.DecodeTickListDataProvider(zb0003)
+			z.ticks = uniswapv3msgp.DecodeTickListDataProvider(zb0003)
 		}
 	}
 	z.gas, bts, err = msgp.ReadInt64Bytes(bts)
@@ -276,7 +276,7 @@ func (z *PoolSimulator) Msgsize() (s int) {
 	if z.ticks == nil {
 		s += msgp.NilSize
 	} else {
-		s += msgp.BytesPrefixSize + len(uniswapv3mspg.EncodeTickListDataProvider(z.ticks))
+		s += msgp.BytesPrefixSize + len(uniswapv3msgp.EncodeTickListDataProvider(z.ticks))
 	}
 	s += msgp.Int64Size + msgp.IntSize + msgp.IntSize + msgp.IntSize
 	return
