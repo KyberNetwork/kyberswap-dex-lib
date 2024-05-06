@@ -255,12 +255,6 @@ useCase:
           ttl: 10s
       ttlByAmountUsdRange:
         - amountUSDLowerBound: 0
-          ttl: 60s
-        - amountUSDLowerBound: 4
-          ttl: 40s
-        - amountUSDLowerBound: 11
-          ttl: 20s
-        - amountUSDLowerBound: 51
           ttl: 10s
         - amountUSDLowerBound: 101
           ttl: 10s
@@ -278,7 +272,7 @@ useCase:
         - amountLowerBound: "0"
           ttl: 10s
       priceImpactThreshold: 0.005
-      shrinkFuncName: "decimal"
+      shrinkFuncName: "round"
       shrinkDecimalBase: 10
       shrinkFuncPowExp: 0.7
       shrinkFuncLogPercent: 1.01

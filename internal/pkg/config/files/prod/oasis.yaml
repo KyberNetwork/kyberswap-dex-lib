@@ -192,14 +192,12 @@ useCase:
           ttl: 10s
       ttlByAmountUsdRange:
         - amountUSDLowerBound: 0
-          ttl: 30s
-        - amountUSDLowerBound: 51
+          ttl: 10s
+        - amountUSDLowerBound: 101
           ttl: 10s
         - amountUSDLowerBound: 500
           ttl: 10s
-        - amountUSDLowerBound: 701
-          ttl: 20s
-        - amountUSDLowerBound: 1101
+        - amountUSDLowerBound: 1001
           ttl: 10s
         - amountUSDLowerBound: 2000
           ttl: 10s
@@ -211,7 +209,7 @@ useCase:
         - amountLowerBound: "0"
           ttl: 10s
       priceImpactThreshold: 0.005
-      shrinkFuncName: "decimal"
+      shrinkFuncName: "round"
       shrinkDecimalBase: 10
       shrinkFuncPowExp: 0.7
       shrinkFuncLogPercent: 1.01
