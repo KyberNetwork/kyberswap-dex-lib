@@ -23,6 +23,7 @@ func (z *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err, "Pool")
 		return
 	}
+	var zb0003 string
 	var zb0002 uint32
 	zb0002, err = dc.ReadMapHeader()
 	if err != nil {
@@ -30,7 +31,7 @@ func (z *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 		return
 	}
 	if z.ordersMapping == nil {
-		z.ordersMapping = make(map[string]*order, zb0002)
+		z.ordersMapping = make(map[int64AsStr]*order, zb0002)
 	} else if len(z.ordersMapping) > 0 {
 		for key := range z.ordersMapping {
 			delete(z.ordersMapping, key)
@@ -40,13 +41,14 @@ func (z *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 	_ = field
 	for zb0002 > 0 {
 		zb0002--
-		var za0001 string
+		var za0001 int64AsStr
 		var za0002 *order
-		za0001, err = dc.ReadString()
+		zb0003, err = dc.ReadString()
 		if err != nil {
 			err = msgp.WrapError(err, "ordersMapping")
 			return
 		}
+		za0001 = stringToInt64(zb0003)
 		if dc.IsNil() {
 			err = dc.ReadNil()
 			if err != nil {
@@ -66,16 +68,16 @@ func (z *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 		}
 		z.ordersMapping[za0001] = za0002
 	}
-	var zb0003 uint32
-	zb0003, err = dc.ReadArrayHeader()
+	var zb0004 uint32
+	zb0004, err = dc.ReadArrayHeader()
 	if err != nil {
 		err = msgp.WrapError(err, "sellOrderIDs")
 		return
 	}
-	if cap(z.sellOrderIDs) >= int(zb0003) {
-		z.sellOrderIDs = (z.sellOrderIDs)[:zb0003]
+	if cap(z.sellOrderIDs) >= int(zb0004) {
+		z.sellOrderIDs = (z.sellOrderIDs)[:zb0004]
 	} else {
-		z.sellOrderIDs = make([]int64, zb0003)
+		z.sellOrderIDs = make([]int64, zb0004)
 	}
 	for za0003 := range z.sellOrderIDs {
 		z.sellOrderIDs[za0003], err = dc.ReadInt64()
@@ -84,16 +86,16 @@ func (z *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 	}
-	var zb0004 uint32
-	zb0004, err = dc.ReadArrayHeader()
+	var zb0005 uint32
+	zb0005, err = dc.ReadArrayHeader()
 	if err != nil {
 		err = msgp.WrapError(err, "buyOrderIDs")
 		return
 	}
-	if cap(z.buyOrderIDs) >= int(zb0004) {
-		z.buyOrderIDs = (z.buyOrderIDs)[:zb0004]
+	if cap(z.buyOrderIDs) >= int(zb0005) {
+		z.buyOrderIDs = (z.buyOrderIDs)[:zb0005]
 	} else {
-		z.buyOrderIDs = make([]int64, zb0004)
+		z.buyOrderIDs = make([]int64, zb0005)
 	}
 	for za0004 := range z.buyOrderIDs {
 		z.buyOrderIDs[za0004], err = dc.ReadInt64()
@@ -128,7 +130,7 @@ func (z *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
 		return
 	}
 	for za0001, za0002 := range z.ordersMapping {
-		err = en.WriteString(za0001)
+		err = en.WriteString(int64ToString(za0001))
 		if err != nil {
 			err = msgp.WrapError(err, "ordersMapping")
 			return
@@ -190,7 +192,7 @@ func (z *PoolSimulator) MarshalMsg(b []byte) (o []byte, err error) {
 	}
 	o = msgp.AppendMapHeader(o, uint32(len(z.ordersMapping)))
 	for za0001, za0002 := range z.ordersMapping {
-		o = msgp.AppendString(o, za0001)
+		o = msgp.AppendString(o, int64ToString(za0001))
 		if za0002 == nil {
 			o = msgp.AppendNil(o)
 		} else {
@@ -230,6 +232,7 @@ func (z *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err, "Pool")
 		return
 	}
+	var zb0003 string
 	var zb0002 uint32
 	zb0002, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
@@ -237,7 +240,7 @@ func (z *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		return
 	}
 	if z.ordersMapping == nil {
-		z.ordersMapping = make(map[string]*order, zb0002)
+		z.ordersMapping = make(map[int64AsStr]*order, zb0002)
 	} else if len(z.ordersMapping) > 0 {
 		for key := range z.ordersMapping {
 			delete(z.ordersMapping, key)
@@ -246,14 +249,15 @@ func (z *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
 	for zb0002 > 0 {
-		var za0001 string
+		var za0001 int64AsStr
 		var za0002 *order
 		zb0002--
-		za0001, bts, err = msgp.ReadStringBytes(bts)
+		zb0003, bts, err = msgp.ReadStringBytes(bts)
 		if err != nil {
 			err = msgp.WrapError(err, "ordersMapping")
 			return
 		}
+		za0001 = stringToInt64(zb0003)
 		if msgp.IsNil(bts) {
 			bts, err = msgp.ReadNilBytes(bts)
 			if err != nil {
@@ -272,16 +276,16 @@ func (z *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		}
 		z.ordersMapping[za0001] = za0002
 	}
-	var zb0003 uint32
-	zb0003, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	var zb0004 uint32
+	zb0004, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "sellOrderIDs")
 		return
 	}
-	if cap(z.sellOrderIDs) >= int(zb0003) {
-		z.sellOrderIDs = (z.sellOrderIDs)[:zb0003]
+	if cap(z.sellOrderIDs) >= int(zb0004) {
+		z.sellOrderIDs = (z.sellOrderIDs)[:zb0004]
 	} else {
-		z.sellOrderIDs = make([]int64, zb0003)
+		z.sellOrderIDs = make([]int64, zb0004)
 	}
 	for za0003 := range z.sellOrderIDs {
 		z.sellOrderIDs[za0003], bts, err = msgp.ReadInt64Bytes(bts)
@@ -290,16 +294,16 @@ func (z *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 	}
-	var zb0004 uint32
-	zb0004, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	var zb0005 uint32
+	zb0005, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err, "buyOrderIDs")
 		return
 	}
-	if cap(z.buyOrderIDs) >= int(zb0004) {
-		z.buyOrderIDs = (z.buyOrderIDs)[:zb0004]
+	if cap(z.buyOrderIDs) >= int(zb0005) {
+		z.buyOrderIDs = (z.buyOrderIDs)[:zb0005]
 	} else {
-		z.buyOrderIDs = make([]int64, zb0004)
+		z.buyOrderIDs = make([]int64, zb0005)
 	}
 	for za0004 := range z.buyOrderIDs {
 		z.buyOrderIDs[za0004], bts, err = msgp.ReadInt64Bytes(bts)
@@ -323,7 +327,7 @@ func (z *PoolSimulator) Msgsize() (s int) {
 	if z.ordersMapping != nil {
 		for za0001, za0002 := range z.ordersMapping {
 			_ = za0002
-			s += msgp.StringPrefixSize + len(za0001)
+			s += msgp.StringPrefixSize + len(int64ToString(za0001))
 			if za0002 == nil {
 				s += msgp.NilSize
 			} else {
