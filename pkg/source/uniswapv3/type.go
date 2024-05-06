@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Gas
+//msgp:ignore UniV3SwapInfoBigInt UniV3SwapInfo Metadata Token SubgraphPool TickResp SubgraphPoolTicks StaticExtra Tick TickU256 Extra ExtraTickU256 Slot0 preGenesisPool populatedTick FetchRPCResult PoolMeta
+
 package uniswapv3
 
 import (

@@ -1,3 +1,9 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple StaticExtra Extra
+//msgp:ignore SwapInfo
+//msgp:shim *uint256.Int as:[]byte using:msgpencode.EncodeUint256/msgpencode.DecodeUint256
+//msgp:shim uint256.Int as:[]byte using:msgpencode.EncodeUint256NonPtr/msgpencode.DecodeUint256NonPtr
+
 package tricryptong
 
 import "github.com/holiman/uint256"

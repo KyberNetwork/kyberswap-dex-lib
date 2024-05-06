@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator
+//msgp:shim *v3Entities.Pool as:[]byte using:uniswapv3mspg.EncodePool/uniswapv3mspg.DecodePool
+
 package solidlyv3
 
 import (

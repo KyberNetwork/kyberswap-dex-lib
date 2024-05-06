@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Asset Gas
+//msgp:ignore Extra Metadata SubgraphPool SubgraphAsset AssetSubgraph UnderlyingTokenSubgraph
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+
 package wombat
 
 import "math/big"

@@ -1,6 +1,13 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Addresses PoolState SystemSettings DynamicFeeConfig ExchangeVolumeAtPeriod ChainlinkDataFeed Slot0 OracleObservation DexPriceAggregatorUniswapV3 RoundData Token
+//msgp:ignore Extra
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+//msgp:shim common.Address as:[]byte using:(common.Address).Bytes/common.BytesToAddress
+
 package synthetix
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -14,15 +21,16 @@ type Addresses struct {
 }
 
 type PoolState struct {
-	BlockTimestamp      uint64                    `json:"blockTimestamp"`
-	Synths              map[string]common.Address `json:"synths"`
-	CurrencyKeyBySynth  map[common.Address]string `json:"currencyKeyBySynth"`
-	AvailableSynthCount *big.Int                  `json:"availableSynthCount"`
-	SynthsTotalSupply   map[string]*big.Int       `json:"synthsTotalSupply"`
-	TotalIssuedSUSD     *big.Int                  `json:"totalIssuedSUSD"`
-	CurrencyKeys        []string                  `json:"availableCurrencyKeys"`
-	SUSDCurrencyKey     string                    `json:"sUSDCurrencyKey"`
-	Addresses           *Addresses                `json:"addresses"`
+	BlockTimestamp         uint64                    `json:"blockTimestamp"`
+	Synths                 map[string]common.Address `json:"synths"`
+	CurrencyKeyBySynth     map[common.Address]string `json:"currencyKeyBySynth" msgp:"-"`
+	CurrencyKeyBySynthMsgp map[string]string         `json:"-"` // for msgp marshal/unmarshal
+	AvailableSynthCount    *big.Int                  `json:"availableSynthCount"`
+	SynthsTotalSupply      map[string]*big.Int       `json:"synthsTotalSupply"`
+	TotalIssuedSUSD        *big.Int                  `json:"totalIssuedSUSD"`
+	CurrencyKeys           []string                  `json:"availableCurrencyKeys"`
+	SUSDCurrencyKey        string                    `json:"sUSDCurrencyKey"`
+	Addresses              *Addresses                `json:"addresses"`
 
 	// SystemSettings data, will be updated by SystemSettingsReader
 	SystemSettings *SystemSettings `json:"systemSettings"`
@@ -56,6 +64,29 @@ func NewPoolState() *PoolState {
 		AggregatorAddresses:                make(map[string]common.Address),
 		Aggregators:                        make(map[string]*ChainlinkDataFeed),
 	}
+}
+
+func (p *PoolState) initialize() error {
+	if p.CurrencyKeyBySynth == nil {
+		if p.CurrencyKeyBySynthMsgp != nil {
+			p.CurrencyKeyBySynth = make(map[common.Address]string, len(p.CurrencyKeyBySynthMsgp))
+			for addr, val := range p.CurrencyKeyBySynthMsgp {
+				p.CurrencyKeyBySynth[common.HexToAddress(addr)] = val
+			}
+		} else {
+			return fmt.Errorf("both CurrencyKeyBySynth and CurrencyKeyBySynthMsgp are nil")
+		}
+	} else {
+		if p.CurrencyKeyBySynthMsgp == nil {
+			p.CurrencyKeyBySynthMsgp = make(map[string]string, len(p.CurrencyKeyBySynth))
+			for addr, val := range p.CurrencyKeyBySynth {
+				p.CurrencyKeyBySynthMsgp[addr.Hex()] = val
+			}
+		} else {
+			return fmt.Errorf("CurrencyKeyBySynth and CurrencyKeyBySynthMsgp don't point to the same map")
+		}
+	}
+	return nil
 }
 
 type ExchangeVolumeAtPeriod struct {
@@ -156,7 +187,7 @@ type DexPriceAggregatorUniswapV3 struct {
 	BlockTimestamp         uint64                                  `json:"blockTimestamp"`
 	OverriddenPoolForRoute map[string]common.Address               `json:"overriddenPoolForRoute"`
 	UniswapV3Slot0         map[string]Slot0                        `json:"uniswapV3Slot0"`
-	UniswapV3Observations  map[string]map[uint16]OracleObservation `json:"uniswapV3Observations"`
+	UniswapV3Observations  map[string]map[string]OracleObservation `json:"uniswapV3Observations"`
 	TickCumulatives        map[string][]*big.Int                   `json:"tickCumulatives"`
 }
 
@@ -164,7 +195,7 @@ func NewDexPriceAggregatorUniswapV3() *DexPriceAggregatorUniswapV3 {
 	return &DexPriceAggregatorUniswapV3{
 		OverriddenPoolForRoute: make(map[string]common.Address),
 		UniswapV3Slot0:         make(map[string]Slot0),
-		UniswapV3Observations:  make(map[string]map[uint16]OracleObservation),
+		UniswapV3Observations:  make(map[string]map[string]OracleObservation),
 		TickCumulatives:        make(map[string][]*big.Int),
 	}
 }

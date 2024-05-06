@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple GlobalState
+//msgp:ignore int24 int56 Metadata Token SubgraphPool TickResp SubgraphPoolTicks rpcGlobalStateSingleFee rpcGlobalStateDirFee FeeConfiguration FetchRPCResult Timepoint TimepointRPC Extra StateUpdate PoolMeta
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+
 package algebrav1
 
 import (

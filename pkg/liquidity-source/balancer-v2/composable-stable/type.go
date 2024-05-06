@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple LastJoinExitData TokenRateCache
+//msgp:ignore PoolMetaInfo SwapInfo Gas Extra StaticExtra AmplificationParameterResp LastJoinExitResp TokenRateCacheResp PoolTokensResp PausedStateResp rpcRes
+//msgp:shim *uint256.Int as:[]byte using:msgpencode.EncodeUint256/msgpencode.DecodeUint256
+
 package composablestable
 
 import (

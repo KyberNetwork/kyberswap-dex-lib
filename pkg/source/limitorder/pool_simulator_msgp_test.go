@@ -1,0 +1,113 @@
+package limitorder
+
+import (
+	"testing"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/require"
+)
+
+func TestMsgpackMarshalUnmarshal(t *testing.T) {
+	poolEntities := []entity.Pool{
+		{
+			Address:      "pool_limit_order_",
+			ReserveUsd:   1000000000,
+			AmplifiedTvl: 0,
+			SwapFee:      0,
+			Exchange:     "kyberswap_limit-order",
+			Type:         "limit-order",
+			Timestamp:    0,
+			Reserves:     []string{"10000000000000000000", "10000000000000000000"},
+			Tokens: []*entity.PoolToken{
+				{
+					Address:   "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+					Name:      "USDT",
+					Symbol:    "USDT",
+					Decimals:  6,
+					Swappable: true,
+				},
+				{
+					Address:   "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+					Name:      "USDC",
+					Symbol:    "USDC",
+					Decimals:  6,
+					Swappable: true,
+				},
+			},
+			Extra: marshalPoolExtra(&Extra{
+				BuyOrders: []*order{
+					{
+						ID:                   1383,
+						ChainID:              "5",
+						Salt:                 "185786982651412687203851465093295409688",
+						Signature:            "signature1",
+						TakerAsset:           "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+						MakerAsset:           "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+						Receiver:             "0xa246ec8bf7f2e54cc2f7bfdd869302ae4a08a590",
+						Maker:                "0xa246ec8bf7f2e54cc2f7bfdd869302ae4a08a590",
+						AllowedSenders:       "0x0000000000000000000000000000000000000000",
+						TakingAmount:         parseBigInt("200"),
+						MakingAmount:         parseBigInt("400"),
+						FeeConfig:            parseBigInt("100"),
+						FeeRecipient:         "0x0000000000000000000000000000000000000000",
+						FilledMakingAmount:   parseBigInt("0"),
+						FilledTakingAmount:   parseBigInt("0"),
+						MakerTokenFeePercent: 0,
+						MakerAssetData:       "",
+						TakerAssetData:       "",
+						GetMakerAmount:       "f4a215c3000000000000000000000000000000000000000000000001d7d843dc3b4800000000000000000000000000000000000000000000000000000de0b6b3a7640000",
+						GetTakerAmount:       "296637bf000000000000000000000000000000000000000000000001d7d843dc3b4800000000000000000000000000000000000000000000000000000de0b6b3a7640000",
+						Predicate:            "961d5b1e000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000020000000000000000000000002892e28b58ab329741f27fd1ea56dca0192a38840000000000000000000000002892e28b58ab329741f27fd1ea56dca0192a38840000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000044cf6fc6e3000000000000000000000000a246ec8bf7f2e54cc2f7bfdd869302ae4a08a590000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002463592c2b0000000000000000000000000000000000000000000000000000000063c1169800000000000000000000000000000000000000000000000000000000",
+						Permit:               "",
+						Interaction:          "",
+						ExpiredAt:            0,
+					},
+					{
+						ID:                   1382,
+						ChainID:              "5",
+						Salt:                 "185786982651412687203851465093295409688",
+						Signature:            "signature2",
+						TakerAsset:           "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+						MakerAsset:           "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+						Maker:                "0xa246ec8bf7f2e54cc2f7bfdd869302ae4a08a590",
+						Receiver:             "0xa246ec8bf7f2e54cc2f7bfdd869302ae4a08a590",
+						AllowedSenders:       "0x0000000000000000000000000000000000000000",
+						TakingAmount:         parseBigInt("300"),
+						MakingAmount:         parseBigInt("300"),
+						FeeConfig:            parseBigInt("100"),
+						FeeRecipient:         "0x0000000000000000000000000000000000000000",
+						FilledMakingAmount:   parseBigInt("0"),
+						FilledTakingAmount:   parseBigInt("0"),
+						MakerTokenFeePercent: 0,
+						MakerAssetData:       "",
+						TakerAssetData:       "",
+						GetMakerAmount:       "f4a215c3000000000000000000000000000000000000000000000001d7d843dc3b4800000000000000000000000000000000000000000000000000000de0b6b3a7640000",
+						GetTakerAmount:       "296637bf000000000000000000000000000000000000000000000001d7d843dc3b4800000000000000000000000000000000000000000000000000000de0b6b3a7640000",
+						Predicate:            "961d5b1e000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000020000000000000000000000002892e28b58ab329741f27fd1ea56dca0192a38840000000000000000000000002892e28b58ab329741f27fd1ea56dca0192a38840000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000044cf6fc6e3000000000000000000000000a246ec8bf7f2e54cc2f7bfdd869302ae4a08a590000000000000000000000000000000000000000000000000000000000000000600000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002463592c2b0000000000000000000000000000000000000000000000000000000063c1169800000000000000000000000000000000000000000000000000000000",
+						Permit:               "",
+						Interaction:          "",
+						ExpiredAt:            0,
+					},
+				},
+				SellOrders: []*order{},
+			}),
+			TotalSupply: "",
+		},
+	}
+	var err error
+	pools := make([]*PoolSimulator, len(poolEntities))
+	for i, poolEntity := range poolEntities {
+		pools[i], err = NewPoolSimulator(poolEntity)
+		require.NoError(t, err)
+	}
+	for _, pool := range pools {
+		b, err := pool.MarshalMsg(nil)
+		require.NoError(t, err)
+		actual := new(PoolSimulator)
+		_, err = actual.UnmarshalMsg(b)
+		require.NoError(t, err)
+		require.Empty(t, cmp.Diff(pool, actual, testutil.CmpOpts(PoolSimulator{})...))
+	}
+}

@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator Gas SmardexPair PairFee FictiveReserve PriceAverage FeeToAmount
+//msgp:ignore Reserves GetAmountParameters GetAmountResult SwapInfo
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+
 package smardex
 
 import (

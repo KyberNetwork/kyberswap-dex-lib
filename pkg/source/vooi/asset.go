@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Asset
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+//msgp:shim common.Address as:[]byte using:(common.Address).Bytes/common.BytesToAddress
+
 package vooi
 
 import (

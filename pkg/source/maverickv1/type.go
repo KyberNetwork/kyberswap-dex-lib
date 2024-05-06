@@ -1,3 +1,8 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple MaverickPoolState Bin Gas
+//msgp:ignore SubgraphPool Metadata SubgraphPool SubgraphToken StaticExtra Extra maverickSwapInfo Delta Active GetStateResult GetBinResult
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+
 package maverickv1
 
 import "math/big"

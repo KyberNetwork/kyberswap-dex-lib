@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Meta Gas
+//msgp:ignore Metadata PoolTypeMetadata Token SubgraphPool StaticExtra Extra TargetReserve PoolState FeeRate
+
 package dodo
 
 import "math/big"

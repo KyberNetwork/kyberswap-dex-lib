@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulatorState PoolSimulator
+//msgp:shim *big.Float as:[]byte using:msgpencode.EncodeFloat/msgpencode.DecodeFloat
+
 package dodo
 
 import (

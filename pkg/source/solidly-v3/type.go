@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Gas
+//msgp:ignore SolidlyV3SwapInfo Metadata Token SubgraphPool TickResp SubgraphPoolTicks StaticExtra Tick Extra Slot0 FetchRPCResult
+
 package solidlyv3
 
 import (

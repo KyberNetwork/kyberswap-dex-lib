@@ -1,9 +1,13 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Gas PoolSimulator
+
 package fxdx
 
 import (
 	"encoding/json"
 	"math/big"
 	"strings"
+	"sync"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 
@@ -21,6 +25,8 @@ type PoolSimulator struct {
 	vault    *Vault
 	feeUtils *FeeUtilsV2
 	gas      Gas
+
+	_initializeOnce sync.Once `msg:"-"`
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -45,19 +51,32 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	feeUtils := extra.FeeUtils
 	feeUtils.Vault = vault
 
-	return &PoolSimulator{
+	p := &PoolSimulator{
 		Pool: pool.Pool{
 			Info: info,
 		},
 		vault:    vault,
 		feeUtils: feeUtils,
 		gas:      DefaultGas,
-	}, nil
+	}
+	p.initializeOnce()
+	return p, nil
+}
+
+// initializeOnce PoolSimulator.feeUtils.Vault when PoolSimulator is constructed via unmarshaling
+func (p *PoolSimulator) initializeOnce() {
+	p._initializeOnce.Do(func() {
+		if p.feeUtils.Vault == nil {
+			p.feeUtils.Vault = p.vault
+		}
+	})
 }
 
 func (p *PoolSimulator) CalcAmountOut(
 	param pool.CalcAmountOutParams,
 ) (*pool.CalcAmountOutResult, error) {
+	p.initializeOnce()
+
 	var (
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut

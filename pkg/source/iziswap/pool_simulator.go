@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+
 package iziswap
 
 import (
@@ -11,12 +15,13 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap/iziswapmsgp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolSimulator struct {
 	pool.Pool
-	PoolInfo swap.PoolInfo
+	PoolInfo iziswapmsgp.PoolInfo
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -65,7 +70,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Reserves: []*big.Int{reserves0, reserves1},
 			},
 		},
-		PoolInfo: swap.PoolInfo(extra),
+		PoolInfo: iziswapmsgp.FromSdk(swap.PoolInfo(extra)),
 	}, nil
 }
 
@@ -89,7 +94,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		// todo, not limit swap-range in the future
 		//    or give a way to modify it
 		lowPt := p.PoolInfo.CurrentPoint - SIMULATOR_PT_RANGE
-		ret, err := swap.SwapX2Y(tokenAmountInAmount, lowPt, p.PoolInfo)
+		ret, err := swap.SwapX2Y(tokenAmountInAmount, lowPt, p.PoolInfo.AsSdk())
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
@@ -117,7 +122,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		// todo, not limit swap-range in the future
 		//    or give a way to modify it
 		highPt := p.PoolInfo.CurrentPoint + SIMULATOR_PT_RANGE
-		ret, err := swap.SwapY2X(tokenAmountInAmount, highPt, p.PoolInfo)
+		ret, err := swap.SwapY2X(tokenAmountInAmount, highPt, p.PoolInfo.AsSdk())
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}

@@ -1,3 +1,9 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Factory Gas
+//msgp:ignore Metadata StaticExtra Extra Pair Meta
+//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
+//msgp:shim common.Address as:[]byte using:(common.Address).Bytes/common.BytesToAddress
+
 package camelot
 
 import (

@@ -1,7 +1,12 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator
+//msgp:shim *uint256.Int as:[]byte using:msgpencode.EncodeUint256/msgpencode.DecodeUint256
+
 package composablestable
 
 import (
 	"math/big"
+	"strconv"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -68,6 +73,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		swapFeePercentage: extra.SwapFeePercentage,
 	}
 
+	protocolFeePercentageCache := make(map[string]*uint256.Int, len(extra.ProtocolFeePercentageCache))
+	for ty, fee := range extra.ProtocolFeePercentageCache {
+		protocolFeePercentageCache[strconv.FormatInt(int64(ty), 10)] = fee
+	}
 	bptSimulator := bptSimulator{
 		Pool:                            pool,
 		bptIndex:                        staticExtra.BptIndex,
@@ -78,7 +87,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		rateProviders:                   extra.RateProviders,
 		tokenRateCaches:                 extra.TokenRateCaches,
 		swapFeePercentage:               extra.SwapFeePercentage,
-		protocolFeePercentageCache:      extra.ProtocolFeePercentageCache,
+		protocolFeePercentageCache:      protocolFeePercentageCache,
 		tokenExemptFromYieldProtocolFee: extra.IsTokenExemptFromYieldProtocolFee,
 		exemptFromYieldProtocolFee:      extra.IsExemptFromYieldProtocolFee,
 		inRecoveryMode:                  extra.InRecoveryMode,
