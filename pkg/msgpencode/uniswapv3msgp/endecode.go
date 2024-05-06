@@ -1,4 +1,4 @@
-package uniswapv3mspg
+package uniswapv3msgp
 
 import (
 	"bytes"
