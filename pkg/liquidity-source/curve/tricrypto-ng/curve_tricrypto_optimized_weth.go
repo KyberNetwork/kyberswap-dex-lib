@@ -25,6 +25,7 @@ func (t *PoolSimulator) FeeCalc(xp []uint256.Int, fee *uint256.Int) error {
 	return nil
 }
 
+// GetDy https://github.com/curvefi/tricrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveCryptoViews3Optimized.vy#L60
 func (t *PoolSimulator) GetDy(
 	i int, j int, dx *uint256.Int,
 
@@ -44,7 +45,7 @@ func (t *PoolSimulator) GetDy(
 	for k := 0; k < 2; k += 1 {
 		xp[k+1].Div(
 			number.SafeMul(number.SafeMul(&xp[k+1], &t.Extra.PriceScale[k]), &t.precisionMultipliers[k+1]),
-			U_1e18,
+			Precision,
 		)
 	}
 
@@ -79,6 +80,84 @@ func (t *PoolSimulator) GetDy(
 	return nil
 }
 
+// GetDx https://github.com/curvefi/tricrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveCryptoViews3Optimized.vy#L76
+func (t *PoolSimulator) GetDx(
+	i int, j int, dy *uint256.Int,
+
+	dx, feeDy, K0 *uint256.Int, xp []uint256.Int,
+) error {
+	_dy := number.Set(dy)
+
+	for k := 0; k < 5; k += 1 {
+		var err = t._getDxFee(i, j, _dy, dx, K0, xp[:])
+		if err != nil {
+			return err
+		}
+
+		err = t.FeeCalc(xp, feeDy)
+		if err != nil {
+			return err
+		}
+		feeDy.Div(number.SafeMul(feeDy, _dy), U_1e10)
+		_dy.Add(dy, number.SafeAdd(feeDy, number.Number_1))
+	}
+
+	return nil
+}
+
+// https://github.com/curvefi/tricrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveCryptoViews3Optimized.vy#L184
+func (t *PoolSimulator) _getDxFee(
+	i int, j int, dy *uint256.Int,
+
+	// output
+	dx, K0 *uint256.Int, xp []uint256.Int,
+) error {
+	// 	assert i != j and i < N_COINS and j < N_COINS, "coin index out of range"
+	if i == j || i >= NumTokens || j >= NumTokens {
+		return errors.New("coin index out of range")
+	}
+
+	// 	assert dy > 0, "do not exchange out 0 coins"
+	if dy.Cmp(number.Zero) <= 0 {
+		return errors.New("do not exchange out 0 coins")
+	}
+
+	A, gamma := t._A_gamma()
+	for k := 0; k < NumTokens; k += 1 {
+		xp[k].Set(&t.Reserves[k])
+	}
+
+	xp[j].Sub(&t.Reserves[j], dy)
+
+	number.SafeMulZ(&xp[0], &t.precisionMultipliers[0], &xp[0])
+
+	for k := 0; k < 2; k += 1 {
+		xp[k+1].Div(
+			number.SafeMul(number.SafeMul(&xp[k+1], &t.Extra.PriceScale[k]), &t.precisionMultipliers[k+1]),
+			Precision,
+		)
+	}
+
+	var xOut uint256.Int
+	err := get_y(A, gamma, xp, t.Extra.D, i, &xOut, K0)
+	if err != nil {
+		return err
+	}
+
+	number.SafeSubZ(&xOut, &xp[i], dx)
+
+	xp[i].Set(&xOut)
+
+	if i > 0 {
+		dx.Div(number.SafeMul(dx, Precision), &t.Extra.PriceScale[i-1])
+	}
+
+	dx.Div(dx, &t.precisionMultipliers[i])
+
+	return nil
+}
+
+// https://github.com/curvefi/tricrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveTricryptoOptimizedWETH.vy#L964
 func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint256.Int, new_D, K0_prev *uint256.Int) error {
 	/*
 				@notice Tweaks price_oracle, last_price and conditionally adjusts
