@@ -79,6 +79,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/quickperps"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/slipstream"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/smardex"
 	solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3"
 	swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
@@ -551,6 +552,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newSwellRSWETH(entityPool)
 	case pooltypes.PoolTypes.SwellSWETH:
 		return f.newSwellSWETH(entityPool)
+	case pooltypes.PoolTypes.Slipstream:
+		return f.newSlipstream(entityPool)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -1875,6 +1878,20 @@ func (f *PoolFactory) newSwellSWETH(entityPool entity.Pool) (*sweth.PoolSimulato
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSwellSWETH] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newSlipstream(entityPool entity.Pool) (*slipstream.PoolSimulator, error) {
+	corePool, err := slipstream.NewPoolSimulator(entityPool, f.config.ChainID)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newSlipstream] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

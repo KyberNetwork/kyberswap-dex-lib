@@ -64,6 +64,7 @@ common:
     - "gyroscope-3clp"
     - "gyroscope-eclp"
     - "hashflow-v3"
+    - "velodrome-cl"
   featureFlags: &featureFlags
   hashflowAPIKey:
 log:

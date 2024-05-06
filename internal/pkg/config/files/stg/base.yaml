@@ -67,6 +67,7 @@ common:
     - "balancer-v2-composable-stable"
     - "vodoo"
     - "native-v1"
+    - "aerodrome-cl"
   featureFlags: &featureFlags
   nativeAPIKey:
 log:
