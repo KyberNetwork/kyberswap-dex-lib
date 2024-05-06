@@ -3,6 +3,7 @@ package tricryptong
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/samber/lo"
@@ -78,6 +79,101 @@ func TestCalcAmountOut(t *testing.T) {
 			assert.Equal(t, bignumber.NewBig10(tc.outOrError.(string)), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
 			fmt.Println("fee", out.Fee.Amount)
+		})
+	}
+}
+
+func TestCalcAmountIn(t *testing.T) {
+	pools := []string{
+		// https://etherscan.io/address/0x2889302a794da87fbf1d6db415c1492194663d13#readContract
+		"{\"address\":\"0x2889302a794da87fbf1d6db415c1492194663d13\",\"reserveUsd\":9528657.094819583,\"amplifiedTvl\":9528657.094819583,\"exchange\":\"curve-tricrypto-ng\",\"type\":\"curve-tricrypto-ng\",\"timestamp\":1714975165,\"reserves\":[\"2947201605123522350748728\",\"45611346320331519581\",\"788479732384942283053\"],\"tokens\":[{\"address\":\"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e\",\"symbol\":\"crvUSD\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x18084fba666a33d37592fa2633fd49a74dd93a88\",\"symbol\":\"tBTC\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0\",\"symbol\":\"wstETH\",\"decimals\":18,\"swappable\":true}],\"extra\":\"{\\\"InitialA\\\":\\\"1707629\\\",\\\"InitialGamma\\\":\\\"11809167828997\\\",\\\"InitialAGammaTime\\\":1705051559,\\\"FutureA\\\":\\\"540000\\\",\\\"FutureGamma\\\":\\\"80500000000000\\\",\\\"FutureAGammaTime\\\":1705537322,\\\"D\\\":\\\"8754450085519836953184450\\\",\\\"PriceScale\\\":[\\\"63936461273794516756888\\\",\\\"3666635369668832599935\\\"],\\\"PriceOracle\\\":[\\\"64075375610827630797332\\\",\\\"3681151306766592332262\\\"],\\\"LastPrices\\\":[\\\"64129534522750421957793\\\",\\\"3686896248129881507013\\\"],\\\"LastPricesTimestamp\\\":1714974575,\\\"FeeGamma\\\":\\\"400000000000000\\\",\\\"MidFee\\\":\\\"1000000\\\",\\\"OutFee\\\":\\\"140000000\\\",\\\"LpSupply\\\":\\\"4703464587192803610456\\\",\\\"XcpProfit\\\":\\\"1010482237832981057\\\",\\\"VirtualPrice\\\":\\\"1006199965234185124\\\",\\\"AllowedExtraProfit\\\":\\\"100000000\\\",\\\"AdjustmentStep\\\":\\\"100000000000\\\"}\",\"staticExtra\":\"{\\\"IsNativeCoins\\\":[false,false,false]}\",\"blockNumber\":19809115}",
+	}
+
+	testcases := []struct {
+		poolIdx          int
+		tokenIn          string
+		tokenOut         string
+		amountOut        *big.Int
+		expectedAmountIn *big.Int
+		expectedFee      *big.Int
+		expectedErr      error
+	}{
+		// ? crvUSD -> 1 tBTC
+		{
+			0,
+			"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e",
+			"0x18084fba666a33d37592fa2633fd49a74dd93a88",
+			bignumber.NewBig10("1000000000000000000"),
+			bignumber.NewBig10("65933872547199101612245"),
+			bignumber.NewBig10("9551219516814916"),
+			nil,
+		},
+
+		// ? crvUSD -> 10 tBTC
+		{
+			0,
+			"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e",
+			"0x18084fba666a33d37592fa2633fd49a74dd93a88",
+			bignumber.NewBig10("10000000000000000000"),
+			bignumber.NewBig10("835698563324567662123694"),
+			bignumber.NewBig10("141090623800609154"),
+			nil,
+		},
+
+		// ? tBTC -> 10 wstETH
+		{
+			0,
+			"0x18084fba666a33d37592fa2633fd49a74dd93a88",
+			"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+			bignumber.NewBig10("10000000000000000000"),
+			bignumber.NewBig10("583696141819846118"),
+			bignumber.NewBig10("67891482142363740"),
+			nil,
+		},
+
+		// ? wstETH -> 10000 crvUSD
+		{
+			0,
+			"0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0",
+			"0xf939e0a03fb07f59a73314e73794be0e57ac1b4e",
+			bignumber.NewBig10("10000000000000000000000"),
+			bignumber.NewBig10("2721164077515907441"),
+			bignumber.NewBig10("13265702572569133085"),
+			nil,
+		},
+	}
+
+	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
+		var poolEntity entity.Pool
+		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+		require.Nil(t, err)
+		p, err := NewPoolSimulator(poolEntity)
+		require.Nil(t, err)
+		return p
+	})
+
+	for idx, tc := range testcases {
+		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
+			p := sims[tc.poolIdx]
+			amountIn, err := testutil.MustConcurrentSafe[*pool.CalcAmountInResult](t, func() (any, error) {
+				return p.CalcAmountIn(pool.CalcAmountInParams{
+					TokenAmountOut: pool.TokenAmount{
+						Token:  tc.tokenOut,
+						Amount: tc.amountOut,
+					},
+					TokenIn: tc.tokenIn,
+					Limit:   nil,
+				})
+			})
+
+			if err != nil {
+				assert.ErrorIsf(t, err, tc.expectedErr, "expected error %v, got %v", tc.expectedErr, err)
+				return
+			}
+
+			assert.Equal(t, tc.tokenIn, amountIn.TokenAmountIn.Token)
+			assert.Equal(t, tc.expectedAmountIn, amountIn.TokenAmountIn.Amount)
+			assert.Equalf(t, tc.expectedFee, amountIn.Fee.Amount, "expected fee %v, got %v", tc.expectedFee, amountIn.Fee.Amount)
 		})
 	}
 }
