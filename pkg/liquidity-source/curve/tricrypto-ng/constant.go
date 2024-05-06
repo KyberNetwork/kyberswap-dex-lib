@@ -102,6 +102,8 @@ var (
 
 	// only support CurveTricryptoOptimizedWETH.vy for now
 	SupportedImplementation = mapset.NewSet("tricrypto-1")
+
+	Precision = U_1e18
 )
 
 var (

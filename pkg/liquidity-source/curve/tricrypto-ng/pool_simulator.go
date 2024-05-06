@@ -12,12 +12,13 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/KyberNetwork/logger"
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
-	"github.com/holiman/uint256"
 )
 
 type PoolSimulator struct {
@@ -125,8 +126,56 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				SwapInfo: swapInfo,
 			}, nil
 		}
+
+		return &pool.CalcAmountOutResult{}, ErrZero
 	}
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
+}
+
+func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	tokenIn := param.TokenIn
+	tokenAmountOut := param.TokenAmountOut
+
+	var tokenIndexFrom = t.Info.GetTokenIndex(tokenIn)
+	var tokenIndexTo = t.Info.GetTokenIndex(tokenAmountOut.Token)
+
+	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
+		var amountIn, feeDy, amountOut uint256.Int
+		amountOut.SetFromBig(tokenAmountOut.Amount)
+
+		swapInfo := SwapInfo{}
+		err := t.GetDx(
+			tokenIndexFrom,
+			tokenIndexTo,
+			&amountOut,
+			&amountIn,
+			&feeDy,
+			&swapInfo.K0,
+			swapInfo.Xp[:],
+		)
+		if err != nil {
+			return &pool.CalcAmountInResult{}, err
+		}
+
+		if !amountIn.IsZero() {
+			return &pool.CalcAmountInResult{
+				TokenAmountIn: &pool.TokenAmount{
+					Token:  tokenIn,
+					Amount: amountIn.ToBig(),
+				},
+				Fee: &pool.TokenAmount{
+					Token:  tokenAmountOut.Token,
+					Amount: feeDy.ToBig(),
+				},
+				Gas:      t.gas,
+				SwapInfo: swapInfo,
+			}, nil
+		}
+
+		return &pool.CalcAmountInResult{}, ErrZero
+	}
+
+	return &pool.CalcAmountInResult{}, fmt.Errorf("tokenIndexFrom %v or tokenIndexTo %v is not correct", tokenIndexFrom, tokenIndexTo)
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
