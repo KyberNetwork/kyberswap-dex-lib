@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple Gas
+//msgp:ignore SwapInfoBigInt SwapInfo Metadata Token SubgraphPool TickResp SubgraphPoolTicks StaticExtra Tick TickU256 Extra ExtraTickU256 Slot0 FetchRPCResult PoolMeta
+
 package slipstream
 
 import (

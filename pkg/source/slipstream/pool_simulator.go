@@ -1,3 +1,7 @@
+//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
+//msgp:tuple PoolSimulator
+//msgp:shim *v3Entities.Pool as:[]byte using:uniswapv3uint256msgp.EncodePool/uniswapv3uint256msgp.DecodePool
+
 package slipstream
 
 import (
