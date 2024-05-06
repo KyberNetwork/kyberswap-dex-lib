@@ -308,6 +308,9 @@ var (
 	ExchangePotatoSwap   Exchange = "potato-swap"
 	ExchangeXLayerSwap   Exchange = "xlayer-swap"
 	ExchangeStationDexV3 Exchange = "station-dex-v3"
+
+	ExchangeVelodromeCL Exchange = "velodrome-cl"
+	ExchangeAerodromeCL Exchange = "aerodrome-cl"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -559,6 +562,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangePotatoSwap:                 {},
 	ExchangeXLayerSwap:                 {},
 	ExchangeStationDexV3:               {},
+	ExchangeVelodromeCL:                {},
+	ExchangeAerodromeCL:                {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
