@@ -106,6 +106,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 		order.FilledTakingAmount = new(big.Int).Add(order.FilledTakingAmount, filledTakingAmount)
 		order.FilledMakingAmount = new(big.Int).Add(order.FilledMakingAmount, filledMakingAmount)
+
+		if order.AvailableMakingAmount != nil {
+			order.AvailableMakingAmount = new(big.Int).Sub(order.AvailableMakingAmount, filledMakingAmount)
+		}
 	}
 }
 

@@ -970,3 +970,121 @@ func TestPool_CalcAmountOut_v2(t *testing.T) {
 		})
 	}
 }
+
+func TestPool_UpdateBalance(t *testing.T) {
+	type testorder struct {
+		id               int64
+		makingAmount     string
+		takingAmount     string
+		avaiMakingAmount string
+	}
+
+	type testswap struct {
+		amountIn     string
+		expAmountOut string
+		expOrderIds  []int64
+	}
+
+	pools := map[string][]testorder{
+		"pool1": {
+			{1001, "100", "1000", "100"},
+			{1002, "100", "2000", "50"},
+		},
+	}
+
+	testcases := []struct {
+		name string
+		pool string
+
+		swaps []testswap
+	}{
+		{"case 1", "pool1", []testswap{
+			{"1000", "100", []int64{1001, 1002}}, // 1st swap full fill 1001 (1002 included as backup)
+			{"500", "25", []int64{1002}},         // after update balance, 1001 has been fully used , can only use 1002
+			{"600", "", nil},                     // only 25 makingAmount left (500 takingAmount), so this swap will fail
+		}},
+		{"case 2", "pool1", []testswap{
+			{"1000", "100", []int64{1001, 1002}}, // 1st swap full fill 1001 (1002 included as backup)
+			{"500", "25", []int64{1002}},         // after update balance, 1001 has been fully used , can only use 1002
+			{"300", "15", []int64{1002}},         // still use 1002
+			{"200", "10", []int64{1002}},         // still use 1002
+		}},
+	}
+
+	var sims map[string]*PoolSimulator
+	resetSim := func() {
+		sims = lo.MapValues(pools, func(orders []testorder, _ string) *PoolSimulator {
+			extra := Extra{
+				BuyOrders: lo.Map(orders, func(o testorder, _ int) *order {
+					return &order{
+						ID:                    o.id,
+						MakingAmount:          bignumber.NewBig10(o.makingAmount),
+						TakingAmount:          bignumber.NewBig10(o.takingAmount),
+						AvailableMakingAmount: bignumber.NewBig10(o.avaiMakingAmount),
+						FilledMakingAmount:    big.NewInt(0),
+						FilledTakingAmount:    big.NewInt(0),
+					}
+				}),
+			}
+			sExtra, _ := json.Marshal(extra)
+			poolEnt := entity.Pool{
+				Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
+				Reserves:    entity.PoolReserves{"0", "0"},
+				StaticExtra: `{"ContractAddress":""}`,
+				Extra:       string(sExtra),
+			}
+			p, err := NewPoolSimulator(poolEnt)
+			require.Nil(t, err)
+			return p
+		})
+	}
+
+	for _, tc := range testcases {
+		resetSim()
+		for i, swap := range tc.swaps {
+			t.Run(fmt.Sprintf("%v swap %d", tc.name, i), func(t *testing.T) {
+				res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{
+						Token:  "A",
+						Amount: bignumber.NewBig10(swap.amountIn),
+					},
+					TokenOut: "B",
+					Limit:    nil,
+				})
+
+				if swap.expOrderIds == nil {
+					require.NotNil(t, err)
+					return
+				}
+
+				require.Nil(t, err)
+
+				assert.Equal(t, swap.expAmountOut, res.TokenAmountOut.Amount.String())
+
+				si := res.SwapInfo.(SwapInfo)
+				oid := make([]int64, 0, len(si.FilledOrders))
+				oinfo := ""
+				for _, o := range si.FilledOrders {
+					if o.FilledTakingAmount == "" {
+						break
+					}
+					oid = append(oid, o.OrderID)
+					oinfo += fmt.Sprintf("order %v %v %v\n", o.OrderID, o.FilledMakingAmount, o.FilledTakingAmount)
+				}
+				assert.Equal(t, swap.expOrderIds, oid, oinfo)
+				fmt.Println(oinfo)
+
+				sims[tc.pool].UpdateBalance(pool.UpdateBalanceParams{
+					TokenAmountIn: pool.TokenAmount{
+						Token:  "A",
+						Amount: bignumber.NewBig10(swap.amountIn),
+					},
+					TokenAmountOut: *res.TokenAmountOut,
+					Fee:            *res.Fee,
+					SwapInfo:       res.SwapInfo,
+					SwapLimit:      nil,
+				})
+			})
+		}
+	}
+}
