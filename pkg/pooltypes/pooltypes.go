@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
+	friendtech "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/friend-tech"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
@@ -202,6 +203,7 @@ type Types struct {
 	NativeV1                       string
 	RenzoEZETH                     string
 	Slipstream                     string
+	FriendTech                     string
 }
 
 var (
@@ -312,5 +314,6 @@ var (
 		NativeV1:                       nativev1.DexType,
 		RenzoEZETH:                     ezeth.DexType,
 		Slipstream:                     slipstream.DexType,
+		FriendTech:                     friendtech.DexType,
 	}
 )
