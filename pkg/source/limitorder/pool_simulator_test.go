@@ -1043,9 +1043,9 @@ func TestPool_UpdateBalance(t *testing.T) {
 
 	for _, tc := range testcases {
 		resetSim()
+		limit := NewInventory(sims[tc.pool].CalculateLimit())
 		for i, swap := range tc.swaps {
 			t.Run(fmt.Sprintf("%v swap %d", tc.name, i), func(t *testing.T) {
-				limit := NewInventory(sims[tc.pool].CalculateLimit())
 				res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "A",
