@@ -43,6 +43,8 @@ common:
     - "nile-v2"
     - "lynex-v1"
     - "native-v1"
+    - "linehub-v2"
+    - "linehub-v3"
   featureFlags: &featureFlags
   nativeAPIKey:
 log:

@@ -92,6 +92,8 @@ var (
 		valueobject.ExchangeRevoSwap:        true,
 		valueobject.ExchangePotatoSwap:      true,
 		valueobject.ExchangeDyorSwap:        true,
+		valueobject.ExchangeLineHubV2:       true,
+		valueobject.ExchangeWigoSwap:        true,
 
 		// KSClassic
 		valueobject.ExchangeDMM:             true,
