@@ -35,21 +35,5 @@ var (
 )
 
 const (
-	pairMethodToken0      = "token0"
-	pairMethodToken1      = "token1"
 	pairMethodGetReserves = "getReserves"
-
-	meerkatPairMethodSwapFee                   = "swapFee"
-	mdexFactoryMethodGetPairFees               = "getPairFees"
-	shibaswapPairMethodTotalFee                = "totalFee"
-	croDefiSwapFactoryMethodTotalFeeBasisPoint = "totalFeeBasisPoint"
-	zkSwapFinancePairMethodGetSwapFee          = "getSwapFee"
-)
-
-const (
-	FeeTrackerIDMMF         = "mmf"
-	FeeTrackerIDMdex        = "mdex"
-	FeeTrackerIDShibaswap   = "shibaswap"
-	FeeTrackerIDDefiswap    = "defiswap"
-	FeeTrackerZKSwapFinance = "zkswap-finance"
 )
