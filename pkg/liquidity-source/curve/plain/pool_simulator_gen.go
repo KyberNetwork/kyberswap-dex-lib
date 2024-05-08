@@ -113,168 +113,141 @@ func (z Gas) Msgsize() (s int) {
 
 // DecodeMsg implements msgp.Decodable
 func (z *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, err = dc.ReadMapHeader()
+	zb0001, err = dc.ReadArrayHeader()
 	if err != nil {
 		err = msgp.WrapError(err)
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
+	if zb0001 != 9 {
+		err = msgp.ArrayError{Wanted: 9, Got: zb0001}
+		return
+	}
+	err = z.Pool.DecodeMsg(dc)
+	if err != nil {
+		err = msgp.WrapError(err, "Pool")
+		return
+	}
+	var zb0002 uint32
+	zb0002, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err, "precisionMultipliers")
+		return
+	}
+	if cap(z.precisionMultipliers) >= int(zb0002) {
+		z.precisionMultipliers = (z.precisionMultipliers)[:zb0002]
+	} else {
+		z.precisionMultipliers = make([]uint256.Int, zb0002)
+	}
+	for za0001 := range z.precisionMultipliers {
+		{
+			var zb0003 []byte
+			zb0003, err = dc.ReadBytes(msgpencode.EncodeUint256NonPtr(z.precisionMultipliers[za0001]))
+			if err != nil {
+				err = msgp.WrapError(err, "precisionMultipliers", za0001)
+				return
+			}
+			z.precisionMultipliers[za0001] = msgpencode.DecodeUint256NonPtr(zb0003)
+		}
+	}
+	var zb0004 uint32
+	zb0004, err = dc.ReadArrayHeader()
+	if err != nil {
+		err = msgp.WrapError(err, "reserves")
+		return
+	}
+	if cap(z.reserves) >= int(zb0004) {
+		z.reserves = (z.reserves)[:zb0004]
+	} else {
+		z.reserves = make([]uint256.Int, zb0004)
+	}
+	for za0002 := range z.reserves {
+		{
+			var zb0005 []byte
+			zb0005, err = dc.ReadBytes(msgpencode.EncodeUint256NonPtr(z.reserves[za0002]))
+			if err != nil {
+				err = msgp.WrapError(err, "reserves", za0002)
+				return
+			}
+			z.reserves[za0002] = msgpencode.DecodeUint256NonPtr(zb0005)
+		}
+	}
+	{
+		var zb0006 []byte
+		zb0006, err = dc.ReadBytes(msgpencode.EncodeUint256NonPtr(z.LpSupply))
+		if err != nil {
+			err = msgp.WrapError(err, "LpSupply")
+			return
+		}
+		z.LpSupply = msgpencode.DecodeUint256NonPtr(zb0006)
+	}
+	var field []byte
+	_ = field
+	var zb0007 uint32
+	zb0007, err = dc.ReadMapHeader()
+	if err != nil {
+		err = msgp.WrapError(err, "gas")
+		return
+	}
+	for zb0007 > 0 {
+		zb0007--
 		field, err = dc.ReadMapKeyPtr()
 		if err != nil {
-			err = msgp.WrapError(err)
+			err = msgp.WrapError(err, "gas")
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "Pool":
-			err = z.Pool.DecodeMsg(dc)
+		case "Exchange":
+			z.gas.Exchange, err = dc.ReadInt64()
 			if err != nil {
-				err = msgp.WrapError(err, "Pool")
-				return
-			}
-		case "precisionMultipliers":
-			var zb0002 uint32
-			zb0002, err = dc.ReadArrayHeader()
-			if err != nil {
-				err = msgp.WrapError(err, "precisionMultipliers")
-				return
-			}
-			if cap(z.precisionMultipliers) >= int(zb0002) {
-				z.precisionMultipliers = (z.precisionMultipliers)[:zb0002]
-			} else {
-				z.precisionMultipliers = make([]uint256.Int, zb0002)
-			}
-			for za0001 := range z.precisionMultipliers {
-				{
-					var zb0003 []byte
-					zb0003, err = dc.ReadBytes(msgpencode.EncodeUint256NonPtr(z.precisionMultipliers[za0001]))
-					if err != nil {
-						err = msgp.WrapError(err, "precisionMultipliers", za0001)
-						return
-					}
-					z.precisionMultipliers[za0001] = msgpencode.DecodeUint256NonPtr(zb0003)
-				}
-			}
-		case "reserves":
-			var zb0004 uint32
-			zb0004, err = dc.ReadArrayHeader()
-			if err != nil {
-				err = msgp.WrapError(err, "reserves")
-				return
-			}
-			if cap(z.reserves) >= int(zb0004) {
-				z.reserves = (z.reserves)[:zb0004]
-			} else {
-				z.reserves = make([]uint256.Int, zb0004)
-			}
-			for za0002 := range z.reserves {
-				{
-					var zb0005 []byte
-					zb0005, err = dc.ReadBytes(msgpencode.EncodeUint256NonPtr(z.reserves[za0002]))
-					if err != nil {
-						err = msgp.WrapError(err, "reserves", za0002)
-						return
-					}
-					z.reserves[za0002] = msgpencode.DecodeUint256NonPtr(zb0005)
-				}
-			}
-		case "LpSupply":
-			{
-				var zb0006 []byte
-				zb0006, err = dc.ReadBytes(msgpencode.EncodeUint256NonPtr(z.LpSupply))
-				if err != nil {
-					err = msgp.WrapError(err, "LpSupply")
-					return
-				}
-				z.LpSupply = msgpencode.DecodeUint256NonPtr(zb0006)
-			}
-		case "gas":
-			var zb0007 uint32
-			zb0007, err = dc.ReadMapHeader()
-			if err != nil {
-				err = msgp.WrapError(err, "gas")
-				return
-			}
-			for zb0007 > 0 {
-				zb0007--
-				field, err = dc.ReadMapKeyPtr()
-				if err != nil {
-					err = msgp.WrapError(err, "gas")
-					return
-				}
-				switch msgp.UnsafeString(field) {
-				case "Exchange":
-					z.gas.Exchange, err = dc.ReadInt64()
-					if err != nil {
-						err = msgp.WrapError(err, "gas", "Exchange")
-						return
-					}
-				default:
-					err = dc.Skip()
-					if err != nil {
-						err = msgp.WrapError(err, "gas")
-						return
-					}
-				}
-			}
-		case "numTokens":
-			z.numTokens, err = dc.ReadInt()
-			if err != nil {
-				err = msgp.WrapError(err, "numTokens")
-				return
-			}
-		case "numTokensU256":
-			{
-				var zb0008 []byte
-				zb0008, err = dc.ReadBytes(msgpencode.EncodeUint256NonPtr(z.numTokensU256))
-				if err != nil {
-					err = msgp.WrapError(err, "numTokensU256")
-					return
-				}
-				z.numTokensU256 = msgpencode.DecodeUint256NonPtr(zb0008)
-			}
-		case "extra":
-			err = z.extra.DecodeMsg(dc)
-			if err != nil {
-				err = msgp.WrapError(err, "extra")
-				return
-			}
-		case "staticExtra":
-			err = z.staticExtra.DecodeMsg(dc)
-			if err != nil {
-				err = msgp.WrapError(err, "staticExtra")
+				err = msgp.WrapError(err, "gas", "Exchange")
 				return
 			}
 		default:
 			err = dc.Skip()
 			if err != nil {
-				err = msgp.WrapError(err)
+				err = msgp.WrapError(err, "gas")
 				return
 			}
 		}
+	}
+	z.numTokens, err = dc.ReadInt()
+	if err != nil {
+		err = msgp.WrapError(err, "numTokens")
+		return
+	}
+	{
+		var zb0008 []byte
+		zb0008, err = dc.ReadBytes(msgpencode.EncodeUint256NonPtr(z.numTokensU256))
+		if err != nil {
+			err = msgp.WrapError(err, "numTokensU256")
+			return
+		}
+		z.numTokensU256 = msgpencode.DecodeUint256NonPtr(zb0008)
+	}
+	err = z.extra.DecodeMsg(dc)
+	if err != nil {
+		err = msgp.WrapError(err, "extra")
+		return
+	}
+	err = z.staticExtra.DecodeMsg(dc)
+	if err != nil {
+		err = msgp.WrapError(err, "staticExtra")
+		return
 	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 9
-	// write "Pool"
-	err = en.Append(0x89, 0xa4, 0x50, 0x6f, 0x6f, 0x6c)
+	// array header, size 9
+	err = en.Append(0x99)
 	if err != nil {
 		return
 	}
 	err = z.Pool.EncodeMsg(en)
 	if err != nil {
 		err = msgp.WrapError(err, "Pool")
-		return
-	}
-	// write "precisionMultipliers"
-	err = en.Append(0xb4, 0x70, 0x72, 0x65, 0x63, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x4d, 0x75, 0x6c, 0x74, 0x69, 0x70, 0x6c, 0x69, 0x65, 0x72, 0x73)
-	if err != nil {
 		return
 	}
 	err = en.WriteArrayHeader(uint32(len(z.precisionMultipliers)))
@@ -289,11 +262,6 @@ func (z *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
-	// write "reserves"
-	err = en.Append(0xa8, 0x72, 0x65, 0x73, 0x65, 0x72, 0x76, 0x65, 0x73)
-	if err != nil {
-		return
-	}
 	err = en.WriteArrayHeader(uint32(len(z.reserves)))
 	if err != nil {
 		err = msgp.WrapError(err, "reserves")
@@ -306,19 +274,9 @@ func (z *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
-	// write "LpSupply"
-	err = en.Append(0xa8, 0x4c, 0x70, 0x53, 0x75, 0x70, 0x70, 0x6c, 0x79)
-	if err != nil {
-		return
-	}
 	err = en.WriteBytes(msgpencode.EncodeUint256NonPtr(z.LpSupply))
 	if err != nil {
 		err = msgp.WrapError(err, "LpSupply")
-		return
-	}
-	// write "gas"
-	err = en.Append(0xa3, 0x67, 0x61, 0x73)
-	if err != nil {
 		return
 	}
 	// map header, size 1
@@ -332,19 +290,9 @@ func (z *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "gas", "Exchange")
 		return
 	}
-	// write "numTokens"
-	err = en.Append(0xa9, 0x6e, 0x75, 0x6d, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x73)
-	if err != nil {
-		return
-	}
 	err = en.WriteInt(z.numTokens)
 	if err != nil {
 		err = msgp.WrapError(err, "numTokens")
-		return
-	}
-	// write "numTokensU256"
-	err = en.Append(0xad, 0x6e, 0x75, 0x6d, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x73, 0x55, 0x32, 0x35, 0x36)
-	if err != nil {
 		return
 	}
 	err = en.WriteBytes(msgpencode.EncodeUint256NonPtr(z.numTokensU256))
@@ -352,19 +300,9 @@ func (z *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
 		err = msgp.WrapError(err, "numTokensU256")
 		return
 	}
-	// write "extra"
-	err = en.Append(0xa5, 0x65, 0x78, 0x74, 0x72, 0x61)
-	if err != nil {
-		return
-	}
 	err = z.extra.EncodeMsg(en)
 	if err != nil {
 		err = msgp.WrapError(err, "extra")
-		return
-	}
-	// write "staticExtra"
-	err = en.Append(0xab, 0x73, 0x74, 0x61, 0x74, 0x69, 0x63, 0x45, 0x78, 0x74, 0x72, 0x61)
-	if err != nil {
 		return
 	}
 	err = z.staticExtra.EncodeMsg(en)
@@ -378,50 +316,33 @@ func (z *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
 // MarshalMsg implements msgp.Marshaler
 func (z *PoolSimulator) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 9
-	// string "Pool"
-	o = append(o, 0x89, 0xa4, 0x50, 0x6f, 0x6f, 0x6c)
+	// array header, size 9
+	o = append(o, 0x99)
 	o, err = z.Pool.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "Pool")
 		return
 	}
-	// string "precisionMultipliers"
-	o = append(o, 0xb4, 0x70, 0x72, 0x65, 0x63, 0x69, 0x73, 0x69, 0x6f, 0x6e, 0x4d, 0x75, 0x6c, 0x74, 0x69, 0x70, 0x6c, 0x69, 0x65, 0x72, 0x73)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.precisionMultipliers)))
 	for za0001 := range z.precisionMultipliers {
 		o = msgp.AppendBytes(o, msgpencode.EncodeUint256NonPtr(z.precisionMultipliers[za0001]))
 	}
-	// string "reserves"
-	o = append(o, 0xa8, 0x72, 0x65, 0x73, 0x65, 0x72, 0x76, 0x65, 0x73)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.reserves)))
 	for za0002 := range z.reserves {
 		o = msgp.AppendBytes(o, msgpencode.EncodeUint256NonPtr(z.reserves[za0002]))
 	}
-	// string "LpSupply"
-	o = append(o, 0xa8, 0x4c, 0x70, 0x53, 0x75, 0x70, 0x70, 0x6c, 0x79)
 	o = msgp.AppendBytes(o, msgpencode.EncodeUint256NonPtr(z.LpSupply))
-	// string "gas"
-	o = append(o, 0xa3, 0x67, 0x61, 0x73)
 	// map header, size 1
 	// string "Exchange"
 	o = append(o, 0x81, 0xa8, 0x45, 0x78, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65)
 	o = msgp.AppendInt64(o, z.gas.Exchange)
-	// string "numTokens"
-	o = append(o, 0xa9, 0x6e, 0x75, 0x6d, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x73)
 	o = msgp.AppendInt(o, z.numTokens)
-	// string "numTokensU256"
-	o = append(o, 0xad, 0x6e, 0x75, 0x6d, 0x54, 0x6f, 0x6b, 0x65, 0x6e, 0x73, 0x55, 0x32, 0x35, 0x36)
 	o = msgp.AppendBytes(o, msgpencode.EncodeUint256NonPtr(z.numTokensU256))
-	// string "extra"
-	o = append(o, 0xa5, 0x65, 0x78, 0x74, 0x72, 0x61)
 	o, err = z.extra.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "extra")
 		return
 	}
-	// string "staticExtra"
-	o = append(o, 0xab, 0x73, 0x74, 0x61, 0x74, 0x69, 0x63, 0x45, 0x78, 0x74, 0x72, 0x61)
 	o, err = z.staticExtra.MarshalMsg(o)
 	if err != nil {
 		err = msgp.WrapError(err, "staticExtra")
@@ -432,148 +353,127 @@ func (z *PoolSimulator) MarshalMsg(b []byte) (o []byte, err error) {
 
 // UnmarshalMsg implements msgp.Unmarshaler
 func (z *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
-	var field []byte
-	_ = field
 	var zb0001 uint32
-	zb0001, bts, err = msgp.ReadMapHeaderBytes(bts)
+	zb0001, bts, err = msgp.ReadArrayHeaderBytes(bts)
 	if err != nil {
 		err = msgp.WrapError(err)
 		return
 	}
-	for zb0001 > 0 {
-		zb0001--
+	if zb0001 != 9 {
+		err = msgp.ArrayError{Wanted: 9, Got: zb0001}
+		return
+	}
+	bts, err = z.Pool.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "Pool")
+		return
+	}
+	var zb0002 uint32
+	zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "precisionMultipliers")
+		return
+	}
+	if cap(z.precisionMultipliers) >= int(zb0002) {
+		z.precisionMultipliers = (z.precisionMultipliers)[:zb0002]
+	} else {
+		z.precisionMultipliers = make([]uint256.Int, zb0002)
+	}
+	for za0001 := range z.precisionMultipliers {
+		{
+			var zb0003 []byte
+			zb0003, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeUint256NonPtr(z.precisionMultipliers[za0001]))
+			if err != nil {
+				err = msgp.WrapError(err, "precisionMultipliers", za0001)
+				return
+			}
+			z.precisionMultipliers[za0001] = msgpencode.DecodeUint256NonPtr(zb0003)
+		}
+	}
+	var zb0004 uint32
+	zb0004, bts, err = msgp.ReadArrayHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "reserves")
+		return
+	}
+	if cap(z.reserves) >= int(zb0004) {
+		z.reserves = (z.reserves)[:zb0004]
+	} else {
+		z.reserves = make([]uint256.Int, zb0004)
+	}
+	for za0002 := range z.reserves {
+		{
+			var zb0005 []byte
+			zb0005, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeUint256NonPtr(z.reserves[za0002]))
+			if err != nil {
+				err = msgp.WrapError(err, "reserves", za0002)
+				return
+			}
+			z.reserves[za0002] = msgpencode.DecodeUint256NonPtr(zb0005)
+		}
+	}
+	{
+		var zb0006 []byte
+		zb0006, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeUint256NonPtr(z.LpSupply))
+		if err != nil {
+			err = msgp.WrapError(err, "LpSupply")
+			return
+		}
+		z.LpSupply = msgpencode.DecodeUint256NonPtr(zb0006)
+	}
+	var field []byte
+	_ = field
+	var zb0007 uint32
+	zb0007, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "gas")
+		return
+	}
+	for zb0007 > 0 {
+		zb0007--
 		field, bts, err = msgp.ReadMapKeyZC(bts)
 		if err != nil {
-			err = msgp.WrapError(err)
+			err = msgp.WrapError(err, "gas")
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "Pool":
-			bts, err = z.Pool.UnmarshalMsg(bts)
+		case "Exchange":
+			z.gas.Exchange, bts, err = msgp.ReadInt64Bytes(bts)
 			if err != nil {
-				err = msgp.WrapError(err, "Pool")
-				return
-			}
-		case "precisionMultipliers":
-			var zb0002 uint32
-			zb0002, bts, err = msgp.ReadArrayHeaderBytes(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "precisionMultipliers")
-				return
-			}
-			if cap(z.precisionMultipliers) >= int(zb0002) {
-				z.precisionMultipliers = (z.precisionMultipliers)[:zb0002]
-			} else {
-				z.precisionMultipliers = make([]uint256.Int, zb0002)
-			}
-			for za0001 := range z.precisionMultipliers {
-				{
-					var zb0003 []byte
-					zb0003, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeUint256NonPtr(z.precisionMultipliers[za0001]))
-					if err != nil {
-						err = msgp.WrapError(err, "precisionMultipliers", za0001)
-						return
-					}
-					z.precisionMultipliers[za0001] = msgpencode.DecodeUint256NonPtr(zb0003)
-				}
-			}
-		case "reserves":
-			var zb0004 uint32
-			zb0004, bts, err = msgp.ReadArrayHeaderBytes(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "reserves")
-				return
-			}
-			if cap(z.reserves) >= int(zb0004) {
-				z.reserves = (z.reserves)[:zb0004]
-			} else {
-				z.reserves = make([]uint256.Int, zb0004)
-			}
-			for za0002 := range z.reserves {
-				{
-					var zb0005 []byte
-					zb0005, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeUint256NonPtr(z.reserves[za0002]))
-					if err != nil {
-						err = msgp.WrapError(err, "reserves", za0002)
-						return
-					}
-					z.reserves[za0002] = msgpencode.DecodeUint256NonPtr(zb0005)
-				}
-			}
-		case "LpSupply":
-			{
-				var zb0006 []byte
-				zb0006, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeUint256NonPtr(z.LpSupply))
-				if err != nil {
-					err = msgp.WrapError(err, "LpSupply")
-					return
-				}
-				z.LpSupply = msgpencode.DecodeUint256NonPtr(zb0006)
-			}
-		case "gas":
-			var zb0007 uint32
-			zb0007, bts, err = msgp.ReadMapHeaderBytes(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "gas")
-				return
-			}
-			for zb0007 > 0 {
-				zb0007--
-				field, bts, err = msgp.ReadMapKeyZC(bts)
-				if err != nil {
-					err = msgp.WrapError(err, "gas")
-					return
-				}
-				switch msgp.UnsafeString(field) {
-				case "Exchange":
-					z.gas.Exchange, bts, err = msgp.ReadInt64Bytes(bts)
-					if err != nil {
-						err = msgp.WrapError(err, "gas", "Exchange")
-						return
-					}
-				default:
-					bts, err = msgp.Skip(bts)
-					if err != nil {
-						err = msgp.WrapError(err, "gas")
-						return
-					}
-				}
-			}
-		case "numTokens":
-			z.numTokens, bts, err = msgp.ReadIntBytes(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "numTokens")
-				return
-			}
-		case "numTokensU256":
-			{
-				var zb0008 []byte
-				zb0008, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeUint256NonPtr(z.numTokensU256))
-				if err != nil {
-					err = msgp.WrapError(err, "numTokensU256")
-					return
-				}
-				z.numTokensU256 = msgpencode.DecodeUint256NonPtr(zb0008)
-			}
-		case "extra":
-			bts, err = z.extra.UnmarshalMsg(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "extra")
-				return
-			}
-		case "staticExtra":
-			bts, err = z.staticExtra.UnmarshalMsg(bts)
-			if err != nil {
-				err = msgp.WrapError(err, "staticExtra")
+				err = msgp.WrapError(err, "gas", "Exchange")
 				return
 			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
-				err = msgp.WrapError(err)
+				err = msgp.WrapError(err, "gas")
 				return
 			}
 		}
+	}
+	z.numTokens, bts, err = msgp.ReadIntBytes(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "numTokens")
+		return
+	}
+	{
+		var zb0008 []byte
+		zb0008, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeUint256NonPtr(z.numTokensU256))
+		if err != nil {
+			err = msgp.WrapError(err, "numTokensU256")
+			return
+		}
+		z.numTokensU256 = msgpencode.DecodeUint256NonPtr(zb0008)
+	}
+	bts, err = z.extra.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "extra")
+		return
+	}
+	bts, err = z.staticExtra.UnmarshalMsg(bts)
+	if err != nil {
+		err = msgp.WrapError(err, "staticExtra")
+		return
 	}
 	o = bts
 	return
@@ -581,14 +481,14 @@ func (z *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *PoolSimulator) Msgsize() (s int) {
-	s = 1 + 5 + z.Pool.Msgsize() + 21 + msgp.ArrayHeaderSize
+	s = 1 + z.Pool.Msgsize() + msgp.ArrayHeaderSize
 	for za0001 := range z.precisionMultipliers {
 		s += msgp.BytesPrefixSize + len(msgpencode.EncodeUint256NonPtr(z.precisionMultipliers[za0001]))
 	}
-	s += 9 + msgp.ArrayHeaderSize
+	s += msgp.ArrayHeaderSize
 	for za0002 := range z.reserves {
 		s += msgp.BytesPrefixSize + len(msgpencode.EncodeUint256NonPtr(z.reserves[za0002]))
 	}
-	s += 9 + msgp.BytesPrefixSize + len(msgpencode.EncodeUint256NonPtr(z.LpSupply)) + 4 + 1 + 9 + msgp.Int64Size + 10 + msgp.IntSize + 14 + msgp.BytesPrefixSize + len(msgpencode.EncodeUint256NonPtr(z.numTokensU256)) + 6 + z.extra.Msgsize() + 12 + z.staticExtra.Msgsize()
+	s += msgp.BytesPrefixSize + len(msgpencode.EncodeUint256NonPtr(z.LpSupply)) + 1 + 9 + msgp.Int64Size + msgp.IntSize + msgp.BytesPrefixSize + len(msgpencode.EncodeUint256NonPtr(z.numTokensU256)) + z.extra.Msgsize() + z.staticExtra.Msgsize()
 	return
 }
