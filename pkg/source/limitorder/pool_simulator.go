@@ -401,7 +401,7 @@ func newFilledOrderInfo(order *order, filledTakingAmount, filledMakingAmount str
 
 //// Inventory Limit
 
-type makerAndAsset string
+type makerAndAsset = string
 
 func NewMakerAndAsset(maker, makerAsset string) makerAndAsset {
 	return makerAndAsset(fmt.Sprintf("%v:%v", maker, makerAsset))
