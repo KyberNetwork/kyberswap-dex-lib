@@ -11,8 +11,10 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/klauspost/compress/snappy"
 	"github.com/tinylib/msgp/msgp"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 var (
@@ -53,15 +55,17 @@ var (
 	readerPool = sync.Pool{New: func() any { return msgp.NewReaderBuf(nil, nil) }}
 )
 
+// EncodePoolSimulatorsMap encode a map from pool ID to IPoolSimulator with Snappy compression
 func EncodePoolSimulatorsMap(poolsMap map[string]pool.IPoolSimulator) ([]byte, error) {
 	if poolsMap == nil {
 		return nil, nil
 	}
 
 	buf := new(bytes.Buffer)
+	zw := snappy.NewBufferedWriter(buf)
 	en := writerPool.Get().(*msgp.Writer)
 	defer func() { writerPool.Put(en) }()
-	en.Reset(buf)
+	en.Reset(zw)
 
 	err := en.WriteArrayHeader(uint32(len(poolsMap)))
 	if err != nil {
@@ -98,18 +102,24 @@ func EncodePoolSimulatorsMap(poolsMap map[string]pool.IPoolSimulator) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
+	err = zw.Close()
+	if err != nil {
+		return nil, err
+	}
 
 	return buf.Bytes(), nil
 }
 
+// DecodePoolSimulatorsMap decodes an encoded and Snappy compressed map from pool ID to IPoolSimulator
 func DecodePoolSimulatorsMap(encoded []byte) (map[string]pool.IPoolSimulator, error) {
 	if encoded == nil {
 		return nil, nil
 	}
 
+	zw := snappy.NewReader(bytes.NewReader(encoded))
 	de := readerPool.Get().(*msgp.Reader)
 	defer func() { readerPool.Put(de) }()
-	de.Reset(bytes.NewReader(encoded))
+	de.Reset(zw)
 
 	n, err := de.ReadArrayHeader()
 	if err != nil {

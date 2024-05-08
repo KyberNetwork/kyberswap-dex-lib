@@ -32,7 +32,10 @@ require (
 	golang.org/x/sync v0.5.0
 )
 
-require github.com/philhofer/fwd v1.1.2 // indirect
+require (
+	github.com/klauspost/compress v1.17.8 // indirect
+	github.com/philhofer/fwd v1.1.2 // indirect
+)
 
 require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
