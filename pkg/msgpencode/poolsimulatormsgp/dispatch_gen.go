@@ -77,6 +77,7 @@ import (
 	pkg_source_quickperps "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/quickperps"
 	pkg_source_ramsesv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2"
 	pkg_source_saddle "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
+	pkg_source_slipstream "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/slipstream"
 	pkg_source_smardex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/smardex"
 	pkg_source_solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3"
 	pkg_source_swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
@@ -322,6 +323,9 @@ func dispatchPoolSimulator(sim pool.IPoolSimulator) (dexName string, encodable m
 		encodable = sim
 	case *pkg_source_saddle.PoolSimulator:
 		dexName = "pkg_source_saddle"
+		encodable = sim
+	case *pkg_source_slipstream.PoolSimulator:
+		dexName = "pkg_source_slipstream"
 		encodable = sim
 	case *pkg_source_smardex.PoolSimulator:
 		dexName = "pkg_source_smardex"
@@ -676,6 +680,10 @@ func undispatchPoolSimulator(dexName string) (sim pool.IPoolSimulator, decodable
 		decodable = pool
 	case "pkg_source_saddle":
 		pool := new(pkg_source_saddle.PoolSimulator)
+		sim = pool
+		decodable = pool
+	case "pkg_source_slipstream":
+		pool := new(pkg_source_slipstream.PoolSimulator)
 		sim = pool
 		decodable = pool
 	case "pkg_source_smardex":
