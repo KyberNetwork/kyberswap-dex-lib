@@ -315,6 +315,9 @@ var (
 	ExchangeLineHubV2 Exchange = "linehub-v2"
 	ExchangeLineHubV3 Exchange = "linehub-v3"
 	ExchangeWigoSwap  Exchange = "wigo-swap"
+
+	ExchangeInfusion Exchange = "infusion"
+	ExchangeSoSwap   Exchange = "soswap"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -571,6 +574,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeLineHubV2:                  {},
 	ExchangeLineHubV3:                  {},
 	ExchangeWigoSwap:                   {},
+	ExchangeInfusion:                   {},
+	ExchangeSoSwap:                     {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
