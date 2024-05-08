@@ -172,6 +172,9 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		if err != nil {
 			return &pool.CalcAmountInResult{}, err
 		}
+
+		remainingAmountOut := new(big.Int).Sub(tokenAmountOut.Amount, ret.AmountY)
+
 		amountX := ret.AmountX
 		// // Fee can be ignored for now
 		// amountX := ret.AmountX
@@ -194,6 +197,10 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 				Token:  tokenIn,
 				Amount: amountX,
 			},
+			RemainingTokenAmountOut: &pool.TokenAmount{
+				Token:  tokenAmountOut.Token,
+				Amount: remainingAmountOut,
+			},
 			Fee: &pool.TokenAmount{
 				Token:  tokenAmountOut.Token,
 				Amount: nil,
@@ -208,6 +215,9 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		if err != nil {
 			return &pool.CalcAmountInResult{}, err
 		}
+
+		remainingAmountOut := new(big.Int).Sub(tokenAmountOut.Amount, ret.AmountX)
+
 		amountY := ret.AmountY
 		// // Fee can be ignored for now
 		// fee := new(big.Int).Mul(amountX, big.NewInt(int64(p.PoolInfo.Fee)))
@@ -216,6 +226,10 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 			TokenAmountIn: &pool.TokenAmount{
 				Token:  tokenIn,
 				Amount: amountY,
+			},
+			RemainingTokenAmountOut: &pool.TokenAmount{
+				Token:  tokenAmountOut.Token,
+				Amount: remainingAmountOut,
 			},
 			Fee: &pool.TokenAmount{
 				Token:  tokenAmountOut.Token,
