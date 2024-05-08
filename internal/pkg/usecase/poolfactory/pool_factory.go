@@ -362,6 +362,8 @@ func newSwapLimit(dex string, limit map[string]*big.Int) poolpkg.SwapLimit {
 		return kyberpmm.NewInventory(limit)
 	case pooltypes.PoolTypes.Synthetix:
 		return synthetix.NewLimits(limit)
+	case pooltypes.PoolTypes.LimitOrder:
+		return limitorder.NewInventory(limit)
 	}
 	return nil
 }
