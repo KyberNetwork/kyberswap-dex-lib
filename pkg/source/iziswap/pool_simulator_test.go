@@ -104,21 +104,25 @@ func TestCalcAmountIn(t *testing.T) {
 	}
 
 	testcases := []struct {
-		poolIdx          int
-		tokenIn          string
-		tokenOut         string
-		amountOut        *big.Int
-		expectedAmountIn *big.Int
-		expectedFee      *big.Int
-		expectedErr      error
+		poolIdx                    int
+		tokenIn                    string
+		tokenOut                   string
+		amountOut                  *big.Int
+		expectedAmountIn           *big.Int
+		expectedRemainingAmountOut *big.Int
+		expectedFee                *big.Int
+		expectedErr                error
 	}{
 		// ? USDT -> 0.01 wstETH (X2YDesireY)
+		// The negative remaining amount out (-1520) is weird, but it also happens on Tenderly simulation, so I think it's expected
+		// https://dashboard.tenderly.co/tenderly_kyber/h8h/simulator/6dbeca14-0438-4b7e-82d3-b3d7aaea9c66/debugger?trace=0.1.5.27
 		{
 			0,
 			"0xa219439258ca9da29e9cc4ce5596924745e12b93",
 			"0xb5bedd42000b71fdde22d3ee8a79bd49a568fc8f",
 			bignumber.NewBig10("10000000000000000"),
 			bignumber.NewBig10("38582137"),
+			bignumber.NewBig10("-1520"),
 			nil,
 			nil,
 		},
@@ -130,6 +134,7 @@ func TestCalcAmountIn(t *testing.T) {
 			"0xb5bedd42000b71fdde22d3ee8a79bd49a568fc8f",
 			bignumber.NewBig10("30000000000000000"),
 			bignumber.NewBig10("107935549"),
+			bignumber.NewBig10("3735347527992153"),
 			nil,
 			nil,
 		},
@@ -141,6 +146,7 @@ func TestCalcAmountIn(t *testing.T) {
 			"0xa219439258ca9da29e9cc4ce5596924745e12b93",
 			bignumber.NewBig10("100000000"),
 			bignumber.NewBig10("30342728977393295"),
+			bignumber.NewBig10("0"),
 			nil,
 			nil,
 		},
@@ -152,6 +158,7 @@ func TestCalcAmountIn(t *testing.T) {
 			"0xa219439258ca9da29e9cc4ce5596924745e12b93",
 			bignumber.NewBig10("200000000"),
 			bignumber.NewBig10("31546414529043889"),
+			bignumber.NewBig10("96396366"),
 			nil,
 			nil,
 		},
@@ -163,6 +170,7 @@ func TestCalcAmountIn(t *testing.T) {
 			"0xa219439258ca9da29e9cc4ce5596924745e12b93",
 			bignumber.NewBig10("1000000000"),
 			bignumber.NewBig10("999900161"),
+			bignumber.NewBig10("0"),
 			nil,
 			nil,
 		},
@@ -174,6 +182,7 @@ func TestCalcAmountIn(t *testing.T) {
 			"0xa219439258ca9da29e9cc4ce5596924745e12b93",
 			bignumber.NewBig10("10000000000"),
 			bignumber.NewBig10("9999001601"),
+			bignumber.NewBig10("0"),
 			nil,
 			nil,
 		},
@@ -185,6 +194,7 @@ func TestCalcAmountIn(t *testing.T) {
 			"0xa219439258ca9da29e9cc4ce5596924745e12b93",
 			bignumber.NewBig10("100000000000"),
 			bignumber.NewBig10("100004281668"),
+			bignumber.NewBig10("0"),
 			nil,
 			nil,
 		},
@@ -196,6 +206,7 @@ func TestCalcAmountIn(t *testing.T) {
 			"0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
 			bignumber.NewBig10("1000000000"),
 			bignumber.NewBig10("1001100703"),
+			bignumber.NewBig10("0"),
 			nil,
 			nil,
 		},
@@ -207,6 +218,7 @@ func TestCalcAmountIn(t *testing.T) {
 			"0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
 			bignumber.NewBig10("10000000000"),
 			bignumber.NewBig10("10011007006"),
+			bignumber.NewBig10("0"),
 			nil,
 			nil,
 		},
@@ -218,24 +230,23 @@ func TestCalcAmountIn(t *testing.T) {
 			"0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
 			bignumber.NewBig10("100000000000"),
 			bignumber.NewBig10("100127003921"),
+			bignumber.NewBig10("0"),
 			nil,
 			nil,
 		},
 
 		// ? wstETH -> 500.100082 USDC.e (Y2XDesireX)
-		// This case is weird, it seems that the swapY2XDesireX on smart contract is not working correctly, thus our Golang simulation is also incorrect
 		// `swapY2XDesireX` Simulation: https://dashboard.tenderly.co/tenderly_kyber/h8h/simulator/31157ef8-34df-4da1-bbda-7b39a607e3e7
 
 		// If we use the `swapY2X` function, the output of USDC.e is only 99339211 with amountIn = 31442298566542614 of wstETH
 		// `swapY2X` Simulation: https://dashboard.tenderly.co/tenderly_kyber/h8h/simulator/e4298ae1-e32d-421a-af89-1c5d784a134f
-
-		// Solution: we should implement blacklisted pools functionality to prevent this kind of pool from being used
 		{
 			2,
 			"0xb5bedd42000b71fdde22d3ee8a79bd49a568fc8f",
 			"0x176211869ca2b568f2a7d4ee941e073a821ee1ff",
 			bignumber.NewBig10("500100082"),
 			bignumber.NewBig10("31442298566542614"),
+			bignumber.NewBig10("400760871"),
 			nil,
 			nil,
 		},
@@ -269,8 +280,9 @@ func TestCalcAmountIn(t *testing.T) {
 				return
 			}
 
-			assert.Equal(t, tc.tokenIn, amountIn.TokenAmountIn.Token)
-			assert.Equal(t, tc.expectedAmountIn, amountIn.TokenAmountIn.Amount)
+			assert.Equalf(t, tc.tokenIn, amountIn.TokenAmountIn.Token, "expected token in %v, got %v", tc.tokenIn, amountIn.TokenAmountIn.Token)
+			assert.Equalf(t, tc.expectedAmountIn, amountIn.TokenAmountIn.Amount, "expected amount in %v, got %v", tc.expectedAmountIn.String(), amountIn.TokenAmountIn.Amount.String())
+			assert.Equalf(t, tc.expectedRemainingAmountOut.String(), amountIn.RemainingTokenAmountOut.Amount.String(), "expected remaining amount out %v, got %v", tc.expectedRemainingAmountOut.String(), amountIn.RemainingTokenAmountOut.Amount.String())
 			assert.Equalf(t, tc.expectedFee, amountIn.Fee.Amount, "expected fee %v, got %v", tc.expectedFee, amountIn.Fee.Amount)
 		})
 	}
