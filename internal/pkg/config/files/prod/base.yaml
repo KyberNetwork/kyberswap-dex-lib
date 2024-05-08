@@ -67,6 +67,8 @@ common:
     - "vodoo"
     - "native-v1"
     - "aerodrome-cl"
+    - "infusion"
+    - "soswap"
   featureFlags: &featureFlags
   nativeAPIKey:
 log:

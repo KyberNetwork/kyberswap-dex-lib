@@ -12,7 +12,7 @@ require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/KyberNetwork/aevm v1.0.6
-	github.com/KyberNetwork/aggregator-encoding v0.15.3
+	github.com/KyberNetwork/aggregator-encoding v0.15.4
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
@@ -20,7 +20,7 @@ require (
 	github.com/KyberNetwork/grpc-service v0.2.0
 	github.com/KyberNetwork/kutils v0.2.2
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.54.3
+	github.com/KyberNetwork/kyberswap-dex-lib v0.55.1
 	github.com/KyberNetwork/logger v0.2.0
 	github.com/KyberNetwork/pool-service v0.45.1
 	github.com/KyberNetwork/reload v0.1.1
@@ -91,6 +91,7 @@ require (
 	github.com/DataDog/go-tuf v1.0.4-0.5.2-debug // indirect
 	github.com/DataDog/gostackparse v0.7.0 // indirect
 	github.com/DataDog/sketches-go v1.4.4 // indirect
+	github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0 // indirect
 	github.com/KyberNetwork/int256 v0.1.4 // indirect
 	github.com/KyberNetwork/pancake-v3-sdk v0.2.0 // indirect
 	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.0 // indirect
