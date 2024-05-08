@@ -109,6 +109,18 @@ func main() {
 	fmt.Fprintf(outFileBuf, "\t}\n")
 	fmt.Fprintf(outFileBuf, "\treturn\n")
 	fmt.Fprintf(outFileBuf, "}\n")
+
+	fmt.Fprintf(outFileBuf, "func makePoolSimulatorsMapForTesting() map[string]pool.IPoolSimulator {\n")
+	fmt.Fprintf(outFileBuf, "\treturn map[string]pool.IPoolSimulator {\n")
+	for _, dexName := range dexNames {
+		poolSimName := regularPoolSimName
+		if name, ok := irregularPoolSimNameByDexName[dexName]; ok {
+			poolSimName = name
+		}
+		fmt.Fprintf(outFileBuf, "\t\t\"%s.%s\": new(%s.%s),\n", dexName, poolSimName, dexName, poolSimName)
+	}
+	fmt.Fprintf(outFileBuf, "\t}\n")
+	fmt.Fprintf(outFileBuf, "}\n")
 }
 
 func findGoModDirInParents() string {

@@ -234,8 +234,15 @@ func (p *PoolSimulator) validateBufferAmount(token string, amount *big.Int) erro
 	return nil
 }
 
+func (p *PoolSimulator) BeforeMsgpEncode() error {
+	if p.feeUtils != nil && p.feeUtils.Vault == nil {
+		p.feeUtils.Vault = p.vault
+	}
+	return nil
+}
+
 func (p *PoolSimulator) AfterMsgpDecode() error {
-	if p.feeUtils.Vault == nil {
+	if p.feeUtils != nil && p.feeUtils.Vault == nil {
 		p.feeUtils.Vault = p.vault
 	}
 	return nil

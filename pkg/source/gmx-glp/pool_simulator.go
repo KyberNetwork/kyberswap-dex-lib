@@ -167,6 +167,13 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	}
 }
 
+func (p *PoolSimulator) BeforeMsgpEncode() error {
+	if p.vaultUtils == nil {
+		p.vaultUtils = NewVaultUtils(p.vault)
+	}
+	return nil
+}
+
 func (p *PoolSimulator) AfterMsgpDecode() error {
 	if p.vaultUtils == nil {
 		p.vaultUtils = NewVaultUtils(p.vault)

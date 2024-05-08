@@ -46,7 +46,7 @@ var uniswapv3PoolEncoded = `{
 	"blockNumber": 19015393
 }`
 
-func TestEndecode(t *testing.T) {
+func TestEndecodePoolSimulator(t *testing.T) {
 	var pools []pool.IPoolSimulator
 	{
 		poolEntity := new(entity.Pool)
@@ -64,4 +64,17 @@ func TestEndecode(t *testing.T) {
 
 		require.Empty(t, cmp.Diff(pool, decoded, testutil.CmpOpts(uniswapv3.PoolSimulator{})...))
 	}
+}
+
+func TestEndecodePoolSimulatorsMap(t *testing.T) {
+	poolsMap := makePoolSimulatorsMapForTesting()
+
+	encoded, err := EncodePoolSimulatorsMap(poolsMap)
+	require.NoError(t, err)
+
+	decoded, err := DecodePoolSimulatorsMap(encoded)
+	require.NoError(t, err)
+	require.Equal(t, len(poolsMap), len(decoded))
+
+	require.Empty(t, cmp.Diff(poolsMap, decoded, testutil.CmpOpts()...))
 }

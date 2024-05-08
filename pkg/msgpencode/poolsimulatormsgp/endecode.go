@@ -5,9 +5,11 @@ package poolsimulatormsgp
 import (
 	"bytes"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"math"
 	"reflect"
+	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/tinylib/msgp/msgp"
@@ -44,6 +46,99 @@ func undispatchRegisteredPoolSimulator(dexName string) (sim pool.IPoolSimulator,
 		}
 	}
 	return
+}
+
+var (
+	writerPool = sync.Pool{New: func() any { return msgp.NewWriterBuf(nil, nil) }}
+	readerPool = sync.Pool{New: func() any { return msgp.NewReaderBuf(nil, nil) }}
+)
+
+func EncodePoolSimulatorsMap(poolsMap map[string]pool.IPoolSimulator) ([]byte, error) {
+	if poolsMap == nil {
+		return nil, nil
+	}
+
+	buf := new(bytes.Buffer)
+	en := writerPool.Get().(*msgp.Writer)
+	defer func() { writerPool.Put(en) }()
+	en.Reset(buf)
+
+	err := en.WriteArrayHeader(uint32(len(poolsMap)))
+	if err != nil {
+		return nil, msgp.WrapError(err, "ArrayHeader")
+	}
+	for poolID, pool := range poolsMap {
+		err = en.WriteString(poolID)
+		if err != nil {
+			return nil, msgp.WrapError(err, poolID, "poolID")
+		}
+		dexType, encodable := dispatchPoolSimulator(pool)
+		if dexType == "" {
+			return nil, msgp.WrapError(errors.New("empty dexType"), poolID, "dexType")
+		}
+		if encodable == nil {
+			return nil, msgp.WrapError(errors.New("empty encodable"), poolID, "pool")
+		}
+		if hookable, ok := pool.(MsgpHookable); ok {
+			if err := hookable.BeforeMsgpEncode(); err != nil {
+				return nil, msgp.WrapError(fmt.Errorf("BeforeMsgpEncode() returns an error: %w", err), poolID, "pool")
+			}
+		}
+		err = en.WriteString(dexType)
+		if err != nil {
+			return nil, msgp.WrapError(err, poolID, "dexType")
+		}
+		err = encodable.EncodeMsg(en)
+		if err != nil {
+			return nil, msgp.WrapError(err, poolID, "pool")
+		}
+	}
+
+	err = en.Flush()
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func DecodePoolSimulatorsMap(encoded []byte) (map[string]pool.IPoolSimulator, error) {
+	if encoded == nil {
+		return nil, nil
+	}
+
+	de := readerPool.Get().(*msgp.Reader)
+	defer func() { readerPool.Put(de) }()
+	de.Reset(bytes.NewReader(encoded))
+
+	n, err := de.ReadArrayHeader()
+	if err != nil {
+		return nil, msgp.WrapError(err, "ArrayHeader")
+	}
+	poolsMap := make(map[string]pool.IPoolSimulator, int(n))
+	for i := uint32(0); i < n; i++ {
+		poolID, err := de.ReadString()
+		if err != nil {
+			return nil, msgp.WrapError(err, poolID, "poolID")
+		}
+		dexType, err := de.ReadString()
+		if err != nil {
+			return nil, msgp.WrapError(err, poolID, "dexType")
+		}
+		pool, decodable := undispatchPoolSimulator(dexType)
+		err = decodable.DecodeMsg(de)
+		if err != nil {
+			return nil, msgp.WrapError(err, poolID, "pool", i)
+		}
+		if hookable, ok := pool.(MsgpHookable); ok {
+			if err := hookable.AfterMsgpDecode(); err != nil {
+				return nil, msgp.WrapError(fmt.Errorf("AfterMsgpDecode() returns an error: %w", err), poolID, "pool")
+			}
+		}
+		poolsMap[poolID] = pool
+	}
+
+	return poolsMap, nil
 }
 
 // EncodePoolSimulator encodes [pool.IPoolSimulator] as the following format
