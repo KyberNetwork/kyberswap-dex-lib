@@ -79,6 +79,7 @@ type (
 		ExpiredAt            int64  `json:"expiredAt"`
 
 		AvailableMakingAmount string `json:"availableMakingAmount"`
+		MakerBalanceAllowance string `json:"makerBalanceAllowance"`
 	}
 
 	listOrdersFilter struct {
@@ -118,6 +119,10 @@ type (
 		ExpiredAt            int64    `json:"expiredAt"`
 
 		AvailableMakingAmount *big.Int `json:"availableMakingAmount"`
+
+		// min(balance, allowance) of `maker` for `makerAsset`
+		// (this is a global property for a pair of maker:makerAsset, but LO backend will return it for each order)
+		MakerBalanceAllowance *big.Int `json:"makerBalanceAllowance"`
 	}
 
 	operatorSignatures struct {
@@ -191,6 +196,13 @@ func toOrder(ordersData []*orderData) ([]*order, error) {
 				return nil, fmt.Errorf("invalid availableMakingAmount")
 			}
 			result[i].AvailableMakingAmount = availableMakingAmount
+		}
+		if len(o.MakerBalanceAllowance) > 0 {
+			makerBalanceAllowance, ok := new(big.Int).SetString(o.MakerBalanceAllowance, 10)
+			if !ok {
+				return nil, fmt.Errorf("invalid makerBalanceAllowance")
+			}
+			result[i].MakerBalanceAllowance = makerBalanceAllowance
 		}
 		result[i].TakingAmount = takingAmount
 		result[i].MakingAmount = makingAmount
