@@ -5,10 +5,10 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/iZiSwap-SDK-go/swap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/logger"
-	"github.com/izumiFinance/iZiSwap-SDK-go/swap"
 )
 
 func getPointDelta(fee int) int {
