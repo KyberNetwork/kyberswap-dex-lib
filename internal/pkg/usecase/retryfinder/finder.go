@@ -98,7 +98,7 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, input findroute.Inp
 			onGoingCalculatingGas int64 = 0
 		)
 		if currPath.Input.AmountAfterGas != nil {
-			inp.AmountAfterGas.Set(currPath.Input.AmountAfterGas)
+			inp.AmountAfterGas = new(big.Int).Set(currPath.Input.AmountAfterGas)
 		}
 		for pIndex := 0; pIndex < len(currPath.PoolAddresses); pIndex++ {
 			currPool, avail := data.PoolBucket.GetPool(currPath.PoolAddresses[pIndex])
