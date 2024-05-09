@@ -226,7 +226,7 @@ func getNextLayerFromToken(
 			itr, _pool, _toTokenInfo := numItr, pool, toTokenInfo
 			wg.Go(func() error {
 				// it is ok for prices[tokenTo] to default to zero
-				toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGas(_pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenInfo, data, input)
+				toTokenAmount, toTotalGasAmount, err := CalcNewTokenAmountAndGas(_pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenInfo, data, input)
 				if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Sign() == 0 {
 					logger.Debugf(ctx, "cannot calculate amountOut, error:%v", err)
 					return nil
@@ -407,7 +407,7 @@ func calcNewTokenAmountAndGasInNative(
 	return tokenAmountOut, newTotalGasAmount, nil
 }
 
-func calcNewTokenAmountAndGas(
+func CalcNewTokenAmountAndGas(
 	pool poolpkg.IPoolSimulator,
 	fromAmountIn valueobject.TokenAmount, fromTotalGasAmount int64,
 	tokenOut *entity.Token,

@@ -7,11 +7,10 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -88,7 +87,7 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, input findroute.Inp
 		var (
 			newPath  *valueobject.Path
 			currPath = route.Paths[i] //shallow copy
-			inp      = &poolpkg.TokenAmount{
+			inp      = &valueobject.TokenAmount{
 				Token:     currPath.Input.Token,
 				Amount:    big.NewInt(0).Set(currPath.Input.Amount),
 				AmountUsd: currPath.Input.AmountUsd,
@@ -98,20 +97,22 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, input findroute.Inp
 			poolsOnNewPath              = make([]string, len(currPath.PoolAddresses))
 			onGoingCalculatingGas int64 = 0
 		)
+		if currPath.Input.AmountAfterGas != nil {
+			inp.AmountAfterGas.Set(currPath.Input.AmountAfterGas)
+		}
 		for pIndex := 0; pIndex < len(currPath.PoolAddresses); pIndex++ {
 			currPool, avail := data.PoolBucket.GetPool(currPath.PoolAddresses[pIndex])
 			if !avail {
 				logger.Errorf(ctx, "pool is removed from pool bucket, poolAddress: %s", currPath.PoolAddresses[pIndex])
 				return route
 			}
-			currentOutPut, newGas, err := utils.CalcNewTokenAmountAndGas(currPool, *inp, onGoingCalculatingGas, currPath.Tokens[pIndex+1].Address, data.PriceUSDByAddress[currPath.Tokens[pIndex+1].Address], currPath.Tokens[pIndex+1].Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[currPool.GetType()])
-			//currentOutPut, err := poolpkg.CalcAmountOut(currPool, *inp, currPath.Tokens[pIndex+1].Address, data.SwapLimits[currPool.GetType()])
+			currentOutPut, newGas, err := common.CalcNewTokenAmountAndGas(currPool, *inp, onGoingCalculatingGas, currPath.Tokens[pIndex+1], data, input)
 			if err != nil {
 				logger.Errorf(ctx, "cannot calculate amount out for pool %s, error: %s", currPool.GetAddress(), err)
 				return route
 			}
 
-			bestNewPool, newAmount, bestNewGas := findNewBestPoolWithAmount(input, data, inp, currentOutPut, typeSet, poolsInRoute, onGoingCalculatingGas, data.PriceUSDByAddress[currentOutPut.Token], currPath.Tokens[pIndex+1])
+			bestNewPool, newAmount, bestNewGas := findNewBestPoolWithAmount(input, data, inp, currentOutPut, typeSet, poolsInRoute, onGoingCalculatingGas, currPath.Tokens[pIndex+1])
 			onGoingCalculatingGas = newGas
 
 			inp = currentOutPut
@@ -152,17 +153,7 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, input findroute.Inp
 	return nil
 }
 
-func betterAmountOut(newAmount, oldAmount *poolpkg.TokenAmount, gasInclude bool) bool {
-	if gasInclude && !utils.Float64AlmostEqual(newAmount.AmountUsd, oldAmount.AmountUsd) {
-		return newAmount.AmountUsd > oldAmount.AmountUsd
-	}
-	if newAmount.Amount.Cmp(oldAmount.Amount) > 0 {
-		return true
-	}
-	return false
-}
-
-func findNewBestPoolWithAmount(input findroute.Input, data findroute.FinderData, inp, currentOutPut *poolpkg.TokenAmount, typeSet sets.String, poolsUsed sets.String, currentGas int64, tokenOutPrice float64, tokenOut *entity.Token) (string, *poolpkg.TokenAmount, int64) {
+func findNewBestPoolWithAmount(input findroute.Input, data findroute.FinderData, inp, currentOutPut *valueobject.TokenAmount, typeSet sets.String, poolsUsed sets.String, currentGas int64, tokenOut *entity.Token) (string, *valueobject.TokenAmount, int64) {
 	var (
 		bestNewPool       = ""
 		newGas      int64 = 0
@@ -180,13 +171,12 @@ func findNewBestPoolWithAmount(input findroute.Input, data findroute.FinderData,
 				if !avail {
 					continue
 				}
-				swapLimit := data.SwapLimits[pool.GetType()]
-				result, newGasAmount, err := utils.CalcNewTokenAmountAndGas(pool, *inp, currentGas, currentOutPut.Token, tokenOutPrice, tokenOut.Decimals, input.GasPrice, input.GasTokenPriceUSD, swapLimit)
+				result, newGasAmount, err := common.CalcNewTokenAmountAndGas(pool, *inp, currentGas, tokenOut, data, input)
 				if err != nil {
 					continue
 				}
 
-				if !betterAmountOut(result, currentOutPut, input.GasInclude) {
+				if result.Compare(currentOutPut, input.GasInclude) <= 0 {
 					continue
 				}
 

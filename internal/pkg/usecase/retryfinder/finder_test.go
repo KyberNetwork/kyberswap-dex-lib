@@ -6,11 +6,14 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/KyberNetwork/blockchain-toolkit/float"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
+	"github.com/samber/lo"
 	"github.com/stretchr/testify/require"
 
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -49,6 +52,19 @@ func TestRetryFinder_retryDynamicPools(t *testing.T) {
 			"b": 100,
 			"c": 100,
 		}
+		mapNativepriceFloat = map[string]float64{
+			"a": 100,
+			"b": 100,
+			"c": 100,
+		}
+		mapNativeprice = lo.MapValues(mapNativepriceFloat, func(_v float64, _ string) *routerEntity.OnchainPrice {
+			v := big.NewFloat(_v)
+			priceDecimals := new(big.Float).Quo(v, float.TenPow(18))
+			return &routerEntity.OnchainPrice{
+				NativePriceRaw: routerEntity.Price{Buy: v, Sell: v},
+				NativePrice:    routerEntity.Price{Buy: priceDecimals, Sell: priceDecimals},
+			}
+		})
 
 		tokenList = []string{"a", "b", "c"}
 		gasPrice  = big.NewFloat(10)
@@ -76,11 +92,20 @@ func TestRetryFinder_retryDynamicPools(t *testing.T) {
 
 	require.NoError(t, pErr)
 
+	// better raw than pool 0, but worse when taking gas into account
+	tmp, pErr := uniswap.NewPoolSimulator(betterPool)
+	betterPoolRawSim := &HighGasSim{tmp, 150000000}
+
+	require.NoError(t, pErr)
+
 	var poolsWithPmm = make(map[string]poolpkg.IPoolSimulator)
+	var poolsWithBetterRaw = make(map[string]poolpkg.IPoolSimulator)
 	for _, pool := range pools {
 		poolsWithPmm[pool.GetAddress()] = pool
+		poolsWithBetterRaw[pool.GetAddress()] = pool
 	}
 	poolsWithPmm[pmmPoolSim.GetAddress()] = pmmPoolSim
+	poolsWithBetterRaw[pmmPoolSim.GetAddress()] = betterPoolRawSim
 
 	nonModifiedRoute := &valueobject.Route{
 		Input: valueobject.TokenAmount{
@@ -188,6 +213,134 @@ func TestRetryFinder_retryDynamicPools(t *testing.T) {
 						Token:  tokenOut.Address,
 						Amount: big.NewInt(998),
 					}},
+			}, {
+				name: "use betterPoolRaw because gasInclude=false",
+				args: args{
+					ctx: context.Background(),
+					input: findroute.Input{
+						TokenInAddress:         tokenIn.Address,
+						TokenOutAddress:        tokenOut.Address,
+						AmountIn:               big.NewInt(100),
+						GasPrice:               gasPrice,
+						GasTokenPriceUSD:       100,
+						SaveGas:                false,
+						GasInclude:             false,
+						IsPathGeneratorEnabled: false,
+						SourceHash:             0,
+					},
+					route:        nonModifiedRoute,
+					dynamicTypes: []string{"pmm"},
+					data: findroute.NewFinderData(context.Background(), tokenByAddress, mapUSDprice, nil, &types.FindRouteState{
+						Pools:     poolsWithBetterRaw,
+						SwapLimit: nil,
+					}),
+					gasOption: valueobject.GasOption{
+						GasFeeInclude: false,
+						Price:         big.NewFloat(10),
+						TokenPrice:    0,
+					},
+				},
+				want: &valueobject.Route{
+					Input: valueobject.TokenAmount{
+						Token:  tokenIn.Address,
+						Amount: big.NewInt(100),
+					},
+					Output: valueobject.TokenAmount{
+						Token:  tokenOut.Address,
+						Amount: big.NewInt(998),
+					}},
+			}, {
+				name: "cannot use betterPoolRaw because gasInclude=true",
+				args: args{
+					ctx: context.Background(),
+					input: findroute.Input{
+						TokenInAddress:         tokenIn.Address,
+						TokenOutAddress:        tokenOut.Address,
+						AmountIn:               big.NewInt(100),
+						GasPrice:               gasPrice,
+						GasTokenPriceUSD:       100,
+						SaveGas:                false,
+						GasInclude:             true,
+						IsPathGeneratorEnabled: false,
+						SourceHash:             0,
+					},
+					route:        nonModifiedRoute,
+					dynamicTypes: []string{"pmm"},
+					data: findroute.NewFinderData(context.Background(), tokenByAddress, mapUSDprice, nil, &types.FindRouteState{
+						Pools:     poolsWithBetterRaw,
+						SwapLimit: nil,
+					}),
+					gasOption: valueobject.GasOption{
+						GasFeeInclude: false,
+						Price:         big.NewFloat(10),
+						TokenPrice:    0,
+					},
+				},
+				want: nil,
+			}, {
+				name: "use betterPoolRaw because gasInclude=false (use native)",
+				args: args{
+					ctx: context.Background(),
+					input: findroute.Input{
+						TokenInAddress:         tokenIn.Address,
+						TokenOutAddress:        tokenOut.Address,
+						AmountIn:               big.NewInt(100),
+						GasPrice:               gasPrice,
+						GasTokenPriceUSD:       100,
+						SaveGas:                false,
+						GasInclude:             false,
+						IsPathGeneratorEnabled: false,
+						SourceHash:             0,
+					},
+					route:        nonModifiedRoute,
+					dynamicTypes: []string{"pmm"},
+					data: findroute.NewFinderData(context.Background(), tokenByAddress, nil, mapNativeprice, &types.FindRouteState{
+						Pools:     poolsWithBetterRaw,
+						SwapLimit: nil,
+					}),
+					gasOption: valueobject.GasOption{
+						GasFeeInclude: false,
+						Price:         big.NewFloat(10),
+						TokenPrice:    0,
+					},
+				},
+				want: &valueobject.Route{
+					Input: valueobject.TokenAmount{
+						Token:  tokenIn.Address,
+						Amount: big.NewInt(100),
+					},
+					Output: valueobject.TokenAmount{
+						Token:  tokenOut.Address,
+						Amount: big.NewInt(998),
+					}},
+			}, {
+				name: "cannot use betterPoolRaw because gasInclude=true (use native)",
+				args: args{
+					ctx: context.Background(),
+					input: findroute.Input{
+						TokenInAddress:         tokenIn.Address,
+						TokenOutAddress:        tokenOut.Address,
+						AmountIn:               big.NewInt(100),
+						GasPrice:               gasPrice,
+						GasTokenPriceUSD:       100,
+						SaveGas:                false,
+						GasInclude:             true,
+						IsPathGeneratorEnabled: false,
+						SourceHash:             0,
+					},
+					route:        nonModifiedRoute,
+					dynamicTypes: []string{"pmm"},
+					data: findroute.NewFinderData(context.Background(), tokenByAddress, nil, mapNativeprice, &types.FindRouteState{
+						Pools:     poolsWithBetterRaw,
+						SwapLimit: nil,
+					}),
+					gasOption: valueobject.GasOption{
+						GasFeeInclude: false,
+						Price:         big.NewFloat(10),
+						TokenPrice:    0,
+					},
+				},
+				want: nil,
 			},
 		}
 	)
@@ -202,4 +355,18 @@ func TestRetryFinder_retryDynamicPools(t *testing.T) {
 			}
 		})
 	}
+}
+
+type HighGasSim struct {
+	poolpkg.IPoolSimulator
+	GasAdd int64
+}
+
+func (s *HighGasSim) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+	res, err := s.IPoolSimulator.CalcAmountOut(params)
+	if err != nil {
+		return nil, err
+	}
+	res.Gas += s.GasAdd
+	return res, nil
 }
