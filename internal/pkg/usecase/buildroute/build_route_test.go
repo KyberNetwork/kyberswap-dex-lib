@@ -917,8 +917,11 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				AdditionalCostMessage: "",
 			},
 			estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
+				wg.Add(1)
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
-				gasEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Any()).Times(1).Return(uint64(0), errors.New("test error"))
+				gasEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Any()).Do(func(arg0, arg2 interface{}) {
+					defer wg.Done()
+				}).Times(1).Return(uint64(0), errors.New("test error"))
 				return gasEstimator
 			},
 			poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
@@ -1467,7 +1470,10 @@ func TestBuildRouteUseCase_HandleWithTrackingKeyTotalCountFaultyPools(t *testing
 				poolRepository.EXPECT().IncreasePoolsTotalCount(gomock.Any(), gomock.Eq(counterMap), gomock.Any()).Do(func(arg0, arg1, arg2 interface{}) {
 					defer wg.Done()
 				}).Return(map[string]int64{"0xabc:13:11:60": 2}, []error{}).Times(1)
-				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(1).Return([]string{"0xabc"}, nil)
+				wg.Add(1)
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Times(1).Return([]string{"0xabc"}, nil)
 				return poolRepository
 			},
 			config: Config{
