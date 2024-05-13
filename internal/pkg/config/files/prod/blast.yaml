@@ -253,6 +253,7 @@ useCase:
     faultyPools:
       windowSize: 15m
       faultyExpiredTime: 3m
+      minSlippageThreshold: 50
     rfq:
       - id: kyberswap-limit-order-v2
         handler: limit-order

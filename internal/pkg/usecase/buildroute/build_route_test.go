@@ -1332,6 +1332,158 @@ func TestBuildRouteUseCase_HandleWithTrackingKeyTotalCountFaultyPools(t *testing
 				return time
 			},
 		},
+		{
+			name: "it should return correct result, but increase total count on Redis because slippage below min threshold",
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:                     big.NewInt(2000000000000000000),
+					AmountInUSD:                  float64(2000000000000000000),
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:                    big.NewInt(4488767370609711072),
+					AmountOutUSD:                 float64(4488767370609711072),
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          345000,
+					GasPrice:                     big.NewFloat(100000000),
+					GasUSD:                       float64(0.07912413535198341),
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:       "0xabc",
+								AmountOut:  big.NewInt(996023110963288),
+								SwapAmount: big.NewInt(2000000000000000000),
+								Exchange:   "pancake",
+								PoolType:   "uniswap-v2",
+							},
+							{
+								Pool:       "0xabc",
+								AmountOut:  big.NewInt(4488767370609711072),
+								SwapAmount: big.NewInt(996023110963288),
+								Exchange:   "smardex",
+								PoolType:   "smardex",
+							},
+						},
+					},
+				},
+				SlippageTolerance:   30,
+				Recipient:           recipient,
+				EnableGasEstimation: true,
+				Sender:              sender,
+			},
+			result: &dto.BuildRouteResult{
+				AmountIn:      "2000000000000000000",
+				AmountInUSD:   "2000000000000",
+				AmountOut:     "4488767370609711072",
+				AmountOutUSD:  "4488767370609.711",
+				Gas:           "345000",
+				GasUSD:        "0.07912413535198341",
+				OutputChange:  OutputChangeNoChange,
+				Data:          "mockEncodedData",
+				RouterAddress: "0x01",
+
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
+			},
+			countTotalPools: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
+				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
+				poolRepository.EXPECT().IncreasePoolsTotalCount(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
+				return poolRepository
+			},
+			config: Config{
+				ChainID:      valueobject.ChainIDEthereum,
+				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WindowSize:           time.Minute * 15,
+					FaultyExpiredTime:    time.Minute * 3,
+					MinSlippageThreshold: 40,
+				}},
+			err: nil,
+			nowFunc: func() time.Time {
+				time, _ := time.Parse(time.RFC3339, "2023-12-13T11:45:26.371Z")
+				return time
+			},
+		},
+		{
+			name: "it should return correct result and increase total count on Redis because slippage above min threshold",
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:                     big.NewInt(2000000000000000000),
+					AmountInUSD:                  float64(2000000000000000000),
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:                    big.NewInt(4488767370609711072),
+					AmountOutUSD:                 float64(4488767370609711072),
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          345000,
+					GasPrice:                     big.NewFloat(100000000),
+					GasUSD:                       float64(0.07912413535198341),
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:       "0xabc",
+								AmountOut:  big.NewInt(996023110963288),
+								SwapAmount: big.NewInt(2000000000000000000),
+								Exchange:   "pancake",
+								PoolType:   "uniswap-v2",
+							},
+							{
+								Pool:       "0xabc",
+								AmountOut:  big.NewInt(4488767370609711072),
+								SwapAmount: big.NewInt(996023110963288),
+								Exchange:   "smardex",
+								PoolType:   "smardex",
+							},
+						},
+					},
+				},
+				SlippageTolerance:   50,
+				Recipient:           recipient,
+				EnableGasEstimation: true,
+				Sender:              sender,
+			},
+			result: &dto.BuildRouteResult{
+				AmountIn:      "2000000000000000000",
+				AmountInUSD:   "2000000000000",
+				AmountOut:     "4488767370609711072",
+				AmountOutUSD:  "4488767370609.711",
+				Gas:           "345000",
+				GasUSD:        "0.07912413535198341",
+				OutputChange:  OutputChangeNoChange,
+				Data:          "mockEncodedData",
+				RouterAddress: "0x01",
+
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
+			},
+			countTotalPools: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
+				wg.Add(1)
+				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
+				counterMap := map[string]int64{"0xabc:13:11:60": 2}
+				poolRepository.EXPECT().IncreasePoolsTotalCount(gomock.Any(), gomock.Eq(counterMap), gomock.Any()).Do(func(arg0, arg1, arg2 interface{}) {
+					defer wg.Done()
+				}).Return(map[string]int64{"0xabc:13:11:60": 2}, []error{}).Times(1)
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(1).Return([]string{"0xabc"}, nil)
+				return poolRepository
+			},
+			config: Config{
+				ChainID:      valueobject.ChainIDEthereum,
+				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WindowSize:           time.Minute * 15,
+					FaultyExpiredTime:    time.Minute * 3,
+					MinSlippageThreshold: 40,
+				}},
+			err: nil,
+			nowFunc: func() time.Time {
+				time, _ := time.Parse(time.RFC3339, "2023-12-13T11:45:26.371Z")
+				return time
+			},
+		},
 	}
 
 	wg := sync.WaitGroup{}
@@ -1386,8 +1538,11 @@ func TestBuildRouteUseCase_HandleWithTrackingKeyTotalCountFaultyPools(t *testing
 			gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
 			if tc.config.FeatureFlags.IsGasEstimatorEnabled {
 				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Return(uint64(345000), float64(0.07912413535198341), nil).Times(1)
-			} else {
-				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Times(0)
+			} else if tc.config.FeatureFlags.IsFaultyPoolDetectorEnable {
+				wg.Add(1)
+				gasEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(uint64(0), ErrReturnAmountIsNotEnough)
 			}
 
 			poolRepository := tc.countTotalPools(ctrl, &wg)

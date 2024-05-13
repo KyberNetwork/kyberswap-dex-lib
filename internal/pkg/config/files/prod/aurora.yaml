@@ -232,6 +232,7 @@ useCase:
     faultyPools:
       windowSize: 15m
       faultyExpiredTime: 3m
+      minSlippageThreshold: 50
   poolFactory:
     chainId: *chainId
   poolManager:

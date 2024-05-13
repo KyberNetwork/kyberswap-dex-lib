@@ -24,5 +24,7 @@ type (
 		// otherwise we have to modify window keys on Redis, adding seconds value to the keys.
 		WindowSize        time.Duration `mapstructure:"windowSize" json:"windowSize"`
 		FaultyExpiredTime time.Duration `mapstructure:"faultyExpiredTime" json:"faultyExpiredTime"`
+		// Min slippage threshold configured in BPS format, ex: 0.01% -> 1, 0.5% -> 50
+		MinSlippageThreshold int64 `mapstructure:"minSlippageThreshold" json:"minSlippageThreshold"`
 	}
 )

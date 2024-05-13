@@ -113,11 +113,11 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	// track total count of pool for every build route request, using for calculating fault density
 	// only track request with sender, because sender is a required field when we estimate gas
 	if !utils.IsEmptyString(command.Sender) {
-		go uc.trackFaultyPoolsKeyTotalCount(ctxUtils.NewBackgroundCtxWithReqId(ctx), routeSummary, uc.nowFunc().UTC())
+		go uc.trackFaultyPoolsKeyTotalCount(ctxUtils.NewBackgroundCtxWithReqId(ctx), routeSummary, command.SlippageTolerance, uc.nowFunc().UTC())
 	}
 
 	// estimate gas price for a transaction
-	estimatedGas, gasInUSD, l1FeeUSD, err := uc.estimateGas(ctx, command, encodedData)
+	estimatedGas, gasInUSD, l1FeeUSD, err := uc.estimateGas(ctx, routeSummary, command, encodedData)
 	if err != nil {
 		return nil, err
 	}
@@ -403,13 +403,13 @@ func (uc *BuildRouteUseCase) getPrices(
 	return tokenInPrice, tokenOutPrice, nil
 }
 
-func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildRouteCommand, encodedData string) (uint64, float64, float64, error) {
+func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary valueobject.RouteSummary, command dto.BuildRouteCommand, encodedData string) (uint64, float64, float64, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.estimateGas")
 	defer span.End()
 
 	value := constant.Zero
-	if eth.IsEther(command.RouteSummary.TokenIn) {
-		value = command.RouteSummary.AmountIn
+	if eth.IsEther(routeSummary.TokenIn) {
+		value = routeSummary.AmountIn
 	}
 	tx := UnsignedTransaction{
 		command.Sender,
@@ -418,8 +418,8 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 		nil,
 	}
 
-	gas := uint64(command.RouteSummary.Gas)
-	gasUSD := command.RouteSummary.GasUSD
+	gas := uint64(routeSummary.Gas)
+	gasUSD := routeSummary.GasUSD
 	var err error
 	if uc.config.FeatureFlags.IsGasEstimatorEnabled && command.EnableGasEstimation {
 		if utils.IsEmptyString(command.Sender) {
@@ -427,16 +427,16 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, command dto.BuildR
 		}
 
 		gas, gasUSD, err = uc.gasEstimator.Execute(ctx, tx)
-		uc.sendEstimateGasLogsAndMetrics(ctx, command.RouteSummary, err, command.SlippageTolerance)
+		uc.sendEstimateGasLogsAndMetrics(ctx, routeSummary, err, command.SlippageTolerance)
 		if err != nil {
-			go uc.trackFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx), command.RouteSummary, err)
+			go uc.trackFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx), routeSummary, command.SlippageTolerance, err)
 			return 0, 0.0, 0, ErrEstimateGasFailed(err)
 		}
 	} else if uc.config.FeatureFlags.IsFaultyPoolDetectorEnable && !utils.IsEmptyString(command.Sender) {
 		go func(ctx context.Context) {
 			_, err := uc.gasEstimator.EstimateGas(ctx, tx)
-			uc.sendEstimateGasLogsAndMetrics(ctx, command.RouteSummary, err, command.SlippageTolerance)
-			uc.trackFaultyPools(ctx, command.RouteSummary, err)
+			uc.sendEstimateGasLogsAndMetrics(ctx, routeSummary, err, command.SlippageTolerance)
+			uc.trackFaultyPools(ctx, routeSummary, command.SlippageTolerance, err)
 		}(ctxUtils.NewBackgroundCtxWithReqId(ctx))
 	}
 
@@ -491,7 +491,7 @@ func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
 			"pool":      strings.Join(poolTags, ","),
 		}).Infof("EstimateGas failed error %s", err)
 
-		if IsErrReturnAmountIsNotEnough(err) {
+		if isErrReturnAmountIsNotEnough(err) {
 			// send failed metrics with slippage when error is Return amount is not enough
 			metrics.HistogramEstimateGasWithSlippage(ctx, float64(slippage), false)
 		} else {
@@ -501,11 +501,18 @@ func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
 	}
 }
 
-func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, routeSummary valueobject.RouteSummary, err error) {
-	// track faulty pool if error is "return amount not enough"
-	if !uc.config.FeatureFlags.IsFaultyPoolDetectorEnable || !IsErrReturnAmountIsNotEnough(err) {
+func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, routeSummary valueobject.RouteSummary, slippage int64, err error) {
+	// if SlippageTolerance >= 5%, we will consider a pool is faulty, otherwise, we do not encounter it
+	// because in case that pool contains FOT token, slippage is high but that pool's state is not stale
+	if !uc.config.FeatureFlags.IsFaultyPoolDetectorEnable || !slippageIsAboveMinThreshold(slippage, uc.config.FaultyPoolsConfig) {
 		return
 	}
+
+	// track faulty pool if error is "return amount not enough"
+	if !isErrReturnAmountIsNotEnough(err) {
+		return
+	}
+
 	addresses := []string{}
 	for _, path := range routeSummary.Route {
 		for _, swap := range path {
@@ -528,8 +535,8 @@ func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, routeSummary 
 
 }
 
-func (uc *BuildRouteUseCase) trackFaultyPoolsKeyTotalCount(ctx context.Context, routeSummary valueobject.RouteSummary, currentTime time.Time) {
-	if !uc.config.FeatureFlags.IsFaultyPoolDetectorEnable {
+func (uc *BuildRouteUseCase) trackFaultyPoolsKeyTotalCount(ctx context.Context, routeSummary valueobject.RouteSummary, slippage int64, currentTime time.Time) {
+	if !uc.config.FeatureFlags.IsFaultyPoolDetectorEnable || !slippageIsAboveMinThreshold(slippage, uc.config.FaultyPoolsConfig) {
 		return
 	}
 	windowSize := int(uc.config.FaultyPoolsConfig.WindowSize.Minutes())

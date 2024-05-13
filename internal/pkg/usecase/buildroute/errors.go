@@ -1,8 +1,6 @@
 package buildroute
 
 import (
-	"strings"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/pkg/errors"
 )
@@ -15,10 +13,6 @@ var (
 
 	ErrEstimateGasFailedCode = 4227
 )
-
-func IsErrReturnAmountIsNotEnough(err error) bool {
-	return err != nil && strings.Contains(err.Error(), ErrReturnAmountIsNotEnough.Error())
-}
 
 func ErrEstimateGasFailed(err error) utils.WrappedError {
 	return utils.NewWrappedError(errors.WithMessage(err, "estimate gas failed"), ErrEstimateGasFailedCode)
