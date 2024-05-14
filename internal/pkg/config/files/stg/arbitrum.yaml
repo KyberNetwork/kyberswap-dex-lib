@@ -86,6 +86,8 @@ common:
     - "swaap-v2"
     - "hashflow-v3"
     - "native-v1"
+    - "thick"
+    - "e3"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:

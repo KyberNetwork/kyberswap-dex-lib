@@ -87,6 +87,8 @@ common:
     - "hashflow-v3"
     - "native-v1"
     - "pancake-stable"
+    - "thick"
+    - "e3"
   featureFlags: &featureFlags
   swaapAPIKey:
   nativeAPIKey:

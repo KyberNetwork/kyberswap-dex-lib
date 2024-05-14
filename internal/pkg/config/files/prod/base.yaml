@@ -69,6 +69,8 @@ common:
     - "aerodrome-cl"
     - "infusion"
     - "soswap"
+    - "thick"
+    - "e3"
   featureFlags: &featureFlags
   nativeAPIKey:
 log:

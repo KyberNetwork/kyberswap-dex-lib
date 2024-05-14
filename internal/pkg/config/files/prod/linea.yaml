@@ -45,6 +45,7 @@ common:
     - "native-v1"
     - "linehub-v2"
     - "linehub-v3"
+    - "uniswapv3"
   featureFlags: &featureFlags
   nativeAPIKey:
 log:
