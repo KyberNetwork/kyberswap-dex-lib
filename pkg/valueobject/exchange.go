@@ -322,6 +322,9 @@ var (
 	ExchangeSpookySwapV3 Exchange = "spookyswap-v3"
 	ExchangeThick        Exchange = "thick"
 	ExchangeE3           Exchange = "e3"
+	ExchangeAlienBaseCL  Exchange = "alien-base-cl"
+	ExchangeKinetixV2    Exchange = "kinetix-v2"
+	ExchangeKinetixV3    Exchange = "kinetix-v3"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -583,6 +586,9 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSpookySwapV3:               {},
 	ExchangeThick:                      {},
 	ExchangeE3:                         {},
+	ExchangeAlienBaseCL:                {},
+	ExchangeKinetixV2:                  {},
+	ExchangeKinetixV3:                  {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
