@@ -95,6 +95,7 @@ var (
 		valueobject.ExchangeLineHubV2:       true,
 		valueobject.ExchangeWigoSwap:        true,
 		valueobject.ExchangeSoSwap:          true,
+		valueobject.ExchangeKinetixV2:       true,
 
 		// KSClassic
 		valueobject.ExchangeDMM:             true,
