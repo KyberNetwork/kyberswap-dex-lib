@@ -153,7 +153,7 @@ func (p *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 	approveZeroCall := aevmtypes.SingleCall{
 		From:  aevmcommon.Address(wallet),
 		To:    aevmcommon.Address(tokenIn),
-		Value: uint256.NewInt(0),
+		Value: (*aevmcommon.Uint256)(uint256.NewInt(0)),
 		Data:  approveZeroInput,
 	}
 	approveInput, err := abis.ERC20.Pack("approve", p.routerAddress, amountIn)
@@ -163,7 +163,7 @@ func (p *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 	approveCall := aevmtypes.SingleCall{
 		From:  aevmcommon.Address(wallet),
 		To:    aevmcommon.Address(tokenIn),
-		Value: uint256.NewInt(0),
+		Value: (*aevmcommon.Uint256)(uint256.NewInt(0)),
 		Data:  approveInput,
 	}
 	swapInput, err := p.routerExactInputSingle(
@@ -175,11 +175,14 @@ func (p *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 	if err != nil {
 		return nil, fmt.Errorf("could not build swap call: %w", err)
 	}
+	swapGasLimit := new(uint32)
+	*swapGasLimit = SwapGasLimit
 	swapCall := aevmtypes.SingleCall{
-		From:  aevmcommon.Address(wallet),
-		To:    aevmcommon.Address(p.routerAddress),
-		Value: uint256.NewInt(0),
-		Data:  swapInput,
+		From:     aevmcommon.Address(wallet),
+		To:       aevmcommon.Address(p.routerAddress),
+		Value:    (*aevmcommon.Uint256)(uint256.NewInt(0)),
+		Data:     swapInput,
+		GasLimit: swapGasLimit,
 		Options: &aevmtypes.SingleCallOptions{
 			ReturnStateAfter: true,
 		},

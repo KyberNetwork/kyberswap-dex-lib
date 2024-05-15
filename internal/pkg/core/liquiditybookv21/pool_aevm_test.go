@@ -1,6 +1,7 @@
 package liquiditybookv21
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -63,7 +64,7 @@ func TestCalcAmountOutAEVMWithUSDCE_USDCPoolWithGRPCClient(t *testing.T) {
 	client, err := aevmclient.NewGRPCClient(aevmServerURL)
 	require.NoError(t, err)
 
-	stateRoot, err := client.LatestStateRoot()
+	stateRoot, err := client.LatestStateRoot(context.Background())
 	require.NoError(t, err)
 
 	names := []string{"without holders lists", "with holders lists"}

@@ -123,7 +123,7 @@ func (t *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 	balanceOfCall := aevmtypes.SingleCall{
 		From:  aevmcommon.Address(wallet),
 		To:    aevmcommon.Address(tokenOut),
-		Value: uint256.NewInt(0),
+		Value: (*aevmcommon.Uint256)(uint256.NewInt(0)),
 		Data:  balanceOfInput,
 	}
 	// Some tokens requires allowance to be 0 before we set it to another value
@@ -135,7 +135,7 @@ func (t *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 	approveZeroCall := aevmtypes.SingleCall{
 		From:  aevmcommon.Address(wallet),
 		To:    aevmcommon.Address(tokenIn),
-		Value: uint256.NewInt(0),
+		Value: (*aevmcommon.Uint256)(uint256.NewInt(0)),
 		Data:  approveZeroInput,
 	}
 	approveInput, err := abis.ERC20.Pack("approve", t.routerAddress, amountIn)
@@ -145,7 +145,7 @@ func (t *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 	approveCall := aevmtypes.SingleCall{
 		From:  aevmcommon.Address(wallet),
 		To:    aevmcommon.Address(tokenIn),
-		Value: uint256.NewInt(0),
+		Value: (*aevmcommon.Uint256)(uint256.NewInt(0)),
 		Data:  approveInput,
 	}
 	swapInput, err := t.routerSwapExactTokensForTokensSupportingFeeOnTransferTokens(
@@ -160,7 +160,7 @@ func (t *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 	swapCall := aevmtypes.SingleCall{
 		From:  aevmcommon.Address(wallet),
 		To:    aevmcommon.Address(t.routerAddress),
-		Value: uint256.NewInt(0),
+		Value: (*aevmcommon.Uint256)(uint256.NewInt(0)),
 		Data:  swapInput,
 		Options: &aevmtypes.SingleCallOptions{
 			ReturnStateAfter: true,

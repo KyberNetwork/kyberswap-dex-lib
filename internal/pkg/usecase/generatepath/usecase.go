@@ -246,7 +246,7 @@ func (uc *useCase) generateBestPaths(
 		stateRoot aevmcommon.Hash
 	)
 	if aevmClient := uc.poolManager.GetAEVMClient(); aevmClient != nil {
-		stateRoot, err = aevmClient.LatestStateRoot()
+		stateRoot, err = aevmClient.LatestStateRoot(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}

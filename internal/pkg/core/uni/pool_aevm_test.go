@@ -1,6 +1,7 @@
 package uni
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -117,7 +118,7 @@ func amountUI(rawAmount *big.Int, decimal int) *big.Float {
 }
 
 func doTestCalcAmountOut(t *testing.T, client aevmclient.Client, c testcase) {
-	stateRoot, err := client.LatestStateRoot()
+	stateRoot, err := client.LatestStateRoot(context.Background())
 	require.NoError(t, err)
 
 	p, err := NewPoolAEVM(

@@ -327,10 +327,10 @@ useCase:
     chainId: *chainId
     useAEVM: &useAEVM false
     dexUseAEVM:
-      uniswap: true
+      uniswap: false
       uniswapv3: true
-      liquiditybook-v20: true
-      liquiditybook-v21: true
+      liquiditybook-v20: false
+      liquiditybook-v21: false
     addressesByDex:
       uniswap:
         router-address: 0x7a250d5630b4cf539739df2c5dacb4c659f2488d

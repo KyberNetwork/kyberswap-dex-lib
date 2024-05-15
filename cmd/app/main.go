@@ -430,10 +430,12 @@ func apiAction(c *cli.Context) (err error) {
 			return err
 		}
 
-		aevmClient, err = aevmclient.NewGRPCClient(cfg.AEVM.AEVMServerURL)
+		aevmGrpcClient, err := aevmclient.NewGRPCClient(cfg.AEVM.AEVMServerURL)
 		if err != nil {
 			return err
 		}
+		defer aevmGrpcClient.Close()
+		aevmClient = aevmGrpcClient
 	}
 
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
@@ -894,10 +896,12 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 			return err
 		}
 
-		aevmClient, err = aevmclient.NewGRPCClient(cfg.AEVM.AEVMServerURL)
+		aevmGrpcClient, err := aevmclient.NewGRPCClient(cfg.AEVM.AEVMServerURL)
 		if err != nil {
 			return err
 		}
+		defer aevmGrpcClient.Close()
+		aevmClient = aevmGrpcClient
 	}
 
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)

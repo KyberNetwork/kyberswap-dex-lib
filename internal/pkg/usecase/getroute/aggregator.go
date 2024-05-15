@@ -83,7 +83,7 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 		err       error
 	)
 	if aevmClient := a.poolManager.GetAEVMClient(); aevmClient != nil {
-		stateRoot, err = aevmClient.LatestStateRoot()
+		stateRoot, err = aevmClient.LatestStateRoot(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}

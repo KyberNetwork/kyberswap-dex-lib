@@ -1,6 +1,7 @@
 package aevm
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"math/big"
@@ -242,7 +243,7 @@ func CalcAmountOutAEVM(
 			transferCalls = append(transferCalls, aevmtypes.SingleCall{
 				From:  aevmcommon.Address(source),
 				To:    aevmcommon.Address(tokenIn),
-				Value: uint256.NewInt(0),
+				Value: (*aevmcommon.Uint256)(uint256.NewInt(0)),
 				Data:  transferInput,
 			})
 		}
@@ -277,7 +278,7 @@ func CalcAmountOutAEVM(
 		}
 	}
 
-	results, err := p.AEVMClient.Get().(aevmclient.Client).MultipleCall(&aevmtypes.MultipleCallParams{
+	results, err := p.AEVMClient.Get().(aevmclient.Client).MultipleCall(context.Background(), &aevmtypes.MultipleCallParams{
 		StateRoot: aevmcommon.Hash(p.StateRoot),
 		Calls:     calls.List(),
 		Overrides: overrides,
@@ -336,9 +337,9 @@ func MergeStateOverrides(mergeInto *aevmtypes.StateOverrides, mergeFrom *aevmtyp
 	}
 	for addr, balance := range mergeFrom.Balances {
 		if mergeInto.Balances == nil {
-			mergeInto.Balances = make(map[aevmcommon.Address]*uint256.Int)
+			mergeInto.Balances = make(map[aevmcommon.Address]*aevmcommon.Uint256)
 		}
-		mergeInto.Balances[addr] = balance.Clone()
+		mergeInto.Balances[addr] = (*aevmcommon.Uint256)((*uint256.Int)(balance).Clone())
 	}
 	for addr, nonce := range mergeFrom.Nonces {
 		if mergeInto.Nonces == nil {

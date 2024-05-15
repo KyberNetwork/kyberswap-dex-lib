@@ -1,6 +1,7 @@
 package univ3
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -15,7 +16,7 @@ import (
 )
 
 const (
-	aevmServerURL = "localhost:8246" // CHANGE THIS
+	aevmServerURL = "localhost:8247" // CHANGE THIS
 
 	usdcAddr = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 	wethAddr = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
@@ -73,12 +74,13 @@ func TestCalcAmountOutAEVMWithUSDC2PoolWithGRPCClient(t *testing.T) {
 
 	client, err := aevmclient.NewGRPCClient(aevmServerURL)
 	require.NoError(t, err)
+	defer client.Close()
 
 	doTestCalcAmountOutAEVMWithUSDC2Pool(t, client)
 }
 
 func doTestCalcAmountOutAEVMWithUSDC2Pool(t *testing.T, client aevmclient.Client) {
-	stateRoot, _ := client.LatestStateRoot()
+	stateRoot, _ := client.LatestStateRoot(context.Background())
 
 	p, err := NewPoolAEVM(
 		entity.Pool{
@@ -135,12 +137,13 @@ func TestCalcAmountOutAEVMWithLDOUSDTPoolWithGRPCClient(t *testing.T) {
 
 	client, err := aevmclient.NewGRPCClient(aevmServerURL)
 	require.NoError(t, err)
+	defer client.Close()
 
 	doTestCalcAmountOutAEVMWithLDOUSDTPool(t, client)
 }
 
 func doTestCalcAmountOutAEVMWithLDOUSDTPool(t *testing.T, client aevmclient.Client) {
-	stateRoot, _ := client.LatestStateRoot()
+	stateRoot, _ := client.LatestStateRoot(context.Background())
 
 	p, err := NewPoolAEVM(
 		entity.Pool{

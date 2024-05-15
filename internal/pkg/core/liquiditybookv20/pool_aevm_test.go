@@ -1,6 +1,7 @@
 package liquiditybookv20
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -61,7 +62,7 @@ func TestCalcAmountOutAEVMWithUSDCE_USDCPoolWithGRPCClient(t *testing.T) {
 	client, err := aevmclient.NewGRPCClient(aevmServerURL)
 	require.NoError(t, err)
 
-	stateRoot, err := client.LatestStateRoot()
+	stateRoot, err := client.LatestStateRoot(context.Background())
 	fmt.Printf("stateRoot = %s\n", stateRoot)
 	require.NoError(t, err)
 

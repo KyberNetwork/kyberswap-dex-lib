@@ -199,7 +199,7 @@ func (c *cache) summarizeSimpleRoute(
 		err       error
 	)
 	if aevmClient := c.poolManager.GetAEVMClient(); aevmClient != nil {
-		stateRoot, err = aevmClient.LatestStateRoot()
+		stateRoot, err = aevmClient.LatestStateRoot(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}

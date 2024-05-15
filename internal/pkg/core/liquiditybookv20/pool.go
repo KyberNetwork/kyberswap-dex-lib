@@ -129,7 +129,7 @@ func (p *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 	transferCall := aevmtypes.SingleCall{
 		From:  aevmcommon.Address(wallet),
 		To:    aevmcommon.Address(tokenIn),
-		Value: uint256.NewInt(0),
+		Value: (*aevmcommon.Uint256)(uint256.NewInt(0)),
 		Data:  transferInput,
 	}
 	swapInput, err := p.pairSwap(tokenOut, wallet)
@@ -139,7 +139,7 @@ func (p *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 	swapCall := aevmtypes.SingleCall{
 		From:  aevmcommon.Address(wallet),
 		To:    aevmcommon.Address(poolAddress),
-		Value: uint256.NewInt(0),
+		Value: (*aevmcommon.Uint256)(uint256.NewInt(0)),
 		Data:  swapInput,
 		Options: &aevmtypes.SingleCallOptions{
 			ReturnStateAfter: true,

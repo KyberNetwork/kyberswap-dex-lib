@@ -140,7 +140,7 @@ func NewNonMaintenancePointerSwapPoolManager(
 	var stateRoot aevmcommon.Hash
 	// if running with aevm
 	if p.config.UseAEVM {
-		stateRoot, err = aevmClient.LatestStateRoot()
+		stateRoot, err = aevmClient.LatestStateRoot(ctx)
 		if err != nil {
 			logger.Errorf(ctx, "could not get latest state root for aevm %s", err)
 			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
@@ -197,7 +197,7 @@ func NewPointerSwapPoolManager(
 	var stateRoot aevmcommon.Hash
 	// if running with aevm
 	if p.config.UseAEVM {
-		stateRoot, err = aevmClient.LatestStateRoot()
+		stateRoot, err = aevmClient.LatestStateRoot(ctx)
 		if err != nil {
 			logger.Errorf(ctx, "could not get latest state root for aevm %s", err)
 			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
@@ -381,7 +381,7 @@ func (p *PointerSwapPoolManager) Reload(ctx context.Context) error {
 	)
 	// if running with aevm
 	if p.config.UseAEVM {
-		stateRoot, err = p.aevmClient.LatestStateRoot()
+		stateRoot, err = p.aevmClient.LatestStateRoot(ctx)
 		if err != nil {
 			logger.Errorf(ctx, "could not get latest state root for aevm %s", err)
 			return fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
