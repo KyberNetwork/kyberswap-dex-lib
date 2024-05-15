@@ -20,7 +20,6 @@ import (
 	aevmcore "github.com/KyberNetwork/router-service/internal/pkg/core/aevm"
 	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/common"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type Pool struct {
@@ -155,16 +154,7 @@ func (p *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 }
 
 func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
-	si, ok := params.SwapInfo.(*aevmcore.AEVMSwapInfo)
-	if !ok {
-		logger.WithFieldsNonContext(logger.Fields{"address": p.Info.Address}).Warn("invalid swap info")
-		return
-	}
-
-	p.aevmPool.NextSwapInfo = new(aevmcore.AEVMSwapInfo)
-	if si.StateAfter != nil {
-		p.aevmPool.NextSwapInfo.StateAfter = si.StateAfter.Clone()
-	}
+	p.aevmPool.UpdateBalance(params)
 }
 
 func (p *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {

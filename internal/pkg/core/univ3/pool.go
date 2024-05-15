@@ -33,10 +33,7 @@ type Pool struct {
 }
 
 func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
-	if si, ok := params.SwapInfo.(*aevmcore.AEVMSwapInfo); ok {
-		p.aevmPool.NextSwapInfo = si
-		return
-	}
+	p.aevmPool.UpdateBalance(params)
 }
 
 func NewPoolAEVM(

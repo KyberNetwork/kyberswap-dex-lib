@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/abis"
 	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/common"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 const (
@@ -42,6 +43,26 @@ type AEVMPool struct {
 	NextSwapInfo *AEVMSwapInfo
 	// TokenBalanceSlots balance slots needed for the swap simulation
 	TokenBalanceSlots common.NoDeepClone // entity.TokenBalanceSlots
+}
+
+func (p *AEVMPool) UpdateBalance(params pool.UpdateBalanceParams) {
+	si, ok := params.SwapInfo.(*AEVMSwapInfo)
+	if !ok {
+		logger.WithFieldsNonContext(logger.Fields{"address": p.Address}).Warn("invalid swap info")
+		return
+	}
+
+	if si.StateAfter == nil {
+		return
+	}
+
+	if p.NextSwapInfo == nil {
+		p.NextSwapInfo = &AEVMSwapInfo{
+			StateAfter: si.StateAfter.Clone(),
+		}
+	} else {
+		MergeStateOverrides(p.NextSwapInfo.StateAfter, si.StateAfter)
+	}
 }
 
 // AEVMSwapCalls a list of contract calls required for a swap
@@ -299,4 +320,30 @@ func CalcAmountOutAEVM(
 		},
 		Gas: int64(swapResult.GasUsed),
 	}, nil
+}
+
+func MergeStateOverrides(mergeInto *aevmtypes.StateOverrides, mergeFrom *aevmtypes.StateOverrides) {
+	for addr, s := range mergeFrom.StateDiffs {
+		if mergeInto.StateDiffs == nil {
+			mergeInto.StateDiffs = make(map[aevmcommon.Address]map[aevmcommon.Hash]aevmcommon.Hash)
+		}
+		if _, ok := mergeInto.StateDiffs[addr]; !ok {
+			mergeInto.StateDiffs[addr] = make(map[aevmcommon.Hash]aevmcommon.Hash)
+		}
+		for slot, value := range s {
+			mergeInto.StateDiffs[addr][slot] = value
+		}
+	}
+	for addr, balance := range mergeFrom.Balances {
+		if mergeInto.Balances == nil {
+			mergeInto.Balances = make(map[aevmcommon.Address]*uint256.Int)
+		}
+		mergeInto.Balances[addr] = balance.Clone()
+	}
+	for addr, nonce := range mergeFrom.Nonces {
+		if mergeInto.Nonces == nil {
+			mergeInto.Nonces = make(map[aevmcommon.Address]uint64)
+		}
+		mergeInto.Nonces[addr] = nonce
+	}
 }
