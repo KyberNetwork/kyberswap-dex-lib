@@ -29,8 +29,8 @@ type Common struct {
 }
 
 type AEVM struct {
-	// AEVM server URL
-	AEVMServerURL string `mapstructure:"serverUrl"`
+	// AEVM server URLs seperated by comma
+	AEVMServerURLs string `mapstructure:"serverUrl"`
 
 	// AddressesByDex Addresses needed to simulate a dex such as router and factory address.
 	AddressesByDex map[string]map[string]string `mapstructure:"addressesByDex"`

@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
@@ -56,6 +57,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/server"
 	httppkg "github.com/KyberNetwork/router-service/internal/pkg/server/http"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
+	aevmclientuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/aevmclient"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/generatepath"
@@ -92,6 +94,10 @@ type IPoolManager interface {
 
 type IBuildRouteUseCase interface {
 	ApplyConfig(config buildroute.Config)
+}
+
+type IAEVMClientUseCase interface {
+	ApplyConfig(config aevmclientuc.Config)
 }
 
 // TODO: refactor main file -> separate to many folders with per folder is application. The main file should contains call root action per application.
@@ -399,8 +405,11 @@ func apiAction(c *cli.Context) (err error) {
 	getPoolsUseCase := usecase.NewGetPoolsUseCase(poolRepository)
 	getTokensUseCase := usecase.NewGetTokens(tokenRepository, priceRepository)
 
-	var balanceSlotsUseCase *erc20balanceslotuc.Cache
-	var aevmClient aevmclient.Client
+	var (
+		balanceSlotsUseCase *erc20balanceslotuc.Cache
+		aevmClient          aevmclient.Client
+		aevmClientUC        IAEVMClientUseCase
+	)
 	if cfg.AEVMEnabled {
 		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client,
 			cfg.Repository.ERC20BalanceSlot.Redis)
@@ -430,12 +439,18 @@ func apiAction(c *cli.Context) (err error) {
 			return err
 		}
 
-		aevmGrpcClient, err := aevmclient.NewGRPCClient(cfg.AEVM.AEVMServerURL)
+		serverURLs := strings.Split(cfg.AEVM.AEVMServerURLs, ",")
+		logger.Infof(ctx, "serverURLs = %+v", serverURLs)
+		aevmClientImpl, err := aevmclientuc.NewClient(
+			aevmclientuc.Config{ServerURLs: serverURLs},
+			func(url string) (aevmclient.Client, error) { return aevmclient.NewGRPCClient(url) },
+		)
 		if err != nil {
 			return err
 		}
-		defer aevmGrpcClient.Close()
-		aevmClient = aevmGrpcClient
+		defer aevmClientImpl.Close()
+		aevmClient = aevmClientImpl
+		aevmClientUC = aevmClientImpl
 	}
 
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
@@ -581,6 +596,7 @@ func apiAction(c *cli.Context) (err error) {
 			poolManager,
 			buildRouteParamsValidator,
 			getRouteEncodeParamsValidator,
+			aevmClientUC,
 		)
 	}))
 
@@ -896,7 +912,7 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 			return err
 		}
 
-		aevmGrpcClient, err := aevmclient.NewGRPCClient(cfg.AEVM.AEVMServerURL)
+		aevmGrpcClient, err := aevmclient.NewGRPCClient(cfg.AEVM.AEVMServerURLs)
 		if err != nil {
 			return err
 		}
@@ -1115,6 +1131,7 @@ func applyLatestConfigForAPI(
 	poolManager IPoolManager,
 	buildRouteParamsValidator api.IBuildRouteParamsValidator,
 	getRouteEncodeParamsValidator api.IGetRouteEncodeParamsValidator,
+	aevmClientUC IAEVMClientUseCase,
 ) error {
 	cfg, err := configLoader.Get()
 	if err != nil {
@@ -1133,6 +1150,10 @@ func applyLatestConfigForAPI(
 	poolManager.ApplyConfig(cfg.UseCase.PoolManager)
 	buildRouteParamsValidator.ApplyConfig(cfg.Validator.BuildRouteParams)
 	getRouteEncodeParamsValidator.ApplyConfig(cfg.Validator.GetRouteEncodeParams)
+	if aevmClientUC != nil {
+		serverURLs := strings.Split(cfg.AEVM.AEVMServerURLs, ",")
+		aevmClientUC.ApplyConfig(aevmclientuc.Config{ServerURLs: serverURLs})
+	}
 
 	return nil
 }
