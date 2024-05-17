@@ -32,40 +32,76 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		cache := route.NewRedisCacheRepository(
+		cache := route.NewRedisRepository(
 			db.Client,
-			route.RedisCacheRepositoryConfig{
-				Prefix:         "",
-				LocalCacheSize: 2,
-				LocalCacheTTL:  time.Second,
+			route.RedisRepositoryConfig{
+				Prefix: "ethereum",
 			})
-		cacheKey := &valueobject.RouteCacheKey{
-			TokenIn:                "addressIn",
-			TokenOut:               "addressOut",
-			SaveGas:                false,
-			CacheMode:              "normal",
-			AmountIn:               "100",
-			Dexes:                  []string{"dodo"},
-			GasInclude:             false,
-			IsPathGeneratorEnabled: false,
-		}
-		err = cache.Set(
-			context.Background(),
-			cacheKey,
-			&valueobject.SimpleRoute{
-				Distributions: []uint64{1},
-				Paths:         nil,
+		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+			{
+				Key: &valueobject.RouteCacheKey{
+					TokenIn:                "a",
+					TokenOut:               "b",
+					SaveGas:                false,
+					CacheMode:              "normal",
+					AmountIn:               "100",
+					Dexes:                  []string{"dodo"},
+					GasInclude:             false,
+					IsPathGeneratorEnabled: false,
+					IsHillClimbingEnabled:  true,
+					ExcludedPools:          []string{"0xabc"},
+				},
+				TTL: time.Second * 10,
 			},
-			time.Second,
+			{
+				Key: &valueobject.RouteCacheKey{
+					TokenIn:                "x",
+					TokenOut:               "y",
+					SaveGas:                false,
+					CacheMode:              "normal",
+					AmountIn:               "100",
+					Dexes:                  []string{"dodo"},
+					GasInclude:             false,
+					IsPathGeneratorEnabled: false,
+					IsHillClimbingEnabled:  true,
+					ExcludedPools:          []string{"0xxyz"},
+				},
+				TTL: time.Second * 10,
+			},
+		}
+		routes := []*valueobject.SimpleRoute{
+			{
+				Distributions: []uint64{100},
+				Paths: [][]valueobject.SimpleSwap{
+					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				},
+			},
+			{
+				Distributions: []uint64{100},
+				Paths: [][]valueobject.SimpleSwap{
+					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+				},
+			},
+		}
+		cachedRoutes, err := cache.Set(
+			context.Background(),
+			cacheKeys,
+			routes,
 		)
+		for i, r := range cachedRoutes {
+			assert.Equal(t, r, routes[i])
+		}
 
 		assert.Nil(t, err)
+		assert.Equal(t, len(cachedRoutes), 2)
 
-		dbResult, err := redisServer.Get(strconv.FormatUint(cacheKey.Hash(""), 10))
-		if err != nil {
-			t.Fatalf("failed to get redis data: %v", err.Error())
+		dbData := []*valueobject.SimpleRoute{}
+		for _, key := range cacheKeys {
+			dbResult, _ := redisServer.Get(strconv.FormatUint(key.Key.Hash("ethereum"), 10))
+			route, _ := route.DecodeRoute(dbResult)
+			dbData = append(dbData, route)
 		}
-		assert.NotNil(t, dbResult)
+		assert.ElementsMatch(t, cachedRoutes, dbData)
 
 	})
 
@@ -85,31 +121,42 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		cache := route.NewRedisCacheRepository(
+		cache := route.NewRedisRepository(
 			db.Client,
-			route.RedisCacheRepositoryConfig{
-				Prefix:         "",
-				LocalCacheSize: 2,
-				LocalCacheTTL:  time.Second,
+			route.RedisRepositoryConfig{
+				Prefix: "ethereum",
 			})
 		redisServer.Close()
 
-		err = cache.Set(
+		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+			{
+				Key: &valueobject.RouteCacheKey{
+					TokenIn:                "a",
+					TokenOut:               "b",
+					SaveGas:                false,
+					CacheMode:              "normal",
+					AmountIn:               "100",
+					Dexes:                  []string{"dodo"},
+					GasInclude:             false,
+					IsPathGeneratorEnabled: false,
+					IsHillClimbingEnabled:  true,
+					ExcludedPools:          []string{"0xabc"},
+				},
+				TTL: time.Second * 10,
+			},
+		}
+		routes := []*valueobject.SimpleRoute{
+			{
+				Distributions: []uint64{100},
+				Paths: [][]valueobject.SimpleSwap{
+					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				},
+			},
+		}
+		_, err = cache.Set(
 			context.Background(),
-			&valueobject.RouteCacheKey{
-				TokenIn:    "addressIn",
-				TokenOut:   "addressOut",
-				SaveGas:    false,
-				CacheMode:  "normal",
-				AmountIn:   "100",
-				Dexes:      []string{"dodo"},
-				GasInclude: false,
-			},
-			&valueobject.SimpleRoute{
-				Distributions: []uint64{1},
-				Paths:         nil,
-			},
-			time.Second,
+			cacheKeys,
+			routes,
 		)
 
 		assert.Error(t, err)
@@ -134,49 +181,174 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		cache := route.NewRedisCacheRepository(
+		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+			{
+				Key: &valueobject.RouteCacheKey{
+					TokenIn:                "a",
+					TokenOut:               "b",
+					SaveGas:                false,
+					CacheMode:              "normal",
+					AmountIn:               "100",
+					Dexes:                  []string{"dodo"},
+					GasInclude:             false,
+					IsPathGeneratorEnabled: false,
+					IsHillClimbingEnabled:  true,
+					ExcludedPools:          []string{"0xabc"},
+				},
+				TTL: time.Second * 10,
+			},
+			{
+				Key: &valueobject.RouteCacheKey{
+					TokenIn:                "x",
+					TokenOut:               "y",
+					SaveGas:                false,
+					CacheMode:              "normal",
+					AmountIn:               "100",
+					Dexes:                  []string{"dodo"},
+					GasInclude:             false,
+					IsPathGeneratorEnabled: false,
+					IsHillClimbingEnabled:  true,
+					ExcludedPools:          []string{"0xxyz"},
+				},
+				TTL: time.Second * 10,
+			},
+		}
+		routes := []*valueobject.SimpleRoute{
+			{
+				Distributions: []uint64{100},
+				Paths: [][]valueobject.SimpleSwap{
+					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				},
+			},
+			{
+				Distributions: []uint64{100},
+				Paths: [][]valueobject.SimpleSwap{
+					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+				},
+			},
+		}
+
+		for i, k := range cacheKeys {
+			encoded, _ := route.EncodeRoute(*routes[i])
+			redisServer.Set(strconv.FormatUint(k.Key.Hash("ethereum"), 10), encoded)
+		}
+
+		cache := route.NewRedisRepository(
 			db.Client,
-			route.RedisCacheRepositoryConfig{
-				Prefix:         "",
-				LocalCacheSize: 2,
-				LocalCacheTTL:  time.Second,
+			route.RedisRepositoryConfig{
+				Prefix: "ethereum",
 			})
 
-		err = cache.Set(
-			context.Background(),
-			&valueobject.RouteCacheKey{
-				TokenIn:    "addressIn",
-				TokenOut:   "addressOut",
-				SaveGas:    false,
-				CacheMode:  "normal",
-				AmountIn:   "100",
-				Dexes:      []string{"dodo"},
-				GasInclude: false,
-			},
-			&valueobject.SimpleRoute{
-				Distributions: []uint64{1},
-				Paths:         nil,
-			},
-			time.Second,
-		)
+		result, err := cache.Get(context.Background(), cacheKeys)
 
 		assert.Nil(t, err)
+		// verify result
+		resultList := []*valueobject.SimpleRoute{}
+		for _, v := range result {
+			resultList = append(resultList, v)
+		}
+		assert.ElementsMatch(t, resultList, routes)
+	})
 
-		result, err := cache.Get(
-			context.Background(),
-			&valueobject.RouteCacheKey{
-				TokenIn:    "addressIn",
-				TokenOut:   "addressOut",
-				SaveGas:    false,
-				CacheMode:  "normal",
-				AmountIn:   "100",
-				Dexes:      []string{"dodo"},
-				GasInclude: false,
+	t.Run("it should get data from redis successfully, combine get and set", func(t *testing.T) {
+		redisServer, err := miniredis.Run()
+		if err != nil {
+			t.Fatalf("failed to setup redis server: %v", err.Error())
+		}
+		defer redisServer.Close()
+
+		redisConfig := &redis.Config{
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
+		}
+
+		db, err := redis.New(redisConfig)
+		if err != nil {
+			t.Fatalf("failed to setup redis client: %v", err.Error())
+		}
+
+		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+			{
+				Key: &valueobject.RouteCacheKey{
+					TokenIn:                "a",
+					TokenOut:               "b",
+					SaveGas:                false,
+					CacheMode:              "normal",
+					AmountIn:               "100",
+					Dexes:                  []string{"dodo"},
+					GasInclude:             false,
+					IsPathGeneratorEnabled: false,
+					IsHillClimbingEnabled:  true,
+					ExcludedPools:          []string{"0xabc"},
+				},
+				TTL: time.Second * 10,
 			},
-		)
+			{
+				Key: &valueobject.RouteCacheKey{
+					TokenIn:                "x",
+					TokenOut:               "y",
+					SaveGas:                false,
+					CacheMode:              "normal",
+					AmountIn:               "100",
+					Dexes:                  []string{"dodo"},
+					GasInclude:             false,
+					IsPathGeneratorEnabled: false,
+					IsHillClimbingEnabled:  true,
+					ExcludedPools:          []string{"0xxyz"},
+				},
+				TTL: time.Second * 10,
+			},
+		}
+		routes := []*valueobject.SimpleRoute{
+			{
+				Distributions: []uint64{100},
+				Paths: [][]valueobject.SimpleSwap{
+					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				},
+			},
+			{
+				Distributions: []uint64{100},
+				Paths: [][]valueobject.SimpleSwap{
+					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+				},
+			},
+		}
+
+		cache := route.NewRedisRepository(
+			db.Client,
+			route.RedisRepositoryConfig{
+				Prefix: "ethereum",
+			})
+		savedRoutes, err := cache.Set(context.Background(), cacheKeys, routes)
+		assert.Nil(t, err)
+
+		// add extra keys without data in redis
+		nilKey := &valueobject.RouteCacheKeyTTL{
+			Key: &valueobject.RouteCacheKey{
+				TokenIn:                "c",
+				TokenOut:               "d",
+				SaveGas:                false,
+				CacheMode:              "normal",
+				AmountIn:               "100",
+				Dexes:                  []string{"dodo"},
+				GasInclude:             false,
+				IsPathGeneratorEnabled: false,
+				IsHillClimbingEnabled:  true,
+				ExcludedPools:          []string{"0xcdf"},
+			},
+			TTL: 10 * time.Second,
+		}
+		cacheKeys = append(cacheKeys, nilKey)
+		result, err := cache.Get(context.Background(), cacheKeys)
 
 		assert.Nil(t, err)
-		assert.NotNil(t, result)
+		// verify result
+		resultList := []*valueobject.SimpleRoute{}
+		for _, v := range result {
+			resultList = append(resultList, v)
+		}
+		assert.Nil(t, result[nilKey])
+		assert.ElementsMatch(t, savedRoutes, resultList)
 	})
 
 	t.Run("it should return nil when redis does not have data", func(t *testing.T) {
@@ -196,28 +368,49 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		cache := route.NewRedisCacheRepository(
+		cache := route.NewRedisRepository(
 			db.Client,
-			route.RedisCacheRepositoryConfig{
-				Prefix:         "",
-				LocalCacheSize: 2,
-				LocalCacheTTL:  time.Second,
+			route.RedisRepositoryConfig{
+				Prefix: "ethereum",
 			})
 
-		_, err = cache.Get(
-			context.Background(),
-			&valueobject.RouteCacheKey{
-				TokenIn:    "addressIn",
-				TokenOut:   "addressOut",
-				SaveGas:    false,
-				CacheMode:  "normal",
-				AmountIn:   "100",
-				Dexes:      []string{"dodo"},
-				GasInclude: false,
+		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+			{
+				Key: &valueobject.RouteCacheKey{
+					TokenIn:                "a",
+					TokenOut:               "b",
+					SaveGas:                false,
+					CacheMode:              "normal",
+					AmountIn:               "100",
+					Dexes:                  []string{"dodo"},
+					GasInclude:             false,
+					IsPathGeneratorEnabled: false,
+					IsHillClimbingEnabled:  true,
+					ExcludedPools:          []string{"0xabc"},
+				},
+				TTL: time.Second * 10,
 			},
-		)
+			{
+				Key: &valueobject.RouteCacheKey{
+					TokenIn:                "x",
+					TokenOut:               "y",
+					SaveGas:                false,
+					CacheMode:              "normal",
+					AmountIn:               "100",
+					Dexes:                  []string{"dodo"},
+					GasInclude:             false,
+					IsPathGeneratorEnabled: false,
+					IsHillClimbingEnabled:  true,
+					ExcludedPools:          []string{"0xxyz"},
+				},
+				TTL: time.Second * 10,
+			},
+		}
+		result, err := cache.Get(context.Background(), cacheKeys)
 
-		assert.Error(t, err)
+		assert.Nil(t, err)
+		assert.Empty(t, result)
+
 	})
 
 	t.Run("it should return err when redis server down", func(t *testing.T) {
@@ -236,28 +429,129 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		cache := route.NewRedisCacheRepository(
+		cache := route.NewRedisRepository(
 			db.Client,
-			route.RedisCacheRepositoryConfig{
-				Prefix:         "",
-				LocalCacheSize: 2,
-				LocalCacheTTL:  time.Second,
+			route.RedisRepositoryConfig{
+				Prefix: "ethereum",
 			})
 		redisServer.Close()
 
-		_, err = cache.Get(
-			context.Background(),
-			&valueobject.RouteCacheKey{
-				TokenIn:    "addressIn",
-				TokenOut:   "addressOut",
-				SaveGas:    false,
-				CacheMode:  "normal",
-				AmountIn:   "100",
-				Dexes:      []string{"dodo"},
-				GasInclude: false,
+		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+			{
+				Key: &valueobject.RouteCacheKey{
+					TokenIn:                "a",
+					TokenOut:               "b",
+					SaveGas:                false,
+					CacheMode:              "normal",
+					AmountIn:               "100",
+					Dexes:                  []string{"dodo"},
+					GasInclude:             false,
+					IsPathGeneratorEnabled: false,
+					IsHillClimbingEnabled:  true,
+					ExcludedPools:          []string{"0xabc"},
+				},
+				TTL: time.Second * 10,
 			},
-		)
+			{
+				Key: &valueobject.RouteCacheKey{
+					TokenIn:                "x",
+					TokenOut:               "y",
+					SaveGas:                false,
+					CacheMode:              "normal",
+					AmountIn:               "100",
+					Dexes:                  []string{"dodo"},
+					GasInclude:             false,
+					IsPathGeneratorEnabled: false,
+					IsHillClimbingEnabled:  true,
+					ExcludedPools:          []string{"0xxyz"},
+				},
+				TTL: time.Second * 10,
+			},
+		}
+		_, err = cache.Get(context.Background(), cacheKeys)
 
 		assert.Error(t, err)
+	})
+}
+
+func TestRedisCacheRepository_Del(t *testing.T) {
+	t.Run("it should get delete data from redis successfully", func(t *testing.T) {
+		redisServer, err := miniredis.Run()
+		if err != nil {
+			t.Fatalf("failed to setup redis server: %v", err.Error())
+		}
+		defer redisServer.Close()
+
+		redisConfig := &redis.Config{
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "",
+		}
+
+		db, err := redis.New(redisConfig)
+		if err != nil {
+			t.Fatalf("failed to setup redis client: %v", err.Error())
+		}
+
+		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+			{
+				Key: &valueobject.RouteCacheKey{
+					TokenIn:                "a",
+					TokenOut:               "b",
+					SaveGas:                false,
+					CacheMode:              "normal",
+					AmountIn:               "100",
+					Dexes:                  []string{"dodo"},
+					GasInclude:             false,
+					IsPathGeneratorEnabled: false,
+					IsHillClimbingEnabled:  true,
+					ExcludedPools:          []string{"0xabc"},
+				},
+				TTL: time.Second * 10,
+			},
+			{
+				Key: &valueobject.RouteCacheKey{
+					TokenIn:                "x",
+					TokenOut:               "y",
+					SaveGas:                false,
+					CacheMode:              "normal",
+					AmountIn:               "100",
+					Dexes:                  []string{"dodo"},
+					GasInclude:             false,
+					IsPathGeneratorEnabled: false,
+					IsHillClimbingEnabled:  true,
+					ExcludedPools:          []string{"0xxyz"},
+				},
+				TTL: time.Second * 10,
+			},
+		}
+		routes := []*valueobject.SimpleRoute{
+			{
+				Distributions: []uint64{100},
+				Paths: [][]valueobject.SimpleSwap{
+					{{TokenInAddress: "a", TokenOutAddress: "b", PoolAddress: "0xabc"}},
+				},
+			},
+			{
+				Distributions: []uint64{100},
+				Paths: [][]valueobject.SimpleSwap{
+					{{TokenInAddress: "x", TokenOutAddress: "y", PoolAddress: "0xxyz"}},
+				},
+			},
+		}
+
+		for i, k := range cacheKeys {
+			encoded, _ := route.EncodeRoute(*routes[i])
+			redisServer.Set(strconv.FormatUint(k.Key.Hash("ethereum"), 10), encoded)
+		}
+
+		cache := route.NewRedisRepository(
+			db.Client,
+			route.RedisRepositoryConfig{
+				Prefix: "ethereum",
+			})
+
+		err = cache.Del(context.Background(), cacheKeys)
+
+		assert.Nil(t, err)
 	})
 }

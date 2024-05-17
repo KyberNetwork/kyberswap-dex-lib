@@ -2,6 +2,7 @@ package valueobject
 
 import (
 	"strings"
+	"time"
 
 	"github.com/cespare/xxhash/v2"
 
@@ -34,6 +35,11 @@ type RouteCacheKey struct {
 	IsPathGeneratorEnabled bool
 	IsHillClimbingEnabled  bool
 	ExcludedPools          []string
+}
+
+type RouteCacheKeyTTL struct {
+	Key *RouteCacheKey
+	TTL time.Duration
 }
 
 // String receives prefix and returns cache key

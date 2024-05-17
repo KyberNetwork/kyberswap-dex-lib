@@ -24,10 +24,19 @@ func TestCacheConfig_Equals(t *testing.T) {
 		ShrinkFuncName:       "abc",
 		ShrinkFuncPowExp:     2,
 		ShrinkFuncLogPercent: 2,
-		ShrinkAmountInConfig: ShrinkFunctionConfig{
-			ShrinkFuncName:       "xyz",
-			ShrinkFuncPowExp:     4,
-			ShrinkFuncLogPercent: 4,
+		ShrinkAmountInConfigs: []ShrinkFunctionConfig{
+			{
+				ShrinkFuncName:     "xyz",
+				ShrinkFuncConstant: 1.5,
+			},
+			{
+				ShrinkFuncName:     "xyz",
+				ShrinkFuncConstant: 2,
+			},
+			{
+				ShrinkFuncName:     "xyz",
+				ShrinkFuncConstant: 2.5,
+			},
 		},
 		ShrinkAmountInThreshold: 60,
 	}
@@ -49,10 +58,19 @@ func TestCacheConfig_Equals(t *testing.T) {
 		ShrinkFuncName:       "abc",
 		ShrinkFuncPowExp:     2,
 		ShrinkFuncLogPercent: 2,
-		ShrinkAmountInConfig: ShrinkFunctionConfig{
-			ShrinkFuncName:       "xyz",
-			ShrinkFuncPowExp:     4,
-			ShrinkFuncLogPercent: 4,
+		ShrinkAmountInConfigs: []ShrinkFunctionConfig{
+			{
+				ShrinkFuncName:     "xyz",
+				ShrinkFuncConstant: 1.5,
+			},
+			{
+				ShrinkFuncName:     "xyz",
+				ShrinkFuncConstant: 2,
+			},
+			{
+				ShrinkFuncName:     "xyz",
+				ShrinkFuncConstant: 2.5,
+			},
 		},
 		ShrinkAmountInThreshold: 60,
 	}

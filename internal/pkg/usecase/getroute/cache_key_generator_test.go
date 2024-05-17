@@ -16,19 +16,47 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func newDefaultRouteCacheKey(amountIn float64, cacheMode valueobject.RouteCacheMode) valueobject.RouteCacheKey {
-	return valueobject.RouteCacheKey{
-		CacheMode:              string(cacheMode),
-		AmountIn:               strconv.FormatFloat(amountIn, 'f', -1, 64),
-		TokenIn:                "",
-		TokenOut:               "",
-		SaveGas:                false,
-		GasInclude:             false,
-		Dexes:                  nil,
-		IsPathGeneratorEnabled: false,
-		IsHillClimbingEnabled:  false,
-		ExcludedPools:          nil,
+func newDefaultRouteCacheKey(amountIn float64, cacheMode valueobject.RouteCacheMode, ttl time.Duration) []*valueobject.RouteCacheKeyTTL {
+	return []*valueobject.RouteCacheKeyTTL{
+		{
+			Key: &valueobject.RouteCacheKey{
+				CacheMode:              string(cacheMode),
+				AmountIn:               strconv.FormatFloat(amountIn, 'f', -1, 64),
+				TokenIn:                "",
+				TokenOut:               "",
+				SaveGas:                false,
+				GasInclude:             false,
+				Dexes:                  nil,
+				IsPathGeneratorEnabled: false,
+				IsHillClimbingEnabled:  false,
+				ExcludedPools:          nil,
+			},
+			TTL: ttl,
+		},
 	}
+}
+
+func newMultiRouteCacheKeys(amountIns []float64, cacheMode valueobject.RouteCacheMode, ttl []time.Duration) []*valueobject.RouteCacheKeyTTL {
+	results := []*valueobject.RouteCacheKeyTTL{}
+	for i, a := range amountIns {
+		results = append(results, &valueobject.RouteCacheKeyTTL{
+			Key: &valueobject.RouteCacheKey{
+				CacheMode:              string(cacheMode),
+				AmountIn:               strconv.FormatFloat(a, 'f', -1, 64),
+				TokenIn:                "",
+				TokenOut:               "",
+				SaveGas:                false,
+				GasInclude:             false,
+				Dexes:                  nil,
+				IsPathGeneratorEnabled: false,
+				IsHillClimbingEnabled:  false,
+				ExcludedPools:          nil,
+			},
+			TTL: ttl[i],
+		})
+	}
+
+	return results
 }
 
 func TestKeyGenerator_ExactCachedPoint(t *testing.T) {
@@ -37,8 +65,7 @@ func TestKeyGenerator_ExactCachedPoint(t *testing.T) {
 	testCases := []struct {
 		name     string
 		param    *types.AggregateParams
-		cacheKey valueobject.RouteCacheKey
-		duration time.Duration
+		cacheKey []*valueobject.RouteCacheKeyTTL
 		err      error
 	}{
 		{
@@ -49,8 +76,7 @@ func TestKeyGenerator_ExactCachedPoint(t *testing.T) {
 				},
 				AmountIn: big.NewInt(1e18),
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(1), valueobject.RouteCacheModePoint),
-			duration: 30 * time.Second,
+			cacheKey: newDefaultRouteCacheKey(float64(1), valueobject.RouteCacheModePoint, 30*time.Second),
 		},
 		{
 			name: "Gen key should return correct key with duration for exact point input",
@@ -60,8 +86,7 @@ func TestKeyGenerator_ExactCachedPoint(t *testing.T) {
 				},
 				AmountIn: big.NewInt(1e18),
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(10), valueobject.RouteCacheModePoint),
-			duration: 10 * time.Second,
+			cacheKey: newDefaultRouteCacheKey(float64(10), valueobject.RouteCacheModePoint, 10*time.Second),
 		},
 		{
 			name: "Gen key should return correct key with duration for exact point input",
@@ -71,8 +96,7 @@ func TestKeyGenerator_ExactCachedPoint(t *testing.T) {
 				},
 				AmountIn: big.NewInt(2.2e17),
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(22), valueobject.RouteCacheModePoint),
-			duration: 30 * time.Second,
+			cacheKey: newDefaultRouteCacheKey(float64(22), valueobject.RouteCacheModePoint, 30*time.Second),
 		},
 		{
 			name: "Gen key should return correct key with duration for exact point input",
@@ -82,8 +106,7 @@ func TestKeyGenerator_ExactCachedPoint(t *testing.T) {
 				},
 				AmountIn: big.NewInt(2.2e18),
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(22), valueobject.RouteCacheModePoint),
-			duration: 30 * time.Second,
+			cacheKey: newDefaultRouteCacheKey(float64(22), valueobject.RouteCacheModePoint, 30*time.Second),
 		},
 	}
 
@@ -107,10 +130,9 @@ func TestKeyGenerator_ExactCachedPoint(t *testing.T) {
 			}
 
 			keyGen := &routeKeyGenerator{config: config}
-			key, duration, err := keyGen.genKey(context.TODO(), tc.param)
+			keys, err := keyGen.genKey(context.TODO(), tc.param)
 
-			assert.Equal(t, tc.cacheKey, *key)
-			assert.Equal(t, tc.duration, duration)
+			assert.ElementsMatch(t, tc.cacheKey, keys)
 			assert.ErrorIs(t, tc.err, err)
 		})
 	}
@@ -120,11 +142,10 @@ func TestKeyGenerator_CachePointUSD(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name     string
-		param    *types.AggregateParams
-		cacheKey valueobject.RouteCacheKey
-		duration time.Duration
-		err      error
+		name      string
+		param     *types.AggregateParams
+		cacheKeys []*valueobject.RouteCacheKeyTTL
+		err       error
 	}{
 		{
 			name: "Gen key should return correct key with duration for exact point input",
@@ -135,8 +156,7 @@ func TestKeyGenerator_CachePointUSD(t *testing.T) {
 				AmountIn:        big.NewInt(100),
 				TokenInPriceUSD: 1,
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(10), valueobject.RouteCacheModeRangeByUSD),
-			duration: 10 * time.Second,
+			cacheKeys: newDefaultRouteCacheKey(float64(10), valueobject.RouteCacheModeRangeByUSD, 10*time.Second),
 		},
 		{
 			name: "Gen key should return correct key with duration for exact point input",
@@ -147,8 +167,7 @@ func TestKeyGenerator_CachePointUSD(t *testing.T) {
 				AmountIn:        big.NewInt(20010),
 				TokenInPriceUSD: 1,
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(2001), valueobject.RouteCacheModeRangeByUSD),
-			duration: 14 * time.Second,
+			cacheKeys: newDefaultRouteCacheKey(float64(2001), valueobject.RouteCacheModeRangeByUSD, 14*time.Second),
 		},
 		{
 			name: "Gen key should return correct key with duration for exact point input",
@@ -159,8 +178,7 @@ func TestKeyGenerator_CachePointUSD(t *testing.T) {
 				AmountIn:        big.NewInt(10500),
 				TokenInPriceUSD: 1,
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(1050), valueobject.RouteCacheModeRangeByUSD),
-			duration: 13 * time.Second,
+			cacheKeys: newDefaultRouteCacheKey(float64(1050), valueobject.RouteCacheModeRangeByUSD, 13*time.Second),
 		},
 	}
 
@@ -183,10 +201,9 @@ func TestKeyGenerator_CachePointUSD(t *testing.T) {
 			}
 
 			keyGen := newCacheKeyGenerator(config)
-			key, duration, err := keyGen.genKey(context.TODO(), tc.param)
+			keys, err := keyGen.genKey(context.TODO(), tc.param)
 
-			assert.Equal(t, tc.cacheKey, *key)
-			assert.Equal(t, tc.duration, duration)
+			assert.ElementsMatch(t, tc.cacheKeys, keys)
 			assert.ErrorIs(t, tc.err, err)
 		})
 	}
@@ -222,9 +239,11 @@ func Test_ApplyConfig(t *testing.T) {
 					{AmountUSDLowerBound: 1001, TTL: 13 * time.Second},
 				},
 				ShrinkFuncName: string(ShrinkFuncNamePow),
-				ShrinkAmountInConfig: valueobject.ShrinkFunctionConfig{
-					ShrinkFuncName:    string(ShrinkFuncNameDecimal),
-					ShrinkDecimalBase: 100,
+				ShrinkAmountInConfigs: []valueobject.ShrinkFunctionConfig{
+					{
+						ShrinkFuncName:     string(ShrinkFuncNameDecimal),
+						ShrinkFuncConstant: 100,
+					},
 				},
 				EnableNewCacheKeyGenerator: true,
 			},
@@ -236,9 +255,11 @@ func Test_ApplyConfig(t *testing.T) {
 					{AmountUSDLowerBound: 1001, TTL: 13 * time.Second},
 				},
 				ShrinkFuncName: string(ShrinkFuncNamePow),
-				ShrinkAmountInConfig: valueobject.ShrinkFunctionConfig{
-					ShrinkFuncName:    string(ShrinkFuncNameDecimal),
-					ShrinkDecimalBase: 100,
+				ShrinkAmountInConfigs: []valueobject.ShrinkFunctionConfig{
+					{
+						ShrinkFuncName:     string(ShrinkFuncNameDecimal),
+						ShrinkFuncConstant: 100,
+					},
 				},
 				EnableNewCacheKeyGenerator: true,
 			},
@@ -255,8 +276,10 @@ func Test_ApplyConfig(t *testing.T) {
 					{AmountUSDLowerBound: 5000, TTL: 15 * time.Second},
 				},
 				ShrinkFuncName: string(ShrinkFuncNameRound),
-				ShrinkAmountInConfig: valueobject.ShrinkFunctionConfig{
-					ShrinkFuncName: string(ShrinkFuncNameDecimal),
+				ShrinkAmountInConfigs: []valueobject.ShrinkFunctionConfig{
+					{
+						ShrinkFuncName: string(ShrinkFuncNameDecimal),
+					},
 				},
 				EnableNewCacheKeyGenerator: false,
 			},
@@ -270,8 +293,15 @@ func Test_ApplyConfig(t *testing.T) {
 					{AmountUSDLowerBound: 5000, TTL: 15 * time.Second},
 				},
 				ShrinkFuncName: string(ShrinkFuncNameRound),
-				ShrinkAmountInConfig: valueobject.ShrinkFunctionConfig{
-					ShrinkFuncName: string(ShrinkFuncNameLogarithm),
+				ShrinkAmountInConfigs: []valueobject.ShrinkFunctionConfig{
+					{
+						ShrinkFuncName:     string(ShrinkFuncNameLogarithm),
+						ShrinkFuncConstant: 1.5,
+					},
+					{
+						ShrinkFuncName:     string(ShrinkFuncNameLogarithm),
+						ShrinkFuncConstant: 2,
+					},
 				},
 				EnableNewCacheKeyGenerator: false,
 			},
@@ -285,8 +315,15 @@ func Test_ApplyConfig(t *testing.T) {
 					{AmountUSDLowerBound: 5000, TTL: 15 * time.Second},
 				},
 				ShrinkFuncName: string(ShrinkFuncNameRound),
-				ShrinkAmountInConfig: valueobject.ShrinkFunctionConfig{
-					ShrinkFuncName: string(ShrinkFuncNameLogarithm),
+				ShrinkAmountInConfigs: []valueobject.ShrinkFunctionConfig{
+					{
+						ShrinkFuncName:     string(ShrinkFuncNameLogarithm),
+						ShrinkFuncConstant: 1.5,
+					},
+					{
+						ShrinkFuncName:     string(ShrinkFuncNameLogarithm),
+						ShrinkFuncConstant: 2,
+					},
 				},
 				EnableNewCacheKeyGenerator: false,
 			},
@@ -305,7 +342,7 @@ func Test_ApplyConfig(t *testing.T) {
 			keyGenerator.applyConfig(newConfig)
 			assert.Equal(t, keyGenerator.config.ShrinkFuncName, tc.expected.ShrinkFuncName)
 			assert.Equal(t, keyGenerator.config.ShrinkDecimalBase, tc.expected.ShrinkDecimalBase)
-			assert.Equal(t, keyGenerator.config.ShrinkAmountInConfig, tc.expected.ShrinkAmountInConfig)
+			assert.ElementsMatch(t, keyGenerator.config.ShrinkAmountInConfigs, tc.expected.ShrinkAmountInConfigs)
 			assert.Equal(t, keyGenerator.config.EnableNewCacheKeyGenerator, tc.expected.EnableNewCacheKeyGenerator)
 		})
 	}
@@ -315,12 +352,11 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name     string
-		param    *types.AggregateParams
-		cacheKey valueobject.RouteCacheKey
-		config   valueobject.CacheConfig
-		duration time.Duration
-		err      error
+		name      string
+		param     *types.AggregateParams
+		cacheKeys []*valueobject.RouteCacheKeyTTL
+		config    valueobject.CacheConfig
+		err       error
 	}{
 		{
 			name: "Gen key v1 should return correct key by cache point TTL",
@@ -355,8 +391,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				ShrinkFuncName:          string(ShrinkFuncNameDecimal),
 				ShrinkAmountInThreshold: 100000,
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(100.0000000001), valueobject.RouteCacheModePoint),
-			duration: 10 * time.Second,
+			cacheKeys: newDefaultRouteCacheKey(float64(100.0000000001), valueobject.RouteCacheModePoint, 10*time.Second),
 		},
 		{
 			name: "Gen key v1 should not return key by cache point TTL due to exceed threshold",
@@ -392,8 +427,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				ShrinkDecimalBase:       10,
 				ShrinkAmountInThreshold: 100000,
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(100), valueobject.RouteCacheModeRangeByUSD),
-			duration: 18 * time.Second,
+			cacheKeys: newDefaultRouteCacheKey(float64(100), valueobject.RouteCacheModeRangeByUSD, 18*time.Second),
 		},
 		{
 			name: "Gen key v1 return no key because token in has no price",
@@ -429,9 +463,8 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				ShrinkDecimalBase:       10,
 				ShrinkAmountInThreshold: 100000,
 			},
-			cacheKey: valueobject.RouteCacheKey{},
-			duration: 0,
-			err:      ErrNoTokenInPrice,
+			cacheKeys: []*valueobject.RouteCacheKeyTTL{},
+			err:       ErrNoTokenInPrice,
 		},
 		{
 			name: "Gen key v1 should not return key by cache point TTL due to exceed threshold, it return cache key by amount usd, round 3.36 to 3",
@@ -467,8 +500,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				ShrinkDecimalBase:       10,
 				ShrinkAmountInThreshold: 100000,
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(3), valueobject.RouteCacheModeRangeByUSD),
-			duration: 18 * time.Second,
+			cacheKeys: newDefaultRouteCacheKey(float64(3), valueobject.RouteCacheModeRangeByUSD, 18*time.Second),
 		},
 		{
 			name: "Gen key v1 should not return key by cache point TTL due to exceed threshold, it return cache key by amount usd, round decimal 35.9 to 40",
@@ -504,8 +536,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				ShrinkDecimalBase:       10,
 				ShrinkAmountInThreshold: 100000,
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(40), valueobject.RouteCacheModeRangeByUSD),
-			duration: 18 * time.Second,
+			cacheKeys: newDefaultRouteCacheKey(float64(40), valueobject.RouteCacheModeRangeByUSD, 18*time.Second),
 		},
 		{
 			name: "Gen key v1 should not return key by cache point TTL due to exceed threshold, it return cache key by amount usd, round decimal 136 to 100",
@@ -541,8 +572,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				ShrinkDecimalBase:       10,
 				ShrinkAmountInThreshold: 100000,
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(100), valueobject.RouteCacheModeRangeByUSD),
-			duration: 18 * time.Second,
+			cacheKeys: newDefaultRouteCacheKey(float64(100), valueobject.RouteCacheModeRangeByUSD, 18*time.Second),
 		},
 		{
 			name: "Gen key v1 should not return key by cache point TTL due to exceed threshold, round 1350.6 to 1000",
@@ -578,8 +608,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				ShrinkDecimalBase:       10,
 				ShrinkAmountInThreshold: 100000,
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(1000), valueobject.RouteCacheModeRangeByUSD),
-			duration: 12 * time.Second,
+			cacheKeys: newDefaultRouteCacheKey(float64(1000), valueobject.RouteCacheModeRangeByUSD, 12*time.Second),
 		},
 	}
 
@@ -589,14 +618,13 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 			defer ctrl.Finish()
 
 			keyGen := newCacheKeyGenerator(tc.config)
-			key, duration, err := keyGen.genKey(context.TODO(), tc.param)
+			keys, err := keyGen.genKey(context.TODO(), tc.param)
 
-			if key == nil {
-				assert.Empty(t, tc.cacheKey)
+			if len(keys) == 0 {
+				assert.Empty(t, tc.cacheKeys)
 			} else {
-				assert.Equal(t, tc.cacheKey, *key)
+				assert.ElementsMatch(t, tc.cacheKeys, keys)
 			}
-			assert.Equal(t, tc.duration, duration)
 			assert.ErrorIs(t, tc.err, err)
 		})
 	}
@@ -606,12 +634,11 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name     string
-		param    *types.AggregateParams
-		cacheKey valueobject.RouteCacheKey
-		config   valueobject.CacheConfig
-		duration time.Duration
-		err      error
+		name      string
+		param     *types.AggregateParams
+		cacheKeys []*valueobject.RouteCacheKeyTTL
+		config    valueobject.CacheConfig
+		err       error
 	}{
 		{
 			name: "Gen key v2 should return cache key by amount usd, round 1350.6 to 1000",
@@ -648,16 +675,15 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 				EnableNewCacheKeyGenerator: true,
 				ShrinkAmountInThreshold:    100000,
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(1000), valueobject.RouteCacheModeRangeByUSD),
-			duration: 12 * time.Second,
+			cacheKeys: newDefaultRouteCacheKey(float64(1000), valueobject.RouteCacheModeRangeByUSD, 12*time.Second),
 		},
 		{
-			name: "Gen key v2 should return cache key by amount, when token in has no price, apply decimal shrinking function with base 100",
+			name: "Gen key v2 should return cache key by amount, when token in has no price, apply logarithm shrinking function with base 1.1 1.3 1.5",
 			param: &types.AggregateParams{
 				TokenIn: entity.Token{
 					Decimals: 18,
 				},
-				AmountIn: bigIntFromScientificNotation("56e18"),
+				AmountIn: bigIntFromScientificNotation("2e21"),
 			},
 			config: valueobject.CacheConfig{
 				TTLByAmountUSDRange: []valueobject.CacheRange{
@@ -678,51 +704,21 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 				ShrinkDecimalBase:          100,
 				EnableNewCacheKeyGenerator: true,
 				ShrinkAmountInThreshold:    100000,
+				ShrinkAmountInConfigs: []valueobject.ShrinkFunctionConfig{
+					{ShrinkFuncName: string(ShrinkFuncNameLogarithm), ShrinkFuncConstant: 1.1},
+					{ShrinkFuncName: string(ShrinkFuncNameLogarithm), ShrinkFuncConstant: 1.3},
+					{ShrinkFuncName: string(ShrinkFuncNameLogarithm), ShrinkFuncConstant: 1.5},
+				},
 			},
-			cacheKey: newDefaultRouteCacheKey(float64(56), valueobject.RouteCacheModeRangeByAmount),
-			duration: 40 * time.Second,
+			cacheKeys: newMultiRouteCacheKeys([]float64{2048, 2015, 2217}, valueobject.RouteCacheModeRangeByAmount, []time.Duration{40 * time.Second, 40 * time.Second, 40 * time.Second}),
 		},
 		{
-			name: "Gen key v2 should return cache key by amount, when token in has no price, apply decimal shrinking function with base 100",
+			name: "Gen key v2 should return cached keys which are below threshold",
 			param: &types.AggregateParams{
 				TokenIn: entity.Token{
 					Decimals: 18,
 				},
-				AmountIn:        bigIntFromScientificNotation("5556e18"),
-				TokenInPriceUSD: 0,
-			},
-			config: valueobject.CacheConfig{
-				TTLByAmountUSDRange: []valueobject.CacheRange{
-					{AmountUSDLowerBound: 0, TTL: 18 * time.Second},
-					{AmountUSDLowerBound: 101, TTL: 20 * time.Second},
-					{AmountUSDLowerBound: 500, TTL: 12 * time.Second},
-					{AmountUSDLowerBound: 1001, TTL: 13 * time.Second},
-					{AmountUSDLowerBound: 2000, TTL: 14 * time.Second},
-					{AmountUSDLowerBound: 5000, TTL: 15 * time.Second},
-				},
-				TTLByAmountRange: []valueobject.AmountInCacheRange{
-					{AmountLowerBound: bigIntFromScientificNotation("0"), TTL: 60 * time.Second},
-					{AmountLowerBound: bigIntFromScientificNotation("2e17"), TTL: 40 * time.Second},
-					{AmountLowerBound: bigIntFromScientificNotation("1e18"), TTL: 40 * time.Second},
-					{AmountLowerBound: bigIntFromScientificNotation("1e24"), TTL: 10 * time.Second},
-				},
-				ShrinkAmountInConfig: valueobject.ShrinkFunctionConfig{
-					ShrinkFuncName:    "decimal",
-					ShrinkDecimalBase: 100,
-				},
-				EnableNewCacheKeyGenerator: true,
-				ShrinkAmountInThreshold:    100000,
-			},
-			cacheKey: newDefaultRouteCacheKey(float64(5600), valueobject.RouteCacheModeRangeByAmount),
-			duration: 40 * time.Second,
-		},
-		{
-			name: "Gen key v2 should return cache key by amount, when token in has no price, apply logarithm shrinking function",
-			param: &types.AggregateParams{
-				TokenIn: entity.Token{
-					Decimals: 18,
-				},
-				AmountIn:        bigIntFromScientificNotation("55556e18"),
+				AmountIn:        bigIntFromScientificNotation("2e21"),
 				TokenInPriceUSD: 0,
 			},
 			config: valueobject.CacheConfig{
@@ -739,48 +735,50 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 					{AmountLowerBound: bigIntFromScientificNotation("2e17"), TTL: 40 * time.Second},
 					{AmountLowerBound: bigIntFromScientificNotation("1e18"), TTL: 40 * time.Second},
 				},
-				ShrinkAmountInConfig: valueobject.ShrinkFunctionConfig{
-					ShrinkFuncName:    "decimal",
-					ShrinkDecimalBase: 100,
-				},
-				EnableNewCacheKeyGenerator: true,
-				ShrinkAmountInThreshold:    100000,
-			},
-			cacheKey: newDefaultRouteCacheKey(float64(60000), valueobject.RouteCacheModeRangeByAmount),
-			duration: 40 * time.Second,
-		},
-		{
-			name: "Gen key v2 should return error because differentiate between amount in and shink value above threshold",
-			param: &types.AggregateParams{
-				TokenIn: entity.Token{
-					Decimals: 18,
-				},
-				AmountIn:        bigIntFromScientificNotation("667e18"),
-				TokenInPriceUSD: 0,
-			},
-			config: valueobject.CacheConfig{
-				TTLByAmountUSDRange: []valueobject.CacheRange{
-					{AmountUSDLowerBound: 0, TTL: 18 * time.Second},
-					{AmountUSDLowerBound: 101, TTL: 20 * time.Second},
-					{AmountUSDLowerBound: 500, TTL: 12 * time.Second},
-					{AmountUSDLowerBound: 1001, TTL: 13 * time.Second},
-					{AmountUSDLowerBound: 2000, TTL: 14 * time.Second},
-					{AmountUSDLowerBound: 5000, TTL: 15 * time.Second},
-				},
-				TTLByAmountRange: []valueobject.AmountInCacheRange{
-					{AmountLowerBound: bigIntFromScientificNotation("0"), TTL: 60 * time.Second},
-					{AmountLowerBound: bigIntFromScientificNotation("2e17"), TTL: 40 * time.Second},
-					{AmountLowerBound: bigIntFromScientificNotation("1e18"), TTL: 40 * time.Second},
-				},
-				ShrinkAmountInConfig: valueobject.ShrinkFunctionConfig{
-					ShrinkFuncName:    "decimal",
-					ShrinkDecimalBase: 100,
+				ShrinkAmountInConfigs: []valueobject.ShrinkFunctionConfig{
+					{ShrinkFuncName: string(ShrinkFuncNameLogarithm), ShrinkFuncConstant: 1.1},
+					{ShrinkFuncName: string(ShrinkFuncNameLogarithm), ShrinkFuncConstant: 1.3},
+					{ShrinkFuncName: string(ShrinkFuncNameLogarithm), ShrinkFuncConstant: 1.5},
 				},
 				ShrinkAmountInThreshold:    30,
 				EnableNewCacheKeyGenerator: true,
 			},
-			cacheKey: valueobject.RouteCacheKey{},
-			err:      errors.New("different between shunk value and amount in without decimal is above threshold"),
+			cacheKeys: newMultiRouteCacheKeys([]float64{2015}, valueobject.RouteCacheModeRangeByAmount, []time.Duration{40 * time.Second}),
+			err:       nil,
+		},
+		{
+			name: "Gen key v2 should return errors when all shrunk values are above threshold",
+			param: &types.AggregateParams{
+				TokenIn: entity.Token{
+					Decimals: 18,
+				},
+				AmountIn:        bigIntFromScientificNotation("2e21"),
+				TokenInPriceUSD: 0,
+			},
+			config: valueobject.CacheConfig{
+				TTLByAmountUSDRange: []valueobject.CacheRange{
+					{AmountUSDLowerBound: 0, TTL: 18 * time.Second},
+					{AmountUSDLowerBound: 101, TTL: 20 * time.Second},
+					{AmountUSDLowerBound: 500, TTL: 12 * time.Second},
+					{AmountUSDLowerBound: 1001, TTL: 13 * time.Second},
+					{AmountUSDLowerBound: 2000, TTL: 14 * time.Second},
+					{AmountUSDLowerBound: 5000, TTL: 15 * time.Second},
+				},
+				TTLByAmountRange: []valueobject.AmountInCacheRange{
+					{AmountLowerBound: bigIntFromScientificNotation("0"), TTL: 60 * time.Second},
+					{AmountLowerBound: bigIntFromScientificNotation("2e17"), TTL: 40 * time.Second},
+					{AmountLowerBound: bigIntFromScientificNotation("1e18"), TTL: 40 * time.Second},
+				},
+				ShrinkAmountInConfigs: []valueobject.ShrinkFunctionConfig{
+					{ShrinkFuncName: string(ShrinkFuncNameLogarithm), ShrinkFuncConstant: 1.3},
+					{ShrinkFuncName: string(ShrinkFuncNameLogarithm), ShrinkFuncConstant: 1.5},
+					{ShrinkFuncName: string(ShrinkFuncNameLogarithm), ShrinkFuncConstant: 1.8},
+				},
+				ShrinkAmountInThreshold:    14,
+				EnableNewCacheKeyGenerator: true,
+			},
+			cacheKeys: []*valueobject.RouteCacheKeyTTL{},
+			err:       errors.New("different between shunk value and amount in without decimal is above threshold"),
 		},
 	}
 
@@ -790,14 +788,13 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 			defer ctrl.Finish()
 
 			keyGen := newCacheKeyGenerator(tc.config)
-			key, duration, err := keyGen.genKey(context.TODO(), tc.param)
+			keys, err := keyGen.genKey(context.TODO(), tc.param)
 
-			if key == nil {
-				assert.Empty(t, tc.cacheKey)
+			if len(keys) == 0 {
+				assert.Empty(t, tc.cacheKeys)
 			} else {
-				assert.Equal(t, tc.cacheKey, *key)
+				assert.ElementsMatch(t, tc.cacheKeys, keys)
 			}
-			assert.Equal(t, tc.duration, duration)
 			if tc.err != nil {
 				assert.Equal(t, tc.err.Error(), err.Error())
 			}

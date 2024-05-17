@@ -5,11 +5,22 @@ import (
 )
 
 type Config struct {
-	RedisCache RedisCacheRepositoryConfig `mapstructure:"redisCache"`
+	Redis           RedisRepositoryConfig `mapstructure:"redis"`
+	RistrettoConfig RistrettoConfig       `mapstructure:"ristretto"`
 }
 
-type RedisCacheRepositoryConfig struct {
-	Prefix         string        `mapstructure:"prefix"`
-	LocalCacheSize int           `mapstructure:"localCacheSize"`
-	LocalCacheTTL  time.Duration `mapstructure:"localCacheTtl"`
+type RedisRepositoryConfig struct {
+	Prefix string
+}
+
+type RistrettoConfig struct {
+	NumCounters int64  `mapstructure:"numCounters"`
+	MaxCost     int64  `mapstructure:"maxCost"`
+	BufferItems int64  `mapstructure:"bufferItems"`
+	Prefix      string `mapstructure:"prefix"`
+
+	Route struct {
+		Cost int64         `mapstructure:"cost"`
+		TTL  time.Duration `mapstructure:"ttl"`
+	} `mapstructure:"route"`
 }

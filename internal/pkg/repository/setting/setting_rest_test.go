@@ -63,9 +63,19 @@ func mockHandleSuccess(w http.ResponseWriter, r *http.Request) {
 					ShrinkFuncName:       "decimal",
 					ShrinkFuncPowExp:     0.7,
 					ShrinkFuncLogPercent: 1.01,
-					ShrinkAmountInConfig: valueobject.ShrinkFunctionConfig{
-						ShrinkFuncName:    "decimal",
-						ShrinkDecimalBase: 100,
+					ShrinkAmountInConfigs: []valueobject.ShrinkFunctionConfig{
+						{
+							ShrinkFuncName:     "logarithm",
+							ShrinkFuncConstant: 1.5,
+						},
+						{
+							ShrinkFuncName:     "logarithm",
+							ShrinkFuncConstant: 2,
+						},
+						{
+							ShrinkFuncName:     "logarithm",
+							ShrinkFuncConstant: 2.5,
+						},
 					},
 				},
 				FeatureFlags: valueobject.FeatureFlags{
@@ -152,9 +162,19 @@ func TestGetConfigs(t *testing.T) {
 			ShrinkFuncName:       "decimal",
 			ShrinkFuncPowExp:     0.7,
 			ShrinkFuncLogPercent: 1.01,
-			ShrinkAmountInConfig: valueobject.ShrinkFunctionConfig{
-				ShrinkFuncName:    "decimal",
-				ShrinkDecimalBase: 100,
+			ShrinkAmountInConfigs: []valueobject.ShrinkFunctionConfig{
+				{
+					ShrinkFuncName:     "logarithm",
+					ShrinkFuncConstant: 1.5,
+				},
+				{
+					ShrinkFuncName:     "logarithm",
+					ShrinkFuncConstant: 2,
+				},
+				{
+					ShrinkFuncName:     "logarithm",
+					ShrinkFuncConstant: 2.5,
+				},
 			},
 		},
 		FeatureFlags: valueobject.FeatureFlags{

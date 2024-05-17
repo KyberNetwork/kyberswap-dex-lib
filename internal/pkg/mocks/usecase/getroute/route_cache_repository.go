@@ -7,7 +7,6 @@ package getroute
 import (
 	context "context"
 	reflect "reflect"
-	time "time"
 
 	valueobject "github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	gomock "github.com/golang/mock/gomock"
@@ -37,7 +36,7 @@ func (m *MockIRouteCacheRepository) EXPECT() *MockIRouteCacheRepositoryMockRecor
 }
 
 // Del mocks base method.
-func (m *MockIRouteCacheRepository) Del(arg0 context.Context, arg1 *valueobject.RouteCacheKey) error {
+func (m *MockIRouteCacheRepository) Del(arg0 context.Context, arg1 []*valueobject.RouteCacheKeyTTL) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Del", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -51,10 +50,10 @@ func (mr *MockIRouteCacheRepositoryMockRecorder) Del(arg0, arg1 interface{}) *go
 }
 
 // Get mocks base method.
-func (m *MockIRouteCacheRepository) Get(arg0 context.Context, arg1 *valueobject.RouteCacheKey) (*valueobject.SimpleRoute, error) {
+func (m *MockIRouteCacheRepository) Get(arg0 context.Context, arg1 []*valueobject.RouteCacheKeyTTL) (map[*valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0, arg1)
-	ret0, _ := ret[0].(*valueobject.SimpleRoute)
+	ret0, _ := ret[0].(map[*valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -66,15 +65,15 @@ func (mr *MockIRouteCacheRepositoryMockRecorder) Get(arg0, arg1 interface{}) *go
 }
 
 // Set mocks base method.
-func (m *MockIRouteCacheRepository) Set(arg0 context.Context, arg1 *valueobject.RouteCacheKey, arg2 *valueobject.SimpleRoute, arg3 time.Duration) error {
+func (m *MockIRouteCacheRepository) Set(arg0 context.Context, arg1 []*valueobject.RouteCacheKeyTTL, arg2 []*valueobject.SimpleRoute) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Set", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "Set", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Set indicates an expected call of Set.
-func (mr *MockIRouteCacheRepositoryMockRecorder) Set(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockIRouteCacheRepositoryMockRecorder) Set(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockIRouteCacheRepository)(nil).Set), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockIRouteCacheRepository)(nil).Set), arg0, arg1, arg2)
 }

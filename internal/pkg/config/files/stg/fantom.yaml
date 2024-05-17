@@ -241,11 +241,13 @@ useCase:
       shrinkFuncPowExp: 0.7
       shrinkFuncLogPercent: 1.01
       enableNewCacheKeyGenerator: false
-      shrinkAmountInConfig:
-        shrinkFuncName: "decimal"
-        shrinkDecimalBase: 100
-        shrinkFuncPowExp: 0.7
-        shrinkFuncLogPercent: 1.05
+      shrinkAmountInConfigs:
+        - shrinkFuncName: "logarithm"
+          shrinkFuncConstant: 1.3
+        - shrinkFuncName: "logarithm"
+          shrinkFuncConstant: 1.5
+        - shrinkFuncName: "logarithm"
+          shrinkFuncConstant: 2
       shrinkAmountInThreshold: 100000
   buildRoute:
     chainId: *chainId
@@ -335,10 +337,16 @@ repository:
     redis:
       prefix: *chainName
   route:
-    redisCache:
+    redis:
       prefix: *chainName
-      localCacheSize: 5000
-      localCacheTtl: 30s
+    ristretto:
+      numCounters: 5000
+      maxCost: 500
+      bufferItems: 64
+      prefix: *chainName
+      route:
+        cost: 1
+        ttl: 30s
   blackjack:
     grpcClient:
       baseURL: blackjack-global-api.blackjack.svc:9080

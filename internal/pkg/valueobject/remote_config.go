@@ -96,8 +96,8 @@ type (
 		ShrinkFuncLogPercent float64 `mapstructure:"shrinkFuncLogPercent" json:"shrinkFuncLogPercent"`
 
 		// cache config for amount in
-		ShrinkAmountInConfig    ShrinkFunctionConfig `mapstructure:"shrinkAmountInConfig" json:"shrinkAmountInConfig"`
-		ShrinkAmountInThreshold float64              `mapstructure:"shrinkAmountInThreshold" json:"shrinkAmountInThreshold"`
+		ShrinkAmountInConfigs   []ShrinkFunctionConfig `mapstructure:"shrinkAmountInConfigs" json:"shrinkAmountInConfigs"`
+		ShrinkAmountInThreshold float64                `mapstructure:"shrinkAmountInThreshold" json:"shrinkAmountInThreshold"`
 
 		EnableNewCacheKeyGenerator bool `mapstructure:"enableNewCacheKeyGenerator" json:"enableNewCacheKeyGenerator"`
 	}
@@ -118,18 +118,17 @@ type (
 	}
 
 	ShrinkFunctionConfig struct {
-		ShrinkFuncName       string  `mapstructure:"shrinkFuncName" json:"shrinkFuncName"`
-		ShrinkFuncPowExp     float64 `mapstructure:"shrinkFuncPowExp" json:"shrinkFuncPowExp"`
-		ShrinkDecimalBase    float64 `mapstructure:"shrinkDecimalBase" json:"shrinkDecimalBase"`
-		ShrinkFuncLogPercent float64 `mapstructure:"shrinkFuncLogPercent" json:"shrinkFuncLogPercent"`
+		ShrinkFuncName string `mapstructure:"shrinkFuncName" json:"shrinkFuncName"`
+		/** If use decimal rounding, shrink func constant will be shrinkDecimalBase
+		 ** If use logarithm rounding, shrink func constant will be shrinkFuncLogPercent
+		 */
+		ShrinkFuncConstant float64 `mapstructure:"shrinkFuncConstant" json:"ShrinkFuncConstant"`
 	}
 )
 
 func (c ShrinkFunctionConfig) Equals(other ShrinkFunctionConfig) bool {
 	if c.ShrinkFuncName != other.ShrinkFuncName ||
-		c.ShrinkFuncPowExp != other.ShrinkFuncPowExp ||
-		c.ShrinkFuncLogPercent != other.ShrinkFuncLogPercent ||
-		c.ShrinkDecimalBase != other.ShrinkDecimalBase {
+		c.ShrinkFuncConstant != other.ShrinkFuncConstant {
 		return false
 	}
 
@@ -140,12 +139,17 @@ func (c CacheConfig) Equals(other CacheConfig) bool {
 	if c.DefaultTTL != other.DefaultTTL ||
 		c.PriceImpactThreshold != other.PriceImpactThreshold ||
 		c.ShrinkFuncName != other.ShrinkFuncName ||
-		c.ShrinkAmountInConfig != other.ShrinkAmountInConfig ||
 		c.ShrinkFuncPowExp != other.ShrinkFuncPowExp ||
 		c.ShrinkFuncLogPercent != other.ShrinkFuncLogPercent ||
 		c.EnableNewCacheKeyGenerator != other.EnableNewCacheKeyGenerator ||
 		c.ShrinkAmountInThreshold != other.ShrinkAmountInThreshold {
 		return false
+	}
+
+	for i, v := range c.ShrinkAmountInConfigs {
+		if v != other.ShrinkAmountInConfigs[i] {
+			return false
+		}
 	}
 
 	if len(c.TTLByAmount) != len(other.TTLByAmount) {

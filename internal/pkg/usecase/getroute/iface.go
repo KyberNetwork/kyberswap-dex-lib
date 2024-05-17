@@ -3,7 +3,6 @@ package getroute
 import (
 	"context"
 	"math/big"
-	"time"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -61,9 +60,9 @@ type IPoolRepository interface {
 
 //go:generate mockgen -destination ../../mocks/usecase/getroute/route_cache_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IRouteCacheRepository
 type IRouteCacheRepository interface {
-	Set(ctx context.Context, key *valueobject.RouteCacheKey, route *valueobject.SimpleRoute, ttl time.Duration) error
-	Get(ctx context.Context, key *valueobject.RouteCacheKey) (*valueobject.SimpleRoute, error)
-	Del(ctx context.Context, key *valueobject.RouteCacheKey) error
+	Get(ctx context.Context, keys []*valueobject.RouteCacheKeyTTL) (map[*valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute, error)
+	Set(ctx context.Context, keys []*valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRoute) error
+	Del(ctx context.Context, keys []*valueobject.RouteCacheKeyTTL) error
 }
 
 type ITokenRepository interface {

@@ -20,8 +20,8 @@ type routeKeyGenerator struct {
 	mu     sync.RWMutex
 	config valueobject.CacheConfig
 
-	amountInUsdShrinkFunc ShrinkFunc
-	amountInShrinkFunc    ShrinkFunc
+	amountInUsdShrinkFunc  ShrinkFunc
+	amountInShrinkFuncList []ShrinkFunc
 }
 
 func newCacheKeyGenerator(
@@ -32,25 +32,29 @@ func newCacheKeyGenerator(
 		ShrinkDecimalBase:    config.ShrinkDecimalBase,
 		ShrinkFuncLogPercent: config.ShrinkFuncLogPercent,
 	})
-	amountInShrinkFunc, _ := ShrinkFuncFactory(ShrinkFuncName(config.ShrinkAmountInConfig.ShrinkFuncName), map[ShrinkFuncConfig]float64{
-		ShrinkFuncPowExp:     config.ShrinkAmountInConfig.ShrinkFuncPowExp,
-		ShrinkDecimalBase:    config.ShrinkAmountInConfig.ShrinkDecimalBase,
-		ShrinkFuncLogPercent: config.ShrinkAmountInConfig.ShrinkFuncLogPercent,
-	})
+	amountInShrinkFuncList := []ShrinkFunc{}
+	for _, c := range config.ShrinkAmountInConfigs {
+		amountInShrinkFunc, _ := ShrinkFuncFactory(ShrinkFuncName(c.ShrinkFuncName), map[ShrinkFuncConfig]float64{
+			ShrinkDecimalBase:    c.ShrinkFuncConstant,
+			ShrinkFuncLogPercent: c.ShrinkFuncConstant,
+		})
+		amountInShrinkFuncList = append(amountInShrinkFuncList, amountInShrinkFunc)
+	}
+
 	return &routeKeyGenerator{
-		config:                config,
-		amountInUsdShrinkFunc: amountInUsdShrinkFunc,
-		amountInShrinkFunc:    amountInShrinkFunc,
+		config:                 config,
+		amountInUsdShrinkFunc:  amountInUsdShrinkFunc,
+		amountInShrinkFuncList: amountInShrinkFuncList,
 	}
 }
 
-func (g *routeKeyGenerator) genKey(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteCacheKey, time.Duration, error) {
+func (g *routeKeyGenerator) genKey(ctx context.Context, params *types.AggregateParams) ([]*valueobject.RouteCacheKeyTTL, error) {
 	// If request has excluded more than 1 pool, we will not hit cache.
 	if params.ExcludedPools != nil && params.ExcludedPools.Cardinality() > 1 {
 		metrics.IncrFindRouteCacheCount(ctx, false, map[string]string{
 			"excludePools": "true",
 		})
-		return nil, 0, nil
+		return []*valueobject.RouteCacheKeyTTL{}, nil
 	}
 
 	if g.config.EnableNewCacheKeyGenerator {
@@ -62,22 +66,22 @@ func (g *routeKeyGenerator) genKey(ctx context.Context, params *types.AggregateP
 
 // genKey retrieves the key required to access the cacheRoute.
 // It returns an error if these parameters do not correspond to a cache point and lack pricing information.
-func (g *routeKeyGenerator) genKeyV1(params *types.AggregateParams) (*valueobject.RouteCacheKey, time.Duration, error) {
+func (g *routeKeyGenerator) genKeyV1(params *types.AggregateParams) ([]*valueobject.RouteCacheKeyTTL, error) {
 	key, duration, _ := g.genKeyByCachePointTTL(params)
 	// cache point ttl has been found in the config
 	if key != nil {
-		return key, duration, nil
+		return []*valueobject.RouteCacheKeyTTL{{Key: key, TTL: duration}}, nil
 	}
 
 	// if this token in doesn't have price, return error
 	if params.TokenInPriceUSD <= 0 {
-		return nil, 0, ErrNoTokenInPrice
+		return []*valueobject.RouteCacheKeyTTL{}, ErrNoTokenInPrice
 	}
 
 	return g.genKeyByAmountInUSD(params)
 }
 
-func (g *routeKeyGenerator) genKeyV2(params *types.AggregateParams) (*valueobject.RouteCacheKey, time.Duration, error) {
+func (g *routeKeyGenerator) genKeyV2(params *types.AggregateParams) ([]*valueobject.RouteCacheKeyTTL, error) {
 	// if this token in doesn't have price, cache route by AmountIn, otherwise cache them by AmountInUSD
 	if params.TokenInPriceUSD <= 0 {
 		return g.genKeyByAmountIn(params)
@@ -110,9 +114,9 @@ func (g *routeKeyGenerator) genKeyByCachePointTTL(params *types.AggregateParams)
 	return nil, 0, errors.New("cache point not found in config")
 }
 
-func (g *routeKeyGenerator) genKeyByAmountInUSD(params *types.AggregateParams) (*valueobject.RouteCacheKey, time.Duration, error) {
+func (g *routeKeyGenerator) genKeyByAmountInUSD(params *types.AggregateParams) ([]*valueobject.RouteCacheKeyTTL, error) {
 	if params.TokenIn.Decimals <= 0 {
-		return nil, 0, errors.New("token decimal has not been found")
+		return []*valueobject.RouteCacheKeyTTL{}, errors.New("token decimal has not been found")
 	}
 	amountInUSD := business.CalcAmountUSD(params.AmountIn, params.TokenIn.Decimals, params.TokenInPriceUSD)
 	amountInUSDFloat64, _ := amountInUSD.Float64()
@@ -126,53 +130,68 @@ func (g *routeKeyGenerator) genKeyByAmountInUSD(params *types.AggregateParams) (
 		}
 	}
 
-	return &valueobject.RouteCacheKey{
-		CacheMode:              valueobject.RouteCacheModeRangeByUSD,
-		TokenIn:                params.TokenIn.Address,
-		TokenOut:               params.TokenOut.Address,
-		AmountIn:               strconv.FormatFloat(shrunkAmountInUSD, 'f', -1, 64),
-		SaveGas:                params.SaveGas,
-		GasInclude:             params.GasInclude,
-		Dexes:                  params.Sources,
-		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
-		IsHillClimbingEnabled:  params.IsHillClimbEnabled,
-		ExcludedPools:          setToSlice(params.ExcludedPools),
-	}, ttl, nil
+	return []*valueobject.RouteCacheKeyTTL{
+		{
+			Key: &valueobject.RouteCacheKey{
+				CacheMode:              valueobject.RouteCacheModeRangeByUSD,
+				TokenIn:                params.TokenIn.Address,
+				TokenOut:               params.TokenOut.Address,
+				AmountIn:               strconv.FormatFloat(shrunkAmountInUSD, 'f', -1, 64),
+				SaveGas:                params.SaveGas,
+				GasInclude:             params.GasInclude,
+				Dexes:                  params.Sources,
+				IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
+				IsHillClimbingEnabled:  params.IsHillClimbEnabled,
+				ExcludedPools:          setToSlice(params.ExcludedPools),
+			},
+			TTL: ttl,
+		},
+	}, nil
 }
 
-func (g *routeKeyGenerator) genKeyByAmountIn(params *types.AggregateParams) (*valueobject.RouteCacheKey, time.Duration, error) {
+func (g *routeKeyGenerator) genKeyByAmountIn(params *types.AggregateParams) ([]*valueobject.RouteCacheKeyTTL, error) {
 	if params.TokenIn.Decimals <= 0 {
-		return nil, 0, errors.New("token decimal has not been found")
-	}
-	amountInWithoutDecimals := business.AmountWithoutDecimals(params.AmountIn, params.TokenIn.Decimals)
-	amountInWithoutDecimalsFloat64, _ := amountInWithoutDecimals.Float64()
-
-	shrunkAmountIn := g.amountInShrinkFunc(amountInWithoutDecimalsFloat64)
-
-	// We don't get route from cache if the amountIn is too large, because it can cause a large slippage.
-	if math.Abs(shrunkAmountIn-amountInWithoutDecimalsFloat64) >= g.config.ShrinkAmountInThreshold {
-		return nil, 0, errors.New("different between shunk value and amount in without decimal is above threshold")
+		return []*valueobject.RouteCacheKeyTTL{}, errors.New("token decimal has not been found")
 	}
 	ttl := g.config.DefaultTTL
-
 	for _, cacheRange := range g.config.TTLByAmountRange {
 		if params.AmountIn.Cmp(cacheRange.AmountLowerBound) >= 0 {
 			ttl = cacheRange.TTL
 		}
 	}
 
-	return &valueobject.RouteCacheKey{
-		CacheMode:              valueobject.RouteCacheModeRangeByAmount,
-		TokenIn:                params.TokenIn.Address,
-		TokenOut:               params.TokenOut.Address,
-		AmountIn:               strconv.FormatFloat(shrunkAmountIn, 'f', -1, 64),
-		SaveGas:                params.SaveGas,
-		GasInclude:             params.GasInclude,
-		Dexes:                  params.Sources,
-		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
-		IsHillClimbingEnabled:  params.IsHillClimbEnabled,
-		ExcludedPools:          setToSlice(params.ExcludedPools),
-	}, ttl, nil
+	amountInWithoutDecimals := business.AmountWithoutDecimals(params.AmountIn, params.TokenIn.Decimals)
+	amountInWithoutDecimalsFloat64, _ := amountInWithoutDecimals.Float64()
+	shrunkAmountInList := make([]*valueobject.RouteCacheKeyTTL, 0, len(g.amountInShrinkFuncList))
+	for _, f := range g.amountInShrinkFuncList {
+		shrunkAmountIn := f(amountInWithoutDecimalsFloat64)
+		// We don't get route from cache if the amountIn is too large, because it can cause a large slippage, ignore the large point
+		if math.Abs(shrunkAmountIn-amountInWithoutDecimalsFloat64) >= g.config.ShrinkAmountInThreshold {
+			logger.Warnf("different between shunk value and amount in without decimal is above threshold")
+		} else {
+			shrunkAmountInList = append(shrunkAmountInList, &valueobject.RouteCacheKeyTTL{
+				Key: &valueobject.RouteCacheKey{
+					CacheMode:              valueobject.RouteCacheModeRangeByAmount,
+					TokenIn:                params.TokenIn.Address,
+					TokenOut:               params.TokenOut.Address,
+					AmountIn:               strconv.FormatFloat(shrunkAmountIn, 'f', 0, 64),
+					SaveGas:                params.SaveGas,
+					GasInclude:             params.GasInclude,
+					Dexes:                  params.Sources,
+					IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
+					IsHillClimbingEnabled:  params.IsHillClimbEnabled,
+					ExcludedPools:          setToSlice(params.ExcludedPools),
+				},
+				TTL: ttl,
+			})
+		}
+	}
+
+	if len(shrunkAmountInList) == 0 {
+		return nil, errors.New("different between shunk value and amount in without decimal is above threshold")
+	}
+
+	return shrunkAmountInList, nil
 }
 
 func (g *routeKeyGenerator) applyConfig(config Config) {
@@ -191,14 +210,19 @@ func (g *routeKeyGenerator) applyConfig(config Config) {
 		} else {
 			g.amountInUsdShrinkFunc = amountInUsdShrinkFunc
 		}
-		if amountInShrinkFunc, err := ShrinkFuncFactory(ShrinkFuncName(config.Cache.ShrinkAmountInConfig.ShrinkFuncName), map[ShrinkFuncConfig]float64{
-			ShrinkFuncPowExp:     config.Cache.ShrinkAmountInConfig.ShrinkFuncPowExp,
-			ShrinkDecimalBase:    config.Cache.ShrinkAmountInConfig.ShrinkDecimalBase,
-			ShrinkFuncLogPercent: config.Cache.ShrinkAmountInConfig.ShrinkFuncLogPercent,
-		}); err != nil {
-			logger.Errorf("Can not apply amountInShrinkFunc from remote config err %e", err)
-		} else {
-			g.amountInShrinkFunc = amountInShrinkFunc
+		amountInShrinkFuncList := []ShrinkFunc{}
+		for _, c := range config.Cache.ShrinkAmountInConfigs {
+			if amountInShrinkFunc, err := ShrinkFuncFactory(ShrinkFuncName(c.ShrinkFuncName), map[ShrinkFuncConfig]float64{
+				ShrinkDecimalBase:    c.ShrinkFuncConstant,
+				ShrinkFuncLogPercent: c.ShrinkFuncConstant,
+			}); err != nil {
+				logger.Errorf("Can not apply amountInShrinkFunc from remote config err %e", err)
+			} else {
+				amountInShrinkFuncList = append(amountInShrinkFuncList, amountInShrinkFunc)
+			}
+		}
+		if len(amountInShrinkFuncList) == len(g.amountInShrinkFuncList) {
+			g.amountInShrinkFuncList = amountInShrinkFuncList
 		}
 		g.config.EnableNewCacheKeyGenerator = config.Cache.EnableNewCacheKeyGenerator
 		g.config.ShrinkAmountInThreshold = config.Cache.ShrinkAmountInThreshold

@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"time"
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -55,19 +54,18 @@ func NewCache(
 func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
 	var (
 		routeSummary *valueobject.RouteSummary
-		key          *valueobject.RouteCacheKey
-		ttl          time.Duration
+		keys         []*valueobject.RouteCacheKeyTTL
 		err          error
 	)
 
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] cache.Aggregate")
 	defer span.End()
 
-	key, ttl, err = c.keyGenerator.genKey(ctx, params)
+	keys, err = c.keyGenerator.genKey(ctx, params)
 
 	// if this tokenIn has price and we successfully gen cache key
-	if err == nil && key != nil {
-		routeSummary, err = c.getRouteFromCache(ctx, params, key)
+	if err == nil && len(keys) != 0 {
+		routeSummary, err = c.getRouteFromCache(ctx, params, keys)
 		if err == nil {
 			return routeSummary, nil
 		}
@@ -76,7 +74,7 @@ func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*
 			return nil, err
 		}
 		if routeSummary.GetPriceImpact() <= c.config.PriceImpactThreshold {
-			go c.setRouteToCache(ctxUtils.NewBackgroundCtxWithReqId(ctx), routeSummary, key, ttl)
+			go c.setRouteToCache(ctxUtils.NewBackgroundCtxWithReqId(ctx), routeSummary, keys)
 		}
 	} else {
 		// we have no key cacheRoute -> recalculate new route.
@@ -94,14 +92,49 @@ func (c *cache) ApplyConfig(config Config) {
 	c.aggregator.ApplyConfig(config)
 }
 
-func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregateParams,
-	key *valueobject.RouteCacheKey) (*valueobject.RouteSummary, error) {
-	simpleRoute, err := c.routeCacheRepository.Get(ctx, key)
+func (c *cache) getBestRouteFromCache(ctx context.Context,
+	params *types.AggregateParams,
+	keys []*valueobject.RouteCacheKeyTTL) (*valueobject.RouteCacheKeyTTL, *valueobject.SimpleRoute, error) {
+	cachedRoutes, err := c.routeCacheRepository.Get(ctx, keys)
 
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(cachedRoutes) == 0 {
+		return nil, nil, fmt.Errorf("could not find any routes from cache")
+	}
+
+	// Compare amount-in to get the best route from Redis cache
+	var bestRoute *valueobject.SimpleRoute
+	var bestKey *valueobject.RouteCacheKeyTTL
+	var minDiff *big.Float
+	amountInWithoutDecimal := business.AmountWithoutDecimals(params.AmountIn, params.TokenIn.Decimals)
+	for key, route := range cachedRoutes {
+		if amountInKey, ok := new(big.Float).SetString(key.Key.AmountIn); !ok {
+			continue
+		} else {
+			diff := new(big.Float).Sub(amountInKey, amountInWithoutDecimal)
+			diff = diff.Abs(diff)
+			if minDiff == nil || diff.Cmp(minDiff) < 0 {
+				minDiff = diff
+				bestRoute = route
+			}
+			bestKey = key
+		}
+	}
+
+	return bestKey, bestRoute, nil
+}
+
+func (c *cache) getRouteFromCache(ctx context.Context,
+	params *types.AggregateParams,
+	keys []*valueobject.RouteCacheKeyTTL) (*valueobject.RouteSummary, error) {
+	bestKey, bestRoute, err := c.getBestRouteFromCache(ctx, params, keys)
 	if err != nil {
 		logger.
 			WithFields(ctx, logger.Fields{
-				"key":        key.String(""),
+				"key":        keys,
 				"reason":     "get cache failed",
 				"error":      err,
 				"request_id": requestid.GetRequestIDFromCtx(ctx),
@@ -113,11 +146,11 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 		return nil, err
 	}
 
-	routeSummary, err := c.summarizeSimpleRoute(ctx, simpleRoute, params)
+	routeSummary, err := c.summarizeSimpleRoute(ctx, bestRoute, params)
 	if err != nil {
 		logger.
 			WithFields(ctx, logger.Fields{
-				"key":        key.String(""),
+				"key":        bestKey.Key.String(""),
 				"reason":     "summarize simple route failed",
 				"error":      err,
 				"request_id": requestid.GetRequestIDFromCtx(ctx),
@@ -134,7 +167,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 	if priceImpact > c.config.PriceImpactThreshold {
 		logger.
 			WithFields(ctx, logger.Fields{
-				"key":        key.String(""),
+				"key":        bestKey.Key.String(""),
 				"reason":     "price impact is greater than threshold",
 				"error":      err,
 				"request_id": requestid.GetRequestIDFromCtx(ctx),
@@ -150,7 +183,10 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 		)
 
 		// it's meaningless to keep a route which cannot be used
-		c.routeCacheRepository.Del(ctx, key)
+		// when we round a get-route input to multiple points, we need to delete multiple cached points if they are useless as well
+		// but sometimes, we might delete others useless points which are cached by another input if 2 inputs are overlapse,
+		// for simplicity implementation and performance improvement, we might accept this usecase
+		c.routeCacheRepository.Del(ctx, keys)
 		return nil, errors.WithMessagef(
 			ErrPriceImpactIsGreaterThanThreshold,
 			"priceImpact: [%f]",
@@ -160,7 +196,7 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 
 	logger.
 		WithFields(ctx, logger.Fields{
-			"key":        key.String(""),
+			"key":        bestKey.Key.String(""),
 			"request_id": requestid.GetRequestIDFromCtx(ctx),
 			"client_id":  clientid.GetClientIDFromCtx(ctx),
 		}).
@@ -170,11 +206,14 @@ func (c *cache) getRouteFromCache(ctx context.Context, params *types.AggregatePa
 	return routeSummary, nil
 }
 
-func (c *cache) setRouteToCache(ctx context.Context, routeSummary *valueobject.RouteSummary,
-	key *valueobject.RouteCacheKey, ttl time.Duration) {
+func (c *cache) setRouteToCache(ctx context.Context, routeSummary *valueobject.RouteSummary, keys []*valueobject.RouteCacheKeyTTL) {
 	simpleRoute := simplifyRouteSummary(routeSummary)
+	routes := make([]*valueobject.SimpleRoute, 0, len(keys))
+	for range keys {
+		routes = append(routes, simpleRoute)
+	}
 
-	if err := c.routeCacheRepository.Set(ctx, key, simpleRoute, ttl); err != nil {
+	if err := c.routeCacheRepository.Set(ctx, keys, routes); err != nil {
 		logger.
 			WithFields(ctx, logger.Fields{"error": err}).
 			Error("cache.setRouteToCache failed")
