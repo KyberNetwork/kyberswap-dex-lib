@@ -19,13 +19,6 @@ type Gas struct {
 	CrossInitTickGas int64
 }
 
-// SwapInfo present the after state of a swap
-type SwapInfoBigInt struct {
-	nextStateSqrtRatioX96 *big.Int
-	nextStateLiquidity    *big.Int
-	nextStateTickCurrent  int
-}
-
 type SwapInfo struct {
 	nextStateSqrtRatioX96 *v3Utils.Uint160
 	nextStateLiquidity    *v3Utils.Uint128
@@ -82,6 +75,7 @@ type Extra struct {
 	Liquidity    *big.Int `json:"liquidity"`
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
 	TickSpacing  uint64   `json:"tickSpacing"`
+	FeeTier      uint64   `json:"feeTier"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
 }
@@ -90,6 +84,7 @@ type ExtraTickU256 struct {
 	Liquidity    *uint256.Int `json:"liquidity"`
 	SqrtPriceX96 *uint256.Int `json:"sqrtPriceX96"`
 	TickSpacing  uint64       `json:"tickSpacing"`
+	FeeTier      uint64       `json:"feeTier"`
 	Tick         *int         `json:"tick"`
 	Ticks        []TickU256   `json:"ticks"`
 }
@@ -107,6 +102,7 @@ type FetchRPCResult struct {
 	Liquidity   *big.Int `json:"liquidity"`
 	Slot0       Slot0    `json:"slot0"`
 	TickSpacing *big.Int `json:"tickSpacing"`
+	FeeTier     *big.Int `json:"feeTier"`
 	Reserve0    *big.Int `json:"reserve0"`
 	Reserve1    *big.Int `json:"reserve1"`
 }

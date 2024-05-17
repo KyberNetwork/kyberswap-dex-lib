@@ -109,6 +109,7 @@ func (d *PoolTracker) GetNewPoolState(
 	extraBytes, err := json.Marshal(Extra{
 		Liquidity:    rpcData.Liquidity,
 		TickSpacing:  rpcData.TickSpacing.Uint64(),
+		FeeTier:      rpcData.FeeTier.Uint64(),
 		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
 		Tick:         rpcData.Slot0.Tick,
 		Ticks:        ticks,
@@ -157,6 +158,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 		liquidity   *big.Int
 		slot0       Slot0
 		tickSpacing *big.Int
+		feeTier     *big.Int
 		reserve0    = zeroBI
 		reserve1    = zeroBI
 	)
@@ -184,6 +186,13 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 		Method: methodTickSpacing,
 		Params: nil,
 	}, []interface{}{&tickSpacing})
+
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    poolABI,
+		Target: p.Address,
+		Method: methodFee,
+		Params: nil,
+	}, []interface{}{&feeTier})
 
 	if len(p.Tokens) == 2 {
 		rpcRequest.AddCall(&ethrpc.Call{
@@ -213,6 +222,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 		Liquidity:   liquidity,
 		Slot0:       slot0,
 		TickSpacing: tickSpacing,
+		FeeTier:     feeTier,
 		Reserve0:    reserve0,
 		Reserve1:    reserve1,
 	}, err

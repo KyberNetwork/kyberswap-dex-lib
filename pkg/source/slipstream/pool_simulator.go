@@ -25,8 +25,11 @@ import (
 )
 
 var (
-	ErrOverflow       = errors.New("bigInt overflow int/uint256")
-	ErrInvalidFeeTier = errors.New("invalid feeTier")
+	ErrOverflow           = errors.New("bigInt overflow int/uint256")
+	ErrInvalidFeeTier     = errors.New("invalid feeTier")
+	ErrInvalidTickSpacing = errors.New("invalid tickSpacing")
+	ErrTickNil            = errors.New("tick is nil")
+	ErrV3TicksEmpty       = errors.New("v3Ticks empty")
 )
 
 type PoolSimulator struct {
@@ -50,8 +53,6 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	token0 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[0].Address), uint(entityPool.Tokens[0].Decimals), entityPool.Tokens[0].Symbol, entityPool.Tokens[0].Name)
 	token1 := coreEntities.NewToken(uint(chainID), common.HexToAddress(entityPool.Tokens[1].Address), uint(entityPool.Tokens[1].Decimals), entityPool.Tokens[1].Symbol, entityPool.Tokens[1].Name)
 
-	swapFeeFl := big.NewFloat(entityPool.SwapFee)
-	swapFee, _ := swapFeeFl.Int(nil)
 	tokens := make([]string, 2)
 	reserves := make([]*big.Int, 2)
 	if len(entityPool.Reserves) == 2 && len(entityPool.Tokens) == 2 {
@@ -84,15 +85,10 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}
 
 	tickSpacing := int(extra.TickSpacing)
-	// For some pools that not yet initialized tickSpacing in their extra,
-	// we will get the tickSpacing through feeTier mapping.
 	if tickSpacing == 0 {
-		feeTier := constants.FeeAmount(entityPool.SwapFee)
-		if _, ok := constants.TickSpacings[feeTier]; !ok {
-			return nil, ErrInvalidFeeTier
-		}
-		tickSpacing = constants.TickSpacings[feeTier]
+		return nil, ErrInvalidTickSpacing
 	}
+
 	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, tickSpacing)
 	if err != nil {
 		return nil, err
@@ -101,7 +97,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	v3Pool, err := v3Entities.NewPoolV2(
 		token0,
 		token1,
-		constants.FeeAmount(entityPool.SwapFee),
+		constants.FeeAmount(extra.FeeTier),
 		extra.SqrtPriceX96,
 		extra.Liquidity,
 		*extra.Tick,
@@ -117,7 +113,6 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	var info = pool.PoolInfo{
 		Address:    strings.ToLower(entityPool.Address),
 		ReserveUsd: entityPool.ReserveUsd,
-		SwapFee:    swapFee,
 		Exchange:   entityPool.Exchange,
 		Type:       entityPool.Type,
 		Tokens:     tokens,
