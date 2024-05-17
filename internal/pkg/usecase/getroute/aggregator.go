@@ -94,10 +94,6 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 		return nil, err
 	}
 
-	if len(state.Pools) == 0 {
-		return nil, ErrPoolSetEmpty
-	}
-
 	// Step 2: collect tokens and price data
 	tokenAddresses := CollectTokenAddresses(
 		state.Pools,
@@ -341,6 +337,10 @@ func (a *aggregator) getStateByAddress(
 	params *types.AggregateParams,
 	stateRoot common.Hash,
 ) (*types.FindRouteState, error) {
+	if len(params.Sources) == 0 {
+		return nil, ErrPoolSetFiltered
+	}
+
 	bestPoolIDs, err := a.poolRankRepository.FindBestPoolIDs(
 		ctx,
 		params.TokenIn.Address,
@@ -367,7 +367,7 @@ func (a *aggregator) getStateByAddress(
 	if len(filteredPoolIDs) == 0 {
 		logger.Errorf(ctx, "empty filtered pool IDs. bestPoolIDs %v, excludedPools: %v",
 			bestPoolIDs, params.ExcludedPools.String())
-		return nil, ErrPoolSetEmpty
+		return nil, ErrPoolSetFiltered
 	}
 
 	return a.poolManager.GetStateByPoolAddresses(

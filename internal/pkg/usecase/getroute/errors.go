@@ -7,7 +7,9 @@ import (
 var (
 	ErrInvalidSwap = errors.New("invalid swap")
 
-	ErrPoolSetEmpty = errors.New("pool set is empty")
+	ErrPoolSetEmpty = errors.New("failed liquidity sources")
+
+	ErrPoolSetFiltered = errors.New("filtered liquidity sources")
 
 	ErrRouteNotFound = errors.New("route not found")
 

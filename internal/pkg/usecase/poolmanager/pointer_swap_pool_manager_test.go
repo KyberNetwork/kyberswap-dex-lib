@@ -260,9 +260,6 @@ func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
 	// let sleep for 2 sec
 	time.Sleep(3 * time.Second)
 	state, err := pm.GetStateByPoolAddresses(context.Background(), poolAddressList, []string{pooltypes.PoolTypes.KyberPMM}, common.Hash{0x00})
-	require.NoError(t, err)
-	_, pool1Avail := state.Pools[pool1.GetAddress()]
-	assert.Equal(t, false, pool1Avail)
-	_, pool2Avail := state.Pools[pool1.GetAddress()]
-	assert.Equal(t, false, pool2Avail)
+	require.Error(t, err)
+	assert.Equal(t, true, state == nil)
 }

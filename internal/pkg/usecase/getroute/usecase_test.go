@@ -46,7 +46,7 @@ func TestGetRouteUseCase_Handle(t *testing.T) {
 			},
 		},
 		{
-			name: "it should return route not found when exclude sources",
+			name: "it should return poolSetFiltered when exclude sources",
 			command: dto.GetRoutesQuery{
 				TokenIn:         "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 				TokenOut:        "0xdac17f958d2ee523a2206206994597c13d831ec7",
@@ -55,10 +55,10 @@ func TestGetRouteUseCase_Handle(t *testing.T) {
 				GasInclude:      true,
 				ExcludedSources: []string{"uniswap"},
 			},
-			err: ErrPoolSetEmpty,
+			err: ErrPoolSetFiltered,
 		},
 		{
-			name: "it should return route not found when exclude pools",
+			name: "it should return poolSetFiltered when exclude pools",
 			command: dto.GetRoutesQuery{
 				TokenIn:       "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 				TokenOut:      "0xdac17f958d2ee523a2206206994597c13d831ec7",
@@ -67,7 +67,7 @@ func TestGetRouteUseCase_Handle(t *testing.T) {
 				GasInclude:    true,
 				ExcludedPools: mapset.NewSet("0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852"),
 			},
-			err: ErrPoolSetEmpty,
+			err: ErrPoolSetFiltered,
 		},
 	}
 

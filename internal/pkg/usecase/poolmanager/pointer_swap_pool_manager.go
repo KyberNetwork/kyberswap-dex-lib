@@ -263,12 +263,12 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, po
 	filteredPoolAddress := p.filterBlacklistedAddresses(poolAddresses)
 	if len(filteredPoolAddress) == 0 {
 		logger.Errorf(ctx, "filtered Pool addresses after filterBlacklistedAddresses now equal to 0. Blacklist config %v. PoolAddresses original len: %d", p.config.BlacklistedPoolSet, len(poolAddresses))
-		return nil, getroute.ErrPoolSetEmpty
+		return nil, getroute.ErrPoolSetFiltered
 	}
 	filteredPoolAddress = p.excludeFaultyPools(ctx, filteredPoolAddress, p.config)
 	if len(filteredPoolAddress) == 0 {
 		logger.Errorf(ctx, "filtered Pool address after excludeFaultyPools now equal to 0. faulty config %v. PoolAddresses original len: %d", p.config.FaultyPoolsExpireThreshold, len(poolAddresses))
-		return nil, getroute.ErrPoolSetEmpty
+		return nil, getroute.ErrPoolSetFiltered
 	}
 	// update cache policy
 	for _, poolAddress := range filteredPoolAddress {
@@ -276,9 +276,16 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, po
 	}
 
 	readFrom := p.readFrom.Load()
-	state := p.getPools(ctx, filteredPoolAddress, dex, readFrom, stateRoot)
+	state, err := p.getPools(ctx, filteredPoolAddress, dex, readFrom, stateRoot)
+	if err != nil {
+		return nil, err
+	}
 
-	return state, nil
+	if len(filteredPoolAddress) > 0 && len(state.Pools) == 0 {
+		return nil, getroute.ErrPoolSetEmpty
+	}
+
+	return state, err
 }
 
 func (p *PointerSwapPoolManager) isPMMStalled(pool poolpkg.IPoolSimulator) bool {
@@ -297,13 +304,18 @@ func (p *PointerSwapPoolManager) isPMMStalled(pool poolpkg.IPoolSimulator) bool 
 	return false
 }
 
-func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, readFrom int32, stateRoot common.Hash) *types.FindRouteState {
+func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, readFrom int32, stateRoot common.Hash) (*types.FindRouteState, error) {
 	var (
 		resultPoolByAddress = make(map[string]poolpkg.IPoolSimulator, len(poolAddresses))
 		resultLimits        = make(map[string]map[string]*big.Int)
 		poolsToFetchFromDB  []string
 		dexSet              = sets.NewString(dex...)
+		isFiltered          = false
 	)
+
+	if len(dex) == 0 {
+		return nil, getroute.ErrPoolSetFiltered
+	}
 
 	p.states[readFrom].lock.RLock()
 
@@ -312,9 +324,12 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 			if dexSet.Has(pool.GetExchange()) {
 				if p.isPMMStalled(pool) {
 					logger.Debugf(ctx, "stalling PMM pool %s", pool.GetAddress())
+					poolsToFetchFromDB = append(poolsToFetchFromDB, key) // refetch again to get the latest data
 					continue
 				}
 				resultPoolByAddress[key] = pool
+			} else {
+				isFiltered = true
 			}
 		} else {
 			poolsToFetchFromDB = append(poolsToFetchFromDB, key)
@@ -333,11 +348,11 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 
 	poolEntities, err := p.poolRepository.FindByAddresses(ctx, poolsToFetchFromDB)
 	if err != nil {
-		logger.Errorf(ctx, "poolRepository.FindByAddresses crashed into err", err)
+		logger.Errorf(ctx, "poolRepository.FindByAddresses crashed into err ", err)
 		return &types.FindRouteState{
 			Pools:     resultPoolByAddress,
-			SwapLimit: nil,
-		}
+			SwapLimit: nil, // just wonder why don't we return resultLimits here :think:
+		}, nil
 	}
 
 	defer mempool.ReserveMany(poolEntities)
@@ -346,6 +361,8 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 	for i := range poolEntities {
 		if dexSet.Has(poolEntities[i].Exchange) {
 			filteredPoolEntities = append(filteredPoolEntities, poolEntities[i])
+		} else {
+			isFiltered = true
 		}
 	}
 
@@ -354,8 +371,8 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 		logger.Debugf(ctx, "failed to load curve-meta base pool %v", err)
 		return &types.FindRouteState{
 			Pools:     resultPoolByAddress,
-			SwapLimit: nil,
-		}
+			SwapLimit: nil, // just wonder why don't we return resultLimits here :think:
+		}, nil
 	}
 	filteredPoolEntities = append(filteredPoolEntities, curveMetaBasePools...)
 
@@ -368,10 +385,17 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 		resultPoolByAddress[poolInterfaces[i].GetAddress()] = poolInterfaces[i]
 	}
 
+	if len(resultPoolByAddress) == 0 {
+		if isFiltered {
+			return nil, getroute.ErrPoolSetFiltered
+		}
+		return nil, getroute.ErrPoolSetEmpty
+	}
+
 	return &types.FindRouteState{
 		Pools:     resultPoolByAddress,
 		SwapLimit: p.poolFactory.NewSwapLimit(resultLimits),
-	}
+	}, nil
 }
 
 func (p *PointerSwapPoolManager) Reload(ctx context.Context) error {

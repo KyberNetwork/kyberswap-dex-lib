@@ -56,6 +56,10 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 		return nil, err
 	}
 
+	if len(poolEntities) == 0 {
+		return nil, getroute.ErrPoolSetEmpty
+	}
+
 	poolByAddress := make(map[string]poolpkg.IPoolSimulator, len(poolIds))
 	poolInterfaces := a.poolFactory.NewPools(ctx, poolEntities, common.Hash{}) // Not use AEVM in custom route
 	for i := range poolInterfaces {
@@ -63,7 +67,7 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 	}
 
 	if len(poolByAddress) == 0 {
-		return nil, getroute.ErrPoolSetEmpty
+		return nil, getroute.ErrPoolSetFiltered
 	}
 
 	// Step 2: collect tokens and price data

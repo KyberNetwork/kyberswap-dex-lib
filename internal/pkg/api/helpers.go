@@ -81,16 +81,16 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    "sender address can not be empty when enable gas estimation",
 	},
 
+	getroute.ErrPoolSetFiltered: {
+		HTTPStatus: http.StatusBadRequest,
+		Code:       40011,
+		Message:    "filtered liquidity sources",
+	},
+
 	getroute.ErrPoolSetEmpty: {
 		HTTPStatus: http.StatusInternalServerError,
 		Code:       5001,
-		Message:    "route not found",
-	},
-
-	usecase.ErrTokenNotFound: {
-		HTTPStatus: http.StatusBadRequest,
-		Code:       4011,
-		Message:    "token not found",
+		Message:    "failed liquidity sources",
 	},
 
 	getroute.ErrTokenNotFound: {

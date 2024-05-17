@@ -21,6 +21,7 @@ import (
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
+// @TODO this struct isn't used anymore, better remove it
 type PoolManager struct {
 	poolRepository IPoolRepository
 	poolFactory    IPoolFactory
