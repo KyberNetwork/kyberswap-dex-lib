@@ -20,6 +20,7 @@ const (
 	methodGetLiquidity   = "liquidity"
 	methodGetSlot0       = "slot0"
 	methodTickSpacing    = "tickSpacing"
+	methodFee            = "fee"
 	erc20MethodBalanceOf = "balanceOf"
 )
 
