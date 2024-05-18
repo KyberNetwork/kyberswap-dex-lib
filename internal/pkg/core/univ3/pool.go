@@ -2,7 +2,6 @@ package univ3
 
 import (
 	"fmt"
-	"math"
 	"math/big"
 	"strings"
 
@@ -18,11 +17,14 @@ import (
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/abis"
 	aevmcore "github.com/KyberNetwork/router-service/internal/pkg/core/aevm"
 	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/pkg/common"
+)
+
+const (
+	skipCheckAddress = true
 )
 
 type Pool struct {
@@ -113,6 +115,9 @@ func (p *Pool) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountO
 }
 
 func (p *Pool) checkAddress(tokenIn, tokenOut string) error {
+	if skipCheckAddress {
+		return nil
+	}
 	computedAddr, err := univ3utils.ComputePoolAddress(
 		constants.FactoryAddress,
 		coreEntities.NewToken(p.chainID, gethcommon.HexToAddress(tokenIn), 0, "", ""),
@@ -129,24 +134,10 @@ func (p *Pool) checkAddress(tokenIn, tokenOut string) error {
 	return nil
 }
 
-// build SwapRouter.exactInputSingle input
-func (p *Pool) routerExactInputSingle(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon.Address) ([]byte, error) {
-	return UniswapV3SwapRouterABI.Pack("exactInputSingle", &ExactInputSingleParams{
-		TokenIn:           tokenIn,
-		TokenOut:          tokenOut,
-		Fee:               new(big.Int).Set(p.Pool.Info.SwapFee),
-		Recipient:         wallet,
-		Deadline:          new(big.Int).SetUint64(math.MaxUint64),
-		AmountIn:          amountIn,
-		AmountOutMinimum:  big.NewInt(0),
-		SqrtPriceLimitX96: big.NewInt(0),
-	})
-}
-
 func (p *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon.Address) (*aevmcore.AEVMSwapCalls, error) {
 	// Some tokens requires allowance to be 0 before we set it to another value
 	// https://github.com/Giveth/minime/blob/master/contracts/MiniMeToken.sol#L221-L225
-	approveZeroInput, err := abis.ERC20.Pack("approve", p.routerAddress, big.NewInt(0))
+	approveZeroInput, err := aevmcore.PackERC20ApproveCall(p.routerAddress, big.NewInt(0))
 	if err != nil {
 		return nil, fmt.Errorf("could not build approve call: %w", err)
 	}
@@ -156,7 +147,7 @@ func (p *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 		Value: (*aevmcommon.Uint256)(uint256.NewInt(0)),
 		Data:  approveZeroInput,
 	}
-	approveInput, err := abis.ERC20.Pack("approve", p.routerAddress, amountIn)
+	approveInput, err := aevmcore.PackERC20ApproveCall(p.routerAddress, amountIn)
 	if err != nil {
 		return nil, fmt.Errorf("could not build approve call: %w", err)
 	}
@@ -166,8 +157,9 @@ func (p *Pool) swapCalls(amountIn *big.Int, tokenIn, tokenOut, wallet gethcommon
 		Value: (*aevmcommon.Uint256)(uint256.NewInt(0)),
 		Data:  approveInput,
 	}
-	swapInput, err := p.routerExactInputSingle(
+	swapInput, err := PackRouterExactInputSingleCalldata(
 		amountIn,
+		p.Info.SwapFee,
 		tokenIn,
 		tokenOut,
 		wallet,

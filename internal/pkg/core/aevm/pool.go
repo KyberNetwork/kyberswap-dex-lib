@@ -15,7 +15,6 @@ import (
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/abis"
 	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/common"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -239,7 +238,7 @@ func CalcAmountOutAEVM(
 		exaggeratedAmountIn.Rsh(exaggeratedAmountIn, 1)
 		var transferCalls []aevmtypes.SingleCall
 		for _, source := range sources {
-			transferInput, _ := abis.ERC20.Pack("transfer", gethcommon.HexToAddress(blIn.Wallet), exaggeratedAmountIn)
+			transferInput, _ := PackERC20TransferCall(gethcommon.HexToAddress(blIn.Wallet), exaggeratedAmountIn)
 			transferCalls = append(transferCalls, aevmtypes.SingleCall{
 				From:  aevmcommon.Address(source),
 				To:    aevmcommon.Address(tokenIn),
