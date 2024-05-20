@@ -1,6 +1,7 @@
 package valueobject
 
 import (
+	"context"
 	"math/big"
 	"sync"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
+	routerpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
@@ -93,6 +95,7 @@ func (p *Path) Clone() *Path {
 // NewPath create new Path from state and input
 // note that TokenAmountOut will be re-calculated here.
 func NewPath(
+	ctx context.Context,
 	poolBucket *PoolBucket,
 	poolAddresses []string,
 	tokens []*entity.Token,
@@ -133,7 +136,7 @@ func NewPath(
 	path.PoolAddresses = poolAddresses
 	path.Tokens = tokens
 
-	tokenAmountOut, totalGas, err := path.CalcAmountOut(poolBucket, tokenAmountIn, limits)
+	tokenAmountOut, totalGas, err := path.CalcAmountOut(ctx, poolBucket, tokenAmountIn, limits)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +165,7 @@ func NewPath(
 }
 
 // CalcAmountOut swaps through path with Input
-func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn TokenAmount, limits map[string]poolpkg.SwapLimit) (TokenAmount, int64, error) {
+func (p *Path) CalcAmountOut(ctx context.Context, poolBucket *PoolBucket, tokenAmountIn TokenAmount, limits map[string]poolpkg.SwapLimit) (TokenAmount, int64, error) {
 	var (
 		currentAmount = *tokenAmountIn.ToDexLibAmount()
 		pool          poolpkg.IPoolSimulator
@@ -178,8 +181,7 @@ func (p *Path) CalcAmountOut(poolBucket *PoolBucket, tokenAmountIn TokenAmount, 
 				poolAddress,
 			)
 		}
-		calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, currentAmount, p.Tokens[i+1].Address, limits[pool.GetType()])
-
+		calcAmountOutResult, err := routerpkg.CalcAmountOut(ctx, pool, currentAmount, p.Tokens[i+1].Address, limits[pool.GetType()])
 		if err != nil {
 			return TokenAmount{}, 0, errors.WithMessagef(
 				ErrInvalidSwap,

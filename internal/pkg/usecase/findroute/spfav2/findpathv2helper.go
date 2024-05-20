@@ -72,7 +72,7 @@ func (h *findPathV2Helper) bestPathExactInV2(
 			var bestPath = paths[pathId]
 			// if amount used to generate is different from splitAmountIn, this is possible when amountInUsd is small
 			if h.tokenAmountIn.CompareRaw(&newAmountIn) != 0 {
-				bestPath = newPath(input, data, bestPath.PoolAddresses, bestPath.Tokens, newAmountIn, h.addedPathIds.Has(pathId))
+				bestPath = newPath(ctx, input, data, bestPath.PoolAddresses, bestPath.Tokens, newAmountIn, h.addedPathIds.Has(pathId))
 			}
 
 			if bestPath == nil {
@@ -91,7 +91,7 @@ func (h *findPathV2Helper) bestPathExactInV2(
 		}
 
 		// we recalculate the path here
-		paths[pathId] = newPath(input, data, paths[pathId].PoolAddresses, paths[pathId].Tokens, h.tokenAmountIn, h.addedPathIds.Has(pathId))
+		paths[pathId] = newPath(ctx, input, data, paths[pathId].PoolAddresses, paths[pathId].Tokens, h.tokenAmountIn, h.addedPathIds.Has(pathId))
 		h.pathIdToLastCalculatedSplit[pathId] = h.currentSplit
 		heap.Pop(h.pq)
 		if paths[pathId] != nil {
@@ -125,6 +125,7 @@ func (h *findPathV2Helper) needToRecalculatePath(pathId int, path *valueobject.P
 }
 
 func newPath(
+	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
 	poolAddresses []string,
@@ -139,7 +140,7 @@ func newPath(
 	} else {
 		gasOption = valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}
 	}
-	path, err := valueobject.NewPath(data.PoolBucket, poolAddresses, tokens, tokenAmountIn, input.TokenOutAddress,
+	path, err := valueobject.NewPath(ctx, data.PoolBucket, poolAddresses, tokens, tokenAmountIn, input.TokenOutAddress,
 		data.PriceUSDByAddress[input.TokenOutAddress], data.TokenNativeBuyPrice(input.TokenOutAddress), data.TokenByAddress[input.TokenOutAddress].Decimals, gasOption, data.SwapLimits,
 	)
 	if err != nil {

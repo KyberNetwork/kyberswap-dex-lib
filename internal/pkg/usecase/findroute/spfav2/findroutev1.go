@@ -101,7 +101,7 @@ func (f *spfav2Finder) bestMultiPathRouteV1(
 				Debugf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
 					input.TokenInAddress, input.TokenOutAddress, amountInPerSplit.Amount, amountInPerSplit.AmountUsd)
 		}
-		bestAddedPath, err := common.BestPathAmongAddedPaths(input, data, amountInPerSplit, bestMultiPathRoute.Paths)
+		bestAddedPath, err := common.BestPathAmongAddedPaths(ctx, input, data, amountInPerSplit, bestMultiPathRoute.Paths)
 		if err == nil && bestAddedPath.CompareTo(bestPath, input.GasInclude && data.PriceUSDByAddress[bestAddedPath.Output.Token] != 0) < 0 {
 			bestPath = bestAddedPath
 		}
@@ -109,7 +109,7 @@ func (f *spfav2Finder) bestMultiPathRouteV1(
 			return nil, nil
 		}
 
-		if err = bestMultiPathRoute.AddPath(data.PoolBucket, bestPath, data.SwapLimits); err != nil {
+		if err = bestMultiPathRoute.AddPath(ctx, data.PoolBucket, bestPath, data.SwapLimits); err != nil {
 			return nil, err
 		}
 	}

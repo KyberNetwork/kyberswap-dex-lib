@@ -8,13 +8,16 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/pkg/errors"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
 type useCase struct {
@@ -64,6 +67,12 @@ func NewUseCase(
 }
 
 func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.GetRoutesResult, error) {
+	if env.StringFromEnv(envvar.CalcAmountOutCounterMetricEnabled, "") != "" {
+		calcAmountOutCounter := metrics.NewCalcAmountOutCounter()
+		ctx = context.WithValue(ctx, metrics.CalcAmountOutCounterContextKey, calcAmountOutCounter)
+		defer calcAmountOutCounter.CommitMetrics(ctx)
+	}
+
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] useCase.Handle")
 	defer span.End()
 

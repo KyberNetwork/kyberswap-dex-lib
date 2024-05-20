@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"sync"
@@ -15,6 +16,7 @@ import (
 // BestPathAmongAddedPaths try to swap through a previously-found path by adding more amountIn to that path.
 // Because we are reusing the path, we can disregard gas fee
 func BestPathAmongAddedPaths(
+	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn valueobject.TokenAmount,
@@ -37,7 +39,7 @@ func BestPathAmongAddedPaths(
 	for itr, path := range addedPaths {
 		_itr, _path := itr, path
 		wg.Go(func() error {
-			amountOut, _, err := _path.CalcAmountOut(data.PoolBucket, tokenAmountIn, data.SwapLimits)
+			amountOut, _, err := _path.CalcAmountOut(ctx, data.PoolBucket, tokenAmountIn, data.SwapLimits)
 			if err != nil {
 				return nil
 			}
@@ -66,6 +68,7 @@ func BestPathAmongAddedPaths(
 
 	// clone the best path and disregard gas fee as the path would be merged into an existing path anyway
 	bestPath, err = valueobject.NewPath(
+		ctx,
 		data.PoolBucket,
 		bestPath.PoolAddresses,
 		bestPath.Tokens,

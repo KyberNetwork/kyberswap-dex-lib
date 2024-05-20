@@ -63,7 +63,7 @@ func (f *hillClimbFinder) Find(ctx context.Context,
 
 	// recalculate rate of route again to ensure consistency with summarize
 	data.Refresh()
-	baseBestRoute = recalculateRoute(input, data, baseBestRoute)
+	baseBestRoute = recalculateRoute(ctx, input, data, baseBestRoute)
 	if baseBestRoute == nil {
 		logger.Infof(ctx, "hill climb: return nil due to cannot recalculateRoute base")
 		return nil, nil
@@ -80,7 +80,7 @@ func (f *hillClimbFinder) Find(ctx context.Context,
 
 	// recalculate rate of route again to ensure consistency with summarize
 	data.Refresh()
-	hillClimbBestRoute = recalculateRoute(input, data, hillClimbBestRoute)
+	hillClimbBestRoute = recalculateRoute(ctx, input, data, hillClimbBestRoute)
 
 	logger.Infof(ctx,
 		"successfully using hill climb to optimize route from token %v to token %v", input.TokenInAddress, input.TokenOutAddress,
@@ -103,7 +103,7 @@ func (f *hillClimbFinder) Find(ctx context.Context,
 	return []*valueobject.Route{baseBestRoute}, nil
 }
 
-func recalculateRoute(input findroute.Input, data findroute.FinderData, route *valueobject.Route) *valueobject.Route {
+func recalculateRoute(ctx context.Context, input findroute.Input, data findroute.FinderData, route *valueobject.Route) *valueobject.Route {
 	var (
 		tokenOutPriceUSD    = data.PriceUSDByAddress[input.TokenOutAddress]
 		tokenOutPriceNative = data.TokenNativeBuyPrice(input.TokenOutAddress)
@@ -117,13 +117,13 @@ func recalculateRoute(input findroute.Input, data findroute.FinderData, route *v
 	)
 
 	for i := 0; i < len(route.Paths); i++ {
-		pathRecalculated, err := valueobject.NewPath(data.PoolBucket, route.Paths[i].PoolAddresses, route.Paths[i].Tokens,
+		pathRecalculated, err := valueobject.NewPath(ctx, data.PoolBucket, route.Paths[i].PoolAddresses, route.Paths[i].Tokens,
 			route.Paths[i].Input, input.TokenOutAddress, tokenOutPriceUSD, tokenOutPriceNative, tokenOutDecimal, gasOption, data.SwapLimits)
 		if err != nil {
 			return nil
 		}
 
-		if err = newRoute.AddPath(data.PoolBucket, pathRecalculated, data.SwapLimits); err != nil {
+		if err = newRoute.AddPath(ctx, data.PoolBucket, pathRecalculated, data.SwapLimits); err != nil {
 			return nil
 		}
 	}

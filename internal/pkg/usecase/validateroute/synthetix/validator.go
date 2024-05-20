@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -24,7 +25,7 @@ func NewSynthetixValidator() *SynthetixValidator {
 
 // Validate will reapply pool update and will have to modify the pool state. Do not use original pools for this
 func (v *SynthetixValidator) Validate(ctx context.Context, poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobject.Route) error {
-	err := Validate(poolByAddress, route)
+	err := Validate(ctx, poolByAddress, route)
 
 	if errors.Is(err, synthetix.ErrInvalidLastAtomicVolume) {
 		return err
@@ -41,7 +42,7 @@ func (v *SynthetixValidator) Validate(ctx context.Context, poolByAddress map[str
 
 // Validate will do all the swap based on Route's paths.
 // It will update the pools in the process of doing so hence will only take a copy
-func Validate(poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobject.Route) error {
+func Validate(ctx context.Context, poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobject.Route) error {
 	var (
 		poolStateVersion        synthetix.PoolStateVersion
 		blockTimestamp          uint64
@@ -88,7 +89,8 @@ func Validate(poolByAddress map[string]poolpkg.IPoolSimulator, route *valueobjec
 				continue
 			}
 
-			calcAmountOutResult, err := poolpkg.CalcAmountOut(
+			calcAmountOutResult, err := routerpoolpkg.CalcAmountOut(
+				ctx,
 				pool,
 				tokenAmountIn,
 				path.Tokens[i+1].Address,

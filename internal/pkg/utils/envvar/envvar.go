@@ -17,4 +17,6 @@ const (
 	DDService         = "DD_SERVICE"
 	DDVersion         = "DD_VERSION"
 	DDSamplerRate     = "DD_SAMPLER_RATE"
+
+	CalcAmountOutCounterMetricEnabled = "CALC_AMOUNT_OUT_COUNTER_METRIC_ENABLED"
 )

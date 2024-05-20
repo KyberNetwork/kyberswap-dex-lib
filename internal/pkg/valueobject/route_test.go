@@ -1,6 +1,7 @@
 package valueobject
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -147,7 +148,7 @@ func TestRoute_AddPathRollBack(t *testing.T) {
 				TotalGas: tt.fields.TotalGas,
 				Extra:    tt.fields.Extra,
 			}
-			tt.wantErr(t, r.AddPath(tt.args.poolBucket, tt.args.p, tt.args.swapLimits), fmt.Sprintf("AddPath(%v, %v, %v)", tt.args.poolBucket, tt.args.p, tt.args.swapLimits))
+			tt.wantErr(t, r.AddPath(context.TODO(), tt.args.poolBucket, tt.args.p, tt.args.swapLimits), fmt.Sprintf("AddPath(%v, %v, %v)", tt.args.poolBucket, tt.args.p, tt.args.swapLimits))
 			rolledBackPool, avail := bucket.GetPool(oldPool.GetAddress())
 			assert.Equal(t, true, avail)
 			assert.Equal(t, oldPool.GetReserves(), rolledBackPool.GetReserves())

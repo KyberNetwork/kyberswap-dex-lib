@@ -1,6 +1,7 @@
 package valueobject
 
 import (
+	"context"
 	"fmt"
 	"math/big"
 	"testing"
@@ -92,7 +93,7 @@ func TestNewPath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := NewPath(tt.args.poolBucket, tt.args.poolAddresses, tt.args.tokens, tt.args.tokenAmountIn, tt.args.tokenOut, tt.args.tokenOutPrice, nil, tt.args.tokenOutDecimals, tt.args.gasOption, tt.args.limits)
+			_, err := NewPath(context.TODO(), tt.args.poolBucket, tt.args.poolAddresses, tt.args.tokens, tt.args.tokenAmountIn, tt.args.tokenOut, tt.args.tokenOutPrice, nil, tt.args.tokenOutDecimals, tt.args.gasOption, tt.args.limits)
 			if !tt.wantErr(t, err, fmt.Sprintf("NewPath(%v, %v, %v, %v, %v, %v, %v, %v, %v)", tt.args.poolBucket, tt.args.poolAddresses, tt.args.tokens, tt.args.tokenAmountIn, tt.args.tokenOut, tt.args.tokenOutPrice, tt.args.tokenOutDecimals, tt.args.gasOption, tt.args.limits)) {
 				return
 			}

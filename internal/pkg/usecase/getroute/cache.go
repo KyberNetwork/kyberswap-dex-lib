@@ -13,6 +13,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -288,7 +289,7 @@ func (c *cache) summarizeSimpleRoute(
 
 			swapLimit := state.SwapLimit[pool.GetType()]
 			// Step 3.1.2: simulate c swap through the pool
-			result, err := poolpkg.CalcAmountOut(pool, tokenAmountIn, simpleSwap.TokenOutAddress, swapLimit)
+			result, err := routerpoolpkg.CalcAmountOut(ctx, pool, tokenAmountIn, simpleSwap.TokenOutAddress, swapLimit)
 			if err != nil {
 				return nil, errors.WithMessagef(
 					ErrInvalidSwap,

@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +29,8 @@ const (
 	EstimateGasWithSlippageMetricsName = "estimate_gas_slippage"
 	IndexPoolsMetricsCounterName       = "index_pools_count"
 	IndexPoolsDelayMetricsName         = "index_job_pools_delay"
+
+	CalcAmountOutCountPerRequest = "calc_amount_out_count_per_request"
 )
 
 var (
@@ -47,6 +50,8 @@ var (
 	indexPoolsDelayHistogram     metric.Int64Histogram
 	estimateGasSlippageHistogram metric.Float64Histogram
 
+	calcAmountOutCountPerRequestHistogram metric.Int64Histogram
+
 	mapMetricNameToHistogram        map[string]metric.Int64Histogram
 	mapMetricNameToFloat64Histogram map[string]metric.Float64Histogram
 )
@@ -65,6 +70,8 @@ func init() {
 	indexPoolsDelayHistogram, _ = kybermetric.Meter().Int64Histogram(IndexPoolsDelayMetricsName,
 		metric.WithExplicitBucketBoundaries(0, 50, 300, 1200, 2500, 5000, 10e3, 30e3, 90e3, 300e3, 1200e3, 3600e3))
 	indexPoolsDelayCounter, _ = kybermetric.Meter().Float64Counter(IndexPoolsMetricsCounterName)
+	calcAmountOutCountPerRequestHistogram, _ = kybermetric.Meter().Int64Histogram(formatMetricName(CalcAmountOutCountPerRequest),
+		metric.WithExplicitBucketBoundaries(1, 10, 100, 1000, math.Inf(1)))
 
 	mapMetricNameToCounter = map[string]metric.Float64Counter{
 		DexHitRateMetricsName:             dexHitRateCounter,
@@ -201,6 +208,10 @@ func HistogramIndexPoolsDelay(ctx context.Context, jobName string, delay time.Du
 		"job_name": jobName,
 		"state":    state,
 	})
+}
+
+func HistogramCalcAmountOutCountPerRequest(ctx context.Context, count int64, dexType string) {
+	calcAmountOutCountPerRequestHistogram.Record(ctx, count, metric.WithAttributes(attribute.String("dexType", dexType)))
 }
 
 func Flush() {

@@ -165,7 +165,7 @@ func (f *spfav2Finder) bestRouteV2(
 	sort.Slice(paths, cmpFunc)
 
 	// step 2: Find single-path route
-	bestSinglePathRoute := f.bestSinglePathRouteV2(input, data, tokenAmountIn, paths, len(splits))
+	bestSinglePathRoute := f.bestSinglePathRouteV2(ctx, input, data, tokenAmountIn, paths, len(splits))
 
 	// step 3: Find multi-path route
 	bestMultiPathRoute, errFindMultiPathRoute := f.bestMultiPathRouteV2(ctx, input, data, paths, amountInToGeneratePath, splits, cmpFunc)
@@ -188,6 +188,7 @@ func (f *spfav2Finder) bestRouteV2(
 }
 
 func (f *spfav2Finder) bestSinglePathRouteV2(
+	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
 	tokenAmountIn valueobject.TokenAmount,
@@ -199,7 +200,7 @@ func (f *spfav2Finder) bestSinglePathRouteV2(
 		if paths[i] == nil {
 			continue
 		}
-		path := newPath(input, data, paths[i].PoolAddresses, paths[i].Tokens, tokenAmountIn, false)
+		path := newPath(ctx, input, data, paths[i].PoolAddresses, paths[i].Tokens, tokenAmountIn, false)
 		if path != nil && (bestPath == nil || path.CompareTo(bestPath, input.GasInclude && data.PriceUSDByAddress[path.Output.Token] != 0) < 0) {
 			bestPath = path
 		}
@@ -238,7 +239,7 @@ func (f *spfav2Finder) bestMultiPathRouteV2(
 				return nil, nil
 			}
 
-			if err := bestMultiPathRoute.AddPath(data.PoolBucket, bestPath.Clone(), data.SwapLimits); err == nil {
+			if err := bestMultiPathRoute.AddPath(ctx, data.PoolBucket, bestPath.Clone(), data.SwapLimits); err == nil {
 				break
 			} else {
 				// the below logic fixes specifically a PMM swapLimit issue, if bestPath doesn't have PMM pool, just return

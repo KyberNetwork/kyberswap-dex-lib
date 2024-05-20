@@ -7,12 +7,12 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"golang.org/x/sync/errgroup"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -27,7 +27,7 @@ func GenKthBestPathsV2(
 	maxHops, maxPathsToGenerate, maxPathsToReturn uint32,
 ) (map[string][]*valueobject.Path, error) {
 	span, _ := tracer.StartSpanFromContext(ctx, "GenKthBestPathsV2")
-	defer span.Finish()
+	defer span.End()
 
 	// Must be able to get info about tokenIn
 	if _, ok := data.TokenByAddress[input.TokenInAddress]; !ok {
@@ -50,7 +50,7 @@ func GenKthBestPathsV2(
 	}
 	for currentHop := uint32(0); currentHop < maxHops; currentHop++ {
 
-		nextLayer, err := genNextLayerOfPathsV2(input, data, prevLayer)
+		nextLayer, err := genNextLayerOfPathsV2(ctx, input, data, prevLayer)
 		if err != nil {
 			return nil, err
 		}
@@ -72,6 +72,7 @@ func GenKthBestPathsV2(
 }
 
 func genNextLayerOfPathsV2(
+	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
 	currentLayer map[string][]*nodeInfo,
@@ -88,7 +89,7 @@ func genNextLayerOfPathsV2(
 
 			wg.Go(func() error {
 				// get possible path of length currentHop + 1 by traveling one edge/ appending a pool
-				nextNodeInfo, err := getNextLayerFromTokenV2(input, data, _fromToken, _fromNodeInfo)
+				nextNodeInfo, err := getNextLayerFromTokenV2(ctx, input, data, _fromToken, _fromNodeInfo)
 				if err != nil {
 					return err
 				}
@@ -116,6 +117,7 @@ func genNextLayerOfPathsV2(
 }
 
 func getNextLayerFromTokenV2(
+	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
 	fromTokenAddress string,
@@ -184,7 +186,7 @@ func getNextLayerFromTokenV2(
 			itr, _pool, _toTokenAddress, _toTokenInfo := numItr, pool, toTokenAddress, toTokenInfo
 			wg.Go(func() error {
 				// it is ok for prices[tokenTo] to default to zero
-				toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGasInUSD(_pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenAddress, data.PriceUSDByAddress[_toTokenAddress], _toTokenInfo.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[_pool.GetType()])
+				toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGasInUSD(ctx, _pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenAddress, data.PriceUSDByAddress[_toTokenAddress], _toTokenInfo.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[_pool.GetType()])
 				if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Sign() == 0 {
 					return nil
 				}

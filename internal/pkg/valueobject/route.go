@@ -1,6 +1,7 @@
 package valueobject
 
 import (
+	"context"
 	"math/big"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -9,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
@@ -92,7 +94,7 @@ func NewRouteFromPaths(
 // AddPath will add the path into Route.
 // it will also modify request's copy of IPool( poolByAddress). Once the Path is added,
 // the poolByAddress of the modified pool will be assigned to a different pointer to avoid changing data of other's request
-func (r *Route) AddPath(poolBucket *PoolBucket, p *Path, swapLimits map[string]poolpkg.SwapLimit) (fErr error) {
+func (r *Route) AddPath(ctx context.Context, poolBucket *PoolBucket, p *Path, swapLimits map[string]poolpkg.SwapLimit) (fErr error) {
 	if r.Input.Token != p.Input.Token || r.Output.Token != p.Output.Token {
 		return errors.WithMessagef(
 			ErrPathMismatchedToken,
@@ -123,7 +125,7 @@ func (r *Route) AddPath(poolBucket *PoolBucket, p *Path, swapLimits map[string]p
 		}
 		swapLimit := swapLimits[pool.GetType()]
 
-		calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, currentAmount, p.Tokens[i+1].Address, swapLimit)
+		calcAmountOutResult, err := routerpoolpkg.CalcAmountOut(ctx, pool, currentAmount, p.Tokens[i+1].Address, swapLimit)
 		if err != nil {
 			fErr = errors.WithMessagef(
 				ErrInvalidSwap,

@@ -106,13 +106,13 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, input findroute.Inp
 				logger.Errorf(ctx, "pool is removed from pool bucket, poolAddress: %s", currPath.PoolAddresses[pIndex])
 				return route
 			}
-			currentOutPut, newGas, err := common.CalcNewTokenAmountAndGas(currPool, *inp, onGoingCalculatingGas, currPath.Tokens[pIndex+1], data, input)
+			currentOutPut, newGas, err := common.CalcNewTokenAmountAndGas(ctx, currPool, *inp, onGoingCalculatingGas, currPath.Tokens[pIndex+1], data, input)
 			if err != nil {
 				logger.Errorf(ctx, "cannot calculate amount out for pool %s, error: %s", currPool.GetAddress(), err)
 				return route
 			}
 
-			bestNewPool, newAmount, bestNewGas := findNewBestPoolWithAmount(input, data, inp, currentOutPut, typeSet, poolsInRoute, onGoingCalculatingGas, currPath.Tokens[pIndex+1])
+			bestNewPool, newAmount, bestNewGas := findNewBestPoolWithAmount(ctx, input, data, inp, currentOutPut, typeSet, poolsInRoute, onGoingCalculatingGas, currPath.Tokens[pIndex+1])
 			onGoingCalculatingGas = newGas
 
 			inp = currentOutPut
@@ -131,7 +131,7 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, input findroute.Inp
 		//found better path
 		if modified {
 			var err error
-			newPath, err = valueobject.NewPath(data.PoolBucket, poolsOnNewPath, currPath.Tokens, currPath.Input, currPath.Output.Token, data.PriceUSDByAddress[currPath.Output.Token], data.TokenNativeBuyPrice(currPath.Output.Token), data.TokenByAddress[currPath.Output.Token].Decimals, gasOption, data.SwapLimits)
+			newPath, err = valueobject.NewPath(ctx, data.PoolBucket, poolsOnNewPath, currPath.Tokens, currPath.Input, currPath.Output.Token, data.PriceUSDByAddress[currPath.Output.Token], data.TokenNativeBuyPrice(currPath.Output.Token), data.TokenByAddress[currPath.Output.Token].Decimals, gasOption, data.SwapLimits)
 			if err != nil {
 				logger.Errorf(ctx, "cannot create new path, error: %s", err.Error())
 				newPath = currPath
@@ -140,7 +140,7 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, input findroute.Inp
 		} else {
 			newPath = currPath
 		}
-		if err := newRoute.AddPath(data.PoolBucket, newPath, data.SwapLimits); err != nil {
+		if err := newRoute.AddPath(ctx, data.PoolBucket, newPath, data.SwapLimits); err != nil {
 			logger.Debugf(ctx, "could not add Path. Error :%s", err)
 			return nil
 		}
@@ -153,7 +153,7 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, input findroute.Inp
 	return nil
 }
 
-func findNewBestPoolWithAmount(input findroute.Input, data findroute.FinderData, inp, currentOutPut *valueobject.TokenAmount, typeSet sets.String, poolsUsed sets.String, currentGas int64, tokenOut *entity.Token) (string, *valueobject.TokenAmount, int64) {
+func findNewBestPoolWithAmount(ctx context.Context, input findroute.Input, data findroute.FinderData, inp, currentOutPut *valueobject.TokenAmount, typeSet sets.String, poolsUsed sets.String, currentGas int64, tokenOut *entity.Token) (string, *valueobject.TokenAmount, int64) {
 	var (
 		bestNewPool       = ""
 		newGas      int64 = 0
@@ -171,7 +171,7 @@ func findNewBestPoolWithAmount(input findroute.Input, data findroute.FinderData,
 				if !avail {
 					continue
 				}
-				result, newGasAmount, err := common.CalcNewTokenAmountAndGas(pool, *inp, currentGas, tokenOut, data, input)
+				result, newGasAmount, err := common.CalcNewTokenAmountAndGas(ctx, pool, *inp, currentGas, tokenOut, data, input)
 				if err != nil {
 					continue
 				}

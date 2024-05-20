@@ -36,13 +36,13 @@ func (f *hillClimbFinder) optimizeRoute(ctx context.Context, input findroute.Inp
 		// adjust the distribution percent of two consecutive paths
 		// for example, adjust [path1: 5% , path2: 10%] to [path1: 7% , path2: 8%]
 		currentRoute.Paths[pathId], currentRoute.Paths[pathId+1], err =
-			f.binarySearch(input, data, currentRoute.Paths[pathId], currentRoute.Paths[pathId+1])
+			f.binarySearch(ctx, input, data, currentRoute.Paths[pathId], currentRoute.Paths[pathId+1])
 
 		if err != nil {
 			return nil, err
 		}
 
-		if err = tmpRoute.AddPath(data.PoolBucket, currentRoute.Paths[pathId], data.SwapLimits); err != nil {
+		if err = tmpRoute.AddPath(ctx, data.PoolBucket, currentRoute.Paths[pathId], data.SwapLimits); err != nil {
 			logger.WithFields(ctx, logger.Fields{"error": err}).
 				Warnf("cannot optimize path from token %v to token %v", input.TokenInAddress, input.TokenOutAddress)
 			return currentRoute, nil
@@ -52,7 +52,7 @@ func (f *hillClimbFinder) optimizeRoute(ctx context.Context, input findroute.Inp
 }
 
 func (f *hillClimbFinder) binarySearch(
-	input findroute.Input, data findroute.FinderData, baseFirstPath, baseSecondPath *valueobject.Path,
+	ctx context.Context, input findroute.Input, data findroute.FinderData, baseFirstPath, baseSecondPath *valueobject.Path,
 ) (*valueobject.Path, *valueobject.Path, error) {
 	var (
 		bestFirstPath, bestSecondPath, firstPath, secondPath *valueobject.Path
@@ -69,7 +69,7 @@ func (f *hillClimbFinder) binarySearch(
 
 		// calculate the token amount out if we move `mid * f.distributionPercent`% of amountIn
 		if _, ok := tokenAmountOutResult[mid]; !ok {
-			tokenAmountOutResult[mid], firstPath, secondPath = f.calcAdjustedTokenAmount(input, data, baseFirstPath, baseSecondPath, mid)
+			tokenAmountOutResult[mid], firstPath, secondPath = f.calcAdjustedTokenAmount(ctx, input, data, baseFirstPath, baseSecondPath, mid)
 			// if better than the best found way to adjust the distribution
 			if tokenAmountOutResult[mid].Compare(bestTokenAmountOut, input.GasInclude) == 1 {
 				bestTokenAmountOut = tokenAmountOutResult[mid]
@@ -80,7 +80,7 @@ func (f *hillClimbFinder) binarySearch(
 
 		// calculate the token amount out if we move `(mid + 1) * f.distributionPercent`% of amountIn
 		if _, ok := tokenAmountOutResult[mid+1]; !ok {
-			tokenAmountOutResult[mid+1], firstPath, secondPath = f.calcAdjustedTokenAmount(input, data, baseFirstPath, baseSecondPath, mid+1)
+			tokenAmountOutResult[mid+1], firstPath, secondPath = f.calcAdjustedTokenAmount(ctx, input, data, baseFirstPath, baseSecondPath, mid+1)
 			// if better than the best found way to adjust the distribution
 			if tokenAmountOutResult[mid+1].Compare(bestTokenAmountOut, input.GasInclude) == 1 {
 				bestTokenAmountOut = tokenAmountOutResult[mid+1]
@@ -109,6 +109,7 @@ func (f *hillClimbFinder) binarySearch(
 //	move `splits * f.distributionPercent`% of amountIn from secondPath to firstPath
 //	note that `splits` can be negative
 func (f *hillClimbFinder) calcAdjustedTokenAmount(
+	ctx context.Context,
 	input findroute.Input, data findroute.FinderData,
 	baseFirstPath, baseSecondPath *valueobject.Path,
 	splits int,
@@ -169,14 +170,14 @@ func (f *hillClimbFinder) calcAdjustedTokenAmount(
 		}
 	)
 
-	firstPathAdjusted, err := valueobject.NewPath(data.PoolBucket, baseFirstPath.PoolAddresses, baseFirstPath.Tokens,
+	firstPathAdjusted, err := valueobject.NewPath(ctx, data.PoolBucket, baseFirstPath.PoolAddresses, baseFirstPath.Tokens,
 		firstPathInput, input.TokenOutAddress, tokenOutPriceUSD, tokenOutPriceNative, tokenOutDecimal, gasOption, data.SwapLimits)
 
 	if err != nil {
 		return nil, nil, nil
 	}
 
-	secondPathAdjusted, err := valueobject.NewPath(data.PoolBucket, baseSecondPath.PoolAddresses, baseSecondPath.Tokens, secondPathInput,
+	secondPathAdjusted, err := valueobject.NewPath(ctx, data.PoolBucket, baseSecondPath.PoolAddresses, baseSecondPath.Tokens, secondPathInput,
 		input.TokenOutAddress, tokenOutPriceUSD, tokenOutPriceNative, tokenOutDecimal, gasOption, data.SwapLimits)
 
 	if err != nil {

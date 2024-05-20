@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 
+	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -226,7 +227,7 @@ func getNextLayerFromToken(
 			itr, _pool, _toTokenInfo := numItr, pool, toTokenInfo
 			wg.Go(func() error {
 				// it is ok for prices[tokenTo] to default to zero
-				toTokenAmount, toTotalGasAmount, err := CalcNewTokenAmountAndGas(_pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenInfo, data, input)
+				toTokenAmount, toTotalGasAmount, err := CalcNewTokenAmountAndGas(ctx, _pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenInfo, data, input)
 				if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Sign() == 0 {
 					logger.Debugf(ctx, "cannot calculate amountOut, error:%v", err)
 					return nil
@@ -314,7 +315,7 @@ func getKthPathAtTokenOut(
 		_kthPath, _pathInfo := kthPath, pathInfo
 		wg.Go(func() error {
 			tokenOut := _pathInfo.tokensOnPath[len(_pathInfo.tokensOnPath)-1].Address
-			path, err := valueobject.NewPath(data.PoolBucket, _pathInfo.poolAddressesOnPath, _pathInfo.tokensOnPath, tokenAmountIn, tokenOut,
+			path, err := valueobject.NewPath(ctx, data.PoolBucket, _pathInfo.poolAddressesOnPath, _pathInfo.tokensOnPath, tokenAmountIn, tokenOut,
 				data.PriceUSDByAddress[input.TokenOutAddress], data.TokenNativeBuyPrice(input.TokenOutAddress), data.TokenByAddress[tokenOut].Decimals,
 				valueobject.GasOption{GasFeeInclude: input.GasInclude, Price: input.GasPrice, TokenPrice: input.GasTokenPriceUSD}, data.SwapLimits,
 			)
@@ -350,13 +351,14 @@ func betterAmountOut(nodeA, nodeB *nodeInfo, gasFeeInclude bool) bool {
 
 // return newTokenAmount, newTotalGasAmount, error
 func calcNewTokenAmountAndGasInUSD(
+	ctx context.Context,
 	pool poolpkg.IPoolSimulator,
 	fromAmountIn valueobject.TokenAmount, fromTotalGasAmount int64,
 	tokenOut string, tokenOutPrice float64, tokenOutDecimal uint8,
 	gasPrice *big.Float, gasTokenPrice float64,
 	swapLimit poolpkg.SwapLimit,
 ) (*valueobject.TokenAmount, int64, error) {
-	calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, poolpkg.TokenAmount{
+	calcAmountOutResult, err := routerpoolpkg.CalcAmountOut(ctx, pool, poolpkg.TokenAmount{
 		Token:  fromAmountIn.Token,
 		Amount: fromAmountIn.Amount,
 	}, tokenOut, swapLimit)
@@ -372,13 +374,14 @@ func calcNewTokenAmountAndGasInUSD(
 }
 
 func calcNewTokenAmountAndGasInNative(
+	ctx context.Context,
 	pool poolpkg.IPoolSimulator,
 	fromAmountIn valueobject.TokenAmount, fromTotalGasAmount int64,
 	tokenOut string, tokenOutPriceNative *big.Float,
 	gasPrice *big.Float,
 	swapLimit poolpkg.SwapLimit,
 ) (*valueobject.TokenAmount, int64, error) {
-	calcAmountOutResult, err := poolpkg.CalcAmountOut(pool, poolpkg.TokenAmount{
+	calcAmountOutResult, err := routerpoolpkg.CalcAmountOut(ctx, pool, poolpkg.TokenAmount{
 		Token:  fromAmountIn.Token,
 		Amount: fromAmountIn.Amount,
 	}, tokenOut, swapLimit)
@@ -408,6 +411,7 @@ func calcNewTokenAmountAndGasInNative(
 }
 
 func CalcNewTokenAmountAndGas(
+	ctx context.Context,
 	pool poolpkg.IPoolSimulator,
 	fromAmountIn valueobject.TokenAmount, fromTotalGasAmount int64,
 	tokenOut *entity.Token,
@@ -417,12 +421,12 @@ func CalcNewTokenAmountAndGas(
 	if data.PriceNativeByAddress != nil {
 		// this will be called for tokenOut and intermediate tokens, so should use buy price
 		return calcNewTokenAmountAndGasInNative(
-			pool, fromAmountIn, fromTotalGasAmount,
+			ctx, pool, fromAmountIn, fromTotalGasAmount,
 			tokenOut.Address, data.TokenNativeBuyPrice(tokenOut.Address),
 			input.GasPrice, data.SwapLimits[pool.GetType()])
 	}
 	return calcNewTokenAmountAndGasInUSD(
-		pool, fromAmountIn, fromTotalGasAmount,
+		ctx, pool, fromAmountIn, fromTotalGasAmount,
 		tokenOut.Address, data.PriceUSDByAddress[tokenOut.Address],
 		tokenOut.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[pool.GetType()])
 }
