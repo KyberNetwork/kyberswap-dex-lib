@@ -11,13 +11,13 @@ replace (
 require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/DataDog/datadog-go v4.8.3+incompatible
-	github.com/KyberNetwork/aevm v1.0.33
+	github.com/KyberNetwork/aevm v1.0.40
 	github.com/KyberNetwork/aggregator-encoding v0.15.6
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
 	github.com/KyberNetwork/ethrpc v0.7.1
-	github.com/KyberNetwork/grpc-service v0.2.0
+	github.com/KyberNetwork/grpc-service v0.2.1-0.20240418155654-035f224fd5ce
 	github.com/KyberNetwork/kutils v0.2.3
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
 	github.com/KyberNetwork/kyberswap-dex-lib v0.56.3

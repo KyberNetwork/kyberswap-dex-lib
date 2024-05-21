@@ -28,8 +28,8 @@ github.com/DataDog/sketches-go v1.4.4/go.mod h1:XR0ns2RtEEF09mDKXiKZiQg+nfZStrq1
 github.com/DataDog/zstd v1.5.2 h1:vUG4lAyuPCXO0TLbXvPv7EB7cNK1QV/luu55UHLrrn8=
 github.com/DataDog/zstd v1.5.2/go.mod h1:g4AWEaM3yOg3HYfnJ3YIawPnVdXJh9QME85blwSAmyw=
 github.com/DmitriyVTitov/size v1.5.0/go.mod h1:le6rNI4CoLQV1b9gzp1+3d7hMAD/uu2QcJ+aYbNgiU0=
-github.com/KyberNetwork/aevm v1.0.33 h1:Ic0tzASVzrz8bMTIsQLHoKBxWoEWGxmIlE079NcYnCk=
-github.com/KyberNetwork/aevm v1.0.33/go.mod h1:MOh6abABxRluhOGey2Q0+M51MaTVSQ6h0zppoCSCHoA=
+github.com/KyberNetwork/aevm v1.0.40 h1:1j02QYwuLhcV4aZ49ZPZOhNrpgB6J1bGrXX2fC8KJ0w=
+github.com/KyberNetwork/aevm v1.0.40/go.mod h1:+Ot10rAFWA/kuf+KphjlTDCeFtfNqjX/s6BbwK77eTs=
 github.com/KyberNetwork/aggregator-encoding v0.15.6 h1:58OYiFthPlEQdk4UGnX3aW7GzLn1fHPyb+J/JttFNxI=
 github.com/KyberNetwork/aggregator-encoding v0.15.6/go.mod h1:YEhcPpKURd/+1HmssvHkuRL/FraV/Rj6iRsixJ/Qg2g=
 github.com/KyberNetwork/blackjack v0.3.0 h1:gYn3VRDZjsyJJmJOFZ217A3INh0g+DCm4wNjgHXnd5U=
@@ -40,8 +40,8 @@ github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 h1:kN7ez6MPJEaFbacmvR+22PRa5pJk
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2/go.mod h1:3DThBH6zHAYSWUVmtj9deQO1XuiwbawdKxj5yV4SuMo=
 github.com/KyberNetwork/ethrpc v0.7.1 h1:ePGFNKMM2U/aJZCX75WtClH5MOD2DqCF0bitPI13slw=
 github.com/KyberNetwork/ethrpc v0.7.1/go.mod h1:oKysvDWevrWSW6sgb/3pDrBjiKw6IUbS3LytN+aKz/M=
-github.com/KyberNetwork/grpc-service v0.2.0 h1:ol6NL9dlY5y3U47Q7Uo4nZT9uEb3KBJt4PnmIYt/KCA=
-github.com/KyberNetwork/grpc-service v0.2.0/go.mod h1:Rbne2Ye43p3jdKfS0rHGINSJEeSGSbuShMN8qYQB4q8=
+github.com/KyberNetwork/grpc-service v0.2.1-0.20240418155654-035f224fd5ce h1:flEo1tlJhzUXM1BTWFIZX0VPC3Uu5b5C2Zx6CE78xu4=
+github.com/KyberNetwork/grpc-service v0.2.1-0.20240418155654-035f224fd5ce/go.mod h1:Rbne2Ye43p3jdKfS0rHGINSJEeSGSbuShMN8qYQB4q8=
 github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0 h1:gjR4PS5MvPNBihRQihjn5auOQj2+TFfbNtCcVP/ZiCk=
 github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0/go.mod h1:WbveqjEww3YdTb0NbT63qQ4WsxMGvofJu4j7yzC+LgQ=
 github.com/KyberNetwork/int256 v0.1.4 h1:SbnhxqcsZXrP+5pSkolpSo2ViEWiq3K/hjfl5OQgX/4=
