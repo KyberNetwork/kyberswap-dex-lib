@@ -15,8 +15,8 @@ func (z *order) DecodeMsg(dc *msgp.Reader) (err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 25 {
-		err = msgp.ArrayError{Wanted: 25, Got: zb0001}
+	if zb0001 != 26 {
+		err = msgp.ArrayError{Wanted: 26, Got: zb0001}
 		return
 	}
 	z.ID, err = dc.ReadInt64()
@@ -222,13 +222,31 @@ func (z *order) DecodeMsg(dc *msgp.Reader) (err error) {
 			z.AvailableMakingAmount = msgpencode.DecodeInt(zb0007)
 		}
 	}
+	if dc.IsNil() {
+		err = dc.ReadNil()
+		if err != nil {
+			err = msgp.WrapError(err, "MakerBalanceAllowance")
+			return
+		}
+		z.MakerBalanceAllowance = nil
+	} else {
+		{
+			var zb0008 []byte
+			zb0008, err = dc.ReadBytes(msgpencode.EncodeInt(z.MakerBalanceAllowance))
+			if err != nil {
+				err = msgp.WrapError(err, "MakerBalanceAllowance")
+				return
+			}
+			z.MakerBalanceAllowance = msgpencode.DecodeInt(zb0008)
+		}
+	}
 	return
 }
 
 // EncodeMsg implements msgp.Encodable
 func (z *order) EncodeMsg(en *msgp.Writer) (err error) {
-	// array header, size 25
-	err = en.Append(0xdc, 0x0, 0x19)
+	// array header, size 26
+	err = en.Append(0xdc, 0x0, 0x1a)
 	if err != nil {
 		return
 	}
@@ -399,14 +417,26 @@ func (z *order) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
+	if z.MakerBalanceAllowance == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = en.WriteBytes(msgpencode.EncodeInt(z.MakerBalanceAllowance))
+		if err != nil {
+			err = msgp.WrapError(err, "MakerBalanceAllowance")
+			return
+		}
+	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
 func (z *order) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// array header, size 25
-	o = append(o, 0xdc, 0x0, 0x19)
+	// array header, size 26
+	o = append(o, 0xdc, 0x0, 0x1a)
 	o = msgp.AppendInt64(o, z.ID)
 	o = msgp.AppendString(o, z.ChainID)
 	o = msgp.AppendString(o, z.Salt)
@@ -456,6 +486,11 @@ func (z *order) MarshalMsg(b []byte) (o []byte, err error) {
 	} else {
 		o = msgp.AppendBytes(o, msgpencode.EncodeInt(z.AvailableMakingAmount))
 	}
+	if z.MakerBalanceAllowance == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o = msgp.AppendBytes(o, msgpencode.EncodeInt(z.MakerBalanceAllowance))
+	}
 	return
 }
 
@@ -467,8 +502,8 @@ func (z *order) UnmarshalMsg(bts []byte) (o []byte, err error) {
 		err = msgp.WrapError(err)
 		return
 	}
-	if zb0001 != 25 {
-		err = msgp.ArrayError{Wanted: 25, Got: zb0001}
+	if zb0001 != 26 {
+		err = msgp.ArrayError{Wanted: 26, Got: zb0001}
 		return
 	}
 	z.ID, bts, err = msgp.ReadInt64Bytes(bts)
@@ -668,6 +703,23 @@ func (z *order) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			z.AvailableMakingAmount = msgpencode.DecodeInt(zb0007)
 		}
 	}
+	if msgp.IsNil(bts) {
+		bts, err = msgp.ReadNilBytes(bts)
+		if err != nil {
+			return
+		}
+		z.MakerBalanceAllowance = nil
+	} else {
+		{
+			var zb0008 []byte
+			zb0008, bts, err = msgp.ReadBytesBytes(bts, msgpencode.EncodeInt(z.MakerBalanceAllowance))
+			if err != nil {
+				err = msgp.WrapError(err, "MakerBalanceAllowance")
+				return
+			}
+			z.MakerBalanceAllowance = msgpencode.DecodeInt(zb0008)
+		}
+	}
 	o = bts
 	return
 }
@@ -706,6 +758,11 @@ func (z *order) Msgsize() (s int) {
 		s += msgp.NilSize
 	} else {
 		s += msgp.BytesPrefixSize + len(msgpencode.EncodeInt(z.AvailableMakingAmount))
+	}
+	if z.MakerBalanceAllowance == nil {
+		s += msgp.NilSize
+	} else {
+		s += msgp.BytesPrefixSize + len(msgpencode.EncodeInt(z.MakerBalanceAllowance))
 	}
 	return
 }

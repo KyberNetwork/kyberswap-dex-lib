@@ -2,7 +2,8 @@
 //msgp:tuple PoolSimulator
 //msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
 //msgp:shim int64AsStr as:string using:int64ToString/stringToInt64
-//msgp:ignore int64AsStr
+//msgp:shim makerAndAsset as:string using:string/makerAndAsset
+//msgp:ignore int64AsStr Inventory
 
 package limitorder
 
