@@ -136,33 +136,31 @@ func (a *aggregator) ApplyConfig(config Config) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	if a.config.FinderOptions != config.Aggregator.FinderOptions || a.config.FeatureFlags != config.Aggregator.FeatureFlags {
-		var getBestPaths func(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath
-		if a.bestPathRepository != nil {
-			getBestPaths = a.bestPathRepository.GetBestPaths
-		}
-
-		var routeFinder findroute.IFinder = spfav2.NewSPFAv2Finder(
-			config.Aggregator.FinderOptions.MaxHops,
-			config.Aggregator.WhitelistedTokenSet,
-			config.Aggregator.FinderOptions.DistributionPercent,
-			config.Aggregator.FinderOptions.MaxPathsInRoute,
-			config.Aggregator.FinderOptions.MaxPathsToGenerate,
-			config.Aggregator.FinderOptions.MaxPathsToReturn,
-			config.Aggregator.FinderOptions.MinPartUSD,
-			config.Aggregator.FinderOptions.MinThresholdAmountInUSD,
-			config.Aggregator.FinderOptions.MaxThresholdAmountInUSD,
-			getBestPaths,
-		)
-
-		a.routeFinder = routeFinder
-		a.hillClimbRouteFinder = hillclimb.NewHillClimbingFinder(
-			config.Aggregator.FinderOptions.HillClimbDistributionPercent,
-			config.Aggregator.FinderOptions.HillClimbIteration,
-			config.Aggregator.FinderOptions.MinPartUSD,
-			routeFinder,
-		)
+	var getBestPaths func(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath
+	if a.bestPathRepository != nil {
+		getBestPaths = a.bestPathRepository.GetBestPaths
 	}
+
+	var routeFinder findroute.IFinder = spfav2.NewSPFAv2Finder(
+		config.Aggregator.FinderOptions.MaxHops,
+		config.Aggregator.WhitelistedTokenSet,
+		config.Aggregator.FinderOptions.DistributionPercent,
+		config.Aggregator.FinderOptions.MaxPathsInRoute,
+		config.Aggregator.FinderOptions.MaxPathsToGenerate,
+		config.Aggregator.FinderOptions.MaxPathsToReturn,
+		config.Aggregator.FinderOptions.MinPartUSD,
+		config.Aggregator.FinderOptions.MinThresholdAmountInUSD,
+		config.Aggregator.FinderOptions.MaxThresholdAmountInUSD,
+		getBestPaths,
+	)
+
+	a.routeFinder = routeFinder
+	a.hillClimbRouteFinder = hillclimb.NewHillClimbingFinder(
+		config.Aggregator.FinderOptions.HillClimbDistributionPercent,
+		config.Aggregator.FinderOptions.HillClimbIteration,
+		config.Aggregator.FinderOptions.MinPartUSD,
+		routeFinder,
+	)
 
 	a.config = config.Aggregator
 }
