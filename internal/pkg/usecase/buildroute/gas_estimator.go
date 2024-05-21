@@ -52,6 +52,7 @@ func (e *GasEstimator) EstimateGas(ctx context.Context, tx UnsignedTransaction) 
 	if err != nil {
 		return 0, err
 	}
+
 	estimatedGas, err := e.gasEstimator.EstimateGas(ctx, ethereum.CallMsg{
 		From:       from,
 		To:         &to,

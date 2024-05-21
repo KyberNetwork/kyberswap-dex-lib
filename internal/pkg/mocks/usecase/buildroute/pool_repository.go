@@ -7,8 +7,8 @@ package buildroute
 import (
 	context "context"
 	reflect "reflect"
-	time "time"
 
+	entity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -50,23 +50,8 @@ func (mr *MockIPoolRepositoryMockRecorder) GetFaultyPools(arg0, arg1, arg2 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFaultyPools", reflect.TypeOf((*MockIPoolRepository)(nil).GetFaultyPools), arg0, arg1, arg2)
 }
 
-// IncreasePoolsTotalCount mocks base method.
-func (m *MockIPoolRepository) IncreasePoolsTotalCount(arg0 context.Context, arg1 map[string]int64, arg2 time.Duration) (map[string]int64, []error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IncreasePoolsTotalCount", arg0, arg1, arg2)
-	ret0, _ := ret[0].(map[string]int64)
-	ret1, _ := ret[1].([]error)
-	return ret0, ret1
-}
-
-// IncreasePoolsTotalCount indicates an expected call of IncreasePoolsTotalCount.
-func (mr *MockIPoolRepositoryMockRecorder) IncreasePoolsTotalCount(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncreasePoolsTotalCount", reflect.TypeOf((*MockIPoolRepository)(nil).IncreasePoolsTotalCount), arg0, arg1, arg2)
-}
-
 // TrackFaultyPools mocks base method.
-func (m *MockIPoolRepository) TrackFaultyPools(arg0 context.Context, arg1 []string) ([]string, error) {
+func (m *MockIPoolRepository) TrackFaultyPools(arg0 context.Context, arg1 []entity.FaultyPoolTracker) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TrackFaultyPools", arg0, arg1)
 	ret0, _ := ret[0].([]string)

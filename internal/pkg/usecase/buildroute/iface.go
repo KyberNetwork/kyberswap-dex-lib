@@ -3,12 +3,12 @@ package buildroute
 import (
 	"context"
 	"math/big"
-	"time"
 
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	routerEntities "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -52,7 +52,6 @@ type IExecutorBalanceRepository interface {
 
 //go:generate mockgen -destination ../../mocks/usecase/buildroute/pool_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IPoolRepository
 type IPoolRepository interface {
-	IncreasePoolsTotalCount(ctx context.Context, counter map[string]int64, expiration time.Duration) (map[string]int64, []error)
-	TrackFaultyPools(ctx context.Context, poolAddresses []string) ([]string, error)
+	TrackFaultyPools(ctx context.Context, trackers []routerEntities.FaultyPoolTracker) ([]string, error)
 	GetFaultyPools(ctx context.Context, offset, count int64) ([]string, error)
 }

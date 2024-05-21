@@ -40,8 +40,8 @@ github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 h1:kN7ez6MPJEaFbacmvR+22PRa5pJk
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2/go.mod h1:3DThBH6zHAYSWUVmtj9deQO1XuiwbawdKxj5yV4SuMo=
 github.com/KyberNetwork/ethrpc v0.7.1 h1:ePGFNKMM2U/aJZCX75WtClH5MOD2DqCF0bitPI13slw=
 github.com/KyberNetwork/ethrpc v0.7.1/go.mod h1:oKysvDWevrWSW6sgb/3pDrBjiKw6IUbS3LytN+aKz/M=
-github.com/KyberNetwork/grpc-service v0.2.1-0.20240418155654-035f224fd5ce h1:flEo1tlJhzUXM1BTWFIZX0VPC3Uu5b5C2Zx6CE78xu4=
-github.com/KyberNetwork/grpc-service v0.2.1-0.20240418155654-035f224fd5ce/go.mod h1:Rbne2Ye43p3jdKfS0rHGINSJEeSGSbuShMN8qYQB4q8=
+github.com/KyberNetwork/grpc-service v0.3.2-0.20240515045807-95ca25818045 h1:mnZbuMcYOtXmkSF0M4lD3Jns/Zf2WoNocJGae2Jm9Pw=
+github.com/KyberNetwork/grpc-service v0.3.2-0.20240515045807-95ca25818045/go.mod h1:Rbne2Ye43p3jdKfS0rHGINSJEeSGSbuShMN8qYQB4q8=
 github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0 h1:gjR4PS5MvPNBihRQihjn5auOQj2+TFfbNtCcVP/ZiCk=
 github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0/go.mod h1:WbveqjEww3YdTb0NbT63qQ4WsxMGvofJu4j7yzC+LgQ=
 github.com/KyberNetwork/int256 v0.1.4 h1:SbnhxqcsZXrP+5pSkolpSo2ViEWiq3K/hjfl5OQgX/4=

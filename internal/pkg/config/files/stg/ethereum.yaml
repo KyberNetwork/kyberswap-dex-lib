@@ -438,6 +438,7 @@ repository:
     insecure: true
     timeout: 100ms
     chainId: *chainId
+    clientId: "router-service"
   token:
     redis:
       prefix: *chainName

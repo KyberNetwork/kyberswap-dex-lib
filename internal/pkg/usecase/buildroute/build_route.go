@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/clientdata"
@@ -20,6 +19,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+	routerEntities "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -28,7 +28,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
-	timeutil "github.com/KyberNetwork/router-service/internal/pkg/utils/time"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -52,7 +51,6 @@ type BuildRouteUseCase struct {
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ
 	clientDataEncoder    IClientDataEncoder
 	encodeBuilder        encode.IEncodeBuilder
-	nowFunc              func() time.Time
 
 	config Config
 
@@ -69,12 +67,8 @@ func NewBuildRouteUseCase(
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ,
 	clientDataEncoder IClientDataEncoder,
 	encodeBuilder encode.IEncodeBuilder,
-	nowFunc func() time.Time,
 	config Config,
 ) *BuildRouteUseCase {
-	if nowFunc == nil {
-		nowFunc = timeutil.NowFunc
-	}
 
 	return &BuildRouteUseCase{
 		tokenRepository:           tokenRepository,
@@ -86,7 +80,6 @@ func NewBuildRouteUseCase(
 		rfqHandlerByPoolType:      rfqHandlerByPoolType,
 		clientDataEncoder:         clientDataEncoder,
 		encodeBuilder:             encodeBuilder,
-		nowFunc:                   nowFunc,
 		config:                    config,
 	}
 }
@@ -108,12 +101,6 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	encodedData, err := uc.encode(ctx, command, routeSummary)
 	if err != nil {
 		return nil, err
-	}
-
-	// track total count of pool for every build route request, using for calculating fault density
-	// only track request with sender, because sender is a required field when we estimate gas
-	if !utils.IsEmptyString(command.Sender) {
-		go uc.trackFaultyPoolsKeyTotalCount(ctxUtils.NewBackgroundCtxWithReqId(ctx), routeSummary, command.SlippageTolerance, uc.nowFunc().UTC())
 	}
 
 	// estimate gas price for a transaction
@@ -428,8 +415,8 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary value
 
 		gas, gasUSD, err = uc.gasEstimator.Execute(ctx, tx)
 		uc.sendEstimateGasLogsAndMetrics(ctx, routeSummary, err, command.SlippageTolerance)
+		go uc.trackFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx), routeSummary, command.SlippageTolerance, err)
 		if err != nil {
-			go uc.trackFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx), routeSummary, command.SlippageTolerance, err)
 			return 0, 0.0, 0, ErrEstimateGasFailed(err)
 		}
 	} else if uc.config.FeatureFlags.IsFaultyPoolDetectorEnable && !utils.IsEmptyString(command.Sender) {
@@ -502,27 +489,36 @@ func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
 }
 
 func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, routeSummary valueobject.RouteSummary, slippage int64, err error) {
+	if !uc.config.FeatureFlags.IsFaultyPoolDetectorEnable {
+		return
+	}
+
+	trackers := []routerEntities.FaultyPoolTracker{}
+	failedCount := int64(0)
 	// if SlippageTolerance >= 5%, we will consider a pool is faulty, otherwise, we do not encounter it
 	// because in case that pool contains FOT token, slippage is high but that pool's state is not stale
-	if !uc.config.FeatureFlags.IsFaultyPoolDetectorEnable || !slippageIsAboveMinThreshold(slippage, uc.config.FaultyPoolsConfig) {
-		return
+	if isErrReturnAmountIsNotEnough(err) && slippageIsAboveMinThreshold(slippage, uc.config.FaultyPoolsConfig) {
+		failedCount = 1
 	}
-
-	// track faulty pool if error is "return amount not enough"
-	if !isErrReturnAmountIsNotEnough(err) {
-		return
-	}
-
-	addresses := []string{}
+	totalSet := mapset.NewSet[string]()
 	for _, path := range routeSummary.Route {
 		for _, swap := range path {
-			addresses = append(addresses, swap.Pool)
+			trackers = append(trackers, routerEntities.FaultyPoolTracker{
+				Address:     swap.Pool,
+				TotalCount:  1,
+				FailedCount: failedCount,
+			})
+			totalSet.Add(swap.Pool)
 		}
 	}
-	addedAddresses, err := uc.poolRepository.TrackFaultyPools(ctx, addresses)
+	// pool-service will return InvalidArgument error if trackers list is empty
+	if len(trackers) == 0 {
+		return
+	}
+	results, err := uc.poolRepository.TrackFaultyPools(ctx, trackers)
+
 	if err != nil {
-		addedSet := mapset.NewSet(addedAddresses...)
-		totalSet := mapset.NewSet(addresses...)
+		addedSet := mapset.NewSet(results...)
 
 		logger.WithFields(
 			ctx,
@@ -533,30 +529,4 @@ func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, routeSummary 
 			}).Error("fail to add faulty pools")
 	}
 
-}
-
-func (uc *BuildRouteUseCase) trackFaultyPoolsKeyTotalCount(ctx context.Context, routeSummary valueobject.RouteSummary, slippage int64, currentTime time.Time) {
-	if !uc.config.FeatureFlags.IsFaultyPoolDetectorEnable || !slippageIsAboveMinThreshold(slippage, uc.config.FaultyPoolsConfig) {
-		return
-	}
-	windowSize := int(uc.config.FaultyPoolsConfig.WindowSize.Minutes())
-	currentWindow := ((currentTime.Minute() / windowSize) + 1) * windowSize
-	currentWindowKey := fmt.Sprintf("%02d:%02d:%02d", currentTime.Day(), currentTime.Hour(), currentWindow)
-
-	// tracking total count of pool address related to build route API
-	counter := make(map[string]int64)
-	for _, path := range routeSummary.Route {
-		for _, swap := range path {
-			counter[fmt.Sprintf("%s:%s", swap.Pool, currentWindowKey)]++
-		}
-	}
-	_, errors := uc.poolRepository.IncreasePoolsTotalCount(ctx, counter, 2*uc.config.FaultyPoolsConfig.WindowSize)
-	for _, err := range errors {
-		logger.WithFields(
-			ctx,
-			logger.Fields{
-				"error":      err,
-				"stacktrace": string(debug.Stack()),
-			}).Error("fail to trackFaultyPoolsKeyTotalCount")
-	}
 }

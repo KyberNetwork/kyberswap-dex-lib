@@ -504,7 +504,6 @@ func apiAction(c *cli.Context) (err error) {
 		rfqHandlerByPoolType,
 		clientDataEncoder,
 		encodeBuilder,
-		timeutil.NowFunc,
 		cfg.UseCase.BuildRoute,
 	)
 

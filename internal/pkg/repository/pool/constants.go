@@ -7,7 +7,5 @@ const (
 
 	KeyFaulty = "faulty"
 
-	KeyTotalCount = "TotalCount"
-
 	Separator = ":"
 )
