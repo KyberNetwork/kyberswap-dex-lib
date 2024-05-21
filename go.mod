@@ -21,6 +21,8 @@ require (
 	github.com/goccy/go-json v0.10.2
 	github.com/golang/mock v1.6.0
 	github.com/holiman/uint256 v1.2.4
+	github.com/izumiFinance/iZiSwap-SDK-go v1.1.0
+	github.com/klauspost/compress v1.17.8
 	github.com/machinebox/graphql v0.2.2
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/orcaman/concurrent-map v1.0.0
@@ -32,10 +34,7 @@ require (
 	golang.org/x/sync v0.5.0
 )
 
-require (
-	github.com/klauspost/compress v1.17.8 // indirect
-	github.com/philhofer/fwd v1.1.2 // indirect
-)
+require github.com/philhofer/fwd v1.1.2 // indirect
 
 require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect

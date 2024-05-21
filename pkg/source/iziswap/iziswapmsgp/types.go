@@ -8,7 +8,7 @@ import (
 	"math/big"
 	"unsafe"
 
-	"github.com/izumiFinance/iZiSwap-SDK-go/swap"
+	"github.com/KyberNetwork/iZiSwap-SDK-go/swap"
 )
 
 type LiquidityPoint struct {
