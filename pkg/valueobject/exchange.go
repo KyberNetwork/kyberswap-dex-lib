@@ -83,7 +83,11 @@ var (
 	ExchangeBalancer   Exchange = "balancer"
 	ExchangeBeethovenX Exchange = "beethovenx"
 
-	ExchangeDodo Exchange = "dodo"
+	ExchangeDodo          Exchange = "dodo"
+	ExchangeDodoClassical Exchange = "dodo-classical"
+	ExchangeDodoDPP       Exchange = "dodo-dpp"
+	ExchangeDodoDSP       Exchange = "dodo-dsp"
+	ExchangeDodoDVM       Exchange = "dodo-dvm"
 
 	ExchangeGMX       Exchange = "gmx"
 	ExchangeMadMex    Exchange = "madmex"
