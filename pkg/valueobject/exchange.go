@@ -206,7 +206,8 @@ var (
 	ExchangeWombat     Exchange = "wombat"
 	ExchangeMantisSwap Exchange = "mantisswap"
 
-	ExchangeSyncSwap Exchange = "syncswap"
+	ExchangeSyncSwap   Exchange = "syncswap"
+	ExchangeSyncSwapV2 Exchange = "syncswapv2"
 
 	ExchangeMaverickV1 Exchange = "maverick-v1"
 

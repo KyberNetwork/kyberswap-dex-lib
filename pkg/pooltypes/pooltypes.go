@@ -80,6 +80,7 @@ import (
 	solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3"
 	swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswapv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoev20"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
@@ -143,6 +144,9 @@ type Types struct {
 	MuteSwitch                     string
 	SyncSwapClassic                string
 	SyncSwapStable                 string
+	SyncSwapV2Classic              string
+	SyncSwapV2Stable               string
+	SyncSwapV2Aqua                 string
 	PancakeV3                      string
 	MaverickV1                     string
 	AlgebraV1                      string
@@ -254,6 +258,9 @@ var (
 		MuteSwitch:                     muteswitch.DexTypeMuteSwitch,
 		SyncSwapClassic:                syncswap.PoolTypeSyncSwapClassic,
 		SyncSwapStable:                 syncswap.PoolTypeSyncSwapStable,
+		SyncSwapV2Classic:              syncswapv2.PoolTypeSyncSwapV2Classic,
+		SyncSwapV2Stable:               syncswapv2.PoolTypeSyncSwapV2Stable,
+		SyncSwapV2Aqua:                 syncswapv2.PoolTypeSyncSwapV2Aqua,
 		PancakeV3:                      pancakev3.DexTypePancakeV3,
 		MaverickV1:                     maverickv1.DexTypeMaverickV1,
 		AlgebraV1:                      algebrav1.DexTypeAlgebraV1,
