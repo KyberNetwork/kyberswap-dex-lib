@@ -49,13 +49,13 @@ func (r *redisRepository) Get(ctx context.Context, keys []*valueobject.RouteCach
 
 		routeDataStr, ok := data.(string)
 		if !ok {
-			logger.WithFields(ctx, logger.Fields{"data": routeDataStr}).Errorf("data is not a string")
+			logger.WithFields(ctx, logger.Fields{"data": routeDataStr, "key": keys[i]}).Errorf("data is not a string")
 		}
 
 		route, err := decodeRoute(routeDataStr)
 
 		if err != nil {
-			logger.WithFields(ctx, logger.Fields{"data": routeDataStr}).Errorf("invalid route data in Redis")
+			logger.WithFields(ctx, logger.Fields{"data": routeDataStr, "key": keys[i]}).Errorf("invalid route data in Redis")
 		}
 
 		results[keys[i]] = route
@@ -93,7 +93,7 @@ func (r *redisRepository) Set(ctx context.Context, keys []*valueobject.RouteCach
 	for i, cmd := range cmds {
 		if cmd, ok := cmd.(*redis.StatusCmd); ok {
 			if _, e := cmd.Result(); e != nil {
-				err = fmt.Errorf("[route] redisRepository.Get failed key: %s, error: %v", cmd.Args()[1].(string), e)
+				err = fmt.Errorf("[route] redisRepository.Set failed key: %s, error: %v", cmd.Args()[1].(string), e)
 			} else {
 				results = append(results, routes[i])
 			}

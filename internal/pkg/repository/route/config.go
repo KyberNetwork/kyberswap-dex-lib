@@ -10,7 +10,7 @@ type Config struct {
 }
 
 type RedisRepositoryConfig struct {
-	Prefix string
+	Prefix string `mapstructure:"prefix"`
 }
 
 type RistrettoConfig struct {

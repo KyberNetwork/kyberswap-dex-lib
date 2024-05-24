@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/dgraph-io/ristretto"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
@@ -48,7 +49,8 @@ func (r *ristrettoRepository) Get(ctx context.Context, keys []*valueobject.Route
 	uncachedKeys := make([]*valueobject.RouteCacheKeyTTL, 0, len(keys))
 
 	for _, key := range keys {
-		cachedRoute, found := r.cache.Get(genKey(key, r.config.Prefix))
+		cacheKey := genKey(key, r.config.Prefix)
+		cachedRoute, found := r.cache.Get(cacheKey)
 		if !found {
 			uncachedKeys = append(uncachedKeys, key)
 			continue
@@ -60,6 +62,7 @@ func (r *ristrettoRepository) Get(ctx context.Context, keys []*valueobject.Route
 			continue
 		}
 
+		logger.WithFields(ctx, logger.Fields{"key": cacheKey}).Infof("[route] ristrettoRepository.Get hit local cache")
 		routes[key] = route
 	}
 
@@ -75,7 +78,9 @@ func (r *ristrettoRepository) Get(ctx context.Context, keys []*valueobject.Route
 	// When we set a route to local cache after we get it from redis, we have to accept min TTL in the config
 	// because we don't know how long it has been retained in Redis
 	for key, route := range uncachedRoutes {
-		r.cache.SetWithTTL(genKey(key, r.config.Prefix), route, r.config.Route.Cost, r.config.Route.TTL)
+		cacheKey := genKey(key, r.config.Prefix)
+		r.cache.SetWithTTL(cacheKey, route, r.config.Route.Cost, r.config.Route.TTL)
+		logger.WithFields(ctx, logger.Fields{"key": cacheKey}).Infof("[route] ristrettoRepository.Get get route from Redis successfully")
 		routes[key] = route
 	}
 
