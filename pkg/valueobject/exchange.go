@@ -495,6 +495,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWombat:                     {},
 	ExchangeMantisSwap:                 {},
 	ExchangeSyncSwap:                   {},
+	ExchangeSyncSwapV2:                 {},
 	ExchangeMaverickV1:                 {},
 	ExchangeKyberSwapLimitOrderDS:      {},
 	ExchangeKyberPMM:                   {},
