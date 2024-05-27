@@ -3,19 +3,33 @@ package elastic
 import (
 	"math/big"
 	"math/rand"
-	"testing"
 
 	elasticconstants "github.com/KyberNetwork/elastic-go-sdk/v2/constants"
 	elasticentities "github.com/KyberNetwork/elastic-go-sdk/v2/entities"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/daoleno/uniswap-sdk-core/entities"
-	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/require"
+	"github.com/ethereum/go-ethereum/common"
 )
 
-func TestMsgpackMarshalUnmarshal(t *testing.T) {
+func randomBigInt() *big.Int {
+	words := make([]big.Word, 4)
+	for i := range words {
+		words[i] = big.Word(rand.Uint64())
+	}
+	return new(big.Int).SetBits(words)
+}
+
+func randomAddress() common.Address {
+	buf := make([]byte, common.AddressLength)
+	for i := range buf {
+		buf[i] = byte(rand.Uint64() % 256)
+	}
+	return common.BytesToAddress(buf)
+}
+
+// MsgpackTestPools ...
+func MsgpackTestPools() []*PoolSimulator {
 	var pools []*PoolSimulator
 	{
 		elasticPool := &elasticentities.Pool{
@@ -78,12 +92,5 @@ func TestMsgpackMarshalUnmarshal(t *testing.T) {
 		}
 		pools = append(pools, pool)
 	}
-	for _, pool := range pools {
-		b, err := pool.MarshalMsg(nil)
-		require.NoError(t, err)
-		actual := new(PoolSimulator)
-		_, err = actual.UnmarshalMsg(b)
-		require.NoError(t, err)
-		require.Empty(t, cmp.Diff(pool, actual, testutil.CmpOpts(PoolSimulator{})...))
-	}
+	return pools
 }

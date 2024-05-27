@@ -1,7 +1,6 @@
 package bancorv21
 
 import (
-	"embed"
 	"encoding/json"
 	"fmt"
 	"math/big"
@@ -12,9 +11,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
-
-//go:embed sample_pool_data.txt
-var sampleFile embed.FS
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	// Read the embedded file

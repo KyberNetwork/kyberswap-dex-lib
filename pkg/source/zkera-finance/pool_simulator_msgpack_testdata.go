@@ -3,16 +3,31 @@ package zkerafinance
 import (
 	"math/big"
 	"math/rand"
-	"testing"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/google/go-cmp/cmp"
-	"github.com/stretchr/testify/require"
 )
 
-func TestMsgpackMarshalUnmarshal(t *testing.T) {
+func randomBigInt() *big.Int {
+	words := make([]big.Word, 4)
+	for i := range words {
+		words[i] = big.Word(rand.Uint64())
+	}
+	return new(big.Int).SetBits(words)
+}
+
+func randomBool() bool { return rand.Int()%2 == 0 }
+
+func randomAddress() common.Address {
+	buf := make([]byte, common.AddressLength)
+	for i := range buf {
+		buf[i] = byte(rand.Uint64() % 256)
+	}
+	return common.BytesToAddress(buf)
+}
+
+// MsgpackTestPools ...
+func MsgpackTestPools() []*PoolSimulator {
 	var pools []*PoolSimulator
 	{
 		p := &PoolSimulator{
@@ -193,6 +208,7 @@ func TestMsgpackMarshalUnmarshal(t *testing.T) {
 				Swap: rand.Int63(),
 			},
 		}
+		p.vaultUtils = NewVaultUtils(p.vault)
 		pools = append(pools, p)
 	}
 	{
@@ -394,16 +410,8 @@ func TestMsgpackMarshalUnmarshal(t *testing.T) {
 				Swap: rand.Int63(),
 			},
 		}
+		p.vaultUtils = NewVaultUtils(p.vault)
 		pools = append(pools, p)
 	}
-	for _, pool := range pools {
-		b, err := pool.MarshalMsg(nil)
-		require.NoError(t, err)
-		actual := new(PoolSimulator)
-		_, err = actual.UnmarshalMsg(b)
-		require.NoError(t, err)
-		require.NoError(t, actual.AfterMsgpDecode())
-		require.NoError(t, pool.AfterMsgpDecode())
-		require.Empty(t, cmp.Diff(pool, actual, testutil.CmpOpts(PoolSimulator{})...))
-	}
+	return pools
 }

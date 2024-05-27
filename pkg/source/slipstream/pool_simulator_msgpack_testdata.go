@@ -3,22 +3,45 @@ package slipstream
 import (
 	"math/big"
 	"math/rand"
-	"testing"
 
 	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	v3constants "github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	v3entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
 	v3utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	entities "github.com/daoleno/uniswap-sdk-core/entities"
-	"github.com/google/go-cmp/cmp"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
-	"github.com/stretchr/testify/require"
 )
 
-func TestMsgpackMarshalUnmarshal(t *testing.T) {
+func randomBigInt() *big.Int {
+	words := make([]big.Word, 4)
+	for i := range words {
+		words[i] = big.Word(rand.Uint64())
+	}
+	return new(big.Int).SetBits(words)
+}
+
+func randomUint256() *uint256.Int {
+	words := [4]uint64{}
+	for i := range words {
+		words[i] = rand.Uint64()
+	}
+	n := uint256.Int(words)
+	return &n
+}
+
+func randomAddress() common.Address {
+	buf := make([]byte, common.AddressLength)
+	for i := range buf {
+		buf[i] = byte(rand.Uint64() % 256)
+	}
+	return common.BytesToAddress(buf)
+}
+
+// MsgpackTestPools ...
+func MsgpackTestPools() []*PoolSimulator {
 	var pools []*PoolSimulator
 	{
 		ticksProvider, err := v3entities.NewTickListDataProvider([]v3entities.Tick{
@@ -38,7 +61,9 @@ func TestMsgpackMarshalUnmarshal(t *testing.T) {
 				LiquidityGross: uint256.NewInt(5),
 			},
 		}, 1)
-		require.NoError(t, err)
+		if err != nil {
+			panic(err)
+		}
 		v3Pool := &v3entities.Pool{
 			Token0:           entities.NewToken(uint(valueobject.ChainIDEthereum), randomAddress(), 18, "Token0", "Token0"),
 			Token1:           entities.NewToken(uint(valueobject.ChainIDEthereum), randomAddress(), 18, "Token1", "Token1"),
@@ -78,12 +103,5 @@ func TestMsgpackMarshalUnmarshal(t *testing.T) {
 		}
 		pools = append(pools, pool)
 	}
-	for _, pool := range pools {
-		b, err := pool.MarshalMsg(nil)
-		require.NoError(t, err)
-		actual := new(PoolSimulator)
-		_, err = actual.UnmarshalMsg(b)
-		require.NoError(t, err)
-		require.Empty(t, cmp.Diff(pool, actual, testutil.CmpOpts(PoolSimulator{})...))
-	}
+	return pools
 }
