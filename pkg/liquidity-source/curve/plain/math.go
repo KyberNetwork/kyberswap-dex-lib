@@ -351,9 +351,15 @@ func (t *PoolSimulator) GetDxU256(
 	}
 
 	// yOut = (dy * FEE_DENOMINATOR / (FEE_DENOMINATOR - self.fee)) * rates[j] / PRECISION
-	yOut := number.Mul(
-		number.Div(number.Mul(dy, FeeDenominator), number.Sub(FeeDenominator, t.extra.SwapFee)),
-		number.Div(&t.extra.RateMultipliers[j], Precision),
+	yOut := number.Div(
+		number.Mul(
+			number.Div(
+				number.Mul(dy, FeeDenominator),
+				number.Sub(FeeDenominator, t.extra.SwapFee),
+			),
+			&t.extra.RateMultipliers[j],
+		),
+		Precision,
 	)
 
 	// in SC, `xp[j] - yOut` will check for underflow and raise exception
