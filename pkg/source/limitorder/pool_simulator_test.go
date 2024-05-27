@@ -864,16 +864,6 @@ func TestPool_CalcAmountOut(t *testing.T) {
 	}
 }
 
-func parseBigInt(value string) *big.Int {
-	bigIntValue, _ := new(big.Int).SetString(value, 10)
-	return bigIntValue
-}
-
-func marshalPoolExtra(extra *Extra) string {
-	bytesData, _ := json.Marshal(extra)
-	return string(bytesData)
-}
-
 func TestPool_CalcAmountOut_v2(t *testing.T) {
 	type testorder struct {
 		id               int64
