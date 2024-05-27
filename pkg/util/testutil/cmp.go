@@ -21,7 +21,7 @@ import (
 // - zero/nil *int256.Int
 //
 // - compare uniswapcoreentities.{Token,Native,Ether,BaseCurrency} via [reflect.DeepEqual] to bypass their Equal() method
-func CmpOpts(_ ...any) []cmp.Option {
+func CmpOpts() []cmp.Option {
 	return []cmp.Option{
 		cmp.Exporter(func(t reflect.Type) bool { return true }),
 		cmpopts.EquateEmpty(),
