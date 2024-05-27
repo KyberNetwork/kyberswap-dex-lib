@@ -546,7 +546,6 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 
 	recipient := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 	sender := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756bc2"
-	// returnAmountNotEnoughError := errors.New("execution reverted: Return amount is not enough")
 
 	testCases := []struct {
 		name           string
@@ -757,256 +756,258 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				}},
 			err: nil,
 		},
-		// {
-		// 	name: "it should return error when EnableGasEstimation is true and sender is empty, feature flag is on",
-		// 	command: dto.BuildRouteCommand{
-		// 		RouteSummary: valueobject.RouteSummary{
-		// 			TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-		// 			AmountIn:                     big.NewInt(20000),
-		// 			AmountInUSD:                  0,
-		// 			TokenInMarketPriceAvailable:  false,
-		// 			TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-		// 			AmountOut:                    big.NewInt(10000),
-		// 			AmountOutUSD:                 0,
-		// 			TokenOutMarketPriceAvailable: false,
-		// 			Gas:                          12,
-		// 			GasPrice:                     big.NewFloat(100.2),
-		// 			GasUSD:                       0,
-		// 			ExtraFee:                     valueobject.ExtraFee{},
-		// 			Route: [][]valueobject.Swap{
-		// 				{
-		// 					{
-		// 						Pool:      "0xabc",
-		// 						AmountOut: big.NewInt(10000),
-		// 					},
-		// 				},
-		// 			},
-		// 		},
-		// 		SlippageTolerance:   5,
-		// 		Recipient:           recipient,
-		// 		EnableGasEstimation: true,
-		// 	},
-		// 	result: nil,
-		// 	estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
-		// 		gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
-		// 		gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Times(0)
-		// 		return gasEstimator
-		// 	},
-		// 	poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
-		// 		poolRepository := buildroute.NewMockIPoolRepository(ctrl)
-		// 		poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
-		// 		poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
+		{
+			name: "it should return error when EnableGasEstimation is true and sender is empty, feature flag is on",
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:                     big.NewInt(20000),
+					AmountInUSD:                  0,
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:                    big.NewInt(10000),
+					AmountOutUSD:                 0,
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          12,
+					GasPrice:                     big.NewFloat(100.2),
+					GasUSD:                       0,
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:      "0xabc",
+								AmountOut: big.NewInt(10000),
+							},
+						},
+					},
+				},
+				SlippageTolerance:   5,
+				Recipient:           recipient,
+				EnableGasEstimation: true,
+			},
+			result: nil,
+			estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
+				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
+				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Times(0)
+				return gasEstimator
+			},
+			poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
+				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
 
-		// 		return poolRepository
-		// 	},
-		// 	config: Config{
-		// 		ChainID:      valueobject.ChainIDEthereum,
-		// 		FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true},
-		// 		FaultyPoolsConfig: FaultyPoolsConfig{
-		// 			WindowSize:        time.Minute * 15,
-		// 			FaultyExpiredTime: time.Minute * 3,
-		// 		}},
-		// 	err: ErrSenderEmptyWhenEnableEstimateGas,
-		// },
-		// {
-		// 	name: "it should count faulty pools when estimate gas error is return amount not enough, feature flag is on",
-		// 	command: dto.BuildRouteCommand{
-		// 		RouteSummary: valueobject.RouteSummary{
-		// 			TokenIn:                      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-		// 			AmountIn:                     big.NewInt(500000),
-		// 			AmountInUSD:                  0.00000000192722,
-		// 			TokenInMarketPriceAvailable:  false,
-		// 			TokenOut:                     "0x6b175474e89094c44da98b954eedeac495271d0f",
-		// 			AmountOut:                    big.NewInt(1626105316),
-		// 			AmountOutUSD:                 0.000000001626105316,
-		// 			TokenOutMarketPriceAvailable: false,
-		// 			Gas:                          185000,
-		// 			GasPrice:                     big.NewFloat(9511845152),
-		// 			GasUSD:                       6.782624739119853,
-		// 			ExtraFee:                     valueobject.ExtraFee{},
-		// 			Route: [][]valueobject.Swap{
-		// 				{
-		// 					{
-		// 						Pool:      "0xa478c2975ab1ea89e8196811f51a7b7ade33eb11",
-		// 						TokenIn:   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-		// 						TokenOut:  "0x6b175474e89094c44da98b954eedeac495271d0f",
-		// 						AmountOut: big.NewInt(1626105316),
-		// 					},
-		// 				},
-		// 			},
-		// 		},
-		// 		Sender:              sender,
-		// 		SlippageTolerance:   5,
-		// 		Recipient:           recipient,
-		// 		EnableGasEstimation: true,
-		// 	},
-		// 	result: nil,
-		// 	estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
-		// 		gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
-		// 		gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Times(1).Return(uint64(0), float64(0.0), returnAmountNotEnoughError)
-		// 		return gasEstimator
-		// 	},
-		// 	poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
-		// 		wg.Add(2)
-		// 		poolRepository := buildroute.NewMockIPoolRepository(ctrl)
-		// 		poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Do(func(arg0, arg1, arg2 interface{}) {
-		// 			defer wg.Done()
-		// 		}).Return(map[string]int64{"0xa478c2975ab1ea89e8196811f51a7b7ade33eb11:13:11:60": 1}, []error{}).Times(1)
-		// 		addr := []string{"0xa478c2975ab1ea89e8196811f51a7b7ade33eb11"}
-		// 		poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Eq(addr)).Times(1).Do(func(arg0, arg2 interface{}) {
-		// 			defer wg.Done()
-		// 		}).Return(addr, nil)
+				return poolRepository
+			},
+			config: Config{
+				ChainID:      valueobject.ChainIDEthereum,
+				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true},
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WindowSize:        time.Minute * 15,
+					FaultyExpiredTime: time.Minute * 3,
+				}},
+			err: ErrSenderEmptyWhenEnableEstimateGas,
+		},
+		{
+			name: "it should count faulty pools when estimate gas error is return amount not enough, feature flag is on",
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+					AmountIn:                     big.NewInt(500000),
+					AmountInUSD:                  0.00000000192722,
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0x6b175474e89094c44da98b954eedeac495271d0f",
+					AmountOut:                    big.NewInt(1626105316),
+					AmountOutUSD:                 0.000000001626105316,
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          185000,
+					GasPrice:                     big.NewFloat(9511845152),
+					GasUSD:                       6.782624739119853,
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:      "0xa478c2975ab1ea89e8196811f51a7b7ade33eb11",
+								TokenIn:   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+								TokenOut:  "0x6b175474e89094c44da98b954eedeac495271d0f",
+								AmountOut: big.NewInt(1626105316),
+							},
+						},
+					},
+				},
+				Sender:              sender,
+				SlippageTolerance:   5,
+				Recipient:           recipient,
+				EnableGasEstimation: true,
+			},
+			result: nil,
+			estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
+				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
+				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Times(1).Return(uint64(0), float64(0.0), ErrReturnAmountIsNotEnough)
+				return gasEstimator
+			},
+			poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
+				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
 
-		// 		return poolRepository
-		// 	},
-		// 	config: Config{
-		// 		ChainID:      valueobject.ChainIDEthereum,
-		// 		FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
-		// 		FaultyPoolsConfig: FaultyPoolsConfig{
-		// 			WindowSize:        time.Minute * 15,
-		// 			FaultyExpiredTime: time.Minute * 3,
-		// 		}},
-		// 	err: ErrEstimateGasFailed(returnAmountNotEnoughError),
-		// },
-		// {
-		// 	name: "it should not count faulty pools when estimate gas error is some error, feature flag is on",
-		// 	command: dto.BuildRouteCommand{
-		// 		RouteSummary: valueobject.RouteSummary{
-		// 			TokenIn:                      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-		// 			AmountIn:                     big.NewInt(500000),
-		// 			AmountInUSD:                  0.00000000192722,
-		// 			TokenInMarketPriceAvailable:  false,
-		// 			TokenOut:                     "0x6b175474e89094c44da98b954eedeac495271d0f",
-		// 			AmountOut:                    big.NewInt(1626105316),
-		// 			AmountOutUSD:                 0.000000001626105316,
-		// 			TokenOutMarketPriceAvailable: false,
-		// 			Gas:                          185000,
-		// 			GasPrice:                     big.NewFloat(9511845152),
-		// 			GasUSD:                       6.782624739119853,
-		// 			ExtraFee:                     valueobject.ExtraFee{},
-		// 			Route: [][]valueobject.Swap{
-		// 				{
-		// 					{
-		// 						Pool:      "0xa478c2975ab1ea89e8196811f51a7b7ade33eb11",
-		// 						TokenIn:   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-		// 						TokenOut:  "0x6b175474e89094c44da98b954eedeac495271d0f",
-		// 						AmountOut: big.NewInt(1626105316),
-		// 					},
-		// 				},
-		// 			},
-		// 		},
-		// 		Sender:            sender,
-		// 		SlippageTolerance: 5,
-		// 		Recipient:         recipient,
-		// 	},
-		// 	result: &dto.BuildRouteResult{
-		// 		AmountIn:      "500000",
-		// 		AmountInUSD:   "0.5",
-		// 		AmountOut:     "1626105316",
-		// 		AmountOutUSD:  "0.000000001626105316",
-		// 		Gas:           "185000",
-		// 		GasUSD:        "6.782624739119853",
-		// 		OutputChange:  OutputChangeNoChange,
-		// 		Data:          "mockEncodedData",
-		// 		RouterAddress: "0x01",
+				counters := []routerEntities.FaultyPoolTracker{
+					{Address: "0xa478c2975ab1ea89e8196811f51a7b7ade33eb11", TotalCount: 1, FailedCount: 1},
+				}
+				wg.Add(1)
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Eq(counters)).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return([]string{"0xa478c2975ab1ea89e8196811f51a7b7ade33eb11"}, nil).Times(1)
 
-		// 		AdditionalCostUsd:     "0",
-		// 		AdditionalCostMessage: "",
-		// 	},
-		// 	estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
-		// 		wg.Add(1)
-		// 		gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
-		// 		gasEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Any()).Do(func(arg0, arg2 interface{}) {
-		// 			defer wg.Done()
-		// 		}).Times(1).Return(uint64(0), errors.New("test error"))
-		// 		return gasEstimator
-		// 	},
-		// 	poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
-		// 		wg.Add(1)
-		// 		poolRepository := buildroute.NewMockIPoolRepository(ctrl)
-		// 		poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Do(func(arg0, arg1, arg2 interface{}) {
-		// 			defer wg.Done()
-		// 		}).Return(map[string]int64{"0xa478c2975ab1ea89e8196811f51a7b7ade33eb11:13:11:60": 1}, []error{}).Times(1)
-		// 		poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
+				return poolRepository
+			},
+			config: Config{
+				ChainID:      valueobject.ChainIDEthereum,
+				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WindowSize:        time.Minute * 15,
+					FaultyExpiredTime: time.Minute * 3,
+				}},
+			err: ErrEstimateGasFailed(ErrReturnAmountIsNotEnough),
+		},
+		{
+			name: "it should not count faulty pools when estimate gas error is some error, feature flag is on",
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+					AmountIn:                     big.NewInt(500000),
+					AmountInUSD:                  0.00000000192722,
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0x6b175474e89094c44da98b954eedeac495271d0f",
+					AmountOut:                    big.NewInt(1626105316),
+					AmountOutUSD:                 0.000000001626105316,
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          185000,
+					GasPrice:                     big.NewFloat(9511845152),
+					GasUSD:                       6.782624739119853,
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:      "0xa478c2975ab1ea89e8196811f51a7b7ade33eb11",
+								TokenIn:   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+								TokenOut:  "0x6b175474e89094c44da98b954eedeac495271d0f",
+								AmountOut: big.NewInt(1626105316),
+							},
+						},
+					},
+				},
+				Sender:            sender,
+				SlippageTolerance: 5,
+				Recipient:         recipient,
+			},
+			result: &dto.BuildRouteResult{
+				AmountIn:      "500000",
+				AmountInUSD:   "0.5",
+				AmountOut:     "1626105316",
+				AmountOutUSD:  "0.000000001626105316",
+				Gas:           "185000",
+				GasUSD:        "6.782624739119853",
+				OutputChange:  OutputChangeNoChange,
+				Data:          "mockEncodedData",
+				RouterAddress: "0x01",
 
-		// 		return poolRepository
-		// 	},
-		// 	config: Config{
-		// 		ChainID:      valueobject.ChainIDEthereum,
-		// 		FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
-		// 		FaultyPoolsConfig: FaultyPoolsConfig{
-		// 			WindowSize:        time.Minute * 15,
-		// 			FaultyExpiredTime: time.Minute * 3,
-		// 		}},
-		// 	err: nil,
-		// },
-		// {
-		// 	name: "it should not count faulty pools and still call estimate gas, feature flag is off",
-		// 	command: dto.BuildRouteCommand{
-		// 		RouteSummary: valueobject.RouteSummary{
-		// 			TokenIn:                      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-		// 			AmountIn:                     big.NewInt(500000),
-		// 			AmountInUSD:                  0.5,
-		// 			TokenInMarketPriceAvailable:  false,
-		// 			TokenOut:                     "0x6b175474e89094c44da98b954eedeac495271d0f",
-		// 			AmountOut:                    big.NewInt(1626105316),
-		// 			AmountOutUSD:                 0.000000001626105316,
-		// 			TokenOutMarketPriceAvailable: false,
-		// 			Gas:                          185000,
-		// 			GasPrice:                     big.NewFloat(9511845152),
-		// 			GasUSD:                       6.782624739119853,
-		// 			ExtraFee:                     valueobject.ExtraFee{},
-		// 			Route: [][]valueobject.Swap{
-		// 				{
-		// 					{
-		// 						Pool:      "0xa478c2975ab1ea89e8196811f51a7b7ade33eb11",
-		// 						TokenIn:   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-		// 						TokenOut:  "0x6b175474e89094c44da98b954eedeac495271d0f",
-		// 						AmountOut: big.NewInt(1626105316),
-		// 					},
-		// 				},
-		// 			},
-		// 		},
-		// 		Sender:              sender,
-		// 		SlippageTolerance:   5,
-		// 		Recipient:           recipient,
-		// 		EnableGasEstimation: true,
-		// 	},
-		// 	result: &dto.BuildRouteResult{
-		// 		AmountIn:      "500000",
-		// 		AmountInUSD:   "0.5",
-		// 		AmountOut:     "1626105316",
-		// 		AmountOutUSD:  "0.000000001626105316",
-		// 		Gas:           "185000",
-		// 		GasUSD:        "6.782624739119853",
-		// 		OutputChange:  OutputChangeNoChange,
-		// 		Data:          "mockEncodedData",
-		// 		RouterAddress: "0x01",
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
+			},
+			estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
+				wg.Add(1)
+				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
+				gasEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Any()).Do(func(arg0, arg2 interface{}) {
+					defer wg.Done()
+				}).Times(1).Return(uint64(0), errors.New("test error"))
+				return gasEstimator
+			},
+			poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
+				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
+				counters := []routerEntities.FaultyPoolTracker{
+					{Address: "0xa478c2975ab1ea89e8196811f51a7b7ade33eb11", TotalCount: 1, FailedCount: 0},
+				}
+				wg.Add(1)
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Eq(counters)).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return([]string{"0xa478c2975ab1ea89e8196811f51a7b7ade33eb11"}, nil).Times(1)
 
-		// 		AdditionalCostUsd:     "0",
-		// 		AdditionalCostMessage: "",
-		// 	},
-		// 	estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
-		// 		gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
-		// 		gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Times(0)
-		// 		return gasEstimator
-		// 	},
-		// 	poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
-		// 		poolRepository := buildroute.NewMockIPoolRepository(ctrl)
-		// 		poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
-		// 		poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
+				return poolRepository
+			},
+			config: Config{
+				ChainID:      valueobject.ChainIDEthereum,
+				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WindowSize:        time.Minute * 15,
+					FaultyExpiredTime: time.Minute * 3,
+				}},
+			err: nil,
+		},
+		{
+			name: "it should not count faulty pools and still call estimate gas, feature flag is off",
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+					AmountIn:                     big.NewInt(500000),
+					AmountInUSD:                  0.5,
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0x6b175474e89094c44da98b954eedeac495271d0f",
+					AmountOut:                    big.NewInt(1626105316),
+					AmountOutUSD:                 0.000000001626105316,
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          185000,
+					GasPrice:                     big.NewFloat(9511845152),
+					GasUSD:                       6.782624739119853,
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:      "0xa478c2975ab1ea89e8196811f51a7b7ade33eb11",
+								TokenIn:   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+								TokenOut:  "0x6b175474e89094c44da98b954eedeac495271d0f",
+								AmountOut: big.NewInt(1626105316),
+							},
+						},
+					},
+				},
+				Sender:              sender,
+				SlippageTolerance:   5,
+				Recipient:           recipient,
+				EnableGasEstimation: true,
+			},
+			result: &dto.BuildRouteResult{
+				AmountIn:      "500000",
+				AmountInUSD:   "0.5",
+				AmountOut:     "1626105316",
+				AmountOutUSD:  "0.000000001626105316",
+				Gas:           "185000",
+				GasUSD:        "6.782624739119853",
+				OutputChange:  OutputChangeNoChange,
+				Data:          "mockEncodedData",
+				RouterAddress: "0x01",
 
-		// 		return poolRepository
-		// 	},
-		// 	config: Config{
-		// 		ChainID:      valueobject.ChainIDEthereum,
-		// 		FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: false},
-		// 		FaultyPoolsConfig: FaultyPoolsConfig{
-		// 			WindowSize:        time.Minute * 15,
-		// 			FaultyExpiredTime: time.Minute * 3,
-		// 		}},
-		// 	err: nil,
-		// },
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
+			},
+			estimateGas: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
+				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
+				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Any()).Times(0)
+				return gasEstimator
+			},
+			poolRepository: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
+				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
+
+				return poolRepository
+			},
+			config: Config{
+				ChainID:      valueobject.ChainIDEthereum,
+				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: false},
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WindowSize:        time.Minute * 15,
+					FaultyExpiredTime: time.Minute * 3,
+				}},
+			err: nil,
+		},
 	}
 
 	wg := sync.WaitGroup{}
