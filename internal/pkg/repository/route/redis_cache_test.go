@@ -10,9 +10,14 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/route"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )
+
+func genKey(key *valueobject.RouteCacheKeyTTL, prefix string) string {
+	return utils.Join(prefix, strconv.FormatUint(key.Key.Hash(prefix), 10))
+}
 
 func TestRedisCacheRepository_Set(t *testing.T) {
 	t.Run("it should have set data in redis", func(t *testing.T) {
@@ -97,7 +102,7 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 
 		dbData := []*valueobject.SimpleRoute{}
 		for _, key := range cacheKeys {
-			dbResult, _ := redisServer.Get(strconv.FormatUint(key.Key.Hash("ethereum"), 10))
+			dbResult, _ := redisServer.Get(genKey(key, "ethereum"))
 			route, _ := route.DecodeRoute(dbResult)
 			dbData = append(dbData, route)
 		}
@@ -230,7 +235,7 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 
 		for i, k := range cacheKeys {
 			encoded, _ := route.EncodeRoute(*routes[i])
-			redisServer.Set(strconv.FormatUint(k.Key.Hash("ethereum"), 10), encoded)
+			redisServer.Set(genKey(k, "ethereum"), encoded)
 		}
 
 		cache := route.NewRedisRepository(
@@ -541,7 +546,7 @@ func TestRedisCacheRepository_Del(t *testing.T) {
 
 		for i, k := range cacheKeys {
 			encoded, _ := route.EncodeRoute(*routes[i])
-			redisServer.Set(strconv.FormatUint(k.Key.Hash("ethereum"), 10), encoded)
+			redisServer.Set(genKey(k, "ethereum"), encoded)
 		}
 
 		cache := route.NewRedisRepository(

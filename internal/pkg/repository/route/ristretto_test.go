@@ -97,19 +97,40 @@ func TestRistrettoRepository_Get(t *testing.T) {
 
 		for i, r := range routes {
 			encodedRoute, _ := route.EncodeRoute(*r)
-			key := strconv.FormatUint(cacheKeys[i].Key.Hash("ethereum"), 10)
+			key := genKey(cacheKeys[i], "ethereum")
 			redisServer.Set(key, encodedRoute)
 			repo.Cache().SetWithTTL(key, r, 1, 10*time.Second)
-
 		}
+		invalidKey := valueobject.RouteCacheKeyTTL{
+			Key: &valueobject.RouteCacheKey{
+				TokenIn:                "ab",
+				TokenOut:               "cd",
+				SaveGas:                false,
+				CacheMode:              "normal",
+				AmountIn:               "100",
+				Dexes:                  []string{"uniswap"},
+				GasInclude:             false,
+				IsPathGeneratorEnabled: false,
+				IsHillClimbingEnabled:  true,
+				ExcludedPools:          []string{"0xabcd"},
+			},
+			TTL: time.Second * 10,
+		}
+		invalidKeyHash := strconv.FormatUint(invalidKey.Key.Hash("ethereum"), 10)
+		redisServer.Set(invalidKeyHash, "invalidRoute")
+		repo.Cache().SetWithTTL(invalidKeyHash, "invalidRoute", 1, time.Second*10)
 		repo.Cache().Wait()
 
+		cacheKeys = append(cacheKeys, &invalidKey)
 		results, err := repo.Get(context.Background(), cacheKeys)
 		resultList := []*valueobject.SimpleRoute{}
 		for _, v := range results {
 			resultList = append(resultList, v)
 		}
 
+		// check if result do not contains invalid key
+		_, ok := results[&invalidKey]
+		assert.False(t, ok)
 		assert.Nil(t, err)
 
 		assert.ElementsMatch(t, resultList, routes)
@@ -221,10 +242,10 @@ func TestRistrettoRepository_Get(t *testing.T) {
 
 		for i, r := range routes {
 			encodedRoute, _ := route.EncodeRoute(*r)
-			key := strconv.FormatUint(cacheKeys[i].Key.Hash("ethereum"), 10)
+			key := genKey(cacheKeys[i], "ethereum")
 			redisServer.Set(key, encodedRoute)
 		}
-		repo.Cache().SetWithTTL(strconv.FormatUint(cacheKeys[0].Key.Hash("ethereum"), 10), routes[0], 1, 10*time.Second)
+		repo.Cache().SetWithTTL(genKey(cacheKeys[0], "ethereum"), routes[0], 1, 10*time.Second)
 
 		nilKey := &valueobject.RouteCacheKeyTTL{
 			Key: &valueobject.RouteCacheKey{
@@ -248,7 +269,7 @@ func TestRistrettoRepository_Get(t *testing.T) {
 		// Check if all routes are saved correctly into memory after get them from Redis
 		resultList := []*valueobject.SimpleRoute{}
 		for _, k := range cacheKeys {
-			savedRoute, ok := repo.Cache().Get(strconv.FormatUint(k.Key.Hash("ethereum"), 10))
+			savedRoute, ok := repo.Cache().Get(genKey(k, "ethereum"))
 			if k == nilKey {
 				assert.False(t, ok)
 				assert.Nil(t, savedRoute)
@@ -352,7 +373,7 @@ func TestRistrettoRepository_Get(t *testing.T) {
 
 		// Check if all routes are saved correctly into memory after get them from Redis
 		for _, k := range cacheKeys {
-			savedRoute, ok := repo.Cache().Get(strconv.FormatUint(k.Key.Hash("ethereum"), 10))
+			savedRoute, ok := repo.Cache().Get(genKey(k, "ethereum"))
 			assert.False(t, ok)
 			assert.Nil(t, savedRoute)
 		}
@@ -450,7 +471,7 @@ func TestRistrettoRepository_Set(t *testing.T) {
 
 		// check if cacheKeys are saved in memory correctly
 		for i, k := range cacheKeys {
-			r, ok := repo.Cache().Get(strconv.FormatUint(k.Key.Hash("ethereum"), 10))
+			r, ok := repo.Cache().Get(genKey(k, "ethereum"))
 			assert.True(t, ok)
 			assert.Equal(t, r, routes[i])
 		}
@@ -544,7 +565,7 @@ func TestRistrettoRepository_Set(t *testing.T) {
 
 		// check if cacheKeys are not saved in memory correctly
 		for _, k := range cacheKeys {
-			r, ok := repo.Cache().Get(strconv.FormatUint(k.Key.Hash("ethereum"), 10))
+			r, ok := repo.Cache().Get(genKey(k, "ethereum"))
 			assert.False(t, ok)
 			assert.Nil(t, r)
 		}
@@ -640,7 +661,7 @@ func TestRistrettoRepository_Del(t *testing.T) {
 
 		// check if cacheKeys are saved in memory correctly
 		for i, k := range cacheKeys {
-			r, ok := repo.Cache().Get(strconv.FormatUint(k.Key.Hash("ethereum"), 10))
+			r, ok := repo.Cache().Get(genKey(k, "ethereum"))
 			assert.True(t, ok)
 			assert.Equal(t, r, routes[i])
 		}
@@ -650,7 +671,7 @@ func TestRistrettoRepository_Del(t *testing.T) {
 
 		// check if cacheKeys are deleted from in memory correctly
 		for _, k := range cacheKeys {
-			r, ok := repo.Cache().Get(strconv.FormatUint(k.Key.Hash("ethereum"), 10))
+			r, ok := repo.Cache().Get(genKey(k, "ethereum"))
 			assert.False(t, ok)
 			assert.Nil(t, r)
 		}
@@ -741,7 +762,7 @@ func TestRistrettoRepository_Del(t *testing.T) {
 
 		// check if cacheKeys are saved in memory correctly
 		for i, k := range cacheKeys {
-			r, ok := repo.Cache().Get(strconv.FormatUint(k.Key.Hash("ethereum"), 10))
+			r, ok := repo.Cache().Get(genKey(k, "ethereum"))
 			assert.True(t, ok)
 			assert.Equal(t, r, routes[i])
 		}
@@ -752,7 +773,7 @@ func TestRistrettoRepository_Del(t *testing.T) {
 
 		// check if cacheKeys are not deleted from memory
 		for i, k := range cacheKeys {
-			r, ok := repo.Cache().Get(strconv.FormatUint(k.Key.Hash("ethereum"), 10))
+			r, ok := repo.Cache().Get(genKey(k, "ethereum"))
 			assert.True(t, ok)
 			assert.Equal(t, r, routes[i])
 		}

@@ -49,13 +49,15 @@ func (r *redisRepository) Get(ctx context.Context, keys []*valueobject.RouteCach
 
 		routeDataStr, ok := data.(string)
 		if !ok {
-			logger.WithFields(ctx, logger.Fields{"data": routeDataStr, "key": keys[i]}).Errorf("data is not a string")
+			logger.WithFields(ctx, logger.Fields{"data": routeDataStr, "key": redisKeys[i]}).Errorf("data is not a string")
+			continue
 		}
 
 		route, err := decodeRoute(routeDataStr)
 
 		if err != nil {
-			logger.WithFields(ctx, logger.Fields{"data": routeDataStr, "key": keys[i]}).Errorf("invalid route data in Redis")
+			logger.WithFields(ctx, logger.Fields{"data": routeDataStr, "key": redisKeys[i]}).Errorf("invalid route data in Redis")
+			continue
 		}
 
 		results[keys[i]] = route

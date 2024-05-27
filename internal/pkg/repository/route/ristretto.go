@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/dgraph-io/ristretto"
@@ -11,7 +12,7 @@ import (
 )
 
 func genKey(key *valueobject.RouteCacheKeyTTL, prefix string) string {
-	return strconv.FormatUint(key.Key.Hash(prefix), 10)
+	return utils.Join(prefix, strconv.FormatUint(key.Key.Hash(prefix), 10))
 }
 
 type ristrettoRepository struct {
@@ -80,7 +81,7 @@ func (r *ristrettoRepository) Get(ctx context.Context, keys []*valueobject.Route
 	for key, route := range uncachedRoutes {
 		cacheKey := genKey(key, r.config.Prefix)
 		r.cache.SetWithTTL(cacheKey, route, r.config.Route.Cost, r.config.Route.TTL)
-		logger.WithFields(ctx, logger.Fields{"key": cacheKey}).Infof("[route] ristrettoRepository.Get get route from Redis successfully")
+		logger.WithFields(ctx, logger.Fields{"key": cacheKey, "route": route}).Infof("[route] ristrettoRepository.Get get route from Redis successfully")
 		routes[key] = route
 	}
 
