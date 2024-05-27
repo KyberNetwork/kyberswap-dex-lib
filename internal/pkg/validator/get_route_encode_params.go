@@ -24,17 +24,21 @@ type getRouteEncodeParamsValidator struct {
 	config        GetRouteEncodeParamsConfig
 	blackjackRepo IBlackjackRepository
 	mu            sync.Mutex
+
+	slippageValidator *slippageValidator
 }
 
 func NewGetRouteEncodeParamsValidator(
 	nowFunc func() time.Time,
 	config GetRouteEncodeParamsConfig,
 	blackjackRepo IBlackjackRepository,
+	slippageValidator *slippageValidator,
 ) *getRouteEncodeParamsValidator {
 	return &getRouteEncodeParamsValidator{
-		nowFunc:       nowFunc,
-		config:        config,
-		blackjackRepo: blackjackRepo,
+		nowFunc:           nowFunc,
+		config:            config,
+		blackjackRepo:     blackjackRepo,
+		slippageValidator: slippageValidator,
 	}
 }
 
@@ -71,7 +75,7 @@ func (v *getRouteEncodeParamsValidator) Validate(ctx context.Context, params par
 		return err
 	}
 
-	if err := v.validateSlippageTolerance(params.SlippageTolerance); err != nil {
+	if err := v.slippageValidator.Validate(params.SlippageTolerance, params.IgnoreCappedSlippage); err != nil {
 		return err
 	}
 
@@ -218,14 +222,6 @@ func (v *getRouteEncodeParamsValidator) validateChargeFeeBy(chargeFeeBy string, 
 	}
 
 	return NewValidationError("chargeFeeBy", "invalid")
-}
-
-func (v *getRouteEncodeParamsValidator) validateSlippageTolerance(slippageTolerance int64) error {
-	if slippageTolerance < v.config.SlippageToleranceGTE || slippageTolerance > v.config.SlippageToleranceLTE {
-		return NewValidationError("slippageTolerance", "invalid")
-	}
-
-	return nil
 }
 
 func (v *getRouteEncodeParamsValidator) validatePermit(permit string) error {

@@ -360,13 +360,14 @@ func apiAction(c *cli.Context) (err error) {
 	// sealer
 
 	// init validators
+	slippageValidator := validator.NewSlippageValidator(cfg.Validator.SlippageValidatorConfig)
 	getPoolsParamsValidator := validator.NewGetPoolsParamsValidator()
 	getTokensParamsValidator := validator.NewGetTokensParamsValidator()
 	getRoutesParamsValidator := validator.NewGetRouteParamsValidator()
 	getRouteEncodeParamsValidator := validator.NewGetRouteEncodeParamsValidator(timeutil.NowFunc,
-		cfg.Validator.GetRouteEncodeParams, blackjackRepo)
+		cfg.Validator.GetRouteEncodeParams, blackjackRepo, slippageValidator)
 	buildRouteParamsValidator := validator.NewBuildRouteParamsValidator(timeutil.NowFunc,
-		cfg.Validator.BuildRouteParams, blackjackRepo)
+		cfg.Validator.BuildRouteParams, blackjackRepo, slippageValidator)
 
 	// init use cases
 	keyStorage, err := getKeyStorage(cfg.KeyPair.StorageFilePath)

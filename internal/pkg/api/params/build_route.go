@@ -19,6 +19,7 @@ type (
 		EnableGasEstimation bool `json:"enableGasEstimation"`
 
 		// Permit allows user to swap without approving token beforehand
-		Permit string `json:"permit"`
+		Permit               string `json:"permit"`
+		IgnoreCappedSlippage bool   `form:"ignoreCappedSlippage"`
 	}
 )

@@ -332,11 +332,10 @@ repository:
     redis:
       prefix: *chainName
 validator:
-  buildRouteParams:
+  slippageValidatorConfig:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000
+  buildRouteParams:
     blacklistedRecipientSet:
   getRouteEncodeParams:
-    slippageToleranceGte: 0
-    slippageToleranceLte: 5000
     blacklistedRecipientSet:

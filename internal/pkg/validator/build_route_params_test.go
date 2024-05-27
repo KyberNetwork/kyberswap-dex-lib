@@ -65,7 +65,7 @@ func TestBuildRouteParamsValidator_Validate(t *testing.T) {
 			err: NewValidationError("tokenOut", "invalid"),
 		},
 		{
-			name: "it should return correct error when validateSlippageTolerance failed",
+			name: "it should return correct error when validateSlippageTolerance failed because IgnoreCappedSlippage is false",
 			params: params.BuildRouteParams{
 				RouteSummary: params.RouteSummary{
 					Route: [][]params.Swap{
@@ -81,8 +81,31 @@ func TestBuildRouteParamsValidator_Validate(t *testing.T) {
 					TokenOut:     "0xa7d7079b0fead91f3e65f86e8915cb59c1a34c66",
 				},
 				SlippageTolerance: 5001,
+				Recipient:         "0xa7d7079b0fead91f3e65f86e8915cb59c1a34c66",
 			},
 			err: NewValidationError("slippageTolerance", "invalid"),
+		},
+		{
+			name: "it should ignore validate Slippage Tolerance checking if IgnoreCappedSlippage is true",
+			params: params.BuildRouteParams{
+				RouteSummary: params.RouteSummary{
+					Route: [][]params.Swap{
+						{
+							{
+								Pool: "pool1",
+							},
+						},
+					},
+					AmountInUSD:  "2",
+					AmountOutUSD: "1.9",
+					TokenIn:      "0xc7198437980c041c805a1edcba50c1ce5db95118",
+					TokenOut:     "0xa7d7079b0fead91f3e65f86e8915cb59c1a34c66",
+				},
+				SlippageTolerance:    10000,
+				IgnoreCappedSlippage: true,
+				Recipient:            "0xa7d7079b0fead91f3e65f86e8915cb59c1a34c66",
+			},
+			err: nil,
 		},
 		{
 			name: "it should return correct error when validateChargeFeeBy failed",
@@ -130,7 +153,7 @@ func TestBuildRouteParamsValidator_Validate(t *testing.T) {
 						FeeReceiver: "a",
 					},
 				},
-				SlippageTolerance: 1500,
+				SlippageTolerance: 0,
 			},
 			err: NewValidationError("feeReceiver", "invalid"),
 		},
@@ -299,10 +322,12 @@ func TestBuildRouteParamsValidator_Validate(t *testing.T) {
 				nowFunc: func() time.Time {
 					return time.Now().Add(20 * time.Minute)
 				},
-				config: BuildRouteParamsConfig{
-					SlippageToleranceGTE: 0,
-					SlippageToleranceLTE: 5000,
-				},
+				slippageValidator: NewSlippageValidator(
+					SlippageValidatorConfig{
+						SlippageToleranceGTE: 0,
+						SlippageToleranceLTE: 5000,
+					},
+				),
 			}
 
 			err := validator.Validate(context.Background(), tc.params)
@@ -429,47 +454,6 @@ func TestBuildRouteParamsValidator_validateTokenOut(t *testing.T) {
 			validator := buildRouteParamsValidator{}
 
 			err := validator.validateTokenOut(tc.tokenOut)
-
-			assert.Equal(t, tc.err, err)
-		})
-	}
-}
-
-func TestBuildRouteParamsValidator_validateSlippageTolerance(t *testing.T) {
-	t.Parallel()
-
-	testCases := []struct {
-		name              string
-		slippageTolerance int64
-		err               error
-	}{
-		{
-			name:              "it should return [slippageTolerance|invalid]",
-			slippageTolerance: 5001,
-			err:               NewValidationError("slippageTolerance", "invalid"),
-		},
-		{
-			name:              "it should return [chargeFeeBy|invalid]",
-			slippageTolerance: -1,
-			err:               NewValidationError("slippageTolerance", "invalid"),
-		},
-		{
-			name:              "it should return nil",
-			slippageTolerance: 0,
-			err:               nil,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			validator := buildRouteParamsValidator{
-				config: BuildRouteParamsConfig{
-					SlippageToleranceGTE: 0,
-					SlippageToleranceLTE: 5000,
-				},
-			}
-
-			err := validator.validateSlippageTolerance(tc.slippageTolerance)
 
 			assert.Equal(t, tc.err, err)
 		})

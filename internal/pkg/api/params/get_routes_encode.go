@@ -20,6 +20,7 @@ type GetRouteEncodeParams struct {
 	Permit                 string `form:"permit"`
 	IsPathGeneratorEnabled bool   `form:"isPathGeneratorEnabled"`
 	IsHillClimbEnabled     bool   `form:"isHillClimbEnabled"`
+	IgnoreCappedSlippage   bool   `form:"ignoreCappedSlippage,default=false"`
 }
 
 type (

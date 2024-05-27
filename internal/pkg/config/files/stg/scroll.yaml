@@ -342,9 +342,6 @@ repository:
     redis:
       prefix: *chainName
 validator:
-  buildRouteParams:
-    slippageToleranceGte: 0
-    slippageToleranceLte: 5000
-  getRouteEncodeParams:
+  slippageValidatorConfig:
     slippageToleranceGte: 0
     slippageToleranceLte: 5000

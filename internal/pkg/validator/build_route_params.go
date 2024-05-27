@@ -20,20 +20,23 @@ import (
 type buildRouteParamsValidator struct {
 	nowFunc func() time.Time
 
-	config        BuildRouteParamsConfig
-	blackjackRepo IBlackjackRepository
-	mu            sync.Mutex
+	config            BuildRouteParamsConfig
+	blackjackRepo     IBlackjackRepository
+	mu                sync.Mutex
+	slippageValidator *slippageValidator
 }
 
 func NewBuildRouteParamsValidator(
 	nowFunc func() time.Time,
 	config BuildRouteParamsConfig,
 	blackjackRepo IBlackjackRepository,
+	slippageValidator *slippageValidator,
 ) *buildRouteParamsValidator {
 	return &buildRouteParamsValidator{
-		nowFunc:       nowFunc,
-		config:        config,
-		blackjackRepo: blackjackRepo,
+		nowFunc:           nowFunc,
+		config:            config,
+		blackjackRepo:     blackjackRepo,
+		slippageValidator: slippageValidator,
 	}
 }
 
@@ -52,7 +55,7 @@ func (v *buildRouteParamsValidator) Validate(ctx context.Context, params params.
 		return err
 	}
 
-	if err := v.validateSlippageTolerance(params.SlippageTolerance); err != nil {
+	if err := v.slippageValidator.Validate(params.SlippageTolerance, params.IgnoreCappedSlippage); err != nil {
 		return err
 	}
 
@@ -128,14 +131,6 @@ func (v *buildRouteParamsValidator) validateTokenOut(tokenOut string) error {
 
 	if !account.IsValidAddress(tokenOut) || account.IsZeroAddress(tokenOut) {
 		return NewValidationError("tokenOut", "invalid")
-	}
-
-	return nil
-}
-
-func (v *buildRouteParamsValidator) validateSlippageTolerance(slippageTolerance int64) error {
-	if slippageTolerance < v.config.SlippageToleranceGTE || slippageTolerance > v.config.SlippageToleranceLTE {
-		return NewValidationError("slippageTolerance", "invalid")
 	}
 
 	return nil
