@@ -16,9 +16,9 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap"
 )
 
-const (
-	feeManagerV2Address = "0x63ad090242B4399691D3C1e2E9df4c2d88906EBb"
-)
+// const (
+// 	feeManagerV2AddressDefault = "0x63ad090242b4399691d3c1e2e9df4c2d88906ebb"
+// )
 
 type PoolTracker struct {
 	config       *syncswap.Config
@@ -87,6 +87,7 @@ func (d *PoolTracker) getAquaPoolState(ctx context.Context, p entity.Pool) (enti
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
 	}).Infof("[%s] Start getting new state of pool", p.Type)
+
 	var (
 		vaultAddress                                            common.Address
 		swapFee0To1Aqua, swapFee1To0Aqua                        SwapFeeAqua
@@ -97,8 +98,21 @@ func (d *PoolTracker) getAquaPoolState(ctx context.Context, p entity.Pool) (enti
 		lastPriceTimestamp, lpSupply, xcpProfit, virtualPrice   *big.Int
 		priceScale, priceOracle, lastPrices                     *big.Int
 		rebalaceParams                                          RebalanceParams
+		feeManagerV2Address                                     common.Address
 	)
+	var extra ExtraAquaPool
+	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+		return entity.Pool{}, err
+	}
+	feeManagerV2Address = common.HexToAddress(extra.FeeManagerAddress)
+
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
+	calls.AddCall(&ethrpc.Call{
+		ABI:    masterABI,
+		Target: d.config.MasterAddress,
+		Method: poolMethodGetFeeManager,
+		Params: nil,
+	}, []interface{}{&feeManagerV2Address})
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    stablePoolABI,
@@ -209,7 +223,7 @@ func (d *PoolTracker) getAquaPoolState(ctx context.Context, p entity.Pool) (enti
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    feeManagerV2ABI,
-		Target: feeManagerV2Address,
+		Target: feeManagerV2Address.Hex(),
 		Method: poolMethodAquaGetSwapFee,
 		Params: []interface{}{
 			common.HexToAddress(p.Address),
@@ -222,7 +236,7 @@ func (d *PoolTracker) getAquaPoolState(ctx context.Context, p entity.Pool) (enti
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    feeManagerV2ABI,
-		Target: feeManagerV2Address,
+		Target: feeManagerV2Address.Hex(),
 		Method: poolMethodAquaGetSwapFee,
 		Params: []interface{}{
 			common.HexToAddress(p.Address),
@@ -272,6 +286,7 @@ func (d *PoolTracker) getAquaPoolState(ctx context.Context, p entity.Pool) (enti
 			InitialGamma:              int64(poolParams.InitialGamma),
 			FutureGamma:               int64(poolParams.FutureGamma),
 			InitialTime:               int64(poolParams.InitialTime),
+			FeeManagerAddress:         feeManagerV2Address.Hex(),
 		})
 
 	if err != nil {

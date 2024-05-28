@@ -22,7 +22,7 @@ var (
 	poolMethodToken1PrecisionMultiplier = "token1PrecisionMultiplier"
 	poolMethodVault                     = "vault"
 	poolMethodGetA                      = "getA"
-	// poolMethodGetFeeManager             = "feeManager"
+	poolMethodGetFeeManager             = "feeManager"
 
 	poolMethodAquaParams              = "getParams"
 	poolMethodAquaPoolParams          = "poolParams"

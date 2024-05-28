@@ -40,4 +40,5 @@ type ExtraAquaPool struct {
 	FutureA                   int64    `json:"futureA"`
 	InitialGamma              int64    `json:"initialGamma"`
 	FutureGamma               int64    `json:"futureGamma"`
+	FeeManagerAddress         string   `json:"feeManagerAddress"`
 }

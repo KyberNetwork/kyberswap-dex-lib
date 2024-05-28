@@ -17,12 +17,12 @@ import (
 )
 
 type PoolsListUpdater struct {
-	config       *syncswap.Config
+	config       *Config
 	ethrpcClient *ethrpc.Client
 }
 
 func NewPoolsListUpdater(
-	config *syncswap.Config,
+	config *Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
@@ -117,8 +117,9 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []common.Address) ([]entity.Pool, error) {
 	var (
-		poolTypes = make([]uint16, len(poolAddresses))
-		assets    = make([][2]common.Address, len(poolAddresses))
+		poolTypes   = make([]uint16, len(poolAddresses))
+		assets      = make([][2]common.Address, len(poolAddresses))
+		feeManagers = make([]common.Address, len(poolAddresses))
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -136,6 +137,12 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			Method: poolMethodGetAssets,
 			Params: nil,
 		}, []interface{}{&assets[i]})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    masterABI,
+			Target: d.config.MasterAddress,
+			Method: poolMethodGetFeeManager,
+			Params: nil,
+		}, []interface{}{&feeManagers[i]})
 	}
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -147,6 +154,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 
 	var pools = make([]entity.Pool, 0, len(poolAddresses))
 	for i := 0; i < len(poolAddresses); i++ {
+		extra := ""
 		poolAddress := strings.ToLower(poolAddresses[i].Hex())
 		token0Address := strings.ToLower(assets[i][0].Hex())
 		token1Address := strings.ToLower(assets[i][1].Hex())
@@ -156,6 +164,13 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			poolType = PoolTypeSyncSwapV2Stable
 		} else if int(poolTypes[i]) == poolTypeSyncSwapV2AquaInContract {
 			poolType = PoolTypeSyncSwapV2Aqua
+			temp, err := json.Marshal(ExtraAquaPool{
+				FeeManagerAddress: feeManagers[i].Hex(),
+			})
+			if err != nil {
+				return nil, err
+			}
+			extra = string(temp)
 		}
 
 		var token0 = entity.PoolToken{
@@ -176,10 +191,11 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			Timestamp: time.Now().Unix(),
 			Reserves:  entity.PoolReserves{reserveZero, reserveZero},
 			Tokens:    []*entity.PoolToken{&token0, &token1},
+			Extra:     extra,
 		}
-		// if strings.ToLower(poolAddress) != "0x50e00ac0b02fedb1b8044a565b86311425b1355f" {
-		// 	continue
-		// }
+		if strings.ToLower(poolAddress) != "0x50e00ac0b02fedb1b8044a565b86311425b1355f" {
+			continue
+		}
 		pools = append(pools, newPool)
 	}
 
