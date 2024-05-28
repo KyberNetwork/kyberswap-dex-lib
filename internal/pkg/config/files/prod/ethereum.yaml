@@ -253,11 +253,11 @@ useCase:
           ttl: 10s
       ttlByAmountUsdRange:
         - amountUSDLowerBound: 0
-          ttl: 40s
+          ttl: 10s
         - amountUSDLowerBound: 5
-          ttl: 30s
+          ttl: 10s
         - amountUSDLowerBound: 21
-          ttl: 20s
+          ttl: 10s
         - amountUSDLowerBound: 101
           ttl: 10s
         - amountUSDLowerBound: 500
