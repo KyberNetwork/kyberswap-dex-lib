@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -16,10 +17,16 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
+// we alias int64 type so tinylib/msgp can handle it individually
+type int64AsStr = int64
+
+func int64ToString(v int64) string { return strconv.FormatInt(v, 10) }
+func stringToInt64(s string) int64 { v, _ := strconv.ParseInt(s, 10, 64); return v }
+
 type (
 	PoolSimulator struct {
 		pool.Pool
-		ordersMapping map[int64]*order
+		ordersMapping map[int64AsStr]*order
 		// extra fields
 		sellOrderIDs []int64
 		buyOrderIDs  []int64

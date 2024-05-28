@@ -9,10 +9,15 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/ibasepool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
+
+func init() {
+	ibasepool.RegisterICurveBasePoolImpl(&Pool{})
+}
 
 type Pool struct {
 	pool.Pool

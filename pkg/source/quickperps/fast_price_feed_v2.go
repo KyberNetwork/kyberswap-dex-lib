@@ -7,6 +7,12 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
+func init() {
+	if err := priceFeedEncoderHelper.RegisterType(&FastPriceFeedV2{}); err != nil {
+		panic(err)
+	}
+}
+
 type FastPriceFeedV2 struct {
 	DisableFastPriceVoteCount     *big.Int                 `json:"disableFastPriceVoteCount"`
 	IsSpreadEnabled               bool                     `json:"isSpreadEnabled"`

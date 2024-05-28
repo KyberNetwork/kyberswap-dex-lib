@@ -8,18 +8,23 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/tinylib/msgp/msgp"
 )
 
 type Gas struct {
 	Swap int64
 }
 
-type PoolSimulator struct {
+type poolSimulatorInner struct {
 	pool.Pool
 
 	vault      *Vault
-	vaultUtils *VaultUtils
+	vaultUtils *VaultUtils `msg:"-"`
 	gas        Gas
+}
+
+type PoolSimulator struct {
+	poolSimulatorInner
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -40,14 +45,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Tokens:   tokens,
 	}
 
-	return &PoolSimulator{
+	return &PoolSimulator{poolSimulatorInner{
 		Pool: pool.Pool{
 			Info: info,
 		},
 		vault:      extra.Vault,
 		vaultUtils: NewVaultUtils(extra.Vault),
 		gas:        DefaultGas,
-	}, nil
+	}}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -220,4 +225,40 @@ func (p *PoolSimulator) validateBufferAmount(token string, amount *big.Int) erro
 	}
 
 	return nil
+}
+
+func (p *PoolSimulator) initializeSelfReferencingPointer() {
+	if p.vaultUtils == nil {
+		p.vaultUtils = NewVaultUtils(p.vault)
+	}
+}
+
+func (p *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
+	p.initializeSelfReferencingPointer()
+	err = p.poolSimulatorInner.EncodeMsg(en)
+	return
+}
+
+func (p *PoolSimulator) MarshalMsg(b []byte) (o []byte, err error) {
+	p.initializeSelfReferencingPointer()
+	o, err = p.poolSimulatorInner.MarshalMsg(b)
+	return
+}
+
+func (p *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
+	err = p.poolSimulatorInner.DecodeMsg(dc)
+	if err != nil {
+		return
+	}
+	p.initializeSelfReferencingPointer()
+	return
+}
+
+func (p *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	o, err = p.poolSimulatorInner.UnmarshalMsg(bts)
+	if err != nil {
+		return
+	}
+	p.initializeSelfReferencingPointer()
+	return
 }

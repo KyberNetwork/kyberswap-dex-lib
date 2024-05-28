@@ -19,9 +19,9 @@ type VaultPriceFeed struct {
 	StrictStableTokens    map[string]bool     `json:"strictStableTokens"`
 	IsAdjustmentAdditive  map[string]bool     `json:"isAdjustmentAdditive"`
 
-	SecondaryPriceFeedAddress common.Address `json:"-"`
-	SecondaryPriceFeed        IFastPriceFeed `json:"secondaryPriceFeed"`
-	SecondaryPriceFeedVersion int            `json:"secondaryPriceFeedVersion"`
+	SecondaryPriceFeedAddress common.Address         `json:"-"`
+	SecondaryPriceFeed        *IFastPriceFeedWrapper `json:"secondaryPriceFeed"`
+	SecondaryPriceFeedVersion int                    `json:"secondaryPriceFeedVersion"`
 
 	PriceFeedsAddresses map[string]common.Address `json:"-"`
 	PriceFeeds          map[string]*PriceFeed     `json:"priceFeeds"`
@@ -99,7 +99,7 @@ func (pf *VaultPriceFeed) UnmarshalJSONSecondaryPriceFeed(data json.RawMessage) 
 			return err
 		}
 
-		pf.SecondaryPriceFeed = &secondaryPriceFeed
+		pf.SecondaryPriceFeed = NewIFastPriceFeedWrapper(&secondaryPriceFeed)
 	case 2:
 		var secondaryPriceFeed FastPriceFeedV2
 
@@ -107,7 +107,7 @@ func (pf *VaultPriceFeed) UnmarshalJSONSecondaryPriceFeed(data json.RawMessage) 
 			return err
 		}
 
-		pf.SecondaryPriceFeed = &secondaryPriceFeed
+		pf.SecondaryPriceFeed = NewIFastPriceFeedWrapper(&secondaryPriceFeed)
 	default:
 		return ErrInvalidSecondaryPriceFeedVersion
 	}

@@ -2,6 +2,7 @@ package quickperps
 
 import (
 	"context"
+
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
@@ -89,7 +90,7 @@ func (vs *VaultScanner) getVaultPriceFeed(ctx context.Context, address string, t
 		return nil, err
 	}
 
-	vaultPriceFeed.SecondaryPriceFeed = fastPriceFeed
+	vaultPriceFeed.SecondaryPriceFeed = NewIFastPriceFeedWrapper(fastPriceFeed)
 
 	priceFeeds, err := vs.getPriceFeeds(ctx, vaultPriceFeed.PriceFeedsAddresses)
 	if err != nil {

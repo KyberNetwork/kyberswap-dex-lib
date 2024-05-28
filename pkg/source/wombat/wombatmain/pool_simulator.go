@@ -3,8 +3,9 @@ package wombatmain
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/KyberNetwork/logger"
 	"math/big"
+
+	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"

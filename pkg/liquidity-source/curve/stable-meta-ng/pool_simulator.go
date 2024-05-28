@@ -5,12 +5,17 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/ibasepool"
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
 	"github.com/holiman/uint256"
 )
+
+func init() {
+	ibasepool.RegisterICurveBasePoolImpl(&PoolSimulator{})
+}
 
 // ICurveBasePool is the interface for curve base pool inside a meta pool
 // this is slightly different to the one in SC (return fee)
@@ -34,7 +39,7 @@ type ICurveBasePool interface {
 // so we'll inherit from stableng.PoolSimulator to reuse its methods
 type PoolSimulator struct {
 	stableng.PoolSimulator
-	basePool ICurveBasePool
+	basePool *ibasepool.ICurveBasePoolWrapper
 }
 
 func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*PoolSimulator, error) {
@@ -43,7 +48,7 @@ func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*PoolSim
 		return nil, err
 	}
 
-	return &PoolSimulator{*sim, basePool}, err
+	return &PoolSimulator{*sim, ibasepool.NewICurveBasePoolWrapper(basePool)}, err
 }
 
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {

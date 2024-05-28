@@ -37,9 +37,9 @@ type VaultPriceFeed struct {
 	ETHBNBAddress common.Address `json:"-"`
 	ETHBNB        *PancakePair   `json:"ethBnb,omitempty"`
 
-	SecondaryPriceFeedAddress common.Address `json:"secondaryPriceFeedAddress"`
-	SecondaryPriceFeed        IFastPriceFeed `json:"secondaryPriceFeed"`
-	SecondaryPriceFeedVersion int            `json:"secondaryPriceFeedVersion"`
+	SecondaryPriceFeedAddress common.Address         `json:"secondaryPriceFeedAddress"`
+	SecondaryPriceFeed        *IFastPriceFeedWrapper `json:"secondaryPriceFeed"`
+	SecondaryPriceFeedVersion int                    `json:"secondaryPriceFeedVersion"`
 
 	PriceFeedsAddresses map[string]common.Address `json:"-"`
 	PriceFeeds          map[string]*PriceFeed     `json:"priceFeeds"`
@@ -151,7 +151,7 @@ func (pf *VaultPriceFeed) UnmarshalJSONSecondaryPriceFeed(bytes []byte) error {
 			return nil
 		}
 
-		pf.SecondaryPriceFeed = priceFeed.SecondaryPriceFeed
+		pf.SecondaryPriceFeed = NewIFastPriceFeedWrapper(priceFeed.SecondaryPriceFeed)
 	case 2:
 		var priceFeed struct {
 			SecondaryPriceFeed *FastPriceFeedV2 `json:"secondaryPriceFeed"`
@@ -161,7 +161,7 @@ func (pf *VaultPriceFeed) UnmarshalJSONSecondaryPriceFeed(bytes []byte) error {
 			return nil
 		}
 
-		pf.SecondaryPriceFeed = priceFeed.SecondaryPriceFeed
+		pf.SecondaryPriceFeed = NewIFastPriceFeedWrapper(priceFeed.SecondaryPriceFeed)
 	default:
 		return ErrInvalidSecondaryPriceFeedVersion
 	}

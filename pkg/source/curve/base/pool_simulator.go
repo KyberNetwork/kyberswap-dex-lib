@@ -9,9 +9,14 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/ibasepool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
+
+func init() {
+	ibasepool.RegisterICurveBasePoolImpl(&PoolBaseSimulator{})
+}
 
 type PoolBaseSimulator struct {
 	pool.Pool

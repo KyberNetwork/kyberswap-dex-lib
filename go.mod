@@ -6,7 +6,7 @@ require (
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.3
 	github.com/KyberNetwork/ethrpc v0.7.1
-	github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0
+	github.com/KyberNetwork/iZiSwap-SDK-go v1.1.1
 	github.com/KyberNetwork/int256 v0.1.4
 	github.com/KyberNetwork/logger v0.1.0
 	github.com/KyberNetwork/pancake-v3-sdk v0.2.1

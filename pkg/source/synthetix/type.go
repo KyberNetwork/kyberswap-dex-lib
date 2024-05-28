@@ -2,6 +2,7 @@ package synthetix
 
 import (
 	"math/big"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -13,10 +14,22 @@ type Addresses struct {
 	SystemSettings string `json:"systemSettings"`
 }
 
+// we alias common.address type so tinylib/msgp can handle it individually
+type address = common.Address
+
+// we alias int64 type so tinylib/msgp can handle it individually
+type uint16AsStr = uint16
+
+func uint16ToString(i uint16AsStr) string { return strconv.FormatUint(uint64(i), 10) }
+func stringToUint16(s string) uint16AsStr {
+	i, _ := strconv.ParseUint(s, 10, 64)
+	return uint16AsStr(i)
+}
+
 type PoolState struct {
 	BlockTimestamp      uint64                    `json:"blockTimestamp"`
 	Synths              map[string]common.Address `json:"synths"`
-	CurrencyKeyBySynth  map[common.Address]string `json:"currencyKeyBySynth"`
+	CurrencyKeyBySynth  map[address]string        `json:"currencyKeyBySynth"`
 	AvailableSynthCount *big.Int                  `json:"availableSynthCount"`
 	SynthsTotalSupply   map[string]*big.Int       `json:"synthsTotalSupply"`
 	TotalIssuedSUSD     *big.Int                  `json:"totalIssuedSUSD"`
@@ -150,21 +163,21 @@ type OracleObservation struct {
 }
 
 type DexPriceAggregatorUniswapV3 struct {
-	DefaultPoolFee         *big.Int                                `json:"defaultPoolFee"`
-	UniswapV3Factory       common.Address                          `json:"uniswapV3Factory"`
-	Weth                   common.Address                          `json:"weth"`
-	BlockTimestamp         uint64                                  `json:"blockTimestamp"`
-	OverriddenPoolForRoute map[string]common.Address               `json:"overriddenPoolForRoute"`
-	UniswapV3Slot0         map[string]Slot0                        `json:"uniswapV3Slot0"`
-	UniswapV3Observations  map[string]map[uint16]OracleObservation `json:"uniswapV3Observations"`
-	TickCumulatives        map[string][]*big.Int                   `json:"tickCumulatives"`
+	DefaultPoolFee         *big.Int                                     `json:"defaultPoolFee"`
+	UniswapV3Factory       common.Address                               `json:"uniswapV3Factory"`
+	Weth                   common.Address                               `json:"weth"`
+	BlockTimestamp         uint64                                       `json:"blockTimestamp"`
+	OverriddenPoolForRoute map[string]common.Address                    `json:"overriddenPoolForRoute"`
+	UniswapV3Slot0         map[string]Slot0                             `json:"uniswapV3Slot0"`
+	UniswapV3Observations  map[string]map[uint16AsStr]OracleObservation `json:"uniswapV3Observations"`
+	TickCumulatives        map[string][]*big.Int                        `json:"tickCumulatives"`
 }
 
 func NewDexPriceAggregatorUniswapV3() *DexPriceAggregatorUniswapV3 {
 	return &DexPriceAggregatorUniswapV3{
 		OverriddenPoolForRoute: make(map[string]common.Address),
 		UniswapV3Slot0:         make(map[string]Slot0),
-		UniswapV3Observations:  make(map[string]map[uint16]OracleObservation),
+		UniswapV3Observations:  make(map[string]map[uint16AsStr]OracleObservation),
 		TickCumulatives:        make(map[string][]*big.Int),
 	}
 }

@@ -497,7 +497,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 
 func TestPool_CanSwapTo(t *testing.T) {
 	t.Run("it should return correct swappable tokens", func(t *testing.T) {
-		pool := PoolSimulator{
+		pool := PoolSimulator{poolSimulatorInner{
 			vault: &Vault{
 				WhitelistedTokens: []string{
 					"0x17fc002b466eec40dae837fc4be5c67993ddbd6f",
@@ -511,7 +511,7 @@ func TestPool_CanSwapTo(t *testing.T) {
 					"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
 				},
 			},
-		}
+		}}
 
 		tokens := pool.CanSwapTo("0xff970a61a04b1ca14834a43f5de4533ebddb5cc8")
 

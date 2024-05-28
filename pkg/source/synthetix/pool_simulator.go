@@ -247,7 +247,7 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 // The balance is stored WITHOUT decimals
 // DONOT directly modify it, use UpdateLimit if needed
 type AtomicLimits struct {
-	lock   *sync.RWMutex
+	lock   *sync.RWMutex `msg:"-"`
 	Limits map[string]*big.Int
 }
 

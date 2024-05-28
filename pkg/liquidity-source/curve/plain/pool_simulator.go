@@ -10,11 +10,18 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/ibasepool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
+	sourceibasepool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/ibasepool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
+
+func init() {
+	ibasepool.RegisterICurveBasePoolImpl(&PoolSimulator{})
+	sourceibasepool.RegisterICurveBasePoolImpl(&PoolSimulator{})
+}
 
 type PoolSimulator struct {
 	pool.Pool

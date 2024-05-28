@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/tinylib/msgp/msgp"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -16,13 +17,17 @@ type Gas struct {
 	Swap int64
 }
 
-type PoolSimulator struct {
+type poolSimulatorInner struct {
 	pool.Pool
 	vault           *Vault
-	vaultUtils      *VaultUtils
+	vaultUtils      *VaultUtils `msg:"-"`
 	glpManager      *GlpManager
 	yearnTokenVault *YearnTokenVault
 	gas             Gas
+}
+
+type PoolSimulator struct {
+	poolSimulatorInner
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -43,7 +48,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Tokens:   tokens,
 	}
 
-	return &PoolSimulator{
+	return &PoolSimulator{poolSimulatorInner{
 		Pool: pool.Pool{
 			Info: info,
 		},
@@ -52,7 +57,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		glpManager:      extra.GlpManager,
 		yearnTokenVault: extra.YearnTokenVault,
 		gas:             DefaultGas,
-	}, nil
+	}}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
@@ -162,4 +167,40 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 		YearnVault:    p.yearnTokenVault.Address,
 		DirectionFlag: directionFlag,
 	}
+}
+
+func (p *PoolSimulator) initializeSelfReferencingPointer() {
+	if p.vaultUtils == nil {
+		p.vaultUtils = NewVaultUtils(p.vault)
+	}
+}
+
+func (p *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
+	p.initializeSelfReferencingPointer()
+	err = p.poolSimulatorInner.EncodeMsg(en)
+	return
+}
+
+func (p *PoolSimulator) MarshalMsg(b []byte) (o []byte, err error) {
+	p.initializeSelfReferencingPointer()
+	o, err = p.poolSimulatorInner.MarshalMsg(b)
+	return
+}
+
+func (p *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
+	err = p.poolSimulatorInner.DecodeMsg(dc)
+	if err != nil {
+		return
+	}
+	p.initializeSelfReferencingPointer()
+	return
+}
+
+func (p *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	o, err = p.poolSimulatorInner.UnmarshalMsg(bts)
+	if err != nil {
+		return
+	}
+	p.initializeSelfReferencingPointer()
+	return
 }

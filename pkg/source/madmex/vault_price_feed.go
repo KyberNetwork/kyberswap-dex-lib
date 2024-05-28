@@ -38,9 +38,9 @@ type VaultPriceFeed struct {
 	ChainlinkFlagsAddress common.Address  `json:"-"`
 	ChainlinkFlags        *ChainlinkFlags `json:"chainlinkFlags,omitempty"`
 
-	SecondaryPriceFeedAddress common.Address `json:"-"`
-	SecondaryPriceFeed        IFastPriceFeed `json:"secondaryPriceFeed"`
-	SecondaryPriceFeedVersion int            `json:"secondaryPriceFeedVersion"`
+	SecondaryPriceFeedAddress common.Address         `json:"-"`
+	SecondaryPriceFeed        *IFastPriceFeedWrapper `json:"secondaryPriceFeed"`
+	SecondaryPriceFeedVersion int                    `json:"secondaryPriceFeedVersion"`
 
 	PriceFeedsAddresses map[string]common.Address `json:"-"`
 	PriceFeeds          map[string]*PriceFeed     `json:"priceFeeds"`
@@ -152,7 +152,7 @@ func (pf *VaultPriceFeed) UnmarshalJSONSecondaryPriceFeed(bytes []byte) error {
 			return nil
 		}
 
-		pf.SecondaryPriceFeed = priceFeed.SecondaryPriceFeed
+		pf.SecondaryPriceFeed = NewIFastPriceFeedWrapper(priceFeed.SecondaryPriceFeed)
 	case 2:
 		var priceFeed struct {
 			SecondaryPriceFeed *FastPriceFeedV2 `json:"secondaryPriceFeed"`
@@ -162,7 +162,7 @@ func (pf *VaultPriceFeed) UnmarshalJSONSecondaryPriceFeed(bytes []byte) error {
 			return nil
 		}
 
-		pf.SecondaryPriceFeed = priceFeed.SecondaryPriceFeed
+		pf.SecondaryPriceFeed = NewIFastPriceFeedWrapper(priceFeed.SecondaryPriceFeed)
 	default:
 		return ErrInvalidSecondaryPriceFeedVersion
 	}

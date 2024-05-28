@@ -6,8 +6,8 @@ github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.3 h1:d6YXAZUGI4KaZrOfz4l7U9pJ1r1M
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.3/go.mod h1:XoXW+bI+ViPGCKjJpaxCsugKP18u/jM9Udwe7cEYBSg=
 github.com/KyberNetwork/ethrpc v0.7.1 h1:ePGFNKMM2U/aJZCX75WtClH5MOD2DqCF0bitPI13slw=
 github.com/KyberNetwork/ethrpc v0.7.1/go.mod h1:oKysvDWevrWSW6sgb/3pDrBjiKw6IUbS3LytN+aKz/M=
-github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0 h1:gjR4PS5MvPNBihRQihjn5auOQj2+TFfbNtCcVP/ZiCk=
-github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0/go.mod h1:WbveqjEww3YdTb0NbT63qQ4WsxMGvofJu4j7yzC+LgQ=
+github.com/KyberNetwork/iZiSwap-SDK-go v1.1.1 h1:/nuTVcwdSC2bNng7mpSul65ZcKWHtRMRBZfEl6GHoX8=
+github.com/KyberNetwork/iZiSwap-SDK-go v1.1.1/go.mod h1:sIrSfkEcjcMLpVh8UYLhmzXn8OrQvieDlI/HieF8Do4=
 github.com/KyberNetwork/int256 v0.1.4 h1:SbnhxqcsZXrP+5pSkolpSo2ViEWiq3K/hjfl5OQgX/4=
 github.com/KyberNetwork/int256 v0.1.4/go.mod h1:qE/Ikpo86fn60sIB7CwcfiqJTjK2p+k+ASvuO79Rq4g=
 github.com/KyberNetwork/logger v0.1.0 h1:Iibu9Ls+tipjR+C0iXhzUYM1VtRgmmR1HHWGufPYcbs=

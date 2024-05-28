@@ -337,7 +337,7 @@ func getNewPriceLevelsState(
 // The balance is stored WITHOUT decimals
 // DONOT directly modify it, use UpdateLimit if needed
 type Inventory struct {
-	lock    *sync.RWMutex
+	lock    *sync.RWMutex `msg:"-"`
 	Balance map[string]*big.Int
 }
 

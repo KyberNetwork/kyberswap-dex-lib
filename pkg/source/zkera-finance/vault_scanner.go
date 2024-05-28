@@ -117,7 +117,7 @@ func (vs *VaultScanner) getVaultPriceFeed(ctx context.Context, address string, t
 			return nil, err
 		}
 
-		vaultPriceFeed.SecondaryPriceFeed = fastPriceFeed
+		vaultPriceFeed.SecondaryPriceFeed = NewIFastPriceFeedWrapper(fastPriceFeed)
 	}
 
 	priceFeeds, err := vs.getPriceFeeds(ctx, vaultPriceFeed.PriceFeedsAddresses)

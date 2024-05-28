@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/tinylib/msgp/msgp"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -15,12 +16,16 @@ type Gas struct {
 	Swap int64
 }
 
-type PoolSimulator struct {
+type poolSimulatorInner struct {
 	pool.Pool
 
 	vault    *Vault
 	feeUtils *FeeUtilsV2
 	gas      Gas
+}
+
+type PoolSimulator struct {
+	poolSimulatorInner
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -45,14 +50,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	feeUtils := extra.FeeUtils
 	feeUtils.Vault = vault
 
-	return &PoolSimulator{
+	return &PoolSimulator{poolSimulatorInner{
 		Pool: pool.Pool{
 			Info: info,
 		},
 		vault:    vault,
 		feeUtils: feeUtils,
 		gas:      DefaultGas,
-	}, nil
+	}}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(
@@ -229,4 +234,40 @@ func (p *PoolSimulator) validateBufferAmount(token string, amount *big.Int) erro
 	}
 
 	return nil
+}
+
+func (p *PoolSimulator) initializeSelfReferencingPointer() {
+	if p.feeUtils != nil && p.feeUtils.Vault == nil {
+		p.feeUtils.Vault = p.vault
+	}
+}
+
+func (p *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
+	p.initializeSelfReferencingPointer()
+	err = p.poolSimulatorInner.EncodeMsg(en)
+	return
+}
+
+func (p *PoolSimulator) MarshalMsg(b []byte) (o []byte, err error) {
+	p.initializeSelfReferencingPointer()
+	o, err = p.poolSimulatorInner.MarshalMsg(b)
+	return
+}
+
+func (p *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
+	err = p.poolSimulatorInner.DecodeMsg(dc)
+	if err != nil {
+		return
+	}
+	p.initializeSelfReferencingPointer()
+	return
+}
+
+func (p *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	o, err = p.poolSimulatorInner.UnmarshalMsg(bts)
+	if err != nil {
+		return
+	}
+	p.initializeSelfReferencingPointer()
+	return
 }

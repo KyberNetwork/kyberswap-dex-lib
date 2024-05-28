@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/ibasepool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -35,7 +36,7 @@ type ICurveBasePool interface {
 
 type Pool struct {
 	pool.Pool
-	BasePool       ICurveBasePool
+	BasePool       *ibasepool.ICurveBasePoolWrapper
 	RateMultiplier *big.Int
 	InitialA       *big.Int
 	FutureA        *big.Int
@@ -94,7 +95,7 @@ func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*Pool, e
 				Checked:    false,
 			},
 		},
-		BasePool:       basePool,
+		BasePool:       ibasepool.NewICurveBasePoolWrapper(basePool),
 		RateMultiplier: utils.NewBig10(staticExtra.RateMultiplier),
 		InitialA:       utils.NewBig10(extraStr.InitialA),
 		FutureA:        utils.NewBig10(extraStr.FutureA),

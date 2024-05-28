@@ -3,8 +3,9 @@ package vooi
 import (
 	"encoding/json"
 	"errors"
-	"github.com/KyberNetwork/logger"
 	"math/big"
+
+	"github.com/KyberNetwork/logger"
 
 	"github.com/KyberNetwork/blockchain-toolkit/dsmath"
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
