@@ -27,7 +27,7 @@ type EncoderHelper[I any] struct {
 // NewEncoderHelper ...
 func NewEncoderHelper[I any]() *EncoderHelper[I] {
 	return &EncoderHelper[I]{
-		interfaceTypeRepr: interfaceTypeReprT(reflect.TypeFor[I]().Name()),
+		interfaceTypeRepr: interfaceTypeReprT(reflect.TypeOf((*I)(nil)).Elem().Name()),
 	}
 }
 
