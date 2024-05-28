@@ -180,16 +180,16 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if isSellBase {
 		// p.Info.Reserves[0] = p.Info.Reserves[0] + inputAmount
 		// p.Info.Reserves[1] = p.Info.Reserves[1] - outputAmount - mtFee
-		p.Info.Reserves[0] = new(big.Int).Add(p.Info.Reserves[0], inputAmount)
-		p.Info.Reserves[1] = new(big.Int).Sub(p.Info.Reserves[1], outputAmount)
+		p.Info.Reserves[0].Add(p.Info.Reserves[0], inputAmount)
+		p.Info.Reserves[1].Sub(p.Info.Reserves[1], outputAmount)
 
 		// Update p.Storage
 		p.UpdateStateSellBase(number.SetFromBig(inputAmount), number.SetFromBig(outputAmount))
 	} else {
 		// p.Info.Reserves[0] = p.Info.Reserves[0] - outputAmount - mtFee
 		// p.Info.Reserves[1] = p.Info.Reserves[1] + inputAmount
-		p.Info.Reserves[0] = new(big.Int).Sub(p.Info.Reserves[0], outputAmount)
-		p.Info.Reserves[1] = new(big.Int).Add(p.Info.Reserves[1], inputAmount)
+		p.Info.Reserves[0].Sub(p.Info.Reserves[0], outputAmount)
+		p.Info.Reserves[1].Add(p.Info.Reserves[1], inputAmount)
 
 		// Update p.Storage
 		p.UpdateStateBuyBase(number.SetFromBig(inputAmount), number.SetFromBig(outputAmount))
