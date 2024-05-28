@@ -169,20 +169,20 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	}
 }
 
-func (p *PoolSimulator) initializeSelfReferencingPointer() {
+func (p *PoolSimulator) initializePointerAlias() {
 	if p.vaultUtils == nil {
 		p.vaultUtils = NewVaultUtils(p.vault)
 	}
 }
 
 func (p *PoolSimulator) EncodeMsg(en *msgp.Writer) (err error) {
-	p.initializeSelfReferencingPointer()
+	p.initializePointerAlias()
 	err = p.poolSimulatorInner.EncodeMsg(en)
 	return
 }
 
 func (p *PoolSimulator) MarshalMsg(b []byte) (o []byte, err error) {
-	p.initializeSelfReferencingPointer()
+	p.initializePointerAlias()
 	o, err = p.poolSimulatorInner.MarshalMsg(b)
 	return
 }
@@ -192,7 +192,7 @@ func (p *PoolSimulator) DecodeMsg(dc *msgp.Reader) (err error) {
 	if err != nil {
 		return
 	}
-	p.initializeSelfReferencingPointer()
+	p.initializePointerAlias()
 	return
 }
 
@@ -201,6 +201,6 @@ func (p *PoolSimulator) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	p.initializeSelfReferencingPointer()
+	p.initializePointerAlias()
 	return
 }
