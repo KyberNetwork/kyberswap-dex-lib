@@ -65,12 +65,12 @@ func (h *EncoderHelper[I]) RegisterType(src I) error {
 // EncodeMsg is helper method for implementing msgp.Encodable
 func (h *EncoderHelper[I]) EncodeMsg(src I, en *msgp.Writer) (err error) {
 	concreteType := reflect.ValueOf(src).Elem().Type()
-	err = en.WriteString(concreteType.String())
+	concreteTypeRepr := concreteTypeReprT(concreteType.String())
+
+	err = en.WriteString(string(concreteTypeRepr))
 	if err != nil {
 		return
 	}
-
-	concreteTypeRepr := concreteTypeReprT(concreteType.String())
 
 	if _, ok := h.typeMap.Load(concreteTypeRepr); !ok {
 		err = fmt.Errorf("unregistered type %s", concreteTypeRepr)
@@ -115,9 +115,8 @@ func (h *EncoderHelper[I]) DecodeMsg(dc *msgp.Reader) (dst I, err error) {
 func (h *EncoderHelper[I]) MarshalMsg(src I, b []byte) (o []byte, err error) {
 	o = msgp.Require(b, any(src).(msgp.Sizer).Msgsize())
 	concreteType := reflect.ValueOf(src).Elem().Type()
-	o = msgp.AppendString(o, concreteType.String())
-
 	concreteTypeRepr := concreteTypeReprT(concreteType.String())
+	o = msgp.AppendString(o, string(concreteTypeRepr))
 
 	if _, ok := h.typeMap.Load(concreteTypeRepr); !ok {
 		err = fmt.Errorf("unregistered type %s", concreteTypeRepr)
