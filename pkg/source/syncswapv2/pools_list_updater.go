@@ -17,12 +17,12 @@ import (
 )
 
 type PoolsListUpdater struct {
-	config       *Config
+	config       *syncswap.Config
 	ethrpcClient *ethrpc.Client
 }
 
 func NewPoolsListUpdater(
-	config *Config,
+	config *syncswap.Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
