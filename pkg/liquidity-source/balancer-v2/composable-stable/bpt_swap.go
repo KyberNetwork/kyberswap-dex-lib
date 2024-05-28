@@ -17,6 +17,9 @@ type intAsStr = int
 func intToString(i intAsStr) string { return strconv.FormatInt(int64(i), 10) }
 func stringToInt(s string) intAsStr { i, _ := strconv.ParseInt(s, 10, 64); return intAsStr(i) }
 
+var _ = intToString
+var _ = stringToInt
+
 type bptSimulator struct {
 	poolpkg.Pool
 

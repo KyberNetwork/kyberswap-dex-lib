@@ -26,6 +26,9 @@ func stringToUint16(s string) uint16AsStr {
 	return uint16AsStr(i)
 }
 
+var _ = uint16ToString
+var _ = stringToUint16
+
 type PoolState struct {
 	BlockTimestamp      uint64                    `json:"blockTimestamp"`
 	Synths              map[string]common.Address `json:"synths"`

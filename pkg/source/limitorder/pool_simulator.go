@@ -23,6 +23,9 @@ type int64AsStr = int64
 func int64ToString(v int64) string { return strconv.FormatInt(v, 10) }
 func stringToInt64(s string) int64 { v, _ := strconv.ParseInt(s, 10, 64); return v }
 
+var _ = int64ToString
+var _ = stringToInt64
+
 type (
 	PoolSimulator struct {
 		pool.Pool
