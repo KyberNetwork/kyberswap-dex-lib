@@ -336,13 +336,13 @@ repository:
     redis:
       prefix: *chainName
     ristretto:
-      numCounters: 5000
-      maxCost: 500
+      numCounters: 10000
+      maxCost: 1000
       bufferItems: 64
       prefix: *chainName
       route:
         cost: 1
-        ttl: 30s
+        ttl: 10s
   blackjack:
     grpcClient:
       baseURL: blackjack.core-cluster.gke.production.internal:80
