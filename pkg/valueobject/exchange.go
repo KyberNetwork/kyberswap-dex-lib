@@ -83,11 +83,11 @@ var (
 	ExchangeBalancer   Exchange = "balancer"
 	ExchangeBeethovenX Exchange = "beethovenx"
 
-	ExchangeDodo          Exchange = "dodo"
-	ExchangeDodoClassical Exchange = "dodo-classical"
-	ExchangeDodoDPP       Exchange = "dodo-dpp"
-	ExchangeDodoDSP       Exchange = "dodo-dsp"
-	ExchangeDodoDVM       Exchange = "dodo-dvm"
+	ExchangeDodo               Exchange = "dodo"
+	ExchangeDodoClassical      Exchange = "dodo-classical"
+	ExchangeDodoPrivatePool    Exchange = "dodo-dpp"
+	ExchangeDodoStablePool     Exchange = "dodo-dsp"
+	ExchangeDodoVendingMachine Exchange = "dodo-dvm"
 
 	ExchangeGMX       Exchange = "gmx"
 	ExchangeMadMex    Exchange = "madmex"
@@ -401,6 +401,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBalancer:                   {},
 	ExchangeBeethovenX:                 {},
 	ExchangeDodo:                       {},
+	ExchangeDodoClassical:              {},
+	ExchangeDodoPrivatePool:            {},
+	ExchangeDodoStablePool:             {},
+	ExchangeDodoVendingMachine:         {},
 	ExchangeGMX:                        {},
 	ExchangeMadMex:                     {},
 	ExchangeMetavault:                  {},
