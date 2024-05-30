@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	routerEntities "github.com/KyberNetwork/router-service/internal/pkg/entity"
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -54,4 +55,8 @@ type IExecutorBalanceRepository interface {
 type IPoolRepository interface {
 	TrackFaultyPools(ctx context.Context, trackers []routerEntities.FaultyPoolTracker) ([]string, error)
 	GetFaultyPools(ctx context.Context, offset, count int64) ([]string, error)
+}
+
+type IOnchainPriceRepository interface {
+	FindByAddresses(ctx context.Context, addresses []string) (map[string]*routerEntity.OnchainPrice, error)
 }

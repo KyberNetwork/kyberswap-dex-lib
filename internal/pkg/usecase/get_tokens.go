@@ -2,24 +2,31 @@ package usecase
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 )
 
 type getTokensUseCase struct {
 	tokenRepo ITokenRepository
 	priceRepo IPriceRepository
+
+	onchainpriceRepository IOnchainPriceRepository
 }
 
 func NewGetTokens(
 	tokenRepo ITokenRepository,
 	priceRepo IPriceRepository,
+	onchainpriceRepository IOnchainPriceRepository,
 ) *getTokensUseCase {
 	return &getTokensUseCase{
 		tokenRepo: tokenRepo,
 		priceRepo: priceRepo,
+
+		onchainpriceRepository: onchainpriceRepository,
 	}
 }
 
@@ -29,13 +36,22 @@ func (u *getTokensUseCase) Handle(ctx context.Context, query dto.GetTokensQuery)
 		return nil, err
 	}
 
-	priceByAddress, err := u.getPrices(ctx, query.IDs)
-	if err != nil {
-		return nil, err
+	var priceByAddress map[string]*entity.Price
+	var onchainPriceByAddress map[string]*routerEntity.OnchainPrice
+	if u.onchainpriceRepository != nil {
+		onchainPriceByAddress, err = u.getOnchainPrices(ctx, query.IDs)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		priceByAddress, err = u.getPrices(ctx, query.IDs)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &dto.GetTokensResult{
-		Tokens: u.buildResultTokens(tokenByAddress, priceByAddress),
+		Tokens: u.buildResultTokens(tokenByAddress, priceByAddress, onchainPriceByAddress),
 	}, nil
 }
 
@@ -73,9 +89,22 @@ func (u *getTokensUseCase) getPrices(
 	return priceByAddress, nil
 }
 
+func (u *getTokensUseCase) getOnchainPrices(
+	ctx context.Context,
+	addresses []string,
+) (map[string]*routerEntity.OnchainPrice, error) {
+	prices, err := u.onchainpriceRepository.FindByAddresses(ctx, addresses)
+	if err != nil {
+		return nil, err
+	}
+
+	return prices, nil
+}
+
 func (u *getTokensUseCase) buildResultTokens(
 	tokenByAddress map[string]*entity.Token,
 	priceByAddress map[string]*entity.Price,
+	onchainPriceByAddress map[string]*routerEntity.OnchainPrice,
 ) []*dto.GetTokensResultToken {
 	resultTokens := make([]*dto.GetTokensResultToken, 0, len(tokenByAddress))
 
@@ -89,6 +118,10 @@ func (u *getTokensUseCase) buildResultTokens(
 				Liquidity:         price.Liquidity,
 				LpAddress:         price.LpAddress,
 			}
+		} else if price, ok := onchainPriceByAddress[address]; ok {
+			resultPrice = &dto.GetTokensResultPrice{
+				Price: getMidPriceUSD(price),
+			}
 		}
 
 		resultTokens = append(resultTokens, &dto.GetTokensResultToken{
@@ -100,4 +133,20 @@ func (u *getTokensUseCase) buildResultTokens(
 		})
 	}
 	return resultTokens
+}
+
+func getMidPriceUSD(price *routerEntity.OnchainPrice) float64 {
+	midPrice := price.USDPrice.Buy
+	if price.USDPrice.Buy != nil && price.USDPrice.Sell != nil {
+		midPrice = new(big.Float).Quo(
+			new(big.Float).Add(price.USDPrice.Buy, price.USDPrice.Sell),
+			big.NewFloat(2))
+	}
+
+	if midPrice == nil {
+		return 0
+	}
+
+	res, _ := midPrice.Float64()
+	return res
 }

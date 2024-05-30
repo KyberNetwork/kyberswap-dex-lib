@@ -405,7 +405,7 @@ func apiAction(c *cli.Context) (err error) {
 	validateRouteUseCase.RegisterValidator(synthetix.NewSynthetixValidator())
 
 	getPoolsUseCase := usecase.NewGetPoolsUseCase(poolRepository)
-	getTokensUseCase := usecase.NewGetTokens(tokenRepository, priceRepository)
+	getTokensUseCase := usecase.NewGetTokens(tokenRepository, priceRepository, onchainpriceRepository)
 
 	var (
 		balanceSlotsUseCase *erc20balanceslotuc.Cache
@@ -493,13 +493,14 @@ func apiAction(c *cli.Context) (err error) {
 		rfqHandlerByPoolType[s.Handler] = rfqHandler
 	}
 
-	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, priceRepository, cfg.Common.GasTokenAddress,
+	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, priceRepository, onchainpriceRepository, cfg.Common.GasTokenAddress,
 		cfg.Common.RouterAddress)
 	buildRouteUseCase := buildroute.NewBuildRouteUseCase(
 		tokenRepository,
 		priceRepository,
 		poolRepository,
 		executorBalanceRepository,
+		onchainpriceRepository,
 		gasEstimator,
 		l1FeeCalculator,
 		rfqHandlerByPoolType,

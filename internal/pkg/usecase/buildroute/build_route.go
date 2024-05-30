@@ -45,6 +45,7 @@ type BuildRouteUseCase struct {
 	priceRepository           IPriceRepository
 	poolRepository            IPoolRepository
 	executorBalanceRepository IExecutorBalanceRepository
+	onchainpriceRepository    IOnchainPriceRepository
 	gasEstimator              IGasEstimator
 	l1FeeCalculator           IL1FeeCalculator
 
@@ -62,6 +63,7 @@ func NewBuildRouteUseCase(
 	priceRepository IPriceRepository,
 	poolRepository IPoolRepository,
 	executorBalanceRepository IExecutorBalanceRepository,
+	onchainpriceRepository IOnchainPriceRepository,
 	gasEstimator IGasEstimator,
 	l1FeeCalculator IL1FeeCalculator,
 	rfqHandlerByPoolType map[string]pool.IPoolRFQ,
@@ -75,6 +77,7 @@ func NewBuildRouteUseCase(
 		priceRepository:           priceRepository,
 		poolRepository:            poolRepository,
 		executorBalanceRepository: executorBalanceRepository,
+		onchainpriceRepository:    onchainpriceRepository,
 		gasEstimator:              gasEstimator,
 		l1FeeCalculator:           l1FeeCalculator,
 		rfqHandlerByPoolType:      rfqHandlerByPoolType,
@@ -248,26 +251,34 @@ func (uc *BuildRouteUseCase) updateRouteSummary(ctx context.Context, routeSummar
 		return routeSummary, errors.WithMessagef(ErrTokenNotFound, "tokenOut: [%s]", tokenOutAddress)
 	}
 
-	tokenInPrice, tokenOutPrice, err := uc.getPrices(ctx, tokenInAddress, tokenOutAddress)
-	if err != nil {
-		return routeSummary, err
-	}
-
 	var (
-		tokenInPriceUSD             float64
-		tokenInMarketPriceAvailable bool
-	)
-	if tokenInPrice != nil {
-		tokenInPriceUSD, tokenInMarketPriceAvailable = tokenInPrice.GetPreferredPrice()
-	}
-
-	var (
+		tokenInPriceUSD              float64
+		tokenInMarketPriceAvailable  bool
 		tokenOutPriceUSD             float64
 		tokenOutMarketPriceAvailable bool
 	)
-	if tokenOutPrice != nil {
-		tokenOutPriceUSD, tokenOutMarketPriceAvailable = tokenOutPrice.GetPreferredPrice()
+	if uc.onchainpriceRepository != nil {
+		// TODO: check and deprecate these 2 fields since we no longer has `market` price
+		tokenInMarketPriceAvailable = false
+		tokenOutMarketPriceAvailable = false
 
+		tokenInPriceUSD, tokenOutPriceUSD, err = uc.getPrices(ctx, tokenInAddress, tokenOutAddress)
+		if err != nil {
+			return routeSummary, err
+		}
+	} else {
+		tokenInPrice, tokenOutPrice, err := uc.getPricesLegacy(ctx, tokenInAddress, tokenOutAddress)
+		if err != nil {
+			return routeSummary, err
+		}
+
+		if tokenInPrice != nil {
+			tokenInPriceUSD, tokenInMarketPriceAvailable = tokenInPrice.GetPreferredPrice()
+		}
+
+		if tokenOutPrice != nil {
+			tokenOutPriceUSD, tokenOutMarketPriceAvailable = tokenOutPrice.GetPreferredPrice()
+		}
 	}
 
 	amountInUSD := business.CalcAmountUSD(routeSummary.AmountIn, tokenIn.Decimals, tokenInPriceUSD)
@@ -359,7 +370,28 @@ func (uc *BuildRouteUseCase) getTokens(
 }
 
 // getPrices returns tokenIn and tokenOut price
-func (uc *BuildRouteUseCase) getPrices(
+func (uc *BuildRouteUseCase) getPrices(ctx context.Context, tokenIn, tokenOut string) (float64, float64, error) {
+	priceByAddress, err := uc.onchainpriceRepository.FindByAddresses(ctx, []string{tokenIn, tokenOut})
+	if err != nil {
+		return 0, 0, err
+	}
+
+	// use sell price for token in
+	tokenInPriceUSD := 0.0
+	if price, ok := priceByAddress[tokenIn]; ok && price != nil && price.USDPrice.Sell != nil {
+		tokenInPriceUSD, _ = price.USDPrice.Sell.Float64()
+	}
+
+	// use buy price for token out and gas
+	tokenOutPriceUSD := 0.0
+	if price, ok := priceByAddress[tokenOut]; ok && price != nil && price.USDPrice.Buy != nil {
+		tokenOutPriceUSD, _ = price.USDPrice.Buy.Float64()
+	}
+
+	return tokenInPriceUSD, tokenOutPriceUSD, nil
+}
+
+func (uc *BuildRouteUseCase) getPricesLegacy(
 	ctx context.Context,
 	tokenInAddress string,
 	tokenOutAddress string,
