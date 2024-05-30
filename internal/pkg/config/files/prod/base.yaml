@@ -366,13 +366,21 @@ repository:
   price:
     redis:
       prefix: *chainName
-    ristretto:
+    ristretto: &pricecache
       numCounters: 10000
       maxCost: 1000
       bufferItems: 64
       price:
         cost: 1
         ttl: 1m
+  onchainprice:
+    enabled: false
+    grpc:
+      base_url: onchain-price.core-cluster.gke.production.internal:80
+      timeout: 100ms
+      insecure: true
+      client_id: router-service
+    ristretto: *pricecache
   poolService:
     baseUrl: "0.0.0.0:10443"
     insecure: true
