@@ -27,6 +27,8 @@ type useCase struct {
 	priceRepository IPriceRepository
 	gasRepository   IGasRepository
 
+	onchainpriceRepository IOnchainPriceRepository
+
 	config Config
 
 	mu sync.RWMutex
@@ -63,6 +65,8 @@ func NewUseCase(
 		priceRepository: priceRepository,
 		gasRepository:   gasRepository,
 		config:          config,
+
+		onchainpriceRepository: onchainpriceRepository,
 	}
 }
 
@@ -150,7 +154,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		return nil, errors.WithMessagef(ErrTokenNotFound, "tokenOut: [%s]", query.TokenOut)
 	}
 
-	priceUSDByAddress, err := u.getPriceUSDByAddress(ctx, query.TokenIn, query.TokenOut, u.config.GasTokenAddress)
+	tokenInPriceUSD, tokenOutPriceUSD, gasTokenPriceUSD, err := u.getTokensPriceUSD(ctx, query.TokenIn, query.TokenOut, u.config.GasTokenAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -180,9 +184,9 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		TokenIn:                tokenIn,
 		TokenOut:               tokenOut,
 		GasToken:               tokenByAddress[u.config.GasTokenAddress],
-		TokenInPriceUSD:        priceUSDByAddress[query.TokenIn],
-		TokenOutPriceUSD:       priceUSDByAddress[query.TokenOut],
-		GasTokenPriceUSD:       priceUSDByAddress[u.config.GasTokenAddress],
+		TokenInPriceUSD:        tokenInPriceUSD,
+		TokenOutPriceUSD:       tokenOutPriceUSD,
+		GasTokenPriceUSD:       gasTokenPriceUSD,
 		AmountIn:               query.AmountIn,
 		Sources:                sources,
 		SaveGas:                query.SaveGas,
@@ -207,6 +211,42 @@ func (u *useCase) getTokenByAddress(ctx context.Context, addresses ...string) (m
 	}
 
 	return tokenByAddress, nil
+}
+
+func (u *useCase) getTokensPriceUSD(ctx context.Context, tokenIn, tokenOut, gasToken string) (float64, float64, float64, error) {
+	if u.onchainpriceRepository != nil {
+		priceByAddress, err := u.onchainpriceRepository.FindByAddresses(ctx, []string{tokenIn, tokenOut, gasToken})
+		if err != nil {
+			return 0, 0, 0, err
+		}
+
+		// use sell price for token in
+		tokenInPriceUSD := 0.0
+		if price, ok := priceByAddress[tokenIn]; ok && price != nil && price.USDPrice.Sell != nil {
+			tokenInPriceUSD, _ = price.USDPrice.Sell.Float64()
+		}
+
+		// use buy price for token out and gas
+		tokenOutPriceUSD := 0.0
+		if price, ok := priceByAddress[tokenOut]; ok && price != nil && price.USDPrice.Buy != nil {
+			tokenOutPriceUSD, _ = price.USDPrice.Buy.Float64()
+		}
+		gasTokenPriceUSD := 0.0
+		if price, ok := priceByAddress[gasToken]; ok && price != nil && price.USDPrice.Buy != nil {
+			gasTokenPriceUSD, _ = price.USDPrice.Buy.Float64()
+		}
+
+		return tokenInPriceUSD, tokenOutPriceUSD, gasTokenPriceUSD, nil
+	}
+
+	// fallback to legacy price-service
+	priceUSDByAddress, err := u.getPriceUSDByAddress(ctx, tokenIn, tokenOut, gasToken)
+	if err != nil {
+		return 0, 0, 0, err
+	}
+	return priceUSDByAddress[tokenIn],
+		priceUSDByAddress[tokenOut],
+		priceUSDByAddress[gasToken], nil
 }
 
 func (u *useCase) getPriceUSDByAddress(ctx context.Context, addresses ...string) (map[string]float64, error) {

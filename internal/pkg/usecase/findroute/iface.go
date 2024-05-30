@@ -37,6 +37,7 @@ type Input struct {
 
 	// GasTokenPriceUSD price of gas token in USD
 	GasTokenPriceUSD float64
+	TokenInPriceUSD  float64
 
 	// SaveGas should we find routes with minimal gas consumed
 	SaveGas bool
@@ -62,6 +63,7 @@ type FinderData struct {
 	TokenToPoolAddress map[string]*types.AddressList
 
 	// PriceUSDByAddress mapping from token address to price in USD
+	// will be removed once we finished migrating to onchain-price-service
 	PriceUSDByAddress map[string]float64
 
 	// price in Native with decimal already factored in
@@ -114,4 +116,9 @@ func (f *FinderData) TokenNativeBuyPrice(address string) *big.Float {
 		return price.NativePriceRaw.Buy
 	}
 	return nil
+}
+
+func (f *FinderData) PriceAvailable(address string) bool {
+	return f.PriceUSDByAddress[address] != 0 ||
+		(f.PriceNativeByAddress != nil && f.PriceNativeByAddress[address] != nil)
 }

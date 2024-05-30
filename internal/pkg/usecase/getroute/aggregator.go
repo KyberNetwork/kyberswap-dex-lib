@@ -117,10 +117,6 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 		if err != nil {
 			return nil, err
 		}
-
-		// if we're using native price from onchain-price-service, then only need USD price for the native token
-		// TODO: get this from onchain-price-service once API available
-		priceUSDByAddress = map[string]float64{params.GasToken.Address: params.GasTokenPriceUSD}
 	} else {
 		priceUSDByAddress, err = a.getPriceUSDByAddress(ctx, tokenAddresses)
 		if err != nil {
@@ -180,6 +176,7 @@ func (a *aggregator) findBestRoute(
 		AmountIn:               params.AmountIn,
 		GasPrice:               params.GasPrice,
 		GasTokenPriceUSD:       params.GasTokenPriceUSD,
+		TokenInPriceUSD:        params.TokenInPriceUSD,
 		SaveGas:                params.SaveGas,
 		GasInclude:             params.GasInclude,
 		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,

@@ -2,6 +2,7 @@ package onchainprice
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"strconv"
 
@@ -27,6 +28,10 @@ type grpcRepository struct {
 type ITokenRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*dexlibEntity.Token, error)
 }
+
+var (
+	ErrInvalidPrice = errors.New("Invalid price")
+)
 
 func NewGRPCRepository(config GrpcConfig, chainId valueobject.ChainID, tokenRepository ITokenRepository, nativeTokenAddress string) (*grpcRepository, error) {
 	grpcConfig := grpcclient.Config{
@@ -130,4 +135,28 @@ func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string
 	logger.Debugf(ctx, "fetched prices %v", prices)
 
 	return prices, nil
+}
+
+func (r *grpcRepository) GetNativePriceInUsd(ctx context.Context) (*big.Float, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[onchainprice] grpcRepository.GetNativePriceInUSD")
+	defer span.End()
+
+	// fetch price
+	ctxHeader := metadata.AppendToOutgoingContext(ctx, "X-Chain-Id", strconv.Itoa(int(r.chainId)))
+	res, err := r.grpcClient.GetPriceUSD(ctxHeader, &onchainpricev1.GetPriceUSDRequest{
+		Address: r.nativeTokenAddress,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Debugf(ctx, "fetched prices %v", res.Price)
+
+	price, ok := new(big.Float).SetString(res.Price)
+	if !ok {
+		logger.Errorf(ctx, "invalid native price in usd %v", res.Price)
+		return nil, ErrInvalidPrice
+	}
+
+	return price, nil
 }

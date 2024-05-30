@@ -2,6 +2,7 @@ package onchainprice
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/price"
@@ -68,8 +69,19 @@ func (r *ristrettoRepository) FindByAddresses(ctx context.Context, addresses []s
 		return nil, err
 	}
 
+	nativePriceInUsd, err := r.grpcRepository.GetNativePriceInUsd(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	for address, price := range uncachedPrices {
 		prices[address] = price
+		if price.NativePrice.Buy != nil {
+			price.USDPrice.Buy = new(big.Float).Mul(price.NativePrice.Buy, nativePriceInUsd)
+		}
+		if price.NativePrice.Sell != nil {
+			price.USDPrice.Sell = new(big.Float).Mul(price.NativePrice.Sell, nativePriceInUsd)
+		}
 	}
 
 	for address, price := range uncachedPrices {

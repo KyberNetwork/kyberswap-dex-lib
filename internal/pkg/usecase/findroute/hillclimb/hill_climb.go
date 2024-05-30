@@ -117,7 +117,7 @@ func (f *hillClimbFinder) calcAdjustedTokenAmount(
 	// Step 1: calculate the adjust input for the two paths
 
 	var (
-		tokenInPriceUSD = data.PriceUSDByAddress[input.TokenInAddress]
+		tokenInPriceUSD = input.TokenInPriceUSD
 		tokenInDecimal  = data.TokenByAddress[input.TokenInAddress].Decimals
 
 		amountInBigInt = input.AmountIn

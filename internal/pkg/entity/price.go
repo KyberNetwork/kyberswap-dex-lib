@@ -21,6 +21,9 @@ type OnchainPrice struct {
 
 	// raw price (wei) against native token
 	NativePriceRaw Price
+
+	// this is derived from token's price in Native token unit, and price of Native token in USD unit
+	USDPrice Price
 }
 
 // for debug print
