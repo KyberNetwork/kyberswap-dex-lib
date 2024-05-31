@@ -54,7 +54,7 @@ type IExecutorBalanceRepository interface {
 //go:generate mockgen -destination ../../mocks/usecase/buildroute/pool_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IPoolRepository
 type IPoolRepository interface {
 	TrackFaultyPools(ctx context.Context, trackers []routerEntities.FaultyPoolTracker) ([]string, error)
-	GetFaultyPools(ctx context.Context, offset, count int64) ([]string, error)
+	GetFaultyPools(ctx context.Context) ([]string, error)
 }
 
 type IOnchainPriceRepository interface {

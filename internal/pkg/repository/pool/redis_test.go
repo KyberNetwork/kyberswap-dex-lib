@@ -3,12 +3,16 @@ package pool
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/alicebob/miniredis/v2"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
+	mocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/repository/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )
@@ -31,11 +35,16 @@ func TestRedisRepository_FindAllAddresses(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		redisRepositoryConfig := RedisRepositoryConfig{
-			Prefix: "",
-		}
-
-		repo := NewRedisRepository(db.Client, nil, redisRepositoryConfig)
+		repo, _ := NewRedisRepository(db.Client, nil, Config{
+			Redis: RedisRepositoryConfig{
+				Prefix: "ethereum",
+			},
+			Ristretto: RistrettoConfig{
+				NumCounters: 500,
+				MaxCost:     1,
+				BufferItems: 100,
+			},
+		})
 
 		redisPools := []entity.Pool{
 			{
@@ -48,7 +57,7 @@ func TestRedisRepository_FindAllAddresses(t *testing.T) {
 
 		for _, pool := range redisPools {
 			encodedPool, _ := encodePool(pool)
-			redisServer.HSet(":pools", pool.Address, encodedPool)
+			redisServer.HSet("ethereum:pools", pool.Address, encodedPool)
 		}
 
 		addresses, err := repo.FindAllAddresses(context.Background())
@@ -71,11 +80,16 @@ func TestRedisRepository_FindAllAddresses(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		redisRepositoryConfig := RedisRepositoryConfig{
-			Prefix: "",
-		}
-
-		redisRepository := NewRedisRepository(db.Client, nil, redisRepositoryConfig)
+		redisRepository, _ := NewRedisRepository(db.Client, nil, Config{
+			Redis: RedisRepositoryConfig{
+				Prefix: "ethereum",
+			},
+			Ristretto: RistrettoConfig{
+				NumCounters: 500,
+				MaxCost:     1,
+				BufferItems: 100,
+			},
+		})
 		redisServer.Close()
 
 		addresses, err := redisRepository.FindAllAddresses(context.Background())
@@ -102,11 +116,16 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		redisRepositoryConfig := RedisRepositoryConfig{
-			Prefix: "",
-		}
-
-		redisRepository := NewRedisRepository(db.Client, nil, redisRepositoryConfig)
+		redisRepository, _ := NewRedisRepository(db.Client, nil, Config{
+			Redis: RedisRepositoryConfig{
+				Prefix: "ethereum",
+			},
+			Ristretto: RistrettoConfig{
+				NumCounters: 500,
+				MaxCost:     1,
+				BufferItems: 100,
+			},
+		})
 
 		// Prepare data
 		redisPools := []entity.Pool{
@@ -206,7 +225,7 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 		}
 		for _, pool := range redisPools {
 			encodedPool, _ := encodePool(pool)
-			redisServer.HSet(":pools", pool.Address, encodedPool)
+			redisServer.HSet("ethereum:pools", pool.Address, encodedPool)
 		}
 
 		pools, err := redisRepository.FindByAddresses(context.Background(), []string{"address1", "address2", "address4"})
@@ -298,11 +317,16 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		redisRepositoryConfig := RedisRepositoryConfig{
-			Prefix: "",
-		}
-
-		redisRepository := NewRedisRepository(db.Client, nil, redisRepositoryConfig)
+		redisRepository, _ := NewRedisRepository(db.Client, nil, Config{
+			Redis: RedisRepositoryConfig{
+				Prefix: "ethereum",
+			},
+			Ristretto: RistrettoConfig{
+				NumCounters: 500,
+				MaxCost:     1,
+				BufferItems: 100,
+			},
+		})
 		pools, err := redisRepository.FindByAddresses(context.Background(), nil)
 		defer mempool.ReserveMany(pools)
 
@@ -326,16 +350,180 @@ func TestRedisRepository_FindByAddresses(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		redisRepositoryConfig := RedisRepositoryConfig{
-			Prefix: "",
-		}
-
-		redisRepository := NewRedisRepository(db.Client, nil, redisRepositoryConfig)
+		redisRepository, _ := NewRedisRepository(db.Client, nil, Config{
+			Redis: RedisRepositoryConfig{
+				Prefix: "ethereum",
+			},
+			Ristretto: RistrettoConfig{
+				NumCounters: 500,
+				MaxCost:     1,
+				BufferItems: 100,
+			},
+		})
 		redisServer.Close()
 		pools, err := redisRepository.FindByAddresses(context.Background(), []string{"address1"})
 		defer mempool.ReserveMany(pools)
 
 		assert.Error(t, err)
 		assert.Nil(t, pools)
+	})
+}
+
+func TestRistrettoRepository_Get(t *testing.T) {
+	t.Run("it should return correct faulty pools when keys exist in local memory cache", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		// Setup redis server
+		redisServer, err := miniredis.Run()
+		if err != nil {
+			t.Fatalf("failed to setup redis for testing: %v", err.Error())
+		}
+		defer redisServer.Close()
+
+		redisConfig := &redis.Config{
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "ethereum",
+		}
+
+		db, err := redis.New(redisConfig)
+		if err != nil {
+			t.Fatalf("failed to init redis client: %v", err.Error())
+		}
+		poolClient := mocks.NewMockIPoolClient(ctrl)
+		poolClient.EXPECT().GetFaultyPools(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		repo, err := NewRedisRepository(db.Client, poolClient, Config{
+			Redis: RedisRepositoryConfig{
+				Prefix:            "ethereum",
+				MaxFaultyPoolSize: 5,
+			},
+			Ristretto: RistrettoConfig{
+				NumCounters: 5000,
+				MaxCost:     500,
+				BufferItems: 64,
+
+				FaultyPools: struct {
+					Cost int64         `mapstructure:"cost"`
+					TTL  time.Duration `mapstructure:"ttl"`
+				}{Cost: 1, TTL: 10 * time.Minute},
+			},
+		})
+		assert.Nil(t, err)
+
+		// save faulty pools to local cache
+		faultyPools := []string{"0xabc", "0xxyz", "0xcdfgh"}
+		ok := repo.cache.SetWithTTL(utils.Join("ethereum", faultyPoolKey), faultyPools, 1, 1*time.Minute)
+		repo.cache.Wait()
+		assert.True(t, ok)
+
+		res, err := repo.GetFaultyPools(context.Background())
+
+		assert.ElementsMatch(t, res, faultyPools)
+		assert.Nil(t, err)
+
+	})
+
+	t.Run("it should return correct faulty pools when keys doesn't exist in local memory cache", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		// Setup redis server
+		redisServer, err := miniredis.Run()
+		if err != nil {
+			t.Fatalf("failed to setup redis for testing: %v", err.Error())
+		}
+		defer redisServer.Close()
+
+		redisConfig := &redis.Config{
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "ethereum",
+		}
+
+		db, err := redis.New(redisConfig)
+		if err != nil {
+			t.Fatalf("failed to init redis client: %v", err.Error())
+		}
+		poolClient := mocks.NewMockIPoolClient(ctrl)
+		faultyPools := []string{"0xabc", "0xxyz", "0xcdfgh"}
+		poolClient.EXPECT().GetFaultyPools(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(faultyPools, nil)
+		repo, err := NewRedisRepository(db.Client, poolClient, Config{
+			Redis: RedisRepositoryConfig{
+				Prefix:            "ethereum",
+				MaxFaultyPoolSize: 5,
+			},
+			Ristretto: RistrettoConfig{
+				NumCounters: 5000,
+				MaxCost:     500,
+				BufferItems: 64,
+
+				FaultyPools: struct {
+					Cost int64         `mapstructure:"cost"`
+					TTL  time.Duration `mapstructure:"ttl"`
+				}{Cost: 1, TTL: 10 * time.Minute},
+			},
+		})
+		assert.Nil(t, err)
+		res, err := repo.GetFaultyPools(context.Background())
+		repo.cache.Wait()
+
+		// assert in mem cache contains correct faulty pools
+		cachedData, ok := repo.cache.Get("ethereum:faultyPools")
+		assert.True(t, ok)
+		assert.ElementsMatch(t, res, faultyPools)
+		assert.ElementsMatch(t, cachedData, faultyPools)
+		assert.Nil(t, err)
+
+	})
+
+	t.Run("it should return correct faulty pools when keys doesn't exist in local memory cache with paging logic", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		// Setup redis server
+		redisServer, err := miniredis.Run()
+		if err != nil {
+			t.Fatalf("failed to setup redis for testing: %v", err.Error())
+		}
+		defer redisServer.Close()
+
+		redisConfig := &redis.Config{
+			Addresses: []string{redisServer.Addr()},
+			Prefix:    "ethereum",
+		}
+
+		db, err := redis.New(redisConfig)
+		if err != nil {
+			t.Fatalf("failed to init redis client: %v", err.Error())
+		}
+		poolClient := mocks.NewMockIPoolClient(ctrl)
+		faultyPools := []string{"0xabc", "0xxyz", "0xcdfgh"}
+		poolClient.EXPECT().GetFaultyPools(gomock.Any(), gomock.Eq(int64(0)), gomock.Eq(int64(3))).Times(1).Return(faultyPools, nil)
+		poolClient.EXPECT().GetFaultyPools(gomock.Any(), gomock.Eq(int64(3)), gomock.Eq(int64(3))).Times(1).Return([]string{"0xlmn", "0xdef"}, nil)
+		repo, err := NewRedisRepository(db.Client, poolClient, Config{
+			Redis: RedisRepositoryConfig{
+				Prefix:            "ethereum",
+				MaxFaultyPoolSize: 3,
+			},
+			Ristretto: RistrettoConfig{
+				NumCounters: 5000,
+				MaxCost:     500,
+				BufferItems: 64,
+
+				FaultyPools: struct {
+					Cost int64         `mapstructure:"cost"`
+					TTL  time.Duration `mapstructure:"ttl"`
+				}{Cost: 1, TTL: 10 * time.Minute},
+			},
+		})
+		assert.Nil(t, err)
+		res, err := repo.GetFaultyPools(context.Background())
+		repo.cache.Wait()
+
+		totalFaultyPools := []string{"0xabc", "0xxyz", "0xcdfgh", "0xlmn", "0xdef"}
+
+		// assert in mem cache contains correct faulty pools
+		cachedData, ok := repo.cache.Get("ethereum:faultyPools")
+		assert.True(t, ok)
+		assert.ElementsMatch(t, res, totalFaultyPools)
+		assert.ElementsMatch(t, cachedData, totalFaultyPools)
+		assert.Nil(t, err)
+
 	})
 }

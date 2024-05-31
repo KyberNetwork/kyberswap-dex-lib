@@ -36,16 +36,12 @@ func TestExcludeFaultyPools(t *testing.T) {
 		poolRepository := mocks.NewMockIPoolRepository(ctrl)
 		poolFactory := mocks.NewMockIPoolFactory(ctrl)
 
-		config := poolmanager.Config{
-			FaultyPoolsExpireThreshold: 30 * time.Second,
-			MaxFaultyPoolSize:          int64(500),
-		}
 		faultyPools := []string{
 			"address1",
 			"address2",
 			"address3",
 		}
-		poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Eq(int64(0)), gomock.Eq(config.MaxFaultyPoolSize)).
+		poolRepository.EXPECT().GetFaultyPools(gomock.Any()).
 			Return(faultyPools, nil).Times(1)
 		addresses := []string{
 			faultyPools[0],
@@ -54,63 +50,11 @@ func TestExcludeFaultyPools(t *testing.T) {
 		}
 
 		p := poolmanager.NewPointerSwapPoolManagerInstance(
-			states, poolFactory, poolRepository, poolRankRepository, config, poolCache,
+			states, poolFactory, poolRepository, poolRankRepository, poolmanager.Config{}, poolCache,
 			&sync.RWMutex{})
-		result := p.ExcludeFaultyPools(context.Background(), addresses, config)
+		result := p.ExcludeFaultyPools(context.Background(), addresses)
 		expected := []string{"address4"}
 		assert.Equal(t, result, expected)
-	})
-
-	t.Run("it should return success and correctly filter out faulty pool of the input address with paging mechanism", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		states := [3]*poolmanager.LockedState{}
-		for i := 0; i < 2; i++ {
-			states[i] = poolmanager.NewLockedState()
-		}
-		poolCache, _ := cachePolicy.New[string, struct{}](2)
-
-		poolRankRepository := mocks.NewMockIPoolRankRepository(ctrl)
-		poolRepository := mocks.NewMockIPoolRepository(ctrl)
-		poolFactory := mocks.NewMockIPoolFactory(ctrl)
-
-		config := poolmanager.Config{
-			FaultyPoolsExpireThreshold: 30 * time.Second,
-			MaxFaultyPoolSize:          int64(4),
-		}
-		faultyPools := []string{
-			"address1",
-			"address2",
-			"address3",
-			"address4",
-		}
-		poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Eq(int64(0)), gomock.Eq(config.MaxFaultyPoolSize)).
-			Return(faultyPools, nil).Times(1)
-		poolRepository.EXPECT().GetFaultyPools(
-			gomock.Any(),
-			gomock.Eq(config.MaxFaultyPoolSize),
-			gomock.Eq(config.MaxFaultyPoolSize)).
-			Return([]string{
-				"address5",
-				"address6",
-			}, nil).Times(1)
-
-		addresses := []string{
-			"address1",
-			"address2",
-			"address5",
-			"address6",
-			"address7",
-			"address8",
-		}
-
-		p := poolmanager.NewPointerSwapPoolManagerInstance(
-			states, poolFactory, poolRepository, poolRankRepository, config, poolCache,
-			&sync.RWMutex{})
-		result := p.ExcludeFaultyPools(context.Background(), addresses, config)
-		expected := []string{"address7", "address8"}
-		assert.ElementsMatch(t, result, expected)
 	})
 
 	t.Run("it should return success when faulty pool list is empty", func(t *testing.T) {
@@ -127,11 +71,7 @@ func TestExcludeFaultyPools(t *testing.T) {
 		poolRepository := mocks.NewMockIPoolRepository(ctrl)
 		poolFactory := mocks.NewMockIPoolFactory(ctrl)
 
-		config := poolmanager.Config{
-			FaultyPoolsExpireThreshold: 30 * time.Second,
-			MaxFaultyPoolSize:          int64(500),
-		}
-		poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Eq(int64(0)), gomock.Eq(config.MaxFaultyPoolSize)).
+		poolRepository.EXPECT().GetFaultyPools(gomock.Any()).
 			Return([]string{}, nil).Times(1)
 
 		addresses := []string{
@@ -144,9 +84,9 @@ func TestExcludeFaultyPools(t *testing.T) {
 		}
 
 		p := poolmanager.NewPointerSwapPoolManagerInstance(
-			states, poolFactory, poolRepository, poolRankRepository, config, poolCache,
+			states, poolFactory, poolRepository, poolRankRepository, poolmanager.Config{}, poolCache,
 			&sync.RWMutex{})
-		result := p.ExcludeFaultyPools(context.Background(), addresses, config)
+		result := p.ExcludeFaultyPools(context.Background(), addresses)
 		assert.ElementsMatch(t, result, addresses)
 	})
 
@@ -164,12 +104,8 @@ func TestExcludeFaultyPools(t *testing.T) {
 		poolRepository := mocks.NewMockIPoolRepository(ctrl)
 		poolFactory := mocks.NewMockIPoolFactory(ctrl)
 
-		config := poolmanager.Config{
-			FaultyPoolsExpireThreshold: 30 * time.Second,
-			MaxFaultyPoolSize:          int64(500),
-		}
 		testError := errors.New("test error")
-		poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Eq(int64(0)), gomock.Eq(config.MaxFaultyPoolSize)).
+		poolRepository.EXPECT().GetFaultyPools(gomock.Any()).
 			Return([]string{}, testError).Times(1)
 
 		addresses := []string{
@@ -182,9 +118,9 @@ func TestExcludeFaultyPools(t *testing.T) {
 		}
 
 		p := poolmanager.NewPointerSwapPoolManagerInstance(
-			states, poolFactory, poolRepository, poolRankRepository, config, poolCache,
+			states, poolFactory, poolRepository, poolRankRepository, poolmanager.Config{}, poolCache,
 			&sync.RWMutex{})
-		result := p.ExcludeFaultyPools(context.Background(), addresses, config)
+		result := p.ExcludeFaultyPools(context.Background(), addresses)
 		assert.ElementsMatch(t, result, addresses)
 	})
 
@@ -196,11 +132,9 @@ func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
 		nPools  = 100
 	)
 	config := poolmanager.Config{
-		StallingPMMThreshold:       500 * time.Millisecond,
-		PoolRenewalInterval:        500 * time.Millisecond,
-		FaultyPoolsExpireThreshold: 30 * time.Second,
-		MaxFaultyPoolSize:          int64(500),
-		Capacity:                   nPools,
+		StallingPMMThreshold: 500 * time.Millisecond,
+		PoolRenewalInterval:  500 * time.Millisecond,
+		Capacity:             nPools,
 	}
 
 	var ctrl = gomock.NewController(t)
@@ -244,8 +178,8 @@ func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
 	}
 	// Mocked PoolRank always return the poolAddressList above
 	poolRankRepository.EXPECT().FindGlobalBestPools(gomock.Any(), gomock.Any()).Return(poolAddressList).AnyTimes()
-	poolRepository.EXPECT().PoolsInBlacklist(gomock.Any()).Return(poolsInBlackList, nil).AnyTimes()
-	poolRepository.EXPECT().GetFaultyPools(gomock.Any(), gomock.Any(), gomock.Any()).
+	poolRepository.EXPECT().GetPoolsInBlacklist(gomock.Any()).Return(poolsInBlackList, nil).AnyTimes()
+	poolRepository.EXPECT().GetFaultyPools(gomock.Any()).
 		Return([]string{}, nil).AnyTimes()
 	poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Return([]*entity.Pool{}, nil).AnyTimes()
 	poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).Return(poolList).AnyTimes()

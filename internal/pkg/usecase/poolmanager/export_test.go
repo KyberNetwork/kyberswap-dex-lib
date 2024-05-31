@@ -28,6 +28,6 @@ func NewPointerSwapPoolManagerInstance(
 	}
 }
 
-func (m *PointerSwapPoolManager) ExcludeFaultyPools(ctx context.Context, addresses []string, config Config) []string {
-	return m.excludeFaultyPools(ctx, addresses, config)
+func (m *PointerSwapPoolManager) ExcludeFaultyPools(ctx context.Context, addresses []string) []string {
+	return m.excludeFaultyPools(ctx, addresses)
 }

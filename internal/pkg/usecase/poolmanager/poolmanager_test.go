@@ -49,7 +49,7 @@ func newMockPointerSwapPoolManager(configFile string) (*poolmanager.PointerSwapP
 		logger.Errorf(ctx, "fail to init redis client to pool service")
 		return nil, err
 	}
-	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, nil, cfg.Repository.Pool.Redis)
+	poolRepository, _ := pool.NewRedisRepository(poolRedisClient.Client, nil, cfg.Repository.Pool)
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil, nil)
 	return poolmanager.NewPointerSwapPoolManager(ctx, poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager, nil)
@@ -77,7 +77,7 @@ func newMockPoolManager(configFile string) (*poolmanager.PoolManager, error) {
 		logger.Errorf(ctx, "fail to init redis client to pool service")
 		return nil, err
 	}
-	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, nil, cfg.Repository.Pool.Redis)
+	poolRepository, _ := pool.NewRedisRepository(poolRedisClient.Client, nil, cfg.Repository.Pool)
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil, nil)
 	return poolmanager.NewPoolManager(poolRepository, poolFactory, cfg.UseCase.PoolManager), nil
 }

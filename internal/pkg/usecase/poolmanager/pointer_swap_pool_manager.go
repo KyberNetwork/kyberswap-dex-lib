@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	cachePolicy "github.com/hashicorp/golang-lru/v2"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -265,9 +266,9 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, po
 		logger.Errorf(ctx, "filtered Pool addresses after filterBlacklistedAddresses now equal to 0. Blacklist config %v. PoolAddresses original len: %d", p.config.BlacklistedPoolSet, len(poolAddresses))
 		return nil, getroute.ErrPoolSetFiltered
 	}
-	filteredPoolAddress = p.excludeFaultyPools(ctx, filteredPoolAddress, p.config)
+	filteredPoolAddress = p.excludeFaultyPools(ctx, filteredPoolAddress)
 	if len(filteredPoolAddress) == 0 {
-		logger.Errorf(ctx, "filtered Pool address after excludeFaultyPools now equal to 0. faulty config %v. PoolAddresses original len: %d", p.config.FaultyPoolsExpireThreshold, len(poolAddresses))
+		logger.Errorf(ctx, "filtered Pool address after excludeFaultyPools now equal to 0. PoolAddresses original len: %d", len(poolAddresses))
 		return nil, getroute.ErrPoolSetFiltered
 	}
 	// update cache policy
@@ -449,7 +450,7 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 
 	filteredPoolAddress := p.filterBlacklistedAddresses(poolAddresses)
 
-	filteredPoolAddress = p.excludeFaultyPools(ctx, filteredPoolAddress, p.config)
+	filteredPoolAddress = p.excludeFaultyPools(ctx, filteredPoolAddress)
 
 	poolEntities, err := p.poolRepository.FindByAddresses(ctx, filteredPoolAddress)
 	defer mempool.ReserveMany(poolEntities)
@@ -496,32 +497,16 @@ func (p *PointerSwapPoolManager) filterBlacklistedAddresses(poolAddresses []stri
 	return validPools
 }
 
-func (m *PointerSwapPoolManager) excludeFaultyPools(ctx context.Context, addresses []string, config Config) []string {
-	// we need to add threshold for expire time, any faulty pools are not expired but have the expire time near threshold considered as expired
-	offset := int64(0)
-
-	poolSet := make(map[string]struct{})
-	for {
-		faultyPools, err := m.poolRepository.GetFaultyPools(ctx, offset, config.MaxFaultyPoolSize)
-		if err != nil {
-			return addresses
-		}
-
-		for _, pool := range faultyPools {
-			poolSet[pool] = struct{}{}
-		}
-
-		// if faulty pool size is smaller than max config, then we already got the whole list
-		// adding len(faultyPools) == 0 to easy unit test (because MaxFaultyPoolSize is usually configured to 0 when unit test)
-		if len(faultyPools) == 0 || int64(len(faultyPools)) < config.MaxFaultyPoolSize {
-			break
-		}
-		offset += config.MaxFaultyPoolSize
+func (m *PointerSwapPoolManager) excludeFaultyPools(ctx context.Context, addresses []string) []string {
+	faultyPools, err := m.poolRepository.GetFaultyPools(ctx)
+	if err != nil {
+		return addresses
 	}
+	poolSet := mapset.NewSet[string](faultyPools...)
 
 	result := make([]string, 0, len(addresses))
 	for _, addr := range addresses {
-		if _, ok := poolSet[addr]; !ok {
+		if !poolSet.ContainsOne(addr) {
 			result = append(result, addr)
 		}
 	}

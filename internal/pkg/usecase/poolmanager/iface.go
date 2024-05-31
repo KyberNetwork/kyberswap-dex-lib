@@ -19,7 +19,7 @@ type IPoolFactory interface {
 //go:generate mockgen -destination ../../mocks/poolmanager/pool_repository.go -package poolmanager github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager IPoolRepository
 type IPoolRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Pool, error)
-	GetFaultyPools(ctx context.Context, offset, count int64) ([]string, error)
+	GetFaultyPools(ctx context.Context) ([]string, error)
 	GetPoolsInBlacklist(ctx context.Context) ([]string, error)
 }
 

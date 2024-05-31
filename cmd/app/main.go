@@ -344,7 +344,7 @@ func apiAction(c *cli.Context) (err error) {
 	}
 
 	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
-	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool.Redis)
+	poolRepository, err := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool)
 
 	blackjackRepo, err := blackjack.NewGRPCClient(cfg.Repository.Blackjack.GRPCClient)
 	if err != nil {
@@ -675,7 +675,7 @@ func indexerAction(c *cli.Context) (err error) {
 
 	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
 	// init repository
-	poolRepo := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool.Redis)
+	poolRepo, _ := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool)
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
 	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient,
 		gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
@@ -879,7 +879,7 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 	}
 
 	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
-	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool.Redis)
+	poolRepository, err := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool)
 	priceRepository := price.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Price.Redis)
 	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
 
@@ -1065,7 +1065,7 @@ func executorTrackerAction(c *cli.Context) (err error) {
 		},
 	)
 	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
-	poolRepository := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool.Redis)
+	poolRepository, err := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool)
 
 	// init usecase
 	var trackExecutorAddresses []string

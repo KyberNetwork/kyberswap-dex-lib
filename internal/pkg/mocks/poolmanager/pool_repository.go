@@ -35,21 +35,6 @@ func (m *MockIPoolRepository) EXPECT() *MockIPoolRepositoryMockRecorder {
 	return m.recorder
 }
 
-// CheckPoolsInBlacklist mocks base method.
-func (m *MockIPoolRepository) GetPoolsInBlacklist(arg0 context.Context) ([]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPoolsInBlacklist", arg0)
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CheckPoolsInBlacklist indicates an expected call of CheckPoolsInBlacklist.
-func (mr *MockIPoolRepositoryMockRecorder) PoolsInBlacklist(arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPoolsInBlacklist", reflect.TypeOf((*MockIPoolRepository)(nil).GetPoolsInBlacklist), arg1)
-}
-
 // FindByAddresses mocks base method.
 func (m *MockIPoolRepository) FindByAddresses(arg0 context.Context, arg1 []string) ([]*entity.Pool, error) {
 	m.ctrl.T.Helper()
@@ -66,16 +51,31 @@ func (mr *MockIPoolRepositoryMockRecorder) FindByAddresses(arg0, arg1 interface{
 }
 
 // GetFaultyPools mocks base method.
-func (m *MockIPoolRepository) GetFaultyPools(arg0 context.Context, arg1, arg2 int64) ([]string, error) {
+func (m *MockIPoolRepository) GetFaultyPools(arg0 context.Context) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetFaultyPools", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "GetFaultyPools", arg0)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetFaultyPools indicates an expected call of GetFaultyPools.
-func (mr *MockIPoolRepositoryMockRecorder) GetFaultyPools(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockIPoolRepositoryMockRecorder) GetFaultyPools(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFaultyPools", reflect.TypeOf((*MockIPoolRepository)(nil).GetFaultyPools), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFaultyPools", reflect.TypeOf((*MockIPoolRepository)(nil).GetFaultyPools), arg0)
+}
+
+// GetPoolsInBlacklist mocks base method.
+func (m *MockIPoolRepository) GetPoolsInBlacklist(arg0 context.Context) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPoolsInBlacklist", arg0)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPoolsInBlacklist indicates an expected call of GetPoolsInBlacklist.
+func (mr *MockIPoolRepositoryMockRecorder) GetPoolsInBlacklist(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPoolsInBlacklist", reflect.TypeOf((*MockIPoolRepository)(nil).GetPoolsInBlacklist), arg0)
 }

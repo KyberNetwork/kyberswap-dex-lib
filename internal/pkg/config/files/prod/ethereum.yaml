@@ -406,6 +406,13 @@ repository:
   pool:
     redis:
       prefix: *chainName
+    ristretto:
+      numCounters: 5000
+      maxCost: 500
+      bufferItems: 64
+      faultyPools:
+        cost: 1
+        ttl: 5s
   price:
     redis:
       prefix: *chainName

@@ -9,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
+	mapset "github.com/deckarep/golang-set/v2"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -218,31 +219,15 @@ func (m *PoolManager) filterBlacklistedAddresses(ctx context.Context, addresses 
 }
 
 func (m *PoolManager) filterFaultyPools(ctx context.Context, addresses []string, config Config) []string {
-	// we need to add threshold for expire time, any faulty pools are not expired but have the expire time near threshold considered as expired
-	offset := int64(0)
-
-	poolSet := make(map[string]struct{})
-	for {
-		faultyPools, err := m.poolRepository.GetFaultyPools(ctx, offset, config.MaxFaultyPoolSize)
-		if err != nil {
-			return addresses
-		}
-
-		for _, pool := range faultyPools {
-			poolSet[pool] = struct{}{}
-		}
-
-		// if faulty pool size is smaller than max config, then we already got the whole list
-		// adding len(faultyPools) == 0 to easy unit test (because MaxFaultyPoolSize is usually configured to 0 when unit test)
-		if len(faultyPools) == 0 || int64(len(faultyPools)) < config.MaxFaultyPoolSize {
-			break
-		}
-		offset += config.MaxFaultyPoolSize
+	faultyPools, err := m.poolRepository.GetFaultyPools(ctx)
+	if err != nil {
+		return addresses
 	}
+	poolSet := mapset.NewSet[string](faultyPools...)
 
 	result := make([]string, 0, len(addresses))
 	for _, addr := range addresses {
-		if _, ok := poolSet[addr]; !ok {
+		if !poolSet.ContainsOne(addr) {
 			result = append(result, addr)
 		}
 	}
