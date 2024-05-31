@@ -87,7 +87,9 @@ func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string
 
 	for _, res := range chunkResults {
 		if res.err != nil {
-			return nil, res.err
+			// continue with what we have instead of erroring out
+			logger.Errorf(ctx, "error getting onchain-price for chunk %v", res.err)
+			continue
 		}
 		for token, price := range res.prices {
 			prices[token] = price
@@ -189,6 +191,7 @@ func (r *grpcRepository) GetNativePriceInUsd(ctx context.Context) (*big.Float, e
 		Address: r.nativeTokenAddress,
 	})
 	if err != nil {
+		logger.Errorf(ctx, "error getting onchain-price usd for native %v", err)
 		return nil, err
 	}
 

@@ -16,6 +16,10 @@ type ristrettoRepository struct {
 	config         price.RistrettoConfig
 }
 
+const (
+	CacheKeyNativeUsd = "native-token-usd-price"
+)
+
 func NewRistrettoRepository(
 	grpcRepository *grpcRepository,
 	config price.RistrettoConfig,
@@ -66,12 +70,13 @@ func (r *ristrettoRepository) FindByAddresses(ctx context.Context, addresses []s
 
 	uncachedPrices, err := r.grpcRepository.FindByAddresses(ctx, uncachedAddresses)
 	if err != nil {
-		return nil, err
+		// just return what we have instead of discarding everything
+		return prices, nil
 	}
 
-	nativePriceInUsd, err := r.grpcRepository.GetNativePriceInUsd(ctx)
+	nativePriceInUsd, err := r.GetNativePriceInUsd(ctx)
 	if err != nil {
-		return nil, err
+		return prices, nil
 	}
 
 	for address, price := range uncachedPrices {
@@ -89,4 +94,23 @@ func (r *ristrettoRepository) FindByAddresses(ctx context.Context, addresses []s
 	}
 
 	return prices, nil
+}
+
+func (r *ristrettoRepository) GetNativePriceInUsd(ctx context.Context) (*big.Float, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[onchainprice] ristrettoRepository.GetNativePriceInUsd")
+	defer span.End()
+
+	if cachedPrice, found := r.cache.Get(CacheKeyNativeUsd); found {
+		if price, ok := cachedPrice.(*big.Float); ok {
+			return price, nil
+		}
+	}
+
+	price, err := r.grpcRepository.GetNativePriceInUsd(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	r.cache.SetWithTTL(CacheKeyNativeUsd, price, r.config.Price.Cost, r.config.Price.TTL)
+	return price, nil
 }
