@@ -1,77 +1,40 @@
-env: "staging"
+env: "production"
 pprof: false
 http:
   bindAddress: ":8080"
   mode: release #(debug,release,test)
-  prefix: /bsc
+  prefix: /aurora
 grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainId: &chainId 56
-  chainName: &chainName bsc
-  rpc: "https://bsc.kyberengineering.io"
+  chainId: &chainId 1313161554
+  chainName: &chainName aurora
+  rpc: "https://mainnet.aurora.dev"
   multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
-  executorAddress: &executorAddress "0xf081470f5C6FBCCF48cC4e5B82Dd926409DcdD67"
+  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-  gasTokenAddress: &gasTokenAddress "0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c"
+  gasTokenAddress: &gasTokenAddress "0xc9bdeed33cd01541e1eed10f90519d2c06fe3feb"
   whitelistedTokenSet: &whitelistedTokenSet
-    0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c: true # WBNB
-    0x55d398326f99059ff775485246999027b3197955: true # USDT
-    0x1af3f329e8be154074d8769d1ffa4ee058b1dbc3: true # DAI
-    0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d: true # USDC
-    0xe9e7cea3dedca5984780bafc599bd69add087d56: true # BUSD
-    0x2170ed0880ac9a755fd29b2688956bd959f933f8: true # ETH
-    0x7130d2a12b9bcbfae4f2634d864a1ee1ce3ead9c: true # BTCB
-    0x0e09fabb73bd3ade0a17ecc321fd13a19e81ce82: true # CAKE
-    0xfe56d5892bdffc7bf58f2e84be1b2c32d21c308b: true # KNC
-    0x0acfc95a193009f1ea45b7faeef2d5e4a47c21b4: true # VERSA
+    0x8bec47865ade3b172a928df8f990bc7f2a3b9f79: true # AURORA
+    0xc42c30ac6cc15fac9bd938618bcaa1a1fae8501d: true # NEAR
+    0xc9bdeed33cd01541e1eed10f90519d2c06fe3feb: true # WETH
+    0x4988a896b1227218e4a686fde5eabdcabd91571f: true # USDT
+    0xe3520349f477a5f6eb06107066048508498a291b: true # DAI
+    0xb12bfca5a55806aaf64e99521918a4bf0fc40802: true # USDC
+    0xf4eb217ba2454613b15dbdea6e5f22276410e89e: true # WBTC
+    0x885f8cf6e45bdd3fdcdc644efdcd0ac93880c781: true # PAD
   blacklistedPoolSet: &blacklistedPoolSet
-    0xfeafe253802b77456b4627f8c2306a9cebb5d681: true
-    0xffe166ceabef3af31977fb76b93892e8c4c504e6: true
   availableSources: &availableSources
-    - "nomiswap-stable"
     - "kyberswap"
     - "kyberswap-static"
-    - "kyberswap-elastic"
-    - "sushiswap"
-    - "oneswap"
-    - "ellipsis"
-    - "nerve"
-    - "apeswap"
-    - "jetswap"
-    - "mdex"
-    - "pancake"
-    - "wault"
-    - "pancake-legacy"
-    - "synapse"
-    - "pantherswap"
+    - "trisolaris"
+    - "wannaswap"
+    - "nearpad"
     - "dodo"
-    - "biswap"
-    - "fraxswap"
-    - "kyberswap-limit-order"
-    - "kyberswap-limit-order-v2"
-    - "pancake-v3"
-    - "maverick-v1"
-    - "thena"
-    - "sushiswap-v3"
-    - "pancake-stable"
-    - "iziswap"
-    - "wombat"
-    - "thena-fusion"
-    - "woofi-v2"
-    - "crowdswap-v2"
-    - "usdfi"
-    - "nomiswap"
-    - "traderjoe-v21"
-    - "smardex"
-    - "hashflow-v3"
-    - "squadswap"
-    - "liquidus-finance"
-    - "native-v1"
+    - "curve"
+    - "curve-stable-plain"
   featureFlags: &featureFlags
-  hashflowAPIKey:
-  nativeAPIKey:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -234,18 +197,8 @@ useCase:
           ttl: 10s
       ttlByAmountUsdRange:
         - amountUSDLowerBound: 0
-          ttl: 60s
-        - amountUSDLowerBound: 3
-          ttl: 45s
-        - amountUSDLowerBound: 11
-          ttl: 40s
-        - amountUSDLowerBound: 21
-          ttl: 30s
-        - amountUSDLowerBound: 51
-          ttl: 20s
+          ttl: 10s
         - amountUSDLowerBound: 101
-          ttl: 15s
-        - amountUSDLowerBound: 201
           ttl: 10s
         - amountUSDLowerBound: 500
           ttl: 10s
@@ -259,44 +212,25 @@ useCase:
           ttl: 10s
       ttlByAmountRange:
         - amountLowerBound: "0"
+          ttl: 30s
+        - amountLowerBound: "5e18"
           ttl: 10s
       priceImpactThreshold: 0.005
-      shrinkFuncName: "decimal"
+      shrinkFuncName: "round"
       shrinkDecimalBase: 10
       shrinkFuncPowExp: 0.7
       shrinkFuncLogPercent: 1.01
       enableNewCacheKeyGenerator: false
       shrinkAmountInConfigs:
         - shrinkFuncName: "logarithm"
+          shrinkFuncConstant: 1.1
+        - shrinkFuncName: "logarithm"
           shrinkFuncConstant: 1.3
         - shrinkFuncName: "logarithm"
           shrinkFuncConstant: 1.5
-        - shrinkFuncName: "logarithm"
-          shrinkFuncConstant: 2
       shrinkAmountInThreshold: 100000
   buildRoute:
     chainId: *chainId
-    rfq:
-      - id: kyberswap-limit-order-v2
-        handler: limit-order
-        properties:
-          chainID: *chainId
-          limitOrderHTTPUrl: https://limit-order.stg.kyberengineering.io
-      - id: hashflow-v3
-        handler: hashflow-v3
-        properties:
-          http:
-            base_url: "https://api.hashflow.com"
-            source: kyber
-            timeout: 3s
-            retry_count: 3
-      - id: native-v1
-        handler: native-v1
-        properties:
-          http:
-            base_url: "https://newapi.native.org"
-            timeout: 10s
-            retry_count: 3
     faultyPools:
       windowSize: 15m
       faultyExpiredTime: 3m
@@ -316,7 +250,7 @@ useCase:
     maxGoroutines: 0
     enableRankByNative: false
   trackExecutor:
-    subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-bsc
+    subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-aurora
 job:
   indexPools:
     forceScanAllEveryNth: 10
@@ -355,13 +289,21 @@ repository:
   price:
     redis:
       prefix: *chainName
-    ristretto:
+    ristretto: &pricecache
       numCounters: 10000
       maxCost: 1000
       bufferItems: 64
       price:
         cost: 1
         ttl: 1m
+  onchainprice:
+    enabled: false
+    grpc:
+      base_url: onchain-price.core-cluster.gke.production.internal:80
+      timeout: 300ms
+      insecure: true
+      client_id: router-service
+    ristretto: *pricecache
   poolService:
     baseUrl: "0.0.0.0:10443"
     insecure: true
@@ -380,16 +322,16 @@ repository:
     redis:
       prefix: *chainName
     ristretto:
-      numCounters: 5000
-      maxCost: 500
+      numCounters: 10000
+      maxCost: 1000
       bufferItems: 64
       prefix: *chainName
       route:
         cost: 1
-        ttl: 30s
+        ttl: 10s
   blackjack:
     grpcClient:
-      baseURL: blackjack-global-api.blackjack.svc:9080
+      baseURL: blackjack.core-cluster.gke.production.internal:80
       insecure: true
       timeout: 100ms
   erc20balanceslot:
