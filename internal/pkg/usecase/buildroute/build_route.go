@@ -558,6 +558,7 @@ func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, routeSummary 
 				"error":            err,
 				"stacktrace":       string(debug.Stack()),
 				"failedTrackPools": totalSet.Difference(addedSet),
+				"requestId":        requestid.GetRequestIDFromCtx(ctx),
 			}).Error("fail to add faulty pools")
 	}
 
