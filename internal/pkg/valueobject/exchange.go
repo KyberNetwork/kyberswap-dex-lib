@@ -112,7 +112,11 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 	dexValueObject.ExchangeBalancerV1: {},
 
 	// executeDODO
-	dexValueObject.ExchangeDodo: {},
+	dexValueObject.ExchangeDodo:               {},
+	dexValueObject.ExchangeDodoClassical:      {},
+	dexValueObject.ExchangeDodoPrivatePool:    {},
+	dexValueObject.ExchangeDodoStablePool:     {},
+	dexValueObject.ExchangeDodoVendingMachine: {},
 
 	// executeWrappedstETH
 	dexValueObject.ExchangeMakerLido: {},

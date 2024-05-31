@@ -3,7 +3,7 @@ module github.com/KyberNetwork/router-service
 go 1.21.3
 
 replace (
-	github.com/daoleno/uniswap-sdk-core v0.1.5 => github.com/KyberNetwork/uniswap-sdk-core v0.1.5
+	github.com/daoleno/uniswap-sdk-core v0.1.7 => github.com/KyberNetwork/uniswap-sdk-core v0.1.9
 	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.5.0
 	github.com/ethereum/go-ethereum => github.com/ethereum/go-ethereum v1.13.14
 )
@@ -12,15 +12,15 @@ require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/KyberNetwork/aevm v1.0.40
-	github.com/KyberNetwork/aggregator-encoding v0.15.8
+	github.com/KyberNetwork/aggregator-encoding v0.16.0
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
-	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
+	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.3
 	github.com/KyberNetwork/ethrpc v0.7.1
 	github.com/KyberNetwork/grpc-service v0.3.2-0.20240515045807-95ca25818045
 	github.com/KyberNetwork/kutils v0.2.3
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.56.5
+	github.com/KyberNetwork/kyberswap-dex-lib v0.57.0
 	github.com/KyberNetwork/logger v0.2.0
 	github.com/KyberNetwork/pool-service v0.45.1
 	github.com/KyberNetwork/reload v0.1.1
@@ -92,8 +92,8 @@ require (
 	github.com/DataDog/sketches-go v1.4.4 // indirect
 	github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0 // indirect
 	github.com/KyberNetwork/int256 v0.1.4 // indirect
-	github.com/KyberNetwork/pancake-v3-sdk v0.2.0 // indirect
-	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.0 // indirect
+	github.com/KyberNetwork/pancake-v3-sdk v0.2.1 // indirect
+	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.1 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20230218143504-906a9b012302 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
