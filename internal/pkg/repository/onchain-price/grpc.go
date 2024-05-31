@@ -15,6 +15,8 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
+	"github.com/samber/lo"
+	"github.com/sourcegraph/conc/iter"
 	"google.golang.org/grpc/metadata"
 )
 
@@ -24,6 +26,10 @@ type grpcRepository struct {
 	tokenRepository    ITokenRepository
 	nativeTokenAddress string
 }
+
+const (
+	MaxTokensPerCall = 100
+)
 
 type ITokenRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*dexlibEntity.Token, error)
@@ -54,10 +60,44 @@ func NewGRPCRepository(config GrpcConfig, chainId valueobject.ChainID, tokenRepo
 	}, nil
 }
 
+type priceAndError struct {
+	prices map[string]*entity.OnchainPrice
+	err    error
+}
+
 func (r *grpcRepository) FindByAddresses(ctx context.Context, addresses []string) (map[string]*entity.OnchainPrice, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[onchainprice] grpcRepository.FindByAddresses")
 	defer span.End()
 
+	if len(addresses) <= MaxTokensPerCall {
+		return r.findByAddressesSingleChunk(ctx, addresses)
+	}
+
+	// if there are too many tokens then break to several chunks
+	prices := make(map[string]*entity.OnchainPrice, len(addresses))
+	chunks := lo.Chunk(addresses, MaxTokensPerCall)
+
+	chunkResults := iter.Map(chunks, func(chunk *[]string) priceAndError {
+		chunkPrices, err := r.findByAddressesSingleChunk(ctx, *chunk)
+		if err != nil {
+			return priceAndError{nil, err}
+		}
+		return priceAndError{chunkPrices, nil}
+	})
+
+	for _, res := range chunkResults {
+		if res.err != nil {
+			return nil, res.err
+		}
+		for token, price := range res.prices {
+			prices[token] = price
+		}
+	}
+
+	return prices, nil
+}
+
+func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, addresses []string) (map[string]*entity.OnchainPrice, error) {
 	if len(addresses) == 0 {
 		return nil, nil
 	}

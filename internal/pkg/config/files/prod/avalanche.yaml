@@ -360,7 +360,7 @@ repository:
     enabled: false
     grpc:
       base_url: onchain-price.core-cluster.gke.production.internal:80
-      timeout: 100ms
+      timeout: 300ms
       insecure: true
       client_id: router-service
     ristretto: *pricecache
