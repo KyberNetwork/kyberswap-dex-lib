@@ -83,7 +83,11 @@ var (
 	ExchangeBalancer   Exchange = "balancer"
 	ExchangeBeethovenX Exchange = "beethovenx"
 
-	ExchangeDodo Exchange = "dodo"
+	ExchangeDodo               Exchange = "dodo"
+	ExchangeDodoClassical      Exchange = "dodo-classical"
+	ExchangeDodoPrivatePool    Exchange = "dodo-dpp"
+	ExchangeDodoStablePool     Exchange = "dodo-dsp"
+	ExchangeDodoVendingMachine Exchange = "dodo-dvm"
 
 	ExchangeGMX       Exchange = "gmx"
 	ExchangeMadMex    Exchange = "madmex"
@@ -224,6 +228,7 @@ var (
 	ExchangeIZiSwap Exchange = "iziswap"
 
 	ExchangeWooFiV2  Exchange = "woofi-v2"
+	ExchangeWooFiV3  Exchange = "woofi-v3"
 	ExchangeVesync   Exchange = "vesync"
 	ExchangeDackieV2 Exchange = "dackie-v2"
 
@@ -397,6 +402,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBalancer:                   {},
 	ExchangeBeethovenX:                 {},
 	ExchangeDodo:                       {},
+	ExchangeDodoClassical:              {},
+	ExchangeDodoPrivatePool:            {},
+	ExchangeDodoStablePool:             {},
+	ExchangeDodoVendingMachine:         {},
 	ExchangeGMX:                        {},
 	ExchangeMadMex:                     {},
 	ExchangeMetavault:                  {},
@@ -503,6 +512,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeTraderJoeV21:               {},
 	ExchangeIZiSwap:                    {},
 	ExchangeWooFiV2:                    {},
+	ExchangeWooFiV3:                    {},
 	ExchangeVesync:                     {},
 	ExchangeDackieV2:                   {},
 	ExchangeMMFV3:                      {},

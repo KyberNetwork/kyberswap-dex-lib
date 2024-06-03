@@ -120,20 +120,24 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
-		if !amountOut.IsZero() {
-			return &pool.CalcAmountOutResult{
-				TokenAmountOut: &pool.TokenAmount{
-					Token:  tokenOut,
-					Amount: amountOut.ToBig(),
-				},
-				Fee: &pool.TokenAmount{
-					Token:  tokenOut,
-					Amount: adminFee.ToBig(),
-				},
-				Gas: t.gas.Exchange,
-			}, nil
+
+		if amountOut.IsZero() {
+			return &pool.CalcAmountOutResult{}, ErrZero
 		}
+
+		return &pool.CalcAmountOutResult{
+			TokenAmountOut: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: amountOut.ToBig(),
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: adminFee.ToBig(),
+			},
+			Gas: t.gas.Exchange,
+		}, nil
 	}
+
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
 }
 
@@ -158,19 +162,21 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 			return &pool.CalcAmountInResult{}, err
 		}
 
-		if !amountIn.IsZero() {
-			return &pool.CalcAmountInResult{
-				TokenAmountIn: &pool.TokenAmount{
-					Token:  tokenIn,
-					Amount: amountIn.ToBig(),
-				},
-				Fee: &pool.TokenAmount{
-					Token:  tokenAmountOut.Token,
-					Amount: adminFee.ToBig(),
-				},
-				Gas: t.gas.Exchange,
-			}, nil
+		if amountIn.IsZero() {
+			return &pool.CalcAmountInResult{}, ErrZero
 		}
+
+		return &pool.CalcAmountInResult{
+			TokenAmountIn: &pool.TokenAmount{
+				Token:  tokenIn,
+				Amount: amountIn.ToBig(),
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenAmountOut.Token,
+				Amount: adminFee.ToBig(),
+			},
+			Gas: t.gas.Exchange,
+		}, nil
 	}
 
 	return &pool.CalcAmountInResult{}, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)

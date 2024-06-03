@@ -350,6 +350,10 @@ func TestPoolSimulatorPlain_CalcAmountIn(t *testing.T) {
 
 		// plain oracle: https://arbiscan.io/address/0x6eb2dc694eb516b16dc9fbc678c60052bbdd7d80#readContract
 		"{\"address\":\"0x6eb2dc694eb516b16dc9fbc678c60052bbdd7d80\",\"exchange\":\"curve-stable-plain\",\"type\":\"curve-stable-plain\",\"timestamp\":1709021551,\"reserves\":[\"171562283322052190070\",\"159666449951883581558\",\"344265475511890460140\"],\"tokens\":[{\"address\":\"0x82af49447d8a07e3bd95bd0d56f35241523fbab1\",\"symbol\":\"ETH\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x5979d7b546e38e414f7e9822514be443a4800529\",\"symbol\":\"wstETH\",\"decimals\":18,\"swappable\":true}],\"extra\":\"{\\\"InitialA\\\":\\\"5000\\\",\\\"FutureA\\\":\\\"5000\\\",\\\"InitialATime\\\":0,\\\"FutureATime\\\":0,\\\"SwapFee\\\":\\\"4000000\\\",\\\"AdminFee\\\":\\\"5000000000\\\",\\\"RateMultipliers\\\":[\\\"1000000000000000000\\\",\\\"1158379174506084879\\\"]}\",\"staticExtra\":\"{\\\"APrecision\\\":\\\"100\\\",\\\"LpToken\\\":\\\"0xDbcD16e622c95AcB2650b38eC799f76BFC557a0b\\\",\\\"Oracle\\\":\\\"0xb1552c5e96b312d0bf8b554186f846c40614a540\\\"}\"}",
+
+		// plain oracle: https://arbiscan.io/address/0x6eb2dc694eb516b16dc9fbc678c60052bbdd7d80#readContract
+		// same pool as above, but at different block
+		"{\"address\":\"0x6eb2dc694eb516b16dc9fbc678c60052bbdd7d80\",\"exchange\":\"curve-stable-plain\",\"type\":\"curve-stable-plain\",\"timestamp\":1716781516,\"reserves\":[\"53671077891842067019\",\"46820071324304930671\",\"104084464891898466723\"],\"tokens\":[{\"address\":\"0x82af49447d8a07e3bd95bd0d56f35241523fbab1\",\"symbol\":\"ETH\",\"decimals\":18,\"swappable\":true},{\"address\":\"0x5979d7b546e38e414f7e9822514be443a4800529\",\"symbol\":\"wstETH\",\"decimals\":18,\"swappable\":true}],\"extra\":\"{\\\"InitialA\\\":\\\"5000\\\",\\\"FutureA\\\":\\\"5000\\\",\\\"InitialATime\\\":0,\\\"FutureATime\\\":0,\\\"SwapFee\\\":\\\"4000000\\\",\\\"AdminFee\\\":\\\"5000000000\\\",\\\"RateMultipliers\\\":[\\\"1000000000000000000\\\",\\\"1167796240393419728\\\"]}\",\"staticExtra\":\"{\\\"APrecision\\\":\\\"100\\\",\\\"LpToken\\\":\\\"0xDbcD16e622c95AcB2650b38eC799f76BFC557a0b\\\",\\\"Oracle\\\":\\\"0xb1552c5e96b312d0bf8b554186f846c40614a540\\\",\\\"IsNativeCoin\\\":[true,false]}\"}",
 	}
 
 	testcases := []struct {
@@ -386,14 +390,19 @@ func TestPoolSimulatorPlain_CalcAmountIn(t *testing.T) {
 
 		{4, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", 50000000000000123, "0x83f20f44975d03b1b09e64809b757c47f942beea", 47193766327732350},
 		{4, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", 500000000000123, "0x83f20f44975d03b1b09e64809b757c47f942beea", 471937662271307},
-		{4, "0x83f20f44975d03b1b09e64809b757c47f942beea", 500000000000123, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", 501065829892009},
-		{4, "0x83f20f44975d03b1b09e64809b757c47f942beea", 50000000000000123, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", 50106583096228911},
+		{4, "0x83f20f44975d03b1b09e64809b757c47f942beea", 500000000000123, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", 529836941406181},
+		{4, "0x83f20f44975d03b1b09e64809b757c47f942beea", 50000000000000123, "0xf939e0a03fb07f59a73314e73794be0e57ac1b4e", 52983694260290886},
 
 		// off by 1 wei, should be acceptable
 		{5, "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", 50000000000000123, "0x5979d7b546e38e414f7e9822514be443a4800529", 43245101822358613},
 		{5, "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", 500000000000123, "0x5979d7b546e38e414f7e9822514be443a4800529", 432448641536457},
-		{5, "0x5979d7b546e38e414f7e9822514be443a4800529", 500000000000123, "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", 499461806509854},
-		{5, "0x5979d7b546e38e414f7e9822514be443a4800529", 50000000000000123, "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", 49946454721780546},
+		{5, "0x5979d7b546e38e414f7e9822514be443a4800529", 500000000000123, "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", 578566160201356},
+		{5, "0x5979d7b546e38e414f7e9822514be443a4800529", 50000000000000123, "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", 57856983777884098},
+
+		{6, "0x5979d7b546e38e414f7e9822514be443a4800529", 108943899959209149, "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", 127234743023987783},
+		{6, "0x5979d7b546e38e414f7e9822514be443a4800529", 1089438999592091496, "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", 1272875177310715064},
+		{6, "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", 127234743023987783, "0x5979d7b546e38e414f7e9822514be443a4800529", 109041158919929365},
+		{6, "0x82af49447d8a07e3bd95bd0d56f35241523fbab1", 1272347430239877836, "0x5979d7b546e38e414f7e9822514be443a4800529", 1090864910361561730},
 	}
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {

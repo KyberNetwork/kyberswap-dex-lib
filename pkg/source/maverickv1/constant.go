@@ -10,7 +10,7 @@ import (
 const (
 	DexTypeMaverickV1     = "maverick-v1"
 	graphQLRequestTimeout = 20 * time.Second
-	defaultChunk          = 1000
+	defaultChunk          = 200
 
 	poolMethodFee         = "fee"
 	poolMethodGetState    = "getState"

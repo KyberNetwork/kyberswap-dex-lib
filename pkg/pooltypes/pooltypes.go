@@ -12,6 +12,10 @@ import (
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
 	curveStableNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	curveTricryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/tricrypto-ng"
+	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
+	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
+	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
+	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
@@ -40,7 +44,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dmm"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dodo"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dystopia"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/equalizer"
@@ -116,8 +119,8 @@ type Types struct {
 	IronStable                     string
 	DodoClassical                  string
 	DodoVendingMachine             string
-	DodoStable                     string
-	DodoPrivate                    string
+	DodoStablePool                 string
+	DodoPrivatePool                string
 	Velodrome                      string
 	VelodromeV2                    string
 	Velocimeter                    string
@@ -228,10 +231,10 @@ var (
 		Nerve:                          nerve.DexTypeNerve,
 		OneSwap:                        oneswap.DexTypeOneSwap,
 		IronStable:                     ironstable.DexTypeIronStable,
-		DodoClassical:                  dodo.PoolTypeDodoClassical,
-		DodoVendingMachine:             dodo.PoolTypeDodoVendingMachine,
-		DodoStable:                     dodo.PoolTypeDodoStable,
-		DodoPrivate:                    dodo.PoolTypeDodoPrivate,
+		DodoClassical:                  dodoclassical.PoolType,
+		DodoVendingMachine:             dododvm.PoolType,
+		DodoStablePool:                 dododsp.PoolType,
+		DodoPrivatePool:                dododpp.PoolType,
 		Velodrome:                      velodrome.DexTypeVelodrome,
 		VelodromeV2:                    velodromev2.DexTypeVelodromeV2,
 		Velocimeter:                    velocimeter.DexTypeVelocimeter,
