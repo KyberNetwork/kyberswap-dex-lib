@@ -152,6 +152,7 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 					logger.Debugf(ctx, "invalid price %v (%v)", p.Address, detail.PriceByQuote)
 					prices[p.Address].NativePrice.Buy = big.NewFloat(0)
 					prices[p.Address].NativePriceRaw.Buy = big.NewFloat(0)
+					continue
 				}
 				prices[p.Address].NativePrice.Buy = price
 				prices[p.Address].NativePriceRaw.Buy = new(big.Float).Quo(
@@ -167,6 +168,7 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 					logger.Debugf(ctx, "invalid price %v (%v)", p.Address, detail.PriceByQuote)
 					prices[p.Address].NativePrice.Sell = big.NewFloat(0)
 					prices[p.Address].NativePriceRaw.Sell = big.NewFloat(0)
+					continue
 				}
 				prices[p.Address].NativePrice.Sell = price
 				prices[p.Address].NativePriceRaw.Sell = new(big.Float).Quo(
