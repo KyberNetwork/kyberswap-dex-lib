@@ -189,9 +189,9 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 			Tokens:    []*entity.PoolToken{&token0, &token1},
 			Extra:     extra,
 		}
-		if strings.ToLower(poolAddress) != "0x50e00ac0b02fedb1b8044a565b86311425b1355f" {
-			continue
-		}
+		// if strings.ToLower(poolAddress) != "0x50e00ac0b02fedb1b8044a565b86311425b1355f" {
+		// 	continue
+		// }
 		pools = append(pools, newPool)
 	}
 
