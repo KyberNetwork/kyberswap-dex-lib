@@ -33,6 +33,9 @@ import (
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/aqua"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/classic"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
@@ -83,7 +86,6 @@ import (
 	solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3"
 	swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswapv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoev20"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
@@ -261,9 +263,9 @@ var (
 		MuteSwitch:                     muteswitch.DexTypeMuteSwitch,
 		SyncSwapClassic:                syncswap.PoolTypeSyncSwapClassic,
 		SyncSwapStable:                 syncswap.PoolTypeSyncSwapStable,
-		SyncSwapV2Classic:              syncswapv2.PoolTypeSyncSwapV2Classic,
-		SyncSwapV2Stable:               syncswapv2.PoolTypeSyncSwapV2Stable,
-		SyncSwapV2Aqua:                 syncswapv2.PoolTypeSyncSwapV2Aqua,
+		SyncSwapV2Classic:              syncswapv2classic.PoolTypeSyncSwapV2Classic,
+		SyncSwapV2Stable:               syncswapv2stable.PoolTypeSyncSwapV2Stable,
+		SyncSwapV2Aqua:                 syncswapv2aqua.PoolTypeSyncSwapV2Aqua,
 		PancakeV3:                      pancakev3.DexTypePancakeV3,
 		MaverickV1:                     maverickv1.DexTypeMaverickV1,
 		AlgebraV1:                      algebrav1.DexTypeAlgebraV1,

@@ -1,4 +1,4 @@
-package syncswapv2
+package syncswapv2aqua
 
 import (
 	"bytes"
@@ -8,8 +8,6 @@ import (
 
 var (
 	masterABI       abi.ABI
-	classicPoolABI  abi.ABI
-	stablePoolABI   abi.ABI
 	aquaPoolABI     abi.ABI
 	feeManagerV2ABI abi.ABI
 )
@@ -20,8 +18,6 @@ func init() {
 		data []byte
 	}{
 		{&masterABI, masterABIData},
-		{&classicPoolABI, classicPoolABIData},
-		{&stablePoolABI, stablePoolABIData},
 		{&aquaPoolABI, aquaPoolABIData},
 		{&feeManagerV2ABI, feeManagerV2ABIData},
 	}

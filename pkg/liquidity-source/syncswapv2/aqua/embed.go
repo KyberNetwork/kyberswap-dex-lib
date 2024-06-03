@@ -1,15 +1,9 @@
-package syncswapv2
+package syncswapv2aqua
 
 import _ "embed"
 
 //go:embed abi/Master.json
 var masterABIData []byte
-
-//go:embed abi/ClassicPool.json
-var classicPoolABIData []byte
-
-//go:embed abi/StablePool.json
-var stablePoolABIData []byte
 
 //go:embed abi/AquaPool.json
 var aquaPoolABIData []byte

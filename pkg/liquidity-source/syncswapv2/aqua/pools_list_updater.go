@@ -1,4 +1,4 @@
-package syncswapv2
+package syncswapv2aqua
 
 import (
 	"context"
@@ -125,14 +125,14 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
 	for i := 0; i < len(poolAddresses); i++ {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    classicPoolABI,
+			ABI:    aquaPoolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodPoolType,
 			Params: nil,
 		}, []interface{}{&poolTypes[i]})
 
 		calls.AddCall(&ethrpc.Call{
-			ABI:    classicPoolABI,
+			ABI:    aquaPoolABI,
 			Target: poolAddresses[i].Hex(),
 			Method: poolMethodGetAssets,
 			Params: nil,
@@ -158,20 +158,16 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		poolAddress := strings.ToLower(poolAddresses[i].Hex())
 		token0Address := strings.ToLower(assets[i][0].Hex())
 		token1Address := strings.ToLower(assets[i][1].Hex())
-
-		var poolType = PoolTypeSyncSwapV2Classic
-		if int(poolTypes[i]) == poolTypeSyncSwapV2StableInContract {
-			poolType = PoolTypeSyncSwapV2Stable
-		} else if int(poolTypes[i]) == poolTypeSyncSwapV2AquaInContract {
-			poolType = PoolTypeSyncSwapV2Aqua
-			temp, err := json.Marshal(ExtraAquaPool{
-				FeeManagerAddress: feeManagers[i].Hex(),
-			})
-			if err != nil {
-				return nil, err
-			}
-			extra = string(temp)
+		if int(poolTypes[i]) != poolTypeSyncSwapV2AquaInContract {
+			continue
 		}
+		temp, err := json.Marshal(ExtraAquaPool{
+			FeeManagerAddress: feeManagers[i].Hex(),
+		})
+		if err != nil {
+			return nil, err
+		}
+		extra = string(temp)
 
 		var token0 = entity.PoolToken{
 			Address:   token0Address,
@@ -187,7 +183,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 		newPool := entity.Pool{
 			Address:   poolAddress,
 			Exchange:  d.config.DexID,
-			Type:      poolType,
+			Type:      PoolTypeSyncSwapV2Aqua,
 			Timestamp: time.Now().Unix(),
 			Reserves:  entity.PoolReserves{reserveZero, reserveZero},
 			Tokens:    []*entity.PoolToken{&token0, &token1},
