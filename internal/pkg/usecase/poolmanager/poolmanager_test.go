@@ -50,7 +50,7 @@ func newMockPointerSwapPoolManager(configFile string) (*poolmanager.PointerSwapP
 		return nil, err
 	}
 	poolRepository, _ := pool.NewRedisRepository(poolRedisClient.Client, nil, cfg.Repository.Pool)
-	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
+	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank)
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, nil, nil)
 	return poolmanager.NewPointerSwapPoolManager(ctx, poolRepository, poolFactory, poolRankRepository, cfg.UseCase.PoolManager, nil)
 }
@@ -130,7 +130,7 @@ func listAddresses(configFile, tokenIn, tokenOut string) ([]string, []string, er
 	if err != nil {
 		return nil, nil, err
 	}
-	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
+	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank)
 	aggregatorConfig := cfg.UseCase.GetRoute.Aggregator
 	poolAddress, err := poolRankRepository.FindBestPoolIDs(
 		context.Background(), tokenIn, tokenOut,

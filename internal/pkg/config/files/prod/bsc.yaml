@@ -380,6 +380,7 @@ repository:
   poolRank:
     redis:
       prefix: *chainName
+    useNativeRanking: false
   route:
     redis:
       prefix: *chainName

@@ -15,6 +15,13 @@ import (
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
+func wrap(cfg poolrank.RedisRepositoryConfig) poolrank.Config {
+	return poolrank.Config{
+		Redis:            cfg,
+		UseNativeRanking: false,
+	}
+}
+
 func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 	t.Run("it should return correct data when both tokens in pool are in whitelist", func(t *testing.T) {
 		// Setup redis server
@@ -35,9 +42,9 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{
 			Prefix: "",
-		})
+		}))
 
 		// Prepare data
 		redisPools := []*entity.Pool{
@@ -187,9 +194,9 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{
 			Prefix: "",
-		})
+		}))
 
 		// Prepare data
 		redisPools := []*entity.Pool{
@@ -339,7 +346,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{Prefix: ""}))
 
 		// Prepare data
 		redisPools := []*entity.Pool{
@@ -489,7 +496,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{Prefix: ""}))
 
 		// Prepare data
 		redisPools := []*entity.Pool{
@@ -637,7 +644,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{Prefix: ""}))
 
 		redisServer.Close()
 
@@ -683,7 +690,7 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{Prefix: ""}))
 
 		p := &entity.Pool{
 			Address:      "address1",
@@ -756,7 +763,7 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{Prefix: ""}))
 
 		p := &entity.Pool{
 			Address:      "address1",
@@ -828,7 +835,7 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{Prefix: ""}))
 
 		p := &entity.Pool{
 			Address:      "address1",
@@ -901,7 +908,7 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{Prefix: ""}))
 
 		p := &entity.Pool{
 			Address:      "address1",
@@ -971,7 +978,7 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{Prefix: ""}))
 
 		redisServer.Close()
 
@@ -1004,7 +1011,7 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{Prefix: ""}))
 
 		p := &entity.Pool{
 			Address:      "address1",
@@ -1081,7 +1088,7 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{Prefix: ""}))
 
 		p := &entity.Pool{
 			Address:      "address1",
@@ -1153,7 +1160,7 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{Prefix: ""}))
 
 		p := &entity.Pool{
 			Address:      "address1",
@@ -1226,7 +1233,7 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{Prefix: ""}))
 
 		p := &entity.Pool{
 			Address:      "address1",
@@ -1296,7 +1303,7 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 			t.Fatalf("failed to init redis client: %v", err.Error())
 		}
 
-		repo := poolrank.NewRedisRepository(db.Client, poolrank.RedisRepositoryConfig{Prefix: ""})
+		repo := poolrank.NewRedisRepository(db.Client, wrap(poolrank.RedisRepositoryConfig{Prefix: ""}))
 
 		redisServer.Close()
 

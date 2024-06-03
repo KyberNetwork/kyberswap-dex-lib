@@ -297,7 +297,7 @@ func apiAction(c *cli.Context) (err error) {
 	ethClient := ethrpc.New(cfg.Common.RPC)
 
 	// init repositories
-	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
+	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank)
 	routeRedisRepository := route.NewRedisRepository(routerRedisClient.Client, cfg.Repository.Route.Redis)
 	routeRepository, err := route.NewRistrettoRepository(routeRedisRepository, cfg.Repository.Route.RistrettoConfig)
 	gasRepository, err := gas.NewRistrettoRepository(
@@ -676,7 +676,7 @@ func indexerAction(c *cli.Context) (err error) {
 	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
 	// init repository
 	poolRepo, _ := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool)
-	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
+	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank)
 	gasRepository := gas.NewRedisRepository(routerRedisClient.Client, ethClient,
 		gas.RedisRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
@@ -881,7 +881,7 @@ func pathGeneratorAction(c *cli.Context) (err error) {
 	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
 	poolRepository, err := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool)
 	priceRepository := price.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Price.Redis)
-	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank.Redis)
+	poolRankRepository := poolrank.NewRedisRepository(routerRedisClient.Client, cfg.Repository.PoolRank)
 
 	var balanceSlotsUseCase *erc20balanceslotuc.Cache
 	var aevmClient aevmclient.Client

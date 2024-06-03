@@ -17,13 +17,13 @@ type redisRepository struct {
 
 	keyGenerator *keyGenerator
 
-	config RedisRepositoryConfig
+	config Config
 }
 
-func NewRedisRepository(redisClient redis.UniversalClient, config RedisRepositoryConfig) *redisRepository {
+func NewRedisRepository(redisClient redis.UniversalClient, config Config) *redisRepository {
 	return &redisRepository{
 		redisClient:  redisClient,
-		keyGenerator: NewKeyGenerator(config.Prefix),
+		keyGenerator: NewKeyGenerator(config.Redis.Prefix),
 		config:       config,
 	}
 }
@@ -37,10 +37,19 @@ func (r *redisRepository) FindBestPoolIDs(
 	span, ctx := tracer.StartSpanFromContext(ctx, "[poolrank] redisRepository.FindBestPoolIDs")
 	defer span.End()
 
+	keyTvl := SortByTVL
+	if r.config.UseNativeRanking {
+		keyTvl = SortByTVLNative
+	}
+	keyAmplifiedTvl := SortByAmplifiedTvl
+	if r.config.UseNativeRanking {
+		keyAmplifiedTvl = SortByAmplifiedTVLNative
+	}
+
 	cmders, err := r.redisClient.Pipelined(
 		ctx, func(tx redis.Pipeliner) error {
 			tx.ZRevRangeByScore(
-				ctx, r.keyGenerator.directPairKey(SortByTVL, tokenIn, tokenOut), &redis.ZRangeBy{
+				ctx, r.keyGenerator.directPairKey(keyTvl, tokenIn, tokenOut), &redis.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: opt.DirectPoolsCount,
@@ -48,42 +57,42 @@ func (r *redisRepository) FindBestPoolIDs(
 			)
 
 			tx.ZRevRangeByScore(
-				ctx, r.keyGenerator.whitelistToWhitelistPairKey(SortByTVL), &redis.ZRangeBy{
+				ctx, r.keyGenerator.whitelistToWhitelistPairKey(keyTvl), &redis.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: opt.WhitelistPoolsCount,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, r.keyGenerator.whitelistToTokenPairKey(SortByTVL, tokenIn), &redis.ZRangeBy{
+				ctx, r.keyGenerator.whitelistToTokenPairKey(keyTvl, tokenIn), &redis.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: opt.TokenInPoolsCount,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, r.keyGenerator.whitelistToTokenPairKey(SortByTVL, tokenOut), &redis.ZRangeBy{
+				ctx, r.keyGenerator.whitelistToTokenPairKey(keyTvl, tokenOut), &redis.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: opt.TokenOutPoolCount,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, r.keyGenerator.directPairKey(SortByAmplifiedTvl, tokenIn, tokenOut), &redis.ZRangeBy{
+				ctx, r.keyGenerator.directPairKey(keyAmplifiedTvl, tokenIn, tokenOut), &redis.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: opt.AmplifiedTvlDirectPoolsCount,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, r.keyGenerator.whitelistToWhitelistPairKey(SortByAmplifiedTvl), &redis.ZRangeBy{
+				ctx, r.keyGenerator.whitelistToWhitelistPairKey(keyAmplifiedTvl), &redis.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
 					Count: opt.AmplifiedTvlWhitelistPoolsCount,
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, r.keyGenerator.whitelistToTokenPairKey(SortByAmplifiedTvl, tokenIn),
+				ctx, r.keyGenerator.whitelistToTokenPairKey(keyAmplifiedTvl, tokenIn),
 				&redis.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
@@ -91,7 +100,7 @@ func (r *redisRepository) FindBestPoolIDs(
 				},
 			)
 			tx.ZRevRangeByScore(
-				ctx, r.keyGenerator.whitelistToTokenPairKey(SortByAmplifiedTvl, tokenOut),
+				ctx, r.keyGenerator.whitelistToTokenPairKey(keyAmplifiedTvl, tokenOut),
 				&redis.ZRangeBy{
 					Min:   "0",
 					Max:   "+inf",
