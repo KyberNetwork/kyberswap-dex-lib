@@ -33,8 +33,10 @@ require (
 )
 
 require (
+	github.com/KyberNetwork/msgpack/v5 v5.0.0-20240604160306-e053c6e301e1 // indirect
 	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 )
 
 require (
