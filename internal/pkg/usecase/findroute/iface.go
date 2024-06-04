@@ -118,7 +118,8 @@ func (f *FinderData) TokenNativeBuyPrice(address string) *big.Float {
 	return nil
 }
 
-func (f *FinderData) PriceAvailable(address string) bool {
+func (f *FinderData) BuyPriceAvailable(address string) bool {
 	return f.PriceUSDByAddress[address] != 0 ||
-		(f.PriceNativeByAddress != nil && f.PriceNativeByAddress[address] != nil)
+		(f.PriceNativeByAddress != nil && f.PriceNativeByAddress[address] != nil &&
+			f.PriceNativeByAddress[address].NativePriceRaw.Buy != nil && f.PriceNativeByAddress[address].NativePriceRaw.Buy.Sign() > 0)
 }

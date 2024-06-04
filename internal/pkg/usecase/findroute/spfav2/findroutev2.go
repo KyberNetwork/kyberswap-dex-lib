@@ -156,9 +156,7 @@ func (f *spfav2Finder) bestRouteV2(
 	}
 
 	cmpFunc := func(a, b int) bool {
-		// actually we might not need this condition, because if price is not available then `CompareTo` will fallback to comparing raw amount
-		// but include this here just in case
-		priceAvailable := data.PriceAvailable(paths[a].Output.Token)
+		priceAvailable := data.BuyPriceAvailable(paths[a].Output.Token)
 		return paths[a].CompareTo(paths[b], input.GasInclude && priceAvailable) < 0
 	}
 	sort.Slice(paths, cmpFunc)
@@ -200,7 +198,7 @@ func (f *spfav2Finder) bestSinglePathRouteV2(
 			continue
 		}
 		path := newPath(ctx, input, data, paths[i].PoolAddresses, paths[i].Tokens, tokenAmountIn, false)
-		if path != nil && (bestPath == nil || path.CompareTo(bestPath, input.GasInclude && data.PriceAvailable(path.Output.Token)) < 0) {
+		if path != nil && (bestPath == nil || path.CompareTo(bestPath, input.GasInclude && data.BuyPriceAvailable(path.Output.Token)) < 0) {
 			bestPath = path
 		}
 	}
