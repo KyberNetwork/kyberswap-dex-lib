@@ -39,7 +39,7 @@ func (r *RetryFinder) Find(ctx context.Context,
 	data.Refresh()
 	routes, err := r.baseIFinder.Find(ctx, input, data)
 	if err != nil {
-		logger.Errorf(ctx, "retry finder: baseIFinder failed %s", err)
+		// this error will be propagated up and logged at the response, no need to log here
 		return nil, err
 	}
 	if len(routes) == 0 {

@@ -63,7 +63,7 @@ func (r *ristrettoRepository) Get(ctx context.Context, keys []*valueobject.Route
 			continue
 		}
 
-		logger.WithFields(ctx, logger.Fields{"key": cacheKey}).Infof("[route] ristrettoRepository.Get hit local cache")
+		logger.WithFields(ctx, logger.Fields{"key": cacheKey}).Debugf("[route] ristrettoRepository.Get hit local cache")
 		routes[key] = route
 	}
 
@@ -81,7 +81,7 @@ func (r *ristrettoRepository) Get(ctx context.Context, keys []*valueobject.Route
 	for key, route := range uncachedRoutes {
 		cacheKey := genKey(key, r.config.Prefix)
 		r.cache.SetWithTTL(cacheKey, route, r.config.Route.Cost, r.config.Route.TTL)
-		logger.WithFields(ctx, logger.Fields{"key": cacheKey, "route": route}).Infof("[route] ristrettoRepository.Get get route from Redis successfully")
+		logger.WithFields(ctx, logger.Fields{"key": cacheKey, "route": route}).Debugf("[route] ristrettoRepository.Get get route from Redis successfully")
 		routes[key] = route
 	}
 

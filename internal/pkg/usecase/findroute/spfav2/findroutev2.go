@@ -136,7 +136,7 @@ func (f *spfav2Finder) bestRouteV2(
 		metrics.IncrFindRoutePregenCount(ctx, false, map[string]string{
 			"reason": "doesn't hit",
 		})
-		logger.Infof(ctx, "manually gen Path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
+		logger.Debugf(ctx, "manually gen Path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
 			input.TokenInAddress, input.TokenOutAddress, amountInToGeneratePath, amountInToGeneratePath.AmountUsd,
 		)
 

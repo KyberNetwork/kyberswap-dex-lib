@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/redis/go-redis/v9"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -126,6 +127,9 @@ func (r *redisRepository) FindBestPoolIDs(
 	whitelistToTokenOutPoolIdsByAmplifiedTvl := cmders[7].(*redis.StringSliceCmd).Val()
 
 	poolIdSet := sets.NewString()
+
+	logger.Debugf(ctx, "best pools by TVL %v %v %v", directPoolIdsByTvl, whitelistToWhitelistPoolIdsByTvl, whitelistToTokenInPoolIdsByTvl, whitelistToTokenOutPoolIdsByTvl)
+	logger.Debugf(ctx, "best pools by aTVL %v %v %v", directPoolIdsByAmplifiedTvl, whitelistToWhitelistPoolIdsByAmplifiedTvl, whitelistToTokenInPoolIdsByAmplifiedTvl, whitelistToTokenOutPoolIdsByAmplifiedTvl)
 
 	poolIdSet.Insert(directPoolIdsByTvl...)
 	poolIdSet.Insert(directPoolIdsByAmplifiedTvl...)

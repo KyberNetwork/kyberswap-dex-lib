@@ -46,7 +46,7 @@ func (f *hillClimbFinder) Find(ctx context.Context,
 	data.Refresh()
 	baseBestRoutes, err := f.baseIFinder.Find(ctx, input, data)
 	if err != nil {
-		logger.Errorf(ctx, "hill climb: baseIFinder failed %s", err)
+		// this error will be propagated up and logged at the response, no need to log here
 		return nil, err
 	}
 
@@ -57,7 +57,7 @@ func (f *hillClimbFinder) Find(ctx context.Context,
 	}
 
 	if len(baseBestRoute.Paths) == 1 {
-		logger.Infof(ctx, "hill climb: return baseBestRoute due to lenPaths == 1")
+		logger.Debugf(ctx, "hill climb: return baseBestRoute due to lenPaths == 1")
 		return []*valueobject.Route{baseBestRoute}, nil
 	}
 
@@ -82,7 +82,7 @@ func (f *hillClimbFinder) Find(ctx context.Context,
 	data.Refresh()
 	hillClimbBestRoute = recalculateRoute(ctx, input, data, hillClimbBestRoute)
 
-	logger.Infof(ctx,
+	logger.Debugf(ctx,
 		"successfully using hill climb to optimize route from token %v to token %v", input.TokenInAddress, input.TokenOutAddress,
 	)
 
