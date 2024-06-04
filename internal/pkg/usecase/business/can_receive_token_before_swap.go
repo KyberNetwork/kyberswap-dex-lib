@@ -96,6 +96,8 @@ var (
 		valueobject.ExchangeWigoSwap:        true,
 		valueobject.ExchangeSoSwap:          true,
 		valueobject.ExchangeKinetixV2:       true,
+		valueobject.ExchangeAlienBaseDegen:  true,
+		valueobject.ExchangeSectaV2:         true,
 
 		// KSClassic
 		valueobject.ExchangeDMM:             true,
@@ -132,6 +134,7 @@ var (
 		valueobject.ExchangeStratumFinance: true,
 		valueobject.ExchangeMVM:            true,
 		valueobject.ExchangeInfusion:       true,
+		valueobject.ExchangeTokan:          true,
 
 		// GMX and GMX-like exchanges are also able to receive token before calling swap.
 		// However, they validate balance before swapping, so it's not possible to execute two gmx swaps consecutively without transferring token back to executor

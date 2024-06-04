@@ -414,8 +414,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newCurveStableNg(entityPool)
 	case pooltypes.PoolTypes.CurveTriCryptoNg:
 		return f.newCurveTriCryptoNg(entityPool)
-	case pooltypes.PoolTypes.DodoClassical, pooltypes.PoolTypes.DodoStable,
-		pooltypes.PoolTypes.DodoVendingMachine, pooltypes.PoolTypes.DodoPrivate:
+	case pooltypes.PoolTypes.DodoClassical, pooltypes.PoolTypes.DodoStablePool,
+		pooltypes.PoolTypes.DodoVendingMachine, pooltypes.PoolTypes.DodoPrivatePool:
 		return f.newDoDo(entityPool)
 	case pooltypes.PoolTypes.Velodrome, pooltypes.PoolTypes.Ramses,
 		pooltypes.PoolTypes.MuteSwitch, pooltypes.PoolTypes.Dystopia, pooltypes.PoolTypes.Pearl:
