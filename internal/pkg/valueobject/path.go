@@ -142,7 +142,7 @@ func NewPath(
 	}
 
 	var amountOutAfterGas *big.Int
-	if tokenOutPriceNative != nil {
+	if tokenOutPriceNative != nil && tokenOutPriceNative.Sign() > 0 {
 		// gas amount doesn't have decimal, so just multiply with gasPrice directly
 		gasAmountInNative, _ := new(big.Float).Mul(gasOption.Price, new(big.Float).SetInt64(totalGas)).Int(&big.Int{})
 		// tokenOutPriceNative should have been divided by token decimal already, so here just multiply
@@ -150,14 +150,17 @@ func NewPath(
 		amountOutAfterGas = new(big.Int).Sub(amountOutInNative, gasAmountInNative)
 	}
 
-	amountUSD := utils.CalcTokenAmountUsd(tokenAmountOut.Amount, tokenOutDecimals, tokenOutPriceUSD)
 	totalGasUSD := utils.CalcGasUsd(gasOption.Price, totalGas, gasOption.TokenPrice)
+	var amountUSD float64
+	if tokenOutPriceUSD > 0 {
+		amountUSD = utils.CalcTokenAmountUsd(tokenAmountOut.Amount, tokenOutDecimals, tokenOutPriceUSD) - totalGasUSD
+	}
 
 	path.Output = TokenAmount{
 		Token:          tokenAmountOut.Token,
 		Amount:         new(big.Int).Set(tokenAmountOut.Amount),
 		AmountAfterGas: amountOutAfterGas,
-		AmountUsd:      amountUSD - totalGasUSD,
+		AmountUsd:      amountUSD,
 	}
 	path.TotalGas = totalGas
 
