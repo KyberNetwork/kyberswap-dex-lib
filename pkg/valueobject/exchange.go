@@ -330,6 +330,8 @@ var (
 	ExchangeAlienBaseCL  Exchange = "alien-base-cl"
 	ExchangeKinetixV2    Exchange = "kinetix-v2"
 	ExchangeKinetixV3    Exchange = "kinetix-v3"
+
+	ExchangeAlienBaseDegen Exchange = "alien-base-degen"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -599,6 +601,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAlienBaseCL:                {},
 	ExchangeKinetixV2:                  {},
 	ExchangeKinetixV3:                  {},
+	ExchangeAlienBaseDegen:             {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
