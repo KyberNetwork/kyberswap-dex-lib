@@ -19,6 +19,10 @@ import (
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
 	curveStableNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	curveTriCryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/tricrypto-ng"
+	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
+	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
+	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
+	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
@@ -51,7 +55,6 @@ import (
 	curveTricrypto "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/tricrypto"
 	curveTwo "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/two"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dmm"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/dodo"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/equalizer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/fraxswap"
@@ -100,14 +103,13 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-
 	liquiditybookv20aevm "github.com/KyberNetwork/router-service/internal/pkg/core/liquiditybookv20"
 	liquiditybookv21aevm "github.com/KyberNetwork/router-service/internal/pkg/core/liquiditybookv21"
 	uniswapaevm "github.com/KyberNetwork/router-service/internal/pkg/core/uni"
 	uniswapv3aevm "github.com/KyberNetwork/router-service/internal/pkg/core/univ3"
 	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -414,9 +416,14 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newCurveStableNg(entityPool)
 	case pooltypes.PoolTypes.CurveTriCryptoNg:
 		return f.newCurveTriCryptoNg(entityPool)
-	case pooltypes.PoolTypes.DodoClassical, pooltypes.PoolTypes.DodoStablePool,
-		pooltypes.PoolTypes.DodoVendingMachine, pooltypes.PoolTypes.DodoPrivatePool:
-		return f.newDoDo(entityPool)
+	case pooltypes.PoolTypes.DodoClassical:
+		return f.newDoDoClassical(entityPool)
+	case pooltypes.PoolTypes.DodoPrivatePool:
+		return f.newDoDoPrivatePool(entityPool)
+	case pooltypes.PoolTypes.DodoStablePool:
+		return f.newDoDoStablePool(entityPool)
+	case pooltypes.PoolTypes.DodoVendingMachine:
+		return f.newDoDoVendingMachine(entityPool)
 	case pooltypes.PoolTypes.Velodrome, pooltypes.PoolTypes.Ramses,
 		pooltypes.PoolTypes.MuteSwitch, pooltypes.PoolTypes.Dystopia, pooltypes.PoolTypes.Pearl:
 		return f.newVelodrome(entityPool)
@@ -918,12 +925,54 @@ func (f *PoolFactory) newCurveMetaNG(
 	return curveMetaPool, nil
 }
 
-func (f *PoolFactory) newDoDo(entityPool entity.Pool) (*dodo.PoolSimulator, error) {
-	corePool, err := dodo.NewPoolSimulator(entityPool)
+func (f *PoolFactory) newDoDoClassical(entityPool entity.Pool) (*dodoclassical.PoolSimulator, error) {
+	corePool, err := dodoclassical.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
-			"[PoolFactory.newDoDo] pool: [%s] » type: [%s]",
+			"[PoolFactory.newDoDoClassical] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newDoDoPrivatePool(entityPool entity.Pool) (*dododpp.PoolSimulator, error) {
+	corePool, err := dododpp.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newDoDoPrivatePool] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newDoDoStablePool(entityPool entity.Pool) (*dododsp.PoolSimulator, error) {
+	corePool, err := dododsp.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newDoDoStablePool] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newDoDoVendingMachine(entityPool entity.Pool) (*dododvm.PoolSimulator, error) {
+	corePool, err := dododvm.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newDoDoVendingMachine] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
