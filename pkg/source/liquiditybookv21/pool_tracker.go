@@ -49,7 +49,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 
 	g := new(errgroup.Group)
 	g.Go(func() error {
-		rpcResult, err = d.queryRpc(ctx, p)
+		rpcResult, err = d.queryRpc(ctx, p, 0)
 		if err != nil {
 			return err
 		}
@@ -94,15 +94,15 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	return p, nil
 }
 
-func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, pool entity.Pool) ([]byte, error) {
-	result, err := d.queryRpc(ctx, pool)
+func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, pool entity.Pool, blockNumber uint64) ([]byte, error) {
+	result, err := d.queryRpc(ctx, pool, blockNumber)
 	if err != nil {
 		return nil, err
 	}
 	return json.Marshal(result)
 }
 
-func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*QueryRpcPoolStateResult, error) {
+func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult, error) {
 	var (
 		blockTimestamp uint64
 		binStep        uint16
@@ -117,6 +117,11 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*QueryRpcPoo
 	)
 
 	req := d.ethrpcClient.R().SetContext(ctx)
+	if blockNumber > 0 {
+		var blockNumberBI big.Int
+		blockNumberBI.SetUint64(blockNumber)
+		req.SetBlockNumber(&blockNumberBI)
+	}
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
