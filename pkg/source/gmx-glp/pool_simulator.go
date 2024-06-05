@@ -163,3 +163,10 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 		DirectionFlag: directionFlag,
 	}
 }
+
+func (p *PoolSimulator) AfterMsgpackUnmarshal() error {
+	if p.vaultUtils != nil {
+		p.vaultUtils.vault = p.vault
+	}
+	return nil
+}
