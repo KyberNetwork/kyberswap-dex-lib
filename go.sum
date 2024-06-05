@@ -10,12 +10,14 @@ github.com/KyberNetwork/int256 v0.1.4 h1:SbnhxqcsZXrP+5pSkolpSo2ViEWiq3K/hjfl5OQ
 github.com/KyberNetwork/int256 v0.1.4/go.mod h1:qE/Ikpo86fn60sIB7CwcfiqJTjK2p+k+ASvuO79Rq4g=
 github.com/KyberNetwork/logger v0.1.0 h1:Iibu9Ls+tipjR+C0iXhzUYM1VtRgmmR1HHWGufPYcbs=
 github.com/KyberNetwork/logger v0.1.0/go.mod h1:zBqHbtJ3nJn6HQnp6UW8pbQkR+U6tSRFd5CzfiKL3Kw=
-github.com/KyberNetwork/msgpack/v5 v5.0.0-20240604111714-bbb6be3a82df h1:D0pJWxtJSuRQNLYBPsw8bjQMX8YCHGFnSkvlKCNGusc=
-github.com/KyberNetwork/msgpack/v5 v5.0.0-20240604111714-bbb6be3a82df/go.mod h1:91PLIDmaoFsGuwQHhXDU8hv7JKubN2seUhUMbj9kXmM=
-github.com/KyberNetwork/msgpack/v5 v5.0.0-20240604160306-e053c6e301e1 h1:y5w6zMpKGTHfplsSWJEkRdEZJslp0+UK+aYM6W3NtfI=
-github.com/KyberNetwork/msgpack/v5 v5.0.0-20240604160306-e053c6e301e1/go.mod h1:91PLIDmaoFsGuwQHhXDU8hv7JKubN2seUhUMbj9kXmM=
+github.com/KyberNetwork/msgp v1.1.9-1 h1:m7G09SolKox1SxZkjLiUc1TCQunpWp4aaz0WE9uqzis=
+github.com/KyberNetwork/msgp v1.1.9-1/go.mod h1:BCXGB54lDD8qUEPmiG0cQQUANC4IUQyB2ItS2UDlO/k=
+github.com/KyberNetwork/msgpack/v5 v5.0.0-20240605115257-96ff5e298a7d h1:ae4P7OZlgYM4AHkMGuOBGDOH0gCXJkUORHE+O8Ao+rM=
+github.com/KyberNetwork/msgpack/v5 v5.0.0-20240605115257-96ff5e298a7d/go.mod h1:91PLIDmaoFsGuwQHhXDU8hv7JKubN2seUhUMbj9kXmM=
 github.com/KyberNetwork/pancake-v3-sdk v0.2.0 h1:dd5k2Z223kkzSky8SFgRy2/eQGp4bf586SS71XqqBlM=
 github.com/KyberNetwork/pancake-v3-sdk v0.2.0/go.mod h1:AhHu1v2KZAXKFZ9AnjwYPPx1+dDFHBqmSpSeg4fnvzg=
+github.com/KyberNetwork/uniswap-sdk-core v0.1.10-0.20240605171339-278ffcc8f716 h1:XEPAUqZXGH8yYVxEDi60gYMVTl+YGwuDmlj7Q0ugltk=
+github.com/KyberNetwork/uniswap-sdk-core v0.1.10-0.20240605171339-278ffcc8f716/go.mod h1:DPzL8zNicstPzvX74ZeeHsiIUquZRpwviceDHQ8+UQ4=
 github.com/KyberNetwork/uniswapv3-sdk v0.5.0 h1:Akl6KR27K+gVMOf9x9u9dV32j9YTIEnY99R9z+WlVGI=
 github.com/KyberNetwork/uniswapv3-sdk v0.5.0/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
 github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.0 h1:AkEmCEBmyYAUU+WHGrgw9uaXHteqNn66CD36FaXoUig=
@@ -59,8 +61,6 @@ github.com/crate-crypto/go-ipa v0.0.0-20231025140028-3c0104f4b233 h1:d28BXYi+wUp
 github.com/crate-crypto/go-ipa v0.0.0-20231025140028-3c0104f4b233/go.mod h1:geZJZH3SzKCqnz5VT0q/DyIG/tvu/dZk+VIfXicupJs=
 github.com/crate-crypto/go-kzg-4844 v0.7.0 h1:C0vgZRk4q4EZ/JgPfzuSoxdCq3C3mOZMBShovmncxvA=
 github.com/crate-crypto/go-kzg-4844 v0.7.0/go.mod h1:1kMhvPgI0Ky3yIa+9lFySEBUBXkYxeOi8ZF1sYioxhc=
-github.com/daoleno/uniswap-sdk-core v0.1.7 h1:PdZypLSzM5Mu2rFBjXK9XrHDppSt62GkxXjWLpuMAN4=
-github.com/daoleno/uniswap-sdk-core v0.1.7/go.mod h1:DPzL8zNicstPzvX74ZeeHsiIUquZRpwviceDHQ8+UQ4=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -136,8 +136,6 @@ github.com/jackpal/go-nat-pmp v1.0.2 h1:KzKSgb7qkJvOUTqYl9/Hg/me3pWgBmERKrTGD7Bd
 github.com/jackpal/go-nat-pmp v1.0.2/go.mod h1:QPH045xvCAeXUZOxsnwmrtiCoxIr9eob+4orBN1SBKc=
 github.com/klauspost/compress v1.15.15 h1:EF27CXIuDsYJ6mmvtBRlEuB2UVOqHG1tAXgZ7yIO+lw=
 github.com/klauspost/compress v1.15.15/go.mod h1:ZcK2JAFqKOpnBlxcLsJzYfrS9X1akm9fHZNnD9+Vo/4=
-github.com/klauspost/compress v1.17.8 h1:YcnTYrq7MikUT7k0Yb5eceMmALQPYBW/Xltxn0NAMnU=
-github.com/klauspost/compress v1.17.8/go.mod h1:Di0epgTjJY877eYKx5yC51cX2A2Vl2ibi7bDH9ttBbw=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
@@ -171,8 +169,6 @@ github.com/orcaman/concurrent-map v1.0.0 h1:I/2A2XPCb4IuQWcQhBhSwGfiuybl/J0ev9HD
 github.com/orcaman/concurrent-map v1.0.0/go.mod h1:Lu3tH6HLW3feq74c2GC+jIMS/K2CFcDWnWD9XkenwhI=
 github.com/philhofer/fwd v1.1.2 h1:bnDivRJ1EWPjUIRXV5KfORO897HTbpFAQddBdE8t7Gw=
 github.com/philhofer/fwd v1.1.2/go.mod h1:qkPdfjR2SIEbspLqpe1tO4n5yICnr2DY7mqEx2tUTP0=
-github.com/phqb/msgp v1.1.9-1 h1:zNRHfbeLTmd0NfsTmkLzQLhC5JRZfA7Mo0JwhdsshfA=
-github.com/phqb/msgp v1.1.9-1/go.mod h1:BCXGB54lDD8qUEPmiG0cQQUANC4IUQyB2ItS2UDlO/k=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

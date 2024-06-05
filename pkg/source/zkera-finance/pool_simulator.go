@@ -238,3 +238,8 @@ func (p *PoolSimulator) AfterMsgpDecode() error {
 	}
 	return nil
 }
+
+func (p *PoolSimulator) AfterMsgpackUnmarshal() error {
+	p.vaultUtils.vault = p.vault
+	return nil
+}

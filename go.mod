@@ -8,6 +8,7 @@ require (
 	github.com/KyberNetwork/ethrpc v0.7.1
 	github.com/KyberNetwork/int256 v0.1.4
 	github.com/KyberNetwork/logger v0.1.0
+	github.com/KyberNetwork/msgpack/v5 v5.0.0-20240605115257-96ff5e298a7d
 	github.com/KyberNetwork/pancake-v3-sdk v0.2.0
 	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.0
 	github.com/daoleno/uniswap-sdk-core v0.1.7
@@ -21,6 +22,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/holiman/uint256 v1.2.4
 	github.com/izumiFinance/iZiSwap-SDK-go v1.0.0
+	github.com/klauspost/compress v1.15.15
 	github.com/machinebox/graphql v0.2.2
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/orcaman/concurrent-map v1.0.0
@@ -33,8 +35,6 @@ require (
 )
 
 require (
-	github.com/KyberNetwork/msgpack/v5 v5.0.0-20240604160306-e053c6e301e1 // indirect
-	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 )
@@ -80,7 +80,7 @@ require (
 )
 
 replace (
-	github.com/daoleno/uniswap-sdk-core v0.1.5 => github.com/KyberNetwork/uniswap-sdk-core v0.1.5
+	github.com/daoleno/uniswap-sdk-core v0.1.7 => github.com/KyberNetwork/uniswap-sdk-core v0.1.10-0.20240605171339-278ffcc8f716
 	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.5.0
-	github.com/tinylib/msgp v1.1.9 => github.com/phqb/msgp v1.1.9-1
+	github.com/tinylib/msgp v1.1.9 => github.com/KyberNetwork/msgp v1.1.9-1
 )

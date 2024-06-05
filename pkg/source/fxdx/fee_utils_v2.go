@@ -21,7 +21,7 @@ type FeeUtilsV2 struct {
 	TaxBasisPoints     map[string]*big.Int `json:"taxBasisPoints"`
 	SwapFeeBasisPoints map[string]*big.Int `json:"swapFeeBasisPoints"`
 
-	Vault *Vault `json:"-" msg:"-"`
+	Vault *Vault `json:"-" msg:"-" msgpack:"-"`
 }
 
 func NewFeeUtilsV2() *FeeUtilsV2 {
