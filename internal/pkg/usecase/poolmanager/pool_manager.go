@@ -101,7 +101,7 @@ func (m *PoolManager) ApplyConfig(config Config) {
 func (m *PoolManager) listPools(ctx context.Context, addresses []string, filters ...common.PoolFilter) ([]*entity.Pool, error) {
 	filteredAddresses := m.filterBlacklistedAddresses(ctx, addresses)
 
-	filteredAddresses = m.filterFaultyPools(ctx, filteredAddresses, m.config)
+	filteredAddresses = m.filterFaultyPools(ctx, filteredAddresses)
 
 	pools, err := m.poolRepository.FindByAddresses(ctx, filteredAddresses)
 	if err != nil {
@@ -218,7 +218,7 @@ func (m *PoolManager) filterBlacklistedAddresses(ctx context.Context, addresses 
 	return validPools
 }
 
-func (m *PoolManager) filterFaultyPools(ctx context.Context, addresses []string, config Config) []string {
+func (m *PoolManager) filterFaultyPools(ctx context.Context, addresses []string) []string {
 	faultyPools, err := m.poolRepository.GetFaultyPools(ctx)
 	if err != nil {
 		return addresses

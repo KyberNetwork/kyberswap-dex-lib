@@ -500,6 +500,7 @@ func (p *PointerSwapPoolManager) filterBlacklistedAddresses(poolAddresses []stri
 func (m *PointerSwapPoolManager) excludeFaultyPools(ctx context.Context, addresses []string) []string {
 	faultyPools, err := m.poolRepository.GetFaultyPools(ctx)
 	if err != nil {
+		logger.Errorf(ctx, "[PointerSwapPoolManager] excludeFaultyPools getFaultyPools error %v", err)
 		return addresses
 	}
 	poolSet := mapset.NewSet[string](faultyPools...)

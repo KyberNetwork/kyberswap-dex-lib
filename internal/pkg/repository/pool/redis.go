@@ -126,12 +126,13 @@ func (r *redisRepository) GetFaultyPools(ctx context.Context) ([]string, error) 
 	if r.config.Redis.MaxFaultyPoolSize <= 0 {
 		return []string{}, errors.New("config MaxFaultyPoolSize must be postitive")
 	}
-	// we accept cached data can be temporarily wrong during TTL time (30s) to reduce number of request in pool-service
-	// faulty list will be reset after 30s
+	// we accept cached data can be temporarily wrong during TTL time (5s) to reduce number of request in pool-service
+	// faulty list will be reset after 5s
 
 	cachedKey := utils.Join(r.config.Redis.Prefix, faultyPoolKey)
 	if cachedData, ok := r.cache.Get(cachedKey); ok {
 		if addresses, ok := cachedData.([]string); ok {
+			logger.Debugf(ctx, "[pool] redisRepository.GetFaultyPools get faulty pools list %s, return from local cached", cachedData)
 			return addresses, nil
 		}
 	}
@@ -153,7 +154,7 @@ func (r *redisRepository) GetFaultyPools(ctx context.Context) ([]string, error) 
 		}
 		offset += r.config.Redis.MaxFaultyPoolSize
 	}
-
+	logger.Debugf(ctx, "[pool] redisRepository.GetFaultyPools get faulty pools list %s from pool-service", result)
 	r.cache.SetWithTTL(cachedKey, result, 1, r.config.Ristretto.FaultyPools.TTL)
 
 	return result, nil
