@@ -14,3 +14,7 @@ type PoolMeta struct {
 	FeePrecision uint64 `json:"feePrecision"`
 	BlockNumber  uint64 `json:"blockNumber"`
 }
+
+type PoolsListUpdaterMetadata struct {
+	Offset int `json:"offset"`
+}
