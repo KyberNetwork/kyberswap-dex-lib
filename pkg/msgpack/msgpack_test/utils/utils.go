@@ -35,7 +35,7 @@ func TestMarshalUnmarshal[P any](t *testing.T, pools []*P) {
 		// Because there is a bug in spew.Sdump() which panics when dump a `synthetix.PoolSimulator`:
 		// "panic: reflect.Value.Interface: cannot return value obtained from unexported field or method".
 		// `synthetix.PoolSimulators` doesn't need to check pointers relationship equality anyway because it doesn't contain pointer alias.
-		if reflect.TypeFor[P]() != reflect.TypeFor[synthetix.PoolSimulator]() {
+		if reflect.TypeOf((*P)(nil)).Elem() != reflect.TypeOf((*synthetix.PoolSimulator)(nil)).Elem() {
 			require.Equal(t, testutil.DumpWithNormalizedPointers(pool), testutil.DumpWithNormalizedPointers(decoded))
 		}
 	}

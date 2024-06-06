@@ -10,10 +10,10 @@ import (
 )
 
 var (
-	uniswapentitiesBaseCurrencyType = reflect.TypeFor[uniswapentities.BaseCurrency]()
-	uniswapentitiesEtherType        = reflect.TypeFor[uniswapentities.Ether]()
-	uniswapentitiesNativeType       = reflect.TypeFor[uniswapentities.Native]()
-	uniswapentitiesTokenType        = reflect.TypeFor[uniswapentities.Token]()
+	uniswapentitiesBaseCurrencyType = reflect.TypeOf((*uniswapentities.BaseCurrency)(nil)).Elem()
+	uniswapentitiesEtherType        = reflect.TypeOf((*uniswapentities.Ether)(nil)).Elem()
+	uniswapentitiesNativeType       = reflect.TypeOf((*uniswapentities.Native)(nil)).Elem()
+	uniswapentitiesTokenType        = reflect.TypeOf((*uniswapentities.Token)(nil)).Elem()
 )
 
 var encoderPool = sync.Pool{
