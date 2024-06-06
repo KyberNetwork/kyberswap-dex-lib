@@ -37,7 +37,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		expectedFee               *big.Int
 		expectedErr               error
 	}{
-		// 0.01 WBTC -> ? USDC.e
+		// 0.01 WBTC -> ? USDC.e (sell base)
 		{
 			0,
 			"0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
@@ -49,7 +49,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			nil,
 		},
 
-		// 0.1 WBTC -> ? USDC.e
+		// 0.1 WBTC -> ? USDC.e (sell base)
 		{
 			0,
 			"0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
@@ -61,7 +61,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			nil,
 		},
 
-		// 1 WBTC -> ? USDC.e
+		// 1 WBTC -> ? USDC.e (sell base)
 		{
 			0,
 			"0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
@@ -73,7 +73,43 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			nil,
 		},
 
-		// 100 USDT -> ? USDC.e
+		// 100 USDC.e -> ? WBTC (sell quote)
+		{
+			0,
+			"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+			"0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
+			bignumber.NewBig10("100000000"),
+			bignumber.NewBig10("145310"),
+			bignumber.NewBig10("0"),
+			bignumber.NewBig10("435"),
+			nil,
+		},
+
+		// 1000 USDC.e -> ? WBTC (sell quote)
+		{
+			0,
+			"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+			"0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
+			bignumber.NewBig10("1000000000"),
+			bignumber.NewBig10("1330286"),
+			bignumber.NewBig10("0"),
+			bignumber.NewBig10("3990"),
+			nil,
+		},
+
+		// 10000 USDC.e -> ? WBTC (sell quote)
+		{
+			0,
+			"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+			"0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
+			bignumber.NewBig10("10000000000"),
+			bignumber.NewBig10("4631786"),
+			bignumber.NewBig10("0"),
+			bignumber.NewBig10("13895"),
+			nil,
+		},
+
+		// 100 USDT -> ? USDC.e (sell base)
 		{
 			1,
 			"0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
@@ -85,7 +121,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			nil,
 		},
 
-		// 1000 USDT -> ? USDC.e
+		// 1000 USDT -> ? USDC.e (sell base)
 		{
 			1,
 			"0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
@@ -97,7 +133,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			nil,
 		},
 
-		// 10000 USDT -> ? USDC.e
+		// 10000 USDT -> ? USDC.e (sell base)
 		{
 			1,
 			"0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
@@ -106,6 +142,42 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			bignumber.NewBig10("9995262737"),
 			bignumber.NewBig10("0"),
 			bignumber.NewBig10("99953"),
+			nil,
+		},
+
+		// 100 USDC.e -> ? USDT (sell quote)
+		{
+			1,
+			"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+			"0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+			bignumber.NewBig10("100000000"),
+			bignumber.NewBig10("100044235"),
+			bignumber.NewBig10("0"),
+			bignumber.NewBig10("1000"),
+			nil,
+		},
+
+		// 1000 USDC.e -> ? USDT (sell quote)
+		{
+			1,
+			"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+			"0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+			bignumber.NewBig10("1000000000"),
+			bignumber.NewBig10("1000441351"),
+			bignumber.NewBig10("0"),
+			bignumber.NewBig10("10004"),
+			nil,
+		},
+
+		// 10000 USDC.e -> ? USDT (sell quote)
+		{
+			1,
+			"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8",
+			"0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9",
+			bignumber.NewBig10("10000000000"),
+			bignumber.NewBig10("10004313963"),
+			bignumber.NewBig10("0"),
+			bignumber.NewBig10("100043"),
 			nil,
 		},
 	}
