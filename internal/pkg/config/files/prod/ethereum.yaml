@@ -352,7 +352,6 @@ useCase:
     poolRenewalInterval: 12s
     useAEVM: *useAEVM
     faultyPoolsExpireThreshold: 3s
-    maxFaultyPoolSize: 500
     stallingPMMThreshold: 30s
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
@@ -409,6 +408,7 @@ repository:
   pool:
     redis:
       prefix: *chainName
+      maxFaultyPoolSize: 500
     ristretto:
       numCounters: 5000
       maxCost: 500

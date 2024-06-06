@@ -255,7 +255,6 @@ useCase:
     capacity: 100000
     poolRenewalInterval: 3s
     faultyPoolsExpireThreshold: 3s
-    maxFaultyPoolSize: 500
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
@@ -298,6 +297,7 @@ repository:
   pool:
     redis:
       prefix: *chainName
+      maxFaultyPoolSize: 500
     ristretto:
       numCounters: 5000
       maxCost: 500
