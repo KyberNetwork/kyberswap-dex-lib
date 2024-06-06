@@ -95,34 +95,67 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}
 	}
 
-	if tokenAmountIn.Token != p.Info.Tokens[0] {
-		return &pool.CalcAmountOutResult{}, ErrOnlySupportSellBase
-	}
-
 	amountIn := number.SetFromBig(tokenAmountIn.Amount)
 
-	receiveQuote, lpFeeQuote, mtFeeQuote, _, _, _, err := p._querySellBaseToken(amountIn)
-	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+	if tokenAmountIn.Token == p.Info.Tokens[0] { // sell base
+		receiveQuote, lpFeeQuote, mtFeeQuote, _, _, _, err := p._querySellBaseToken(amountIn)
+		if err != nil {
+			return &pool.CalcAmountOutResult{}, err
+		}
+
+		fee := new(uint256.Int).Add(lpFeeQuote, mtFeeQuote)
+
+		return &pool.CalcAmountOutResult{
+			TokenAmountOut: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: receiveQuote.ToBig(),
+			},
+			RemainingTokenAmountIn: &pool.TokenAmount{
+				Token:  tokenAmountIn.Token,
+				Amount: integer.Zero(),
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenAmountIn.Token,
+				Amount: fee.ToBig(),
+			},
+			Gas: p.gas.SellBase,
+		}, nil
+	} else if tokenAmountIn.Token == p.Info.Tokens[1] { // sell quote
+		// https://github.com/KyberNetwork/ks-dex-aggregator-sc/blob/dbf02abd4489dfb499b3f97118d4db1570932303/src/contracts/executor-helpers/ExecutorHelper2.sol#L346-L351
+		canBuyBaseAmount, err := p.querySellQuoteToken(amountIn)
+		if err != nil {
+			return &pool.CalcAmountOutResult{}, err
+		}
+
+		spentQuoteAmount, lpFeeBase, mtFeeBase, _, _, _, err := p._queryBuyBaseToken(canBuyBaseAmount)
+		if err != nil {
+			return &pool.CalcAmountOutResult{}, err
+		}
+
+		if spentQuoteAmount.Cmp(amountIn) > 0 {
+			return &pool.CalcAmountOutResult{}, ErrPaidAmountTooLarge
+		}
+
+		fee := new(uint256.Int).Add(lpFeeBase, mtFeeBase)
+
+		return &pool.CalcAmountOutResult{
+			TokenAmountOut: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: canBuyBaseAmount.ToBig(),
+			},
+			RemainingTokenAmountIn: &pool.TokenAmount{
+				Token:  tokenAmountIn.Token,
+				Amount: integer.Zero(),
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: fee.ToBig(),
+			},
+			Gas: p.gas.SellQuote,
+		}, nil
+	} else {
+		return &pool.CalcAmountOutResult{}, shared.ErrInvalidToken
 	}
-
-	fee := new(uint256.Int).Add(lpFeeQuote, mtFeeQuote)
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: receiveQuote.ToBig(),
-		},
-		RemainingTokenAmountIn: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
-			Amount: integer.Zero(),
-		},
-		Fee: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
-			Amount: fee.ToBig(),
-		},
-		Gas: p.gas.SellBase,
-	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
