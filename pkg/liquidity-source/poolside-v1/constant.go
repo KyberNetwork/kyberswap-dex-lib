@@ -9,9 +9,9 @@ var (
 )
 
 const (
-	factoryMethodGetPair        = "allPairs"
-	factoryMethodAllPairsLength = "allPairsLength"
-	pairMethodToken0            = "token0"
-	pairMethodToken1            = "token1"
-	pairMethodGetReserves       = "getReserves"
+	factoryMethodGetPair           = "allPairs"
+	factoryMethodAllPairsLength    = "allPairsLength"
+	pairMethodToken0               = "token0"
+	pairMethodToken1               = "token1"
+	pairMethodGetLiquidityBalances = "getLiquidityBalances"
 )
