@@ -1,53 +1,47 @@
-env: "staging"
-pprof: false
+env: "production"
 http:
   bindAddress: ":8080"
   mode: release #(debug,release,test)
-  prefix: /bttc
+  prefix: /zksync
 grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainId: &chainId 199
-  chainName: &chainName bttc
-  rpc: "https://bttc.kyberengineering.io"
-  multicallAddress: "0xaf0936B1DC49B5c7444CA838A5f32080FC043AdD"
-  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
-  routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-  gasTokenAddress: &gasTokenAddress "0x8d193c6efa90bcff940a98785d1ce9d093d3dc8a"
+  chainId: &chainId 324
+  chainName: &chainName zksync
+  rpc: "https://mainnet.era.zksync.io"
+  multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
+  executorAddress: &executorAddress "0xA84e5E2ed610Df17F0c1834078035ad08Edd6A08"
+  routerAddress: &routerAddress "0x3F95eF3f2eAca871858dbE20A93c01daF6C2e923"
+  gasTokenAddress: &gasTokenAddress "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91"
   whitelistedTokenSet: &whitelistedTokenSet
-    0x8d193c6efa90bcff940a98785d1ce9d093d3dc8a: true # WBTT
-    0x0000000000000000000000000000000000001010: true # WBTT_t
-    0xcbb9edf6775e39748ea6483a7fa6a385cd7e9a4e: true # WBTT_b
-    0x65676055e58b02e61272cedec6e5c6d56badfb86: true # WBTT_e
-    0xa20dfb01dca223c0e52b0d4991d4afa7e08e3a50: true # ETH_b
-    0x1249c65afb11d179ffb3ce7d4eedd1d9b98ad006: true # ETH
-    0x185a4091027e2db459a2433f85f894dc3013aeb5: true # BNB_b
-    0xedf53026aea60f8f75fca25f8830b7e2d6200662: true # TRX_t
-    0xdc3e2d18b6b1b5db09ecdb7f6c8b8fa01564236f: true # TRX_b
-    0x5bae3d53484848a4a15607b2490d51b484bf42dc: true # TRX_e
-    0x9b5f27f6ea9bbd753ce3793a07cba3c74644330d: true # USDT_b
-    0xe887512ab8bc60bcc9224e1c3b5be68e26048b8b: true # USDT_e
-    0xdb28719f7f938507dbfe4f0eae55668903d34a15: true # USDT_t
-    0xa2611f4488c92e1a91eb4d2a8d30110eba9925b5: true # TUSD_b
-    0xe7424ab0e1828d83ad402da5644142e55598c782: true # TUSD_e
-    0x04b0f8bd78d07be6d27209163a5174b4b4ec0fbd: true # TUSD_t
-    0xe7dc549ae8db61bde71f22097becc8db542ca100: true # DAI_e
-    0xca424b845497f7204d9301bd13ff87c0e2e86fcf: true # USDC_b
-    0xae17940943ba9440540940db0f1877f101d39e8b: true # USDC_e
-    0x935faa2fcec6ab81265b301a30467bbc804b43d3: true # USDC_t
-    0xdd85d7bdd2b35a38f527f73bad1acb09b7a1e35c: true # USDJ_t
-    0xde47772ac041a4ccf3c865632131d1093e51c02d: true # BUSD_b
-    0x6e626c62d54554737697e633ef9578ac3c4ba4ea: true # BUSD_e
-    0xeb7121ea70e95c7141c58f15e79f89c5cfb9acbc: true # UST_e
-    0x1a7019909b10cdd2d8b0034293ad729f1c1f604e: true # BTC_b
-    0x18fa72e0ee4c580a129b0ce5bd0694d716c7443e: true # KNC_b
-    0xe467f79e9869757dd818dfb8535068120f6bcb97: true # KNC_e
+    0x5aea5775959fbc2557cc8789bc1bf90a239d9a91: true # WETH
+    0x3355df6d4c9c3035724fd0e3914de96a5a83aaf4: true # USDC
+    0x493257fd37edb34451f62edf8d2a0c418852ba4c: true # USDT
+    0x2039bb4116b4efc145ec4f0e2ea75012d6c0f181: true # BUSD
+    0x8e86e46278518efc1c5ced245cba2c7e3ef11557: true # USD+
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
+    - "syncswap"
+    - "velocore"
     - "kyberswap"
-    - "kyberswap-static"
-    - "kyberswap-elastic"
+    - "muteswitch"
+    - "maverick-v1"
+    - "pancake"
+    - "pancake-v3"
+    - "iziswap"
+    - "spacefi"
+    - "woofi-v2"
+    - "ezkalibur"
+    - "vesync"
+    - "wagmi"
+    - "uniswapv3"
+    - "zkswap-finance"
+    - "zkswap"
+    - "velocore-v2-cpmm"
+    - "velocore-v2-wombat-stable"
+    - "fulcrom"
+    - "zkera-finance"
   featureFlags: &featureFlags
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
@@ -211,14 +205,8 @@ useCase:
           ttl: 10s
       ttlByAmountUsdRange:
         - amountUSDLowerBound: 0
-          ttl: 60s
-        - amountUSDLowerBound: 4
-          ttl: 30s
-        - amountUSDLowerBound: 21
           ttl: 10s
-        - amountUSDLowerBound: 61
-          ttl: 30s
-        - amountUSDLowerBound: 71
+        - amountUSDLowerBound: 101
           ttl: 10s
         - amountUSDLowerBound: 500
           ttl: 10s
@@ -234,18 +222,18 @@ useCase:
         - amountLowerBound: "0"
           ttl: 10s
       priceImpactThreshold: 0.005
-      shrinkFuncName: "decimal"
+      shrinkFuncName: "round"
       shrinkDecimalBase: 10
       shrinkFuncPowExp: 0.7
       shrinkFuncLogPercent: 1.01
       enableNewCacheKeyGenerator: false
       shrinkAmountInConfigs:
         - shrinkFuncName: "logarithm"
+          shrinkFuncConstant: 1.1
+        - shrinkFuncName: "logarithm"
           shrinkFuncConstant: 1.3
         - shrinkFuncName: "logarithm"
           shrinkFuncConstant: 1.5
-        - shrinkFuncName: "logarithm"
-          shrinkFuncConstant: 2
       shrinkAmountInThreshold: 100000
   buildRoute:
     chainId: *chainId
@@ -258,7 +246,7 @@ useCase:
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     blackListRenewalInterval: 30s
-    capacity: 1000000
+    capacity: 100000
     poolRenewalInterval: 3s
     faultyPoolsExpireThreshold: 3s
     maxFaultyPoolSize: 500
@@ -268,7 +256,7 @@ useCase:
     maxGoroutines: 0
     enableRankByNative: false
   trackExecutor:
-    subgraphURL: https://bttc-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-bttc
+    subgraphURL: https://zksync-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-zksync
 job:
   indexPools:
     forceScanAllEveryNth: 10
@@ -304,16 +292,31 @@ repository:
   pool:
     redis:
       prefix: *chainName
+    ristretto:
+      numCounters: 5000
+      maxCost: 500
+      bufferItems: 64
+      faultyPools:
+        cost: 1
+        ttl: 5s
   price:
     redis:
       prefix: *chainName
-    ristretto:
+    ristretto: &pricecache
       numCounters: 10000
       maxCost: 1000
       bufferItems: 64
       price:
         cost: 1
         ttl: 1m
+  onchainprice:
+    enabled: false
+    grpc:
+      base_url: onchain-price.core-cluster.gke.production.internal:80
+      timeout: 300ms
+      insecure: true
+      client_id: router-service
+    ristretto: *pricecache
   poolService:
     baseUrl: "0.0.0.0:10443"
     insecure: true
@@ -328,20 +331,21 @@ repository:
   poolRank:
     redis:
       prefix: *chainName
+    useNativeRanking: false
   route:
     redis:
       prefix: *chainName
     ristretto:
-      numCounters: 5000
-      maxCost: 500
+      numCounters: 10000
+      maxCost: 1000
       bufferItems: 64
       prefix: *chainName
       route:
         cost: 1
-        ttl: 30s
+        ttl: 10s
   blackjack:
     grpcClient:
-      baseURL: blackjack-global-api.blackjack.svc:9080
+      baseURL: blackjack.core-cluster.gke.production.internal:80
       insecure: true
       timeout: 100ms
   erc20balanceslot:

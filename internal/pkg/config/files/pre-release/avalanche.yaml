@@ -1,60 +1,78 @@
-env: "staging"
+env: "production"
 pprof: false
 http:
   bindAddress: ":8080"
   mode: release #(debug,release,test)
-  prefix: /fantom
+  prefix: /avalanche
 grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainId: &chainId 250
-  chainName: &chainName fantom
-  rpc: "https://fantom.knstats.com/v1/mainnet/geth?appId=prod-dmm-aggregator-backend"
+  chainId: &chainId 43114
+  chainName: &chainName avalanche
+  rpc: "https://avalanche.knstats.com/v1/mainnet/geth?appId=prod-dmm-aggregator-backend"
   multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
   executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-  gasTokenAddress: &gasTokenAddress "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83"
+  gasTokenAddress: &gasTokenAddress "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7"
   whitelistedTokenSet: &whitelistedTokenSet
-    0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83: true # FTM
-    0x049d68029688eabf473097a2fc38ef61633a3c7a: true # fUSDT
-    0x8d11ec38a3eb5e956b052f67da8bdc9bef8abf3e: true # DAI
-    0x04068da6c83afcfa0e13ba15a6696662335d5b75: true # USDC
-    0x74b23882a30290451a17c44f4f05243b6b58c76d: true # WETH
-    0x321162cd933e2be498cd2267a90534a804051b11: true # BTC
-    0x1e1085efaa63edfe74aad7c05a28eae4ef917c3f: true # KNC
+    0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7: true # WAVAX
+    0xc7198437980c041c805a1edcba50c1ce5db95118: true # USDT.e
+    0xd586e7f844cea2f87f50152665bcbc2c279d8d70: true # DAI.e
+    0xa7d7079b0fead91f3e65f86e8915cb59c1a4c664: true # USDC.e
+    0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab: true # WETH.e
+    0x50b7545627a5162f82a992c33b87adc75187b218: true # WBTC.e
+    0x130966628846bfd36ff31a822705796e8cb8c18d: true # MIM
+    0x9702230a8ea53601f5cd2dc00fdbc13d4df4a8c7: true # USDt
+    0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e: true # USDC
+    0x39fc9e94caeacb435842fadedecb783589f50f5f: true # KNC
+    0x111111111111ed1d73f860f57b2798b683f2d325: true # YUSD
+    0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be: true # sAVAX
+    0x3b55e45fd6bd7d4724f5c47e0d1bcaedd059263e: true # MAI
+    0x63a72806098bd3d9520cc43356dd78afe5d386d9: true # AAVE.e
+    0x5947bb275c521040051d82396192181b413227a3: true # LINK.e
   blacklistedPoolSet: &blacklistedPoolSet
+    0xbe52548488992cc76ffa1b42f3a58f646864df45: true
+    0x7f90122bf0700f9e7e1f688fe926940e8839f353: true
+    0xd2acae14ae2ee0f6557ac6c6d0e407a92c36214b: true
   availableSources: &availableSources
     - "kyberswap"
     - "kyberswap-static"
     - "kyberswap-elastic"
-    - "spookyswap"
-    - "spiritswap"
+    - "iron-stable"
+    - "pangolin"
+    - "traderjoe"
     - "curve"
     - "curve-stable-plain"
-    - "jetswap"
-    - "paintswap"
-    - "sushiswap"
     - "synapse"
-    - "morpheus"
-    - "saddle"
+    - "axial"
+    - "lydia"
+    - "yetiswap"
+    - "dodo-classical"
+    - "dodo-dpp"
+    - "dodo-dsp"
+    - "dodo-dvm"
+    - "sushiswap"
+    - "platypus"
+    - "gmx"
     - "fraxswap"
     - "kyberswap-limit-order"
-    - "kyberswap-limit-order-v2"
-    - "fvm"
     - "sushiswap-v3"
     - "woofi-v2"
-    - "mummy-finance"
-    - "beethovenx-weighted"
-    - "beethovenx-stable"
-    - "beethovenx-composable-stable"
-    - "solidly-v3"
-    - "equal"
-    - "equalizer-cl"
-    - "wigo-swap"
-    - "spookyswap-v3"
-    - "e3"
+    - "crowdswap-v2"
+    - "traderjoe-v21"
+    - "traderjoe-v20"
+    - "wombat"
+    - "balancer-v2-weighted"
+    - "balancer-v2-stable"
+    - "balancer-v2-composable-stable"
+    - "pharaoh"
+    - "pharaoh-v2"
+    - "hashflow-v3"
+    - "native-v1"
   featureFlags: &featureFlags
+  hashflowAPIKey:
+  nativeAPIKey:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -101,6 +119,7 @@ poolEventRedis:
   readOnly: false
   routeRandomly: false
 ddAgentHost: ""
+enableGRPC: false
 keyPair:
   storageFilePath: ""
   keyIDForSealingData:
@@ -217,8 +236,6 @@ useCase:
           ttl: 10s
       ttlByAmountUsdRange:
         - amountUSDLowerBound: 0
-          ttl: 60s
-        - amountUSDLowerBound: 3
           ttl: 10s
         - amountUSDLowerBound: 101
           ttl: 10s
@@ -236,18 +253,18 @@ useCase:
         - amountLowerBound: "0"
           ttl: 10s
       priceImpactThreshold: 0.005
-      shrinkFuncName: "decimal"
+      shrinkFuncName: "round"
       shrinkDecimalBase: 10
       shrinkFuncPowExp: 0.7
       shrinkFuncLogPercent: 1.01
       enableNewCacheKeyGenerator: false
       shrinkAmountInConfigs:
         - shrinkFuncName: "logarithm"
+          shrinkFuncConstant: 1.1
+        - shrinkFuncName: "logarithm"
           shrinkFuncConstant: 1.3
         - shrinkFuncName: "logarithm"
           shrinkFuncConstant: 1.5
-        - shrinkFuncName: "logarithm"
-          shrinkFuncConstant: 2
       shrinkAmountInThreshold: 100000
   buildRoute:
     chainId: *chainId
@@ -256,18 +273,38 @@ useCase:
         handler: limit-order
         properties:
           chainID: *chainId
-          limitOrderHTTPUrl: https://limit-order.stg.kyberengineering.io
+          limitOrderHTTPUrl: http://limit-order.pre-release-cluster.gke.production.internal
+      - id: hashflow-v3
+        handler: hashflow-v3
+        properties:
+          http:
+            base_url: "https://api.hashflow.com"
+            source: kyber
+            timeout: 3s
+            retry_count: 3
+      - id: native-v1
+        handler: native-v1
+        properties:
+          http:
+            base_url: "https://newapi.native.org"
+            timeout: 10s
+            retry_count: 3
     faultyPools:
       windowSize: 15m
       faultyExpiredTime: 3m
       minSlippageThreshold: 50
   poolFactory:
     chainId: *chainId
+    useAEVM: &useAEVM false
+    dexUseAEVM:
+      liquiditybook-v20: true
+      liquiditybook-v21: true
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     blackListRenewalInterval: 30s
     capacity: 1000000
     poolRenewalInterval: 3s
+    useAEVM: *useAEVM
     faultyPoolsExpireThreshold: 3s
     maxFaultyPoolSize: 500
   indexPools:
@@ -276,7 +313,7 @@ useCase:
     maxGoroutines: 0
     enableRankByNative: false
   trackExecutor:
-    subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-fantom
+    subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-avalanche
 job:
   indexPools:
     forceScanAllEveryNth: 10
@@ -312,16 +349,31 @@ repository:
   pool:
     redis:
       prefix: *chainName
+    ristretto:
+      numCounters: 5000
+      maxCost: 500
+      bufferItems: 64
+      faultyPools:
+        cost: 1
+        ttl: 5s
   price:
     redis:
       prefix: *chainName
-    ristretto:
+    ristretto: &pricecache
       numCounters: 10000
       maxCost: 1000
       bufferItems: 64
       price:
         cost: 1
         ttl: 1m
+  onchainprice:
+    enabled: false
+    grpc:
+      base_url: onchain-price.core-cluster.gke.production.internal:80
+      timeout: 300ms
+      insecure: true
+      client_id: router-service
+    ristretto: *pricecache
   poolService:
     baseUrl: "0.0.0.0:10443"
     insecure: true
@@ -336,20 +388,21 @@ repository:
   poolRank:
     redis:
       prefix: *chainName
+    useNativeRanking: false
   route:
     redis:
       prefix: *chainName
     ristretto:
-      numCounters: 5000
-      maxCost: 500
+      numCounters: 10000
+      maxCost: 1000
       bufferItems: 64
       prefix: *chainName
       route:
         cost: 1
-        ttl: 30s
+        ttl: 10s
   blackjack:
     grpcClient:
-      baseURL: blackjack-global-api.blackjack.svc:9080
+      baseURL: blackjack.core-cluster.gke.production.internal:80
       insecure: true
       timeout: 100ms
   erc20balanceslot:
@@ -363,3 +416,20 @@ validator:
     blacklistedRecipientSet:
   getRouteEncodeParams:
     blacklistedRecipientSet:
+aevmEnabled: false
+aevm:
+  serverUrl: "localhost:8246"
+  rpc: "http://localhost:9650/ext/bc/C/rpc"
+  simulationWallet: "0x47f3c2557364efc28f1269e3169773fa5236384d"
+  useHoldersListAsFallback: false
+  tokenHoldersRedis:
+    addresses:
+    masterName: ""
+    dbNumber: 0
+    password: ""
+    prefix: *chainName
+    readTimeout: 3s
+    writeTimeout: 3s
+    readOnly: false
+    routeRandomly: false
+  cachedHoldersListTTLSec: 30

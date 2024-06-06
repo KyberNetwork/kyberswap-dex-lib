@@ -1,43 +1,95 @@
-env: "staging"
+env: "production"
 pprof: false
 http:
   bindAddress: ":8080"
-  mode: debug #(debug,release,test)
-  prefix: /mantle
+  mode: release #(debug,release,test)
+  prefix: /ethereum
 grpc:
   host: 0.0.0.0
   port: 10443
 common:
-  chainId: &chainId 5000
-  chainName: &chainName mantle
-  rpc: "https://rpc.mantle.xyz"
+  chainId: &chainId 1
+  chainName: &chainName ethereum
+  rpc: "https://ethereum.kyberengineering.io"
   multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11"
-  executorAddress: &executorAddress "0xf40442E1Cb0BdFb496E8B7405d0c1c48a81BC897"
+  executorAddress: &executorAddress "0xd1B47490209CcB7A806E8a45d9479490C040ABf4"
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
-  gasTokenAddress: &gasTokenAddress "0x78c1b0c915c4faa5fffa6cabf0219da63d7f4cb8"
+  gasTokenAddress: &gasTokenAddress "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
   whitelistedTokenSet: &whitelistedTokenSet
-    0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000: true # MNT
-    0xdEAddEaDdeadDEadDEADDEAddEADDEAddead1111: true # WETH
-    0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9: true # USDC
-    0x201EBa5CC46D216Ce6DC03F6a759e8E766e956aE: true # USDT
-    0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8: true # WMNT
+    0xb50721bcf8d664c30412cfbc6cf7a15145234ad1: true # ARB
+    0x1a7e4e63778b4f12a199c062f3efdd288afcbce8: true # agEUR
+    0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2: true # WETH
+    0xdac17f958d2ee523a2206206994597c13d831ec7: true # USDT
+    0x6b175474e89094c44da98b954eedeac495271d0f: true # DAI
+    0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48: true # USDC
+    0x2260fac5e5542a773aa44fbcfedf7c193bc2c599: true # WBTC
+    0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202: true # KNC
+    0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0: true # wstETH
+    0xae7ab96520de3a18e5e111b5eaab095312d7fe84: true # stETH
   blacklistedPoolSet: &blacklistedPoolSet
+    0x3dabc75ffd70695852da101b0c0d018781320551: true
+    0xf6a8e47daeeddcce297e7541523e27df2f167bf3: true
   availableSources: &availableSources
-    - "agni-finance"
-    - "merchange-moe"
-    - "fusion-x"
-    - "fusion-x-v3"
-    - "ktx"
-    - "tsunami-x"
-    - "cleopatra"
-    - "cleopatra-v2"
-    - "stratum-finance"
-    - "mvm"
-    - "butter-fi"
-    - "iziswap"
-    - "merchant-moe-v22"
+    - "kyberswap"
+    - "kyberswap-static"
+    - "kyberswap-elastic"
+    - "uniswap"
+    - "uniswapv3"
+    - "sushiswap"
+    - "curve"
+    - "curve-stable-plain"
+    - "synapse"
+    - "shibaswap"
+    - "defiswap"
+    - "saddle"
+    - "dodo-classical"
+    - "dodo-dpp"
+    - "dodo-dsp"
+    - "dodo-dvm"
+    - "maker-psm"
+    - "lido"
+    - "fraxswap"
+    - "kyberswap-limit-order"
+    - "verse"
+    - "maverick-v1"
+    - "pancake"
+    - "pancake-v3"
+    - "sushiswap-v3"
+    - "wombat"
+    - "kyber-pmm"
+    - "crowdswap-v2"
+    - "pol-matic"
+    - "traderjoe-v21"
+    - "smardex"
+    - "balancer-v1"
+    - "balancer-v2-weighted"
+    - "balancer-v2-stable"
+    - "balancer-v2-composable-stable"
+    - "solidly-v3"
+    - "wagmi"
+    - "gyroscope-2clp"
+    - "gyroscope-3clp"
+    - "gyroscope-eclp"
+    - "blueprint"
+    - "swaap-v2"
+    - "bancor-v3"
+    - "etherfi-eeth"
+    - "etherfi-weeth"
+    - "kelp-rseth"
+    - "rocketpool-reth"
+    - "ethena-susde"
+    - "maker-savingsdai"
+    - "hashflow-v3"
+    - "bancor-v21"
     - "native-v1"
+    - "renzo-ezeth"
+    - "bedrock-unieth"
+    - "puffer-pufeth"
+    - "swell-rsweth"
+    - "swell-sweth"
   featureFlags: &featureFlags
+  swaapAPIKey:
+  hashflowAPIKey:
   nativeAPIKey:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
@@ -45,6 +97,16 @@ log:
   enableConsole: true
   enableJSONFormat: true
 redis:
+  addresses:
+  masterName: ""
+  dbNumber: 0
+  password: ""
+  prefix: *chainName
+  readTimeout: 3s
+  writeTimeout: 3s
+  readOnly: false
+  routeRandomly: false
+pregenRedis:
   addresses:
   masterName: ""
   dbNumber: 0
@@ -105,7 +167,7 @@ useCase:
     availableSources: *availableSources
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
-      getBestPoolsOptions:
+      getBestPoolsOptions: &getBestPoolsOptions
         directPoolsCount: 100
         whitelistPoolsCount: 500
         tokenInPoolsCount: 200
@@ -114,7 +176,8 @@ useCase:
         amplifiedTvlWhitelistPoolsCount: 200
         amplifiedTvlTokenInPoolsCount: 100
         amplifiedTvlTokenOutPoolCount: 100
-      finderOptions:
+      finderOptions: &finderOptions
+        type: retry
         maxHops: 3
         distributionPercent: 5
         maxPathsInRoute: 20
@@ -127,6 +190,7 @@ useCase:
         hillClimbDistributionPercent: 1
         hillClimbIteration: 2
         hillClimbMinPartUSD: 500
+        isPathGeneratorEnabled: false
     cache:
       defaultTtl: 15s
       ttlByAmount:
@@ -193,6 +257,10 @@ useCase:
       ttlByAmountUsdRange:
         - amountUSDLowerBound: 0
           ttl: 10s
+        - amountUSDLowerBound: 5
+          ttl: 10s
+        - amountUSDLowerBound: 21
+          ttl: 10s
         - amountUSDLowerBound: 101
           ttl: 10s
         - amountUSDLowerBound: 500
@@ -210,7 +278,7 @@ useCase:
           ttl: 10s
       priceImpactThreshold: 0.005
       shrinkFuncName: "decimal"
-      shrinkDecimalBase: 10
+      shrinkDecimalBase: 8
       shrinkFuncPowExp: 0.7
       shrinkFuncLogPercent: 1.01
       enableNewCacheKeyGenerator: false
@@ -220,20 +288,39 @@ useCase:
         - shrinkFuncName: "logarithm"
           shrinkFuncConstant: 1.5
         - shrinkFuncName: "logarithm"
-          shrinkFuncConstant: 2
+          shrinkFuncConstant: 1.8
       shrinkAmountInThreshold: 100000
   buildRoute:
     chainId: *chainId
-    faultyPools:
-      windowSize: 15m
-      faultyExpiredTime: 3m
-      minSlippageThreshold: 50
     rfq:
+      - id: kyber-pmm
+        handler: kyber-pmm
+        properties:
+          http:
+            base_url: "https://kyberswap.knreserve.com"
+            timeout: 10s
+            retry_count: 3
+          rfq_contract_address: "0x7A819Fa46734a49D0112796f9377E024c350FB26"
       - id: kyberswap-limit-order-v2
         handler: limit-order
         properties:
           chainID: *chainId
-          limitOrderHTTPUrl: https://limit-order.stg.kyberengineering.io
+          limitOrderHTTPUrl: http://limit-order.pre-release-cluster.gke.production.internal
+      - id: swaap-v2
+        handler: swaap-v2
+        properties:
+          http:
+            base_url: "https://api.swaap.finance"
+            timeout: 10s
+            retry_count: 3
+      - id: hashflow-v3
+        handler: hashflow-v3
+        properties:
+          http:
+            base_url: "https://api.hashflow.com"
+            source: kyber
+            timeout: 3s
+            retry_count: 3
       - id: native-v1
         handler: native-v1
         properties:
@@ -241,22 +328,50 @@ useCase:
             base_url: "https://newapi.native.org"
             timeout: 10s
             retry_count: 3
+    faultyPools:
+      windowSize: 15m
+      faultyExpiredTime: 3m
+      minSlippageThreshold: 50
   poolFactory:
     chainId: *chainId
+    useAEVM: &useAEVM false
+    dexUseAEVM:
+      uniswap: false
+      uniswapv3: true
+      liquiditybook-v20: false
+      liquiditybook-v21: false
+    addressesByDex:
+      uniswap:
+        router-address: 0x7a250d5630b4cf539739df2c5dacb4c659f2488d
+      uniswapv3:
+        router-address: 0xe592427a0aece92de3edee1f18e0157c05861564
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     blackListRenewalInterval: 30s
-    capacity: 100000
-    poolRenewalInterval: 3s
+    capacity: 1000000
+    poolRenewalInterval: 12s
+    useAEVM: *useAEVM
     faultyPoolsExpireThreshold: 3s
     maxFaultyPoolSize: 500
+    stallingPMMThreshold: 30s
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
     maxGoroutines: 0
     enableRankByNative: false
+  generateBestPaths:
+    gasTokenAddress: *gasTokenAddress
+    getBestPoolsOptions: *getBestPoolsOptions
+    spfaFinderOptions: *finderOptions
+    whitelistedTokens: *whitelistedTokenSet
+    availableSources: *availableSources
+    blacklistedPools:
+    configGeneratorDataTtl: 12h
+    pathGeneratorDataTtl: 2h
+    maintainingInterval: 360s
+    chainId: *chainId
   trackExecutor:
-    subgraphURL: https://mantle-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-mantle
+    subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-ethereum
 job:
   indexPools:
     forceScanAllEveryNth: 10
@@ -275,9 +390,11 @@ job:
       batchSize: 100
       retryInterval: 5s
   updateSuggestedGasPrice:
-    interval: 2s
+    interval: 15s
   trackExecutorBalance:
     interval: 1h
+  generateBestPaths:
+    interval: 360s
 repository:
   gas:
     redis:
@@ -288,20 +405,35 @@ repository:
       bufferItems: 64
       suggestedGasPrice:
         cost: 1
-        ttl: 2m
+        ttl: 15s
   pool:
     redis:
       prefix: *chainName
+    ristretto:
+      numCounters: 5000
+      maxCost: 500
+      bufferItems: 64
+      faultyPools:
+        cost: 1
+        ttl: 5s
   price:
     redis:
       prefix: *chainName
-    ristretto:
+    ristretto: &pricecache
       numCounters: 10000
       maxCost: 1000
       bufferItems: 64
       price:
         cost: 1
         ttl: 1m
+  onchainprice:
+    enabled: false
+    grpc:
+      base_url: onchain-price.core-cluster.gke.production.internal:80
+      timeout: 300ms
+      insecure: true
+      client_id: router-service
+    ristretto: *pricecache
   poolService:
     baseUrl: "0.0.0.0:10443"
     insecure: true
@@ -316,20 +448,21 @@ repository:
   poolRank:
     redis:
       prefix: *chainName
+    useNativeRanking: false
   route:
     redis:
       prefix: *chainName
     ristretto:
-      numCounters: 5000
-      maxCost: 500
+      numCounters: 10000
+      maxCost: 1000
       bufferItems: 64
       prefix: *chainName
       route:
         cost: 1
-        ttl: 30s
+        ttl: 10s
   blackjack:
     grpcClient:
-      baseURL: blackjack-global-api.blackjack.svc:9080
+      baseURL: blackjack.core-cluster.gke.production.internal:80
       insecure: true
       timeout: 100ms
   erc20balanceslot:
@@ -343,3 +476,33 @@ validator:
     blacklistedRecipientSet:
   getRouteEncodeParams:
     blacklistedRecipientSet:
+aevmEnabled: false
+aevm:
+  serverUrl: "localhost:8246"
+  rpc: "http://localhost:8545"
+  simulationWallet: "0x19767032471665df0fd7f6160381a103ece6261a"
+  useHoldersListAsFallback: false
+  tokenHoldersRedis:
+    addresses:
+    masterName: ""
+    dbNumber: 0
+    password: ""
+    prefix: *chainName
+    readTimeout: 3s
+    writeTimeout: 3s
+    readOnly: false
+    routeRandomly: false
+  cachedHoldersListTTLSec: 30
+  predefinedBalanceSlots:
+    # LIDO token
+    0x5a98fcbea516cf06857215779fd812ca3bef1b32:
+      token: 0x5a98fcbea516cf06857215779fd812ca3bef1b32
+      wallet: 0x19767032471665df0fd7f6160381a103ece6261a
+      found: true
+      balanceSlot: 0x1d92366e0eb8047c54dfd3b4dbea0f8e23e5b021de7fe643c5e1b27c1a169cf0
+      # the first 128 bits is balance = 0x0000ffffffffffffffffffffffffffff (which is large enough)
+      # the last 128 bits is block number at which balance is changed
+      preferredValue: 0x0000ffffffffffffffffffffffffffff000000000000000000000000010c766a
+      extraOverrides:
+        # balance history length, must be > 0
+        0x5a7df2e997858d39f2aef4861e79c3133f8533d36ea28b6a66fa8b4914908a5a: 0x0000000000000000000000000000000000000000000000000000000000000001
