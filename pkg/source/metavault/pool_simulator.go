@@ -241,7 +241,8 @@ func (p *PoolSimulator) AfterMsgpDecode() error {
 }
 
 func (p *PoolSimulator) AfterMsgpackUnmarshal() error {
-	p.vaultUtils.vault = p.vault
+	if p.vaultUtils != nil {
+		p.vaultUtils.vault = p.vault
+	}
 	return nil
 }
-

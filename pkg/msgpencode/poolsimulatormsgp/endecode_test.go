@@ -78,3 +78,16 @@ func TestEndecodePoolSimulatorsMap(t *testing.T) {
 
 	require.Empty(t, cmp.Diff(poolsMap, decoded, testutil.CmpOpts()...))
 }
+
+func TestReflectBasedEndecodePoolSimulatorsMap(t *testing.T) {
+	poolsMap := makePoolSimulatorsMapForTesting()
+
+	encoded, err := ReflectBasedEncodePoolSimulatorsMap(poolsMap)
+	require.NoError(t, err)
+
+	decoded, err := ReflectBasedDecodePoolSimulatorsMap(encoded)
+	require.NoError(t, err)
+	require.Equal(t, len(poolsMap), len(decoded))
+
+	require.Empty(t, cmp.Diff(poolsMap, decoded, testutil.CmpOpts()...))
+}
