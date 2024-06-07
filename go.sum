@@ -16,8 +16,6 @@ github.com/KyberNetwork/msgpack/v5 v5.0.0-20240605115257-96ff5e298a7d h1:ae4P7OZ
 github.com/KyberNetwork/msgpack/v5 v5.0.0-20240605115257-96ff5e298a7d/go.mod h1:91PLIDmaoFsGuwQHhXDU8hv7JKubN2seUhUMbj9kXmM=
 github.com/KyberNetwork/pancake-v3-sdk v0.2.0 h1:dd5k2Z223kkzSky8SFgRy2/eQGp4bf586SS71XqqBlM=
 github.com/KyberNetwork/pancake-v3-sdk v0.2.0/go.mod h1:AhHu1v2KZAXKFZ9AnjwYPPx1+dDFHBqmSpSeg4fnvzg=
-github.com/KyberNetwork/uniswap-sdk-core v0.1.10-0.20240605171339-278ffcc8f716 h1:XEPAUqZXGH8yYVxEDi60gYMVTl+YGwuDmlj7Q0ugltk=
-github.com/KyberNetwork/uniswap-sdk-core v0.1.10-0.20240605171339-278ffcc8f716/go.mod h1:DPzL8zNicstPzvX74ZeeHsiIUquZRpwviceDHQ8+UQ4=
 github.com/KyberNetwork/uniswapv3-sdk v0.5.0 h1:Akl6KR27K+gVMOf9x9u9dV32j9YTIEnY99R9z+WlVGI=
 github.com/KyberNetwork/uniswapv3-sdk v0.5.0/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
 github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.0 h1:AkEmCEBmyYAUU+WHGrgw9uaXHteqNn66CD36FaXoUig=
@@ -61,6 +59,8 @@ github.com/crate-crypto/go-ipa v0.0.0-20231025140028-3c0104f4b233 h1:d28BXYi+wUp
 github.com/crate-crypto/go-ipa v0.0.0-20231025140028-3c0104f4b233/go.mod h1:geZJZH3SzKCqnz5VT0q/DyIG/tvu/dZk+VIfXicupJs=
 github.com/crate-crypto/go-kzg-4844 v0.7.0 h1:C0vgZRk4q4EZ/JgPfzuSoxdCq3C3mOZMBShovmncxvA=
 github.com/crate-crypto/go-kzg-4844 v0.7.0/go.mod h1:1kMhvPgI0Ky3yIa+9lFySEBUBXkYxeOi8ZF1sYioxhc=
+github.com/daoleno/uniswap-sdk-core v0.1.7 h1:PdZypLSzM5Mu2rFBjXK9XrHDppSt62GkxXjWLpuMAN4=
+github.com/daoleno/uniswap-sdk-core v0.1.7/go.mod h1:DPzL8zNicstPzvX74ZeeHsiIUquZRpwviceDHQ8+UQ4=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

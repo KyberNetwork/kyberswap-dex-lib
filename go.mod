@@ -80,7 +80,7 @@ require (
 )
 
 replace (
-	github.com/daoleno/uniswap-sdk-core v0.1.7 => github.com/KyberNetwork/uniswap-sdk-core v0.1.10-0.20240605171339-278ffcc8f716
+	github.com/daoleno/uniswap-sdk-core v0.1.5 => github.com/KyberNetwork/uniswap-sdk-core v0.1.5
 	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.5.0
 	github.com/tinylib/msgp v1.1.9 => github.com/KyberNetwork/msgp v1.1.9-1
 )

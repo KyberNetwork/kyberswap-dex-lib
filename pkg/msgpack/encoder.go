@@ -2,18 +2,9 @@ package msgpack
 
 import (
 	"io"
-	"reflect"
 	"sync"
 
 	"github.com/KyberNetwork/msgpack/v5"
-	uniswapentities "github.com/daoleno/uniswap-sdk-core/entities"
-)
-
-var (
-	uniswapentitiesBaseCurrencyType = reflect.TypeOf((*uniswapentities.BaseCurrency)(nil)).Elem()
-	uniswapentitiesEtherType        = reflect.TypeOf((*uniswapentities.Ether)(nil)).Elem()
-	uniswapentitiesNativeType       = reflect.TypeOf((*uniswapentities.Native)(nil)).Elem()
-	uniswapentitiesTokenType        = reflect.TypeOf((*uniswapentities.Token)(nil)).Elem()
 )
 
 var encoderPool = sync.Pool{
