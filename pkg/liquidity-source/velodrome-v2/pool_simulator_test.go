@@ -8,10 +8,8 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -164,18 +162,79 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 				assert.Nil(t, err)
 				assert.Zero(t, tc.expectedAmountOut.Cmp(result.TokenAmountOut.Amount))
 				assert.Zero(t, tc.expectedFee.Cmp(result.Fee.Amount))
+			}
+		})
+	}
+}
 
-				threshold := big.NewInt(tc.calcInThreshold)
-				approx, err := pool.ApproxAmountIn(&tc.poolSimulator, pool.ApproxAmountInParams{
-					ExpectedTokenOut: *result.TokenAmountOut,
-					TokenIn:          tc.tokenAmountIn.Token,
-					MaxLoop:          3,
-					Threshold:        threshold,
+func TestPoolSimulator_getAmountIn(t *testing.T) {
+	testCases := []struct {
+		name             string
+		poolSimulator    PoolSimulator
+		tokenAmountOut   poolpkg.TokenAmount
+		tokenIn          string
+		expectedAmountIn *big.Int
+		expectedFee      *big.Int
+	}{
+		{
+			name: "[volatile][1to0] it should return correct amount",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:  "0x8134a2fdc127549480865fb8e5a9e8a8a95a54c5",
+						Tokens:   []string{"0x7F5c764cBc14f9669B88837ca1490cCa17c31607", "0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db"},
+						Reserves: []*big.Int{utils.NewBig10("2458244583526"), utils.NewBig10("48437610421475879640774762")},
+					},
+				},
+				isPaused:     false,
+				stable:       false,
+				decimals0:    number.NewUint256("1000000"),
+				decimals1:    number.NewUint256("1000000000000000000"),
+				fee:          uint256.NewInt(100),
+				feePrecision: uint256.NewInt(10000),
+			},
+			tokenAmountOut:   poolpkg.TokenAmount{Token: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607", Amount: utils.NewBig10("33762029")},
+			tokenIn:          "0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db",
+			expectedAmountIn: utils.NewBig10("671980897831826369735"),
+			expectedFee:      utils.NewBig10("0"),
+		},
+		{
+			name: "[volatile][0to1] it should return correct amount",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:  "0x8134a2fdc127549480865fb8e5a9e8a8a95a54c5",
+						Tokens:   []string{"0x7F5c764cBc14f9669B88837ca1490cCa17c31607", "0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db"},
+						Reserves: []*big.Int{utils.NewBig10("2458244583526"), utils.NewBig10("48437697487082485250805965")},
+					},
+				},
+				isPaused:     false,
+				stable:       false,
+				decimals0:    number.NewUint256("1000000"),
+				decimals1:    number.NewUint256("1000000000000000000"),
+				fee:          uint256.NewInt(100),
+				feePrecision: uint256.NewInt(10000),
+			},
+			tokenAmountOut:   poolpkg.TokenAmount{Token: "0x9560e827aF36c94D2Ac33a39bCE1Fe78631088Db", Amount: utils.NewBig10("4843761042147587964077")},
+			tokenIn:          "0x7F5c764cBc14f9669B88837ca1490cCa17c31607",
+			expectedAmountIn: utils.NewBig10("248331921"),
+			expectedFee:      utils.NewBig10("0"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountInResult](t, func() (any, error) {
+				return tc.poolSimulator.CalcAmountIn(poolpkg.CalcAmountInParams{
+					TokenAmountOut: tc.tokenAmountOut,
+					TokenIn:        tc.tokenIn,
 				})
-				require.Nil(t, err)
-				diff := new(big.Int).Abs(new(big.Int).Sub(approx.TokenAmountOut.Amount, result.TokenAmountOut.Amount))
-				assert.Truef(t, diff.Cmp(threshold) < 0, "ApproxAmountIn not exact enough: %v vs %v", approx.TokenAmountOut.Amount, result.TokenAmountOut.Amount)
-				fmt.Println("approx", approx.TokenAmountIn.Amount, approx.TokenAmountOut.Amount)
+			})
+
+			if tc.expectedAmountIn != nil {
+				assert.Nil(t, err)
+				assert.Equalf(t, tc.expectedAmountIn, result.TokenAmountIn.Amount, "expected amount in: %s, got: %s", tc.expectedAmountIn.String(), result.TokenAmountIn.Amount.String())
+				assert.Equalf(t, tc.expectedFee, result.Fee.Amount, "expected fee: %s, got: %s", tc.expectedFee.String(), result.Fee.Amount.String())
 			}
 		})
 	}
