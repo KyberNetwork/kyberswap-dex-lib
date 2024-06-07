@@ -22,42 +22,48 @@ import (
 	pkg_source_zkerafinance "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkera-finance"
 )
 
+func mustNotError(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
 func init() {
-	msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_plain.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_stablemetang.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_stableng.PoolSimulator{})
+	mustNotError(msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_plain.PoolSimulator{}))
+	mustNotError(msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_stablemetang.PoolSimulator{}))
+	mustNotError(msgpack.RegisterConcreteType(&pkg_liquiditysource_curve_stableng.PoolSimulator{}))
 
-	msgpack.RegisterConcreteType(&pkg_source_curve_aave.AavePool{})
-	msgpack.RegisterConcreteType(&pkg_source_curve_base.PoolBaseSimulator{})
-	msgpack.RegisterConcreteType(&pkg_source_curve_plainoracle.Pool{})
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_curve_aave.AavePool{}))
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_curve_base.PoolBaseSimulator{}))
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_curve_plainoracle.Pool{}))
 
-	msgpack.RegisterConcreteType(&pkg_source_gmx.FastPriceFeedV1{})
-	msgpack.RegisterConcreteType(&pkg_source_gmx.FastPriceFeedV2{})
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_gmx.FastPriceFeedV1{}))
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_gmx.FastPriceFeedV2{}))
 
-	msgpack.RegisterConcreteType(&pkg_source_gmxglp.FastPriceFeedV1{})
-	msgpack.RegisterConcreteType(&pkg_source_gmxglp.FastPriceFeedV2{})
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_gmxglp.FastPriceFeedV1{}))
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_gmxglp.FastPriceFeedV2{}))
 
-	msgpack.RegisterConcreteType(&pkg_source_madmex.FastPriceFeedV1{})
-	msgpack.RegisterConcreteType(&pkg_source_madmex.FastPriceFeedV2{})
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_madmex.FastPriceFeedV1{}))
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_madmex.FastPriceFeedV2{}))
 
-	msgpack.RegisterConcreteType(&pkg_source_metavault.FastPriceFeedV1{})
-	msgpack.RegisterConcreteType(&pkg_source_metavault.FastPriceFeedV2{})
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_metavault.FastPriceFeedV1{}))
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_metavault.FastPriceFeedV2{}))
 
-	msgpack.RegisterConcreteType(&pancakev3_entities.TickListDataProvider{})
+	mustNotError(msgpack.RegisterConcreteType(&pancakev3_entities.TickListDataProvider{}))
 
-	msgpack.RegisterConcreteType(&pkg_source_metavault.FastPriceFeedV1{})
-	msgpack.RegisterConcreteType(&pkg_source_metavault.FastPriceFeedV2{})
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_metavault.FastPriceFeedV1{}))
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_metavault.FastPriceFeedV2{}))
 
-	msgpack.RegisterConcreteType(&uniswapv3_entities.TickListDataProvider{})
+	mustNotError(msgpack.RegisterConcreteType(&uniswapv3_entities.TickListDataProvider{}))
 
-	msgpack.RegisterConcreteType(&uniswapv3uint256_entities.TickListDataProvider{})
+	mustNotError(msgpack.RegisterConcreteType(&uniswapv3uint256_entities.TickListDataProvider{}))
 
-	msgpack.RegisterConcreteType(&pkg_source_quickperps.FastPriceFeedV1{})
-	msgpack.RegisterConcreteType(&pkg_source_quickperps.FastPriceFeedV2{})
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_quickperps.FastPriceFeedV1{}))
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_quickperps.FastPriceFeedV2{}))
 
-	msgpack.RegisterConcreteType(&pkg_source_swapbasedperp.FastPriceFeedV1{})
-	msgpack.RegisterConcreteType(&pkg_source_swapbasedperp.FastPriceFeedV2{})
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_swapbasedperp.FastPriceFeedV1{}))
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_swapbasedperp.FastPriceFeedV2{}))
 
-	msgpack.RegisterConcreteType(&pkg_source_zkerafinance.FastPriceFeedV1{})
-	msgpack.RegisterConcreteType(&pkg_source_zkerafinance.FastPriceFeedV2{})
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_zkerafinance.FastPriceFeedV1{}))
+	mustNotError(msgpack.RegisterConcreteType(&pkg_source_zkerafinance.FastPriceFeedV2{}))
 }

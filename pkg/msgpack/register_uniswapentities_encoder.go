@@ -29,13 +29,13 @@ type (
 
 	// BaseCurrency 's structure is identical to uniswapentities.BaseCurrency
 	BaseCurrency struct {
-		currency Currency `msgpack:"-"` // break the cycle
-		isNative bool
-		isToken  bool
-		chainId  uint
-		decimals uint
-		symbol   string
-		name     string
+		currency Currency `msgpack:"-"` // nolint:golint,unused
+		isNative bool     //nolint:golint,unused
+		isToken  bool     //nolint:golint,unused
+		chainId  uint     //nolint:golint,unused
+		decimals uint     //nolint:golint,unused
+		symbol   string   //nolint:golint,unused
+		name     string   //nolint:golint,unused
 	}
 
 	// token2's structure is identical to uniswapentities.Token
