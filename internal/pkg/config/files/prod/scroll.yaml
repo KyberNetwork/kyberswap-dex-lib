@@ -230,7 +230,7 @@ useCase:
     faultyPools:
       windowSize: 15m
       faultyExpiredTime: 3m
-      minSlippageThreshold: 50
+      minSlippageThreshold: 1000
     rfq:
       - id: native-v1
         handler: native-v1

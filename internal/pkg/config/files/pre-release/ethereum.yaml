@@ -331,7 +331,7 @@ useCase:
     faultyPools:
       windowSize: 15m
       faultyExpiredTime: 3m
-      minSlippageThreshold: 50
+      minSlippageThreshold: 1000
   poolFactory:
     chainId: *chainId
     useAEVM: &useAEVM false
