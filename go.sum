@@ -14,6 +14,8 @@ github.com/KyberNetwork/msgp v1.1.9-1 h1:m7G09SolKox1SxZkjLiUc1TCQunpWp4aaz0WE9u
 github.com/KyberNetwork/msgp v1.1.9-1/go.mod h1:BCXGB54lDD8qUEPmiG0cQQUANC4IUQyB2ItS2UDlO/k=
 github.com/KyberNetwork/msgpack/v5 v5.0.0-20240605115257-96ff5e298a7d h1:ae4P7OZlgYM4AHkMGuOBGDOH0gCXJkUORHE+O8Ao+rM=
 github.com/KyberNetwork/msgpack/v5 v5.0.0-20240605115257-96ff5e298a7d/go.mod h1:91PLIDmaoFsGuwQHhXDU8hv7JKubN2seUhUMbj9kXmM=
+github.com/KyberNetwork/msgpack/v5 v5.0.0-20240607120703-081903e0f946 h1:Wv1R+AEjMHwKpdqfF0dybmj5zJmwRNjVrYfQoqFaEZs=
+github.com/KyberNetwork/msgpack/v5 v5.0.0-20240607120703-081903e0f946/go.mod h1:91PLIDmaoFsGuwQHhXDU8hv7JKubN2seUhUMbj9kXmM=
 github.com/KyberNetwork/pancake-v3-sdk v0.2.0 h1:dd5k2Z223kkzSky8SFgRy2/eQGp4bf586SS71XqqBlM=
 github.com/KyberNetwork/pancake-v3-sdk v0.2.0/go.mod h1:AhHu1v2KZAXKFZ9AnjwYPPx1+dDFHBqmSpSeg4fnvzg=
 github.com/KyberNetwork/uniswapv3-sdk v0.5.0 h1:Akl6KR27K+gVMOf9x9u9dV32j9YTIEnY99R9z+WlVGI=

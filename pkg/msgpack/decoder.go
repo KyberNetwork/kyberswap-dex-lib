@@ -18,6 +18,7 @@ func NewDecoder(r io.Reader) *msgpack.Decoder {
 	de := decoderPool.Get().(*msgpack.Decoder)
 	de.Reset(r)
 	de.IncludeUnexported(true)
+	de.SetForceAsArray(true)
 	return de
 }
 

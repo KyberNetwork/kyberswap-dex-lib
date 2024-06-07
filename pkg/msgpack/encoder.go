@@ -18,6 +18,7 @@ func NewEncoder(w io.Writer) *msgpack.Encoder {
 	en := encoderPool.Get().(*msgpack.Encoder)
 	en.Reset(w)
 	en.IncludeUnexported(true)
+	en.SetForceAsArray(true)
 	return en
 }
 
