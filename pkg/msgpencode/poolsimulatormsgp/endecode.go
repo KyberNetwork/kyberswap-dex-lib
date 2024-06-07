@@ -113,13 +113,19 @@ func EncodePoolSimulatorsMap(poolsMap map[string]pool.IPoolSimulator) ([]byte, e
 
 // ReflectBasedEncodePoolSimulatorsMap encode a map from pool ID to IPoolSimulator with Snappy compression
 func ReflectBasedEncodePoolSimulatorsMap(poolsMap map[string]pool.IPoolSimulator) ([]byte, error) {
-	var encoded bytes.Buffer
-	en := msgpack.NewEncoder(&encoded)
+	var (
+		buf bytes.Buffer
+		zw  = snappy.NewBufferedWriter(&buf)
+	)
+	en := msgpack.NewEncoder(zw)
 	defer msgpack.PutEncoder(en)
 	if err := en.Encode(poolsMap); err != nil {
 		return nil, err
 	}
-	return encoded.Bytes(), nil
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 // DecodePoolSimulatorsMap decodes an encoded and Snappy compressed map from pool ID to IPoolSimulator
@@ -166,7 +172,8 @@ func DecodePoolSimulatorsMap(encoded []byte) (map[string]pool.IPoolSimulator, er
 // ReflectBasedDecodePoolSimulatorsMap decodes an encoded and Snappy compressed map from pool ID to IPoolSimulator
 func ReflectBasedDecodePoolSimulatorsMap(encoded []byte) (map[string]pool.IPoolSimulator, error) {
 	poolsMap := make(map[string]pool.IPoolSimulator)
-	de := msgpack.NewDecoder(bytes.NewReader(encoded))
+	zw := snappy.NewReader(bytes.NewReader(encoded))
+	de := msgpack.NewDecoder(zw)
 	if err := de.Decode(&poolsMap); err != nil {
 		return nil, err
 	}
