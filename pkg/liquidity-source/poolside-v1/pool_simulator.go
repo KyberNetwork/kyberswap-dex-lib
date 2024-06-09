@@ -29,6 +29,8 @@ type PoolSimulator struct { //customize
 	feePrecision *uint256.Int
 
 	gas Gas
+
+	rebaseTokenMap map[string]string
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -53,10 +55,34 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
+func (s *PoolSimulator) getRebaseToken(token string) string {
+	if _, exists := s.rebaseTokenMap[token]; exists {
+		return token
+	}
+
+	for rebaseToken, underlyingToken := range s.rebaseTokenMap {
+		if underlyingToken == token {
+			return rebaseToken
+		}
+	}
+	return token
+}
+
+func (s *PoolSimulator) GetPoolTokenIndexes(tokenIn, tokenOut string) (int, int) {
+	rebaseTokenIn := s.getRebaseToken(tokenIn)
+	rebaseTokenOut := s.getRebaseToken(tokenOut)
+
+	indexIn, indexOut := s.GetTokenIndex(rebaseTokenIn), s.GetTokenIndex(rebaseTokenOut)
+
+	return indexIn, indexOut
+}
+
 func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
 	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
 
-	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
+	// indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
+
+	indexIn, indexOut := s.GetPoolTokenIndexes(tokenAmountIn.Token, tokenOut)
 
 	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrInvalidToken
@@ -70,6 +96,8 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	if amountIn.Cmp(number.Zero) <= 0 {
 		return nil, ErrInsufficientInputAmount
 	}
+
+	// Have to convert amountIn if tokenIn is underlying token
 
 	poolIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
 	if overflow {
