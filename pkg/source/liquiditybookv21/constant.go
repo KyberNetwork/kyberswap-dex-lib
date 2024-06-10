@@ -20,6 +20,7 @@ const (
 	pairMethodGetReserves              = "getReserves"
 	pairMethodGetBinStep               = "getBinStep"
 	pairMethodGetActiveID              = "getActiveId"
+	pairGetPriceFromID                 = "getPriceFromId"
 )
 
 const (

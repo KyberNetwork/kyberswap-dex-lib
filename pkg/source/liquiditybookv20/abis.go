@@ -9,6 +9,7 @@ import (
 var (
 	pairABI    abi.ABI
 	factoryABI abi.ABI
+	routerABI  abi.ABI
 )
 
 func init() {
@@ -21,6 +22,9 @@ func init() {
 		},
 		{
 			&factoryABI, factoryABIJson,
+		},
+		{
+			&routerABI, routerABIJson,
 		},
 	}
 

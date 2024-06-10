@@ -15,6 +15,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoecommon"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -74,6 +75,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		ActiveBinID:            rpcResult.ActiveBinID,
 		BinStep:                rpcResult.BinStep,
 		Bins:                   subgraphResult.Bins,
+		PriceX128:              rpcResult.PriceX128,
+		Liquidity:              rpcResult.Liquidity,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -112,6 +115,8 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool, blockNumber u
 
 		reserves    reserves
 		activeBinID *big.Int
+
+		priceX128 *big.Int
 
 		err error
 	)
@@ -180,6 +185,25 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool, blockNumber u
 		TimeOfLastUpdate:      variableFeeParamsResp.TimeOfLastUpdate.Uint64(),
 	}
 
+	req = d.ethrpcClient.NewRequest()
+	req.SetContext(ctx)
+	if blockNumber > 0 {
+		var blockNumberBI big.Int
+		blockNumberBI.SetUint64(blockNumber)
+		req.SetBlockNumber(&blockNumberBI)
+	}
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    pairABI,
+		Target: p.Address,
+		Method: pairGetPriceFromID,
+		Params: []interface{}{activeBinID},
+	}, []interface{}{&priceX128})
+
+	if _, err := req.Aggregate(); err != nil {
+		return nil, err
+	}
+
 	return &QueryRpcPoolStateResult{
 		BlockTimestamp:    blockTimestamp,
 		StaticFeeParams:   staticFeeParams,
@@ -187,6 +211,8 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool, blockNumber u
 		Reserves:          reserves,
 		ActiveBinID:       uint32(activeBinID.Uint64()),
 		BinStep:           binStep,
+		Liquidity:         traderjoecommon.CalculateLiquidity(priceX128, reserves.ReserveX, reserves.ReserveY),
+		PriceX128:         priceX128,
 	}, nil
 }
 

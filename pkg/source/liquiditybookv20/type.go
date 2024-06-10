@@ -12,12 +12,16 @@ type Extra struct {
 	FeeParameters          feeParameters `json:"feeParameters"`
 	ActiveBinID            uint32        `json:"activeBinId"`
 	Bins                   []Bin         `json:"bins"`
+	Liquidity              *big.Int      `json:"liquidity"`
+	PriceX128              *big.Int      `json:"priceX128"`
 }
 
 type QueryRpcPoolStateResult struct {
 	BlockTimestamp uint64        `json:"blockTimestamp"`
 	FeeParameters  feeParameters `json:"feeParameters"`
 	ReservesAndID  reservesAndID `json:"reserves"`
+	Liquidity      *big.Int      `json:"liquidity"`
+	PriceX128      *big.Int      `json:"priceX128"`
 }
 
 type reservesAndID struct {
