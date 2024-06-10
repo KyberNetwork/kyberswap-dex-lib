@@ -206,6 +206,60 @@ func (u *PoolsListUpdater) listPairTokens(ctx context.Context, pairAddresses []c
 	return listToken0Result, listToken1Result, nil
 }
 
+func (u *PoolsListUpdater) getDecimals(ctx context.Context, tokenAddress string) (uint8, error) {
+	var decimals uint8
+
+	getDecimalsRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
+
+	getDecimalsRequest.AddCall(&ethrpc.Call{
+		ABI:    erc20ABI,
+		Target: tokenAddress,
+		Method: erc20TokenDecimals,
+		Params: nil,
+	}, []interface{}{&decimals})
+
+	if _, err := getDecimalsRequest.Call(); err != nil {
+		return 0, err
+	}
+
+	return decimals, nil
+}
+
+func (u *PoolsListUpdater) getRebaseTokenInfo(ctx context.Context, tokenAddress string) RebaseTokenInfo {
+	var underlyingToken common.Address
+
+	decimals, err := u.getDecimals(ctx, tokenAddress)
+
+	if err != nil {
+		decimals = defaultDecimals
+	}
+
+	getUnderlyingTokenRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
+
+	getUnderlyingTokenRequest.AddCall(&ethrpc.Call{
+		ABI:    poolsideV1ButtonTokenABI,
+		Target: tokenAddress,
+		Method: buttonTokenMethodGetUnderlyingToken,
+		Params: nil,
+	}, []interface{}{&underlyingToken})
+
+	if _, err := getUnderlyingTokenRequest.Call(); err != nil {
+		return RebaseTokenInfo{
+			UnderlyingToken: "",
+			WrapRatio:       nil,
+			UnwrapRatio:     nil,
+			Decimals:        decimals,
+		}
+	}
+
+	return RebaseTokenInfo{
+		UnderlyingToken: underlyingToken.Hex(),
+		WrapRatio:       nil,
+		UnwrapRatio:     nil,
+		Decimals:        decimals,
+	}
+}
+
 func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common.Address) ([]entity.Pool, error) {
 	token0List, token1List, err := u.listPairTokens(ctx, pairAddresses)
 
@@ -213,25 +267,33 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 		return nil, err
 	}
 
-	extra, err := json.Marshal(Extra{
-		Fee:          u.config.Fee,
-		FeePrecision: u.config.FeePrecision,
-	})
-	if err != nil {
-		return nil, err
-	}
-
+	rebaseTokenInfoMap := make(map[string]RebaseTokenInfo)
 	pools := make([]entity.Pool, 0, len(pairAddresses))
 
 	for i, pairAddress := range pairAddresses {
+		token0Address := strings.ToLower(token0List[i].Hex())
+		token1Address := strings.ToLower(token1List[i].Hex())
+
 		token0 := &entity.PoolToken{
-			Address:   strings.ToLower(token0List[i].Hex()),
+			Address:   token0Address,
 			Swappable: true,
 		}
 
 		token1 := &entity.PoolToken{
-			Address:   strings.ToLower(token1List[i].Hex()),
+			Address:   token1Address,
 			Swappable: true,
+		}
+
+		rebaseTokenInfoMap[token0Address] = u.getRebaseTokenInfo(ctx, token0Address)
+		rebaseTokenInfoMap[token1Address] = u.getRebaseTokenInfo(ctx, token1Address)
+
+		extra, err := json.Marshal(Extra{
+			Fee:                u.config.Fee,
+			FeePrecision:       u.config.FeePrecision,
+			RebaseTokenInfoMap: rebaseTokenInfoMap,
+		})
+		if err != nil {
+			return nil, err
 		}
 
 		var newPool = entity.Pool{

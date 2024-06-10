@@ -10,6 +10,7 @@ var (
 	poolsideV1PairABI        abi.ABI
 	poolsideV1FactoryABI     abi.ABI
 	poolsideV1ButtonTokenABI abi.ABI
+	erc20ABI                 abi.ABI
 )
 
 func init() {
@@ -25,6 +26,9 @@ func init() {
 		},
 		{
 			&poolsideV1ButtonTokenABI, buttonTokenABIJson,
+		},
+		{
+			&erc20ABI, erc20ABIJson,
 		},
 	}
 

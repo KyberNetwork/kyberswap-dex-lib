@@ -10,3 +10,6 @@ var factoryABIJson []byte
 
 //go:embed abis/ButtonToken.json
 var buttonTokenABIJson []byte
+
+//go:embed abis/ERC20.json
+var erc20ABIJson []byte

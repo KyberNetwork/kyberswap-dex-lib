@@ -6,15 +6,17 @@ type Gas struct {
 	Swap int64
 }
 
-type Extra struct {
-	Fee          uint64 `json:"fee"`
-	FeePrecision uint64 `json:"feePrecision"`
+type RebaseTokenInfo struct {
+	UnderlyingToken string     `json:"underlyingToken"`
+	WrapRatio       *big.Float `json:"wrapRatio"`
+	UnwrapRatio     *big.Float `json:"unwrapRatio"`
+	Decimals        uint8      `json:"decimals"`
 }
 
-type RebaseTokenInfo struct {
-	UnderlyingToken string
-	WrapRatio       *big.Float
-	UnwrapRatio     *big.Float
+type Extra struct {
+	Fee                uint64                     `json:"fee"`
+	FeePrecision       uint64                     `json:"feePrecision"`
+	RebaseTokenInfoMap map[string]RebaseTokenInfo `json:"rebaseTokenInfoMap"`
 }
 
 type PoolMeta struct {
