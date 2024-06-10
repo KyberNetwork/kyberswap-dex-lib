@@ -7,10 +7,10 @@ type Gas struct {
 }
 
 type RebaseTokenInfo struct {
-	UnderlyingToken string     `json:"underlyingToken"`
-	WrapRatio       *big.Float `json:"wrapRatio"`
-	UnwrapRatio     *big.Float `json:"unwrapRatio"`
-	Decimals        uint8      `json:"decimals"`
+	UnderlyingToken string   `json:"underlyingToken"`
+	WrapRatio       *big.Int `json:"wrapRatio"`
+	UnwrapRatio     *big.Int `json:"unwrapRatio"`
+	Decimals        uint8    `json:"decimals"`
 }
 
 type Extra struct {

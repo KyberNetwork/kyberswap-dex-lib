@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -47,6 +48,17 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		return p, nil
 	}
 
+	var extra Extra
+	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+		return p, err
+	}
+
+	rebaseTokenInfoMap := extra.RebaseTokenInfoMap
+
+	if err := d.updateRebaseTokenInfoMap(ctx, &rebaseTokenInfoMap); err != nil {
+		return p, err
+	}
+
 	logger.
 		WithFields(
 			logger.Fields{
@@ -60,7 +72,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		).
 		Info("Finished getting new pool state")
 
-	return d.updatePool(p, reserveData, blockNumber)
+	return d.updatePool(p, reserveData, blockNumber, rebaseTokenInfoMap)
 }
 
 func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress string) (ReserveData, *big.Int, error) {
@@ -86,10 +98,76 @@ func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress st
 	}, resp.BlockNumber, nil
 }
 
-func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, blockNumber *big.Int) (entity.Pool, error) {
+func (d *PoolTracker) callUnderlyingToWrapper(ctx context.Context, tokenAddress string, uAmount *big.Int) (*big.Int, error) {
+	var result *big.Int
+
+	callRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+
+	callRequest.AddCall(&ethrpc.Call{
+		ABI:    poolsideV1ButtonTokenABI,
+		Target: tokenAddress,
+		Method: buttonTokenMethodUnderlyingToWrapper,
+		Params: []interface{}{uAmount},
+	}, []interface{}{&result})
+
+	if _, err := callRequest.Call(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (d *PoolTracker) callWrapperToUnderlying(ctx context.Context, tokenAddress string, amount *big.Int) (*big.Int, error) {
+	var result *big.Int
+
+	callRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+
+	callRequest.AddCall(&ethrpc.Call{
+		ABI:    poolsideV1ButtonTokenABI,
+		Target: tokenAddress,
+		Method: buttonTokenMethodWrapperToUnderlying,
+		Params: []interface{}{amount},
+	}, []interface{}{&result})
+
+	if _, err := callRequest.Call(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+func (d *PoolTracker) updateRebaseTokenInfoMap(ctx context.Context, rebaseTokenInfoMap *map[string]RebaseTokenInfo) error {
+	for tokenAddress, info := range *rebaseTokenInfoMap {
+		if strings.TrimSpace(info.UnderlyingToken) == "" {
+			continue
+		}
+
+		amount := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(info.Decimals)), nil)
+
+		underlyingToWrapper, err := d.callUnderlyingToWrapper(ctx, tokenAddress, amount)
+		if err != nil {
+			return err
+		}
+
+		wrapperToUnderlying, err := d.callWrapperToUnderlying(ctx, tokenAddress, amount)
+		if err != nil {
+			return err
+		}
+
+		info.WrapRatio = underlyingToWrapper
+		info.UnwrapRatio = wrapperToUnderlying
+
+		(*rebaseTokenInfoMap)[tokenAddress] = info
+	}
+
+	return nil
+}
+
+func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, blockNumber *big.Int, rebaseTokenInfoMap map[string]RebaseTokenInfo) (entity.Pool, error) {
 	extra := Extra{
-		Fee:          d.config.Fee,
-		FeePrecision: d.config.FeePrecision,
+		Fee:                d.config.Fee,
+		FeePrecision:       d.config.FeePrecision,
+		RebaseTokenInfoMap: rebaseTokenInfoMap,
 	}
 
 	extraBytes, err := json.Marshal(extra)
