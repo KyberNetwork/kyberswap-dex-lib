@@ -11,6 +11,12 @@ type Extra struct {
 	FeePrecision uint64 `json:"feePrecision"`
 }
 
+type RebaseTokenInfo struct {
+	UnderlyingToken string
+	WrapRatio       *big.Float
+	UnwrapRatio     *big.Float
+}
+
 type PoolMeta struct {
 	Fee          uint64 `json:"fee"`
 	FeePrecision uint64 `json:"feePrecision"`

@@ -30,7 +30,7 @@ type PoolSimulator struct { //customize
 
 	gas Gas
 
-	rebaseTokenMap map[string]string
+	rebaseTokenInfoMap map[string]RebaseTokenInfo
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -56,15 +56,17 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (s *PoolSimulator) getRebaseToken(token string) string {
-	if _, exists := s.rebaseTokenMap[token]; exists {
+
+	if _, exists := s.rebaseTokenInfoMap[token]; exists {
 		return token
 	}
 
-	for rebaseToken, underlyingToken := range s.rebaseTokenMap {
-		if underlyingToken == token {
+	for rebaseToken, info := range s.rebaseTokenInfoMap {
+		if info.UnderlyingToken == token {
 			return rebaseToken
 		}
 	}
+
 	return token
 }
 
@@ -79,8 +81,6 @@ func (s *PoolSimulator) GetPoolTokenIndexes(tokenIn, tokenOut string) (int, int)
 
 func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
 	tokenAmountIn, tokenOut := param.TokenAmountIn, param.TokenOut
-
-	// indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
 
 	indexIn, indexOut := s.GetPoolTokenIndexes(tokenAmountIn.Token, tokenOut)
 
