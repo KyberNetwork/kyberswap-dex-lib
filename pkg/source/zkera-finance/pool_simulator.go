@@ -139,6 +139,9 @@ func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *
 	if err != nil {
 		return nil, nil, err
 	}
+	if priceOut.Cmp(bignumber.ZeroBI) == 0 {
+		return nil, nil, ErrDivisionByZero
+	}
 
 	amountOut := new(big.Int).Div(new(big.Int).Mul(amountIn, priceIn), priceOut)
 	amountOut = p.vault.AdjustForDecimals(amountOut, tokenIn, tokenOut)
