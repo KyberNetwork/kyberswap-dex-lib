@@ -118,6 +118,33 @@ func TestCalcAmountOut(t *testing.T) {
 		// simulator: -114875306101
 		// contract:  -114875306101
 	})
+
+	t.Run("4. should not panic", func(t *testing.T) {
+		entityPoolStr := `{"address":"0xc53a048e4211a81e68001c6fa56364019f973e0b","reserveUsd":0.009998963162763646,"amplifiedTvl":0.009998963162763646,"exchange":"velocore-v2-cpmm","type":"velocore-v2-cpmm","timestamp":1718001015,"reserves":["5192281750178086030566074723720301","9998963156478118","1704"],"tokens":[{"address":"0xc53a048e4211a81e68001c6fa56364019f973e0b","swappable":true},{"address":"0x2039bb4116b4efc145ec4f0e2ea75012d6c0f181","swappable":true},{"address":"0x5aea5775959fbc2557cc8789bc1bf90a239d9a91","swappable":true}],"extra":"{\"fee1e9\":0,\"feeMultiplier\":44391380623778508}","staticExtra":"{\"weights\":[2,1,1],\"poolTokenNumber\":3,\"nativeTokenIndex\":2,\"vault\":\"0xf5E67261CB357eDb6C7719fEFAFaaB280cB5E2A6\"}","blockNumber":36206567}`
+		var entityPool entity.Pool
+		err := json.Unmarshal([]byte(entityPoolStr), &entityPool)
+		assert.Nil(t, err)
+
+		var (
+			tokenAmountIn = pool.TokenAmount{
+				Token:  "0x5aea5775959fbc2557cc8789bc1bf90a239d9a91",
+				Amount: new(big.Int).Mul(bignumber.BONE, big.NewInt(3)),
+			}
+			tokenOut = "0x2039bb4116b4efc145ec4f0e2ea75012d6c0f181"
+		)
+
+		simulator, err := NewPoolSimulator(entityPool)
+		assert.Nil(t, err)
+
+		result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+			return simulator.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+			})
+		})
+		assert.Nil(t, err)
+		assert.Equal(t, "9998963156478113", result.TokenAmountOut.Amount.String())
+	})
 }
 
 func TestVelocoreExecute(t *testing.T) {
