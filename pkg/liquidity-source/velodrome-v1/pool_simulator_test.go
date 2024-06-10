@@ -164,6 +164,79 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 	}
 }
 
+func TestPoolSimulator_getAmountIn(t *testing.T) {
+	testCases := []struct {
+		name             string
+		poolSimulator    PoolSimulator
+		tokenAmountOut   poolpkg.TokenAmount
+		tokenIn          string
+		expectedAmountIn *big.Int
+		expectedFee      *big.Int
+	}{
+		{
+			name: "[volatile][0to1] it should return correct amount",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:  "0x79c912fef520be002c2b6e57ec4324e260f38e50",
+						Tokens:   []string{"0x4200000000000000000000000000000000000006", "0x7f5c764cbc14f9669b88837ca1490cca17c31607"},
+						Reserves: []*big.Int{utils.NewBig10("31229966656506421921"), utils.NewBig10("63506727363")},
+					},
+				},
+				isPaused:     false,
+				stable:       false,
+				decimals0:    number.NewUint256("1000000000000000000"),
+				decimals1:    number.NewUint256("1000000"),
+				fee:          uint256.NewInt(5),
+				feePrecision: uint256.NewInt(10000),
+			},
+			tokenAmountOut:   poolpkg.TokenAmount{Token: "0x7f5c764cbc14f9669b88837ca1490cca17c31607", Amount: utils.NewBig10("33762029")},
+			tokenIn:          "0x4200000000000000000000000000000000000006",
+			expectedAmountIn: utils.NewBig10("16619902530526859"),
+			expectedFee:      utils.NewBig10("0"),
+		},
+		{
+			name: "[volatile][1to0] it should return correct amount",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:  "0x79c912fef520be002c2b6e57ec4324e260f38e50",
+						Tokens:   []string{"0x4200000000000000000000000000000000000006", "0x7f5c764cbc14f9669b88837ca1490cca17c31607"},
+						Reserves: []*big.Int{utils.NewBig10("31220354779450883153"), utils.NewBig10("63526279313")},
+					},
+				},
+				isPaused:     false,
+				stable:       false,
+				decimals0:    number.NewUint256("1000000000000000000"),
+				decimals1:    number.NewUint256("1000000"),
+				fee:          uint256.NewInt(5),
+				feePrecision: uint256.NewInt(10000),
+			},
+			tokenAmountOut:   poolpkg.TokenAmount{Token: "0x4200000000000000000000000000000000000006", Amount: utils.NewBig10("3655170221820867")},
+			tokenIn:          "0x7f5c764cbc14f9669b88837ca1490cca17c31607",
+			expectedAmountIn: utils.NewBig10("7442028"),
+			expectedFee:      utils.NewBig10("0"),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountInResult](t, func() (any, error) {
+				return tc.poolSimulator.CalcAmountIn(poolpkg.CalcAmountInParams{
+					TokenAmountOut: tc.tokenAmountOut,
+					TokenIn:        tc.tokenIn,
+				})
+			})
+
+			if tc.expectedAmountIn != nil {
+				assert.Nil(t, err)
+				assert.Equalf(t, tc.expectedAmountIn, result.TokenAmountIn.Amount, "expected amount in: %s, got: %s", tc.expectedAmountIn.String(), result.TokenAmountIn.Amount.String())
+				assert.Equalf(t, tc.expectedFee, result.Fee.Amount, "expected fee: %s, got: %s", tc.expectedFee.String(), result.Fee.Amount.String())
+			}
+		})
+	}
+}
+
 func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	testCases := []struct {
 		name             string
