@@ -10,11 +10,13 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/machinebox/graphql"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoecommon"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -72,6 +74,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		FeeParameters:          rpcResult.FeeParameters,
 		ActiveBinID:            uint32(rpcResult.ReservesAndID.ActiveId.Uint64()),
 		Bins:                   subgraphResult.Bins,
+		PriceX128:              rpcResult.PriceX128,
+		Liquidity:              rpcResult.Liquidity,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -106,6 +110,7 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool, blockNumber u
 
 		feeParamsResp feeParametersRpcResp
 		reservesAndID reservesAndID
+		priceX128     *big.Int
 
 		err error
 	)
@@ -138,6 +143,25 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool, blockNumber u
 		return nil, err
 	}
 
+	req = d.ethrpcClient.R().SetContext(ctx)
+	if blockNumber > 0 {
+		var blockNumberBI big.Int
+		blockNumberBI.SetUint64(blockNumber)
+		req.SetBlockNumber(&blockNumberBI)
+	}
+	req.AddCall(&ethrpc.Call{
+		ABI:    routerABI,
+		Target: d.cfg.RouterAddress,
+		Method: routerGetPriceFromIDMethod,
+		Params: []interface{}{
+			common.HexToAddress(p.Address),
+			reservesAndID.ActiveId,
+		},
+	}, []interface{}{&priceX128})
+	if _, err := req.Aggregate(); err != nil {
+		return nil, err
+	}
+
 	// params
 	feeParameters := feeParameters{
 		BinStep:                  feeParamsResp.State.BinStep,
@@ -158,6 +182,8 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool, blockNumber u
 		BlockTimestamp: blockTimestamp,
 		FeeParameters:  feeParameters,
 		ReservesAndID:  reservesAndID,
+		PriceX128:      priceX128,
+		Liquidity:      traderjoecommon.CalculateLiquidity(priceX128, reservesAndID.ReserveX, reservesAndID.ReserveY),
 	}, nil
 }
 
