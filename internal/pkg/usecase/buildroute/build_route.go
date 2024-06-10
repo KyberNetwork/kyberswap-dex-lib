@@ -447,7 +447,7 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary value
 
 		gas, gasUSD, err = uc.gasEstimator.Execute(ctx, tx)
 		uc.sendEstimateGasLogsAndMetrics(ctx, routeSummary, err, command.SlippageTolerance)
-		go uc.trackFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx), routeSummary, command.SlippageTolerance, err)
+		go uc.trackFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx), routeSummary, command, err)
 		if err != nil {
 			return 0, 0.0, 0, ErrEstimateGasFailed(err)
 		}
@@ -455,7 +455,7 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary value
 		go func(ctx context.Context) {
 			_, err := uc.gasEstimator.EstimateGas(ctx, tx)
 			uc.sendEstimateGasLogsAndMetrics(ctx, routeSummary, err, command.SlippageTolerance)
-			uc.trackFaultyPools(ctx, routeSummary, command.SlippageTolerance, err)
+			uc.trackFaultyPools(ctx, routeSummary, command, err)
 		}(ctxUtils.NewBackgroundCtxWithReqId(ctx))
 	}
 
@@ -520,8 +520,14 @@ func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
 	}
 }
 
-func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, routeSummary valueobject.RouteSummary, slippage int64, err error) {
+func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, routeSummary valueobject.RouteSummary, command dto.BuildRouteCommand, err error) {
 	if !uc.config.FeatureFlags.IsFaultyPoolDetectorEnable {
+		return
+	}
+
+	// requests to be tracked should only involve tokens that have been whitelisted or native token
+	if !IsTokenValid(command.RouteSummary.TokenIn, uc.config.FaultyPoolsConfig, uc.config.ChainID) ||
+		!IsTokenValid(command.RouteSummary.TokenOut, uc.config.FaultyPoolsConfig, uc.config.ChainID) {
 		return
 	}
 
@@ -529,7 +535,7 @@ func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, routeSummary 
 	failedCount := int64(0)
 	// if SlippageTolerance >= 5%, we will consider a pool is faulty, otherwise, we do not encounter it
 	// because in case that pool contains FOT token, slippage is high but that pool's state is not stale
-	if isErrReturnAmountIsNotEnough(err) && slippageIsAboveMinThreshold(slippage, uc.config.FaultyPoolsConfig) {
+	if isErrReturnAmountIsNotEnough(err) && slippageIsAboveMinThreshold(command.SlippageTolerance, uc.config.FaultyPoolsConfig) {
 		failedCount = 1
 	}
 	totalSet := mapset.NewSet[string]()

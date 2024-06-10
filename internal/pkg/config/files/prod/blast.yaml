@@ -257,6 +257,7 @@ useCase:
       windowSize: 15m
       faultyExpiredTime: 3m
       minSlippageThreshold: 1000
+      whitelistedTokenSet: *whitelistedTokenSet
     rfq:
       - id: kyberswap-limit-order-v2
         handler: limit-order

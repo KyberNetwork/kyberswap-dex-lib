@@ -293,6 +293,7 @@ useCase:
       windowSize: 15m
       faultyExpiredTime: 3m
       minSlippageThreshold: 1000
+      whitelistedTokenSet: *whitelistedTokenSet
   poolFactory:
     chainId: *chainId
   poolManager:
