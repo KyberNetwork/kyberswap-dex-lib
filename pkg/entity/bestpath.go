@@ -1,6 +1,3 @@
-//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
-//msgp:tuple MinimalPath
-
 package entity
 
 import "encoding/json"

@@ -12,8 +12,9 @@ type Meta struct {
 }
 
 type Gas struct {
-	SellBase int64
-	BuyBase  int64
+	SellBase  int64
+	SellQuote int64
+	BuyBase   int64
 }
 
 type Storage struct {
