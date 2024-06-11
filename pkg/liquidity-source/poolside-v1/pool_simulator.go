@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -70,11 +71,20 @@ func (s *PoolSimulator) getRebaseToken(token string) string {
 	return token
 }
 
+func (s *PoolSimulator) GetTokenIndexNumber(address string) int {
+	for i, poolToken := range s.Info.Tokens {
+		if strings.EqualFold(poolToken, address) {
+			return i
+		}
+	}
+	return -1
+}
+
 func (s *PoolSimulator) GetPoolTokenIndexes(tokenIn, tokenOut string) (int, int) {
 	rebaseTokenIn := s.getRebaseToken(tokenIn)
 	rebaseTokenOut := s.getRebaseToken(tokenOut)
 
-	indexIn, indexOut := s.GetTokenIndex(rebaseTokenIn), s.GetTokenIndex(rebaseTokenOut)
+	indexIn, indexOut := s.GetTokenIndexNumber(rebaseTokenIn), s.GetTokenIndexNumber(rebaseTokenOut)
 
 	return indexIn, indexOut
 }
