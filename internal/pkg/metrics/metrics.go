@@ -28,6 +28,7 @@ const (
 	EstimateGasStatusMetricsName       = "estimate_gas.count"
 	EstimateGasWithSlippageMetricsName = "estimate_gas_slippage"
 	IndexPoolsMetricsCounterName       = "index_pools_count"
+	ClonePoolPanicMetricsName          = "clone_pool_panic.count"
 	IndexPoolsDelayMetricsName         = "index_job_pools_delay"
 
 	CalcAmountOutCountPerRequest = "calc_amount_out_count_per_request"
@@ -45,6 +46,7 @@ var (
 	isPregenPathValidCounter      metric.Float64Counter
 	mapMetricNameToCounter        map[string]metric.Float64Counter
 	indexPoolsDelayCounter        metric.Float64Counter
+	clonePoolPanicCounter         metric.Float64Counter
 
 	// histogram metrics
 	indexPoolsDelayHistogram     metric.Int64Histogram
@@ -70,6 +72,7 @@ func init() {
 	indexPoolsDelayHistogram, _ = kybermetric.Meter().Int64Histogram(IndexPoolsDelayMetricsName,
 		metric.WithExplicitBucketBoundaries(0, 50, 300, 1200, 2500, 5000, 10e3, 30e3, 90e3, 300e3, 1200e3, 3600e3))
 	indexPoolsDelayCounter, _ = kybermetric.Meter().Float64Counter(IndexPoolsMetricsCounterName)
+	clonePoolPanicCounter, _ = kybermetric.Meter().Float64Counter(ClonePoolPanicMetricsName)
 	calcAmountOutCountPerRequestHistogram, _ = kybermetric.Meter().Int64Histogram(formatMetricName(CalcAmountOutCountPerRequest),
 		metric.WithExplicitBucketBoundaries(1, 10, 100, 1000, math.Inf(1)))
 
@@ -84,6 +87,7 @@ func init() {
 		EstimateGasStatusMetricsName:      estimateGasStatusCounter,
 		IsPregenPathValidMetricsName:      isPregenPathValidCounter,
 		IndexPoolsMetricsCounterName:      indexPoolsDelayCounter,
+		ClonePoolPanicMetricsName:         clonePoolPanicCounter,
 	}
 	mapMetricNameToHistogram = map[string]metric.Int64Histogram{
 		IndexPoolsDelayMetricsName: indexPoolsDelayHistogram,
@@ -138,6 +142,10 @@ func IncrIndexPoolsCounter(ctx context.Context, jobName string, isSuccess bool, 
 		"job_name": jobName,
 		"state":    state,
 	}, float64(counter))
+}
+
+func IncrClonePoolPanicCounter(ctx context.Context) {
+	incr(ctx, ClonePoolPanicMetricsName, nil, 1)
 }
 
 func IncrIsPregenPathValidCount(ctx context.Context, valid bool, otherTags map[string]string) {

@@ -1,8 +1,13 @@
 package valueobject
 
 import (
+	"context"
+
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/logger"
 	"github.com/huandu/go-clone"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 )
 
 // PoolBucket contains data for finding route
@@ -38,11 +43,9 @@ func (b *PoolBucket) ClearChangedPools() {
 // ClonePool clone the pool before updating, so that it doesn't modify the original data copied from route service
 // do nothing if pool is already cloned, or if original data of that pool not found
 // otherwise, clone pool from PerRequestPoolsByAddress to ChangedPools
-func (b *PoolBucket) ClonePool(poolAddress string) poolpkg.IPoolSimulator {
-	var (
-		pool  poolpkg.IPoolSimulator
-		avail bool
-	)
+func (b *PoolBucket) ClonePool(poolAddress string) (pool poolpkg.IPoolSimulator) {
+	var avail bool
+
 	if b.ChangedPools != nil {
 		// if pool is already cloned, do thing
 		if pool, avail = b.ChangedPools[poolAddress]; avail {
@@ -56,6 +59,21 @@ func (b *PoolBucket) ClonePool(poolAddress string) poolpkg.IPoolSimulator {
 	if !avail {
 		return nil
 	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			logger.WithFields(logger.Fields{
+				"error": r.(error),
+				"pool":  pool,
+			}).Error("panic in ClonePool")
+
+			// Push metrics
+			metrics.IncrClonePoolPanicCounter(context.TODO())
+
+			pool = nil
+			return
+		}
+	}()
 
 	// clone the pool and add to ChangedPools
 	v := clone.Slowly(pool)
