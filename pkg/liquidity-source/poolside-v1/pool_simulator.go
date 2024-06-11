@@ -21,6 +21,7 @@ var (
 	ErrInsufficientInputAmount = errors.New("INSUFFICIENT_INPUT_AMOUNT")
 	ErrInvalidLiquidity        = errors.New("INVALID_Liquidity")
 	ErrInsufficientLiquidity   = errors.New("INSUFFICIENT_LIQUIDITY")
+	ErrRatioOverFlow           = errors.New("RATIO_OVERFLOW")
 )
 
 type PoolSimulator struct { //customize
@@ -63,7 +64,7 @@ func (s *PoolSimulator) getRebaseToken(token string) string {
 	}
 
 	for rebaseToken, info := range s.rebaseTokenInfoMap {
-		if info.UnderlyingToken == token {
+		if strings.EqualFold(info.UnderlyingToken, token) {
 			return rebaseToken
 		}
 	}
@@ -107,7 +108,10 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, ErrInsufficientInputAmount
 	}
 
-	// Have to convert amountIn if tokenIn is underlying token
+	convertedAmountIn, err := s.convertAmount(amountIn, tokenAmountIn.Token, false)
+	if err != nil {
+		return nil, err
+	}
 
 	poolIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
 	if overflow {
@@ -123,7 +127,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, ErrInsufficientLiquidity
 	}
 
-	amountOut, err := s.getAmountOut(amountIn, poolIn, poolOut)
+	amountOut, err := s.getAmountOut(convertedAmountIn, poolIn, poolOut)
 
 	if err != nil {
 		return nil, err
@@ -133,10 +137,16 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, ErrInsufficientLiquidity
 	}
 
+	finalAmountOut, err := s.convertAmount(amountOut, tokenOut, true)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{
 			Token:  s.Pool.Info.Tokens[indexOut],
-			Amount: amountOut.ToBig(),
+			Amount: finalAmountOut.ToBig(),
 		},
 		Fee: &poolpkg.TokenAmount{
 			Token:  s.Pool.Info.Tokens[indexIn],
@@ -179,4 +189,40 @@ func (s *PoolSimulator) getAmountOut(amountIn, poolIn, poolOut *uint256.Int) (am
 
 	return new(uint256.Int).Div(numerator, denominator), nil
 
+}
+
+func (s *PoolSimulator) convertAmount(amount *uint256.Int, token string, isUnwrap bool) (cAmount *uint256.Int, err error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = r.(error)
+		}
+	}()
+
+	if _, exists := s.rebaseTokenInfoMap[token]; exists {
+		return amount, nil
+	}
+
+	for _, info := range s.rebaseTokenInfoMap {
+		if strings.EqualFold(info.UnderlyingToken, token) {
+			var ratio *uint256.Int
+			var overflow bool
+
+			if isUnwrap {
+				ratio, overflow = uint256.FromBig(info.UnwrapRatio)
+			} else {
+				ratio, overflow = uint256.FromBig(info.WrapRatio)
+			}
+
+			if overflow {
+				return nil, ErrRatioOverFlow
+			}
+
+			decimals := new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(uint64(info.Decimals)))
+
+			return new(uint256.Int).Div(SafeMul(amount, ratio), decimals), nil
+		}
+	}
+
+	return amount, nil
 }
