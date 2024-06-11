@@ -51,24 +51,31 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		fee:          uint256.NewInt(extra.Fee),
-		feePrecision: uint256.NewInt(extra.FeePrecision),
-		gas:          defaultGas,
+		fee:                uint256.NewInt(extra.Fee),
+		feePrecision:       uint256.NewInt(extra.FeePrecision),
+		gas:                defaultGas,
+		rebaseTokenInfoMap: extra.RebaseTokenInfoMap,
 	}, nil
 }
 
-func (s *PoolSimulator) getRebaseToken(token string) string {
-
-	if _, exists := s.rebaseTokenInfoMap[token]; exists {
-		return token
+func (s *PoolSimulator) getRebaseTokenInfo(token string) (RebaseTokenInfo, string, bool) {
+	if info, exists := s.rebaseTokenInfoMap[token]; exists {
+		return info, token, true
 	}
 
 	for rebaseToken, info := range s.rebaseTokenInfoMap {
 		if strings.EqualFold(info.UnderlyingToken, token) {
-			return rebaseToken
+			return info, rebaseToken, true
 		}
 	}
+	return RebaseTokenInfo{}, "", false
+}
 
+func (s *PoolSimulator) getRebaseToken(token string) string {
+	_, rebaseToken, exists := s.getRebaseTokenInfo(token)
+	if exists {
+		return rebaseToken
+	}
 	return token
 }
 
@@ -128,7 +135,6 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}
 
 	amountOut, err := s.getAmountOut(convertedAmountIn, poolIn, poolOut)
-
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +144,6 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}
 
 	finalAmountOut, err := s.convertAmount(amountOut, tokenOut, true)
-
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +162,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 }
 
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenAmountOut.Token)
+	indexIn, indexOut := s.GetPoolTokenIndexes(params.TokenAmountIn.Token, params.TokenAmountOut.Token)
 	if indexIn < 0 || indexOut < 0 {
 		return
 	}
@@ -177,7 +182,7 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		return
 	}
 
-	convertedAmountOut, err := s.convertAmount(amountOut, params.TokenAmountOut.Token, false)
+	convertedAmountOut, err := s.convertAmount(amountOut, params.TokenAmountOut.Token, true)
 	if err != nil {
 		return
 	}
@@ -195,7 +200,6 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (s *PoolSimulator) getAmountOut(amountIn, poolIn, poolOut *uint256.Int) (amountOut *uint256.Int, err error) {
-
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)
@@ -203,46 +207,38 @@ func (s *PoolSimulator) getAmountOut(amountIn, poolIn, poolOut *uint256.Int) (am
 	}()
 
 	amountInWithFee := SafeMul(amountIn, SafeSub(s.feePrecision, s.fee))
-
 	numerator := SafeMul(amountInWithFee, poolOut)
 	denominator := SafeAdd(SafeMul(poolIn, s.feePrecision), amountInWithFee)
 
 	return new(uint256.Int).Div(numerator, denominator), nil
-
 }
 
 func (s *PoolSimulator) convertAmount(amount *uint256.Int, token string, isUnwrap bool) (cAmount *uint256.Int, err error) {
-
 	defer func() {
 		if r := recover(); r != nil {
 			err = r.(error)
 		}
 	}()
 
-	if _, exists := s.rebaseTokenInfoMap[token]; exists {
+	info, rebaseToken, exists := s.getRebaseTokenInfo(token)
+
+	if !exists || strings.EqualFold(rebaseToken, token) {
 		return amount, nil
 	}
 
-	for _, info := range s.rebaseTokenInfoMap {
-		if strings.EqualFold(info.UnderlyingToken, token) {
-			var ratio *uint256.Int
-			var overflow bool
+	var ratio *uint256.Int
+	var overflow bool
 
-			if isUnwrap {
-				ratio, overflow = uint256.FromBig(info.UnwrapRatio)
-			} else {
-				ratio, overflow = uint256.FromBig(info.WrapRatio)
-			}
-
-			if overflow {
-				return nil, ErrRatioOverFlow
-			}
-
-			decimals := new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(uint64(info.Decimals)))
-
-			return new(uint256.Int).Div(SafeMul(amount, ratio), decimals), nil
-		}
+	if isUnwrap {
+		ratio, overflow = uint256.FromBig(info.UnwrapRatio)
+	} else {
+		ratio, overflow = uint256.FromBig(info.WrapRatio)
 	}
 
-	return amount, nil
+	if overflow {
+		return nil, ErrRatioOverFlow
+	}
+
+	decimals := new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(uint64(info.Decimals)))
+	return new(uint256.Int).Div(SafeMul(amount, ratio), decimals), nil
 }
