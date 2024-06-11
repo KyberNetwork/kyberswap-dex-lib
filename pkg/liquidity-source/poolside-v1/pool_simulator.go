@@ -19,7 +19,7 @@ var (
 	ErrInvalidToken            = errors.New("INVALID_TOKEN")
 	ErrInvalidAmountIn         = errors.New("INVALID_AMOUNT_IN")
 	ErrInsufficientInputAmount = errors.New("INSUFFICIENT_INPUT_AMOUNT")
-	ErrInvalidLiquidity        = errors.New("INVALID_Liquidity")
+	ErrInvalidLiquidity        = errors.New("INVALID_LIQUIDITY")
 	ErrInsufficientLiquidity   = errors.New("INSUFFICIENT_LIQUIDITY")
 	ErrRatioOverFlow           = errors.New("RATIO_OVERFLOW")
 )
@@ -162,8 +162,28 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		return
 	}
 
-	s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
-	s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+	amountIn, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
+	if overflow {
+		return
+	}
+
+	amountOut, overflow := uint256.FromBig(params.TokenAmountOut.Amount)
+	if overflow {
+		return
+	}
+
+	convertedAmountIn, err := s.convertAmount(amountIn, params.TokenAmountIn.Token, false)
+	if err != nil {
+		return
+	}
+
+	convertedAmountOut, err := s.convertAmount(amountOut, params.TokenAmountOut.Token, false)
+	if err != nil {
+		return
+	}
+
+	s.Info.Reserves[indexIn] = new(big.Int).Add(s.Info.Reserves[indexIn], convertedAmountIn.ToBig())
+	s.Info.Reserves[indexOut] = new(big.Int).Sub(s.Info.Reserves[indexOut], convertedAmountOut.ToBig())
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
