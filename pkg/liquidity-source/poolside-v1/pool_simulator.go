@@ -24,7 +24,7 @@ var (
 	ErrRatioOverFlow           = errors.New("RATIO_OVERFLOW")
 )
 
-type PoolSimulator struct { //customize
+type PoolSimulator struct {
 	poolpkg.Pool
 
 	fee          *uint256.Int
@@ -182,7 +182,7 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		return
 	}
 
-	convertedAmountOut, err := s.convertAmount(amountOut, params.TokenAmountOut.Token, true)
+	convertedAmountOut, err := s.convertAmount(amountOut, params.TokenAmountOut.Token, false)
 	if err != nil {
 		return
 	}
