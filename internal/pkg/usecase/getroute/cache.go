@@ -113,6 +113,13 @@ func (c *cache) getBestRouteFromCache(ctx context.Context,
 	amountInWithoutDecimal := business.AmountWithoutDecimals(params.AmountIn, params.TokenIn.Decimals)
 	for key, route := range cachedRoutes {
 		if amountInKey, ok := new(big.Float).SetString(key.Key.AmountIn); !ok {
+			logger.
+				WithFields(ctx, logger.Fields{
+					"key":        key.Key.String(""),
+					"amountIn":   key.Key.AmountIn,
+					"request_id": requestid.GetRequestIDFromCtx(ctx),
+				}).
+				Error("getBestRouteFromCache Amount in is not a float")
 			continue
 		} else {
 			diff := new(big.Float).Sub(amountInKey, amountInWithoutDecimal)
@@ -120,9 +127,14 @@ func (c *cache) getBestRouteFromCache(ctx context.Context,
 			if minDiff == nil || diff.Cmp(minDiff) < 0 {
 				minDiff = diff
 				bestRoute = route
+				bestKey = key
 			}
-			bestKey = key
 		}
+	}
+
+	// return error if we can not find bestRoute
+	if bestRoute == nil {
+		return nil, nil, fmt.Errorf("could not find best routes")
 	}
 
 	return bestKey, bestRoute, nil

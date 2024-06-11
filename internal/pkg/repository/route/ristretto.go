@@ -79,6 +79,9 @@ func (r *ristrettoRepository) Get(ctx context.Context, keys []*valueobject.Route
 	// When we set a route to local cache after we get it from redis, we have to accept min TTL in the config
 	// because we don't know how long it has been retained in Redis
 	for key, route := range uncachedRoutes {
+		if route == nil {
+			continue
+		}
 		cacheKey := genKey(key, r.config.Prefix)
 		r.cache.SetWithTTL(cacheKey, route, r.config.Route.Cost, r.config.Route.TTL)
 		logger.WithFields(ctx, logger.Fields{"key": cacheKey, "route": route}).Debugf("[route] ristrettoRepository.Get get route from Redis successfully")
