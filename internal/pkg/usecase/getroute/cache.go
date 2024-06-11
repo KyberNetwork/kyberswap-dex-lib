@@ -119,7 +119,7 @@ func (c *cache) getBestRouteFromCache(ctx context.Context,
 					"amountIn":   key.Key.AmountIn,
 					"request_id": requestid.GetRequestIDFromCtx(ctx),
 				}).
-				Error("getBestRouteFromCache Amount in is not a float")
+				Debug("getBestRouteFromCache Amount in is not a float")
 			continue
 		} else {
 			diff := new(big.Float).Sub(amountInKey, amountInWithoutDecimal)
