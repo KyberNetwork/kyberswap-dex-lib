@@ -68,7 +68,7 @@ func (d *PoolTracker) getNewPoolStateDodoV1(ctx context.Context, p entity.Pool) 
 		targetReserve                                         V1TargetReserve
 		i, k, lpFeeRate, mtFeeRate, baseReserve, quoteReserve *big.Int
 		rStatus                                               uint8
-		tradeAllow                                            bool
+		tradeAllowed, sellingAllowed, buyingAllowed           bool
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -134,7 +134,21 @@ func (d *PoolTracker) getNewPoolStateDodoV1(ctx context.Context, p entity.Pool) 
 		Target: p.Address,
 		Method: dodoV1MethodTradeAllowed,
 		Params: nil,
-	}, []interface{}{&tradeAllow})
+	}, []interface{}{&tradeAllowed})
+
+	calls.AddCall(&ethrpc.Call{
+		ABI:    v1PoolABI,
+		Target: p.Address,
+		Method: dodoV1MethodSellingAllowed,
+		Params: nil,
+	}, []interface{}{&sellingAllowed})
+
+	calls.AddCall(&ethrpc.Call{
+		ABI:    v1PoolABI,
+		Target: p.Address,
+		Method: dodoV1MethodBuyingAllowed,
+		Params: nil,
+	}, []interface{}{&buyingAllowed})
 
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
@@ -146,16 +160,19 @@ func (d *PoolTracker) getNewPoolStateDodoV1(ctx context.Context, p entity.Pool) 
 	}
 
 	extra := V1Extra{
-		B:           number.SetFromBig(baseReserve),
-		Q:           number.SetFromBig(quoteReserve),
-		B0:          number.SetFromBig(targetReserve.BaseTarget),
-		Q0:          number.SetFromBig(targetReserve.QuoteTarget),
-		RStatus:     int(rStatus),
-		OraclePrice: number.SetFromBig(i),
-		K:           number.SetFromBig(k),
-		MtFeeRate:   number.SetFromBig(mtFeeRate),
-		LpFeeRate:   number.SetFromBig(lpFeeRate),
-		Swappable:   true,
+		B:              number.SetFromBig(baseReserve),
+		Q:              number.SetFromBig(quoteReserve),
+		B0:             number.SetFromBig(targetReserve.BaseTarget),
+		Q0:             number.SetFromBig(targetReserve.QuoteTarget),
+		RStatus:        int(rStatus),
+		OraclePrice:    number.SetFromBig(i),
+		K:              number.SetFromBig(k),
+		MtFeeRate:      number.SetFromBig(mtFeeRate),
+		LpFeeRate:      number.SetFromBig(lpFeeRate),
+		TradeAllowed:   tradeAllowed,
+		SellingAllowed: sellingAllowed,
+		BuyingAllowed:  buyingAllowed,
+		Swappable:      tradeAllowed && sellingAllowed,
 	}
 
 	extraBytes, err := json.Marshal(extra)

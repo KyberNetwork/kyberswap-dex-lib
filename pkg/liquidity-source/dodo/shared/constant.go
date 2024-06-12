@@ -26,6 +26,8 @@ const (
 	dodoV1MethodBaseBalance       = "_BASE_BALANCE_"
 	dodoV1MethodQuoteBalance      = "_QUOTE_BALANCE_"
 	dodoV1MethodTradeAllowed      = "_TRADE_ALLOWED_"
+	dodoV1MethodSellingAllowed    = "_SELLING_ALLOWED_"
+	dodoV1MethodBuyingAllowed     = "_BUYING_ALLOWED_"
 
 	// Dodo V2 contract methods
 	dodoV2MethodGetPMMStateForCall = "getPMMStateForCall"

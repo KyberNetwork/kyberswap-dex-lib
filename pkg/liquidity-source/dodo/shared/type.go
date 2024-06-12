@@ -51,16 +51,19 @@ type (
 	}
 
 	V1Extra struct {
-		B           *uint256.Int `json:"B"`
-		Q           *uint256.Int `json:"Q"`
-		B0          *uint256.Int `json:"B0"`
-		Q0          *uint256.Int `json:"Q0"`
-		RStatus     int          `json:"rStatus"`
-		OraclePrice *uint256.Int `json:"oraclePrice"`
-		K           *uint256.Int `json:"k"`
-		MtFeeRate   *uint256.Int `json:"mtFeeRate"`
-		LpFeeRate   *uint256.Int `json:"lpFeeRate"`
-		Swappable   bool         `json:"swappable"`
+		B              *uint256.Int `json:"B"`
+		Q              *uint256.Int `json:"Q"`
+		B0             *uint256.Int `json:"B0"`
+		Q0             *uint256.Int `json:"Q0"`
+		RStatus        int          `json:"rStatus"`
+		OraclePrice    *uint256.Int `json:"oraclePrice"`
+		K              *uint256.Int `json:"k"`
+		MtFeeRate      *uint256.Int `json:"mtFeeRate"`
+		LpFeeRate      *uint256.Int `json:"lpFeeRate"`
+		TradeAllowed   bool         `json:"tradeAllowed"`
+		SellingAllowed bool         `json:"sellingAllowed"`
+		BuyingAllowed  bool         `json:"buyingAllowed"`
+		Swappable      bool         `json:"swappable"`
 	}
 )
 
