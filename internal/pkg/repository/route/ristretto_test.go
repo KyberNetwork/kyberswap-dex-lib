@@ -48,7 +48,7 @@ func TestRistrettoRepository_Get(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+		cacheKeys := []valueobject.RouteCacheKeyTTL{
 			{
 				Key: &valueobject.RouteCacheKey{
 					TokenIn:                "a",
@@ -121,7 +121,7 @@ func TestRistrettoRepository_Get(t *testing.T) {
 		repo.Cache().SetWithTTL(invalidKeyHash, "invalidRoute", 1, time.Second*10)
 		repo.Cache().Wait()
 
-		cacheKeys = append(cacheKeys, &invalidKey)
+		cacheKeys = append(cacheKeys, invalidKey)
 		results, err := repo.Get(context.Background(), cacheKeys)
 		resultList := []*valueobject.SimpleRoute{}
 		for _, v := range results {
@@ -129,7 +129,7 @@ func TestRistrettoRepository_Get(t *testing.T) {
 		}
 
 		// check if result do not contains invalid key
-		_, ok := results[&invalidKey]
+		_, ok := results[invalidKey]
 		assert.False(t, ok)
 		assert.Nil(t, err)
 
@@ -172,7 +172,7 @@ func TestRistrettoRepository_Get(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+		cacheKeys := []valueobject.RouteCacheKeyTTL{
 			{
 				Key: &valueobject.RouteCacheKey{
 					TokenIn:                "a",
@@ -247,7 +247,7 @@ func TestRistrettoRepository_Get(t *testing.T) {
 		}
 		repo.Cache().SetWithTTL(genKey(cacheKeys[0], "ethereum"), routes[0], 1, 10*time.Second)
 
-		nilKey := &valueobject.RouteCacheKeyTTL{
+		nilKey := valueobject.RouteCacheKeyTTL{
 			Key: &valueobject.RouteCacheKey{
 				TokenIn:                "l",
 				TokenOut:               "m",
@@ -320,7 +320,7 @@ func TestRistrettoRepository_Get(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+		cacheKeys := []valueobject.RouteCacheKeyTTL{
 			{
 				Key: &valueobject.RouteCacheKey{
 					TokenIn:                "a",
@@ -419,7 +419,7 @@ func TestRistrettoRepository_Set(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+		cacheKeys := []valueobject.RouteCacheKeyTTL{
 			{
 				Key: &valueobject.RouteCacheKey{
 					TokenIn:                "a",
@@ -512,7 +512,7 @@ func TestRistrettoRepository_Set(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+		cacheKeys := []valueobject.RouteCacheKeyTTL{
 			{
 				Key: &valueobject.RouteCacheKey{
 					TokenIn:                "a",
@@ -609,7 +609,7 @@ func TestRistrettoRepository_Del(t *testing.T) {
 
 		assert.Nil(t, err)
 
-		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+		cacheKeys := []valueobject.RouteCacheKeyTTL{
 			{
 				Key: &valueobject.RouteCacheKey{
 					TokenIn:                "a",
@@ -710,7 +710,7 @@ func TestRistrettoRepository_Del(t *testing.T) {
 		})
 		assert.Nil(t, err)
 
-		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+		cacheKeys := []valueobject.RouteCacheKeyTTL{
 			{
 				Key: &valueobject.RouteCacheKey{
 					TokenIn:                "a",

@@ -94,6 +94,8 @@ type (
 		ShrinkFuncPowExp     float64 `mapstructure:"shrinkFuncPowExp" json:"shrinkFuncPowExp"`
 		ShrinkDecimalBase    float64 `mapstructure:"shrinkDecimalBase" json:"shrinkDecimalBase"`
 		ShrinkFuncLogPercent float64 `mapstructure:"shrinkFuncLogPercent" json:"shrinkFuncLogPercent"`
+		// Min amount in USD to cache, fix bug panic due to can not format number like 5e-324 to float64
+		MinAmountInUSD float64 `mapstructure:"minAmountInUSD" json:"minAmountInUSD"`
 
 		// cache config for amount in
 		ShrinkAmountInConfigs   []ShrinkFunctionConfig `mapstructure:"shrinkAmountInConfigs" json:"shrinkAmountInConfigs"`

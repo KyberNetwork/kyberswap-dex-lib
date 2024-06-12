@@ -16,8 +16,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func newDefaultRouteCacheKey(amountIn float64, cacheMode valueobject.RouteCacheMode, ttl time.Duration) []*valueobject.RouteCacheKeyTTL {
-	return []*valueobject.RouteCacheKeyTTL{
+func newDefaultRouteCacheKey(amountIn float64, cacheMode valueobject.RouteCacheMode, ttl time.Duration) []valueobject.RouteCacheKeyTTL {
+	return []valueobject.RouteCacheKeyTTL{
 		{
 			Key: &valueobject.RouteCacheKey{
 				CacheMode:              string(cacheMode),
@@ -36,10 +36,10 @@ func newDefaultRouteCacheKey(amountIn float64, cacheMode valueobject.RouteCacheM
 	}
 }
 
-func newMultiRouteCacheKeys(amountIns []float64, cacheMode valueobject.RouteCacheMode, ttl []time.Duration) []*valueobject.RouteCacheKeyTTL {
-	results := []*valueobject.RouteCacheKeyTTL{}
+func newMultiRouteCacheKeys(amountIns []float64, cacheMode valueobject.RouteCacheMode, ttl []time.Duration) []valueobject.RouteCacheKeyTTL {
+	results := []valueobject.RouteCacheKeyTTL{}
 	for i, a := range amountIns {
-		results = append(results, &valueobject.RouteCacheKeyTTL{
+		results = append(results, valueobject.RouteCacheKeyTTL{
 			Key: &valueobject.RouteCacheKey{
 				CacheMode:              string(cacheMode),
 				AmountIn:               strconv.FormatFloat(a, 'f', -1, 64),
@@ -65,7 +65,7 @@ func TestKeyGenerator_ExactCachedPoint(t *testing.T) {
 	testCases := []struct {
 		name     string
 		param    *types.AggregateParams
-		cacheKey []*valueobject.RouteCacheKeyTTL
+		cacheKey []valueobject.RouteCacheKeyTTL
 		err      error
 	}{
 		{
@@ -132,7 +132,7 @@ func TestKeyGenerator_ExactCachedPoint(t *testing.T) {
 			keyGen := &routeKeyGenerator{config: config}
 			keys, err := keyGen.genKey(context.TODO(), tc.param)
 
-			assert.ElementsMatch(t, tc.cacheKey, keys)
+			assert.ElementsMatch(t, tc.cacheKey, keys.ToSlice())
 			assert.ErrorIs(t, tc.err, err)
 		})
 	}
@@ -144,7 +144,7 @@ func TestKeyGenerator_CachePointUSD(t *testing.T) {
 	testCases := []struct {
 		name      string
 		param     *types.AggregateParams
-		cacheKeys []*valueobject.RouteCacheKeyTTL
+		cacheKeys []valueobject.RouteCacheKeyTTL
 		err       error
 	}{
 		{
@@ -203,7 +203,7 @@ func TestKeyGenerator_CachePointUSD(t *testing.T) {
 			keyGen := newCacheKeyGenerator(config)
 			keys, err := keyGen.genKey(context.TODO(), tc.param)
 
-			assert.ElementsMatch(t, tc.cacheKeys, keys)
+			assert.ElementsMatch(t, tc.cacheKeys, keys.ToSlice())
 			assert.ErrorIs(t, tc.err, err)
 		})
 	}
@@ -354,7 +354,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 	testCases := []struct {
 		name      string
 		param     *types.AggregateParams
-		cacheKeys []*valueobject.RouteCacheKeyTTL
+		cacheKeys []valueobject.RouteCacheKeyTTL
 		config    valueobject.CacheConfig
 		err       error
 	}{
@@ -463,7 +463,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				ShrinkDecimalBase:       10,
 				ShrinkAmountInThreshold: 100000,
 			},
-			cacheKeys: []*valueobject.RouteCacheKeyTTL{},
+			cacheKeys: []valueobject.RouteCacheKeyTTL{},
 			err:       ErrNoTokenInPrice,
 		},
 		{
@@ -620,10 +620,10 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 			keyGen := newCacheKeyGenerator(tc.config)
 			keys, err := keyGen.genKey(context.TODO(), tc.param)
 
-			if len(keys) == 0 {
+			if keys.IsEmpty() {
 				assert.Empty(t, tc.cacheKeys)
 			} else {
-				assert.ElementsMatch(t, tc.cacheKeys, keys)
+				assert.ElementsMatch(t, tc.cacheKeys, keys.ToSlice())
 			}
 			assert.ErrorIs(t, tc.err, err)
 		})
@@ -636,7 +636,7 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 	testCases := []struct {
 		name      string
 		param     *types.AggregateParams
-		cacheKeys []*valueobject.RouteCacheKeyTTL
+		cacheKeys []valueobject.RouteCacheKeyTTL
 		config    valueobject.CacheConfig
 		err       error
 	}{
@@ -777,8 +777,43 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 				ShrinkAmountInThreshold:    14,
 				EnableNewCacheKeyGenerator: true,
 			},
-			cacheKeys: []*valueobject.RouteCacheKeyTTL{},
+			cacheKeys: []valueobject.RouteCacheKeyTTL{},
 			err:       errors.New("different between shunk value and amount in without decimal is above threshold"),
+		},
+		{
+			name: "Gen key v2 should return result token in usd below threshold",
+			param: &types.AggregateParams{
+				TokenIn: entity.Token{
+					Decimals: 18,
+				},
+				AmountIn:        bigIntFromScientificNotation("2e17"),
+				TokenInPriceUSD: 5e-324,
+			},
+			config: valueobject.CacheConfig{
+				TTLByAmountUSDRange: []valueobject.CacheRange{
+					{AmountUSDLowerBound: 0, TTL: 18 * time.Second},
+					{AmountUSDLowerBound: 101, TTL: 20 * time.Second},
+					{AmountUSDLowerBound: 500, TTL: 12 * time.Second},
+					{AmountUSDLowerBound: 1001, TTL: 13 * time.Second},
+					{AmountUSDLowerBound: 2000, TTL: 14 * time.Second},
+					{AmountUSDLowerBound: 5000, TTL: 15 * time.Second},
+				},
+				TTLByAmountRange: []valueobject.AmountInCacheRange{
+					{AmountLowerBound: bigIntFromScientificNotation("0"), TTL: 60 * time.Second},
+					{AmountLowerBound: bigIntFromScientificNotation("2e17"), TTL: 40 * time.Second},
+					{AmountLowerBound: bigIntFromScientificNotation("1e18"), TTL: 40 * time.Second},
+				},
+				ShrinkAmountInConfigs: []valueobject.ShrinkFunctionConfig{
+					{ShrinkFuncName: string(ShrinkFuncNameLogarithm), ShrinkFuncConstant: 1.3},
+					{ShrinkFuncName: string(ShrinkFuncNameLogarithm), ShrinkFuncConstant: 1.5},
+					{ShrinkFuncName: string(ShrinkFuncNameLogarithm), ShrinkFuncConstant: 1.8},
+				},
+				ShrinkAmountInThreshold:    100000,
+				EnableNewCacheKeyGenerator: true,
+				MinAmountInUSD:             0.9,
+			},
+			cacheKeys: newMultiRouteCacheKeys([]float64{0}, valueobject.RouteCacheModeRangeByAmount, []time.Duration{40 * time.Second}),
+			err:       nil,
 		},
 	}
 
@@ -790,10 +825,10 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 			keyGen := newCacheKeyGenerator(tc.config)
 			keys, err := keyGen.genKey(context.TODO(), tc.param)
 
-			if len(keys) == 0 {
+			if keys.IsEmpty() {
 				assert.Empty(t, tc.cacheKeys)
 			} else {
-				assert.ElementsMatch(t, tc.cacheKeys, keys)
+				assert.ElementsMatch(t, tc.cacheKeys, keys.ToSlice())
 			}
 			if tc.err != nil {
 				assert.Equal(t, tc.err.Error(), err.Error())

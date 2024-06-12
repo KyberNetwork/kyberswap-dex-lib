@@ -60,9 +60,9 @@ type IPoolRepository interface {
 
 //go:generate mockgen -destination ../../mocks/usecase/getroute/route_cache_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IRouteCacheRepository
 type IRouteCacheRepository interface {
-	Get(ctx context.Context, keys []*valueobject.RouteCacheKeyTTL) (map[*valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute, error)
-	Set(ctx context.Context, keys []*valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRoute) error
-	Del(ctx context.Context, keys []*valueobject.RouteCacheKeyTTL) error
+	Get(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) (map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute, error)
+	Set(ctx context.Context, keys []valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRoute) error
+	Del(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) error
 }
 
 type ITokenRepository interface {

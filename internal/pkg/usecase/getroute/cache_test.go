@@ -20,8 +20,8 @@ func TestCache_GetBestRouteFromCache(t *testing.T) {
 	testCases := []struct {
 		name         string
 		param        *types.AggregateParams
-		keys         []*valueobject.RouteCacheKeyTTL
-		cachedRoutes map[*valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute
+		keys         []valueobject.RouteCacheKeyTTL
+		cachedRoutes map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute
 		bestRoute    *valueobject.SimpleRoute
 		bestKey      *valueobject.RouteCacheKeyTTL
 		err          error
@@ -36,7 +36,7 @@ func TestCache_GetBestRouteFromCache(t *testing.T) {
 				TokenInPriceUSD: 1,
 			},
 			keys: newMultiRouteCacheKeys([]float64{250, 198, 215}, valueobject.RouteCacheModeRangeByAmount, []time.Duration{40 * time.Second, 10 * time.Second, 20 * time.Second}),
-			cachedRoutes: map[*valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute{
+			cachedRoutes: map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute{
 				{
 					Key: &valueobject.RouteCacheKey{
 						CacheMode: string(valueobject.RouteCacheModeRangeByAmount),

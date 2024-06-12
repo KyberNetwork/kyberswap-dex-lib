@@ -25,10 +25,11 @@ const (
 
 // RouteCacheKey contains data to build route cache key
 type RouteCacheKey struct {
-	TokenIn                string
-	TokenOut               string
-	SaveGas                bool
-	CacheMode              string
+	TokenIn   string
+	TokenOut  string
+	SaveGas   bool
+	CacheMode string
+	// AmountIn can be calculated in usd (if token in has price) or amountIn without decimal (if token in has no price)
 	AmountIn               string
 	Dexes                  []string
 	GasInclude             bool

@@ -11,7 +11,7 @@ import (
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
-func genKey(key *valueobject.RouteCacheKeyTTL, prefix string) string {
+func genKey(key valueobject.RouteCacheKeyTTL, prefix string) string {
 	return utils.Join(prefix, strconv.FormatUint(key.Key.Hash(prefix), 10))
 }
 
@@ -42,12 +42,12 @@ func NewRistrettoRepository(
 	}, nil
 }
 
-func (r *ristrettoRepository) Get(ctx context.Context, keys []*valueobject.RouteCacheKeyTTL) (map[*valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute, error) {
+func (r *ristrettoRepository) Get(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) (map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[route] ristrettoRepository.Get")
 	defer span.Finish()
 
-	routes := map[*valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute{}
-	uncachedKeys := make([]*valueobject.RouteCacheKeyTTL, 0, len(keys))
+	routes := map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute{}
+	uncachedKeys := make([]valueobject.RouteCacheKeyTTL, 0, len(keys))
 
 	for _, key := range keys {
 		cacheKey := genKey(key, r.config.Prefix)
@@ -91,7 +91,7 @@ func (r *ristrettoRepository) Get(ctx context.Context, keys []*valueobject.Route
 	return routes, nil
 }
 
-func (r *ristrettoRepository) Set(ctx context.Context, keys []*valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRoute) error {
+func (r *ristrettoRepository) Set(ctx context.Context, keys []valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRoute) error {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[route] redisCacheRepository.Set")
 	defer span.Finish()
 
@@ -104,7 +104,7 @@ func (r *ristrettoRepository) Set(ctx context.Context, keys []*valueobject.Route
 	return err
 }
 
-func (r *ristrettoRepository) Del(ctx context.Context, keys []*valueobject.RouteCacheKeyTTL) error {
+func (r *ristrettoRepository) Del(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) error {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[route] redisCacheRepository.Del")
 	defer span.Finish()
 

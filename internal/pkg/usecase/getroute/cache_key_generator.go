@@ -14,6 +14,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+	mapset "github.com/deckarep/golang-set/v2"
 )
 
 type routeKeyGenerator struct {
@@ -48,13 +49,13 @@ func newCacheKeyGenerator(
 	}
 }
 
-func (g *routeKeyGenerator) genKey(ctx context.Context, params *types.AggregateParams) ([]*valueobject.RouteCacheKeyTTL, error) {
+func (g *routeKeyGenerator) genKey(ctx context.Context, params *types.AggregateParams) (mapset.Set[valueobject.RouteCacheKeyTTL], error) {
 	// If request has excluded more than 1 pool, we will not hit cache.
 	if params.ExcludedPools != nil && params.ExcludedPools.Cardinality() > 1 {
 		metrics.IncrFindRouteCacheCount(ctx, false, map[string]string{
 			"excludePools": "true",
 		})
-		return []*valueobject.RouteCacheKeyTTL{}, nil
+		return mapset.NewSet[valueobject.RouteCacheKeyTTL](), nil
 	}
 
 	if g.config.EnableNewCacheKeyGenerator {
@@ -66,24 +67,24 @@ func (g *routeKeyGenerator) genKey(ctx context.Context, params *types.AggregateP
 
 // genKey retrieves the key required to access the cacheRoute.
 // It returns an error if these parameters do not correspond to a cache point and lack pricing information.
-func (g *routeKeyGenerator) genKeyV1(params *types.AggregateParams) ([]*valueobject.RouteCacheKeyTTL, error) {
+func (g *routeKeyGenerator) genKeyV1(params *types.AggregateParams) (mapset.Set[valueobject.RouteCacheKeyTTL], error) {
 	key, duration, _ := g.genKeyByCachePointTTL(params)
 	// cache point ttl has been found in the config
 	if key != nil {
-		return []*valueobject.RouteCacheKeyTTL{{Key: key, TTL: duration}}, nil
+		return mapset.NewSet[valueobject.RouteCacheKeyTTL](valueobject.RouteCacheKeyTTL{Key: key, TTL: duration}), nil
 	}
 
-	// if this token in doesn't have price, return error
-	if params.TokenInPriceUSD <= 0 {
-		return []*valueobject.RouteCacheKeyTTL{}, ErrNoTokenInPrice
+	// if this token in doesn't have price (considered token has no price if tokenInUSD is too small), return error
+	if params.TokenInPriceUSD <= g.config.MinAmountInUSD {
+		return mapset.NewSet[valueobject.RouteCacheKeyTTL](), ErrNoTokenInPrice
 	}
 
 	return g.genKeyByAmountInUSD(params)
 }
 
-func (g *routeKeyGenerator) genKeyV2(params *types.AggregateParams) ([]*valueobject.RouteCacheKeyTTL, error) {
+func (g *routeKeyGenerator) genKeyV2(params *types.AggregateParams) (mapset.Set[valueobject.RouteCacheKeyTTL], error) {
 	// if this token in doesn't have price, cache route by AmountIn, otherwise cache them by AmountInUSD
-	if params.TokenInPriceUSD <= 0 {
+	if params.TokenInPriceUSD <= g.config.MinAmountInUSD {
 		return g.genKeyByAmountIn(params)
 	}
 
@@ -114,9 +115,9 @@ func (g *routeKeyGenerator) genKeyByCachePointTTL(params *types.AggregateParams)
 	return nil, 0, errors.New("cache point not found in config")
 }
 
-func (g *routeKeyGenerator) genKeyByAmountInUSD(params *types.AggregateParams) ([]*valueobject.RouteCacheKeyTTL, error) {
+func (g *routeKeyGenerator) genKeyByAmountInUSD(params *types.AggregateParams) (mapset.Set[valueobject.RouteCacheKeyTTL], error) {
 	if params.TokenIn.Decimals <= 0 {
-		return []*valueobject.RouteCacheKeyTTL{}, errors.New("token decimal has not been found")
+		return mapset.NewSet[valueobject.RouteCacheKeyTTL](), errors.New("token decimal has not been found")
 	}
 	amountInUSD := business.CalcAmountUSD(params.AmountIn, params.TokenIn.Decimals, params.TokenInPriceUSD)
 	amountInUSDFloat64, _ := amountInUSD.Float64()
@@ -130,28 +131,26 @@ func (g *routeKeyGenerator) genKeyByAmountInUSD(params *types.AggregateParams) (
 		}
 	}
 
-	return []*valueobject.RouteCacheKeyTTL{
-		{
-			Key: &valueobject.RouteCacheKey{
-				CacheMode:              valueobject.RouteCacheModeRangeByUSD,
-				TokenIn:                params.TokenIn.Address,
-				TokenOut:               params.TokenOut.Address,
-				AmountIn:               strconv.FormatFloat(shrunkAmountInUSD, 'f', -1, 64),
-				SaveGas:                params.SaveGas,
-				GasInclude:             params.GasInclude,
-				Dexes:                  params.Sources,
-				IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
-				IsHillClimbingEnabled:  params.IsHillClimbEnabled,
-				ExcludedPools:          setToSlice(params.ExcludedPools),
-			},
-			TTL: ttl,
+	return mapset.NewSet[valueobject.RouteCacheKeyTTL](valueobject.RouteCacheKeyTTL{
+		Key: &valueobject.RouteCacheKey{
+			CacheMode:              valueobject.RouteCacheModeRangeByUSD,
+			TokenIn:                params.TokenIn.Address,
+			TokenOut:               params.TokenOut.Address,
+			AmountIn:               strconv.FormatFloat(shrunkAmountInUSD, 'f', -1, 64),
+			SaveGas:                params.SaveGas,
+			GasInclude:             params.GasInclude,
+			Dexes:                  params.Sources,
+			IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
+			IsHillClimbingEnabled:  params.IsHillClimbEnabled,
+			ExcludedPools:          setToSlice(params.ExcludedPools),
 		},
-	}, nil
+		TTL: ttl,
+	}), nil
 }
 
-func (g *routeKeyGenerator) genKeyByAmountIn(params *types.AggregateParams) ([]*valueobject.RouteCacheKeyTTL, error) {
+func (g *routeKeyGenerator) genKeyByAmountIn(params *types.AggregateParams) (mapset.Set[valueobject.RouteCacheKeyTTL], error) {
 	if params.TokenIn.Decimals <= 0 {
-		return []*valueobject.RouteCacheKeyTTL{}, errors.New("token decimal has not been found")
+		return mapset.NewSet[valueobject.RouteCacheKeyTTL](), errors.New("token decimal has not been found")
 	}
 	ttl := g.config.DefaultTTL
 	for _, cacheRange := range g.config.TTLByAmountRange {
@@ -162,19 +161,26 @@ func (g *routeKeyGenerator) genKeyByAmountIn(params *types.AggregateParams) ([]*
 
 	amountInWithoutDecimals := business.AmountWithoutDecimals(params.AmountIn, params.TokenIn.Decimals)
 	amountInWithoutDecimalsFloat64, _ := amountInWithoutDecimals.Float64()
-	shrunkAmountInList := make([]*valueobject.RouteCacheKeyTTL, 0, len(g.amountInShrinkFuncList))
+	shrunkAmountInSet := mapset.NewSet[valueobject.RouteCacheKeyTTL]()
+	seenAmount := mapset.NewSet[string]()
+
 	for _, f := range g.amountInShrinkFuncList {
 		shrunkAmountIn := f(amountInWithoutDecimalsFloat64)
 		// We don't get route from cache if the amountIn is too large, because it can cause a large slippage, ignore the large point
 		if math.Abs(shrunkAmountIn-amountInWithoutDecimalsFloat64) >= g.config.ShrinkAmountInThreshold {
 			logger.Warnf("different between shunk value and amount in without decimal is above threshold")
 		} else {
-			shrunkAmountInList = append(shrunkAmountInList, &valueobject.RouteCacheKeyTTL{
+			amount := strconv.FormatFloat(shrunkAmountIn, 'f', 0, 64)
+			if seenAmount.Contains(amount) {
+				continue
+			}
+			seenAmount.Add(amount)
+			shrunkAmountInSet.Add(valueobject.RouteCacheKeyTTL{
 				Key: &valueobject.RouteCacheKey{
 					CacheMode:              valueobject.RouteCacheModeRangeByAmount,
 					TokenIn:                params.TokenIn.Address,
 					TokenOut:               params.TokenOut.Address,
-					AmountIn:               strconv.FormatFloat(shrunkAmountIn, 'f', 0, 64),
+					AmountIn:               amount,
 					SaveGas:                params.SaveGas,
 					GasInclude:             params.GasInclude,
 					Dexes:                  params.Sources,
@@ -187,11 +193,11 @@ func (g *routeKeyGenerator) genKeyByAmountIn(params *types.AggregateParams) ([]*
 		}
 	}
 
-	if len(shrunkAmountInList) == 0 {
-		return nil, errors.New("different between shunk value and amount in without decimal is above threshold")
+	if shrunkAmountInSet.IsEmpty() {
+		return mapset.NewSet[valueobject.RouteCacheKeyTTL](), errors.New("different between shunk value and amount in without decimal is above threshold")
 	}
 
-	return shrunkAmountInList, nil
+	return shrunkAmountInSet, nil
 }
 
 func (g *routeKeyGenerator) applyConfig(config Config) {

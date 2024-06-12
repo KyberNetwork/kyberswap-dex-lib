@@ -220,13 +220,13 @@ useCase:
           ttl: 10s
       ttlByAmountRange:
         - amountLowerBound: "0"
-          ttl: 10s
+          ttl: 50s
       priceImpactThreshold: 0.005
-      shrinkFuncName: "round"
-      shrinkDecimalBase: 10
+      shrinkFuncName: "decimal"
+      shrinkDecimalBase: 8
       shrinkFuncPowExp: 0.7
       shrinkFuncLogPercent: 1.01
-      enableNewCacheKeyGenerator: false
+      enableNewCacheKeyGenerator: true
       shrinkAmountInConfigs:
         - shrinkFuncName: "logarithm"
           shrinkFuncConstant: 1.1
@@ -235,6 +235,7 @@ useCase:
         - shrinkFuncName: "logarithm"
           shrinkFuncConstant: 1.5
       shrinkAmountInThreshold: 100000
+      minAmountInUSD: 0.9
   buildRoute:
     chainId: *chainId
     faultyPools:

@@ -15,7 +15,7 @@ import (
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
-func genKey(key *valueobject.RouteCacheKeyTTL, prefix string) string {
+func genKey(key valueobject.RouteCacheKeyTTL, prefix string) string {
 	return utils.Join(prefix, strconv.FormatUint(key.Key.Hash(prefix), 10))
 }
 
@@ -42,7 +42,7 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 			route.RedisRepositoryConfig{
 				Prefix: "ethereum",
 			})
-		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+		cacheKeys := []valueobject.RouteCacheKeyTTL{
 			{
 				Key: &valueobject.RouteCacheKey{
 					TokenIn:                "a",
@@ -133,7 +133,7 @@ func TestRedisCacheRepository_Set(t *testing.T) {
 			})
 		redisServer.Close()
 
-		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+		cacheKeys := []valueobject.RouteCacheKeyTTL{
 			{
 				Key: &valueobject.RouteCacheKey{
 					TokenIn:                "a",
@@ -186,7 +186,7 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+		cacheKeys := []valueobject.RouteCacheKeyTTL{
 			{
 				Key: &valueobject.RouteCacheKey{
 					TokenIn:                "a",
@@ -272,7 +272,7 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+		cacheKeys := []valueobject.RouteCacheKeyTTL{
 			{
 				Key: &valueobject.RouteCacheKey{
 					TokenIn:                "a",
@@ -328,7 +328,7 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 		assert.Nil(t, err)
 
 		// add extra keys without data in redis
-		nilKey := &valueobject.RouteCacheKeyTTL{
+		nilKey := valueobject.RouteCacheKeyTTL{
 			Key: &valueobject.RouteCacheKey{
 				TokenIn:                "c",
 				TokenOut:               "d",
@@ -379,7 +379,7 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 				Prefix: "ethereum",
 			})
 
-		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+		cacheKeys := []valueobject.RouteCacheKeyTTL{
 			{
 				Key: &valueobject.RouteCacheKey{
 					TokenIn:                "a",
@@ -441,7 +441,7 @@ func TestRedisCacheRepository_Get(t *testing.T) {
 			})
 		redisServer.Close()
 
-		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+		cacheKeys := []valueobject.RouteCacheKeyTTL{
 			{
 				Key: &valueobject.RouteCacheKey{
 					TokenIn:                "a",
@@ -497,7 +497,7 @@ func TestRedisCacheRepository_Del(t *testing.T) {
 			t.Fatalf("failed to setup redis client: %v", err.Error())
 		}
 
-		cacheKeys := []*valueobject.RouteCacheKeyTTL{
+		cacheKeys := []valueobject.RouteCacheKeyTTL{
 			{
 				Key: &valueobject.RouteCacheKey{
 					TokenIn:                "a",

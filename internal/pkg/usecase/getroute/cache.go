@@ -19,7 +19,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
-	ctxUtils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -55,17 +54,18 @@ func NewCache(
 func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*valueobject.RouteSummary, error) {
 	var (
 		routeSummary *valueobject.RouteSummary
-		keys         []*valueobject.RouteCacheKeyTTL
+		keys         []valueobject.RouteCacheKeyTTL
 		err          error
 	)
 
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] cache.Aggregate")
 	defer span.End()
 
-	keys, err = c.keyGenerator.genKey(ctx, params)
+	res, err := c.keyGenerator.genKey(ctx, params)
 
 	// if this tokenIn has price and we successfully gen cache key
-	if err == nil && len(keys) != 0 {
+	if err == nil && !res.IsEmpty() {
+		keys = res.ToSlice()
 		routeSummary, err = c.getRouteFromCache(ctx, params, keys)
 		if err == nil {
 			return routeSummary, nil
@@ -75,7 +75,7 @@ func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*
 			return nil, err
 		}
 		if routeSummary.GetPriceImpact() <= c.config.PriceImpactThreshold {
-			go c.setRouteToCache(ctxUtils.NewBackgroundCtxWithReqId(ctx), routeSummary, keys)
+			c.setRouteToCache(ctx, routeSummary, keys)
 		}
 	} else {
 		// we have no key cacheRoute -> recalculate new route.
@@ -95,7 +95,7 @@ func (c *cache) ApplyConfig(config Config) {
 
 func (c *cache) getBestRouteFromCache(ctx context.Context,
 	params *types.AggregateParams,
-	keys []*valueobject.RouteCacheKeyTTL) (*valueobject.RouteCacheKeyTTL, *valueobject.SimpleRoute, error) {
+	keys []valueobject.RouteCacheKeyTTL) (*valueobject.RouteCacheKeyTTL, *valueobject.SimpleRoute, error) {
 	cachedRoutes, err := c.routeCacheRepository.Get(ctx, keys)
 
 	if err != nil {
@@ -108,7 +108,7 @@ func (c *cache) getBestRouteFromCache(ctx context.Context,
 
 	// Compare amount-in to get the best route from Redis cache
 	var bestRoute *valueobject.SimpleRoute
-	var bestKey *valueobject.RouteCacheKeyTTL
+	var bestKey valueobject.RouteCacheKeyTTL
 	var minDiff *big.Float
 	amountInWithoutDecimal := business.AmountWithoutDecimals(params.AmountIn, params.TokenIn.Decimals)
 	for key, route := range cachedRoutes {
@@ -119,7 +119,7 @@ func (c *cache) getBestRouteFromCache(ctx context.Context,
 					"amountIn":   key.Key.AmountIn,
 					"request_id": requestid.GetRequestIDFromCtx(ctx),
 				}).
-				Debug("getBestRouteFromCache Amount in is not a float")
+				Info("getBestRouteFromCache Amount in is not a float")
 			continue
 		} else {
 			diff := new(big.Float).Sub(amountInKey, amountInWithoutDecimal)
@@ -137,12 +137,12 @@ func (c *cache) getBestRouteFromCache(ctx context.Context,
 		return nil, nil, fmt.Errorf("could not find best routes")
 	}
 
-	return bestKey, bestRoute, nil
+	return &bestKey, bestRoute, nil
 }
 
 func (c *cache) getRouteFromCache(ctx context.Context,
 	params *types.AggregateParams,
-	keys []*valueobject.RouteCacheKeyTTL) (*valueobject.RouteSummary, error) {
+	keys []valueobject.RouteCacheKeyTTL) (*valueobject.RouteSummary, error) {
 	bestKey, bestRoute, err := c.getBestRouteFromCache(ctx, params, keys)
 	if err != nil {
 		logger.
@@ -219,7 +219,7 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 	return routeSummary, nil
 }
 
-func (c *cache) setRouteToCache(ctx context.Context, routeSummary *valueobject.RouteSummary, keys []*valueobject.RouteCacheKeyTTL) {
+func (c *cache) setRouteToCache(ctx context.Context, routeSummary *valueobject.RouteSummary, keys []valueobject.RouteCacheKeyTTL) {
 	simpleRoute := simplifyRouteSummary(routeSummary)
 	routes := make([]*valueobject.SimpleRoute, 0, len(keys))
 	for range keys {

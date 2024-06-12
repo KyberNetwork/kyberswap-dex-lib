@@ -290,6 +290,7 @@ useCase:
         - shrinkFuncName: "logarithm"
           shrinkFuncConstant: 1.8
       shrinkAmountInThreshold: 100000
+      minAmountInUSD: 0.9
   buildRoute:
     chainId: *chainId
     rfq:
