@@ -56,15 +56,18 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	poolState := Storage{
-		B:           extra.B,
-		Q:           extra.Q,
-		B0:          extra.B0,
-		Q0:          extra.Q0,
-		RStatus:     extra.RStatus,
-		OraclePrice: extra.OraclePrice,
-		K:           extra.K,
-		MtFeeRate:   extra.MtFeeRate,
-		LpFeeRate:   extra.LpFeeRate,
+		B:              extra.B,
+		Q:              extra.Q,
+		B0:             extra.B0,
+		Q0:             extra.Q0,
+		RStatus:        extra.RStatus,
+		OraclePrice:    extra.OraclePrice,
+		K:              extra.K,
+		MtFeeRate:      extra.MtFeeRate,
+		LpFeeRate:      extra.LpFeeRate,
+		TradeAllowed:   extra.TradeAllowed,
+		SellingAllowed: extra.SellingAllowed,
+		BuyingAllowed:  extra.BuyingAllowed,
 	}
 
 	meta := Meta{
@@ -86,6 +89,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if !p.TradeAllowed {
+		return &pool.CalcAmountOutResult{}, ErrTradeNotAllowed
+	}
+
+	if !p.SellingAllowed {
+		return &pool.CalcAmountOutResult{}, ErrSellingNotAllowed
+	}
+
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 
@@ -159,6 +170,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 }
 
 func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	if !p.TradeAllowed {
+		return &pool.CalcAmountInResult{}, ErrTradeNotAllowed
+	}
+
+	if !p.BuyingAllowed {
+		return &pool.CalcAmountInResult{}, ErrBuyingNotAllowed
+	}
+
 	tokenIn := param.TokenIn
 	tokenAmountOut := param.TokenAmountOut
 
