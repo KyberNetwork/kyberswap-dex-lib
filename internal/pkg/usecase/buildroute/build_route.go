@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	ctxUtils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/token"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -144,6 +145,7 @@ func (uc *BuildRouteUseCase) ApplyConfig(config Config) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 	uc.config.FeatureFlags = config.FeatureFlags
+	uc.config.TokensThresholdForOnchainPrice = config.TokensThresholdForOnchainPrice
 }
 
 func (uc *BuildRouteUseCase) rfq(
@@ -257,7 +259,7 @@ func (uc *BuildRouteUseCase) updateRouteSummary(ctx context.Context, routeSummar
 		tokenOutPriceUSD             float64
 		tokenOutMarketPriceAvailable bool
 	)
-	if uc.onchainpriceRepository != nil {
+	if uc.onchainpriceRepository != nil && token.CheckTokenThreshold(tokenOutAddress, uc.config.TokensThresholdForOnchainPrice) {
 		// TODO: check and deprecate these 2 fields since we no longer has `market` price
 		tokenInMarketPriceAvailable = false
 		tokenOutMarketPriceAvailable = false

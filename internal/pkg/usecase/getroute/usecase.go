@@ -214,7 +214,7 @@ func (u *useCase) getTokenByAddress(ctx context.Context, addresses ...string) (m
 }
 
 func (u *useCase) getTokensPriceUSD(ctx context.Context, tokenIn, tokenOut, gasToken string) (float64, float64, float64, error) {
-	if u.onchainpriceRepository != nil {
+	if u.onchainpriceRepository != nil && u.config.Aggregator.CheckTokenThreshold(tokenOut) {
 		priceByAddress, err := u.onchainpriceRepository.FindByAddresses(ctx, []string{tokenIn, tokenOut, gasToken})
 		if err != nil {
 			return 0, 0, 0, err

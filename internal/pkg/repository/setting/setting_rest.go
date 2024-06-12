@@ -28,6 +28,8 @@ type ConfigResponseDataConfig struct {
 	PregenFinderOptions   valueobject.FinderOptions       `json:"pregenFinderOptions"`
 	CacheConfig           valueobject.CacheConfig         `json:"cache"`
 	BlacklistedRecipients []string                        `json:"blacklistedRecipients"`
+
+	TokensThresholdForOnchainPrice uint32 `json:"tokensThresholdForOnchainPrice"`
 }
 
 type ConfigResponseData struct {
@@ -98,6 +100,8 @@ func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string, curre
 		PregenFinderOptions:   cfgResp.Data.Config.PregenFinderOptions,
 		CacheConfig:           cfgResp.Data.Config.CacheConfig,
 		BlacklistedRecipients: cfgResp.Data.Config.BlacklistedRecipients,
+
+		TokensThresholdForOnchainPrice: cfgResp.Data.Config.TokensThresholdForOnchainPrice,
 	}, nil
 }
 

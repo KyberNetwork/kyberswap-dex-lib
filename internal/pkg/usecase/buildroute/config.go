@@ -12,6 +12,8 @@ type (
 		RFQ               []RFQConfig              `mapstructure:"rfq"`
 		FeatureFlags      valueobject.FeatureFlags `mapstructure:"featureFlags"`
 		FaultyPoolsConfig FaultyPoolsConfig        `mapstructure:"faultyPools"`
+
+		TokensThresholdForOnchainPrice uint32 `mapstructure:"tokensThresholdForOnchainPrice"`
 	}
 	RFQConfig struct {
 		Id         string                 `mapstructure:"id"`

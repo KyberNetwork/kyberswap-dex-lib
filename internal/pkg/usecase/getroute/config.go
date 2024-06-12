@@ -1,6 +1,7 @@
 package getroute
 
 import (
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/token"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -19,4 +20,10 @@ type AggregatorConfig struct {
 	GetBestPoolsOptions valueobject.GetBestPoolsOptions `mapstructure:"getBestPoolsOptions" json:"getBestPoolsOptions"`
 	FinderOptions       valueobject.FinderOptions       `mapstructure:"finderOptions" json:"finderOptions"`
 	FeatureFlags        valueobject.FeatureFlags        `mapstructure:"featureFlags"`
+
+	TokensThresholdForOnchainPrice uint32 `mapstructure:"tokensThresholdForOnchainPrice" json:"tokensThresholdForOnchainPrice"`
+}
+
+func (cfg *AggregatorConfig) CheckTokenThreshold(address string) bool {
+	return token.CheckTokenThreshold(address, cfg.TokensThresholdForOnchainPrice)
 }

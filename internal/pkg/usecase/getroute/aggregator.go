@@ -112,7 +112,7 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 
 	// only get price from onchain-price-service if enabled
 	var priceByAddress map[string]*routerEntity.OnchainPrice
-	if a.onchainpriceRepository != nil {
+	if a.onchainpriceRepository != nil && a.config.CheckTokenThreshold(params.TokenOut.Address) {
 		priceByAddress, err = a.onchainpriceRepository.FindByAddresses(ctx, tokenAddresses)
 		if err != nil {
 			return nil, err

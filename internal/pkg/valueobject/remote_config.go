@@ -18,6 +18,8 @@ type (
 		PregenFinderOptions   FinderOptions       `json:"pregenFinderOptions"`
 		CacheConfig           CacheConfig         `json:"cache"`
 		BlacklistedRecipients []string            `json:"blacklistedRecipients"`
+
+		TokensThresholdForOnchainPrice uint32 `json:"tokensThresholdForOnchainPrice"`
 	}
 
 	Source string

@@ -11,6 +11,7 @@ type (
 		Decimals uint8                 `json:"decimals"`
 		Symbol   string                `json:"symbol"`
 		Price    *GetTokensResultPrice `json:"price,omitempty"`
+		Hash     string                `json:"hash"`
 	}
 
 	GetTokensResultPrice struct {

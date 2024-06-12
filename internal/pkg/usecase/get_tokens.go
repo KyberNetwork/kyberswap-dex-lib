@@ -3,11 +3,14 @@ package usecase
 import (
 	"context"
 	"math/big"
+	"strconv"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+
+	tokenUtil "github.com/KyberNetwork/router-service/internal/pkg/utils/token"
 )
 
 type getTokensUseCase struct {
@@ -124,12 +127,18 @@ func (u *getTokensUseCase) buildResultTokens(
 			}
 		}
 
+		var hash string
+		if hashInt, err := tokenUtil.HashToken(token.Address); err == nil {
+			hash = strconv.Itoa(int(hashInt))
+		}
+
 		resultTokens = append(resultTokens, &dto.GetTokensResultToken{
 			Address:  address,
 			Name:     token.Name,
 			Decimals: token.Decimals,
 			Symbol:   token.Symbol,
 			Price:    resultPrice,
+			Hash:     hash,
 		})
 	}
 	return resultTokens
