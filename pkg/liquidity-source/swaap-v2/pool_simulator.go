@@ -100,11 +100,20 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	// if params.TokenAmountIn.Token == p.baseToken.Address {
+	// 	p.isBaseSwapped = true
+	// 	return
+	// }
+	// p.isQuoteSwapped = true
+	amtIn, _ := params.TokenAmountIn.Amount, params.TokenAmountOut.Amount
+	amtInF, _ := amtIn.Float64()
 	if params.TokenAmountIn.Token == p.baseToken.Address {
-		p.isBaseSwapped = true
-		return
+		amountInAfterDecimalsF := amtInF / math.Pow10(int(p.baseToken.Decimals))
+		p.baseToQuotePriceLevels = getNewPriceLevelsState(amountInAfterDecimalsF, p.baseToQuotePriceLevels)
+	} else {
+		amountInAfterDecimalsF := amtInF / math.Pow10(int(p.quoteToken.Decimals))
+		p.quoteToBasePriceLevels = getNewPriceLevelsState(amountInAfterDecimalsF, p.quoteToBasePriceLevels)
 	}
-	p.isQuoteSwapped = true
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
@@ -203,4 +212,26 @@ func getAmountOut(amountIn float64, priceLevels []PriceLevel) (float64, error) {
 	}
 
 	return amountOut, nil
+}
+
+func getNewPriceLevelsState(amountIn float64, priceLevels []PriceLevel) []PriceLevel {
+	if len(priceLevels) == 0 {
+		return priceLevels
+	}
+
+	for i, priceLevel := range priceLevels {
+		if amountIn > priceLevel.Level {
+			continue
+		} else if amountIn == priceLevel.Level {
+			if i == len(priceLevels)-1 {
+				return nil
+			}
+			return priceLevels[i+1:]
+		}
+		priceLevel.Level -= amountIn
+		priceLevels[i] = priceLevel
+		return priceLevels[i:]
+	}
+
+	return nil
 }
