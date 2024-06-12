@@ -1,4 +1,4 @@
-name: Check tinylib/msgp generate codes update-to-date
+name: Check generated codes update-to-date
 
 concurrency:
   group: ci-workflow-${{ github.ref }}-${{ github.event_name }}
