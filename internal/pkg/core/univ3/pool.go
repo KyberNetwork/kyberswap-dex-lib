@@ -83,13 +83,18 @@ func NewPoolAEVM(
 }
 
 func (p *Pool) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	result, _, err := p.CalcAmountOutAEVM(params, false)
+	return result, err
+}
+
+func (p *Pool) CalcAmountOutAEVM(params pool.CalcAmountOutParams, tracing bool) (*pool.CalcAmountOutResult, *aevmtypes.TraceStep, error) {
 	var (
 		tokenInAddr  = gethcommon.HexToAddress(params.TokenAmountIn.Token)
 		tokenOutAddr = gethcommon.HexToAddress(params.TokenOut)
 	)
 	blIn, ok := p.aevmPool.TokenBalanceSlots.Get().(routerentity.TokenBalanceSlots)[tokenInAddr]
 	if !ok {
-		return nil, fmt.Errorf("expected token balance slot for token %s", params.TokenAmountIn.Token)
+		return nil, nil, fmt.Errorf("expected token balance slot for token %s", params.TokenAmountIn.Token)
 	}
 	wallet := gethcommon.HexToAddress(blIn.Wallet)
 	swapCalls, err := p.swapCalls(
@@ -99,7 +104,7 @@ func (p *Pool) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountO
 		wallet,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	strategy := &aevmcore.AEVMSwapStrategy{
 		Precheck: func() error {
@@ -111,7 +116,7 @@ func (p *Pool) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountO
 		SwapCalls:       swapCalls,
 		AmountOutGetter: aevmcore.AmountOutGetterSwapOutput,
 	}
-	return aevmcore.CalcAmountOutAEVM(p.aevmPool, strategy, params.TokenAmountIn.Amount, tokenInAddr, tokenOutAddr)
+	return aevmcore.CalcAmountOutAEVM(p.aevmPool, strategy, params.TokenAmountIn.Amount, tokenInAddr, tokenOutAddr, tracing)
 }
 
 func (p *Pool) checkAddress(tokenIn, tokenOut string) error {

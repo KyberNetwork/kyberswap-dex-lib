@@ -2,16 +2,19 @@ package univ3
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
+	jaeger "github.com/KyberNetwork/aevm/types/jaeger"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
+	aevmcore "github.com/KyberNetwork/router-service/internal/pkg/core/aevm"
 	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 )
 
@@ -69,17 +72,58 @@ var (
 	}
 )
 
-func TestCalcAmountOutAEVMWithUSDC2PoolWithGRPCClient(t *testing.T) {
+func TestTracingCalcAmountOutAEVMWithUSDC2Pool(t *testing.T) {
 	t.Skip()
 
 	client, err := aevmclient.NewGRPCClient(aevmServerURL)
 	require.NoError(t, err)
 	defer client.Close()
 
-	doTestCalcAmountOutAEVMWithUSDC2Pool(t, client)
+	stateRoot, _ := client.LatestStateRoot(context.Background())
+
+	p, err := NewPoolAEVM(
+		entity.Pool{
+			Address:  usdc2PoolAddr,
+			SwapFee:  3000,
+			Tokens:   []*entity.PoolToken{{Address: wethAddr}, {Address: usdcAddr}},
+			Reserves: []string{"0", "0"},
+		},
+		routerAddress,
+		1,
+		client,
+		common.Hash(stateRoot),
+		balanceSlots,
+	)
+	require.NoError(t, err)
+	result, traces, err := p.CalcAmountOutAEVM(
+		pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  usdcAddr,
+				Amount: big.NewInt(500_000_000_000), // 500K USDC
+			},
+			TokenOut: wethAddr,
+		},
+		true,
+	)
+	require.NoError(t, err)
+	fmt.Printf("swapping 500K USDC for WETH amountOut = %s\n", result.TokenAmountOut.Amount)
+
+	swapInfo := result.SwapInfo.(*aevmcore.AEVMSwapInfo)
+	require.NotNil(t, swapInfo)
+
+	jaegerTraces := jaeger.ToJaegerTrace(traces, "aevm")
+	encoded, err := json.MarshalIndent(jaegerTraces, "", "  ")
+	require.NoError(t, err)
+	fmt.Printf("%s\n", string(encoded))
 }
 
-func doTestCalcAmountOutAEVMWithUSDC2Pool(t *testing.T, client aevmclient.Client) {
+func TestCalcAmountOutAEVMWithUSDC2Pool(t *testing.T) {
+	t.Skip()
+
+	client, err := aevmclient.NewGRPCClient(aevmServerURL)
+	require.NoError(t, err)
+	defer client.Close()
+
 	stateRoot, _ := client.LatestStateRoot(context.Background())
 
 	p, err := NewPoolAEVM(
@@ -132,17 +176,13 @@ func doTestCalcAmountOutAEVMWithUSDC2Pool(t *testing.T, client aevmclient.Client
 	fmt.Printf("swapping %s WETH for USDC amountOut = %s gas = %v\n", wethOut, result.TokenAmountOut.Amount, result.Gas)
 }
 
-func TestCalcAmountOutAEVMWithLDOUSDTPoolWithGRPCClient(t *testing.T) {
+func TestCalcAmountOutAEVMWithLDOUSDTPool(t *testing.T) {
 	t.Skip()
 
 	client, err := aevmclient.NewGRPCClient(aevmServerURL)
 	require.NoError(t, err)
 	defer client.Close()
 
-	doTestCalcAmountOutAEVMWithLDOUSDTPool(t, client)
-}
-
-func doTestCalcAmountOutAEVMWithLDOUSDTPool(t *testing.T, client aevmclient.Client) {
 	stateRoot, _ := client.LatestStateRoot(context.Background())
 
 	p, err := NewPoolAEVM(

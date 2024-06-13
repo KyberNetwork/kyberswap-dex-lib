@@ -85,12 +85,13 @@ func TestCalcAmountOutAEVMWithUSDCE_USDCPoolWithGRPCClient(t *testing.T) {
 				balanceSlots,
 			)
 			require.NoError(t, err)
-			result, err := p.CalcAmountOutAEVM(
+			result, _, err := p.CalcAmountOutAEVM(
 				pool.TokenAmount{
 					Token:  usdceAddr,
 					Amount: big.NewInt(500_000_000), // 500 USDC.e
 				},
 				usdcAddr,
+				false,
 			)
 			require.NoError(t, err)
 			fmt.Printf("swapping 500 USDC.e for USDC amountOut = %s, gas used = %v\n", result.TokenAmountOut.Amount, result.Gas)
@@ -98,12 +99,13 @@ func TestCalcAmountOutAEVMWithUSDCE_USDCPoolWithGRPCClient(t *testing.T) {
 
 			p.UpdateBalance(pool.UpdateBalanceParams{SwapInfo: result.SwapInfo})
 
-			result, err = p.CalcAmountOutAEVM(
+			result, _, err = p.CalcAmountOutAEVM(
 				pool.TokenAmount{
 					Token:  usdcAddr,
 					Amount: usdcOut,
 				},
 				usdceAddr,
+				false,
 			)
 			require.NoError(t, err)
 			fmt.Printf("swapping %s USDC for USDC.e amountOut = %s, gas used = %v\n", usdcOut, result.TokenAmountOut.Amount, result.Gas)

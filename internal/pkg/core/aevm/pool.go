@@ -61,7 +61,7 @@ func (p *AEVMPool) UpdateBalance(params pool.UpdateBalanceParams) {
 			StateAfter: si.StateAfter.Clone(),
 		}
 	} else {
-		MergeStateOverrides(p.NextSwapInfo.StateAfter, si.StateAfter)
+		mergeStateOverrides(p.NextSwapInfo.StateAfter, si.StateAfter)
 	}
 }
 
@@ -191,16 +191,17 @@ func CalcAmountOutAEVM(
 	s *AEVMSwapStrategy,
 	amountIn *big.Int,
 	tokenIn, tokenOut gethcommon.Address,
-) (*pool.CalcAmountOutResult, error) {
+	tracing bool,
+) (*pool.CalcAmountOutResult, *aevmtypes.TraceStep, error) {
 	if s.Precheck != nil {
 		if err := s.Precheck(); err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
 	blIn, ok := p.TokenBalanceSlots.Get().(routerentity.TokenBalanceSlots)[tokenIn]
 	if !ok {
-		return nil, fmt.Errorf("expected token balance slot for token %s", tokenIn)
+		return nil, nil, fmt.Errorf("expected token balance slot for token %s", tokenIn)
 	}
 
 	wallet := aevmcommon.HexToAddress(blIn.Wallet)
@@ -231,7 +232,7 @@ func CalcAmountOutAEVM(
 			}
 		}
 		if len(sources) == 0 {
-			return nil, fmt.Errorf("there is no usable holder from holders list %v", blIn.Holders)
+			return nil, nil, fmt.Errorf("there is no usable holder from holders list %v", blIn.Holders)
 		}
 		// exaggeratedAmountIn = 1.5 * amountIn to overcome transfer fee
 		exaggeratedAmountIn := new(big.Int).Mul(amountIn, big.NewInt(3))
@@ -277,36 +278,42 @@ func CalcAmountOutAEVM(
 		}
 	}
 
-	results, err := p.AEVMClient.Get().(aevmclient.Client).MultipleCall(context.Background(), &aevmtypes.MultipleCallParams{
+	params := &aevmtypes.MultipleCallParams{
 		StateRoot: aevmcommon.Hash(p.StateRoot),
 		Calls:     calls.List(),
 		Overrides: overrides,
-	})
+	}
+	if tracing {
+		for i := range params.Calls {
+			params.Calls[i].Options = &aevmtypes.SingleCallOptions{Tracing: true}
+		}
+	}
+	results, err := p.AEVMClient.Get().(aevmclient.Client).MultipleCall(context.Background(), params)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(results.Results) != calls.Len() {
-		return nil, fmt.Errorf("an error occurred in call sequence")
+		return nil, nil, fmt.Errorf("an error occurred in call sequence")
 	}
 
 	swapResult, err := calls.GetSwapCallResult(results.Results)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// make sure all calls are success
 	for i, result := range results.Results {
 		if i >= numHolderTransfers && !result.Success {
-			return nil, fmt.Errorf("simulation call %d/%d returns error: %s", i+1, len(results.Results), result.Error)
+			return nil, nil, fmt.Errorf("simulation call %d/%d returns error: %s", i+1, len(results.Results), result.Error)
 		}
 	}
 
 	amountOut, err := s.getAmountOut(swapResult, results.Results)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &pool.CalcAmountOutResult{
+	result := &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  strings.ToLower(tokenOut.String()),
 			Amount: amountOut,
@@ -319,10 +326,27 @@ func CalcAmountOutAEVM(
 			StateAfter: swapResult.StateAfter,
 		},
 		Gas: int64(swapResult.GasUsed),
-	}, nil
+	}
+	var traces *aevmtypes.TraceStep
+	if tracing {
+		traces = mergeMultipleCallTraces(results.Results)
+	}
+
+	return result, traces, nil
 }
 
-func MergeStateOverrides(mergeInto *aevmtypes.StateOverrides, mergeFrom *aevmtypes.StateOverrides) {
+func mergeMultipleCallTraces(results []*aevmtypes.CallResult) *aevmtypes.TraceStep {
+	traces := &aevmtypes.TraceStep{FuncName: "root"}
+	for _, result := range results {
+		if result.Traces != nil {
+			traces.Childs = append(traces.Childs, result.Traces.Childs...)
+			traces.Duration += result.Traces.Duration
+		}
+	}
+	return traces
+}
+
+func mergeStateOverrides(mergeInto *aevmtypes.StateOverrides, mergeFrom *aevmtypes.StateOverrides) {
 	for addr, s := range mergeFrom.StateDiffs {
 		if mergeInto.StateDiffs == nil {
 			mergeInto.StateDiffs = make(map[aevmcommon.Address]map[aevmcommon.Hash]aevmcommon.Hash)
