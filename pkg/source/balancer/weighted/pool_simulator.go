@@ -7,6 +7,8 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/logger"
+
 	balancer "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 
@@ -21,6 +23,9 @@ type WeightedPool2Tokens struct {
 	Decimals     []uint
 	Weights      []*big.Int
 	gas          balancer.Gas
+	// maxSwappableAmount stored the maximum amount to be swapped in a findRoute request.
+	// it is not on-chain pool's state properties
+	maxSwappableAmount []*big.Int
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*WeightedPool2Tokens, error) {
@@ -37,12 +42,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*WeightedPool2Tokens, error) {
 	reserves := make([]*big.Int, numTokens)
 	weights := make([]*big.Int, numTokens)
 	decimals := make([]uint, numTokens)
+	maxSwappableAmounts := make([]*big.Int, numTokens)
 
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
 		weights[i] = big.NewInt(int64(entityPool.Tokens[i].Weight))
 		decimals[i] = uint(staticExtra.TokenDecimals[i])
+		maxSwappableAmounts[i] = big.NewInt(0).Div(big.NewInt(0).Mul(balancer.LimitSwapPercentage, reserves[i]), balancer.OneHundred)
 	}
 
 	return &WeightedPool2Tokens{
@@ -58,11 +65,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*WeightedPool2Tokens, error) {
 				Checked:    false,
 			},
 		},
-		VaultAddress: strings.ToLower(staticExtra.VaultAddress),
-		PoolId:       strings.ToLower(staticExtra.PoolId),
-		Decimals:     decimals,
-		Weights:      weights,
-		gas:          balancer.DefaultGas,
+		VaultAddress:       strings.ToLower(staticExtra.VaultAddress),
+		PoolId:             strings.ToLower(staticExtra.PoolId),
+		Decimals:           decimals,
+		Weights:            weights,
+		gas:                balancer.DefaultGas,
+		maxSwappableAmount: maxSwappableAmounts,
 	}, nil
 }
 
@@ -81,7 +89,12 @@ func (t *WeightedPool2Tokens) CalcAmountOut(param pool.CalcAmountOutParams) (*po
 		if tokenAmountIn.Amount.Cmp(maxAmountIn) > 0 {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenAmountIn.Amount %v is larger than maxAmountIn %v", *tokenAmountIn.Amount, maxAmountIn)
 		}
-
+		var (
+			reserves = t.GetReserves()
+		)
+		if tokenAmountIn.Amount.Cmp(t.maxSwappableAmount[tokenIndexFrom]) > 0 {
+			return &pool.CalcAmountOutResult{}, fmt.Errorf("additional token In Amount %s excess %s percentage pool reserve of %s", tokenAmountIn.Amount.String(), balancer.LimitSwapPercentage.String(), reserves[tokenIndexFrom].String())
+		}
 		// this scaling up of both nominator and denominator seems not needed
 		// but they do this explicitly here https://github.com/balancer/balancer-v2-monorepo/blob/45bfdc2/pkg/pool-weighted/contracts/lbp/LiquidityBootstrappingPool.sol#L125
 		// maybe needed to have rounded down result
@@ -102,6 +115,9 @@ func (t *WeightedPool2Tokens) CalcAmountOut(param pool.CalcAmountOutParams) (*po
 		var maxAmountOut = new(big.Int).Div(new(big.Int).Mul(t.Info.Reserves[tokenIndexTo], MaxOutRatio), bignumber.TenPowInt(2))
 		if amountOut.Cmp(maxAmountOut) > 0 {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("amountOut %v is larger than maxAmountOut %v", amountOut, maxAmountOut)
+		}
+		if amountOut.Cmp(t.maxSwappableAmount[tokenIndexTo]) > 0 {
+			return &pool.CalcAmountOutResult{}, fmt.Errorf("additional token Out Amount %s excess %s percentage pool reserve of %s", amountOut.String(), balancer.LimitSwapPercentage.String(), reserves[tokenIndexTo].String())
 		}
 		return &pool.CalcAmountOutResult{
 			TokenAmountOut: &pool.TokenAmount{
@@ -137,8 +153,16 @@ func (t *WeightedPool2Tokens) UpdateBalance(params pool.UpdateBalanceParams) {
 	var tokenOutIndex = t.GetTokenIndex(output.Token)
 	if tokenInIndex >= 0 {
 		t.Info.Reserves[tokenInIndex] = new(big.Int).Add(t.Info.Reserves[tokenInIndex], input.Amount)
+		if t.maxSwappableAmount[tokenInIndex].Cmp(params.TokenAmountIn.Amount) < 0 {
+			logger.Errorf("balancer error: exceeded max swappable token. MaxAmountIn: %s, AmountIn: %s", t.maxSwappableAmount[tokenInIndex], params.TokenAmountIn.Amount)
+		}
+		t.maxSwappableAmount[tokenInIndex].Sub(t.maxSwappableAmount[tokenInIndex], params.TokenAmountIn.Amount)
 	}
 	if tokenOutIndex >= 0 {
 		t.Info.Reserves[tokenOutIndex] = new(big.Int).Sub(t.Info.Reserves[tokenOutIndex], output.Amount)
+		if t.maxSwappableAmount[tokenOutIndex].Cmp(params.TokenAmountOut.Amount) < 0 {
+			logger.Errorf("balancer error: exceeded max swappable token. MaxAmountOut: %s, AmountOut: %s", t.maxSwappableAmount[tokenOutIndex], params.TokenAmountOut.Amount)
+		}
+		t.maxSwappableAmount[tokenOutIndex].Sub(t.maxSwappableAmount[tokenOutIndex], params.TokenAmountOut.Amount)
 	}
 }
