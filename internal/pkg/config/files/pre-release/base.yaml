@@ -71,6 +71,10 @@ common:
     - "soswap"
     - "thick"
     - "e3"
+    - "dodo-classical"
+    - "dodo-dpp"
+    - "dodo-dsp"
+    - "dodo-dvm"
   featureFlags: &featureFlags
   nativeAPIKey:
 log:
