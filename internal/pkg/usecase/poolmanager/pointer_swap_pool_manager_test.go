@@ -188,7 +188,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
 
 	pm, err := poolmanager.NewPointerSwapPoolManager(
 		context.Background(),
-		poolRepository, poolFactory, poolRankRepository, config, nil,
+		poolRepository, poolFactory, poolRankRepository, config, nil, nil,
 	)
 	require.NoError(t, err)
 	// let sleep for 2 sec

@@ -14,6 +14,8 @@ type FindRouteState struct {
 	Pools map[string]poolpkg.IPoolSimulator
 	// map LimitType-SwapLimit
 	SwapLimit map[string]poolpkg.SwapLimit
+	// PoolsStorageID represents the last published pools
+	PublishedPoolsStorageID string
 }
 
 type AdjacentList struct {

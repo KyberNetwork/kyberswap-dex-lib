@@ -18,7 +18,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Input, data findroute.FinderData) (*valueobject.Route, error) {
+func (f *Spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Input, data findroute.FinderData) (*valueobject.Route, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestRouteExactIn")
 	defer span.End()
 
@@ -74,7 +74,7 @@ func (f *spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Inp
 	}
 }
 
-func (f *spfav2Finder) findMinHopsToTokenOut(
+func (f *Spfav2Finder) findMinHopsToTokenOut(
 	poolByAddress map[string]poolpkg.IPoolSimulator,
 	tokenByAddress map[string]*entity.Token,
 	tokenToPoolAddresses map[string]*types.AddressList,
@@ -103,7 +103,7 @@ func (f *spfav2Finder) findMinHopsToTokenOut(
 // split amount in into portions of f.distributionPercent% such that each split has value >= minUsdPerSplit
 // if there are remaining amount after splitting, we add to the first split (because it is always the best possible path)
 // e.g. distributionPercent = 10, but we need 30% amountIn to be > minUsdPerSplit -> split 40, 30, 30
-func (f *spfav2Finder) splitAmountIn(input findroute.Input, data findroute.FinderData, totalAmountIn valueobject.TokenAmount) []valueobject.TokenAmount {
+func (f *Spfav2Finder) splitAmountIn(input findroute.Input, data findroute.FinderData, totalAmountIn valueobject.TokenAmount) []valueobject.TokenAmount {
 	tokenInPrice := data.PriceUSDByAddress[input.TokenInAddress]
 	tokenInDecimal := data.TokenByAddress[input.TokenInAddress].Decimals
 	amountInUsd := totalAmountIn.AmountUsd

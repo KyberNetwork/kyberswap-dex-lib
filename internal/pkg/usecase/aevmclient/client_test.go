@@ -9,6 +9,7 @@ import (
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/aevm/types"
+	aevmtypes "github.com/KyberNetwork/aevm/types"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -35,6 +36,14 @@ func newTestClient(t *testing.T, url string, reqDuration time.Duration, closedUR
 func (c *testClient) LatestStateRoot(context.Context) (common.Hash, error) { panic("unreachable") }
 
 func (c *testClient) SingleCall(context.Context, *types.SingleCallParams) (*types.CallResult, error) {
+	panic("unreachable")
+}
+
+func (c *testClient) StorePreparedPools(context.Context, *aevmtypes.StorePreparedPoolsParams) (*aevmtypes.StorePreparedPoolsResult, error) {
+	panic("unreachable")
+}
+
+func (c *testClient) FindRoute(context.Context, *aevmtypes.FindRouteParams) (*aevmtypes.FindRouteResult, error) {
 	panic("unreachable")
 }
 

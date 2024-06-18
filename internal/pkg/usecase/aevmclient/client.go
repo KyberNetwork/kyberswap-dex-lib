@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	aevmtypes "github.com/KyberNetwork/aevm/types"
+	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -151,4 +153,44 @@ func (c *Client) MultipleCall(ctx context.Context, req *aevmtypes.MultipleCallPa
 	defer done()
 
 	return client.MultipleCall(ctx, req)
+}
+
+func (c *Client) StorePreparedPools(ctx context.Context, req *aevmtypes.StorePreparedPoolsParams) (*aevmtypes.StorePreparedPoolsResult, error) {
+	var (
+		wg         errgroup.Group
+		storageIDs = make([]string, len(c.clients))
+	)
+	for _i, _client := range c.clients {
+		i, client := _i, _client
+		wg.Go(func() error {
+			start := time.Now()
+			result, err := client.StorePreparedPools(ctx, &aevmtypes.StorePreparedPoolsParams{
+				EncodedPools: req.EncodedPools,
+			})
+			took := time.Since(start)
+			if err != nil {
+				logger.Errorf(ctx, "[client %d] could not StorePreparedPools: %s", i, err)
+				return err
+			}
+			logger.Infof(ctx, "[client %d] StorePreparedPools took = %s", i, took.String())
+			storageIDs[i] = result.StorageID
+			return nil
+		})
+	}
+	if err := wg.Wait(); err != nil {
+		return nil, err
+	}
+	for _, id := range storageIDs {
+		if storageIDs[0] != id {
+			return nil, fmt.Errorf("storageIDs must be the same")
+		}
+	}
+	return &aevmtypes.StorePreparedPoolsResult{StorageID: storageIDs[0]}, nil
+}
+
+func (c *Client) FindRoute(ctx context.Context, req *aevmtypes.FindRouteParams) (*aevmtypes.FindRouteResult, error) {
+	client, done := c.accquireNextClient()
+	defer done()
+
+	return client.FindRoute(ctx, req)
 }

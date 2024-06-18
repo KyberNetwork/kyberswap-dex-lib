@@ -286,5 +286,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 				},
 			},
 		},
+		nil,
+		nil,
 	)
 }

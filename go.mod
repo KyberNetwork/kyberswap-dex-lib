@@ -11,16 +11,16 @@ replace (
 require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/DataDog/datadog-go v4.8.3+incompatible
-	github.com/KyberNetwork/aevm v1.0.40
+	github.com/KyberNetwork/aevm v1.0.42-0.20240614075436-56bbc3ee659d
 	github.com/KyberNetwork/aggregator-encoding v0.16.1
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.3
 	github.com/KyberNetwork/ethrpc v0.7.1
-	github.com/KyberNetwork/grpc-service v0.3.2-0.20240515045807-95ca25818045
+	github.com/KyberNetwork/grpc-service v0.3.2-0.20240613162847-926a8954d789
 	github.com/KyberNetwork/kutils v0.2.3
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.57.3
+	github.com/KyberNetwork/kyberswap-dex-lib v0.57.5-0.20240613090500-b2951e2cce3f
 	github.com/KyberNetwork/logger v0.2.0
 	github.com/KyberNetwork/pool-service v0.45.1
 	github.com/KyberNetwork/reload v0.1.1
@@ -28,12 +28,11 @@ require (
 	github.com/alicebob/miniredis/v2 v2.31.1
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/cespare/xxhash/v2 v2.2.0
-	github.com/daoleno/uniswap-sdk-core v0.1.7
-	github.com/daoleno/uniswapv3-sdk v0.4.0
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/dranikpg/gtrs v0.6.0
+	github.com/dustin/go-humanize v1.0.1
 	github.com/envoyproxy/protoc-gen-validate v1.0.4
 	github.com/ethereum/go-ethereum v1.13.15
 	github.com/getsentry/sentry-go v0.18.0
@@ -92,6 +91,7 @@ require (
 	github.com/DataDog/sketches-go v1.4.4 // indirect
 	github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0 // indirect
 	github.com/KyberNetwork/int256 v0.1.4 // indirect
+	github.com/KyberNetwork/msgpack/v5 v5.4.2 // indirect
 	github.com/KyberNetwork/pancake-v3-sdk v0.2.1 // indirect
 	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.1 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
@@ -105,9 +105,10 @@ require (
 	github.com/consensys/gnark-crypto v0.12.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/crate-crypto/go-kzg-4844 v0.7.0 // indirect
+	github.com/daoleno/uniswap-sdk-core v0.1.7 // indirect
+	github.com/daoleno/uniswapv3-sdk v0.4.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.2.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ebitengine/purego v0.6.0 // indirect
 	github.com/ethereum/c-kzg-4844 v0.4.2 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
@@ -132,6 +133,8 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.5 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
+	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20230328201059-365e72989107 // indirect
+	github.com/klauspost/compress v1.17.8 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
@@ -163,6 +166,7 @@ require (
 	github.com/tklauser/numcpus v0.7.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
+	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20231213231151-1d8dd44e695e // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect

@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"sync"
 
+	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/pkg/errors"
 
@@ -45,6 +46,8 @@ func NewUseCase(
 	bestPathRepository IBestPathRepository,
 	finder findroute.IFinder,
 	config Config,
+	aevmClient aevmclient.Client,
+	poolsPublisher IPoolsPublisher,
 ) *useCase {
 	aggregator := NewAggregator(
 		poolRankRepository,
@@ -55,6 +58,8 @@ func NewUseCase(
 		config.Aggregator,
 		bestPathRepository,
 		finder,
+		aevmClient,
+		poolsPublisher,
 	)
 	aggregatorWithCache := NewCache(aggregator, routeCacheRepository, poolManager, config.Cache)
 	aggregatorWitchChargeExtraFee := NewChargeExtraFee(aggregatorWithCache)

@@ -17,7 +17,7 @@ import (
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
-func (f *spfav2Finder) findrouteV2(
+func (f *Spfav2Finder) findrouteV2(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
@@ -44,7 +44,7 @@ func (f *spfav2Finder) findrouteV2(
 	return bestMultiPathRoute, nil
 }
 
-func (f *spfav2Finder) isPregenPathValid(
+func (f *Spfav2Finder) isPregenPathValid(
 	ctx context.Context,
 	data findroute.FinderData,
 	paths []*entity.MinimalPath,
@@ -86,7 +86,7 @@ func (f *spfav2Finder) isPregenPathValid(
 	return true
 }
 
-func (f *spfav2Finder) bestRouteV2(
+func (f *Spfav2Finder) bestRouteV2(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
@@ -184,7 +184,7 @@ func (f *spfav2Finder) bestRouteV2(
 	return bestMultiPathRoute, nil
 }
 
-func (f *spfav2Finder) bestSinglePathRouteV2(
+func (f *Spfav2Finder) bestSinglePathRouteV2(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
@@ -210,7 +210,7 @@ func (f *spfav2Finder) bestSinglePathRouteV2(
 	return valueobject.NewRouteFromPaths(input.TokenInAddress, input.TokenOutAddress, []*valueobject.Path{bestPath})
 }
 
-func (f *spfav2Finder) bestMultiPathRouteV2(
+func (f *Spfav2Finder) bestMultiPathRouteV2(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,

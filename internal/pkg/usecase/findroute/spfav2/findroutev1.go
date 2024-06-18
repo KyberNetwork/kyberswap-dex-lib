@@ -10,7 +10,7 @@ import (
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
-func (f *spfav2Finder) findrouteV1(
+func (f *Spfav2Finder) findrouteV1(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
@@ -53,7 +53,7 @@ func (f *spfav2Finder) findrouteV1(
 	return bestMultiPathRoute, nil
 }
 
-func (f *spfav2Finder) bestSinglePathRouteV1(
+func (f *Spfav2Finder) bestSinglePathRouteV1(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
@@ -76,7 +76,7 @@ func (f *spfav2Finder) bestSinglePathRouteV1(
 	return bestSinglePathRoute, nil
 }
 
-func (f *spfav2Finder) bestMultiPathRouteV1(
+func (f *Spfav2Finder) bestMultiPathRouteV1(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
@@ -116,7 +116,7 @@ func (f *spfav2Finder) bestMultiPathRouteV1(
 	return bestMultiPathRoute, nil
 }
 
-func (f *spfav2Finder) bestPathExactInV1(
+func (f *Spfav2Finder) bestPathExactInV1(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,

@@ -66,6 +66,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getrouteencode"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolpublisher"
 	trackexecutor "github.com/KyberNetwork/router-service/internal/pkg/usecase/trackexecutorbalance"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute/synthetix"
@@ -411,6 +412,7 @@ func apiAction(c *cli.Context) (err error) {
 		balanceSlotsUseCase *erc20balanceslotuc.Cache
 		aevmClient          aevmclient.Client
 		aevmClientUC        IAEVMClientUseCase
+		poolsPublisher      poolmanager.IPoolsPublisher
 	)
 	if cfg.AEVMEnabled {
 		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client,
@@ -453,11 +455,16 @@ func apiAction(c *cli.Context) (err error) {
 		defer aevmClientImpl.Close()
 		aevmClient = aevmClientImpl
 		aevmClientUC = aevmClientImpl
+
+		poolsPublisher, err = poolpublisher.NewPoolPublisher(aevmClient, poolmanager.NState)
+		if err != nil {
+			return fmt.Errorf("could not NewPoolPublisher: %w", err)
+		}
 	}
 
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
 	poolManager, err := poolmanager.NewPointerSwapPoolManager(ctx, poolRepository, poolFactory, poolRankRepository,
-		cfg.UseCase.PoolManager, aevmClient)
+		cfg.UseCase.PoolManager, aevmClient, poolsPublisher)
 	if err != nil {
 		return err
 	}
@@ -481,6 +488,8 @@ func apiAction(c *cli.Context) (err error) {
 		bestPathRepository,
 		routeFinder,
 		cfg.UseCase.GetRoute,
+		aevmClient,
+		poolsPublisher,
 	)
 
 	rfqHandlerByPoolType := make(map[string]poolpkg.IPoolRFQ)

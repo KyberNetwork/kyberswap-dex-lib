@@ -2,12 +2,14 @@ package spfav2
 
 import (
 	"context"
+	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -27,8 +29,8 @@ var (
 	defaultSpfav2WhitelistedTokenSet = map[string]bool{}
 )
 
-// spfav2Finder finds route by splitting amountIn and sequentially finding the best paths multiple times
-type spfav2Finder struct {
+// Spfav2Finder finds route by splitting amountIn and sequentially finding the best paths multiple times
+type Spfav2Finder struct {
 	// maxHops maximum hops performed
 	maxHops uint32
 
@@ -56,6 +58,8 @@ type spfav2Finder struct {
 	maxThresholdAmountInUSD float64
 
 	getGeneratedBestPaths func(sourceHash uint64, tokenIn string, tokenOut string) []*entity.MinimalPath
+
+	preparedGeneratedBestPaths []*entity.MinimalPath // result of getGenerateBestPaths() called in Prepare()
 }
 
 func NewSPFAv2Finder(
@@ -69,8 +73,8 @@ func NewSPFAv2Finder(
 	minThresholdAmountInUSD float64,
 	maxThresholdAmountInUSD float64,
 	getGeneratedBestPaths func(sourceHash uint64, tokenIn string, tokenOut string) []*entity.MinimalPath,
-) *spfav2Finder {
-	return &spfav2Finder{
+) *Spfav2Finder {
+	return &Spfav2Finder{
 		maxHops:                 maxHops,
 		whitelistedTokenSet:     whitelistedTokenSet,
 		distributionPercent:     distributionPercent,
@@ -84,7 +88,7 @@ func NewSPFAv2Finder(
 	}
 }
 
-func NewDefaultSPFAv2Finder() *spfav2Finder {
+func NewDefaultSPFAv2Finder() *Spfav2Finder {
 	return NewSPFAv2Finder(
 		defaultSpfav2MaxHops,
 		defaultSpfav2WhitelistedTokenSet,
@@ -99,7 +103,7 @@ func NewDefaultSPFAv2Finder() *spfav2Finder {
 	)
 }
 
-func (f *spfav2Finder) Find(
+func (f *Spfav2Finder) Find(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
@@ -116,4 +120,32 @@ func (f *spfav2Finder) Find(
 	}
 
 	return []*valueobject.Route{bestRoute}, nil
+}
+
+func (f *Spfav2Finder) Prepare(ctx context.Context, input findroute.Input, data findroute.FinderData) (findroute.IFinder, error) {
+	cloned := *f
+
+	// calculate amountInUsd in bestRouteExactIn()
+	var amountInUsd float64
+	if priceInUsd, ok := data.PriceUSDByAddress[input.TokenInAddress]; ok {
+		amountInUsd = utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, priceInUsd)
+	} else if data.PriceNativeByAddress != nil {
+		if price, ok := data.PriceNativeByAddress[input.TokenInAddress]; ok && price.NativePriceRaw.Sell != nil {
+			amountInNativeBF := new(big.Float).Mul(price.NativePriceRaw.Sell, new(big.Float).SetInt(input.AmountIn))
+			amountInUsd, _ = new(big.Float).Quo(new(big.Float).Mul(amountInNativeBF, big.NewFloat(input.GasTokenPriceUSD)), constant.BoneFloat).Float64()
+		}
+	}
+
+	if f.minThresholdAmountInUSD <= amountInUsd && amountInUsd <= f.maxThresholdAmountInUSD {
+		// goto f.findrouteV2()
+		if !input.SaveGas {
+			// goto f.bestRouteV2()
+			// ignore the case len(f.splitAmountIn(ctx, input, data, tokenAmountIn)) == 0
+			if input.IsPathGeneratorEnabled && f.getGeneratedBestPaths != nil {
+				cloned.preparedGeneratedBestPaths = f.getGeneratedBestPaths(input.SourceHash, input.TokenInAddress, input.TokenOutAddress)
+			}
+		}
+	}
+
+	return &cloned, nil
 }

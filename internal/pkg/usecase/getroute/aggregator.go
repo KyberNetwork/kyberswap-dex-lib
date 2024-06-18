@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"sync"
 
+	aevmclient "github.com/KyberNetwork/aevm/client"
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -18,6 +19,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	aevmfinder "github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/aevm"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/hillclimb"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -40,6 +42,9 @@ type aggregator struct {
 	hillClimbRouteFinder findroute.IFinder
 	config               AggregatorConfig
 
+	aevmClient     aevmclient.Client
+	poolsPublisher IPoolsPublisher
+
 	mu sync.RWMutex
 }
 
@@ -52,14 +57,19 @@ func NewAggregator(
 	config AggregatorConfig,
 	bestPathRepository IBestPathRepository,
 	routeFinder findroute.IFinder,
+	aevmClient aevmclient.Client,
+	poolsPublisher IPoolsPublisher,
 ) *aggregator {
 
-	hillClimbRouteFinder := hillclimb.NewHillClimbingFinder(
+	var hillClimbRouteFinder findroute.IFinder = hillclimb.NewHillClimbingFinder(
 		config.FinderOptions.HillClimbDistributionPercent,
 		config.FinderOptions.HillClimbIteration,
 		config.FinderOptions.HillClimbMinPartUSD,
 		routeFinder,
 	)
+
+	hillClimbRouteFinder = aevmfinder.NewAEVMFinder(hillClimbRouteFinder, aevmClient, poolsPublisher, config.FinderOptions)
+	routeFinder = aevmfinder.NewAEVMFinder(routeFinder, aevmClient, poolsPublisher, config.FinderOptions)
 
 	return &aggregator{
 		poolRankRepository:     poolRankRepository,
@@ -71,6 +81,8 @@ func NewAggregator(
 		hillClimbRouteFinder:   hillClimbRouteFinder,
 		config:                 config,
 		bestPathRepository:     bestPathRepository,
+		aevmClient:             aevmClient,
+		poolsPublisher:         poolsPublisher,
 	}
 }
 
@@ -157,6 +169,9 @@ func (a *aggregator) ApplyConfig(config Config) {
 		config.Aggregator.FinderOptions.MinPartUSD,
 		routeFinder,
 	)
+
+	a.hillClimbRouteFinder = aevmfinder.NewAEVMFinder(a.hillClimbRouteFinder, a.aevmClient, a.poolsPublisher, a.config.FinderOptions)
+	a.routeFinder = aevmfinder.NewAEVMFinder(a.routeFinder, a.aevmClient, a.poolsPublisher, a.config.FinderOptions)
 
 	a.config = config.Aggregator
 }

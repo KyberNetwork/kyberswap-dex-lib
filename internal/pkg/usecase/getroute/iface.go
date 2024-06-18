@@ -76,3 +76,9 @@ type IPriceRepository interface {
 type IOnchainPriceRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) (map[string]*routerEntity.OnchainPrice, error)
 }
+
+type IPoolsPublisher interface {
+	PublishedPoolIDs(storageID string) map[string]struct{}
+	PublishedPools(storageID string) map[string]poolpkg.IPoolSimulator
+	Publish(ctx context.Context, pools map[string]poolpkg.IPoolSimulator) (string, error)
+}

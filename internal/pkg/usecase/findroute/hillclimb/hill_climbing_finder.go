@@ -16,7 +16,7 @@ const (
 	defaultHillClimbMinPartUSD          float64 = 500
 )
 
-type hillClimbFinder struct {
+type HillClimbFinder struct {
 	distributionPercent uint32
 
 	hillClimbIteration uint32
@@ -26,15 +26,15 @@ type hillClimbFinder struct {
 	baseIFinder findroute.IFinder
 }
 
-func NewHillClimbingFinder(distributionPercent, hillClimbIteration uint32, minPartUSD float64, baseIFinder findroute.IFinder) *hillClimbFinder {
-	return &hillClimbFinder{distributionPercent, hillClimbIteration, minPartUSD, baseIFinder}
+func NewHillClimbingFinder(distributionPercent, hillClimbIteration uint32, minPartUSD float64, baseIFinder findroute.IFinder) *HillClimbFinder {
+	return &HillClimbFinder{distributionPercent, hillClimbIteration, minPartUSD, baseIFinder}
 }
 
-func NewDefaultHillClimbingFinder() *hillClimbFinder {
+func NewDefaultHillClimbingFinder() *HillClimbFinder {
 	return NewHillClimbingFinder(defaultHillClimbDistributionPercent, defaultHillClimbIteration, defaultHillClimbMinPartUSD, spfav2.NewDefaultSPFAv2Finder())
 }
 
-func (f *hillClimbFinder) Find(ctx context.Context,
+func (f *HillClimbFinder) Find(ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
 ) ([]*valueobject.Route, error) {
@@ -135,4 +135,14 @@ func extractBestRoute(routes []*valueobject.Route) *valueobject.Route {
 		return nil
 	}
 	return routes[0]
+}
+
+func (f *HillClimbFinder) Prepare(ctx context.Context, input findroute.Input, data findroute.FinderData) (findroute.IFinder, error) {
+	var err error
+	cloned := *f
+	cloned.baseIFinder, err = f.baseIFinder.Prepare(ctx, input, data)
+	if err != nil {
+		return nil, err
+	}
+	return &cloned, nil
 }

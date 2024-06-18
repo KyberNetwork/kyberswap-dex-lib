@@ -15,7 +15,7 @@ import (
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
-func (f *hillClimbFinder) optimizeRoute(ctx context.Context, input findroute.Input, data findroute.FinderData, baseRoute *valueobject.Route) (*valueobject.Route, error) {
+func (f *HillClimbFinder) optimizeRoute(ctx context.Context, input findroute.Input, data findroute.FinderData, baseRoute *valueobject.Route) (*valueobject.Route, error) {
 	span, _ := tracer.StartSpanFromContext(ctx, "hillClimbFinder.optimizeRoute")
 	defer span.End()
 
@@ -51,7 +51,7 @@ func (f *hillClimbFinder) optimizeRoute(ctx context.Context, input findroute.Inp
 	return currentRoute, nil
 }
 
-func (f *hillClimbFinder) binarySearch(
+func (f *HillClimbFinder) binarySearch(
 	ctx context.Context, input findroute.Input, data findroute.FinderData, baseFirstPath, baseSecondPath *valueobject.Path,
 ) (*valueobject.Path, *valueobject.Path, error) {
 	var (
@@ -108,7 +108,7 @@ func (f *hillClimbFinder) binarySearch(
 //
 //	move `splits * f.distributionPercent`% of amountIn from secondPath to firstPath
 //	note that `splits` can be negative
-func (f *hillClimbFinder) calcAdjustedTokenAmount(
+func (f *HillClimbFinder) calcAdjustedTokenAmount(
 	ctx context.Context,
 	input findroute.Input, data findroute.FinderData,
 	baseFirstPath, baseSecondPath *valueobject.Path,

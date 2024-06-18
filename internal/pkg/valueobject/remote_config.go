@@ -73,6 +73,13 @@ type (
 		HillClimbDistributionPercent uint32  `mapstructure:"hillClimbDistributionPercent" json:"hillClimbDistributionPercent"`
 		HillClimbIteration           uint32  `mapstructure:"hillClimbIteration" json:"hillClimbIteration"`
 		HillClimbMinPartUSD          float64 `mapstructure:"hillClimbMinPartUSD" json:"hillClimbMinPartUSD"`
+
+		// The percentage of routes finding performed remotely in AEVM server
+		UseAEVMRemoteFinderPercentage uint32 `mapstructure:"useAEVMRemoteFinderPercentage" json:"useAEVMRemoteFinderPercentage"`
+		// In AEVM server, the percentage of CalcAmountOut calls using AEVM pool
+		UseAEVMPoolPercentage uint32 `mapstructure:"useAEVMPoolPercentage" json:"useAEVMPoolPercentage"`
+		// Locally, the percentage of CalcAmountOut calls using AEVM pool
+		LocalUseAEVMPoolPercentage uint32 `mapstructure:"localUseAEVMPoolPercentage" json:"localUseAEVMPoolPercentage"`
 	}
 
 	CacheConfig struct {

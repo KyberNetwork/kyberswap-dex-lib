@@ -8,6 +8,11 @@ import (
 	"sync"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
+	liquiditybookv20aevm "github.com/KyberNetwork/aevm/usecase/pool/liquiditybookv20"
+	liquiditybookv21aevm "github.com/KyberNetwork/aevm/usecase/pool/liquiditybookv21"
+	uniswapaevm "github.com/KyberNetwork/aevm/usecase/pool/uni"
+	uniswapv3aevm "github.com/KyberNetwork/aevm/usecase/pool/univ3"
+	aevmpoolwrapper "github.com/KyberNetwork/aevm/usecase/pool/wrapper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v1"
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
@@ -103,10 +108,6 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	liquiditybookv20aevm "github.com/KyberNetwork/router-service/internal/pkg/core/liquiditybookv20"
-	liquiditybookv21aevm "github.com/KyberNetwork/router-service/internal/pkg/core/liquiditybookv21"
-	uniswapaevm "github.com/KyberNetwork/router-service/internal/pkg/core/uni"
-	uniswapv3aevm "github.com/KyberNetwork/router-service/internal/pkg/core/univ3"
 	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -626,13 +627,23 @@ func (f *PoolFactory) newUniV3(entityPool entity.Pool) (*uniswapv3.PoolSimulator
 	return corePool, nil
 }
 
-func (f *PoolFactory) newUniV3AEVM(entityPool entity.Pool, stateRoot common.Hash) (*uniswapv3aevm.Pool, error) {
+func (f *PoolFactory) newUniV3AEVM(entityPool entity.Pool, stateRoot common.Hash) (*aevmpoolwrapper.PoolWrapper, error) {
+	pool, err := uniswapv3.NewPoolSimulator(entityPool, f.config.ChainID)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newUniV3] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
 	balanceSlots := f.getBalanceSlots(&entityPool)
 	routerAddress, ok := f.config.AddressesByDex[pooltypes.PoolTypes.UniswapV3]["router-address"]
 	if !ok {
 		return nil, fmt.Errorf("addressesByDex.%s.router-address must be specified", pooltypes.PoolTypes.UniswapV3)
 	}
-	corePool, err := uniswapv3aevm.NewPoolAEVM(
+	aevmPool, err := uniswapv3aevm.NewPoolAEVM(
 		entityPool,
 		common.HexToAddress(routerAddress),
 		f.config.ChainID,
@@ -648,7 +659,8 @@ func (f *PoolFactory) newUniV3AEVM(entityPool entity.Pool, stateRoot common.Hash
 			entityPool.Type,
 		)
 	}
-	return corePool, nil
+
+	return aevmpoolwrapper.NewPoolWrapper(pool, aevmPool), nil
 }
 
 func (f *PoolFactory) newSaddle(entityPool entity.Pool) (*saddle.PoolSimulator, error) {

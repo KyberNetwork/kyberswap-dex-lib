@@ -47,7 +47,9 @@ type PointerSwapPoolManager struct {
 	// currently poolCache use LRU policy
 	poolCache *cachePolicy.Cache[string, struct{}]
 
-	aevmClient aevmclient.Client
+	aevmClient          aevmclient.Client
+	poolsPublisher      IPoolsPublisher
+	publishedStorageIDs [NState]string
 
 	lock *sync.RWMutex
 }
@@ -164,6 +166,7 @@ func NewPointerSwapPoolManager(
 	poolRankRepository IPoolRankRepository,
 	config Config,
 	aevmClient aevmclient.Client,
+	poolsPublisher IPoolsPublisher,
 ) (*PointerSwapPoolManager, error) {
 	states := [NState]*LockedState{}
 	for i := 0; i < NState; i++ {
@@ -192,6 +195,7 @@ func NewPointerSwapPoolManager(
 		poolCache:          poolCache,
 		lock:               &sync.RWMutex{},
 		aevmClient:         aevmClient,
+		poolsPublisher:     poolsPublisher,
 	}
 	p.readFrom.Store(0)
 
@@ -351,8 +355,9 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 	if err != nil {
 		logger.Errorf(ctx, "poolRepository.FindByAddresses crashed into err ", err)
 		return &types.FindRouteState{
-			Pools:     resultPoolByAddress,
-			SwapLimit: nil, // just wonder why don't we return resultLimits here :think:
+			Pools:                   resultPoolByAddress,
+			SwapLimit:               nil, // just wonder why don't we return resultLimits here :think:
+			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 		}, nil
 	}
 
@@ -371,8 +376,9 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 	if err != nil {
 		logger.Debugf(ctx, "failed to load curve-meta base pool %v", err)
 		return &types.FindRouteState{
-			Pools:     resultPoolByAddress,
-			SwapLimit: nil, // just wonder why don't we return resultLimits here :think:
+			Pools:                   resultPoolByAddress,
+			SwapLimit:               nil, // just wonder why don't we return resultLimits here :think:
+			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 		}, nil
 	}
 	filteredPoolEntities = append(filteredPoolEntities, curveMetaBasePools...)
@@ -394,8 +400,9 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 	}
 
 	return &types.FindRouteState{
-		Pools:     resultPoolByAddress,
-		SwapLimit: p.poolFactory.NewSwapLimit(resultLimits),
+		Pools:                   resultPoolByAddress,
+		SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits),
+		PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 	}, nil
 }
 
@@ -459,6 +466,15 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 	}
 
 	poolByAddress := p.poolFactory.NewPoolByAddress(ctx, poolEntities, stateRoot)
+	if p.poolsPublisher != nil {
+		start := time.Now()
+		storageID, err := p.poolsPublisher.Publish(ctx, poolByAddress)
+		if err != nil {
+			return fmt.Errorf("could not publish pools: %w", err)
+		}
+		logger.Infof(ctx, "published pools took %s storageID=%s", time.Since(start).String(), storageID)
+		p.publishedStorageIDs[writeTo] = storageID
+	}
 	p.states[writeTo].update(poolByAddress)
 	//swapping here
 	p.swapPointer(writeTo)

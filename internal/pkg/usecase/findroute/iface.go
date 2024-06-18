@@ -19,6 +19,9 @@ type IFinder interface {
 	// Find performs finding route algorithm and return zero, one or multiple routes.
 	// In case it returns multiple routes, the first route (index 0) is the best route
 	Find(ctx context.Context, input Input, data FinderData) ([]*valueobject.Route, error)
+
+	// Prepare necessary data (loading best paths from path generator) and return a prepared & shallow-cloned IFinder
+	Prepare(ctx context.Context, input Input, data FinderData) (IFinder, error)
 }
 
 // Input contains parameter specified by clients.
@@ -74,6 +77,12 @@ type FinderData struct {
 
 	//originSwapLimits
 	originSwapLimits map[string]poolpkg.SwapLimit
+
+	// PoolsStorageID represents the last published pools
+	PublishedPoolsStorageID string
+
+	// UseAEVMPoolPercentage
+	UseAEVMPoolPercentage uint32
 }
 
 func NewFinderData(ctx context.Context, tokenByAddress map[string]*entity.Token, tokenPriceUSDByAddress map[string]float64, tokenPriceNativeByAddress map[string]*routerEntity.OnchainPrice, state *types.FindRouteState) FinderData {
@@ -95,7 +104,8 @@ func NewFinderData(ctx context.Context, tokenByAddress map[string]*entity.Token,
 		SwapLimits:         clone.Slowly(state.SwapLimit).(map[string]poolpkg.SwapLimit),
 		originSwapLimits:   clone.Slowly(state.SwapLimit).(map[string]poolpkg.SwapLimit),
 
-		PriceNativeByAddress: tokenPriceNativeByAddress,
+		PriceNativeByAddress:    tokenPriceNativeByAddress,
+		PublishedPoolsStorageID: state.PublishedPoolsStorageID,
 	}
 }
 
