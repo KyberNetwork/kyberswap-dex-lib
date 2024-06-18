@@ -137,7 +137,7 @@ encoder:
   chainId: *chainId
   executorAddress: *executorAddress
   routerAddress: *routerAddress
-  l2ExecutorAddress:
+  l2ExecutorAddress: 0x11ddD59C33c73C44733b4123a86Ea5ce57F6e854
   isPositiveSlippageEnabled: true
   minimumPSThreshold: 1000000
   executorAddressByClientID:

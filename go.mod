@@ -12,7 +12,7 @@ require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/KyberNetwork/aevm v1.0.42-0.20240614075436-56bbc3ee659d
-	github.com/KyberNetwork/aggregator-encoding v0.16.1
+	github.com/KyberNetwork/aggregator-encoding v0.16.2
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.3
@@ -20,8 +20,9 @@ require (
 	github.com/KyberNetwork/grpc-service v0.3.2-0.20240613162847-926a8954d789
 	github.com/KyberNetwork/kutils v0.2.3
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.57.5-0.20240613090500-b2951e2cce3f
+	github.com/KyberNetwork/kyberswap-dex-lib v0.57.5
 	github.com/KyberNetwork/logger v0.2.0
+	github.com/KyberNetwork/msgpack/v5 v5.4.2
 	github.com/KyberNetwork/pool-service v0.45.1
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/KyberNetwork/service-framework v0.5.4
@@ -91,7 +92,6 @@ require (
 	github.com/DataDog/sketches-go v1.4.4 // indirect
 	github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0 // indirect
 	github.com/KyberNetwork/int256 v0.1.4 // indirect
-	github.com/KyberNetwork/msgpack/v5 v5.4.2 // indirect
 	github.com/KyberNetwork/pancake-v3-sdk v0.2.1 // indirect
 	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.1 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
@@ -125,7 +125,7 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/pprof v0.0.0-20240207164012-fb44976bdcd5 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
-	github.com/grafana/pyroscope-go/godeltaprof v0.1.4 // indirect
+	github.com/grafana/pyroscope-go/godeltaprof v0.1.7 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.19.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
@@ -133,8 +133,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.5 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
-	github.com/ianlancetaylor/cgosymbolizer v0.0.0-20230328201059-365e72989107 // indirect
-	github.com/klauspost/compress v1.17.8 // indirect
+	github.com/klauspost/compress v1.17.9 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
