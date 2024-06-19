@@ -37,6 +37,10 @@ common:
     - "iziswap"
     - "merchant-moe-v22"
     - "native-v1"
+    - "dodo-classical"
+    - "dodo-dpp"
+    - "dodo-dsp"
+    - "dodo-dvm"
   featureFlags: &featureFlags
   nativeAPIKey:
 log:

@@ -42,6 +42,10 @@ common:
     - "skydrome-v2"
     - "native-v1"
     - "keller-finance"
+    - "dodo-classical"
+    - "dodo-dpp"
+    - "dodo-dsp"
+    - "dodo-dvm"
   featureFlags: &featureFlags
   nativeAPIKey:
 log:

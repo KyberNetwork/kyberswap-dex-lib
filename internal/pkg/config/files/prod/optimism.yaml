@@ -65,6 +65,10 @@ common:
     - "gyroscope-eclp"
     - "hashflow-v3"
     - "velodrome-cl"
+    - "dodo-classical"
+    - "dodo-dpp"
+    - "dodo-dsp"
+    - "dodo-dvm"
   featureFlags: &featureFlags
   hashflowAPIKey:
 log:
