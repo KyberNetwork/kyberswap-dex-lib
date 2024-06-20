@@ -364,19 +364,47 @@ func (s *PoolSimulator) _get_y(x0 *uint256.Int, xy *uint256.Int, y *uint256.Int)
 	return y
 }
 
+// https://optimistic.etherscan.io/address/0x79c912fef520be002c2b6e57ec4324e260f38e50#code#F1#L384
 func _f(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
-	_a := new(uint256.Int).Div(new(uint256.Int).Mul(x0, y), number.Number_1e18)
-	_b := new(uint256.Int).Add(
-		new(uint256.Int).Div(
-			new(uint256.Int).Mul(x0, x0),
-			number.Number_1e18,
+	// x0*(y*y/1e18*y/1e18)/1e18+(x0*x0/1e18*x0/1e18)*y/1e18;
+
+	// _a = x0*(y*y/1e18*y/1e18)/1e18
+	_a := new(uint256.Int).Div(
+		new(uint256.Int).Mul(
+			x0,
+			new(uint256.Int).Mul(
+				new(uint256.Int).Div(
+					new(uint256.Int).Mul(y, y),
+					number.Number_1e18,
+				),
+				new(uint256.Int).Div(
+					y,
+					number.Number_1e18,
+				),
+			),
 		),
-		new(uint256.Int).Div(
-			new(uint256.Int).Mul(y, y),
-			number.Number_1e18,
-		),
+		number.Number_1e18,
 	)
-	return new(uint256.Int).Div(new(uint256.Int).Mul(_a, _b), number.Number_1e18)
+
+	// _b = (x0*x0/1e18*x0/1e18)*y/1e18
+	_b := new(uint256.Int).Div(
+		new(uint256.Int).Mul(
+			new(uint256.Int).Mul(
+				new(uint256.Int).Div(
+					new(uint256.Int).Mul(x0, x0),
+					number.Number_1e18,
+				),
+				new(uint256.Int).Div(
+					x0,
+					number.Number_1e18,
+				),
+			),
+			y,
+		),
+		number.Number_1e18,
+	)
+
+	return new(uint256.Int).Add(_a, _b)
 }
 
 func _d(x0 *uint256.Int, y *uint256.Int) *uint256.Int {
