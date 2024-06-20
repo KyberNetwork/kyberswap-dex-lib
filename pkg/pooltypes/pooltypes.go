@@ -36,6 +36,8 @@ import (
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
+	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
+	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
@@ -89,8 +91,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/usdfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodromev2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/vooi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat"
 	zkerafinance "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkera-finance"
@@ -231,8 +231,8 @@ var (
 		DodoVendingMachine:             dododvm.PoolType,
 		DodoStablePool:                 dododsp.PoolType,
 		DodoPrivatePool:                dododpp.PoolType,
-		Velodrome:                      velodrome.DexTypeVelodrome,
-		VelodromeV2:                    velodromev2.DexTypeVelodromeV2,
+		Velodrome:                      velodrome.DexType,
+		VelodromeV2:                    velodromev2.DexType,
 		Velocimeter:                    velocimeter.DexTypeVelocimeter,
 		Pearl:                          pearl.DexTypePearl,
 		Ramses:                         ramses.DexTypeRamses,
