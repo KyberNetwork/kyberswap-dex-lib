@@ -3,19 +3,18 @@ module github.com/KyberNetwork/router-service
 go 1.21.3
 
 replace (
-	github.com/daoleno/uniswap-sdk-core v0.1.7 => github.com/KyberNetwork/uniswap-sdk-core v0.1.9
-	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.5.1
+	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.5.2
 	github.com/ethereum/go-ethereum => github.com/ethereum/go-ethereum v1.13.14
 )
 
 require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/DataDog/datadog-go v4.8.3+incompatible
-	github.com/KyberNetwork/aevm v1.0.42-0.20240614075436-56bbc3ee659d
+	github.com/KyberNetwork/aevm v1.1.1
 	github.com/KyberNetwork/aggregator-encoding v0.16.2
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
-	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.3
+	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4
 	github.com/KyberNetwork/ethrpc v0.7.1
 	github.com/KyberNetwork/grpc-service v0.3.2-0.20240613162847-926a8954d789
 	github.com/KyberNetwork/kutils v0.2.3
@@ -92,8 +91,8 @@ require (
 	github.com/DataDog/sketches-go v1.4.4 // indirect
 	github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0 // indirect
 	github.com/KyberNetwork/int256 v0.1.4 // indirect
-	github.com/KyberNetwork/pancake-v3-sdk v0.2.1 // indirect
-	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.1 // indirect
+	github.com/KyberNetwork/pancake-v3-sdk v0.2.2 // indirect
+	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.2 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/alicebob/gopher-json v0.0.0-20230218143504-906a9b012302 // indirect
 	github.com/bits-and-blooms/bitset v1.13.0 // indirect
