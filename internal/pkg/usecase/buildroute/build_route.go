@@ -156,6 +156,9 @@ func (uc *BuildRouteUseCase) rfq(
 	routeSummary valueobject.RouteSummary,
 	slippageTolerance int64,
 ) (valueobject.RouteSummary, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.rfq")
+	defer span.End()
+
 	executorAddress := uc.encodeBuilder.
 		GetEncoder(dexValueObject.ChainID(uc.config.ChainID)).
 		GetExecutorAddress(source)
