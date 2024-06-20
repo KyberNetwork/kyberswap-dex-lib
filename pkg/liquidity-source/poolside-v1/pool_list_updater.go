@@ -267,7 +267,6 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 		return nil, err
 	}
 
-	rebaseTokenInfoMap := make(map[string]RebaseTokenInfo)
 	pools := make([]entity.Pool, 0, len(pairAddresses))
 
 	for i, pairAddress := range pairAddresses {
@@ -283,6 +282,8 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 			Address:   token1Address,
 			Swappable: true,
 		}
+
+		rebaseTokenInfoMap := make(map[string]RebaseTokenInfo)
 
 		rebaseTokenInfoMap[token0Address] = u.getRebaseTokenInfo(ctx, token0Address)
 		rebaseTokenInfoMap[token1Address] = u.getRebaseTokenInfo(ctx, token1Address)
