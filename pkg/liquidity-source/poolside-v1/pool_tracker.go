@@ -85,7 +85,7 @@ func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress st
 		Target: poolAddress,
 		Method: pairMethodGetLiquidityBalances,
 		Params: nil,
-	}, []interface{}{&getReservesResult})
+	}, []interface{}{&getReservesResult.Pool0, &getReservesResult.Pool1, &getReservesResult.Reservoir0, &getReservesResult.Reservoir1, &getReservesResult.BlockTimestampLast})
 
 	resp, err := getReservesRequest.TryBlockAndAggregate()
 	if err != nil {

@@ -32,6 +32,8 @@ type PoolsListUpdaterMetadata struct {
 type GetReservesResult struct {
 	Pool0              *big.Int
 	Pool1              *big.Int
+	Reservoir0         *big.Int
+	Reservoir1         *big.Int
 	BlockTimestampLast uint32
 }
 
