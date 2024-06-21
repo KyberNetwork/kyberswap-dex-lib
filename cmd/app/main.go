@@ -384,21 +384,23 @@ func apiAction(c *cli.Context) (err error) {
 		cfg.KeyPair.KeyIDForSealingData.ClientData,
 	)
 	l1Encoder := l1encode.NewEncoder(l1encode.Config{
-		RouterAddress:             cfg.Encoder.RouterAddress,
-		ExecutorAddress:           cfg.Encoder.ExecutorAddress,
-		ChainID:                   cfg.Encoder.ChainID,
-		IsPositiveSlippageEnabled: cfg.Encoder.IsPositiveSlippageEnabled,
-		MinimumPSThreshold:        cfg.Encoder.MinimumPSThreshold,
-		ExecutorAddressByClientID: cfg.Encoder.ExecutorAddressByClientID,
+		RouterAddress:               cfg.Encoder.RouterAddress,
+		ExecutorAddress:             cfg.Encoder.ExecutorAddress,
+		ChainID:                     cfg.Encoder.ChainID,
+		IsPositiveSlippageEnabled:   cfg.Encoder.IsPositiveSlippageEnabled,
+		MinimumPSThreshold:          cfg.Encoder.MinimumPSThreshold,
+		ExecutorAddressByClientID:   cfg.Encoder.ExecutorAddressByClientID,
+		PartnerPositiveSlippageInfo: cfg.Encoder.PartnerPositiveSlippageInfo,
 	})
 	l2Encoder := l2encode.NewEncoder(l2encode.Config{
-		RouterAddress:             cfg.Encoder.RouterAddress,
-		ExecutorAddress:           cfg.Encoder.L2ExecutorAddress,
-		ChainID:                   cfg.Encoder.ChainID,
-		IsPositiveSlippageEnabled: cfg.Encoder.IsPositiveSlippageEnabled,
-		MinimumPSThreshold:        cfg.Encoder.MinimumPSThreshold,
-		FunctionSelectorMappingID: cfg.Encoder.FunctionSelectorMappingID,
-		ExecutorAddressByClientID: cfg.Encoder.ExecutorAddressByClientID,
+		RouterAddress:               cfg.Encoder.RouterAddress,
+		ExecutorAddress:             cfg.Encoder.L2ExecutorAddress,
+		ChainID:                     cfg.Encoder.ChainID,
+		IsPositiveSlippageEnabled:   cfg.Encoder.IsPositiveSlippageEnabled,
+		MinimumPSThreshold:          cfg.Encoder.MinimumPSThreshold,
+		FunctionSelectorMappingID:   cfg.Encoder.FunctionSelectorMappingID,
+		ExecutorAddressByClientID:   cfg.Encoder.ExecutorAddressByClientID,
+		PartnerPositiveSlippageInfo: cfg.Encoder.PartnerPositiveSlippageInfo,
 	})
 	encodeBuilder := encode.NewEncodeBuilder(l1Encoder, l2Encoder)
 

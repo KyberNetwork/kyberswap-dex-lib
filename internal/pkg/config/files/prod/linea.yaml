@@ -117,6 +117,14 @@ encoder:
   executorAddress: *executorAddress
   routerAddress: *routerAddress
   isPositiveSlippageEnabled: true
+  executorAddressByClientID:
+    defillama: *executorAddress
+  partnerPositiveSlippageInfo:
+    defillama:
+      receiver:
+      percent:
+      feeMode:
+      feeSharingAddress:
 useCase:
   getRoute:
     chainId: *chainId
