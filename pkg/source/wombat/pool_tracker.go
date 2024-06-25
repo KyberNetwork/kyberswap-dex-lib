@@ -4,10 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/KyberNetwork/blockchain-toolkit/dsmath"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/KyberNetwork/blockchain-toolkit/dsmath"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -147,9 +148,11 @@ func (d *PoolTracker) GetNewPoolState(
 	for i, token := range p.Tokens {
 		isPaused := false
 		reserves[i] = zeroString
-		for _, assetQuery := range subgraphQuery.Assets {
-			if strings.EqualFold(assetQuery.ID, assetAddresses[i].Hex()) {
-				isPaused = assetQuery.IsPaused
+		if subgraphQuery != nil {
+			for _, assetQuery := range subgraphQuery.Assets {
+				if strings.EqualFold(assetQuery.ID, assetAddresses[i].Hex()) {
+					isPaused = assetQuery.IsPaused
+				}
 			}
 		}
 
