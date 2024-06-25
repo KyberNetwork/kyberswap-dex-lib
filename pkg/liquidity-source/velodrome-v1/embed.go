@@ -7,3 +7,6 @@ var pairABIJson []byte
 
 //go:embed abis/PairFactory.json
 var pairFactoryABIJson []byte
+
+//go:embed abis/StratumPairFactory.json
+var stratumPairFactoryABIJson []byte

@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	pairABI        abi.ABI
-	pairFactoryABI abi.ABI
+	pairABI               abi.ABI
+	pairFactoryABI        abi.ABI
+	stratumPairFactoryABI abi.ABI
 )
 
 func init() {
@@ -21,6 +22,9 @@ func init() {
 		},
 		{
 			&pairFactoryABI, pairFactoryABIJson,
+		},
+		{
+			&stratumPairFactoryABI, stratumPairFactoryABIJson,
 		},
 	}
 

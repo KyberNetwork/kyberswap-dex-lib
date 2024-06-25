@@ -16,6 +16,13 @@ const (
 	pairFactoryMethodAllPairsLength = "allPairsLength"
 	pairFactoryMethodGetFee         = "getFee"
 
+	stratumPairFactoryMethodGetFee = "getFee"
+
 	pairMethodMetadata    = "metadata"
 	pairMethodGetReserves = "getReserves"
+)
+
+const (
+	FeeTrackerIDVelodrome = "velodrome"
+	FeeTrackerIDStratum   = "stratum"
 )
