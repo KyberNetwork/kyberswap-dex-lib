@@ -94,7 +94,7 @@ keyPair:
   keyIDForSealingData:
     clientData: "1"
 reloadConfig:
-  httpUrl: ""
+  httpUrl: "https://pre-ks-setting-admin.kyberengineering.io/api/v1/admin/configurations"
   interval: 10s
   serviceName: "aggregator"
   chainID: *chainId
@@ -247,8 +247,6 @@ useCase:
   buildRoute:
     chainId: *chainId
     faultyPools:
-      windowSize: 15m
-      faultyExpiredTime: 3m
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
     rfq:

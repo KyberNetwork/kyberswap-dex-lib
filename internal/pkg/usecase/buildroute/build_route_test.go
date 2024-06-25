@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
@@ -137,8 +136,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: false},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:          time.Minute * 15,
-					FaultyExpiredTime:   time.Minute * 3,
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
 			result: nil,
@@ -250,8 +247,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: false},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:          time.Minute * 15,
-					FaultyExpiredTime:   time.Minute * 3,
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
 			result: &dto.BuildRouteResult{
@@ -381,8 +376,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:          time.Minute * 15,
-					FaultyExpiredTime:   time.Minute * 3,
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
 			result: &dto.BuildRouteResult{
@@ -510,8 +503,6 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:          time.Minute * 15,
-					FaultyExpiredTime:   time.Minute * 3,
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
 			result: &dto.BuildRouteResult{
@@ -623,8 +614,6 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:          time.Minute * 15,
-					FaultyExpiredTime:   time.Minute * 3,
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
 			err: nil,
@@ -687,8 +676,6 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:          time.Minute * 15,
-					FaultyExpiredTime:   time.Minute * 3,
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
 			err: nil,
@@ -761,8 +748,6 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:          time.Minute * 15,
-					FaultyExpiredTime:   time.Minute * 3,
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
 			err: nil,
@@ -813,8 +798,6 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:          time.Minute * 15,
-					FaultyExpiredTime:   time.Minute * 3,
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
 			err: ErrSenderEmptyWhenEnableEstimateGas,
@@ -874,8 +857,6 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:          time.Minute * 15,
-					FaultyExpiredTime:   time.Minute * 3,
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0x6b175474e89094c44da98b954eedeac495271d0f": true},
 				}},
 			err: ErrEstimateGasFailed(ErrReturnAmountIsNotEnough),
@@ -949,8 +930,6 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:          time.Minute * 15,
-					FaultyExpiredTime:   time.Minute * 3,
 					WhitelistedTokenSet: map[string]bool{"0x6b175474e89094c44da98b954eedeac495271d0f": true, "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee": true},
 				}},
 			err: nil,
@@ -1017,8 +996,6 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: false},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:          time.Minute * 15,
-					FaultyExpiredTime:   time.Minute * 3,
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
 			err: nil,
@@ -1204,8 +1181,6 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:          time.Minute * 15,
-					FaultyExpiredTime:   time.Minute * 3,
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
 			err: nil,
@@ -1297,8 +1272,6 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:          time.Minute * 15,
-					FaultyExpiredTime:   time.Minute * 3,
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
 			err: nil,
@@ -1371,8 +1344,6 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: false},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:          time.Minute * 15,
-					FaultyExpiredTime:   time.Minute * 3,
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
 			err: nil,
@@ -1464,8 +1435,6 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:           time.Minute * 15,
-					FaultyExpiredTime:    time.Minute * 3,
 					MinSlippageThreshold: 40,
 					WhitelistedTokenSet:  map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
@@ -1558,8 +1527,6 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:           time.Minute * 15,
-					FaultyExpiredTime:    time.Minute * 3,
 					MinSlippageThreshold: 40,
 					WhitelistedTokenSet:  map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
@@ -1636,8 +1603,6 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				ChainID:      valueobject.ChainIDEthereum,
 				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
 				FaultyPoolsConfig: FaultyPoolsConfig{
-					WindowSize:           time.Minute * 15,
-					FaultyExpiredTime:    time.Minute * 3,
 					MinSlippageThreshold: 0,
 					WhitelistedTokenSet:  map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},

@@ -156,6 +156,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setCacheConfig(remoteCfg.CacheConfig)
 		cl.setBlacklistedRecipients(remoteCfg.BlacklistedRecipients)
 		cl.setTokensThresholdForOnchainPrice(remoteCfg.TokensThresholdForOnchainPrice)
+		cl.setFaultyPoolsConfig(remoteCfg.FaultyPoolsConfig)
 		cl.mu.Unlock()
 	}
 
@@ -195,6 +196,7 @@ func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.Whi
 
 	cl.config.Common.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.GetRoute.Aggregator.WhitelistedTokenSet = whitelistedTokenSet
+	cl.config.UseCase.BuildRoute.FaultyPoolsConfig.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.IndexPools.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.GenerateBestPaths.WhitelistedTokens = whitelistedTokens
 }
@@ -254,4 +256,8 @@ func (cl *ConfigLoader) setBlacklistedRecipients(blacklistedRecipients []string)
 func (cl *ConfigLoader) setTokensThresholdForOnchainPrice(tokensThresholdForOnchainPrice uint32) {
 	cl.config.UseCase.GetRoute.Aggregator.TokensThresholdForOnchainPrice = tokensThresholdForOnchainPrice
 	cl.config.UseCase.BuildRoute.TokensThresholdForOnchainPrice = tokensThresholdForOnchainPrice
+}
+
+func (cl *ConfigLoader) setFaultyPoolsConfig(faultyPoolsConfig valueobject.FaultyPoolsConfig) {
+	cl.config.UseCase.BuildRoute.FaultyPoolsConfig.MinSlippageThreshold = faultyPoolsConfig.MinSlippageThreshold
 }

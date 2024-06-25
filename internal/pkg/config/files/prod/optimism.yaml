@@ -319,8 +319,6 @@ useCase:
             timeout: 3s
             retry_count: 3
     faultyPools:
-      windowSize: 15m
-      faultyExpiredTime: 3m
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
   poolFactory:

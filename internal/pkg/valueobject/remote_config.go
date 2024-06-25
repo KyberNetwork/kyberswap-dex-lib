@@ -19,7 +19,8 @@ type (
 		CacheConfig           CacheConfig         `json:"cache"`
 		BlacklistedRecipients []string            `json:"blacklistedRecipients"`
 
-		TokensThresholdForOnchainPrice uint32 `json:"tokensThresholdForOnchainPrice"`
+		TokensThresholdForOnchainPrice uint32            `json:"tokensThresholdForOnchainPrice"`
+		FaultyPoolsConfig              FaultyPoolsConfig `json:"faultyPoolsConfig"`
 	}
 
 	Source string
@@ -134,6 +135,11 @@ type (
 		 ** If use logarithm rounding, shrink func constant will be shrinkFuncLogPercent
 		 */
 		ShrinkFuncConstant float64 `mapstructure:"shrinkFuncConstant" json:"ShrinkFuncConstant"`
+	}
+
+	FaultyPoolsConfig struct {
+		// Min slippage threshold configured in BPS format, ex: 0.01% -> 1, 0.5% -> 50
+		MinSlippageThreshold int64 `mapstructure:"minSlippageThreshold" json:"minSlippageThreshold"`
 	}
 )
 

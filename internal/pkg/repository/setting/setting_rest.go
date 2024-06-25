@@ -27,6 +27,7 @@ type ConfigResponseDataConfig struct {
 	FinderOptions         valueobject.FinderOptions       `json:"finderOptions"`
 	PregenFinderOptions   valueobject.FinderOptions       `json:"pregenFinderOptions"`
 	CacheConfig           valueobject.CacheConfig         `json:"cache"`
+	FaultyPoolsConfig     valueobject.FaultyPoolsConfig   `json:"faultyPoolsConfig"`
 	BlacklistedRecipients []string                        `json:"blacklistedRecipients"`
 
 	TokensThresholdForOnchainPrice uint32 `json:"tokensThresholdForOnchainPrice"`
@@ -100,6 +101,7 @@ func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string, curre
 		PregenFinderOptions:   cfgResp.Data.Config.PregenFinderOptions,
 		CacheConfig:           cfgResp.Data.Config.CacheConfig,
 		BlacklistedRecipients: cfgResp.Data.Config.BlacklistedRecipients,
+		FaultyPoolsConfig:     cfgResp.Data.Config.FaultyPoolsConfig,
 
 		TokensThresholdForOnchainPrice: cfgResp.Data.Config.TokensThresholdForOnchainPrice,
 	}, nil
