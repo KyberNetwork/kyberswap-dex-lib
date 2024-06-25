@@ -22,6 +22,7 @@ func NewEncoder(w io.Writer) *msgpack.Encoder {
 	en.Reset(w)
 	en.IncludeUnexported(true)
 	en.SetForceAsArray(true)
+	en.SetSortMapKeys(true)
 	return en
 }
 
