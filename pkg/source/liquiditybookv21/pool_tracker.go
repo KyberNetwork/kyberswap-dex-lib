@@ -229,7 +229,7 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 		resp.Meta.CheckIsLagging(d.cfg.DexID, p.Address)
 
 		// init value
-		if blockTimestamp == 0 {
+		if blockTimestamp == 0 && resp.Meta != nil {
 			blockTimestamp = resp.Meta.Block.Timestamp
 		}
 		if unitX == nil {
