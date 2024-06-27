@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/KyberNetwork/aggregator-encoding/pkg/constant"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -73,7 +72,6 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 }
 
 func (s *PoolSimulator) UpdateBalance(param poolpkg.UpdateBalanceParams) {
-	// TODO:
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
@@ -93,13 +91,13 @@ func (s *PoolSimulator) _viewSwapRsETHAmountAndFee(amount *big.Int, isWstETH boo
 		ethPrice := s.priceByAsset[s.Info.Tokens[2]]
 		amountAfterFee = new(big.Int).Div(
 			new(big.Int).Mul(amountAfterFee, ethPrice),
-			constant.BONE,
+			bignumber.BONE,
 		)
 	}
 
 	rsETHToETHrate := s.priceByAsset[s.Info.Tokens[0]]
 	rsETHAmount := new(big.Int).Div(
-		new(big.Int).Mul(amountAfterFee, constant.BONE),
+		new(big.Int).Mul(amountAfterFee, bignumber.BONE),
 		rsETHToETHrate,
 	)
 	return rsETHAmount, nil
