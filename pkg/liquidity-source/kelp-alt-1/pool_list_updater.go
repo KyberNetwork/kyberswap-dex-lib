@@ -9,7 +9,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 
@@ -67,7 +66,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 
 	return []entity.Pool{
 		{
-			Address:     strings.ToLower(common.LRTDepositPool),
+			Address:     strings.ToLower(u.config.RsethPool),
 			Exchange:    string(valueobject.ExchangeKelpRSETH),
 			Type:        DexType,
 			Timestamp:   time.Now().Unix(),
