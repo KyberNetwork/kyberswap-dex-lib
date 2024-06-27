@@ -32,6 +32,9 @@ type AEVM struct {
 	// AEVM server URLs seperated by comma
 	AEVMServerURLs string `mapstructure:"serverUrl"`
 
+	// Must be a subset of AEVMServerURLs, any URL which doesn't exist in AEVMServerURLs will be ignored
+	AEVMPublishingPoolsURLs string `mapstructure:"publishingPoolsUrls"`
+
 	// AddressesByDex Addresses needed to simulate a dex such as router and factory address.
 	AddressesByDex map[string]map[string]string `mapstructure:"addressesByDex"`
 

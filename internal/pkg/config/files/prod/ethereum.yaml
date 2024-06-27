@@ -489,6 +489,7 @@ validator:
 aevmEnabled: false
 aevm:
   serverUrl: "localhost:8246"
+  publishingPoolsUrls:
   rpc: "http://localhost:8545"
   simulationWallet: "0x19767032471665df0fd7f6160381a103ece6261a"
   useHoldersListAsFallback: false

@@ -446,9 +446,14 @@ func apiAction(c *cli.Context) (err error) {
 		}
 
 		serverURLs := strings.Split(cfg.AEVM.AEVMServerURLs, ",")
-		logger.Infof(ctx, "serverURLs = %+v", serverURLs)
+		publishingPoolsURLs := strings.Split(cfg.AEVM.AEVMPublishingPoolsURLs, ",")
+		logger.Infof(ctx, "AEVMServerURLs = %+v", serverURLs)
+		logger.Infof(ctx, "AEVMPublishingPoolsURLs = %+v", publishingPoolsURLs)
 		aevmClientImpl, err := aevmclientuc.NewClient(
-			aevmclientuc.Config{ServerURLs: serverURLs},
+			aevmclientuc.Config{
+				ServerURLs:          serverURLs,
+				PublishingPoolsURLs: publishingPoolsURLs,
+			},
 			func(url string) (aevmclient.Client, error) { return aevmclient.NewGRPCClient(url) },
 		)
 		if err != nil {
