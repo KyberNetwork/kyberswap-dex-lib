@@ -23,6 +23,7 @@ import (
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
+	rsethalt1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp-alt-1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
@@ -197,6 +198,7 @@ type Types struct {
 	CurveStableMetaNg              string
 	CurveTriCryptoNg               string
 	KelpRSETH                      string
+	KelpRSETHAlt1                  string
 	RocketPoolRETH                 string
 	EthenaSusde                    string
 	MakerSavingsDai                string
@@ -303,6 +305,7 @@ var (
 		CurveStableMetaNg:              curveStableMetaNg.DexType,
 		CurveTriCryptoNg:               curveTricryptoNg.DexType,
 		KelpRSETH:                      rseth.DexType,
+		KelpRSETHAlt1:                  rsethalt1.DexType,
 		RocketPoolRETH:                 reth.DexType,
 		SwellSWETH:                     sweth.DexType,
 		SwellRSWETH:                    rsweth.DexType,
