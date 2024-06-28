@@ -10,3 +10,9 @@ var pairFactoryABIJson []byte
 
 //go:embed abis/StratumPairFactory.json
 var stratumPairFactoryABIJson []byte
+
+//go:embed abis/NuriPairFactory.json
+var nuriPairFactoryABIJson []byte
+
+//go:embed abis/LyvePairFactory.json
+var lyvePairFactoryABIJson []byte

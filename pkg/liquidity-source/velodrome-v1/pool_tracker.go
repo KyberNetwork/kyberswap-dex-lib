@@ -43,6 +43,8 @@ func NewPoolTracker(
 		feeTrackerRegistry: map[string]IFeeTracker{
 			FeeTrackerIDVelodrome: &VelodromeFeeTracker{ethrpcClient: ethrpcClient},
 			FeeTrackerIDStratum:   &StratumFeeTracker{ethrpcClient: ethrpcClient},
+			FeeTrackerIDNuri:      &NuriFeeTracker{ethrpcClient: ethrpcClient},
+			FeeTrackerIDLyve:      &LyveFeeTracker{ethrpcClient: ethrpcClient},
 		},
 	}, nil
 }

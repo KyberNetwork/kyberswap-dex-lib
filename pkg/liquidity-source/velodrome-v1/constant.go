@@ -18,6 +18,10 @@ const (
 
 	stratumPairFactoryMethodGetFee = "getFee"
 
+	nuriPairFactoryMethodPairFee = "pairFee"
+
+	lyvePairFactoryMethodGetFee = "getFee"
+
 	pairMethodMetadata    = "metadata"
 	pairMethodGetReserves = "getReserves"
 )
@@ -25,4 +29,6 @@ const (
 const (
 	FeeTrackerIDVelodrome = "velodrome"
 	FeeTrackerIDStratum   = "stratum"
+	FeeTrackerIDNuri      = "nuri"
+	FeeTrackerIDLyve      = "lyve"
 )

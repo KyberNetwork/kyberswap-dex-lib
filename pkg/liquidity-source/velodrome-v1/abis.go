@@ -10,6 +10,8 @@ var (
 	pairABI               abi.ABI
 	pairFactoryABI        abi.ABI
 	stratumPairFactoryABI abi.ABI
+	nuriPairFactoryABI    abi.ABI
+	lyvePairFactoryABI    abi.ABI
 )
 
 func init() {
@@ -25,6 +27,12 @@ func init() {
 		},
 		{
 			&stratumPairFactoryABI, stratumPairFactoryABIJson,
+		},
+		{
+			&nuriPairFactoryABI, nuriPairFactoryABIJson,
+		},
+		{
+			&lyvePairFactoryABI, lyvePairFactoryABIJson,
 		},
 	}
 
