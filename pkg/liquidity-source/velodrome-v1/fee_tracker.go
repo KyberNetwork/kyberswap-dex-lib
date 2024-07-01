@@ -47,7 +47,7 @@ func (t *VelodromeFeeTracker) GetFee(
 	factoryAddress string,
 	blockNumber *big.Int,
 ) (uint64, error) {
-	var fee uint16
+	var fee *big.Int
 
 	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 
@@ -63,7 +63,7 @@ func (t *VelodromeFeeTracker) GetFee(
 		return 0, err
 	}
 
-	return uint64(fee), nil
+	return fee.Uint64(), nil
 }
 
 func (t *StratumFeeTracker) GetFee(
@@ -125,7 +125,7 @@ func (t *LyveFeeTracker) GetFee(
 	factoryAddress string,
 	blockNumber *big.Int,
 ) (uint64, error) {
-	var fee uint16
+	var fee *big.Int
 
 	getFeeRequest := t.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blockNumber)
 
@@ -141,5 +141,5 @@ func (t *LyveFeeTracker) GetFee(
 		return 0, err
 	}
 
-	return uint64(fee), nil
+	return fee.Uint64(), nil
 }
