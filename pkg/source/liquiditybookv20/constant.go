@@ -17,6 +17,8 @@ const (
 	pairMethodTokenY           = "tokenY"
 	pairMethodFeeParameters    = "feeParameters"
 	pairMethodGetReservesAndID = "getReservesAndId"
+
+	routerGetPriceFromIDMethod = "getPriceFromId"
 )
 const (
 	defaultTokenWeight = 50

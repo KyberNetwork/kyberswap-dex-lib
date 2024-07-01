@@ -57,5 +57,5 @@ type IPoolRFQ interface {
 }
 
 type ITicksBasedPoolTracker interface {
-	FetchStateFromRPC(ctx context.Context, pool entity.Pool) ([]byte, error)
+	FetchStateFromRPC(ctx context.Context, pool entity.Pool, blockNumber uint64) ([]byte, error)
 }
