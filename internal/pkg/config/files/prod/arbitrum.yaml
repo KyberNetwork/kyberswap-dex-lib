@@ -405,7 +405,6 @@ repository:
   gas:
     redis:
       prefix: *chainName
-      maxFaultyPoolSize: 500
     ristretto:
       numCounters: 5000
       maxCost: 500
@@ -416,6 +415,7 @@ repository:
   pool:
     redis:
       prefix: *chainName
+      maxFaultyPoolSize: 500
     ristretto:
       numCounters: 5000
       maxCost: 500
