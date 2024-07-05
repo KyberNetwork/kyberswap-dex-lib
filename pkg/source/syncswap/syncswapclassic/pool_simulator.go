@@ -144,6 +144,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	var inputAmount = calAmountAfterFee(input.Amount, p.swapFees[tokenInIndex])
 	var outputAmount = output.Amount
+	inputAmount.Div(inputAmount, MaxFee)
 
 	p.Info.Reserves[tokenInIndex] = new(big.Int).Add(p.Info.Reserves[tokenInIndex], inputAmount)
 	p.Info.Reserves[tokenOutIndex] = new(big.Int).Sub(p.Info.Reserves[tokenOutIndex], outputAmount)
