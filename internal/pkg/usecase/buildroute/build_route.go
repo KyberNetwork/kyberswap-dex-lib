@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/clientdata"
@@ -339,6 +340,9 @@ func (uc *BuildRouteUseCase) encodeClientData(ctx context.Context, command dto.B
 		AmountOutUSD: strconv.FormatFloat(routeSummary.AmountOutUSD, 'f', -1, 64),
 		Referral:     command.Referral,
 		Flags:        flags,
+		TokenOut:     routeSummary.TokenOut,
+		AmountOut:    routeSummary.AmountOut.String(),
+		Timestamp:    time.Now().Unix(),
 	})
 }
 
