@@ -3,11 +3,13 @@ package limitorder
 import (
 	"context"
 	"encoding/json"
+	"strings"
 
 	"github.com/KyberNetwork/logger"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type RFQHandler struct {
@@ -32,6 +34,21 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	var swapInfo SwapInfo
 	if err = json.Unmarshal(swapInfoBytes, &swapInfo); err != nil {
 		return nil, InvalidSwapInfo
+	}
+
+	for _, o := range swapInfo.FilledOrders {
+		var receiver = o.Receiver
+		if len(receiver) == 0 || strings.EqualFold(receiver, valueobject.ZeroAddress) {
+			receiver = o.Maker
+		}
+		if strings.EqualFold(receiver, params.Recipient) {
+			logger.WithFields(logger.Fields{
+				"params":  params,
+				"orderId": o.OrderID,
+				"error":   ErrSameSenderMaker,
+			}).Error("rejected")
+			return nil, ErrSameSenderMaker
+		}
 	}
 
 	orderIds := lo.Map(swapInfo.FilledOrders, func(o *FilledOrderInfo, _ int) int64 { return o.OrderID })
