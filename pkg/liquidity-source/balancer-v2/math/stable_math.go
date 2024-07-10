@@ -21,6 +21,11 @@ func init() {
 	StableMath = &stableMath{}
 }
 
+// MetaStable: https://etherscan.io/address/0x063c624672e390363b25f0c6c68ad9067c34595b#code#F30#L109
+//
+// Stable Version 1: https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F8#L109
+//
+// Stable Version 2: https://etherscan.io/address/0x13f2f70a951fb99d48ede6e25b0bdf06914db33f#code#F5#L125
 func (l *stableMath) CalcOutGivenIn(
 	invariant *uint256.Int,
 	amp *uint256.Int,
@@ -61,6 +66,55 @@ func (l *stableMath) CalcOutGivenIn(
 	}
 
 	return amountOut, nil
+}
+
+// MetaStable: https://etherscan.io/address/0x063c624672e390363b25f0c6c68ad9067c34595b#code#F30#L152
+//
+// Stable Version 1: https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F8#L152
+//
+// Stable Version 2: https://etherscan.io/address/0x13f2f70a951fb99d48ede6e25b0bdf06914db33f#code#F5#L166
+func (l *stableMath) CalcInGivenOut(
+	invariant *uint256.Int,
+	amp *uint256.Int,
+	amountOut *uint256.Int,
+	balances []*uint256.Int,
+	indexIn int,
+	indexOut int,
+) (*uint256.Int, error) {
+	var err error
+
+	balances[indexOut], err = FixedPoint.Sub(balances[indexOut], amountOut)
+	if err != nil {
+		return nil, err
+	}
+
+	finalBalanceIn, err := l.GetTokenBalanceGivenInvariantAndAllOtherBalances(
+		amp,
+		balances,
+		invariant,
+		indexIn,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	balances[indexOut], err = FixedPoint.Add(balances[indexOut], amountOut)
+	if err != nil {
+		return nil, err
+	}
+
+	// return finalBalanceIn.sub(balances[tokenIndexIn]).add(1);
+	amountIn, err := FixedPoint.Sub(finalBalanceIn, balances[indexIn])
+	if err != nil {
+		return nil, err
+	}
+
+	amountIn, err = FixedPoint.Add(amountIn, number.Number_1)
+	if err != nil {
+		return nil, err
+	}
+
+	return amountIn, nil
 }
 
 func (l *stableMath) CalculateInvariantV1(
@@ -286,6 +340,9 @@ func (l *stableMath) CalculateInvariantV2(
 	return nil, ErrStableGetBalanceDidntConverge
 }
 
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F17#L399
+// This function calculates the balance of a given token (tokenIndex)
+// given all the other balances and the invariant
 func (l *stableMath) GetTokenBalanceGivenInvariantAndAllOtherBalances(
 	amp *uint256.Int,
 	balances []*uint256.Int,
@@ -428,6 +485,7 @@ func (l *stableMath) GetTokenBalanceGivenInvariantAndAllOtherBalances(
 	return nil, ErrStableGetBalanceDidntConverge
 }
 
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F17#L201
 func (l *stableMath) CalcBptOutGivenExactTokensIn(
 	amp *uint256.Int,
 	balances []*uint256.Int,
@@ -532,6 +590,205 @@ func (l *stableMath) CalcBptOutGivenExactTokensIn(
 	return uint256.NewInt(0), nil
 }
 
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F17#L257
+func (l *stableMath) CalcTokenInGivenExactBptOut(
+	amp *uint256.Int,
+	balances []*uint256.Int,
+	tokenIndex int,
+	bptAmountOut *uint256.Int,
+	bptTotalSupply *uint256.Int,
+	currentInvariant *uint256.Int,
+	swapFeePercentage *uint256.Int,
+) (*uint256.Int, error) {
+	// Token in, so we round up overall.
+
+	newInvariant, err := FixedPoint.Add(bptTotalSupply, bptAmountOut)
+	if err != nil {
+		return nil, err
+	}
+
+	newInvariant, err = FixedPoint.DivUp(newInvariant, bptTotalSupply)
+	if err != nil {
+		return nil, err
+	}
+
+	newInvariant, err = FixedPoint.MulUp(newInvariant, currentInvariant)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calculate amount in without fee.
+	newBalanceTokenIndex, err := l.GetTokenBalanceGivenInvariantAndAllOtherBalances(
+		amp,
+		balances,
+		newInvariant,
+		tokenIndex,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	amountInWithoutFee, err := FixedPoint.Sub(newBalanceTokenIndex, balances[tokenIndex])
+	if err != nil {
+		return nil, err
+	}
+
+	// First calculate the sum of all token balances, which will be used to calculate
+	// the current weight of each token
+	sumBalances := uint256.NewInt(0)
+	for _, b := range balances {
+		var err error
+		sumBalances, err = FixedPoint.Add(sumBalances, b)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// We can now compute how much extra balance is being deposited and used in virtual swaps, and charge swap fees
+	// accordingly.
+	currentWeight, err := FixedPoint.DivDown(balances[tokenIndex], sumBalances)
+	if err != nil {
+		return nil, err
+	}
+
+	taxablePercentage := FixedPoint.Complement(currentWeight)
+
+	taxableAmount, err := FixedPoint.MulUp(amountInWithoutFee, taxablePercentage)
+	if err != nil {
+		return nil, err
+	}
+
+	nonTaxableAmount, err := FixedPoint.Sub(amountInWithoutFee, taxableAmount)
+	if err != nil {
+		return nil, err
+	}
+
+	temp, err := FixedPoint.Sub(FixedPoint.ONE, swapFeePercentage)
+	if err != nil {
+		return nil, err
+	}
+
+	temp, err = FixedPoint.DivUp(taxableAmount, temp)
+	if err != nil {
+		return nil, err
+	}
+
+	return FixedPoint.Add(nonTaxableAmount, temp)
+}
+
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F17#L302
+/*
+   Flow of calculations:
+   amountsTokenOut -> amountsOutProportional ->
+   amountOutPercentageExcess -> amountOutBeforeFee -> newInvariant -> amountBPTIn
+*/
+func (l *stableMath) CalcBptInGivenExactTokensOut(
+	amp *uint256.Int,
+	balances []*uint256.Int,
+	amountsOut []*uint256.Int,
+	bptTotalSupply *uint256.Int,
+	currentInvariant *uint256.Int,
+	swapFeePercentage *uint256.Int,
+) (*uint256.Int, error) {
+	// BPT in, so we round up overall.
+
+	// First loop calculates the sum of all token balances, which will be used to calculate
+	// the current weights of each token relative to this sum
+	sumBalances := uint256.NewInt(0)
+	for _, b := range balances {
+		var err error
+		sumBalances, err = FixedPoint.Add(sumBalances, b)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Calculate the weighted balance ratio without considering fees
+	balanceRatiosWithoutFee := make([]*uint256.Int, len(amountsOut))
+	invariantRatioWithoutFees := uint256.NewInt(0)
+
+	for i := 0; i < len(balances); i++ {
+		currentWeight, err := FixedPoint.DivUp(balances[i], sumBalances)
+		if err != nil {
+			return nil, err
+		}
+
+		u, err := FixedPoint.Sub(balances[i], amountsOut[i])
+		if err != nil {
+			return nil, err
+		}
+		balanceRatiosWithoutFee[i], err = FixedPoint.DivUp(u, balances[i])
+		if err != nil {
+			return nil, err
+		}
+
+		u, err = FixedPoint.MulUp(balanceRatiosWithoutFee[i], currentWeight)
+		if err != nil {
+			return nil, err
+		}
+
+		invariantRatioWithoutFees, err = FixedPoint.Add(invariantRatioWithoutFees, u)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Second loop calculates new amounts in, taking into account the fee on the percentage excess
+	newBalances := make([]*uint256.Int, len(balances))
+	for i := 0; i < len(balances); i++ {
+		// Swap fees are typically charged on 'token in', but there is no 'token in' here, so we apply it to
+		// 'token out'. This results in slightly larger price impact.
+
+		var amountOutWithFee *uint256.Int
+		if invariantRatioWithoutFees.Gt(balanceRatiosWithoutFee[i]) {
+			var nonTaxableAmount *uint256.Int
+
+			nonTaxableAmount, err := FixedPoint.MulDown(balances[i], FixedPoint.Complement(invariantRatioWithoutFees))
+			if err != nil {
+				return nil, err
+			}
+
+			taxableAmount, err := FixedPoint.Sub(amountsOut[i], nonTaxableAmount)
+			if err != nil {
+				return nil, err
+			}
+
+			u, err := FixedPoint.DivUp(taxableAmount, new(uint256.Int).Sub(FixedPoint.ONE, swapFeePercentage))
+			if err != nil {
+				return nil, err
+			}
+
+			amountOutWithFee, err = FixedPoint.Add(nonTaxableAmount, u)
+			if err != nil {
+				return nil, err
+			}
+
+		} else {
+			amountOutWithFee = amountsOut[i]
+		}
+
+		var err error
+		newBalances[i], err = FixedPoint.Sub(balances[i], amountOutWithFee)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	newInvariant, err := l.CalculateInvariantV2(amp, newBalances)
+	if err != nil {
+		return nil, err
+	}
+
+	invariantRatio, err := FixedPoint.DivDown(newInvariant, currentInvariant)
+	if err != nil {
+		return nil, err
+	}
+
+	// return amountBPTIn
+	return FixedPoint.MulUp(bptTotalSupply, FixedPoint.Complement(invariantRatio))
+}
+
+// https://etherscan.io/address/0x2ba7aa2213fa2c909cd9e46fed5a0059542b36b0#code#F17#L354
 func (l *stableMath) CalcTokenOutGivenExactBptIn(
 	amp *uint256.Int,
 	balances []*uint256.Int,

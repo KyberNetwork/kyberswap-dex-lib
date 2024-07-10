@@ -276,7 +276,7 @@ func (u *PoolsListUpdater) listMetadata(ctx context.Context, pairAddresses []com
 		}, []interface{}{&metadataList[i]})
 	}
 
-	resp, err := listMetadataRequest.Aggregate()
+	resp, err := listMetadataRequest.TryBlockAndAggregate()
 	if err != nil {
 		return nil, 0, err
 	}

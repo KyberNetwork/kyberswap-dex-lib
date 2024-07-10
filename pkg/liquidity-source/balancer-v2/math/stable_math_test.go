@@ -409,3 +409,194 @@ func TestGetTokenBalanceGivenInvariantAndAllOtherBalances(t *testing.T) {
 		assert.Equal(t, expected, result.Dec())
 	})
 }
+
+func Test_stableMath_CalcInGivenOut(t *testing.T) {
+	type args struct {
+		invariant *uint256.Int
+		amp       *uint256.Int
+		amountOut *uint256.Int
+		balances  []*uint256.Int
+		indexIn   int
+		indexOut  int
+	}
+
+	tests := []struct {
+		name    string
+		args    args
+		want    *uint256.Int
+		wantErr error
+	}{
+		{
+			name: "1. should return correct amount in",
+			args: args{
+				invariant: uint256.MustFromDecimal("19410511781031881171190"),
+				amp:       uint256.NewInt(5000),
+				amountOut: uint256.MustFromDecimal("1000000000000000000"),
+				balances: []*uint256.Int{
+					uint256.MustFromDecimal("9999991000000000000000"),
+					uint256.MustFromDecimal("99999910000000000056"),
+					uint256.MustFromDecimal("8897791020011100123456"),
+					uint256.MustFromDecimal("13288977911102200123456"),
+					uint256.MustFromDecimal("199791011102200123456"),
+					uint256.MustFromDecimal("1997200112156340123456"),
+				},
+				indexIn:  2,
+				indexOut: 5,
+			},
+			want:    uint256.MustFromDecimal("3207468813445824937"),
+			wantErr: nil,
+		},
+		{
+			name: "2. should return correct amount in",
+			args: args{
+				invariant: uint256.MustFromDecimal("19410511781031881171190"),
+				amp:       uint256.NewInt(5000),
+				amountOut: uint256.MustFromDecimal("1000000000000000000"),
+				balances: []*uint256.Int{
+					uint256.MustFromDecimal("9999991000000000000000"),
+					uint256.MustFromDecimal("99999910000000000056"),
+					uint256.MustFromDecimal("8897791020011100123456"),
+					uint256.MustFromDecimal("13288977911102200123456"),
+					uint256.MustFromDecimal("199791011102200123456"),
+					uint256.MustFromDecimal("1997200112156340123456"),
+				},
+				indexIn:  5,
+				indexOut: 2,
+			},
+			want:    uint256.MustFromDecimal("311917432254632569"),
+			wantErr: nil,
+		},
+		{
+			name: "3. should return correct amount in",
+			args: args{
+				invariant: uint256.MustFromDecimal("19410511781031881171190"),
+				amp:       uint256.NewInt(5000),
+				amountOut: uint256.MustFromDecimal("1000000000000000000"),
+				balances: []*uint256.Int{
+					uint256.MustFromDecimal("9999991000000000000000"),
+					uint256.MustFromDecimal("99999910000000000056"),
+					uint256.MustFromDecimal("8897791020011100123456"),
+					uint256.MustFromDecimal("13288977911102200123456"),
+					uint256.MustFromDecimal("199791011102200123456"),
+					uint256.MustFromDecimal("1997200112156340123456"),
+				},
+				indexIn:  2,
+				indexOut: 4,
+			},
+			want:    uint256.MustFromDecimal("28910581650762107883"),
+			wantErr: nil,
+		},
+		{
+			name: "4. should return correct amount in",
+			args: args{
+				invariant: uint256.MustFromDecimal("19410511781031881171190"),
+				amp:       uint256.NewInt(5000),
+				amountOut: uint256.MustFromDecimal("1000000000000000000"),
+				balances: []*uint256.Int{
+					uint256.MustFromDecimal("9999991000000000000000"),
+					uint256.MustFromDecimal("99999910000000000056"),
+					uint256.MustFromDecimal("8897791020011100123456"),
+					uint256.MustFromDecimal("13288977911102200123456"),
+					uint256.MustFromDecimal("199791011102200123456"),
+					uint256.MustFromDecimal("1997200112156340123456"),
+				},
+				indexIn:  4,
+				indexOut: 2,
+			},
+			want:    uint256.MustFromDecimal("34726458543604573"),
+			wantErr: nil,
+		},
+		{
+			name: "5. should return correct amount in",
+			args: args{
+				invariant: uint256.MustFromDecimal("19410511781031881171190"),
+				amp:       uint256.NewInt(5000),
+				amountOut: uint256.MustFromDecimal("1000000000000000000"),
+				balances: []*uint256.Int{
+					uint256.MustFromDecimal("9999991000000000000000"),
+					uint256.MustFromDecimal("99999910000000000056"),
+					uint256.MustFromDecimal("8897791020011100123456"),
+					uint256.MustFromDecimal("13288977911102200123456"),
+					uint256.MustFromDecimal("199791011102200123456"),
+					uint256.MustFromDecimal("1997200112156340123456"),
+				},
+				indexIn:  4,
+				indexOut: 5,
+			},
+			want:    uint256.MustFromDecimal("111385489340648494"),
+			wantErr: nil,
+		},
+		{
+			name: "6. should return correct amount in",
+			args: args{
+				invariant: uint256.MustFromDecimal("19410511781031881171190"),
+				amp:       uint256.NewInt(5000),
+				amountOut: uint256.MustFromDecimal("1000000000000000000"),
+				balances: []*uint256.Int{
+					uint256.MustFromDecimal("9999991000000000000000"),
+					uint256.MustFromDecimal("99999910000000000056"),
+					uint256.MustFromDecimal("8897791020011100123456"),
+					uint256.MustFromDecimal("13288977911102200123456"),
+					uint256.MustFromDecimal("199791011102200123456"),
+					uint256.MustFromDecimal("1997200112156340123456"),
+				},
+				indexIn:  5,
+				indexOut: 4,
+			},
+			want:    uint256.MustFromDecimal("9022853912539345705"),
+			wantErr: nil,
+		},
+		{
+			name: "7. should return correct amount in",
+			args: args{
+				invariant: uint256.MustFromDecimal("19410511781031881171190"),
+				amp:       uint256.NewInt(5000),
+				amountOut: uint256.MustFromDecimal("1000000000000000000"),
+				balances: []*uint256.Int{
+					uint256.MustFromDecimal("9999991000000000000000"),
+					uint256.MustFromDecimal("99999910000000000056"),
+					uint256.MustFromDecimal("8897791020011100123456"),
+					uint256.MustFromDecimal("13288977911102200123456"),
+					uint256.MustFromDecimal("199791011102200123456"),
+					uint256.MustFromDecimal("1997200112156340123456"),
+				},
+				indexIn:  0,
+				indexOut: 1,
+			},
+			want:    uint256.MustFromDecimal("61979389081735763787"),
+			wantErr: nil,
+		},
+		{
+			name: "8. should return correct amount in",
+			args: args{
+				invariant: uint256.MustFromDecimal("19410511781031881171190"),
+				amp:       uint256.NewInt(5000),
+				amountOut: uint256.MustFromDecimal("1000000000000000000"),
+				balances: []*uint256.Int{
+					uint256.MustFromDecimal("9999991000000000000000"),
+					uint256.MustFromDecimal("99999910000000000056"),
+					uint256.MustFromDecimal("8897791020011100123456"),
+					uint256.MustFromDecimal("13288977911102200123456"),
+					uint256.MustFromDecimal("199791011102200123456"),
+					uint256.MustFromDecimal("1997200112156340123456"),
+				},
+				indexIn:  1,
+				indexOut: 0,
+			},
+			want:    uint256.MustFromDecimal("16259799285477427"),
+			wantErr: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			l := &stableMath{}
+			got, err := l.CalcInGivenOut(tt.args.invariant, tt.args.amp, tt.args.amountOut, tt.args.balances, tt.args.indexIn, tt.args.indexOut)
+			if err != nil {
+				assert.ErrorIsf(t, err, tt.wantErr, "stableMath.CalcInGivenOut() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equalf(t, tt.want, got, "stableMath.CalcInGivenOut() = %v, want %v", got, tt.want)
+		})
+	}
+}

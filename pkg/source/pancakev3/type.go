@@ -7,7 +7,8 @@ import (
 )
 
 type Gas struct {
-	Swap int64
+	BaseGas          int64
+	CrossInitTickGas int64
 }
 
 // SwapInfo present the after state of a swap
@@ -61,6 +62,7 @@ type Tick struct {
 type Extra struct {
 	Liquidity    *big.Int `json:"liquidity"`
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
+	TickSpacing  uint64   `json:"tickSpacing"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
 }
@@ -76,10 +78,11 @@ type Slot0 struct {
 }
 
 type FetchRPCResult struct {
-	Liquidity *big.Int `json:"liquidity"`
-	Slot0     Slot0    `json:"slot0"`
-	Reserve0  *big.Int `json:"reserve0"`
-	Reserve1  *big.Int `json:"reserve1"`
+	Liquidity   *big.Int `json:"liquidity"`
+	Slot0       Slot0    `json:"slot0"`
+	TickSpacing *big.Int `json:"tickSpacing"`
+	Reserve0    *big.Int `json:"reserve0"`
+	Reserve1    *big.Int `json:"reserve1"`
 }
 
 type PoolMeta struct {

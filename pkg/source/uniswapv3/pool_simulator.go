@@ -8,11 +8,12 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
+	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
-	"github.com/daoleno/uniswapv3-sdk/constants"
-	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
-	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -20,8 +21,8 @@ import (
 )
 
 var (
-	ErrTickNil      = errors.New("tick is nil")
-	ErrV3TicksEmpty = errors.New("v3Ticks empty")
+	ErrOverflow       = errors.New("bigInt overflow int/uint256")
+	ErrInvalidFeeTier = errors.New("invalid feeTier")
 )
 
 type PoolSimulator struct {
@@ -33,7 +34,7 @@ type PoolSimulator struct {
 }
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
-	var extra Extra
+	var extra ExtraTickU256
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
@@ -56,13 +57,13 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		reserves[1] = NewBig10(entityPool.Reserves[1])
 	}
 
-	var v3Ticks []v3Entities.Tick
+	v3Ticks := make([]v3Entities.Tick, 0, len(extra.Ticks))
 
 	// Ticks are sorted from the pool service, so we don't have to do it again here
 	// Purpose: to improve the latency
 	for _, t := range extra.Ticks {
 		// LiquidityGross = 0 means that the tick is uninitialized
-		if t.LiquidityGross.Cmp(zeroBI) == 0 {
+		if t.LiquidityGross.IsZero() {
 			continue
 		}
 
@@ -78,18 +79,28 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, ErrV3TicksEmpty
 	}
 
-	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, constants.TickSpacings[constants.FeeAmount(entityPool.SwapFee)])
+	tickSpacing := int(extra.TickSpacing)
+	// For some pools that not yet initialized tickSpacing in their extra,
+	// we will get the tickSpacing through feeTier mapping.
+	if tickSpacing == 0 {
+		feeTier := constants.FeeAmount(entityPool.SwapFee)
+		if _, ok := constants.TickSpacings[feeTier]; !ok {
+			return nil, ErrInvalidFeeTier
+		}
+		tickSpacing = constants.TickSpacings[feeTier]
+	}
+	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, tickSpacing)
 	if err != nil {
 		return nil, err
 	}
 
-	v3Pool, err := v3Entities.NewPool(
+	v3Pool, err := v3Entities.NewPoolV2(
 		token0,
 		token1,
 		constants.FeeAmount(entityPool.SwapFee),
 		extra.SqrtPriceX96,
 		extra.Liquidity,
-		int(extra.Tick.Int64()),
+		*extra.Tick,
 		ticks,
 	)
 	if err != nil {
@@ -122,7 +133,7 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 /**
  * getSqrtPriceLimit get the price limit of pool based on the initialized ticks that this pool has
  */
-func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) *big.Int {
+func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool, result *v3Utils.Uint160) error {
 	var tickLimit int
 	if zeroForOne {
 		tickLimit = p.tickMin
@@ -130,13 +141,13 @@ func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) *big.Int {
 		tickLimit = p.tickMax
 	}
 
-	sqrtPriceX96Limit, err := v3Utils.GetSqrtRatioAtTick(tickLimit)
+	err := v3Utils.GetSqrtRatioAtTickV2(tickLimit, result)
 
 	if err != nil {
-		return nil
+		return err
 	}
 
-	return sqrtPriceX96Limit
+	return nil
 }
 
 func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
@@ -153,8 +164,14 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 			tokenOut = p.V3Pool.Token1
 			zeroForOne = true
 		}
+
 		amountOut := coreEntities.FromRawAmount(tokenOut, param.TokenAmountOut.Amount)
-		amountIn, newPoolState, err := p.V3Pool.GetInputAmount(amountOut, p.getSqrtPriceLimit(zeroForOne))
+		var priceLimit v3Utils.Uint160
+		err := p.getSqrtPriceLimit(zeroForOne, &priceLimit)
+		if err != nil {
+			return nil, fmt.Errorf("can not GetInputAmount, err: %+v", err)
+		}
+		amountIn, newPoolState, err := p.V3Pool.GetInputAmount(amountOut, &priceLimit)
 
 		if err != nil {
 			return nil, fmt.Errorf("can not GetInputAmount, err: %+v", err)
@@ -175,8 +192,8 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 				},
 				Gas: totalGas,
 				SwapInfo: UniV3SwapInfo{
-					nextStateSqrtRatioX96: new(big.Int).Set(newPoolState.SqrtRatioX96),
-					nextStateLiquidity:    new(big.Int).Set(newPoolState.Liquidity),
+					nextStateSqrtRatioX96: new(uint256.Int).Set(newPoolState.SqrtRatioX96),
+					nextStateLiquidity:    new(uint256.Int).Set(newPoolState.Liquidity),
 					nextStateTickCurrent:  newPoolState.TickCurrent,
 				},
 			}, nil
@@ -193,26 +210,40 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenOut := param.TokenOut
 	var tokenInIndex = p.GetTokenIndex(tokenAmountIn.Token)
 	var tokenOutIndex = p.GetTokenIndex(tokenOut)
-	var tokenIn *coreEntities.Token
 	var zeroForOne bool
 
 	if tokenInIndex >= 0 && tokenOutIndex >= 0 {
 		if strings.EqualFold(tokenOut, p.V3Pool.Token0.Address.String()) {
 			zeroForOne = false
-			tokenIn = p.V3Pool.Token1
 		} else {
-			tokenIn = p.V3Pool.Token0
 			zeroForOne = true
 		}
-		amountIn := coreEntities.FromRawAmount(tokenIn, tokenAmountIn.Amount)
-		amountOutResult, err := p.V3Pool.GetOutputAmount(amountIn, p.getSqrtPriceLimit(zeroForOne))
+		var amountIn v3Utils.Int256
+		overflow := amountIn.SetFromBig(tokenAmountIn.Amount)
+		if overflow {
+			return nil, ErrOverflow
+		}
+		var priceLimit v3Utils.Uint160
+		err := p.getSqrtPriceLimit(zeroForOne, &priceLimit)
+		if err != nil {
+			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
+		}
+		amountOutResult, err := p.V3Pool.GetOutputAmountV2(&amountIn, zeroForOne, &priceLimit)
 
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
 		}
 
 		amountOut := amountOutResult.ReturnedAmount
-		newPoolState := amountOutResult.NewPoolState
+
+		var remainingTokenAmountIn = &pool.TokenAmount{
+			Token: tokenAmountIn.Token,
+		}
+		if amountOutResult.RemainingAmountIn != nil {
+			remainingTokenAmountIn.Amount = amountOutResult.RemainingAmountIn.ToBig()
+		} else {
+			remainingTokenAmountIn.Amount = big.NewInt(0)
+		}
 
 		var totalGas = p.gas.BaseGas + p.gas.CrossInitTickGas*int64(amountOutResult.CrossInitTickLoops)
 
@@ -220,21 +251,22 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		//p.nextState.Liquidity = newPoolState.Liquidity
 		//p.nextState.TickCurrent = newPoolState.TickCurrent
 
-		if amountOut.Quotient().Cmp(zeroBI) > 0 {
+		if amountOut.Sign() > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  tokenOut,
-					Amount: amountOut.Quotient(),
+					Amount: amountOut.ToBig(),
 				},
+				RemainingTokenAmountIn: remainingTokenAmountIn,
 				Fee: &pool.TokenAmount{
 					Token:  tokenAmountIn.Token,
 					Amount: nil,
 				},
 				Gas: totalGas,
 				SwapInfo: UniV3SwapInfo{
-					nextStateSqrtRatioX96: new(big.Int).Set(newPoolState.SqrtRatioX96),
-					nextStateLiquidity:    new(big.Int).Set(newPoolState.Liquidity),
-					nextStateTickCurrent:  newPoolState.TickCurrent,
+					nextStateSqrtRatioX96: new(uint256.Int).Set(amountOutResult.SqrtRatioX96),
+					nextStateLiquidity:    new(uint256.Int).Set(amountOutResult.Liquidity),
+					nextStateTickCurrent:  amountOutResult.CurrentTick,
 				},
 			}, nil
 		}

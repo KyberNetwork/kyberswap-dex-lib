@@ -6,7 +6,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-func GetAmountOut(
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L72
+func swap(
 	state *MaverickPoolState,
 	amount *big.Int,
 	tokenAIn bool,
@@ -51,6 +52,7 @@ func GetAmountOut(
 	return amountIn, amountOut, counter, nil
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L121
 func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
 	var activeTick = new(big.Int).Set(state.ActiveTick)
 	if delta.DecrementTick {
@@ -158,6 +160,7 @@ func swapTick(delta *Delta, state *MaverickPoolState) (*Delta, error) {
 	return newDelta, nil
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L336
 func computeSwapExactOut(
 	sqrtPrice, liquidity, reserveA, reserveB, amountOut *big.Int,
 	tokenAIn bool,
@@ -255,6 +258,7 @@ func computeSwapExactOut(
 	return delta, nil
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L261
 func computeSwapExactIn(
 	sqrtEdgePrice, sqrtPrice, liquidity, reserveA, reserveB, amountIn *big.Int,
 	limitInBin, tokenAIn bool,
@@ -373,6 +377,7 @@ func computeSwapExactIn(
 	return delta, nil
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L252
 func amountToBin(deltaInErc, feeBases *big.Int, state *MaverickPoolState) (*big.Int, error) {
 	protocolFeeRatio := new(big.Int).Set(state.ProtocolFeeRatio)
 
@@ -387,6 +392,7 @@ func amountToBin(deltaInErc, feeBases *big.Int, state *MaverickPoolState) (*big.
 	return deltaInErc, nil
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L240
 func deltaAmount(liquidity, lowerSqrtPrice, upperSqrtPrice *big.Int, isA bool) (*big.Int, error) {
 	if isA {
 		res, err := mul(liquidity, new(big.Int).Sub(upperSqrtPrice, lowerSqrtPrice))
@@ -410,6 +416,7 @@ func deltaAmount(liquidity, lowerSqrtPrice, upperSqrtPrice *big.Int, isA bool) (
 	}
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L45
 func combine(delta, newDelta *Delta) {
 	if !delta.SkipCombine {
 		delta.DeltaInBinInternal = new(big.Int).Add(delta.DeltaInBinInternal, newDelta.DeltaInBinInternal)
@@ -422,6 +429,7 @@ func combine(delta, newDelta *Delta) {
 	delta.SwappedToMaxPrice = newDelta.SwappedToMaxPrice
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L390C3-L390C23
 func currentTickLiquidity(activeTick *big.Int, state *MaverickPoolState) (*big.Int, *big.Int, *big.Int, *big.Int, []Bin, error) {
 	var active = getKindsAtTick(state.BinMap, state.BinMapHex, activeTick)
 
@@ -467,6 +475,7 @@ func currentTickLiquidity(activeTick *big.Int, state *MaverickPoolState) (*big.I
 	return reserveA, reserveB, sqrtPrice, liquidity, bins, nil
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L511C3-L511C12
 func tickPrice(tickSpacing *big.Int, activeTick *big.Int) (*big.Int, error) {
 	var tick big.Int
 	if activeTick.Cmp(zeroBI) < 0 {
@@ -584,6 +593,7 @@ func tickPrice(tickSpacing *big.Int, activeTick *big.Int) (*big.Int, error) {
 	return ratio, nil
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L56
 func pastMaxPrice(delta *Delta) {
 	var tmpBool = delta.SqrtPriceLimit.Cmp(delta.SqrtPrice) >= 0
 	if delta.TokenAIn {
@@ -592,12 +602,14 @@ func pastMaxPrice(delta *Delta) {
 	delta.SwappedToMaxPrice = delta.SqrtPriceLimit.Cmp(zeroBI) != 0 && tmpBool
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L66
 func noSwapReset(delta *Delta) {
 	delta.Excess = big.NewInt(0)
 	delta.SkipCombine = true
 	delta.EndSqrtPrice = delta.SqrtPrice
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L63
 func sqrtEdgePrice(delta *Delta) *big.Int {
 	if delta.TokenAIn {
 		return delta.SqrtUpperTickPrice
@@ -605,6 +617,7 @@ func sqrtEdgePrice(delta *Delta) *big.Int {
 	return delta.SqrtLowerTickPrice
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L210
 func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount, activeTick *big.Int, state *MaverickPoolState) error {
 	var deltaOut = big.NewInt(0)
 	deltaIn, err := mulDiv(delta.DeltaInBinInternal, thisBinAmount, totalAmount, false)
@@ -655,6 +668,7 @@ func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount, activeTick *bi
 	return nil
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L484C3-L484C23
 func getTickSqrtPriceAndL(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice *big.Int) (*big.Int, *big.Int, error) {
 	liquidity, err := getTickL(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice)
 	if err != nil {
@@ -690,6 +704,7 @@ func getTickSqrtPriceAndL(reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickP
 	return sqrtPrice, liquidity, nil
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-pool-math.ts#L434
 func getTickL(
 	reserveA, reserveB, sqrtLowerTickPrice, sqrtUpperTickPrice *big.Int,
 ) (*big.Int, error) {
@@ -758,6 +773,7 @@ func getTickL(
 
 // ------------- maverick bin map -----------------------
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-bin-map.ts#L139
 func nextActive(binMap map[string]*big.Int, binMapHex map[string]*big.Int, tick *big.Int, isRight bool, minBinMapIndex, maxBinMapIndex *big.Int) *big.Int {
 	var refTick, shift, tack, subIndex, nextTick *big.Int
 
@@ -844,6 +860,7 @@ func nextActive(binMap map[string]*big.Int, binMapHex map[string]*big.Int, tick 
 	return nextTick
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-bin-map.ts#L126
 func getKindsAtTick(binMap map[string]*big.Int, binMapHex map[string]*big.Int, tick *big.Int) Active {
 	offset, mapIndex := getMapPointer(new(big.Int).Mul(tick, Kinds))
 	var subMap *big.Int
@@ -863,6 +880,7 @@ func getKindsAtTick(binMap map[string]*big.Int, binMapHex map[string]*big.Int, t
 	}
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-bin-map.ts#L97
 func getMapPointer(tick *big.Int) (*big.Int, *big.Int) {
 	offset := new(big.Int).And(tick, OffsetMask)
 	mapIndex := new(big.Int).Rsh(tick, 8)
@@ -870,6 +888,7 @@ func getMapPointer(tick *big.Int) (*big.Int, *big.Int) {
 	return offset, mapIndex
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-bin-map.ts#L54
 func lsb(x *big.Int) *big.Int {
 	r := big.NewInt(255)
 	// bigint in typescript is pass by value. So I do not want this function change the input X
@@ -918,6 +937,7 @@ func lsb(x *big.Int) *big.Int {
 	return r
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-bin-map.ts#L17
 func msb(x *big.Int) *big.Int {
 	r := big.NewInt(0)
 
@@ -960,6 +980,8 @@ func msb(x *big.Int) *big.Int {
 }
 
 // ------------- maverick basic math --------------------
+
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L131
 func mulDiv(a, b, c *big.Int, ceil bool) (*big.Int, error) {
 	product := new(big.Int).Mul(a, b)
 	if product.Cmp(zeroBI) == 0 {
@@ -973,6 +995,7 @@ func mulDiv(a, b, c *big.Int, ceil bool) (*big.Int, error) {
 	}
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L46
 func clip(x, y *big.Int) *big.Int {
 	if x.Cmp(y) < 0 {
 		return big.NewInt(0)
@@ -980,14 +1003,17 @@ func clip(x, y *big.Int) *big.Int {
 	return new(big.Int).Sub(x, y)
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L42
 func inv(a *big.Int) (*big.Int, error) {
 	return div(new(big.Int).Set(One), a)
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L68
 func div(a, b *big.Int) (*big.Int, error) {
 	return divDownFixed(a, b)
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L120
 func divDownFixed(a, b *big.Int) (*big.Int, error) {
 	if b.Cmp(zeroBI) != 0 {
 		if a.Cmp(zeroBI) == 0 {
@@ -1001,6 +1027,7 @@ func divDownFixed(a, b *big.Int) (*big.Int, error) {
 	return nil, ErrDividedByZero
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L72
 func sqrt(x *big.Int) *big.Int {
 	if x.Cmp(zeroBI) == 0 {
 		return big.NewInt(0)
@@ -1053,6 +1080,7 @@ func sqrt(x *big.Int) *big.Int {
 	return result
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L14
 func min(a, b *big.Int) *big.Int {
 	if a.Cmp(b) < 0 {
 		return a
@@ -1060,6 +1088,7 @@ func min(a, b *big.Int) *big.Int {
 	return b
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L34
 func mul(a, b *big.Int) (*big.Int, error) {
 	if new(big.Int).Mod(
 		new(big.Int).Mul(abs(a), abs(b)),
@@ -1071,6 +1100,7 @@ func mul(a, b *big.Int) (*big.Int, error) {
 	}
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L50
 func mulUpFixed(a, b *big.Int) (*big.Int, error) {
 	product := new(big.Int).Mul(a, b)
 	isNegative := product.Sign() == -1
@@ -1090,11 +1120,13 @@ func mulUpFixed(a, b *big.Int) (*big.Int, error) {
 	}
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L181
 func sMulDownFixed(a, b *big.Int) (*big.Int, error) {
 	var product = new(big.Int).Mul(a, b)
 	return new(big.Int).Div(product, One), nil
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L10
 func abs(x *big.Int) *big.Int {
 	if x.Sign() < 0 {
 		return new(big.Int).Neg(x)
@@ -1102,10 +1134,12 @@ func abs(x *big.Int) *big.Int {
 	return x
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L146
 func sDivDownFixed(a, b *big.Int) (*big.Int, error) {
 	return divDownFixed(a, b)
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-math/maverick-basic-math.ts#L158
 func sMulUpFixed(a, b *big.Int) (*big.Int, error) {
 	product := new(big.Int).Mul(a, b)
 	if a.Cmp(zeroBI) == 0 || new(big.Int).Div(product, a).Cmp(b) == 0 {
@@ -1122,6 +1156,7 @@ func sMulUpFixed(a, b *big.Int) (*big.Int, error) {
 	return nil, ErrMulOverflow
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-v1-pool.ts#L369
 func scaleFromAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
 	if decimals == 18 {
 		return amount, nil
@@ -1142,6 +1177,7 @@ func scaleFromAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
 	}
 }
 
+// https://github.com/paraswap/paraswap-dex-lib/blob/34f92e9e34080ee1389be9ea0f6e82740e748a64/src/dex/maverick-v1/maverick-v1-pool.ts#L382
 func ScaleToAmount(amount *big.Int, decimals uint8) (*big.Int, error) {
 	if decimals == 18 {
 		return amount, nil

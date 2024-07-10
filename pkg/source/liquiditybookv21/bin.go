@@ -6,14 +6,13 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 )
 
-type bin struct {
-	ID          uint32   `json:"id"`
-	ReserveX    *big.Int `json:"reserveX"`
-	ReserveY    *big.Int `json:"reserveY"`
-	TotalSupply *big.Int `json:"totalSupply"`
+type Bin struct {
+	ID       uint32   `json:"id"`
+	ReserveX *big.Int `json:"reserveX"`
+	ReserveY *big.Int `json:"reserveY"`
 }
 
-func (b *bin) isEmptyForSwap(swapForX bool) bool {
+func (b *Bin) isEmptyForSwap(swapForX bool) bool {
 	zero := integer.Zero()
 	if swapForX {
 		return b.ReserveX.Cmp(zero) == 0
@@ -21,12 +20,12 @@ func (b *bin) isEmptyForSwap(swapForX bool) bool {
 	return b.ReserveY.Cmp(zero) == 0
 }
 
-func (b *bin) isEmpty() bool {
+func (b *Bin) isEmpty() bool {
 	zero := integer.Zero()
 	return b.ReserveX.Cmp(zero) == 0 && b.ReserveY.Cmp(zero) == 0
 }
 
-func (b *bin) getAmounts(
+func (b *Bin) getAmounts(
 	parameters *parameters,
 	binStep uint16,
 	swapForY bool,
@@ -94,11 +93,32 @@ func (b *bin) getAmounts(
 	return amountIn128, amountOut128, fee128, nil
 }
 
-func (b *bin) getReserveOut(swapForX bool) *big.Int {
+func (b *Bin) getReserveOut(swapForX bool) *big.Int {
 	if swapForX {
 		return b.ReserveX
 	}
 	return b.ReserveY
+}
+
+// https://github.com/traderjoe-xyz/joe-v2/blob/1297c3822f0605e643155c35948959c0a0d05e17/src/libraries/math/PackedUint128Math.sol#L131
+/**
+ * @dev Decodes a bytes32 into a uint128 as the first or second uint128
+ * @param z The encoded bytes32 as follows:
+ * if first:
+ * [0 - 128[: x1
+ * [128 - 256[: empty
+ * else:
+ * [0 - 128[: empty
+ * [128 - 256[: x2
+ * @param first Whether to decode as the first or second uint128
+ * @return x The decoded uint128
+ */
+func (b *Bin) decode(first bool) *big.Int {
+	if first {
+		return b.ReserveX
+	}
+	return b.ReserveY
+
 }
 
 type binReserveChanges struct {

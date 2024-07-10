@@ -4,10 +4,10 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -21,13 +21,15 @@ var (
 	ErrInvalidSwapFeePercentage = errors.New("invalid swap fee percentage")
 	ErrPoolPaused               = errors.New("pool is paused")
 	ErrMaxTotalInRatio          = errors.New("MAX_TOTAL_IN_RATIO")
+	ErrMaxTotalOutRatio         = errors.New("MAX_TOTAL_OUT_RATIO")
 	ErrOverflow                 = errors.New("OVERFLOW")
 )
 
 var (
 	defaultGas = Gas{Swap: 80000}
 
-	_MAX_IN_RATIO = uint256.NewInt(0.3e18)
+	_MAX_IN_RATIO  = uint256.NewInt(0.3e18)
+	_MAX_OUT_RATIO = uint256.NewInt(0.3e18)
 )
 
 type (
@@ -46,6 +48,9 @@ type (
 
 		totalAmountsIn          []*uint256.Int
 		scaledMaxTotalAmountsIn []*uint256.Int
+
+		totalAmountsOut          []*uint256.Int
+		scaledMaxTotalAmountsOut []*uint256.Int
 	}
 
 	Gas struct {
@@ -63,6 +68,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 		totalAmountsIn          = make([]*uint256.Int, len(entityPool.Tokens))
 		scaledMaxTotalAmountsIn = make([]*uint256.Int, len(entityPool.Tokens))
+
+		totalAmountsOut          = make([]*uint256.Int, len(entityPool.Tokens))
+		scaledMaxTotalAmountsOut = make([]*uint256.Int, len(entityPool.Tokens))
 	)
 
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
@@ -84,12 +92,19 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 	for idx := 0; idx < len(entityPool.Tokens); idx++ {
 		totalAmountsIn[idx] = number.Zero
+		totalAmountsOut[idx] = number.Zero
 
 		maxIn, err := math.FixedPoint.MulDown(scaledInitialBalances[idx], _MAX_IN_RATIO)
 		if err != nil {
 			return nil, err
 		}
 		scaledMaxTotalAmountsIn[idx] = maxIn
+
+		maxOut, err := math.FixedPoint.MulDown(scaledInitialBalances[idx], _MAX_OUT_RATIO)
+		if err != nil {
+			return nil, err
+		}
+		scaledMaxTotalAmountsOut[idx] = maxOut
 	}
 
 	poolInfo := poolpkg.PoolInfo{
@@ -103,16 +118,18 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	return &PoolSimulator{
-		Pool:                    poolpkg.Pool{Info: poolInfo},
-		paused:                  extra.Paused,
-		swapFeePercentage:       extra.SwapFeePercentage,
-		scalingFactors:          staticExtra.ScalingFactors,
-		normalizedWeights:       staticExtra.NormalizedWeights,
-		vault:                   staticExtra.Vault,
-		poolID:                  staticExtra.PoolID,
-		poolTypeVer:             staticExtra.PoolTypeVer,
-		totalAmountsIn:          totalAmountsIn,
-		scaledMaxTotalAmountsIn: scaledMaxTotalAmountsIn,
+		Pool:                     poolpkg.Pool{Info: poolInfo},
+		paused:                   extra.Paused,
+		swapFeePercentage:        extra.SwapFeePercentage,
+		scalingFactors:           staticExtra.ScalingFactors,
+		normalizedWeights:        staticExtra.NormalizedWeights,
+		vault:                    staticExtra.Vault,
+		poolID:                   staticExtra.PoolID,
+		poolTypeVer:              staticExtra.PoolTypeVer,
+		totalAmountsIn:           totalAmountsIn,
+		scaledMaxTotalAmountsIn:  scaledMaxTotalAmountsIn,
+		totalAmountsOut:          totalAmountsOut,
+		scaledMaxTotalAmountsOut: scaledMaxTotalAmountsOut,
 	}, nil
 }
 
@@ -179,7 +196,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
-	upScaledAmountOut, err := s.calcOutGivenIn(
+	upScaledAmountOut, err := s._onSwapGivenIn(
 		balanceTokenIn,
 		normalizedWeightIn,
 		balanceTokenOut,
@@ -208,7 +225,101 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	}, nil
 }
 
-func (s *PoolSimulator) calcOutGivenIn(
+func (s *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
+	if s.paused {
+		return nil, ErrPoolPaused
+	}
+
+	tokenAmountOut := params.TokenAmountOut
+	tokenIn := params.TokenIn
+
+	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenAmountOut.Token)
+
+	if indexIn == -1 || indexOut == -1 {
+		return nil, ErrTokenNotRegistered
+	}
+
+	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
+	if overflow {
+		return nil, ErrInvalidReserve
+	}
+
+	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
+	if overflow {
+		return nil, ErrInvalidReserve
+	}
+
+	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
+	if overflow {
+		return nil, ErrInvalidAmountIn
+	}
+
+	if err := s.validateMaxOutRatio(indexOut, amountOut); err != nil {
+		return nil, err
+	}
+
+	scalingFactorTokenIn := s.scalingFactors[indexIn]
+	scalingFactorTokenOut := s.scalingFactors[indexOut]
+	normalizedWeightIn := s.normalizedWeights[indexIn]
+	normalizedWeightOut := s.normalizedWeights[indexOut]
+
+	balanceTokenIn, err := _upscale(s.poolTypeVer, reserveIn, scalingFactorTokenIn)
+	if err != nil {
+		return nil, err
+	}
+	balanceTokenOut, err := _upscale(s.poolTypeVer, reserveOut, scalingFactorTokenOut)
+	if err != nil {
+		return nil, err
+	}
+
+	upScaledAmountOut, err := _upscale(s.poolTypeVer, amountOut, scalingFactorTokenOut)
+	if err != nil {
+		return nil, err
+	}
+
+	upScaledAmountIn, err := s._onSwapGivenOut(
+		balanceTokenIn,
+		normalizedWeightIn,
+		balanceTokenOut,
+		normalizedWeightOut,
+		upScaledAmountOut,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	amountIn, err := _downscaleUp(s.poolTypeVer, upScaledAmountIn, scalingFactorTokenIn)
+	if err != nil {
+		return nil, err
+	}
+
+	amountInAfterFee, err := s._addSwapFeeAmount(amountIn)
+	if err != nil {
+		return nil, err
+	}
+
+	feeAmount, err := math.FixedPoint.Sub(amountInAfterFee, amountIn)
+	if err != nil {
+		return nil, err
+	}
+
+	return &poolpkg.CalcAmountInResult{
+		TokenAmountIn: &poolpkg.TokenAmount{
+			Token:  tokenIn,
+			Amount: amountIn.ToBig(),
+		},
+		Fee: &poolpkg.TokenAmount{
+			Token:  tokenIn,
+			Amount: feeAmount.ToBig(),
+		},
+		Gas: defaultGas.Swap,
+	}, nil
+}
+
+// Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F1#L165
+//
+// Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F3#L117
+func (s *PoolSimulator) _onSwapGivenIn(
 	balanceTokenIn *uint256.Int,
 	normalizedWeightIn *uint256.Int,
 	balanceTokenOut *uint256.Int,
@@ -234,6 +345,43 @@ func (s *PoolSimulator) calcOutGivenIn(
 	)
 }
 
+// Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F1#L182
+//
+// Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F3#L132
+func (s *PoolSimulator) _onSwapGivenOut(
+	balanceTokenIn *uint256.Int,
+	normalizedWeightIn *uint256.Int,
+	balanceTokenOut *uint256.Int,
+	normalizedWeightOut *uint256.Int,
+	upScaledAmountOut *uint256.Int,
+) (*uint256.Int, error) {
+	if s.poolTypeVer == poolTypeVer1 {
+		return math.WeightedMath.CalcInGivenOutV1(
+			balanceTokenIn,
+			normalizedWeightIn,
+			balanceTokenOut,
+			normalizedWeightOut,
+			upScaledAmountOut,
+		)
+	}
+
+	return math.WeightedMath.CalcInGivenOut(
+		balanceTokenIn,
+		normalizedWeightIn,
+		balanceTokenOut,
+		normalizedWeightOut,
+		upScaledAmountOut,
+	)
+}
+
+// Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F28#L454
+//
+// Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F14#L619
+func (s *PoolSimulator) _addSwapFeeAmount(amount *uint256.Int) (*uint256.Int, error) {
+	// This returns amount + fee amount, so we round up (favoring a higher fee amount).
+	return math.FixedPoint.DivUp(amount, math.FixedPoint.Complement(s.swapFeePercentage))
+}
+
 func (s *PoolSimulator) validateMaxInRatio(tokenIndex int, amountIn *uint256.Int) error {
 	sum := new(uint256.Int).Add(s.totalAmountsIn[tokenIndex], amountIn)
 	upscaledSum, err := _upscale(s.poolTypeVer, sum, s.scalingFactors[tokenIndex])
@@ -243,6 +391,20 @@ func (s *PoolSimulator) validateMaxInRatio(tokenIndex int, amountIn *uint256.Int
 
 	if upscaledSum.Gt(s.scaledMaxTotalAmountsIn[tokenIndex]) {
 		return ErrMaxTotalInRatio
+	}
+
+	return nil
+}
+
+func (s *PoolSimulator) validateMaxOutRatio(tokenIndex int, amountOut *uint256.Int) error {
+	sum := new(uint256.Int).Add(s.totalAmountsOut[tokenIndex], amountOut)
+	upscaledSum, err := _upscale(s.poolTypeVer, sum, s.scalingFactors[tokenIndex])
+	if err != nil {
+		return err
+	}
+
+	if upscaledSum.Gt(s.scaledMaxTotalAmountsOut[tokenIndex]) {
+		return ErrMaxTotalOutRatio
 	}
 
 	return nil
@@ -291,15 +453,26 @@ func _upscale(poolTypeVer int, amount *uint256.Int, scalingFactor *uint256.Int) 
 	return math.FixedPoint.MulDown(amount, scalingFactor)
 }
 
-// Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F27#L547
+// Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F28#L547
 //
-// Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F13#L706
+// Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F14#L706
 func _downscaleDown(poolTypeVer int, amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
 	if poolTypeVer == poolTypeVer1 {
 		return math.Math.DivDown(amount, scalingFactor)
 	}
 
 	return math.FixedPoint.DivDown(amount, scalingFactor)
+}
+
+// Version = 1: https://etherscan.io/address/0x6df50e37a6aefb9024a7284ef1c9e1e8e7c4f7b8#code#F28#L565
+//
+// Version > 1: https://etherscan.io/address/0x065f5b35d4077334379847fe26f58b1029e51161#code#F14#L727
+func _downscaleUp(poolTypeVer int, amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
+	if poolTypeVer == poolTypeVer1 {
+		return math.Math.DivUp(amount, scalingFactor)
+	}
+
+	return math.FixedPoint.DivUp(amount, scalingFactor)
 }
 
 func _upscaleArray(poolTypeVer int, balances []*big.Int, scalingFactors []*uint256.Int) ([]*uint256.Int, error) {

@@ -4,9 +4,11 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
@@ -902,4 +904,138 @@ func TestBptSwap(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 	})
+}
+
+func TestPoolSimulator_CalcAmountIn(t *testing.T) {
+	amountOutTest2, _ := new(big.Int).SetString("100000000", 10)
+	expectedAmountInTest2, _ := new(big.Int).SetString("99981105484344981876", 10)
+	amountOutTest3, _ := new(big.Int).SetString("100000000000000000000", 10)
+	expectedAmountInTest3, _ := new(big.Int).SetString("100018917", 10)
+
+	type fields struct {
+		poolStr string
+	}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		params  poolpkg.CalcAmountInParams
+		want    *poolpkg.CalcAmountInResult
+		wantErr error
+	}{
+		{
+			name: "1. should return error ErrPoolPaused",
+			fields: fields{
+				poolStr: `{
+					"address": "0x851523a36690bf267bbfec389c823072d82921a9",
+					"exchange": "balancer-v2-composable-stable",
+					"type": "balancer-v2-composable-stable",
+					"timestamp": 1703667290,
+					"reserves": [
+					  "9999991000000000000",
+					  "99999910000000000056",
+					  "8897791020011100123456"
+					],
+					"tokens": [
+						{
+							"address": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 1,
+							"swappable": true
+						},
+						{
+							"address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 1,
+							"swappable": true
+						},
+						{
+							"address": "0x6b175474e89094c44da98b954eedeac495271d0f",
+							"name": "",
+							"symbol": "",
+							"decimals": 0,
+							"weight": 1,
+							"swappable": true
+						}
+					],
+					"extra": "{\"amp\":\"0x1388\",\"swapFeePercentage\":\"0x2D79883D2000\",\"scalingFactors\":[\"100\",\"1\",\"100\"],\"paused\":true}",
+					"staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"Stable\",\"poolTypeVersion\":1,\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
+					}`,
+			},
+			params: poolpkg.CalcAmountInParams{
+				TokenAmountOut: poolpkg.TokenAmount{
+					Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
+					Amount: big.NewInt(999999100000),
+				},
+				TokenIn: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+			},
+			want:    nil,
+			wantErr: ErrPoolPaused,
+		},
+		{
+			name: "2. should return OK",
+			fields: fields{
+				poolStr: `{"address":"0x79c58f70905f734641735bc61e45c19dd9ad60bc","reserveUsd":1143324.9804121545,"amplifiedTvl":1143324.9804121545,"exchange":"balancer-v2-composable-stable","type":"balancer-v2-composable-stable","timestamp":1712718393,"reserves":["279496786025154287762267","2596148429569910245264763596342291","253647851077","610180343310"],"tokens":[{"address":"0x6b175474e89094c44da98b954eedeac495271d0f","swappable":true},{"address":"0x79c58f70905f734641735bc61e45c19dd9ad60bc","swappable":true},{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","swappable":true}],"extra":"{\"canNotUpdateTokenRates\":false,\"scalingFactors\":[\"1000000000000000000\",\"1000000000000000000\",\"1000000000000000000000000000000\",\"1000000000000000000000000000000\"],\"bptTotalSupply\":\"2596148430699200833573624981511145\",\"amp\":\"5000000\",\"lastJoinExit\":{\"lastJoinExitAmplification\":\"5000000\",\"lastPostJoinExitInvariant\":\"1143300320131453789392387\"},\"rateProviders\":[\"0x0000000000000000000000000000000000000000\",\"0x0000000000000000000000000000000000000000\",\"0x0000000000000000000000000000000000000000\",\"0x0000000000000000000000000000000000000000\"],\"tokenRateCaches\":[{\"rate\":null,\"oldRate\":null,\"duration\":null,\"expires\":null},{\"rate\":null,\"oldRate\":null,\"duration\":null,\"expires\":null},{\"rate\":null,\"oldRate\":null,\"duration\":null,\"expires\":null},{\"rate\":null,\"oldRate\":null,\"duration\":null,\"expires\":null}],\"swapFeePercentage\":\"100000000000000\",\"protocolFeePercentageCache\":{\"0\":\"0\",\"2\":\"0\"},\"isTokenExemptFromYieldProtocolFee\":[false,false,false,false],\"isExemptFromYieldProtocolFee\":false,\"inRecoveryMode\":false,\"paused\":false}","staticExtra":"{\"poolId\":\"0x79c58f70905f734641735bc61e45c19dd9ad60bc0000000000000000000004e7\",\"poolType\":\"ComposableStable\",\"poolTypeVer\":3,\"bptIndex\":1,\"scalingFactors\":[\"1000000000000000000\",\"1000000000000000000\",\"1000000000000000000000000000000\",\"1000000000000000000000000000000\"],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}","blockNumber":19622438}`,
+			},
+			params: poolpkg.CalcAmountInParams{
+				TokenAmountOut: poolpkg.TokenAmount{
+					Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
+					Amount: amountOutTest2,
+				},
+				TokenIn: "0x6b175474e89094c44da98b954eedeac495271d0f",
+			},
+			want: &poolpkg.CalcAmountInResult{
+				TokenAmountIn: &poolpkg.TokenAmount{
+					Token:  "0x6b175474e89094c44da98b954eedeac495271d0f",
+					Amount: expectedAmountInTest2,
+				},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "3. should return OK",
+			fields: fields{
+				poolStr: `{"address":"0x79c58f70905f734641735bc61e45c19dd9ad60bc","reserveUsd":1143324.9804121545,"amplifiedTvl":1143324.9804121545,"exchange":"balancer-v2-composable-stable","type":"balancer-v2-composable-stable","timestamp":1712718393,"reserves":["279496786025154287762267","2596148429569910245264763596342291","253647851077","610180343310"],"tokens":[{"address":"0x6b175474e89094c44da98b954eedeac495271d0f","swappable":true},{"address":"0x79c58f70905f734641735bc61e45c19dd9ad60bc","swappable":true},{"address":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48","swappable":true},{"address":"0xdac17f958d2ee523a2206206994597c13d831ec7","swappable":true}],"extra":"{\"canNotUpdateTokenRates\":false,\"scalingFactors\":[\"1000000000000000000\",\"1000000000000000000\",\"1000000000000000000000000000000\",\"1000000000000000000000000000000\"],\"bptTotalSupply\":\"2596148430699200833573624981511145\",\"amp\":\"5000000\",\"lastJoinExit\":{\"lastJoinExitAmplification\":\"5000000\",\"lastPostJoinExitInvariant\":\"1143300320131453789392387\"},\"rateProviders\":[\"0x0000000000000000000000000000000000000000\",\"0x0000000000000000000000000000000000000000\",\"0x0000000000000000000000000000000000000000\",\"0x0000000000000000000000000000000000000000\"],\"tokenRateCaches\":[{\"rate\":null,\"oldRate\":null,\"duration\":null,\"expires\":null},{\"rate\":null,\"oldRate\":null,\"duration\":null,\"expires\":null},{\"rate\":null,\"oldRate\":null,\"duration\":null,\"expires\":null},{\"rate\":null,\"oldRate\":null,\"duration\":null,\"expires\":null}],\"swapFeePercentage\":\"100000000000000\",\"protocolFeePercentageCache\":{\"0\":\"0\",\"2\":\"0\"},\"isTokenExemptFromYieldProtocolFee\":[false,false,false,false],\"isExemptFromYieldProtocolFee\":false,\"inRecoveryMode\":false,\"paused\":false}","staticExtra":"{\"poolId\":\"0x79c58f70905f734641735bc61e45c19dd9ad60bc0000000000000000000004e7\",\"poolType\":\"ComposableStable\",\"poolTypeVer\":3,\"bptIndex\":1,\"scalingFactors\":[\"1000000000000000000\",\"1000000000000000000\",\"1000000000000000000000000000000\",\"1000000000000000000000000000000\"],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}","blockNumber":19622438}`,
+			},
+			params: poolpkg.CalcAmountInParams{
+				TokenAmountOut: poolpkg.TokenAmount{
+					Token:  "0x6b175474e89094c44da98b954eedeac495271d0f",
+					Amount: amountOutTest3,
+				},
+				TokenIn: "0xdac17f958d2ee523a2206206994597c13d831ec7",
+			},
+			want: &poolpkg.CalcAmountInResult{
+				TokenAmountIn: &poolpkg.TokenAmount{
+					Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
+					Amount: expectedAmountInTest3,
+				},
+			},
+			wantErr: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var pool entity.Pool
+			err := json.Unmarshal([]byte(tt.fields.poolStr), &pool)
+			assert.Nil(t, err)
+
+			simulator, err := NewPoolSimulator(pool)
+			assert.Nil(t, err)
+
+			got, err := testutil.MustConcurrentSafe[*poolpkg.CalcAmountInResult](t, func() (any, error) {
+				return simulator.CalcAmountIn(tt.params)
+			})
+			if err != nil {
+				assert.ErrorIsf(t, err, tt.wantErr, "PoolSimulator.CalcAmountIn() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			assert.Equalf(t, tt.want.TokenAmountIn.Token, got.TokenAmountIn.Token, "tokenIn = %v, want %v", got.TokenAmountIn.Token, tt.want.TokenAmountIn.Token)
+			assert.Equalf(t, tt.want.TokenAmountIn.Amount, got.TokenAmountIn.Amount, "amountIn = %v, want %v", got.TokenAmountIn.Amount.String(), tt.want.TokenAmountIn.Amount.String())
+		})
+	}
 }

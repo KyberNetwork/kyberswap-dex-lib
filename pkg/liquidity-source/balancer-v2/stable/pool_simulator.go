@@ -84,7 +84,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-// https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F5#L46
+// https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F6#L46
 func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
 	if s.paused {
 		return nil, ErrPoolPaused
@@ -142,6 +142,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, err
 	}
 
+	// amountOut tokens are exiting the Pool, so we round down.
 	amountOut, err = _downscaleDown(amountOut, s.scalingFactors[indexOut])
 	if err != nil {
 		return nil, err
@@ -154,6 +155,87 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		},
 		Fee: &poolpkg.TokenAmount{
 			Token:  tokenAmountIn.Token,
+			Amount: feeAmount.ToBig(),
+		},
+		Gas: defaultGas.Swap,
+	}, nil
+}
+
+// https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F6#L65
+func (s *PoolSimulator) CalcAmountIn(params poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
+	if s.paused {
+		return nil, ErrPoolPaused
+	}
+
+	// NOTE: if pool specialization is not "General", then the pool must have 2 tokens
+	// https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F1#L130
+	if s.poolSpec != poolSpecializationGeneral && len(s.Info.Tokens) != 2 {
+		return nil, ErrNotTwoTokens
+	}
+
+	tokenAmountOut, tokenIn := params.TokenAmountOut, params.TokenIn
+
+	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenAmountOut.Token)
+	if indexIn == -1 || indexOut == -1 {
+		return nil, ErrTokenNotRegistered
+	}
+
+	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
+	if overflow {
+		return nil, ErrInvalidAmountOut
+	}
+
+	amountOut, err := _upscale(amountOut, s.scalingFactors[indexOut])
+	if err != nil {
+		return nil, err
+	}
+
+	balances, err := _upscaleArray(s.Info.Reserves, s.scalingFactors)
+	if err != nil {
+		return nil, err
+	}
+
+	invariant, err := calculateInvariant(s.poolType, s.poolTypeVer, s.amp, balances)
+	if err != nil {
+		return nil, err
+	}
+
+	amountIn, err := math.StableMath.CalcInGivenOut(
+		invariant,
+		s.amp,
+		amountOut,
+		balances,
+		indexIn,
+		indexOut,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// amountIn tokens are entering the Pool, so we round up.
+	amountIn, err = _downscaleUp(amountIn, s.scalingFactors[indexIn])
+	if err != nil {
+		return nil, err
+	}
+
+	// Fees are added after scaling happens, to reduce the complexity of the rounding direction analysis.
+	amountInAfterFee, err := s._addSwapFeeAmount(amountIn)
+	if err != nil {
+		return nil, err
+	}
+
+	feeAmount, err := math.FixedPoint.Sub(amountInAfterFee, amountIn)
+	if err != nil {
+		return nil, err
+	}
+
+	return &poolpkg.CalcAmountInResult{
+		TokenAmountIn: &poolpkg.TokenAmount{
+			Token:  tokenIn,
+			Amount: amountIn.ToBig(),
+		},
+		Fee: &poolpkg.TokenAmount{
+			Token:  tokenIn,
 			Amount: feeAmount.ToBig(),
 		},
 		Gas: defaultGas.Swap,
@@ -187,9 +269,17 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	}
 }
 
-// MetaStable: https://etherscan.io/address/0x063c624672e390363b25f0c6c68ad9067c34595b#code#F29#L49
+// https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F13#L490
+// The exact implementation is just `return amount.divUp(FixedPoint.ONE.sub(_swapFeePercentage));`
+// But we use Complement to avoid negative value.
+func (s *PoolSimulator) _addSwapFeeAmount(amount *uint256.Int) (*uint256.Int, error) {
+	// This returns amount + fee amount, so we round up (favoring a higher fee amount).
+	return math.FixedPoint.DivUp(amount, math.FixedPoint.Complement(s.swapFeePercentage))
+}
+
+// MetaStable: https://etherscan.io/address/0x063c624672e390363b25f0c6c68ad9067c34595b#code#F30#L49
 //
-// Stable Version 1: https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F7#L49
+// Stable Version 1: https://etherscan.io/address/0x06df3b2bbb68adc8b0e302443692037ed9f91b42#code#F8#L49
 //
 // Stable Version 2: https://etherscan.io/address/0x13f2f70a951fb99d48ede6e25b0bdf06914db33f#code#F5#L57
 func calculateInvariant(
@@ -232,7 +322,12 @@ func _upscale(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, er
 	return math.FixedPoint.MulDown(amount, scalingFactor)
 }
 
-// https://etherscan.io/address/0x063c624672e390363b25f0c6c68ad9067c34595b#code#F31#L540
+// https://etherscan.io/address/0x063c624672e390363b25f0c6c68ad9067c34595b#code#F32#L540
 func _downscaleDown(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
 	return math.FixedPoint.DivDown(amount, scalingFactor)
+}
+
+// https://etherscan.io/address/0x063c624672e390363b25f0c6c68ad9067c34595b#code#F32#L558
+func _downscaleUp(amount *uint256.Int, scalingFactor *uint256.Int) (*uint256.Int, error) {
+	return math.FixedPoint.DivUp(amount, scalingFactor)
 }

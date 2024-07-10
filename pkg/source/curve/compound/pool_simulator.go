@@ -111,6 +111,49 @@ func (t *CompoundPool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Calc
 	}
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom or tokenIndexTo is not correct: tokenIndexFrom: %v, tokenIndexTo: %v", tokenIndexFrom, tokenIndexTo)
 }
+
+func (t *CompoundPool) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	tokenIn := strings.ToLower(param.TokenIn)
+	tokenAmountOut := param.TokenAmountOut
+	tokenOut := strings.ToLower(tokenAmountOut.Token)
+	var tokenIndexFrom = t.GetTokenIndex(tokenIn)
+	var tokenIndexTo = t.GetTokenIndex(tokenOut)
+
+	if tokenIndexFrom < 0 || tokenIndexTo < 0 {
+		return &pool.CalcAmountInResult{}, fmt.Errorf("tokenIndexFrom or tokenIndexTo is not correct: tokenIndexFrom: %v, tokenIndexTo: %v", tokenIndexFrom, tokenIndexTo)
+	}
+
+	amountIn, fee, err := GetDxUnderlying(
+		t.Info.Reserves,
+		t.Rates,
+		t.Multipliers,
+		t.A,
+		t.Info.SwapFee,
+		tokenIndexFrom,
+		tokenIndexTo,
+		tokenAmountOut.Amount,
+	)
+	if err != nil {
+		return &pool.CalcAmountInResult{}, err
+	}
+
+	if amountIn.Cmp(bignumber.ZeroBI) > 0 {
+		return &pool.CalcAmountInResult{
+			TokenAmountIn: &pool.TokenAmount{
+				Token:  tokenIn,
+				Amount: amountIn,
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: fee,
+			},
+			Gas: t.gas.ExchangeUnderlying,
+		}, nil
+	}
+
+	return &pool.CalcAmountInResult{}, ErrZero
+}
+
 func (t *CompoundPool) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	var inputAmount = input.Amount

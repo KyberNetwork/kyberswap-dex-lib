@@ -13,6 +13,8 @@ type RFQParams struct {
 	RFQSender string
 	// RFQRecipient RFQ fund recipient
 	RFQRecipient string
+	// Slippage slippage tolerance (in bps) for RFQs that also aggregate dexes
+	Slippage int64
 	// SwapInfo swap info of the RFQ swap
 	SwapInfo any
 }

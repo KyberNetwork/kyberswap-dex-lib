@@ -3,56 +3,61 @@ package valueobject
 type Exchange string
 
 var (
-	ExchangeSushiSwap     Exchange = "sushiswap"
-	ExchangeTrisolaris    Exchange = "trisolaris"
-	ExchangeWannaSwap     Exchange = "wannaswap"
-	ExchangeNearPad       Exchange = "nearpad"
-	ExchangePangolin      Exchange = "pangolin"
-	ExchangeTraderJoe     Exchange = "traderjoe"
-	ExchangeLydia         Exchange = "lydia"
-	ExchangeYetiSwap      Exchange = "yetiswap"
-	ExchangeApeSwap       Exchange = "apeswap"
-	ExchangeJetSwap       Exchange = "jetswap"
-	ExchangeMDex          Exchange = "mdex"
-	ExchangePancake       Exchange = "pancake"
-	ExchangeWault         Exchange = "wault"
-	ExchangePancakeLegacy Exchange = "pancake-legacy"
-	ExchangeBiSwap        Exchange = "biswap"
-	ExchangePantherSwap   Exchange = "pantherswap"
-	ExchangeVVS           Exchange = "vvs"
-	ExchangeCronaSwap     Exchange = "cronaswap"
-	ExchangeCrodex        Exchange = "crodex"
-	ExchangeMMF           Exchange = "mmf"
-	ExchangeEmpireDex     Exchange = "empiredex"
-	ExchangePhotonSwap    Exchange = "photonswap"
-	ExchangeUniSwap       Exchange = "uniswap"
-	ExchangeUniSwapV2     Exchange = "uniswap-v2"
-	ExchangeShibaSwap     Exchange = "shibaswap"
-	ExchangeDefiSwap      Exchange = "defiswap"
-	ExchangeSpookySwap    Exchange = "spookyswap"
-	ExchangeSpiritSwap    Exchange = "spiritswap"
-	ExchangePaintSwap     Exchange = "paintswap"
-	ExchangeMorpheus      Exchange = "morpheus"
-	ExchangeValleySwap    Exchange = "valleyswap"
-	ExchangeYuzuSwap      Exchange = "yuzuswap"
-	ExchangeGemKeeper     Exchange = "gemkeeper"
-	ExchangeLizard        Exchange = "lizard"
-	ExchangeValleySwapV2  Exchange = "valleyswap-v2"
-	ExchangeZipSwap       Exchange = "zipswap"
-	ExchangeQuickSwap     Exchange = "quickswap"
-	ExchangePolycat       Exchange = "polycat"
-	ExchangeDFYN          Exchange = "dfyn"
-	ExchangePolyDex       Exchange = "polydex"
-	ExchangeGravity       Exchange = "gravity"
-	ExchangeCometh        Exchange = "cometh"
-	ExchangeDinoSwap      Exchange = "dinoswap"
-	ExchangeKrptoDex      Exchange = "kryptodex"
-	ExchangeSafeSwap      Exchange = "safeswap"
-	ExchangeSwapr         Exchange = "swapr"
-	ExchangeWagyuSwap     Exchange = "wagyuswap"
-	ExchangeAstroSwap     Exchange = "astroswap"
-	ExchangeCamelot       Exchange = "camelot"
-	ExchangeFraxSwap      Exchange = "fraxswap"
+	ExchangeSushiSwap       Exchange = "sushiswap"
+	ExchangeTrisolaris      Exchange = "trisolaris"
+	ExchangeWannaSwap       Exchange = "wannaswap"
+	ExchangeNearPad         Exchange = "nearpad"
+	ExchangePangolin        Exchange = "pangolin"
+	ExchangeTraderJoe       Exchange = "traderjoe"
+	ExchangeLydia           Exchange = "lydia"
+	ExchangeYetiSwap        Exchange = "yetiswap"
+	ExchangeApeSwap         Exchange = "apeswap"
+	ExchangeJetSwap         Exchange = "jetswap"
+	ExchangeMDex            Exchange = "mdex"
+	ExchangePancake         Exchange = "pancake"
+	ExchangeWault           Exchange = "wault"
+	ExchangePancakeLegacy   Exchange = "pancake-legacy"
+	ExchangeBiSwap          Exchange = "biswap"
+	ExchangePantherSwap     Exchange = "pantherswap"
+	ExchangeVVS             Exchange = "vvs"
+	ExchangeCronaSwap       Exchange = "cronaswap"
+	ExchangeCrodex          Exchange = "crodex"
+	ExchangeMMF             Exchange = "mmf"
+	ExchangeEmpireDex       Exchange = "empiredex"
+	ExchangePhotonSwap      Exchange = "photonswap"
+	ExchangeUniSwap         Exchange = "uniswap"
+	ExchangeUniSwapV2       Exchange = "uniswap-v2"
+	ExchangeShibaSwap       Exchange = "shibaswap"
+	ExchangeDefiSwap        Exchange = "defiswap"
+	ExchangeSpookySwap      Exchange = "spookyswap"
+	ExchangeSpiritSwap      Exchange = "spiritswap"
+	ExchangePaintSwap       Exchange = "paintswap"
+	ExchangeMorpheus        Exchange = "morpheus"
+	ExchangeValleySwap      Exchange = "valleyswap"
+	ExchangeYuzuSwap        Exchange = "yuzuswap"
+	ExchangeGemKeeper       Exchange = "gemkeeper"
+	ExchangeLizard          Exchange = "lizard"
+	ExchangeValleySwapV2    Exchange = "valleyswap-v2"
+	ExchangeZipSwap         Exchange = "zipswap"
+	ExchangeQuickSwap       Exchange = "quickswap"
+	ExchangePolycat         Exchange = "polycat"
+	ExchangeDFYN            Exchange = "dfyn"
+	ExchangePolyDex         Exchange = "polydex"
+	ExchangeGravity         Exchange = "gravity"
+	ExchangeCometh          Exchange = "cometh"
+	ExchangeDinoSwap        Exchange = "dinoswap"
+	ExchangeKrptoDex        Exchange = "kryptodex"
+	ExchangeSafeSwap        Exchange = "safeswap"
+	ExchangeSwapr           Exchange = "swapr"
+	ExchangeWagyuSwap       Exchange = "wagyuswap"
+	ExchangeAstroSwap       Exchange = "astroswap"
+	ExchangeCamelot         Exchange = "camelot"
+	ExchangeFraxSwap        Exchange = "fraxswap"
+	ExchangeBlasterSwap     Exchange = "blasterswap"
+	ExchangeBlastDex        Exchange = "blastdex"
+	ExchangeHyperBlast      Exchange = "hyper-blast"
+	ExchangeSquadSwap       Exchange = "squadswap"
+	ExchangeLiquidusFinance Exchange = "liquidus-finance"
 
 	ExchangeOneSwap    Exchange = "oneswap"
 	ExchangeNerve      Exchange = "nerve"
@@ -65,13 +70,24 @@ var (
 	ExchangeEllipsis      Exchange = "ellipsis"
 	ExchangePancakeStable Exchange = "pancake-stable"
 
+	ExchangeCurveStablePlain  Exchange = "curve-stable-plain"
+	ExchangeCurveStableNg     Exchange = "curve-stable-ng"
+	ExchangeCurveStableMetaNg Exchange = "curve-stable-meta-ng"
+	ExchangeCurveTriCryptoNg  Exchange = "curve-tricrypto-ng"
+
 	ExchangeUniSwapV3        Exchange = "uniswapv3"
 	ExchangeKyberswapElastic Exchange = "kyberswap-elastic"
+	ExchangeRoguex           Exchange = "roguex"
+	ExchangeEqualizerCL      Exchange = "equalizer-cl"
 
 	ExchangeBalancer   Exchange = "balancer"
 	ExchangeBeethovenX Exchange = "beethovenx"
 
-	ExchangeDodo Exchange = "dodo"
+	ExchangeDodo               Exchange = "dodo"
+	ExchangeDodoClassical      Exchange = "dodo-classical"
+	ExchangeDodoPrivatePool    Exchange = "dodo-dpp"
+	ExchangeDodoStablePool     Exchange = "dodo-dsp"
+	ExchangeDodoVendingMachine Exchange = "dodo-dvm"
 
 	ExchangeGMX       Exchange = "gmx"
 	ExchangeMadMex    Exchange = "madmex"
@@ -87,12 +103,13 @@ var (
 	ExchangeKyberSwap       Exchange = "kyberswap"
 	ExchangeKyberSwapStatic Exchange = "kyberswap-static"
 
-	ExchangeVelodrome Exchange = "velodrome"
-	ExchangeDystopia  Exchange = "dystopia"
-	ExchangeChronos   Exchange = "chronos"
-	ExchangeRamses    Exchange = "ramses"
-	ExchangeVelocore  Exchange = "velocore"
-	ExchangePearl     Exchange = "pearl"
+	ExchangeVelodrome    Exchange = "velodrome"
+	ExchangeDystopia     Exchange = "dystopia"
+	ExchangeChronos      Exchange = "chronos"
+	ExchangeRamses       Exchange = "ramses"
+	ExchangeVelocore     Exchange = "velocore"
+	ExchangePearl        Exchange = "pearl"
+	ExchangeDegenExpress Exchange = "degen-express"
 
 	ExchangePlatypus Exchange = "platypus"
 
@@ -171,20 +188,24 @@ var (
 
 	ExchangeMakerLidoStETH Exchange = "lido-steth"
 
-	ExchangeVelodromeV2 Exchange = "velodrome-v2"
-	ExchangeAerodrome   Exchange = "aerodrome"
-	ExchangeFvm         Exchange = "fvm"
-	ExchangeBvm         Exchange = "bvm"
-	ExchangeMuteSwitch  Exchange = "muteswitch"
-	ExchangeRetro       Exchange = "retro"
-	ExchangeThena       Exchange = "thena"
-	ExchangeThenaFusion Exchange = "thena-fusion"
-	ExchangePearlV2     Exchange = "pearl-v2"
-	ExchangeBaso        Exchange = "baso"
-	ExchangeLyve        Exchange = "lyve"
-	ExchangeScale       Exchange = "scale"
-	ExchangeUSDFi       Exchange = "usdfi"
-	ExchangeSkydrome    Exchange = "skydrome"
+	ExchangeVelodromeV2   Exchange = "velodrome-v2"
+	ExchangeAerodrome     Exchange = "aerodrome"
+	ExchangeFvm           Exchange = "fvm"
+	ExchangeBvm           Exchange = "bvm"
+	ExchangeMuteSwitch    Exchange = "muteswitch"
+	ExchangeRetro         Exchange = "retro"
+	ExchangeThena         Exchange = "thena"
+	ExchangeThenaFusion   Exchange = "thena-fusion"
+	ExchangePearlV2       Exchange = "pearl-v2"
+	ExchangeBaso          Exchange = "baso"
+	ExchangeLyve          Exchange = "lyve"
+	ExchangeScale         Exchange = "scale"
+	ExchangeUSDFi         Exchange = "usdfi"
+	ExchangeSkydrome      Exchange = "skydrome"
+	ExchangeEqual         Exchange = "equal"
+	ExchangeLynexV1       Exchange = "lynex-v1"
+	ExchangeSkydromeV2    Exchange = "skydrome-v2"
+	ExchangeKellerFinance Exchange = "keller-finance"
 
 	ExchangeWombat     Exchange = "wombat"
 	ExchangeMantisSwap Exchange = "mantisswap"
@@ -195,8 +216,10 @@ var (
 
 	ExchangeKyberSwapLimitOrderDS Exchange = "kyberswap-limit-order-v2"
 
-	ExchangeKyberPMM Exchange = "kyber-pmm"
-	ExchangeSwaapV2  Exchange = "swaap-v2"
+	ExchangeKyberPMM   Exchange = "kyber-pmm"
+	ExchangeSwaapV2    Exchange = "swaap-v2"
+	ExchangeHashflowV3 Exchange = "hashflow-v3"
+	ExchangeNativeV1   Exchange = "native-v1"
 
 	ExchangeTraderJoeV20 Exchange = "traderjoe-v20"
 	ExchangeTraderJoeV21 Exchange = "traderjoe-v21"
@@ -204,6 +227,7 @@ var (
 	ExchangeIZiSwap Exchange = "iziswap"
 
 	ExchangeWooFiV2  Exchange = "woofi-v2"
+	ExchangeWooFiV3  Exchange = "woofi-v3"
 	ExchangeVesync   Exchange = "vesync"
 	ExchangeDackieV2 Exchange = "dackie-v2"
 
@@ -224,6 +248,8 @@ var (
 	ExchangeVelocoreV2WombatStable Exchange = "velocore-v2-wombat-stable"
 	ExchangeAlienBaseStableSwap    Exchange = "alien-base-stableswap"
 
+	ExchangeBladeSwap Exchange = "blade-swap"
+
 	ExchangeNile   Exchange = "nile"
 	ExchangeNileV2 Exchange = "nile-v2"
 
@@ -233,6 +259,83 @@ var (
 
 	ExchangeNuri   Exchange = "nuri"
 	ExchangeNuriV2 Exchange = "nuri-v2"
+
+	ExchangeBancorV21 Exchange = "bancor-v21"
+	ExchangeBancorV3  Exchange = "bancor-v3"
+
+	ExchangeEtherfiEETH  Exchange = "etherfi-eeth"
+	ExchangeEtherfiWEETH Exchange = "etherfi-weeth"
+
+	ExchangeKelpRSETH Exchange = "kelp-rseth"
+
+	ExchangeRocketPoolRETH Exchange = "rocketpool-reth"
+
+	ExchangeEthenaSusde Exchange = "ethena-susde"
+
+	ExchangeMakerSavingsDai Exchange = "maker-savingsdai"
+
+	ExchangeRenzoEZETH Exchange = "renzo-ezeth"
+
+	ExchangeSwellSWETH  Exchange = "swell-sweth"
+	ExchangeSwellRSWETH Exchange = "swell-rsweth"
+
+	ExchangeBedrockUniETH Exchange = "bedrock-unieth"
+
+	ExchangePufferPufETH Exchange = "puffer-pufeth"
+
+	ExchangeRingSwap        Exchange = "ring-swap"
+	ExchangeThrusterV2      Exchange = "thruster-v2"
+	ExchangeThrusterV2Degen Exchange = "thruster-v2-degen"
+	ExchangeDyorSwap        Exchange = "dyor-swap"
+	ExchangeSwapBlast       Exchange = "swap-blast"
+	ExchangeMonoswap        Exchange = "monoswap"
+	ExchangeThrusterV3      Exchange = "thruster-v3"
+	ExchangeCyberblastV3    Exchange = "cyberblast-v3"
+	ExchangeMonoswapV3      Exchange = "monoswap-v3"
+
+	ExchangeAgniFinance    Exchange = "agni-finance"
+	ExchangeMerchantMoe    Exchange = "merchant-moe"
+	ExchangeFusionX        Exchange = "fusion-x"
+	ExchangeFusionXV3      Exchange = "fusion-x-v3"
+	ExchangeKTX            Exchange = "ktx"
+	ExchangeTsunamiX       Exchange = "tsunami-x"
+	ExchangeCleopatra      Exchange = "cleopatra"
+	ExchangeCleopatraV2    Exchange = "cleopatra-v2"
+	ExchangeStratumFinance Exchange = "stratum-finance"
+	ExchangeMVM            Exchange = "mvm"
+	ExchangeButterFi       Exchange = "butter-fi"
+	ExchangeMerchantMoeV22 Exchange = "merchant-moe-v22"
+	ExchangeNomiswapStable Exchange = "nomiswap-stable"
+
+	ExchangeStationDexV2 Exchange = "station-dex-v2"
+	ExchangeAbstra       Exchange = "abstra"
+	ExchangeRevoSwap     Exchange = "revo-swap"
+	ExchangePotatoSwap   Exchange = "potato-swap"
+	ExchangeXLayerSwap   Exchange = "xlayer-swap"
+	ExchangeStationDexV3 Exchange = "station-dex-v3"
+
+	ExchangeVelodromeCL Exchange = "velodrome-cl"
+	ExchangeAerodromeCL Exchange = "aerodrome-cl"
+
+	ExchangeLineHubV2 Exchange = "linehub-v2"
+	ExchangeLineHubV3 Exchange = "linehub-v3"
+	ExchangeWigoSwap  Exchange = "wigo-swap"
+
+	ExchangeInfusion Exchange = "infusion"
+	ExchangeSoSwap   Exchange = "soswap"
+
+	ExchangeSpookySwapV3 Exchange = "spookyswap-v3"
+	ExchangeThick        Exchange = "thick"
+	ExchangeE3           Exchange = "e3"
+	ExchangeAlienBaseCL  Exchange = "alien-base-cl"
+	ExchangeKinetixV2    Exchange = "kinetix-v2"
+	ExchangeKinetixV3    Exchange = "kinetix-v3"
+
+	ExchangeAlienBaseDegen Exchange = "alien-base-degen"
+	ExchangeKoiCL          Exchange = "koi-cl"
+	ExchangeTokan          Exchange = "tokan-exchange"
+	ExchangeSectaV2        Exchange = "secta-v2"
+	ExchangeSectaV3        Exchange = "secta-v3"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -293,6 +396,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSaddle:                     {},
 	ExchangeAxial:                      {},
 	ExchangeCurve:                      {},
+	ExchangeCurveStablePlain:           {},
+	ExchangeCurveStableNg:              {},
+	ExchangeCurveStableMetaNg:          {},
+	ExchangeCurveTriCryptoNg:           {},
 	ExchangeEllipsis:                   {},
 	ExchangePancakeStable:              {},
 	ExchangeUniSwapV3:                  {},
@@ -300,6 +407,10 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBalancer:                   {},
 	ExchangeBeethovenX:                 {},
 	ExchangeDodo:                       {},
+	ExchangeDodoClassical:              {},
+	ExchangeDodoPrivatePool:            {},
+	ExchangeDodoStablePool:             {},
+	ExchangeDodoVendingMachine:         {},
 	ExchangeGMX:                        {},
 	ExchangeMadMex:                     {},
 	ExchangeMetavault:                  {},
@@ -405,6 +516,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeTraderJoeV21:               {},
 	ExchangeIZiSwap:                    {},
 	ExchangeWooFiV2:                    {},
+	ExchangeWooFiV3:                    {},
 	ExchangeVesync:                     {},
 	ExchangeDackieV2:                   {},
 	ExchangeMMFV3:                      {},
@@ -425,6 +537,79 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBlueprint:                  {},
 	ExchangeNuri:                       {},
 	ExchangeNuriV2:                     {},
+	ExchangeBancorV21:                  {},
+	ExchangeBancorV3:                   {},
+	ExchangeEtherfiEETH:                {},
+	ExchangeEtherfiWEETH:               {},
+	ExchangeZkEraFinance:               {},
+	ExchangeKelpRSETH:                  {},
+	ExchangeRocketPoolRETH:             {},
+	ExchangeEthenaSusde:                {},
+	ExchangeMakerSavingsDai:            {},
+	ExchangeSwellSWETH:                 {},
+	ExchangeSwellRSWETH:                {},
+	ExchangeBedrockUniETH:              {},
+	ExchangePufferPufETH:               {},
+	ExchangeRingSwap:                   {},
+	ExchangeThrusterV2:                 {},
+	ExchangeThrusterV2Degen:            {},
+	ExchangeDyorSwap:                   {},
+	ExchangeSwapBlast:                  {},
+	ExchangeMonoswap:                   {},
+	ExchangeThrusterV3:                 {},
+	ExchangeCyberblastV3:               {},
+	ExchangeMonoswapV3:                 {},
+	ExchangeBlasterSwap:                {},
+	ExchangeBladeSwap:                  {},
+	ExchangeBlastDex:                   {},
+	ExchangeHyperBlast:                 {},
+	ExchangeRoguex:                     {},
+	ExchangeEqual:                      {},
+	ExchangeEqualizerCL:                {},
+	ExchangeAgniFinance:                {},
+	ExchangeMerchantMoe:                {},
+	ExchangeFusionX:                    {},
+	ExchangeFusionXV3:                  {},
+	ExchangeKTX:                        {},
+	ExchangeTsunamiX:                   {},
+	ExchangeCleopatra:                  {},
+	ExchangeCleopatraV2:                {},
+	ExchangeStratumFinance:             {},
+	ExchangeMVM:                        {},
+	ExchangeButterFi:                   {},
+	ExchangeLynexV1:                    {},
+	ExchangeSkydromeV2:                 {},
+	ExchangeSquadSwap:                  {},
+	ExchangeMerchantMoeV22:             {},
+	ExchangeLiquidusFinance:            {},
+	ExchangeNomiswapStable:             {},
+	ExchangeKellerFinance:              {},
+	ExchangeRenzoEZETH:                 {},
+	ExchangeDegenExpress:               {},
+	ExchangeStationDexV2:               {},
+	ExchangeAbstra:                     {},
+	ExchangeRevoSwap:                   {},
+	ExchangePotatoSwap:                 {},
+	ExchangeXLayerSwap:                 {},
+	ExchangeStationDexV3:               {},
+	ExchangeVelodromeCL:                {},
+	ExchangeAerodromeCL:                {},
+	ExchangeLineHubV2:                  {},
+	ExchangeLineHubV3:                  {},
+	ExchangeWigoSwap:                   {},
+	ExchangeInfusion:                   {},
+	ExchangeSoSwap:                     {},
+	ExchangeSpookySwapV3:               {},
+	ExchangeThick:                      {},
+	ExchangeE3:                         {},
+	ExchangeAlienBaseCL:                {},
+	ExchangeKinetixV2:                  {},
+	ExchangeKinetixV3:                  {},
+	ExchangeAlienBaseDegen:             {},
+	ExchangeKoiCL:                      {},
+	ExchangeTokan:                      {},
+	ExchangeSectaV2:                    {},
+	ExchangeSectaV3:                    {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
@@ -434,8 +619,9 @@ func IsAMMSource(exchange Exchange) bool {
 }
 
 var RFQSourceSet = map[Exchange]struct{}{
-	ExchangeKyberPMM: {},
-	ExchangeSwaapV2:  {},
+	ExchangeKyberPMM:   {},
+	ExchangeSwaapV2:    {},
+	ExchangeHashflowV3: {},
 
 	ExchangeKyberSwapLimitOrderDS: {},
 }

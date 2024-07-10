@@ -10,8 +10,8 @@ func transformSubgraphBins(
 	subgraphBins []binSubgraphResp,
 	unitX *big.Float,
 	unitY *big.Float,
-) ([]bin, error) {
-	ret := make([]bin, 0, len(subgraphBins))
+) ([]Bin, error) {
+	ret := make([]Bin, 0, len(subgraphBins))
 	for _, b := range subgraphBins {
 		id, err := strconv.ParseUint(b.BinID, 10, 32)
 		if err != nil {
@@ -30,13 +30,10 @@ func transformSubgraphBins(
 		}
 		reserveYInt, _ := new(big.Float).Mul(reserveY, unitY).Int(nil)
 
-		totalSupply, _ := new(big.Int).SetString(b.TotalSupply, 10)
-
-		ret = append(ret, bin{
-			ID:          uint32(id),
-			ReserveX:    reserveXInt,
-			ReserveY:    reserveYInt,
-			TotalSupply: totalSupply,
+		ret = append(ret, Bin{
+			ID:       uint32(id),
+			ReserveX: reserveXInt,
+			ReserveY: reserveYInt,
 		})
 	}
 

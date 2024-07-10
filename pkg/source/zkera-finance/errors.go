@@ -15,4 +15,6 @@ var (
 	ErrVaultPriceFeedChainlinkFeedsNotUpdated = errors.New("chainlink feeds are not being updated")
 
 	ErrInvalidSecondaryPriceFeedVersion = errors.New("invalid secondary price feed version")
+
+	ErrDivisionByZero = errors.New("division by zero")
 )

@@ -6,8 +6,8 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/iZiSwap-SDK-go/swap"
 	"github.com/KyberNetwork/logger"
-	"github.com/izumiFinance/iZiSwap-SDK-go/swap"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -42,12 +42,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	reserves0, ok := new(big.Int).SetString(entityPool.Reserves[0], 10)
 	if !ok {
-		return nil, errors.Wrapf(ErrInvalidReserve, "fail to parse reserve[0] %s to big.Int", entityPool.Reserves[0])
+		return nil, errors.WithMessagef(ErrInvalidReserve, "[iziswap] fail to parse reserve[0] %s to big.Int", entityPool.Reserves[0])
 	}
 
 	reserves1, ok := new(big.Int).SetString(entityPool.Reserves[1], 10)
 	if !ok {
-		return nil, errors.Wrapf(ErrInvalidReserve, "fail to parse reserve[1] %s to big.Int", entityPool.Reserves[1])
+		return nil, errors.WithMessagef(ErrInvalidReserve, "[iziswap] fail to parse reserve[1] %s to big.Int", entityPool.Reserves[1])
 	}
 
 	// swapFeeFl := new(big.Float).Mul(big.NewFloat(entityPool.SwapFee), boneFloat)
@@ -132,6 +132,102 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			},
 			Fee: &pool.TokenAmount{
 				Token:  tokenAmountIn.Token,
+				Amount: nil,
+			},
+			SwapInfo: iZiSwapInfo{
+				nextPoint:      ret.CurrentPoint,
+				nextLiquidity:  new(big.Int).Set(ret.Liquidity),
+				nextLiquidityX: new(big.Int).Set(ret.LiquidityX),
+			},
+		}, nil
+	}
+}
+
+func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	tokenAmountOut := param.TokenAmountOut
+	tokenIn := param.TokenIn
+	tokenInAddr := tokenIn
+	tokenOutAddr := tokenAmountOut.Token
+
+	tokenInIndex := p.GetTokenIndex(tokenInAddr)
+	tokenOutIndex := p.GetTokenIndex(tokenOutAddr)
+	if tokenInIndex < 0 || tokenOutIndex < 0 || tokenInIndex == tokenOutIndex {
+		return &pool.CalcAmountInResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
+	}
+
+	// Clone tokenAmountOut.Amount, since the SDK will mutate it
+	tokenAmountOutAmount := new(big.Int).Set(tokenAmountOut.Amount)
+
+	x2y := tokenInAddr < tokenOutAddr
+	if x2y {
+		// todo, not limit swap-range in the future
+		//    or give a way to modify it
+		lowPt := p.PoolInfo.CurrentPoint - SIMULATOR_PT_RANGE
+		ret, err := swap.SwapX2YDesireY(tokenAmountOutAmount, lowPt, p.PoolInfo)
+		if err != nil {
+			return &pool.CalcAmountInResult{}, err
+		}
+
+		remainingAmountOut := new(big.Int).Sub(tokenAmountOut.Amount, ret.AmountY)
+
+		amountX := ret.AmountX
+		// // Fee can be ignored for now
+		// amountX := ret.AmountX
+		// fee := new(big.Int).Mul(&amountX, big.NewInt(int64(p.PoolInfo.Fee)))
+		// fee.Div(fee, feeBase)
+
+		swapInfo := iZiSwapInfo{
+			nextPoint: ret.CurrentPoint,
+		}
+
+		if ret.Liquidity != nil {
+			swapInfo.nextLiquidity = new(big.Int).Set(ret.Liquidity)
+		}
+		if ret.LiquidityX != nil {
+			swapInfo.nextLiquidityX = new(big.Int).Set(ret.LiquidityX)
+		}
+
+		return &pool.CalcAmountInResult{
+			TokenAmountIn: &pool.TokenAmount{
+				Token:  tokenIn,
+				Amount: amountX,
+			},
+			RemainingTokenAmountOut: &pool.TokenAmount{
+				Token:  tokenAmountOut.Token,
+				Amount: remainingAmountOut,
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenAmountOut.Token,
+				Amount: nil,
+			},
+			SwapInfo: swapInfo,
+		}, nil
+	} else {
+		// todo, not limit swap-range in the future
+		//    or give a way to modify it
+		highPt := p.PoolInfo.CurrentPoint + SIMULATOR_PT_RANGE
+		ret, err := swap.SwapY2XDesireX(tokenAmountOutAmount, highPt, p.PoolInfo)
+		if err != nil {
+			return &pool.CalcAmountInResult{}, err
+		}
+
+		remainingAmountOut := new(big.Int).Sub(tokenAmountOut.Amount, ret.AmountX)
+
+		amountY := ret.AmountY
+		// // Fee can be ignored for now
+		// fee := new(big.Int).Mul(amountX, big.NewInt(int64(p.PoolInfo.Fee)))
+		// fee.Div(fee, feeBase)
+		return &pool.CalcAmountInResult{
+			TokenAmountIn: &pool.TokenAmount{
+				Token:  tokenIn,
+				Amount: amountY,
+			},
+			RemainingTokenAmountOut: &pool.TokenAmount{
+				Token:  tokenAmountOut.Token,
+				Amount: remainingAmountOut,
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenAmountOut.Token,
 				Amount: nil,
 			},
 			SwapInfo: iZiSwapInfo{

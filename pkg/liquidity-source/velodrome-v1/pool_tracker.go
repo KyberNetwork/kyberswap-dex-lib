@@ -2,6 +2,7 @@ package velodromev1
 
 import (
 	"context"
+	"errors"
 	"math/big"
 	"time"
 
@@ -20,10 +21,15 @@ type (
 	}
 
 	PoolTracker struct {
-		config       *Config
-		ethrpcClient *ethrpc.Client
-		logDecoder   ILogDecoder
+		config             *Config
+		ethrpcClient       *ethrpc.Client
+		logDecoder         ILogDecoder
+		feeTrackerRegistry map[string]IFeeTracker
 	}
+)
+
+var (
+	ErrFeeTrackerMissing = errors.New("fee tracker missing")
 )
 
 func NewPoolTracker(
@@ -34,6 +40,12 @@ func NewPoolTracker(
 		config:       config,
 		ethrpcClient: ethrpcClient,
 		//logDecoder:   NewLogDecoder(),
+		feeTrackerRegistry: map[string]IFeeTracker{
+			FeeTrackerIDVelodrome: &VelodromeFeeTracker{ethrpcClient: ethrpcClient},
+			FeeTrackerIDStratum:   &StratumFeeTracker{ethrpcClient: ethrpcClient},
+			FeeTrackerIDNuri:      &NuriFeeTracker{ethrpcClient: ethrpcClient},
+			FeeTrackerIDLyve:      &LyveFeeTracker{ethrpcClient: ethrpcClient},
+		},
 	}, nil
 }
 
@@ -66,7 +78,12 @@ func (d *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	isPaused, fee, err := d.getFactoryData(ctx, staticExtra.Stable, blockNumber)
+	isPaused, err := d.getFactoryData(ctx, blockNumber)
+	if err != nil {
+		return p, err
+	}
+
+	fee, err := d.getFee(ctx, p.Address, staticExtra.Stable, blockNumber)
 	if err != nil {
 		return p, err
 	}
@@ -87,10 +104,9 @@ func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, logs 
 	return reserveData, blockNumber, nil
 }
 
-func (d *PoolTracker) getFactoryData(ctx context.Context, stable bool, blockNumber uint64) (bool, uint64, error) {
+func (d *PoolTracker) getFactoryData(ctx context.Context, blockNumber uint64) (bool, error) {
 	var (
 		isPaused bool
-		fee      *big.Int
 	)
 
 	getFactoryDataRequest := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(big.NewInt(int64(blockNumber)))
@@ -101,18 +117,23 @@ func (d *PoolTracker) getFactoryData(ctx context.Context, stable bool, blockNumb
 		Method: pairFactoryMethodIsPaused,
 		Params: nil,
 	}, []interface{}{&isPaused})
-	getFactoryDataRequest.AddCall(&ethrpc.Call{
-		ABI:    pairFactoryABI,
-		Target: d.config.FactoryAddress,
-		Method: pairFactoryMethodGetFee,
-		Params: []interface{}{stable},
-	}, []interface{}{&fee})
 
 	if _, err := getFactoryDataRequest.TryBlockAndAggregate(); err != nil {
-		return false, 0, err
+		return false, err
 	}
 
-	return isPaused, fee.Uint64(), nil
+	return isPaused, nil
+}
+
+func (d *PoolTracker) getFee(ctx context.Context, poolAddress string, isStable bool, blockNumber uint64) (uint64, error) {
+	feeTracker, ok := d.feeTrackerRegistry[d.config.FeeTracker]
+	if !ok {
+		return 0, ErrFeeTrackerMissing
+	}
+
+	blockNumberBI := new(big.Int).SetUint64(blockNumber)
+
+	return feeTracker.GetFee(ctx, poolAddress, isStable, d.config.FactoryAddress, blockNumberBI)
 }
 
 func (d *PoolTracker) updatePool(

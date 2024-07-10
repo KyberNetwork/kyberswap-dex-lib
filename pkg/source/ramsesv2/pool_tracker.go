@@ -99,11 +99,11 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Liquidity:    rpcData.liquidity,
-		SqrtPriceX96: rpcData.slot0.SqrtPriceX96,
-		FeeTier:      rpcData.feeTier,
-		TickSpacing:  rpcData.tickSpacing,
-		Tick:         rpcData.slot0.Tick,
+		Liquidity:    rpcData.Liquidity,
+		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
+		FeeTier:      rpcData.FeeTier,
+		TickSpacing:  rpcData.TickSpacing,
+		Tick:         rpcData.Slot0.Tick,
 		Ticks:        ticks,
 	})
 	if err != nil {
@@ -117,13 +117,27 @@ func (d *PoolTracker) GetNewPoolState(
 	p.Extra = string(extraBytes)
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		rpcData.reserve0.String(),
-		rpcData.reserve1.String(),
+		rpcData.Reserve0.String(),
+		rpcData.Reserve1.String(),
 	}
 
 	logger.Infof("[%s] Finish updating state of pool: %v", d.config.DexID, p.Address)
 
 	return p, nil
+}
+
+func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool) ([]byte, error) {
+	rpcData, err := d.fetchRPCData(ctx, p)
+	if err != nil {
+		return nil, err
+	}
+
+	rpcDataBytes, err := json.Marshal(rpcData)
+	if err != nil {
+		return nil, err
+	}
+
+	return rpcDataBytes, nil
 }
 
 func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPCResult, error) {
@@ -193,12 +207,12 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 	}
 
 	return FetchRPCResult{
-		liquidity:   liquidity,
-		slot0:       slot0,
-		feeTier:     feeTier.Int64(),
-		tickSpacing: tickSpacing.Int64(),
-		reserve0:    reserve0,
-		reserve1:    reserve1,
+		Liquidity:   liquidity,
+		Slot0:       slot0,
+		FeeTier:     feeTier.Int64(),
+		TickSpacing: tickSpacing.Int64(),
+		Reserve0:    reserve0,
+		Reserve1:    reserve1,
 	}, err
 }
 
@@ -211,14 +225,14 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 		req := graphql.NewRequest(getPoolTicksQuery(allowSubgraphError, poolAddress, lastTickIdx))
 
 		var resp struct {
-			Pool *SubgraphPoolTicks        `json:"pool"`
-			Meta *valueobject.SubgraphMeta `json:"_meta"`
+			Ticks []TickResp                `json:"ticks"`
+			Meta  *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
 		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			// Workaround at the moment to live with the error subgraph on Arbitrum
 			if allowSubgraphError {
-				if resp.Pool == nil {
+				if resp.Ticks == nil {
 					logger.WithFields(logger.Fields{
 						"poolAddress":        poolAddress,
 						"error":              err,
@@ -240,17 +254,17 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 
 		resp.Meta.CheckIsLagging(d.config.DexID, poolAddress)
 
-		if resp.Pool == nil || len(resp.Pool.Ticks) == 0 {
+		if resp.Ticks == nil || len(resp.Ticks) == 0 {
 			break
 		}
 
-		ticks = append(ticks, resp.Pool.Ticks...)
+		ticks = append(ticks, resp.Ticks...)
 
-		if len(resp.Pool.Ticks) < graphFirstLimit {
+		if len(resp.Ticks) < graphFirstLimit {
 			break
 		}
 
-		lastTickIdx = resp.Pool.Ticks[len(resp.Pool.Ticks)-1].TickIdx
+		lastTickIdx = resp.Ticks[len(resp.Ticks)-1].TickIdx
 	}
 
 	return ticks, nil

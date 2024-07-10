@@ -20,8 +20,9 @@ import (
 )
 
 var (
-	ErrTickNil      = errors.New("tick is nil")
-	ErrV3TicksEmpty = errors.New("v3Ticks empty")
+	ErrTickNil        = errors.New("tick is nil")
+	ErrV3TicksEmpty   = errors.New("v3Ticks empty")
+	ErrInvalidFeeTier = errors.New("invalid feeTier")
 )
 
 type PoolSimulator struct {
@@ -78,7 +79,17 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 		return nil, ErrV3TicksEmpty
 	}
 
-	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, constants.TickSpacings[constants.FeeAmount(entityPool.SwapFee)])
+	tickSpacing := int(extra.TickSpacing)
+	// For some pools that not yet initialized tickSpacing in their extra,
+	// we will get the tickSpacing through feeTier mapping.
+	if tickSpacing == 0 {
+		feeTier := constants.FeeAmount(entityPool.SwapFee)
+		if _, ok := constants.TickSpacings[feeTier]; !ok {
+			return nil, ErrInvalidFeeTier
+		}
+		tickSpacing = constants.TickSpacings[feeTier]
+	}
+	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, tickSpacing)
 	if err != nil {
 		return nil, err
 	}
@@ -156,13 +167,23 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 			zeroForOne = true
 		}
 		amountIn := coreEntities.FromRawAmount(tokenIn, tokenAmountIn.Amount)
-		amountOut, newPoolState, err := p.V3Pool.GetOutputAmount(amountIn, p.getSqrtPriceLimit(zeroForOne))
+		amountOutResult, err := p.V3Pool.GetOutputAmount(amountIn, p.getSqrtPriceLimit(zeroForOne))
 
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not GetOutputAmount, err: %+v", err)
 		}
 
-		var totalGas = p.gas.Swap
+		amountOut := amountOutResult.ReturnedAmount
+		newPoolState := amountOutResult.NewPoolState
+		var remainingTokenAmountIn = &pool.TokenAmount{
+			Token: tokenAmountIn.Token,
+		}
+		if amountOutResult.RemainingAmountIn != nil {
+			remainingTokenAmountIn.Amount = amountOutResult.RemainingAmountIn.Quotient()
+		} else {
+			remainingTokenAmountIn.Amount = big.NewInt(0)
+		}
+		var totalGas = p.gas.BaseGas + p.gas.CrossInitTickGas*int64(amountOutResult.CrossInitTickLoops)
 
 		if amountOut.Quotient().Cmp(zeroBI) > 0 {
 			return &pool.CalcAmountOutResult{
@@ -170,6 +191,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 					Token:  tokenOut,
 					Amount: amountOut.Quotient(),
 				},
+				RemainingTokenAmountIn: remainingTokenAmountIn,
 				Fee: &pool.TokenAmount{
 					Token:  tokenAmountIn.Token,
 					Amount: nil,
@@ -187,6 +209,69 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}
 
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
+}
+
+func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	tokenAmountOut := param.TokenAmountOut
+	var tokenInIndex = p.GetTokenIndex(param.TokenIn)
+	var tokenOutIndex = p.GetTokenIndex(param.TokenAmountOut.Token)
+	var tokenOut *coreEntities.Token
+	var zeroForOne bool
+
+	if tokenInIndex >= 0 && tokenOutIndex >= 0 {
+		if strings.EqualFold(param.TokenAmountOut.Token, p.V3Pool.Token0.Address.String()) {
+			zeroForOne = false
+			tokenOut = p.V3Pool.Token0
+		} else {
+			tokenOut = p.V3Pool.Token1
+			zeroForOne = true
+		}
+		amountOut := coreEntities.FromRawAmount(tokenOut, param.TokenAmountOut.Amount)
+		getInputAmountResult, err := p.V3Pool.GetInputAmount(amountOut, p.getSqrtPriceLimit(zeroForOne))
+
+		if err != nil {
+			return nil, fmt.Errorf("can not GetInputAmount, err: %+v", err)
+		}
+
+		amountIn := getInputAmountResult.ReturnedAmount
+		newPoolState := getInputAmountResult.NewPoolState
+
+		var remainingTokenAmountOut = &pool.TokenAmount{
+			Token: tokenAmountOut.Token,
+		}
+		if getInputAmountResult.RemainingAmountOut != nil {
+			remainingTokenAmountOut.Amount = getInputAmountResult.RemainingAmountOut.Quotient()
+		} else {
+			remainingTokenAmountOut.Amount = big.NewInt(0)
+		}
+
+		var totalGas = p.gas.BaseGas + p.gas.CrossInitTickGas*int64(getInputAmountResult.CrossInitTickLoops)
+
+		amountInBI := amountIn.Quotient()
+		if amountInBI.Cmp(zeroBI) > 0 {
+			return &pool.CalcAmountInResult{
+				TokenAmountIn: &pool.TokenAmount{
+					Token:  param.TokenIn,
+					Amount: amountInBI,
+				},
+				RemainingTokenAmountOut: remainingTokenAmountOut,
+				Fee: &pool.TokenAmount{
+					Token:  param.TokenIn,
+					Amount: nil,
+				},
+				Gas: totalGas,
+				SwapInfo: SwapInfo{
+					nextStateSqrtRatioX96: new(big.Int).Set(newPoolState.SqrtRatioX96),
+					nextStateLiquidity:    new(big.Int).Set(newPoolState.Liquidity),
+					nextStateTickCurrent:  newPoolState.TickCurrent,
+				},
+			}, nil
+		}
+
+		return nil, errors.New("amountIn is 0")
+	}
+
+	return nil, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

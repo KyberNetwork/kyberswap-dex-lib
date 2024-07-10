@@ -79,14 +79,16 @@ func (t *Pool) GetType() string {
 }
 
 type CalcAmountOutResult struct {
-	TokenAmountOut *TokenAmount
-	Fee            *TokenAmount
-	Gas            int64
-	SwapInfo       interface{}
+	TokenAmountOut         *TokenAmount
+	Fee                    *TokenAmount
+	RemainingTokenAmountIn *TokenAmount
+	Gas                    int64
+	SwapInfo               interface{}
 }
 
 func (r *CalcAmountOutResult) IsValid() bool {
-	return r.TokenAmountOut != nil && r.TokenAmountOut.Amount != nil && r.TokenAmountOut.Amount.Cmp(ZeroBI) > 0
+	isRemainingValid := r.RemainingTokenAmountIn == nil || (r.RemainingTokenAmountIn != nil && r.RemainingTokenAmountIn.Amount.Cmp(ZeroBI) >= 0)
+	return r.TokenAmountOut != nil && r.TokenAmountOut.Amount != nil && r.TokenAmountOut.Amount.Cmp(ZeroBI) > 0 && isRemainingValid
 }
 
 type UpdateBalanceParams struct {
@@ -143,10 +145,11 @@ type CalcAmountInParams struct {
 }
 
 type CalcAmountInResult struct {
-	TokenAmountIn *TokenAmount
-	Fee           *TokenAmount
-	Gas           int64
-	SwapInfo      interface{}
+	TokenAmountIn           *TokenAmount
+	RemainingTokenAmountOut *TokenAmount
+	Fee                     *TokenAmount
+	Gas                     int64
+	SwapInfo                interface{}
 }
 
 // wrap around pool.CalcAmountOut and catch panic

@@ -7,9 +7,11 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type Pool struct {
@@ -82,6 +84,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 				Exchange: entityPool.Exchange,
 				Type:     entityPool.Type,
 				Tokens:   tokens,
+				Reserves: lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
 				Checked:  false,
 			},
 		},
@@ -114,7 +117,7 @@ func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 		var scaleAmount *big.Int
 		var err error
 
-		// in paraswap code, side is the input of exactOutput. In our simulation, exactOutput always equals false
+		// in paraswap code, side is the input of exactOutput. In our CalcAmountOut simulation, exactOutput always equals false
 		// https://github.com/paraswap/paraswap-dex-lib/blob/master/src/dex/maverick-v1/maverick-v1-pool.ts#L329
 
 		if strings.EqualFold(tokenAmountIn.Token, p.Pool.Info.Tokens[0]) {
@@ -136,7 +139,7 @@ func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not deepcopy maverick state, err: %v", err)
 		}
 
-		_, amountOut, binCrossed, err := GetAmountOut(newState, scaleAmount, tokenAIn, false, false)
+		_, amountOut, binCrossed, err := swap(newState, scaleAmount, tokenAIn, false, false)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not get amount out, err: %v", err)
 		}
@@ -176,6 +179,81 @@ func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 	}
 
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
+}
+
+func (p *Pool) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	tokenIn := param.TokenIn
+	tokenAmountOut := param.TokenAmountOut
+	var tokenInIndex = p.GetTokenIndex(tokenIn)
+	var tokenOutIndex = p.GetTokenIndex(tokenAmountOut.Token)
+
+	if tokenInIndex >= 0 && tokenOutIndex >= 0 {
+		var tokenAIn bool
+		var scaleAmount *big.Int
+		var err error
+
+		// in paraswap code, side is the input of exactOutput. In our CalcAmountIn simulation, exactOutput always equals true
+		// https://github.com/paraswap/paraswap-dex-lib/blob/master/src/dex/maverick-v1/maverick-v1-pool.ts#L329
+
+		if strings.EqualFold(tokenIn, p.Pool.Info.Tokens[0]) {
+			tokenAIn = true
+			scaleAmount, err = scaleFromAmount(tokenAmountOut.Amount, p.decimals[1])
+			if err != nil {
+				return &pool.CalcAmountInResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
+			}
+		} else {
+			tokenAIn = false
+			scaleAmount, err = scaleFromAmount(tokenAmountOut.Amount, p.decimals[0])
+			if err != nil {
+				return &pool.CalcAmountInResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
+			}
+		}
+
+		newState, err := DeepcopyState(p.state)
+		if err != nil {
+			return &pool.CalcAmountInResult{}, fmt.Errorf("can not deepcopy maverick state, err: %v", err)
+		}
+
+		amountIn, _, binCrossed, err := swap(newState, scaleAmount, tokenAIn, true, false)
+		if err != nil {
+			return &pool.CalcAmountInResult{}, fmt.Errorf("swap failed, err: %v", err)
+		}
+
+		var scaleAmountIn *big.Int
+		if strings.EqualFold(tokenIn, p.Pool.Info.Tokens[0]) {
+			scaleAmountIn, err = ScaleToAmount(amountIn, p.decimals[0])
+			if err != nil {
+				return &pool.CalcAmountInResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
+			}
+		} else {
+			scaleAmountIn, err = ScaleToAmount(amountIn, p.decimals[1])
+			if err != nil {
+				return &pool.CalcAmountInResult{}, fmt.Errorf("can not scale amount maverick, err: %v", err)
+			}
+		}
+
+		// this is not really correct, because some tick required `nextActive` while some doesn't
+		// but should be good enough for now
+		crossBinGas := p.gas.CrossBin * int64(binCrossed)
+
+		return &pool.CalcAmountInResult{
+			TokenAmountIn: &pool.TokenAmount{
+				Token:  tokenIn,
+				Amount: scaleAmountIn,
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenIn,
+				Amount: nil,
+			},
+			Gas: p.gas.Swap + crossBinGas,
+			SwapInfo: maverickSwapInfo{
+				activeTick: newState.ActiveTick,
+				bins:       newState.Bins,
+			},
+		}, nil
+	}
+
+	return &pool.CalcAmountInResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 }
 
 func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
