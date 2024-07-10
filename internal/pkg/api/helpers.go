@@ -8,6 +8,7 @@ import (
 	hashflowclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
 	nativeclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
 	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm/client"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/gin-gonic/gin"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase"
@@ -217,6 +218,12 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Code:       4228,
 		Message:    "native RFQ failed",
 		Details:    []interface{}{nativeclient.ErrRFQAllPricerFailed.Error()},
+	},
+	limitorder.ErrSameSenderMaker: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4228,
+		Message:    "Please use a different wallet to fill an order that you created via the KyberSwap Limit Order",
+		Details:    []interface{}{limitorder.ErrSameSenderMaker.Error()},
 	},
 }
 
