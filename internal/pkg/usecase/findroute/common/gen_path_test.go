@@ -12,11 +12,9 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 func TestGenKthBestPaths(t *testing.T) {
-	ctx := context.TODO()
 	t.Run("stress test GenKthBestPaths", func(t *testing.T) {
 		var (
 			nTokens                  = 100
@@ -33,16 +31,7 @@ func TestGenKthBestPaths(t *testing.T) {
 		priceUSDByAddress := valueobject.GenerateRandomPriceUSDByAddress(tokenAddressList)
 		poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList, pooltypes.PoolTypes.UniswapV2)
 		assert.Nil(t, err)
-		tokenToPoolAddress := make(map[string]*types.AddressList)
-		for poolAddress, pool := range poolByAddress {
-
-			for _, tokenAddress := range pool.GetTokens() {
-				if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
-					tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
-				}
-				tokenToPoolAddress[tokenAddress].AddAddress(ctx, poolAddress)
-			}
-		}
+		tokenToPoolAddress := types.MakeTokenToPoolAddressMapFromPools(poolByAddress)
 		var (
 			tokenIn  = tokenAddressList[valueobject.RandInt(0, nTokens)]
 			tokenOut = tokenAddressList[valueobject.RandInt(0, nTokens)]

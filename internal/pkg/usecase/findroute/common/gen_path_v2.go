@@ -157,11 +157,11 @@ func getNextLayerFromTokenV2(
 		ok bool
 	)
 
-	if data.TokenToPoolAddress[fromTokenAddress] == nil {
+	if data.TokenToPoolAddress.NumPools(fromTokenAddress) == 0 {
 		return nil, findroute.ErrNoPoolsFromToken
 	}
-	for i := 0; i < data.TokenToPoolAddress[fromTokenAddress].TrueLen; i++ {
-		poolAddress := data.TokenToPoolAddress[fromTokenAddress].Arr[i]
+	for i, n := 0, data.TokenToPoolAddress.NumPools(fromTokenAddress); i < n; i++ {
+		poolAddress := data.TokenToPoolAddress.GetPoolAddressAt(fromTokenAddress, i)
 		// If next pool addr == current pool addr -> skip because we have not update reserve balance on GenKBestPaths,
 		// so the way which go two same pools on a path will give wrong result.
 		if usedPools.Has(poolAddress) {

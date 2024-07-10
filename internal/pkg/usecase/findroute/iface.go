@@ -11,7 +11,6 @@ import (
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 // IFinder is an interface of finding route algorithm
@@ -63,7 +62,7 @@ type FinderData struct {
 	TokenByAddress map[string]*entity.Token
 
 	//TokenToPoolAddress store the adjacent list on our bfs traversal
-	TokenToPoolAddress map[string]*types.AddressList
+	TokenToPoolAddress *types.TokenToPoolAddressMap
 
 	// PriceUSDByAddress mapping from token address to price in USD
 	// will be removed once we finished migrating to onchain-price-service
@@ -86,15 +85,7 @@ type FinderData struct {
 }
 
 func NewFinderData(ctx context.Context, tokenByAddress map[string]*entity.Token, tokenPriceUSDByAddress map[string]float64, tokenPriceNativeByAddress map[string]*routerEntity.OnchainPrice, state *types.FindRouteState) FinderData {
-	tokenToPoolAddress := make(map[string]*types.AddressList)
-	for _, pool := range state.Pools {
-		for _, tokenAddress := range pool.GetTokens() {
-			if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
-				tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
-			}
-			tokenToPoolAddress[tokenAddress].AddAddress(ctx, pool.GetAddress())
-		}
-	}
+	tokenToPoolAddress := types.MakeTokenToPoolAddressMapFromPools(state.Pools)
 
 	return FinderData{
 		PoolBucket:         valueobject.NewPoolBucket(state.Pools),
@@ -110,9 +101,7 @@ func NewFinderData(ctx context.Context, tokenByAddress map[string]*entity.Token,
 }
 
 func (f *FinderData) ReleaseResources() {
-	for _, al := range f.TokenToPoolAddress {
-		mempool.ReturnAddressList(al)
-	}
+	f.TokenToPoolAddress.ReleaseResources()
 }
 
 // Refresh will deeply copy original swapLimit and clear poolBucket.

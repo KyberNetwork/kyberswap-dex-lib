@@ -12,7 +12,7 @@ import (
 func MinHopsToTokenOut(
 	poolByAddress map[string]poolpkg.IPoolSimulator,
 	tokenByAddress map[string]*entity.Token,
-	tokenToPoolAddresses map[string]*types.AddressList,
+	tokenToPoolAddresses *types.TokenToPoolAddressMap,
 	tokenOut string,
 ) (map[string]uint32, error) {
 	var (
@@ -28,11 +28,11 @@ func MinHopsToTokenOut(
 	for !queue.Empty() {
 		var token = queue.Dequeue().(string)
 		//no pool from this token
-		if tokenToPoolAddresses[token] == nil {
+		if tokenToPoolAddresses.NumPools(token) == 0 {
 			continue
 		}
-		for i := 0; i < tokenToPoolAddresses[token].TrueLen; i++ {
-			poolAddress := tokenToPoolAddresses[token].Arr[i]
+		for i, n := 0, tokenToPoolAddresses.NumPools(token); i < n; i++ {
+			poolAddress := tokenToPoolAddresses.GetPoolAddressAt(token, i)
 			//the adjacent map might include pools not in this particular bucket
 			if pool, ok = poolByAddress[poolAddress]; !ok {
 				continue
@@ -58,7 +58,7 @@ func MinHopsToTokenOut(
 func MinHopsToTokenOutWithWhitelist(
 	poolByAddress map[string]poolpkg.IPoolSimulator,
 	tokenByAddress map[string]*entity.Token,
-	tokenToPoolAddresses map[string]*types.AddressList,
+	tokenToPoolAddresses *types.TokenToPoolAddressMap,
 	whitelistedHopTokens map[string]bool,
 	tokenIn string,
 	tokenOut string,
@@ -75,12 +75,12 @@ func MinHopsToTokenOutWithWhitelist(
 
 	for !queue.Empty() {
 		var token = queue.Dequeue().(string)
-		if tokenToPoolAddresses[token] == nil {
+		if tokenToPoolAddresses.NumPools(token) == 0 {
 			//there is no adjacent from this token
 			continue
 		}
-		for i := 0; i < tokenToPoolAddresses[token].TrueLen; i++ {
-			poolAddress := tokenToPoolAddresses[token].Arr[i]
+		for i, n := 0, tokenToPoolAddresses.NumPools(token); i < n; i++ {
+			poolAddress := tokenToPoolAddresses.GetPoolAddressAt(token, i)
 			if pool, ok = poolByAddress[poolAddress]; !ok {
 				//this pool might not be available in current bucket
 				continue

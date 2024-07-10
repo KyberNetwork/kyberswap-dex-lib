@@ -104,7 +104,7 @@ func genNextLayerOfPaths(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenToPoolAddresses map[string]*types.AddressList,
+	tokenToPoolAddresses *types.TokenToPoolAddressMap,
 	hopsToTokenOut map[string]uint32,
 	maxHops uint32,
 	currentHop uint32,
@@ -153,7 +153,7 @@ func getNextLayerFromToken(
 	ctx context.Context,
 	input findroute.Input,
 	data findroute.FinderData,
-	tokenToPoolAddresses map[string]*types.AddressList,
+	tokenToPoolAddresses *types.TokenToPoolAddressMap,
 	hopsToTokenOut map[string]uint32,
 	maxHops uint32,
 	currentHop uint32,
@@ -194,11 +194,11 @@ func getNextLayerFromToken(
 		ok                     bool
 	)
 	// if there is no adjacent from this token
-	if tokenToPoolAddresses[fromTokenAddress] == nil {
+	if tokenToPoolAddresses.NumPools(fromTokenAddress) == 0 {
 		return nil, nil
 	}
-	for i := 0; i < tokenToPoolAddresses[fromTokenAddress].TrueLen; i++ {
-		poolAddress := tokenToPoolAddresses[fromTokenAddress].Arr[i]
+	for i, n := 0, tokenToPoolAddresses.NumPools(fromTokenAddress); i < n; i++ {
+		poolAddress := tokenToPoolAddresses.GetPoolAddressAt(fromTokenAddress, i)
 		// If next pool addr == current pool addr -> skip because we have not update reserve balance on GenKBestPaths,
 		// so the way which go two same pools on a path will give wrong result.
 		if usedPools.Has(poolAddress) {

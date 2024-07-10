@@ -1,7 +1,6 @@
 package common
 
 import (
-	"context"
 	"testing"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
@@ -13,11 +12,9 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 func TestMinHopToTokenOut(t *testing.T) {
-	ctx := context.TODO()
 	t.Run("test correctness of minHopToTokenOut", func(t *testing.T) {
 		tokenByAddress := map[string]*entity.Token{
 			"a": {Address: "a"},
@@ -60,15 +57,8 @@ func TestMinHopToTokenOut(t *testing.T) {
 			assert.Nil(t, err)
 			poolByAddress[pool.GetAddress()] = pool
 		}
-		tokenToPoolAddress := make(map[string]*types.AddressList)
-		for poolAddress, pool := range poolByAddress {
-			for _, tokenAddress := range pool.GetTokens() {
-				if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
-					tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
-				}
-				tokenToPoolAddress[tokenAddress].AddAddress(ctx, poolAddress)
-			}
-		}
+		tokenToPoolAddress := types.MakeTokenToPoolAddressMapFromPools(poolByAddress)
+		defer tokenToPoolAddress.ReleaseResources()
 		tokenOut := "a"
 		minHopsToTokenOut, err := MinHopsToTokenOut(poolByAddress, tokenByAddress, tokenToPoolAddress, tokenOut)
 		assert.Nil(t, err)
@@ -85,16 +75,8 @@ func TestMinHopToTokenOut(t *testing.T) {
 		}
 		poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList, pooltypes.PoolTypes.UniswapV2)
 		assert.Nil(t, err)
-		tokenToPoolAddress := make(map[string]*types.AddressList)
-		for poolAddress, pool := range poolByAddress {
-
-			for _, tokenAddress := range pool.GetTokens() {
-				if _, ok := tokenToPoolAddress[tokenAddress]; !ok {
-					tokenToPoolAddress[tokenAddress] = mempool.AddressListPool.Get().(*types.AddressList)
-				}
-				tokenToPoolAddress[tokenAddress].AddAddress(ctx, poolAddress)
-			}
-		}
+		tokenToPoolAddress := types.MakeTokenToPoolAddressMapFromPools(poolByAddress)
+		defer tokenToPoolAddress.ReleaseResources()
 		tokenOut := tokenAddressList[valueobject.RandInt(0, nTokens)]
 		_, err = MinHopsToTokenOut(poolByAddress, tokenByAddress, tokenToPoolAddress, tokenOut)
 		assert.Nil(t, err)

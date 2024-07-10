@@ -77,7 +77,7 @@ func (f *Spfav2Finder) bestRouteExactIn(ctx context.Context, input findroute.Inp
 func (f *Spfav2Finder) findMinHopsToTokenOut(
 	poolByAddress map[string]poolpkg.IPoolSimulator,
 	tokenByAddress map[string]*entity.Token,
-	tokenToPoolAddresses map[string]*types.AddressList,
+	tokenToPoolAddresses *types.TokenToPoolAddressMap,
 	tokenIn string,
 	tokenOut string,
 ) (map[string]uint32, error) {
