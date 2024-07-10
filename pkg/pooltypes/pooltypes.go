@@ -70,6 +70,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/metavault"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/muteswitch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nerve"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nuriv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/oneswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pancakev3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pearl"
@@ -205,6 +206,7 @@ type Types struct {
 	NativeV1                       string
 	RenzoEZETH                     string
 	Slipstream                     string
+	NuriV2                         string
 }
 
 var (
@@ -315,5 +317,6 @@ var (
 		NativeV1:                       nativev1.DexType,
 		RenzoEZETH:                     ezeth.DexType,
 		Slipstream:                     slipstream.DexType,
+		NuriV2:                         nuriv2.DexType,
 	}
 )
