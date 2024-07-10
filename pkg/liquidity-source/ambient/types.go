@@ -5,11 +5,6 @@ import (
 	"math/big"
 )
 
-const (
-	DexType    = "ambient"
-	fetchLimit = 1000
-)
-
 type FetchPoolsResponse struct {
 	Pools []Pool `json:"pools"`
 }
@@ -31,6 +26,11 @@ type StaticExtra struct {
 	Base    string `json:"base"`
 	Quote   string `json:"quote"`
 	PoolIdx string `json:"pool_idx"`
+}
+
+type Extra struct {
+	SqrtPriceX64 string `json:"sqrtPriceX64"`
+	Liquidity    string `json:"liquidity"`
 }
 
 type PoolData struct {

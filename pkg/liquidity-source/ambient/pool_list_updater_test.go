@@ -12,14 +12,14 @@ import (
 )
 
 func TestPoolListUpdater(t *testing.T) {
-	t.Skip()
+	// t.Skip()
 	var (
 		metadataBytes, _ = json.Marshal(ambient.PoolListUpdaterMetadata{LastCreateTime: 0})
 	)
 
 	pu := ambient.NewPoolsListUpdater(ambient.Config{
 		DexID:                  "ambient",
-		SubgraphURL:            "https://api.thegraph.com/subgraphs/name/crocswap/croc-mainnet",
+		SubgraphURL:            "https://api.studio.thegraph.com/query/47610/croc-mainnet/version/latest",
 		SubgraphRequestTimeout: durationjson.Duration{Duration: time.Second * 10},
 	})
 	pools, meta, err := pu.GetNewPools(context.Background(), metadataBytes)

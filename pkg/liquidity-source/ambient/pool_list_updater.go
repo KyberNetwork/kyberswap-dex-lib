@@ -145,7 +145,7 @@ func (u *PoolListUpdater) toEntPools(subgraphPools []Pool) ([]entity.Pool, error
 		pools = append(pools, entity.Pool{
 			Address:     sPool.ID,
 			Exchange:    u.cfg.DexID,
-			Type:        DexType,
+			Type:        DexTypeAmbient,
 			Tokens:      tokens,
 			Reserves:    reserves,
 			StaticExtra: string(sExtraBytes),
