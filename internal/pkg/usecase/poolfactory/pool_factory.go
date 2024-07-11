@@ -82,6 +82,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/mantisswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/metavault"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nuriv2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pancakev3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
 	polmatic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pol-matic"
@@ -564,6 +565,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newSwellSWETH(entityPool)
 	case pooltypes.PoolTypes.Slipstream:
 		return f.newSlipstream(entityPool)
+	case pooltypes.PoolTypes.NuriV2:
+		return f.newNuriV2(entityPool)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -1955,6 +1958,20 @@ func (f *PoolFactory) newSlipstream(entityPool entity.Pool) (*slipstream.PoolSim
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSlipstream] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newNuriV2(entityPool entity.Pool) (*nuriv2.PoolSimulator, error) {
+	corePool, err := nuriv2.NewPoolSimulator(entityPool, f.config.ChainID)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newNuriV2] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
