@@ -77,6 +77,7 @@ import (
 	pkg_source_mantisswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/mantisswap"
 	pkg_source_maverickv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
 	pkg_source_metavault "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/metavault"
+	pkg_source_nuriv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/nuriv2"
 	pkg_source_pancakev3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pancakev3"
 	pkg_source_platypus "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
 	pkg_source_polmatic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pol-matic"
@@ -175,6 +176,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_source_mantisswap.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_maverickv1.Pool{})
 	msgpack.RegisterConcreteType(&pkg_source_metavault.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_source_nuriv2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_pancakev3.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_platypus.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_polmatic.PoolSimulator{})
