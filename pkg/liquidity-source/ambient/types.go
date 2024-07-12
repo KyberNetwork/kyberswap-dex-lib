@@ -18,9 +18,14 @@ type PoolListUpdaterMetadata struct {
 }
 
 type StaticExtra struct {
-	Base    string `json:"base"`
-	Quote   string `json:"quote"`
+	// Base token, 0x0 if native token
+	Base string `json:"base"`
+	// Quote token
+	Quote string `json:"quote"`
+	// The index or discriminator of the pool in a logical list of pools with (base, quote) tokens. Default is "420".
 	PoolIdx string `json:"pool_idx"`
+	// The CrocSwapDex.sol contract address
+	SwapAddress string `json:"swap_address"`
 }
 
 type Extra struct {

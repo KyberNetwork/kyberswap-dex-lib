@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/machinebox/graphql"
 
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
@@ -119,23 +120,27 @@ func (u *PoolListUpdater) toEntPools(subgraphPools []Pool) ([]entity.Pool, error
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 
 	for _, sPool := range subgraphPools {
-		// each ambient virtual pool only have 2 tokens (base & quote)
-		tokens := []*entity.PoolToken{
-			{
-				Address:   sPool.Base,
-				Swappable: true,
-			},
-			{
-				Address:   sPool.Quote,
-				Swappable: true,
-			},
+		baseToken := &entity.PoolToken{
+			Address:   sPool.Base,
+			Swappable: true,
 		}
+		// replace placeholder address with actual ERC20 wrapped native token address
+		if common.HexToAddress(sPool.Base) == nativeTokenPlaceholderAddress {
+			baseToken.Address = u.cfg.NativeTokenAddress
+		}
+		quoteToken := &entity.PoolToken{
+			Address:   sPool.Quote,
+			Swappable: true,
+		}
+		// each ambient virtual pool only have 2 tokens (base & quote)
+		tokens := []*entity.PoolToken{baseToken, quoteToken}
 		reserves := []string{"0", "0"}
 
 		sExtra := StaticExtra{
-			Base:    sPool.Base,
-			Quote:   sPool.Quote,
-			PoolIdx: sPool.PoolIdx,
+			Base:        sPool.Base,
+			Quote:       sPool.Quote,
+			PoolIdx:     sPool.PoolIdx,
+			SwapAddress: u.cfg.SwapDexContractAddress,
 		}
 		sExtraBytes, err := json.Marshal(sExtra)
 		if err != nil {

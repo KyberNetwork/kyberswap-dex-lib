@@ -3,7 +3,6 @@ package ambient
 import (
 	"context"
 	"encoding/json"
-	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -21,9 +20,7 @@ const (
 )
 
 func TestPoolTracker(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip()
-	}
+	t.Skip()
 
 	cfg := Config{
 		DexID:                    DexTypeAmbient,
@@ -37,16 +34,18 @@ func TestPoolTracker(t *testing.T) {
 	tracker := NewPoolTracker(cfg, client)
 
 	staticExtra := StaticExtra{
-		Base:    "0x0000000000000000000000000000000000000000",
-		Quote:   "0xa0b73e1ff0b80914ab6fe0444e65848c4c34450b",
-		PoolIdx: "420",
+		Base:        "0x0000000000000000000000000000000000000000",
+		Quote:       "0xdac17f958d2ee523a2206206994597c13d831ec7",
+		PoolIdx:     "420",
+		SwapAddress: cfg.SwapDexContractAddress,
 	}
 	encodedStaticExtra, _ := json.Marshal(staticExtra)
-
-	pool, err := tracker.GetNewPoolState(context.Background(), entity.Pool{
-		Address:     "0x018b1f1a6fa4d7cebf8a2ea31bf76d0bc52c112bf75a4969f0e1596db32a826c",
+	poolEntity := entity.Pool{
+		Address:     "0x471e4d62cdce74782d2e37637bc454bb698cbec66c8f97c118ea96ee38e857da",
 		StaticExtra: string(encodedStaticExtra),
-	}, pool.GetNewPoolStateParams{})
+	}
+
+	pool, err := tracker.GetNewPoolState(context.Background(), poolEntity, pool.GetNewPoolStateParams{})
 	require.NoError(t, err)
 
 	spew.Dump(pool)

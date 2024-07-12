@@ -13,6 +13,7 @@ import (
 
 func TestPoolListUpdater(t *testing.T) {
 	t.Skip()
+
 	var (
 		metadataBytes, _ = json.Marshal(ambient.PoolListUpdaterMetadata{LastCreateTime: 0})
 	)

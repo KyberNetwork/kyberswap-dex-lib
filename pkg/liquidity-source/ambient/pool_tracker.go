@@ -69,7 +69,7 @@ func (t *PoolTracker) GetNewPoolState(
 	rpcRequest := t.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 
-	if baseToken == nativeTokenAddress {
+	if baseToken == nativeTokenPlaceholderAddress {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    multicallABI,
 			Target: t.cfg.MulticallContractAddress,
@@ -78,7 +78,7 @@ func (t *PoolTracker) GetNewPoolState(
 		}, []interface{}{&baseReserve})
 	} else {
 		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    ERC20ABI,
+			ABI:    erc20ABI,
 			Target: baseToken.Hex(),
 			Method: "balanceOf",
 			Params: []interface{}{swapAddress},
@@ -86,7 +86,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    ERC20ABI,
+		ABI:    erc20ABI,
 		Target: quoteToken.Hex(),
 		Method: "balanceOf",
 		Params: []interface{}{swapAddress},
@@ -115,9 +115,6 @@ func (t *PoolTracker) GetNewPoolState(
 		}).Errorf("failed to call pool: %v, err: %v", p.Address, err)
 		return p, err
 	}
-
-	fmt.Printf("baseReserve = %s\n", baseReserve)
-	fmt.Printf("quoteReserve = %s\n", quoteReserve)
 
 	encodedExtra, err := json.Marshal(Extra{
 		Liquidity:    liquidity.String(),
