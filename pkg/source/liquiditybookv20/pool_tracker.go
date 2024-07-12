@@ -10,11 +10,13 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/machinebox/graphql"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoecommon"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -49,7 +51,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 
 	g := new(errgroup.Group)
 	g.Go(func() error {
-		rpcResult, err = d.queryRpc(ctx, p)
+		rpcResult, err = d.queryRpc(ctx, p, 0)
 		if err != nil {
 			return err
 		}
@@ -72,6 +74,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		FeeParameters:          rpcResult.FeeParameters,
 		ActiveBinID:            uint32(rpcResult.ReservesAndID.ActiveId.Uint64()),
 		Bins:                   subgraphResult.Bins,
+		PriceX128:              rpcResult.PriceX128,
+		Liquidity:              rpcResult.Liquidity,
 	}
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
@@ -92,25 +96,31 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	return p, nil
 }
 
-func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, pool entity.Pool) ([]byte, error) {
-	result, err := d.queryRpc(ctx, pool)
+func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, pool entity.Pool, blockNumber uint64) ([]byte, error) {
+	result, err := d.queryRpc(ctx, pool, blockNumber)
 	if err != nil {
 		return nil, err
 	}
 	return json.Marshal(result)
 }
 
-func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*QueryRpcPoolStateResult, error) {
+func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult, error) {
 	var (
 		blockTimestamp uint64
 
 		feeParamsResp feeParametersRpcResp
 		reservesAndID reservesAndID
+		priceX128     *big.Int
 
 		err error
 	)
 
 	req := d.ethrpcClient.R().SetContext(ctx)
+	if blockNumber > 0 {
+		var blockNumberBI big.Int
+		blockNumberBI.SetUint64(blockNumber)
+		req.SetBlockNumber(&blockNumberBI)
+	}
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
@@ -130,6 +140,25 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*QueryRpcPoo
 
 	req = d.ethrpcClient.R().SetContext(ctx)
 	if blockTimestamp, err = req.GetCurrentBlockTimestamp(); err != nil {
+		return nil, err
+	}
+
+	req = d.ethrpcClient.R().SetContext(ctx)
+	if blockNumber > 0 {
+		var blockNumberBI big.Int
+		blockNumberBI.SetUint64(blockNumber)
+		req.SetBlockNumber(&blockNumberBI)
+	}
+	req.AddCall(&ethrpc.Call{
+		ABI:    routerABI,
+		Target: d.cfg.RouterAddress,
+		Method: routerGetPriceFromIDMethod,
+		Params: []interface{}{
+			common.HexToAddress(p.Address),
+			reservesAndID.ActiveId,
+		},
+	}, []interface{}{&priceX128})
+	if _, err := req.Aggregate(); err != nil {
 		return nil, err
 	}
 
@@ -153,6 +182,8 @@ func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool) (*QueryRpcPoo
 		BlockTimestamp: blockTimestamp,
 		FeeParameters:  feeParameters,
 		ReservesAndID:  reservesAndID,
+		PriceX128:      priceX128,
+		Liquidity:      traderjoecommon.CalculateLiquidity(priceX128, reservesAndID.ReserveX, reservesAndID.ReserveY),
 	}, nil
 }
 
