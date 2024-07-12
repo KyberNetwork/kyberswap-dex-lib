@@ -23,9 +23,9 @@ type StaticExtra struct {
 	// Quote token
 	Quote string `json:"quote"`
 	// The index or discriminator of the pool in a logical list of pools with (base, quote) tokens. Default is "420".
-	PoolIdx string `json:"pool_idx"`
+	PoolIdx string `json:"poolIdx"`
 	// The CrocSwapDex.sol contract address
-	SwapAddress string `json:"swap_address"`
+	SwapAddress string `json:"swapAddress"`
 }
 
 type Extra struct {
