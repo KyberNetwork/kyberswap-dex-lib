@@ -69,7 +69,7 @@ func (t *PoolTracker) GetNewPoolState(
 	rpcRequest := t.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 
-	if baseToken == nativeTokenPlaceholderAddress {
+	if baseToken == NativeTokenPlaceholderAddress {
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    multicallABI,
 			Target: t.cfg.MulticallContractAddress,

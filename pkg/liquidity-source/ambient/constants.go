@@ -9,6 +9,6 @@ const (
 )
 
 var (
-	// Address that Ambient uses to represent native token in pools.
-	nativeTokenPlaceholderAddress = common.HexToAddress("0x0")
+	// NativeTokenPlaceholderAddress is the address that Ambient uses to represent native token in pools.
+	NativeTokenPlaceholderAddress = common.HexToAddress("0x0")
 )

@@ -125,7 +125,7 @@ func (u *PoolListUpdater) toEntPools(subgraphPools []Pool) ([]entity.Pool, error
 			Swappable: true,
 		}
 		// replace placeholder address with actual ERC20 wrapped native token address
-		if common.HexToAddress(sPool.Base) == nativeTokenPlaceholderAddress {
+		if common.HexToAddress(sPool.Base) == NativeTokenPlaceholderAddress {
 			baseToken.Address = u.cfg.NativeTokenAddress
 		}
 		quoteToken := &entity.PoolToken{
