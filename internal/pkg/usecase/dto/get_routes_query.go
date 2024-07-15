@@ -26,4 +26,5 @@ type GetRoutesQuery struct {
 	IsHillClimbEnabled     bool
 
 	ExcludedPools mapset.Set[string]
+	ClientId      string
 }

@@ -19,8 +19,6 @@ type (
 		ExtraFee ExtraFee `json:"extraFee"`
 
 		Route [][]Swap `json:"route"`
-
-		Extra RouteExtraData `json:"extra"`
 	}
 
 	ExtraFee struct {

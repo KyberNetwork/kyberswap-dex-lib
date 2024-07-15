@@ -22,7 +22,6 @@ func TestRoute_AddPathRollBack(t *testing.T) {
 		Output   TokenAmount
 		Paths    []*Path
 		TotalGas int64
-		Extra    RouteExtraData
 	}
 
 	type args struct {
@@ -128,7 +127,6 @@ func TestRoute_AddPathRollBack(t *testing.T) {
 				},
 				TotalGas: 0,
 				Paths:    []*Path{&path},
-				Extra:    RouteExtraData{},
 			},
 			args: args{
 				poolBucket: bucket,
@@ -146,7 +144,6 @@ func TestRoute_AddPathRollBack(t *testing.T) {
 				Output:   tt.fields.Output,
 				Paths:    tt.fields.Paths,
 				TotalGas: tt.fields.TotalGas,
-				Extra:    tt.fields.Extra,
 			}
 			tt.wantErr(t, r.AddPath(context.TODO(), tt.args.poolBucket, tt.args.p, tt.args.swapLimits), fmt.Sprintf("AddPath(%v, %v, %v)", tt.args.poolBucket, tt.args.p, tt.args.swapLimits))
 			rolledBackPool, avail := bucket.GetPool(oldPool.GetAddress())

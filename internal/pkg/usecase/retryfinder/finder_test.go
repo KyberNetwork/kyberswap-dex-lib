@@ -132,7 +132,6 @@ func TestRetryFinder_retryDynamicPools(t *testing.T) {
 			},
 		},
 		TotalGas: 0,
-		Extra:    valueobject.RouteExtraData{},
 	}
 
 	type args struct {

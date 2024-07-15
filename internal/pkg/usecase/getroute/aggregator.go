@@ -40,12 +40,14 @@ type aggregator struct {
 
 	routeFinder          findroute.IFinder
 	hillClimbRouteFinder findroute.IFinder
-	config               AggregatorConfig
+
+	config AggregatorConfig
+	mu     sync.RWMutex
 
 	aevmClient     aevmclient.Client
 	poolsPublisher IPoolsPublisher
 
-	mu sync.RWMutex
+	safetyQuoteReduction *SafetyQuoteReduction
 }
 
 func NewAggregator(
@@ -59,6 +61,7 @@ func NewAggregator(
 	routeFinder findroute.IFinder,
 	aevmClient aevmclient.Client,
 	poolsPublisher IPoolsPublisher,
+	safetyQuoteConf *SafetyQuoteReduction,
 ) *aggregator {
 
 	var hillClimbRouteFinder findroute.IFinder = hillclimb.NewHillClimbingFinder(
@@ -83,6 +86,7 @@ func NewAggregator(
 		bestPathRepository:     bestPathRepository,
 		aevmClient:             aevmClient,
 		poolsPublisher:         poolsPublisher,
+		safetyQuoteReduction:   safetyQuoteConf,
 	}
 }
 
@@ -293,13 +297,19 @@ func (a *aggregator) summarizeRoute(
 			}
 			pool.UpdateBalance(updateBalanceParams)
 
-			// Step 2.1.6: summarize the swap
+			// Step 2.1.6: We need to calculate safety quoting amount and reasign new amount out to next path's amount in
+			reducedNextAmountIn := a.safetyQuoteReduction.Reduce(
+				result.TokenAmountOut,
+				a.safetyQuoteReduction.GetSafetyQuotingRate(pool.GetType()), params.ClientId)
+
+			// Step 2.1.7: summarize the swap
+			// important: must re-update amount out to reducedNextAmountIn
 			swap := valueobject.Swap{
 				Pool:              pool.GetAddress(),
 				TokenIn:           tokenAmountIn.Token,
 				TokenOut:          result.TokenAmountOut.Token,
 				SwapAmount:        tokenAmountIn.Amount,
-				AmountOut:         result.TokenAmountOut.Amount,
+				AmountOut:         reducedNextAmountIn.Amount,
 				LimitReturnAmount: constant.Zero,
 				Exchange:          valueobject.Exchange(pool.GetExchange()),
 				PoolLength:        len(pool.GetTokens()),
@@ -314,7 +324,7 @@ func (a *aggregator) summarizeRoute(
 			gas += result.Gas
 
 			// Step 2.1.8: update input of the next swap is output of current swap
-			tokenAmountIn = *result.TokenAmountOut
+			tokenAmountIn = reducedNextAmountIn
 
 			metrics.IncrDexHitRate(ctx, string(swap.Exchange))
 			metrics.IncrPoolTypeHitRate(ctx, swap.PoolType)
@@ -339,7 +349,6 @@ func (a *aggregator) summarizeRoute(
 		GasUSD:       utils.CalcGasUsd(params.GasPrice, gas, params.GasTokenPriceUSD),
 		ExtraFee:     params.ExtraFee,
 		Route:        summarizedRoute,
-		Extra:        route.Extra,
 	}, nil
 }
 

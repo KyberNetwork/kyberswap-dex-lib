@@ -11,8 +11,9 @@ type Config struct {
 	GasTokenAddress  string              `mapstructure:"gasTokenAddress" json:"gasTokenAddress"`
 	AvailableSources []string            `mapstructure:"availableSources" json:"availableSources"`
 
-	Aggregator AggregatorConfig        `mapstructure:"aggregator" json:"aggregator"`
-	Cache      valueobject.CacheConfig `mapstructure:"cache" json:"cache"`
+	Aggregator        AggregatorConfig                       `mapstructure:"aggregator" json:"aggregator"`
+	Cache             valueobject.CacheConfig                `mapstructure:"cache" json:"cache"`
+	SafetyQuoteConfig valueobject.SafetyQuoteReductionConfig `mapstructure:"safetyQuoteConfig" json:"safetyQuoteConfig"`
 }
 
 type AggregatorConfig struct {

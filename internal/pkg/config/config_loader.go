@@ -157,6 +157,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setBlacklistedRecipients(remoteCfg.BlacklistedRecipients)
 		cl.setTokensThresholdForOnchainPrice(remoteCfg.TokensThresholdForOnchainPrice)
 		cl.setFaultyPoolsConfig(remoteCfg.FaultyPoolsConfig)
+		cl.setSafetyQuoteReduction(remoteCfg.SafetyQuoteReduction)
 		cl.mu.Unlock()
 	}
 
@@ -260,4 +261,9 @@ func (cl *ConfigLoader) setTokensThresholdForOnchainPrice(tokensThresholdForOnch
 
 func (cl *ConfigLoader) setFaultyPoolsConfig(faultyPoolsConfig valueobject.FaultyPoolsConfig) {
 	cl.config.UseCase.BuildRoute.FaultyPoolsConfig.MinSlippageThreshold = faultyPoolsConfig.MinSlippageThreshold
+}
+
+func (cl *ConfigLoader) setSafetyQuoteReduction(safetyQuoteConf valueobject.SafetyQuoteReductionConfig) {
+	cl.config.UseCase.GetRoute.SafetyQuoteConfig.Factor = safetyQuoteConf.Factor
+	cl.config.UseCase.GetRoute.SafetyQuoteConfig.WhitelistedClient = safetyQuoteConf.WhitelistedClient
 }

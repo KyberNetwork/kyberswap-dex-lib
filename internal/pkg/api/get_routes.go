@@ -7,11 +7,11 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
-	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api/params"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -35,6 +35,7 @@ func GetRoutes(
 			)
 			return
 		}
+		queryParams.ClientId = clientid.ExtractClientID(ginCtx)
 
 		if err := validator.Validate(queryParams); err != nil {
 			RespondFailure(ginCtx, err)
@@ -124,6 +125,7 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
 		IsHillClimbEnabled:     params.IsHillClimbEnabled,
 		ExcludedPools:          mapset.NewSet(utils.TransformSliceParams(params.ExcludedPools)...),
+		ClientId:               params.ClientId,
 	}, nil
 }
 
@@ -160,8 +162,6 @@ func transformRouteSummary(routeSummary *valueobject.RouteSummary) *params.Route
 
 		ExtraFee: transformExtraFee(routeSummary.ExtraFee),
 		Route:    transformRoute(routeSummary.Route),
-
-		Extra: transformRouteExtra(routeSummary.Extra),
 	}
 }
 
@@ -203,18 +203,5 @@ func transformSwap(swap valueobject.Swap) params.Swap {
 		PoolType:          swap.PoolType,
 		PoolExtra:         swap.PoolExtra,
 		Extra:             swap.Extra,
-	}
-}
-
-func transformRouteExtra(data valueobject.RouteExtraData) params.RouteExtraData {
-	return params.RouteExtraData{
-		ChunksInfo: lo.Map(data.ChunksInfo, func(c valueobject.ChunkInfo, _ int) params.ChunkInfo {
-			return params.ChunkInfo{
-				AmountIn:     c.AmountIn.String(),
-				AmountOut:    c.AmountOut.String(),
-				AmountInUSD:  strconv.FormatFloat(c.AmountInUsd, 'f', -1, 64),
-				AmountOutUSD: strconv.FormatFloat(c.AmountOutUsd, 'f', -1, 64),
-			}
-		}),
 	}
 }

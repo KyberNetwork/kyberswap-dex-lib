@@ -25,16 +25,11 @@ type ChunkInfo struct {
 	AmountOutUsd float64  `json:"amountOutUsd"`
 }
 
-type RouteExtraData struct {
-	ChunksInfo []ChunkInfo `json:"chunksInfo"`
-}
-
 type Route struct {
-	Input    TokenAmount    `json:"input"`
-	Output   TokenAmount    `json:"output"`
-	Paths    []*Path        `json:"paths"`
-	TotalGas int64          `json:"totalGas"`
-	Extra    RouteExtraData `json:"extra"`
+	Input    TokenAmount `json:"input"`
+	Output   TokenAmount `json:"output"`
+	Paths    []*Path     `json:"paths"`
+	TotalGas int64       `json:"totalGas"`
 }
 
 func NewRoute(
@@ -55,9 +50,6 @@ func NewRoute(
 			AmountUsd:      0,
 		},
 		Paths: nil,
-		Extra: RouteExtraData{
-			ChunksInfo: nil,
-		},
 	}
 }
 
@@ -68,9 +60,6 @@ func NewRouteFromPaths(
 ) *Route {
 	var route = NewRoute(tokenInAddress, tokenOutAddress)
 	route.Paths = paths
-	route.Extra = RouteExtraData{
-		ChunksInfo: make([]ChunkInfo, 0, len(paths)),
-	}
 
 	for _, path := range paths {
 		route.Input.Amount = new(big.Int).Add(route.Input.Amount, path.Input.Amount)
@@ -81,12 +70,6 @@ func NewRouteFromPaths(
 		}
 		route.Output.AmountUsd += path.Output.AmountUsd
 		route.TotalGas += path.TotalGas
-		route.Extra.ChunksInfo = append(route.Extra.ChunksInfo, ChunkInfo{
-			AmountIn:     new(big.Int).Set(path.Input.Amount),
-			AmountOut:    path.Output.Amount,
-			AmountInUsd:  path.Input.AmountUsd,
-			AmountOutUsd: path.Output.AmountUsd,
-		})
 	}
 	return route
 }
@@ -181,13 +164,6 @@ func (r *Route) AddPath(ctx context.Context, poolBucket *PoolBucket, p *Path, sw
 		r.Output.AmountAfterGas.Add(r.Output.AmountAfterGas, p.Output.AmountAfterGas)
 	}
 	r.Output.AmountUsd += p.Output.AmountUsd
-
-	r.Extra.ChunksInfo = append(r.Extra.ChunksInfo, ChunkInfo{
-		AmountIn:     new(big.Int).Set(p.Input.Amount),
-		AmountOut:    p.Output.Amount,
-		AmountInUsd:  p.Input.AmountUsd,
-		AmountOutUsd: p.Output.AmountUsd,
-	})
 
 	return nil
 }

@@ -255,6 +255,11 @@ useCase:
           shrinkFuncConstant: 1.5
       shrinkAmountInThreshold: 100000
       minAmountInUSD: 0.9
+    safetyQuoteConfig:
+      factor:
+        StrictlyStable: 0
+        Stable: 0.5
+      whitelistedClient:
   buildRoute:
     chainId: *chainId
     rfq:

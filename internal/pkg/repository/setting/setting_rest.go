@@ -30,7 +30,8 @@ type ConfigResponseDataConfig struct {
 	FaultyPoolsConfig     valueobject.FaultyPoolsConfig   `json:"faultyPoolsConfig"`
 	BlacklistedRecipients []string                        `json:"blacklistedRecipients"`
 
-	TokensThresholdForOnchainPrice uint32 `json:"tokensThresholdForOnchainPrice"`
+	TokensThresholdForOnchainPrice uint32                                 `json:"tokensThresholdForOnchainPrice"`
+	SafetyQuoteReduction           valueobject.SafetyQuoteReductionConfig `json:"safetyQuoteReduction"`
 }
 
 type ConfigResponseData struct {
@@ -102,6 +103,7 @@ func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string, curre
 		CacheConfig:           cfgResp.Data.Config.CacheConfig,
 		BlacklistedRecipients: cfgResp.Data.Config.BlacklistedRecipients,
 		FaultyPoolsConfig:     cfgResp.Data.Config.FaultyPoolsConfig,
+		SafetyQuoteReduction:  cfgResp.Data.Config.SafetyQuoteReduction,
 
 		TokensThresholdForOnchainPrice: cfgResp.Data.Config.TokensThresholdForOnchainPrice,
 	}, nil

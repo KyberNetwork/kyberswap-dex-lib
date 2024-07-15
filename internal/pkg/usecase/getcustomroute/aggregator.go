@@ -283,7 +283,6 @@ func (a *aggregator) summarizeRoute(
 		GasUSD:       utils.CalcGasUsd(params.GasPrice, gas, params.GasTokenPriceUSD),
 		ExtraFee:     params.ExtraFee,
 		Route:        summarizedRoute,
-		Extra:        route.Extra,
 	}, nil
 }
 

@@ -19,8 +19,9 @@ type (
 		CacheConfig           CacheConfig         `json:"cache"`
 		BlacklistedRecipients []string            `json:"blacklistedRecipients"`
 
-		TokensThresholdForOnchainPrice uint32            `json:"tokensThresholdForOnchainPrice"`
-		FaultyPoolsConfig              FaultyPoolsConfig `json:"faultyPoolsConfig"`
+		TokensThresholdForOnchainPrice uint32                     `json:"tokensThresholdForOnchainPrice"`
+		FaultyPoolsConfig              FaultyPoolsConfig          `json:"faultyPoolsConfig"`
+		SafetyQuoteReduction           SafetyQuoteReductionConfig `json:"safetyQuoteReduction"`
 	}
 
 	Source string
@@ -112,6 +113,11 @@ type (
 		ShrinkAmountInThreshold float64                `mapstructure:"shrinkAmountInThreshold" json:"shrinkAmountInThreshold"`
 
 		EnableNewCacheKeyGenerator bool `mapstructure:"enableNewCacheKeyGenerator" json:"enableNewCacheKeyGenerator"`
+	}
+
+	SafetyQuoteReductionConfig struct {
+		Factor            map[string]float64 `mapstructure:"factor" json:"factor"`
+		WhitelistedClient []string           `mapstructure:"whitelistedClient" json:"whitelistedClient"`
 	}
 
 	CachePoint struct {

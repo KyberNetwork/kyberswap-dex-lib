@@ -45,6 +45,8 @@ type GetRoutesParams struct {
 
 	// ExcludedPools name of pool addresses are excluded when finding route, separated by comma
 	ExcludedPools string `form:"excludedPools"`
+
+	ClientId string `form:"clientId"`
 }
 
 type GetRoutesResponse struct {

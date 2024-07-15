@@ -32,8 +32,9 @@ type cache struct {
 	routeCacheRepository IRouteCacheRepository
 	poolManager          IPoolManager
 
-	config       valueobject.CacheConfig
-	keyGenerator *routeKeyGenerator
+	config               valueobject.CacheConfig
+	keyGenerator         *routeKeyGenerator
+	safetyQuoteReduction *SafetyQuoteReduction
 }
 
 func NewCache(
@@ -41,6 +42,7 @@ func NewCache(
 	routeCacheRepository IRouteCacheRepository,
 	poolManager IPoolManager,
 	config valueobject.CacheConfig,
+	safetyQuoteReduction *SafetyQuoteReduction,
 ) *cache {
 	return &cache{
 		aggregator:           aggregator,
@@ -48,6 +50,7 @@ func NewCache(
 		poolManager:          poolManager,
 		config:               config,
 		keyGenerator:         newCacheKeyGenerator(config),
+		safetyQuoteReduction: safetyQuoteReduction,
 	}
 }
 
@@ -331,13 +334,21 @@ func (c *cache) summarizeSimpleRoute(
 			pool = poolBucket.ClonePool(simpleSwap.PoolAddress)
 			pool.UpdateBalance(updateBalanceParams)
 
-			// Step 3.1.5: summarize the swap
+			// Step 3.1.5
+			// We need to calculate safety quoting amount and reasign new amount out to next path's amount in
+			reducedNextAmountIn := c.safetyQuoteReduction.Reduce(
+				result.TokenAmountOut,
+				c.safetyQuoteReduction.GetSafetyQuotingRate(pool.GetType()),
+				params.ClientId)
+
+			// Step 3.1.6: summarize the swap
+			// important: must re-update amount out to reducedNextAmountIn
 			swap := valueobject.Swap{
 				Pool:              simpleSwap.PoolAddress,
 				TokenIn:           simpleSwap.TokenInAddress,
 				TokenOut:          simpleSwap.TokenOutAddress,
 				SwapAmount:        tokenAmountIn.Amount,
-				AmountOut:         result.TokenAmountOut.Amount,
+				AmountOut:         reducedNextAmountIn.Amount,
 				LimitReturnAmount: constant.Zero,
 				Exchange:          valueobject.Exchange(pool.GetExchange()),
 				PoolLength:        len(pool.GetTokens()),
@@ -348,11 +359,11 @@ func (c *cache) summarizeSimpleRoute(
 
 			summarizedPath = append(summarizedPath, swap)
 
-			// Step 3.1.6: add up gas fee
+			// Step 3.1.7: add up gas fee
 			gas += result.Gas
 
-			// Step 3.1.7: update input of the next swap is output of current swap
-			tokenAmountIn = *result.TokenAmountOut
+			// Step 3.1.8: update input of the next swap is output of current swap
+			tokenAmountIn = reducedNextAmountIn
 		}
 
 		// Step 3.2: add up amountOut

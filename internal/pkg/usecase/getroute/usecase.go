@@ -29,10 +29,10 @@ type useCase struct {
 	gasRepository   IGasRepository
 
 	onchainpriceRepository IOnchainPriceRepository
+	safetyQuoteReduction   *SafetyQuoteReduction
 
 	config Config
-
-	mu sync.RWMutex
+	mu     sync.RWMutex
 }
 
 func NewUseCase(
@@ -49,6 +49,7 @@ func NewUseCase(
 	aevmClient aevmclient.Client,
 	poolsPublisher IPoolsPublisher,
 ) *useCase {
+	safetyQuoteReduction := NewSafetyQuoteReduction(config.SafetyQuoteConfig)
 	aggregator := NewAggregator(
 		poolRankRepository,
 		tokenRepository,
@@ -60,8 +61,9 @@ func NewUseCase(
 		finder,
 		aevmClient,
 		poolsPublisher,
+		safetyQuoteReduction,
 	)
-	aggregatorWithCache := NewCache(aggregator, routeCacheRepository, poolManager, config.Cache)
+	aggregatorWithCache := NewCache(aggregator, routeCacheRepository, poolManager, config.Cache, safetyQuoteReduction)
 	aggregatorWitchChargeExtraFee := NewChargeExtraFee(aggregatorWithCache)
 
 	return &useCase{
@@ -72,6 +74,7 @@ func NewUseCase(
 		config:          config,
 
 		onchainpriceRepository: onchainpriceRepository,
+		safetyQuoteReduction:   safetyQuoteReduction,
 	}
 }
 
@@ -123,6 +126,7 @@ func (u *useCase) ApplyConfig(config Config) {
 
 	u.config = config
 	u.aggregator.ApplyConfig(config)
+	u.safetyQuoteReduction.applyConfig(config.SafetyQuoteConfig)
 }
 
 // wrapTokens wraps tokens in query and returns the query
@@ -201,6 +205,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		IsPathGeneratorEnabled: isPathGeneratorEnabled,
 		IsHillClimbEnabled:     isHillClimbEnabled,
 		ExcludedPools:          query.ExcludedPools,
+		ClientId:               query.ClientId,
 	}, nil
 }
 

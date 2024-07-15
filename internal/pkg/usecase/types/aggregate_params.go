@@ -48,4 +48,6 @@ type AggregateParams struct {
 
 	// ExcludedPools name of pool addresses are excluded when finding route, separated by comma
 	ExcludedPools mapset.Set[string]
+
+	ClientId string
 }

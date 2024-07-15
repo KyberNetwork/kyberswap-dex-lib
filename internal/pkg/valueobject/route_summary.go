@@ -44,8 +44,6 @@ type RouteSummary struct {
 
 	// Route
 	Route [][]Swap `json:"route"`
-
-	Extra RouteExtraData `json:"extra"`
 }
 
 func (rs RouteSummary) GetPriceImpact() float64 {
