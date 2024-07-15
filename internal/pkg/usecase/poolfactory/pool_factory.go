@@ -101,6 +101,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/usdfi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velocimeter"
+	velodromelegacy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/velodrome"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/vooi"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatlsd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatmain"
@@ -426,9 +427,10 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newDoDoStablePool(entityPool)
 	case pooltypes.PoolTypes.DodoVendingMachine:
 		return f.newDoDoVendingMachine(entityPool)
-	case pooltypes.PoolTypes.Velodrome, pooltypes.PoolTypes.Ramses,
-		pooltypes.PoolTypes.MuteSwitch, pooltypes.PoolTypes.Dystopia, pooltypes.PoolTypes.Pearl:
+	case pooltypes.PoolTypes.Velodrome:
 		return f.newVelodrome(entityPool)
+	case pooltypes.PoolTypes.Ramses, pooltypes.PoolTypes.MuteSwitch, pooltypes.PoolTypes.Dystopia, pooltypes.PoolTypes.Pearl:
+		return f.newVelodromeLegacy(entityPool)
 	case pooltypes.PoolTypes.VelodromeV2:
 		return f.newVelodromeV2(entityPool)
 	case pooltypes.PoolTypes.Velocimeter:
@@ -1002,6 +1004,20 @@ func (f *PoolFactory) newVelodrome(entityPool entity.Pool) (*velodrome.PoolSimul
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newVelodrome] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newVelodromeLegacy(entityPool entity.Pool) (*velodromelegacy.PoolSimulator, error) {
+	corePool, err := velodromelegacy.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newVelodromeLegacy] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
