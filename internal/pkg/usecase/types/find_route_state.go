@@ -141,6 +141,9 @@ func (m *TokenToPoolAddressMap) NumPools(token string) int {
 	if m == nil {
 		return 0
 	}
+	if _, ok := m.addressIndexLists[token]; !ok {
+		return 0
+	}
 	if m.use32BitIndex {
 		return len(m.addressIndexLists[token].data) / 2
 	}
@@ -164,6 +167,9 @@ func (m *TokenToPoolAddressMap) NumPools(token string) int {
 // addressIndexLists = map { "token0": [16, 65535] }
 // to look for the first pool of token0, reverse the process.
 func (m *TokenToPoolAddressMap) GetPoolAddressAt(token string, i int) string {
+	if i >= m.NumPools(token) {
+		return ""
+	}
 	var index uint32
 	if m.use32BitIndex {
 		index = indexedAddressListGetUint32(m.addressIndexLists[token], i)

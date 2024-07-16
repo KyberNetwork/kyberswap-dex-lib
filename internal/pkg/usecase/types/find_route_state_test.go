@@ -33,6 +33,19 @@ func (*testPoolSimulator) GetTokenIndex(string) int                  { panic("un
 func (*testPoolSimulator) CalculateLimit() map[string]*big.Int       { panic("unimplemented") }
 
 func TestTokenToPoolAddressMap(t *testing.T) {
+	t.Run("pool or token not in map", func(t *testing.T) {
+		pools := map[string]poolpkg.IPoolSimulator{
+			"p1": &testPoolSimulator{"p1", []string{"t1", "t2"}},
+			"p2": &testPoolSimulator{"p2", []string{"t2", "t3"}},
+			"p3": &testPoolSimulator{"p3", []string{"t3", "t1"}},
+			"p4": &testPoolSimulator{"p4", []string{"t1", "t2", "t3"}},
+		}
+		m := MakeTokenToPoolAddressMapFromPools(pools)
+		defer m.ReleaseResources()
+		require.Empty(t, m.NumPools("t99"))
+		require.Empty(t, m.GetPoolAddressAt("t99", 0))
+		require.Empty(t, m.GetPoolAddressAt("t1", 3))
+	})
 	t.Run("len(pools) < MaxUint16", func(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			pools := map[string]poolpkg.IPoolSimulator{
