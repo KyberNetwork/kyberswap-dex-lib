@@ -184,13 +184,13 @@ func TestSafetyQuoteReduction_ApplyConfig(t *testing.T) {
 					"StrictlyStable": 10,
 					"Stable":         5.5,
 				},
-				WhitelistedClient: []string{"newClient"},
+				WhitelistedClient: []string{"NEWCLIENT"},
 			},
 			expectedFactor: map[SafetyQuoteCategory]float64{
 				StrictlyStable: 10,
 				Stable:         5.5,
 			},
-			expectedWhitelist: mapset.NewSet("newClient"),
+			expectedWhitelist: mapset.NewSet("newclient"),
 		},
 		{
 			name: "Should apply correct config when remote config was changed but contains invalid key",

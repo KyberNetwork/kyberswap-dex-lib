@@ -2,6 +2,7 @@ package getroute
 
 import (
 	"math/big"
+	"strings"
 	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
@@ -35,17 +36,27 @@ type SafetyQuoteReduction struct {
 }
 
 func NewSafetyQuoteReduction(config valueobject.SafetyQuoteReductionConfig) *SafetyQuoteReduction {
+	whitelistSet := whitelistClientToSet(config.WhitelistedClient)
 	if len(config.Factor) == 0 {
 		return &SafetyQuoteReduction{
 			deductionFactorInBps: SafetyQuoteMappingDefault,
-			whiteListClients:     mapset.NewSet(config.WhitelistedClient...),
+			whiteListClients:     whitelistSet,
 		}
 	}
 
 	return &SafetyQuoteReduction{
 		deductionFactorInBps: getFactor(config),
-		whiteListClients:     mapset.NewSet(config.WhitelistedClient...),
+		whiteListClients:     whitelistSet,
 	}
+}
+
+func whitelistClientToSet(clients []string) mapset.Set[string] {
+	whitelistSet := mapset.NewSet[string]()
+	for _, cli := range clients {
+		whitelistSet.Add(strings.ToLower(cli))
+	}
+
+	return whitelistSet
 }
 
 func (f *SafetyQuoteReduction) GetSafetyQuotingRate(poolType string) float64 {
@@ -62,7 +73,7 @@ func (f *SafetyQuoteReduction) GetSafetyQuotingRate(poolType string) float64 {
 // This function wrap the whole logic of safety quoting calculation
 // which is describe in https://www.notion.so/kybernetwork/Safety-Quoting-for-KyberSwap-DEX-Aggregator-a673869729fe45adae8e1258ab6e43f4?pvs=4
 func (f *SafetyQuoteReduction) Reduce(amount *pool.TokenAmount, deductionFactor float64, clientId string) pool.TokenAmount {
-	if deductionFactor <= 0 || !f.whiteListClients.ContainsOne(clientId) {
+	if deductionFactor <= 0 || !f.whiteListClients.ContainsOne(strings.ToLower(clientId)) {
 		return *amount
 	}
 	// convert deductionFactor from float to integer by multiply it by 10, then we will div (BasisPoint * 10)
@@ -113,7 +124,7 @@ func compareFactor(x, y map[SafetyQuoteCategory]float64) bool {
 
 func (f *SafetyQuoteReduction) applyConfig(config valueobject.SafetyQuoteReductionConfig) {
 	factor := getFactor(config)
-	newClientList := mapset.NewSet(config.WhitelistedClient...)
+	newClientList := whitelistClientToSet(config.WhitelistedClient)
 
 	f.mu.Lock()
 	defer f.mu.Unlock()
