@@ -314,8 +314,9 @@ var (
 	ExchangeXLayerSwap   Exchange = "xlayer-swap"
 	ExchangeStationDexV3 Exchange = "station-dex-v3"
 
-	ExchangeVelodromeCL Exchange = "velodrome-cl"
-	ExchangeAerodromeCL Exchange = "aerodrome-cl"
+	ExchangeVelodromeCL  Exchange = "velodrome-cl"
+	ExchangeAerodromeCL  Exchange = "aerodrome-cl"
+	ExchangeVelodromeCL2 Exchange = "velodrome-cl-2"
 
 	ExchangeLineHubV2 Exchange = "linehub-v2"
 	ExchangeLineHubV3 Exchange = "linehub-v3"
@@ -594,6 +595,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeStationDexV3:               {},
 	ExchangeVelodromeCL:                {},
 	ExchangeAerodromeCL:                {},
+	ExchangeVelodromeCL2:               {},
 	ExchangeLineHubV2:                  {},
 	ExchangeLineHubV3:                  {},
 	ExchangeWigoSwap:                   {},
