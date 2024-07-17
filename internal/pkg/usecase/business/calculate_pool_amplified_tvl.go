@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/liquiditybookv20"
@@ -17,6 +18,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoev20"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoev21"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -37,7 +39,8 @@ func CalculatePoolAmplifiedTVL(
 		maverickv1.DexTypeMaverickV1,
 		algebrav1.DexTypeAlgebraV1,
 		iziswap.DexTypeiZiSwap,
-		liquiditybookv20.DexTypeLiquidityBookV20, liquiditybookv21.DexTypeLiquidityBookV21:
+		liquiditybookv20.DexTypeLiquidityBookV20, liquiditybookv21.DexTypeLiquidityBookV21,
+		ambient.DexTypeAmbient:
 		liquidity, sqrtPriceBF, err := getLiquidityAndSqrtPrice(p)
 		if err != nil {
 			logger.Errorf(ctx, "failed to get liquidity and sqrt price for pool %s: %s", p.Address, err)
@@ -178,6 +181,15 @@ func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
 		}
 
 		liquidity, sqrtPrice = extra.Liquidity, fromSqrtPriceX96(sqrtPriceX96)
+
+	case ambient.DexTypeAmbient:
+		extra := ambient.Extra{}
+		var err = json.Unmarshal([]byte(p.Extra), &extra)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		liquidity, sqrtPrice = bignumber.NewBig10(extra.Liquidity), fromSqrtPriceX64(bignumber.NewBig10(extra.SqrtPriceX64))
 	}
 
 	if liquidity == nil {
@@ -194,9 +206,11 @@ func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
 var (
 	X128, _ = new(big.Int).SetString("100000000000000000000000000000000", 16)
 	X96, _  = new(big.Int).SetString("1000000000000000000000000", 16)
+	X64, _  = new(big.Int).SetString("10000000000000000", 16)
 	D18, _  = new(big.Int).SetString("1000000000000000000", 10)
 	X128BF  = new(big.Float).SetInt(X128)
 	X96BF   = new(big.Float).SetInt(X96)
+	X64BF   = new(big.Float).SetInt(X64)
 	D18BF   = new(big.Float).SetInt(D18)
 )
 
@@ -219,4 +233,11 @@ func fromSqrtPriceX128(sqrtPrice *big.Int) *big.Float {
 		return nil
 	}
 	return new(big.Float).Quo(new(big.Float).SetInt(sqrtPrice), X128BF)
+}
+
+func fromSqrtPriceX64(sqrtPrice *big.Int) *big.Float {
+	if sqrtPrice == nil {
+		return nil
+	}
+	return new(big.Float).Quo(new(big.Float).SetInt(sqrtPrice), X64BF)
 }
