@@ -147,6 +147,9 @@ useCase:
         hillClimbDistributionPercent: 1
         hillClimbIteration: 2
         hillClimbMinPartUSD: 500
+        useAEVMRemoteFinder: false
+        remoteUseAEVMPool: false
+        localUseAEVMPool: false
     cache:
       defaultTtl: 15s
       ttlByAmount:

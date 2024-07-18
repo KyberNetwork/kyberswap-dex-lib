@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"math/rand"
 	"time"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
@@ -52,11 +51,10 @@ func NewAEVMFinder(baseFinder findroute.IFinder, aevmClient aevmclient.Client, p
 }
 
 func (f *AEVMFinder) Find(ctx context.Context, input findroute.Input, data findroute.FinderData) ([]*valueobject.Route, error) {
-	useRemoteFinder := f.opts.UseAEVMRemoteFinderPercentage > 0 && rand.Float64() < float64(f.opts.UseAEVMRemoteFinderPercentage)/100.0
-	if !useRemoteFinder {
+	if !f.opts.UseAEVMRemoteFinder {
 		data.PoolBucket = shallowClonePoolsBucket(data.PoolBucket)
 
-		useAEVMPool := f.opts.LocalUseAEVMPoolPercentage > 0 && rand.Float64() < float64(f.opts.LocalUseAEVMPoolPercentage)/100.0
+		useAEVMPool := f.opts.LocalUseAEVMPool
 		for _, poolsMap := range []map[string]poolpkg.IPoolSimulator{
 			data.PoolBucket.PerRequestPoolsByAddress,
 			data.PoolBucket.ChangedPools,
@@ -83,7 +81,7 @@ func (f *AEVMFinder) Find(ctx context.Context, input findroute.Input, data findr
 		return nil, fmt.Errorf("could not Prepare() base finder: %w", err)
 	}
 
-	data.UseAEVMPoolPercentage = f.opts.UseAEVMPoolPercentage
+	data.UseAEVMPool = f.opts.RemoteUseAEVMPool
 	data.PoolBucket = shallowClonePoolsBucket(data.PoolBucket)
 	// Remove IPoolSimulators which already published under `data.PublishedPoolsStorageID` from `data.PoolBucket`.
 	// The remote IFinder will fill in the removed IPoolSimulators using its published pools.

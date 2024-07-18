@@ -198,9 +198,9 @@ useCase:
         hillClimbIteration: 2
         hillClimbMinPartUSD: 500
         isPathGeneratorEnabled: false
-        useAEVMRemoteFinderPercentage: 0
-        useAEVMPoolPercentage: 0
-        localUseAEVMPoolPercentage: 0
+        useAEVMRemoteFinder: false
+        remoteUseAEVMPool: false
+        localUseAEVMPool: false
     cache:
       defaultTtl: 15s
       ttlByAmount:

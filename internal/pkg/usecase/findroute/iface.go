@@ -80,8 +80,8 @@ type FinderData struct {
 	// PoolsStorageID represents the last published pools
 	PublishedPoolsStorageID string
 
-	// UseAEVMPoolPercentage
-	UseAEVMPoolPercentage uint32
+	// UseAEVMPool
+	UseAEVMPool bool
 }
 
 func NewFinderData(ctx context.Context, tokenByAddress map[string]*entity.Token, tokenPriceUSDByAddress map[string]float64, tokenPriceNativeByAddress map[string]*routerEntity.OnchainPrice, state *types.FindRouteState) FinderData {

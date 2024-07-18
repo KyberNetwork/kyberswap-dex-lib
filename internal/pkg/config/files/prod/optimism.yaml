@@ -199,6 +199,9 @@ useCase:
         hillClimbIteration: 2
         hillClimbMinPartUSD: 500
         isPathGeneratorEnabled: false
+        useAEVMRemoteFinder: false
+        remoteUseAEVMPool: false
+        localUseAEVMPool: false
     generateBestPaths:
       gasTokenAddress: 0x4200000000000000000000000000000000000006
       getBestPoolsOptions: *getBestPoolsOptions
