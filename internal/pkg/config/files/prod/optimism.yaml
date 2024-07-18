@@ -69,6 +69,7 @@ common:
     - "dodo-dpp"
     - "dodo-dsp"
     - "dodo-dvm"
+    - "velodrome-cl-2"
   featureFlags: &featureFlags
   hashflowAPIKey:
 log:

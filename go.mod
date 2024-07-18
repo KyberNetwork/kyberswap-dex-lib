@@ -11,7 +11,7 @@ require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/DataDog/datadog-go v4.8.3+incompatible
 	github.com/KyberNetwork/aevm v1.1.1
-	github.com/KyberNetwork/aggregator-encoding v0.18.0
+	github.com/KyberNetwork/aggregator-encoding v0.19.0
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4
@@ -19,7 +19,7 @@ require (
 	github.com/KyberNetwork/grpc-service v0.3.2-0.20240613162847-926a8954d789
 	github.com/KyberNetwork/kutils v0.2.3
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.60.1
+	github.com/KyberNetwork/kyberswap-dex-lib v0.60.2
 	github.com/KyberNetwork/logger v0.2.0
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
 	github.com/KyberNetwork/pool-service v0.45.1
