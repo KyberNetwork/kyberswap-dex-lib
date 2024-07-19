@@ -40,11 +40,13 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 
 	ctx = util.NewContextWithTimestamp(ctx)
 
-	if err := json.Unmarshal(metadataBytes, &meta); err != nil {
-		logger.
-			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
-			Error("unmarshal metadata failed")
-		return nil, nil, err
+	if len(metadataBytes) != 0 {
+		if err := json.Unmarshal(metadataBytes, &meta); err != nil {
+			logger.
+				WithFields(logger.Fields{"dex_id": dexID, "err": err}).
+				Error("unmarshal metadata failed")
+			return nil, nil, err
+		}
 	}
 
 	sPools, err := u.fetchSubgraph(ctx, meta.LastCreateTime)
