@@ -1,6 +1,8 @@
 package ambient
 
 import (
+	"math/big"
+
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 )
 
@@ -8,6 +10,7 @@ type Config struct {
 	DexID                  string                `json:"dexID"`
 	SubgraphURL            string                `json:"subgraphUrl"`
 	SubgraphRequestTimeout durationjson.Duration `json:"subgraphRequestTimeout"`
+	SubgraphLimit          uint64                `json:"subgraphLimit"`
 
 	// Ambient doesn't use ERC20 wrapped native token when swapping with native token, it uses 0x0 address instead.
 	// kyberswap-dex-lib uses ERC20 wrapped native token to store pool's tokens that are native.
@@ -22,4 +25,7 @@ type Config struct {
 
 	// The deployed address of multicall contract. kyberswap-dex-lib uses its `getEthBalance` function to get native balance of pools.
 	MulticallContractAddress string `json:"multicallContractAddress"`
+
+	// The discriminator for pools of the same token pair. We assume that there is at most 1 pool for a token pair.
+	PoolIdx *big.Int `json:"poolIdx"`
 }

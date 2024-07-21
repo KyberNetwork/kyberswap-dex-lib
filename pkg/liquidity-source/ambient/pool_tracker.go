@@ -48,89 +48,114 @@ func (t *PoolTracker) GetNewPoolState(
 	}()
 
 	var (
-		staticExtra StaticExtra
+		poolAddr           = common.HexToAddress(p.Address)
+		queryAddress       = common.HexToAddress(t.cfg.QueryContractAddress)
+		nativeTokenAddress = common.HexToAddress(t.cfg.NativeTokenAddress)
 
-		baseReserve  *big.Int
-		quoteReserve *big.Int
-		sqrtPriceX64 *big.Int
-		liquidity    *big.Int
+		extra Extra
 	)
 
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
-		return p, fmt.Errorf("could not json.Unmarshal StaticExtra: %w", err)
+	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+		logger.
+			WithFields(logger.Fields{"dex_id": t.cfg.DexID, "address": p.Address, "err": err}).
+			Error("could not json.Unmarshal Extra")
+		return p, fmt.Errorf("could not json.Unmarshal Extra: %w", err)
 	}
 
-	baseToken := common.HexToAddress(staticExtra.Base)
-	quoteToken := common.HexToAddress(staticExtra.Quote)
-	queryAddress := common.HexToAddress(t.cfg.QueryContractAddress)
-	swapAddress := common.HexToAddress(t.cfg.SwapDexContractAddress)
-	poolIdx, _ := new(big.Int).SetString(staticExtra.PoolIdx, 10)
+	var (
+		reserves = make([]*big.Int, len(p.Tokens)) // reserves[i] is corresponding to p.Tokens[i]
+
+		tokenPairs    = make([]TokenPair, len(extra.TokenPairs))
+		sqrtPriceX64s = make([]*big.Int, len(extra.TokenPairs)) // sqrtPriceX64s[i] is corresponding to tokenPairs[i]
+		liquidities   = make([]*big.Int, len(extra.TokenPairs)) // liquidities[i] is corresponding to tokenPairs[i]
+	)
 
 	rpcRequest := t.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 
-	if baseToken == NativeTokenPlaceholderAddress {
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    multicallABI,
-			Target: t.cfg.MulticallContractAddress,
-			Method: "getEthBalance",
-			Params: []interface{}{swapAddress},
-		}, []interface{}{&baseReserve})
-	} else {
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    erc20ABI,
-			Target: baseToken.Hex(),
-			Method: "balanceOf",
-			Params: []interface{}{swapAddress},
-		}, []interface{}{&baseReserve})
+	for i, token := range p.Tokens {
+		tokenAddr := common.HexToAddress(token.Address)
+		if tokenAddr == nativeTokenAddress {
+			// native token reserve is the balance of the pool contract itself
+			rpcRequest.AddCall(&ethrpc.Call{
+				ABI:    multicallABI,
+				Target: t.cfg.MulticallContractAddress,
+				Method: "getEthBalance",
+				Params: []interface{}{poolAddr},
+			}, []interface{}{&reserves[i]})
+		} else {
+			rpcRequest.AddCall(&ethrpc.Call{
+				ABI:    erc20ABI,
+				Target: tokenAddr.Hex(),
+				Method: "balanceOf",
+				Params: []interface{}{poolAddr},
+			}, []interface{}{&reserves[i]})
+		}
 	}
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    erc20ABI,
-		Target: quoteToken.Hex(),
-		Method: "balanceOf",
-		Params: []interface{}{swapAddress},
-	}, []interface{}{&quoteReserve})
+	i := 0
+	for pair, pairInfo := range extra.TokenPairs {
+		tokenPairs[i] = pair
 
-	// https://docs.ambient.finance/developers/query-contracts/crocquery-contract#pool-price
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    queryABI,
-		Target: queryAddress.Hex(),
-		Method: "queryPrice",
-		Params: []interface{}{baseToken, quoteToken, poolIdx},
-	}, []interface{}{&sqrtPriceX64})
+		// https://docs.ambient.finance/developers/query-contracts/crocquery-contract#pool-price
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    queryABI,
+			Target: queryAddress.Hex(),
+			Method: "queryPrice",
+			Params: []interface{}{pair.Base, pair.Quote, pairInfo.PoolIdx},
+		}, []interface{}{&sqrtPriceX64s[i]})
 
-	// https://docs.ambient.finance/developers/query-contracts/crocquery-contract#pool-liquidity
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    queryABI,
-		Target: queryAddress.Hex(),
-		Method: "queryLiquidity",
-		Params: []interface{}{baseToken, quoteToken, poolIdx},
-	}, []interface{}{&liquidity})
+		// https://docs.ambient.finance/developers/query-contracts/crocquery-contract#pool-liquidity
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    queryABI,
+			Target: queryAddress.Hex(),
+			Method: "queryLiquidity",
+			Params: []interface{}{pair.Base, pair.Quote, pairInfo.PoolIdx},
+		}, []interface{}{&liquidities[i]})
+
+		i++
+	}
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-			"error":       err,
-		}).Errorf("failed to call pool: %v, err: %v", p.Address, err)
+		logger.
+			WithFields(logger.Fields{"poolAddress": p.Address, "error": err}).
+			Error("failed to call multical contract TryAggregate")
 		return p, err
 	}
 
-	encodedExtra, err := json.Marshal(Extra{
-		Liquidity:    liquidity.String(),
-		SqrtPriceX64: sqrtPriceX64.String(),
-	})
+	for i, pair := range tokenPairs {
+		if liquidities[i] != nil {
+			extra.TokenPairs[pair].Liquidity = liquidities[i].String()
+		} else {
+			logger.
+				WithFields(logger.Fields{"poolAddress": p.Address}).
+				Warnf("could not fetch liquidity for pair %s", pair)
+		}
+		if sqrtPriceX64s[i] != nil {
+			extra.TokenPairs[pair].SqrtPriceX64 = sqrtPriceX64s[i].String()
+		} else {
+			logger.
+				WithFields(logger.Fields{"poolAddress": p.Address}).
+				Warnf("could not fetch sqrtPriceX64 for pair %s", pair)
+		}
+	}
+
+	encodedExtra, err := json.Marshal(extra)
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-			"error":       err,
-		}).Errorf("failed to marshal extra data")
+		logger.
+			WithFields(logger.Fields{"poolAddress": p.Address, "error": err}).
+			Error("failed to marshal extra data")
 		return p, err
 	}
 
 	p.Extra = string(encodedExtra)
 	p.Timestamp = time.Now().Unix()
-	p.Reserves = entity.PoolReserves{(*baseReserve).String(), (*quoteReserve).String()}
+	for i := len(p.Reserves); i < len(p.Tokens); i++ {
+		p.Reserves = append(p.Reserves, "")
+	}
+	for i, reserve := range reserves {
+		p.Reserves[i] = reserve.String()
+	}
 
 	return p, nil
 }
