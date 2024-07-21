@@ -150,7 +150,7 @@ func (u *PoolListUpdater) getOrInitializePool(ctx context.Context, address strin
 	}
 
 	staticExtra := StaticExtra{
-		NativeTokenAddress: u.cfg.NativeTokenAddress,
+		NativeTokenAddress: common.HexToAddress(u.cfg.NativeTokenAddress),
 	}
 	encodedStaticExtra, err := json.Marshal(staticExtra)
 	if err != nil {
