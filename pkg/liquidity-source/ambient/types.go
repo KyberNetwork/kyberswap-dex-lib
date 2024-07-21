@@ -51,6 +51,11 @@ func (p *TokenPair) UnmarshalText(text []byte) error {
 	return nil
 }
 
+type StaticExtra struct {
+	// ERC20 native wrapper token
+	NativeTokenAddress string `json:"nativeTokenAddress"`
+}
+
 type TokenPairInfo struct {
 	SqrtPriceX64 string `json:"sqrtPriceX64"`
 	Liquidity    string `json:"liquidity"`

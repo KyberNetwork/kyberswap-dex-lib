@@ -149,6 +149,18 @@ func (u *PoolListUpdater) getOrInitializePool(ctx context.Context, address strin
 			Warn("error when getting pool by address from datastore, assume there is no pool")
 	}
 
+	staticExtra := StaticExtra{
+		NativeTokenAddress: u.cfg.NativeTokenAddress,
+	}
+	encodedStaticExtra, err := json.Marshal(staticExtra)
+	if err != nil {
+		logger.
+			WithFields(logger.Fields{"dex_id": u.cfg.DexID, "address": address, "err": err}).
+			Error("could not unmarshal StaticExtra")
+		return entity.Pool{}, nil, err
+	}
+	upsertPool.StaticExtra = string(encodedStaticExtra)
+
 	extra := new(Extra)
 	if len(upsertPool.Extra) != 0 {
 		if err := json.Unmarshal([]byte(upsertPool.Extra), extra); err != nil {
