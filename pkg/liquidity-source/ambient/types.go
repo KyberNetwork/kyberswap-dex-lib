@@ -1,6 +1,7 @@
 package ambient
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"strings"
@@ -107,4 +108,25 @@ func (p *NTokenPool) CanSwapTo(address string) []string {
 	p.cache.Store(addr, adjs)
 
 	return adjs
+}
+
+func (p *NTokenPool) GetPair(tokenIn, tokenOut common.Address) (TokenPair, bool) {
+	base, quote := tokenIn, tokenOut
+	if base == p.nativeTokenAddress {
+		base = NativeTokenPlaceholderAddress
+	}
+	if quote == p.nativeTokenAddress {
+		quote = NativeTokenPlaceholderAddress
+	}
+	// base must < quote
+	if bytes.Compare(base[:], quote[:]) > 0 {
+		base, quote = quote, base
+	}
+	pair := TokenPair{Base: base, Quote: quote}
+	for _, p := range p.pairs {
+		if pair == p {
+			return pair, true
+		}
+	}
+	return TokenPair{}, false
 }
