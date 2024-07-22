@@ -5,7 +5,7 @@ import "github.com/ethereum/go-ethereum/common"
 const (
 	DexTypeAmbient = "ambient"
 
-	fetchLimit = 1000
+	defaultSubgraphLimit = 1000
 )
 
 var (
