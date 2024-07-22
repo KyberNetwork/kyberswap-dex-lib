@@ -1,9 +1,11 @@
 package ambient
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type Config struct {
@@ -28,4 +30,23 @@ type Config struct {
 
 	// The discriminator for pools of the same token pair. We assume that there is at most 1 pool for a token pair.
 	PoolIdx *big.Int `json:"poolIdx"`
+}
+
+func (c *Config) Validate() error {
+	if common.HexToAddress(c.NativeTokenAddress) == (common.Address{}) {
+		return fmt.Errorf("expected NativeTokenAddress")
+	}
+	if common.HexToAddress(c.SwapDexContractAddress) == (common.Address{}) {
+		return fmt.Errorf("expected SwapDexContractAddress")
+	}
+	if common.HexToAddress(c.QueryContractAddress) == (common.Address{}) {
+		return fmt.Errorf("expected QueryContractAddress")
+	}
+	if common.HexToAddress(c.MulticallContractAddress) == (common.Address{}) {
+		return fmt.Errorf("expected MulticallContractAddress")
+	}
+	if c.PoolIdx == nil {
+		return fmt.Errorf("expected PoolIdx")
+	}
+	return nil
 }

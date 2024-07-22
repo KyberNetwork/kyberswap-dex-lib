@@ -39,20 +39,23 @@ func TestPoolListUpdater(t *testing.T) {
 		err                         error
 
 		config = ambient.Config{
-			DexID:                  "ambient",
-			SubgraphURL:            "https://api.studio.thegraph.com/query/47610/croc-mainnet/version/latest",
-			SubgraphRequestTimeout: durationjson.Duration{Duration: time.Second * 10},
-			SubgraphLimit:          10,
-			PoolIdx:                big.NewInt(420),
-			NativeTokenAddress:     "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-			SwapDexContractAddress: "0xAaAaAAAaA24eEeb8d57D431224f73832bC34f688",
+			DexID:                    "ambient",
+			SubgraphURL:              "https://api.studio.thegraph.com/query/47610/croc-mainnet/version/latest",
+			SubgraphRequestTimeout:   durationjson.Duration{Duration: time.Second * 10},
+			SubgraphLimit:            10,
+			PoolIdx:                  big.NewInt(420),
+			NativeTokenAddress:       "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+			QueryContractAddress:     "0xCA00926b6190c2C59336E73F02569c356d7B6b56",
+			SwapDexContractAddress:   "0xAaAaAAAaA24eEeb8d57D431224f73832bC34f688",
+			MulticallContractAddress: multicallAddress,
 		}
 	)
 
 	{
 		t.Logf("first run with limit = 10")
 
-		pu := ambient.NewPoolsListUpdater(config, mockPoolDataStore{})
+		pu, err := ambient.NewPoolsListUpdater(config, mockPoolDataStore{})
+		require.NoError(t, err)
 		pools, metadataBytes, err = pu.GetNewPools(context.Background(), metadataBytes)
 		require.NoError(t, err)
 		t.Logf("%s\n", string(metadataBytes))
@@ -67,7 +70,8 @@ func TestPoolListUpdater(t *testing.T) {
 		t.Logf("second run with metadata from first run and limit = 1000")
 
 		config.SubgraphLimit = 1000
-		pu := ambient.NewPoolsListUpdater(config, mockPoolDataStore{pool: &firstRunPool})
+		pu, err := ambient.NewPoolsListUpdater(config, mockPoolDataStore{pool: &firstRunPool})
+		require.NoError(t, err)
 		pools, metadataBytes, err = pu.GetNewPools(context.Background(), metadataBytes)
 		require.NoError(t, err)
 		t.Logf("%s\n", string(metadataBytes))

@@ -1,8 +1,9 @@
-package ambient
+package ambient_test
 
 import (
 	"context"
 	"encoding/json"
+	"math/big"
 	"os"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
@@ -24,8 +26,9 @@ func TestPoolTracker(t *testing.T) {
 		t.Skip()
 	}
 
-	cfg := Config{
-		DexID:                    DexTypeAmbient,
+	cfg := ambient.Config{
+		DexID:                    ambient.DexTypeAmbient,
+		PoolIdx:                  big.NewInt(420),
 		NativeTokenAddress:       "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 		QueryContractAddress:     "0xCA00926b6190c2C59336E73F02569c356d7B6b56",
 		SwapDexContractAddress:   "0xAaAaAAAaA24eEeb8d57D431224f73832bC34f688",
@@ -34,7 +37,8 @@ func TestPoolTracker(t *testing.T) {
 
 	client := ethrpc.New(rpcURL)
 	client.SetMulticallContract(common.HexToAddress(multicallAddress))
-	tracker := NewPoolTracker(cfg, client)
+	tracker, err := ambient.NewPoolTracker(cfg, client)
+	require.NoError(t, err)
 
 	encodedPoolEntity := `{
   "address": "0xAaAaAAAaA24eEeb8d57D431224f73832bC34f688",
@@ -503,7 +507,7 @@ func TestPoolTracker(t *testing.T) {
   "staticExtra": "{\"nativeTokenAddress\":\"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2\"}"
 }`
 	poolEntity := entity.Pool{}
-	err := json.Unmarshal([]byte(encodedPoolEntity), &poolEntity)
+	err = json.Unmarshal([]byte(encodedPoolEntity), &poolEntity)
 	require.NoError(t, err)
 
 	pool, err := tracker.GetNewPoolState(context.Background(), poolEntity, pool.GetNewPoolStateParams{})
@@ -514,7 +518,7 @@ func TestPoolTracker(t *testing.T) {
 		require.NotEmpty(t, reserve)
 	}
 
-	extra := Extra{}
+	extra := ambient.Extra{}
 	err = json.Unmarshal([]byte(pool.Extra), &extra)
 	require.NoError(t, err)
 	for _, info := range extra.TokenPairs {
@@ -530,7 +534,7 @@ func TestPoolTracker(t *testing.T) {
 		tokenAddrs = append(tokenAddrs, common.HexToAddress(token.Address))
 	}
 	for pair := range extra.TokenPairs {
-		if pair.Base == NativeTokenPlaceholderAddress {
+		if pair.Base == ambient.NativeTokenPlaceholderAddress {
 			pair.Base = common.HexToAddress(cfg.NativeTokenAddress)
 		}
 		tokenAddrsFromPairs = append(tokenAddrsFromPairs, pair.Base, pair.Quote)

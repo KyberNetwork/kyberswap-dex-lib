@@ -22,11 +22,14 @@ type PoolTracker struct {
 func NewPoolTracker(
 	cfg Config,
 	ethrpcClient *ethrpc.Client,
-) *PoolTracker {
+) (*PoolTracker, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid config: %w", err)
+	}
 	return &PoolTracker{
 		cfg:          cfg,
 		ethrpcClient: ethrpcClient,
-	}
+	}, nil
 }
 
 func (t *PoolTracker) GetNewPoolState(

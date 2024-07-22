@@ -26,12 +26,15 @@ type PoolListUpdater struct {
 func NewPoolsListUpdater(
 	cfg Config,
 	poolDatastore IPoolDatastore,
-) *PoolListUpdater {
+) (*PoolListUpdater, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid config: %w", err)
+	}
 	return &PoolListUpdater{
 		cfg:           cfg,
 		poolDatastore: poolDatastore,
 		subgraph:      graphqlPkg.NewWithTimeout(cfg.SubgraphURL, cfg.SubgraphRequestTimeout.Duration),
-	}
+	}, nil
 }
 
 // GetNewPools fetch new pools from the subgraph
