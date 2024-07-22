@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -12,24 +13,31 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/machinebox/graphql"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolListUpdater struct {
-	cfg      Config
-	subgraph *graphql.Client
+	cfg           Config
+	poolDatastore IPoolDatastore
+	subgraph      *graphql.Client
 }
 
 func NewPoolsListUpdater(
 	cfg Config,
-) *PoolListUpdater {
-	return &PoolListUpdater{
-		cfg:      cfg,
-		subgraph: graphqlPkg.NewWithTimeout(cfg.SubgraphURL, cfg.SubgraphRequestTimeout.Duration),
+	poolDatastore IPoolDatastore,
+) (*PoolListUpdater, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid config: %w", err)
 	}
+	return &PoolListUpdater{
+		cfg:           cfg,
+		poolDatastore: poolDatastore,
+		subgraph:      graphqlPkg.NewWithTimeout(cfg.SubgraphURL, cfg.SubgraphRequestTimeout.Duration),
+	}, nil
 }
 
-// GetNewPools: fetch new pools from the subgraph
+// GetNewPools fetch new pools from the subgraph
 func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	var (
 		dexID     = u.cfg.DexID
@@ -40,27 +48,28 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 
 	ctx = util.NewContextWithTimestamp(ctx)
 
-	if err := json.Unmarshal(metadataBytes, &meta); err != nil {
-		logger.
-			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
-			Error("unmarshal metadata failed")
-		return nil, nil, err
+	if len(metadataBytes) != 0 {
+		if err := json.Unmarshal(metadataBytes, &meta); err != nil {
+			logger.
+				WithFields(logger.Fields{"dex_id": dexID, "err": err}).
+				Error("unmarshal metadata failed")
+			return nil, nil, err
+		}
 	}
 
-	sPools, err := u.fetchSubgraph(ctx, meta.LastCreateTime)
+	subgraphPairs, err := u.fetchSubgraph(ctx, meta.LastCreateTime)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
 			Error("fetchSubgraph failed")
 		return nil, metadataBytes, err
 	}
-	if len(sPools) == 0 {
+	if len(subgraphPairs) == 0 {
 		logger.
 			WithFields(
 				logger.Fields{
-					"dex_id":    dexID,
-					"pools_len": 0,
-					// "last_created_time": lastCreateTime,
+					"dex_id":      dexID,
+					"pools_len":   0,
 					"duration_ms": time.Since(startTime).Milliseconds(),
 				},
 			).
@@ -68,26 +77,42 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		return nil, metadataBytes, nil
 	}
 
-	entPools, err := u.toEntPools(sPools)
+	subgraphPairs = u.excludePoolsWithWrappedNativeToken(subgraphPairs)
+
+	upsertPool, extra, err := u.getOrInitializePool(ctx, u.cfg.SwapDexContractAddress)
 	if err != nil {
-		logger.
-			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
-			Error("transform to entity pool failed")
-		return nil, nil, err
+		return nil, metadataBytes, err
 	}
 
-	newMetaBytes, err := u.metadataBytes(sPools)
+	u.appendTokenPairsToExtra(extra, subgraphPairs)
+
+	encodedExtra, err := json.Marshal(extra)
 	if err != nil {
 		logger.
-			WithFields(logger.Fields{"dex_id": dexID, "err": err}).
+			WithFields(logger.Fields{"dex_id": dexID, "address": u.cfg.SwapDexContractAddress, "err": err}).
+			Error("could not marshal Extra")
+		return nil, metadataBytes, err
+	}
+	upsertPool.Extra = string(encodedExtra)
+
+	u.updateTokens(&upsertPool, subgraphPairs)
+
+	newMetaBytes, err := u.metadataBytes(subgraphPairs)
+	if err != nil {
+		logger.
+			WithFields(logger.Fields{"dex_id": dexID, "address": u.cfg.SwapDexContractAddress, "err": err}).
 			Error("get new metadata bytes failed")
 		return nil, nil, err
 	}
 
-	return entPools, newMetaBytes, nil
+	return []entity.Pool{upsertPool}, newMetaBytes, nil
 }
 
-func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint64) ([]Pool, error) {
+func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint64) ([]SubgraphPool, error) {
+	limit := uint64(defaultSubgraphLimit)
+	if u.cfg.SubgraphLimit != 0 {
+		limit = u.cfg.SubgraphLimit
+	}
 	var (
 		req = graphql.NewRequest(fmt.Sprintf(`{
 	pools(
@@ -95,7 +120,7 @@ func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint
 			timeCreate_gt: %d,
 		}
 		orderBy: timeCreate,
-		orderDirection: desc,
+		orderDirection: asc,
 		first: %d,
 	) {
 		id
@@ -105,8 +130,8 @@ func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint
 		quote
 		poolIdx
 	}
-}`, lastCreateTime, fetchLimit))
-		resp FetchPoolsResponse
+}`, lastCreateTime, limit))
+		resp SubgraphPoolsResponse
 	)
 
 	if err := u.subgraph.Run(ctx, req, &resp); err != nil {
@@ -116,51 +141,118 @@ func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint
 	return resp.Pools, nil
 }
 
-func (u *PoolListUpdater) toEntPools(subgraphPools []Pool) ([]entity.Pool, error) {
-	pools := make([]entity.Pool, 0, len(subgraphPools))
-
-	for _, sPool := range subgraphPools {
-		baseToken := &entity.PoolToken{
-			Address:   sPool.Base,
-			Swappable: true,
+// Ambient uses native token (ETH) instead of ERC20 wrapped native token (WETH) as native reserve.
+// So we exclude any pools involing ERC20 wrapped native token, if any.
+func (u *PoolListUpdater) excludePoolsWithWrappedNativeToken(pairs []SubgraphPool) []SubgraphPool {
+	wrappedNativeAddr := common.HexToAddress(u.cfg.NativeTokenAddress)
+	excluded := make([]SubgraphPool, 0, len(pairs))
+	for _, pair := range pairs {
+		base := common.HexToAddress(pair.Base)
+		quote := common.HexToAddress(pair.Quote)
+		if base == wrappedNativeAddr || quote == wrappedNativeAddr {
+			continue
 		}
-		// replace placeholder address with actual ERC20 wrapped native token address
-		if common.HexToAddress(sPool.Base) == NativeTokenPlaceholderAddress {
-			baseToken.Address = u.cfg.NativeTokenAddress
-		}
-		quoteToken := &entity.PoolToken{
-			Address:   sPool.Quote,
-			Swappable: true,
-		}
-		// each ambient virtual pool only have 2 tokens (base & quote)
-		tokens := []*entity.PoolToken{baseToken, quoteToken}
-		reserves := []string{"0", "0"}
-
-		sExtra := StaticExtra{
-			Base:        sPool.Base,
-			Quote:       sPool.Quote,
-			PoolIdx:     sPool.PoolIdx,
-			SwapAddress: u.cfg.SwapDexContractAddress,
-		}
-		sExtraBytes, err := json.Marshal(sExtra)
-		if err != nil {
-			return nil, err
-		}
-
-		pools = append(pools, entity.Pool{
-			Address:     sPool.ID,
-			Exchange:    u.cfg.DexID,
-			Type:        DexTypeAmbient,
-			Tokens:      tokens,
-			Reserves:    reserves,
-			StaticExtra: string(sExtraBytes),
-		})
+		excluded = append(excluded, pair)
 	}
-
-	return pools, nil
+	return excluded
 }
 
-func (u *PoolListUpdater) metadataBytes(subgraphPools []Pool) ([]byte, error) {
+func (u *PoolListUpdater) getOrInitializePool(ctx context.Context, address string) (entity.Pool, *Extra, error) {
+	upsertPool, err := u.poolDatastore.Get(ctx, address)
+	if err != nil {
+		upsertPool = entity.Pool{
+			Address:  address,
+			Exchange: u.cfg.DexID,
+			Type:     DexTypeAmbient,
+		}
+		logger.
+			WithFields(logger.Fields{"dex_id": u.cfg.DexID, "address": address, "err": err}).
+			Warn("error when getting pool by address from datastore, assume there is no pool")
+	}
+
+	staticExtra := StaticExtra{
+		NativeTokenAddress: common.HexToAddress(u.cfg.NativeTokenAddress),
+	}
+	encodedStaticExtra, err := json.Marshal(staticExtra)
+	if err != nil {
+		logger.
+			WithFields(logger.Fields{"dex_id": u.cfg.DexID, "address": address, "err": err}).
+			Error("could not unmarshal StaticExtra")
+		return entity.Pool{}, nil, err
+	}
+	upsertPool.StaticExtra = string(encodedStaticExtra)
+
+	extra := new(Extra)
+	if len(upsertPool.Extra) != 0 {
+		if err := json.Unmarshal([]byte(upsertPool.Extra), extra); err != nil {
+			logger.
+				WithFields(logger.Fields{"dex_id": u.cfg.DexID, "address": address, "err": err}).
+				Error("could not unmarshal Extra")
+			return entity.Pool{}, nil, err
+		}
+	}
+	if extra.TokenPairs == nil {
+		extra.TokenPairs = make(map[TokenPair]*TokenPairInfo)
+	}
+
+	return upsertPool, extra, nil
+}
+
+func (u *PoolListUpdater) appendTokenPairsToExtra(extra *Extra, tokenPair []SubgraphPool) {
+	for _, p := range tokenPair {
+		pair := TokenPair{
+			Base:  common.HexToAddress(p.Base),
+			Quote: common.HexToAddress(p.Quote),
+		}
+		if _, ok := extra.TokenPairs[pair]; ok {
+			// don't overwrite existing pair
+			continue
+		}
+		poolIdx := bignumber.NewBig10(p.PoolIdx)
+		if poolIdx.Cmp(u.cfg.PoolIdx) != 0 {
+			// skip pools whose PoolIdx is unrelated to the config
+			continue
+		}
+		extra.TokenPairs[pair] = &TokenPairInfo{
+			PoolIdx: bignumber.NewBig10(p.PoolIdx),
+		}
+	}
+}
+
+func (u *PoolListUpdater) updateTokens(pool *entity.Pool, tokenPairs []SubgraphPool) {
+	existingTokenSet := make(map[common.Address]struct{})
+	for _, token := range pool.Tokens {
+		existingTokenSet[common.HexToAddress(token.Address)] = struct{}{}
+	}
+	// update upsertPool's tokens list
+	for _, p := range tokenPairs {
+		baseToken := common.HexToAddress(p.Base)
+		if baseToken == NativeTokenPlaceholderAddress {
+			baseToken = common.HexToAddress(u.cfg.NativeTokenAddress)
+		}
+		if _, ok := existingTokenSet[baseToken]; !ok {
+			existingTokenSet[baseToken] = struct{}{}
+			pool.Tokens = append(pool.Tokens, &entity.PoolToken{
+				Address:   strings.ToLower(baseToken.String()),
+				Swappable: true,
+			})
+			pool.Reserves = append(pool.Reserves, "0")
+		}
+
+		quoteToken := common.HexToAddress(p.Quote)
+		if _, ok := existingTokenSet[quoteToken]; !ok {
+			existingTokenSet[quoteToken] = struct{}{}
+			pool.Tokens = append(pool.Tokens, &entity.PoolToken{
+				Address:   strings.ToLower(quoteToken.String()),
+				Swappable: true,
+			})
+			pool.Reserves = append(pool.Reserves, "0")
+		}
+	}
+
+}
+
+func (u *PoolListUpdater) metadataBytes(subgraphPools []SubgraphPool) ([]byte, error) {
 	var metadata PoolListUpdaterMetadata
 	if len(subgraphPools) == 0 {
 		metadata.LastCreateTime = 0
