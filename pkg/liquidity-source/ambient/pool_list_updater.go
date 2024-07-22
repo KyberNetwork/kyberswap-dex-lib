@@ -74,6 +74,8 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		return nil, metadataBytes, nil
 	}
 
+	subgraphPairs = u.excludePoolsWithWrappedNativeToken(subgraphPairs)
+
 	upsertPool, extra, err := u.getOrInitializePool(ctx, u.cfg.SwapDexContractAddress)
 	if err != nil {
 		return nil, metadataBytes, err
@@ -134,6 +136,22 @@ func (u *PoolListUpdater) fetchSubgraph(ctx context.Context, lastCreateTime uint
 	}
 
 	return resp.Pools, nil
+}
+
+// Ambient uses native token (ETH) instead of ERC20 wrapped native token (WETH) as native reserve.
+// So we exclude any pools involing ERC20 wrapped native token, if any.
+func (u *PoolListUpdater) excludePoolsWithWrappedNativeToken(pairs []SubgraphPool) []SubgraphPool {
+	wrappedNativeAddr := common.HexToAddress(u.cfg.NativeTokenAddress)
+	excluded := make([]SubgraphPool, 0, len(pairs))
+	for _, pair := range pairs {
+		base := common.HexToAddress(pair.Base)
+		quote := common.HexToAddress(pair.Quote)
+		if base == wrappedNativeAddr || quote == wrappedNativeAddr {
+			continue
+		}
+		excluded = append(excluded, pair)
+	}
+	return excluded
 }
 
 func (u *PoolListUpdater) getOrInitializePool(ctx context.Context, address string) (entity.Pool, *Extra, error) {
