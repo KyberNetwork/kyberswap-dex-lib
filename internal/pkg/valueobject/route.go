@@ -32,6 +32,19 @@ type Route struct {
 	TotalGas int64       `json:"totalGas"`
 }
 
+func (r *Route) HasOnlyOneSwap() bool {
+	if r.Paths == nil || len(r.Paths) != 1 {
+		return false
+	}
+
+	if r.Paths[0] == nil || len(r.Paths[0].PoolAddresses) != 1 {
+		return false
+	}
+
+	return true
+
+}
+
 func NewRoute(
 	tokenInAddress string,
 	tokenOutAddress string,

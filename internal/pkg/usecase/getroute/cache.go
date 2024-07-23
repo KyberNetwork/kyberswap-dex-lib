@@ -174,7 +174,6 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 			}).
 			Debug("cache missed")
 		metrics.IncrFindRouteCacheCount(ctx, false, map[string]string{"reason": "summarizeCachedRouteFailed"})
-
 		return nil, err
 	}
 
@@ -338,7 +337,7 @@ func (c *cache) summarizeSimpleRoute(
 			// We need to calculate safety quoting amount and reasign new amount out to next path's amount in
 			reducedNextAmountIn := c.safetyQuoteReduction.Reduce(
 				result.TokenAmountOut,
-				c.safetyQuoteReduction.GetSafetyQuotingRate(pool.GetType()),
+				c.safetyQuoteReduction.GetSafetyQuotingRate(pool.GetType(), simpleRoute.HasOnlyOneSwap()),
 				params.ClientId)
 
 			// Step 3.1.6: summarize the swap

@@ -300,7 +300,7 @@ func (a *aggregator) summarizeRoute(
 			// Step 2.1.6: We need to calculate safety quoting amount and reasign new amount out to next path's amount in
 			reducedNextAmountIn := a.safetyQuoteReduction.Reduce(
 				result.TokenAmountOut,
-				a.safetyQuoteReduction.GetSafetyQuotingRate(pool.GetType()), params.ClientId)
+				a.safetyQuoteReduction.GetSafetyQuotingRate(pool.GetType(), route.HasOnlyOneSwap()), params.ClientId)
 
 			// Step 2.1.7: summarize the swap
 			// important: must re-update amount out to reducedNextAmountIn

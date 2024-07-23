@@ -9,6 +9,19 @@ type SimpleRoute struct {
 	Paths [][]SimpleSwap `json:"paths"`
 }
 
+func (r *SimpleRoute) HasOnlyOneSwap() bool {
+	if r.Paths == nil || len(r.Paths) != 1 {
+		return false
+	}
+
+	if r.Paths[0] == nil || len(r.Paths[0]) != 1 {
+		return false
+	}
+
+	return true
+
+}
+
 // SimpleSwap ...
 type SimpleSwap struct {
 	PoolAddress     string `json:"poolAddress"`

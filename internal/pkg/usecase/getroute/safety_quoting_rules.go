@@ -59,7 +59,10 @@ func whitelistClientToSet(clients []string) mapset.Set[string] {
 	return whitelistSet
 }
 
-func (f *SafetyQuoteReduction) GetSafetyQuotingRate(poolType string) float64 {
+func (f *SafetyQuoteReduction) GetSafetyQuotingRate(poolType string, excludeSafetyQuoting bool) float64 {
+	if excludeSafetyQuoting {
+		return 0
+	}
 	switch poolType {
 	case pooltypes.PoolTypes.LimitOrder, pooltypes.PoolTypes.KyberPMM,
 		pooltypes.PoolTypes.HashflowV3, pooltypes.PoolTypes.NativeV1,

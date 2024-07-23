@@ -16,13 +16,14 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name     string
-		amount   *pool.TokenAmount
-		poolType string
-		result   pool.TokenAmount
-		config   valueobject.SafetyQuoteReductionConfig
-		clientId string
-		err      error
+		name                 string
+		amount               *pool.TokenAmount
+		poolType             string
+		result               pool.TokenAmount
+		config               valueobject.SafetyQuoteReductionConfig
+		excludeSafetyQuoting bool
+		clientId             string
+		err                  error
 	}{
 		{
 			name:     "Reduce safety quote amount with PMM pool, amount is not changed",
@@ -42,7 +43,8 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 				},
 				WhitelistedClient: []string{"testClient", "testBetaClient"},
 			},
-			clientId: "testClient",
+			excludeSafetyQuoting: false,
+			clientId:             "testClient",
 		},
 		{
 			name:     "Reduce safety quote amount with RFQ pool, amount is not changed",
@@ -62,7 +64,8 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 				},
 				WhitelistedClient: []string{"testClient", "testBetaClient"},
 			},
-			clientId: "testClient",
+			excludeSafetyQuoting: false,
+			clientId:             "testClient",
 		},
 		{
 			name:     "Reduce safety quote amount with RFQ pool, amount is not changed",
@@ -82,7 +85,8 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 				},
 				WhitelistedClient: []string{"testClient", "testBetaClient"},
 			},
-			clientId: "testClient",
+			excludeSafetyQuoting: false,
+			clientId:             "testClient",
 		},
 		{
 			name:     "Reduce safety quote amount with Stable pairs, amount is reduced correctly",
@@ -102,7 +106,8 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 				},
 				WhitelistedClient: []string{"testClient", "testBetaClient"},
 			},
-			clientId: "testClient",
+			excludeSafetyQuoting: false,
+			clientId:             "testClient",
 		},
 		{
 			name:     "Reduce safety quote amount with Stable pairs, amount is reduced correctly",
@@ -122,7 +127,8 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 				},
 				WhitelistedClient: []string{"testClient", "testBetaClient"},
 			},
-			clientId: "testClient",
+			excludeSafetyQuoting: false,
+			clientId:             "testClient",
 		},
 		{
 			name:     "Should not reduce safety quote amount with Stable pairs because client is non-whitelist",
@@ -142,7 +148,8 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 				},
 				WhitelistedClient: []string{"testClient", "testBetaClient"},
 			},
-			clientId: "nonWhitelist",
+			excludeSafetyQuoting: false,
+			clientId:             "nonWhitelist",
 		},
 	}
 
@@ -152,7 +159,8 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 			defer ctrl.Finish()
 
 			safetyQuoteReduction := NewSafetyQuoteReduction(tc.config)
-			res := safetyQuoteReduction.Reduce(tc.amount, safetyQuoteReduction.GetSafetyQuotingRate(tc.poolType), tc.clientId)
+			res := safetyQuoteReduction.Reduce(tc.amount,
+				safetyQuoteReduction.GetSafetyQuotingRate(tc.poolType, tc.excludeSafetyQuoting), tc.clientId)
 
 			assert.Equal(t, res.Token, tc.result.Token)
 			assert.Equal(t, res.AmountUsd, tc.result.AmountUsd)

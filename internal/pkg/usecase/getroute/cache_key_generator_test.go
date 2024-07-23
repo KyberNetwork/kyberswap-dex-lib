@@ -610,6 +610,43 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 			},
 			cacheKeys: newDefaultRouteCacheKey(float64(1000), valueobject.RouteCacheModeRangeByUSD, 12*time.Second),
 		},
+		{
+			name: "Gen key v1 should return cache key with amount in by usd (1,59) is above threshold (1)",
+			param: &types.AggregateParams{
+				TokenIn: entity.Token{
+					Decimals: 18,
+				},
+				AmountIn:        bigIntFromString("1060000000000000000"),
+				TokenInPriceUSD: 1.5,
+			},
+			config: valueobject.CacheConfig{
+				TTLByAmount: []valueobject.CachePoint{
+					{Amount: 1, TTL: 30 * time.Second},
+					{Amount: 2, TTL: 10 * time.Second},
+					{Amount: 5, TTL: 10 * time.Second},
+					{Amount: 10, TTL: 10 * time.Second},
+					{Amount: 15, TTL: 10 * time.Second},
+					{Amount: 20, TTL: 10 * time.Second},
+					{Amount: 22, TTL: 30 * time.Second},
+					{Amount: 25, TTL: 10 * time.Second},
+					{Amount: 30, TTL: 10 * time.Second},
+					{Amount: 100, TTL: 10 * time.Second},
+				},
+				TTLByAmountUSDRange: []valueobject.CacheRange{
+					{AmountUSDLowerBound: 0, TTL: 18 * time.Second},
+					{AmountUSDLowerBound: 101, TTL: 20 * time.Second},
+					{AmountUSDLowerBound: 500, TTL: 12 * time.Second},
+					{AmountUSDLowerBound: 1001, TTL: 13 * time.Second},
+					{AmountUSDLowerBound: 2000, TTL: 14 * time.Second},
+					{AmountUSDLowerBound: 5000, TTL: 15 * time.Second},
+				},
+				ShrinkFuncName:          string(ShrinkFuncNameDecimal),
+				ShrinkDecimalBase:       10,
+				ShrinkAmountInThreshold: 100000,
+				MinAmountInUSD:          1,
+			},
+			cacheKeys: newDefaultRouteCacheKey(float64(2), valueobject.RouteCacheModeRangeByUSD, 18*time.Second),
+		},
 	}
 
 	for _, tc := range testCases {
@@ -786,7 +823,7 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 				TokenIn: entity.Token{
 					Decimals: 18,
 				},
-				AmountIn:        bigIntFromScientificNotation("2e17"),
+				AmountIn:        bigIntFromScientificNotation("2e19"),
 				TokenInPriceUSD: 5e-324,
 			},
 			config: valueobject.CacheConfig{
@@ -812,7 +849,7 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 				EnableNewCacheKeyGenerator: true,
 				MinAmountInUSD:             0.9,
 			},
-			cacheKeys: newMultiRouteCacheKeys([]float64{0}, valueobject.RouteCacheModeRangeByAmount, []time.Duration{40 * time.Second}),
+			cacheKeys: newMultiRouteCacheKeys([]float64{17, 18, 19}, valueobject.RouteCacheModeRangeByAmount, []time.Duration{40 * time.Second, 40 * time.Second, 40 * time.Second}),
 			err:       nil,
 		},
 	}
