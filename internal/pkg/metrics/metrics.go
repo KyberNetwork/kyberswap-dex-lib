@@ -4,7 +4,6 @@ import (
 	"context"
 	"math"
 	"strconv"
-	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -17,18 +16,17 @@ import (
 )
 
 const (
-	DexHitRateMetricsName              = "dex_hit_rate.count"
-	PoolTypeHitRateMetricsName         = "pool_hit_rate.count"
-	RequestPairCountMetricsName        = "request_pair.count"
-	FindRouteCacheCountMetricsName     = "find_route_cache.count"
-	RequestCountMetricsName            = "request.count"
-	InvalidSynthetixVolumeMetricsName  = "invalid_synthetix_volume.count"
-	FindRoutePregenHitRateMetricsName  = "find_route_pregen.count"
-	IsPregenPathValidMetricsName       = "is_pregen_path_valid.count"
-	EstimateGasStatusMetricsName       = "estimate_gas.count"
+	DexHitRateMetricsName              = "dex_hit_rate_count"
+	PoolTypeHitRateMetricsName         = "pool_hit_rate_count"
+	FindRouteCacheCountMetricsName     = "find_route_cache_count"
+	RequestCountMetricsName            = "request_count"
+	InvalidSynthetixVolumeMetricsName  = "invalid_synthetix_volume_count"
+	FindRoutePregenHitRateMetricsName  = "find_route_pregen_count"
+	IsPregenPathValidMetricsName       = "is_pregen_path_valid_count"
+	EstimateGasStatusMetricsName       = "estimate_gas_count"
 	EstimateGasWithSlippageMetricsName = "estimate_gas_slippage"
 	IndexPoolsMetricsCounterName       = "index_pools_count"
-	ClonePoolPanicMetricsName          = "clone_pool_panic.count"
+	ClonePoolPanicMetricsName          = "clone_pool_panic_count"
 	IndexPoolsDelayMetricsName         = "index_job_pools_delay"
 
 	CalcAmountOutCountPerRequest = "calc_amount_out_count_per_request"
@@ -37,7 +35,6 @@ const (
 var (
 	dexHitRateCounter             metric.Float64Counter
 	poolTypeHitRateCounter        metric.Float64Counter
-	requestPairCountCounter       metric.Float64Counter
 	findRouteCacheCounter         metric.Float64Counter
 	requestCountCounter           metric.Float64Counter
 	invalidSynthetixVolumeCounter metric.Float64Counter
@@ -59,27 +56,25 @@ var (
 )
 
 func init() {
-	dexHitRateCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(DexHitRateMetricsName))
-	poolTypeHitRateCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(PoolTypeHitRateMetricsName))
-	requestPairCountCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(RequestPairCountMetricsName))
-	findRouteCacheCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(FindRouteCacheCountMetricsName))
-	requestCountCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(RequestCountMetricsName))
-	invalidSynthetixVolumeCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(InvalidSynthetixVolumeMetricsName))
-	findRoutePregenHitRateCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(FindRoutePregenHitRateMetricsName))
-	estimateGasStatusCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(EstimateGasStatusMetricsName))
-	isPregenPathValidCounter, _ = kybermetric.Meter().Float64Counter(formatMetricName(IsPregenPathValidMetricsName))
-	estimateGasSlippageHistogram, _ = kybermetric.Meter().Float64Histogram(formatMetricName(EstimateGasWithSlippageMetricsName))
+	dexHitRateCounter, _ = kybermetric.Meter().Float64Counter(DexHitRateMetricsName)
+	poolTypeHitRateCounter, _ = kybermetric.Meter().Float64Counter(PoolTypeHitRateMetricsName)
+	findRouteCacheCounter, _ = kybermetric.Meter().Float64Counter(FindRouteCacheCountMetricsName)
+	requestCountCounter, _ = kybermetric.Meter().Float64Counter(RequestCountMetricsName)
+	invalidSynthetixVolumeCounter, _ = kybermetric.Meter().Float64Counter(InvalidSynthetixVolumeMetricsName)
+	findRoutePregenHitRateCounter, _ = kybermetric.Meter().Float64Counter(FindRoutePregenHitRateMetricsName)
+	estimateGasStatusCounter, _ = kybermetric.Meter().Float64Counter(EstimateGasStatusMetricsName)
+	isPregenPathValidCounter, _ = kybermetric.Meter().Float64Counter(IsPregenPathValidMetricsName)
+	estimateGasSlippageHistogram, _ = kybermetric.Meter().Float64Histogram(EstimateGasWithSlippageMetricsName)
 	indexPoolsDelayHistogram, _ = kybermetric.Meter().Int64Histogram(IndexPoolsDelayMetricsName,
 		metric.WithExplicitBucketBoundaries(0, 50, 300, 1200, 2500, 5000, 10e3, 30e3, 90e3, 300e3, 1200e3, 3600e3))
 	indexPoolsDelayCounter, _ = kybermetric.Meter().Float64Counter(IndexPoolsMetricsCounterName)
 	clonePoolPanicCounter, _ = kybermetric.Meter().Float64Counter(ClonePoolPanicMetricsName)
-	calcAmountOutCountPerRequestHistogram, _ = kybermetric.Meter().Int64Histogram(formatMetricName(CalcAmountOutCountPerRequest),
-		metric.WithExplicitBucketBoundaries(1, 10, 100, 1000, math.Inf(1)))
+	calcAmountOutCountPerRequestHistogram, _ = kybermetric.Meter().Int64Histogram(CalcAmountOutCountPerRequest)
+	metric.WithExplicitBucketBoundaries(1, 10, 100, 1000, math.Inf(1))
 
 	mapMetricNameToCounter = map[string]metric.Float64Counter{
 		DexHitRateMetricsName:             dexHitRateCounter,
 		PoolTypeHitRateMetricsName:        poolTypeHitRateCounter,
-		RequestPairCountMetricsName:       requestPairCountCounter,
 		FindRouteCacheCountMetricsName:    findRouteCacheCounter,
 		RequestCountMetricsName:           requestCountCounter,
 		InvalidSynthetixVolumeMetricsName: invalidSynthetixVolumeCounter,
@@ -112,15 +107,6 @@ func IncrPoolTypeHitRate(ctx context.Context, poolType string) {
 	}
 
 	incr(ctx, PoolTypeHitRateMetricsName, tags, 0.1)
-}
-
-func IncrRequestPairCount(ctx context.Context, tokenInAddress, tokenOutAddress string) {
-	tags := map[string]string{
-		"token0": tokenInAddress,
-		"token1": tokenOutAddress,
-	}
-
-	incr(ctx, RequestPairCountMetricsName, tags, 0.5)
 }
 
 func IncrFindRoutePregenCount(ctx context.Context, pregenHit bool, otherTags map[string]string) {
@@ -265,10 +251,4 @@ func histogram[T int64 | float64](ctx context.Context, name string, value T, tag
 		}
 	}
 
-}
-
-func formatMetricName(name string) string {
-	// VanPT doesn't accept "." in the metric name,
-	// so replace all the current "." to "_".
-	return strings.Replace(name, ".", "_", -1)
 }

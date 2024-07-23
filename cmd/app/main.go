@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -30,9 +29,8 @@ import (
 	"github.com/urfave/cli/v2"
 	_ "go.uber.org/automaxprocs"
 	"golang.org/x/sync/errgroup"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
-	"gopkg.in/DataDog/dd-trace-go.v1/profiler"
 
+	_ "github.com/KyberNetwork/kyber-trace-go/tools"
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
 	"github.com/KyberNetwork/router-service/internal/pkg/bootstrap"
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
@@ -103,44 +101,6 @@ type IAEVMClientUseCase interface {
 
 // TODO: refactor main file -> separate to many folders with per folder is application. The main file should contains call root action per application.
 func main() {
-
-	if env.StringFromEnv(envvar.DDEnabled, "") != "" {
-		addr := net.JoinHostPort(
-			env.StringFromEnv(envvar.DDAgentHost, ""),
-			"8126",
-		)
-
-		samplerRate := env.ParseFloatFromEnv(envvar.DDSamplerRate, 0.2, 0, 1)
-		tracer.Start(
-			tracer.WithEnv(env.StringFromEnv(envvar.DDEnv, "")),
-			tracer.WithService(env.StringFromEnv(envvar.DDService, "")),
-			tracer.WithServiceVersion(env.StringFromEnv(envvar.DDVersion, "")),
-			tracer.WithAgentAddr(addr),
-			tracer.WithSampler(tracer.NewRateSampler(samplerRate)),
-		)
-		defer tracer.Stop()
-	}
-
-	if env.StringFromEnv(envvar.DDProfilerEnabled, "") != "" {
-		err := profiler.Start(
-			profiler.WithService(env.StringFromEnv(envvar.DDService, "")),
-			profiler.WithEnv(env.StringFromEnv(envvar.DDEnv, "")),
-			profiler.WithVersion(env.StringFromEnv(envvar.DDVersion, "")),
-			profiler.WithProfileTypes(
-				profiler.CPUProfile,
-				profiler.HeapProfile,
-				// The profiles below are disabled by default to keep overhead
-				// low, but can be enabled as needed.
-
-				// profiler.BlockProfile,
-				// profiler.MutexProfile,
-				// profiler.GoroutineProfile,
-			))
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer profiler.Stop()
-	}
 
 	if env.StringFromEnv(envvar.PYROSCOPEEnabled, "") != "" {
 		pyroscopeServer := env.StringFromEnv(envvar.PYROSCOPEHost, "")
@@ -292,8 +252,6 @@ func apiAction(c *cli.Context) (err error) {
 		logger.Errorf(ctx, "fail to init redis client to pool service")
 		return err
 	}
-
-	_, err = metrics.InitClient(newMetricsConfig(cfg))
 
 	ethClient := ethrpc.New(cfg.Common.RPC)
 
@@ -647,9 +605,6 @@ func indexerAction(c *cli.Context) (err error) {
 	if err != nil {
 		return err
 	}
-
-	// init metrics client
-	_, err = metrics.InitClient(newMetricsConfig(cfg))
 
 	// Initialize config reloader
 	restSettingRepo := setting.NewRestRepository(cfg.ReloadConfig.HttpUrl)
@@ -1124,20 +1079,6 @@ func getKeyStorage(storageFilePath string) (cryptopkg.KeyPairStorage, error) {
 		return keystorage.NewInMemoryStorage(nil), nil
 	}
 	return keyStorage, err
-}
-
-func newMetricsConfig(cfg *config.Config) metrics.Config {
-	host := cfg.DogstatsdHost
-
-	if len(cfg.Metrics.Host) > 0 {
-		host = cfg.Metrics.Host
-	}
-
-	return metrics.Config{
-		Host:      host,
-		Port:      cfg.Metrics.Port,
-		Namespace: cfg.Metrics.Namespace,
-	}
 }
 
 func applyLatestConfigForAPI(

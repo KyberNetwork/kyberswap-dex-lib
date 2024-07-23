@@ -335,8 +335,6 @@ func (a *aggregator) summarizeRoute(
 		summarizedRoute = append(summarizedRoute, summarizedPath)
 	}
 
-	metrics.IncrRequestPairCount(ctx, params.TokenIn.Address, params.TokenOut.Address)
-
 	return &valueobject.RouteSummary{
 		TokenIn:      params.TokenIn.Address,
 		AmountIn:     params.AmountIn,

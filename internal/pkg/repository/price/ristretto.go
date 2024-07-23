@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/dgraph-io/ristretto"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 type ristrettoRepository struct {
@@ -37,7 +37,7 @@ func NewRistrettoRepository(
 
 func (r *ristrettoRepository) FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Price, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[price] ristrettoRepository.FindByAddresses")
-	defer span.Finish()
+	defer span.End()
 
 	prices := make([]*entity.Price, 0, len(addresses))
 	uncachedAddresses := make([]string, 0, len(addresses))

@@ -9,7 +9,6 @@ import (
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
-	gintracer "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
 	clientidmiddleware "github.com/KyberNetwork/router-service/internal/pkg/server/http/middlewares/clientid"
@@ -39,19 +38,6 @@ func GinServer(cfg *HTTPConfig, logCfg logger.Configuration, logBackend logger.L
 				Repanic: true,
 			},
 		),
-	}
-
-	if env.StringFromEnv(envvar.DDEnabled, "") != "" {
-		middlewares = append(
-			middlewares,
-			gintracer.Middleware(
-				env.StringFromEnv(envvar.DDService, ""),
-				gintracer.WithIgnoreRequest(func(c *gin.Context) bool {
-					_, contained := skipPathSet[c.Request.URL.Path]
-					return contained
-				}),
-			),
-		)
 	}
 
 	if env.StringFromEnv(envvar.OTELEnabled, "") != "" {

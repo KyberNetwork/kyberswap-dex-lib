@@ -5,10 +5,10 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/dgraph-io/ristretto"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 func genKey(key valueobject.RouteCacheKeyTTL, prefix string) string {
@@ -44,7 +44,7 @@ func NewRistrettoRepository(
 
 func (r *ristrettoRepository) Get(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) (map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[route] ristrettoRepository.Get")
-	defer span.Finish()
+	defer span.End()
 
 	routes := map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute{}
 	uncachedKeys := make([]valueobject.RouteCacheKeyTTL, 0, len(keys))
@@ -93,7 +93,7 @@ func (r *ristrettoRepository) Get(ctx context.Context, keys []valueobject.RouteC
 
 func (r *ristrettoRepository) Set(ctx context.Context, keys []valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRoute) error {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[route] redisCacheRepository.Set")
-	defer span.Finish()
+	defer span.End()
 
 	cachedRoutes, err := r.fallbackRepository.Set(ctx, keys, routes)
 
@@ -106,7 +106,7 @@ func (r *ristrettoRepository) Set(ctx context.Context, keys []valueobject.RouteC
 
 func (r *ristrettoRepository) Del(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) error {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[route] redisCacheRepository.Del")
-	defer span.Finish()
+	defer span.End()
 
 	err := r.fallbackRepository.Del(ctx, keys)
 	if err == nil {

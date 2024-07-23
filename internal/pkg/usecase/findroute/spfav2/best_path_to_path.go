@@ -6,12 +6,12 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/pkg/errors"
-	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -25,7 +25,7 @@ func bestPathToPath(
 ) []*valueobject.Path {
 	var paths []*valueobject.Path
 	span, _ := tracer.StartSpanFromContext(ctx, "spfav2Finder.bestPathToPath")
-	defer span.Finish()
+	defer span.End()
 	calcAmountOutResultBySwapKey := make(map[string]*poolpkg.CalcAmountOutResult)
 
 	for _, bestPath := range bestPaths {
