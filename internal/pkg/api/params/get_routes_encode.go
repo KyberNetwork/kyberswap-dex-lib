@@ -1,26 +1,30 @@
 package params
 
 type GetRouteEncodeParams struct {
-	TokenIn                string `form:"tokenIn" binding:"required"`
-	TokenOut               string `form:"tokenOut" binding:"required"`
-	AmountIn               string `form:"amountIn" binding:"required"`
-	SaveGas                bool   `form:"saveGas"`
-	Dexes                  string `form:"dexes"`
-	GasInclude             bool   `form:"gasInclude"`
-	GasPrice               string `form:"gasPrice"`
-	SlippageTolerance      int64  `form:"slippageTolerance"`
-	ChargeFeeBy            string `form:"chargeFeeBy"`
-	FeeReceiver            string `form:"feeReceiver"`
-	IsInBps                bool   `form:"isInBps"`
-	FeeAmount              string `form:"feeAmount"`
-	Deadline               int64  `form:"deadline"`
-	To                     string `form:"to"`
-	ClientData             string `form:"clientData"`
-	Referral               string `form:"referral"`
-	Permit                 string `form:"permit"`
-	IsPathGeneratorEnabled bool   `form:"isPathGeneratorEnabled"`
-	IsHillClimbEnabled     bool   `form:"isHillClimbEnabled"`
-	IgnoreCappedSlippage   bool   `form:"ignoreCappedSlippage,default=false"`
+	TokenIn                string     `form:"tokenIn" binding:"required"`
+	TokenOut               string     `form:"tokenOut" binding:"required"`
+	AmountIn               string     `form:"amountIn" binding:"required"`
+	SaveGas                bool       `form:"saveGas"`
+	Dexes                  string     `form:"dexes"`
+	GasInclude             bool       `form:"gasInclude"`
+	GasPrice               string     `form:"gasPrice"`
+	SlippageTolerance      int64      `form:"slippageTolerance"`
+	ChargeFeeBy            string     `form:"chargeFeeBy"`
+	FeeReceiver            string     `form:"feeReceiver"`
+	IsInBps                bool       `form:"isInBps"`
+	FeeAmount              string     `form:"feeAmount"`
+	Deadline               int64      `form:"deadline"`
+	To                     string     `form:"to"`
+	ClientData             ClientData `form:"clientData"`
+	Referral               string     `form:"referral"`
+	Permit                 string     `form:"permit"`
+	IsPathGeneratorEnabled bool       `form:"isPathGeneratorEnabled"`
+	IsHillClimbEnabled     bool       `form:"isHillClimbEnabled"`
+	IgnoreCappedSlippage   bool       `form:"ignoreCappedSlippage,default=false"`
+}
+
+type ClientData struct {
+	Source string `json:"source"`
 }
 
 type (

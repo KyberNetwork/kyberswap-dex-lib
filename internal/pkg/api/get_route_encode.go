@@ -1,8 +1,6 @@
 package api
 
 import (
-	"context"
-	"encoding/json"
 	"math/big"
 	"net/http"
 	"time"
@@ -21,7 +19,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getrouteencode"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 // GetRouteEncode [GET /route/encode] Find best route with encode
@@ -54,6 +51,13 @@ func GetRouteEncode(
 			return
 		}
 
+		// if source param is empty, use clientID from header as the source
+		if queryParams.ClientData.Source == "" {
+			queryParams.ClientData = params.ClientData{
+				Source: clientIDFromHeader,
+			}
+		}
+
 		getRoutesQuery, err := transformFromGetRouteEncodeToGetRoutesQuery(queryParams)
 		if err != nil {
 			RespondFailure(ginCtx, err)
@@ -71,15 +75,10 @@ func GetRouteEncode(
 			return
 		}
 
-		buildRouteCommand, err := buildBuildRouteCommand(ctx, queryParams, getRoutesResult, nowFunc)
+		buildRouteCommand, err := buildBuildRouteCommand(queryParams, getRoutesResult, nowFunc)
 		if err != nil {
 			RespondFailure(ginCtx, err)
 			return
-		}
-
-		// if source param is empty, use clientID from header as the source
-		if buildRouteCommand.Source == "" {
-			buildRouteCommand.Source = clientIDFromHeader
 		}
 
 		buildRouteResult, err := buildRoutesUseCase.Handle(ctx, buildRouteCommand)
@@ -173,11 +172,11 @@ func transformFromGetRouteEncodeToGetRoutesQuery(params params.GetRouteEncodePar
 		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
 		IsHillClimbEnabled:     params.IsPathGeneratorEnabled,
 		ExcludedPools:          mapset.NewSet[string](),
+		ClientId:               params.ClientData.Source,
 	}, nil
 }
 
 func buildBuildRouteCommand(
-	ctx context.Context,
 	params params.GetRouteEncodeParams,
 	getRoutesResult *dto.GetRoutesResult,
 	nowFunc func() time.Time,
@@ -187,22 +186,13 @@ func buildBuildRouteCommand(
 		deadline = nowFunc().Add(valueobject.DefaultDeadline).Unix()
 	}
 
-	var clientData struct {
-		Source string `json:"source"`
-	}
-	if err := json.Unmarshal([]byte(params.ClientData), &clientData); err != nil {
-		logger.
-			WithFields(ctx, logger.Fields{"error": err}).
-			Warn("unmarshal client data failed")
-	}
-
 	return dto.BuildRouteCommand{
 		RouteSummary:      *getRoutesResult.RouteSummary,
 		Recipient:         utils.CleanUpParam(params.To),
 		Deadline:          deadline,
 		SlippageTolerance: params.SlippageTolerance,
 		Referral:          params.Referral,
-		Source:            clientData.Source,
+		Source:            params.ClientData.Source,
 		Permit:            common.FromHex(params.Permit),
 	}, nil
 }
