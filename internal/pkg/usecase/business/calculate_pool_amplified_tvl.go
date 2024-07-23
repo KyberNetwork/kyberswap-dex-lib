@@ -3,7 +3,9 @@ package business
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
@@ -39,53 +41,54 @@ func CalculatePoolAmplifiedTVL(
 		maverickv1.DexTypeMaverickV1,
 		algebrav1.DexTypeAlgebraV1,
 		iziswap.DexTypeiZiSwap,
-		liquiditybookv20.DexTypeLiquidityBookV20, liquiditybookv21.DexTypeLiquidityBookV21,
-		ambient.DexTypeAmbient:
+		liquiditybookv20.DexTypeLiquidityBookV20, liquiditybookv21.DexTypeLiquidityBookV21:
 		liquidity, sqrtPriceBF, err := getLiquidityAndSqrtPrice(p)
 		if err != nil {
 			logger.Errorf(ctx, "failed to get liquidity and sqrt price for pool %s: %s", p.Address, err)
 			return 0, false, err
 		}
 
-		if liquidity == nil || sqrtPriceBF == nil {
-			return 0, false, nil
+		v, err := calculateAmplifiedTVL(ctx, poolTokens[0].Address, poolTokens[1].Address, liquidity, sqrtPriceBF, nativePriceByToken)
+		return v, false, err
+
+	case ambient.DexTypeAmbient:
+		var staticExtra ambient.StaticExtra
+		if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+			return 0, false, fmt.Errorf("could not unmarshal ambient.StaticExtra: %w", err)
 		}
 
-		if liquidity.Sign() == 0 || sqrtPriceBF.Sign() == 0 {
-			return 0, false, nil
+		var extra ambient.Extra
+		if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+			return 0, false, fmt.Errorf("could not unmarshal ambient.Extra: %w", err)
 		}
 
-		liquidityBF := new(big.Float).SetInt(liquidity)
+		var amplifiedTvl float64
 
-		var token0 = poolTokens[0]
-		var token1 = poolTokens[1]
-
-		midPrice0, price0, err := getMidPrice(nativePriceByToken, token0.Address)
-		if err != nil {
-			logger.Debugf(ctx, "cannot get mid price for token0 %v %v", token0, price0)
-			return 0, false, err
+		for pair, pairInfo := range extra.TokenPairs {
+			token0, token1 := pair.Base, pair.Quote
+			if token0 == ambient.NativeTokenPlaceholderAddress {
+				token0 = staticExtra.NativeTokenAddress
+			}
+			if token1 == ambient.NativeTokenPlaceholderAddress {
+				token1 = staticExtra.NativeTokenAddress
+			}
+			liquidity := bignumber.NewBig10(pairInfo.Liquidity)
+			sqrtPriceBF := fromSqrtPriceX64(bignumber.NewBig10(pairInfo.SqrtPriceX64))
+			v, err := calculateAmplifiedTVL(ctx,
+				strings.ToLower(token0.String()),
+				strings.ToLower(token1.String()),
+				liquidity,
+				sqrtPriceBF,
+				nativePriceByToken,
+			)
+			if err != nil {
+				logger.Warnf(ctx, "could not CalculateAmplifiedTVL for Ambient pair %s", pair)
+				continue
+			}
+			amplifiedTvl += v
 		}
-		midPrice1, price1, err := getMidPrice(nativePriceByToken, token1.Address)
-		if err != nil {
-			logger.Debugf(ctx, "cannot get mid price for token1 %v %v", token1, price1)
-			return 0, false, err
-		}
 
-		// Formula: amplifiedTvl = priceOfXinUSD*Liquidity/SqrtPrice + Liquidity*SqrtPrice*priceOfYinUSD
-		// Doc: https://www.notion.so/kybernetwork/Aggregator-Uniswap-v3-Integration-technical-design-f746167703c448dcaa40f523301e11b4?pvs=4#bd82e866196141dc97566440483afa47
-
-		// first get the 2 virtual reserves
-		virtualRev0 := new(big.Float).Quo(liquidityBF, sqrtPriceBF)
-		virtualRev1 := new(big.Float).Mul(liquidityBF, sqrtPriceBF)
-
-		// we're using `NativePriceRaw` so no need to divide to token's 10^decimals
-		virtualRev0 = new(big.Float).Quo(new(big.Float).Mul(virtualRev0, midPrice0), constant.BoneFloat)
-		virtualRev1 = new(big.Float).Quo(new(big.Float).Mul(virtualRev1, midPrice1), constant.BoneFloat)
-
-		reserve0, _ := virtualRev0.Float64()
-		reserve1, _ := virtualRev1.Float64()
-
-		return reserve0 + reserve1, false, nil
+		return amplifiedTvl, false, nil
 
 	default:
 		if p.HasReserves() {
@@ -94,6 +97,45 @@ func CalculatePoolAmplifiedTVL(
 		}
 		return 0, false, nil
 	}
+}
+
+func calculateAmplifiedTVL(ctx context.Context, token0, token1 string, liquidity *big.Int, sqrtPriceBF *big.Float, nativePriceByToken map[string]*routerEntity.OnchainPrice) (float64, error) {
+	if liquidity == nil || sqrtPriceBF == nil {
+		return 0, nil
+	}
+
+	if liquidity.Sign() == 0 || sqrtPriceBF.Sign() == 0 {
+		return 0, nil
+	}
+
+	liquidityBF := new(big.Float).SetInt(liquidity)
+
+	midPrice0, price0, err := getMidPrice(nativePriceByToken, token0)
+	if err != nil {
+		logger.Debugf(ctx, "cannot get mid price for token0 %v %v", token0, price0)
+		return 0, err
+	}
+	midPrice1, price1, err := getMidPrice(nativePriceByToken, token1)
+	if err != nil {
+		logger.Debugf(ctx, "cannot get mid price for token1 %v %v", token1, price1)
+		return 0, err
+	}
+
+	// Formula: amplifiedTvl = priceOfXinUSD*Liquidity/SqrtPrice + Liquidity*SqrtPrice*priceOfYinUSD
+	// Doc: https://www.notion.so/kybernetwork/Aggregator-Uniswap-v3-Integration-technical-design-f746167703c448dcaa40f523301e11b4?pvs=4#bd82e866196141dc97566440483afa47
+
+	// first get the 2 virtual reserves
+	virtualRev0 := new(big.Float).Quo(liquidityBF, sqrtPriceBF)
+	virtualRev1 := new(big.Float).Mul(liquidityBF, sqrtPriceBF)
+
+	// we're using `NativePriceRaw` so no need to divide to token's 10^decimals
+	virtualRev0 = new(big.Float).Quo(new(big.Float).Mul(virtualRev0, midPrice0), constant.BoneFloat)
+	virtualRev1 = new(big.Float).Quo(new(big.Float).Mul(virtualRev1, midPrice1), constant.BoneFloat)
+
+	reserve0, _ := virtualRev0.Float64()
+	reserve1, _ := virtualRev1.Float64()
+
+	return reserve0 + reserve1, nil
 }
 
 // this should return raw sqrtPrice instead of encoded price (x96, d18...)
@@ -182,14 +224,6 @@ func getLiquidityAndSqrtPrice(p *entity.Pool) (*big.Int, *big.Float, error) {
 
 		liquidity, sqrtPrice = extra.Liquidity, fromSqrtPriceX96(sqrtPriceX96)
 
-	case ambient.DexTypeAmbient:
-		extra := ambient.Extra{}
-		var err = json.Unmarshal([]byte(p.Extra), &extra)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		liquidity, sqrtPrice = bignumber.NewBig10(extra.Liquidity), fromSqrtPriceX64(bignumber.NewBig10(extra.SqrtPriceX64))
 	}
 
 	if liquidity == nil {
