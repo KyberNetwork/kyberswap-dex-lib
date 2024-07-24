@@ -151,7 +151,6 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setFeatureFlags(remoteCfg.FeatureFlags)
 		cl.setLog(remoteCfg.Log)
 		cl.setFinderOptions(remoteCfg.FinderOptions)
-		cl.setPregenFinderOptions(remoteCfg.PregenFinderOptions)
 		cl.setGetBestPoolOptions(remoteCfg.GetBestPoolsOptions)
 		cl.setCacheConfig(remoteCfg.CacheConfig)
 		cl.setBlacklistedRecipients(remoteCfg.BlacklistedRecipients)
@@ -186,7 +185,6 @@ func (cl *ConfigLoader) setAvailableSources(availableSources []valueobject.Sourc
 
 	cl.config.Common.AvailableSources = strAvailableSources
 	cl.config.UseCase.GetRoute.AvailableSources = strAvailableSources
-	cl.config.UseCase.GenerateBestPaths.AvailableSources = strAvailableSources
 }
 
 func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.WhitelistedToken) {
@@ -199,7 +197,6 @@ func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.Whi
 	cl.config.UseCase.GetRoute.Aggregator.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.BuildRoute.FaultyPoolsConfig.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.IndexPools.WhitelistedTokenSet = whitelistedTokenSet
-	cl.config.UseCase.GenerateBestPaths.WhitelistedTokens = whitelistedTokens
 }
 
 func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {
@@ -210,7 +207,6 @@ func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {
 
 	cl.config.Common.BlacklistedPoolsSet = blacklistedPoolSet
 	cl.config.UseCase.PoolManager.BlacklistedPoolSet = blacklistedPoolSet
-	cl.config.UseCase.GenerateBestPaths.BlacklistedPools = blacklistedPools
 }
 
 func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
@@ -231,13 +227,8 @@ func (cl *ConfigLoader) setFinderOptions(finderOptions valueobject.FinderOptions
 	cl.config.UseCase.GetRoute.Aggregator.FinderOptions = finderOptions
 }
 
-func (cl *ConfigLoader) setPregenFinderOptions(finderOptions valueobject.FinderOptions) {
-	cl.config.UseCase.GenerateBestPaths.SPFAFinderOptions = finderOptions
-}
-
 func (cl *ConfigLoader) setGetBestPoolOptions(getBestPoolsOptions valueobject.GetBestPoolsOptions) {
 	cl.config.UseCase.GetRoute.Aggregator.GetBestPoolsOptions = getBestPoolsOptions
-	cl.config.UseCase.GenerateBestPaths.GetBestPoolsOptions = getBestPoolsOptions
 }
 
 func (cl *ConfigLoader) setCacheConfig(cacheConfig valueobject.CacheConfig) {

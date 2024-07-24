@@ -189,13 +189,3 @@ func findNewBestPoolWithAmount(ctx context.Context, input findroute.Input, data 
 	}
 	return bestNewPool, currentOutPut, newGas
 }
-
-func (f *RetryFinder) Prepare(ctx context.Context, input findroute.Input, data findroute.FinderData) (findroute.IFinder, error) {
-	var err error
-	cloned := *f
-	cloned.baseIFinder, err = f.baseIFinder.Prepare(ctx, input, data)
-	if err != nil {
-		return nil, err
-	}
-	return &cloned, nil
-}

@@ -75,19 +75,13 @@ func (f *AEVMFinder) Find(ctx context.Context, input findroute.Input, data findr
 
 	start := time.Now()
 
-	prepared, err := f.baseFinder.Prepare(ctx, input, data)
-	if err != nil {
-		logger.Warnf(ctx, "could not Prepare() base finder: %s", err)
-		return nil, fmt.Errorf("could not Prepare() base finder: %w", err)
-	}
-
 	data.UseAEVMPool = f.opts.RemoteUseAEVMPool
 	data.PoolBucket = shallowClonePoolsBucket(data.PoolBucket)
 	// Remove IPoolSimulators which already published under `data.PublishedPoolsStorageID` from `data.PoolBucket`.
 	// The remote IFinder will fill in the removed IPoolSimulators using its published pools.
 	removePublishedPoolsFromPoolsBucket(data.PoolBucket, f.poolsPublisher.PublishedPoolIDs(data.PublishedPoolsStorageID))
 
-	params, err := findrouteencode.EncodeFindRouteParams(prepared, &input, &data)
+	params, err := findrouteencode.EncodeFindRouteParams(f.baseFinder, &input, &data)
 	if err != nil {
 		logger.Warnf(ctx, "could not EncodeFindRouteParams: %s", err)
 		return nil, fmt.Errorf("could not EncodeFindRouteParams: %w", err)
@@ -110,10 +104,6 @@ func (f *AEVMFinder) Find(ctx context.Context, input findroute.Input, data findr
 	logger.Infof(ctx, "AEVMFinder.Find() took %s", took.String())
 
 	return *routes, nil
-}
-
-func (f *AEVMFinder) Prepare(_ context.Context, _ findroute.Input, _ findroute.FinderData) (findroute.IFinder, error) {
-	return f, nil
 }
 
 func shallowClonePoolsBucket(bucket *valueobject.PoolBucket) *valueobject.PoolBucket {

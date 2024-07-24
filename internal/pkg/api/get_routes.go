@@ -113,19 +113,17 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 	}
 
 	return dto.GetRoutesQuery{
-		TokenIn:                utils.CleanUpParam(params.TokenIn),
-		TokenOut:               utils.CleanUpParam(params.TokenOut),
-		AmountIn:               amountIn,
-		IncludedSources:        utils.TransformSliceParams(params.IncludedSources),
-		ExcludedSources:        utils.TransformSliceParams(params.ExcludedSources),
-		SaveGas:                params.SaveGas,
-		GasInclude:             params.GasInclude,
-		GasPrice:               gasPrice,
-		ExtraFee:               extraFee,
-		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
-		IsHillClimbEnabled:     params.IsHillClimbEnabled,
-		ExcludedPools:          mapset.NewSet(utils.TransformSliceParams(params.ExcludedPools)...),
-		ClientId:               params.ClientId,
+		TokenIn:         utils.CleanUpParam(params.TokenIn),
+		TokenOut:        utils.CleanUpParam(params.TokenOut),
+		AmountIn:        amountIn,
+		IncludedSources: utils.TransformSliceParams(params.IncludedSources),
+		ExcludedSources: utils.TransformSliceParams(params.ExcludedSources),
+		SaveGas:         params.SaveGas,
+		GasInclude:      params.GasInclude,
+		GasPrice:        gasPrice,
+		ExtraFee:        extraFee,
+		ExcludedPools:   mapset.NewSet(utils.TransformSliceParams(params.ExcludedPools)...),
+		ClientId:        params.ClientId,
 	}, nil
 }
 

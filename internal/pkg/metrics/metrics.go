@@ -21,8 +21,6 @@ const (
 	FindRouteCacheCountMetricsName     = "find_route_cache_count"
 	RequestCountMetricsName            = "request_count"
 	InvalidSynthetixVolumeMetricsName  = "invalid_synthetix_volume_count"
-	FindRoutePregenHitRateMetricsName  = "find_route_pregen_count"
-	IsPregenPathValidMetricsName       = "is_pregen_path_valid_count"
 	EstimateGasStatusMetricsName       = "estimate_gas_count"
 	EstimateGasWithSlippageMetricsName = "estimate_gas_slippage"
 	IndexPoolsMetricsCounterName       = "index_pools_count"
@@ -38,9 +36,7 @@ var (
 	findRouteCacheCounter         metric.Float64Counter
 	requestCountCounter           metric.Float64Counter
 	invalidSynthetixVolumeCounter metric.Float64Counter
-	findRoutePregenHitRateCounter metric.Float64Counter
 	estimateGasStatusCounter      metric.Float64Counter
-	isPregenPathValidCounter      metric.Float64Counter
 	mapMetricNameToCounter        map[string]metric.Float64Counter
 	indexPoolsDelayCounter        metric.Float64Counter
 	clonePoolPanicCounter         metric.Float64Counter
@@ -61,9 +57,7 @@ func init() {
 	findRouteCacheCounter, _ = kybermetric.Meter().Float64Counter(FindRouteCacheCountMetricsName)
 	requestCountCounter, _ = kybermetric.Meter().Float64Counter(RequestCountMetricsName)
 	invalidSynthetixVolumeCounter, _ = kybermetric.Meter().Float64Counter(InvalidSynthetixVolumeMetricsName)
-	findRoutePregenHitRateCounter, _ = kybermetric.Meter().Float64Counter(FindRoutePregenHitRateMetricsName)
 	estimateGasStatusCounter, _ = kybermetric.Meter().Float64Counter(EstimateGasStatusMetricsName)
-	isPregenPathValidCounter, _ = kybermetric.Meter().Float64Counter(IsPregenPathValidMetricsName)
 	estimateGasSlippageHistogram, _ = kybermetric.Meter().Float64Histogram(EstimateGasWithSlippageMetricsName)
 	indexPoolsDelayHistogram, _ = kybermetric.Meter().Int64Histogram(IndexPoolsDelayMetricsName,
 		metric.WithExplicitBucketBoundaries(0, 50, 300, 1200, 2500, 5000, 10e3, 30e3, 90e3, 300e3, 1200e3, 3600e3))
@@ -78,9 +72,7 @@ func init() {
 		FindRouteCacheCountMetricsName:    findRouteCacheCounter,
 		RequestCountMetricsName:           requestCountCounter,
 		InvalidSynthetixVolumeMetricsName: invalidSynthetixVolumeCounter,
-		FindRoutePregenHitRateMetricsName: findRoutePregenHitRateCounter,
 		EstimateGasStatusMetricsName:      estimateGasStatusCounter,
-		IsPregenPathValidMetricsName:      isPregenPathValidCounter,
 		IndexPoolsMetricsCounterName:      indexPoolsDelayCounter,
 		ClonePoolPanicMetricsName:         clonePoolPanicCounter,
 	}
@@ -109,16 +101,6 @@ func IncrPoolTypeHitRate(ctx context.Context, poolType string) {
 	incr(ctx, PoolTypeHitRateMetricsName, tags, 0.1)
 }
 
-func IncrFindRoutePregenCount(ctx context.Context, pregenHit bool, otherTags map[string]string) {
-	tags := map[string]string{
-		"hit": strconv.FormatBool(pregenHit),
-	}
-
-	maps.Copy(tags, otherTags)
-
-	incr(ctx, FindRoutePregenHitRateMetricsName, tags, 1)
-}
-
 func IncrIndexPoolsCounter(ctx context.Context, jobName string, isSuccess bool, counter int) {
 	state := "failed"
 	if isSuccess {
@@ -132,16 +114,6 @@ func IncrIndexPoolsCounter(ctx context.Context, jobName string, isSuccess bool, 
 
 func IncrClonePoolPanicCounter(ctx context.Context) {
 	incr(ctx, ClonePoolPanicMetricsName, nil, 1)
-}
-
-func IncrIsPregenPathValidCount(ctx context.Context, valid bool, otherTags map[string]string) {
-	tags := map[string]string{
-		"valid": strconv.FormatBool(valid),
-	}
-
-	maps.Copy(tags, otherTags)
-
-	incr(ctx, IsPregenPathValidMetricsName, tags, 1)
 }
 
 func IncrFindRouteCacheCount(ctx context.Context, cacheHit bool, otherTags map[string]string) {

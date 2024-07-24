@@ -40,9 +40,6 @@ type AggregateParams struct {
 	// ExtraFee fee charged by client
 	ExtraFee valueobject.ExtraFee
 
-	// IsPathGeneratorEnabled whether we should use pregen paths from path-generator
-	IsPathGeneratorEnabled bool
-
 	// IsHillClimbEnabled use hill climb finder to adjust split amountIn to get better amountOut
 	IsHillClimbEnabled bool
 

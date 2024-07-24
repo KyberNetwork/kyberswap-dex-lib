@@ -79,7 +79,6 @@ func mockHandleSuccess(w http.ResponseWriter, r *http.Request) {
 					},
 				},
 				FeatureFlags: valueobject.FeatureFlags{
-					IsPathGeneratorEnabled:     true,
 					IsGasEstimatorEnabled:      true,
 					IsFaultyPoolDetectorEnable: true,
 				},
@@ -178,7 +177,6 @@ func TestGetConfigs(t *testing.T) {
 			},
 		},
 		FeatureFlags: valueobject.FeatureFlags{
-			IsPathGeneratorEnabled:     true,
 			IsGasEstimatorEnabled:      true,
 			IsFaultyPoolDetectorEnable: true,
 		},

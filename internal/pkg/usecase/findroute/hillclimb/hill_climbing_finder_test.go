@@ -166,7 +166,6 @@ func TestFindRoute(t *testing.T) {
 		minPartUSD,
 		minThresholdAmountInUSD,
 		float64(maxThresholdAmountInUSD),
-		func(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath { return nil },
 	)
 	finder := NewHillClimbingFinder(1, 2, 500, baseFinder)
 

@@ -136,13 +136,3 @@ func extractBestRoute(routes []*valueobject.Route) *valueobject.Route {
 	}
 	return routes[0]
 }
-
-func (f *HillClimbFinder) Prepare(ctx context.Context, input findroute.Input, data findroute.FinderData) (findroute.IFinder, error) {
-	var err error
-	cloned := *f
-	cloned.baseIFinder, err = f.baseIFinder.Prepare(ctx, input, data)
-	if err != nil {
-		return nil, err
-	}
-	return &cloned, nil
-}

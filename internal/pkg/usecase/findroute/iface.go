@@ -18,9 +18,6 @@ type IFinder interface {
 	// Find performs finding route algorithm and return zero, one or multiple routes.
 	// In case it returns multiple routes, the first route (index 0) is the best route
 	Find(ctx context.Context, input Input, data FinderData) ([]*valueobject.Route, error)
-
-	// Prepare necessary data (loading best paths from path generator) and return a prepared & shallow-cloned IFinder
-	Prepare(ctx context.Context, input Input, data FinderData) (IFinder, error)
 }
 
 // Input contains parameter specified by clients.
@@ -46,9 +43,6 @@ type Input struct {
 
 	// GasInclude should we consider gas price when finding optimal route
 	GasInclude bool
-
-	// IsPathGeneratorEnabled should we use pregen paths
-	IsPathGeneratorEnabled bool
 
 	// SourceHash hash sources dex input by fnv hashing func
 	SourceHash uint64

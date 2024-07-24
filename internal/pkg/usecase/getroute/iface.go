@@ -49,11 +49,6 @@ type IPoolRankRepository interface {
 	) ([]string, error)
 }
 
-//go:generate mockgen -destination ../../mocks/usecase/getroute/best_path_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IBestPathRepository
-type IBestPathRepository interface {
-	GetBestPaths(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath
-}
-
 type IPoolRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Pool, error)
 }

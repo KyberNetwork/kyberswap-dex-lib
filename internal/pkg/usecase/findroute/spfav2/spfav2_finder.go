@@ -2,13 +2,8 @@ package spfav2
 
 import (
 	"context"
-	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -56,10 +51,6 @@ type Spfav2Finder struct {
 	// if minThreshold < amountInUSD < maxThreshold: run similar to spfaFinder, else run the new strategy
 	minThresholdAmountInUSD float64
 	maxThresholdAmountInUSD float64
-
-	getGeneratedBestPaths func(sourceHash uint64, tokenIn string, tokenOut string) []*entity.MinimalPath `msgpack:"-"`
-
-	preparedGeneratedBestPaths []*entity.MinimalPath // result of getGenerateBestPaths() called in Prepare()
 }
 
 func NewSPFAv2Finder(
@@ -72,7 +63,6 @@ func NewSPFAv2Finder(
 	minPartUSD float64,
 	minThresholdAmountInUSD float64,
 	maxThresholdAmountInUSD float64,
-	getGeneratedBestPaths func(sourceHash uint64, tokenIn string, tokenOut string) []*entity.MinimalPath,
 ) *Spfav2Finder {
 	return &Spfav2Finder{
 		maxHops:                 maxHops,
@@ -84,7 +74,6 @@ func NewSPFAv2Finder(
 		minPartUSD:              minPartUSD,
 		minThresholdAmountInUSD: minThresholdAmountInUSD,
 		maxThresholdAmountInUSD: maxThresholdAmountInUSD,
-		getGeneratedBestPaths:   getGeneratedBestPaths,
 	}
 }
 
@@ -99,7 +88,6 @@ func NewDefaultSPFAv2Finder() *Spfav2Finder {
 		defaultSpfav2MinPartUSD,
 		defaultSpfav2MinThresholdAmountInUSD,
 		defaultSpfav2MaxThresholdAmountInUSD,
-		func(sourceHash uint64, tokenIn string, tokenOut string) []*entity.MinimalPath { return nil },
 	)
 }
 
@@ -120,32 +108,4 @@ func (f *Spfav2Finder) Find(
 	}
 
 	return []*valueobject.Route{bestRoute}, nil
-}
-
-func (f *Spfav2Finder) Prepare(ctx context.Context, input findroute.Input, data findroute.FinderData) (findroute.IFinder, error) {
-	cloned := *f
-
-	// calculate amountInUsd in bestRouteExactIn()
-	var amountInUsd float64
-	if priceInUsd, ok := data.PriceUSDByAddress[input.TokenInAddress]; ok {
-		amountInUsd = utils.CalcTokenAmountUsd(input.AmountIn, data.TokenByAddress[input.TokenInAddress].Decimals, priceInUsd)
-	} else if data.PriceNativeByAddress != nil {
-		if price, ok := data.PriceNativeByAddress[input.TokenInAddress]; ok && price.NativePriceRaw.Sell != nil {
-			amountInNativeBF := new(big.Float).Mul(price.NativePriceRaw.Sell, new(big.Float).SetInt(input.AmountIn))
-			amountInUsd, _ = new(big.Float).Quo(new(big.Float).Mul(amountInNativeBF, big.NewFloat(input.GasTokenPriceUSD)), constant.BoneFloat).Float64()
-		}
-	}
-
-	if f.minThresholdAmountInUSD <= amountInUsd && amountInUsd <= f.maxThresholdAmountInUSD {
-		// goto f.findrouteV2()
-		if !input.SaveGas {
-			// goto f.bestRouteV2()
-			// ignore the case len(f.splitAmountIn(ctx, input, data, tokenAmountIn)) == 0
-			if input.IsPathGeneratorEnabled && f.getGeneratedBestPaths != nil {
-				cloned.preparedGeneratedBestPaths = f.getGeneratedBestPaths(input.SourceHash, input.TokenInAddress, input.TokenOutAddress)
-			}
-		}
-	}
-
-	return &cloned, nil
 }

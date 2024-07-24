@@ -5,11 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -44,48 +41,6 @@ func (f *Spfav2Finder) findrouteV2(
 	return bestMultiPathRoute, nil
 }
 
-func (f *Spfav2Finder) isPregenPathValid(
-	ctx context.Context,
-	data findroute.FinderData,
-	paths []*entity.MinimalPath,
-) bool {
-	span, _ := tracer.StartSpanFromContext(ctx, "spfav2Finder.isPregenPathValid")
-	defer span.End()
-	for _, path := range paths {
-		for _, pool := range path.Pools {
-			iPool, exist := data.PoolBucket.GetPool(pool)
-			if !exist {
-				logger.WithFields(ctx, logger.Fields{
-					"poolAddress": pool,
-				}).Warnf("Pregen check fail: pool in the pregenPaths is not exist")
-				return false
-			}
-
-			// we check if the pool is kyber pmm and all reserves are zero
-			reserves := iPool.GetReserves()
-			zeroReserves := true
-			for _, reserve := range reserves {
-				if reserve.Cmp(constant.Zero) > 0 {
-					zeroReserves = false
-					break
-				}
-			}
-
-			// a pmm pool is delete if all reserves are zero
-			if zeroReserves {
-				logger.WithFields(ctx, logger.Fields{
-					"poolAddress": pool,
-					"poolType":    iPool.GetType(),
-					"reserves":    iPool.GetReserves(),
-				}).Warnf("Pregen check fail: pool in the pregenPaths is deleted or has zero reserves %s", iPool.GetReserves())
-				return false
-			}
-		}
-	}
-
-	return true
-}
-
 func (f *Spfav2Finder) bestRouteV2(
 	ctx context.Context,
 	input findroute.Input,
@@ -97,8 +52,7 @@ func (f *Spfav2Finder) bestRouteV2(
 	defer span.End()
 
 	var (
-		generatedBestPaths []*entity.MinimalPath
-		paths              []*valueobject.Path
+		paths []*valueobject.Path
 	)
 
 	var splits = f.splitAmountIn(input, data, tokenAmountIn)
@@ -116,38 +70,17 @@ func (f *Spfav2Finder) bestRouteV2(
 		numberOfPathToGenerate = f.maxPathsToGenerate
 	}
 
-	if input.IsPathGeneratorEnabled && f.getGeneratedBestPaths != nil {
-		generatedBestPaths = f.getGeneratedBestPaths(input.SourceHash, input.TokenInAddress, input.TokenOutAddress)
-	}
+	logger.Debugf(ctx, "manually gen Path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
+		input.TokenInAddress, input.TokenOutAddress, amountInToGeneratePath, amountInToGeneratePath.AmountUsd,
+	)
 
-	isPregenPathValid := f.isPregenPathValid(ctx, data, generatedBestPaths)
-	metrics.IncrIsPregenPathValidCount(ctx, isPregenPathValid, nil)
-
-	// if api params set IsPathGeneratorEnabled = true, or we have isPathGeneratorEnabled on the yaml config
-	if input.IsPathGeneratorEnabled && len(generatedBestPaths) > 0 && isPregenPathValid {
-		metrics.IncrFindRoutePregenCount(ctx, true, nil)
-		logger.WithFields(ctx, logger.Fields{"pre_computed_bestPaths_len": len(generatedBestPaths)}).Infof(
-			"used precomputated_paths. sourceHash %v tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
-			input.SourceHash, input.TokenInAddress, input.TokenOutAddress, amountInToGeneratePath, amountInToGeneratePath.AmountUsd,
-		)
-
-		paths = bestPathToPath(ctx, input, data, amountInToGeneratePath, generatedBestPaths)
-	} else {
-		metrics.IncrFindRoutePregenCount(ctx, false, map[string]string{
-			"reason": "doesn't hit",
-		})
-		logger.Debugf(ctx, "manually gen Path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
-			input.TokenInAddress, input.TokenOutAddress, amountInToGeneratePath, amountInToGeneratePath.AmountUsd,
-		)
-
-		var errGenPath error
-		paths, errGenPath = common.GenKthBestPaths(ctx, input, data, amountInToGeneratePath, hopsToTokenOut, f.maxHops, numberOfPathToGenerate, f.maxPathsToReturn)
-		if errGenPath != nil {
-			logger.WithFields(ctx, logger.Fields{"error": errGenPath}).
-				Debugf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
-					input.TokenInAddress, input.TokenOutAddress, amountInToGeneratePath, amountInToGeneratePath.AmountUsd)
-			return nil, nil
-		}
+	var errGenPath error
+	paths, errGenPath = common.GenKthBestPaths(ctx, input, data, amountInToGeneratePath, hopsToTokenOut, f.maxHops, numberOfPathToGenerate, f.maxPathsToReturn)
+	if errGenPath != nil {
+		logger.WithFields(ctx, logger.Fields{"error": errGenPath}).
+			Debugf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",
+				input.TokenInAddress, input.TokenOutAddress, amountInToGeneratePath, amountInToGeneratePath.AmountUsd)
+		return nil, nil
 	}
 	defer valueobject.ReturnPaths(paths)
 

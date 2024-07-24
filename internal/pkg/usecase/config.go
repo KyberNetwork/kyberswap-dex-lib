@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/generatepath"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
@@ -14,9 +13,8 @@ type Config struct {
 
 	IndexPools IndexPoolsConfig `mapstructure:"indexPools" json:"indexPools"`
 
-	PoolFactory       poolfactory.Config  `mapstructure:"poolFactory" json:"poolFactory"`
-	PoolManager       poolmanager.Config  `mapstructure:"poolManager" json:"poolManager"`
-	GenerateBestPaths generatepath.Config `mapstructure:"generateBestPaths"`
+	PoolFactory poolfactory.Config `mapstructure:"poolFactory" json:"poolFactory"`
+	PoolManager poolmanager.Config `mapstructure:"poolManager" json:"poolManager"`
 
 	TrackExecutor TrackExecutorConfig `mapstructure:"trackExecutor"`
 }

@@ -160,19 +160,17 @@ func transformFromGetRouteEncodeToGetRoutesQuery(params params.GetRouteEncodePar
 	}
 
 	return dto.GetRoutesQuery{
-		TokenIn:                utils.CleanUpParam(params.TokenIn),
-		TokenOut:               utils.CleanUpParam(params.TokenOut),
-		AmountIn:               amountIn,
-		IncludedSources:        utils.TransformSliceParams(params.Dexes),
-		ExcludedSources:        getrouteencode.GetExcludedSources(),
-		SaveGas:                params.SaveGas,
-		GasInclude:             params.GasInclude,
-		GasPrice:               gasPrice,
-		ExtraFee:               extraFee,
-		IsPathGeneratorEnabled: params.IsPathGeneratorEnabled,
-		IsHillClimbEnabled:     params.IsPathGeneratorEnabled,
-		ExcludedPools:          mapset.NewSet[string](),
-		ClientId:               params.ClientData.Source,
+		TokenIn:         utils.CleanUpParam(params.TokenIn),
+		TokenOut:        utils.CleanUpParam(params.TokenOut),
+		AmountIn:        amountIn,
+		IncludedSources: utils.TransformSliceParams(params.Dexes),
+		ExcludedSources: getrouteencode.GetExcludedSources(),
+		SaveGas:         params.SaveGas,
+		GasInclude:      params.GasInclude,
+		GasPrice:        gasPrice,
+		ExtraFee:        extraFee,
+		ExcludedPools:   mapset.NewSet[string](),
+		ClientId:        params.ClientData.Source,
 	}, nil
 }
 

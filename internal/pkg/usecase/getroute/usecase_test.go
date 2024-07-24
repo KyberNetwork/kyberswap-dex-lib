@@ -226,7 +226,6 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		Return(nil).
 		AnyTimes()
 
-	var getBestPaths func(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath
 	config := valueobject.FinderOptions{
 		Type:                    valueobject.FinderTypes.SPFAv2,
 		MaxHops:                 3,
@@ -247,7 +246,6 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		config.MinPartUSD,
 		config.MinThresholdAmountInUSD,
 		config.MaxThresholdAmountInUSD,
-		getBestPaths,
 	)
 
 	return NewUseCase(
@@ -258,7 +256,6 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		routeCacheRepository,
 		gasRepository,
 		poolManager,
-		bestPathRepository,
 		routeFinder,
 		Config{
 			ChainID:          valueobject.ChainIDEthereum,

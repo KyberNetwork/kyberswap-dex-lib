@@ -30,12 +30,10 @@ type RouteCacheKey struct {
 	SaveGas   bool
 	CacheMode string
 	// AmountIn can be calculated in usd (if token in has price) or amountIn without decimal (if token in has no price)
-	AmountIn               string
-	Dexes                  []string
-	GasInclude             bool
-	IsPathGeneratorEnabled bool
-	IsHillClimbingEnabled  bool
-	ExcludedPools          []string
+	AmountIn      string
+	Dexes         []string
+	GasInclude    bool
+	ExcludedPools []string
 }
 
 type RouteCacheKeyTTL struct {
@@ -53,8 +51,6 @@ func (k *RouteCacheKey) String(prefix string) string {
 		k.AmountIn,
 		strings.Join(k.Dexes, RouteCacheKeyDexesDelimiter),
 		k.GasInclude,
-		k.IsPathGeneratorEnabled,
-		k.IsHillClimbingEnabled,
 		strings.Join(k.ExcludedPools, RouteCacheKeyExcludedPoolsDelimiter),
 	)
 }

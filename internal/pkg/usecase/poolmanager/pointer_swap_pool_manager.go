@@ -100,64 +100,6 @@ func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
 	s.lock.Unlock()
 }
 
-// NewNonMaintenancePointerSwapPoolManager return a Pool Manager with only pool addresses and not pool data
-// any service using this implementation will have to call Reload() on its own
-func NewNonMaintenancePointerSwapPoolManager(
-	ctx context.Context,
-	poolRepository IPoolRepository,
-	poolFactory IPoolFactory,
-	poolRankRepository IPoolRankRepository,
-	config Config,
-	aevmClient aevmclient.Client,
-) (*PointerSwapPoolManager, error) {
-	states := [NState]*LockedState{}
-	for i := 0; i < NState; i++ {
-		states[i] = NewLockedState()
-	}
-	//TODO try policies other than LRU
-	poolCache, err := cachePolicy.New[string, struct{}](config.Capacity)
-	if err != nil {
-		return nil, err
-	}
-
-	// initialize pools to read from DB
-	poolAddresses := poolRankRepository.FindGlobalBestPools(context.Background(), int64(config.Capacity))
-	// add in reverse order so that pools with most volume at top of LRU list
-	for i := len(poolAddresses) - 1; i >= 0; i-- {
-		poolCache.Add(poolAddresses[i], struct{}{})
-	}
-
-	p := PointerSwapPoolManager{
-		states:             states,
-		readFrom:           atomic.Int32{},
-		config:             config,
-		poolFactory:        poolFactory,
-		poolRepository:     poolRepository,
-		poolRankRepository: poolRankRepository,
-		poolCache:          poolCache,
-		lock:               &sync.RWMutex{},
-		aevmClient:         aevmClient,
-	}
-	p.readFrom.Store(0)
-
-	var stateRoot aevmcommon.Hash
-	// if running with aevm
-	if p.config.UseAEVM {
-		stateRoot, err = aevmClient.LatestStateRoot(ctx)
-		if err != nil {
-			logger.Errorf(ctx, "could not get latest state root for aevm %s", err)
-			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
-		}
-	}
-	p.updateBlackListPool(ctx)
-
-	if err = p.preparePoolsData(context.Background(), poolAddresses, common.Hash(stateRoot)); err != nil {
-		return nil, err
-	}
-	//go p.maintain()
-	return &p, nil
-}
-
 // NewPointerSwapPoolManager This will take a while to start since it will generate a copy of all Pool
 func NewPointerSwapPoolManager(
 	ctx context.Context,

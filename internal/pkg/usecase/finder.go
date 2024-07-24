@@ -1,15 +1,13 @@
 package usecase
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/retryfinder"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-func NewFinder(config valueobject.FinderOptions, getBestPaths func(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath, whiteListTokenSet map[string]bool) findroute.IFinder {
+func NewFinder(config valueobject.FinderOptions, whiteListTokenSet map[string]bool) findroute.IFinder {
 
 	switch config.Type {
 	case valueobject.FinderTypes.RetryDynamicPools:
@@ -23,7 +21,6 @@ func NewFinder(config valueobject.FinderOptions, getBestPaths func(sourceHash ui
 			config.MinPartUSD,
 			config.MinThresholdAmountInUSD,
 			config.MaxThresholdAmountInUSD,
-			getBestPaths,
 		)
 		return retryfinder.NewRetryFinder(baseFinder)
 	default:
@@ -37,7 +34,6 @@ func NewFinder(config valueobject.FinderOptions, getBestPaths func(sourceHash ui
 			config.MinPartUSD,
 			config.MinThresholdAmountInUSD,
 			config.MaxThresholdAmountInUSD,
-			getBestPaths,
 		)
 		return routeFinder
 	}

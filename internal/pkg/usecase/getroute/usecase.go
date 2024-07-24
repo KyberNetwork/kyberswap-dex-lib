@@ -43,7 +43,6 @@ func NewUseCase(
 	routeCacheRepository IRouteCacheRepository,
 	gasRepository IGasRepository,
 	poolManager IPoolManager,
-	bestPathRepository IBestPathRepository,
 	finder findroute.IFinder,
 	config Config,
 	aevmClient aevmclient.Client,
@@ -57,7 +56,6 @@ func NewUseCase(
 		onchainpriceRepository,
 		poolManager,
 		config.Aggregator,
-		bestPathRepository,
 		finder,
 		aevmClient,
 		poolsPublisher,
@@ -175,37 +173,27 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 
 	sources := u.getSources(query.IncludedSources, query.ExcludedSources)
 
-	isPathGeneratorEnabled := false
-	// Use path generator if empty excludedPools parameter and path generator is enabled.
-	if query.IsPathGeneratorEnabled || u.config.Aggregator.FeatureFlags.IsPathGeneratorEnabled {
-		isPathGeneratorEnabled = true
-	}
-	if query.ExcludedPools != nil && query.ExcludedPools.Cardinality() != 0 {
-		isPathGeneratorEnabled = false
-	}
-
 	isHillClimbEnabled := false
-	if query.IsHillClimbEnabled || u.config.Aggregator.FeatureFlags.IsHillClimbEnabled {
+	if u.config.Aggregator.FeatureFlags.IsHillClimbEnabled {
 		isHillClimbEnabled = true
 	}
 
 	return &types.AggregateParams{
-		TokenIn:                tokenIn,
-		TokenOut:               tokenOut,
-		GasToken:               tokenByAddress[u.config.GasTokenAddress],
-		TokenInPriceUSD:        tokenInPriceUSD,
-		TokenOutPriceUSD:       tokenOutPriceUSD,
-		GasTokenPriceUSD:       gasTokenPriceUSD,
-		AmountIn:               query.AmountIn,
-		Sources:                sources,
-		SaveGas:                query.SaveGas,
-		GasInclude:             query.GasInclude,
-		GasPrice:               gasPrice,
-		ExtraFee:               query.ExtraFee,
-		IsPathGeneratorEnabled: isPathGeneratorEnabled,
-		IsHillClimbEnabled:     isHillClimbEnabled,
-		ExcludedPools:          query.ExcludedPools,
-		ClientId:               query.ClientId,
+		TokenIn:            tokenIn,
+		TokenOut:           tokenOut,
+		GasToken:           tokenByAddress[u.config.GasTokenAddress],
+		TokenInPriceUSD:    tokenInPriceUSD,
+		TokenOutPriceUSD:   tokenOutPriceUSD,
+		GasTokenPriceUSD:   gasTokenPriceUSD,
+		AmountIn:           query.AmountIn,
+		Sources:            sources,
+		SaveGas:            query.SaveGas,
+		GasInclude:         query.GasInclude,
+		GasPrice:           gasPrice,
+		ExtraFee:           query.ExtraFee,
+		IsHillClimbEnabled: isHillClimbEnabled,
+		ExcludedPools:      query.ExcludedPools,
+		ClientId:           query.ClientId,
 	}, nil
 }
 

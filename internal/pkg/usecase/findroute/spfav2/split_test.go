@@ -62,7 +62,6 @@ func TestSplit(t *testing.T) {
 		minPartUSD,
 		0,
 		float64(100000000),
-		func(sourceHash uint64, tokenIn, tokenOut string) []*entity.MinimalPath { return nil },
 	)
 
 	testcases := []struct {
