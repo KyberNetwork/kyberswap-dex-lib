@@ -164,7 +164,6 @@ type Types struct {
 	KokonutCrypto                  string
 	LiquidityBookV21               string
 	LiquidityBookV20               string
-	LiquidityBookV22               string
 	Smardex                        string
 	Fxdx                           string
 	UniswapV2                      string
