@@ -63,7 +63,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/liquiditybookv20"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/liquiditybookv21"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/liquiditybookv22"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/madmex"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/makerpsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/mantisswap"
@@ -275,7 +274,6 @@ var (
 		Vooi:                           vooi.DexTypeVooi,
 		PolMatic:                       polmatic.DexTypePolMatic,
 		KokonutCrypto:                  kokonutcrypto.DexTypeKokonutCrypto,
-		LiquidityBookV22:               liquiditybookv22.DexTypeLiquidityBookV22,
 		LiquidityBookV21:               liquiditybookv21.DexTypeLiquidityBookV21,
 		LiquidityBookV20:               liquiditybookv20.DexTypeLiquidityBookV20,
 		Smardex:                        smardex.DexTypeSmardex,
