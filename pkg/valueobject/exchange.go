@@ -223,6 +223,7 @@ var (
 
 	ExchangeTraderJoeV20 Exchange = "traderjoe-v20"
 	ExchangeTraderJoeV21 Exchange = "traderjoe-v21"
+	ExchangeTraderJoeV22 Exchange = "traderjoe-v22"
 
 	ExchangeIZiSwap Exchange = "iziswap"
 
@@ -516,6 +517,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeKyberPMM:                   {},
 	ExchangeTraderJoeV20:               {},
 	ExchangeTraderJoeV21:               {},
+	ExchangeTraderJoeV22:               {},
 	ExchangeIZiSwap:                    {},
 	ExchangeWooFiV2:                    {},
 	ExchangeWooFiV3:                    {},
