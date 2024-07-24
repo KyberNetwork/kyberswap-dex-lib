@@ -174,8 +174,8 @@ func (a *aggregator) ApplyConfig(config Config) {
 		routeFinder,
 	)
 
-	a.hillClimbRouteFinder = aevmfinder.NewAEVMFinder(a.hillClimbRouteFinder, a.aevmClient, a.poolsPublisher, a.config.FinderOptions)
-	a.routeFinder = aevmfinder.NewAEVMFinder(a.routeFinder, a.aevmClient, a.poolsPublisher, a.config.FinderOptions)
+	a.hillClimbRouteFinder = aevmfinder.NewAEVMFinder(a.hillClimbRouteFinder, a.aevmClient, a.poolsPublisher, config.Aggregator.FinderOptions)
+	a.routeFinder = aevmfinder.NewAEVMFinder(a.routeFinder, a.aevmClient, a.poolsPublisher, config.Aggregator.FinderOptions)
 
 	a.config = config.Aggregator
 }

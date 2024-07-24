@@ -57,7 +57,7 @@ type Spfav2Finder struct {
 	minThresholdAmountInUSD float64
 	maxThresholdAmountInUSD float64
 
-	getGeneratedBestPaths func(sourceHash uint64, tokenIn string, tokenOut string) []*entity.MinimalPath
+	getGeneratedBestPaths func(sourceHash uint64, tokenIn string, tokenOut string) []*entity.MinimalPath `msgpack:"-"`
 
 	preparedGeneratedBestPaths []*entity.MinimalPath // result of getGenerateBestPaths() called in Prepare()
 }
