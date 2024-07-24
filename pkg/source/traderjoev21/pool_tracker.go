@@ -31,7 +31,7 @@ func (d *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	logger.Infof("[TraderJoe v2.0] Start getting new state of pool: %v", p.Address)
+	logger.Infof("[TraderJoe v2.1] Start getting new state of pool: %v", p.Address)
 
 	rpcRequest := d.EthrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)

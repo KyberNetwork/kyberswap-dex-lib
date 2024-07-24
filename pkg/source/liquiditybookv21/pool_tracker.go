@@ -263,6 +263,15 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 		if blockTimestamp == 0 && resp.Meta != nil {
 			blockTimestamp = resp.Meta.Block.Timestamp
 		}
+
+		// if no bin returned, stop
+		if resp.Pair == nil || len(resp.Pair.Bins) == 0 {
+			logger.WithFields(logger.Fields{
+				"poolAddress": p.Address,
+			}).Info("no bin returned")
+			break
+		}
+
 		if unitX == nil {
 			decimalX, err := strconv.ParseInt(resp.Pair.TokenX.Decimals, 10, 64)
 			if err != nil {
@@ -276,14 +285,6 @@ func (d *PoolTracker) querySubgraph(ctx context.Context, p entity.Pool) (*queryS
 				return nil, err
 			}
 			unitY = bignumber.TenPowDecimals(uint8(decimalY))
-		}
-
-		// if no bin returned, stop
-		if resp.Pair == nil || len(resp.Pair.Bins) == 0 {
-			logger.WithFields(logger.Fields{
-				"poolAddress": p.Address,
-			}).Info("no bin returned")
-			break
 		}
 
 		// transform
