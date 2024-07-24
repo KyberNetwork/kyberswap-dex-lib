@@ -8,12 +8,14 @@ import (
 	"sync"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
+	ambientaevm "github.com/KyberNetwork/aevm/usecase/pool/ambient"
 	liquiditybookv20aevm "github.com/KyberNetwork/aevm/usecase/pool/liquiditybookv20"
 	liquiditybookv21aevm "github.com/KyberNetwork/aevm/usecase/pool/liquiditybookv21"
 	uniswapaevm "github.com/KyberNetwork/aevm/usecase/pool/uni"
 	uniswapv3aevm "github.com/KyberNetwork/aevm/usecase/pool/univ3"
 	aevmpoolwrapper "github.com/KyberNetwork/aevm/usecase/pool/wrapper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
 	balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v1"
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
@@ -569,6 +571,16 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newSlipstream(entityPool)
 	case pooltypes.PoolTypes.NuriV2:
 		return f.newNuriV2(entityPool)
+	case ambient.DexTypeAmbient:
+		if f.config.UseAEVM && f.config.DexUseAEVM[ambient.DexTypeAmbient] {
+			return f.newAmbientAEVM(entityPool, stateRoot)
+		}
+		return nil, errors.WithMessagef(
+			ErrPoolTypeFactoryNotFound,
+			"[PoolFactory.NewPoolSimulator] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -1994,4 +2006,26 @@ func (f *PoolFactory) newNuriV2(entityPool entity.Pool) (*nuriv2.PoolSimulator, 
 	}
 
 	return corePool, nil
+}
+
+func (f *PoolFactory) newAmbientAEVM(entityPool entity.Pool, stateRoot common.Hash) (*aevmpoolwrapper.PoolWrapper, error) {
+	unimplementedPool := NewUnimplementedPool(entityPool.Address, entityPool.Exchange, entityPool.Type)
+
+	balanceSlots := f.getBalanceSlots(&entityPool)
+	aevmPool, err := ambientaevm.NewPoolAEVM(
+		entityPool,
+		f.client,
+		stateRoot,
+		balanceSlots,
+	)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newAmbientAEVM] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return aevmpoolwrapper.NewPoolWrapper(unimplementedPool, aevmPool), nil
 }

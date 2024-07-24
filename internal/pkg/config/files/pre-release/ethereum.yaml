@@ -352,9 +352,10 @@ useCase:
     useAEVM: &useAEVM false
     dexUseAEVM:
       uniswap: false
-      uniswapv3: true
+      uniswapv3: false
       liquiditybook-v20: false
       liquiditybook-v21: false
+      ambient: true
     addressesByDex:
       uniswap:
         router-address: 0x7a250d5630b4cf539739df2c5dacb4c659f2488d

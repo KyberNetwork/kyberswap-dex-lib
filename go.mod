@@ -10,13 +10,13 @@ replace (
 require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/DataDog/datadog-go v4.8.3+incompatible
-	github.com/KyberNetwork/aevm v1.1.1
+	github.com/KyberNetwork/aevm v1.1.8
 	github.com/KyberNetwork/aggregator-encoding v0.19.0
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4
 	github.com/KyberNetwork/ethrpc v0.7.1
-	github.com/KyberNetwork/grpc-service v0.3.2-0.20240613162847-926a8954d789
+	github.com/KyberNetwork/grpc-service v0.3.2-0.20240705221303-511311ba0545
 	github.com/KyberNetwork/kutils v0.2.3
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
 	github.com/KyberNetwork/kyberswap-dex-lib v0.60.3
@@ -46,7 +46,7 @@ require (
 	github.com/grafana/pyroscope-go v1.0.4
 	github.com/hashicorp/golang-lru/v2 v2.0.3
 	github.com/holiman/uint256 v1.2.4
-	github.com/huandu/go-clone v1.6.0
+	github.com/huandu/go-clone v1.7.2
 	github.com/izumiFinance/iZiSwap-SDK-go v1.0.0
 	github.com/json-iterator/go v1.1.12
 	github.com/machinebox/graphql v0.2.2
