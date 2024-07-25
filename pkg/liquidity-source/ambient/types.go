@@ -110,6 +110,8 @@ func (p *NTokenPool) CanSwapTo(address string) []string {
 	return adjs
 }
 
+func (p *NTokenPool) CanSwapFrom(address string) []string { return p.CanSwapTo(address) }
+
 func (p *NTokenPool) GetPair(tokenIn, tokenOut common.Address) (TokenPair, bool) {
 	base, quote := tokenIn, tokenOut
 	if base == p.nativeTokenAddress {
