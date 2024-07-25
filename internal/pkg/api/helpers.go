@@ -88,10 +88,10 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    "filtered liquidity sources",
 	},
 
-	ErrClientTimeout: {
+	buildroute.ErrRFQTimeout: {
 		HTTPStatus: http.StatusBadRequest,
 		Code:       40012,
-		Message:    "client timed out",
+		Message:    "rfq timed out",
 	},
 
 	getroute.ErrPoolSetEmpty: {

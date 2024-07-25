@@ -10,6 +10,7 @@ var (
 	ErrQuotedAmountSmallerThanEstimated = errors.New("quoted amount is smaller than estimated")
 	ErrSenderEmptyWhenEnableEstimateGas = errors.New("sender address is empty when enable estimate gas")
 	ErrReturnAmountIsNotEnough          = errors.New("execution reverted: Return amount is not enough")
+	ErrRFQTimeout                       = errors.New("rfq timed out due to context deadline exceeds")
 
 	ErrEstimateGasFailedCode = 4227
 )
