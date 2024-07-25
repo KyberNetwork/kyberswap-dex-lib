@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
+	poolaevm "github.com/KyberNetwork/aevm/usecase/pool"
 	ambientaevm "github.com/KyberNetwork/aevm/usecase/pool/ambient"
 	liquiditybookv20aevm "github.com/KyberNetwork/aevm/usecase/pool/liquiditybookv20"
 	liquiditybookv21aevm "github.com/KyberNetwork/aevm/usecase/pool/liquiditybookv21"
@@ -2009,7 +2010,7 @@ func (f *PoolFactory) newNuriV2(entityPool entity.Pool) (*nuriv2.PoolSimulator, 
 }
 
 func (f *PoolFactory) newAmbientAEVM(entityPool entity.Pool, stateRoot common.Hash) (*aevmpoolwrapper.PoolWrapper, error) {
-	unimplementedPool := NewUnimplementedPool(entityPool.Address, entityPool.Exchange, entityPool.Type)
+	unimplementedPool := poolaevm.NewUnimplementedPool(entityPool.Address, entityPool.Exchange, entityPool.Type)
 
 	balanceSlots := f.getBalanceSlots(&entityPool)
 	aevmPool, err := ambientaevm.NewPoolAEVM(
