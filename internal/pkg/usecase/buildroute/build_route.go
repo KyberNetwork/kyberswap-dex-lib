@@ -95,7 +95,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 
 	routeSummary, err := uc.rfq(ctx, command.Sender, command.Recipient, command.Source, command.RouteSummary, command.SlippageTolerance)
 	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
+		if strings.Contains(err.Error(), context.DeadlineExceeded.Error()) {
 			return nil, ErrRFQTimeout
 		}
 
