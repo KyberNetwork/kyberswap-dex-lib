@@ -88,6 +88,12 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    "filtered liquidity sources",
 	},
 
+	ErrClientTimeout: {
+		HTTPStatus: http.StatusBadRequest,
+		Code:       40012,
+		Message:    "client timed out",
+	},
+
 	getroute.ErrPoolSetEmpty: {
 		HTTPStatus: http.StatusInternalServerError,
 		Code:       5001,

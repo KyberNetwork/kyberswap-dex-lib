@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 )
 
@@ -14,4 +15,5 @@ var (
 	ErrFeeAmountGreaterThanAmountOut = errors.New("feeAmount is greater than amountOut")
 
 	ErrRouteNotFound = errors.New("route not found")
+	ErrClientTimeout = context.DeadlineExceeded
 )
