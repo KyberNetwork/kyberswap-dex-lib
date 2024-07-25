@@ -165,7 +165,7 @@ func (f *Spfav2Finder) bestMultiPathRouteV2(
 		for {
 			bestPath := h.bestPathExactInV2(ctx, input, data, paths, amountInPerSplit)
 			if bestPath == nil {
-				logger.Warn(ctx, "no more paths to try.")
+				logger.Debug(ctx, "no more paths to try.")
 				return nil, nil
 			}
 
@@ -179,7 +179,7 @@ func (f *Spfav2Finder) bestMultiPathRouteV2(
 
 				count++
 				if count >= 3 {
-					logger.Error(ctx, "AddPath failed 3 times, no more try.")
+					logger.Debug(ctx, "AddPath failed 3 times, no more try.")
 					return nil, err
 				}
 

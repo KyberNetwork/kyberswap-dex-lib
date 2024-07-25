@@ -44,7 +44,7 @@ func (f *HillClimbFinder) optimizeRoute(ctx context.Context, input findroute.Inp
 
 		if err = tmpRoute.AddPath(ctx, data.PoolBucket, currentRoute.Paths[pathId], data.SwapLimits); err != nil {
 			logger.WithFields(ctx, logger.Fields{"error": err}).
-				Warnf("cannot optimize path from token %v to token %v", input.TokenInAddress, input.TokenOutAddress)
+				Debugf("cannot optimize path from token %v to token %v", input.TokenInAddress, input.TokenOutAddress)
 			return currentRoute, nil
 		}
 	}

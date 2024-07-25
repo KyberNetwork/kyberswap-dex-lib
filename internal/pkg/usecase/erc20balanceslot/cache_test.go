@@ -55,7 +55,7 @@ const (
 )
 
 func TestPreload(t *testing.T) {
-	logger.SetLogLevel("info")
+	logger.SetLogLevel("debug")
 
 	rd, err := miniredis.Run()
 	if err != nil {
@@ -73,7 +73,7 @@ func TestPreload(t *testing.T) {
 }
 
 func TestGetBalanceSlot(t *testing.T) {
-	logger.SetLogLevel("info")
+	logger.SetLogLevel("debug")
 
 	rd, err := miniredis.Run()
 	if err != nil {

@@ -61,7 +61,7 @@ func (r *RetryFinder) Find(ctx context.Context,
 			TokenPrice:    input.GasTokenPriceUSD,
 		})
 	if newRoute != nil && newRoute.CompareTo(baseBestRoute, input.GasInclude) > 0 {
-		logger.Infof(ctx,
+		logger.Debugf(ctx,
 			"retry finder: success retry with better rate baseAmountOut: %s baseAmountOutUsd %s poolAddr %s, and newAmountOut %s newAmountOutUsd %s poolAddr %s",
 			baseBestRoute.Output.Amount.String(),
 			baseBestRoute.Output.AmountUsd,
@@ -147,7 +147,7 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, input findroute.Inp
 
 	}
 	if routeModified {
-		logger.Infof(ctx, "found better route %v. Old pool %v", newRoute, route)
+		logger.Debugf(ctx, "found better route %v. Old pool %v", newRoute, route)
 		return newRoute
 	}
 	return nil

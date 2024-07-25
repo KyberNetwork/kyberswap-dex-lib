@@ -52,7 +52,9 @@ func (j *TrackExecutorBalanceJob) Run(ctx context.Context) error {
 func (j *TrackExecutorBalanceJob) run(ctx context.Context) {
 	jobID := ctxutils.GetJobID(ctx)
 	startTime := time.Now()
-	defer func() {
+
+	err := j.trackExecutorBalanceUseCase.Handle(ctx)
+	if err != nil {
 		logger.
 			WithFields(ctx,
 				logger.Fields{
@@ -60,9 +62,16 @@ func (j *TrackExecutorBalanceJob) run(ctx context.Context) {
 					"job.name":    TrackExecutorBalance,
 					"duration_ms": time.Since(startTime).Milliseconds()},
 			).
-			Info("job duration")
-	}()
+			Errorf("[TrackExecutorBalanceJob] error %v", err)
+		return
+	}
 
-	// TODO: Handle the return result.
-	j.trackExecutorBalanceUseCase.Handle(ctx)
+	logger.
+		WithFields(ctx,
+			logger.Fields{
+				"job.id":      jobID,
+				"job.name":    TrackExecutorBalance,
+				"duration_ms": time.Since(startTime).Milliseconds()},
+		).
+		Info("[TrackExecutorBalanceJob] done")
 }

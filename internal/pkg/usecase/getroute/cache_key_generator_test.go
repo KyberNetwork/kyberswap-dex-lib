@@ -873,7 +873,7 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 func bigIntFromScientificNotation(s string) *big.Int {
 	value, _, err := big.ParseFloat(s, 10, 0, big.ToNearestEven)
 	if err != nil {
-		fmt.Printf("bigFloatFromString err %e\n", err)
+		fmt.Printf("bigFloatFromString err %v\n", err)
 	}
 	res, _ := value.Int(new(big.Int))
 	return res

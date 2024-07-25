@@ -45,7 +45,7 @@ func (p *HoldersListStrategy) ProbeBalanceSlot(ctx context.Context, token common
 				return nil, err
 			})
 			if err != nil {
-				logger.WithFields(ctx, logger.Fields{"token": token, "err": err}).Warnf("could not add token to watchlist")
+				logger.WithFields(ctx, logger.Fields{"token": token, "err": err}).Debugf("could not add token to watchlist")
 			}
 		}
 		return nil, err

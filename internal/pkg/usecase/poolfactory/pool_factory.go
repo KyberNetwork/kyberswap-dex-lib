@@ -176,7 +176,7 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool, stateR
 		} else if pool.Type == pooltypes.PoolTypes.CurveMeta {
 			iPool, err := f.newCurveMeta(*pool, curveBasePoolByAddress)
 			if err != nil {
-				logger.Debugf(ctx, err.Error())
+				logger.Debugf(ctx, "[poolFactory.NewPools] CurveMeta %s", err.Error())
 				continue
 			}
 
@@ -184,7 +184,7 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool, stateR
 		} else if pool.Type == pooltypes.PoolTypes.CurveStableMetaNg {
 			iPool, err := f.newCurveMetaNG(*pool, curveBaseNGPoolByAddress)
 			if err != nil {
-				logger.Debugf(ctx, err.Error())
+				logger.Debugf(ctx, "[poolFactory.NewPools] CurveStableMetaNg %s", err.Error())
 				continue
 			}
 
@@ -192,7 +192,7 @@ func (f *PoolFactory) NewPools(ctx context.Context, pools []*entity.Pool, stateR
 		} else {
 			iPool, err := f.newPool(*pool, stateRoot)
 			if err != nil {
-				logger.Debug(ctx, err.Error())
+				logger.Debugf(ctx, "[poolFactory.NewPools] others %s", err.Error())
 				continue
 			}
 
@@ -229,7 +229,7 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 		} else if pool.Type == pooltypes.PoolTypes.CurveMeta {
 			IPoolSimulator, err := f.newCurveMeta(*pool, curveBasePoolByAddress)
 			if err != nil {
-				logger.Debugf(ctx, err.Error())
+				logger.Debugf(ctx, "[poolFactory.NewPoolByAddress] CurveStableMetaNg %s", err.Error())
 				continue
 			}
 
@@ -237,7 +237,7 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 		} else if pool.Type == pooltypes.PoolTypes.CurveStableMetaNg {
 			IPoolSimulator, err := f.newCurveMetaNG(*pool, curveBaseNGPoolByAddress)
 			if err != nil {
-				logger.Debugf(ctx, err.Error())
+				logger.Debugf(ctx, "[poolFactory.NewPoolByAddress] CurveStableMetaNg %s", err.Error())
 				continue
 			}
 
@@ -245,7 +245,7 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 		} else {
 			iPool, err := f.newPool(*pool, stateRoot)
 			if err != nil {
-				logger.Debugf(ctx, err.Error())
+				logger.Debugf(ctx, "[poolFactory.NewPoolByAddress] others %s", err.Error())
 				continue
 			}
 
@@ -282,7 +282,7 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 				basePoolAddresses.Insert(entityPool.Address)
 				basePool, err := f.newCurveBase(*entityPool)
 				if err != nil {
-					logger.Warn(ctx, err.Error())
+					logger.Debugf(ctx, "[getCurveMetaBasePoolByAddress] CurveBase %s", err.Error())
 					continue
 				}
 				basePoolByAddress[basePool.GetAddress()] = basePool
@@ -292,7 +292,7 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 				basePoolAddresses.Insert(entityPool.Address)
 				basePool, err := f.newCurveStablePlain(*entityPool)
 				if err != nil {
-					logger.Warn(ctx, err.Error())
+					logger.Debugf(ctx, "[getCurveMetaBasePoolByAddress] CurveStablePlain %s", err.Error())
 					continue
 				}
 				basePoolByAddress[basePool.GetAddress()] = basePool
@@ -302,7 +302,7 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 				basePoolAddresses.Insert(entityPool.Address)
 				basePool, err := f.newCurvePlainOracle(*entityPool)
 				if err != nil {
-					logger.Warn(ctx, err.Error())
+					logger.Debugf(ctx, "[getCurveMetaBasePoolByAddress] CurvePlainOracle %s", err.Error())
 					continue
 				}
 				basePoolByAddress[basePool.GetAddress()] = basePool
@@ -312,7 +312,7 @@ func (f *PoolFactory) getCurveMetaBasePoolByAddress(
 				basePoolAddresses.Insert(entityPool.Address)
 				basePool, err := f.newCurveAAVE(*entityPool)
 				if err != nil {
-					logger.Warn(ctx, err.Error())
+					logger.Debugf(ctx, "[getCurveMetaBasePoolByAddress] CurveAave %s", err.Error())
 					continue
 				}
 				basePoolByAddress[basePool.GetAddress()] = basePool
@@ -339,7 +339,7 @@ func (f *PoolFactory) getCurveMetaBaseNGPoolByAddress(
 				basePoolAddresses.Insert(entityPool.Address)
 				basePool, err := f.newCurveStablePlain(*entityPool)
 				if err != nil {
-					logger.Warn(ctx, err.Error())
+					logger.Debugf(ctx, "[getCurveMetaBaseNGPoolByAddress] CurveStablePlain %s", err.Error())
 					continue
 				}
 				basePoolByAddress[basePool.GetAddress()] = basePool
@@ -349,7 +349,7 @@ func (f *PoolFactory) getCurveMetaBaseNGPoolByAddress(
 				basePoolAddresses.Insert(entityPool.Address)
 				basePool, err := f.newCurveStableNg(*entityPool)
 				if err != nil {
-					logger.Warn(ctx, err.Error())
+					logger.Debugf(ctx, "[getCurveMetaBaseNGPoolByAddress] CurveStableNg %s", err.Error())
 					continue
 				}
 				basePoolByAddress[basePool.GetAddress()] = basePool

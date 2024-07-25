@@ -16,7 +16,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -135,8 +134,6 @@ var (
 )
 
 func TestFindRoute(t *testing.T) {
-	logger.SetLogLevel("info")
-
 	poolEntities := lo.Map(pools, func(p testPool, _ int) entity.Pool {
 		return entity.Pool{
 			Address:  p.name,

@@ -205,7 +205,7 @@ func apiAction(c *cli.Context) (err error) {
 	// reload config with remote config. Ignore error with a warning
 	err = configLoader.Reload(ctx)
 	if err != nil {
-		logger.Warnf(ctx, "Config could not be reloaded: %s", err)
+		logger.Warnf(ctx, "[apiAction] Config could not be reloaded: %s", err)
 	} else {
 		logger.Info(ctx, "Config reloaded")
 	}
@@ -383,8 +383,7 @@ func apiAction(c *cli.Context) (err error) {
 
 		serverURLs := strings.Split(cfg.AEVM.AEVMServerURLs, ",")
 		publishingPoolsURLs := strings.Split(cfg.AEVM.AEVMPublishingPoolsURLs, ",")
-		logger.Infof(ctx, "AEVMServerURLs = %+v", serverURLs)
-		logger.Infof(ctx, "AEVMPublishingPoolsURLs = %+v", publishingPoolsURLs)
+		logger.Infof(ctx, "AEVMServerURLs = %+v AEVMPublishingPoolsURLs = %+v", serverURLs, publishingPoolsURLs)
 		aevmClientImpl, err := aevmclientuc.NewClient(
 			aevmclientuc.Config{
 				ServerURLs:          serverURLs,
@@ -520,21 +519,17 @@ func apiAction(c *cli.Context) (err error) {
 	// Run hot-reload manager.
 	// Add all app reloaders in order.
 	reloadManager.RegisterReloader(0, reload.ReloaderFunc(func(ctx context.Context, id string) error {
-		logger.Infof(ctx, "Received reloading signal: <%s>", id)
-
 		// If configuration fails ignore reload with a warning.
 		err = configLoader.Reload(ctx)
 		if err != nil {
-			logger.Warnf(ctx, "Config could not be reloaded: %s", err)
+			logger.Warnf(ctx, "[apiAction] Config could not be reloaded: %s", err)
 			return nil
 		}
 
-		logger.Infoln(ctx, "Config reloaded")
 		return nil
 	}))
 
 	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
-		logger.Infof(ctx, "Received reloading signal: <%s>", id)
 		return applyLatestConfigForAPI(
 			ctx,
 			configLoader,
@@ -589,9 +584,9 @@ func indexerAction(c *cli.Context) (err error) {
 	// reload config with remote config. Ignore error with a warning
 	err = configLoader.Reload(ctx)
 	if err != nil {
-		logger.Warnf(ctx, "Config could not be reloaded: %s", err)
+		logger.Warnf(ctx, "[indexerAction] Config could not be reloaded: %s", err)
 	} else {
-		logger.Infoln(ctx, "Config reloaded")
+		logger.Infoln(ctx, "[indexerAction] Config reloaded")
 	}
 
 	ethClient := ethrpc.New(cfg.Common.RPC)
@@ -606,13 +601,13 @@ func indexerAction(c *cli.Context) (err error) {
 
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf(ctx, "fail to init redis client to pool service")
+		logger.Errorf(ctx, "[indexerAction] fail to init redis client to pool service")
 		return err
 	}
 
 	poolEventRedisClient, err := redis.New(&cfg.PoolEventRedis)
 	if err != nil {
-		logger.Errorf(ctx, "fail to init redis client to pool service")
+		logger.Errorf(ctx, "[indexerAction] fail to init redis client to pool service")
 		return err
 	}
 
@@ -690,23 +685,16 @@ func indexerAction(c *cli.Context) (err error) {
 	// Run hot-reload manager.
 	// Add all app reloaders in order.
 	reloadManager.RegisterReloader(0, reload.ReloaderFunc(func(ctx context.Context, id string) error {
-		logger.Infof(ctx, "Received reloading signal: <%s>", id)
-
 		// If configuration fails ignore reload with a warning.
 		err = configLoader.Reload(ctx)
 		if err != nil {
-			logger.Warnf(ctx, "Config could not be reloaded: %s", err)
+			logger.Warnf(ctx, "[indexerAction] Config could not be reloaded: %s", err)
 			return nil
 		}
-
-		logger.Infoln(ctx, "Config reloaded")
 		return nil
 	}))
 
 	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
-		logger.Infof(ctx, "Received reloading signal: <%s>", id)
-		logger.Infoln(ctx, "ScanConfigService reloaded")
-
 		return applyLatestConfigForIndexer(ctx, indexPoolsUseCase, indexPoolsJob, configLoader)
 	}))
 
@@ -714,21 +702,16 @@ func indexerAction(c *cli.Context) (err error) {
 
 	// run jobs
 	g.Go(func() error {
-		logger.Infof(ctx, "Starting reload manager")
 		return reloadManager.Run(ctx)
 	})
 
 	g.Go(func() error {
-		logger.Info(ctx, "Starting indexPoolsJobs")
-
 		indexPoolsJob.Run(ctx)
 
 		return nil
 	})
 
 	g.Go(func() error {
-		logger.Info(ctx, "Starting updateSuggestedGasPriceJob")
-
 		updateSuggestedGasPriceJob.Run(ctx)
 
 		return nil
@@ -736,8 +719,6 @@ func indexerAction(c *cli.Context) (err error) {
 
 	if updateL1FeeJob != nil {
 		g.Go(func() error {
-			logger.Info(ctx, "Starting updateL1FeeJob")
-
 			updateL1FeeJob.Run(ctx)
 
 			return nil
@@ -749,7 +730,6 @@ func indexerAction(c *cli.Context) (err error) {
 	reloadManager.RegisterNotifier(reload.NotifierChan(reloadChan))
 
 	g.Go(func() error {
-		logger.Infoln(ctx, "Starting reload config reporter")
 		reloadConfigReporter.Report(ctx, reloadChan)
 		return nil
 	})
@@ -786,12 +766,12 @@ func executorTrackerAction(c *cli.Context) (err error) {
 	// init redis client
 	routerRedisClient, err := redis.New(&cfg.Redis)
 	if err != nil {
-		logger.Errorf(ctx, "fail to init redis client for track executor balance")
+		logger.Errorf(ctx, "[executorTrackerAction] fail to init redis client for track executor balance")
 		return err
 	}
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf(ctx, "fail to init redis client to pool service")
+		logger.Errorf(ctx, "[executorTrackerAction] fail to init redis client to pool service")
 		return err
 	}
 
@@ -835,8 +815,6 @@ func executorTrackerAction(c *cli.Context) (err error) {
 		},
 	)
 
-	logger.Info(ctx, "Starting trackExecutorBalanceJob")
-
 	return trackExecutorBalanceJob.Run(ctx)
 }
 
@@ -865,12 +843,10 @@ func applyLatestConfigForAPI(
 		return err
 	}
 
-	logger.Infoln(ctx, "Applying new log level")
 	if err = logger.SetLogLevel(cfg.Log.ConsoleLevel); err != nil {
-		logger.Warnf(ctx, "reload Log level error cause by <%v>", err)
+		logger.Warnf(ctx, "[applyLatestConfigForAPI] reload Log level error cause by <%v>", err)
 	}
 
-	logger.Infoln(ctx, "Applying new config to API")
 	getRouteUseCase.ApplyConfig(cfg.UseCase.GetRoute)
 	buildRouteUseCase.ApplyConfig(cfg.UseCase.BuildRoute)
 	poolFactory.ApplyConfig(cfg.UseCase.PoolFactory)
@@ -896,15 +872,12 @@ func applyLatestConfigForIndexer(
 		return err
 	}
 
-	logger.Infoln(ctx, "Applying new log level")
 	if err = logger.SetLogLevel(cfg.Log.ConsoleLevel); err != nil {
-		logger.Warnf(ctx, "reload Log level error cause by <%v>", err)
+		logger.Warnf(ctx, "[applyLatestConfigForIndexer] reload Log level error cause by <%v>", err)
 	}
 
-	logger.Infoln(ctx, "Applying new config to IndexPoolsJob")
 	indexPoolsJob.ApplyConfig(cfg.Job.IndexPools)
 
-	logger.Infoln(ctx, "Applying new config to IndexPoolsUseCase")
 	indexPoolsUseCase.ApplyConfig(cfg.UseCase.IndexPools)
 
 	return nil

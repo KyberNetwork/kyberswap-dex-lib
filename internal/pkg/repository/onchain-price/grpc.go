@@ -3,6 +3,7 @@ package onchainprice
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"strconv"
 
@@ -36,7 +37,7 @@ type ITokenRepository interface {
 }
 
 var (
-	ErrInvalidPrice = errors.New("Invalid price")
+	ErrInvalidPrice = errors.New("invalid price")
 )
 
 func NewGRPCRepository(config GrpcConfig, chainId valueobject.ChainID, tokenRepository ITokenRepository, nativeTokenAddress string) (*grpcRepository, error) {
@@ -107,8 +108,7 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 	// get token info (decimal)
 	tokens, err := r.tokenRepository.FindByAddresses(ctx, addresses)
 	if err != nil {
-		logger.Errorf(ctx, "failed to get token info %v %v", addresses, err)
-		return nil, err
+		return nil, fmt.Errorf("[findByAddressesSingleChunk] failed to get token info %s %v", addresses, err)
 	}
 	decimalsByToken := make(map[string]uint8, len(tokens))
 	for _, t := range tokens {
@@ -193,8 +193,7 @@ func (r *grpcRepository) GetNativePriceInUsd(ctx context.Context) (*big.Float, e
 		Address: r.nativeTokenAddress,
 	})
 	if err != nil {
-		logger.Errorf(ctx, "error getting onchain-price usd for native %v", err)
-		return nil, err
+		return nil, fmt.Errorf("[GetNativePriceInUsd] error getting onchain-price usd for native %v", err)
 	}
 
 	logger.Debugf(ctx, "fetched prices %v", res.Price)

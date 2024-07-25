@@ -60,7 +60,6 @@ func (s *server) run(ctx context.Context) error {
 	}()
 
 	go func() {
-		logger.Infof(ctx, "Starting reload manager")
 		errCh <- s.reloadManager.Run(ctx)
 	}()
 
@@ -69,7 +68,6 @@ func (s *server) run(ctx context.Context) error {
 	s.reloadManager.RegisterNotifier(reload.NotifierChan(reloadChan))
 
 	go func() {
-		logger.Infoln(ctx, "Starting reload config reporter")
 		s.reloadConfigReporter.Report(ctx, reloadChan)
 	}()
 	for {

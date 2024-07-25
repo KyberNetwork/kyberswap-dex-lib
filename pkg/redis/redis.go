@@ -59,7 +59,7 @@ func logRedisOption(universalClient redis.UniversalClient) {
 			"clusterClientOpts.DialTimeout":     clusterClient.Options().DialTimeout,
 			"clusterClientOpts.ReadTimeout":     clusterClient.Options().ReadTimeout,
 			"clusterClientOpts.WriteTimeout":    clusterClient.Options().WriteTimeout,
-		}).Info("New Redis")
+		}).Debug("New Redis")
 		return
 	}
 
@@ -73,7 +73,7 @@ func logRedisOption(universalClient redis.UniversalClient) {
 			"client.DialTimeout":     client.Options().DialTimeout,
 			"client.ReadTimeout":     client.Options().ReadTimeout,
 			"client.WriteTimeout":    client.Options().WriteTimeout,
-		}).Info("New Redis")
+		}).Debug("New Redis")
 		return
 	}
 
