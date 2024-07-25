@@ -93,7 +93,6 @@ func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) err
 		}).Info("Fetch Exchange events from executor")
 
 		if len(events) == 0 {
-			logger.Info(ctx, "No new Exchange events, skip to the next interval")
 			return nil
 		}
 
@@ -121,7 +120,7 @@ func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) err
 			logger.WithFields(ctx, logger.Fields{
 				"currentBlock": lastBlockNumber,
 				"latestBlock":  blockNumberCheckpoint,
-			}).Info("Continue catching up with the latest events")
+			}).Debug("Continue catching up with the latest events")
 			time.Sleep(intervalDelay)
 		}
 	}
@@ -150,7 +149,7 @@ func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress stri
 	})
 
 	if len(candidateTokenOuts) == 0 {
-		logger.Info(ctx, "No new tokens to track, skip to the next interval")
+		logger.Debug(ctx, "No new tokens to track, skip to the next interval")
 		return nil
 	}
 
@@ -262,7 +261,7 @@ func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress
 	})
 
 	if len(poolApprovalCandidates) == 0 {
-		logger.Info(ctx, "No new pool approvals to track, skip to the next interval")
+		logger.Debug(ctx, "No new pool approvals to track, skip to the next interval")
 		return nil
 	}
 

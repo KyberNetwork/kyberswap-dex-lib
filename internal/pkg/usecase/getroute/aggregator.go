@@ -360,7 +360,6 @@ func (a *aggregator) getStateByAddress(
 	}
 
 	if len(bestPoolIDs) == 0 {
-		logger.Error(ctx, "empty bestPoolIDs ")
 		return nil, ErrPoolSetEmpty
 	}
 

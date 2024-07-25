@@ -157,7 +157,7 @@ func (u *IndexPoolsJob) RunStreamJob(ctx context.Context) {
 		}, u.handleStreamEvents)
 	defer batcher.Close()
 	for {
-		if err := u.poolEventsStreamConsumer.Consume(ctx, func(ctx context.Context, msg *message.EventMessage) error {
+		u.poolEventsStreamConsumer.Consume(ctx, func(ctx context.Context, msg *message.EventMessage) error {
 			if msg == nil || msg.EventType != message.EventPoolCreated {
 				return nil
 			}
@@ -165,14 +165,7 @@ func (u *IndexPoolsJob) RunStreamJob(ctx context.Context) {
 			task.Resolve(msg, nil)
 			batcher.Batch(task)
 			return nil
-		}); err != nil {
-			logger.WithFields(ctx,
-				logger.Fields{
-					"job.name": consumer.PoolEvents,
-					"error":    err,
-				}).
-				Error("job failed, waiting to restart")
-		}
+		})
 		time.Sleep(u.config.PoolEvent.RetryInterval)
 		logger.WithFields(ctx,
 			logger.Fields{

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
@@ -58,8 +58,7 @@ func (r *HoldersListRedisRepositoryWithCache) Get(ctx context.Context, token com
 
 	result := new(entity.ERC20HoldersList)
 	if err := json.Unmarshal([]byte(rawResult), result); err != nil {
-		logger.WithFields(ctx, logger.Fields{"token": token}).Warn("could not unmarshal entity.ERC20HoldersList")
-		return nil, err
+		return nil, fmt.Errorf("could not unmarshal entity.ERC20HoldersList token %v err %v", token, err)
 	}
 	r.cache.Set(key, result, cache.DefaultExpiration)
 

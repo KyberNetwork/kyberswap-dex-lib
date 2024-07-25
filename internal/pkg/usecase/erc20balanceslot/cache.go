@@ -48,7 +48,7 @@ func (c *Cache) PreloadAll(ctx context.Context) error {
 		for token, bl := range preloaded {
 			c.cache.Store(token, bl)
 		}
-		logger.Infof(ctx, "preloaded %v token balance slots", len(preloaded))
+		logger.Debugf(ctx, "preloaded %v token balance slots", len(preloaded))
 	}
 	// then from Redis
 	entries, err := c.repo.GetAll(ctx)
@@ -67,7 +67,7 @@ func (c *Cache) PreloadAll(ctx context.Context) error {
 		c.cache.Store(token, entry)
 		numRedisPreloaded++
 	}
-	logger.Infof(ctx, "preloaded %v token balance slots from Redis", numRedisPreloaded)
+	logger.Debugf(ctx, "preloaded %v token balance slots from Redis", numRedisPreloaded)
 	return nil
 }
 
@@ -108,7 +108,7 @@ func (c *Cache) Get(ctx context.Context, token common.Address, pool *dexentity.P
 		if bl != nil {
 			c.cache.Store(token, bl)
 			if err := c.repo.Put(ctx, bl); err != nil {
-				logger.Errorf(ctx, "could not store balance slot: %s", err)
+				logger.WithFields(ctx, logger.Fields{"entity": bl}).Errorf("could not store balance slot: %s", err)
 			}
 		}
 		// err != nil implies bl == nil

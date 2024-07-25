@@ -56,19 +56,16 @@ func (p *PoolsPublisher) Publish(ctx context.Context, pools map[string]poolpkg.I
 	if err != nil {
 		return "", fmt.Errorf("could not EncodePoolSimulatorsMap: %w", err)
 	}
-	took := time.Since(start)
-	logger.Infof(ctx, "publishing %d pools, encoded size = %s, encoding took %s", len(pools), humanize.Bytes(uint64(len(encoded))), took.String())
+	logger.Infof(ctx, "publishing %d pools, encoded size = %s, encoding took %s", len(pools), humanize.Bytes(uint64(len(encoded))), time.Since(start).String())
 
 	start = time.Now()
 	result, err := p.aevmClient.StorePreparedPools(ctx, &types.StorePreparedPoolsParams{
 		EncodedPools: encoded,
 	})
-	took = time.Since(start)
 	if err != nil {
-		logger.Errorf(ctx, "could not StorePreparedPools: %s", err)
 		return "", fmt.Errorf("could not StorePreparedPools: %w", err)
 	}
-	logger.Infof(ctx, "done publishing %d pools, took = %s", len(pools), took.String())
+	logger.Infof(ctx, "done publishing %d pools, took = %s", len(pools), time.Since(start).String())
 
 	addrs := make(map[string]struct{})
 	for addr := range pools {

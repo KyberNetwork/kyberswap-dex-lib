@@ -16,7 +16,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
@@ -35,7 +34,7 @@ func newMockPointerSwapPoolManager(configFile string) (*poolmanager.PointerSwapP
 	}
 
 	if err = cfg.Validate(); err != nil {
-		logger.Errorf(ctx, "failed to validate config, err: %v", err)
+		fmt.Printf("failed to validate config, err: %v", err)
 		panic(err)
 	}
 
@@ -46,7 +45,7 @@ func newMockPointerSwapPoolManager(configFile string) (*poolmanager.PointerSwapP
 
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf(ctx, "fail to init redis client to pool service")
+		fmt.Printf("fail to init redis client to pool service")
 		return nil, err
 	}
 	poolRepository, _ := pool.NewRedisRepository(poolRedisClient.Client, nil, cfg.Repository.Pool)
@@ -56,7 +55,6 @@ func newMockPointerSwapPoolManager(configFile string) (*poolmanager.PointerSwapP
 }
 
 func newMockPoolManager(configFile string) (*poolmanager.PoolManager, error) {
-	ctx := context.TODO()
 	configLoader, err := config.NewConfigLoader(configFile)
 	if err != nil {
 		return nil, err
@@ -68,13 +66,13 @@ func newMockPoolManager(configFile string) (*poolmanager.PoolManager, error) {
 	}
 
 	if err = cfg.Validate(); err != nil {
-		logger.Errorf(ctx, "failed to validate config, err: %v", err)
+		fmt.Printf("failed to validate config, err: %v", err)
 		panic(err)
 	}
 
 	poolRedisClient, err := redis.New(&cfg.PoolRedis)
 	if err != nil {
-		logger.Errorf(ctx, "fail to init redis client to pool service")
+		fmt.Printf("fail to init redis client to pool service")
 		return nil, err
 	}
 	poolRepository, _ := pool.NewRedisRepository(poolRedisClient.Client, nil, cfg.Repository.Pool)
@@ -110,7 +108,6 @@ func comparePoolManager(
 }
 
 func listAddresses(configFile, tokenIn, tokenOut string) ([]string, []string, error) {
-	ctx := context.TODO()
 	configLoader, err := config.NewConfigLoader(configFile)
 	if err != nil {
 		return nil, nil, err
@@ -122,7 +119,7 @@ func listAddresses(configFile, tokenIn, tokenOut string) ([]string, []string, er
 	}
 
 	if err = cfg.Validate(); err != nil {
-		logger.Errorf(ctx, "failed to validate config, err: %v", err)
+		fmt.Printf("failed to validate config, err: %v", err)
 		panic(err)
 	}
 

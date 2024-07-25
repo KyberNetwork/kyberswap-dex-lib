@@ -117,8 +117,6 @@ func probeBalanceSlotAction(c *cli.Context) error {
 		walletAddr = randomizeAddress()
 	}
 
-	logger.Infof(c.Context, "wallet address: %s\n", walletAddr)
-
 	var jsonrpcURL string
 	if c.IsSet("jsonrpcurl-override") {
 		jsonrpcURL = c.String("jsonrpcurl-override")
@@ -126,7 +124,7 @@ func probeBalanceSlotAction(c *cli.Context) error {
 		jsonrpcURL = cfg.Common.RPC
 	}
 
-	logger.Infof(c.Context, "JSONRPC URL: %s\n", jsonrpcURL)
+	logger.Infof(c.Context, "wallet address: %s JSONRPC URL: %s\n", walletAddr, jsonrpcURL)
 
 	retryNotFoundTokens := c.Bool("retry-not-found-tokens")
 

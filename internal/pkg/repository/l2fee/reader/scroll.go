@@ -2,12 +2,12 @@ package reader
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/router-service/internal/pkg/abis"
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 const (
@@ -55,8 +55,7 @@ func (r *scrollFeeReader) Read(ctx context.Context) (*entity.ScrollL1FeeParams, 
 	}, []interface{}{&overhead})
 
 	if _, err := calls.TryAggregate(); err != nil {
-		logger.Errorf(ctx, "failed to aggregate call to get Scroll fee param %v", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to aggregate call to get Scroll fee param %v", err)
 	}
 
 	return &entity.ScrollL1FeeParams{

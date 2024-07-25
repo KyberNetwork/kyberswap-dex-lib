@@ -146,7 +146,6 @@ func NewPointerSwapPoolManager(
 	if p.config.UseAEVM {
 		stateRoot, err = aevmClient.LatestStateRoot(ctx)
 		if err != nil {
-			logger.Errorf(ctx, "could not get latest state root for aevm %s", err)
 			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
@@ -192,7 +191,7 @@ func (p *PointerSwapPoolManager) updateBlackListPool(ctx context.Context) {
 			break
 		}
 		if counter > 3 {
-			logger.Errorf(ctx, "failed to get blackList data 3 times")
+			logger.Debug(ctx, "failed to get blackList data 3 times")
 			break
 		}
 		time.Sleep(time.Second)
@@ -357,7 +356,6 @@ func (p *PointerSwapPoolManager) Reload(ctx context.Context) error {
 	if p.config.UseAEVM {
 		stateRoot, err = p.aevmClient.LatestStateRoot(ctx)
 		if err != nil {
-			logger.Errorf(ctx, "could not get latest state root for aevm %s", err)
 			return fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}

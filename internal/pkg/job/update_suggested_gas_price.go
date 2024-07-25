@@ -48,25 +48,16 @@ func (j *UpdateSuggestedGasPriceJob) Run(ctx context.Context) {
 func (j *UpdateSuggestedGasPriceJob) run(ctx context.Context) {
 	jobID := ctxutils.GetJobID(ctx)
 	startTime := time.Now()
-	defer func() {
-		logger.
-			WithFields(ctx,
-				logger.Fields{
-					"job.id":      jobID,
-					"job.name":    UpdateSuggestedGasPrice,
-					"duration_ms": time.Since(startTime).Milliseconds()},
-			).
-			Info("job duration")
-	}()
 
 	result, err := j.useCase.Handle(ctx)
 	if err != nil {
 		logger.
 			WithFields(ctx,
 				logger.Fields{
-					"job.id":   jobID,
-					"job.name": UpdateSuggestedGasPrice,
-					"error":    err,
+					"job.id":      jobID,
+					"job.name":    UpdateSuggestedGasPrice,
+					"error":       err,
+					"duration_ms": time.Since(startTime).Milliseconds(),
 				}).
 			Error("job failed")
 		return
@@ -83,6 +74,7 @@ func (j *UpdateSuggestedGasPriceJob) run(ctx context.Context) {
 				"job.id":              jobID,
 				"job.name":            UpdateSuggestedGasPrice,
 				"suggested_gas_price": suggestedGasPrice,
+				"duration_ms":         time.Since(startTime).Milliseconds(),
 			}).
 		Info("job done")
 }

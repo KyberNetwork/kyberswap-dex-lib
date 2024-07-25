@@ -185,12 +185,10 @@ func (c *Client) StorePreparedPools(ctx context.Context, req *aevmtypes.StorePre
 			result, err := client.StorePreparedPools(ctx, &aevmtypes.StorePreparedPoolsParams{
 				EncodedPools: req.EncodedPools,
 			})
-			took := time.Since(start)
 			if err != nil {
-				logger.Errorf(ctx, "[client %d] could not StorePreparedPools: %s", index, err)
-				return err
+				return fmt.Errorf("[client %d] could not StorePreparedPools: %s", index, err)
 			}
-			logger.Infof(ctx, "[client %d] StorePreparedPools took = %s", index, took.String())
+			logger.Infof(ctx, "[client %d] StorePreparedPools took = %s", index, time.Since(start).String())
 			storageIDs[i] = result.StorageID
 			return nil
 		})

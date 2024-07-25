@@ -20,7 +20,7 @@ func StringToBigIntHookFunc() mapstructure.DecodeHookFunc {
 		// Return the parsed value
 		value, _, err := big.ParseFloat(data.(string), 10, 0, big.ToNearestEven)
 		if err != nil {
-			log.Printf("StringToBigIntHookFunc Error when parse float %e", err)
+			log.Printf("StringToBigIntHookFunc Error when parse float %v", err)
 			return nil, nil
 		}
 		res, _ := value.Int(new(big.Int))

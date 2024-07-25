@@ -7,6 +7,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/price"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/dgraph-io/ristretto"
 )
 
@@ -76,6 +77,7 @@ func (r *ristrettoRepository) FindByAddresses(ctx context.Context, addresses []s
 
 	nativePriceInUsd, err := r.GetNativePriceInUsd(ctx)
 	if err != nil {
+		logger.Errorf(ctx, "[onchainprice] ristrettoRepository.FindByAddresses GetNativePriceInUsd %v", err)
 		return prices, nil
 	}
 
