@@ -60,6 +60,7 @@ common:
     - "sushiswap-v3"
     - "woofi-v2"
     - "crowdswap-v2"
+    - "traderjoe-v22"
     - "traderjoe-v21"
     - "traderjoe-v20"
     - "wombat"

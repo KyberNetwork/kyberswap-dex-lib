@@ -75,6 +75,7 @@ common:
     - "mmf"
     - "mmf-v3"
     - "arbswap-amm"
+    - "traderjoe-v22"
     - "traderjoe-v21"
     - "traderjoe-v20"
     - "smardex"
