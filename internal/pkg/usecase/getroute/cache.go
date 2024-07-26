@@ -77,7 +77,8 @@ func (c *cache) Aggregate(ctx context.Context, params *types.AggregateParams) (*
 		if err != nil {
 			return nil, err
 		}
-		if routeSummary.GetPriceImpact() <= c.config.PriceImpactThreshold {
+		// If the amount in USD is nearly insignificant (or 0), price impact is -Inf, so ignore price impact check if cache point is base on amountIn (not amountInUSD)
+		if routeSummary.AmountInUSD < c.config.MinAmountInUSD || routeSummary.GetPriceImpact() <= c.config.PriceImpactThreshold {
 			c.setRouteToCache(ctx, routeSummary, keys)
 		}
 	} else {
@@ -175,6 +176,12 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 			Debug("cache missed")
 		metrics.IncrFindRouteCacheCount(ctx, false, map[string]string{"reason": "summarizeCachedRouteFailed"})
 		return nil, err
+	}
+
+	// don't need to check priceImpact if cache point is base on amountIn (not amountInUSD) because tokenIn has no price
+	// GetPriceImpact() will return -Inf if tokenIn has no prices, but keep this check available for explicit logic
+	if routeSummary.AmountInUSD < c.config.MinAmountInUSD {
+		return routeSummary, nil
 	}
 
 	priceImpact := routeSummary.GetPriceImpact()

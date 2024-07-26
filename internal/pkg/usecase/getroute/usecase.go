@@ -173,10 +173,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 
 	sources := u.getSources(query.IncludedSources, query.ExcludedSources)
 
-	isHillClimbEnabled := false
-	if u.config.Aggregator.FeatureFlags.IsHillClimbEnabled {
-		isHillClimbEnabled = true
-	}
+	isHillClimbEnabled := u.config.Aggregator.FeatureFlags.IsHillClimbEnabled
 
 	return &types.AggregateParams{
 		TokenIn:            tokenIn,
