@@ -52,7 +52,7 @@ func (f *HillClimbFinder) Find(ctx context.Context,
 
 	baseBestRoute := extractBestRoute(baseBestRoutes)
 	if baseBestRoute == nil {
-		logger.Infof(ctx, "hill climb: extract best base route failed %s", err)
+		logger.Info(ctx, "hill climb: extract best base route failed")
 		return nil, nil
 	}
 
@@ -65,7 +65,7 @@ func (f *HillClimbFinder) Find(ctx context.Context,
 	data.Refresh()
 	baseBestRoute = recalculateRoute(ctx, input, data, baseBestRoute)
 	if baseBestRoute == nil {
-		logger.Infof(ctx, "hill climb: return nil due to cannot recalculateRoute base")
+		logger.Info(ctx, "hill climb: return nil due to cannot recalculateRoute base")
 		return nil, nil
 	}
 
@@ -88,15 +88,9 @@ func (f *HillClimbFinder) Find(ctx context.Context,
 
 	// if the route cannot be optimized or the input is different from the input of base best route
 	if hillClimbBestRoute == nil || hillClimbBestRoute.Input.CompareRaw(&baseBestRoute.Input) != 0 {
-		logger.Infof(ctx,
-			"hill climb: used baseRoute which better",
-		)
 		return []*valueobject.Route{baseBestRoute}, nil
 	}
 	if hillClimbBestRoute.CompareTo(baseBestRoute, input.GasInclude) > 0 {
-		logger.Infof(ctx,
-			"hill climb: used hillClimb Route which better",
-		)
 		return []*valueobject.Route{hillClimbBestRoute}, nil
 	}
 

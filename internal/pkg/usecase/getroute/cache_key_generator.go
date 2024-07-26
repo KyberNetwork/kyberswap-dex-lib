@@ -213,7 +213,7 @@ func (g *routeKeyGenerator) applyConfig(config Config) {
 			ShrinkDecimalBase:    config.Cache.ShrinkDecimalBase,
 			ShrinkFuncLogPercent: config.Cache.ShrinkFuncLogPercent,
 		}); err != nil {
-			logger.Errorf("Can not apply amountInUsdShrinkFunc from remote config err %e", err)
+			logger.Errorf("Can not apply amountInUsdShrinkFunc from remote config err %v", err)
 		} else {
 			g.amountInUsdShrinkFunc = amountInUsdShrinkFunc
 		}
@@ -223,7 +223,7 @@ func (g *routeKeyGenerator) applyConfig(config Config) {
 				ShrinkDecimalBase:    c.ShrinkFuncConstant,
 				ShrinkFuncLogPercent: c.ShrinkFuncConstant,
 			}); err != nil {
-				logger.Errorf("Can not apply amountInShrinkFunc from remote config err %e", err)
+				logger.Errorf("Can not apply amountInShrinkFunc from remote config err %v", err)
 			} else {
 				amountInShrinkFuncList = append(amountInShrinkFuncList, amountInShrinkFunc)
 			}

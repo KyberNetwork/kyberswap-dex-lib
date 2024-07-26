@@ -47,25 +47,16 @@ func (j *UpdateL1FeeJob) Run(ctx context.Context) {
 func (j *UpdateL1FeeJob) run(ctx context.Context) {
 	jobID := ctxutils.GetJobID(ctx)
 	startTime := time.Now()
-	defer func() {
-		logger.
-			WithFields(ctx,
-				logger.Fields{
-					"job.id":      jobID,
-					"job.name":    UpdateL1FeeParams,
-					"duration_ms": time.Since(startTime).Milliseconds()},
-			).
-			Info("job duration")
-	}()
 
 	err := j.useCase.Handle(ctx)
 	if err != nil {
 		logger.
 			WithFields(ctx,
 				logger.Fields{
-					"job.id":   jobID,
-					"job.name": UpdateL1FeeParams,
-					"error":    err,
+					"job.id":      jobID,
+					"job.name":    UpdateL1FeeParams,
+					"error":       err,
+					"duration_ms": time.Since(startTime).Milliseconds(),
 				}).
 			Error("job failed")
 		return
@@ -74,8 +65,9 @@ func (j *UpdateL1FeeJob) run(ctx context.Context) {
 	logger.
 		WithFields(ctx,
 			logger.Fields{
-				"job.id":   jobID,
-				"job.name": UpdateL1FeeParams,
+				"job.id":      jobID,
+				"job.name":    UpdateL1FeeParams,
+				"duration_ms": time.Since(startTime).Milliseconds(),
 			}).
 		Info("job done")
 }

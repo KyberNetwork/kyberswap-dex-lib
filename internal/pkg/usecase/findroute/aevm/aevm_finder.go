@@ -83,20 +83,17 @@ func (f *AEVMFinder) Find(ctx context.Context, input findroute.Input, data findr
 
 	params, err := findrouteencode.EncodeFindRouteParams(f.baseFinder, &input, &data)
 	if err != nil {
-		logger.Warnf(ctx, "could not EncodeFindRouteParams: %s", err)
 		return nil, fmt.Errorf("could not EncodeFindRouteParams: %w", err)
 	}
 
 	result, err := f.aevmClient.FindRoute(ctx, params)
 	if err != nil {
-		logger.Warnf(ctx, "FindRoute return error: %s", err)
 		return nil, fmt.Errorf("FindRoute return error: %w", err)
 	}
 
 	routes := new([]*valueobject.Route)
 	routesDec := dexlibmsgpack.NewDecoder(bytes.NewReader(result.EncodedRoutes))
 	if err := routesDec.Decode(routes); err != nil {
-		logger.Warnf(ctx, "could not decode valueobject.Routes: %s", err)
 		return nil, fmt.Errorf("could not decode valueobject.Routes: %w", err)
 	}
 
