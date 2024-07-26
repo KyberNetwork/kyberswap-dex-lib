@@ -14,6 +14,8 @@ github.com/KyberNetwork/aevm v1.1.12 h1:ph3epZpnE4lWKSWSKgz7hRLp/d6VbLP68Ft/ug4l
 github.com/KyberNetwork/aevm v1.1.12/go.mod h1:Vn6Z14x4cyvF3tysY/TjKIcMyHtIUgIsTfXKI28vcQc=
 github.com/KyberNetwork/aggregator-encoding v0.19.0 h1:AdddLrTYt/Q3mOG5zz9t2iaLfOw03eJybaGVdHOtxi4=
 github.com/KyberNetwork/aggregator-encoding v0.19.0/go.mod h1:O9zjLpIIvK+sj8X02r6hQDgVhXPipJpW/0YaPEtT8pk=
+github.com/KyberNetwork/aggregator-encoding v0.20.0 h1:hd2FL3JLAomm5R2OAQFphF+QHWE2RnsZOKCbfD/c/no=
+github.com/KyberNetwork/aggregator-encoding v0.20.0/go.mod h1:WHCY7TyvgejljfKO7AiDf2a1lsFiq0uTMvF0XQsok0c=
 github.com/KyberNetwork/blackjack v0.3.0 h1:gYn3VRDZjsyJJmJOFZ217A3INh0g+DCm4wNjgHXnd5U=
 github.com/KyberNetwork/blackjack v0.3.0/go.mod h1:UmBTVq/Ia1AJzozJv0pinQTF8DTm+RcZJwvqHeY1JvM=
 github.com/KyberNetwork/blockchain-toolkit v0.6.0 h1:5YEwxYaknRz+rsxU0paW0AfUXithTb2Tmlq4l2H68Xc=
