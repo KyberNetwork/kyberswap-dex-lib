@@ -215,6 +215,7 @@ func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
 	cl.config.UseCase.BuildRoute.FeatureFlags = featureFlags
 	cl.config.Validator.BuildRouteParams.FeatureFlags = featureFlags
 	cl.config.Validator.GetRouteEncodeParams.FeatureFlags = featureFlags
+	cl.config.AEVMEnabled = featureFlags.IsAEVMEnabled
 	cl.config.UseCase.PoolFactory.UseAEVM = featureFlags.IsAEVMEnabled
 	cl.config.UseCase.PoolManager.UseAEVM = featureFlags.IsAEVMEnabled
 }
