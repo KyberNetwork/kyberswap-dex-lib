@@ -14,4 +14,5 @@ var (
 	ErrFeeAmountGreaterThanAmountOut = errors.New("feeAmount is greater than amountOut")
 
 	ErrRouteNotFound = errors.New("route not found")
+	ErrRFQTimeout    = errors.New("rfq timed out")
 )
