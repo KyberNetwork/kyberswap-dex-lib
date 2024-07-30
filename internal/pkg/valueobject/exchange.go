@@ -20,16 +20,6 @@ func IsAnExchange(exchange Exchange) bool {
 	return contained
 }
 
-func GetSourcesAsSlice(sources map[Exchange]struct{}) []string {
-	result := make([]string, len(sources))
-	count := 0
-	for src := range sources {
-		result[count] = string(src)
-		count = count + 1
-	}
-	return result
-}
-
 var RFQSourceSet = map[Exchange]struct{}{
 	dexValueObject.ExchangeKyberPMM: {},
 
@@ -38,12 +28,6 @@ var RFQSourceSet = map[Exchange]struct{}{
 	dexValueObject.ExchangeSwaapV2:    {},
 	dexValueObject.ExchangeHashflowV3: {},
 	dexValueObject.ExchangeNativeV1:   {},
-}
-
-func IsRFQSource(exchange Exchange) bool {
-	_, contained := RFQSourceSet[exchange]
-
-	return contained
 }
 
 // HashSources unique, then sort and has the slice string
