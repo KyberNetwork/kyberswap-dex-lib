@@ -5,5 +5,4 @@ type Config struct {
 	SubgraphAPI       string `json:"subgraphAPI"`
 	NewPoolLimit      int    `json:"newPoolLimit"`
 	DodoV1SellHelper  string `json:"dodoV1SellHelper"`
-	BlacklistFilePath string `json:"blacklistFilePath"`
 }
