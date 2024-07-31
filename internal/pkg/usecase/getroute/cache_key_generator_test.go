@@ -11,6 +11,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -360,7 +361,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				TokenIn: entity.Token{
 					Decimals: 18,
 				},
-				AmountIn: bigIntFromString("100000000000100000000"),
+				AmountIn: utils.NewBig10("100000000000100000000"),
 			},
 			config: valueobject.CacheConfig{
 				TTLByAmount: []valueobject.CachePoint{
@@ -395,7 +396,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				TokenIn: entity.Token{
 					Decimals: 18,
 				},
-				AmountIn:        bigIntFromString("100000000900000000000"),
+				AmountIn:        utils.NewBig10("100000000900000000000"),
 				TokenInPriceUSD: 1,
 			},
 			config: valueobject.CacheConfig{
@@ -431,7 +432,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				TokenIn: entity.Token{
 					Decimals: 18,
 				},
-				AmountIn:        bigIntFromString("103000000000000000000"),
+				AmountIn:        utils.NewBig10("103000000000000000000"),
 				TokenInPriceUSD: -1,
 			},
 			config: valueobject.CacheConfig{
@@ -468,7 +469,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				TokenIn: entity.Token{
 					Decimals: 18,
 				},
-				AmountIn:        bigIntFromString("3360000000000000000"),
+				AmountIn:        utils.NewBig10("3360000000000000000"),
 				TokenInPriceUSD: 1,
 			},
 			config: valueobject.CacheConfig{
@@ -504,7 +505,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				TokenIn: entity.Token{
 					Decimals: 18,
 				},
-				AmountIn:        bigIntFromString("35900000000000000000"),
+				AmountIn:        utils.NewBig10("35900000000000000000"),
 				TokenInPriceUSD: 1,
 			},
 			config: valueobject.CacheConfig{
@@ -540,7 +541,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				TokenIn: entity.Token{
 					Decimals: 18,
 				},
-				AmountIn:        bigIntFromString("136000000000000000000"),
+				AmountIn:        utils.NewBig10("136000000000000000000"),
 				TokenInPriceUSD: 1,
 			},
 			config: valueobject.CacheConfig{
@@ -576,7 +577,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				TokenIn: entity.Token{
 					Decimals: 18,
 				},
-				AmountIn:        bigIntFromString("1030600000000000000000"),
+				AmountIn:        utils.NewBig10("1030600000000000000000"),
 				TokenInPriceUSD: 1,
 			},
 			config: valueobject.CacheConfig{
@@ -612,7 +613,7 @@ func TestKeyGenerator_GenKeyV1(t *testing.T) {
 				TokenIn: entity.Token{
 					Decimals: 18,
 				},
-				AmountIn:        bigIntFromString("1060000000000000000"),
+				AmountIn:        utils.NewBig10("1060000000000000000"),
 				TokenInPriceUSD: 1.5,
 			},
 			config: valueobject.CacheConfig{
@@ -679,7 +680,7 @@ func TestKeyGenerator_GenKeyV2(t *testing.T) {
 				TokenIn: entity.Token{
 					Decimals: 18,
 				},
-				AmountIn:        bigIntFromString("1030600000000000000000"),
+				AmountIn:        utils.NewBig10("1030600000000000000000"),
 				TokenInPriceUSD: 1,
 			},
 			config: valueobject.CacheConfig{
@@ -877,11 +878,6 @@ func bigIntFromScientificNotation(s string) *big.Int {
 	}
 	res, _ := value.Int(new(big.Int))
 	return res
-}
-
-func bigIntFromString(s string) *big.Int {
-	value, _ := new(big.Int).SetString(s, 10)
-	return value
 }
 
 type Data struct {

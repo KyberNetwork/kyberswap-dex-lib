@@ -38,7 +38,7 @@ func NewCustomRoutesUseCase(
 	onchainpriceRepository IOnchainPriceRepository,
 	gasRepository IGasRepository,
 	poolRepository IPoolRepository,
-	routeFinder findroute.IFinder,
+	finderEngine findroute.IFinderEngine,
 	config Config,
 ) *useCase {
 	aggregator := NewCustomAggregator(
@@ -47,7 +47,7 @@ func NewCustomRoutesUseCase(
 		priceRepository,
 		onchainpriceRepository,
 		poolRepository,
-		routeFinder,
+		finderEngine,
 	)
 
 	return &useCase{

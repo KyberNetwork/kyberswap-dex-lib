@@ -53,12 +53,3 @@ func CollectTokenAddresses(poolSet map[string]poolpkg.IPoolSimulator, addresses 
 
 	return tokenAddresses
 }
-
-// extractBestRoute returns the best routes among routes
-func extractBestRoute(routes []*valueobject.Route) *valueobject.Route {
-	if len(routes) == 0 {
-		return nil
-	}
-
-	return routes[0]
-}

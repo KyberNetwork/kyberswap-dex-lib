@@ -7,17 +7,14 @@ import (
 	"math/big"
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -32,9 +29,9 @@ type cache struct {
 	routeCacheRepository IRouteCacheRepository
 	poolManager          IPoolManager
 
-	config               valueobject.CacheConfig
-	keyGenerator         *routeKeyGenerator
-	safetyQuoteReduction *SafetyQuoteReduction
+	config       valueobject.CacheConfig
+	keyGenerator *routeKeyGenerator
+	finderEngine findroute.IFinderEngine
 }
 
 func NewCache(
@@ -42,7 +39,7 @@ func NewCache(
 	routeCacheRepository IRouteCacheRepository,
 	poolManager IPoolManager,
 	config valueobject.CacheConfig,
-	safetyQuoteReduction *SafetyQuoteReduction,
+	finderEngine findroute.IFinderEngine,
 ) *cache {
 	return &cache{
 		aggregator:           aggregator,
@@ -50,7 +47,7 @@ func NewCache(
 		poolManager:          poolManager,
 		config:               config,
 		keyGenerator:         newCacheKeyGenerator(config),
-		safetyQuoteReduction: safetyQuoteReduction,
+		finderEngine:         finderEngine,
 	}
 }
 
@@ -275,119 +272,5 @@ func (c *cache) summarizeSimpleRoute(
 		return nil, err
 	}
 
-	poolBucket := valueobject.NewPoolBucket(state.Pools)
-	var (
-		amountOut = new(big.Int).Set(constant.Zero)
-		gas       = business.BaseGas
-	)
-
-	// Step 2: distribute amountIn into paths following distributions
-	distributedAmounts := business.DistributeAmount(params.AmountIn, simpleRoute.Distributions)
-
-	// Step 3: summarize route
-	summarizedRoute := make([][]valueobject.Swap, 0, len(simpleRoute.Paths))
-	for pathIdx, simplePath := range simpleRoute.Paths {
-
-		// Step 3.1: summarize path
-		summarizedPath := make([]valueobject.Swap, 0, len(simplePath))
-
-		// Step 3.1.0: prepare input of the first swap
-		tokenAmountIn := poolpkg.TokenAmount{
-			Token:  simplePath[0].TokenInAddress,
-			Amount: distributedAmounts[pathIdx],
-		}
-
-		for _, simpleSwap := range simplePath {
-			// Step 3.1.1: take the pool with fresh data
-			pool, ok := poolBucket.GetPool(simpleSwap.PoolAddress)
-			if !ok {
-				return nil, errors.WithMessagef(
-					ErrInvalidSwap,
-					"cache.summarizeSimpleRoute > pool not found [%s]",
-					simpleSwap.PoolAddress,
-				)
-			}
-
-			swapLimit := state.SwapLimit[pool.GetType()]
-			// Step 3.1.2: simulate c swap through the pool
-			result, err := routerpoolpkg.CalcAmountOut(ctx, pool, tokenAmountIn, simpleSwap.TokenOutAddress, swapLimit)
-			if err != nil {
-				return nil, errors.WithMessagef(
-					ErrInvalidSwap,
-					"cache.summarizeSimpleRoute > swap failed > pool: [%s] > error : [%v]",
-					simpleSwap.PoolAddress,
-					err,
-				)
-			}
-
-			// Step 3.1.3: check if result is valid
-			if !result.IsValid() {
-				return nil, errors.WithMessagef(
-					ErrInvalidSwap,
-					"cache.summarizeSimpleRoute > invalid swap > pool : [%s]",
-					simpleSwap.PoolAddress,
-				)
-			}
-
-			// Step 3.1.4: update balance of the pool
-			updateBalanceParams := poolpkg.UpdateBalanceParams{
-				TokenAmountIn:  tokenAmountIn,
-				TokenAmountOut: *result.TokenAmountOut,
-				Fee:            *result.Fee,
-				SwapInfo:       result.SwapInfo,
-				SwapLimit:      swapLimit,
-			}
-			pool = poolBucket.ClonePool(simpleSwap.PoolAddress)
-			pool.UpdateBalance(updateBalanceParams)
-
-			// Step 3.1.5
-			// We need to calculate safety quoting amount and reasign new amount out to next path's amount in
-			reducedNextAmountIn := c.safetyQuoteReduction.Reduce(
-				result.TokenAmountOut,
-				c.safetyQuoteReduction.GetSafetyQuotingRate(pool.GetType(), simpleRoute.HasOnlyOneSwap()),
-				params.ClientId)
-
-			// Step 3.1.6: summarize the swap
-			// important: must re-update amount out to reducedNextAmountIn
-			swap := valueobject.Swap{
-				Pool:              simpleSwap.PoolAddress,
-				TokenIn:           simpleSwap.TokenInAddress,
-				TokenOut:          simpleSwap.TokenOutAddress,
-				SwapAmount:        tokenAmountIn.Amount,
-				AmountOut:         reducedNextAmountIn.Amount,
-				LimitReturnAmount: constant.Zero,
-				Exchange:          valueobject.Exchange(pool.GetExchange()),
-				PoolLength:        len(pool.GetTokens()),
-				PoolType:          pool.GetType(),
-				PoolExtra:         pool.GetMetaInfo(simpleSwap.TokenInAddress, simpleSwap.TokenOutAddress),
-				Extra:             result.SwapInfo,
-			}
-
-			summarizedPath = append(summarizedPath, swap)
-
-			// Step 3.1.7: add up gas fee
-			gas += result.Gas
-
-			// Step 3.1.8: update input of the next swap is output of current swap
-			tokenAmountIn = reducedNextAmountIn
-		}
-
-		// Step 3.2: add up amountOut
-		amountOut.Add(amountOut, tokenAmountIn.Amount)
-		summarizedRoute = append(summarizedRoute, summarizedPath)
-	}
-
-	return &valueobject.RouteSummary{
-		TokenIn:      params.TokenIn.Address,
-		AmountIn:     params.AmountIn,
-		AmountInUSD:  utils.CalcTokenAmountUsd(params.AmountIn, params.TokenIn.Decimals, params.TokenInPriceUSD),
-		TokenOut:     params.TokenOut.Address,
-		AmountOut:    amountOut,
-		AmountOutUSD: utils.CalcTokenAmountUsd(amountOut, params.TokenOut.Decimals, params.TokenOutPriceUSD),
-		Gas:          gas,
-		GasPrice:     params.GasPrice,
-		GasUSD:       utils.CalcGasUsd(params.GasPrice, gas, params.GasTokenPriceUSD),
-		ExtraFee:     params.ExtraFee,
-		Route:        summarizedRoute,
-	}, nil
+	return c.finderEngine.GetFinalizer().FinalizeSimpleRoute(ctx, simpleRoute, state.Pools, state.SwapLimit, params)
 }

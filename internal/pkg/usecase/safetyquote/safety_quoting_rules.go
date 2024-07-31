@@ -1,4 +1,4 @@
-package getroute
+package safetyquote
 
 import (
 	"math/big"
@@ -125,7 +125,7 @@ func compareFactor(x, y map[SafetyQuoteCategory]float64) bool {
 	return true
 }
 
-func (f *SafetyQuoteReduction) applyConfig(config valueobject.SafetyQuoteReductionConfig) {
+func (f *SafetyQuoteReduction) ApplyConfig(config valueobject.SafetyQuoteReductionConfig) {
 	factor := getFactor(config)
 	newClientList := whitelistClientToSet(config.WhitelistedClient)
 

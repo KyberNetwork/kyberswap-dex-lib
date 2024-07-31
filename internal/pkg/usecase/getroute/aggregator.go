@@ -3,27 +3,16 @@ package getroute
 import (
 	"context"
 	"fmt"
-	"math/big"
 	"sync"
 
-	aevmclient "github.com/KyberNetwork/aevm/client"
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
-	aevmfinder "github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/aevm"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/hillclimb"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -37,16 +26,10 @@ type aggregator struct {
 	onchainpriceRepository IOnchainPriceRepository
 	poolManager            IPoolManager
 
-	routeFinder          findroute.IFinder
-	hillClimbRouteFinder findroute.IFinder
+	finderEngine findroute.IFinderEngine
 
 	config AggregatorConfig
 	mu     sync.RWMutex
-
-	aevmClient     aevmclient.Client
-	poolsPublisher IPoolsPublisher
-
-	safetyQuoteReduction *SafetyQuoteReduction
 }
 
 func NewAggregator(
@@ -56,34 +39,16 @@ func NewAggregator(
 	onchainpriceRepository IOnchainPriceRepository,
 	poolManager IPoolManager,
 	config AggregatorConfig,
-	routeFinder findroute.IFinder,
-	aevmClient aevmclient.Client,
-	poolsPublisher IPoolsPublisher,
-	safetyQuoteConf *SafetyQuoteReduction,
+	finderEngine findroute.IFinderEngine,
 ) *aggregator {
-
-	var hillClimbRouteFinder findroute.IFinder = hillclimb.NewHillClimbingFinder(
-		config.FinderOptions.HillClimbDistributionPercent,
-		config.FinderOptions.HillClimbIteration,
-		config.FinderOptions.HillClimbMinPartUSD,
-		routeFinder,
-	)
-
-	hillClimbRouteFinder = aevmfinder.NewAEVMFinder(hillClimbRouteFinder, aevmClient, poolsPublisher, config.FinderOptions)
-	routeFinder = aevmfinder.NewAEVMFinder(routeFinder, aevmClient, poolsPublisher, config.FinderOptions)
-
 	return &aggregator{
 		poolRankRepository:     poolRankRepository,
 		tokenRepository:        tokenRepository,
 		priceRepository:        priceRepository,
 		onchainpriceRepository: onchainpriceRepository,
 		poolManager:            poolManager,
-		routeFinder:            routeFinder,
-		hillClimbRouteFinder:   hillClimbRouteFinder,
+		finderEngine:           finderEngine,
 		config:                 config,
-		aevmClient:             aevmClient,
-		poolsPublisher:         poolsPublisher,
-		safetyQuoteReduction:   safetyQuoteConf,
 	}
 }
 
@@ -145,29 +110,6 @@ func (a *aggregator) ApplyConfig(config Config) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	var routeFinder findroute.IFinder = spfav2.NewSPFAv2Finder(
-		config.Aggregator.FinderOptions.MaxHops,
-		config.Aggregator.WhitelistedTokenSet,
-		config.Aggregator.FinderOptions.DistributionPercent,
-		config.Aggregator.FinderOptions.MaxPathsInRoute,
-		config.Aggregator.FinderOptions.MaxPathsToGenerate,
-		config.Aggregator.FinderOptions.MaxPathsToReturn,
-		config.Aggregator.FinderOptions.MinPartUSD,
-		config.Aggregator.FinderOptions.MinThresholdAmountInUSD,
-		config.Aggregator.FinderOptions.MaxThresholdAmountInUSD,
-	)
-
-	a.routeFinder = routeFinder
-	a.hillClimbRouteFinder = hillclimb.NewHillClimbingFinder(
-		config.Aggregator.FinderOptions.HillClimbDistributionPercent,
-		config.Aggregator.FinderOptions.HillClimbIteration,
-		config.Aggregator.FinderOptions.MinPartUSD,
-		routeFinder,
-	)
-
-	a.hillClimbRouteFinder = aevmfinder.NewAEVMFinder(a.hillClimbRouteFinder, a.aevmClient, a.poolsPublisher, config.Aggregator.FinderOptions)
-	a.routeFinder = aevmfinder.NewAEVMFinder(a.routeFinder, a.aevmClient, a.poolsPublisher, config.Aggregator.FinderOptions)
-
 	a.config = config.Aggregator
 }
 
@@ -194,150 +136,17 @@ func (a *aggregator) findBestRoute(
 
 	data := findroute.NewFinderData(ctx, tokenByAddress, priceUSDByAddress, priceByAddress, state)
 	defer data.ReleaseResources()
-	var (
-		routes []*valueobject.Route
-		err    error
-	)
-	if params.IsHillClimbEnabled {
-		routes, err = a.hillClimbRouteFinder.Find(ctx, input, data)
-	} else {
-		routes, err = a.routeFinder.Find(ctx, input, data)
-	}
+
+	route, err := a.finderEngine.Find(ctx, input, data, params)
 	if err != nil {
-		return nil, errors.WithMessagef(ErrRouteNotFound, "find route failed: [%v]", err)
-	}
-
-	bestRoute := extractBestRoute(routes)
-
-	if bestRoute == nil || len(bestRoute.Paths) == 0 {
-		return nil, ErrRouteNotFound
-	}
-
-	data.Refresh()
-	return a.summarizeRoute(ctx, bestRoute, params, state.Pools, data.SwapLimits)
-}
-
-func (a *aggregator) summarizeRoute(
-	ctx context.Context,
-	route *valueobject.Route,
-	params *types.AggregateParams,
-	poolByAddress map[string]poolpkg.IPoolSimulator,
-	swapLimits map[string]poolpkg.SwapLimit,
-) (*valueobject.RouteSummary, error) {
-	// Step 1: prepare pool data
-	poolBucket := valueobject.NewPoolBucket(poolByAddress)
-
-	var (
-		amountOut = new(big.Int).Set(constant.Zero)
-		gas       = business.BaseGas
-	)
-
-	// Step 2: summarize route
-	summarizedRoute := make([][]valueobject.Swap, 0, len(route.Paths))
-	for _, path := range route.Paths {
-
-		// Step 2.1: summarize path
-		summarizedPath := make([]valueobject.Swap, 0, len(path.PoolAddresses))
-
-		// Step 2.1.0: prepare input of the first swap
-		tokenAmountIn := *path.Input.ToDexLibAmount()
-
-		for swapIdx, swapPoolAddress := range path.PoolAddresses {
-			// Step 2.1.1: take the pool with fresh data
-			pool, ok := poolBucket.GetPool(swapPoolAddress)
-			if !ok {
-				return nil, errors.WithMessagef(
-					ErrInvalidSwap,
-					"aggregator.summarizeRoute > pool not found [%s]",
-					swapPoolAddress,
-				)
-			}
-
-			swapLimit := swapLimits[pool.GetType()]
-			// Step 2.1.2: simulate c swap through the pool
-			result, err := routerpoolpkg.CalcAmountOut(ctx, pool, tokenAmountIn, path.Tokens[swapIdx+1].Address, swapLimit)
-			if err != nil {
-				return nil, errors.WithMessagef(
-					ErrInvalidSwap,
-					"aggregator.summarizeRoute > swap failed > pool: [%s] > error : [%v]",
-					swapPoolAddress,
-					err,
-				)
-			}
-
-			// Step 2.1.3: check if result is valid
-			if !result.IsValid() {
-				return nil, errors.WithMessagef(
-					ErrInvalidSwap,
-					"aggregator.summarizeRoute > invalid swap > pool : [%s]",
-					swapPoolAddress,
-				)
-			}
-
-			//Step 2.1.4: clone the pool before updating it (do not modify IPool returned by `poolManager`)
-			pool = poolBucket.ClonePool(swapPoolAddress)
-
-			// Step 2.1.5: update balance of the pool
-			updateBalanceParams := poolpkg.UpdateBalanceParams{
-				TokenAmountIn:  tokenAmountIn,
-				TokenAmountOut: *result.TokenAmountOut,
-				Fee:            *result.Fee,
-				SwapInfo:       result.SwapInfo,
-				SwapLimit:      swapLimit,
-			}
-			pool.UpdateBalance(updateBalanceParams)
-
-			// Step 2.1.6: We need to calculate safety quoting amount and reasign new amount out to next path's amount in
-			reducedNextAmountIn := a.safetyQuoteReduction.Reduce(
-				result.TokenAmountOut,
-				a.safetyQuoteReduction.GetSafetyQuotingRate(pool.GetType(), route.HasOnlyOneSwap()), params.ClientId)
-
-			// Step 2.1.7: summarize the swap
-			// important: must re-update amount out to reducedNextAmountIn
-			swap := valueobject.Swap{
-				Pool:              pool.GetAddress(),
-				TokenIn:           tokenAmountIn.Token,
-				TokenOut:          result.TokenAmountOut.Token,
-				SwapAmount:        tokenAmountIn.Amount,
-				AmountOut:         reducedNextAmountIn.Amount,
-				LimitReturnAmount: constant.Zero,
-				Exchange:          valueobject.Exchange(pool.GetExchange()),
-				PoolLength:        len(pool.GetTokens()),
-				PoolType:          pool.GetType(),
-				PoolExtra:         pool.GetMetaInfo(tokenAmountIn.Token, result.TokenAmountOut.Token),
-				Extra:             result.SwapInfo,
-			}
-
-			summarizedPath = append(summarizedPath, swap)
-
-			// Step 2.1.7: add up gas fee
-			gas += result.Gas
-
-			// Step 2.1.8: update input of the next swap is output of current swap
-			tokenAmountIn = reducedNextAmountIn
-
-			metrics.IncrDexHitRate(ctx, string(swap.Exchange))
-			metrics.IncrPoolTypeHitRate(ctx, swap.PoolType)
+		if errors.Is(err, findroute.ErrInvalidSwap) {
+			return nil, errors.WithMessagef(ErrInvalidSwap, "find route failed: [%v]", err)
+		} else {
+			return nil, errors.WithMessagef(ErrRouteNotFound, "find route failed: [%v]", err)
 		}
-
-		// Step 2.2: add up amountOut
-		amountOut.Add(amountOut, tokenAmountIn.Amount)
-		summarizedRoute = append(summarizedRoute, summarizedPath)
 	}
 
-	return &valueobject.RouteSummary{
-		TokenIn:      params.TokenIn.Address,
-		AmountIn:     params.AmountIn,
-		AmountInUSD:  utils.CalcTokenAmountUsd(params.AmountIn, params.TokenIn.Decimals, params.TokenInPriceUSD),
-		TokenOut:     params.TokenOut.Address,
-		AmountOut:    amountOut,
-		AmountOutUSD: utils.CalcTokenAmountUsd(amountOut, params.TokenOut.Decimals, params.TokenOutPriceUSD),
-		Gas:          gas,
-		GasPrice:     params.GasPrice,
-		GasUSD:       utils.CalcGasUsd(params.GasPrice, gas, params.GasTokenPriceUSD),
-		ExtraFee:     params.ExtraFee,
-		Route:        summarizedRoute,
-	}, nil
+	return route, nil
 }
 
 func (a *aggregator) getStateByAddress(

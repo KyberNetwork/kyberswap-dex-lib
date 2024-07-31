@@ -5,7 +5,6 @@ import (
 	"math/big"
 	"sync"
 
-	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/pkg/errors"
 
@@ -29,7 +28,6 @@ type useCase struct {
 	gasRepository   IGasRepository
 
 	onchainpriceRepository IOnchainPriceRepository
-	safetyQuoteReduction   *SafetyQuoteReduction
 
 	config Config
 	mu     sync.RWMutex
@@ -43,12 +41,9 @@ func NewUseCase(
 	routeCacheRepository IRouteCacheRepository,
 	gasRepository IGasRepository,
 	poolManager IPoolManager,
-	finder findroute.IFinder,
+	finderEngine findroute.IFinderEngine,
 	config Config,
-	aevmClient aevmclient.Client,
-	poolsPublisher IPoolsPublisher,
 ) *useCase {
-	safetyQuoteReduction := NewSafetyQuoteReduction(config.SafetyQuoteConfig)
 	aggregator := NewAggregator(
 		poolRankRepository,
 		tokenRepository,
@@ -56,12 +51,9 @@ func NewUseCase(
 		onchainpriceRepository,
 		poolManager,
 		config.Aggregator,
-		finder,
-		aevmClient,
-		poolsPublisher,
-		safetyQuoteReduction,
+		finderEngine,
 	)
-	aggregatorWithCache := NewCache(aggregator, routeCacheRepository, poolManager, config.Cache, safetyQuoteReduction)
+	aggregatorWithCache := NewCache(aggregator, routeCacheRepository, poolManager, config.Cache, finderEngine)
 	aggregatorWitchChargeExtraFee := NewChargeExtraFee(aggregatorWithCache)
 
 	return &useCase{
@@ -72,7 +64,6 @@ func NewUseCase(
 		config:          config,
 
 		onchainpriceRepository: onchainpriceRepository,
-		safetyQuoteReduction:   safetyQuoteReduction,
 	}
 }
 
@@ -124,7 +115,6 @@ func (u *useCase) ApplyConfig(config Config) {
 
 	u.config = config
 	u.aggregator.ApplyConfig(config)
-	u.safetyQuoteReduction.applyConfig(config.SafetyQuoteConfig)
 }
 
 // wrapTokens wraps tokens in query and returns the query

@@ -11,14 +11,10 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -29,7 +25,7 @@ type aggregator struct {
 	onchainpriceRepository IOnchainPriceRepository
 	poolRepository         IPoolRepository
 
-	routeFinder findroute.IFinder
+	finderEngine findroute.IFinderEngine
 }
 
 func NewCustomAggregator(
@@ -38,7 +34,7 @@ func NewCustomAggregator(
 	priceRepository IPriceRepository,
 	onchainpriceRepository IOnchainPriceRepository,
 	poolRepository IPoolRepository,
-	routeFinder findroute.IFinder,
+	finderEngine findroute.IFinderEngine,
 ) *aggregator {
 	return &aggregator{
 		poolFactory:            poolFactory,
@@ -46,7 +42,7 @@ func NewCustomAggregator(
 		priceRepository:        priceRepository,
 		onchainpriceRepository: onchainpriceRepository,
 		poolRepository:         poolRepository,
-		routeFinder:            routeFinder,
+		finderEngine:           finderEngine,
 	}
 }
 
@@ -149,141 +145,12 @@ func (a *aggregator) findBestRoute(
 
 	data := findroute.NewFinderData(ctx, tokenByAddress, priceUSDByAddress, priceByAddress, state)
 	defer data.ReleaseResources()
-	routes, err := a.routeFinder.Find(ctx, input, data)
+	route, err := a.finderEngine.Find(ctx, input, data, params)
 	if err != nil {
 		return nil, errors.WithMessagef(getroute.ErrRouteNotFound, "find route failed: [%v]", err)
 	}
 
-	bestRoute := extractBestRoute(routes)
-
-	if bestRoute == nil || len(bestRoute.Paths) == 0 {
-		return nil, getroute.ErrRouteNotFound
-	}
-
-	data.Refresh()
-	return a.summarizeRoute(ctx, bestRoute, params, state.Pools, data.SwapLimits)
-}
-
-func (a *aggregator) summarizeRoute(
-	ctx context.Context,
-	route *valueobject.Route,
-	params *types.AggregateParams,
-	poolByAddress map[string]poolpkg.IPoolSimulator,
-	swapLimits map[string]poolpkg.SwapLimit,
-) (*valueobject.RouteSummary, error) {
-	// Step 1: prepare pool data
-	poolBucket := valueobject.NewPoolBucket(poolByAddress)
-
-	var (
-		amountOut = new(big.Int).Set(constant.Zero)
-		gas       = business.BaseGas
-	)
-
-	// Step 2: summarize route
-	summarizedRoute := make([][]valueobject.Swap, 0, len(route.Paths))
-	for _, path := range route.Paths {
-
-		// Step 2.1: summarize path
-		summarizedPath := make([]valueobject.Swap, 0, len(path.PoolAddresses))
-
-		// Step 2.1.0: prepare input of the first swap
-		tokenAmountIn := *path.Input.ToDexLibAmount()
-
-		for swapIdx, swapPoolAddress := range path.PoolAddresses {
-			// Step 2.1.1: take the pool with fresh data
-			pool, ok := poolBucket.GetPool(swapPoolAddress)
-			if !ok {
-				return nil, errors.WithMessagef(
-					getroute.ErrInvalidSwap,
-					"aggregator.summarizeRoute > pool not found [%s]",
-					swapPoolAddress,
-				)
-			}
-			swapLimit := swapLimits[pool.GetType()]
-			// Step 2.1.2: simulate c swap through the pool
-			result, err := routerpoolpkg.CalcAmountOut(ctx, pool, tokenAmountIn, path.Tokens[swapIdx+1].Address, swapLimit)
-
-			if err != nil {
-				return nil, errors.WithMessagef(
-					getroute.ErrInvalidSwap,
-					"aggregator.summarizeRoute > swap failed > pool: [%s] > error : [%v]",
-					swapPoolAddress,
-					err,
-				)
-			}
-
-			// Step 2.1.3: check if result is valid
-			if !result.IsValid() {
-				return nil, errors.WithMessagef(
-					getroute.ErrInvalidSwap,
-					"aggregator.summarizeRoute > invalid swap > pool : [%s]",
-					swapPoolAddress,
-				)
-			}
-
-			//Step 2.1.4: clone the pool before updating it (do not modify IPool returned by `poolManager`)
-			pool = poolBucket.ClonePool(swapPoolAddress)
-
-			// Step 2.1.5: update balance of the pool
-			updateBalanceParams := poolpkg.UpdateBalanceParams{
-				TokenAmountIn:  tokenAmountIn,
-				TokenAmountOut: *result.TokenAmountOut,
-				Fee:            *result.Fee,
-				SwapInfo:       result.SwapInfo,
-				SwapLimit:      swapLimit,
-			}
-			pool.UpdateBalance(updateBalanceParams)
-
-			// Step 2.1.6: summarize the swap
-			swap := valueobject.Swap{
-				Pool:              pool.GetAddress(),
-				TokenIn:           tokenAmountIn.Token,
-				TokenOut:          result.TokenAmountOut.Token,
-				SwapAmount:        tokenAmountIn.Amount,
-				AmountOut:         result.TokenAmountOut.Amount,
-				LimitReturnAmount: constant.Zero,
-				Exchange:          valueobject.Exchange(pool.GetExchange()),
-				PoolLength:        len(pool.GetTokens()),
-				PoolType:          pool.GetType(),
-				PoolExtra:         pool.GetMetaInfo(tokenAmountIn.Token, result.TokenAmountOut.Token),
-				Extra:             result.SwapInfo,
-			}
-
-			summarizedPath = append(summarizedPath, swap)
-
-			// Step 2.1.7: add up gas fee
-			gas += result.Gas
-
-			// Step 2.1.8: update input of the next swap is output of current swap
-			tokenAmountIn = *result.TokenAmountOut
-		}
-
-		// Step 2.2: add up amountOut
-		amountOut.Add(amountOut, tokenAmountIn.Amount)
-		summarizedRoute = append(summarizedRoute, summarizedPath)
-	}
-
-	// amountOut is actual amount of token to be received
-	// in case charge fee by currencyIn: amountIn = amountIn - extraFeeAmount
-	// in case charge fee by currencyOut: amountOut = amountOut - extraFeeAmount will be included in summarizeRoute
-	amountOut, err := calcAmountOutAfterFee(amountOut, params.ExtraFee)
-	if err != nil {
-		return nil, err
-	}
-
-	return &valueobject.RouteSummary{
-		TokenIn:      params.TokenIn.Address,
-		AmountIn:     params.AmountIn,
-		AmountInUSD:  utils.CalcTokenAmountUsd(params.AmountIn, params.TokenIn.Decimals, params.TokenInPriceUSD),
-		TokenOut:     params.TokenOut.Address,
-		AmountOut:    amountOut,
-		AmountOutUSD: utils.CalcTokenAmountUsd(amountOut, params.TokenOut.Decimals, params.TokenOutPriceUSD),
-		Gas:          gas,
-		GasPrice:     params.GasPrice,
-		GasUSD:       utils.CalcGasUsd(params.GasPrice, gas, params.GasTokenPriceUSD),
-		ExtraFee:     params.ExtraFee,
-		Route:        summarizedRoute,
-	}, nil
+	return route, nil
 }
 
 // getTokenByAddress receives a list of address and returns a map of address to entity.Token
@@ -316,18 +183,4 @@ func (a *aggregator) getPriceUSDByAddress(ctx context.Context, tokenAddresses []
 	}
 
 	return priceUSDByAddress, nil
-}
-
-func calcAmountOutAfterFee(amountOut *big.Int, extraFee valueobject.ExtraFee) (*big.Int, error) {
-	if extraFee.ChargeFeeBy != valueobject.ChargeFeeByCurrencyOut {
-		return amountOut, nil
-	}
-
-	actualFeeAmount := extraFee.CalcActualFeeAmount(amountOut)
-
-	if actualFeeAmount.Cmp(constant.Zero) > 0 && actualFeeAmount.Cmp(amountOut) > 0 {
-		return nil, getroute.ErrFeeAmountIsGreaterThanAmountOut
-	}
-
-	return new(big.Int).Sub(amountOut, actualFeeAmount), nil
 }

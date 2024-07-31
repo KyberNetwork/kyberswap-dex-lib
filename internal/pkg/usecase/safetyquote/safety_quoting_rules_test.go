@@ -1,4 +1,4 @@
-package getroute
+package safetyquote
 
 import (
 	"math/big"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/golang/mock/gomock"
@@ -114,11 +115,11 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 			poolType: pooltypes.PoolTypes.UniswapV3,
 			amount: &pool.TokenAmount{
 				Token:  "0xabc",
-				Amount: bigIntFromString("12345678923455678999999999"),
+				Amount: utils.NewBig10("12345678923455678999999999"),
 			},
 			result: pool.TokenAmount{
 				Token:  "0xabc",
-				Amount: bigIntFromString("12345061639509506216049999"),
+				Amount: utils.NewBig10("12345061639509506216049999"),
 			},
 			config: valueobject.SafetyQuoteReductionConfig{
 				Factor: map[string]float64{
@@ -135,11 +136,11 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 			poolType: pooltypes.PoolTypes.UniswapV3,
 			amount: &pool.TokenAmount{
 				Token:  "0xabc",
-				Amount: bigIntFromString("12345678923455678999999999"),
+				Amount: utils.NewBig10("12345678923455678999999999"),
 			},
 			result: pool.TokenAmount{
 				Token:  "0xabc",
-				Amount: bigIntFromString("12345678923455678999999999"),
+				Amount: utils.NewBig10("12345678923455678999999999"),
 			},
 			config: valueobject.SafetyQuoteReductionConfig{
 				Factor: map[string]float64{
@@ -244,7 +245,7 @@ func TestSafetyQuoteReduction_ApplyConfig(t *testing.T) {
 			defer ctrl.Finish()
 
 			safetyQuoteReduction := NewSafetyQuoteReduction(tc.oldConfig)
-			safetyQuoteReduction.applyConfig(tc.newConfig)
+			safetyQuoteReduction.ApplyConfig(tc.newConfig)
 			assert.Equal(t, tc.expectedFactor, safetyQuoteReduction.deductionFactorInBps)
 			assert.True(t, safetyQuoteReduction.whiteListClients.Equal(tc.expectedWhitelist))
 		})

@@ -2,8 +2,6 @@ package getcustomroute
 
 import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 // collectTokenAddresses extracts addresses of pool tokens, combines with addresses and returns
@@ -25,13 +23,4 @@ func collectTokenAddresses(poolSet map[string]poolpkg.IPoolSimulator, addresses 
 	}
 
 	return tokenAddresses
-}
-
-// extractBestRoute returns the best routes among routes
-func extractBestRoute(routes []*valueobject.Route) *valueobject.Route {
-	if len(routes) == 0 {
-		return nil
-	}
-
-	return routes[0]
 }

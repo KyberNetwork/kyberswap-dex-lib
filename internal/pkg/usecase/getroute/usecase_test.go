@@ -18,8 +18,10 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/safetyquote"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
@@ -236,6 +238,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		MinPartUSD:              500,
 		MinThresholdAmountInUSD: 0,
 		MaxThresholdAmountInUSD: 100000000}
+
 	routeFinder := spfav2.NewSPFAv2Finder(
 		config.MaxHops,
 		map[string]bool{},
@@ -248,6 +251,12 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		config.MaxThresholdAmountInUSD,
 	)
 
+	routeFinalizer := findroute.NewSafetyQuotingRouteFinalizer(
+		safetyquote.NewSafetyQuoteReduction(valueobject.SafetyQuoteReductionConfig{}),
+	)
+
+	finderEngine := findroute.NewPathFinderEngine(routeFinder, routeFinalizer)
+
 	return NewUseCase(
 		poolRankRepository,
 		tokenRepository,
@@ -256,7 +265,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		routeCacheRepository,
 		gasRepository,
 		poolManager,
-		routeFinder,
+		finderEngine,
 		Config{
 			ChainID:          valueobject.ChainIDEthereum,
 			GasTokenAddress:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
@@ -283,7 +292,5 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 				},
 			},
 		},
-		nil,
-		nil,
 	)
 }

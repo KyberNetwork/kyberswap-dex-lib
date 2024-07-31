@@ -13,11 +13,37 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
+type IFinderEngine interface {
+	Find(ctx context.Context, input Input, data FinderData, requestParams *types.AggregateParams) (*valueobject.RouteSummary, error)
+	SetFinder(finder IFinder)
+	SetFinalizer(finalizer IFinalizer)
+	GetFinalizer() IFinalizer
+}
+
 // IFinder is an interface of finding route algorithm
 type IFinder interface {
 	// Find performs finding route algorithm and return zero, one or multiple routes.
 	// In case it returns multiple routes, the first route (index 0) is the best route
 	Find(ctx context.Context, input Input, data FinderData) ([]*valueobject.Route, error)
+}
+
+// IFinalizer is an interface of finalizing route algorithm.
+// It converts valueobject.Route to valueobject.RouteSummary which contains all necessary route information for clients.
+type IFinalizer interface {
+	FinalizeRoute(
+		ctx context.Context,
+		route *valueobject.Route,
+		poolByAddress map[string]poolpkg.IPoolSimulator,
+		swapLimits map[string]poolpkg.SwapLimit,
+		params *types.AggregateParams,
+	) (*valueobject.RouteSummary, error)
+	FinalizeSimpleRoute(
+		ctx context.Context,
+		simpleRoute *valueobject.SimpleRoute,
+		poolByAddress map[string]poolpkg.IPoolSimulator,
+		swapLimits map[string]poolpkg.SwapLimit,
+		params *types.AggregateParams,
+	) (*valueobject.RouteSummary, error)
 }
 
 // Input contains parameter specified by clients.

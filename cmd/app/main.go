@@ -55,11 +55,13 @@ import (
 	aevmclientuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/aevmclient"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getcustomroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolpublisher"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/safetyquote"
 	trackexecutor "github.com/KyberNetwork/router-service/internal/pkg/usecase/trackexecutorbalance"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute/synthetix"
@@ -411,8 +413,16 @@ func apiAction(c *cli.Context) (err error) {
 		return err
 	}
 
-	routeFinder := usecase.NewFinder(cfg.UseCase.GetRoute.Aggregator.FinderOptions,
-		cfg.UseCase.GetRoute.Aggregator.WhitelistedTokenSet)
+	pathFinder := usecase.NewPathFinder(
+		aevmClient,
+		poolsPublisher,
+		cfg.UseCase.GetRoute.Aggregator,
+	)
+	routeFinalizer := findroute.NewSafetyQuotingRouteFinalizer(
+		safetyquote.NewSafetyQuoteReduction(cfg.UseCase.GetRoute.SafetyQuoteConfig),
+	)
+
+	finderEngine := findroute.NewPathFinderEngine(pathFinder, routeFinalizer)
 
 	getRouteUseCase := getroute.NewUseCase(
 		poolRankRepository,
@@ -422,10 +432,8 @@ func apiAction(c *cli.Context) (err error) {
 		routeRepository,
 		gasRepository,
 		poolManager,
-		routeFinder,
+		finderEngine,
 		cfg.UseCase.GetRoute,
-		aevmClient,
-		poolsPublisher,
 	)
 
 	rfqHandlerByPoolType := make(map[string]poolpkg.IPoolRFQ)
@@ -461,7 +469,7 @@ func apiAction(c *cli.Context) (err error) {
 		onchainpriceRepository,
 		gasRepository,
 		poolRepository,
-		routeFinder,
+		finderEngine,
 		getcustomroute.Config{
 			ChainID:          cfg.UseCase.GetRoute.ChainID,
 			RouterAddress:    cfg.UseCase.GetRoute.RouterAddress,
@@ -540,6 +548,9 @@ func apiAction(c *cli.Context) (err error) {
 			buildRouteParamsValidator,
 			getRouteEncodeParamsValidator,
 			aevmClientUC,
+			finderEngine,
+			aevmClient,
+			poolsPublisher,
 		)
 	}))
 
@@ -837,6 +848,9 @@ func applyLatestConfigForAPI(
 	buildRouteParamsValidator api.IBuildRouteParamsValidator,
 	getRouteEncodeParamsValidator api.IGetRouteEncodeParamsValidator,
 	aevmClientUC IAEVMClientUseCase,
+	finderEngine findroute.IFinderEngine,
+	aevmClient aevmclient.Client,
+	poolsPublisher poolmanager.IPoolsPublisher,
 ) error {
 	cfg, err := configLoader.Get()
 	if err != nil {
@@ -857,6 +871,16 @@ func applyLatestConfigForAPI(
 		serverURLs := strings.Split(cfg.AEVM.AEVMServerURLs, ",")
 		aevmClientUC.ApplyConfig(aevmclientuc.Config{ServerURLs: serverURLs})
 	}
+
+	// Reload FinderEngine with new config
+	finderEngine.SetFinder(usecase.NewPathFinder(
+		aevmClient,
+		poolsPublisher,
+		cfg.UseCase.GetRoute.Aggregator,
+	))
+	finderEngine.SetFinalizer(findroute.NewSafetyQuotingRouteFinalizer(
+		safetyquote.NewSafetyQuoteReduction(cfg.UseCase.GetRoute.SafetyQuoteConfig),
+	))
 
 	return nil
 }
