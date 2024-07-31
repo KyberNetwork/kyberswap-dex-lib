@@ -170,6 +170,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executePufferFinance
 	dexValueObject.ExchangePufferPufETH: {},
+
+	// executeAmbient
+	dexValueObject.ExchangeAmbient: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {
