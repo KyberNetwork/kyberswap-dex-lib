@@ -9,8 +9,7 @@ replace (
 
 require (
 	github.com/ALTree/bigfloat v0.2.0
-	github.com/DataDog/datadog-go v4.8.3+incompatible
-	github.com/KyberNetwork/aevm v1.1.12
+	github.com/KyberNetwork/aevm v1.1.14
 	github.com/KyberNetwork/aggregator-encoding v0.20.0
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
