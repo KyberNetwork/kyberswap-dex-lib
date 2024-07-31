@@ -110,7 +110,7 @@ func (p *PoolSimulator) CalcAmountOut(
 	if synthetixTradeVolume != nil {
 		allowedVol := limit.GetLimit(strconv.FormatUint(p.poolState.BlockTimestamp, 10))
 
-		if allowedVol.Cmp(synthetixTradeVolume) < 0 {
+		if allowedVol != nil && allowedVol.Cmp(synthetixTradeVolume) < 0 {
 			return nil, ErrSurpassedVolumeLimit
 		}
 	}
@@ -230,6 +230,9 @@ func (p *PoolSimulator) GetPoolStateVersion() PoolStateVersion {
 }
 
 func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	if p.poolState.AtomicMaxVolumePerBlock == nil {
+		return nil
+	}
 	var (
 		s      = p.poolState
 		maxVol = big.NewInt(0).Set(p.poolState.AtomicMaxVolumePerBlock)
@@ -259,12 +262,13 @@ func NewLimits(atomicMaxVolumePerBlocks map[string]*big.Int) pool.SwapLimit {
 }
 
 // GetLimit returns a copy of balance for the token in Inventory
+
 func (i *AtomicLimits) GetLimit(blockTimeStamp string) *big.Int {
 	i.lock.RLock()
 	defer i.lock.RUnlock()
 	balance, avail := i.Limits[blockTimeStamp]
 	if !avail {
-		return big.NewInt(0)
+		return nil
 	}
 	return big.NewInt(0).Set(balance)
 }
