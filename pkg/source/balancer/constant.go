@@ -47,5 +47,7 @@ var (
 	zeroBI       = big.NewInt(0)
 	bOneFloat, _ = new(big.Float).SetString("1000000000000000000")
 
-	DefaultGas = Gas{Swap: 80000}
+	DefaultGas          = Gas{Swap: 80000}
+	LimitSwapPercentage = big.NewInt(30)
+	OneHundred          = big.NewInt(100)
 )
