@@ -256,6 +256,7 @@ func (cl *ConfigLoader) setFaultyPoolsConfig(faultyPoolsConfig valueobject.Fault
 }
 
 func (cl *ConfigLoader) setSafetyQuoteReduction(safetyQuoteConf valueobject.SafetyQuoteReductionConfig) {
+	cl.config.UseCase.GetRoute.SafetyQuoteConfig.ExcludeOneSwapEnable = safetyQuoteConf.ExcludeOneSwapEnable
 	cl.config.UseCase.GetRoute.SafetyQuoteConfig.Factor = safetyQuoteConf.Factor
 	cl.config.UseCase.GetRoute.SafetyQuoteConfig.WhitelistedClient = safetyQuoteConf.WhitelistedClient
 }

@@ -115,8 +115,9 @@ type (
 	}
 
 	SafetyQuoteReductionConfig struct {
-		Factor            map[string]float64 `mapstructure:"factor" json:"factor"`
-		WhitelistedClient []string           `mapstructure:"whitelistedClient" json:"whitelistedClient"`
+		ExcludeOneSwapEnable bool               `mapstructure:"excludeOneSwapEnable" json:"excludeOneSwapEnable"`
+		Factor               map[string]float64 `mapstructure:"factor" json:"factor"`
+		WhitelistedClient    []string           `mapstructure:"whitelistedClient" json:"whitelistedClient"`
 	}
 
 	CachePoint struct {

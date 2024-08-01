@@ -38,6 +38,7 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 				Amount: big.NewInt(1000036475678),
 			},
 			config: valueobject.SafetyQuoteReductionConfig{
+				ExcludeOneSwapEnable: true,
 				Factor: map[string]float64{
 					"StrictlyStable": 0,
 					"Stable":         0.5,
@@ -59,6 +60,7 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 				Amount: big.NewInt(1012336475678),
 			},
 			config: valueobject.SafetyQuoteReductionConfig{
+				ExcludeOneSwapEnable: true,
 				Factor: map[string]float64{
 					"StrictlyStable": 0,
 					"Stable":         0.5,
@@ -80,6 +82,7 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 				Amount: big.NewInt(1000),
 			},
 			config: valueobject.SafetyQuoteReductionConfig{
+				ExcludeOneSwapEnable: true,
 				Factor: map[string]float64{
 					"StrictlyStable": 0,
 					"Stable":         0.5,
@@ -98,9 +101,10 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 			},
 			result: pool.TokenAmount{
 				Token:  "0xabc",
-				Amount: big.NewInt(999950),
+				Amount: big.NewInt(1000000),
 			},
 			config: valueobject.SafetyQuoteReductionConfig{
+				ExcludeOneSwapEnable: true,
 				Factor: map[string]float64{
 					"StrictlyStable": 0,
 					"Stable":         0.5,
@@ -119,9 +123,10 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 			},
 			result: pool.TokenAmount{
 				Token:  "0xabc",
-				Amount: utils.NewBig10("12345061639509506216049999"),
+				Amount: utils.NewBig10("12345678923455678999999999"),
 			},
 			config: valueobject.SafetyQuoteReductionConfig{
+				ExcludeOneSwapEnable: true,
 				Factor: map[string]float64{
 					"StrictlyStable": 0,
 					"Stable":         0.5,
@@ -140,9 +145,10 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 			},
 			result: pool.TokenAmount{
 				Token:  "0xabc",
-				Amount: utils.NewBig10("12345678923455678999999999"),
+				Amount: utils.NewBig10("12345061639509506216049999"),
 			},
 			config: valueobject.SafetyQuoteReductionConfig{
+				ExcludeOneSwapEnable: true,
 				Factor: map[string]float64{
 					"StrictlyStable": 0,
 					"Stable":         0.5,
@@ -152,10 +158,35 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 			excludeSafetyQuoting: false,
 			clientId:             "nonWhitelist",
 		},
+		{
+			name:     "Do not reduce safety quote amount when ExcludeOneSwapEnable is false",
+			poolType: pooltypes.PoolTypes.UniswapV3,
+			amount: &pool.TokenAmount{
+				Token:  "0xabc",
+				Amount: big.NewInt(1000000),
+			},
+			result: pool.TokenAmount{
+				Token:  "0xabc",
+				Amount: big.NewInt(1000000),
+			},
+			config: valueobject.SafetyQuoteReductionConfig{
+				ExcludeOneSwapEnable: false,
+				Factor: map[string]float64{
+					"StrictlyStable": 0,
+					"Stable":         0.5,
+				},
+				WhitelistedClient: []string{"testClient", "testBetaClient"},
+			},
+			excludeSafetyQuoting: true,
+			clientId:             "testClient",
+		},
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 
@@ -182,6 +213,7 @@ func TestSafetyQuoteReduction_ApplyConfig(t *testing.T) {
 		{
 			name: "Should apply correct config when remote config was changed",
 			oldConfig: valueobject.SafetyQuoteReductionConfig{
+				ExcludeOneSwapEnable: true,
 				Factor: map[string]float64{
 					"StrictlyStable": 0,
 					"Stable":         0.5,
@@ -189,6 +221,7 @@ func TestSafetyQuoteReduction_ApplyConfig(t *testing.T) {
 				WhitelistedClient: []string{"oldClient1", "oldClient2"},
 			},
 			newConfig: valueobject.SafetyQuoteReductionConfig{
+				ExcludeOneSwapEnable: true,
 				Factor: map[string]float64{
 					"StrictlyStable": 10,
 					"Stable":         5.5,
@@ -204,12 +237,14 @@ func TestSafetyQuoteReduction_ApplyConfig(t *testing.T) {
 		{
 			name: "Should apply correct config when remote config was changed but contains invalid key",
 			oldConfig: valueobject.SafetyQuoteReductionConfig{
+				ExcludeOneSwapEnable: true,
 				Factor: map[string]float64{
 					"StrictlyStable": 0,
 					"Stable":         0.5,
 				},
 			},
 			newConfig: valueobject.SafetyQuoteReductionConfig{
+				ExcludeOneSwapEnable: true,
 				Factor: map[string]float64{
 					"StrictlyStableInvalid": 10,
 					"Stable":                5.5,
@@ -225,6 +260,7 @@ func TestSafetyQuoteReduction_ApplyConfig(t *testing.T) {
 		{
 			name: "Keep the old config because remote config is empty",
 			oldConfig: valueobject.SafetyQuoteReductionConfig{
+				ExcludeOneSwapEnable: true,
 				Factor: map[string]float64{
 					"StrictlyStable": 0,
 					"Stable":         1.5,
@@ -240,7 +276,10 @@ func TestSafetyQuoteReduction_ApplyConfig(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
+		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
 

@@ -26,25 +26,29 @@ var (
 	}
 	// BasisPoint is one hundredth of 1 percentage point
 	// https://en.wikipedia.org/wiki/Basis_point
-	BasisPointMulByTen = big.NewInt(100000)
+	BasisPointMulByTen = big.NewInt(10 * 10_000)
 )
 
 type SafetyQuoteReduction struct {
+	excludeOneSwapEnable bool
 	deductionFactorInBps map[SafetyQuoteCategory]float64
-	mu                   sync.RWMutex
 	whiteListClients     mapset.Set[string]
+
+	mu sync.RWMutex
 }
 
 func NewSafetyQuoteReduction(config valueobject.SafetyQuoteReductionConfig) *SafetyQuoteReduction {
 	whitelistSet := whitelistClientToSet(config.WhitelistedClient)
 	if len(config.Factor) == 0 {
 		return &SafetyQuoteReduction{
+			excludeOneSwapEnable: true,
 			deductionFactorInBps: SafetyQuoteMappingDefault,
 			whiteListClients:     whitelistSet,
 		}
 	}
 
 	return &SafetyQuoteReduction{
+		excludeOneSwapEnable: config.ExcludeOneSwapEnable,
 		deductionFactorInBps: getFactor(config),
 		whiteListClients:     whitelistSet,
 	}
@@ -60,9 +64,10 @@ func whitelistClientToSet(clients []string) mapset.Set[string] {
 }
 
 func (f *SafetyQuoteReduction) GetSafetyQuotingRate(poolType string, excludeSafetyQuoting bool) float64 {
-	if excludeSafetyQuoting {
+	if f.excludeOneSwapEnable && excludeSafetyQuoting {
 		return 0
 	}
+
 	switch poolType {
 	case pooltypes.PoolTypes.LimitOrder, pooltypes.PoolTypes.KyberPMM,
 		pooltypes.PoolTypes.HashflowV3, pooltypes.PoolTypes.NativeV1,
@@ -76,7 +81,7 @@ func (f *SafetyQuoteReduction) GetSafetyQuotingRate(poolType string, excludeSafe
 // This function wrap the whole logic of safety quoting calculation
 // which is describe in https://www.notion.so/kybernetwork/Safety-Quoting-for-KyberSwap-DEX-Aggregator-a673869729fe45adae8e1258ab6e43f4?pvs=4
 func (f *SafetyQuoteReduction) Reduce(amount *pool.TokenAmount, deductionFactor float64, clientId string) pool.TokenAmount {
-	if deductionFactor <= 0 || !f.whiteListClients.ContainsOne(strings.ToLower(clientId)) {
+	if deductionFactor <= 0 || f.whiteListClients.ContainsOne(strings.ToLower(clientId)) {
 		return *amount
 	}
 	// convert deductionFactor from float to integer by multiply it by 10, then we will div (BasisPoint * 10)
