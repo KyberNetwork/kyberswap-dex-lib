@@ -25,7 +25,7 @@ type IPoolRepository interface {
 
 //go:generate mockgen -destination ../../mocks/poolmanager/pool_rank_repository.go -package poolmanager github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager IPoolRankRepository
 type IPoolRankRepository interface {
-	FindGlobalBestPools(ctx context.Context, poolCount int64) []string
+	FindGlobalBestPools(ctx context.Context, poolCount int64) ([]string, error)
 }
 
 type IPoolsPublisher interface {

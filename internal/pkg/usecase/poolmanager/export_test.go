@@ -14,8 +14,7 @@ func NewPointerSwapPoolManagerInstance(
 	poolRepository IPoolRepository,
 	poolRankRepository IPoolRankRepository,
 	config Config,
-	poolCache *cachePolicy.Cache[string, struct{}],
-	lock *sync.RWMutex) PointerSwapPoolManager {
+	poolCache *cachePolicy.Cache[string, struct{}]) PointerSwapPoolManager {
 	return PointerSwapPoolManager{
 		states:             states,
 		readFrom:           atomic.Int32{},
@@ -24,10 +23,23 @@ func NewPointerSwapPoolManagerInstance(
 		poolRepository:     poolRepository,
 		poolRankRepository: poolRankRepository,
 		poolCache:          poolCache,
-		lock:               &sync.RWMutex{},
+		faultyPoolsLock:    &sync.RWMutex{},
+		blackListlock:      &sync.RWMutex{},
 	}
 }
 
-func (m *PointerSwapPoolManager) ExcludeFaultyPools(ctx context.Context, addresses []string) []string {
-	return m.excludeFaultyPools(ctx, addresses)
+func (m *PointerSwapPoolManager) FilterInvalidPoolAddresses(addresses []string) []string {
+	return m.filterInvalidPoolAddresses(addresses)
+}
+
+func (m *PointerSwapPoolManager) UpdateFaultyPools(ctx context.Context) {
+	m.updateFaultyPools(ctx)
+}
+
+func (m *PointerSwapPoolManager) UpdateBlackListPool(ctx context.Context) {
+	m.updateBlackListPool(ctx)
+}
+
+func (m *PointerSwapPoolManager) ReadFrom() int32 {
+	return m.readFrom.Load()
 }

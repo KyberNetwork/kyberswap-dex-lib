@@ -2,8 +2,10 @@ package poolmanager
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -14,15 +16,15 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/ethereum/go-ethereum/common"
-	cachePolicy "github.com/hashicorp/golang-lru/v2"
-	"k8s.io/apimachinery/pkg/util/sets"
-
+	poolFilter "github.com/KyberNetwork/router-service/internal/pkg/usecase/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
+	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/ethereum/go-ethereum/common"
+	cachePolicy "github.com/hashicorp/golang-lru/v2"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const NState = 3
@@ -32,6 +34,10 @@ type PointerSwapPoolManager struct {
 	poolRepository     IPoolRepository
 	poolRankRepository IPoolRankRepository
 
+	aevmClient          aevmclient.Client
+	poolsPublisher      IPoolsPublisher
+	publishedStorageIDs [NState]string
+
 	// We know that fastest state rotation happened every 3 seconds. most requests are done under 1 second.
 	// To prevent data corruption without locking, we will use tri-state swapping
 	// readFrom: return data requests to the request.
@@ -40,18 +46,19 @@ type PointerSwapPoolManager struct {
 	// assumption is that dangling state will soon be freed (all the requests calling into it has exited)
 	states   [NState]*LockedState
 	readFrom atomic.Int32
-	config   Config
+
+	config     Config
+	configLock *sync.RWMutex
 
 	blackListPools []string
-	// poolCache control which pool to maintain when there are too many pools
-	// currently poolCache use LRU policy
+	blackListlock  *sync.RWMutex
+
+	faultyPools     []string
+	faultyPoolsLock *sync.RWMutex
+
+	// poolCache control which pool to maintain when there are too many pools, currently poolCache use LRU policy
+	// PoolCache is thread-safety, it supports lock mechanism by itself
 	poolCache *cachePolicy.Cache[string, struct{}]
-
-	aevmClient          aevmclient.Client
-	poolsPublisher      IPoolsPublisher
-	publishedStorageIDs [NState]string
-
-	lock *sync.RWMutex
 }
 
 type LockedState struct {
@@ -77,6 +84,7 @@ func NewLockedState() *LockedState {
 
 func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
 	s.lock.Lock()
+	defer s.lock.Unlock()
 
 	//update the inventory and tokenToPoolAddress list
 	for poolAddress := range poolByAddress {
@@ -96,8 +104,6 @@ func (s *LockedState) update(poolByAddress map[string]poolpkg.IPoolSimulator) {
 	}
 	s.poolByAddress = poolByAddress
 	// Optimize graph traversal by using tokenToPoolAddress list
-
-	s.lock.Unlock()
 }
 
 // NewPointerSwapPoolManager This will take a while to start since it will generate a copy of all Pool
@@ -120,102 +126,201 @@ func NewPointerSwapPoolManager(
 		return nil, err
 	}
 
-	// initialize pools to read from DB
-	poolAddresses := poolRankRepository.FindGlobalBestPools(context.Background(), int64(config.Capacity))
-	// add in reverse order so that pools with most volume at top of LRU list
-	for i := len(poolAddresses) - 1; i >= 0; i-- {
-		poolCache.Add(poolAddresses[i], struct{}{})
+	if config.BlackListRenewalInterval == 0 {
+		config.BlackListRenewalInterval = DefaultBlackListRenewalInterval
 	}
 
 	p := PointerSwapPoolManager{
 		states:             states,
 		readFrom:           atomic.Int32{},
 		config:             config,
+		configLock:         &sync.RWMutex{},
 		poolFactory:        poolFactory,
 		poolRepository:     poolRepository,
 		poolRankRepository: poolRankRepository,
 		poolCache:          poolCache,
-		lock:               &sync.RWMutex{},
+		blackListlock:      &sync.RWMutex{},
+		faultyPoolsLock:    &sync.RWMutex{},
 		aevmClient:         aevmClient,
 		poolsPublisher:     poolsPublisher,
 	}
-	p.readFrom.Store(0)
 
-	var stateRoot aevmcommon.Hash
-	// if running with aevm
-	if p.config.UseAEVM {
-		stateRoot, err = aevmClient.LatestStateRoot(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
-		}
-	}
-	if p.config.BlackListRenewalInterval == 0 {
-		p.config.BlackListRenewalInterval = DefaultBlackListRenewalInterval
-	}
-	p.updateBlackListPool(ctx)
-	if err = p.preparePoolsData(context.Background(), poolAddresses, common.Hash(stateRoot)); err != nil {
+	if err := p.start(ctx); err != nil {
 		return nil, err
 	}
-	go p.maintain(ctx)
+
 	return &p, nil
 }
 
+func (p *PointerSwapPoolManager) start(ctx context.Context) error {
+	p.readFrom.Store(0)
+
+	// initialize pools to read from DB
+	poolAddresses, err := p.poolRankRepository.FindGlobalBestPools(ctx, int64(p.config.Capacity))
+	if err != nil {
+		return err
+	}
+
+	// add in reverse order so that pools with most volume at top of LRU list
+	for i := len(poolAddresses) - 1; i >= 0; i-- {
+		p.poolCache.Add(poolAddresses[i], struct{}{})
+	}
+
+	p.updateBlackListPool(ctx)
+	p.updateFaultyPools(ctx)
+	if err := p.preparePoolsData(ctx, poolAddresses); err != nil {
+		return err
+	}
+
+	go p.reloadBlackListPool(ctx)
+	go p.reloadFaultyPools(ctx)
+	go p.reloadPoolStates(ctx)
+
+	return nil
+
+}
+
+// TODO will be refactor to remove this function from pool manager
 func (p *PointerSwapPoolManager) GetAEVMClient() aevmclient.Client {
 	if p.config.UseAEVM {
 		return p.aevmClient
 	}
+
 	return nil
 }
 
-func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
-	p.lock.Lock()
-	defer p.lock.Unlock()
+func (p *PointerSwapPoolManager) reloadBlackListPool(ctx context.Context) {
+	for {
+		time.Sleep(p.config.BlackListRenewalInterval)
+		p.updateBlackListPool(ctx)
+	}
+}
 
-	p.config = config
-	p.poolCache.Resize(config.Capacity)
+func (p *PointerSwapPoolManager) reloadFaultyPools(ctx context.Context) {
+	for {
+		time.Sleep(p.config.FaultyPoolsRenewalInterval)
+		p.updateFaultyPools(ctx)
+	}
+}
+
+func (p *PointerSwapPoolManager) reloadPoolStates(ctx context.Context) {
+	for {
+		time.Sleep(p.config.PoolRenewalInterval)
+
+		// p.poolCache.Keys() return the list of pool address to maintain
+		if err := p.preparePoolsData(ctx, p.poolCache.Keys()); err != nil {
+			logger.Errorf(ctx, "could not update pool's stateData, error:%s", err)
+		}
+	}
 }
 
 func (p *PointerSwapPoolManager) updateBlackListPool(ctx context.Context) {
-	var (
-		blackedList []string
-		err         error
-		counter     = 0
-	)
-	//since the wait time of updateBlackList can be quite long, we retry 3 times if it gets err
-	for {
-		blackedList, err = p.poolRepository.GetPoolsInBlacklist(ctx)
-		if err != nil {
-			logger.Errorf(ctx, "error checking pool blacklist. Err: %s", err)
-			counter++
-		} else {
-			break
-		}
-		if counter > 3 {
-			logger.Debug(ctx, "failed to get blackList data 3 times")
-			break
-		}
-		time.Sleep(time.Second)
-	}
+	blackedList, err := p.poolRepository.GetPoolsInBlacklist(ctx)
 	if err == nil {
-		p.lock.Lock()
+		p.blackListlock.Lock()
 		p.blackListPools = blackedList
-		p.lock.Unlock()
+		p.blackListlock.Unlock()
 	}
+}
+
+func (p *PointerSwapPoolManager) updateFaultyPools(ctx context.Context) {
+	faultyPools, err := p.poolRepository.GetFaultyPools(ctx)
+	if err == nil {
+		p.faultyPoolsLock.Lock()
+		p.faultyPools = faultyPools
+		p.faultyPoolsLock.Unlock()
+	}
+}
+
+func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddresses []string) error {
+	writeTo := (p.readFrom.Load() + 1) % NState
+
+	filteredPoolAddress := p.filterInvalidPoolAddresses(poolAddresses)
+
+	poolEntities, err := p.poolRepository.FindByAddresses(ctx, filteredPoolAddress)
+	defer mempool.ReserveMany(poolEntities)
+	if err != nil {
+		return err
+	}
+	var stateRoot aevmcommon.Hash
+	// if running with aevm
+	if p.config.UseAEVM {
+		stateRoot, err = p.aevmClient.LatestStateRoot(ctx)
+		if err != nil {
+			return fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
+		}
+	}
+	poolByAddress := p.poolFactory.NewPoolByAddress(ctx, poolEntities, common.Hash(stateRoot))
+	if p.poolsPublisher != nil {
+		start := time.Now()
+		storageID, err := p.poolsPublisher.Publish(ctx, poolByAddress)
+		if err != nil {
+			return fmt.Errorf("could not publish pools: %w", err)
+		}
+		logger.Infof(ctx, "published pools took %s storageID=%s", time.Since(start).String(), storageID)
+		p.publishedStorageIDs[writeTo] = storageID
+	}
+	p.states[writeTo].update(poolByAddress)
+
+	//swapping pointer
+	p.swapPointer(writeTo)
+
+	logger.Debugf(ctx, "PointerSwapPoolManager.preparePoolsData > Prepared %v pools", len(poolByAddress))
+	return nil
+}
+
+func (p *PointerSwapPoolManager) swapPointer(writeTo int32) {
+	// TODO: zero out dangling ref but for now we dont need it.
+	// release resources from dangling
+
+	//from now on we read from the latest state.
+	p.readFrom.Store(writeTo)
+
+}
+
+func (p *PointerSwapPoolManager) getDynamicBlackListSet() mapset.Set[string] {
+	p.blackListlock.RLock()
+	defer p.blackListlock.RUnlock()
+
+	// TODO: check to use thread-safe set to maintain blackListPools, remove mutex lock
+	return mapset.NewThreadUnsafeSet(p.blackListPools...)
+}
+
+func (p *PointerSwapPoolManager) getFaultyPoolListSet() mapset.Set[string] {
+	p.faultyPoolsLock.RLock()
+	defer p.faultyPoolsLock.RUnlock()
+
+	// TODO: check to use thread-safe set to maintain faultyPools, remove mutex lock
+	return mapset.NewThreadUnsafeSet(p.faultyPools...)
+}
+
+func (p *PointerSwapPoolManager) filterInvalidPoolAddresses(poolAddresses []string) []string {
+	dynamicBlackListSet := p.getDynamicBlackListSet()
+	nonDynamicBlackListFilter := func(poolAddress string) bool {
+		return !dynamicBlackListSet.ContainsOne(poolAddress)
+	}
+	staticBlackListNonFilter := func(poolAddress string) bool {
+		_, contained := p.config.BlacklistedPoolSet[poolAddress]
+		return !contained
+	}
+	faultyPoolSet := p.getFaultyPoolListSet()
+	nonFaultyPoolsFilter := func(poolAddress string) bool {
+		return !faultyPoolSet.ContainsOne(poolAddress)
+	}
+
+	return poolFilter.Filter(poolAddresses, nonDynamicBlackListFilter, staticBlackListNonFilter, nonFaultyPoolsFilter)
+
 }
 
 // GetStateByPoolAddresses return a reference to pools maintained by `PointerSwapPoolManager`
 // Therefore, do not modify IPool returned here, clone IPool before UpdateBalance
 func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (*types.FindRouteState, error) {
-	filteredPoolAddress := p.filterBlacklistedAddresses(poolAddresses)
+	filteredPoolAddress := p.filterInvalidPoolAddresses(poolAddresses)
 	if len(filteredPoolAddress) == 0 {
 		logger.Errorf(ctx, "filtered Pool addresses after filterBlacklistedAddresses now equal to 0. Blacklist config %v. PoolAddresses original len: %d", p.config.BlacklistedPoolSet, len(poolAddresses))
 		return nil, getroute.ErrPoolSetFiltered
 	}
-	filteredPoolAddress = p.excludeFaultyPools(ctx, filteredPoolAddress)
-	if len(filteredPoolAddress) == 0 {
-		logger.Errorf(ctx, "filtered Pool address after excludeFaultyPools now equal to 0. PoolAddresses original len: %d", len(poolAddresses))
-		return nil, getroute.ErrPoolSetFiltered
-	}
+
 	// update cache policy
 	for _, poolAddress := range filteredPoolAddress {
 		p.poolCache.Add(poolAddress, struct{}{})
@@ -227,30 +332,18 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, po
 		return nil, err
 	}
 
-	if len(filteredPoolAddress) > 0 && len(state.Pools) == 0 {
+	if len(state.Pools) == 0 {
 		return nil, getroute.ErrPoolSetEmpty
 	}
 
 	return state, err
 }
 
-func (p *PointerSwapPoolManager) isPMMStalled(pool poolpkg.IPoolSimulator) bool {
-	//special case, non-configured stalling threshold is treat as non-enabling stalling threshold
-	if p.config.StallingPMMThreshold == 0 {
-		return false
-	}
-	if pool.GetType() == pooltypes.PoolTypes.KyberPMM {
-		if pmmPoolMeta, ok := pool.GetMetaInfo("", "").(kyberpmm.RFQMeta); ok {
-			createdTime := time.Unix(pmmPoolMeta.Timestamp, 0)
-			if time.Since(createdTime) > p.config.StallingPMMThreshold {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, readFrom int32, stateRoot common.Hash) (*types.FindRouteState, error) {
+	if len(dex) == 0 {
+		return nil, getroute.ErrPoolSetFiltered
+	}
+
 	var (
 		resultPoolByAddress = make(map[string]poolpkg.IPoolSimulator, len(poolAddresses))
 		resultLimits        = make(map[string]map[string]*big.Int)
@@ -258,10 +351,6 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 		dexSet              = sets.NewString(dex...)
 		isFiltered          = false
 	)
-
-	if len(dex) == 0 {
-		return nil, getroute.ErrPoolSetFiltered
-	}
 
 	p.states[readFrom].lock.RLock()
 
@@ -313,7 +402,7 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 		}
 	}
 
-	curveMetaBasePools, err := listCurveMetaBasePools(ctx, p.poolRepository, filteredPoolEntities)
+	curveMetaBasePools, err := p.listCurveMetaBasePools(ctx, p.poolRepository, filteredPoolEntities)
 	if err != nil {
 		logger.Debugf(ctx, "failed to load curve-meta base pool %v", err)
 		return &types.FindRouteState{
@@ -347,126 +436,94 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 	}, nil
 }
 
-func (p *PointerSwapPoolManager) Reload(ctx context.Context) error {
+// listCurveMetaBasePools collects base pools of curveMeta pools
+// - collects already fetched curveBase and curvePainOracle pools
+// - for each curveMeta pool
+//   - decode its staticExtra to get its basePool address
+//   - if it hasn't been fetched, fetch the pool data
+//
+// TODO move all logic related to specific pool types to a separated files
+func (p *PointerSwapPoolManager) listCurveMetaBasePools(
+	ctx context.Context,
+	poolRepository IPoolRepository,
+	pools []*entity.Pool,
+) ([]*entity.Pool, error) {
 	var (
-		stateRoot aevmcommon.Hash
-		err       error
+		// alreadyFetchedSet contains fetched pool ids
+		alreadyFetchedSet = map[string]bool{}
+
+		// poolAddresses contains pool addresses to fetch
+		poolAddresses = sets.NewString()
 	)
-	// if running with aevm
-	if p.config.UseAEVM {
-		stateRoot, err = p.aevmClient.LatestStateRoot(ctx)
-		if err != nil {
-			return fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
+
+	for _, pool := range pools {
+		if pool.Type == pooltypes.PoolTypes.CurveBase {
+			alreadyFetchedSet[pool.Address] = true
+		}
+
+		if pool.Type == pooltypes.PoolTypes.CurveStablePlain {
+			alreadyFetchedSet[pool.Address] = true
+		}
+
+		if pool.Type == pooltypes.PoolTypes.CurvePlainOracle {
+			alreadyFetchedSet[pool.Address] = true
+		}
+
+		if pool.Type == pooltypes.PoolTypes.CurveAave {
+			alreadyFetchedSet[pool.Address] = true
 		}
 	}
 
-	return p.preparePoolsData(context.Background(), p.poolCache.Keys(), common.Hash(stateRoot))
-}
-
-func (p *PointerSwapPoolManager) reloadBlackListPool(ctx context.Context) {
-	for {
-		p.updateBlackListPool(ctx)
-		time.Sleep(p.config.BlackListRenewalInterval)
-	}
-}
-
-func (p *PointerSwapPoolManager) maintain(ctx context.Context) {
-	go p.reloadBlackListPool(ctx)
-
-	for {
-		time.Sleep(p.config.PoolRenewalInterval)
-
-		// p.poolCache.Keys() return the list of pool address to maintain
-		if err := p.Reload(ctx); err != nil {
-			logger.Errorf(ctx, "could not update pool's stateData, error:%s", err)
-		}
-	}
-}
-
-func (p *PointerSwapPoolManager) swapPointer(writeTo int32) {
-	//TODO: zero out dangling ref but for now we dont need it.
-	// release resources from dangling
-
-	//from now on we read from the latest state.
-	p.readFrom.Store(writeTo)
-
-}
-
-func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddresses []string, stateRoot common.Hash) error {
-	writeTo := (p.readFrom.Load() + 1) % NState
-
-	filteredPoolAddress := p.filterBlacklistedAddresses(poolAddresses)
-
-	filteredPoolAddress = p.excludeFaultyPools(ctx, filteredPoolAddress)
-
-	poolEntities, err := p.poolRepository.FindByAddresses(ctx, filteredPoolAddress)
-	defer mempool.ReserveMany(poolEntities)
-	if err != nil {
-		return err
-	}
-
-	poolByAddress := p.poolFactory.NewPoolByAddress(ctx, poolEntities, stateRoot)
-	if p.poolsPublisher != nil {
-		start := time.Now()
-		storageID, err := p.poolsPublisher.Publish(ctx, poolByAddress)
-		if err != nil {
-			return fmt.Errorf("could not publish pools: %w", err)
-		}
-		logger.Infof(ctx, "published pools took %s storageID=%s", time.Since(start).String(), storageID)
-		p.publishedStorageIDs[writeTo] = storageID
-	}
-	p.states[writeTo].update(poolByAddress)
-	//swapping here
-	p.swapPointer(writeTo)
-	logger.Debugf(ctx, "PointerSwapPoolManager.preparePoolsData > Prepared %v pools", len(poolByAddress))
-	return nil
-}
-
-func (p *PointerSwapPoolManager) getBlackListSet() sets.String {
-	p.lock.RLock()
-	defer p.lock.RUnlock()
-	//sets.NewString return a copy
-	return sets.NewString(p.blackListPools...)
-}
-
-func (p *PointerSwapPoolManager) filterBlacklistedAddresses(poolAddresses []string) []string {
-	filtered := make([]string, 0, len(poolAddresses))
-
-	for _, address := range poolAddresses {
-		if p.config.BlacklistedPoolSet[address] {
+	for _, pool := range pools {
+		if pool.Type != pooltypes.PoolTypes.CurveMeta && pool.Type != pooltypes.PoolTypes.CurveStableMetaNg {
 			continue
 		}
 
-		filtered = append(filtered, address)
-	}
+		var staticExtra struct {
+			BasePool string `json:"basePool"`
+		}
 
-	blackListSet := p.getBlackListSet()
-	validPools := make([]string, 0, len(filtered))
-	for _, address := range filtered {
-		if blackListSet.Has(address) {
+		if err := json.Unmarshal([]byte(pool.StaticExtra), &staticExtra); err != nil {
+			logger.WithFields(ctx, logger.Fields{
+				"pool.Address": pool.Address,
+				"pool.Type":    pool.Type,
+				"error":        err,
+			}).Warn("unable to unmarshal staticExtra")
+
 			continue
 		}
 
-		validPools = append(validPools, address)
+		if _, ok := alreadyFetchedSet[staticExtra.BasePool]; ok {
+			continue
+		}
+
+		poolAddresses.Insert(strings.ToLower(staticExtra.BasePool))
 	}
 
-	return validPools
+	return poolRepository.FindByAddresses(ctx, poolAddresses.List())
 }
 
-func (m *PointerSwapPoolManager) excludeFaultyPools(ctx context.Context, addresses []string) []string {
-	faultyPools, err := m.poolRepository.GetFaultyPools(ctx)
-	if err != nil {
-		logger.Errorf(ctx, "[PointerSwapPoolManager] excludeFaultyPools getFaultyPools error %v", err)
-		return addresses
+func (p *PointerSwapPoolManager) isPMMStalled(pool poolpkg.IPoolSimulator) bool {
+	//special case, non-configured stalling threshold is treat as non-enabling stalling threshold
+	if p.config.StallingPMMThreshold == 0 {
+		return false
 	}
-	poolSet := mapset.NewSet[string](faultyPools...)
-
-	result := make([]string, 0, len(addresses))
-	for _, addr := range addresses {
-		if !poolSet.ContainsOne(addr) {
-			result = append(result, addr)
+	if pool.GetType() == pooltypes.PoolTypes.KyberPMM {
+		if pmmPoolMeta, ok := pool.GetMetaInfo("", "").(kyberpmm.RFQMeta); ok {
+			createdTime := time.Unix(pmmPoolMeta.Timestamp, 0)
+			if time.Since(createdTime) > p.config.StallingPMMThreshold {
+				return true
+			}
 		}
 	}
+	return false
+}
 
-	return result
+func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
+	p.configLock.Lock()
+	p.config = config
+	p.configLock.Unlock()
+
+	// poolCache is guared by internal lock
+	p.poolCache.Resize(config.Capacity)
 }

@@ -320,6 +320,7 @@ useCase:
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     blackListRenewalInterval: 30s
+    faultyPoolsRenewalInterval: 5s
     capacity: 1000000
     poolRenewalInterval: 3s
     useAEVM: *useAEVM

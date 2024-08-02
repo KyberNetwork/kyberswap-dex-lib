@@ -147,12 +147,12 @@ func (r *redisRepository) FindBestPoolIDs(
 }
 
 // FindGlobalBestPools return pools address that has the most TVL among all pairs
-func (r *redisRepository) FindGlobalBestPools(ctx context.Context, poolCount int64) []string {
+func (r *redisRepository) FindGlobalBestPools(ctx context.Context, poolCount int64) ([]string, error) {
 	return r.redisClient.ZRevRangeByScore(ctx, r.keyGenerator.globalSortedSetKey(SortByTVL), &redis.ZRangeBy{
 		Min:   "0",
 		Max:   "+inf",
 		Count: poolCount,
-	}).Val()
+	}).Result()
 }
 
 func (r *redisRepository) AddToSortedSetScoreByTvl(

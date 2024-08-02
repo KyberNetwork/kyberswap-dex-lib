@@ -35,11 +35,12 @@ func (m *MockIPoolRankRepository) EXPECT() *MockIPoolRankRepositoryMockRecorder 
 }
 
 // FindGlobalBestPools mocks base method.
-func (m *MockIPoolRankRepository) FindGlobalBestPools(arg0 context.Context, arg1 int64) []string {
+func (m *MockIPoolRankRepository) FindGlobalBestPools(arg0 context.Context, arg1 int64) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindGlobalBestPools", arg0, arg1)
 	ret0, _ := ret[0].([]string)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // FindGlobalBestPools indicates an expected call of FindGlobalBestPools.
