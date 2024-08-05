@@ -3,7 +3,6 @@ package aevmclient
 import (
 	"context"
 	"fmt"
-	"slices"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,33 +23,18 @@ type Closer interface {
 type MakeClient = func(url string) (aevmclient.Client, error)
 
 type Client struct {
-	cfg                     Config
-	makeClientFunc          MakeClient
-	clients                 []aevmclient.Client // clients[i]'s URL = cfg.ServerURLs[i]
-	clientWg                []*sync.WaitGroup   // len(clients) = len(clientWg)
-	publishingClientIndexes []int               // 0 <= publishingClientIndexes[i] < len(clients)
-	curIndex                atomic.Uint64
-	lock                    sync.RWMutex // lock for mutating clients list
+	cfg               Config
+	makeClientFunc    MakeClient
+	clients           []aevmclient.Client // clients[i]'s URL = cfg.ServerURLs[i]
+	clientWg          []*sync.WaitGroup   // len(clients) = len(clientWg)
+	publishingClients []aevmclient.Client // publishingClients[i]'s URL = cfg.PublishingURLs[i]
+	curIndex          atomic.Uint64
+	lock              sync.RWMutex // lock for mutating clients list
 }
 
 func NewClient(cfg Config, makeClientFunc MakeClient) (*Client, error) {
 	// unique ServerURLs
-	serverURLsSet := sets.NewString(cfg.ServerURLs...)
-	cfg.ServerURLs = serverURLsSet.List()
-	var publishingIndexes []int
-	if len(cfg.PublishingPoolsURLs) == 0 {
-		publishingIndexes = make([]int, serverURLsSet.Len())
-		for i := 0; i < serverURLsSet.Len(); i++ {
-			publishingIndexes[i] = i
-		}
-	} else {
-		for _, url := range cfg.PublishingPoolsURLs {
-			if !serverURLsSet.Has(url) {
-				continue
-			}
-			publishingIndexes = append(publishingIndexes, slices.Index(cfg.ServerURLs, url))
-		}
-	}
+	cfg.ServerURLs = sets.NewString(cfg.ServerURLs...).List()
 	clients := make([]aevmclient.Client, len(cfg.ServerURLs))
 	clientWg := make([]*sync.WaitGroup, len(cfg.ServerURLs))
 	for i, serverURL := range cfg.ServerURLs {
@@ -61,12 +45,24 @@ func NewClient(cfg Config, makeClientFunc MakeClient) (*Client, error) {
 		clients[i] = client
 		clientWg[i] = new(sync.WaitGroup)
 	}
+
+	// unique PublishingPoolsURLs
+	cfg.PublishingPoolsURLs = sets.NewString(cfg.PublishingPoolsURLs...).List()
+	publishingClients := make([]aevmclient.Client, len(cfg.PublishingPoolsURLs))
+	for i, serverURL := range cfg.PublishingPoolsURLs {
+		client, err := makeClientFunc(serverURL)
+		if err != nil {
+			return nil, fmt.Errorf("could not make publishing client: %w", err)
+		}
+		publishingClients[i] = client
+	}
+
 	return &Client{
-		cfg:                     cfg,
-		makeClientFunc:          makeClientFunc,
-		clients:                 clients,
-		clientWg:                clientWg,
-		publishingClientIndexes: publishingIndexes,
+		cfg:               cfg,
+		makeClientFunc:    makeClientFunc,
+		clients:           clients,
+		clientWg:          clientWg,
+		publishingClients: publishingClients,
 	}, nil
 }
 
@@ -76,6 +72,11 @@ func (c *Client) Close() {
 
 	for _, client := range c.clients {
 		// we don't wait for client
+		if closer, ok := client.(Closer); ok {
+			closer.Close()
+		}
+	}
+	for _, client := range c.publishingClients {
 		if closer, ok := client.(Closer); ok {
 			closer.Close()
 		}
@@ -176,19 +177,19 @@ func (c *Client) MultipleCall(ctx context.Context, req *aevmtypes.MultipleCallPa
 func (c *Client) StorePreparedPools(ctx context.Context, req *aevmtypes.StorePreparedPoolsParams) (*aevmtypes.StorePreparedPoolsResult, error) {
 	var (
 		wg         errgroup.Group
-		storageIDs = make([]string, len(c.publishingClientIndexes))
+		storageIDs = make([]string, len(c.publishingClients))
 	)
-	for _i, _index := range c.publishingClientIndexes {
-		i, index, client := _i, _index, c.clients[_index]
+	for _i, _client := range c.publishingClients {
+		i, client := _i, _client
 		wg.Go(func() error {
 			start := time.Now()
 			result, err := client.StorePreparedPools(ctx, &aevmtypes.StorePreparedPoolsParams{
 				EncodedPools: req.EncodedPools,
 			})
 			if err != nil {
-				return fmt.Errorf("[client %d] could not StorePreparedPools: %s", index, err)
+				return fmt.Errorf("[publishing client] could not StorePreparedPools to client %s: %s", c.cfg.PublishingPoolsURLs[i], err)
 			}
-			logger.Infof(ctx, "[client %d] StorePreparedPools took = %s", index, time.Since(start).String())
+			logger.Infof(ctx, "[publishing client] StorePreparedPools to client %s took = %s", c.cfg.PublishingPoolsURLs[i], time.Since(start).String())
 			storageIDs[i] = result.StorageID
 			return nil
 		})
@@ -196,9 +197,11 @@ func (c *Client) StorePreparedPools(ctx context.Context, req *aevmtypes.StorePre
 	if err := wg.Wait(); err != nil {
 		return nil, err
 	}
-	for _, id := range storageIDs {
-		if storageIDs[0] != id {
-			return nil, fmt.Errorf("storageIDs must be the same")
+	if len(storageIDs) != 0 {
+		for _, id := range storageIDs {
+			if storageIDs[0] != id {
+				return nil, fmt.Errorf("storageIDs must be the same")
+			}
 		}
 	}
 	return &aevmtypes.StorePreparedPoolsResult{StorageID: storageIDs[0]}, nil
