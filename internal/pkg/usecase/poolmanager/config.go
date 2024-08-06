@@ -13,5 +13,3 @@ type Config struct {
 	// non-configured stalling threshold is treat as non-enabling stalling threshold
 	StallingPMMThreshold time.Duration `mapstructure:"stallingPMMThreshold" json:"stallingPMMThreshold"`
 }
-
-const DefaultBlackListRenewalInterval = 30 * time.Second

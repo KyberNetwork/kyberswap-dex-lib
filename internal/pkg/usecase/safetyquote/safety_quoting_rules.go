@@ -3,11 +3,9 @@ package safetyquote
 import (
 	"math/big"
 	"strings"
-	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
 )
@@ -38,11 +36,10 @@ var (
 )
 
 type SafetyQuoteReduction struct {
+	// These configs are not refreshed, instead the whole object is renew
 	excludeOneSwapEnable bool
 	deductionFactorInBps map[SafetyQuoteCategory]float64
 	whiteListClients     mapset.Set[string]
-
-	mu sync.RWMutex
 }
 
 func NewSafetyQuoteReduction(config valueobject.SafetyQuoteReductionConfig) *SafetyQuoteReduction {
@@ -122,33 +119,4 @@ func getFactor(config valueobject.SafetyQuoteReductionConfig) map[SafetyQuoteCat
 	}
 
 	return factors
-}
-
-func compareFactor(x, y map[SafetyQuoteCategory]float64) bool {
-	if len(x) != len(y) {
-		return false
-	}
-
-	for k, xv := range x {
-		if yv, ok := y[k]; !ok || !utils.Float64AlmostEqual(yv, xv) {
-			return false
-		}
-	}
-
-	return true
-}
-
-func (f *SafetyQuoteReduction) ApplyConfig(config valueobject.SafetyQuoteReductionConfig) {
-	factor := getFactor(config)
-	newClientList := whitelistClientToSet(config.WhitelistedClient)
-
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	// only apply cache only if it changed
-	if !compareFactor(f.deductionFactorInBps, factor) {
-		f.deductionFactorInBps = factor
-	}
-	if !newClientList.Equal(f.whiteListClients) {
-		f.whiteListClients = newClientList
-	}
 }

@@ -16,7 +16,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	poolFilter "github.com/KyberNetwork/router-service/internal/pkg/usecase/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -24,6 +23,7 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	cachePolicy "github.com/hashicorp/golang-lru/v2"
+	"github.com/samber/lo"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
 
@@ -124,10 +124,6 @@ func NewPointerSwapPoolManager(
 	poolCache, err := cachePolicy.New[string, struct{}](config.Capacity)
 	if err != nil {
 		return nil, err
-	}
-
-	if config.BlackListRenewalInterval == 0 {
-		config.BlackListRenewalInterval = DefaultBlackListRenewalInterval
 	}
 
 	p := PointerSwapPoolManager{
@@ -296,19 +292,12 @@ func (p *PointerSwapPoolManager) getFaultyPoolListSet() mapset.Set[string] {
 
 func (p *PointerSwapPoolManager) filterInvalidPoolAddresses(poolAddresses []string) []string {
 	dynamicBlackListSet := p.getDynamicBlackListSet()
-	nonDynamicBlackListFilter := func(poolAddress string) bool {
-		return !dynamicBlackListSet.ContainsOne(poolAddress)
-	}
-	staticBlackListNonFilter := func(poolAddress string) bool {
-		_, contained := p.config.BlacklistedPoolSet[poolAddress]
-		return !contained
-	}
 	faultyPoolSet := p.getFaultyPoolListSet()
-	nonFaultyPoolsFilter := func(poolAddress string) bool {
-		return !faultyPoolSet.ContainsOne(poolAddress)
+	filters := func(poolAddress string, _ int) bool {
+		return !dynamicBlackListSet.ContainsOne(poolAddress) && !faultyPoolSet.ContainsOne(poolAddress) && !p.config.BlacklistedPoolSet[poolAddress]
 	}
 
-	return poolFilter.Filter(poolAddresses, nonDynamicBlackListFilter, staticBlackListNonFilter, nonFaultyPoolsFilter)
+	return lo.Filter(poolAddresses, filters)
 
 }
 
@@ -326,8 +315,11 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, po
 		p.poolCache.Add(poolAddress, struct{}{})
 	}
 
-	readFrom := p.readFrom.Load()
-	state, err := p.getPools(ctx, filteredPoolAddress, dex, readFrom, stateRoot)
+	if len(dex) == 0 {
+		return nil, getroute.ErrPoolSetFiltered
+	}
+
+	state, err := p.getPools(ctx, filteredPoolAddress, dex, stateRoot)
 	if err != nil {
 		return nil, err
 	}
@@ -339,33 +331,31 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, po
 	return state, err
 }
 
-func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, readFrom int32, stateRoot common.Hash) (*types.FindRouteState, error) {
-	if len(dex) == 0 {
-		return nil, getroute.ErrPoolSetFiltered
-	}
-
+func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, dex []string, stateRoot common.Hash) (*types.FindRouteState, error) {
 	var (
 		resultPoolByAddress = make(map[string]poolpkg.IPoolSimulator, len(poolAddresses))
 		resultLimits        = make(map[string]map[string]*big.Int)
 		poolsToFetchFromDB  []string
 		dexSet              = sets.NewString(dex...)
-		isFiltered          = false
 	)
 
-	p.states[readFrom].lock.RLock()
+	readFrom := p.readFrom.Load()
 
+	// 1. Read all pool entities that are available in read state
+	p.states[readFrom].lock.RLock()
 	for _, key := range poolAddresses {
 		if pool, ok := p.states[readFrom].poolByAddress[key]; ok {
-			if dexSet.Has(pool.GetExchange()) {
-				if p.isPMMStalled(pool) {
-					logger.Debugf(ctx, "stalling PMM pool %s", pool.GetAddress())
-					poolsToFetchFromDB = append(poolsToFetchFromDB, key) // refetch again to get the latest data
-					continue
-				}
-				resultPoolByAddress[key] = pool
-			} else {
-				isFiltered = true
+			if !dexSet.Has(pool.GetExchange()) {
+				continue
 			}
+
+			if p.isPMMStalled(pool) {
+				logger.Debugf(ctx, "stalling PMM pool %s", pool.GetAddress())
+				// refetch again to get the latest data when pmm is stalled
+				poolsToFetchFromDB = append(poolsToFetchFromDB, key)
+				continue
+			}
+			resultPoolByAddress[key] = pool
 		} else {
 			poolsToFetchFromDB = append(poolsToFetchFromDB, key)
 		}
@@ -378,41 +368,67 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 		}
 		resultLimits[dexName] = resLimit
 	}
-
 	p.states[readFrom].lock.RUnlock()
 
+	// return must be happened after unlock, check to return filter out all of pools here
+	if len(resultPoolByAddress) == 0 && len(poolsToFetchFromDB) == 0 {
+		return nil, getroute.ErrPoolSetFiltered
+	}
+
+	// check to return immediately if we don't need to fetch pools from Redis
+	if len(poolsToFetchFromDB) == 0 {
+		return &types.FindRouteState{
+			Pools:                   resultPoolByAddress,
+			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits),
+			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
+		}, nil
+	}
+
+	// 2. Find all pool data which are not available in read state, fetch them from Redis
 	poolEntities, err := p.poolRepository.FindByAddresses(ctx, poolsToFetchFromDB)
 	if err != nil {
 		logger.Errorf(ctx, "poolRepository.FindByAddresses crashed into err ", err)
 		return &types.FindRouteState{
 			Pools:                   resultPoolByAddress,
-			SwapLimit:               nil, // just wonder why don't we return resultLimits here :think:
+			SwapLimit:               nil,
+			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
+		}, nil
+	}
+	// reserve memory for pool entities, avoid mem allocation burden
+	defer mempool.ReserveMany(poolEntities)
+
+	// After getting pool entities from Redis, filter out pool entities with dex non-included in dex set
+	filteredPoolEntities := lo.Filter(poolEntities, func(pool *entity.Pool, i int) bool {
+		return dexSet.Has(pool.Exchange)
+	})
+
+	//  check to return filter out all of pools again here
+	if len(resultPoolByAddress) == 0 && len(filteredPoolEntities) == 0 {
+		return nil, getroute.ErrPoolSetFiltered
+	}
+
+	// If there are no pools need to be initialized, return the result from mem state
+	if len(filteredPoolEntities) == 0 {
+		return &types.FindRouteState{
+			Pools:                   resultPoolByAddress,
+			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits),
 			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 		}, nil
 	}
 
-	defer mempool.ReserveMany(poolEntities)
-
-	filteredPoolEntities := make([]*entity.Pool, 0, len(poolEntities))
-	for i := range poolEntities {
-		if dexSet.Has(poolEntities[i].Exchange) {
-			filteredPoolEntities = append(filteredPoolEntities, poolEntities[i])
-		} else {
-			isFiltered = true
-		}
-	}
-
+	// 3. Process specifically for curve meta pools, fetch base pools (if they have not been fetched) to init curve meta
 	curveMetaBasePools, err := p.listCurveMetaBasePools(ctx, p.poolRepository, filteredPoolEntities)
 	if err != nil {
 		logger.Debugf(ctx, "failed to load curve-meta base pool %v", err)
 		return &types.FindRouteState{
 			Pools:                   resultPoolByAddress,
-			SwapLimit:               nil, // just wonder why don't we return resultLimits here :think:
+			SwapLimit:               nil,
 			PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 		}, nil
 	}
 	filteredPoolEntities = append(filteredPoolEntities, curveMetaBasePools...)
 
+	// 4. Init pool simulators
 	poolInterfaces := p.poolFactory.NewPools(ctx, filteredPoolEntities, stateRoot)
 	for i := range poolInterfaces {
 		if p.isPMMStalled(poolInterfaces[i]) {
@@ -423,9 +439,6 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 	}
 
 	if len(resultPoolByAddress) == 0 {
-		if isFiltered {
-			return nil, getroute.ErrPoolSetFiltered
-		}
 		return nil, getroute.ErrPoolSetEmpty
 	}
 
@@ -441,8 +454,6 @@ func (p *PointerSwapPoolManager) getPools(ctx context.Context, poolAddresses, de
 // - for each curveMeta pool
 //   - decode its staticExtra to get its basePool address
 //   - if it hasn't been fetched, fetch the pool data
-//
-// TODO move all logic related to specific pool types to a separated files
 func (p *PointerSwapPoolManager) listCurveMetaBasePools(
 	ctx context.Context,
 	poolRepository IPoolRepository,
@@ -451,25 +462,15 @@ func (p *PointerSwapPoolManager) listCurveMetaBasePools(
 	var (
 		// alreadyFetchedSet contains fetched pool ids
 		alreadyFetchedSet = map[string]bool{}
-
 		// poolAddresses contains pool addresses to fetch
 		poolAddresses = sets.NewString()
 	)
 
 	for _, pool := range pools {
-		if pool.Type == pooltypes.PoolTypes.CurveBase {
-			alreadyFetchedSet[pool.Address] = true
-		}
-
-		if pool.Type == pooltypes.PoolTypes.CurveStablePlain {
-			alreadyFetchedSet[pool.Address] = true
-		}
-
-		if pool.Type == pooltypes.PoolTypes.CurvePlainOracle {
-			alreadyFetchedSet[pool.Address] = true
-		}
-
-		if pool.Type == pooltypes.PoolTypes.CurveAave {
+		if pool.Type == pooltypes.PoolTypes.CurveBase ||
+			pool.Type == pooltypes.PoolTypes.CurveStablePlain ||
+			pool.Type == pooltypes.PoolTypes.CurvePlainOracle ||
+			pool.Type == pooltypes.PoolTypes.CurveAave {
 			alreadyFetchedSet[pool.Address] = true
 		}
 	}
@@ -482,7 +483,6 @@ func (p *PointerSwapPoolManager) listCurveMetaBasePools(
 		var staticExtra struct {
 			BasePool string `json:"basePool"`
 		}
-
 		if err := json.Unmarshal([]byte(pool.StaticExtra), &staticExtra); err != nil {
 			logger.WithFields(ctx, logger.Fields{
 				"pool.Address": pool.Address,

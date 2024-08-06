@@ -1,9 +1,12 @@
 package poolmanager_test
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -18,6 +21,7 @@ import (
 	"golang.org/x/exp/maps"
 
 	mocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/poolmanager"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -308,4 +312,143 @@ func TestPointerSwapPoolManager_Start(t *testing.T) {
 
 	// prepares data in start function will be swap pointer from 0 to 1, another swap will happen in goroutine reload
 	assert.Equal(t, pm.ReadFrom(), int32(2))
+}
+
+func loadPoolsFromFile(fileName string) []*entity.Pool {
+	file, err := os.Open(fileName)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	res := []*entity.Pool{}
+	i := 0
+	for scanner.Scan() {
+		line := scanner.Text()
+		pool := new(entity.Pool)
+		err := json.Unmarshal([]byte(line), &pool)
+		if err != nil {
+			fmt.Printf("error scanning input from file line %v error %v\n", line, err)
+			continue
+		}
+		res = append(res, pool)
+		i++
+	}
+
+	return res
+}
+
+func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
+	var (
+		nTokens = 60
+		nPools  = 30
+	)
+	config := poolmanager.Config{
+		StallingPMMThreshold: 500 * time.Millisecond,
+		PoolRenewalInterval:  0,
+		Capacity:             nPools,
+	}
+
+	var ctrl = gomock.NewController(t)
+	defer ctrl.Finish()
+
+	tokenByAddress := valueobject.GenerateRandomTokenByAddress(nTokens)
+	var (
+		tokenAddressList = make([]string, len(tokenByAddress))
+		i                = 0
+	)
+
+	for tokenAddress := range tokenByAddress {
+		tokenAddressList[i] = tokenAddress
+		i++
+	}
+
+	poolByAddresses := map[string]poolpkg.IPoolSimulator{}
+	poolEntities := loadPoolsFromFile("./pools_mem.txt")
+	poolEntitiesByAddress := map[string]*entity.Pool{}
+	for _, p := range poolEntities {
+		poolEntitiesByAddress[p.Address] = p
+	}
+	factory := poolfactory.NewPoolFactory(poolfactory.Config{
+		ChainID: 1,
+		UseAEVM: false,
+	}, nil, nil)
+	poolSimulators := factory.NewPools(context.TODO(), poolEntities, common.Hash{})
+	for _, si := range poolSimulators {
+		poolByAddresses[si.GetAddress()] = si
+	}
+	for _, p := range poolEntitiesByAddress {
+		if _, ok := poolByAddresses[p.Address]; !ok {
+			fmt.Printf("cmnguyen init failed %s\n", p.Address)
+		}
+	}
+
+	// init some mock pools that are not available in memory
+	poolOnRedisEntities := loadPoolsFromFile("./pool_redis.txt")
+	poolOnRedisEntitiesByAddress := map[string]*entity.Pool{}
+	for _, p := range poolOnRedisEntities {
+		poolOnRedisEntitiesByAddress[p.Address] = p
+	}
+	poolOnRedisSimulators := factory.NewPools(context.TODO(), poolOnRedisEntities, common.Hash{})
+	for _, si := range poolOnRedisSimulators {
+		poolByAddresses[si.GetAddress()] = si
+	}
+
+	poolRankRepository := mocks.NewMockIPoolRankRepository(ctrl)
+	poolRepository := mocks.NewMockIPoolRepository(ctrl)
+	poolFactory := mocks.NewMockIPoolFactory(ctrl)
+
+	var (
+		poolAddressList = make([]string, nPools)
+	)
+
+	i = 0
+	for address := range poolByAddresses {
+		poolAddressList[i] = address
+		i++
+	}
+
+	// Fetch state for faulty pools and blacklist
+	poolRepository.EXPECT().GetPoolsInBlacklist(gomock.Any()).Return([]string{}, nil).AnyTimes()
+	poolRepository.EXPECT().GetFaultyPools(gomock.Any()).Return([]string{}, nil).AnyTimes()
+
+	// Fetch pool states
+	poolRankRepository.EXPECT().FindGlobalBestPools(gomock.Any(), gomock.Any()).Return(poolAddressList, nil).AnyTimes()
+	poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).DoAndReturn(func(arg0, arg1 interface{}) ([]*entity.Pool, error) {
+		res := []*entity.Pool{}
+		addrs := arg1.([]string)
+		for _, a := range addrs {
+			if p, ok := poolEntitiesByAddress[a]; ok {
+				res = append(res, p)
+			} else {
+				res = append(res, poolOnRedisEntitiesByAddress[a])
+			}
+		}
+
+		return res, nil
+	}).AnyTimes()
+
+	poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(arg0, arg1, arg2 interface{}) []poolpkg.IPoolSimulator {
+		poolEntities := arg1.([]*entity.Pool)
+		res := []poolpkg.IPoolSimulator{}
+		for _, p := range poolEntities {
+			res = append(res, poolByAddresses[p.Address])
+		}
+		return res
+	}).AnyTimes()
+	poolFactory.EXPECT().NewSwapLimit(gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
+	poolFactory.EXPECT().NewPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any()).Return(poolByAddresses).AnyTimes()
+
+	pm, err := poolmanager.NewPointerSwapPoolManager(
+		context.Background(),
+		poolRepository, poolFactory, poolRankRepository, config, nil, nil,
+	)
+	require.NoError(t, err)
+	// let sleep for 2 sec
+	time.Sleep(2 * time.Second)
+
+	state, err := pm.GetStateByPoolAddresses(context.Background(), []string{"0xb71edd5322ce0309dc30f07d25470dbfcb275c28", "0x2482dfb5a65d901d137742ab1095f26374509352"}, []string{pooltypes.PoolTypes.KyberPMM, "uniswap", "curve-stable-meta-ng"}, common.Hash{0x00})
+	assert.Equal(t, 2, len(state.Pools))
+	assert.Nil(t, err)
 }
