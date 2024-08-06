@@ -1,6 +1,7 @@
 package constant
 
 import (
+	"math"
 	"math/big"
 	"time"
 )
@@ -93,7 +94,7 @@ func TenPowDecimals(decimal uint8) *big.Float {
 	if decimal < maxDecimals {
 		return tenPowDecimals[decimal]
 	}
-	return new(big.Float).Quo(Ten, new(big.Float).SetInt64(int64(decimal)))
+	return new(big.Float).SetFloat64(math.Pow10(int(decimal)))
 }
 
 func TenPowInt(decimal uint8) *big.Int {
