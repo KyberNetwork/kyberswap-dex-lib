@@ -258,6 +258,10 @@ useCase:
       factor:
         StrictlyStable: 0
         Stable: 0.5
+        Correlated: 1.5
+        LowSlippage: 3
+        NormalSlippage: 10
+        HighSlippage: 50
       whitelistedClient:
   buildRoute:
     chainId: *chainId

@@ -231,6 +231,10 @@ func TestSafetyQuoteReduction_ApplyConfig(t *testing.T) {
 			expectedFactor: map[SafetyQuoteCategory]float64{
 				StrictlyStable: 10,
 				Stable:         5.5,
+				Correlated:     1.5,
+				LowSlippage:    3,
+				NormalSlippage: 10,
+				HighSlippage:   50,
 			},
 			expectedWhitelist: mapset.NewSet("newclient"),
 		},
@@ -254,6 +258,10 @@ func TestSafetyQuoteReduction_ApplyConfig(t *testing.T) {
 			expectedFactor: map[SafetyQuoteCategory]float64{
 				StrictlyStable: 0,
 				Stable:         5.5,
+				Correlated:     1.5,
+				LowSlippage:    3,
+				NormalSlippage: 10,
+				HighSlippage:   50,
 			},
 			expectedWhitelist: mapset.NewSet[string](),
 		},
@@ -270,6 +278,10 @@ func TestSafetyQuoteReduction_ApplyConfig(t *testing.T) {
 			expectedFactor: map[SafetyQuoteCategory]float64{
 				StrictlyStable: 0,
 				Stable:         0.5,
+				Correlated:     1.5,
+				LowSlippage:    3,
+				NormalSlippage: 10,
+				HighSlippage:   50,
 			},
 			expectedWhitelist: mapset.NewSet[string](),
 		},
