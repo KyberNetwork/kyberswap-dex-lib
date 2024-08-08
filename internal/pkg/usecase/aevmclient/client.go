@@ -30,6 +30,9 @@ type Client struct {
 	publishingClients []aevmclient.Client // publishingClients[i]'s URL = cfg.PublishingURLs[i]
 	curIndex          atomic.Uint64
 	lock              sync.RWMutex // lock for mutating clients list
+
+	retryOnTimeout          time.Duration
+	findrouteRetryOnTimeout time.Duration
 }
 
 func NewClient(cfg Config, makeClientFunc MakeClient) (*Client, error) {
@@ -63,6 +66,9 @@ func NewClient(cfg Config, makeClientFunc MakeClient) (*Client, error) {
 		clients:           clients,
 		clientWg:          clientWg,
 		publishingClients: publishingClients,
+
+		retryOnTimeout:          time.Duration(cfg.RetryOnTimeoutMs) * time.Millisecond,
+		findrouteRetryOnTimeout: time.Duration(cfg.FindrouteRetryOnTimeoutMs) * time.Millisecond,
 	}, nil
 }
 
@@ -153,25 +159,48 @@ func (c *Client) accquireNextClient() (client aevmclient.Client, done func()) {
 	return
 }
 
-func (c *Client) LatestStateRoot(ctx context.Context) (aevmcommon.Hash, error) {
-	client, done := c.accquireNextClient()
-	defer done()
+func withRetry[R any](ctx context.Context, c *Client, onTimeout time.Duration, op func(context.Context, aevmclient.Client) (R, error)) (R, error) {
+	var (
+		result R
+		err    error
+		N      = c.cfg.MaxRetry + 1
+	)
+	for i := uint64(0); i < N; i++ {
+		func() {
+			client, done := c.accquireNextClient()
+			defer done()
 
-	return client.LatestStateRoot(ctx)
+			subCtx := ctx
+			if onTimeout != 0 {
+				var cancel context.CancelFunc
+				subCtx, cancel = context.WithTimeout(ctx, onTimeout)
+				defer cancel()
+			}
+			result, err = op(subCtx, client)
+		}()
+		if err == nil {
+			break
+		}
+	}
+	return result, err
+}
+
+func (c *Client) LatestStateRoot(ctx context.Context) (aevmcommon.Hash, error) {
+	return withRetry(ctx, c, c.retryOnTimeout, func(ctx context.Context, client aevmclient.Client) (aevmcommon.Hash, error) {
+		return client.LatestStateRoot(ctx)
+	})
 }
 
 func (c *Client) SingleCall(ctx context.Context, req *aevmtypes.SingleCallParams) (*aevmtypes.CallResult, error) {
-	client, done := c.accquireNextClient()
-	defer done()
-
-	return client.SingleCall(ctx, req)
+	return withRetry(ctx, c, c.retryOnTimeout, func(ctx context.Context, client aevmclient.Client) (*aevmtypes.CallResult, error) {
+		return client.SingleCall(ctx, req)
+	})
 }
 
 func (c *Client) MultipleCall(ctx context.Context, req *aevmtypes.MultipleCallParams) (*aevmtypes.MultipleCallResult, error) {
-	client, done := c.accquireNextClient()
-	defer done()
-
-	return client.MultipleCall(ctx, req)
+	return withRetry(ctx, c, c.retryOnTimeout, func(ctx context.Context, client aevmclient.Client) (*aevmtypes.MultipleCallResult, error) {
+		return client.MultipleCall(ctx, req)
+	})
 }
 
 func (c *Client) StorePreparedPools(ctx context.Context, req *aevmtypes.StorePreparedPoolsParams) (*aevmtypes.StorePreparedPoolsResult, error) {
@@ -208,8 +237,7 @@ func (c *Client) StorePreparedPools(ctx context.Context, req *aevmtypes.StorePre
 }
 
 func (c *Client) FindRoute(ctx context.Context, req *aevmtypes.FindRouteParams) (*aevmtypes.FindRouteResult, error) {
-	client, done := c.accquireNextClient()
-	defer done()
-
-	return client.FindRoute(ctx, req)
+	return withRetry(ctx, c, c.findrouteRetryOnTimeout, func(ctx context.Context, client aevmclient.Client) (*aevmtypes.FindRouteResult, error) {
+		return client.FindRoute(ctx, req)
+	})
 }

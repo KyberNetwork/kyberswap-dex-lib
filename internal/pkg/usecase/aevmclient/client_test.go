@@ -2,6 +2,8 @@ package aevmclient
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -108,4 +110,25 @@ func TestApplyConfig(t *testing.T) {
 	case <-closedURLsCh:
 		require.FailNow(t, "there must not be any closed client")
 	}
+}
+
+func TestClientWithRetry(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
+
+	c, err := NewClient(Config{
+		ServerURLs: []string{
+			"localhost:8247",
+		},
+		RetryOnTimeoutMs: 100,
+		MaxRetry:         3,
+	}, func(url string) (aevmclient.Client, error) {
+		return aevmclient.NewGRPCClient(url)
+	})
+	require.NoError(t, err)
+
+	stateRoot, err := c.LatestStateRoot(context.Background())
+	require.NoError(t, err)
+	fmt.Printf("%s\n", stateRoot)
 }

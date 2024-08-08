@@ -390,6 +390,10 @@ func apiAction(c *cli.Context) (err error) {
 			aevmclientuc.Config{
 				ServerURLs:          serverURLs,
 				PublishingPoolsURLs: publishingPoolsURLs,
+
+				RetryOnTimeoutMs:          cfg.AEVM.RetryOnTimeoutMs,
+				FindrouteRetryOnTimeoutMs: cfg.AEVM.FindrouteRetryOnTimeoutMs,
+				MaxRetry:                  cfg.AEVM.MaxRetry,
 			},
 			func(url string) (aevmclient.Client, error) { return aevmclient.NewGRPCClient(url) },
 		)
