@@ -3,6 +3,7 @@ module github.com/KyberNetwork/router-service
 go 1.21.3
 
 replace (
+	github.com/KyberNetwork/aggregator-encoding v0.20.2 => ../aggregator-encoding
 	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.5.2
 	github.com/ethereum/go-ethereum => github.com/ethereum/go-ethereum v1.13.14
 )
@@ -10,7 +11,7 @@ replace (
 require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/KyberNetwork/aevm v1.1.14
-	github.com/KyberNetwork/aggregator-encoding v0.20.2
+	github.com/KyberNetwork/aggregator-encoding v0.20.3
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4
