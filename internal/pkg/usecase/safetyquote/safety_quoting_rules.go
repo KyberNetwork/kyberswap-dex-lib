@@ -110,7 +110,7 @@ func getFactor(config valueobject.SafetyQuoteReductionConfig) map[SafetyQuoteCat
 		// only update safety quote reduction factor in SafetyQuoteMappingDefault
 		// this protect SafetyQuoteReductionConfig from the wrong value in remote configs
 		// if remote config doesn't contains enough value, default value will be used instead.
-		if v, ok := config.Factor[string(category)]; !ok {
+		if v, ok := config.Factor[strings.ToLower(string(category))]; !ok {
 			factors[category] = defaultVal
 		} else {
 			factors[category] = v
