@@ -3,7 +3,6 @@ module github.com/KyberNetwork/router-service
 go 1.21.3
 
 replace (
-	github.com/KyberNetwork/aggregator-encoding v0.20.2 => ../aggregator-encoding
 	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.5.2
 	github.com/ethereum/go-ethereum => github.com/ethereum/go-ethereum v1.13.14
 )
