@@ -169,7 +169,7 @@ func transformFromGetRouteEncodeToGetRoutesQuery(params params.GetRouteEncodePar
 		GasInclude:      params.GasInclude,
 		GasPrice:        gasPrice,
 		ExtraFee:        extraFee,
-		ExcludedPools:   mapset.NewSet[string](),
+		ExcludedPools:   mapset.NewThreadUnsafeSet[string](),
 		ClientId:        params.ClientData.Source,
 	}, nil
 }

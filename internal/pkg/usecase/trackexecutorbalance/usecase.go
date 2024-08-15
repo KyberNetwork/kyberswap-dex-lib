@@ -129,7 +129,7 @@ func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) err
 }
 
 func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress string, events []ExchangeEvent) error {
-	tokenOutSet := mapset.NewSet[string]()
+	tokenOutSet := mapset.NewThreadUnsafeSet[string]()
 	for _, event := range events {
 		if event.Token == EtherAddress {
 			tokenOutSet.Add(u.config.GasTokenAddress)
@@ -194,7 +194,7 @@ func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress stri
 }
 
 func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress string, events []ExchangeEvent) error {
-	poolAddressSet := mapset.NewSet[string]()
+	poolAddressSet := mapset.NewThreadUnsafeSet[string]()
 	for _, event := range events {
 		poolAddressSet.Add(event.Pair)
 	}
@@ -227,7 +227,7 @@ func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress
 		poolInfo[poolSimulator.GetAddress()].simulator = poolSimulator
 	}
 
-	poolApprovalSet := mapset.NewSet[dto.PoolApprovalQuery]()
+	poolApprovalSet := mapset.NewThreadUnsafeSet[dto.PoolApprovalQuery]()
 	for _, pool := range poolInfo {
 		if pool.entity == nil || pool.simulator == nil {
 			continue

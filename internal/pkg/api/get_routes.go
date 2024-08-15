@@ -122,7 +122,7 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 		GasInclude:      params.GasInclude,
 		GasPrice:        gasPrice,
 		ExtraFee:        extraFee,
-		ExcludedPools:   mapset.NewSet(utils.TransformSliceParams(params.ExcludedPools)...),
+		ExcludedPools:   mapset.NewThreadUnsafeSet(utils.TransformSliceParams(params.ExcludedPools)...),
 		ClientId:        params.ClientId,
 	}, nil
 }

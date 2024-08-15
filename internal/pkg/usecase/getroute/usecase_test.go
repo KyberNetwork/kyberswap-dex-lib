@@ -67,7 +67,7 @@ func TestGetRouteUseCase_Handle(t *testing.T) {
 				AmountIn:      amountIn,
 				SaveGas:       false,
 				GasInclude:    true,
-				ExcludedPools: mapset.NewSet("0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852"),
+				ExcludedPools: mapset.NewThreadUnsafeSet("0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852"),
 			},
 			err: ErrPoolSetFiltered,
 		},
@@ -173,8 +173,8 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		GetStateByPoolAddresses(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		DoAndReturn(
 			func(ctx context.Context, addresses, dex []string, stateRoot common.Hash) (*types.FindRouteState, error) {
-				addressesSet := mapset.NewSet(addresses...)
-				dexesSet := mapset.NewSet(dex...)
+				addressesSet := mapset.NewThreadUnsafeSet(addresses...)
+				dexesSet := mapset.NewThreadUnsafeSet(dex...)
 				tokenToPoolAddress := make(map[string]*types.AddressList)
 
 				var limits = make(map[string]map[string]*big.Int)

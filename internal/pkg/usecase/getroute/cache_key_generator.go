@@ -56,11 +56,11 @@ func (g *routeKeyGenerator) genKey(ctx context.Context, params *types.AggregateP
 		metrics.IncrFindRouteCacheCount(ctx, false, map[string]string{
 			"excludePools": "true",
 		})
-		return mapset.NewSet[valueobject.RouteCacheKeyTTL](), nil
+		return mapset.NewThreadUnsafeSet[valueobject.RouteCacheKeyTTL](), nil
 	}
 
 	if params.TokenIn.Decimals <= 0 {
-		return mapset.NewSet[valueobject.RouteCacheKeyTTL](), errors.New("token decimal has not been found")
+		return mapset.NewThreadUnsafeSet[valueobject.RouteCacheKeyTTL](), errors.New("token decimal has not been found")
 	}
 
 	if g.config.EnableNewCacheKeyGenerator {
@@ -77,13 +77,13 @@ func (g *routeKeyGenerator) genKeyV1(params *types.AggregateParams) (mapset.Set[
 
 	// cache point ttl has been found in the config
 	if key != nil {
-		return mapset.NewSet(valueobject.RouteCacheKeyTTL{Key: key, TTL: duration}), nil
+		return mapset.NewThreadUnsafeSet(valueobject.RouteCacheKeyTTL{Key: key, TTL: duration}), nil
 	}
 
 	// if this token in doesn't have price (considered token has no price if tokenInUSD is too small), return error
 	// because decimal rounding with values below 0.9 is really distributed
 	if params.TokenInPriceUSD <= 0 {
-		return mapset.NewSet[valueobject.RouteCacheKeyTTL](), ErrNoTokenInPrice
+		return mapset.NewThreadUnsafeSet[valueobject.RouteCacheKeyTTL](), ErrNoTokenInPrice
 	}
 
 	amountInUSD := business.CalcAmountUSD(params.AmountIn, params.TokenIn.Decimals, params.TokenInPriceUSD)
@@ -139,7 +139,7 @@ func (g *routeKeyGenerator) genKeyByAmountInUSD(params *types.AggregateParams, a
 		}
 	}
 
-	return mapset.NewSet(valueobject.RouteCacheKeyTTL{
+	return mapset.NewThreadUnsafeSet(valueobject.RouteCacheKeyTTL{
 		Key: &valueobject.RouteCacheKey{
 			CacheMode:     valueobject.RouteCacheModeRangeByUSD,
 			TokenIn:       params.TokenIn.Address,
@@ -164,8 +164,8 @@ func (g *routeKeyGenerator) genKeyByAmountIn(params *types.AggregateParams) (map
 
 	amountInWithoutDecimals := business.AmountWithoutDecimals(params.AmountIn, params.TokenIn.Decimals)
 	amountInWithoutDecimalsFloat64, _ := amountInWithoutDecimals.Float64()
-	shrunkAmountInSet := mapset.NewSet[valueobject.RouteCacheKeyTTL]()
-	seenAmount := mapset.NewSet[string]()
+	shrunkAmountInSet := mapset.NewThreadUnsafeSet[valueobject.RouteCacheKeyTTL]()
+	seenAmount := mapset.NewThreadUnsafeSet[string]()
 
 	for _, f := range g.amountInShrinkFuncList {
 		shrunkAmountIn := f(amountInWithoutDecimalsFloat64)
@@ -195,7 +195,7 @@ func (g *routeKeyGenerator) genKeyByAmountIn(params *types.AggregateParams) (map
 	}
 
 	if shrunkAmountInSet.IsEmpty() {
-		return mapset.NewSet[valueobject.RouteCacheKeyTTL](), errors.New("different between shunk value and amount in without decimal is above threshold")
+		return mapset.NewThreadUnsafeSet[valueobject.RouteCacheKeyTTL](), errors.New("different between shunk value and amount in without decimal is above threshold")
 	}
 
 	return shrunkAmountInSet, nil

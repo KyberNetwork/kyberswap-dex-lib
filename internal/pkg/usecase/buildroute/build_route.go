@@ -551,7 +551,7 @@ func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, routeSummary 
 	if isErrReturnAmountIsNotEnough(err) && slippageIsAboveMinThreshold(command.SlippageTolerance, uc.config.FaultyPoolsConfig) {
 		failedCount = 1
 	}
-	totalSet := mapset.NewSet[string]()
+	totalSet := mapset.NewThreadUnsafeSet[string]()
 	for _, path := range routeSummary.Route {
 		for _, swap := range path {
 			trackers = append(trackers, routerEntities.FaultyPoolTracker{
@@ -569,7 +569,7 @@ func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, routeSummary 
 	results, err := uc.poolRepository.TrackFaultyPools(ctx, trackers)
 
 	if err != nil {
-		addedSet := mapset.NewSet(results...)
+		addedSet := mapset.NewThreadUnsafeSet(results...)
 
 		logger.WithFields(
 			ctx,

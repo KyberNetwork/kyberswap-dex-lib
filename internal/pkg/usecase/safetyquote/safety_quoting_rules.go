@@ -60,7 +60,7 @@ func NewSafetyQuoteReduction(config valueobject.SafetyQuoteReductionConfig) *Saf
 }
 
 func whitelistClientToSet(clients []string) mapset.Set[string] {
-	whitelistSet := mapset.NewSet[string]()
+	whitelistSet := mapset.NewThreadUnsafeSet[string]()
 	for _, cli := range clients {
 		whitelistSet.Add(strings.ToLower(cli))
 	}
