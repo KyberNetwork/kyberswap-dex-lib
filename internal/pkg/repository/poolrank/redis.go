@@ -8,8 +8,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -155,16 +153,6 @@ func (r *redisRepository) FindGlobalBestPools(ctx context.Context, poolCount int
 	}).Result()
 }
 
-func (r *redisRepository) AddToSortedSetScoreByTvl(
-	ctx context.Context,
-	pool *entity.Pool,
-	token0, token1 string,
-	isToken0Whitelisted, isToken1Whitelisted bool,
-) error {
-	return r.AddToSortedSet(ctx, token0, token1, isToken0Whitelisted, isToken1Whitelisted,
-		SortByTVL, pool.Address, pool.ReserveUsd, true)
-}
-
 func (r *redisRepository) AddToSortedSet(
 	ctx context.Context,
 	token0, token1 string,
@@ -203,12 +191,36 @@ func (r *redisRepository) AddToSortedSet(
 	return err
 }
 
-func (r *redisRepository) AddToSortedSetScoreByAmplifiedTvl(
+func (r *redisRepository) RemoveFromSortedSet(
 	ctx context.Context,
-	pool *entity.Pool,
 	token0, token1 string,
 	isToken0Whitelisted, isToken1Whitelisted bool,
+	key string, memberName string, score float64,
+	useGlobal bool,
 ) error {
-	return r.AddToSortedSet(ctx, token0, token1, isToken0Whitelisted, isToken1Whitelisted,
-		SortByAmplifiedTvl, pool.Address, pool.AmplifiedTvl, false)
+
+	_, err := r.redisClient.TxPipelined(
+		ctx, func(tx redis.Pipeliner) error {
+			if useGlobal {
+				tx.ZRem(ctx, r.keyGenerator.globalSortedSetKey(key), memberName)
+			}
+			tx.ZRem(ctx, r.keyGenerator.directPairKey(key, token0, token1), memberName)
+
+			if isToken0Whitelisted && isToken1Whitelisted {
+				tx.ZRem(ctx, r.keyGenerator.whitelistToWhitelistPairKey(key), memberName)
+			}
+
+			if isToken0Whitelisted {
+				tx.ZRem(ctx, r.keyGenerator.whitelistToTokenPairKey(key, token1), memberName)
+			}
+
+			if isToken1Whitelisted {
+				tx.ZRem(ctx, r.keyGenerator.whitelistToTokenPairKey(key, token0), memberName)
+			}
+
+			return nil
+		},
+	)
+
+	return err
 }

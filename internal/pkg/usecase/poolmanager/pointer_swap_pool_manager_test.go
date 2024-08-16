@@ -380,7 +380,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 	}
 	for _, p := range poolEntitiesByAddress {
 		if _, ok := poolByAddresses[p.Address]; !ok {
-			fmt.Printf("cmnguyen init failed %s\n", p.Address)
+			fmt.Printf("init failed %s\n", p.Address)
 		}
 	}
 

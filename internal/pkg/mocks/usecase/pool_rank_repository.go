@@ -8,7 +8,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	entity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -49,30 +48,16 @@ func (mr *MockIPoolRankRepositoryMockRecorder) AddToSortedSet(arg0, arg1, arg2, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToSortedSet", reflect.TypeOf((*MockIPoolRankRepository)(nil).AddToSortedSet), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 }
 
-// AddToSortedSetScoreByAmplifiedTvl mocks base method.
-func (m *MockIPoolRankRepository) AddToSortedSetScoreByAmplifiedTvl(arg0 context.Context, arg1 *entity.Pool, arg2, arg3 string, arg4, arg5 bool) error {
+// RemoveFromSortedSet mocks base method.
+func (m *MockIPoolRankRepository) RemoveFromSortedSet(arg0 context.Context, arg1, arg2 string, arg3, arg4 bool, arg5, arg6 string, arg7 float64, arg8 bool) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddToSortedSetScoreByAmplifiedTvl", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret := m.ctrl.Call(m, "RemoveFromSortedSet", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// AddToSortedSetScoreByAmplifiedTvl indicates an expected call of AddToSortedSetScoreByAmplifiedTvl.
-func (mr *MockIPoolRankRepositoryMockRecorder) AddToSortedSetScoreByAmplifiedTvl(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
+// RemoveFromSortedSet indicates an expected call of RemoveFromSortedSet.
+func (mr *MockIPoolRankRepositoryMockRecorder) RemoveFromSortedSet(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToSortedSetScoreByAmplifiedTvl", reflect.TypeOf((*MockIPoolRankRepository)(nil).AddToSortedSetScoreByAmplifiedTvl), arg0, arg1, arg2, arg3, arg4, arg5)
-}
-
-// AddToSortedSetScoreByTvl mocks base method.
-func (m *MockIPoolRankRepository) AddToSortedSetScoreByTvl(arg0 context.Context, arg1 *entity.Pool, arg2, arg3 string, arg4, arg5 bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddToSortedSetScoreByTvl", arg0, arg1, arg2, arg3, arg4, arg5)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddToSortedSetScoreByTvl indicates an expected call of AddToSortedSetScoreByTvl.
-func (mr *MockIPoolRankRepositoryMockRecorder) AddToSortedSetScoreByTvl(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToSortedSetScoreByTvl", reflect.TypeOf((*MockIPoolRankRepository)(nil).AddToSortedSetScoreByTvl), arg0, arg1, arg2, arg3, arg4, arg5)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveFromSortedSet", reflect.TypeOf((*MockIPoolRankRepository)(nil).RemoveFromSortedSet), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 }

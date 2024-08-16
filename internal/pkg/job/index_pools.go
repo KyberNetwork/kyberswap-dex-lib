@@ -2,6 +2,7 @@ package job
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"time"
 
@@ -151,21 +152,8 @@ func (u *IndexPoolsJob) scanAndIndex(ctx context.Context, forceScanAllPools bool
 type BatchedPoolAddress = kutils.ChanTask[*message.EventMessage]
 
 func (u *IndexPoolsJob) RunStreamJob(ctx context.Context) {
-	batcher := kutils.NewChanBatcher[*BatchedPoolAddress, *message.EventMessage](
-		func() (batchRate time.Duration, batchCnt int) {
-			return u.config.PoolEvent.BatchRate, u.config.PoolEvent.BatchSize
-		}, u.handleStreamEvents)
-	defer batcher.Close()
 	for {
-		u.poolEventsStreamConsumer.Consume(ctx, func(ctx context.Context, msg *message.EventMessage) error {
-			if msg == nil || msg.EventType != message.EventPoolCreated {
-				return nil
-			}
-			task := kutils.NewChanTask[*message.EventMessage](ctx)
-			task.Resolve(msg, nil)
-			batcher.Batch(task)
-			return nil
-		})
+		u.poolEventsStreamConsumer.Consume(ctx, u.handleMessage)
 		time.Sleep(u.config.PoolEvent.RetryInterval)
 		logger.WithFields(ctx,
 			logger.Fields{
@@ -173,6 +161,32 @@ func (u *IndexPoolsJob) RunStreamJob(ctx context.Context) {
 			}).
 			Info("job restarting")
 	}
+}
+
+func (u *IndexPoolsJob) handleMessage(ctx context.Context, msg *message.EventMessage) error {
+	if msg == nil {
+		return nil
+	}
+	switch msg.EventType {
+	case message.EventPoolCreated:
+		batcher := kutils.NewChanBatcher[*BatchedPoolAddress, *message.EventMessage](
+			func() (batchRate time.Duration, batchCnt int) {
+				return u.config.PoolEvent.BatchRate, u.config.PoolEvent.BatchSize
+			}, u.handleStreamEvents)
+		defer batcher.Close()
+
+		task := kutils.NewChanTask[*message.EventMessage](ctx)
+		task.Resolve(msg, nil)
+		batcher.Batch(task)
+	case message.EventPoolDeleted:
+		payload := new(message.PoolDeletedPayload)
+		err := json.Unmarshal([]byte(msg.Payload), payload)
+		if err == nil {
+			u.indexPoolsUseCase.RemovePoolFromIndexes(ctx, &payload.PoolEntity)
+		}
+	}
+
+	return nil
 }
 
 func (u *IndexPoolsJob) handleStreamEvents(msgs []*BatchedPoolAddress) {

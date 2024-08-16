@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 )
 
@@ -163,45 +164,45 @@ func TestIndexPools_Handle(t *testing.T) {
 					).Return(mockPools, nil)
 
 				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
-				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
-					mockPools[0],
 					mockTokens[0].Address,
 					mockTokens[1].Address,
 					true,
 					false,
+					poolrank.SortByTVL, mockPools[0].Address, mockPools[0].ReserveUsd, true,
 				).Return(nil)
-				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
-					mockPools[0],
 					mockTokens[0].Address,
 					mockTokens[1].Address,
 					true,
 					false,
+					poolrank.SortByAmplifiedTvl, mockPools[0].Address, mockPools[0].AmplifiedTvl, false,
 				).Return(nil)
-				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
-					mockPools[1],
 					mockTokens[1].Address,
 					mockTokens[0].Address,
 					false,
 					true,
+					poolrank.SortByTVL, mockPools[1].Address, mockPools[1].ReserveUsd, true,
 				).Return(nil)
-				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
-					mockPools[1],
 					mockTokens[1].Address,
 					mockTokens[3].Address,
 					false,
 					true,
+					poolrank.SortByTVL, mockPools[1].Address, mockPools[1].ReserveUsd, true,
 				).Return(nil)
-				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
-					mockPools[1],
 					mockTokens[1].Address,
 					mockTokens[4].Address,
 					false,
 					false,
+					poolrank.SortByTVL, mockPools[1].Address, mockPools[1].ReserveUsd, true,
 				).Return(nil)
 
 				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, nil, mockConfig)
@@ -241,45 +242,45 @@ func TestIndexPools_Handle(t *testing.T) {
 					).Return(mockPools, nil)
 
 				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
-				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
-					mockPools[0],
 					mockTokens[0].Address,
 					mockTokens[1].Address,
 					true,
 					false,
+					poolrank.SortByTVL, mockPools[0].Address, mockPools[0].ReserveUsd, true,
 				).Return(nil)
-				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByAmplifiedTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
-					mockPools[0],
 					mockTokens[0].Address,
 					mockTokens[1].Address,
 					true,
 					false,
+					poolrank.SortByAmplifiedTvl, mockPools[0].Address, mockPools[0].AmplifiedTvl, false,
 				).Return(nil)
-				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
-					mockPools[1],
 					mockTokens[1].Address,
 					mockTokens[0].Address,
 					false,
 					true,
+					poolrank.SortByTVL, mockPools[1].Address, mockPools[1].ReserveUsd, true,
 				).Return(theError)
-				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
-					mockPools[1],
 					mockTokens[1].Address,
 					mockTokens[3].Address,
 					false,
 					true,
+					poolrank.SortByTVL, mockPools[1].Address, mockPools[1].ReserveUsd, true,
 				).Return(nil)
-				mockPoolRankRepo.EXPECT().AddToSortedSetScoreByTvl(
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
-					mockPools[1],
 					mockTokens[1].Address,
 					mockTokens[4].Address,
 					false,
 					false,
+					poolrank.SortByTVL, mockPools[1].Address, mockPools[1].ReserveUsd, true,
 				).Return(nil)
 
 				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, nil, mockConfig)
@@ -320,6 +321,244 @@ func TestIndexPools_Handle(t *testing.T) {
 			indexPools := tc.prepare(ctrl)
 
 			result := indexPools.Handle(context.Background(), tc.command)
+
+			assert.Equal(t, tc.result, result)
+		})
+	}
+}
+
+func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
+	t.Parallel()
+
+	type TestCase struct {
+		name    string
+		prepare func(ctrl *gomock.Controller, p *entity.Pool) *IndexPoolsUseCase
+		pool    *entity.Pool
+		result  error
+	}
+
+	theError := errors.New("some error")
+
+	mockTokens := mockPoolTokensTestIndexPools()
+	mockPools := mockPoolsTestIndexPools()
+
+	testCases := []TestCase{
+		{
+			name: "it should return nil when indexes is removed correctly with ReserveTvl",
+			pool: mockPools[1],
+			prepare: func(ctrl *gomock.Controller, p *entity.Pool) *IndexPoolsUseCase {
+				mockConfig := IndexPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{
+						mockTokens[0].Address: true,
+						mockTokens[2].Address: true,
+						mockTokens[3].Address: true,
+					},
+					ChunkSize: 100,
+				}
+
+				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[1].Address,
+					mockTokens[0].Address,
+					false,
+					true,
+					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
+				).Return(nil).Times(1)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[1].Address,
+					mockTokens[3].Address,
+					false,
+					true,
+					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
+				).Return(nil).Times(1)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[1].Address,
+					mockTokens[4].Address,
+					false,
+					false,
+					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
+				).Return(nil).Times(1)
+
+				return NewIndexPoolsUseCase(nil, mockPoolRankRepo, nil, mockConfig)
+			},
+			result: nil,
+		},
+		{
+			name: "it should return nil when indexes is removed correctly with AmplifiedReserveTvl",
+			pool: mockPools[0],
+			prepare: func(ctrl *gomock.Controller, p *entity.Pool) *IndexPoolsUseCase {
+				mockConfig := IndexPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{
+						mockTokens[0].Address: true,
+						mockTokens[1].Address: true,
+						mockTokens[3].Address: true,
+					},
+					ChunkSize: 100,
+				}
+
+				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[0].Address,
+					mockTokens[1].Address,
+					true,
+					true,
+					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[0].Address,
+					mockTokens[1].Address,
+					true,
+					true,
+					poolrank.SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false,
+				).Return(nil)
+
+				return NewIndexPoolsUseCase(nil, mockPoolRankRepo, nil, mockConfig)
+			},
+			result: nil,
+		},
+		{
+			name: "it should return nil when indexes is removed correctly with AmplifiedReserveTvl and CurveAeva",
+			pool: &entity.Pool{
+				Address:      "pooladdress3",
+				ReserveUsd:   10000,
+				AmplifiedTvl: 30,
+				SwapFee:      300,
+				Exchange:     "exchange3",
+				Type:         pooltypes.PoolTypes.CurveAave,
+				Timestamp:    1658373335,
+				Reserves:     []string{"3000", "7000"},
+				Tokens:       []*entity.PoolToken{mockTokens[0], mockTokens[1]},
+				Extra:        "extra2",
+				StaticExtra:  fmt.Sprintf(`{"underlyingTokens": ["%s", "%s"]}`, mockTokens[3].Address, mockTokens[4].Address),
+				TotalSupply:  "30000",
+			},
+			prepare: func(ctrl *gomock.Controller, p *entity.Pool) *IndexPoolsUseCase {
+				mockConfig := IndexPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{
+						mockTokens[0].Address: true,
+						mockTokens[1].Address: true,
+						mockTokens[3].Address: true,
+					},
+					ChunkSize: 100,
+				}
+
+				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[0].Address,
+					mockTokens[1].Address,
+					true,
+					true,
+					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[0].Address,
+					mockTokens[1].Address,
+					true,
+					true,
+					poolrank.SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[3].Address,
+					mockTokens[4].Address,
+					true,
+					false,
+					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[3].Address,
+					mockTokens[4].Address,
+					true,
+					false,
+					poolrank.SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false,
+				).Return(nil)
+
+				return NewIndexPoolsUseCase(nil, mockPoolRankRepo, nil, mockConfig)
+			},
+			result: nil,
+		},
+		{
+			name: "it should return correct failed pool addresses when repository returns error",
+			pool: &entity.Pool{
+				Address:      "pooladdress3",
+				ReserveUsd:   10000,
+				AmplifiedTvl: 30,
+				SwapFee:      300,
+				Exchange:     "exchange3",
+				Type:         pooltypes.PoolTypes.CurveAave,
+				Timestamp:    1658373335,
+				Reserves:     []string{"3000", "7000"},
+				Tokens:       []*entity.PoolToken{mockTokens[0], mockTokens[1]},
+				Extra:        "extra2",
+				StaticExtra:  fmt.Sprintf(`{"underlyingTokens": ["%s", "%s"]}`, mockTokens[3].Address, mockTokens[4].Address),
+				TotalSupply:  "30000",
+			},
+			prepare: func(ctrl *gomock.Controller, p *entity.Pool) *IndexPoolsUseCase {
+				mockConfig := IndexPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{
+						mockTokens[0].Address: true,
+						mockTokens[1].Address: true,
+						mockTokens[3].Address: true,
+					},
+					ChunkSize: 100,
+				}
+
+				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[0].Address,
+					mockTokens[1].Address,
+					true,
+					true,
+					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
+				).Return(theError).Times(1)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[0].Address,
+					mockTokens[1].Address,
+					true,
+					true,
+					poolrank.SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[3].Address,
+					mockTokens[4].Address,
+					true,
+					false,
+					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[3].Address,
+					mockTokens[4].Address,
+					true,
+					false,
+					poolrank.SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false,
+				).Return(nil)
+
+				return NewIndexPoolsUseCase(nil, mockPoolRankRepo, nil, mockConfig)
+			},
+			result: theError,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			indexPools := tc.prepare(ctrl, tc.pool)
+
+			result := indexPools.RemovePoolFromIndexes(context.Background(), tc.pool)
 
 			assert.Equal(t, tc.result, result)
 		})

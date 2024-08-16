@@ -44,19 +44,14 @@ type IConfigFetcherRepository interface {
 }
 
 type IPoolRankRepository interface {
-	AddToSortedSetScoreByTvl(
-		ctx context.Context,
-		pool *entity.Pool,
-		token0, token1 string,
-		isToken0Whitelisted, isToken1Whitelisted bool,
-	) error
-	AddToSortedSetScoreByAmplifiedTvl(
-		ctx context.Context,
-		pool *entity.Pool,
-		token0, token1 string,
-		isToken0Whitelisted, isToken1Whitelisted bool,
-	) error
 	AddToSortedSet(
+		ctx context.Context,
+		token0, token1 string,
+		isToken0Whitelisted, isToken1Whitelisted bool,
+		key string, memberName string, score float64,
+		useGlobal bool,
+	) error
+	RemoveFromSortedSet(
 		ctx context.Context,
 		token0, token1 string,
 		isToken0Whitelisted, isToken1Whitelisted bool,
