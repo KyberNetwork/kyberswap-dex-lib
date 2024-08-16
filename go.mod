@@ -21,7 +21,7 @@ require (
 	github.com/KyberNetwork/kyberswap-dex-lib v0.61.1
 	github.com/KyberNetwork/logger v0.2.0
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
-	github.com/KyberNetwork/pool-service v1.38.0-test.0.20240815062652-936139409500
+	github.com/KyberNetwork/pool-service v0.67.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/KyberNetwork/service-framework v0.5.4
 	github.com/alicebob/miniredis/v2 v2.31.1
