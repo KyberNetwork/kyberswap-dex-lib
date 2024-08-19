@@ -247,7 +247,7 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 		}
 	}
 	poolByAddress := p.poolFactory.NewPoolByAddress(ctx, poolEntities, common.Hash(stateRoot))
-	if p.poolsPublisher != nil {
+	if p.config.UseAEVMRemoteFinder && p.poolsPublisher != nil {
 		start := time.Now()
 		storageID, err := p.poolsPublisher.Publish(ctx, poolByAddress)
 		if err != nil {

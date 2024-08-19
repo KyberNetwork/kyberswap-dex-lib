@@ -198,7 +198,7 @@ useCase:
         hillClimbIteration: 2
         hillClimbMinPartUSD: 500
         isPathGeneratorEnabled: false
-        useAEVMRemoteFinder: false
+        useAEVMRemoteFinder: &useAEVMRemoteFinder false
         remoteUseAEVMPool: false
         localUseAEVMPool: false
     cache:
@@ -373,6 +373,7 @@ useCase:
     capacity: 1000000
     poolRenewalInterval: 12s
     useAEVM: *useAEVM
+    useAEVMRemoteFinder: *useAEVMRemoteFinder false
     faultyPoolsExpireThreshold: 3s
     stallingPMMThreshold: 30s
   indexPools:

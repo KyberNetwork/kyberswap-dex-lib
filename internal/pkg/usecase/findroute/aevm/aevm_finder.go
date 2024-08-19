@@ -51,7 +51,9 @@ func NewAEVMFinder(baseFinder findroute.IFinder, aevmClient aevmclient.Client, p
 }
 
 func (f *AEVMFinder) Find(ctx context.Context, input findroute.Input, data findroute.FinderData) ([]*valueobject.Route, error) {
-	if !f.opts.UseAEVMRemoteFinder {
+	// if not UseAEVMRemoteFinder or prepared pools are not yet published to AEVM server (data.PublishedPoolsStorageID=""),
+	// then perform FindRoute locally as normal
+	if !f.opts.UseAEVMRemoteFinder || data.PublishedPoolsStorageID == "" {
 		data.PoolBucket = shallowClonePoolsBucket(data.PoolBucket)
 
 		useAEVMPool := f.opts.LocalUseAEVMPool

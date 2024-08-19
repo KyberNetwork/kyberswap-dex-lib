@@ -157,6 +157,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setTokensThresholdForOnchainPrice(remoteCfg.TokensThresholdForOnchainPrice)
 		cl.setFaultyPoolsConfig(remoteCfg.FaultyPoolsConfig)
 		cl.setSafetyQuoteReduction(remoteCfg.SafetyQuoteReduction)
+		cl.setPoolManagerOptionsFromFinderOptions(remoteCfg.FinderOptions)
 		cl.mu.Unlock()
 	}
 
@@ -226,6 +227,10 @@ func (cl *ConfigLoader) setLog(log valueobject.Log) {
 
 func (cl *ConfigLoader) setFinderOptions(finderOptions valueobject.FinderOptions) {
 	cl.config.UseCase.GetRoute.Aggregator.FinderOptions = finderOptions
+}
+
+func (cl *ConfigLoader) setPoolManagerOptionsFromFinderOptions(finderOptions valueobject.FinderOptions) {
+	cl.config.UseCase.PoolManager.UseAEVMRemoteFinder = finderOptions.UseAEVMRemoteFinder
 }
 
 func (cl *ConfigLoader) setGetBestPoolOptions(getBestPoolsOptions valueobject.GetBestPoolsOptions) {
