@@ -182,7 +182,9 @@ func (u *IndexPoolsJob) handleMessage(ctx context.Context, msg *message.EventMes
 		payload := new(message.PoolDeletedPayload)
 		err := json.Unmarshal([]byte(msg.Payload), payload)
 		if err == nil {
-			u.indexPoolsUseCase.RemovePoolFromIndexes(ctx, &payload.PoolEntity)
+			if err := u.indexPoolsUseCase.RemovePoolFromIndexes(ctx, &payload.PoolEntity); err != nil {
+				logger.Errorf(ctx, "RemovePoolFromIndexes pool %s error %v", &payload.PoolEntity.Address, err)
+			}
 		}
 	}
 
