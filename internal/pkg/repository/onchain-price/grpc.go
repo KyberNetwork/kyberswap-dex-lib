@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/float"
 	onchainpricev1 "github.com/KyberNetwork/grpc-service/go/onchainprice/v1"
@@ -57,7 +58,7 @@ func NewGRPCRepository(config GrpcConfig, chainId valueobject.ChainID, tokenRepo
 		chainId:            chainId,
 		grpcClient:         grpcClient.C,
 		tokenRepository:    tokenRepository,
-		nativeTokenAddress: nativeTokenAddress,
+		nativeTokenAddress: strings.ToLower(nativeTokenAddress),
 	}, nil
 }
 
