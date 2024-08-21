@@ -98,8 +98,8 @@ func (f *SafetyQuotingRouteFinalizer) FinalizeRoute(
 
 			sqParams := types.SafetyQuotingParams{
 				PoolType:             pool.GetType(),
-				TokenIn:              path.Input.Token,
-				TokenOut:             path.Output.Token,
+				TokenIn:              tokenAmountIn.Token,
+				TokenOut:             result.TokenAmountOut.Token,
 				ApplyDeductionFactor: route.HasOnlyOneSwap(),
 				ClientId:             params.ClientId,
 			}
