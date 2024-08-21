@@ -9,10 +9,10 @@ import (
 
 // https://github.com/DODOEX/contractV2/blob/c58c067c4038437610a9cc8aef8f8025e2af4f63/contracts/DODOPrivatePool/impl/DPPStorage.sol#L51
 func (p *PoolSimulator) getPMMState() libv2.PMMState {
-	p.Lock()
-	defer p.Unlock()
+	// This function is a bit different compare to the Solidity code
+	// We don't run adjustedTarget here to avoid issue when cloning pool https://team-kyber.slack.com/archives/C061UNZDUVC/p1724213576872309
+	// The adjustedTarget will be called in the NewPoolSimulator function when initializing the pool or in the UpdateState function when updating the pool
 
-	libv2.AdjustedTarget(&p.PMMState)
 	return p.PMMState
 }
 
