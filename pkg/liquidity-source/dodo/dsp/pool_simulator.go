@@ -3,7 +3,6 @@ package dsp
 import (
 	"math/big"
 	"strings"
-	"sync"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -17,7 +16,6 @@ import (
 )
 
 type PoolSimulator struct {
-	sync.RWMutex
 	pool.Pool
 	libv2.PMMState
 	Tokens entity.PoolTokens
@@ -69,6 +67,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		MtFeeRate: extra.MtFeeRate,
 		LpFeeRate: extra.LpFeeRate,
 	}
+
+	libv2.AdjustedTarget(&poolState)
 
 	meta := shared.V2Meta{
 		Type:       staticExtra.Type,
@@ -173,6 +173,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		// Update p.Storage
 		p.UpdateStateSellQuote(number.SetFromBig(inputAmount), number.SetFromBig(outputAmount))
 	}
+
+	libv2.AdjustedTarget(&p.PMMState)
 }
 
 func (p *PoolSimulator) GetLpToken() string {
