@@ -21,8 +21,10 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/token"
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/redis"
+	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
 func main() {
@@ -33,6 +35,12 @@ func main() {
 				Name:    "config",
 				Aliases: []string{"c"},
 				Value:   "internal/pkg/config/default.yaml",
+				Usage:   "Configuration file",
+			},
+			&cli.StringFlag{
+				Name:    "safetyQuoting",
+				Aliases: []string{"sq"},
+				Value:   "internal/pkg/config/files/quoting-factor/tokens-v1.0.yaml",
 				Usage:   "Configuration file",
 			},
 		},
@@ -89,8 +97,9 @@ func main() {
 
 func probeBalanceSlotAction(c *cli.Context) error {
 	configFile := c.String("config")
+	tokenGroupConfigPath := env.StringFromEnv(envvar.TokenGroupConfigPath, "")
 
-	configLoader, err := config.NewConfigLoader(configFile)
+	configLoader, err := config.NewConfigLoader(configFile, tokenGroupConfigPath)
 	if err != nil {
 		return err
 	}
@@ -231,8 +240,9 @@ func randomizeAddress() common.Address {
 
 func convertToPreloadedAction(c *cli.Context) error {
 	configFile := c.String("config")
+	tokenGroupConfigPath := env.StringFromEnv(envvar.TokenGroupConfigPath, "")
 
-	configLoader, err := config.NewConfigLoader(configFile)
+	configLoader, err := config.NewConfigLoader(configFile, tokenGroupConfigPath)
 	if err != nil {
 		return err
 	}

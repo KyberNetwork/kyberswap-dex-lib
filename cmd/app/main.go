@@ -181,7 +181,9 @@ func apiAction(c *cli.Context) (err error) {
 
 	configFile := c.String("config")
 
-	configLoader, err := config.NewConfigLoader(configFile)
+	tokenGroupConfigPath := env.StringFromEnv(envvar.TokenGroupConfigPath, "")
+
+	configLoader, err := config.NewConfigLoader(configFile, tokenGroupConfigPath)
 	if err != nil {
 		return err
 	}
@@ -573,7 +575,9 @@ func indexerAction(c *cli.Context) (err error) {
 
 	// load config
 	configFile := c.String("config")
-	configLoader, err := config.NewConfigLoader(configFile)
+	tokenGroupConfigPath := env.StringFromEnv(envvar.TokenGroupConfigPath, "")
+
+	configLoader, err := config.NewConfigLoader(configFile, tokenGroupConfigPath)
 	if err != nil {
 		return err
 	}
@@ -760,7 +764,9 @@ func executorTrackerAction(c *cli.Context) (err error) {
 
 	// load config
 	configFile := c.String("config")
-	configLoader, err := config.NewConfigLoader(configFile)
+	tokenGroupConfigPath := env.StringFromEnv(envvar.TokenGroupConfigPath, "")
+
+	configLoader, err := config.NewConfigLoader(configFile, tokenGroupConfigPath)
 	if err != nil {
 		return err
 	}

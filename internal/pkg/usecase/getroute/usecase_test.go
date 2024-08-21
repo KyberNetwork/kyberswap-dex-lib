@@ -252,7 +252,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 	)
 
 	routeFinalizer := findroute.NewSafetyQuotingRouteFinalizer(
-		safetyquote.NewSafetyQuoteReduction(valueobject.SafetyQuoteReductionConfig{}),
+		safetyquote.NewSafetyQuoteReduction(&valueobject.SafetyQuoteReductionConfig{}),
 	)
 
 	finderEngine := findroute.NewPathFinderEngine(routeFinder, routeFinalizer)

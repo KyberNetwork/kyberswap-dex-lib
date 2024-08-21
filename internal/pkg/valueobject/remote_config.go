@@ -118,6 +118,15 @@ type (
 		ExcludeOneSwapEnable bool               `mapstructure:"excludeOneSwapEnable" json:"excludeOneSwapEnable"`
 		Factor               map[string]float64 `mapstructure:"factor" json:"factor"`
 		WhitelistedClient    []string           `mapstructure:"whitelistedClient" json:"whitelistedClient"`
+		// tokenGroup config doesn't need to update from remote config
+		TokenGroupConfig *TokenGroupConfig `mapstructure:"tokenGroupConfig"`
+	}
+
+	TokenGroupConfig struct {
+		StableGroup      map[string]bool `mapstructure:"stable"`
+		CorrelatedGroup1 map[string]bool `mapstructure:"correlated-1"`
+		CorrelatedGroup2 map[string]bool `mapstructure:"correlated-2"`
+		CorrelatedGroup3 map[string]bool `mapstructure:"correlated-3"`
 	}
 
 	CachePoint struct {

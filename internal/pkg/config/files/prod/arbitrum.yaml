@@ -339,6 +339,7 @@ useCase:
     safetyQuoteConfig:
       excludeOneSwapEnable: true
       factor:
+        Default: 0
         StrictlyStable: 0
         Stable: 0.5
         Correlated: 1.5

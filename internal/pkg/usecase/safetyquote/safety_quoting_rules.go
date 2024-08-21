@@ -6,49 +6,28 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
-)
-
-type SafetyQuoteCategory string
-
-const (
-	StrictlyStable SafetyQuoteCategory = "StrictlyStable"
-	Stable         SafetyQuoteCategory = "Stable"
-	Correlated     SafetyQuoteCategory = "Correlated"
-	LowSlippage    SafetyQuoteCategory = "LowSlippaged"
-	NormalSlippage SafetyQuoteCategory = "NormalSlippage"
-	HighSlippage   SafetyQuoteCategory = "HighSlippage"
-)
-
-var (
-	SafetyQuoteMappingDefault = map[SafetyQuoteCategory]float64{
-		StrictlyStable: 0,
-		Stable:         0.5,
-		Correlated:     1.5,
-		LowSlippage:    3,
-		NormalSlippage: 10,
-		HighSlippage:   50,
-	}
-	// BasisPoint is one hundredth of 1 percentage point
-	// https://en.wikipedia.org/wiki/Basis_point
-	BasisPointMulByTen = big.NewInt(10 * 10_000)
 )
 
 type SafetyQuoteReduction struct {
 	// These configs are not refreshed, instead the whole object is renew
 	excludeOneSwapEnable bool
-	deductionFactorInBps map[SafetyQuoteCategory]float64
+	deductionFactorInBps map[types.SafetyQuoteCategory]float64
 	whiteListClients     mapset.Set[string]
+	tokenGroups          *valueobject.TokenGroupConfig
 }
 
-func NewSafetyQuoteReduction(config valueobject.SafetyQuoteReductionConfig) *SafetyQuoteReduction {
+func NewSafetyQuoteReduction(config *valueobject.SafetyQuoteReductionConfig) *SafetyQuoteReduction {
 	whitelistSet := whitelistClientToSet(config.WhitelistedClient)
+
 	if len(config.Factor) == 0 {
 		return &SafetyQuoteReduction{
 			excludeOneSwapEnable: true,
-			deductionFactorInBps: SafetyQuoteMappingDefault,
+			deductionFactorInBps: types.SafetyQuoteMappingDefault,
 			whiteListClients:     whitelistSet,
+			tokenGroups:          config.TokenGroupConfig,
 		}
 	}
 
@@ -56,6 +35,7 @@ func NewSafetyQuoteReduction(config valueobject.SafetyQuoteReductionConfig) *Saf
 		excludeOneSwapEnable: config.ExcludeOneSwapEnable,
 		deductionFactorInBps: getFactor(config),
 		whiteListClients:     whitelistSet,
+		tokenGroups:          config.TokenGroupConfig,
 	}
 }
 
@@ -68,25 +48,41 @@ func whitelistClientToSet(clients []string) mapset.Set[string] {
 	return whitelistSet
 }
 
-func (f *SafetyQuoteReduction) GetSafetyQuotingRate(poolType string, excludeSafetyQuoting bool) float64 {
-	if f.excludeOneSwapEnable && excludeSafetyQuoting {
+func (f *SafetyQuoteReduction) GetSafetyQuotingRate(params types.SafetyQuotingParams) float64 {
+	if f.whiteListClients.ContainsOne(strings.ToLower(params.ClientId)) {
+		return 0
+	}
+	if f.excludeOneSwapEnable && params.ApplyDeductionFactor {
 		return 0
 	}
 
-	switch poolType {
+	// Check safety quoting rate by pool types
+	switch params.PoolType {
 	case pooltypes.PoolTypes.LimitOrder, pooltypes.PoolTypes.KyberPMM,
 		pooltypes.PoolTypes.HashflowV3, pooltypes.PoolTypes.NativeV1,
 		pooltypes.PoolTypes.SwaapV2:
-		return f.deductionFactorInBps[StrictlyStable]
+		return f.deductionFactorInBps[types.StrictlyStable]
 	}
 
-	return f.deductionFactorInBps[Stable]
+	// Check safety quoting rate by tokens
+	// Reference: https://www.notion.so/kybernetwork/Stable-and-Correlated-Tokens-data-d1bdc7ad1ec14d8ebeab031c493e730e
+	if f.tokenGroups.StableGroup[params.TokenIn] && f.tokenGroups.StableGroup[params.TokenOut] {
+		return f.deductionFactorInBps[types.Stable]
+	} else if f.tokenGroups.CorrelatedGroup1[params.TokenIn] && f.tokenGroups.CorrelatedGroup1[params.TokenOut] {
+		return f.deductionFactorInBps[types.Correlated]
+	} else if f.tokenGroups.CorrelatedGroup2[params.TokenIn] && f.tokenGroups.CorrelatedGroup2[params.TokenOut] {
+		return f.deductionFactorInBps[types.Correlated]
+	} else if f.tokenGroups.CorrelatedGroup3[params.TokenIn] && f.tokenGroups.CorrelatedGroup3[params.TokenOut] {
+		return f.deductionFactorInBps[types.Correlated]
+	}
+
+	return f.deductionFactorInBps[types.Default]
 }
 
 // This function wrap the whole logic of safety quoting calculation
 // which is describe in https://www.notion.so/kybernetwork/Safety-Quoting-for-KyberSwap-DEX-Aggregator-a673869729fe45adae8e1258ab6e43f4?pvs=4
-func (f *SafetyQuoteReduction) Reduce(amount *pool.TokenAmount, deductionFactor float64, clientId string) pool.TokenAmount {
-	if deductionFactor <= 0 || f.whiteListClients.ContainsOne(strings.ToLower(clientId)) {
+func (f *SafetyQuoteReduction) Reduce(amount *pool.TokenAmount, deductionFactor float64) pool.TokenAmount {
+	if deductionFactor <= 0 {
 		return *amount
 	}
 	// convert deductionFactor from float to integer by multiply it by 10, then we will div (BasisPoint * 10)
@@ -94,7 +90,7 @@ func (f *SafetyQuoteReduction) Reduce(amount *pool.TokenAmount, deductionFactor 
 	deductionFactorInBps := big.NewInt(int64(10 * (10000 - deductionFactor)))
 	newAmount := new(big.Int).Div(
 		new(big.Int).Mul(amount.Amount, deductionFactorInBps),
-		BasisPointMulByTen,
+		types.BasisPointMulByTen,
 	)
 
 	return pool.TokenAmount{
@@ -104,9 +100,9 @@ func (f *SafetyQuoteReduction) Reduce(amount *pool.TokenAmount, deductionFactor 
 
 }
 
-func getFactor(config valueobject.SafetyQuoteReductionConfig) map[SafetyQuoteCategory]float64 {
-	factors := map[SafetyQuoteCategory]float64{}
-	for category, defaultVal := range SafetyQuoteMappingDefault {
+func getFactor(config *valueobject.SafetyQuoteReductionConfig) map[types.SafetyQuoteCategory]float64 {
+	factors := map[types.SafetyQuoteCategory]float64{}
+	for category, defaultVal := range types.SafetyQuoteMappingDefault {
 		// only update safety quote reduction factor in SafetyQuoteMappingDefault
 		// this protect SafetyQuoteReductionConfig from the wrong value in remote configs
 		// if remote config doesn't contains enough value, default value will be used instead.

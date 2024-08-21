@@ -11,4 +11,6 @@ const (
 	PYROSCOPEHost    = "PYROSCOPE_HOST"
 
 	CalcAmountOutCounterMetricEnabled = "CALC_AMOUNT_OUT_COUNTER_METRIC_ENABLED"
+
+	TokenGroupConfigPath = "TOKEN_GROUP_CONFIG_PATH"
 )

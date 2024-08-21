@@ -96,10 +96,18 @@ func (f *SafetyQuotingRouteFinalizer) FinalizeRoute(
 			}
 			pool.UpdateBalance(updateBalanceParams)
 
+			sqParams := types.SafetyQuotingParams{
+				PoolType:             pool.GetType(),
+				TokenIn:              path.Input.Token,
+				TokenOut:             path.Output.Token,
+				ApplyDeductionFactor: route.HasOnlyOneSwap(),
+				ClientId:             params.ClientId,
+			}
+
 			// Step 2.1.6: We need to calculate safety quoting amount and reasign new amount out to next path's amount in
 			reducedNextAmountIn := f.safetyQuoteReduction.Reduce(
 				result.TokenAmountOut,
-				f.safetyQuoteReduction.GetSafetyQuotingRate(pool.GetType(), route.HasOnlyOneSwap()), params.ClientId)
+				f.safetyQuoteReduction.GetSafetyQuotingRate(sqParams))
 
 			// Step 2.1.7: finalize the swap
 			// important: must re-update amount out to reducedNextAmountIn
@@ -223,12 +231,19 @@ func (f *SafetyQuotingRouteFinalizer) FinalizeSimpleRoute(
 			pool = poolBucket.ClonePool(simpleSwap.PoolAddress)
 			pool.UpdateBalance(updateBalanceParams)
 
+			sqParams := types.SafetyQuotingParams{
+				PoolType:             pool.GetType(),
+				TokenIn:              simpleSwap.TokenInAddress,
+				TokenOut:             simpleSwap.TokenOutAddress,
+				ApplyDeductionFactor: simpleRoute.HasOnlyOneSwap(),
+				ClientId:             params.ClientId,
+			}
+
 			// Step 3.1.5
 			// We need to calculate safety quoting amount and reasign new amount out to next path's amount in
 			reducedNextAmountIn := f.safetyQuoteReduction.Reduce(
 				result.TokenAmountOut,
-				f.safetyQuoteReduction.GetSafetyQuotingRate(pool.GetType(), simpleRoute.HasOnlyOneSwap()),
-				params.ClientId)
+				f.safetyQuoteReduction.GetSafetyQuotingRate(sqParams))
 
 			// Step 3.1.6: finalize the swap
 			// important: must re-update amount out to reducedNextAmountIn
