@@ -224,3 +224,20 @@ func (r *redisRepository) RemoveFromSortedSet(
 
 	return err
 }
+
+func (r *redisRepository) RemoveAddressFromIndex(ctx context.Context, key string, pools []string) error {
+	if len(pools) == 0 {
+		return nil
+	}
+	_, err := r.redisClient.TxPipelined(
+		ctx, func(tx redis.Pipeliner) error {
+			// remove pools from global and whitelist for both tvl and amplifiedtvl
+			tx.ZRem(ctx, r.keyGenerator.globalSortedSetKey(key), pools)
+			tx.ZRem(ctx, r.keyGenerator.whitelistToWhitelistPairKey(key), pools)
+
+			return nil
+		},
+	)
+
+	return err
+}

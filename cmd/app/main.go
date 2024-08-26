@@ -488,6 +488,8 @@ func apiAction(c *cli.Context) (err error) {
 		FunctionSelectorMappingID: cfg.Encoder.FunctionSelectorMappingID,
 	})
 
+	removePoolIndex := usecase.NewRemovePoolIndexUseCase(poolRankRepository)
+
 	// init services
 	ginServer, router, _ := httppkg.GinServer(cfg.Http, cfg.Log.Configuration, logger.LoggerBackendZap)
 
@@ -520,6 +522,7 @@ func apiAction(c *cli.Context) (err error) {
 	})
 	v1Debug.GET("/custom-routes", api.GetCustomRoutes(getRoutesParamsValidator, getCustomRoutesUseCase))
 	v1Debug.POST("/decode", api.DecodeSwapData(l1Decoder, l2Decoder))
+	v1Debug.DELETE("/pool-index", api.RemovePoolsFromIndex(removePoolIndex))
 
 	v1.GET("/pools", api.GetPools(getPoolsParamsValidator, getPoolsUseCase))
 	v1.GET("/tokens", api.GetTokens(getTokensParamsValidator, getTokensUseCase))

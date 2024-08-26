@@ -79,3 +79,7 @@ type IGetRouteEncodeParamsValidator interface {
 type IDecodeSwapDataUseCase interface {
 	Decode(data string) (interface{}, error)
 }
+
+type IRemovePoolIndexUseCase interface {
+	RemovePoolAddressFromIndexes(ctx context.Context, addresses []string) error
+}
