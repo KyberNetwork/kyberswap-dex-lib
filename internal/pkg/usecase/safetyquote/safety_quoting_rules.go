@@ -22,12 +22,22 @@ type SafetyQuoteReduction struct {
 func NewSafetyQuoteReduction(config *valueobject.SafetyQuoteReductionConfig) *SafetyQuoteReduction {
 	whitelistSet := whitelistClientToSet(config.WhitelistedClient)
 
+	tokenGroups := config.TokenGroupConfig
+	if tokenGroups == nil {
+		tokenGroups = &valueobject.TokenGroupConfig{
+			StableGroup:      make(map[string]bool),
+			CorrelatedGroup1: make(map[string]bool),
+			CorrelatedGroup2: make(map[string]bool),
+			CorrelatedGroup3: make(map[string]bool),
+		}
+	}
+
 	if len(config.Factor) == 0 {
 		return &SafetyQuoteReduction{
 			excludeOneSwapEnable: true,
 			deductionFactorInBps: types.SafetyQuoteMappingDefault,
 			whiteListClients:     whitelistSet,
-			tokenGroups:          config.TokenGroupConfig,
+			tokenGroups:          tokenGroups,
 		}
 	}
 
