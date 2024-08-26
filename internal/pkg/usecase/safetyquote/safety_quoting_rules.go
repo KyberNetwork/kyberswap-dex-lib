@@ -45,7 +45,7 @@ func NewSafetyQuoteReduction(config *valueobject.SafetyQuoteReductionConfig) *Sa
 		excludeOneSwapEnable: config.ExcludeOneSwapEnable,
 		deductionFactorInBps: getFactor(config),
 		whiteListClients:     whitelistSet,
-		tokenGroups:          config.TokenGroupConfig,
+		tokenGroups:          tokenGroups,
 	}
 }
 
