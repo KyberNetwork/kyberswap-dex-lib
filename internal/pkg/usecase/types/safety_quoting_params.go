@@ -21,7 +21,7 @@ const (
 	StrictlyStable SafetyQuoteCategory = "StrictlyStable"
 	Stable         SafetyQuoteCategory = "Stable"
 	Correlated     SafetyQuoteCategory = "Correlated"
-	LowSlippage    SafetyQuoteCategory = "LowSlippaged"
+	LowSlippage    SafetyQuoteCategory = "LowSlippage"
 	NormalSlippage SafetyQuoteCategory = "NormalSlippage"
 	HighSlippage   SafetyQuoteCategory = "HighSlippage"
 )

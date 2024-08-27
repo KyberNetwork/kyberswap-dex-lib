@@ -110,16 +110,21 @@ func (f *SafetyQuoteReduction) Reduce(amount *pool.TokenAmount, deductionFactor 
 
 }
 
+// Because viper makes all keys case insensitive, so that we have to accept case insensitive in safety quoting configs
+// which receives values from both source viper config and ks-settings
+// Ref: https://github.com/spf13/viper#does-viper-support-case-sensitive-keys
 func getFactor(config *valueobject.SafetyQuoteReductionConfig) map[types.SafetyQuoteCategory]float64 {
 	factors := map[types.SafetyQuoteCategory]float64{}
 	for category, defaultVal := range types.SafetyQuoteMappingDefault {
 		// only update safety quote reduction factor in SafetyQuoteMappingDefault
 		// this protect SafetyQuoteReductionConfig from the wrong value in remote configs
 		// if remote config doesn't contains enough value, default value will be used instead.
-		if v, ok := config.Factor[strings.ToLower(string(category))]; !ok {
-			factors[category] = defaultVal
-		} else {
+		if v, ok := config.Factor[string(category)]; ok {
 			factors[category] = v
+		} else if value, ok := config.Factor[strings.ToLower(string(category))]; !ok {
+			factors[category] = value
+		} else {
+			factors[category] = defaultVal
 		}
 
 	}

@@ -250,7 +250,7 @@ func TestSafetyQuoteReduction_Reduce(t *testing.T) {
 				},
 				WhitelistedClient: []string{"testClient", "testBetaClient"},
 				TokenGroupConfig: &valueobject.TokenGroupConfig{
-					StableGroup: map[string]bool{
+					CorrelatedGroup1: map[string]bool{
 						"0xabc": true,
 						"0xdef": true,
 					},
