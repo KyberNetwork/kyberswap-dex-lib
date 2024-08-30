@@ -54,8 +54,8 @@ type FeeToAmount struct {
 }
 
 type Reserve struct {
-	Reserve0 *big.Int
-	Reserve1 *big.Int
+	Reserve0 *big.Int `abi:""`
+	Reserve1 *big.Int `abi:""`
 }
 
 type GetAmountParameters struct {
