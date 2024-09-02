@@ -2,22 +2,34 @@ package integral
 
 import (
 	"errors"
+	"math/big"
 
 	"github.com/KyberNetwork/int256"
 	"github.com/holiman/uint256"
 )
 
 var (
-	_INT256_MIN = new(int256.Int).SetUint64(0) // -2^255
-	ErrT027     = errors.New("T027")
-	ErrSM43     = errors.New("SM43")
-	ErrSM4E     = errors.New("SM4E")
-	ErrSM12     = errors.New("SM12")
-	ErrSM2A     = errors.New("SM2A")
-	ErrSM4D     = errors.New("SM4D")
-	ErrSM11     = errors.New("SM11")
-	ErrSM29     = errors.New("SM29")
-	ErrSM42     = errors.New("SM42")
+	decimalsConverter = big.NewInt(0)
+	uZero             = uint256.NewInt(0)
+	ZERO              = big.NewInt(0)
+	_INT256_MIN       = new(big.Int).Neg(new(big.Int).Lsh(big.NewInt(1), 255)) // -2^255
+
+	ErrTP2E = errors.New("TP2E")
+	// ErrTP2E = errors.New("TP2E")
+	ErrTP07 = errors.New("TP07")
+	ErrTP08 = errors.New("TP08")
+	ErrTP31 = errors.New("TP31")
+	ErrTP02 = errors.New("TP02")
+	ErrT027 = errors.New("T027")
+	ErrT028 = errors.New("T028")
+	ErrSM43 = errors.New("SM43")
+	ErrSM4E = errors.New("SM4E")
+	ErrSM12 = errors.New("SM12")
+	ErrSM2A = errors.New("SM2A")
+	ErrSM4D = errors.New("SM4D")
+	ErrSM11 = errors.New("SM11")
+	ErrSM29 = errors.New("SM29")
+	ErrSM42 = errors.New("SM42")
 )
 
 func AddUint256(x, y *uint256.Int) *uint256.Int {
@@ -84,69 +96,73 @@ func ToUint112(n *int256.Int) *uint256.Int {
 	return nil
 }
 
-func ToInt256(unsigned *uint256.Int) *uint256.Int {
-	return nil
+func ToUint256(n *big.Int) *uint256.Int {
+	return new(uint256.Int).SetBytes(n.Bytes())
 }
 
-func AddInt256(a, b *int256.Int) *int256.Int {
-	c := new(int256.Int).Add(a, b)
+func ToInt256(n *uint256.Int) *big.Int {
+	return new(big.Int).SetBytes(n.Bytes())
+}
 
-	if (b.Cmp(new(int256.Int)) < 0 && c.Cmp(a) < 0) ||
-		(b.Cmp(new(int256.Int)) >= 0 && c.Cmp(a) >= 0) {
+func AddInt256(a, b *big.Int) *big.Int {
+	c := new(big.Int).Add(a, b)
+
+	if (b.Cmp(new(big.Int)) < 0 && c.Cmp(a) < 0) ||
+		(b.Cmp(new(big.Int)) >= 0 && c.Cmp(a) >= 0) {
 		panic(ErrSM4D)
 	}
 
 	return c
 }
 
-func SubInt256(a, b *int256.Int) *int256.Int {
-	c := new(int256.Int).Sub(a, b)
+func SubInt256(a, b *big.Int) *big.Int {
+	c := new(big.Int).Sub(a, b)
 
-	if (b.Cmp(new(int256.Int)) < 0 && c.Cmp(a) > 0) ||
-		(b.Cmp(new(int256.Int)) >= 0 && c.Cmp(a) <= 0) {
+	if (b.Cmp(new(big.Int)) < 0 && c.Cmp(a) > 0) ||
+		(b.Cmp(new(big.Int)) >= 0 && c.Cmp(a) <= 0) {
 		panic(ErrSM11)
 	}
 
 	return c
 }
 
-func MulInt256(a, b *int256.Int) *int256.Int {
-	if a.IsZero() {
+func MulInt256(a, b *big.Int) *big.Int {
+	if a.Cmp(ZERO) == 0 {
 		return a
 	}
 
-	if a.Cmp(int256.NewInt(-1)) == 0 && b.Cmp(_INT256_MIN) == 0 {
+	if a.Cmp(big.NewInt(-1)) == 0 && b.Cmp(_INT256_MIN) == 0 {
 		panic(ErrSM29)
 	}
 
-	c := new(int256.Int).Mul(a, b)
+	c := new(big.Int).Mul(a, b)
 
-	if new(int256.Int).Quo(c, a).Cmp(b) != 0 {
+	if new(big.Int).Quo(c, a).Cmp(b) != 0 {
 		panic(ErrSM29)
 	}
 
 	return c
 }
 
-func DivInt256(a, b *int256.Int) *int256.Int {
-	if a.IsZero() {
+func DivInt256(a, b *big.Int) *big.Int {
+	if a.Cmp(ZERO) == 0 {
 		panic(ErrSM43)
 	}
 
-	if b.Cmp(int256.NewInt(-1)) == 0 && a.Cmp(_INT256_MIN) == 0 {
+	if b.Cmp(big.NewInt(-1)) == 0 && a.Cmp(_INT256_MIN) == 0 {
 		panic(ErrSM29)
 	}
 
-	return new(int256.Int).Quo(a, b)
+	return new(big.Int).Quo(a, b)
 }
 
-func NegFloorDiv(a, b *int256.Int) *int256.Int {
+func NegFloorDiv(a, b *big.Int) *big.Int {
 	c := DivInt256(a, b)
 
-	if (a.Cmp(new(int256.Int)) < 0 && b.Cmp(new(int256.Int)) > 0) ||
-		(a.Cmp(new(int256.Int)) >= 0 && b.Cmp(new(int256.Int)) < 0) {
+	if (a.Cmp(new(big.Int)) < 0 && b.Cmp(new(big.Int)) > 0) ||
+		(a.Cmp(new(big.Int)) >= 0 && b.Cmp(new(big.Int)) < 0) {
 		if a.Cmp(MulInt256(b, c)) != 0 {
-			return SubInt256(c, int256.NewInt(1))
+			return SubInt256(c, big.NewInt(1))
 		}
 	}
 

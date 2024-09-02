@@ -44,6 +44,8 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		burnFee *big.Int
 		swapFee *big.Int
 
+		// balances [2]*big.Int
+
 		oracle common.Address
 	)
 
@@ -89,6 +91,13 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		Params: nil,
 	}, []interface{}{&oracle})
 
+	// rpcRequest.AddCall(&ethrpc.Call{
+	// 	ABI:    pairABI,
+	// 	Target: p.Address,
+	// 	Method: libraryGetBalancesMethod,
+	// 	Params: []string{},
+	// }, []interface{}{&oracle})
+
 	_, err := rpcRequest.TryAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -99,10 +108,10 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}
 
 	extraBytes, err := json.Marshal(IntegralPair{
-		PairFee: pairFee,
-		MintFee: mintFee,
-		BurnFee: burnFee,
-		SwapFee: swapFee,
+		// PairFee: ToUint256(pairFee),
+		MintFee: ToUint256(mintFee),
+		BurnFee: ToUint256(burnFee),
+		SwapFee: ToUint256(swapFee),
 		Oracle:  oracle,
 	})
 	if err != nil {

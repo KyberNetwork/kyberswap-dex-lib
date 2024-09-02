@@ -4,21 +4,22 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/holiman/uint256"
 )
 
 type IntegralPair struct {
-	Reserve [2]*big.Int
-	PairFee [2]*big.Int
+	Reserve [2]*uint256.Int
+	PairFee [2]*uint256.Int
 
-	MintFee *big.Int
-	BurnFee *big.Int
-	SwapFee *big.Int
+	MintFee *uint256.Int
+	BurnFee *uint256.Int
+	SwapFee *uint256.Int
 	Oracle  common.Address
 }
 
 type PairFee struct {
-	Fee0 *big.Int
-	Fee1 *big.Int
+	Fee0 *uint256.Int
+	Fee1 *uint256.Int
 }
 
 type GetAmountParameters struct {

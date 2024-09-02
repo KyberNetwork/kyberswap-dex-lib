@@ -1,10 +1,14 @@
 package integral
 
-import "math/big"
+import (
+	"math/big"
+
+	"github.com/holiman/uint256"
+)
 
 var (
 	defaultGas = Gas{Swap: 227000}
-	precison   = big.NewInt(1e18)
+	precison   = uint256.NewInt(1e18)
 
 	FEES_BASE *big.Int = big.NewInt(1000000)
 
@@ -21,6 +25,7 @@ var (
 	factoryAllPairsMethod       = "allPairs"
 	factoryAllPairsLengthMethod = "allPairsLength"
 
+	libraryGetBalancesMethod = "getBalances"
 	libraryGetReservesMethod = "getReserves"
 	libraryGetFeesMethod     = "getFees"
 )

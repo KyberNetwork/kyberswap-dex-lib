@@ -2,14 +2,12 @@ package integral
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -86,105 +84,35 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-// func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-// 	var (
-// 		tokenAmountIn = param.TokenAmountIn
-// 		tokenOut      = param.TokenOut
-// 	)
-// 	if tokenAmountIn.Token == tokenOut {
-// 		return nil, ErrSameAddress
-// 	}
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokens := p.GetTokens()
+	if len(tokens) != 2 {
+		return nil, errors.New("")
+	}
 
-// 	if isZero(tokenAmountIn.Amount) {
-// 		return nil, ErrZeroAmount
-// 	}
+	data := []byte{}
 
-// 	var zeroForOne bool
-// 	if tokenAmountIn.Token == p.GetTokens()[0] {
-// 		zeroForOne = true
-// 	}
+	switch param.TokenOut {
+	case tokens[0]:
+		amount1In := ToUint256(param.TokenAmountIn.Amount)
+		amount0Out, err := p.getSwapAmount0Out(amount1In, data)
+		if err != nil {
+			return nil, err
+		}
+		return p.swap(amount0Out, uZero, data)
 
-// 	var (
-// 		fictiveReserveIn   *big.Int = p.FictiveReserve.FictiveReserve0
-// 		fictiveReserveOut  *big.Int = p.FictiveReserve.FictiveReserve1
-// 		priceAverageIn     *big.Int = p.PriceAverage.PriceAverage0
-// 		priceAverageOut    *big.Int = p.PriceAverage.PriceAverage1
-// 		balanceIn          *big.Int = p.GetReserves()[0]
-// 		balanceOut         *big.Int = p.GetReserves()[1]
-// 		userTradeTimestamp          = now().Unix()
-// 	)
-// 	if !zeroForOne {
-// 		balanceIn = p.GetReserves()[1]
-// 		balanceOut = p.GetReserves()[0]
-// 	}
+	case tokens[1]:
+		amount0In := ToUint256(param.TokenAmountIn.Amount)
+		amount1Out, err := p.getSwapAmount1Out(amount0In, data)
+		if err != nil {
+			return nil, err
+		}
+		return p.swap(uZero, amount1Out, data)
 
-// 	result, err := getAmountOut(
-// 		GetAmountParameters{
-// 			amount:          tokenAmountIn.Amount,
-// 			reserveIn:       balanceIn,
-// 			reserveOut:      balanceOut,
-// 			priceAverageIn:  priceAverageIn,
-// 			priceAverageOut: priceAverageOut,
-// 			// feesLP:            p.PairFee.FeesLP,
-// 			// feesPool:          p.PairFee.FeesPool,
-// 			// feesBase:          p.PairFee.FeesBase,
-// 		})
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	amount0, amount1 := tokenAmountIn.Amount, result.amountOut
-// 	// feeToAmount0, feeToAmount1 := new(big.Int).Set(p.FeeToAmount.Fees0), new(big.Int).Set(p.FeeToAmount.Fees1)
-// 	// newPriceAverageIn, newPriceAverageOut := priceAverageIn, priceAverageOut
-// 	// newFictiveReserveIn, newFictiveReserveOut := result.newFictiveReserveIn, result.newFictiveReserveOut
-// 	// if zeroForOne {
-// 	// 	feeToAmount0 = feeToAmount0.Add(
-// 	// 		feeToAmount0,
-// 	// 		new(big.Int).Div(new(big.Int).Mul(amount0, p.PairFee.FeesPool), p.PairFee.FeesBase))
-// 	// } else {
-// 	// 	amount0, amount1 = result.amountOut, tokenAmountIn.Amount
-// 	// 	feeToAmount1 = feeToAmount1.Add(
-// 	// 		feeToAmount1,
-// 	// 		new(big.Int).Div(new(big.Int).Mul(amount1, p.PairFee.FeesPool), p.PairFee.FeesBase))
-// 	// 	newPriceAverageIn, newPriceAverageOut = priceAverageOut, priceAverageIn
-// 	// 	newFictiveReserveIn, newFictiveReserveOut = result.newFictiveReserveOut, result.newFictiveReserveIn
-// 	// }
-
-// 	if zeroForOne {
-// 		return &pool.CalcAmountOutResult{
-// 			TokenAmountOut: &pool.TokenAmount{
-// 				Token:  p.GetTokens()[1],
-// 				Amount: amount1,
-// 			},
-// 			Fee: &pool.TokenAmount{
-// 				Token:  p.GetTokens()[1],
-// 				Amount: feeToAmount1,
-// 			},
-// 			Gas: p.gas.Swap,
-// 			SwapInfo: SwapInfo{
-// 				newReserveIn:  new(big.Int).Sub(result.newReserveIn, feeToAmount0),
-// 				newReserveOut: new(big.Int).Sub(result.newReserveOut, feeToAmount1),
-// 			},
-// 		}, nil
-// 	}
-
-// 	return &pool.CalcAmountOutResult{
-// 		TokenAmountOut: &pool.TokenAmount{
-// 			Token:  p.GetTokens()[0],
-// 			Amount: amount0,
-// 		},
-// 		Fee: &pool.TokenAmount{
-// 			Token:  p.GetTokens()[0],
-// 			Amount: feeToAmount0,
-// 		},
-// 		Gas: p.gas.Swap,
-// 		SwapInfo: SwapInfo{
-// 			newReserveIn:  new(big.Int).Sub(result.newReserveIn, feeToAmount0),
-// 			newReserveOut: new(big.Int).Sub(result.newReserveOut, feeToAmount1),
-// 		},
-// 	}, nil
-
-// }
+	default:
+		return nil, errors.New("")
+	}
+}
 
 func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
@@ -200,99 +128,21 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.Info.Reserves = []*big.Int{si.newReserveIn, si.newReserveOut}
 }
 
-// func (p *PoolSimulator) getSwapAmount0In(amount1Out *uint256.Int, data []byte) *big.Int {
-// 	reserve0, reserve1 := getReserves()
-// 	balance1After := new(uint256.Int).Sub(reserve1, amount1Out)
-// 	balance0After := tradeY(balance1After, reserve0, reserve1, data)
-// 	swapAmount0In := new(uint256.Int).Sub(balance0After, reserve0)
-// 	swapAmount0In.Mul(swapAmount0In, precison)
-// 	return CeilDiv(swapAmount0In, new(big.Int).Sub(precison, p.Info.SwapFee))
-// }
-
-// func (p *PoolSimulator) getSwapAmount1In(amount0Out *uint256.Int, data []byte) *big.Int {
-// 	reserve0, reserve1 := getReserves()
-// 	balance0After := new(big.Int).Sub(reserve0, amount0Out)
-// 	balance1After := tradeX(balance0After, reserve0, reserve1, data)
-// 	swapAmount1In := new(big.Int).Add(balance1After, big.NewInt(1))
-// 	swapAmount1In.Sub(swapAmount1In, reserve1)
-// 	swapAmount1In.Mul(swapAmount1In, precison)
-// 	return CeilDiv(swapAmount1In, new(big.Int).Sub(precison, p.Info.SwapFee))
-// }
-
-var (
-	decimalsConverterUint256 = uint256.NewInt(0)
-	decimalsConverterInt256  = int256.NewInt(0)
-)
-
-func tradeY(yAfter, xBefore, yBefore *big.Int, data []byte) *big.Int {
-	// yAfterInt := new(big.Int).SetBytes(yAfter.Bytes())
-	// xBeforeInt := new(big.Int).SetBytes(xBefore.Bytes())
-	// yBeforeInt := new(big.Int).SetBytes(yBefore.Bytes())
-	// averagePriceInt := decodePriceInfo(data)
-
-	// xTradedInt := MulInt256(SubInt256(yAfterInt, yBeforeInt), decimalsConverterInt256)
-
-	// xAfterInt := SubInt256(xBeforeInt, NegFloorDiv(xTradedInt, averagePriceInt))
-
-	// return new(big.Int).SetBytes(xAfterInt.ToBig().Bytes())
-
-	return new(big.Int).SetUint64(0)
-}
-
-func tradeX(xAfter, xBefore, yBefore *big.Int, data []byte) *uint256.Int {
-	// xAfterInt := new(big.Int).SetBytes(xAfter.Bytes())
-	// xBeforeInt := new(big.Int).SetBytes(xBefore.Bytes())
-	// yBeforeInt := new(big.Int).SetBytes(yBefore.Bytes())
-	// averagePriceInt := decodePriceInfo(data)
-
-	// xTradedInt := MulInt256(SubInt256(xAfterInt, xBeforeInt), decimalsConverterInt256)
-
-	// yAfterInt := SubInt256(yBeforeInt, NegFloorDiv(xTradedInt, averagePriceInt))
-
-	// if yAfterInt.Cmp(new(int256.Int)) < 0 {
-	// 	panic(ErrT027)
-	// }
-
-	// return new(uint256.Int).SetBytes(yAfterInt.ToBig().Bytes())
-
-	return new(uint256.Int).SetUint64(0)
-}
-
-func decodePriceInfo(data []byte) *big.Int {
-	return new(big.Int).SetBytes(data)
-}
-
-func (p *PoolSimulator) Swap(amount0Out *big.Int, amount1Out *big.Int, to string, data []byte) (*pool.CalcAmountOutResult, error) {
-
-	// Step 2: Validate 'to' address
-	if to == "0x0000000000000000000000000000000000000000" {
-		return nil, fmt.Errorf("TP02: Invalid 'to' address")
-	}
-
+func (p *PoolSimulator) swap(amount0Out *uint256.Int, amount1Out *uint256.Int, data []byte) (*pool.CalcAmountOutResult, error) {
 	// Step 3: Validate output amounts
-	if !(amount0Out.Cmp(big.NewInt(0)) > 0 && amount1Out.Cmp(big.NewInt(0)) == 0) && !(amount1Out.Cmp(big.NewInt(0)) > 0 && amount0Out.Cmp(big.NewInt(0)) == 0) {
-		return nil, fmt.Errorf("TP31: Invalid output amounts")
+	if !(amount0Out.Cmp(uZero) > 0 && amount1Out.Cmp(uZero) == 0) && !(amount1Out.Cmp(uZero) > 0 && amount0Out.Cmp(uZero) == 0) {
+		return nil, ErrTP31
 	}
 
 	// Step 4: Get reserves
 	reserves := p.GetReserves()
 
-	reserve0 := reserves[0]
-	reserve1 := reserves[1]
+	reserve0 := ToUint256(reserves[0])
+	reserve1 := ToUint256(reserves[1])
 
 	// Step 5: Check reserve limits
 	if amount0Out.Cmp(reserve0) >= 0 || amount1Out.Cmp(reserve1) >= 0 {
-		return nil, fmt.Errorf("TP07: Amount exceeds reserves")
-	}
-
-	// Step 6: Perform the swap logic
-	tokens := p.GetTokens()
-
-	token0 := tokens[0]
-	token1 := tokens[1]
-
-	if to == token0 || to == token1 {
-		return nil, fmt.Errorf("TP2D: Invalid recipient address")
+		return nil, ErrTP07
 	}
 
 	// if amount0Out.Cmp(big.NewInt(0)) > 0 {
@@ -312,68 +162,154 @@ func (p *PoolSimulator) Swap(amount0Out *big.Int, amount1Out *big.Int, to string
 	// }
 
 	// Step 7: Get balances after swap
-	balance0, balance1, err := GetBalances(token0, token1)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to fetch balances: %v", err)
-	}
+	balance0, balance1 := reserve0, reserve1
 
-	if amount0Out.Cmp(big.NewInt(0)) > 0 {
+	swapFee := ToUint256(p.GetInfo().SwapFee)
+
+	var balance0After, balance1After *uint256.Int
+
+	if amount0Out.Cmp(uZero) > 0 {
 
 		if balance1.Cmp(reserve1) <= 0 {
-			return nil, fmt.Errorf("TP08: Balance1 is too low")
+			return nil, ErrTP08
 		}
 
-		amount1In := new(big.Int).Sub(balance1, reserve1)
+		amount1In := SubUint256(balance1, reserve1)
 
-		swapFee := p.GetInfo().SwapFee
+		fee1 := DivUint256(SubUint256(amount1In, swapFee), precison)
 
-		fee1 := new(big.Int).Div(new(big.Int).Sub(amount1In, swapFee), precison)
+		balance1After := SubUint256(balance1, fee1)
 
-		balance1After := new(big.Int).Sub(balance1, fee1)
-
-		balance0After := tradeY(balance1After, reserve0, reserve1, data)
+		balance0After, err := tradeY(balance1After, reserve0, reserve1, data)
+		if err != nil {
+			return nil, err
+		}
 
 		if balance0.Cmp(balance0After) < 0 {
-			return nil, fmt.Errorf("TP2E: Invalid balance after swap")
+			return nil, ErrTP2E
 		}
 
-		fee0 := new(big.Int).Sub(balance0, balance0After)
+		// fee0 := SubUint256(balance0, balance0After)
 
 	} else {
 		// Trading token0 for token1
 		if balance0.Cmp(reserve0) <= 0 {
-			return nil, fmt.Errorf("TP08: Balance0 is too low")
+			return nil, ErrTP08
 		}
 
-		amount0In := new(big.Int).Sub(balance0, reserve0)
+		amount0In := SubUint256(balance0, reserve0)
 
-		fee0 := calculateFee(amount0In)
-		balance0After := new(big.Int).Sub(balance0, fee0)
+		fee0 := DivUint256(MulUint256(amount0In, swapFee), precison)
+		balance0After := SubUint256(balance0, fee0)
 
 		// Call tradeX function from Oracle
-		balance1After := tradeX(balance0After, reserve0, reserve1, data)
-
-		if balance1.Cmp(balance1After) < 0 {
-			return nil, fmt.Errorf("TP2E: Invalid balance after swap")
+		var err error
+		balance1After, err = tradeX(balance0After, reserve0, reserve1, data)
+		if err != nil {
+			return nil, err
 		}
 
-		fee1 := new(big.Int).Sub(balance1, balance1After)
+		if balance1.Cmp(balance1After) < 0 {
+			return nil, ErrTP2E
+		}
+
+		// fee1 := SubUint256(balance1, balance1After)
 
 	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
-			Token:  p.GetTokens()[0],
-			Amount: amount0,
+			Token: p.GetTokens()[0],
+			// Amount: amount0,
 		},
 		Fee: &pool.TokenAmount{
-			Token:  p.GetTokens()[0],
-			Amount: feeToAmount0,
+			Token: p.GetTokens()[0],
+			// Amount: feeToAmount0,
 		},
 		Gas: p.gas.Swap,
 		SwapInfo: SwapInfo{
-			newReserveIn:  balance0After,
-			newReserveOut: balance1After,
+			newReserveIn:  ToInt256(balance0After),
+			newReserveOut: ToInt256(balance1After),
 		},
 	}, nil
+}
+
+func (p *PoolSimulator) getSwapAmount0Out(amount1In *uint256.Int, data []byte) (*uint256.Int, error) {
+	reserves := p.GetReserves()
+
+	reserve0 := ToUint256(reserves[0])
+	reserve1 := ToUint256(reserves[1])
+
+	swapFee := ToUint256(p.GetInfo().SwapFee)
+
+	fee := DivUint256(MulUint256(amount1In, swapFee), precison)
+
+	balanceAfter0, err := tradeY(
+		SubUint256(AddUint256(reserve1, amount1In), fee),
+		reserve0,
+		reserve1,
+		data,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return SubUint256(reserve0, balanceAfter0), nil
+}
+
+func (p *PoolSimulator) getSwapAmount1Out(amount0In *uint256.Int, data []byte) (*uint256.Int, error) {
+	reserves := p.GetReserves()
+
+	reserve0 := ToUint256(reserves[0])
+	reserve1 := ToUint256(reserves[1])
+
+	swapFee := ToUint256(p.GetInfo().SwapFee)
+
+	fee := DivUint256(MulUint256(amount0In, swapFee), precison)
+
+	balanceAfter1, err := tradeY(
+		SubUint256(AddUint256(reserve0, amount0In), fee),
+		reserve0,
+		reserve1,
+		data,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return SubUint256(reserve1, balanceAfter1), nil
+}
+
+func (p *PoolSimulator) getSwapAmount0In(amount1Out *uint256.Int, data []byte) (*uint256.Int, error) {
+	reserves := p.GetReserves()
+
+	reserve0 := ToUint256(reserves[0])
+	reserve1 := ToUint256(reserves[1])
+
+	swapFee := ToUint256(p.GetInfo().SwapFee)
+
+	balance1After := SubUint256(reserve1, amount1Out)
+	balance0After, err := tradeY(balance1After, reserve0, reserve1, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return CeilDivUint256(MulUint256(SubUint256(balance0After, reserve0), precison), SubUint256(precison, swapFee)), nil
+}
+
+func (p *PoolSimulator) getSwapAmount1In(amount0Out *uint256.Int, data []byte) (*uint256.Int, error) {
+	reserves := p.GetReserves()
+
+	reserve0 := ToUint256(reserves[0])
+	reserve1 := ToUint256(reserves[1])
+
+	swapFee := ToUint256(p.GetInfo().SwapFee)
+
+	balance0After := SubUint256(reserve0, amount0Out)
+	balance1After, err := tradeY(balance0After, reserve0, reserve1, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return CeilDivUint256(MulUint256(SubUint256(AddUint256(balance1After, uint256.NewInt(1)), reserve0), precison), SubUint256(precison, swapFee)), nil
 }

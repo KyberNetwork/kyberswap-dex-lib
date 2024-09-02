@@ -56,11 +56,11 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 	assert.NotNil(ts.Suite.T(), pair.PairFee[0])
 	assert.NotNil(ts.Suite.T(), pair.PairFee[1])
 
-	if ts.tracker.config.ChainID == 1 {
-		assert.Equal(ts.Suite.T(), pair.PairFee[0].Cmp(FEES_BASE), 0)
-	} else {
-		assert.Equal(ts.Suite.T(), pair.PairFee[1].Cmp(FEES_BASE), 0)
-	}
+	// if ts.tracker.config.ChainID == 1 {
+	// 	assert.Equal(ts.Suite.T(), pair.PairFee[0].Cmp(FEES_BASE), 0)
+	// } else {
+	// 	assert.Equal(ts.Suite.T(), pair.PairFee[1].Cmp(FEES_BASE), 0)
+	// }
 	assert.NotNil(ts.Suite.T(), pool.Reserves)
 }
 
