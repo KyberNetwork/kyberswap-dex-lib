@@ -159,8 +159,8 @@ func DivInt256(a, b *big.Int) *big.Int {
 func NegFloorDiv(a, b *big.Int) *big.Int {
 	c := DivInt256(a, b)
 
-	if (a.Cmp(new(big.Int)) < 0 && b.Cmp(new(big.Int)) > 0) ||
-		(a.Cmp(new(big.Int)) >= 0 && b.Cmp(new(big.Int)) < 0) {
+	if (a.Cmp(ZERO) >= 0 || b.Cmp(ZERO) <= 0) &&
+		(a.Cmp(ZERO) < 0 || b.Cmp(ZERO) >= 0) {
 		if a.Cmp(MulInt256(b, c)) != 0 {
 			return SubInt256(c, big.NewInt(1))
 		}

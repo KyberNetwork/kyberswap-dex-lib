@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -51,10 +52,10 @@ type (
 var now = time.Now
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	// var pair IntegralPair
-	// if err := json.Unmarshal([]byte(entityPool.Extra), &pair); err != nil {
-	// 	return nil, err
-	// }
+	var pair IntegralPair
+	if err := json.Unmarshal([]byte(entityPool.Extra), &pair); err != nil {
+		return nil, err
+	}
 
 	numTokens := len(entityPool.Tokens)
 	tokens := make([]string, numTokens)
@@ -77,9 +78,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			},
 		},
 		IntegralPair: IntegralPair{
-			// Reserve: pair.Reserve,
-			SwapFee:           uint256.NewInt(10 ^ 14),
-			DecimalsConverter: big.NewInt(1000000),
+			SwapFee:           pair.SwapFee,
+			DecimalsConverter: pair.DecimalsConverter,
+			AveragePrice:      pair.AveragePrice,
 		},
 		gas: defaultGas,
 	}, nil
@@ -91,24 +92,22 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, errors.New("----------")
 	}
 
-	data := big.NewInt(10).Bytes()
-
 	amountIn := ToUint256(param.TokenAmountIn.Amount)
 
 	switch param.TokenAmountIn.Token {
 	case tokens[0]:
-		amount1Out, err := p.getSwapAmount1Out(amountIn, data)
+		amount1Out, err := p.getSwapAmount1Out(amountIn)
 		if err != nil {
 			return nil, err
 		}
-		return p.swap(uZero, amount1Out, data)
+		return p.swap(uZero, amount1Out)
 
 	case tokens[1]:
-		amount0Out, err := p.getSwapAmount0Out(amountIn, data)
+		amount0Out, err := p.getSwapAmount0Out(amountIn)
 		if err != nil {
 			return nil, err
 		}
-		return p.swap(amount0Out, uZero, data)
+		return p.swap(amount0Out, uZero)
 
 	default:
 		return nil, errors.New("xxxxxxxxxx")
@@ -129,7 +128,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.Info.Reserves = []*big.Int{si.newReserveIn, si.newReserveOut}
 }
 
-func (p *PoolSimulator) swap(amount0Out *uint256.Int, amount1Out *uint256.Int, data []byte) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) swap(amount0Out *uint256.Int, amount1Out *uint256.Int) (*pool.CalcAmountOutResult, error) {
 	if !(amount0Out.Cmp(uZero) > 0 && amount1Out.Cmp(uZero) == 0) && !(amount1Out.Cmp(uZero) > 0 && amount0Out.Cmp(uZero) == 0) {
 		return nil, ErrTP31
 	}
@@ -162,7 +161,7 @@ func (p *PoolSimulator) swap(amount0Out *uint256.Int, amount1Out *uint256.Int, d
 		balance1After = SubUint256(balance1, fee1)
 
 		var err error
-		balance0After, err = p.tradeY(balance1After, reserve0, reserve1, data)
+		balance0After, err = p.tradeY(balance1After, reserve0, reserve1)
 		if err != nil {
 			return nil, err
 		}
@@ -201,7 +200,7 @@ func (p *PoolSimulator) swap(amount0Out *uint256.Int, amount1Out *uint256.Int, d
 	balance0After = SubUint256(balance0, fee0)
 
 	var err error
-	balance1After, err = p.tradeX(balance0After, reserve0, reserve1, data)
+	balance1After, err = p.tradeX(balance0After, reserve0, reserve1)
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +229,7 @@ func (p *PoolSimulator) swap(amount0Out *uint256.Int, amount1Out *uint256.Int, d
 
 }
 
-func (p *PoolSimulator) getSwapAmount0Out(amount1In *uint256.Int, data []byte) (*uint256.Int, error) {
+func (p *PoolSimulator) getSwapAmount0Out(amount1In *uint256.Int) (*uint256.Int, error) {
 	reserves := p.GetReserves()
 
 	reserve0 := ToUint256(reserves[0])
@@ -244,7 +243,6 @@ func (p *PoolSimulator) getSwapAmount0Out(amount1In *uint256.Int, data []byte) (
 		SubUint256(AddUint256(reserve1, amount1In), fee),
 		reserve0,
 		reserve1,
-		data,
 	)
 	if err != nil {
 		return nil, err
@@ -253,7 +251,7 @@ func (p *PoolSimulator) getSwapAmount0Out(amount1In *uint256.Int, data []byte) (
 	return SubUint256(reserve0, balance0After), nil
 }
 
-func (p *PoolSimulator) getSwapAmount1Out(amount0In *uint256.Int, data []byte) (*uint256.Int, error) {
+func (p *PoolSimulator) getSwapAmount1Out(amount0In *uint256.Int) (*uint256.Int, error) {
 	reserves := p.GetReserves()
 
 	reserve0 := ToUint256(reserves[0])
@@ -267,7 +265,6 @@ func (p *PoolSimulator) getSwapAmount1Out(amount0In *uint256.Int, data []byte) (
 		SubUint256(AddUint256(reserve0, amount0In), fee),
 		reserve0,
 		reserve1,
-		data,
 	)
 	if err != nil {
 		return nil, err
@@ -276,14 +273,14 @@ func (p *PoolSimulator) getSwapAmount1Out(amount0In *uint256.Int, data []byte) (
 	return SubUint256(reserve1, balance1After), nil
 }
 
-func (p *PoolSimulator) getSwapAmount0In(amount1Out *uint256.Int, data []byte) (*uint256.Int, error) {
+func (p *PoolSimulator) getSwapAmount0In(amount1Out *uint256.Int) (*uint256.Int, error) {
 	reserves := p.GetReserves()
 
 	reserve0 := ToUint256(reserves[0])
 	reserve1 := ToUint256(reserves[1])
 
 	balance1After := SubUint256(reserve1, amount1Out)
-	balance0After, err := p.tradeY(balance1After, reserve0, reserve1, data)
+	balance0After, err := p.tradeY(balance1After, reserve0, reserve1)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +288,7 @@ func (p *PoolSimulator) getSwapAmount0In(amount1Out *uint256.Int, data []byte) (
 	return CeilDivUint256(MulUint256(SubUint256(balance0After, reserve0), precison), SubUint256(precison, p.IntegralPair.SwapFee)), nil
 }
 
-func (p *PoolSimulator) getSwapAmount1In(amount0Out *uint256.Int, data []byte) (*uint256.Int, error) {
+func (p *PoolSimulator) getSwapAmount1In(amount0Out *uint256.Int) (*uint256.Int, error) {
 	reserves := p.GetReserves()
 
 	reserve0 := ToUint256(reserves[0])
@@ -300,7 +297,7 @@ func (p *PoolSimulator) getSwapAmount1In(amount0Out *uint256.Int, data []byte) (
 	swapFee := p.IntegralPair.SwapFee
 
 	balance0After := SubUint256(reserve0, amount0Out)
-	balance1After, err := p.tradeY(balance0After, reserve0, reserve1, data)
+	balance1After, err := p.tradeY(balance0After, reserve0, reserve1)
 	if err != nil {
 		return nil, err
 	}

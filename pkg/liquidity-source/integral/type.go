@@ -3,15 +3,18 @@ package integral
 import (
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 )
 
 type IntegralPair struct {
 	DecimalsConverter *big.Int
-	Reserve           [2]*big.Int
 	SwapFee           *uint256.Int
-	Oracle            common.Address
+	AveragePrice      *uint256.Int
+}
+
+type PriceInfo struct {
+	PriceAccumulator *big.Int
+	PriceTimestamp   *big.Int
 }
 
 type PairFee struct {

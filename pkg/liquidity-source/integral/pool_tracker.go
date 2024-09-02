@@ -2,6 +2,7 @@ package integral
 
 import (
 	"context"
+	"log"
 	"math/big"
 	"time"
 
@@ -40,6 +41,8 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		reserves          [2]*big.Int
 		swapFee           = big.NewInt(0)
 		decimalsConverter = big.NewInt(0)
+		priceInfo         PriceInfo
+		averagePrice      = big.NewInt(0)
 
 		token0 common.Address
 		token1 common.Address
@@ -101,6 +104,32 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		Params: nil,
 	}, []interface{}{&decimalsConverter})
 
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    oracleABI,
+		Target: oracle.Hex(),
+		Method: oracleGetPriceInfoMethod,
+		Params: nil,
+	}, []interface{}{&priceInfo})
+
+	_, err = rpcRequest.TryAggregate()
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"error":       err,
+		}).Errorf("%s: failed to process tryAggregate for pool", u.config.DexID)
+		return entity.Pool{}, err
+	}
+
+	rpcRequest = u.ethrpcClient.NewRequest()
+	rpcRequest.SetContext(ctx)
+
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    oracleABI,
+		Target: oracle.Hex(),
+		Method: oracleGetAveragePriceMethod,
+		Params: []interface{}{priceInfo.PriceAccumulator, priceInfo.PriceTimestamp},
+	}, []interface{}{&averagePrice})
+
 	_, err = rpcRequest.TryAggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -111,9 +140,9 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}
 
 	extraBytes, err := json.Marshal(IntegralPair{
-		Reserve:           reserves,
 		SwapFee:           ToUint256(swapFee),
 		DecimalsConverter: decimalsConverter,
+		AveragePrice:      ToUint256(averagePrice),
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -132,6 +161,8 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}
 	p.Reserves = entity.PoolReserves([]string{reserves[0].String(), reserves[1].String()})
 	p.SwapFee, _ = swapFee.Float64()
+
+	log.Fatalf("------------------- %+v\n", p.Extra)
 
 	return p, nil
 }

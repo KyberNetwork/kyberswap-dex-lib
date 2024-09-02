@@ -26,4 +26,6 @@ var (
 	libraryGetReservesMethod = "getReserves"
 
 	oracleDecimalsConverterMethod = "decimalsConverter"
+	oracleGetPriceInfoMethod      = "getPriceInfo"
+	oracleGetAveragePriceMethod   = "getAveragePrice"
 )
