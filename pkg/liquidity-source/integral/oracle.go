@@ -1,10 +1,12 @@
 package integral
 
 import (
+	"log"
+
 	"github.com/holiman/uint256"
 )
 
-func tradeY(yAfter, xBefore, yBefore *uint256.Int, data []byte) (*uint256.Int, error) {
+func (p *PoolSimulator) tradeY(yAfter, xBefore, yBefore *uint256.Int, data []byte) (*uint256.Int, error) {
 	yAfterInt := ToInt256(yAfter)
 	xBeforeInt := ToInt256(xBefore)
 	yBeforeInt := ToInt256(yBefore)
@@ -12,7 +14,7 @@ func tradeY(yAfter, xBefore, yBefore *uint256.Int, data []byte) (*uint256.Int, e
 
 	xTradedInt := MulInt256(SubInt256(yAfterInt, yBeforeInt), averagePriceInt)
 
-	xAfterInt := SubInt256(xBeforeInt, NegFloorDiv(xTradedInt, decimalsConverter))
+	xAfterInt := SubInt256(xBeforeInt, NegFloorDiv(xTradedInt, p.DecimalsConverter))
 
 	if xAfterInt.Cmp(ZERO) < 0 {
 		return nil, ErrT028
@@ -21,7 +23,7 @@ func tradeY(yAfter, xBefore, yBefore *uint256.Int, data []byte) (*uint256.Int, e
 	return ToUint256(xAfterInt), nil
 }
 
-func tradeX(xAfter, xBefore, yBefore *uint256.Int, data []byte) (*uint256.Int, error) {
+func (p *PoolSimulator) tradeX(xAfter, xBefore, yBefore *uint256.Int, data []byte) (*uint256.Int, error) {
 	xAfterInt := ToInt256(xAfter)
 	xBeforeInt := ToInt256(xBefore)
 	yBeforeInt := ToInt256(yBefore)
@@ -29,7 +31,9 @@ func tradeX(xAfter, xBefore, yBefore *uint256.Int, data []byte) (*uint256.Int, e
 
 	yTradedInt := MulInt256(SubInt256(xAfterInt, xBeforeInt), averagePriceInt)
 
-	yAfterInt := SubInt256(yBeforeInt, NegFloorDiv(yTradedInt, decimalsConverter))
+	yAfterInt := SubInt256(yBeforeInt, NegFloorDiv(yTradedInt, p.DecimalsConverter))
+
+	log.Fatalf("----- %+v--- %+v\n", yBeforeInt, NegFloorDiv(yTradedInt, p.DecimalsConverter))
 
 	if yAfterInt.Cmp(ZERO) < 0 {
 		return nil, ErrT027

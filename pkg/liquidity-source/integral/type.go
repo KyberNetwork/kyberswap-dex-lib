@@ -8,13 +8,10 @@ import (
 )
 
 type IntegralPair struct {
-	Reserve [2]*uint256.Int
-	PairFee [2]*uint256.Int
-
-	MintFee *uint256.Int
-	BurnFee *uint256.Int
-	SwapFee *uint256.Int
-	Oracle  common.Address
+	DecimalsConverter *big.Int
+	Reserve           [2]*big.Int
+	SwapFee           *uint256.Int
+	Oracle            common.Address
 }
 
 type PairFee struct {

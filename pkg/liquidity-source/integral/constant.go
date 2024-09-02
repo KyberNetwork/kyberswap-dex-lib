@@ -16,8 +16,6 @@ var (
 	pairToken0Method = "token0"
 	pairToken1Method = "token1"
 
-	pairMintFeeMethod = "mintFee"
-	pairBurnFeeMethod = "burnFee"
 	pairSwapFeeMethod = "swapFee"
 
 	pairOracleMethod = "oracle"
@@ -25,7 +23,7 @@ var (
 	factoryAllPairsMethod       = "allPairs"
 	factoryAllPairsLengthMethod = "allPairsLength"
 
-	libraryGetBalancesMethod = "getBalances"
 	libraryGetReservesMethod = "getReserves"
-	libraryGetFeesMethod     = "getFees"
+
+	oracleDecimalsConverterMethod = "decimalsConverter"
 )

@@ -9,13 +9,11 @@ import (
 )
 
 var (
-	decimalsConverter = big.NewInt(0)
-	uZero             = uint256.NewInt(0)
-	ZERO              = big.NewInt(0)
-	_INT256_MIN       = new(big.Int).Neg(new(big.Int).Lsh(big.NewInt(1), 255)) // -2^255
+	uZero       = uint256.NewInt(0)
+	ZERO        = big.NewInt(0)
+	_INT256_MIN = new(big.Int).Neg(new(big.Int).Lsh(big.NewInt(1), 255)) // -2^255
 
 	ErrTP2E = errors.New("TP2E")
-	// ErrTP2E = errors.New("TP2E")
 	ErrTP07 = errors.New("TP07")
 	ErrTP08 = errors.New("TP08")
 	ErrTP31 = errors.New("TP31")
@@ -107,8 +105,8 @@ func ToInt256(n *uint256.Int) *big.Int {
 func AddInt256(a, b *big.Int) *big.Int {
 	c := new(big.Int).Add(a, b)
 
-	if (b.Cmp(new(big.Int)) < 0 && c.Cmp(a) < 0) ||
-		(b.Cmp(new(big.Int)) >= 0 && c.Cmp(a) >= 0) {
+	if (b.Cmp(ZERO) < 0 && c.Cmp(a) < 0) &&
+		(b.Cmp(ZERO) >= 0 && c.Cmp(a) >= 0) {
 		panic(ErrSM4D)
 	}
 
@@ -118,8 +116,10 @@ func AddInt256(a, b *big.Int) *big.Int {
 func SubInt256(a, b *big.Int) *big.Int {
 	c := new(big.Int).Sub(a, b)
 
-	if (b.Cmp(new(big.Int)) < 0 && c.Cmp(a) > 0) ||
-		(b.Cmp(new(big.Int)) >= 0 && c.Cmp(a) <= 0) {
+	// log.Fatalf("-------- %+v   %+v", a, b)
+
+	if (b.Cmp(ZERO) < 0 || c.Cmp(a) > 0) &&
+		(b.Cmp(ZERO) >= 0 && c.Cmp(a) <= 0) {
 		panic(ErrSM11)
 	}
 
@@ -145,7 +145,7 @@ func MulInt256(a, b *big.Int) *big.Int {
 }
 
 func DivInt256(a, b *big.Int) *big.Int {
-	if a.Cmp(ZERO) == 0 {
+	if b.Cmp(ZERO) == 0 {
 		panic(ErrSM43)
 	}
 

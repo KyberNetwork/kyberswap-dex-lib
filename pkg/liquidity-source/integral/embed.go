@@ -10,3 +10,6 @@ var twapFactoryJSON []byte
 
 //go:embed abis/TwapPair.json
 var twapPairJSON []byte
+
+//go:embed abis/ITwapOracle.json
+var twapOracleJSON []byte

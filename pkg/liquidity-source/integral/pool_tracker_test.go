@@ -3,7 +3,6 @@ package integral
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -42,19 +41,20 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 }
 
 func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
-	pool, _ := ts.tracker.GetNewPoolState(context.Background(), entity.Pool{
+	pool, err := ts.tracker.GetNewPoolState(context.Background(), entity.Pool{
 		Address: "0x2fe16Dd18bba26e457B7dD2080d5674312b026a2",
 	}, pool.GetNewPoolStateParams{})
+	if err != nil {
+		panic(err)
+	}
 
 	var pair IntegralPair
 	if err := json.Unmarshal([]byte(pool.Extra), &pair); err != nil {
 		assert.Fail(ts.Suite.T(), "Failed to unmarshal pool extra %e", err)
 	}
 
-	log.Fatalf("-----------%+v\n", pool)
-
-	assert.NotNil(ts.Suite.T(), pair.PairFee[0])
-	assert.NotNil(ts.Suite.T(), pair.PairFee[1])
+	assert.NotNil(ts.Suite.T(), pair.SwapFee)
+	assert.NotNil(ts.Suite.T(), pair.SwapFee)
 
 	// if ts.tracker.config.ChainID == 1 {
 	// 	assert.Equal(ts.Suite.T(), pair.PairFee[0].Cmp(FEES_BASE), 0)

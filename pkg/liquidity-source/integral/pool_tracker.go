@@ -37,14 +37,12 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	rpcRequest.SetContext(ctx)
 
 	var (
-		reserve [2]*big.Int
-		pairFee [2]*big.Int
+		reserves          [2]*big.Int
+		swapFee           = big.NewInt(0)
+		decimalsConverter = big.NewInt(0)
 
-		mintFee *big.Int
-		burnFee *big.Int
-		swapFee *big.Int
-
-		// balances [2]*big.Int
+		token0 common.Address
+		token1 common.Address
 
 		oracle common.Address
 	)
@@ -54,28 +52,7 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		Target: p.Address,
 		Method: libraryGetReservesMethod,
 		Params: nil,
-	}, []interface{}{&reserve})
-
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    reserveABI,
-		Target: p.Address,
-		Method: libraryGetFeesMethod,
-		Params: nil,
-	}, []interface{}{&pairFee})
-
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    pairABI,
-		Target: p.Address,
-		Method: pairMintFeeMethod,
-		Params: nil,
-	}, []interface{}{&mintFee})
-
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    pairABI,
-		Target: p.Address,
-		Method: pairBurnFeeMethod,
-		Params: nil,
-	}, []interface{}{&burnFee})
+	}, []interface{}{&reserves})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
@@ -91,12 +68,19 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		Params: nil,
 	}, []interface{}{&oracle})
 
-	// rpcRequest.AddCall(&ethrpc.Call{
-	// 	ABI:    pairABI,
-	// 	Target: p.Address,
-	// 	Method: libraryGetBalancesMethod,
-	// 	Params: []string{},
-	// }, []interface{}{&oracle})
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    pairABI,
+		Target: p.Address,
+		Method: pairToken0Method,
+		Params: nil,
+	}, []interface{}{&token0})
+
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    pairABI,
+		Target: p.Address,
+		Method: pairToken1Method,
+		Params: nil,
+	}, []interface{}{&token1})
 
 	_, err := rpcRequest.TryAggregate()
 	if err != nil {
@@ -107,12 +91,29 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		return entity.Pool{}, err
 	}
 
+	rpcRequest = u.ethrpcClient.NewRequest()
+	rpcRequest.SetContext(ctx)
+
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    oracleABI,
+		Target: oracle.Hex(),
+		Method: oracleDecimalsConverterMethod,
+		Params: nil,
+	}, []interface{}{&decimalsConverter})
+
+	_, err = rpcRequest.TryAggregate()
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"poolAddress": p.Address,
+			"error":       err,
+		}).Errorf("%s: failed to process tryAggregate for pool", u.config.DexID)
+		return entity.Pool{}, err
+	}
+
 	extraBytes, err := json.Marshal(IntegralPair{
-		// PairFee: ToUint256(pairFee),
-		MintFee: ToUint256(mintFee),
-		BurnFee: ToUint256(burnFee),
-		SwapFee: ToUint256(swapFee),
-		Oracle:  oracle,
+		Reserve:           reserves,
+		SwapFee:           ToUint256(swapFee),
+		DecimalsConverter: decimalsConverter,
 	})
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -125,7 +126,12 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
-	p.Reserves = entity.PoolReserves([]string{reserve[0].String(), reserve[1].String()})
+	p.Tokens = []*entity.PoolToken{
+		{Address: token0.Hex()},
+		{Address: token1.Hex()},
+	}
+	p.Reserves = entity.PoolReserves([]string{reserves[0].String(), reserves[1].String()})
+	p.SwapFee, _ = swapFee.Float64()
 
 	return p, nil
 }

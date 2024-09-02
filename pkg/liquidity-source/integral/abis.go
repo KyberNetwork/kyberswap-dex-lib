@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	oracleABI  abi.ABI
 	reserveABI abi.ABI
 	pairABI    abi.ABI
 	factoryABI abi.ABI
@@ -25,6 +26,9 @@ func init() {
 		},
 		{
 			&factoryABI, twapFactoryJSON,
+		},
+		{
+			&oracleABI, twapOracleJSON,
 		},
 	}
 
