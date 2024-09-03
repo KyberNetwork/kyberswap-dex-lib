@@ -1,11 +1,27 @@
 package vaultT1
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 type SwapPath struct {
 	Protocol common.Address `json:"protocol"`
 	TokenIn  common.Address `json:"tokenIn"`
 	TokenOut common.Address `json:"tokenOut"`
+}
+
+type SwapData struct {
+	InAmt      *big.Int `json:"inAmt"`
+	OutAmt     *big.Int `json:"outAmt"`
+	WithAbsorb bool     `json:"withAbsorb"`
+	Ratio      *big.Int `json:"ratio"`
+}
+
+type Swap struct {
+	Path SwapPath `json:"path"`
+	Data SwapData `json:"data"`
 }
 
 type PoolMeta struct {

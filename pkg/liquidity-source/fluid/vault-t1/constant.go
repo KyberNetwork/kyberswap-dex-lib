@@ -14,10 +14,10 @@ var vaultLiquidationResolver = map[valueobject.ChainID]string{
 
 const (
 	// VaultLiquidationResolver methods
-	VLRMethodGetAllSwapPaths = "getAllSwapPaths"
+	VLRMethodGetAllSwapPaths    = "getAllSwapPaths"
+	VLRMethodGetSwapForProtocol = "getSwapForProtocol"
 
 	// ERC20 Token methods
-
 	TokenMethodDecimals = "decimals"
 	TokenMethodSymbol   = "symbol"
 	TokenMethodName     = "name"
