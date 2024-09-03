@@ -2,7 +2,6 @@ package integral
 
 import (
 	"context"
-	"log"
 	"math/big"
 	"time"
 
@@ -98,8 +97,6 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	p.Reserves = entity.PoolReserves([]string{reserves[0].String(), reserves[1].String()})
 
 	logger.Infof("%s: Pool state updated successfully (address: %s)", u.config.DexID, p.Address)
-
-	log.Fatalf("--------%+v\n, %+v\n", extraData, p.Reserves)
 
 	return p, nil
 }
