@@ -1,7 +1,6 @@
 package integral
 
 import (
-	"log"
 	"math/big"
 
 	"github.com/goccy/go-json"
@@ -62,14 +61,14 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		if err != nil {
 			return nil, err
 		}
-		return p.swap(uZERO, amount1Out)
+		return p.swap(amountIn, uZERO, amount1Out)
 
 	case tokens[1]:
 		amount0Out, err := p.getSwapAmount0Out(amountIn)
 		if err != nil {
 			return nil, err
 		}
-		return p.swap(amount0Out, uZERO)
+		return p.swap(amountIn, amount0Out, uZERO)
 
 	default:
 		return nil, ErrInvalidTokenIn
@@ -87,15 +86,14 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	p.Info.Reserves = []*big.Int{si.newReserveIn, si.newReserveOut}
+	p.Info.Reserves = []*big.Int{si.newReserve0, si.newReserve1}
 }
 
-func (p *PoolSimulator) swap(amount0Out *uint256.Int, amount1Out *uint256.Int) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) swap(amountIn, amount0Out, amount1Out *uint256.Int) (*pool.CalcAmountOutResult, error) {
 	if !(amount0Out.Cmp(uZERO) > 0 && amount1Out.Cmp(uZERO) == 0) && !(amount1Out.Cmp(uZERO) > 0 && amount0Out.Cmp(uZERO) == 0) {
 		return nil, ErrTP31
 	}
 
-	tokens := p.GetTokens()
 	reserves := p.GetReserves()
 
 	reserve0 := ToUint256(reserves[0])
@@ -105,21 +103,25 @@ func (p *PoolSimulator) swap(amount0Out *uint256.Int, amount1Out *uint256.Int) (
 		return nil, ErrTP07
 	}
 
-	balance0, balance1 := reserve0, reserve1
+	tokens := p.GetTokens()
+	token0 := tokens[0]
+	token1 := tokens[1]
 
 	swapFee := p.IntegralPair.SwapFee
 
+	var balance0, balance1 *uint256.Int
 	var balance0After, balance1After *uint256.Int
 
+	// trading token1 for token0
 	if amount0Out.Cmp(uZERO) > 0 {
+		balance0 = reserve0
+		balance1 = AddUint256(reserve1, amountIn)
+
 		if balance1.Cmp(reserve1) <= 0 {
 			return nil, ErrTP08
 		}
 
-		amount1In := SubUint256(balance1, reserve1)
-
-		fee1 := DivUint256(SubUint256(amount1In, swapFee), precison)
-
+		fee1 := DivUint256(SubUint256(amountIn, swapFee), precison)
 		balance1After = SubUint256(balance1, fee1)
 
 		var err error
@@ -136,29 +138,30 @@ func (p *PoolSimulator) swap(amount0Out *uint256.Int, amount1Out *uint256.Int) (
 
 		return &pool.CalcAmountOutResult{
 			TokenAmountOut: &pool.TokenAmount{
-				Token:  tokens[0],
+				Token:  token0,
 				Amount: ToInt256(amount0Out),
 			},
 			Fee: &pool.TokenAmount{
-				Token:  tokens[0],
+				Token:  token0,
 				Amount: ToInt256(fee0),
 			},
 			Gas: p.gas.Swap,
 			SwapInfo: SwapInfo{
-				newReserveIn:  ToInt256(balance0After),
-				newReserveOut: ToInt256(balance1After),
+				newReserve0: ToInt256(balance0After),
+				newReserve1: ToInt256(balance1After),
 			},
 		}, nil
 	}
 
+	// trading token0 for token1
+	balance0 = AddUint256(reserve0, amountIn)
+	balance1 = reserve1
+
 	if balance0.Cmp(reserve0) <= 0 {
-		log.Fatalf("---------- %+v       %+v", balance0, reserve0)
 		return nil, ErrTP08
 	}
 
-	amount0In := SubUint256(balance0, reserve0)
-
-	fee0 := DivUint256(MulUint256(amount0In, swapFee), precison)
+	fee0 := DivUint256(MulUint256(amountIn, swapFee), precison)
 	balance0After = SubUint256(balance0, fee0)
 
 	var err error
@@ -175,20 +178,19 @@ func (p *PoolSimulator) swap(amount0Out *uint256.Int, amount1Out *uint256.Int) (
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokens[1],
+			Token:  token1,
 			Amount: ToInt256(amount1Out),
 		},
 		Fee: &pool.TokenAmount{
-			Token:  tokens[1],
+			Token:  token1,
 			Amount: ToInt256(fee1),
 		},
 		Gas: p.gas.Swap,
 		SwapInfo: SwapInfo{
-			newReserveIn:  ToInt256(balance1After),
-			newReserveOut: ToInt256(balance0After),
+			newReserve0: ToInt256(balance0After),
+			newReserve1: ToInt256(balance1After),
 		},
 	}, nil
-
 }
 
 func (p *PoolSimulator) getSwapAmount0Out(amount1In *uint256.Int) (*uint256.Int, error) {
@@ -256,13 +258,11 @@ func (p *PoolSimulator) getSwapAmount1In(amount0Out *uint256.Int) (*uint256.Int,
 	reserve0 := ToUint256(reserves[0])
 	reserve1 := ToUint256(reserves[1])
 
-	swapFee := p.IntegralPair.SwapFee
-
 	balance0After := SubUint256(reserve0, amount0Out)
 	balance1After, err := p.tradeY(balance0After, reserve0, reserve1)
 	if err != nil {
 		return nil, err
 	}
 
-	return CeilDivUint256(MulUint256(SubUint256(AddUint256(balance1After, uint256.NewInt(1)), reserve0), precison), SubUint256(precison, swapFee)), nil
+	return CeilDivUint256(MulUint256(SubUint256(AddUint256(balance1After, uint256.NewInt(1)), reserve0), precison), SubUint256(precison, p.IntegralPair.SwapFee)), nil
 }

@@ -2,6 +2,7 @@ package integral
 
 import (
 	"context"
+	"log"
 	"math/big"
 	"time"
 
@@ -32,7 +33,8 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	logger.Infof("%s: Start getting new state of pool (address: %s)", u.config.DexID, p.Address)
 
 	var (
-		reserves          [2]*big.Int
+		reserves [2]*big.Int
+
 		swapFee           = big.NewInt(0)
 		decimalsConverter = big.NewInt(0)
 		priceInfo         PriceInfo
@@ -94,9 +96,10 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		{Address: token1.Hex()},
 	}
 	p.Reserves = entity.PoolReserves([]string{reserves[0].String(), reserves[1].String()})
-	p.SwapFee, _ = swapFee.Float64()
 
 	logger.Infof("%s: Pool state updated successfully (address: %s)", u.config.DexID, p.Address)
+
+	log.Fatalf("--------%+v\n, %+v\n", extraData, p.Reserves)
 
 	return p, nil
 }

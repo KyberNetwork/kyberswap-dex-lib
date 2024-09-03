@@ -34,7 +34,9 @@ var (
 	pairToken0Method  = "token0"
 	pairToken1Method  = "token1"
 	pairSwapFeeMethod = "swapFee"
-	pairOracleMethod  = "oracle"
+	// pairMintFeeMethod = "mintFee"
+	// pairBurnFeeMethod = "burnFee"
+	pairOracleMethod = "oracle"
 
 	// factory methods
 	factoryAllPairsMethod       = "allPairs"

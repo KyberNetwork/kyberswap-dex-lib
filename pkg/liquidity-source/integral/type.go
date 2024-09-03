@@ -31,6 +31,6 @@ type PriceInfo struct {
 }
 
 type SwapInfo struct {
-	newReserveIn  *big.Int
-	newReserveOut *big.Int
+	newReserve0 *big.Int
+	newReserve1 *big.Int
 }

@@ -16,18 +16,17 @@ func TestCalcAmountOut(t *testing.T) {
 	t.Run("1. should return OK", func(t *testing.T) {
 
 		extraBytes, err := json.Marshal(IntegralPair{
-			SwapFee:           uint256.NewInt(10 ^ 14),
+			SwapFee:           uint256.NewInt(100000000000000),
 			DecimalsConverter: big.NewInt(1000000),
-			AveragePrice:      uint256.NewInt(399733926911723),
+			AveragePrice:      uint256.NewInt(408992982474454),
 		})
 		require.Nil(t, err)
 
 		var pool = entity.Pool{
 			Address: "",
-			SwapFee: 0.0001,
 			Reserves: entity.PoolReserves{
-				"258594532323",
-				"210054008990797983557",
+				"62091590089",
+				"288695420239374028469",
 			},
 			Tokens: []*entity.PoolToken{
 				{Address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"},
