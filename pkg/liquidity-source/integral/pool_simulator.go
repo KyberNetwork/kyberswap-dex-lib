@@ -1,9 +1,8 @@
 package integral
 
 import (
-	"errors"
+	"log"
 	"math/big"
-	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -13,43 +12,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
 )
-
-var (
-	ErrEmptyPriceLevels      = errors.New("empty price levels")
-	ErrInsufficientLiquidity = errors.New("insufficient liquidity")
-	ErrPoolSwapped           = errors.New("pool swapped")
-	ErrOutOfLiquidity        = errors.New("out of liquidity")
-	ErrOverflow              = errors.New("overflow")
-)
-
-type (
-	PoolSimulator struct {
-		pool.Pool
-		IntegralPair
-		gas Gas
-	}
-
-	MetaInfo struct {
-		Timestamp int64 `json:"timestamp"`
-	}
-
-	PriceLevel struct {
-		Price float64 `json:"price"`
-		Level float64 `json:"level"`
-	}
-
-	Gas struct {
-		Swap int64
-	}
-
-	PoolExtra struct {
-		BaseToQuotePriceLevels []PriceLevel `json:"baseToQuotePriceLevels"`
-		QuoteToBasePriceLevels []PriceLevel `json:"quoteToBasePriceLevels"`
-		PriceTolerance         uint         `json:"priceTolerance"`
-	}
-)
-
-var now = time.Now
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var pair IntegralPair
@@ -89,7 +51,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokens := p.GetTokens()
 	if len(tokens) != 2 {
-		return nil, errors.New("----------")
+		return nil, ErrTokenNotFound
 	}
 
 	amountIn := ToUint256(param.TokenAmountIn.Amount)
@@ -100,17 +62,17 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		if err != nil {
 			return nil, err
 		}
-		return p.swap(uZero, amount1Out)
+		return p.swap(uZERO, amount1Out)
 
 	case tokens[1]:
 		amount0Out, err := p.getSwapAmount0Out(amountIn)
 		if err != nil {
 			return nil, err
 		}
-		return p.swap(amount0Out, uZero)
+		return p.swap(amount0Out, uZERO)
 
 	default:
-		return nil, errors.New("xxxxxxxxxx")
+		return nil, ErrInvalidTokenIn
 	}
 }
 
@@ -129,7 +91,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) swap(amount0Out *uint256.Int, amount1Out *uint256.Int) (*pool.CalcAmountOutResult, error) {
-	if !(amount0Out.Cmp(uZero) > 0 && amount1Out.Cmp(uZero) == 0) && !(amount1Out.Cmp(uZero) > 0 && amount0Out.Cmp(uZero) == 0) {
+	if !(amount0Out.Cmp(uZERO) > 0 && amount1Out.Cmp(uZERO) == 0) && !(amount1Out.Cmp(uZERO) > 0 && amount0Out.Cmp(uZERO) == 0) {
 		return nil, ErrTP31
 	}
 
@@ -149,7 +111,7 @@ func (p *PoolSimulator) swap(amount0Out *uint256.Int, amount1Out *uint256.Int) (
 
 	var balance0After, balance1After *uint256.Int
 
-	if amount0Out.Cmp(uZero) > 0 {
+	if amount0Out.Cmp(uZERO) > 0 {
 		if balance1.Cmp(reserve1) <= 0 {
 			return nil, ErrTP08
 		}
@@ -187,12 +149,12 @@ func (p *PoolSimulator) swap(amount0Out *uint256.Int, amount1Out *uint256.Int) (
 				newReserveOut: ToInt256(balance1After),
 			},
 		}, nil
-
 	}
-	// if balance0.Cmp(reserve0) <= 0 {
-	// 	log.Fatalf("---------- %+v       %+v", balance0, reserve0)
-	// 	return nil, ErrTP08
-	// }
+
+	if balance0.Cmp(reserve0) <= 0 {
+		log.Fatalf("---------- %+v       %+v", balance0, reserve0)
+		return nil, ErrTP08
+	}
 
 	amount0In := SubUint256(balance0, reserve0)
 

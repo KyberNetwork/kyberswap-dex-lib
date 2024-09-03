@@ -2,7 +2,6 @@ package integral
 
 import (
 	"context"
-	"log"
 	"math/big"
 	"time"
 
@@ -30,12 +29,7 @@ func NewPoolTracker(
 }
 
 func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
-	logger.WithFields(
-		logger.Fields{"poolAddress": p.Address}).Infof(
-		"%s: Start getting new state of pool", u.config.DexID)
-
-	rpcRequest := u.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
+	logger.Infof("%s: Start getting new state of pool (address: %s)", u.config.DexID, p.Address)
 
 	var (
 		reserves          [2]*big.Int
@@ -44,112 +38,52 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		priceInfo         PriceInfo
 		averagePrice      = big.NewInt(0)
 
-		token0 common.Address
-		token1 common.Address
-
-		oracle common.Address
+		token0, token1, oracle common.Address
 	)
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    reserveABI,
-		Target: p.Address,
-		Method: libraryGetReservesMethod,
-		Params: nil,
-	}, []interface{}{&reserves})
+	rpcRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest.AddCall(&ethrpc.Call{ABI: reserveABI, Target: p.Address, Method: libraryGetReservesMethod}, []interface{}{&reserves})
+	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairSwapFeeMethod}, []interface{}{&swapFee})
+	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairOracleMethod}, []interface{}{&oracle})
+	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairToken0Method}, []interface{}{&token0})
+	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairToken1Method}, []interface{}{&token1})
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    pairABI,
-		Target: p.Address,
-		Method: pairSwapFeeMethod,
-		Params: nil,
-	}, []interface{}{&swapFee})
-
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    pairABI,
-		Target: p.Address,
-		Method: pairOracleMethod,
-		Params: nil,
-	}, []interface{}{&oracle})
-
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    pairABI,
-		Target: p.Address,
-		Method: pairToken0Method,
-		Params: nil,
-	}, []interface{}{&token0})
-
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    pairABI,
-		Target: p.Address,
-		Method: pairToken1Method,
-		Params: nil,
-	}, []interface{}{&token1})
-
-	_, err := rpcRequest.TryAggregate()
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-			"error":       err,
-		}).Errorf("%s: failed to process tryAggregate for pool", u.config.DexID)
+	if _, err := rpcRequest.TryAggregate(); err != nil {
+		logger.Errorf("%s: failed to fetch basic pool data (address: %s, error: %v)", u.config.DexID, p.Address, err)
 		return entity.Pool{}, err
 	}
 
-	rpcRequest = u.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
+	rpcRequest = u.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest.AddCall(&ethrpc.Call{ABI: oracleABI, Target: oracle.Hex(), Method: oracleDecimalsConverterMethod}, []interface{}{&decimalsConverter})
+	rpcRequest.AddCall(&ethrpc.Call{ABI: oracleABI, Target: oracle.Hex(), Method: oracleGetPriceInfoMethod}, []interface{}{&priceInfo})
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    oracleABI,
-		Target: oracle.Hex(),
-		Method: oracleDecimalsConverterMethod,
-		Params: nil,
-	}, []interface{}{&decimalsConverter})
-
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    oracleABI,
-		Target: oracle.Hex(),
-		Method: oracleGetPriceInfoMethod,
-		Params: nil,
-	}, []interface{}{&priceInfo})
-
-	_, err = rpcRequest.TryAggregate()
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-			"error":       err,
-		}).Errorf("%s: failed to process tryAggregate for pool", u.config.DexID)
+	if _, err := rpcRequest.TryAggregate(); err != nil {
+		logger.Errorf("%s: failed to fetch oracle data (address: %s, error: %v)", u.config.DexID, p.Address, err)
 		return entity.Pool{}, err
 	}
 
-	rpcRequest = u.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
+	rpcRequest = u.ethrpcClient.NewRequest().SetContext(ctx)
+	rpcRequest.AddCall(
+		&ethrpc.Call{
+			ABI:    oracleABI,
+			Target: oracle.Hex(),
+			Method: oracleGetAveragePriceMethod,
+			Params: []interface{}{priceInfo.PriceAccumulator, priceInfo.PriceTimestamp},
+		}, []interface{}{&averagePrice})
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    oracleABI,
-		Target: oracle.Hex(),
-		Method: oracleGetAveragePriceMethod,
-		Params: []interface{}{priceInfo.PriceAccumulator, priceInfo.PriceTimestamp},
-	}, []interface{}{&averagePrice})
-
-	_, err = rpcRequest.TryAggregate()
-	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-			"error":       err,
-		}).Errorf("%s: failed to process tryAggregate for pool", u.config.DexID)
+	if _, err := rpcRequest.TryAggregate(); err != nil {
+		logger.Errorf("%s: failed to fetch average price (address: %s, error: %v)", u.config.DexID, p.Address, err)
 		return entity.Pool{}, err
 	}
 
-	extraBytes, err := json.Marshal(IntegralPair{
+	extraData := IntegralPair{
 		SwapFee:           ToUint256(swapFee),
 		DecimalsConverter: decimalsConverter,
 		AveragePrice:      ToUint256(averagePrice),
-	})
+	}
+	extraBytes, err := json.Marshal(extraData)
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"poolAddress": p.Address,
-			"error":       err,
-			"dex":         u.config.DexID}).Errorf(
-			"failed to marshal pool extra")
+		logger.Errorf("%s: failed to marshal extra data (address: %s, error: %v)", u.config.DexID, p.Address, err)
 		return entity.Pool{}, err
 	}
 
@@ -162,7 +96,7 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	p.Reserves = entity.PoolReserves([]string{reserves[0].String(), reserves[1].String()})
 	p.SwapFee, _ = swapFee.Float64()
 
-	log.Fatalf("------------------- %+v\n", p.Extra)
+	logger.Infof("%s: Pool state updated successfully (address: %s)", u.config.DexID, p.Address)
 
 	return p, nil
 }

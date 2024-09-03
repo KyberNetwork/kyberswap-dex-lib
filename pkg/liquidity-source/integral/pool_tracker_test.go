@@ -9,7 +9,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -50,18 +50,18 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 
 	var pair IntegralPair
 	if err := json.Unmarshal([]byte(pool.Extra), &pair); err != nil {
-		assert.Fail(ts.Suite.T(), "Failed to unmarshal pool extra %e", err)
+		require.Fail(ts.Suite.T(), "Failed to unmarshal pool extra %e", err)
 	}
 
-	assert.NotNil(ts.Suite.T(), pair.SwapFee)
-	assert.NotNil(ts.Suite.T(), pair.SwapFee)
+	require.NotNil(ts.Suite.T(), pair)
 
-	// if ts.tracker.config.ChainID == 1 {
-	// 	assert.Equal(ts.Suite.T(), pair.PairFee[0].Cmp(FEES_BASE), 0)
-	// } else {
-	// 	assert.Equal(ts.Suite.T(), pair.PairFee[1].Cmp(FEES_BASE), 0)
-	// }
-	assert.NotNil(ts.Suite.T(), pool.Reserves)
+	require.NotEqual(ts.Suite.T(), uZERO, pair.AveragePrice)
+	require.NotEqual(ts.Suite.T(), ZERO, pair.DecimalsConverter)
+	require.NotEqual(ts.Suite.T(), uZERO, pair.SwapFee)
+
+	require.Equal(ts.Suite.T(), 2, len(pool.Reserves))
+	require.NotEqual(ts.Suite.T(), "", pool.Reserves[0])
+	require.NotEqual(ts.Suite.T(), "", pool.Reserves[1])
 }
 
 func TestPoolListTrackerTestSuite(t *testing.T) {

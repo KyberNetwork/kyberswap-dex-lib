@@ -37,7 +37,3 @@ func (p *PoolSimulator) tradeX(xAfter, xBefore, yBefore *uint256.Int) (*uint256.
 
 	return ToUint256(yAfterInt), nil
 }
-
-func decodePriceInfo(data []byte) *uint256.Int {
-	return new(uint256.Int).SetBytes(data)
-}
