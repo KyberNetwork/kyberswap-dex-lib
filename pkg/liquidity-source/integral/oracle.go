@@ -10,9 +10,9 @@ func (p *PoolSimulator) tradeY(yAfter, xBefore, yBefore *uint256.Int) (*uint256.
 	yBeforeInt := ToInt256(yBefore)
 	averagePriceInt := ToInt256(p.AveragePrice)
 
-	xTradedInt := MulInt256(SubInt256(yAfterInt, yBeforeInt), averagePriceInt)
+	xTradedInt := MulInt256(SubInt256(yAfterInt, yBeforeInt), p.DecimalsConverter)
 
-	xAfterInt := SubInt256(xBeforeInt, NegFloorDiv(xTradedInt, p.DecimalsConverter))
+	xAfterInt := SubInt256(xBeforeInt, NegFloorDiv(xTradedInt, averagePriceInt))
 
 	if xAfterInt.Cmp(ZERO) < 0 {
 		return nil, ErrT028
