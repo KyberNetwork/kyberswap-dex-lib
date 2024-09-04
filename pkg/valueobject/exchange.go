@@ -529,6 +529,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeVooi:                       {},
 	ExchangePolMatic:                   {},
 	ExchangeSmardex:                    {},
+	ExchangeIntegral:                   {},
 	ExchangeZebra:                      {},
 	ExchangeZKSwap:                     {},
 	ExchangeBalancerV1:                 {},

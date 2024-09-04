@@ -86,6 +86,7 @@ import (
 	pkg_source_saddle "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/saddle"
 	pkg_source_slipstream "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/slipstream"
 	pkg_source_smardex "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/smardex"
+	pkg_source_integral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	pkg_source_solidlyv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/solidly-v3"
 	pkg_source_swapbasedperp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/swapbased-perp"
 	pkg_source_syncswap_syncswapclassic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap/syncswapclassic"
@@ -185,6 +186,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_source_saddle.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_slipstream.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_smardex.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_source_integral.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_solidlyv3.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_swapbasedperp.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_syncswap_syncswapclassic.PoolSimulator{})
