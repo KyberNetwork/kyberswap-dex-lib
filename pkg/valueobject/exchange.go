@@ -339,6 +339,8 @@ var (
 	ExchangeSectaV2        Exchange = "secta-v2"
 	ExchangeSectaV3        Exchange = "secta-v3"
 	ExchangeAmbient        Exchange = "ambient"
+
+	ExchangeEtherVista Exchange = "ether-vista"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -616,6 +618,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSectaV2:                    {},
 	ExchangeSectaV3:                    {},
 	ExchangeAmbient:                    {},
+	ExchangeEtherVista:                 {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

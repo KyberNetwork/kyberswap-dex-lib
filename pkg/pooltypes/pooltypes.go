@@ -17,6 +17,7 @@ import (
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
+	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
@@ -207,6 +208,7 @@ type Types struct {
 	RenzoEZETH                     string
 	Slipstream                     string
 	NuriV2                         string
+	EtherVista                     string
 }
 
 var (
@@ -318,5 +320,6 @@ var (
 		RenzoEZETH:                     ezeth.DexType,
 		Slipstream:                     slipstream.DexType,
 		NuriV2:                         nuriv2.DexType,
+		EtherVista:                     ethervista.DexType,
 	}
 )
