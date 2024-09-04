@@ -239,32 +239,32 @@ func (p *PoolSimulator) getSwapAmount1Out(amount0In *uint256.Int) (*uint256.Int,
 	return SubUint256(reserve1, balance1After), nil
 }
 
-func (p *PoolSimulator) getSwapAmount0In(amount1Out *uint256.Int) (*uint256.Int, error) {
-	reserves := p.GetReserves()
+// func (p *PoolSimulator) getSwapAmount0In(amount1Out *uint256.Int) (*uint256.Int, error) {
+// 	reserves := p.GetReserves()
 
-	reserve0 := ToUint256(reserves[0])
-	reserve1 := ToUint256(reserves[1])
+// 	reserve0 := ToUint256(reserves[0])
+// 	reserve1 := ToUint256(reserves[1])
 
-	balance1After := SubUint256(reserve1, amount1Out)
-	balance0After, err := p.tradeY(balance1After, reserve0, reserve1)
-	if err != nil {
-		return nil, err
-	}
+// 	balance1After := SubUint256(reserve1, amount1Out)
+// 	balance0After, err := p.tradeY(balance1After, reserve0, reserve1)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return CeilDivUint256(MulUint256(SubUint256(balance0After, reserve0), precison), SubUint256(precison, p.IntegralPair.SwapFee)), nil
-}
+// 	return CeilDivUint256(MulUint256(SubUint256(balance0After, reserve0), precison), SubUint256(precison, p.IntegralPair.SwapFee)), nil
+// }
 
-func (p *PoolSimulator) getSwapAmount1In(amount0Out *uint256.Int) (*uint256.Int, error) {
-	reserves := p.GetReserves()
+// func (p *PoolSimulator) getSwapAmount1In(amount0Out *uint256.Int) (*uint256.Int, error) {
+// 	reserves := p.GetReserves()
 
-	reserve0 := ToUint256(reserves[0])
-	reserve1 := ToUint256(reserves[1])
+// 	reserve0 := ToUint256(reserves[0])
+// 	reserve1 := ToUint256(reserves[1])
 
-	balance0After := SubUint256(reserve0, amount0Out)
-	balance1After, err := p.tradeY(balance0After, reserve0, reserve1)
-	if err != nil {
-		return nil, err
-	}
+// 	balance0After := SubUint256(reserve0, amount0Out)
+// 	balance1After, err := p.tradeY(balance0After, reserve0, reserve1)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return CeilDivUint256(MulUint256(SubUint256(AddUint256(balance1After, uint256.NewInt(1)), reserve0), precison), SubUint256(precison, p.IntegralPair.SwapFee)), nil
-}
+// 	return CeilDivUint256(MulUint256(SubUint256(AddUint256(balance1After, uint256.NewInt(1)), reserve0), precison), SubUint256(precison, p.IntegralPair.SwapFee)), nil
+// }
