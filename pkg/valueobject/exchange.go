@@ -240,6 +240,8 @@ var (
 
 	ExchangeSmardex Exchange = "smardex"
 
+	ExchangeIntegral Exchange = "integral"
+
 	ExchangeZebra  Exchange = "zebra"
 	ExchangeZKSwap Exchange = "zkswap"
 
