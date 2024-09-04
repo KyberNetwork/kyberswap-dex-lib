@@ -184,7 +184,7 @@ func (p *Path) CalcAmountOut(ctx context.Context, poolBucket *PoolBucket, tokenA
 				poolAddress,
 			)
 		}
-		calcAmountOutResult, err := routerpkg.CalcAmountOut(ctx, pool, currentAmount, p.Tokens[i+1].Address, limits[pool.GetType()])
+		calcAmountOutResult, err := routerpkg.CalcAmountOut(ctx, pool, currentAmount, p.Tokens[i+1].Address, limits[pool.GetType()], map[string]bool{})
 		if err != nil {
 			return TokenAmount{}, 0, errors.WithMessagef(
 				ErrInvalidSwap,

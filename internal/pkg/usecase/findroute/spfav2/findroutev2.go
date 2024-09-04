@@ -75,7 +75,7 @@ func (f *Spfav2Finder) bestRouteV2(
 	)
 
 	var errGenPath error
-	paths, errGenPath = common.GenKthBestPaths(ctx, input, data, amountInToGeneratePath, hopsToTokenOut, f.maxHops, numberOfPathToGenerate, f.maxPathsToReturn)
+	paths, errGenPath = common.GenKthBestPaths(ctx, input, data, amountInToGeneratePath, hopsToTokenOut, f.maxHops, numberOfPathToGenerate, f.maxPathsToReturn, f.dexUseAEVM)
 	if errGenPath != nil {
 		logger.WithFields(ctx, logger.Fields{"error": errGenPath}).
 			Debugf("failed to find best path. tokenIn %v tokenOut %v amountIn %v amountInUsd %v",

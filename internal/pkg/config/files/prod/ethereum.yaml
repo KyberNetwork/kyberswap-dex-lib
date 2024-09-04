@@ -91,6 +91,12 @@ common:
   swaapAPIKey:
   hashflowAPIKey:
   nativeAPIKey:
+  dexUseAEVM: &dexUseAEVM
+    uniswap: false
+    uniswapv3: false
+    liquiditybook-v20: false
+    liquiditybook-v21: false
+    ambient: true
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -183,6 +189,7 @@ useCase:
         amplifiedTvlWhitelistPoolsCount: 200
         amplifiedTvlTokenInPoolsCount: 100
         amplifiedTvlTokenOutPoolCount: 100
+      dexUseAEVM: *dexUseAEVM
       finderOptions: &finderOptions
         type: retry
         maxHops: 3
@@ -356,12 +363,7 @@ useCase:
   poolFactory:
     chainId: *chainId
     useAEVM: &useAEVM false
-    dexUseAEVM:
-      uniswap: false
-      uniswapv3: false
-      liquiditybook-v20: false
-      liquiditybook-v21: false
-      ambient: true
+    dexUseAEVM: *dexUseAEVM
     addressesByDex:
       uniswap:
         router-address: 0x7a250d5630b4cf539739df2c5dacb4c659f2488d

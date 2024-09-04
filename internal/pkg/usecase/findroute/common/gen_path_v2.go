@@ -186,7 +186,7 @@ func getNextLayerFromTokenV2(
 			itr, _pool, _toTokenAddress, _toTokenInfo := numItr, pool, toTokenAddress, toTokenInfo
 			wg.Go(func() error {
 				// it is ok for prices[tokenTo] to default to zero
-				toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGasInUSD(ctx, _pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenAddress, data.PriceUSDByAddress[_toTokenAddress], _toTokenInfo.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[_pool.GetType()])
+				toTokenAmount, toTotalGasAmount, err := calcNewTokenAmountAndGasInUSD(ctx, _pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenAddress, data.PriceUSDByAddress[_toTokenAddress], _toTokenInfo.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[_pool.GetType()], map[string]bool{})
 				if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Sign() == 0 {
 					return nil
 				}

@@ -163,6 +163,7 @@ func TestFindRoute(t *testing.T) {
 		minPartUSD,
 		minThresholdAmountInUSD,
 		float64(maxThresholdAmountInUSD),
+		map[string]bool{},
 	)
 	finder := NewHillClimbingFinder(1, 2, 500, baseFinder)
 

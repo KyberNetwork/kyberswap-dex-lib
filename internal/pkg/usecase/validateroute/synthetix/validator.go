@@ -94,6 +94,7 @@ func Validate(ctx context.Context, poolByAddress map[string]poolpkg.IPoolSimulat
 				tokenAmountIn,
 				path.Tokens[i+1].Address,
 				nil,
+				map[string]bool{},
 			)
 
 			if err != nil {

@@ -64,7 +64,7 @@ func (f *SafetyQuotingRouteFinalizer) FinalizeRoute(
 
 			swapLimit := swapLimits[pool.GetType()]
 			// Step 2.1.2: simulate c swap through the pool
-			result, err := routerpoolpkg.CalcAmountOut(ctx, pool, tokenAmountIn, path.Tokens[swapIdx+1].Address, swapLimit)
+			result, err := routerpoolpkg.CalcAmountOut(ctx, pool, tokenAmountIn, path.Tokens[swapIdx+1].Address, swapLimit, map[string]bool{})
 			if err != nil {
 				return nil, errors.WithMessagef(
 					ErrInvalidSwap,
@@ -201,7 +201,7 @@ func (f *SafetyQuotingRouteFinalizer) FinalizeSimpleRoute(
 
 			swapLimit := swapLimits[pool.GetType()]
 			// Step 3.1.2: simulate c swap through the pool
-			result, err := routerpoolpkg.CalcAmountOut(ctx, pool, tokenAmountIn, simpleSwap.TokenOutAddress, swapLimit)
+			result, err := routerpoolpkg.CalcAmountOut(ctx, pool, tokenAmountIn, simpleSwap.TokenOutAddress, swapLimit, map[string]bool{})
 			if err != nil {
 				return nil, errors.WithMessagef(
 					ErrInvalidSwap,

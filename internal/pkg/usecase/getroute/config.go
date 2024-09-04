@@ -22,7 +22,8 @@ type AggregatorConfig struct {
 	FinderOptions       valueobject.FinderOptions       `mapstructure:"finderOptions" json:"finderOptions"`
 	FeatureFlags        valueobject.FeatureFlags        `mapstructure:"featureFlags"`
 
-	TokensThresholdForOnchainPrice uint32 `mapstructure:"tokensThresholdForOnchainPrice" json:"tokensThresholdForOnchainPrice"`
+	TokensThresholdForOnchainPrice uint32          `mapstructure:"tokensThresholdForOnchainPrice" json:"tokensThresholdForOnchainPrice"`
+	DexUseAEVM                     map[string]bool `mapstructure:"dexUseAEVM"`
 }
 
 func (cfg *AggregatorConfig) CheckTokenThreshold(address string) bool {

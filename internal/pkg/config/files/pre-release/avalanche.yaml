@@ -74,6 +74,9 @@ common:
   featureFlags: &featureFlags
   hashflowAPIKey:
   nativeAPIKey:
+  dexUseAEVM: &dexUseAEVM
+    liquiditybook-v20: true
+    liquiditybook-v21: true
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -166,6 +169,7 @@ useCase:
         amplifiedTvlWhitelistPoolsCount: 200
         amplifiedTvlTokenInPoolsCount: 100
         amplifiedTvlTokenOutPoolCount: 100
+      dexUseAEVM: *dexUseAEVM
       finderOptions:
         maxHops: 3
         distributionPercent: 5
@@ -319,9 +323,7 @@ useCase:
   poolFactory:
     chainId: *chainId
     useAEVM: &useAEVM false
-    dexUseAEVM:
-      liquiditybook-v20: true
-      liquiditybook-v21: true
+    dexUseAEVM: *dexUseAEVM
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     blackListRenewalInterval: 30s

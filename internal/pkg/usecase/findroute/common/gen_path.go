@@ -48,6 +48,7 @@ func GenKthBestPaths(
 	tokenAmountIn valueobject.TokenAmount,
 	hopsToTokenOut map[string]uint32,
 	maxHops, maxPathsToGenerate, maxPathsToReturn uint32,
+	dexUseAEVM map[string]bool,
 ) ([]*valueobject.Path, error) {
 	span, _ := tracer.StartSpanFromContext(ctx, "GenKthBestPaths")
 	defer span.End()
@@ -81,7 +82,7 @@ func GenKthBestPaths(
 	}
 	for currentHop := uint32(0); currentHop < maxHops; currentHop++ {
 
-		nextLayer, err := genNextLayerOfPaths(ctx, input, data, data.TokenToPoolAddress, hopsToTokenOut, maxHops, currentHop, prevLayer)
+		nextLayer, err := genNextLayerOfPaths(ctx, input, data, data.TokenToPoolAddress, hopsToTokenOut, maxHops, currentHop, prevLayer, dexUseAEVM)
 		if err != nil {
 			return nil, err
 		}
@@ -109,6 +110,7 @@ func genNextLayerOfPaths(
 	maxHops uint32,
 	currentHop uint32,
 	currentLayer map[string][]*nodeInfo,
+	dexUseAEVM map[string]bool,
 ) (map[string][]*nodeInfo, error) {
 	var (
 		intermediateResults sync.Map // map[int][]*nodeInfo
@@ -122,7 +124,7 @@ func genNextLayerOfPaths(
 
 			wg.Go(func() error {
 				// get possible path of length currentHop + 1 by traveling one edge/ appending a pool
-				nextNodeInfo, err := getNextLayerFromToken(ctx, input, data, tokenToPoolAddresses, hopsToTokenOut, maxHops, currentHop, _fromToken, _fromNodeInfo)
+				nextNodeInfo, err := getNextLayerFromToken(ctx, input, data, tokenToPoolAddresses, hopsToTokenOut, maxHops, currentHop, _fromToken, _fromNodeInfo, dexUseAEVM)
 				if err != nil {
 					return err
 				}
@@ -159,6 +161,7 @@ func getNextLayerFromToken(
 	currentHop uint32,
 	fromTokenAddress string,
 	fromNodeInfo *nodeInfo,
+	dexUseAEVM map[string]bool,
 ) ([]*nodeInfo, error) {
 	type IntermediateParam struct {
 		pool           poolpkg.IPoolSimulator
@@ -227,7 +230,7 @@ func getNextLayerFromToken(
 			itr, _pool, _toTokenInfo := numItr, pool, toTokenInfo
 			wg.Go(func() error {
 				// it is ok for prices[tokenTo] to default to zero
-				toTokenAmount, toTotalGasAmount, err := CalcNewTokenAmountAndGas(ctx, _pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenInfo, data, input)
+				toTokenAmount, toTotalGasAmount, err := CalcNewTokenAmountAndGas(ctx, _pool, fromNodeInfo.tokenAmount, fromNodeInfo.totalGasAmount, _toTokenInfo, data, input, dexUseAEVM)
 				if err != nil || toTokenAmount == nil || toTokenAmount.Amount.Sign() == 0 {
 					logger.Debugf(ctx, "cannot calculate amountOut, error:%v", err)
 					return nil
@@ -357,11 +360,12 @@ func calcNewTokenAmountAndGasInUSD(
 	tokenOut string, tokenOutPrice float64, tokenOutDecimal uint8,
 	gasPrice *big.Float, gasTokenPrice float64,
 	swapLimit poolpkg.SwapLimit,
+	dexUseAEVM map[string]bool,
 ) (*valueobject.TokenAmount, int64, error) {
 	calcAmountOutResult, err := routerpoolpkg.CalcAmountOut(ctx, pool, poolpkg.TokenAmount{
 		Token:  fromAmountIn.Token,
 		Amount: fromAmountIn.Amount,
-	}, tokenOut, swapLimit)
+	}, tokenOut, swapLimit, dexUseAEVM)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -380,11 +384,12 @@ func calcNewTokenAmountAndGasInNative(
 	tokenOut string, tokenOutPriceNative *big.Float,
 	gasPrice *big.Float,
 	swapLimit poolpkg.SwapLimit,
+	dexUseAEVM map[string]bool,
 ) (*valueobject.TokenAmount, int64, error) {
 	calcAmountOutResult, err := routerpoolpkg.CalcAmountOut(ctx, pool, poolpkg.TokenAmount{
 		Token:  fromAmountIn.Token,
 		Amount: fromAmountIn.Amount,
-	}, tokenOut, swapLimit)
+	}, tokenOut, swapLimit, dexUseAEVM)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -417,16 +422,17 @@ func CalcNewTokenAmountAndGas(
 	tokenOut *entity.Token,
 	data findroute.FinderData,
 	input findroute.Input,
+	dexUseAEVM map[string]bool,
 ) (*valueobject.TokenAmount, int64, error) {
 	if data.PriceNativeByAddress != nil {
 		// this will be called for tokenOut and intermediate tokens, so should use buy price
 		return calcNewTokenAmountAndGasInNative(
 			ctx, pool, fromAmountIn, fromTotalGasAmount,
 			tokenOut.Address, data.TokenNativeBuyPrice(tokenOut.Address),
-			input.GasPrice, data.SwapLimits[pool.GetType()])
+			input.GasPrice, data.SwapLimits[pool.GetType()], dexUseAEVM)
 	}
 	return calcNewTokenAmountAndGasInUSD(
 		ctx, pool, fromAmountIn, fromTotalGasAmount,
 		tokenOut.Address, data.PriceUSDByAddress[tokenOut.Address],
-		tokenOut.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[pool.GetType()])
+		tokenOut.Decimals, input.GasPrice, input.GasTokenPriceUSD, data.SwapLimits[pool.GetType()], dexUseAEVM)
 }

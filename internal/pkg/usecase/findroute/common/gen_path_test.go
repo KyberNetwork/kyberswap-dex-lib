@@ -62,6 +62,7 @@ func TestGenKthBestPaths(t *testing.T) {
 			input, data, tokenAmountIn,
 			minHopToTokenOut,
 			maxHop, maxPathToGenerate, maxPathToReturn,
+			map[string]bool{},
 		)
 		assert.Nil(t, err)
 		fmt.Println("tokenIn", tokenIn)

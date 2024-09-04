@@ -13,6 +13,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
@@ -186,24 +187,36 @@ func withRetry[R any](ctx context.Context, c *Client, onTimeout time.Duration, o
 }
 
 func (c *Client) LatestStateRoot(ctx context.Context) (aevmcommon.Hash, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] LatestStateRoot")
+	defer span.End()
+
 	return withRetry(ctx, c, c.retryOnTimeout, func(ctx context.Context, client aevmclient.Client) (aevmcommon.Hash, error) {
 		return client.LatestStateRoot(ctx)
 	})
 }
 
 func (c *Client) SingleCall(ctx context.Context, req *aevmtypes.SingleCallParams) (*aevmtypes.CallResult, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] SingleCall")
+	defer span.End()
+
 	return withRetry(ctx, c, c.retryOnTimeout, func(ctx context.Context, client aevmclient.Client) (*aevmtypes.CallResult, error) {
 		return client.SingleCall(ctx, req)
 	})
 }
 
 func (c *Client) MultipleCall(ctx context.Context, req *aevmtypes.MultipleCallParams) (*aevmtypes.MultipleCallResult, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] MultipleCall")
+	defer span.End()
+
 	return withRetry(ctx, c, c.retryOnTimeout, func(ctx context.Context, client aevmclient.Client) (*aevmtypes.MultipleCallResult, error) {
 		return client.MultipleCall(ctx, req)
 	})
 }
 
 func (c *Client) StorePreparedPools(ctx context.Context, req *aevmtypes.StorePreparedPoolsParams) (*aevmtypes.StorePreparedPoolsResult, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] StorePreparedPools")
+	defer span.End()
+
 	var (
 		wg         errgroup.Group
 		storageIDs = make([]string, len(c.publishingClients))
@@ -237,6 +250,9 @@ func (c *Client) StorePreparedPools(ctx context.Context, req *aevmtypes.StorePre
 }
 
 func (c *Client) FindRoute(ctx context.Context, req *aevmtypes.FindRouteParams) (*aevmtypes.FindRouteResult, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] FindRoute")
+	defer span.End()
+
 	return withRetry(ctx, c, c.findrouteRetryOnTimeout, func(ctx context.Context, client aevmclient.Client) (*aevmtypes.FindRouteResult, error) {
 		return client.FindRoute(ctx, req)
 	})

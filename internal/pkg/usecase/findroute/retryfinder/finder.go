@@ -106,7 +106,7 @@ func (r *RetryFinder) retryDynamicPools(ctx context.Context, input findroute.Inp
 				logger.Errorf(ctx, "pool is removed from pool bucket, poolAddress: %s", currPath.PoolAddresses[pIndex])
 				return route
 			}
-			currentOutPut, newGas, err := common.CalcNewTokenAmountAndGas(ctx, currPool, *inp, onGoingCalculatingGas, currPath.Tokens[pIndex+1], data, input)
+			currentOutPut, newGas, err := common.CalcNewTokenAmountAndGas(ctx, currPool, *inp, onGoingCalculatingGas, currPath.Tokens[pIndex+1], data, input, map[string]bool{})
 			if err != nil {
 				logger.Errorf(ctx, "cannot calculate amount out for pool %s, error: %s", currPool.GetAddress(), err)
 				return route
@@ -171,7 +171,7 @@ func findNewBestPoolWithAmount(ctx context.Context, input findroute.Input, data 
 				if !avail {
 					continue
 				}
-				result, newGasAmount, err := common.CalcNewTokenAmountAndGas(ctx, pool, *inp, currentGas, tokenOut, data, input)
+				result, newGasAmount, err := common.CalcNewTokenAmountAndGas(ctx, pool, *inp, currentGas, tokenOut, data, input, map[string]bool{})
 				if err != nil {
 					continue
 				}

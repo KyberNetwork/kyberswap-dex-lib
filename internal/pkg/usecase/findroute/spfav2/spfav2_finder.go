@@ -51,6 +51,9 @@ type Spfav2Finder struct {
 	// if minThreshold < amountInUSD < maxThreshold: run similar to spfaFinder, else run the new strategy
 	minThresholdAmountInUSD float64
 	maxThresholdAmountInUSD float64
+
+	// dexUseAEVM is used for observation neccessary
+	dexUseAEVM map[string]bool
 }
 
 func NewSPFAv2Finder(
@@ -63,6 +66,7 @@ func NewSPFAv2Finder(
 	minPartUSD float64,
 	minThresholdAmountInUSD float64,
 	maxThresholdAmountInUSD float64,
+	dexUseAEVM map[string]bool,
 ) *Spfav2Finder {
 	return &Spfav2Finder{
 		maxHops:                 maxHops,
@@ -74,6 +78,7 @@ func NewSPFAv2Finder(
 		minPartUSD:              minPartUSD,
 		minThresholdAmountInUSD: minThresholdAmountInUSD,
 		maxThresholdAmountInUSD: maxThresholdAmountInUSD,
+		dexUseAEVM:              dexUseAEVM,
 	}
 }
 
@@ -88,6 +93,7 @@ func NewDefaultSPFAv2Finder() *Spfav2Finder {
 		defaultSpfav2MinPartUSD,
 		defaultSpfav2MinThresholdAmountInUSD,
 		defaultSpfav2MaxThresholdAmountInUSD,
+		map[string]bool{},
 	)
 }
 

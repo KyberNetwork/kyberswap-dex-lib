@@ -249,6 +249,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		config.MinPartUSD,
 		config.MinThresholdAmountInUSD,
 		config.MaxThresholdAmountInUSD,
+		map[string]bool{},
 	)
 
 	routeFinalizer := findroute.NewSafetyQuotingRouteFinalizer(

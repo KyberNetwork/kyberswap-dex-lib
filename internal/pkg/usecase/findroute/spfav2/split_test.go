@@ -62,6 +62,7 @@ func TestSplit(t *testing.T) {
 		minPartUSD,
 		0,
 		float64(100000000),
+		map[string]bool{},
 	)
 
 	testcases := []struct {

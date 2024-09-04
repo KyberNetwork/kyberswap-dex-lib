@@ -30,6 +30,7 @@ func NewPathFinder(
 		finderOptions.MinPartUSD,
 		finderOptions.MinThresholdAmountInUSD,
 		finderOptions.MaxThresholdAmountInUSD,
+		config.DexUseAEVM,
 	)
 
 	if finderOptions.Type == valueobject.FinderTypes.RetryDynamicPools {

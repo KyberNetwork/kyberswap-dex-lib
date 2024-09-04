@@ -136,7 +136,7 @@ func (f *Spfav2Finder) bestPathExactInV1(
 	}
 
 	// only pick one best path, so set maxPathsToGenerate = 1.
-	paths, err := common.GenKthBestPaths(ctx, input, data, tokenAmountIn, hopsToTokenOut, f.maxHops, 1, 1)
+	paths, err := common.GenKthBestPaths(ctx, input, data, tokenAmountIn, hopsToTokenOut, f.maxHops, 1, 1, f.dexUseAEVM)
 	defer valueobject.ReturnPaths(paths)
 
 	if err != nil {

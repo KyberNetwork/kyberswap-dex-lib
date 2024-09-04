@@ -169,6 +169,7 @@ func TestFindRoute(t *testing.T) {
 		minPartUSD,
 		minThresholdAmountInUSD,
 		float64(maxThresholdAmountInUSD),
+		map[string]bool{},
 	)
 
 	for _, tc := range testCases {
@@ -565,6 +566,7 @@ func TestFindRoute_WithWhiteListToken(t *testing.T) {
 		minPartUSD,
 		minThresholdAmountInUSD,
 		float64(maxThresholdAmountInUSD),
+		map[string]bool{},
 	)
 
 	testCases := []struct {

@@ -121,7 +121,7 @@ func (r *Route) AddPath(ctx context.Context, poolBucket *PoolBucket, p *Path, sw
 		}
 		swapLimit := swapLimits[pool.GetType()]
 
-		calcAmountOutResult, err := routerpoolpkg.CalcAmountOut(ctx, pool, currentAmount, p.Tokens[i+1].Address, swapLimit)
+		calcAmountOutResult, err := routerpoolpkg.CalcAmountOut(ctx, pool, currentAmount, p.Tokens[i+1].Address, swapLimit, map[string]bool{})
 		if err != nil {
 			fErr = errors.WithMessagef(
 				ErrInvalidSwap,
