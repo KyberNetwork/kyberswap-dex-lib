@@ -31,7 +31,6 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 		DexID:          DexTypeIntegral,
 		FactoryAddress: "0x7753F36E711B66a0350a753aba9F5651BAE76A1D",
 		PoolPagingSize: 20,
-		ChainID:        1,
 	}
 
 	ts.tracker = PoolTracker{

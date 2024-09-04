@@ -30,7 +30,6 @@ func (ts *PoolListUpdaterTestSuite) SetupTest() {
 		DexID:          DexTypeIntegral,
 		FactoryAddress: "0xC480b33eE5229DE3FbDFAD1D2DCD3F3BAD0C56c6",
 		PoolPagingSize: 1000,
-		ChainID:        uint(1),
 	}
 
 	ts.updater = PoolListUpdater{
