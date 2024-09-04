@@ -79,6 +79,6 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 }
 
 func TestPoolListUpdaterTestSuite(t *testing.T) {
-	// t.Skip("Skipping testing in CI environment")
+	t.Skip("Skipping testing in CI environment")
 	suite.Run(t, new(PoolListUpdaterTestSuite))
 }
