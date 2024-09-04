@@ -89,6 +89,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.Info.Reserves = []*big.Int{si.newReserve0, si.newReserve1}
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapPair.sol
+
 func (p *PoolSimulator) swap(amountIn, amount0Out, amount1Out *uint256.Int) (*pool.CalcAmountOutResult, error) {
 	if !(amount0Out.Cmp(uZERO) > 0 && amount1Out.Cmp(uZERO) == 0) && !(amount1Out.Cmp(uZERO) > 0 && amount0Out.Cmp(uZERO) == 0) {
 		return nil, ErrTP31

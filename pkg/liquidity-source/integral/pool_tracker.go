@@ -39,15 +39,13 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		priceInfo         PriceInfo
 		averagePrice      = big.NewInt(0)
 
-		token0, token1, oracle common.Address
+		oracle common.Address
 	)
 
 	rpcRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 	rpcRequest.AddCall(&ethrpc.Call{ABI: reserveABI, Target: p.Address, Method: libraryGetReservesMethod}, []interface{}{&reserves})
 	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairSwapFeeMethod}, []interface{}{&swapFee})
 	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairOracleMethod}, []interface{}{&oracle})
-	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairToken0Method}, []interface{}{&token0})
-	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairToken1Method}, []interface{}{&token1})
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		logger.Errorf("%s: failed to fetch basic pool data (address: %s, error: %v)", u.config.DexID, p.Address, err)
@@ -79,8 +77,8 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 
 	extraData := IntegralPair{
 		SwapFee:           ToUint256(swapFee),
-		DecimalsConverter: decimalsConverter,
 		AveragePrice:      ToUint256(averagePrice),
+		DecimalsConverter: decimalsConverter,
 	}
 	extraBytes, err := json.Marshal(extraData)
 	if err != nil {
@@ -90,10 +88,6 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
-	p.Tokens = []*entity.PoolToken{
-		{Address: token0.Hex()},
-		{Address: token1.Hex()},
-	}
 	p.Reserves = entity.PoolReserves([]string{reserves[0].String(), reserves[1].String()})
 
 	logger.Infof("%s: Pool state updated successfully (address: %s)", u.config.DexID, p.Address)

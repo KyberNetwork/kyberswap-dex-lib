@@ -6,6 +6,15 @@ import (
 	"github.com/holiman/uint256"
 )
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/libraries/SafeMath.sol
+
+var (
+	// safe math consts
+	uZERO       = uint256.NewInt(0)
+	ZERO        = big.NewInt(0)
+	_INT256_MIN = new(big.Int).Neg(new(big.Int).Lsh(big.NewInt(1), 255)) // -2^255
+)
+
 func AddUint256(x, y *uint256.Int) *uint256.Int {
 	z := new(uint256.Int).Add(x, y)
 

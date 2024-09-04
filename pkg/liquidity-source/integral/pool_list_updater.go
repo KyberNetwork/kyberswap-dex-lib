@@ -13,11 +13,6 @@ import (
 	"github.com/goccy/go-json"
 )
 
-var (
-	reserveZero     = "0"
-	DexTypeIntegral = "smardex"
-)
-
 type (
 	PoolListUpdater struct {
 		config       *Config
@@ -184,12 +179,11 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 			Exchange:     u.config.DexID,
 			Type:         DexTypeIntegral,
 			Timestamp:    time.Now().Unix(),
-			Reserves:     []string{reserveZero, reserveZero},
+			Reserves:     []string{"0", "0"},
 			Tokens:       []*entity.PoolToken{&poolToken0, &poolToken1},
 		}
 
 		pools = append(pools, newPool)
-
 	}
 
 	return pools, nil

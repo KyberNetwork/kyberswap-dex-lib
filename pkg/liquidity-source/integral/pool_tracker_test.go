@@ -62,6 +62,10 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 	require.Equal(ts.Suite.T(), 2, len(pool.Reserves))
 	require.NotEqual(ts.Suite.T(), "", pool.Reserves[0])
 	require.NotEqual(ts.Suite.T(), "", pool.Reserves[1])
+
+	require.Equal(ts.Suite.T(), 2, len(pool.Tokens))
+	require.NotEqual(ts.Suite.T(), "", pool.Tokens[0])
+	require.NotEqual(ts.Suite.T(), "", pool.Tokens[1])
 }
 
 func TestPoolListTrackerTestSuite(t *testing.T) {

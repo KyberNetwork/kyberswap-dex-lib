@@ -2,12 +2,13 @@ package integral
 
 import (
 	"errors"
-	"math/big"
 
 	"github.com/holiman/uint256"
 )
 
 var (
+	DexTypeIntegral = "integral"
+
 	defaultGas = Gas{Swap: 227000}
 	precison   = uint256.NewInt(1e18)
 
@@ -34,9 +35,7 @@ var (
 	pairToken0Method  = "token0"
 	pairToken1Method  = "token1"
 	pairSwapFeeMethod = "swapFee"
-	// pairMintFeeMethod = "mintFee"
-	// pairBurnFeeMethod = "burnFee"
-	pairOracleMethod = "oracle"
+	pairOracleMethod  = "oracle"
 
 	// factory methods
 	factoryAllPairsMethod       = "allPairs"
@@ -49,9 +48,4 @@ var (
 	oracleDecimalsConverterMethod = "decimalsConverter"
 	oracleGetPriceInfoMethod      = "getPriceInfo"
 	oracleGetAveragePriceMethod   = "getAveragePrice"
-
-	// safe math consts
-	uZERO       = uint256.NewInt(0)
-	ZERO        = big.NewInt(0)
-	_INT256_MIN = new(big.Int).Neg(new(big.Int).Lsh(big.NewInt(1), 255)) // -2^255
 )

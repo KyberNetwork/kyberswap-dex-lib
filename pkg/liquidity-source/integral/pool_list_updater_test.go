@@ -46,7 +46,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: "0xC480b33eE5229DE3FbDFAD1D2DCD3F3BAD0C56c6",
-		Method: "allPairsLength",
+		Method: factoryAllPairsLengthMethod,
 		Params: nil,
 	}, []interface{}{&length})
 	_, err := req.TryAggregate()
