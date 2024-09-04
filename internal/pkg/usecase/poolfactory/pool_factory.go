@@ -3,18 +3,13 @@ package poolfactory
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"math/big"
 	"sync"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
-	poolaevm "github.com/KyberNetwork/aevm/usecase/pool"
-	ambientaevm "github.com/KyberNetwork/aevm/usecase/pool/ambient"
-	liquiditybookv20aevm "github.com/KyberNetwork/aevm/usecase/pool/liquiditybookv20"
-	liquiditybookv21aevm "github.com/KyberNetwork/aevm/usecase/pool/liquiditybookv21"
-	uniswapaevm "github.com/KyberNetwork/aevm/usecase/pool/uni"
-	uniswapv3aevm "github.com/KyberNetwork/aevm/usecase/pool/univ3"
-	aevmpoolwrapper "github.com/KyberNetwork/aevm/usecase/pool/wrapper"
+	dexlibprivate "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source"
+	aevmpoolwrapper "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/aevm-pool/wrapper"
+	ambientaevm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/ambient"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
 	balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v1"
@@ -390,14 +385,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 	switch entityPool.Type {
 	case pooltypes.PoolTypes.Uni, pooltypes.PoolTypes.Firebird,
 		pooltypes.PoolTypes.Biswap, pooltypes.PoolTypes.Polydex:
-		if f.config.UseAEVM && f.config.DexUseAEVM[pooltypes.PoolTypes.Uni] {
-			return f.newUniAEVM(entityPool, stateRoot)
-		}
 		return f.newUni(entityPool)
 	case pooltypes.PoolTypes.UniswapV3:
-		if f.config.UseAEVM && f.config.DexUseAEVM[pooltypes.PoolTypes.UniswapV3] {
-			return f.newUniV3AEVM(entityPool, stateRoot)
-		}
 		return f.newUniV3(entityPool)
 	case pooltypes.PoolTypes.Saddle, pooltypes.PoolTypes.Nerve,
 		pooltypes.PoolTypes.OneSwap, pooltypes.PoolTypes.IronStable:
@@ -497,14 +486,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 	case pooltypes.PoolTypes.KokonutCrypto:
 		return f.newKokonutCrypto(entityPool)
 	case pooltypes.PoolTypes.LiquidityBookV21:
-		if f.config.UseAEVM && f.config.DexUseAEVM[pooltypes.PoolTypes.LiquidityBookV21] {
-			return f.newLiquidityBookV21AEVM(entityPool, stateRoot)
-		}
 		return f.newLiquidityBookV21(entityPool)
 	case pooltypes.PoolTypes.LiquidityBookV20:
-		if f.config.UseAEVM && f.config.DexUseAEVM[pooltypes.PoolTypes.LiquidityBookV20] {
-			return f.newLiquidityBookV20AEVM(entityPool, stateRoot)
-		}
 		return f.newLiquidityBookV20(entityPool)
 	case pooltypes.PoolTypes.Smardex:
 		return f.newSmardex(entityPool)
@@ -607,30 +590,6 @@ func (f *PoolFactory) newUni(entityPool entity.Pool) (*uniswap.PoolSimulator, er
 	return corePool, nil
 }
 
-func (f *PoolFactory) newUniAEVM(entityPool entity.Pool, stateRoot common.Hash) (*uniswapaevm.Pool, error) {
-	balanceSlots := f.getBalanceSlots(&entityPool)
-	routerAddress, ok := f.config.AddressesByDex[pooltypes.PoolTypes.Uni]["router-address"]
-	if !ok {
-		return nil, fmt.Errorf("addressesByDex.%s.router-address must be specified", pooltypes.PoolTypes.Uni)
-	}
-	corePool, err := uniswapaevm.NewPoolAEVM(
-		entityPool,
-		common.HexToAddress(routerAddress),
-		f.client,
-		stateRoot,
-		balanceSlots,
-	)
-	if err != nil {
-		return nil, errors.WithMessagef(
-			ErrInitializePoolFailed,
-			"[PoolFactory.newUniAEVM] pool: [%s] » type: [%s]",
-			entityPool.Address,
-			entityPool.Type,
-		)
-	}
-	return corePool, nil
-}
-
 func (f *PoolFactory) newUniV3(entityPool entity.Pool) (*uniswapv3.PoolSimulator, error) {
 	corePool, err := uniswapv3.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
@@ -643,42 +602,6 @@ func (f *PoolFactory) newUniV3(entityPool entity.Pool) (*uniswapv3.PoolSimulator
 	}
 
 	return corePool, nil
-}
-
-func (f *PoolFactory) newUniV3AEVM(entityPool entity.Pool, stateRoot common.Hash) (*aevmpoolwrapper.PoolWrapper, error) {
-	pool, err := uniswapv3.NewPoolSimulator(entityPool, f.config.ChainID)
-	if err != nil {
-		return nil, errors.WithMessagef(
-			ErrInitializePoolFailed,
-			"[PoolFactory.newUniV3] pool: [%s] » type: [%s]",
-			entityPool.Address,
-			entityPool.Type,
-		)
-	}
-
-	balanceSlots := f.getBalanceSlots(&entityPool)
-	routerAddress, ok := f.config.AddressesByDex[pooltypes.PoolTypes.UniswapV3]["router-address"]
-	if !ok {
-		return nil, fmt.Errorf("addressesByDex.%s.router-address must be specified", pooltypes.PoolTypes.UniswapV3)
-	}
-	aevmPool, err := uniswapv3aevm.NewPoolAEVM(
-		entityPool,
-		common.HexToAddress(routerAddress),
-		f.config.ChainID,
-		f.client,
-		stateRoot,
-		balanceSlots,
-	)
-	if err != nil {
-		return nil, errors.WithMessagef(
-			ErrInitializePoolFailed,
-			"[PoolFactory.newUniV3] pool: [%s] » type: [%s]",
-			entityPool.Address,
-			entityPool.Type,
-		)
-	}
-
-	return aevmpoolwrapper.NewPoolWrapper(pool, aevmPool), nil
 }
 
 func (f *PoolFactory) newSaddle(entityPool entity.Pool) (*saddle.PoolSimulator, error) {
@@ -1503,40 +1426,6 @@ func (f *PoolFactory) newLiquidityBookV20(entityPool entity.Pool) (*liquidityboo
 	return corePool, nil
 }
 
-func (f *PoolFactory) newLiquidityBookV21AEVM(entityPool entity.Pool, stateRoot common.Hash) (*liquiditybookv21aevm.Pool, error) {
-	if f.balanceSlotsUseCase == nil || f.client == nil {
-		return nil, errors.New("AEVM is not initialized")
-	}
-	balanceSlots := f.getBalanceSlots(&entityPool)
-	corePool, err := liquiditybookv21aevm.NewPoolAEVM(f.config.ChainID, entityPool, f.client, stateRoot, balanceSlots)
-	if err != nil {
-		return nil, errors.WithMessagef(
-			ErrInitializePoolFailed,
-			"[PoolFactory.newLiquidityBookV21AEVM] pool: [%s] » type: [%s]",
-			entityPool.Address,
-			entityPool.Type,
-		)
-	}
-	return corePool, nil
-}
-
-func (f *PoolFactory) newLiquidityBookV20AEVM(entityPool entity.Pool, stateRoot common.Hash) (*liquiditybookv20aevm.Pool, error) {
-	if f.balanceSlotsUseCase == nil || f.client == nil {
-		return nil, errors.New("AEVM is not initialized")
-	}
-	balanceSlots := f.getBalanceSlots(&entityPool)
-	corePool, err := liquiditybookv20aevm.NewPoolAEVM(f.config.ChainID, entityPool, f.client, stateRoot, balanceSlots)
-	if err != nil {
-		return nil, errors.WithMessagef(
-			ErrInitializePoolFailed,
-			"[PoolFactory.newLiquidityBookV20AEVM] pool: [%s] » type: [%s]",
-			entityPool.Address,
-			entityPool.Type,
-		)
-	}
-	return corePool, nil
-}
-
 func (f *PoolFactory) newSmardex(entityPool entity.Pool) (*smardex.PoolSimulator, error) {
 	corePool, err := smardex.NewPoolSimulator(entityPool)
 	if err != nil {
@@ -2010,7 +1899,7 @@ func (f *PoolFactory) newNuriV2(entityPool entity.Pool) (*nuriv2.PoolSimulator, 
 }
 
 func (f *PoolFactory) newAmbientAEVM(entityPool entity.Pool, stateRoot common.Hash) (*aevmpoolwrapper.PoolWrapper, error) {
-	unimplementedPool := poolaevm.NewUnimplementedPool(entityPool.Address, entityPool.Exchange, entityPool.Type)
+	unimplementedPool := dexlibprivate.NewUnimplementedPool(entityPool.Address, entityPool.Exchange, entityPool.Type)
 
 	balanceSlots := f.getBalanceSlots(&entityPool)
 	aevmPool, err := ambientaevm.NewPoolAEVM(

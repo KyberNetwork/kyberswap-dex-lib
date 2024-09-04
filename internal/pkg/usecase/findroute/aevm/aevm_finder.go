@@ -8,7 +8,7 @@ import (
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	findrouteencode "github.com/KyberNetwork/aevm/usecase/findroute/encode"
-	aevmpool "github.com/KyberNetwork/aevm/usecase/pool/common"
+	aevmpool "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/aevm-pool"
 	dexlibmsgpack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/msgpack"
 	pkg_source_kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	pkg_source_limitorder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
