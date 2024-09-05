@@ -173,6 +173,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeAmbient
 	dexValueObject.ExchangeAmbient: {},
+
+	// executeEtherVista
+	dexValueObject.ExchangeEtherVista: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {
