@@ -10,6 +10,7 @@ import (
 	dexlibprivate "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source"
 	aevmpoolwrapper "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/aevm-pool/wrapper"
 	ambientaevm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/ambient"
+	maverickv2aevm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/maverick-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
 	balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v1"
@@ -36,6 +37,7 @@ import (
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
+	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
@@ -568,6 +570,17 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		)
 	case ethervista.DexType:
 		return f.newEtherVista(entityPool)
+	case maverickv2.DexType:
+		if f.config.UseAEVM && f.config.DexUseAEVM[maverickv2.DexType] {
+			return f.newMaverickV2AEVM(entityPool, stateRoot)
+		}
+
+		return nil, errors.WithMessagef(
+			ErrPoolTypeFactoryNotFound,
+			"[PoolFactory.NewPoolSimulator] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -1935,4 +1948,26 @@ func (f *PoolFactory) newEtherVista(entityPool entity.Pool) (*ethervista.PoolSim
 	}
 
 	return corePool, nil
+}
+
+func (f *PoolFactory) newMaverickV2AEVM(entityPool entity.Pool, stateRoot common.Hash) (*aevmpoolwrapper.PoolWrapper, error) {
+	unimplementedPool := dexlibprivate.NewUnimplementedPool(entityPool.Address, entityPool.Exchange, entityPool.Type)
+
+	balanceSlots := f.getBalanceSlots(&entityPool)
+	aevmPool, err := maverickv2aevm.NewPoolAEVM(
+		entityPool,
+		f.client,
+		stateRoot,
+		balanceSlots,
+	)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newMaverickV2AEVM] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return aevmpoolwrapper.NewPoolWrapper(unimplementedPool, aevmPool), nil
 }
