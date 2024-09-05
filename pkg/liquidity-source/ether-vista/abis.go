@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	pairABI    abi.ABI
 	factoryABI abi.ABI
+	pairABI    abi.ABI
+	routerABI  abi.ABI
 )
 
 func init() {
@@ -17,10 +18,13 @@ func init() {
 		data []byte
 	}{
 		{
+			&factoryABI, factoryABIJson,
+		},
+		{
 			&pairABI, pairABIJson,
 		},
 		{
-			&factoryABI, factoryABIJson,
+			&routerABI, routerABIJson,
 		},
 	}
 

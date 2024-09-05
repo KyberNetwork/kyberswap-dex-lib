@@ -8,7 +8,6 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -16,14 +15,9 @@ import (
 )
 
 type (
-	ILogDecoder interface {
-		Decode(logs []types.Log) (ReserveData, *big.Int, error)
-	}
-
 	PoolTracker struct {
 		config       *Config
 		ethrpcClient *ethrpc.Client
-		logDecoder   ILogDecoder
 	}
 
 	GetReservesResult struct {
@@ -40,7 +34,6 @@ func NewPoolTracker(
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-		logDecoder:   NewLogDecoder(),
 	}, nil
 }
 
@@ -53,7 +46,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
-	reserveData, routerAddress, blockNumber, err := d.getRPCState(ctx, p.Address)
+	rpcStateData, blockNumber, err := d.getRPCState(ctx, p.Address)
 	if err != nil {
 		return p, err
 	}
@@ -76,7 +69,7 @@ func (d *PoolTracker) GetNewPoolState(
 			logger.Fields{
 				"pool_id":          p.Address,
 				"old_reserve":      p.Reserves,
-				"new_reserve":      reserveData,
+				"new_reserve":      entity.PoolReserves{rpcStateData.Reserve0.String(), rpcStateData.Reserve1.String()},
 				"old_block_number": p.BlockNumber,
 				"new_block_number": blockNumber,
 				"duration_ms":      time.Since(startTime).Milliseconds(),
@@ -84,12 +77,14 @@ func (d *PoolTracker) GetNewPoolState(
 		).
 		Info("Finished getting new pool state")
 
-	return d.updatePool(p, reserveData, routerAddress, blockNumber)
+	return d.updatePool(p, rpcStateData, blockNumber)
 }
 
-func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, routerAddress common.Address, blockNumber *big.Int) (entity.Pool, error) {
+func (d *PoolTracker) updatePool(pool entity.Pool, rpcStateData RPCStateData, blockNumber *big.Int) (entity.Pool, error) {
 	extra := Extra{
-		RouterAddress: routerAddress.Hex(),
+		RouterAddress:        rpcStateData.RouterAddress,
+		BuyTotalFee:          rpcStateData.BuyTotalFee,
+		USDCToETHBuyTotalFee: rpcStateData.USDCToETHBuyTotalFee,
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -98,8 +93,8 @@ func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, rout
 	}
 
 	pool.Reserves = entity.PoolReserves{
-		reserveData.Reserve0.String(),
-		reserveData.Reserve1.String(),
+		rpcStateData.Reserve0.String(),
+		rpcStateData.Reserve1.String(),
 	}
 	pool.Extra = string(extraBytes)
 	pool.BlockNumber = blockNumber.Uint64()
@@ -108,9 +103,10 @@ func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, rout
 	return pool, nil
 }
 
-func (d *PoolTracker) getRPCState(ctx context.Context, poolAddress string) (ReserveData, common.Address, *big.Int, error) {
+func (d *PoolTracker) getRPCState(ctx context.Context, poolAddress string) (RPCStateData, *big.Int, error) {
 	var (
 		getReservesResult GetReservesResult
+		buyTotalFee       uint8
 		routerAddress     common.Address
 	)
 
@@ -123,6 +119,12 @@ func (d *PoolTracker) getRPCState(ctx context.Context, poolAddress string) (Rese
 		Params: nil,
 	}, []interface{}{&getReservesResult})
 	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    pairABI,
+		Target: poolAddress,
+		Method: pairMethodBuyTotalFee,
+		Params: nil,
+	}, []interface{}{&buyTotalFee})
+	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: d.config.FactoryAddress,
 		Method: factoryMethodRouter,
@@ -131,11 +133,32 @@ func (d *PoolTracker) getRPCState(ctx context.Context, poolAddress string) (Rese
 
 	resp, err := rpcRequest.TryBlockAndAggregate()
 	if err != nil {
-		return ReserveData{}, common.Address{}, nil, err
+		return RPCStateData{}, nil, err
 	}
 
-	return ReserveData{
-		Reserve0: getReservesResult.Reserve0,
-		Reserve1: getReservesResult.Reserve1,
-	}, routerAddress, resp.BlockNumber, nil
+	var (
+		usdcToETHBuyTotalFee *big.Int
+	)
+
+	rpcRequest = d.ethrpcClient.NewRequest().SetContext(ctx)
+
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    routerABI,
+		Target: routerAddress.Hex(),
+		Method: routerMethodUSDCToEth,
+		Params: []interface{}{big.NewInt(int64(buyTotalFee))},
+	}, []interface{}{&usdcToETHBuyTotalFee})
+
+	_, err = rpcRequest.TryBlockAndAggregate()
+	if err != nil {
+		return RPCStateData{}, nil, err
+	}
+
+	return RPCStateData{
+		Reserve0:             getReservesResult.Reserve0,
+		Reserve1:             getReservesResult.Reserve1,
+		BuyTotalFee:          uint(buyTotalFee),
+		USDCToETHBuyTotalFee: usdcToETHBuyTotalFee,
+		RouterAddress:        routerAddress.Hex(),
+	}, resp.BlockNumber, nil
 }

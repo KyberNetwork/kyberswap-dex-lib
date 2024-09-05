@@ -29,7 +29,8 @@ var (
 type (
 	PoolSimulator struct {
 		poolpkg.Pool
-		gas Gas
+		gas   Gas
+		extra Extra
 	}
 
 	Gas struct {
@@ -53,7 +54,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		gas: defaultGas,
+		gas:   defaultGas,
+		extra: extra,
 	}, nil
 }
 
@@ -74,6 +76,12 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 	if amountIn.Cmp(number.Zero) <= 0 {
 		return nil, ErrInsufficientInputAmount
+	}
+
+	// Take Router fee if swap from ETH -> Token
+	if param.TokenAmountIn.Token == WETH {
+		fee, _ := uint256.FromBig(s.extra.USDCToETHBuyTotalFee)
+		amountIn.Sub(amountIn, fee)
 	}
 
 	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
@@ -103,56 +111,6 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}, nil
 }
 
-func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
-	var (
-		tokenAmountOut = param.TokenAmountOut
-		tokenIn        = param.TokenIn
-	)
-	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenAmountOut.Token)
-	if indexIn < 0 || indexOut < 0 {
-		return nil, ErrInvalidToken
-	}
-
-	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
-	if overflow {
-		return nil, ErrInvalidAmountOut
-	}
-
-	if amountOut.Cmp(number.Zero) <= 0 {
-		return nil, ErrInsufficientOutputAmount
-	}
-
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
-	if overflow {
-		return nil, ErrInvalidReserve
-	}
-
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
-	if overflow {
-		return nil, ErrInvalidReserve
-	}
-
-	if reserveIn.Cmp(number.Zero) <= 0 || reserveOut.Cmp(number.Zero) <= 0 {
-		return nil, ErrInsufficientLiquidity
-	}
-
-	amountIn, err := s.getAmountIn(amountOut, reserveIn, reserveOut)
-	if err != nil {
-		return nil, err
-	}
-
-	if amountIn.Cmp(reserveIn) > 0 {
-		return nil, ErrInsufficientLiquidity
-	}
-
-	return &poolpkg.CalcAmountInResult{
-		TokenAmountIn: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountIn.ToBig()},
-		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
-		Gas: s.gas.Swap,
-	}, nil
-}
-
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	indexIn, indexOut := s.GetTokenIndex(params.TokenAmountIn.Token), s.GetTokenIndex(params.TokenAmountOut.Token)
 	if indexIn < 0 || indexOut < 0 {
@@ -165,7 +123,8 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
-		BlockNumber: s.Pool.Info.BlockNumber,
+		RouterAddress: s.extra.RouterAddress,
+		BlockNumber:   s.Pool.Info.BlockNumber,
 	}
 }
 
@@ -174,17 +133,4 @@ func (s *PoolSimulator) getAmountOut(amountIn, reserveIn, reserveOut *uint256.In
 	denominator := new(uint256.Int).Add(reserveIn, amountIn)
 
 	return new(uint256.Int).Div(numerator, denominator)
-}
-
-func (s *PoolSimulator) getAmountIn(amountOut, reserveIn, reserveOut *uint256.Int) (amountIn *uint256.Int, err error) {
-	defer func() {
-		if r := recover(); r != nil {
-			err = r.(error)
-		}
-	}()
-
-	numerator := SafeMul(reserveIn, amountOut)
-	denominator := SafeSub(reserveOut, amountOut)
-
-	return SafeAdd(new(uint256.Int).Div(numerator, denominator), number.Number_1), nil
 }

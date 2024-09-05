@@ -2,19 +2,21 @@ package ethervista
 
 import "math/big"
 
-type ReserveData struct {
-	Reserve0 *big.Int
-	Reserve1 *big.Int
-}
-
-func (d ReserveData) IsZero() bool {
-	return d.Reserve0 == nil && d.Reserve1 == nil
+type RPCStateData struct {
+	Reserve0             *big.Int
+	Reserve1             *big.Int
+	RouterAddress        string
+	BuyTotalFee          uint
+	USDCToETHBuyTotalFee *big.Int
 }
 
 type Extra struct {
-	RouterAddress string `json:"routerAddress"`
+	RouterAddress        string   `json:"routerAddress"`
+	BuyTotalFee          uint     `json:"buyTotalFee"`
+	USDCToETHBuyTotalFee *big.Int `json:"usdcToETHBuyTotalFee"`
 }
 
 type PoolMeta struct {
-	BlockNumber uint64 `json:"blockNumber"`
+	RouterAddress string `json:"routerAddress"`
+	BlockNumber   uint64 `json:"blockNumber"`
 }
