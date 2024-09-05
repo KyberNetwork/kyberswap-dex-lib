@@ -6,8 +6,6 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/libraries/SafeMath.sol
-
 var (
 	// safe math consts
 	uZERO       = uint256.NewInt(0)
@@ -15,6 +13,7 @@ var (
 	_INT256_MIN = new(big.Int).Neg(new(big.Int).Lsh(big.NewInt(1), 255)) // -2^255
 )
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/libraries/SafeMath.sol#L11
 func AddUint256(x, y *uint256.Int) *uint256.Int {
 	z := new(uint256.Int).Add(x, y)
 
@@ -25,6 +24,7 @@ func AddUint256(x, y *uint256.Int) *uint256.Int {
 	return z
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/libraries/SafeMath.sol#L15
 func SubUint256(x, y *uint256.Int) *uint256.Int {
 	z := new(uint256.Int).Sub(x, y)
 
@@ -35,6 +35,7 @@ func SubUint256(x, y *uint256.Int) *uint256.Int {
 	return z
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/libraries/SafeMath.sol#L23
 func MulUint256(x, y *uint256.Int) *uint256.Int {
 	if y.IsZero() {
 		return y
@@ -49,6 +50,7 @@ func MulUint256(x, y *uint256.Int) *uint256.Int {
 	return z
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/libraries/SafeMath.sol#L27
 func DivUint256(a, b *uint256.Int) *uint256.Int {
 	if b.Cmp(new(uint256.Int)) <= 0 {
 		panic(ErrSM43)
@@ -57,6 +59,7 @@ func DivUint256(a, b *uint256.Int) *uint256.Int {
 	return new(uint256.Int).Div(a, b)
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/libraries/SafeMath.sol#L32
 func CeilDivUint256(a, b *uint256.Int) *uint256.Int {
 	c := DivUint256(a, b)
 
@@ -71,10 +74,12 @@ func ToUint256(n *big.Int) *uint256.Int {
 	return new(uint256.Int).SetBytes(n.Bytes())
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/libraries/SafeMath.sol#L54
 func ToInt256(n *uint256.Int) *big.Int {
 	return new(big.Int).SetBytes(n.Bytes())
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/libraries/SafeMath.sol#L61
 func AddInt256(a, b *big.Int) *big.Int {
 	c := new(big.Int).Add(a, b)
 
@@ -86,6 +91,7 @@ func AddInt256(a, b *big.Int) *big.Int {
 	return c
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/libraries/SafeMath.sol#L66
 func SubInt256(a, b *big.Int) *big.Int {
 	c := new(big.Int).Sub(a, b)
 
@@ -97,6 +103,7 @@ func SubInt256(a, b *big.Int) *big.Int {
 	return c
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/libraries/SafeMath.sol#L71
 func MulInt256(a, b *big.Int) *big.Int {
 	if a.Cmp(ZERO) == 0 {
 		return a
@@ -115,6 +122,7 @@ func MulInt256(a, b *big.Int) *big.Int {
 	return c
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/libraries/SafeMath.sol#L85
 func DivInt256(a, b *big.Int) *big.Int {
 	if b.Cmp(ZERO) == 0 {
 		panic(ErrSM43)
@@ -127,6 +135,7 @@ func DivInt256(a, b *big.Int) *big.Int {
 	return new(big.Int).Quo(a, b)
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/libraries/SafeMath.sol#L92
 func NegFloorDiv(a, b *big.Int) *big.Int {
 	c := DivInt256(a, b)
 

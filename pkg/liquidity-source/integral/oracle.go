@@ -4,8 +4,7 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapOracleV3.sol
-
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapOracleV3.sol#L141
 func (p *PoolSimulator) tradeY(yAfter, xBefore, yBefore *uint256.Int) (*uint256.Int, error) {
 	yAfterInt := ToInt256(yAfter)
 	xBeforeInt := ToInt256(xBefore)
@@ -23,6 +22,7 @@ func (p *PoolSimulator) tradeY(yAfter, xBefore, yBefore *uint256.Int) (*uint256.
 	return ToUint256(xAfterInt), nil
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapOracleV3.sol#L121
 func (p *PoolSimulator) tradeX(xAfter, xBefore, yBefore *uint256.Int) (*uint256.Int, error) {
 	xAfterInt := ToInt256(xAfter)
 	xBeforeInt := ToInt256(xBefore)

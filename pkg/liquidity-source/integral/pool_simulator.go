@@ -89,8 +89,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.Info.Reserves = []*big.Int{si.newReserve0, si.newReserve1}
 }
 
-// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapPair.sol
-
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapPair.sol#L184
 func (p *PoolSimulator) swap(amountIn, amount0Out, amount1Out *uint256.Int) (*pool.CalcAmountOutResult, error) {
 	if !(amount0Out.Cmp(uZERO) > 0 && amount1Out.Cmp(uZERO) == 0) && !(amount1Out.Cmp(uZERO) > 0 && amount0Out.Cmp(uZERO) == 0) {
 		return nil, ErrTP31
@@ -195,6 +194,7 @@ func (p *PoolSimulator) swap(amountIn, amount0Out, amount1Out *uint256.Int) (*po
 	}, nil
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapPair.sol#L266
 func (p *PoolSimulator) getSwapAmount0Out(amount1In *uint256.Int) (*uint256.Int, error) {
 	reserves := p.GetReserves()
 
@@ -217,6 +217,7 @@ func (p *PoolSimulator) getSwapAmount0Out(amount1In *uint256.Int) (*uint256.Int,
 	return SubUint256(reserve0, balance0After), nil
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapPair.sol#L281
 func (p *PoolSimulator) getSwapAmount1Out(amount0In *uint256.Int) (*uint256.Int, error) {
 	reserves := p.GetReserves()
 
