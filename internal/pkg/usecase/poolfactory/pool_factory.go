@@ -27,6 +27,7 @@ import (
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
+	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
@@ -565,6 +566,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 			entityPool.Address,
 			entityPool.Type,
 		)
+	case ethervista.DexType:
+		return f.newEtherVista(entityPool)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -1918,4 +1921,18 @@ func (f *PoolFactory) newAmbientAEVM(entityPool entity.Pool, stateRoot common.Ha
 	}
 
 	return aevmpoolwrapper.NewPoolWrapper(unimplementedPool, aevmPool), nil
+}
+
+func (f *PoolFactory) newEtherVista(entityPool entity.Pool) (*ethervista.PoolSimulator, error) {
+	corePool, err := ethervista.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newEtherVista] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
 }
