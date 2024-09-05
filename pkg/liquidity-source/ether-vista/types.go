@@ -16,7 +16,5 @@ type Extra struct {
 }
 
 type PoolMeta struct {
-	Fee          uint64 `json:"fee"`
-	FeePrecision uint64 `json:"feePrecision"`
-	BlockNumber  uint64 `json:"blockNumber"`
+	BlockNumber uint64 `json:"blockNumber"`
 }
