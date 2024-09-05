@@ -74,14 +74,14 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, ErrInvalidAmountIn
 	}
 
-	if amountIn.Cmp(number.Zero) <= 0 {
-		return nil, ErrInsufficientInputAmount
-	}
-
 	// Take Router fee if swap from ETH -> Token
 	if param.TokenAmountIn.Token == WETH {
 		fee, _ := uint256.FromBig(s.extra.USDCToETHBuyTotalFee)
 		amountIn.Sub(amountIn, fee)
+	}
+
+	if amountIn.Cmp(number.Zero) <= 0 {
+		return nil, ErrInsufficientInputAmount
 	}
 
 	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
@@ -99,7 +99,12 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}
 
 	amountOut := s.getAmountOut(amountIn, reserveIn, reserveOut)
-	if amountOut.Cmp(reserveOut) > 0 {
+	if param.TokenOut == WETH {
+		fee, _ := uint256.FromBig(s.extra.USDCToETHSellTotalFee)
+		amountOut.Sub(amountOut, fee)
+	}
+
+	if amountOut.Cmp(reserveOut) > 0 || amountOut.Cmp(number.Zero) <= 0 {
 		return nil, ErrInsufficientLiquidity
 	}
 

@@ -16,10 +16,11 @@ const (
 )
 
 const (
-	pairMethodToken0      = "token0"
-	pairMethodToken1      = "token1"
-	pairMethodGetReserves = "getReserves"
-	pairMethodBuyTotalFee = "buyTotalFee"
+	pairMethodToken0       = "token0"
+	pairMethodToken1       = "token1"
+	pairMethodGetReserves  = "getReserves"
+	pairMethodBuyTotalFee  = "buyTotalFee"
+	pairMethodSellTotalFee = "sellTotalFee"
 )
 
 const (

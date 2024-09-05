@@ -82,9 +82,11 @@ func (d *PoolTracker) GetNewPoolState(
 
 func (d *PoolTracker) updatePool(pool entity.Pool, rpcStateData RPCStateData, blockNumber *big.Int) (entity.Pool, error) {
 	extra := Extra{
-		RouterAddress:        rpcStateData.RouterAddress,
-		BuyTotalFee:          rpcStateData.BuyTotalFee,
-		USDCToETHBuyTotalFee: rpcStateData.USDCToETHBuyTotalFee,
+		RouterAddress:         rpcStateData.RouterAddress,
+		BuyTotalFee:           rpcStateData.BuyTotalFee,
+		SellTotalFee:          rpcStateData.SellTotalFee,
+		USDCToETHBuyTotalFee:  rpcStateData.USDCToETHBuyTotalFee,
+		USDCToETHSellTotalFee: rpcStateData.USDCToETHSellTotalFee,
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -107,6 +109,7 @@ func (d *PoolTracker) getRPCState(ctx context.Context, poolAddress string) (RPCS
 	var (
 		getReservesResult GetReservesResult
 		buyTotalFee       uint8
+		sellTotalFee      uint8
 		routerAddress     common.Address
 	)
 
@@ -125,6 +128,12 @@ func (d *PoolTracker) getRPCState(ctx context.Context, poolAddress string) (RPCS
 		Params: nil,
 	}, []interface{}{&buyTotalFee})
 	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    pairABI,
+		Target: poolAddress,
+		Method: pairMethodSellTotalFee,
+		Params: nil,
+	}, []interface{}{&sellTotalFee})
+	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
 		Target: d.config.FactoryAddress,
 		Method: factoryMethodRouter,
@@ -137,7 +146,8 @@ func (d *PoolTracker) getRPCState(ctx context.Context, poolAddress string) (RPCS
 	}
 
 	var (
-		usdcToETHBuyTotalFee *big.Int
+		usdcToETHBuyTotalFee  *big.Int
+		usdcToETHSellTotalFee *big.Int
 	)
 
 	rpcRequest = d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -148,6 +158,12 @@ func (d *PoolTracker) getRPCState(ctx context.Context, poolAddress string) (RPCS
 		Method: routerMethodUSDCToEth,
 		Params: []interface{}{big.NewInt(int64(buyTotalFee))},
 	}, []interface{}{&usdcToETHBuyTotalFee})
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    routerABI,
+		Target: routerAddress.Hex(),
+		Method: routerMethodUSDCToEth,
+		Params: []interface{}{big.NewInt(int64(sellTotalFee))},
+	}, []interface{}{&usdcToETHSellTotalFee})
 
 	_, err = rpcRequest.TryBlockAndAggregate()
 	if err != nil {
@@ -155,10 +171,12 @@ func (d *PoolTracker) getRPCState(ctx context.Context, poolAddress string) (RPCS
 	}
 
 	return RPCStateData{
-		Reserve0:             getReservesResult.Reserve0,
-		Reserve1:             getReservesResult.Reserve1,
-		BuyTotalFee:          uint(buyTotalFee),
-		USDCToETHBuyTotalFee: usdcToETHBuyTotalFee,
-		RouterAddress:        routerAddress.Hex(),
+		Reserve0:              getReservesResult.Reserve0,
+		Reserve1:              getReservesResult.Reserve1,
+		BuyTotalFee:           uint(buyTotalFee),
+		SellTotalFee:          uint(sellTotalFee),
+		USDCToETHBuyTotalFee:  usdcToETHBuyTotalFee,
+		USDCToETHSellTotalFee: usdcToETHSellTotalFee,
+		RouterAddress:         routerAddress.Hex(),
 	}, resp.BlockNumber, nil
 }
