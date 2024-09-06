@@ -24,10 +24,10 @@ var (
 	_averagePrice      = uint256.NewInt(414095812485130)
 
 	_amount0In  = big.NewInt(1988831782)
-	_amount1Out = big.NewInt(4140544029038813)
+	_amount1Out = big.NewInt(823484556046064466)
 
 	_amount1In  = big.NewInt(1000000000000000)
-	_amount0Out = big.NewInt(2373482)
+	_amount0Out = big.NewInt(2414658)
 )
 
 func TestCalcAmountOut(t *testing.T) {
