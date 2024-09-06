@@ -14,16 +14,17 @@ import (
 )
 
 var (
-	_token0            = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
-	_token1            = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
-	_reserve0, _       = new(big.Int).SetString("191264141949", 10)
-	_reserve1, _       = new(big.Int).SetString("236717826701867952033", 10)
+	_token0      = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+	_token1      = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+	_reserve0, _ = new(big.Int).SetString("164891778886", 10)
+	_reserve1, _ = new(big.Int).SetString("245352738377014871914", 10)
+
 	_swapFee           = uint256.NewInt(100000000000000)
 	_decimalsConverter = big.NewInt(1000000)
-	_averagePrice      = uint256.NewInt(421279503935549)
+	_averagePrice      = uint256.NewInt(414095812485130)
 
-	_amount0In  = big.NewInt(10000000)
-	_amount1Out = big.NewInt(4212373759851553)
+	_amount0In  = big.NewInt(1988831782)
+	_amount1Out = big.NewInt(4140544029038813)
 
 	_amount1In  = big.NewInt(1000000000000000)
 	_amount0Out = big.NewInt(2373482)
