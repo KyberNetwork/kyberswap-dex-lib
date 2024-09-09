@@ -13,6 +13,7 @@ func CalcAmountOut(ctx context.Context, pool poolpkg.IPoolSimulator, tokenAmount
 	if dexUseAEVM[pool.GetType()] {
 		span, _ := tracer.StartSpanFromContext(ctx, "CalcAmountOut")
 		span.SetTag("calcAmountOutAEVM", "aevm")
+		span.SetTag("dex", pool.GetType())
 		defer span.End()
 	}
 	if c := ctx.Value(metrics.CalcAmountOutCounterContextKey); c != nil {
