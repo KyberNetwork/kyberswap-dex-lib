@@ -1,7 +1,10 @@
 package types
 
 import (
+	"fmt"
 	"math/big"
+	"os"
+	"sync"
 	"testing"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
@@ -101,6 +104,58 @@ func TestTokenToPoolAddressMap(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestTokenToPoolAddressMapConcurrent(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skipf("compute intensive test, should only run on local machine")
+	}
+	var (
+		wg sync.WaitGroup
+		ch = make(chan struct{}, 100)
+	)
+	for k := 0; k < 10_000; k++ {
+		wg.Add(1)
+		k := k
+		go func() {
+			ch <- struct{}{}
+			defer func() {
+				<-ch
+				fmt.Printf("k=%d\n", k)
+				wg.Done()
+			}()
+			nTokens := 100
+			nPools := 2_000
+			tokenByAddress := valueobject.GenerateRandomTokenByAddress(nTokens)
+			var tokenAddressList []string
+			for tokenAddress := range tokenByAddress {
+				tokenAddressList = append(tokenAddressList, tokenAddress)
+			}
+			poolByAddress, err := valueobject.GenerateRandomPoolByAddress(nPools, tokenAddressList, pooltypes.PoolTypes.UniswapV2)
+			require.NoError(t, err)
+			tokenToPoolAddress := MakeTokenToPoolAddressMapFromPools(poolByAddress)
+			defer tokenToPoolAddress.ReleaseResources()
+
+			expected := make(map[string]sets.String)
+			for _, pool := range poolByAddress {
+				for _, token := range pool.GetTokens() {
+					if _, ok := expected[token]; !ok {
+						expected[token] = sets.NewString()
+					}
+					expected[token].Insert(pool.GetAddress())
+				}
+			}
+
+			for token, poolAddrSet := range expected {
+				actualNumPools := tokenToPoolAddress.NumPools(token)
+				require.Equal(t, poolAddrSet.Len(), actualNumPools)
+				for i := 0; i < actualNumPools; i++ {
+					require.True(t, poolAddrSet.Has(tokenToPoolAddress.GetPoolAddressAt(token, i)))
+				}
+			}
+		}()
+	}
+	wg.Wait()
 }
 
 func TestIndexedAddressListExample(t *testing.T) {

@@ -1933,7 +1933,7 @@ func (f *PoolFactory) newAmbientAEVM(entityPool entity.Pool, stateRoot common.Ha
 		)
 	}
 
-	return aevmpoolwrapper.NewPoolWrapper(unimplementedPool, aevmPool), nil
+	return aevmpoolwrapper.NewPoolWrapperAsAEVMPool(unimplementedPool, aevmPool, f.client), nil
 }
 
 func (f *PoolFactory) newEtherVista(entityPool entity.Pool) (*ethervista.PoolSimulator, error) {
@@ -1969,5 +1969,5 @@ func (f *PoolFactory) newMaverickV2AEVM(entityPool entity.Pool, stateRoot common
 		)
 	}
 
-	return aevmpoolwrapper.NewPoolWrapper(unimplementedPool, aevmPool), nil
+	return aevmpoolwrapper.NewPoolWrapperAsAEVMPool(unimplementedPool, aevmPool, f.client), nil
 }
