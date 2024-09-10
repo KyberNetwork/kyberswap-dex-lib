@@ -8,11 +8,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/patrickmn/go-cache"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )
@@ -36,13 +36,13 @@ func NewHoldersListRedisRepositoryWithCache(redisClient *redis.Redis, ttlSec uin
 	}
 }
 
-func (r *HoldersListRedisRepositoryWithCache) Get(ctx context.Context, token common.Address) (*entity.ERC20HoldersList, error) {
+func (r *HoldersListRedisRepositoryWithCache) Get(ctx context.Context, token common.Address) (*types.ERC20HoldersList, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[erc20balanceslot] HoldersListRedisRepository.Get")
 	defer span.End()
 
 	key := strings.ToLower(token.String())
 	if raw, ok := r.cache.Get(key); ok {
-		if cached, ok := raw.(*entity.ERC20HoldersList); ok {
+		if cached, ok := raw.(*types.ERC20HoldersList); ok {
 			return cached, nil
 		}
 	}
@@ -56,7 +56,7 @@ func (r *HoldersListRedisRepositoryWithCache) Get(ctx context.Context, token com
 		return nil, ErrNotFound
 	}
 
-	result := new(entity.ERC20HoldersList)
+	result := new(types.ERC20HoldersList)
 	if err := json.Unmarshal([]byte(rawResult), result); err != nil {
 		return nil, fmt.Errorf("could not unmarshal entity.ERC20HoldersList token %v err %v", token, err)
 	}

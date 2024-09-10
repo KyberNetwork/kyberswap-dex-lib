@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -32,7 +32,7 @@ func (*testProbe) Name(_ ProbeStrategyExtraParams) string {
 	return "test_probe"
 }
 
-func (*testProbe) ProbeBalanceSlot(_ context.Context, token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
+func (*testProbe) ProbeBalanceSlot(_ context.Context, token common.Address, _ ProbeStrategyExtraParams) (*types.ERC20BalanceSlot, error) {
 	m := map[common.Address]common.Hash{
 		common.HexToAddress(btcbAddr):  common.HexToHash("0x4f1749155d837e5f5ef076382254c01af904c6ddb97b100fef402248f448ea99"),
 		common.HexToAddress(wetheAddr): common.HexToHash("0x4f1749155d837e5f5ef076382254c01af904c6ddb97b100fef402248f448ea99"),
@@ -42,7 +42,7 @@ func (*testProbe) ProbeBalanceSlot(_ context.Context, token common.Address, _ Pr
 	if !ok {
 		return nil, errors.New("not found")
 	}
-	return &entity.ERC20BalanceSlot{
+	return &types.ERC20BalanceSlot{
 		Token:       strings.ToLower(token.String()),
 		Wallet:      strings.ToLower(common.Address{}.String()),
 		Found:       true,
@@ -109,7 +109,7 @@ func TestGetBalanceSlot(t *testing.T) {
 	for _, token := range []string{btcbAddr, wetheAddr} {
 		rawBl, ok := bls[strings.ToLower(token)]
 		require.Truef(t, ok, "must have token %s", token)
-		bl := new(entity.ERC20BalanceSlot)
+		bl := new(types.ERC20BalanceSlot)
 		err = json.Unmarshal([]byte(rawBl), bl)
 		require.NoErrorf(t, err, "must unmarshal")
 		require.Truef(t, bl.Found, "Found must be true")

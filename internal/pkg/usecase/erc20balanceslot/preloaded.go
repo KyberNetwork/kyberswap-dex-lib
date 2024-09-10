@@ -5,7 +5,8 @@ import (
 	_ "embed"
 	"encoding/gob"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -21,7 +22,7 @@ var preloadedByPrefix = map[valueobject.ChainID][]byte{
 	valueobject.ChainIDEthereum:        ethereum,
 }
 
-func SerializePreloaded(preloaded entity.TokenBalanceSlots) ([]byte, error) {
+func SerializePreloaded(preloaded types.TokenBalanceSlots) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	enc := gob.NewEncoder(buf)
 	if err := enc.Encode(preloaded); err != nil {
@@ -30,9 +31,9 @@ func SerializePreloaded(preloaded entity.TokenBalanceSlots) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func DeserializePreloaded(d []byte) (entity.TokenBalanceSlots, error) {
+func DeserializePreloaded(d []byte) (types.TokenBalanceSlots, error) {
 	dec := gob.NewDecoder(bytes.NewBuffer(d))
-	preloaded := make(entity.TokenBalanceSlots)
+	preloaded := make(types.TokenBalanceSlots)
 	if err := dec.Decode(&preloaded); err != nil {
 		return nil, err
 	}

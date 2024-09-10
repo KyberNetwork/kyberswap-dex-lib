@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	repo "github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -54,13 +54,13 @@ func NewTestMultipleStrategy(strategies ...ProbeStrategy) *MultipleStrategy {
 	return &MultipleStrategy{strategies: strategies}
 }
 
-func (p *MultipleStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, oldBalanceSlots *entity.ERC20BalanceSlot, extraParams *MultipleStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
+func (p *MultipleStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, oldBalanceSlots *types.ERC20BalanceSlot, extraParams *MultipleStrategyExtraParams) (*types.ERC20BalanceSlot, error) {
 	var (
 		hadAttemptedList []string
 		hadAttempted     = make(map[string]struct{})
 		attempted        []string
 		holdersListName  = (&HoldersListStrategy{}).Name(nil)
-		bl               *entity.ERC20BalanceSlot
+		bl               *types.ERC20BalanceSlot
 		err              error
 	)
 	if oldBalanceSlots != nil {
@@ -94,7 +94,7 @@ func (p *MultipleStrategy) ProbeBalanceSlot(ctx context.Context, token common.Ad
 		return bl, nil
 	}
 	// not found
-	return &entity.ERC20BalanceSlot{
+	return &types.ERC20BalanceSlot{
 		Token:               strings.ToLower(token.String()),
 		Found:               false,
 		StrategiesAttempted: append(hadAttemptedList, attempted...),

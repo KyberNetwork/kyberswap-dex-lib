@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	repo "github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/redis"
@@ -92,7 +92,7 @@ func TestHoldersListStrategy(t *testing.T) {
 	_, err = p.ProbeBalanceSlot(context.TODO(), token, nil)
 	require.Errorf(t, err, "must error")
 
-	holdersList := &entity.ERC20HoldersList{
+	holdersList := &types.ERC20HoldersList{
 		Token:   strings.ToLower(token.String()),
 		Holders: []string{"aaa", "bbb"},
 	}

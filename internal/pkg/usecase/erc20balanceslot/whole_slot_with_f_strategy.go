@@ -8,13 +8,13 @@ import (
 	"strings"
 
 	"github.com/ALTree/bigfloat"
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/abis"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/jsonrpc"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -56,7 +56,7 @@ func (*WholeSlotWithFStrategy) Name(_ ProbeStrategyExtraParams) string {
 	return "whole_slot_with_f"
 }
 
-func (p *WholeSlotWithFStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
+func (p *WholeSlotWithFStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, _ ProbeStrategyExtraParams) (*types.ERC20BalanceSlot, error) {
 	logger.Infof(ctx, "[%s] probing balance slot for wallet %s in token %s", p.Name(nil), p.wallet, token)
 
 	blockNumber, err := p.ethClient.BlockNumber(ctx)
@@ -182,7 +182,7 @@ func (p *WholeSlotWithFStrategy) ProbeBalanceSlot(ctx context.Context, token com
 		return nil, fmt.Errorf("could not probe token %s", token)
 	}
 
-	return &entity.ERC20BalanceSlot{
+	return &types.ERC20BalanceSlot{
 		Token:          strings.ToLower(token.String()),
 		Wallet:         strings.ToLower(p.wallet.String()),
 		Found:          true,

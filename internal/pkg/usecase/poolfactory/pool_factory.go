@@ -11,6 +11,7 @@ import (
 	aevmpoolwrapper "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/aevm-pool/wrapper"
 	ambientaevm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/ambient"
 	maverickv2aevm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/maverick-v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
 	balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v1"
@@ -111,7 +112,6 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
-	routerentity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -254,8 +254,8 @@ func (f *PoolFactory) NewPoolByAddress(ctx context.Context, pools []*entity.Pool
 	return poolByAddress
 }
 
-func (f *PoolFactory) getBalanceSlots(pool *entity.Pool) map[common.Address]*routerentity.ERC20BalanceSlot {
-	balanceSlots := make(map[common.Address]*routerentity.ERC20BalanceSlot)
+func (f *PoolFactory) getBalanceSlots(pool *entity.Pool) map[common.Address]*types.ERC20BalanceSlot {
+	balanceSlots := make(map[common.Address]*types.ERC20BalanceSlot)
 	for _, token := range pool.Tokens {
 		tokenAddr := common.HexToAddress(token.Address)
 		bl, err := f.balanceSlotsUseCase.Get(context.Background(), tokenAddr, pool)

@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/redis/go-redis/v9"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/pkg/logger"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/redis/go-redis/v9"
 )
 
 type RedisRepository struct {
@@ -28,7 +29,7 @@ func NewRedisRepository(redisClient redis.UniversalClient, config RedisRepositor
 	}
 }
 
-func (r *RedisRepository) Get(ctx context.Context, token common.Address) (*entity.ERC20BalanceSlot, error) {
+func (r *RedisRepository) Get(ctx context.Context, token common.Address) (*types.ERC20BalanceSlot, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[erc20balanceslot] redisRepository.Get")
 	defer span.End()
 
@@ -37,7 +38,7 @@ func (r *RedisRepository) Get(ctx context.Context, token common.Address) (*entit
 		return nil, fmt.Errorf("balance slot for token %s not found", token)
 	}
 
-	result := new(entity.ERC20BalanceSlot)
+	result := new(types.ERC20BalanceSlot)
 	if err := json.Unmarshal([]byte(rawResult), result); err != nil {
 		return nil, fmt.Errorf("[erc20balanceslot] Get could not unmarshal entity.ERC20BalanceSlot token %s", token)
 	}
@@ -45,15 +46,15 @@ func (r *RedisRepository) Get(ctx context.Context, token common.Address) (*entit
 	return result, nil
 }
 
-func (r *RedisRepository) GetAll(ctx context.Context) (map[common.Address]*entity.ERC20BalanceSlot, error) {
+func (r *RedisRepository) GetAll(ctx context.Context) (map[common.Address]*types.ERC20BalanceSlot, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[erc20balanceslot] redisRepository.GetAll")
 	defer span.End()
 
 	rawResult := r.redisClient.HGetAll(ctx, r.redisKey).Val()
-	result := make(map[common.Address]*entity.ERC20BalanceSlot)
+	result := make(map[common.Address]*types.ERC20BalanceSlot)
 	for token, rawValue := range rawResult {
 		token = strings.ToLower(token)
-		balanceSlot := new(entity.ERC20BalanceSlot)
+		balanceSlot := new(types.ERC20BalanceSlot)
 		if err := json.Unmarshal([]byte(rawValue), balanceSlot); err != nil {
 			logger.WithFields(ctx, logger.Fields{"token": token}).Warn("could not unmarshal entity.ERC20BalanceSlot")
 			continue
@@ -64,7 +65,7 @@ func (r *RedisRepository) GetAll(ctx context.Context) (map[common.Address]*entit
 	return result, nil
 }
 
-func (r *RedisRepository) Put(ctx context.Context, balanceSlot *entity.ERC20BalanceSlot) error {
+func (r *RedisRepository) Put(ctx context.Context, balanceSlot *types.ERC20BalanceSlot) error {
 	encoded, err := json.Marshal(balanceSlot)
 	if err != nil {
 		return err
@@ -73,7 +74,7 @@ func (r *RedisRepository) Put(ctx context.Context, balanceSlot *entity.ERC20Bala
 	return err
 }
 
-func (r *RedisRepository) PutMany(ctx context.Context, balanceSlots []*entity.ERC20BalanceSlot) error {
+func (r *RedisRepository) PutMany(ctx context.Context, balanceSlots []*types.ERC20BalanceSlot) error {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[erc20balanceslot] redisRepository.Put")
 	defer span.End()
 

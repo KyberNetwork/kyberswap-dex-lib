@@ -6,12 +6,12 @@ import (
 	"math/rand"
 	"strings"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/abis"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/jsonrpc"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -48,7 +48,7 @@ func (*WholeSlotStrategy) Name(_ ProbeStrategyExtraParams) string {
 
 // ProbeBalanceSlot For a ERC20 token and a wallet, find the storage slot of the token that contains the wallet's balance of the token.
 // This approach only works if the ERC20 token's contract reads and writes balances directly from and to a mapping.
-func (p *WholeSlotStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
+func (p *WholeSlotStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, _ ProbeStrategyExtraParams) (*types.ERC20BalanceSlot, error) {
 	logger.Infof(ctx, "probing balance slot for wallet %s in token %s\n", p.wallet, token)
 
 	/*
@@ -129,7 +129,7 @@ func (p *WholeSlotStrategy) ProbeBalanceSlot(ctx context.Context, token common.A
 		return nil, errors.New("could not probe")
 	}
 
-	return &entity.ERC20BalanceSlot{
+	return &types.ERC20BalanceSlot{
 		Token:       strings.ToLower(token.String()),
 		Wallet:      strings.ToLower(p.wallet.String()),
 		Found:       true,

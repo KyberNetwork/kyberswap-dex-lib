@@ -9,13 +9,13 @@ import (
 	"os"
 	"slices"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	dexentity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/urfave/cli/v2"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/token"
@@ -205,7 +205,7 @@ func probeBalanceSlotAction(c *cli.Context) error {
 	probe := erc20balanceslotuc.NewMultipleStrategy(rpcClient, walletAddr)
 
 	var i int
-	var newBalanceSlots []*entity.ERC20BalanceSlot
+	var newBalanceSlots []*types.ERC20BalanceSlot
 	for token := range tokens {
 		oldBl := balanceSlots[token]
 		extraParams := &erc20balanceslotuc.MultipleStrategyExtraParams{}

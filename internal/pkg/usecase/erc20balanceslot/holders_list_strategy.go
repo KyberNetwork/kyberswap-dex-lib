@@ -5,10 +5,10 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/ethereum/go-ethereum/common"
 	"golang.org/x/sync/singleflight"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	repo "github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -32,7 +32,7 @@ func (*HoldersListStrategy) Name(_ ProbeStrategyExtraParams) string {
 	return "holders-list"
 }
 
-func (p *HoldersListStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, _ ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
+func (p *HoldersListStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, _ ProbeStrategyExtraParams) (*types.ERC20BalanceSlot, error) {
 	logger.Debugf(ctx, "[%s] getting holders list for token %s", p.Name(nil), token)
 
 	holdersList, err := p.holdersListRepo.Get(ctx, token)
@@ -51,7 +51,7 @@ func (p *HoldersListStrategy) ProbeBalanceSlot(ctx context.Context, token common
 		return nil, err
 	}
 
-	return &entity.ERC20BalanceSlot{
+	return &types.ERC20BalanceSlot{
 		Token:   strings.ToLower(token.String()),
 		Wallet:  strings.ToLower(p.wallet.String()),
 		Found:   true,

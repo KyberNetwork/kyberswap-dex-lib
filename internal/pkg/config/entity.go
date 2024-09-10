@@ -3,9 +3,9 @@ package config
 import (
 	"fmt"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/redis"
@@ -54,7 +54,7 @@ type AEVM struct {
 	FakeWallet string `mapstructure:"simulationWallet"`
 
 	// Balance slots defined maunally
-	PredefinedBalanceSlots map[string]*entity.ERC20BalanceSlot `mapstructure:"predefinedBalanceSlots"`
+	PredefinedBalanceSlots map[string]*types.ERC20BalanceSlot `mapstructure:"predefinedBalanceSlots"`
 
 	// Use holders list (if available for token) as fallback if all faking balance strategies failed.
 	UseHoldersListAsFallback bool `mapstructure:"useHoldersListAsFallback"`

@@ -3,13 +3,13 @@ package erc20balanceslot
 import (
 	"context"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/ethereum/go-ethereum/common"
 )
 
 type IRepository interface {
-	Get(ctx context.Context, token common.Address) (*entity.ERC20BalanceSlot, error)
-	GetAll(ctx context.Context) (map[common.Address]*entity.ERC20BalanceSlot, error)
-	Put(ctx context.Context, balanceSlot *entity.ERC20BalanceSlot) error
-	PutMany(ctx context.Context, balanceSlots []*entity.ERC20BalanceSlot) error
+	Get(ctx context.Context, token common.Address) (*types.ERC20BalanceSlot, error)
+	GetAll(ctx context.Context) (map[common.Address]*types.ERC20BalanceSlot, error)
+	Put(ctx context.Context, balanceSlot *types.ERC20BalanceSlot) error
+	PutMany(ctx context.Context, balanceSlots []*types.ERC20BalanceSlot) error
 }

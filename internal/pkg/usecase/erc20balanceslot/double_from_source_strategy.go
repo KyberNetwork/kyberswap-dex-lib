@@ -7,13 +7,13 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/abis"
-	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/jsonrpc"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -53,7 +53,7 @@ func (*DoubleFromSourceStrategy) Name(extraParams ProbeStrategyExtraParams) stri
 	return fmt.Sprintf("double_from_source,source=%s", strings.ToLower(_extraParams.Source.String()))
 }
 
-func (p *DoubleFromSourceStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, extraParams ProbeStrategyExtraParams) (*entity.ERC20BalanceSlot, error) {
+func (p *DoubleFromSourceStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, extraParams ProbeStrategyExtraParams) (*types.ERC20BalanceSlot, error) {
 	logger.Infof(ctx, "[%s] probing balance slot for token %s", p.Name(extraParams), token)
 
 	_extraParams, ok := extraParams.(*DoubleFromSourceStrategyExtraParams)
@@ -113,7 +113,7 @@ func (p *DoubleFromSourceStrategy) ProbeBalanceSlot(ctx context.Context, token c
 		return nil, fmt.Errorf("could not double balance")
 	}
 
-	bl := &entity.ERC20BalanceSlot{
+	bl := &types.ERC20BalanceSlot{
 		Token:          strings.ToLower(token.String()),
 		Wallet:         strings.ToLower(source.String()),
 		Found:          true,
