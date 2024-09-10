@@ -27,6 +27,6 @@ const (
 )
 
 var (
-	DefaultGas  = Gas{Swap: 125000}
+	DefaultGas  = Gas{Swap: 300000}
 	zeroAddress = common.HexToAddress("0x0000000000000000000000000000000000000000")
 )
