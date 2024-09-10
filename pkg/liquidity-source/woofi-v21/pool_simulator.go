@@ -317,6 +317,10 @@ func (s *PoolSimulator) _calcBaseAmountSellQuote(
 
 	decs := s.decimalInfo(baseToken)
 
+	if quoteAmount.Cmp(s.tokenInfos[baseToken].MaxNotionalSwap) > 0 {
+		return nil, nil, ErrNotionalSwapExceedsLimit
+	}
+
 	// gamma = k * quote_amount; and decimal 18
 	gamma := new(uint256.Int).Div(
 		new(uint256.Int).Mul(quoteAmount, uint256.NewInt(state.Coeff)),
@@ -327,21 +331,12 @@ func (s *PoolSimulator) _calcBaseAmountSellQuote(
 		return nil, nil, ErrGammaExceedsLimit
 	}
 
-	if quoteAmount.Cmp(s.tokenInfos[baseToken].MaxNotionalSwap) > 0 {
-		return nil, nil, ErrNotionalSwapExceedsLimit
-	}
-
 	// baseAmount = quoteAmount / oracle.price * (1 - oracle.k * quoteAmount - oracle.spread)
-	coef := new(uint256.Int).Sub(
-		number.Number_1e18,
-		new(uint256.Int).Add(gamma, uint256.NewInt(state.Spread)),
-	)
-
 	baseAmount := new(uint256.Int).Div(
 		new(uint256.Int).Div(
 			new(uint256.Int).Mul(
 				new(uint256.Int).Mul(quoteAmount, new(uint256.Int).Mul(decs.baseDec, decs.priceDec)),
-				coef,
+				new(uint256.Int).Sub(new(uint256.Int).Sub(number.Number_1e18, gamma), uint256.NewInt(state.Spread)),
 			),
 			state.Price,
 		),
@@ -375,6 +370,18 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 
 	decs := s.decimalInfo(baseToken)
 
+	notionalSwap := new(uint256.Int).Div(
+		new(uint256.Int).Mul(
+			new(uint256.Int).Mul(baseAmount, state.Price),
+			decs.quoteDec,
+		),
+		new(uint256.Int).Mul(decs.baseDec, decs.priceDec),
+	)
+
+	if notionalSwap.Cmp(s.tokenInfos[baseToken].MaxNotionalSwap) > 0 {
+		return nil, nil, ErrNotionalSwapExceedsLimit
+	}
+
 	// gamma = k * price * base_amount; and decimal 18
 	gamma := new(uint256.Int).Div(
 		new(uint256.Int).Mul(
@@ -388,37 +395,24 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 		return nil, nil, ErrGammaExceedsLimit
 	}
 
-	notionalSwap := new(uint256.Int).Div(
-		new(uint256.Int).Mul(
-			new(uint256.Int).Mul(baseAmount, state.Price),
-			decs.quoteDec,
-		),
-		new(uint256.Int).Mul(decs.baseDec, decs.priceDec),
-	)
-
-	if notionalSwap.Cmp(s.tokenInfos[baseToken].MaxNotionalSwap) > 0 {
-		return nil, nil, ErrNotionalSwapExceedsLimit
-	}
-
 	// quoteAmount = baseAmount * oracle.price * (1 - oracle.k * baseAmount * oracle.price - oracle.spread)
-	coef := new(uint256.Int).Sub(
-		number.Number_1e18,
-		new(uint256.Int).Add(gamma, uint256.NewInt(state.Spread)),
-	)
-
 	quoteAmount := new(uint256.Int).Div(
 		new(uint256.Int).Div(
 			new(uint256.Int).Mul(
-				new(uint256.Int).Mul(baseAmount, state.Price),
-				decs.quoteDec,
+				new(uint256.Int).Div(
+					new(uint256.Int).Mul(
+						new(uint256.Int).Mul(baseAmount, state.Price),
+						decs.quoteDec,
+					),
+					decs.priceDec,
+				),
+				new(uint256.Int).Sub(
+					new(uint256.Int).Sub(uint256.NewInt(1e18), gamma),
+					uint256.NewInt(state.Spread),
+				),
 			),
-			decs.priceDec,
+			uint256.NewInt(1e18),
 		),
-		number.Number_1e18,
-	)
-
-	quoteAmount = new(uint256.Int).Div(
-		new(uint256.Int).Mul(quoteAmount, coef),
 		decs.baseDec,
 	)
 

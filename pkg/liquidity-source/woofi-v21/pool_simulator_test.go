@@ -458,16 +458,16 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			expectedResult: &poolpkg.CalcAmountOutResult{
 				TokenAmountOut: &poolpkg.TokenAmount{
 					Token:  "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-					Amount: bignumber.NewBig10("31255474334697323037"),
+					Amount: bignumber.NewBig10("32603174295822426732"),
 				},
 				Fee: &poolpkg.TokenAmount{
 					Token:  "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f",
-					Amount: bignumber.NewBig10("12493798"),
+					Amount: bignumber.NewBig10("13032560"),
 				},
 				Gas: DefaultGas.Swap,
 				SwapInfo: woofiV2SwapInfo{
 					newBase1Price: number.NewUint256("2661411836801"),
-					newBase2Price: number.NewUint256("159814352098"),
+					newBase2Price: number.NewUint256("159814885839"),
 				},
 			},
 		},
@@ -694,7 +694,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			expectedErr: nil,
 			expectedReserves: map[string]*uint256.Int{
 				"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8": number.NewUint256("422296216472"),
-				"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": number.NewUint256("276343983986103591090"),
+				"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1": number.NewUint256("274996284024978487395"),
 				"0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f": number.NewUint256("1957506520"),
 			},
 		},
