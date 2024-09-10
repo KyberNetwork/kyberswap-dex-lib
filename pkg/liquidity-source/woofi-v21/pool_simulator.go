@@ -335,15 +335,22 @@ func (s *PoolSimulator) _calcBaseAmountSellQuote(
 	baseAmount := new(uint256.Int).Div(
 		new(uint256.Int).Div(
 			new(uint256.Int).Mul(
-				new(uint256.Int).Mul(quoteAmount, new(uint256.Int).Mul(decs.baseDec, decs.priceDec)),
-				new(uint256.Int).Sub(new(uint256.Int).Sub(number.Number_1e18, gamma), uint256.NewInt(state.Spread)),
+				new(uint256.Int).Mul(
+					new(uint256.Int).Mul(
+						quoteAmount,
+						new(uint256.Int).Mul(decs.baseDec, decs.priceDec),
+					),
+					new(uint256.Int).Sub(
+						new(uint256.Int).Sub(number.Number_1e18, gamma),
+						uint256.NewInt(state.Spread),
+					),
+				),
+				uint256.NewInt(1e18),
 			),
 			state.Price,
 		),
-		number.Number_1e18,
+		decs.quoteDec,
 	)
-
-	baseAmount = new(uint256.Int).Div(baseAmount, decs.quoteDec)
 
 	// new_price = oracle.price / (1 - k * quoteAmount)
 	newPrice := new(uint256.Int).Div(
