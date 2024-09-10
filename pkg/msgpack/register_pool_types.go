@@ -44,6 +44,7 @@ import (
 	pkg_liquiditysource_velodromev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	pkg_liquiditysource_velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
 	pkg_liquiditysource_woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
+	pkg_liquiditysource_woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
 	pkg_source_algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	pkg_source_balancer_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/stable"
 	pkg_source_balancer_weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/weighted"
@@ -144,6 +145,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_velodromev1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_velodromev2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_woofiv2.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_woofiv21.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_algebrav1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_balancer_stable.StablePool{})
 	msgpack.RegisterConcreteType(&pkg_source_balancer_weighted.WeightedPool2Tokens{})

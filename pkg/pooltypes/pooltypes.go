@@ -40,6 +40,7 @@ import (
 	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
+	woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
@@ -155,6 +156,7 @@ type Types struct {
 	KyberPMM                       string
 	IZiSwap                        string
 	WooFiV2                        string
+	WooFiV21                       string
 	Equalizer                      string
 	SwapBasedPerp                  string
 	USDFi                          string
@@ -268,6 +270,7 @@ var (
 		KyberPMM:                       kyberpmm.DexTypeKyberPMM,
 		IZiSwap:                        iziswap.DexTypeiZiSwap,
 		WooFiV2:                        woofiv2.DexTypeWooFiV2,
+		WooFiV21:                       woofiv21.DexTypeWooFiV21,
 		Equalizer:                      equalizer.DexTypeEqualizer,
 		SwapBasedPerp:                  swapbasedperp.DexTypeSwapBasedPerp,
 		USDFi:                          usdfi.DexTypeUSDFi,
