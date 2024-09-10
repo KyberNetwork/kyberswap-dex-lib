@@ -3,6 +3,7 @@ package dvm
 import (
 	"math/big"
 	"strings"
+	"sync"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -16,6 +17,7 @@ import (
 )
 
 type PoolSimulator struct {
+	sync.RWMutex
 	pool.Pool
 	libv2.PMMState
 	Tokens entity.PoolTokens
@@ -67,8 +69,6 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		MtFeeRate: extra.MtFeeRate,
 		LpFeeRate: extra.LpFeeRate,
 	}
-
-	libv2.AdjustedTarget(&poolState)
 
 	meta := shared.V2Meta{
 		Type:       staticExtra.Type,
@@ -173,19 +173,6 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		// Update p.Storage
 		p.UpdateStateSellQuote(number.SetFromBig(inputAmount), number.SetFromBig(outputAmount))
 	}
-
-	// For DVM pool, the R value is always above 1
-	// https://github.com/DODOEX/contractV2/blob/c58c067c4038437610a9cc8aef8f8025e2af4f63/contracts/DODOVendingMachine/impl/DVMStorage.sol#L73
-
-	// The DVM pool also does not return the new RState in querySellBase or querySellQuote, so in this function we don't have to update the p.R as in DPP or DSP pool type
-	// https://github.com/DODOEX/contractV2/blob/c58c067c4038437610a9cc8aef8f8025e2af4f63/contracts/DODOVendingMachine/impl/DVMTrader.sol#L49
-	// https://github.com/DODOEX/contractV2/blob/c58c067c4038437610a9cc8aef8f8025e2af4f63/contracts/DODOVendingMachine/impl/DVMTrader.sol#L73
-
-	// DSP case, it needs the new RState to update: https://github.com/DODOEX/contractV2/blob/c58c067c4038437610a9cc8aef8f8025e2af4f63/contracts/DODOStablePool/impl/DSPTrader.sol#L43
-
-	// DPP case, similar to the DSP case: https://github.com/DODOEX/contractV2/blob/c58c067c4038437610a9cc8aef8f8025e2af4f63/contracts/DODOPrivatePool/impl/DPPTrader.sol#L52
-
-	libv2.AdjustedTarget(&p.PMMState)
 }
 
 func (p *PoolSimulator) GetLpToken() string {
