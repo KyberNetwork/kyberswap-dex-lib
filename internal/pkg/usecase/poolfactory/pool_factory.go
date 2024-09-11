@@ -53,6 +53,7 @@ import (
 	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
+	woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
@@ -474,6 +475,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newIZiSwap(entityPool)
 	case pooltypes.PoolTypes.WooFiV2:
 		return f.newWooFiV2(entityPool)
+	case pooltypes.PoolTypes.WooFiV21:
+		return f.newWooFiV21(entityPool)
 	case pooltypes.PoolTypes.Equalizer:
 		return f.newEqualizer(entityPool)
 	case pooltypes.PoolTypes.SwapBasedPerp:
@@ -1307,6 +1310,20 @@ func (f *PoolFactory) newWooFiV2(entityPool entity.Pool) (*woofiv2.PoolSimulator
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newWooFiV2] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newWooFiV21(entityPool entity.Pool) (*woofiv21.PoolSimulator, error) {
+	corePool, err := woofiv21.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newWooFiV21] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

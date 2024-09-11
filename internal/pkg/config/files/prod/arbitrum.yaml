@@ -70,6 +70,7 @@ common:
     - "zyberswap-v3"
     - "horiza"
     - "woofi-v2"
+    - "woofi-v3"
     - "crowdswap-v2"
     - "arbidex-v3"
     - "mmf"

@@ -59,6 +59,7 @@ common:
     - "kyberswap-limit-order"
     - "sushiswap-v3"
     - "woofi-v2"
+    - "woofi-v3"
     - "crowdswap-v2"
     - "traderjoe-v22"
     - "traderjoe-v21"

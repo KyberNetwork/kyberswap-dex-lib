@@ -32,6 +32,7 @@ common:
     - "iziswap"
     - "spacefi"
     - "woofi-v2"
+    - "woofi-v3"
     - "ezkalibur"
     - "vesync"
     - "wagmi"

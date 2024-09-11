@@ -62,6 +62,7 @@ common:
     - "wombat"
     - "thena-fusion"
     - "woofi-v2"
+    - "woofi-v3"
     - "crowdswap-v2"
     - "usdfi"
     - "nomiswap"

@@ -46,6 +46,7 @@ common:
     - "iziswap"
     - "baseswap-v3"
     - "woofi-v2"
+    - "woofi-v3"
     - "dackie-v2"
     - "bmx"
     - "sushiswap"
