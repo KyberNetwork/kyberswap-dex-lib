@@ -8,11 +8,12 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
+	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -25,7 +26,8 @@ type aggregator struct {
 	onchainpriceRepository IOnchainPriceRepository
 	poolRepository         IPoolRepository
 
-	finderEngine findroute.IFinderEngine
+	finderEngine finderEngine.IPathFinderEngine
+	config       getroute.AggregatorConfig
 }
 
 func NewCustomAggregator(
@@ -34,7 +36,8 @@ func NewCustomAggregator(
 	priceRepository IPriceRepository,
 	onchainpriceRepository IOnchainPriceRepository,
 	poolRepository IPoolRepository,
-	finderEngine findroute.IFinderEngine,
+	config getroute.AggregatorConfig,
+	finderEngine finderEngine.IPathFinderEngine,
 ) *aggregator {
 	return &aggregator{
 		poolFactory:            poolFactory,
@@ -43,6 +46,7 @@ func NewCustomAggregator(
 		onchainpriceRepository: onchainpriceRepository,
 		poolRepository:         poolRepository,
 		finderEngine:           finderEngine,
+		config:                 config,
 	}
 }
 
@@ -68,8 +72,9 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 	}
 
 	// Step 2: collect tokens and price data
-	tokenAddresses := collectTokenAddresses(
-		poolByAddress,
+	tokenAddresses := lo.Keys(a.config.WhitelistedTokenSet)
+	tokenAddresses = append(
+		tokenAddresses,
 		params.TokenIn.Address,
 		params.TokenOut.Address,
 		params.GasToken.Address,
@@ -132,25 +137,28 @@ func (a *aggregator) findBestRoute(
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
 ) (*valueobject.RouteSummary, error) {
-	input := findroute.Input{
-		TokenInAddress:   params.TokenIn.Address,
-		TokenOutAddress:  params.TokenOut.Address,
-		AmountIn:         params.AmountIn,
-		GasPrice:         params.GasPrice,
-		GasTokenPriceUSD: params.GasTokenPriceUSD,
-		TokenInPriceUSD:  params.TokenInPriceUSD,
-		SaveGas:          params.SaveGas,
-		GasInclude:       params.GasInclude,
-	}
+	findRouteParams := getroute.ConvertToPathfinderParams(
+		a.config.WhitelistedTokenSet,
+		params,
+		tokenByAddress,
+		priceUSDByAddress,
+		priceByAddress,
+		state,
+	)
 
-	data := findroute.NewFinderData(ctx, tokenByAddress, priceUSDByAddress, priceByAddress, state)
-	defer data.ReleaseResources()
-	route, err := a.finderEngine.Find(ctx, input, data, params)
+	route, err := a.finderEngine.Find(ctx, findRouteParams)
+
 	if err != nil {
-		return nil, errors.WithMessagef(getroute.ErrRouteNotFound, "find route failed: [%v]", err)
+		if errors.Is(err, finderEngine.ErrInvalidSwap) {
+			return nil, errors.WithMessagef(getroute.ErrInvalidSwap, "find route failed: [%v]", err)
+		} else if errors.Is(err, finderEngine.ErrRouteNotFound) {
+			return nil, errors.WithMessagef(getroute.ErrRouteNotFound, "find route failed: [%v]", err)
+		} else {
+			return nil, err
+		}
 	}
 
-	return route, nil
+	return getroute.ConvertToRouteSummary(params, route), nil
 }
 
 // getTokenByAddress receives a list of address and returns a map of address to entity.Token

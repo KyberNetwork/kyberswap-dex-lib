@@ -9,17 +9,19 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/mock/gomock"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
+	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/safetyquote"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -239,24 +241,24 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		MinThresholdAmountInUSD: 0,
 		MaxThresholdAmountInUSD: 100000000}
 
-	routeFinder := spfav2.NewSPFAv2Finder(
-		config.MaxHops,
-		map[string]bool{},
-		config.DistributionPercent,
-		config.MaxPathsInRoute,
-		config.MaxPathsToGenerate,
-		config.MaxPathsToReturn,
+	calcAmountOutInstance := routerpoolpkg.NewCalcAmountOut(map[string]bool{})
+
+	routeFinder, _ := spfav2.NewSPFAv2Finder(
+		uint(config.MaxHops),
+		uint(config.MaxPathsToGenerate),
+		uint(config.MaxPathsToReturn),
+		uint(config.MaxPathsInRoute),
+		uint(config.DistributionPercent),
 		config.MinPartUSD,
-		config.MinThresholdAmountInUSD,
-		config.MaxThresholdAmountInUSD,
-		map[string]bool{},
 	)
+	routeFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
 
 	routeFinalizer := findroute.NewSafetyQuotingRouteFinalizer(
 		safetyquote.NewSafetyQuoteReduction(&valueobject.SafetyQuoteReductionConfig{}),
+		calcAmountOutInstance.CalcAmountOut,
 	)
 
-	finderEngine := findroute.NewPathFinderEngine(routeFinder, routeFinalizer)
+	finderEngine := finderEngine.NewPathFinderEngine(routeFinder, routeFinalizer)
 
 	return NewUseCase(
 		poolRankRepository,

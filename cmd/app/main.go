@@ -18,6 +18,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/reload"
+	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/getsentry/sentry-go"
@@ -29,6 +30,10 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	_ "github.com/KyberNetwork/kyber-trace-go/tools"
+	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/hillclimb"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/retry"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
 	"github.com/KyberNetwork/router-service/internal/pkg/bootstrap"
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
@@ -56,6 +61,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/aevm"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getcustomroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
@@ -419,16 +425,13 @@ func apiAction(c *cli.Context) (err error) {
 		return err
 	}
 
-	pathFinder := usecase.NewPathFinder(
-		aevmClient,
-		poolsPublisher,
-		cfg.UseCase.GetRoute.Aggregator,
-	)
-	routeFinalizer := findroute.NewSafetyQuotingRouteFinalizer(
-		safetyquote.NewSafetyQuoteReduction(cfg.UseCase.GetRoute.SafetyQuoteConfig),
-	)
+	pathFinder, routeFinalizer, err := initializeFinderEngine(cfg, aevmClient)
 
-	finderEngine := findroute.NewPathFinderEngine(pathFinder, routeFinalizer)
+	if err != nil {
+		return err
+	}
+
+	finderEngine := finderEngine.NewPathFinderEngine(pathFinder, routeFinalizer)
 
 	getRouteUseCase := getroute.NewUseCase(
 		poolRankRepository,
@@ -481,6 +484,7 @@ func apiAction(c *cli.Context) (err error) {
 			RouterAddress:    cfg.UseCase.GetRoute.RouterAddress,
 			GasTokenAddress:  cfg.UseCase.GetRoute.GasTokenAddress,
 			AvailableSources: cfg.UseCase.GetRoute.AvailableSources,
+			Aggregator:       cfg.UseCase.GetRoute.Aggregator,
 		},
 	)
 	l1Decoder := &decode.Decoder{}
@@ -861,7 +865,7 @@ func applyLatestConfigForAPI(
 	buildRouteParamsValidator api.IBuildRouteParamsValidator,
 	getRouteEncodeParamsValidator api.IGetRouteEncodeParamsValidator,
 	aevmClientUC IAEVMClientUseCase,
-	finderEngine findroute.IFinderEngine,
+	finderEngine finderEngine.IPathFinderEngine,
 	aevmClient aevmclient.Client,
 	poolsPublisher poolmanager.IPoolsPublisher,
 ) error {
@@ -886,14 +890,13 @@ func applyLatestConfigForAPI(
 	}
 
 	// Reload FinderEngine with new config
-	finderEngine.SetFinder(usecase.NewPathFinder(
-		aevmClient,
-		poolsPublisher,
-		cfg.UseCase.GetRoute.Aggregator,
-	))
-	finderEngine.SetFinalizer(findroute.NewSafetyQuotingRouteFinalizer(
-		safetyquote.NewSafetyQuoteReduction(cfg.UseCase.GetRoute.SafetyQuoteConfig),
-	))
+	pathFinder, routeFinalizer, err := initializeFinderEngine(cfg, aevmClient)
+	if err != nil {
+		return err
+	}
+
+	finderEngine.SetFinder(pathFinder)
+	finderEngine.SetFinalizer(routeFinalizer)
 
 	return nil
 }
@@ -918,4 +921,58 @@ func applyLatestConfigForIndexer(
 	indexPoolsUseCase.ApplyConfig(cfg.UseCase.IndexPools)
 
 	return nil
+}
+
+func initializeFinderEngine(
+	cfg *config.Config,
+	aevmClient aevmclient.Client,
+) (finderEngine.IFinder, finderEngine.IFinalizer, error) {
+	calcAmountOutInstance := routerpoolpkg.NewCalcAmountOut(cfg.UseCase.GetRoute.Aggregator.DexUseAEVM)
+
+	finderOptions := cfg.UseCase.GetRoute.Aggregator.FinderOptions
+	var baseFinder finderEngine.IFinder
+
+	spfaFinder, err := spfav2.NewSPFAv2Finder(
+		uint(finderOptions.MaxHops),
+		uint(finderOptions.MaxPathsToGenerate),
+		uint(finderOptions.MaxPathsToReturn),
+		uint(finderOptions.MaxPathsInRoute),
+		uint(finderOptions.DistributionPercent),
+		finderOptions.MinPartUSD,
+	)
+	spfaFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
+	baseFinder = spfaFinder
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if finderOptions.Type == valueobject.FinderTypes.RetryDynamicPools {
+		retryFinder := retry.NewRetryFinder(baseFinder)
+		retryFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
+		baseFinder = retryFinder
+	}
+
+	if cfg.UseCase.GetRoute.Aggregator.FeatureFlags.IsHillClimbEnabled {
+		hillClimbFinder := hillclimb.NewHillClimbFinder(
+			baseFinder,
+			int(finderOptions.HillClimbIteration),
+			finderOptions.HillClimbMinPartUSD,
+		)
+		hillClimbFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
+		baseFinder = hillClimbFinder
+	}
+
+	aevmLocalFinder := aevm.NewAEVMLocalFinder(
+		baseFinder,
+		aevmClient,
+		finderOptions,
+	)
+
+	routeFinalizer := findroute.NewSafetyQuotingRouteFinalizer(
+		safetyquote.NewSafetyQuoteReduction(cfg.UseCase.GetRoute.SafetyQuoteConfig),
+		calcAmountOutInstance.CalcAmountOut,
+	)
+
+	return aevmLocalFinder, routeFinalizer, nil
 }

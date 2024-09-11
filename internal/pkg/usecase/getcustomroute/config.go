@@ -1,6 +1,7 @@
 package getcustomroute
 
 import (
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
@@ -9,4 +10,6 @@ type Config struct {
 	RouterAddress    string              `mapstructure:"routerAddress" json:"routerAddress"`
 	GasTokenAddress  string              `mapstructure:"gasTokenAddress" json:"gasTokenAddress"`
 	AvailableSources []string            `mapstructure:"availableSources" json:"availableSources"`
+
+	Aggregator getroute.AggregatorConfig `mapstructure:"aggregator" json:"aggregator"`
 }

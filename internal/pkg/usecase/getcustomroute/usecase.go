@@ -7,10 +7,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 
+	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -38,7 +37,7 @@ func NewCustomRoutesUseCase(
 	onchainpriceRepository IOnchainPriceRepository,
 	gasRepository IGasRepository,
 	poolRepository IPoolRepository,
-	finderEngine findroute.IFinderEngine,
+	finderEngine finderEngine.IPathFinderEngine,
 	config Config,
 ) *useCase {
 	aggregator := NewCustomAggregator(
@@ -47,6 +46,7 @@ func NewCustomRoutesUseCase(
 		priceRepository,
 		onchainpriceRepository,
 		poolRepository,
+		config.Aggregator,
 		finderEngine,
 	)
 

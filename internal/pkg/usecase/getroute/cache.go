@@ -7,13 +7,15 @@ import (
 	"math/big"
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
+	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
+	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
@@ -31,7 +33,7 @@ type cache struct {
 
 	config       valueobject.CacheConfig
 	keyGenerator *routeKeyGenerator
-	finderEngine findroute.IFinderEngine
+	finderEngine finderEngine.IPathFinderEngine
 }
 
 func NewCache(
@@ -39,7 +41,7 @@ func NewCache(
 	routeCacheRepository IRouteCacheRepository,
 	poolManager IPoolManager,
 	config valueobject.CacheConfig,
-	finderEngine findroute.IFinderEngine,
+	finderEngine finderEngine.IPathFinderEngine,
 ) *cache {
 	return &cache{
 		aggregator:           aggregator,
@@ -272,5 +274,46 @@ func (c *cache) summarizeSimpleRoute(
 		return nil, err
 	}
 
-	return c.finderEngine.GetFinalizer().FinalizeSimpleRoute(ctx, simpleRoute, state.Pools, state.SwapLimit, params)
+	distributedAmounts := business.DistributeAmount(params.AmountIn, simpleRoute.Distributions)
+
+	constructRoute := finderCommon.NewConstructRoute()
+	for pathIdx, simplePath := range simpleRoute.Paths {
+		constructPath := finderCommon.NewConstructPath(distributedAmounts[pathIdx])
+		constructPath.AddToken(params.TokenIn.Address)
+
+		for _, simpleSwap := range simplePath {
+			constructPath.AddPool(simpleSwap.PoolAddress)
+			constructPath.AddToken(simpleSwap.TokenOutAddress)
+		}
+
+		constructRoute.AddPath(constructPath)
+	}
+
+	tokenByAddress := map[string]*entity.Token{
+		params.TokenIn.Address:  &params.TokenIn,
+		params.TokenOut.Address: &params.TokenOut,
+		params.GasToken.Address: &params.GasToken,
+	}
+
+	priceUSDByAddress := map[string]float64{
+		params.TokenIn.Address:  params.TokenInPriceUSD,
+		params.TokenOut.Address: params.TokenOutPriceUSD,
+		params.GasToken.Address: params.GasTokenPriceUSD,
+	}
+
+	findRouteParams := ConvertToPathfinderParams(
+		nil,
+		params,
+		tokenByAddress,
+		priceUSDByAddress,
+		nil,
+		state,
+	)
+
+	route, err := c.finderEngine.GetFinalizer().Finalize(ctx, findRouteParams, constructRoute)
+	if err != nil {
+		return nil, err
+	}
+
+	return ConvertToRouteSummary(params, route), nil
 }

@@ -4,94 +4,103 @@ import (
 	"context"
 	"math/big"
 
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
+	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
+	finderFinalizer "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finalizer"
+	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/safetyquote"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/pkg/errors"
 )
 
 type SafetyQuotingRouteFinalizer struct {
 	safetyQuoteReduction *safetyquote.SafetyQuoteReduction
+	calcAmountOutFunc    finderEntity.CalcAmountOutFunc
 }
 
-func NewSafetyQuotingRouteFinalizer(safetyQuoteReduction *safetyquote.SafetyQuoteReduction) *SafetyQuotingRouteFinalizer {
+func NewSafetyQuotingRouteFinalizer(
+	safetyQuoteReduction *safetyquote.SafetyQuoteReduction,
+	calcAmountOutFunc finderEntity.CalcAmountOutFunc,
+) *SafetyQuotingRouteFinalizer {
 	return &SafetyQuotingRouteFinalizer{
 		safetyQuoteReduction: safetyQuoteReduction,
+		calcAmountOutFunc:    calcAmountOutFunc,
 	}
 }
 
-func (f *SafetyQuotingRouteFinalizer) FinalizeRoute(
+func (f *SafetyQuotingRouteFinalizer) Finalize(
 	ctx context.Context,
-	route *valueobject.Route,
-	poolByAddress map[string]poolpkg.IPoolSimulator,
-	swapLimits map[string]poolpkg.SwapLimit,
-	params *types.AggregateParams,
-) (*valueobject.RouteSummary, error) {
+	params finderEntity.FinderParams,
+	constructRoute *finderCommon.ConstructRoute,
+) (*finderEntity.Route, error) {
+	if constructRoute == nil || len(constructRoute.Paths) == 0 {
+		return nil, finderFinalizer.ErrEmptyRoute
+	}
+
 	// Step 1: prepare pool data
-	poolBucket := valueobject.NewPoolBucket(poolByAddress)
+	simulatorBucket := finderCommon.NewSimulatorBucket(params.Pools, params.SwapLimits)
 
 	var (
-		amountOut = new(big.Int).Set(constant.Zero)
-		gas       = business.BaseGas
+		amountOut = big.NewInt(0)
+		gasUsed   = business.BaseGas
 	)
 
 	// Step 2: finalize route
-	finalizedRoute := make([][]valueobject.Swap, 0, len(route.Paths))
-	for _, path := range route.Paths {
-
+	finalizedRoute := make([][]finderEntity.Swap, 0, len(constructRoute.Paths))
+	for _, path := range constructRoute.Paths {
 		// Step 2.1: finalize path
-		finalizedPath := make([]valueobject.Swap, 0, len(path.PoolAddresses))
+		finalizedPath := make([]finderEntity.Swap, 0, len(path.PoolsOrder))
 
 		// Step 2.1.0: prepare input of the first swap
-		tokenAmountIn := *path.Input.ToDexLibAmount()
+		currentAmountIn := path.AmountIn
 
-		for swapIdx, swapPoolAddress := range path.PoolAddresses {
+		for i := 0; i < len(path.PoolsOrder); i++ {
+			fromToken := path.TokensOrder[i]
+			toToken := path.TokensOrder[i+1]
+
 			// Step 2.1.1: take the pool with fresh data
-			pool, ok := poolBucket.GetPool(swapPoolAddress)
-			if !ok {
-				return nil, errors.WithMessagef(
-					ErrInvalidSwap,
-					"finalizer.FinalizeRoute > pool not found [%s]",
-					swapPoolAddress,
-				)
-			}
+			pool := simulatorBucket.GetPool(path.PoolsOrder[i])
+			swapLimit := simulatorBucket.GetPoolSwapLimit(path.PoolsOrder[i])
 
-			swapLimit := swapLimits[pool.GetType()]
-			// Step 2.1.2: simulate c swap through the pool
-			result, err := routerpoolpkg.CalcAmountOut(ctx, pool, tokenAmountIn, path.Tokens[swapIdx+1].Address, swapLimit, map[string]bool{})
+			// Step 2.1.2: simulate swap through the pool
+			tokenAmountIn := dexlibPool.TokenAmount{Token: fromToken, Amount: currentAmountIn}
+			res, err := f.calcAmountOutFunc(ctx, pool, tokenAmountIn, toToken, swapLimit)
+
 			if err != nil {
 				return nil, errors.WithMessagef(
-					ErrInvalidSwap,
-					"finalizer.FinalizeRoute > swap failed > pool: [%s] > error : [%v]",
-					swapPoolAddress,
-					err,
+					finderFinalizer.ErrInvalidSwap,
+					"[finalizer.safetyQuote] invalid swap. pool: [%s] err: [%v]",
+					pool.GetAddress(), err,
 				)
 			}
 
 			// Step 2.1.3: check if result is valid
-			if !result.IsValid() {
+			if res == nil ||
+				res.TokenAmountOut == nil ||
+				res.TokenAmountOut.Amount == nil ||
+				res.TokenAmountOut.Amount.Sign() == 0 {
 				return nil, errors.WithMessagef(
-					ErrInvalidSwap,
-					"finalizer.FinalizeRoute > invalid swap > pool : [%s]",
-					swapPoolAddress,
+					finderFinalizer.ErrCalcAmountOutEmpty,
+					"[finalizer.safetyQuote] calc amount out empty. pool: [%s]",
+					pool.GetAddress(),
 				)
 			}
 
 			//Step 2.1.4: clone the pool before updating it (do not modify IPool returned by `poolManager`)
-			pool = poolBucket.ClonePool(swapPoolAddress)
+			pool = simulatorBucket.ClonePool(path.PoolsOrder[i])
+			swapLimit = simulatorBucket.CloneSwapLimit(path.PoolsOrder[i])
 
 			// Step 2.1.5: update balance of the pool
-			updateBalanceParams := poolpkg.UpdateBalanceParams{
+			updateBalanceParams := dexlibPool.UpdateBalanceParams{
 				TokenAmountIn:  tokenAmountIn,
-				TokenAmountOut: *result.TokenAmountOut,
-				Fee:            *result.Fee,
-				SwapInfo:       result.SwapInfo,
+				TokenAmountOut: *res.TokenAmountOut,
+				Fee:            *res.Fee,
+				SwapInfo:       res.SwapInfo,
 				SwapLimit:      swapLimit,
 			}
 			pool.UpdateBalance(updateBalanceParams)
@@ -99,193 +108,77 @@ func (f *SafetyQuotingRouteFinalizer) FinalizeRoute(
 			sqParams := types.SafetyQuotingParams{
 				PoolType:             pool.GetType(),
 				TokenIn:              tokenAmountIn.Token,
-				TokenOut:             result.TokenAmountOut.Token,
-				ApplyDeductionFactor: route.HasOnlyOneSwap(),
+				TokenOut:             res.TokenAmountOut.Token,
+				ApplyDeductionFactor: hasOnlyOneSwap(constructRoute),
 				ClientId:             params.ClientId,
 			}
 
 			// Step 2.1.6: We need to calculate safety quoting amount and reasign new amount out to next path's amount in
 			reducedNextAmountIn := f.safetyQuoteReduction.Reduce(
-				result.TokenAmountOut,
+				res.TokenAmountOut,
 				f.safetyQuoteReduction.GetSafetyQuotingRate(sqParams))
 
 			// Step 2.1.7: finalize the swap
 			// important: must re-update amount out to reducedNextAmountIn
-			swap := valueobject.Swap{
-				Pool:              pool.GetAddress(),
-				TokenIn:           tokenAmountIn.Token,
-				TokenOut:          result.TokenAmountOut.Token,
-				SwapAmount:        tokenAmountIn.Amount,
-				AmountOut:         reducedNextAmountIn.Amount,
+			swap := finderEntity.Swap{
+				Pool:       pool.GetAddress(),
+				TokenIn:    tokenAmountIn.Token,
+				TokenOut:   res.TokenAmountOut.Token,
+				SwapAmount: tokenAmountIn.Amount,
+				AmountOut:  reducedNextAmountIn.Amount,
+				Exchange:   valueobject.Exchange(pool.GetExchange()),
+				PoolType:   pool.GetType(),
+
 				LimitReturnAmount: constant.Zero,
-				Exchange:          valueobject.Exchange(pool.GetExchange()),
 				PoolLength:        len(pool.GetTokens()),
-				PoolType:          pool.GetType(),
-				PoolExtra:         pool.GetMetaInfo(tokenAmountIn.Token, result.TokenAmountOut.Token),
-				Extra:             result.SwapInfo,
+				PoolExtra:         pool.GetMetaInfo(tokenAmountIn.Token, res.TokenAmountOut.Token),
+				Extra:             res.SwapInfo,
 			}
 
 			finalizedPath = append(finalizedPath, swap)
 
-			// Step 2.1.7: add up gas fee
-			gas += result.Gas
+			// Step 2.1.8: add up gas fee
+			gasUsed += res.Gas
 
-			// Step 2.1.8: update input of the next swap is output of current swap
-			tokenAmountIn = reducedNextAmountIn
+			// Step 2.1.9: update input of the next swap is output of current swap
+			currentAmountIn = reducedNextAmountIn.Amount
 
 			metrics.IncrDexHitRate(ctx, string(swap.Exchange))
 			metrics.IncrPoolTypeHitRate(ctx, swap.PoolType)
 		}
 
 		// Step 2.2: add up amountOut
-		amountOut.Add(amountOut, tokenAmountIn.Amount)
+		amountOut.Add(amountOut, currentAmountIn)
 		finalizedRoute = append(finalizedRoute, finalizedPath)
 	}
 
-	return &valueobject.RouteSummary{
-		TokenIn:      params.TokenIn.Address,
-		AmountIn:     params.AmountIn,
-		AmountInUSD:  utils.CalcTokenAmountUsd(params.AmountIn, params.TokenIn.Decimals, params.TokenInPriceUSD),
-		TokenOut:     params.TokenOut.Address,
-		AmountOut:    amountOut,
-		AmountOutUSD: utils.CalcTokenAmountUsd(amountOut, params.TokenOut.Decimals, params.TokenOutPriceUSD),
-		Gas:          gas,
-		GasPrice:     params.GasPrice,
-		GasUSD:       utils.CalcGasUsd(params.GasPrice, gas, params.GasTokenPriceUSD),
-		ExtraFee:     params.ExtraFee,
-		Route:        finalizedRoute,
-	}, nil
+	gasFee := new(big.Int).Mul(big.NewInt(gasUsed), params.GasPrice)
+
+	route := &finderEntity.Route{
+		TokenIn:        params.TokenIn,
+		AmountIn:       params.AmountIn,
+		AmountInPrice:  finderUtil.CalcAmountPrice(params.AmountIn, params.Tokens[params.TokenIn].Decimals, params.Prices[params.TokenIn]),
+		TokenOut:       params.TokenOut,
+		AmountOut:      amountOut,
+		AmountOutPrice: finderUtil.CalcAmountPrice(amountOut, params.Tokens[params.TokenOut].Decimals, params.Prices[params.TokenOut]),
+		GasUsed:        gasUsed,
+		GasPrice:       params.GasPrice,
+		GasFee:         gasFee,
+		GasFeePrice:    finderUtil.CalcAmountPrice(gasFee, params.Tokens[params.GasToken].Decimals, params.Prices[params.GasToken]),
+		Route:          finalizedRoute,
+	}
+
+	return route, nil
 }
 
-func (f *SafetyQuotingRouteFinalizer) FinalizeSimpleRoute(
-	ctx context.Context,
-	simpleRoute *valueobject.SimpleRoute,
-	poolByAddress map[string]poolpkg.IPoolSimulator,
-	swapLimits map[string]poolpkg.SwapLimit,
-	params *types.AggregateParams,
-) (*valueobject.RouteSummary, error) {
-	// Step 1: prepare pool data
-	poolBucket := valueobject.NewPoolBucket(poolByAddress)
-
-	var (
-		amountOut = new(big.Int).Set(constant.Zero)
-		gas       = business.BaseGas
-	)
-
-	// Step 2: distribute amountIn into paths following distributions
-	distributedAmounts := business.DistributeAmount(params.AmountIn, simpleRoute.Distributions)
-
-	// Step 3: finalize route
-	finalizedRoute := make([][]valueobject.Swap, 0, len(simpleRoute.Paths))
-	for pathIdx, simplePath := range simpleRoute.Paths {
-
-		// Step 3.1: finalize path
-		finalizedPath := make([]valueobject.Swap, 0, len(simplePath))
-
-		// Step 3.1.0: prepare input of the first swap
-		tokenAmountIn := poolpkg.TokenAmount{
-			Token:  simplePath[0].TokenInAddress,
-			Amount: distributedAmounts[pathIdx],
-		}
-
-		for _, simpleSwap := range simplePath {
-			// Step 3.1.1: take the pool with fresh data
-			pool, ok := poolBucket.GetPool(simpleSwap.PoolAddress)
-			if !ok {
-				return nil, errors.WithMessagef(
-					ErrInvalidSwap,
-					"finalizer.FinalizeSimpleRoute > pool not found [%s]",
-					simpleSwap.PoolAddress,
-				)
-			}
-
-			swapLimit := swapLimits[pool.GetType()]
-			// Step 3.1.2: simulate c swap through the pool
-			result, err := routerpoolpkg.CalcAmountOut(ctx, pool, tokenAmountIn, simpleSwap.TokenOutAddress, swapLimit, map[string]bool{})
-			if err != nil {
-				return nil, errors.WithMessagef(
-					ErrInvalidSwap,
-					"finalizer.FinalizeSimpleRoute > swap failed > pool: [%s] > error : [%v]",
-					simpleSwap.PoolAddress,
-					err,
-				)
-			}
-
-			// Step 3.1.3: check if result is valid
-			if !result.IsValid() {
-				return nil, errors.WithMessagef(
-					ErrInvalidSwap,
-					"finalizer.FinalizeSimpleRoute > invalid swap > pool : [%s]",
-					simpleSwap.PoolAddress,
-				)
-			}
-
-			// Step 3.1.4: update balance of the pool
-			updateBalanceParams := poolpkg.UpdateBalanceParams{
-				TokenAmountIn:  tokenAmountIn,
-				TokenAmountOut: *result.TokenAmountOut,
-				Fee:            *result.Fee,
-				SwapInfo:       result.SwapInfo,
-				SwapLimit:      swapLimit,
-			}
-			pool = poolBucket.ClonePool(simpleSwap.PoolAddress)
-			pool.UpdateBalance(updateBalanceParams)
-
-			sqParams := types.SafetyQuotingParams{
-				PoolType:             pool.GetType(),
-				TokenIn:              simpleSwap.TokenInAddress,
-				TokenOut:             simpleSwap.TokenOutAddress,
-				ApplyDeductionFactor: simpleRoute.HasOnlyOneSwap(),
-				ClientId:             params.ClientId,
-			}
-
-			// Step 3.1.5
-			// We need to calculate safety quoting amount and reasign new amount out to next path's amount in
-			reducedNextAmountIn := f.safetyQuoteReduction.Reduce(
-				result.TokenAmountOut,
-				f.safetyQuoteReduction.GetSafetyQuotingRate(sqParams))
-
-			// Step 3.1.6: finalize the swap
-			// important: must re-update amount out to reducedNextAmountIn
-			swap := valueobject.Swap{
-				Pool:              simpleSwap.PoolAddress,
-				TokenIn:           simpleSwap.TokenInAddress,
-				TokenOut:          simpleSwap.TokenOutAddress,
-				SwapAmount:        tokenAmountIn.Amount,
-				AmountOut:         reducedNextAmountIn.Amount,
-				LimitReturnAmount: constant.Zero,
-				Exchange:          valueobject.Exchange(pool.GetExchange()),
-				PoolLength:        len(pool.GetTokens()),
-				PoolType:          pool.GetType(),
-				PoolExtra:         pool.GetMetaInfo(simpleSwap.TokenInAddress, simpleSwap.TokenOutAddress),
-				Extra:             result.SwapInfo,
-			}
-
-			finalizedPath = append(finalizedPath, swap)
-
-			// Step 3.1.7: add up gas fee
-			gas += result.Gas
-
-			// Step 3.1.8: update input of the next swap is output of current swap
-			tokenAmountIn = reducedNextAmountIn
-		}
-
-		// Step 3.2: add up amountOut
-		amountOut.Add(amountOut, tokenAmountIn.Amount)
-		finalizedRoute = append(finalizedRoute, finalizedPath)
+func hasOnlyOneSwap(r *finderCommon.ConstructRoute) bool {
+	if r.Paths == nil || len(r.Paths) != 1 {
+		return false
 	}
 
-	return &valueobject.RouteSummary{
-		TokenIn:      params.TokenIn.Address,
-		AmountIn:     params.AmountIn,
-		AmountInUSD:  utils.CalcTokenAmountUsd(params.AmountIn, params.TokenIn.Decimals, params.TokenInPriceUSD),
-		TokenOut:     params.TokenOut.Address,
-		AmountOut:    amountOut,
-		AmountOutUSD: utils.CalcTokenAmountUsd(amountOut, params.TokenOut.Decimals, params.TokenOutPriceUSD),
-		Gas:          gas,
-		GasPrice:     params.GasPrice,
-		GasUSD:       utils.CalcGasUsd(params.GasPrice, gas, params.GasTokenPriceUSD),
-		ExtraFee:     params.ExtraFee,
-		Route:        finalizedRoute,
-	}, nil
+	if r.Paths[0] == nil || len(r.Paths[0].PoolsOrder) != 1 {
+		return false
+	}
+
+	return true
 }

@@ -8,15 +8,14 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/pkg/errors"
 
+	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
@@ -41,7 +40,7 @@ func NewUseCase(
 	routeCacheRepository IRouteCacheRepository,
 	gasRepository IGasRepository,
 	poolManager IPoolManager,
-	finderEngine findroute.IFinderEngine,
+	finderEngine finderEngine.IPathFinderEngine,
 	config Config,
 ) *useCase {
 	aggregator := NewAggregator(
@@ -54,10 +53,10 @@ func NewUseCase(
 		finderEngine,
 	)
 	aggregatorWithCache := NewCache(aggregator, routeCacheRepository, poolManager, config.Cache, finderEngine)
-	aggregatorWitchChargeExtraFee := NewChargeExtraFee(aggregatorWithCache)
+	aggregatorWithChargeExtraFee := NewChargeExtraFee(aggregatorWithCache)
 
 	return &useCase{
-		aggregator:      aggregatorWitchChargeExtraFee,
+		aggregator:      aggregatorWithChargeExtraFee,
 		tokenRepository: tokenRepository,
 		priceRepository: priceRepository,
 		gasRepository:   gasRepository,
