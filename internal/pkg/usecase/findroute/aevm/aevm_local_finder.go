@@ -4,7 +4,7 @@ import (
 	"context"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
-	aevmpool "github.com/KyberNetwork/aevm/usecase/pool/common"
+	aevmpool "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/aevm-pool"
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
