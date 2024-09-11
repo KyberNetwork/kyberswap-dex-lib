@@ -13,7 +13,7 @@ import (
 	"github.com/machinebox/graphql"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolsListUpdater struct {
@@ -24,7 +24,11 @@ type PoolsListUpdater struct {
 func NewPoolsListUpdater(
 	cfg *Config,
 ) *PoolsListUpdater {
-	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
+	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
+		Url:     cfg.SubgraphAPI,
+		Header:  cfg.SubgraphHeaders,
+		Timeout: graphQLRequestTimeout,
+	})
 
 	return &PoolsListUpdater{
 		config:        cfg,

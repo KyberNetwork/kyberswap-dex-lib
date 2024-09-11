@@ -3,6 +3,7 @@ package ambient
 import (
 	"fmt"
 	"math/big"
+	"net/http"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 	"github.com/ethereum/go-ethereum/common"
@@ -11,6 +12,7 @@ import (
 type Config struct {
 	DexID                  string                `json:"dexID"`
 	SubgraphURL            string                `json:"subgraphUrl"`
+	SubgraphHeaders        http.Header           `json:"subgraphHeaders"`
 	SubgraphRequestTimeout durationjson.Duration `json:"subgraphRequestTimeout"`
 	SubgraphLimit          uint64                `json:"subgraphLimit"`
 
