@@ -1,9 +1,12 @@
 package slipstream
 
+import "net/http"
+
 type Config struct {
 	DexID              string
-	SubgraphAPI        string `json:"subgraphAPI"`
-	AllowSubgraphError bool   `json:"allowSubgraphError"`
+	SubgraphAPI        string      `json:"subgraphAPI"`
+	SubgraphHeaders    http.Header `json:"subgraphHeaders"`
+	AllowSubgraphError bool        `json:"allowSubgraphError"`
 }
 
 func (c *Config) IsAllowSubgraphError() bool {

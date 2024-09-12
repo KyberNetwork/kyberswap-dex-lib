@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"net/http"
 	"time"
 
-	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/machinebox/graphql"
+
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type (
@@ -17,10 +19,11 @@ type (
 	}
 
 	Config struct {
-		DexID        string
-		SubgraphAPI  string
-		NewPoolLimit int
-		PoolTypes    []string
+		DexID           string
+		SubgraphAPI     string
+		SubgraphHeaders http.Header
+		NewPoolLimit    int
+		PoolTypes       []string
 	}
 
 	Metadata struct {
@@ -31,7 +34,11 @@ type (
 const graphQLRequestTimeout = 20 * time.Second
 
 func NewPoolsListUpdater(config *Config) *PoolsListUpdater {
-	graphqlClient := graphqlpkg.NewWithTimeout(config.SubgraphAPI, graphQLRequestTimeout)
+	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
+		Url:     config.SubgraphAPI,
+		Header:  config.SubgraphHeaders,
+		Timeout: graphQLRequestTimeout,
+	})
 
 	return &PoolsListUpdater{
 		config:        config,

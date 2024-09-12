@@ -12,7 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type (
@@ -42,9 +42,13 @@ func NewPoolsListUpdater(
 	ethrpcClient *ethrpc.Client,
 ) *PoolsListUpdater {
 	return &PoolsListUpdater{
-		config:        cfg,
-		ethrpcClient:  ethrpcClient,
-		graphqlClient: graphqlPkg.NewWithTimeout(cfg.SubgraphURL, cfg.SubgraphRequestTimeout.Duration),
+		config:       cfg,
+		ethrpcClient: ethrpcClient,
+		graphqlClient: graphqlpkg.New(graphqlpkg.Config{
+			Url:     cfg.SubgraphURL,
+			Header:  cfg.SubgraphHeaders,
+			Timeout: cfg.SubgraphRequestTimeout.Duration,
+		}),
 	}
 }
 

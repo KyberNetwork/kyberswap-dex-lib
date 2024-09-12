@@ -7,14 +7,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/machinebox/graphql"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolListUpdater struct {
@@ -33,7 +33,11 @@ func NewPoolsListUpdater(
 	return &PoolListUpdater{
 		cfg:           cfg,
 		poolDatastore: poolDatastore,
-		subgraph:      graphqlPkg.NewWithTimeout(cfg.SubgraphURL, cfg.SubgraphRequestTimeout.Duration),
+		subgraph: graphqlpkg.New(graphqlpkg.Config{
+			Url:     cfg.SubgraphURL,
+			Header:  cfg.SubgraphHeaders,
+			Timeout: cfg.SubgraphRequestTimeout.Duration,
+		}),
 	}, nil
 }
 
