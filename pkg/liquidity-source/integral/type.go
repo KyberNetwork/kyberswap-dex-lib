@@ -11,7 +11,6 @@ type (
 	PoolSimulator struct {
 		pool.Pool
 		IntegralPair
-		Tolerance pairTolerance
 
 		swapFee map[string]*uint256.Int
 		gas     Gas
@@ -20,25 +19,16 @@ type (
 	Gas struct {
 		Swap int64
 	}
-
-	SellParams struct {
-		TokenIn  string
-		TokenOut string
-		AmountIn *uint256.Int
-	}
-
-	pairTolerance map[string]uint64
 )
 
 type IntegralPair struct {
-	DecimalsConverter *big.Int
-	SwapFee           *uint256.Int
-
 	X_Decimals uint64
 	Y_Decimals uint64
 
 	SpotPrice    *uint256.Int
 	AveragePrice *uint256.Int
+
+	SwapFee *uint256.Int
 }
 
 type PriceInfo struct {

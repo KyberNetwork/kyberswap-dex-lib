@@ -45,6 +45,9 @@ var (
 	factoryAllPairsMethod       = "allPairs"
 	factoryAllPairsLengthMethod = "allPairsLength"
 
+	// relayer methods
+	relayerSwapFeeMethod = "swapFee"
+
 	// reserves methods
 	libraryGetReservesMethod = "getReserves"
 
@@ -52,4 +55,7 @@ var (
 	oracleDecimalsConverterMethod = "decimalsConverter"
 	oracleGetPriceInfoMethod      = "getPriceInfo"
 	oracleGetAveragePriceMethod   = "getAveragePrice"
+	oracleGetSpotPriceMethod      = "getSpotPrice"
+	oracleXDecimalsMethod         = "xDecimals"
+	oracleYDecimalsMethod         = "yDecimals"
 )

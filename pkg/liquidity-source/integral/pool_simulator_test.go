@@ -22,6 +22,7 @@ var (
 	_swapFee           = uint256.NewInt(100000000000000)
 	_decimalsConverter = big.NewInt(1000000)
 	_averagePrice      = uint256.NewInt(423941809153609)
+	_spotPrice         = uint256.NewInt(423941809153609)
 
 	_amount0In  = big.NewInt(9994500000)
 	_amount1Out = big.NewInt(4237086411585745150)
@@ -32,9 +33,9 @@ var (
 
 func TestCalcAmountOut(t *testing.T) {
 	extraBytes, err := json.Marshal(IntegralPair{
-		SwapFee:           _swapFee,
-		DecimalsConverter: _decimalsConverter,
-		AveragePrice:      _averagePrice,
+		// SwapFee:           _swapFee,
+		SpotPrice:    _spotPrice,
+		AveragePrice: _averagePrice,
 	})
 	require.Nil(t, err)
 
@@ -119,9 +120,9 @@ func TestCalcAmountOut(t *testing.T) {
 
 func TestUpdateBalance(t *testing.T) {
 	extra := IntegralPair{
-		SwapFee:           _swapFee,
-		DecimalsConverter: _decimalsConverter,
-		AveragePrice:      _averagePrice,
+		// SwapFee:           _swapFee,
+		SpotPrice:    _spotPrice,
+		AveragePrice: _averagePrice,
 	}
 	extraJson, _ := json.Marshal(extra)
 

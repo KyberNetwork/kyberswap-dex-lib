@@ -35,15 +35,33 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	var (
 		reserves [2]*big.Int
 
-		swapFee           = big.NewInt(0)
-		decimalsConverter = big.NewInt(0)
-		priceInfo         PriceInfo
-		averagePrice      = big.NewInt(0)
+		swapFee *big.Int
+		// pair    common.Address
+
+		priceInfo    PriceInfo
+		averagePrice = big.NewInt(0)
+		spotPrice    = big.NewInt(0)
+
+		xDecimals uint8
+		yDecimals uint8
+
+		pair = common.FromHex("0x2fe16Dd18bba26e457B7dD2080d5674312b026a2")
 
 		oracle common.Address
 	)
 
 	rpcRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
+	// rpcRequest.AddCall(&ethrpc.Call{ABI: reserveABI, Target: p.Address, Method: relayerGetPairMethod}, []interface{}{&pair})
+	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: relayerSwapFeeMethod}, []interface{}{&swapFee})
+
+	if _, err := rpcRequest.TryAggregate(); err != nil {
+		logger.Errorf("%s: failed to fetch basic pool data (address: %s, error: %v)", u.config.DexID, p.Address, err)
+		return entity.Pool{}, err
+	}
+
+	log.Fatalf("------%+v\n%+v\n", pair, swapFee)
+
+	rpcRequest = u.ethrpcClient.NewRequest().SetContext(ctx)
 	rpcRequest.AddCall(&ethrpc.Call{ABI: reserveABI, Target: p.Address, Method: libraryGetReservesMethod}, []interface{}{&reserves})
 	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairSwapFeeMethod}, []interface{}{&swapFee})
 	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairOracleMethod}, []interface{}{&oracle})
@@ -54,8 +72,10 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}
 
 	rpcRequest = u.ethrpcClient.NewRequest().SetContext(ctx)
-	rpcRequest.AddCall(&ethrpc.Call{ABI: oracleABI, Target: oracle.Hex(), Method: oracleDecimalsConverterMethod}, []interface{}{&decimalsConverter})
 	rpcRequest.AddCall(&ethrpc.Call{ABI: oracleABI, Target: oracle.Hex(), Method: oracleGetPriceInfoMethod}, []interface{}{&priceInfo})
+	rpcRequest.AddCall(&ethrpc.Call{ABI: oracleABI, Target: oracle.Hex(), Method: oracleGetSpotPriceMethod}, []interface{}{&spotPrice})
+	rpcRequest.AddCall(&ethrpc.Call{ABI: oracleABI, Target: oracle.Hex(), Method: oracleXDecimalsMethod}, []interface{}{&xDecimals})
+	rpcRequest.AddCall(&ethrpc.Call{ABI: oracleABI, Target: oracle.Hex(), Method: oracleYDecimalsMethod}, []interface{}{&yDecimals})
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		logger.Errorf("%s: failed to fetch oracle data (address: %s, error: %v)", u.config.DexID, p.Address, err)
@@ -71,17 +91,18 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 			Params: []interface{}{priceInfo.PriceAccumulator, priceInfo.PriceTimestamp},
 		}, []interface{}{&averagePrice})
 
-	log.Fatalln(oracle.Hex())
-
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		logger.Errorf("%s: failed to fetch average price (address: %s, error: %v)", u.config.DexID, p.Address, err)
 		return entity.Pool{}, err
 	}
 
+	log.Fatalf("---------- %+v\n%+v\n%+v\n%+v\n", xDecimals, yDecimals, spotPrice, averagePrice)
+
 	extraData := IntegralPair{
-		SwapFee:           ToUint256(swapFee),
-		AveragePrice:      ToUint256(averagePrice),
-		DecimalsConverter: decimalsConverter,
+		AveragePrice: ToUint256(averagePrice),
+		SpotPrice:    ToUint256(spotPrice),
+		X_Decimals:   uint64(xDecimals),
+		Y_Decimals:   uint64(yDecimals),
 	}
 	extraBytes, err := json.Marshal(extraData)
 	if err != nil {
