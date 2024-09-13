@@ -71,7 +71,7 @@ func CeilDivUint256(a, b *uint256.Int) *uint256.Int {
 }
 
 func ToUint256(n *big.Int) *uint256.Int {
-	return new(uint256.Int).SetBytes(n.Bytes())
+	return uint256.MustFromBig(n)
 }
 
 // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/libraries/SafeMath.sol#L54

@@ -2,6 +2,7 @@ package integral
 
 import (
 	"context"
+	"log"
 	"math/big"
 	"time"
 
@@ -69,6 +70,8 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 			Method: oracleGetAveragePriceMethod,
 			Params: []interface{}{priceInfo.PriceAccumulator, priceInfo.PriceTimestamp},
 		}, []interface{}{&averagePrice})
+
+	log.Fatalln(oracle.Hex())
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		logger.Errorf("%s: failed to fetch average price (address: %s, error: %v)", u.config.DexID, p.Address, err)

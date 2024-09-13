@@ -49,30 +49,47 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokens := p.GetTokens()
-	if len(tokens) != 2 {
+	if len(tokens) < 2 {
 		return nil, ErrTokenNotFound
 	}
 
+	tokenIn := param.TokenAmountIn.Token
+	tokenOut := param.TokenOut
 	amountIn := ToUint256(param.TokenAmountIn.Amount)
+
+	reserve0 := ToUint256(p.GetReserves()[0])
+	reserve1 := ToUint256(p.GetReserves()[1])
+
+	_amountIn, amountOut, fee := p.swapExactIn(tokenIn, tokenOut, amountIn)
+
+	var newReserve0, newReserve1 *uint256.Int
 
 	switch param.TokenAmountIn.Token {
 	case tokens[0]:
-		amount1Out, err := p.getSwapAmount1Out(amountIn)
-		if err != nil {
-			return nil, err
-		}
-		return p.swap(amountIn, uZERO, amount1Out)
-
+		newReserve0 = AddUint256(reserve0, _amountIn)
+		newReserve1 = SubUint256(reserve1, amountOut)
 	case tokens[1]:
-		amount0Out, err := p.getSwapAmount0Out(amountIn)
-		if err != nil {
-			return nil, err
-		}
-		return p.swap(amountIn, amount0Out, uZERO)
-
+		newReserve0 = SubUint256(reserve0, _amountIn)
+		newReserve1 = AddUint256(reserve1, amountOut)
 	default:
 		return nil, ErrInvalidTokenIn
 	}
+
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{
+			Token:  tokenOut,
+			Amount: ToInt256(amountOut),
+		},
+		Fee: &pool.TokenAmount{
+			Token:  tokenOut,
+			Amount: ToInt256(fee),
+		},
+		Gas: p.gas.Swap,
+		SwapInfo: SwapInfo{
+			newReserve0: ToInt256(newReserve0),
+			newReserve1: ToInt256(newReserve1),
+		},
+	}, nil
 }
 
 func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
@@ -103,10 +120,6 @@ func (p *PoolSimulator) swap(amountIn, amount0Out, amount1Out *uint256.Int) (*po
 	if amount0Out.Cmp(reserve0) >= 0 || amount1Out.Cmp(reserve1) >= 0 {
 		return nil, ErrTP07
 	}
-
-	tokens := p.GetTokens()
-	token0 := tokens[0]
-	token1 := tokens[1]
 
 	swapFee := p.IntegralPair.SwapFee
 
@@ -139,11 +152,11 @@ func (p *PoolSimulator) swap(amountIn, amount0Out, amount1Out *uint256.Int) (*po
 
 		return &pool.CalcAmountOutResult{
 			TokenAmountOut: &pool.TokenAmount{
-				Token:  token0,
+				Token:  p.GetTokens()[0],
 				Amount: ToInt256(amount0Out),
 			},
 			Fee: &pool.TokenAmount{
-				Token:  token0,
+				Token:  p.GetTokens()[0],
 				Amount: ToInt256(fee0),
 			},
 			Gas: p.gas.Swap,
@@ -179,11 +192,11 @@ func (p *PoolSimulator) swap(amountIn, amount0Out, amount1Out *uint256.Int) (*po
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
-			Token:  token1,
+			Token:  p.GetTokens()[1],
 			Amount: ToInt256(amount1Out),
 		},
 		Fee: &pool.TokenAmount{
-			Token:  token1,
+			Token:  p.GetTokens()[1],
 			Amount: ToInt256(fee1),
 		},
 		Gas: p.gas.Swap,
@@ -269,3 +282,55 @@ func (p *PoolSimulator) getSwapAmount1Out(amount0In *uint256.Int) (*uint256.Int,
 
 // 	return CeilDivUint256(MulUint256(SubUint256(AddUint256(balance1After, uint256.NewInt(1)), reserve0), precison), SubUint256(precison, p.IntegralPair.SwapFee)), nil
 // }
+
+func (p *PoolSimulator) swapExactIn(tokenIn, tokenOut string, amountIn *uint256.Int) (*uint256.Int, *uint256.Int, *uint256.Int) {
+	fee := DivUint256(MulUint256(amountIn, p.swapFee[p.GetAddress()]), precison)
+
+	inverted := p.GetTokens()[1] == tokenIn
+
+	amountOut := p.calculateAmountOut(inverted, amountIn)
+
+	return amountIn, amountOut, fee
+}
+
+func (p *PoolSimulator) calculateAmountOut(inverted bool, amountIn *uint256.Int) *uint256.Int {
+	decimalsConverter := getDecimalsConverter(p.IntegralPair.X_Decimals, p.IntegralPair.Y_Decimals, inverted)
+
+	price := p.getPrice(inverted)
+
+	return CeilDivUint256(MulUint256(amountIn, decimalsConverter), price)
+}
+
+func getDecimalsConverter(xDecimals, yDecimals uint64, inverted bool) (decimalsConverter *uint256.Int) {
+	var exponent uint64
+	if inverted {
+		exponent = 18 + (yDecimals - xDecimals)
+	} else {
+		exponent = 18 + (xDecimals - yDecimals)
+	}
+
+	decimalsConverter = new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(exponent))
+
+	return
+}
+
+func (p *PoolSimulator) getPrice(inverted bool) (price *uint256.Int) {
+	spotPrice := p.IntegralPair.SpotPrice
+	averagePrice := p.IntegralPair.AveragePrice
+
+	if inverted {
+		tenPower36 := new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(36))
+		if spotPrice.Gt(averagePrice) {
+			price = DivUint256(tenPower36, spotPrice)
+		} else {
+			price = DivUint256(tenPower36, averagePrice)
+		}
+	} else {
+		if spotPrice.Lt(averagePrice) {
+			price = spotPrice
+		} else {
+			price = averagePrice
+		}
+	}
+	return
+}

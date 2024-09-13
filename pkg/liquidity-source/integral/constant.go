@@ -9,6 +9,8 @@ import (
 var (
 	DexTypeIntegral = "integral"
 
+	WETH_ADDR = ""
+
 	defaultGas = Gas{Swap: 227000}
 	precison   = uint256.NewInt(1e18)
 
@@ -30,6 +32,8 @@ var (
 	ErrSM11           = errors.New("SM11")
 	ErrSM29           = errors.New("SM29")
 	ErrSM42           = errors.New("SM42")
+
+	ErrTD37 = errors.New("TD37")
 
 	// pair methods
 	pairToken0Method  = "token0"

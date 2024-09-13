@@ -21,13 +21,13 @@ var (
 
 	_swapFee           = uint256.NewInt(100000000000000)
 	_decimalsConverter = big.NewInt(1000000)
-	_averagePrice      = uint256.NewInt(414095812485130)
+	_averagePrice      = uint256.NewInt(423941809153609)
 
-	_amount0In  = big.NewInt(1988831782)
-	_amount1Out = big.NewInt(823484556046064466)
+	_amount0In  = big.NewInt(9994500000)
+	_amount1Out = big.NewInt(4237086411585745150)
 
 	_amount1In  = big.NewInt(1000000000000000)
-	_amount0Out = big.NewInt(2414658)
+	_amount0Out = big.NewInt(2358578)
 )
 
 func TestCalcAmountOut(t *testing.T) {

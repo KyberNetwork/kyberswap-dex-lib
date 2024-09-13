@@ -39,3 +39,7 @@ func (p *PoolSimulator) tradeX(xAfter, xBefore, yBefore *uint256.Int) (*uint256.
 
 	return ToUint256(yAfterInt), nil
 }
+
+func (p *PoolSimulator) getSwapAmountInMinOut(inverse bool, amountOut *uint256.Int) (*uint256.Int, *uint256.Int, error) {
+	return nil, nil, nil
+}
