@@ -14,18 +14,21 @@ import (
 )
 
 var (
-	_token0      = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
-	_token1      = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
-	_reserve0, _ = new(big.Int).SetString("164891778886", 10)
-	_reserve1, _ = new(big.Int).SetString("245352738377014871914", 10)
+	_token0 = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+	_token1 = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
 
-	_swapFee           = uint256.NewInt(100000000000000)
-	_decimalsConverter = big.NewInt(1000000)
-	_averagePrice      = uint256.NewInt(423941809153609)
-	_spotPrice         = uint256.NewInt(423941809153609)
+	_xDecimals uint64 = 6
+	_yDecimals uint64 = 18
 
-	_amount0In  = big.NewInt(9994500000)
-	_amount1Out = big.NewInt(4237086411585745150)
+	_reserve0, _ = new(big.Int).SetString("412744755381", 10)
+	_reserve1, _ = new(big.Int).SetString("140140904444964225845", 10)
+
+	_swapFee      = uint256.NewInt(100000000000000)
+	_averagePrice = uint256.NewInt(413806061328442)
+	_spotPrice    = uint256.NewInt(413845772674717)
+
+	_amount0In  = big.NewInt(10000000000)
+	_amount1Out = big.NewInt(4138457726747170001)
 
 	_amount1In  = big.NewInt(1000000000000000)
 	_amount0Out = big.NewInt(2358578)
@@ -33,7 +36,9 @@ var (
 
 func TestCalcAmountOut(t *testing.T) {
 	extraBytes, err := json.Marshal(IntegralPair{
-		// SwapFee:           _swapFee,
+		X_Decimals:   _xDecimals,
+		Y_Decimals:   _yDecimals,
+		SwapFee:      _swapFee,
 		SpotPrice:    _spotPrice,
 		AveragePrice: _averagePrice,
 	})

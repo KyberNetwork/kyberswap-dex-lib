@@ -39,6 +39,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			},
 		},
 		IntegralPair: IntegralPair{
+			SwapFee:      pair.SwapFee,
 			X_Decimals:   pair.X_Decimals,
 			Y_Decimals:   pair.Y_Decimals,
 			AveragePrice: pair.AveragePrice,
@@ -65,7 +66,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	var newReserve0, newReserve1 *uint256.Int
 
-	switch param.TokenAmountIn.Token {
+	switch tokenIn {
 	case tokens[0]:
 		newReserve0 = AddUint256(reserve0, _amountIn)
 		newReserve1 = SubUint256(reserve1, amountOut)
@@ -287,7 +288,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 func (p *PoolSimulator) swapExactIn(tokenIn, _ string, amountIn *uint256.Int) (*uint256.Int, *uint256.Int, *uint256.Int) {
 	fee := DivUint256(MulUint256(amountIn, p.IntegralPair.SwapFee), precison)
 
-	inverted := p.GetTokens()[1] == tokenIn
+	inverted := p.GetTokens()[0] == tokenIn
 
 	amountOut := p.calculateAmountOut(inverted, amountIn)
 

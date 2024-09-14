@@ -3,6 +3,7 @@ package integral
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -29,7 +30,7 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 
 	config := Config{
 		DexID:          DexTypeIntegral,
-		FactoryAddress: "0xC480b33eE5229DE3FbDFAD1D2DCD3F3BAD0C56c6",
+		RelayerAddress: "0xC480b33eE5229DE3FbDFAD1D2DCD3F3BAD0C56c6",
 		PoolPagingSize: 20,
 	}
 
@@ -41,7 +42,7 @@ func (ts *PoolListTrackerTestSuite) SetupTest() {
 
 func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 	pool, err := ts.tracker.GetNewPoolState(context.Background(), entity.Pool{
-		Address: "0xd17b3c9784510E33cD5B87b490E79253BcD81e2E",
+		Address: "0x2fe16Dd18bba26e457B7dD2080d5674312b026a2",
 	}, pool.GetNewPoolStateParams{})
 	if err != nil {
 		panic(err)
@@ -52,11 +53,14 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 		require.Fail(ts.Suite.T(), "Failed to unmarshal pool extra %e", err)
 	}
 
+	log.Fatalf("%+v\n,%+v\n", pair, pool.Reserves)
+
 	require.NotNil(ts.Suite.T(), pair)
 
+	require.NotEqual(ts.Suite.T(), uZERO, pair.SpotPrice)
 	require.NotEqual(ts.Suite.T(), uZERO, pair.AveragePrice)
-	// require.NotEqual(ts.Suite.T(), ZERO, pair.DecimalsConverter)
-	// require.NotEqual(ts.Suite.T(), uZERO, pair.SwapFee)
+	require.NotEqual(ts.Suite.T(), 0, pair.X_Decimals)
+	require.NotEqual(ts.Suite.T(), 0, pair.Y_Decimals)
 
 	require.Equal(ts.Suite.T(), 2, len(pool.Reserves))
 	require.NotEqual(ts.Suite.T(), "", pool.Reserves[0])

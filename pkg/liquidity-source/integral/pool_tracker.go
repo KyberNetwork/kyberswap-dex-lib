@@ -2,7 +2,6 @@ package integral
 
 import (
 	"context"
-	"log"
 	"math/big"
 	"time"
 
@@ -35,33 +34,19 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	var (
 		reserves [2]*big.Int
 
-		swapFee *big.Int
-		// pair    common.Address
-
 		priceInfo    PriceInfo
 		averagePrice = big.NewInt(0)
 		spotPrice    = big.NewInt(0)
 
+		swapFee *big.Int
+
 		xDecimals uint8
 		yDecimals uint8
-
-		pair = common.FromHex("0x2fe16Dd18bba26e457B7dD2080d5674312b026a2")
 
 		oracle common.Address
 	)
 
 	rpcRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
-	// rpcRequest.AddCall(&ethrpc.Call{ABI: reserveABI, Target: p.Address, Method: relayerGetPairMethod}, []interface{}{&pair})
-	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: relayerSwapFeeMethod}, []interface{}{&swapFee})
-
-	if _, err := rpcRequest.TryAggregate(); err != nil {
-		logger.Errorf("%s: failed to fetch basic pool data (address: %s, error: %v)", u.config.DexID, p.Address, err)
-		return entity.Pool{}, err
-	}
-
-	log.Fatalf("------%+v\n%+v\n", pair, swapFee)
-
-	rpcRequest = u.ethrpcClient.NewRequest().SetContext(ctx)
 	rpcRequest.AddCall(&ethrpc.Call{ABI: reserveABI, Target: p.Address, Method: libraryGetReservesMethod}, []interface{}{&reserves})
 	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairSwapFeeMethod}, []interface{}{&swapFee})
 	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairOracleMethod}, []interface{}{&oracle})
@@ -96,9 +81,8 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		return entity.Pool{}, err
 	}
 
-	log.Fatalf("---------- %+v\n%+v\n%+v\n%+v\n", xDecimals, yDecimals, spotPrice, averagePrice)
-
 	extraData := IntegralPair{
+		SwapFee:      ToUint256(swapFee),
 		AveragePrice: ToUint256(averagePrice),
 		SpotPrice:    ToUint256(spotPrice),
 		X_Decimals:   uint64(xDecimals),
@@ -110,9 +94,15 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		return entity.Pool{}, err
 	}
 
+	if len(p.Tokens) == 2 {
+		p.Tokens[0].Decimals = xDecimals
+		p.Tokens[1].Decimals = yDecimals
+	}
+
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
 	p.Reserves = entity.PoolReserves([]string{reserves[0].String(), reserves[1].String()})
+	p.SwapFee = float64(swapFee.Uint64()) / precison.Float64()
 
 	logger.Infof("%s: Pool state updated successfully (address: %s)", u.config.DexID, p.Address)
 

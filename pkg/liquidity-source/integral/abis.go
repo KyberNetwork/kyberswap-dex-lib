@@ -11,6 +11,7 @@ var (
 	reserveABI abi.ABI
 	pairABI    abi.ABI
 	factoryABI abi.ABI
+	relayerABI abi.ABI
 )
 
 func init() {
@@ -29,6 +30,9 @@ func init() {
 		},
 		{
 			&oracleABI, twapOracleJSON,
+		},
+		{
+			&relayerABI, twapRelayerJSON,
 		},
 	}
 

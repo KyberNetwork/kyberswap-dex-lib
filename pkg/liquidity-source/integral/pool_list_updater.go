@@ -53,10 +53,24 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		}
 	}
 
+	var factory common.Address
+	if _, err := u.ethrpcClient.NewRequest().AddCall(&ethrpc.Call{
+		ABI:    relayerABI,
+		Target: u.config.RelayerAddress,
+		Method: relayerFactoryMethod,
+		Params: nil,
+	}, []interface{}{&factory}).Call(); err != nil {
+		logger.WithFields(logger.Fields{
+			"error": err,
+		}).Errorf("%s: failed to get factory address", u.config.DexID)
+
+		return nil, metadataBytes, err
+	}
+
 	var pairsLength *big.Int
 	if _, err := u.ethrpcClient.NewRequest().AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
-		Target: u.config.FactoryAddress,
+		Target: factory.Hex(),
 		Method: factoryAllPairsLengthMethod,
 		Params: nil,
 	}, []interface{}{&pairsLength}).Call(); err != nil {
@@ -82,7 +96,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	for i := 0; i < pagingSize; i++ {
 		getPoolAddressReq.AddCall(&ethrpc.Call{
 			ABI:    factoryABI,
-			Target: u.config.FactoryAddress,
+			Target: factory.Hex(),
 			Method: factoryAllPairsMethod,
 			Params: []interface{}{big.NewInt(int64(currentOffset + i))},
 		}, []interface{}{&poolAddresses[i]})

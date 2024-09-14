@@ -11,9 +11,7 @@ type (
 	PoolSimulator struct {
 		pool.Pool
 		IntegralPair
-
-		swapFee map[string]*uint256.Int
-		gas     Gas
+		gas Gas
 	}
 
 	Gas struct {

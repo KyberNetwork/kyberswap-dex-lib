@@ -9,8 +9,6 @@ import (
 var (
 	DexTypeIntegral = "integral"
 
-	WETH_ADDR = ""
-
 	defaultGas = Gas{Swap: 227000}
 	precison   = uint256.NewInt(1e18)
 
@@ -46,16 +44,16 @@ var (
 	factoryAllPairsLengthMethod = "allPairsLength"
 
 	// relayer methods
-	relayerSwapFeeMethod = "swapFee"
+	relayerFactoryMethod          = "factory"
+	relayerGetTokenLimitMinMethod = "getTokenLimitMin"
 
 	// reserves methods
 	libraryGetReservesMethod = "getReserves"
 
 	// oracle methods
-	oracleDecimalsConverterMethod = "decimalsConverter"
-	oracleGetPriceInfoMethod      = "getPriceInfo"
-	oracleGetAveragePriceMethod   = "getAveragePrice"
-	oracleGetSpotPriceMethod      = "getSpotPrice"
-	oracleXDecimalsMethod         = "xDecimals"
-	oracleYDecimalsMethod         = "yDecimals"
+	oracleGetPriceInfoMethod    = "getPriceInfo"
+	oracleGetAveragePriceMethod = "getAveragePrice"
+	oracleGetSpotPriceMethod    = "getSpotPrice"
+	oracleXDecimalsMethod       = "xDecimals"
+	oracleYDecimalsMethod       = "yDecimals"
 )

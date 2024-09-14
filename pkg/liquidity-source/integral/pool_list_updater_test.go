@@ -28,7 +28,7 @@ func (ts *PoolListUpdaterTestSuite) SetupTest() {
 
 	config := Config{
 		DexID:          DexTypeIntegral,
-		FactoryAddress: "0xC480b33eE5229DE3FbDFAD1D2DCD3F3BAD0C56c6",
+		RelayerAddress: "0xd17b3c9784510E33cD5B87b490E79253BcD81e2E",
 		PoolPagingSize: 1000,
 	}
 
@@ -39,16 +39,30 @@ func (ts *PoolListUpdaterTestSuite) SetupTest() {
 }
 
 func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
-	// get length of the pool list
+	// get factory address
 	req := ts.client.NewRequest()
+	var factory common.Address
+	req.AddCall(&ethrpc.Call{
+		ABI:    relayerABI,
+		Target: ts.updater.config.RelayerAddress,
+		Method: relayerFactoryMethod,
+		Params: nil,
+	}, []interface{}{&factory})
+	_, err := req.TryAggregate()
+	if err != nil {
+		return
+	}
+
+	// get length of the pool list
+	req = ts.client.NewRequest()
 	var length *big.Int
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
-		Target: "0xC480b33eE5229DE3FbDFAD1D2DCD3F3BAD0C56c6",
+		Target: factory.Hex(),
 		Method: factoryAllPairsLengthMethod,
 		Params: nil,
 	}, []interface{}{&length})
-	_, err := req.TryAggregate()
+	_, err = req.TryAggregate()
 	if err != nil {
 		return
 	}
@@ -78,6 +92,6 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 }
 
 func TestPoolListUpdaterTestSuite(t *testing.T) {
-	t.Skip("Skipping testing in CI environment")
+	// t.Skip("Skipping testing in CI environment")
 	suite.Run(t, new(PoolListUpdaterTestSuite))
 }
