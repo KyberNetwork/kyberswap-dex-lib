@@ -11,7 +11,8 @@ type (
 	PoolSimulator struct {
 		pool.Pool
 		IntegralPair
-		gas Gas
+		TokenLimitMin map[string]*uint256.Int
+		gas           Gas
 	}
 
 	Gas struct {
@@ -20,6 +21,8 @@ type (
 )
 
 type IntegralPair struct {
+	IsEnabled bool
+
 	X_Decimals uint64
 	Y_Decimals uint64
 
@@ -27,6 +30,9 @@ type IntegralPair struct {
 	AveragePrice *uint256.Int
 
 	SwapFee *uint256.Int
+
+	Token0LimitMin *uint256.Int
+	Token1LimitMin *uint256.Int
 }
 
 type PriceInfo struct {

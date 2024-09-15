@@ -14,33 +14,39 @@ import (
 )
 
 var (
-	_token0 = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
-	_token1 = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+	_token0 = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" // USDC
+	_token1 = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" // wETH
 
 	_xDecimals uint64 = 6
 	_yDecimals uint64 = 18
 
-	_reserve0, _ = new(big.Int).SetString("412744755381", 10)
-	_reserve1, _ = new(big.Int).SetString("140140904444964225845", 10)
+	_reserve0, _ = new(big.Int).SetString("427606417957", 10)
+	_reserve1, _ = new(big.Int).SetString("134129304160258568649", 10)
 
-	_swapFee      = uint256.NewInt(100000000000000)
-	_averagePrice = uint256.NewInt(413806061328442)
-	_spotPrice    = uint256.NewInt(413845772674717)
+	_swapFee      = uint256.NewInt(100000000000000) // 10 ** 14
+	_averagePrice = uint256.NewInt(414137222066378)
+	_spotPrice    = uint256.NewInt(414416346438803)
 
 	_amount0In  = big.NewInt(10000000000)
-	_amount1Out = big.NewInt(4138457726747170001)
+	_amount1Out = big.NewInt(4144163464388030001)
 
-	_amount1In  = big.NewInt(1000000000000000)
-	_amount0Out = big.NewInt(2358578)
+	_amount1In, _  = new(big.Int).SetString("10000000000000000000", 10)
+	_amount0Out, _ = new(big.Int).SetString("24146585884", 10)
+
+	_token0LimitMin = uint256.NewInt(5000000000)          // 5000 USDC
+	_token1LimitMin = uint256.NewInt(1200000000000000000) // 1.2 wETH
 )
 
 func TestCalcAmountOut(t *testing.T) {
 	extraBytes, err := json.Marshal(IntegralPair{
-		X_Decimals:   _xDecimals,
-		Y_Decimals:   _yDecimals,
-		SwapFee:      _swapFee,
-		SpotPrice:    _spotPrice,
-		AveragePrice: _averagePrice,
+		IsEnabled:      true,
+		X_Decimals:     _xDecimals,
+		Y_Decimals:     _yDecimals,
+		SwapFee:        _swapFee,
+		SpotPrice:      _spotPrice,
+		AveragePrice:   _averagePrice,
+		Token0LimitMin: _token0LimitMin,
+		Token1LimitMin: _token1LimitMin,
 	})
 	require.Nil(t, err)
 
@@ -124,12 +130,17 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestUpdateBalance(t *testing.T) {
-	extra := IntegralPair{
-		// SwapFee:           _swapFee,
-		SpotPrice:    _spotPrice,
-		AveragePrice: _averagePrice,
-	}
-	extraJson, _ := json.Marshal(extra)
+	extraBytes, err := json.Marshal(IntegralPair{
+		IsEnabled:      true,
+		X_Decimals:     _xDecimals,
+		Y_Decimals:     _yDecimals,
+		SwapFee:        _swapFee,
+		SpotPrice:      _spotPrice,
+		AveragePrice:   _averagePrice,
+		Token0LimitMin: _token0LimitMin,
+		Token1LimitMin: _token1LimitMin,
+	})
+	require.Nil(t, err)
 
 	token0 := entity.PoolToken{
 		Address:   _token0,
@@ -143,7 +154,7 @@ func TestUpdateBalance(t *testing.T) {
 	pool := entity.Pool{
 		Reserves: entity.PoolReserves{_reserve0.String(), _reserve1.String()},
 		Tokens:   []*entity.PoolToken{&token0, &token1},
-		Extra:    string(extraJson),
+		Extra:    string(extraBytes),
 	}
 
 	poolSimulator, err := NewPoolSimulator(pool)
@@ -172,8 +183,6 @@ func TestUpdateBalance(t *testing.T) {
 	expectedReserve0 := new(big.Int).Add(_reserve0, _amount0In)
 	expectedReserve1 := new(big.Int).Sub(_reserve1, result.TokenAmountOut.Amount)
 
-	expectedFee := new(big.Int).Div(new(big.Int).Mul(_amount0In, ToInt256(_swapFee)), ToInt256(precison))
-
-	assert.Equal(t, new(big.Int).Sub(expectedReserve0, expectedFee), poolSimulator.Info.Reserves[0])
+	assert.Equal(t, expectedReserve0, poolSimulator.Info.Reserves[0])
 	assert.Equal(t, expectedReserve1, poolSimulator.Info.Reserves[1])
 }

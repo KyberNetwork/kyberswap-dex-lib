@@ -1,6 +1,7 @@
 package integral
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/goccy/go-json"
@@ -15,14 +16,16 @@ import (
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var pair IntegralPair
 	if err := json.Unmarshal([]byte(entityPool.Extra), &pair); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal Extra: %v", err)
 	}
 
 	numTokens := len(entityPool.Tokens)
 	tokens := make([]string, numTokens)
 	reserves := make([]*big.Int, numTokens)
+
 	for i := 0; i < numTokens; i++ {
-		tokens[i] = entityPool.Tokens[i].Address
+		tokenAddr := entityPool.Tokens[i].Address
+		tokens[i] = tokenAddr
 		reserves[i] = bignumber.NewBig(entityPool.Reserves[i])
 	}
 
@@ -39,11 +42,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			},
 		},
 		IntegralPair: IntegralPair{
-			SwapFee:      pair.SwapFee,
-			X_Decimals:   pair.X_Decimals,
-			Y_Decimals:   pair.Y_Decimals,
-			AveragePrice: pair.AveragePrice,
-			SpotPrice:    pair.SpotPrice,
+			IsEnabled:      pair.IsEnabled,
+			SwapFee:        pair.SwapFee,
+			X_Decimals:     pair.X_Decimals,
+			Y_Decimals:     pair.Y_Decimals,
+			AveragePrice:   pair.AveragePrice,
+			SpotPrice:      pair.SpotPrice,
+			Token0LimitMin: pair.Token0LimitMin,
+			Token1LimitMin: pair.Token1LimitMin,
 		},
 		gas: defaultGas,
 	}, nil
@@ -62,7 +68,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	reserve0 := ToUint256(p.GetReserves()[0])
 	reserve1 := ToUint256(p.GetReserves()[1])
 
-	_amountIn, amountOut, fee := p.swapExactIn(tokenIn, tokenOut, amountIn)
+	_amountIn, amountOut, fee, err := p.swapExactIn(tokenIn, tokenOut, amountIn)
+	if err != nil {
+		return nil, err
+	}
 
 	var newReserve0, newReserve1 *uint256.Int
 
@@ -71,8 +80,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		newReserve0 = AddUint256(reserve0, _amountIn)
 		newReserve1 = SubUint256(reserve1, amountOut)
 	case tokens[1]:
-		newReserve0 = SubUint256(reserve0, _amountIn)
-		newReserve1 = AddUint256(reserve1, amountOut)
+		newReserve0 = SubUint256(reserve0, amountOut)
+		newReserve1 = AddUint256(reserve1, _amountIn)
 	default:
 		return nil, ErrInvalidTokenIn
 	}
@@ -108,191 +117,37 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.Info.Reserves = []*big.Int{si.newReserve0, si.newReserve1}
 }
 
-// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapPair.sol#L184
-// func (p *PoolSimulator) swap(amountIn, amount0Out, amount1Out *uint256.Int) (*pool.CalcAmountOutResult, error) {
-// 	if !(amount0Out.Cmp(uZERO) > 0 && amount1Out.Cmp(uZERO) == 0) && !(amount1Out.Cmp(uZERO) > 0 && amount0Out.Cmp(uZERO) == 0) {
-// 		return nil, ErrTP31
-// 	}
+func (p *PoolSimulator) swapExactIn(tokenIn, tokenOut string, amountIn *uint256.Int) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
+	if !p.IntegralPair.IsEnabled {
+		return nil, nil, nil, ErrTR05
+	}
 
-// 	reserves := p.GetReserves()
+	tokens := p.GetTokens()
+	fee := DivUint256(MulUint256(amountIn, p.IntegralPair.SwapFee), precision)
 
-// 	reserve0 := ToUint256(reserves[0])
-// 	reserve1 := ToUint256(reserves[1])
-
-// 	if amount0Out.Cmp(reserve0) >= 0 || amount1Out.Cmp(reserve1) >= 0 {
-// 		return nil, ErrTP07
-// 	}
-
-// 	swapFee := p.IntegralPair.SwapFee
-
-// 	var balance0, balance1 *uint256.Int
-// 	var balance0After, balance1After *uint256.Int
-
-// 	// trading token1 for token0
-// 	if amount0Out.Cmp(uZERO) > 0 {
-// 		balance0 = reserve0
-// 		balance1 = AddUint256(reserve1, amountIn)
-
-// 		if balance1.Cmp(reserve1) <= 0 {
-// 			return nil, ErrTP08
-// 		}
-
-// 		fee1 := DivUint256(SubUint256(amountIn, swapFee), precison)
-// 		balance1After = SubUint256(balance1, fee1)
-
-// 		var err error
-// 		balance0After, err = p.tradeY(balance1After, reserve0, reserve1)
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		if balance0.Cmp(balance0After) < 0 {
-// 			return nil, ErrTP2E
-// 		}
-
-// 		fee0 := SubUint256(balance0, balance0After)
-
-// 		return &pool.CalcAmountOutResult{
-// 			TokenAmountOut: &pool.TokenAmount{
-// 				Token:  p.GetTokens()[0],
-// 				Amount: ToInt256(amount0Out),
-// 			},
-// 			Fee: &pool.TokenAmount{
-// 				Token:  p.GetTokens()[0],
-// 				Amount: ToInt256(fee0),
-// 			},
-// 			Gas: p.gas.Swap,
-// 			SwapInfo: SwapInfo{
-// 				newReserve0: ToInt256(balance0After),
-// 				newReserve1: ToInt256(balance1After),
-// 			},
-// 		}, nil
-// 	}
-
-// 	// trading token0 for token1
-// 	balance0 = AddUint256(reserve0, amountIn)
-// 	balance1 = reserve1
-
-// 	if balance0.Cmp(reserve0) <= 0 {
-// 		return nil, ErrTP08
-// 	}
-
-// 	fee0 := DivUint256(MulUint256(amountIn, swapFee), precison)
-// 	balance0After = SubUint256(balance0, fee0)
-
-// 	var err error
-// 	balance1After, err = p.tradeX(balance0After, reserve0, reserve1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	if balance1.Cmp(balance1After) < 0 {
-// 		return nil, ErrTP2E
-// 	}
-
-// 	fee1 := SubUint256(balance1, balance1After)
-
-// 	return &pool.CalcAmountOutResult{
-// 		TokenAmountOut: &pool.TokenAmount{
-// 			Token:  p.GetTokens()[1],
-// 			Amount: ToInt256(amount1Out),
-// 		},
-// 		Fee: &pool.TokenAmount{
-// 			Token:  p.GetTokens()[1],
-// 			Amount: ToInt256(fee1),
-// 		},
-// 		Gas: p.gas.Swap,
-// 		SwapInfo: SwapInfo{
-// 			newReserve0: ToInt256(balance0After),
-// 			newReserve1: ToInt256(balance1After),
-// 		},
-// 	}, nil
-// }
-
-// // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapPair.sol#L266
-// func (p *PoolSimulator) getSwapAmount0Out(amount1In *uint256.Int) (*uint256.Int, error) {
-// 	reserves := p.GetReserves()
-
-// 	reserve0 := ToUint256(reserves[0])
-// 	reserve1 := ToUint256(reserves[1])
-
-// 	swapFee := p.IntegralPair.SwapFee
-
-// 	fee := DivUint256(MulUint256(amount1In, swapFee), precison)
-
-// 	balance0After, err := p.tradeY(
-// 		SubUint256(AddUint256(reserve1, amount1In), fee),
-// 		reserve0,
-// 		reserve1,
-// 	)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return SubUint256(reserve0, balance0After), nil
-// }
-
-// // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapPair.sol#L281
-// func (p *PoolSimulator) getSwapAmount1Out(amount0In *uint256.Int) (*uint256.Int, error) {
-// 	reserves := p.GetReserves()
-
-// 	reserve0 := ToUint256(reserves[0])
-// 	reserve1 := ToUint256(reserves[1])
-
-// 	swapFee := p.IntegralPair.SwapFee
-
-// 	fee := DivUint256(MulUint256(amount0In, swapFee), precison)
-
-// 	balance1After, err := p.tradeX(
-// 		SubUint256(AddUint256(reserve0, amount0In), fee),
-// 		reserve0,
-// 		reserve1,
-// 	)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return SubUint256(reserve1, balance1After), nil
-// }
-
-// func (p *PoolSimulator) getSwapAmount0In(amount1Out *uint256.Int) (*uint256.Int, error) {
-// 	reserves := p.GetReserves()
-
-// 	reserve0 := ToUint256(reserves[0])
-// 	reserve1 := ToUint256(reserves[1])
-
-// 	balance1After := SubUint256(reserve1, amount1Out)
-// 	balance0After, err := p.tradeY(balance1After, reserve0, reserve1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return CeilDivUint256(MulUint256(SubUint256(balance0After, reserve0), precison), SubUint256(precison, p.IntegralPair.SwapFee)), nil
-// }
-
-// func (p *PoolSimulator) getSwapAmount1In(amount0Out *uint256.Int) (*uint256.Int, error) {
-// 	reserves := p.GetReserves()
-
-// 	reserve0 := ToUint256(reserves[0])
-// 	reserve1 := ToUint256(reserves[1])
-
-// 	balance0After := SubUint256(reserve0, amount0Out)
-// 	balance1After, err := p.tradeY(balance0After, reserve0, reserve1)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return CeilDivUint256(MulUint256(SubUint256(AddUint256(balance1After, uint256.NewInt(1)), reserve0), precison), SubUint256(precison, p.IntegralPair.SwapFee)), nil
-// }
-
-func (p *PoolSimulator) swapExactIn(tokenIn, _ string, amountIn *uint256.Int) (*uint256.Int, *uint256.Int, *uint256.Int) {
-	fee := DivUint256(MulUint256(amountIn, p.IntegralPair.SwapFee), precison)
-
-	inverted := p.GetTokens()[0] == tokenIn
+	inverted := tokens[0] == tokenIn
 
 	amountOut := p.calculateAmountOut(inverted, amountIn)
 
-	return amountIn, amountOut, fee
+	if err := p.checkLimits(tokenOut, amountOut); err != nil {
+		return nil, nil, nil, err
+	}
+
+	return amountIn, amountOut, fee, nil
+}
+
+func (p *PoolSimulator) checkLimits(token string, amount *uint256.Int) error {
+	if token == p.GetTokens()[0] {
+		if amount.Lt(p.IntegralPair.Token0LimitMin) {
+			return ErrTR03
+		}
+	} else if token == p.GetTokens()[1] {
+		if amount.Lt(p.IntegralPair.Token1LimitMin) {
+			return ErrTR03
+		}
+	}
+
+	return nil
 }
 
 func (p *PoolSimulator) calculateAmountOut(inverted bool, amountIn *uint256.Int) *uint256.Int {

@@ -10,7 +10,7 @@ var (
 	DexTypeIntegral = "integral"
 
 	defaultGas = Gas{Swap: 227000}
-	precison   = uint256.NewInt(1e18)
+	precision  = uint256.NewInt(1e18)
 
 	// errors
 	ErrTokenNotFound  = errors.New("tokens not found")
@@ -32,6 +32,8 @@ var (
 	ErrSM42           = errors.New("SM42")
 
 	ErrTD37 = errors.New("TD37")
+	ErrTR03 = errors.New("TR03")
+	ErrTR05 = errors.New("TR05")
 
 	// pair methods
 	pairToken0Method  = "token0"
@@ -46,6 +48,7 @@ var (
 	// relayer methods
 	relayerFactoryMethod          = "factory"
 	relayerGetTokenLimitMinMethod = "getTokenLimitMin"
+	relayerIsPairEnabledMethod    = "isPairEnabled"
 
 	// reserves methods
 	libraryGetReservesMethod = "getReserves"

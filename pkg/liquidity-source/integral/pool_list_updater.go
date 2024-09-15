@@ -2,6 +2,7 @@ package integral
 
 import (
 	"context"
+	"log"
 	"math/big"
 	"strings"
 	"time"
@@ -139,29 +140,38 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 }
 
 func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.Address) ([]entity.Pool, error) {
-	var (
-		poolsLength     = len(poolAddresses)
-		token0Addresses = make([]common.Address, poolsLength)
-		token1Addresses = make([]common.Address, poolsLength)
-	)
+	type pair struct {
+		poolAddress    string
+		token0         common.Address
+		token1         common.Address
+		isPairEnabled  bool
+		tokenLimitMin0 *big.Int
+		tokenLimitMin1 *big.Int
+	}
 
-	rpcRequest := u.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
+	poolsLength := len(poolAddresses)
+	pairs := make([]pair, poolsLength)
+
+	rpcRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 
 	for i := 0; i < poolsLength; i++ {
-		rpcRequest.AddCall(&ethrpc.Call{
-			ABI:    pairABI,
-			Target: poolAddresses[i].Hex(),
-			Method: pairToken0Method,
-			Params: nil,
-		}, []interface{}{&token0Addresses[i]})
+		poolAddressHex := poolAddresses[i].Hex()
 
 		rpcRequest.AddCall(&ethrpc.Call{
 			ABI:    pairABI,
-			Target: poolAddresses[i].Hex(),
+			Target: poolAddressHex,
+			Method: pairToken0Method,
+			Params: nil,
+		}, []interface{}{&pairs[i].token0})
+
+		rpcRequest.AddCall(&ethrpc.Call{
+			ABI:    pairABI,
+			Target: poolAddressHex,
 			Method: pairToken1Method,
 			Params: nil,
-		}, []interface{}{&token1Addresses[i]})
+		}, []interface{}{&pairs[i].token1})
+
+		pairs[i].poolAddress = strings.ToLower(poolAddressHex)
 	}
 
 	if _, err := rpcRequest.Aggregate(); err != nil {
@@ -171,22 +181,9 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 
 	pools := make([]entity.Pool, 0, poolsLength)
 
-	for i, pairAddress := range poolAddresses {
-		p := strings.ToLower(pairAddress.Hex())
-		token0Address := strings.ToLower(token0Addresses[i].Hex())
-		token1Address := strings.ToLower(token1Addresses[i].Hex())
-
-		var poolToken0 = entity.PoolToken{
-			Address:   token0Address,
-			Swappable: true,
-		}
-		var poolToken1 = entity.PoolToken{
-			Address:   token1Address,
-			Swappable: true,
-		}
-
-		var newPool = entity.Pool{
-			Address:      p,
+	for _, pair := range pairs {
+		newPool := entity.Pool{
+			Address:      pair.poolAddress,
 			ReserveUsd:   0,
 			AmplifiedTvl: 0,
 			SwapFee:      0,
@@ -194,9 +191,18 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 			Type:         DexTypeIntegral,
 			Timestamp:    time.Now().Unix(),
 			Reserves:     []string{"0", "0"},
-			Tokens:       []*entity.PoolToken{&poolToken0, &poolToken1},
+			Tokens: []*entity.PoolToken{
+				{
+					Address:   pair.token0.Hex(),
+					Swappable: true,
+				},
+				{
+					Address:   pair.token1.Hex(),
+					Swappable: true,
+				},
+			},
 		}
-
+		log.Fatalf("------------%+v\n", newPool)
 		pools = append(pools, newPool)
 	}
 
