@@ -77,9 +77,15 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	switch tokenIn {
 	case tokens[0]:
-		newReserve0 = AddUint256(reserve0, _amountIn)
+		if reserve1.Lt(amountOut) {
+			return nil, fmt.Errorf("insufficient liquidity for tokenOut")
+		}
 		newReserve1 = SubUint256(reserve1, amountOut)
+		newReserve0 = AddUint256(reserve0, _amountIn)
 	case tokens[1]:
+		if reserve0.Lt(amountOut) {
+			return nil, fmt.Errorf("insufficient liquidity for tokenOut")
+		}
 		newReserve0 = SubUint256(reserve0, amountOut)
 		newReserve1 = AddUint256(reserve1, _amountIn)
 	default:

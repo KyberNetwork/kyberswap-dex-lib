@@ -112,15 +112,57 @@ func TestCalcAmountOut(t *testing.T) {
 		require.Nil(t, result)
 	})
 
-	t.Run("4. should return error for invalid token", func(t *testing.T) {
+	// Test for swap limits
+	t.Run("4. should return error when amountOut is below limits", func(t *testing.T) {
 		simulator, err := NewPoolSimulator(pool)
 		require.Nil(t, err)
 
-		// Test for insufficient liquidity
+		// Test for token0 limit
 		result, err := simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  "xxx", // invalid tokenIn
-				Amount: new(big.Int).Add(_reserve1, _amount1In),
+				Token:  _token1,
+				Amount: big.NewInt(1000), // This will result in an amountOut below the limit for token0
+			},
+			TokenOut: _token0,
+		})
+		require.NotNil(t, err)
+		require.Nil(t, result)
+	})
+
+	// Test for disabled pool
+	t.Run("5. should return error when pool is disabled", func(t *testing.T) {
+		disabledExtraBytes, err := json.Marshal(IntegralPair{
+			IsEnabled:      false,
+			X_Decimals:     _xDecimals,
+			Y_Decimals:     _yDecimals,
+			SwapFee:        _swapFee,
+			SpotPrice:      _spotPrice,
+			AveragePrice:   _averagePrice,
+			Token0LimitMin: _token0LimitMin,
+			Token1LimitMin: _token1LimitMin,
+		})
+		require.Nil(t, err)
+
+		disabledPool := entity.Pool{
+			Address: "",
+			Reserves: entity.PoolReserves{
+				_reserve0.String(),
+				_reserve1.String(),
+			},
+			Tokens: []*entity.PoolToken{
+				{Address: _token0},
+				{Address: _token1},
+			},
+			Extra: string(disabledExtraBytes),
+		}
+
+		simulator, err := NewPoolSimulator(disabledPool)
+		require.Nil(t, err)
+
+		result, err := simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: poolpkg.TokenAmount{
+				Token:  _token0,
+				Amount: _amount0In,
 			},
 			TokenOut: _token1,
 		})
