@@ -3,7 +3,6 @@ package integral
 import (
 	"context"
 	"encoding/json"
-	"log"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -62,8 +61,6 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 		require.Fail(ts.Suite.T(), "Failed to unmarshal pool extra %e", err)
 	}
 
-	log.Fatalf("%+v\n,%+v\n", pair, pool.Reserves)
-
 	require.NotNil(ts.Suite.T(), pair)
 
 	require.NotEqual(ts.Suite.T(), uZERO, pair.SpotPrice)
@@ -81,6 +78,6 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 }
 
 func TestPoolListTrackerTestSuite(t *testing.T) {
-	// t.Skip("Skipping testing in CI environment")
+	t.Skip("Skipping testing in CI environment")
 	suite.Run(t, new(PoolListTrackerTestSuite))
 }
