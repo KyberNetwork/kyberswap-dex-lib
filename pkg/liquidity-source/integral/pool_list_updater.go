@@ -2,7 +2,6 @@ package integral
 
 import (
 	"context"
-	"log"
 	"math/big"
 	"strings"
 	"time"
@@ -141,12 +140,9 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 
 func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.Address) ([]entity.Pool, error) {
 	type pair struct {
-		poolAddress    string
-		token0         common.Address
-		token1         common.Address
-		isPairEnabled  bool
-		tokenLimitMin0 *big.Int
-		tokenLimitMin1 *big.Int
+		poolAddress string
+		token0      common.Address
+		token1      common.Address
 	}
 
 	poolsLength := len(poolAddresses)
@@ -202,7 +198,6 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 				},
 			},
 		}
-		log.Fatalf("------------%+v\n", newPool)
 		pools = append(pools, newPool)
 	}
 
