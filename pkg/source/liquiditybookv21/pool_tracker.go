@@ -17,7 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoecommon"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -28,7 +28,11 @@ type PoolTracker struct {
 }
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) (*PoolTracker, error) {
-	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
+	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
+		Url:     cfg.SubgraphAPI,
+		Header:  cfg.SubgraphHeaders,
+		Timeout: graphQLRequestTimeout,
+	})
 
 	return &PoolTracker{
 		cfg:           cfg,
