@@ -23,15 +23,15 @@ var (
 	_reserve0, _ = new(big.Int).SetString("427606417957", 10)
 	_reserve1, _ = new(big.Int).SetString("134129304160258568649", 10)
 
-	_swapFee      = uint256.NewInt(100000000000000) // 10 ** 14
+	_swapFee      = uint256.NewInt(550000000000000) // 10 ** 14
 	_averagePrice = uint256.NewInt(436677406974646)
 	_spotPrice    = uint256.NewInt(436776207402818)
 
 	_amount0In  = big.NewInt(10000000000)
-	_amount1Out = big.NewInt(4366337392339485354)
+	_amount1Out = big.NewInt(4364372344008099447)
 
 	_amount1In, _  = new(big.Int).SetString("10000000000000000000", 10)
-	_amount0Out, _ = new(big.Int).SetString("22892730488", 10)
+	_amount0Out, _ = new(big.Int).SetString("22882427729", 10)
 
 	_token0LimitMin = uint256.NewInt(5000000000)          // 5000 USDC
 	_token1LimitMin = uint256.NewInt(1200000000000000000) // 1.2 wETH
