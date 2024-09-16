@@ -9,7 +9,7 @@ import (
 var (
 	DexTypeIntegral = "integral"
 
-	defaultGas = Gas{Swap: 227000}
+	defaultGas = Gas{Swap: 400000}
 	precision  = uint256.NewInt(1e18)
 
 	// errors
