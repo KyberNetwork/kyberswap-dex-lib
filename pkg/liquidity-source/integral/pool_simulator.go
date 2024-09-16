@@ -2,7 +2,6 @@ package integral
 
 import (
 	"fmt"
-	"log"
 	"math/big"
 
 	"github.com/goccy/go-json"
@@ -162,8 +161,6 @@ func (p *PoolSimulator) calculateAmountOut(inverted bool, amountIn *uint256.Int)
 	decimalsConverter := getDecimalsConverter(p.IntegralPair.X_Decimals, p.IntegralPair.Y_Decimals, inverted)
 
 	price := p.getPrice(inverted)
-
-	log.Fatalf("%+v\n,%+v\n,%+v\n", amountIn, price, decimalsConverter)
 
 	return DivUint256(MulUint256(amountIn, price), decimalsConverter)
 }
