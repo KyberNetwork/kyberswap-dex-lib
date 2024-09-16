@@ -2,6 +2,7 @@ package integral
 
 import (
 	"fmt"
+	"log"
 	"math/big"
 
 	"github.com/goccy/go-json"
@@ -56,6 +57,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+
 	tokens := p.GetTokens()
 	if len(tokens) < 2 {
 		return nil, ErrTokenNotFound
@@ -116,7 +118,7 @@ func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	si, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
-		logger.Warnf("failed to UpdateBalance for Smardex %v %v pool, wrong swapInfo type", p.Info.Address, p.Info.Exchange)
+		logger.Warnf("failed to UpdateBalance for Integral %v %v pool, wrong swapInfo type", p.Info.Address, p.Info.Exchange)
 		return
 	}
 
@@ -131,9 +133,9 @@ func (p *PoolSimulator) swapExactIn(tokenIn, tokenOut string, amountIn *uint256.
 	tokens := p.GetTokens()
 	fee := DivUint256(MulUint256(amountIn, p.IntegralPair.SwapFee), precision)
 
-	inverted := tokens[0] == tokenIn
+	inverted := tokens[0] == tokenOut
 
-	amountOut := p.calculateAmountOut(inverted, amountIn)
+	amountOut := p.calculateAmountOut(inverted, SubUint256(amountIn, fee))
 
 	if err := p.checkLimits(tokenOut, amountOut); err != nil {
 		return nil, nil, nil, err
@@ -161,7 +163,9 @@ func (p *PoolSimulator) calculateAmountOut(inverted bool, amountIn *uint256.Int)
 
 	price := p.getPrice(inverted)
 
-	return CeilDivUint256(MulUint256(amountIn, decimalsConverter), price)
+	log.Fatalf("%+v\n,%+v\n,%+v\n", amountIn, price, decimalsConverter)
+
+	return DivUint256(MulUint256(amountIn, price), decimalsConverter)
 }
 
 func getDecimalsConverter(xDecimals, yDecimals uint64, inverted bool) (decimalsConverter *uint256.Int) {

@@ -11,8 +11,7 @@ type (
 	PoolSimulator struct {
 		pool.Pool
 		IntegralPair
-		TokenLimitMin map[string]*uint256.Int
-		gas           Gas
+		gas Gas
 	}
 
 	Gas struct {

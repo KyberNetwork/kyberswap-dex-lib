@@ -189,11 +189,11 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 			Reserves:     []string{"0", "0"},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   pair.token0.Hex(),
+					Address:   strings.ToLower(pair.token0.Hex()),
 					Swappable: true,
 				},
 				{
-					Address:   pair.token1.Hex(),
+					Address:   strings.ToLower(pair.token1.Hex()),
 					Swappable: true,
 				},
 			},

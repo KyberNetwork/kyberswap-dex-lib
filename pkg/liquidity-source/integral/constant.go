@@ -36,10 +36,9 @@ var (
 	ErrTR05 = errors.New("TR05")
 
 	// pair methods
-	pairToken0Method  = "token0"
-	pairToken1Method  = "token1"
-	pairSwapFeeMethod = "swapFee"
-	pairOracleMethod  = "oracle"
+	pairToken0Method = "token0"
+	pairToken1Method = "token1"
+	pairOracleMethod = "oracle"
 
 	// factory methods
 	factoryAllPairsMethod       = "allPairs"
@@ -47,6 +46,7 @@ var (
 
 	// relayer methods
 	relayerFactoryMethod          = "factory"
+	relayerSwapFeeMethod          = "swapFee"
 	relayerGetTokenLimitMinMethod = "getTokenLimitMin"
 	relayerIsPairEnabledMethod    = "isPairEnabled"
 

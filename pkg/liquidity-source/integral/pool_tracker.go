@@ -68,6 +68,13 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    relayerABI,
 		Target: u.config.RelayerAddress,
+		Method: relayerSwapFeeMethod,
+		Params: []interface{}{common.HexToAddress(p.Address)},
+	}, []interface{}{&swapFee})
+
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    relayerABI,
+		Target: u.config.RelayerAddress,
 		Method: relayerGetTokenLimitMinMethod,
 		Params: []interface{}{token1},
 	}, []interface{}{&token1LimitMin})
@@ -80,7 +87,6 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}, []interface{}{&isPairEnabled})
 
 	rpcRequest.AddCall(&ethrpc.Call{ABI: reserveABI, Target: p.Address, Method: libraryGetReservesMethod}, []interface{}{&reserves})
-	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairSwapFeeMethod}, []interface{}{&swapFee})
 	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairOracleMethod}, []interface{}{&oracle})
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
