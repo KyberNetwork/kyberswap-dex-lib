@@ -79,7 +79,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	if strings.EqualFold(tokenAmountIn.Token, DAIAddress) {
 		daiAmt, fee, err := p.litePSM.buyGem(amountIn)
 		if err != nil {
-			return &pool.CalcAmountOutResult{}, err
+			return nil, err
 		}
 
 		return &pool.CalcAmountOutResult{
@@ -97,7 +97,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	gemAmt, fee, err := p.litePSM.sellGem(amountIn)
 	if err != nil {
-		return &pool.CalcAmountOutResult{}, err
+		return nil, err
 	}
 
 	return &pool.CalcAmountOutResult{
