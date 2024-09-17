@@ -6,9 +6,10 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func (u *PoolsListUpdater) ClassifyPools(ctx context.Context, dataSource CurveDataSource, pools []CurvePool) (map[string]CurvePoolType, error) {
@@ -38,7 +39,8 @@ func (u *PoolsListUpdater) classifyPoolsFromCryptoRegistry(_ context.Context, _ 
 func (u *PoolsListUpdater) classifyPoolsFromFactory(_ context.Context, dataSource CurveDataSource, pools []CurvePool) (map[string]CurvePoolType, error) {
 	typeMap := make(map[string]CurvePoolType, len(pools))
 
-	isCrypto := dataSource == CURVE_DATASOURCE_FACTORY_CRYPTO || dataSource == CURVE_DATASOURCE_FACTORY_TRICRYPTO
+	isCrypto := dataSource == CURVE_DATASOURCE_FACTORY_CRYPTO ||
+		dataSource == CURVE_DATASOURCE_FACTORY_TRICRYPTO || dataSource == CURVE_DATASOURCE_FACTORY_TWOCRYPTO
 
 	for _, pool := range pools {
 		if isCrypto {
@@ -47,6 +49,8 @@ func (u *PoolsListUpdater) classifyPoolsFromFactory(_ context.Context, dataSourc
 				typeMap[pool.Address] = CURVE_POOL_TYPE_CRYPTO_META
 			} else if dataSource == CURVE_DATASOURCE_FACTORY_TRICRYPTO {
 				typeMap[pool.Address] = CURVE_POOL_TYPE_TRICRYPTO_NG
+			} else if dataSource == CURVE_DATASOURCE_FACTORY_TWOCRYPTO {
+				typeMap[pool.Address] = CURVE_POOL_TYPE_TWOCRYPTO_NG
 			} else {
 				typeMap[pool.Address] = CURVE_POOL_TYPE_CRYPTO
 			}

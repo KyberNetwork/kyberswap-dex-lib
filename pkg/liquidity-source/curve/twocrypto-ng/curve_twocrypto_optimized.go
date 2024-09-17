@@ -1,4 +1,4 @@
-package tricryptong
+package twocryptong
 
 import (
 	"time"
@@ -7,8 +7,8 @@ import (
 	"github.com/holiman/uint256"
 )
 
-// from contracts/main/CurveTricryptoOptimizedWETH.vy
-// (contracts/main/CurveTricryptoOptimized.vy is a bit different and we won't support it for now (there is only 1 pool using that anyway))
+// from contracts/main/CurveTwocryptoOptimized.vy
+// (there is no CurveTwocryptoOptimizedWETH.vy)
 
 func (t *PoolSimulator) FeeCalc(xp []uint256.Int, fee *uint256.Int) error {
 	var f uint256.Int
@@ -24,7 +24,7 @@ func (t *PoolSimulator) FeeCalc(xp []uint256.Int, fee *uint256.Int) error {
 	return nil
 }
 
-// GetDy https://github.com/curvefi/tricrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveCryptoViews3Optimized.vy#L60
+// GetDy https://github.com/curvefi/twocrypto-ng/blob/1c800bd/contracts/main/CurveCryptoViews2Optimized.vy#L63
 func (t *PoolSimulator) GetDy(
 	i int, j int, dx *uint256.Int,
 
@@ -68,6 +68,7 @@ func (t *PoolSimulator) GetDy(
 
 	err = t.FeeCalc(xp[:], fee)
 	if err != nil {
+		zz["2"] = true
 		return err
 	}
 
@@ -84,7 +85,7 @@ func (t *PoolSimulator) GetDy(
 	return nil
 }
 
-// GetDx https://github.com/curvefi/twocrypto-ng/blob/1c800bd/contracts/main/CurveCryptoViews2Optimized.vy#L79
+// GetDx https://github.com/curvefi/twocrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveCryptoViews3Optimized.vy#L76
 func (t *PoolSimulator) GetDx(
 	i int, j int, dy *uint256.Int,
 
@@ -109,7 +110,7 @@ func (t *PoolSimulator) GetDx(
 	return nil
 }
 
-// https://github.com/curvefi/tricrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveCryptoViews3Optimized.vy#L184
+// https://github.com/curvefi/twocrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveCryptoViews3Optimized.vy#L184
 func (t *PoolSimulator) _getDxFee(
 	i int, j int, dy *uint256.Int,
 
@@ -161,9 +162,8 @@ func (t *PoolSimulator) _getDxFee(
 	return nil
 }
 
-// https://github.com/curvefi/tricrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveTricryptoOptimizedWETH.vy#L964
-func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint256.Int,
-	new_D, K0_prev *uint256.Int) error {
+// https://github.com/curvefi/twocrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveTwocryptoOptimized.vy#L964
+func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint256.Int, new_D, K0_prev *uint256.Int) error {
 	/*
 				@notice Tweaks price_oracle, last_price and conditionally adjusts
 		            price_scale. This is called whenever there is an unbalanced
@@ -255,18 +255,12 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 
 		// #                Calculate the vector distance between price_scale and
 		// #                                                        price_oracle.
-		var norm = new(uint256.Int)
-		for k := 0; k < NumTokens-1; k += 1 {
-			var ratio = number.Div(number.SafeMul(&t.Extra.PriceOracle[k], U_1e18), &t.Extra.PriceScale[k])
-			if ratio.Cmp(U_1e18) > 0 {
-				ratio = number.SafeSub(ratio, U_1e18)
-			} else {
-				ratio = number.SafeSub(U_1e18, ratio)
-			}
-			norm = number.SafeAdd(norm, number.SafeMul(ratio, ratio))
+		norm := number.Div(number.SafeMul(&t.Extra.PriceOracle[0], U_1e18), &t.Extra.PriceScale[0])
+		if norm.Cmp(U_1e18) > 0 {
+			norm = number.SafeSub(norm, U_1e18)
+		} else {
+			norm = number.SafeSub(U_1e18, norm)
 		}
-
-		norm.Sqrt(norm)
 
 		var adjustment_step = number.Div(norm, number.Number_5)
 		if adjustment_step.Cmp(t.Extra.AdjustmentStep) < 0 {
@@ -300,7 +294,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 			}
 
 			// # ------------------------------------------ Update D with new xp.
-			D, err := newton_D(A, gamma, xp[:], uint256.NewInt(0))
+			D, err := newton_D(A, gamma, xp[:], new(uint256.Int))
 			if err != nil {
 				return err
 			}
@@ -323,8 +317,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 			old_virtual_price = number.Div(number.SafeMul(U_1e18, temp), total_supply)
 
 			// # ---------------------------- Proceed if we've got enough profit.
-			if old_virtual_price.Cmp(U_1e18) > 0 && number.SafeSub(number.SafeMul(number.Number_2, old_virtual_price),
-				U_1e18).Cmp(xcp_profit) > 0 {
+			if old_virtual_price.Cmp(U_1e18) > 0 && number.SafeSub(number.SafeMul(number.Number_2, old_virtual_price), U_1e18).Cmp(xcp_profit) > 0 {
 				for k := 0; k < NumTokens-1; k += 1 {
 					t.Extra.PriceScale[k].Set(&p_new[k])
 				}

@@ -1,7 +1,6 @@
-package tricryptong
+package twocryptong
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/i256"
@@ -12,47 +11,30 @@ import (
 
 // from contracts/main/CurveCryptoMathOptimized3.vy
 
-// only sort slice of 3 elements (update the input array directly)
+// only sort slice of 2 elements (update the input array directly)
 func sort(x []uint256.Int) {
 	if x[0].Cmp(&x[1]) < 0 {
 		tmp := number.Set(&x[0])
 		x[0].Set(&x[1])
 		x[1].Set(tmp)
 	}
-	if x[0].Cmp(&x[2]) < 0 {
-		tmp := number.Set(&x[0])
-		x[0].Set(&x[2])
-		x[2].Set(tmp)
-	}
-	if x[1].Cmp(&x[2]) < 0 {
-		tmp := number.Set(&x[1])
-		x[1].Set(&x[2])
-		x[2].Set(tmp)
-	}
 }
 
+// calculates a geometric mean for two numbers.
 func geometric_mean(_x []uint256.Int) *uint256.Int {
 	var result uint256.Int
 	_geometric_mean(_x, &result)
 	return &result
 }
 
-// calculates a geometric mean for three numbers.
+// calculates a geometric mean for two numbers into provided result.
 func _geometric_mean(_x []uint256.Int, result *uint256.Int) {
-	prod := number.Div(
-		number.SafeMul(number.Div(number.SafeMul(&_x[0], &_x[1]), U_1e18), &_x[2]),
-		U_1e18,
-	)
-
-	if prod.IsZero() {
-		result.Clear()
-		return
-	}
-
-	_cbrt(prod, result)
+	result.Sqrt(result.Mul(&_x[0], &_x[1]))
 }
 
-func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0_prev *uint256.Int) (*uint256.Int, error) {
+// https://github.com/curvefi/twocrypto-ng/blob/d21b270/contracts/main/CurveCryptoMathOptimized2.vy#L376
+func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0_prev *uint256.Int) (*uint256.Int,
+	error) {
 	/*
 		@notice Finding the invariant via newtons method using good initial guesses.
 		@dev ANN is higher by the factor A_MULTIPLIER
@@ -64,102 +46,67 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 						to zero (no apriori)
 	*/
 
+	if ANN.Cmp(MinA) < 0 || ANN.Cmp(MaxA) > 0 {
+		return nil, ErrUnsafeA
+	}
+
+	if gamma.Cmp(MinGamma) < 0 || gamma.Cmp(MaxGamma) > 0 {
+		return nil, ErrUnsafeGamma
+	}
+
 	var x [NumTokens]uint256.Int
 	for i := range x_unsorted {
 		x[i].Set(&x_unsorted[i])
 	}
 	sort(x[:])
 
-	// assert x[0] < max_value(uint256) / 10**18 * N_COINS**N_COINS  # dev: out of limits
-	// assert x[0] > 0  # dev: empty pool
-	if x[0].IsZero() || x[0].Cmp(MaxX) >= 0 {
+	// assert x[0] > 10**9 - 1 and x[0] < 10**15 * 10**18 + 1  # dev: unsafe values x[0]
+	if x[0].Cmp(MinX0) < 0 || x[0].Cmp(MaxX1) > 0 {
 		return nil, ErrUnsafeX0
 	}
+	// assert unsafe_div(x[1] * 10**18, x[0]) > 10**14 - 1  # dev: unsafe values x[i] (input)
+	if number.Div(number.Mul(&x[1], U_1e18), &x[0]).Cmp(U_1e14) < 0 {
+		return nil, ErrUnsafeXi
+	}
 
-	// S: uint256 = unsafe_add(unsafe_add(x[0], x[1]), x[2])
+	// S: uint256 = unsafe_add(x[0], x[1])
 	// D: uint256 = 0
-	S := number.Add(number.Add(&x[0], &x[1]), &x[2])
-	D := uint256.NewInt(0)
+	S := number.Add(&x[0], &x[1])
+	D := new(uint256.Int)
 
 	if K0_prev.IsZero() {
 		// # Geometric mean of 3 numbers cannot be larger than the largest number
 		// # so the following is safe to do:
 		D = number.Mul(NumTokensU256, geometric_mean(x[:]))
 	} else {
-		if S.Cmp(U_1e36) > 0 {
-			_cbrt(
-				number.Mul(
-					number.Div(
-						number.Mul(number.Div(number.Mul(&x[0], &x[1]), U_1e36), &x[2]),
-						K0_prev,
-					),
-					U_27e12),
-				D)
-		} else if S.Cmp(U_1e24) > 0 {
-			_cbrt(
-				number.Mul(
-					number.Div(
-						number.Mul(number.Div(number.Mul(&x[0], &x[1]), U_1e24), &x[2]),
-						K0_prev,
-					),
-					U_27e6),
-				D)
-		} else {
-			_cbrt(
-				number.Mul(
-					number.Div(
-						number.Mul(number.Div(number.Mul(&x[0], &x[1]), U_1e18), &x[2]),
-						K0_prev,
-					),
-					U_27,
-				),
-				D)
+		// D = isqrt(unsafe_mul(unsafe_div(unsafe_mul(unsafe_mul(4, x[0]), x[1]), K0_prev), 10**18))
+		// if S < D:
+		//     D = S
+		D.Sqrt(number.Mul(number.Div(number.Mul(number.Mul(number.Number_4, &x[0]), &x[1]), K0_prev), U_1e18))
+		if S.Cmp(D) < 0 {
+			D.Set(S)
 		}
-		// # D not zero here if K0_prev > 0, and we checked if x[0] is gt 0.
 	}
 
+	var __g1k0 = number.Add(gamma, U_1e18)
 	var D_prev, K0, diff uint256.Int
 	for i := 0; i < 255; i += 1 {
+		if D.Sign() <= 0 {
+			return nil, ErrUnsafeD
+		}
 		D_prev.Set(D)
 
-		// # K0 = 10**18 * x[0] * N_COINS / D * x[1] * N_COINS / D * x[2] * N_COINS / D
-		K0.Div(
-			number.Mul(
-				number.Mul(
-					number.Div(
-						number.Mul(
-							number.Mul(
-								number.Div(
-									number.Mul(
-										number.Mul(U_1e18, &x[0]), NumTokensU256,
-									),
-									D,
-								),
-								&x[1],
-							),
-							NumTokensU256,
-						),
-						D,
-					),
-					&x[2],
-				),
-				NumTokensU256,
-			),
-			D,
-		)
-		// # <-------- We can convert the entire expression using unsafe math.
-		// #   since x_i is not too far from D, so overflow is not expected. Also
-		// #      D > 0, since we proved that already. unsafe_div is safe. K0 > 0
-		// #        since we can safely assume that D < 10**18 * x[0]. K0 is also
-		// #                            in the range of 10**18 (it's a property).
+		// # collapsed for 2 coins
+		// K0: uint256 = unsafe_div(unsafe_div((10**18 * N_COINS**2) * x[0], D) * x[1], D)
+		K0.Div(number.Mul(number.Div(
+			number.Mul(number.Mul(U_1e18, number.Mul(NumTokensU256, NumTokensU256)), &x[0]), D), &x[1]), D)
 
-		// _g1k0 = unsafe_add(gamma, 10**18)  # <--------- safe to do unsafe_add.
 		// if _g1k0 > K0:  #       The following operations can safely be unsafe.
 		// 		_g1k0 = unsafe_add(unsafe_sub(_g1k0, K0), 1)
 		// else:
 		// 		_g1k0 = unsafe_add(unsafe_sub(K0, _g1k0), 1)
 
-		var _g1k0 = number.Add(gamma, U_1e18)
+		var _g1k0 = new(uint256.Int).Set(__g1k0)
 		if _g1k0.Cmp(&K0) > 0 {
 			_g1k0.AddUint64(number.Sub(_g1k0, &K0), 1)
 		} else {
@@ -167,7 +114,7 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 		}
 
 		// # D / (A * N**N) * _g1k0**2 / gamma**2
-		// # mul1 = 10**18 * D / gamma * _g1k0 / gamma * _g1k0 * A_MULTIPLIER / ANN
+		// mul1: uint256 = unsafe_div(unsafe_div(unsafe_div(10**18 * D, gamma) * _g1k0, gamma) * _g1k0 * A_MULTIPLIER, ANN)
 		var mul1 = number.Div(
 			number.Mul(
 				number.Mul(
@@ -183,57 +130,45 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 			),
 			ANN,
 		)
-		// # <------ Since D > 0, gamma is small, _g1k0 is small, the rest are
-		// #        non-zero and small constants, and D has a cap in this method,
-		// #                    we can safely convert everything to unsafe maths.
 
 		// # 2*N*K0 / _g1k0
-		// # mul2 = (2 * 10**18) * N_COINS * K0 / _g1k0
+		// mul2: uint256 = unsafe_div(((2 * 10**18) * N_COINS) * K0, _g1k0)
 		var mul2 = number.Div(
 			number.Mul(number.SafeMul(U_2e18, NumTokensU256), &K0), _g1k0,
 		)
-		// # <--------------- K0 is approximately around D, which has a cap of
-		// #      10**15 * 10**18 + 1, since we get that in get_y which is called
-		// #    with newton_D. _g1k0 > 0, so the entire expression can be unsafe.
 
-		// # neg_fprime: uint256 = (S + S * mul2 / 10**18) + mul1 * N_COINS / K0 - mul2 * D / 10**18
+		// # calculate neg_fprime. here K0 > 0 is being validated (safediv).
+		// neg_fprime: uint256 = (S + unsafe_div(S * mul2, 10**18)) + mul1 * N_COINS / K0 - unsafe_div(mul2 * D, 10**18)
 		var neg_fprime = number.Sub(
 			number.Add(
 				number.Add(S, number.Div(number.Mul(S, mul2), U_1e18)),
-				number.Div(number.Mul(mul1, NumTokensU256), &K0),
+				number.SafeDiv(number.Mul(mul1, NumTokensU256), &K0),
 			),
 			number.Div(number.Mul(mul2, D), U_1e18),
 		)
-		// # <--- mul1 is a big number but not huge: safe to unsafely multiply
-		// # with N_coins. neg_fprime > 0 if this expression executes.
-		// # mul2 is in the range of 10**18, since K0 is in that range, S * mul2
-		// # is safe. The first three sums can be done using unsafe math safely
-		// # and since the final expression will be small since mul2 is small, we
-		// # can safely do the entire expression unsafely.
 
-		// # D -= f / fprime
-		// # D * (neg_fprime + S) / neg_fprime
-		var D_plus = number.Div(number.SafeMul(D, number.Add(neg_fprime, S)), neg_fprime)
+		// # D -= f / fprime; neg_fprime safediv being validated
+		// D_plus: uint256 = D * (neg_fprime + S) / neg_fprime
+		var D_plus = number.SafeDiv(number.SafeMul(D, number.Add(neg_fprime, S)), neg_fprime)
 
-		// # D*D / neg_fprime
+		// D_minus: uint256 = unsafe_div(D * D,  neg_fprime)
 		var D_minus = number.Div(number.SafeMul(D, D), neg_fprime)
 
-		// # Since we know K0 > 0, and neg_fprime > 0, several unsafe operations
-		// # are possible in the following. Also, (10**18 - K0) is safe to mul.
-		// # So the only expressions we keep safe are (D_minus + ...) and (D * ...)
 		if U_1e18.Cmp(&K0) > 0 {
-			// # D_minus += D * (mul1 / neg_fprime) / 10**18 * (10**18 - K0) / K0
+			// D_minus += unsafe_div(unsafe_div(D * unsafe_div(mul1, neg_fprime), 10**18) * unsafe_sub(10**18, K0), K0)
 			D_minus = number.SafeAdd(D_minus,
 				number.Div(
-					number.Mul(number.Div(number.SafeMul(D, number.Div(mul1, neg_fprime)), U_1e18), number.Sub(U_1e18, &K0)),
+					number.Mul(number.Div(number.SafeMul(D, number.Div(mul1, neg_fprime)), U_1e18),
+						number.Sub(U_1e18, &K0)),
 					&K0,
 				),
 			)
 		} else {
-			// # D_minus -= D * (mul1 / neg_fprime) / 10**18 * (K0 - 10**18) / K0
+			// D_minus -= unsafe_div(unsafe_div(D * unsafe_div(mul1, neg_fprime), 10**18) * unsafe_sub(K0, 10**18), K0)
 			D_minus = number.SafeSub(D_minus,
 				number.Div(
-					number.Mul(number.Div(number.SafeMul(D, number.Div(mul1, neg_fprime)), U_1e18), number.Sub(&K0, U_1e18)),
+					number.Mul(number.Div(number.SafeMul(D, number.Div(mul1, neg_fprime)), U_1e18),
+						number.Sub(&K0, U_1e18)),
 					&K0,
 				),
 			)
@@ -260,7 +195,8 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 			// # Test that we are safe with the next get_y
 			for i := range x {
 				var frac = number.Div(number.Mul(&x[i], U_1e18), D)
-				if frac.Cmp(MinFrac) < 0 || frac.Cmp(MaxFrac) > 0 {
+				if frac.Cmp(number.Div(MinFrac, NumTokensU256)) < 0 || frac.Cmp(number.Div(MaxFrac,
+					NumTokensU256)) > 0 {
 					return nil, ErrUnsafeXi
 				}
 			}
@@ -270,12 +206,14 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 	return nil, ErrDDoesNotConverge
 }
 
+// https://github.com/curvefi/twocrypto-ng/blob/d21b270/contracts/main/CurveCryptoMathOptimized2.vy#L229
 func get_y(
 	_ann, _gamma *uint256.Int, x []uint256.Int, _D *uint256.Int, i int,
-	//output
+	// output
 	y, K0 *uint256.Int,
 ) error {
 	if _ann.Cmp(MinA) < 0 || _ann.Cmp(MaxA) > 0 {
+		zz["4"] = true
 		return ErrUnsafeA
 	}
 
@@ -284,31 +222,20 @@ func get_y(
 	}
 
 	if _D.Cmp(MinD) < 0 || _D.Cmp(MaxD) > 0 {
-		return ErrUnsafeGamma
+		zz["6"] = true
+		return ErrUnsafeD
 	}
 
-	for k := 0; k < NumTokens; k++ {
-		if k == i {
-			continue
-		}
-		frac := number.Div(number.Mul(&x[k], U_1e18), _D)
-		if frac.Cmp(MinFrac) < 0 || frac.Cmp(MaxFrac) > 0 {
-			return fmt.Errorf("unsafe values x[%d] %s", i, frac.Dec())
-		}
+	// lim_mul: uint256 = 100 * 10**18  # 100.0
+	// if _gamma > MAX_GAMMA_SMALL:
+	//     lim_mul = unsafe_div(unsafe_mul(lim_mul, MAX_GAMMA_SMALL), _gamma)  # smaller than 100.0
+	// lim_mul_signed: int256 = convert(lim_mul, int256)
+	lim_mul := U_1e20
+	if _gamma.Cmp(MaxGammaSmall) > 0 {
+		zz["7"] = true
+		lim_mul = number.Div(number.Mul(lim_mul, MaxGammaSmall), _gamma)
 	}
-
-	j := 0
-	k := 0
-	if i == 0 {
-		j = 1
-		k = 2
-	} else if i == 1 {
-		j = 0
-		k = 2
-	} else if i == 2 {
-		j = 0
-		k = 1
-	}
+	lim_mul_signed := i256.SafeToInt256(lim_mul)
 
 	// ANN: int256 = convert(_ANN, int256)
 	// gamma: int256 = convert(_gamma, int256)
@@ -316,116 +243,121 @@ func get_y(
 	// x_j: int256 = convert(x[j], int256)
 	// x_k: int256 = convert(x[k], int256)
 	// gamma2: int256 = unsafe_mul(gamma, gamma)
-
 	ann := i256.SafeToInt256(_ann)
 	gamma := i256.SafeToInt256(_gamma)
 	D := i256.SafeToInt256(_D)
-	x_j := i256.SafeToInt256(&x[j])
-	x_k := i256.SafeToInt256(&x[k])
+	x_j := i256.SafeToInt256(&x[1-i])
 	gamma2 := i256.Mul(gamma, gamma)
-	AMultiplier_ := i256.SafeToInt256(AMultiplier)
 
-	// a: int256 = 10**36 / 27
-	a := i256.Set(TenPow36Div27)
+	// # savediv by x_j done here:
+	// y: int256 = D**2 / (x_j * N_COINS**2)
 
-	// # 10**36/9 + 2*10**18*gamma/27 - D**2/x_j*gamma**2*ANN/27**2/convert(A_MULTIPLIER, int256)/x_k
-	b := i256.Sub(
-		i256.Add(TenPow36Div9, i256.Div(i256.Mul(I_2e18, gamma), I_27)),
-		i256.Div(
-			i256.Div(
-				i256.Div(
-					i256.Mul(
-						i256.Mul(
-							i256.Div(i256.Mul(D, D), x_j),
-							gamma2,
-						),
-						ann,
-					),
-					I_27x27,
-				),
-				AMultiplier_,
-			),
-			x_k,
-		),
+	// # K0_i: int256 = (10**18 * N_COINS) * x_j / D
+	// K0_i: int256 = unsafe_div(10**18 * N_COINS * x_j, D)
+	// assert (K0_i >= unsafe_div(10**36, lim_mul_signed)) and (K0_i <= lim_mul_signed)  # dev: unsafe values x[i]
+	K0_i := i256.SafeToInt256(number.Div(number.Mul(number.Mul(U_1e18, NumTokensU256), &x[1-i]), _D))
+	if K0_i.Cmp(i256.Div(I_1e36, lim_mul_signed)) < 0 || K0_i.Cmp(lim_mul_signed) > 0 {
+		zz["8"] = true
+		return ErrUnsafeXi
+	}
+
+	// ann_gamma2: int256 = ANN * gamma2
+	ann_gamma2 := i256.Mul(ann, gamma2)
+
+	// # a = 10**36 / N_COINS**2
+	a := i256.Set(I_1e32)
+
+	// # b = ANN*D*gamma2/4/10000/x_j/10**4 - 10**32*3 - 2*gamma*10**14
+	b := i256.Sub(i256.Sub(
+		i256.Div(i256.Div(i256.Mul(D, ann_gamma2), I_4e8), x_j),
+		I_3e32),
+		i256.Mul(gamma, I_2e14),
 	)
 
-	// # 10**36/9 + gamma*(gamma + 4*10**18)/27 + gamma**2*(x_j+x_k-D)/D*ANN/27/convert(A_MULTIPLIER, int256)
-	c := i256.Add(
-		i256.Add(
-			TenPow36Div9,
-			i256.Div(i256.Mul(gamma, i256.Add(gamma, I_4e18)), I_27),
-		),
-		i256.Div(
-			i256.Div(
-				i256.Mul(
-					i256.Div(
-						i256.Mul(gamma2,
-							i256.Sub(i256.Add(x_j, x_k), D)),
-						D,
-					),
-					ann,
-				),
-				I_27,
-			),
-			AMultiplier_,
-		),
+	// # c = 10**32*3 + 4*gamma*10**14 + gamma2/10**4 + 4*ANN*gamma2*x_j/D/10000/4/10**4 - 4*ANN*gamma2/10000/4/10**4
+	c := i256.Sub(i256.Add(i256.Add(i256.Add(
+		I_3e32,
+		i256.Mul(gamma, I_4e14)),
+		i256.Div(gamma2, I_1e4)),
+		i256.Div(i256.Mul(i256.Div(i256.Mul(i256.Number_4, ann_gamma2), I_4e8), x_j), D)),
+		i256.Div(i256.Mul(i256.Number_4, ann_gamma2), I_4e8),
 	)
 
-	// d: int256 = i256.Div(unsafe_add(10**18, gamma)**2, 27)
+	// # d = -(10**18+gamma)**2 / 10**4
+	// d: int256 = -unsafe_div(unsafe_add(10**18, gamma) ** 2, 10**4)
 	tmp := i256.Add(I_1e18, gamma)
-	d := i256.Div(i256.Mul(tmp, tmp), I_27)
+	d := i256.Neg(i256.Div(i256.Mul(tmp, tmp), I_1e4))
 
-	// d0: int256 = abs(unsafe_mul(3, a) * c / b - b)  # <------------ a is smol.
-	d0 := i256.Abs(
-		i256.Sub(
-			i256.Div(
-				i256.Mul(
-					i256.Mul(i256.Number_3, a),
-					c),
-				b),
-			b))
+	// # delta0: int256 = 3*a*c/b - b
+	delta0 := i256.Sub(i256.Div(i256.Mul(i256.Mul(i256.Number_3, a), c), b), b)
+
+	// # delta1: int256 = 9*a*c/b - 2*b - 27*a**2/b*d/b
+	delta1 := i256.Sub(i256.Sub(i256.Div(i256.Mul(i256.Mul(I_9, a), c), b), i256.Mul(i256.Number_2, b)),
+		i256.Div(i256.Mul(i256.Div(i256.Mul(I_27, i256.Mul(a, a)), b), d), b))
 
 	var divider int256.Int
 	divider.SetUint64(1)
-	if d0.Cmp(I_1e48) > 0 {
+	// threshold: int256 = min(min(abs(delta0), abs(delta1)), a)
+	threshold := i256.Abs(delta0)
+	if threshold.Cmp(i256.Abs(delta1)) > 0 {
+		threshold = i256.Abs(delta1)
+	}
+	if threshold.Cmp(a) > 0 {
+		threshold = a
+	}
+	if threshold.Cmp(I_1e48) > 0 {
+		zz["9"] = true
 		divider.Set(I_1e30)
-	} else if d0.Cmp(I_1e44) > 0 {
+	} else if threshold.Cmp(I_1e46) > 0 {
+		zz["a"] = true
+		divider.Set(I_1e28)
+	} else if threshold.Cmp(I_1e44) > 0 {
+		zz["b"] = true
 		divider.Set(I_1e26)
-	} else if d0.Cmp(I_1e40) > 0 {
+	} else if threshold.Cmp(I_1e42) > 0 {
+		zz["c"] = true
+		divider.Set(I_1e24)
+	} else if threshold.Cmp(I_1e40) > 0 {
+		zz["d"] = true
 		divider.Set(I_1e22)
-	} else if d0.Cmp(I_1e36) > 0 {
+	} else if threshold.Cmp(I_1e38) > 0 {
+		zz["e"] = true
+		divider.Set(I_1e20)
+	} else if threshold.Cmp(I_1e36) > 0 {
+		zz["f"] = true
 		divider.Set(I_1e18)
-	} else if d0.Cmp(I_1e32) > 0 {
+	} else if threshold.Cmp(I_1e34) > 0 {
+		zz["g"] = true
+		divider.Set(I_1e16)
+	} else if threshold.Cmp(I_1e32) > 0 {
+		zz["h"] = true
 		divider.Set(I_1e14)
-	} else if d0.Cmp(I_1e28) > 0 {
+	} else if threshold.Cmp(I_1e30) > 0 {
+		divider.Set(I_1e12)
+	} else if threshold.Cmp(I_1e28) > 0 {
+		zz["i"] = true
 		divider.Set(I_1e10)
-	} else if d0.Cmp(I_1e24) > 0 {
+	} else if threshold.Cmp(I_1e26) > 0 {
+		zz["j"] = true
+		divider.Set(I_1e8)
+	} else if threshold.Cmp(I_1e24) > 0 {
+		zz["k"] = true
 		divider.Set(I_1e6)
-	} else if d0.Cmp(I_1e20) > 0 {
+	} else if threshold.Cmp(I_1e20) > 0 {
+		zz["l"] = true
 		divider.Set(I_1e2)
 	}
+	a = i256.Div(a, &divider)
+	b = i256.Div(b, &divider)
+	c = i256.Div(c, &divider)
+	d = i256.Div(d, &divider)
 
-	var additional_prec *int256.Int
-	if i256.Abs(a).Cmp(i256.Abs(b)) > 0 {
-		additional_prec = i256.Abs(i256.Div(a, b))
-		a = i256.Div(i256.Mul(a, additional_prec), &divider)
-		b = i256.Div(i256.Mul(b, additional_prec), &divider)
-		c = i256.Div(i256.Mul(c, additional_prec), &divider)
-		d = i256.Div(i256.Mul(d, additional_prec), &divider)
-	} else {
-		additional_prec = i256.Abs(i256.Div(b, a))
-		a = i256.Div(i256.Div(a, additional_prec), &divider)
-		b = i256.Div(i256.Div(b, additional_prec), &divider)
-		c = i256.Div(i256.Div(c, additional_prec), &divider)
-		d = i256.Div(i256.Div(d, additional_prec), &divider)
-	}
-
-	// # 3*a*c/b - b
+	// # delta0 = 3*a*c/b - b
 	_3ac := i256.Mul(i256.Mul(i256.Number_3, a), c)
-	delta0 := i256.Sub(i256.Div(_3ac, b), b)
+	delta0 = i256.Sub(i256.Div(_3ac, b), b)
 
-	// # 9*a*c/b - 2*b - 27*a**2/b*d/b
-	delta1 := i256.Sub(
+	// # delta1 = 9*a*c/b - 2*b - 27*a**2/b*d/b
+	delta1 = i256.Sub(
 		i256.Sub(
 			i256.Div(i256.Mul(i256.Number_3, _3ac), b),
 			i256.Mul(i256.Number_2, b),
@@ -448,15 +380,17 @@ func get_y(
 			delta0),
 	)
 
-	sqrt_val := int256.NewInt(0)
+	sqrt_val := new(int256.Int)
 	if sqrt_arg.Sign() > 0 {
 		sqrt_val.Sqrt(sqrt_arg)
 	} else {
-		return newton_y(_ann, _gamma, x, _D, i, y)
+		zz["m"] = true
+		return _newton_y(_ann, _gamma, x, _D, i, lim_mul, y)
 	}
 
 	var b_cbrt *int256.Int
 	if b.Sign() >= 0 {
+		zz["n"] = true
 		b_cbrt = i256.SafeToInt256(cbrt(i256.SafeConvertToUInt256(b)))
 	} else {
 		b_cbrt = i256.Neg(i256.SafeToInt256(cbrt(i256.SafeConvertToUInt256(i256.Neg(b)))))
@@ -472,46 +406,38 @@ func get_y(
 	} else {
 		second_cbrt = i256.Neg(i256.SafeToInt256(
 			cbrt(number.Div(
-				i256.SafeConvertToUInt256(new(int256.Int).Neg(i256.Sub(delta1, sqrt_val))),
+				i256.SafeConvertToUInt256(i256.Sub(sqrt_val, delta1)),
 				number.Number_2))),
 		)
 	}
 
-	// # b_cbrt*b_cbrt/10**18*second_cbrt/10**18
+	// # C1: int256 = b_cbrt**2/10**18*second_cbrt/10**18
 	C1 := i256.Div(
 		i256.Mul(i256.Div(i256.Mul(b_cbrt, b_cbrt), I_1e18), second_cbrt),
 		I_1e18,
 	)
 
-	// # (b + b*delta0/C1 - C1)/3
-	root_K0 := i256.Div(
-		i256.Sub(
-			i256.Add(b,
-				i256.Div(i256.Mul(b, delta0), C1)),
-			C1),
-		i256.Number_3)
-
-	// # D*D/27/x_k*D/x_j*root_K0/a
+	// # root: int256 = (10**18*C1 - 10**18*b - 10**18*b*delta0/C1)/(3*a), keep 2 safe ops here.
 	root := i256.Div(
-		i256.Mul(
-			i256.Div(
-				i256.Mul(
-					i256.Div(
-						i256.Div(
-							i256.Mul(D, D),
-							I_27),
-						x_k),
-					D),
-				x_j),
-			root_K0),
-		a,
+		i256.Sub(i256.Sub(
+			i256.Mul(I_1e18, C1),
+			i256.Mul(I_1e18, b)),
+			i256.Mul(i256.Div(i256.Mul(I_1e18, b), C1), delta0)),
+		i256.Mul(i256.Number_3, a),
 	)
 
-	y.Set(i256.SafeConvertToUInt256(root))
-	K0.Set(i256.SafeConvertToUInt256(i256.Div(i256.Mul(I_1e18, root_K0), a)))
+	// # y_out: uint256[2] =  [
+	// #     convert(D**2/x_j*root/4/10**18, uint256),   # <--- y
+	// #     convert(root, uint256)  # <----------------------- K0Prev
+	// # ]
+	y.Set(i256.SafeConvertToUInt256(i256.Div(i256.Mul(i256.Div(i256.Mul(D, D), x_j), root), I_4e18)))
+	K0.Set(i256.SafeConvertToUInt256(root))
 
 	frac := number.Div(number.Mul(y, U_1e18), _D)
-	if frac.Cmp(MinFrac) < 0 || frac.Cmp(MaxFrac) > 0 {
+	// assert (frac >= unsafe_div(10**36 / N_COINS, lim_mul)) and (frac <= unsafe_div(lim_mul, N_COINS))  # dev: unsafe value for y
+	if frac.Cmp(number.Div(number.Div(U_1e36, NumTokensU256), lim_mul)) < 0 || frac.Cmp(number.Div(lim_mul,
+		NumTokensU256)) > 0 {
+		zz["o"] = true
 		return ErrUnsafeY
 	}
 
@@ -527,8 +453,10 @@ func cbrt(x *uint256.Int) *uint256.Int {
 func _cbrt(x *uint256.Int, a *uint256.Int) {
 	var xx *uint256.Int
 	if x.Cmp(CbrtConst1) >= 0 {
+		zz["p"] = true
 		xx = x
 	} else if x.Cmp(CbrtConst2) >= 0 {
+		zz["q"] = true
 		xx = number.Mul(x, U_1e18)
 	} else {
 		xx = number.Mul(x, U_1e36)
@@ -553,10 +481,10 @@ func _cbrt(x *uint256.Int, a *uint256.Int) {
 	remainder := new(uint256.Int).Mod(log2x, number.Number_3)
 	a.Div(
 		number.Mul(
-			pow_mod256(number.Number_2, number.Div(log2x, number.Number_3)), //# <- pow
-			pow_mod256(uint256.NewInt(1260), remainder),
+			pow_mod256(number.Number_2, number.Div(log2x, number.Number_3)), // # <- pow
+			pow_mod256(U_1260, remainder),
 		),
-		pow_mod256(uint256.NewInt(1000), remainder),
+		pow_mod256(U_1e3, remainder),
 	)
 
 	// # Because we chose good initial values for cube roots, 7 newton raphson iterations
@@ -573,8 +501,10 @@ func _cbrt(x *uint256.Int, a *uint256.Int) {
 	a.Div(number.Add(number.Mul(number.Number_2, a), number.Div(xx, number.Mul(a, a))), number.Number_3)
 
 	if x.Cmp(CbrtConst1) >= 0 {
+		zz["r"] = true
 		a.Mul(a, U_1e12)
 	} else if x.Cmp(CbrtConst2) >= 0 {
+		zz["s"] = true
 		a.Mul(a, U_1e6)
 	}
 }
@@ -646,44 +576,76 @@ func _snekmate_log_2(x *uint256.Int, roundup bool, result *uint256.Int) {
 	}
 }
 
-// Calculate x[i] given A, gamma, xp and D using newton's method.
+// Calculate x[i] given A, gamma, xp and D using newton's method with safety checks.
+// https://github.com/curvefi/twocrypto-ng/blob/d21b270/contracts/main/CurveCryptoMathOptimized2.vy#L210
 func newton_y(
 	ann, gamma *uint256.Int, x []uint256.Int, D *uint256.Int, i int,
-	//output
+	// output
 	y *uint256.Int,
 ) error {
-	y.Div(D, NumTokensU256)
-	var K0i, Si uint256.Int
-	K0i.Set(U_1e18)
-	Si.Clear()
-
-	var xSorted [NumTokens]uint256.Int
-	for j := 0; j < NumTokens; j += 1 {
-		xSorted[j].Set(&x[j])
+	// assert ANN > MIN_A - 1 and ANN < MAX_A + 1  # dev: unsafe values A
+	// assert gamma > MIN_GAMMA - 1 and gamma < MAX_GAMMA + 1  # dev: unsafe values gamma
+	// assert D > 10**17 - 1 and D < 10**15 * 10**18 + 1 # dev: unsafe values D
+	// lim_mul: uint256 = 100 * 10**18  # 100.0
+	// if gamma > MAX_GAMMA_SMALL:
+	//     lim_mul = unsafe_div(unsafe_mul(lim_mul, MAX_GAMMA_SMALL), gamma)  # smaller than 100.0
+	if ann.Cmp(MinA) < 0 || ann.Cmp(MaxA) > 0 {
+		return ErrUnsafeA
 	}
-	xSorted[i].Clear()
-	sort(xSorted[:])
 
-	// convergence_limit: uint256 = max(max(x_sorted[0] / 10**14, D / 10**14), 100)
-	var convergenceLimit = number.Div(&xSorted[0], U_1e14)
+	if gamma.Cmp(MinGamma) < 0 || gamma.Cmp(MaxGamma) > 0 {
+		return ErrUnsafeGamma
+	}
+
+	if D.Cmp(MinD) < 0 || D.Cmp(MaxD) > 0 {
+		return ErrUnsafeD
+	}
+
+	lim_mul := U_1e20
+	if gamma.Cmp(MaxGammaSmall) > 0 {
+		lim_mul = number.Div(number.Mul(lim_mul, MaxGammaSmall), gamma)
+	}
+
+	// y: uint256 = self._newton_y(ANN, gamma, x, D, i, lim_mul)
+	if err := _newton_y(ann, gamma, x, D, i, lim_mul, y); err != nil {
+		return err
+	}
+
+	// frac: uint256 = y * 10**18 / D
+	frac := number.Mul(number.Mul(y, U_1e18), U_1e18)
+	frac.Div(frac, D)
+	// assert (frac >= unsafe_div(10**36 / N_COINS, lim_mul)) and (frac <= unsafe_div(lim_mul, N_COINS))  # dev: unsafe value for y
+	if frac.Cmp(lim_mul) < 0 || frac.Cmp(U_1e20) > 0 {
+		return ErrUnsafeY
+	}
+
+	return nil
+}
+
+// Calculate x[i] given A, gamma, xp and D using newton's method.
+// https://github.com/curvefi/twocrypto-ng/blob/d21b270/contracts/main/CurveCryptoMathOptimized2.vy#L143
+func _newton_y(
+	ann, gamma *uint256.Int, x []uint256.Int, D *uint256.Int, i int, lim_mul *uint256.Int,
+	// output
+	y *uint256.Int,
+) error {
+	x_j := &x[1-i]
+	y.Div(number.Mul(D, D), number.Mul(x_j, number.Mul(NumTokensU256, NumTokensU256)))
+	K0i := number.Div(number.Mul(number.Mul(U_1e18, NumTokensU256), x_j), D)
+
+	// assert (K0_i >= unsafe_div(10**36, lim_mul)) and (K0_i <= lim_mul)  # dev: unsafe values x[i]
+	if K0i.Cmp(number.Div(U_1e36, lim_mul)) < 0 || K0i.Cmp(lim_mul) > 0 {
+		return ErrUnsafeXi
+	}
+
+	// convergence_limit: uint256 = max(max(x_j / 10**14, D / 10**14), 100)
+	var convergenceLimit = number.Div(x_j, U_1e14)
 	var temp = number.Div(D, U_1e14)
 	if temp.Cmp(convergenceLimit) > 0 {
 		convergenceLimit = temp
 	}
-	if uint256.NewInt(100).Cmp(convergenceLimit) > 0 {
+	if convergenceLimit.CmpUint64(100) < 0 {
 		convergenceLimit.SetUint64(100)
-	}
-
-	for j := 2; j < NumTokens+1; j += 1 {
-		var _x = &xSorted[NumTokens-j]
-		if _x.IsZero() {
-			return ErrZero
-		}
-		y.Div(number.SafeMul(y, D), number.SafeMul(_x, NumTokensU256))
-		Si.Add(&Si, _x)
-	}
-	for j := 0; j < NumTokens-1; j += 1 {
-		K0i.Div(number.SafeMul(number.SafeMul(&K0i, &xSorted[j]), NumTokensU256), D)
 	}
 
 	var yPrev, K0, S, _g1k0, mul1, yfprime uint256.Int
@@ -691,8 +653,8 @@ func newton_y(
 
 	for j := 0; j < 255; j += 1 {
 		yPrev.Set(y)
-		K0.Div(number.SafeMul(number.SafeMul(&K0i, y), NumTokensU256), D)
-		S.Add(&Si, y)
+		K0.Div(number.SafeMul(number.SafeMul(K0i, y), NumTokensU256), D)
+		S.Add(x_j, y)
 
 		_g1k0.Add(gamma, U_1e18)
 		if _g1k0.Cmp(&K0) > 0 {
@@ -763,10 +725,6 @@ func newton_y(
 			t = convergenceLimit
 		}
 		if diff.Cmp(t) < 0 {
-			var frac = number.Div(number.SafeMul(y, U_1e18), D)
-			if frac.Cmp(MinFrac) < 0 || frac.Cmp(MaxFrac) > 0 {
-				return ErrUnsafeY
-			}
 			return nil
 		}
 	}
@@ -775,20 +733,18 @@ func newton_y(
 
 func reductionCoefficient(x []uint256.Int, feeGamma *uint256.Int, K *uint256.Int) error {
 	var S uint256.Int
-	number.SafeAddZ(number.SafeAdd(&x[0], &x[1]), &x[2], &S)
+	number.SafeAddZ(&x[0], &x[1], &S)
 	if S.IsZero() {
 		return ErrZero
 	}
 
-	K.Div(number.SafeMul(number.SafeMul(U_1e18, NumTokensU256), &x[0]), &S)
-	K.Div(number.SafeMul(number.SafeMul(K, NumTokensU256), &x[1]), &S)
-	K.Div(number.SafeMul(number.SafeMul(K, NumTokensU256), &x[2]), &S)
+	K.Mul(U_1e18, number.Mul(NumTokensU256, NumTokensU256))
+	K.Div(number.SafeMul(K, &x[0]), &S)
+	K.Div(number.SafeMul(K, &x[1]), &S)
 
-	if !feeGamma.IsZero() {
-		K.Div(
-			number.SafeMul(feeGamma, U_1e18),
-			number.SafeSub(number.SafeAdd(feeGamma, U_1e18), K))
-	}
+	K.Div(
+		number.SafeMul(feeGamma, U_1e18),
+		number.SafeSub(number.SafeAdd(feeGamma, U_1e18), K))
 	return nil
 }
 
@@ -798,6 +754,7 @@ func (t *PoolSimulator) _A_gamma() (*uint256.Int, *uint256.Int) {
 	return &A, &gamma
 }
 
+// https://github.com/curvefi/twocrypto-ng/blob/d21b270/contracts/main/CurveTwocryptoOptimized.vy
 func (t *PoolSimulator) _A_gamma_inplace(A, gamma *uint256.Int) {
 	var t1 = t.Extra.FutureAGammaTime
 	A.Set(t.Extra.FutureA)
@@ -822,7 +779,7 @@ func (t *PoolSimulator) _A_gamma_inplace(A, gamma *uint256.Int) {
 	}
 }
 
-func _snekmate_wad_exp(x *int256.Int) (*uint256.Int, error) {
+func wad_exp(x *int256.Int) (*uint256.Int, error) {
 	/*
 	   @dev Calculates the natural exponential function of a signed integer with
 	        a precision of 1e18.
@@ -914,11 +871,13 @@ func _snekmate_wad_exp(x *int256.Int) (*uint256.Int, error) {
 	// # negative parameter value `r`, we first convert `r` to `bytes32` and
 	// # subsequently to `uint256`. Remember that the EVM default behaviour is
 	// # to use two's complement representation to handle signed integers.
-	tmp := number.Mul(i256.UnsafeToUInt256(r), uint256.MustFromDecimal("3822833074963236453042738258902158003155416615667"))
+	tmp := number.Mul(i256.UnsafeToUInt256(r),
+		uint256.MustFromDecimal("3822833074963236453042738258902158003155416615667"))
 	n := 195 - k.Int64()
 	return new(uint256.Int).Rsh(tmp, uint(n)), nil
 }
 
+// https://github.com/curvefi/twocrypto-ng/blob/d21b270/contracts/main/CurveCryptoMathOptimized2.vy#L465
 func get_p(_xp [NumTokens]uint256.Int, _D, A, gamma *uint256.Int, out []uint256.Int) error {
 	/*
 		@notice Calculates dx/dy.
@@ -938,11 +897,7 @@ func get_p(_xp [NumTokens]uint256.Int, _D, A, gamma *uint256.Int, out []uint256.
 	K0 := number.Div(
 		number.SafeMul(
 			number.Div(
-				number.SafeMul(
-					number.Div(
-						number.SafeMul(U_27, number.SafeMul(&_xp[0], &_xp[1])),
-						_D),
-					&_xp[2]),
+				number.SafeMul(number.Number_4, number.SafeMul(&_xp[0], &_xp[1])),
 				_D),
 			U_1e36),
 		_D,
@@ -986,29 +941,16 @@ func get_p(_xp [NumTokens]uint256.Int, _D, A, gamma *uint256.Int, out []uint256.
 	)
 
 	// # p_xy = x * (GK0 + NNAG2 * y / D * K0 / 10**36) / y * 10**18 / denominator
-	// # p_xz = x * (GK0 + NNAG2 * z / D * K0 / 10**36) / z * 10**18 / denominator
 	// # p is in 10**18 precision.
 	out[0].Div(
 		number.SafeMul(
 			number.Div(
 				number.SafeMul(
 					&_xp[0],
-					number.SafeAdd(GK0, number.Div(number.SafeMul(number.Div(number.SafeMul(NNAG2, &_xp[1]), _D), K0), U_1e36)),
+					number.SafeAdd(GK0,
+						number.Div(number.SafeMul(number.Div(number.SafeMul(NNAG2, &_xp[1]), _D), K0), U_1e36)),
 				),
 				&_xp[1],
-			),
-			U_1e18,
-		),
-		denominator,
-	)
-	out[1].Div(
-		number.SafeMul(
-			number.Div(
-				number.SafeMul(
-					&_xp[0],
-					number.SafeAdd(GK0, number.Div(number.SafeMul(number.Div(number.SafeMul(NNAG2, &_xp[2]), _D), K0), U_1e36)),
-				),
-				&_xp[2],
 			),
 			U_1e18,
 		),
