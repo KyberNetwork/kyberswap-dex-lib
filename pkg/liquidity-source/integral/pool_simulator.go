@@ -126,6 +126,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.Info.Reserves = []*big.Int{si.NewReserve0, si.NewReserve1}
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L275
 func (p *PoolSimulator) swapExactIn(tokenIn, tokenOut string, amountIn *uint256.Int) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
 	if !p.IntegralPair.IsEnabled {
 		return nil, nil, nil, ErrTR05
@@ -145,6 +146,7 @@ func (p *PoolSimulator) swapExactIn(tokenIn, tokenOut string, amountIn *uint256.
 	return amountIn, amountOut, fee, nil
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L520
 func (p *PoolSimulator) checkLimits(token string, amount *uint256.Int) error {
 	if token == p.GetTokens()[0] {
 		if amount.Lt(p.IntegralPair.Token0LimitMin) {
@@ -159,6 +161,7 @@ func (p *PoolSimulator) checkLimits(token string, amount *uint256.Int) error {
 	return nil
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L324
 func (p *PoolSimulator) calculateAmountOut(inverted bool, amountIn *uint256.Int) *uint256.Int {
 	decimalsConverter := getDecimalsConverter(p.IntegralPair.X_Decimals, p.IntegralPair.Y_Decimals, inverted)
 
@@ -167,6 +170,7 @@ func (p *PoolSimulator) calculateAmountOut(inverted bool, amountIn *uint256.Int)
 	return DivUint256(MulUint256(amountIn, price), decimalsConverter)
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L334
 func getDecimalsConverter(xDecimals, yDecimals uint64, inverted bool) (decimalsConverter *uint256.Int) {
 	var exponent uint64
 	if inverted {
@@ -180,6 +184,7 @@ func getDecimalsConverter(xDecimals, yDecimals uint64, inverted bool) (decimalsC
 	return
 }
 
+// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L353
 func (p *PoolSimulator) getPrice(inverted bool) (price *uint256.Int) {
 	spotPrice := p.IntegralPair.SpotPrice
 	averagePrice := p.IntegralPair.AveragePrice
