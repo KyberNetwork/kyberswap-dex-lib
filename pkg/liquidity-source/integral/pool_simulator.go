@@ -132,7 +132,7 @@ func (p *PoolSimulator) swapExactIn(tokenIn, tokenOut string, amountIn *uint256.
 	tokens := p.GetTokens()
 	fee := DivUint256(MulUint256(amountIn, p.IntegralPair.SwapFee), precision)
 
-	inverted := tokens[0] == tokenOut
+	inverted := tokens[1] == tokenIn
 
 	amountOut := p.calculateAmountOut(inverted, SubUint256(amountIn, fee))
 

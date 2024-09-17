@@ -175,6 +175,10 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 		return nil, err
 	}
 
+	extra, _ := json.Marshal(&IntegralPair{
+		RelayerAddress: u.config.RelayerAddress,
+	})
+
 	pools := make([]entity.Pool, 0, poolsLength)
 
 	for _, pair := range pairs {
@@ -197,6 +201,7 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 					Swappable: true,
 				},
 			},
+			Extra: string(extra),
 		}
 		pools = append(pools, newPool)
 	}

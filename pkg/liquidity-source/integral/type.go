@@ -20,6 +20,8 @@ type (
 )
 
 type IntegralPair struct {
+	RelayerAddress string
+
 	IsEnabled bool
 
 	X_Decimals uint64
