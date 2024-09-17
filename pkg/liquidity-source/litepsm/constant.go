@@ -25,8 +25,5 @@ var (
 	WAD        = number.Number_1e18
 
 	// 2^256 - 1 (type(uint256).max)
-	HALTED = new(uint256.Int).Sub(
-		new(uint256.Int).Lsh(number.Number_1, 256),
-		number.Number_1,
-	)
+	HALTED = new(uint256.Int).SetAllOne()
 )
