@@ -42,6 +42,7 @@ type PriceInfo struct {
 }
 
 type SwapInfo struct {
-	newReserve0 *big.Int
-	newReserve1 *big.Int
+	RelayerAddress string   `json:"relayerAddress"`
+	NewReserve0    *big.Int `json:"-"`
+	NewReserve1    *big.Int `json:"-"`
 }

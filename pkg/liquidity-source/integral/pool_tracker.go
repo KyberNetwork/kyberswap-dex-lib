@@ -128,16 +128,21 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		return entity.Pool{}, err
 	}
 
-	extraData := IntegralPair{
-		SwapFee:        ToUint256(swapFee),
-		AveragePrice:   ToUint256(averagePrice),
-		SpotPrice:      ToUint256(spotPrice),
-		Token0LimitMin: ToUint256(token0LimitMin),
-		Token1LimitMin: ToUint256(token1LimitMin),
-		X_Decimals:     uint64(xDecimals),
-		Y_Decimals:     uint64(yDecimals),
-		IsEnabled:      isPairEnabled,
+	var extraData IntegralPair
+	err := json.Unmarshal([]byte(p.Extra), &extraData)
+	if err != nil {
+		return entity.Pool{}, err
 	}
+
+	extraData.SwapFee = ToUint256(swapFee)
+	extraData.AveragePrice = ToUint256(averagePrice)
+	extraData.SpotPrice = ToUint256(spotPrice)
+	extraData.Token0LimitMin = ToUint256(token0LimitMin)
+	extraData.Token1LimitMin = ToUint256(token1LimitMin)
+	extraData.X_Decimals = uint64(xDecimals)
+	extraData.Y_Decimals = uint64(yDecimals)
+	extraData.IsEnabled = isPairEnabled
+
 	extraBytes, err := json.Marshal(extraData)
 	if err != nil {
 		logger.Errorf("%s: failed to marshal extra data (address: %s, error: %v)", u.config.DexID, p.Address, err)

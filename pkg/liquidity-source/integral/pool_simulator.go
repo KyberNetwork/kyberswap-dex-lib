@@ -42,6 +42,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			},
 		},
 		IntegralPair: IntegralPair{
+			RelayerAddress: pair.RelayerAddress,
 			IsEnabled:      pair.IsEnabled,
 			SwapFee:        pair.SwapFee,
 			X_Decimals:     pair.X_Decimals,
@@ -104,8 +105,9 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		},
 		Gas: p.gas.Swap,
 		SwapInfo: SwapInfo{
-			newReserve0: ToInt256(newReserve0),
-			newReserve1: ToInt256(newReserve1),
+			RelayerAddress: p.RelayerAddress,
+			NewReserve0:    ToInt256(newReserve0),
+			NewReserve1:    ToInt256(newReserve1),
 		},
 	}, nil
 }
@@ -121,7 +123,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		return
 	}
 
-	p.Info.Reserves = []*big.Int{si.newReserve0, si.newReserve1}
+	p.Info.Reserves = []*big.Int{si.NewReserve0, si.NewReserve1}
 }
 
 func (p *PoolSimulator) swapExactIn(tokenIn, tokenOut string, amountIn *uint256.Int) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
