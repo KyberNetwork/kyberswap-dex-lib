@@ -14,22 +14,25 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 	litePSM LitePSM
+	gem     Token
 	gas     Gas
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+		return nil, err
+	}
+
+	gem := staticExtra.Gem
+
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 
 	tokens := make([]string, 0, len(entityPool.Tokens))
-	var gemDecimals uint8
 	for _, poolToken := range entityPool.Tokens {
-		if !strings.EqualFold(poolToken.Address, DAIAddress) {
-			gemDecimals = poolToken.Decimals
-		}
-
 		tokens = append(tokens, poolToken.Address)
 	}
 
@@ -43,7 +46,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	litePSM := extra.LitePSM
 	litePSM.To18ConversionFactor = new(uint256.Int).Exp(
 		number.Number_10,
-		uint256.NewInt(uint64(18-gemDecimals)),
+		uint256.NewInt(uint64(18-gem.Decimals)),
 	)
 
 	daiBalance, err := uint256.FromDecimal(entityPool.Reserves[0])
@@ -63,6 +66,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Info: poolInfo,
 		},
 		litePSM: litePSM,
+		gem:     gem,
 		gas:     DefaultGas,
 	}, nil
 }
@@ -95,22 +99,26 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		}, nil
 	}
 
-	gemAmt, fee, err := p.litePSM.sellGem(amountIn)
-	if err != nil {
-		return nil, err
+	if strings.EqualFold(tokenAmountIn.Token, p.gem.Address) {
+		daiAmt, fee, err := p.litePSM.sellGem(amountIn)
+		if err != nil {
+			return nil, err
+		}
+
+		return &pool.CalcAmountOutResult{
+			TokenAmountOut: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: daiAmt.ToBig(),
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenAmountIn.Token,
+				Amount: fee.ToBig(),
+			},
+			Gas: p.gas.SellGem,
+		}, nil
 	}
 
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: gemAmt.ToBig(),
-		},
-		Fee: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
-			Amount: fee.ToBig(),
-		},
-		Gas: p.gas.SellGem,
-	}, nil
+	return nil, ErrInvalidToken
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {

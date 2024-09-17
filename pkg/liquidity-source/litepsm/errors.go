@@ -8,4 +8,5 @@ var (
 	ErrOverflow               = errors.New("overflow")
 	ErrInsufficientDAIBalance = errors.New("inssufficient dai balance")
 	ErrInsufficientGemBalance = errors.New("inssufficient gem balance")
+	ErrInvalidToken           = errors.New("invalid token")
 )
