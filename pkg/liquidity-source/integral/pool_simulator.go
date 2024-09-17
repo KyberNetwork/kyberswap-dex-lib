@@ -41,17 +41,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Checked:    false,
 			},
 		},
-		IntegralPair: IntegralPair{
-			RelayerAddress: pair.RelayerAddress,
-			IsEnabled:      pair.IsEnabled,
-			SwapFee:        pair.SwapFee,
-			X_Decimals:     pair.X_Decimals,
-			Y_Decimals:     pair.Y_Decimals,
-			AveragePrice:   pair.AveragePrice,
-			SpotPrice:      pair.SpotPrice,
-			Token0LimitMin: pair.Token0LimitMin,
-			Token1LimitMin: pair.Token1LimitMin,
-		},
+		IntegralPair: pair,
 		gas: defaultGas,
 	}, nil
 }
