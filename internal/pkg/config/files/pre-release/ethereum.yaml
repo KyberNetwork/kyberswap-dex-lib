@@ -61,6 +61,7 @@ common:
     - "pol-matic"
     - "traderjoe-v21"
     - "smardex"
+    - "integral"
     - "balancer-v1"
     - "balancer-v2-weighted"
     - "balancer-v2-stable"

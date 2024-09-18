@@ -36,6 +36,7 @@ import (
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
@@ -497,6 +498,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newLiquidityBookV20(entityPool)
 	case pooltypes.PoolTypes.Smardex:
 		return f.newSmardex(entityPool)
+	case pooltypes.PoolTypes.Integral:
+		return f.newIntegral(entityPool)
 	case pooltypes.PoolTypes.Fxdx:
 		return f.newFxdx(entityPool)
 	case pooltypes.PoolTypes.UniswapV2:
@@ -1465,6 +1468,20 @@ func (f *PoolFactory) newSmardex(entityPool entity.Pool) (*smardex.PoolSimulator
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSmardex] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newIntegral(entityPool entity.Pool) (*integral.PoolSimulator, error) {
+	corePool, err := integral.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newIntegral] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

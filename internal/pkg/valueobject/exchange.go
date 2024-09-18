@@ -134,6 +134,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 	// executeSmardex
 	dexValueObject.ExchangeSmardex: {},
 
+	// executeIntegral
+	dexValueObject.ExchangeIntegral: {},
+
 	// executeVelocoreV2
 	dexValueObject.ExchangeVelocoreV2CPMM:         {},
 	dexValueObject.ExchangeVelocoreV2WombatStable: {},

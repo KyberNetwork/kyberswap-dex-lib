@@ -36,6 +36,6 @@ type Swap struct {
 	// Extra metadata of the pool
 	PoolExtra interface{} `json:"poolExtra"`
 
-	// EXtra metadata of swap
+	// Extra metadata of swap
 	Extra interface{} `json:"extra"`
 }

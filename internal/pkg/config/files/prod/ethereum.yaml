@@ -107,6 +107,7 @@ common:
     - "rocketpool-reth"
     - "shibaswap"
     - "smardex"
+    - "integral"
     - "solidly-v3"
     - "sushiswap"
     - "sushiswap-v3"

@@ -80,6 +80,7 @@ common:
     - "traderjoe-v21"
     - "traderjoe-v20"
     - "smardex"
+    - "integral"
     - "mummy-finance"
     - "balancer-v2-weighted"
     - "balancer-v2-stable"
@@ -203,6 +204,7 @@ encoder:
     executeSmardex: 34
     executeSwaapV2: 38
     executeNative: 44
+    executeIntegral: 52
 useCase:
   getRoute:
     chainId: *chainId
