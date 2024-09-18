@@ -68,7 +68,6 @@ func (t *PoolSimulator) GetDy(
 
 	err = t.FeeCalc(xp[:], fee)
 	if err != nil {
-		zz["2"] = true
 		return err
 	}
 

@@ -213,7 +213,6 @@ func get_y(
 	y, K0 *uint256.Int,
 ) error {
 	if _ann.Cmp(MinA) < 0 || _ann.Cmp(MaxA) > 0 {
-		zz["4"] = true
 		return ErrUnsafeA
 	}
 
@@ -222,7 +221,6 @@ func get_y(
 	}
 
 	if _D.Cmp(MinD) < 0 || _D.Cmp(MaxD) > 0 {
-		zz["6"] = true
 		return ErrUnsafeD
 	}
 
@@ -232,7 +230,6 @@ func get_y(
 	// lim_mul_signed: int256 = convert(lim_mul, int256)
 	lim_mul := U_1e20
 	if _gamma.Cmp(MaxGammaSmall) > 0 {
-		zz["7"] = true
 		lim_mul = number.Div(number.Mul(lim_mul, MaxGammaSmall), _gamma)
 	}
 	lim_mul_signed := i256.SafeToInt256(lim_mul)
@@ -257,7 +254,6 @@ func get_y(
 	// assert (K0_i >= unsafe_div(10**36, lim_mul_signed)) and (K0_i <= lim_mul_signed)  # dev: unsafe values x[i]
 	K0_i := i256.SafeToInt256(number.Div(number.Mul(number.Mul(U_1e18, NumTokensU256), &x[1-i]), _D))
 	if K0_i.Cmp(i256.Div(I_1e36, lim_mul_signed)) < 0 || K0_i.Cmp(lim_mul_signed) > 0 {
-		zz["8"] = true
 		return ErrUnsafeXi
 	}
 
@@ -306,45 +302,32 @@ func get_y(
 		threshold = a
 	}
 	if threshold.Cmp(I_1e48) > 0 {
-		zz["9"] = true
 		divider.Set(I_1e30)
 	} else if threshold.Cmp(I_1e46) > 0 {
-		zz["a"] = true
 		divider.Set(I_1e28)
 	} else if threshold.Cmp(I_1e44) > 0 {
-		zz["b"] = true
 		divider.Set(I_1e26)
 	} else if threshold.Cmp(I_1e42) > 0 {
-		zz["c"] = true
 		divider.Set(I_1e24)
 	} else if threshold.Cmp(I_1e40) > 0 {
-		zz["d"] = true
 		divider.Set(I_1e22)
 	} else if threshold.Cmp(I_1e38) > 0 {
-		zz["e"] = true
 		divider.Set(I_1e20)
 	} else if threshold.Cmp(I_1e36) > 0 {
-		zz["f"] = true
 		divider.Set(I_1e18)
 	} else if threshold.Cmp(I_1e34) > 0 {
-		zz["g"] = true
 		divider.Set(I_1e16)
 	} else if threshold.Cmp(I_1e32) > 0 {
-		zz["h"] = true
 		divider.Set(I_1e14)
 	} else if threshold.Cmp(I_1e30) > 0 {
 		divider.Set(I_1e12)
 	} else if threshold.Cmp(I_1e28) > 0 {
-		zz["i"] = true
 		divider.Set(I_1e10)
 	} else if threshold.Cmp(I_1e26) > 0 {
-		zz["j"] = true
 		divider.Set(I_1e8)
 	} else if threshold.Cmp(I_1e24) > 0 {
-		zz["k"] = true
 		divider.Set(I_1e6)
 	} else if threshold.Cmp(I_1e20) > 0 {
-		zz["l"] = true
 		divider.Set(I_1e2)
 	}
 	a = i256.Div(a, &divider)
@@ -384,13 +367,11 @@ func get_y(
 	if sqrt_arg.Sign() > 0 {
 		sqrt_val.Sqrt(sqrt_arg)
 	} else {
-		zz["m"] = true
 		return _newton_y(_ann, _gamma, x, _D, i, lim_mul, y)
 	}
 
 	var b_cbrt *int256.Int
 	if b.Sign() >= 0 {
-		zz["n"] = true
 		b_cbrt = i256.SafeToInt256(cbrt(i256.SafeConvertToUInt256(b)))
 	} else {
 		b_cbrt = i256.Neg(i256.SafeToInt256(cbrt(i256.SafeConvertToUInt256(i256.Neg(b)))))
@@ -437,7 +418,6 @@ func get_y(
 	// assert (frac >= unsafe_div(10**36 / N_COINS, lim_mul)) and (frac <= unsafe_div(lim_mul, N_COINS))  # dev: unsafe value for y
 	if frac.Cmp(number.Div(number.Div(U_1e36, NumTokensU256), lim_mul)) < 0 || frac.Cmp(number.Div(lim_mul,
 		NumTokensU256)) > 0 {
-		zz["o"] = true
 		return ErrUnsafeY
 	}
 
@@ -453,10 +433,8 @@ func cbrt(x *uint256.Int) *uint256.Int {
 func _cbrt(x *uint256.Int, a *uint256.Int) {
 	var xx *uint256.Int
 	if x.Cmp(CbrtConst1) >= 0 {
-		zz["p"] = true
 		xx = x
 	} else if x.Cmp(CbrtConst2) >= 0 {
-		zz["q"] = true
 		xx = number.Mul(x, U_1e18)
 	} else {
 		xx = number.Mul(x, U_1e36)
@@ -501,10 +479,8 @@ func _cbrt(x *uint256.Int, a *uint256.Int) {
 	a.Div(number.Add(number.Mul(number.Number_2, a), number.Div(xx, number.Mul(a, a))), number.Number_3)
 
 	if x.Cmp(CbrtConst1) >= 0 {
-		zz["r"] = true
 		a.Mul(a, U_1e12)
 	} else if x.Cmp(CbrtConst2) >= 0 {
-		zz["s"] = true
 		a.Mul(a, U_1e6)
 	}
 }

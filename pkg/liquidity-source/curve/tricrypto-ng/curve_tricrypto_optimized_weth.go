@@ -84,7 +84,7 @@ func (t *PoolSimulator) GetDy(
 	return nil
 }
 
-// GetDx https://github.com/curvefi/twocrypto-ng/blob/1c800bd/contracts/main/CurveCryptoViews2Optimized.vy#L79
+// GetDx https://github.com/curvefi/tricrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveCryptoViews3Optimized.vy#L76
 func (t *PoolSimulator) GetDx(
 	i int, j int, dy *uint256.Int,
 
