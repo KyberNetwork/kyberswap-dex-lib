@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -63,8 +64,8 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 
 	require.NotNil(ts.Suite.T(), pair)
 
-	require.NotEqual(ts.Suite.T(), uZERO, pair.SpotPrice)
-	require.NotEqual(ts.Suite.T(), uZERO, pair.AveragePrice)
+	require.NotEqual(ts.Suite.T(), number.Zero, pair.SpotPrice)
+	require.NotEqual(ts.Suite.T(), number.Zero, pair.AveragePrice)
 	require.NotEqual(ts.Suite.T(), 0, pair.X_Decimals)
 	require.NotEqual(ts.Suite.T(), 0, pair.Y_Decimals)
 

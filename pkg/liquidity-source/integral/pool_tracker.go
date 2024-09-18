@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -134,11 +135,11 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		return entity.Pool{}, err
 	}
 
-	extraData.SwapFee = ToUint256(swapFee)
-	extraData.AveragePrice = ToUint256(averagePrice)
-	extraData.SpotPrice = ToUint256(spotPrice)
-	extraData.Token0LimitMin = ToUint256(token0LimitMin)
-	extraData.Token1LimitMin = ToUint256(token1LimitMin)
+	extraData.SwapFee = number.SetFromBig(swapFee)
+	extraData.AveragePrice = number.SetFromBig(averagePrice)
+	extraData.SpotPrice = number.SetFromBig(spotPrice)
+	extraData.Token0LimitMin = number.SetFromBig(token0LimitMin)
+	extraData.Token1LimitMin = number.SetFromBig(token1LimitMin)
 	extraData.X_Decimals = uint64(xDecimals)
 	extraData.Y_Decimals = uint64(yDecimals)
 	extraData.IsEnabled = isPairEnabled

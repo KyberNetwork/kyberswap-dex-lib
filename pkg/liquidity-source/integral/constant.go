@@ -2,15 +2,16 @@ package integral
 
 import (
 	"errors"
+	"math/big"
 
 	"github.com/holiman/uint256"
 )
 
 var (
 	DexTypeIntegral = "integral"
-
-	defaultGas = Gas{Swap: 400000}
-	precision  = uint256.NewInt(1e18)
+	ZERO            = big.NewInt(0)
+	defaultGas      = Gas{Swap: 400000}
+	precision       = uint256.NewInt(1e18)
 
 	// errors
 	ErrTokenNotFound  = errors.New("tokens not found")
