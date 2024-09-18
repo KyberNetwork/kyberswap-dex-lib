@@ -181,7 +181,6 @@ func (p *PoolSimulator) getPrice(inverted bool) (price *uint256.Int) {
 	averagePrice := p.IntegralPair.AveragePrice
 
 	if inverted {
-		tenPower36 := new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(36)) // 10 ^ 36
 		if spotPrice.Gt(averagePrice) {
 			price = number.SafeDiv(tenPower36, spotPrice)
 		} else {

@@ -10,6 +10,7 @@ import (
 var (
 	DexTypeIntegral = "integral"
 	ZERO            = big.NewInt(0)
+	tenPower36      = new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(36)) // 10 ^ 36
 	defaultGas      = Gas{Swap: 400000}
 	precision       = uint256.NewInt(1e18)
 
