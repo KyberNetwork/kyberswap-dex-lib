@@ -12,6 +12,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/holiman/uint256"
 )
 
@@ -40,7 +42,24 @@ func NewPoolTracker(
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
+	params poolpkg.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params poolpkg.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, poolpkg.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
 	_ poolpkg.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	lg := t.logger.WithFields(logger.Fields{"poolAddress": p.Address})
 	lg.Info("Start updating state ...")
@@ -62,6 +81,9 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		calls.SetOverrides(overrides)
+	}
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    curveStableMetaNGABI,
