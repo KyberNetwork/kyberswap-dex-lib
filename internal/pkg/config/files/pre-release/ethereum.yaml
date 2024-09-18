@@ -90,6 +90,7 @@ common:
     - "swell-sweth"
     - "ambient"
     - "maverick-v2"
+    - "lite-psm"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:

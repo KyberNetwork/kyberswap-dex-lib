@@ -38,6 +38,7 @@ import (
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
@@ -574,9 +575,9 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 			entityPool.Address,
 			entityPool.Type,
 		)
-	case ethervista.DexType:
+	case pooltypes.PoolTypes.EtherVista:
 		return f.newEtherVista(entityPool)
-	case maverickv2.DexType:
+	case pooltypes.PoolTypes.MaverickV2:
 		if f.config.UseAEVM && f.config.DexUseAEVM[maverickv2.DexType] {
 			return f.newMaverickV2AEVM(entityPool, stateRoot)
 		}
@@ -587,6 +588,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 			entityPool.Address,
 			entityPool.Type,
 		)
+	case pooltypes.PoolTypes.LitePSM:
+		return f.newLitePSM(entityPool)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -2004,4 +2007,18 @@ func (f *PoolFactory) newMaverickV2AEVM(entityPool entity.Pool, stateRoot common
 	}
 
 	return aevmpoolwrapper.NewPoolWrapperAsAEVMPool(unimplementedPool, aevmPool, f.client), nil
+}
+
+func (f *PoolFactory) newLitePSM(entityPool entity.Pool) (*litepsm.PoolSimulator, error) {
+	corePool, err := litepsm.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newLitePSM] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
 }

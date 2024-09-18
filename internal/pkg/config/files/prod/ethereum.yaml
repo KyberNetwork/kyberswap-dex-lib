@@ -122,6 +122,7 @@ common:
     - "wagmi"
     - "wombat"
     - "maverick-v2"
+    - "lite-psm"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:
