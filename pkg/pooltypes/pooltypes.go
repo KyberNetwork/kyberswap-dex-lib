@@ -25,8 +25,11 @@ import (
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
+	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
@@ -169,6 +172,7 @@ type Types struct {
 	LiquidityBookV21               string
 	LiquidityBookV20               string
 	Smardex                        string
+	Integral                       string
 	Fxdx                           string
 	UniswapV2                      string
 	QuickPerps                     string
@@ -213,6 +217,8 @@ type Types struct {
 	Slipstream                     string
 	NuriV2                         string
 	EtherVista                     string
+	MaverickV2                     string
+	LitePSM                        string
 }
 
 var (
@@ -283,6 +289,7 @@ var (
 		LiquidityBookV21:               liquiditybookv21.DexTypeLiquidityBookV21,
 		LiquidityBookV20:               liquiditybookv20.DexTypeLiquidityBookV20,
 		Smardex:                        smardex.DexTypeSmardex,
+		Integral:                       integral.DexTypeIntegral,
 		Fxdx:                           fxdx.DexTypeFxdx,
 		UniswapV2:                      uniswapv2.DexType,
 		QuickPerps:                     quickperps.DexTypeQuickperps,
@@ -327,5 +334,7 @@ var (
 		Slipstream:                     slipstream.DexType,
 		NuriV2:                         nuriv2.DexType,
 		EtherVista:                     ethervista.DexType,
+		MaverickV2:                     maverickv2.DexType,
+		LitePSM:                        litepsm.DexTypeLitePSM,
 	}
 )

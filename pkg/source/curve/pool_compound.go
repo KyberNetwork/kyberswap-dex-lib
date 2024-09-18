@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 func (d *PoolsListUpdater) getNewPoolsTypeCompound(
@@ -111,6 +112,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeCompound(
 func (d *PoolTracker) getNewPoolStateTypeCompound(
 	ctx context.Context,
 	p entity.Pool,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.Infof("[Curve] Start getting new state of pool %v with type %v", p.Address, p.Type)
 
@@ -121,6 +123,9 @@ func (d *PoolTracker) getNewPoolStateTypeCompound(
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		calls.SetOverrides(overrides)
+	}
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    baseABI,
