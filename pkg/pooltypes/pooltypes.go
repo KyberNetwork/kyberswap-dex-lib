@@ -24,6 +24,7 @@ import (
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
@@ -170,6 +171,7 @@ type Types struct {
 	LiquidityBookV21               string
 	LiquidityBookV20               string
 	Smardex                        string
+	Integral                       string
 	Fxdx                           string
 	UniswapV2                      string
 	QuickPerps                     string
@@ -285,6 +287,7 @@ var (
 		LiquidityBookV21:               liquiditybookv21.DexTypeLiquidityBookV21,
 		LiquidityBookV20:               liquiditybookv20.DexTypeLiquidityBookV20,
 		Smardex:                        smardex.DexTypeSmardex,
+		Integral:                       integral.DexTypeIntegral,
 		Fxdx:                           fxdx.DexTypeFxdx,
 		UniswapV2:                      uniswapv2.DexType,
 		QuickPerps:                     quickperps.DexTypeQuickperps,
