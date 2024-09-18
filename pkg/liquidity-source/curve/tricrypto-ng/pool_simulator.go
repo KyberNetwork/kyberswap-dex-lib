@@ -194,7 +194,9 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	t.Reserves[outputIndex].Sub(&t.Reserves[outputIndex], number.SetFromBig(outputAmount))
 
 	A, gamma := t._A_gamma()
-	_ = t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0)
+	if err := t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0); err != nil {
+		panic(fmt.Sprintf("failed to tweak price for curve-tricrypto-ng %v pool: %v", t.Info.Address, err))
+	}
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
