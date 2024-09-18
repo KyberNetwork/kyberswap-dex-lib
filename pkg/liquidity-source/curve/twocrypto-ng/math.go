@@ -554,7 +554,7 @@ func _snekmate_log_2(x *uint256.Int, roundup bool, result *uint256.Int) {
 
 // Calculate x[i] given A, gamma, xp and D using newton's method with safety checks.
 // https://github.com/curvefi/twocrypto-ng/blob/d21b270/contracts/main/CurveCryptoMathOptimized2.vy#L210
-func newton_y(
+func newton_y( // nolint:unused
 	ann, gamma *uint256.Int, x []uint256.Int, D *uint256.Int, i int,
 	// output
 	y *uint256.Int,

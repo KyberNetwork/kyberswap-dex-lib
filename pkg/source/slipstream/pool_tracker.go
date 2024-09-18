@@ -275,7 +275,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 			}
 		}
 
-		if resp.Ticks == nil || len(resp.Ticks) == 0 {
+		if len(resp.Ticks) == 0 {
 			break
 		}
 
