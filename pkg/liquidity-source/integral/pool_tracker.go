@@ -102,7 +102,7 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	invertedPrice := invertedPairInfo[2].(*big.Int)
 
 	var extraData IntegralPair
-	json.Unmarshal([]byte(p.Extra), &extraData)
+	_ = json.Unmarshal([]byte(p.Extra), &extraData)
 
 	extraData.Price = number.SetFromBig(price)
 	extraData.InvertedPrice = number.SetFromBig(invertedPrice)
