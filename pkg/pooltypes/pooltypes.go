@@ -28,11 +28,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
-<<<<<<< HEAD
-	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
-=======
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
->>>>>>> main
+	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
@@ -219,12 +216,9 @@ type Types struct {
 	Slipstream                     string
 	NuriV2                         string
 	EtherVista                     string
-<<<<<<< HEAD
 	MkrSky                         string
-=======
 	MaverickV2                     string
 	LitePSM                        string
->>>>>>> main
 }
 
 var (
@@ -339,11 +333,8 @@ var (
 		Slipstream:                     slipstream.DexType,
 		NuriV2:                         nuriv2.DexType,
 		EtherVista:                     ethervista.DexType,
-<<<<<<< HEAD
 		MkrSky:                         mkrsky.DexType,
-=======
 		MaverickV2:                     maverickv2.DexType,
 		LitePSM:                        litepsm.DexTypeLitePSM,
->>>>>>> main
 	}
 )
