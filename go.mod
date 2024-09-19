@@ -5,7 +5,7 @@ go 1.22.7
 require (
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
-	github.com/KyberNetwork/ethrpc v0.7.1
+	github.com/KyberNetwork/ethrpc v0.7.3-0.20240919093452-8d485f12f44c
 	github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0
 	github.com/KyberNetwork/int256 v0.1.4
 	github.com/KyberNetwork/logger v0.2.0
@@ -43,6 +43,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/consensys/bavard v0.1.15 // indirect
 	github.com/consensys/gnark-crypto v0.14.0 // indirect
+	github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a // indirect
 	github.com/crate-crypto/go-kzg-4844 v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect

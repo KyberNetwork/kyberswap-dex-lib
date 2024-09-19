@@ -4,8 +4,8 @@ github.com/KyberNetwork/blockchain-toolkit v0.6.0 h1:5YEwxYaknRz+rsxU0paW0AfUXit
 github.com/KyberNetwork/blockchain-toolkit v0.6.0/go.mod h1:u9xac2rhiKPU24KmzLRTY5af8YZQ0xCqfWQrYjVyf2Q=
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 h1:kN7ez6MPJEaFbacmvR+22PRa5pJkzwYN4h3RyRhjUnU=
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2/go.mod h1:3DThBH6zHAYSWUVmtj9deQO1XuiwbawdKxj5yV4SuMo=
-github.com/KyberNetwork/ethrpc v0.7.1 h1:ePGFNKMM2U/aJZCX75WtClH5MOD2DqCF0bitPI13slw=
-github.com/KyberNetwork/ethrpc v0.7.1/go.mod h1:oKysvDWevrWSW6sgb/3pDrBjiKw6IUbS3LytN+aKz/M=
+github.com/KyberNetwork/ethrpc v0.7.3-0.20240919093452-8d485f12f44c h1:mVUMIFiOQkJeMtW1MD7sJ0SL1h7w71kkuAhzli+Hh1A=
+github.com/KyberNetwork/ethrpc v0.7.3-0.20240919093452-8d485f12f44c/go.mod h1:v9CVmiS7dcSYHAG0nhoUWmODfNgnVEf1A7sFvzvkFQ8=
 github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0 h1:gjR4PS5MvPNBihRQihjn5auOQj2+TFfbNtCcVP/ZiCk=
 github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0/go.mod h1:WbveqjEww3YdTb0NbT63qQ4WsxMGvofJu4j7yzC+LgQ=
 github.com/KyberNetwork/int256 v0.1.4 h1:SbnhxqcsZXrP+5pSkolpSo2ViEWiq3K/hjfl5OQgX/4=
@@ -55,8 +55,8 @@ github.com/consensys/gnark-crypto v0.14.0 h1:DDBdl4HaBtdQsq/wfMwJvZNE80sHidrK3Nf
 github.com/consensys/gnark-crypto v0.14.0/go.mod h1:CU4UijNPsHawiVGNxe9co07FkzCeWHHrb1li/n1XoU0=
 github.com/cpuguy83/go-md2man/v2 v2.0.2 h1:p1EgwI/C7NhT0JmVkwCD2ZBK8j4aeHQX2pMHHBfMQ6w=
 github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
-github.com/crate-crypto/go-ipa v0.0.0-20231025140028-3c0104f4b233 h1:d28BXYi+wUpz1KBmiF9bWrjEMacUEREV6MBi2ODnrfQ=
-github.com/crate-crypto/go-ipa v0.0.0-20231025140028-3c0104f4b233/go.mod h1:geZJZH3SzKCqnz5VT0q/DyIG/tvu/dZk+VIfXicupJs=
+github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a h1:W8mUrRp6NOVl3J+MYp5kPMoUZPp7aOYHtaua31lwRHg=
+github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a/go.mod h1:sTwzHBvIzm2RfVCGNEBZgRyjwK40bVoun3ZnGOCafNM=
 github.com/crate-crypto/go-kzg-4844 v1.1.0 h1:EN/u9k2TF6OWSHrCCDBBU6GLNMq88OspHHlMnHfoyU4=
 github.com/crate-crypto/go-kzg-4844 v1.1.0/go.mod h1:JolLjpSff1tCCJKaJx4psrlEdlXuJEC996PL3tTAFks=
 github.com/daoleno/uniswap-sdk-core v0.1.7 h1:PdZypLSzM5Mu2rFBjXK9XrHDppSt62GkxXjWLpuMAN4=
