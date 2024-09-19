@@ -1,4 +1,4 @@
-name: kyberswap-dex-lib CI
+name: 'CI'
 
 concurrency:
   group: ci-workflow-${{ github.ref }}-${{ github.event_name }}
@@ -31,5 +31,5 @@ jobs:
           go-version-file: 'go.mod'
       - name: Run "go generate ./..."
         run: go generate ./... || true
-      - name: Check working tree clean
-        run: if [ -z "$(git status --porcelain)" ]; then exit 0; else exit 1; fi
+      - name: Check working tree clean after go generate
+        run: [ -z "$(git status --porcelain)" ]
