@@ -12,6 +12,7 @@ import (
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
 	curveStableNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	curveTricryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/tricrypto-ng"
+	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
@@ -217,6 +218,7 @@ type Types struct {
 	NuriV2                         string
 	EtherVista                     string
 	MkrSky                         string
+	DaiUsds                        string
 	MaverickV2                     string
 	LitePSM                        string
 }
@@ -334,6 +336,7 @@ var (
 		NuriV2:                         nuriv2.DexType,
 		EtherVista:                     ethervista.DexType,
 		MkrSky:                         mkrsky.DexType,
+		DaiUsds:                        daiusds.DexType,
 		MaverickV2:                     maverickv2.DexType,
 		LitePSM:                        litepsm.DexTypeLitePSM,
 	}
