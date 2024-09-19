@@ -3,9 +3,9 @@ module github.com/KyberNetwork/kyberswap-dex-lib
 go 1.22.7
 
 require (
-	github.com/KyberNetwork/blockchain-toolkit v0.6.0
+	github.com/KyberNetwork/blockchain-toolkit v0.8.1
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
-	github.com/KyberNetwork/ethrpc v0.7.3-0.20240919093452-8d485f12f44c
+	github.com/KyberNetwork/ethrpc v0.7.3-0.20240919101855-8d4012c8c2ba
 	github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0
 	github.com/KyberNetwork/int256 v0.1.4
 	github.com/KyberNetwork/logger v0.2.0
@@ -17,7 +17,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/dgraph-io/ristretto v0.1.1
-	github.com/ethereum/go-ethereum v1.13.15
+	github.com/ethereum/go-ethereum v1.13.9
 	github.com/go-resty/resty/v2 v2.10.0
 	github.com/goccy/go-json v0.10.2
 	github.com/golang/mock v1.6.0
@@ -42,9 +42,8 @@ require (
 	github.com/btcsuite/btcd/btcec/v2 v2.3.4 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/consensys/bavard v0.1.15 // indirect
-	github.com/consensys/gnark-crypto v0.14.0 // indirect
-	github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a // indirect
-	github.com/crate-crypto/go-kzg-4844 v1.1.0 // indirect
+	github.com/consensys/gnark-crypto v0.12.1 // indirect
+	github.com/crate-crypto/go-kzg-4844 v0.7.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/ethereum/c-kzg-4844 v1.0.3 // indirect
@@ -52,7 +51,7 @@ require (
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/golang/glog v1.1.2 // indirect
 	github.com/golang/snappy v0.0.5-0.20220116011046-fa5810519dcb // indirect
-	github.com/google/uuid v1.4.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
