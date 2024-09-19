@@ -2,7 +2,6 @@ package integral
 
 import (
 	"context"
-	"log"
 	"math/big"
 	"testing"
 
@@ -74,8 +73,6 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	metadataBytes, _ := json.Marshal(metadata)
 	pools, metadataRes, _ := ts.updater.GetNewPools(context.Background(), metadataBytes)
 
-	log.Fatalf("----%+v\n", pools)
-
 	for _, p := range pools {
 		assert.NotNil(ts.Suite.T(), p.Address)
 	}
@@ -95,6 +92,6 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 }
 
 func TestPoolListUpdaterTestSuite(t *testing.T) {
-	// t.Skip("Skipping testing in CI environment")
+	t.Skip("Skipping testing in CI environment")
 	suite.Run(t, new(PoolListUpdaterTestSuite))
 }
