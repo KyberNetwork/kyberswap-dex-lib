@@ -4,8 +4,8 @@ github.com/KyberNetwork/blockchain-toolkit v0.8.1 h1:N4SEcVCXdxnaxf3NuexYmb7GI77
 github.com/KyberNetwork/blockchain-toolkit v0.8.1/go.mod h1:b7DiLG/iUwqnQlQUYx2/Y20kf8LZqCo44ZqfQc8jeSA=
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2 h1:kN7ez6MPJEaFbacmvR+22PRa5pJkzwYN4h3RyRhjUnU=
 github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2/go.mod h1:3DThBH6zHAYSWUVmtj9deQO1XuiwbawdKxj5yV4SuMo=
-github.com/KyberNetwork/ethrpc v0.7.3-0.20240919101855-8d4012c8c2ba h1:xf/1Z3SYd3tT7WXALDs9g0oC6teUx+HNHsAqeWMHA2E=
-github.com/KyberNetwork/ethrpc v0.7.3-0.20240919101855-8d4012c8c2ba/go.mod h1:+MonZWaG7IfjuMz35BoUF4w+tu5qU+rlEqMF0UM3+1w=
+github.com/KyberNetwork/ethrpc v0.7.3 h1:H1ZoKsaoqK5xEuW+Zv1b9dxG09Cn/GjEiwjXdOIreQk=
+github.com/KyberNetwork/ethrpc v0.7.3/go.mod h1:+MonZWaG7IfjuMz35BoUF4w+tu5qU+rlEqMF0UM3+1w=
 github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0 h1:gjR4PS5MvPNBihRQihjn5auOQj2+TFfbNtCcVP/ZiCk=
 github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0/go.mod h1:WbveqjEww3YdTb0NbT63qQ4WsxMGvofJu4j7yzC+LgQ=
 github.com/KyberNetwork/int256 v0.1.4 h1:SbnhxqcsZXrP+5pSkolpSo2ViEWiq3K/hjfl5OQgX/4=

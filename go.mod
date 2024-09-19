@@ -5,7 +5,7 @@ go 1.22.7
 require (
 	github.com/KyberNetwork/blockchain-toolkit v0.8.1
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
-	github.com/KyberNetwork/ethrpc v0.7.3-0.20240919101855-8d4012c8c2ba
+	github.com/KyberNetwork/ethrpc v0.7.3
 	github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0
 	github.com/KyberNetwork/int256 v0.1.4
 	github.com/KyberNetwork/logger v0.2.0
