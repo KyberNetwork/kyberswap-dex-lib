@@ -17,24 +17,27 @@ var (
 	_token0 = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" // USDC
 	_token1 = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" // wETH
 
-	_xDecimals uint64 = 6
-	_yDecimals uint64 = 18
+	_xDecimals uint64 = 18
+	_yDecimals uint64 = 6
 
-	_reserve0, _ = new(big.Int).SetString("427606417957", 10)
-	_reserve1, _ = new(big.Int).SetString("134129304160258568649", 10)
+	_reserve0, _ = new(big.Int).SetString("30396549939591301240", 10)
+	_reserve1, _ = new(big.Int).SetString("33321339599", 10)
 
-	_swapFee      = uint256.NewInt(550000000000000) // 10 ** 14
-	_averagePrice = uint256.NewInt(436677406974646)
-	_spotPrice    = uint256.NewInt(436776207402818)
+	_swapFee       = uint256.NewInt(500000000000000) // 5 ** 14
+	_price, _      = uint256.FromDecimal("2406946062201516769030")
+	_invertedPrice = uint256.NewInt(415422975055717)
 
-	_amount0In  = big.NewInt(10000000000)
-	_amount1Out = big.NewInt(4364372344008099447)
+	_amount0In  = big.NewInt(1000000000000000000)
+	_amount1Out = big.NewInt(2405742589)
 
-	_amount1In, _  = new(big.Int).SetString("10000000000000000000", 10)
-	_amount0Out, _ = new(big.Int).SetString("22882427729", 10)
+	_amount1In  = big.NewInt(1000000000)
+	_amount0Out = big.NewInt(415215263568189141)
 
-	_token0LimitMin = uint256.NewInt(5000000000)          // 5000 USDC
-	_token1LimitMin = uint256.NewInt(1200000000000000000) // 1.2 wETH
+	_token0LimitMin = uint256.NewInt(40000000000000000)   // 0.04 wETH
+	_token0LimitMax = uint256.NewInt(8385423175515936014) // ~9 wETH
+
+	_token1LimitMin = uint256.NewInt(100000000)   // 100 USDC
+	_token1LimitMax = uint256.NewInt(32366320801) // ~41180 USDC
 )
 
 func TestCalcAmountOut(t *testing.T) {
@@ -43,10 +46,12 @@ func TestCalcAmountOut(t *testing.T) {
 		X_Decimals:     _xDecimals,
 		Y_Decimals:     _yDecimals,
 		SwapFee:        _swapFee,
-		SpotPrice:      _spotPrice,
-		AveragePrice:   _averagePrice,
+		Price:          _price,
+		InvertedPrice:  _invertedPrice,
 		Token0LimitMin: _token0LimitMin,
+		Token0LimitMax: _token0LimitMax,
 		Token1LimitMin: _token1LimitMin,
+		Token1LimitMax: _token1LimitMax,
 	})
 	require.Nil(t, err)
 
@@ -96,28 +101,12 @@ func TestCalcAmountOut(t *testing.T) {
 		assert.Equal(t, _amount0Out, result.TokenAmountOut.Amount)
 	})
 
-	t.Run("3. should return error when not enough liquidity", func(t *testing.T) {
-		simulator, err := NewPoolSimulator(pool)
-		require.Nil(t, err)
-
-		// Test for insufficient liquidity
-		result, err := simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
-			TokenAmountIn: poolpkg.TokenAmount{
-				Token:  _token0,
-				Amount: new(big.Int).Add(_reserve1, _amount1In),
-			},
-			TokenOut: _token1,
-		})
-		require.NotNil(t, err)
-		require.Nil(t, result)
-	})
-
 	// Test for swap limits
-	t.Run("4. should return error when amountOut is below limits", func(t *testing.T) {
+	t.Run("3. should return error when amountOut is below limit", func(t *testing.T) {
 		simulator, err := NewPoolSimulator(pool)
 		require.Nil(t, err)
 
-		// Test for token0 limit
+		// Test for tokenOut limit min
 		result, err := simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
 			TokenAmountIn: poolpkg.TokenAmount{
 				Token:  _token1,
@@ -125,8 +114,24 @@ func TestCalcAmountOut(t *testing.T) {
 			},
 			TokenOut: _token0,
 		})
-		require.NotNil(t, err)
 		require.Nil(t, result)
+		require.ErrorIs(t, err, ErrTR03)
+	})
+
+	t.Run("4. should return error when amountOut exceeds limit", func(t *testing.T) {
+		simulator, err := NewPoolSimulator(pool)
+		require.Nil(t, err)
+
+		// Test for tokenOut limit max
+		result, err := simulator.CalcAmountOut(poolpkg.CalcAmountOutParams{
+			TokenAmountIn: poolpkg.TokenAmount{
+				Token:  _token1,
+				Amount: big.NewInt(1000000000000000000), // This will result in an amountOut exceeds the limit for token0
+			},
+			TokenOut: _token0,
+		})
+		require.Nil(t, result)
+		require.ErrorIs(t, err, ErrTR3A)
 	})
 
 	// Test for disabled pool
@@ -136,8 +141,8 @@ func TestCalcAmountOut(t *testing.T) {
 			X_Decimals:     _xDecimals,
 			Y_Decimals:     _yDecimals,
 			SwapFee:        _swapFee,
-			SpotPrice:      _spotPrice,
-			AveragePrice:   _averagePrice,
+			Price:          _price,
+			InvertedPrice:  _invertedPrice,
 			Token0LimitMin: _token0LimitMin,
 			Token1LimitMin: _token1LimitMin,
 		})
@@ -177,10 +182,11 @@ func TestUpdateBalance(t *testing.T) {
 		X_Decimals:     _xDecimals,
 		Y_Decimals:     _yDecimals,
 		SwapFee:        _swapFee,
-		SpotPrice:      _spotPrice,
-		AveragePrice:   _averagePrice,
+		Price:          _price,
 		Token0LimitMin: _token0LimitMin,
+		Token0LimitMax: _token0LimitMax,
 		Token1LimitMin: _token1LimitMin,
+		Token1LimitMax: _token1LimitMax,
 	})
 	require.Nil(t, err)
 
