@@ -139,7 +139,6 @@ func (p *PoolSimulator) swapExactIn(tokenIn, tokenOut string, amountIn *uint256.
 
 // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L520
 func (p *PoolSimulator) checkLimits(token string, amount *uint256.Int) error {
-	// log.Fatalf("---%+v\n", amount)
 	if token == p.GetTokens()[0] {
 		if amount.Lt(p.IntegralPair.Token0LimitMin) {
 			return ErrTR03
