@@ -21,14 +21,14 @@ type PoolListUpdaterTestSuite struct {
 
 func (ts *PoolListUpdaterTestSuite) SetupTest() {
 	// Setup RPC server
-	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io")
-	rpcClient.SetMulticallContract(common.HexToAddress("0x5ba1e12693dc8f9c48aad8770482f4739beed696"))
+	rpcClient := ethrpc.New("https://arbitrum.kyberengineering.io")
+	rpcClient.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	ts.client = rpcClient
 
 	config := Config{
 		DexID:          DexTypeIntegral,
-		RelayerAddress: "0xd17b3c9784510E33cD5B87b490E79253BcD81e2E",
+		RelayerAddress: "0x3c6951fdb433b5b8442e7aa126d50fbfb54b5f42",
 		PoolPagingSize: 1000,
 	}
 
@@ -58,7 +58,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	var length *big.Int
 	req.AddCall(&ethrpc.Call{
 		ABI:    factoryABI,
-		Target: factory.Hex(),
+		Target: "0x717EF162cf831db83c51134734A15D1EBe9E516a",
 		Method: factoryAllPairsLengthMethod,
 		Params: nil,
 	}, []interface{}{&length})

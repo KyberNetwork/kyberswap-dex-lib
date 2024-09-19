@@ -143,9 +143,17 @@ func (p *PoolSimulator) checkLimits(token string, amount *uint256.Int) error {
 		if amount.Lt(p.IntegralPair.Token0LimitMin) {
 			return ErrTR03
 		}
+
+		if amount.Gt(p.IntegralPair.Token0LimitMax) {
+			return ErrTR3A
+		}
 	} else if token == p.GetTokens()[1] {
 		if amount.Lt(p.IntegralPair.Token1LimitMin) {
 			return ErrTR03
+		}
+
+		if amount.Gt(p.IntegralPair.Token1LimitMax) {
+			return ErrTR3A
 		}
 	}
 
@@ -156,9 +164,11 @@ func (p *PoolSimulator) checkLimits(token string, amount *uint256.Int) error {
 func (p *PoolSimulator) calculateAmountOut(inverted bool, amountIn *uint256.Int) *uint256.Int {
 	decimalsConverter := getDecimalsConverter(p.IntegralPair.X_Decimals, p.IntegralPair.Y_Decimals, inverted)
 
-	price := p.getPrice(inverted)
+	if inverted {
+		return number.SafeDiv(number.SafeMul(amountIn, p.InvertedPrice), decimalsConverter)
+	}
 
-	return number.SafeDiv(number.SafeMul(amountIn, price), decimalsConverter)
+	return number.SafeDiv(number.SafeMul(amountIn, p.Price), decimalsConverter)
 }
 
 // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L334
@@ -172,26 +182,5 @@ func getDecimalsConverter(xDecimals, yDecimals uint64, inverted bool) (decimalsC
 
 	decimalsConverter = new(uint256.Int).Exp(uint256.NewInt(10), uint256.NewInt(exponent))
 
-	return
-}
-
-// https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L353
-func (p *PoolSimulator) getPrice(inverted bool) (price *uint256.Int) {
-	spotPrice := p.IntegralPair.SpotPrice
-	averagePrice := p.IntegralPair.AveragePrice
-
-	if inverted {
-		if spotPrice.Gt(averagePrice) {
-			price = number.SafeDiv(tenPower36, spotPrice)
-		} else {
-			price = number.SafeDiv(tenPower36, averagePrice)
-		}
-	} else {
-		if spotPrice.Lt(averagePrice) {
-			price = spotPrice
-		} else {
-			price = averagePrice
-		}
-	}
 	return
 }

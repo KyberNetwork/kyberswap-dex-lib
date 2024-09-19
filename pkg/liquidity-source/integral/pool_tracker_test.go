@@ -23,33 +23,32 @@ type PoolListTrackerTestSuite struct {
 
 func (ts *PoolListTrackerTestSuite) SetupTest() {
 	// Setup RPC server
-	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io")
-	rpcClient.SetMulticallContract(common.HexToAddress("0x5ba1e12693dc8f9c48aad8770482f4739beed696"))
+	rpcClient := ethrpc.New("https://arbitrum.kyberengineering.io")
+	rpcClient.SetMulticallContract(common.HexToAddress("0xcA11bde05977b3631167028862bE2a173976CA11"))
 
 	ts.client = rpcClient
 
 	config := Config{
 		DexID:          DexTypeIntegral,
-		RelayerAddress: "0xd17b3c9784510E33cD5B87b490E79253BcD81e2E",
+		RelayerAddress: "0x3c6951fdb433b5b8442e7aa126d50fbfb54b5f42",
 		PoolPagingSize: 20,
 	}
 
 	ts.tracker = PoolTracker{
 		config:       &config,
 		ethrpcClient: ts.client,
-		isFirstRun:   true,
 	}
 }
 
 func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 	pool, err := ts.tracker.GetNewPoolState(context.Background(), entity.Pool{
-		Address: "0x2fe16Dd18bba26e457B7dD2080d5674312b026a2",
+		Address: "0x12b8bC27Ca8A997680F49d1A6FC1D93D552aacbe",
 		Tokens: []*entity.PoolToken{
 			{
-				Address: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				Address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
 			},
 			{
-				Address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+				Address: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
 			},
 		},
 	}, pool.GetNewPoolStateParams{})
@@ -64,8 +63,7 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 
 	require.NotNil(ts.Suite.T(), pair)
 
-	require.NotEqual(ts.Suite.T(), number.Zero, pair.SpotPrice)
-	require.NotEqual(ts.Suite.T(), number.Zero, pair.AveragePrice)
+	require.NotEqual(ts.Suite.T(), number.Zero, pair.Price)
 	require.NotEqual(ts.Suite.T(), 0, pair.X_Decimals)
 	require.NotEqual(ts.Suite.T(), 0, pair.Y_Decimals)
 
