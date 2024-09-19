@@ -240,6 +240,8 @@ var (
 
 	ExchangeSmardex Exchange = "smardex"
 
+	ExchangeIntegral Exchange = "integral"
+
 	ExchangeZebra  Exchange = "zebra"
 	ExchangeZKSwap Exchange = "zkswap"
 
@@ -342,6 +344,7 @@ var (
 
 	ExchangeMaverickV2 Exchange = "maverick-v2"
 	ExchangeEtherVista Exchange = "ether-vista"
+	ExchangeLitePSM    Exchange = "lite-psm"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -530,6 +533,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeVooi:                       {},
 	ExchangePolMatic:                   {},
 	ExchangeSmardex:                    {},
+	ExchangeIntegral:                   {},
 	ExchangeZebra:                      {},
 	ExchangeZKSwap:                     {},
 	ExchangeBalancerV1:                 {},
@@ -621,6 +625,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAmbient:                    {},
 	ExchangeMaverickV2:                 {},
 	ExchangeEtherVista:                 {},
+	ExchangeLitePSM:                    {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

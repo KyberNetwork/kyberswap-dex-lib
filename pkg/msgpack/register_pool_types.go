@@ -28,7 +28,9 @@ import (
 	pkg_liquiditysource_gyroscope_3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	pkg_liquiditysource_gyroscope_eclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	pkg_liquiditysource_hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
+	pkg_liquiditysource_integral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	pkg_liquiditysource_kelp_rseth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
+	pkg_liquiditysource_litepsm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	pkg_liquiditysource_maker_savingsdai "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	pkg_liquiditysource_nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	pkg_liquiditysource_nomiswap_nomiswapstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
@@ -129,7 +131,9 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_gyroscope_3clp.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_gyroscope_eclp.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_hashflowv3.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_integral.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_kelp_rseth.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_litepsm.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_maker_savingsdai.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_nativev1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator{})
