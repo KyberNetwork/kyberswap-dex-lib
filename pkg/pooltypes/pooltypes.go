@@ -26,6 +26,7 @@ import (
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
+	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
@@ -211,6 +212,7 @@ type Types struct {
 	Slipstream                     string
 	NuriV2                         string
 	EtherVista                     string
+	MkrSky                         string
 }
 
 var (
@@ -324,5 +326,6 @@ var (
 		Slipstream:                     slipstream.DexType,
 		NuriV2:                         nuriv2.DexType,
 		EtherVista:                     ethervista.DexType,
+		MkrSky:                         mkrsky.DexType,
 	}
 )
