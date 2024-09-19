@@ -5,7 +5,7 @@ go 1.22.7
 require (
 	github.com/KyberNetwork/blockchain-toolkit v0.6.0
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.2
-	github.com/KyberNetwork/ethrpc v0.7.2
+	github.com/KyberNetwork/ethrpc v0.7.1
 	github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0
 	github.com/KyberNetwork/int256 v0.1.4
 	github.com/KyberNetwork/logger v0.2.0
@@ -17,7 +17,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/dgraph-io/ristretto v0.1.1
-	github.com/ethereum/go-ethereum v1.14.8
+	github.com/ethereum/go-ethereum v1.13.15
 	github.com/go-resty/resty/v2 v2.10.0
 	github.com/goccy/go-json v0.10.2
 	github.com/golang/mock v1.6.0
