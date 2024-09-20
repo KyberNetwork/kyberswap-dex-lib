@@ -182,6 +182,12 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeLitePSM
 	dexValueObject.ExchangeLitePSM: {},
+
+	// executeMkrSky
+	dexValueObject.ExchangeMkrSky: {},
+
+	// executeDaiUsds
+	dexValueObject.ExchangeDaiUsds: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {
