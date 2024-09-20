@@ -64,6 +64,8 @@ common:
     0xf5dae9e48d268f1b607f19d8bf22f0dfb904147d: true
     0xf6a8e47daeeddcce297e7541523e27df2f167bf3: true
   availableSources: &availableSources
+    - "mkr-sky"
+    - "dai-usds"
     - "ambient"
     - "balancer-v1"
     - "balancer-v2-composable-stable"
