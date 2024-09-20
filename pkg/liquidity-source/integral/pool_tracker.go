@@ -51,8 +51,8 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		// uint256 xDecimals,
 		// uint256 yDecimals,
 		// uint256 price
-		pairInfo         = [3]interface{}{uint8(0), uint8(0)}
-		invertedPairInfo = [3]interface{}{uint8(0), uint8(0)}
+		pairInfo         = [3]interface{}{}
+		invertedPairInfo = [3]interface{}{}
 	)
 
 	rpcRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
@@ -103,8 +103,14 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	xDecimals := pairInfo[0].(uint8)
 	yDecimals := pairInfo[1].(uint8)
 
-	price := pairInfo[2].(*big.Int)
-	invertedPrice := invertedPairInfo[2].(*big.Int)
+	invertedPrice, price := ZERO, ZERO
+	if pairInfo[2] != nil {
+		price = pairInfo[2].(*big.Int)
+	}
+
+	if invertedPairInfo[2] != nil {
+		invertedPrice = invertedPairInfo[2].(*big.Int)
+	}
 
 	var extraData IntegralPair
 	_ = json.Unmarshal([]byte(p.Extra), &extraData)
