@@ -35,9 +35,6 @@ func TestPoolTracker(t *testing.T) {
 	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io")
 	rpcClient.SetMulticallContract(common.HexToAddress("0x5ba1e12693dc8f9c48aad8770482f4739beed696"))
 
-	// Set the block number for the fork
-	// blockNumber := uint64(20620149)
-
 	logger.Debugf("RPC client initialized with multicall contract")
 
 	poolTracker := NewPoolTracker(&config, rpcClient)

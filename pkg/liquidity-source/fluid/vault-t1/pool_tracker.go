@@ -32,7 +32,10 @@ func (t *PoolTracker) GetNewPoolState(
 ) (entity.Pool, error) {
 	logger.Debugf("Starting GetNewPoolState for pool: %s", p.Address)
 
-	swapData, blockNumber, err := t.getPoolSwapData(ctx, p.Address)
+	// TODO: Get block number?
+	blockNumber := uint64(20620149)
+
+	swapData, err := t.getPoolSwapData(ctx, p.Address)
 	if err != nil {
 		logger.Errorf("Error getting pool swap data: %v", err)
 		return p, err
@@ -64,41 +67,59 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) getPoolSwapData(ctx context.Context, poolAddress string) (*SwapData, uint64, error) {
+func (t *PoolTracker) getPoolSwapData(ctx context.Context, poolAddress string) (*SwapData, error) {
 	logger.Debugf("Starting getPoolSwapData for pool: %s", poolAddress)
 
-	var swap Swap
-
 	req := t.ethrpcClient.R().SetContext(ctx)
-	logger.Debugf("Created ethrpc request")
 
-	// TODO: this must be callStatic called and currently doesn't work. Once this is resolved,
-	// integration can be finalized. Only pool_simulator.go must be coded which simply uses the data we
-	// get here like pool reserves and the ratio / with absorb flag fed into Pool extra.
-	//
-	// Run test for tracker: go test -v -run TestPoolTracker ./pkg/liquidity-source/fluid/vault-t1/
-	//
+	// Set the block number for the fork (test temporary) TODO REMOVE
+	blockNumber := big.NewInt(20620149)
+	req.SetBlockNumber(blockNumber)
+
+	var output interface{}
 	req.AddCall(&ethrpc.Call{
 		ABI:    vaultLiquidationResolverABI,
 		Target: vaultLiquidationResolver[t.config.ChainID],
 		Method: VLRMethodGetSwapForProtocol,
 		Params: []interface{}{common.HexToAddress(poolAddress)},
-	}, []interface{}{&swap})
+	}, []interface{}{&output})
 
-	logger.Debugf("Added call to request: ABI: %v, Target: %s, Method: %s, Params: %v",
-		vaultLiquidationResolverABI,
-		vaultLiquidationResolver[t.config.ChainID],
-		VLRMethodGetSwapForProtocol,
-		common.HexToAddress(poolAddress))
-
-	resp, err := req.TryBlockAndAggregate()
+	_, err := req.Call()
 	if err != nil {
-		logger.Errorf("Error in TryBlockAndAggregate: %v", err)
-		return nil, 0, err
+		logger.WithFields(logger.Fields{
+			"dexType": DexType,
+			"error":   err,
+		}).Error("Error in GetSwapForProtocol Call")
+		return nil, err
 	}
-	logger.Debugf("Received response: %+v", resp)
 
-	logger.Infof("Swap data for pool %s: %+v", poolAddress, swap.Data)
+	castResult, ok := output.(struct {
+		Path struct {
+			Protocol common.Address `json:"protocol"`
+			TokenIn  common.Address `json:"tokenIn"`
+			TokenOut common.Address `json:"tokenOut"`
+		} `json:"path"`
+		Data struct {
+			InAmt      *big.Int `json:"inAmt"`
+			OutAmt     *big.Int `json:"outAmt"`
+			WithAbsorb bool     `json:"withAbsorb"`
+			Ratio      *big.Int `json:"ratio"`
+		} `json:"data"`
+	})
+	if !ok {
+		logger.WithFields(logger.Fields{
+			"dexType": DexType,
+			"error":   err,
+		}).Error("Error in GetSwapForProtocol response conversion")
+		return nil, err
+	}
 
-	return &swap.Data, resp.BlockNumber.Uint64(), nil
+	// automatically casting to &swap instead of going via output -> castResult doesn't work
+	var swap SwapData
+	swap.InAmt = castResult.Data.InAmt
+	swap.OutAmt = castResult.Data.OutAmt
+	swap.WithAbsorb = castResult.Data.WithAbsorb
+	swap.Ratio = castResult.Data.Ratio
+
+	return &swap, nil
 }
