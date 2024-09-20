@@ -51,8 +51,8 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		// uint256 xDecimals,
 		// uint256 yDecimals,
 		// uint256 price
-		pairInfo         = [3]interface{}{}
-		invertedPairInfo = [3]interface{}{}
+		pairInfo         = [3]interface{}{uint8(0), uint8(0)}
+		invertedPairInfo = [3]interface{}{uint8(0), uint8(0)}
 	)
 
 	rpcRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
