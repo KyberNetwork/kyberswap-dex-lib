@@ -51,8 +51,8 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		// uint256 xDecimals,
 		// uint256 yDecimals,
 		// uint256 price
-		pairInfo         = [3]interface{}{0, 0}
-		invertedPairInfo = [3]interface{}{0, 0}
+		pairInfo         = [3]interface{}{uint8(0), uint8(0)}
+		invertedPairInfo = [3]interface{}{uint8(0), uint8(0)}
 	)
 
 	rpcRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
@@ -75,6 +75,11 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		logger.Errorf("%s: failed to fetch basic pool data (address: %s, error: %v)", u.config.DexID, p.Address, err)
 		return entity.Pool{}, err
+	}
+
+	// return if pool is disabled
+	if !isPairEnabled {
+		return p, nil
 	}
 
 	rpcRequest.AddCall(&ethrpc.Call{
