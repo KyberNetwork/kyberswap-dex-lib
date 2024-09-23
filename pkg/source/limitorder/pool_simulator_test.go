@@ -892,6 +892,13 @@ func TestPool_CalcAmountOut_v2(t *testing.T) {
 			{1002, "100", "2000", "50"},
 			{1003, "100", "2000", "100"},
 		},
+		"pool3": {
+			{1001, "39", "777000000000000000000", "39"},
+		},
+		"pool4": {
+			{1001, "39", "777000000000000000000", "39"},
+			{1002, "390000", "777000000000000000", "390000"},
+		},
 	}
 
 	testcases := []struct {
@@ -911,6 +918,10 @@ func TestPool_CalcAmountOut_v2(t *testing.T) {
 		{"f-fill 1st/2nd order, p-fill 3rd one", "pool2", "2100", "155", []int64{1001, 1002, 1003}},
 		{"f-fill all order", "pool2", "4000", "250", []int64{1001, 1002, 1003}},
 		{"cannot be filled", "pool1", "4001", "", nil},
+
+		{"cannot be filled (too small, round to 0)", "pool3", "5874584652643", "", nil},
+
+		{"skip 1st order (too small, round to 0) and use 2nd one", "pool4", "5874584652643", "2", []int64{1002}},
 	}
 
 	sims := lo.MapValues(pools, func(orders []testorder, _ string) *PoolSimulator {

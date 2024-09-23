@@ -258,6 +258,12 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 			amountOutWei := new(big.Float).Mul(new(big.Float).SetInt(totalAmountIn), rate)
 			filledTakingAmountWei := totalAmountIn
 			filledMakingAmountWei, _ := amountOutWei.Int(nil)
+
+			// order too small
+			if filledMakingAmountWei.Cmp(constant.ZeroBI) <= 0 {
+				continue
+			}
+
 			feeAmountWeiByOrder := p.calcFeeAmountPerOrder(order, filledMakingAmountWei)
 			totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, feeAmountWeiByOrder)
 			actualAmountOut := new(big.Int).Sub(filledMakingAmountWei, feeAmountWeiByOrder)

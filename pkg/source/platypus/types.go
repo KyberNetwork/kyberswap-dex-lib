@@ -2,14 +2,16 @@ package platypus
 
 import (
 	"math/big"
+	"net/http"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 )
 
 type Config struct {
-	DexID       string `json:"dexID"`
-	SubgraphAPI string `json:"subgraphAPI"`
+	DexID           string      `json:"dexID"`
+	SubgraphAPI     string      `json:"subgraphAPI"`
+	SubgraphHeaders http.Header `json:"subgraphHeaders"`
 }
 
 type SubgraphPool struct {

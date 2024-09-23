@@ -25,7 +25,11 @@ type PoolsListUpdater struct {
 }
 
 func NewPoolsListUpdater(cfg *Config, ethClient *ethrpc.Client) *PoolsListUpdater {
-	graphqlClient := graphqlpkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
+	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
+		Url:     cfg.SubgraphAPI,
+		Header:  cfg.SubgraphHeaders,
+		Timeout: graphQLRequestTimeout,
+	})
 
 	return &PoolsListUpdater{
 		config:        cfg,

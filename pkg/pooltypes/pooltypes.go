@@ -12,11 +12,13 @@ import (
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
 	curveStableNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	curveTricryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/tricrypto-ng"
+	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
+	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
@@ -24,8 +26,12 @@ import (
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
+	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
+	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
@@ -40,6 +46,7 @@ import (
 	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
+	woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
@@ -155,6 +162,7 @@ type Types struct {
 	KyberPMM                       string
 	IZiSwap                        string
 	WooFiV2                        string
+	WooFiV21                       string
 	Equalizer                      string
 	SwapBasedPerp                  string
 	USDFi                          string
@@ -166,6 +174,7 @@ type Types struct {
 	LiquidityBookV21               string
 	LiquidityBookV20               string
 	Smardex                        string
+	Integral                       string
 	Fxdx                           string
 	UniswapV2                      string
 	QuickPerps                     string
@@ -209,6 +218,11 @@ type Types struct {
 	Slipstream                     string
 	NuriV2                         string
 	FluidVaultT1                   string
+	EtherVista                     string
+	MkrSky                         string
+	DaiUsds                        string
+	MaverickV2                     string
+	LitePSM                        string
 }
 
 var (
@@ -268,6 +282,7 @@ var (
 		KyberPMM:                       kyberpmm.DexTypeKyberPMM,
 		IZiSwap:                        iziswap.DexTypeiZiSwap,
 		WooFiV2:                        woofiv2.DexTypeWooFiV2,
+		WooFiV21:                       woofiv21.DexTypeWooFiV21,
 		Equalizer:                      equalizer.DexTypeEqualizer,
 		SwapBasedPerp:                  swapbasedperp.DexTypeSwapBasedPerp,
 		USDFi:                          usdfi.DexTypeUSDFi,
@@ -278,6 +293,7 @@ var (
 		LiquidityBookV21:               liquiditybookv21.DexTypeLiquidityBookV21,
 		LiquidityBookV20:               liquiditybookv20.DexTypeLiquidityBookV20,
 		Smardex:                        smardex.DexTypeSmardex,
+		Integral:                       integral.DexTypeIntegral,
 		Fxdx:                           fxdx.DexTypeFxdx,
 		UniswapV2:                      uniswapv2.DexType,
 		QuickPerps:                     quickperps.DexTypeQuickperps,
@@ -321,5 +337,10 @@ var (
 		Slipstream:                     slipstream.DexType,
 		NuriV2:                         nuriv2.DexType,
 		FluidVaultT1:                   fluidVaultT1.DexType,
+		EtherVista:                     ethervista.DexType,
+		MkrSky:                         mkrsky.DexType,
+		DaiUsds:                        daiusds.DexType,
+		MaverickV2:                     maverickv2.DexType,
+		LitePSM:                        litepsm.DexTypeLitePSM,
 	}
 )

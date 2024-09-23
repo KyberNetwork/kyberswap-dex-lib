@@ -1,0 +1,22 @@
+[
+  {
+    "id": "0xbdcfca946b6cdd965f99a839e4435bcdc1bc470b",
+    "name": "mkrSky",
+    "type": "mkr-sky",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2",
+        "name": "mkr",
+        "symbol": "mkr",
+        "decimals": 18
+      },
+      {
+        "address": "0x56072c95faa701256059aa122697b133aded9279",
+        "name": "sky",
+        "symbol": "sky",
+        "decimals": 18
+      }
+    ]
+  }
+]
