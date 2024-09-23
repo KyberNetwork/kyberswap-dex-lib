@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
-	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -17,11 +16,11 @@ import (
 )
 
 func TestPoolTracker(t *testing.T) {
-	_ = logger.SetLogLevel("debug")
+	// @dev test is guaranteed to work on block (because liquidation is available)
+	// const testBlockNumber = uint64(20812089)
+	t.Skip()
 
-	if os.Getenv("CI") != "" {
-		t.Skip()
-	}
+	_ = logger.SetLogLevel("debug")
 
 	var (
 		config = Config{
@@ -31,13 +30,10 @@ func TestPoolTracker(t *testing.T) {
 
 	logger.Debugf("Starting TestPoolTracker with config: %+v", config)
 
-	// Setup RPC server
-	rpcClient := ethrpc.New("https://ethereum.kyberengineering.io")
-	rpcClient.SetMulticallContract(common.HexToAddress("0x5ba1e12693dc8f9c48aad8770482f4739beed696"))
+	client := ethrpc.New("https://ethereum.kyberengineering.io")
+	client.SetMulticallContract(common.HexToAddress("0x5ba1e12693dc8f9c48aad8770482f4739beed696"))
 
-	logger.Debugf("RPC client initialized with multicall contract")
-
-	poolTracker := NewPoolTracker(&config, rpcClient)
+	poolTracker := NewPoolTracker(&config, client)
 	require.NotNil(t, poolTracker)
 	logger.Debugf("PoolTracker initialized: %+v", poolTracker)
 
@@ -96,7 +92,6 @@ func TestPoolTracker(t *testing.T) {
 
 		jsonEncoded, _ := json.MarshalIndent(newPool, "", "  ")
 		t.Logf("Updated wstETH-weETH Pool: %s\n", string(jsonEncoded))
-		logger.Debugf("wstETH_weETH_Pool test completed")
 	})
 
 	t.Run("USDC_ETH_Pool", func(t *testing.T) {
@@ -137,8 +132,6 @@ func TestPoolTracker(t *testing.T) {
 
 		jsonEncoded, _ := json.MarshalIndent(newPool, "", "  ")
 		t.Logf("Updated USDC_ETH Pool: %s\n", string(jsonEncoded))
-		logger.Debugf("USDC_ETH_Pool test completed")
 	})
 
-	logger.Debugf("TestPoolTracker completed")
 }

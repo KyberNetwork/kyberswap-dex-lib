@@ -28,6 +28,11 @@ type PoolMeta struct {
 	BlockNumber uint64 `json:"blockNumber"`
 }
 
+type PoolExtra struct {
+	WithAbsorb bool     `json:"withAbsorb"`
+	Ratio      *big.Int `json:"ratio"`
+}
+
 type Gas struct {
 	Liquidate int64
 }

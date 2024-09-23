@@ -25,56 +25,49 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 		ethrpcClient: ethrpcClient,
 	}
 }
+
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	logger.Debugf("Starting GetNewPoolState for pool: %s", p.Address)
-
-	// TODO: Get block number?
-	blockNumber := uint64(20620149)
-
-	swapData, err := t.getPoolSwapData(ctx, p.Address)
+	swapData, blockNumber, err := t.getPoolSwapData(ctx, p.Address)
 	if err != nil {
-		logger.Errorf("Error getting pool swap data: %v", err)
+		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("Error getPoolSwapData")
 		return p, err
 	}
-	logger.Debugf("Retrieved swap data: %+v, blockNumber: %d", swapData, blockNumber)
 
-	extra := struct {
-		WithAbsorb bool     `json:"withAbsorb"`
-		Ratio      *big.Int `json:"ratio"`
-	}{
+	extra := PoolExtra{
 		WithAbsorb: swapData.WithAbsorb,
 		Ratio:      swapData.Ratio,
 	}
-	logger.Debugf("Created extra struct: %+v", extra)
 
 	extraBytes, err := json.Marshal(extra)
 	if err != nil {
-		logger.Errorf("Error marshaling extra data: %v", err)
+		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("Error marshaling extra data")
 		return p, err
 	}
-	logger.Debugf("Marshaled extra data: %s", string(extraBytes))
 
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{swapData.InAmt.String(), swapData.OutAmt.String()}
-	logger.Debugf("Updated pool state: %+v", p)
 
 	return p, nil
 }
 
-func (t *PoolTracker) getPoolSwapData(ctx context.Context, poolAddress string) (*SwapData, error) {
-	logger.Debugf("Starting getPoolSwapData for pool: %s", poolAddress)
-
+func (t *PoolTracker) getPoolSwapData(ctx context.Context, poolAddress string) (*SwapData, uint64, error) {
 	req := t.ethrpcClient.R().SetContext(ctx)
 
-	// Set the block number for the fork (test temporary) TODO REMOVE
-	blockNumber := big.NewInt(20620149)
-	req.SetBlockNumber(blockNumber)
+	blockNumber, err := t.ethrpcClient.GetBlockNumber(ctx)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexType": DexType,
+			"error":   err,
+		}).Error("Failed to get block number")
+		return nil, 0, err
+	}
+	req.SetBlockNumber(big.NewInt(int64(blockNumber)))
 
 	var output interface{}
 	req.AddCall(&ethrpc.Call{
@@ -84,13 +77,13 @@ func (t *PoolTracker) getPoolSwapData(ctx context.Context, poolAddress string) (
 		Params: []interface{}{common.HexToAddress(poolAddress)},
 	}, []interface{}{&output})
 
-	_, err := req.Call()
+	_, err = req.Call()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
 			"error":   err,
 		}).Error("Error in GetSwapForProtocol Call")
-		return nil, err
+		return nil, 0, err
 	}
 
 	castResult, ok := output.(struct {
@@ -111,7 +104,7 @@ func (t *PoolTracker) getPoolSwapData(ctx context.Context, poolAddress string) (
 			"dexType": DexType,
 			"error":   err,
 		}).Error("Error in GetSwapForProtocol response conversion")
-		return nil, err
+		return nil, 0, err
 	}
 
 	// automatically casting to &swap instead of going via output -> castResult doesn't work
@@ -121,5 +114,5 @@ func (t *PoolTracker) getPoolSwapData(ctx context.Context, poolAddress string) (
 	swap.WithAbsorb = castResult.Data.WithAbsorb
 	swap.Ratio = castResult.Data.Ratio
 
-	return &swap, nil
+	return &swap, blockNumber, nil
 }
