@@ -21,6 +21,7 @@ import (
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
+	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
@@ -216,6 +217,7 @@ type Types struct {
 	RenzoEZETH                     string
 	Slipstream                     string
 	NuriV2                         string
+	FluidVaultT1                   string
 	EtherVista                     string
 	MkrSky                         string
 	DaiUsds                        string
@@ -334,6 +336,7 @@ var (
 		RenzoEZETH:                     ezeth.DexType,
 		Slipstream:                     slipstream.DexType,
 		NuriV2:                         nuriv2.DexType,
+		FluidVaultT1:                   fluidVaultT1.DexType,
 		EtherVista:                     ethervista.DexType,
 		MkrSky:                         mkrsky.DexType,
 		DaiUsds:                        daiusds.DexType,
