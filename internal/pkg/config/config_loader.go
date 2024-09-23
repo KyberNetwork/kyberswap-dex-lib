@@ -28,16 +28,22 @@ type IRemoteConfigFetcher interface {
 }
 
 type ConfigLoader struct {
-	path                 string
-	config               *Config
-	mu                   sync.RWMutex
-	remoteConfigFetcher  IRemoteConfigFetcher
-	tokenGroupConfigPath string
+	path                string
+	additionConfigPaths []string
+	config              *Config
+	mu                  sync.RWMutex
+	remoteConfigFetcher IRemoteConfigFetcher
 }
 
 // NewConfigLoader returns a new ConfigLoader.
-func NewConfigLoader(path string, tokenGroupConfigPath string) (*ConfigLoader, error) {
-	cl := &ConfigLoader{path: path, tokenGroupConfigPath: tokenGroupConfigPath}
+func NewConfigLoader(
+	path string,
+	additionConfigPaths []string,
+) (*ConfigLoader, error) {
+	cl := &ConfigLoader{
+		path:                path,
+		additionConfigPaths: additionConfigPaths,
+	}
 	err := cl.Initialize()
 	if err != nil {
 		return nil, err
@@ -77,14 +83,16 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "__"))
 	viper.AutomaticEnv()
 
-	// Load and merge token group configuration
-	tokenGroupVier := viper.New()
-	if cl.tokenGroupConfigPath != "" {
-		tokenGroupVier.SetConfigFile(cl.tokenGroupConfigPath)
-		if err := tokenGroupVier.ReadInConfig(); err != nil {
-			return nil, fmt.Errorf("failed to merge token group config: %w", err)
+	// Load and merge additional custom path configuration
+	for _, configPath := range cl.additionConfigPaths {
+		configViper := viper.New()
+		if configPath != "" {
+			configViper.SetConfigFile(configPath)
+			if err := configViper.ReadInConfig(); err != nil {
+				return nil, fmt.Errorf("failed to read config path: %s, err: %w", configPath, err)
+			}
+			viper.MergeConfigMap(configViper.AllSettings())
 		}
-		viper.MergeConfigMap(tokenGroupVier.AllSettings())
 	}
 
 	decoder := mapstructure.ComposeDecodeHookFunc(

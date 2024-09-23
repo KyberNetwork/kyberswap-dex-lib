@@ -1,13 +1,22 @@
 package getroute
 
 import (
+	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/samber/lo"
 
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
+	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/hillclimb"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/retry"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/spfav2"
+	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/aevm"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/safetyquote"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
@@ -180,4 +189,58 @@ func ConvertToRouteSummary(params *types.AggregateParams, route *finderEntity.Ro
 	}
 
 	return routeSummary
+}
+
+func InitializeFinderEngine(
+	config Config,
+	aevmClient aevmclient.Client,
+) (finderEngine.IFinder, finderEngine.IFinalizer, error) {
+	calcAmountOutInstance := routerpoolpkg.NewCalcAmountOut(config.Aggregator.DexUseAEVM)
+
+	finderOptions := config.Aggregator.FinderOptions
+	var baseFinder finderEngine.IFinder
+
+	spfaFinder, err := spfav2.NewSPFAv2Finder(
+		uint(finderOptions.MaxHops),
+		uint(finderOptions.MaxPathsToGenerate),
+		uint(finderOptions.MaxPathsToReturn),
+		uint(finderOptions.MaxPathsInRoute),
+		uint(finderOptions.DistributionPercent),
+		finderOptions.MinPartUSD,
+	)
+	spfaFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
+	baseFinder = spfaFinder
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if finderOptions.Type == valueobject.FinderTypes.RetryDynamicPools {
+		retryFinder := retry.NewRetryFinder(baseFinder)
+		retryFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
+		baseFinder = retryFinder
+	}
+
+	if config.Aggregator.FeatureFlags.IsHillClimbEnabled {
+		hillClimbFinder := hillclimb.NewHillClimbFinder(
+			baseFinder,
+			int(finderOptions.HillClimbIteration),
+			finderOptions.HillClimbMinPartUSD,
+		)
+		hillClimbFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
+		baseFinder = hillClimbFinder
+	}
+
+	aevmLocalFinder := aevm.NewAEVMLocalFinder(
+		baseFinder,
+		aevmClient,
+		finderOptions,
+	)
+
+	routeFinalizer := findroute.NewSafetyQuotingRouteFinalizer(
+		safetyquote.NewSafetyQuoteReduction(config.SafetyQuoteConfig),
+		calcAmountOutInstance.CalcAmountOut,
+	)
+
+	return aevmLocalFinder, routeFinalizer, nil
 }

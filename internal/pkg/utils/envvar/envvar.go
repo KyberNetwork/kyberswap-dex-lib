@@ -12,5 +12,6 @@ const (
 
 	CalcAmountOutCounterMetricEnabled = "CALC_AMOUNT_OUT_COUNTER_METRIC_ENABLED"
 
-	TokenGroupConfigPath = "TOKEN_GROUP_CONFIG_PATH"
+	TokenGroupConfigPath      = "TOKEN_GROUP_CONFIG_PATH"
+	CorrelatedPairsConfigPath = "CORRELATED_PAIRS_CONFIG_PATH"
 )

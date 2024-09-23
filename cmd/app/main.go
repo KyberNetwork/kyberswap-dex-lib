@@ -18,7 +18,6 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/reload"
-	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/getsentry/sentry-go"
@@ -31,9 +30,6 @@ import (
 
 	_ "github.com/KyberNetwork/kyber-trace-go/tools"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
-	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/hillclimb"
-	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/retry"
-	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
 	"github.com/KyberNetwork/router-service/internal/pkg/bootstrap"
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
@@ -60,14 +56,11 @@ import (
 	aevmclientuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/aevmclient"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/aevm"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getcustomroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolpublisher"
-	"github.com/KyberNetwork/router-service/internal/pkg/usecase/safetyquote"
 	trackexecutor "github.com/KyberNetwork/router-service/internal/pkg/usecase/trackexecutorbalance"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/validateroute/synthetix"
@@ -188,8 +181,9 @@ func apiAction(c *cli.Context) (err error) {
 	configFile := c.String("config")
 
 	tokenGroupConfigPath := env.StringFromEnv(envvar.TokenGroupConfigPath, "")
+	correlatedPairsConfigPath := env.StringFromEnv(envvar.CorrelatedPairsConfigPath, "")
 
-	configLoader, err := config.NewConfigLoader(configFile, tokenGroupConfigPath)
+	configLoader, err := config.NewConfigLoader(configFile, []string{tokenGroupConfigPath, correlatedPairsConfigPath})
 	if err != nil {
 		return err
 	}
@@ -425,7 +419,7 @@ func apiAction(c *cli.Context) (err error) {
 		return err
 	}
 
-	pathFinder, routeFinalizer, err := initializeFinderEngine(cfg, aevmClient)
+	pathFinder, routeFinalizer, err := getroute.InitializeFinderEngine(cfg.UseCase.GetRoute, aevmClient)
 
 	if err != nil {
 		return err
@@ -583,8 +577,9 @@ func indexerAction(c *cli.Context) (err error) {
 	// load config
 	configFile := c.String("config")
 	tokenGroupConfigPath := env.StringFromEnv(envvar.TokenGroupConfigPath, "")
+	correlatedPairsConfigPath := env.StringFromEnv(envvar.CorrelatedPairsConfigPath, "")
 
-	configLoader, err := config.NewConfigLoader(configFile, tokenGroupConfigPath)
+	configLoader, err := config.NewConfigLoader(configFile, []string{tokenGroupConfigPath, correlatedPairsConfigPath})
 	if err != nil {
 		return err
 	}
@@ -772,8 +767,9 @@ func executorTrackerAction(c *cli.Context) (err error) {
 	// load config
 	configFile := c.String("config")
 	tokenGroupConfigPath := env.StringFromEnv(envvar.TokenGroupConfigPath, "")
+	correlatedPairsConfigPath := env.StringFromEnv(envvar.CorrelatedPairsConfigPath, "")
 
-	configLoader, err := config.NewConfigLoader(configFile, tokenGroupConfigPath)
+	configLoader, err := config.NewConfigLoader(configFile, []string{tokenGroupConfigPath, correlatedPairsConfigPath})
 	if err != nil {
 		return err
 	}
@@ -890,7 +886,7 @@ func applyLatestConfigForAPI(
 	}
 
 	// Reload FinderEngine with new config
-	pathFinder, routeFinalizer, err := initializeFinderEngine(cfg, aevmClient)
+	pathFinder, routeFinalizer, err := getroute.InitializeFinderEngine(cfg.UseCase.GetRoute, aevmClient)
 	if err != nil {
 		return err
 	}
@@ -921,58 +917,4 @@ func applyLatestConfigForIndexer(
 	indexPoolsUseCase.ApplyConfig(cfg.UseCase.IndexPools)
 
 	return nil
-}
-
-func initializeFinderEngine(
-	cfg *config.Config,
-	aevmClient aevmclient.Client,
-) (finderEngine.IFinder, finderEngine.IFinalizer, error) {
-	calcAmountOutInstance := routerpoolpkg.NewCalcAmountOut(cfg.UseCase.GetRoute.Aggregator.DexUseAEVM)
-
-	finderOptions := cfg.UseCase.GetRoute.Aggregator.FinderOptions
-	var baseFinder finderEngine.IFinder
-
-	spfaFinder, err := spfav2.NewSPFAv2Finder(
-		uint(finderOptions.MaxHops),
-		uint(finderOptions.MaxPathsToGenerate),
-		uint(finderOptions.MaxPathsToReturn),
-		uint(finderOptions.MaxPathsInRoute),
-		uint(finderOptions.DistributionPercent),
-		finderOptions.MinPartUSD,
-	)
-	spfaFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
-	baseFinder = spfaFinder
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if finderOptions.Type == valueobject.FinderTypes.RetryDynamicPools {
-		retryFinder := retry.NewRetryFinder(baseFinder)
-		retryFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
-		baseFinder = retryFinder
-	}
-
-	if cfg.UseCase.GetRoute.Aggregator.FeatureFlags.IsHillClimbEnabled {
-		hillClimbFinder := hillclimb.NewHillClimbFinder(
-			baseFinder,
-			int(finderOptions.HillClimbIteration),
-			finderOptions.HillClimbMinPartUSD,
-		)
-		hillClimbFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
-		baseFinder = hillClimbFinder
-	}
-
-	aevmLocalFinder := aevm.NewAEVMLocalFinder(
-		baseFinder,
-		aevmClient,
-		finderOptions,
-	)
-
-	routeFinalizer := findroute.NewSafetyQuotingRouteFinalizer(
-		safetyquote.NewSafetyQuoteReduction(cfg.UseCase.GetRoute.SafetyQuoteConfig),
-		calcAmountOutInstance.CalcAmountOut,
-	)
-
-	return aevmLocalFinder, routeFinalizer, nil
 }

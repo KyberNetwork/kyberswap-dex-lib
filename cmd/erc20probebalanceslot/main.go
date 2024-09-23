@@ -98,8 +98,9 @@ func main() {
 func probeBalanceSlotAction(c *cli.Context) error {
 	configFile := c.String("config")
 	tokenGroupConfigPath := env.StringFromEnv(envvar.TokenGroupConfigPath, "")
+	correlatedPairsConfigPath := env.StringFromEnv(envvar.CorrelatedPairsConfigPath, "")
 
-	configLoader, err := config.NewConfigLoader(configFile, tokenGroupConfigPath)
+	configLoader, err := config.NewConfigLoader(configFile, []string{tokenGroupConfigPath, correlatedPairsConfigPath})
 	if err != nil {
 		return err
 	}
@@ -241,8 +242,9 @@ func randomizeAddress() common.Address {
 func convertToPreloadedAction(c *cli.Context) error {
 	configFile := c.String("config")
 	tokenGroupConfigPath := env.StringFromEnv(envvar.TokenGroupConfigPath, "")
+	correlatedPairsConfigPath := env.StringFromEnv(envvar.CorrelatedPairsConfigPath, "")
 
-	configLoader, err := config.NewConfigLoader(configFile, tokenGroupConfigPath)
+	configLoader, err := config.NewConfigLoader(configFile, []string{tokenGroupConfigPath, correlatedPairsConfigPath})
 	if err != nil {
 		return err
 	}

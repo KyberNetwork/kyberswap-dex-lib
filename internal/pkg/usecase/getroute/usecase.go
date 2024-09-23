@@ -52,7 +52,16 @@ func NewUseCase(
 		config.Aggregator,
 		finderEngine,
 	)
-	aggregatorWithCache := NewCache(aggregator, routeCacheRepository, poolManager, config.Cache, finderEngine)
+	correlatedPairsAggregator := NewCorrelatedPairs(
+		aggregator,
+		poolRankRepository,
+		tokenRepository,
+		priceRepository,
+		onchainpriceRepository,
+		poolManager,
+		config,
+	)
+	aggregatorWithCache := NewCache(correlatedPairsAggregator, routeCacheRepository, poolManager, config.Cache, finderEngine)
 	aggregatorWithChargeExtraFee := NewChargeExtraFee(aggregatorWithCache)
 
 	return &useCase{

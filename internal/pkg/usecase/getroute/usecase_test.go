@@ -294,6 +294,8 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 					HillClimbMinPartUSD:          500,
 				},
 			},
+
+			SafetyQuoteConfig: &valueobject.SafetyQuoteReductionConfig{},
 		},
 	)
 }
