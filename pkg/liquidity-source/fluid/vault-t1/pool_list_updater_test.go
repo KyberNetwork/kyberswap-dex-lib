@@ -3,7 +3,6 @@ package vaultT1
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"testing"
 
@@ -14,17 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 )
-
-type mockPoolDataStore struct {
-	pool *entity.Pool
-}
-
-func (d mockPoolDataStore) Get(ctx context.Context, address string) (entity.Pool, error) {
-	if d.pool == nil {
-		return entity.Pool{}, fmt.Errorf("not found")
-	}
-	return *d.pool, nil
-}
 
 func TestPoolListUpdater(t *testing.T) {
 	_ = logger.SetLogLevel("debug")
@@ -50,7 +38,7 @@ func TestPoolListUpdater(t *testing.T) {
 	pu := NewPoolsListUpdater(&config, rpcClient)
 	require.NotNil(t, pu)
 
-	pools, metadataBytes, err = pu.GetNewPools(context.Background(), metadataBytes)
+	pools, _, err = pu.GetNewPools(context.Background(), metadataBytes)
 	require.NoError(t, err)
 	require.True(t, len(pools) >= 23)
 
@@ -62,18 +50,12 @@ func TestPoolListUpdater(t *testing.T) {
 		Tokens: []*entity.PoolToken{
 			{
 				Address:   "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-				Name:      "USD Coin",
-				Symbol:    "USDC",
-				Decimals:  6,
 				Weight:    1,
 				Swappable: true,
 			},
 			{
-				Address:  "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-				Name:     "ETH",
-				Symbol:   "Ethereum",
-				Decimals: 18,
-				Weight:   1,
+				Address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+				Weight:  1,
 			},
 		},
 	}
@@ -86,18 +68,12 @@ func TestPoolListUpdater(t *testing.T) {
 		Tokens: []*entity.PoolToken{
 			{
 				Address:   "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-				Name:      "Tether USD",
-				Symbol:    "USDT",
-				Decimals:  6,
 				Weight:    1,
 				Swappable: true,
 			},
 			{
-				Address:  "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
-				Name:     "Wrapped BTC",
-				Symbol:   "WBTC",
-				Decimals: 8,
-				Weight:   1,
+				Address: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
+				Weight:  1,
 			},
 		},
 	}
