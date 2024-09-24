@@ -69,7 +69,7 @@ func (t *PoolTracker) getPoolSwapData(ctx context.Context, poolAddress string) (
 	}
 	req.SetBlockNumber(big.NewInt(int64(blockNumber)))
 
-	var output interface{}
+	output := &Swap{}
 	req.AddCall(&ethrpc.Call{
 		ABI:    vaultLiquidationResolverABI,
 		Target: vaultLiquidationResolver[t.config.ChainID],
@@ -86,33 +86,5 @@ func (t *PoolTracker) getPoolSwapData(ctx context.Context, poolAddress string) (
 		return nil, 0, err
 	}
 
-	castResult, ok := output.(struct {
-		Path struct {
-			Protocol common.Address `json:"protocol"`
-			TokenIn  common.Address `json:"tokenIn"`
-			TokenOut common.Address `json:"tokenOut"`
-		} `json:"path"`
-		Data struct {
-			InAmt      *big.Int `json:"inAmt"`
-			OutAmt     *big.Int `json:"outAmt"`
-			WithAbsorb bool     `json:"withAbsorb"`
-			Ratio      *big.Int `json:"ratio"`
-		} `json:"data"`
-	})
-	if !ok {
-		logger.WithFields(logger.Fields{
-			"dexType": DexType,
-			"error":   err,
-		}).Error("Error in GetSwapForProtocol response conversion")
-		return nil, 0, err
-	}
-
-	// automatically casting to &swap instead of going via output -> castResult doesn't work
-	var swap SwapData
-	swap.InAmt = castResult.Data.InAmt
-	swap.OutAmt = castResult.Data.OutAmt
-	swap.WithAbsorb = castResult.Data.WithAbsorb
-	swap.Ratio = castResult.Data.Ratio
-
-	return &swap, blockNumber, nil
+	return &output.Data, blockNumber, nil
 }
