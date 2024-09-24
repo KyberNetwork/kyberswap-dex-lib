@@ -54,7 +54,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 	// ratio is scaled in 1e27, so divide by 1e27
 	divisor1e27 := new(big.Int)
-	divisor1e27.SetString("1000000000000000000000000000", 10) // 1e27
+	divisor1e27.SetString(String1e27, 10) // 1e27
 
 	tokenAmountOut = new(big.Int).Div(tokenAmountOut, divisor1e27)
 

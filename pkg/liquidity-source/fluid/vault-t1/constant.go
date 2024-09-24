@@ -22,3 +22,7 @@ const (
 	TokenMethodSymbol   = "symbol"
 	TokenMethodName     = "name"
 )
+
+const (
+	String1e27 = "1000000000000000000000000000"
+)
