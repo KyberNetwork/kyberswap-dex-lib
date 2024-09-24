@@ -16,11 +16,6 @@ const (
 	// VaultLiquidationResolver methods
 	VLRMethodGetAllSwapPaths    = "getAllSwapPaths"
 	VLRMethodGetSwapForProtocol = "getSwapForProtocol"
-
-	// ERC20 Token methods
-	TokenMethodDecimals = "decimals"
-	TokenMethodSymbol   = "symbol"
-	TokenMethodName     = "name"
 )
 
 const (
