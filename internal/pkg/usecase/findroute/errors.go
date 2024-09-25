@@ -9,4 +9,6 @@ var (
 	ErrNoInfoTokenOut         = errors.New("cannot get info for tokenOut")
 	ErrNoPath                 = errors.New("path not found")
 	ErrInvalidHopsToTokenOuts = errors.New("min hops required to TokenOut is invalid")
+
+	ErrPanicFinalizeRoute = errors.New("panic in finalize route")
 )

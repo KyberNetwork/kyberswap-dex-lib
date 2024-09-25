@@ -30,8 +30,8 @@ github.com/KyberNetwork/kutils v0.2.3 h1:73UJ802FZ1jpElT04kwnlOCiHf7CswnfZWOLTN9
 github.com/KyberNetwork/kutils v0.2.3/go.mod h1:Fp94FE7nf5BR10h5gnbfcK/i0PG/PXauaeoAev+65wE=
 github.com/KyberNetwork/kyber-trace-go v0.1.2 h1:x82SuCYTj4naoGNQ02DoSQgl7f07grl8RL8cKGAFNLw=
 github.com/KyberNetwork/kyber-trace-go v0.1.2/go.mod h1:X6hVacmKMeOEOlFh4TyfEHaEVRerFQ5YLuQ4keRV3hw=
-github.com/KyberNetwork/kyberswap-dex-lib v0.67.7 h1:mFhelUNQGRETw1z/vFq29ZQ9fhE81y+ID6uEolN7UQk=
-github.com/KyberNetwork/kyberswap-dex-lib v0.67.7/go.mod h1:wwv+H8+c9zyXkuaTnoERR4DLJ+JKHIJiw+FjIUDt8bE=
+github.com/KyberNetwork/kyberswap-dex-lib v0.67.8 h1:8m4rFk/bwKNWEnlLYk3KODFlyDTCNTmpApYoC+nolWs=
+github.com/KyberNetwork/kyberswap-dex-lib v0.67.8/go.mod h1:wwv+H8+c9zyXkuaTnoERR4DLJ+JKHIJiw+FjIUDt8bE=
 github.com/KyberNetwork/kyberswap-dex-lib-private v0.3.0 h1:L+p8UWbkeqT8NyePavOWjOkgZwacJpmyd+tlWWnOAA8=
 github.com/KyberNetwork/kyberswap-dex-lib-private v0.3.0/go.mod h1:QWyDz0dzrP6LO9KugBq7rFKgDfLD1GPNvwwGaN2V7Ro=
 github.com/KyberNetwork/logger v0.2.0 h1:5QNGP84uXpwVt4rtvLq9ATwy4grRwdjBNEc/RF7oJK4=
@@ -40,8 +40,8 @@ github.com/KyberNetwork/msgpack/v5 v5.4.2 h1:1RBX5AriCTNnXheBzV3/upOPr8QxjdGDSY1
 github.com/KyberNetwork/msgpack/v5 v5.4.2/go.mod h1:91PLIDmaoFsGuwQHhXDU8hv7JKubN2seUhUMbj9kXmM=
 github.com/KyberNetwork/pancake-v3-sdk v0.2.2 h1:45P7nv11pKHiQQcad2IA6RerjTyVZJmwAvZiFljA/hs=
 github.com/KyberNetwork/pancake-v3-sdk v0.2.2/go.mod h1:AhHu1v2KZAXKFZ9AnjwYPPx1+dDFHBqmSpSeg4fnvzg=
-github.com/KyberNetwork/pathfinder-lib v0.0.8 h1:V/jbEwE0LyWcFzvn9iUk8qEvnAfz+7npoAJrvEjWNjQ=
-github.com/KyberNetwork/pathfinder-lib v0.0.8/go.mod h1:Rj7fUK1/lt2L8JfkeJidcfSMikb0wWKup8BDa5vmJGI=
+github.com/KyberNetwork/pathfinder-lib v0.0.9 h1:MuQ92w2hNntLIkiAow4bHMpbb7TBWelL81jS2EJ1UZs=
+github.com/KyberNetwork/pathfinder-lib v0.0.9/go.mod h1:Rj7fUK1/lt2L8JfkeJidcfSMikb0wWKup8BDa5vmJGI=
 github.com/KyberNetwork/pool-service v0.67.0 h1:Vw26sKsi5y4fpt1eD6vqBq6IILOT9cb3c9RseTxdtDM=
 github.com/KyberNetwork/pool-service v0.67.0/go.mod h1:Dbuj6W+40pHSRqQKQ8Jq0o2zs9+9MzxEP2KX3M1HFlA=
 github.com/KyberNetwork/reload v0.1.1 h1:d2gu8KK8C34tiyPQongjLzwy5w73fYHbwP1P9MobXuo=

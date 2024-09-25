@@ -63,8 +63,8 @@ func (b *PoolBucket) ClonePool(poolAddress string) (pool poolpkg.IPoolSimulator)
 	defer func() {
 		if r := recover(); r != nil {
 			logger.WithFields(logger.Fields{
-				"error": r.(error),
-				"pool":  pool,
+				"recover": r,
+				"pool":    pool,
 			}).Error("panic in ClonePool")
 
 			// Push metrics

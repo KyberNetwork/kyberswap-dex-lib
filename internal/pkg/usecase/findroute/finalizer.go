@@ -2,9 +2,11 @@ package findroute
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 
 	dexlibPool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/logger"
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	finderFinalizer "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finalizer"
@@ -37,7 +39,19 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 	ctx context.Context,
 	params finderEntity.FinderParams,
 	constructRoute *finderCommon.ConstructRoute,
-) (*finderEntity.Route, error) {
+) (route *finderEntity.Route, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			route = nil
+			err = errors.WithMessage(ErrPanicFinalizeRoute, fmt.Sprintf("err: %v", r))
+
+			logger.WithFields(logger.Fields{
+				"recover":     r,
+				"route.Paths": constructRoute.Paths,
+			}).Error("panic in ClonePool")
+		}
+	}()
+
 	if constructRoute == nil || len(constructRoute.Paths) == 0 {
 		return nil, finderFinalizer.ErrEmptyRoute
 	}
@@ -154,7 +168,7 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 
 	gasFee := new(big.Int).Mul(big.NewInt(gasUsed), params.GasPrice)
 
-	route := &finderEntity.Route{
+	route = &finderEntity.Route{
 		TokenIn:        params.TokenIn,
 		AmountIn:       params.AmountIn,
 		AmountInPrice:  finderUtil.CalcAmountPrice(params.AmountIn, params.Tokens[params.TokenIn].Decimals, params.Prices[params.TokenIn]),
