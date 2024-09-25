@@ -64,7 +64,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}
 
 		sim.precisionMultipliers[i].Exp(
-			uint256.NewInt(10),
+			number.Number_10,
 			uint256.NewInt(uint64(18-entityPool.Tokens[i].Decimals)),
 		)
 	}
@@ -140,6 +140,7 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	var amountIn, feeDy, amountOut uint256.Int
 	amountOut.SetFromBig(tokenAmountOut.Amount)
+
 	swapInfo := SwapInfo{}
 	err := t.GetDx(
 		tokenIndexFrom,
@@ -153,9 +154,11 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	if err != nil {
 		return &pool.CalcAmountInResult{}, err
 	}
+
 	if amountIn.IsZero() {
 		return &pool.CalcAmountInResult{}, ErrZero
 	}
+
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{
 			Token:  tokenIn,
@@ -191,7 +194,9 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	t.Reserves[outputIndex].Sub(&t.Reserves[outputIndex], number.SetFromBig(outputAmount))
 
 	A, gamma := t._A_gamma()
-	_ = t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0)
+	if err := t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0); err != nil {
+		panic(fmt.Sprintf("failed to tweak price for curve-tricrypto-ng %v pool: %v", t.Info.Address, err))
+	}
 }
 
 func (t *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
