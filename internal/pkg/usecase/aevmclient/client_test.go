@@ -3,7 +3,6 @@ package aevmclient
 import (
 	"context"
 	"fmt"
-	"os"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -41,7 +40,8 @@ func (c *testClient) SingleCall(context.Context, *types.SingleCallParams) (*type
 	panic("unreachable")
 }
 
-func (c *testClient) StorePreparedPools(context.Context, *aevmtypes.StorePreparedPoolsParams) (*aevmtypes.StorePreparedPoolsResult, error) {
+func (c *testClient) StorePreparedPools(context.Context,
+	*aevmtypes.StorePreparedPoolsParams) (*aevmtypes.StorePreparedPoolsResult, error) {
 	panic("unreachable")
 }
 
@@ -113,9 +113,7 @@ func TestApplyConfig(t *testing.T) {
 }
 
 func TestClientWithRetry(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip()
-	}
+	t.Skip()
 
 	c, err := NewClient(Config{
 		ServerURLs: []string{

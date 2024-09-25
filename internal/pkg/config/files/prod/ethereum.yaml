@@ -80,6 +80,7 @@ common:
     - "curve-stable-ng"
     - "curve-stable-plain"
     - "curve-tricrypto-ng"
+    - "curve-twocrypto-ng"
     - "defiswap"
     - "dodo-classical"
     - "dodo-dpp"

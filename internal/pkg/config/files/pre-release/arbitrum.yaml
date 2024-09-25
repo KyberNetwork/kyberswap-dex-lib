@@ -340,7 +340,7 @@ useCase:
       shrinkAmountInThreshold: 100000
       minAmountInUSD: 0.9
     safetyQuoteConfig:
-      excludeOneSwapEnable: true      
+      excludeOneSwapEnable: true
       factor:
         Default: 0
         StrictlyStable: 0

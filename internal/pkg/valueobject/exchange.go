@@ -77,6 +77,7 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 	dexValueObject.ExchangeCurveStableNg:     {},
 	dexValueObject.ExchangeCurveStableMetaNg: {},
 	dexValueObject.ExchangeCurveTriCryptoNg:  {},
+	dexValueObject.ExchangeCurveTwoCryptoNg:  {},
 
 	// executePancakeStableSwap
 	dexValueObject.ExchangePancakeStable: {},
