@@ -258,7 +258,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 
 		resp.Meta.CheckIsLagging(d.config.DexID, poolAddress)
 
-		if resp.Ticks == nil || len(resp.Ticks) == 0 {
+		if len(resp.Ticks) == 0 {
 			break
 		}
 
