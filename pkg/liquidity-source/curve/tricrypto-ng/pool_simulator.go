@@ -64,7 +64,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}
 
 		sim.precisionMultipliers[i].Exp(
-			uint256.NewInt(10),
+			number.Number_10,
 			uint256.NewInt(uint64(18-entityPool.Tokens[i].Decimals)),
 		)
 	}
@@ -140,6 +140,7 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	var amountIn, feeDy, amountOut uint256.Int
 	amountOut.SetFromBig(tokenAmountOut.Amount)
+
 	swapInfo := SwapInfo{}
 	err := t.GetDx(
 		tokenIndexFrom,
@@ -153,9 +154,11 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	if err != nil {
 		return &pool.CalcAmountInResult{}, err
 	}
+
 	if amountIn.IsZero() {
 		return &pool.CalcAmountInResult{}, ErrZero
 	}
+
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{
 			Token:  tokenIn,
