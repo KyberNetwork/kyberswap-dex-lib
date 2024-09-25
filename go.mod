@@ -10,7 +10,7 @@ replace (
 require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/KyberNetwork/aevm v1.1.18
-	github.com/KyberNetwork/aggregator-encoding v0.25.0
+	github.com/KyberNetwork/aggregator-encoding v0.25.1
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.8.1
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4
