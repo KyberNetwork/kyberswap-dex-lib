@@ -1,4 +1,4 @@
-package tricryptong
+package twocryptong
 
 import (
 	"encoding/json"
@@ -64,7 +64,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}
 
 		sim.precisionMultipliers[i].Exp(
-			uint256.NewInt(10),
+			number.Number_10,
 			uint256.NewInt(uint64(18-entityPool.Tokens[i].Decimals)),
 		)
 	}
@@ -140,6 +140,7 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 
 	var amountIn, feeDy, amountOut uint256.Int
 	amountOut.SetFromBig(tokenAmountOut.Amount)
+
 	swapInfo := SwapInfo{}
 	err := t.GetDx(
 		tokenIndexFrom,
@@ -153,9 +154,11 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	if err != nil {
 		return &pool.CalcAmountInResult{}, err
 	}
+
 	if amountIn.IsZero() {
 		return &pool.CalcAmountInResult{}, ErrZero
 	}
+
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{
 			Token:  tokenIn,
@@ -173,7 +176,7 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
-		logger.Warnf("failed to UpdateBalance for curve-tricrypto-ng %v %v pool, wrong swapInfo type", t.Info.Address,
+		logger.Warnf("failed to UpdateBalance for curve-twocrypto-ng %v %v pool, wrong swapInfo type", t.Info.Address,
 			t.Info.Exchange)
 		return
 	}

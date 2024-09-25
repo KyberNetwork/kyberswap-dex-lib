@@ -74,6 +74,7 @@ var (
 	ExchangeCurveStableNg     Exchange = "curve-stable-ng"
 	ExchangeCurveStableMetaNg Exchange = "curve-stable-meta-ng"
 	ExchangeCurveTriCryptoNg  Exchange = "curve-tricrypto-ng"
+	ExchangeCurveTwoCryptoNg  Exchange = "curve-twocrypto-ng"
 
 	ExchangeUniSwapV3        Exchange = "uniswapv3"
 	ExchangeKyberswapElastic Exchange = "kyberswap-elastic"
@@ -345,6 +346,8 @@ var (
 	ExchangeMaverickV2 Exchange = "maverick-v2"
 	ExchangeEtherVista Exchange = "ether-vista"
 	ExchangeLitePSM    Exchange = "lite-psm"
+	ExchangeMkrSky     Exchange = "mkr-sky"
+	ExchangeDaiUsds    Exchange = "dai-usds"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -409,6 +412,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeCurveStableNg:              {},
 	ExchangeCurveStableMetaNg:          {},
 	ExchangeCurveTriCryptoNg:           {},
+	ExchangeCurveTwoCryptoNg:           {},
 	ExchangeEllipsis:                   {},
 	ExchangePancakeStable:              {},
 	ExchangeUniSwapV3:                  {},
@@ -626,6 +630,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMaverickV2:                 {},
 	ExchangeEtherVista:                 {},
 	ExchangeLitePSM:                    {},
+	ExchangeMkrSky:                     {},
+	ExchangeDaiUsds:                    {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
