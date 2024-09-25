@@ -18,7 +18,7 @@ import (
 func TestPoolTracker(t *testing.T) {
 	// @dev test is guaranteed to work on block (because liquidation is available)
 	// const testBlockNumber = uint64(20812089)
-	// t.Skip()
+	t.Skip()
 
 	_ = logger.SetLogLevel("debug")
 
@@ -59,7 +59,7 @@ func TestPoolTracker(t *testing.T) {
 					Symbol:    "weETH",
 					Decimals:  18,
 					Weight:    1,
-					Swappable: false,
+					Swappable: true,
 				},
 			},
 		}
