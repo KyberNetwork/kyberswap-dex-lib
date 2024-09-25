@@ -17,7 +17,6 @@ import (
 type PoolTracker struct {
 	config       *Config
 	ethrpcClient *ethrpc.Client
-	isFirstRun   bool
 }
 
 func NewPoolTracker(
@@ -27,7 +26,6 @@ func NewPoolTracker(
 	return &PoolTracker{
 		config:       config,
 		ethrpcClient: ethrpcClient,
-		isFirstRun:   true,
 	}, nil
 }
 
@@ -37,48 +35,33 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	var (
 		reserves = [2]*big.Int{ZERO, ZERO}
 
-		priceInfo    PriceInfo
-		averagePrice = ZERO
-		spotPrice    = ZERO
-
-		swapFee = ZERO
-
-		xDecimals uint8
-		yDecimals uint8
-
-		oracle common.Address
+		poolState = [6]*big.Int{ZERO, ZERO, ZERO, ZERO, ZERO, ZERO}
+		// uint256 price,
+		// uint256 fee,
+		// uint256 limitMin0,
+		// uint256 limitMax0,
+		// uint256 limitMin1,
+		// uint256 limitMax1
 
 		token0 = common.HexToAddress(p.Tokens[0].Address)
 		token1 = common.HexToAddress(p.Tokens[1].Address)
 
 		isPairEnabled bool
 
-		token0LimitMin = ZERO
-		token1LimitMin = ZERO
+		// uint256 xDecimals,
+		// uint256 yDecimals,
+		// uint256 price
+		pairInfo         = [3]interface{}{uint8(0), uint8(0)}
+		invertedPairInfo = [3]interface{}{uint8(0), uint8(0)}
 	)
 
-	//  Gather basic pool information
 	rpcRequest := u.ethrpcClient.NewRequest().SetContext(ctx)
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    relayerABI,
 		Target: u.config.RelayerAddress,
-		Method: relayerGetTokenLimitMinMethod,
-		Params: []interface{}{token0},
-	}, []interface{}{&token0LimitMin})
-
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    relayerABI,
-		Target: u.config.RelayerAddress,
-		Method: relayerSwapFeeMethod,
-		Params: []interface{}{common.HexToAddress(p.Address)},
-	}, []interface{}{&swapFee})
-
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    relayerABI,
-		Target: u.config.RelayerAddress,
-		Method: relayerGetTokenLimitMinMethod,
-		Params: []interface{}{token1},
-	}, []interface{}{&token1LimitMin})
+		Method: relayerGetPoolStateMethod,
+		Params: []interface{}{token0, token1},
+	}, []interface{}{&poolState})
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    relayerABI,
@@ -88,58 +71,57 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	}, []interface{}{&isPairEnabled})
 
 	rpcRequest.AddCall(&ethrpc.Call{ABI: reserveABI, Target: p.Address, Method: libraryGetReservesMethod}, []interface{}{&reserves})
-	rpcRequest.AddCall(&ethrpc.Call{ABI: pairABI, Target: p.Address, Method: pairOracleMethod}, []interface{}{&oracle})
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		logger.Errorf("%s: failed to fetch basic pool data (address: %s, error: %v)", u.config.DexID, p.Address, err)
 		return entity.Pool{}, err
 	}
 
-	// Get priceInfo
-	rpcRequest = u.ethrpcClient.NewRequest().SetContext(ctx)
-	rpcRequest.AddCall(&ethrpc.Call{ABI: oracleABI, Target: oracle.Hex(), Method: oracleGetPriceInfoMethod}, []interface{}{&priceInfo})
-	if _, err := rpcRequest.Call(); err != nil {
-		logger.Errorf("%s: failed to fetch price info (address: %s, error: %v)", u.config.DexID, p.Address, err)
-		return entity.Pool{}, err
+	// return if pool is disabled
+	if !isPairEnabled {
+		return p, nil
 	}
 
-	// Only if decimals are not available
-	if u.isFirstRun {
-		rpcRequest.AddCall(&ethrpc.Call{ABI: oracleABI, Target: oracle.Hex(), Method: oracleXDecimalsMethod}, []interface{}{&xDecimals})
-		rpcRequest.AddCall(&ethrpc.Call{ABI: oracleABI, Target: oracle.Hex(), Method: oracleYDecimalsMethod}, []interface{}{&yDecimals})
-
-		if _, err := rpcRequest.TryAggregate(); err != nil {
-			logger.Errorf("%s: failed to fetch decimals data (address: %s, error: %v)", u.config.DexID, p.Address, err)
-			return entity.Pool{}, err
-		}
-	}
-
-	// Get spot price and average price
-	rpcRequest = u.ethrpcClient.NewRequest().SetContext(ctx)
 	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    oracleABI,
-		Target: oracle.Hex(),
-		Method: oracleGetAveragePriceMethod,
-		Params: []interface{}{priceInfo.PriceAccumulator, priceInfo.PriceTimestamp},
-	}, []interface{}{&averagePrice})
-	rpcRequest.AddCall(&ethrpc.Call{ABI: oracleABI, Target: oracle.Hex(), Method: oracleGetSpotPriceMethod}, []interface{}{&spotPrice})
+		ABI:    relayerABI,
+		Target: u.config.RelayerAddress,
+		Method: relayerGetPairByAddressMethod,
+		Params: []interface{}{common.HexToAddress(p.Address), false}, // get Price when swap X -> Y
+	}, []interface{}{&pairInfo})
 
+	rpcRequest.AddCall(&ethrpc.Call{
+		ABI:    relayerABI,
+		Target: u.config.RelayerAddress,
+		Method: relayerGetPairByAddressMethod,
+		Params: []interface{}{common.HexToAddress(p.Address), true}, // get Price when swap Y -> X
+	}, []interface{}{&invertedPairInfo})
 	if _, err := rpcRequest.TryAggregate(); err != nil {
-		logger.Errorf("%s: failed to fetch price data (address: %s, error: %v)", u.config.DexID, p.Address, err)
+		logger.Errorf("%s: failed to fetch decimals data (address: %s, error: %v)", u.config.DexID, p.Address, err)
 		return entity.Pool{}, err
+	}
+
+	xDecimals := pairInfo[0].(uint8)
+	yDecimals := pairInfo[1].(uint8)
+
+	invertedPrice, price := ZERO, ZERO
+	if pairInfo[2] != nil {
+		price = pairInfo[2].(*big.Int)
+	}
+
+	if invertedPairInfo[2] != nil {
+		invertedPrice = invertedPairInfo[2].(*big.Int)
 	}
 
 	var extraData IntegralPair
-	err := json.Unmarshal([]byte(p.Extra), &extraData)
-	if err != nil {
-		return entity.Pool{}, err
-	}
+	_ = json.Unmarshal([]byte(p.Extra), &extraData)
 
-	extraData.SwapFee = number.SetFromBig(swapFee)
-	extraData.AveragePrice = number.SetFromBig(averagePrice)
-	extraData.SpotPrice = number.SetFromBig(spotPrice)
-	extraData.Token0LimitMin = number.SetFromBig(token0LimitMin)
-	extraData.Token1LimitMin = number.SetFromBig(token1LimitMin)
+	extraData.Price = number.SetFromBig(price)
+	extraData.InvertedPrice = number.SetFromBig(invertedPrice)
+	extraData.SwapFee = number.SetFromBig(poolState[1])
+	extraData.Token0LimitMin = number.SetFromBig(poolState[2])
+	extraData.Token0LimitMax = number.SetFromBig(poolState[3])
+	extraData.Token1LimitMin = number.SetFromBig(poolState[4])
+	extraData.Token1LimitMax = number.SetFromBig(poolState[5])
 	extraData.X_Decimals = uint64(xDecimals)
 	extraData.Y_Decimals = uint64(yDecimals)
 	extraData.IsEnabled = isPairEnabled
@@ -153,9 +135,7 @@ func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
 	p.Reserves = entity.PoolReserves([]string{reserves[0].String(), reserves[1].String()})
-	p.SwapFee = float64(swapFee.Uint64()) / precision.Float64()
-
-	u.isFirstRun = false
+	p.SwapFee = float64(poolState[1].Uint64()) / precision.Float64()
 
 	logger.Infof("%s: Pool state updated successfully (address: %s)", u.config.DexID, p.Address)
 

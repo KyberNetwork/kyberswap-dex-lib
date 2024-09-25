@@ -27,18 +27,15 @@ type IntegralPair struct {
 	X_Decimals uint64
 	Y_Decimals uint64
 
-	SpotPrice    *uint256.Int
-	AveragePrice *uint256.Int
-
-	SwapFee *uint256.Int
+	Price         *uint256.Int // Token X -> Y
+	InvertedPrice *uint256.Int // Token Y -> X
+	SwapFee       *uint256.Int
 
 	Token0LimitMin *uint256.Int
-	Token1LimitMin *uint256.Int
-}
+	Token0LimitMax *uint256.Int
 
-type PriceInfo struct {
-	PriceAccumulator *big.Int
-	PriceTimestamp   *big.Int
+	Token1LimitMin *uint256.Int
+	Token1LimitMax *uint256.Int
 }
 
 type SwapInfo struct {
