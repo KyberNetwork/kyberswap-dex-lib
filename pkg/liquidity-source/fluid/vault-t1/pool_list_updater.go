@@ -2,6 +2,8 @@ package vaultT1
 
 import (
 	"context"
+	"encoding/json"
+	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -32,8 +34,14 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}).Infof("Finish updating pools list.")
 	}()
 
-	paths, err := u.getSwapPaths(ctx)
+	extraBytes, err := json.Marshal(&StaticExtra{
+		VaultLiquidationResolver: u.config.VaultLiquidationResolver,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
 
+	paths, err := u.getSwapPaths(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -48,16 +56,17 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Reserves: entity.PoolReserves{"0", "0"},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   swapPath.TokenIn.String(),
+					Address:   strings.ToLower(swapPath.TokenIn.String()),
 					Weight:    1,
 					Swappable: true,
 				},
 				{
-					Address:   swapPath.TokenOut.String(),
+					Address:   strings.ToLower(swapPath.TokenOut.String()),
 					Weight:    1,
-					Swappable: false,
+					Swappable: true,
 				},
 			},
+			StaticExtra: string(extraBytes),
 		}
 
 		pools = append(pools, pool)
@@ -73,7 +82,7 @@ func (u *PoolsListUpdater) getSwapPaths(ctx context.Context) ([]SwapPath, error)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    vaultLiquidationResolverABI,
-		Target: vaultLiquidationResolver[u.config.ChainID],
+		Target: u.config.VaultLiquidationResolver,
 		Method: VLRMethodGetAllSwapPaths,
 	}, []interface{}{&paths})
 

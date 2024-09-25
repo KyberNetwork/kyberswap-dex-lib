@@ -18,7 +18,8 @@ var (
 type PoolSimulator struct {
 	poolpkg.Pool
 
-	Ratio *big.Int
+	VaultLiquidationResolver string
+	Ratio                    *big.Int
 }
 
 var (
@@ -28,6 +29,11 @@ var (
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
@@ -41,7 +47,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			BlockNumber: entityPool.BlockNumber,
 			SwapFee:     big.NewInt(0), // no swap fee on liquidations
 		}},
-		Ratio: extra.Ratio,
+		VaultLiquidationResolver: staticExtra.VaultLiquidationResolver,
+		Ratio:                    extra.Ratio,
 	}, nil
 }
 
@@ -62,6 +69,9 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
 		Fee:            &poolpkg.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            defaultGas.Liquidate,
+		SwapInfo: StaticExtra{
+			VaultLiquidationResolver: s.VaultLiquidationResolver,
+		},
 	}, nil
 }
 

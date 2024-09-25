@@ -18,13 +18,13 @@ import (
 func TestPoolTracker(t *testing.T) {
 	// @dev test is guaranteed to work on block (because liquidation is available)
 	// const testBlockNumber = uint64(20812089)
-	t.Skip()
+	// t.Skip()
 
 	_ = logger.SetLogLevel("debug")
 
 	var (
 		config = Config{
-			ChainID: valueobject.ChainIDEthereum,
+			VaultLiquidationResolver: "0x6Cd1E75b524D3CCa4c3320436d6F09e24Dadd613",
 		}
 	)
 

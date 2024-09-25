@@ -72,7 +72,7 @@ func (t *PoolTracker) getPoolSwapData(ctx context.Context, poolAddress string) (
 	output := &Swap{}
 	req.AddCall(&ethrpc.Call{
 		ABI:    vaultLiquidationResolverABI,
-		Target: vaultLiquidationResolver[t.config.ChainID],
+		Target: t.config.VaultLiquidationResolver,
 		Method: VLRMethodGetSwapForProtocol,
 		Params: []interface{}{common.HexToAddress(poolAddress)},
 	}, []interface{}{&output})

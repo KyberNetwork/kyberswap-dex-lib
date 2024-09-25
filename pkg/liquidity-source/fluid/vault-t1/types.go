@@ -36,3 +36,7 @@ type PoolExtra struct {
 type Gas struct {
 	Liquidate int64
 }
+
+type StaticExtra struct {
+	VaultLiquidationResolver string `json:"vaultLiquidationResolver"`
+}

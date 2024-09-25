@@ -8,7 +8,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -27,7 +26,7 @@ func TestPoolListUpdater(t *testing.T) {
 		err              error
 
 		config = Config{
-			ChainID: valueobject.ChainIDEthereum,
+			VaultLiquidationResolver: "0x6Cd1E75b524D3CCa4c3320436d6F09e24Dadd613",
 		}
 	)
 
