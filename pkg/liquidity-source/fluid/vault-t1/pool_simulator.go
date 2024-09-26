@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -97,7 +98,7 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (s *PoolSimulator) CanSwapTo(address string) []string {
-	if address == s.Info.Tokens[0] {
+	if strings.EqualFold(address, s.Info.Tokens[0]) {
 		return []string{}
 	}
 
@@ -105,7 +106,7 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 }
 
 func (s *PoolSimulator) CanSwapFrom(address string) []string {
-	if address == s.Info.Tokens[1] {
+	if strings.EqualFold(address, s.Info.Tokens[1]) {
 		return []string{}
 	}
 
