@@ -97,18 +97,22 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	}
 }
 
-func (s *PoolSimulator) CanSwapTo(address string) []string {
-	if strings.EqualFold(address, s.Info.Tokens[0]) {
-		return []string{}
-	}
-
-	return []string{s.Info.Tokens[0]}
+func (s *PoolSimulator) CanSwapFrom(address string) []string {
+	return s.CanSwapTo(address)
 }
 
-func (s *PoolSimulator) CanSwapFrom(address string) []string {
+func (s *PoolSimulator) CanSwapTo(address string) []string {
 	if strings.EqualFold(address, s.Info.Tokens[1]) {
 		return []string{}
 	}
 
-	return []string{s.Info.Tokens[1]}
+	result := make([]string, 0, len(s.Info.Tokens))
+	var tokenIndex = s.GetTokenIndex(address)
+	for i := 0; i < len(s.Info.Tokens); i++ {
+		if i != tokenIndex {
+			result = append(result, s.Info.Tokens[i])
+		}
+	}
+
+	return result
 }
