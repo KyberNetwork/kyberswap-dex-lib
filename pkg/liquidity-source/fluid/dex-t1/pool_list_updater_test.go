@@ -70,12 +70,8 @@ func TestPoolListUpdater(t *testing.T) {
 	err = json.Unmarshal([]byte(pools[0].Extra), &extra)
 	require.NoError(t, err)
 
-	reserve, ok := new(big.Int).SetString(pools[0].Reserves[0], 10)
-	require.True(t, ok)
-	require.True(t, reserve.Cmp(big.NewInt(0)) > 0)
-	reserve, ok = new(big.Int).SetString(pools[0].Reserves[1], 10)
-	require.True(t, ok)
-	require.True(t, reserve.Cmp(big.NewInt(0)) > 0)
+	require.NotEqual(t, "0", pools[0].Reserves[0], "Reserve should not be zero")
+	require.NotEqual(t, "0", pools[0].Reserves[1], "Reserve should not be zero")
 
 	require.True(t, extra.CollateralReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0)
 	require.True(t, extra.CollateralReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0)

@@ -47,17 +47,11 @@ func TestPoolTracker(t *testing.T) {
 			Tokens: []*entity.PoolToken{
 				{
 					Address:   "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
-					Name:      "wstETH",
-					Symbol:    "wstETH",
-					Decimals:  18,
 					Weight:    1,
 					Swappable: true,
 				},
 				{
 					Address:   "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
-					Name:      "weETH",
-					Symbol:    "weETH",
-					Decimals:  18,
 					Weight:    1,
 					Swappable: true,
 				},

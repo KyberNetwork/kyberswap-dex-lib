@@ -13,4 +13,5 @@ var dexReservesResolver = map[valueobject.ChainID]string{
 const (
 	// DexReservesResolver methods
 	DRRMethodGetAllPoolsReserves = "getAllPoolsReserves"
+	DRRMethodGetPoolReserves     = "getPoolReserves"
 )
