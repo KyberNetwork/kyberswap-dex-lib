@@ -1,4 +1,4 @@
-package tricryptong
+package twocryptong
 
 import (
 	"encoding/json"
@@ -176,7 +176,7 @@ func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapInfo, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
-		logger.Warnf("failed to UpdateBalance for curve-tricrypto-ng %v %v pool, wrong swapInfo type", t.Info.Address,
+		logger.Warnf("failed to UpdateBalance for curve-twocrypto-ng %v %v pool, wrong swapInfo type", t.Info.Address,
 			t.Info.Exchange)
 		return
 	}
@@ -195,7 +195,7 @@ func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	A, gamma := t._A_gamma()
 	if err := t.tweak_price(A, gamma, swapInfo.Xp, nil, &swapInfo.K0); err != nil {
-		panic(fmt.Sprintf("failed to tweak price for curve-tricrypto-ng %v pool: %v", t.Info.Address, err))
+		panic(fmt.Sprintf("failed to tweak price for curve-twocrypto-ng %v pool: %v", t.Info.Address, err))
 	}
 }
 

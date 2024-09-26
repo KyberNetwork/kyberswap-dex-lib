@@ -12,6 +12,7 @@ import (
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
 	curveStableNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	curveTricryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/tricrypto-ng"
+	curveTwocryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
@@ -207,6 +208,7 @@ type Types struct {
 	CurveStableNg                  string
 	CurveStableMetaNg              string
 	CurveTriCryptoNg               string
+	CurveTwoCryptoNg               string
 	KelpRSETH                      string
 	RocketPoolRETH                 string
 	EthenaSusde                    string
@@ -322,6 +324,7 @@ var (
 		CurveStableNg:                  curveStableNg.DexType,
 		CurveStableMetaNg:              curveStableMetaNg.DexType,
 		CurveTriCryptoNg:               curveTricryptoNg.DexType,
+		CurveTwoCryptoNg:               curveTwocryptoNg.DexType,
 		KelpRSETH:                      rseth.DexType,
 		RocketPoolRETH:                 reth.DexType,
 		SwellSWETH:                     sweth.DexType,

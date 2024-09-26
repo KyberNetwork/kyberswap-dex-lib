@@ -8,6 +8,7 @@ const (
 	CURVE_POOL_TYPE_STABLE_NG_META  CurvePoolType = "curve-stable-ng-meta"
 	CURVE_POOL_TYPE_CRYPTO          CurvePoolType = "curve-crypto"
 	CURVE_POOL_TYPE_TRICRYPTO_NG    CurvePoolType = "curve-tricrypto-ng"
+	CURVE_POOL_TYPE_TWOCRYPTO_NG    CurvePoolType = "curve-twocrypto-ng"
 	CURVE_POOL_TYPE_CRYPTO_META     CurvePoolType = "curve-crypto-meta"
 
 	// https://github.com/curvefi/curve-js/blob/cb26335/src/interfaces.ts#L11
@@ -17,6 +18,7 @@ const (
 	CURVE_DATASOURCE_FACTORY_CRYPTO    CurveDataSource = "factory-crypto"
 	CURVE_DATASOURCE_FACTORY_CRVUSD    CurveDataSource = "factory-crvusd"
 	CURVE_DATASOURCE_FACTORY_TRICRYPTO CurveDataSource = "factory-tricrypto"
+	CURVE_DATASOURCE_FACTORY_TWOCRYPTO CurveDataSource = "factory-twocrypto"
 	CURVE_DATASOURCE_FACTORY_STABLE_NG CurveDataSource = "factory-stable-ng"
 	CURVE_DATASOURCE_FACTORY_EYWA      CurveDataSource = "factory-eywa"
 )
@@ -36,5 +38,5 @@ const (
 
 	addressProviderMethodGetAddress = "get_address"
 
-	getPoolsEndpoint = "/api/getPools/%s/%s" // <chain>/<platform>
+	getPoolsEndpoint = "/api/getPools/%s/%s" // <chain>/<registry>
 )
