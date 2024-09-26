@@ -35,9 +35,21 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "tokenIn_", "type": "address" },
-      { "internalType": "address", "name": "tokenOut_", "type": "address" },
-      { "internalType": "uint256", "name": "outAmt_", "type": "uint256" }
+      {
+        "internalType": "address",
+        "name": "tokenIn_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "tokenOut_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "outAmt_",
+        "type": "uint256"
+      }
     ],
     "name": "approxOutput",
     "outputs": [
@@ -67,14 +79,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -85,17 +109,37 @@
         "name": "swaps_",
         "type": "tuple[]"
       },
-      { "internalType": "uint256", "name": "inAmt_", "type": "uint256" },
-      { "internalType": "uint256", "name": "approxOutAmt_", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "inAmt_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "approxOutAmt_",
+        "type": "uint256"
+      }
     ],
     "stateMutability": "nonpayable",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "tokenIn_", "type": "address" },
-      { "internalType": "address", "name": "tokenOut_", "type": "address" },
-      { "internalType": "uint256", "name": "inAmt_", "type": "uint256" }
+      {
+        "internalType": "address",
+        "name": "tokenIn_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "tokenOut_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "inAmt_",
+        "type": "uint256"
+      }
     ],
     "name": "exactInput",
     "outputs": [
@@ -125,14 +169,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -143,8 +199,16 @@
         "name": "swaps_",
         "type": "tuple[]"
       },
-      { "internalType": "uint256", "name": "actualInAmt_", "type": "uint256" },
-      { "internalType": "uint256", "name": "outAmt_", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "actualInAmt_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "outAmt_",
+        "type": "uint256"
+      }
     ],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -177,14 +241,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -229,14 +305,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -247,8 +335,16 @@
         "name": "filteredSwaps_",
         "type": "tuple[]"
       },
-      { "internalType": "uint256", "name": "actualInAmt_", "type": "uint256" },
-      { "internalType": "uint256", "name": "approxOutAmt_", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "actualInAmt_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "approxOutAmt_",
+        "type": "uint256"
+      }
     ],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -281,14 +377,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -299,7 +407,11 @@
         "name": "swaps_",
         "type": "tuple[]"
       },
-      { "internalType": "uint256", "name": "targetInAmt_", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "targetInAmt_",
+        "type": "uint256"
+      }
     ],
     "name": "filterToTargetInAmt",
     "outputs": [
@@ -329,14 +441,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -347,8 +471,16 @@
         "name": "filteredSwaps_",
         "type": "tuple[]"
       },
-      { "internalType": "uint256", "name": "actualInAmt_", "type": "uint256" },
-      { "internalType": "uint256", "name": "approxOutAmt_", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "actualInAmt_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "approxOutAmt_",
+        "type": "uint256"
+      }
     ],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -359,9 +491,21 @@
     "outputs": [
       {
         "components": [
-          { "internalType": "address", "name": "protocol", "type": "address" },
-          { "internalType": "address", "name": "tokenIn", "type": "address" },
-          { "internalType": "address", "name": "tokenOut", "type": "address" }
+          {
+            "internalType": "address",
+            "name": "protocol",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "tokenIn",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "tokenOut",
+            "type": "address"
+          }
         ],
         "internalType": "struct Structs.SwapPath[]",
         "name": "paths_",
@@ -401,14 +545,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -429,10 +585,26 @@
     "outputs": [
       {
         "components": [
-          { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
-          { "internalType": "uint256", "name": "outAmt", "type": "uint256" },
-          { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-          { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+          {
+            "internalType": "uint256",
+            "name": "inAmt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "outAmt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "withAbsorb",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "ratio",
+            "type": "uint256"
+          }
         ],
         "internalType": "struct Structs.SwapData[]",
         "name": "withoutAbsorb_",
@@ -440,10 +612,26 @@
       },
       {
         "components": [
-          { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
-          { "internalType": "uint256", "name": "outAmt", "type": "uint256" },
-          { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-          { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+          {
+            "internalType": "uint256",
+            "name": "inAmt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "outAmt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "withAbsorb",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "ratio",
+            "type": "uint256"
+          }
         ],
         "internalType": "struct Structs.SwapData[]",
         "name": "withAbsorb_",
@@ -483,14 +671,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -507,16 +707,36 @@
   },
   {
     "inputs": [
-      { "internalType": "address[]", "name": "tokensIn_", "type": "address[]" },
-      { "internalType": "address[]", "name": "tokensOut_", "type": "address[]" }
+      {
+        "internalType": "address[]",
+        "name": "tokensIn_",
+        "type": "address[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "tokensOut_",
+        "type": "address[]"
+      }
     ],
     "name": "getAnySwapPaths",
     "outputs": [
       {
         "components": [
-          { "internalType": "address", "name": "protocol", "type": "address" },
-          { "internalType": "address", "name": "tokenIn", "type": "address" },
-          { "internalType": "address", "name": "tokenOut", "type": "address" }
+          {
+            "internalType": "address",
+            "name": "protocol",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "tokenIn",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "tokenOut",
+            "type": "address"
+          }
         ],
         "internalType": "struct Structs.SwapPath[]",
         "name": "paths_",
@@ -528,8 +748,16 @@
   },
   {
     "inputs": [
-      { "internalType": "address[]", "name": "tokensIn_", "type": "address[]" },
-      { "internalType": "address[]", "name": "tokensOut_", "type": "address[]" }
+      {
+        "internalType": "address[]",
+        "name": "tokensIn_",
+        "type": "address[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "tokensOut_",
+        "type": "address[]"
+      }
     ],
     "name": "getAnySwaps",
     "outputs": [
@@ -559,14 +787,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -583,8 +823,16 @@
   },
   {
     "inputs": [
-      { "internalType": "address[]", "name": "tokensIn_", "type": "address[]" },
-      { "internalType": "address[]", "name": "tokensOut_", "type": "address[]" }
+      {
+        "internalType": "address[]",
+        "name": "tokensIn_",
+        "type": "address[]"
+      },
+      {
+        "internalType": "address[]",
+        "name": "tokensOut_",
+        "type": "address[]"
+      }
     ],
     "name": "getAnySwapsRaw",
     "outputs": [
@@ -614,14 +862,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -638,7 +898,11 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "protocol_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "protocol_",
+        "type": "address"
+      }
     ],
     "name": "getSwapForProtocol",
     "outputs": [
@@ -668,14 +932,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -692,16 +968,36 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "tokenIn_", "type": "address" },
-      { "internalType": "address", "name": "tokenOut_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "tokenIn_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "tokenOut_",
+        "type": "address"
+      }
     ],
     "name": "getSwapPaths",
     "outputs": [
       {
         "components": [
-          { "internalType": "address", "name": "protocol", "type": "address" },
-          { "internalType": "address", "name": "tokenIn", "type": "address" },
-          { "internalType": "address", "name": "tokenOut", "type": "address" }
+          {
+            "internalType": "address",
+            "name": "protocol",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "tokenIn",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "tokenOut",
+            "type": "address"
+          }
         ],
         "internalType": "struct Structs.SwapPath[]",
         "name": "paths_",
@@ -739,14 +1035,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -757,13 +1065,29 @@
         "name": "swap_",
         "type": "tuple"
       },
-      { "internalType": "address", "name": "receiver_", "type": "address" },
-      { "internalType": "uint256", "name": "slippage_", "type": "uint256" }
+      {
+        "internalType": "address",
+        "name": "receiver_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "slippage_",
+        "type": "uint256"
+      }
     ],
     "name": "getSwapTx",
     "outputs": [
-      { "internalType": "address", "name": "target_", "type": "address" },
-      { "internalType": "bytes", "name": "calldata_", "type": "bytes" }
+      {
+        "internalType": "address",
+        "name": "target_",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes",
+        "name": "calldata_",
+        "type": "bytes"
+      }
     ],
     "stateMutability": "pure",
     "type": "function"
@@ -796,14 +1120,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -814,21 +1150,45 @@
         "name": "swaps_",
         "type": "tuple[]"
       },
-      { "internalType": "address", "name": "receiver_", "type": "address" },
-      { "internalType": "uint256", "name": "slippage_", "type": "uint256" }
+      {
+        "internalType": "address",
+        "name": "receiver_",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "slippage_",
+        "type": "uint256"
+      }
     ],
     "name": "getSwapTxs",
     "outputs": [
-      { "internalType": "address[]", "name": "targets_", "type": "address[]" },
-      { "internalType": "bytes[]", "name": "calldatas_", "type": "bytes[]" }
+      {
+        "internalType": "address[]",
+        "name": "targets_",
+        "type": "address[]"
+      },
+      {
+        "internalType": "bytes[]",
+        "name": "calldatas_",
+        "type": "bytes[]"
+      }
     ],
     "stateMutability": "pure",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "tokenIn_", "type": "address" },
-      { "internalType": "address", "name": "tokenOut_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "tokenIn_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "tokenOut_",
+        "type": "address"
+      }
     ],
     "name": "getSwaps",
     "outputs": [
@@ -858,14 +1218,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -884,9 +1256,21 @@
     "inputs": [
       {
         "components": [
-          { "internalType": "address", "name": "protocol", "type": "address" },
-          { "internalType": "address", "name": "tokenIn", "type": "address" },
-          { "internalType": "address", "name": "tokenOut", "type": "address" }
+          {
+            "internalType": "address",
+            "name": "protocol",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "tokenIn",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "tokenOut",
+            "type": "address"
+          }
         ],
         "internalType": "struct Structs.SwapPath[]",
         "name": "paths_",
@@ -921,14 +1305,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -947,9 +1343,21 @@
     "inputs": [
       {
         "components": [
-          { "internalType": "address", "name": "protocol", "type": "address" },
-          { "internalType": "address", "name": "tokenIn", "type": "address" },
-          { "internalType": "address", "name": "tokenOut", "type": "address" }
+          {
+            "internalType": "address",
+            "name": "protocol",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "tokenIn",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "tokenOut",
+            "type": "address"
+          }
         ],
         "internalType": "struct Structs.SwapPath[]",
         "name": "paths_",
@@ -984,14 +1392,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -1008,8 +1428,16 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "tokenIn_", "type": "address" },
-      { "internalType": "address", "name": "tokenOut_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "tokenIn_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "tokenOut_",
+        "type": "address"
+      }
     ],
     "name": "getSwapsRaw",
     "outputs": [
@@ -1039,14 +1467,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -1063,16 +1503,36 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "vault_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "vault_",
+        "type": "address"
+      }
     ],
     "name": "getVaultSwapData",
     "outputs": [
       {
         "components": [
-          { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
-          { "internalType": "uint256", "name": "outAmt", "type": "uint256" },
-          { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-          { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+          {
+            "internalType": "uint256",
+            "name": "inAmt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "outAmt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "withAbsorb",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "ratio",
+            "type": "uint256"
+          }
         ],
         "internalType": "struct Structs.SwapData",
         "name": "withoutAbsorb_",
@@ -1080,10 +1540,26 @@
       },
       {
         "components": [
-          { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
-          { "internalType": "uint256", "name": "outAmt", "type": "uint256" },
-          { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-          { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+          {
+            "internalType": "uint256",
+            "name": "inAmt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "outAmt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "withAbsorb",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "ratio",
+            "type": "uint256"
+          }
         ],
         "internalType": "struct Structs.SwapData",
         "name": "withAbsorb_",
@@ -1095,7 +1571,11 @@
   },
   {
     "inputs": [
-      { "internalType": "address[]", "name": "vaults_", "type": "address[]" }
+      {
+        "internalType": "address[]",
+        "name": "vaults_",
+        "type": "address[]"
+      }
     ],
     "name": "getVaultsSwap",
     "outputs": [
@@ -1125,14 +1605,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
@@ -1149,16 +1641,36 @@
   },
   {
     "inputs": [
-      { "internalType": "address[]", "name": "vaults_", "type": "address[]" }
+      {
+        "internalType": "address[]",
+        "name": "vaults_",
+        "type": "address[]"
+      }
     ],
     "name": "getVaultsSwapData",
     "outputs": [
       {
         "components": [
-          { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
-          { "internalType": "uint256", "name": "outAmt", "type": "uint256" },
-          { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-          { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+          {
+            "internalType": "uint256",
+            "name": "inAmt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "outAmt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "withAbsorb",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "ratio",
+            "type": "uint256"
+          }
         ],
         "internalType": "struct Structs.SwapData[]",
         "name": "withoutAbsorb_",
@@ -1166,10 +1678,26 @@
       },
       {
         "components": [
-          { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
-          { "internalType": "uint256", "name": "outAmt", "type": "uint256" },
-          { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-          { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+          {
+            "internalType": "uint256",
+            "name": "inAmt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "outAmt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "bool",
+            "name": "withAbsorb",
+            "type": "bool"
+          },
+          {
+            "internalType": "uint256",
+            "name": "ratio",
+            "type": "uint256"
+          }
         ],
         "internalType": "struct Structs.SwapData[]",
         "name": "withAbsorb_",
@@ -1181,7 +1709,11 @@
   },
   {
     "inputs": [
-      { "internalType": "address[]", "name": "vaults_", "type": "address[]" }
+      {
+        "internalType": "address[]",
+        "name": "vaults_",
+        "type": "address[]"
+      }
     ],
     "name": "getVaultsSwapRaw",
     "outputs": [
@@ -1211,14 +1743,26 @@
           },
           {
             "components": [
-              { "internalType": "uint256", "name": "inAmt", "type": "uint256" },
+              {
+                "internalType": "uint256",
+                "name": "inAmt",
+                "type": "uint256"
+              },
               {
                 "internalType": "uint256",
                 "name": "outAmt",
                 "type": "uint256"
               },
-              { "internalType": "bool", "name": "withAbsorb", "type": "bool" },
-              { "internalType": "uint256", "name": "ratio", "type": "uint256" }
+              {
+                "internalType": "bool",
+                "name": "withAbsorb",
+                "type": "bool"
+              },
+              {
+                "internalType": "uint256",
+                "name": "ratio",
+                "type": "uint256"
+              }
             ],
             "internalType": "struct Structs.SwapData",
             "name": "data",
