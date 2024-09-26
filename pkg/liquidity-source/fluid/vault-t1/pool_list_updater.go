@@ -36,6 +36,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	extraBytes, err := json.Marshal(&StaticExtra{
 		VaultLiquidationResolver: u.config.VaultLiquidationResolver,
+		AllowReverseSwap:         u.config.AllowReverseSwap,
 	})
 	if err != nil {
 		return nil, nil, err
