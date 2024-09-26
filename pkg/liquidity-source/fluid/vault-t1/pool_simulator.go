@@ -3,7 +3,6 @@ package vaultT1
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -21,7 +20,6 @@ type PoolSimulator struct {
 
 	VaultLiquidationResolver string
 	Ratio                    *big.Int
-	AllowReverseSwap         bool
 }
 
 var (
@@ -51,16 +49,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}},
 		VaultLiquidationResolver: staticExtra.VaultLiquidationResolver,
 		Ratio:                    extra.Ratio,
-		AllowReverseSwap:         staticExtra.AllowReverseSwap,
 	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
-	// Check if reverse swap is allowed
-	if !s.AllowReverseSwap && param.TokenOut == s.Pool.Info.Tokens[0] {
-		return nil, fmt.Errorf("reverse swaps from token B to token A are not allowed")
-	}
-
 	if param.TokenAmountIn.Amount.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrInvalidAmountIn
 	}
@@ -102,4 +94,20 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return PoolMeta{
 		BlockNumber: s.Pool.Info.BlockNumber,
 	}
+}
+
+func (s *PoolSimulator) CanSwapTo(address string) []string {
+	if address == s.Info.Tokens[0] {
+		return []string{}
+	}
+
+	return []string{s.Info.Tokens[0]}
+}
+
+func (s *PoolSimulator) CanSwapFrom(address string) []string {
+	if address == s.Info.Tokens[1] {
+		return []string{}
+	}
+
+	return []string{s.Info.Tokens[1]}
 }
