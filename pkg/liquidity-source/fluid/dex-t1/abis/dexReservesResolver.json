@@ -63,8 +63,9 @@
       {
         "components": [
           { "internalType": "address", "name": "pool", "type": "address" },
-          { "internalType": "address", "name": "token0_", "type": "address" },
-          { "internalType": "address", "name": "token1_", "type": "address" }
+          { "internalType": "address", "name": "token0", "type": "address" },
+          { "internalType": "address", "name": "token1", "type": "address" },
+          { "internalType": "uint256", "name": "fee", "type": "uint256" }
         ],
         "internalType": "struct Structs.Pool[]",
         "name": "pools_",
@@ -81,8 +82,9 @@
       {
         "components": [
           { "internalType": "address", "name": "pool", "type": "address" },
-          { "internalType": "address", "name": "token0_", "type": "address" },
-          { "internalType": "address", "name": "token1_", "type": "address" },
+          { "internalType": "address", "name": "token0", "type": "address" },
+          { "internalType": "address", "name": "token1", "type": "address" },
+          { "internalType": "uint256", "name": "fee", "type": "uint256" },
           {
             "components": [
               {
@@ -311,8 +313,9 @@
       {
         "components": [
           { "internalType": "address", "name": "pool", "type": "address" },
-          { "internalType": "address", "name": "token0_", "type": "address" },
-          { "internalType": "address", "name": "token1_", "type": "address" }
+          { "internalType": "address", "name": "token0", "type": "address" },
+          { "internalType": "address", "name": "token1", "type": "address" },
+          { "internalType": "uint256", "name": "fee", "type": "uint256" }
         ],
         "internalType": "struct Structs.Pool",
         "name": "pool_",
@@ -460,13 +463,25 @@
     "inputs": [
       { "internalType": "address", "name": "pool_", "type": "address" }
     ],
+    "name": "getPoolFee",
+    "outputs": [
+      { "internalType": "uint256", "name": "fee_", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "pool_", "type": "address" }
+    ],
     "name": "getPoolReserves",
     "outputs": [
       {
         "components": [
           { "internalType": "address", "name": "pool", "type": "address" },
-          { "internalType": "address", "name": "token0_", "type": "address" },
-          { "internalType": "address", "name": "token1_", "type": "address" },
+          { "internalType": "address", "name": "token0", "type": "address" },
+          { "internalType": "address", "name": "token1", "type": "address" },
+          { "internalType": "uint256", "name": "fee", "type": "uint256" },
           {
             "components": [
               {
@@ -561,8 +576,9 @@
       {
         "components": [
           { "internalType": "address", "name": "pool", "type": "address" },
-          { "internalType": "address", "name": "token0_", "type": "address" },
-          { "internalType": "address", "name": "token1_", "type": "address" },
+          { "internalType": "address", "name": "token0", "type": "address" },
+          { "internalType": "address", "name": "token1", "type": "address" },
+          { "internalType": "uint256", "name": "fee", "type": "uint256" },
           {
             "components": [
               {

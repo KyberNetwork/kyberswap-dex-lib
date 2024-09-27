@@ -15,10 +15,12 @@ type PoolExtra struct {
 	DebtReserves       DebtReserves
 }
 
+// todo add and use token decimals.
 type Pool struct {
 	PoolAddress   common.Address `json:"poolAddress"`
 	Token0Address common.Address `json:"token0Address"`
 	Token1Address common.Address `json:"token1Address"`
+	Fee           *big.Int       `json:"fee"`
 }
 
 type CollateralReserves struct {
@@ -41,6 +43,7 @@ type PoolWithReserves struct {
 	PoolAddress        common.Address     `json:"poolAddress"`
 	Token0Address      common.Address     `json:"token0Address"`
 	Token1Address      common.Address     `json:"token1Address"`
+	Fee                *big.Int           `json:"fee"`
 	CollateralReserves CollateralReserves `json:"collateralReserves"`
 	DebtReserves       DebtReserves       `json:"debtReserves"`
 }

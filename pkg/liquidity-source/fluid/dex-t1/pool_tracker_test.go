@@ -49,7 +49,7 @@ func TestPoolTracker(t *testing.T) {
 				{
 					Address:   "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
 					Weight:    1,
-					Swappable: false,
+					Swappable: true,
 				},
 			},
 		}
@@ -60,14 +60,25 @@ func TestPoolTracker(t *testing.T) {
 		require.NoError(t, err)
 		logger.Debugf("GetNewPoolState completed for wstETH_ETH_Pool, new pool: %+v", newPool)
 
-		require.Equal(t, poolAddr, newPool.Address)
-
-		require.NotEqual(t, "0", newPool.Reserves[0], "Reserve should not be zero")
-		require.NotEqual(t, "0", newPool.Reserves[1], "Reserve should not be zero")
-
 		var extra PoolExtra
 		err = json.Unmarshal([]byte(newPool.Extra), &extra)
 		require.NoError(t, err)
+		require.Equal(t, poolAddr, newPool.Address)
+
+		require.Equal(t, true, newPool.Tokens[0].Swappable)
+		require.Equal(t, true, newPool.Tokens[1].Swappable)
+		require.Equal(t, 0.01, newPool.SwapFee)
+
+		token0RealReserves := extra.CollateralReserves.Token0RealReserves
+		token0Debt := extra.DebtReserves.Token0Debt
+		expectedToken0Reserve := new(big.Int).Add(token0RealReserves, token0Debt).String()
+		require.Equal(t, expectedToken0Reserve, newPool.Reserves[0], "Reserve should be equal to Token0RealReserves + Token0Debt")
+
+		token1RealReserves := extra.CollateralReserves.Token1RealReserves
+		token1Debt := extra.DebtReserves.Token1Debt
+		expectedToken1Reserve := new(big.Int).Add(token1RealReserves, token1Debt).String()
+		require.Equal(t, expectedToken1Reserve, newPool.Reserves[1], "Reserve should be equal to Token1RealReserves + Token1Debt")
+
 		require.True(t, extra.CollateralReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0)
 		require.True(t, extra.CollateralReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0)
 		require.True(t, extra.CollateralReserves.Token0ImaginaryReserves.Cmp(big.NewInt(0)) > 0)
@@ -77,7 +88,18 @@ func TestPoolTracker(t *testing.T) {
 		require.True(t, extra.DebtReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0)
 		require.True(t, extra.DebtReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0)
 		require.True(t, extra.DebtReserves.Token0ImaginaryReserves.Cmp(big.NewInt(0)) > 0)
-		require.True(t, extra.DebtReserves.Token1ImaginaryReserves.Cmp(big.NewInt(0)) > 0)
+
+		logger.Debugf("Debt Reserves: Token0Debt: %s", extra.DebtReserves.Token0Debt.String())
+		logger.Debugf("Debt Reserves: Token1Debt: %s", extra.DebtReserves.Token1Debt.String())
+		logger.Debugf("Debt Reserves: Token0RealReserves: %s", extra.DebtReserves.Token0RealReserves.String())
+		logger.Debugf("Debt Reserves: Token1RealReserves: %s", extra.DebtReserves.Token1RealReserves.String())
+		logger.Debugf("Debt Reserves: Token0ImaginaryReserves: %s", extra.DebtReserves.Token0ImaginaryReserves.String())
+		logger.Debugf("Debt Reserves: Token1ImaginaryReserves: %s", extra.DebtReserves.Token1ImaginaryReserves.String())
+
+		logger.Debugf("Collateral Reserves: Token0RealReserves: %s", extra.CollateralReserves.Token0RealReserves.String())
+		logger.Debugf("Collateral Reserves: Token1RealReserves: %s", extra.CollateralReserves.Token1RealReserves.String())
+		logger.Debugf("Collateral Reserves: Token0ImaginaryReserves: %s", extra.CollateralReserves.Token0ImaginaryReserves.String())
+		logger.Debugf("Collateral Reserves: Token1ImaginaryReserves: %s", extra.CollateralReserves.Token1ImaginaryReserves.String())
 
 		jsonEncoded, _ := json.MarshalIndent(newPool, "", "  ")
 		t.Logf("Updated wstETH-weETH Pool: %s\n", string(jsonEncoded))

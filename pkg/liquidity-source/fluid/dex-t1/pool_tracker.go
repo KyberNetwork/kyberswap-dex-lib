@@ -48,6 +48,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
+	p.SwapFee = float64(poolReserves.Fee.Int64()) / 10000
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()

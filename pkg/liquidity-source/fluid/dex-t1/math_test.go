@@ -3,6 +3,8 @@ package dexT1
 import (
 	"math/big"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 var colReservesOne = CollateralReserves{
@@ -36,23 +38,15 @@ var debtReservesOne = DebtReserves{
 func assertSwapInResult(t *testing.T, expected bool, amountIn *big.Int, colReserves CollateralReserves, debtReserves DebtReserves, expectedAmountIn string, expectedAmountOut string) {
 	inAmt, outAmt := swapIn(expected, amountIn, colReserves, debtReserves)
 
-	if inAmt.String() != expectedAmountIn {
-		t.Errorf("Expected amountIn to be %s, but got %s", expectedAmountIn, inAmt.String())
-	}
-	if outAmt.String() != expectedAmountOut {
-		t.Errorf("Expected amountOut to be %s, but got %s", expectedAmountOut, outAmt.String())
-	}
+	require.Equal(t, expectedAmountIn, inAmt.String())
+	require.Equal(t, expectedAmountOut, outAmt.String())
 }
 
 func assertSwapOutResult(t *testing.T, expected bool, amountOut *big.Int, colReserves CollateralReserves, debtReserves DebtReserves, expectedAmountIn string, expectedAmountOut string) {
 	inAmt, outAmt := swapOut(expected, amountOut, colReserves, debtReserves)
 
-	if inAmt.String() != expectedAmountIn {
-		t.Errorf("Expected amountIn to be %s, but got %s", expectedAmountIn, inAmt.String())
-	}
-	if outAmt.String() != expectedAmountOut {
-		t.Errorf("Expected amountOut to be %s, but got %s", expectedAmountOut, outAmt.String())
-	}
+	require.Equal(t, expectedAmountIn, inAmt.String())
+	require.Equal(t, expectedAmountOut, outAmt.String())
 }
 
 func TestSwapIn(t *testing.T) {
@@ -63,6 +57,33 @@ func TestSwapIn(t *testing.T) {
 		assertSwapInResult(t, false, big.NewInt(1e15), colReservesOne, debtReservesOne, "1000000000000000", "998262697752553")
 		assertSwapInResult(t, false, big.NewInt(1e15), colReservesEmpty, debtReservesOne, "1000000000000000", "994619847560607")
 		assertSwapInResult(t, false, big.NewInt(1e15), colReservesOne, debtReservesEmpty, "1000000000000000", "997440731837532")
+	})
+}
+func TestSwapInCompareEstimateIn(t *testing.T) {
+	t.Run("TestSwapInCompareEstimateIn", func(t *testing.T) {
+		expectedAmountIn := "1000000000000000000"
+		expectedAmountOut := "1180035404724000000"
+
+		colReserves := CollateralReserves{
+			Token0RealReserves:      big.NewInt(2169934539358),
+			Token1RealReserves:      big.NewInt(19563846299171),
+			Token0ImaginaryReserves: big.NewInt(62490032619260838),
+			Token1ImaginaryReserves: big.NewInt(73741038977020279),
+		}
+		debtReserves := DebtReserves{
+			Token0Debt:              big.NewInt(16590678644536),
+			Token1Debt:              big.NewInt(2559733858855),
+			Token0RealReserves:      big.NewInt(2169108220421),
+			Token1RealReserves:      big.NewInt(19572550738602),
+			Token0ImaginaryReserves: big.NewInt(62511862774117387),
+			Token1ImaginaryReserves: big.NewInt(73766803277429176),
+		}
+
+		amountIn := big.NewInt(1e12)
+		inAmt, outAmt := swapIn(true, amountIn, colReserves, debtReserves)
+
+		require.Equal(t, expectedAmountIn, big.NewInt(0).Mul(inAmt, big.NewInt(1e6)).String())
+		require.Equal(t, expectedAmountOut, big.NewInt(0).Mul(outAmt, big.NewInt(1e6)).String())
 	})
 }
 

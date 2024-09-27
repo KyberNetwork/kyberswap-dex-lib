@@ -49,12 +49,21 @@ func getAmountIn(amountOut *big.Int, iReserveIn *big.Int, iReserveOut *big.Int) 
  * @note If a > 0 & a < t then swap will route through both pools.
  */
 func swapRoutingIn(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int) *big.Int {
-	// Adding 1e18 precision
-	xyRoot := new(big.Int).Sqrt(new(big.Int).Mul(new(big.Int).Mul(x, y), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)))
-	x2y2Root := new(big.Int).Sqrt(new(big.Int).Mul(new(big.Int).Mul(x2, y2), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)))
+	xyProduct := new(big.Int).Mul(x, y)
+	xyProduct = new(big.Int).Mul(xyProduct, new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+	xyRoot := new(big.Int).Sqrt(xyProduct)
 
-	// Calculating 'a' using the given formula
-	a := new(big.Int).Div(new(big.Int).Sub(new(big.Int).Add(new(big.Int).Mul(y2, xyRoot), new(big.Int).Mul(t, xyRoot)), new(big.Int).Mul(y, x2y2Root)), new(big.Int).Add(xyRoot, x2y2Root))
+	x2y2Product := new(big.Int).Mul(x2, y2)
+	x2y2Product = new(big.Int).Mul(x2y2Product, new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+	x2y2Root := new(big.Int).Sqrt(x2y2Product)
+
+	y2xyRoot := new(big.Int).Mul(y2, xyRoot)
+	txyRoot := new(big.Int).Mul(t, xyRoot)
+	yx2y2Root := new(big.Int).Mul(y, x2y2Root)
+	sum := new(big.Int).Add(y2xyRoot, txyRoot)
+	sum = new(big.Int).Sub(sum, yx2y2Root)
+	denominator := new(big.Int).Add(xyRoot, x2y2Root)
+	a := new(big.Int).Div(sum, denominator)
 	return a
 }
 
@@ -71,12 +80,21 @@ func swapRoutingIn(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int)
  * @note If a > 0 & a < t then swap will route through both pools.
  */
 func swapRoutingOut(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int) *big.Int {
-	// Adding 1e18 precision
-	xyRoot := new(big.Int).Sqrt(new(big.Int).Mul(new(big.Int).Mul(x, y), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)))
-	x2y2Root := new(big.Int).Sqrt(new(big.Int).Mul(new(big.Int).Mul(x2, y2), new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)))
+	xyProduct := new(big.Int).Mul(x, y)
+	xyProduct = new(big.Int).Mul(xyProduct, new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+	xyRoot := new(big.Int).Sqrt(xyProduct)
 
-	// Calculating 'a' using the given formula
-	a := new(big.Int).Div(new(big.Int).Sub(new(big.Int).Add(new(big.Int).Mul(t, xyRoot), new(big.Int).Mul(y, x2y2Root)), new(big.Int).Mul(y2, xyRoot)), new(big.Int).Add(xyRoot, x2y2Root))
+	x2y2Product := new(big.Int).Mul(x2, y2)
+	x2y2Product = new(big.Int).Mul(x2y2Product, new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+	x2y2Root := new(big.Int).Sqrt(x2y2Product)
+
+	txyRoot := new(big.Int).Mul(t, xyRoot)
+	yx2y2Root := new(big.Int).Mul(y, x2y2Root)
+	y2xyRoot := new(big.Int).Mul(y2, xyRoot)
+	sum := new(big.Int).Add(txyRoot, yx2y2Root)
+	sum = new(big.Int).Sub(sum, y2xyRoot)
+	denominator := new(big.Int).Add(xyRoot, x2y2Root)
+	a := new(big.Int).Div(sum, denominator)
 	return a
 }
 

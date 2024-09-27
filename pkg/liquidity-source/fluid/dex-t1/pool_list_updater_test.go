@@ -60,6 +60,7 @@ func TestPoolListUpdater(t *testing.T) {
 				Swappable: true,
 			},
 		},
+		SwapFee: 0.01,
 
 		Extra: pools[0].Extra,
 	}

@@ -75,7 +75,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 					Swappable: true,
 				},
 			},
-			SwapFee: 0, // Todo
+			SwapFee: float64(curPool.Fee.Int64()) / 10000,
 			Extra:   string(extraBytes),
 		}
 

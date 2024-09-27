@@ -7,7 +7,7 @@ const (
 )
 
 var dexReservesResolver = map[valueobject.ChainID]string{
-	valueobject.ChainIDEthereum: "0xfE1CBE632855e279601EaAF58D3cB552271BfDF5",
+	valueobject.ChainIDEthereum: "0x278166A9B88f166EB170d55801bE1b1d1E576330",
 }
 
 const (
@@ -15,3 +15,5 @@ const (
 	DRRMethodGetAllPoolsReserves = "getAllPoolsReserves"
 	DRRMethodGetPoolReserves     = "getPoolReserves"
 )
+
+const Fee100PercentPrecision int64 = 1e6
