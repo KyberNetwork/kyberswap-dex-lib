@@ -32,4 +32,4 @@ jobs:
       - name: Run "go generate ./..."
         run: go generate ./... || true
       - name: Check working tree clean after go generate
-        run: [ -z "$(git status --porcelain)" ]
+        run: '[ -z "$(git status --porcelain)" ]'
