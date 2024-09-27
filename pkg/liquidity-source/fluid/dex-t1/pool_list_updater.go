@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -34,6 +35,13 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}).Infof("Finish updating pools list.")
 	}()
 
+	staticExtraBytes, err := json.Marshal(&StaticExtra{
+		DexReservesResolver: u.config.DexReservesResolver,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
 	allPools, err := u.getAllPools(ctx)
 
 	if err != nil {
@@ -43,6 +51,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	pools := make([]entity.Pool, 0)
 
 	for _, curPool := range allPools {
+
+		token0Decimals, token1Decimals, err := u.readTokensDecimals(ctx, curPool.Token0Address, curPool.Token1Address)
+		if err != nil {
+			return nil, nil, err
+		}
 
 		extra := PoolExtra{
 			CollateralReserves: curPool.CollateralReserves,
@@ -68,15 +81,18 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 					Address:   curPool.Token0Address.String(),
 					Weight:    1,
 					Swappable: true,
+					Decimals:  token0Decimals,
 				},
 				{
 					Address:   curPool.Token1Address.String(),
 					Weight:    1,
 					Swappable: true,
+					Decimals:  token1Decimals,
 				},
 			},
-			SwapFee: float64(curPool.Fee.Int64()) / 10000,
-			Extra:   string(extraBytes),
+			SwapFee:     float64(curPool.Fee.Int64()) / 10000,
+			Extra:       string(extraBytes),
+			StaticExtra: string(staticExtraBytes),
 		}
 
 		pools = append(pools, pool)
@@ -92,7 +108,7 @@ func (u *PoolsListUpdater) getAllPools(ctx context.Context) ([]PoolWithReserves,
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    dexReservesResolverABI,
-		Target: dexReservesResolver[u.config.ChainID],
+		Target: u.config.DexReservesResolver,
 		Method: DRRMethodGetAllPoolsReserves,
 	}, []interface{}{&pools})
 
@@ -104,4 +120,43 @@ func (u *PoolsListUpdater) getAllPools(ctx context.Context) ([]PoolWithReserves,
 	}
 
 	return pools, nil
+}
+
+func (u *PoolsListUpdater) readTokensDecimals(ctx context.Context, token0 common.Address, token1 common.Address) (uint8, uint8, error) {
+	var decimals0, decimals1 uint8
+
+	req := u.ethrpcClient.R().SetContext(ctx)
+
+	if token0 == common.HexToAddress("0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") {
+		decimals0 = 18
+	} else {
+		req.AddCall(&ethrpc.Call{
+			ABI:    erc20,
+			Target: token0.String(),
+			Method: TokenMethodDecimals,
+			Params: nil,
+		}, []interface{}{&decimals0})
+	}
+
+	if token1 == common.HexToAddress("0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") {
+		decimals1 = 18
+	} else {
+		req.AddCall(&ethrpc.Call{
+			ABI:    erc20,
+			Target: token1.String(),
+			Method: TokenMethodDecimals,
+			Params: nil,
+		}, []interface{}{&decimals1})
+	}
+
+	_, err := req.Aggregate()
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"dexType": DexType,
+			"error":   err,
+		}).Error("can not read token info")
+		return 0, 0, err
+	}
+
+	return decimals0, decimals1, nil
 }

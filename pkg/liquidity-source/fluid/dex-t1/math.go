@@ -4,6 +4,9 @@ import (
 	"math/big"
 )
 
+// @dev the logic here mirrors the original Solidity code used in Dex, see
+// https://github.com/Instadapp/fluid-contracts-public/tree/main/contracts/protocols/dex/poolT1
+
 /**
  * Given an input amount of asset and pair reserves, returns the maximum output amount of the other asset.
  * @param {number} amountIn - The amount of input asset.
@@ -101,7 +104,7 @@ func swapRoutingOut(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int
 /**
  * Calculates the output amount for a given input amount in a swap operation.
  * @param {boolean} swap0To1 - Direction of the swap. True if swapping token0 for token1, false otherwise.
- * @param {number} amountToSwap - The amount of input token to be swapped.
+ * @param {number} amountToSwap - The amount of input token to be swapped scaled to 1e12.
  * @param {Object} colReserves - The reserves of the collateral pool.
  * @param {number} colReserves.token0RealReserves - Real reserves of token0 in the collateral pool.
  * @param {number} colReserves.token1RealReserves - Real reserves of token1 in the collateral pool.
@@ -116,7 +119,7 @@ func swapRoutingOut(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int
  * @returns {number} amountIn - The input amount.
  * @returns {number} amountOut - The calculated output amount.
  */
-func swapIn(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, *big.Int) {
+func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, *big.Int) {
 	var (
 		colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
 	)
@@ -173,9 +176,54 @@ func swapIn(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves
 }
 
 /**
+ * Calculates the output amount for a given input amount in a swap operation.
+ * @param {boolean} swap0To1 - Direction of the swap. True if swapping token0 for token1, false otherwise.
+ * @param {number} amountToSwap - The amount of input token to be swapped.
+ * @param {Object} colReserves - The reserves of the collateral pool.
+ * @param {number} colReserves.token0RealReserves - Real reserves of token0 in the collateral pool.
+ * @param {number} colReserves.token1RealReserves - Real reserves of token1 in the collateral pool.
+ * @param {number} colReserves.token0ImaginaryReserves - Imaginary reserves of token0 in the collateral pool.
+ * @param {number} colReserves.token1ImaginaryReserves - Imaginary reserves of token1 in the collateral pool.
+ * @param {Object} debtReserves - The reserves of the debt pool.
+ * @param {number} debtReserves.token0RealReserves - Real reserves of token0 in the debt pool.
+ * @param {number} debtReserves.token1RealReserves - Real reserves of token1 in the debt pool.
+ * @param {number} debtReserves.token0ImaginaryReserves - Imaginary reserves of token0 in the debt pool.
+ * @param {number} debtReserves.token1ImaginaryReserves - Imaginary reserves of token1 in the debt pool.
+ * @param {number} inDecimals - The number of decimals for the input token.
+ * @param {number} outDecimals - The number of decimals for the output token.
+ * @returns {number} amountOut - The calculated output amount scaled to token decimals
+ */
+func swapIn(
+	swap0To1 bool,
+	amountIn *big.Int,
+	colReserves CollateralReserves,
+	debtReserves DebtReserves,
+	inDecimals int64,
+	outDecimals int64,
+) (*big.Int, *big.Int) {
+	var amountInAdjusted *big.Int
+
+	if inDecimals > 12 {
+		amountInAdjusted = new(big.Int).Div(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-12), nil))
+	} else {
+		amountInAdjusted = new(big.Int).Mul(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(12-inDecimals), nil))
+	}
+
+	_, amountOut := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves)
+
+	if outDecimals > 12 {
+		amountOut = new(big.Int).Mul(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-12), nil))
+	} else {
+		amountOut = new(big.Int).Div(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(12-outDecimals), nil))
+	}
+
+	return amountIn, amountOut
+}
+
+/**
  * Calculates the input amount for a given output amount in a swap operation.
  * @param {boolean} swap0to1 - Direction of the swap. True if swapping token0 for token1, false otherwise.
- * @param {number} amountOut - The amount of output token to be swapped.
+ * @param {number} amountOut - The amount of output token to be swapped scaled to 1e12.
  * @param {Object} colReserves - The reserves of the collateral pool.
  * @param {number} colReserves.token0RealReserves - Real reserves of token0 in the collateral pool.
  * @param {number} colReserves.token1RealReserves - Real reserves of token1 in the collateral pool.
@@ -190,7 +238,7 @@ func swapIn(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves
  * @returns {number} amountIn - The calculated input amount required for the swap.
  * @returns {number} amountOut - The specified output amount of the swap.
  */
-func swapOut(swap0to1 bool, amountOut *big.Int, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, *big.Int) {
+func swapOutAdjusted(swap0to1 bool, amountOut *big.Int, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, *big.Int) {
 	var (
 		colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
 	)
@@ -244,4 +292,49 @@ func swapOut(swap0to1 bool, amountOut *big.Int, colReserves CollateralReserves, 
 	}
 
 	return new(big.Int).Add(amountInCollateral, amountInDebt), amountOut
+}
+
+/**
+ * Calculates the input amount for a given output amount in a swap operation.
+ * @param {boolean} swap0to1 - Direction of the swap. True if swapping token0 for token1, false otherwise.
+ * @param {number} amountOut - The amount of output token to be swapped.
+ * @param {Object} colReserves - The reserves of the collateral pool.
+ * @param {number} colReserves.token0RealReserves - Real reserves of token0 in the collateral pool.
+ * @param {number} colReserves.token1RealReserves - Real reserves of token1 in the collateral pool.
+ * @param {number} colReserves.token0ImaginaryReserves - Imaginary reserves of token0 in the collateral pool.
+ * @param {number} colReserves.token1ImaginaryReserves - Imaginary reserves of token1 in the collateral pool.
+ * @param {Object} debtReserves - The reserves of the debt pool.
+ * @param {number} debtReserves.token0RealReserves - Real reserves of token0 in the debt pool.
+ * @param {number} debtReserves.token1RealReserves - Real reserves of token1 in the debt pool.
+ * @param {number} debtReserves.token0ImaginaryReserves - Imaginary reserves of token0 in the debt pool.
+ * @param {number} debtReserves.token1ImaginaryReserves - Imaginary reserves of token1 in the debt pool.
+ * @param {number} inDecimals - The number of decimals for the input token.
+ * @param {number} outDecimals - The number of decimals for the output token.
+ * @returns {number} amountIn - The calculated input amount required for the swap
+ */
+func swapOut(
+	swap0To1 bool,
+	amountOut *big.Int,
+	colReserves CollateralReserves,
+	debtReserves DebtReserves,
+	inDecimals int64,
+	outDecimals int64,
+) (*big.Int, *big.Int) {
+	var amountOutAdjusted *big.Int
+
+	if outDecimals > 12 {
+		amountOutAdjusted = new(big.Int).Div(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-12), nil))
+	} else {
+		amountOutAdjusted = new(big.Int).Mul(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(12-outDecimals), nil))
+	}
+
+	amountIn, _ := swapOutAdjusted(swap0To1, amountOutAdjusted, colReserves, debtReserves)
+
+	if inDecimals > 12 {
+		amountIn = new(big.Int).Mul(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-12), nil))
+	} else {
+		amountIn = new(big.Int).Div(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(12-inDecimals), nil))
+	}
+
+	return amountIn, amountOut
 }

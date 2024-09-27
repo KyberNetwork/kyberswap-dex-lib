@@ -19,8 +19,12 @@ var (
 type PoolSimulator struct {
 	poolpkg.Pool
 
-	CollateralReserves CollateralReserves
-	DebtReserves       DebtReserves
+	DexReservesResolver string
+	CollateralReserves  CollateralReserves
+	DebtReserves        DebtReserves
+
+	Token0Decimals uint8
+	Token1Decimals uint8
 }
 
 var (
@@ -30,6 +34,11 @@ var (
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
@@ -46,8 +55,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			BlockNumber: entityPool.BlockNumber,
 			SwapFee:     fee,
 		}},
-		CollateralReserves: extra.CollateralReserves,
-		DebtReserves:       extra.DebtReserves,
+		CollateralReserves:  extra.CollateralReserves,
+		DebtReserves:        extra.DebtReserves,
+		Token0Decimals:      entityPool.Tokens[0].Decimals,
+		Token1Decimals:      entityPool.Tokens[1].Decimals,
+		DexReservesResolver: staticExtra.DexReservesResolver,
 	}, nil
 }
 
@@ -58,18 +70,30 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 	swap0To1 := param.TokenAmountIn.Token == s.Info.Tokens[0]
 
+	var tokenInDecimals, tokenOutDecimals uint8
+	if swap0To1 {
+		tokenInDecimals = s.Token0Decimals
+		tokenOutDecimals = s.Token1Decimals
+	} else {
+		tokenOutDecimals = s.Token0Decimals
+		tokenInDecimals = s.Token1Decimals
+	}
+
 	// fee is applied on token in
 	fee := new(big.Int).Mul(param.TokenAmountIn.Amount, s.Pool.Info.SwapFee)
 	fee = new(big.Int).Div(fee, big.NewInt(Fee100PercentPrecision))
 
 	amountInAfterFee := new(big.Int).Sub(param.TokenAmountIn.Amount, fee)
 
-	_, tokenAmountOut := swapIn(swap0To1, amountInAfterFee, s.CollateralReserves, s.DebtReserves)
+	_, tokenAmountOut := swapIn(swap0To1, amountInAfterFee, s.CollateralReserves, s.DebtReserves, int64(tokenInDecimals), int64(tokenOutDecimals))
 
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
 		Fee:            &poolpkg.TokenAmount{Token: param.TokenAmountIn.Token, Amount: fee},
 		Gas:            defaultGas.Swap,
+		SwapInfo: StaticExtra{
+			DexReservesResolver: s.DexReservesResolver,
+		},
 	}, nil
 }
 
@@ -80,7 +104,16 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 
 	swap0To1 := param.TokenAmountOut.Token == s.Info.Tokens[1]
 
-	tokenAmountIn, _ := swapOut(swap0To1, param.TokenAmountOut.Amount, s.CollateralReserves, s.DebtReserves)
+	var tokenInDecimals, tokenOutDecimals uint8
+	if swap0To1 {
+		tokenInDecimals = s.Token0Decimals
+		tokenOutDecimals = s.Token1Decimals
+	} else {
+		tokenOutDecimals = s.Token0Decimals
+		tokenInDecimals = s.Token1Decimals
+	}
+
+	tokenAmountIn, _ := swapOut(swap0To1, param.TokenAmountOut.Amount, s.CollateralReserves, s.DebtReserves, int64(tokenInDecimals), int64(tokenOutDecimals))
 
 	// fee is applied on token in
 	fee := new(big.Int).Mul(tokenAmountIn, s.Pool.Info.SwapFee)
@@ -92,6 +125,9 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		TokenAmountIn: &poolpkg.TokenAmount{Token: param.TokenIn, Amount: amountInAfterFee},
 		Fee:           &poolpkg.TokenAmount{Token: param.TokenIn, Amount: fee},
 		Gas:           defaultGas.Swap,
+		SwapInfo: StaticExtra{
+			DexReservesResolver: s.DexReservesResolver,
+		},
 	}, nil
 }
 

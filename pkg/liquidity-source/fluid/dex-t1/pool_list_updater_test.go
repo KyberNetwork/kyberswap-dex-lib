@@ -9,7 +9,6 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -28,7 +27,7 @@ func TestPoolListUpdater(t *testing.T) {
 		err              error
 
 		config = Config{
-			ChainID: valueobject.ChainIDEthereum,
+			DexReservesResolver: "0x278166A9B88f166EB170d55801bE1b1d1E576330",
 		}
 	)
 
@@ -43,6 +42,10 @@ func TestPoolListUpdater(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, len(pools) >= 1)
 
+	staticExtraBytes, _ := json.Marshal(&StaticExtra{
+		DexReservesResolver: config.DexReservesResolver,
+	})
+
 	expectedPool0 := entity.Pool{
 		Address:  "0x6d83f60eEac0e50A1250760151E81Db2a278e03a",
 		Exchange: "fluid-dex-t1",
@@ -53,16 +56,19 @@ func TestPoolListUpdater(t *testing.T) {
 				Address:   "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
 				Weight:    1,
 				Swappable: true,
+				Decimals:  18,
 			},
 			{
 				Address:   "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
 				Weight:    1,
 				Swappable: true,
+				Decimals:  18,
 			},
 		},
 		SwapFee: 0.01,
 
-		Extra: pools[0].Extra,
+		Extra:       pools[0].Extra,
+		StaticExtra: string(staticExtraBytes),
 	}
 
 	require.Equal(t, expectedPool0, pools[0])

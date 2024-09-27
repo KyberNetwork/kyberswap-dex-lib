@@ -15,7 +15,6 @@ type PoolExtra struct {
 	DebtReserves       DebtReserves
 }
 
-// todo add and use token decimals.
 type Pool struct {
 	PoolAddress   common.Address `json:"poolAddress"`
 	Token0Address common.Address `json:"token0Address"`
@@ -50,4 +49,8 @@ type PoolWithReserves struct {
 
 type Gas struct {
 	Swap int64
+}
+
+type StaticExtra struct {
+	DexReservesResolver string `json:"dexReservesResolver"`
 }

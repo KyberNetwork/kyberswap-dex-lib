@@ -66,7 +66,7 @@ func (t *PoolTracker) getPoolReserves(ctx context.Context, poolAddress string) (
 	req := t.ethrpcClient.R().SetContext(ctx)
 	req.AddCall(&ethrpc.Call{
 		ABI:    dexReservesResolverABI,
-		Target: dexReservesResolver[t.config.ChainID],
+		Target: t.config.DexReservesResolver,
 		Method: DRRMethodGetPoolReserves,
 		Params: []interface{}{common.HexToAddress(poolAddress)},
 	}, []interface{}{&pool})

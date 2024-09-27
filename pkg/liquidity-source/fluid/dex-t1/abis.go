@@ -8,6 +8,7 @@ import (
 
 var (
 	dexReservesResolverABI abi.ABI
+	erc20                  abi.ABI
 )
 
 func init() {
@@ -16,6 +17,7 @@ func init() {
 		data []byte
 	}{
 		{&dexReservesResolverABI, dexReservesResolverJSON},
+		{&erc20, erc20JSON},
 	}
 
 	for _, b := range builder {

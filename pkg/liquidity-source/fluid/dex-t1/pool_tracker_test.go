@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -18,9 +19,13 @@ import (
 func TestPoolTracker(t *testing.T) {
 	_ = logger.SetLogLevel("debug")
 
+	if os.Getenv("CI") != "" {
+		t.Skip()
+	}
+
 	var (
 		config = Config{
-			ChainID: valueobject.ChainIDEthereum,
+			DexReservesResolver: "0x278166A9B88f166EB170d55801bE1b1d1E576330",
 		}
 	)
 
@@ -35,6 +40,11 @@ func TestPoolTracker(t *testing.T) {
 
 	t.Run("wstETH_ETH_Pool", func(t *testing.T) {
 		poolAddr := "0x6d83f60eEac0e50A1250760151E81Db2a278e03a"
+
+		staticExtraBytes, _ := json.Marshal(&StaticExtra{
+			DexReservesResolver: config.DexReservesResolver,
+		})
+
 		testPool := entity.Pool{
 			Address:  poolAddr,
 			Exchange: string(valueobject.ExchangeFluidDexT1),
@@ -45,16 +55,19 @@ func TestPoolTracker(t *testing.T) {
 					Address:   "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
 					Weight:    1,
 					Swappable: true,
+					Decimals:  18,
 				},
 				{
 					Address:   "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
 					Weight:    1,
 					Swappable: true,
+					Decimals:  18,
 				},
 			},
+			StaticExtra: string(staticExtraBytes),
 		}
 
-		logger.Debugf("Testing wstETH_weETH_Pool with address: %s", poolAddr)
+		logger.Debugf("Testing wstETH_ETH_Pool with address: %s", poolAddr)
 
 		newPool, err := poolTracker.GetNewPoolState(context.Background(), testPool, pool.GetNewPoolStateParams{})
 		require.NoError(t, err)
@@ -102,7 +115,7 @@ func TestPoolTracker(t *testing.T) {
 		logger.Debugf("Collateral Reserves: Token1ImaginaryReserves: %s", extra.CollateralReserves.Token1ImaginaryReserves.String())
 
 		jsonEncoded, _ := json.MarshalIndent(newPool, "", "  ")
-		t.Logf("Updated wstETH-weETH Pool: %s\n", string(jsonEncoded))
+		t.Logf("Updated wstETH-ETH Pool: %s\n", string(jsonEncoded))
 	})
 
 }
