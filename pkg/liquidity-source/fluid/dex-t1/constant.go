@@ -14,3 +14,5 @@ const (
 )
 
 const Fee100PercentPrecision int64 = 1e6
+
+const NativeETH string = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
@@ -127,7 +128,7 @@ func (u *PoolsListUpdater) readTokensDecimals(ctx context.Context, token0 common
 
 	req := u.ethrpcClient.R().SetContext(ctx)
 
-	if token0 == common.HexToAddress("0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") {
+	if strings.EqualFold(NativeETH, token0.String()) {
 		decimals0 = 18
 	} else {
 		req.AddCall(&ethrpc.Call{
@@ -138,7 +139,7 @@ func (u *PoolsListUpdater) readTokensDecimals(ctx context.Context, token0 common
 		}, []interface{}{&decimals0})
 	}
 
-	if token1 == common.HexToAddress("0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") {
+	if strings.EqualFold(NativeETH, token1.String()) {
 		decimals1 = 18
 	} else {
 		req.AddCall(&ethrpc.Call{
