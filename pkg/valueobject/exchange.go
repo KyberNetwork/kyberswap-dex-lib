@@ -343,12 +343,14 @@ var (
 	ExchangeSectaV3        Exchange = "secta-v3"
 	ExchangeAmbient        Exchange = "ambient"
 
+	ExchangeMaverickV2 Exchange = "maverick-v2"
+	ExchangeEtherVista Exchange = "ether-vista"
+	ExchangeLitePSM    Exchange = "lite-psm"
+	ExchangeMkrSky     Exchange = "mkr-sky"
+	ExchangeDaiUsds    Exchange = "dai-usds"
+
 	ExchangeFluidVaultT1 Exchange = "fluid-vault-t1"
-	ExchangeMaverickV2   Exchange = "maverick-v2"
-	ExchangeEtherVista   Exchange = "ether-vista"
-	ExchangeLitePSM      Exchange = "lite-psm"
-	ExchangeMkrSky       Exchange = "mkr-sky"
-	ExchangeDaiUsds      Exchange = "dai-usds"
+	ExchangeFluidDexT1   Exchange = "fluid-dex-t1"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -628,12 +630,13 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSectaV2:                    {},
 	ExchangeSectaV3:                    {},
 	ExchangeAmbient:                    {},
-	ExchangeFluidVaultT1:               {},
 	ExchangeMaverickV2:                 {},
 	ExchangeEtherVista:                 {},
 	ExchangeLitePSM:                    {},
 	ExchangeMkrSky:                     {},
 	ExchangeDaiUsds:                    {},
+	ExchangeFluidVaultT1:               {},
+	ExchangeFluidDexT1:                 {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
