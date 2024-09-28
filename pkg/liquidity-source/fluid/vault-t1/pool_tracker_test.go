@@ -16,8 +16,9 @@ import (
 )
 
 func TestPoolTracker(t *testing.T) {
-	// @dev test is guaranteed to work on block (because liquidation is available)
-	// const testBlockNumber = uint64(20812089)
+	// @dev test is guaranteed to work on block (because liquidation is available).
+	// just add the following line in pool_tracker.go getPoolSwapData() and comment out t.Skip here:
+	// req.SetBlockNumber(big.NewInt(20812089))
 	t.Skip()
 
 	_ = logger.SetLogLevel("debug")
