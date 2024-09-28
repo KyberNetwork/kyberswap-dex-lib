@@ -74,8 +74,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Exchange: string(valueobject.ExchangeFluidDexT1),
 			Type:     DexType,
 			Reserves: entity.PoolReserves{
-				new(big.Int).Add(curPool.CollateralReserves.Token0RealReserves, curPool.DebtReserves.Token0Debt).String(),
-				new(big.Int).Add(curPool.CollateralReserves.Token1RealReserves, curPool.DebtReserves.Token1Debt).String(),
+				new(big.Int).Add(curPool.CollateralReserves.Token0RealReserves, curPool.DebtReserves.Token0RealReserves).String(),
+				new(big.Int).Add(curPool.CollateralReserves.Token1RealReserves, curPool.DebtReserves.Token1RealReserves).String(),
 			},
 			Tokens: []*entity.PoolToken{
 				{

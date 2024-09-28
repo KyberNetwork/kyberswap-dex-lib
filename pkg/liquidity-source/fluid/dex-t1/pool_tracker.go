@@ -53,8 +53,8 @@ func (t *PoolTracker) GetNewPoolState(
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		new(big.Int).Add(poolReserves.CollateralReserves.Token0RealReserves, poolReserves.DebtReserves.Token0Debt).String(),
-		new(big.Int).Add(poolReserves.CollateralReserves.Token1RealReserves, poolReserves.DebtReserves.Token1Debt).String(),
+		new(big.Int).Add(poolReserves.CollateralReserves.Token0RealReserves, poolReserves.DebtReserves.Token0RealReserves).String(),
+		new(big.Int).Add(poolReserves.CollateralReserves.Token1RealReserves, poolReserves.DebtReserves.Token1RealReserves).String(),
 	}
 
 	return p, nil
