@@ -15,11 +15,7 @@ type (
 	PoolSimulator struct {
 		poolpkg.Pool
 
-		paused bool
-
-		// USD0PP total supply
-		totalSupply *big.Int
-
+		paused    bool
 		startTime int64
 		endTime   int64
 
@@ -55,11 +51,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		paused:      extra.Paused,
-		totalSupply: extra.TotalSupply,
-		startTime:   extra.StartTime,
-		endTime:     extra.StartTime + totalBondTimes,
-		gas:         defaultGas,
+		paused:    extra.Paused,
+		startTime: extra.StartTime,
+		endTime:   extra.EndTime,
+		gas:       defaultGas,
 	}, nil
 }
 
@@ -92,10 +87,8 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	}, nil
 }
 
-func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-	// https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/master/contracts/token/ERC20/ERC20Upgradeable.sol#L210
-	// NOTE: skip check overflow uint256
-	s.totalSupply.Add(s.totalSupply, params.TokenAmountOut.Amount)
+func (s *PoolSimulator) UpdateBalance(_ poolpkg.UpdateBalanceParams) {
+
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {

@@ -62,7 +62,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	return []entity.Pool{
 		{
 			Address:   USD0PP,
-			Reserves:  []string{extra.TotalSupply.String(), extra.TotalSupply.String()},
+			Reserves:  []string{defaultReserves, defaultReserves},
 			Exchange:  u.config.DexID,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
@@ -90,10 +90,9 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 
 func getExtra(ctx context.Context, client *ethrpc.Client) (PoolExtra, uint64, error) {
 	var (
-		paused      bool
-		endTime     *big.Int
-		startTime   *big.Int
-		totalSupply *big.Int
+		paused    bool
+		endTime   *big.Int
+		startTime *big.Int
 	)
 
 	calls := client.NewRequest()
@@ -117,12 +116,6 @@ func getExtra(ctx context.Context, client *ethrpc.Client) (PoolExtra, uint64, er
 		Method: usd0ppMethodPaused,
 		Params: []interface{}{},
 	}, []interface{}{&paused})
-	calls.AddCall(&ethrpc.Call{
-		ABI:    usd0ppABI,
-		Target: USD0PP,
-		Method: usd0ppMethodTotalSupply,
-		Params: nil,
-	}, []interface{}{&totalSupply})
 
 	resp, err := calls.Aggregate()
 	if err != nil {
@@ -134,9 +127,8 @@ func getExtra(ctx context.Context, client *ethrpc.Client) (PoolExtra, uint64, er
 	}
 
 	return PoolExtra{
-		Paused:      paused,
-		EndTime:     int64(endTime.Uint64()),
-		StartTime:   int64(startTime.Uint64()),
-		TotalSupply: totalSupply,
+		Paused:    paused,
+		EndTime:   int64(endTime.Uint64()),
+		StartTime: int64(startTime.Uint64()),
 	}, resp.BlockNumber.Uint64(), nil
 }

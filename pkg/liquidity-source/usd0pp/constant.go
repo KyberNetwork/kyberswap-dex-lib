@@ -6,6 +6,10 @@ const (
 	USD0    = "0x73a15fed60bf67631dc6cd7bc5b6e8da8190acf5"
 )
 
+const (
+	defaultReserves = "1000000000000000000000000"
+)
+
 var (
 	defaultGas = Gas{
 		Mint: 200000,
@@ -13,13 +17,7 @@ var (
 )
 
 const (
-	// number of seconds from beginning to end of the bond period (4 years)
-	totalBondTimes = 126230400
-)
-
-const (
 	usd0ppMethodPaused       = "paused"
 	usd0ppMethodGetEndTime   = "getEndTime"
 	usd0ppMethodGetStartTime = "getStartTime"
-	usd0ppMethodTotalSupply  = "totalSupply"
 )

@@ -47,7 +47,8 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 				Address: "0x35d8949372d46b7a3d5a56006ae77b215fc69bc0",
 			},
 		},
-		Extra: `{"Paused":false,"endTime":1844335800,"startTime":1718105400,"totalSupply":201466943443335761998924166}`,
+		Reserves: []string{defaultReserves, defaultReserves},
+		Extra:    `{"Paused":false,"endTime":1844335800,"startTime":1718105400}`,
 	}, pool.GetNewPoolStateParams{})
 	if err != nil {
 		panic(err)

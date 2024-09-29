@@ -45,6 +45,7 @@ import (
 	pkg_liquiditysource_swell_rsweth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	pkg_liquiditysource_swell_sweth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
 	pkg_liquiditysource_uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
+	pkg_liquiditysource_usd0pp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	pkg_liquiditysource_velocorev2_cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	pkg_liquiditysource_velocorev2_wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
 	pkg_liquiditysource_velodromev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
@@ -52,9 +53,9 @@ import (
 	pkg_liquiditysource_woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	pkg_liquiditysource_woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
 	pkg_source_algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
+	pkg_source_balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	pkg_source_balancer_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/stable"
 	pkg_source_balancer_weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/weighted"
-	pkg_source_balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	pkg_source_camelot "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
 	pkg_source_curve_aave "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/aave"
 	pkg_source_curve_base "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/base"
@@ -111,6 +112,7 @@ import (
 	pkg_source_woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/woofiv2"
 	pkg_source_zkerafinance "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkera-finance"
 )
+
 func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv2_composablestable.PoolSimulator{})
@@ -152,6 +154,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_swell_rsweth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_swell_sweth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_uniswapv2.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_usd0pp.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_velocorev2_cpmm.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_velocorev2_wombatstable.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_velodromev1.PoolSimulator{})

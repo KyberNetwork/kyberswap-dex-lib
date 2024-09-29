@@ -28,10 +28,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 						},
 					},
 				},
-				paused:      false,
-				totalSupply: bignumber.NewBig("406545179820271452478787"),
-				startTime:   1718105400,
-				endTime:     1844335800,
+				paused:    false,
+				startTime: 1718105400,
+				endTime:   1844335800,
 			},
 			param: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -54,10 +53,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 						},
 					},
 				},
-				paused:      false,
-				totalSupply: bignumber.NewBig("40654517980271452478787"),
-				startTime:   17018105400,
-				endTime:     17108105410,
+				paused:    false,
+				startTime: 17018105400,
+				endTime:   17108105410,
 			},
 			param: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -80,10 +78,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 						},
 					},
 				},
-				paused:      false,
-				totalSupply: bignumber.NewBig("40654517980271452478787"),
-				startTime:   1718105400,
-				endTime:     1718105410,
+				paused:    false,
+				startTime: 1718105400,
+				endTime:   1718105410,
 			},
 			param: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -106,10 +103,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 						},
 					},
 				},
-				paused:      false,
-				totalSupply: bignumber.NewBig("40654517980271452478787"),
-				startTime:   1718105400,
-				endTime:     1844335800,
+				paused:    false,
+				startTime: 1718105400,
+				endTime:   1844335800,
 			},
 			param: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -132,10 +128,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 						},
 					},
 				},
-				paused:      false,
-				totalSupply: bignumber.NewBig("40654517980271452478787"),
-				startTime:   1718105400,
-				endTime:     1844335800,
+				paused:    false,
+				startTime: 1718105400,
+				endTime:   1844335800,
 			},
 			param: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
@@ -158,10 +153,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 						},
 					},
 				},
-				paused:      false,
-				totalSupply: bignumber.NewBig("40654517980271452478787"),
-				startTime:   1718105400,
-				endTime:     1844335800,
+				paused:    false,
+				startTime: 1718105400,
+				endTime:   1844335800,
 			},
 			param: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{

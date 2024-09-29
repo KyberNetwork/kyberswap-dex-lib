@@ -2,6 +2,7 @@ package usd0pp
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
@@ -48,6 +49,16 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	require.Equal(ts.Suite.T(), uint8(18), pools[0].Tokens[1].Decimals)
 	require.Equal(ts.Suite.T(), strings.ToLower(USD0), pools[0].Tokens[0].Address)
 	require.Equal(ts.Suite.T(), strings.ToLower(USD0PP), pools[0].Tokens[1].Address)
+
+	var poolExtra PoolExtra
+	if err := json.Unmarshal([]byte(pools[0].Extra), &poolExtra); err != nil {
+		require.NoError(ts.Suite.T(), err)
+	}
+
+	require.Equal(ts.Suite.T(), int64(1718105400), poolExtra.StartTime)
+	require.Equal(ts.Suite.T(), int64(1844335800), poolExtra.EndTime)
+	require.Equal(ts.Suite.T(), false, poolExtra.Paused)
+	require.Equal(ts.Suite.T(), int64(126230400), poolExtra.EndTime-poolExtra.StartTime)
 }
 
 func TestPoolListUpdaterTestSuite(t *testing.T) {
