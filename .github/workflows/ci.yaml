@@ -1,167 +1,25 @@
-name: Build Docker
+name: 'CI'
 
 concurrency:
   group: ci-workflow-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
+permissions: write-all
+
 on:
   workflow_dispatch:
   push:
     branches:
-      - main
-      - release-v**
+      - 'main'
+      - 'release*'
   pull_request:
 
-env:
-  SERVICE: router-service
-  GOPRIVATE: github.com/KyberNetwork
-
 jobs:
-  lint:
-    runs-on: self-hosted
-    steps:
-      - name: Add git config for go private module
-        run: git config --global url."https://${{ secrets.GH_PAT }}:x-oauth-basic@github.com/".insteadOf https://github.com/
-
-      - uses: actions/setup-go@v4
-        with:
-          go-version: "1.22.x"
-
-      - uses: actions/checkout@v3
-
-      - uses: golangci/golangci-lint-action@v3
-        with:
-          version: v1.59.1
-          skip-pkg-cache: true
-          skip-build-cache: true
-          args: --timeout=10m
-  test:
-    runs-on: self-hosted
-    steps:
-      - name: Add git config for go private module
-        run: git config --global url."https://${{ secrets.GH_PAT }}:x-oauth-basic@github.com/".insteadOf https://github.com/
-      - uses: actions/setup-go@v4
-        with:
-          go-version: 1.22.0
-      - uses: actions/checkout@v3
-      - name: Run tests
-        run: go test -race -coverprofile cover.out -vet=off ./...
-
-      - name: Print coverage
-        run: |
-          go tool cover -func cover.out | grep total | awk '{notice="Statement Coverage: " substr($3, 1, length($3))} END {print notice}'
-
-  prepare:
-    runs-on: [self-hosted]
-    needs:
-      - lint
-      - test
-    outputs:
-      current_branch: ${{ steps.current_branch.outputs.value }}
-      head_sha: ${{ steps.head_sha.outputs.value }}
-      image_name: "asia.gcr.io/kyber-operation/core/${{ env.SERVICE }}"
-      image_tag: ${{ steps.get_tag.outputs.image_tag }}
-      branch_tag: ${{ steps.get_tag.outputs.branch_tag }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Extract branch
-        shell: bash
-        id: current_branch
-        run: |
-          if [[ ! "${{ github.ref }}"  = "refs/tags/"* ]]; then
-            if [[ "${{ github.event_name }}" = "pull_request" ]]; then
-              HEAD_REF=$(printf "%q" "${{ github.head_ref }}")
-              HEAD_REF=${HEAD_REF/refs\/heads\//}
-              BRANCH=$HEAD_REF
-            else
-              REF=$(printf "%q" "${{ github.ref }}")
-              REF_BRANCH=${REF/refs\/pull\//}
-              REF_BRANCH=${REF_BRANCH/refs\/heads\//}
-              BRANCH=$REF_BRANCH
-            fi
-          else
-            REF=$(printf "%q" "${{ github.ref }}")
-            REF_BRANCH=${REF/refs\/tags\//}
-            BRANCH=$REF_BRANCH
-          fi
-
-          echo "::set-output name=value::$BRANCH"
-
-      - name: Extract GitHub HEAD SHA
-        id: head_sha
-        run: echo "::set-output name=value::$(git rev-parse HEAD)"
-
-      - name: Get Docker image tag
-        id: get_tag
-        env:
-          CURRENT_BRANCH: ${{ steps.current_branch.outputs.value }}
-        run: |
-          if [[ $CURRENT_BRANCH = "main" ]]; then
-            short_sha="$(git rev-parse --short HEAD)"
-            branch_tag="$(echo "$CURRENT_BRANCH" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/--*/-/g' | sed 's/-$//g')"
-            echo "::set-output name=image_tag::$branch_tag-$short_sha"
-            echo "::set-output name=branch_tag::$branch_tag-$short_sha"
-          else
-            branch_tag="$(echo "$CURRENT_BRANCH")"
-            if [[ ! $CURRENT_BRANCH =~ release-* ]]; then
-              branch_tag="$(echo "$CURRENT_BRANCH" | sed 's/[^a-zA-Z0-9]/-/g' | sed 's/--*/-/g' | sed 's/-$//g')"
-            fi
-            echo "::set-output name=image_tag::$branch_tag.${GITHUB_RUN_NUMBER}"
-            echo "::set-output name=branch_tag::$branch_tag.${GITHUB_RUN_NUMBER}"
-          fi
-
+  ci:
+    uses: KyberNetwork/service-framework/.github/workflows/ci.yaml@main
+    secrets: inherit
   build:
-    runs-on: [self-hosted]
-    needs:
-      - prepare
-    steps:
-      - name: Add git config for go private module
-        run: git config --global url."https://${{ secrets.GH_PAT }}:x-oauth-basic@github.com/".insteadOf https://github.com/
-
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@master
-
-      - name: Gcloud Auth
-        uses: google-github-actions/auth@v0
-        with:
-          credentials_json: "${{ secrets.GCR_CREDENTIALS }}"
-
-      - name: Setup Gcloud SDK
-        uses: google-github-actions/setup-gcloud@v0
-
-      - name: Configure docker
-        run: gcloud auth configure-docker
-
-      - name: Cache Docker layers
-        uses: actions/cache@v2
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-${{ env.SERVICE }}-buildx
-
-      - name: Docker build and push
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          push: true
-          labels: |
-            kyber.network.schema-version=1.0
-            kyber.network.vcs-ref=${{ github.sha }}
-            kyber.network.version=${{ needs.prepare.outputs.image_tag }}
-            kyber.network.name=${{ env.SERVICE }}
-          tags: |
-            ${{ needs.prepare.outputs.image_name }}:${{ needs.prepare.outputs.image_tag }}
-            ${{ needs.prepare.outputs.image_name }}:${{ needs.prepare.outputs.branch_tag }}
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
-          build-args: |
-            GH_PAT=${{ secrets.GH_PAT }}
-
-      - name: Move Docker cache
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+    uses: KyberNetwork/service-framework/.github/workflows/build.yaml@main
+    with:
+      service: ${{ github.event.repository.name }}
+    secrets: inherit
