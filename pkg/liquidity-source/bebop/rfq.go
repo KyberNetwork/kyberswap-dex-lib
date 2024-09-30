@@ -15,7 +15,7 @@ type Config struct {
 }
 
 type IClient interface {
-	Quote(ctx context.Context, params QuoteParams) (QuoteResult, error)
+	QuoteQuoteSingleOrderResult(ctx context.Context, params QuoteParams) (QuoteSingleOrderResult, error)
 }
 
 type RFQHandler struct {
@@ -36,7 +36,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		return nil, err
 	}
 	logger.Infof("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)
-	result, err := h.client.Quote(ctx, QuoteParams{
+	result, err := h.client.QuoteQuoteSingleOrderResult(ctx, QuoteParams{
 		SellTokens:      swapInfo.BaseToken,
 		BuyTokens:       swapInfo.QuoteToken,
 		SellAmounts:     swapInfo.BaseTokenAmount,
@@ -48,16 +48,10 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		return nil, err
 	}
 
-	newTotalAmountOut := big.NewInt(0)
-	for _, mA := range result.ToSign.MakerAmounts {
-		for _, amount := range mA {
-			newAmountOut, _ := new(big.Int).SetString(amount, 10)
-			newTotalAmountOut = new(big.Int).Add(newTotalAmountOut, newAmountOut)
-		}
-	}
+	newAmountOut, _ := new(big.Int).SetString(result.ToSign.MakerAmount, 10)
 
 	return &pool.RFQResult{
-		NewAmountOut: newTotalAmountOut,
+		NewAmountOut: newAmountOut,
 		Extra:        result,
 	}, nil
 }

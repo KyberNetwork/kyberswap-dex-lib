@@ -1,7 +1,5 @@
 package bebop
 
-import "math/big"
-
 type QueryParams = string
 
 const (
@@ -46,13 +44,12 @@ type QuoteParams struct {
 }
 
 type TokenResult struct {
-	Amount          string  `json:"amount"`
-	Decimals        int     `json:"decimals"`
-	PriceUsd        float64 `json:"priceUsd"`
-	Symbol          string  `json:"symbol"`
-	Price           float64 `json:"price"`
-	PriceBeforeFee  float64 `json:"priceBeforeFee"`
-	AmountBeforeFee string  `json:"amountBeforeFee"`
+	Amount         string  `json:"amount"`
+	Decimals       int     `json:"decimals"`
+	PriceUsd       float64 `json:"priceUsd"`
+	Symbol         string  `json:"symbol"`
+	Price          float64 `json:"price"`
+	PriceBeforeFee float64 `json:"priceBeforeFee"`
 }
 
 type QuoteFail struct {
@@ -66,45 +63,49 @@ func (r QuoteFail) Failed() bool {
 	return r.Error.ErrorCode != 0 || r.Error.Message != ""
 }
 
-type QuoteResult struct {
+type QuoteSingleOrderResult struct {
 	Type         string `json:"type"`
 	Status       string `json:"status"`
-	QuoteId      string `json:"quoteId"`
-	ChainId      int    `json:"chainId"`
+	QuoteID      string `json:"quoteId"`
+	ChainID      int    `json:"chainId"`
 	ApprovalType string `json:"approvalType"`
 	NativeToken  string `json:"nativeToken"`
 	Taker        string `json:"taker"`
 	Receiver     string `json:"receiver"`
 	Expiry       int    `json:"expiry"`
+	Slippage     int    `json:"slippage"`
 	GasFee       struct {
-		Native string  `json:""`
-		Usd    float64 `json:""`
+		Native string `json:"native"`
+		Usd    int    `json:"usd"`
 	} `json:"gasFee"`
 	BuyTokens          map[string]TokenResult `json:"buyTokens"`
 	SellTokens         map[string]TokenResult `json:"sellTokens"`
 	SettlementAddress  string                 `json:"settlementAddress"`
 	ApprovalTarget     string                 `json:"approvalTarget"`
-	RequiredSignatures []byte                 `json:"requiredSignatures"`
-	HooksHash          string                 `json:"hooksHash"`
-	ToSign             struct {
-		Expiry         int        `json:"expiry"`
-		TakerAddress   string     `json:"taker_address"`
-		MakerAddresses []string   `json:"maker_addresses"`
-		MakerNonces    []int      `json:"maker_nonces"`
-		TakerTokens    [][]string `json:"taker_tokens"`
-		MakerTokens    [][]string `json:"maker_tokens"`
-		TakerAmounts   [][]string `json:"taker_amounts"`
-		MakerAmounts   [][]string `json:"maker_amounts"`
-		Receiver       string     `json:"receiver"`
-		Commands       string     `json:"commands"`
-	} `json:"toSign"`
-	Tx struct {
-		To       string   `json:"to"`
-		Value    string   `json:"value"`
-		Data     string   `json:"data"`
-		From     string   `json:"from"`
-		Gas      int      `json:"gas"`
-		GasPrice *big.Int `json:"gasPrice"`
+	RequiredSignatures []any                  `json:"requiredSignatures"`
+	PriceImpact        float64                `json:"priceImpact"`
+	Warnings           []any                  `json:"warnings"`
+	Tx                 struct {
+		To       string `json:"to"`
+		Value    string `json:"value"`
+		Data     string `json:"data"`
+		From     string `json:"from"`
+		Gas      int    `json:"gas"`
+		GasPrice int64  `json:"gasPrice"`
 	} `json:"tx"`
-	Solver string `json:"solver"`
+	ToSign struct {
+		PartnerID      int    `json:"partner_id"`
+		Expiry         int    `json:"expiry"`
+		TakerAddress   string `json:"taker_address"`
+		MakerAddress   string `json:"maker_address"`
+		MakerNonce     string `json:"maker_nonce"`
+		TakerToken     string `json:"taker_token"`
+		MakerToken     string `json:"maker_token"`
+		TakerAmount    string `json:"taker_amount"`
+		MakerAmount    string `json:"maker_amount"`
+		Receiver       string `json:"receiver"`
+		PackedCommands string `json:"packed_commands"`
+	} `json:"toSign"`
+	OnchainOrderType  string `json:"onchainOrderType"`
+	PartialFillOffset int    `json:"partialFillOffset"`
 }

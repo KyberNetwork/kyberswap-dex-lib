@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 
 	bebop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/ethereum/go-ethereum/common"
@@ -14,7 +15,7 @@ const (
 	headerNameKey = "name"
 	headerAuthKey = "Authorization"
 
-	pathQuote = "v2/quote"
+	pathQuote = "v3/quote"
 
 	errCodeBadRequest             = 101
 	errCodeInsufficientLiquidity  = 102
@@ -56,7 +57,7 @@ func NewHTTPClient(config *bebop.HTTPClientConfig) *HTTPClient {
 	}
 }
 
-func (c *HTTPClient) Quote(ctx context.Context, params bebop.QuoteParams) (bebop.QuoteResult, error) {
+func (c *HTTPClient) QuoteSingleOrder(ctx context.Context, params bebop.QuoteParams) (bebop.QuoteSingleOrderResult, error) {
 	// token address case-sensitive
 	req := c.client.R().
 		SetContext(ctx).
@@ -66,20 +67,23 @@ func (c *HTTPClient) Quote(ctx context.Context, params bebop.QuoteParams) (bebop
 		SetQueryParam(bebop.ParamsTakerAddress, params.TakerAddress).
 		SetQueryParam(bebop.ParamsReceiverAddress, params.ReceiverAddress).
 		SetQueryParam(bebop.ParamsApproveType, "Standard").
-		SetQueryParam(bebop.ParamsSkipValidation, "true").
-		SetQueryParam(bebop.ParamsGasLess, "false")
+		SetQueryParam(bebop.ParamsSkipValidation, "true"). // not checking balance
+		SetQueryParam(bebop.ParamsGasLess, "false")        // self-execution
 
-	var result bebop.QuoteResult
+	var result bebop.QuoteSingleOrderResult
 	var fail bebop.QuoteFail
 	resp, err := req.Get(pathQuote)
 	if err != nil {
-		return bebop.QuoteResult{}, err
+		return bebop.QuoteSingleOrderResult{}, err
 	}
 	bytes := resp.Body()
+
+	fmt.Println(string(bytes))
+
 	_ = json.Unmarshal(bytes, &result)
 	_ = json.Unmarshal(bytes, &fail)
 	if !resp.IsSuccess() || fail.Failed() {
-		return bebop.QuoteResult{}, parseRFQError(fail.Error.ErrorCode)
+		return bebop.QuoteSingleOrderResult{}, parseRFQError(fail.Error.ErrorCode)
 	}
 
 	return result, nil
