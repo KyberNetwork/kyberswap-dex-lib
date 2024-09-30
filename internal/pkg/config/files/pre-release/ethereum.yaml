@@ -334,7 +334,7 @@ useCase:
         properties:
           http:
             base_url: "https://kyberswap.knreserve.com"
-            timeout: 10s
+            timeout: 5s
             retry_count: 3
           rfq_contract_address: "0x7A819Fa46734a49D0112796f9377E024c350FB26"
       - id: kyberswap-limit-order-v2
@@ -347,7 +347,7 @@ useCase:
         properties:
           http:
             base_url: "https://api.swaap.finance"
-            timeout: 10s
+            timeout: 5s
             retry_count: 3
       - id: hashflow-v3
         handler: hashflow-v3
@@ -362,7 +362,7 @@ useCase:
         properties:
           http:
             base_url: "https://newapi.native.org"
-            timeout: 10s
+            timeout: 5s
             retry_count: 3
     faultyPools:
       minSlippageThreshold: 1000
