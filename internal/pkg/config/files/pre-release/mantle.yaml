@@ -23,24 +23,24 @@ common:
     0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8: true # WMNT
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
-    - "agni-finance"
-    - "merchange-moe"
+    - "merchant-moe"
     - "fusion-x"
-    - "fusion-x-v3"
-    - "ktx"
-    - "tsunami-x"
     - "cleopatra"
-    - "cleopatra-v2"
     - "stratum-finance"
     - "mvm"
-    - "butter-fi"
     - "iziswap"
+    - "butter-fi"
+    - "cleopatra-v2"
+    - "agni-finance"
+    - "fusion-x-v3"
     - "merchant-moe-v22"
-    - "native-v1"
+    - "kyberswap-limit-order-v2"
     - "dodo-classical"
     - "dodo-dpp"
     - "dodo-dsp"
     - "dodo-dvm"
+    - "native-v1"
+    - "woofi-v3"
   featureFlags: &featureFlags
   nativeAPIKey:
 log:
