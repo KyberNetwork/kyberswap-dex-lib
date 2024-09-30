@@ -128,7 +128,7 @@ func getExtra(ctx context.Context, client *ethrpc.Client) (PoolExtra, uint64, er
 
 	return PoolExtra{
 		Paused:    paused,
-		EndTime:   int64(endTime.Uint64()),
 		StartTime: int64(startTime.Uint64()),
+		EndTime:   int64(endTime.Uint64()),
 	}, resp.BlockNumber.Uint64(), nil
 }

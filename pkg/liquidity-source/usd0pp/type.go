@@ -6,6 +6,6 @@ type PoolMeta struct {
 
 type PoolExtra struct {
 	Paused    bool  `json:"paused"`
-	EndTime   int64 `json:"endTime"`
 	StartTime int64 `json:"startTime"`
+	EndTime   int64 `json:"endTime"`
 }
