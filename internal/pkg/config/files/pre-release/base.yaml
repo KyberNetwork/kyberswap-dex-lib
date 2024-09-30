@@ -90,6 +90,7 @@ common:
     - "aerodrome"
     - "native-v1"
     - "woofi-v3"
+    - "fluid-vault-t1"
   featureFlags: &featureFlags
   nativeAPIKey:
 log:

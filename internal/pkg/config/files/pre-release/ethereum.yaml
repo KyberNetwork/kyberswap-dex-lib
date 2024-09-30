@@ -92,6 +92,7 @@ common:
     - "wombat"
     - "maverick-v2"
     - "lite-psm"
+    - "fluid-vault-t1"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:

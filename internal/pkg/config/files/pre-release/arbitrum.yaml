@@ -96,6 +96,7 @@ common:
     - "traderjoe-v22"
     - "woofi-v3"
     - "integral"
+    - "fluid-vault-t1"
   featureFlags: &featureFlags
   swaapAPIKey:
   nativeAPIKey:
@@ -206,6 +207,7 @@ encoder:
     executeSwaapV2: 38
     executeNative: 44
     executeIntegral: 52
+    executeFluidVaultT1: 53
 useCase:
   getRoute:
     chainId: *chainId
