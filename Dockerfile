@@ -16,6 +16,6 @@ FROM alpine:3
 WORKDIR /app
 
 RUN apk add --no-cache ca-certificates gcompat tzdata
-COPY internal/pkg/config/files internal/pkg/config/
+COPY internal/pkg/config/files internal/pkg/config/files
 COPY --from=build /out/app ./server
 CMD ["./server"]
