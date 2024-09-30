@@ -11,6 +11,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/sourcegraph/conc/pool"
 )
 
@@ -32,7 +34,24 @@ func NewPoolTracker(
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
+	params sourcePool.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, params, nil)
+}
+
+func (d *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params sourcePool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, sourcePool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (d *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
 	_ sourcePool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
@@ -44,6 +63,9 @@ func (d *PoolTracker) GetNewPoolState(
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		calls.SetOverrides(overrides)
+	}
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
@@ -120,6 +142,9 @@ func (d *PoolTracker) GetNewPoolState(
 		g.Go(func(context.Context) error {
 			return func(startBin, endBin int) error {
 				binCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
+				if overrides != nil {
+					binCalls.SetOverrides(overrides)
+				}
 				for j := startBin; j <= endBin; j++ {
 					binCalls.AddCall(&ethrpc.Call{
 						ABI:    poolABI,
