@@ -15,6 +15,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type PoolListUpdater struct {
@@ -39,7 +40,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	startTime := time.Now()
 	u.hasInitialized = true
 
-	extra, blockNumber, err := getExtra(ctx, u.ethrpcClient)
+	extra, blockNumber, err := getExtra(ctx, u.ethrpcClient, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -94,7 +95,11 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	}, nil, nil
 }
 
-func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint64, error) {
+func getExtra(
+	ctx context.Context,
+	ethrpcClient *ethrpc.Client,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (PoolExtra, uint64, error) {
 	var (
 		calculateTVLsResult [3]interface{}
 		calculateTVLs       struct {
@@ -113,6 +118,9 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 	)
 
 	getPoolStateRequest := ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		getPoolStateRequest.SetOverrides(overrides)
+	}
 
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    RestakeManagerABI,
@@ -178,6 +186,10 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 	)
 
 	getCollateralsRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+	if overrides != nil {
+		getCollateralsRequest.SetOverrides(overrides)
+	}
+
 	for i := 0; i < int(collateralsLen); i++ {
 		getCollateralsRequest.AddCall(&ethrpc.Call{
 			ABI:    RestakeManagerABI,
@@ -200,6 +212,10 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 	)
 
 	operatorDelegatorsRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+	if overrides != nil {
+		operatorDelegatorsRequest.SetOverrides(overrides)
+	}
+
 	for i := 0; i < int(operatorDelegatorsLen); i++ {
 		operatorDelegatorsRequest.AddCall(&ethrpc.Call{
 			ABI:    RestakeManagerABI,
@@ -235,6 +251,10 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 		oracleInfo                   = make([]Oracle, len(tokenOracleAddresses))
 	)
 	operatorDelegatorInfoRequest := ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(resp.BlockNumber)
+	if overrides != nil {
+		operatorDelegatorInfoRequest.SetOverrides(overrides)
+	}
+
 	for i := 0; i < int(operatorDelegatorsLen); i++ {
 		operatorDelegatorInfoRequest.AddCall(&ethrpc.Call{
 			ABI:    RestakeManagerABI,
