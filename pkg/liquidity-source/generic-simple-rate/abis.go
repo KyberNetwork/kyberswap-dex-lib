@@ -1,4 +1,4 @@
-package generic_fixed_rate
+package generic_simple_rate
 
 import (
 	"bytes"
@@ -8,16 +8,18 @@ import (
 
 var (
 	rateABI abi.ABI
+
+	abiMap map[string]abi.ABI
 )
 
 func init() {
+	abiMap = make(map[string]abi.ABI)
+
 	builder := []struct {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{
-			&rateABI, rateABIData,
-		},
+		{&rateABI, rateABIData},
 	}
 
 	for _, b := range builder {

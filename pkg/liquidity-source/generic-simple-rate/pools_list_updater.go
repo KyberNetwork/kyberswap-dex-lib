@@ -1,9 +1,11 @@
-package generic_fixed_rate
+package generic_simple_rate
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"math/big"
 	"strings"
 	"time"
@@ -37,6 +39,17 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, nil
 	}
 
+	if d.config.ABIJsonString == "" {
+		ABI, err := abi.JSON(bytes.NewReader([]byte(d.config.ABIJsonString)))
+		if err != nil {
+			logger.WithFields(logger.Fields{
+				"error": err,
+			}).Errorf("failed to parse ABI")
+			return nil, nil, err
+		}
+		abiMap[d.config.DexID] = ABI
+	}
+
 	pools, err := d.initPools()
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -50,16 +63,16 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (d *PoolsListUpdater) initPools() ([]entity.Pool, error) {
-	pool := d.config.Pool
-	if pool == "" {
-		logger.Errorf("misconfigured poolPath")
-		return nil, errors.New("misconfigured poolPath")
+	if d.config.Pools == "" {
+		logger.Errorf("misconfigured pool")
+		return nil, errors.New("misconfigured pool")
 	}
+
 	var poolItems []PoolItem
-	if err := json.Unmarshal([]byte(pool), &poolItems); err != nil {
+	if err := json.Unmarshal([]byte(d.config.Pools), &poolItems); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
-		}).Errorf("failed to unmarshal poolData")
+		}).Errorf("failed to unmarshal pool")
 		return nil, err
 	}
 
@@ -97,7 +110,7 @@ func (d *PoolsListUpdater) processBatch(poolItems []PoolItem) ([]entity.Pool, er
 func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 	var tokens = make([]*entity.PoolToken, 0, len(pool.Tokens))
 	var reserves = make(entity.PoolReserves, 0, len(pool.Tokens))
-	req := d.ethrpcClient.R()
+
 	for _, token := range pool.Tokens {
 		tokenEntity := entity.PoolToken{
 			Address:   strings.ToLower(token.Address),
@@ -107,41 +120,74 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 			Weight:    defaultTokenWeight,
 			Swappable: true,
 		}
-
 		tokens = append(tokens, &tokenEntity)
 		reserves = append(reserves, defaultReserves)
 	}
-	var rate *big.Int
-	if d.config.RateMethod != "" {
+
+	var (
+		paused bool
+		rate   *big.Int
+	)
+
+	req := d.ethrpcClient.R()
+	if d.config.PausedMethod != "" {
 		req.AddCall(&ethrpc.Call{
-			ABI:    rateABI,
-			Target: pool.ID,
-			Method: d.config.RateMethod,
-		}, []interface{}{&rate})
-		if _, err := req.Aggregate(); err != nil {
-			return entity.Pool{}, err
-		}
-	} else {
-		rate = d.config.RateDefault
+			ABI:    getABI(pool.Exchange),
+			Target: pool.Address,
+			Method: d.config.PausedMethod,
+			Params: []interface{}{},
+		}, []interface{}{&paused})
 	}
 
-	staticExtraBytes, err := json.Marshal(StaticExtra{
-		Rate: uint256.MustFromBig(rate),
+	if d.config.IsRateUpdatable {
+		req.AddCall(&ethrpc.Call{
+			ABI:    abiMap[pool.Exchange],
+			Target: pool.Address,
+			Method: d.config.RateMethod,
+			Params: []interface{}{},
+		}, []interface{}{&rate})
+	} else {
+		rate = d.config.DefaultRate
+	}
+
+	if len(req.Calls) > 0 {
+		_, err := req.Aggregate()
+		if err != nil {
+			return entity.Pool{}, err
+		}
+	}
+
+	defaultGas := DefaultGas
+	if d.config.DefaultGas != nil {
+		defaultGas = d.config.DefaultGas.Int64()
+	}
+
+	poolExtraBytes, err := json.Marshal(PoolExtra{
+		Rate:       uint256.MustFromBig(rate),
+		RateUnit:   uint256.MustFromBig(d.config.RateUnit),
+		Paused:     paused,
+		DefaultGas: defaultGas,
 	})
 	if err != nil {
 		return entity.Pool{}, err
 	}
 
 	poolEntity := entity.Pool{
-		Address:     pool.ID,
-		Exchange:    d.config.DexID,
-		Type:        DexType,
-		Timestamp:   time.Now().Unix(),
-		Reserves:    reserves,
-		Tokens:      tokens,
-		Extra:       "{}",
-		StaticExtra: string(staticExtraBytes),
+		Address:   pool.Address,
+		Exchange:  d.config.DexID,
+		Type:      d.config.DexID,
+		Timestamp: time.Now().Unix(),
+		Reserves:  reserves,
+		Tokens:    tokens,
+		Extra:     string(poolExtraBytes),
 	}
 
 	return poolEntity, nil
+}
+
+func getABI(exchange string) abi.ABI {
+	if ABI, ok := abiMap[exchange]; ok {
+		return ABI
+	}
+	return rateABI
 }
