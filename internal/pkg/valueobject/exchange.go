@@ -192,6 +192,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeFluidVaultT1
 	dexValueObject.ExchangeFluidVaultT1: {},
+
+	// executeUsd0PP
+	dexValueObject.ExchangeUsd0PP: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {

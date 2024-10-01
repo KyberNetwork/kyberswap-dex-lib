@@ -54,6 +54,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
 	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
@@ -602,6 +603,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newDaiUsds(entityPool)
 	case pooltypes.PoolTypes.FluidVaultT1:
 		return f.newFluidVaultT1(entityPool)
+	case pooltypes.PoolTypes.Usd0PP:
+		return f.newUsd0PP(entityPool)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -2083,6 +2086,20 @@ func (f *PoolFactory) newFluidVaultT1(entityPool entity.Pool) (*fluidvaultt1.Poo
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newFluidVaultT1] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newUsd0PP(entityPool entity.Pool) (*usd0pp.PoolSimulator, error) {
+	corePool, err := usd0pp.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newUsd0PP] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

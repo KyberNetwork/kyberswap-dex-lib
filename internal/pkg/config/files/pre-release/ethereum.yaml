@@ -93,6 +93,7 @@ common:
     - "maverick-v2"
     - "lite-psm"
     - "fluid-vault-t1"
+    - "usd0pp"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:
