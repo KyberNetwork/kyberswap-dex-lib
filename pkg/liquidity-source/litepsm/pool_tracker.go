@@ -13,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type PoolTracker struct {
@@ -29,8 +30,25 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
+	p entity.Pool,
+	params sourcePool.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params sourcePool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, sourcePool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(
+	ctx context.Context,
 	pool entity.Pool,
 	_ sourcePool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	defer func(startTime time.Time) {
 		logger.
@@ -42,7 +60,7 @@ func (t *PoolTracker) GetNewPoolState(
 			Info("finished GetNewPoolState")
 	}(time.Now())
 
-	litePSM, err := t.getLitePSM(ctx, pool.Address)
+	litePSM, err := t.getLitePSM(ctx, pool.Address, overrides)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": t.cfg.DexID,
@@ -63,7 +81,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	reserves, err := t.getReserves(ctx, pool)
+	reserves, err := t.getReserves(ctx, pool, overrides)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": t.cfg.DexID,
@@ -79,7 +97,11 @@ func (t *PoolTracker) GetNewPoolState(
 	return pool, nil
 }
 
-func (t *PoolTracker) getLitePSM(ctx context.Context, address string) (*LitePSM, error) {
+func (t *PoolTracker) getLitePSM(
+	ctx context.Context,
+	address string,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (*LitePSM, error) {
 	var tIn, tOut *big.Int
 	var litePSM LitePSM
 
@@ -99,6 +121,9 @@ func (t *PoolTracker) getLitePSM(ctx context.Context, address string) (*LitePSM,
 			Params: nil,
 		}, []interface{}{&tOut})
 
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
 	_, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -114,7 +139,11 @@ func (t *PoolTracker) getLitePSM(ctx context.Context, address string) (*LitePSM,
 	return &litePSM, nil
 }
 
-func (t *PoolTracker) getReserves(ctx context.Context, pool entity.Pool) ([]*big.Int, error) {
+func (t *PoolTracker) getReserves(
+	ctx context.Context,
+	pool entity.Pool,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) ([]*big.Int, error) {
 	var staticExtra StaticExtra
 	err := json.Unmarshal([]byte(pool.StaticExtra), &staticExtra)
 	if err != nil {
@@ -142,6 +171,9 @@ func (t *PoolTracker) getReserves(ctx context.Context, pool entity.Pool) ([]*big
 			Method: erc20MethodBalanaceOf,
 			Params: []interface{}{staticExtra.Pocket},
 		}, []interface{}{&gemReserve})
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
 
 	_, err = req.Aggregate()
 	if err != nil {

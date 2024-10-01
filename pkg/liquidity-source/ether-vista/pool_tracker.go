@@ -12,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type (
@@ -42,11 +43,27 @@ func (d *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, params, nil)
+}
+
+func (d *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+func (d *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
 	startTime := time.Now()
 
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
-	rpcStateData, blockNumber, err := d.getRPCState(ctx, p.Address)
+	rpcStateData, blockNumber, err := d.getRPCState(ctx, p.Address, overrides)
 	if err != nil {
 		return p, err
 	}
@@ -105,7 +122,11 @@ func (d *PoolTracker) updatePool(pool entity.Pool, rpcStateData RPCStateData, bl
 	return pool, nil
 }
 
-func (d *PoolTracker) getRPCState(ctx context.Context, poolAddress string) (RPCStateData, *big.Int, error) {
+func (d *PoolTracker) getRPCState(
+	ctx context.Context,
+	poolAddress string,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (RPCStateData, *big.Int, error) {
 	var (
 		getReservesResult GetReservesResult
 		buyTotalFee       uint8
@@ -114,6 +135,9 @@ func (d *PoolTracker) getRPCState(ctx context.Context, poolAddress string) (RPCS
 	)
 
 	rpcRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		rpcRequest.SetOverrides(overrides)
+	}
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pairABI,
@@ -151,6 +175,9 @@ func (d *PoolTracker) getRPCState(ctx context.Context, poolAddress string) (RPCS
 	)
 
 	rpcRequest = d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		rpcRequest.SetOverrides(overrides)
+	}
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    routerABI,
