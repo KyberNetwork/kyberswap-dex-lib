@@ -24,4 +24,5 @@ jobs:
       service: ${{ github.event.repository.name }}
       version_bump: ${{ inputs.version_bump }}
       version: ${{ inputs.version }}
+      runs-on: ubuntu-latest
     secrets: inherit
