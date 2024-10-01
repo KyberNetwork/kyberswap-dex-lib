@@ -49,6 +49,7 @@ common:
     - "tokan-exchange"
     - "nuri-v2"
     - "native-v1"
+    - "maverick-v2"
   featureFlags: &featureFlags
   nativeAPIKey:
 log:
