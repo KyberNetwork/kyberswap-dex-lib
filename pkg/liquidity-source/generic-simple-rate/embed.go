@@ -1,4 +1,4 @@
-package generic_fixed_rate
+package generic_simple_rate
 
 import _ "embed"
 
