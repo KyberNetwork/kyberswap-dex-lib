@@ -341,6 +341,7 @@ var (
 	ExchangeTokan          Exchange = "tokan-exchange"
 	ExchangeSectaV2        Exchange = "secta-v2"
 	ExchangeSectaV3        Exchange = "secta-v3"
+	ExchangeQuickSwapUniV3 Exchange = "quickswap-uni-v3"
 	ExchangeAmbient        Exchange = "ambient"
 
 	ExchangeFluidVaultT1 Exchange = "fluid-vault-t1"
@@ -628,6 +629,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeTokan:                      {},
 	ExchangeSectaV2:                    {},
 	ExchangeSectaV3:                    {},
+	ExchangeQuickSwapUniV3:             {},
 	ExchangeAmbient:                    {},
 	ExchangeFluidVaultT1:               {},
 	ExchangeMaverickV2:                 {},
