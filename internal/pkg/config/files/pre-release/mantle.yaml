@@ -34,6 +34,7 @@ common:
     - "agni-finance"
     - "fusion-x-v3"
     - "merchant-moe-v22"
+    - "uniswapv3"
     - "kyberswap-limit-order-v2"
     - "dodo-classical"
     - "dodo-dpp"

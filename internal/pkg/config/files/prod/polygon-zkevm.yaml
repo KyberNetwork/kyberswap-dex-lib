@@ -39,6 +39,8 @@ common:
     - "balancer-v2-composable-stable"
     - "zero"
     - "doveswap-v3"
+    - "quickswap-uni-v3"
+    - "uniswapv3"
     - "gyroscope-2clp"
     - "gyroscope-3clp"
     - "gyroscope-eclp"
