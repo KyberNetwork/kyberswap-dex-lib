@@ -12,6 +12,7 @@ import (
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
 	curveStableNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	curveTricryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/tricrypto-ng"
+	curveTwocryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
@@ -21,6 +22,7 @@ import (
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
+	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
@@ -40,6 +42,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
 	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
@@ -206,6 +209,7 @@ type Types struct {
 	CurveStableNg                  string
 	CurveStableMetaNg              string
 	CurveTriCryptoNg               string
+	CurveTwoCryptoNg               string
 	KelpRSETH                      string
 	RocketPoolRETH                 string
 	EthenaSusde                    string
@@ -216,11 +220,13 @@ type Types struct {
 	RenzoEZETH                     string
 	Slipstream                     string
 	NuriV2                         string
+	FluidVaultT1                   string
 	EtherVista                     string
 	MkrSky                         string
 	DaiUsds                        string
 	MaverickV2                     string
 	LitePSM                        string
+	Usd0PP                         string
 }
 
 var (
@@ -320,6 +326,7 @@ var (
 		CurveStableNg:                  curveStableNg.DexType,
 		CurveStableMetaNg:              curveStableMetaNg.DexType,
 		CurveTriCryptoNg:               curveTricryptoNg.DexType,
+		CurveTwoCryptoNg:               curveTwocryptoNg.DexType,
 		KelpRSETH:                      rseth.DexType,
 		RocketPoolRETH:                 reth.DexType,
 		SwellSWETH:                     sweth.DexType,
@@ -334,10 +341,12 @@ var (
 		RenzoEZETH:                     ezeth.DexType,
 		Slipstream:                     slipstream.DexType,
 		NuriV2:                         nuriv2.DexType,
+		FluidVaultT1:                   fluidVaultT1.DexType,
 		EtherVista:                     ethervista.DexType,
 		MkrSky:                         mkrsky.DexType,
 		DaiUsds:                        daiusds.DexType,
 		MaverickV2:                     maverickv2.DexType,
 		LitePSM:                        litepsm.DexTypeLitePSM,
+		Usd0PP:                         usd0pp.DexType,
 	}
 )

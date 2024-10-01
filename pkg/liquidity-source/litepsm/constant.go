@@ -21,7 +21,7 @@ const (
 )
 
 var (
-	DefaultGas = Gas{SellGem: 115000, BuyGem: 115000}
+	DefaultGas = Gas{SellGem: 65000, BuyGem: 65000}
 	WAD        = number.Number_1e18
 
 	// 2^256 - 1 (type(uint256).max)
