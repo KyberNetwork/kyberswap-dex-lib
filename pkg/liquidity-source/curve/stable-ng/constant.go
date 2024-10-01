@@ -41,4 +41,5 @@ var (
 	ErrTokenFromEqualsTokenTo       = errors.New("can't compare token to itself")
 	ErrTokenIndexesOutOfRange       = errors.New("token index out of range")
 	ErrAmountOutNotConverge         = errors.New("approximation did not converge")
+	ErrExecutionReverted            = errors.New("execution reverted")
 )

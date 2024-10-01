@@ -150,5 +150,24 @@
         "rate": "1000000000000000000"
       }
     ]
+  },
+  {
+    "id": "0xd8cb82059da7215b1a9604e845d49d3e78d0f95a",
+    "name": "PENDLE / mPendle",
+    "type": "curve-base",
+    "lpToken": "0x183f325b33d190597d80d1b46d865d0250fd9bf2",
+    "aPrecision": "1",
+    "tokens": [
+      {
+        "address": "0x0465aad9da170798433f4ab7fa7ec8b9b9bf0bb1",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      },
+      {
+        "address": "0xb3ed0a426155b79b898849803e3b36552f7ed507",
+        "precision": "1",
+        "rate": "1000000000000000000"
+      }
+    ]
   }
 ]

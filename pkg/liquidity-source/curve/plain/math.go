@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 )
 
 // most of the code here will follow https://github.com/curvefi/curve-factory/blob/master/contracts/implementations/plain-3/Plain3Basic.vy
@@ -302,6 +303,92 @@ func (t *PoolSimulator) GetDyU256(
 
 	// fee * PRECISION / rates[j]
 	fee.Div(number.Mul(fee, Precision), &t.extra.RateMultipliers[j])
+
+	return nil
+}
+
+// need to keep big.Int for interface method, will be removed later
+func (t *PoolSimulator) GetDx(
+	i int,
+	j int,
+	dy *big.Int,
+	dCached *big.Int,
+) (*big.Int, *big.Int, error) {
+	var dx, fee uint256.Int
+	err := t.GetDxU256(i, j, number.SetFromBig(dy), number.SetFromBig(dCached), &dx, &fee)
+	if err != nil {
+		return nil, nil, err
+	}
+	return dx.ToBig(), fee.ToBig(), err
+}
+
+// Calculate the current input dx given output dy
+/*
+def get_dx(i: int128, j: int128, dy: uint256) -> uint256:
+   # dx and dy in c-units
+   rates: uint256[N_COINS] = self._stored_rates()
+   xp: uint256[N_COINS] = self._xp(rates)
+
+   y: uint256 = xp[j] - (dy * FEE_DENOMINATOR / (FEE_DENOMINATOR - self.fee)) * rates[j] / PRECISION
+   x: uint256 = self.get_y(j, i, y, xp)
+   dx: uint256 = (x - xp[i]) * PRECISION / rates[i]
+   return dx
+*/
+func (t *PoolSimulator) GetDxU256(
+	i int,
+	j int,
+	dy *uint256.Int,
+	dCached *uint256.Int,
+	dx *uint256.Int,
+	fee *uint256.Int,
+) error {
+	var xp = xpMem(t.extra.RateMultipliers, t.reserves)
+
+	// in SC, `FEE_DENOMINATOR - self.fee` will check for underflow and raise exception
+	// here we're using uint256.Int so have to check manually
+	if FeeDenominator.Cmp(t.extra.SwapFee) < 0 {
+		return ErrInvalidFee
+	}
+
+	// yOut = (dy * FEE_DENOMINATOR / (FEE_DENOMINATOR - self.fee)) * rates[j] / PRECISION
+	yOut := number.Div(
+		number.Mul(
+			number.Div(
+				number.Mul(dy, FeeDenominator),
+				number.Sub(FeeDenominator, t.extra.SwapFee),
+			),
+			&t.extra.RateMultipliers[j],
+		),
+		Precision,
+	)
+
+	// in SC, `xp[j] - yOut` will check for underflow and raise exception
+	// here we're using uint256.Int so have to check manually
+	if (&xp[j]).Cmp(yOut) < 0 {
+		return ErrReserveTooSmall
+	}
+
+	// y: uint256 = xp[j] - (dy * FEE_DENOMINATOR / (FEE_DENOMINATOR - self.fee)) * rates[j] / PRECISION = xp[j] - yOut
+	var y = number.Sub(&xp[j], yOut)
+
+	// x: uint256 = self.get_y(j, i, y, xp)
+	var x uint256.Int
+	var err = t.getY(j, i, y, xp, dCached, &x)
+	if err != nil {
+		return err
+	}
+
+	// in SC, `x - xp[i]` will check for underflow and raise exception
+	// here we're using uint256.Int so have to check manually
+	// dx: uint256 = (x - xp[i]) * PRECISION / rates[i]
+	if x.Cmp(&xp[i]) < 0 {
+		return ErrNewReserveInvalid
+	}
+
+	dx.Div(number.Mul(number.Sub(&x, &xp[i]), Precision), &t.extra.RateMultipliers[i])
+
+	// fee = yOut - dy
+	fee.Sub(yOut, dy)
 
 	return nil
 }

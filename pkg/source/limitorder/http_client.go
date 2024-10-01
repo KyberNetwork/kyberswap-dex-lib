@@ -62,6 +62,8 @@ func (c *httpClient) ListOrders(
 			"makerAsset":      filter.MakerAsset,
 			"chainId":         strconv.Itoa(int(filter.ChainID)),
 			"contractAddress": filter.ContractAddress,
+
+			"includeInsufficientBalance": strconv.FormatBool(filter.IncludeInsufficientBalanceOrder),
 		})
 	var result listOrdersResult
 	resp, err := req.SetResult(&result).Get(listOrdersEndpoint)

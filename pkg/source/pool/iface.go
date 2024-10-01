@@ -7,6 +7,8 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type IPoolsListUpdater interface {
@@ -21,6 +23,15 @@ type IPoolsListUpdater interface {
 
 type GetNewPoolStateParams struct {
 	Logs []types.Log
+}
+
+type GetNewPoolStateWithOverridesParams struct {
+	Logs      []types.Log
+	Overrides map[common.Address]gethclient.OverrideAccount
+}
+
+type IPoolTrackerWithOverrides interface {
+	GetNewPoolStateWithOverrides(ctx context.Context, p entity.Pool, params GetNewPoolStateWithOverridesParams) (entity.Pool, error)
 }
 
 type IPoolTracker interface {
@@ -57,5 +68,5 @@ type IPoolRFQ interface {
 }
 
 type ITicksBasedPoolTracker interface {
-	FetchStateFromRPC(ctx context.Context, pool entity.Pool) ([]byte, error)
+	FetchStateFromRPC(ctx context.Context, pool entity.Pool, blockNumber uint64) ([]byte, error)
 }

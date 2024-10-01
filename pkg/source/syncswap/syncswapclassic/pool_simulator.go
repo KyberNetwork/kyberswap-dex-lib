@@ -6,6 +6,8 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/blockchain-toolkit/integer"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/syncswap"
@@ -97,6 +99,44 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	}, nil
 }
 
+func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	tokenAmountOut := param.TokenAmountOut
+	tokenIn := param.TokenIn
+	var tokenInIndex = p.GetTokenIndex(tokenIn)
+	var tokenOutIndex = p.GetTokenIndex(tokenAmountOut.Token)
+
+	if tokenInIndex < 0 || tokenOutIndex < 0 {
+		return &pool.CalcAmountInResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
+	}
+
+	if tokenAmountOut.Amount.Cmp(p.Info.Reserves[tokenOutIndex]) > 0 {
+		return &pool.CalcAmountInResult{}, fmt.Errorf("expected amountOut is %v bigger than reserve %v", tokenAmountOut.Amount.String(), p.Info.Reserves[tokenOutIndex])
+	}
+
+	amountIn := _getAmountIn(
+		p.swapFees[tokenInIndex],
+		tokenAmountOut.Amount,
+		p.Info.Reserves[tokenInIndex],
+		p.Info.Reserves[tokenOutIndex],
+	)
+
+	if amountIn.Cmp(integer.Zero()) <= 0 {
+		return &pool.CalcAmountInResult{}, fmt.Errorf("amountOut is %v", amountIn.String())
+	}
+
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{
+			Token:  tokenIn,
+			Amount: amountIn,
+		},
+		Fee: &pool.TokenAmount{
+			Token:  tokenIn,
+			Amount: nil,
+		},
+		Gas: p.gas.Swap,
+	}, nil
+}
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	var input, output = params.TokenAmountIn, params.TokenAmountOut
 	var tokenInIndex = p.GetTokenIndex(input.Token)
@@ -104,6 +144,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	var inputAmount = calAmountAfterFee(input.Amount, p.swapFees[tokenInIndex])
 	var outputAmount = output.Amount
+	inputAmount.Div(inputAmount, MaxFee)
 
 	p.Info.Reserves[tokenInIndex] = new(big.Int).Add(p.Info.Reserves[tokenInIndex], inputAmount)
 	p.Info.Reserves[tokenOutIndex] = new(big.Int).Sub(p.Info.Reserves[tokenOutIndex], outputAmount)

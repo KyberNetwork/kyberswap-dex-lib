@@ -1,0 +1,35 @@
+name: 'CI'
+
+concurrency:
+  group: ci-workflow-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: true
+
+permissions: write-all
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'main'
+      - 'release*'
+  pull_request:
+
+jobs:
+  ci:
+    uses: KyberNetwork/service-framework/.github/workflows/ci.yaml@main
+    secrets: inherit
+
+  generate-check:
+    name: Check generated codes update-to-date
+    runs-on: [ubuntu-22.04]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Install Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'go.mod'
+      - name: Run "go generate ./..."
+        run: go generate ./... || true
+      - name: Check working tree clean after go generate
+        run: '[ -z "$(git status --porcelain)" ]'

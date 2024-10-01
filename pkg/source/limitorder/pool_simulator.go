@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 
 	"github.com/KyberNetwork/logger"
 
@@ -18,13 +19,16 @@ import (
 type (
 	PoolSimulator struct {
 		pool.Pool
-		tokens        []*entity.PoolToken
 		ordersMapping map[int64]*order
 		// extra fields
 		sellOrderIDs []int64
 		buyOrderIDs  []int64
 
 		contractAddress string
+
+		// store min(balance, allowance) for all unique pair of maker:makerAsset in this pool
+		// will be aggregated up by router-service to be a global value for all maker:makerAsset in LO
+		allMakersBalanceAllowance map[makerAndAsset]*big.Int
 	}
 )
 
@@ -54,15 +58,27 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	if err != nil {
 		return nil, err
 	}
-	ordersMapping := make(map[int64]*order, (len(extra.BuyOrders) + len(extra.SellOrders)))
+	numOrders := len(extra.BuyOrders) + len(extra.SellOrders)
+	allMakersBalanceAllowance := make(map[makerAndAsset]*big.Int, numOrders)
+	ordersMapping := make(map[int64]*order, numOrders)
 	sellOrderIDs, buyOrderIDs := make([]int64, len(extra.SellOrders)), make([]int64, len(extra.BuyOrders))
 	for i, buyOrder := range extra.BuyOrders {
 		ordersMapping[buyOrder.ID] = buyOrder
 		buyOrderIDs[i] = buyOrder.ID
+		if buyOrder.MakerBalanceAllowance == nil {
+			// old orders don't have this field
+			continue
+		}
+		allMakersBalanceAllowance[NewMakerAndAsset(buyOrder.Maker, buyOrder.MakerAsset)] = buyOrder.MakerBalanceAllowance
 	}
 	for j, sellOrder := range extra.SellOrders {
 		ordersMapping[sellOrder.ID] = sellOrder
 		sellOrderIDs[j] = sellOrder.ID
+		if sellOrder.MakerBalanceAllowance == nil {
+			// old orders don't have this field
+			continue
+		}
+		allMakersBalanceAllowance[NewMakerAndAsset(sellOrder.Maker, sellOrder.MakerAsset)] = sellOrder.MakerBalanceAllowance
 	}
 	return &PoolSimulator{
 		Pool: pool.Pool{
@@ -80,14 +96,15 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		sellOrderIDs:  sellOrderIDs,
 		buyOrderIDs:   buyOrderIDs,
 		ordersMapping: ordersMapping,
-		tokens:        entity.ClonePoolTokens(entityPool.Tokens),
 
 		contractAddress: contractAddress,
+
+		allMakersBalanceAllowance: allMakersBalanceAllowance,
 	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	return p.calcAmountOut(param.TokenAmountIn, param.TokenOut)
+	return p.calcAmountOut(param.TokenAmountIn, param.TokenOut, param.Limit)
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -108,15 +125,28 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 		order.FilledTakingAmount = new(big.Int).Add(order.FilledTakingAmount, filledTakingAmount)
 		order.FilledMakingAmount = new(big.Int).Add(order.FilledMakingAmount, filledMakingAmount)
+
+		if order.AvailableMakingAmount != nil {
+			order.AvailableMakingAmount = new(big.Int).Sub(order.AvailableMakingAmount, filledMakingAmount)
+		}
+		if params.SwapLimit != nil {
+			_, _, _ = params.SwapLimit.UpdateLimit(
+				string(NewMakerAndAsset(order.Maker, order.MakerAsset)),
+				string(NewMakerAndAsset(order.Maker, order.TakerAsset)),
+				filledMakingAmount,
+				filledTakingAmount,
+			)
+		}
 	}
 }
 
 func (p *PoolSimulator) calcAmountOut(
 	tokenAmountIn pool.TokenAmount,
 	tokenOut string,
+	limit pool.SwapLimit,
 ) (*pool.CalcAmountOutResult, error) {
 	swapSide := p.getSwapSide(tokenAmountIn.Token, tokenOut)
-	amountOut, swapInfo, feeAmount, err := p.calcAmountWithSwapInfo(swapSide, tokenAmountIn)
+	amountOut, swapInfo, feeAmount, err := p.calcAmountWithSwapInfo(swapSide, tokenAmountIn, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +165,42 @@ func (p *PoolSimulator) calcAmountOut(
 	}, nil
 }
 
-func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn pool.TokenAmount) (*big.Int, SwapInfo, *big.Int, error) {
+func addFilledMakingAmount(
+	filledMakingAmountByMaker map[string]*big.Int,
+	maker string,
+	filledMakingAmount *big.Int,
+) {
+	if totalFilled, ok := filledMakingAmountByMaker[maker]; ok {
+		filledMakingAmountByMaker[maker] = new(big.Int).Add(totalFilled, filledMakingAmount)
+	} else {
+		filledMakingAmountByMaker[maker] = new(big.Int).Set(filledMakingAmount)
+	}
+}
+
+func getMakerRemainingBalance(
+	limit pool.SwapLimit,
+	filledMakingAmountByMaker map[string]*big.Int,
+	maker, makerAsset string,
+) *big.Int {
+	if limit == nil {
+		// can happen if this change get deployed to router-service before pool-service, just ignore
+		return nil
+	}
+
+	makerBalanceAllowance := limit.GetLimit(string(NewMakerAndAsset(maker, makerAsset)))
+	if makerBalanceAllowance == nil {
+		// should not happen, but anw just return 0 as if this maker has no balance left
+		return big.NewInt(0)
+	}
+
+	if totalFilled := filledMakingAmountByMaker[maker]; totalFilled != nil {
+		return new(big.Int).Sub(makerBalanceAllowance, totalFilled)
+	} else {
+		return makerBalanceAllowance
+	}
+}
+
+func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn pool.TokenAmount, limit pool.SwapLimit) (*big.Int, SwapInfo, *big.Int, error) {
 
 	orderIDs := p.getOrderIDsBySwapSide(swapSide)
 	if len(orderIDs) == 0 {
@@ -153,6 +218,14 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 	isFulfillAmountIn := false
 	totalFeeAmountWei := new(big.Int)
 
+	// we need to update maker's remaining balance in 2 places:
+	// - in UpdateBalance: mainly to deal with case where maker has orders with same makerAsset but different takerAsset
+	// - when simulating filling each order here: we cannot do the same as in kyber-pmm (simulating first then check inventory limit at the end)
+	//				because in LO we have multiple makers, and also because we still need to allow orders that have part of the balance available
+	//		the problem is that in this func we cannot update the limit,
+	//		so we'll use this map to track filled amount for each maker, then subtract from the original balance, to have the remaining balance available
+	filledMakingAmountByMaker := make(map[string]*big.Int, len(p.allMakersBalanceAllowance))
+
 	totalMakingAmountWei := new(big.Int)
 	for i, orderID := range orderIDs {
 		order, ok := p.ordersMapping[orderID]
@@ -162,17 +235,35 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 		// rate should be the result of making amount/taking amount when dividing decimals per token.
 		// However, we can also use rate with making amount/taking amount (wei) to calculate the amount out instead of converting to measure per token. Because we will return amount out(wei) (we have to multip amountOut(taken out) with decimals)
 		rate := new(big.Float).Quo(new(big.Float).SetInt(order.MakingAmount), new(big.Float).SetInt(order.TakingAmount))
-		remainingMakingAmountWei := new(big.Int).Sub(order.MakingAmount, order.FilledMakingAmount)
-		remainingTakingAmountWei := new(big.Int).Sub(order.TakingAmount, order.FilledTakingAmount)
+		var remainingMakingAmountWei, remainingTakingAmountWei *big.Int
+		if order.AvailableMakingAmount == nil {
+			remainingMakingAmountWei = new(big.Int).Sub(order.MakingAmount, order.FilledMakingAmount)
+			remainingTakingAmountWei = new(big.Int).Sub(order.TakingAmount, order.FilledTakingAmount)
+		} else {
+			remainingMakingAmountWei = order.AvailableMakingAmount
+			// the actual available balance might be less than `AvailableMakingAmount`
+			// for example if we has used another order for this same maker and makerAsset (but with different takerAsset) before
+			if makerRemainingBalance := getMakerRemainingBalance(limit, filledMakingAmountByMaker, order.Maker, order.MakerAsset); makerRemainingBalance != nil && remainingMakingAmountWei.Cmp(makerRemainingBalance) > 0 {
+				remainingMakingAmountWei = makerRemainingBalance
+			}
+			remainingTakingAmountWei = new(big.Int).Div(new(big.Int).Mul(remainingMakingAmountWei, order.TakingAmount), order.MakingAmount)
+		}
 		totalMakingAmountWei = new(big.Int).Add(totalMakingAmountWei, remainingMakingAmountWei)
 		// Order was filled out.
 		if remainingMakingAmountWei.Cmp(constant.ZeroBI) <= 0 {
 			continue
 		}
+
 		if remainingTakingAmountWei.Cmp(totalAmountIn) >= 0 {
 			amountOutWei := new(big.Float).Mul(new(big.Float).SetInt(totalAmountIn), rate)
 			filledTakingAmountWei := totalAmountIn
 			filledMakingAmountWei, _ := amountOutWei.Int(nil)
+
+			// order too small
+			if filledMakingAmountWei.Cmp(constant.ZeroBI) <= 0 {
+				continue
+			}
+
 			feeAmountWeiByOrder := p.calcFeeAmountPerOrder(order, filledMakingAmountWei)
 			totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, feeAmountWeiByOrder)
 			actualAmountOut := new(big.Int).Sub(filledMakingAmountWei, feeAmountWeiByOrder)
@@ -180,6 +271,7 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 			filledOrderInfo := newFilledOrderInfo(order, filledTakingAmountWei.String(), filledMakingAmountWei.String(), feeAmountWeiByOrder.String())
 			swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
 			isFulfillAmountIn = true
+			addFilledMakingAmount(filledMakingAmountByMaker, order.Maker, filledMakingAmountWei)
 
 			// Currently, when Aggregator finds route and returns some orders and sends them to the smart contract to execute.
 			// We will often meet edge cases that these orders can be fulfilled by a trading bot or taker on Aggregator.
@@ -194,7 +286,15 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 				if !ok {
 					continue
 				}
-				remainingMakingAmountWei := new(big.Int).Sub(order.MakingAmount, order.FilledMakingAmount)
+				var remainingMakingAmountWei *big.Int
+				if order.AvailableMakingAmount == nil {
+					remainingMakingAmountWei = new(big.Int).Sub(order.MakingAmount, order.FilledMakingAmount)
+				} else {
+					remainingMakingAmountWei = order.AvailableMakingAmount
+					if makerRemainingBalance := getMakerRemainingBalance(limit, filledMakingAmountByMaker, order.Maker, order.MakerAsset); makerRemainingBalance != nil && remainingMakingAmountWei.Cmp(makerRemainingBalance) > 0 {
+						remainingMakingAmountWei = makerRemainingBalance
+					}
+				}
 				if remainingMakingAmountWei.Cmp(constant.ZeroBI) == 0 {
 					continue
 				}
@@ -212,6 +312,7 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 		totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, feeAmountWeiByOrder)
 		filledOrderInfo := newFilledOrderInfo(order, remainingTakingAmountWei.String(), remainingMakingAmountWei.String(), feeAmountWeiByOrder.String())
 		swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
+		addFilledMakingAmount(filledMakingAmountByMaker, order.Maker, remainingMakingAmountWei)
 	}
 	if !isFulfillAmountIn {
 		return nil, SwapInfo{}, nil, ErrCannotFulfillAmountIn
@@ -289,4 +390,70 @@ func newFilledOrderInfo(order *order, filledTakingAmount, filledMakingAmount str
 		Signature:            order.Signature,
 		FeeAmount:            feeAmount,
 	}
+}
+
+//// Inventory Limit
+
+type makerAndAsset = string
+
+func NewMakerAndAsset(maker, makerAsset string) makerAndAsset {
+	return makerAndAsset(fmt.Sprintf("%v:%v", maker, makerAsset))
+}
+
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	count := len(p.allMakersBalanceAllowance)
+	if count == 0 {
+		return nil
+	}
+	res := make(map[string]*big.Int, count)
+	for k, v := range p.allMakersBalanceAllowance {
+		res[string(k)] = new(big.Int).Set(v)
+	}
+	return res
+}
+
+type Inventory struct {
+	lock *sync.RWMutex
+	// key: "<maker>:<makerAsset>", value: maker's min(balance, allowance) for makerAsset
+	Balance map[string]*big.Int
+}
+
+func NewInventory(balance map[string]*big.Int) pool.SwapLimit {
+	if balance == nil {
+		return nil
+	}
+	return &Inventory{
+		lock:    &sync.RWMutex{},
+		Balance: balance,
+	}
+}
+
+func (i *Inventory) GetLimit(key string) *big.Int {
+	i.lock.RLock()
+	defer i.lock.RUnlock()
+	balance, avail := i.Balance[key]
+	if !avail {
+		return nil
+	}
+	return new(big.Int).Set(balance)
+}
+
+func (i *Inventory) UpdateLimit(decreaseKey, increaseKey string, decreaseDelta, increaseDelta *big.Int) (*big.Int, *big.Int, error) {
+	i.lock.Lock()
+	defer i.lock.Unlock()
+	decreasedKeyBalance, avail := i.Balance[decreaseKey]
+	if !avail {
+		return nil, nil, pool.ErrTokenNotAvailable
+	}
+	if decreasedKeyBalance.Cmp(decreaseDelta) < 0 {
+		return nil, nil, pool.ErrNotEnoughInventory
+	}
+	i.Balance[decreaseKey] = decreasedKeyBalance.Sub(decreasedKeyBalance, decreaseDelta)
+
+	increasedKeyBalance, avail := i.Balance[increaseKey]
+	if !avail {
+		increasedKeyBalance = big.NewInt(0)
+	}
+	i.Balance[increaseKey] = increasedKeyBalance.Add(increasedKeyBalance, increaseDelta)
+	return nil, nil, nil
 }

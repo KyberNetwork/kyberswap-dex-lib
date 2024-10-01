@@ -168,3 +168,50 @@ func GetDyUnderlying(
 	var _fee = new(big.Int).Div(new(big.Int).Mul(swapFee, dy), FeeDenominator)
 	return new(big.Int).Sub(dy, _fee), _fee, nil
 }
+
+func GetDxUnderlying(
+	balances []*big.Int,
+	rates []*big.Int,
+	tokenPrecisionMultipliers []*big.Int,
+	APrecise *big.Int,
+	swapFee *big.Int,
+	i int,
+	j int,
+	dy *big.Int,
+) (*big.Int, *big.Int, error) {
+	xp, err := _xp(balances, rates, tokenPrecisionMultipliers)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	fee := new(big.Int).Sub(
+		new(big.Int).Div(
+			new(big.Int).Mul(dy, FeeDenominator),
+			new(big.Int).Sub(FeeDenominator, swapFee),
+		),
+		dy,
+	)
+
+	y := new(big.Int).Sub(
+		xp[j],
+		new(big.Int).Mul(
+			new(big.Int).Div(
+				new(big.Int).Mul(dy, FeeDenominator),
+				new(big.Int).Sub(FeeDenominator, swapFee),
+			),
+			tokenPrecisionMultipliers[j],
+		),
+	)
+
+	x, err := getY(APrecise, j, i, y, xp)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	dx := new(big.Int).Div(
+		new(big.Int).Sub(x, xp[i]),
+		tokenPrecisionMultipliers[i],
+	)
+
+	return dx, fee, nil
+}

@@ -222,3 +222,10 @@ func (p *PoolSimulator) validateBufferAmount(token string, amount *big.Int) erro
 
 	return nil
 }
+
+func (p *PoolSimulator) AfterMsgpackUnmarshal() error {
+	if p.vaultUtils != nil {
+		p.vaultUtils.vault = p.vault
+	}
+	return nil
+}

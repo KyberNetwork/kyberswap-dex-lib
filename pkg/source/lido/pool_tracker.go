@@ -80,7 +80,6 @@ func (d *PoolTracker) getPoolExtra(ctx context.Context, p entity.Pool) (Extra, e
 		Method: wstETHMethodStEthPerToken,
 		Params: nil,
 	}, []interface{}{&stEthPerToken})
-
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    wstETHABI,
 		Target: p.Address,

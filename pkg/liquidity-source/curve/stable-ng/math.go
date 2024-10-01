@@ -5,8 +5,10 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 )
 
 func XpMem(
@@ -293,6 +295,61 @@ func (t *PoolSimulator) GetDyByX(
 		),
 		&t.Extra.RateMultipliers[j],
 	)
+
+	return nil
+}
+
+// GetDx calculates the required input dx given output dy
+// https://github.com/curvefi/stableswap-ng/blob/12a0c7df1fc490ff8e5a977a0cbadf86f1351c8f/contracts/main/CurveStableSwapNGViews.vy#L44
+func (t *PoolSimulator) GetDx(
+	i int,
+	j int,
+	dy *uint256.Int,
+	dCached *uint256.Int,
+	dx *uint256.Int,
+	adminFee *uint256.Int,
+) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = errors.Wrapf(ErrExecutionReverted, "recovered error: %v", r.(error))
+			return
+		}
+	}()
+
+	var xp = XpMem(t.Extra.RateMultipliers, t.Reserves)
+
+	// dy_with_fee: uint256 = dy * rates[j] / PRECISION + 1
+	dyWithFee := number.Add(number.Div(number.SafeMul(dy, &t.Extra.RateMultipliers[j]), Precision), number.Number_1)
+
+	var dynamicFee uint256.Int
+	t.DynamicFee(
+		&xp[i],
+		&xp[j],
+		t.Extra.SwapFee,
+		&dynamicFee,
+	)
+
+	adminFee.Set(&dynamicFee)
+
+	// y: uint256 = xp[j] - dy_with_fee * FEE_DENOMINATOR / (FEE_DENOMINATOR - fee)
+	var y uint256.Int
+	y.Sub(
+		&xp[j],
+		number.Div(
+			number.SafeMul(dyWithFee, FeeDenominator),
+			number.SafeSub(FeeDenominator, &dynamicFee),
+		),
+	)
+
+	// x: uint256 = self.get_y(j, i, y, xp, amp, D, N_COINS)
+	var x uint256.Int
+	err = t.GetY(j, i, &y, xp, dCached, &x)
+	if err != nil {
+		return err
+	}
+
+	// return (x - xp[i]) * PRECISION / rates[i]
+	dx.Div(number.SafeMul(number.SafeSub(&x, &xp[i]), Precision), &t.Extra.RateMultipliers[i])
 
 	return nil
 }

@@ -7,12 +7,13 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/holiman/uint256"
 )
 
 type PoolSimulator struct {
@@ -119,21 +120,66 @@ func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err
 		}
-		if !amountOut.IsZero() {
-			return &pool.CalcAmountOutResult{
-				TokenAmountOut: &pool.TokenAmount{
-					Token:  tokenOut,
-					Amount: amountOut.ToBig(),
-				},
-				Fee: &pool.TokenAmount{
-					Token:  tokenOut,
-					Amount: adminFee.ToBig(),
-				},
-				Gas: t.gas.Exchange,
-			}, nil
+
+		if amountOut.IsZero() {
+			return &pool.CalcAmountOutResult{}, ErrZero
 		}
+
+		return &pool.CalcAmountOutResult{
+			TokenAmountOut: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: amountOut.ToBig(),
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenOut,
+				Amount: adminFee.ToBig(),
+			},
+			Gas: t.gas.Exchange,
+		}, nil
 	}
+
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
+}
+
+func (t *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	tokenAmountOut := param.TokenAmountOut
+	tokenIn := param.TokenIn
+	// swap from token to token
+	var tokenIndexFrom = t.Info.GetTokenIndex(tokenIn)
+	var tokenIndexTo = t.Info.GetTokenIndex(tokenAmountOut.Token)
+	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
+		var amountIn, adminFee, amountOut uint256.Int
+		amountOut.SetFromBig(tokenAmountOut.Amount)
+		err := t.GetDx(
+			tokenIndexFrom,
+			tokenIndexTo,
+			&amountOut,
+			nil,
+			&amountIn,
+			&adminFee,
+		)
+		if err != nil {
+			return &pool.CalcAmountInResult{}, err
+		}
+
+		if amountIn.IsZero() {
+			return &pool.CalcAmountInResult{}, ErrZero
+		}
+
+		return &pool.CalcAmountInResult{
+			TokenAmountIn: &pool.TokenAmount{
+				Token:  tokenIn,
+				Amount: amountIn.ToBig(),
+			},
+			Fee: &pool.TokenAmount{
+				Token:  tokenAmountOut.Token,
+				Amount: adminFee.ToBig(),
+			},
+			Gas: t.gas.Exchange,
+		}, nil
+	}
+
+	return &pool.CalcAmountInResult{}, fmt.Errorf("tokenIndexFrom %v or TokenOutIndex %v is not correct", tokenIndexFrom, tokenIndexTo)
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
