@@ -11,6 +11,12 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
+	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
+	nativev1Client "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
+	kyberpmmClient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm/client"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerEntities "github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -1608,6 +1614,107 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				}},
 			err: nil,
 		},
+		{
+			name: "it should return correct result and only increase total count in AMM dexes",
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:                     big.NewInt(1002),
+					AmountInUSD:                  float64(1000),
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:                    big.NewInt(1000),
+					AmountOutUSD:                 float64(1000),
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          50,
+					GasPrice:                     big.NewFloat(1),
+					GasUSD:                       float64(0.07912413535198341),
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:       "0xabc",
+								AmountOut:  big.NewInt(1000),
+								SwapAmount: big.NewInt(1002),
+								Exchange:   "pancake",
+								PoolType:   "uniswap-v2",
+							},
+							{
+								Pool:       "0xabcd",
+								AmountOut:  big.NewInt(1000),
+								SwapAmount: big.NewInt(1000),
+								Exchange:   "kyber-pmm",
+								PoolType:   "kyber-pmm",
+							},
+							{
+								Pool:       "0xabcde",
+								AmountOut:  big.NewInt(1000),
+								SwapAmount: big.NewInt(1000),
+								Exchange:   "swaap-v2",
+								PoolType:   "swaap-v2",
+							},
+							{
+								Pool:       "0xabcdef",
+								AmountOut:  big.NewInt(1000),
+								SwapAmount: big.NewInt(1000),
+								Exchange:   "hashflow-v3",
+								PoolType:   "hashflow-v3",
+							},
+						},
+					},
+				},
+				SlippageTolerance:   50,
+				Recipient:           recipient,
+				EnableGasEstimation: true,
+				Sender:              sender,
+			},
+			result: &dto.BuildRouteResult{
+				AmountIn:      "1002",
+				AmountInUSD:   "0.001002",
+				AmountOut:     "1000",
+				AmountOutUSD:  "0.001",
+				Gas:           "50",
+				GasUSD:        "0.07912413535198341",
+				OutputChange:  OutputChangeNoChange,
+				Data:          "mockEncodedData",
+				RouterAddress: "0x01",
+
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
+			},
+			gasEstimator: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIGasEstimator {
+				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
+				wg.Add(1)
+				// config.IsGasEstimatorEnabled = false so estimate gas in background
+				gasEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return(uint64(0), ErrReturnAmountIsNotEnough)
+				return gasEstimator
+			},
+			countTotalPools: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
+				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
+				counters := []routerEntities.FaultyPoolTracker{
+					{
+						Address:     "0xabc",
+						TotalCount:  1,
+						FailedCount: 1,
+					},
+				}
+				wg.Add(1)
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Eq(counters)).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Times(1).Return([]string{"0xabc"}, nil)
+				return poolRepository
+			},
+			config: Config{
+				ChainID:      valueobject.ChainIDEthereum,
+				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: false, IsFaultyPoolDetectorEnable: true},
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					MinSlippageThreshold: 40,
+					WhitelistedTokenSet:  map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
+				}},
+			err: nil,
+		},
 	}
 
 	wg := sync.WaitGroup{}
@@ -1683,6 +1790,316 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 
 			assert.Equal(t, tc.result, result)
 			assert.ErrorIs(t, tc.err, err)
+		})
+	}
+}
+
+func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name                 string
+		command              dto.BuildRouteCommand
+		rfqHandlerByPoolType func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ
+		countTotalPools      func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository
+		config               Config
+		err                  error
+	}{
+		{
+			name: "it should return correct result and increase total count (failed count is 1) on Redis when rfq with kyber-pmm failed",
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:                     big.NewInt(2000000000000000000),
+					AmountInUSD:                  float64(2000000000000000000),
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:                    big.NewInt(4488767370609711072),
+					AmountOutUSD:                 float64(4488767370609711072),
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          345000,
+					GasPrice:                     big.NewFloat(100000000),
+					GasUSD:                       float64(0.07912413535198341),
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:       "0xabc",
+								AmountOut:  big.NewInt(996023110963288),
+								SwapAmount: big.NewInt(2000000000000000000),
+								Exchange:   "kyber-pmm",
+								PoolType:   "kyber-pmm",
+							},
+							{
+								Pool:       "0xxyz",
+								AmountOut:  big.NewInt(4488767370609711072),
+								SwapAmount: big.NewInt(996023110963288),
+								Exchange:   "smardex",
+								PoolType:   "smardex",
+							},
+						},
+					},
+				},
+				SlippageTolerance:   5,
+				EnableGasEstimation: true,
+			},
+			rfqHandlerByPoolType: func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ {
+				rfqHandlerByPoolType := map[string]pool.IPoolRFQ{}
+				rfqHandler := buildroute.NewMockIPoolRFQ(ctrl)
+				rfqHandlerByPoolType[kyberpmm.DexTypeKyberPMM] = rfqHandler
+				rfqHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(nil, kyberpmmClient.ErrFirmQuoteFailed)
+
+				return rfqHandlerByPoolType
+			},
+			countTotalPools: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
+				wg.Add(1)
+				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
+				counters := []routerEntities.FaultyPoolTracker{
+					{
+						Address:     "0xabc",
+						TotalCount:  1,
+						FailedCount: 1,
+					},
+				}
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Eq(counters)).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return([]string{"0xabc"}, nil).Times(1)
+				return poolRepository
+			},
+			config: Config{
+				ChainID:      valueobject.ChainIDEthereum,
+				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
+				}},
+			err: errors.WithMessagef(kyberpmmClient.ErrFirmQuoteFailed, "rfq failed, swap data: %v", valueobject.Swap{
+				Pool:       "0xabc",
+				AmountOut:  big.NewInt(996023110963288),
+				SwapAmount: big.NewInt(2000000000000000000),
+				Exchange:   "kyber-pmm",
+				PoolType:   "kyber-pmm",
+			}),
+		},
+		{
+			name: "it should return correct result and increase total count (failed count is 1) on Redis when rfq with native-v1 failed",
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:                     big.NewInt(2000000000000000000),
+					AmountInUSD:                  float64(2000000000000000000),
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:                    big.NewInt(4488767370609711072),
+					AmountOutUSD:                 float64(4488767370609711072),
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          345000,
+					GasPrice:                     big.NewFloat(100000000),
+					GasUSD:                       float64(0.07912413535198341),
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:       "0xabc",
+								AmountOut:  big.NewInt(996023110963288),
+								SwapAmount: big.NewInt(2000000000000000000),
+								Exchange:   "kyber-pmm",
+								PoolType:   "kyber-pmm",
+							},
+							{
+								Pool:       "0xxyz",
+								AmountOut:  big.NewInt(4488767370609711072),
+								SwapAmount: big.NewInt(996023110963288),
+								Exchange:   "native-v1",
+								PoolType:   "native-v1",
+							},
+						},
+					},
+				},
+				EnableGasEstimation: true,
+			},
+			rfqHandlerByPoolType: func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ {
+				rfqHandlerByPoolType := map[string]pool.IPoolRFQ{}
+				pmmRfqHandler := buildroute.NewMockIPoolRFQ(ctrl)
+				pmmRfqHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(&pool.RFQResult{
+					NewAmountOut: big.NewInt(996023110963288),
+				}, nil)
+				rfqHandlerByPoolType[kyberpmm.DexTypeKyberPMM] = pmmRfqHandler
+
+				nativev1RfqHandler := buildroute.NewMockIPoolRFQ(ctrl)
+				rfqHandlerByPoolType[nativev1.DexType] = nativev1RfqHandler
+				nativev1RfqHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(nil, nativev1Client.ErrRFQAllPricerFailed)
+
+				return rfqHandlerByPoolType
+			},
+			countTotalPools: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
+				wg.Add(2)
+				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
+				pmmCounter := []routerEntities.FaultyPoolTracker{
+					{
+						Address:     "0xabc",
+						TotalCount:  1,
+						FailedCount: 0,
+					},
+				}
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Eq(pmmCounter)).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return([]string{"0xabc"}, nil).Times(1)
+				nativev1Counter := []routerEntities.FaultyPoolTracker{
+					{
+						Address:     "0xxyz",
+						TotalCount:  1,
+						FailedCount: 1,
+					},
+				}
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Eq(nativev1Counter)).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return([]string{"0xabc"}, nil).Times(1)
+				return poolRepository
+			},
+			config: Config{
+				ChainID:      valueobject.ChainIDEthereum,
+				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
+				}},
+			err: errors.WithMessagef(nativev1Client.ErrRFQAllPricerFailed, "rfq failed, swap data: %v", valueobject.Swap{
+				Pool:       "0xxyz",
+				AmountOut:  big.NewInt(4488767370609711072),
+				SwapAmount: big.NewInt(996023110963288),
+				Exchange:   "native-v1",
+				PoolType:   "native-v1",
+			}),
+		},
+		{
+			name: "it should return correct result and increase total count (failed count is 0) on Redis when rfq firm has no error",
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:                     big.NewInt(2000000000000000000),
+					AmountInUSD:                  float64(2000000000000000000),
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:                    big.NewInt(4488767370609711072),
+					AmountOutUSD:                 float64(4488767370609711072),
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          345000,
+					GasPrice:                     big.NewFloat(100000000),
+					GasUSD:                       float64(0.07912413535198341),
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:       "0xabc",
+								AmountOut:  big.NewInt(996023110963288),
+								SwapAmount: big.NewInt(2000000000000000000),
+								Exchange:   "hashflow-v3",
+								PoolType:   "hashflow-v3",
+							},
+							{
+								Pool:       "0xxyz",
+								AmountOut:  big.NewInt(4488767370609711072),
+								SwapAmount: big.NewInt(996023110963288),
+								Exchange:   "native-v1",
+								PoolType:   "native-v1",
+							},
+						},
+					},
+				},
+				EnableGasEstimation: true,
+			},
+			rfqHandlerByPoolType: func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ {
+				rfqHandlerByPoolType := map[string]pool.IPoolRFQ{}
+				hashflowHandler := buildroute.NewMockIPoolRFQ(ctrl)
+				hashflowHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(&pool.RFQResult{
+					NewAmountOut: big.NewInt(996023110963288),
+				}, nil)
+				rfqHandlerByPoolType[hashflowv3.DexType] = hashflowHandler
+
+				nativev1RfqHandler := buildroute.NewMockIPoolRFQ(ctrl)
+				rfqHandlerByPoolType[nativev1.DexType] = nativev1RfqHandler
+				nativev1RfqHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(&pool.RFQResult{
+					NewAmountOut: big.NewInt(996023110963288),
+				}, nil)
+
+				return rfqHandlerByPoolType
+			},
+			countTotalPools: func(ctrl *gomock.Controller, wg *sync.WaitGroup) *buildroute.MockIPoolRepository {
+				wg.Add(2)
+				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
+				pmmCounter := []routerEntities.FaultyPoolTracker{
+					{
+						Address:     "0xabc",
+						TotalCount:  1,
+						FailedCount: 0,
+					},
+				}
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Eq(pmmCounter)).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return([]string{"0xabc"}, nil).Times(1)
+				nativev1Counter := []routerEntities.FaultyPoolTracker{
+					{
+						Address:     "0xxyz",
+						TotalCount:  1,
+						FailedCount: 0,
+					},
+				}
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Eq(nativev1Counter)).Do(func(arg0, arg1 interface{}) {
+					defer wg.Done()
+				}).Return([]string{"0xabc"}, nil).Times(1)
+				return poolRepository
+			},
+			config: Config{
+				ChainID:      valueobject.ChainIDEthereum,
+				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: true},
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
+				}},
+			err: nil,
+		},
+	}
+
+	wg := sync.WaitGroup{}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			encoder := mockEncode.NewMockIEncoder(ctrl)
+			encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+			encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
+			encoder.EXPECT().
+				GetExecutorAddress(gomock.Any()).
+				Return("0x00").AnyTimes()
+			encoder.EXPECT().
+				GetRouterAddress().
+				Return("0x01").AnyTimes()
+
+			clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
+			tokenRepository := usecase.NewMockITokenRepository(ctrl)
+			priceRepository := usecase.NewMockIPriceRepository(ctrl)
+			executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
+			poolRepository := tc.countTotalPools(ctrl, &wg)
+
+			usecase := NewBuildRouteUseCase(
+				tokenRepository,
+				priceRepository,
+				poolRepository,
+				executorBalanceRepository,
+				nil,
+				nil,
+				&dummyL1FeeCalculator{},
+				tc.rfqHandlerByPoolType(ctrl),
+				clientDataEncoder,
+				encodeBuilder,
+				tc.config,
+			)
+
+			_, err := usecase.Handle(context.Background(), tc.command)
+			wg.Wait()
+
+			if tc.err != nil {
+				assert.Equal(t, tc.err.Error(), err.Error())
+			}
 		})
 	}
 }

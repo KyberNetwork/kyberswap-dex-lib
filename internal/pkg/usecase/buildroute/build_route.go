@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,7 +20,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
-	routerEntities "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -33,7 +31,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
-	mapset "github.com/deckarep/golang-set/v2"
 )
 
 var OutputChangeNoChange = dto.OutputChange{
@@ -199,6 +196,12 @@ func (uc *BuildRouteUseCase) rfq(
 				Slippage:     slippageTolerance,
 				SwapInfo:     swap.Extra,
 			})
+
+			// Track faulty pools if we got RFQ errors due to market too volatile
+			go uc.trackFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx),
+				uc.convertPMMSwapsToPoolTrackers([]valueobject.Swap{swap}, err),
+				routeSummary.TokenIn, routeSummary.TokenOut)
+
 			if err != nil {
 				return routeSummary, errors.WithMessagef(err, "rfq failed, swap data: %v", swap)
 			}
@@ -460,7 +463,10 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary value
 
 		gas, gasUSD, err = uc.gasEstimator.Execute(ctx, tx)
 		uc.sendEstimateGasLogsAndMetrics(ctx, routeSummary, err, command.SlippageTolerance)
-		go uc.trackFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx), routeSummary, command, err)
+		go uc.trackFaultyPools(
+			ctxUtils.NewBackgroundCtxWithReqId(ctx),
+			uc.convertAMMSwapsToPoolTrackers(routeSummary, err, command),
+			routeSummary.TokenIn, routeSummary.TokenOut)
 		if err != nil {
 			return 0, 0.0, 0, ErrEstimateGasFailed(err)
 		}
@@ -468,7 +474,11 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary value
 		go func(ctx context.Context) {
 			_, err := uc.gasEstimator.EstimateGas(ctx, tx)
 			uc.sendEstimateGasLogsAndMetrics(ctx, routeSummary, err, command.SlippageTolerance)
-			uc.trackFaultyPools(ctx, routeSummary, command, err)
+			uc.trackFaultyPools(
+				ctx,
+				uc.convertAMMSwapsToPoolTrackers(routeSummary, err, command),
+				routeSummary.TokenIn,
+				routeSummary.TokenOut)
 		}(ctxUtils.NewBackgroundCtxWithReqId(ctx))
 	}
 
@@ -531,54 +541,4 @@ func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
 			metrics.HistogramEstimateGasWithSlippage(ctx, float64(slippage), true)
 		}
 	}
-}
-
-func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, routeSummary valueobject.RouteSummary, command dto.BuildRouteCommand, err error) {
-	if !uc.config.FeatureFlags.IsFaultyPoolDetectorEnable {
-		return
-	}
-
-	// requests to be tracked should only involve tokens that have been whitelisted or native token
-	if !IsTokenValid(command.RouteSummary.TokenIn, uc.config.FaultyPoolsConfig, uc.config.ChainID) ||
-		!IsTokenValid(command.RouteSummary.TokenOut, uc.config.FaultyPoolsConfig, uc.config.ChainID) {
-		return
-	}
-
-	trackers := []routerEntities.FaultyPoolTracker{}
-	failedCount := int64(0)
-	// if SlippageTolerance >= 5%, we will consider a pool is faulty, otherwise, we do not encounter it
-	// because in case that pool contains FOT token, slippage is high but that pool's state is not stale
-	if isErrReturnAmountIsNotEnough(err) && slippageIsAboveMinThreshold(command.SlippageTolerance, uc.config.FaultyPoolsConfig) {
-		failedCount = 1
-	}
-	totalSet := mapset.NewThreadUnsafeSet[string]()
-	for _, path := range routeSummary.Route {
-		for _, swap := range path {
-			trackers = append(trackers, routerEntities.FaultyPoolTracker{
-				Address:     swap.Pool,
-				TotalCount:  1,
-				FailedCount: failedCount,
-			})
-			totalSet.Add(swap.Pool)
-		}
-	}
-	// pool-service will return InvalidArgument error if trackers list is empty
-	if len(trackers) == 0 {
-		return
-	}
-	results, err := uc.poolRepository.TrackFaultyPools(ctx, trackers)
-
-	if err != nil {
-		addedSet := mapset.NewThreadUnsafeSet(results...)
-
-		logger.WithFields(
-			ctx,
-			logger.Fields{
-				"error":            err,
-				"stacktrace":       string(debug.Stack()),
-				"failedTrackPools": totalSet.Difference(addedSet),
-				"requestId":        requestid.GetRequestIDFromCtx(ctx),
-			}).Error("fail to add faulty pools")
-	}
-
 }
