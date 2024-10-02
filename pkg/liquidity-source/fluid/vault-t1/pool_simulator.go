@@ -73,7 +73,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, err
 	}
 
-	if tokenAmountOut.Cmp(reserveTokenOut) >= 0 {
+	if tokenAmountOut.Cmp(reserveTokenOut) > 0 {
 		return nil, ErrInsufficientReserve
 	}
 
