@@ -2,6 +2,8 @@ package dexT1
 
 import (
 	"math/big"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 // @dev the logic here mirrors the original Solidity code used in Dex, see
@@ -137,16 +139,16 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	}
 
 	// Check if all reserves of collateral pool are greater than 0
-	colPoolEnabled := colReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0 &&
-		colReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0 &&
-		colReserves.Token0ImaginaryReserves.Cmp(big.NewInt(0)) > 0 &&
-		colReserves.Token1ImaginaryReserves.Cmp(big.NewInt(0)) > 0
+	colPoolEnabled := colReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		colReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		colReserves.Token0ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		colReserves.Token1ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0
 
 	// Check if all reserves of debt pool are greater than 0
-	debtPoolEnabled := debtReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0 &&
-		debtReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0 &&
-		debtReserves.Token0ImaginaryReserves.Cmp(big.NewInt(0)) > 0 &&
-		debtReserves.Token1ImaginaryReserves.Cmp(big.NewInt(0)) > 0
+	debtPoolEnabled := debtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		debtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		debtReserves.Token0ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		debtReserves.Token1ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0
 
 	var a *big.Int
 	if colPoolEnabled && debtPoolEnabled {
@@ -159,8 +161,8 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		panic("No pools are enabled")
 	}
 
-	var amountOutCollateral, amountOutDebt *big.Int = big.NewInt(0), big.NewInt(0)
-	if a.Cmp(big.NewInt(0)) <= 0 {
+	var amountOutCollateral, amountOutDebt *big.Int = bignumber.ZeroBI, bignumber.ZeroBI
+	if a.Cmp(bignumber.ZeroBI) <= 0 {
 		// Entire trade routes through debt pool
 		amountOutDebt = getAmountOut(amountToSwap, debtIReserveIn, debtIReserveOut)
 	} else if a.Cmp(amountToSwap) >= 0 {
@@ -256,16 +258,16 @@ func swapOutAdjusted(swap0to1 bool, amountOut *big.Int, colReserves CollateralRe
 	}
 
 	// Check if all reserves of collateral pool are greater than 0
-	colPoolEnabled := colReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0 &&
-		colReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0 &&
-		colReserves.Token0ImaginaryReserves.Cmp(big.NewInt(0)) > 0 &&
-		colReserves.Token1ImaginaryReserves.Cmp(big.NewInt(0)) > 0
+	colPoolEnabled := colReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		colReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		colReserves.Token0ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		colReserves.Token1ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0
 
 	// Check if all reserves of debt pool are greater than 0
-	debtPoolEnabled := debtReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0 &&
-		debtReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0 &&
-		debtReserves.Token0ImaginaryReserves.Cmp(big.NewInt(0)) > 0 &&
-		debtReserves.Token1ImaginaryReserves.Cmp(big.NewInt(0)) > 0
+	debtPoolEnabled := debtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		debtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		debtReserves.Token0ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		debtReserves.Token1ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0
 
 	var a *big.Int
 	if colPoolEnabled && debtPoolEnabled {
@@ -278,8 +280,8 @@ func swapOutAdjusted(swap0to1 bool, amountOut *big.Int, colReserves CollateralRe
 		panic("No pools are enabled")
 	}
 
-	var amountInCollateral, amountInDebt *big.Int = big.NewInt(0), big.NewInt(0)
-	if a.Cmp(big.NewInt(0)) <= 0 {
+	var amountInCollateral, amountInDebt *big.Int = bignumber.ZeroBI, bignumber.ZeroBI
+	if a.Cmp(bignumber.ZeroBI) <= 0 {
 		// Entire trade routes through debt pool
 		amountInDebt = getAmountIn(amountOut, debtIReserveIn, debtIReserveOut)
 	} else if a.Cmp(amountOut) >= 0 {
