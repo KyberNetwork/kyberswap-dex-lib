@@ -75,7 +75,8 @@ func (t *PoolTracker) getPoolReserves(ctx context.Context, poolAddress string) (
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
-		}).Error("aggregate request failed")
+			"error":   err,
+		}).Error("Failed to get pool reserves")
 		return nil, 0, err
 	}
 
