@@ -13,6 +13,8 @@ const (
 	TokenMethodDecimals = "decimals"
 )
 
+const String1e18 = "1000000000000000000"
+
 const DexAmountsDecimals int64 = 12
 
 const FeePercentPrecision int64 = 1e4

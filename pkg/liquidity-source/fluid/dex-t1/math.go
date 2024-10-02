@@ -55,12 +55,15 @@ func getAmountIn(amountOut *big.Int, iReserveIn *big.Int, iReserveOut *big.Int) 
  * @note If a > 0 & a < t then swap will route through both pools.
  */
 func swapRoutingIn(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int) *big.Int {
+	bI1e18 := new(big.Int)
+	bI1e18.SetString(String1e18, 10) // 1e18
+
 	xyProduct := new(big.Int).Mul(x, y)
-	xyProduct = new(big.Int).Mul(xyProduct, new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+	xyProduct = new(big.Int).Mul(xyProduct, bI1e18)
 	xyRoot := new(big.Int).Sqrt(xyProduct)
 
 	x2y2Product := new(big.Int).Mul(x2, y2)
-	x2y2Product = new(big.Int).Mul(x2y2Product, new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+	x2y2Product = new(big.Int).Mul(x2y2Product, bI1e18)
 	x2y2Root := new(big.Int).Sqrt(x2y2Product)
 
 	y2xyRoot := new(big.Int).Mul(y2, xyRoot)
@@ -86,12 +89,15 @@ func swapRoutingIn(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int)
  * @note If a > 0 & a < t then swap will route through both pools.
  */
 func swapRoutingOut(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int) *big.Int {
+	bI1e18 := new(big.Int)
+	bI1e18.SetString(String1e18, 10) // 1e18
+
 	xyProduct := new(big.Int).Mul(x, y)
-	xyProduct = new(big.Int).Mul(xyProduct, new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+	xyProduct = new(big.Int).Mul(xyProduct, bI1e18)
 	xyRoot := new(big.Int).Sqrt(xyProduct)
 
 	x2y2Product := new(big.Int).Mul(x2, y2)
-	x2y2Product = new(big.Int).Mul(x2y2Product, new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil))
+	x2y2Product = new(big.Int).Mul(x2y2Product, bI1e18)
 	x2y2Root := new(big.Int).Sqrt(x2y2Product)
 
 	txyRoot := new(big.Int).Mul(t, xyRoot)
