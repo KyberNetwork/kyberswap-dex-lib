@@ -116,7 +116,8 @@ func (u *PoolsListUpdater) getAllPools(ctx context.Context) ([]PoolWithReserves,
 	if _, err := req.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
-		}).Error("aggregate request failed")
+			"error":   err,
+		}).Error("Failed to get all pools reserves")
 		return nil, err
 	}
 
