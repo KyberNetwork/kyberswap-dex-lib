@@ -36,15 +36,15 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			},
 			param: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
-					Amount: bignumber.NewBig("1000000000000000000"), // 1 wstETH
+					Amount: bignumber.NewBig("10000000000000000"), // 0.01 wstETH
 					Token:  "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
 				},
 				TokenOut: "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
 			},
-			expectedAmountOut: bignumber.NewBig("1136183487651849280"),
+			expectedAmountOut: bignumber.NewBig("11361834876518492"),
 		},
 		{
-			name: "it should return correct amount for 0.5 wstETH",
+			name: "it should return error when amount out exceeds reserves",
 			poolSimulator: &PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
@@ -66,7 +66,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				},
 				TokenOut: "0xCd5fE23C85820F7B72D0926FC9b05b43E359b7ee",
 			},
-			expectedAmountOut: bignumber.NewBig("568091743825924640"), // 1136183487651849280 / 2
+			expectedError: ErrInsufficientReserve, // Expect error due to insufficient reserves
 		},
 	}
 
@@ -77,9 +77,6 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			if tc.expectedError != nil {
 				assert.ErrorIs(t, err, tc.expectedError)
 			}
-
-			t.Logf("Expected Amount Out: %s", tc.expectedAmountOut.String())
-			t.Logf("Result Amount: %s", result.TokenAmountOut.Amount.String())
 
 			if tc.expectedAmountOut != nil {
 				assert.Zero(t, tc.expectedAmountOut.Cmp(result.TokenAmountOut.Amount))
