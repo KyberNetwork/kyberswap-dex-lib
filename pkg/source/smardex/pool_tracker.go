@@ -10,6 +10,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type PoolTracker struct {
@@ -27,14 +29,37 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (u *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool.GetNewPoolStateParams) (entity.Pool, error) {
+func (u *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return u.getNewPoolState(ctx, p, params, nil)
+}
+
+func (u *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return u.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (u *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
 	logger.WithFields(
 		logger.Fields{"poolAddress": p.Address}).Infof(
 		"%s: Start getting new state of pool", u.config.DexID)
 
 	rpcRequest := u.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
-
+	if overrides != nil {
+		rpcRequest.SetOverrides(overrides)
+	}
 	var (
 		reserve        Reserve
 		feeToAmount    FeeToAmount

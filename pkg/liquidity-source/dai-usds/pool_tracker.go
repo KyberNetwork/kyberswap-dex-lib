@@ -21,3 +21,11 @@ func (d *PoolTracker) GetNewPoolState(
 ) (entity.Pool, error) {
 	return p, nil
 }
+
+func (d *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return p, nil
+}
