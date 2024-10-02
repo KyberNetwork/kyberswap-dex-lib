@@ -130,10 +130,9 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 
 // Helper function to get reserve for a specific token
 func (s *PoolSimulator) getReserveForToken(token string) (*big.Int, error) {
-	for i, t := range s.GetTokens() {
-		if t == token {
-			return s.GetReserves()[i], nil
-		}
+	if idx := s.GetTokenIndex(token); idx >= 0 {
+		return s.GetReserves()[idx], nil
 	}
+
 	return nil, ErrTokenNotFound
 }
