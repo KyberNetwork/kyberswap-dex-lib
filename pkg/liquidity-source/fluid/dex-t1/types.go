@@ -15,13 +15,6 @@ type PoolExtra struct {
 	DebtReserves       DebtReserves
 }
 
-type Pool struct {
-	PoolAddress   common.Address `json:"poolAddress"`
-	Token0Address common.Address `json:"token0Address"`
-	Token1Address common.Address `json:"token1Address"`
-	Fee           *big.Int       `json:"fee"`
-}
-
 type CollateralReserves struct {
 	Token0RealReserves      *big.Int `json:"token0RealReserves"`
 	Token1RealReserves      *big.Int `json:"token1RealReserves"`
