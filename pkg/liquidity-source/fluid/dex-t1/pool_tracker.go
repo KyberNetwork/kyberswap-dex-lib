@@ -33,7 +33,6 @@ func (t *PoolTracker) GetNewPoolState(
 ) (entity.Pool, error) {
 	poolReserves, blockNumber, err := t.getPoolReserves(ctx, p.Address)
 	if err != nil {
-		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("Error getPoolReserves")
 		return p, err
 	}
 
