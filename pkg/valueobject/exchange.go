@@ -349,15 +349,10 @@ var (
 	ExchangeLitePSM    Exchange = "lite-psm"
 	ExchangeMkrSky     Exchange = "mkr-sky"
 	ExchangeDaiUsds    Exchange = "dai-usds"
+	ExchangeUsd0PP     Exchange = "usd0pp"
 
 	ExchangeFluidVaultT1 Exchange = "fluid-vault-t1"
 	ExchangeFluidDexT1   Exchange = "fluid-dex-t1"
-	ExchangeMaverickV2   Exchange = "maverick-v2"
-	ExchangeEtherVista   Exchange = "ether-vista"
-	ExchangeLitePSM      Exchange = "lite-psm"
-	ExchangeMkrSky       Exchange = "mkr-sky"
-	ExchangeDaiUsds      Exchange = "dai-usds"
-	ExchangeUsd0PP       Exchange = "usd0pp"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
