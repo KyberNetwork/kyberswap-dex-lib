@@ -241,3 +241,7 @@ func (r *redisRepository) RemoveAddressFromIndex(ctx context.Context, key string
 
 	return err
 }
+
+func (r *redisRepository) GetDirectIndexLength(ctx context.Context, key, token0, token1 string) (int64, error) {
+	return r.redisClient.ZCard(ctx, r.keyGenerator.directPairKey(key, token0, token1)).Result()
+}

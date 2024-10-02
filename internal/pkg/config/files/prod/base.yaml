@@ -368,6 +368,7 @@ useCase:
     chunkSize: 3000
     maxGoroutines: 0
     enableRankByNative: false
+    maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://base-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-base
 job:

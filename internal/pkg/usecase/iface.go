@@ -59,6 +59,7 @@ type IPoolRankRepository interface {
 		useGlobal bool,
 	) error
 	RemoveAddressFromIndex(ctx context.Context, key string, pools []string) error
+	GetDirectIndexLength(ctx context.Context, key, token0, token1 string) (int64, error)
 }
 
 type IGasRepository interface {

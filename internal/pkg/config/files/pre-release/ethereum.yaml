@@ -393,6 +393,7 @@ useCase:
     chunkSize: 3000
     maxGoroutines: 0
     enableRankByNative: false
+    maxDirectIndexLenForZeroTvl: 10
   generateBestPaths:
     gasTokenAddress: *gasTokenAddress
     getBestPoolsOptions: *getBestPoolsOptions

@@ -48,6 +48,21 @@ func (mr *MockIPoolRankRepositoryMockRecorder) AddToSortedSet(arg0, arg1, arg2, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddToSortedSet", reflect.TypeOf((*MockIPoolRankRepository)(nil).AddToSortedSet), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
 }
 
+// GetDirectIndexLength mocks base method.
+func (m *MockIPoolRankRepository) GetDirectIndexLength(arg0 context.Context, arg1, arg2, arg3 string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDirectIndexLength", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDirectIndexLength indicates an expected call of GetDirectIndexLength.
+func (mr *MockIPoolRankRepositoryMockRecorder) GetDirectIndexLength(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDirectIndexLength", reflect.TypeOf((*MockIPoolRankRepository)(nil).GetDirectIndexLength), arg0, arg1, arg2, arg3)
+}
+
 // RemoveAddressFromIndex mocks base method.
 func (m *MockIPoolRankRepository) RemoveAddressFromIndex(arg0 context.Context, arg1 string, arg2 []string) error {
 	m.ctrl.T.Helper()

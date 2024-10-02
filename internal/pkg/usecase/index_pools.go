@@ -313,7 +313,19 @@ func (u *IndexPoolsUseCase) savePoolIndex(ctx context.Context, poolIndex *PoolIn
 		}
 	}
 
+	var shouldAddToTvlNativeIndex bool
 	if poolIndex.TvlNative > 0 {
+		shouldAddToTvlNativeIndex = true
+	} else {
+		directIndexLength, err := u.poolRankRepo.GetDirectIndexLength(ctx, poolrank.SortByTVLNative, poolIndex.Token0, poolIndex.Token1)
+		if err != nil {
+			logger.Warnf(ctx, "failed to get direct index length %v", err)
+		} else {
+			shouldAddToTvlNativeIndex = directIndexLength < int64(u.config.MaxDirectIndexLenForZeroTvl)
+		}
+	}
+
+	if shouldAddToTvlNativeIndex {
 		if err := u.poolRankRepo.AddToSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
 			poolrank.SortByTVLNative, poolIndex.Pool.Address, poolIndex.TvlNative, true); err != nil {
 			// result = INDEX_RESULT_FAIL
@@ -321,6 +333,7 @@ func (u *IndexPoolsUseCase) savePoolIndex(ctx context.Context, poolIndex *PoolIn
 			logger.Debugf(ctx, "failed to add to sorted set %v", err)
 		}
 	}
+
 	if poolIndex.AmplifiedTvlNative > 0 {
 		if err := u.poolRankRepo.AddToSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
 			poolrank.SortByAmplifiedTVLNative, poolIndex.Pool.Address, poolIndex.AmplifiedTvlNative, false); err != nil {

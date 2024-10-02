@@ -204,6 +204,9 @@ func TestIndexPools_Handle(t *testing.T) {
 					false,
 					poolrank.SortByTVL, mockPools[1].Address, mockPools[1].ReserveUsd, true,
 				).Return(nil)
+				mockPoolRankRepo.EXPECT().
+					GetDirectIndexLength(gomock.Any(), poolrank.SortByTVLNative, gomock.Any(), gomock.Any()).
+					Return(int64(0), nil).AnyTimes()
 
 				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, nil, mockConfig)
 			},
@@ -282,6 +285,9 @@ func TestIndexPools_Handle(t *testing.T) {
 					false,
 					poolrank.SortByTVL, mockPools[1].Address, mockPools[1].ReserveUsd, true,
 				).Return(nil)
+				mockPoolRankRepo.EXPECT().
+					GetDirectIndexLength(gomock.Any(), poolrank.SortByTVLNative, gomock.Any(), gomock.Any()).
+					Return(int64(0), nil).AnyTimes()
 
 				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, nil, mockConfig)
 			},
@@ -310,6 +316,67 @@ func TestIndexPools_Handle(t *testing.T) {
 			},
 			command: dto.IndexPoolsCommand{PoolAddresses: []string{"pooladdress1", "pooladdress2", "pooladdress3"}},
 			result:  dto.NewIndexPoolsResult([]string{"pooladdress1", "pooladdress2", "pooladdress3"}, 0),
+		},
+		{
+			name: "it should index 0 native TVL pools if number of direct pools is too small",
+			prepare: func(ctrl *gomock.Controller) *IndexPoolsUseCase {
+				mockConfig := IndexPoolsConfig{
+					ChunkSize:                   100,
+					MaxDirectIndexLenForZeroTvl: 10,
+				}
+
+				poolTokens := mockPoolTokensTestIndexPools()
+				mockPool := &entity.Pool{
+					Address:      "pooladdress5",
+					ReserveUsd:   0,
+					AmplifiedTvl: 0,
+					SwapFee:      300,
+					Exchange:     "exchange5",
+					Type:         "type5",
+					Timestamp:    1658373335,
+					Reserves:     []string{"10000", "10000"},
+					Tokens:       []*entity.PoolToken{poolTokens[0], poolTokens[1]},
+					Extra:        "extra5",
+					TotalSupply:  "30000",
+				}
+
+				mockPoolRepo := usecase.NewMockIPoolRepository(ctrl)
+				mockPoolRepo.EXPECT().
+					FindByAddresses(gomock.Any(), []string{mockPool.Address}).
+					Return([]*entity.Pool{mockPool}, nil)
+				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo.EXPECT().
+					AddToSortedSet(
+						gomock.Any(),
+						mockPool.Tokens[0].Address,
+						mockPool.Tokens[1].Address,
+						false,
+						false,
+						poolrank.SortByTVL,
+						mockPool.Address,
+						mockPool.AmplifiedTvl,
+						true,
+					).Return(nil)
+				mockPoolRankRepo.EXPECT().
+					AddToSortedSet(
+						gomock.Any(),
+						mockPool.Tokens[0].Address,
+						mockPool.Tokens[1].Address,
+						false,
+						false,
+						poolrank.SortByTVLNative,
+						mockPool.Address,
+						mockPool.AmplifiedTvl,
+						true,
+					).Return(nil)
+				mockPoolRankRepo.EXPECT().
+					GetDirectIndexLength(gomock.Any(), poolrank.SortByTVLNative, mockPool.Tokens[0].Address, mockPool.Tokens[1].Address).
+					Return(int64(0), nil)
+
+				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, nil, mockConfig)
+			},
+			command: dto.IndexPoolsCommand{PoolAddresses: []string{"pooladdress5"}},
+			result:  dto.NewIndexPoolsResult(nil, 0),
 		},
 	}
 

@@ -278,6 +278,7 @@ useCase:
     chunkSize: 3000
     maxGoroutines: 0
     enableRankByNative: false
+    maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://polygon-zkevm-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-polygon-zkevm
 job:

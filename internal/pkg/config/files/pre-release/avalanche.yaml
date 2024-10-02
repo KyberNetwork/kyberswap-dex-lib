@@ -343,6 +343,7 @@ useCase:
     chunkSize: 3000
     maxGoroutines: 0
     enableRankByNative: false
+    maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-avalanche
 job:

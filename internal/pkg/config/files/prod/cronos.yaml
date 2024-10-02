@@ -271,6 +271,7 @@ useCase:
     chunkSize: 3000
     maxGoroutines: 0
     enableRankByNative: false
+    maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://cronos-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-cronos
 job:
