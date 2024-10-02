@@ -13,7 +13,9 @@ import (
 )
 
 var (
-	ErrInvalidAmountIn = errors.New("invalid amountIn")
+	ErrInvalidAmountIn     = errors.New("invalid amountIn: must be greater than zero")
+	ErrInsufficientReserve = errors.New("insufficient reserve: tokenOut amount exceeds reserve")
+	ErrTokenNotFound       = errors.New("token not found in the pool")
 )
 
 type PoolSimulator struct {
@@ -24,7 +26,7 @@ type PoolSimulator struct {
 }
 
 var (
-	defaultGas = Gas{Liquidate: 250000}
+	defaultGas = Gas{Liquidate: 1000000}
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -65,6 +67,15 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	divisor1e27.SetString(String1e27, 10) // 1e27
 
 	tokenAmountOut = new(big.Int).Div(tokenAmountOut, divisor1e27)
+
+	reserveTokenOut, err := s.getReserveForToken(param.TokenOut)
+	if err != nil {
+		return nil, err
+	}
+
+	if tokenAmountOut.Cmp(reserveTokenOut) >= 0 {
+		return nil, ErrInsufficientReserve
+	}
 
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
@@ -115,4 +126,14 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 	}
 
 	return result
+}
+
+// Helper function to get reserve for a specific token
+func (s *PoolSimulator) getReserveForToken(token string) (*big.Int, error) {
+	for i, t := range s.GetTokens() {
+		if t == token {
+			return s.GetReserves()[i], nil
+		}
+	}
+	return nil, ErrTokenNotFound
 }
