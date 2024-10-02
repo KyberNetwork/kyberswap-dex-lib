@@ -62,12 +62,12 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		if curPool.CollateralReserves.Token0RealReserves == nil ||
 			curPool.CollateralReserves.Token1RealReserves == nil ||
-			curPool.CollateralReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) != 0 ||
-			curPool.CollateralReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) != 0 ||
+			curPool.CollateralReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) == 0 ||
+			curPool.CollateralReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) == 0 ||
 			curPool.DebtReserves.Token0RealReserves == nil ||
 			curPool.DebtReserves.Token1RealReserves == nil ||
-			curPool.DebtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) != 0 ||
-			curPool.DebtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) != 0 {
+			curPool.DebtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) == 0 ||
+			curPool.DebtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) == 0 {
 			logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("Error reserves are nil / 0")
 			return nil, nil, errors.New("pool reserves are nil / 0")
 		}

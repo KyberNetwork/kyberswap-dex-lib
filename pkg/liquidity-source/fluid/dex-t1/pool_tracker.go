@@ -40,12 +40,12 @@ func (t *PoolTracker) GetNewPoolState(
 
 	if poolReserves.CollateralReserves.Token0RealReserves == nil ||
 		poolReserves.CollateralReserves.Token1RealReserves == nil ||
-		poolReserves.CollateralReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) != 0 ||
-		poolReserves.CollateralReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) != 0 ||
+		poolReserves.CollateralReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) == 0 ||
+		poolReserves.CollateralReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) == 0 ||
 		poolReserves.DebtReserves.Token0RealReserves == nil ||
 		poolReserves.DebtReserves.Token1RealReserves == nil ||
-		poolReserves.DebtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) != 0 ||
-		poolReserves.DebtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) != 0 {
+		poolReserves.DebtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) == 0 ||
+		poolReserves.DebtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) == 0 {
 		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("Error reserves are nil / 0")
 		return p, errors.New("pool reserves are nil / 0")
 	}
