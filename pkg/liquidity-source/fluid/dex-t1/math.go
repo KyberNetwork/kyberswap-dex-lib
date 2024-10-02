@@ -160,7 +160,7 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	} else if colPoolEnabled {
 		a = new(big.Int).Add(amountToSwap, big.NewInt(1)) // Route from collateral pool
 	} else {
-		return nil, nil, errors.New("No pools are enabled")
+		return nil, nil, errors.New("no pools are enabled")
 	}
 
 	var amountOutCollateral, amountOutDebt *big.Int = bignumber.ZeroBI, bignumber.ZeroBI
@@ -209,10 +209,10 @@ func swapIn(
 ) (*big.Int, *big.Int, error) {
 	var amountInAdjusted *big.Int
 
-	if inDecimals > 12 {
-		amountInAdjusted = new(big.Int).Div(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-12), nil))
+	if inDecimals > DexAmountsDecimals {
+		amountInAdjusted = new(big.Int).Div(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-DexAmountsDecimals), nil))
 	} else {
-		amountInAdjusted = new(big.Int).Mul(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(12-inDecimals), nil))
+		amountInAdjusted = new(big.Int).Mul(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-inDecimals), nil))
 	}
 
 	_, amountOut, err := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves)
@@ -221,10 +221,10 @@ func swapIn(
 		return nil, nil, err
 	}
 
-	if outDecimals > 12 {
-		amountOut = new(big.Int).Mul(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-12), nil))
+	if outDecimals > DexAmountsDecimals {
+		amountOut = new(big.Int).Mul(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-DexAmountsDecimals), nil))
 	} else {
-		amountOut = new(big.Int).Div(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(12-outDecimals), nil))
+		amountOut = new(big.Int).Div(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-outDecimals), nil))
 	}
 
 	return amountIn, amountOut, nil
@@ -285,7 +285,7 @@ func swapOutAdjusted(swap0to1 bool, amountOut *big.Int, colReserves CollateralRe
 	} else if colPoolEnabled {
 		a = new(big.Int).Add(amountOut, big.NewInt(1)) // Route from collateral pool
 	} else {
-		return nil, nil, errors.New("No pools are enabled")
+		return nil, nil, errors.New("no pools are enabled")
 	}
 
 	var amountInCollateral, amountInDebt *big.Int = bignumber.ZeroBI, bignumber.ZeroBI
@@ -334,10 +334,10 @@ func swapOut(
 ) (*big.Int, *big.Int, error) {
 	var amountOutAdjusted *big.Int
 
-	if outDecimals > 12 {
-		amountOutAdjusted = new(big.Int).Div(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-12), nil))
+	if outDecimals > DexAmountsDecimals {
+		amountOutAdjusted = new(big.Int).Div(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-DexAmountsDecimals), nil))
 	} else {
-		amountOutAdjusted = new(big.Int).Mul(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(12-outDecimals), nil))
+		amountOutAdjusted = new(big.Int).Mul(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-outDecimals), nil))
 	}
 
 	amountIn, _, err := swapOutAdjusted(swap0To1, amountOutAdjusted, colReserves, debtReserves)
@@ -346,10 +346,10 @@ func swapOut(
 		return nil, nil, err
 	}
 
-	if inDecimals > 12 {
-		amountIn = new(big.Int).Mul(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-12), nil))
+	if inDecimals > DexAmountsDecimals {
+		amountIn = new(big.Int).Mul(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-DexAmountsDecimals), nil))
 	} else {
-		amountIn = new(big.Int).Div(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(12-inDecimals), nil))
+		amountIn = new(big.Int).Div(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-inDecimals), nil))
 	}
 
 	return amountIn, amountOut, nil
