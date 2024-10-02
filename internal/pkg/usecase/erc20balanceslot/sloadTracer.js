@@ -2,8 +2,9 @@ var tracer = {
   sloads: [],
   step: function (log, db) {
     if (log.op.toNumber() == 0x54 /*SLOAD*/) {
-      let addr = log.contract.getAddress()
-      let slot = toWord(log.stack.peek(0).toString(16))
+      // In geth older version, debug_traceCall doesn't support JavaScript `let` keyword.
+      var addr = log.contract.getAddress()
+      var slot = toWord(log.stack.peek(0).toString(16))
       this.sloads.push({
         addr: toHex(addr),
         slot: toHex(slot),

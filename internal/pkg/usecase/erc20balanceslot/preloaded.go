@@ -10,16 +10,20 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-//go:embed preloaded/avalanche
-var avalanche []byte
-
-//go:embed preloaded/ethereum
-var ethereum []byte
+var (
+	//go:embed preloaded/avalanche
+	avalanche []byte
+	//go:embed preloaded/ethereum
+	ethereum []byte
+	//go:embed preloaded/scroll
+	scroll []byte
+)
 
 // ERC20 balance slots calculated beforehand. This make bootstrapping router-service more convinent.
 var preloadedByPrefix = map[valueobject.ChainID][]byte{
 	valueobject.ChainIDAvalancheCChain: avalanche,
 	valueobject.ChainIDEthereum:        ethereum,
+	valueobject.ChainIDScroll:          scroll,
 }
 
 func SerializePreloaded(preloaded types.TokenBalanceSlots) ([]byte, error) {
