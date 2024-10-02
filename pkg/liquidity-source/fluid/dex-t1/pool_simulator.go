@@ -43,7 +43,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	fee := new(big.Int)
-	fee.SetInt64(int64(entityPool.SwapFee * 10000))
+	fee.SetInt64(int64(entityPool.SwapFee * float64(FeePercentPrecision)))
 
 	return &PoolSimulator{
 		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
