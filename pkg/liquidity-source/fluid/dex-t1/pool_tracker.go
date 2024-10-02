@@ -3,6 +3,7 @@ package dexT1
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"math/big"
 	"time"
 
@@ -34,6 +35,18 @@ func (t *PoolTracker) GetNewPoolState(
 	poolReserves, blockNumber, err := t.getPoolReserves(ctx, p.Address)
 	if err != nil {
 		return p, err
+	}
+
+	if poolReserves.CollateralReserves.Token0RealReserves == nil ||
+		poolReserves.CollateralReserves.Token1RealReserves == nil ||
+		poolReserves.CollateralReserves.Token0RealReserves.Cmp(big.NewInt(0)) != 0 ||
+		poolReserves.CollateralReserves.Token1RealReserves.Cmp(big.NewInt(0)) != 0 ||
+		poolReserves.DebtReserves.Token0RealReserves == nil ||
+		poolReserves.DebtReserves.Token1RealReserves == nil ||
+		poolReserves.DebtReserves.Token0RealReserves.Cmp(big.NewInt(0)) != 0 ||
+		poolReserves.DebtReserves.Token1RealReserves.Cmp(big.NewInt(0)) != 0 {
+		logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("Error reserves are nil / 0")
+		return p, errors.New("pool reserves are nil / 0")
 	}
 
 	extra := PoolExtra{
