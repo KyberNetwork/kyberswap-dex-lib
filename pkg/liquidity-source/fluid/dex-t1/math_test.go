@@ -36,14 +36,14 @@ var debtReservesOne = DebtReserves{
 }
 
 func assertSwapInResult(t *testing.T, expected bool, amountIn *big.Int, colReserves CollateralReserves, debtReserves DebtReserves, expectedAmountIn string, expectedAmountOut string) {
-	inAmt, outAmt := swapInAdjusted(expected, amountIn, colReserves, debtReserves)
+	inAmt, outAmt, _ := swapInAdjusted(expected, amountIn, colReserves, debtReserves)
 
 	require.Equal(t, expectedAmountIn, inAmt.String())
 	require.Equal(t, expectedAmountOut, outAmt.String())
 }
 
 func assertSwapOutResult(t *testing.T, expected bool, amountOut *big.Int, colReserves CollateralReserves, debtReserves DebtReserves, expectedAmountIn string, expectedAmountOut string) {
-	inAmt, outAmt := swapOutAdjusted(expected, amountOut, colReserves, debtReserves)
+	inAmt, outAmt, _ := swapOutAdjusted(expected, amountOut, colReserves, debtReserves)
 
 	require.Equal(t, expectedAmountIn, inAmt.String())
 	require.Equal(t, expectedAmountOut, outAmt.String())
@@ -80,13 +80,13 @@ func TestSwapInCompareEstimateIn(t *testing.T) {
 		}
 
 		amountIn := big.NewInt(1e12)
-		inAmt, outAmt := swapInAdjusted(true, amountIn, colReserves, debtReserves)
+		inAmt, outAmt, _ := swapInAdjusted(true, amountIn, colReserves, debtReserves)
 
 		require.Equal(t, expectedAmountIn, big.NewInt(0).Mul(inAmt, big.NewInt(1e6)).String())
 		require.Equal(t, expectedAmountOut, big.NewInt(0).Mul(outAmt, big.NewInt(1e6)).String())
 
 		// swapIn should do the conversion for token decimals
-		_, outAmtSwapIn := swapIn(true, big.NewInt(1e18), colReserves, debtReserves, 18, 18)
+		_, outAmtSwapIn, _ := swapIn(true, big.NewInt(1e18), colReserves, debtReserves, 18, 18)
 		require.Equal(t, expectedAmountOut, outAmtSwapIn.String())
 	})
 }

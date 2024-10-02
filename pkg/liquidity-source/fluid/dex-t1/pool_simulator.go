@@ -85,7 +85,10 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 	amountInAfterFee := new(big.Int).Sub(param.TokenAmountIn.Amount, fee)
 
-	_, tokenAmountOut := swapIn(swap0To1, amountInAfterFee, s.CollateralReserves, s.DebtReserves, int64(tokenInDecimals), int64(tokenOutDecimals))
+	_, tokenAmountOut, err := swapIn(swap0To1, amountInAfterFee, s.CollateralReserves, s.DebtReserves, int64(tokenInDecimals), int64(tokenOutDecimals))
+	if err != nil {
+		return nil, err
+	}
 
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
@@ -113,7 +116,10 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		tokenInDecimals = s.Token1Decimals
 	}
 
-	tokenAmountIn, _ := swapOut(swap0To1, param.TokenAmountOut.Amount, s.CollateralReserves, s.DebtReserves, int64(tokenInDecimals), int64(tokenOutDecimals))
+	tokenAmountIn, _, err := swapOut(swap0To1, param.TokenAmountOut.Amount, s.CollateralReserves, s.DebtReserves, int64(tokenInDecimals), int64(tokenOutDecimals))
+	if err != nil {
+		return nil, err
+	}
 
 	// fee is applied on token in
 	fee := new(big.Int).Mul(tokenAmountIn, s.Pool.Info.SwapFee)

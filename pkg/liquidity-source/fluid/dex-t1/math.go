@@ -1,6 +1,7 @@
 package dexT1
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -120,8 +121,9 @@ func swapRoutingOut(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int
  * @returns {Object} An object containing the input amount and the calculated output amount.
  * @returns {number} amountIn - The input amount.
  * @returns {number} amountOut - The calculated output amount.
+ * @returns {error} - An error object if the operation fails.
  */
-func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, *big.Int) {
+func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, *big.Int, error) {
 	var (
 		colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
 	)
@@ -158,7 +160,7 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	} else if colPoolEnabled {
 		a = new(big.Int).Add(amountToSwap, big.NewInt(1)) // Route from collateral pool
 	} else {
-		panic("No pools are enabled")
+		return nil, nil, errors.New("No pools are enabled")
 	}
 
 	var amountOutCollateral, amountOutDebt *big.Int = bignumber.ZeroBI, bignumber.ZeroBI
@@ -174,7 +176,7 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		amountOutDebt = getAmountOut(new(big.Int).Sub(amountToSwap, a), debtIReserveIn, debtIReserveOut)
 	}
 
-	return amountToSwap, new(big.Int).Add(amountOutCollateral, amountOutDebt)
+	return amountToSwap, new(big.Int).Add(amountOutCollateral, amountOutDebt), nil
 }
 
 /**
@@ -193,7 +195,9 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
  * @param {number} debtReserves.token1ImaginaryReserves - Imaginary reserves of token1 in the debt pool.
  * @param {number} inDecimals - The number of decimals for the input token.
  * @param {number} outDecimals - The number of decimals for the output token.
+ * @returns {number} amountIn - The input amount.
  * @returns {number} amountOut - The calculated output amount scaled to token decimals
+ * @returns {error} - An error object if the operation fails.
  */
 func swapIn(
 	swap0To1 bool,
@@ -202,7 +206,7 @@ func swapIn(
 	debtReserves DebtReserves,
 	inDecimals int64,
 	outDecimals int64,
-) (*big.Int, *big.Int) {
+) (*big.Int, *big.Int, error) {
 	var amountInAdjusted *big.Int
 
 	if inDecimals > 12 {
@@ -211,7 +215,11 @@ func swapIn(
 		amountInAdjusted = new(big.Int).Mul(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(12-inDecimals), nil))
 	}
 
-	_, amountOut := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves)
+	_, amountOut, err := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves)
+
+	if err != nil {
+		return nil, nil, err
+	}
 
 	if outDecimals > 12 {
 		amountOut = new(big.Int).Mul(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-12), nil))
@@ -219,7 +227,7 @@ func swapIn(
 		amountOut = new(big.Int).Div(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(12-outDecimals), nil))
 	}
 
-	return amountIn, amountOut
+	return amountIn, amountOut, nil
 }
 
 /**
@@ -236,11 +244,11 @@ func swapIn(
  * @param {number} debtReserves.token1RealReserves - Real reserves of token1 in the debt pool.
  * @param {number} debtReserves.token0ImaginaryReserves - Imaginary reserves of token0 in the debt pool.
  * @param {number} debtReserves.token1ImaginaryReserves - Imaginary reserves of token1 in the debt pool.
- * @returns {Object} An object containing the following properties:
  * @returns {number} amountIn - The calculated input amount required for the swap.
  * @returns {number} amountOut - The specified output amount of the swap.
+ * @returns {error} - An error object if the operation fails.
  */
-func swapOutAdjusted(swap0to1 bool, amountOut *big.Int, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, *big.Int) {
+func swapOutAdjusted(swap0to1 bool, amountOut *big.Int, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, *big.Int, error) {
 	var (
 		colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
 	)
@@ -277,7 +285,7 @@ func swapOutAdjusted(swap0to1 bool, amountOut *big.Int, colReserves CollateralRe
 	} else if colPoolEnabled {
 		a = new(big.Int).Add(amountOut, big.NewInt(1)) // Route from collateral pool
 	} else {
-		panic("No pools are enabled")
+		return nil, nil, errors.New("No pools are enabled")
 	}
 
 	var amountInCollateral, amountInDebt *big.Int = bignumber.ZeroBI, bignumber.ZeroBI
@@ -293,7 +301,7 @@ func swapOutAdjusted(swap0to1 bool, amountOut *big.Int, colReserves CollateralRe
 		amountInDebt = getAmountIn(new(big.Int).Sub(amountOut, a), debtIReserveIn, debtIReserveOut)
 	}
 
-	return new(big.Int).Add(amountInCollateral, amountInDebt), amountOut
+	return new(big.Int).Add(amountInCollateral, amountInDebt), amountOut, nil
 }
 
 /**
@@ -312,7 +320,9 @@ func swapOutAdjusted(swap0to1 bool, amountOut *big.Int, colReserves CollateralRe
  * @param {number} debtReserves.token1ImaginaryReserves - Imaginary reserves of token1 in the debt pool.
  * @param {number} inDecimals - The number of decimals for the input token.
  * @param {number} outDecimals - The number of decimals for the output token.
- * @returns {number} amountIn - The calculated input amount required for the swap
+ * @returns {number} amountIn - The calculated input amount required for the swap scaled to token decimals.
+ * @returns {number} amountOut - The specified output amount of the swap.
+ * @returns {error} - An error object if the operation fails.
  */
 func swapOut(
 	swap0To1 bool,
@@ -321,7 +331,7 @@ func swapOut(
 	debtReserves DebtReserves,
 	inDecimals int64,
 	outDecimals int64,
-) (*big.Int, *big.Int) {
+) (*big.Int, *big.Int, error) {
 	var amountOutAdjusted *big.Int
 
 	if outDecimals > 12 {
@@ -330,7 +340,11 @@ func swapOut(
 		amountOutAdjusted = new(big.Int).Mul(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(12-outDecimals), nil))
 	}
 
-	amountIn, _ := swapOutAdjusted(swap0To1, amountOutAdjusted, colReserves, debtReserves)
+	amountIn, _, err := swapOutAdjusted(swap0To1, amountOutAdjusted, colReserves, debtReserves)
+
+	if err != nil {
+		return nil, nil, err
+	}
 
 	if inDecimals > 12 {
 		amountIn = new(big.Int).Mul(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-12), nil))
@@ -338,5 +352,5 @@ func swapOut(
 		amountIn = new(big.Int).Div(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(12-inDecimals), nil))
 	}
 
-	return amountIn, amountOut
+	return amountIn, amountOut, nil
 }
