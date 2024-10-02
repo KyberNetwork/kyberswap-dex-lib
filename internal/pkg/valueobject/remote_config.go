@@ -37,6 +37,7 @@ type (
 	// should include variable which need not to restart pods.
 	FeatureFlags struct {
 		IsHillClimbEnabled             bool `mapstructure:"isHillClimbEnabled" json:"isHillClimbEnabled"`
+		IsDerivativeHillClimbEnabled   bool `mapstructure:"isDerivativeHillClimbEnabled" json:"isDerivativeHillClimbEnabled"`
 		IsGasEstimatorEnabled          bool `mapstructure:"isGasEstimatorEnabled" json:"isGasEstimatorEnabled"`
 		IsBlackjackEnabled             bool `mapstructure:"isBlackjackEnabled" json:"isBlackjackEnabled"`
 		IsOptimizeExecutorFlagsEnabled bool `mapstructure:"isOptimizeExecutorFlagsEnabled" json:"isOptimizeExecutorFlagsEnabled"`
@@ -74,6 +75,9 @@ type (
 		HillClimbDistributionPercent uint32  `mapstructure:"hillClimbDistributionPercent" json:"hillClimbDistributionPercent"`
 		HillClimbIteration           uint32  `mapstructure:"hillClimbIteration" json:"hillClimbIteration"`
 		HillClimbMinPartUSD          float64 `mapstructure:"hillClimbMinPartUSD" json:"hillClimbMinPartUSD"`
+
+		DerivativeHillClimbIteration        int     `mapstructure:"derivativeHillClimbIteration" json:"derivativeHillClimbIteration"`
+		DerivativeHillClimbImproveThreshold float64 `mapstructure:"derivativeHillClimbImproveThreshold" json:"derivativeHillClimbImproveThreshold"`
 
 		// If true then route finding is performed remotely in AEVM server
 		UseAEVMRemoteFinder bool `mapstructure:"useAEVMRemoteFinder" json:"useAEVMRemoteFinder"`

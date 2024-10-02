@@ -233,6 +233,17 @@ func InitializeFinderEngine(
 		baseFinder = hillClimbFinder
 	}
 
+	if config.Aggregator.FeatureFlags.IsDerivativeHillClimbEnabled {
+		derivativeHillClimbFinder := hillclimb.NewDerivativeFinder(
+			baseFinder,
+			finderOptions.DerivativeHillClimbIteration,
+			finderOptions.DerivativeHillClimbImproveThreshold,
+			config.Aggregator.DexUseAEVM,
+		)
+		derivativeHillClimbFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
+		baseFinder = derivativeHillClimbFinder
+	}
+
 	aevmLocalFinder := aevm.NewAEVMLocalFinder(
 		baseFinder,
 		aevmClient,
