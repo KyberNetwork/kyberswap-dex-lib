@@ -15,7 +15,7 @@ type Config struct {
 }
 
 type IClient interface {
-	QuoteQuoteSingleOrderResult(ctx context.Context, params QuoteParams) (QuoteSingleOrderResult, error)
+	QuoteSingleOrderResult(ctx context.Context, params QuoteParams) (QuoteSingleOrderResult, error)
 }
 
 type RFQHandler struct {
@@ -36,7 +36,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		return nil, err
 	}
 	logger.Infof("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)
-	result, err := h.client.QuoteQuoteSingleOrderResult(ctx, QuoteParams{
+	result, err := h.client.QuoteSingleOrderResult(ctx, QuoteParams{
 		SellTokens:      swapInfo.BaseToken,
 		BuyTokens:       swapInfo.QuoteToken,
 		SellAmounts:     swapInfo.BaseTokenAmount,

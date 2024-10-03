@@ -57,7 +57,7 @@ func NewHTTPClient(config *bebop.HTTPClientConfig) *HTTPClient {
 	}
 }
 
-func (c *HTTPClient) QuoteSingleOrder(ctx context.Context, params bebop.QuoteParams) (bebop.QuoteSingleOrderResult, error) {
+func (c *HTTPClient) QuoteSingleOrderResult(ctx context.Context, params bebop.QuoteParams) (bebop.QuoteSingleOrderResult, error) {
 	// token address case-sensitive
 	req := c.client.R().
 		SetContext(ctx).
