@@ -11,7 +11,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -107,14 +106,19 @@ func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
 }
 
-func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	si, ok := params.SwapInfo.(SwapInfo)
-	if !ok {
-		logger.Warnf("failed to UpdateBalance for Integral %v %v pool, wrong swapInfo type", p.Info.Address, p.Info.Exchange)
-		return
-	}
+func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	input, output := params.TokenAmountIn, params.TokenAmountOut
+	var inputAmount = input.Amount
+	var outputAmount = output.Amount
 
-	p.Info.Reserves = []*big.Int{si.NewReserve0, si.NewReserve1}
+	for i := range t.Info.Tokens {
+		if t.Info.Tokens[i] == input.Token {
+			t.Info.Reserves[i] = new(big.Int).Add(t.Info.Reserves[i], inputAmount)
+		}
+		if t.Info.Tokens[i] == output.Token {
+			t.Info.Reserves[i] = new(big.Int).Sub(t.Info.Reserves[i], outputAmount)
+		}
+	}
 }
 
 // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L275
