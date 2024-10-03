@@ -13,8 +13,9 @@ import (
 const rfqDefaultChainType = "evm"
 
 type Config struct {
-	DexID string           `json:"dexId"`
-	HTTP  HTTPClientConfig `mapstructure:"http" json:"http"`
+	DexID               string           `json:"dexId"`
+	ExcludeMarketMakers []string         `mapstructure:"excludeMarketMakers" json:"excludeMarketMakers"`
+	HTTP                HTTPClientConfig `mapstructure:"http" json:"http"`
 }
 
 type IClient interface {
@@ -62,8 +63,10 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 				Trader:          params.RFQRecipient,
 				EffectiveTrader: params.Recipient,
 
-				// Intentionally exclude market makers to have higher chance to successfully RFQ
+				// Intentionally not specific marketMakers field to have higher chance to successfully RFQ
 				// MarketMakers: []string{swapInfo.MarketMaker},
+
+				ExcludeMarketMakers: h.config.ExcludeMarketMakers,
 			},
 		},
 	})
