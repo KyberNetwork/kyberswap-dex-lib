@@ -16,8 +16,9 @@ type BuildRouteResult struct {
 
 	OutputChange OutputChange `json:"outputChange"`
 
-	Data          string `json:"data"`
-	RouterAddress string `json:"routerAddress"`
+	Data             string `json:"data"`
+	RouterAddress    string `json:"routerAddress"`
+	TransactionValue string `json:"transactionValue"`
 }
 
 type OutputChange struct {

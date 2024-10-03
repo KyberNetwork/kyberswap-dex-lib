@@ -121,6 +121,11 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		additionalCostMessage = constant.AdditionalCostMessageL1Fee
 	}
 
+	transactionValue := constant.Zero
+	if eth.IsEther(routeSummary.TokenIn) {
+		transactionValue = routeSummary.AmountIn
+	}
+
 	// NOTE: currently we don't check the route (check if there is a better route or the route returns different amounts)
 	// we return what client submitted
 	return &dto.BuildRouteResult{
@@ -138,8 +143,9 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 
 		OutputChange: OutputChangeNoChange,
 
-		Data:          encodedData,
-		RouterAddress: uc.encodeBuilder.GetEncoder(dexValueObject.ChainID(uc.config.ChainID)).GetRouterAddress(),
+		Data:             encodedData,
+		RouterAddress:    uc.encodeBuilder.GetEncoder(dexValueObject.ChainID(uc.config.ChainID)).GetRouterAddress(),
+		TransactionValue: transactionValue.String(),
 	}, nil
 }
 

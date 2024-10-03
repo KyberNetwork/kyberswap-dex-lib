@@ -310,8 +310,9 @@ func TestBuildRoute(t *testing.T) {
 							Percent float64 `json:"percent"`
 							Level   int     `json:"level"`
 						} `json:"outputChange"`
-						Data          string `json:"data"`
-						RouterAddress string `json:"routerAddress"`
+						Data             string `json:"data"`
+						RouterAddress    string `json:"routerAddress"`
+						TransactionValue string `json:"transactionValue"`
 					}{
 						AmountIn:     "",
 						AmountInUSD:  "",
@@ -421,8 +422,9 @@ func TestBuildRoute_EnableGasEstimation(t *testing.T) {
 							Percent float64 `json:"percent"`
 							Level   int     `json:"level"`
 						} `json:"outputChange"`
-						Data          string `json:"data"`
-						RouterAddress string `json:"routerAddress"`
+						Data             string `json:"data"`
+						RouterAddress    string `json:"routerAddress"`
+						TransactionValue string `json:"transactionValue"`
 					}{
 						AmountIn:     "",
 						AmountInUSD:  "",
@@ -443,8 +445,9 @@ func TestBuildRoute_EnableGasEstimation(t *testing.T) {
 							Percent: 0,
 							Level:   0,
 						},
-						Data:          "data",
-						RouterAddress: "addr",
+						Data:             "data",
+						RouterAddress:    "addr",
+						TransactionValue: "",
 					}}
 				check := test.HTTPTestCase{
 					ReqMethod:      http.MethodPost,
@@ -854,5 +857,259 @@ func Test_transformBuildRouteParams(t *testing.T) {
 			assert.Equal(t, tc.command, command)
 			assert.ErrorIs(t, err, tc.err)
 		})
+	}
+}
+
+func TestBuildRoute_transactionValue(t *testing.T) {
+	testCases := []struct {
+		name                     string
+		requestBody              string
+		expectedTransactionValue string
+	}{
+		{
+			name: "tx.value should match amountIn when tokenIn is the native token",
+			requestBody: `{
+				"routeSummary": {
+						"tokenIn": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+						"amountIn": "1234567980000",
+						"amountInUsd": "0",
+						"tokenInMarketPriceAvailable": false,
+						"tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+						"amountOut": "8879",
+						"amountOutUsd": "0",
+						"tokenOutMarketPriceAvailable": false,
+						"gas": "410000",
+						"gasPrice": "5773716359",
+						"gasUsd": "0",
+						"extraFee": {
+							"feeAmount": "0",
+							"chargeFeeBy": "",
+							"isInBps": false,
+							"feeReceiver": ""
+						},
+						"route": [
+							[
+								{
+									"pool": "0xa53620f536e2c06d18f02791f1c1178c1d51f955",
+									"tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+									"tokenOut": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+									"limitReturnAmount": "0",
+									"swapAmount": "1234567980000",
+									"amountOut": "8",
+									"exchange": "maverick-v1",
+									"poolLength": 2,
+									"poolType": "maverick-v1",
+									"poolExtra": null,
+									"extra": {}
+								},
+								{
+									"pool": "0xbc03ce3f4236c82a3a3270af02c15a6a42857e90",
+									"tokenIn": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+									"tokenOut": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+									"limitReturnAmount": "0",
+									"swapAmount": "8",
+									"amountOut": "7513",
+									"exchange": "pancake",
+									"poolLength": 2,
+									"poolType": "uniswap-v2",
+									"poolExtra": {
+										"fee": 25,
+										"feePrecision": 10000,
+										"blockNumber": 20863902
+									},
+									"extra": null
+								},
+								{
+									"pool": "0xc3141fc45791cca3f21f2a926fd8598c39a4c6d2",
+									"tokenIn": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+									"tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+									"limitReturnAmount": "0",
+									"swapAmount": "7513",
+									"amountOut": "8879",
+									"exchange": "balancer-v2-weighted",
+									"poolLength": 7,
+									"poolType": "balancer-v2-weighted",
+									"poolExtra": {
+										"vault": "0xba12222222228d8ba445958a75a0704d566bf2c8",
+										"poolId": "0xc3141fc45791cca3f21f2a926fd8598c39a4c6d20001000000000000000003b0",
+										"tokenOutIndex": 6,
+										"blockNumber": 20875534
+									},
+									"extra": null
+								}
+							]
+						]
+					},
+				"sender": "0x42d0ed91b55065fabcfb9ab3516437d01430c0e6",
+				"recipient": "0x42d0ed91b55065fabcfb9ab3516437d01430c0e6",
+				"slippageTolerance": 500
+			}`,
+			expectedTransactionValue: "1234567980000",
+		},
+		{
+			name: "tx.value should be 0 when tokenIn is not the native token",
+			requestBody: `{
+				"routeSummary": {
+						"tokenIn": "0xb50721bcf8d664c30412cfbc6cf7a15145234ad1",
+						"amountIn": "14548465465768",
+						"amountInUsd": "0",
+						"tokenInMarketPriceAvailable": false,
+						"tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+						"amountOut": "29",
+						"amountOutUsd": "0",
+						"tokenOutMarketPriceAvailable": false,
+						"gas": "350000",
+						"gasPrice": "5641539780",
+						"gasUsd": "0",
+						"extraFee": {
+							"feeAmount": "0",
+							"chargeFeeBy": "",
+							"isInBps": false,
+							"feeReceiver": ""
+						},
+						"route": [
+							[
+								{
+									"pool": "0x1af399b58330501594ab8c015be0ad953c55f09a",
+									"tokenIn": "0xb50721bcf8d664c30412cfbc6cf7a15145234ad1",
+									"tokenOut": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+									"limitReturnAmount": "0",
+									"swapAmount": "14548465465768",
+									"amountOut": "5102248160",
+									"exchange": "sushiswap",
+									"poolLength": 2,
+									"poolType": "uniswap-v2",
+									"poolExtra": {
+										"fee": 3,
+										"feePrecision": 1000,
+										"blockNumber": 20864060
+									},
+									"extra": null
+								},
+								{
+									"pool": "0xd8dec118e1215f02e10db846dcbbfe27d477ac19",
+									"tokenIn": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+									"tokenOut": "0x6b175474e89094c44da98b954eedeac495271d0f",
+									"limitReturnAmount": "0",
+									"swapAmount": "5102248160",
+									"amountOut": "23533010883099",
+									"exchange": "uniswapv3",
+									"poolLength": 2,
+									"poolType": "uniswapv3",
+									"poolExtra": {
+										"blockNumber": 0
+									},
+									"extra": {}
+								},
+								{
+									"pool": "0xc3141fc45791cca3f21f2a926fd8598c39a4c6d2",
+									"tokenIn": "0x6b175474e89094c44da98b954eedeac495271d0f",
+									"tokenOut": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+									"limitReturnAmount": "0",
+									"swapAmount": "23533010883099",
+									"amountOut": "29",
+									"exchange": "balancer-v2-weighted",
+									"poolLength": 7,
+									"poolType": "balancer-v2-weighted",
+									"poolExtra": {
+										"vault": "0xba12222222228d8ba445958a75a0704d566bf2c8",
+										"poolId": "0xc3141fc45791cca3f21f2a926fd8598c39a4c6d20001000000000000000003b0",
+										"tokenOutIndex": 6,
+										"blockNumber": 20875534
+									},
+									"extra": null
+								}
+							]
+						]
+					},
+				"sender": "0x42d0ed91b55065fabcfb9ab3516437d01430c0e6",
+				"recipient": "0x42d0ed91b55065fabcfb9ab3516437d01430c0e6",
+				"slippageTolerance": 1
+			}`,
+			expectedTransactionValue: "0",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name,
+			func(t *testing.T) {
+				ctrl := gomock.NewController(t)
+				defer ctrl.Finish()
+
+				mockBuildRouteParamValidator := api.NewMockIBuildRouteParamsValidator(ctrl)
+				mockBuildRouteParamValidator.EXPECT().Validate(gomock.Any(), gomock.Any()).Return(nil)
+
+				var argCommand dto.BuildRouteCommand
+				mockBuildRouteUseCase := api.NewMockIBuildRouteUseCase(ctrl)
+				mockBuildRouteUseCase.EXPECT().
+					Handle(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, command dto.BuildRouteCommand) (*dto.BuildRouteResult, error) {
+						argCommand = command
+						return &dto.BuildRouteResult{Data: "data", RouterAddress: "addr"}, nil
+					})
+
+				resp := SuccessResponse{
+					Code:    0,
+					Message: "successfully",
+					Data: struct {
+						AmountIn     string `json:"amountIn"`
+						AmountInUSD  string `json:"amountInUsd"`
+						AmountOut    string `json:"amountOut"`
+						AmountOutUSD string `json:"amountOutUsd"`
+						Gas          string `json:"gas"`
+						GasUSD       string `json:"gasUsd"`
+
+						AdditionalCostUsd     string `json:"additionalCostUsd"`
+						AdditionalCostMessage string `json:"additionalCostMessage"`
+
+						OutputChange struct {
+							Amount  string  `json:"amount"`
+							Percent float64 `json:"percent"`
+							Level   int     `json:"level"`
+						} `json:"outputChange"`
+						Data             string `json:"data"`
+						RouterAddress    string `json:"routerAddress"`
+						TransactionValue string `json:"transactionValue"`
+					}{
+						AmountIn:     "",
+						AmountInUSD:  "",
+						AmountOut:    "",
+						AmountOutUSD: "",
+						Gas:          "",
+						GasUSD:       "",
+
+						AdditionalCostUsd:     "",
+						AdditionalCostMessage: "",
+
+						OutputChange: struct {
+							Amount  string  `json:"amount"`
+							Percent float64 `json:"percent"`
+							Level   int     `json:"level"`
+						}{
+							Amount:  "",
+							Percent: 0,
+							Level:   0,
+						},
+						Data:             "data",
+						RouterAddress:    "addr",
+						TransactionValue: "",
+					}}
+				check := test.HTTPTestCase{
+					ReqMethod:      http.MethodPost,
+					ReqURL:         "/api/v1/route/build",
+					ReqHandler:     BuildRoute(mockBuildRouteParamValidator, mockBuildRouteUseCase, timeutil.NowFunc),
+					ReqBody:        strings.NewReader(tc.requestBody),
+					RespHTTPStatus: http.StatusOK,
+					RespBody:       resp,
+				}
+
+				check.Run(t)
+				if strings.EqualFold(argCommand.RouteSummary.TokenIn, "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") ||
+					strings.EqualFold(argCommand.RouteSummary.TokenIn, "0xeeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE") {
+					assert.Equal(t, argCommand.RouteSummary.AmountIn.String(), tc.expectedTransactionValue)
+				} else {
+					assert.Equal(t, "0", tc.expectedTransactionValue)
+				}
+			})
 	}
 }
