@@ -359,6 +359,8 @@ useCase:
             source: kyber
             timeout: 3s
             retry_count: 3
+          excludeMarketMakers:
+            - mm22
       - id: native-v1
         handler: native-v1
         properties:
