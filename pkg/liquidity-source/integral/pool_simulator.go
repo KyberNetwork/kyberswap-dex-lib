@@ -107,16 +107,29 @@ func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	input, output := params.TokenAmountIn, params.TokenAmountOut
-	var inputAmount = input.Amount
-	var outputAmount = output.Amount
+	if params.SwapInfo != nil {
+		if s, ok := params.SwapInfo.(SwapInfo); ok {
+			newToken0LimitMax := new(big.Int).Div(
+				new(big.Int).Mul(
+					t.IntegralPair.Token0LimitMax.ToBig(),
+					s.NewReserve0,
+				),
+				t.Info.Reserves[0],
+			)
 
-	for i := range t.Info.Tokens {
-		if t.Info.Tokens[i] == input.Token {
-			t.Info.Reserves[i] = new(big.Int).Add(t.Info.Reserves[i], inputAmount)
-		}
-		if t.Info.Tokens[i] == output.Token {
-			t.Info.Reserves[i] = new(big.Int).Sub(t.Info.Reserves[i], outputAmount)
+			newToken1LimitMax := new(big.Int).Div(
+				new(big.Int).Mul(
+					t.IntegralPair.Token1LimitMax.ToBig(),
+					s.NewReserve1,
+				),
+				t.Info.Reserves[1],
+			)
+
+			t.Info.Reserves[0] = s.NewReserve0
+			t.Info.Reserves[1] = s.NewReserve1
+
+			t.IntegralPair.Token0LimitMax = uint256.MustFromBig(newToken0LimitMax)
+			t.IntegralPair.Token1LimitMax = uint256.MustFromBig(newToken1LimitMax)
 		}
 	}
 }
