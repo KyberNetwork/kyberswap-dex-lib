@@ -11,7 +11,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -107,14 +106,32 @@ func (t *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
 }
 
-func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	si, ok := params.SwapInfo.(SwapInfo)
-	if !ok {
-		logger.Warnf("failed to UpdateBalance for Integral %v %v pool, wrong swapInfo type", p.Info.Address, p.Info.Exchange)
-		return
-	}
+func (t *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	if params.SwapInfo != nil {
+		if s, ok := params.SwapInfo.(SwapInfo); ok {
+			newToken0LimitMax := new(big.Int).Div(
+				new(big.Int).Mul(
+					t.IntegralPair.Token0LimitMax.ToBig(),
+					s.NewReserve0,
+				),
+				t.Info.Reserves[0],
+			)
 
-	p.Info.Reserves = []*big.Int{si.NewReserve0, si.NewReserve1}
+			newToken1LimitMax := new(big.Int).Div(
+				new(big.Int).Mul(
+					t.IntegralPair.Token1LimitMax.ToBig(),
+					s.NewReserve1,
+				),
+				t.Info.Reserves[1],
+			)
+
+			t.Info.Reserves[0] = s.NewReserve0
+			t.Info.Reserves[1] = s.NewReserve1
+
+			t.IntegralPair.Token0LimitMax = uint256.MustFromBig(newToken0LimitMax)
+			t.IntegralPair.Token1LimitMax = uint256.MustFromBig(newToken1LimitMax)
+		}
+	}
 }
 
 // https://github.com/IntegralHQ/Integral-SIZE-Smart-Contracts/blob/main/contracts/TwapRelayer.sol#L275

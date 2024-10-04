@@ -8,7 +8,6 @@ import (
 
 var (
 	oracleABI  abi.ABI
-	reserveABI abi.ABI
 	pairABI    abi.ABI
 	factoryABI abi.ABI
 	relayerABI abi.ABI
@@ -19,9 +18,6 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{
-			&reserveABI, twapReservesJSON,
-		},
 		{
 			&pairABI, twapPairJSON,
 		},

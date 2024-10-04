@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 )
 
 type PoolTracker struct {
@@ -55,7 +56,8 @@ func (u *PoolTracker) getNewPoolState(
 	logger.Infof("%s: Start getting new state of pool (address: %s)", u.config.DexID, p.Address)
 
 	var (
-		reserves = [2]*big.Int{ZERO, ZERO}
+		token0LimitMaxMultiplier = ZERO
+		token1LimitMaxMultiplier = ZERO
 
 		poolState = [6]*big.Int{ZERO, ZERO, ZERO, ZERO, ZERO, ZERO}
 		// uint256 price,
@@ -96,7 +98,17 @@ func (u *PoolTracker) getNewPoolState(
 		Params: []interface{}{common.HexToAddress(p.Address)},
 	}, []interface{}{&isPairEnabled})
 
-	rpcRequest.AddCall(&ethrpc.Call{ABI: reserveABI, Target: p.Address, Method: libraryGetReservesMethod}, []interface{}{&reserves})
+	rpcRequest.AddCall(&ethrpc.Call{ABI: relayerABI,
+		Target: u.config.RelayerAddress,
+		Method: relayerGetTokenLimitMaxMultiplierMethod,
+		Params: []interface{}{token0},
+	}, []interface{}{&token0LimitMaxMultiplier})
+
+	rpcRequest.AddCall(&ethrpc.Call{ABI: relayerABI,
+		Target: u.config.RelayerAddress,
+		Method: relayerGetTokenLimitMaxMultiplierMethod,
+		Params: []interface{}{token1},
+	}, []interface{}{&token1LimitMaxMultiplier})
 
 	if _, err := rpcRequest.TryAggregate(); err != nil {
 		logger.Errorf("%s: failed to fetch basic pool data (address: %s, error: %v)", u.config.DexID, p.Address, err)
@@ -152,6 +164,27 @@ func (u *PoolTracker) getNewPoolState(
 	extraData.Y_Decimals = uint64(yDecimals)
 	extraData.IsEnabled = isPairEnabled
 
+	var reserve0, reserve1 string
+	if token0LimitMaxMultiplier.Cmp(ZERO) != 0 {
+		reserve0 = new(uint256.Int).Div(
+			new(uint256.Int).Mul(
+				extraData.Token0LimitMax,
+				precision,
+			),
+			uint256.MustFromBig(token0LimitMaxMultiplier),
+		).String()
+	}
+
+	if token1LimitMaxMultiplier.Cmp(ZERO) != 0 {
+		reserve1 = new(uint256.Int).Div(
+			new(uint256.Int).Mul(
+				extraData.Token1LimitMax,
+				precision,
+			),
+			uint256.MustFromBig(token1LimitMaxMultiplier),
+		).String()
+	}
+
 	extraBytes, err := json.Marshal(extraData)
 	if err != nil {
 		logger.Errorf("%s: failed to marshal extra data (address: %s, error: %v)", u.config.DexID, p.Address, err)
@@ -160,7 +193,7 @@ func (u *PoolTracker) getNewPoolState(
 
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
-	p.Reserves = entity.PoolReserves([]string{reserves[0].String(), reserves[1].String()})
+	p.Reserves = entity.PoolReserves([]string{reserve0, reserve1})
 	p.SwapFee = float64(poolState[1].Uint64()) / precision.Float64()
 
 	logger.Infof("%s: Pool state updated successfully (address: %s)", u.config.DexID, p.Address)
