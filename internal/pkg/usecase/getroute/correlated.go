@@ -170,6 +170,8 @@ func (c *correlatedPairs) ApplyConfig(config Config) {
 	oneAdditionHopFinderEngine, twoAdditionHopsFinderEngine := initAdditionHopFinderEngines(config, c.poolManager.GetAEVMClient())
 	c.oneAdditionHopFinderEngine = oneAdditionHopFinderEngine
 	c.twoAdditionHopsFinderEngine = twoAdditionHopsFinderEngine
+
+	c.aggregator.ApplyConfig(config)
 }
 
 func (c *correlatedPairs) findFirstCorrelatedPool(token string) (string, string) {

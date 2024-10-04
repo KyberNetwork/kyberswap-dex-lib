@@ -73,7 +73,9 @@ func (s *server) run(ctx context.Context) error {
 	for {
 		select {
 		case <-stop:
-			time.Sleep(10 * time.Second)
+			if s.isRunningProduction {
+				time.Sleep(10 * time.Second)
+			}
 
 			ctx, cancelFn := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancelFn()
