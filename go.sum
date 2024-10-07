@@ -40,8 +40,8 @@ github.com/KyberNetwork/msgpack/v5 v5.4.2 h1:1RBX5AriCTNnXheBzV3/upOPr8QxjdGDSY1
 github.com/KyberNetwork/msgpack/v5 v5.4.2/go.mod h1:91PLIDmaoFsGuwQHhXDU8hv7JKubN2seUhUMbj9kXmM=
 github.com/KyberNetwork/pancake-v3-sdk v0.2.2 h1:45P7nv11pKHiQQcad2IA6RerjTyVZJmwAvZiFljA/hs=
 github.com/KyberNetwork/pancake-v3-sdk v0.2.2/go.mod h1:AhHu1v2KZAXKFZ9AnjwYPPx1+dDFHBqmSpSeg4fnvzg=
-github.com/KyberNetwork/pathfinder-lib v0.0.10 h1:TmNuCl9pWwzP89yKlXPtRio8wI0MeGa5BUMXBtLbwAg=
-github.com/KyberNetwork/pathfinder-lib v0.0.10/go.mod h1:7Hx2MoZ1d7Il8CVAW6dZtXdATj5mCjY8n3cbOFFd2Ek=
+github.com/KyberNetwork/pathfinder-lib v0.0.11 h1:ZTfxvy027E37F0lAQARqrTix4eS2VMu3IQfWqS1rnW0=
+github.com/KyberNetwork/pathfinder-lib v0.0.11/go.mod h1:Rj7fUK1/lt2L8JfkeJidcfSMikb0wWKup8BDa5vmJGI=
 github.com/KyberNetwork/pool-service v0.67.0 h1:Vw26sKsi5y4fpt1eD6vqBq6IILOT9cb3c9RseTxdtDM=
 github.com/KyberNetwork/pool-service v0.67.0/go.mod h1:Dbuj6W+40pHSRqQKQ8Jq0o2zs9+9MzxEP2KX3M1HFlA=
 github.com/KyberNetwork/reload v0.1.1 h1:d2gu8KK8C34tiyPQongjLzwy5w73fYHbwP1P9MobXuo=
