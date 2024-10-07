@@ -4,8 +4,7 @@ const (
 	DexType = "fluid-vault-t1"
 )
 
-const (
-	// VaultLiquidationResolver methods
+const ( // VaultLiquidationResolver methods
 	VLRMethodGetAllSwapPaths    = "getAllSwapPaths"
 	VLRMethodGetSwapForProtocol = "getSwapForProtocol"
 )

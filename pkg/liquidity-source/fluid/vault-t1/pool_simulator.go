@@ -6,10 +6,11 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/samber/lo"
 )
 
 var (
@@ -20,9 +21,8 @@ var (
 
 type PoolSimulator struct {
 	poolpkg.Pool
-
-	VaultLiquidationResolver string
-	Ratio                    *big.Int
+	StaticExtra
+	Ratio *big.Int
 }
 
 var (
@@ -42,16 +42,18 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	return &PoolSimulator{
 		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
-			Address:     entityPool.Address,
-			Exchange:    entityPool.Exchange,
-			Type:        entityPool.Type,
-			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
+			Address:  entityPool.Address,
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens: lo.Map(entityPool.Tokens,
+				func(item *entity.PoolToken, index int) string { return item.Address }),
+			Reserves: lo.Map(entityPool.Reserves,
+				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 			SwapFee:     big.NewInt(0), // no swap fee on liquidations
 		}},
-		VaultLiquidationResolver: staticExtra.VaultLiquidationResolver,
-		Ratio:                    extra.Ratio,
+		StaticExtra: staticExtra,
+		Ratio:       extra.Ratio,
 	}, nil
 }
 
@@ -81,9 +83,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
 		Fee:            &poolpkg.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            defaultGas.Liquidate,
-		SwapInfo: StaticExtra{
-			VaultLiquidationResolver: s.VaultLiquidationResolver,
-		},
+		SwapInfo:       s.StaticExtra,
 	}, nil
 }
 

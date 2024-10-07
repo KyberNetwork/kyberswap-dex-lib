@@ -1,5 +1,9 @@
 package valueobject
 
+import (
+	"strings"
+)
+
 var WETHByChainID = map[ChainID]string{
 	ChainIDEthereum:        "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
 	ChainIDEthereumW:       "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
@@ -29,4 +33,12 @@ var WETHByChainID = map[ChainID]string{
 	ChainIDScroll:          "0x5300000000000000000000000000000000000004",
 	ChainIDBlast:           "0x4300000000000000000000000000000000000004",
 	ChainIDMantle:          "0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8",
+}
+
+// WrapETHLower wraps, if applicable, native token to wrapped token; and then lowercase it.
+func WrapETHLower(token string, chainID ChainID) string {
+	if strings.EqualFold(token, EtherAddress) {
+		token = WETHByChainID[chainID]
+	}
+	return strings.ToLower(token)
 }
