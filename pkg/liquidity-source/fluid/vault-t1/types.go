@@ -39,4 +39,5 @@ type Gas struct {
 
 type StaticExtra struct {
 	VaultLiquidationResolver string `json:"vaultLiquidationResolver"`
+	HasNative                bool   `json:"hasNative"`
 }
