@@ -13,10 +13,10 @@ type PoolItem struct {
 }
 
 type PoolExtra struct {
+	Paused          bool         `json:"paused"`
 	Rate            *uint256.Int `json:"rate"`
 	RateUnit        *uint256.Int `json:"rateUnit"`
-	Paused          bool         `json:"paused"`
-	IsBidirectional bool         `json:"isBidirectional"`
 	IsRateInversed  bool         `json:"isRateInversed"`
+	IsBidirectional bool         `json:"isBidirectional"`
 	DefaultGas      int64        `json:"defaultGas"`
 }
