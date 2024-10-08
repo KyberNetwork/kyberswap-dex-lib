@@ -1,7 +1,7 @@
-package dai_usds
+package generic_fixed_rate
 
 const (
-	DexType = "dai-usds"
+	DexType = "generic-fixed-rate"
 
 	defaultTokenWeight       = 1
 	reserveZero              = "0"
