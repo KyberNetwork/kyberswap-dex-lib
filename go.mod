@@ -18,7 +18,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/dgraph-io/ristretto v0.1.1
 	github.com/ethereum/go-ethereum v1.13.9
-	github.com/go-resty/resty/v2 v2.10.0
+	github.com/go-resty/resty/v2 v2.12.0
 	github.com/goccy/go-json v0.10.2
 	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0

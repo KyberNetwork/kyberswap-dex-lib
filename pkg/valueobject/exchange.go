@@ -221,6 +221,7 @@ var (
 	ExchangeSwaapV2    Exchange = "swaap-v2"
 	ExchangeHashflowV3 Exchange = "hashflow-v3"
 	ExchangeNativeV1   Exchange = "native-v1"
+	ExchangeBebop      Exchange = "bebop"
 
 	ExchangeTraderJoeV20 Exchange = "traderjoe-v20"
 	ExchangeTraderJoeV21 Exchange = "traderjoe-v21"
