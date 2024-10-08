@@ -21,12 +21,6 @@ type PoolSimulator struct {
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	var poolExtra PoolExtra
-
-	if err := json.Unmarshal([]byte(entityPool.Extra), &poolExtra); err != nil {
-		return nil, err
-	}
-
 	numTokens := len(entityPool.Tokens)
 	if numTokens != 2 {
 		return nil, fmt.Errorf("invalid pool tokens %v, %v", entityPool, numTokens)
@@ -40,6 +34,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
 		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
+	}
+
+	var poolExtra PoolExtra
+	if err := json.Unmarshal([]byte(entityPool.Extra), &poolExtra); err != nil {
+		return nil, err
 	}
 
 	return &PoolSimulator{
