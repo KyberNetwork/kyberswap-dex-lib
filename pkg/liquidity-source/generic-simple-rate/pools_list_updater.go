@@ -39,7 +39,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, nil
 	}
 
-	if d.config.ABIJsonString == "" {
+	if d.config.ABIJsonString != "" {
 		ABI, err := abi.JSON(bytes.NewReader([]byte(d.config.ABIJsonString)))
 		if err != nil {
 			logger.WithFields(logger.Fields{
