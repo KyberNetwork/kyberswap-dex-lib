@@ -97,10 +97,13 @@ common:
     - "woofi-v3"
     - "integral"
     - "fluid-vault-t1"
+    - "bebop"
   featureFlags: &featureFlags
   swaapAPIKey:
   nativeAPIKey:
   hashflowAPIKey:
+  bebopAPIName:
+  bebopAPIAuth:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -206,6 +209,7 @@ encoder:
     executeSmardex: 34
     executeSwaapV2: 38
     executeNative: 44
+    executeBebop: 46
     executeIntegral: 52
     executeFluidVaultT1: 53
 useCase:
@@ -381,6 +385,13 @@ useCase:
         properties:
           http:
             base_url: "https://newapi.native.org"
+            timeout: 10s
+            retry_count: 3
+      - id: bebop
+        handler: bebop
+        properties:
+          http:
+            base_url: "https://api.bebop.xyz/pmm/arbitrum"
             timeout: 10s
             retry_count: 3
     faultyPools:

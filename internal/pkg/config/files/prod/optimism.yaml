@@ -75,8 +75,11 @@ common:
     - "dodo-dvm"
     - "velodrome-cl-2"
     - "woofi-v3"
+    - "bebop"
   featureFlags: &featureFlags
   hashflowAPIKey:
+  bebopAPIName:
+  bebopAPIAuth:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -174,6 +177,7 @@ encoder:
     executeWooFiV2: 25
     executeIziSwap: 26
     executeKyberDSLO: 28
+    executeBebop: 46
 useCase:
   getRoute:
     chainId: *chainId
@@ -337,6 +341,13 @@ useCase:
             base_url: "https://api.hashflow.com"
             source: kyber
             timeout: 3s
+            retry_count: 3
+      - id: bebop
+        handler: bebop
+        properties:
+          http:
+            base_url: "https://api.bebop.xyz/pmm/optimism"
+            timeout: 10s
             retry_count: 3
     faultyPools:
       minSlippageThreshold: 1000

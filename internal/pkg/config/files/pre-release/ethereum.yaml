@@ -101,9 +101,9 @@ common:
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:
-  bebopAPIName: ""
-  bebopAPIAuth: ""
   nativeAPIKey:
+  bebopAPIName:
+  bebopAPIAuth:
   dexUseAEVM: &dexUseAEVM
     uniswap: false
     uniswapv3: false

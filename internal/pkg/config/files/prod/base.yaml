@@ -91,8 +91,11 @@ common:
     - "native-v1"
     - "woofi-v3"
     - "fluid-vault-t1"
+    - "bebop"
   featureFlags: &featureFlags
   nativeAPIKey:
+  bebopAPIName:
+  bebopAPIAuth:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -196,6 +199,7 @@ encoder:
     executeSmardex: 34
     executeKokonut: 36
     executeNative: 44
+    executeBebop: 46
 useCase:
   getRoute:
     chainId: *chainId
@@ -349,6 +353,13 @@ useCase:
         properties:
           http:
             base_url: "https://newapi.native.org"
+            timeout: 10s
+            retry_count: 3
+      - id: bebop
+        handler: bebop
+        properties:
+          http:
+            base_url: "https://api.bebop.xyz/pmm/base"
             timeout: 10s
             retry_count: 3
     faultyPools:
