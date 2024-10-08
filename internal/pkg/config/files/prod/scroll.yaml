@@ -50,6 +50,7 @@ common:
     - "nuri-v2"
     - "native-v1"
     - "maverick-v2"
+    - "ambient"
   featureFlags: &featureFlags
   nativeAPIKey:
   dexUseAEVM: &dexUseAEVM
