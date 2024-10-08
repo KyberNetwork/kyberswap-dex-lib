@@ -175,7 +175,7 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 	poolEntity := entity.Pool{
 		Address:   pool.Address,
 		Exchange:  d.config.DexID,
-		Type:      d.config.DexID,
+		Type:      DexType,
 		Timestamp: time.Now().Unix(),
 		Reserves:  reserves,
 		Tokens:    tokens,
