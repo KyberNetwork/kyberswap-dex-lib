@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	bebopclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop/client"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2/client"
@@ -51,6 +52,10 @@ func isPMMFaultyPoolError(err error) bool {
 	}
 
 	if errors.Is(err, swaapv2.ErrQuoteFailed) {
+		return true
+	}
+
+	if errors.Is(err, bebopclient.ErrRFQFailed) {
 		return true
 	}
 

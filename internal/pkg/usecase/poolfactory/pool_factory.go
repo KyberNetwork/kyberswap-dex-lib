@@ -19,6 +19,7 @@ import (
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
+	bebop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
@@ -556,6 +557,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newHashflowV3(entityPool)
 	case pooltypes.PoolTypes.NativeV1:
 		return f.newNativeV1(entityPool)
+	case pooltypes.PoolTypes.Bebop:
+		return f.newBebop(entityPool)
 	case pooltypes.PoolTypes.NomiSwapStable:
 		return f.newNomiswapStable(entityPool)
 	case pooltypes.PoolTypes.RenzoEZETH:
@@ -1855,6 +1858,21 @@ func (f *PoolFactory) newHashflowV3(entityPool entity.Pool) (*hashflowv3.PoolSim
 
 func (f *PoolFactory) newNativeV1(entityPool entity.Pool) (*nativev1.PoolSimulator, error) {
 	corePool, err := nativev1.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newNativeV1] pool: [%s] » type: [%s] cause by %v",
+			entityPool.Address,
+			entityPool.Type,
+			err,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newBebop(entityPool entity.Pool) (*bebop.PoolSimulator, error) {
+	corePool, err := bebop.NewPoolSimulator(entityPool)
 	if err != nil {
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,

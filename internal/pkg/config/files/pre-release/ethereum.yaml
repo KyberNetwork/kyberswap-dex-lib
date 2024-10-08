@@ -94,9 +94,15 @@ common:
     - "lite-psm"
     - "fluid-vault-t1"
     - "usd0pp"
+    - "hashflow-v3"
+    - "bancor-v21"
+    - "native-v1"
+    - "bebop"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:
+  bebopAPIName: ""
+  bebopAPIAuth: ""
   nativeAPIKey:
   dexUseAEVM: &dexUseAEVM
     uniswap: false
@@ -367,6 +373,13 @@ useCase:
           http:
             base_url: "https://newapi.native.org"
             timeout: 5s
+            retry_count: 3
+      - id: bebop
+        handler: bebop
+        properties:
+          http:
+            base_url: "https://api.bebop.xyz/pmm/ethereum"
+            timeout: 10s
             retry_count: 3
     faultyPools:
       minSlippageThreshold: 1000

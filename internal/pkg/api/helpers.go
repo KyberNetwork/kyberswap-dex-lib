@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	bebopclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop/client"
 	hashflowclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
 	nativeclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
 	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm/client"
@@ -230,6 +231,53 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Code:       4228,
 		Message:    "Please use a different wallet to fill an order that you created via the KyberSwap Limit Order",
 		Details:    []interface{}{limitorder.ErrSameSenderMaker.Error()},
+	},
+	bebopclient.ErrRFQFailed: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4300,
+		Message:    "bebop RFQ failed",
+	},
+	bebopclient.ErrRFQBadRequest: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4301,
+		Message:    "bebop RFQ failed",
+		Details:    []interface{}{bebopclient.ErrRFQBadRequest.Error()},
+	},
+	bebopclient.ErrRFQInsufficientLiquidity: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4301,
+		Message:    "bebop RFQ failed",
+		Details:    []interface{}{bebopclient.ErrRFQInsufficientLiquidity.Error()},
+	},
+	bebopclient.ErrRFQGasCalculationError: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4301,
+		Message:    "bebop RFQ failed",
+		Details:    []interface{}{bebopclient.ErrRFQGasCalculationError.Error()},
+	},
+	bebopclient.ErrRFQMinSize: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4301,
+		Message:    "bebop RFQ failed",
+		Details:    []interface{}{bebopclient.ErrRFQMinSize.Error()},
+	},
+	bebopclient.ErrRFQTokenNotSupported: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4301,
+		Message:    "bebop RFQ failed",
+		Details:    []interface{}{bebopclient.ErrRFQTokenNotSupported.Error()},
+	},
+	bebopclient.ErrRFQGasExceedsSize: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4301,
+		Message:    "bebop RFQ failed",
+		Details:    []interface{}{bebopclient.ErrRFQGasExceedsSize.Error()},
+	},
+	bebopclient.ErrRFQUnexpectedPermitsError: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4301,
+		Message:    "bebop RFQ failed",
+		Details:    []interface{}{bebopclient.ErrRFQUnexpectedPermitsError.Error()},
 	},
 }
 

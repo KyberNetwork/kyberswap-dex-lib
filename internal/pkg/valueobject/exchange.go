@@ -28,6 +28,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	dexValueObject.ExchangeSwaapV2:    {},
 	dexValueObject.ExchangeHashflowV3: {},
 	dexValueObject.ExchangeNativeV1:   {},
+	dexValueObject.ExchangeBebop:      {},
 }
 
 // HashSources unique, then sort and has the slice string
@@ -195,6 +196,8 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeUsd0PP
 	dexValueObject.ExchangeUsd0PP: {},
+	// executeBebop
+	dexValueObject.ExchangeBebop: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {

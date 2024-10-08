@@ -3,6 +3,8 @@ package bootstrap
 import (
 	"context"
 
+	bebop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
+	bebopclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop/client"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	hashflowv3client "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
@@ -88,6 +90,19 @@ func NewRFQHandler(
 		httpClient := nativev1client.NewHTTPClient(&cfg.HTTP)
 
 		return nativev1.NewRFQHandler(&cfg, httpClient), nil
+
+	case bebop.DexType:
+		var cfg bebop.Config
+		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = rfqCfg.Id
+		cfg.HTTP.Name = commonCfg.BebopAPIName
+		cfg.HTTP.Authorization = commonCfg.BebopAPIAuth
+		httpClient := bebopclient.NewHTTPClient(&cfg.HTTP)
+
+		return bebop.NewRFQHandler(&cfg, httpClient), nil
 
 	default:
 		return NewNoopRFQHandler(), nil

@@ -26,6 +26,8 @@ type Common struct {
 	SwaapAPIKey         string                   `mapstructure:"swaapAPIKey" json:"-"`
 	HashflowAPIKey      string                   `mapstructure:"hashflowAPIKey" json:"-"`
 	NativeAPIKey        string                   `mapstructure:"nativeAPIKey" json:"-"`
+	BebopAPIName        string                   `mapstructure:"bebopAPIName" json:"-"`
+	BebopAPIAuth        string                   `mapstructure:"bebopAPIAuth" json:"-"`
 }
 
 type AEVM struct {
