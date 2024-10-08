@@ -49,16 +49,16 @@ func (t *PoolTracker) getNewPoolState(
 		rate   *big.Int
 	)
 
-	calls := t.ethrpcClient.NewRequest().SetContext(ctx)
-
+	calls := t.ethrpcClient.NewRequest()
 	var poolExtra PoolExtra
 	if err := json.Unmarshal([]byte(p.Extra), &poolExtra); err != nil {
 		return p, err
 	}
 
+	ABI := GetABI(p.Exchange)
 	if t.config.PausedMethod != "" {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    abiMap[p.Exchange],
+			ABI:    ABI,
 			Target: p.Address,
 			Method: t.config.PausedMethod,
 			Params: []interface{}{},
@@ -67,7 +67,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	if t.config.IsRateUpdatable {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    abiMap[p.Exchange],
+			ABI:    ABI,
 			Target: p.Address,
 			Method: t.config.RateMethod,
 			Params: []interface{}{},
@@ -78,8 +78,9 @@ func (t *PoolTracker) getNewPoolState(
 		return p, nil
 	}
 
-	resp, err := calls.Aggregate()
+	resp, err := calls.TryAggregate()
 	if err != nil {
+		logger.WithFields(logger.Fields{"dex_id": t.config.DexID, "pool_id": p.Address}).Error("Failed to get new pool state")
 		return p, nil
 	}
 

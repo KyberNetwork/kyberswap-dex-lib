@@ -8,13 +8,9 @@ import (
 
 var (
 	rateABI abi.ABI
-
-	abiMap map[string]abi.ABI
 )
 
 func init() {
-	abiMap = make(map[string]abi.ABI)
-
 	builder := []struct {
 		ABI  *abi.ABI
 		data []byte

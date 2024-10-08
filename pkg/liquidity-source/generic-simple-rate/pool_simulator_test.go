@@ -28,7 +28,7 @@ var testPool = entity.Pool{
 			Swappable: true,
 		},
 	},
-	Extra: "{\"rate\":24000,\"rateUnit\":1}",
+	Extra: "{\"rate\":24000,\"rateUnit\":1,\"isRateInversed\":true}",
 }
 
 func TestGetAmountOut(t *testing.T) {
