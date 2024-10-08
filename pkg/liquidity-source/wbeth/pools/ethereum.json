@@ -1,0 +1,23 @@
+[
+  {
+    "id": "0xa2e3356610840701bdf5611a53974510ae27e2e1",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "name": "weth",
+        "symbol": "WETH",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0xa2e3356610840701bdf5611a53974510ae27e2e1",
+        "name": "wbeth",
+        "symbol": "wBETH",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  }
+]
