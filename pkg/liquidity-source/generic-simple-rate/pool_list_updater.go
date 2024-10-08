@@ -1,11 +1,9 @@
 package generic_simple_rate
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"math/big"
 	"strings"
 	"time"
@@ -39,17 +37,6 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, nil
 	}
 
-	if d.config.ABIJsonString != "" {
-		ABI, err := abi.JSON(bytes.NewReader([]byte(d.config.ABIJsonString)))
-		if err != nil {
-			logger.WithFields(logger.Fields{
-				"error": err,
-			}).Errorf("failed to parse ABI")
-			return nil, nil, err
-		}
-		abiMap[d.config.DexID] = ABI
-	}
-
 	pools, err := d.initPools()
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -63,13 +50,14 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 }
 
 func (d *PoolsListUpdater) initPools() ([]entity.Pool, error) {
-	if d.config.Pools == "" {
-		logger.Errorf("misconfigured pool")
-		return nil, errors.New("misconfigured pool")
+	byteData, err := GetBytesByPath(d.config.DexID, d.config.PoolPath)
+	if err != nil {
+		logger.Errorf("misconfigured poolPath")
+		return nil, errors.New("misconfigured poolPath")
 	}
 
 	var poolItems []PoolItem
-	if err := json.Unmarshal([]byte(d.config.Pools), &poolItems); err != nil {
+	if err := json.Unmarshal(byteData, &poolItems); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to unmarshal pool")
@@ -129,11 +117,11 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 		rate   *big.Int
 	)
 
-	req := d.ethrpcClient.R()
+	req := d.ethrpcClient.NewRequest()
 	if d.config.PausedMethod != "" {
 		req.AddCall(&ethrpc.Call{
-			ABI:    getABI(pool.Exchange),
-			Target: pool.Address,
+			ABI:    GetABI(d.config.DexID),
+			Target: pool.ID,
 			Method: d.config.PausedMethod,
 			Params: []interface{}{},
 		}, []interface{}{&paused})
@@ -141,8 +129,8 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 
 	if d.config.IsRateUpdatable {
 		req.AddCall(&ethrpc.Call{
-			ABI:    abiMap[pool.Exchange],
-			Target: pool.Address,
+			ABI:    GetABI(d.config.DexID),
+			Target: pool.ID,
 			Method: d.config.RateMethod,
 			Params: []interface{}{},
 		}, []interface{}{&rate})
@@ -173,7 +161,7 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 	}
 
 	poolEntity := entity.Pool{
-		Address:   pool.Address,
+		Address:   pool.ID,
 		Exchange:  d.config.DexID,
 		Type:      DexType,
 		Timestamp: time.Now().Unix(),
@@ -183,11 +171,4 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 	}
 
 	return poolEntity, nil
-}
-
-func getABI(exchange string) abi.ABI {
-	if ABI, ok := abiMap[exchange]; ok {
-		return ABI
-	}
-	return rateABI
 }

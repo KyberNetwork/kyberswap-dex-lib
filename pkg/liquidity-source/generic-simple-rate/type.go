@@ -6,10 +6,10 @@ import (
 )
 
 type PoolItem struct {
-	Address  string             `json:"address"`
-	Type     string             `json:"type"`
-	Tokens   []entity.PoolToken `json:"tokens"`
-	Exchange string             `json:"exchange"`
+	ID      string             `json:"id"`
+	Type    string             `json:"type"`
+	LpToken string             `json:"lpToken"`
+	Tokens  []entity.PoolToken `json:"tokens"`
 }
 
 type PoolExtra struct {
@@ -17,5 +17,6 @@ type PoolExtra struct {
 	RateUnit        *uint256.Int `json:"rateUnit"`
 	Paused          bool         `json:"paused"`
 	IsBidirectional bool         `json:"isBidirectional"`
+	IsRateInversed  bool         `json:"isRateInversed"`
 	DefaultGas      int64        `json:"defaultGas"`
 }

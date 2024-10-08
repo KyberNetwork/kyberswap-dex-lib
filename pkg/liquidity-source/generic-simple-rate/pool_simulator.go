@@ -17,6 +17,7 @@ type PoolSimulator struct {
 	gas             int64
 	rate            *uint256.Int
 	rateUnit        *uint256.Int
+	isRateInversed  bool
 	isBidirectional bool
 }
 
@@ -53,6 +54,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		},
 		rate:            poolExtra.Rate,
 		rateUnit:        poolExtra.RateUnit,
+		isRateInversed:  poolExtra.IsRateInversed,
 		isBidirectional: poolExtra.IsBidirectional,
 		gas:             poolExtra.DefaultGas,
 	}, nil
@@ -69,12 +71,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex: %v or tokenOutIndex: %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
-	amountOut := new(uint256.Int).Set(uint256.MustFromBig(tokenAmountIn.Amount))
-	if tokenInIndex == 0 {
-		amountOut = amountOut.Mul(amountOut, p.rateUnit).Div(amountOut, p.rate)
-	} else {
-		amountOut = amountOut.Div(amountOut, p.rateUnit).Mul(amountOut, p.rate)
-	}
+	amountOut := p.calcAmountOut(tokenInIndex, tokenAmountIn.Amount)
 	totalGas := p.gas
 
 	return &pool.CalcAmountOutResult{
@@ -115,4 +112,14 @@ func (p *PoolSimulator) CanSwapFrom(address string) []string {
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
+}
+
+func (p *PoolSimulator) calcAmountOut(tokenInIndex int, amountIn *big.Int) *uint256.Int {
+	amountOut := new(uint256.Int).Set(uint256.MustFromBig(amountIn))
+	if (p.isRateInversed && tokenInIndex == 0) || (!p.isRateInversed && tokenInIndex == 1) {
+		amountOut = amountOut.Mul(amountOut, p.rateUnit).Div(amountOut, p.rate)
+	} else {
+		amountOut = amountOut.Div(amountOut, p.rateUnit).Mul(amountOut, p.rate)
+	}
+	return amountOut
 }
