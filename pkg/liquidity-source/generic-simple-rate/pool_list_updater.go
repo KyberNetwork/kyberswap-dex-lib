@@ -151,10 +151,12 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 	}
 
 	poolExtraBytes, err := json.Marshal(PoolExtra{
-		Rate:       uint256.MustFromBig(rate),
-		RateUnit:   uint256.MustFromBig(d.config.RateUnit),
-		Paused:     paused,
-		DefaultGas: defaultGas,
+		Paused:          paused,
+		Rate:            uint256.MustFromBig(rate),
+		RateUnit:        uint256.MustFromBig(d.config.RateUnit),
+		IsRateInversed:  d.config.IsRateInversed,
+		IsBidirectional: d.config.IsBidirectional,
+		DefaultGas:      defaultGas,
 	})
 	if err != nil {
 		return entity.Pool{}, err
