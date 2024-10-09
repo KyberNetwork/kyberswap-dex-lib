@@ -1,0 +1,1 @@
+package generic_simple_rate

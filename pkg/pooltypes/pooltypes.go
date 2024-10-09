@@ -24,6 +24,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
+	generic_simple_rate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
@@ -229,6 +230,7 @@ type Types struct {
 	LitePSM                        string
 	Usd0PP                         string
 	Bebop                          string
+	GenericSimpleRate              string
 }
 
 var (
@@ -351,5 +353,6 @@ var (
 		LitePSM:                        litepsm.DexTypeLitePSM,
 		Usd0PP:                         usd0pp.DexType,
 		Bebop:                          bebop.DexType,
+		GenericSimpleRate:              generic_simple_rate.DexType,
 	}
 )
