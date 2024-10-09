@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	headerNameKey = "name"
-	headerAuthKey = "Authorization"
+	headerSourceKey     = "name"
+	headerSourceAuthKey = "Authorization"
 
 	pathQuote = "v3/quote"
 
@@ -48,8 +48,8 @@ func NewHTTPClient(config *bebop.HTTPClientConfig) *HTTPClient {
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
-		SetHeader(headerNameKey, config.Name).
-		SetAuthToken(config.Authorization)
+		SetHeader(headerSourceKey, config.Name).
+		SetHeader(headerSourceAuthKey, config.Authorization)
 
 	return &HTTPClient{
 		config: config,
