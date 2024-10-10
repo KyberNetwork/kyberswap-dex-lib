@@ -77,6 +77,7 @@ common:
     - "traderjoe-v22"
     - "woofi-v3"
   featureFlags: &featureFlags
+  swaapAPIKey:
   hashflowAPIKey:
   nativeAPIKey:
   dexUseAEVM: &dexUseAEVM
@@ -307,6 +308,13 @@ useCase:
         properties:
           chainID: *chainId
           limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
+      - id: swaap-v2
+        handler: swaap-v2
+        properties:
+          http:
+            base_url: "https://api.swaap.finance"
+            timeout: 10s
+            retry_count: 3
       - id: hashflow-v3
         handler: hashflow-v3
         properties:

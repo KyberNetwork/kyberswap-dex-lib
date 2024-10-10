@@ -52,6 +52,7 @@ common:
     - "maverick-v2"
     - "ambient"
   featureFlags: &featureFlags
+  swaapAPIKey:
   nativeAPIKey:
   dexUseAEVM: &dexUseAEVM
     ambient: true
@@ -267,6 +268,18 @@ useCase:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
     rfq:
+      - id: kyberswap-limit-order-v2
+        handler: limit-order
+        properties:
+          chainID: *chainId
+          limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
+      - id: swaap-v2
+        handler: swaap-v2
+        properties:
+          http:
+            base_url: "https://api.swaap.finance"
+            timeout: 10s
+            retry_count: 3
       - id: native-v1
         handler: native-v1
         properties:
@@ -274,11 +287,6 @@ useCase:
             base_url: "https://newapi.native.org"
             timeout: 10s
             retry_count: 3
-      - id: kyberswap-limit-order-v2
-        handler: limit-order
-        properties:
-          chainID: *chainId
-          limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
   poolFactory:
     chainId: *chainId
     useAEVM: &useAEVM false

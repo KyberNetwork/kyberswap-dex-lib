@@ -43,6 +43,7 @@ common:
     - "native-v1"
     - "woofi-v3"
   featureFlags: &featureFlags
+  swaapAPIKey:
   nativeAPIKey:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
@@ -259,6 +260,13 @@ useCase:
         properties:
           chainID: *chainId
           limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
+      - id: swaap-v2
+        handler: swaap-v2
+        properties:
+          http:
+            base_url: "https://api.swaap.finance"
+            timeout: 10s
+            retry_count: 3
       - id: native-v1
         handler: native-v1
         properties:
