@@ -4,8 +4,8 @@ import (
 	"context"
 	"sync/atomic"
 
-	cache "github.com/Code-Hex/go-generics-cache/policy/lfu"
 	mapset "github.com/deckarep/golang-set/v2"
+	cachePolicy "github.com/hashicorp/golang-lru/v2"
 )
 
 func NewPointerSwapPoolManagerInstance(
@@ -14,7 +14,7 @@ func NewPointerSwapPoolManagerInstance(
 	poolRepository IPoolRepository,
 	poolRankRepository IPoolRankRepository,
 	config Config,
-	poolCache *cache.Cache[string, struct{}],
+	poolCache *cachePolicy.Cache[string, struct{}],
 	faultyPools mapset.Set[string],
 	blacklist mapset.Set[string]) PointerSwapPoolManager {
 	return PointerSwapPoolManager{

@@ -10,7 +10,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	cache "github.com/Code-Hex/go-generics-cache/policy/lfu"
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -23,6 +22,7 @@ import (
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
+	cachePolicy "github.com/hashicorp/golang-lru/v2"
 	"github.com/samber/lo"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -56,9 +56,9 @@ type PointerSwapPoolManager struct {
 	// mapset.Set is thread-safety by itself, no need to maintain mutex
 	faultyPools mapset.Set[string]
 
-	// poolCache control which pool to maintain when there are too many pools, currently poolCache use LFU policy
+	// poolCache control which pool to maintain when there are too many pools, currently poolCache use LRU policy
 	// PoolCache is thread-safety, it supports lock mechanism by itself
-	poolCache *cache.Cache[string, struct{}]
+	poolCache *cachePolicy.Cache[string, struct{}]
 }
 
 // NewPointerSwapPoolManager This will take a while to start since it will generate a copy of all Pool
@@ -75,8 +75,11 @@ func NewPointerSwapPoolManager(
 	for i := 0; i < NState; i++ {
 		states[i] = NewLockedState()
 	}
-
-	poolCache := cache.NewCache[string, struct{}](cache.WithCapacity(config.Capacity))
+	//TODO try policies other than LRU, ex LFU
+	poolCache, err := cachePolicy.New[string, struct{}](config.Capacity)
+	if err != nil {
+		return nil, err
+	}
 
 	p := PointerSwapPoolManager{
 		states:             states,
@@ -115,7 +118,7 @@ func (p *PointerSwapPoolManager) start(ctx context.Context) error {
 
 	// add in reverse order so that pools with most volume at top of LRU list
 	for i := len(poolAddresses) - 1; i >= 0; i-- {
-		p.poolCache.Set(poolAddresses[i], struct{}{})
+		p.poolCache.Add(poolAddresses[i], struct{}{})
 	}
 
 	// init pool manager first state
@@ -272,7 +275,7 @@ func (p *PointerSwapPoolManager) GetStateByPoolAddresses(ctx context.Context, po
 
 	// update cache policy
 	for _, poolAddress := range filteredPoolAddress {
-		p.poolCache.Set(poolAddress, struct{}{})
+		p.poolCache.Add(poolAddress, struct{}{})
 	}
 
 	if len(dex) == 0 {
@@ -487,5 +490,5 @@ func (p *PointerSwapPoolManager) ApplyConfig(config Config) {
 	p.configLock.Unlock()
 
 	// poolCache is guared by internal lock
-	// p.poolCache.Resize(config.Capacity)
+	p.poolCache.Resize(config.Capacity)
 }

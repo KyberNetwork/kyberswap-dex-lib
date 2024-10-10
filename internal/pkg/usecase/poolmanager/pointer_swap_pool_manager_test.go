@@ -10,13 +10,13 @@ import (
 	"testing"
 	"time"
 
-	cache "github.com/Code-Hex/go-generics-cache/policy/lfu"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/mock/gomock"
+	cachePolicy "github.com/hashicorp/golang-lru/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,7 +38,7 @@ func TestFilterInvalidPools(t *testing.T) {
 		for i := 0; i < 2; i++ {
 			states[i] = poolmanager.NewLockedState()
 		}
-		poolCache := cache.NewCache[string, struct{}](cache.WithCapacity(3))
+		poolCache, _ := cachePolicy.New[string, struct{}](3)
 
 		poolRankRepository := mocks.NewMockIPoolRankRepository(ctrl)
 		poolRepository := mocks.NewMockIPoolRepository(ctrl)
@@ -85,7 +85,7 @@ func TestFilterInvalidPools(t *testing.T) {
 		for i := 0; i < 2; i++ {
 			states[i] = poolmanager.NewLockedState()
 		}
-		poolCache := cache.NewCache[string, struct{}](cache.WithCapacity(2))
+		poolCache, _ := cachePolicy.New[string, struct{}](2)
 
 		poolRankRepository := mocks.NewMockIPoolRankRepository(ctrl)
 		poolRepository := mocks.NewMockIPoolRepository(ctrl)
@@ -130,7 +130,7 @@ func TestFilterInvalidPools(t *testing.T) {
 		for i := 0; i < 2; i++ {
 			states[i] = poolmanager.NewLockedState()
 		}
-		poolCache := cache.NewCache[string, struct{}](cache.WithCapacity(2))
+		poolCache, _ := cachePolicy.New[string, struct{}](2)
 
 		poolRankRepository := mocks.NewMockIPoolRankRepository(ctrl)
 		poolRepository := mocks.NewMockIPoolRepository(ctrl)

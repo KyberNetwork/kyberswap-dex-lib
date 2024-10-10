@@ -9,7 +9,6 @@ replace (
 
 require (
 	github.com/ALTree/bigfloat v0.2.0
-	github.com/Code-Hex/go-generics-cache v1.5.1
 	github.com/KyberNetwork/aevm v1.1.18
 	github.com/KyberNetwork/aggregator-encoding v0.28.0
 	github.com/KyberNetwork/blackjack v0.3.0
@@ -46,6 +45,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
 	github.com/grafana/pyroscope-go v1.2.0
+	github.com/hashicorp/golang-lru/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.1
 	github.com/huandu/go-clone v1.7.2
 	github.com/izumiFinance/iZiSwap-SDK-go v1.0.0
