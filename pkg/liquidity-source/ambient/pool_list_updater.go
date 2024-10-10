@@ -3,6 +3,7 @@ package ambient
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -164,10 +165,23 @@ func (u *PoolListUpdater) excludePoolsWithWrappedNativeToken(pairs []SubgraphPoo
 func (u *PoolListUpdater) getOrInitializePool(ctx context.Context, address string) (entity.Pool, *Extra, error) {
 	upsertPool, err := u.poolDatastore.Get(ctx, strings.ToLower(address))
 	if err != nil {
-		logger.
-			WithFields(logger.Fields{"dex_id": u.cfg.DexID, "address": address, "err": err}).
-			Error("error when getting pool by address from datastore")
-		return entity.Pool{}, nil, err
+		if errors.Is(err, ErrNotFound) {
+			upsertPool = entity.Pool{
+				Address:  address,
+				Exchange: u.cfg.DexID,
+				Type:     DexTypeAmbient,
+			}
+
+			logger.
+				WithFields(logger.Fields{"dex_id": u.cfg.DexID, "address": address, "err": err}).
+				Warn("pool not found in datastore, creating new pool")
+		} else {
+			logger.
+				WithFields(logger.Fields{"dex_id": u.cfg.DexID, "address": address, "err": err}).
+				Error("error connecting to datastore to get pool by address")
+
+			return entity.Pool{}, nil, err
+		}
 	}
 
 	staticExtra := StaticExtra{
