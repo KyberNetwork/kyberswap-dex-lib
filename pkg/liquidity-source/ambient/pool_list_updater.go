@@ -164,14 +164,10 @@ func (u *PoolListUpdater) excludePoolsWithWrappedNativeToken(pairs []SubgraphPoo
 func (u *PoolListUpdater) getOrInitializePool(ctx context.Context, address string) (entity.Pool, *Extra, error) {
 	upsertPool, err := u.poolDatastore.Get(ctx, address)
 	if err != nil {
-		upsertPool = entity.Pool{
-			Address:  address,
-			Exchange: u.cfg.DexID,
-			Type:     DexTypeAmbient,
-		}
 		logger.
 			WithFields(logger.Fields{"dex_id": u.cfg.DexID, "address": address, "err": err}).
-			Warn("error when getting pool by address from datastore, assume there is no pool")
+			Error("error when getting pool by address from datastore")
+		return entity.Pool{}, nil, err
 	}
 
 	staticExtra := StaticExtra{
