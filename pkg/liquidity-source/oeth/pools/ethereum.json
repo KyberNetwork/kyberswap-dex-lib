@@ -1,0 +1,23 @@
+[
+  {
+    "id": "0x9858e47bcbbe6fbac040519b02d7cd4b2c470c66",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "name": "Wrapped Ether",
+        "symbol": "WETH",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x856c4efb76c1d1ae02e20ceb03a2a6a08b0b8dc3",
+        "name": "Origin Ether",
+        "symbol": "OETH",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  }
+]
