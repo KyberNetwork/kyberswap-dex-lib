@@ -274,6 +274,7 @@ useCase:
             base_url: "https://newapi.native.org"
             timeout: 10s
             retry_count: 3
+    rfqAcceptableSlippageFraction: 1000
   poolFactory:
     chainId: *chainId
   poolManager:

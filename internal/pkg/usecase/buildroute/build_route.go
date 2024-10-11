@@ -228,11 +228,47 @@ func (uc *BuildRouteUseCase) rfq(
 		afterRFQAmountOut.Add(afterRFQAmountOut, path[len(path)-1].AmountOut)
 	}
 
-	// NOTE: if afterRFQAmountOut < oldAmountOut due to any RFQ hop, we will return error.
+	// acceptableRFQAmountOut = routeSummary.AmountOut * (1 - rfqAcceptableSlippageFraction * slippageTolerance)
+	// = routeSummary.AmountOut - routeSummary.AmountOut * rfqAcceptableSlippageFraction * slippageTolerance
+	reducedAmountOutWithSlippageTolerance := new(big.Int).Div(
+		new(big.Int).Mul(
+			routeSummary.AmountOut,
+			big.NewInt(slippageTolerance),
+		),
+		valueobject.BasisPoint,
+	)
+
+	// If not configured, the RFQ acceptable slippage is 0,
+	// leading the acceptableRFQAmountOut = routeSummary.AmountOut,
+	// which is the old behavior.
+	reducedAmountOutWithRFQSlippageFraction := new(big.Int).Div(
+		new(big.Int).Mul(
+			reducedAmountOutWithSlippageTolerance,
+			big.NewInt(uc.config.RFQAcceptableSlippageFraction),
+		),
+		valueobject.BasisPoint,
+	)
+
+	acceptableRFQAmountOut := new(big.Int).Sub(
+		routeSummary.AmountOut,
+		reducedAmountOutWithRFQSlippageFraction,
+	)
+
+	// NOTE: Previously, if the afterRFQAmountOut < oldAmountOut due to any RFQ hop, an error would be returned.
 	// Reference: https://www.notion.so/kybernetwork/Build-route-behavior-discussion-5a0765555e1e47c1866db5df3d01a0b5
-	if afterRFQAmountOut.Cmp(routeSummary.AmountOut) < 0 {
-		logger.Errorf(ctx, "afterRFQAmountOut: %v < oldAmountOut: %v, diff = %.2f%%",
-			afterRFQAmountOut, routeSummary.AmountOut, 100*float64(afterRFQAmountOut.Uint64())/float64(routeSummary.AmountOut.Uint64()))
+	// However, some RFQs may only result in a slightly lower amount out.
+	// To handle this, if afterRFQAmountOut is within an acceptable range (determined by uc.config.rfqAcceptableSlippageFraction),
+	// we now allow the RFQ to proceed with the swap.
+	if afterRFQAmountOut.Cmp(acceptableRFQAmountOut) < 0 {
+		afterRFQAmountOutFloat64, _ := afterRFQAmountOut.Float64()
+		acceptableRFQAmountOutFloat64, _ := acceptableRFQAmountOut.Float64()
+
+		logger.Errorf(ctx, "afterRFQAmountOut: %v < acceptableRFQAmountOut: %v < oldAmountOut: %v, diff = %.2f%%",
+			afterRFQAmountOut,
+			acceptableRFQAmountOut,
+			routeSummary.AmountOut,
+			100*afterRFQAmountOutFloat64/acceptableRFQAmountOutFloat64)
+
 		return routeSummary, ErrQuotedAmountSmallerThanEstimated
 	}
 

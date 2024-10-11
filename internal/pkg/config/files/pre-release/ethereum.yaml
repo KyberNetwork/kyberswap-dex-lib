@@ -384,6 +384,7 @@ useCase:
     faultyPools:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
+    rfqAcceptableSlippageFraction: 1000
   poolFactory:
     chainId: *chainId
     useAEVM: &useAEVM false

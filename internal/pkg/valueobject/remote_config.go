@@ -19,6 +19,7 @@ type (
 		CacheConfig           CacheConfig         `json:"cache"`
 		BlacklistedRecipients []string            `json:"blacklistedRecipients"`
 
+		RFQAcceptableSlippageFraction  int64                      `json:"rfqAcceptableSlippageFraction"`
 		TokensThresholdForOnchainPrice uint32                     `json:"tokensThresholdForOnchainPrice"`
 		FaultyPoolsConfig              FaultyPoolsConfig          `json:"faultyPoolsConfig"`
 		SafetyQuoteReduction           SafetyQuoteReductionConfig `json:"safetyQuoteReduction"`

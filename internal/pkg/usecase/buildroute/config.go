@@ -6,10 +6,11 @@ import (
 
 type (
 	Config struct {
-		ChainID           valueobject.ChainID      `mapstructure:"chainId"`
-		RFQ               []RFQConfig              `mapstructure:"rfq"`
-		FeatureFlags      valueobject.FeatureFlags `mapstructure:"featureFlags"`
-		FaultyPoolsConfig FaultyPoolsConfig        `mapstructure:"faultyPools"`
+		ChainID                       valueobject.ChainID      `mapstructure:"chainId"`
+		RFQ                           []RFQConfig              `mapstructure:"rfq"`
+		FeatureFlags                  valueobject.FeatureFlags `mapstructure:"featureFlags"`
+		FaultyPoolsConfig             FaultyPoolsConfig        `mapstructure:"faultyPools"`
+		RFQAcceptableSlippageFraction int64                    `mapstructure:"rfqAcceptableSlippageFraction"` // Config in BPS
 
 		TokensThresholdForOnchainPrice uint32 `mapstructure:"tokensThresholdForOnchainPrice"`
 	}

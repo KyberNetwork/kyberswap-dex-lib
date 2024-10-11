@@ -2118,3 +2118,180 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		command              dto.BuildRouteCommand
+		rfqHandlerByPoolType func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ
+		config               Config
+		err                  error
+	}{
+		{
+			name: "it should not return error when rfq slippage is acceptable",
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:                     big.NewInt(2000000000000000000),
+					AmountInUSD:                  float64(2000000000000000000),
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:                    big.NewInt(4488767370609711072),
+					AmountOutUSD:                 float64(4488767370609711072),
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          345000,
+					GasPrice:                     big.NewFloat(100000000),
+					GasUSD:                       float64(0.07912413535198341),
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:       "0xabc",
+								SwapAmount: big.NewInt(2000000000000000000),
+								AmountOut:  big.NewInt(4488767370609711072),
+								Exchange:   "hashflow-v3",
+								PoolType:   "hashflow-v3",
+							},
+						},
+					},
+				},
+				SlippageTolerance: 2000,
+			},
+			rfqHandlerByPoolType: func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ {
+				rfqHandlerByPoolType := map[string]pool.IPoolRFQ{}
+				hashflowHandler := buildroute.NewMockIPoolRFQ(ctrl)
+				hashflowHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(&pool.RFQResult{
+					NewAmountOut: big.NewInt(4488767370609711071), // Smaller than expected return amount 1 wei
+				}, nil)
+				rfqHandlerByPoolType[hashflowv3.DexType] = hashflowHandler
+
+				return rfqHandlerByPoolType
+			},
+			config: Config{
+				ChainID:                       valueobject.ChainIDEthereum,
+				RFQAcceptableSlippageFraction: 1000,
+			},
+			err: nil,
+		},
+		{
+			name: "it should return error when rfq slippage is not acceptable",
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:                     big.NewInt(2000000000000000000),
+					AmountInUSD:                  float64(2000000000000000000),
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:                    big.NewInt(4488767370609711072),
+					AmountOutUSD:                 float64(4488767370609711072),
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          345000,
+					GasPrice:                     big.NewFloat(100000000),
+					GasUSD:                       float64(0.07912413535198341),
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:       "0xabc",
+								SwapAmount: big.NewInt(2000000000000000000),
+								AmountOut:  big.NewInt(4488767370609711072),
+								Exchange:   "hashflow-v3",
+								PoolType:   "hashflow-v3",
+							},
+						},
+					},
+				},
+				SlippageTolerance: 2000,
+			},
+			rfqHandlerByPoolType: func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ {
+				rfqHandlerByPoolType := map[string]pool.IPoolRFQ{}
+				hashflowHandler := buildroute.NewMockIPoolRFQ(ctrl)
+				hashflowHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(&pool.RFQResult{
+					// Smaller than expected return amount 15% (greater than slippage, but smaller than acceptable RFQ slippage).
+					NewAmountOut: big.NewInt(3815452265018254411),
+				}, nil)
+				rfqHandlerByPoolType[hashflowv3.DexType] = hashflowHandler
+
+				return rfqHandlerByPoolType
+			},
+			config: Config{
+				ChainID:                       valueobject.ChainIDEthereum,
+				RFQAcceptableSlippageFraction: 1000,
+			},
+			err: ErrQuotedAmountSmallerThanEstimated,
+		},
+	}
+
+	wg := sync.WaitGroup{}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
+			clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil).AnyTimes()
+
+			encoder := mockEncode.NewMockIEncoder(ctrl)
+			encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+			encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
+			encodedData := "mockEncodedData"
+
+			encoder.EXPECT().
+				Encode(gomock.Any()).
+				Return(encodedData, nil).AnyTimes()
+			encoder.EXPECT().
+				GetExecutorAddress(gomock.Any()).
+				Return("0x00").AnyTimes()
+			encoder.EXPECT().
+				GetRouterAddress().
+				Return("0x01").AnyTimes()
+
+			tokenRepository := usecase.NewMockITokenRepository(ctrl)
+			tokenRepository.EXPECT().
+				FindByAddresses(gomock.Any(), gomock.Any()).
+				Return(
+					[]*entity.Token{
+						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
+						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
+					},
+					nil,
+				).AnyTimes()
+
+			priceRepository := usecase.NewMockIPriceRepository(ctrl)
+			priceRepository.EXPECT().
+				FindByAddresses(gomock.Any(), gomock.Any()).
+				Return(
+					[]*entity.Price{
+						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
+						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
+					},
+					nil,
+				).AnyTimes()
+
+			executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
+			executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+			executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+
+			usecase := NewBuildRouteUseCase(
+				tokenRepository,
+				priceRepository,
+				nil,
+				executorBalanceRepository,
+				nil,
+				nil,
+				&dummyL1FeeCalculator{},
+				tc.rfqHandlerByPoolType(ctrl),
+				clientDataEncoder,
+				encodeBuilder,
+				tc.config,
+			)
+
+			_, err := usecase.Handle(context.Background(), tc.command)
+			wg.Wait()
+
+			if tc.err != nil {
+				assert.Equal(t, tc.err.Error(), err.Error())
+			}
+		})
+	}
+}
