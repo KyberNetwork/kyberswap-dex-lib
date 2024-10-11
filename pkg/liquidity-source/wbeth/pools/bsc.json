@@ -5,9 +5,9 @@
     "lpToken": "",
     "tokens": [
       {
-        "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-        "name": "Wrapped Ether",
-        "symbol": "WETH",
+        "address": "0x2170ed0880ac9a755fd29b2688956bd959f933f8",
+        "name": "Ethereum Token",
+        "symbol": "ETH",
         "decimals": 18,
         "swappable": true
       },
