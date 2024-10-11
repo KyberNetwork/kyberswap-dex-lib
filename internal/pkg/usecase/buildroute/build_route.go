@@ -154,6 +154,7 @@ func (uc *BuildRouteUseCase) ApplyConfig(config Config) {
 	defer uc.mu.Unlock()
 	uc.config.FeatureFlags = config.FeatureFlags
 	uc.config.TokensThresholdForOnchainPrice = config.TokensThresholdForOnchainPrice
+	uc.config.RFQAcceptableSlippageFraction = config.RFQAcceptableSlippageFraction
 }
 
 func (uc *BuildRouteUseCase) rfq(

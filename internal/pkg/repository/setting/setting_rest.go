@@ -31,6 +31,7 @@ type ConfigResponseDataConfig struct {
 	BlacklistedRecipients []string                        `json:"blacklistedRecipients"`
 
 	TokensThresholdForOnchainPrice uint32                                 `json:"tokensThresholdForOnchainPrice"`
+	RFQAcceptableSlippageFraction  int64                                  `json:"rfqAcceptableSlippageFraction"`
 	SafetyQuoteReduction           valueobject.SafetyQuoteReductionConfig `json:"safetyQuoteReduction"`
 }
 
@@ -106,6 +107,7 @@ func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string, curre
 		SafetyQuoteReduction:  cfgResp.Data.Config.SafetyQuoteReduction,
 
 		TokensThresholdForOnchainPrice: cfgResp.Data.Config.TokensThresholdForOnchainPrice,
+		RFQAcceptableSlippageFraction:  cfgResp.Data.Config.RFQAcceptableSlippageFraction,
 	}, nil
 }
 
