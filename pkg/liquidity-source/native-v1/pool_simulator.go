@@ -20,6 +20,7 @@ var (
 	ErrAmountInIsLessThanLowestPriceLevel     = errors.New("amountIn is less than lowest price level")
 	ErrAmountInIsGreaterThanHighestPriceLevel = errors.New("amountIn is greater than highest price level")
 	ErrAmountOutIsGreaterThanInventory        = errors.New("amountOut is greater than inventory")
+	ErrInsufficientFundInTreasury             = errors.New("insufficient fund in treasury")
 )
 
 type (
@@ -32,6 +33,8 @@ type (
 		ZeroToOnePriceLevels []PriceLevel
 		OneToZeroPriceLevels []PriceLevel
 		MinIn0, MinIn1       float64
+
+		BalanceTreasury0, BalanceTreasury1 *big.Int
 
 		timestamp      int64
 		priceTolerance uint
@@ -50,6 +53,8 @@ type (
 		MinIn1               float64      `json:"min1"`
 		PriceTolerance       uint         `json:"tlrnce,omitempty"`
 		ExpirySecs           uint         `json:"exp,omitempty"`
+		BalanceTreasury0     *big.Int     `json:"balanceTreasury0"`
+		BalanceTreasury1     *big.Int     `json:"balanceTreasury1"`
 	}
 	PriceLevel struct {
 		Quote float64 `json:"q"`
@@ -99,6 +104,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		OneToZeroPriceLevels: extra.OneToZeroPriceLevels,
 		MinIn0:               extra.MinIn0,
 		MinIn1:               extra.MinIn1,
+		BalanceTreasury0:     extra.BalanceTreasury0,
+		BalanceTreasury1:     extra.BalanceTreasury1,
 
 		timestamp:      entityPool.Timestamp,
 		priceTolerance: extra.PriceTolerance,
@@ -110,10 +117,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	if params.TokenAmountIn.Token == p.Token0.Address {
 		return p.swap(params.TokenAmountIn.Amount, p.Token0, p.Token1,
-			p.MinIn0, params.Limit.GetLimit(p.Token1.Address), p.ZeroToOnePriceLevels)
+			p.MinIn0, params.Limit.GetLimit(p.Token1.Address), p.BalanceTreasury1, p.ZeroToOnePriceLevels)
 	} else {
 		return p.swap(params.TokenAmountIn.Amount, p.Token1, p.Token0,
-			p.MinIn1, params.Limit.GetLimit(p.Token0.Address), p.OneToZeroPriceLevels)
+			p.MinIn1, params.Limit.GetLimit(p.Token0.Address), p.BalanceTreasury0, p.OneToZeroPriceLevels)
 	}
 }
 
@@ -127,6 +134,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		if err != nil {
 			logger.Errorf("unable to update native limit, error: %v", err)
 		}
+
+		p.BalanceTreasury0 = new(big.Int).Add(p.BalanceTreasury0, amtIn)
+		p.BalanceTreasury1 = new(big.Int).Add(p.BalanceTreasury1, amtOut)
 	} else {
 		amountInAfterDecimalsF := amtInF / math.Pow10(int(p.Token1.Decimals))
 		p.OneToZeroPriceLevels = getNewPriceLevelsState(amountInAfterDecimalsF, p.OneToZeroPriceLevels)
@@ -134,6 +144,9 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		if err != nil {
 			logger.Errorf("unable to update native limit, error: %v", err)
 		}
+
+		p.BalanceTreasury1 = new(big.Int).Add(p.BalanceTreasury1, amtIn)
+		p.BalanceTreasury0 = new(big.Int).Add(p.BalanceTreasury0, amtOut)
 	}
 }
 
@@ -151,7 +164,7 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.PoolToken, minBase float64,
-	inventoryLimit *big.Int, priceLevel []PriceLevel) (*pool.CalcAmountOutResult, error) {
+	inventoryLimit, balanceTreasuryInitial *big.Int, priceLevel []PriceLevel) (*pool.CalcAmountOutResult, error) {
 	amountInF, _ := amountIn.Float64()
 	amountInAfterDecimalsF := amountInF / math.Pow10(int(baseToken.Decimals))
 	maxQuoteF, _ := inventoryLimit.Float64()
@@ -163,6 +176,10 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.Poo
 	amountOutF := amountOutAfterDecimalsF * math.Pow10(int(quoteToken.Decimals))
 	amountOutF = amountOutF * (1 - float64(p.priceTolerance)/bps)
 	amountOut, _ := big.NewFloat(amountOutF).Int(nil)
+
+	if amountOut.Cmp(balanceTreasuryInitial) > 0 {
+		return nil, ErrInsufficientFundInTreasury
+	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: quoteToken.Address, Amount: amountOut},
