@@ -1,4 +1,4 @@
-package primeeth
+package staderethx
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/holiman/uint256"
 	"math/big"
 	"time"
 )
@@ -63,7 +64,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 
 	return []entity.Pool{
 		{
-			Address:   primeZapper,
+			Address:   staderStakePoolsManager,
 			Reserves:  []string{defaultReserves, defaultReserves},
 			Exchange:  u.config.DexID,
 			Type:      DexType,
@@ -77,10 +78,10 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 					Swappable: true,
 				},
 				{
-					Address:   PrimeETH,
-					Symbol:    "primeETH",
+					Address:   ETHx,
+					Symbol:    "ETHx",
 					Decimals:  18,
-					Name:      "Prime Staked ETH",
+					Name:      "ETHx",
 					Swappable: true,
 				},
 			},
@@ -97,11 +98,10 @@ func getExtra(
 ) (PoolExtra, uint64, error) {
 
 	var (
-		paused              bool
-		totalAssetDeposit   *big.Int
-		depositLimitByAsset *big.Int
-		minAmountToDeposit  *big.Int
-		primeETHPrice       *big.Int
+		paused                   bool
+		minDeposit               *big.Int
+		maxDeposit               *big.Int
+		staderOracleExchangeRate StaderOracleExchangeRate
 	)
 
 	calls := ethrpcClient.NewRequest().SetContext(ctx)
@@ -110,35 +110,29 @@ func getExtra(
 	}
 
 	calls.AddCall(&ethrpc.Call{
-		ABI:    lrtDepositPoolABI,
-		Target: lrtDepositPool,
-		Method: lrtDepositPoolMethodPaused,
+		ABI:    staderStakePoolsManagerABI,
+		Target: staderStakePoolsManager,
+		Method: staderStakePoolsManagerMethodPaused,
 		Params: []interface{}{},
 	}, []interface{}{&paused})
 	calls.AddCall(&ethrpc.Call{
-		ABI:    lrtDepositPoolABI,
-		Target: lrtDepositPool,
-		Method: lrtDepositPoolMethodMinAmountToDeposit,
+		ABI:    staderStakePoolsManagerABI,
+		Target: staderStakePoolsManager,
+		Method: staderStakePoolsManagerMethodMinDeposit,
 		Params: []interface{}{},
-	}, []interface{}{&minAmountToDeposit})
+	}, []interface{}{&minDeposit})
 	calls.AddCall(&ethrpc.Call{
-		ABI:    lrtDepositPoolABI,
-		Target: lrtDepositPool,
-		Method: lrtDepositPoolMethodGetTotalAssetDeposits,
-		Params: []interface{}{gethcommon.HexToAddress(WETH)},
-	}, []interface{}{&totalAssetDeposit})
-	calls.AddCall(&ethrpc.Call{
-		ABI:    lrtConfigABI,
-		Target: lrtConfig,
-		Method: lrtConfigMethodDepositLimitByAsset,
-		Params: []interface{}{gethcommon.HexToAddress(WETH)},
-	}, []interface{}{&depositLimitByAsset})
-	calls.AddCall(&ethrpc.Call{
-		ABI:    lrtOracleABI,
-		Target: lrtOracle,
-		Method: lrtOracleMethodPrimeETHPrice,
+		ABI:    staderStakePoolsManagerABI,
+		Target: staderStakePoolsManager,
+		Method: staderStakePoolsManagerMethodMaxDeposit,
 		Params: []interface{}{},
-	}, []interface{}{&primeETHPrice})
+	}, []interface{}{&maxDeposit})
+	calls.AddCall(&ethrpc.Call{
+		ABI:    staderOracleABI,
+		Target: staderOracle,
+		Method: staderOracleMethodExchangeRate,
+		Params: []interface{}{},
+	}, []interface{}{&staderOracleExchangeRate})
 
 	resp, err := calls.Aggregate()
 	if err != nil {
@@ -149,11 +143,12 @@ func getExtra(
 	}
 
 	poolExtra := PoolExtra{
-		Paused:              paused,
-		TotalAssetDeposit:   totalAssetDeposit,
-		DepositLimitByAsset: depositLimitByAsset,
-		MinAmountToDeposit:  minAmountToDeposit,
-		PrimeETHPrice:       primeETHPrice,
+		Paused:               paused,
+		MinDeposit:           uint256.MustFromBig(minDeposit),
+		MaxDeposit:           uint256.MustFromBig(maxDeposit),
+		ReportingBlockNumber: staderOracleExchangeRate.ReportingBlockNumber.Uint64(),
+		TotalETHBalance:      uint256.MustFromBig(staderOracleExchangeRate.TotalETHBalance),
+		TotalETHXSupply:      uint256.MustFromBig(staderOracleExchangeRate.TotalETHXSupply),
 	}
 
 	return poolExtra, resp.BlockNumber.Uint64(), nil
