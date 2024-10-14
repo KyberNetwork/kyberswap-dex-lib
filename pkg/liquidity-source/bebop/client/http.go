@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	headerNameKey = "name"
-	headerAuthKey = "Authorization"
+	querySourceKey      = "source"
+	headerSourceAuthKey = "source-auth"
 
 	pathQuote = "v3/quote"
 
@@ -48,8 +48,7 @@ func NewHTTPClient(config *bebop.HTTPClientConfig) *HTTPClient {
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
 		SetRetryCount(config.RetryCount).
-		SetHeader(headerNameKey, config.Name).
-		SetAuthToken(config.Authorization)
+		SetHeader(headerSourceAuthKey, config.Authorization)
 
 	return &HTTPClient{
 		config: config,
@@ -70,7 +69,8 @@ func (c *HTTPClient) QuoteSingleOrderResult(ctx context.Context, params bebop.Qu
 		SetQueryParam(bebop.ParamsReceiverAddress, params.ReceiverAddress).
 		SetQueryParam(bebop.ParamsApproveType, "Standard").
 		SetQueryParam(bebop.ParamsSkipValidation, "true"). // not checking balance
-		SetQueryParam(bebop.ParamsGasLess, "false")        // self-execution
+		SetQueryParam(bebop.ParamsGasLess, "false").       // self-execution
+		SetQueryParam(querySourceKey, c.config.Name)
 
 	var result bebop.QuoteSingleOrderResult
 	var fail bebop.QuoteFail
