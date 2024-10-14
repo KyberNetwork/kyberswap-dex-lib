@@ -122,12 +122,16 @@ func (d *PoolTracker) getFee(ctx context.Context, poolAddress string, blockNumbe
 }
 
 func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, fee uint64, blockNumber *big.Int) (entity.Pool, error) {
-	extra := Extra{
-		Fee:          fee,
-		FeePrecision: d.config.FeePrecision,
+	var extra Extra
+	err := json.Unmarshal([]byte(pool.Extra), &extra)
+	if err != nil {
+		return entity.Pool{}, err
 	}
 
-	extraBytes, err := json.Marshal(extra)
+	extra.Fee = fee
+	extra.FeePrecision = d.config.FeePrecision
+
+	extraBytes, err := json.Marshal(&extra)
 	if err != nil {
 		return pool, err
 	}

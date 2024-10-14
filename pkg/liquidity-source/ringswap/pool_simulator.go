@@ -32,7 +32,9 @@ type (
 		fee          *uint256.Int
 		feePrecision *uint256.Int
 
-		gas Gas
+		gas           Gas
+		wrappedToken0 string
+		wrappedToken1 string
 	}
 
 	Gas struct {
@@ -46,28 +48,21 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	tokens := lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address })
-	if extra.WrappedToken0 != "" {
-		tokens[0] = extra.WrappedToken0
-	}
-
-	if extra.WrappedToken1 != "" {
-		tokens[1] = extra.WrappedToken1
-	}
-
 	return &PoolSimulator{
 		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
 			Exchange:    entityPool.Exchange,
 			Type:        entityPool.Type,
-			Tokens:      tokens,
+			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		fee:          uint256.NewInt(extra.Fee),
-		feePrecision: uint256.NewInt(extra.FeePrecision),
-		gas:          defaultGas,
+		fee:           uint256.NewInt(extra.Fee),
+		feePrecision:  uint256.NewInt(extra.FeePrecision),
+		gas:           defaultGas,
+		wrappedToken0: extra.WrappedToken0,
+		wrappedToken1: extra.WrappedToken1,
 	}, nil
 }
 
@@ -114,6 +109,10 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
 		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas: s.gas.Swap,
+		SwapInfo: Extra{
+			WrappedToken0: s.wrappedToken0,
+			WrappedToken1: s.wrappedToken1,
+		},
 	}, nil
 }
 
@@ -180,6 +179,10 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
 		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas: s.gas.Swap,
+		SwapInfo: SwapInfo{
+			WrappedToken0: s.wrappedToken0,
+			WrappedToken1: s.wrappedToken1,
+		},
 	}, nil
 }
 

@@ -182,20 +182,21 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 
-	wrappedTokenPairs := make([][2]common.Address, len(pairAddresses))
+	originalToken0List := make([]common.Address, len(pairAddresses))
+	originalToken1List := make([]common.Address, len(pairAddresses))
 
 	for i := range pairAddresses {
 		req.AddCall(&ethrpc.Call{
 			ABI:    fewWrappedTokenABI,
 			Target: token0List[i].Hex(),
 			Method: fewWrappedTokenGetTokenMethod,
-		}, []interface{}{&wrappedTokenPairs[i][0]})
+		}, []interface{}{&originalToken0List[i]})
 
 		req.AddCall(&ethrpc.Call{
 			ABI:    fewWrappedTokenABI,
 			Target: token1List[i].Hex(),
 			Method: fewWrappedTokenGetTokenMethod,
-		}, []interface{}{&wrappedTokenPairs[i][1]})
+		}, []interface{}{&originalToken1List[i]})
 	}
 
 	_, err = req.TryAggregate()
@@ -206,17 +207,36 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 	pools := make([]entity.Pool, 0, len(pairAddresses))
 
 	for i, pairAddress := range pairAddresses {
+		extra := &Extra{
+			Fee:          u.config.Fee,
+			FeePrecision: u.config.FeePrecision,
+		}
+
+		var (
+			token0Addr = token0List[i].Hex()
+			token1Addr = token1List[i].Hex()
+		)
+
+		if originalToken0List[i].Hex() != ZeroAddress {
+			extra.WrappedToken0 = strings.ToLower(token0Addr)
+			token0Addr = originalToken0List[i].Hex()
+		}
+		if originalToken1List[i].Hex() != ZeroAddress {
+			extra.WrappedToken1 = strings.ToLower(token1Addr)
+			token1Addr = originalToken1List[i].Hex()
+		}
+
 		token0 := &entity.PoolToken{
-			Address:   strings.ToLower(token0List[i].Hex()),
+			Address:   strings.ToLower(token0Addr),
 			Swappable: true,
 		}
 
 		token1 := &entity.PoolToken{
-			Address:   strings.ToLower(token1List[i].Hex()),
+			Address:   strings.ToLower(token1Addr),
 			Swappable: true,
 		}
 
-		extra, err := u.newExtra(u.config.Fee, u.config.FeePrecision, wrappedTokenPairs[i])
+		extraBytes, err := json.Marshal(extra)
 		if err != nil {
 			return nil, err
 		}
@@ -228,7 +248,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 			Timestamp: time.Now().Unix(),
 			Reserves:  []string{"0", "0"},
 			Tokens:    []*entity.PoolToken{token0, token1},
-			Extra:     string(extra),
+			Extra:     string(extraBytes),
 		}
 
 		pools = append(pools, newPool)
@@ -280,26 +300,6 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 	}
 
 	return metadataBytes, nil
-}
-
-func (u *PoolsListUpdater) newExtra(fee uint64, feePrecision uint64, wrappedTokenPair [2]common.Address) ([]byte, error) {
-	var wrappedToken0, wrappedToken1 string
-
-	if wrappedTokenPair[0].Hex() != ZeroAddress {
-		wrappedToken0 = wrappedTokenPair[0].Hex()
-	}
-	if wrappedTokenPair[1].Hex() != ZeroAddress {
-		wrappedToken1 = wrappedTokenPair[1].Hex()
-	}
-
-	extra := Extra{
-		Fee:           fee,
-		FeePrecision:  feePrecision,
-		WrappedToken0: wrappedToken0,
-		WrappedToken1: wrappedToken1,
-	}
-
-	return json.Marshal(extra)
 }
 
 // getBatchSize

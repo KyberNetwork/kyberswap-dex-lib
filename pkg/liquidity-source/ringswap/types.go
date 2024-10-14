@@ -18,6 +18,11 @@ type Extra struct {
 	WrappedToken1 string `json:"wrappedToken1"`
 }
 
+type SwapInfo struct {
+	WrappedToken0 string `json:"wrappedToken0"`
+	WrappedToken1 string `json:"wrappedToken1"`
+}
+
 type PoolMeta struct {
 	Fee          uint64 `json:"fee"`
 	FeePrecision uint64 `json:"feePrecision"`
