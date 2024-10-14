@@ -57,9 +57,9 @@ import (
 	pkg_liquiditysource_woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	pkg_liquiditysource_woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
 	pkg_source_algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
-	pkg_source_balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	pkg_source_balancer_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/stable"
 	pkg_source_balancer_weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/weighted"
+	pkg_source_balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	pkg_source_camelot "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
 	pkg_source_curve_aave "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/aave"
 	pkg_source_curve_base "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/base"
@@ -116,7 +116,6 @@ import (
 	pkg_source_woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/woofiv2"
 	pkg_source_zkerafinance "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkera-finance"
 )
-
 func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv2_composablestable.PoolSimulator{})
