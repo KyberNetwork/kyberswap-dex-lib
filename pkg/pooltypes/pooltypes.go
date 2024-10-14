@@ -37,9 +37,11 @@ import (
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
@@ -231,6 +233,8 @@ type Types struct {
 	Usd0PP                         string
 	Bebop                          string
 	GenericSimpleRate              string
+	PrimeETH                       string
+	StaderETHx                     string
 }
 
 var (
@@ -354,5 +358,7 @@ var (
 		Usd0PP:                         usd0pp.DexType,
 		Bebop:                          bebop.DexType,
 		GenericSimpleRate:              generic_simple_rate.DexType,
+		PrimeETH:                       primeeth.DexType,
+		StaderETHx:                     staderethx.DexType,
 	}
 )
