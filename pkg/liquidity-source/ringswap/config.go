@@ -1,4 +1,4 @@
-package ringswapv2
+package ringswap
 
 type Config struct {
 	DexID          string `json:"dexID"`

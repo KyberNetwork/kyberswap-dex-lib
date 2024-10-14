@@ -1,7 +1,7 @@
-package ringswapv2
+package ringswap
 
 const (
-	DexType     = "ringswap-v2"
+	DexType     = "ringswap"
 	ZeroAddress = "0x0000000000000000000000000000000000000000"
 )
 

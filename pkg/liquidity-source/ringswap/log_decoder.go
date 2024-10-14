@@ -1,4 +1,4 @@
-package ringswapv2
+package ringswap
 
 import (
 	"math/big"

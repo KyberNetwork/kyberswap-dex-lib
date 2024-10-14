@@ -43,7 +43,7 @@ import (
 	pkg_liquiditysource_primeeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	pkg_liquiditysource_puffer_pufeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	pkg_liquiditysource_renzo_ezeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
-	pkg_liquiditysource_ringswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap-v2"
+	pkg_liquiditysource_ringswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	pkg_liquiditysource_rocketpool_reth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	pkg_liquiditysource_staderethx "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	pkg_liquiditysource_swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
@@ -156,7 +156,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_primeeth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_puffer_pufeth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_renzo_ezeth.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_liquiditysource_ringswapv2.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_ringswap.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_rocketpool_reth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_staderethx.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_swaapv2.PoolSimulator{})
