@@ -40,9 +40,11 @@ import (
 	pkg_liquiditysource_mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	pkg_liquiditysource_nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	pkg_liquiditysource_nomiswap_nomiswapstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
+	pkg_liquiditysource_primeeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	pkg_liquiditysource_puffer_pufeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	pkg_liquiditysource_renzo_ezeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
 	pkg_liquiditysource_rocketpool_reth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	pkg_liquiditysource_staderethx "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	pkg_liquiditysource_swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	pkg_liquiditysource_swell_rsweth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	pkg_liquiditysource_swell_sweth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
@@ -55,9 +57,9 @@ import (
 	pkg_liquiditysource_woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	pkg_liquiditysource_woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
 	pkg_source_algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
+	pkg_source_balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	pkg_source_balancer_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/stable"
 	pkg_source_balancer_weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer/weighted"
-	pkg_source_balancercomposablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer-composable-stable"
 	pkg_source_camelot "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/camelot"
 	pkg_source_curve_aave "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/aave"
 	pkg_source_curve_base "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/base"
@@ -114,6 +116,7 @@ import (
 	pkg_source_woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/woofiv2"
 	pkg_source_zkerafinance "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkera-finance"
 )
+
 func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv2_composablestable.PoolSimulator{})
@@ -150,9 +153,11 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_mkrsky.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_nativev1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_nomiswap_nomiswapstable.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_primeeth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_puffer_pufeth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_renzo_ezeth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_rocketpool_reth.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_staderethx.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_swaapv2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_swell_rsweth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_swell_sweth.PoolSimulator{})
