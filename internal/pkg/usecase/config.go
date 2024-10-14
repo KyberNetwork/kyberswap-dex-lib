@@ -20,27 +20,6 @@ type Config struct {
 }
 
 type (
-	TokenAndAmounts struct {
-		TokenAddress string   `mapstructure:"tokenAddress"`
-		Amounts      []string `mapstructure:"amounts"`
-	}
-
-	GenerateBestPathsOptions struct {
-		MaintainingIntervalSec int `mapstructure:"maintainingIntervalSec"`
-	}
-	SPFAFinderOptions struct {
-		MaxHops                 uint32  `mapstructure:"maxHops"`
-		DistributionPercent     uint32  `mapstructure:"distributionPercent"`
-		MaxPathsInRoute         uint32  `mapstructure:"maxPathsInRoute"`
-		MaxPathsToGenerate      uint32  `mapstructure:"maxPathsToGenerate"`
-		MaxPathsToReturn        uint32  `mapstructure:"maxPathsToReturn"`
-		MinPartUSD              float64 `mapstructure:"minPartUSD"`
-		MinThresholdAmountInUSD float64 `mapstructure:"minThresholdAmountInUSD"`
-		MaxThresholdAmountInUSD float64 `mapstructure:"maxThresholdAmountInUSD"`
-	}
-)
-
-type (
 	IndexPoolsConfig struct {
 		WhitelistedTokenSet map[string]bool `mapstructure:"whitelistedTokenSet"`
 		ChunkSize           int             `mapstructure:"chunkSize"`
