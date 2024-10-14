@@ -19,8 +19,8 @@ type Extra struct {
 }
 
 type SwapInfo struct {
-	WrappedToken0 string `json:"wrappedToken0"`
-	WrappedToken1 string `json:"wrappedToken1"`
+	WrappedTokenIn  string `json:"wrappedTokenIn"`
+	WrappedTokenOut string `json:"wrappedTokenOut"`
 }
 
 type PoolMeta struct {
