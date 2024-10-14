@@ -98,6 +98,8 @@ common:
     - "bancor-v21"
     - "native-v1"
     - "bebop"
+    - "wbeth"
+    - "oeth"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:

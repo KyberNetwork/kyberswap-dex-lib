@@ -74,6 +74,7 @@ common:
     - "native-v1"
     - "woofi-v3"
     - "bebop"
+    - "wbeth"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:

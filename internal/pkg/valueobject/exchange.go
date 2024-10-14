@@ -198,6 +198,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 	dexValueObject.ExchangeUsd0PP: {},
 	// executeBebop
 	dexValueObject.ExchangeBebop: {},
+
+	// executeWBETH
+	dexValueObject.ExchangeWBETH: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {
