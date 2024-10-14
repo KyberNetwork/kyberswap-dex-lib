@@ -36,6 +36,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	fluidvaultt1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
+	generic_simple_rate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
@@ -608,6 +609,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newFluidVaultT1(entityPool)
 	case pooltypes.PoolTypes.Usd0PP:
 		return f.newUsd0PP(entityPool)
+	case pooltypes.PoolTypes.GenericSimpleRate:
+		return f.newGenericSimpleRate(entityPool)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -2120,6 +2123,21 @@ func (f *PoolFactory) newUsd0PP(entityPool entity.Pool) (*usd0pp.PoolSimulator, 
 			"[PoolFactory.newUsd0PP] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newGenericSimpleRate(entityPool entity.Pool) (*generic_simple_rate.PoolSimulator, error) {
+	corePool, err := generic_simple_rate.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newGenericSimpleRate] pool: [%s] » type: [%s] » exchange: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+			entityPool.Exchange,
 		)
 	}
 
