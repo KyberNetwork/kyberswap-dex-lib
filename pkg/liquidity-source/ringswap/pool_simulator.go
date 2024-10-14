@@ -107,10 +107,10 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	wrappedTokenIn := s.wrappedToken0
 	wrappedTokenOut := s.wrappedToken1
 
-	if tokenAmountIn.Token != s.Pool.Info.Tokens[indexIn] {
+	if indexIn != 0 {
 		wrappedTokenIn = s.wrappedToken1
 	}
-	if tokenOut != s.Pool.Info.Tokens[indexOut] {
+	if indexOut != 1 {
 		wrappedTokenOut = s.wrappedToken0
 	}
 
@@ -187,10 +187,10 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 	wrappedTokenIn := s.wrappedToken0
 	wrappedTokenOut := s.wrappedToken1
 
-	if tokenIn != s.Pool.Info.Tokens[indexIn] {
+	if indexIn != 0 {
 		wrappedTokenIn = s.wrappedToken1
 	}
-	if tokenAmountOut.Token != s.Pool.Info.Tokens[indexOut] {
+	if indexOut != 1 {
 		wrappedTokenOut = s.wrappedToken0
 	}
 
