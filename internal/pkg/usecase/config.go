@@ -2,14 +2,16 @@ package usecase
 
 import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getcustomroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
 )
 
 type Config struct {
-	GetRoute   getroute.Config   `mapstructure:"getRoute" json:"getRoute"`
-	BuildRoute buildroute.Config `mapstructure:"buildRoute"`
+	GetRoute       getroute.Config       `mapstructure:"getRoute" json:"getRoute"`
+	GetCustomRoute getcustomroute.Config `mapstructure:"getCustomRoute" json:"getCustomRoute"`
+	BuildRoute     buildroute.Config     `mapstructure:"buildRoute"`
 
 	IndexPools IndexPoolsConfig `mapstructure:"indexPools" json:"indexPools"`
 

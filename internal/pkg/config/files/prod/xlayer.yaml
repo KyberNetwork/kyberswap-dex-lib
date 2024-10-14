@@ -241,6 +241,10 @@ useCase:
         NormalSlippage: 10
         HighSlippage: 50
       whitelistedClient:
+  getCustomRoute:
+    aggregator:
+      finderOptions:
+        maxHops: 5
   buildRoute:
     chainId: *chainId
     faultyPools:

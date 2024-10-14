@@ -5,11 +5,10 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-
-	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"

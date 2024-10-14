@@ -16,7 +16,9 @@ import (
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/l1encode"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode/l2encode"
 	"github.com/KyberNetwork/ethrpc"
+	_ "github.com/KyberNetwork/kyber-trace-go/tools"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/reload"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
@@ -28,8 +30,6 @@ import (
 	_ "go.uber.org/automaxprocs"
 	"golang.org/x/sync/errgroup"
 
-	_ "github.com/KyberNetwork/kyber-trace-go/tools"
-	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
 	"github.com/KyberNetwork/router-service/internal/pkg/bootstrap"
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
@@ -420,12 +420,19 @@ func apiAction(c *cli.Context) (err error) {
 	}
 
 	pathFinder, routeFinalizer, err := getroute.InitializeFinderEngine(cfg.UseCase.GetRoute, aevmClient)
-
 	if err != nil {
 		return err
 	}
 
-	finderEngine := finderEngine.NewPathFinderEngine(pathFinder, routeFinalizer)
+	finderEngine := finderengine.NewPathFinderEngine(pathFinder, routeFinalizer)
+
+	customRouteConfig := getcustomroute.ReplaceAggregatorConfig(cfg.UseCase.GetRoute, cfg.UseCase.GetCustomRoute)
+	customRoutePathFinder, customRouteRouteFinalizer, err := getroute.InitializeFinderEngine(customRouteConfig, aevmClient)
+	if err != nil {
+		return err
+	}
+
+	customRouteFinderEngine := finderengine.NewPathFinderEngine(customRoutePathFinder, customRouteRouteFinalizer)
 
 	getRouteUseCase := getroute.NewUseCase(
 		poolRankRepository,
@@ -472,13 +479,13 @@ func apiAction(c *cli.Context) (err error) {
 		onchainpriceRepository,
 		gasRepository,
 		poolRepository,
-		finderEngine,
+		customRouteFinderEngine,
 		getcustomroute.Config{
-			ChainID:          cfg.UseCase.GetRoute.ChainID,
-			RouterAddress:    cfg.UseCase.GetRoute.RouterAddress,
-			GasTokenAddress:  cfg.UseCase.GetRoute.GasTokenAddress,
-			AvailableSources: cfg.UseCase.GetRoute.AvailableSources,
-			Aggregator:       cfg.UseCase.GetRoute.Aggregator,
+			ChainID:          customRouteConfig.ChainID,
+			RouterAddress:    customRouteConfig.RouterAddress,
+			GasTokenAddress:  customRouteConfig.GasTokenAddress,
+			AvailableSources: customRouteConfig.AvailableSources,
+			Aggregator:       customRouteConfig.Aggregator,
 		},
 	)
 	l1Decoder := &decode.Decoder{}
@@ -861,7 +868,7 @@ func applyLatestConfigForAPI(
 	buildRouteParamsValidator api.IBuildRouteParamsValidator,
 	getRouteEncodeParamsValidator api.IGetRouteEncodeParamsValidator,
 	aevmClientUC IAEVMClientUseCase,
-	finderEngine finderEngine.IPathFinderEngine,
+	finderEngine finderengine.IPathFinderEngine,
 	aevmClient aevmclient.Client,
 	poolsPublisher poolmanager.IPoolsPublisher,
 ) error {
