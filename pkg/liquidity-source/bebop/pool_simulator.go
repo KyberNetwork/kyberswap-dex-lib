@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
 	"github.com/samber/lo"
 )
 
@@ -17,6 +18,8 @@ var (
 	ErrEmptyPriceLevels                       = errors.New("empty price levels")
 	ErrAmountInIsLessThanLowestPriceLevel     = errors.New("amountIn is less than lowest price level")
 	ErrAmountInIsGreaterThanHighestPriceLevel = errors.New("amountIn is greater than highest price level")
+	ErrTokenNotFound                          = errors.New("token not found")
+	ErrInsufficientLiquidity                  = errors.New("insufficient liquidity")
 )
 
 type (
@@ -108,24 +111,62 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return p.swap(params.TokenAmountIn.Amount, p.Token1, p.Token0, p.OneToZeroPriceLevels)
 	}
 }
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	var amountInAfterDecimals, decimalsPow, amountInBF big.Float
 	amountInBF.SetInt(params.TokenAmountIn.Amount)
+
 	if params.TokenAmountIn.Token == p.Token0.Address {
 		decimalsPow.SetFloat64(math.Pow10(int(p.Token0.Decimals)))
 		amountInAfterDecimals.Quo(&amountInBF, &decimalsPow)
 
 		p.ZeroToOnePriceLevels = getNewPriceLevelsState(&amountInAfterDecimals, p.ZeroToOnePriceLevels)
-	} else {
-		decimalsPow.SetFloat64(math.Pow10(int(p.Token1.Decimals)))
-		amountInAfterDecimals.Quo(&amountInBF, &decimalsPow)
+		_, _, err := params.SwapLimit.UpdateLimit(
+			p.Token1.Address, p.Token0.Address,
+			new(big.Int).Set(params.TokenAmountOut.Amount), new(big.Int).Set(params.TokenAmountIn.Amount),
+		)
+		if err != nil {
+			logger.Errorf("unable to update bebop limit, error: %v", err)
+		}
+		return
+	}
 
-		p.OneToZeroPriceLevels = getNewPriceLevelsState(&amountInAfterDecimals, p.OneToZeroPriceLevels)
+	// TokenIn == token1; TokenOut == token0
+	decimalsPow.SetFloat64(math.Pow10(int(p.Token1.Decimals)))
+	amountInAfterDecimals.Quo(&amountInBF, &decimalsPow)
+
+	p.OneToZeroPriceLevels = getNewPriceLevelsState(&amountInAfterDecimals, p.OneToZeroPriceLevels)
+	_, _, err := params.SwapLimit.UpdateLimit(
+		p.Token0.Address, p.Token1.Address,
+		new(big.Int).Set(params.TokenAmountOut.Amount), new(big.Int).Set(params.TokenAmountIn.Amount),
+	)
+	if err != nil {
+		logger.Errorf("unable to update bebop limit, error: %v", err)
 	}
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
+}
+
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	var pmmInventory = make(map[string]*big.Int, len(p.GetTokens()))
+	tokens := p.GetTokens()
+	rsv := p.GetReserves()
+	if len(tokens) != len(rsv) {
+		return pmmInventory
+	}
+
+	for i, tok := range tokens {
+		// rsv of a token can be set to 1 wei to bypass the aggregator check
+		if rsv[i].Int64() == 1 {
+			continue
+		}
+
+		pmmInventory[tok] = big.NewInt(0).Set(rsv[i]) //clone here.
+	}
+
+	return pmmInventory
 }
 
 func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.PoolToken,
