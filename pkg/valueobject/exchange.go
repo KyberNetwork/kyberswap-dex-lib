@@ -288,7 +288,6 @@ var (
 
 	ExchangePufferPufETH Exchange = "puffer-pufeth"
 
-	ExchangeRingSwap        Exchange = "ring-swap"
 	ExchangeThrusterV2      Exchange = "thruster-v2"
 	ExchangeThrusterV2Degen Exchange = "thruster-v2-degen"
 	ExchangeDyorSwap        Exchange = "dyor-swap"
@@ -354,6 +353,7 @@ var (
 	ExchangeUsd0PP       Exchange = "usd0pp"
 	ExchangeWBETH        Exchange = "wbeth"
 	ExchangeOETH         Exchange = "oeth"
+	ExchangeRingSwap     Exchange = "ringswap"
 	ExchangePrimeETH     Exchange = "primeeth"
 	ExchangeStaderETHx   Exchange = "staderethx"
 )
@@ -645,6 +645,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeUsd0PP:                     {},
 	ExchangeWBETH:                      {},
 	ExchangeOETH:                       {},
+	ExchangeRingSwap:                   {},
 	ExchangePrimeETH:                   {},
 	ExchangeStaderETHx:                 {},
 }
