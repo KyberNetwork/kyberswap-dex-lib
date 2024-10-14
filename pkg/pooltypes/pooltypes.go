@@ -15,6 +15,7 @@ import (
 	curveTricryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/tricrypto-ng"
 	curveTwocryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
@@ -232,6 +233,7 @@ type Types struct {
 	LitePSM                        string
 	Usd0PP                         string
 	Bebop                          string
+	Dexalot                        string
 	GenericSimpleRate              string
 	PrimeETH                       string
 	StaderETHx                     string
@@ -357,6 +359,7 @@ var (
 		LitePSM:                        litepsm.DexTypeLitePSM,
 		Usd0PP:                         usd0pp.DexType,
 		Bebop:                          bebop.DexType,
+		Dexalot:                        dexalot.DexType,
 		GenericSimpleRate:              generic_simple_rate.DexType,
 		PrimeETH:                       primeeth.DexType,
 		StaderETHx:                     staderethx.DexType,
