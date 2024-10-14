@@ -129,6 +129,10 @@ common:
     - "fluid-vault-t1"
     - "usd0pp"
     - "bebop"
+    - "wbeth"
+    - "oeth"
+    - "primeeth"
+    - "staderethx"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:

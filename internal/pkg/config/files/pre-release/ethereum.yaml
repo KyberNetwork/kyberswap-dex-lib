@@ -100,6 +100,9 @@ common:
     - "bebop"
     - "wbeth"
     - "oeth"
+    - "primeeth"
+    - "staderethx"
+
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:

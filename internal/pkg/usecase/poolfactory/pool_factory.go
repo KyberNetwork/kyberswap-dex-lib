@@ -6,6 +6,9 @@ import (
 	"math/big"
 	"sync"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
+
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	dexlibprivate "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source"
 	aevmpoolwrapper "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/aevm-pool/wrapper"
@@ -19,7 +22,7 @@ import (
 	balancerv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
-	bebop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
@@ -609,6 +612,10 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newFluidVaultT1(entityPool)
 	case pooltypes.PoolTypes.Usd0PP:
 		return f.newUsd0PP(entityPool)
+	case pooltypes.PoolTypes.PrimeETH:
+		return f.newPrimeETH(entityPool)
+	case pooltypes.PoolTypes.StaderETHx:
+		return f.newStaderETHx(entityPool)
 	case pooltypes.PoolTypes.GenericSimpleRate:
 		return f.newGenericSimpleRate(entityPool)
 	default:
@@ -619,7 +626,6 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 			entityPool.Type,
 		)
 	}
-
 }
 
 func (f *PoolFactory) newUni(entityPool entity.Pool) (*uniswap.PoolSimulator, error) {
@@ -2121,6 +2127,34 @@ func (f *PoolFactory) newUsd0PP(entityPool entity.Pool) (*usd0pp.PoolSimulator, 
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newUsd0PP] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newPrimeETH(entityPool entity.Pool) (*primeeth.PoolSimulator, error) {
+	corePool, err := primeeth.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newPrimeETH] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newStaderETHx(entityPool entity.Pool) (*staderethx.PoolSimulator, error) {
+	corePool, err := staderethx.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newStaderETHx] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
