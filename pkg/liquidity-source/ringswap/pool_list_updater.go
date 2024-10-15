@@ -214,14 +214,11 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 	pools := make([]entity.Pool, 0, len(pairAddresses))
 
 	for i, pairAddress := range pairAddresses {
-		token0Addr := originalTokens[token0List[i]]
-		token1Addr := originalTokens[token1List[i]]
-
 		extra := &Extra{
 			Fee:           u.config.Fee,
 			FeePrecision:  u.config.FeePrecision,
-			WrappedToken0: strings.ToLower(token0Addr.Hex()),
-			WrappedToken1: strings.ToLower(token1Addr.Hex()),
+			WrappedToken0: strings.ToLower(token0List[i].Hex()),
+			WrappedToken1: strings.ToLower(token1List[i].Hex()),
 		}
 
 		extraBytes, err := json.Marshal(extra)
@@ -230,12 +227,12 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 		}
 
 		token0 := &entity.PoolToken{
-			Address:   strings.ToLower(token0Addr.Hex()),
+			Address:   strings.ToLower(originalTokens[token0List[i]].Hex()),
 			Swappable: true,
 		}
 
 		token1 := &entity.PoolToken{
-			Address:   strings.ToLower(token1Addr.Hex()),
+			Address:   strings.ToLower(originalTokens[token1List[i]].Hex()),
 			Swappable: true,
 		}
 
