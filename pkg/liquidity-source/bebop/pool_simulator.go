@@ -114,6 +114,20 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
+	var amountInAfterDecimals, decimalsPow, amountInBF big.Float
+	amountInBF.SetInt(params.TokenAmountIn.Amount)
+	if params.TokenAmountIn.Token == p.Token0.Address {
+		decimalsPow.SetFloat64(math.Pow10(int(p.Token0.Decimals)))
+		amountInAfterDecimals.Quo(&amountInBF, &decimalsPow)
+
+		p.ZeroToOnePriceLevels = getNewPriceLevelsState(&amountInAfterDecimals, p.ZeroToOnePriceLevels)
+	} else {
+		decimalsPow.SetFloat64(math.Pow10(int(p.Token1.Decimals)))
+		amountInAfterDecimals.Quo(&amountInBF, &decimalsPow)
+
+		p.OneToZeroPriceLevels = getNewPriceLevelsState(&amountInAfterDecimals, p.OneToZeroPriceLevels)
+	}
+
 	// to handle the "top levels of orderbook" issue
 	// the swapLimit will be updated to 0, to limit using bebopRFQ once each route
 	// ref:https://team-kyber.slack.com/archives/C061UNZDUVC/p1728974288547259
@@ -213,4 +227,35 @@ func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel, amountOut *big.
 	}
 
 	return nil
+}
+
+func getNewPriceLevelsState(amountIn *big.Float, priceLevels []PriceLevel) []PriceLevel {
+	if len(priceLevels) == 0 {
+		return priceLevels
+	}
+
+	amountLeft := amountIn
+	currentLevelIdx := 0
+
+	for {
+		currentLevelAvailableAmount := priceLevels[currentLevelIdx].Quote
+
+		if currentLevelAvailableAmount.Cmp(amountLeft) > 0 {
+			// Update the price level at the current step because it's partially filled
+			priceLevels[currentLevelIdx].Quote.Sub(currentLevelAvailableAmount, amountLeft)
+			amountLeft.Set(zeroBF)
+		} else {
+			// Only increase the step if the current level is fully filled
+			amountLeft.Sub(amountLeft, priceLevels[currentLevelIdx].Quote)
+			priceLevels[currentLevelIdx].Quote.Set(zeroBF)
+			currentLevelIdx += 1
+		}
+
+		if amountLeft.Cmp(zeroBF) == 0 || currentLevelIdx == len(priceLevels) {
+			// We don't skip the used price levels, but just reset its quote to zero.
+			break
+		}
+	}
+
+	return priceLevels
 }
