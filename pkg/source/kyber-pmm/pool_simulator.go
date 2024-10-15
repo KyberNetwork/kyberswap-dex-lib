@@ -10,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/float"
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -142,37 +143,29 @@ func (p *PoolSimulator) CalcAmountOut(
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	swapDirection := p.getSwapDirection(params.TokenAmountIn.Token)
+	// to handle the "top levels of orderbook" issue
+	// the swapLimit will be updated to 0, to limit using bebopRFQ once each route
+	// ref:https://team-kyber.slack.com/archives/C061UNZDUVC/p1728974288547259
+	tokenInLimit := params.SwapLimit.GetLimit(params.TokenAmountIn.Token)
+	tokenOutLimit := params.SwapLimit.GetLimit(params.TokenAmountOut.Token)
 
-	if swapDirection == SwapDirectionBaseToQuote {
-		amountInAfterDecimals := new(big.Float).Quo(
-			new(big.Float).SetInt(params.TokenAmountIn.Amount),
-			bignumber.TenPowDecimals(p.baseToken.Decimals),
-		)
-
-		p.baseToQuotePriceLevels = getNewPriceLevelsState(amountInAfterDecimals, p.baseToQuotePriceLevels)
-		newQuoteInventory, newBaseInventory, err := params.SwapLimit.UpdateLimit(p.quoteToken.Address, p.baseToken.Address, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
-		if err != nil {
-			fmt.Println("unable to update PMM info, error:", err)
-		}
-		p.QuoteBalance = newQuoteInventory
-		p.BaseBalance = newBaseInventory
-	} else {
-		amountInAfterDecimals := new(big.Float).Quo(
-			new(big.Float).SetInt(params.TokenAmountIn.Amount),
-			bignumber.TenPowDecimals(p.quoteToken.Decimals),
-		)
-
-		p.quoteToBasePriceLevels = getNewPriceLevelsState(amountInAfterDecimals, p.quoteToBasePriceLevels)
-
-		newBaseInventory, newQuoteInventory, err := params.SwapLimit.UpdateLimit(p.baseToken.Address, p.quoteToken.Address, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
-		if err != nil {
-			fmt.Println("unable to update PMM info, error:", err)
-		}
-		p.QuoteBalance = newQuoteInventory
-		p.BaseBalance = newBaseInventory
-
+	_, _, err := params.SwapLimit.UpdateLimit(
+		params.TokenAmountIn.Token, params.TokenAmountOut.Token,
+		tokenInLimit, common.Big0,
+	)
+	if err != nil {
+		fmt.Println("unable decrease token in, error:", err)
 	}
+
+	_, _, err = params.SwapLimit.UpdateLimit(
+		params.TokenAmountOut.Token, params.TokenAmountIn.Token,
+		tokenOutLimit, common.Big0,
+	)
+	if err != nil {
+		fmt.Println("unable decrease token out, error:", err)
+	}
+	p.QuoteBalance = big.NewInt(0)
+	p.BaseBalance = big.NewInt(0)
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
