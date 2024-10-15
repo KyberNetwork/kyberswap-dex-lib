@@ -17,6 +17,8 @@ var (
 	ethereum []byte
 	//go:embed preloaded/scroll
 	scroll []byte
+	//go:embed preloaded/arbitrum
+	arbitrum []byte
 )
 
 // ERC20 balance slots calculated beforehand. This make bootstrapping router-service more convinent.
@@ -24,6 +26,7 @@ var preloadedByPrefix = map[valueobject.ChainID][]byte{
 	valueobject.ChainIDAvalancheCChain: avalanche,
 	valueobject.ChainIDEthereum:        ethereum,
 	valueobject.ChainIDScroll:          scroll,
+	valueobject.ChainIDArbitrumOne:     arbitrum,
 }
 
 func SerializePreloaded(preloaded types.TokenBalanceSlots) ([]byte, error) {
