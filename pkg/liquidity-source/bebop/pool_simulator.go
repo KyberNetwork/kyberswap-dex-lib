@@ -216,34 +216,3 @@ func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel, amountOut *big.
 
 	return nil
 }
-
-func getNewPriceLevelsState(amountIn *big.Float, priceLevels []PriceLevel) []PriceLevel {
-	if len(priceLevels) == 0 {
-		return priceLevels
-	}
-
-	amountLeft := amountIn
-	currentLevelIdx := 0
-
-	for {
-		currentLevelAvailableAmount := priceLevels[currentLevelIdx].Quote
-
-		if currentLevelAvailableAmount.Cmp(amountLeft) > 0 {
-			// Update the price level at the current step because it's partially filled
-			priceLevels[currentLevelIdx].Quote.Sub(currentLevelAvailableAmount, amountLeft)
-			amountLeft.Set(zeroBF)
-		} else {
-			// Only increase the step if the current level is fully filled
-			amountLeft.Sub(amountLeft, priceLevels[currentLevelIdx].Quote)
-			priceLevels[currentLevelIdx].Quote.Set(zeroBF)
-			currentLevelIdx += 1
-		}
-
-		if amountLeft.Cmp(zeroBF) == 0 || currentLevelIdx == len(priceLevels) {
-			// We don't skip the used price levels, but just reset its quote to zero.
-			break
-		}
-	}
-
-	return priceLevels
-}

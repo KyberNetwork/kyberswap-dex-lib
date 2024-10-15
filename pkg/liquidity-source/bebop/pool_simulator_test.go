@@ -142,7 +142,7 @@ func TestPoolSimulator_GetAmountOut2(t *testing.T) {
 				Limit:    NewLimit(nil),
 			}
 			if tc.updateLimit {
-				params.Limit.UpdateLimit("", "", nil, nil)
+				_, _, _ = params.Limit.UpdateLimit("", "", nil, nil)
 			}
 
 			result, err := poolSimulator.CalcAmountOut(params)
