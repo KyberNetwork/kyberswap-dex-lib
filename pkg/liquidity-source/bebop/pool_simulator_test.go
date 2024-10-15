@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/stretchr/testify/assert"
 )
@@ -93,7 +92,7 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 					Amount: tc.amountIn,
 				},
 				TokenOut: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
-				Limit:    kyberpmm.NewInventory(poolSimulator.CalculateLimit()),
+				Limit:    NewLimit(nil),
 			}
 
 			result, err := poolSimulator.CalcAmountOut(params)
@@ -111,14 +110,23 @@ func TestPoolSimulator_GetAmountOut2(t *testing.T) {
 
 	tests := []struct {
 		name              string
+		updateLimit       bool
 		amountIn          *big.Int
 		expectedAmountOut *big.Int
 		expectedErr       error
 	}{
 		{
 			name:              "it should return correct amountOut when swap in levels",
+			updateLimit:       false,
 			amountIn:          bigIntFromString("100000000000000000000"),
 			expectedAmountOut: bigIntFromString("7595710"),
+		},
+		{
+			name:              "it should return not enough inventory",
+			updateLimit:       true,
+			amountIn:          bigIntFromString("100000000000000000000"),
+			expectedAmountOut: bigIntFromString("7595710"),
+			expectedErr:       pool.ErrNotEnoughInventory,
 		},
 	}
 
@@ -131,7 +139,10 @@ func TestPoolSimulator_GetAmountOut2(t *testing.T) {
 					Amount: tc.amountIn,
 				},
 				TokenOut: "0xdac17f958d2ee523a2206206994597c13d831ec7",
-				Limit:    kyberpmm.NewInventory(poolSimulator.CalculateLimit()),
+				Limit:    NewLimit(nil),
+			}
+			if tc.updateLimit {
+				params.Limit.UpdateLimit("", "", nil, nil)
 			}
 
 			result, err := poolSimulator.CalcAmountOut(params)

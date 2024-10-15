@@ -10,7 +10,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
 	"github.com/samber/lo"
 )
 
@@ -105,6 +104,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if params.Limit.GetLimit("") != nil {
+		return nil, pool.ErrNotEnoughInventory
+	}
+
 	if params.TokenAmountIn.Token == p.Info.Tokens[0] {
 		return p.swap(params.TokenAmountIn.Amount, p.Token0, p.Token1, p.ZeroToOnePriceLevels)
 	} else {
@@ -113,36 +116,13 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	var amountInAfterDecimals, decimalsPow, amountInBF big.Float
-	amountInBF.SetInt(params.TokenAmountIn.Amount)
-
-	if params.TokenAmountIn.Token == p.Token0.Address {
-		decimalsPow.SetFloat64(math.Pow10(int(p.Token0.Decimals)))
-		amountInAfterDecimals.Quo(&amountInBF, &decimalsPow)
-
-		p.ZeroToOnePriceLevels = getNewPriceLevelsState(&amountInAfterDecimals, p.ZeroToOnePriceLevels)
-		_, _, err := params.SwapLimit.UpdateLimit(
-			p.Token1.Address, p.Token0.Address,
-			new(big.Int).Set(params.TokenAmountOut.Amount), new(big.Int).Set(params.TokenAmountIn.Amount),
-		)
-		if err != nil {
-			logger.Errorf("unable to update bebop limit, error: %v", err)
-		}
-		return
-	}
-
-	// TokenIn == token1; TokenOut == token0
-	decimalsPow.SetFloat64(math.Pow10(int(p.Token1.Decimals)))
-	amountInAfterDecimals.Quo(&amountInBF, &decimalsPow)
-
-	p.OneToZeroPriceLevels = getNewPriceLevelsState(&amountInAfterDecimals, p.OneToZeroPriceLevels)
-	_, _, err := params.SwapLimit.UpdateLimit(
-		p.Token0.Address, p.Token1.Address,
-		new(big.Int).Set(params.TokenAmountOut.Amount), new(big.Int).Set(params.TokenAmountIn.Amount),
+	// to handle the "top levels of orderbook" issue
+	// the swapLimit will be updated to 0, to limit using bebopRFQ once each route
+	// ref:https://team-kyber.slack.com/archives/C061UNZDUVC/p1728974288547259
+	_, _, _ = params.SwapLimit.UpdateLimit(
+		"", "",
+		nil, nil,
 	)
-	if err != nil {
-		logger.Errorf("unable to update bebop limit, error: %v", err)
-	}
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
