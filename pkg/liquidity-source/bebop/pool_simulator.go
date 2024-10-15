@@ -17,8 +17,6 @@ var (
 	ErrEmptyPriceLevels                       = errors.New("empty price levels")
 	ErrAmountInIsLessThanLowestPriceLevel     = errors.New("amountIn is less than lowest price level")
 	ErrAmountInIsGreaterThanHighestPriceLevel = errors.New("amountIn is greater than highest price level")
-	ErrTokenNotFound                          = errors.New("token not found")
-	ErrInsufficientLiquidity                  = errors.New("insufficient liquidity")
 )
 
 type (
