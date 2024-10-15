@@ -1,12 +1,14 @@
 package ringswap
 
+import uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
+
 const (
 	DexType     = "ringswap"
 	ZeroAddress = "0x0000000000000000000000000000000000000000"
 )
 
 var (
-	defaultGas = Gas{Swap: 60000}
+	defaultGas = uniswapv2.Gas{Swap: 60000}
 )
 
 const (
@@ -19,19 +21,5 @@ const (
 	pairMethodToken1      = "token1"
 	pairMethodGetReserves = "getReserves"
 
-	meerkatPairMethodSwapFee                   = "swapFee"
-	mdexFactoryMethodGetPairFees               = "getPairFees"
-	shibaswapPairMethodTotalFee                = "totalFee"
-	croDefiSwapFactoryMethodTotalFeeBasisPoint = "totalFeeBasisPoint"
-	zkSwapFinancePairMethodGetSwapFee          = "getSwapFee"
-
 	fewWrappedTokenGetTokenMethod = "token"
-)
-
-const (
-	FeeTrackerIDMMF         = "mmf"
-	FeeTrackerIDMdex        = "mdex"
-	FeeTrackerIDShibaswap   = "shibaswap"
-	FeeTrackerIDDefiswap    = "defiswap"
-	FeeTrackerZKSwapFinance = "zkswap-finance"
 )

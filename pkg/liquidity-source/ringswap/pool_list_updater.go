@@ -12,6 +12,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
@@ -19,10 +20,6 @@ type (
 	PoolsListUpdater struct {
 		config       *Config
 		ethrpcClient *ethrpc.Client
-	}
-
-	PoolsListUpdaterMetadata struct {
-		Offset int `json:"offset"`
 	}
 )
 
@@ -131,7 +128,7 @@ func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
 		return 0, nil
 	}
 
-	var metadata PoolsListUpdaterMetadata
+	var metadata uniswapv2.PoolsListUpdaterMetadata
 	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
 		return 0, err
 	}
@@ -182,21 +179,31 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 
 	req := u.ethrpcClient.NewRequest().SetContext(ctx)
 
-	originalToken0List := make([]common.Address, len(pairAddresses))
-	originalToken1List := make([]common.Address, len(pairAddresses))
+	// Use a map to track queried original tokens and related wrapped tokens
+	originalTokens := make(map[common.Address]*common.Address, len(pairAddresses)*2)
 
 	for i := range pairAddresses {
-		req.AddCall(&ethrpc.Call{
-			ABI:    fewWrappedTokenABI,
-			Target: token0List[i].Hex(),
-			Method: fewWrappedTokenGetTokenMethod,
-		}, []interface{}{&originalToken0List[i]})
+		var originalToken0 = token0List[i]
+		if _, exists := originalTokens[token0List[i]]; !exists {
+			req.AddCall(&ethrpc.Call{
+				ABI:    fewWrappedTokenABI,
+				Target: token0List[i].Hex(),
+				Method: fewWrappedTokenGetTokenMethod,
+			}, []interface{}{&originalToken0})
 
-		req.AddCall(&ethrpc.Call{
-			ABI:    fewWrappedTokenABI,
-			Target: token1List[i].Hex(),
-			Method: fewWrappedTokenGetTokenMethod,
-		}, []interface{}{&originalToken1List[i]})
+			originalTokens[token0List[i]] = &originalToken0
+		}
+
+		var originalToken1 = token1List[i]
+		if _, exists := originalTokens[token1List[i]]; !exists {
+			req.AddCall(&ethrpc.Call{
+				ABI:    fewWrappedTokenABI,
+				Target: token1List[i].Hex(),
+				Method: fewWrappedTokenGetTokenMethod,
+			}, []interface{}{&originalToken1})
+
+			originalTokens[token1List[i]] = &originalToken1
+		}
 	}
 
 	_, err = req.TryAggregate()
@@ -207,38 +214,29 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 	pools := make([]entity.Pool, 0, len(pairAddresses))
 
 	for i, pairAddress := range pairAddresses {
+		token0Addr := originalTokens[token0List[i]]
+		token1Addr := originalTokens[token1List[i]]
+
 		extra := &Extra{
-			Fee:          u.config.Fee,
-			FeePrecision: u.config.FeePrecision,
-		}
-
-		var (
-			token0Addr = token0List[i].Hex()
-			token1Addr = token1List[i].Hex()
-		)
-
-		if originalToken0List[i].Hex() != ZeroAddress {
-			extra.WrappedToken0 = strings.ToLower(token0Addr)
-			token0Addr = originalToken0List[i].Hex()
-		}
-		if originalToken1List[i].Hex() != ZeroAddress {
-			extra.WrappedToken1 = strings.ToLower(token1Addr)
-			token1Addr = originalToken1List[i].Hex()
-		}
-
-		token0 := &entity.PoolToken{
-			Address:   strings.ToLower(token0Addr),
-			Swappable: true,
-		}
-
-		token1 := &entity.PoolToken{
-			Address:   strings.ToLower(token1Addr),
-			Swappable: true,
+			Fee:           u.config.Fee,
+			FeePrecision:  u.config.FeePrecision,
+			WrappedToken0: strings.ToLower(token0Addr.Hex()),
+			WrappedToken1: strings.ToLower(token1Addr.Hex()),
 		}
 
 		extraBytes, err := json.Marshal(extra)
 		if err != nil {
 			return nil, err
+		}
+
+		token0 := &entity.PoolToken{
+			Address:   strings.ToLower(token0Addr.Hex()),
+			Swappable: true,
+		}
+
+		token1 := &entity.PoolToken{
+			Address:   strings.ToLower(token1Addr.Hex()),
+			Swappable: true,
 		}
 
 		var newPool = entity.Pool{
@@ -290,7 +288,7 @@ func (u *PoolsListUpdater) listPairTokens(ctx context.Context, pairAddresses []c
 }
 
 func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
-	metadata := PoolsListUpdaterMetadata{
+	metadata := uniswapv2.PoolsListUpdaterMetadata{
 		Offset: newOffset,
 	}
 

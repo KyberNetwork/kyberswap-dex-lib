@@ -9,6 +9,7 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
+	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
@@ -64,6 +65,110 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			tokenOut:          "0x32a7c02e79c4ea1008dd6564b35f131428673c41",
 			expectedAmountOut: utils.NewBig("161006857684289764421"),
 			expectedError:     nil,
+		},
+		{
+			name: "[swapWrapped0toOriginal1] it should return correct amountOut when swapping from wrapped token 0 to original token 1",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:  "0x1234567890abcdef1234567890abcdef12345678",
+						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000")},
+						Tokens: []string{
+							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
+							"0x4300000000000000000000000000000000000004", // Original token 1
+						},
+					},
+				},
+				wrappedToken0: "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+				wrappedToken1: "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
+				fee:           number.NewUint256("3"),
+				feePrecision:  number.NewUint256("1000"),
+			},
+			tokenAmountIn: poolpkg.TokenAmount{
+				Amount: utils.NewBig("5000000"),
+				Token:  "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+			},
+			tokenOut:          "0x4300000000000000000000000000000000000004", // Original token 1
+			expectedAmountOut: utils.NewBig("2988020"),
+			expectedError:     nil,
+		},
+		{
+			name: "[swapOriginal0toWrapped1] it should return correct amountOut when swapping from original token 0 to wrapped token 1",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:  "0x1234567890abcdef1234567890abcdef12345678",
+						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000")},
+						Tokens: []string{
+							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
+							"0x4300000000000000000000000000000000000004", // Original token 1
+						},
+					},
+				},
+				wrappedToken0: "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+				wrappedToken1: "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
+				fee:           number.NewUint256("3"),
+				feePrecision:  number.NewUint256("1000"),
+			},
+			tokenAmountIn: poolpkg.TokenAmount{
+				Amount: utils.NewBig("2000000"),
+				Token:  "0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
+			},
+			tokenOut:          "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
+			expectedAmountOut: utils.NewBig("1195923"),
+			expectedError:     nil,
+		},
+		{
+			name: "[swapWrapped0toOriginal0] it should return an error when trying to swap from wrapped token 0 to original token 0",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:  "0x1234567890abcdef1234567890abcdef12345678",
+						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000")},
+						Tokens: []string{
+							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
+							"0x4300000000000000000000000000000000000004", // Original token 1
+						},
+					},
+				},
+				wrappedToken0: "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+				wrappedToken1: "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
+				fee:           number.NewUint256("3"),
+				feePrecision:  number.NewUint256("1000"),
+			},
+			tokenAmountIn: poolpkg.TokenAmount{
+				Amount: utils.NewBig("5000000"),
+				Token:  "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+			},
+			tokenOut:          "0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
+			expectedAmountOut: nil,
+			expectedError:     uniswapv2.ErrInvalidToken,
+		},
+		{
+			name: "[swapOriginal0toWrapped0] it should return an error when trying to swap from original token 0 to wrapped token 0",
+			poolSimulator: PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:  "0x1234567890abcdef1234567890abcdef12345678",
+						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000")},
+						Tokens: []string{
+							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
+							"0x4300000000000000000000000000000000000004", // Original token 1
+						},
+					},
+				},
+				wrappedToken0: "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+				wrappedToken1: "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
+				fee:           number.NewUint256("3"),
+				feePrecision:  number.NewUint256("1000"),
+			},
+			tokenAmountIn: poolpkg.TokenAmount{
+				Amount: utils.NewBig("1000000"),
+				Token:  "0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
+			},
+			tokenOut:          "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+			expectedAmountOut: nil,
+			expectedError:     uniswapv2.ErrInvalidToken,
 		},
 	}
 
@@ -268,7 +373,7 @@ func TestPoolSimulator_getAmountIn(t *testing.T) {
 			reserveOut:       number.NewUint256("1161607"),
 			amountOut:        number.NewUint256("500000000"),
 			expectedAmountIn: nil,
-			expectedErr:      ErrDSMathSubUnderflow,
+			expectedErr:      uniswapv2.ErrDSMathSubUnderflow,
 		},
 	}
 
