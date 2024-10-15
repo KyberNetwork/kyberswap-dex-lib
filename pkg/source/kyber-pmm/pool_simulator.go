@@ -164,8 +164,6 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if err != nil {
 		fmt.Println("unable decrease token out, error:", err)
 	}
-	p.QuoteBalance = big.NewInt(0)
-	p.BaseBalance = big.NewInt(0)
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
