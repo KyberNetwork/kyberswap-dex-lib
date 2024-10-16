@@ -145,6 +145,10 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Token:  assetOut.Address,
 			Amount: amountOut,
 		},
+		Fee: &pool.TokenAmount{
+			Token:  assetOut.Address,
+			Amount: bignumber.ZeroBI,
+		},
 
 		// TODO: Define gas
 
@@ -159,3 +163,5 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {}
+
+func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} { return nil }
