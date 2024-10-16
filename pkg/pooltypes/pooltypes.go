@@ -234,7 +234,7 @@ type Types struct {
 	Usd0PP                         string
 	Bebop                          string
 	GenericSimpleRate              string
-	Ringswap                       string
+	RingSwap                       string
 	PrimeETH                       string
 	StaderETHx                     string
 }
@@ -360,7 +360,7 @@ var (
 		Usd0PP:                         usd0pp.DexType,
 		Bebop:                          bebop.DexType,
 		GenericSimpleRate:              generic_simple_rate.DexType,
-		Ringswap:                       ringswap.DexType,
+		RingSwap:                       ringswap.DexType,
 		PrimeETH:                       primeeth.DexType,
 		StaderETHx:                     staderethx.DexType,
 	}
