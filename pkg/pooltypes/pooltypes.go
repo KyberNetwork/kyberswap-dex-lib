@@ -9,6 +9,7 @@ import (
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
 	curveStableNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
@@ -243,6 +244,7 @@ type Types struct {
 	StaderETHx                     string
 	MantleETH                      string
 	OndoUSDY                       string
+	Clipper                        string
 }
 
 var (
@@ -372,5 +374,6 @@ var (
 		StaderETHx:                     staderethx.DexType,
 		MantleETH:                      meth.DexType,
 		OndoUSDY:                       ondo_usdy.DexType,
+		Clipper:                        clipper.DexType,
 	}
 )
