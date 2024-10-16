@@ -383,7 +383,10 @@ func newSwapLimit(dex string, limit map[string]*big.Int) poolpkg.SwapLimit {
 		return synthetix.NewLimits(limit)
 	case pooltypes.PoolTypes.LimitOrder:
 		return limitorder.NewInventory(limit)
+	case pooltypes.PoolTypes.Bebop:
+		return bebop.NewLimit(limit)
 	}
+
 	return nil
 }
 
@@ -1885,7 +1888,7 @@ func (f *PoolFactory) newBebop(entityPool entity.Pool) (*bebop.PoolSimulator, er
 	if err != nil {
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
-			"[PoolFactory.newNativeV1] pool: [%s] » type: [%s] cause by %v",
+			"[PoolFactory.newBebop] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
 			entityPool.Type,
 			err,
