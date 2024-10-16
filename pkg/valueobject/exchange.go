@@ -358,6 +358,8 @@ var (
 	ExchangePrimeETH     Exchange = "primeeth"
 	ExchangeStaderETHx   Exchange = "staderethx"
 	ExchangeFrxETH       Exchange = "frxeth"
+
+	ExchangeClipper Exchange = "clipper"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
