@@ -147,6 +147,14 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		},
 
 		// TODO: Define gas
+
+		SwapInfo: SwapInfo{
+			ChainID:           p.extra.ChainID,
+			TimeInSeconds:     p.extra.TimeInSeconds,
+			InputAmount:       params.TokenAmountIn.Amount,
+			InputAssetSymbol:  assetIn.Symbol,
+			OutputAssetSymbol: assetOut.Symbol,
+		},
 	}, nil
 }
 
