@@ -125,6 +125,8 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -615,6 +617,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newFluidVaultT1(entityPool)
 	case pooltypes.PoolTypes.Usd0PP:
 		return f.newUsd0PP(entityPool)
+	case pooltypes.PoolTypes.RingSwap:
+		return f.newRingSwap(entityPool)
 	case pooltypes.PoolTypes.PrimeETH:
 		return f.newPrimeETH(entityPool)
 	case pooltypes.PoolTypes.StaderETHx:
@@ -2130,6 +2134,20 @@ func (f *PoolFactory) newUsd0PP(entityPool entity.Pool) (*usd0pp.PoolSimulator, 
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newUsd0PP] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newRingSwap(entityPool entity.Pool) (*ringswap.PoolSimulator, error) {
+	corePool, err := ringswap.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newRingSwap] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

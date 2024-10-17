@@ -77,7 +77,6 @@ var (
 		valueobject.ExchangeKokonutCpmm:     true,
 		valueobject.ExchangeZebra:           true,
 		valueobject.ExchangeZKSwap:          true,
-		valueobject.ExchangeRingSwap:        true,
 		valueobject.ExchangeThrusterV2:      true,
 		valueobject.ExchangeThrusterV2Degen: true,
 		valueobject.ExchangeDyorSwap:        true,

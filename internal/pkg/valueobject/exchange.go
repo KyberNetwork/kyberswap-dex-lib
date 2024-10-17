@@ -196,6 +196,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeUsd0PP
 	dexValueObject.ExchangeUsd0PP: {},
+
+	// executeRingSwap
+	dexValueObject.ExchangeRingSwap: {},
 	// executeBebop
 	dexValueObject.ExchangeBebop: {},
 
