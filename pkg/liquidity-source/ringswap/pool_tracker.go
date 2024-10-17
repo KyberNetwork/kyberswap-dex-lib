@@ -90,13 +90,12 @@ func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, logs 
 }
 
 func (d *PoolTracker) updatePool(pool entity.Pool, reserveData uniswapv2.ReserveData, blockNumber *big.Int) (entity.Pool, error) {
-	pool.Reserves = entity.PoolReserves{
-		reserveData.Reserve0.String(),
-		reserveData.Reserve1.String(),
+	if len(pool.Reserves) >= 2 {
+		pool.Reserves[0] = reserveData.Reserve0.String()
+		pool.Reserves[1] = reserveData.Reserve1.String()
+		pool.BlockNumber = blockNumber.Uint64()
+		pool.Timestamp = time.Now().Unix()
 	}
-
-	pool.BlockNumber = blockNumber.Uint64()
-	pool.Timestamp = time.Now().Unix()
 
 	return pool, nil
 }
