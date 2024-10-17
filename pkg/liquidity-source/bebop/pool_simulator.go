@@ -102,12 +102,17 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if params.Limit.GetLimit("") != nil {
+		return nil, pool.ErrNotEnoughInventory
+	}
+
 	if params.TokenAmountIn.Token == p.Info.Tokens[0] {
 		return p.swap(params.TokenAmountIn.Amount, p.Token0, p.Token1, p.ZeroToOnePriceLevels)
 	} else {
 		return p.swap(params.TokenAmountIn.Amount, p.Token1, p.Token0, p.OneToZeroPriceLevels)
 	}
 }
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	var amountInAfterDecimals, decimalsPow, amountInBF big.Float
 	amountInBF.SetInt(params.TokenAmountIn.Amount)
@@ -122,10 +127,38 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 		p.OneToZeroPriceLevels = getNewPriceLevelsState(&amountInAfterDecimals, p.OneToZeroPriceLevels)
 	}
+
+	// to handle the "top levels of orderbook" issue
+	// the swapLimit will be updated to 0, to limit using bebopRFQ once each route
+	// ref:https://team-kyber.slack.com/archives/C061UNZDUVC/p1728974288547259
+	_, _, _ = params.SwapLimit.UpdateLimit(
+		"", "",
+		nil, nil,
+	)
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
+}
+
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	var pmmInventory = make(map[string]*big.Int, len(p.GetTokens()))
+	tokens := p.GetTokens()
+	rsv := p.GetReserves()
+	if len(tokens) != len(rsv) {
+		return pmmInventory
+	}
+
+	for i, tok := range tokens {
+		// rsv of a token can be set to 1 wei to bypass the aggregator check
+		if rsv[i].Int64() == 1 {
+			continue
+		}
+
+		pmmInventory[tok] = big.NewInt(0).Set(rsv[i]) //clone here.
+	}
+
+	return pmmInventory
 }
 
 func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.PoolToken,
