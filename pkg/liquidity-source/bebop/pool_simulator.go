@@ -102,7 +102,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	if params.Limit.GetLimit("") != nil {
+	if params.Limit != nil && params.Limit.GetLimit("") != nil {
 		return nil, pool.ErrNotEnoughInventory
 	}
 
@@ -131,6 +131,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// to handle the "top levels of orderbook" issue
 	// the swapLimit will be updated to 0, to limit using bebopRFQ once each route
 	// ref:https://team-kyber.slack.com/archives/C061UNZDUVC/p1728974288547259
+	if params.SwapLimit == nil {
+		return
+	}
+
 	_, _, _ = params.SwapLimit.UpdateLimit(
 		"", "",
 		nil, nil,
