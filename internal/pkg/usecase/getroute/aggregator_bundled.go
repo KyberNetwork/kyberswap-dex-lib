@@ -165,10 +165,7 @@ func (a *bundledAggregator) findBestBundledRoute(
 	if !ok {
 		return nil, errors.WithMessagef(ErrInvalidToken, "invalid gasToken: %v", params.GasToken)
 	}
-	gasTokenPrice, ok := priceUSDByAddress[params.GasToken]
-	if !ok {
-		return nil, errors.WithMessagef(ErrInvalidToken, "invalid gasTokenPrice: %v", params.GasToken)
-	}
+	gasTokenPrice := GetPriceOnchainWithFallback(params.GasToken, priceUSDByAddress, priceByAddress, true)
 
 	for _, pair := range params.Pairs {
 		tokenIn, ok := tokenByAddress[pair.TokenIn]
@@ -179,14 +176,8 @@ func (a *bundledAggregator) findBestBundledRoute(
 		if !ok {
 			return nil, errors.WithMessagef(ErrInvalidToken, "invalid tokenOut: %v", pair.TokenOut)
 		}
-		tokenInPrice, ok := priceUSDByAddress[pair.TokenIn]
-		if !ok {
-			return nil, errors.WithMessagef(ErrInvalidToken, "invalid tokenInPrice: %v", pair.TokenIn)
-		}
-		tokenOutPrice, ok := priceUSDByAddress[pair.TokenOut]
-		if !ok {
-			return nil, errors.WithMessagef(ErrInvalidToken, "invalid tokenOutPrice: %v", pair.TokenOut)
-		}
+		tokenInPrice := GetPriceOnchainWithFallback(pair.TokenIn, priceUSDByAddress, priceByAddress, false)  // use sell price for tokenIn
+		tokenOutPrice := GetPriceOnchainWithFallback(pair.TokenOut, priceUSDByAddress, priceByAddress, true) // use buy price for token out and gas
 
 		amountInUSD := utils.CalcTokenAmountUsd(pair.AmountIn, tokenIn.Decimals, tokenInPrice)
 		if amountInUSD > MaxAmountInUSD {

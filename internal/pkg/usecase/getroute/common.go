@@ -148,6 +148,28 @@ func CollectTokenPrices(
 	return prices
 }
 
+func GetPriceOnchainWithFallback(
+	tokenAddress string,
+	priceUSDByAddress map[string]float64,
+	priceByAddress map[string]*routerEntity.OnchainPrice,
+	isBuyPrice bool,
+) float64 {
+	onChainPrice, ok := priceByAddress[tokenAddress]
+	if ok && onChainPrice != nil {
+		if isBuyPrice && onChainPrice.USDPrice.Buy != nil {
+			tokenPrice, _ := onChainPrice.USDPrice.Buy.Float64()
+			return tokenPrice
+		}
+		if !isBuyPrice && onChainPrice.USDPrice.Sell != nil {
+			tokenPrice, _ := onChainPrice.USDPrice.Sell.Float64()
+			return tokenPrice
+		}
+	}
+
+	// Fallback to legacy price-service
+	return priceUSDByAddress[tokenAddress]
+}
+
 func ConvertToRouteSummary(params *types.AggregateParams, route *finderEntity.Route) *valueobject.RouteSummary {
 	paths := make([][]valueobject.Swap, 0, len(route.Route))
 	for _, path := range route.Route {
