@@ -128,12 +128,12 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, uniswapv2.ErrInsufficientOutputAmount
 	}
 
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn/2])
+	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn%2])
 	if overflow {
 		return nil, uniswapv2.ErrInvalidReserve
 	}
 
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut/2])
+	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut%2])
 	if overflow {
 		return nil, uniswapv2.ErrInvalidReserve
 	}
