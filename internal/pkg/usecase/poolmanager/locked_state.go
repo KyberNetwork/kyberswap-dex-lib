@@ -21,6 +21,7 @@ func NewLockedState() *LockedState {
 	limits[pooltypes.PoolTypes.Synthetix] = make(map[string]*big.Int)
 	limits[pooltypes.PoolTypes.NativeV1] = make(map[string]*big.Int)
 	limits[pooltypes.PoolTypes.LimitOrder] = make(map[string]*big.Int)
+	limits[pooltypes.PoolTypes.Bebop] = make(map[string]*big.Int)
 
 	return &LockedState{
 		poolByAddress: make(map[string]poolpkg.IPoolSimulator),
