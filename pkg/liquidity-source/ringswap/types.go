@@ -1,10 +1,8 @@
 package ringswap
 
 type Extra struct {
-	Fee           uint64 `json:"fee"`
-	FeePrecision  uint64 `json:"feePrecision"`
-	WrappedToken0 string `json:"wrappedToken0"`
-	WrappedToken1 string `json:"wrappedToken1"`
+	Fee          uint64 `json:"fee"`
+	FeePrecision uint64 `json:"feePrecision"`
 }
 
 type SwapInfo struct {

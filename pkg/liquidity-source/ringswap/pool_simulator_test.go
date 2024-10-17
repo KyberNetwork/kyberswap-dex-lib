@@ -29,9 +29,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			poolSimulator: PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
-						Address:  "0x3041cbd36888becc7bbcbc0045e3b1f144466f5f",
-						Tokens:   []string{"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "0xdac17f958d2ee523a2206206994597c13d831ec7"},
-						Reserves: []*big.Int{utils.NewBig("10089138480746"), utils.NewBig("10066716097576")},
+						Address: "0x3041cbd36888becc7bbcbc0045e3b1f144466f5f",
+						Tokens: []string{
+							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
+							"0x4300000000000000000000000000000000000004", // Original token 1
+							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
+						},
+						Reserves: []*big.Int{utils.NewBig("10089138480746"), utils.NewBig("10066716097576"), big.NewInt(1), big.NewInt(1)},
 					},
 				},
 				fee:          number.NewUint256("3"),
@@ -39,9 +44,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			},
 			tokenAmountIn: poolpkg.TokenAmount{
 				Amount: utils.NewBig("125224746"),
-				Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+				Token:  "0x25f233c3e3676f9e900a89644a3fe5404d643c84",
 			},
-			tokenOut:          "0xdac17f958d2ee523a2206206994597c13d831ec7",
+			tokenOut:          "0x4300000000000000000000000000000000000004",
 			expectedAmountOut: utils.NewBig("124570062"),
 			expectedError:     nil,
 		},
@@ -50,9 +55,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			poolSimulator: PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
-						Address:  "0x576cea6d4461fcb3a9d43e922c9b54c0f791599a",
-						Tokens:   []string{"0x32a7c02e79c4ea1008dd6564b35f131428673c41", "0xdac17f958d2ee523a2206206994597c13d831ec7"},
-						Reserves: []*big.Int{utils.NewBig("70361282326226590645832"), utils.NewBig("54150601005")},
+						Address: "0x576cea6d4461fcb3a9d43e922c9b54c0f791599a",
+						Tokens: []string{
+							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
+							"0x4300000000000000000000000000000000000004", // Original token 1
+							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
+						},
+						Reserves: []*big.Int{utils.NewBig("70361282326226590645832"), utils.NewBig("54150601005"), big.NewInt(1), big.NewInt(1)},
 					},
 				},
 				fee:          number.NewUint256("3"),
@@ -60,9 +70,9 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			},
 			tokenAmountIn: poolpkg.TokenAmount{
 				Amount: utils.NewBig("124570062"),
-				Token:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
+				Token:  "0x4300000000000000000000000000000000000004",
 			},
-			tokenOut:          "0x32a7c02e79c4ea1008dd6564b35f131428673c41",
+			tokenOut:          "0x25f233c3e3676f9e900a89644a3fe5404d643c84",
 			expectedAmountOut: utils.NewBig("161006857684289764421"),
 			expectedError:     nil,
 		},
@@ -72,17 +82,17 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
 						Address:  "0x1234567890abcdef1234567890abcdef12345678",
-						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000")},
+						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
 						Tokens: []string{
 							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 							"0x4300000000000000000000000000000000000004", // Original token 1
+							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
 						},
 					},
 				},
-				wrappedToken0: "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
-				wrappedToken1: "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
-				fee:           number.NewUint256("3"),
-				feePrecision:  number.NewUint256("1000"),
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
 			},
 			tokenAmountIn: poolpkg.TokenAmount{
 				Amount: utils.NewBig("5000000"),
@@ -98,17 +108,17 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
 						Address:  "0x1234567890abcdef1234567890abcdef12345678",
-						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000")},
+						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
 						Tokens: []string{
 							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 							"0x4300000000000000000000000000000000000004", // Original token 1
+							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
 						},
 					},
 				},
-				wrappedToken0: "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
-				wrappedToken1: "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
-				fee:           number.NewUint256("3"),
-				feePrecision:  number.NewUint256("1000"),
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
 			},
 			tokenAmountIn: poolpkg.TokenAmount{
 				Amount: utils.NewBig("2000000"),
@@ -124,17 +134,17 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
 						Address:  "0x1234567890abcdef1234567890abcdef12345678",
-						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000")},
+						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
 						Tokens: []string{
 							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 							"0x4300000000000000000000000000000000000004", // Original token 1
+							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
 						},
 					},
 				},
-				wrappedToken0: "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
-				wrappedToken1: "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
-				fee:           number.NewUint256("3"),
-				feePrecision:  number.NewUint256("1000"),
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
 			},
 			tokenAmountIn: poolpkg.TokenAmount{
 				Amount: utils.NewBig("5000000"),
@@ -142,7 +152,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			},
 			tokenOut:          "0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 			expectedAmountOut: nil,
-			expectedError:     uniswapv2.ErrInvalidToken,
+			expectedError:     ErrTokenSwapNotAllowed,
 		},
 		{
 			name: "[swapOriginal0toWrapped0] it should return an error when trying to swap from original token 0 to wrapped token 0",
@@ -150,17 +160,17 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
 						Address:  "0x1234567890abcdef1234567890abcdef12345678",
-						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000")},
+						Reserves: []*big.Int{utils.NewBig("5000000000"), utils.NewBig("3000000000"), big.NewInt(1), big.NewInt(1)},
 						Tokens: []string{
 							"0x25f233c3e3676f9e900a89644a3fe5404d643c84", // Original token 0
 							"0x4300000000000000000000000000000000000004", // Original token 1
+							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
 						},
 					},
 				},
-				wrappedToken0: "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
-				wrappedToken1: "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
-				fee:           number.NewUint256("3"),
-				feePrecision:  number.NewUint256("1000"),
+				fee:          number.NewUint256("3"),
+				feePrecision: number.NewUint256("1000"),
 			},
 			tokenAmountIn: poolpkg.TokenAmount{
 				Amount: utils.NewBig("1000000"),
@@ -168,7 +178,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			},
 			tokenOut:          "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
 			expectedAmountOut: nil,
-			expectedError:     uniswapv2.ErrInvalidToken,
+			expectedError:     ErrTokenSwapNotAllowed,
 		},
 	}
 

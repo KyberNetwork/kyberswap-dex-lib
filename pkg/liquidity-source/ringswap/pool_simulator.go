@@ -1,6 +1,7 @@
 package ringswap
 
 import (
+	"errors"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
@@ -15,15 +16,17 @@ import (
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
+var (
+	ErrTokenSwapNotAllowed = errors.New("cannot swap between original token and wrapped token")
+)
+
 type (
 	PoolSimulator struct {
 		poolpkg.Pool
 		fee          *uint256.Int
 		feePrecision *uint256.Int
 
-		gas           uniswapv2.Gas
-		wrappedToken0 string
-		wrappedToken1 string
+		gas uniswapv2.Gas
 	}
 )
 
@@ -43,11 +46,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		fee:           uint256.NewInt(extra.Fee),
-		feePrecision:  uint256.NewInt(extra.FeePrecision),
-		gas:           defaultGas,
-		wrappedToken0: extra.WrappedToken0,
-		wrappedToken1: extra.WrappedToken1,
+		fee:          uint256.NewInt(extra.Fee),
+		feePrecision: uint256.NewInt(extra.FeePrecision),
+		gas:          defaultGas,
 	}, nil
 }
 
@@ -58,15 +59,12 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	)
 
 	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
-	if indexIn < 0 {
-		indexIn = lo.Ternary(tokenAmountIn.Token == s.wrappedToken0, 0, lo.Ternary(tokenAmountIn.Token == s.wrappedToken1, 1, indexIn))
-	}
-	if indexOut < 0 {
-		indexOut = lo.Ternary(tokenOut == s.wrappedToken0, 0, lo.Ternary(tokenOut == s.wrappedToken1, 1, indexOut))
+	if indexIn < 0 || indexOut < 0 {
+		return nil, uniswapv2.ErrInvalidToken
 	}
 
-	if indexIn < 0 || indexOut < 0 || indexIn == indexOut {
-		return nil, uniswapv2.ErrInvalidToken
+	if indexIn%2 == indexOut%2 {
+		return nil, ErrTokenSwapNotAllowed
 	}
 
 	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
@@ -78,12 +76,12 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, uniswapv2.ErrInsufficientInputAmount
 	}
 
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
+	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn%2])
 	if overflow {
 		return nil, uniswapv2.ErrInvalidReserve
 	}
 
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
+	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut%2])
 	if overflow {
 		return nil, uniswapv2.ErrInvalidReserve
 	}
@@ -103,7 +101,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas: s.gas.Swap,
 		SwapInfo: SwapInfo{
-			IsToken0To1: indexIn == 0,
+			IsToken0To1: indexIn%2 == 0,
 			IsWrapIn:    true, // temporary
 			IsUnwrapOut: true, // temporary
 		},
@@ -117,15 +115,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 	)
 
 	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenAmountOut.Token)
-	if indexIn < 0 {
-		indexIn = lo.Ternary(tokenIn == s.wrappedToken0, 0, lo.Ternary(tokenIn == s.wrappedToken1, 1, indexIn))
-	}
-
-	if indexOut < 0 {
-		indexOut = lo.Ternary(tokenAmountOut.Token == s.wrappedToken0, 0, lo.Ternary(tokenAmountOut.Token == s.wrappedToken1, 1, indexOut))
-	}
-
-	if indexIn < 0 || indexOut < 0 || indexIn == indexOut {
+	if indexIn < 0 || indexOut < 0 {
 		return nil, uniswapv2.ErrInvalidToken
 	}
 
@@ -138,12 +128,12 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, uniswapv2.ErrInsufficientOutputAmount
 	}
 
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn])
+	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn/2])
 	if overflow {
 		return nil, uniswapv2.ErrInvalidReserve
 	}
 
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut])
+	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut/2])
 	if overflow {
 		return nil, uniswapv2.ErrInvalidReserve
 	}
@@ -183,7 +173,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas: s.gas.Swap,
 		SwapInfo: SwapInfo{
-			IsToken0To1: indexIn == 0,
+			IsToken0To1: indexIn%2 == 0,
 			IsWrapIn:    true, // temporary
 			IsUnwrapOut: true, // temporary
 		},
@@ -206,22 +196,6 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 		FeePrecision: s.feePrecision.Uint64(),
 		BlockNumber:  s.Pool.Info.BlockNumber,
 	}
-}
-
-func (s *PoolSimulator) CanSwapTo(address string) []string {
-	result := make([]string, 0, len(s.Info.Tokens))
-	var tokenIndex = s.GetTokenIndex(address)
-	if tokenIndex < 0 {
-		return lo.Ternary(address == s.wrappedToken0, []string{s.wrappedToken1}, lo.Ternary(address == s.wrappedToken1, []string{s.wrappedToken0}, result))
-	}
-
-	for i := 0; i < len(s.Info.Tokens); i += 1 {
-		if i != tokenIndex {
-			result = append(result, s.Info.Tokens[i])
-		}
-	}
-
-	return result
 }
 
 func (s *PoolSimulator) getAmountOut(amountIn, reserveIn, reserveOut *uint256.Int) *uint256.Int {

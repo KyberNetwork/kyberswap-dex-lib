@@ -93,6 +93,8 @@ func (d *PoolTracker) updatePool(pool entity.Pool, reserveData uniswapv2.Reserve
 	pool.Reserves = entity.PoolReserves{
 		reserveData.Reserve0.String(),
 		reserveData.Reserve1.String(),
+		reserveData.Reserve0.String(),
+		reserveData.Reserve1.String(),
 	}
 
 	pool.BlockNumber = blockNumber.Uint64()

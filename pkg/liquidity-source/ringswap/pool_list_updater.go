@@ -215,10 +215,8 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 
 	for i, pairAddress := range pairAddresses {
 		extra := &Extra{
-			Fee:           u.config.Fee,
-			FeePrecision:  u.config.FeePrecision,
-			WrappedToken0: strings.ToLower(token0List[i].Hex()),
-			WrappedToken1: strings.ToLower(token1List[i].Hex()),
+			Fee:          u.config.Fee,
+			FeePrecision: u.config.FeePrecision,
 		}
 
 		extraBytes, err := json.Marshal(extra)
@@ -226,13 +224,23 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 			return nil, err
 		}
 
-		token0 := &entity.PoolToken{
+		originalToken0 := &entity.PoolToken{
 			Address:   strings.ToLower(originalTokens[token0List[i]].Hex()),
 			Swappable: true,
 		}
 
-		token1 := &entity.PoolToken{
+		originalToken1 := &entity.PoolToken{
 			Address:   strings.ToLower(originalTokens[token1List[i]].Hex()),
+			Swappable: true,
+		}
+
+		wrappedToken0 := &entity.PoolToken{
+			Address:   strings.ToLower(token0List[i].Hex()),
+			Swappable: true,
+		}
+
+		wrappedToken1 := &entity.PoolToken{
+			Address:   strings.ToLower(token1List[i].Hex()),
 			Swappable: true,
 		}
 
@@ -241,8 +249,8 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 			Exchange:  u.config.DexID,
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
-			Reserves:  []string{"0", "0"},
-			Tokens:    []*entity.PoolToken{token0, token1},
+			Reserves:  []string{"0", "0", "1", "1"},
+			Tokens:    []*entity.PoolToken{originalToken0, originalToken1, wrappedToken0, wrappedToken1},
 			Extra:     string(extraBytes),
 		}
 
