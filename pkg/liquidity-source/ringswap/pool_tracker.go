@@ -120,10 +120,6 @@ func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress st
 		return uniswapv2.ReserveData{}, nil, err
 	}
 
-	// if strings.EqualFold(poolAddress, "0x9BE8a40C9cf00fe33fd84EAeDaA5C4fe3f04CbC3") {
-	// 	log.Fatalln(getReservesResult)
-	// }
-
 	return uniswapv2.ReserveData{
 		Reserve0: getReservesResult.Reserve0,
 		Reserve1: getReservesResult.Reserve1,
