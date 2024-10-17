@@ -90,12 +90,15 @@ func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, logs 
 }
 
 func (d *PoolTracker) updatePool(pool entity.Pool, reserveData uniswapv2.ReserveData, blockNumber *big.Int) (entity.Pool, error) {
-	if len(pool.Reserves) >= 2 {
-		pool.Reserves[0] = reserveData.Reserve0.String()
-		pool.Reserves[1] = reserveData.Reserve1.String()
-		pool.BlockNumber = blockNumber.Uint64()
-		pool.Timestamp = time.Now().Unix()
+	pool.Reserves = entity.PoolReserves{
+		reserveData.Reserve0.String(),
+		reserveData.Reserve1.String(),
+		"1",
+		"1",
 	}
+
+	pool.BlockNumber = blockNumber.Uint64()
+	pool.Timestamp = time.Now().Unix()
 
 	return pool, nil
 }
@@ -116,6 +119,10 @@ func (d *PoolTracker) getReservesFromRPCNode(ctx context.Context, poolAddress st
 	if err != nil {
 		return uniswapv2.ReserveData{}, nil, err
 	}
+
+	// if strings.EqualFold(poolAddress, "0x9BE8a40C9cf00fe33fd84EAeDaA5C4fe3f04CbC3") {
+	// 	log.Fatalln(getReservesResult)
+	// }
 
 	return uniswapv2.ReserveData{
 		Reserve0: getReservesResult.Reserve0,

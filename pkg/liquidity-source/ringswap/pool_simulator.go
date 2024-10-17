@@ -102,8 +102,8 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		Gas: s.gas.Swap,
 		SwapInfo: SwapInfo{
 			IsToken0To1: indexIn%2 == 0,
-			IsWrapIn:    true, // temporary
-			IsUnwrapOut: true, // temporary
+			IsWrapIn:    indexIn < 2,
+			IsUnwrapOut: indexOut < 2,
 		},
 	}, nil
 }
@@ -174,8 +174,8 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		Gas: s.gas.Swap,
 		SwapInfo: SwapInfo{
 			IsToken0To1: indexIn%2 == 0,
-			IsWrapIn:    true, // temporary
-			IsUnwrapOut: true, // temporary
+			IsWrapIn:    indexIn < 2,
+			IsUnwrapOut: indexOut < 2,
 		},
 	}, nil
 }
@@ -186,8 +186,8 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		return
 	}
 
-	s.Pool.Info.Reserves[indexIn] = new(big.Int).Add(s.Pool.Info.Reserves[indexIn], params.TokenAmountIn.Amount)
-	s.Pool.Info.Reserves[indexOut] = new(big.Int).Sub(s.Pool.Info.Reserves[indexOut], params.TokenAmountOut.Amount)
+	s.Pool.Info.Reserves[indexIn%2] = new(big.Int).Add(s.Pool.Info.Reserves[indexIn%2], params.TokenAmountIn.Amount)
+	s.Pool.Info.Reserves[indexOut%2] = new(big.Int).Sub(s.Pool.Info.Reserves[indexOut%2], params.TokenAmountOut.Amount)
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
