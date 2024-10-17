@@ -40,6 +40,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
+	ringswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
@@ -233,6 +234,7 @@ type Types struct {
 	Usd0PP                         string
 	Bebop                          string
 	GenericSimpleRate              string
+	RingSwap                       string
 	PrimeETH                       string
 	StaderETHx                     string
 }
@@ -358,6 +360,7 @@ var (
 		Usd0PP:                         usd0pp.DexType,
 		Bebop:                          bebop.DexType,
 		GenericSimpleRate:              generic_simple_rate.DexType,
+		RingSwap:                       ringswap.DexType,
 		PrimeETH:                       primeeth.DexType,
 		StaderETHx:                     staderethx.DexType,
 	}
