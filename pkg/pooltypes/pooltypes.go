@@ -46,6 +46,9 @@ import (
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/aqua"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/classic"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
@@ -162,6 +165,9 @@ type Types struct {
 	MuteSwitch                     string
 	SyncSwapClassic                string
 	SyncSwapStable                 string
+	SyncSwapV2Classic              string
+	SyncSwapV2Stable               string
+	SyncSwapV2Aqua                 string
 	PancakeV3                      string
 	MaverickV1                     string
 	AlgebraV1                      string
@@ -289,6 +295,9 @@ var (
 		MuteSwitch:                     muteswitch.DexTypeMuteSwitch,
 		SyncSwapClassic:                syncswap.PoolTypeSyncSwapClassic,
 		SyncSwapStable:                 syncswap.PoolTypeSyncSwapStable,
+		SyncSwapV2Classic:              syncswapv2classic.PoolTypeSyncSwapV2Classic,
+		SyncSwapV2Stable:               syncswapv2stable.PoolTypeSyncSwapV2Stable,
+		SyncSwapV2Aqua:                 syncswapv2aqua.PoolTypeSyncSwapV2Aqua,
 		PancakeV3:                      pancakev3.DexTypePancakeV3,
 		MaverickV1:                     maverickv1.DexTypeMaverickV1,
 		AlgebraV1:                      algebrav1.DexTypeAlgebraV1,
