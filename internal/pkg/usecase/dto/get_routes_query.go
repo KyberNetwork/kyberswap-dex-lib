@@ -25,3 +25,23 @@ type GetRoutesQuery struct {
 	ExcludedPools mapset.Set[string]
 	ClientId      string
 }
+
+type GetBundledRoutesQueryPair struct {
+	TokenIn  string
+	TokenOut string
+	AmountIn *big.Int
+}
+
+type GetBundledRoutesQuery struct {
+	Pairs []*GetBundledRoutesQueryPair
+
+	IncludedSources []string
+	ExcludedSources []string
+
+	SaveGas    bool
+	GasInclude bool
+	GasPrice   *big.Float
+
+	ExcludedPools mapset.Set[string]
+	ClientId      string
+}

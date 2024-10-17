@@ -119,6 +119,18 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Message:    "invalid swap",
 	},
 
+	getroute.ErrNoPair: {
+		HTTPStatus: http.StatusBadRequest,
+		Code:       40013,
+		Message:    getroute.ErrNoPair.Error(),
+	},
+
+	getroute.ErrInvalidToken: {
+		HTTPStatus: http.StatusBadRequest,
+		Code:       40014,
+		Message:    getroute.ErrInvalidToken.Error(),
+	},
+
 	eth.ErrWETHNotFound: {
 		HTTPStatus: http.StatusUnprocessableEntity,
 		Code:       4221,

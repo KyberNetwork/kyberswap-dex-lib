@@ -48,3 +48,41 @@ type AggregateParams struct {
 
 	ClientId string
 }
+
+type AggregateBundledParamsPair struct {
+	TokenIn  string
+	TokenOut string
+
+	// AmountIn amount of tokenIn
+	AmountIn *big.Int
+}
+
+type AggregateBundledParams struct {
+	GasToken string
+
+	// Sources list of liquidity sources to be finding route on
+	Sources []string
+
+	// SaveGas
+	//	- if true: finds single path route only
+	//	- if false: finds single path route and multi path route then return the better one
+	SaveGas bool
+
+	// GasInclude
+	// 	- if true: better route has more (amountOutUSD - gasUSD)
+	//  - if false: better route return more amount of tokenOut
+	GasInclude bool
+
+	// GasPrice price of gas
+	GasPrice *big.Float
+
+	// IsHillClimbEnabled use hill climb finder to adjust split amountIn to get better amountOut
+	IsHillClimbEnabled bool
+
+	// ExcludedPools name of pool addresses are excluded when finding route, separated by comma
+	ExcludedPools mapset.Set[string]
+
+	ClientId string
+
+	Pairs []AggregateBundledParamsPair
+}

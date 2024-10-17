@@ -47,6 +47,8 @@ type Config struct {
 	Pprof          bool                      `mapstructure:"pprof" json:"pprof"`
 	AEVMEnabled    bool                      `mapstructure:"aevmEnabled" json:"aevmEnabled"`
 	AEVM           *AEVM                     `mapstructure:"aevm" json:"aevm"`
+
+	BundledRouteEnabled bool `mapstructure:"bundledRouteEnabled" json:"bundledRouteEnabled"`
 }
 
 func (c *Config) Validate() error {

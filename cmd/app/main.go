@@ -445,6 +445,17 @@ func apiAction(c *cli.Context) (err error) {
 		finderEngine,
 		cfg.UseCase.GetRoute,
 	)
+	getBundledRouteUseCase := getroute.NewBundledUseCase(
+		poolRankRepository,
+		tokenRepository,
+		priceRepository,
+		onchainpriceRepository,
+		routeRepository,
+		gasRepository,
+		poolManager,
+		finderEngine,
+		cfg.UseCase.GetRoute,
+	)
 
 	rfqHandlerByPoolType := make(map[string]poolpkg.IPoolRFQ)
 	for _, s := range cfg.UseCase.BuildRoute.RFQ {
@@ -533,6 +544,10 @@ func apiAction(c *cli.Context) (err error) {
 	v1.GET("/tokens", api.GetTokens(getTokensParamsValidator, getTokensUseCase))
 	v1.GET("/routes", api.GetRoutes(getRoutesParamsValidator, getRouteUseCase))
 	v1.POST("/route/build", api.BuildRoute(buildRouteParamsValidator, buildRouteUseCase, timeutil.NowFunc))
+
+	if cfg.BundledRouteEnabled {
+		v1.GET("/bundled-routes", api.GetBundledRoutes(getRoutesParamsValidator, getBundledRouteUseCase))
+	}
 
 	v1.GET("/keys/publics/:keyId", api.GetPublicKey(keyPairUseCase))
 

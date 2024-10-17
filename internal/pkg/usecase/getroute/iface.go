@@ -19,6 +19,10 @@ type IAggregator interface {
 	ApplyConfig(config Config)
 }
 
+type IBundledAggregator interface {
+	Aggregate(ctx context.Context, params *types.AggregateBundledParams) ([]*valueobject.RouteSummary, error)
+}
+
 //go:generate mockgen -destination ../../mocks/usecase/getroute/pool_manager.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IPoolManager
 type IPoolManager interface {
 	// GetStateByPoolAddresses return a map of address - pools and a map of dexType- swapLimit for

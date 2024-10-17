@@ -35,6 +35,10 @@ type IGetRoutesUseCase interface {
 	Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.GetRoutesResult, error)
 }
 
+type IGetBundledRoutesUseCase interface {
+	Handle(ctx context.Context, query dto.GetBundledRoutesQuery) (*dto.GetBundledRoutesResult, error)
+}
+
 // IGetCustomRoutesUseCase is a use-case which handles getting routes within a list of custom pools logic
 type IGetCustomRoutesUseCase interface {
 	Handle(ctx context.Context, query dto.GetCustomRoutesQuery) (*dto.GetRoutesResult, error)
@@ -63,6 +67,10 @@ type IGetTokensParamsValidator interface {
 // IGetRoutesParamsValidator validates params.GetRoutesParams
 type IGetRoutesParamsValidator interface {
 	Validate(params params.GetRoutesParams) error
+}
+
+type IGetBundledRoutesParamsValidator interface {
+	ValidateBundled(params params.GetBundledRoutesParams) error
 }
 
 // IBuildRouteParamsValidator validates params.BuildRouteParams

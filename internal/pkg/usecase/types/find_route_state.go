@@ -211,3 +211,8 @@ func (a *AddressList) AddAddress(ctx context.Context, address string) {
 	a.TrueLen++
 
 }
+
+type StateAfterSwap struct {
+	UpdatedBalancePools map[string]poolpkg.IPoolSimulator
+	UpdatedSwapLimits   map[string]poolpkg.SwapLimit
+}

@@ -17,6 +17,42 @@ func NewGetRouteParamsValidator() *getRoutesParamsValidator {
 	return &getRoutesParamsValidator{}
 }
 
+func (v *getRoutesParamsValidator) ValidateBundled(params params.GetBundledRoutesParams) error {
+	if len(params.TokensIn) != len(params.TokensOut) || len(params.TokensIn) != len(params.AmountsIn) {
+		return NewValidationError("tokensIn", "should have same length with tokensOut and amountsIn")
+	}
+	for i, tokenIn := range params.TokensIn {
+		if err := v.validateTokenIn(tokenIn, params.TokensOut[i]); err != nil {
+			return err
+		}
+
+		if err := v.validateTokenOut(params.TokensOut[i]); err != nil {
+			return err
+		}
+
+		if err := v.validateAmountIn(params.AmountsIn[i]); err != nil {
+			return err
+		}
+	}
+
+	if err := v.validateGasPrice(params.GasPrice); err != nil {
+		return err
+	}
+
+	if err := v.validateSources(params.ExcludedSources); err != nil {
+		return err
+	}
+
+	if err := v.validateSources(params.IncludedSources); err != nil {
+		return err
+	}
+
+	if err := v.validateExcludedPools(params.ExcludedPools); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (v *getRoutesParamsValidator) Validate(params params.GetRoutesParams) error {
 	if err := v.validateTokenIn(params.TokenIn, params.TokenOut); err != nil {
 		return err

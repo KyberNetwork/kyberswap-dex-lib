@@ -394,3 +394,4 @@ validator:
     blacklistedRecipientSet:
   getRouteEncodeParams:
     blacklistedRecipientSet:
+bundledRouteEnabled: false

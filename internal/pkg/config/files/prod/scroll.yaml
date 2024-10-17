@@ -437,3 +437,4 @@ aevm:
     routeRandomly: false
   cachedHoldersListTTLSec: 30
   predefinedBalanceSlots:
+bundledRouteEnabled: false

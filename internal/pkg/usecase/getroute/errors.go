@@ -22,4 +22,10 @@ var (
 	ErrAmountInIsGreaterThanMaxAllowed = errors.New("amountIn is greater than max allowed")
 
 	ErrNoTokenInPrice = errors.New("no token in price")
+
+	ErrNoPair = errors.New("no pair in bundled request")
+
+	ErrInvalidFinalizerExtraData = errors.New("invalid finalizer extra data")
+
+	ErrInvalidToken = errors.New("invalid token")
 )

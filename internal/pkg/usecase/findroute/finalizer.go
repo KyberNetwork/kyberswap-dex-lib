@@ -168,6 +168,9 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 
 	gasFee := new(big.Int).Mul(big.NewInt(gasUsed), params.GasPrice)
 
+	extra := &types.StateAfterSwap{}
+	extra.UpdatedBalancePools, extra.UpdatedSwapLimits = simulatorBucket.GetUpdatedState()
+
 	route = &finderEntity.Route{
 		TokenIn:        params.TokenIn,
 		AmountIn:       params.AmountIn,
@@ -180,6 +183,8 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 		GasFee:         gasFee,
 		GasFeePrice:    finderUtil.CalcAmountPrice(gasFee, params.Tokens[params.GasToken].Decimals, params.Prices[params.GasToken]),
 		Route:          finalizedRoute,
+
+		ExtraFinalizerData: extra,
 	}
 
 	return route, nil

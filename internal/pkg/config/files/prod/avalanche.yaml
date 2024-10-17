@@ -479,3 +479,4 @@ aevm:
     readOnly: false
     routeRandomly: false
   cachedHoldersListTTLSec: 30
+bundledRouteEnabled: false
