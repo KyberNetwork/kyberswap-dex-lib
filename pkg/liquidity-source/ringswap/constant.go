@@ -8,7 +8,7 @@ const (
 )
 
 var (
-	defaultGas = uniswapv2.Gas{Swap: 60000}
+	defaultGas = uniswapv2.Gas{Swap: 325000}
 )
 
 const (

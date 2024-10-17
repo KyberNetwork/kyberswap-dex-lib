@@ -104,7 +104,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		Gas: s.gas.Swap,
 		SwapInfo: SwapInfo{
 			IsToken0To1: indexIn == 0,
-			IsWrapIn:    tokenAmountIn.Token != s.wrappedToken0 && tokenAmountIn.Token != s.wrappedToken1,
+			IsWrapIn:    true, // temporary
 			IsUnwrapOut: true, // temporary
 		},
 	}, nil
@@ -114,18 +114,14 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 	var (
 		tokenAmountOut = param.TokenAmountOut
 		tokenIn        = param.TokenIn
-
-		isWrapIn, isUnwrapOut = true, true
 	)
 
 	indexIn, indexOut := s.GetTokenIndex(tokenIn), s.GetTokenIndex(tokenAmountOut.Token)
 	if indexIn < 0 {
-		isWrapIn = false
 		indexIn = lo.Ternary(tokenIn == s.wrappedToken0, 0, lo.Ternary(tokenIn == s.wrappedToken1, 1, indexIn))
 	}
 
 	if indexOut < 0 {
-		isUnwrapOut = false
 		indexOut = lo.Ternary(tokenAmountOut.Token == s.wrappedToken0, 0, lo.Ternary(tokenAmountOut.Token == s.wrappedToken1, 1, indexOut))
 	}
 
@@ -188,8 +184,8 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		Gas: s.gas.Swap,
 		SwapInfo: SwapInfo{
 			IsToken0To1: indexIn == 0,
-			IsWrapIn:    isWrapIn,
-			IsUnwrapOut: isUnwrapOut,
+			IsWrapIn:    true, // temporary
+			IsUnwrapOut: true, // temporary
 		},
 	}, nil
 }
