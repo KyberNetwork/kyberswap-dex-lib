@@ -6,25 +6,27 @@ import (
 	"math/big"
 	"strings"
 
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/samber/lo"
 )
 
 var (
-	ErrInvalidAmountIn = errors.New("invalid amountIn")
+	ErrInvalidAmountIn     = errors.New("invalid amountIn: must be greater than zero")
+	ErrInsufficientReserve = errors.New("insufficient reserve: tokenOut amount exceeds reserve")
+	ErrTokenNotFound       = errors.New("token not found in the pool")
 )
 
 type PoolSimulator struct {
 	poolpkg.Pool
-
-	VaultLiquidationResolver string
-	Ratio                    *big.Int
+	StaticExtra
+	Ratio *big.Int
 }
 
 var (
-	defaultGas = Gas{Liquidate: 250000}
+	defaultGas = Gas{Liquidate: 1250000}
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -40,16 +42,18 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	return &PoolSimulator{
 		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
-			Address:     entityPool.Address,
-			Exchange:    entityPool.Exchange,
-			Type:        entityPool.Type,
-			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
+			Address:  entityPool.Address,
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens: lo.Map(entityPool.Tokens,
+				func(item *entity.PoolToken, index int) string { return item.Address }),
+			Reserves: lo.Map(entityPool.Reserves,
+				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 			SwapFee:     big.NewInt(0), // no swap fee on liquidations
 		}},
-		VaultLiquidationResolver: staticExtra.VaultLiquidationResolver,
-		Ratio:                    extra.Ratio,
+		StaticExtra: staticExtra,
+		Ratio:       extra.Ratio,
 	}, nil
 }
 
@@ -66,13 +70,20 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 	tokenAmountOut = new(big.Int).Div(tokenAmountOut, divisor1e27)
 
+	reserveTokenOut, err := s.getReserveForToken(param.TokenOut)
+	if err != nil {
+		return nil, err
+	}
+
+	if tokenAmountOut.Cmp(reserveTokenOut) > 0 {
+		return nil, ErrInsufficientReserve
+	}
+
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
 		Fee:            &poolpkg.TokenAmount{Token: param.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            defaultGas.Liquidate,
-		SwapInfo: StaticExtra{
-			VaultLiquidationResolver: s.VaultLiquidationResolver,
-		},
+		SwapInfo:       s.StaticExtra,
 	}, nil
 }
 
@@ -115,4 +126,13 @@ func (s *PoolSimulator) CanSwapTo(address string) []string {
 	}
 
 	return result
+}
+
+// Helper function to get reserve for a specific token
+func (s *PoolSimulator) getReserveForToken(token string) (*big.Int, error) {
+	if idx := s.GetTokenIndex(token); idx >= 0 {
+		return s.GetReserves()[idx], nil
+	}
+
+	return nil, ErrTokenNotFound
 }

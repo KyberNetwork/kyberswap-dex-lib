@@ -7,6 +7,7 @@ import (
 	balancerv2weighted "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/weighted"
 	bancorv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v21"
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
@@ -24,6 +25,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	fluidDexT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
+	generic_simple_rate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
 	gyroeclp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/eclp"
@@ -36,9 +38,12 @@ import (
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
+	ringswap "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
@@ -227,7 +232,12 @@ type Types struct {
 	MaverickV2                     string
 	LitePSM                        string
 	Usd0PP                         string
-	FluidVaultT1                   string
+	Bebop                          string
+	GenericSimpleRate              string
+	RingSwap                       string
+	PrimeETH                       string
+	StaderETHx                     string
+  FluidVaultT1                   string
 	FluidDexT1                     string
 }
 
@@ -349,6 +359,11 @@ var (
 		MaverickV2:                     maverickv2.DexType,
 		LitePSM:                        litepsm.DexTypeLitePSM,
 		Usd0PP:                         usd0pp.DexType,
+		Bebop:                          bebop.DexType,
+		GenericSimpleRate:              generic_simple_rate.DexType,
+		RingSwap:                       ringswap.DexType,
+		PrimeETH:                       primeeth.DexType,
+		StaderETHx:                     staderethx.DexType,
 		FluidVaultT1:                   fluidVaultT1.DexType,
 		FluidDexT1:                     fluidDexT1.DexType,
 	}

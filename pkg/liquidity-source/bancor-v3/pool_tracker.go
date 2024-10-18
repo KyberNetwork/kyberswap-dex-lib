@@ -12,10 +12,11 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 var (

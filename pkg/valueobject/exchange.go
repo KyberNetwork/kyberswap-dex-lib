@@ -221,6 +221,7 @@ var (
 	ExchangeSwaapV2    Exchange = "swaap-v2"
 	ExchangeHashflowV3 Exchange = "hashflow-v3"
 	ExchangeNativeV1   Exchange = "native-v1"
+	ExchangeBebop      Exchange = "bebop"
 
 	ExchangeTraderJoeV20 Exchange = "traderjoe-v20"
 	ExchangeTraderJoeV21 Exchange = "traderjoe-v21"
@@ -287,7 +288,6 @@ var (
 
 	ExchangePufferPufETH Exchange = "puffer-pufeth"
 
-	ExchangeRingSwap        Exchange = "ring-swap"
 	ExchangeThrusterV2      Exchange = "thruster-v2"
 	ExchangeThrusterV2Degen Exchange = "thruster-v2-degen"
 	ExchangeDyorSwap        Exchange = "dyor-swap"
@@ -351,6 +351,18 @@ var (
 	ExchangeDaiUsds    Exchange = "dai-usds"
 	ExchangeUsd0PP     Exchange = "usd0pp"
 
+	ExchangeMaverickV2   Exchange = "maverick-v2"
+	ExchangeEtherVista   Exchange = "ether-vista"
+	ExchangeLitePSM      Exchange = "lite-psm"
+	ExchangeMkrSky       Exchange = "mkr-sky"
+	ExchangeDaiUsds      Exchange = "dai-usds"
+	ExchangeUsd0PP       Exchange = "usd0pp"
+	ExchangeWBETH        Exchange = "wbeth"
+	ExchangeOETH         Exchange = "oeth"
+	ExchangeRingSwap     Exchange = "ringswap"
+	ExchangePrimeETH     Exchange = "primeeth"
+	ExchangeStaderETHx   Exchange = "staderethx"
+	ExchangeFrxETH       Exchange = "frxeth"
 	ExchangeFluidVaultT1 Exchange = "fluid-vault-t1"
 	ExchangeFluidDexT1   Exchange = "fluid-dex-t1"
 )
@@ -641,6 +653,12 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeFluidVaultT1:               {},
 	ExchangeFluidDexT1:                 {},
 	ExchangeUsd0PP:                     {},
+	ExchangeWBETH:                      {},
+	ExchangeOETH:                       {},
+	ExchangeRingSwap:                   {},
+	ExchangePrimeETH:                   {},
+	ExchangeStaderETHx:                 {},
+	ExchangeFrxETH:                     {},
 }
 
 func IsAMMSource(exchange Exchange) bool {

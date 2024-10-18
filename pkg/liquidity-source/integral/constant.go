@@ -30,11 +30,9 @@ var (
 	factoryAllPairsLengthMethod = "allPairsLength"
 
 	// relayer methods
-	relayerFactoryMethod          = "factory"
-	relayerIsPairEnabledMethod    = "isPairEnabled"
-	relayerGetPoolStateMethod     = "getPoolState"
-	relayerGetPairByAddressMethod = "getPriceByPairAddress"
-
-	// reserves methods
-	libraryGetReservesMethod = "getReserves"
+	relayerFactoryMethod                    = "factory"
+	relayerIsPairEnabledMethod              = "isPairEnabled"
+	relayerGetPoolStateMethod               = "getPoolState"
+	relayerGetPairByAddressMethod           = "getPriceByPairAddress"
+	relayerGetTokenLimitMaxMultiplierMethod = "getTokenLimitMaxMultiplier"
 )

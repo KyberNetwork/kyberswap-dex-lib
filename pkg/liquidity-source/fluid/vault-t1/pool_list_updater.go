@@ -34,39 +34,40 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}).Infof("Finish updating pools list.")
 	}()
 
-	extraBytes, err := json.Marshal(&StaticExtra{
-		VaultLiquidationResolver: u.config.VaultLiquidationResolver,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
 	paths, err := u.getSwapPaths(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	pools := make([]entity.Pool, 0)
+	pools := make([]entity.Pool, 0, len(paths))
 
 	for _, swapPath := range paths {
+		staticExtraBytes, err := json.Marshal(&StaticExtra{
+			VaultLiquidationResolver: u.config.VaultLiquidationResolver,
+			HasNative: strings.EqualFold(swapPath.TokenIn.Hex(), valueobject.EtherAddress) ||
+				strings.EqualFold(swapPath.TokenOut.Hex(), valueobject.EtherAddress),
+		})
+		if err != nil {
+			return nil, nil, err
+		}
 		pool := entity.Pool{
-			Address:  swapPath.Protocol.String(),
+			Address:  swapPath.Protocol.Hex(),
 			Exchange: string(valueobject.ExchangeFluidVaultT1),
 			Type:     DexType,
 			Reserves: entity.PoolReserves{"0", "0"},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   strings.ToLower(swapPath.TokenIn.String()),
+					Address:   valueobject.WrapETHLower(swapPath.TokenIn.Hex(), u.config.ChainID),
 					Weight:    1,
 					Swappable: true,
 				},
 				{
-					Address:   strings.ToLower(swapPath.TokenOut.String()),
+					Address:   valueobject.WrapETHLower(swapPath.TokenOut.Hex(), u.config.ChainID),
 					Weight:    1,
 					Swappable: true,
 				},
 			},
-			StaticExtra: string(extraBytes),
+			StaticExtra: string(staticExtraBytes),
 		}
 
 		pools = append(pools, pool)

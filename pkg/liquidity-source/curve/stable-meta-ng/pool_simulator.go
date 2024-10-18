@@ -184,12 +184,9 @@ func (t *PoolSimulator) CanSwapTo(address string) []string {
 			for i := 0; i < t.NumTokens-1; i += 1 {
 				ret = append(ret, t.Info.Tokens[i])
 			}
-			underlyingTokens := t.basePool.GetInfo().Tokens
-			for i := 0; i < len(underlyingTokens); i += 1 {
-				if i != tokenIndex {
-					ret = append(ret, underlyingTokens[i])
-				}
-			}
+
+			// We don't allow swapping between underlying tokens here.
+			// Swap between underlying tokens must go directly through the base pool.
 		}
 		return ret
 	}

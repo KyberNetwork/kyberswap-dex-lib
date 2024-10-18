@@ -120,9 +120,9 @@ func TestSwappable(t *testing.T) {
 	assert.Equal(t, []string{"Am"}, p.CanSwapTo("Bm"))
 
 	// base token can be swapped to anything other than the last meta token
-	assert.Equal(t, []string{"Am", "B", "C"}, p.CanSwapTo("A"))
-	assert.Equal(t, []string{"Am", "A", "C"}, p.CanSwapTo("B"))
-	assert.Equal(t, []string{"Am", "A", "B"}, p.CanSwapTo("C"))
+	assert.Equal(t, []string{"Am"}, p.CanSwapTo("A"))
+	assert.Equal(t, []string{"Am"}, p.CanSwapTo("B"))
+	assert.Equal(t, []string{"Am"}, p.CanSwapTo("C"))
 
 	errorcases := []struct {
 		in  string
