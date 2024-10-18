@@ -11,15 +11,16 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/float"
 	onchainpricev1 "github.com/KyberNetwork/grpc-service/go/onchainprice/v1"
 	dexlibEntity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
+	"github.com/samber/lo"
+	"github.com/sourcegraph/conc/iter"
+	"google.golang.org/grpc/metadata"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
-	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
-	"github.com/samber/lo"
-	"github.com/sourcegraph/conc/iter"
-	"google.golang.org/grpc/metadata"
 )
 
 type grpcRepository struct {
@@ -151,10 +152,9 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 				price, ok := new(big.Float).SetString(detail.PriceByQuote)
 				if !ok || price.Sign() < 0 {
 					logger.Debugf(ctx, "invalid price %v (%v)", p.Address, detail.PriceByQuote)
-					prices[p.Address].NativePrice.Buy = big.NewFloat(0)
-					prices[p.Address].NativePriceRaw.Buy = big.NewFloat(0)
 					continue
 				}
+
 				prices[p.Address].NativePrice.Buy = price
 				prices[p.Address].NativePriceRaw.Buy = new(big.Float).Quo(
 					new(big.Float).Mul(price, nativeDecimals),
@@ -167,14 +167,35 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 				price, ok := new(big.Float).SetString(detail.PriceByQuote)
 				if !ok || price.Sign() < 0 {
 					logger.Debugf(ctx, "invalid price %v (%v)", p.Address, detail.PriceByQuote)
-					prices[p.Address].NativePrice.Sell = big.NewFloat(0)
-					prices[p.Address].NativePriceRaw.Sell = big.NewFloat(0)
 					continue
 				}
+
 				prices[p.Address].NativePrice.Sell = price
 				prices[p.Address].NativePriceRaw.Sell = new(big.Float).Quo(
 					new(big.Float).Mul(price, nativeDecimals),
 					tenPowDecimals)
+			}
+		}
+	}
+
+	for _, addr := range addresses {
+		if _, ok := prices[addr]; !ok {
+			decimals, ok := decimalsByToken[addr]
+			if !ok {
+				logger.Debugf(ctx, "unknown token info %v", addr)
+				continue
+			}
+
+			prices[addr] = &entity.OnchainPrice{
+				Decimals: decimals,
+				NativePrice: entity.Price{
+					Buy:  big.NewFloat(0),
+					Sell: big.NewFloat(0),
+				},
+				NativePriceRaw: entity.Price{
+					Buy:  big.NewFloat(0),
+					Sell: big.NewFloat(0),
+				},
 			}
 		}
 	}
