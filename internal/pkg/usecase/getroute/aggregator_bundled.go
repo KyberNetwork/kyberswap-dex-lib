@@ -199,6 +199,7 @@ func (a *bundledAggregator) findBestBundledRoute(
 			IsHillClimbEnabled: params.IsHillClimbEnabled,
 			ExcludedPools:      params.ExcludedPools,
 			ClientId:           params.ClientId,
+			ExtraFee:           valueobject.ZeroExtraFee,
 		}
 
 		if lastSwapState != nil {
