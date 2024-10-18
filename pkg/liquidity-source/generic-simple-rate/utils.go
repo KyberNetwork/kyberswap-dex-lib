@@ -2,6 +2,8 @@ package generic_simple_rate
 
 import (
 	"fmt"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/frxeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/oeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/wbeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -9,8 +11,9 @@ import (
 )
 
 var bytesByPathMap = map[string]map[string][]byte{
-	string(valueobject.ExchangeWBETH): wbeth.BytesByPath,
-	string(valueobject.ExchangeOETH):  oeth.BytesByPath,
+	string(valueobject.ExchangeWBETH):  wbeth.BytesByPath,
+	string(valueobject.ExchangeOETH):   oeth.BytesByPath,
+	string(valueobject.ExchangeFrxETH): frxeth.BytesByPath,
 }
 
 var abiByPathMap = map[string]abi.ABI{
