@@ -344,7 +344,13 @@ var (
 	ExchangeQuickSwapUniV3 Exchange = "quickswap-uni-v3"
 	ExchangeAmbient        Exchange = "ambient"
 
-	ExchangeFluidVaultT1 Exchange = "fluid-vault-t1"
+	ExchangeMaverickV2 Exchange = "maverick-v2"
+	ExchangeEtherVista Exchange = "ether-vista"
+	ExchangeLitePSM    Exchange = "lite-psm"
+	ExchangeMkrSky     Exchange = "mkr-sky"
+	ExchangeDaiUsds    Exchange = "dai-usds"
+	ExchangeUsd0PP     Exchange = "usd0pp"
+
 	ExchangeMaverickV2   Exchange = "maverick-v2"
 	ExchangeEtherVista   Exchange = "ether-vista"
 	ExchangeLitePSM      Exchange = "lite-psm"
@@ -357,6 +363,8 @@ var (
 	ExchangePrimeETH     Exchange = "primeeth"
 	ExchangeStaderETHx   Exchange = "staderethx"
 	ExchangeFrxETH       Exchange = "frxeth"
+	ExchangeFluidVaultT1 Exchange = "fluid-vault-t1"
+	ExchangeFluidDexT1   Exchange = "fluid-dex-t1"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -637,12 +645,13 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSectaV3:                    {},
 	ExchangeQuickSwapUniV3:             {},
 	ExchangeAmbient:                    {},
-	ExchangeFluidVaultT1:               {},
 	ExchangeMaverickV2:                 {},
 	ExchangeEtherVista:                 {},
 	ExchangeLitePSM:                    {},
 	ExchangeMkrSky:                     {},
 	ExchangeDaiUsds:                    {},
+	ExchangeFluidVaultT1:               {},
+	ExchangeFluidDexT1:                 {},
 	ExchangeUsd0PP:                     {},
 	ExchangeWBETH:                      {},
 	ExchangeOETH:                       {},

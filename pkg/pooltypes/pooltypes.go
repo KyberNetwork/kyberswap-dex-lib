@@ -23,6 +23,7 @@ import (
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
+	fluidDexT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
 	generic_simple_rate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
@@ -225,7 +226,6 @@ type Types struct {
 	RenzoEZETH                     string
 	Slipstream                     string
 	NuriV2                         string
-	FluidVaultT1                   string
 	EtherVista                     string
 	MkrSky                         string
 	DaiUsds                        string
@@ -237,6 +237,8 @@ type Types struct {
 	RingSwap                       string
 	PrimeETH                       string
 	StaderETHx                     string
+  FluidVaultT1                   string
+	FluidDexT1                     string
 }
 
 var (
@@ -351,7 +353,6 @@ var (
 		RenzoEZETH:                     ezeth.DexType,
 		Slipstream:                     slipstream.DexType,
 		NuriV2:                         nuriv2.DexType,
-		FluidVaultT1:                   fluidVaultT1.DexType,
 		EtherVista:                     ethervista.DexType,
 		MkrSky:                         mkrsky.DexType,
 		DaiUsds:                        daiusds.DexType,
@@ -363,5 +364,7 @@ var (
 		RingSwap:                       ringswap.DexType,
 		PrimeETH:                       primeeth.DexType,
 		StaderETHx:                     staderethx.DexType,
+		FluidVaultT1:                   fluidVaultT1.DexType,
+		FluidDexT1:                     fluidDexT1.DexType,
 	}
 )
