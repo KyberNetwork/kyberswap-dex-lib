@@ -3,7 +3,6 @@ package dexT1
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"math/big"
 	"strings"
 
@@ -68,8 +67,8 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			curPool.DebtReserves.Token1RealReserves == nil ||
 			curPool.DebtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) == 0 ||
 			curPool.DebtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) == 0 {
-			logger.WithFields(logger.Fields{"dexType": DexType, "error": err}).Error("Error reserves are nil / 0")
-			return nil, nil, errors.New("pool reserves are nil / 0")
+			logger.WithFields(logger.Fields{"dexType": DexType, "pool": curPool.PoolAddress}).Warn("reserves are nil / 0 (likely deployed but not initialized yet)")
+			continue
 		}
 
 		extra := PoolExtra{

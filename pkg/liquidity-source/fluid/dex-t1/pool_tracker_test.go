@@ -25,7 +25,7 @@ func TestPoolTracker(t *testing.T) {
 
 	var (
 		config = Config{
-			DexReservesResolver: "0x278166A9B88f166EB170d55801bE1b1d1E576330",
+			DexReservesResolver: "0x90bFebd5Ac2d6787028DC8A58d0b5EE07b16E06F",
 		}
 	)
 
@@ -39,7 +39,7 @@ func TestPoolTracker(t *testing.T) {
 	logger.Debugf("PoolTracker initialized: %+v", poolTracker)
 
 	t.Run("wstETH_ETH_Pool", func(t *testing.T) {
-		poolAddr := "0x6d83f60eEac0e50A1250760151E81Db2a278e03a"
+		poolAddr := "0x25F0A3B25cBC0Ca0417770f686209628323fF901"
 
 		staticExtraBytes, _ := json.Marshal(&StaticExtra{
 			DexReservesResolver: config.DexReservesResolver,

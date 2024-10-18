@@ -24,7 +24,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			poolSimulator: &PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
-						Address:     "0x6d83f60eEac0e50A1250760151E81Db2a278e03a",
+						Address:     "0x25F0A3B25cBC0Ca0417770f686209628323fF901",
 						Exchange:    "fluid-dex-t1",
 						Type:        "fluid-dex-t1",
 						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
@@ -68,7 +68,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			poolSimulator: &PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
-						Address:     "0x6d83f60eEac0e50A1250760151E81Db2a278e03a",
+						Address:     "0x25F0A3B25cBC0Ca0417770f686209628323fF901",
 						Exchange:    "fluid-dex-t1",
 						Type:        "fluid-dex-t1",
 						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
