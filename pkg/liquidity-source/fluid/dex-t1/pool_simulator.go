@@ -28,7 +28,7 @@ type PoolSimulator struct {
 }
 
 var (
-	defaultGas = Gas{Swap: 160000}
+	defaultGas = Gas{Swap: 150000}
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
