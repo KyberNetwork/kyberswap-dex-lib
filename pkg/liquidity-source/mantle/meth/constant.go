@@ -25,6 +25,6 @@ const (
 
 var (
 	defaultGas = Gas{
-		Stake: 100000,
+		Stake: 130000,
 	}
 )
