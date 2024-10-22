@@ -9,8 +9,10 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/machinebox/graphql"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
@@ -19,10 +21,12 @@ import (
 type PoolsListUpdater struct {
 	config        *Config
 	graphqlClient *graphql.Client
+	ethrpcClient  *ethrpc.Client
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
+	ethrpcClient *ethrpc.Client,
 ) *PoolsListUpdater {
 	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
 		Url:     cfg.SubgraphAPI,
@@ -33,6 +37,7 @@ func NewPoolsListUpdater(
 	return &PoolsListUpdater{
 		config:        cfg,
 		graphqlClient: graphqlClient,
+		ethrpcClient:  ethrpcClient,
 	}
 }
 
@@ -83,10 +88,22 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	logger.Infof("got %v subgraph pools from %s subgraph", numSubgraphPools, d.config.DexID)
 
+	tickSpacings, _ := FetchTickSpacings(
+		ctx,
+		lo.Map(subgraphPools, func(item SubgraphPool, _ int) string { return item.ID }),
+		d.ethrpcClient,
+		uniswapV3PoolABI,
+		methodTickSpacing,
+	)
+
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 	for _, p := range subgraphPools {
 		tokens := make([]*entity.PoolToken, 0, 2)
 		reserves := make([]string, 0, 2)
+
+		extraField := Extra{
+			TickSpacing: tickSpacings[p.ID],
+		}
 		staticField := StaticExtra{
 			PoolId: p.ID,
 		}
@@ -133,6 +150,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		var swapFee, _ = strconv.ParseFloat(p.FeeTier, 64)
 
+		extraBytes, _ := json.Marshal(extraField)
 		staticBytes, _ := json.Marshal(staticField)
 		var newPool = entity.Pool{
 			Address:      p.ID,
@@ -144,6 +162,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Timestamp:    time.Now().Unix(),
 			Reserves:     reserves,
 			Tokens:       tokens,
+			Extra:        string(extraBytes),
 			StaticExtra:  string(staticBytes),
 		}
 
