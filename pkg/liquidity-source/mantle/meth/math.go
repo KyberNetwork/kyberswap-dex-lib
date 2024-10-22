@@ -7,10 +7,7 @@ import (
 
 var (
 	// 2^256 - 1
-	maxUint256 = new(uint256.Int).Sub(
-		new(uint256.Int).Lsh(number.Number_1, 256),
-		number.Number_1,
-	)
+	maxUint256 = new(uint256.Int).SetAllOne()
 )
 
 func mulDiv(x, y, denominator *uint256.Int) (*uint256.Int, error) {
