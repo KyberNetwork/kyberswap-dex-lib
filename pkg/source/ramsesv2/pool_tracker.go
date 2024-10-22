@@ -219,7 +219,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 		Liquidity:   liquidity,
 		Slot0:       slot0,
 		FeeTier:     feeTier.Int64(),
-		TickSpacing: tickSpacing.Int64(),
+		TickSpacing: tickSpacing.Uint64(),
 		Reserve0:    reserve0,
 		Reserve1:    reserve1,
 	}, err
