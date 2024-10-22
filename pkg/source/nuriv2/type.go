@@ -63,7 +63,7 @@ type Extra struct {
 	Liquidity    *big.Int `json:"liquidity"`
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
 	FeeTier      int64    `json:"feeTier"`
-	TickSpacing  int64    `json:"tickSpacing"`
+	TickSpacing  uint64   `json:"tickSpacing"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
 }
@@ -82,7 +82,7 @@ type FetchRPCResult struct {
 	Liquidity   *big.Int
 	Slot0       Slot0
 	FeeTier     int64
-	TickSpacing int64
+	TickSpacing uint64
 	Reserve0    *big.Int
 	Reserve1    *big.Int
 }
