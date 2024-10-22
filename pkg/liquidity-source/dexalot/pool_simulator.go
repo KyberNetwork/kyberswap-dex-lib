@@ -3,7 +3,6 @@ package dexalot
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math"
 	"math/big"
 	"strings"
@@ -147,11 +146,6 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.Poo
 	amountOutBF.Mul(&amountOutAfterDecimals, &decimalsPow)
 
 	amountOut, _ := amountOutBF.Int(nil)
-	a1 := amountOutAfterDecimals.String()
-	a2 := decimalsPow.String()
-	a3 := amountOutBF.String()
-	a4 := amountOut.String()
-	fmt.Print(a1, a2, a3, a4)
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: quoteToken.Address, Amount: amountOut},
 		Fee:            &pool.TokenAmount{Token: baseToken.Address, Amount: bignumber.ZeroBI},
@@ -169,39 +163,46 @@ func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel, amountOut *big.
 	if len(priceLevels) == 0 {
 		return ErrEmptyPriceLevels
 	}
-	// Check upper bound
-	var supportedAmount big.Float
-	for _, priceLevel := range priceLevels {
-		supportedAmount.Add(&supportedAmount, priceLevel.Quote)
+	// Check lower bound
+	if amountIn.Cmp(priceLevels[0].Quote) < 0 {
+		return ErrAmountInIsLessThanLowestPriceLevel
 	}
-	if amountIn.Cmp(&supportedAmount) > 0 {
+
+	if amountIn.Cmp(priceLevels[len(priceLevels)-1].Quote) > 0 {
 		return ErrAmountInIsGreaterThanHighestPriceLevel
 	}
+	left := 0
+	right := len(priceLevels)
+	var qty *big.Float
 
-	var currentLevelAmount, tmp big.Float // Use tmp for temporary calculation
-	amountLeft := amountIn
-	currentLevelIdx := 0
-
-	for {
-		currentLevel := priceLevels[currentLevelIdx]
-		if amountLeft.Cmp(currentLevel.Quote) < 0 {
-			currentLevelAmount.Set(amountLeft)
+	for left < right {
+		mid := (left + right) / 2
+		qty = priceLevels[mid].Quote
+		if qty.Cmp(amountIn) <= 0 {
+			left = mid + 1
 		} else {
-			currentLevelAmount.Set(currentLevel.Quote)
-		}
-
-		amountOut.Add(amountOut, tmp.Mul(&currentLevelAmount, currentLevel.Price))
-		amountLeft.Sub(amountLeft, &currentLevelAmount)
-		currentLevelIdx++
-		a1 := amountOut.String()
-		a2 := currentLevelAmount.String()
-		a3 := currentLevel.Price.String()
-		fmt.Println(a1, a2, a3)
-		if amountLeft.Cmp(zeroBF) == 0 || currentLevelIdx == len(priceLevels) {
-			break
+			right = mid
 		}
 	}
 
+	var price *big.Float
+	if amountIn.Cmp(qty) == 0 {
+		price = priceLevels[left-1].Price // TODO: check with https://docs.dexalot.com/apiv2/SimpleSwap.html#_3b-request-batched-quotes-optional
+	} else if left == 0 {
+		price = big.NewFloat(0)
+	} else if left < len(priceLevels) {
+		price = priceLevels[left-1].Price.Add(
+			priceLevels[left-1].Price,
+			new(big.Float).Quo(
+				new(big.Float).Mul(
+					new(big.Float).Sub(priceLevels[left].Price, priceLevels[left-1].Price),
+					new(big.Float).Sub(amountIn, priceLevels[left-1].Quote),
+				),
+				new(big.Float).Sub(priceLevels[left].Quote, priceLevels[left-1].Quote),
+			),
+		)
+	}
+	amountOut.Mul(amountIn, price)
 	return nil
 }
 
@@ -210,28 +211,38 @@ func getNewPriceLevelsState(amountIn *big.Float, priceLevels []PriceLevel) []Pri
 		return priceLevels
 	}
 
-	amountLeft := amountIn
-	currentLevelIdx := 0
+	amountLeft := new(big.Float).Set(amountIn)
+	newPriceLevels := make([]PriceLevel, len(priceLevels))
+	accumulatedQuote := new(big.Float)
 
-	for {
-		currentLevelAvailableAmount := priceLevels[currentLevelIdx].Quote
-
-		if currentLevelAvailableAmount.Cmp(amountLeft) > 0 {
-			// Update the price level at the current step because it's partially filled
-			priceLevels[currentLevelIdx].Quote.Sub(currentLevelAvailableAmount, amountLeft)
-			amountLeft.Set(zeroBF)
-		} else {
-			// Only increase the step if the current level is fully filled
-			amountLeft.Sub(amountLeft, priceLevels[currentLevelIdx].Quote)
-			priceLevels[currentLevelIdx].Quote.Set(zeroBF)
-			currentLevelIdx += 1
+	for i, level := range priceLevels {
+		newLevel := PriceLevel{
+			Price: new(big.Float).Set(level.Price),
+			Quote: new(big.Float).Set(level.Quote),
 		}
 
-		if amountLeft.Cmp(zeroBF) == 0 || currentLevelIdx == len(priceLevels) {
-			// We don't skip the used price levels, but just reset its quote to zero.
+		// Calculate the actual quote for this level
+		actualQuote := new(big.Float).Sub(level.Quote, accumulatedQuote)
+		if actualQuote.Cmp(zeroBF) <= 0 {
+			// This level is already fully consumed
+			newLevel.Quote.SetInt64(0)
+		} else if amountLeft.Cmp(actualQuote) >= 0 {
+			// This level will be fully consumed
+			amountLeft.Sub(amountLeft, actualQuote)
+			newLevel.Quote.SetInt64(0)
+		} else {
+			// This level will be partially consumed
+			newLevel.Quote.Sub(level.Quote, amountLeft)
+			amountLeft.SetInt64(0)
+		}
+
+		newPriceLevels[i] = newLevel
+		accumulatedQuote.Set(level.Quote)
+
+		if amountLeft.Cmp(zeroBF) <= 0 {
 			break
 		}
 	}
 
-	return priceLevels
+	return newPriceLevels
 }
