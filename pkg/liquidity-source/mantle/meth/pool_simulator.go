@@ -86,10 +86,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrMinimumStakeBoundNotSatisfied
 	}
 
-	amountOut, err := s.ethToMETH(amountIn)
-	if err != nil {
-		return nil, err
-	}
+	amountOut := s.ethToMETH(amountIn)
 
 	if new(uint256.Int).Add(amountOut, s.mETHTotalSupply).Cmp(s.maximumMETHSupply) > 0 {
 		return nil, ErrMaximumMETHSupplyExceeded
@@ -110,21 +107,17 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	s.mETHTotalSupply.Add(s.mETHTotalSupply, uint256.MustFromBig(params.TokenAmountOut.Amount))
 }
 
-func (s *PoolSimulator) ethToMETH(mETHAmount *uint256.Int) (*uint256.Int, error) {
+func (s *PoolSimulator) ethToMETH(mETHAmount *uint256.Int) *uint256.Int {
 	// 1:1 exchange rate on the first stake
 	if s.mETHTotalSupply.IsZero() {
-		return mETHAmount, nil
+		return mETHAmount
 	}
 
 	mETHSupplyAdjusted := new(uint256.Int).Mul(s.mETHTotalSupply, uint256.NewInt(uint64(common.UInt16BasisPoints-s.exchangeAdjustmentRate)))
 	totalControlledAdjusted := new(uint256.Int).Mul(s.totalControlled, uint256.NewInt(uint64(common.UInt16BasisPoints)))
 
-	amountOut, err := mulDiv(mETHAmount, mETHSupplyAdjusted, totalControlledAdjusted)
-	if err != nil {
-		return nil, err
-	}
-
-	return amountOut, nil
+	amountOut, _ := new(uint256.Int).MulDivOverflow(mETHAmount, mETHSupplyAdjusted, totalControlledAdjusted)
+	return amountOut
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
