@@ -6,7 +6,6 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/blockchain-toolkit/number"
-	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
@@ -37,11 +36,6 @@ type (
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
-		return nil, err
-	}
-
 	return &PoolSimulator{
 		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
 			Address:     entityPool.Address,
@@ -61,6 +55,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		tokenAmountIn = param.TokenAmountIn
 		tokenOut      = param.TokenOut
 	)
+
 	indexIn, indexOut := s.GetTokenIndex(tokenAmountIn.Token), s.GetTokenIndex(tokenOut)
 	if indexIn < 0 || indexOut < 0 {
 		return nil, ErrInvalidToken
