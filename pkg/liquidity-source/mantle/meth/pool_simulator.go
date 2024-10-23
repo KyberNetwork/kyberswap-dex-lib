@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/common"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -86,7 +87,10 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrMinimumStakeBoundNotSatisfied
 	}
 
-	amountOut := s.ethToMETH(amountIn)
+	amountOut, err := s.ethToMETH(amountIn)
+	if err != nil {
+		return nil, err
+	}
 
 	if new(uint256.Int).Add(amountOut, s.mETHTotalSupply).Cmp(s.maximumMETHSupply) > 0 {
 		return nil, ErrMaximumMETHSupplyExceeded
@@ -107,17 +111,25 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	s.mETHTotalSupply.Add(s.mETHTotalSupply, uint256.MustFromBig(params.TokenAmountOut.Amount))
 }
 
-func (s *PoolSimulator) ethToMETH(mETHAmount *uint256.Int) *uint256.Int {
+func (s *PoolSimulator) ethToMETH(mETHAmount *uint256.Int) (*uint256.Int, error) {
 	// 1:1 exchange rate on the first stake
 	if s.mETHTotalSupply.IsZero() {
-		return mETHAmount
+		return mETHAmount, nil
 	}
 
-	mETHSupplyAdjusted := new(uint256.Int).Mul(s.mETHTotalSupply, uint256.NewInt(uint64(common.UInt16BasisPoints-s.exchangeAdjustmentRate)))
-	totalControlledAdjusted := new(uint256.Int).Mul(s.totalControlled, uint256.NewInt(uint64(common.UInt16BasisPoints)))
+	var mETHSupplyAdjusted, totalControlledAdjusted uint256.Int
+	mETHSupplyAdjusted.SetUint64(uint64(common.UInt16BasisPoints-s.exchangeAdjustmentRate)).
+		Mul(s.mETHTotalSupply, &mETHSupplyAdjusted)
 
-	amountOut, _ := new(uint256.Int).MulDivOverflow(mETHAmount, mETHSupplyAdjusted, totalControlledAdjusted)
-	return amountOut
+	totalControlledAdjusted.Set(common.BasisPoints).
+		Mul(s.totalControlled, &totalControlledAdjusted)
+
+	amountOut, overflow := new(uint256.Int).MulDivOverflow(mETHAmount, &mETHSupplyAdjusted, &totalControlledAdjusted)
+	if overflow {
+		return nil, number.ErrOverflow
+	}
+
+	return amountOut, nil
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
