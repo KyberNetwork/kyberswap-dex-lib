@@ -17,8 +17,7 @@ var (
 const (
 	multicallGetEthBalanceMethod = "getEthBalance"
 
-	erc20BalanceOfMethod   = "balanceOf"
-	erc20TotalSupplyMethod = "totalSupply"
+	erc20BalanceOfMethod = "balanceOf"
 
 	factoryTokenCountMethod     = "tokenCount"
 	factoryGetTokenWithIDMethod = "getTokenWithId"
