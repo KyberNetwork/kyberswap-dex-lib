@@ -109,7 +109,6 @@ func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, token
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
-		panic(err)
 		return nil, nil, err
 	}
 
