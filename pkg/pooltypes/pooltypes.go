@@ -38,6 +38,7 @@ import (
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
+	ondo_usdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
@@ -240,7 +241,6 @@ type Types struct {
 	RingSwap                       string
 	PrimeETH                       string
 	StaderETHx                     string
-	MantleETH                      string
 }
 
 var (
@@ -368,6 +368,5 @@ var (
 		RingSwap:                       ringswap.DexType,
 		PrimeETH:                       primeeth.DexType,
 		StaderETHx:                     staderethx.DexType,
-		MantleETH:                      meth.DexType,
 	}
 )

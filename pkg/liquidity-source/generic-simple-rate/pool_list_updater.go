@@ -33,7 +33,7 @@ func NewPoolsListUpdater(
 
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	if d.hasInitialized {
-		logger.Debug("skip since pool has been initialized")
+		logger.Info("skip since pool has been initialized")
 		return nil, nil, nil
 	}
 
