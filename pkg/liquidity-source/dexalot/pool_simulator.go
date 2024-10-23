@@ -110,19 +110,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	return amountOut, err
 }
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	var amountInAfterDecimals, decimalsPow, amountInBF big.Float
-	amountInBF.SetInt(params.TokenAmountIn.Amount)
-	if params.TokenAmountIn.Token == p.Token0.Address {
-		decimalsPow.SetFloat64(math.Pow10(int(p.Token0.Decimals)))
-		amountInAfterDecimals.Quo(&amountInBF, &decimalsPow)
-
-		p.ZeroToOnePriceLevels = getNewPriceLevelsState(&amountInAfterDecimals, p.ZeroToOnePriceLevels)
-	} else {
-		decimalsPow.SetFloat64(math.Pow10(int(p.Token1.Decimals)))
-		amountInAfterDecimals.Quo(&amountInBF, &decimalsPow)
-
-		p.OneToZeroPriceLevels = getNewPriceLevelsState(&amountInAfterDecimals, p.OneToZeroPriceLevels)
-	}
+	// Ignore for now cause logic not exposed
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
@@ -204,45 +192,4 @@ func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel, amountOut *big.
 	}
 	amountOut.Mul(amountIn, price)
 	return nil
-}
-
-func getNewPriceLevelsState(amountIn *big.Float, priceLevels []PriceLevel) []PriceLevel {
-	if len(priceLevels) == 0 {
-		return priceLevels
-	}
-
-	amountLeft := new(big.Float).Set(amountIn)
-	newPriceLevels := make([]PriceLevel, len(priceLevels))
-	accumulatedQuote := new(big.Float)
-
-	for i, level := range priceLevels {
-		newLevel := PriceLevel{
-			Price: new(big.Float).Set(level.Price),
-			Quote: new(big.Float).Set(level.Quote),
-		}
-
-		// Calculate the actual quote for this level
-		actualQuote := new(big.Float).Sub(level.Quote, accumulatedQuote)
-		if actualQuote.Cmp(zeroBF) <= 0 {
-			// This level is already fully consumed
-			newLevel.Quote.SetInt64(0)
-		} else if amountLeft.Cmp(actualQuote) >= 0 {
-			// This level will be fully consumed
-			amountLeft.Sub(amountLeft, actualQuote)
-			newLevel.Quote.SetInt64(0)
-		} else {
-			// This level will be partially consumed
-			newLevel.Quote.Sub(level.Quote, amountLeft)
-			amountLeft.SetInt64(0)
-		}
-
-		newPriceLevels[i] = newLevel
-		accumulatedQuote.Set(level.Quote)
-
-		if amountLeft.Cmp(zeroBF) <= 0 {
-			break
-		}
-	}
-
-	return newPriceLevels
 }
