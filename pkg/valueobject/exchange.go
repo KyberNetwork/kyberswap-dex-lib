@@ -344,13 +344,6 @@ var (
 	ExchangeQuickSwapUniV3 Exchange = "quickswap-uni-v3"
 	ExchangeAmbient        Exchange = "ambient"
 
-	ExchangeMaverickV2 Exchange = "maverick-v2"
-	ExchangeEtherVista Exchange = "ether-vista"
-	ExchangeLitePSM    Exchange = "lite-psm"
-	ExchangeMkrSky     Exchange = "mkr-sky"
-	ExchangeDaiUsds    Exchange = "dai-usds"
-	ExchangeUsd0PP     Exchange = "usd0pp"
-
 	ExchangeMaverickV2   Exchange = "maverick-v2"
 	ExchangeEtherVista   Exchange = "ether-vista"
 	ExchangeLitePSM      Exchange = "lite-psm"
