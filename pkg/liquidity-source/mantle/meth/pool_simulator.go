@@ -96,7 +96,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrMaximumMETHSupplyExceeded
 	}
 
-	if amountOut.Cmp(uint256.NewInt(0)) < 0 {
+	if amountOut.Sign() < 0 {
 		return nil, ErrStakeBelowMinimumMETHAmount
 	}
 
