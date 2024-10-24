@@ -162,7 +162,7 @@ func (u *PoolListUpdater) excludePoolsWithWrappedNativeToken(pairs []SubgraphPoo
 }
 
 func (u *PoolListUpdater) getOrInitializePool(ctx context.Context, address string) (entity.Pool, *Extra, error) {
-	upsertPool, err := u.poolDatastore.Get(ctx, address)
+	upsertPool, err := u.poolDatastore.Get(ctx, strings.ToLower(address))
 	if err != nil {
 		upsertPool = entity.Pool{
 			Address:  address,
