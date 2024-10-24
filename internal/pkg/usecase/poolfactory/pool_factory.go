@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"strings"
 	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
+	"github.com/huandu/go-clone"
 
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	dexlibprivate "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source"
@@ -102,6 +104,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pancakev3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/platypus"
 	polmatic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pol-matic"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/quickperps"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/ramsesv2"
@@ -281,6 +284,48 @@ func (f *PoolFactory) getBalanceSlots(pool *entity.Pool) map[common.Address]*typ
 		balanceSlots[tokenAddr] = bl
 	}
 	return balanceSlots
+}
+
+func (f *PoolFactory) CloneCurveMetaForBasePools(
+	ctx context.Context,
+	allPools map[string]pool.IPoolSimulator,
+	basePools map[string]pool.IPoolSimulator,
+) []pool.IPoolSimulator {
+	var cloned []pool.IPoolSimulator
+
+	for _, pool := range allPools {
+		if pool.GetType() == pooltypes.PoolTypes.CurveMeta {
+			metaPool, ok := pool.(*curveMeta.Pool)
+			if !ok {
+				continue
+			}
+			basePoolAddress := strings.ToLower(metaPool.BasePool.GetInfo().Address)
+
+			if basePool, ok := basePools[basePoolAddress]; ok {
+				if basePoolCorrect, ok := basePool.(curveMeta.ICurveBasePool); ok {
+					newMetaPool := clone.Slowly(metaPool).(*curveMeta.Pool)
+					newMetaPool.BasePool = basePoolCorrect
+					cloned = append(cloned, newMetaPool)
+				}
+			}
+		} else if pool.GetType() == pooltypes.PoolTypes.CurveStableMetaNg {
+			metaPool, ok := pool.(*curveStableMetaNg.PoolSimulator)
+			if !ok {
+				continue
+			}
+			basePoolAddress := strings.ToLower(metaPool.GetBasePool().GetInfo().Address)
+
+			if basePool, ok := basePools[basePoolAddress]; ok {
+				if basePoolCorrect, ok := basePool.(curveStableMetaNg.ICurveBasePool); ok {
+					newMetaPool := clone.Slowly(metaPool).(*curveStableMetaNg.PoolSimulator)
+					newMetaPool.SetBasePool(basePoolCorrect)
+					cloned = append(cloned, newMetaPool)
+				}
+			}
+		}
+	}
+
+	return cloned
 }
 
 func (f *PoolFactory) getCurveMetaBasePoolByAddress(

@@ -453,6 +453,7 @@ func apiAction(c *cli.Context) (err error) {
 		routeRepository,
 		gasRepository,
 		poolManager,
+		poolFactory,
 		finderEngine,
 		cfg.UseCase.GetRoute,
 	)
@@ -546,7 +547,9 @@ func apiAction(c *cli.Context) (err error) {
 	v1.POST("/route/build", api.BuildRoute(buildRouteParamsValidator, buildRouteUseCase, timeutil.NowFunc))
 
 	if cfg.BundledRouteEnabled {
-		v1.GET("/bundled-routes", api.GetBundledRoutes(getRoutesParamsValidator, getBundledRouteUseCase))
+		getBundledRoutesHandler := api.GetBundledRoutes(getRoutesParamsValidator, getBundledRouteUseCase)
+		v1.GET("/bundled-routes", getBundledRoutesHandler)
+		v1.POST("/bundled-routes", getBundledRoutesHandler)
 	}
 
 	v1.GET("/keys/publics/:keyId", api.GetPublicKey(keyPairUseCase))

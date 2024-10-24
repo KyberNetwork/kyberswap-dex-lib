@@ -1,5 +1,7 @@
 package params
 
+import "encoding/json"
+
 type GetBundledRoutesParams struct {
 	// TokensIn addresses of token to be swapped
 	TokensIn []string `form:"tokensIn"`
@@ -27,6 +29,8 @@ type GetBundledRoutesParams struct {
 	ExcludedPools string `form:"excludedPools"`
 
 	ClientId string `form:"clientId"`
+
+	OverridePools json.RawMessage `form:"overridePools"`
 }
 
 type GetBundledRoutesResponse struct {

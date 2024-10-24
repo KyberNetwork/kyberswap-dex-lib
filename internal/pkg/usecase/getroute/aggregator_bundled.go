@@ -20,6 +20,8 @@ import (
 
 type bundledAggregator struct {
 	*aggregator
+
+	poolFactory IPoolFactory
 }
 
 func NewBundledAggregator(
@@ -28,6 +30,7 @@ func NewBundledAggregator(
 	priceRepository IPriceRepository,
 	onchainpriceRepository IOnchainPriceRepository,
 	poolManager IPoolManager,
+	poolFactory IPoolFactory,
 	config AggregatorConfig,
 	finderEngine finderEngine.IPathFinderEngine,
 ) *bundledAggregator {
@@ -40,7 +43,7 @@ func NewBundledAggregator(
 		finderEngine:           finderEngine,
 		config:                 config,
 	}
-	return &bundledAggregator{ag}
+	return &bundledAggregator{ag, poolFactory}
 }
 
 func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.AggregateBundledParams) ([]*valueobject.RouteSummary, error) {
@@ -66,6 +69,36 @@ func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.Aggrega
 	state, err := a.getStateByBundledAddress(ctx, params, common.Hash(stateRoot))
 	if err != nil {
 		return nil, err
+	}
+
+	// override pool if requested
+	if len(params.OverridePools) > 0 {
+		// create pool simulators from override pools
+		// if caller want to override a curve meta pool, they need to supply override state for its base pool as well
+		poolSims := a.poolFactory.NewPoolByAddress(ctx, params.OverridePools, common.Hash(stateRoot))
+
+		for _, pool := range params.OverridePools {
+			if len(pool.Address) == 0 {
+				continue
+			}
+			poolSim := poolSims[pool.Address]
+			if poolSim == nil {
+				logger.Errorf(ctx, "could not get pool simulator for pool %v", pool.Address)
+				continue
+			}
+			logger.Debugf(ctx, "overriding pool %v: %v | %v", pool.Address, state.Pools[pool.Address], poolSim)
+			state.Pools[pool.Address] = poolSim
+		}
+
+		// if caller want to override a curve base pool, then we need to find its meta pool in `state` and update basepool there
+		newMetaPools := a.poolFactory.CloneCurveMetaForBasePools(ctx, state.Pools, poolSims)
+		for _, newMetaPool := range newMetaPools {
+			addr := newMetaPool.GetAddress()
+			if _, ok := state.Pools[addr]; ok {
+				logger.Debugf(ctx, "overriding meta pool %v | %v", state.Pools[addr], newMetaPool)
+				state.Pools[addr] = newMetaPool
+			}
+		}
 	}
 
 	// Step 2: collect tokens and price data

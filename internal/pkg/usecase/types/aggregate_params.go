@@ -85,4 +85,6 @@ type AggregateBundledParams struct {
 	ClientId string
 
 	Pairs []AggregateBundledParamsPair
+
+	OverridePools []*entity.Pool
 }

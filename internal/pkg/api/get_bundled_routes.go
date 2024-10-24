@@ -16,7 +16,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
-// GetBundledRoutes [GET /bundled-routes] Find best results for multiple routes consecutively
+// GetBundledRoutes [GET/POST /bundled-routes] Find best results for multiple routes consecutively
 func GetBundledRoutes(
 	validator IGetBundledRoutesParamsValidator,
 	useCase IGetBundledRoutesUseCase,
@@ -28,7 +28,7 @@ func GetBundledRoutes(
 		span.SetTag("request-uri", ginCtx.Request.URL.RequestURI())
 
 		var queryParams params.GetBundledRoutesParams
-		if err := ginCtx.ShouldBindQuery(&queryParams); err != nil {
+		if err := ginCtx.ShouldBind(&queryParams); err != nil {
 			RespondFailure(
 				ginCtx,
 				errors.WithMessagef(ErrBindQueryFailed, "[GetBundledRoutes] err: [%v]", err),
@@ -100,6 +100,7 @@ func transformGetBundledRoutesParams(params params.GetBundledRoutesParams) (dto.
 		GasPrice:        gasPrice,
 		ExcludedPools:   mapset.NewThreadUnsafeSet(utils.TransformSliceParams(params.ExcludedPools)...),
 		ClientId:        params.ClientId,
+		OverridePools:   params.OverridePools,
 	}, nil
 }
 

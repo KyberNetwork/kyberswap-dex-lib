@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"encoding/json"
 	"math/big"
 
 	mapset "github.com/deckarep/golang-set/v2"
@@ -44,4 +45,6 @@ type GetBundledRoutesQuery struct {
 
 	ExcludedPools mapset.Set[string]
 	ClientId      string
+
+	OverridePools json.RawMessage
 }

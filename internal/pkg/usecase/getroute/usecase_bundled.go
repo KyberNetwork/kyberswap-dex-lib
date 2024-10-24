@@ -2,7 +2,9 @@ package getroute
 
 import (
 	"context"
+	"encoding/json"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -24,6 +26,7 @@ func NewBundledUseCase(
 	routeCacheRepository IRouteCacheRepository,
 	gasRepository IGasRepository,
 	poolManager IPoolManager,
+	poolFactory IPoolFactory,
 	finderEngine finderEngine.IPathFinderEngine,
 	config Config,
 ) *bundledUseCase {
@@ -33,6 +36,7 @@ func NewBundledUseCase(
 		priceRepository,
 		onchainpriceRepository,
 		poolManager,
+		poolFactory,
 		config.Aggregator,
 		finderEngine,
 	)
@@ -111,6 +115,12 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context, query dt
 
 	isHillClimbEnabled := u.config.Aggregator.FeatureFlags.IsHillClimbEnabled
 
+	var overridePools []*entity.Pool
+	err = json.Unmarshal(query.OverridePools, &overridePools)
+	if err != nil {
+		return nil, err
+	}
+
 	return &types.AggregateBundledParams{
 		Pairs:              pairs,
 		GasToken:           u.config.GasTokenAddress,
@@ -121,5 +131,6 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context, query dt
 		IsHillClimbEnabled: isHillClimbEnabled,
 		ExcludedPools:      query.ExcludedPools,
 		ClientId:           query.ClientId,
+		OverridePools:      overridePools,
 	}, nil
 }
