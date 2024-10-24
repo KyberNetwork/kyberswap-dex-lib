@@ -204,6 +204,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeWBETH
 	dexValueObject.ExchangeWBETH: {},
+
+	// executeUniswapV1
+	dexValueObject.ExchangeUniSwapV1: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {

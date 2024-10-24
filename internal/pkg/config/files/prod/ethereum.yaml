@@ -133,6 +133,8 @@ common:
     - "oeth"
     - "primeeth"
     - "staderethx"
+    - "uniswap-v1"
+    
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:

@@ -58,6 +58,7 @@ import (
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
+	uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v1"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
@@ -520,6 +521,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newIntegral(entityPool)
 	case pooltypes.PoolTypes.Fxdx:
 		return f.newFxdx(entityPool)
+	case pooltypes.PoolTypes.UniswapV1:
+		return f.newUniswapV1(entityPool)
 	case pooltypes.PoolTypes.UniswapV2:
 		return f.newUniswapV2(entityPool)
 	case pooltypes.PoolTypes.QuickPerps:
@@ -1547,6 +1550,20 @@ func (f *PoolFactory) newFxdx(entityPool entity.Pool) (*fxdx.PoolSimulator, erro
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newFxdx] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newUniswapV1(entityPool entity.Pool) (*uniswapv1.PoolSimulator, error) {
+	corePool, err := uniswapv1.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newUniswapV1] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)
