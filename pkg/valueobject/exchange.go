@@ -26,6 +26,7 @@ var (
 	ExchangeEmpireDex       Exchange = "empiredex"
 	ExchangePhotonSwap      Exchange = "photonswap"
 	ExchangeUniSwap         Exchange = "uniswap"
+	ExchangeUniSwapV1       Exchange = "uniswap-v1"
 	ExchangeUniSwapV2       Exchange = "uniswap-v2"
 	ExchangeShibaSwap       Exchange = "shibaswap"
 	ExchangeDefiSwap        Exchange = "defiswap"
@@ -356,6 +357,7 @@ var (
 	ExchangeRingSwap     Exchange = "ringswap"
 	ExchangePrimeETH     Exchange = "primeeth"
 	ExchangeStaderETHx   Exchange = "staderethx"
+	ExchangeFrxETH       Exchange = "frxeth"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -382,6 +384,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeEmpireDex:                  {},
 	ExchangePhotonSwap:                 {},
 	ExchangeUniSwap:                    {},
+	ExchangeUniSwapV1:                  {},
 	ExchangeUniSwapV2:                  {},
 	ExchangeShibaSwap:                  {},
 	ExchangeDefiSwap:                   {},
@@ -648,6 +651,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeRingSwap:                   {},
 	ExchangePrimeETH:                   {},
 	ExchangeStaderETHx:                 {},
+	ExchangeFrxETH:                     {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
