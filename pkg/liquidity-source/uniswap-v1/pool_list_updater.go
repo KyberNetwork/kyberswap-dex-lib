@@ -180,7 +180,7 @@ func (u *PoolsListUpdater) listExchanges(ctx context.Context, offset int, batchS
 
 	var exchanges = make([]ExchangeInfo, 0, len(listExchangeResult))
 	for i, isSuccess := range resp.Result {
-		if !isSuccess || strings.EqualFold(listExchangeResult[i].Hex(), ZERO_ADDRESS) {
+		if !isSuccess || listExchangeResult[i] == ZERO_ADDRESS {
 			continue
 		}
 
