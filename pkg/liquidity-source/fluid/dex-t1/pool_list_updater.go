@@ -153,7 +153,7 @@ func (u *PoolsListUpdater) readTokensDecimals(ctx context.Context, token0 common
 		}, []interface{}{&decimals0})
 	}
 
-	if strings.EqualFold(NativeETH, token1.String()) {
+	if strings.EqualFold(valueobject.EtherAddress, token1.String()) {
 		decimals1 = 18
 	} else {
 		req.AddCall(&ethrpc.Call{
