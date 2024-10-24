@@ -63,15 +63,17 @@ type (
 	}
 
 	FinderOptions struct {
-		Type                    string  `mapstructure:"type" json:"type"`
-		MaxHops                 uint32  `mapstructure:"maxHops" json:"maxHops"`
-		DistributionPercent     uint32  `mapstructure:"distributionPercent" json:"distributionPercent"`
-		MaxPathsInRoute         uint32  `mapstructure:"maxPathsInRoute" json:"maxPathsInRoute"`
-		MaxPathsToGenerate      uint32  `mapstructure:"maxPathsToGenerate" json:"maxPathsToGenerate"`
-		MaxPathsToReturn        uint32  `mapstructure:"maxPathsToReturn" json:"maxPathsToReturn"`
-		MinPartUSD              float64 `mapstructure:"minPartUSD" json:"minPartUSD"`
-		MinThresholdAmountInUSD float64 `mapstructure:"minThresholdAmountInUSD" json:"minThresholdAmountInUSD"`
-		MaxThresholdAmountInUSD float64 `mapstructure:"maxThresholdAmountInUSD" json:"maxThresholdAmountInUSD"`
+		Type                         string          `mapstructure:"type" json:"type"`
+		MaxHops                      uint            `mapstructure:"maxHops" json:"maxHops"`
+		DistributionPercent          uint            `mapstructure:"distributionPercent" json:"distributionPercent"`
+		MaxPathsInRoute              uint            `mapstructure:"maxPathsInRoute" json:"maxPathsInRoute"`
+		MaxPathsToGenerate           uint            `mapstructure:"maxPathsToGenerate" json:"maxPathsToGenerate"`
+		MaxPathsToReturn             uint            `mapstructure:"maxPathsToReturn" json:"maxPathsToReturn"`
+		MinPartUSD                   float64         `mapstructure:"minPartUSD" json:"minPartUSD"`
+		MinThresholdAmountInUSD      float64         `mapstructure:"minThresholdAmountInUSD" json:"minThresholdAmountInUSD"`
+		MaxThresholdAmountInUSD      float64         `mapstructure:"maxThresholdAmountInUSD" json:"maxThresholdAmountInUSD"`
+		ExtraPathsPerNodeByTokens    map[string]uint `mapstructure:"extraPathsPerNodeByTokens" json:"extraPathsPerNodeByTokens"`
+		FullAmountGeneratePathsPrice float64         `mapstructure:"fullAmountGeneratePathsPrice" json:"fullAmountGeneratePathsPrice"`
 
 		HillClimbDistributionPercent uint32  `mapstructure:"hillClimbDistributionPercent" json:"hillClimbDistributionPercent"`
 		HillClimbIteration           uint32  `mapstructure:"hillClimbIteration" json:"hillClimbIteration"`

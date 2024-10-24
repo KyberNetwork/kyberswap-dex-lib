@@ -230,7 +230,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		Return(nil).
 		AnyTimes()
 
-	config := valueobject.FinderOptions{
+	finderOptions := valueobject.FinderOptions{
 		Type:                    valueobject.FinderTypes.SPFAv2,
 		MaxHops:                 3,
 		DistributionPercent:     5,
@@ -239,17 +239,18 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		MaxPathsToReturn:        200,
 		MinPartUSD:              500,
 		MinThresholdAmountInUSD: 0,
-		MaxThresholdAmountInUSD: 100000000}
+		MaxThresholdAmountInUSD: 100000000,
+	}
 
 	calcAmountOutInstance := routerpoolpkg.NewCalcAmountOut(map[string]bool{})
 
 	routeFinder, _ := spfav2.NewSPFAv2Finder(
-		uint(config.MaxHops),
-		uint(config.MaxPathsToGenerate),
-		uint(config.MaxPathsToReturn),
-		uint(config.MaxPathsInRoute),
-		uint(config.DistributionPercent),
-		config.MinPartUSD,
+		finderOptions.MaxHops,
+		finderOptions.MaxPathsToGenerate,
+		finderOptions.MaxPathsToReturn,
+		finderOptions.MaxPathsInRoute,
+		finderOptions.DistributionPercent,
+		finderOptions.MinPartUSD,
 	)
 	routeFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
 
@@ -279,20 +280,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 					"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true,
 					"0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202": true,
 				},
-				FinderOptions: valueobject.FinderOptions{
-					MaxHops:                 3,
-					DistributionPercent:     5,
-					MaxPathsInRoute:         20,
-					MaxPathsToGenerate:      5,
-					MaxPathsToReturn:        200,
-					MinPartUSD:              500,
-					MinThresholdAmountInUSD: 0,
-					MaxThresholdAmountInUSD: 100000000,
-
-					HillClimbDistributionPercent: 1,
-					HillClimbIteration:           2,
-					HillClimbMinPartUSD:          500,
-				},
+				FinderOptions: finderOptions,
 			},
 
 			SafetyQuoteConfig: &valueobject.SafetyQuoteReductionConfig{},

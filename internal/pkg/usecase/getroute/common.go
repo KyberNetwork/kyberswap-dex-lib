@@ -224,20 +224,21 @@ func InitializeFinderEngine(
 	finderOptions := config.Aggregator.FinderOptions
 	var baseFinder finderEngine.IFinder
 
-	spfaFinder, err := spfav2.NewSPFAv2Finder(
-		uint(finderOptions.MaxHops),
-		uint(finderOptions.MaxPathsToGenerate),
-		uint(finderOptions.MaxPathsToReturn),
-		uint(finderOptions.MaxPathsInRoute),
-		uint(finderOptions.DistributionPercent),
-		finderOptions.MinPartUSD,
-	)
-	spfaFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
-	baseFinder = spfaFinder
-
+	spfaFinder, err := spfav2.NewFinder(spfav2.Config{
+		MaxHops:                      finderOptions.MaxHops,
+		DistributionPercent:          finderOptions.MaxPathsToGenerate,
+		MaxPathsInRoute:              finderOptions.MaxPathsToReturn,
+		MaxPathsToGenerate:           finderOptions.MaxPathsInRoute,
+		MaxPathsToReturn:             finderOptions.DistributionPercent,
+		MinPartUSD:                   finderOptions.MinPartUSD,
+		ExtraPathsPerNodeByTokens:    finderOptions.ExtraPathsPerNodeByTokens,
+		FullAmountGeneratePathsPrice: finderOptions.FullAmountGeneratePathsPrice,
+	})
 	if err != nil {
 		return nil, nil, err
 	}
+	spfaFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
+	baseFinder = spfaFinder
 
 	if finderOptions.Type == valueobject.FinderTypes.RetryDynamicPools {
 		retryFinder := retry.NewRetryFinder(baseFinder)
