@@ -13,11 +13,11 @@ const (
 	TokenMethodDecimals = "decimals"
 )
 
-const String1e18 = "1000000000000000000"
+const (
+	String1e18 = "1000000000000000000"
 
-const DexAmountsDecimals int64 = 12
+	DexAmountsDecimals int64 = 12
 
-const FeePercentPrecision int64 = 1e4
-const Fee100PercentPrecision int64 = 1e6
-
-const NativeETH string = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"
+	FeePercentPrecision    int64 = 1e4
+	Fee100PercentPrecision int64 = 1e6
+)
