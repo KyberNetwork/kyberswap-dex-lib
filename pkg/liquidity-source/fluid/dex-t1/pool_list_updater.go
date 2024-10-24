@@ -142,7 +142,7 @@ func (u *PoolsListUpdater) readTokensDecimals(ctx context.Context, token0 common
 
 	req := u.ethrpcClient.R().SetContext(ctx)
 
-	if strings.EqualFold(NativeETH, token0.String()) {
+	if strings.EqualFold(valueobject.EtherAddress, token0.String()) {
 		decimals0 = 18
 	} else {
 		req.AddCall(&ethrpc.Call{
