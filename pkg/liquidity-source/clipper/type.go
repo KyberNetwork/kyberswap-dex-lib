@@ -59,10 +59,20 @@ type SignParams struct {
 }
 
 type SignResponse struct {
-	OutputAmount string `json:"output_amount"`
-	Signature    struct {
-		V int    `json:"v"`
-		R string `json:"r"`
-		S string `json:"s"`
-	} `json:"signature"`
+	OutputAmount string            `json:"output_amount"`
+	GoodUntil    string            `json:"good_until"`
+	Signature    SignatureResponse `json:"signature"`
+}
+
+type SignatureResponse struct {
+	V uint8  `json:"v"`
+	R string `json:"r"`
+	S string `json:"s"`
+}
+
+type RFQExtra struct {
+	V         uint8
+	R         string
+	S         string
+	GoodUntil string
 }
