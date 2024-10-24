@@ -36,6 +36,7 @@ type (
 )
 
 var (
+	ErrPoolPaused     = errors.New("pool is paused")
 	ErrUnwrapTooSmall = errors.New("unwrap too small")
 )
 
@@ -63,7 +64,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
 	if s.paused {
-
+		return nil, ErrPoolPaused
 	}
 
 	tokenAmountIn := params.TokenAmountIn
@@ -77,7 +78,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	}
 
 	var (
-		amountOut *big.Int
+		amountOut *uint256.Int
 		gas       int64
 		isWrap    = tokenAmountIn.Token == s.Pool.Info.Tokens[0]
 	)
@@ -95,7 +96,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	}
 
 	return &poolpkg.CalcAmountOutResult{
-		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut},
+		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
 		Fee:            &poolpkg.TokenAmount{Token: params.TokenOut, Amount: bignumber.ZeroBI},
 		Gas:            gas,
 		SwapInfo: SwapInfo{
@@ -106,8 +107,8 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 
 func (s *PoolSimulator) UpdateBalance(_ poolpkg.UpdateBalanceParams) {}
 
-func (s *PoolSimulator) wrap(USDYAmount *uint256.Int) *big.Int {
-	return s.getRUSDYByShares(USDYAmount.Mul(USDYAmount, common.BasisPoints)).ToBig()
+func (s *PoolSimulator) wrap(USDYAmount *uint256.Int) *uint256.Int {
+	return s.getRUSDYByShares(USDYAmount.Mul(USDYAmount, common.BasisPoints))
 }
 
 func (s *PoolSimulator) getRUSDYByShares(shares *uint256.Int) *uint256.Int {
@@ -116,13 +117,13 @@ func (s *PoolSimulator) getRUSDYByShares(shares *uint256.Int) *uint256.Int {
 		Div(shares, new(uint256.Int).Mul(number.Number_1e18, common.BasisPoints))
 }
 
-func (s *PoolSimulator) unwrap(rUSDYAmount *uint256.Int) (*big.Int, error) {
+func (s *PoolSimulator) unwrap(rUSDYAmount *uint256.Int) (*uint256.Int, error) {
 	usdyAmount := s.getSharesByRUSDY(rUSDYAmount)
 	if usdyAmount.Cmp(common.BasisPoints) < 0 {
 		return nil, ErrUnwrapTooSmall
 	}
 
-	return usdyAmount.Div(usdyAmount, common.BasisPoints).ToBig(), nil
+	return usdyAmount.Div(usdyAmount, common.BasisPoints), nil
 }
 
 func (s *PoolSimulator) getSharesByRUSDY(rUSDYAmount *uint256.Int) *uint256.Int {

@@ -2,12 +2,10 @@ package ondo_usdy
 
 import (
 	"context"
-	"math/big"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -25,7 +23,8 @@ func (ts *PoolListUpdaterTestSuite) SetupTest() {
 	ts.client = rpcClient
 
 	config := Config{
-		DexID: DexType,
+		DexID:    DexType,
+		PoolPath: "pools/mantle.json",
 	}
 
 	ts.updater = PoolsListUpdater{
@@ -38,16 +37,10 @@ func (ts *PoolListUpdaterTestSuite) SetupTest() {
 
 func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	pools, _, _ := ts.updater.GetNewPools(context.Background(), nil)
-
 	require.NotNil(ts.T(), pools)
-
-	a := uint256.MustFromDecimal("53919893334301279589334030174039261347274288845081144962207220498432")
-	// get bit 255 of a
-	a = a.Rsh(a, 255)
-	require.Equal(ts.T(), big.NewInt(1), a)
 }
 
 func TestPoolListUpdaterTestSuite(t *testing.T) {
-	// t.Skip("Skipping testing in CI environment")
+	t.Skip("Skipping testing in CI environment")
 	suite.Run(t, new(PoolListUpdaterTestSuite))
 }

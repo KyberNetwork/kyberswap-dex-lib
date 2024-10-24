@@ -33,12 +33,12 @@ func (t *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	newExtra, blockNumber, err := getExtra(ctx, t.ethrpcClient, []entity.Pool{p}, []string{oldExtra.RWADynamicOracleAddress})
+	newExtras, blockNumber, err := getExtra(ctx, t.ethrpcClient, []entity.Pool{p}, []string{oldExtra.RWADynamicOracleAddress})
 	if err != nil {
 		return p, err
 	}
 
-	extraBytes, err := json.Marshal(newExtra)
+	extraBytes, err := json.Marshal(newExtras[0])
 	if err != nil {
 		return p, err
 	}

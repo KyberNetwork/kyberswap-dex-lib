@@ -57,6 +57,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context) ([]entity.Pool, error)
 		logger.Errorf("misconfigured poolPath")
 		return nil, errors.New("misconfigured poolPath")
 	}
+
 	var poolItems []PoolItem
 	if err := json.Unmarshal(byteData, &poolItems); err != nil {
 		logger.WithFields(logger.Fields{
@@ -106,6 +107,7 @@ func (u *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 			Reserves:  reserves,
 			Tokens:    tokens,
 		}
+
 		rwaDynamicOracleAddresses = append(rwaDynamicOracleAddresses, pool.RWADynamicOracleAddress)
 		pools = append(pools, poolEntity)
 	}
