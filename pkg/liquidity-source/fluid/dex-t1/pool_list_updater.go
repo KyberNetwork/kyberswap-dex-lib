@@ -92,13 +92,13 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   curPool.Token0Address.String(),
+					Address:   strings.ToLower(curPool.Token0Address.String()),
 					Weight:    1,
 					Swappable: true,
 					Decimals:  token0Decimals,
 				},
 				{
-					Address:   curPool.Token1Address.String(),
+					Address:   strings.ToLower(curPool.Token1Address.String()),
 					Weight:    1,
 					Swappable: true,
 					Decimals:  token1Decimals,
