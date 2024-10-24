@@ -169,14 +169,16 @@ func (s *PoolSimulator) getInputPrice(inputAmount, inputReserve, outputReserve *
 		return nil, ErrInsufficientLiquidity
 	}
 
-	inputAmountWithFee := new(uint256.Int).Mul(inputAmount, U997)
+	var inputAmountWithFee, numerator, denominator uint256.Int
 
-	numerator := new(uint256.Int).Mul(inputAmountWithFee, outputReserve)
+	inputAmountWithFee.Mul(inputAmount, U997)
 
-	denominator := new(uint256.Int).Mul(inputReserve, U1000)
-	denominator.Add(denominator, inputAmountWithFee)
+	numerator.Mul(&inputAmountWithFee, outputReserve)
 
-	return numerator.Div(numerator, denominator), nil
+	denominator.Mul(inputReserve, U1000)
+	denominator.Add(&denominator, &inputAmountWithFee)
+
+	return numerator.Div(&numerator, &denominator), nil
 }
 
 // def getOutputPrice(output_amount: uint256, input_reserve: uint256, output_reserve: uint256) -> uint256:
@@ -190,12 +192,15 @@ func (s *PoolSimulator) getOutputPrice(outputAmount, inputReserve, outputReserve
 		return nil, ErrInsufficientLiquidity
 	}
 
-	numerator := new(uint256.Int).Mul(inputReserve, outputAmount)
-	numerator.Mul(numerator, U1000)
+	var numerator, denominator uint256.Int
 
-	denominator := new(uint256.Int).Sub(outputReserve, outputAmount)
-	denominator.Mul(denominator, U997)
+	numerator.Mul(inputReserve, outputAmount)
+	numerator.Mul(&numerator, U1000)
 
-	result := new(uint256.Int).Div(numerator, denominator)
+	denominator.Sub(outputReserve, outputAmount)
+	denominator.Mul(&denominator, U997)
+
+	result := new(uint256.Int).Div(&numerator, &denominator)
+
 	return result.Add(result, uint256.NewInt(1)), nil
 }
