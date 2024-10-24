@@ -14,8 +14,7 @@ const (
 var (
 	defaultGas = Gas{Swap: 165000}
 
-	MinTokenBought = uint256.NewInt(1)
-	ZERO_ADDRESS   = common.Address{}
+	ZERO_ADDRESS = common.Address{}
 
 	U997  = uint256.NewInt(997)
 	U1000 = uint256.NewInt(1000)

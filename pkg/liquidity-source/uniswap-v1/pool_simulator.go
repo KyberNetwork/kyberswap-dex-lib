@@ -85,7 +85,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, err
 	}
 
-	if amountOut.Lt(MinTokenBought) {
+	if amountOut.LtUint64(1) {
 		return nil, ErrInsufficientOutputAmount
 	}
 
@@ -202,5 +202,5 @@ func (s *PoolSimulator) getOutputPrice(outputAmount, inputReserve, outputReserve
 
 	result := new(uint256.Int).Div(&numerator, &denominator)
 
-	return result.Add(result, uint256.NewInt(1)), nil
+	return result.AddUint64(result, 1), nil
 }
