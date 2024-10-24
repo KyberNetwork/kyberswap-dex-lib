@@ -61,6 +61,11 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 
 	return &pool.RFQResult{
 		NewAmountOut: newAmountOut,
-		Extra:        result.Signature,
+		Extra: RFQExtra{
+			V:         result.Signature.V,
+			R:         result.Signature.R,
+			S:         result.Signature.S,
+			GoodUntil: result.GoodUntil,
+		},
 	}, nil
 }
