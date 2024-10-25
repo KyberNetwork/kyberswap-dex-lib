@@ -46,6 +46,9 @@ func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*PoolSim
 	return &PoolSimulator{*sim, basePool}, err
 }
 
+func (t *PoolSimulator) GetBasePool() ICurveBasePool         { return t.basePool }
+func (t *PoolSimulator) SetBasePool(basePool ICurveBasePool) { t.basePool = basePool }
+
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut

@@ -47,6 +47,7 @@ import (
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
+	uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v1"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
 	velocorev2cpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/cpmm"
@@ -184,6 +185,7 @@ type Types struct {
 	Smardex                        string
 	Integral                       string
 	Fxdx                           string
+	UniswapV1                      string
 	UniswapV2                      string
 	QuickPerps                     string
 	BalancerV1                     string
@@ -311,6 +313,7 @@ var (
 		Smardex:                        smardex.DexTypeSmardex,
 		Integral:                       integral.DexTypeIntegral,
 		Fxdx:                           fxdx.DexTypeFxdx,
+		UniswapV1:                      uniswapv1.DexType,
 		UniswapV2:                      uniswapv2.DexType,
 		QuickPerps:                     quickperps.DexTypeQuickperps,
 		BalancerV1:                     balancerv1.DexType,
