@@ -58,6 +58,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Reserves: reserves,
 			},
 		},
+		paused:          poolExtra.Paused,
 		rate:            poolExtra.Rate,
 		rateUnit:        poolExtra.RateUnit,
 		isRateInversed:  poolExtra.IsRateInversed,
