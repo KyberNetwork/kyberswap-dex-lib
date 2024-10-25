@@ -90,7 +90,17 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.Handle")
 	defer span.End()
 
-	routeSummary, err := uc.rfq(ctx, command.Sender, command.Recipient, command.Source, command.RouteSummary, command.SlippageTolerance)
+	encoder := uc.encodeBuilder.GetEncoder(dexValueObject.ChainID(uc.config.ChainID))
+	executorAddress := strings.ToLower(encoder.GetExecutorAddress(command.Source))
+
+	routeSummary, err := uc.checkToKeepDustTokenOut(ctx, executorAddress, command.RouteSummary)
+	if err != nil {
+		return nil, err
+	}
+
+	command.RouteSummary = routeSummary
+
+	routeSummary, err = uc.rfq(ctx, command.Sender, command.Recipient, command.Source, command.RouteSummary, command.SlippageTolerance)
 	if err != nil {
 		if strings.Contains(err.Error(), context.DeadlineExceeded.Error()) {
 			return nil, ErrRFQTimeout
@@ -104,7 +114,7 @@ func (uc *BuildRouteUseCase) Handle(ctx context.Context, command dto.BuildRouteC
 		return nil, err
 	}
 
-	encodedData, err := uc.encode(ctx, command, routeSummary)
+	encodedData, err := uc.encode(ctx, command, routeSummary, encoder, executorAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -349,7 +359,13 @@ func (uc *BuildRouteUseCase) updateRouteSummary(ctx context.Context, routeSummar
 	return routeSummary, nil
 }
 
-func (uc *BuildRouteUseCase) encode(ctx context.Context, command dto.BuildRouteCommand, routeSummary valueobject.RouteSummary) (string, error) {
+func (uc *BuildRouteUseCase) encode(
+	ctx context.Context,
+	command dto.BuildRouteCommand,
+	routeSummary valueobject.RouteSummary,
+	encoder encode.IEncoder,
+	executorAddress string,
+) (string, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.encode")
 	defer span.End()
 
@@ -358,12 +374,10 @@ func (uc *BuildRouteUseCase) encode(ctx context.Context, command dto.BuildRouteC
 		return "", err
 	}
 
-	encoder := uc.encodeBuilder.GetEncoder(dexValueObject.ChainID(uc.config.ChainID))
-
 	encodingData := types.NewEncodingDataBuilder(
 		uc.executorBalanceRepository,
 		uc.config.FeatureFlags.IsOptimizeExecutorFlagsEnabled).
-		SetRoute(&routeSummary, encoder.GetExecutorAddress(command.Source), command.Recipient).
+		SetRoute(&routeSummary, executorAddress, command.Recipient).
 		SetDeadline(big.NewInt(command.Deadline)).
 		SetSlippageTolerance(big.NewInt(command.SlippageTolerance)).
 		SetClientID(command.Source).
@@ -584,4 +598,36 @@ func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
 			metrics.HistogramEstimateGasWithSlippage(ctx, float64(slippage), true)
 		}
 	}
+}
+
+// This function checks the amount of tokenOut that needs to be retained because the executor contract
+// keeps 1 wei of token/native token for gas optimization.
+// If the executor has a balance of tokenOut, do nothing. Otherwise, decrease amountOut by 1,
+// which reduces minReturnAmount by 1 to ensure tx succeeds when slippageTolerance = 0.
+//
+// In multi-hop paths, multiple pools could reduce amountOut by 1 each time, but since we only allow whitelisted tokens
+// or tokenOut in the middle of the path, we only need to check tokenOut balance.
+//
+// In dev environment, ensure the feature flag isOptimizeExecutorFlagsEnabled is enabled,
+// and EncodingSwapFlagShouldNotKeepDustTokenOut is added to every swap in the paths.
+func (uc *BuildRouteUseCase) checkToKeepDustTokenOut(
+	ctx context.Context,
+	executorAddress string,
+	routeSummary valueobject.RouteSummary,
+) (valueobject.RouteSummary, error) {
+	span, _ := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.checkToKeepDustTokenOut")
+	defer span.End()
+
+	hasTokens, err := uc.executorBalanceRepository.HasToken(executorAddress, []string{routeSummary.TokenOut})
+	if err != nil {
+		return routeSummary, err
+	}
+
+	if !hasTokens[0] {
+		routeSummary.AmountOut.Sub(routeSummary.AmountOut, big.NewInt(1))
+		if routeSummary.AmountOut.Cmp(big.NewInt(0)) <= 0 {
+			return routeSummary, ErrCannotKeepDustTokenOut
+		}
+	}
+	return routeSummary, nil
 }

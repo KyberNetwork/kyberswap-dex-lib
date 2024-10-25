@@ -6,10 +6,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/golang/mock/gomock"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
@@ -17,6 +13,9 @@ import (
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	kyberpmmClient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerEntities "github.com/KyberNetwork/router-service/internal/pkg/entity"
@@ -38,7 +37,6 @@ func (d *dummyL1FeeCalculator) CalculateL1Fee(ctx context.Context, chainId value
 func TestBuildRouteUseCase_Handle(t *testing.T) {
 	t.Parallel()
 
-	theErr := errors.New("some error")
 	recipient := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 	sender := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c759bc2"
 	amountIn := big.NewInt(20000)
@@ -54,17 +52,14 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 		err     error
 	}{
 		{
-			name: "it should return correct error when encoder return error",
+			name: "it should return correct error when return error",
 			prepare: func(ctrl *gomock.Controller, config Config, wg *sync.WaitGroup) *BuildRouteUseCase {
 				clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
-				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
+				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil).AnyTimes()
 
 				encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
 				encoder := mockEncode.NewMockIEncoder(ctrl)
 				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).Return(encoder).AnyTimes()
-				encoder.EXPECT().
-					Encode(gomock.Any()).
-					Return("", theErr).AnyTimes()
 				encoder.EXPECT().
 					GetExecutorAddress(gomock.Any()).
 					Return("0x00").AnyTimes()
@@ -81,7 +76,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
 						},
 						nil,
-					)
+					).AnyTimes()
 
 				priceRepository := usecase.NewMockIPriceRepository(ctrl)
 				priceRepository.EXPECT().
@@ -92,7 +87,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
 						},
 						nil,
-					)
+					).AnyTimes()
 
 				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
 				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
@@ -145,7 +140,257 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
 			result: nil,
-			err:    theErr,
+			err:    ErrCannotKeepDustTokenOut,
+		},
+		{
+			name: "it should return correct amountOut when executor has tokenOut",
+			prepare: func(ctrl *gomock.Controller, config Config, wg *sync.WaitGroup) *BuildRouteUseCase {
+				clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
+
+				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
+
+				encoder := mockEncode.NewMockIEncoder(ctrl)
+				encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
+				encodedData := "mockEncodedData"
+
+				encoder.EXPECT().
+					Encode(gomock.Any()).
+					Return(encodedData, nil)
+				encoder.EXPECT().
+					GetExecutorAddress(gomock.Any()).
+					Return("0x00").AnyTimes()
+				encoder.EXPECT().
+					GetRouterAddress().
+					Return("0x01").AnyTimes()
+
+				tokenRepository := usecase.NewMockITokenRepository(ctrl)
+				tokenRepository.EXPECT().
+					FindByAddresses(gomock.Any(), gomock.Any()).
+					Return(
+						[]*entity.Token{
+							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
+							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
+						},
+						nil,
+					)
+
+				priceRepository := usecase.NewMockIPriceRepository(ctrl)
+				priceRepository.EXPECT().
+					FindByAddresses(gomock.Any(), gomock.Any()).
+					Return(
+						[]*entity.Price{
+							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
+							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
+						},
+						nil,
+					)
+				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
+
+				executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
+				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{true}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+
+				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
+				tx := NewUnsignedTransaction(
+					sender,
+					recipient,
+					encodedData,
+					constant.Zero,
+					nil,
+				)
+				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10), float64(1.5), nil)
+
+				return NewBuildRouteUseCase(
+					tokenRepository,
+					priceRepository,
+					poolRepository,
+					executorBalanceRepository,
+					nil,
+					gasEstimator,
+					dummyL1FeeCalculator,
+					nil,
+					clientDataEncoder,
+					encodeBuilder,
+					config,
+				)
+			},
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:                     big.NewInt(20000),
+					AmountInUSD:                  0,
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:                    big.NewInt(1000),
+					AmountOutUSD:                 0,
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          0,
+					GasPrice:                     big.NewFloat(100.2),
+					GasUSD:                       0,
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:      "0xabc",
+								AmountOut: big.NewInt(1000),
+							},
+						},
+					},
+				},
+				SlippageTolerance:   5,
+				Recipient:           recipient,
+				Sender:              sender,
+				EnableGasEstimation: true,
+			},
+			config: Config{
+				ChainID:      valueobject.ChainIDEthereum,
+				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: false},
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
+				}},
+			result: &dto.BuildRouteResult{
+				AmountIn:         "20000",
+				AmountInUSD:      "0.02",
+				AmountOut:        "1000",
+				AmountOutUSD:     "0.001",
+				Gas:              "10",
+				GasUSD:           "1.5",
+				OutputChange:     OutputChangeNoChange,
+				Data:             "mockEncodedData",
+				RouterAddress:    "0x01",
+				TransactionValue: "0",
+
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
+			},
+			err: nil,
+		},
+		{
+			name: "it should return correct amountOut when executor does not have tokenOut",
+			prepare: func(ctrl *gomock.Controller, config Config, wg *sync.WaitGroup) *BuildRouteUseCase {
+				clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
+
+				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
+
+				encoder := mockEncode.NewMockIEncoder(ctrl)
+				encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
+				encodedData := "mockEncodedData"
+
+				encoder.EXPECT().
+					Encode(gomock.Any()).
+					Return(encodedData, nil)
+				encoder.EXPECT().
+					GetExecutorAddress(gomock.Any()).
+					Return("0x00").AnyTimes()
+				encoder.EXPECT().
+					GetRouterAddress().
+					Return("0x01").AnyTimes()
+
+				tokenRepository := usecase.NewMockITokenRepository(ctrl)
+				tokenRepository.EXPECT().
+					FindByAddresses(gomock.Any(), gomock.Any()).
+					Return(
+						[]*entity.Token{
+							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", Decimals: 6},
+							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", Decimals: 6},
+						},
+						nil,
+					)
+
+				priceRepository := usecase.NewMockIPriceRepository(ctrl)
+				priceRepository.EXPECT().
+					FindByAddresses(gomock.Any(), gomock.Any()).
+					Return(
+						[]*entity.Price{
+							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
+							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
+						},
+						nil,
+					)
+				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
+				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
+
+				executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
+				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+
+				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
+				tx := NewUnsignedTransaction(
+					sender,
+					recipient,
+					encodedData,
+					constant.Zero,
+					nil,
+				)
+				gasEstimator.EXPECT().Execute(gomock.Any(), gomock.Eq(tx)).Times(1).Return(uint64(10), float64(1.5), nil)
+
+				return NewBuildRouteUseCase(
+					tokenRepository,
+					priceRepository,
+					poolRepository,
+					executorBalanceRepository,
+					nil,
+					gasEstimator,
+					dummyL1FeeCalculator,
+					nil,
+					clientDataEncoder,
+					encodeBuilder,
+					config,
+				)
+			},
+			command: dto.BuildRouteCommand{
+				RouteSummary: valueobject.RouteSummary{
+					TokenIn:                      "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+					AmountIn:                     big.NewInt(20000),
+					AmountInUSD:                  0,
+					TokenInMarketPriceAvailable:  false,
+					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
+					AmountOut:                    big.NewInt(997),
+					AmountOutUSD:                 0,
+					TokenOutMarketPriceAvailable: false,
+					Gas:                          0,
+					GasPrice:                     big.NewFloat(100.2),
+					GasUSD:                       0,
+					ExtraFee:                     valueobject.ExtraFee{},
+					Route: [][]valueobject.Swap{
+						{
+							{
+								Pool:      "0xabc",
+								AmountOut: big.NewInt(1000),
+							},
+						},
+					},
+				},
+				SlippageTolerance:   5,
+				Recipient:           recipient,
+				Sender:              sender,
+				EnableGasEstimation: true,
+			},
+			config: Config{
+				ChainID:      valueobject.ChainIDEthereum,
+				FeatureFlags: valueobject.FeatureFlags{IsGasEstimatorEnabled: true, IsFaultyPoolDetectorEnable: false},
+				FaultyPoolsConfig: FaultyPoolsConfig{
+					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
+				}},
+			result: &dto.BuildRouteResult{
+				AmountIn:         "20000",
+				AmountInUSD:      "0.02",
+				AmountOut:        "996",
+				AmountOutUSD:     "0.000996",
+				Gas:              "10",
+				GasUSD:           "1.5",
+				OutputChange:     OutputChangeNoChange,
+				Data:             "mockEncodedData",
+				RouterAddress:    "0x01",
+				TransactionValue: "0",
+
+				AdditionalCostUsd:     "0",
+				AdditionalCostMessage: "",
+			},
+			err: nil,
 		},
 		{
 			name: "it should return correct result and run estimate Gas when there is no error and Feature flag is on",
@@ -228,7 +473,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					AmountInUSD:                  0,
 					TokenInMarketPriceAvailable:  false,
 					TokenOut:                     "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab",
-					AmountOut:                    big.NewInt(10000),
+					AmountOut:                    big.NewInt(9999),
 					AmountOutUSD:                 0,
 					TokenOutMarketPriceAvailable: false,
 					Gas:                          0,
@@ -239,7 +484,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 						{
 							{
 								Pool:      "0xabc",
-								AmountOut: big.NewInt(10000),
+								AmountOut: big.NewInt(9999),
 							},
 						},
 					},
@@ -258,8 +503,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "20000",
 				AmountInUSD:      "0.02",
-				AmountOut:        "10000",
-				AmountOutUSD:     "0.01",
+				AmountOut:        "9998",
+				AmountOutUSD:     "0.009998",
 				Gas:              "10",
 				GasUSD:           "1.5",
 				OutputChange:     OutputChangeNoChange,
@@ -388,8 +633,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "20000",
 				AmountInUSD:      "0.02",
-				AmountOut:        "10000",
-				AmountOutUSD:     "0.01",
+				AmountOut:        "9999",
+				AmountOutUSD:     "0.009999",
 				Gas:              "15",
 				GasUSD:           "100",
 				OutputChange:     OutputChangeNoChange,
@@ -516,8 +761,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "20000",
 				AmountInUSD:      "0.02",
-				AmountOut:        "10000",
-				AmountOutUSD:     "0.01",
+				AmountOut:        "9999",
+				AmountOutUSD:     "0.009999",
 				Gas:              "10",
 				GasUSD:           "1.5",
 				OutputChange:     OutputChangeNoChange,
@@ -597,8 +842,8 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "20000",
 				AmountInUSD:      "0.02",
-				AmountOut:        "10000",
-				AmountOutUSD:     "0.01",
+				AmountOut:        "9999",
+				AmountOutUSD:     "0.009999",
 				Gas:              "1234",
 				GasUSD:           "1.5",
 				OutputChange:     OutputChangeNoChange,
@@ -660,8 +905,8 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "20000",
 				AmountInUSD:      "0.02",
-				AmountOut:        "10000",
-				AmountOutUSD:     "0.01",
+				AmountOut:        "9999",
+				AmountOutUSD:     "0.009999",
 				Gas:              "12",
 				GasUSD:           "0",
 				OutputChange:     OutputChangeNoChange,
@@ -724,8 +969,8 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "20000",
 				AmountInUSD:      "0.02",
-				AmountOut:        "10000",
-				AmountOutUSD:     "0.01",
+				AmountOut:        "9999",
+				AmountOutUSD:     "0.009999",
 				Gas:              "7",
 				GasUSD:           "0",
 				OutputChange:     OutputChangeNoChange,
@@ -907,8 +1152,8 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "500000",
 				AmountInUSD:      "0.5",
-				AmountOut:        "1626105316",
-				AmountOutUSD:     "0.000000001626105316",
+				AmountOut:        "1626105315",
+				AmountOutUSD:     "0.000000001626105315",
 				Gas:              "185000",
 				GasUSD:           "6.782624739119853",
 				OutputChange:     OutputChangeNoChange,
@@ -982,8 +1227,8 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "500000",
 				AmountInUSD:      "0.5",
-				AmountOut:        "1626105316",
-				AmountOutUSD:     "0.000000001626105316",
+				AmountOut:        "1626105315",
+				AmountOutUSD:     "0.000000001626105315",
 				Gas:              "185000",
 				GasUSD:           "6.782624739119853",
 				OutputChange:     OutputChangeNoChange,
@@ -1155,7 +1400,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "2000000000000000000",
 				AmountInUSD:      "2000000000000",
-				AmountOut:        "4488767370609711072",
+				AmountOut:        "4488767370609711071",
 				AmountOutUSD:     "4488767370609.711",
 				Gas:              "345000",
 				GasUSD:           "0.07912413535198341",
@@ -1243,7 +1488,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "2000000000000000000",
 				AmountInUSD:      "2000000000000",
-				AmountOut:        "4488767370609711072",
+				AmountOut:        "4488767370609711071",
 				AmountOutUSD:     "4488767370609.711",
 				Gas:              "345000",
 				GasUSD:           "0.07912413535198341",
@@ -1335,7 +1580,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "2000000000000000000",
 				AmountInUSD:      "2000000000000",
-				AmountOut:        "4488767370609711072",
+				AmountOut:        "4488767370609711071",
 				AmountOutUSD:     "4488767370609.711",
 				Gas:              "345000",
 				GasUSD:           "0.07912413535198341",
@@ -1408,7 +1653,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "2000000000000000000",
 				AmountInUSD:      "2000000000000",
-				AmountOut:        "4488767370609711072",
+				AmountOut:        "4488767370609711071",
 				AmountOutUSD:     "4488767370609.711",
 				Gas:              "345000",
 				GasUSD:           "0.07912413535198341",
@@ -1501,7 +1746,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "2000000000000000000",
 				AmountInUSD:      "2000000000000",
-				AmountOut:        "4488767370609711072",
+				AmountOut:        "4488767370609711071",
 				AmountOutUSD:     "4488767370609.711",
 				Gas:              "345000",
 				GasUSD:           "0.07912413535198341",
@@ -1594,7 +1839,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "2000000000000000000",
 				AmountInUSD:      "2000000000000",
-				AmountOut:        "4488767370609711072",
+				AmountOut:        "4488767370609711071",
 				AmountOutUSD:     "4488767370609.711",
 				Gas:              "345000",
 				GasUSD:           "0.07912413535198341",
@@ -1685,8 +1930,8 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			result: &dto.BuildRouteResult{
 				AmountIn:         "1002",
 				AmountInUSD:      "0.001002",
-				AmountOut:        "1000",
-				AmountOutUSD:     "0.001",
+				AmountOut:        "999",
+				AmountOutUSD:     "0.000999",
 				Gas:              "50",
 				GasUSD:           "0.07912413535198341",
 				OutputChange:     OutputChangeNoChange,
@@ -2089,10 +2334,14 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				GetRouterAddress().
 				Return("0x01").AnyTimes()
 
+			executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
+			executorBalanceRepository.EXPECT().
+				HasToken(gomock.Any(), gomock.Any()).
+				Return([]bool{true}, nil).AnyTimes()
+
 			clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
 			tokenRepository := usecase.NewMockITokenRepository(ctrl)
 			priceRepository := usecase.NewMockIPriceRepository(ctrl)
-			executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
 			poolRepository := tc.countTotalPools(ctrl, &wg)
 
 			usecase := NewBuildRouteUseCase(
