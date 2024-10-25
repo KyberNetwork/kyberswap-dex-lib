@@ -12,12 +12,14 @@ import (
 	onchainpricev1 "github.com/KyberNetwork/grpc-service/go/onchainprice/v1"
 	dexlibEntity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/service-framework/pkg/client/grpcclient"
+	"github.com/KyberNetwork/service-framework/pkg/common"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/iter"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
+	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -32,6 +34,10 @@ type grpcRepository struct {
 
 const (
 	MaxTokensPerCall = 100
+)
+
+var (
+	HeaderXChainId = "X-Chain-Id"
 )
 
 type ITokenRepository interface {
@@ -119,7 +125,11 @@ func (r *grpcRepository) findByAddressesSingleChunk(ctx context.Context, address
 	nativeDecimals := float.TenPow(18)
 
 	// fetch price
-	ctxHeader := metadata.AppendToOutgoingContext(ctx, "X-Chain-Id", strconv.Itoa(int(r.chainId)))
+	ctxHeader := metadata.AppendToOutgoingContext(ctx,
+		HeaderXChainId, strconv.Itoa(int(r.chainId)),
+		common.HeaderXRequestId, requestid.GetRequestIDFromCtx(ctx),
+	)
+
 	res, err := r.grpcClient.ListPrices(ctxHeader, &onchainpricev1.ListPricesRequest{
 		Tokens: addresses,
 		Quotes: []string{r.nativeTokenAddress},
@@ -210,7 +220,11 @@ func (r *grpcRepository) GetNativePriceInUsd(ctx context.Context) (*big.Float, e
 	defer span.End()
 
 	// fetch price
-	ctxHeader := metadata.AppendToOutgoingContext(ctx, "X-Chain-Id", strconv.Itoa(int(r.chainId)))
+	ctxHeader := metadata.AppendToOutgoingContext(ctx,
+		HeaderXChainId, strconv.Itoa(int(r.chainId)),
+		common.HeaderXRequestId, requestid.GetRequestIDFromCtx(ctx),
+	)
+
 	res, err := r.grpcClient.GetPriceUSD(ctxHeader, &onchainpricev1.GetPriceUSDRequest{
 		Address: r.nativeTokenAddress,
 	})
