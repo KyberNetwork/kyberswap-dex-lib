@@ -4,16 +4,18 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/rand"
 	"os"
 	"slices"
+	"sync/atomic"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	dexentity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
@@ -71,6 +73,11 @@ func main() {
 					&cli.StringSliceFlag{
 						Name:  "tokens",
 						Usage: "If any, use these tokens instead of loading from Redis",
+					},
+					&cli.IntFlag{
+						Name:  "num-threads",
+						Usage: "Number of concurrent probing threads. Default is 1",
+						Value: 1,
 					},
 				},
 			},
@@ -205,30 +212,48 @@ func probeBalanceSlotAction(c *cli.Context) error {
 	}
 	probe := erc20balanceslotuc.NewMultipleStrategy(rpcClient, walletAddr)
 
-	var i int
-	var newBalanceSlots []*types.ERC20BalanceSlot
-	for token := range tokens {
-		oldBl := balanceSlots[token]
-		extraParams := &erc20balanceslotuc.MultipleStrategyExtraParams{}
-		if pools, ok := poolsByToken[token]; ok {
-			if len(pools) > 0 {
-				extraParams.DoubleFromSource = &erc20balanceslotuc.DoubleFromSourceStrategyExtraParams{
-					Source: common.HexToAddress(pools[0].Address),
+	var (
+		numProbed  atomic.Int64
+		numThreads = c.Int("num-threads")
+		tokenCh    = make(chan common.Address, numThreads)
+		group      = new(errgroup.Group)
+	)
+	for w := 0; w < numThreads; w++ {
+		group.Go(func() error {
+			for token := range tokenCh {
+				oldBl := balanceSlots[token]
+				extraParams := &erc20balanceslotuc.MultipleStrategyExtraParams{}
+				if pools, ok := poolsByToken[token]; ok {
+					if len(pools) > 0 {
+						extraParams.DoubleFromSource = &erc20balanceslotuc.DoubleFromSourceStrategyExtraParams{
+							Source: common.HexToAddress(pools[0].Address),
+						}
+					}
+				}
+				bl, err := probe.ProbeBalanceSlot(context.Background(), token, oldBl, extraParams)
+				if err != nil {
+					logger.Infof(c.Context, "ERROR: %s\n", err)
+				} else {
+					logger.Infof(c.Context, "(%d/%d) %s : %+v\n", numProbed.Add(1), len(tokens), token, bl)
+					if err := balanceSlotRepo.Put(context.Background(), bl); err != nil {
+						return fmt.Errorf("could not PUT: %w", err)
+					}
 				}
 			}
-		}
-		bl, err := probe.ProbeBalanceSlot(context.TODO(), token, oldBl, extraParams)
-		if err != nil {
-			logger.Infof(c.Context, "ERROR: %s\n", err)
-		} else {
-			logger.Infof(c.Context, "(%d/%d) %s : %+v\n", i+1, len(tokens), token, bl)
-			newBalanceSlots = append(newBalanceSlots, bl)
-		}
-
-		i++
+			return nil
+		})
 	}
 
-	return balanceSlotRepo.PutMany(context.Background(), newBalanceSlots)
+	for token := range tokens {
+		tokenCh <- token
+	}
+	close(tokenCh)
+
+	if err := group.Wait(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func randomizeAddress() common.Address {

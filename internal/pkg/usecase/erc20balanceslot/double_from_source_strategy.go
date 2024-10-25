@@ -49,8 +49,13 @@ func NewDoubleFromSourceStrategy(rpcClient *rpc.Client) *DoubleFromSourceStrateg
 }
 
 func (*DoubleFromSourceStrategy) Name(extraParams ProbeStrategyExtraParams) string {
-	_extraParams := extraParams.(*DoubleFromSourceStrategyExtraParams)
-	return fmt.Sprintf("double_from_source,source=%s", strings.ToLower(_extraParams.Source.String()))
+	var source string
+	if _extraParams, ok := extraParams.(*DoubleFromSourceStrategyExtraParams); ok {
+		if _extraParams != nil {
+			source = strings.ToLower(_extraParams.Source.String())
+		}
+	}
+	return fmt.Sprintf("double_from_source,source=%s", source)
 }
 
 func (p *DoubleFromSourceStrategy) ProbeBalanceSlot(ctx context.Context, token common.Address, extraParams ProbeStrategyExtraParams) (*types.ERC20BalanceSlot, error) {
@@ -59,6 +64,9 @@ func (p *DoubleFromSourceStrategy) ProbeBalanceSlot(ctx context.Context, token c
 	_extraParams, ok := extraParams.(*DoubleFromSourceStrategyExtraParams)
 	if !ok || _extraParams == nil {
 		return nil, fmt.Errorf("extraParams must be DoubleFromSourceStrategyExtraParams")
+	}
+	if _extraParams.Source == (common.Address{}) {
+		return nil, fmt.Errorf("extraParams.Source must not empty")
 	}
 
 	blockNumber, err := p.ethClient.BlockNumber(context.Background())
