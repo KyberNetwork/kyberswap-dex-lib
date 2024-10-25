@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
+	ondo_usdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	"github.com/huandu/go-clone"
@@ -673,6 +675,10 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newStaderETHx(entityPool)
 	case pooltypes.PoolTypes.GenericSimpleRate:
 		return f.newGenericSimpleRate(entityPool)
+	case pooltypes.PoolTypes.MantleETH:
+		return f.newMantleETH(entityPool)
+	case pooltypes.PoolTypes.OndoUSDY:
+		return f.newOndoUSDY(entityPool)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -2255,6 +2261,34 @@ func (f *PoolFactory) newGenericSimpleRate(entityPool entity.Pool) (*generic_sim
 			entityPool.Address,
 			entityPool.Type,
 			entityPool.Exchange,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newMantleETH(entityPool entity.Pool) (*meth.PoolSimulator, error) {
+	corePool, err := meth.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newMantleETH] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newOndoUSDY(entityPool entity.Pool) (*ondo_usdy.PoolSimulator, error) {
+	corePool, err := ondo_usdy.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newOndoUSDY] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
 		)
 	}
 

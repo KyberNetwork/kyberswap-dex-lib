@@ -207,6 +207,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeUniswapV1
 	dexValueObject.ExchangeUniSwapV1: {},
+
+	// executeMantleUSD
+	dexValueObject.ExchangeOndoUSDY: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {
