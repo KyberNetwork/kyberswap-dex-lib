@@ -39,7 +39,6 @@ var (
 	ErrorInvalidTokenOut             = errors.New("invalid tokenOut")
 	ErrMinimumStakeBoundNotSatisfied = errors.New("minimum stake bound not satisfied")
 	ErrMaximumMETHSupplyExceeded     = errors.New("maximum METH supply exceeded")
-	ErrStakeBelowMinimumMETHAmount   = errors.New("stake below minimum METH amount")
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -94,10 +93,6 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 
 	if new(uint256.Int).Add(amountOut, s.mETHTotalSupply).Cmp(s.maximumMETHSupply) > 0 {
 		return nil, ErrMaximumMETHSupplyExceeded
-	}
-
-	if amountOut.Sign() < 0 {
-		return nil, ErrStakeBelowMinimumMETHAmount
 	}
 
 	return &poolpkg.CalcAmountOutResult{
