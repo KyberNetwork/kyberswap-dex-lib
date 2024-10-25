@@ -47,7 +47,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			expectedAmountOut: bignumber.NewBig("19101975994034486"),
 		},
 		{
-			name: "it should return correct amount",
+			name: "it should return error when maximum METH supply exceeded",
 			poolSimulator: &PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
@@ -67,12 +67,12 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			},
 			param: poolpkg.CalcAmountOutParams{
 				TokenAmountIn: poolpkg.TokenAmount{
-					Amount: bignumber.NewBig("20000000000000000"),
+					Amount: bignumber.NewBig("3000000000000000000000000"),
 					Token:  WETH,
 				},
 				TokenOut: METH,
 			},
-			expectedAmountOut: bignumber.NewBig("19101975994034486"),
+			expectedError: ErrMaximumMETHSupplyExceeded,
 		},
 		{
 			name: "it should return correct amount",
@@ -160,9 +160,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 			if tc.expectedError != nil {
 				assert.ErrorIs(t, err, tc.expectedError)
-			}
-
-			if tc.expectedAmountOut != nil {
+			} else if tc.expectedAmountOut != nil {
 				assert.Equal(t, tc.expectedAmountOut, result.TokenAmountOut.Amount)
 			}
 		})
