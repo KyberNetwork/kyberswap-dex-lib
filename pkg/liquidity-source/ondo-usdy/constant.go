@@ -13,7 +13,7 @@ const (
 
 var (
 	defaultGas = Gas{
-		Wrap:   550000000,
-		Unwrap: 550000000,
+		Wrap:   100000,
+		Unwrap: 100000,
 	}
 )
