@@ -43,6 +43,7 @@ func TestPoolListUpdater(t *testing.T) {
 
 	staticExtraBytes, _ := json.Marshal(&StaticExtra{
 		VaultLiquidationResolver: config.VaultLiquidationResolver,
+		HasNative:                true,
 	})
 
 	expectedPool0 := entity.Pool{
@@ -57,13 +58,20 @@ func TestPoolListUpdater(t *testing.T) {
 				Swappable: true,
 			},
 			{
-				Address:   "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+				Address:   "",
 				Weight:    1,
 				Swappable: true,
 			},
 		},
 		StaticExtra: string(staticExtraBytes),
 	}
+
+	require.Equal(t, expectedPool0, pools[0])
+
+	staticExtraBytes, _ = json.Marshal(&StaticExtra{
+		VaultLiquidationResolver: config.VaultLiquidationResolver,
+		HasNative:                false,
+	})
 
 	expectedPool21 := entity.Pool{
 		Address:  "0x3A0b7c8840D74D39552EF53F586dD8c3d1234C40",
@@ -85,7 +93,6 @@ func TestPoolListUpdater(t *testing.T) {
 		StaticExtra: string(staticExtraBytes),
 	}
 
-	require.Equal(t, expectedPool0, pools[0])
 	require.Equal(t, expectedPool21, pools[21])
 
 	// Log all pools
