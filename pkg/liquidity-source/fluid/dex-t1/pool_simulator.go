@@ -270,12 +270,12 @@ func swapRoutingOut(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int
  * Calculates the output amount for a given input amount in a swap operation.
  * @param {boolean} swap0To1 - Direction of the swap. True if swapping token0 for token1, false otherwise.
  * @param {number} amountToSwap - The amount of input token to be swapped scaled to 1e12.
- * @param {Object} colReserves - The reserves of the collateral pool.
+ * @param {Object} colReserves - The reserves of the collateral pool scaled to 1e12.
  * @param {number} colReserves.token0RealReserves - Real reserves of token0 in the collateral pool.
  * @param {number} colReserves.token1RealReserves - Real reserves of token1 in the collateral pool.
  * @param {number} colReserves.token0ImaginaryReserves - Imaginary reserves of token0 in the collateral pool.
  * @param {number} colReserves.token1ImaginaryReserves - Imaginary reserves of token1 in the collateral pool.
- * @param {Object} debtReserves - The reserves of the debt pool.
+ * @param {Object} debtReserves - The reserves of the debt pool scaled to 1e12.
  * @param {number} debtReserves.token0RealReserves - Real reserves of token0 in the debt pool.
  * @param {number} debtReserves.token1RealReserves - Real reserves of token1 in the debt pool.
  * @param {number} debtReserves.token0ImaginaryReserves - Imaginary reserves of token0 in the debt pool.
@@ -396,12 +396,12 @@ func swapIn(
  * Calculates the input amount for a given output amount in a swap operation.
  * @param {boolean} swap0to1 - Direction of the swap. True if swapping token0 for token1, false otherwise.
  * @param {number} amountOut - The amount of output token to be swapped scaled to 1e12.
- * @param {Object} colReserves - The reserves of the collateral pool.
+ * @param {Object} colReserves - The reserves of the collateral pool scaled to 1e12.
  * @param {number} colReserves.token0RealReserves - Real reserves of token0 in the collateral pool.
  * @param {number} colReserves.token1RealReserves - Real reserves of token1 in the collateral pool.
  * @param {number} colReserves.token0ImaginaryReserves - Imaginary reserves of token0 in the collateral pool.
  * @param {number} colReserves.token1ImaginaryReserves - Imaginary reserves of token1 in the collateral pool.
- * @param {Object} debtReserves - The reserves of the debt pool.
+ * @param {Object} debtReserves - The reserves of the debt pool scaled to 1e12.
  * @param {number} debtReserves.token0RealReserves - Real reserves of token0 in the debt pool.
  * @param {number} debtReserves.token1RealReserves - Real reserves of token1 in the debt pool.
  * @param {number} debtReserves.token0ImaginaryReserves - Imaginary reserves of token0 in the debt pool.

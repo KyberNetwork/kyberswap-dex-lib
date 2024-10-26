@@ -59,15 +59,16 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, nil, err
 		}
 
-		if curPool.CollateralReserves.Token0RealReserves == nil ||
+		if (curPool.CollateralReserves.Token0RealReserves == nil ||
 			curPool.CollateralReserves.Token1RealReserves == nil ||
 			curPool.CollateralReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) == 0 ||
-			curPool.CollateralReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) == 0 ||
-			curPool.DebtReserves.Token0RealReserves == nil ||
-			curPool.DebtReserves.Token1RealReserves == nil ||
-			curPool.DebtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) == 0 ||
-			curPool.DebtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) == 0 {
-			logger.WithFields(logger.Fields{"dexType": DexType, "pool": curPool.PoolAddress}).Warn("reserves are nil / 0 (likely deployed but not initialized yet)")
+			curPool.CollateralReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) == 0) &&
+			(curPool.DebtReserves.Token0RealReserves == nil ||
+				curPool.DebtReserves.Token1RealReserves == nil ||
+				curPool.DebtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) == 0 ||
+				curPool.DebtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) == 0) {
+			logger.WithFields(logger.Fields{"dexType": DexType, "pool": curPool.PoolAddress}).Warn("col AND debt reserves are nil / 0 (likely deployed but not initialized yet)")
+			// neither smart col or smart debt pools are enabled yet. At least one must be initialized for swaps to happen
 			continue
 		}
 
@@ -123,7 +124,7 @@ func (u *PoolsListUpdater) getAllPools(ctx context.Context) ([]PoolWithReserves,
 	req.AddCall(&ethrpc.Call{
 		ABI:    dexReservesResolverABI,
 		Target: u.config.DexReservesResolver,
-		Method: DRRMethodGetAllPoolsReserves,
+		Method: DRRMethodGetAllPoolsReservesAdjusted,
 	}, []interface{}{&pools})
 
 	if _, err := req.Aggregate(); err != nil {

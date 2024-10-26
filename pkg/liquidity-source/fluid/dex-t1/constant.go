@@ -6,8 +6,8 @@ const (
 
 const (
 	// DexReservesResolver methods
-	DRRMethodGetAllPoolsReserves = "getAllPoolsReserves"
-	DRRMethodGetPoolReserves     = "getPoolReserves"
+	DRRMethodGetAllPoolsReservesAdjusted = "getAllPoolsReservesAdjusted"
+	DRRMethodGetPoolReservesAdjusted     = "getPoolReservesAdjusted"
 
 	// ERC20 Token methods
 	TokenMethodDecimals = "decimals"

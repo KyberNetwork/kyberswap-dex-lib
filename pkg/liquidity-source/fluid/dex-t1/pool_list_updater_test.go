@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"math/big"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -27,7 +28,7 @@ func TestPoolListUpdater(t *testing.T) {
 		err              error
 
 		config = Config{
-			DexReservesResolver: "0x90bFebd5Ac2d6787028DC8A58d0b5EE07b16E06F",
+			DexReservesResolver: "0xE8a07a32489BD9d5a00f01A55749Cf5cB854Fd13",
 		}
 	)
 
@@ -47,19 +48,19 @@ func TestPoolListUpdater(t *testing.T) {
 	})
 
 	expectedPool0 := entity.Pool{
-		Address:  "0x25F0A3B25cBC0Ca0417770f686209628323fF901",
+		Address:  "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
 		Exchange: "fluid-dex-t1",
 		Type:     "fluid-dex-t1",
 		Reserves: pools[0].Reserves,
 		Tokens: []*entity.PoolToken{
 			{
-				Address:   "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+				Address:   strings.ToLower("0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0"),
 				Weight:    1,
 				Swappable: true,
 				Decimals:  18,
 			},
 			{
-				Address:   "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+				Address:   strings.ToLower("0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"),
 				Weight:    1,
 				Swappable: true,
 				Decimals:  18,

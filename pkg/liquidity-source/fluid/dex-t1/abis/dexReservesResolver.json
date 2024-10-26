@@ -159,6 +159,89 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "getAllPoolsReservesAdjusted",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "pool", "type": "address" },
+          { "internalType": "address", "name": "token0", "type": "address" },
+          { "internalType": "address", "name": "token1", "type": "address" },
+          { "internalType": "uint256", "name": "fee", "type": "uint256" },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "token0RealReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1RealReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token0ImaginaryReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1ImaginaryReserves",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct IFluidDexT1.CollateralReserves",
+            "name": "collateralReserves",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "token0Debt",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1Debt",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token0RealReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1RealReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token0ImaginaryReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1ImaginaryReserves",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct IFluidDexT1.DebtReserves",
+            "name": "debtReserves",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct Structs.PoolWithReserves[]",
+        "name": "poolsReserves_",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
     "inputs": [
       { "internalType": "address", "name": "dex_", "type": "address" }
     ],
@@ -199,7 +282,91 @@
     "inputs": [
       { "internalType": "address", "name": "dex_", "type": "address" }
     ],
+    "name": "getDexCollateralReservesAdjusted",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "token0RealReserves",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "token1RealReserves",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "token0ImaginaryReserves",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "token1ImaginaryReserves",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IFluidDexT1.CollateralReserves",
+        "name": "reserves_",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "dex_", "type": "address" }
+    ],
     "name": "getDexDebtReserves",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint256",
+            "name": "token0Debt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "token1Debt",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "token0RealReserves",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "token1RealReserves",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "token0ImaginaryReserves",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "token1ImaginaryReserves",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct IFluidDexT1.DebtReserves",
+        "name": "reserves_",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "dex_", "type": "address" }
+    ],
+    "name": "getDexDebtReservesAdjusted",
     "outputs": [
       {
         "components": [
@@ -559,6 +726,91 @@
     "inputs": [
       { "internalType": "address", "name": "pool_", "type": "address" }
     ],
+    "name": "getPoolReservesAdjusted",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "pool", "type": "address" },
+          { "internalType": "address", "name": "token0", "type": "address" },
+          { "internalType": "address", "name": "token1", "type": "address" },
+          { "internalType": "uint256", "name": "fee", "type": "uint256" },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "token0RealReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1RealReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token0ImaginaryReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1ImaginaryReserves",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct IFluidDexT1.CollateralReserves",
+            "name": "collateralReserves",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "token0Debt",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1Debt",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token0RealReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1RealReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token0ImaginaryReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1ImaginaryReserves",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct IFluidDexT1.DebtReserves",
+            "name": "debtReserves",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct Structs.PoolWithReserves",
+        "name": "poolReserves_",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "pool_", "type": "address" }
+    ],
     "name": "getPoolTokens",
     "outputs": [
       { "internalType": "address", "name": "token0_", "type": "address" },
@@ -572,6 +824,91 @@
       { "internalType": "address[]", "name": "pools_", "type": "address[]" }
     ],
     "name": "getPoolsReserves",
+    "outputs": [
+      {
+        "components": [
+          { "internalType": "address", "name": "pool", "type": "address" },
+          { "internalType": "address", "name": "token0", "type": "address" },
+          { "internalType": "address", "name": "token1", "type": "address" },
+          { "internalType": "uint256", "name": "fee", "type": "uint256" },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "token0RealReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1RealReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token0ImaginaryReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1ImaginaryReserves",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct IFluidDexT1.CollateralReserves",
+            "name": "collateralReserves",
+            "type": "tuple"
+          },
+          {
+            "components": [
+              {
+                "internalType": "uint256",
+                "name": "token0Debt",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1Debt",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token0RealReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1RealReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token0ImaginaryReserves",
+                "type": "uint256"
+              },
+              {
+                "internalType": "uint256",
+                "name": "token1ImaginaryReserves",
+                "type": "uint256"
+              }
+            ],
+            "internalType": "struct IFluidDexT1.DebtReserves",
+            "name": "debtReserves",
+            "type": "tuple"
+          }
+        ],
+        "internalType": "struct Structs.PoolWithReserves[]",
+        "name": "poolsReserves_",
+        "type": "tuple[]"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address[]", "name": "pools_", "type": "address[]" }
+    ],
+    "name": "getPoolsReservesAdjusted",
     "outputs": [
       {
         "components": [
