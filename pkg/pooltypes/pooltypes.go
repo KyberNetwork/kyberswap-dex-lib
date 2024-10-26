@@ -241,7 +241,7 @@ type Types struct {
 	RingSwap                       string
 	PrimeETH                       string
 	StaderETHx                     string
-  FluidVaultT1                   string
+	FluidVaultT1                   string
 	FluidDexT1                     string
 	MantleETH                      string
 	OndoUSDY                       string
