@@ -12,6 +12,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
@@ -850,7 +851,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 			p, err := NewPoolSimulator(tt.poolEntity)
 			assert.Equal(t, nil, err)
 			got, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
-				limit := NewInventory(p.CalculateLimit())
+				limit := swaplimit.NewInventory("", p.CalculateLimit())
 				return p.CalcAmountOut(
 					pool.CalcAmountOutParams{
 						TokenAmountIn: tt.args.tokenAmountIn,
@@ -949,7 +950,7 @@ func TestPool_CalcAmountOut_v2(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			limit := NewInventory(sims[tc.pool].CalculateLimit())
+			limit := swaplimit.NewInventory("", sims[tc.pool].CalculateLimit())
 			res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{
 					Token:  "A",
@@ -1054,7 +1055,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 
 	for _, tc := range testcases {
 		resetSim()
-		limit := NewInventory(sims[tc.pool].CalculateLimit())
+		limit := swaplimit.NewInventory("", sims[tc.pool].CalculateLimit())
 		for i, swap := range tc.swaps {
 			t.Run(fmt.Sprintf("%v swap %d", tc.name, i), func(t *testing.T) {
 				res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
@@ -1204,7 +1205,7 @@ func TestPool_Inventory(t *testing.T) {
 
 	for _, tc := range testcases {
 		resetSim()
-		limit := NewInventory(sims[tc.pool].CalculateLimit())
+		limit := swaplimit.NewInventory("", sims[tc.pool].CalculateLimit())
 		for i, swap := range tc.swaps {
 			t.Run(fmt.Sprintf("%v swap %d", tc.name, i), func(t *testing.T) {
 				res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{

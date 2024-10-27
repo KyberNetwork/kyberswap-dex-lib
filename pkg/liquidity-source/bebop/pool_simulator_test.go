@@ -4,9 +4,11 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/stretchr/testify/assert"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 )
 
 var (
@@ -92,7 +94,7 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 					Amount: tc.amountIn,
 				},
 				TokenOut: "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270",
-				Limit:    NewLimit(nil),
+				Limit:    swaplimit.NewSingleSwapLimit(""),
 			}
 
 			result, err := poolSimulator.CalcAmountOut(params)
@@ -139,7 +141,7 @@ func TestPoolSimulator_GetAmountOut2(t *testing.T) {
 					Amount: tc.amountIn,
 				},
 				TokenOut: "0xdac17f958d2ee523a2206206994597c13d831ec7",
-				Limit:    NewLimit(nil),
+				Limit:    swaplimit.NewSingleSwapLimit(""),
 			}
 			if tc.updateLimit {
 				_, _, _ = params.Limit.UpdateLimit("", "", nil, nil)

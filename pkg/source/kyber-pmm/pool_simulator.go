@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 	"strings"
-	"sync"
 
 	"github.com/KyberNetwork/blockchain-toolkit/float"
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -332,65 +332,12 @@ func getNewPriceLevelsState(
 	return priceLevels
 }
 
-// Inventory implement Swap Limit for kyber-pmm
-// key is tokenAddress, and the limit is its balance
-// The balance is stored WITHOUT decimals
-// DONOT directly modify it, use UpdateLimit if needed
-type Inventory struct {
-	lock    *sync.RWMutex
-	Balance map[string]*big.Int
-}
+// Inventory is an alias for swaplimit.Inventory
+// Deprecated: directly use swaplimit.Inventory.
+type Inventory = swaplimit.Inventory
 
-func NewInventory(balance map[string]*big.Int) *Inventory {
-	return &Inventory{
-		lock:    &sync.RWMutex{},
-		Balance: balance,
-	}
-}
-
-// GetLimit returns a copy of balance for the token in Inventory
-func (i *Inventory) GetLimit(tokenAddress string) *big.Int {
-	i.lock.RLock()
-	defer i.lock.RUnlock()
-	balance, avail := i.Balance[tokenAddress]
-	if !avail {
-		return big.NewInt(0)
-	}
-	return big.NewInt(0).Set(balance)
-}
-
-// CheckLimit returns a copy of balance for the token in Inventory
-func (i *Inventory) CheckLimit(tokenAddress string, amount *big.Int) error {
-	i.lock.RLock()
-	defer i.lock.RUnlock()
-	balance, avail := i.Balance[tokenAddress]
-	if !avail {
-		return ErrTokenNotFound
-	}
-	if balance.Cmp(amount) < 0 {
-		return ErrInsufficientLiquidity
-	}
-	return nil
-}
-
-// UpdateLimit will reduce the limit to reflect the change in inventory
-// note this delta is amount without Decimal
-func (i *Inventory) UpdateLimit(decreaseTokenAddress, increaseTokenAddress string, decreaseDelta, increaseDelta *big.Int) (*big.Int, *big.Int, error) {
-	i.lock.Lock()
-	defer i.lock.Unlock()
-	decreasedTokenBalance, avail := i.Balance[decreaseTokenAddress]
-	if !avail {
-		return big.NewInt(0), big.NewInt(0), pool.ErrTokenNotAvailable
-	}
-	if decreasedTokenBalance.Cmp(decreaseDelta) < 0 {
-		return big.NewInt(0), big.NewInt(0), pool.ErrNotEnoughInventory
-	}
-	i.Balance[decreaseTokenAddress] = decreasedTokenBalance.Sub(decreasedTokenBalance, decreaseDelta)
-
-	increasedTokenBalance, avail := i.Balance[increaseTokenAddress]
-	if !avail {
-		return big.NewInt(0), big.NewInt(0), pool.ErrTokenNotAvailable
-	}
-	i.Balance[increaseTokenAddress] = increasedTokenBalance.Add(increasedTokenBalance, increaseDelta)
-	return big.NewInt(0).Set(i.Balance[decreaseTokenAddress]), big.NewInt(0).Set(i.Balance[increaseTokenAddress]), nil
+// NewInventory has key as token address and value as its balance.
+// Deprecated: directly use swaplimit.NewInventory.
+func NewInventory(balance map[string]*big.Int) pool.SwapLimit {
+	return swaplimit.NewInventory(DexTypeKyberPMM, balance)
 }
