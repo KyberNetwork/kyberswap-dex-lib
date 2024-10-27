@@ -27,14 +27,18 @@ type (
 		ZeroToOnePriceLevels []PriceLevel
 		OneToZeroPriceLevels []PriceLevel
 		gas                  Gas
+		Token0Original       string
+		Token1Original       string
 	}
 	SwapInfo struct {
-		BaseToken        string `json:"b" mapstructure:"b"`
-		BaseTokenAmount  string `json:"bAmt" mapstructure:"bAmt"`
-		QuoteToken       string `json:"q" mapstructure:"q"`
-		QuoteTokenAmount string `json:"qAmt" mapstructure:"qAmt"`
-		MarketMaker      string `json:"mm,omitempty" mapstructure:"mm"`
-		ExpirySecs       uint   `json:"exp,omitempty" mapstructure:"exp"`
+		BaseToken          string `json:"b" mapstructure:"b"`
+		BaseTokenAmount    string `json:"bAmt" mapstructure:"bAmt"`
+		QuoteToken         string `json:"q" mapstructure:"q"`
+		QuoteTokenAmount   string `json:"qAmt" mapstructure:"qAmt"`
+		MarketMaker        string `json:"mm,omitempty" mapstructure:"mm"`
+		ExpirySecs         uint   `json:"exp,omitempty" mapstructure:"exp"`
+		BaseTokenOriginal  string `json:"bo,omitempty" mapstructure:"bo"`
+		QuoteTokenOriginal string `json:"qo,omitempty" mapstructure:"qo"`
 	}
 
 	Gas struct {
@@ -54,6 +58,8 @@ type (
 	Extra struct {
 		ZeroToOnePriceLevels []PriceLevelRaw `json:"0to1"`
 		OneToZeroPriceLevels []PriceLevelRaw `json:"1to0"`
+		Token0Address        string          `json:"token0"`
+		Token1Address        string          `json:"token1"`
 	}
 
 	MetaInfo struct {
@@ -95,6 +101,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		},
 		Token0:               *entityPool.Tokens[0],
 		Token1:               *entityPool.Tokens[1],
+		Token0Original:       extra.Token0Address,
+		Token1Original:       extra.Token1Address,
 		ZeroToOnePriceLevels: zeroToOnePriceLevels,
 		OneToZeroPriceLevels: oneToZeroPriceLevels,
 		gas:                  defaultGas,
@@ -102,11 +110,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenIn, tokenOut, levels := p.Token0, p.Token1, p.ZeroToOnePriceLevels
+	tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels := p.Token0, p.Token1, p.Token0Original, p.Token1Original, p.ZeroToOnePriceLevels
 	if params.TokenAmountIn.Token == p.Info.Tokens[1] {
-		tokenIn, tokenOut, levels = p.Token1, p.Token0, p.OneToZeroPriceLevels
+		tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels = p.Token1, p.Token0, p.Token1Original, p.Token0Original, p.OneToZeroPriceLevels
 	}
-	amountOut, _, err := p.swap(params.TokenAmountIn.Amount, tokenIn, tokenOut, levels)
+	amountOut, _, err := p.swap(params.TokenAmountIn.Amount, tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels)
 	return amountOut, err
 }
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -118,7 +126,7 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.PoolToken,
-	priceLevel []PriceLevel) (*pool.CalcAmountOutResult, string, error) {
+	baseOriginal, quoteOriginal string, priceLevel []PriceLevel) (*pool.CalcAmountOutResult, string, error) {
 
 	var amountInAfterDecimals, decimalsPow, amountInBF, amountOutBF big.Float
 
@@ -139,10 +147,12 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.Poo
 		Fee:            &pool.TokenAmount{Token: baseToken.Address, Amount: bignumber.ZeroBI},
 		Gas:            p.gas.Quote,
 		SwapInfo: SwapInfo{
-			BaseToken:        baseToken.Address,
-			BaseTokenAmount:  amountIn.String(),
-			QuoteToken:       quoteToken.Address,
-			QuoteTokenAmount: amountOut.String(),
+			BaseToken:          baseToken.Address,
+			BaseTokenAmount:    amountIn.String(),
+			QuoteToken:         quoteToken.Address,
+			QuoteTokenAmount:   amountOut.String(),
+			BaseTokenOriginal:  baseOriginal,
+			QuoteTokenOriginal: quoteOriginal,
 		},
 	}, amountOutAfterDecimals.String(), nil
 }

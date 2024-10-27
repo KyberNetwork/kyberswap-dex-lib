@@ -40,8 +40,8 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 
 	p := FirmQuoteParams{
 		ChainID:     int(params.NetworkID),
-		TakerAsset:  swapInfo.BaseToken,
-		MakerAsset:  swapInfo.QuoteToken,
+		TakerAsset:  swapInfo.BaseTokenOriginal,
+		MakerAsset:  swapInfo.QuoteTokenOriginal,
 		TakerAmount: swapInfo.BaseTokenAmount,
 		UserAddress: params.RFQSender,
 		Executor:    params.RFQRecipient,

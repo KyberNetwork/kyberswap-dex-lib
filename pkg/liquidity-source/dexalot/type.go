@@ -48,12 +48,12 @@ type FirmQuoteFail struct {
 }
 
 func (r FirmQuoteFail) Failed() bool {
-	return !r.Success || r.ReasonCode != "" || r.Reason != ""
+	return r.ReasonCode != "" || r.Reason != ""
 }
 
 type Order struct {
 	NonceAndMeta string `json:"nonceAndMeta"`
-	Expiry       int64  `json:"expiry"`
+	Expiry       int    `json:"expiry"`
 	MakerAsset   string `json:"makerAsset"`
 	TakerAsset   string `json:"takerAsset"`
 	Maker        string `json:"maker"`
