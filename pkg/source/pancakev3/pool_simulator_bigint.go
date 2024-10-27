@@ -1,4 +1,4 @@
-package uniswapv3
+package pancakev3
 
 import (
 	"encoding/json"
@@ -8,10 +8,10 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/KyberNetwork/pancake-v3-sdk/constants"
+	v3Entities "github.com/KyberNetwork/pancake-v3-sdk/entities"
+	v3Utils "github.com/KyberNetwork/pancake-v3-sdk/utils"
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
-	"github.com/daoleno/uniswapv3-sdk/constants"
-	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
-	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -88,7 +88,6 @@ func NewPoolSimulatorBigInt(entityPool entity.Pool, chainID valueobject.ChainID)
 		}
 		tickSpacing = constants.TickSpacings[feeTier]
 	}
-
 	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, tickSpacing)
 	if err != nil {
 		return nil, err
@@ -280,6 +279,7 @@ func (p *PoolSimulatorBigInt) UpdateBalance(params pool.UpdateBalanceParams) {
 		logger.Warn("failed to UpdateBalance for UniV3 pool, wrong swapInfo type")
 		return
 	}
+
 	p.V3Pool.SqrtRatioX96 = si.nextStateSqrtRatioX96
 	p.V3Pool.Liquidity = si.nextStateLiquidity
 	p.V3Pool.TickCurrent = si.nextStateTickCurrent
