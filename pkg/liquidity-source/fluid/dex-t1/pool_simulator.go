@@ -288,16 +288,21 @@ func swapRoutingOut(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int
 func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, *big.Int, error) {
 	var (
 		colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
+		colReserveOut, debtReserveOut                                  *big.Int
 	)
 
 	if swap0To1 {
+		colReserveOut = colReserves.Token1RealReserves
 		colIReserveIn = colReserves.Token0ImaginaryReserves
 		colIReserveOut = colReserves.Token1ImaginaryReserves
+		debtReserveOut = debtReserves.Token1RealReserves
 		debtIReserveIn = debtReserves.Token0ImaginaryReserves
 		debtIReserveOut = debtReserves.Token1ImaginaryReserves
 	} else {
+		colReserveOut = colReserves.Token0RealReserves
 		colIReserveIn = colReserves.Token1ImaginaryReserves
 		colIReserveOut = colReserves.Token0ImaginaryReserves
+		debtReserveOut = debtReserves.Token0RealReserves
 		debtIReserveIn = debtReserves.Token1ImaginaryReserves
 		debtIReserveOut = debtReserves.Token0ImaginaryReserves
 	}
@@ -336,6 +341,14 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		// Trade routes through both pools
 		amountOutCollateral = getAmountOut(a, colIReserveIn, colIReserveOut)
 		amountOutDebt = getAmountOut(new(big.Int).Sub(amountToSwap, a), debtIReserveIn, debtIReserveOut)
+	}
+
+	if amountOutDebt.Cmp(debtReserveOut) > 0 {
+		return nil, nil, errors.New("insufficient liquidity")
+	}
+
+	if amountOutCollateral.Cmp(colReserveOut) > 0 {
+		return nil, nil, errors.New("insufficient liquidity")
 	}
 
 	return amountToSwap, new(big.Int).Add(amountOutCollateral, amountOutDebt), nil
@@ -410,19 +423,24 @@ func swapIn(
  * @returns {number} amountOut - The specified output amount of the swap.
  * @returns {error} - An error object if the operation fails.
  */
-func swapOutAdjusted(swap0to1 bool, amountOut *big.Int, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, *big.Int, error) {
+func swapOutAdjusted(swap0To1 bool, amountOut *big.Int, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, *big.Int, error) {
 	var (
 		colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
+		colReserveOut, debtReserveOut                                  *big.Int
 	)
 
-	if swap0to1 {
+	if swap0To1 {
+		colReserveOut = colReserves.Token1RealReserves
 		colIReserveIn = colReserves.Token0ImaginaryReserves
 		colIReserveOut = colReserves.Token1ImaginaryReserves
+		debtReserveOut = debtReserves.Token1RealReserves
 		debtIReserveIn = debtReserves.Token0ImaginaryReserves
 		debtIReserveOut = debtReserves.Token1ImaginaryReserves
 	} else {
+		colReserveOut = colReserves.Token0RealReserves
 		colIReserveIn = colReserves.Token1ImaginaryReserves
 		colIReserveOut = colReserves.Token0ImaginaryReserves
+		debtReserveOut = debtReserves.Token0RealReserves
 		debtIReserveIn = debtReserves.Token1ImaginaryReserves
 		debtIReserveOut = debtReserves.Token0ImaginaryReserves
 	}
@@ -454,13 +472,24 @@ func swapOutAdjusted(swap0to1 bool, amountOut *big.Int, colReserves CollateralRe
 	if a.Cmp(bignumber.ZeroBI) <= 0 {
 		// Entire trade routes through debt pool
 		amountInDebt = getAmountIn(amountOut, debtIReserveIn, debtIReserveOut)
+
+		if amountOut.Cmp(debtReserveOut) > 0 {
+			return nil, nil, errors.New("insufficient liquidity")
+		}
 	} else if a.Cmp(amountOut) >= 0 {
 		// Entire trade routes through collateral pool
 		amountInCollateral = getAmountIn(amountOut, colIReserveIn, colIReserveOut)
+		if amountOut.Cmp(colReserveOut) > 0 {
+			return nil, nil, errors.New("insufficient liquidity")
+		}
 	} else {
 		// Trade routes through both pools
 		amountInCollateral = getAmountIn(a, colIReserveIn, colIReserveOut)
 		amountInDebt = getAmountIn(new(big.Int).Sub(amountOut, a), debtIReserveIn, debtIReserveOut)
+
+		if new(big.Int).Sub(amountOut, a).Cmp(debtReserveOut) > 0 || a.Cmp(debtReserveOut) > 0 {
+			return nil, nil, errors.New("insufficient liquidity")
+		}
 	}
 
 	return new(big.Int).Add(amountInCollateral, amountInDebt), amountOut, nil
