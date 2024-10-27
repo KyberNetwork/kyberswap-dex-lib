@@ -2,7 +2,6 @@ package wombat
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

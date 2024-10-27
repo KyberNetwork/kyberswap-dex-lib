@@ -1,12 +1,12 @@
 package base
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

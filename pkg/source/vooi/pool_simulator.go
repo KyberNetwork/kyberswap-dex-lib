@@ -1,14 +1,14 @@
 package vooi
 
 import (
-	"encoding/json"
 	"errors"
-	"github.com/KyberNetwork/logger"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/dsmath"
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

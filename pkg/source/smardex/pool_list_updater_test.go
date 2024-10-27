@@ -2,12 +2,12 @@ package smardex
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 )

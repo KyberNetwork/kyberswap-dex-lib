@@ -2,11 +2,11 @@ package limitorder
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

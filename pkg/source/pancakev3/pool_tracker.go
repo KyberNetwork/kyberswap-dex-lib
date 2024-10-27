@@ -2,13 +2,13 @@ package pancakev3
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 	"github.com/sourcegraph/conc/pool"
 

@@ -1,17 +1,17 @@
 package balancerweighted
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"strings"
 
-	balancer "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	balancer "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type WeightedPool2Tokens struct {

@@ -1,12 +1,12 @@
 package maverickv1
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

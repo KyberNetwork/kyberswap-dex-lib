@@ -1,9 +1,9 @@
 package savingsdai
 
 import (
-	"encoding/json"
 	"math/big"
 
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"

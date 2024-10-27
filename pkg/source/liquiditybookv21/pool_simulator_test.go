@@ -1,11 +1,11 @@
 package liquiditybookv21
 
 import (
-	"encoding/json"
 	"math/big"
 	"testing"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

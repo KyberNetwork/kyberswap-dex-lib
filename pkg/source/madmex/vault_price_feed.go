@@ -1,11 +1,12 @@
 package madmex
 
 import (
-	"encoding/json"
 	"math/big"
 
-	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+
+	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type VaultPriceFeed struct {

@@ -1,11 +1,12 @@
 package gmxglp
 
 import (
-	"encoding/json"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type VaultPriceFeed struct {
