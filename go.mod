@@ -8,7 +8,7 @@ require (
 	github.com/KyberNetwork/ethrpc v0.7.3
 	github.com/KyberNetwork/iZiSwap-SDK-go v1.1.0
 	github.com/KyberNetwork/int256 v0.1.4
-	github.com/KyberNetwork/logger v0.2.0
+	github.com/KyberNetwork/logger v0.2.1
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
 	github.com/KyberNetwork/pancake-v3-sdk v0.2.0
 	github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.0

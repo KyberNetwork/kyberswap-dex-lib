@@ -18,6 +18,10 @@ type Pool struct {
 	Info PoolInfo
 }
 
+func (t *Pool) CloneBalance() IPoolSimulator {
+	return nil
+}
+
 func (t *Pool) GetInfo() PoolInfo {
 	return t.Info
 }
@@ -103,14 +107,6 @@ type UpdateBalanceParams struct {
 	SwapLimit SwapLimit
 }
 
-type PoolToken struct {
-	Token               string
-	Balance             *big.Int
-	Weight              uint
-	PrecisionMultiplier *big.Int
-	VReserve            *big.Int
-}
-
 type PoolInfo struct {
 	Address     string
 	ReserveUsd  float64
@@ -152,7 +148,7 @@ type CalcAmountInResult struct {
 	SwapInfo                interface{}
 }
 
-// wrap around pool.CalcAmountOut and catch panic
+// CalcAmountOut wraps pool.CalcAmountOut and catch panic
 func CalcAmountOut(pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string, limit SwapLimit) (res *CalcAmountOutResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
