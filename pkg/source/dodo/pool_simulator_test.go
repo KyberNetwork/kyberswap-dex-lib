@@ -1,11 +1,11 @@
 package dodo
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -116,7 +116,7 @@ func decStr(amt int64) string {
 func TestCalcAmountOut_PoolDepleted(t *testing.T) {
 	poolRedis := "{\"address\":\"0x813fddeccd0401c4fa73b092b074802440544e52\",\"reserveUsd\":233579.38593018247,\"amplifiedTvl\":233579.38593018247,\"swapFee\":0.00002,\"exchange\":\"dodo\",\"type\":\"dodo-classical\",\"timestamp\":1621520160,\"reserves\":[\"76749655089\",\"156891845555\"],\"tokens\":[{\"address\":\"0x2791bca1f2de4661ed88a30c99a7a9449aa84174\",\"name\":\"USD Coin (PoS)\",\"symbol\":\"USDC\",\"decimals\":6,\"weight\":50,\"swappable\":true},{\"address\":\"0xc2132d05d31c914a87c6611c10748aeb04b58e8f\",\"name\":\"(PoS) Tether USD\",\"symbol\":\"USDT\",\"decimals\":6,\"weight\":50,\"swappable\":true}],\"extra\":\"{\\\"i\\\":1000000000000000000,\\\"k\\\":200000000000000,\\\"rStatus\\\":1,\\\"mtFeeRate\\\":\\\"2e-05\\\",\\\"lpFeeRate\\\":\\\"0\\\",\\\"swappable\\\":true,\\\"reserves\\\":[76749655089,156891845555],\\\"targetReserves\\\":[104334457223,129305060381]}\",\"staticExtra\":\"{\\\"poolId\\\":\\\"0x813fddeccd0401c4fa73b092b074802440544e52\\\",\\\"lpToken\\\":\\\"0x2c5ca709d9593f6fd694d84971c55fb3032b87ab\\\",\\\"type\\\":\\\"CLASSICAL\\\",\\\"tokens\\\":[\\\"0x2791bca1f2de4661ed88a30c99a7a9449aa84174\\\",\\\"0xc2132d05d31c914a87c6611c10748aeb04b58e8f\\\"],\\\"dodoV1SellHelper\\\":\\\"0xdfaf9584f5d229a9dbe5978523317820a8897c5a\\\"}\"}"
 	var poolEntity entity.Pool
-	err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+	err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 	require.Nil(t, err)
 	poolSim, err := NewPoolSimulator(poolEntity)
 	require.Nil(t, err)

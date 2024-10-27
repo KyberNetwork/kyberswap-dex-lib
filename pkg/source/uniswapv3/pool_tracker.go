@@ -8,8 +8,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/pool"
@@ -59,7 +59,7 @@ func initializeConfig(cfg *Config) (*Config, error) {
 	}
 
 	var pools []preGenesisPool
-	if err := json.Unmarshal(byteValue, &pools); err != nil {
+	if err := sonic.Unmarshal(byteValue, &pools); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Error("failed to parse pools")
@@ -159,7 +159,7 @@ func (d *PoolTracker) GetNewPoolState(
 		ticks = append(ticks, tick)
 	}
 
-	extraBytes, err := json.Marshal(Extra{
+	extraBytes, err := sonic.Marshal(Extra{
 		Liquidity:    rpcData.Liquidity,
 		TickSpacing:  rpcData.TickSpacing.Uint64(),
 		SqrtPriceX96: rpcData.Slot0.SqrtPriceX96,
@@ -192,7 +192,7 @@ func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, bloc
 		return nil, err
 	}
 
-	rpcDataBytes, err := json.Marshal(rpcData)
+	rpcDataBytes, err := sonic.Marshal(rpcData)
 	if err != nil {
 		return nil, err
 	}

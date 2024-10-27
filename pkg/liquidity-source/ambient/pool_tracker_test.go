@@ -2,12 +2,12 @@ package ambient_test
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
@@ -507,7 +507,7 @@ func TestPoolTracker(t *testing.T) {
   "staticExtra": "{\"nativeTokenAddress\":\"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2\"}"
 }`
 	poolEntity := entity.Pool{}
-	err = json.Unmarshal([]byte(encodedPoolEntity), &poolEntity)
+	err = sonic.Unmarshal([]byte(encodedPoolEntity), &poolEntity)
 	require.NoError(t, err)
 
 	pool, err := tracker.GetNewPoolState(context.Background(), poolEntity, pool.GetNewPoolStateParams{})
@@ -519,7 +519,7 @@ func TestPoolTracker(t *testing.T) {
 	}
 
 	extra := ambient.Extra{}
-	err = json.Unmarshal([]byte(pool.Extra), &extra)
+	err = sonic.Unmarshal([]byte(pool.Extra), &extra)
 	require.NoError(t, err)
 	for _, info := range extra.TokenPairs {
 		require.NotNil(t, info.Liquidity)

@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/goccy/go-json"
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -40,7 +40,7 @@ func TestCalcAmountOut(t *testing.T) {
 			"blockNumber": 19032529
 		  }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 
 		// expected
@@ -91,7 +91,7 @@ func TestCalcAmountOut(t *testing.T) {
 			"blockNumber": 19032533
 		  }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 
 		// expected
@@ -142,7 +142,7 @@ func TestCalcAmountOut(t *testing.T) {
 			"blockNumber": 19032535
 		  }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 
 		// expected
@@ -192,7 +192,7 @@ func TestCalcAmountOut(t *testing.T) {
 			"blockNumber": 19032537
 		  }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 
 		// expected
@@ -242,7 +242,7 @@ func TestCalcAmountOut(t *testing.T) {
 			"blockNumber": 19032737
 		  }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 
 		// expected
@@ -292,7 +292,7 @@ func TestCalcAmountOut(t *testing.T) {
 			"blockNumber": 52464697
 		  }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 
 		// expected
@@ -342,7 +342,7 @@ func TestCalcAmountOut(t *testing.T) {
 			"blockNumber": 52464697
 		  }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 
 		// expected

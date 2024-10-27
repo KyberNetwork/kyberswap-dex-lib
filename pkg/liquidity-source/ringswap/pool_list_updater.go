@@ -8,8 +8,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
@@ -129,7 +129,7 @@ func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
 	}
 
 	var metadata uniswapv2.PoolsListUpdaterMetadata
-	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+	if err := sonic.Unmarshal(metadataBytes, &metadata); err != nil {
 		return 0, err
 	}
 
@@ -219,7 +219,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 			FeePrecision: u.config.FeePrecision,
 		}
 
-		extraBytes, err := json.Marshal(extra)
+		extraBytes, err := sonic.Marshal(extra)
 		if err != nil {
 			return nil, err
 		}
@@ -297,7 +297,7 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 		Offset: newOffset,
 	}
 
-	metadataBytes, err := json.Marshal(metadata)
+	metadataBytes, err := sonic.Marshal(metadata)
 	if err != nil {
 		return nil, err
 	}

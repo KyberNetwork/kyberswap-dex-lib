@@ -2,13 +2,13 @@ package bancorv21
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -196,5 +196,5 @@ func newExtraInner(anchorAddress string) ([]byte, error) {
 		AnchorAddress: anchorAddress,
 	}
 
-	return json.Marshal(extra)
+	return sonic.Marshal(extra)
 }

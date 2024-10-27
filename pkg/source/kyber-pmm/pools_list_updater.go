@@ -2,11 +2,11 @@ package kyberpmm
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -91,7 +91,7 @@ func (u *PoolsListUpdater) transformToPool(
 		BaseTokenAddress:  baseToken.Address,
 		QuoteTokenAddress: quoteToken.Address,
 	}
-	staticExtraBytes, err := json.Marshal(staticExtra)
+	staticExtraBytes, err := sonic.Marshal(staticExtra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,

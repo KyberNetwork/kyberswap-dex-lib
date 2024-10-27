@@ -8,12 +8,12 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type PoolTracker struct {
@@ -72,7 +72,7 @@ func (t *PoolTracker) getNewPoolState(
 	extra := Extra{
 		LitePSM: *litePSM,
 	}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": t.cfg.DexID,
@@ -145,7 +145,7 @@ func (t *PoolTracker) getReserves(
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]*big.Int, error) {
 	var staticExtra StaticExtra
-	err := json.Unmarshal([]byte(pool.StaticExtra), &staticExtra)
+	err := sonic.Unmarshal([]byte(pool.StaticExtra), &staticExtra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": t.cfg.DexID,

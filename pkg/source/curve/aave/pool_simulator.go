@@ -1,10 +1,11 @@
 package aave
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
+
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
@@ -33,12 +34,12 @@ type Gas struct {
 
 func NewPoolSimulator(entityPool entity.Pool) (*AavePool, error) {
 	var staticExtra curve.PoolAaveStaticExtra
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
 	var extra curve.PoolAaveExtra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 

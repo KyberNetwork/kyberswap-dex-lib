@@ -7,8 +7,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
@@ -48,7 +48,7 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	var metadata Metadata
 	if len(metadataBytes) != 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
+		err := sonic.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"dexId": p.config.DexID,
@@ -82,7 +82,7 @@ func (p *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	newMetadata := Metadata{
 		Offset: metadata.Offset + len(newPoolAddresses),
 	}
-	newMetadataBytes, err := json.Marshal(newMetadata)
+	newMetadataBytes, err := sonic.Marshal(newMetadata)
 	if err != nil {
 		return nil, metadataBytes, err
 	}
@@ -156,7 +156,7 @@ func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.A
 			LpTokenBalances: poolDat.LpTokenBalances,
 			TokenInfo:       nil,
 		}
-		extraBytes, err := json.Marshal(extra)
+		extraBytes, err := sonic.Marshal(extra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"dexId": p.config.DexID,
@@ -169,7 +169,7 @@ func (p *PoolsListUpdater) getPools(ctx context.Context, poolAddreses []common.A
 			Vault:    p.config.VaultAddress,
 			Wrappers: wrappers,
 		}
-		staticExtraBytes, err := json.Marshal(staticExtra)
+		staticExtraBytes, err := sonic.Marshal(staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"dexId": p.config.DexID,

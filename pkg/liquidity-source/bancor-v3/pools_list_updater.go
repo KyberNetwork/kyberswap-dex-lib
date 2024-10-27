@@ -7,8 +7,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -71,7 +71,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		BNT:     strings.ToLower(u.config.BNT),
 		ChainID: valueobject.ChainID(u.config.ChainID),
 	}
-	staticExtraBytes, err := json.Marshal(staticExtra)
+	staticExtraBytes, err := sonic.Marshal(staticExtra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":   u.config.DexID,

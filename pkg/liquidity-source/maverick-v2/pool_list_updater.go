@@ -2,7 +2,6 @@ package maverickv2
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -130,7 +130,7 @@ func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (*big.Int, error) {
 	}
 
 	var metadata PoolsListUpdaterMetadata
-	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+	if err := sonic.Unmarshal(metadataBytes, &metadata); err != nil {
 		return integer.Zero(), err
 	}
 
@@ -193,7 +193,7 @@ func (u *PoolsListUpdater) newMetadata(lastIndex *big.Int) ([]byte, error) {
 		LastIndex: lastIndex,
 	}
 
-	metadataBytes, err := json.Marshal(metadata)
+	metadataBytes, err := sonic.Marshal(metadata)
 	if err != nil {
 		return nil, err
 	}

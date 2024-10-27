@@ -1,11 +1,11 @@
 package vaultT1
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
 
+	"github.com/bytedance/sonic"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -31,12 +31,12 @@ var (
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 
 	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 

@@ -2,14 +2,13 @@ package ramses
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
-	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -105,7 +104,7 @@ func (d *PoolTracker) GetNewPoolState(
 }
 
 func extractStaticExtra(s string) (staticExtra StaticExtra, err error) {
-	err = json.Unmarshal([]byte(s), &staticExtra)
+	err = sonic.Unmarshal([]byte(s), &staticExtra)
 
 	return
 }

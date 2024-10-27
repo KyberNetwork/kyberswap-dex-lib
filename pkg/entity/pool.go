@@ -1,9 +1,10 @@
 package entity
 
 import (
-	"encoding/json"
 	"math/big"
 	"strings"
+
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -74,7 +75,7 @@ func (p Pool) GetLpToken() string {
 		LpToken string `json:"lpToken"`
 	}{}
 
-	_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
+	_ = sonic.Unmarshal([]byte(p.StaticExtra), &staticExtra)
 
 	if len(staticExtra.LpToken) > 0 {
 		return strings.ToLower(staticExtra.LpToken)

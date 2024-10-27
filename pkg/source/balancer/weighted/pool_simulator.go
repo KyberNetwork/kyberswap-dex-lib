@@ -1,17 +1,17 @@
 package balancerweighted
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"strings"
 
-	balancer "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	balancer "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/balancer"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type WeightedPool2Tokens struct {
@@ -25,7 +25,7 @@ type WeightedPool2Tokens struct {
 
 func NewPoolSimulator(entityPool entity.Pool) (*WeightedPool2Tokens, error) {
 	var staticExtra balancer.StaticExtra
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/goccy/go-json"
+	"github.com/bytedance/sonic"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -65,7 +65,7 @@ type PoolSimulator struct {
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 

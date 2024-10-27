@@ -7,8 +7,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 	"github.com/sourcegraph/conc/pool"
 
@@ -110,7 +110,7 @@ func (d *PoolTracker) GetNewPoolState(
 		ticks = append(ticks, tick)
 	}
 
-	extraBytes, err := json.Marshal(Extra{
+	extraBytes, err := sonic.Marshal(Extra{
 		Liquidity:    rpcData.Liquidity,
 		TickSpacing:  rpcData.TickSpacing.Uint64(),
 		FeeTier:      rpcData.FeeTier.Uint64(),
@@ -144,7 +144,7 @@ func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, bloc
 		return nil, err
 	}
 
-	rpcDataBytes, err := json.Marshal(rpcData)
+	rpcDataBytes, err := sonic.Marshal(rpcData)
 	if err != nil {
 		return nil, err
 	}

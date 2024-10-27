@@ -1,15 +1,16 @@
 package mkr_sky
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 
+	"github.com/bytedance/sonic"
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/holiman/uint256"
 )
 
 type PoolSimulator struct {
@@ -21,7 +22,7 @@ type PoolSimulator struct {
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var staticExtra StaticExtra
 
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 

@@ -1,11 +1,12 @@
 package swapbasedperp
 
 import (
-	"encoding/json"
 	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type VaultPriceFeed struct {
@@ -99,7 +100,7 @@ func (pf *VaultPriceFeed) UnmarshalJSON(bytes []byte) error {
 		PriceFeeds                 map[string]*PriceFeed `json:"priceFeeds"`
 	}
 
-	if err := json.Unmarshal(bytes, &priceFeed); err != nil {
+	if err := sonic.Unmarshal(bytes, &priceFeed); err != nil {
 		return err
 	}
 
@@ -139,7 +140,7 @@ func (pf *VaultPriceFeed) UnmarshalJSONSecondaryPriceFeed(bytes []byte) error {
 			SecondaryPriceFeed *FastPriceFeedV1 `json:"secondaryPriceFeed"`
 		}
 
-		if err := json.Unmarshal(bytes, &priceFeed); err != nil {
+		if err := sonic.Unmarshal(bytes, &priceFeed); err != nil {
 			return nil
 		}
 
@@ -149,7 +150,7 @@ func (pf *VaultPriceFeed) UnmarshalJSONSecondaryPriceFeed(bytes []byte) error {
 			SecondaryPriceFeed *FastPriceFeedV2 `json:"secondaryPriceFeed"`
 		}
 
-		if err := json.Unmarshal(bytes, &priceFeed); err != nil {
+		if err := sonic.Unmarshal(bytes, &priceFeed); err != nil {
 			return nil
 		}
 

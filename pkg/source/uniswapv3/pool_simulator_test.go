@@ -1,11 +1,11 @@
 package uniswapv3
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"testing"
 
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -66,7 +66,7 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			poolEntity := new(entity.Pool)
-			err := json.Unmarshal([]byte(poolEncoded), poolEntity)
+			err := sonic.Unmarshal([]byte(poolEncoded), poolEntity)
 			require.NoError(t, err)
 
 			poolSim, err := NewPoolSimulatorBigInt(*poolEntity, valueobject.ChainIDEthereum)
@@ -87,7 +87,7 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 
 		t.Run(tc.name+"new sim", func(t *testing.T) {
 			poolEntity := new(entity.Pool)
-			err := json.Unmarshal([]byte(poolEncoded), poolEntity)
+			err := sonic.Unmarshal([]byte(poolEncoded), poolEntity)
 			require.NoError(t, err)
 
 			poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
@@ -110,7 +110,7 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 
 func TestComparePoolSimulatorV2(t *testing.T) {
 	poolEntity := new(entity.Pool)
-	err := json.Unmarshal([]byte(poolEncoded), poolEntity)
+	err := sonic.Unmarshal([]byte(poolEncoded), poolEntity)
 	require.NoError(t, err)
 
 	poolSim, err := NewPoolSimulatorBigInt(*poolEntity, valueobject.ChainIDEthereum)
@@ -265,7 +265,7 @@ func RandNumberString(maxLen int) string {
 
 func TestCloneBalance(t *testing.T) {
 	poolEntity := new(entity.Pool)
-	err := json.Unmarshal([]byte(poolEncoded), poolEntity)
+	err := sonic.Unmarshal([]byte(poolEncoded), poolEntity)
 	require.NoError(t, err)
 
 	var poolSim pool.IPoolSimulator

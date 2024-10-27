@@ -1,11 +1,11 @@
 package woofiv2
 
 import (
-	"encoding/json"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -73,16 +73,16 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			poolEntity := new(entity.Pool)
-			err := json.Unmarshal([]byte(tc.poolEncoded), poolEntity)
+			err := sonic.Unmarshal([]byte(tc.poolEncoded), poolEntity)
 			require.NoError(t, err)
 
 			extra := new(Extra)
-			err = json.Unmarshal([]byte(poolEntity.Extra), extra)
+			err = sonic.Unmarshal([]byte(poolEntity.Extra), extra)
 			require.NoError(t, err)
 			// bypass stale oracle error
 			extra.Timestamp = big.NewInt(time.Now().Unix())
 
-			extraEncoded, err := json.Marshal(extra)
+			extraEncoded, err := sonic.Marshal(extra)
 			require.NoError(t, err)
 			poolEntity.Extra = string(extraEncoded)
 

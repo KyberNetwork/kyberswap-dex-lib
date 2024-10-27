@@ -2,7 +2,6 @@ package polmatic
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/account"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -60,7 +60,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	var metadata PoolListUpdaterMetadata
 	if len(metadataBytes) > 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
+		err := sonic.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
@@ -141,7 +141,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, nil, ErrFailedToGetTokenDecimals
 	}
 
-	newMetadataBytes, err := json.Marshal(PoolListUpdaterMetadata{HasInitialized: true})
+	newMetadataBytes, err := sonic.Marshal(PoolListUpdaterMetadata{HasInitialized: true})
 	if err != nil {
 		newMetadataBytes = []byte(`{"hasInitialized": true}`)
 	}

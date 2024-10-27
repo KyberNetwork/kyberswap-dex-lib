@@ -2,16 +2,17 @@ package rseth
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/bytedance/sonic"
+	gethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	gethcommon "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type PoolTracker struct {
@@ -51,7 +52,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		return p, err
 	}

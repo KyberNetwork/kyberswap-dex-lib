@@ -2,12 +2,12 @@ package traderjoev20
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -83,7 +83,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	liquidity := traderjoecommon.CalculateLiquidity(priceX128, binReserves.ReserveX, binReserves.ReserveY)
 
-	extraBytes, err := json.Marshal(Extra{
+	extraBytes, err := sonic.Marshal(Extra{
 		Liquidity: liquidity,
 		PriceX128: priceX128,
 	})

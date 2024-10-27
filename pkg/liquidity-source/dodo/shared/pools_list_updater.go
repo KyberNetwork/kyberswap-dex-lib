@@ -2,12 +2,12 @@ package shared
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/machinebox/graphql"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -112,7 +112,7 @@ func (d *PoolsListUpdater) GetNewPoolsByType(
 			}).Errorf("quote token address is empty")
 		}
 
-		staticExtraBytes, err := json.Marshal(staticExtra)
+		staticExtraBytes, err := sonic.Marshal(staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,

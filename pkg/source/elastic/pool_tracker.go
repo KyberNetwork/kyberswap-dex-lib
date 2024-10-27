@@ -2,12 +2,12 @@ package elastic
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/machinebox/graphql"
 	"github.com/sourcegraph/conc/pool"
@@ -89,7 +89,7 @@ func (d *PoolTracker) GetNewPoolState(
 		ticks = append(ticks, tick)
 	}
 
-	extraBytes, err := json.Marshal(Extra{
+	extraBytes, err := sonic.Marshal(Extra{
 		Liquidity:     rpcData.liquidityState.BaseL,
 		ReinvestL:     rpcData.liquidityState.ReinvestL,
 		ReinvestLLast: rpcData.liquidityState.ReinvestLLast,

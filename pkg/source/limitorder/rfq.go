@@ -2,10 +2,10 @@ package limitorder
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -26,13 +26,13 @@ func NewRFQHandler(config *Config) *RFQHandler {
 }
 
 func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQResult, error) {
-	swapInfoBytes, err := json.Marshal(params.SwapInfo)
+	swapInfoBytes, err := sonic.Marshal(params.SwapInfo)
 	if err != nil {
 		return nil, err
 	}
 
 	var swapInfo SwapInfo
-	if err = json.Unmarshal(swapInfoBytes, &swapInfo); err != nil {
+	if err = sonic.Unmarshal(swapInfoBytes, &swapInfo); err != nil {
 		return nil, InvalidSwapInfo
 	}
 

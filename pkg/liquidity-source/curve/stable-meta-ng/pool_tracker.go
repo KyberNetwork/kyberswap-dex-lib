@@ -2,19 +2,20 @@ package stablemetang
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolTracker struct {
@@ -76,7 +77,7 @@ func (t *PoolTracker) getNewPoolState(
 	)
 
 	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return entity.Pool{}, err
 	}
 
@@ -174,7 +175,7 @@ func (t *PoolTracker) getNewPoolState(
 		return p, nil
 	}
 
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		lg.WithFields(logger.Fields{"error": err}).Error("failed to marshal extra data")
 		return entity.Pool{}, err

@@ -2,12 +2,12 @@ package algebrav1
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -119,7 +119,7 @@ func (d *PoolTracker) GetNewPoolState(
 		ticks = append(ticks, tick)
 	}
 
-	extraBytes, err := json.Marshal(Extra{
+	extraBytes, err := sonic.Marshal(Extra{
 		Liquidity:   rpcData.Liquidity,
 		GlobalState: rpcData.State,
 		Ticks:       ticks,
@@ -155,7 +155,7 @@ func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, bloc
 		return nil, err
 	}
 
-	rpcDataBytes, err := json.Marshal(rpcData)
+	rpcDataBytes, err := sonic.Marshal(rpcData)
 	if err != nil {
 		return nil, err
 	}

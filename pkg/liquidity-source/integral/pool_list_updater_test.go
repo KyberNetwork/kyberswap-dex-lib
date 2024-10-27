@@ -6,10 +6,9 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
-
 	"github.com/stretchr/testify/suite"
 )
 
@@ -70,7 +69,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	metadata := PoolListUpdaterMetadata{
 		Offset: 0,
 	}
-	metadataBytes, _ := json.Marshal(metadata)
+	metadataBytes, _ := sonic.Marshal(metadata)
 	pools, metadataRes, _ := ts.updater.GetNewPools(context.Background(), metadataBytes)
 
 	for _, p := range pools {
@@ -83,7 +82,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 
 	assert.Equal(ts.T(), compare, int64(len(pools)))
 	var savedMetadataRes PoolListUpdaterMetadata
-	err = json.Unmarshal(metadataRes, &savedMetadataRes)
+	err = sonic.Unmarshal(metadataRes, &savedMetadataRes)
 	if err != nil {
 		assert.Fail(ts.Suite.T(), "Error when unmarshal metadata after fetch")
 	}

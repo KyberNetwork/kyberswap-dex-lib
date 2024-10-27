@@ -2,12 +2,12 @@ package ambient
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/machinebox/graphql"
 
@@ -53,7 +53,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	ctx = util.NewContextWithTimestamp(ctx)
 
 	if len(metadataBytes) != 0 {
-		if err := json.Unmarshal(metadataBytes, &meta); err != nil {
+		if err := sonic.Unmarshal(metadataBytes, &meta); err != nil {
 			logger.
 				WithFields(logger.Fields{"dex_id": dexID, "err": err}).
 				Error("unmarshal metadata failed")
@@ -90,7 +90,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 
 	u.appendTokenPairsToExtra(extra, subgraphPairs)
 
-	encodedExtra, err := json.Marshal(extra)
+	encodedExtra, err := sonic.Marshal(extra)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": dexID, "address": u.cfg.SwapDexContractAddress, "err": err}).
@@ -177,7 +177,7 @@ func (u *PoolListUpdater) getOrInitializePool(ctx context.Context, address strin
 	staticExtra := StaticExtra{
 		NativeTokenAddress: common.HexToAddress(u.cfg.NativeTokenAddress),
 	}
-	encodedStaticExtra, err := json.Marshal(staticExtra)
+	encodedStaticExtra, err := sonic.Marshal(staticExtra)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": u.cfg.DexID, "address": address, "err": err}).
@@ -188,7 +188,7 @@ func (u *PoolListUpdater) getOrInitializePool(ctx context.Context, address strin
 
 	extra := new(Extra)
 	if len(upsertPool.Extra) != 0 {
-		if err := json.Unmarshal([]byte(upsertPool.Extra), extra); err != nil {
+		if err := sonic.Unmarshal([]byte(upsertPool.Extra), extra); err != nil {
 			logger.
 				WithFields(logger.Fields{"dex_id": u.cfg.DexID, "address": address, "err": err}).
 				Error("could not unmarshal Extra")
@@ -264,5 +264,5 @@ func (u *PoolListUpdater) metadataBytes(subgraphPools []SubgraphPool) ([]byte, e
 		metadata.LastCreateTime = subgraphPools[len(subgraphPools)-1].TimeCreate
 	}
 
-	return json.Marshal(metadata)
+	return sonic.Marshal(metadata)
 }

@@ -2,10 +2,11 @@ package meth
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/bytedance/sonic"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -32,7 +33,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		return p, err
 	}

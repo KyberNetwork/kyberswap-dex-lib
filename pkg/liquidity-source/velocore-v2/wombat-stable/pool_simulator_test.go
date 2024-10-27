@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/goccy/go-json"
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -55,7 +55,7 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		poolEntity := new(entity.Pool)
-		err := json.Unmarshal([]byte(tc.poolEncoded), poolEntity)
+		err := sonic.Unmarshal([]byte(tc.poolEncoded), poolEntity)
 		require.NoError(t, err)
 
 		poolSim, err := NewPoolSimulator(*poolEntity)
@@ -118,7 +118,7 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 // 		return "", err
 // 	}
 
-// 	poolEncoded, _ := json.MarshalIndent(poolEntity, "", "\t")
+// 	poolEncoded, _ := sonic.MarshalIndent(poolEntity, "", "\t")
 
 // 	return string(poolEncoded), nil
 // }

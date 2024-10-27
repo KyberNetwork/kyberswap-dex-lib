@@ -2,11 +2,11 @@ package vaultT1
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -42,7 +42,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	pools := make([]entity.Pool, 0, len(paths))
 
 	for _, swapPath := range paths {
-		staticExtraBytes, err := json.Marshal(&StaticExtra{
+		staticExtraBytes, err := sonic.Marshal(&StaticExtra{
 			VaultLiquidationResolver: u.config.VaultLiquidationResolver,
 			HasNative: strings.EqualFold(swapPath.TokenIn.Hex(), valueobject.EtherAddress) ||
 				strings.EqualFold(swapPath.TokenOut.Hex(), valueobject.EtherAddress),

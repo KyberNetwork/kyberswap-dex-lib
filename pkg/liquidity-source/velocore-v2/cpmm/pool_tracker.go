@@ -7,7 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/goccy/go-json"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -80,7 +80,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		staticExtra  StaticExtra
 		poolReserves entity.PoolReserves
 	)
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		logger.WithFields(logger.Fields{
 			"pool": p.Address,
 			"type": DexType,
@@ -95,7 +95,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		Fee1e9:        fee1e9,
 		FeeMultiplier: feeMultiplier,
 	}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"pool": p.Address,

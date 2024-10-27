@@ -1,11 +1,11 @@
 package shared
 
 import (
-	"encoding/json"
 	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 )
 
 type (
@@ -76,6 +76,6 @@ func (c *CurveCoin) GetDecimals() uint8 {
 }
 
 func (m PoolListUpdaterMetadata) ToBytes() []byte {
-	b, _ := json.Marshal(m)
+	b, _ := sonic.Marshal(m)
 	return b
 }

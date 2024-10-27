@@ -1,16 +1,17 @@
 package generic_simple_rate
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"strings"
 
+	"github.com/bytedance/sonic"
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/holiman/uint256"
 )
 
 type PoolSimulator struct {
@@ -44,7 +45,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	var poolExtra PoolExtra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &poolExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &poolExtra); err != nil {
 		return nil, err
 	}
 

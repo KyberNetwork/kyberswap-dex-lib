@@ -7,13 +7,14 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
-	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolTracker struct {
@@ -151,7 +152,7 @@ func (u *PoolTracker) getNewPoolState(
 	}
 
 	var extraData IntegralPair
-	_ = json.Unmarshal([]byte(p.Extra), &extraData)
+	_ = sonic.Unmarshal([]byte(p.Extra), &extraData)
 
 	extraData.Price = number.SetFromBig(price)
 	extraData.InvertedPrice = number.SetFromBig(invertedPrice)
@@ -185,7 +186,7 @@ func (u *PoolTracker) getNewPoolState(
 		).String()
 	}
 
-	extraBytes, err := json.Marshal(extraData)
+	extraBytes, err := sonic.Marshal(extraData)
 	if err != nil {
 		logger.Errorf("%s: failed to marshal extra data (address: %s, error: %v)", u.config.DexID, p.Address, err)
 		return entity.Pool{}, err

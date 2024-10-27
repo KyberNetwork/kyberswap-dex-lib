@@ -2,12 +2,12 @@ package uniswapv2
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -127,7 +127,7 @@ func (d *PoolTracker) updatePool(pool entity.Pool, reserveData ReserveData, fee 
 		FeePrecision: d.config.FeePrecision,
 	}
 
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		return pool, err
 	}

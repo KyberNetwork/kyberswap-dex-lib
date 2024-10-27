@@ -2,11 +2,11 @@ package shared
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"net/http"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/machinebox/graphql"
 
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
@@ -49,7 +49,7 @@ func NewPoolsListUpdater(config *Config) *PoolsListUpdater {
 func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]*SubgraphPool, []byte, error) {
 	var metadata Metadata
 	if len(metadataBytes) > 0 {
-		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+		if err := sonic.Unmarshal(metadataBytes, &metadata); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -66,7 +66,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, nil
 	}
 
-	newMetadataBytes, err := json.Marshal(Metadata{
+	newMetadataBytes, err := sonic.Marshal(Metadata{
 		LastCreateTime: lastCreateTime,
 	})
 	if err != nil {

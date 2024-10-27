@@ -1,13 +1,13 @@
 package bancorv21
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -32,7 +32,7 @@ var (
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 
@@ -124,7 +124,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	var path []string
-	if err := json.Unmarshal([]byte(params.SwapInfo.(string)), &path); err != nil {
+	if err := sonic.Unmarshal([]byte(params.SwapInfo.(string)), &path); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": s.Pool.Info.Address,
 		}).Errorf("failed to unmarshal banchor conversionPath")

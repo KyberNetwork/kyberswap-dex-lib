@@ -2,15 +2,16 @@ package tricryptong
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
+	mapset "github.com/deckarep/golang-set/v2"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/shared"
-	"github.com/KyberNetwork/logger"
-	mapset "github.com/deckarep/golang-set/v2"
 )
 
 type PoolsListUpdater struct {
@@ -100,7 +101,7 @@ func (u *PoolsListUpdater) initPools(_ context.Context, curvePools []shared.Curv
 			IsNativeCoins: isNativeCoins,
 		}
 
-		staticExtraBytes, err := json.Marshal(staticExtra)
+		staticExtraBytes, err := sonic.Marshal(staticExtra)
 		if err != nil {
 			lg.Errorf("failed to marshal static extra data")
 			return nil, err

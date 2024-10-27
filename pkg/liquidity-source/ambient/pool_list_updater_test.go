@@ -2,7 +2,6 @@ package ambient_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
@@ -10,10 +9,12 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
 )
 
 type mockPoolDataStore struct {
@@ -35,7 +36,7 @@ func TestPoolListUpdater(t *testing.T) {
 	var (
 		pools                       []entity.Pool
 		firstRunPool, secondRunPool entity.Pool
-		metadataBytes, _            = json.Marshal(ambient.PoolListUpdaterMetadata{LastCreateTime: 0})
+		metadataBytes, _            = sonic.Marshal(ambient.PoolListUpdaterMetadata{LastCreateTime: 0})
 		err                         error
 
 		config = ambient.Config{
@@ -62,7 +63,7 @@ func TestPoolListUpdater(t *testing.T) {
 		require.Equal(t, 1, len(pools))
 		firstRunPool = pools[0]
 
-		jsonEncoded, _ := json.MarshalIndent(firstRunPool, "", "  ")
+		jsonEncoded, _ := sonic.MarshalIndent(firstRunPool, "", "  ")
 		fmt.Printf("%s\n", string(jsonEncoded))
 	}
 
@@ -78,7 +79,7 @@ func TestPoolListUpdater(t *testing.T) {
 		require.Equal(t, 1, len(pools))
 		secondRunPool = pools[0]
 
-		jsonEncoded, _ := json.MarshalIndent(secondRunPool, "", "  ")
+		jsonEncoded, _ := sonic.MarshalIndent(secondRunPool, "", "  ")
 		fmt.Printf("%s\n", string(jsonEncoded))
 	}
 
@@ -92,9 +93,9 @@ func TestPoolListUpdater(t *testing.T) {
 	var (
 		firstRunExtra, secondRunExtra ambient.Extra
 	)
-	err = json.Unmarshal([]byte(firstRunPool.Extra), &firstRunExtra)
+	err = sonic.Unmarshal([]byte(firstRunPool.Extra), &firstRunExtra)
 	require.NoError(t, err)
-	err = json.Unmarshal([]byte(secondRunPool.Extra), &secondRunExtra)
+	err = sonic.Unmarshal([]byte(secondRunPool.Extra), &secondRunExtra)
 	require.NoError(t, err)
 
 	require.Lessf(t, len(firstRunExtra.TokenPairs), len(secondRunExtra.TokenPairs),

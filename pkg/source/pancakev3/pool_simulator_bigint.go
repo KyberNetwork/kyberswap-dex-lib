@@ -1,7 +1,6 @@
 package pancakev3
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -11,6 +10,7 @@ import (
 	"github.com/KyberNetwork/pancake-v3-sdk/constants"
 	v3Entities "github.com/KyberNetwork/pancake-v3-sdk/entities"
 	v3Utils "github.com/KyberNetwork/pancake-v3-sdk/utils"
+	"github.com/bytedance/sonic"
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/ethereum/go-ethereum/common"
 
@@ -34,7 +34,7 @@ type PoolSimulatorBigInt struct {
 
 func NewPoolSimulatorBigInt(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulatorBigInt, error) {
 	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 

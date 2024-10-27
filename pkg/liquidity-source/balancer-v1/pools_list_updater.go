@@ -7,7 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/goccy/go-json"
+	"github.com/bytedance/sonic"
 	"github.com/machinebox/graphql"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -164,7 +164,7 @@ func (u *PoolsListUpdater) getLastCreateTime(metadataBytes []byte) (int, error) 
 	}
 
 	var metadata PoolsListUpdaterMetadata
-	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+	if err := sonic.Unmarshal(metadataBytes, &metadata); err != nil {
 		return 0, err
 	}
 
@@ -176,7 +176,7 @@ func newPoolsListUpdaterMetadata(lastCreateTime int) ([]byte, error) {
 		LastCreateTime: lastCreateTime,
 	}
 
-	metadataBytes, err := json.Marshal(metadata)
+	metadataBytes, err := sonic.Marshal(metadata)
 	if err != nil {
 		return nil, err
 	}

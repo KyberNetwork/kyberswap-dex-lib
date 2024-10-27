@@ -1,10 +1,10 @@
 package woofiv2
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -18,7 +18,7 @@ type PoolSimulator struct {
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 
@@ -106,13 +106,13 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 }
 
 func (p *PoolSimulator) deepCopyState(state *WooFiV2State) (*WooFiV2State, error) {
-	stateBytes, err := json.Marshal(state)
+	stateBytes, err := sonic.Marshal(state)
 	if err != nil {
 		return nil, err
 	}
 
 	var newState WooFiV2State
-	if err := json.Unmarshal(stateBytes, &newState); err != nil {
+	if err := sonic.Unmarshal(stateBytes, &newState); err != nil {
 		return nil, err
 	}
 

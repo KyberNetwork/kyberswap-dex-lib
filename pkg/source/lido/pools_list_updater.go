@@ -2,7 +2,6 @@ package lido
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -50,7 +50,7 @@ func (d *PoolsListUpdater) initPools() ([]entity.Pool, error) {
 		return nil, errors.New("misconfigured poolPath")
 	}
 	var poolItems []PoolItem
-	if err := json.Unmarshal(byteData, &poolItems); err != nil {
+	if err := sonic.Unmarshal(byteData, &poolItems); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to unmarshal poolData")
@@ -98,7 +98,7 @@ func (d *PoolsListUpdater) processBatch(poolItems []PoolItem) ([]entity.Pool, er
 			TokensPerStEth: big.NewInt(0),
 			StEthPerToken:  big.NewInt(0),
 		}
-		extraBytes, err := json.Marshal(extra)
+		extraBytes, err := sonic.Marshal(extra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,
@@ -109,7 +109,7 @@ func (d *PoolsListUpdater) processBatch(poolItems []PoolItem) ([]entity.Pool, er
 		staticExtra := StaticExtra{
 			LpToken: pool.LpToken,
 		}
-		staticExtraBytes, err := json.Marshal(staticExtra)
+		staticExtraBytes, err := sonic.Marshal(staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,

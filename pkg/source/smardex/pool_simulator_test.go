@@ -1,11 +1,11 @@
 package smardex
 
 import (
-	"encoding/json"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -59,7 +59,7 @@ func TestCalcAmountOut(t *testing.T) {
 			Fees1: big.NewInt(0),
 		},
 	}
-	extraJson, _ := json.Marshal(extra)
+	extraJson, _ := sonic.Marshal(extra)
 
 	token0 := entity.PoolToken{
 		Address:   "token0",
@@ -305,7 +305,7 @@ func TestUpdateBalance(t *testing.T) {
 			Fees1: big.NewInt(0),
 		},
 	}
-	extraJson, _ := json.Marshal(extra)
+	extraJson, _ := sonic.Marshal(extra)
 
 	token0 := entity.PoolToken{
 		Address:   "token0",

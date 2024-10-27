@@ -1,11 +1,11 @@
 package limitorder
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/bytedance/sonic"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -871,7 +871,7 @@ func parseBigInt(value string) *big.Int {
 }
 
 func marshalPoolExtra(extra *Extra) string {
-	bytesData, _ := json.Marshal(extra)
+	bytesData, _ := sonic.Marshal(extra)
 	return string(bytesData)
 }
 
@@ -936,7 +936,7 @@ func TestPool_CalcAmountOut_v2(t *testing.T) {
 				}
 			}),
 		}
-		sExtra, _ := json.Marshal(extra)
+		sExtra, _ := sonic.Marshal(extra)
 		poolEnt := entity.Pool{
 			Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
 			Reserves:    entity.PoolReserves{"0", "0"},
@@ -1040,7 +1040,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 					}
 				}),
 			}
-			sExtra, _ := json.Marshal(extra)
+			sExtra, _ := sonic.Marshal(extra)
 			poolEnt := entity.Pool{
 				Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
 				Reserves:    entity.PoolReserves{"0", "0"},
@@ -1188,7 +1188,7 @@ func TestPool_Inventory(t *testing.T) {
 					}
 				}),
 			}
-			sExtra, _ := json.Marshal(extra)
+			sExtra, _ := sonic.Marshal(extra)
 			poolEnt := entity.Pool{
 				Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
 				Reserves:    entity.PoolReserves{"0", "0"},

@@ -2,16 +2,17 @@ package iziswap
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/iZiSwap-SDK-go/swap"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/sourcegraph/conc/pool"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolTracker struct {
@@ -102,7 +103,7 @@ func (d *PoolTracker) GetNewPoolState(
 	poolInfo.Liquidities = liquidityPointData
 	poolInfo.LimitOrders = limitOrderPointData
 
-	extraBytes, err := json.Marshal(poolInfo)
+	extraBytes, err := sonic.Marshal(poolInfo)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,

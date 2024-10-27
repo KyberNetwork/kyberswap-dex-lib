@@ -2,7 +2,6 @@ package vooi
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -60,7 +60,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	var metadata PoolListUpdaterMetadata
 	if len(metadataBytes) > 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
+		err := sonic.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
@@ -87,7 +87,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		pools = append(pools, pool)
 	}
 
-	newMetadataBytes, err := json.Marshal(PoolListUpdaterMetadata{HasInitialized: true})
+	newMetadataBytes, err := sonic.Marshal(PoolListUpdaterMetadata{HasInitialized: true})
 	if err != nil {
 		newMetadataBytes = []byte(`{"hasInitialized": true}`)
 	}
@@ -182,7 +182,7 @@ func (u *PoolsListUpdater) initPool(ctx context.Context, address string) (entity
 		LPFee:        lpFee,
 	}
 
-	poolExtraBytes, err := json.Marshal(poolExtra)
+	poolExtraBytes, err := sonic.Marshal(poolExtra)
 	if err != nil {
 		return entity.Pool{}, err
 	}

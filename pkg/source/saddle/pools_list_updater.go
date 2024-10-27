@@ -2,13 +2,13 @@ package saddle
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -54,7 +54,7 @@ func (d *PoolsListUpdater) initPools(ctx context.Context) ([]entity.Pool, error)
 		return nil, errors.New("misconfigured poolPath")
 	}
 	var poolItems []PoolItem
-	if err := json.Unmarshal(byteData, &poolItems); err != nil {
+	if err := sonic.Unmarshal(byteData, &poolItems); err != nil {
 		logger.WithFields(logger.Fields{
 			"path":  d.config.PoolPath,
 			"error": err,
@@ -112,7 +112,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 			LpToken:              strings.ToLower(swapStorages[i].LpToken.Hex()),
 			PrecisionMultipliers: precisionMultipliers,
 		}
-		staticExtraBytes, err := json.Marshal(staticExtra)
+		staticExtraBytes, err := sonic.Marshal(staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"poolAddress": pool.ID,

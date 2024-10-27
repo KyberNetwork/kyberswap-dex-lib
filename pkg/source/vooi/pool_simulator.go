@@ -1,13 +1,13 @@
 package vooi
 
 import (
-	"encoding/json"
 	"errors"
-	"github.com/KyberNetwork/logger"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/dsmath"
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/samber/lo"
 
@@ -67,7 +67,7 @@ type (
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var poolExtra PoolExtra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &poolExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &poolExtra); err != nil {
 		return nil, err
 	}
 

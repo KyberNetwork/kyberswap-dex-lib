@@ -5,7 +5,7 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/goccy/go-json"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -35,13 +35,13 @@ func NewRFQHandler(config *Config, client IClient) *RFQHandler {
 }
 
 func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQResult, error) {
-	swapInfoBytes, err := json.Marshal(params.SwapInfo)
+	swapInfoBytes, err := sonic.Marshal(params.SwapInfo)
 	if err != nil {
 		return nil, err
 	}
 
 	var swapInfo SwapInfo
-	if err = json.Unmarshal(swapInfoBytes, &swapInfo); err != nil {
+	if err = sonic.Unmarshal(swapInfoBytes, &swapInfo); err != nil {
 		return nil, err
 	}
 

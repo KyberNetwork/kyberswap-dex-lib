@@ -2,13 +2,13 @@ package platypus
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -80,7 +80,7 @@ func (t *PoolTracker) GetNewPoolState(
 
 	extra := newExtra(poolState, assetStates, sAvaxRate)
 
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"address": p.Address,

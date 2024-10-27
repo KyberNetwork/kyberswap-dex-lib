@@ -2,11 +2,11 @@ package kyberpmm
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/account"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -24,13 +24,13 @@ func NewRFQHandler(config *Config, client IClient) *RFQHandler {
 }
 
 func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQResult, error) {
-	swapExtraBytes, err := json.Marshal(params.SwapInfo)
+	swapExtraBytes, err := sonic.Marshal(params.SwapInfo)
 	if err != nil {
 		return nil, err
 	}
 
 	var swapExtra SwapExtra
-	if err = json.Unmarshal(swapExtraBytes, &swapExtra); err != nil {
+	if err = sonic.Unmarshal(swapExtraBytes, &swapExtra); err != nil {
 		return nil, ErrInvalidFirmQuoteParams
 	}
 

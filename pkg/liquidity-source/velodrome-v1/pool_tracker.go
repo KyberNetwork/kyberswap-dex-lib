@@ -8,8 +8,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -69,7 +69,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}()
 
 	var staticExtra PoolStaticExtra
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		return p, err
 	}
 
@@ -150,7 +150,7 @@ func (d *PoolTracker) updatePool(
 		IsPaused: isPaused,
 		Fee:      fee,
 	}
-	poolExtraBytes, err := json.Marshal(poolExtra)
+	poolExtraBytes, err := sonic.Marshal(poolExtra)
 	if err != nil {
 		return pool, err
 	}

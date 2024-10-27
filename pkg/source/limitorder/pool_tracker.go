@@ -2,12 +2,12 @@ package limitorder
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -47,7 +47,7 @@ func (d *PoolTracker) GetNewPoolState(
 	var contractAddress string
 	if d.config.SupportMultiSCs {
 		var staticExtra StaticExtra
-		if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+		if err := sonic.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 			return entity.Pool{}, err
 		}
 		contractAddress = staticExtra.ContractAddress
@@ -104,7 +104,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,

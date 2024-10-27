@@ -1,8 +1,6 @@
 package kyberpmm
 
-import (
-	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
-)
+import "github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 
 type Config struct {
 	DexID              string            `json:"dexID,omitempty"`

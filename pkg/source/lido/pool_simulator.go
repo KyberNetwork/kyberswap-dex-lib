@@ -1,9 +1,10 @@
 package lido
 
 import (
-	"encoding/json"
 	"math/big"
 	"strings"
+
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -30,7 +31,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var reserves = make([]*big.Int, numTokens)
 
 	var staticExtra StaticExtra
-	var err = json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra)
+	var err = sonic.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +42,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	var extraStr Extra
-	err = json.Unmarshal([]byte(entityPool.Extra), &extraStr)
+	err = sonic.Unmarshal([]byte(entityPool.Extra), &extraStr)
 	if err != nil {
 		return nil, err
 	}

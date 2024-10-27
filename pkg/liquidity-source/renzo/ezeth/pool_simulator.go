@@ -1,10 +1,10 @@
 package ezeth
 
 import (
-	"encoding/json"
 	"math/big"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
@@ -71,7 +71,7 @@ type PoolSimulator struct {
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var extra PoolExtra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 

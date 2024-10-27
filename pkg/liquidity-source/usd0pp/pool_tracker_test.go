@@ -2,14 +2,16 @@ package usd0pp
 
 import (
 	"context"
-	"encoding/json"
+	"testing"
+
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"testing"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolListTrackerTestSuite struct {
@@ -55,7 +57,7 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 	}
 
 	var poolExtra PoolExtra
-	if err := json.Unmarshal([]byte(pool.Extra), &poolExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(pool.Extra), &poolExtra); err != nil {
 		require.Fail(ts.Suite.T(), "Failed to unmarshal pool extra %e", err)
 	}
 

@@ -1,13 +1,13 @@
 package liquiditybookv21
 
 import (
-	"encoding/json"
 	"math/big"
 	"sort"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -41,7 +41,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves[1] = bignumber.NewBig10(entityPool.Reserves[1])
 	}
 
-	err := json.Unmarshal([]byte(entityPool.Extra), &extra)
+	err := sonic.Unmarshal([]byte(entityPool.Extra), &extra)
 	if err != nil {
 		return nil, err
 	}

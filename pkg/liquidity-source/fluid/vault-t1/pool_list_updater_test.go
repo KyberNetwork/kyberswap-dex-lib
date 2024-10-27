@@ -2,15 +2,16 @@ package vaultT1
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 func TestPoolListUpdater(t *testing.T) {
@@ -22,7 +23,7 @@ func TestPoolListUpdater(t *testing.T) {
 
 	var (
 		pools            []entity.Pool
-		metadataBytes, _ = json.Marshal(map[string]interface{}{})
+		metadataBytes, _ = sonic.Marshal(map[string]interface{}{})
 		err              error
 
 		config = Config{
@@ -82,7 +83,7 @@ func TestPoolListUpdater(t *testing.T) {
 
 	// Log all pools
 	// for i, pool := range pools {
-	// 	jsonEncoded, _ := json.MarshalIndent(pool, "", "  ")
+	// 	jsonEncoded, _ := sonic.MarshalIndent(pool, "", "  ")
 	// 	t.Logf("Pool %d: %s\n", i, string(jsonEncoded))
 	// }
 

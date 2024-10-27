@@ -1,12 +1,12 @@
 package plain
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/bytedance/sonic"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -65,11 +65,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	sim := &PoolSimulator{}
 
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &sim.staticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.StaticExtra), &sim.staticExtra); err != nil {
 		return nil, err
 	}
 
-	if err := json.Unmarshal([]byte(entityPool.Extra), &sim.extra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &sim.extra); err != nil {
 		return nil, err
 	}
 

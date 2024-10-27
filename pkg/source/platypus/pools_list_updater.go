@@ -2,7 +2,6 @@ package platypus
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/machinebox/graphql"
 	"github.com/samber/lo"
@@ -45,7 +45,7 @@ func (p *PoolsListUpdater) GetNewPools(
 
 	meta := Metadata{LastUpdate: "0"}
 	if len(metadata) > 0 {
-		err := json.Unmarshal(metadata, &meta)
+		err := sonic.Unmarshal(metadata, &meta)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"metadata": metadata,
@@ -83,7 +83,7 @@ func (p *PoolsListUpdater) GetNewPools(
 		return nil, nil, err
 	}
 
-	metadata, err = json.Marshal(meta)
+	metadata, err = sonic.Marshal(meta)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"metadata": meta,
@@ -172,7 +172,7 @@ func (p *PoolsListUpdater) getPools(
 	for _, state := range poolStates {
 		assetStates := poolAssetStatesMap[state.Address]
 		extra := newExtra(state, assetStates, sAvaxRate)
-		extraBytes, err := json.Marshal(extra)
+		extraBytes, err := sonic.Marshal(extra)
 		if err != nil {
 			return nil, err
 		}

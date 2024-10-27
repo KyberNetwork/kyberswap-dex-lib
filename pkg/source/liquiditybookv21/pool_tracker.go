@@ -2,7 +2,6 @@ package liquiditybookv21
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"sort"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/machinebox/graphql"
 	"golang.org/x/sync/errgroup"
 
@@ -82,7 +82,7 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool, _ pool
 		PriceX128:              rpcResult.PriceX128,
 		Liquidity:              rpcResult.Liquidity,
 	}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		return entity.Pool{}, err
 	}
@@ -106,7 +106,7 @@ func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, pool entity.Pool, b
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(result)
+	return sonic.Marshal(result)
 }
 
 func (d *PoolTracker) queryRpc(ctx context.Context, p entity.Pool, blockNumber uint64) (*QueryRpcPoolStateResult, error) {

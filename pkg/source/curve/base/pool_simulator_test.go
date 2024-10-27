@@ -1,12 +1,12 @@
 package base
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -161,7 +161,7 @@ func TestGetDyVirtualPrice(t *testing.T) {
 		"staticExtra": "{\"lpToken\":\"0x1005f7406f32a61bd760cfa14accd2737913d546\",\"aPrecision\":\"100\",\"precisionMultipliers\":[\"1000000000000\",\"1000000000000\"],\"rates\":[\"1000000000000000000000000000000\",\"1000000000000000000000000000000\"]}"
 	}`
 	var poolEntity entity.Pool
-	err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+	err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 	require.Nil(t, err)
 	p, err := NewPoolSimulator(poolEntity)
 	require.Nil(t, err)

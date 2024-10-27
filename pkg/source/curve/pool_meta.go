@@ -2,17 +2,17 @@ package curve
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 func (d *PoolsListUpdater) getNewPoolsTypeMeta(
@@ -119,7 +119,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeMeta(
 				Swappable: true,
 			})
 		}
-		staticExtraBytes, err := json.Marshal(staticExtra)
+		staticExtraBytes, err := sonic.Marshal(staticExtra)
 		if err != nil {
 			logger.Errorf("failed to marshal static extra data, err: %v", err)
 			return nil, err
@@ -232,7 +232,7 @@ func (d *PoolTracker) getNewPoolStateTypeMeta(
 		AdminFee:     adminFee.String(),
 	}
 
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,

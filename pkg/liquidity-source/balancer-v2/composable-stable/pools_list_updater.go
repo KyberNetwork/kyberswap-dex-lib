@@ -9,8 +9,8 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -180,7 +180,7 @@ func (u *PoolsListUpdater) initPool(
 		ScalingFactors: scalingFactors,
 		Vault:          vault,
 	}
-	staticExtraBytes, err := json.Marshal(staticExtra)
+	staticExtraBytes, err := sonic.Marshal(staticExtra)
 	if err != nil {
 		return entity.Pool{}, err
 	}

@@ -2,7 +2,6 @@ package algebrav1
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/machinebox/graphql"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -64,7 +64,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		LastCreatedAtTimestamp: integer.Zero(),
 	}
 	if len(metadataBytes) != 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
+		err := sonic.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
@@ -158,7 +158,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	newMetadataBytes, err := json.Marshal(Metadata{
+	newMetadataBytes, err := sonic.Marshal(Metadata{
 		LastCreatedAtTimestamp: lastCreatedAtTimestamp,
 		LastPoolIds:            lastPoolIds,
 	})

@@ -2,12 +2,12 @@ package nerve
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -51,7 +51,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	var poolsItem []PoolItem
-	if err := json.Unmarshal(byteValue, &poolsItem); err != nil {
+	if err := sonic.Unmarshal(byteValue, &poolsItem); err != nil {
 		log.Errorf("failed to parse pools: err %v", err)
 		return nil, nil, err
 	}
@@ -91,7 +91,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			reserves = append(reserves, reserveZero)
 		}
 
-		staticExtraBytes, err := json.Marshal(staticExtra)
+		staticExtraBytes, err := sonic.Marshal(staticExtra)
 		if err != nil {
 			log.Errorf("error when marshal staticExtra: %v", err)
 			return nil, nil, err

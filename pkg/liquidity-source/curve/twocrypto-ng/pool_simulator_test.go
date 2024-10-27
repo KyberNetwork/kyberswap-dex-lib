@@ -1,11 +1,11 @@
 package twocryptong
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/bytedance/sonic"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,7 +51,7 @@ func TestCalcAmountOut(t *testing.T) {
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
 		var poolEntity entity.Pool
-		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+		err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 		require.Nil(t, err)
 		p, err := NewPoolSimulator(poolEntity)
 		require.Nil(t, err)
@@ -144,7 +144,7 @@ func TestCalcAmountIn(t *testing.T) {
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
 		var poolEntity entity.Pool
-		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+		err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 		require.Nil(t, err)
 		p, err := NewPoolSimulator(poolEntity)
 		require.Nil(t, err)
@@ -201,7 +201,7 @@ func TestUpdateBalance(t *testing.T) {
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
 		var poolEntity entity.Pool
-		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+		err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 		require.Nil(t, err)
 		p, err := NewPoolSimulator(poolEntity)
 		require.Nil(t, err)
@@ -248,7 +248,7 @@ func BenchmarkCalcAmountOut(b *testing.B) {
 	benchPoolRedis := `{"address":"0x1fb84fa6d252762e8367ea607a6586e09dcebe3d","exchange":"curve-twocrypto-ng","type":"curve-twocrypto-ng","timestamp":1726463373,"reserves":["968569777414549410834","1045106588251996643768"],"tokens":[{"address":"0x18c14c2d707b2212e17d1579789fc06010cfca23","name":"","symbol":"ETH+","decimals":18,"weight":0,"swappable":true},{"address":"0x82af49447d8a07e3bd95bd0d56f35241523fbab1","name":"","symbol":"WETH","decimals":18,"weight":0,"swappable":true}],"extra":"{\"InitialA\":\"20000000\",\"InitialGamma\":\"20000000000000000\",\"InitialAGammaTime\":0,\"FutureA\":\"20000000\",\"FutureGamma\":\"20000000000000000\",\"FutureAGammaTime\":0,\"D\":\"1996236386986675947911\",\"PriceScale\":[\"983313638977093334\"],\"PriceOracle\":[\"983239528662393033\"],\"LastPrices\":[\"983244856693732906\"],\"LastPricesTimestamp\":1726463246,\"FeeGamma\":\"30000000000000000\",\"MidFee\":\"500000\",\"OutFee\":\"8000000\",\"LpSupply\":\"1006167834136870835627\",\"XcpProfit\":\"1000760564011364559\",\"VirtualPrice\":\"1000381175737496082\",\"AllowedExtraProfit\":\"1000000000000\",\"AdjustmentStep\":\"25000000000000\"}","staticExtra":"{\"IsNativeCoins\":[false,false]}"}`
 
 	var poolEntity entity.Pool
-	err := json.Unmarshal([]byte(benchPoolRedis), &poolEntity)
+	err := sonic.Unmarshal([]byte(benchPoolRedis), &poolEntity)
 	require.Nil(b, err)
 	p, err := NewPoolSimulator(poolEntity)
 	require.Nil(b, err)

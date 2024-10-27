@@ -2,15 +2,16 @@ package smardex
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolListTrackerTestSuite struct {
@@ -47,7 +48,7 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 	}, pool.GetNewPoolStateParams{})
 
 	var pair SmardexPair
-	if err := json.Unmarshal([]byte(pool.Extra), &pair); err != nil {
+	if err := sonic.Unmarshal([]byte(pool.Extra), &pair); err != nil {
 		assert.Fail(ts.Suite.T(), "Failed to unmarshal pool extra %e", err)
 	}
 

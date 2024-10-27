@@ -7,12 +7,11 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
-
-	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -195,7 +194,7 @@ func (t *PoolTracker) updatePool(
 	// update data
 	p.Tokens = tokens
 	p.Reserves = reserves
-	extraBytes, err := json.Marshal(Extra{
+	extraBytes, err := sonic.Marshal(Extra{
 		NativeIdx:        nativeIdx,
 		CollectionByPool: colByPool,
 		PoolCollections:  poolCols,

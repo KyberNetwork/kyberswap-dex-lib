@@ -2,15 +2,16 @@ package nomiswap
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
+	"github.com/holiman/uint256"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/logger"
-	"github.com/holiman/uint256"
 )
 
 type PoolTracker struct {
@@ -88,7 +89,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	extraBytes, err := json.Marshal(ExtraStablePool{
+	extraBytes, err := sonic.Marshal(ExtraStablePool{
 		SwapFee:                   swapFee,
 		Token0PrecisionMultiplier: uint256.MustFromBig(token0PrecisionMultiplier),
 		Token1PrecisionMultiplier: uint256.MustFromBig(token1PrecisionMultiplier),

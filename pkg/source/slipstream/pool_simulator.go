@@ -1,7 +1,6 @@
 package slipstream
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -11,6 +10,7 @@ import (
 	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
 	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
+	"github.com/bytedance/sonic"
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
@@ -38,7 +38,7 @@ type PoolSimulator struct {
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var extra ExtraTickU256
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 

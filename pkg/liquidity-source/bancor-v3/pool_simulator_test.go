@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
-	"github.com/goccy/go-json"
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -83,7 +83,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			"blockNumber": 19281309
 		  }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 
 		// expected amount
@@ -177,7 +177,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			"blockNumber": 19281309
 		  }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 
 		// expected amount
@@ -271,7 +271,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			"blockNumber": 19281309
 		  }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 
 		// expected amount
@@ -365,7 +365,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			"blockNumber": 19281309
 		  }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 
 		// expected amount
@@ -459,7 +459,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			"blockNumber": 19281309
 		  }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 
 		// expected amount
@@ -1108,7 +1108,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var pool entity.Pool
-			err := json.Unmarshal([]byte(tt.fields.p), &pool)
+			err := sonic.Unmarshal([]byte(tt.fields.p), &pool)
 			assert.Nil(t, err)
 
 			simulator, err := NewPoolSimulator(pool)

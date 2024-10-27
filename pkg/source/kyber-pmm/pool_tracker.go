@@ -2,7 +2,6 @@ package kyberpmm
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -62,7 +62,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	extra.BaseToQuotePriceLevels, extra.QuoteToBasePriceLevels = transformPriceLevels(priceLevels)
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
@@ -94,7 +94,7 @@ func (t *PoolTracker) getPriceLevelsForPool(ctx context.Context, p entity.Pool) 
 		staticExtra                     StaticExtra
 		baseTokenSymbol, quoteTokenName string
 	)
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to unmarshal static extra data")

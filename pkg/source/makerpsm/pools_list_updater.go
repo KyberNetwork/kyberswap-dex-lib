@@ -2,12 +2,12 @@ package makerpsm
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -85,7 +85,7 @@ func (d *PoolsListUpdater) initializeDexConfig() error {
 		return err
 	}
 
-	err := json.Unmarshal(dexConfigBytes, &d.cfg.DexConfig)
+	err := sonic.Unmarshal(dexConfigBytes, &d.cfg.DexConfig)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,

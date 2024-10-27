@@ -1,7 +1,6 @@
 package elastic
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -11,6 +10,7 @@ import (
 	elasticEntities "github.com/KyberNetwork/elastic-go-sdk/v2/entities"
 	elasticUtils "github.com/KyberNetwork/elastic-go-sdk/v2/utils"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/ethereum/go-ethereum/common"
 
@@ -34,7 +34,7 @@ type PoolSimulator struct {
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 

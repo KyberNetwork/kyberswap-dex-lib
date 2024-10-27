@@ -2,10 +2,10 @@ package dsp
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/shared"
@@ -30,7 +30,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		LastCreatedAtTimestamp: integer.Zero(),
 	}
 	if len(metadataBytes) > 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
+		err := sonic.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"metadataBytes": metadataBytes,
@@ -51,7 +51,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		return nil, metadataBytes, err
 	}
 
-	newMetadataBytes, err := json.Marshal(newMetadata)
+	newMetadataBytes, err := sonic.Marshal(newMetadata)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"metadata": metadata,

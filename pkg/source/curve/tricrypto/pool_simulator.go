@@ -1,10 +1,11 @@
 package tricrypto
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
+
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
@@ -48,12 +49,12 @@ type Gas struct {
 
 func NewPoolSimulator(entityPool entity.Pool) (*Pool, error) {
 	var staticExtra curve.PoolTricryptoStaticExtra
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 
 	var extraStr curve.PoolTricryptoExtra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extraStr); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &extraStr); err != nil {
 		return nil, err
 	}
 

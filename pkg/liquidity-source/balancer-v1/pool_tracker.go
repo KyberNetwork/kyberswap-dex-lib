@@ -8,8 +8,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -155,7 +155,7 @@ func (t *PoolTracker) updatePool(p entity.Pool, poolData PoolData, blockNumber *
 		PublicSwap: poolData.IsPublicSwap,
 		SwapFee:    poolData.SwapFee,
 	}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		return p, err
 	}

@@ -7,13 +7,13 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	"github.com/goccy/go-json"
+	"github.com/bytedance/sonic"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type PoolTracker struct {
@@ -116,7 +116,7 @@ func (t *PoolTracker) getNewPoolState(
 	rho_, _ := uint256.FromBig(rho)
 	chi_, _ := uint256.FromBig(chi)
 
-	extraBytes, err := json.Marshal(Extra{
+	extraBytes, err := sonic.Marshal(Extra{
 		BlockTimestamp: uint256.NewInt(blockTimestamp + blocktime),
 		DSR:            dsr_,
 		RHO:            rho_,

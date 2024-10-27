@@ -2,13 +2,14 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 
-	bebop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-resty/resty/v2"
+
+	bebop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 )
 
 const (
@@ -80,8 +81,8 @@ func (c *HTTPClient) QuoteSingleOrderResult(ctx context.Context, params bebop.Qu
 	}
 
 	respBytes := resp.Body()
-	_ = json.Unmarshal(respBytes, &result)
-	_ = json.Unmarshal(respBytes, &fail)
+	_ = sonic.Unmarshal(respBytes, &result)
+	_ = sonic.Unmarshal(respBytes, &fail)
 
 	if !resp.IsSuccess() || fail.Failed() {
 		return bebop.QuoteSingleOrderResult{}, parseRFQError(fail.Error.ErrorCode, fail.Error.Message)

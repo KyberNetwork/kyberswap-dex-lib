@@ -2,11 +2,12 @@ package iziswap
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 // This integration is mostly forked from https://github.com/opcc22059/kyberswap-dex-lib/tree/iZiSwap,
@@ -33,7 +34,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	if metadataBytes != nil || len(metadataBytes) != 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
+		err := sonic.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
@@ -103,7 +104,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}
 	}
 
-	newMetadataBytes, err := json.Marshal(Metadata{
+	newMetadataBytes, err := sonic.Marshal(Metadata{
 		LastCreatedAtTimestamp: latestTimestamp,
 	})
 	if err != nil {

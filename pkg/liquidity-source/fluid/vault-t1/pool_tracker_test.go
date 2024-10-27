@@ -2,17 +2,18 @@ package vaultT1
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/require"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPoolTracker(t *testing.T) {
@@ -82,7 +83,7 @@ func TestPoolTracker(t *testing.T) {
 			WithAbsorb bool     `json:"withAbsorb"`
 			Ratio      *big.Int `json:"ratio"`
 		}
-		err = json.Unmarshal([]byte(newPool.Extra), &extra)
+		err = sonic.Unmarshal([]byte(newPool.Extra), &extra)
 		require.NoError(t, err)
 		logger.Debugf("Unmarshaled extra data for wstETH_weETH_Pool: %+v", extra)
 
@@ -90,7 +91,7 @@ func TestPoolTracker(t *testing.T) {
 		require.NotNil(t, extra.Ratio)
 		require.IsType(t, &big.Int{}, extra.Ratio)
 
-		jsonEncoded, _ := json.MarshalIndent(newPool, "", "  ")
+		jsonEncoded, _ := sonic.MarshalIndent(newPool, "", "  ")
 		t.Logf("Updated wstETH-weETH Pool: %s\n", string(jsonEncoded))
 	})
 
@@ -122,7 +123,7 @@ func TestPoolTracker(t *testing.T) {
 			WithAbsorb bool     `json:"withAbsorb"`
 			Ratio      *big.Int `json:"ratio"`
 		}
-		err = json.Unmarshal([]byte(newPool.Extra), &extra)
+		err = sonic.Unmarshal([]byte(newPool.Extra), &extra)
 		require.NoError(t, err)
 		logger.Debugf("Unmarshaled extra data for USDC_ETH_Pool: %+v", extra)
 
@@ -130,7 +131,7 @@ func TestPoolTracker(t *testing.T) {
 		require.NotNil(t, extra.Ratio)
 		require.IsType(t, &big.Int{}, extra.Ratio)
 
-		jsonEncoded, _ := json.MarshalIndent(newPool, "", "  ")
+		jsonEncoded, _ := sonic.MarshalIndent(newPool, "", "  ")
 		t.Logf("Updated USDC_ETH Pool: %s\n", string(jsonEncoded))
 	})
 

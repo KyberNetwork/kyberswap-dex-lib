@@ -2,18 +2,19 @@ package shared
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type (
@@ -62,7 +63,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	now := time.Now().UTC()
 	var metadata PoolListUpdaterMetadata
 	if len(metadataBytes) > 0 {
-		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+		if err := sonic.Unmarshal(metadataBytes, &metadata); err != nil {
 			u.logger.WithFields(logger.Fields{
 				"error": err,
 			}).Error("failed to unmarshal metadataBytes")

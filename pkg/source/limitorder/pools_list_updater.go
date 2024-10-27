@@ -2,10 +2,10 @@ package limitorder
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/samber/lo"
 
@@ -114,7 +114,7 @@ func (d *PoolsListUpdater) getPoolID(token0, token1, contractAddress string) str
 
 func (d *PoolsListUpdater) initPool(pair *tokenPair) (entity.Pool, error) {
 	staticExtra := StaticExtra{ContractAddress: pair.ContractAddress}
-	staticExtraBytes, err := json.Marshal(staticExtra)
+	staticExtraBytes, err := sonic.Marshal(staticExtra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"token0":          pair.Token0,

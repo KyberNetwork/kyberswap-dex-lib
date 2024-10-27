@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/goccy/go-json"
+	"github.com/bytedance/sonic"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
@@ -228,7 +228,7 @@ func Test_CalcAmountOut(t *testing.T) {
 	"staticExtra": "{\"poolId\":\"0x5c6ee304399dbdb9c8ef030ab642b10820db8f56000200000000000000000014\",\"poolType\":\"Weighted\",\"poolTypeVer\":1,\"scalingFactors\":[\"0x1\",\"0x1\"],\"normalizedWeights\":[\"0xb1a2bc2ec500000\",\"0x2c68af0bb140000\"],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
 }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 
 		// expected
@@ -343,7 +343,7 @@ func Test_CalcAmountOut(t *testing.T) {
 			"staticExtra": "{\"poolId\":\"0x32fc95287b14eaef3afa92cccc48c285ee3a280a000100000000000000000005\",\"poolType\":\"Weighted\",\"poolTypeVer\":1,\"scalingFactors\":[\"0x1\",\"0x1\",\"0xe8d4a51000\",\"0x1\",\"0x1\",\"0x1\",\"0x1\",\"0x1\"],\"normalizedWeights\":[\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\",\"0x1bc16d674ec8000\"],\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
 		}`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 
 		// expected
@@ -747,7 +747,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var pool entity.Pool
-			err := json.Unmarshal([]byte(tt.fields.p), &pool)
+			err := sonic.Unmarshal([]byte(tt.fields.p), &pool)
 			assert.Nil(t, err)
 
 			simulator, err := NewPoolSimulator(pool)

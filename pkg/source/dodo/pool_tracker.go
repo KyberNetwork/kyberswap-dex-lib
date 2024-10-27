@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	cmap "github.com/orcaman/concurrent-map"
 
@@ -48,7 +48,7 @@ func (d *PoolTracker) GetNewPoolState(
 	var staticExtraData = struct {
 		Type string `json:"type"`
 	}{}
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtraData); err != nil {
+	if err := sonic.Unmarshal([]byte(p.StaticExtra), &staticExtraData); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
@@ -156,7 +156,7 @@ func (d *PoolTracker) getNewPoolStateDodoV1(ctx context.Context, p entity.Pool) 
 		Reserves:       []*big.Int{baseReserve, quoteReserve},
 		TargetReserves: []*big.Int{targetReserve.BaseTarget, targetReserve.QuoteTarget},
 	}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
@@ -273,7 +273,7 @@ func (d *PoolTracker) getNewPoolStateDodoV2(ctx context.Context, p entity.Pool) 
 		Reserves:       []*big.Int{state.B, state.Q},
 		TargetReserves: []*big.Int{state.B0, state.Q0},
 	}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,

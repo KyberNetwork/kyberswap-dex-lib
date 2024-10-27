@@ -2,15 +2,17 @@ package kokonutcrypto
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strings"
 	"time"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
+	"github.com/ethereum/go-ethereum/common"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
 type PoolsListUpdater struct {
@@ -34,7 +36,7 @@ func (d *PoolsListUpdater) GetNewPools(
 ) ([]entity.Pool, []byte, error) {
 	var metadata Metadata
 	if len(metadataBytes) != 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
+		err := sonic.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
@@ -94,7 +96,7 @@ func (d *PoolsListUpdater) GetNewPools(
 	numPools := len(pools)
 
 	nextOffset := currentOffset + numPools
-	newMetadataBytes, err := json.Marshal(Metadata{
+	newMetadataBytes, err := sonic.Marshal(Metadata{
 		Offset: nextOffset,
 	})
 	if err != nil {
@@ -174,7 +176,7 @@ func (d *PoolsListUpdater) processBatch(ctx context.Context, poolAddresses []com
 				Swappable: true,
 			})
 		}
-		staticExtraBytes, err := json.Marshal(staticExtra)
+		staticExtraBytes, err := sonic.Marshal(staticExtra)
 		if err != nil {
 			logger.Errorf("failed to marshal static extra data, err: %v", err)
 			return nil, err

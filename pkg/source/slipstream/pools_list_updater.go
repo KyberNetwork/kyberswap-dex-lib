@@ -2,7 +2,6 @@ package slipstream
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/machinebox/graphql"
 	"github.com/samber/lo"
 
@@ -71,7 +71,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		LastCreatedAtTimestamp: integer.Zero(),
 	}
 	if len(metadataBytes) != 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
+		err := sonic.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
@@ -149,8 +149,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			reserves = append(reserves, zeroString)
 		}
 
-		extraBytes, _ := json.Marshal(extraField)
-		staticBytes, _ := json.Marshal(staticField)
+		extraBytes, _ := sonic.Marshal(extraField)
+		staticBytes, _ := sonic.Marshal(staticField)
 		var newPool = entity.Pool{
 			Address:      p.ID,
 			ReserveUsd:   0,
@@ -181,7 +181,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		lastCreatedAtTimestamp = ts
 	}
 
-	newMetadataBytes, err := json.Marshal(Metadata{
+	newMetadataBytes, err := sonic.Marshal(Metadata{
 		LastCreatedAtTimestamp: lastCreatedAtTimestamp,
 	})
 	if err != nil {

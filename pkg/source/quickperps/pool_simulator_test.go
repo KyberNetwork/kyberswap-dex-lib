@@ -1,11 +1,11 @@
 package quickperps
 
 import (
-	"encoding/json"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -82,13 +82,13 @@ func TestPool_CalcAmountOut(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var extra Extra
-			err := json.Unmarshal([]byte(tc.entityPool.Extra), &extra)
+			err := sonic.Unmarshal([]byte(tc.entityPool.Extra), &extra)
 			assert.Nil(t, err)
 
 			extra.Vault.PriceFeed.PriceFeedProxies["0x4f9a0e7fd2bf6067db6994cf12e4495df938e6e9"].Timestamp = uint32(time.Now().Unix())
 			extra.Vault.PriceFeed.PriceFeedProxies["0xc5015b9d9161dca7e18e32f6f25c4ad850731fd4"].Timestamp = uint32(time.Now().Unix())
 
-			extraBytes, err := json.Marshal(&extra)
+			extraBytes, err := sonic.Marshal(&extra)
 			assert.Nil(t, err)
 
 			tc.entityPool.Extra = string(extraBytes)

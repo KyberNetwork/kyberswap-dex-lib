@@ -1,15 +1,16 @@
 package stablemetang
 
 import (
-	"encoding/json"
 	"testing"
+
+	"github.com/bytedance/sonic"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	stableng "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -33,7 +34,7 @@ BenchmarkGetDyUnderlying_plainbase_base2meta-8   	  227568	      5134 ns/op	    
 
 func doBench(b *testing.B, basepoolRedis, poolRedis, tokIn, tokOut, amount string) {
 	var poolEntity entity.Pool
-	require.Nil(b, json.Unmarshal([]byte(basepoolRedis), &poolEntity))
+	require.Nil(b, sonic.Unmarshal([]byte(basepoolRedis), &poolEntity))
 	var baseSim ICurveBasePool
 	var err error
 	if poolEntity.Exchange == stableng.DexType {
@@ -44,7 +45,7 @@ func doBench(b *testing.B, basepoolRedis, poolRedis, tokIn, tokOut, amount strin
 		require.Nil(b, err)
 	}
 
-	require.Nil(b, json.Unmarshal([]byte(poolRedis), &poolEntity))
+	require.Nil(b, sonic.Unmarshal([]byte(poolRedis), &poolEntity))
 	sim, err := NewPoolSimulator(poolEntity, baseSim)
 	require.Nil(b, err)
 

@@ -2,7 +2,6 @@ package nuriv2
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/machinebox/graphql"
 	"github.com/samber/lo"
 
@@ -66,7 +66,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		LastCreatedAtTimestamp: integer.Zero(),
 	}
 	if len(metadataBytes) != 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
+		err := sonic.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
@@ -143,7 +143,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		var swapFee, _ = strconv.ParseFloat(p.FeeTier, 64)
 
-		extraBytes, _ := json.Marshal(extraField)
+		extraBytes, _ := sonic.Marshal(extraField)
 
 		var newPool = entity.Pool{
 			Address:      p.ID,
@@ -174,7 +174,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		lastCreatedAtTimestamp = ts
 	}
 
-	newMetadataBytes, err := json.Marshal(Metadata{
+	newMetadataBytes, err := sonic.Marshal(Metadata{
 		LastCreatedAtTimestamp: lastCreatedAtTimestamp,
 	})
 	if err != nil {

@@ -2,7 +2,6 @@ package generic_simple_rate
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -57,7 +57,7 @@ func (d *PoolsListUpdater) initPools() ([]entity.Pool, error) {
 	}
 
 	var poolItems []PoolItem
-	if err := json.Unmarshal(byteData, &poolItems); err != nil {
+	if err := sonic.Unmarshal(byteData, &poolItems); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to unmarshal pool")
@@ -150,7 +150,7 @@ func (d *PoolsListUpdater) getNewPool(pool *PoolItem) (entity.Pool, error) {
 		defaultGas = d.config.DefaultGas.Int64()
 	}
 
-	poolExtraBytes, err := json.Marshal(PoolExtra{
+	poolExtraBytes, err := sonic.Marshal(PoolExtra{
 		Paused:          paused,
 		Rate:            uint256.MustFromBig(rate),
 		RateUnit:        uint256.MustFromBig(d.config.RateUnit),

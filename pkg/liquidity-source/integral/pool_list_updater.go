@@ -7,10 +7,11 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 type (
@@ -47,7 +48,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 
 	var metadata PoolListUpdaterMetadata
 	if len(metadataBytes) > 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
+		err := sonic.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
@@ -128,7 +129,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	}
 
 	nextOffset := currentOffset + len(pools)
-	newMetadataBytes, err := json.Marshal(PoolListUpdaterMetadata{
+	newMetadataBytes, err := sonic.Marshal(PoolListUpdaterMetadata{
 		Offset: nextOffset,
 	})
 	if err != nil {
@@ -175,7 +176,7 @@ func (u *PoolListUpdater) initPairs(ctx context.Context, poolAddresses []common.
 		return nil, err
 	}
 
-	extra, _ := json.Marshal(&IntegralPair{
+	extra, _ := sonic.Marshal(&IntegralPair{
 		RelayerAddress: u.config.RelayerAddress,
 	})
 

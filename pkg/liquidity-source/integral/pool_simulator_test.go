@@ -4,13 +4,14 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
-	"github.com/goccy/go-json"
+	"github.com/bytedance/sonic"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 var (
@@ -41,7 +42,7 @@ var (
 )
 
 func TestCalcAmountOut(t *testing.T) {
-	extraBytes, err := json.Marshal(IntegralPair{
+	extraBytes, err := sonic.Marshal(IntegralPair{
 		IsEnabled:      true,
 		X_Decimals:     _xDecimals,
 		Y_Decimals:     _yDecimals,
@@ -136,7 +137,7 @@ func TestCalcAmountOut(t *testing.T) {
 
 	// Test for disabled pool
 	t.Run("5. should return error when pool is disabled", func(t *testing.T) {
-		disabledExtraBytes, err := json.Marshal(IntegralPair{
+		disabledExtraBytes, err := sonic.Marshal(IntegralPair{
 			IsEnabled:      false,
 			X_Decimals:     _xDecimals,
 			Y_Decimals:     _yDecimals,
@@ -177,7 +178,7 @@ func TestCalcAmountOut(t *testing.T) {
 }
 
 func TestUpdateBalance(t *testing.T) {
-	extraBytes, err := json.Marshal(IntegralPair{
+	extraBytes, err := sonic.Marshal(IntegralPair{
 		IsEnabled:      true,
 		X_Decimals:     _xDecimals,
 		Y_Decimals:     _yDecimals,

@@ -2,7 +2,6 @@ package balancer
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/machinebox/graphql"
 
@@ -52,7 +52,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	var metadata Metadata
 	if len(metadataBytes) != 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
+		err := sonic.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
@@ -81,7 +81,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		pools = append(pools, poolsByType...)
 	}
 
-	newMetadataBytes, err := json.Marshal(newMetadata)
+	newMetadataBytes, err := sonic.Marshal(newMetadata)
 	if err != nil {
 		return nil, metadataBytes, err
 	}
@@ -161,7 +161,7 @@ func (d *PoolsListUpdater) getNewPoolsByType(ctx context.Context, poolType PoolT
 		}
 		var swapFee, _ = strconv.ParseFloat(p.SwapFee, 64)
 
-		staticBytes, _ := json.Marshal(staticField)
+		staticBytes, _ := sonic.Marshal(staticField)
 		var newPool = entity.Pool{
 			Address:     p.Address,
 			ReserveUsd:  zeroFloat64,

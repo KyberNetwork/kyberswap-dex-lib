@@ -8,8 +8,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -101,7 +101,7 @@ func (d *PoolsListUpdater) newPool(psmCfg PSMConfig) (entity.Pool, error) {
 		Pocket: gemPocket,
 	}
 
-	staticExtraBytes, err := json.Marshal(staticExtra)
+	staticExtraBytes, err := sonic.Marshal(staticExtra)
 	if err != nil {
 		panic(err)
 	}
@@ -128,7 +128,7 @@ func (d *PoolsListUpdater) initializeDexConfig() error {
 		return err
 	}
 
-	err := json.Unmarshal(dexConfigBytes, &d.cfg.DexConfig)
+	err := sonic.Unmarshal(dexConfigBytes, &d.cfg.DexConfig)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,

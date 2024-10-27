@@ -2,13 +2,13 @@ package curve
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 
@@ -121,7 +121,7 @@ func (d *PoolsListUpdater) getNewPoolsTypeBase(
 				Swappable: true,
 			})
 		}
-		staticExtraBytes, err := json.Marshal(staticExtra)
+		staticExtraBytes, err := sonic.Marshal(staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,
@@ -239,7 +239,7 @@ func (d *PoolTracker) getNewPoolStateTypeBase(
 		SwapFee:      safeCastBigIntToString(swapFee),
 		AdminFee:     safeCastBigIntToString(adminFee),
 	}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,

@@ -2,16 +2,17 @@ package ambient
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 type PoolTracker struct {
@@ -58,11 +59,11 @@ func (t *PoolTracker) GetNewPoolState(
 		extra Extra
 	)
 
-	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+	if err := sonic.Unmarshal([]byte(p.Extra), &extra); err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": t.cfg.DexID, "address": p.Address, "err": err}).
-			Error("could not json.Unmarshal Extra")
-		return p, fmt.Errorf("could not json.Unmarshal Extra: %w", err)
+			Error("could not sonic.Unmarshal Extra")
+		return p, fmt.Errorf("could not sonic.Unmarshal Extra: %w", err)
 	}
 
 	var (
@@ -143,7 +144,7 @@ func (t *PoolTracker) GetNewPoolState(
 		}
 	}
 
-	encodedExtra, err := json.Marshal(extra)
+	encodedExtra, err := sonic.Marshal(extra)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"poolAddress": p.Address, "error": err}).

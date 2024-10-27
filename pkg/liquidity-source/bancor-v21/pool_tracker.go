@@ -2,13 +2,13 @@ package bancorv21
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -125,12 +125,12 @@ func (d *PoolTracker) updatePool(ctx context.Context, pool entity.Pool, innerPoo
 
 	for i, innerPool := range innerPools {
 		currentExtraInner := ExtraInner{}
-		if err := json.Unmarshal([]byte(innerPool.Extra), &currentExtraInner); err != nil {
+		if err := sonic.Unmarshal([]byte(innerPool.Extra), &currentExtraInner); err != nil {
 			return pool, err
 		}
 		currentExtraInner.ConversionFee = fees[i]
 
-		extraBytes, err := json.Marshal(currentExtraInner)
+		extraBytes, err := sonic.Marshal(currentExtraInner)
 		if err != nil {
 			return innerPool, err
 		}
@@ -149,7 +149,7 @@ func (d *PoolTracker) updatePool(ctx context.Context, pool entity.Pool, innerPoo
 	}
 
 	currentExtra := Extra{}
-	if err := json.Unmarshal([]byte(pool.Extra), &currentExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(pool.Extra), &currentExtra); err != nil {
 		return pool, err
 	}
 	currentExtra.InnerPools = newInnerPools
@@ -173,7 +173,7 @@ func (d *PoolTracker) updatePool(ctx context.Context, pool entity.Pool, innerPoo
 	// 4. prepare tokens by lp address
 	currentExtra.TokensByLpAddress = tokensByAnchor
 
-	extraBytes, err := json.Marshal(currentExtra)
+	extraBytes, err := sonic.Marshal(currentExtra)
 	if err != nil {
 		logger.
 			WithFields(logger.Fields{"dex_id": d.config.DexID, "err": err}).

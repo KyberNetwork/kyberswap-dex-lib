@@ -2,13 +2,14 @@ package usd0pp
 
 import (
 	"context"
-	"encoding/json"
+	"strings"
+	"testing"
+
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"strings"
-	"testing"
 )
 
 type PoolListUpdaterTestSuite struct {
@@ -51,7 +52,7 @@ func (ts *PoolListUpdaterTestSuite) TestGetNewPools() {
 	require.Equal(ts.Suite.T(), strings.ToLower(USD0PP), pools[0].Tokens[1].Address)
 
 	var poolExtra PoolExtra
-	if err := json.Unmarshal([]byte(pools[0].Extra), &poolExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(pools[0].Extra), &poolExtra); err != nil {
 		require.NoError(ts.Suite.T(), err)
 	}
 

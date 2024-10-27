@@ -2,12 +2,12 @@ package dodo
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/machinebox/graphql"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -37,7 +37,7 @@ func NewPoolsListUpdater(
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	var metadata = make(Metadata, len(subgraphTypeToPoolTypeMap))
 	if len(metadataBytes) > 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
+		err := sonic.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"metadataBytes": metadataBytes,
@@ -65,7 +65,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		pools = append(pools, newPools...)
 	}
 
-	newMetadataBytes, err := json.Marshal(metadata)
+	newMetadataBytes, err := sonic.Marshal(metadata)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"metadata": metadata,
@@ -157,7 +157,7 @@ func (d *PoolsListUpdater) getNewPoolByType(
 			}).Errorf("quote token address is empty")
 		}
 
-		staticExtraBytes, err := json.Marshal(staticExtra)
+		staticExtraBytes, err := sonic.Marshal(staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,

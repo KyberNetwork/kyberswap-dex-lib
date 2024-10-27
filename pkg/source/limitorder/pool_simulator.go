@@ -1,12 +1,12 @@
 package limitorder
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -46,7 +46,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	var contractAddress string
 	var staticExtra StaticExtra
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		// this is optional for now, will changed to required later
 		contractAddress = ""
 	} else {
@@ -54,7 +54,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	var extra Extra
-	err := json.Unmarshal([]byte(entityPool.Extra), &extra)
+	err := sonic.Unmarshal([]byte(entityPool.Extra), &extra)
 	if err != nil {
 		return nil, err
 	}

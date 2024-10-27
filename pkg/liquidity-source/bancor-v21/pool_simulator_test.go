@@ -2,12 +2,12 @@ package bancorv21
 
 import (
 	"embed"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 	"testing"
 
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -26,7 +26,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 	// Unmarshal the JSON data into the Pool struct
 	var pool entity.Pool
-	err = json.Unmarshal(data, &pool)
+	err = sonic.Unmarshal(data, &pool)
 	if err != nil {
 		fmt.Println("Error unmarshaling JSON:", err)
 		return

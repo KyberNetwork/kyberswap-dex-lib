@@ -1,16 +1,15 @@
 package algebrav1
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 
-	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
-	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
-
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
+	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
+	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -30,7 +29,7 @@ type PoolSimulator struct {
 
 func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator, error) {
 	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 

@@ -2,10 +2,11 @@ package ondo_usdy
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/bytedance/sonic"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
@@ -28,7 +29,7 @@ func (t *PoolTracker) GetNewPoolState(
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	oldExtra := PoolExtra{}
-	err := json.Unmarshal([]byte(p.Extra), &oldExtra)
+	err := sonic.Unmarshal([]byte(p.Extra), &oldExtra)
 	if err != nil {
 		return entity.Pool{}, err
 	}
@@ -38,7 +39,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	extraBytes, err := json.Marshal(newExtras[0])
+	extraBytes, err := sonic.Marshal(newExtras[0])
 	if err != nil {
 		return p, err
 	}

@@ -1,12 +1,12 @@
 package plain
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -85,7 +85,7 @@ func TestCalcAmountOutPlain(t *testing.T) {
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
 		var poolEntity entity.Pool
-		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+		err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 		require.Nil(t, err)
 		p, err := NewPoolSimulator(poolEntity)
 		require.Nil(t, err)
@@ -139,7 +139,7 @@ func TestCalcAmountOutPlainError(t *testing.T) {
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
 		var poolEntity entity.Pool
-		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+		err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 		require.Nil(t, err)
 		p, err := NewPoolSimulator(poolEntity)
 		require.Nil(t, err)
@@ -301,7 +301,7 @@ func TestGetDyVirtualPrice(t *testing.T) {
 		"staticExtra": "{\"lpToken\":\"0x1005f7406f32a61bd760cfa14accd2737913d546\",\"aPrecision\":\"100\"}"
 	}`
 	var poolEntity entity.Pool
-	err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+	err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 	require.Nil(t, err)
 	p, err := NewPoolSimulator(poolEntity)
 	require.Nil(t, err)
@@ -407,7 +407,7 @@ func TestPoolSimulatorPlain_CalcAmountIn(t *testing.T) {
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
 		var poolEntity entity.Pool
-		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+		err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 		require.Nil(t, err)
 		p, err := NewPoolSimulator(poolEntity)
 		require.Nil(t, err)

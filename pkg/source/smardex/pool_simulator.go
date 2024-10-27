@@ -1,11 +1,11 @@
 package smardex
 
 import (
-	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -16,7 +16,7 @@ var now = time.Now
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var pair SmardexPair
-	if err := json.Unmarshal([]byte(entityPool.Extra), &pair); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &pair); err != nil {
 		return nil, err
 	}
 

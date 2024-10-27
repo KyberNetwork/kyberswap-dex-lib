@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/goccy/go-json"
+	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/bytedance/sonic"
 	"github.com/holiman/uint256"
 
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -15,7 +15,7 @@ import (
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var pair IntegralPair
-	if err := json.Unmarshal([]byte(entityPool.Extra), &pair); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &pair); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal Extra: %v", err)
 	}
 

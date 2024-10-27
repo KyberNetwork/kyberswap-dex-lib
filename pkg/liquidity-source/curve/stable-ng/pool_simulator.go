@@ -1,12 +1,12 @@
 package stableng
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/bytedance/sonic"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -39,11 +39,11 @@ type Gas struct {
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	sim := &PoolSimulator{}
 
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &sim.StaticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.StaticExtra), &sim.StaticExtra); err != nil {
 		return nil, err
 	}
 
-	if err := json.Unmarshal([]byte(entityPool.Extra), &sim.Extra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &sim.Extra); err != nil {
 		return nil, err
 	}
 

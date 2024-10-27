@@ -1,10 +1,10 @@
 package solidlyv3
 
 import (
-	"encoding/json"
 	"math/big"
 	"testing"
 
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -63,7 +63,7 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			poolEntity := new(entity.Pool)
-			err := json.Unmarshal([]byte(tc.poolEncoded), poolEntity)
+			err := sonic.Unmarshal([]byte(tc.poolEncoded), poolEntity)
 			require.NoError(t, err)
 
 			poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
@@ -107,7 +107,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			poolEntity := new(entity.Pool)
-			err := json.Unmarshal([]byte(tc.poolEncoded), poolEntity)
+			err := sonic.Unmarshal([]byte(tc.poolEncoded), poolEntity)
 			require.NoError(t, err)
 
 			poolSim, err := NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)

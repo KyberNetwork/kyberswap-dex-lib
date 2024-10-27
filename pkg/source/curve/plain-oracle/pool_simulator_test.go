@@ -1,11 +1,11 @@
 package plainoracle
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -97,7 +97,7 @@ func TestGetDyVirtualPrice(t *testing.T) {
 	}
 	`
 	var poolEntity entity.Pool
-	err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+	err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 	require.Nil(t, err)
 	p, err := NewPoolSimulator(poolEntity)
 	require.Nil(t, err)

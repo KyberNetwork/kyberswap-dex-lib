@@ -2,16 +2,17 @@ package integral
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolListTrackerTestSuite struct {
@@ -57,7 +58,7 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 	}
 
 	var pair IntegralPair
-	if err := json.Unmarshal([]byte(pool.Extra), &pair); err != nil {
+	if err := sonic.Unmarshal([]byte(pool.Extra), &pair); err != nil {
 		require.Fail(ts.Suite.T(), "Failed to unmarshal pool extra %e", err)
 	}
 

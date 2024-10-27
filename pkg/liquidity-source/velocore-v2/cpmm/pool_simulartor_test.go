@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/goccy/go-json"
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -22,7 +22,7 @@ func TestCalcAmountOut(t *testing.T) {
 
 		entityPoolStr := `{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","exchange":"velocorev2-cpmm","type":"velocorev2-cpmm","timestamp":1697617544,"reserves":["5192296858534827628430578339644164","7774767","1310912514297980345043"],"tokens":[{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","swappable":true},{"address":"0xa219439258ca9da29e9cc4ce5596924745e12b93","swappable":true},{"address":"0xcc22f6aa610d1b2a0e89ef228079cb3e1831b1d1","swappable":true}],"extra":"{\"fee1e9\":10000000,\"feeMultiplier\":0}","staticExtra":"{\"poolTokenNumber\":3,\"weights\":[2,1,1]}"}`
 		var entityPool entity.Pool
-		err := json.Unmarshal([]byte(entityPoolStr), &entityPool)
+		err := sonic.Unmarshal([]byte(entityPoolStr), &entityPool)
 		assert.Nil(t, err)
 
 		var (
@@ -58,7 +58,7 @@ func TestCalcAmountOut(t *testing.T) {
 
 		entityPoolStr := `{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","exchange":"velocore-v2-cpmm","type":"velocore-v2-cpmm","timestamp":1697617544,"reserves":["5192296858534827628430578339644164","7774767","1310912514297980345043"],"tokens":[{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","swappable":true},{"address":"0xa219439258ca9da29e9cc4ce5596924745e12b93","swappable":true},{"address":"0xcc22f6aa610d1b2a0e89ef228079cb3e1831b1d1","swappable":true}],"extra":"{\"fee1e9\":10000000,\"feeMultiplier\":0}","staticExtra":"{\"poolTokenNumber\":3,\"weights\":[2,1,1]}"}`
 		var entityPool entity.Pool
-		err := json.Unmarshal([]byte(entityPoolStr), &entityPool)
+		err := sonic.Unmarshal([]byte(entityPoolStr), &entityPool)
 		assert.Nil(t, err)
 
 		var (
@@ -91,7 +91,7 @@ func TestCalcAmountOut(t *testing.T) {
 
 		entityPoolStr := `{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","exchange":"velocore-v2-cpmm","type":"velocore-v2-cpmm","timestamp":1697617544,"reserves":["5192296858534827628430578339644164","7774767","1310912514297980345043"],"tokens":[{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","swappable":true},{"address":"0xa219439258ca9da29e9cc4ce5596924745e12b93","swappable":true},{"address":"0xcc22f6aa610d1b2a0e89ef228079cb3e1831b1d1","swappable":true}],"extra":"{\"fee1e9\":10000000,\"feeMultiplier\":0}","staticExtra":"{\"poolTokenNumber\":3,\"weights\":[2,1,1]}"}`
 		var entityPool entity.Pool
-		err := json.Unmarshal([]byte(entityPoolStr), &entityPool)
+		err := sonic.Unmarshal([]byte(entityPoolStr), &entityPool)
 		assert.Nil(t, err)
 
 		var (
@@ -122,7 +122,7 @@ func TestCalcAmountOut(t *testing.T) {
 	t.Run("4. should not panic", func(t *testing.T) {
 		entityPoolStr := `{"address":"0xc53a048e4211a81e68001c6fa56364019f973e0b","reserveUsd":0.009998963162763646,"amplifiedTvl":0.009998963162763646,"exchange":"velocore-v2-cpmm","type":"velocore-v2-cpmm","timestamp":1718001015,"reserves":["5192281750178086030566074723720301","9998963156478118","1704"],"tokens":[{"address":"0xc53a048e4211a81e68001c6fa56364019f973e0b","swappable":true},{"address":"0x2039bb4116b4efc145ec4f0e2ea75012d6c0f181","swappable":true},{"address":"0x5aea5775959fbc2557cc8789bc1bf90a239d9a91","swappable":true}],"extra":"{\"fee1e9\":0,\"feeMultiplier\":44391380623778508}","staticExtra":"{\"weights\":[2,1,1],\"poolTokenNumber\":3,\"nativeTokenIndex\":2,\"vault\":\"0xf5E67261CB357eDb6C7719fEFAFaaB280cB5E2A6\"}","blockNumber":36206567}`
 		var entityPool entity.Pool
-		err := json.Unmarshal([]byte(entityPoolStr), &entityPool)
+		err := sonic.Unmarshal([]byte(entityPoolStr), &entityPool)
 		assert.Nil(t, err)
 
 		var (
@@ -156,7 +156,7 @@ func TestVelocoreExecute(t *testing.T) {
 
 		entityPoolStr := `{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","exchange":"velocore-v2-cpmm","type":"velocore-v2-cpmm","timestamp":1697617544,"reserves":["5192296858534827628430578339644164","7774767","1310912514297980345043"],"tokens":[{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","swappable":true},{"address":"0xa219439258ca9da29e9cc4ce5596924745e12b93","swappable":true},{"address":"0xcc22f6aa610d1b2a0e89ef228079cb3e1831b1d1","swappable":true}],"extra":"{\"fee1e9\":10000000,\"feeMultiplier\":0}","staticExtra":"{\"poolTokenNumber\":3,\"weights\":[2,1,1]}"}`
 		var entityPool entity.Pool
-		err := json.Unmarshal([]byte(entityPoolStr), &entityPool)
+		err := sonic.Unmarshal([]byte(entityPoolStr), &entityPool)
 		assert.Nil(t, err)
 
 		var (
@@ -193,7 +193,7 @@ func TestVelocoreExecute(t *testing.T) {
 
 		entityPoolStr := `{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","exchange":"velocore-v2-cpmm","type":"velocore-v2-cpmm","timestamp":1697617544,"reserves":["5192296858534827628430578339644164","7774767","1310912514297980345043"],"tokens":[{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","swappable":true},{"address":"0xa219439258ca9da29e9cc4ce5596924745e12b93","swappable":true},{"address":"0xcc22f6aa610d1b2a0e89ef228079cb3e1831b1d1","swappable":true}],"extra":"{\"fee1e9\":10000000,\"feeMultiplier\":0}","staticExtra":"{\"poolTokenNumber\":3,\"weights\":[2,1,1]}"}`
 		var entityPool entity.Pool
-		err := json.Unmarshal([]byte(entityPoolStr), &entityPool)
+		err := sonic.Unmarshal([]byte(entityPoolStr), &entityPool)
 		assert.Nil(t, err)
 
 		var (
@@ -232,7 +232,7 @@ func TestVelocoreExecuteFallback(t *testing.T) {
 
 		entityPoolStr := `{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","exchange":"velocore-v2-cpmm","type":"velocore-v2-cpmm","timestamp":1697617544,"reserves":["5192296858534827628430578339644164","7774767","1310912514297980345043"],"tokens":[{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","swappable":true},{"address":"0xa219439258ca9da29e9cc4ce5596924745e12b93","swappable":true},{"address":"0xcc22f6aa610d1b2a0e89ef228079cb3e1831b1d1","swappable":true}],"extra":"{\"fee1e9\":10000000,\"feeMultiplier\":0}","staticExtra":"{\"poolTokenNumber\":3,\"weights\":[2,1,1]}"}`
 		var entityPool entity.Pool
-		err := json.Unmarshal([]byte(entityPoolStr), &entityPool)
+		err := sonic.Unmarshal([]byte(entityPoolStr), &entityPool)
 		assert.Nil(t, err)
 
 		var (
@@ -269,7 +269,7 @@ func TestVelocoreExecuteFallback(t *testing.T) {
 
 		entityPoolStr := `{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","exchange":"velocore-v2-cpmm","type":"velocore-v2-cpmm","timestamp":1697617544,"reserves":["5192296858534827628430578339644164","7774767","1310912514297980345043"],"tokens":[{"address":"0x515ac85ef7d21b5033a0ad71b194d4c52661b8ca","swappable":true},{"address":"0xa219439258ca9da29e9cc4ce5596924745e12b93","swappable":true},{"address":"0xcc22f6aa610d1b2a0e89ef228079cb3e1831b1d1","swappable":true}],"extra":"{\"fee1e9\":10000000,\"feeMultiplier\":0}","staticExtra":"{\"poolTokenNumber\":3,\"weights\":[2,1,1]}"}`
 		var entityPool entity.Pool
-		err := json.Unmarshal([]byte(entityPoolStr), &entityPool)
+		err := sonic.Unmarshal([]byte(entityPoolStr), &entityPool)
 		assert.Nil(t, err)
 
 		var (

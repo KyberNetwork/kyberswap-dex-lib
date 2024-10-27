@@ -4,7 +4,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/goccy/go-json"
+	"github.com/bytedance/sonic"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
 
@@ -182,7 +182,7 @@ func TestCalcAmountOut(t *testing.T) {
 			"staticExtra": "{\"poolId\":\"0x851523a36690bf267bbfec389c823072d82921a90002000000000000000001ed\",\"poolType\":\"MetaStable\",\"poolTypeVersion\":1,\"poolSpecialization\":2,\"vault\":\"0xba12222222228d8ba445958a75a0704d566bf2c8\"}"
 		  }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(poolStr), &pool)
+		err := sonic.Unmarshal([]byte(poolStr), &pool)
 		assert.Nil(t, err)
 
 		s, err := NewPoolSimulator(pool)
@@ -332,7 +332,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var pool entity.Pool
-			err := json.Unmarshal([]byte(tt.fields.poolStr), &pool)
+			err := sonic.Unmarshal([]byte(tt.fields.poolStr), &pool)
 			assert.Nil(t, err)
 
 			simulator, err := NewPoolSimulator(pool)

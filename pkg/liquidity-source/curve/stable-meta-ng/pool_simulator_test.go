@@ -1,10 +1,10 @@
 package stablemetang
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
+	"github.com/bytedance/sonic"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -113,7 +113,7 @@ func TestCalcAmountOut(t *testing.T) {
 	baseSimsByAddress := make(map[string]ICurveBasePool, len(basePools))
 	for _, basePool := range basePools {
 		var poolEntity entity.Pool
-		err := json.Unmarshal([]byte(basePool), &poolEntity)
+		err := sonic.Unmarshal([]byte(basePool), &poolEntity)
 		require.Nil(t, err)
 
 		if poolEntity.Exchange == stableng.DexType {
@@ -129,10 +129,10 @@ func TestCalcAmountOut(t *testing.T) {
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
 		var poolEntity entity.Pool
-		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+		err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 		require.Nil(t, err)
 		var e StaticExtra
-		err = json.Unmarshal([]byte(poolEntity.StaticExtra), &e)
+		err = sonic.Unmarshal([]byte(poolEntity.StaticExtra), &e)
 		require.Nil(t, err)
 
 		baseSim := baseSimsByAddress[e.BasePool]
@@ -266,7 +266,7 @@ func TestUpdateBalance(t *testing.T) {
 	baseSimsByAddress := make(map[string]ICurveBasePool, len(basePools))
 	for _, basePool := range basePools {
 		var poolEntity entity.Pool
-		err := json.Unmarshal([]byte(basePool), &poolEntity)
+		err := sonic.Unmarshal([]byte(basePool), &poolEntity)
 		require.Nil(t, err)
 
 		if poolEntity.Exchange == stableng.DexType {
@@ -282,10 +282,10 @@ func TestUpdateBalance(t *testing.T) {
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
 		var poolEntity entity.Pool
-		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+		err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 		require.Nil(t, err)
 		var e StaticExtra
-		err = json.Unmarshal([]byte(poolEntity.StaticExtra), &e)
+		err = sonic.Unmarshal([]byte(poolEntity.StaticExtra), &e)
 		require.Nil(t, err)
 
 		p, err := NewPoolSimulator(poolEntity, baseSimsByAddress[e.BasePool])

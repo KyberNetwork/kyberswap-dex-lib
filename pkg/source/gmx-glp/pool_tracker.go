@@ -2,13 +2,13 @@ package gmxglp
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -77,7 +77,7 @@ func (d *PoolTracker) GetNewPoolState(
 		YearnTokenVault: yearnTokenVault,
 	}
 
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		log.Errorf("marshal extra failed: %v", err)
 		return entity.Pool{}, err

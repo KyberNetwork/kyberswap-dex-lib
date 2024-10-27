@@ -1,15 +1,15 @@
 package usdfi
 
-import "encoding/json"
+import "github.com/bytedance/sonic"
 
 func extractStaticExtra(s string) (staticExtra StaticExtra, err error) {
-	err = json.Unmarshal([]byte(s), &staticExtra)
+	err = sonic.Unmarshal([]byte(s), &staticExtra)
 
 	return
 }
 
 func extractExtra(s string) (extra Extra, err error) {
-	err = json.Unmarshal([]byte(s), &extra)
+	err = sonic.Unmarshal([]byte(s), &extra)
 
 	return
 }

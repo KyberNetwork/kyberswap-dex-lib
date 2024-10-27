@@ -7,12 +7,12 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type (
@@ -106,7 +106,7 @@ func (d *PoolTracker) updatePool(pool entity.Pool, rpcStateData RPCStateData, bl
 		USDCToETHSellTotalFee: rpcStateData.USDCToETHSellTotalFee,
 	}
 
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		return pool, err
 	}

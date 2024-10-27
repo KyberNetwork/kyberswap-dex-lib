@@ -2,13 +2,13 @@ package curve
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 
@@ -55,7 +55,7 @@ func NewPoolsListUpdater(
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	var metadata Metadata
 	if len(metadataBytes) > 0 {
-		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+		if err := sonic.Unmarshal(metadataBytes, &metadata); err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,
 			}).Errorf("failed to unmarshal metadataBytes")
@@ -163,7 +163,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		d.hasInitialized = true
 	}
 
-	newMetaDataBytes, err := json.Marshal(Metadata{
+	newMetaDataBytes, err := sonic.Marshal(Metadata{
 		MainRegistryOffset:   registryOrFactoryList[0].Offset,
 		MetaFactoryOffset:    registryOrFactoryList[1].Offset,
 		CryptoRegistryOffset: registryOrFactoryList[2].Offset,
@@ -197,7 +197,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 	}
 
 	var poolItems []PoolItem
-	if err := json.Unmarshal(newPoolBytes, &poolItems); err != nil {
+	if err := sonic.Unmarshal(newPoolBytes, &poolItems); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to unmarshal new pool bytes data")
@@ -224,7 +224,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 				staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, poolItem.Tokens[j].Precision)
 				staticExtra.Rates = append(staticExtra.Rates, poolItem.Tokens[j].Rate)
 			}
-			staticExtraBytes, _ = json.Marshal(staticExtra)
+			staticExtraBytes, _ = sonic.Marshal(staticExtra)
 
 		case PoolTypePlainOracle:
 			var staticExtra = PoolPlainOracleStaticExtra{
@@ -234,7 +234,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			for j := range poolItem.Tokens {
 				staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, poolItem.Tokens[j].Precision)
 			}
-			staticExtraBytes, _ = json.Marshal(staticExtra)
+			staticExtraBytes, _ = sonic.Marshal(staticExtra)
 
 		case PoolTypeAave:
 			var staticExtra = PoolAaveStaticExtra{
@@ -244,7 +244,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			for j := range poolItem.Tokens {
 				staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, poolItem.Tokens[j].Precision)
 			}
-			staticExtraBytes, _ = json.Marshal(staticExtra)
+			staticExtraBytes, _ = sonic.Marshal(staticExtra)
 
 		case PoolTypeCompound:
 			var staticExtra = PoolCompoundStaticExtra{
@@ -254,7 +254,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			for j := range poolItem.Tokens {
 				staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, poolItem.Tokens[j].Precision)
 			}
-			staticExtraBytes, _ = json.Marshal(staticExtra)
+			staticExtraBytes, _ = sonic.Marshal(staticExtra)
 
 		case PoolTypeMeta:
 			var staticExtra = PoolMetaStaticExtra{
@@ -268,7 +268,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 				staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, poolItem.Tokens[j].Precision)
 				staticExtra.Rates = append(staticExtra.Rates, poolItem.Tokens[j].Rate)
 			}
-			staticExtraBytes, _ = json.Marshal(staticExtra)
+			staticExtraBytes, _ = sonic.Marshal(staticExtra)
 
 		case PoolTypeTwo:
 			var staticExtra = PoolTwoStaticExtra{
@@ -277,7 +277,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			for j := range poolItem.Tokens {
 				staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, poolItem.Tokens[j].Precision)
 			}
-			staticExtraBytes, _ = json.Marshal(staticExtra)
+			staticExtraBytes, _ = sonic.Marshal(staticExtra)
 
 		case PoolTypeTricrypto:
 			var staticExtra = PoolTricryptoStaticExtra{
@@ -286,7 +286,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			for j := range poolItem.Tokens {
 				staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, poolItem.Tokens[j].Precision)
 			}
-			staticExtraBytes, _ = json.Marshal(staticExtra)
+			staticExtraBytes, _ = sonic.Marshal(staticExtra)
 		}
 
 		var reserves = make(entity.PoolReserves, len(poolItem.Tokens))

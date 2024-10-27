@@ -2,12 +2,12 @@ package camelot
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -28,7 +28,7 @@ func NewPoolsListUpdater(cfg *Config, ethrpcClient *ethrpc.Client) *PoolListsUpd
 func (d *PoolListsUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	var metadata Metadata
 	if len(metadataBytes) > 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
+		err := sonic.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"dexID": d.cfg.DexID,
@@ -75,7 +75,7 @@ func (d *PoolListsUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	metadata.Offset = metadata.Offset + uint64(len(pairAddresses))
-	newMetadataBytes, err := json.Marshal(metadata)
+	newMetadataBytes, err := sonic.Marshal(metadata)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,
@@ -142,7 +142,7 @@ func (d *PoolListsUpdater) getNewPools(ctx context.Context, pairAddresses []comm
 		staticExtra := StaticExtra{
 			FeeDenominator: feeDenominators[i],
 		}
-		staticExtraBytes, err := json.Marshal(staticExtra)
+		staticExtraBytes, err := sonic.Marshal(staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"dexID": d.cfg.DexID,

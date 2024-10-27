@@ -1,6 +1,6 @@
 package entity
 
-import "encoding/json"
+import "github.com/bytedance/sonic"
 
 const BestPathKey = "bestpaths"
 
@@ -12,14 +12,14 @@ type MinimalPath struct {
 }
 
 func (b MinimalPath) Encode() string {
-	bytes, _ := json.Marshal(b)
+	bytes, _ := sonic.Marshal(b)
 
 	return string(bytes)
 }
 
 func DecodeBestPath(pathString string) *MinimalPath {
 	var b MinimalPath
-	err := json.Unmarshal([]byte(pathString), &b)
+	err := sonic.Unmarshal([]byte(pathString), &b)
 
 	if err != nil {
 		return nil

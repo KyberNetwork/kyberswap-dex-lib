@@ -2,13 +2,14 @@ package mantisswap
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/logger"
 )
 
 type PoolTracker struct {
@@ -33,7 +34,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}).Infof("[%s] Start getting new states of pool", p.Type)
 
 	var extra Extra
-	if err := json.Unmarshal([]byte(p.Extra), &extra); err != nil {
+	if err := sonic.Unmarshal([]byte(p.Extra), &extra); err != nil {
 		logger.Errorf("failed to unmarshal extra with err %v", err)
 		return entity.Pool{}, err
 	}
@@ -118,7 +119,7 @@ func (d *PoolTracker) GetNewPoolState(
 		reserves[i] = extra.LPs[token.Address].Asset.String()
 	}
 
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		logger.Errorf("failed to marshal extra with err %v", err)
 		return entity.Pool{}, err

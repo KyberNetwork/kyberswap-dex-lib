@@ -9,8 +9,8 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -148,7 +148,7 @@ func (u *PoolsListUpdater) getOffset(metadataBytes []byte) (int, error) {
 	}
 
 	var metadata PoolsListUpdaterMetadata
-	if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+	if err := sonic.Unmarshal(metadataBytes, &metadata); err != nil {
 		return 0, err
 	}
 
@@ -294,7 +294,7 @@ func (u *PoolsListUpdater) newMetadata(newOffset int) ([]byte, error) {
 		Offset: newOffset,
 	}
 
-	metadataBytes, err := json.Marshal(metadata)
+	metadataBytes, err := sonic.Marshal(metadata)
 	if err != nil {
 		return nil, err
 	}
@@ -308,7 +308,7 @@ func (u *PoolsListUpdater) newExtra(isPaused bool, fee *big.Int) ([]byte, error)
 		Fee:      fee.Uint64(),
 	}
 
-	return json.Marshal(extra)
+	return sonic.Marshal(extra)
 }
 
 func (u *PoolsListUpdater) newStaticExtra(poolMetadata PoolMetadata) ([]byte, error) {
@@ -329,7 +329,7 @@ func (u *PoolsListUpdater) newStaticExtra(poolMetadata PoolMetadata) ([]byte, er
 		Stable:       poolMetadata.St,
 	}
 
-	return json.Marshal(staticExtra)
+	return sonic.Marshal(staticExtra)
 }
 
 // getBatchSize

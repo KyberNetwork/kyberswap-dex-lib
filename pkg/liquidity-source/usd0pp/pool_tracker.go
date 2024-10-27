@@ -2,15 +2,17 @@ package usd0pp
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+	"time"
+
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
-	"time"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 var (
@@ -77,12 +79,12 @@ func (t *PoolTracker) getNewPoolState(
 	}
 
 	var poolExtra PoolExtra
-	if err := json.Unmarshal([]byte(p.Extra), &poolExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(p.Extra), &poolExtra); err != nil {
 		return p, err
 	}
 	if poolExtra.Paused != paused {
 		poolExtra.Paused = paused
-		extraBytes, err := json.Marshal(poolExtra)
+		extraBytes, err := sonic.Marshal(poolExtra)
 		if err != nil {
 			return p, err
 		}

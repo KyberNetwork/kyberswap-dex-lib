@@ -2,12 +2,12 @@ package fraxswap
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -65,7 +65,7 @@ func (d *PoolTracker) GetNewPoolState(
 		Reserve1: reserveAfterTwammOutput.Reserve1,
 		Fee:      feeOutput.Fee,
 	}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		log.WithFields(logger.Fields{
 			"error": err,

@@ -2,13 +2,13 @@ package syncswap
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -107,7 +107,7 @@ func (d *PoolTracker) getClassicPoolState(ctx context.Context, p entity.Pool) (e
 		return entity.Pool{}, err
 	}
 
-	extraBytes, err := json.Marshal(ExtraClassicPool{
+	extraBytes, err := sonic.Marshal(ExtraClassicPool{
 		SwapFee0To1:  swapFee0To1,
 		SwapFee1To0:  swapFee1To0,
 		VaultAddress: vaultAddress.Hex(),
@@ -206,7 +206,7 @@ func (d *PoolTracker) getStablePoolState(ctx context.Context, p entity.Pool) (en
 		return entity.Pool{}, err
 	}
 
-	extraBytes, err := json.Marshal(ExtraStablePool{
+	extraBytes, err := sonic.Marshal(ExtraStablePool{
 		SwapFee0To1:               swapFee0To1,
 		SwapFee1To0:               swapFee1To0,
 		Token0PrecisionMultiplier: token0PrecisionMultiplier,

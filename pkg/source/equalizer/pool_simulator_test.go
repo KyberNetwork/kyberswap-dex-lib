@@ -1,9 +1,9 @@
 package equalizer
 
 import (
-	"encoding/json"
 	"testing"
 
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -57,7 +57,7 @@ func TestCalcAmountOutConcurrentSafe(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			poolEntity := new(entity.Pool)
-			err := json.Unmarshal([]byte(tc.poolEncoded), poolEntity)
+			err := sonic.Unmarshal([]byte(tc.poolEncoded), poolEntity)
 			require.NoError(t, err)
 
 			poolSim, err := NewPoolSimulator(*poolEntity)

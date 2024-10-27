@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/goccy/go-json"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -39,7 +39,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		return nil, nil, err
 	}
 
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		return nil, nil, err
 	}

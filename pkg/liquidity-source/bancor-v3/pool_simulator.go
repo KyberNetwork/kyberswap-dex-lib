@@ -1,11 +1,11 @@
 package bancorv3
 
 import (
-	"encoding/json"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/bytedance/sonic"
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 
@@ -70,11 +70,11 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		reserves = make([]*big.Int, len(entityPool.Tokens))
 	)
 
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 
-	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
 		return nil, err
 	}
 

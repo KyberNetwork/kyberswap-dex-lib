@@ -2,7 +2,6 @@ package balancer
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -38,7 +38,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}).Infof("[Balancer] Start updating state ...")
 
 	var staticExtra = StaticExtra{}
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 		}).Errorf("failed to unmarshal pool static extra")
@@ -129,7 +129,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	var extra string
 	if DexType(p.Type) == DexTypeBalancerStable {
-		extraBytes, err := json.Marshal(Extra{
+		extraBytes, err := sonic.Marshal(Extra{
 			AmplificationParameter: amplificationParameter,
 		})
 		if err != nil {
@@ -144,7 +144,7 @@ func (d *PoolTracker) GetNewPoolState(
 	}
 
 	if DexType(p.Type) == DexTypeBalancerMetaStable {
-		extraBytes, err := json.Marshal(Extra{
+		extraBytes, err := sonic.Marshal(Extra{
 			AmplificationParameter: amplificationParameter,
 			ScalingFactors:         scalingFactors,
 		})

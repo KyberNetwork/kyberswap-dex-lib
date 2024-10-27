@@ -2,13 +2,13 @@ package ironstable
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/timer"
@@ -97,7 +97,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			staticExtra.PrecisionMultipliers = append(staticExtra.PrecisionMultipliers, multipliers[j].String())
 		}
 
-		staticExtraBytes, err := json.Marshal(staticExtra)
+		staticExtraBytes, err := sonic.Marshal(staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"dexID": d.cfg.DexID,
@@ -135,7 +135,7 @@ func (d *PoolsListUpdater) loadPools() ([]Pool, error) {
 
 	// unmarshal data
 	var pools []Pool
-	err := json.Unmarshal(poolsBytes, &pools)
+	err := sonic.Unmarshal(poolsBytes, &pools)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexID": d.cfg.DexID,

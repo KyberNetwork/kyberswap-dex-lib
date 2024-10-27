@@ -1,13 +1,13 @@
 package uniswapv3
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/daoleno/uniswapv3-sdk/constants"
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
@@ -34,7 +34,7 @@ type PoolSimulatorBigInt struct {
 
 func NewPoolSimulatorBigInt(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulatorBigInt, error) {
 	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	if err := sonic.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
 	}
 

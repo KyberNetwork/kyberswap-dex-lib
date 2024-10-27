@@ -2,15 +2,15 @@ package traderjoev20
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"testing"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/bytedance/sonic"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoecommon"
@@ -37,14 +37,14 @@ func TestGetNewPools(t *testing.T) {
 	updater := NewPoolsListUpdater(config, client)
 
 	metadata := traderjoecommon.Metadata{Offset: 0}
-	metadataBytes, err := json.Marshal(metadata)
+	metadataBytes, err := sonic.Marshal(metadata)
 	require.NoError(t, err)
 
 	pools, nextMetadataBytes, err := updater.GetNewPools(context.Background(), metadataBytes)
 	require.NoError(t, err)
 
 	nextMetadata := &traderjoecommon.Metadata{}
-	require.NoError(t, json.Unmarshal(nextMetadataBytes, nextMetadata))
+	require.NoError(t, sonic.Unmarshal(nextMetadataBytes, nextMetadata))
 
 	fmt.Printf("next offset = %v\n", nextMetadata.Offset)
 

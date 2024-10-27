@@ -2,12 +2,12 @@ package lido_steth
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -48,7 +48,7 @@ func (d *PoolsListUpdater) initPools() ([]entity.Pool, error) {
 		return nil, errors.New("misconfigured poolPath")
 	}
 	var poolItems []PoolItem
-	if err := json.Unmarshal(byteData, &poolItems); err != nil {
+	if err := sonic.Unmarshal(byteData, &poolItems); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to unmarshal poolData")

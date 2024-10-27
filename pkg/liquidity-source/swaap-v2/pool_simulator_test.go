@@ -5,7 +5,7 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/goccy/go-json"
+	"github.com/bytedance/sonic"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -68,7 +68,7 @@ func TestCalcAmountOut(t *testing.T) {
 				],\"priceTolerance\":10}"
 		  }`
 		var pool entity.Pool
-		err := json.Unmarshal([]byte(p), &pool)
+		err := sonic.Unmarshal([]byte(p), &pool)
 		assert.Nil(t, err)
 		// expected amount
 		expectedAmountOut := "1257859620"
@@ -191,7 +191,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 		}
 		for _, tt := range cases {
 			var entityPool entity.Pool
-			err := json.Unmarshal([]byte(p), &entityPool)
+			err := sonic.Unmarshal([]byte(p), &entityPool)
 			assert.Nil(t, err)
 			// calculation
 			simulator, err := NewPoolSimulator(entityPool)

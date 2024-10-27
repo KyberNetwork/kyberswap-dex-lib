@@ -2,18 +2,18 @@ package curve
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
@@ -116,7 +116,7 @@ func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
 				Swappable: true,
 			})
 		}
-		staticExtraBytes, err := json.Marshal(staticExtra)
+		staticExtraBytes, err := sonic.Marshal(staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"error": err,
@@ -152,7 +152,7 @@ func (d *PoolTracker) getNewPoolStateTypePlainOracle(
 		balances                                                                                      = make([]*big.Int, len(p.Tokens))
 	)
 
-	if err := json.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(p.StaticExtra), &staticExtra); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
@@ -258,7 +258,7 @@ func (d *PoolTracker) getNewPoolStateTypePlainOracle(
 			oracleLatestAnswer,
 		},
 	}
-	extraBytes, err := json.Marshal(extra)
+	extraBytes, err := sonic.Marshal(extra)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,

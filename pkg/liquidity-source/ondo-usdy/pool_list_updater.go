@@ -2,16 +2,17 @@ package ondo_usdy
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 type (
@@ -59,7 +60,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context) ([]entity.Pool, error)
 	}
 
 	var poolItems []PoolItem
-	if err := json.Unmarshal(byteData, &poolItems); err != nil {
+	if err := sonic.Unmarshal(byteData, &poolItems); err != nil {
 		logger.WithFields(logger.Fields{
 			"error": err,
 		}).Errorf("failed to unmarshal poolData")
@@ -118,7 +119,7 @@ func (u *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 	}
 
 	for i := range pools {
-		extraBytes, err := json.Marshal(poolExtras[i])
+		extraBytes, err := sonic.Marshal(poolExtras[i])
 		if err != nil {
 			return nil, err
 		}

@@ -2,12 +2,13 @@ package generic_simple_rate
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/logger"
-	"github.com/holiman/uint256"
 	"math/big"
 	"time"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -51,7 +52,7 @@ func (t *PoolTracker) getNewPoolState(
 
 	calls := t.ethrpcClient.NewRequest()
 	var poolExtra PoolExtra
-	if err := json.Unmarshal([]byte(p.Extra), &poolExtra); err != nil {
+	if err := sonic.Unmarshal([]byte(p.Extra), &poolExtra); err != nil {
 		return p, err
 	}
 
@@ -92,7 +93,7 @@ func (t *PoolTracker) getNewPoolState(
 		poolExtra.Rate = uint256.MustFromBig(rate)
 	}
 
-	extraBytes, err := json.Marshal(poolExtra)
+	extraBytes, err := sonic.Marshal(poolExtra)
 	if err != nil {
 		return p, err
 	}

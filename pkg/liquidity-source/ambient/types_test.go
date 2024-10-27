@@ -1,12 +1,13 @@
 package ambient
 
 import (
-	"encoding/json"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/bytedance/sonic"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 func TestNTokenPool_CanSwapTo(t *testing.T) {
@@ -23,7 +24,7 @@ func TestNTokenPool_CanSwapTo(t *testing.T) {
 		"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48:0xdac17f958d2ee523a2206206994597c13d831ec7"
 	]`
 	var pairs []TokenPair
-	err := json.Unmarshal([]byte(encodedPairs), &pairs)
+	err := sonic.Unmarshal([]byte(encodedPairs), &pairs)
 	require.NoError(t, err)
 
 	nPool := NewNTokenPool(pool.Pool{}, pairs, common.HexToAddress(wethAddr))
@@ -83,7 +84,7 @@ func TestNTokenPool_GetPair(t *testing.T) {
 		"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48:0xdac17f958d2ee523a2206206994597c13d831ec7"
 	]`
 	var pairs []TokenPair
-	err := json.Unmarshal([]byte(encodedPairs), &pairs)
+	err := sonic.Unmarshal([]byte(encodedPairs), &pairs)
 	require.NoError(t, err)
 
 	nPool := NewNTokenPool(pool.Pool{}, pairs, common.HexToAddress(wethAddr))

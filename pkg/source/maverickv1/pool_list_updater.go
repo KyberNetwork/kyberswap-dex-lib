@@ -2,13 +2,13 @@ package maverickv1
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/bytedance/sonic"
 	"github.com/machinebox/graphql"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -43,7 +43,7 @@ func NewPoolListUpdater(
 func (d *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
 	var metadata Metadata
 	if len(metadataBytes) != 0 {
-		err := json.Unmarshal(metadataBytes, &metadata)
+		err := sonic.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
 			return nil, metadataBytes, err
 		}
@@ -59,7 +59,7 @@ func (d *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 		return nil, metadataBytes, err
 	}
 
-	newMetadataBytes, err := json.Marshal(Metadata{LastCreateTime: lastCreatedTime})
+	newMetadataBytes, err := sonic.Marshal(Metadata{LastCreateTime: lastCreatedTime})
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"type":  DexTypeMaverickV1,
@@ -112,7 +112,7 @@ func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreate
 			TickSpacing: tickSpacing,
 		}
 
-		staticBytes, err := json.Marshal(staticExtra)
+		staticBytes, err := sonic.Marshal(staticExtra)
 		if err != nil {
 			logger.WithFields(logger.Fields{
 				"type":  DexTypeMaverickV1,

@@ -1,11 +1,11 @@
 package stableng
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/bytedance/sonic"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -49,7 +49,7 @@ func TestCalcAmountOut(t *testing.T) {
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
 		var poolEntity entity.Pool
-		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+		err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 		require.Nil(t, err)
 		p, err := NewPoolSimulator(poolEntity)
 		require.Nil(t, err)
@@ -184,7 +184,7 @@ func TestCalcAmountIn(t *testing.T) {
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
 		var poolEntity entity.Pool
-		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+		err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 		require.Nil(t, err)
 		p, err := NewPoolSimulator(poolEntity)
 		require.Nil(t, err)
@@ -245,7 +245,7 @@ func TestUpdateBalance(t *testing.T) {
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
 		var poolEntity entity.Pool
-		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+		err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 		require.Nil(t, err)
 		p, err := NewPoolSimulator(poolEntity)
 		require.Nil(t, err)
@@ -300,7 +300,7 @@ func TestCalcAmountOutError(t *testing.T) {
 
 	sims := lo.Map(pools, func(poolRedis string, _ int) *PoolSimulator {
 		var poolEntity entity.Pool
-		err := json.Unmarshal([]byte(poolRedis), &poolEntity)
+		err := sonic.Unmarshal([]byte(poolRedis), &poolEntity)
 		require.Nil(t, err)
 		p, err := NewPoolSimulator(poolEntity)
 		require.Nil(t, err)
