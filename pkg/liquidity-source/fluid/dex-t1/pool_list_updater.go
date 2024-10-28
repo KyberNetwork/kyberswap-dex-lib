@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -57,19 +56,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		token0Decimals, token1Decimals, err := u.readTokensDecimals(ctx, curPool.Token0Address, curPool.Token1Address)
 		if err != nil {
 			return nil, nil, err
-		}
-
-		if (curPool.CollateralReserves.Token0RealReserves == nil ||
-			curPool.CollateralReserves.Token1RealReserves == nil ||
-			curPool.CollateralReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) == 0 ||
-			curPool.CollateralReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) == 0) &&
-			(curPool.DebtReserves.Token0RealReserves == nil ||
-				curPool.DebtReserves.Token1RealReserves == nil ||
-				curPool.DebtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) == 0 ||
-				curPool.DebtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) == 0) {
-			logger.WithFields(logger.Fields{"dexType": DexType, "pool": curPool.PoolAddress}).Warn("col AND debt reserves are nil / 0 (likely deployed but not initialized yet)")
-			// neither smart col or smart debt pools are enabled yet. At least one must be initialized for swaps to happen
-			continue
 		}
 
 		extra := PoolExtra{
