@@ -19,6 +19,10 @@ type PoolsListUpdater struct {
 	ethrpcClient *ethrpc.Client
 }
 
+type Metadata struct {
+	LastSyncPoolsLength int `json:"lastSyncPoolsLength"`
+}
+
 func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
 	return &PoolsListUpdater{
 		config:       *config,
@@ -37,9 +41,27 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}()
 
 	allPools, err := u.getAllPools(ctx)
-
 	if err != nil {
 		return nil, nil, err
+	}
+
+	newMetadataBytes, err := json.Marshal(Metadata{
+		LastSyncPoolsLength: len(allPools),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var metadata Metadata
+	if len(metadataBytes) > 0 {
+		if err := json.Unmarshal(metadataBytes, &metadata); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	if metadata.LastSyncPoolsLength > 0 {
+		// only handle new pools after last synced index
+		allPools = allPools[metadata.LastSyncPoolsLength-1:]
 	}
 
 	pools := make([]entity.Pool, 0)
@@ -101,7 +123,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		pools = append(pools, pool)
 	}
 
-	return pools, metadataBytes, nil
+	return pools, newMetadataBytes, nil
 }
 
 func (u *PoolsListUpdater) getAllPools(ctx context.Context) ([]PoolWithReserves, error) {
