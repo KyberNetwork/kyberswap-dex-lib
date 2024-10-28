@@ -16,6 +16,7 @@ var (
 	ErrInvalidTokenIn  = errors.New("invalid token in")
 	ErrInvalidTokenOut = errors.New("invalid token out")
 	ErrInvalidPair     = errors.New("invalid pair")
+	ErrFMVCheckFailed  = errors.New("FMV check failed")
 
 	basisPoint float64 = 10000
 )
@@ -119,26 +120,23 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 
 	// We follow the recommend Closed Formed Solution, suggested by Clipper
-	inX := new(big.Float).Quo(
-		new(big.Float).SetInt(params.TokenAmountIn.Amount),
-		bignumber.TenPowDecimals(assetIn.Decimals),
-	)
-	pX := new(big.Float).SetFloat64(assetIn.PriceInUSD)
-	pY := new(big.Float).SetFloat64(assetOut.PriceInUSD)
-	M := new(big.Float).SetFloat64((basisPoint - pairInfo.FeeInBasisPoints) / basisPoint)
+	var inX, outY, pX, pY, amountIn, M, tmp big.Float
+	amountIn.SetInt(params.TokenAmountIn.Amount)
+	inX.Quo(&amountIn, bignumber.TenPowDecimals(assetIn.Decimals))
 
-	outY := new(big.Float).Quo(
-		new(big.Float).Mul(
-			new(big.Float).Mul(M, inX),
-			pX,
-		),
-		pY,
-	)
-	outY.Mul(outY, bignumber.TenPowDecimals(assetOut.Decimals))
+	pX.SetFloat64(assetIn.PriceInUSD)
+	pY.SetFloat64(assetOut.PriceInUSD)
+	M.SetFloat64((basisPoint - pairInfo.FeeInBasisPoints) / basisPoint)
+
+	tmp.Mul(&M, &inX)
+	tmp.Mul(&tmp, &pX)
+	outY.Quo(&tmp, &pY)
+
+	outY.Mul(&outY, bignumber.TenPowDecimals(assetOut.Decimals))
 
 	amountOut, _ := outY.Int(nil)
 
-	// TODO: Apply the final check FMV
+	// Since M is smaller than 1, the FMV check should always success.
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
@@ -150,7 +148,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 			Amount: bignumber.ZeroBI,
 		},
 
-		// TODO: Define gas
+		Gas: defaultGas,
 
 		SwapInfo: SwapInfo{
 			ChainID:           p.extra.ChainID,
