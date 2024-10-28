@@ -15,8 +15,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	ctxUtils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
-	"github.com/KyberNetwork/router-service/internal/pkg/utils/token"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
@@ -26,6 +24,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
+	ctxUtils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -163,7 +162,6 @@ func (uc *BuildRouteUseCase) ApplyConfig(config Config) {
 	uc.mu.Lock()
 	defer uc.mu.Unlock()
 	uc.config.FeatureFlags = config.FeatureFlags
-	uc.config.TokensThresholdForOnchainPrice = config.TokensThresholdForOnchainPrice
 	uc.config.RFQAcceptableSlippageFraction = config.RFQAcceptableSlippageFraction
 }
 
@@ -323,7 +321,7 @@ func (uc *BuildRouteUseCase) updateRouteSummary(ctx context.Context, routeSummar
 		tokenOutPriceUSD             float64
 		tokenOutMarketPriceAvailable bool
 	)
-	if uc.onchainpriceRepository != nil && token.CheckTokenThreshold(tokenOutAddress, uc.config.TokensThresholdForOnchainPrice) {
+	if uc.onchainpriceRepository != nil {
 		// TODO: check and deprecate these 2 fields since we no longer has `market` price
 		tokenInMarketPriceAvailable = false
 		tokenOutMarketPriceAvailable = false

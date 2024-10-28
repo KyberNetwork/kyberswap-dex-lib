@@ -173,7 +173,6 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setGetBestPoolOptions(remoteCfg.GetBestPoolsOptions)
 		cl.setCacheConfig(remoteCfg.CacheConfig)
 		cl.setBlacklistedRecipients(remoteCfg.BlacklistedRecipients)
-		cl.setTokensThresholdForOnchainPrice(remoteCfg.TokensThresholdForOnchainPrice)
 		cl.setFaultyPoolsConfig(remoteCfg.FaultyPoolsConfig)
 		cl.setSafetyQuoteReduction(remoteCfg.SafetyQuoteReduction)
 		cl.setPoolManagerOptionsFromFinderOptions(remoteCfg.FinderOptions)
@@ -269,11 +268,6 @@ func (cl *ConfigLoader) setBlacklistedRecipients(blacklistedRecipients []string)
 
 	cl.config.Validator.BuildRouteParams.BlacklistedRecipientSet = blacklistedRecipientSet
 	cl.config.Validator.GetRouteEncodeParams.BlacklistedRecipientSet = blacklistedRecipientSet
-}
-
-func (cl *ConfigLoader) setTokensThresholdForOnchainPrice(tokensThresholdForOnchainPrice uint32) {
-	cl.config.UseCase.GetRoute.Aggregator.TokensThresholdForOnchainPrice = tokensThresholdForOnchainPrice
-	cl.config.UseCase.BuildRoute.TokensThresholdForOnchainPrice = tokensThresholdForOnchainPrice
 }
 
 func (cl *ConfigLoader) setFaultyPoolsConfig(faultyPoolsConfig valueobject.FaultyPoolsConfig) {

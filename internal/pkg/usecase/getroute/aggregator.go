@@ -7,11 +7,11 @@ import (
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 
-	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -92,7 +92,7 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 
 	// only get price from onchain-price-service if enabled
 	var priceByAddress map[string]*routerEntity.OnchainPrice
-	if a.onchainpriceRepository != nil && a.config.CheckTokenThreshold(params.TokenOut.Address) {
+	if a.onchainpriceRepository != nil {
 		priceByAddress, err = a.onchainpriceRepository.FindByAddresses(ctx, tokenAddresses)
 		if err != nil {
 			return nil, err

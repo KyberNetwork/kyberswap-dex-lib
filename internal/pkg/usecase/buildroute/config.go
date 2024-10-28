@@ -11,8 +11,6 @@ type (
 		FeatureFlags                  valueobject.FeatureFlags `mapstructure:"featureFlags"`
 		FaultyPoolsConfig             FaultyPoolsConfig        `mapstructure:"faultyPools"`
 		RFQAcceptableSlippageFraction int64                    `mapstructure:"rfqAcceptableSlippageFraction"` // Config in BPS
-
-		TokensThresholdForOnchainPrice uint32 `mapstructure:"tokensThresholdForOnchainPrice"`
 	}
 	RFQConfig struct {
 		Id         string                 `mapstructure:"id"`

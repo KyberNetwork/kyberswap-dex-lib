@@ -6,9 +6,9 @@ import (
 	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/pkg/errors"
 
-	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -207,7 +207,7 @@ func (u *useCase) getTokenByAddress(ctx context.Context, addresses ...string) (m
 }
 
 func (u *useCase) getTokensPriceUSD(ctx context.Context, tokenIn, tokenOut, gasToken string) (float64, float64, float64, error) {
-	if u.onchainpriceRepository != nil && u.config.Aggregator.CheckTokenThreshold(tokenOut) {
+	if u.onchainpriceRepository != nil {
 		priceByAddress, err := u.onchainpriceRepository.FindByAddresses(ctx, []string{tokenIn, tokenOut, gasToken})
 		if err != nil {
 			return 0, 0, 0, err
