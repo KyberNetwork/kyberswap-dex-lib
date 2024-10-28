@@ -135,7 +135,7 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 			if params.TokenAmountIn.Token == poolSimulator.Info.Tokens[1] {
 				tokenIn, tokenOut, levels = poolSimulator.Token1, poolSimulator.Token0, poolSimulator.OneToZeroPriceLevels
 			}
-			_, resultFloat, err := poolSimulator.swap(params.TokenAmountIn.Amount, tokenIn, tokenOut, levels)
+			_, resultFloat, err := poolSimulator.swap(params.TokenAmountIn.Amount, tokenIn, tokenOut, "0x49d5c2bdffac6ce2bfdb6640f4f80f226bc10bab", "0xb97ef9ef8734c71904d8002f8b6bc66dd9c48a6e", levels)
 			assert.Equal(t, tc.expectedErr, err)
 			if tc.expectedErr == nil {
 				assert.Equal(t, tc.expectedAmountOut, resultFloat)

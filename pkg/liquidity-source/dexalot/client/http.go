@@ -8,7 +8,6 @@ import (
 
 	dexalot "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-resty/resty/v2"
 )
@@ -50,7 +49,6 @@ func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams) 
 		upscaledTakerAmount,
 		big.NewInt(10),
 	)
-	upscaledTakerAmount.String()
 	req := c.client.R().
 		SetContext(ctx).
 		// the SellTokens address must follow the HEX format
@@ -78,14 +76,4 @@ func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams) 
 	}
 
 	return result, nil
-}
-
-func parseRFQError(errorCode int, message string) error {
-	switch errorCode {
-	default:
-		logger.
-			WithFields(logger.Fields{"client": "dexalot", "errorCode": errorCode, "message": message}).
-			Error("rfq failed")
-		return ErrRFQFailed
-	}
 }
