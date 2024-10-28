@@ -50,6 +50,11 @@ type QuoteResponse struct {
 	OutputAmount string `json:"output_amount"`
 }
 
+type FailResponse struct {
+	ErrorMessage string `json:"errorMessage"`
+	ErrorType    string `json:"errorType"`
+}
+
 type SignParams struct {
 	QuoteID            string `json:"quote_id"`
 	DestinationAddress string `json:"destination_address"`

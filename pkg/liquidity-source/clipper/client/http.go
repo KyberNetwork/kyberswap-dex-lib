@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
+	"github.com/KyberNetwork/logger"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -40,13 +41,21 @@ func (c *httpClient) RFQ(ctx context.Context, params clipper.QuoteParams) (clipp
 	// 1. Call quote endpoint
 	req := c.client.R().SetContext(ctx).SetBody(params)
 
+	var failRes clipper.FailResponse
+
 	var quoteRes clipper.QuoteResponse
-	res, err := req.SetResult(&quoteRes).Post(quotePath)
+	res, err := req.SetResult(&quoteRes).SetError(&failRes).Post(quotePath)
 	if err != nil {
 		return clipper.SignResponse{}, err
 	}
 
 	if !res.IsSuccess() {
+		logger.WithFields(logger.Fields{
+			"client":       clipper.DexType,
+			"errorMessage": failRes.ErrorMessage,
+			"errorType":    failRes.ErrorType,
+		}).Error("quote failed")
+
 		return clipper.SignResponse{}, ErrQuoteFailed
 	}
 
@@ -60,12 +69,18 @@ func (c *httpClient) RFQ(ctx context.Context, params clipper.QuoteParams) (clipp
 	})
 
 	var signRes clipper.SignResponse
-	res, err = req.SetResult(&signRes).Post(signPath)
+	res, err = req.SetResult(&signRes).SetError(&failRes).Post(signPath)
 	if err != nil {
 		return clipper.SignResponse{}, err
 	}
 
 	if !res.IsSuccess() {
+		logger.WithFields(logger.Fields{
+			"client":       clipper.DexType,
+			"errorMessage": failRes.ErrorMessage,
+			"errorType":    failRes.ErrorType,
+		}).Error("sign failed")
+
 		return clipper.SignResponse{}, ErrSignFailed
 	}
 
