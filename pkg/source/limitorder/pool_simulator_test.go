@@ -933,6 +933,7 @@ func TestPool_CalcAmountOut_v2(t *testing.T) {
 					MakingAmount:          bignumber.NewBig10(o.makingAmount),
 					TakingAmount:          bignumber.NewBig10(o.takingAmount),
 					AvailableMakingAmount: bignumber.NewBig10(o.avaiMakingAmount),
+					MakerBalanceAllowance: bignumber.NewBig10("100000000000000000000"),
 				}
 			}),
 		}
@@ -1035,6 +1036,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 						MakingAmount:          bignumber.NewBig10(o.makingAmount),
 						TakingAmount:          bignumber.NewBig10(o.takingAmount),
 						AvailableMakingAmount: bignumber.NewBig10(o.avaiMakingAmount),
+						MakerBalanceAllowance: bignumber.NewBig10("100000000000000000000"),
 						FilledMakingAmount:    big.NewInt(0),
 						FilledTakingAmount:    big.NewInt(0),
 					}

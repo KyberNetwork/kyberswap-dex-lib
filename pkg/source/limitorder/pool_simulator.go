@@ -131,8 +131,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		}
 		if params.SwapLimit != nil {
 			_, _, _ = params.SwapLimit.UpdateLimit(
-				string(NewMakerAndAsset(order.Maker, order.MakerAsset)),
-				string(NewMakerAndAsset(order.Maker, order.TakerAsset)),
+				NewMakerAndAsset(order.Maker, order.MakerAsset),
+				NewMakerAndAsset(order.Maker, order.TakerAsset),
 				filledMakingAmount,
 				filledTakingAmount,
 			)
@@ -187,7 +187,7 @@ func getMakerRemainingBalance(
 		return nil
 	}
 
-	makerBalanceAllowance := limit.GetLimit(string(NewMakerAndAsset(maker, makerAsset)))
+	makerBalanceAllowance := limit.GetLimit(NewMakerAndAsset(maker, makerAsset))
 	if makerBalanceAllowance == nil {
 		// should not happen, but anw just return 0 as if this maker has no balance left
 		return big.NewInt(0)

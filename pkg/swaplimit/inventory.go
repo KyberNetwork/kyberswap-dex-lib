@@ -49,7 +49,7 @@ func (i *Inventory) GetLimit(tokenAddress string) *big.Int {
 	balance, ok := i.balance[tokenAddress]
 	i.lock.RUnlock()
 	if !ok {
-		return bignumber.ZeroBI
+		return nil
 	}
 	return balance
 }
@@ -78,18 +78,19 @@ func (i *Inventory) UpdateLimit(decreaseTokenAddress, increaseTokenAddress strin
 	decreasedTokenBalance, ok := i.balance[decreaseTokenAddress]
 	if !ok {
 		return bignumber.ZeroBI, bignumber.ZeroBI, pool.ErrTokenNotAvailable
-	}
-	increasedTokenBalance, ok := i.balance[increaseTokenAddress]
-	if !ok {
-		return bignumber.ZeroBI, bignumber.ZeroBI, pool.ErrTokenNotAvailable
-	}
-	if decreasedTokenBalance.Cmp(decreaseDelta) < 0 {
+	} else if decreasedTokenBalance.Cmp(decreaseDelta) < 0 {
 		return bignumber.ZeroBI, bignumber.ZeroBI, pool.ErrNotEnoughInventory
 	}
 
 	decreasedTokenBalance = new(big.Int).Sub(decreasedTokenBalance, decreaseDelta)
 	i.balance[decreaseTokenAddress] = decreasedTokenBalance
-	increasedTokenBalance = new(big.Int).Add(increasedTokenBalance, increaseDelta)
+
+	increasedTokenBalance, ok := i.balance[increaseTokenAddress]
+	if !ok {
+		increasedTokenBalance = new(big.Int).Set(increaseDelta)
+	} else {
+		increasedTokenBalance = new(big.Int).Add(increasedTokenBalance, increaseDelta)
+	}
 	i.balance[increaseTokenAddress] = increasedTokenBalance
 
 	return decreasedTokenBalance, increasedTokenBalance, nil
