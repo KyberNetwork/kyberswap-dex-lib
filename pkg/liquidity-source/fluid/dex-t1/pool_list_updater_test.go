@@ -45,6 +45,7 @@ func TestPoolListUpdater(t *testing.T) {
 
 	staticExtraBytes, _ := json.Marshal(&StaticExtra{
 		DexReservesResolver: config.DexReservesResolver,
+		HasNative:           true,
 	})
 
 	expectedPool0 := entity.Pool{
@@ -60,7 +61,7 @@ func TestPoolListUpdater(t *testing.T) {
 				Decimals:  18,
 			},
 			{
-				Address:   strings.ToLower("0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"),
+				Address:   "",
 				Weight:    1,
 				Swappable: true,
 				Decimals:  18,

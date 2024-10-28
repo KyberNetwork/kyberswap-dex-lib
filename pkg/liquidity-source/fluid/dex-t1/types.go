@@ -46,4 +46,5 @@ type Gas struct {
 
 type StaticExtra struct {
 	DexReservesResolver string `json:"dexReservesResolver"`
+	HasNative           bool   `json:"hasNative"`
 }

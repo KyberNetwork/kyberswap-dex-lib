@@ -36,13 +36,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		}).Infof("Finish updating pools list.")
 	}()
 
-	staticExtraBytes, err := json.Marshal(&StaticExtra{
-		DexReservesResolver: u.config.DexReservesResolver,
-	})
-	if err != nil {
-		return nil, nil, err
-	}
-
 	allPools, err := u.getAllPools(ctx)
 
 	if err != nil {
@@ -54,6 +47,15 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	for _, curPool := range allPools {
 
 		token0Decimals, token1Decimals, err := u.readTokensDecimals(ctx, curPool.Token0Address, curPool.Token1Address)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		staticExtraBytes, err := json.Marshal(&StaticExtra{
+			DexReservesResolver: u.config.DexReservesResolver,
+			HasNative: strings.EqualFold(curPool.Token0Address.Hex(), valueobject.EtherAddress) ||
+				strings.EqualFold(curPool.Token1Address.Hex(), valueobject.EtherAddress),
+		})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -79,13 +81,13 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			},
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   strings.ToLower(curPool.Token0Address.String()),
+					Address:   valueobject.WrapETHLower(curPool.Token0Address.Hex(), u.config.ChainID),
 					Weight:    1,
 					Swappable: true,
 					Decimals:  token0Decimals,
 				},
 				{
-					Address:   strings.ToLower(curPool.Token1Address.String()),
+					Address:   valueobject.WrapETHLower(curPool.Token1Address.Hex(), u.config.ChainID),
 					Weight:    1,
 					Swappable: true,
 					Decimals:  token1Decimals,
