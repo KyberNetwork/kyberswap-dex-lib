@@ -61,7 +61,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	if metadata.LastSyncPoolsLength > 0 {
 		// only handle new pools after last synced index
-		allPools = allPools[metadata.LastSyncPoolsLength-1:]
+		allPools = allPools[metadata.LastSyncPoolsLength:]
 	}
 
 	pools := make([]entity.Pool, 0)
