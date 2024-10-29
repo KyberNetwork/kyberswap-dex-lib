@@ -42,6 +42,7 @@ import (
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
+	fluiddext1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	fluidvaultt1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
 	generic_simple_rate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
@@ -665,6 +666,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newDaiUsds(entityPool)
 	case pooltypes.PoolTypes.FluidVaultT1:
 		return f.newFluidVaultT1(entityPool)
+	case pooltypes.PoolTypes.FluidDexT1:
+		return f.newFluidDexT1(entityPool)
 	case pooltypes.PoolTypes.Usd0PP:
 		return f.newUsd0PP(entityPool)
 	case pooltypes.PoolTypes.RingSwap:
@@ -2188,6 +2191,20 @@ func (f *PoolFactory) newFluidVaultT1(entityPool entity.Pool) (*fluidvaultt1.Poo
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newFluidVaultT1] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newFluidDexT1(entityPool entity.Pool) (*fluiddext1.PoolSimulator, error) {
+	corePool, err := fluiddext1.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newDexVaultT1] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

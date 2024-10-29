@@ -127,6 +127,7 @@ common:
     - "maverick-v2"
     - "lite-psm"
     - "fluid-vault-t1"
+    - "fluid-dex-t1"
     - "usd0pp"
     - "bebop"
     - "wbeth"

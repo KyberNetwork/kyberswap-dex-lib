@@ -97,6 +97,7 @@ common:
     - "woofi-v3"
     - "integral"
     - "fluid-vault-t1"
+    - "fluid-dex-t1"
     - "bebop"
   featureFlags: &featureFlags
   swaapAPIKey:
@@ -212,6 +213,7 @@ encoder:
     executeBebop: 46
     executeIntegral: 52
     executeFluidVaultT1: 53
+    executeFluidDexT1: 55
 useCase:
   getRoute:
     chainId: *chainId
