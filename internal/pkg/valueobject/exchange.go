@@ -194,6 +194,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 	// executeFluidVaultT1
 	dexValueObject.ExchangeFluidVaultT1: {},
 
+	// executeFluidDexT1
+	dexValueObject.ExchangeFluidDexT1: {},
+
 	// executeUsd0PP
 	dexValueObject.ExchangeUsd0PP: {},
 
