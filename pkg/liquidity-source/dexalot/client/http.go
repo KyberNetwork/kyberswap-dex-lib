@@ -39,15 +39,15 @@ func NewHTTPClient(config *dexalot.HTTPClientConfig) *HTTPClient {
 	}
 }
 
-func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams) (dexalot.FirmQuoteResult, error) {
+func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams, upscalePercent int) (dexalot.FirmQuoteResult, error) {
 	// token address case-sensitive
 	upscaledTakerAmount := bignumber.NewBig(params.TakerAmount)
 	upscaledTakerAmount.Mul(
 		upscaledTakerAmount,
-		big.NewInt(12),
+		big.NewInt(int64(100+upscalePercent)),
 	).Div(
 		upscaledTakerAmount,
-		big.NewInt(10),
+		big.NewInt(100),
 	)
 	req := c.client.R().
 		SetContext(ctx).

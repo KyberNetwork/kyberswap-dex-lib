@@ -11,12 +11,13 @@ import (
 )
 
 type Config struct {
-	DexID string           `json:"dexId"`
-	HTTP  HTTPClientConfig `mapstructure:"http" json:"http"`
+	DexID          string           `json:"dexId"`
+	HTTP           HTTPClientConfig `mapstructure:"http" json:"http"`
+	UpscalePercent int              `mapstructure:"upscale_percent" json:"upscale_percent"`
 }
 
 type IClient interface {
-	Quote(ctx context.Context, params FirmQuoteParams) (FirmQuoteResult, error)
+	Quote(ctx context.Context, params FirmQuoteParams, upscalePercent int) (FirmQuoteResult, error)
 }
 
 type RFQHandler struct {
@@ -46,7 +47,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		UserAddress: params.RFQSender,
 		Executor:    params.RFQRecipient,
 	}
-	result, err := h.client.Quote(ctx, p)
+	result, err := h.client.Quote(ctx, p, h.config.UpscalePercent)
 	if err != nil {
 		return nil, fmt.Errorf("quote single order result: %w", err)
 	}

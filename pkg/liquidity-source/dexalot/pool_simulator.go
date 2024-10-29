@@ -17,6 +17,7 @@ var (
 	ErrEmptyPriceLevels                       = errors.New("empty price levels")
 	ErrAmountInIsLessThanLowestPriceLevel     = errors.New("amountIn is less than lowest price level")
 	ErrAmountInIsGreaterThanHighestPriceLevel = errors.New("amountIn is greater than highest price level")
+	ErrNoSwapLimit                            = errors.New("swap limit is required for PMM pools")
 )
 
 type (
@@ -110,15 +111,30 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if params.Limit == nil {
+		return nil, ErrNoSwapLimit
+	}
+	var limit = params.Limit
 	tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels := p.Token0, p.Token1, p.Token0Original, p.Token1Original, p.ZeroToOnePriceLevels
 	if params.TokenAmountIn.Token == p.Info.Tokens[1] {
 		tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels = p.Token1, p.Token0, p.Token1Original, p.Token0Original, p.OneToZeroPriceLevels
 	}
-	amountOut, _, err := p.swap(params.TokenAmountIn.Amount, tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels)
-	return amountOut, err
+	result, _, err := p.swap(params.TokenAmountIn.Amount, tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels)
+
+	inventoryLimit := limit.GetLimit(tokenOut.Address)
+
+	if result.TokenAmountOut.Amount.Cmp(inventoryLimit) > 0 {
+		return nil, errors.New("not enough inventory")
+	}
+	return result, err
 }
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	// Ignore for now cause logic not exposed
+	tokenIn, tokenOut := p.Token0, p.Token1
+	if params.TokenAmountIn.Token == p.Token1.Address {
+		tokenIn, tokenOut = p.Token1, p.Token0
+	}
+	params.SwapLimit.UpdateLimit(tokenOut.Address, tokenIn.Address, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
@@ -202,4 +218,14 @@ func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel, amountOut *big.
 	}
 	amountOut.Mul(amountIn, price)
 	return nil
+}
+
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	var pmmInventory = make(map[string]*big.Int, len(p.GetTokens()))
+	tokens := p.GetTokens()
+	rsv := p.GetReserves()
+	for i, tok := range tokens {
+		pmmInventory[tok] = big.NewInt(0).Set(rsv[i]) //clone here.
+	}
+	return pmmInventory
 }
