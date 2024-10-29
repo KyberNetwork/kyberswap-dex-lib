@@ -5,10 +5,11 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/samber/lo"
 )
 
 var (
@@ -18,10 +19,10 @@ var (
 
 type PoolSimulator struct {
 	poolpkg.Pool
+	StaticExtra
 
-	DexReservesResolver string
-	CollateralReserves  CollateralReserves
-	DebtReserves        DebtReserves
+	CollateralReserves CollateralReserves
+	DebtReserves       DebtReserves
 
 	Token0Decimals uint8
 	Token1Decimals uint8
@@ -50,19 +51,21 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	return &PoolSimulator{
 		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
-			Address:     entityPool.Address,
-			Exchange:    entityPool.Exchange,
-			Type:        entityPool.Type,
-			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
+			Address:  entityPool.Address,
+			Exchange: entityPool.Exchange,
+			Type:     entityPool.Type,
+			Tokens: lo.Map(entityPool.Tokens,
+				func(item *entity.PoolToken, index int) string { return item.Address }),
+			Reserves: lo.Map(entityPool.Reserves,
+				func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 			SwapFee:     fee,
 		}},
-		CollateralReserves:  extra.CollateralReserves,
-		DebtReserves:        extra.DebtReserves,
-		Token0Decimals:      entityPool.Tokens[0].Decimals,
-		Token1Decimals:      entityPool.Tokens[1].Decimals,
-		DexReservesResolver: staticExtra.DexReservesResolver,
+		CollateralReserves: extra.CollateralReserves,
+		DebtReserves:       extra.DebtReserves,
+		Token0Decimals:     entityPool.Tokens[0].Decimals,
+		Token1Decimals:     entityPool.Tokens[1].Decimals,
+		StaticExtra:        staticExtra,
 	}, nil
 }
 
@@ -88,7 +91,8 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 	amountInAfterFee := new(big.Int).Sub(param.TokenAmountIn.Amount, fee)
 
-	_, tokenAmountOut, err := swapIn(swap0To1, amountInAfterFee, s.CollateralReserves, s.DebtReserves, int64(tokenInDecimals), int64(tokenOutDecimals))
+	_, tokenAmountOut, err := swapIn(swap0To1, amountInAfterFee, s.CollateralReserves, s.DebtReserves,
+		int64(tokenInDecimals), int64(tokenOutDecimals))
 	if err != nil {
 		return nil, err
 	}
@@ -97,9 +101,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
 		Fee:            &poolpkg.TokenAmount{Token: param.TokenAmountIn.Token, Amount: fee},
 		Gas:            defaultGas.Swap,
-		SwapInfo: StaticExtra{
-			DexReservesResolver: s.DexReservesResolver,
-		},
+		SwapInfo:       s.StaticExtra,
 	}, nil
 }
 
@@ -119,7 +121,8 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		tokenInDecimals = s.Token1Decimals
 	}
 
-	tokenAmountIn, _, err := swapOut(swap0To1, param.TokenAmountOut.Amount, s.CollateralReserves, s.DebtReserves, int64(tokenInDecimals), int64(tokenOutDecimals))
+	tokenAmountIn, _, err := swapOut(swap0To1, param.TokenAmountOut.Amount, s.CollateralReserves, s.DebtReserves,
+		int64(tokenInDecimals), int64(tokenOutDecimals))
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +268,8 @@ func swapRoutingOut(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int
  * @returns {number} amountOut - The calculated output amount.
  * @returns {error} - An error object if the operation fails.
  */
-func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, *big.Int, error) {
+func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves,
+	debtReserves DebtReserves) (*big.Int, *big.Int, error) {
 	var (
 		colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
 		colReserveOut, debtReserveOut                                  *big.Int
@@ -365,9 +369,11 @@ func swapIn(
 	var amountInAdjusted *big.Int
 
 	if inDecimals > DexAmountsDecimals {
-		amountInAdjusted = new(big.Int).Div(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-DexAmountsDecimals), nil))
+		amountInAdjusted = new(big.Int).Div(amountIn,
+			new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-DexAmountsDecimals), nil))
 	} else {
-		amountInAdjusted = new(big.Int).Mul(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-inDecimals), nil))
+		amountInAdjusted = new(big.Int).Mul(amountIn,
+			new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-inDecimals), nil))
 	}
 
 	_, amountOut, err := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves)
@@ -377,9 +383,11 @@ func swapIn(
 	}
 
 	if outDecimals > DexAmountsDecimals {
-		amountOut = new(big.Int).Mul(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-DexAmountsDecimals), nil))
+		amountOut = new(big.Int).Mul(amountOut,
+			new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-DexAmountsDecimals), nil))
 	} else {
-		amountOut = new(big.Int).Div(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-outDecimals), nil))
+		amountOut = new(big.Int).Div(amountOut,
+			new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-outDecimals), nil))
 	}
 
 	return amountIn, amountOut, nil
@@ -403,7 +411,8 @@ func swapIn(
  * @returns {number} amountOut - The specified output amount of the swap.
  * @returns {error} - An error object if the operation fails.
  */
-func swapOutAdjusted(swap0To1 bool, amountOut *big.Int, colReserves CollateralReserves, debtReserves DebtReserves) (*big.Int, *big.Int, error) {
+func swapOutAdjusted(swap0To1 bool, amountOut *big.Int, colReserves CollateralReserves,
+	debtReserves DebtReserves) (*big.Int, *big.Int, error) {
 	var (
 		colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
 		colReserveOut, debtReserveOut                                  *big.Int
@@ -506,9 +515,11 @@ func swapOut(
 	var amountOutAdjusted *big.Int
 
 	if outDecimals > DexAmountsDecimals {
-		amountOutAdjusted = new(big.Int).Div(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-DexAmountsDecimals), nil))
+		amountOutAdjusted = new(big.Int).Div(amountOut,
+			new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-DexAmountsDecimals), nil))
 	} else {
-		amountOutAdjusted = new(big.Int).Mul(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-outDecimals), nil))
+		amountOutAdjusted = new(big.Int).Mul(amountOut,
+			new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-outDecimals), nil))
 	}
 
 	amountIn, _, err := swapOutAdjusted(swap0To1, amountOutAdjusted, colReserves, debtReserves)
@@ -518,9 +529,11 @@ func swapOut(
 	}
 
 	if inDecimals > DexAmountsDecimals {
-		amountIn = new(big.Int).Mul(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-DexAmountsDecimals), nil))
+		amountIn = new(big.Int).Mul(amountIn,
+			new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-DexAmountsDecimals), nil))
 	} else {
-		amountIn = new(big.Int).Div(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-inDecimals), nil))
+		amountIn = new(big.Int).Div(amountIn,
+			new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-inDecimals), nil))
 	}
 
 	return amountIn, amountOut, nil
