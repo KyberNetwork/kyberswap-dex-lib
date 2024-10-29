@@ -96,10 +96,12 @@ common:
     - "hashflow-v3"
     - "native-v1"
     - "woofi-v3"
+    - "clipper"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:
   nativeAPIKey:
+  clipperAPIAuth:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -347,6 +349,13 @@ useCase:
         properties:
           http:
             base_url: "https://newapi.native.org"
+            timeout: 10s
+            retry_count: 3
+      - id: clipper
+        handler: clipper
+        properties:
+          http:
+            base_url: "https://api.clipper.exchange"
             timeout: 10s
             retry_count: 3
     faultyPools:

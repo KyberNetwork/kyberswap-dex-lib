@@ -28,6 +28,7 @@ type Common struct {
 	NativeAPIKey        string                   `mapstructure:"nativeAPIKey" json:"-"`
 	BebopAPIName        string                   `mapstructure:"bebopAPIName" json:"-"`
 	BebopAPIAuth        string                   `mapstructure:"bebopAPIAuth" json:"-"`
+	ClipperAPIAuth      string                   `mapstructure:"clipperAPIAuth" json:"-"`
 }
 
 type AEVM struct {

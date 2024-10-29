@@ -99,12 +99,14 @@ common:
     - "fluid-vault-t1"
     - "fluid-dex-t1"
     - "bebop"
+    - "clipper"
   featureFlags: &featureFlags
   swaapAPIKey:
   nativeAPIKey:
   hashflowAPIKey:
   bebopAPIName:
   bebopAPIAuth:
+  clipperAPIAuth:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -214,6 +216,7 @@ encoder:
     executeIntegral: 52
     executeFluidVaultT1: 53
     executeFluidDexT1: 55
+    executeClipperRfq: 58
 useCase:
   getRoute:
     chainId: *chainId
@@ -398,6 +401,13 @@ useCase:
         properties:
           http:
             base_url: "https://api.bebop.xyz/pmm/arbitrum"
+            timeout: 10s
+            retry_count: 3
+      - id: clipper
+        handler: clipper
+        properties:
+          http:
+            base_url: "https://api.clipper.exchange"
             timeout: 10s
             retry_count: 3
     faultyPools:

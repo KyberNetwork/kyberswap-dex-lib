@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	bebopclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop/client"
+	clipper "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper/client"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2/client"
@@ -39,23 +40,13 @@ func isPMMFaultyPoolError(err error) bool {
 		return false
 	}
 
-	if errors.Is(err, kyberpmm.ErrFirmQuoteFailed) {
-		return true
-	}
-
-	if errors.Is(err, hashflowv3.ErrRFQMarketsTooVolatile) {
-		return true
-	}
-
-	if errors.Is(err, nativev1.ErrRFQAllPricerFailed) {
-		return true
-	}
-
-	if errors.Is(err, swaapv2.ErrQuoteFailed) {
-		return true
-	}
-
-	if errors.Is(err, bebopclient.ErrRFQFailed) {
+	if errors.Is(err, kyberpmm.ErrFirmQuoteFailed) ||
+		errors.Is(err, hashflowv3.ErrRFQMarketsTooVolatile) ||
+		errors.Is(err, nativev1.ErrRFQAllPricerFailed) ||
+		errors.Is(err, swaapv2.ErrQuoteFailed) ||
+		errors.Is(err, bebopclient.ErrRFQFailed) ||
+		errors.Is(err, clipper.ErrQuoteFailed) ||
+		errors.Is(err, clipper.ErrSignFailed) {
 		return true
 	}
 

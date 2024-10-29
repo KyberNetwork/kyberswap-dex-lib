@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	ondo_usdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
@@ -682,6 +683,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newMantleETH(entityPool)
 	case pooltypes.PoolTypes.OndoUSDY:
 		return f.newOndoUSDY(entityPool)
+	case pooltypes.PoolTypes.Clipper:
+		return f.newClipper(entityPool)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -2306,6 +2309,21 @@ func (f *PoolFactory) newOndoUSDY(entityPool entity.Pool) (*ondo_usdy.PoolSimula
 			"[PoolFactory.newOndoUSDY] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newClipper(entityPool entity.Pool) (*clipper.PoolSimulator, error) {
+	corePool, err := clipper.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newClipper] pool: [%s] » type: [%s] » exchange: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+			entityPool.Exchange,
 		)
 	}
 
