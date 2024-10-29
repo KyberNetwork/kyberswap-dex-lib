@@ -135,7 +135,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 	}
 
 	return &poolpkg.CalcAmountInResult{
-		TokenAmountIn: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountIn.ToBig()},
+		TokenAmountIn: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
 		Fee:           &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas:           s.gas.Swap,
 	}, nil
