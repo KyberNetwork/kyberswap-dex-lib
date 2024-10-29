@@ -361,6 +361,8 @@ var (
 	ExchangeFluidDexT1   Exchange = "fluid-dex-t1"
 	ExchangeMantleETH    Exchange = "meth"
 	ExchangeOndoUSDY     Exchange = "ondo-usdy"
+
+	ExchangeClipper Exchange = "clipper"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
