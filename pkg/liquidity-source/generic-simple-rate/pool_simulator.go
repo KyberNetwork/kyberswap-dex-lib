@@ -2,6 +2,7 @@ package generic_simple_rate
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -14,12 +15,17 @@ import (
 
 type PoolSimulator struct {
 	pool.Pool
+	paused          bool
 	gas             int64
 	rate            *uint256.Int
 	rateUnit        *uint256.Int
 	isRateInversed  bool
 	isBidirectional bool
 }
+
+var (
+	ErrPoolPaused = errors.New("pool is paused")
+)
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	numTokens := len(entityPool.Tokens)
@@ -52,6 +58,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 				Reserves: reserves,
 			},
 		},
+		paused:          poolExtra.Paused,
 		rate:            poolExtra.Rate,
 		rateUnit:        poolExtra.RateUnit,
 		isRateInversed:  poolExtra.IsRateInversed,
@@ -61,6 +68,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	if p.paused {
+		return nil, ErrPoolPaused
+	}
+
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
 
