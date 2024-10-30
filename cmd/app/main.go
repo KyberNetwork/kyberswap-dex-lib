@@ -282,6 +282,8 @@ func apiAction(c *cli.Context) (err error) {
 		if err != nil {
 			return err
 		}
+
+		go onchainpriceRepository.RefreshCacheNativePriceInUSD(ctx)
 	}
 
 	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
@@ -684,6 +686,8 @@ func indexerAction(c *cli.Context) (err error) {
 		if err != nil {
 			return err
 		}
+
+		go onchainpriceRepository.RefreshCacheNativePriceInUSD(ctx)
 	}
 
 	// init use case

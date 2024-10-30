@@ -80,6 +80,7 @@ type IPriceRepository interface {
 
 type IOnchainPriceRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) (map[string]*routerEntity.OnchainPrice, error)
+	RefreshCacheNativePriceInUSD(ctx context.Context)
 }
 
 type IPoolsPublisher interface {

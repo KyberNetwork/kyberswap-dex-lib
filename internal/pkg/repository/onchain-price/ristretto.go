@@ -2,23 +2,35 @@ package onchainprice
 
 import (
 	"context"
+	"errors"
 	"math/big"
+	"sync/atomic"
+	"time"
+
+	"github.com/dgraph-io/ristretto"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/price"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
+	"github.com/KyberNetwork/router-service/pkg/backoff"
 	"github.com/KyberNetwork/router-service/pkg/logger"
-	"github.com/dgraph-io/ristretto"
 )
 
 type ristrettoRepository struct {
 	cache          *ristretto.Cache
 	grpcRepository *grpcRepository
 	config         price.RistrettoConfig
+	nativeUSDPrice atomic.Pointer[big.Float]
 }
 
 const (
 	CacheKeyNativeUsd = "native-token-usd-price"
+)
+
+var (
+	zeroBF = big.NewFloat(0)
+
+	ErrNativeUSDPriceNotFoundInCache = errors.New("native usd price not found in cache")
 )
 
 func NewRistrettoRepository(
@@ -35,11 +47,15 @@ func NewRistrettoRepository(
 		return nil, err
 	}
 
-	return &ristrettoRepository{
+	r := &ristrettoRepository{
 		cache:          cache,
 		grpcRepository: grpcRepository,
 		config:         config,
-	}, nil
+	}
+
+	r.nativeUSDPrice.Store(zeroBF)
+
+	return r, nil
 }
 
 func (r *ristrettoRepository) FindByAddresses(ctx context.Context, addresses []string) (map[string]*entity.OnchainPrice, error) {
@@ -99,20 +115,55 @@ func (r *ristrettoRepository) FindByAddresses(ctx context.Context, addresses []s
 }
 
 func (r *ristrettoRepository) GetNativePriceInUsd(ctx context.Context) (*big.Float, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "[onchainprice] ristrettoRepository.GetNativePriceInUsd")
-	defer span.End()
+	if nativeUSDPrice := r.nativeUSDPrice.Load(); nativeUSDPrice.Sign() > 0 {
+		return nativeUSDPrice, nil
+	}
 
-	if cachedPrice, found := r.cache.Get(CacheKeyNativeUsd); found {
-		if price, ok := cachedPrice.(*big.Float); ok {
-			return price, nil
+	return zeroBF, ErrNativeUSDPriceNotFoundInCache
+}
+
+func (r *ristrettoRepository) RefreshCacheNativePriceInUSD(ctx context.Context) {
+	// fetch native price in usd every half of TTL to make sure that we always have the latest price available from cache
+	ticker := time.NewTicker(r.config.Price.TTL / 2)
+	defer ticker.Stop()
+
+	for {
+		_ = backoff.RetryE(func() error {
+			if err := r.fetchNativePriceInUSD(ctx); err != nil {
+				logger.Errorf(ctx, "failed to fetch native price in usd: %v", err)
+				return err
+			}
+
+			return nil
+		})
+
+		select {
+		case <-ctx.Done():
+			logger.Infof(ctx, "stop fetching native price in usd with error: %v", ctx.Err())
+			return
+		case <-ticker.C:
+			continue
 		}
 	}
+}
+
+func (r *ristrettoRepository) fetchNativePriceInUSD(ctx context.Context) error {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[onchainprice] ristrettoRepository.fetchNativePriceInUSD")
+	defer span.End()
 
 	price, err := r.grpcRepository.GetNativePriceInUsd(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	r.cache.SetWithTTL(CacheKeyNativeUsd, price, r.config.Price.Cost, r.config.Price.TTL)
-	return price, nil
+	if price == nil || price.Sign() <= 0 {
+		return err
+	}
+
+	// Set native price in usd to the atomic pointer
+	r.nativeUSDPrice.Store(price)
+
+	logger.Infof(ctx, "refresh cache with native price in usd: %s", price.String())
+
+	return nil
 }
