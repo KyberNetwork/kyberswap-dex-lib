@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type PoolTracker struct {
@@ -26,12 +27,29 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	}
 }
 
-func (t *PoolTracker) GetNewPoolState(
+func (d *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, params, nil)
+}
+
+func (d *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	poolReserves, blockNumber, err := t.getPoolReserves(ctx, p.Address)
+	poolReserves, blockNumber, err := t.getPoolReserves(ctx, p.Address, overrides)
 	if err != nil {
 		return p, err
 	}
@@ -59,10 +77,18 @@ func (t *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (t *PoolTracker) getPoolReserves(ctx context.Context, poolAddress string) (*PoolWithReserves, uint64, error) {
+func (t *PoolTracker) getPoolReserves(
+	ctx context.Context,
+	poolAddress string,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (*PoolWithReserves, uint64, error) {
 	pool := &PoolWithReserves{}
 
 	req := t.ethrpcClient.R().SetContext(ctx)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
+
 	req.AddCall(&ethrpc.Call{
 		ABI:    dexReservesResolverABI,
 		Target: t.config.DexReservesResolver,
