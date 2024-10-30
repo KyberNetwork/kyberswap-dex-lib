@@ -160,20 +160,25 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, uniswapv2.ErrInsufficientLiquidity
 	}
 
-	var _fee, amountIn uint256.Int
-	fee := new(uint256.Int).Set(number.Number_3)
+	var fee, amountIn, tradeLiquidity uint256.Int
+	fee.Set(number.Number_3)
 	for {
-		fee = _fee.Clone()
-		amountIn, err := s.getAmountIn(amountOut, reserveIn, reserveOut, fee)
+		newAmountIn, err := s.getAmountIn(amountOut, reserveIn, reserveOut, &fee)
 		if err != nil {
 			return nil, err
 		}
 
-		_fee.Set(s.calcTradingFee(amountIn, reserveIn, reserveOut))
+		newTradeLiquidity, newFee, err := s.calcPairTradingFee(newAmountIn, reserveIn, reserveOut)
+		if err != nil {
+			return nil, err
+		}
 
-		if _fee.Cmp(fee) == 0 {
+		tradeLiquidity.Set(newTradeLiquidity)
+		if fee.Cmp(newFee) == 0 {
+			amountIn.Set(newAmountIn)
 			break
 		}
+		fee.Set(newFee)
 	}
 
 	if amountIn.Cmp(reserveIn) > 0 {
@@ -185,7 +190,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 
 	balanceInAdjusted := new(uint256.Int).Sub(
 		new(uint256.Int).Mul(balanceIn, s.feePrecision),
-		new(uint256.Int).Mul(&amountIn, fee),
+		new(uint256.Int).Mul(&amountIn, &fee),
 	)
 	balanceOutAdjusted := new(uint256.Int).Mul(balanceOut, s.feePrecision)
 
@@ -196,11 +201,6 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, uniswapv2.ErrInvalidK
 	}
 
-	tradeLiquidity, fee, err := s.calcPairTradingFee(&amountIn, reserveIn, reserveOut)
-	if err != nil {
-		return nil, err
-	}
-
 	return &poolpkg.CalcAmountInResult{
 		TokenAmountIn: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
 		Fee:           &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
@@ -208,7 +208,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		SwapInfo: SwapInfo{
 			Fee:            uint32(fee.Uint64()),
 			FeePrecision:   uint32(s.feePrecision.Uint64()),
-			TradeLiquidity: tradeLiquidity,
+			TradeLiquidity: &tradeLiquidity,
 		},
 	}, nil
 }
@@ -284,6 +284,7 @@ func (s *PoolSimulator) calcTradingFee(tradeLiquidity, lastLiquidityTradedEMA, l
 	if (Max(tradeLiquidity, lastLiquidityTradedEMA)).Gt(&threshold) {
 		return s.dsFee
 	}
+
 	return number.Zero
 }
 
