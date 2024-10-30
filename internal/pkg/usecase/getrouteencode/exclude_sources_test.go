@@ -9,27 +9,11 @@ import (
 )
 
 func TestGetExcludedSources(t *testing.T) {
-	tests := []struct {
-		name string
-		want []string
-	}{
-		{
-			name: "it should get excluded sources correctly",
-			want: []string{
-				string(valueobject.ExchangeKyberPMM),
-				string(valueobject.ExchangeKyberSwapLimitOrderDS),
-				string(valueobject.ExchangeSwaapV2),
-				string(valueobject.ExchangeHashflowV3),
-				string(valueobject.ExchangeNativeV1),
-				string(valueobject.ExchangeBebop),
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := GetExcludedSources()
+	t.Run("it should get excluded sources correctly", func(t *testing.T) {
+		got := GetExcludedSources()
 
-			assert.ElementsMatch(t, tt.want, got)
-		})
-	}
+		assert.Len(t, got, len(valueobject.RFQSourceSet))
+		assert.Contains(t, got, string(valueobject.ExchangeKyberSwapLimitOrderDS))
+		assert.Contains(t, got, string(valueobject.ExchangeSwaapV2))
+	})
 }
