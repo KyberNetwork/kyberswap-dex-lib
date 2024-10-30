@@ -184,6 +184,7 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeRingSwap
 	dexValueObject.ExchangeRingSwap: {},
+
 	// executeBebop
 	dexValueObject.ExchangeBebop: {},
 
@@ -195,6 +196,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeMantleUSD
 	dexValueObject.ExchangeOndoUSDY: {},
+
+	// executeDexalot
+	dexValueObject.ExchangeDexalot: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {

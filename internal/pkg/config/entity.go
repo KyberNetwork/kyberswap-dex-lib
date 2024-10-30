@@ -12,23 +12,25 @@ import (
 )
 
 type Common struct {
-	ChainID             valueobject.ChainID      `mapstructure:"chainId"`
-	ChainName           string                   `mapstructure:"chainName"`
-	RPC                 string                   `mapstructure:"rpc"`
-	ExecutorAddress     string                   `mapstructure:"executorAddress"`
-	RouterAddress       string                   `mapstructure:"routerAddress"`
-	GasTokenAddress     string                   `mapstructure:"gasTokenAddress"`
-	MulticallAddress    string                   `mapstructure:"multicallAddress"`
-	WhitelistedTokenSet map[string]bool          `mapstructure:"whitelistedTokenSet"`
-	BlacklistedPoolsSet map[string]bool          `mapstructure:"blacklistedPoolsSet"`
-	AvailableSources    []string                 `mapstructure:"availableSources"`
-	FeatureFlags        valueobject.FeatureFlags `mapstructure:"featureFlags"`
-	SwaapAPIKey         string                   `mapstructure:"swaapAPIKey" json:"-"`
-	HashflowAPIKey      string                   `mapstructure:"hashflowAPIKey" json:"-"`
-	NativeAPIKey        string                   `mapstructure:"nativeAPIKey" json:"-"`
-	BebopAPIName        string                   `mapstructure:"bebopAPIName" json:"-"`
-	BebopAPIAuth        string                   `mapstructure:"bebopAPIAuth" json:"-"`
-	ClipperAPIAuth      string                   `mapstructure:"clipperAPIAuth" json:"-"`
+	ChainID               valueobject.ChainID      `mapstructure:"chainId"`
+	ChainName             string                   `mapstructure:"chainName"`
+	RPC                   string                   `mapstructure:"rpc"`
+	ExecutorAddress       string                   `mapstructure:"executorAddress"`
+	RouterAddress         string                   `mapstructure:"routerAddress"`
+	GasTokenAddress       string                   `mapstructure:"gasTokenAddress"`
+	MulticallAddress      string                   `mapstructure:"multicallAddress"`
+	WhitelistedTokenSet   map[string]bool          `mapstructure:"whitelistedTokenSet"`
+	BlacklistedPoolsSet   map[string]bool          `mapstructure:"blacklistedPoolsSet"`
+	AvailableSources      []string                 `mapstructure:"availableSources"`
+	FeatureFlags          valueobject.FeatureFlags `mapstructure:"featureFlags"`
+	SwaapAPIKey           string                   `mapstructure:"swaapAPIKey" json:"-"`
+	HashflowAPIKey        string                   `mapstructure:"hashflowAPIKey" json:"-"`
+	NativeAPIKey          string                   `mapstructure:"nativeAPIKey" json:"-"`
+	BebopAPIName          string                   `mapstructure:"bebopAPIName" json:"-"`
+	BebopAPIAuth          string                   `mapstructure:"bebopAPIAuth" json:"-"`
+	ClipperAPIAuth        string                   `mapstructure:"clipperAPIAuth" json:"-"`
+	DexalotAPIKey         string                   `mapstructure:"dexalotAPIKey" json:"-"`
+	DexalotUpscalePercent int                      `mapstructure:"dexalotUpscalePercent" json:"-"`
 }
 
 type AEVM struct {

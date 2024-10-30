@@ -35,6 +35,7 @@ import (
 	curveTriCryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/tricrypto-ng"
 	curveTwoCryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
@@ -429,7 +430,8 @@ func (f *PoolFactory) getCurveMetaBaseNGPoolByAddress(
 func newSwapLimit(dex string, limit map[string]*big.Int) poolpkg.SwapLimit {
 	switch dex {
 	case pooltypes.PoolTypes.KyberPMM,
-		pooltypes.PoolTypes.NativeV1:
+		pooltypes.PoolTypes.NativeV1,
+		pooltypes.PoolTypes.Dexalot:
 		return kyberpmm.NewInventory(limit)
 	case pooltypes.PoolTypes.Synthetix:
 		return synthetix.NewLimits(limit)
@@ -620,6 +622,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newNativeV1(entityPool)
 	case pooltypes.PoolTypes.Bebop:
 		return f.newBebop(entityPool)
+	case pooltypes.PoolTypes.Dexalot:
+		return f.newDexalot(entityPool)
 	case pooltypes.PoolTypes.NomiSwapStable:
 		return f.newNomiswapStable(entityPool)
 	case pooltypes.PoolTypes.RenzoEZETH:
@@ -1967,6 +1971,21 @@ func (f *PoolFactory) newBebop(entityPool entity.Pool) (*bebop.PoolSimulator, er
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newBebop] pool: [%s] » type: [%s] cause by %v",
+			entityPool.Address,
+			entityPool.Type,
+			err,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newDexalot(entityPool entity.Pool) (*dexalot.PoolSimulator, error) {
+	corePool, err := dexalot.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newDexalot] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
 			entityPool.Type,
 			err,
