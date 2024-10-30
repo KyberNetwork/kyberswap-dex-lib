@@ -10,6 +10,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
 	"github.com/samber/lo"
 )
 
@@ -134,7 +135,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if params.TokenAmountIn.Token == p.Token1.Address {
 		tokenIn, tokenOut = p.Token1, p.Token0
 	}
-	params.SwapLimit.UpdateLimit(tokenOut.Address, tokenIn.Address, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
+	_, _, err := params.SwapLimit.UpdateLimit(tokenOut.Address, tokenIn.Address, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
+	if err != nil {
+		logger.Errorf("unable to update dexalot limit, error: %v", err)
+	}
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
