@@ -137,9 +137,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		TokenAmountIn: &poolpkg.TokenAmount{Token: param.TokenIn, Amount: amountInAfterFee},
 		Fee:           &poolpkg.TokenAmount{Token: param.TokenIn, Amount: fee},
 		Gas:           defaultGas.Swap,
-		SwapInfo: StaticExtra{
-			DexReservesResolver: s.DexReservesResolver,
-		},
+		SwapInfo:      s.StaticExtra,
 	}, nil
 }
 
@@ -318,21 +316,37 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	if a.Cmp(bignumber.ZeroBI) <= 0 {
 		// Entire trade routes through debt pool
 		amountOutDebt = getAmountOut(amountToSwap, debtIReserveIn, debtIReserveOut)
+		if amountOutDebt.Cmp(debtReserveOut) > 0 {
+			return nil, nil, errors.New("insufficient liquidity")
+		}
+
+		updateDebtReserves(swap0To1, amountToSwap, amountOutDebt, debtReserves)
 	} else if a.Cmp(amountToSwap) >= 0 {
 		// Entire trade routes through collateral pool
 		amountOutCollateral = getAmountOut(amountToSwap, colIReserveIn, colIReserveOut)
+		if amountOutCollateral.Cmp(colReserveOut) > 0 {
+			return nil, nil, errors.New("insufficient liquidity")
+		}
+
+		updateCollateralReserves(swap0To1, amountToSwap, amountOutCollateral, colReserves)
 	} else {
 		// Trade routes through both pools
-		amountOutCollateral = getAmountOut(a, colIReserveIn, colIReserveOut)
-		amountOutDebt = getAmountOut(new(big.Int).Sub(amountToSwap, a), debtIReserveIn, debtIReserveOut)
-	}
+		var (
+			amountInCollateral = a
+			amountInDebt       = new(big.Int).Sub(amountToSwap, a)
+		)
 
-	if amountOutDebt.Cmp(debtReserveOut) > 0 {
-		return nil, nil, errors.New("insufficient liquidity")
-	}
+		amountOutCollateral = getAmountOut(amountInCollateral, colIReserveIn, colIReserveOut)
+		if amountOutCollateral.Cmp(colReserveOut) > 0 {
+			return nil, nil, errors.New("insufficient liquidity")
+		}
 
-	if amountOutCollateral.Cmp(colReserveOut) > 0 {
-		return nil, nil, errors.New("insufficient liquidity")
+		amountOutDebt = getAmountOut(amountInDebt, debtIReserveIn, debtIReserveOut)
+		if amountOutDebt.Cmp(debtReserveOut) > 0 {
+			return nil, nil, errors.New("insufficient liquidity")
+		}
+
+		updateBothReserves(swap0To1, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt, colReserves, debtReserves)
 	}
 
 	return amountToSwap, new(big.Int).Add(amountOutCollateral, amountOutDebt), nil
@@ -465,20 +479,31 @@ func swapOutAdjusted(swap0To1 bool, amountOut *big.Int, colReserves CollateralRe
 		if amountOut.Cmp(debtReserveOut) > 0 {
 			return nil, nil, errors.New("insufficient liquidity")
 		}
+
+		updateDebtReserves(swap0To1, amountInDebt, amountOut, debtReserves)
 	} else if a.Cmp(amountOut) >= 0 {
 		// Entire trade routes through collateral pool
 		amountInCollateral = getAmountIn(amountOut, colIReserveIn, colIReserveOut)
 		if amountOut.Cmp(colReserveOut) > 0 {
 			return nil, nil, errors.New("insufficient liquidity")
 		}
+
+		updateCollateralReserves(swap0To1, amountInCollateral, amountOut, colReserves)
 	} else {
 		// Trade routes through both pools
-		amountInCollateral = getAmountIn(a, colIReserveIn, colIReserveOut)
-		amountInDebt = getAmountIn(new(big.Int).Sub(amountOut, a), debtIReserveIn, debtIReserveOut)
+		var (
+			amountOutCollateral = a
+			amountOutDebt       = new(big.Int).Sub(amountOut, a)
+		)
+
+		amountInCollateral = getAmountIn(amountOutCollateral, colIReserveIn, colIReserveOut)
+		amountInDebt = getAmountIn(amountOutDebt, debtIReserveIn, debtIReserveOut)
 
 		if new(big.Int).Sub(amountOut, a).Cmp(debtReserveOut) > 0 || a.Cmp(debtReserveOut) > 0 {
 			return nil, nil, errors.New("insufficient liquidity")
 		}
+
+		updateBothReserves(swap0To1, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt, colReserves, debtReserves)
 	}
 
 	return new(big.Int).Add(amountInCollateral, amountInDebt), amountOut, nil
@@ -537,4 +562,57 @@ func swapOut(
 	}
 
 	return amountIn, amountOut, nil
+}
+
+func updateDebtReserves(swap0To1 bool, amountIn, amountOut *big.Int, debtReserves DebtReserves) {
+	if swap0To1 {
+		debtReserves.Token0RealReserves.Add(debtReserves.Token0RealReserves, amountIn)
+		debtReserves.Token0ImaginaryReserves.Add(debtReserves.Token0ImaginaryReserves, amountIn)
+		debtReserves.Token1RealReserves.Sub(debtReserves.Token1RealReserves, amountOut)
+		debtReserves.Token1ImaginaryReserves.Sub(debtReserves.Token1ImaginaryReserves, amountOut)
+	} else {
+		debtReserves.Token0RealReserves.Sub(debtReserves.Token0RealReserves, amountOut)
+		debtReserves.Token0ImaginaryReserves.Sub(debtReserves.Token0ImaginaryReserves, amountOut)
+		debtReserves.Token1RealReserves.Add(debtReserves.Token1RealReserves, amountIn)
+		debtReserves.Token1ImaginaryReserves.Add(debtReserves.Token1ImaginaryReserves, amountIn)
+	}
+}
+
+func updateCollateralReserves(swap0To1 bool, amountIn, amountOut *big.Int, colReserves CollateralReserves) {
+	if swap0To1 {
+		colReserves.Token0RealReserves.Add(colReserves.Token0RealReserves, amountIn)
+		colReserves.Token0ImaginaryReserves.Add(colReserves.Token0ImaginaryReserves, amountIn)
+		colReserves.Token1RealReserves.Sub(colReserves.Token1RealReserves, amountOut)
+		colReserves.Token1ImaginaryReserves.Sub(colReserves.Token1ImaginaryReserves, amountOut)
+	} else {
+		colReserves.Token0RealReserves.Sub(colReserves.Token0RealReserves, amountOut)
+		colReserves.Token0ImaginaryReserves.Sub(colReserves.Token0ImaginaryReserves, amountOut)
+		colReserves.Token1RealReserves.Add(colReserves.Token1RealReserves, amountIn)
+		colReserves.Token1ImaginaryReserves.Add(colReserves.Token1ImaginaryReserves, amountIn)
+	}
+}
+
+func updateBothReserves(swap0To1 bool, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt *big.Int,
+	colReserves CollateralReserves, debtReserves DebtReserves) {
+	if swap0To1 {
+		colReserves.Token1RealReserves.Sub(colReserves.Token1RealReserves, amountOutCollateral)
+		colReserves.Token1ImaginaryReserves.Sub(colReserves.Token1ImaginaryReserves, amountOutCollateral)
+		colReserves.Token0RealReserves.Add(colReserves.Token0RealReserves, amountInCollateral)
+		colReserves.Token0ImaginaryReserves.Add(colReserves.Token0ImaginaryReserves, amountInCollateral)
+
+		debtReserves.Token1RealReserves.Sub(debtReserves.Token1RealReserves, amountOutDebt)
+		debtReserves.Token1ImaginaryReserves.Sub(debtReserves.Token1ImaginaryReserves, amountOutDebt)
+		debtReserves.Token0RealReserves.Add(debtReserves.Token0RealReserves, amountInDebt)
+		debtReserves.Token0ImaginaryReserves.Add(debtReserves.Token0ImaginaryReserves, amountInDebt)
+	} else {
+		colReserves.Token1RealReserves.Add(colReserves.Token1RealReserves, amountInCollateral)
+		colReserves.Token1ImaginaryReserves.Add(colReserves.Token1ImaginaryReserves, amountInCollateral)
+		colReserves.Token0RealReserves.Sub(colReserves.Token0RealReserves, amountOutCollateral)
+		colReserves.Token0ImaginaryReserves.Sub(colReserves.Token0ImaginaryReserves, amountOutCollateral)
+
+		debtReserves.Token1RealReserves.Add(debtReserves.Token1RealReserves, amountInDebt)
+		debtReserves.Token1ImaginaryReserves.Add(debtReserves.Token1ImaginaryReserves, amountInDebt)
+		debtReserves.Token0RealReserves.Sub(debtReserves.Token0RealReserves, amountOutDebt)
+		debtReserves.Token0ImaginaryReserves.Sub(debtReserves.Token0ImaginaryReserves, amountOutDebt)
+	}
 }

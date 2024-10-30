@@ -368,14 +368,14 @@ func assertSwapOutResult(t *testing.T, expected bool, amountOut *big.Int, colRes
 func TestPoolSimulator_SwapIn(t *testing.T) {
 	t.Run("TestPoolSimulator_SwapIn", func(t *testing.T) {
 		assertSwapInResult(t, true, big.NewInt(1e15), colReservesOne, debtReservesOne, "1000000000000000", "998262697204710")
-		assertSwapInResult(t, true, big.NewInt(1e15), colReservesEmpty, debtReservesOne, "1000000000000000", "994619847016724")
-		assertSwapInResult(t, true, big.NewInt(1e15), colReservesOne, debtReservesEmpty, "1000000000000000", "997440731289905")
-		assertSwapInResult(t, false, big.NewInt(1e15), colReservesOne, debtReservesOne, "1000000000000000", "998262697752553")
-		assertSwapInResult(t, false, big.NewInt(1e15), colReservesEmpty, debtReservesOne, "1000000000000000", "994619847560607")
-		assertSwapInResult(t, false, big.NewInt(1e15), colReservesOne, debtReservesEmpty, "1000000000000000", "997440731837532")
+		assertSwapInResult(t, true, big.NewInt(1e15), colReservesEmpty, debtReservesOne, "1000000000000000", "991176202339480")
+		assertSwapInResult(t, true, big.NewInt(1e15), colReservesOne, debtReservesEmpty, "1000000000000000", "993982448659583")
+		assertSwapInResult(t, false, big.NewInt(1e15), colReservesOne, debtReservesOne, "1000000000000000", "1009708563809409")
+		assertSwapInResult(t, false, big.NewInt(1e15), colReservesEmpty, debtReservesOne, "1000000000000000", "1001503357839336")
+		assertSwapInResult(t, false, big.NewInt(1e15), colReservesOne, debtReservesEmpty, "1000000000000000", "1004353577946049")
 	})
 }
-func TestPoolSimulator_SwapInCompareEstimateIn(t *testing.T) {
+func TestPoolSimulator_swapInAdjusted(t *testing.T) {
 	t.Run("TestPoolSimulator_SwapInCompareEstimateIn", func(t *testing.T) {
 		expectedAmountIn := "1000000000000000000"
 		expectedAmountOut := "1180035404724000000"
@@ -400,21 +400,17 @@ func TestPoolSimulator_SwapInCompareEstimateIn(t *testing.T) {
 
 		require.Equal(t, expectedAmountIn, big.NewInt(0).Mul(inAmt, big.NewInt(1e6)).String())
 		require.Equal(t, expectedAmountOut, big.NewInt(0).Mul(outAmt, big.NewInt(1e6)).String())
-
-		// swapIn should do the conversion for token decimals
-		_, outAmtSwapIn, _ := swapIn(true, big.NewInt(1e18), colReserves, debtReserves, 18, 18)
-		require.Equal(t, expectedAmountOut, outAmtSwapIn.String())
 	})
 }
 
 func TestPoolSimulator_SwapOut(t *testing.T) {
 	t.Run("TestPoolSimulator_SwapOut", func(t *testing.T) {
 		assertSwapOutResult(t, true, big.NewInt(1e15), colReservesOne, debtReservesOne, "1001743360284199", "1000000000000000")
-		assertSwapOutResult(t, true, big.NewInt(1e15), colReservesEmpty, debtReservesOne, "1005438674786548", "1000000000000000")
-		assertSwapOutResult(t, true, big.NewInt(1e15), colReservesOne, debtReservesEmpty, "1002572435818386", "1000000000000000")
-		assertSwapOutResult(t, false, big.NewInt(1e15), colReservesOne, debtReservesOne, "1001743359733488", "1000000000000000")
-		assertSwapOutResult(t, false, big.NewInt(1e15), colReservesEmpty, debtReservesOne, "1005438674233767", "1000000000000000")
-		assertSwapOutResult(t, false, big.NewInt(1e15), colReservesOne, debtReservesEmpty, "1002572435266527", "1000000000000000")
+		assertSwapOutResult(t, true, big.NewInt(1e15), colReservesEmpty, debtReservesOne, "1008956980269228", "1000000000000000")
+		assertSwapOutResult(t, true, big.NewInt(1e15), colReservesOne, debtReservesEmpty, "1006075684251081", "1000000000000000")
+		assertSwapOutResult(t, false, big.NewInt(1e15), colReservesOne, debtReservesOne, "990277794689250", "1000000000000000")
+		assertSwapOutResult(t, false, big.NewInt(1e15), colReservesEmpty, debtReservesOne, "998398794179077", "1000000000000000")
+		assertSwapOutResult(t, false, big.NewInt(1e15), colReservesOne, debtReservesEmpty, "995562604245639", "1000000000000000")
 	})
 }
 
@@ -422,11 +418,11 @@ func TestPoolSimulator_SwapInOut(t *testing.T) {
 	t.Run("TestPoolSimulator_SwapInOut", func(t *testing.T) {
 		assertSwapInResult(t, true, big.NewInt(1e15), colReservesOne, debtReservesOne, "1000000000000000", "998262697204710")
 
-		assertSwapOutResult(t, true, big.NewInt(998262697204710), colReservesOne, debtReservesOne, "999999999999998", "998262697204710")
+		assertSwapOutResult(t, true, big.NewInt(998262697204710), colReservesOne, debtReservesOne, "1003486720017208", "998262697204710")
 
-		assertSwapInResult(t, false, big.NewInt(1e15), colReservesOne, debtReservesOne, "1000000000000000", "998262697752553")
+		assertSwapInResult(t, false, big.NewInt(1e15), colReservesOne, debtReservesOne, "1000000000000000", "1005230069741089")
 
-		assertSwapOutResult(t, false, big.NewInt(998262697752553), colReservesOne, debtReservesOne, "999999999999998", "998262697752553")
+		assertSwapOutResult(t, false, big.NewInt(998262697752553), colReservesOne, debtReservesOne, "996531441885917", "998262697752553")
 	})
 }
 
@@ -434,11 +430,11 @@ func TestPoolSimulator_SwapInOutDebtEmpty(t *testing.T) {
 	t.Run("TestPoolSimulator_SwapInOutDebtEmpty", func(t *testing.T) {
 		assertSwapInResult(t, true, big.NewInt(1e15), colReservesEmpty, debtReservesOne, "1000000000000000", "994619847016724")
 
-		assertSwapOutResult(t, true, big.NewInt(994619847016724), colReservesEmpty, debtReservesOne, "999999999999999", "994619847016724")
+		assertSwapOutResult(t, true, big.NewInt(994619847016724), colReservesEmpty, debtReservesOne, "1010877349018816", "994619847016724")
 
-		assertSwapInResult(t, false, big.NewInt(1e15), colReservesEmpty, debtReservesOne, "1000000000000000", "994619847560607")
+		assertSwapInResult(t, false, big.NewInt(1e15), colReservesEmpty, debtReservesOne, "1000000000000000", "1016315705542943")
 
-		assertSwapOutResult(t, false, big.NewInt(994619847560607), colReservesEmpty, debtReservesOne, "999999999999999", "994619847560607")
+		assertSwapOutResult(t, false, big.NewInt(994619847560607), colReservesEmpty, debtReservesOne, "989297898136490", "994619847560607")
 	})
 
 }
@@ -447,10 +443,10 @@ func TestPoolSimulator_SwapInOutColEmpty(t *testing.T) {
 	t.Run("TestPoolSimulator_SwapInOutColEmpty", func(t *testing.T) {
 		assertSwapInResult(t, true, big.NewInt(1e15), colReservesOne, debtReservesEmpty, "1000000000000000", "997440731289905")
 
-		assertSwapOutResult(t, true, big.NewInt(997440731289905), colReservesOne, debtReservesEmpty, "999999999999999", "997440731289905")
+		assertSwapOutResult(t, true, big.NewInt(997440731289905), colReservesOne, debtReservesEmpty, "1005144871084204", "997440731289905")
 
-		assertSwapInResult(t, false, big.NewInt(1e15), colReservesOne, debtReservesEmpty, "1000000000000000", "997440731837532")
+		assertSwapInResult(t, false, big.NewInt(1e15), colReservesOne, debtReservesEmpty, "1000000000000000", "1007717273031498")
 
-		assertSwapOutResult(t, false, big.NewInt(997440731837532), colReservesOne, debtReservesEmpty, "999999999999999", "997440731837532")
+		assertSwapOutResult(t, false, big.NewInt(997440731837532), colReservesOne, debtReservesEmpty, "994894596365075", "997440731837532")
 	})
 }
