@@ -678,6 +678,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeNativeV1:   {},
 	ExchangeBebop:      {},
 	ExchangeClipper:    {},
+	ExchangeDexalot:    {},
 }
 
 func IsRFQSource(exchange Exchange) bool {
