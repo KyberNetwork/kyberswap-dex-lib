@@ -218,12 +218,12 @@ var (
 
 	ExchangeKyberSwapLimitOrderDS Exchange = "kyberswap-limit-order-v2"
 
-	ExchangeKyberPMM   Exchange = "kyber-pmm"
-	ExchangeSwaapV2    Exchange = "swaap-v2"
-	ExchangeHashflowV3 Exchange = "hashflow-v3"
-	ExchangeNativeV1   Exchange = "native-v1"
-	ExchangeBebop      Exchange = "bebop"
-
+	ExchangeKyberPMM     Exchange = "kyber-pmm"
+	ExchangeSwaapV2      Exchange = "swaap-v2"
+	ExchangeHashflowV3   Exchange = "hashflow-v3"
+	ExchangeNativeV1     Exchange = "native-v1"
+	ExchangeBebop        Exchange = "bebop"
+	ExchangeDexalot      Exchange = "dexalot"
 	ExchangeTraderJoeV20 Exchange = "traderjoe-v20"
 	ExchangeTraderJoeV21 Exchange = "traderjoe-v21"
 	ExchangeTraderJoeV22 Exchange = "traderjoe-v22"
@@ -678,6 +678,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeNativeV1:   {},
 	ExchangeBebop:      {},
 	ExchangeClipper:    {},
+	ExchangeDexalot:    {},
 }
 
 func IsRFQSource(exchange Exchange) bool {
