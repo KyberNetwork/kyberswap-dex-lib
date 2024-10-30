@@ -17,6 +17,7 @@ import (
 	curveTwocryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
+	deltaswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deltaswap-v1"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
@@ -249,6 +250,7 @@ type Types struct {
 	MantleETH                      string
 	OndoUSDY                       string
 	Clipper                        string
+	DeltaSwapV1                    string
 }
 
 var (
@@ -381,5 +383,6 @@ var (
 		MantleETH:                      meth.DexType,
 		OndoUSDY:                       ondo_usdy.DexType,
 		Clipper:                        clipper.DexType,
+		DeltaSwapV1:                    deltaswapv1.DexType,
 	}
 )
