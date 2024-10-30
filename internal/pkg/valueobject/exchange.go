@@ -10,25 +10,7 @@ import (
 type Exchange = dexValueObject.Exchange
 
 func IsAnExchange(exchange Exchange) bool {
-	var contained bool
-	_, contained = dexValueObject.AMMSourceSet[exchange]
-	if contained {
-		return true
-	}
-
-	_, contained = RFQSourceSet[exchange]
-	return contained
-}
-
-var RFQSourceSet = map[Exchange]struct{}{
-	dexValueObject.ExchangeKyberPMM: {},
-
-	dexValueObject.ExchangeKyberSwapLimitOrderDS: {},
-
-	dexValueObject.ExchangeSwaapV2:    {},
-	dexValueObject.ExchangeHashflowV3: {},
-	dexValueObject.ExchangeNativeV1:   {},
-	dexValueObject.ExchangeBebop:      {},
+	return dexValueObject.IsAMMSource(exchange) || dexValueObject.IsRFQSource(exchange)
 }
 
 // HashSources unique, then sort and has the slice string

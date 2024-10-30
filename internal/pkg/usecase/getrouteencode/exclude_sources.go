@@ -1,6 +1,6 @@
 package getrouteencode
 
-import "github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 
 func GetExcludedSources() []string {
 	var excludedSources []string

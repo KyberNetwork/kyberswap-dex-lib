@@ -5,6 +5,8 @@ import (
 	"runtime/debug"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
+	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+
 	routerEntities "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
@@ -64,8 +66,7 @@ func (uc *BuildRouteUseCase) isPMMPoolsExceptLimitOrder(poolType string) bool {
 		return false
 	}
 
-	_, ok := valueobject.RFQSourceSet[valueobject.Exchange(poolType)]
-	return ok
+	return dexValueObject.IsRFQSource(valueobject.Exchange(poolType))
 }
 
 func (uc *BuildRouteUseCase) trackFaultyPools(ctx context.Context, trackers []routerEntities.FaultyPoolTracker, tokenIn, tokenOut string) {
