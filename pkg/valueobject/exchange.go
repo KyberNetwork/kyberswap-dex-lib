@@ -669,11 +669,15 @@ func IsAMMSource(exchange Exchange) bool {
 }
 
 var RFQSourceSet = map[Exchange]struct{}{
-	ExchangeKyberPMM:   {},
-	ExchangeSwaapV2:    {},
-	ExchangeHashflowV3: {},
+	ExchangeKyberPMM: {},
 
 	ExchangeKyberSwapLimitOrderDS: {},
+
+	ExchangeSwaapV2:    {},
+	ExchangeHashflowV3: {},
+	ExchangeNativeV1:   {},
+	ExchangeBebop:      {},
+	ExchangeClipper:    {},
 }
 
 func IsRFQSource(exchange Exchange) bool {
