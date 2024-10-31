@@ -64,10 +64,10 @@ func (ts *PoolListTrackerTestSuite) TestGetNewPoolState() {
 			newPoolState, err := ts.tracker.GetNewPoolState(context.Background(), tc.pool, pool.GetNewPoolStateParams{})
 
 			if tc.expectFail {
-				require.Error(ts.T(), err, "Expected an error but got none")
+				require.Error(ts.T(), err)
 			} else {
-				require.NoError(ts.T(), err, "Expected no error but got one")
-				require.NotNil(ts.T(), newPoolState, "Expected non-nil pool state")
+				require.NoError(ts.T(), err)
+				require.NotNil(ts.T(), newPoolState)
 
 				var poolExtra Extra
 				err = json.Unmarshal([]byte(newPoolState.Extra), &poolExtra)
