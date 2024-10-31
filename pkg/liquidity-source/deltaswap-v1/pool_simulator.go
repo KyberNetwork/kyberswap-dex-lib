@@ -226,7 +226,8 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 	blockNumber := s.Pool.Info.BlockNumber
 	if blockNumber != s.lastLiquidityBlockNumber {
-		temp := new(big.Int).Mul(s.Pool.Info.Reserves[indexIn], s.Pool.Info.Reserves[indexOut])
+		var temp = new(big.Int).Mul(s.Pool.Info.Reserves[indexIn], s.Pool.Info.Reserves[indexOut])
+		temp.Sqrt(temp)
 		s.liquidityEMA = calcEMA(uint256.MustFromBig(temp), s.liquidityEMA, uint256.NewInt(max(blockNumber-s.lastLiquidityBlockNumber, 10)))
 		s.lastLiquidityBlockNumber = blockNumber
 	}
