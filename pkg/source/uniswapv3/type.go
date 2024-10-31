@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/int256"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
 )
@@ -48,11 +49,7 @@ type SubgraphPool struct {
 	Token1             Token  `json:"token1"`
 }
 
-type TickResp struct {
-	TickIdx        string `json:"tickIdx"`
-	LiquidityGross string `json:"liquidityGross"`
-	LiquidityNet   string `json:"liquidityNet"`
-}
+type TickResp = ticklens.TickResp
 
 type SubgraphPoolTicks struct {
 	ID    string     `json:"id"`

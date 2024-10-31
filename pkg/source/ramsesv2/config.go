@@ -7,6 +7,9 @@ type Config struct {
 	SubgraphAPI        string      `json:"subgraphAPI"`
 	SubgraphHeaders    http.Header `json:"subgraphHeaders"`
 	AllowSubgraphError bool        `json:"allowSubgraphError"`
+
+	AlwaysUseTickLens bool // instead of fetching from subgraph
+	TickLensAddress   string
 }
 
 func (c *Config) IsAllowSubgraphError() bool {
