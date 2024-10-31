@@ -439,15 +439,16 @@ func TestPoolSimulator(t *testing.T) {
 			actualCalcAmountOutResult, err := s.CalcAmountOut(tt.calcAmountOutParams)
 			assert.Nil(t, err)
 
-			tradeLiquidity, actualFee, err := s.calcPairTradingFee(
+			tradeLiquidity, actualFee, _ := s.calcPairTradingFee(
 				uint256.MustFromBig(tt.calcAmountOutParams.TokenAmountIn.Amount),
 				uint256.MustFromBig(s.Pool.Info.Reserves[indexIn]),
 				uint256.MustFromBig(s.Pool.Info.Reserves[indexOut]))
+
 			assert.EqualValues(t, tt.expected.tradeLiquidity.String(), tradeLiquidity.String())
 			assert.EqualValues(t, tt.expected.amountOut.String(), actualCalcAmountOutResult.TokenAmountOut.Amount.String())
 			assert.Zero(t, actualFee.Cmp(tt.expected.fee), "actual fee: %s, expected fee: %s", actualFee.String(), tt.expected.fee.String())
 
-			actualCalcAmountInResult, err := s.CalcAmountIn(pool.CalcAmountInParams{
+			actualCalcAmountInResult, _ := s.CalcAmountIn(pool.CalcAmountInParams{
 				TokenAmountOut: *actualCalcAmountOutResult.TokenAmountOut,
 				TokenIn:        tt.calcAmountOutParams.TokenAmountIn.Token,
 			})
