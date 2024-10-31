@@ -44,7 +44,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	result, err := h.client.RFQ(ctx, QuoteParams{
 		ChainID:           swapInfo.ChainID,
 		TimeInSeconds:     swapInfo.TimeInSeconds,
-		InputAmount:       swapInfo.InputAmount.String(),
+		InputAmount:       swapInfo.InputAmount,
 		InputAssetSymbol:  swapInfo.InputAssetSymbol,
 		OutputAssetSymbol: swapInfo.OutputAssetSymbol,
 

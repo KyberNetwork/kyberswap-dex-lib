@@ -28,7 +28,7 @@ type PoolPair struct {
 type SwapInfo struct {
 	ChainID           uint
 	TimeInSeconds     int
-	InputAmount       *big.Int
+	InputAmount       string
 	InputAssetSymbol  string
 	OutputAssetSymbol string
 }
