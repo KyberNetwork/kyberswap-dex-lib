@@ -48,3 +48,9 @@ type StaticExtra struct {
 	DexReservesResolver string `json:"dexReservesResolver"`
 	HasNative           bool   `json:"hasNative"`
 }
+
+type SwapInfo struct {
+	HasNative             bool               `json:"hasNative"`
+	NewCollateralReserves CollateralReserves `json:"-"`
+	NewDebtReserves       DebtReserves       `json:"-"`
+}

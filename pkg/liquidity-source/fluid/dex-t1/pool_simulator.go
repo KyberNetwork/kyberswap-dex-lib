@@ -5,6 +5,7 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/huandu/go-clone"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -91,7 +92,10 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 	amountInAfterFee := new(big.Int).Sub(param.TokenAmountIn.Amount, fee)
 
-	_, tokenAmountOut, err := swapIn(swap0To1, amountInAfterFee, s.CollateralReserves, s.DebtReserves,
+	collateralReserves := clone.Slowly(s.CollateralReserves).(CollateralReserves)
+	debtReserves := clone.Slowly(s.DebtReserves).(DebtReserves)
+
+	_, tokenAmountOut, err := swapIn(swap0To1, amountInAfterFee, collateralReserves, debtReserves,
 		int64(tokenInDecimals), int64(tokenOutDecimals))
 	if err != nil {
 		return nil, err
@@ -101,7 +105,11 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
 		Fee:            &poolpkg.TokenAmount{Token: param.TokenAmountIn.Token, Amount: fee},
 		Gas:            defaultGas.Swap,
-		SwapInfo:       s.StaticExtra,
+		SwapInfo: SwapInfo{
+			HasNative:             s.HasNative,
+			NewCollateralReserves: collateralReserves,
+			NewDebtReserves:       debtReserves,
+		},
 	}, nil
 }
 
@@ -121,7 +129,10 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		tokenInDecimals = s.Token1Decimals
 	}
 
-	tokenAmountIn, _, err := swapOut(swap0To1, param.TokenAmountOut.Amount, s.CollateralReserves, s.DebtReserves,
+	collateralReserves := clone.Slowly(s.CollateralReserves).(CollateralReserves)
+	debtReserves := clone.Slowly(s.DebtReserves).(DebtReserves)
+
+	tokenAmountIn, _, err := swapOut(swap0To1, param.TokenAmountOut.Amount, collateralReserves, debtReserves,
 		int64(tokenInDecimals), int64(tokenOutDecimals))
 	if err != nil {
 		return nil, err
@@ -137,7 +148,11 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		TokenAmountIn: &poolpkg.TokenAmount{Token: param.TokenIn, Amount: amountInAfterFee},
 		Fee:           &poolpkg.TokenAmount{Token: param.TokenIn, Amount: fee},
 		Gas:           defaultGas.Swap,
-		SwapInfo:      s.StaticExtra,
+		SwapInfo: SwapInfo{
+			HasNative:             s.HasNative,
+			NewCollateralReserves: collateralReserves,
+			NewDebtReserves:       debtReserves,
+		},
 	}, nil
 }
 
@@ -153,6 +168,11 @@ func (t *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		if t.Info.Tokens[i] == output.Token {
 			t.Info.Reserves[i] = new(big.Int).Sub(t.Info.Reserves[i], outputAmount)
 		}
+	}
+
+	if swapInfo, ok := params.SwapInfo.(PoolExtra); ok {
+		t.CollateralReserves = swapInfo.CollateralReserves
+		t.DebtReserves = swapInfo.DebtReserves
 	}
 }
 

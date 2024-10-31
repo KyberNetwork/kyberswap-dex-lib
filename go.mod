@@ -34,7 +34,10 @@ require (
 	golang.org/x/sync v0.8.0
 )
 
-require github.com/klauspost/compress v1.17.8
+require (
+	github.com/huandu/go-clone v1.7.2
+	github.com/klauspost/compress v1.17.8
+)
 
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
