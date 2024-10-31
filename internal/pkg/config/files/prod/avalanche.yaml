@@ -81,7 +81,7 @@ common:
   swaapAPIKey:
   hashflowAPIKey:
   nativeAPIKey:
-  dexalotAPIKey: d1d5e36d-36f2-48ff-adc3-0b636c705163
+  dexalotAPIKey: 
   dexalotUpscalePercent: 20
   dexUseAEVM: &dexUseAEVM
     liquiditybook-v20: true

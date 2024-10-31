@@ -99,6 +99,7 @@ common:
     - "fluid-vault-t1"
     - "fluid-dex-t1"
     - "bebop"
+    - "dexalot"
     - "clipper"
   featureFlags: &featureFlags
   swaapAPIKey:
@@ -106,6 +107,8 @@ common:
   hashflowAPIKey:
   bebopAPIName:
   bebopAPIAuth:
+  dexalotAPIKey: 
+  dexalotUpscalePercent: 20
   clipperAPIAuth:
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
@@ -216,6 +219,7 @@ encoder:
     executeIntegral: 52
     executeFluidVaultT1: 53
     executeFluidDexT1: 55
+    executeDexalot: 57
     executeClipperRfq: 58
 useCase:
   getRoute:
@@ -401,6 +405,13 @@ useCase:
         properties:
           http:
             base_url: "https://api.bebop.xyz/pmm/arbitrum"
+            timeout: 10s
+            retry_count: 3
+      - id: dexalot
+        handler: dexalot
+        properties:
+          http:
+            base_url: "https://api.dexalot.com"
             timeout: 10s
             retry_count: 3
       - id: clipper

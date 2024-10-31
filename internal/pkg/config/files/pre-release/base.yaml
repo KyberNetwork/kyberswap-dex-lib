@@ -93,11 +93,14 @@ common:
     - "fluid-vault-t1"
     - "fluid-dex-t1"
     - "bebop"
+    - "dexalot"
   featureFlags: &featureFlags
   swaapAPIKey:
   nativeAPIKey:
   bebopAPIName:
   bebopAPIAuth:
+  dexalotAPIKey: 
+  dexalotUpscalePercent: 20
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -205,6 +208,7 @@ encoder:
     executeBebop: 46
     executeFluidVaultT1: 53
     executeFluidDexT1: 55
+    executeDexalot: 57
 useCase:
   getRoute:
     chainId: *chainId
@@ -376,6 +380,13 @@ useCase:
         properties:
           http:
             base_url: "https://api.bebop.xyz/pmm/base"
+            timeout: 10s
+            retry_count: 3
+      - id: dexalot
+        handler: dexalot
+        properties:
+          http:
+            base_url: "https://api.dexalot.com"
             timeout: 10s
             retry_count: 3
     faultyPools:

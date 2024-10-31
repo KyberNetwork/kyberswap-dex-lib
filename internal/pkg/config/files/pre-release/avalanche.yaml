@@ -77,10 +77,13 @@ common:
     - "traderjoe-v22"
     - "woofi-v3"
     - "bebop"
+    - "dexalot"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:
   nativeAPIKey:
+  dexalotAPIKey: 
+  dexalotUpscalePercent: 20
   dexUseAEVM: &dexUseAEVM
     liquiditybook-v20: true
     liquiditybook-v21: true
@@ -341,6 +344,13 @@ useCase:
         properties:
           http:
             base_url: "https://api.bebop.xyz/pmm/polygon"
+            timeout: 10s
+            retry_count: 3
+      - id: dexalot
+        handler: dexalot
+        properties:
+          http:
+            base_url: "https://api.dexalot.com"
             timeout: 10s
             retry_count: 3
     faultyPools:
