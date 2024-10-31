@@ -521,7 +521,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 		},
 		{
 			// https://dashboard.tenderly.co/tenderly_kyber/nhathm/fork/6fe08508-524e-4530-9003-c410e00ed0a7/simulation/6751a5a4-70bd-417a-8659-938d5491b50e
-			name: "Test 1: mock pool in multi-path",
+			name: "Test 1: mock tx with multi-path route",
 			fields: fields{
 				Pool: pool.Pool{Info: pool.PoolInfo{
 					Address:     strings.ToLower("0x755f72d7f22efaed6e00e589a8c7bd95a666fef0"),
