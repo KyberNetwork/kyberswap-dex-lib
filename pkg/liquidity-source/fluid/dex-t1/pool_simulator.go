@@ -5,7 +5,6 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/huandu/go-clone"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -92,8 +91,19 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 	amountInAfterFee := new(big.Int).Sub(param.TokenAmountIn.Amount, fee)
 
-	collateralReserves := clone.Slowly(s.CollateralReserves).(CollateralReserves)
-	debtReserves := clone.Slowly(s.DebtReserves).(DebtReserves)
+	collateralReserves := CollateralReserves{
+		Token0RealReserves:      new(big.Int).Set(s.CollateralReserves.Token0RealReserves),
+		Token1RealReserves:      new(big.Int).Set(s.CollateralReserves.Token1RealReserves),
+		Token0ImaginaryReserves: new(big.Int).Set(s.CollateralReserves.Token0ImaginaryReserves),
+		Token1ImaginaryReserves: new(big.Int).Set(s.CollateralReserves.Token1ImaginaryReserves),
+	}
+
+	debtReserves := DebtReserves{
+		Token0RealReserves:      new(big.Int).Set(s.DebtReserves.Token0RealReserves),
+		Token1RealReserves:      new(big.Int).Set(s.DebtReserves.Token1RealReserves),
+		Token0ImaginaryReserves: new(big.Int).Set(s.DebtReserves.Token0ImaginaryReserves),
+		Token1ImaginaryReserves: new(big.Int).Set(s.DebtReserves.Token1ImaginaryReserves),
+	}
 
 	_, tokenAmountOut, err := swapIn(swap0To1, amountInAfterFee, collateralReserves, debtReserves,
 		int64(tokenInDecimals), int64(tokenOutDecimals))
@@ -129,8 +139,19 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		tokenInDecimals = s.Token1Decimals
 	}
 
-	collateralReserves := clone.Slowly(s.CollateralReserves).(CollateralReserves)
-	debtReserves := clone.Slowly(s.DebtReserves).(DebtReserves)
+	collateralReserves := CollateralReserves{
+		Token0RealReserves:      new(big.Int).Set(s.CollateralReserves.Token0RealReserves),
+		Token1RealReserves:      new(big.Int).Set(s.CollateralReserves.Token1RealReserves),
+		Token0ImaginaryReserves: new(big.Int).Set(s.CollateralReserves.Token0ImaginaryReserves),
+		Token1ImaginaryReserves: new(big.Int).Set(s.CollateralReserves.Token1ImaginaryReserves),
+	}
+
+	debtReserves := DebtReserves{
+		Token0RealReserves:      new(big.Int).Set(s.DebtReserves.Token0RealReserves),
+		Token1RealReserves:      new(big.Int).Set(s.DebtReserves.Token1RealReserves),
+		Token0ImaginaryReserves: new(big.Int).Set(s.DebtReserves.Token0ImaginaryReserves),
+		Token1ImaginaryReserves: new(big.Int).Set(s.DebtReserves.Token1ImaginaryReserves),
+	}
 
 	tokenAmountIn, _, err := swapOut(swap0To1, param.TokenAmountOut.Amount, collateralReserves, debtReserves,
 		int64(tokenInDecimals), int64(tokenOutDecimals))
