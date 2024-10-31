@@ -1,14 +1,16 @@
-package uniswapv3
+package ticklens
 
 import (
 	"bytes"
+	_ "embed"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
 var (
-	uniswapV3PoolABI abi.ABI
-	erc20ABI         abi.ABI
+	//go:embed TickLensProxy.json
+	tickLensProxyJson []byte
+	tickLensABI       abi.ABI
 )
 
 func init() {
@@ -16,8 +18,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&uniswapV3PoolABI, uniswapV3PoolJson},
-		{&erc20ABI, erc20Json},
+		{&tickLensABI, tickLensProxyJson},
 	}
 
 	for _, b := range builder {

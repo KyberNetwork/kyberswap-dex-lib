@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 type Gas struct {
@@ -38,11 +40,7 @@ type SubgraphPool struct {
 	Token1             Token  `json:"token1"`
 }
 
-type TickResp struct {
-	TickIdx        string `json:"tickIdx"`
-	LiquidityGross string `json:"liquidityGross"`
-	LiquidityNet   string `json:"liquidityNet"`
-}
+type TickResp = ticklens.TickResp
 
 type SubgraphPoolTicks struct {
 	ID    string     `json:"id"`

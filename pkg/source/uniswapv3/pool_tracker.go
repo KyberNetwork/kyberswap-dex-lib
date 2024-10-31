@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 type PoolTracker struct {
@@ -120,7 +121,7 @@ func (d *PoolTracker) GetNewPoolState(
 		// TLDR: Optimism has some pre-genesis Uniswap V3 pool. Subgraph does not have data for these pools
 		// So we have to fetch ticks data from the TickLens smart contract (which is slower).
 		if d.config.AlwaysUseTickLens || lo.Contains[string](d.config.preGenesisPoolIDs, p.Address) {
-			poolTicks, err = d.getPoolTicksFromSC(ctx, p)
+			poolTicks, err = ticklens.GetPoolTicksFromSC(ctx, d.ethrpcClient, d.config.TickLensAddress, p)
 			if err != nil {
 				l.WithFields(logger.Fields{
 					"error": err,
