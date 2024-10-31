@@ -153,7 +153,7 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		SwapInfo: SwapInfo{
 			ChainID:           p.extra.ChainID,
 			TimeInSeconds:     p.extra.TimeInSeconds,
-			InputAmount:       params.TokenAmountIn.Amount,
+			InputAmount:       params.TokenAmountIn.Amount.String(),
 			InputAssetSymbol:  assetIn.Symbol,
 			OutputAssetSymbol: assetOut.Symbol,
 		},
