@@ -102,12 +102,6 @@ type preGenesisPool struct {
 	ID string `json:"id"`
 }
 
-type populatedTick struct {
-	Tick           *big.Int
-	LiquidityNet   *big.Int
-	LiquidityGross *big.Int
-}
-
 type FetchRPCResult struct {
 	Liquidity   *big.Int `json:"liquidity"`
 	Slot0       Slot0    `json:"slot0"`
