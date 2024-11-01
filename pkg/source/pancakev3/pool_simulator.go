@@ -84,10 +84,9 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	// we will get the tickSpacing through feeTier mapping.
 	if tickSpacing == 0 {
 		feeTier := constants.FeeAmount(entityPool.SwapFee)
-		if _, ok := constants.TickSpacings[feeTier]; !ok {
+		if tickSpacing = TickSpacings[feeTier]; tickSpacing == 0 {
 			return nil, ErrInvalidFeeTier
 		}
-		tickSpacing = constants.TickSpacings[feeTier]
 	}
 	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, tickSpacing)
 	if err != nil {
