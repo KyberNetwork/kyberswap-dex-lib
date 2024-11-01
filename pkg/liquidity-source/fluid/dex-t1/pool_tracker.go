@@ -27,20 +27,20 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	}
 }
 
-func (d *PoolTracker) GetNewPoolState(
+func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	return d.getNewPoolState(ctx, p, params, nil)
+	return t.getNewPoolState(ctx, p, params, nil)
 }
 
-func (d *PoolTracker) GetNewPoolStateWithOverrides(
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
 	ctx context.Context,
 	p entity.Pool,
 	params pool.GetNewPoolStateWithOverridesParams,
 ) (entity.Pool, error) {
-	return d.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+	return t.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
 }
 
 func (t *PoolTracker) getNewPoolState(
