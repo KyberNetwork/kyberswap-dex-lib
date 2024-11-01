@@ -152,6 +152,15 @@ func Test_calcSingleSideLiquidity(t *testing.T) {
 			},
 			expected: uint256.NewInt(6744224174616),
 		},
+		{
+			name: "Test 7",
+			args: args{
+				amount:   uint256.NewInt(32),
+				reserve0: uint256.MustFromDecimal("28801288458145955324"),
+				reserve1: uint256.NewInt(1689894),
+			},
+			expected: uint256.NewInt(0),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -175,6 +184,7 @@ func TestPoolSimulator(t *testing.T) {
 		lastTradeBlockNumber     uint64
 	}
 	type expected struct {
+		err            error
 		amountOut      *uint256.Int
 		tradeLiquidity *uint256.Int
 		fee            *uint256.Int
@@ -417,6 +427,35 @@ func TestPoolSimulator(t *testing.T) {
 				getAmountIn:    uint256.NewInt(200000),
 			},
 		},
+		{
+			name: "Test 8",
+			fields: fields{
+				Pool: pool.Pool{Info: pool.PoolInfo{
+					Address:     strings.ToLower("0x508d15186bc00d2a21c76f16c76a202169ecfff9"),
+					Tokens:      []string{"0x95146881b86b3ee99e63705ec87afe29fcc044d9", "0xaf88d065e77c8cc2239327c5edb3a432268e5831"},
+					Reserves:    []*big.Int{utils.NewBig10("28801288458145955324"), utils.NewBig10("1689894")},
+					BlockNumber: 269399614,
+				}},
+				feePrecision:             Number_1000,
+				dsFee:                    uint256.NewInt(3),
+				dsFeeThreshold:           uint256.NewInt(0),
+				tradeLiquidityEMA:        uint256.NewInt(6479739510165),
+				liquidityEMA:             uint256.MustFromDecimal("1574913102224118"),
+				lastLiquidityBlockNumber: 21049204,
+				lastTradeLiquiditySum:    uint256.NewInt(6479739510165),
+				lastTradeBlockNumber:     21049204,
+			},
+			calcAmountOutParams: pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{
+					Token:  "0x95146881b86b3ee99e63705ec87afe29fcc044d9",
+					Amount: big.NewInt(32),
+				},
+				TokenOut: "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+			},
+			expected: expected{
+				err: ErrZeroTradeLiquidity,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -437,7 +476,13 @@ func TestPoolSimulator(t *testing.T) {
 			assert.GreaterOrEqual(t, indexOut, 0)
 
 			actualCalcAmountOutResult, err := s.CalcAmountOut(tt.calcAmountOutParams)
-			assert.Nil(t, err)
+			if tt.expected.err != nil {
+				assert.NotNil(t, err)
+				assert.Equal(t, tt.expected.err.Error(), err.Error())
+				return
+			} else {
+				assert.Nil(t, err)
+			}
 
 			tradeLiquidity, actualFee, _ := s.calcPairTradingFee(
 				uint256.MustFromBig(tt.calcAmountOutParams.TokenAmountIn.Amount),
