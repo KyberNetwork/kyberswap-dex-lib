@@ -163,7 +163,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 					},
 					{
 						Price: 3765.3730881244423,
-						Level: 0.33433231857185164,
+						Level: 0.33433231857185164 - (258610248702336200 / math.Pow10(18)),
 					},
 				},
 			},
@@ -172,7 +172,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				tokenInIndex: 0,
 				priceLevels: []PriceLevel{{
 					Price: 3765.3730881244423,
-					Level: 0.33433231857185164,
+					Level: 0.33433231857185164 - (278610248702336200 / math.Pow10(18)),
 				}},
 			},
 			{
