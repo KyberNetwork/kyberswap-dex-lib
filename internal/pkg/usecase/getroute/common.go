@@ -226,10 +226,10 @@ func InitializeFinderEngine(
 
 	spfaFinder, err := spfav2.NewFinder(spfav2.Config{
 		MaxHops:                      finderOptions.MaxHops,
-		DistributionPercent:          finderOptions.MaxPathsToGenerate,
-		MaxPathsInRoute:              finderOptions.MaxPathsToReturn,
-		MaxPathsToGenerate:           finderOptions.MaxPathsInRoute,
-		MaxPathsToReturn:             finderOptions.DistributionPercent,
+		DistributionPercent:          finderOptions.DistributionPercent,
+		MaxPathsInRoute:              finderOptions.MaxPathsInRoute,
+		MaxPathsToGenerate:           finderOptions.MaxPathsToGenerate,
+		MaxPathsToReturn:             finderOptions.MaxPathsToReturn,
 		MinPartUSD:                   finderOptions.MinPartUSD,
 		ExtraPathsPerNodeByTokens:    finderOptions.ExtraPathsPerNodeByTokens,
 		FullAmountGeneratePathsPrice: finderOptions.FullAmountGeneratePathsPrice,
