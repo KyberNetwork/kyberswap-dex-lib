@@ -23,3 +23,11 @@ jobs:
     with:
       service: ${{ github.event.repository.name }}
     secrets: inherit
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    uses: KyberNetwork/service-framework/.github/workflows/deploy.yaml@main
+    with:
+      services: router-service/*/{api,indexer}
+      tag: ${{ needs.build.outputs.tag }}
+    secrets: inherit
