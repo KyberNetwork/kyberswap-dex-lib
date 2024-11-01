@@ -52,6 +52,11 @@ func NewBundledUseCase(
 	return &bundledUseCase{uc, aggregator}
 }
 
+func (u *bundledUseCase) ApplyConfig(config Config) {
+	u.useCase.ApplyConfig(config)
+	u.aggregator.ApplyConfig(config)
+}
+
 func (u *bundledUseCase) Handle(ctx context.Context, query dto.GetBundledRoutesQuery) (*dto.GetBundledRoutesResult, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] bundledUseCase.Handle")
 	defer span.End()

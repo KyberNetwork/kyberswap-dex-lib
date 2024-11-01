@@ -46,6 +46,10 @@ func NewBundledAggregator(
 	return &bundledAggregator{ag, poolFactory}
 }
 
+func (a *bundledAggregator) ApplyConfig(config Config) {
+	a.aggregator.ApplyConfig(config)
+}
+
 func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.AggregateBundledParams) ([]*valueobject.RouteSummary, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[getroutev2] aggregator.AggregateBundled")
 	defer span.End()

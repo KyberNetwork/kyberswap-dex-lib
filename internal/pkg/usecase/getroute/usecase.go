@@ -122,7 +122,9 @@ func (u *useCase) ApplyConfig(config Config) {
 	defer u.mu.Unlock()
 
 	u.config = config
-	u.aggregator.ApplyConfig(config)
+	if u.aggregator != nil {
+		u.aggregator.ApplyConfig(config)
+	}
 }
 
 // wrapTokens wraps tokens in query and returns the query

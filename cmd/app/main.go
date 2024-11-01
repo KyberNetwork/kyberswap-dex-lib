@@ -576,6 +576,7 @@ func apiAction(c *cli.Context) (err error) {
 			ctx,
 			configLoader,
 			getRouteUseCase,
+			getBundledRouteUseCase,
 			buildRouteUseCase,
 			poolFactory,
 			poolManager,
@@ -884,6 +885,7 @@ func applyLatestConfigForAPI(
 	ctx context.Context,
 	configLoader *config.ConfigLoader,
 	getRouteUseCase IGetRouteUseCase,
+	getBundledRouteUseCase IGetRouteUseCase,
 	buildRouteUseCase IBuildRouteUseCase,
 	poolFactory IPoolFactory,
 	poolManager IPoolManager,
@@ -904,6 +906,7 @@ func applyLatestConfigForAPI(
 	}
 
 	getRouteUseCase.ApplyConfig(cfg.UseCase.GetRoute)
+	getBundledRouteUseCase.ApplyConfig(cfg.UseCase.GetRoute)
 	buildRouteUseCase.ApplyConfig(cfg.UseCase.BuildRoute)
 	poolFactory.ApplyConfig(cfg.UseCase.PoolFactory)
 	poolManager.ApplyConfig(cfg.UseCase.PoolManager)

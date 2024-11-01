@@ -22,6 +22,7 @@ type IAggregator interface {
 
 type IBundledAggregator interface {
 	Aggregate(ctx context.Context, params *types.AggregateBundledParams) ([]*valueobject.RouteSummary, error)
+	ApplyConfig(config Config)
 }
 
 //go:generate mockgen -destination ../../mocks/usecase/getroute/pool_manager.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IPoolManager
