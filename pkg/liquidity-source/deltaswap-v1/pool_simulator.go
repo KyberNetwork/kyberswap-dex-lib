@@ -280,7 +280,7 @@ func (s *PoolSimulator) estimateTradingFee(tradeLiquidity *uint256.Int) *uint256
 
 func (s *PoolSimulator) calcTradingFee(tradeLiquidity, lastLiquidityTradedEMA, lastLiquidityEMA *uint256.Int) *uint256.Int {
 	var threshold uint256.Int
-	threshold.Set(lastLiquidityEMA).Mul(&threshold, s.dsFeeThreshold).Div(&threshold, Number_1000)
+	threshold.Mul(lastLiquidityEMA, s.dsFeeThreshold).Div(&threshold, Number_1000)
 	// if trade >= threshold, charge fee
 	if (Max(tradeLiquidity, lastLiquidityTradedEMA)).Gt(&threshold) {
 		return s.dsFee
@@ -296,14 +296,9 @@ func (s *PoolSimulator) _getTradeLiquidityEMA(
 	tradeLiquiditySum := s._getLastTradeLiquiditySum(tradeLiquidity, blockDiff)
 	lastTradeLiquidityEMA := s._getLastTradeLiquidityEMA(blockDiff)
 
-	var _tradeLiquidityEMA uint256.Int
-	if tradeLiquidity.Gt(number.Zero) {
-		_tradeLiquidityEMA.Set(calcEMA(tradeLiquiditySum, lastTradeLiquidityEMA, Number_20))
-	} else {
-		_tradeLiquidityEMA.Set(lastTradeLiquidityEMA)
-	}
+	_tradeLiquidityEMA := calcEMA(tradeLiquiditySum, lastTradeLiquidityEMA, Number_20)
 
-	return &_tradeLiquidityEMA, lastTradeLiquidityEMA, tradeLiquiditySum
+	return _tradeLiquidityEMA, lastTradeLiquidityEMA, tradeLiquiditySum
 }
 
 func (s *PoolSimulator) _getLastTradeLiquiditySum(tradeLiquidity *uint256.Int, blockDiff uint64) *uint256.Int {
