@@ -8,12 +8,13 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestPoolTracker(t *testing.T) {
@@ -84,12 +85,12 @@ func TestPoolTracker(t *testing.T) {
 
 		token0RealReserves := extra.CollateralReserves.Token0RealReserves
 		token0Debt := extra.DebtReserves.Token0RealReserves
-		expectedToken0Reserve := new(big.Int).Add(token0RealReserves, token0Debt).String()
+		expectedToken0Reserve := new(big.Int).Add(token0RealReserves, token0Debt).String() + "000000"
 		require.Equal(t, expectedToken0Reserve, newPool.Reserves[0], "Reserve should be equal to Token0RealReserves + Token0Debt")
 
 		token1RealReserves := extra.CollateralReserves.Token1RealReserves
 		token1Debt := extra.DebtReserves.Token1RealReserves
-		expectedToken1Reserve := new(big.Int).Add(token1RealReserves, token1Debt).String()
+		expectedToken1Reserve := new(big.Int).Add(token1RealReserves, token1Debt).String() + "000000"
 		require.Equal(t, expectedToken1Reserve, newPool.Reserves[1], "Reserve should be equal to Token1RealReserves + Token1Debt")
 
 		require.True(t, extra.CollateralReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0)
