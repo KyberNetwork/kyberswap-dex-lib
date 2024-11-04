@@ -101,6 +101,7 @@ common:
     - "bebop"
     - "dexalot"
     - "clipper"
+    - "deltaswap-v1"
   featureFlags: &featureFlags
   swaapAPIKey:
   nativeAPIKey:

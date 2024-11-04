@@ -97,6 +97,7 @@ var (
 		valueobject.ExchangeKinetixV2:       true,
 		valueobject.ExchangeAlienBaseDegen:  true,
 		valueobject.ExchangeSectaV2:         true,
+		valueobject.ExchangeDeltaSwapV1:     true,
 
 		// KSClassic
 		valueobject.ExchangeDMM:             true,

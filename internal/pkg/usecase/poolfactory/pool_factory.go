@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
+	deltaswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deltaswap-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	ondo_usdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
@@ -689,6 +690,9 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newOndoUSDY(entityPool)
 	case pooltypes.PoolTypes.Clipper:
 		return f.newClipper(entityPool)
+	case pooltypes.PoolTypes.DeltaSwapV1:
+		return f.newDeltaSwapV1(entityPool)
+
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -2343,6 +2347,20 @@ func (f *PoolFactory) newClipper(entityPool entity.Pool) (*clipper.PoolSimulator
 			entityPool.Address,
 			entityPool.Type,
 			entityPool.Exchange,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newDeltaSwapV1(entityPool entity.Pool) (*deltaswapv1.PoolSimulator, error) {
+	corePool, err := deltaswapv1.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newDeltaSwapV1] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
 		)
 	}
 

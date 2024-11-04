@@ -138,6 +138,7 @@ common:
     - "frxeth"
     - "meth"
     - "clipper"
+    - "deltaswap-v1"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:

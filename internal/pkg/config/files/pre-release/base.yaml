@@ -94,6 +94,7 @@ common:
     - "fluid-dex-t1"
     - "bebop"
     - "dexalot"
+    - "deltaswap-v1"
   featureFlags: &featureFlags
   swaapAPIKey:
   nativeAPIKey:
