@@ -43,9 +43,9 @@ type IPoolSimulator interface {
 	// the required params is TokenAmountIn and TokenOut.
 	// SwapLimit is optional, individual dex logic will choose to ignore it if it is nil
 	CalcAmountOut(params CalcAmountOutParams) (*CalcAmountOutResult, error)
-	// CloneBalance clones IPoolSimulator to back up old balance state before UpdateBalance by a swap.
+	// CloneState clones IPoolSimulator to back up old balance state before UpdateBalance by a swap.
 	// Only clones fields updated by UpdateBalance. Returns nil if unimplemented.
-	CloneBalance() IPoolSimulator
+	CloneState() IPoolSimulator
 	// UpdateBalance updates the pool state after a swap
 	UpdateBalance(params UpdateBalanceParams)
 	CanSwapTo(address string) []string

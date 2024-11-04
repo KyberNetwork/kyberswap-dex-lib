@@ -18,7 +18,7 @@ type Pool struct {
 	Info PoolInfo
 }
 
-func (t *Pool) CloneBalance() IPoolSimulator {
+func (t *Pool) CloneState() IPoolSimulator {
 	return nil
 }
 

@@ -276,7 +276,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 }
 
-func (p *PoolSimulator) CloneBalance() pool.IPoolSimulator {
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	v3Pool := *p.V3Pool
 	v3Pool.SqrtRatioX96 = v3Pool.SqrtRatioX96.Clone()
 	v3Pool.Liquidity = v3Pool.Liquidity.Clone()
