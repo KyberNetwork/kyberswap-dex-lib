@@ -1,8 +1,9 @@
 package buildroute
 
 import (
-	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 )
 
 var (

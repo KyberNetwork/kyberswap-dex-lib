@@ -5,7 +5,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/huandu/go-clone"
+	clone "github.com/huandu/go-clone/generic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,7 +40,7 @@ func TestPoolBucket_RollBackPools(t *testing.T) {
 
 	//we just backup 1 pool here
 	for address := range poolByAddresses {
-		backUpPools = []poolpkg.IPoolSimulator{clone.Slowly(poolByAddresses[address]).(poolpkg.IPoolSimulator)}
+		backUpPools = []poolpkg.IPoolSimulator{clone.Slowly(poolByAddresses[address])}
 		backUpPoolAddress = address
 		break
 	}

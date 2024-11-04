@@ -5,7 +5,7 @@ import (
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
-	"github.com/huandu/go-clone"
+	clone "github.com/huandu/go-clone/generic"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 )
@@ -76,8 +76,7 @@ func (b *PoolBucket) ClonePool(poolAddress string) (pool poolpkg.IPoolSimulator)
 	}()
 
 	// clone the pool and add to ChangedPools
-	v := clone.Slowly(pool)
-	pool = v.(poolpkg.IPoolSimulator)
+	pool = clone.Slowly(pool)
 	b.ChangedPools[poolAddress] = pool
 
 	// Note: When we need to clone a curve-meta pool, we should clone its base pool as well (as the code below)

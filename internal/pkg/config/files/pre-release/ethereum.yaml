@@ -16,8 +16,9 @@ common:
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
   whitelistedTokenSet: &whitelistedTokenSet
+    0xf951e335afb289353dc249e82926178eac7ded78: true # swETH
     0xb50721bcf8d664c30412cfbc6cf7a15145234ad1: true # ARB
-    0x1a7e4e63778b4f12a199c062f3efdd288afcbce8: true # agEUR
+    0x1a7e4e63778b4f12a199c062f3efdd288afcbce8: true # EURA
     0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2: true # WETH
     0xdac17f958d2ee523a2206206994597c13d831ec7: true # USDT
     0x6b175474e89094c44da98b954eedeac495271d0f: true # DAI
@@ -26,6 +27,33 @@ common:
     0xdefa4e8a7bcba345f687a2f1456f5edd9ce97202: true # KNC
     0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0: true # wstETH
     0xae7ab96520de3a18e5e111b5eaab095312d7fe84: true # stETH
+    0x467719ad09025fcc6cf6f8311755809d45a5e5f3: true # AXL
+    0x06b44daa59abd49ac739879bd43a422ed1bd4f7a: true # dBSGG
+    0x853d955acef822db058eb8505911ed77f175b99e: true # FRAX
+    0xac3e018457b222d93114458476f3e3416abbe38f: true # sfrxETH
+    0xae78736cd615f374d3085123a210448e74fc6393: true # rETH
+    0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9: true # AAVE
+    0xbe9895146f7af43049ca1c1ae358b0541ea49704: true # cbETH
+    0x455e53cbb86018ac2b8092fdcd39d8444affc3f6: true # POL
+    0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0: true # MATIC
+    0xa35b1b31ce002fbf2058d22f30f95d405200a15b: true # ETHx
+    0x5de8ab7e27f6e7a1fff3e5b337584aa43961beef: true # SDEX
+    0x83f20f44975d03b1b09e64809b757c47f942beea: true # sDAI
+    0xe07f9d810a48ab5c3c914ba3ca53af14e4491e8a: true # GYD
+    0xf939e0a03fb07f59a73314e73794be0e57ac1b4e: true # crvUSD
+    0x79c58f70905f734641735bc61e45c19dd9ad60bc: true # USDC-DAI-USDT
+    0x95d8bf2f57cf973251972b496dc6b1d9c6b5bce3: true # BLUE
+    0x4c9edd5852cd905f086c759e8383e09bff1e68b3: true # USDe
+    0x35fa164735182de50811e8e2e824cfb9b6118ac2: true # eETH
+    0xcd5fe23c85820f7b72d0926fc9b05b43e359b7ee: true # weETH
+    0x808507121b80c02388fad14726482e061b8da827: true # PENDLE
+    0x73a15fed60bf67631dc6cd7bc5b6e8da8190acf5: true # USD0
+    0xa1290d69c65a6fe4df752f95823fae25cb99e5a7: true # rsETH
+    0x7a56e1c57c7475ccf742a1832b028f0456652f97: true # SolvBTC
+    0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2: true # MKR
+    0x57e114b691db790c35207b2e685d4a43181e6061: true # ENA
+    0x56072c95faa701256059aa122697b133aded9279: true # SKY
+    0xdc035d45d973e3ec169d2276ddab16f1e407384f: true # USDS
   blacklistedPoolSet: &blacklistedPoolSet
     0x3dabc75ffd70695852da101b0c0d018781320551: true
     0xf6a8e47daeeddcce297e7541523e27df2f167bf3: true
@@ -225,6 +253,7 @@ useCase:
         minPartUSD: 500
         minThresholdAmountInUSD: 0
         maxThresholdAmountInUSD: 100000000
+        fullAmountGeneratePathsPrice: 44999
         isHillClimbEnabled: false
         hillClimbDistributionPercent: 1
         hillClimbIteration: 2

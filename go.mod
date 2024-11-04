@@ -18,11 +18,11 @@ require (
 	github.com/KyberNetwork/grpc-service v0.3.2-0.20240705221303-511311ba0545
 	github.com/KyberNetwork/kutils v0.2.3
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.76.0
-	github.com/KyberNetwork/kyberswap-dex-lib-private v0.3.0
-	github.com/KyberNetwork/logger v0.2.0
+	github.com/KyberNetwork/kyberswap-dex-lib v0.77.0
+	github.com/KyberNetwork/kyberswap-dex-lib-private v0.4.0
+	github.com/KyberNetwork/logger v0.2.1
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
-	github.com/KyberNetwork/pathfinder-lib v0.0.13
+	github.com/KyberNetwork/pathfinder-lib v0.1.0
 	github.com/KyberNetwork/pool-service v0.67.0
 	github.com/KyberNetwork/reload v0.1.1
 	github.com/KyberNetwork/service-framework v0.5.4
@@ -47,7 +47,7 @@ require (
 	github.com/grafana/pyroscope-go v1.2.0
 	github.com/hashicorp/golang-lru/v2 v2.0.3
 	github.com/holiman/uint256 v1.3.1
-	github.com/huandu/go-clone v1.7.2
+	github.com/huandu/go-clone/generic v1.7.2
 	github.com/izumiFinance/iZiSwap-SDK-go v1.0.0
 	github.com/json-iterator/go v1.1.12
 	github.com/machinebox/graphql v0.2.2
@@ -120,6 +120,7 @@ require (
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.5 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
+	github.com/huandu/go-clone v1.7.2 // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/jackpal/go-nat-pmp v1.0.2 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect

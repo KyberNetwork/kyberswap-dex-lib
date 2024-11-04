@@ -7,14 +7,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
-	deltaswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deltaswap-v1"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
-	ondo_usdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
-	"github.com/huandu/go-clone"
-
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	dexlibprivate "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source"
 	aevmpoolwrapper "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/aevm-pool/wrapper"
@@ -30,12 +22,14 @@ import (
 	bancorv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bancor-v3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bedrock/unieth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	curveStableMetaNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-meta-ng"
 	curveStableNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/stable-ng"
 	curveTriCryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/tricrypto-ng"
 	curveTwoCryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
+	deltaswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deltaswap-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
@@ -56,13 +50,18 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
+	ondo_usdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/primeeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/puffer/pufeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/renzo/ezeth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/rocketpool/reth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/staderethx"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
@@ -131,11 +130,11 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatlsd"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/wombat/wombatmain"
 	zkera "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkera-finance"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/ethereum/go-ethereum/common"
+	clone "github.com/huandu/go-clone/generic"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ringswap"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
@@ -309,7 +308,7 @@ func (f *PoolFactory) CloneCurveMetaForBasePools(
 
 			if basePool, ok := basePools[basePoolAddress]; ok {
 				if basePoolCorrect, ok := basePool.(curveMeta.ICurveBasePool); ok {
-					newMetaPool := clone.Slowly(metaPool).(*curveMeta.Pool)
+					newMetaPool := clone.Slowly(metaPool)
 					newMetaPool.BasePool = basePoolCorrect
 					cloned = append(cloned, newMetaPool)
 				}
@@ -323,7 +322,7 @@ func (f *PoolFactory) CloneCurveMetaForBasePools(
 
 			if basePool, ok := basePools[basePoolAddress]; ok {
 				if basePoolCorrect, ok := basePool.(curveStableMetaNg.ICurveBasePool); ok {
-					newMetaPool := clone.Slowly(metaPool).(*curveStableMetaNg.PoolSimulator)
+					newMetaPool := clone.Slowly(metaPool)
 					newMetaPool.SetBasePool(basePoolCorrect)
 					cloned = append(cloned, newMetaPool)
 				}
@@ -430,16 +429,14 @@ func (f *PoolFactory) getCurveMetaBaseNGPoolByAddress(
 
 func newSwapLimit(dex string, limit map[string]*big.Int) poolpkg.SwapLimit {
 	switch dex {
-	case pooltypes.PoolTypes.KyberPMM,
+	case pooltypes.PoolTypes.Synthetix,
+		pooltypes.PoolTypes.LimitOrder,
+		pooltypes.PoolTypes.KyberPMM,
 		pooltypes.PoolTypes.NativeV1,
 		pooltypes.PoolTypes.Dexalot:
-		return kyberpmm.NewInventory(limit)
-	case pooltypes.PoolTypes.Synthetix:
-		return synthetix.NewLimits(limit)
-	case pooltypes.PoolTypes.LimitOrder:
-		return limitorder.NewInventory(limit)
+		return swaplimit.NewInventory(dex, limit)
 	case pooltypes.PoolTypes.Bebop:
-		return bebop.NewLimit(limit)
+		return swaplimit.NewSingleSwapLimit(dex)
 	}
 
 	return nil

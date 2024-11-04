@@ -9,15 +9,15 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
+	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
+	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/spfav2"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/golang/mock/gomock"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 
-	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
-	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/spfav2"
+	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -242,7 +242,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		MaxThresholdAmountInUSD: 100000000,
 	}
 
-	calcAmountOutInstance := routerpoolpkg.NewCalcAmountOut(map[string]bool{})
+	calcAmountOutInstance := routerpoolpkg.NewCustomFuncs(map[string]bool{})
 
 	routeFinder, _ := spfav2.NewSPFAv2Finder(
 		finderOptions.MaxHops,
@@ -252,11 +252,11 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		finderOptions.DistributionPercent,
 		finderOptions.MinPartUSD,
 	)
-	routeFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
+	routeFinder.SetCustomFuncs(calcAmountOutInstance)
 
 	routeFinalizer := findroute.NewSafetyQuotingRouteFinalizer(
 		safetyquote.NewSafetyQuoteReduction(&valueobject.SafetyQuoteReductionConfig{}),
-		calcAmountOutInstance.CalcAmountOut,
+		calcAmountOutInstance,
 	)
 
 	finderEngine := finderEngine.NewPathFinderEngine(routeFinder, routeFinalizer)

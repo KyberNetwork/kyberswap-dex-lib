@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
@@ -68,6 +69,7 @@ func (p *testPoolSimulator) GetAddress() string  { return p.addr }
 func (*testPoolSimulator) CalcAmountOut(poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
 	panic("unimplemented")
 }
+func (*testPoolSimulator) CloneState() poolpkg.IPoolSimulator        { panic("unimplemented") }
 func (*testPoolSimulator) UpdateBalance(poolpkg.UpdateBalanceParams) { panic("unimplemented") }
 func (*testPoolSimulator) CanSwapTo(string) []string                 { panic("unimplemented") }
 func (*testPoolSimulator) CanSwapFrom(string) []string               { panic("unimplemented") }

@@ -11,27 +11,29 @@ import (
 	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	finderFinalizer "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finalizer"
 	finderUtil "github.com/KyberNetwork/pathfinder-lib/pkg/util"
+	"github.com/pkg/errors"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/safetyquote"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/pkg/errors"
 )
 
 type SafetyQuotingRouteFinalizer struct {
 	safetyQuoteReduction *safetyquote.SafetyQuoteReduction
-	calcAmountOutFunc    finderEntity.CalcAmountOutFunc
+
+	finderEntity.ICustomFuncsHolder
 }
 
 func NewSafetyQuotingRouteFinalizer(
 	safetyQuoteReduction *safetyquote.SafetyQuoteReduction,
-	calcAmountOutFunc finderEntity.CalcAmountOutFunc,
+	customFuncs finderEntity.ICustomFuncs,
 ) *SafetyQuotingRouteFinalizer {
 	return &SafetyQuotingRouteFinalizer{
 		safetyQuoteReduction: safetyQuoteReduction,
-		calcAmountOutFunc:    calcAmountOutFunc,
+		ICustomFuncsHolder:   &finderEntity.CustomFuncsHolder{ICustomFuncs: customFuncs},
 	}
 }
 
@@ -57,7 +59,7 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 	}
 
 	// Step 1: prepare pool data
-	simulatorBucket := finderCommon.NewSimulatorBucket(params.Pools, params.SwapLimits)
+	simulatorBucket := finderCommon.NewSimulatorBucket(params.Pools, params.SwapLimits, f.CustomFuncs())
 
 	var (
 		amountOut = big.NewInt(0)
@@ -83,7 +85,7 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 
 			// Step 2.1.2: simulate swap through the pool
 			tokenAmountIn := dexlibPool.TokenAmount{Token: fromToken, Amount: currentAmountIn}
-			res, err := f.calcAmountOutFunc(ctx, pool, tokenAmountIn, toToken, swapLimit)
+			res, err := f.CalcAmountOut(ctx, pool, tokenAmountIn, toToken, swapLimit)
 
 			if err != nil {
 				return nil, errors.WithMessagef(
@@ -105,9 +107,9 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 				)
 			}
 
-			//Step 2.1.4: clone the pool before updating it (do not modify IPool returned by `poolManager`)
-			pool = simulatorBucket.ClonePool(path.PoolsOrder[i])
-			swapLimit = simulatorBucket.CloneSwapLimit(path.PoolsOrder[i])
+			// Step 2.1.4: clone the pool before updating it (do not modify IPool returned by `poolManager`)
+			pool = simulatorBucket.ClonePoolById(ctx, path.PoolsOrder[i])
+			swapLimit = simulatorBucket.CloneSwapLimitById(ctx, path.PoolsOrder[i])
 
 			// Step 2.1.5: update balance of the pool
 			updateBalanceParams := dexlibPool.UpdateBalanceParams{
@@ -172,17 +174,20 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 	extra.UpdatedBalancePools, extra.UpdatedSwapLimits = simulatorBucket.GetUpdatedState()
 
 	route = &finderEntity.Route{
-		TokenIn:        params.TokenIn,
-		AmountIn:       params.AmountIn,
-		AmountInPrice:  finderUtil.CalcAmountPrice(params.AmountIn, params.Tokens[params.TokenIn].Decimals, params.Prices[params.TokenIn]),
-		TokenOut:       params.TokenOut,
-		AmountOut:      amountOut,
-		AmountOutPrice: finderUtil.CalcAmountPrice(amountOut, params.Tokens[params.TokenOut].Decimals, params.Prices[params.TokenOut]),
-		GasUsed:        gasUsed,
-		GasPrice:       params.GasPrice,
-		GasFee:         gasFee,
-		GasFeePrice:    finderUtil.CalcAmountPrice(gasFee, params.Tokens[params.GasToken].Decimals, params.Prices[params.GasToken]),
-		Route:          finalizedRoute,
+		TokenIn:  params.TokenIn,
+		AmountIn: params.AmountIn,
+		AmountInPrice: finderUtil.CalcAmountPrice(params.AmountIn, params.Tokens[params.TokenIn].Decimals,
+			params.Prices[params.TokenIn]),
+		TokenOut:  params.TokenOut,
+		AmountOut: amountOut,
+		AmountOutPrice: finderUtil.CalcAmountPrice(amountOut, params.Tokens[params.TokenOut].Decimals,
+			params.Prices[params.TokenOut]),
+		GasUsed:  gasUsed,
+		GasPrice: params.GasPrice,
+		GasFee:   gasFee,
+		GasFeePrice: finderUtil.CalcAmountPrice(gasFee, params.Tokens[params.GasToken].Decimals,
+			params.Prices[params.GasToken]),
+		Route: finalizedRoute,
 
 		ExtraFinalizerData: extra,
 	}

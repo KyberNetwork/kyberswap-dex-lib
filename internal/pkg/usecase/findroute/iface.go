@@ -6,7 +6,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/huandu/go-clone"
+	clone "github.com/huandu/go-clone/generic"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -112,8 +112,8 @@ func NewFinderData(ctx context.Context, tokenByAddress map[string]*entity.Token,
 		TokenByAddress:     tokenByAddress,
 		TokenToPoolAddress: tokenToPoolAddress,
 		PriceUSDByAddress:  tokenPriceUSDByAddress,
-		SwapLimits:         clone.Slowly(state.SwapLimit).(map[string]poolpkg.SwapLimit),
-		originSwapLimits:   clone.Slowly(state.SwapLimit).(map[string]poolpkg.SwapLimit),
+		SwapLimits:         clone.Slowly(state.SwapLimit),
+		originSwapLimits:   clone.Slowly(state.SwapLimit),
 
 		PriceNativeByAddress:    tokenPriceNativeByAddress,
 		PublishedPoolsStorageID: state.PublishedPoolsStorageID,
@@ -127,7 +127,7 @@ func (f *FinderData) ReleaseResources() {
 // Refresh will deeply copy original swapLimit and clear poolBucket.
 func (f *FinderData) Refresh() {
 	f.PoolBucket.ClearChangedPools()
-	f.SwapLimits = clone.Slowly(f.originSwapLimits).(map[string]poolpkg.SwapLimit)
+	f.SwapLimits = clone.Slowly(f.originSwapLimits)
 }
 
 func (f *FinderData) TokenNativeBuyPrice(address string) *big.Float {

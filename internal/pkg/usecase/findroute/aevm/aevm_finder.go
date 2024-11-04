@@ -10,10 +10,8 @@ import (
 	findrouteencode "github.com/KyberNetwork/aevm/usecase/findroute/encode"
 	aevmpool "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/aevm-pool"
 	dexlibmsgpack "github.com/KyberNetwork/kyberswap-dex-lib/pkg/msgpack"
-	pkg_source_kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
-	pkg_source_limitorder "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	pkg_source_synthetix "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/synthetix"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/msgpack/v5"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -28,9 +26,8 @@ func mustNotError(err error) {
 }
 
 func init() {
-	mustNotError(msgpack.RegisterConcreteType(&pkg_source_kyberpmm.Inventory{}))
-	mustNotError(msgpack.RegisterConcreteType(&pkg_source_limitorder.Inventory{}))
-	mustNotError(msgpack.RegisterConcreteType(&pkg_source_synthetix.AtomicLimits{}))
+	mustNotError(msgpack.RegisterConcreteType(&swaplimit.Inventory{}))
+	mustNotError(msgpack.RegisterConcreteType(&swaplimit.SingleSwapLimit{}))
 }
 
 // AEVMFinder depending on configurations, AEVMFinder performs routes finding localy or in remote AEVM server.

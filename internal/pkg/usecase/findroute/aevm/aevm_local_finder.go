@@ -14,34 +14,32 @@ import (
 
 type AEVMLocalFinder struct {
 	aevmClient aevmclient.Client
-	baseFinder finderEngine.IFinder
-	opts       valueobject.FinderOptions
+	finderEngine.IFinder
+	opts valueobject.FinderOptions
 }
 
-func NewAEVMLocalFinder(baseFinder finderEngine.IFinder, aevmClient aevmclient.Client, opts valueobject.FinderOptions) *AEVMLocalFinder {
+func NewAEVMLocalFinder(baseFinder finderEngine.IFinder, aevmClient aevmclient.Client,
+	opts valueobject.FinderOptions) *AEVMLocalFinder {
 	return &AEVMLocalFinder{
 		aevmClient: aevmClient,
-		baseFinder: baseFinder,
+		IFinder:    baseFinder,
 		opts:       opts,
 	}
 }
 
-func (f *AEVMLocalFinder) Find(ctx context.Context, params finderEntity.FinderParams) ([]*finderCommon.ConstructRoute, error) {
+func (f *AEVMLocalFinder) Find(ctx context.Context, params finderEntity.FinderParams) ([]*finderCommon.ConstructRoute,
+	error) {
 	useAEVMPool := f.opts.LocalUseAEVMPool
 
 	if !useAEVMPool {
-		return f.baseFinder.Find(ctx, params)
+		return f.IFinder.Find(ctx, params)
 	}
 
 	for _, pool := range params.Pools {
 		if aevmPool, ok := pool.(aevmpool.IAEVMPool); ok {
-			if useAEVMPool {
-				aevmPool.UseAsAEVMPool(f.aevmClient)
-			} else {
-				aevmPool.UseAsNormalPool()
-			}
+			aevmPool.UseAsAEVMPool(f.aevmClient)
 		}
 	}
 
-	return f.baseFinder.Find(ctx, params)
+	return f.IFinder.Find(ctx, params)
 }

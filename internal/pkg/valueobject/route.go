@@ -5,7 +5,7 @@ import (
 	"math/big"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/huandu/go-clone"
+	clone "github.com/huandu/go-clone/generic"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -149,7 +149,7 @@ func (r *Route) AddPath(ctx context.Context, poolBucket *PoolBucket, p *Path, sw
 		}
 
 		//backing up the pool if there were error and we need to roll back
-		backUpPools[i] = clone.Slowly(pool).(poolpkg.IPoolSimulator)
+		backUpPools[i] = clone.Slowly(pool)
 		// clone the pool before updating it, so it doesn't modify the original data copied from pool manager
 		pool = poolBucket.ClonePool(poolAddress)
 

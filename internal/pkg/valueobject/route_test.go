@@ -11,7 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
-	"github.com/huandu/go-clone"
+	clone "github.com/huandu/go-clone/generic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -80,7 +80,7 @@ func TestRoute_AddPathRollBack(t *testing.T) {
 	poolByAddresses[poolToAdd.GetAddress()] = poolToAdd
 
 	require.NoError(t, err)
-	oldPool := clone.Slowly(poolToAdd).(poolpkg.IPoolSimulator)
+	oldPool := clone.Slowly(poolToAdd)
 	entity2 := entity.Pool{Address: "thatPool",
 		SwapFee: RandFloat(0, 0.05),
 		Tokens: entity.PoolTokens{

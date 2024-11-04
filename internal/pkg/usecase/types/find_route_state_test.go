@@ -9,9 +9,10 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/sets"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type testPoolSimulator struct {
@@ -25,6 +26,7 @@ func (p *testPoolSimulator) GetAddress() string  { return p.addr }
 func (*testPoolSimulator) CalcAmountOut(poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
 	panic("unimplemented")
 }
+func (*testPoolSimulator) CloneState() poolpkg.IPoolSimulator        { panic("unimplemented") }
 func (*testPoolSimulator) UpdateBalance(poolpkg.UpdateBalanceParams) { panic("unimplemented") }
 func (*testPoolSimulator) CanSwapTo(string) []string                 { panic("unimplemented") }
 func (*testPoolSimulator) CanSwapFrom(string) []string               { panic("unimplemented") }

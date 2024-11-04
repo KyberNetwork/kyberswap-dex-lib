@@ -4,13 +4,13 @@ import (
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/samber/lo"
-
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/hillclimb"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/retry"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/spfav2"
+	"github.com/samber/lo"
+
 	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
@@ -219,7 +219,7 @@ func InitializeFinderEngine(
 	config Config,
 	aevmClient aevmclient.Client,
 ) (finderEngine.IFinder, finderEngine.IFinalizer, error) {
-	calcAmountOutInstance := routerpoolpkg.NewCalcAmountOut(config.Aggregator.DexUseAEVM)
+	customFuncs := routerpoolpkg.NewCustomFuncs(config.Aggregator.DexUseAEVM)
 
 	finderOptions := config.Aggregator.FinderOptions
 	var baseFinder finderEngine.IFinder
@@ -237,12 +237,11 @@ func InitializeFinderEngine(
 	if err != nil {
 		return nil, nil, err
 	}
-	spfaFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
+	spfaFinder.SetCustomFuncs(customFuncs)
 	baseFinder = spfaFinder
 
 	if finderOptions.Type == valueobject.FinderTypes.RetryDynamicPools {
 		retryFinder := retry.NewRetryFinder(baseFinder)
-		retryFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
 		baseFinder = retryFinder
 	}
 
@@ -252,7 +251,6 @@ func InitializeFinderEngine(
 			int(finderOptions.HillClimbIteration),
 			finderOptions.HillClimbMinPartUSD,
 		)
-		hillClimbFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
 		baseFinder = hillClimbFinder
 	}
 
@@ -263,7 +261,6 @@ func InitializeFinderEngine(
 			finderOptions.DerivativeHillClimbImproveThreshold,
 			config.Aggregator.DexUseAEVM,
 		)
-		derivativeHillClimbFinder.SetCustomCalcAmountOutFunc(calcAmountOutInstance.CalcAmountOut)
 		baseFinder = derivativeHillClimbFinder
 	}
 
@@ -275,7 +272,7 @@ func InitializeFinderEngine(
 
 	routeFinalizer := findroute.NewSafetyQuotingRouteFinalizer(
 		safetyquote.NewSafetyQuoteReduction(config.SafetyQuoteConfig),
-		calcAmountOutInstance.CalcAmountOut,
+		customFuncs,
 	)
 
 	return aevmLocalFinder, routeFinalizer, nil

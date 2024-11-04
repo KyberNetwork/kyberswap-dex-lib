@@ -3,10 +3,10 @@ package common
 import (
 	"reflect"
 
-	"github.com/huandu/go-clone"
+	clone "github.com/huandu/go-clone/generic"
 )
 
-// NoDeepClone is a wrapper where "github.com/huandu/go-clone".Slowly() doesn't deepclone its wrapped object.
+// NoDeepClone is a wrapper where "github.com/huandu/go-clone/generic".Slowly() doesn't deepclone its wrapped object.
 type NoDeepClone struct {
 	Inner interface{}
 }

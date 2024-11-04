@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/huandu/go-clone"
+	clone "github.com/huandu/go-clone/generic"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -27,7 +27,7 @@ func (f *HillClimbFinder) optimizeRoute(ctx context.Context, input findroute.Inp
 		tmpRoute = valueobject.NewRoute(input.TokenInAddress, input.TokenOutAddress)
 
 		// clone the original baseRoute so that we do not modify it
-		currentRoute = clone.Slowly(baseRoute).(*valueobject.Route)
+		currentRoute = clone.Slowly(baseRoute)
 		err          error
 	)
 

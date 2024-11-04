@@ -8,12 +8,12 @@ import (
 
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
+	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
-	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
-	finderCommon "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/common"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -276,9 +276,9 @@ func (c *cache) summarizeSimpleRoute(
 
 	distributedAmounts := business.DistributeAmount(params.AmountIn, simpleRoute.Distributions)
 
-	constructRoute := finderCommon.NewConstructRoute()
+	constructRoute := finderCommon.NewConstructRoute(c.finderEngine.GetFinder().CustomFuncs())
 	for pathIdx, simplePath := range simpleRoute.Paths {
-		constructPath := finderCommon.NewConstructPath(distributedAmounts[pathIdx])
+		constructPath := finderCommon.NewConstructPath(distributedAmounts[pathIdx], c.finderEngine.GetFinder().CustomFuncs())
 		constructPath.AddToken(params.TokenIn.Address)
 
 		for _, simpleSwap := range simplePath {
