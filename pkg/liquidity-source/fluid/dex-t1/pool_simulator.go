@@ -191,9 +191,9 @@ func (t *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		}
 	}
 
-	if swapInfo, ok := params.SwapInfo.(PoolExtra); ok {
-		t.CollateralReserves = swapInfo.CollateralReserves
-		t.DebtReserves = swapInfo.DebtReserves
+	if swapInfo, ok := params.SwapInfo.(SwapInfo); ok {
+		t.CollateralReserves = swapInfo.NewCollateralReserves
+		t.DebtReserves = swapInfo.NewDebtReserves
 	}
 }
 
