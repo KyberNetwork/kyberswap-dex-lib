@@ -41,6 +41,7 @@ type (
 
 var (
 	ErrZeroTradeLiquidity = errors.New("DeltaSwap: ZERO_TRADE_LIQUIDITY")
+	ErrMaxIterations      = errors.New("maximum iterations reached")
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -162,7 +163,16 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 
 	var fee, amountIn, tradeLiquidity uint256.Int
 	fee.Set(number.Number_3)
+
+	// Just a safe limit; with dsFeeThreshold=0, loop runs at most 2 times (once for dsFee=3)
+	maxIterations := 500
+	iterations := 0
 	for {
+		if iterations >= maxIterations {
+			return nil, ErrMaxIterations
+		}
+		iterations++
+
 		newAmountIn, err := s.getAmountIn(amountOut, reserveIn, reserveOut, &fee)
 		if err != nil {
 			return nil, err
@@ -173,8 +183,8 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 			return nil, err
 		}
 
-		tradeLiquidity.Set(newTradeLiquidity)
 		if fee.Cmp(newFee) == 0 {
+			tradeLiquidity.Set(newTradeLiquidity)
 			amountIn.Set(newAmountIn)
 			break
 		}
@@ -185,19 +195,19 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, uniswapv2.ErrInsufficientLiquidity
 	}
 
-	balanceIn := new(uint256.Int).Add(reserveIn, &amountIn)
-	balanceOut := new(uint256.Int).Sub(reserveOut, amountOut)
+	var balanceInAdjusted, balanceOutAdjusted uint256.Int
+	balanceInAdjusted.Add(reserveIn, &amountIn).
+		Mul(&balanceInAdjusted, s.feePrecision).
+		Sub(&balanceInAdjusted, new(uint256.Int).Mul(&amountIn, &fee))
 
-	balanceInAdjusted := new(uint256.Int).Sub(
-		new(uint256.Int).Mul(balanceIn, s.feePrecision),
-		new(uint256.Int).Mul(&amountIn, &fee),
-	)
-	balanceOutAdjusted := new(uint256.Int).Mul(balanceOut, s.feePrecision)
+	balanceOutAdjusted.Sub(reserveOut, amountOut).
+		Mul(&balanceOutAdjusted, s.feePrecision)
 
-	kBefore := new(uint256.Int).Mul(new(uint256.Int).Mul(reserveIn, reserveOut), new(uint256.Int).Mul(s.feePrecision, s.feePrecision))
-	kAfter := new(uint256.Int).Mul(balanceInAdjusted, balanceOutAdjusted)
+	var kBefore, kAfter uint256.Int
+	kBefore.Mul(reserveIn, reserveOut).Mul(&kBefore, s.feePrecision).Mul(&kBefore, s.feePrecision)
+	kAfter.Mul(&balanceInAdjusted, &balanceOutAdjusted)
 
-	if kAfter.Cmp(kBefore) < 0 {
+	if kAfter.Cmp(&kBefore) < 0 {
 		return nil, uniswapv2.ErrInvalidK
 	}
 
@@ -238,11 +248,13 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (s *PoolSimulator) getAmountOut(amountIn, reserveIn, reserveOut, fee *uint256.Int) *uint256.Int {
-	amountInWithFee := new(uint256.Int).Mul(amountIn, new(uint256.Int).Sub(s.feePrecision, fee))
-	numerator := new(uint256.Int).Mul(amountInWithFee, reserveOut)
-	denominator := new(uint256.Int).Add(new(uint256.Int).Mul(reserveIn, s.feePrecision), amountInWithFee)
+	var amountInWithFee, numerator, denominator uint256.Int
 
-	return new(uint256.Int).Div(numerator, denominator)
+	amountInWithFee.Sub(s.feePrecision, fee).Mul(amountIn, &amountInWithFee)
+	numerator.Mul(&amountInWithFee, reserveOut)
+	denominator.Mul(reserveIn, s.feePrecision).Add(&denominator, &amountInWithFee)
+
+	return numerator.Div(&numerator, &denominator)
 }
 
 func (s *PoolSimulator) getAmountIn(amountOut, reserveIn, reserveOut, fee *uint256.Int) (amountIn *uint256.Int, err error) {
@@ -329,7 +341,6 @@ func calcSingleSideLiquidity(amount, reserve0, reserve1 *uint256.Int) *uint256.I
 	var amount0, amount1 uint256.Int
 	amount0.Set(amount).Div(&amount0, number.Number_2)
 	amount1.Set(&amount0).Mul(&amount1, reserve1).Div(&amount1, reserve0)
-	// return Sqrt(new(uint256.Int).Mul(&amount0, &amount1))
 	return amount0.Mul(&amount0, &amount1).Sqrt(&amount0)
 }
 
