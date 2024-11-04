@@ -18,7 +18,7 @@ const (
 const (
 	String1e18 = "1000000000000000000"
 
-	DexAmountsDecimals int64 = 12
+	DexAmountsDecimals = 12
 
 	FeePercentPrecision    int64 = 1e4
 	Fee100PercentPrecision int64 = 1e6

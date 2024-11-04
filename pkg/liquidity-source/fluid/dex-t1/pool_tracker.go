@@ -6,13 +6,14 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/KyberNetwork/logger"
-
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -54,9 +55,10 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
+	collateralReserves, debtReserves := poolReserves.CollateralReserves, poolReserves.DebtReserves
 	extra := PoolExtra{
-		CollateralReserves: poolReserves.CollateralReserves,
-		DebtReserves:       poolReserves.DebtReserves,
+		CollateralReserves: collateralReserves,
+		DebtReserves:       debtReserves,
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -69,10 +71,18 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
-	p.Reserves = entity.PoolReserves{
-		new(big.Int).Add(poolReserves.CollateralReserves.Token0RealReserves, poolReserves.DebtReserves.Token0RealReserves).String(),
-		new(big.Int).Add(poolReserves.CollateralReserves.Token1RealReserves, poolReserves.DebtReserves.Token1RealReserves).String(),
+
+	var reserves [2]big.Int
+	reserves[0].Add(collateralReserves.Token0RealReserves, debtReserves.Token0RealReserves)
+	reserves[1].Add(collateralReserves.Token1RealReserves, debtReserves.Token1RealReserves)
+	for i, reserve := range reserves {
+		if p.Tokens[i].Decimals > DexAmountsDecimals {
+			reserve.Mul(&reserve, bignumber.TenPowInt(int8(p.Tokens[i].Decimals)-DexAmountsDecimals))
+		} else if p.Tokens[i].Decimals < DexAmountsDecimals {
+			reserve.Div(&reserve, bignumber.TenPowInt(DexAmountsDecimals-int8(p.Tokens[i].Decimals)))
+		}
 	}
+	p.Reserves = entity.PoolReserves{reserves[0].String(), reserves[1].String()}
 
 	return p, nil
 }
