@@ -6,6 +6,7 @@ import (
 
 	bebopclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop/client"
 	clipper "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper/client"
+	dexalot "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot/client"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2/client"
@@ -46,7 +47,8 @@ func isPMMFaultyPoolError(err error) bool {
 		errors.Is(err, swaapv2.ErrQuoteFailed) ||
 		errors.Is(err, bebopclient.ErrRFQFailed) ||
 		errors.Is(err, clipper.ErrQuoteFailed) ||
-		errors.Is(err, clipper.ErrSignFailed) {
+		errors.Is(err, clipper.ErrSignFailed) ||
+		errors.Is(err, dexalot.ErrRFQFailed) {
 		return true
 	}
 

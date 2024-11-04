@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	bebopclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop/client"
+	dexalotClient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot/client"
 	hashflowclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
 	nativeclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
 	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm/client"
@@ -290,6 +291,11 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Code:       4301,
 		Message:    "bebop RFQ failed",
 		Details:    []interface{}{bebopclient.ErrRFQUnexpectedPermitsError.Error()},
+	},
+	dexalotClient.ErrRFQFailed: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4400,
+		Message:    "dexalot RFQ failed",
 	},
 }
 
