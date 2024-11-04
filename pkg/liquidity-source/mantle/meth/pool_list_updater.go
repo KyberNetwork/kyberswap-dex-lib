@@ -11,6 +11,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/logger"
 	"github.com/holiman/uint256"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type (
@@ -42,7 +44,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	u.hasInitialized = true
 	logger.WithFields(logger.Fields{"dex_id": u.config.DexID}).Debug("Start getting new pools")
 
-	extra, blockNumber, err := getExtra(ctx, u.ethrpcClient)
+	extra, blockNumber, err := getExtra(ctx, u.ethrpcClient, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -90,7 +92,11 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 	}, nil, nil
 }
 
-func getExtra(ctx context.Context, client *ethrpc.Client) (PoolExtra, uint64, error) {
+func getExtra(
+	ctx context.Context,
+	client *ethrpc.Client,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (PoolExtra, uint64, error) {
 	var (
 		isStakingPaused        bool
 		minimumStakeBound      *big.Int
@@ -102,6 +108,9 @@ func getExtra(ctx context.Context, client *ethrpc.Client) (PoolExtra, uint64, er
 	)
 
 	calls := client.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		calls.SetOverrides(overrides)
+	}
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    mantlePauserABI,

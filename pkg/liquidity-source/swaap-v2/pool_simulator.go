@@ -219,19 +219,23 @@ func getNewPriceLevelsState(amountIn float64, priceLevels []PriceLevel) []PriceL
 		return priceLevels
 	}
 
-	for i, priceLevel := range priceLevels {
-		if amountIn > priceLevel.Level {
+	var newPriceLevels []PriceLevel
+
+	// Reduce every price level by amountIn
+	for idx, priceLevel := range priceLevels {
+		if priceLevel.Level <= amountIn {
 			continue
-		} else if amountIn == priceLevel.Level {
-			if i == len(priceLevels)-1 {
-				return nil
-			}
-			return priceLevels[i+1:]
 		}
-		priceLevel.Level -= amountIn
-		priceLevels[i] = priceLevel
-		return priceLevels[i:]
+
+		if newPriceLevels == nil {
+			newPriceLevels = make([]PriceLevel, 0, len(priceLevels)-idx)
+		}
+
+		newPriceLevels = append(newPriceLevels, PriceLevel{
+			Price: priceLevel.Price,
+			Level: priceLevel.Level - amountIn,
+		})
 	}
 
-	return nil
+	return newPriceLevels
 }

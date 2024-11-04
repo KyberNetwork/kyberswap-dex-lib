@@ -10,6 +10,8 @@ type Config struct {
 	PreGenesisPoolPath string      `json:"preGenesisPoolPath"`
 	AllowSubgraphError bool        `json:"allowSubgraphError"`
 	preGenesisPoolIDs  []string
+
+	AlwaysUseTickLens bool // instead of fetching from subgraph
 }
 
 func (c *Config) IsAllowSubgraphError() bool {
