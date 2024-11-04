@@ -65,7 +65,7 @@ func (c *HTTPClient) QuoteSingleOrderResult(ctx context.Context, params bebop.Qu
 		// the BuyTokens address must follow the HEX format
 		SetQueryParam(bebop.ParamsBuyTokens, common.HexToAddress(params.BuyTokens).Hex()).
 		SetQueryParam(bebop.ParamsSellAmounts, params.SellAmounts).
-		SetQueryParam(bebop.ParamsTakerAddress, string(common.HexToAddress(params.TakerAddress).Hex())).
+		SetQueryParam(bebop.ParamsTakerAddress, common.HexToAddress(params.TakerAddress).Hex()).
 		SetQueryParam(bebop.ParamsReceiverAddress, common.HexToAddress(params.ReceiverAddress).Hex()).
 		SetQueryParam(bebop.ParamsApproveType, "Standard").
 		SetQueryParam(bebop.ParamsSkipValidation, "true"). // not checking balance
