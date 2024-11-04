@@ -262,3 +262,54 @@ func RandNumberString(maxLen int) string {
 	}
 	return s
 }
+
+func TestCloneState(t *testing.T) {
+	poolEntity := new(entity.Pool)
+	err := json.Unmarshal([]byte(poolEncoded), poolEntity)
+	require.NoError(t, err)
+
+	var poolSim pool.IPoolSimulator
+	poolSim, err = NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
+	require.NoError(t, err)
+
+	// BenchmarkCloneState-16    	    1153	    978127 ns/op
+	// cloned = clone.Slowly(sim).(pool.IPoolSimulator)
+	// stack overflowed
+	// cloned = clone.Clone(sim).(pool.IPoolSimulator)
+	// BenchmarkCloneState-16    	 5774500	       212.4 ns/op
+	cloned := poolSim.CloneState()
+
+	tokenAmountIn := pool.TokenAmount{
+		Token:  "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",
+		Amount: bignumber.NewBig10("1000000000000000000"),
+	}
+	tokenOut := "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+
+	result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: tokenAmountIn,
+		TokenOut:      tokenOut,
+	})
+	require.NoError(t, err)
+	expectedAmountOut := "2647446103029320"
+	require.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
+
+	poolSim.UpdateBalance(pool.UpdateBalanceParams{
+		TokenAmountIn:  tokenAmountIn,
+		TokenAmountOut: *result.TokenAmountOut,
+		SwapInfo:       result.SwapInfo,
+	})
+
+	result, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: tokenAmountIn,
+		TokenOut:      tokenOut,
+	})
+	require.NoError(t, err)
+	require.NotEqual(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
+
+	result, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: tokenAmountIn,
+		TokenOut:      tokenOut,
+	})
+	require.NoError(t, err)
+	require.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
+}

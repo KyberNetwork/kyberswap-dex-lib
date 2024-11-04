@@ -4,11 +4,11 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type IPoolsListUpdater interface {
@@ -41,8 +41,12 @@ type IPoolTracker interface {
 type IPoolSimulator interface {
 	// CalcAmountOut amountOut, fee, gas
 	// the required params is TokenAmountIn and TokenOut.
-	// SwapLimit is optional, individual dex logic will chose to ignore it if it is nill
+	// SwapLimit is optional, individual dex logic will choose to ignore it if it is nil
 	CalcAmountOut(params CalcAmountOutParams) (*CalcAmountOutResult, error)
+	// CloneState clones IPoolSimulator to back up old balance state before UpdateBalance by a swap.
+	// Only clones fields updated by UpdateBalance. Returns nil if unimplemented.
+	CloneState() IPoolSimulator
+	// UpdateBalance updates the pool state after a swap
 	UpdateBalance(params UpdateBalanceParams)
 	CanSwapTo(address string) []string
 	CanSwapFrom(address string) []string

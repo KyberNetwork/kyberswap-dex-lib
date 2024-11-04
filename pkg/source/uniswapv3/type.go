@@ -6,9 +6,10 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/int256"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 type Gas struct {
@@ -16,14 +17,14 @@ type Gas struct {
 	CrossInitTickGas int64
 }
 
-// UniV3SwapInfo present the after state of a swap
-type UniV3SwapInfoBigInt struct {
+// SwapInfoBigInt present the after state of a swap
+type SwapInfoBigInt struct {
 	nextStateSqrtRatioX96 *big.Int
 	nextStateLiquidity    *big.Int
 	nextStateTickCurrent  int
 }
 
-type UniV3SwapInfo struct {
+type SwapInfo struct {
 	nextStateSqrtRatioX96 *v3Utils.Uint160
 	nextStateLiquidity    *v3Utils.Uint128
 	nextStateTickCurrent  int
