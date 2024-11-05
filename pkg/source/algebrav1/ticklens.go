@@ -79,7 +79,7 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 		}
 
 		// ticklens contract might return unchanged tick (in the same word), so need to filter them out
-		changedTickSet := mapset.NewSet(changedTicks...)
+		changedTickSet := mapset.NewThreadUnsafeSet(changedTicks...)
 		changedTickMap := make(map[int]TickResp, len(changedTicks))
 		for _, t := range ticks {
 			tIdx, err := strconv.ParseInt(t.TickIdx, 10, 64)

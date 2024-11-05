@@ -8,7 +8,6 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/daoleno/uniswapv3-sdk/constants"
 	"github.com/daoleno/uniswapv3-sdk/utils"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
@@ -64,20 +63,15 @@ func GetPoolTicksFromSC(
 	pool entity.Pool,
 	param pool.GetNewPoolStateParams,
 ) ([]TickResp, error) {
-	tickSpace := getTickSpacing(pool.SwapFee)
 	var extra commonExtra
+	if err := json.Unmarshal([]byte(pool.Extra), &extra); err != nil {
+		return nil, errors.New("failed to unmarshal pool extra")
+	}
+	tickSpace := extra.TickSpacing
 
 	var wordIndexes []int16
 
 	changedTicks := GetChangedTicks(param.Logs)
-
-	if tickSpace == 0 || len(changedTicks) > 0 {
-		// if we need to get tickSpace or original ticks, then unmarshal pool.Extra
-		if err := json.Unmarshal([]byte(pool.Extra), &extra); err != nil {
-			return nil, errors.New("failed to unmarshal pool extra")
-		}
-		tickSpace = extra.TickSpacing
-	}
 
 	if len(changedTicks) > 0 {
 		// only refetch changed tick if possible
@@ -145,7 +139,7 @@ func GetPoolTicksFromSC(
 	// if we only fetched some ticks, then update them to the original ticks and return
 	if len(changedTicks) > 0 {
 		// ticklens contract might return unchanged tick (in the same word), so need to filter them out
-		changedTickSet := mapset.NewSet(changedTicks...)
+		changedTickSet := mapset.NewThreadUnsafeSet(changedTicks...)
 		changedTickMap := make(map[int]TickResp, len(changedTicks))
 		for _, t := range ticks {
 			tIdx, err := strconv.ParseInt(t.TickIdx, 10, 64)
@@ -186,10 +180,6 @@ func GetPoolTicksFromSC(
 	})
 
 	return ticks, nil
-}
-
-func getTickSpacing(swapFee float64) int {
-	return constants.TickSpacings[constants.FeeAmount(swapFee)]
 }
 
 // only support Burn event for now
