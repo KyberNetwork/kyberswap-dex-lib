@@ -3,6 +3,7 @@ package clipper
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"math/big"
 	"strings"
 
@@ -119,24 +120,38 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 		return nil, ErrInvalidPair
 	}
 
-	// We follow the recommend Closed Formed Solution, suggested by Clipper
-	var inX, outY, pX, pY, amountIn, M, tmp big.Float
-	amountIn.SetInt(params.TokenAmountIn.Amount)
-	inX.Quo(&amountIn, bignumber.TenPowDecimals(assetIn.Decimals))
+	// We used to use Closed Formed Solution, suggested by Clipper.
+	// However, it's not accurate, leading Build route often fails.
+	// So we switch to the Accurate Calculation.
 
-	pX.SetFloat64(assetIn.PriceInUSD)
-	pY.SetFloat64(assetOut.PriceInUSD)
-	M.SetFloat64((basisPoint - pairInfo.FeeInBasisPoints) / basisPoint)
+	inX, _ := params.TokenAmountIn.Amount.Float64()
+	inX /= math.Pow10(int(assetIn.Decimals))
 
-	tmp.Mul(&M, &inX)
-	tmp.Mul(&tmp, &pX)
-	outY.Quo(&tmp, &pY)
+	pX := assetIn.PriceInUSD
+	qX, _ := assetIn.Quantity.Float64()
+	qX /= math.Pow10(int(assetIn.Decimals))
+	wX := float64(assetIn.ListingWeight)
 
-	outY.Mul(&outY, bignumber.TenPowDecimals(assetOut.Decimals))
+	pY := assetOut.PriceInUSD
+	qY, _ := assetOut.Quantity.Float64()
+	qY /= math.Pow10(int(assetOut.Decimals))
+	wY := float64(assetOut.ListingWeight)
 
-	amountOut, _ := outY.Int(nil)
+	M := (basisPoint - pairInfo.FeeInBasisPoints) / basisPoint
 
-	// Since M is smaller than 1, the FMV check should always success.
+	k := p.extra.K
+
+	first := math.Pow(pX*qX, 1-k) / math.Pow(wX, k)
+	second := math.Pow(pY*qY, 1-k) / math.Pow(wY, k)
+	third := math.Pow(pX*(qX+M*inX), 1-k) / math.Pow(wX, k)
+
+	numerator := (first + second - third) * math.Pow(wY, k)
+	numerator = math.Pow(numerator, 1/(1-k))
+
+	outY := qY - numerator/pY
+	outY *= math.Pow10(int(assetOut.Decimals))
+
+	amountOut, _ := big.NewFloat(outY).Int(nil)
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
