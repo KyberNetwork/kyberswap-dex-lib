@@ -11,6 +11,12 @@ var (
 	//go:embed TickLensProxy.json
 	tickLensProxyJson []byte
 	tickLensABI       abi.ABI
+
+	//go:embed Events.json
+	eventsJson []byte
+	eventsABI  abi.ABI
+
+	burnEvent abi.Event
 )
 
 func init() {
@@ -19,6 +25,7 @@ func init() {
 		data []byte
 	}{
 		{&tickLensABI, tickLensProxyJson},
+		{&eventsABI, eventsJson},
 	}
 
 	for _, b := range builder {
@@ -28,4 +35,5 @@ func init() {
 			panic(err)
 		}
 	}
+	burnEvent = eventsABI.Events["Burn"]
 }

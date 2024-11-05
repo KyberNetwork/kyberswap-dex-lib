@@ -12,6 +12,7 @@ var (
 	algebraV1DataStorageOperatorAPI       abi.ABI
 	algebraV1DirFeeDataStorageOperatorAPI abi.ABI
 	erc20ABI                              abi.ABI
+	ticklensABI                           abi.ABI
 )
 
 func init() {
@@ -24,6 +25,7 @@ func init() {
 		{&algebraV1DataStorageOperatorAPI, algebraV1DataStorageOperatorJson},
 		{&algebraV1DirFeeDataStorageOperatorAPI, algebraV1DirFeeDataStorageOperatorJson},
 		{&erc20ABI, erc20Json},
+		{&ticklensABI, ticklensJson},
 	}
 
 	for _, b := range builder {

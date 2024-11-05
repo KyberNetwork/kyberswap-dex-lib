@@ -79,7 +79,7 @@ func initializeConfig(cfg *Config) (*Config, error) {
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ sourcePool.GetNewPoolStateParams,
+	param sourcePool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
@@ -121,7 +121,7 @@ func (d *PoolTracker) GetNewPoolState(
 		// TLDR: Optimism has some pre-genesis Uniswap V3 pool. Subgraph does not have data for these pools
 		// So we have to fetch ticks data from the TickLens smart contract (which is slower).
 		if d.config.AlwaysUseTickLens || lo.Contains[string](d.config.preGenesisPoolIDs, p.Address) {
-			poolTicks, err = ticklens.GetPoolTicksFromSC(ctx, d.ethrpcClient, d.config.TickLensAddress, p)
+			poolTicks, err = ticklens.GetPoolTicksFromSC(ctx, d.ethrpcClient, d.config.TickLensAddress, p, param)
 			if err != nil {
 				l.WithFields(logger.Fields{
 					"error": err,
