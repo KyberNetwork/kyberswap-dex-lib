@@ -77,3 +77,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		},
 	}, nil
 }
+
+func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsSlice []pool.RFQParams) ([]*pool.RFQResult, error) {
+	return nil, nil
+}
