@@ -6,7 +6,6 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/daoleno/uniswapv3-sdk/utils"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/samber/lo"
@@ -24,10 +23,6 @@ import (
 const (
 	batchSize   = 500
 	maxWordSize = 256
-)
-
-var (
-	minWordIndex = utils.MinTick / maxWordSize
 )
 
 func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, param sourcePool.GetNewPoolStateParams) ([]TickResp, error) {
