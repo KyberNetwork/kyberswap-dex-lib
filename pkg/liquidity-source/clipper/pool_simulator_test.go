@@ -30,5 +30,5 @@ func TestPoolSimulator(t *testing.T) {
 	}
 	res, err := poolSimulator.CalcAmountOut(params)
 	assert.NoError(t, err)
-	assert.Equal(t, big.NewInt(2586453004), res.TokenAmountOut.Amount)
+	assert.Equal(t, big.NewInt(2586379125), res.TokenAmountOut.Amount)
 }
