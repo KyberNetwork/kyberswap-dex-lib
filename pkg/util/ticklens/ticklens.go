@@ -8,9 +8,10 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/daoleno/uniswapv3-sdk/constants"
 	"github.com/daoleno/uniswapv3-sdk/utils"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/logger"
@@ -18,6 +19,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 )
 
@@ -27,10 +29,19 @@ type TickResp struct {
 	LiquidityNet   string `json:"liquidityNet"`
 }
 
-type populatedTick struct {
+type PopulatedTick struct {
 	Tick           *big.Int
 	LiquidityNet   *big.Int
 	LiquidityGross *big.Int
+}
+
+type commonExtra struct {
+	TickSpacing int
+	Ticks       []struct {
+		Index          int      `json:"index"`
+		LiquidityGross *big.Int `json:"liquidityGross"`
+		LiquidityNet   *big.Int `json:"liquidityNet"`
+	} `json:"ticks"`
 }
 
 const (
@@ -50,24 +61,34 @@ func GetPoolTicksFromSC(
 	ethrpcClient *ethrpc.Client,
 	tickLensAddress string,
 	pool entity.Pool,
+	param pool.GetNewPoolStateParams,
 ) ([]TickResp, error) {
-	tickSpace := getTickSpacing(pool.SwapFee)
-	if tickSpace == 0 {
-		// non-standard pool fee, try again from pool extra
-		var extra struct{ TickSpacing int }
-		if err := json.Unmarshal([]byte(pool.Extra), &extra); err != nil {
-			return nil, errors.New("failed to get pool tick spacing")
-		}
-		tickSpace = extra.TickSpacing
+	var extra commonExtra
+	if err := json.Unmarshal([]byte(pool.Extra), &extra); err != nil {
+		return nil, errors.New("failed to unmarshal pool extra")
 	}
-	poolMinWordIdx := int16(minWordIndex/tickSpace - 1)
-	poolMaxWordIdx := -poolMinWordIdx
+	tickSpace := extra.TickSpacing
 
-	// Prepare the list of wordIndexes, the total number of indexes is poolMaxWordIdx-poolMinWordIdx+1
-	wordIndexes := make([]int16, 0, poolMaxWordIdx-poolMinWordIdx+1)
-	for idx := poolMinWordIdx; idx <= poolMaxWordIdx; idx++ {
-		wordIndexes = append(wordIndexes, idx)
+	var wordIndexes []int16
+
+	changedTicks := GetChangedTicks(param.Logs)
+
+	if len(changedTicks) > 0 {
+		// only refetch changed tick if possible
+		wordIndexes = lo.Uniq(lo.Map(changedTicks, func(t int64, _ int) int16 { return int16((t / int64(tickSpace)) >> 8) }))
+	} else {
+		// fetch all
+		poolMinWordIdx := int16(minWordIndex/tickSpace - 1)
+		poolMaxWordIdx := -poolMinWordIdx
+
+		// Prepare the list of wordIndexes, the total number of indexes is poolMaxWordIdx-poolMinWordIdx+1
+		wordIndexes = make([]int16, 0, poolMaxWordIdx-poolMinWordIdx+1)
+		for idx := poolMinWordIdx; idx <= poolMaxWordIdx; idx++ {
+			wordIndexes = append(wordIndexes, idx)
+		}
 	}
+
+	logger.Infof("Fetch tick from wordPosition %v to %v (%v)", wordIndexes[0], wordIndexes[len(wordIndexes)-1], changedTicks)
 
 	// We will process 500 word indexes at a time
 	chunkedWordIndexes := lo.Chunk[int16](wordIndexes, multicallBatchSize)
@@ -79,7 +100,7 @@ func GetPoolTicksFromSC(
 		rpcRequest.SetContext(util.NewContextWithTimestamp(ctx))
 
 		// In each word index, there will be 256 populatedTick, that's why the type is [][]populatedTick
-		populatedTicks := make([][]populatedTick, multicallBatchSize)
+		populatedTicks := make([][]PopulatedTick, multicallBatchSize)
 		for i, wordIndex := range chunk {
 			rpcRequest.AddCall(&ethrpc.Call{
 				ABI:    tickLensABI,
@@ -115,6 +136,41 @@ func GetPoolTicksFromSC(
 		}
 	}
 
+	// if we only fetched some ticks, then update them to the original ticks and return
+	if len(changedTicks) > 0 {
+		// ticklens contract might return unchanged tick (in the same word), so need to filter them out
+		changedTickSet := mapset.NewThreadUnsafeSet(changedTicks...)
+		changedTickMap := make(map[int]TickResp, len(changedTicks))
+		for _, t := range ticks {
+			tIdx, err := strconv.ParseInt(t.TickIdx, 10, 64)
+			if err == nil && changedTickSet.ContainsOne(tIdx) {
+				changedTickMap[int(tIdx)] = t
+			}
+		}
+
+		combined := make([]TickResp, 0, len(changedTicks)+len(extra.Ticks))
+		for _, t := range extra.Ticks {
+			if tick, ok := changedTickMap[t.Index]; ok {
+				// changed, use new value
+				combined = append(combined, tick)
+				delete(changedTickMap, t.Index)
+			} else {
+				// use old value
+				combined = append(combined, TickResp{
+					TickIdx:        strconv.Itoa(t.Index),
+					LiquidityGross: t.LiquidityGross.String(),
+					LiquidityNet:   t.LiquidityNet.String(),
+				})
+			}
+		}
+
+		// remaining (newly created ticks)
+		for _, tick := range changedTickMap {
+			combined = append(combined, tick)
+		}
+		ticks = combined
+	}
+
 	// Sort the ticks because function NewTickListDataProvider needs
 	sort.SliceStable(ticks, func(i, j int) bool {
 		iTick, _ := strconv.Atoi(ticks[i].TickIdx)
@@ -126,6 +182,16 @@ func GetPoolTicksFromSC(
 	return ticks, nil
 }
 
-func getTickSpacing(swapFee float64) int {
-	return constants.TickSpacings[constants.FeeAmount(swapFee)]
+// only support Burn event for now
+func GetChangedTicks(logs []types.Log) []int64 {
+	var ticks []int64
+	for _, log := range logs {
+		if len(log.Topics) < 4 || log.Topics[0] != burnEvent.ID {
+			continue
+		}
+		bottomTick := log.Topics[2].Big().Int64()
+		topTick := log.Topics[3].Big().Int64()
+		ticks = append(ticks, bottomTick, topTick)
+	}
+	return lo.Uniq(ticks)
 }

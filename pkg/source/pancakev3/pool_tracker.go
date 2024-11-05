@@ -45,7 +45,7 @@ func NewPoolTracker(
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ sourcePool.GetNewPoolStateParams,
+	param sourcePool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
@@ -83,7 +83,7 @@ func (d *PoolTracker) GetNewPoolState(
 	g.Go(func(context.Context) error {
 		var err error
 		if d.config.AlwaysUseTickLens {
-			poolTicks, err = ticklens.GetPoolTicksFromSC(ctx, d.ethrpcClient, d.config.TickLensAddress, p)
+			poolTicks, err = ticklens.GetPoolTicksFromSC(ctx, d.ethrpcClient, d.config.TickLensAddress, p, param)
 			if err != nil {
 				logger.WithFields(logger.Fields{
 					"error": err,
