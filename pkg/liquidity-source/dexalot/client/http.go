@@ -8,6 +8,7 @@ import (
 
 	dexalot "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-resty/resty/v2"
 )
@@ -72,6 +73,9 @@ func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams, 
 	_ = json.Unmarshal(respBytes, &fail)
 
 	if !resp.IsSuccess() || fail.Failed() {
+		logger.
+			WithFields(logger.Fields{"dexalot_resp": string(respBytes)}).
+			Error("dexalot rfq failed")
 		return dexalot.FirmQuoteResult{}, ErrRFQFailed
 	}
 
