@@ -2,7 +2,6 @@ package erc20balanceslot
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/abis"
 	"github.com/KyberNetwork/router-service/pkg/jsonrpc"

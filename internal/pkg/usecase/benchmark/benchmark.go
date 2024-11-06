@@ -3,7 +3,7 @@ package benchmark
 //
 //import (
 //	"context"
-//	"encoding/json"
+//	"github.com/goccy/go-json"
 //	"math/big"
 //
 //	"github.com/KyberNetwork/ethrpc"

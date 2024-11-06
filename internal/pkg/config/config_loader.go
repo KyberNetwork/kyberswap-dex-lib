@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 	"github.com/mcuadros/go-defaults"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/viper"
@@ -20,8 +20,6 @@ import (
 const (
 	EmptyConfigHash = ""
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type IRemoteConfigFetcher interface {
 	Fetch(ctx context.Context) (valueobject.RemoteConfig, error)

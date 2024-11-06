@@ -2,12 +2,12 @@ package erc20balanceslot
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"

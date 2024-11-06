@@ -2,7 +2,6 @@ package poolfactory
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"sync"
@@ -132,6 +131,7 @@ import (
 	zkera "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkera-finance"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	clone "github.com/huandu/go-clone/generic"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"

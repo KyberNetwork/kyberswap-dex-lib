@@ -2,13 +2,13 @@ package usecase
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 	"sync"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/iter"
 

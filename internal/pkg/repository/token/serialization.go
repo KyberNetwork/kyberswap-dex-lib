@@ -1,9 +1,8 @@
 package token
 
 import (
-	"encoding/json"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/goccy/go-json"
 )
 
 func encodeToken(token entity.Token) (string, error) {

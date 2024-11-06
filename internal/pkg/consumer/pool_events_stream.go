@@ -2,12 +2,12 @@ package consumer
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"time"
 
 	"github.com/KyberNetwork/pool-service/pkg/message"
 	"github.com/dranikpg/gtrs"
+	"github.com/goccy/go-json"
 	"github.com/redis/go-redis/v9"
 	"github.com/samber/lo"
 

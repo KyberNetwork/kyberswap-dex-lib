@@ -3,7 +3,6 @@ package poolmanager_test
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -15,6 +14,7 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/golang/mock/gomock"
 	cachePolicy "github.com/hashicorp/golang-lru/v2"
 	"github.com/samber/lo"

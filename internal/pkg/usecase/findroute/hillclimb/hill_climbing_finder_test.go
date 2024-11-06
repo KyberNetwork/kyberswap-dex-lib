@@ -2,7 +2,6 @@ package hillclimb
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -10,18 +9,19 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/blockchain-toolkit/float"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	uni "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
+	"github.com/goccy/go-json"
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute/spfav2"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/samber/lo"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	uni "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type testPool struct {

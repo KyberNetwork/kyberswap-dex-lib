@@ -2,7 +2,6 @@ package erc20balanceslot
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/patrickmn/go-cache"
 	"golang.org/x/sync/singleflight"
 

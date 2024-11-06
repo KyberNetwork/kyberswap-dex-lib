@@ -1,7 +1,7 @@
 package bootstrap
 
 import (
-	"encoding/json"
+	"github.com/goccy/go-json"
 )
 
 func PropertiesToStruct(properties map[string]interface{}, o interface{}) error {

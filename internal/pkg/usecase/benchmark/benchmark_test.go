@@ -5,7 +5,7 @@ package benchmark
 //	"context"
 //	_ "embed"
 //	"encoding/csv"
-//	"encoding/json"
+//	"github.com/goccy/go-json"
 //	"errors"
 //	"fmt"
 //	"math"

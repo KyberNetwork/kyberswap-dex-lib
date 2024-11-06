@@ -2,7 +2,6 @@ package business
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -21,10 +20,12 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoev21"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/goccy/go-json"
+	"github.com/izumiFinance/iZiSwap-SDK-go/library/calc"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/pkg/logger"
-	"github.com/izumiFinance/iZiSwap-SDK-go/library/calc"
 )
 
 func CalculatePoolAmplifiedTVL(

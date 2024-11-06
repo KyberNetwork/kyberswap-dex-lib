@@ -2,12 +2,12 @@ package setting
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
@@ -89,7 +89,7 @@ func mockHandleSuccess(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(jsonResponse)
+	_ = json.NewEncoder(w).Encode(jsonResponse)
 }
 
 func TestGetConfigs(t *testing.T) {

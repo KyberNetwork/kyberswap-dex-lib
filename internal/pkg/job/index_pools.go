@@ -2,12 +2,12 @@ package job
 
 import (
 	"context"
-	"encoding/json"
 	"sync"
 	"time"
 
 	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/pool-service/pkg/message"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/consumer"

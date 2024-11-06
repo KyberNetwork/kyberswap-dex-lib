@@ -2,10 +2,11 @@ package l2fee
 
 import (
 	"context"
-	"encoding/json"
+
+	"github.com/goccy/go-json"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
-	"github.com/redis/go-redis/v9"
 )
 
 const (

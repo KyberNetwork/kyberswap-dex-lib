@@ -2,7 +2,6 @@ package poolmanager
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
@@ -16,15 +15,17 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+	cachePolicy "github.com/hashicorp/golang-lru/v2"
+	"github.com/samber/lo"
+	"k8s.io/apimachinery/pkg/util/sets"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/mempool"
-	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/ethereum/go-ethereum/common"
-	cachePolicy "github.com/hashicorp/golang-lru/v2"
-	"github.com/samber/lo"
-	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 const NState = 3

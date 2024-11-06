@@ -2,15 +2,16 @@ package business
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"testing"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 func floatRatio(s1, s2 string) *big.Float {

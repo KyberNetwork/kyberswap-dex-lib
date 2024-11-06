@@ -2,7 +2,6 @@ package erc20balanceslot
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/rand"
 	"strings"
@@ -12,6 +11,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/require"
 

@@ -1,8 +1,9 @@
 package entity
 
 import (
-	"encoding/json"
 	"math/big"
+
+	"github.com/goccy/go-json"
 )
 
 type Price struct {

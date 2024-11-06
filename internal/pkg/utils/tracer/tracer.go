@@ -4,10 +4,15 @@ import (
 	"context"
 
 	"github.com/KyberNetwork/kyber-trace-go/pkg/tracer"
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
+)
+
+var (
+	Tracer = tracer.Tracer()
 )
 
 type Span struct {
@@ -32,7 +37,7 @@ func StartSpanFromGinContext(ginCtx *gin.Context, operationName string) (Span, c
 }
 
 func StartSpanFromContext(ctx context.Context, operationName string) (Span, context.Context) {
-	ctx, span := tracer.Tracer().Start(ctx, operationName)
+	ctx, span := Tracer.Start(ctx, operationName)
 	return Span{
 		span: span,
 	}, ctx

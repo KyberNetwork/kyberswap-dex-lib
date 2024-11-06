@@ -1,9 +1,8 @@
 package price
 
 import (
-	"encoding/json"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/goccy/go-json"
 )
 
 func encodePrice(price entity.Price) (string, error) {

@@ -1,6 +1,6 @@
 package params
 
-import "encoding/json"
+import "github.com/goccy/go-json"
 
 type GetBundledRoutesParams struct {
 	// TokensIn addresses of token to be swapped

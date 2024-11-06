@@ -2,22 +2,22 @@ package trackexecutor
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/machinebox/graphql"
-	"github.com/samber/lo"
-
 	"github.com/KyberNetwork/elastic-go-sdk/v2/constants"
 	"github.com/KyberNetwork/ethrpc"
 	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+	"github.com/machinebox/graphql"
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/logger"

@@ -2,10 +2,11 @@ package keystorage
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/router-service/pkg/crypto"
 )

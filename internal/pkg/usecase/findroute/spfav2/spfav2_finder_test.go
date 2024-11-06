@@ -2,7 +2,6 @@ package spfav2
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -10,19 +9,20 @@ import (
 	"testing"
 
 	"github.com/KyberNetwork/blockchain-toolkit/float"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	uni "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/holiman/uint256"
-	"github.com/samber/lo"
-
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	uni "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswap"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type testPool struct {

@@ -1,10 +1,10 @@
 package dto
 
 import (
-	"encoding/json"
 	"math/big"
 
 	mapset "github.com/deckarep/golang-set/v2"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )

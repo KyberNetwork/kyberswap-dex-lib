@@ -1,13 +1,14 @@
 package types
 
 import (
-	"encoding/json"
 	"math/big"
 	"strings"
 
 	encodeValueObject "github.com/KyberNetwork/aggregator-encoding/pkg/constant/valueobject"
 	"github.com/KyberNetwork/aggregator-encoding/pkg/types"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+	"github.com/goccy/go-json"
+
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"

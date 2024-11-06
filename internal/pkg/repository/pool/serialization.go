@@ -1,9 +1,8 @@
 package pool
 
 import (
-	"encoding/json"
-
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/router-service/pkg/mempool"
 )

@@ -3,7 +3,6 @@ package main
 import (
 	"cmp"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
@@ -14,6 +13,7 @@ import (
 	dexentity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
+	"github.com/goccy/go-json"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
 

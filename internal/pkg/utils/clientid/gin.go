@@ -1,9 +1,8 @@
 package clientid
 
 import (
-	"encoding/json"
-
 	"github.com/gin-gonic/gin"
+	"github.com/goccy/go-json"
 )
 
 const HeaderKeyClientID = "X-Client-Id"
