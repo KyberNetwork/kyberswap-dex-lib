@@ -263,7 +263,7 @@ func RandNumberString(maxLen int) string {
 	return s
 }
 
-func TestCloneBalance(t *testing.T) {
+func TestCloneState(t *testing.T) {
 	poolEntity := new(entity.Pool)
 	err := json.Unmarshal([]byte(poolEncoded), poolEntity)
 	require.NoError(t, err)
@@ -272,12 +272,12 @@ func TestCloneBalance(t *testing.T) {
 	poolSim, err = NewPoolSimulator(*poolEntity, valueobject.ChainIDEthereum)
 	require.NoError(t, err)
 
-	// BenchmarkA-16    	    1153	    978127 ns/op
+	// BenchmarkCloneState-16    	    1153	    978127 ns/op
 	// cloned = clone.Slowly(sim).(pool.IPoolSimulator)
 	// stack overflowed
 	// cloned = clone.Clone(sim).(pool.IPoolSimulator)
-	// BenchmarkA-16    	 5774500	       212.4 ns/op
-	cloned := poolSim.CloneBalance()
+	// BenchmarkCloneState-16    	 5774500	       212.4 ns/op
+	cloned := poolSim.CloneState()
 
 	tokenAmountIn := pool.TokenAmount{
 		Token:  "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984",

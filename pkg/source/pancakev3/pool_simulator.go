@@ -84,10 +84,9 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	// we will get the tickSpacing through feeTier mapping.
 	if tickSpacing == 0 {
 		feeTier := constants.FeeAmount(entityPool.SwapFee)
-		if _, ok := constants.TickSpacings[feeTier]; !ok {
+		if tickSpacing = TickSpacings[feeTier]; tickSpacing == 0 {
 			return nil, ErrInvalidFeeTier
 		}
-		tickSpacing = constants.TickSpacings[feeTier]
 	}
 	ticks, err := v3Entities.NewTickListDataProvider(v3Ticks, tickSpacing)
 	if err != nil {
@@ -277,7 +276,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 }
 
-func (p *PoolSimulator) CloneBalance() pool.IPoolSimulator {
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	v3Pool := *p.V3Pool
 	v3Pool.SqrtRatioX96 = v3Pool.SqrtRatioX96.Clone()
 	v3Pool.Liquidity = v3Pool.Liquidity.Clone()

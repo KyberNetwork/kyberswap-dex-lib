@@ -9,4 +9,7 @@ type Config struct {
 	AllowSubgraphError bool        `json:"allowSubgraphError"`
 	SkipFeeCalculating bool        `json:"skipFeeCalculating"` // do not pre-calculate fee at tracker, use last block's fee instead
 	UseDirectionalFee  bool        `json:"useDirectionalFee"`  // for Camelot and similar dexes
+
+	AlwaysUseTickLens bool
+	TickLensAddress   string
 }

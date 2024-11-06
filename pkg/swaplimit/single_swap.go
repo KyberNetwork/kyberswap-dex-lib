@@ -24,7 +24,7 @@ func NewSingleSwapLimit(exchange string) *SingleSwapLimit {
 
 // Clone clones SingleSwapLimit.
 func (l *SingleSwapLimit) Clone() pool.SwapLimit {
-	cloned := new(SingleSwapLimit)
+	cloned := NewSingleSwapLimit(l.exchange)
 	if l.swapped.Load() {
 		cloned.swapped.Store(true)
 	}

@@ -42,6 +42,11 @@ func TestPoolListUpdater(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, len(pools) >= 23)
 
+	staticExtraBytes, _ := json.Marshal(&StaticExtra{
+		VaultLiquidationResolver: config.VaultLiquidationResolver,
+		HasNative:                true,
+	})
+
 	expectedPool0 := entity.Pool{
 		Address:  "0xeAbBfca72F8a8bf14C4ac59e69ECB2eB69F0811C",
 		Exchange: "fluid-vault-t1",
@@ -49,16 +54,25 @@ func TestPoolListUpdater(t *testing.T) {
 		Reserves: []string{"0", "0"},
 		Tokens: []*entity.PoolToken{
 			{
-				Address:   "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+				Address:   "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
 				Weight:    1,
 				Swappable: true,
 			},
 			{
-				Address: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
-				Weight:  1,
+				Address:   "",
+				Weight:    1,
+				Swappable: true,
 			},
 		},
+		StaticExtra: string(staticExtraBytes),
 	}
+
+	require.Equal(t, expectedPool0, pools[0])
+
+	staticExtraBytes, _ = json.Marshal(&StaticExtra{
+		VaultLiquidationResolver: config.VaultLiquidationResolver,
+		HasNative:                false,
+	})
 
 	expectedPool21 := entity.Pool{
 		Address:  "0x3A0b7c8840D74D39552EF53F586dD8c3d1234C40",
@@ -67,18 +81,19 @@ func TestPoolListUpdater(t *testing.T) {
 		Reserves: []string{"0", "0"},
 		Tokens: []*entity.PoolToken{
 			{
-				Address:   "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+				Address:   "0xdac17f958d2ee523a2206206994597c13d831ec7",
 				Weight:    1,
 				Swappable: true,
 			},
 			{
-				Address: "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599",
-				Weight:  1,
+				Address:   "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+				Weight:    1,
+				Swappable: true,
 			},
 		},
+		StaticExtra: string(staticExtraBytes),
 	}
 
-	require.Equal(t, expectedPool0, pools[0])
 	require.Equal(t, expectedPool21, pools[21])
 
 	// Log all pools
