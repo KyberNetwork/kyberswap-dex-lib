@@ -1,10 +1,10 @@
 package gyro2clp
 
 import (
-	"encoding/json"
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

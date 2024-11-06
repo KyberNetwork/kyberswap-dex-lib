@@ -1,10 +1,10 @@
 package solidlyv3
 
 import (
-	"encoding/json"
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

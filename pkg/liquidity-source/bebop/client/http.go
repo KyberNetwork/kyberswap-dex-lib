@@ -2,13 +2,14 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 
-	bebop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-resty/resty/v2"
+	"github.com/goccy/go-json"
+
+	bebop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 )
 
 const (

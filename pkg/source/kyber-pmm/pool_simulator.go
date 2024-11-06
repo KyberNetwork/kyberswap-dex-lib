@@ -1,7 +1,6 @@
 package kyberpmm
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/float"
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

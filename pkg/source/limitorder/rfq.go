@@ -2,10 +2,10 @@ package limitorder
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"

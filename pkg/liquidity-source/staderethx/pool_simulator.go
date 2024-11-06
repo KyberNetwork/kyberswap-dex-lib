@@ -1,14 +1,16 @@
 package staderethx
 
 import (
-	"encoding/json"
 	"errors"
+	"math/big"
+
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/holiman/uint256"
-	"github.com/samber/lo"
-	"math/big"
 )
 
 type (

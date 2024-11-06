@@ -2,13 +2,14 @@ package usd0pp
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 	"strings"
 	"testing"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 type PoolListUpdaterTestSuite struct {
