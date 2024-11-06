@@ -84,21 +84,21 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsSlice []pool.RFQParams)
 		})
 	}
 
-	result, err := h.client.RFQ(ctx, quoteParams)
+	quoteResult, err := h.client.RFQ(ctx, quoteParams)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(result.Quotes) != len(paramsSlice) {
+	if len(quoteResult.Quotes) != len(paramsSlice) {
 		return nil, errors.New("mismatch quotes length")
 	}
 
 	var results []*pool.RFQResult
-	for i := range result.Quotes {
-		newAmountOut, _ := new(big.Int).SetString(result.Quotes[i].QuoteData.QuoteTokenAmount, 10)
+	for i := range quoteResult.Quotes {
+		newAmountOut, _ := new(big.Int).SetString(quoteResult.Quotes[i].QuoteData.QuoteTokenAmount, 10)
 		results = append(results, &pool.RFQResult{
 			NewAmountOut: newAmountOut,
-			Extra:        result.Quotes[i],
+			Extra:        quoteResult.Quotes[i],
 		})
 	}
 
