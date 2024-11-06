@@ -175,6 +175,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 		cl.setSafetyQuoteReduction(remoteCfg.SafetyQuoteReduction)
 		cl.setPoolManagerOptionsFromFinderOptions(remoteCfg.FinderOptions)
 		cl.setRFQAcceptableSlippageFraction(remoteCfg.RFQAcceptableSlippageFraction)
+		cl.setDexalotUpscalePercent(remoteCfg.DexalotUpscalePercent)
 		cl.mu.Unlock()
 	}
 
@@ -280,4 +281,8 @@ func (cl *ConfigLoader) setSafetyQuoteReduction(safetyQuoteConf valueobject.Safe
 
 func (cl *ConfigLoader) setRFQAcceptableSlippageFraction(rfqAcceptableSlippageFraction int64) {
 	cl.config.UseCase.BuildRoute.RFQAcceptableSlippageFraction = rfqAcceptableSlippageFraction
+}
+
+func (cl *ConfigLoader) setDexalotUpscalePercent(dexalotUpscalePercent int) {
+	cl.config.Common.DexalotUpscalePercent = dexalotUpscalePercent
 }

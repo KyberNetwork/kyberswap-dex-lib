@@ -83,7 +83,7 @@ common:
   hashflowAPIKey:
   nativeAPIKey:
   dexalotAPIKey: 
-  dexalotUpscalePercent: 0
+  dexalotUpscalePercent: 20
   dexUseAEVM: &dexUseAEVM
     liquiditybook-v20: true
     liquiditybook-v21: true

@@ -23,6 +23,7 @@ type (
 		TokensThresholdForOnchainPrice uint32                     `json:"tokensThresholdForOnchainPrice"`
 		FaultyPoolsConfig              FaultyPoolsConfig          `json:"faultyPoolsConfig"`
 		SafetyQuoteReduction           SafetyQuoteReductionConfig `json:"safetyQuoteReduction"`
+		DexalotUpscalePercent          int                        `json:"dexalotUpscalePercent"`
 	}
 
 	Source string
