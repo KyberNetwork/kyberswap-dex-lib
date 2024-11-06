@@ -1,7 +1,6 @@
 package elastic
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -13,6 +12,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"

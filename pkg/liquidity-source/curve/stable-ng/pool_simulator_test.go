@@ -1,11 +1,11 @@
 package stableng
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -2,11 +2,11 @@ package quickperps
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )

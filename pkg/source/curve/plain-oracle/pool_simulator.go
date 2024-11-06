@@ -1,11 +1,12 @@
 package plainoracle
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"

@@ -1,13 +1,13 @@
 package iziswap
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/iZiSwap-SDK-go/swap"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

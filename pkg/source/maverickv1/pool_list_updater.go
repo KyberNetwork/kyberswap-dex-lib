@@ -2,13 +2,13 @@ package maverickv1
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

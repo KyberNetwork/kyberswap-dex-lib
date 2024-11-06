@@ -2,7 +2,6 @@ package liquiditybookv21
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"sort"
 	"strconv"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 	"golang.org/x/sync/errgroup"
 

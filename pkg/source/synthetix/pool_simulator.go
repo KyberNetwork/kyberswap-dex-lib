@@ -1,7 +1,6 @@
 package synthetix
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -9,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"

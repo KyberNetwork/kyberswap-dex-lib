@@ -2,7 +2,6 @@ package ambient_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"os"
@@ -10,10 +9,12 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/require"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/stretchr/testify/require"
 )
 
 type mockPoolDataStore struct {

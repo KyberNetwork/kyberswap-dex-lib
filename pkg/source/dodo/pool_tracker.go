@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
@@ -12,6 +11,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	cmap "github.com/orcaman/concurrent-map"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
