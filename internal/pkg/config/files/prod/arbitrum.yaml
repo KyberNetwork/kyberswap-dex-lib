@@ -110,7 +110,7 @@ common:
   bebopAPIName:
   bebopAPIAuth:
   dexalotAPIKey: 
-  dexalotUpscalePercent: 20
+  dexalotUpscalePercent: 0
   clipperAPIAuth:
   dexUseAEVM: &dexUseAEVM
     maverick-v2: true

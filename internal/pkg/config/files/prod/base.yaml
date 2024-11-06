@@ -101,7 +101,7 @@ common:
   bebopAPIName:
   bebopAPIAuth:
   dexalotAPIKey: 
-  dexalotUpscalePercent: 20
+  dexalotUpscalePercent: 0
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
