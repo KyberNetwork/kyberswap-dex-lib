@@ -1,7 +1,6 @@
 package swaplimit
 
 import (
-	"log"
 	"math/big"
 	"sync/atomic"
 
@@ -47,8 +46,6 @@ func (l *SingleSwapLimit) GetLimit(_ string) *big.Int {
 
 // UpdateLimit updates the atomic bool to mark swap done
 func (l *SingleSwapLimit) UpdateLimit(_, _ string, _, _ *big.Int) (*big.Int, *big.Int, error) {
-	log.Println("[DEBUG] singleswapLimit UpdateLimit")
 	l.swapped.Store(true)
-	log.Println("[DEBUG] singleswapLimit Done")
 	return nil, nil, nil
 }
