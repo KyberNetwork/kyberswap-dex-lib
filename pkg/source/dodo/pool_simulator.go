@@ -1,10 +1,11 @@
 package dodo
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -111,11 +112,16 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	var totalGas int64
+
+	for i := range p.Info.Tokens {
+		if p.Info.Reserves[i].Cmp(big.NewInt(0)) <= 0 {
+			return &pool.CalcAmountOutResult{}, errors.New("reserve depleted")
+		}
+	}
 
 	if tokenAmountIn.Token == p.Info.Tokens[0] {
 		if strings.EqualFold(p.Meta.Type, TypeV1Pool) {

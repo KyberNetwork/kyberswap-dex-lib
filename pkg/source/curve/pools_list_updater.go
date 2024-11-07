@@ -2,7 +2,6 @@ package curve
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -104,7 +104,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 			for j := 0; j < len(poolAddresses); j++ {
 				// Skip unsupported pools
-				if poolTypes[j] == poolTypeUnsupported {
+				if poolTypes[j] == PoolTypeUnsupported {
 					continue
 				}
 
@@ -124,19 +124,19 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		var newPools []entity.Pool
 		var err error
 		switch poolType {
-		case poolTypeBase:
+		case PoolTypeBase:
 			newPools, err = d.getNewPoolsTypeBase(ctx, poolAndRegistries)
-		case poolTypePlainOracle:
+		case PoolTypePlainOracle:
 			newPools, err = d.getNewPoolsTypePlainOracle(ctx, poolAndRegistries)
-		case poolTypeMeta:
+		case PoolTypeMeta:
 			newPools, err = d.getNewPoolsTypeMeta(ctx, poolAndRegistries)
-		case poolTypeAave:
+		case PoolTypeAave:
 			newPools, err = d.getNewPoolsTypeAave(ctx, poolAndRegistries)
-		case poolTypeCompound:
+		case PoolTypeCompound:
 			newPools, err = d.getNewPoolsTypeCompound(ctx, poolAndRegistries)
-		case poolTypeTwo:
+		case PoolTypeTwo:
 			newPools, err = d.getNewPoolsTypeTwo(ctx, poolAndRegistries)
-		case poolTypeTricrypto:
+		case PoolTypeTricrypto:
 			newPools, err = d.getNewPoolsTypeTricrypto(ctx, poolAndRegistries)
 		default:
 			logger.Infof("skip pool type %v", poolType)
@@ -189,10 +189,11 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 	newPoolBytes, ok := bytesByPath[d.config.PoolPath]
 	if !ok {
+		// if we don't have any hardcoded pool then just ignore
 		logger.WithFields(logger.Fields{
 			"poolPath": d.config.PoolPath,
-		}).Errorf("not found the pool path bytes data")
-		return nil, errors.New("not found the pool path bytes data")
+		}).Info("not found the pool path bytes data")
+		return nil, nil
 	}
 
 	var poolItems []PoolItem
@@ -214,7 +215,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 
 		var staticExtraBytes []byte
 		switch poolItem.Type {
-		case poolTypeBase:
+		case PoolTypeBase:
 			var staticExtra = PoolBaseStaticExtra{
 				LpToken:    poolItem.LpToken,
 				APrecision: poolItem.APrecision,
@@ -225,7 +226,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			}
 			staticExtraBytes, _ = json.Marshal(staticExtra)
 
-		case poolTypePlainOracle:
+		case PoolTypePlainOracle:
 			var staticExtra = PoolPlainOracleStaticExtra{
 				LpToken:    poolItem.LpToken,
 				APrecision: poolItem.APrecision,
@@ -235,7 +236,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			}
 			staticExtraBytes, _ = json.Marshal(staticExtra)
 
-		case poolTypeAave:
+		case PoolTypeAave:
 			var staticExtra = PoolAaveStaticExtra{
 				LpToken:          poolItem.LpToken,
 				UnderlyingTokens: poolItem.UnderlyingTokens,
@@ -245,7 +246,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			}
 			staticExtraBytes, _ = json.Marshal(staticExtra)
 
-		case poolTypeCompound:
+		case PoolTypeCompound:
 			var staticExtra = PoolCompoundStaticExtra{
 				LpToken:          poolItem.LpToken,
 				UnderlyingTokens: poolItem.UnderlyingTokens,
@@ -255,7 +256,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			}
 			staticExtraBytes, _ = json.Marshal(staticExtra)
 
-		case poolTypeMeta:
+		case PoolTypeMeta:
 			var staticExtra = PoolMetaStaticExtra{
 				LpToken:          poolItem.LpToken,
 				BasePool:         poolItem.BasePool,
@@ -269,7 +270,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			}
 			staticExtraBytes, _ = json.Marshal(staticExtra)
 
-		case poolTypeTwo:
+		case PoolTypeTwo:
 			var staticExtra = PoolTwoStaticExtra{
 				LpToken: poolItem.LpToken,
 			}
@@ -278,7 +279,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 			}
 			staticExtraBytes, _ = json.Marshal(staticExtra)
 
-		case poolTypeTricrypto:
+		case PoolTypeTricrypto:
 			var staticExtra = PoolTricryptoStaticExtra{
 				LpToken: poolItem.LpToken,
 			}
@@ -292,7 +293,7 @@ func (d *PoolsListUpdater) initPool() ([]entity.Pool, error) {
 		var tokens = make([]*entity.PoolToken, len(poolItem.Tokens))
 		for j := 0; j < len(poolItem.Tokens); j++ {
 			reserves[j] = zeroString
-			if poolItem.Type == poolTypeAave {
+			if poolItem.Type == PoolTypeAave {
 				tokens[j] = &entity.PoolToken{
 					Address:   strings.ToLower(poolItem.Tokens[j].Address),
 					Weight:    defaultWeight,

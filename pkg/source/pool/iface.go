@@ -4,6 +4,10 @@ import (
 	"context"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
@@ -17,32 +21,56 @@ type IPoolsListUpdater interface {
 	GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error)
 }
 
+type GetNewPoolStateParams struct {
+	Logs []types.Log
+}
+
+type GetNewPoolStateWithOverridesParams struct {
+	Logs      []types.Log
+	Overrides map[common.Address]gethclient.OverrideAccount
+}
+
+type IPoolTrackerWithOverrides interface {
+	GetNewPoolStateWithOverrides(ctx context.Context, p entity.Pool, params GetNewPoolStateWithOverridesParams) (entity.Pool, error)
+}
+
 type IPoolTracker interface {
-	GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error)
+	GetNewPoolState(ctx context.Context, p entity.Pool, params GetNewPoolStateParams) (entity.Pool, error)
 }
 
 type IPoolSimulator interface {
 	// CalcAmountOut amountOut, fee, gas
-	CalcAmountOut(
-		tokenAmountIn TokenAmount,
-		tokenOut string,
-	) (*CalcAmountOutResult, error)
+	// the required params is TokenAmountIn and TokenOut.
+	// SwapLimit is optional, individual dex logic will choose to ignore it if it is nil
+	CalcAmountOut(params CalcAmountOutParams) (*CalcAmountOutResult, error)
+	// CloneState clones IPoolSimulator to back up old balance state before UpdateBalance by a swap.
+	// Only clones fields updated by UpdateBalance. Returns nil if unimplemented.
+	CloneState() IPoolSimulator
+	// UpdateBalance updates the pool state after a swap
 	UpdateBalance(params UpdateBalanceParams)
 	CanSwapTo(address string) []string
 	CanSwapFrom(address string) []string
 	GetTokens() []string
+	GetReserves() []*big.Int
 	GetAddress() string
 	GetExchange() string
 	GetType() string
 	GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	GetTokenIndex(address string) int
+	CalculateLimit() map[string]*big.Int
 }
 
-type RFQResult struct {
-	NewAmountOut *big.Int
-	Extra        any
+type IPoolExactOutSimulator interface {
+	// CalcAmountIn returns amountIn, fee, gas
+	// the required params is TokenAmountOut and TokenIn.
+	// SwapLimit is optional, individual dex logic will chose to ignore it if it is nil
+	CalcAmountIn(param CalcAmountInParams) (*CalcAmountInResult, error)
 }
 
 type IPoolRFQ interface {
-	RFQ(ctx context.Context, recipient string, params any) (RFQResult, error)
+	RFQ(ctx context.Context, params RFQParams) (*RFQResult, error)
+}
+
+type ITicksBasedPoolTracker interface {
+	FetchStateFromRPC(ctx context.Context, pool entity.Pool, blockNumber uint64) ([]byte, error)
 }

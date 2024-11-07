@@ -2,14 +2,15 @@ package traderjoev21
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoecommon"
 )
 
@@ -25,8 +26,12 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
-	logger.Infof("[TraderJoe v2.0] Start getting new state of pool: %v", p.Address)
+func (d *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	logger.Infof("[TraderJoe v2.1] Start getting new state of pool: %v", p.Address)
 
 	rpcRequest := d.EthrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)

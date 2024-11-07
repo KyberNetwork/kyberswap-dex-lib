@@ -2,7 +2,6 @@ package platypus
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
@@ -10,8 +9,10 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolTracker struct {
@@ -24,7 +25,11 @@ func NewPoolTracker(ethClient *ethrpc.Client) *PoolTracker {
 	}
 }
 
-func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+func (t *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
 	}).Infof("[Platypus] Start getting new pool's state")
@@ -63,7 +68,7 @@ func (t *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	p.Type = getPoolTypeByPriceOracle(strings.ToLower(poolState.PriceOracle.Hex()))
 
 	sAvaxRate := big.NewInt(0)
-	if p.Type == poolTypePlatypusAvax {
+	if p.Type == PoolTypePlatypusAvax {
 		sAvaxRate, err = t.getSAvaxRate(ctx, addressStakedAvax)
 		if err != nil {
 			logger.WithFields(logger.Fields{

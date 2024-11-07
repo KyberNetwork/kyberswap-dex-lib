@@ -2,7 +2,6 @@ package syncswap
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"time"
@@ -10,8 +9,10 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolTracker struct {
@@ -29,11 +30,15 @@ func NewPoolTracker(
 	}
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
 	switch p.Type {
-	case poolTypeSyncSwapClassic:
+	case PoolTypeSyncSwapClassic:
 		return d.getClassicPoolState(ctx, p)
-	case poolTypeSyncSwapStable:
+	case PoolTypeSyncSwapStable:
 		return d.getStablePoolState(ctx, p)
 	default:
 		err := fmt.Errorf("can not get new pool state of address %s with type %s", p.Address, p.Type)

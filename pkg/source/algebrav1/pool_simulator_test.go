@@ -5,12 +5,14 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
@@ -20,9 +22,10 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 		inAmount          int64
 		out               string
 		expectedOutAmount int64
+		calcInThreshold   int64
 	}{
-		{"A", 10, "B", 12418116005823},
-		{"B", 100000000000000000, "A", 70148},
+		{"A", 10, "B", 12418116005823, 10},
+		{"B", 100000000000000000, "A", 70148, 1},
 	}
 	p, err := NewPoolSimulator(entity.Pool{
 		Exchange: "",
@@ -38,11 +41,29 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			in := pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}
-			out, err := p.CalcAmountOut(in, tc.out)
+			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				in := pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: in,
+					TokenOut:      tc.out,
+					Limit:         nil,
+				})
+			})
 			require.Nil(t, err)
 			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
+
+			threshold := big.NewInt(tc.calcInThreshold)
+			approx, err := pool.ApproxAmountIn(p, pool.ApproxAmountInParams{
+				ExpectedTokenOut: *out.TokenAmountOut,
+				TokenIn:          tc.in,
+				MaxLoop:          3,
+				Threshold:        threshold,
+			})
+			require.Nil(t, err)
+			diff := new(big.Int).Abs(new(big.Int).Sub(approx.TokenAmountOut.Amount, out.TokenAmountOut.Amount))
+			assert.Truef(t, diff.Cmp(threshold) < 0, "ApproxAmountIn not exact enough: %v vs %v", approx.TokenAmountOut.Amount, out.TokenAmountOut.Amount)
+			fmt.Println("approx", approx.TokenAmountIn.Amount, approx.TokenAmountOut.Amount)
 		})
 	}
 }
@@ -78,7 +99,13 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			in := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
-			out, err := p.CalcAmountOut(in, tc.out)
+			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: in,
+					TokenOut:      tc.out,
+					Limit:         nil,
+				})
+			})
 			require.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
@@ -117,8 +144,14 @@ func TestPoolSimulator_CalcAmountOut_SPL(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			in := pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}
-			_, err := p.CalcAmountOut(in, tc.out)
+			_, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				in := pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: in,
+					TokenOut:      tc.out,
+					Limit:         nil,
+				})
+			})
 			require.NotNil(t, err)
 			assert.Contains(t, err.Error(), ErrSPL.Error())
 		})
@@ -132,11 +165,12 @@ func TestPoolSimulator_CalcAmountOut_CommFee(t *testing.T) {
 		inAmount          string
 		out               string
 		expectedOutAmount string
+		calcInThreshold   int64
 	}{
-		{"A", "10", "B", "3546"},
-		{"A", "100", "B", "38618"},
-		{"A", "1000", "B", "389338"},
-		{"B", "100000000000000000", "A", "250953133732636"},
+		{"A", "10", "B", "3546", 1},
+		{"A", "100", "B", "38618", 1},
+		{"A", "1000", "B", "389338", 1},
+		{"B", "100000000000000000", "A", "250953133732636", 100},
 	}
 	p, err := NewPoolSimulator(entity.Pool{
 		Exchange: "",
@@ -149,11 +183,29 @@ func TestPoolSimulator_CalcAmountOut_CommFee(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			in := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
-			out, err := p.CalcAmountOut(in, tc.out)
+			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				in := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: in,
+					TokenOut:      tc.out,
+					Limit:         nil,
+				})
+			})
 			require.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
+
+			threshold := big.NewInt(tc.calcInThreshold)
+			approx, err := pool.ApproxAmountIn(p, pool.ApproxAmountInParams{
+				ExpectedTokenOut: *out.TokenAmountOut,
+				TokenIn:          tc.in,
+				MaxLoop:          3,
+				Threshold:        threshold,
+			})
+			require.Nil(t, err)
+			diff := new(big.Int).Abs(new(big.Int).Sub(approx.TokenAmountOut.Amount, out.TokenAmountOut.Amount))
+			assert.Truef(t, diff.Cmp(threshold) < 0, "ApproxAmountIn not exact enough: %v vs %v", approx.TokenAmountOut.Amount, out.TokenAmountOut.Amount)
+			fmt.Println("approx", approx.TokenAmountIn.Amount, approx.TokenAmountOut.Amount)
 		})
 	}
 }
@@ -182,8 +234,14 @@ func TestPoolSimulator_CalcAmountOut_v1_9(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			in := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
-			out, err := p.CalcAmountOut(in, tc.out)
+			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				in := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: in,
+					TokenOut:      tc.out,
+					Limit:         nil,
+				})
+			})
 			require.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
@@ -217,8 +275,14 @@ func TestPoolSimulator_CalcAmountOut_DirFee(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			in := pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}
-			out, err := p.CalcAmountOut(in, tc.out)
+			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				in := pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: in,
+					TokenOut:      tc.out,
+					Limit:         nil,
+				})
+			})
 			require.Nil(t, err)
 			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
@@ -258,7 +322,11 @@ func TestPoolSimulator_UpdateBalance_DirFee(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			in := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
-			out, err := p.CalcAmountOut(in, tc.out)
+			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: in,
+				TokenOut:      tc.out,
+				Limit:         nil,
+			})
 			require.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)

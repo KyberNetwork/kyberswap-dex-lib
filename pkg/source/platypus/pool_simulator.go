@@ -1,9 +1,10 @@
 package platypus
 
 import (
-	"encoding/json"
 	"math/big"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -67,10 +68,9 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	if tokenAmountIn.Token == tokenOut {
 		return &pool.CalcAmountOutResult{}, ErrSameAddress
 	}
@@ -242,7 +242,7 @@ func (p *PoolSimulator) _quoteIdealToAmount(
 	toAsset Asset,
 	fromAmount *big.Int,
 ) (*big.Int, error) {
-	if p.Info.Type == poolTypePlatypusAvax {
+	if p.Info.Type == PoolTypePlatypusAvax {
 		return p._quoteIdealToAmountSAvax(fromAsset, toAsset, fromAmount)
 	}
 

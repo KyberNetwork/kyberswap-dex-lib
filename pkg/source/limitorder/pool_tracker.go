@@ -2,15 +2,16 @@ package limitorder
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolTracker struct {
@@ -27,7 +28,11 @@ func NewPoolTracker(cfg *Config) *PoolTracker {
 	}
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
 	logger.Infof("[LimitOrder] Start getting new states for pool %v", p.Address)
 	if len(p.Tokens) < 2 {
 		err := errors.New("number of token should be greater than or equal 2")
@@ -59,6 +64,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			MakerAsset:      token0.Address,
 			TakerAsset:      token1.Address,
 			ContractAddress: contractAddress,
+
+			IncludeInsufficientBalanceOrder: !d.config.DisableInsufficientBalance,
 		})
 		if err != nil {
 			logger.WithFields(logger.Fields{
@@ -76,6 +83,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 			MakerAsset:      token1.Address,
 			TakerAsset:      token0.Address,
 			ContractAddress: contractAddress,
+
+			IncludeInsufficientBalanceOrder: !d.config.DisableInsufficientBalance,
 		})
 		if err != nil {
 			logger.WithFields(logger.Fields{

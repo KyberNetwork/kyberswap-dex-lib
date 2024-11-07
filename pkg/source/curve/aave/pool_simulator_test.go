@@ -5,12 +5,14 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestCalcAmountOut(t *testing.T) {
@@ -49,7 +51,14 @@ func TestCalcAmountOut(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			out, err := p.CalcAmountOut(pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}, tc.out)
+			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return p.CalcAmountOut(
+					pool.CalcAmountOutParams{
+						TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
+						TokenOut:      tc.out,
+						Limit:         nil,
+					})
+			})
 			require.Nil(t, err)
 			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
@@ -121,13 +130,24 @@ func TestGetDyVirtualPrice(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	v, err := p.GetVirtualPrice()
+	v, dCached, err := p.GetVirtualPrice()
 	require.Nil(t, err)
 	assert.Equal(t, utils.NewBig10("1077638023314146944"), v)
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			dy, _, err := p.GetDy(tc.i, tc.j, utils.NewBig10(tc.dx))
+			dy, err := testutil.MustConcurrentSafe[*big.Int](t, func() (any, error) {
+				dy, _, err := p.GetDy(tc.i, tc.j, utils.NewBig10(tc.dx), nil)
+				return dy, err
+			})
+			require.Nil(t, err)
+			assert.Equal(t, utils.NewBig10(tc.expOut), dy)
+
+			// test using cached D
+			dy, err = testutil.MustConcurrentSafe[*big.Int](t, func() (any, error) {
+				dy, _, err := p.GetDy(tc.i, tc.j, utils.NewBig10(tc.dx), dCached)
+				return dy, err
+			})
 			require.Nil(t, err)
 			assert.Equal(t, utils.NewBig10(tc.expOut), dy)
 		})

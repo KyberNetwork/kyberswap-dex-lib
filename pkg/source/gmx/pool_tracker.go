@@ -2,14 +2,15 @@ package gmx
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolTracker struct {
@@ -27,14 +28,18 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
 	log := logger.WithFields(logger.Fields{
 		"liquiditySource": DexTypeGmx,
 		"poolAddress":     p.Address,
 	})
 	log.Info("Start getting new state of pool")
 
-	vault, err := NewVaultScanner(ChainID(d.config.ChainID), d.ethrpcClient).getVault(ctx, p.Address)
+	vault, err := NewVaultScanner(d.config, d.ethrpcClient).getVault(ctx, p.Address)
 	if err != nil {
 		log.Errorf("get vault failed: %v", err)
 		return entity.Pool{}, fmt.Errorf("get vault failed, pool: %s, err: %v", p.Address, err)

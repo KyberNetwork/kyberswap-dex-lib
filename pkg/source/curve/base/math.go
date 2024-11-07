@@ -91,34 +91,76 @@ func (t *PoolBaseSimulator) getD(xp []*big.Int, a *big.Int) (*big.Int, error) {
 	if s.Cmp(big.NewInt(0)) == 0 {
 		return s, nil
 	}
-	var numTokensBI = big.NewInt(int64(numTokens))
-	var prevD *big.Int
-	var d = new(big.Int).Set(s)
-	var nA = new(big.Int).Mul(a, numTokensBI)
+
+	// this is in a loop so should use local variable instead of allocating
+	// writing like this will hurt readability so double check with the original SC code here if needed
+	// https://github.com/curvefi/curve-contract/blob/d4e8589ac92c4019b3064b2f3a8a87dbc3281b46/contracts/pool-templates/base/SwapTemplateBase.vy#L217
+
+	/*
+		D: uint256 = S
+		Ann: uint256 = amp * N_COINS
+		for _i in range(255):
+		  D_P: uint256 = D
+		  for _x in xp:
+		    D_P = D_P * D / (_x * N_COINS)  # If division by 0, this will be borked: only withdrawal will work. And that is good
+		  Dprev = D
+		  D = (Ann * S / A_PRECISION + D_P * N_COINS) * D / ((Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P)
+		  # Equality with the precision of 1
+		  if D > Dprev:
+		    if D - Dprev <= 1:
+		      return D
+		  else:
+		    if Dprev - D <= 1:
+		      return D
+	*/
+	var d, dP, numTokensPlus1, nA, nA_mul_s_div_APrec, nA_sub_APrec, diff, prevD, tmp0, tmp1, tmp2, tmp3, tmp4, tmp5, tmp6, tmp7 big.Int
+	numTokensPlus1.SetInt64(int64(numTokens + 1))
+	d.Set(s)
+	nA.Mul(a, t.numTokensBI)
+	nA_mul_s_div_APrec.Mul(&nA, s)
+	nA_mul_s_div_APrec.Div(&nA_mul_s_div_APrec, t.APrecision)
+	nA_sub_APrec.Sub(&nA, t.APrecision)
+
 	for i := 0; i < MaxLoopLimit; i++ {
-		var dP = new(big.Int).Set(d)
+		// D_P: uint256 = D
+		dP.Set(&d)
+
 		for j := 0; j < numTokens; j++ {
-			dP = new(big.Int).Div(
-				new(big.Int).Mul(dP, d),
-				new(big.Int).Add(new(big.Int).Mul(xp[j], numTokensBI), bignumber.One), // +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
-			)
+			// D_P = D_P * D / (_x * N_COINS +1)
+			// +1 is to prevent /0 (https://github.com/curvefi/curve-contract/blob/d4e8589/contracts/pools/aave/StableSwapAave.vy#L299)
+
+			// nominator
+			tmp0.Mul(&dP, &d)
+
+			// denominator
+			tmp1.Mul(xp[j], t.numTokensBI)
+			tmp1.Add(&tmp1, bignumber.One)
+
+			// update dP
+			dP.Div(&tmp0, &tmp1)
 		}
-		prevD = d
-		d = new(big.Int).Div(
-			new(big.Int).Mul(
-				new(big.Int).Add(
-					new(big.Int).Div(new(big.Int).Mul(nA, s), t.APrecision),
-					new(big.Int).Mul(dP, numTokensBI),
-				),
-				d,
-			),
-			new(big.Int).Add(
-				new(big.Int).Div(new(big.Int).Mul(new(big.Int).Sub(nA, t.APrecision), d), t.APrecision),
-				new(big.Int).Mul(dP, big.NewInt(int64(numTokens+1))),
-			),
-		)
-		if new(big.Int).Sub(d, prevD).CmpAbs(big.NewInt(1)) <= 0 {
-			return d, nil
+		// Dprev = D
+		prevD.Set(&d)
+
+		// D = (Ann * S / A_PRECISION + D_P * N_COINS) * D / ((Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P)
+
+		// nominator
+		tmp6.Add(&nA_mul_s_div_APrec, tmp3.Mul(&dP, t.numTokensBI)) // (Ann * S / A_PRECISION + D_P * N_COINS)
+		tmp2.Mul(&tmp6, &d)                                         // (Ann * S / A_PRECISION + D_P * N_COINS) * D
+
+		// denominator
+		tmp7.Mul(&nA_sub_APrec, &d)    // (Ann - A_PRECISION) * D
+		tmp4.Div(&tmp7, t.APrecision)  // (Ann - A_PRECISION) * D / A_PRECISION
+		tmp5.Mul(&dP, &numTokensPlus1) // (N_COINS + 1) * D_P
+		tmp4.Add(&tmp4, &tmp5)         // (Ann - A_PRECISION) * D / A_PRECISION + (N_COINS + 1) * D_P
+
+		// update d
+		d.Div(&tmp2, &tmp4)
+
+		// calc abs(D - Dprev) and compare against 1
+		diff.Sub(&d, &prevD)
+		if diff.CmpAbs(bignumber.One) <= 0 {
+			return new(big.Int).Set(&d), nil
 		}
 	}
 	return nil, ErrDDoesNotConverge
@@ -129,6 +171,7 @@ func (t *PoolBaseSimulator) getY(
 	tokenIndexTo int,
 	x *big.Int,
 	xp []*big.Int,
+	dCached *big.Int,
 ) (*big.Int, error) {
 	var numTokens = len(xp)
 	if tokenIndexFrom == tokenIndexTo {
@@ -137,19 +180,23 @@ func (t *PoolBaseSimulator) getY(
 	if tokenIndexFrom >= numTokens && tokenIndexTo >= numTokens {
 		return nil, ErrTokenIndexesOutOfRange
 	}
-	var numTokensBI = big.NewInt(int64(numTokens))
+
 	var a = t._A()
 	if a == nil {
 		return nil, ErrInvalidAValue
 	}
 
-	var d, err = t.getD(xp, a)
-	if err != nil {
-		return nil, err
+	d := dCached
+	if d == nil {
+		var err error
+		d, err = t.getD(xp, a)
+		if err != nil {
+			return nil, err
+		}
 	}
 	var c = new(big.Int).Set(d)
 	var s = big.NewInt(0)
-	var nA = new(big.Int).Mul(a, numTokensBI)
+	var nA = new(big.Int).Mul(a, t.numTokensBI)
 	var _x *big.Int
 	for i := 0; i < numTokens; i++ {
 		if i == tokenIndexFrom {
@@ -165,7 +212,7 @@ func (t *PoolBaseSimulator) getY(
 		s = new(big.Int).Add(s, _x)
 		c = new(big.Int).Div(
 			new(big.Int).Mul(c, d),
-			new(big.Int).Mul(_x, numTokensBI),
+			new(big.Int).Mul(_x, t.numTokensBI),
 		)
 	}
 	if nA.Cmp(bignumber.ZeroBI) == 0 {
@@ -173,22 +220,52 @@ func (t *PoolBaseSimulator) getY(
 	}
 	c = new(big.Int).Div(
 		new(big.Int).Mul(new(big.Int).Mul(c, d), t.APrecision),
-		new(big.Int).Mul(nA, numTokensBI),
+		new(big.Int).Mul(nA, t.numTokensBI),
 	)
 	var b = new(big.Int).Add(
 		s,
 		new(big.Int).Div(new(big.Int).Mul(d, t.APrecision), nA),
 	)
-	var yPrev *big.Int
-	var y = new(big.Int).Set(d)
+
+	// this is in a loop so should use local variable instead of allocating
+	// writing like this will hurt readability so double check with the original SC code here if needed
+	// https://github.com/curvefi/curve-contract/blob/d4e8589ac92c4019b3064b2f3a8a87dbc3281b46/contracts/pool-templates/base/SwapTemplateBase.vy#L408
+	/*
+		for _i in range(255):
+			y_prev = y
+			y = (y*y + c) / (2 * y + b - D)
+			# Equality with the precision of 1
+			if y > y_prev:
+		  	if y - y_prev <= 1:
+		    	return y
+			else:
+		  	if y_prev - y <= 1:
+		    	return y
+	*/
+	var tmp, tmp1 big.Int
+	var yPrev big.Int
+	var y big.Int
+	y.Set(d)
+	var diff big.Int
 	for i := 0; i < MaxLoopLimit; i++ {
-		yPrev = new(big.Int).Set(y)
-		y = new(big.Int).Div(
-			new(big.Int).Add(new(big.Int).Mul(y, y), c),
-			new(big.Int).Sub(new(big.Int).Add(new(big.Int).Mul(y, big.NewInt(2)), b), d),
-		)
-		if new(big.Int).Sub(y, yPrev).CmpAbs(bignumber.One) <= 0 {
-			return y, nil
+		// y_prev = y
+		yPrev.Set(&y)
+
+		// y = (y*y + c) / (2 * y + b - D)
+		// first calc denominator into tmp
+		tmp.Mul(&y, bignumber.Two)
+		tmp.Add(&tmp, b)
+		tmp.Sub(&tmp, d)
+		// then calc nominator into tmp1
+		tmp1.Mul(&y, &y)
+		tmp1.Add(&tmp1, c)
+		// then the whole y
+		y.Div(&tmp1, &tmp)
+
+		// calc abs(y - y_prev) and compare against 1
+		diff.Sub(&y, &yPrev)
+		if diff.CmpAbs(bignumber.One) <= 0 {
+			return new(big.Int).Set(&y), nil
 		}
 	}
 	return nil, ErrAmountOutNotConverge
@@ -198,13 +275,14 @@ func (t *PoolBaseSimulator) GetDy(
 	i int,
 	j int,
 	dx *big.Int,
+	dCached *big.Int,
 ) (*big.Int, *big.Int, error) {
 	var xp = t._xp()
 	// x: uint256 = xp[i] + (dx * rates[i] / PRECISION)
 	var x = new(big.Int).Add(xp[i], new(big.Int).Div(new(big.Int).Mul(dx, t.Rates[i]), Precision))
 
 	// y: uint256 = self.get_y(i, j, x, xp)
-	var y, err = t.getY(i, j, x, xp)
+	var y, err = t.getY(i, j, x, xp, dCached)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -234,16 +312,15 @@ func (t *PoolBaseSimulator) getYD(
 	if tokenIndex >= numTokens {
 		return nil, ErrTokenNotFound
 	}
-	var numTokensBI = big.NewInt(int64(numTokens))
 	var c = new(big.Int).Set(d)
 	var s = big.NewInt(0)
-	var nA = new(big.Int).Mul(a, numTokensBI)
+	var nA = new(big.Int).Mul(a, t.numTokensBI)
 	for i := 0; i < numTokens; i++ {
 		if i != tokenIndex {
 			s = new(big.Int).Add(s, xp[i])
 			c = new(big.Int).Div(
 				new(big.Int).Mul(c, d),
-				new(big.Int).Mul(xp[i], numTokensBI),
+				new(big.Int).Mul(xp[i], t.numTokensBI),
 			)
 		}
 	}
@@ -252,7 +329,7 @@ func (t *PoolBaseSimulator) getYD(
 	}
 	c = new(big.Int).Div(
 		new(big.Int).Mul(new(big.Int).Mul(c, d), t.APrecision),
-		new(big.Int).Mul(nA, numTokensBI),
+		new(big.Int).Mul(nA, t.numTokensBI),
 	)
 	var b = new(big.Int).Add(
 		s,
@@ -456,15 +533,15 @@ func (t *PoolBaseSimulator) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) 
 	return dy, nil
 }
 
-func (t *PoolBaseSimulator) GetVirtualPrice() (*big.Int, error) {
+func (t *PoolBaseSimulator) GetVirtualPrice() (*big.Int, *big.Int, error) {
 	var xp = t._xp()
 	var A = t._A()
 	var D, err = t.getD(xp, A)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if t.LpSupply.Cmp(bignumber.ZeroBI) == 0 {
-		return nil, ErrDenominatorZero
+		return nil, nil, ErrDenominatorZero
 	}
-	return new(big.Int).Div(new(big.Int).Mul(D, Precision), t.LpSupply), nil
+	return new(big.Int).Div(new(big.Int).Mul(D, Precision), t.LpSupply), D, nil
 }

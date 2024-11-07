@@ -2,16 +2,17 @@ package traderjoev21
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"testing"
 
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/davecgh/go-spew/spew"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
-	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/traderjoecommon"
 )
 
@@ -65,7 +66,7 @@ func TestGetPoolState(t *testing.T) {
 	tracker, err := NewPoolTracker(client)
 	require.NoError(t, err)
 
-	pool, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: btcbUSDCPool})
+	pool, err := tracker.GetNewPoolState(context.Background(), entity.Pool{Address: btcbUSDCPool}, sourcePool.GetNewPoolStateParams{})
 	require.NoError(t, err)
 
 	spew.Dump(pool)

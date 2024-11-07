@@ -2,14 +2,15 @@ package fraxswap
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolTracker struct {
@@ -22,7 +23,11 @@ func NewPoolTracker(ethrpcClient *ethrpc.Client) *PoolTracker {
 	}
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
 	log := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 	})
@@ -69,7 +74,18 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		return entity.Pool{}, err
 	}
 
-	p.Reserves = entity.PoolReserves{reserveAfterTwammOutput.Reserve0.String(), reserveAfterTwammOutput.Reserve1.String()}
+	var rev0, rev1 string
+	if reserveAfterTwammOutput.Reserve0 != nil {
+		rev0 = reserveAfterTwammOutput.Reserve0.String()
+	} else {
+		rev0 = "0"
+	}
+	if reserveAfterTwammOutput.Reserve1 != nil {
+		rev1 = reserveAfterTwammOutput.Reserve1.String()
+	} else {
+		rev1 = "0"
+	}
+	p.Reserves = entity.PoolReserves{rev0, rev1}
 	p.Timestamp = time.Now().Unix()
 	p.Extra = string(extraBytes)
 

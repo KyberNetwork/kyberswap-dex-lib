@@ -2,11 +2,11 @@ package kyberpmm
 
 import (
 	"context"
-	"encoding/json"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
@@ -110,11 +110,15 @@ func (u *PoolsListUpdater) transformToPool(
 				Address:   strings.ToLower(baseToken.Address),
 				Decimals:  baseToken.Decimals,
 				Swappable: true,
+				Symbol:    baseToken.Symbol,
+				Name:      baseToken.Name,
 			},
 			{
 				Address:   strings.ToLower(quoteToken.Address),
 				Decimals:  quoteToken.Decimals,
 				Swappable: true,
+				Symbol:    quoteToken.Symbol,
+				Name:      quoteToken.Name,
 			},
 		},
 		StaticExtra: string(staticExtraBytes),

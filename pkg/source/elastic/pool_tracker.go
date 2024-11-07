@@ -2,18 +2,20 @@ package elastic
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -26,7 +28,11 @@ func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
-	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
+	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
+		Url:     cfg.SubgraphAPI,
+		Header:  cfg.SubgraphHeaders,
+		Timeout: graphQLRequestTimeout,
+	})
 
 	return &PoolTracker{
 		config:        cfg,
@@ -35,7 +41,11 @@ func NewPoolTracker(
 	}, nil
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ sourcePool.GetNewPoolStateParams,
+) (entity.Pool, error) {
 	logger.Infof("[Elastic] Start getting new state of pool: %v", p.Address)
 
 	var (
@@ -174,17 +184,21 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 						liquidityGross
 					}
 				}
+				_meta { block { timestamp }}
 			}`, poolAddress, graphFirstLimit, skip),
 		)
 
 		var resp struct {
-			Pool *SubgraphPoolTicks `json:"pool"`
+			Pool *SubgraphPoolTicks        `json:"pool"`
+			Meta *valueobject.SubgraphMeta `json:"_meta"`
 		}
 
 		if err := d.graphqlClient.Run(ctx, req, &resp); err != nil {
 			logger.Errorf("failed to query subgraph for pool: %v, err: %v", poolAddress, err)
 			return nil, err
 		}
+
+		resp.Meta.CheckIsLagging(d.config.DexID, poolAddress)
 
 		if resp.Pool == nil || len(resp.Pool.Ticks) == 0 {
 			break

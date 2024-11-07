@@ -6,13 +6,15 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve/base"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestCalcAmountOut(t *testing.T) {
@@ -64,7 +66,13 @@ func TestCalcAmountOut(t *testing.T) {
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			out, err := p.CalcAmountOut(pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}, tc.out)
+			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)},
+					TokenOut:      tc.out,
+					Limit:         nil,
+				})
+			})
 			require.Nil(t, err)
 			assert.Equal(t, big.NewInt(tc.expectedOutAmount), out.TokenAmountOut.Amount)
 			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
@@ -112,9 +120,9 @@ func TestSwappable(t *testing.T) {
 	assert.Equal(t, []string{"Am"}, p.CanSwapTo("Bm"))
 
 	// base token can be swapped to anything other than the last meta token
-	assert.Equal(t, []string{"Am", "B", "C"}, p.CanSwapTo("A"))
-	assert.Equal(t, []string{"Am", "A", "C"}, p.CanSwapTo("B"))
-	assert.Equal(t, []string{"Am", "A", "B"}, p.CanSwapTo("C"))
+	assert.Equal(t, []string{"Am"}, p.CanSwapTo("A"))
+	assert.Equal(t, []string{"Am"}, p.CanSwapTo("B"))
+	assert.Equal(t, []string{"Am"}, p.CanSwapTo("C"))
 
 	errorcases := []struct {
 		in  string
@@ -137,7 +145,13 @@ func TestSwappable(t *testing.T) {
 
 	for idx, tc := range errorcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
-			_, err := p.CalcAmountOut(pool.TokenAmount{Token: tc.in, Amount: big.NewInt(100000000)}, tc.out)
+			_, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: pool.TokenAmount{Token: tc.in, Amount: big.NewInt(100000000)},
+					TokenOut:      tc.out,
+					Limit:         nil,
+				})
+			})
 			require.NotNil(t, err)
 		})
 	}
@@ -178,7 +192,12 @@ func TestUpdateBalance(t *testing.T) {
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
 			amountIn := pool.TokenAmount{Token: tc.in, Amount: big.NewInt(tc.inAmount)}
-			out, err := p.CalcAmountOut(amountIn, tc.out)
+			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: amountIn,
+					TokenOut:      tc.out,
+				})
+			})
 			require.Nil(t, err)
 
 			p.UpdateBalance(pool.UpdateBalanceParams{
@@ -192,5 +211,38 @@ func TestUpdateBalance(t *testing.T) {
 				assert.Equal(t, bignumber.NewBig10(expBalance), p.Info.Reserves[i])
 			}
 		})
+	}
+}
+
+func BenchmarkGetDyUnderlying(b *testing.B) {
+
+	// {"Am", 1000, "A", 31},
+	base, err := base.NewPoolSimulator(entity.Pool{
+		Exchange:    "",
+		Type:        "",
+		Reserves:    entity.PoolReserves{"93649867132724477811796755", "92440712316473", "175421309630243", "352290453972395231054279357"},
+		Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}, {Address: "C"}},
+		Extra:       "{\"initialA\":\"5000\",\"futureA\":\"2000\",\"initialATime\":1653559305,\"futureATime\":1654158027,\"swapFee\":\"1000000\",\"adminFee\":\"5000000000\"}",
+		StaticExtra: "{\"lpToken\":\"LPBase\",\"aPrecision\":\"1\",\"precisionMultipliers\":[\"1\",\"1000000000000\",\"1000000000000\"],\"rates\":[\"1000000000000000000\",\"1000000000000000000000000000000\",\"1000000000000000000000000000000\"]}",
+	})
+	require.Nil(b, err)
+
+	p, err := NewPoolSimulator(entity.Pool{
+		Exchange:    "",
+		Type:        "",
+		Reserves:    entity.PoolReserves{"4763102571534863472313821", "15272752439110430673281", "0"},
+		Tokens:      []*entity.PoolToken{{Address: "Am"}, {Address: "Bm"}},
+		Extra:       "{\"initialA\":\"10000\",\"futureA\":\"25000\",\"initialATime\":1649327847,\"futureATime\":1649925962,\"swapFee\":\"4000000\",\"adminFee\":\"0\"}",
+		StaticExtra: "{\"lpToken\":\"LPMeta\",\"basePool\":\"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7\",\"rateMultiplier\":\"1000000000000000000\",\"aPrecision\":\"100\",\"underlyingTokens\":[\"0x674c6ad92fd080e4004b2312b45f796a192d27a0\",\"0x6b175474e89094c44da98b954eedeac495271d0f\",\"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48\",\"0xdac17f958d2ee523a2206206994597c13d831ec7\"],\"precisionMultipliers\":[\"1\",\"1\"],\"rates\":[\"\",\"\"]}",
+	}, base)
+	require.Nil(b, err)
+
+	for i := 0; i < b.N; i++ {
+		_, err = p.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{Token: "B", Amount: big.NewInt(10)},
+			TokenOut:      "A",
+			Limit:         nil,
+		})
+		require.Nil(b, err)
 	}
 }

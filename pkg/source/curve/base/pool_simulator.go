@@ -1,11 +1,12 @@
 package base
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
@@ -27,6 +28,7 @@ type PoolBaseSimulator struct {
 	LpSupply     *big.Int
 	APrecision   *big.Int
 	gas          Gas
+	numTokensBI  *big.Int
 }
 
 type Gas struct {
@@ -90,13 +92,13 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolBaseSimulator, error) {
 		LpSupply:     bignumber.NewBig10(entityPool.Reserves[numTokens]),
 		APrecision:   aPrecision,
 		gas:          DefaultGas,
+		numTokensBI:  big.NewInt(int64(numTokens)),
 	}, nil
 }
 
-func (t *PoolBaseSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (t *PoolBaseSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	// swap from token to token
 	var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
 	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
@@ -105,6 +107,7 @@ func (t *PoolBaseSimulator) CalcAmountOut(
 			tokenIndexFrom,
 			tokenIndexTo,
 			tokenAmountIn.Amount,
+			nil,
 		)
 		if err != nil {
 			return &pool.CalcAmountOutResult{}, err

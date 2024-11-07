@@ -1,27 +1,42 @@
 package kyberpmm
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/float"
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolSimulator struct {
 	pool.Pool
-	baseToken              *entity.PoolToken
-	quoteToken             *entity.PoolToken
+	baseToken              entity.PoolToken
+	quoteToken             entity.PoolToken
 	baseToQuotePriceLevels []PriceLevel
 	quoteToBasePriceLevels []PriceLevel
 	gas                    Gas
+	QuoteBalance           *big.Int
+	BaseBalance            *big.Int
+	timestamp              int64
+}
+
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	var pmmInventory = make(map[string]*big.Int, len(p.GetTokens()))
+	tokens := p.GetTokens()
+	rsv := p.GetReserves()
+	for i, tok := range tokens {
+		pmmInventory[tok] = big.NewInt(0).Set(rsv[i]) //clone here.
+	}
+	return pmmInventory
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -38,18 +53,28 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	var baseToken, quoteToken *entity.PoolToken
+	var (
+		baseToken, quoteToken entity.PoolToken
+		baseBalance           = big.NewInt(0)
+		quoteBalance          = big.NewInt(0)
+	)
+
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
-		reserves[i] = bignumber.NewBig10(entityPool.Reserves[i])
-
+		amount, ok := big.NewInt(0).SetString(entityPool.Reserves[i], 10)
+		if !ok {
+			return nil, errors.New("could not parse PMM reserve to big.Float")
+		}
 		if strings.EqualFold(staticExtra.BaseTokenAddress, entityPool.Tokens[i].Address) {
-			baseToken = entityPool.Tokens[i]
+			baseToken = *entityPool.Tokens[i]
+			baseBalance.Set(amount)
 		}
 
 		if strings.EqualFold(staticExtra.QuoteTokenAddress, entityPool.Tokens[i].Address) {
-			quoteToken = entityPool.Tokens[i]
+			quoteToken = *entityPool.Tokens[i]
+			quoteBalance.Set(amount)
 		}
+		reserves[i] = amount
 	}
 
 	var extra Extra
@@ -75,20 +100,45 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		baseToQuotePriceLevels: extra.BaseToQuotePriceLevels,
 		quoteToBasePriceLevels: extra.QuoteToBasePriceLevels,
 		gas:                    DefaultGas,
+		BaseBalance:            baseBalance,
+		QuoteBalance:           quoteBalance,
+		timestamp:              entityPool.Timestamp,
 	}, nil
 }
 
 func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
-	swapDirection := p.getSwapDirection(tokenAmountIn.Token)
+	param pool.CalcAmountOutParams,
+) (result *pool.CalcAmountOutResult, err error) {
+	if param.Limit == nil {
+		return nil, ErrNoSwapLimit
+	}
+	var (
+		tokenAmountIn = param.TokenAmountIn
+		tokenOut      = param.TokenOut
+		limit         = param.Limit
+		swapDirection = p.getSwapDirection(tokenAmountIn.Token)
+	)
 
 	if swapDirection == SwapDirectionBaseToQuote {
-		return p.swapBaseToQuote(tokenAmountIn, tokenOut)
+		result, err = p.swapBaseToQuote(tokenAmountIn, tokenOut)
+	} else {
+		result, err = p.swapQuoteToBase(tokenAmountIn, tokenOut)
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	return p.swapQuoteToBase(tokenAmountIn, tokenOut)
+	var inventoryLimit *big.Int
+	if swapDirection == SwapDirectionBaseToQuote {
+		inventoryLimit = limit.GetLimit(p.quoteToken.Address)
+	} else {
+		inventoryLimit = limit.GetLimit(p.baseToken.Address)
+	}
+
+	if result.TokenAmountOut.Amount.Cmp(inventoryLimit) > 0 {
+		return nil, errors.New("not enough inventory")
+	}
+	return result, nil
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -101,6 +151,12 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		)
 
 		p.baseToQuotePriceLevels = getNewPriceLevelsState(amountInAfterDecimals, p.baseToQuotePriceLevels)
+		newQuoteInventory, newBaseInventory, err := params.SwapLimit.UpdateLimit(p.quoteToken.Address, p.baseToken.Address, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
+		if err != nil {
+			fmt.Println("unable to update PMM info, error:", err)
+		}
+		p.QuoteBalance = newQuoteInventory
+		p.BaseBalance = newBaseInventory
 	} else {
 		amountInAfterDecimals := new(big.Float).Quo(
 			new(big.Float).SetInt(params.TokenAmountIn.Amount),
@@ -108,11 +164,21 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		)
 
 		p.quoteToBasePriceLevels = getNewPriceLevelsState(amountInAfterDecimals, p.quoteToBasePriceLevels)
+
+		newBaseInventory, newQuoteInventory, err := params.SwapLimit.UpdateLimit(p.baseToken.Address, p.quoteToken.Address, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
+		if err != nil {
+			fmt.Println("unable to update PMM info, error:", err)
+		}
+		p.QuoteBalance = newQuoteInventory
+		p.BaseBalance = newBaseInventory
+
 	}
 }
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
-	return nil
+	return RFQMeta{
+		Timestamp: p.timestamp,
+	}
 }
 
 func (p *PoolSimulator) getSwapDirection(tokenIn string) SwapDirection {
@@ -264,4 +330,14 @@ func getNewPriceLevelsState(
 	}
 
 	return priceLevels
+}
+
+// Inventory is an alias for swaplimit.Inventory
+// Deprecated: directly use swaplimit.Inventory.
+type Inventory = swaplimit.Inventory
+
+// NewInventory has key as token address and value as its balance.
+// Deprecated: directly use swaplimit.NewInventory.
+func NewInventory(balance map[string]*big.Int) pool.SwapLimit {
+	return swaplimit.NewInventory(DexTypeKyberPMM, balance)
 }

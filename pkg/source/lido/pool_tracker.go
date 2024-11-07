@@ -2,15 +2,16 @@ package lido
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolTracker struct {
@@ -23,7 +24,11 @@ func NewPoolTracker(ethrpcClient *ethrpc.Client) *PoolTracker {
 	}
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
 	log := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 	})
@@ -75,7 +80,6 @@ func (d *PoolTracker) getPoolExtra(ctx context.Context, p entity.Pool) (Extra, e
 		Method: wstETHMethodStEthPerToken,
 		Params: nil,
 	}, []interface{}{&stEthPerToken})
-
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    wstETHABI,
 		Target: p.Address,

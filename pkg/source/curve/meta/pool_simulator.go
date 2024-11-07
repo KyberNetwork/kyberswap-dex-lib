@@ -1,10 +1,11 @@
 package meta
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
@@ -23,8 +24,10 @@ import (
 type ICurveBasePool interface {
 	GetInfo() pool.PoolInfo
 	GetTokenIndex(address string) int
-	GetVirtualPrice() (*big.Int, error)
-	GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error)
+	// return both vPrice and D
+	GetVirtualPrice() (vPrice *big.Int, D *big.Int, err error)
+	// if `dCached` is nil then will be recalculated
+	GetDy(i int, j int, dx *big.Int, dCached *big.Int) (*big.Int, *big.Int, error)
 	CalculateTokenAmount(amounts []*big.Int, deposit bool) (*big.Int, error)
 	CalculateWithdrawOneCoin(tokenAmount *big.Int, i int) (*big.Int, *big.Int, error)
 	AddLiquidity(amounts []*big.Int) (*big.Int, error)
@@ -106,10 +109,9 @@ func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*Pool, e
 	}, nil
 }
 
-func (t *Pool) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (t *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	// swap from token to token
 	var tokenIndexFrom = t.Info.GetTokenIndex(tokenAmountIn.Token)
 	var tokenIndexTo = t.Info.GetTokenIndex(tokenOut)
@@ -219,12 +221,9 @@ func (t *Pool) CanSwapTo(address string) []string {
 			for i := 0; i < len(t.Info.Tokens)-1; i += 1 {
 				ret = append(ret, t.Info.Tokens[i])
 			}
-			underlyingTokens := t.BasePool.GetInfo().Tokens
-			for i := 0; i < len(underlyingTokens); i += 1 {
-				if i != tokenIndex {
-					ret = append(ret, underlyingTokens[i])
-				}
-			}
+
+			// We don't allow swapping between underlying tokens here.
+			// Swap between underlying tokens must go directly through the base pool.
 		}
 		return ret
 	}

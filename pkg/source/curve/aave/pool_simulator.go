@@ -1,10 +1,11 @@
 package aave
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
@@ -82,10 +83,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*AavePool, error) {
 	}, nil
 }
 
-func (t *AavePool) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (t *AavePool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	var tokenIndexFrom = t.GetTokenIndex(tokenAmountIn.Token)
 	var tokenIndexTo = t.GetTokenIndex(tokenOut)
 	if tokenIndexFrom >= 0 && tokenIndexTo >= 0 {
@@ -265,7 +265,7 @@ func (t *AavePool) RemoveLiquidityOneCoin(tokenAmount *big.Int, i int) (*big.Int
 	return dy, nil
 }
 
-func (t *AavePool) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error) {
+func (t *AavePool) GetDy(i int, j int, dx *big.Int, dCached *big.Int) (*big.Int, *big.Int, error) {
 	var nTokens = len(t.Info.Tokens)
 	xp := make([]*big.Int, nTokens)
 	for _i := 0; _i < nTokens; _i += 1 {
@@ -276,7 +276,7 @@ func (t *AavePool) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error) 
 	var x = new(big.Int).Add(xp[i], new(big.Int).Mul(dx, t.Multipliers[i]))
 
 	// y: uint256 = self.get_y(i, j, x, xp)
-	var y, err = getY(t.FutureATime, t.FutureA, t.InitialATime, t.InitialA, i, j, x, xp)
+	var y, err = getY(t.FutureATime, t.FutureA, t.InitialATime, t.InitialA, i, j, x, xp, dCached)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -300,14 +300,14 @@ func (t *AavePool) GetDy(i int, j int, dx *big.Int) (*big.Int, *big.Int, error) 
 	return dy, fee, nil
 }
 
-func (t *AavePool) GetVirtualPrice() (*big.Int, error) {
+func (t *AavePool) GetVirtualPrice() (*big.Int, *big.Int, error) {
 	var A = _getAPrecise(t.FutureATime, t.FutureA, t.InitialATime, t.InitialA)
 	D, err := t.getDPrecision(t.Info.Reserves, A)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if t.LpSupply.Cmp(bignumber.ZeroBI) == 0 {
-		return nil, ErrDenominatorZero
+		return nil, nil, ErrDenominatorZero
 	}
-	return new(big.Int).Div(new(big.Int).Mul(D, Precision), t.LpSupply), nil
+	return new(big.Int).Div(new(big.Int).Mul(D, Precision), t.LpSupply), D, nil
 }

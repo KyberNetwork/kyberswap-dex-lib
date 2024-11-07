@@ -1,15 +1,18 @@
 package synthetix
 
 import (
-	"encoding/json"
 	"errors"
+	"fmt"
 	"math/big"
+	"strconv"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -61,9 +64,16 @@ func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*Poo
 }
 
 func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
+	param pool.CalcAmountOutParams,
 ) (*pool.CalcAmountOutResult, error) {
+	var (
+		tokenAmountIn = param.TokenAmountIn
+		tokenOut      = param.TokenOut
+		limit         = param.Limit
+	)
+	if limit == nil {
+		return nil, ErrNoSwapLimit
+	}
 	amountOutAfterFees, feeAmount, err := p.getAmountOut(
 		p.getCurrencyKeyFromToken(tokenAmountIn.Token),
 		p.getCurrencyKeyFromToken(tokenOut),
@@ -87,6 +97,22 @@ func (p *PoolSimulator) CalcAmountOut(
 		estimatedGas = p.gas.ExchangeAtomically
 	} else {
 		estimatedGas = p.gas.Exchange
+	}
+
+	synthetixTradeVolume, err := p.GetAtomicVolume(tokenAmountIn, tokenOut)
+	if err != nil {
+		return &pool.CalcAmountOutResult{
+			TokenAmountOut: tokenAmountOut,
+			Fee:            tokenAmountFee,
+			Gas:            estimatedGas,
+		}, err
+	}
+	if synthetixTradeVolume != nil {
+		allowedVol := limit.GetLimit(strconv.FormatUint(p.poolState.BlockTimestamp, 10))
+
+		if allowedVol.Cmp(synthetixTradeVolume) < 0 {
+			return nil, ErrSurpassedVolumeLimit
+		}
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -201,4 +227,27 @@ func (p *PoolSimulator) GetPoolState() *PoolState {
 
 func (p *PoolSimulator) GetPoolStateVersion() PoolStateVersion {
 	return p.poolStateVersion
+}
+
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	var (
+		s      = p.poolState
+		maxVol = big.NewInt(0).Set(p.poolState.AtomicMaxVolumePerBlock)
+	)
+	if s.BlockTimestamp == s.LastAtomicVolume.Time {
+		maxVol = maxVol.Sub(p.poolState.AtomicMaxVolumePerBlock, p.poolState.LastAtomicVolume.Volume)
+	}
+	return map[string]*big.Int{
+		fmt.Sprint(s.BlockTimestamp): maxVol,
+	}
+}
+
+// AtomicLimits is an alias for swaplimit.Inventory
+// Deprecated: directly use swaplimit.Inventory.
+type AtomicLimits = swaplimit.Inventory
+
+// NewLimits has key: "blockTimeStamp", value: limit and only decrease without increasing.
+// Deprecated: directly use swaplimit.NewInventory.
+func NewLimits(atomicMaxVolumePerBlocks map[string]*big.Int) pool.SwapLimit {
+	return swaplimit.NewInventory(DexTypeSynthetix, atomicMaxVolumePerBlocks)
 }

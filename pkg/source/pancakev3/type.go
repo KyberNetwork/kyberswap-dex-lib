@@ -4,16 +4,29 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+
+	"github.com/KyberNetwork/int256"
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
+	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 type Gas struct {
-	Swap int64
+	BaseGas          int64
+	CrossInitTickGas int64
 }
 
-// SwapInfo present the after state of a swap
-type SwapInfo struct {
+// SwapInfoBigInt present the after state of a swap
+type SwapInfoBigInt struct {
 	nextStateSqrtRatioX96 *big.Int
 	nextStateLiquidity    *big.Int
+	nextStateTickCurrent  int
+}
+
+type SwapInfo struct {
+	nextStateSqrtRatioX96 *v3Utils.Uint160
+	nextStateLiquidity    *v3Utils.Uint128
 	nextStateTickCurrent  int
 }
 
@@ -37,11 +50,7 @@ type SubgraphPool struct {
 	Token1             Token  `json:"token1"`
 }
 
-type TickResp struct {
-	TickIdx        string `json:"tickIdx"`
-	LiquidityGross string `json:"liquidityGross"`
-	LiquidityNet   string `json:"liquidityNet"`
-}
+type TickResp = ticklens.TickResp
 
 type SubgraphPoolTicks struct {
 	ID    string     `json:"id"`
@@ -58,11 +67,26 @@ type Tick struct {
 	LiquidityNet   *big.Int `json:"liquidityNet"`
 }
 
+type TickU256 struct {
+	Index          int          `json:"index"`
+	LiquidityGross *uint256.Int `json:"liquidityGross"`
+	LiquidityNet   *int256.Int  `json:"liquidityNet"`
+}
+
 type Extra struct {
 	Liquidity    *big.Int `json:"liquidity"`
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
+	TickSpacing  uint64   `json:"tickSpacing"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
+}
+
+type ExtraTickU256 struct {
+	Liquidity    *uint256.Int `json:"liquidity"`
+	SqrtPriceX96 *uint256.Int `json:"sqrtPriceX96"`
+	TickSpacing  uint64       `json:"tickSpacing"`
+	Tick         *int         `json:"tick"`
+	Ticks        []TickU256   `json:"ticks"`
 }
 
 type Slot0 struct {
@@ -76,10 +100,15 @@ type Slot0 struct {
 }
 
 type FetchRPCResult struct {
-	liquidity *big.Int
-	slot0     Slot0
-	reserve0  *big.Int
-	reserve1  *big.Int
+	Liquidity   *big.Int `json:"liquidity"`
+	Slot0       Slot0    `json:"slot0"`
+	TickSpacing *big.Int `json:"tickSpacing"`
+	Reserve0    *big.Int `json:"reserve0"`
+	Reserve1    *big.Int `json:"reserve1"`
+}
+
+type PoolMeta struct {
+	BlockNumber uint64 `json:"blockNumber"`
 }
 
 func transformTickRespToTick(tickResp TickResp) (Tick, error) {

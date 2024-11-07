@@ -5,11 +5,13 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
@@ -77,7 +79,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			})
 			require.Nil(t, err)
 
-			got, err := p.CalcAmountOut(tt.args.tokenAmountIn, tt.args.tokenOut)
+			got, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return p.CalcAmountOut(
+					pool.CalcAmountOutParams{
+						TokenAmountIn: tt.args.tokenAmountIn,
+						TokenOut:      tt.args.tokenOut,
+						Limit:         nil,
+					})
+			})
 
 			require.ErrorIs(t, err, tt.wantErr)
 			if err == nil {

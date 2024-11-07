@@ -3,11 +3,13 @@ package balancerstable
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
 func TestSwap(t *testing.T) {
@@ -54,7 +56,14 @@ func TestSwap(t *testing.T) {
 		AmountUsd: 100000,
 	}
 	var tokenOut = "D"
-	result, _ := p.CalcAmountOut(tokenAmountIn, tokenOut)
+	result, _ := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+		return p.CalcAmountOut(
+			pool.CalcAmountOutParams{
+				TokenAmountIn: tokenAmountIn,
+				TokenOut:      tokenOut,
+				Limit:         nil,
+			})
+	})
 	assert.NotNil(t, result.TokenAmountOut)
 	assert.NotNil(t, result.Fee)
 	assert.NotNil(t, result.Gas)

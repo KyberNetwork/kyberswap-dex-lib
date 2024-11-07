@@ -1,15 +1,16 @@
 package fraxswap
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
 )
 
 var (
@@ -50,7 +51,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			logger.WithFields(logger.Fields{
 				"reserve": reserve_s,
 				"address": entityPool.Address,
-			}).Error(err.Error())
+			}).Debug(err.Error())
 
 			return nil, err
 		}
@@ -76,10 +77,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(
-	tokenAmountIn pool.TokenAmount,
-	tokenOut string,
-) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
 	var (
 		reserveOut *big.Int
 	)

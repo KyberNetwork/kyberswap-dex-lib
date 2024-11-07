@@ -2,13 +2,19 @@ package maverickv1
 
 import (
 	"context"
-	"encoding/json"
-	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/logger"
 	"math/big"
 	"strconv"
 	"time"
+
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/goccy/go-json"
+	"github.com/sourcegraph/conc/pool"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type PoolTracker struct {
@@ -26,7 +32,28 @@ func NewPoolTracker(
 	}
 }
 
-func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entity.Pool, error) {
+func (d *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	params sourcePool.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, params, nil)
+}
+
+func (d *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params sourcePool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, sourcePool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (d *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ sourcePool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
 	}).Infof("[%s] Start getting new state of pool", p.Type)
@@ -37,6 +64,9 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	)
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		calls.SetOverrides(overrides)
+	}
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    poolABI,
@@ -95,16 +125,50 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 	binLength := int(binCounter.Int64())
 	binRaws := make([]GetBinResult, binLength+1)
-	binCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
-	for i := 0; i <= binLength; i++ {
-		binCalls.AddCall(&ethrpc.Call{
-			ABI:    poolABI,
-			Target: p.Address,
-			Method: poolMethodGetBin,
-			Params: []interface{}{big.NewInt(int64(i))},
-		}, []interface{}{&binRaws[i]})
+
+	// NOTE:
+	// binLength of pool 0xd0b2f5018b5d22759724af6d4281ac0b13266360 can reach 2751, cause entity too large error when using multicall
+	// split bins into chunk to get concurrency
+	chunk := d.config.GetBinChunk
+	if chunk == 0 {
+		chunk = defaultChunk
 	}
-	if _, err := binCalls.Aggregate(); err != nil {
+	g := pool.New().WithContext(ctx)
+	for i := 0; i <= binLength; i += chunk {
+		startBin := i
+		endBin := startBin + chunk - 1
+		if endBin > binLength {
+			endBin = binLength
+		}
+		g.Go(func(context.Context) error {
+			return func(startBin, endBin int) error {
+				binCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
+				if overrides != nil {
+					binCalls.SetOverrides(overrides)
+				}
+				for j := startBin; j <= endBin; j++ {
+					binCalls.AddCall(&ethrpc.Call{
+						ABI:    poolABI,
+						Target: p.Address,
+						Method: poolMethodGetBin,
+						Params: []interface{}{big.NewInt(int64(j))},
+					}, []interface{}{&binRaws[j]})
+				}
+				if _, err := binCalls.Aggregate(); err != nil {
+					logger.WithFields(logger.Fields{
+						"poolAddress": p.Address,
+						"error":       err,
+						"startBin":    startBin,
+						"endBin":      endBin,
+					}).Errorf("failed to aggregate to get bins data")
+
+					return err
+				}
+				return nil
+			}(startBin, endBin)
+		})
+	}
+	if err := g.Wait(); err != nil {
 		logger.WithFields(logger.Fields{
 			"poolAddress": p.Address,
 			"error":       err,
@@ -117,6 +181,8 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 	bins := make(map[string]Bin)
 	binPositions := make(map[string]map[string]*big.Int)
 	binMap := make(map[string]*big.Int)
+	binMapHex := make(map[string]*big.Int)
+	var minBinMapIndex, maxBinMapIndex *big.Int
 	for i, binRaw := range binRaws {
 		if binRaw.BinState.MergeID.Cmp(zeroBI) != 0 ||
 			(binRaw.BinState.ReserveA.Cmp(zeroBI) == 0 && binRaw.BinState.ReserveB.Cmp(zeroBI) == 0) {
@@ -134,11 +200,22 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		bins[strI] = bin
 
 		if bin.MergeID.Int64() == 0 {
-			d.putTypeAtTick(binMap, bin.Kind, bin.LowerTick)
+			binIndex := d.putTypeAtTick(binMap, binMapHex, bin.Kind, bin.LowerTick)
 			if binPositions[bin.LowerTick.String()] == nil {
 				binPositions[bin.LowerTick.String()] = make(map[string]*big.Int)
 			}
 			binPositions[bin.LowerTick.String()][bin.Kind.String()] = big.NewInt(int64(i))
+
+			if minBinMapIndex == nil {
+				minBinMapIndex = new(big.Int).Set(binIndex)
+			} else if minBinMapIndex.Cmp(binIndex) > 0 {
+				minBinMapIndex.Set(binIndex)
+			}
+			if maxBinMapIndex == nil {
+				maxBinMapIndex = new(big.Int).Set(binIndex)
+			} else if maxBinMapIndex.Cmp(binIndex) < 0 {
+				maxBinMapIndex.Set(binIndex)
+			}
 		}
 	}
 
@@ -160,6 +237,9 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		Bins:             bins,
 		BinPositions:     binPositions,
 		BinMap:           binMap,
+		BinMapHex:        binMapHex,
+		minBinMapIndex:   minBinMapIndex,
+		maxBinMapIndex:   maxBinMapIndex,
 	})
 
 	var extra = Extra{
@@ -170,9 +250,13 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 		Bins:             bins,
 		BinPositions:     binPositions,
 		BinMap:           binMap,
+		BinMapHex:        binMapHex,
 
 		SqrtPriceX96: sqrtPrice,
 		Liquidity:    liquidity,
+
+		MinBinMapIndex: minBinMapIndex,
+		MaxBinMapIndex: maxBinMapIndex,
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -197,8 +281,9 @@ func (d *PoolTracker) GetNewPoolState(ctx context.Context, p entity.Pool) (entit
 
 func (d *PoolTracker) putTypeAtTick(
 	binMap map[string]*big.Int,
+	binMapHex map[string]*big.Int,
 	kind, tick *big.Int,
-) {
+) *big.Int {
 	offset, mapIndex := d.getMapPointer(
 		new(big.Int).Add(
 			new(big.Int).Mul(tick, Kinds),
@@ -214,6 +299,8 @@ func (d *PoolTracker) putTypeAtTick(
 		new(big.Int).Lsh(big.NewInt(1), uint(offset.Int64())))
 
 	binMap[mapIndex.String()] = value
+	binMapHex[mapIndex.Text(16)] = value
+	return mapIndex
 }
 
 func (d *PoolTracker) getMapPointer(tick *big.Int) (*big.Int, *big.Int) {

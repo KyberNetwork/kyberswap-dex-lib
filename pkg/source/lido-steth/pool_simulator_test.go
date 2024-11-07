@@ -5,13 +5,15 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 func TestPoolSimulator_CalcAmountOut(t *testing.T) {
@@ -41,7 +43,13 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 	for _, amountIn := range testamount {
 		t.Run(fmt.Sprintf("deposit %v ETH in should get %v stETH out", amountIn, amountIn), func(t *testing.T) {
 			tokAmountIn := pool.TokenAmount{Token: tokens[0], Amount: amountIn}
-			got, err := p.CalcAmountOut(tokAmountIn, tokens[1])
+			got, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return p.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: tokAmountIn,
+					TokenOut:      tokens[1],
+					Limit:         nil,
+				})
+			})
 
 			require.Nil(t, err)
 			assert.Equal(t, amountIn, got.TokenAmountOut.Amount)

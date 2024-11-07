@@ -2,33 +2,43 @@ package pancakev3
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/uniswapv3"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolsListUpdater struct {
 	config        *Config
 	graphqlClient *graphql.Client
+	ethrpcClient  *ethrpc.Client
 }
 
 func NewPoolsListUpdater(
 	cfg *Config,
+	ethrpcClient *ethrpc.Client,
 ) *PoolsListUpdater {
-	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
+	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
+		Url:     cfg.SubgraphAPI,
+		Header:  cfg.SubgraphHeaders,
+		Timeout: graphQLRequestTimeout,
+	})
 
 	return &PoolsListUpdater{
 		config:        cfg,
 		graphqlClient: graphqlClient,
+		ethrpcClient:  ethrpcClient,
 	}
 }
 
@@ -79,10 +89,21 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 	logger.Infof("got %v subgraph pools from Pancake V3 subgraph", numSubgraphPools)
 
+	tickSpacings, _ := uniswapv3.FetchTickSpacings(
+		ctx,
+		lo.Map(subgraphPools, func(item SubgraphPool, _ int) string { return item.ID }),
+		d.ethrpcClient,
+		pancakeV3PoolABI,
+		methodTickSpacing,
+	)
+
 	pools := make([]entity.Pool, 0, len(subgraphPools))
 	for _, p := range subgraphPools {
 		tokens := make([]*entity.PoolToken, 0, 2)
 		reserves := make([]string, 0, 2)
+		extraField := Extra{
+			TickSpacing: tickSpacings[p.ID],
+		}
 		staticField := StaticExtra{
 			PoolId: p.ID,
 		}
@@ -129,6 +150,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 
 		var swapFee, _ = strconv.ParseFloat(p.FeeTier, 64)
 
+		extraBytes, _ := json.Marshal(extraField)
 		staticBytes, _ := json.Marshal(staticField)
 		var newPool = entity.Pool{
 			Address:      p.ID,
@@ -140,6 +162,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Timestamp:    time.Now().Unix(),
 			Reserves:     reserves,
 			Tokens:       tokens,
+			Extra:        string(extraBytes),
 			StaticExtra:  string(staticBytes),
 		}
 

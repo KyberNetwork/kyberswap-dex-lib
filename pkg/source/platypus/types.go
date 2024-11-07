@@ -2,14 +2,16 @@ package platypus
 
 import (
 	"math/big"
+	"net/http"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 )
 
 type Config struct {
-	DexID       string `json:"dexID"`
-	SubgraphAPI string `json:"subgraphAPI"`
+	DexID           string      `json:"dexID"`
+	SubgraphAPI     string      `json:"subgraphAPI"`
+	SubgraphHeaders http.Header `json:"subgraphHeaders"`
 }
 
 type SubgraphPool struct {
@@ -73,7 +75,7 @@ func newExtra(poolState PoolState, assetStates []AssetState, sAvaxRate *big.Int)
 	}
 
 	poolType := getPoolTypeByPriceOracle(priceOracle)
-	if poolType == poolTypePlatypusAvax {
+	if poolType == PoolTypePlatypusAvax {
 		extra.SAvaxRate = sAvaxRate
 	}
 

@@ -2,17 +2,19 @@ package maverickv1
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"strconv"
+	"time"
+
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
+	"github.com/machinebox/graphql"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
-	"github.com/KyberNetwork/logger"
-	"github.com/machinebox/graphql"
-	"strconv"
-	"time"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolListUpdater struct {
@@ -25,7 +27,11 @@ func NewPoolListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolListUpdater {
-	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
+	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
+		Url:     cfg.SubgraphAPI,
+		Header:  cfg.SubgraphHeaders,
+		Timeout: graphQLRequestTimeout,
+	})
 
 	return &PoolListUpdater{
 		config:        cfg,
@@ -73,9 +79,9 @@ func (d *PoolListUpdater) getNewPoolFromSubgraph(ctx context.Context, lastCreate
 	subgraphPools, err := d.querySubgraph(ctx, lastCreateTime, d.config.NewPoolLimit, 0)
 	if err != nil {
 		logger.WithFields(logger.Fields{
-			"type":  poolABI,
+			"type":  DexTypeMaverickV1,
 			"error": err,
-		})
+		}).Errorf("failed to query subgraph")
 		return nil, lastCreateTime, err
 	}
 

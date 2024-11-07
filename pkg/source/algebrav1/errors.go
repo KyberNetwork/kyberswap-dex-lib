@@ -15,4 +15,6 @@ var (
 	ErrZeroAmountOut       = errors.New("amountOut is 0")
 	ErrSPL                 = errors.New("invalid sqrt price limit")
 	ErrPoolLocked          = errors.New("pool is locked")
+
+	ErrNotSupportFetchFullTick = errors.New("not support fetching full ticks")
 )

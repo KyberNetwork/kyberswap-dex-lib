@@ -13,17 +13,19 @@ const (
 	defaultTokenWeight    = 50
 	zeroString            = "0"
 	emptyString           = ""
-	graphQLRequestTimeout = 20 * time.Second
+	graphQLRequestTimeout = 60 * time.Second
+	rpcChunkSize          = 100
 )
 
 const (
 	methodGetLiquidity                    = "liquidity"
 	methodGetSlot0                        = "slot0"
+	methodTickSpacing                     = "tickSpacing"
 	tickLensMethodGetPopulatedTicksInWord = "getPopulatedTicksInWord"
 	erc20MethodBalanceOf                  = "balanceOf"
 )
 
 var (
 	zeroBI     = big.NewInt(0)
-	defaultGas = Gas{Swap: 125000}
+	defaultGas = Gas{BaseGas: 85000, CrossInitTickGas: 24000}
 )

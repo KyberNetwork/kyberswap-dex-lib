@@ -1,16 +1,18 @@
-package maverickv1_test
+package maverickv1
 
 import (
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/maverickv1"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/stretchr/testify/assert"
 	"math/big"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/elastic"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 func TestSwapAForBWithoutExactOut(t *testing.T) {
-	var bins = map[string]maverickv1.Bin{
+	var bins = map[string]Bin{
 		"1": {
 			ReserveA:  bignumber.NewBig10("497483862887020288"),
 			ReserveB:  bignumber.NewBig10("0"),
@@ -167,8 +169,12 @@ func TestSwapAForBWithoutExactOut(t *testing.T) {
 		"0":  bignumber.NewBig10("138261823728"),
 		"-1": bignumber.NewBig10("7463162598112715418867754100145796611164620634624434827815830738677402697728"),
 	}
+	var binMapHex = map[string]*big.Int{
+		"0":  bignumber.NewBig10("138261823728"),
+		"-1": bignumber.NewBig10("7463162598112715418867754100145796611164620634624434827815830738677402697728"),
+	}
 
-	var state = &maverickv1.MaverickPoolState{
+	var state = &MaverickPoolState{
 		Bins:             bins,
 		TickSpacing:      big.NewInt(953),
 		Fee:              big.NewInt(int64((0.3 / 100) * 1e18)),
@@ -177,17 +183,43 @@ func TestSwapAForBWithoutExactOut(t *testing.T) {
 		ProtocolFeeRatio: big.NewInt(0),
 		BinPositions:     binPositions,
 		BinMap:           binMap,
+		minBinMapIndex:   big.NewInt(-1),
+		maxBinMapIndex:   big.NewInt(0),
 	}
+	orgState, err := DeepcopyState(state)
+	require.Nil(t, err)
 
 	var amountIn = elastic.NewBig10("1850163333337788672")
-	_, amountOut, err := maverickv1.GetAmountOut(state, amountIn, true, false, false)
+	_, amountOut, _, err := swap(state, amountIn, true, false, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "1676945827577881677", amountOut.String())
+
+	// should work with both binMap and binMapHex
+	{
+		state, err = DeepcopyState(orgState)
+		require.Nil(t, err)
+		state.BinMapHex = binMapHex
+		_, amountOut, _, err := swap(state, amountIn, true, false, false)
+
+		assert.Nil(t, err)
+		assert.Equal(t, "1676945827577881677", amountOut.String())
+	}
+	// should work with binMapHex only
+	{
+		state, err = DeepcopyState(orgState)
+		require.Nil(t, err)
+		state.BinMapHex = binMapHex
+		state.BinMap = nil
+		_, amountOut, _, err := swap(state, amountIn, true, false, false)
+
+		assert.Nil(t, err)
+		assert.Equal(t, "1676945827577881677", amountOut.String())
+	}
 }
 
 func TestSwapAForBExactOut(t *testing.T) {
-	var bins = map[string]maverickv1.Bin{
+	var bins = map[string]Bin{
 		"1": {
 			ReserveA:  bignumber.NewBig10("497483862887020288"),
 			ReserveB:  bignumber.NewBig10("0"),
@@ -344,8 +376,12 @@ func TestSwapAForBExactOut(t *testing.T) {
 		"0":  bignumber.NewBig10("138261823728"),
 		"-1": bignumber.NewBig10("7463162598112715418867754100145796611164620634624434827815830738677402697728"),
 	}
+	var binMapHex = map[string]*big.Int{
+		"0":  bignumber.NewBig10("138261823728"),
+		"-1": bignumber.NewBig10("7463162598112715418867754100145796611164620634624434827815830738677402697728"),
+	}
 
-	var state = &maverickv1.MaverickPoolState{
+	var state = &MaverickPoolState{
 		Bins:             bins,
 		TickSpacing:      big.NewInt(953),
 		Fee:              big.NewInt(int64((0.3 / 100) * 1e18)),
@@ -354,13 +390,39 @@ func TestSwapAForBExactOut(t *testing.T) {
 		ProtocolFeeRatio: big.NewInt(0),
 		BinPositions:     binPositions,
 		BinMap:           binMap,
+		minBinMapIndex:   big.NewInt(-1),
+		maxBinMapIndex:   big.NewInt(0),
 	}
+	orgState, err := DeepcopyState(state)
+	require.Nil(t, err)
 
-	var amountIn = elastic.NewBig10("2963297000000000000")
-	_, amountOut, err := maverickv1.GetAmountOut(state, amountIn, true, true, false)
+	var amountOut = elastic.NewBig10("2963297000000000000")
+	amountIn, _, _, err := swap(state, amountOut, true, true, false)
 
 	assert.Nil(t, err)
-	assert.Equal(t, "2963297000000000000", amountOut.String())
+	assert.Equal(t, "3269386145352608663", amountIn.String())
+
+	// should work with both binMap and binMapHex
+	{
+		state, err = DeepcopyState(orgState)
+		require.Nil(t, err)
+		state.BinMapHex = binMapHex
+		amountIn, _, _, err := swap(state, amountOut, true, true, false)
+
+		assert.Nil(t, err)
+		assert.Equal(t, "3269386145352608663", amountIn.String())
+	}
+	// should work with binMapHex only
+	{
+		state, err = DeepcopyState(orgState)
+		require.Nil(t, err)
+		state.BinMapHex = binMapHex
+		state.BinMap = nil
+		amountIn, _, _, err := swap(state, amountOut, true, true, false)
+
+		assert.Nil(t, err)
+		assert.Equal(t, "3269386145352608663", amountIn.String())
+	}
 
 	//var amountIn = elastic.NewBig10("1676945827577881677")
 	//amountInResult, amountOut, err := maverick.GetAmountOut(state, amountIn, true, true, false)
@@ -370,7 +432,7 @@ func TestSwapAForBExactOut(t *testing.T) {
 }
 
 func TestSwapBForAExactOut(t *testing.T) {
-	var bins = map[string]maverickv1.Bin{
+	var bins = map[string]Bin{
 		"1": {
 			ReserveA:  bignumber.NewBig10("497483862887020288"),
 			ReserveB:  bignumber.NewBig10("0"),
@@ -527,8 +589,12 @@ func TestSwapBForAExactOut(t *testing.T) {
 		"0":  bignumber.NewBig10("138261823728"),
 		"-1": bignumber.NewBig10("7463162598112715418867754100145796611164620634624434827815830738677402697728"),
 	}
+	var binMapHex = map[string]*big.Int{
+		"0":  bignumber.NewBig10("138261823728"),
+		"-1": bignumber.NewBig10("7463162598112715418867754100145796611164620634624434827815830738677402697728"),
+	}
 
-	var state = &maverickv1.MaverickPoolState{
+	var state = &MaverickPoolState{
 		Bins:             bins,
 		TickSpacing:      big.NewInt(953),
 		Fee:              big.NewInt(int64((0.3 / 100) * 1e18)),
@@ -537,17 +603,43 @@ func TestSwapBForAExactOut(t *testing.T) {
 		ProtocolFeeRatio: big.NewInt(0),
 		BinPositions:     binPositions,
 		BinMap:           binMap,
+		minBinMapIndex:   big.NewInt(-1),
+		maxBinMapIndex:   big.NewInt(0),
 	}
+	orgState, err := DeepcopyState(state)
+	require.Nil(t, err)
 
-	var amountIn = elastic.NewBig10("1894736241169897472")
-	_, amountOut, err := maverickv1.GetAmountOut(state, amountIn, false, true, false)
+	var amountOut = elastic.NewBig10("1894736241169897472")
+	amountIn, _, _, err := swap(state, amountOut, false, true, false)
 
 	assert.Nil(t, err)
-	assert.Equal(t, "1894736241169897472", amountOut.String())
+	assert.Equal(t, "1727696322824790157", amountIn.String())
+
+	// should work with both binMap and binMapHex
+	{
+		state, err = DeepcopyState(orgState)
+		require.Nil(t, err)
+		state.BinMapHex = binMapHex
+		amountIn, _, _, err := swap(state, amountOut, false, true, false)
+
+		assert.Nil(t, err)
+		assert.Equal(t, "1727696322824790157", amountIn.String())
+	}
+	// should work with binMapHex only
+	{
+		state, err = DeepcopyState(orgState)
+		require.Nil(t, err)
+		state.BinMapHex = binMapHex
+		state.BinMap = nil
+		amountIn, _, _, err := swap(state, amountOut, false, true, false)
+
+		assert.Nil(t, err)
+		assert.Equal(t, "1727696322824790157", amountIn.String())
+	}
 }
 
 func TestSwapBForAWithoutExactOut(t *testing.T) {
-	bins := map[string]maverickv1.Bin{
+	bins := map[string]Bin{
 		"1": {
 			ReserveA:  bignumber.NewBig10("36455272596522751"),
 			ReserveB:  bignumber.NewBig10("0"),
@@ -723,8 +815,12 @@ func TestSwapBForAWithoutExactOut(t *testing.T) {
 		"0":  bignumber.NewBig10("138270212336"),
 		"-1": bignumber.NewBig10("7463166048985888814149647817523727749677346860178920913009108319939514597376"),
 	}
+	binMapHex := map[string]*big.Int{
+		"0":  bignumber.NewBig10("138270212336"),
+		"-1": bignumber.NewBig10("7463166048985888814149647817523727749677346860178920913009108319939514597376"),
+	}
 
-	var state = &maverickv1.MaverickPoolState{
+	var state = &MaverickPoolState{
 		Bins:             bins,
 		TickSpacing:      big.NewInt(953),
 		Fee:              big.NewInt(int64((0.3 / 100) * 1e18)),
@@ -733,12 +829,39 @@ func TestSwapBForAWithoutExactOut(t *testing.T) {
 		ProtocolFeeRatio: big.NewInt(0),
 		BinPositions:     binPositions,
 		BinMap:           binMap,
+		minBinMapIndex:   big.NewInt(-1),
+		maxBinMapIndex:   big.NewInt(0),
 	}
+	orgState, err := DeepcopyState(state)
+	require.Nil(t, err)
 
 	var amountIn = elastic.NewBig10("4221332000000000000")
-	_, amountOut, err := maverickv1.GetAmountOut(state, amountIn, false, false, false)
+	_, amountOut, _, err := swap(state, amountIn, false, false, false)
 
 	assert.Nil(t, err)
 	assert.Equal(t, "4629465618898435945", amountOut.String())
+
+	// should work with both binMap and binMapHex
+	{
+		state, err = DeepcopyState(orgState)
+		require.Nil(t, err)
+		state.BinMapHex = binMapHex
+		_, amountOut, _, err := swap(state, amountIn, false, false, false)
+
+		assert.Nil(t, err)
+		assert.Equal(t, "4629465618898435945", amountOut.String())
+	}
+	// should work with binMapHex only
+	{
+		state, err = DeepcopyState(orgState)
+		require.Nil(t, err)
+		state.BinMapHex = binMapHex
+		state.BinMap = nil
+		_, amountOut, _, err := swap(state, amountIn, false, false, false)
+
+		assert.Nil(t, err)
+		assert.Equal(t, "4629465618898435945", amountOut.String())
+	}
+
 	//assert.Equal(t, "1676945", new(big.Int).Div(amountOut, bignumber.TenPowInt(12)).String())
 }

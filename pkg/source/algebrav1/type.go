@@ -90,11 +90,11 @@ type FeeConfiguration struct {
 }
 
 type FetchRPCResult struct {
-	liquidity   *big.Int
-	state       GlobalState
-	tickSpacing *big.Int
-	reserve0    *big.Int
-	reserve1    *big.Int
+	Liquidity   *big.Int    `json:"liquidity"`
+	State       GlobalState `json:"state"`
+	TickSpacing *big.Int    `json:"tickSpacing"`
+	Reserve0    *big.Int    `json:"reserve0"`
+	Reserve1    *big.Int    `json:"reserve1"`
 }
 
 type Timepoint struct {
@@ -129,6 +129,10 @@ type Extra struct {
 type StateUpdate struct {
 	Liquidity   *big.Int
 	GlobalState GlobalState
+}
+
+type PoolMeta struct {
+	BlockNumber uint64 `json:"blockNumber"`
 }
 
 func transformTickRespToTick(tickResp TickResp) (v3Entities.Tick, error) {

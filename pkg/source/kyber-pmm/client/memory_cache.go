@@ -124,7 +124,7 @@ func (c *memoryCacheClient) savePairsToCache(tokens map[string]kyberpmm.PairItem
 	return nil
 }
 
-func (c *memoryCacheClient) ListPriceLevels(ctx context.Context) (map[string]kyberpmm.PriceItem, error) {
+func (c *memoryCacheClient) ListPriceLevels(ctx context.Context) (kyberpmm.ListPriceLevelsResult, error) {
 	cachedPriceLevels, err := c.listPriceLevelsFromCache()
 	if err == nil {
 		return cachedPriceLevels, nil
@@ -133,7 +133,7 @@ func (c *memoryCacheClient) ListPriceLevels(ctx context.Context) (map[string]kyb
 	// Cache missed. Using fallbackClient
 	priceLevels, err := c.fallbackClient.ListPriceLevels(ctx)
 	if err != nil {
-		return nil, err
+		return kyberpmm.ListPriceLevelsResult{}, err
 	}
 
 	if err = c.savePriceLevelsToCache(priceLevels); err != nil {
@@ -146,17 +146,17 @@ func (c *memoryCacheClient) ListPriceLevels(ctx context.Context) (map[string]kyb
 }
 
 // listPriceLevelsFromCache only returns if price levels are able to fetch from cache
-func (c *memoryCacheClient) listPriceLevelsFromCache() (map[string]kyberpmm.PriceItem, error) {
+func (c *memoryCacheClient) listPriceLevelsFromCache() (kyberpmm.ListPriceLevelsResult, error) {
 	cachedPriceLevels, found := c.cache.Get(cacheKeyPriceLevels)
 	if !found {
-		return nil, errors.New("no price levels data in cache")
+		return kyberpmm.ListPriceLevelsResult{}, errors.New("no price levels data in cache")
 	}
 
-	return cachedPriceLevels.(map[string]kyberpmm.PriceItem), nil
+	return cachedPriceLevels.(kyberpmm.ListPriceLevelsResult), nil
 }
 
-func (c *memoryCacheClient) savePriceLevelsToCache(priceLevels map[string]kyberpmm.PriceItem) error {
-	c.cache.SetWithTTL(cacheKeyPriceLevels, priceLevels, defaultSingleItemCost, c.config.TTL.PriceLevels.Duration)
+func (c *memoryCacheClient) savePriceLevelsToCache(priceLevelsAndInventory kyberpmm.ListPriceLevelsResult) error {
+	c.cache.SetWithTTL(cacheKeyPriceLevels, priceLevelsAndInventory, defaultSingleItemCost, c.config.TTL.PriceLevels.Duration)
 	c.cache.Wait()
 
 	return nil

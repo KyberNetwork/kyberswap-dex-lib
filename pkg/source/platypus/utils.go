@@ -22,11 +22,11 @@ func getOracleType(oraclePrice string) string {
 func getPoolTypeByPriceOracle(oraclePrice string) string {
 	switch oraclePrice {
 	case addressZero:
-		return poolTypePlatypusPure
+		return PoolTypePlatypusPure
 	case addressStakedAvax:
-		return poolTypePlatypusAvax
+		return PoolTypePlatypusAvax
 	default:
-		return poolTypePlatypusBase
+		return PoolTypePlatypusBase
 	}
 }
 
