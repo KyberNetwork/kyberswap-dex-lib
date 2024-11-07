@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
 	"github.com/mitchellh/mapstructure"
 )
@@ -39,11 +40,25 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	}
 	logger.Infof("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)
 
+	upscaledTakerAmount := bignumber.NewBig(swapInfo.BaseTokenAmount)
+	upscaledTakerAmount.Mul(
+		upscaledTakerAmount,
+		big.NewInt(int64(100+h.config.UpscalePercent)),
+	).Div(
+		upscaledTakerAmount,
+		big.NewInt(100),
+	)
+
+	maxAmount := bignumber.NewBig(swapInfo.BaseTokenReserve)
+	if upscaledTakerAmount.Cmp(bignumber.NewBig(swapInfo.BaseTokenReserve)) > 0 {
+		upscaledTakerAmount = bignumber.NewBig(swapInfo.BaseTokenAmount)
+		upscaledTakerAmount = upscaledTakerAmount.Add(upscaledTakerAmount, maxAmount).Div(upscaledTakerAmount, bignumber.Two)
+	}
 	p := FirmQuoteParams{
 		ChainID:     int(params.NetworkID),
 		TakerAsset:  swapInfo.BaseTokenOriginal,
 		MakerAsset:  swapInfo.QuoteTokenOriginal,
-		TakerAmount: swapInfo.BaseTokenAmount,
+		TakerAmount: upscaledTakerAmount.String(),
 		UserAddress: params.RFQSender,
 		Executor:    params.RFQRecipient,
 	}
