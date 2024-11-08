@@ -2,6 +2,7 @@ package dodo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -192,11 +193,11 @@ func (d *PoolsListUpdater) getNewPoolByType(
 		lastSubgraphPool := subgraphPools[len(subgraphPools)-1]
 		ts, ok := new(big.Int).SetString(lastSubgraphPool.CreatedAtTimestamp, 10)
 		if !ok {
+			err = errors.New("failed to set string createdAtTimestamp to *big.Int")
 			logger.WithFields(logger.Fields{
 				"createdAtTimestamp": lastSubgraphPool.CreatedAtTimestamp,
 				"poolID":             lastSubgraphPool.ID,
-				"error":              err,
-			}).Errorf("failed to set string createdAtTimestamp to *big.Int")
+			}).Error(err.Error())
 
 			return nil, PoolTypeMetadata{}, err
 		}
