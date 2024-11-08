@@ -2108,6 +2108,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				rfqHandler := buildroute.NewMockIPoolRFQ(ctrl)
 				rfqHandlerByPoolType[kyberpmm.DexTypeKyberPMM] = rfqHandler
 				rfqHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(nil, kyberpmmClient.ErrFirmQuoteFailed)
+				rfqHandler.EXPECT().SupportBatch().Return(false).AnyTimes()
 
 				return rfqHandlerByPoolType
 			},
@@ -2132,12 +2133,14 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
-			err: errors.WithMessagef(kyberpmmClient.ErrFirmQuoteFailed, "rfq failed, swap data: %v", valueobject.Swap{
-				Pool:       "0xabc",
-				AmountOut:  big.NewInt(996023110963288),
-				SwapAmount: big.NewInt(2000000000000000000),
-				Exchange:   "kyber-pmm",
-				PoolType:   "kyber-pmm",
+			err: errors.WithMessagef(kyberpmmClient.ErrFirmQuoteFailed, "rfq failed: swaps data: %v", []valueobject.Swap{
+				{
+					Pool:       "0xabc",
+					AmountOut:  big.NewInt(996023110963288),
+					SwapAmount: big.NewInt(2000000000000000000),
+					Exchange:   "kyber-pmm",
+					PoolType:   "kyber-pmm",
+				},
 			}),
 		},
 		{
@@ -2183,11 +2186,13 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				pmmRfqHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(&pool.RFQResult{
 					NewAmountOut: big.NewInt(996023110963288),
 				}, nil)
+				pmmRfqHandler.EXPECT().SupportBatch().Return(false).AnyTimes()
 				rfqHandlerByPoolType[kyberpmm.DexTypeKyberPMM] = pmmRfqHandler
 
 				nativev1RfqHandler := buildroute.NewMockIPoolRFQ(ctrl)
 				rfqHandlerByPoolType[nativev1.DexType] = nativev1RfqHandler
 				nativev1RfqHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(nil, nativev1Client.ErrRFQAllPricerFailed)
+				nativev1RfqHandler.EXPECT().SupportBatch().Return(false).AnyTimes()
 
 				return rfqHandlerByPoolType
 			},
@@ -2222,12 +2227,14 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				FaultyPoolsConfig: FaultyPoolsConfig{
 					WhitelistedTokenSet: map[string]bool{"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": true, "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": true},
 				}},
-			err: errors.WithMessagef(nativev1Client.ErrRFQAllPricerFailed, "rfq failed, swap data: %v", valueobject.Swap{
-				Pool:       "0xxyz",
-				AmountOut:  big.NewInt(4488767370609711072),
-				SwapAmount: big.NewInt(996023110963288),
-				Exchange:   "native-v1",
-				PoolType:   "native-v1",
+			err: errors.WithMessagef(nativev1Client.ErrRFQAllPricerFailed, "rfq failed: swaps data: %v", []valueobject.Swap{
+				{
+					Pool:       "0xxyz",
+					AmountOut:  big.NewInt(4488767370609711072),
+					SwapAmount: big.NewInt(996023110963288),
+					Exchange:   "native-v1",
+					PoolType:   "native-v1",
+				},
 			}),
 		},
 		{
@@ -2270,7 +2277,13 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 			rfqHandlerByPoolType: func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ {
 				rfqHandlerByPoolType := map[string]pool.IPoolRFQ{}
 				hashflowHandler := buildroute.NewMockIPoolRFQ(ctrl)
-				hashflowHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(&pool.RFQResult{
+				hashflowHandler.EXPECT().SupportBatch().Return(true).AnyTimes()
+				hashflowHandler.EXPECT().BatchRFQ(gomock.Any(), gomock.Any()).AnyTimes().Return([]*pool.RFQResult{
+					{
+						NewAmountOut: big.NewInt(996023110963288),
+					},
+				}, nil)
+				hashflowHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).AnyTimes().Return(&pool.RFQResult{
 					NewAmountOut: big.NewInt(996023110963288),
 				}, nil)
 				rfqHandlerByPoolType[hashflowv3.DexType] = hashflowHandler
@@ -2280,6 +2293,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				nativev1RfqHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(&pool.RFQResult{
 					NewAmountOut: big.NewInt(996023110963288),
 				}, nil)
+				nativev1RfqHandler.EXPECT().SupportBatch().Return(true).AnyTimes()
 
 				return rfqHandlerByPoolType
 			},
@@ -2409,8 +2423,14 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 			rfqHandlerByPoolType: func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ {
 				rfqHandlerByPoolType := map[string]pool.IPoolRFQ{}
 				hashflowHandler := buildroute.NewMockIPoolRFQ(ctrl)
+				hashflowHandler.EXPECT().SupportBatch().Return(true).AnyTimes()
+				hashflowHandler.EXPECT().BatchRFQ(gomock.Any(), gomock.Any()).AnyTimes().Return([]*pool.RFQResult{
+					{
+						NewAmountOut: big.NewInt(4488767370609711071),
+					},
+				}, nil)
 				hashflowHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(&pool.RFQResult{
-					NewAmountOut: big.NewInt(4488767370609711071), // Smaller than expected return amount 1 wei
+					NewAmountOut: big.NewInt(4488767370609711071),
 				}, nil)
 				rfqHandlerByPoolType[hashflowv3.DexType] = hashflowHandler
 
@@ -2455,8 +2475,14 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 			rfqHandlerByPoolType: func(ctrl *gomock.Controller) map[string]pool.IPoolRFQ {
 				rfqHandlerByPoolType := map[string]pool.IPoolRFQ{}
 				hashflowHandler := buildroute.NewMockIPoolRFQ(ctrl)
-				hashflowHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).Times(1).Return(&pool.RFQResult{
-					// Smaller than expected return amount 15% (greater than slippage, but smaller than acceptable RFQ slippage).
+				hashflowHandler.EXPECT().SupportBatch().Return(true).AnyTimes()
+				hashflowHandler.EXPECT().BatchRFQ(gomock.Any(), gomock.Any()).AnyTimes().Return([]*pool.RFQResult{
+					{
+						// Smaller than expected return amount 15% (greater than slippage, but smaller than acceptable RFQ slippage).
+						NewAmountOut: big.NewInt(3815452265018254411),
+					},
+				}, nil)
+				hashflowHandler.EXPECT().RFQ(gomock.Any(), gomock.Any()).AnyTimes().Return(&pool.RFQResult{
 					NewAmountOut: big.NewInt(3815452265018254411),
 				}, nil)
 				rfqHandlerByPoolType[hashflowv3.DexType] = hashflowHandler

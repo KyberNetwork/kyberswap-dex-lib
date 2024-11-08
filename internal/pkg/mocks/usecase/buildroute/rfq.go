@@ -35,6 +35,21 @@ func (m *MockIPoolRFQ) EXPECT() *MockIPoolRFQMockRecorder {
 	return m.recorder
 }
 
+// BatchRFQ mocks base method.
+func (m *MockIPoolRFQ) BatchRFQ(arg0 context.Context, arg1 []pool.RFQParams) ([]*pool.RFQResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BatchRFQ", arg0, arg1)
+	ret0, _ := ret[0].([]*pool.RFQResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// BatchRFQ indicates an expected call of BatchRFQ.
+func (mr *MockIPoolRFQMockRecorder) BatchRFQ(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchRFQ", reflect.TypeOf((*MockIPoolRFQ)(nil).BatchRFQ), arg0, arg1)
+}
+
 // RFQ mocks base method.
 func (m *MockIPoolRFQ) RFQ(arg0 context.Context, arg1 pool.RFQParams) (*pool.RFQResult, error) {
 	m.ctrl.T.Helper()
@@ -48,4 +63,18 @@ func (m *MockIPoolRFQ) RFQ(arg0 context.Context, arg1 pool.RFQParams) (*pool.RFQ
 func (mr *MockIPoolRFQMockRecorder) RFQ(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RFQ", reflect.TypeOf((*MockIPoolRFQ)(nil).RFQ), arg0, arg1)
+}
+
+// SupportBatch mocks base method.
+func (m *MockIPoolRFQ) SupportBatch() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SupportBatch")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// SupportBatch indicates an expected call of SupportBatch.
+func (mr *MockIPoolRFQMockRecorder) SupportBatch() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SupportBatch", reflect.TypeOf((*MockIPoolRFQ)(nil).SupportBatch))
 }

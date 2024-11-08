@@ -16,6 +16,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
@@ -180,9 +182,10 @@ func (uc *BuildRouteUseCase) rfq(
 		GetEncoder(dexValueObject.ChainID(uc.config.ChainID)).
 		GetExecutorAddress(source)
 
+	rfqParamsByPoolType := make(map[string][]valueobject.IndexedRFQParams)
 	for pathIdx, path := range routeSummary.Route {
 		for swapIdx, swap := range path {
-			rfqHandler, found := uc.rfqHandlerByPoolType[swap.PoolType]
+			_, found := uc.rfqHandlerByPoolType[swap.PoolType]
 			if !found {
 				// This pool type does not have RFQ handler
 				// It means that this swap does not need to be processed via RFQ
@@ -202,33 +205,47 @@ func (uc *BuildRouteUseCase) rfq(
 				rfqRecipient = executorAddress
 			}
 
-			result, err := rfqHandler.RFQ(ctx, pool.RFQParams{
-				NetworkID:    uint(uc.config.ChainID),
-				Sender:       sender,
-				Recipient:    recipient,
-				RFQSender:    executorAddress,
-				RFQRecipient: rfqRecipient,
-				Slippage:     slippageTolerance,
-				SwapInfo:     swap.Extra,
+			rfqParamsByPoolType[swap.PoolType] = append(rfqParamsByPoolType[swap.PoolType], valueobject.IndexedRFQParams{
+				RFQParams: pool.RFQParams{
+					NetworkID:    uint(uc.config.ChainID),
+					Sender:       sender,
+					Recipient:    recipient,
+					RFQSender:    executorAddress,
+					RFQRecipient: rfqRecipient,
+					Slippage:     slippageTolerance,
+					SwapInfo:     swap.Extra,
+				},
+				PathIdx: pathIdx,
+				SwapIdx: swapIdx,
 			})
+		}
+	}
 
-			// Track faulty pools if we got RFQ errors due to market too volatile
-			go uc.trackFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx),
-				uc.convertPMMSwapsToPoolTrackers([]valueobject.Swap{swap}, err),
-				routeSummary.TokenIn, routeSummary.TokenOut)
-
-			if err != nil {
-				return routeSummary, errors.WithMessagef(err, "rfq failed, swap data: %v", swap)
-			}
-
-			// Enrich the swap extra with the RFQ extra
-			routeSummary.Route[pathIdx][swapIdx].Extra = result.Extra
-
-			// We might have to apply the new amount out from RFQ (MM can quote with a different amount out)
-			if result.NewAmountOut != nil {
-				routeSummary.Route[pathIdx][swapIdx].AmountOut = result.NewAmountOut
+	// NOTE: Each swap in the path must process RFQ pools sequentially,
+	// as the `newAmountOut` from one swap becomes the `newAmountIn` for the subsequent swap.
+	// We can only parallelize processing for different paths within the route.
+	//
+	// Currently, this version processes RFQs in parallel for all RFQ liquidity sources in the route,
+	// does not fulfill the sequential processing requirement for each path, and `newAmountOut`
+	// does not impact the subsequent swap.
+	g, ctx := errgroup.WithContext(ctx)
+	for poolType, paramsSlice := range rfqParamsByPoolType {
+		rfqHandler := uc.rfqHandlerByPoolType[poolType]
+		if rfqHandler.SupportBatch() {
+			g.Go(func() error {
+				return uc.processRFQs(ctx, poolType, routeSummary, paramsSlice...)
+			})
+		} else {
+			for _, params := range paramsSlice {
+				g.Go(func() error {
+					return uc.processRFQs(ctx, poolType, routeSummary, params)
+				})
 			}
 		}
+	}
+
+	if err := g.Wait(); err != nil {
+		return routeSummary, errors.WithMessage(err, "rfq failed")
 	}
 
 	// Recalculate the new amount out after RFQ
@@ -282,6 +299,63 @@ func (uc *BuildRouteUseCase) rfq(
 	}
 
 	return routeSummary, nil
+}
+
+func (uc *BuildRouteUseCase) processRFQs(
+	ctx context.Context,
+	poolType string,
+	routeSummary valueobject.RouteSummary,
+	indexedRFQParamsSlice ...valueobject.IndexedRFQParams,
+) error {
+	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.processRFQs")
+	defer span.End()
+
+	span.SetTag("poolType", poolType)
+
+	rfqHandler := uc.rfqHandlerByPoolType[poolType]
+
+	var (
+		results []*pool.RFQResult
+		err     error
+	)
+
+	// If len(indexedRFQParamsSlice)=1, prioritize RFQ() over BatchRFQ()
+	if rfqHandler.SupportBatch() && len(indexedRFQParamsSlice) > 1 {
+		paramsSlice := lo.Map(indexedRFQParamsSlice, func(param valueobject.IndexedRFQParams, _ int) pool.RFQParams {
+			return param.RFQParams
+		})
+		results, err = rfqHandler.BatchRFQ(ctx, paramsSlice)
+	} else {
+		var result *pool.RFQResult
+		result, err = rfqHandler.RFQ(ctx, indexedRFQParamsSlice[0].RFQParams)
+		results = []*pool.RFQResult{result}
+	}
+
+	swaps := lo.Map(indexedRFQParamsSlice, func(param valueobject.IndexedRFQParams, _ int) valueobject.Swap {
+		return routeSummary.Route[param.PathIdx][param.SwapIdx]
+	})
+	// Track faulty pools if we got RFQ errors due to market too volatile
+	go uc.trackFaultyPools(ctxUtils.NewBackgroundCtxWithReqId(ctx),
+		uc.convertPMMSwapsToPoolTrackers(swaps, err),
+		routeSummary.TokenIn, routeSummary.TokenOut)
+
+	if err != nil {
+		return errors.WithMessagef(err, "swaps data: %v", swaps)
+	}
+
+	for i, params := range indexedRFQParamsSlice {
+		pathIdx, swapIdx := params.PathIdx, params.SwapIdx
+
+		// Enrich the swap extra with the RFQ extra
+		routeSummary.Route[pathIdx][swapIdx].Extra = results[i].Extra
+
+		// We might have to apply the new amount out from RFQ (MM can quote with a different amount out)
+		if results[i].NewAmountOut != nil {
+			routeSummary.Route[pathIdx][swapIdx].AmountOut = results[i].NewAmountOut
+		}
+	}
+
+	return nil
 }
 
 // updateRouteSummary updates AmountInUSD/AmountOutUSD, TokenInMarketPriceAvailable/TokenOutMarketPriceAvailable in command.RouteSummary
