@@ -13,6 +13,7 @@ import (
 )
 
 type RFQHandler struct {
+	pool.RFQHandler
 	config *Config
 	client *httpClient
 }

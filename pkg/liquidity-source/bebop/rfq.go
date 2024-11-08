@@ -20,6 +20,7 @@ type IClient interface {
 }
 
 type RFQHandler struct {
+	pool.RFQHandler
 	config *Config
 	client IClient
 }

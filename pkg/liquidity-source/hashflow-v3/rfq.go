@@ -23,6 +23,7 @@ type IClient interface {
 }
 
 type RFQHandler struct {
+	pool.RFQHandler
 	config *Config
 	client IClient
 }
@@ -103,4 +104,8 @@ func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsSlice []pool.RFQParams)
 	}
 
 	return results, nil
+}
+
+func (h *RFQHandler) SupportBatch() bool {
+	return true
 }
