@@ -1,14 +1,14 @@
 package kokonutcrypto
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/curve"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"

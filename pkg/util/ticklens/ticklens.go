@@ -2,21 +2,19 @@ package ticklens
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 	"sort"
 	"strconv"
 
+	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
 	"github.com/daoleno/uniswapv3-sdk/utils"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
-
-	"github.com/KyberNetwork/logger"
-
-	"github.com/KyberNetwork/ethrpc"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"

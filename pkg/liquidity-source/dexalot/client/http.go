@@ -2,14 +2,14 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"math/big"
 
-	dexalot "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-resty/resty/v2"
+	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 )
 
 const (
@@ -41,14 +41,6 @@ func NewHTTPClient(config *dexalot.HTTPClientConfig) *HTTPClient {
 
 func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams, upscalePercent int) (dexalot.FirmQuoteResult, error) {
 	// token address case-sensitive
-	upscaledTakerAmount := bignumber.NewBig(params.TakerAmount)
-	upscaledTakerAmount.Mul(
-		upscaledTakerAmount,
-		big.NewInt(int64(100+upscalePercent)),
-	).Div(
-		upscaledTakerAmount,
-		big.NewInt(100),
-	)
 	req := c.client.R().
 		SetContext(ctx).
 		// the SellTokens address must follow the HEX format
@@ -56,7 +48,7 @@ func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams, 
 			dexalot.ParamsChainID:     params.ChainID,
 			dexalot.ParamsTakerAsset:  common.HexToAddress(params.TakerAsset).Hex(),
 			dexalot.ParamsMakerAsset:  common.HexToAddress(params.MakerAsset).Hex(),
-			dexalot.ParamsTakerAmount: upscaledTakerAmount.String(),
+			dexalot.ParamsTakerAmount: params.TakerAmount,
 			dexalot.ParamsUserAddress: params.UserAddress,
 			dexalot.ParamsExecutor:    params.Executor,
 		})
@@ -72,6 +64,9 @@ func (c *HTTPClient) Quote(ctx context.Context, params dexalot.FirmQuoteParams, 
 	_ = json.Unmarshal(respBytes, &fail)
 
 	if !resp.IsSuccess() || fail.Failed() {
+		logger.
+			WithFields(logger.Fields{"dexalot_resp": string(respBytes)}).
+			Error("dexalot rfq failed")
 		return dexalot.FirmQuoteResult{}, ErrRFQFailed
 	}
 

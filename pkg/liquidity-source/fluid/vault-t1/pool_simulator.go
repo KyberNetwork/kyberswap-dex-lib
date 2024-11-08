@@ -1,11 +1,11 @@
 package vaultT1
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
 
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

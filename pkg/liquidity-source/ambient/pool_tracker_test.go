@@ -2,13 +2,13 @@ package ambient_test
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"os"
 	"testing"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

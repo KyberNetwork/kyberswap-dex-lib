@@ -1,17 +1,18 @@
 package dexalot
 
 import (
-	"encoding/json"
 	"errors"
 	"math"
 	"math/big"
 	"strings"
 
+	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
-	"github.com/samber/lo"
 )
 
 var (
@@ -41,6 +42,8 @@ type (
 		ExpirySecs         uint   `json:"exp,omitempty" mapstructure:"exp"`
 		BaseTokenOriginal  string `json:"bo,omitempty" mapstructure:"bo"`
 		QuoteTokenOriginal string `json:"qo,omitempty" mapstructure:"qo"`
+		BaseTokenReserve   string `json:"br,omitempty" mapstructure:"br"`
+		QuoteTokenReserve  string `json:"qr,omitempty" mapstructure:"qr"`
 	}
 
 	Gas struct {
@@ -162,6 +165,14 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.Poo
 	amountOutBF.Mul(&amountOutAfterDecimals, &decimalsPow)
 
 	amountOut, _ := amountOutBF.Int(nil)
+	var baseTokenReserve, quoteTokenReserve *big.Int
+	if strings.EqualFold(baseToken.Address, p.Info.Tokens[0]) {
+		baseTokenReserve = p.Info.Reserves[0]
+		quoteTokenReserve = p.Info.Reserves[1]
+	} else {
+		baseTokenReserve = p.Info.Reserves[1]
+		quoteTokenReserve = p.Info.Reserves[0]
+	}
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{Token: quoteToken.Address, Amount: amountOut},
 		Fee:            &pool.TokenAmount{Token: baseToken.Address, Amount: bignumber.ZeroBI},
@@ -173,6 +184,8 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.Poo
 			QuoteTokenAmount:   amountOut.String(),
 			BaseTokenOriginal:  baseOriginal,
 			QuoteTokenOriginal: quoteOriginal,
+			BaseTokenReserve:   baseTokenReserve.String(),
+			QuoteTokenReserve:  quoteTokenReserve.String(),
 		},
 	}, amountOutAfterDecimals.String(), nil
 }
