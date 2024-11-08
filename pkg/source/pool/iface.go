@@ -69,6 +69,8 @@ type IPoolExactOutSimulator interface {
 
 type IPoolRFQ interface {
 	RFQ(ctx context.Context, params RFQParams) (*RFQResult, error)
+	BatchRFQ(ctx context.Context, paramsSlice []RFQParams) ([]*RFQResult, error)
+	SupportBatch() bool
 }
 
 type ITicksBasedPoolTracker interface {
