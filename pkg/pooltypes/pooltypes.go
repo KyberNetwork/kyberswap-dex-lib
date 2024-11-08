@@ -16,8 +16,8 @@ import (
 	curveTricryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/tricrypto-ng"
 	curveTwocryptoNg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/twocrypto-ng"
 	daiusds "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dai-usds"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 	deltaswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/deltaswap-v1"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot"
 	dodoclassical "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/classical"
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
@@ -28,6 +28,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	fluidDexT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	fluidVaultT1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
+	sfrxeth_convertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
 	generic_simple_rate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
@@ -251,6 +253,8 @@ type Types struct {
 	OndoUSDY                       string
 	Clipper                        string
 	DeltaSwapV1                    string
+	SfrxETH                        string
+	SfrxETHConvertor               string
 }
 
 var (
@@ -384,5 +388,7 @@ var (
 		OndoUSDY:                       ondo_usdy.DexType,
 		Clipper:                        clipper.DexType,
 		DeltaSwapV1:                    deltaswapv1.DexType,
+		SfrxETH:                        sfrxeth.DexType,
+		SfrxETHConvertor:               sfrxeth_convertor.DexType,
 	}
 )
