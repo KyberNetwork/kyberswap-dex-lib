@@ -345,24 +345,26 @@ var (
 	ExchangeQuickSwapUniV3 Exchange = "quickswap-uni-v3"
 	ExchangeAmbient        Exchange = "ambient"
 
-	ExchangeMaverickV2   Exchange = "maverick-v2"
-	ExchangeEtherVista   Exchange = "ether-vista"
-	ExchangeLitePSM      Exchange = "lite-psm"
-	ExchangeMkrSky       Exchange = "mkr-sky"
-	ExchangeDaiUsds      Exchange = "dai-usds"
-	ExchangeUsd0PP       Exchange = "usd0pp"
-	ExchangeWBETH        Exchange = "wbeth"
-	ExchangeOETH         Exchange = "oeth"
-	ExchangeRingSwap     Exchange = "ringswap"
-	ExchangePrimeETH     Exchange = "primeeth"
-	ExchangeStaderETHx   Exchange = "staderethx"
-	ExchangeFrxETH       Exchange = "frxeth"
-	ExchangeFluidVaultT1 Exchange = "fluid-vault-t1"
-	ExchangeFluidDexT1   Exchange = "fluid-dex-t1"
-	ExchangeMantleETH    Exchange = "meth"
-	ExchangeOndoUSDY     Exchange = "ondo-usdy"
-	ExchangeClipper      Exchange = "clipper"
-	ExchangeDeltaSwapV1  Exchange = "deltaswap-v1"
+	ExchangeMaverickV2       Exchange = "maverick-v2"
+	ExchangeEtherVista       Exchange = "ether-vista"
+	ExchangeLitePSM          Exchange = "lite-psm"
+	ExchangeMkrSky           Exchange = "mkr-sky"
+	ExchangeDaiUsds          Exchange = "dai-usds"
+	ExchangeUsd0PP           Exchange = "usd0pp"
+	ExchangeWBETH            Exchange = "wbeth"
+	ExchangeOETH             Exchange = "oeth"
+	ExchangeRingSwap         Exchange = "ringswap"
+	ExchangePrimeETH         Exchange = "primeeth"
+	ExchangeStaderETHx       Exchange = "staderethx"
+	ExchangeFrxETH           Exchange = "frxeth"
+	ExchangeFluidVaultT1     Exchange = "fluid-vault-t1"
+	ExchangeFluidDexT1       Exchange = "fluid-dex-t1"
+	ExchangeMantleETH        Exchange = "meth"
+	ExchangeOndoUSDY         Exchange = "ondo-usdy"
+	ExchangeClipper          Exchange = "clipper"
+	ExchangeDeltaSwapV1      Exchange = "deltaswap-v1"
+	ExchangeSfrxETH          Exchange = "sfrxeth"
+	ExchangeSfrxETHConvertor Exchange = "sfrxeth-convertor"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -661,6 +663,8 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeMantleETH:                  {},
 	ExchangeOndoUSDY:                   {},
 	ExchangeDeltaSwapV1:                {},
+	ExchangeSfrxETH:                    {},
+	ExchangeSfrxETHConvertor:           {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
