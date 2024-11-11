@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	DefaultGas = Gas{Swap: 260000}
+	DefaultGas = Gas{Swap: 210000}
 	zeroBI     = big.NewInt(0)
 )
 var pointDeltas = map[int]int{
