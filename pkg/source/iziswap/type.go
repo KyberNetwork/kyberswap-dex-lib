@@ -77,3 +77,7 @@ type Metadata struct {
 type Meta struct {
 	LimitPoint int `json:"limitPoint"`
 }
+
+type Gas struct {
+	Swap int64
+}
