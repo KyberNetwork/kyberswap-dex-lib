@@ -19,7 +19,6 @@ var (
 	ErrInvalidTokenOut = errors.New("invalid token out")
 	ErrInvalidPair     = errors.New("invalid pair")
 	ErrFMVCheckFailed  = errors.New("FMV check failed")
-	ErrPoolIsUsed      = errors.New("pool is used")
 
 	basisPoint float64 = 10000
 )
@@ -154,11 +153,6 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	outY *= math.Pow10(int(assetOut.Decimals))
 
 	amountOut, _ := big.NewFloat(outY).Int(nil)
-
-	// Final check: Output value no larger than input value
-	if outY > inX*pX/pY {
-		return nil, ErrFMVCheckFailed
-	}
 
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
