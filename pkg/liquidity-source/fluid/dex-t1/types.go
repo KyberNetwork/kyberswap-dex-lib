@@ -11,8 +11,9 @@ type PoolMeta struct {
 }
 
 type PoolExtra struct {
-	CollateralReserves CollateralReserves
-	DebtReserves       DebtReserves
+	CollateralReserves       CollateralReserves
+	DebtReserves             DebtReserves
+	IsSwapAndArbitragePaused bool
 }
 
 type CollateralReserves struct {

@@ -16,7 +16,8 @@ var (
 	ErrInvalidAmountIn  = errors.New("invalid amountIn")
 	ErrInvalidAmountOut = errors.New("invalid amount out")
 
-	ErrInsufficientReserve = errors.New("insufficient reserve: tokenOut amount exceeds reserve")
+	ErrInsufficientReserve    = errors.New("insufficient reserve: tokenOut amount exceeds reserve")
+	ErrSwapAndArbitragePaused = errors.New("51043")
 )
 
 type PoolSimulator struct {
@@ -28,6 +29,8 @@ type PoolSimulator struct {
 
 	Token0Decimals uint8
 	Token1Decimals uint8
+
+	IsSwapAndArbitragePaused bool
 }
 
 var (
@@ -63,15 +66,20 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			BlockNumber: entityPool.BlockNumber,
 			SwapFee:     fee,
 		}},
-		CollateralReserves: extra.CollateralReserves,
-		DebtReserves:       extra.DebtReserves,
-		Token0Decimals:     entityPool.Tokens[0].Decimals,
-		Token1Decimals:     entityPool.Tokens[1].Decimals,
-		StaticExtra:        staticExtra,
+		CollateralReserves:       extra.CollateralReserves,
+		DebtReserves:             extra.DebtReserves,
+		Token0Decimals:           entityPool.Tokens[0].Decimals,
+		Token1Decimals:           entityPool.Tokens[1].Decimals,
+		StaticExtra:              staticExtra,
+		IsSwapAndArbitragePaused: extra.IsSwapAndArbitragePaused,
 	}, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
+	if s.IsSwapAndArbitragePaused {
+		return nil, ErrSwapAndArbitragePaused
+	}
+
 	if param.TokenAmountIn.Amount.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrInvalidAmountIn
 	}
@@ -136,6 +144,10 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 }
 
 func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
+	if s.IsSwapAndArbitragePaused {
+		return nil, ErrSwapAndArbitragePaused
+	}
+
 	if param.TokenAmountOut.Amount.Cmp(bignumber.ZeroBI) <= 0 {
 		return nil, ErrInvalidAmountOut
 	}
