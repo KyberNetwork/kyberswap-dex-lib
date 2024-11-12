@@ -79,7 +79,11 @@ func (d *PoolTracker) getNewPoolState(
 
 	newReserves := make(entity.PoolReserves, 0, len(reserves))
 	for _, reserve := range reserves {
-		newReserves = append(newReserves, reserve.String())
+		if reserve == nil {
+			newReserves = append(newReserves, "0")
+		} else {
+			newReserves = append(newReserves, reserve.String())
+		}
 	}
 
 	p.Reserves = newReserves
