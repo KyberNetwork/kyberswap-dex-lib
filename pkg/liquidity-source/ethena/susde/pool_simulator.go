@@ -118,6 +118,12 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		return
 	}
 	s.totalSupply.Add(s.totalSupply, shares)
+
+	assets, overflow := uint256.FromBig(params.TokenAmountIn.Amount)
+	if overflow {
+		return
+	}
+	s.totalAssets.Add(s.totalAssets, assets)
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
