@@ -15,6 +15,8 @@ import (
 var (
 	ErrInvalidAmountIn  = errors.New("invalid amountIn")
 	ErrInvalidAmountOut = errors.New("invalid amount out")
+
+	ErrInsufficientReserve = errors.New("insufficient reserve: tokenOut amount exceeds reserve")
 )
 
 type PoolSimulator struct {
@@ -111,6 +113,16 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, err
 	}
 
+	if swap0To1 {
+		if tokenAmountOut.Cmp(s.GetReserves()[1]) > 0 {
+			return nil, ErrInsufficientReserve
+		}
+	} else {
+		if tokenAmountOut.Cmp(s.GetReserves()[0]) > 0 {
+			return nil, ErrInsufficientReserve
+		}
+	}
+
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: param.TokenOut, Amount: tokenAmountOut},
 		Fee:            &poolpkg.TokenAmount{Token: param.TokenAmountIn.Token, Amount: fee},
@@ -129,6 +141,16 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 	}
 
 	swap0To1 := param.TokenAmountOut.Token == s.Info.Tokens[1]
+
+	if swap0To1 {
+		if param.TokenAmountOut.Amount.Cmp(s.GetReserves()[1]) > 0 {
+			return nil, ErrInsufficientReserve
+		}
+	} else {
+		if param.TokenAmountOut.Amount.Cmp(s.GetReserves()[0]) > 0 {
+			return nil, ErrInsufficientReserve
+		}
+	}
 
 	var tokenInDecimals, tokenOutDecimals uint8
 	if swap0To1 {

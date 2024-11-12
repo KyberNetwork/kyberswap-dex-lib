@@ -38,6 +38,8 @@ type PoolWithReserves struct {
 	Fee                *big.Int           `json:"fee"`
 	CollateralReserves CollateralReserves `json:"collateralReserves"`
 	DebtReserves       DebtReserves       `json:"debtReserves"`
+	BalanceToken0      *big.Int           `json:"balanceToken0"`
+	BalanceToken1      *big.Int           `json:"balanceToken1"`
 }
 
 type Gas struct {

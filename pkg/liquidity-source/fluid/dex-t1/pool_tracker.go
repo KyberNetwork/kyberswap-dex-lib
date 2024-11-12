@@ -2,7 +2,6 @@ package dexT1
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -72,17 +70,7 @@ func (t *PoolTracker) getNewPoolState(
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
 
-	var reserves [2]big.Int
-	reserves[0].Add(collateralReserves.Token0RealReserves, debtReserves.Token0RealReserves)
-	reserves[1].Add(collateralReserves.Token1RealReserves, debtReserves.Token1RealReserves)
-	for i, reserve := range reserves {
-		if p.Tokens[i].Decimals > DexAmountsDecimals {
-			reserve.Mul(&reserve, bignumber.TenPowInt(int8(p.Tokens[i].Decimals)-DexAmountsDecimals))
-		} else if p.Tokens[i].Decimals < DexAmountsDecimals {
-			reserve.Div(&reserve, bignumber.TenPowInt(DexAmountsDecimals-int8(p.Tokens[i].Decimals)))
-		}
-	}
-	p.Reserves = entity.PoolReserves{reserves[0].String(), reserves[1].String()}
+	p.Reserves = entity.PoolReserves{poolReserves.BalanceToken0.String(), poolReserves.BalanceToken1.String()}
 
 	return p, nil
 }

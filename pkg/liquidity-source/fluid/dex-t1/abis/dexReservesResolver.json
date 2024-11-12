@@ -1,7 +1,16 @@
 [
   {
     "inputs": [
-      { "internalType": "address", "name": "factory_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "factory_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "liquidity_",
+        "type": "address"
+      }
     ],
     "stateMutability": "nonpayable",
     "type": "constructor"
@@ -20,29 +29,82 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "LIQUIDITY",
+    "outputs": [
+      {
+        "internalType": "contract IFluidLiquidity",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
-      { "internalType": "address", "name": "dex_", "type": "address" },
-      { "internalType": "bool", "name": "swap0to1_", "type": "bool" },
-      { "internalType": "uint256", "name": "amountIn_", "type": "uint256" },
-      { "internalType": "uint256", "name": "amountOutMin_", "type": "uint256" }
+      {
+        "internalType": "address",
+        "name": "dex_",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "swap0to1_",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountIn_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountOutMin_",
+        "type": "uint256"
+      }
     ],
     "name": "estimateSwapIn",
     "outputs": [
-      { "internalType": "uint256", "name": "amountOut_", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "amountOut_",
+        "type": "uint256"
+      }
     ],
     "stateMutability": "payable",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "dex_", "type": "address" },
-      { "internalType": "bool", "name": "swap0to1_", "type": "bool" },
-      { "internalType": "uint256", "name": "amountOut_", "type": "uint256" },
-      { "internalType": "uint256", "name": "amountInMax_", "type": "uint256" }
+      {
+        "internalType": "address",
+        "name": "dex_",
+        "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "swap0to1_",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountOut_",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amountInMax_",
+        "type": "uint256"
+      }
     ],
     "name": "estimateSwapOut",
     "outputs": [
-      { "internalType": "uint256", "name": "amountIn_", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "amountIn_",
+        "type": "uint256"
+      }
     ],
     "stateMutability": "payable",
     "type": "function"
@@ -51,7 +113,11 @@
     "inputs": [],
     "name": "getAllPoolAddresses",
     "outputs": [
-      { "internalType": "address[]", "name": "pools_", "type": "address[]" }
+      {
+        "internalType": "address[]",
+        "name": "pools_",
+        "type": "address[]"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
@@ -62,10 +128,26 @@
     "outputs": [
       {
         "components": [
-          { "internalType": "address", "name": "pool", "type": "address" },
-          { "internalType": "address", "name": "token0", "type": "address" },
-          { "internalType": "address", "name": "token1", "type": "address" },
-          { "internalType": "uint256", "name": "fee", "type": "uint256" }
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fee",
+            "type": "uint256"
+          }
         ],
         "internalType": "struct Structs.Pool[]",
         "name": "pools_",
@@ -81,10 +163,26 @@
     "outputs": [
       {
         "components": [
-          { "internalType": "address", "name": "pool", "type": "address" },
-          { "internalType": "address", "name": "token0", "type": "address" },
-          { "internalType": "address", "name": "token1", "type": "address" },
-          { "internalType": "uint256", "name": "fee", "type": "uint256" },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fee",
+            "type": "uint256"
+          },
           {
             "components": [
               {
@@ -148,6 +246,16 @@
             "internalType": "struct IFluidDexT1.DebtReserves",
             "name": "debtReserves",
             "type": "tuple"
+          },
+          {
+            "internalType": "uint256",
+            "name": "balanceToken0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "balanceToken1",
+            "type": "uint256"
           }
         ],
         "internalType": "struct Structs.PoolWithReserves[]",
@@ -164,10 +272,26 @@
     "outputs": [
       {
         "components": [
-          { "internalType": "address", "name": "pool", "type": "address" },
-          { "internalType": "address", "name": "token0", "type": "address" },
-          { "internalType": "address", "name": "token1", "type": "address" },
-          { "internalType": "uint256", "name": "fee", "type": "uint256" },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fee",
+            "type": "uint256"
+          },
           {
             "components": [
               {
@@ -231,6 +355,16 @@
             "internalType": "struct IFluidDexT1.DebtReserves",
             "name": "debtReserves",
             "type": "tuple"
+          },
+          {
+            "internalType": "uint256",
+            "name": "balanceToken0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "balanceToken1",
+            "type": "uint256"
           }
         ],
         "internalType": "struct Structs.PoolWithReserves[]",
@@ -243,7 +377,11 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "dex_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "dex_",
+        "type": "address"
+      }
     ],
     "name": "getDexCollateralReserves",
     "outputs": [
@@ -280,7 +418,11 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "dex_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "dex_",
+        "type": "address"
+      }
     ],
     "name": "getDexCollateralReservesAdjusted",
     "outputs": [
@@ -317,7 +459,11 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "dex_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "dex_",
+        "type": "address"
+      }
     ],
     "name": "getDexDebtReserves",
     "outputs": [
@@ -364,7 +510,11 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "dex_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "dex_",
+        "type": "address"
+      }
     ],
     "name": "getDexDebtReservesAdjusted",
     "outputs": [
@@ -411,7 +561,11 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "dex_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "dex_",
+        "type": "address"
+      }
     ],
     "name": "getDexPricesAndExchangePrices",
     "outputs": [
@@ -473,16 +627,36 @@
   },
   {
     "inputs": [
-      { "internalType": "uint256", "name": "poolId_", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "poolId_",
+        "type": "uint256"
+      }
     ],
     "name": "getPool",
     "outputs": [
       {
         "components": [
-          { "internalType": "address", "name": "pool", "type": "address" },
-          { "internalType": "address", "name": "token0", "type": "address" },
-          { "internalType": "address", "name": "token1", "type": "address" },
-          { "internalType": "uint256", "name": "fee", "type": "uint256" }
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fee",
+            "type": "uint256"
+          }
         ],
         "internalType": "struct Structs.Pool",
         "name": "pool_",
@@ -494,30 +668,62 @@
   },
   {
     "inputs": [
-      { "internalType": "uint256", "name": "poolId_", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "poolId_",
+        "type": "uint256"
+      }
     ],
     "name": "getPoolAddress",
     "outputs": [
-      { "internalType": "address", "name": "pool_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "pool_",
+        "type": "address"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "pool_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "pool_",
+        "type": "address"
+      }
     ],
     "name": "getPoolConstantsView",
     "outputs": [
       {
         "components": [
-          { "internalType": "uint256", "name": "dexId", "type": "uint256" },
-          { "internalType": "address", "name": "liquidity", "type": "address" },
-          { "internalType": "address", "name": "factory", "type": "address" },
+          {
+            "internalType": "uint256",
+            "name": "dexId",
+            "type": "uint256"
+          },
+          {
+            "internalType": "address",
+            "name": "liquidity",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "factory",
+            "type": "address"
+          },
           {
             "components": [
-              { "internalType": "address", "name": "shift", "type": "address" },
-              { "internalType": "address", "name": "admin", "type": "address" },
+              {
+                "internalType": "address",
+                "name": "shift",
+                "type": "address"
+              },
+              {
+                "internalType": "address",
+                "name": "admin",
+                "type": "address"
+              },
               {
                 "internalType": "address",
                 "name": "colOperations",
@@ -543,8 +749,16 @@
             "name": "deployerContract",
             "type": "address"
           },
-          { "internalType": "address", "name": "token0", "type": "address" },
-          { "internalType": "address", "name": "token1", "type": "address" },
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
           {
             "internalType": "bytes32",
             "name": "supplyToken0Slot",
@@ -591,7 +805,11 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "pool_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "pool_",
+        "type": "address"
+      }
     ],
     "name": "getPoolConstantsView2",
     "outputs": [
@@ -628,27 +846,55 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "pool_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "pool_",
+        "type": "address"
+      }
     ],
     "name": "getPoolFee",
     "outputs": [
-      { "internalType": "uint256", "name": "fee_", "type": "uint256" }
+      {
+        "internalType": "uint256",
+        "name": "fee_",
+        "type": "uint256"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "pool_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "pool_",
+        "type": "address"
+      }
     ],
     "name": "getPoolReserves",
     "outputs": [
       {
         "components": [
-          { "internalType": "address", "name": "pool", "type": "address" },
-          { "internalType": "address", "name": "token0", "type": "address" },
-          { "internalType": "address", "name": "token1", "type": "address" },
-          { "internalType": "uint256", "name": "fee", "type": "uint256" },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fee",
+            "type": "uint256"
+          },
           {
             "components": [
               {
@@ -712,6 +958,16 @@
             "internalType": "struct IFluidDexT1.DebtReserves",
             "name": "debtReserves",
             "type": "tuple"
+          },
+          {
+            "internalType": "uint256",
+            "name": "balanceToken0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "balanceToken1",
+            "type": "uint256"
           }
         ],
         "internalType": "struct Structs.PoolWithReserves",
@@ -724,16 +980,36 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "pool_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "pool_",
+        "type": "address"
+      }
     ],
     "name": "getPoolReservesAdjusted",
     "outputs": [
       {
         "components": [
-          { "internalType": "address", "name": "pool", "type": "address" },
-          { "internalType": "address", "name": "token0", "type": "address" },
-          { "internalType": "address", "name": "token1", "type": "address" },
-          { "internalType": "uint256", "name": "fee", "type": "uint256" },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fee",
+            "type": "uint256"
+          },
           {
             "components": [
               {
@@ -797,6 +1073,16 @@
             "internalType": "struct IFluidDexT1.DebtReserves",
             "name": "debtReserves",
             "type": "tuple"
+          },
+          {
+            "internalType": "uint256",
+            "name": "balanceToken0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "balanceToken1",
+            "type": "uint256"
           }
         ],
         "internalType": "struct Structs.PoolWithReserves",
@@ -809,28 +1095,60 @@
   },
   {
     "inputs": [
-      { "internalType": "address", "name": "pool_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "pool_",
+        "type": "address"
+      }
     ],
     "name": "getPoolTokens",
     "outputs": [
-      { "internalType": "address", "name": "token0_", "type": "address" },
-      { "internalType": "address", "name": "token1_", "type": "address" }
+      {
+        "internalType": "address",
+        "name": "token0_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "token1_",
+        "type": "address"
+      }
     ],
     "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
-      { "internalType": "address[]", "name": "pools_", "type": "address[]" }
+      {
+        "internalType": "address[]",
+        "name": "pools_",
+        "type": "address[]"
+      }
     ],
     "name": "getPoolsReserves",
     "outputs": [
       {
         "components": [
-          { "internalType": "address", "name": "pool", "type": "address" },
-          { "internalType": "address", "name": "token0", "type": "address" },
-          { "internalType": "address", "name": "token1", "type": "address" },
-          { "internalType": "uint256", "name": "fee", "type": "uint256" },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fee",
+            "type": "uint256"
+          },
           {
             "components": [
               {
@@ -894,6 +1212,16 @@
             "internalType": "struct IFluidDexT1.DebtReserves",
             "name": "debtReserves",
             "type": "tuple"
+          },
+          {
+            "internalType": "uint256",
+            "name": "balanceToken0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "balanceToken1",
+            "type": "uint256"
           }
         ],
         "internalType": "struct Structs.PoolWithReserves[]",
@@ -906,16 +1234,36 @@
   },
   {
     "inputs": [
-      { "internalType": "address[]", "name": "pools_", "type": "address[]" }
+      {
+        "internalType": "address[]",
+        "name": "pools_",
+        "type": "address[]"
+      }
     ],
     "name": "getPoolsReservesAdjusted",
     "outputs": [
       {
         "components": [
-          { "internalType": "address", "name": "pool", "type": "address" },
-          { "internalType": "address", "name": "token0", "type": "address" },
-          { "internalType": "address", "name": "token1", "type": "address" },
-          { "internalType": "uint256", "name": "fee", "type": "uint256" },
+          {
+            "internalType": "address",
+            "name": "pool",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token0",
+            "type": "address"
+          },
+          {
+            "internalType": "address",
+            "name": "token1",
+            "type": "address"
+          },
+          {
+            "internalType": "uint256",
+            "name": "fee",
+            "type": "uint256"
+          },
           {
             "components": [
               {
@@ -979,6 +1327,16 @@
             "internalType": "struct IFluidDexT1.DebtReserves",
             "name": "debtReserves",
             "type": "tuple"
+          },
+          {
+            "internalType": "uint256",
+            "name": "balanceToken0",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "balanceToken1",
+            "type": "uint256"
           }
         ],
         "internalType": "struct Structs.PoolWithReserves[]",
@@ -992,7 +1350,13 @@
   {
     "inputs": [],
     "name": "getTotalPools",
-    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
     "stateMutability": "view",
     "type": "function"
   }
