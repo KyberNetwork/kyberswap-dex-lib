@@ -2,7 +2,6 @@ package dexT1
 
 import (
 	"context"
-	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -50,15 +49,16 @@ func (t *PoolTracker) getNewPoolState(
 	_ pool.GetNewPoolStateParams,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	poolReserves, blockNumber, err := t.getPoolReserves(ctx, p.Address, overrides)
+	poolReserves, isSwapAndArbitragePaused, blockNumber, err := t.getPoolReserves(ctx, p.Address, overrides)
 	if err != nil {
 		return p, err
 	}
 
 	collateralReserves, debtReserves := poolReserves.CollateralReserves, poolReserves.DebtReserves
 	extra := PoolExtra{
-		CollateralReserves: collateralReserves,
-		DebtReserves:       debtReserves,
+		CollateralReserves:       collateralReserves,
+		DebtReserves:             debtReserves,
+		IsSwapAndArbitragePaused: isSwapAndArbitragePaused,
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -72,17 +72,7 @@ func (t *PoolTracker) getNewPoolState(
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
 
-	var reserves [2]big.Int
-	reserves[0].Add(collateralReserves.Token0RealReserves, debtReserves.Token0RealReserves)
-	reserves[1].Add(collateralReserves.Token1RealReserves, debtReserves.Token1RealReserves)
-	for i, reserve := range reserves {
-		if p.Tokens[i].Decimals > DexAmountsDecimals {
-			reserve.Mul(&reserve, bignumber.TenPowInt(int8(p.Tokens[i].Decimals)-DexAmountsDecimals))
-		} else if p.Tokens[i].Decimals < DexAmountsDecimals {
-			reserve.Div(&reserve, bignumber.TenPowInt(DexAmountsDecimals-int8(p.Tokens[i].Decimals)))
-		}
-	}
-	p.Reserves = entity.PoolReserves{reserves[0].String(), reserves[1].String()}
+	p.Reserves = entity.PoolReserves{poolReserves.BalanceToken0.String(), poolReserves.BalanceToken1.String()}
 
 	return p, nil
 }
@@ -91,8 +81,10 @@ func (t *PoolTracker) getPoolReserves(
 	ctx context.Context,
 	poolAddress string,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) (*PoolWithReserves, uint64, error) {
+) (*PoolWithReserves, bool, uint64, error) {
 	pool := &PoolWithReserves{}
+
+	dexVariables2 := bignumber.ZeroBI
 
 	req := t.ethrpcClient.R().SetContext(ctx)
 	if overrides != nil {
@@ -106,14 +98,24 @@ func (t *PoolTracker) getPoolReserves(
 		Params: []interface{}{common.HexToAddress(poolAddress)},
 	}, []interface{}{&pool})
 
+	req.AddCall(&ethrpc.Call{
+		ABI:    storageReadABI,
+		Target: poolAddress,
+		Method: SRMethodReadFromStorage,
+		Params: []interface{}{common.HexToHash("0x1")}, // slot 1
+	}, []interface{}{&dexVariables2})
+
 	resp, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
 			"error":   err,
 		}).Error("Failed to get pool reserves")
-		return nil, 0, err
+
+		return nil, false, 0, err
 	}
 
-	return pool, resp.BlockNumber.Uint64(), nil
+	isSwapAndArbitragePaused := dexVariables2.Rsh(dexVariables2, 255).Cmp(bignumber.One) == 0
+
+	return pool, isSwapAndArbitragePaused, resp.BlockNumber.Uint64(), nil
 }

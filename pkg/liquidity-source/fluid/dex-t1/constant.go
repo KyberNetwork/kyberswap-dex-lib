@@ -13,6 +13,9 @@ const (
 
 	// ERC20 Token methods
 	TokenMethodDecimals = "decimals"
+
+	// StorageRead methods
+	SRMethodReadFromStorage = "readFromStorage"
 )
 
 const (
