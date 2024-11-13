@@ -28,7 +28,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 						Exchange:    "fluid-dex-t1",
 						Type:        "fluid-dex-t1",
 						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-						Reserves:    []*big.Int{bignumber.NewBig("18760613183894"), bignumber.NewBig("22123580158026")},
+						Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
 						BlockNumber: 20836530,
 						SwapFee:     bignumber.NewBig("100"),
 					},
@@ -72,7 +72,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 						Exchange:    "fluid-dex-t1",
 						Type:        "fluid-dex-t1",
 						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-						Reserves:    []*big.Int{bignumber.NewBig("18760613183894"), bignumber.NewBig("22123580158026")},
+						Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
 						BlockNumber: 20836530,
 						SwapFee:     bignumber.NewBig("100"),
 					},
@@ -115,7 +115,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 						Exchange:    "fluid-dex-t1",
 						Type:        "fluid-dex-t1",
 						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-						Reserves:    []*big.Int{bignumber.NewBig("18760613183894"), bignumber.NewBig("22123580158026")},
+						Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
 						BlockNumber: 20836530,
 						SwapFee:     bignumber.NewBig("100"),
 					},
@@ -150,6 +150,47 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			// and following for 0.8 ETH 0.678013561421491997.
 			expectedAmountOut: bignumber.NewBig("677868867152000000"),
 		},
+		{
+			name: "it should return error for swap amount exceeding reserve",
+			poolSimulator: &PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
+						Exchange:    "fluid-dex-t1",
+						Type:        "fluid-dex-t1",
+						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
+						Reserves:    []*big.Int{bignumber.NewBig("18760613183894"), bignumber.NewBig("22123580158026")},
+						BlockNumber: 20836530,
+						SwapFee:     bignumber.NewBig("100"),
+					},
+				},
+				CollateralReserves: CollateralReserves{
+					Token0RealReserves:      bignumber.NewBig("2169934539358"),
+					Token1RealReserves:      bignumber.NewBig("19563846299171"),
+					Token0ImaginaryReserves: bignumber.NewBig("62490032619260838"),
+					Token1ImaginaryReserves: bignumber.NewBig("73741038977020279"),
+				},
+				DebtReserves: DebtReserves{
+					Token0Debt:              bignumber.NewBig("16590678644536"),
+					Token1Debt:              bignumber.NewBig("2559733858855"),
+					Token0RealReserves:      bignumber.NewBig("2169108220421"),
+					Token1RealReserves:      bignumber.NewBig("19572550738602"),
+					Token0ImaginaryReserves: bignumber.NewBig("62511862774117387"),
+					Token1ImaginaryReserves: bignumber.NewBig("73766803277429176"),
+				},
+				Token0Decimals: 18,
+				Token1Decimals: 18,
+			},
+			param: poolpkg.CalcAmountOutParams{
+				TokenAmountIn: poolpkg.TokenAmount{
+					Amount: bignumber.NewBig("30000000000000000000"), // Exceeds reserve
+					Token:  "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+				},
+				TokenOut: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+			},
+			expectedAmountOut: nil,
+			expectedError:     ErrInsufficientReserve,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -158,14 +199,14 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 
 			if tc.expectedError != nil {
 				assert.ErrorIs(t, err, tc.expectedError)
-			}
+			} else {
+				t.Logf("Expected Amount Out: %s", tc.expectedAmountOut.String())
+				t.Logf("Result Amount: %s", result.TokenAmountOut.Amount.String())
+				t.Logf("Fee Amount: %s", result.Fee.Amount.String())
 
-			t.Logf("Expected Amount Out: %s", tc.expectedAmountOut.String())
-			t.Logf("Result Amount: %s", result.TokenAmountOut.Amount.String())
-			t.Logf("Fee Amount: %s", result.Fee.Amount.String())
-
-			if tc.expectedAmountOut != nil {
-				assert.Zero(t, tc.expectedAmountOut.Cmp(result.TokenAmountOut.Amount))
+				if tc.expectedAmountOut != nil {
+					assert.Zero(t, tc.expectedAmountOut.Cmp(result.TokenAmountOut.Amount))
+				}
 			}
 		})
 	}
@@ -188,7 +229,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 						Exchange:    "fluid-dex-t1",
 						Type:        "fluid-dex-t1",
 						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-						Reserves:    []*big.Int{bignumber.NewBig("18760613183894"), bignumber.NewBig("22123580158026")},
+						Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
 						BlockNumber: 20836530,
 						SwapFee:     bignumber.NewBig("100"),
 					},
@@ -229,7 +270,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 						Exchange:    "fluid-dex-t1",
 						Type:        "fluid-dex-t1",
 						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-						Reserves:    []*big.Int{bignumber.NewBig("18760613183894"), bignumber.NewBig("22123580158026")},
+						Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
 						BlockNumber: 20836530,
 						SwapFee:     bignumber.NewBig("100"),
 					},
@@ -270,7 +311,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 						Exchange:    "fluid-dex-t1",
 						Type:        "fluid-dex-t1",
 						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
-						Reserves:    []*big.Int{bignumber.NewBig("18760613183894"), bignumber.NewBig("22123580158026")},
+						Reserves:    []*big.Int{bignumber.NewBig("5264013433389911488"), bignumber.NewBig("2569095126840549696")},
 						BlockNumber: 20836530,
 						SwapFee:     bignumber.NewBig("100"),
 					},
@@ -302,6 +343,46 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			// expected very close to 800000000000000000
 			expectedAmountIn: bignumber.NewBig("799999991997999800"),
 		},
+		{
+			name: "it should return error for swap amount exceeding reserve",
+			poolSimulator: &PoolSimulator{
+				Pool: poolpkg.Pool{
+					Info: poolpkg.PoolInfo{
+						Address:     "0x0B1a513ee24972DAEf112bC777a5610d4325C9e7",
+						Exchange:    "fluid-dex-t1",
+						Type:        "fluid-dex-t1",
+						Tokens:      []string{"0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0", "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE"},
+						Reserves:    []*big.Int{bignumber.NewBig("18760613183894"), bignumber.NewBig("22123580158026")},
+						BlockNumber: 20836530,
+						SwapFee:     bignumber.NewBig("100"),
+					},
+				},
+				CollateralReserves: CollateralReserves{
+					Token0RealReserves:      bignumber.NewBig("2169934539358"),
+					Token1RealReserves:      bignumber.NewBig("19563846299171"),
+					Token0ImaginaryReserves: bignumber.NewBig("62490032619260838"),
+					Token1ImaginaryReserves: bignumber.NewBig("73741038977020279"),
+				},
+				DebtReserves: DebtReserves{
+					Token0Debt:              bignumber.NewBig("16590678644536"),
+					Token1Debt:              bignumber.NewBig("2559733858855"),
+					Token0RealReserves:      bignumber.NewBig("2169108220421"),
+					Token1RealReserves:      bignumber.NewBig("19572550738602"),
+					Token0ImaginaryReserves: bignumber.NewBig("62511862774117387"),
+					Token1ImaginaryReserves: bignumber.NewBig("73766803277429176"),
+				},
+				Token0Decimals: 18,
+				Token1Decimals: 18,
+			},
+			param: poolpkg.CalcAmountInParams{
+				TokenAmountOut: poolpkg.TokenAmount{
+					Amount: bignumber.NewBig("677868867152000000"),
+					Token:  "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
+				},
+				TokenIn: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
+			},
+			expectedError: ErrInsufficientReserve,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -310,14 +391,14 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 
 			if tc.expectedError != nil {
 				assert.ErrorIs(t, err, tc.expectedError)
-			}
+			} else {
+				t.Logf("Expected Amount In: %s", tc.expectedAmountIn.String())
+				t.Logf("Result Amount: %s", result.TokenAmountIn.Amount.String())
+				t.Logf("Fee Amount: %s", result.Fee.Amount.String())
 
-			t.Logf("Expected Amount In: %s", tc.expectedAmountIn.String())
-			t.Logf("Result Amount: %s", result.TokenAmountIn.Amount.String())
-			t.Logf("Fee Amount: %s", result.Fee.Amount.String())
-
-			if tc.expectedAmountIn != nil {
-				assert.Zero(t, tc.expectedAmountIn.Cmp(result.TokenAmountIn.Amount))
+				if tc.expectedAmountIn != nil {
+					assert.Zero(t, tc.expectedAmountIn.Cmp(result.TokenAmountIn.Amount))
+				}
 			}
 		})
 	}

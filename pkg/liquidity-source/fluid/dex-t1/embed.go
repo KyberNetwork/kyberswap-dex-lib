@@ -7,3 +7,6 @@ var dexReservesResolverJSON []byte
 
 //go:embed abis/ERC20.json
 var erc20JSON []byte
+
+//go:embed abis/storageRead.json
+var storageReadJSON []byte
