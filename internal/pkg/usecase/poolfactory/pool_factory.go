@@ -435,8 +435,6 @@ func newSwapLimit(dex string, limit map[string]*big.Int) poolpkg.SwapLimit {
 		pooltypes.PoolTypes.NativeV1,
 		pooltypes.PoolTypes.Dexalot:
 		return swaplimit.NewInventory(dex, limit)
-	case pooltypes.PoolTypes.Bebop:
-		return swaplimit.NewSingleSwapLimit(dex)
 	}
 
 	return nil
