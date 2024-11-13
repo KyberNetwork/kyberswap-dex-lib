@@ -306,18 +306,21 @@ func (uc *BuildRouteUseCase) processRFQs(
 	poolType string,
 	routeSummary valueobject.RouteSummary,
 	indexedRFQParamsSlice ...valueobject.IndexedRFQParams,
-) error {
+) (err error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.processRFQs")
 	defer span.End()
+
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("panic recovered in processRFQs: %v", r)
+		}
+	}()
 
 	span.SetTag("poolType", poolType)
 
 	rfqHandler := uc.rfqHandlerByPoolType[poolType]
 
-	var (
-		results []*pool.RFQResult
-		err     error
-	)
+	var results []*pool.RFQResult
 
 	// If len(indexedRFQParamsSlice)=1, prioritize RFQ() over BatchRFQ()
 	if rfqHandler.SupportBatch() && len(indexedRFQParamsSlice) > 1 {
@@ -355,7 +358,7 @@ func (uc *BuildRouteUseCase) processRFQs(
 		}
 	}
 
-	return nil
+	return err
 }
 
 // updateRouteSummary updates AmountInUSD/AmountOutUSD, TokenInMarketPriceAvailable/TokenOutMarketPriceAvailable in command.RouteSummary
