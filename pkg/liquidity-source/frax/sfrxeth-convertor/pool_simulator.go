@@ -85,6 +85,9 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		amountOut, err = s.redeem(amountIn)
 		gas = s.gas.Redeem
 	}
+	if err != nil {
+		return nil, err
+	}
 
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: params.TokenOut, Amount: amountOut.ToBig()},
