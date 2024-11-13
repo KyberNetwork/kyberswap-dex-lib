@@ -5,18 +5,21 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
 type PriceFeedReader struct {
+	chainId      valueobject.ChainID
 	abi          abi.ABI
 	ethrpcClient *ethrpc.Client
 	log          logger.Logger
 }
 
-func NewPriceFeedReader(ethrpcClient *ethrpc.Client) *PriceFeedReader {
+func NewPriceFeedReader(chainID valueobject.ChainID, ethrpcClient *ethrpc.Client) *PriceFeedReader {
 	return &PriceFeedReader{
+		chainId:      chainID,
 		abi:          priceFeedABI,
 		ethrpcClient: ethrpcClient,
 		log: logger.WithFields(logger.Fields{
@@ -47,10 +50,15 @@ func (r *PriceFeedReader) getLatestRoundData(ctx context.Context, address string
 
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
+	method := priceFeedMethodLatestRoundData
+	if r.chainId == valueobject.ChainIDMantle {
+		method = "latestRound"
+	}
+
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    r.abi,
 		Target: address,
-		Method: priceFeedMethodLatestRoundData,
+		Method: method,
 		Params: nil,
 	}, []interface{}{&latestRoundData})
 
