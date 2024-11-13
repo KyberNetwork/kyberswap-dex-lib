@@ -12,11 +12,15 @@ import (
 const (
 	quotePath = "/rfq/quote"
 	signPath  = "/rfq/sign"
+
+	errQuoteConflictText = "Quote conflicts with latest prices. Please request a new quote."
 )
 
 var (
 	ErrQuoteFailed = errors.New("quote failed")
 	ErrSignFailed  = errors.New("sign failed")
+
+	ErrQuoteConflict = errors.New(errQuoteConflictText)
 )
 
 type httpClient struct {
@@ -81,8 +85,17 @@ func (c *httpClient) RFQ(ctx context.Context, params clipper.QuoteParams) (clipp
 			"errorType":    failRes.ErrorType,
 		}).Error("sign failed")
 
-		return clipper.SignResponse{}, ErrSignFailed
+		return clipper.SignResponse{}, parseSignError(failRes.ErrorMessage)
 	}
 
 	return signRes, nil
+}
+
+func parseSignError(errorMessage string) error {
+	switch errorMessage {
+	case errQuoteConflictText:
+		return ErrQuoteConflict
+	default:
+		return ErrSignFailed
+	}
 }

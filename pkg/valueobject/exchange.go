@@ -691,3 +691,16 @@ func IsRFQSource(exchange Exchange) bool {
 
 	return contained
 }
+
+// SingleSwapSourceSet is a set of exchanges that
+// only allow a single swap in a route.
+var SingleSwapSourceSet = map[Exchange]struct{}{
+	ExchangeClipper: {},
+	ExchangeBebop:   {},
+}
+
+func IsSingleSwapSource(exchange Exchange) bool {
+	_, contained := SingleSwapSourceSet[exchange]
+
+	return contained
+}
