@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	bebopclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop/client"
+	clipperclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper/client"
 	dexalotClient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot/client"
 	hashflowclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
 	nativeclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
@@ -297,6 +298,23 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Code:       4400,
 		Message:    "dexalot RFQ failed",
 	},
+
+	clipperclient.ErrQuoteFailed: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4228,
+		Message:    "clipper quote failed",
+	},
+	clipperclient.ErrSignFailed: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4228,
+		Message:    "clipper sign failed",
+	},
+	clipperclient.ErrQuoteConflict: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4228,
+		Message:    "clipper sign failed",
+		Details:    []interface{}{clipperclient.ErrQuoteConflict.Error()},
+	},
 }
 
 var httpCodeMapping = map[int]int{
@@ -434,7 +452,7 @@ func respondValidationError(c *gin.Context, err *validator.ValidationError) {
 
 const ClientClosedRequestStatusCode = 499
 
-func respondContextCanceledError(c *gin.Context, err error) {
+func respondContextCanceledError(c *gin.Context, _ error) {
 	errorResponse := ErrorResponse{
 		Code:      4990,
 		Message:   "request was canceled",
