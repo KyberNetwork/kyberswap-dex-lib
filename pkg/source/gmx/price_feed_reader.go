@@ -12,14 +12,16 @@ import (
 
 type PriceFeedReader struct {
 	chainId      valueobject.ChainID
+	dexId        string
 	abi          abi.ABI
 	ethrpcClient *ethrpc.Client
 	log          logger.Logger
 }
 
-func NewPriceFeedReader(chainID valueobject.ChainID, ethrpcClient *ethrpc.Client) *PriceFeedReader {
+func NewPriceFeedReader(chainID valueobject.ChainID, dexID string, ethrpcClient *ethrpc.Client) *PriceFeedReader {
 	return &PriceFeedReader{
 		chainId:      chainID,
+		dexId:        dexID,
 		abi:          priceFeedABI,
 		ethrpcClient: ethrpcClient,
 		log: logger.WithFields(logger.Fields{
@@ -51,7 +53,7 @@ func (r *PriceFeedReader) getLatestRoundData(ctx context.Context, address string
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
 	method := priceFeedMethodLatestRoundData
-	if r.chainId == valueobject.ChainIDMantle {
+	if r.chainId == valueobject.ChainIDMantle && r.dexId == string(valueobject.ExchangeKTX) {
 		method = "latestRound"
 	}
 

@@ -34,7 +34,7 @@ func NewVaultScanner(
 		vaultPriceFeedReader:  NewVaultPriceFeedReader(ethrpcClient),
 		fastPriceFeedV1Reader: NewFastPriceFeedV1Reader(ethrpcClient),
 		fastPriceFeedV2Reader: NewFastPriceFeedV2Reader(ethrpcClient),
-		priceFeedReader:       NewPriceFeedReader(config.ChainID, ethrpcClient),
+		priceFeedReader:       NewPriceFeedReader(config.ChainID, config.DexID, ethrpcClient),
 		usdgReader:            NewUSDGReader(ethrpcClient),
 		chainlinkFlagsReader:  NewChainlinkFlagsReader(ethrpcClient),
 		pancakePairReader:     NewPancakePairReader(ethrpcClient),
