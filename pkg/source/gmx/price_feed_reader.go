@@ -9,14 +9,26 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
+type Param struct {
+	PriceFeedMethodLatestRoundData string
+}
+
 type PriceFeedReader struct {
+	param        Param
 	abi          abi.ABI
 	ethrpcClient *ethrpc.Client
 	log          logger.Logger
 }
 
 func NewPriceFeedReader(ethrpcClient *ethrpc.Client) *PriceFeedReader {
+	return NewPriceFeedReaderWithParam(ethrpcClient, Param{
+		PriceFeedMethodLatestRoundData: priceFeedMethodLatestRoundData,
+	})
+}
+
+func NewPriceFeedReaderWithParam(ethrpcClient *ethrpc.Client, param Param) *PriceFeedReader {
 	return &PriceFeedReader{
+		param:        param,
 		abi:          priceFeedABI,
 		ethrpcClient: ethrpcClient,
 		log: logger.WithFields(logger.Fields{
@@ -50,7 +62,7 @@ func (r *PriceFeedReader) getLatestRoundData(ctx context.Context, address string
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    r.abi,
 		Target: address,
-		Method: priceFeedMethodLatestRoundData,
+		Method: r.param.PriceFeedMethodLatestRoundData,
 		Params: nil,
 	}, []interface{}{&latestRoundData})
 
