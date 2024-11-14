@@ -10,7 +10,7 @@ import (
 )
 
 type Param struct {
-	PriceFeedMethodGetRoundData string
+	PriceFeedMethodLatestRoundData string
 }
 
 type PriceFeedReader struct {
@@ -22,7 +22,7 @@ type PriceFeedReader struct {
 
 func NewPriceFeedReader(ethrpcClient *ethrpc.Client) *PriceFeedReader {
 	return NewPriceFeedReaderWithParam(ethrpcClient, Param{
-		PriceFeedMethodGetRoundData: priceFeedMethodGetRoundData,
+		PriceFeedMethodLatestRoundData: priceFeedMethodLatestRoundData,
 	})
 }
 
@@ -62,7 +62,7 @@ func (r *PriceFeedReader) getLatestRoundData(ctx context.Context, address string
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    r.abi,
 		Target: address,
-		Method: r.param.PriceFeedMethodGetRoundData,
+		Method: r.param.PriceFeedMethodLatestRoundData,
 		Params: nil,
 	}, []interface{}{&latestRoundData})
 

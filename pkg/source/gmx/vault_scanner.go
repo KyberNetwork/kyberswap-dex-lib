@@ -41,7 +41,7 @@ func NewVaultScanner(
 		fastPriceFeedV1Reader: NewFastPriceFeedV1Reader(ethrpcClient),
 		fastPriceFeedV2Reader: NewFastPriceFeedV2Reader(ethrpcClient),
 		priceFeedReader: NewPriceFeedReaderWithParam(ethrpcClient, Param{
-			PriceFeedMethodGetRoundData: method,
+			PriceFeedMethodLatestRoundData: method,
 		}),
 		usdgReader:           NewUSDGReader(ethrpcClient),
 		chainlinkFlagsReader: NewChainlinkFlagsReader(ethrpcClient),
