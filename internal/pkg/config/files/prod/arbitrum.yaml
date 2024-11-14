@@ -103,6 +103,7 @@ common:
     - "clipper"
     - "deltaswap-v1"
     - "maverick-v2"
+    - "ktx"
   featureFlags: &featureFlags
   swaapAPIKey:
   nativeAPIKey:
@@ -226,6 +227,7 @@ encoder:
     executeFluidDexT1: 55
     executeDexalot: 57
     executeClipperRfq: 58
+    executeKtx: 59
 useCase:
   getRoute:
     chainId: *chainId

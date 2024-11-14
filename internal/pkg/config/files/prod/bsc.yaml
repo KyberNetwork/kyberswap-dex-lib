@@ -75,6 +75,7 @@ common:
     - "woofi-v3"
     - "bebop"
     - "wbeth"
+    - "ktx"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:
