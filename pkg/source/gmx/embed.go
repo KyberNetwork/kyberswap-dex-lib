@@ -17,6 +17,9 @@ var pancakePairJson []byte
 //go:embed abis/PriceFeed.json
 var priceFeedJson []byte
 
+//go:embed abis/PriceFeedMantle.json
+var priceFeedMantleJson []byte
+
 //go:embed abis/Vault.json
 var vaultJson []byte
 

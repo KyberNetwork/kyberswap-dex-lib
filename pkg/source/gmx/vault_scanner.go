@@ -29,9 +29,12 @@ func NewVaultScanner(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
 ) *VaultScanner {
-	method := priceFeedMethodLatestRoundData
+	abi := priceFeedABI
+	useLegacyMethod := true
+
 	if config.ChainID == valueobject.ChainIDMantle && config.DexID == string(valueobject.ExchangeKTX) {
-		method = "latestRound"
+		abi = priceFeedMantleABI
+		useLegacyMethod = false
 	}
 
 	return &VaultScanner{
@@ -41,7 +44,8 @@ func NewVaultScanner(
 		fastPriceFeedV1Reader: NewFastPriceFeedV1Reader(ethrpcClient),
 		fastPriceFeedV2Reader: NewFastPriceFeedV2Reader(ethrpcClient),
 		priceFeedReader: NewPriceFeedReaderWithParam(ethrpcClient, Param{
-			PriceFeedMethodLatestRoundData: method,
+			UseLegacyMethod: useLegacyMethod,
+			ABI:             abi,
 		}),
 		usdgReader:           NewUSDGReader(ethrpcClient),
 		chainlinkFlagsReader: NewChainlinkFlagsReader(ethrpcClient),
