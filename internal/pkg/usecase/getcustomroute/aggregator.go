@@ -106,7 +106,6 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 	limits[pooltypes.PoolTypes.Synthetix] = make(map[string]*big.Int)
 	limits[pooltypes.PoolTypes.NativeV1] = make(map[string]*big.Int)
 	limits[pooltypes.PoolTypes.LimitOrder] = make(map[string]*big.Int)
-	limits[pooltypes.PoolTypes.Bebop] = make(map[string]*big.Int)
 	for _, pool := range poolInterfaces {
 		dexLimit, avail := limits[pool.GetType()]
 		if !avail {
