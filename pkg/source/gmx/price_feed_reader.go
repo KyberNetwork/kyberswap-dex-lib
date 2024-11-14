@@ -5,23 +5,35 @@ import (
 	"math/big"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
+type Param struct {
+	priceFeedMethodGetRoundData string
+}
+
 type PriceFeedReader struct {
-	chainId      valueobject.ChainID
-	dexId        string
+	param        Param
 	abi          abi.ABI
 	ethrpcClient *ethrpc.Client
 	log          logger.Logger
 }
 
-func NewPriceFeedReader(chainID valueobject.ChainID, dexID string, ethrpcClient *ethrpc.Client) *PriceFeedReader {
+func NewPriceFeedReader(ethrpcClient *ethrpc.Client) *PriceFeedReader {
 	return &PriceFeedReader{
-		chainId:      chainID,
-		dexId:        dexID,
+		abi:          priceFeedABI,
+		ethrpcClient: ethrpcClient,
+		log: logger.WithFields(logger.Fields{
+			"liquiditySource": DexTypeGmx,
+			"reader":          "PriceFeedReader",
+		}),
+	}
+}
+
+func NewPriceFeedReaderWithParam(ethrpcClient *ethrpc.Client, param Param) *PriceFeedReader {
+	return &PriceFeedReader{
+		param:        param,
 		abi:          priceFeedABI,
 		ethrpcClient: ethrpcClient,
 		log: logger.WithFields(logger.Fields{
@@ -52,15 +64,10 @@ func (r *PriceFeedReader) getLatestRoundData(ctx context.Context, address string
 
 	rpcRequest := r.ethrpcClient.NewRequest().SetContext(ctx)
 
-	method := priceFeedMethodLatestRoundData
-	if r.chainId == valueobject.ChainIDMantle && r.dexId == string(valueobject.ExchangeKTX) {
-		method = "latestRound"
-	}
-
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    r.abi,
 		Target: address,
-		Method: method,
+		Method: r.param.priceFeedMethodGetRoundData,
 		Params: nil,
 	}, []interface{}{&latestRoundData})
 
