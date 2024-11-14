@@ -40,6 +40,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	fluiddext1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	fluidvaultt1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
+	sfrxeth_convertor "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth-convertor"
 	generic_simple_rate "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/generic-simple-rate"
 	gyro2clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/2clp"
 	gyro3clp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/gyroscope/3clp"
@@ -687,6 +689,10 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newClipper(entityPool)
 	case pooltypes.PoolTypes.DeltaSwapV1:
 		return f.newDeltaSwapV1(entityPool)
+	case pooltypes.PoolTypes.SfrxETH:
+		return f.newSfrxETH(entityPool)
+	case pooltypes.PoolTypes.SfrxETHConvertor:
+		return f.newSfrxETHConvertor(entityPool)
 
 	default:
 		return nil, errors.WithMessagef(
@@ -2354,6 +2360,34 @@ func (f *PoolFactory) newDeltaSwapV1(entityPool entity.Pool) (*deltaswapv1.PoolS
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newDeltaSwapV1] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newSfrxETH(entityPool entity.Pool) (*sfrxeth.PoolSimulator, error) {
+	corePool, err := sfrxeth.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newSfrxETH] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newSfrxETHConvertor(entityPool entity.Pool) (*sfrxeth_convertor.PoolSimulator, error) {
+	corePool, err := sfrxeth_convertor.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newSfrxETHConvertor] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

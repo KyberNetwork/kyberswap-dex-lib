@@ -136,6 +136,8 @@ common:
     - "meth"
     - "clipper"
     - "deltaswap-v1"
+    - "sfrxeth"
+    - "sfrxeth-convertor"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:

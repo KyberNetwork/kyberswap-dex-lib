@@ -3,8 +3,6 @@ module github.com/KyberNetwork/router-service
 go 1.22.7
 
 replace (
-	// github.com/KyberNetwork/kyberswap-dex-lib => ../kyberswap-dex-lib
-	// github.com/KyberNetwork/aggregator-encoding => ../aggregator-encoding
 	github.com/daoleno/uniswapv3-sdk v0.4.0 => github.com/KyberNetwork/uniswapv3-sdk v0.5.2
 	github.com/ethereum/go-ethereum => github.com/ethereum/go-ethereum v1.13.14
 )
@@ -12,7 +10,7 @@ replace (
 require (
 	github.com/ALTree/bigfloat v0.2.0
 	github.com/KyberNetwork/aevm v1.1.18
-	github.com/KyberNetwork/aggregator-encoding v0.32.8
+	github.com/KyberNetwork/aggregator-encoding v0.32.9-0.20241114100926-56ed4e89680b
 	github.com/KyberNetwork/blackjack v0.3.0
 	github.com/KyberNetwork/blockchain-toolkit v0.8.1
 	github.com/KyberNetwork/elastic-go-sdk/v2 v2.0.4

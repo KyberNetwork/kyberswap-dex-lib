@@ -199,6 +199,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeDexalot
 	dexValueObject.ExchangeDexalot: {},
+
+	// executeSfrxETHConvertor
+	dexValueObject.ExchangeSfrxETHConvertor: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {
