@@ -32,6 +32,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Tokens:  []string{"0x5be26527e817998a7206475496fde1e68957c5a6", "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3"},
 				}},
 				paused:      false,
+				totalShares: uint256.MustFromDecimal("100000000000000000000000000000"),
 				oraclePrice: uint256.NewInt(1064060720000000000),
 			},
 			param: poolpkg.CalcAmountOutParams{
@@ -51,6 +52,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Tokens:  []string{"0x5be26527e817998a7206475496fde1e68957c5a6", "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3"},
 				}},
 				paused:      false,
+				totalShares: uint256.MustFromDecimal("100000000000000000000000000000"),
 				oraclePrice: uint256.NewInt(1064060720000000000),
 			},
 			param: poolpkg.CalcAmountOutParams{

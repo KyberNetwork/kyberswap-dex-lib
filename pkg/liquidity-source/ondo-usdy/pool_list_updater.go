@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
@@ -47,7 +48,10 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 		}).Errorf("failed to initPool")
 		return nil, nil, err
 	}
-	logger.Info("finish fetching pools")
+
+	logger.WithFields(logger.Fields{
+		"dex_id": u.config.DexID,
+	}).Info("finish fetching pools")
 
 	return pools, nil, nil
 }
@@ -113,7 +117,9 @@ func (u *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 		pools = append(pools, poolEntity)
 	}
 
-	poolExtras, blockNumber, err := getExtra(ctx, u.ethrpcClient, pools, rwaDynamicOracleAddresses)
+	poolExtras, blockNumber, err := getExtra(
+		ctx, u.config, u.ethrpcClient, pools, rwaDynamicOracleAddresses,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -132,26 +138,36 @@ func (u *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 
 func getExtra(
 	ctx context.Context,
+	config *Config,
 	client *ethrpc.Client,
 	pools []entity.Pool,
 	rwaDynamicOracleAddress []string,
 ) ([]PoolExtra, uint64, error) {
 	paused := make([]bool, len(pools))
 	oraclePriceData := make([]OraclePriceData, len(pools))
+	totalShares := make([]*big.Int, len(pools))
+
+	methodGetTotalShare, err := getMethodTotalShares(config.ChainID)
+	if err != nil {
+		return nil, 0, err
+	}
 
 	calls := client.NewRequest().SetContext(ctx)
 	for i := range pools {
 		calls.AddCall(&ethrpc.Call{
-			ABI:    mUSDABI,
+			ABI:    rUSDYABI,
 			Target: pools[i].Address,
-			Method: mUSDMethodPaused,
-			Params: []interface{}{},
+			Method: rUSDYMethodPaused,
 		}, []interface{}{&paused[i]})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    rUSDYABI,
+			Target: pools[i].Address,
+			Method: methodGetTotalShare,
+		}, []interface{}{&totalShares[i]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    rwaDynamicOracleABI,
 			Target: rwaDynamicOracleAddress[i],
 			Method: rwaDynamicOracleMethodGetPriceData,
-			Params: []interface{}{},
 		}, []interface{}{&oraclePriceData[i]})
 	}
 
@@ -168,6 +184,7 @@ func getExtra(
 	for i := range pools {
 		poolExtras = append(poolExtras, PoolExtra{
 			Paused:                  paused[i],
+			TotalShares:             uint256.MustFromBig(totalShares[i]),
 			OraclePrice:             uint256.MustFromBig(oraclePriceData[i].Price),
 			PriceTimestamp:          oraclePriceData[i].Timestamp.Uint64(),
 			RWADynamicOracleAddress: rwaDynamicOracleAddress[i],
@@ -175,4 +192,15 @@ func getExtra(
 	}
 
 	return poolExtras, resp.BlockNumber.Uint64(), nil
+}
+
+func getMethodTotalShares(chainID valueobject.ChainID) (string, error) {
+	switch chainID {
+	case valueobject.ChainIDEthereum:
+		return rUSDYMethodTotalShares, nil
+	case valueobject.ChainIDMantle:
+		return rUSDYWMethodGetTotalShares, nil
+	default:
+		return "", errors.New("unsupported chainID")
+	}
 }
