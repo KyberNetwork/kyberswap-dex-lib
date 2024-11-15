@@ -447,12 +447,12 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 
 	// bring borrowable and withdrawable from token decimals to 1e12 decimals, same as amounts
 	var factor *big.Int
-	if 12 > outDecimals {
-		factor = new(big.Int).Exp(bI10, big.NewInt(12-outDecimals), nil)
+	if DexAmountsDecimals > outDecimals {
+		factor = new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil)
 		borrowable = new(big.Int).Mul(borrowable, factor)
 		withdrawable = new(big.Int).Mul(withdrawable, factor)
 	} else {
-		factor = new(big.Int).Exp(bI10, big.NewInt(outDecimals-12), nil)
+		factor = new(big.Int).Exp(bI10, big.NewInt(outDecimals-DexAmountsDecimals), nil)
 		borrowable = new(big.Int).Div(borrowable, factor)
 		withdrawable = new(big.Int).Div(withdrawable, factor)
 	}
@@ -714,12 +714,12 @@ func swapOutAdjusted(
 
 	// bring borrowable and withdrawable from token decimals to 1e12 decimals, same as amounts
 	var factor *big.Int
-	if 12 > outDecimals {
-		factor = new(big.Int).Exp(bI10, big.NewInt(12-outDecimals), nil)
+	if DexAmountsDecimals > outDecimals {
+		factor = new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil)
 		borrowable = new(big.Int).Mul(borrowable, factor)
 		withdrawable = new(big.Int).Mul(withdrawable, factor)
 	} else {
-		factor = new(big.Int).Exp(bI10, big.NewInt(outDecimals-12), nil)
+		factor = new(big.Int).Exp(bI10, big.NewInt(outDecimals-DexAmountsDecimals), nil)
 		borrowable = new(big.Int).Div(borrowable, factor)
 		withdrawable = new(big.Int).Div(withdrawable, factor)
 	}
