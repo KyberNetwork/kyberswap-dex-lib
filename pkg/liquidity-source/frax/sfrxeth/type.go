@@ -14,6 +14,5 @@ type Gas struct {
 
 type PoolItem struct {
 	FrxETHMinterAddress string `json:"frxETHMinter"`
-	FrxETHAddress       string `json:"frxETH"`
 	SfrxETHAddress      string `json:"sfrxETH"`
 }
