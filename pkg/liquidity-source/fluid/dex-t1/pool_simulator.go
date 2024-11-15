@@ -3,14 +3,12 @@ package dexT1
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/KyberNetwork/logger"
 	"github.com/samber/lo"
 )
 
@@ -317,9 +315,6 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		withdrawable = getExpandedLimit(syncTime, currentLimits.WithdrawableToken0)
 	}
 
-	fmt.Printf("Borrowable Before: %s\n", borrowable.String())
-	fmt.Printf("Withdrawable Before: %s\n", withdrawable.String())
-
 	// bring borrowable and withdrawable from token decimals to 1e12 decimals, same as amounts
 	var factor *big.Int
 	if 12 > outDecimals {
@@ -331,9 +326,6 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		borrowable = new(big.Int).Div(borrowable, factor)
 		withdrawable = new(big.Int).Div(withdrawable, factor)
 	}
-
-	fmt.Printf("Borrowable: %s\n", borrowable.String())
-	fmt.Printf("Withdrawable: %s\n", withdrawable.String())
 
 	// Check if all reserves of collateral pool are greater than 0
 	colPoolEnabled := colReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
@@ -363,28 +355,18 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	amountInDebt := big.NewInt(0)
 	amountOutDebt := big.NewInt(0)
 
-	fmt.Printf("amountOutDebt 0: %s\n", amountOutDebt.String())
-	logger.Debugf("amountOutCollateral 0: %s", amountOutCollateral.String())
-
 	if a.Cmp(bignumber.ZeroBI) <= 0 {
-		fmt.Printf("debt pool \n")
 		// Entire trade routes through debt pool
 		amountInDebt = amountToSwap
 		amountOutDebt = getAmountOut(amountToSwap, debtIReserveIn, debtIReserveOut)
 
-		fmt.Printf("amountOutDebt 1: %s\n", amountOutDebt.String())
-		fmt.Printf("amountOutCollateral 1: %s\n", amountOutCollateral.String())
 	} else if a.Cmp(amountToSwap) >= 0 {
-		fmt.Printf("col pool \n")
 		// Entire trade routes through collateral pool
 		amountInCollateral = amountToSwap
 		amountOutCollateral = getAmountOut(amountToSwap, colIReserveIn, colIReserveOut)
 	} else {
 		// Trade routes through both pools
-		fmt.Printf("both pools \n")
 		amountInDebt.Sub(amountToSwap, a)
-		fmt.Printf("amountInDebt: %s\n", amountInDebt.String())
-		fmt.Printf("new(big.Int).Sub(amountToSwap, a): %s\n", new(big.Int).Sub(amountToSwap, a).String())
 
 		amountInCollateral = a
 		amountOutCollateral = getAmountOut(a, colIReserveIn, colIReserveOut)
@@ -399,14 +381,11 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	if amountOutCollateral.Cmp(colReserveOut) > 0 {
 		return nil, errors.New("insufficient liquidity reserve out")
 	}
-	fmt.Printf("amountOutCollateral 2: %s\n", amountOutCollateral.String())
 
-	fmt.Printf("amountOutDebt: %s\n", amountOutDebt.String())
 	if amountOutDebt.Cmp(borrowable) > 0 {
 		return nil, errors.New("insufficient liquidity borrowable limit")
 	}
 
-	fmt.Printf("amountOutCollateral: %s\n", amountOutCollateral.String())
 	if amountOutCollateral.Cmp(withdrawable) > 0 {
 		return nil, errors.New("insufficient liquidity withdrawable limit")
 	}
@@ -437,8 +416,6 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	}
 	priceDiff.Abs(new(big.Int).Sub(oldPrice, newPrice))
 	maxPriceDiff.Div(new(big.Int).Mul(oldPrice, big.NewInt(MaxPriceDiff)), big.NewInt(100))
-	fmt.Printf("priceDiff: %s\n", priceDiff.String())
-	fmt.Printf("maxPriceDiff: %s\n", maxPriceDiff.String())
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
 		return nil, errors.New("insufficient liquidity max price diff")
@@ -588,9 +565,6 @@ func swapOutAdjusted(
 		withdrawable = getExpandedLimit(syncTime, currentLimits.WithdrawableToken0)
 	}
 
-	fmt.Printf("Borrowable Before: %s\n", borrowable.String())
-	fmt.Printf("Withdrawable Before: %s\n", withdrawable.String())
-
 	// bring borrowable and withdrawable from token decimals to 1e12 decimals, same as amounts
 	var factor *big.Int
 	if 12 > outDecimals {
@@ -602,9 +576,6 @@ func swapOutAdjusted(
 		borrowable = new(big.Int).Div(borrowable, factor)
 		withdrawable = new(big.Int).Div(withdrawable, factor)
 	}
-
-	fmt.Printf("Borrowable: %s\n", borrowable.String())
-	fmt.Printf("Withdrawable: %s\n", withdrawable.String())
 
 	// Check if all reserves of collateral pool are greater than 0
 	colPoolEnabled := colReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
@@ -634,10 +605,7 @@ func swapOutAdjusted(
 	amountInDebt := big.NewInt(0)
 	amountOutDebt := big.NewInt(0)
 
-	fmt.Printf("1:")
-
 	if a.Cmp(bignumber.ZeroBI) <= 0 {
-		fmt.Printf("through debt pool")
 		// Entire trade routes through debt pool
 		amountOutDebt = amountOut
 		amountInDebt = getAmountIn(amountOut, debtIReserveIn, debtIReserveOut)
@@ -646,7 +614,6 @@ func swapOutAdjusted(
 			return nil, errors.New("insufficient liquidity reserve out")
 		}
 	} else if a.Cmp(amountOut) >= 0 {
-		fmt.Printf("through col pool")
 		// Entire trade routes through collateral pool
 		amountOutCollateral = amountOut
 		amountInCollateral = getAmountIn(amountOut, colIReserveIn, colIReserveOut)
@@ -654,7 +621,6 @@ func swapOutAdjusted(
 			return nil, errors.New("insufficient liquidity reserve out")
 		}
 	} else {
-		fmt.Printf("through both poosl")
 		// Trade routes through both pools
 		amountOutCollateral = a
 		amountInCollateral = getAmountIn(a, colIReserveIn, colIReserveOut)
@@ -666,20 +632,13 @@ func swapOutAdjusted(
 		}
 	}
 
-	fmt.Printf("2:")
-
-	fmt.Printf("amountOutDebt: %s\n", amountOutDebt.String())
-	fmt.Printf("amountOutCollateral: %s\n", amountOutCollateral.String())
 	if amountOutDebt.Cmp(borrowable) > 0 {
-		fmt.Printf("exit 1:")
 		return nil, errors.New("insufficient liquidity borrowable limit")
 	}
 
 	if amountOutCollateral.Cmp(withdrawable) > 0 {
-		fmt.Printf("exit 2:")
 		return nil, errors.New("insufficient liquidity withdrawable limit")
 	}
-	fmt.Printf("3:")
 
 	oldPrice := big.NewInt(0)
 	newPrice := big.NewInt(0)
@@ -707,9 +666,6 @@ func swapOutAdjusted(
 	}
 	priceDiff.Abs(new(big.Int).Sub(oldPrice, newPrice))
 	maxPriceDiff.Div(new(big.Int).Mul(oldPrice, big.NewInt(MaxPriceDiff)), big.NewInt(100))
-
-	fmt.Printf("priceDiff: %s\n", priceDiff.String())
-	fmt.Printf("maxPriceDiff: %s\n", maxPriceDiff.String())
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
 		return nil, errors.New("insufficient liquidity max price diff")
