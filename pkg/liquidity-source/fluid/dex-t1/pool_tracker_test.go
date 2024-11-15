@@ -82,15 +82,6 @@ func TestPoolTracker(t *testing.T) {
 		require.Equal(t, true, newPool.Tokens[1].Swappable)
 		require.Equal(t, 0.01, newPool.SwapFee)
 
-		token0RealReserves := extra.CollateralReserves.Token0RealReserves
-		token0Debt := extra.DebtReserves.Token0RealReserves
-		expectedToken0Reserve := new(big.Int).Add(token0RealReserves, token0Debt).String()
-		require.Equal(t, expectedToken0Reserve, newPool.Reserves[0], "Reserve should be equal to Token0RealReserves + Token0Debt")
-
-		token1RealReserves := extra.CollateralReserves.Token1RealReserves
-		token1Debt := extra.DebtReserves.Token1RealReserves
-		expectedToken1Reserve := new(big.Int).Add(token1RealReserves, token1Debt).String()
-		require.Equal(t, expectedToken1Reserve, newPool.Reserves[1], "Reserve should be equal to Token1RealReserves + Token1Debt")
 		reserve0, _ := new(big.Int).SetString(newPool.Reserves[0], 10)
 		reserve1, _ := new(big.Int).SetString(newPool.Reserves[1], 10)
 

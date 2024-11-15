@@ -28,12 +28,11 @@ var (
 
 type PoolSimulator struct {
 	poolpkg.Pool
-
-	DexReservesResolver string
-	CollateralReserves  CollateralReserves
-	DebtReserves        DebtReserves
-	DexLimits           DexLimits
 	StaticExtra
+
+	CollateralReserves CollateralReserves
+	DebtReserves       DebtReserves
+	DexLimits          DexLimits
 
 	Token0Decimals uint8
 	Token1Decimals uint8
@@ -892,7 +891,6 @@ func getExpandedLimit(syncTime int64, limit TokenLimit) *big.Int {
 	expandedAmount.Add(expandedAmount, limit.Available)
 
 	return expandedAmount
-
 }
 
 func updateDebtReserves(swap0To1 bool, amountIn, amountOut *big.Int, debtReserves DebtReserves) {
