@@ -125,10 +125,33 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		Token1ImaginaryReserves: new(big.Int).Set(s.DebtReserves.Token1ImaginaryReserves),
 	}
 
-	// TODO do we have to copy DexLimits here the same way as done for reserves? and for syncTimestamp?
+	dexLimits := DexLimits{
+		BorrowableToken0: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.BorrowableToken0.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.BorrowableToken0.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.BorrowableToken0.ExpandDuration),
+		},
+		BorrowableToken1: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.BorrowableToken1.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.BorrowableToken1.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.BorrowableToken1.ExpandDuration),
+		},
+		WithdrawableToken0: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.WithdrawableToken0.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.WithdrawableToken0.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.WithdrawableToken0.ExpandDuration),
+		},
+		WithdrawableToken1: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.WithdrawableToken1.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.WithdrawableToken1.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.WithdrawableToken1.ExpandDuration),
+		},
+	}
+
+	syncTimestamp := s.SyncTimestamp
 
 	tokenAmountOut, err := swapIn(swap0To1, amountInAfterFee, collateralReserves, debtReserves,
-		int64(tokenInDecimals), int64(tokenOutDecimals), s.DexLimits, s.SyncTimestamp)
+		int64(tokenInDecimals), int64(tokenOutDecimals), dexLimits, syncTimestamp)
 	if err != nil {
 		return nil, err
 	}
@@ -199,10 +222,33 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		Token1ImaginaryReserves: new(big.Int).Set(s.DebtReserves.Token1ImaginaryReserves),
 	}
 
-	// TODO do we have to copy DexLimits here the same way as done for reserves? and for syncTimestamp?
+	dexLimits := DexLimits{
+		BorrowableToken0: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.BorrowableToken0.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.BorrowableToken0.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.BorrowableToken0.ExpandDuration),
+		},
+		BorrowableToken1: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.BorrowableToken1.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.BorrowableToken1.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.BorrowableToken1.ExpandDuration),
+		},
+		WithdrawableToken0: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.WithdrawableToken0.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.WithdrawableToken0.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.WithdrawableToken0.ExpandDuration),
+		},
+		WithdrawableToken1: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.WithdrawableToken1.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.WithdrawableToken1.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.WithdrawableToken1.ExpandDuration),
+		},
+	}
+
+	syncTimestamp := s.SyncTimestamp
 
 	tokenAmountIn, err := swapOut(swap0To1, param.TokenAmountOut.Amount, collateralReserves, debtReserves,
-		int64(tokenInDecimals), int64(tokenOutDecimals), s.DexLimits, s.SyncTimestamp)
+		int64(tokenInDecimals), int64(tokenOutDecimals), dexLimits, syncTimestamp)
 	if err != nil {
 		return nil, err
 	}
@@ -402,11 +448,11 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	// bring borrowable and withdrawable from token decimals to 1e12 decimals, same as amounts
 	var factor *big.Int
 	if 12 > outDecimals {
-		factor = new(big.Int).Exp(big.NewInt(10), big.NewInt(12-outDecimals), nil)
+		factor = new(big.Int).Exp(bI10, big.NewInt(12-outDecimals), nil)
 		borrowable = new(big.Int).Mul(borrowable, factor)
 		withdrawable = new(big.Int).Mul(withdrawable, factor)
 	} else {
-		factor = new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-12), nil)
+		factor = new(big.Int).Exp(bI10, big.NewInt(outDecimals-12), nil)
 		borrowable = new(big.Int).Div(borrowable, factor)
 		withdrawable = new(big.Int).Div(withdrawable, factor)
 	}
@@ -508,7 +554,7 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		}
 	}
 	priceDiff.Abs(new(big.Int).Sub(oldPrice, newPrice))
-	maxPriceDiff.Div(new(big.Int).Mul(oldPrice, big.NewInt(MaxPriceDiff)), big.NewInt(100))
+	maxPriceDiff.Div(new(big.Int).Mul(oldPrice, big.NewInt(MaxPriceDiff)), bI100)
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
 		return nil, errors.New(ErrInsufficientMaxPrice.Error())
@@ -575,9 +621,9 @@ func swapIn(
 	var amountInAdjusted *big.Int
 
 	if inDecimals > DexAmountsDecimals {
-		amountInAdjusted = new(big.Int).Div(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-DexAmountsDecimals), nil))
+		amountInAdjusted = new(big.Int).Div(amountIn, new(big.Int).Exp(bI10, big.NewInt(inDecimals-DexAmountsDecimals), nil))
 	} else {
-		amountInAdjusted = new(big.Int).Mul(amountIn, new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-inDecimals), nil))
+		amountInAdjusted = new(big.Int).Mul(amountIn, new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-inDecimals), nil))
 	}
 
 	amountOut, err := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves, outDecimals, currentLimits, syncTime)
@@ -587,9 +633,9 @@ func swapIn(
 	}
 
 	if outDecimals > DexAmountsDecimals {
-		amountOut = new(big.Int).Mul(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-DexAmountsDecimals), nil))
+		amountOut = new(big.Int).Mul(amountOut, new(big.Int).Exp(bI10, big.NewInt(outDecimals-DexAmountsDecimals), nil))
 	} else {
-		amountOut = new(big.Int).Div(amountOut, new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-outDecimals), nil))
+		amountOut = new(big.Int).Div(amountOut, new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil))
 	}
 
 	return amountOut, nil
@@ -669,11 +715,11 @@ func swapOutAdjusted(
 	// bring borrowable and withdrawable from token decimals to 1e12 decimals, same as amounts
 	var factor *big.Int
 	if 12 > outDecimals {
-		factor = new(big.Int).Exp(big.NewInt(10), big.NewInt(12-outDecimals), nil)
+		factor = new(big.Int).Exp(bI10, big.NewInt(12-outDecimals), nil)
 		borrowable = new(big.Int).Mul(borrowable, factor)
 		withdrawable = new(big.Int).Mul(withdrawable, factor)
 	} else {
-		factor = new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-12), nil)
+		factor = new(big.Int).Exp(bI10, big.NewInt(outDecimals-12), nil)
 		borrowable = new(big.Int).Div(borrowable, factor)
 		withdrawable = new(big.Int).Div(withdrawable, factor)
 	}
@@ -776,7 +822,7 @@ func swapOutAdjusted(
 		}
 	}
 	priceDiff.Abs(new(big.Int).Sub(oldPrice, newPrice))
-	maxPriceDiff.Div(new(big.Int).Mul(oldPrice, big.NewInt(MaxPriceDiff)), big.NewInt(100))
+	maxPriceDiff.Div(new(big.Int).Mul(oldPrice, big.NewInt(MaxPriceDiff)), bI100)
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
 		return nil, errors.New(ErrInsufficientMaxPrice.Error())
@@ -844,10 +890,10 @@ func swapOut(
 
 	if outDecimals > DexAmountsDecimals {
 		amountOutAdjusted = new(big.Int).Div(amountOut,
-			new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-DexAmountsDecimals), nil))
+			new(big.Int).Exp(bI10, big.NewInt(outDecimals-DexAmountsDecimals), nil))
 	} else {
 		amountOutAdjusted = new(big.Int).Mul(amountOut,
-			new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-outDecimals), nil))
+			new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil))
 	}
 
 	amountIn, err := swapOutAdjusted(swap0To1, amountOutAdjusted, colReserves, debtReserves, outDecimals, currentLimits, syncTime)
@@ -858,10 +904,10 @@ func swapOut(
 
 	if inDecimals > DexAmountsDecimals {
 		amountIn = new(big.Int).Mul(amountIn,
-			new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-DexAmountsDecimals), nil))
+			new(big.Int).Exp(bI10, big.NewInt(inDecimals-DexAmountsDecimals), nil))
 	} else {
 		amountIn = new(big.Int).Div(amountIn,
-			new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-inDecimals), nil))
+			new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-inDecimals), nil))
 	}
 
 	return amountIn, nil

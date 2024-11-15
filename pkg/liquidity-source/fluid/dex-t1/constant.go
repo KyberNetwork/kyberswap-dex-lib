@@ -32,3 +32,5 @@ const (
 
 var bI1e18, _ = new(big.Int).SetString(String1e18, 10) // 1e18
 var bI1e27, _ = new(big.Int).SetString(String1e27, 10) // 1e27
+var bI10 = new(big.Int).SetInt64(10)
+var bI100 = new(big.Int).SetInt64(100)
