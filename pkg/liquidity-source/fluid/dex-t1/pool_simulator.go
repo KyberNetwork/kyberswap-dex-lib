@@ -537,24 +537,24 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	if amountInCollateral.Cmp(amountInDebt) > 0 {
 		// new pool price from col pool
 		if swap0To1 {
-			oldPrice.Div(new(big.Int).Mul(colIReserveOut, bI1e27), colIReserveIn)
-			newPrice.Div(new(big.Int).Mul(new(big.Int).Sub(colIReserveOut, amountOutCollateral), bI1e27), new(big.Int).Add(colIReserveIn, amountInCollateral))
+			oldPrice.Div(oldPrice.Mul(colIReserveOut, bI1e27), colIReserveIn)
+			newPrice.Div(newPrice.Mul(new(big.Int).Sub(colIReserveOut, amountOutCollateral), bI1e27), new(big.Int).Add(colIReserveIn, amountInCollateral))
 		} else {
-			oldPrice.Div(new(big.Int).Mul(colIReserveIn, bI1e27), colIReserveOut)
-			newPrice.Div(new(big.Int).Mul(new(big.Int).Add(colIReserveIn, amountInCollateral), bI1e27), new(big.Int).Sub(colIReserveOut, amountOutCollateral))
+			oldPrice.Div(oldPrice.Mul(colIReserveIn, bI1e27), colIReserveOut)
+			newPrice.Div(newPrice.Mul(new(big.Int).Add(colIReserveIn, amountInCollateral), bI1e27), new(big.Int).Sub(colIReserveOut, amountOutCollateral))
 		}
 	} else {
 		// new pool price from debt pool
 		if swap0To1 {
-			oldPrice.Div(new(big.Int).Mul(debtIReserveOut, bI1e27), debtIReserveIn)
-			newPrice.Div(new(big.Int).Mul(new(big.Int).Sub(debtIReserveOut, amountOutDebt), bI1e27), new(big.Int).Add(debtIReserveIn, amountInDebt))
+			oldPrice.Div(oldPrice.Mul(debtIReserveOut, bI1e27), debtIReserveIn)
+			newPrice.Div(newPrice.Mul(new(big.Int).Sub(debtIReserveOut, amountOutDebt), bI1e27), new(big.Int).Add(debtIReserveIn, amountInDebt))
 		} else {
-			oldPrice.Div(new(big.Int).Mul(debtIReserveIn, bI1e27), debtIReserveOut)
-			newPrice.Div(new(big.Int).Mul(new(big.Int).Add(debtIReserveIn, amountInDebt), bI1e27), new(big.Int).Sub(debtIReserveOut, amountOutDebt))
+			oldPrice.Div(oldPrice.Mul(debtIReserveIn, bI1e27), debtIReserveOut)
+			newPrice.Div(newPrice.Mul(new(big.Int).Add(debtIReserveIn, amountInDebt), bI1e27), new(big.Int).Sub(debtIReserveOut, amountOutDebt))
 		}
 	}
-	priceDiff.Abs(new(big.Int).Sub(oldPrice, newPrice))
-	maxPriceDiff.Div(new(big.Int).Mul(oldPrice, big.NewInt(MaxPriceDiff)), bI100)
+	priceDiff.Abs(priceDiff.Sub(oldPrice, newPrice))
+	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, big.NewInt(MaxPriceDiff)), bI100)
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
 		return nil, errors.New(ErrInsufficientMaxPrice.Error())
@@ -805,24 +805,24 @@ func swapOutAdjusted(
 	if amountOutCollateral.Cmp(amountOutDebt) > 0 {
 		// new pool price from col pool
 		if swap0To1 {
-			oldPrice.Div(new(big.Int).Mul(colIReserveOut, bI1e27), colIReserveIn)
-			newPrice.Div(new(big.Int).Mul(new(big.Int).Sub(colIReserveOut, amountOutCollateral), bI1e27), new(big.Int).Add(colIReserveIn, amountInCollateral))
+			oldPrice.Div(oldPrice.Mul(colIReserveOut, bI1e27), colIReserveIn)
+			newPrice.Div(newPrice.Mul(new(big.Int).Sub(colIReserveOut, amountOutCollateral), bI1e27), new(big.Int).Add(colIReserveIn, amountInCollateral))
 		} else {
-			oldPrice.Div(new(big.Int).Mul(colIReserveIn, bI1e27), colIReserveOut)
-			newPrice.Div(new(big.Int).Mul(new(big.Int).Add(colIReserveIn, amountInCollateral), bI1e27), new(big.Int).Sub(colIReserveOut, amountOutCollateral))
+			oldPrice.Div(oldPrice.Mul(colIReserveIn, bI1e27), colIReserveOut)
+			newPrice.Div(newPrice.Mul(new(big.Int).Add(colIReserveIn, amountInCollateral), bI1e27), new(big.Int).Sub(colIReserveOut, amountOutCollateral))
 		}
 	} else {
 		// new pool price from debt pool
 		if swap0To1 {
-			oldPrice.Div(new(big.Int).Mul(debtIReserveOut, bI1e27), debtIReserveIn)
-			newPrice.Div(new(big.Int).Mul(new(big.Int).Sub(debtIReserveOut, amountOutDebt), bI1e27), new(big.Int).Add(debtIReserveIn, amountInDebt))
+			oldPrice.Div(oldPrice.Mul(debtIReserveOut, bI1e27), debtIReserveIn)
+			newPrice.Div(newPrice.Mul(new(big.Int).Sub(debtIReserveOut, amountOutDebt), bI1e27), new(big.Int).Add(debtIReserveIn, amountInDebt))
 		} else {
-			oldPrice.Div(new(big.Int).Mul(debtIReserveIn, bI1e27), debtIReserveOut)
-			newPrice.Div(new(big.Int).Mul(new(big.Int).Add(debtIReserveIn, amountInDebt), bI1e27), new(big.Int).Sub(debtIReserveOut, amountOutDebt))
+			oldPrice.Div(oldPrice.Mul(debtIReserveIn, bI1e27), debtIReserveOut)
+			newPrice.Div(newPrice.Mul(new(big.Int).Add(debtIReserveIn, amountInDebt), bI1e27), new(big.Int).Sub(debtIReserveOut, amountOutDebt))
 		}
 	}
-	priceDiff.Abs(new(big.Int).Sub(oldPrice, newPrice))
-	maxPriceDiff.Div(new(big.Int).Mul(oldPrice, big.NewInt(MaxPriceDiff)), bI100)
+	priceDiff.Abs(priceDiff.Sub(oldPrice, newPrice))
+	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, big.NewInt(MaxPriceDiff)), bI100)
 	if priceDiff.Cmp(maxPriceDiff) > 0 {
 		// if price diff is > 5% then swap would revert.
 		return nil, errors.New(ErrInsufficientMaxPrice.Error())
