@@ -2,16 +2,18 @@ package dexT1
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
-	"github.com/KyberNetwork/logger"
-
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/goccy/go-json"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
 type PoolTracker struct {
@@ -29,17 +31,36 @@ func NewPoolTracker(config *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ pool.GetNewPoolStateParams,
+	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	poolReserves, blockNumber, err := t.getPoolReserves(ctx, p.Address)
+	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	_ pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
+	poolReserves, isSwapAndArbitragePaused, blockNumber, err := t.getPoolReserves(ctx, p.Address, overrides)
 	if err != nil {
 		return p, err
 	}
 
+	collateralReserves, debtReserves := poolReserves.CollateralReserves, poolReserves.DebtReserves
 	extra := PoolExtra{
-		CollateralReserves: poolReserves.CollateralReserves,
-		DebtReserves:       poolReserves.DebtReserves,
-		DexLimits:          poolReserves.Limits,
+		CollateralReserves:       collateralReserves,
+		DebtReserves:             debtReserves,
+		IsSwapAndArbitragePaused: isSwapAndArbitragePaused,
+		DexLimits:                poolReserves.Limits,
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -53,17 +74,35 @@ func (t *PoolTracker) GetNewPoolState(
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		new(big.Int).Add(poolReserves.CollateralReserves.Token0RealReserves, poolReserves.DebtReserves.Token0RealReserves).String(),
-		new(big.Int).Add(poolReserves.CollateralReserves.Token1RealReserves, poolReserves.DebtReserves.Token1RealReserves).String(),
+		getMaxReserves(
+			poolReserves.Limits.WithdrawableToken0,
+			poolReserves.Limits.BorrowableToken0,
+			poolReserves.CollateralReserves.Token0RealReserves,
+			poolReserves.DebtReserves.Token0RealReserves).String(),
+		getMaxReserves(
+			poolReserves.Limits.WithdrawableToken1,
+			poolReserves.Limits.BorrowableToken1,
+			poolReserves.CollateralReserves.Token1RealReserves,
+			poolReserves.DebtReserves.Token1RealReserves).String(),
 	}
 
 	return p, nil
 }
 
-func (t *PoolTracker) getPoolReserves(ctx context.Context, poolAddress string) (*PoolWithReserves, uint64, error) {
+func (t *PoolTracker) getPoolReserves(
+	ctx context.Context,
+	poolAddress string,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (*PoolWithReserves, bool, uint64, error) {
 	pool := &PoolWithReserves{}
 
+	dexVariables2 := bignumber.ZeroBI
+
 	req := t.ethrpcClient.R().SetContext(ctx)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
+
 	req.AddCall(&ethrpc.Call{
 		ABI:    dexReservesResolverABI,
 		Target: t.config.DexReservesResolver,
@@ -71,14 +110,49 @@ func (t *PoolTracker) getPoolReserves(ctx context.Context, poolAddress string) (
 		Params: []interface{}{common.HexToAddress(poolAddress)},
 	}, []interface{}{&pool})
 
+	req.AddCall(&ethrpc.Call{
+		ABI:    storageReadABI,
+		Target: poolAddress,
+		Method: SRMethodReadFromStorage,
+		Params: []interface{}{common.HexToHash("0x1")}, // slot 1
+	}, []interface{}{&dexVariables2})
+
 	resp, err := req.Aggregate()
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexType": DexType,
 			"error":   err,
 		}).Error("Failed to get pool reserves")
-		return nil, 0, err
+
+		return nil, false, 0, err
 	}
 
-	return pool, resp.BlockNumber.Uint64(), nil
+	isSwapAndArbitragePaused := dexVariables2.Rsh(dexVariables2, 255).Cmp(bignumber.One) == 0
+
+	return pool, isSwapAndArbitragePaused, resp.BlockNumber.Uint64(), nil
+}
+
+func getMaxReserves(
+	withdrawableLimit TokenLimit,
+	borrowableLimit TokenLimit,
+	realColReserves *big.Int,
+	realDebtReserves *big.Int,
+) *big.Int {
+	// max available reserves: the smaller possible value between real reserves and the expandTo limits
+	// the expandTo limits include liquidity layer balances, utilization limits, withdrawable and borrowable limits
+
+	// if expandTo for borrowable and withdrawable match, that means they are a hard limit like liquidity layer balance
+	// or utilization limit. In that case exxpandTo can not be summed up. Otherwise it's the case of expanding withdrawal
+	// and borrow limits, for which we must sum up the max available reserve amount.
+	maxLimitReserves := new(big.Int).Add(borrowableLimit.ExpandsTo, withdrawableLimit.ExpandsTo)
+	if borrowableLimit.ExpandsTo.Cmp(withdrawableLimit.ExpandsTo) == 0 {
+		maxLimitReserves.Set(borrowableLimit.ExpandsTo)
+	}
+
+	maxRealReserves := new(big.Int).Add(realColReserves, realDebtReserves)
+
+	if maxRealReserves.Cmp(maxLimitReserves) < 0 {
+		return maxRealReserves
+	}
+	return maxLimitReserves
 }

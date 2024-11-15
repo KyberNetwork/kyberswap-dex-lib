@@ -2,11 +2,12 @@ package iziswap
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 )
 
 // This integration is mostly forked from https://github.com/opcc22059/kyberswap-dex-lib/tree/iZiSwap,

@@ -20,6 +20,7 @@ type IClient interface {
 }
 
 type RFQHandler struct {
+	pool.RFQHandler
 	config *Config
 	client IClient
 }
@@ -38,10 +39,10 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	}
 	logger.Infof("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)
 	p := QuoteParams{
-		SellTokens:      swapInfo.BaseToken,
-		BuyTokens:       swapInfo.QuoteToken,
-		SellAmounts:     swapInfo.BaseTokenAmount,
-		BuyAmounts:      swapInfo.QuoteTokenAmount,
+		SellTokens:  swapInfo.BaseToken,
+		BuyTokens:   swapInfo.QuoteToken,
+		SellAmounts: swapInfo.BaseTokenAmount,
+		// BuyAmounts:   not used,
 		TakerAddress:    params.RFQSender,
 		ReceiverAddress: params.RFQRecipient,
 	}
@@ -56,4 +57,8 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		NewAmountOut: newAmountOut,
 		Extra:        result,
 	}, nil
+}
+
+func (h *RFQHandler) BatchRFQ(context.Context, []pool.RFQParams) ([]*pool.RFQResult, error) {
+	return nil, nil
 }

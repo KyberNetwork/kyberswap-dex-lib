@@ -2,16 +2,17 @@ package kyberpmm
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/account"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type RFQHandler struct {
+	pool.RFQHandler
 	config *Config
 	client IClient
 }
@@ -76,4 +77,8 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 			Recipient:          params.Recipient,
 		},
 	}, nil
+}
+
+func (h *RFQHandler) BatchRFQ(context.Context, []pool.RFQParams) ([]*pool.RFQResult, error) {
+	return nil, nil
 }

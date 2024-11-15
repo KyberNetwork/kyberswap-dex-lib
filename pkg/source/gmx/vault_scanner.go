@@ -9,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type VaultScanner struct {
@@ -28,16 +29,27 @@ func NewVaultScanner(
 	config *Config,
 	ethrpcClient *ethrpc.Client,
 ) *VaultScanner {
+	abi := priceFeedABI
+	useLegacyMethod := true
+
+	if config.ChainID == valueobject.ChainIDMantle && config.DexID == string(valueobject.ExchangeKTX) {
+		abi = priceFeedMantleABI
+		useLegacyMethod = false
+	}
+
 	return &VaultScanner{
 		config:                config,
 		vaultReader:           NewVaultReader(ethrpcClient),
 		vaultPriceFeedReader:  NewVaultPriceFeedReader(ethrpcClient),
 		fastPriceFeedV1Reader: NewFastPriceFeedV1Reader(ethrpcClient),
 		fastPriceFeedV2Reader: NewFastPriceFeedV2Reader(ethrpcClient),
-		priceFeedReader:       NewPriceFeedReader(ethrpcClient),
-		usdgReader:            NewUSDGReader(ethrpcClient),
-		chainlinkFlagsReader:  NewChainlinkFlagsReader(ethrpcClient),
-		pancakePairReader:     NewPancakePairReader(ethrpcClient),
+		priceFeedReader: NewPriceFeedReaderWithParam(ethrpcClient, Param{
+			UseLegacyMethod: useLegacyMethod,
+			ABI:             abi,
+		}),
+		usdgReader:           NewUSDGReader(ethrpcClient),
+		chainlinkFlagsReader: NewChainlinkFlagsReader(ethrpcClient),
+		pancakePairReader:    NewPancakePairReader(ethrpcClient),
 		log: logger.WithFields(logger.Fields{
 			"liquiditySource": DexTypeGmx,
 			"scanner":         "VaultScanner",

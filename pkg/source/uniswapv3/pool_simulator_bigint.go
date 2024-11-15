@@ -1,7 +1,6 @@
 package uniswapv3
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -13,6 +12,7 @@ import (
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -199,7 +199,7 @@ func (p *PoolSimulatorBigInt) CalcAmountIn(param pool.CalcAmountInParams) (*pool
 					Amount: nil,
 				},
 				Gas: totalGas,
-				SwapInfo: UniV3SwapInfoBigInt{
+				SwapInfo: SwapInfoBigInt{
 					nextStateSqrtRatioX96: new(big.Int).Set(newPoolState.SqrtRatioX96),
 					nextStateLiquidity:    new(big.Int).Set(newPoolState.Liquidity),
 					nextStateTickCurrent:  newPoolState.TickCurrent,
@@ -248,10 +248,6 @@ func (p *PoolSimulatorBigInt) CalcAmountOut(param pool.CalcAmountOutParams) (*po
 		}
 		var totalGas = p.gas.BaseGas + p.gas.CrossInitTickGas*int64(amountOutResult.CrossInitTickLoops)
 
-		//p.nextState.SqrtRatioX96 = newPoolState.SqrtRatioX96
-		//p.nextState.Liquidity = newPoolState.Liquidity
-		//p.nextState.TickCurrent = newPoolState.TickCurrent
-
 		if amountOut.Quotient().Cmp(zeroBI) > 0 {
 			return &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
@@ -264,7 +260,7 @@ func (p *PoolSimulatorBigInt) CalcAmountOut(param pool.CalcAmountOutParams) (*po
 					Amount: nil,
 				},
 				Gas: totalGas,
-				SwapInfo: UniV3SwapInfoBigInt{
+				SwapInfo: SwapInfoBigInt{
 					nextStateSqrtRatioX96: new(big.Int).Set(newPoolState.SqrtRatioX96),
 					nextStateLiquidity:    new(big.Int).Set(newPoolState.Liquidity),
 					nextStateTickCurrent:  newPoolState.TickCurrent,
@@ -279,7 +275,7 @@ func (p *PoolSimulatorBigInt) CalcAmountOut(param pool.CalcAmountOutParams) (*po
 }
 
 func (p *PoolSimulatorBigInt) UpdateBalance(params pool.UpdateBalanceParams) {
-	si, ok := params.SwapInfo.(UniV3SwapInfoBigInt)
+	si, ok := params.SwapInfo.(SwapInfoBigInt)
 	if !ok {
 		logger.Warn("failed to UpdateBalance for UniV3 pool, wrong swapInfo type")
 		return

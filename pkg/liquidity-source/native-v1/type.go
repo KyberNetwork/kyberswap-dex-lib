@@ -42,14 +42,8 @@ type QuoteResult struct {
 	// The error message if any
 	Message string `json:"message"`
 
-	// // The address that will send the calldata to the Native router.
-	// From string `json:"from"`
-	// The address of the Native router.
-	To string `json:"to"`
-	// The raw input data that will be executed by the NativeRouter.
-	Calldata string `json:"calldata"`
-	// // The msg.value for the transaction. Will be 0 if the seller token is a non-native token.
-	// Value string `json:"value"`
+	// The tx request to be executed by the NativeRouter.
+	TxRequest TxRequest `json:"txRequest"`
 	// Amount of token to be sold, in wei unit.
 	AmountOut string `json:"amountOut"`
 	// The offset position (in bytes) of the param amountIn. You can modify this value freely. Will be undefined if the
@@ -58,4 +52,12 @@ type QuoteResult struct {
 	// The offset position (in bytes) of the param amountOutMinimum. You can modify this value to protect yourself from
 	// slippage accordingly. Will be undefined if the target liquidity pool is not a native pool (non-PMM pool).
 	AmountOutMinimumOffset int `json:"amountOutMinimumOffset"`
+}
+
+type TxRequest struct {
+	// The address of the Native router.
+	Target string `json:"target"`
+	// The raw input data that will be executed by the NativeRouter.
+	Calldata string `json:"calldata"`
+	// Value    string `json:"value"`
 }

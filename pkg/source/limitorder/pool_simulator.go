@@ -1,16 +1,16 @@
 package limitorder
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
-	"sync"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -131,8 +131,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		}
 		if params.SwapLimit != nil {
 			_, _, _ = params.SwapLimit.UpdateLimit(
-				string(NewMakerAndAsset(order.Maker, order.MakerAsset)),
-				string(NewMakerAndAsset(order.Maker, order.TakerAsset)),
+				NewMakerAndAsset(order.Maker, order.MakerAsset),
+				NewMakerAndAsset(order.Maker, order.TakerAsset),
 				filledMakingAmount,
 				filledTakingAmount,
 			)
@@ -187,7 +187,7 @@ func getMakerRemainingBalance(
 		return nil
 	}
 
-	makerBalanceAllowance := limit.GetLimit(string(NewMakerAndAsset(maker, makerAsset)))
+	makerBalanceAllowance := limit.GetLimit(NewMakerAndAsset(maker, makerAsset))
 	if makerBalanceAllowance == nil {
 		// should not happen, but anw just return 0 as if this maker has no balance left
 		return big.NewInt(0)
@@ -392,12 +392,12 @@ func newFilledOrderInfo(order *order, filledTakingAmount, filledMakingAmount str
 	}
 }
 
-//// Inventory Limit
+// Inventory Limit
 
 type makerAndAsset = string
 
 func NewMakerAndAsset(maker, makerAsset string) makerAndAsset {
-	return makerAndAsset(fmt.Sprintf("%v:%v", maker, makerAsset))
+	return fmt.Sprintf("%v:%v", maker, makerAsset)
 }
 
 func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
@@ -407,53 +407,17 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 	}
 	res := make(map[string]*big.Int, count)
 	for k, v := range p.allMakersBalanceAllowance {
-		res[string(k)] = new(big.Int).Set(v)
+		res[k] = new(big.Int).Set(v)
 	}
 	return res
 }
 
-type Inventory struct {
-	lock *sync.RWMutex
-	// key: "<maker>:<makerAsset>", value: maker's min(balance, allowance) for makerAsset
-	Balance map[string]*big.Int
-}
+// Inventory is an alias for swaplimit.Inventory
+// Deprecated: directly use swaplimit.Inventory.
+type Inventory = swaplimit.Inventory
 
+// NewInventory has key: "<maker>:<makerAsset>", value: maker's min(balance, allowance) for makerAsset
+// Deprecated: directly use swaplimit.NewInventory.
 func NewInventory(balance map[string]*big.Int) pool.SwapLimit {
-	if balance == nil {
-		return nil
-	}
-	return &Inventory{
-		lock:    &sync.RWMutex{},
-		Balance: balance,
-	}
-}
-
-func (i *Inventory) GetLimit(key string) *big.Int {
-	i.lock.RLock()
-	defer i.lock.RUnlock()
-	balance, avail := i.Balance[key]
-	if !avail {
-		return nil
-	}
-	return new(big.Int).Set(balance)
-}
-
-func (i *Inventory) UpdateLimit(decreaseKey, increaseKey string, decreaseDelta, increaseDelta *big.Int) (*big.Int, *big.Int, error) {
-	i.lock.Lock()
-	defer i.lock.Unlock()
-	decreasedKeyBalance, avail := i.Balance[decreaseKey]
-	if !avail {
-		return nil, nil, pool.ErrTokenNotAvailable
-	}
-	if decreasedKeyBalance.Cmp(decreaseDelta) < 0 {
-		return nil, nil, pool.ErrNotEnoughInventory
-	}
-	i.Balance[decreaseKey] = decreasedKeyBalance.Sub(decreasedKeyBalance, decreaseDelta)
-
-	increasedKeyBalance, avail := i.Balance[increaseKey]
-	if !avail {
-		increasedKeyBalance = big.NewInt(0)
-	}
-	i.Balance[increaseKey] = increasedKeyBalance.Add(increasedKeyBalance, increaseDelta)
-	return nil, nil, nil
+	return swaplimit.NewInventory(DexTypeLimitOrder, balance)
 }

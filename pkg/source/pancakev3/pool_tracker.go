@@ -2,19 +2,20 @@ package pancakev3
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -44,7 +45,7 @@ func NewPoolTracker(
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ sourcePool.GetNewPoolStateParams,
+	param sourcePool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
@@ -81,6 +82,16 @@ func (d *PoolTracker) GetNewPoolState(
 	})
 	g.Go(func(context.Context) error {
 		var err error
+		if d.config.AlwaysUseTickLens {
+			poolTicks, err = ticklens.GetPoolTicksFromSC(ctx, d.ethrpcClient, d.config.TickLensAddress, p, param)
+			if err != nil {
+				logger.WithFields(logger.Fields{
+					"error": err,
+				}).Error("failed to call SC for pool ticks")
+			}
+			return err
+		}
+
 		poolTicks, err = d.getPoolTicks(ctx, p.Address)
 		if err != nil {
 			l.WithFields(logger.Fields{

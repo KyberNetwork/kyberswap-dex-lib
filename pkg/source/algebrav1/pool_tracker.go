@@ -2,7 +2,6 @@ package algebrav1
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 	"github.com/sourcegraph/conc/pool"
 
@@ -47,7 +47,7 @@ func NewPoolTracker(
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ sourcePool.GetNewPoolStateParams,
+	param sourcePool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
@@ -84,6 +84,16 @@ func (d *PoolTracker) GetNewPoolState(
 	})
 	g.Go(func(context.Context) error {
 		var err error
+		if d.config.AlwaysUseTickLens {
+			poolTicks, err = d.getPoolTicksFromSC(ctx, p, param)
+			if err != nil {
+				l.WithFields(logger.Fields{
+					"error": err,
+				}).Error("failed to call SC for pool ticks")
+			}
+			return err
+		}
+
 		poolTicks, err = d.getPoolTicks(ctx, p.Address)
 		if err != nil {
 			l.WithFields(logger.Fields{

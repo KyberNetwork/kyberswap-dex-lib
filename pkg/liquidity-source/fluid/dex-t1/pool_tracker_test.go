@@ -2,7 +2,6 @@ package dexT1
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"os"
 	"testing"
@@ -13,6 +12,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 )
 
@@ -91,6 +91,11 @@ func TestPoolTracker(t *testing.T) {
 		token1Debt := extra.DebtReserves.Token1RealReserves
 		expectedToken1Reserve := new(big.Int).Add(token1RealReserves, token1Debt).String()
 		require.Equal(t, expectedToken1Reserve, newPool.Reserves[1], "Reserve should be equal to Token1RealReserves + Token1Debt")
+		reserve0, _ := new(big.Int).SetString(newPool.Reserves[0], 10)
+		reserve1, _ := new(big.Int).SetString(newPool.Reserves[1], 10)
+
+		require.True(t, reserve0.Cmp(big.NewInt(0)) > 0)
+		require.True(t, reserve1.Cmp(big.NewInt(0)) > 0)
 
 		require.True(t, extra.CollateralReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0)
 		require.True(t, extra.CollateralReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0)
@@ -101,6 +106,9 @@ func TestPoolTracker(t *testing.T) {
 		require.True(t, extra.DebtReserves.Token0RealReserves.Cmp(big.NewInt(0)) > 0)
 		require.True(t, extra.DebtReserves.Token1RealReserves.Cmp(big.NewInt(0)) > 0)
 		require.True(t, extra.DebtReserves.Token0ImaginaryReserves.Cmp(big.NewInt(0)) > 0)
+
+		logger.Debugf("Reserve0: %s", newPool.Reserves[0])
+		logger.Debugf("Reserve1: %s", newPool.Reserves[1])
 
 		logger.Debugf("Debt Reserves: Token0Debt: %s", extra.DebtReserves.Token0Debt.String())
 		logger.Debugf("Debt Reserves: Token1Debt: %s", extra.DebtReserves.Token1Debt.String())

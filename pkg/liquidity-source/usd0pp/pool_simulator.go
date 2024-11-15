@@ -1,14 +1,16 @@
 package usd0pp
 
 import (
-	"encoding/json"
 	"errors"
+	"math/big"
+	"time"
+
+	"github.com/goccy/go-json"
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/samber/lo"
-	"math/big"
-	"time"
 )
 
 type (

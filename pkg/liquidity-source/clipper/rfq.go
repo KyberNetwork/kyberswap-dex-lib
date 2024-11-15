@@ -19,6 +19,7 @@ type IClient interface {
 }
 
 type RFQHandler struct {
+	pool.RFQHandler
 	config *Config
 	client IClient
 }
@@ -44,7 +45,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	result, err := h.client.RFQ(ctx, QuoteParams{
 		ChainID:           swapInfo.ChainID,
 		TimeInSeconds:     swapInfo.TimeInSeconds,
-		InputAmount:       swapInfo.InputAmount.String(),
+		InputAmount:       swapInfo.InputAmount,
 		InputAssetSymbol:  swapInfo.InputAssetSymbol,
 		OutputAssetSymbol: swapInfo.OutputAssetSymbol,
 
@@ -66,4 +67,8 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 			GoodUntil: result.GoodUntil,
 		},
 	}, nil
+}
+
+func (h *RFQHandler) BatchRFQ(context.Context, []pool.RFQParams) ([]*pool.RFQResult, error) {
+	return nil, nil
 }

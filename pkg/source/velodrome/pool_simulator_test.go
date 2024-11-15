@@ -20,26 +20,30 @@ func TestCalcAmountOut(t *testing.T) {
 		inAmount          string
 		out               string
 		expectedOutAmount string
+		reserveA          string
+		reserveB          string
+		swapFee           float64
+		expectError       bool
 	}{
-		{"B", "100", "A", "57341222888"},
-		{"A", "100000000000", "B", "174"},
+		{"B", "100", "A", "172023517829", "2082415614000308399878", "3631620514949", 0.0005, false},
+		{"A", "100000000000", "B", "58", "2082415614000308399878", "3631620514949", 0.0005, false},
+		{"A", "1631", "B", "0", "503877670", "1", 0.0005, true}, // do not allow swapping the entire reserve in the pool
 	}
-
-	p, err := NewPoolSimulator(entity.Pool{
-		Exchange:    "",
-		Type:        "",
-		SwapFee:     0.0005, // from factory https://optimistic.etherscan.io/address/0x25cbddb98b35ab1ff77413456b31ec81a6b6b746#readContract
-		Reserves:    entity.PoolReserves{"2082415614000308399878", "3631620514949"},
-		Tokens:      []*entity.PoolToken{{Address: "A", Decimals: 18}, {Address: "B", Decimals: 6}},
-		StaticExtra: "{\"stable\": false}",
-	})
-	require.Nil(t, err)
-
-	assert.Equal(t, []string{"A"}, p.CanSwapTo("B"))
-	assert.Equal(t, []string{"B"}, p.CanSwapTo("A"))
 
 	for idx, tc := range testcases {
 		t.Run(fmt.Sprintf("test %d", idx), func(t *testing.T) {
+			p, err := NewPoolSimulator(entity.Pool{
+				Exchange:    "",
+				Type:        "",
+				SwapFee:     tc.swapFee,
+				Reserves:    entity.PoolReserves{tc.reserveA, tc.reserveB},
+				Tokens:      []*entity.PoolToken{{Address: "A", Decimals: 18}, {Address: "B", Decimals: 6}},
+				StaticExtra: "{\"stable\": true}",
+			})
+			require.Nil(t, err)
+
+			assert.Equal(t, []string{"A"}, p.CanSwapTo("B"))
+			assert.Equal(t, []string{"B"}, p.CanSwapTo("A"))
 
 			amountIn := pool.TokenAmount{Token: tc.in, Amount: bignumber.NewBig10(tc.inAmount)}
 			out, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
@@ -48,9 +52,14 @@ func TestCalcAmountOut(t *testing.T) {
 					TokenOut:      tc.out,
 				})
 			})
-			require.Nil(t, err)
-			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)
-			assert.Equal(t, tc.out, out.TokenAmountOut.Token)
+
+			if tc.expectError {
+				assert.Error(t, err, "Expected an error but got nil")
+			} else {
+				require.NoError(t, err, "Did not expect an error but got one")
+				assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)
+				assert.Equal(t, tc.out, out.TokenAmountOut.Token)
+			}
 		})
 	}
 }

@@ -23,8 +23,10 @@ const (
 	SIMULATOR_PT_RANGE = 2000
 )
 
-var zeroBI = big.NewInt(0)
-
+var (
+	DefaultGas = Gas{Swap: 210000}
+	zeroBI     = big.NewInt(0)
+)
 var pointDeltas = map[int]int{
 	100:   1,
 	400:   8,

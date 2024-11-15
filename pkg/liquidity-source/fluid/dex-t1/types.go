@@ -11,9 +11,10 @@ type PoolMeta struct {
 }
 
 type PoolExtra struct {
-	CollateralReserves CollateralReserves
-	DebtReserves       DebtReserves
-	DexLimits          DexLimits
+	CollateralReserves       CollateralReserves
+	DebtReserves             DebtReserves
+	IsSwapAndArbitragePaused bool
+	DexLimits                DexLimits
 }
 
 type CollateralReserves struct {
@@ -62,4 +63,10 @@ type Gas struct {
 type StaticExtra struct {
 	DexReservesResolver string `json:"dexReservesResolver"`
 	HasNative           bool   `json:"hasNative"`
+}
+
+type SwapInfo struct {
+	HasNative             bool               `json:"hasNative"`
+	NewCollateralReserves CollateralReserves `json:"-"`
+	NewDebtReserves       DebtReserves       `json:"-"`
 }

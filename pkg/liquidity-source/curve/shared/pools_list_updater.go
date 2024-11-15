@@ -2,18 +2,19 @@ package shared
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/time/durationjson"
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/logger"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/go-resty/resty/v2"
+	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type (

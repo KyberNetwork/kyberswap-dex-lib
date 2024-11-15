@@ -1,16 +1,17 @@
 package bebop
 
 import (
-	"encoding/json"
 	"errors"
 	"math"
 	"math/big"
 	"strings"
 
+	"github.com/goccy/go-json"
+	"github.com/samber/lo"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/samber/lo"
 )
 
 var (
@@ -146,23 +147,27 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 }
 
 func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	var pmmInventory = make(map[string]*big.Int, len(p.GetTokens()))
-	tokens := p.GetTokens()
-	rsv := p.GetReserves()
-	if len(tokens) != len(rsv) {
-		return pmmInventory
-	}
+	return nil
+	// Currently we only allow 1 swap through bebop in a route due to issue with bad pricing on subsequent swaps.
+	// Recover this commented code when this is fixed.
 
-	for i, tok := range tokens {
-		// rsv of a token can be set to 1 wei to bypass the aggregator check
-		if rsv[i].Int64() == 1 {
-			continue
-		}
-
-		pmmInventory[tok] = big.NewInt(0).Set(rsv[i]) //clone here.
-	}
-
-	return pmmInventory
+	// var pmmInventory = make(map[string]*big.Int, len(p.GetTokens()))
+	// tokens := p.GetTokens()
+	// rsv := p.GetReserves()
+	// if len(tokens) != len(rsv) {
+	// 	return pmmInventory
+	// }
+	//
+	// for i, tok := range tokens {
+	// 	// rsv of a token can be set to 1 wei to bypass the aggregator check
+	// 	if rsv[i].Int64() == 1 {
+	// 		continue
+	// 	}
+	//
+	// 	pmmInventory[tok] = big.NewInt(0).Set(rsv[i]) //clone here.
+	// }
+	//
+	// return pmmInventory
 }
 
 func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.PoolToken,

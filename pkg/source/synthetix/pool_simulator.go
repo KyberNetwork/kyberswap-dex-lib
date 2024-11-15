@@ -1,18 +1,18 @@
 package synthetix
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -242,46 +242,12 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 	}
 }
 
-// AtomicLimits implement pool.SwapLimit for synthetic
-// key is blockTimestamp, and the limit is its balance
-// The balance is stored WITHOUT decimals
-// DONOT directly modify it, use UpdateLimit if needed
-type AtomicLimits struct {
-	lock   *sync.RWMutex
-	Limits map[string]*big.Int
-}
+// AtomicLimits is an alias for swaplimit.Inventory
+// Deprecated: directly use swaplimit.Inventory.
+type AtomicLimits = swaplimit.Inventory
 
+// NewLimits has key: "blockTimeStamp", value: limit and only decrease without increasing.
+// Deprecated: directly use swaplimit.NewInventory.
 func NewLimits(atomicMaxVolumePerBlocks map[string]*big.Int) pool.SwapLimit {
-	return &AtomicLimits{
-		lock:   &sync.RWMutex{},
-		Limits: atomicMaxVolumePerBlocks,
-	}
-}
-
-// GetLimit returns a copy of balance for the token in Inventory
-func (i *AtomicLimits) GetLimit(blockTimeStamp string) *big.Int {
-	i.lock.RLock()
-	defer i.lock.RUnlock()
-	balance, avail := i.Limits[blockTimeStamp]
-	if !avail {
-		return big.NewInt(0)
-	}
-	return big.NewInt(0).Set(balance)
-}
-
-// UpdateLimit will reduce the limit to reflect the change in inventory
-// note this delta is amount without Decimal
-func (i *AtomicLimits) UpdateLimit(blockTimeStamp, _ string, decreaseDelta, _ *big.Int) (*big.Int, *big.Int, error) {
-	i.lock.Lock()
-	defer i.lock.Unlock()
-	volLimit, avail := i.Limits[blockTimeStamp]
-	if !avail {
-		return big.NewInt(0), big.NewInt(0), pool.ErrTokenNotAvailable
-	}
-	if volLimit.Cmp(decreaseDelta) < 0 {
-		return big.NewInt(0), big.NewInt(0), pool.ErrNotEnoughInventory
-	}
-	i.Limits[blockTimeStamp] = volLimit.Sub(volLimit, decreaseDelta)
-
-	return big.NewInt(0).Set(i.Limits[blockTimeStamp]), big.NewInt(0), nil
+	return swaplimit.NewInventory(DexTypeSynthetix, atomicMaxVolumePerBlocks)
 }

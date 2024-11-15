@@ -2,13 +2,14 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 
-	bebop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/go-resty/resty/v2"
+	"github.com/goccy/go-json"
+
+	bebop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 )
 
 const (
@@ -65,8 +66,8 @@ func (c *HTTPClient) QuoteSingleOrderResult(ctx context.Context, params bebop.Qu
 		// the BuyTokens address must follow the HEX format
 		SetQueryParam(bebop.ParamsBuyTokens, common.HexToAddress(params.BuyTokens).Hex()).
 		SetQueryParam(bebop.ParamsSellAmounts, params.SellAmounts).
-		SetQueryParam(bebop.ParamsTakerAddress, params.TakerAddress).
-		SetQueryParam(bebop.ParamsReceiverAddress, params.ReceiverAddress).
+		SetQueryParam(bebop.ParamsTakerAddress, common.HexToAddress(params.TakerAddress).Hex()).
+		SetQueryParam(bebop.ParamsReceiverAddress, common.HexToAddress(params.ReceiverAddress).Hex()).
 		SetQueryParam(bebop.ParamsApproveType, "Standard").
 		SetQueryParam(bebop.ParamsSkipValidation, "true"). // not checking balance
 		SetQueryParam(bebop.ParamsGasLess, "false").       // self-execution

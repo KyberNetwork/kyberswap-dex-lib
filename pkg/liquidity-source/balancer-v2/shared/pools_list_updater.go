@@ -2,11 +2,11 @@ package shared
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"net/http"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
