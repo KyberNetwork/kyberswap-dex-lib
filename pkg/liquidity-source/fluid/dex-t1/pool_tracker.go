@@ -39,6 +39,7 @@ func (t *PoolTracker) GetNewPoolState(
 	extra := PoolExtra{
 		CollateralReserves: poolReserves.CollateralReserves,
 		DebtReserves:       poolReserves.DebtReserves,
+		DexLimits:          poolReserves.Limits,
 	}
 
 	extraBytes, err := json.Marshal(extra)

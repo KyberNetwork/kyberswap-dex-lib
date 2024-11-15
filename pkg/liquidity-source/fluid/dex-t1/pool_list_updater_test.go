@@ -28,7 +28,7 @@ func TestPoolListUpdater(t *testing.T) {
 		err              error
 
 		config = Config{
-			DexReservesResolver: "0xE8a07a32489BD9d5a00f01A55749Cf5cB854Fd13",
+			DexReservesResolver: "0x45f4ad57e300da55c33dea579a40fcee000d7b94",
 		}
 	)
 
