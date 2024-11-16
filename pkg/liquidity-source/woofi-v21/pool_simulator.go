@@ -101,7 +101,8 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	tokenOutIndex := s.GetTokenIndex(tokenOut)
 
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
-		return &poolpkg.CalcAmountOutResult{}, fmt.Errorf("TokenInIndex: %v or TokenOutIndex: %v is not correct", tokenInIndex, tokenOutIndex)
+		return &poolpkg.CalcAmountOutResult{}, fmt.Errorf("TokenInIndex: %v or TokenOutIndex: %v is not correct",
+			tokenInIndex, tokenOutIndex)
 	}
 
 	var (
@@ -136,7 +137,8 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		}
 	} else {
 		var newBase1Price, newBase2Price *uint256.Int
-		amountOut, swapFee, newBase1Price, newBase2Price, err = s._swapBaseToBase(tokenAmountIn.Token, tokenOut, amountIn)
+		amountOut, swapFee, newBase1Price, newBase2Price, err = s._swapBaseToBase(tokenAmountIn.Token, tokenOut,
+			amountIn)
 		if err != nil {
 			return &poolpkg.CalcAmountOutResult{}, err
 		}
@@ -318,7 +320,10 @@ func (s *PoolSimulator) _calcBaseAmountSellQuote(
 
 	decs := s.decimalInfo(baseToken)
 
-	if quoteAmount.Cmp(s.tokenInfos[baseToken].MaxNotionalSwap) > 0 {
+	if maxNotionalSwap := s.tokenInfos[baseToken].MaxNotionalSwap; maxNotionalSwap == nil {
+		logger.Warnf("no MaxNotionalSwap for %s in %v: %v", baseToken, s.tokenInfos, s.tokenInfos[baseToken])
+		return nil, nil, ErrNotionalSwapExceedsLimit
+	} else if quoteAmount.Cmp(maxNotionalSwap) > 0 {
 		return nil, nil, ErrNotionalSwapExceedsLimit
 	}
 
@@ -328,7 +333,10 @@ func (s *PoolSimulator) _calcBaseAmountSellQuote(
 		decs.quoteDec,
 	)
 
-	if gamma.Cmp(s.tokenInfos[baseToken].MaxGamma) > 0 {
+	if maxGamma := s.tokenInfos[baseToken].MaxGamma; maxGamma == nil {
+		logger.Warnf("no MaxGamma for %s in %v: %v", baseToken, s.tokenInfos, s.tokenInfos[baseToken])
+		return nil, nil, ErrGammaExceedsLimit
+	} else if gamma.Cmp(maxGamma) > 0 {
 		return nil, nil, ErrGammaExceedsLimit
 	}
 
@@ -383,7 +391,10 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 		new(uint256.Int).Mul(decs.baseDec, decs.priceDec),
 	)
 
-	if notionalSwap.Cmp(s.tokenInfos[baseToken].MaxNotionalSwap) > 0 {
+	if maxNotionalSwap := s.tokenInfos[baseToken].MaxNotionalSwap; maxNotionalSwap == nil {
+		logger.Warnf("no MaxNotionalSwap for %s in %v: %v", baseToken, s.tokenInfos, s.tokenInfos[baseToken])
+		return nil, nil, ErrNotionalSwapExceedsLimit
+	} else if notionalSwap.Cmp(maxNotionalSwap) > 0 {
 		return nil, nil, ErrNotionalSwapExceedsLimit
 	}
 
@@ -396,7 +407,10 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 		new(uint256.Int).Mul(decs.priceDec, decs.baseDec),
 	)
 
-	if gamma.Cmp(s.tokenInfos[baseToken].MaxGamma) > 0 {
+	if maxGamma := s.tokenInfos[baseToken].MaxGamma; maxGamma == nil {
+		logger.Warnf("no MaxGamma for %s in %v: %v", baseToken, s.tokenInfos, s.tokenInfos[baseToken])
+		return nil, nil, ErrGammaExceedsLimit
+	} else if gamma.Cmp(maxGamma) > 0 {
 		return nil, nil, ErrGammaExceedsLimit
 	}
 

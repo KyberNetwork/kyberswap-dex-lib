@@ -19,7 +19,7 @@ var (
 	ErrEmptyPriceLevels                       = errors.New("empty price levels")
 	ErrAmountInIsLessThanLowestPriceLevel     = errors.New("amountIn is less than lowest price level")
 	ErrAmountInIsGreaterThanHighestPriceLevel = errors.New("amountIn is greater than highest price level")
-	ErrNoSwapLimit                            = errors.New("swap limit is required for PMM pools")
+	ErrNoSwapLimit                            = errors.New("swap limit is required for dexalot pools")
 )
 
 type (
@@ -118,27 +118,30 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if params.Limit == nil {
 		return nil, ErrNoSwapLimit
 	}
-	var limit = params.Limit
+
 	tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels := p.Token0, p.Token1, p.Token0Original, p.Token1Original, p.ZeroToOnePriceLevels
 	if params.TokenAmountIn.Token == p.Info.Tokens[1] {
 		tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels = p.Token1, p.Token0, p.Token1Original, p.Token0Original, p.OneToZeroPriceLevels
 	}
 	result, _, err := p.swap(params.TokenAmountIn.Amount, tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels)
+	if err != nil {
+		return nil, err
+	}
 
-	inventoryLimit := limit.GetLimit(tokenOut.Address)
-
+	inventoryLimit := params.Limit.GetLimit(tokenOut.Address)
 	if result.TokenAmountOut.Amount.Cmp(inventoryLimit) > 0 {
 		return nil, errors.New("not enough inventory")
 	}
-	return result, err
+	return result, nil
 }
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	// Ignore for now cause logic not exposed
 	tokenIn, tokenOut := p.Token0, p.Token1
 	if params.TokenAmountIn.Token == p.Token1.Address {
 		tokenIn, tokenOut = p.Token1, p.Token0
 	}
-	_, _, err := params.SwapLimit.UpdateLimit(tokenOut.Address, tokenIn.Address, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
+	_, _, err := params.SwapLimit.UpdateLimit(tokenOut.Address, tokenIn.Address,
+		params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
 	if err != nil {
 		logger.Errorf("unable to update dexalot limit, error: %v", err)
 	}
