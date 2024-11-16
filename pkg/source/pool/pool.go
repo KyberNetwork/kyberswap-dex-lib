@@ -1,15 +1,15 @@
 package pool
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/pkg/errors"
 )
 
 var (
-	ErrCalcAmountOutPanic = errors.New("calcAmountOut was panic")
+	ErrCalcAmountOutPanic = errors.New("calcAmountOut panicked")
 	ErrInsufficientAmount = errors.New("not enough amount")
 	ErrNotConverge        = errors.New("secant loop cannot converged")
 )
@@ -152,7 +152,7 @@ type CalcAmountInResult struct {
 func CalcAmountOut(pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string, limit SwapLimit) (res *CalcAmountOutResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = ErrCalcAmountOutPanic
+			err = errors.WithStack(ErrCalcAmountOutPanic)
 			logger.WithFields(
 				logger.Fields{
 					"recover":     r,
