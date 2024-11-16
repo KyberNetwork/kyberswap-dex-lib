@@ -505,6 +505,9 @@ func (t *PoolSimulator) CalculateWithdrawOneCoinU256(
 		return err
 	}
 	dy.Sub(&xpReduced[i], &newYD)
+	if dy.Sign() <= 0 {
+		return ErrZero
+	}
 	dy.Div(number.SubUint64(dy, 1), &t.precisionMultipliers[i])
 	var dy0 = number.Div(number.Sub(&xp[i], &newY), &t.precisionMultipliers[i])
 	dyFee.Sub(dy0, dy)

@@ -59,7 +59,11 @@ func (t *PoolSimulator) GetDy(
 	if err != nil {
 		return err
 	}
-	number.SafeSubZ(number.SafeSub(&xp[j], &y), number.Number_1, dy)
+	number.SafeSubZ(&xp[j], &y, dy)
+	if dy.Sign() <= 0 {
+		return ErrExchange0Coins
+	}
+	dy.SubUint64(dy, 1)
 	xp[j] = y
 	if j > 0 {
 		dy.Div(number.SafeMul(dy, Precision), &t.Extra.PriceScale[j-1])
