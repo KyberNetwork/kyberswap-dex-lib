@@ -142,7 +142,7 @@ func getMaxReserves(
 	// the expandTo limits include liquidity layer balances, utilization limits, withdrawable and borrowable limits
 
 	// if expandTo for borrowable and withdrawable match, that means they are a hard limit like liquidity layer balance
-	// or utilization limit. In that case exxpandTo can not be summed up. Otherwise it's the case of expanding withdrawal
+	// or utilization limit. In that case expandTo can not be summed up. Otherwise it's the case of expanding withdrawal
 	// and borrow limits, for which we must sum up the max available reserve amount.
 	maxLimitReserves := new(big.Int).Add(borrowableLimit.ExpandsTo, withdrawableLimit.ExpandsTo)
 	if borrowableLimit.ExpandsTo.Cmp(withdrawableLimit.ExpandsTo) == 0 {

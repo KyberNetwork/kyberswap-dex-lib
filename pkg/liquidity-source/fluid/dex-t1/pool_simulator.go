@@ -174,6 +174,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 			HasNative:             s.HasNative,
 			NewCollateralReserves: collateralReserves,
 			NewDebtReserves:       debtReserves,
+			NewDexLimits:          dexLimits,
 		},
 	}, nil
 }
@@ -267,6 +268,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 			HasNative:             s.HasNative,
 			NewCollateralReserves: collateralReserves,
 			NewDebtReserves:       debtReserves,
+			NewDexLimits:          dexLimits,
 		},
 	}, nil
 }
@@ -288,6 +290,10 @@ func (t *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	if swapInfo, ok := params.SwapInfo.(SwapInfo); ok {
 		t.CollateralReserves = swapInfo.NewCollateralReserves
 		t.DebtReserves = swapInfo.NewDebtReserves
+		// Note: limits are updated, but are likely off for the input token until newly fetched.
+		// Erring on the cautious side with too tight limits to avoid potential reverts.
+		// See Comment Ref #4327563287
+		t.DexLimits = swapInfo.NewDexLimits
 	}
 }
 
@@ -561,11 +567,11 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	}
 
 	if triggerUpdateColReserves && triggerUpdateDebtReserves {
-		updateBothReserves(swap0To1, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt, colReserves, debtReserves)
+		updateBothReservesAndLimits(swap0To1, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt, colReserves, debtReserves, currentLimits)
 	} else if triggerUpdateColReserves {
-		updateCollateralReserves(swap0To1, amountToSwap, amountOutCollateral, colReserves)
+		updateCollateralReservesAndLimits(swap0To1, amountToSwap, amountOutCollateral, colReserves, currentLimits)
 	} else if triggerUpdateDebtReserves {
-		updateDebtReserves(swap0To1, amountToSwap, amountOutDebt, debtReserves)
+		updateDebtReservesAndLimits(swap0To1, amountToSwap, amountOutDebt, debtReserves, currentLimits)
 	}
 
 	return new(big.Int).Add(amountOutCollateral, amountOutDebt), nil
@@ -829,11 +835,11 @@ func swapOutAdjusted(
 	}
 
 	if triggerUpdateColReserves && triggerUpdateDebtReserves {
-		updateBothReserves(swap0To1, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt, colReserves, debtReserves)
+		updateBothReservesAndLimits(swap0To1, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt, colReserves, debtReserves, currentLimits)
 	} else if triggerUpdateColReserves {
-		updateCollateralReserves(swap0To1, amountInCollateral, amountOutCollateral, colReserves)
+		updateCollateralReservesAndLimits(swap0To1, amountInCollateral, amountOutCollateral, colReserves, currentLimits)
 	} else if triggerUpdateDebtReserves {
-		updateDebtReserves(swap0To1, amountInDebt, amountOutDebt, debtReserves)
+		updateDebtReservesAndLimits(swap0To1, amountInDebt, amountOutDebt, debtReserves, currentLimits)
 	}
 
 	return new(big.Int).Add(amountInCollateral, amountInDebt), nil
@@ -939,36 +945,54 @@ func getExpandedLimit(syncTime int64, limit TokenLimit) *big.Int {
 	return expandedAmount
 }
 
-func updateDebtReserves(swap0To1 bool, amountIn, amountOut *big.Int, debtReserves DebtReserves) {
+func updateDebtReservesAndLimits(swap0To1 bool, amountIn, amountOut *big.Int, debtReserves DebtReserves, limits DexLimits) {
 	if swap0To1 {
 		debtReserves.Token0RealReserves.Add(debtReserves.Token0RealReserves, amountIn)
 		debtReserves.Token0ImaginaryReserves.Add(debtReserves.Token0ImaginaryReserves, amountIn)
 		debtReserves.Token1RealReserves.Sub(debtReserves.Token1RealReserves, amountOut)
 		debtReserves.Token1ImaginaryReserves.Sub(debtReserves.Token1ImaginaryReserves, amountOut)
+
+		// Comment Ref #4327563287
+		// if expandTo for borrowable and withdrawable match, that means they are a hard limit like liquidity layer balance
+		// or utilization limit. In that case, the available swap amount should increase by `amountIn` but it's not guaranteed
+		// because the actual borrow limit / withdrawal limit could be the limiting factor now, which could be even
+		// only +1 bigger. So not updating in amount to avoid any revert. The same applies on all other similar cases in the code
+		// below. Note a swap would anyway trigger an event, so the proper limits will be fetched shortly after the swap.
+		limits.BorrowableToken1.Available.Sub(limits.BorrowableToken1.Available, amountOut)
+		limits.BorrowableToken1.ExpandsTo.Sub(limits.BorrowableToken1.ExpandsTo, amountOut)
 	} else {
 		debtReserves.Token0RealReserves.Sub(debtReserves.Token0RealReserves, amountOut)
 		debtReserves.Token0ImaginaryReserves.Sub(debtReserves.Token0ImaginaryReserves, amountOut)
 		debtReserves.Token1RealReserves.Add(debtReserves.Token1RealReserves, amountIn)
 		debtReserves.Token1ImaginaryReserves.Add(debtReserves.Token1ImaginaryReserves, amountIn)
+
+		limits.BorrowableToken0.Available.Sub(limits.BorrowableToken0.Available, amountOut)
+		limits.BorrowableToken0.ExpandsTo.Sub(limits.BorrowableToken0.ExpandsTo, amountOut)
 	}
 }
 
-func updateCollateralReserves(swap0To1 bool, amountIn, amountOut *big.Int, colReserves CollateralReserves) {
+func updateCollateralReservesAndLimits(swap0To1 bool, amountIn, amountOut *big.Int, colReserves CollateralReserves, limits DexLimits) {
 	if swap0To1 {
 		colReserves.Token0RealReserves.Add(colReserves.Token0RealReserves, amountIn)
 		colReserves.Token0ImaginaryReserves.Add(colReserves.Token0ImaginaryReserves, amountIn)
 		colReserves.Token1RealReserves.Sub(colReserves.Token1RealReserves, amountOut)
 		colReserves.Token1ImaginaryReserves.Sub(colReserves.Token1ImaginaryReserves, amountOut)
+
+		limits.WithdrawableToken1.Available.Sub(limits.WithdrawableToken1.Available, amountOut)
+		limits.WithdrawableToken1.ExpandsTo.Sub(limits.WithdrawableToken1.ExpandsTo, amountOut)
 	} else {
 		colReserves.Token0RealReserves.Sub(colReserves.Token0RealReserves, amountOut)
 		colReserves.Token0ImaginaryReserves.Sub(colReserves.Token0ImaginaryReserves, amountOut)
 		colReserves.Token1RealReserves.Add(colReserves.Token1RealReserves, amountIn)
 		colReserves.Token1ImaginaryReserves.Add(colReserves.Token1ImaginaryReserves, amountIn)
+
+		limits.WithdrawableToken0.Available.Sub(limits.WithdrawableToken0.Available, amountOut)
+		limits.WithdrawableToken0.ExpandsTo.Sub(limits.WithdrawableToken0.ExpandsTo, amountOut)
 	}
 }
 
-func updateBothReserves(swap0To1 bool, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt *big.Int,
-	colReserves CollateralReserves, debtReserves DebtReserves) {
+func updateBothReservesAndLimits(swap0To1 bool, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt *big.Int,
+	colReserves CollateralReserves, debtReserves DebtReserves, limits DexLimits) {
 	if swap0To1 {
 		colReserves.Token1RealReserves.Sub(colReserves.Token1RealReserves, amountOutCollateral)
 		colReserves.Token1ImaginaryReserves.Sub(colReserves.Token1ImaginaryReserves, amountOutCollateral)
@@ -979,6 +1003,11 @@ func updateBothReserves(swap0To1 bool, amountInCollateral, amountOutCollateral, 
 		debtReserves.Token1ImaginaryReserves.Sub(debtReserves.Token1ImaginaryReserves, amountOutDebt)
 		debtReserves.Token0RealReserves.Add(debtReserves.Token0RealReserves, amountInDebt)
 		debtReserves.Token0ImaginaryReserves.Add(debtReserves.Token0ImaginaryReserves, amountInDebt)
+
+		limits.BorrowableToken1.Available.Sub(limits.BorrowableToken1.Available, amountOutDebt)
+		limits.BorrowableToken1.ExpandsTo.Sub(limits.BorrowableToken1.ExpandsTo, amountOutDebt)
+		limits.WithdrawableToken1.Available.Sub(limits.WithdrawableToken1.Available, amountOutCollateral)
+		limits.WithdrawableToken1.ExpandsTo.Sub(limits.WithdrawableToken1.ExpandsTo, amountOutCollateral)
 	} else {
 		colReserves.Token1RealReserves.Add(colReserves.Token1RealReserves, amountInCollateral)
 		colReserves.Token1ImaginaryReserves.Add(colReserves.Token1ImaginaryReserves, amountInCollateral)
@@ -989,5 +1018,10 @@ func updateBothReserves(swap0To1 bool, amountInCollateral, amountOutCollateral, 
 		debtReserves.Token1ImaginaryReserves.Add(debtReserves.Token1ImaginaryReserves, amountInDebt)
 		debtReserves.Token0RealReserves.Sub(debtReserves.Token0RealReserves, amountOutDebt)
 		debtReserves.Token0ImaginaryReserves.Sub(debtReserves.Token0ImaginaryReserves, amountOutDebt)
+
+		limits.BorrowableToken0.Available.Sub(limits.BorrowableToken0.Available, amountOutDebt)
+		limits.BorrowableToken0.ExpandsTo.Sub(limits.BorrowableToken0.ExpandsTo, amountOutDebt)
+		limits.WithdrawableToken0.Available.Sub(limits.WithdrawableToken0.Available, amountOutCollateral)
+		limits.WithdrawableToken0.ExpandsTo.Sub(limits.WithdrawableToken0.ExpandsTo, amountOutCollateral)
 	}
 }

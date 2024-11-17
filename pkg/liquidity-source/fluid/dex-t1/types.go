@@ -69,4 +69,5 @@ type SwapInfo struct {
 	HasNative             bool               `json:"hasNative"`
 	NewCollateralReserves CollateralReserves `json:"-"`
 	NewDebtReserves       DebtReserves       `json:"-"`
+	NewDexLimits          DexLimits          `json:"-"`
 }
