@@ -441,7 +441,7 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	var (
 		colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
 		colReserveOut, debtReserveOut                                  *big.Int
-		borrowable, withdrawable                                       = new(big.Int), new(big.Int)
+		borrowable, withdrawable                                       *big.Int
 	)
 
 	if swap0To1 {
@@ -451,8 +451,8 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		debtReserveOut = debtReserves.Token1RealReserves
 		debtIReserveIn = debtReserves.Token0ImaginaryReserves
 		debtIReserveOut = debtReserves.Token1ImaginaryReserves
-		borrowable.Set(getExpandedLimit(syncTime, currentLimits.BorrowableToken1))
-		withdrawable.Set(getExpandedLimit(syncTime, currentLimits.WithdrawableToken1))
+		borrowable = getExpandedLimit(syncTime, currentLimits.BorrowableToken1)
+		withdrawable = getExpandedLimit(syncTime, currentLimits.WithdrawableToken1)
 	} else {
 		colReserveOut = colReserves.Token0RealReserves
 		colIReserveIn = colReserves.Token1ImaginaryReserves
@@ -460,73 +460,73 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		debtReserveOut = debtReserves.Token0RealReserves
 		debtIReserveIn = debtReserves.Token1ImaginaryReserves
 		debtIReserveOut = debtReserves.Token0ImaginaryReserves
-		borrowable.Set(getExpandedLimit(syncTime, currentLimits.BorrowableToken0))
-		withdrawable.Set(getExpandedLimit(syncTime, currentLimits.WithdrawableToken0))
+		borrowable = getExpandedLimit(syncTime, currentLimits.BorrowableToken0)
+		withdrawable = getExpandedLimit(syncTime, currentLimits.WithdrawableToken0)
 	}
 
 	// bring borrowable and withdrawable from token decimals to 1e12 decimals, same as amounts
-	var factor = new(big.Int)
+	var factor *big.Int
 	if DexAmountsDecimals > outDecimals {
-		factor.Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil)
-		borrowable.Mul(borrowable, factor)
-		withdrawable.Mul(withdrawable, factor)
+		factor = new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil)
+		borrowable = new(big.Int).Mul(borrowable, factor)
+		withdrawable = new(big.Int).Mul(withdrawable, factor)
 	} else {
-		factor.Exp(bI10, big.NewInt(outDecimals-DexAmountsDecimals), nil)
-		borrowable.Div(borrowable, factor)
-		withdrawable.Div(withdrawable, factor)
+		factor = new(big.Int).Exp(bI10, big.NewInt(outDecimals-DexAmountsDecimals), nil)
+		borrowable = new(big.Int).Div(borrowable, factor)
+		withdrawable = new(big.Int).Div(withdrawable, factor)
 	}
 
 	// Check if all reserves of collateral pool are greater than 0
-	colPoolEnabled := colReserves.Token0RealReserves.Sign() > 0 &&
-		colReserves.Token1RealReserves.Sign() > 0 &&
-		colReserves.Token0ImaginaryReserves.Sign() > 0 &&
-		colReserves.Token1ImaginaryReserves.Sign() > 0
+	colPoolEnabled := colReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		colReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		colReserves.Token0ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		colReserves.Token1ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0
 
 	// Check if all reserves of debt pool are greater than 0
-	debtPoolEnabled := debtReserves.Token0RealReserves.Sign() > 0 &&
-		debtReserves.Token1RealReserves.Sign() > 0 &&
-		debtReserves.Token0ImaginaryReserves.Sign() > 0 &&
-		debtReserves.Token1ImaginaryReserves.Sign() > 0
+	debtPoolEnabled := debtReserves.Token0RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		debtReserves.Token1RealReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		debtReserves.Token0ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0 &&
+		debtReserves.Token1ImaginaryReserves.Cmp(bignumber.ZeroBI) > 0
 
-	var a = new(big.Int)
+	var a *big.Int
 	if colPoolEnabled && debtPoolEnabled {
-		a.Set(swapRoutingIn(amountToSwap, colIReserveOut, colIReserveIn, debtIReserveOut, debtIReserveIn))
+		a = swapRoutingIn(amountToSwap, colIReserveOut, colIReserveIn, debtIReserveOut, debtIReserveIn)
 	} else if debtPoolEnabled {
-		a.SetInt64(-1) // Route from debt pool
+		a = big.NewInt(-1) // Route from debt pool
 	} else if colPoolEnabled {
-		a.Add(amountToSwap, big.NewInt(1)) // Route from collateral pool
+		a = new(big.Int).Add(amountToSwap, big.NewInt(1)) // Route from collateral pool
 	} else {
 		return nil, errors.New("no pools are enabled")
 	}
 
-	amountInCollateral := new(big.Int)
-	amountOutCollateral := new(big.Int)
-	amountInDebt := new(big.Int)
-	amountOutDebt := new(big.Int)
+	amountInCollateral := big.NewInt(0)
+	amountOutCollateral := big.NewInt(0)
+	amountInDebt := big.NewInt(0)
+	amountOutDebt := big.NewInt(0)
 
 	triggerUpdateDebtReserves := false
 	triggerUpdateColReserves := false
 
-	if a.Sign() <= 0 {
+	if a.Cmp(bignumber.ZeroBI) <= 0 {
 		// Entire trade routes through debt pool
-		amountInDebt.Set(amountToSwap)
-		amountOutDebt.Set(getAmountOut(amountToSwap, debtIReserveIn, debtIReserveOut))
+		amountInDebt = amountToSwap
+		amountOutDebt = getAmountOut(amountToSwap, debtIReserveIn, debtIReserveOut)
 
 		triggerUpdateDebtReserves = true
 	} else if a.Cmp(amountToSwap) >= 0 {
 		// Entire trade routes through collateral pool
-		amountInCollateral.Set(amountToSwap)
-		amountOutCollateral.Set(getAmountOut(amountToSwap, colIReserveIn, colIReserveOut))
+		amountInCollateral = amountToSwap
+		amountOutCollateral = getAmountOut(amountToSwap, colIReserveIn, colIReserveOut)
 
 		triggerUpdateColReserves = true
 	} else {
 		// Trade routes through both pools
 		amountInDebt.Sub(amountToSwap, a)
 
-		amountInCollateral.Set(a)
-		amountOutCollateral.Set(getAmountOut(a, colIReserveIn, colIReserveOut))
+		amountInCollateral = a
+		amountOutCollateral = getAmountOut(a, colIReserveIn, colIReserveOut)
 		amountInDebt.Sub(amountToSwap, a)
-		amountOutDebt.Set(getAmountOut(amountInDebt, debtIReserveIn, debtIReserveOut))
+		amountOutDebt = getAmountOut(amountInDebt, debtIReserveIn, debtIReserveOut)
 
 		triggerUpdateDebtReserves = true
 		triggerUpdateColReserves = true
@@ -548,11 +548,10 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		return nil, errors.New(ErrInsufficientWithdrawable.Error())
 	}
 
-	oldPrice := new(big.Int)
-	newPrice := new(big.Int)
-	priceDiff := new(big.Int)
-	maxPriceDiff := new(big.Int)
-
+	oldPrice := big.NewInt(0)
+	newPrice := big.NewInt(0)
+	priceDiff := big.NewInt(0)
+	maxPriceDiff := big.NewInt(0)
 	// from whatever pool higher amount of swap is routing we are taking that as final price, does not matter much because both pools final price should be same
 	if amountInCollateral.Cmp(amountInDebt) > 0 {
 		// new pool price from col pool
