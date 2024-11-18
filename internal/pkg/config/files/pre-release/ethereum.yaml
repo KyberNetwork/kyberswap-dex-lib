@@ -138,6 +138,7 @@ common:
     - "deltaswap-v1"
     - "sfrxeth"
     - "sfrxeth-convertor"
+    - "ondo-usdy"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:
