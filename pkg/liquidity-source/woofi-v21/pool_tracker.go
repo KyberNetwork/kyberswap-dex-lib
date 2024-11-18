@@ -152,7 +152,7 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	// Call ChainLink Oracle to get lastestRoundData
+	// Call ChainLink Oracle to get latestRoundData
 	latestRoundData := make([]struct {
 		RoundId         *big.Int `json:"roundId" abi:"roundId"`
 		Answer          *big.Int `json:"answer" abi:"answer"`
