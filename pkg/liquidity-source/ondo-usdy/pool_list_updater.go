@@ -147,10 +147,7 @@ func getExtra(
 	oraclePriceData := make([]OraclePriceData, len(pools))
 	totalShares := make([]*big.Int, len(pools))
 
-	methodGetTotalShare, err := getMethodTotalShares(config.ChainID)
-	if err != nil {
-		return nil, 0, err
-	}
+	methodGetTotalShares := getMethodTotalShares(config.ChainID)
 
 	calls := client.NewRequest().SetContext(ctx)
 	for i := range pools {
@@ -162,7 +159,7 @@ func getExtra(
 		calls.AddCall(&ethrpc.Call{
 			ABI:    rUSDYABI,
 			Target: pools[i].Address,
-			Method: methodGetTotalShare,
+			Method: methodGetTotalShares,
 		}, []interface{}{&totalShares[i]})
 		calls.AddCall(&ethrpc.Call{
 			ABI:    rwaDynamicOracleABI,
@@ -194,13 +191,11 @@ func getExtra(
 	return poolExtras, resp.BlockNumber.Uint64(), nil
 }
 
-func getMethodTotalShares(chainID valueobject.ChainID) (string, error) {
+func getMethodTotalShares(chainID valueobject.ChainID) string {
 	switch chainID {
 	case valueobject.ChainIDEthereum:
-		return rUSDYMethodTotalShares, nil
-	case valueobject.ChainIDMantle:
-		return rUSDYWMethodGetTotalShares, nil
+		return rUSDYMethodTotalShares
 	default:
-		return "", errors.New("unsupported chainID")
+		return rUSDYWMethodGetTotalShares
 	}
 }
