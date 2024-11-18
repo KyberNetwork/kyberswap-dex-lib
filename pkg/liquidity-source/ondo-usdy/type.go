@@ -20,6 +20,7 @@ type PoolMeta struct {
 
 type PoolExtra struct {
 	Paused                  bool         `json:"paused"`
+	TotalShares             *uint256.Int `json:"totalShares"`
 	OraclePrice             *uint256.Int `json:"oraclePrice"`
 	PriceTimestamp          uint64       `json:"priceTimeStamp"`
 	RWADynamicOracleAddress string       `json:"rwaDynamicOracleAddress"`

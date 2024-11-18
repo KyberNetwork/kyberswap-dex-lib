@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	mUSDABI             abi.ABI
+	rUSDYABI            abi.ABI
 	rwaDynamicOracleABI abi.ABI
 )
 
@@ -16,7 +16,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&mUSDABI, mUSDABIJSON},
+		{&rUSDYABI, rUSDYABIJSON},
 		{&rwaDynamicOracleABI, rwaDynamicOracleABIJSON},
 	}
 

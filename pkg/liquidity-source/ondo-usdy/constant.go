@@ -7,7 +7,13 @@ const (
 )
 
 const (
-	mUSDMethodPaused                   = "paused"
+	rUSDYMethodPaused = "paused"
+
+	// on ethereum
+	rUSDYMethodTotalShares = "totalShares"
+	// on mantle
+	rUSDYWMethodGetTotalShares = "getTotalShares"
+
 	rwaDynamicOracleMethodGetPriceData = "getPriceData"
 )
 

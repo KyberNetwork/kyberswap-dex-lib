@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/KyberNetwork/blockchain-toolkit/number"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/holiman/uint256"
 	"github.com/stretchr/testify/assert"
@@ -32,6 +33,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Tokens:  []string{"0x5be26527e817998a7206475496fde1e68957c5a6", "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3"},
 				}},
 				paused:      false,
+				totalShares: uint256.MustFromDecimal("100000000000000000000000000000"),
 				oraclePrice: uint256.NewInt(1064060720000000000),
 			},
 			param: poolpkg.CalcAmountOutParams{
@@ -51,6 +53,7 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Tokens:  []string{"0x5be26527e817998a7206475496fde1e68957c5a6", "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3"},
 				}},
 				paused:      false,
+				totalShares: uint256.MustFromDecimal("100000000000000000000000000000"),
 				oraclePrice: uint256.NewInt(1064060720000000000),
 			},
 			param: poolpkg.CalcAmountOutParams{
@@ -61,6 +64,26 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				TokenOut: "0x5be26527e817998a7206475496fde1e68957c5a6",
 			},
 			expectedAmountOut: big.NewInt(1),
+		},
+		{
+			name: "should return an error when unwrap exceeds total shares",
+			poolSimulator: &PoolSimulator{
+				Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
+					Address: "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3",
+					Tokens:  []string{"0x5be26527e817998a7206475496fde1e68957c5a6", "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3"},
+				}},
+				paused:      false,
+				totalShares: uint256.MustFromDecimal("100000"),
+				oraclePrice: uint256.NewInt(1064060720000000000),
+			},
+			param: poolpkg.CalcAmountOutParams{
+				TokenAmountIn: poolpkg.TokenAmount{
+					Token:  "0xab575258d37eaa5c8956efabe71f4ee8f6397cf3",
+					Amount: big.NewInt(123232131321),
+				},
+				TokenOut: "0x5be26527e817998a7206475496fde1e68957c5a6",
+			},
+			expectedError: number.ErrUnderflow,
 		},
 	}
 	for _, tc := range testCases {

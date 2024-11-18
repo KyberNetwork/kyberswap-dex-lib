@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -28,13 +29,21 @@ func (t *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
+	logger.WithFields(logger.Fields{
+		"dex_id": p.Exchange,
+		"pool":   p.Address,
+	}).Info("start fetching pool state")
+
 	oldExtra := PoolExtra{}
 	err := json.Unmarshal([]byte(p.Extra), &oldExtra)
 	if err != nil {
+
 		return entity.Pool{}, err
 	}
 
-	newExtras, blockNumber, err := getExtra(ctx, t.ethrpcClient, []entity.Pool{p}, []string{oldExtra.RWADynamicOracleAddress})
+	newExtras, blockNumber, err := getExtra(
+		ctx, t.config, t.ethrpcClient, []entity.Pool{p}, []string{oldExtra.RWADynamicOracleAddress},
+	)
 	if err != nil {
 		return p, err
 	}
