@@ -66,7 +66,6 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	pools := make([]entity.Pool, 0)
 
 	for _, curPool := range allPools {
-
 		token0Decimals, token1Decimals, err := u.readTokensDecimals(ctx, curPool.Token0Address, curPool.Token1Address)
 		if err != nil {
 			return nil, nil, err
@@ -99,11 +98,13 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Type:     DexType,
 			Reserves: entity.PoolReserves{
 				getMaxReserves(
+					token0Decimals,
 					curPool.Limits.WithdrawableToken0,
 					curPool.Limits.BorrowableToken0,
 					curPool.CollateralReserves.Token0RealReserves,
 					curPool.DebtReserves.Token0RealReserves).String(),
 				getMaxReserves(
+					token1Decimals,
 					curPool.Limits.WithdrawableToken1,
 					curPool.Limits.BorrowableToken1,
 					curPool.CollateralReserves.Token1RealReserves,

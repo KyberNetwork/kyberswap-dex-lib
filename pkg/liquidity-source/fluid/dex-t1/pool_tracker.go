@@ -75,11 +75,13 @@ func (t *PoolTracker) getNewPoolState(
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
 		getMaxReserves(
+			p.Tokens[0].Decimals,
 			poolReserves.Limits.WithdrawableToken0,
 			poolReserves.Limits.BorrowableToken0,
 			poolReserves.CollateralReserves.Token0RealReserves,
 			poolReserves.DebtReserves.Token0RealReserves).String(),
 		getMaxReserves(
+			p.Tokens[1].Decimals,
 			poolReserves.Limits.WithdrawableToken1,
 			poolReserves.Limits.BorrowableToken1,
 			poolReserves.CollateralReserves.Token1RealReserves,
@@ -133,6 +135,7 @@ func (t *PoolTracker) getPoolReserves(
 }
 
 func getMaxReserves(
+	decimals uint8,
 	withdrawableLimit TokenLimit,
 	borrowableLimit TokenLimit,
 	realColReserves *big.Int,
@@ -151,8 +154,16 @@ func getMaxReserves(
 
 	maxRealReserves := new(big.Int).Add(realColReserves, realDebtReserves)
 
+	var maxReserve = maxLimitReserves
 	if maxRealReserves.Cmp(maxLimitReserves) < 0 {
-		return maxRealReserves
+		maxReserve = maxRealReserves
 	}
-	return maxLimitReserves
+
+	if decimals > DexAmountsDecimals {
+		maxReserve.Mul(maxReserve, bignumber.TenPowInt(int8(decimals)-DexAmountsDecimals))
+	} else if decimals < DexAmountsDecimals {
+		maxReserve.Div(maxReserve, bignumber.TenPowInt(DexAmountsDecimals-int8(decimals)))
+	}
+
+	return maxReserve
 }
