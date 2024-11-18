@@ -101,7 +101,8 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 	tokenOutIndex := s.GetTokenIndex(tokenOut)
 
 	if tokenInIndex < 0 || tokenOutIndex < 0 {
-		return &poolpkg.CalcAmountOutResult{}, fmt.Errorf("TokenInIndex: %v or TokenOutIndex: %v is not correct", tokenInIndex, tokenOutIndex)
+		return &poolpkg.CalcAmountOutResult{}, fmt.Errorf("TokenInIndex: %v or TokenOutIndex: %v is not correct",
+			tokenInIndex, tokenOutIndex)
 	}
 
 	var (
@@ -136,7 +137,8 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		}
 	} else {
 		var newBase1Price, newBase2Price *uint256.Int
-		amountOut, swapFee, newBase1Price, newBase2Price, err = s._swapBaseToBase(tokenAmountIn.Token, tokenOut, amountIn)
+		amountOut, swapFee, newBase1Price, newBase2Price, err = s._swapBaseToBase(tokenAmountIn.Token, tokenOut,
+			amountIn)
 		if err != nil {
 			return &poolpkg.CalcAmountOutResult{}, err
 		}
@@ -317,8 +319,9 @@ func (s *PoolSimulator) _calcBaseAmountSellQuote(
 	}
 
 	decs := s.decimalInfo(baseToken)
+	tokenInfoBase := s.tokenInfos[baseToken]
 
-	if quoteAmount.Cmp(s.tokenInfos[baseToken].MaxNotionalSwap) > 0 {
+	if maxNotionalSwap := tokenInfoBase.MaxNotionalSwap; maxNotionalSwap == nil || quoteAmount.Cmp(maxNotionalSwap) > 0 {
 		return nil, nil, ErrNotionalSwapExceedsLimit
 	}
 
@@ -328,7 +331,7 @@ func (s *PoolSimulator) _calcBaseAmountSellQuote(
 		decs.quoteDec,
 	)
 
-	if gamma.Cmp(s.tokenInfos[baseToken].MaxGamma) > 0 {
+	if maxGamma := tokenInfoBase.MaxGamma; maxGamma == nil || gamma.Cmp(maxGamma) > 0 {
 		return nil, nil, ErrGammaExceedsLimit
 	}
 
@@ -374,6 +377,7 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 	}
 
 	decs := s.decimalInfo(baseToken)
+	tokenInfoBase := s.tokenInfos[baseToken]
 
 	notionalSwap := new(uint256.Int).Div(
 		new(uint256.Int).Mul(
@@ -383,7 +387,7 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 		new(uint256.Int).Mul(decs.baseDec, decs.priceDec),
 	)
 
-	if notionalSwap.Cmp(s.tokenInfos[baseToken].MaxNotionalSwap) > 0 {
+	if maxNotionalSwap := tokenInfoBase.MaxNotionalSwap; maxNotionalSwap == nil || notionalSwap.Cmp(maxNotionalSwap) > 0 {
 		return nil, nil, ErrNotionalSwapExceedsLimit
 	}
 
@@ -396,7 +400,7 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 		new(uint256.Int).Mul(decs.priceDec, decs.baseDec),
 	)
 
-	if gamma.Cmp(s.tokenInfos[baseToken].MaxGamma) > 0 {
+	if maxGamma := tokenInfoBase.MaxGamma; maxGamma == nil || gamma.Cmp(maxGamma) > 0 {
 		return nil, nil, ErrGammaExceedsLimit
 	}
 
@@ -440,40 +444,6 @@ func (s *PoolSimulator) decimalInfo(baseToken string) DecimalInfo {
 		priceDec: number.TenPow(s.wooracle.Decimals[baseToken]), // 8
 		quoteDec: number.TenPow(s.decimals[s.quoteToken]),       // 18 or 6
 		baseDec:  number.TenPow(s.decimals[baseToken]),          // 18 or 8
-	}
-}
-
-func (s *PoolSimulator) updateBalanceSellBase(params poolpkg.UpdateBalanceParams) {
-	swapInfo := params.SwapInfo.(woofiV2SwapInfo)
-	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
-	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
-	swapFee, _ := uint256.FromBig(params.Fee.Amount)
-
-	newBaseReserves := new(uint256.Int).Add(
-		s.tokenInfos[params.TokenAmountIn.Token].Reserve,
-		amountIn,
-	)
-	newQuoteReserve := new(uint256.Int).Sub(
-		new(uint256.Int).Sub(
-			s.tokenInfos[params.TokenAmountOut.Token].Reserve,
-			amountOut,
-		),
-		swapFee,
-	)
-
-	s.tokenInfos[params.TokenAmountIn.Token] = TokenInfo{
-		Reserve: newBaseReserves,
-		FeeRate: s.tokenInfos[params.TokenAmountIn.Token].FeeRate,
-	}
-	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
-		Reserve: newQuoteReserve,
-		FeeRate: s.tokenInfos[params.TokenAmountOut.Token].FeeRate,
-	}
-	s.wooracle.States[params.TokenAmountIn.Token] = State{
-		Price:      swapInfo.newPrice,
-		Spread:     s.wooracle.States[params.TokenAmountIn.Token].Spread,
-		Coeff:      s.wooracle.States[params.TokenAmountIn.Token].Coeff,
-		WoFeasible: s.wooracle.States[params.TokenAmountIn.Token].WoFeasible,
 	}
 }
 
@@ -557,34 +527,80 @@ func (s *PoolSimulator) _wooracleCloPriceInQuote(fromToken string, toToken strin
 	return refPrice, int64(refTimestamp.Uint64())
 }
 
+func (s *PoolSimulator) updateBalanceSellBase(params poolpkg.UpdateBalanceParams) {
+	swapInfo := params.SwapInfo.(woofiV2SwapInfo)
+	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
+	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
+	swapFee, _ := uint256.FromBig(params.Fee.Amount)
+	tokenInfoIn, tokenInfoOut := s.tokenInfos[params.TokenAmountIn.Token], s.tokenInfos[params.TokenAmountOut.Token]
+
+	newBaseReserves := amountIn.Add(
+		tokenInfoIn.Reserve,
+		amountIn,
+	)
+	newQuoteReserve := swapFee.Sub(
+		amountOut.Sub(
+			tokenInfoOut.Reserve,
+			amountOut,
+		),
+		swapFee,
+	)
+
+	s.tokenInfos[params.TokenAmountIn.Token] = TokenInfo{
+		Reserve:         newBaseReserves,
+		FeeRate:         tokenInfoIn.FeeRate,
+		MaxGamma:        tokenInfoIn.MaxGamma,
+		MaxNotionalSwap: tokenInfoIn.MaxNotionalSwap,
+	}
+	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
+		Reserve:         newQuoteReserve,
+		FeeRate:         tokenInfoOut.FeeRate,
+		MaxGamma:        tokenInfoOut.MaxGamma,
+		MaxNotionalSwap: tokenInfoOut.MaxNotionalSwap,
+	}
+	stateIn := s.wooracle.States[params.TokenAmountIn.Token]
+	s.wooracle.States[params.TokenAmountIn.Token] = State{
+		Price:      swapInfo.newPrice,
+		Spread:     stateIn.Spread,
+		Coeff:      stateIn.Coeff,
+		WoFeasible: stateIn.WoFeasible,
+	}
+}
+
 func (s *PoolSimulator) updateBalanceSellQuote(params poolpkg.UpdateBalanceParams) {
 	swapInfo := params.SwapInfo.(woofiV2SwapInfo)
 	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
 	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
 	swapFee, _ := uint256.FromBig(params.Fee.Amount)
+	tokenInfoIn, tokenInfoOut := s.tokenInfos[params.TokenAmountIn.Token], s.tokenInfos[params.TokenAmountOut.Token]
 
-	newBaseReserves := new(uint256.Int).Sub(
-		s.tokenInfos[params.TokenAmountOut.Token].Reserve,
+	newQuoteReserve := amountIn.Add(
+		tokenInfoIn.Reserve,
+		amountIn.Sub(amountIn, swapFee),
+	)
+	newBaseReserves := amountOut.Sub(
+		tokenInfoOut.Reserve,
 		amountOut,
 	)
-	newQuoteReserve := new(uint256.Int).Add(
-		s.tokenInfos[params.TokenAmountIn.Token].Reserve,
-		new(uint256.Int).Sub(amountIn, swapFee),
-	)
 
-	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
-		Reserve: newBaseReserves,
-		FeeRate: s.tokenInfos[params.TokenAmountOut.Token].FeeRate,
-	}
 	s.tokenInfos[params.TokenAmountIn.Token] = TokenInfo{
-		Reserve: newQuoteReserve,
-		FeeRate: s.tokenInfos[params.TokenAmountIn.Token].FeeRate,
+		Reserve:         newQuoteReserve,
+		FeeRate:         tokenInfoIn.FeeRate,
+		MaxGamma:        tokenInfoIn.MaxGamma,
+		MaxNotionalSwap: tokenInfoIn.MaxNotionalSwap,
 	}
+	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
+		Reserve:         newBaseReserves,
+		FeeRate:         tokenInfoOut.FeeRate,
+		MaxGamma:        tokenInfoOut.MaxGamma,
+		MaxNotionalSwap: tokenInfoOut.MaxNotionalSwap,
+	}
+	stateIn := s.wooracle.States[params.TokenAmountIn.Token]
 	s.wooracle.States[params.TokenAmountIn.Token] = State{
 		Price:      swapInfo.newPrice,
-		Spread:     s.wooracle.States[params.TokenAmountIn.Token].Spread,
-		Coeff:      s.wooracle.States[params.TokenAmountIn.Token].Coeff,
-		WoFeasible: s.wooracle.States[params.TokenAmountIn.Token].WoFeasible,
+		Spread:     stateIn.Spread,
+		Coeff:      stateIn.Coeff,
+		WoFeasible: stateIn.WoFeasible,
 	}
 }
 
@@ -593,42 +609,42 @@ func (s *PoolSimulator) updateBalanceSwapBaseToBase(params poolpkg.UpdateBalance
 	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
 	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
 	swapFee, _ := uint256.FromBig(params.Fee.Amount)
+	tokenInfoIn, tokenInfoOut := s.tokenInfos[params.TokenAmountIn.Token], s.tokenInfos[params.TokenAmountOut.Token]
+	tokenInfoQuote := s.tokenInfos[s.quoteToken]
 
-	newBase1Reserves := new(uint256.Int).Add(
-		s.tokenInfos[params.TokenAmountIn.Token].Reserve,
-		amountIn,
-	)
-	newBase2Reserves := new(uint256.Int).Sub(
-		s.tokenInfos[params.TokenAmountOut.Token].Reserve,
-		amountOut,
-	)
-	newQuoteReserve := new(uint256.Int).Sub(
-		s.tokenInfos[s.quoteToken].Reserve,
-		swapFee,
-	)
+	newBase1Reserves := amountIn.Add(tokenInfoIn.Reserve, amountIn)
+	newBase2Reserves := amountOut.Sub(tokenInfoOut.Reserve, amountOut)
+	newQuoteReserve := swapFee.Sub(tokenInfoQuote.Reserve, swapFee)
 
 	s.tokenInfos[params.TokenAmountIn.Token] = TokenInfo{
-		Reserve: newBase1Reserves,
-		FeeRate: s.tokenInfos[params.TokenAmountIn.Token].FeeRate,
+		Reserve:         newBase1Reserves,
+		FeeRate:         tokenInfoIn.FeeRate,
+		MaxGamma:        tokenInfoIn.MaxGamma,
+		MaxNotionalSwap: tokenInfoIn.MaxNotionalSwap,
 	}
 	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
-		Reserve: newBase2Reserves,
-		FeeRate: s.tokenInfos[params.TokenAmountOut.Token].FeeRate,
+		Reserve:         newBase2Reserves,
+		FeeRate:         tokenInfoOut.FeeRate,
+		MaxGamma:        tokenInfoOut.MaxGamma,
+		MaxNotionalSwap: tokenInfoOut.MaxNotionalSwap,
 	}
 	s.tokenInfos[s.quoteToken] = TokenInfo{
-		Reserve: newQuoteReserve,
-		FeeRate: s.tokenInfos[s.quoteToken].FeeRate,
+		Reserve:         newQuoteReserve,
+		FeeRate:         tokenInfoQuote.FeeRate,
+		MaxGamma:        tokenInfoQuote.MaxGamma,
+		MaxNotionalSwap: tokenInfoQuote.MaxNotionalSwap,
 	}
+	stateIn, stateOut := s.wooracle.States[params.TokenAmountIn.Token], s.wooracle.States[params.TokenAmountOut.Token]
 	s.wooracle.States[params.TokenAmountIn.Token] = State{
 		Price:      swapInfo.newBase1Price,
-		Spread:     s.wooracle.States[params.TokenAmountIn.Token].Spread,
-		Coeff:      s.wooracle.States[params.TokenAmountIn.Token].Coeff,
-		WoFeasible: s.wooracle.States[params.TokenAmountIn.Token].WoFeasible,
+		Spread:     stateIn.Spread,
+		Coeff:      stateIn.Coeff,
+		WoFeasible: stateIn.WoFeasible,
 	}
 	s.wooracle.States[params.TokenAmountOut.Token] = State{
 		Price:      swapInfo.newBase2Price,
-		Spread:     s.wooracle.States[params.TokenAmountOut.Token].Spread,
-		Coeff:      s.wooracle.States[params.TokenAmountOut.Token].Coeff,
-		WoFeasible: s.wooracle.States[params.TokenAmountOut.Token].WoFeasible,
+		Spread:     stateOut.Spread,
+		Coeff:      stateOut.Coeff,
+		WoFeasible: stateOut.WoFeasible,
 	}
 }

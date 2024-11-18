@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
@@ -19,7 +20,7 @@ var (
 	ErrEmptyPriceLevels                       = errors.New("empty price levels")
 	ErrAmountInIsLessThanLowestPriceLevel     = errors.New("amountIn is less than lowest price level")
 	ErrAmountInIsGreaterThanHighestPriceLevel = errors.New("amountIn is greater than highest price level")
-	ErrNoSwapLimit                            = errors.New("swap limit is required for PMM pools")
+	ErrNoSwapLimit                            = errors.New("swap limit is required for dexalot pools")
 )
 
 type (
@@ -118,22 +119,24 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	if params.Limit == nil {
 		return nil, ErrNoSwapLimit
 	}
-	var limit = params.Limit
+
 	tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels := p.Token0, p.Token1, p.Token0Original, p.Token1Original, p.ZeroToOnePriceLevels
 	if params.TokenAmountIn.Token == p.Info.Tokens[1] {
 		tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels = p.Token1, p.Token0, p.Token1Original, p.Token0Original, p.OneToZeroPriceLevels
 	}
 	result, _, err := p.swap(params.TokenAmountIn.Amount, tokenIn, tokenOut, tokenInOriginal, tokenOutOriginal, levels)
+	if err != nil {
+		return nil, err
+	}
 
-	inventoryLimit := limit.GetLimit(tokenOut.Address)
-
+	inventoryLimit := params.Limit.GetLimit(tokenOut.Address)
 	if result.TokenAmountOut.Amount.Cmp(inventoryLimit) > 0 {
 		return nil, errors.New("not enough inventory")
 	}
-	return result, err
+	return result, nil
 }
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	// Ignore for now cause logic not exposed
 	tokenIn, tokenOut := p.Token0, p.Token1
 	if params.TokenAmountIn.Token == p.Token1.Address {
 		tokenIn, tokenOut = p.Token1, p.Token0
@@ -193,56 +196,44 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.Poo
 func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel, amountOut *big.Float) error {
 	if len(priceLevels) == 0 {
 		return ErrEmptyPriceLevels
-	}
-	// Check lower bound
-	if amountIn.Cmp(priceLevels[0].Quote) < 0 {
+	} else if amountIn.Cmp(priceLevels[0].Quote) < 0 {
 		return ErrAmountInIsLessThanLowestPriceLevel
-	}
-
-	if amountIn.Cmp(priceLevels[len(priceLevels)-1].Quote) > 0 {
+	} else if amountIn.Cmp(priceLevels[len(priceLevels)-1].Quote) > 0 {
 		return ErrAmountInIsGreaterThanHighestPriceLevel
 	}
-	left := 0
-	right := len(priceLevels)
-	var qty *big.Float
 
-	for left < right {
-		mid := (left + right) / 2
-		qty = priceLevels[mid].Quote
-		if qty.Cmp(amountIn) <= 0 {
-			left = mid + 1
-		} else {
-			right = mid
-		}
-	}
+	levelIdx, _ := slices.BinarySearchFunc(priceLevels, amountIn, func(p PriceLevel, amtIn *big.Float) int {
+		return p.Quote.Cmp(amtIn)
+	}) // should always be found due to checks above
+	level := priceLevels[levelIdx]
 
 	var price *big.Float
-	if amountIn.Cmp(qty) == 0 {
-		price = priceLevels[left-1].Price // TODO: check with https://docs.dexalot.com/apiv2/SimpleSwap.html#_3b-request-batched-quotes-optional
-	} else if left == 0 {
-		price = big.NewFloat(0)
-	} else if left < len(priceLevels) {
-		price = priceLevels[left-1].Price.Add(
-			priceLevels[left-1].Price,
-			new(big.Float).Quo(
-				new(big.Float).Mul(
-					new(big.Float).Sub(priceLevels[left].Price, priceLevels[left-1].Price),
-					new(big.Float).Sub(amountIn, priceLevels[left-1].Quote),
+	if amountIn.Cmp(level.Quote) == 0 {
+		price = priceLevels[levelIdx].Price
+	} else {
+		prevLevel := priceLevels[levelIdx-1]
+		var num, tmp big.Float
+		price = num.Add(
+			prevLevel.Price,
+			num.Quo(
+				num.Mul(
+					num.Sub(level.Price, prevLevel.Price),
+					tmp.Sub(amountIn, prevLevel.Quote),
 				),
-				new(big.Float).Sub(priceLevels[left].Quote, priceLevels[left-1].Quote),
+				tmp.Sub(level.Quote, prevLevel.Quote),
 			),
 		)
 	}
+
 	amountOut.Mul(amountIn, price)
 	return nil
 }
 
 func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
-	var pmmInventory = make(map[string]*big.Int, len(p.GetTokens()))
-	tokens := p.GetTokens()
-	rsv := p.GetReserves()
+	tokens, rsv := p.GetTokens(), p.GetReserves()
+	inventory := make(map[string]*big.Int, len(tokens))
 	for i, tok := range tokens {
-		pmmInventory[tok] = big.NewInt(0).Set(rsv[i]) //clone here.
+		inventory[tok] = new(big.Int).Set(rsv[i])
 	}
-	return pmmInventory
+	return inventory
 }

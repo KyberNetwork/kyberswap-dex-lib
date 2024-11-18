@@ -261,7 +261,11 @@ func (t *PoolSimulator) GetDyByX(
 	}
 
 	// dy: uint256 = _xp[j] - y - 1  # -1 just in case there were some rounding errors
-	number.SafeSubZ(&xp[j], number.AddUint64(&y, 1), dy)
+	number.SafeSubZ(&xp[j], &y, dy)
+	if dy.Sign() <= 0 {
+		return ErrZero
+	}
+	dy.SubUint64(dy, 1)
 
 	// dy_fee: uint256 = unsafe_div(
 	//   dy * self._dynamic_fee(
@@ -541,6 +545,9 @@ func (t *PoolSimulator) CalculateWithdrawOneCoinU256(tokenAmount *uint256.Int, i
 
 	// dy_0: uint256 = (xp[i] - new_y) * PRECISION / rates[i]  # w/o fees
 	var dy0 = number.Div(number.SafeMul(number.SafeSub(&xp[i], &newY), Precision), &t.Extra.RateMultipliers[i])
+	if dy.Sign() <= 0 {
+		return ErrZero
+	}
 	// dy = unsafe_div((dy - 1) * PRECISION, rates[i])  # Withdraw less to account for rounding errors
 	dy.Div(number.SafeMul(number.SafeSub(dy, number.Number_1), Precision), &t.Extra.RateMultipliers[i])
 

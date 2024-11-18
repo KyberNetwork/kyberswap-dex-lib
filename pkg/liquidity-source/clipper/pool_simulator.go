@@ -19,6 +19,7 @@ var (
 	ErrInvalidTokenOut = errors.New("invalid token out")
 	ErrInvalidPair     = errors.New("invalid pair")
 	ErrFMVCheckFailed  = errors.New("FMV check failed")
+	ErrAmountOutNaN    = errors.New("amountOut is NaN")
 
 	basisPoint float64 = 10000
 )
@@ -151,6 +152,9 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 
 	outY := qY - numerator/pY
 	outY *= math.Pow10(int(assetOut.Decimals))
+	if math.IsNaN(outY) {
+		return nil, ErrAmountOutNaN
+	}
 
 	amountOut, _ := big.NewFloat(outY).Int(nil)
 
