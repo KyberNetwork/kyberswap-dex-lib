@@ -2,6 +2,7 @@ package dexT1
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -59,6 +60,7 @@ func (t *PoolTracker) getNewPoolState(
 		CollateralReserves:       collateralReserves,
 		DebtReserves:             debtReserves,
 		IsSwapAndArbitragePaused: isSwapAndArbitragePaused,
+		DexLimits:                poolReserves.Limits,
 	}
 
 	extraBytes, err := json.Marshal(extra)
@@ -71,8 +73,18 @@ func (t *PoolTracker) getNewPoolState(
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()
-
-	p.Reserves = entity.PoolReserves{poolReserves.BalanceToken0.String(), poolReserves.BalanceToken1.String()}
+	p.Reserves = entity.PoolReserves{
+		getMaxReserves(
+			poolReserves.Limits.WithdrawableToken0,
+			poolReserves.Limits.BorrowableToken0,
+			poolReserves.CollateralReserves.Token0RealReserves,
+			poolReserves.DebtReserves.Token0RealReserves).String(),
+		getMaxReserves(
+			poolReserves.Limits.WithdrawableToken1,
+			poolReserves.Limits.BorrowableToken1,
+			poolReserves.CollateralReserves.Token1RealReserves,
+			poolReserves.DebtReserves.Token1RealReserves).String(),
+	}
 
 	return p, nil
 }
@@ -118,4 +130,29 @@ func (t *PoolTracker) getPoolReserves(
 	isSwapAndArbitragePaused := dexVariables2.Rsh(dexVariables2, 255).Cmp(bignumber.One) == 0
 
 	return pool, isSwapAndArbitragePaused, resp.BlockNumber.Uint64(), nil
+}
+
+func getMaxReserves(
+	withdrawableLimit TokenLimit,
+	borrowableLimit TokenLimit,
+	realColReserves *big.Int,
+	realDebtReserves *big.Int,
+) *big.Int {
+	// max available reserves: the smaller possible value between real reserves and the expandTo limits
+	// the expandTo limits include liquidity layer balances, utilization limits, withdrawable and borrowable limits
+
+	// if expandTo for borrowable and withdrawable match, that means they are a hard limit like liquidity layer balance
+	// or utilization limit. In that case expandTo can not be summed up. Otherwise it's the case of expanding withdrawal
+	// and borrow limits, for which we must sum up the max available reserve amount.
+	maxLimitReserves := new(big.Int).Add(borrowableLimit.ExpandsTo, withdrawableLimit.ExpandsTo)
+	if borrowableLimit.ExpandsTo.Cmp(withdrawableLimit.ExpandsTo) == 0 {
+		maxLimitReserves.Set(borrowableLimit.ExpandsTo)
+	}
+
+	maxRealReserves := new(big.Int).Add(realColReserves, realDebtReserves)
+
+	if maxRealReserves.Cmp(maxLimitReserves) < 0 {
+		return maxRealReserves
+	}
+	return maxLimitReserves
 }

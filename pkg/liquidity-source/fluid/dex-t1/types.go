@@ -14,6 +14,7 @@ type PoolExtra struct {
 	CollateralReserves       CollateralReserves
 	DebtReserves             DebtReserves
 	IsSwapAndArbitragePaused bool
+	DexLimits                DexLimits
 }
 
 type CollateralReserves struct {
@@ -32,6 +33,19 @@ type DebtReserves struct {
 	Token1ImaginaryReserves *big.Int `json:"token1ImaginaryReserves"`
 }
 
+type TokenLimit struct {
+	Available      *big.Int `json:"available"`      // maximum available swap amount
+	ExpandsTo      *big.Int `json:"expandsTo"`      // maximum amount the available swap amount expands to
+	ExpandDuration *big.Int `json:"expandDuration"` // duration for `available` to grow to `expandsTo`
+}
+
+type DexLimits struct {
+	WithdrawableToken0 TokenLimit `json:"withdrawableToken0"`
+	WithdrawableToken1 TokenLimit `json:"withdrawableToken1"`
+	BorrowableToken0   TokenLimit `json:"borrowableToken0"`
+	BorrowableToken1   TokenLimit `json:"borrowableToken1"`
+}
+
 type PoolWithReserves struct {
 	PoolAddress        common.Address     `json:"poolAddress"`
 	Token0Address      common.Address     `json:"token0Address"`
@@ -39,8 +53,7 @@ type PoolWithReserves struct {
 	Fee                *big.Int           `json:"fee"`
 	CollateralReserves CollateralReserves `json:"collateralReserves"`
 	DebtReserves       DebtReserves       `json:"debtReserves"`
-	BalanceToken0      *big.Int           `json:"balanceToken0"`
-	BalanceToken1      *big.Int           `json:"balanceToken1"`
+	Limits             DexLimits          `json:"limits"`
 }
 
 type Gas struct {
@@ -56,4 +69,5 @@ type SwapInfo struct {
 	HasNative             bool               `json:"hasNative"`
 	NewCollateralReserves CollateralReserves `json:"-"`
 	NewDebtReserves       DebtReserves       `json:"-"`
+	NewDexLimits          DexLimits          `json:"-"`
 }
