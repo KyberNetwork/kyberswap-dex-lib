@@ -319,11 +319,9 @@ func (s *PoolSimulator) _calcBaseAmountSellQuote(
 	}
 
 	decs := s.decimalInfo(baseToken)
+	tokenInfoBase := s.tokenInfos[baseToken]
 
-	if maxNotionalSwap := s.tokenInfos[baseToken].MaxNotionalSwap; maxNotionalSwap == nil {
-		logger.Warnf("no MaxNotionalSwap for %s in %v: %v", baseToken, s.tokenInfos, s.tokenInfos[baseToken])
-		return nil, nil, ErrNotionalSwapExceedsLimit
-	} else if quoteAmount.Cmp(maxNotionalSwap) > 0 {
+	if maxNotionalSwap := tokenInfoBase.MaxNotionalSwap; maxNotionalSwap == nil || quoteAmount.Cmp(maxNotionalSwap) > 0 {
 		return nil, nil, ErrNotionalSwapExceedsLimit
 	}
 
@@ -333,10 +331,7 @@ func (s *PoolSimulator) _calcBaseAmountSellQuote(
 		decs.quoteDec,
 	)
 
-	if maxGamma := s.tokenInfos[baseToken].MaxGamma; maxGamma == nil {
-		logger.Warnf("no MaxGamma for %s in %v: %v", baseToken, s.tokenInfos, s.tokenInfos[baseToken])
-		return nil, nil, ErrGammaExceedsLimit
-	} else if gamma.Cmp(maxGamma) > 0 {
+	if maxGamma := tokenInfoBase.MaxGamma; maxGamma == nil || gamma.Cmp(maxGamma) > 0 {
 		return nil, nil, ErrGammaExceedsLimit
 	}
 
@@ -382,6 +377,7 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 	}
 
 	decs := s.decimalInfo(baseToken)
+	tokenInfoBase := s.tokenInfos[baseToken]
 
 	notionalSwap := new(uint256.Int).Div(
 		new(uint256.Int).Mul(
@@ -391,10 +387,7 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 		new(uint256.Int).Mul(decs.baseDec, decs.priceDec),
 	)
 
-	if maxNotionalSwap := s.tokenInfos[baseToken].MaxNotionalSwap; maxNotionalSwap == nil {
-		logger.Warnf("no MaxNotionalSwap for %s in %v: %v", baseToken, s.tokenInfos, s.tokenInfos[baseToken])
-		return nil, nil, ErrNotionalSwapExceedsLimit
-	} else if notionalSwap.Cmp(maxNotionalSwap) > 0 {
+	if maxNotionalSwap := tokenInfoBase.MaxNotionalSwap; maxNotionalSwap == nil || notionalSwap.Cmp(maxNotionalSwap) > 0 {
 		return nil, nil, ErrNotionalSwapExceedsLimit
 	}
 
@@ -407,10 +400,7 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 		new(uint256.Int).Mul(decs.priceDec, decs.baseDec),
 	)
 
-	if maxGamma := s.tokenInfos[baseToken].MaxGamma; maxGamma == nil {
-		logger.Warnf("no MaxGamma for %s in %v: %v", baseToken, s.tokenInfos, s.tokenInfos[baseToken])
-		return nil, nil, ErrGammaExceedsLimit
-	} else if gamma.Cmp(maxGamma) > 0 {
+	if maxGamma := tokenInfoBase.MaxGamma; maxGamma == nil || gamma.Cmp(maxGamma) > 0 {
 		return nil, nil, ErrGammaExceedsLimit
 	}
 
