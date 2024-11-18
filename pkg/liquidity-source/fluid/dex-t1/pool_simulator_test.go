@@ -393,7 +393,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			},
 			param: poolpkg.CalcAmountInParams{
 				TokenAmountOut: poolpkg.TokenAmount{
-					Amount: bignumber.NewBig("677868867152000000"),
+					Amount: bignumber.NewBig("18760613183894000001"), // exceeds reserve0
 					Token:  "0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0",
 				},
 				TokenIn: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
@@ -407,7 +407,7 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			result, err := tc.poolSimulator.CalcAmountIn(tc.param)
 
 			if tc.expectedError != nil {
-				assert.ErrorIs(t, err, tc.expectedError)
+				assert.ErrorIs(t, tc.expectedError, err)
 			} else {
 				t.Logf("Expected Amount In: %s", tc.expectedAmountIn.String())
 				t.Logf("Result Amount: %s", result.TokenAmountIn.Amount.String())

@@ -2,6 +2,7 @@ package dexT1
 
 import (
 	"errors"
+	"log"
 	"math/big"
 	"time"
 
@@ -190,6 +191,8 @@ func (s *PoolSimulator) validateAmountOut(swap0To1 bool, tokenAmountOut *big.Int
 	} else if decimals < DexAmountsDecimals {
 		reserve.Div(reserve, bignumber.TenPowInt(DexAmountsDecimals-int8(decimals)))
 	}
+
+	log.Printf("------%+v\n", reserve)
 
 	if tokenAmountOut.Cmp(reserve) > 0 {
 		return ErrInsufficientReserve
