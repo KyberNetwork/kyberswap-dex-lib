@@ -3,6 +3,7 @@ package dexT1
 import (
 	"errors"
 	"math/big"
+	"time"
 
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
@@ -18,6 +19,11 @@ var (
 
 	ErrInsufficientReserve    = errors.New("insufficient reserve: tokenOut amount exceeds reserve")
 	ErrSwapAndArbitragePaused = errors.New("51043")
+
+	ErrInsufficientWithdrawable = errors.New("insufficient reserve: tokenOut amount exceeds withdrawable limit")
+	ErrInsufficientBorrowable   = errors.New("insufficient reserve: tokenOut amount exceeds borrowable limit")
+
+	ErrInsufficientMaxPrice = errors.New("insufficient reserve: tokenOut amount exceeds max price limit")
 )
 
 type PoolSimulator struct {
@@ -26,10 +32,12 @@ type PoolSimulator struct {
 
 	CollateralReserves CollateralReserves
 	DebtReserves       DebtReserves
+	DexLimits          DexLimits
 
 	Token0Decimals uint8
 	Token1Decimals uint8
 
+	SyncTimestamp            int64
 	IsSwapAndArbitragePaused bool
 }
 
@@ -68,10 +76,12 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		}},
 		CollateralReserves:       extra.CollateralReserves,
 		DebtReserves:             extra.DebtReserves,
+		DexLimits:                extra.DexLimits,
 		Token0Decimals:           entityPool.Tokens[0].Decimals,
 		Token1Decimals:           entityPool.Tokens[1].Decimals,
 		StaticExtra:              staticExtra,
 		IsSwapAndArbitragePaused: extra.IsSwapAndArbitragePaused,
+		SyncTimestamp:            entityPool.Timestamp,
 	}, nil
 }
 
@@ -115,8 +125,33 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		Token1ImaginaryReserves: new(big.Int).Set(s.DebtReserves.Token1ImaginaryReserves),
 	}
 
-	_, tokenAmountOut, err := swapIn(swap0To1, amountInAfterFee, collateralReserves, debtReserves,
-		int64(tokenInDecimals), int64(tokenOutDecimals))
+	dexLimits := DexLimits{
+		BorrowableToken0: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.BorrowableToken0.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.BorrowableToken0.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.BorrowableToken0.ExpandDuration),
+		},
+		BorrowableToken1: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.BorrowableToken1.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.BorrowableToken1.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.BorrowableToken1.ExpandDuration),
+		},
+		WithdrawableToken0: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.WithdrawableToken0.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.WithdrawableToken0.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.WithdrawableToken0.ExpandDuration),
+		},
+		WithdrawableToken1: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.WithdrawableToken1.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.WithdrawableToken1.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.WithdrawableToken1.ExpandDuration),
+		},
+	}
+
+	syncTimestamp := s.SyncTimestamp
+
+	tokenAmountOut, err := swapIn(swap0To1, amountInAfterFee, collateralReserves, debtReserves,
+		int64(tokenInDecimals), int64(tokenOutDecimals), dexLimits, syncTimestamp)
 	if err != nil {
 		return nil, err
 	}
@@ -139,6 +174,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 			HasNative:             s.HasNative,
 			NewCollateralReserves: collateralReserves,
 			NewDebtReserves:       debtReserves,
+			NewDexLimits:          dexLimits,
 		},
 	}, nil
 }
@@ -187,8 +223,33 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		Token1ImaginaryReserves: new(big.Int).Set(s.DebtReserves.Token1ImaginaryReserves),
 	}
 
-	tokenAmountIn, _, err := swapOut(swap0To1, param.TokenAmountOut.Amount, collateralReserves, debtReserves,
-		int64(tokenInDecimals), int64(tokenOutDecimals))
+	dexLimits := DexLimits{
+		BorrowableToken0: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.BorrowableToken0.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.BorrowableToken0.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.BorrowableToken0.ExpandDuration),
+		},
+		BorrowableToken1: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.BorrowableToken1.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.BorrowableToken1.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.BorrowableToken1.ExpandDuration),
+		},
+		WithdrawableToken0: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.WithdrawableToken0.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.WithdrawableToken0.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.WithdrawableToken0.ExpandDuration),
+		},
+		WithdrawableToken1: TokenLimit{
+			Available:      new(big.Int).Set(s.DexLimits.WithdrawableToken1.Available),
+			ExpandsTo:      new(big.Int).Set(s.DexLimits.WithdrawableToken1.ExpandsTo),
+			ExpandDuration: new(big.Int).Set(s.DexLimits.WithdrawableToken1.ExpandDuration),
+		},
+	}
+
+	syncTimestamp := s.SyncTimestamp
+
+	tokenAmountIn, err := swapOut(swap0To1, param.TokenAmountOut.Amount, collateralReserves, debtReserves,
+		int64(tokenInDecimals), int64(tokenOutDecimals), dexLimits, syncTimestamp)
 	if err != nil {
 		return nil, err
 	}
@@ -207,6 +268,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 			HasNative:             s.HasNative,
 			NewCollateralReserves: collateralReserves,
 			NewDebtReserves:       debtReserves,
+			NewDexLimits:          dexLimits,
 		},
 	}, nil
 }
@@ -228,6 +290,10 @@ func (t *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	if swapInfo, ok := params.SwapInfo.(SwapInfo); ok {
 		t.CollateralReserves = swapInfo.NewCollateralReserves
 		t.DebtReserves = swapInfo.NewDebtReserves
+		// Note: limits are updated, but are likely off for the input token until newly fetched.
+		// Erring on the cautious side with too tight limits to avoid potential reverts.
+		// See Comment Ref #4327563287
+		t.DexLimits = swapInfo.NewDexLimits
 	}
 }
 
@@ -336,16 +402,33 @@ func swapRoutingOut(t *big.Int, x *big.Int, y *big.Int, x2 *big.Int, y2 *big.Int
  * @param {number} debtReserves.token1RealReserves - Real reserves of token1 in the debt pool.
  * @param {number} debtReserves.token0ImaginaryReserves - Imaginary reserves of token0 in the debt pool.
  * @param {number} debtReserves.token1ImaginaryReserves - Imaginary reserves of token1 in the debt pool.
- * @returns {Object} An object containing the input amount and the calculated output amount.
- * @returns {number} amountIn - The input amount.
+ * @param {number} outDecimals - The number of decimals for the output token.
+ * @param {Object} currentLimits - current borrowable & withdrawable of the pool. in token decimals.
+ * @param {Object} currentLimits.borrowableToken0 - token0 borrow limit
+ * @param {number} currentLimits.borrowableToken0.available - token0 instant borrowable available
+ * @param {number} currentLimits.borrowableToken0.expandsTo - token0 maximum amount the available borrow amount expands to
+ * @param {number} currentLimits.borrowableToken0.expandDuration - duration for token0 available to grow to expandsTo
+ * @param {Object} currentLimits.borrowableToken1 - token1 borrow limit
+ * @param {number} currentLimits.borrowableToken1.available - token1 instant borrowable available
+ * @param {number} currentLimits.borrowableToken1.expandsTo - token1 maximum amount the available borrow amount expands to
+ * @param {number} currentLimits.borrowableToken1.expandDuration - duration for token1 available to grow to expandsTo
+ * @param {Object} currentLimits.withdrawableToken0 - token0 withdraw limit
+ * @param {number} currentLimits.withdrawableToken0.available - token0 instant withdrawable available
+ * @param {number} currentLimits.withdrawableToken0.expandsTo - token0 maximum amount the available withdraw amount expands to
+ * @param {number} currentLimits.withdrawableToken0.expandDuration - duration for token0 available to grow to expandsTo
+ * @param {Object} currentLimits.withdrawableToken1 - token1 withdraw limit
+ * @param {number} currentLimits.withdrawableToken1.available - token1 instant withdrawable available
+ * @param {number} currentLimits.withdrawableToken1.expandsTo - token1 maximum amount the available withdraw amount expands to
+ * @param {number} currentLimits.withdrawableToken1.expandDuration - duration for token1 available to grow to expandsTo
+ * @param {number} syncTime - timestamp in seconds when the limits were synced
  * @returns {number} amountOut - The calculated output amount.
  * @returns {error} - An error object if the operation fails.
  */
-func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves,
-	debtReserves DebtReserves) (*big.Int, *big.Int, error) {
+func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves CollateralReserves, debtReserves DebtReserves, outDecimals int64, currentLimits DexLimits, syncTime int64) (*big.Int, error) {
 	var (
 		colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
 		colReserveOut, debtReserveOut                                  *big.Int
+		borrowable, withdrawable                                       *big.Int
 	)
 
 	if swap0To1 {
@@ -355,6 +438,8 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		debtReserveOut = debtReserves.Token1RealReserves
 		debtIReserveIn = debtReserves.Token0ImaginaryReserves
 		debtIReserveOut = debtReserves.Token1ImaginaryReserves
+		borrowable = getExpandedLimit(syncTime, currentLimits.BorrowableToken1)
+		withdrawable = getExpandedLimit(syncTime, currentLimits.WithdrawableToken1)
 	} else {
 		colReserveOut = colReserves.Token0RealReserves
 		colIReserveIn = colReserves.Token1ImaginaryReserves
@@ -362,6 +447,20 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 		debtReserveOut = debtReserves.Token0RealReserves
 		debtIReserveIn = debtReserves.Token1ImaginaryReserves
 		debtIReserveOut = debtReserves.Token0ImaginaryReserves
+		borrowable = getExpandedLimit(syncTime, currentLimits.BorrowableToken0)
+		withdrawable = getExpandedLimit(syncTime, currentLimits.WithdrawableToken0)
+	}
+
+	// bring borrowable and withdrawable from token decimals to 1e12 decimals, same as amounts
+	var factor *big.Int
+	if DexAmountsDecimals > outDecimals {
+		factor = new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil)
+		borrowable = new(big.Int).Mul(borrowable, factor)
+		withdrawable = new(big.Int).Mul(withdrawable, factor)
+	} else {
+		factor = new(big.Int).Exp(bI10, big.NewInt(outDecimals-DexAmountsDecimals), nil)
+		borrowable = new(big.Int).Div(borrowable, factor)
+		withdrawable = new(big.Int).Div(withdrawable, factor)
 	}
 
 	// Check if all reserves of collateral pool are greater than 0
@@ -384,47 +483,98 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
 	} else if colPoolEnabled {
 		a = new(big.Int).Add(amountToSwap, big.NewInt(1)) // Route from collateral pool
 	} else {
-		return nil, nil, errors.New("no pools are enabled")
+		return nil, errors.New("no pools are enabled")
 	}
 
-	var amountOutCollateral, amountOutDebt *big.Int = bignumber.ZeroBI, bignumber.ZeroBI
+	amountInCollateral := big.NewInt(0)
+	amountOutCollateral := big.NewInt(0)
+	amountInDebt := big.NewInt(0)
+	amountOutDebt := big.NewInt(0)
+
+	triggerUpdateDebtReserves := false
+	triggerUpdateColReserves := false
+
 	if a.Cmp(bignumber.ZeroBI) <= 0 {
 		// Entire trade routes through debt pool
+		amountInDebt = amountToSwap
 		amountOutDebt = getAmountOut(amountToSwap, debtIReserveIn, debtIReserveOut)
-		if amountOutDebt.Cmp(debtReserveOut) > 0 {
-			return nil, nil, errors.New("insufficient liquidity")
-		}
 
-		updateDebtReserves(swap0To1, amountToSwap, amountOutDebt, debtReserves)
+		triggerUpdateDebtReserves = true
 	} else if a.Cmp(amountToSwap) >= 0 {
 		// Entire trade routes through collateral pool
+		amountInCollateral = amountToSwap
 		amountOutCollateral = getAmountOut(amountToSwap, colIReserveIn, colIReserveOut)
-		if amountOutCollateral.Cmp(colReserveOut) > 0 {
-			return nil, nil, errors.New("insufficient liquidity")
-		}
 
-		updateCollateralReserves(swap0To1, amountToSwap, amountOutCollateral, colReserves)
+		triggerUpdateColReserves = true
 	} else {
 		// Trade routes through both pools
-		var (
-			amountInCollateral = a
-			amountInDebt       = new(big.Int).Sub(amountToSwap, a)
-		)
+		amountInDebt.Sub(amountToSwap, a)
 
-		amountOutCollateral = getAmountOut(amountInCollateral, colIReserveIn, colIReserveOut)
-		if amountOutCollateral.Cmp(colReserveOut) > 0 {
-			return nil, nil, errors.New("insufficient liquidity")
-		}
-
+		amountInCollateral = a
+		amountOutCollateral = getAmountOut(a, colIReserveIn, colIReserveOut)
+		amountInDebt.Sub(amountToSwap, a)
 		amountOutDebt = getAmountOut(amountInDebt, debtIReserveIn, debtIReserveOut)
-		if amountOutDebt.Cmp(debtReserveOut) > 0 {
-			return nil, nil, errors.New("insufficient liquidity")
-		}
 
-		updateBothReserves(swap0To1, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt, colReserves, debtReserves)
+		triggerUpdateDebtReserves = true
+		triggerUpdateColReserves = true
 	}
 
-	return amountToSwap, new(big.Int).Add(amountOutCollateral, amountOutDebt), nil
+	if amountOutDebt.Cmp(debtReserveOut) > 0 {
+		return nil, errors.New(ErrInsufficientReserve.Error())
+	}
+
+	if amountOutCollateral.Cmp(colReserveOut) > 0 {
+		return nil, errors.New(ErrInsufficientReserve.Error())
+	}
+
+	if amountOutDebt.Cmp(borrowable) > 0 {
+		return nil, errors.New(ErrInsufficientBorrowable.Error())
+	}
+
+	if amountOutCollateral.Cmp(withdrawable) > 0 {
+		return nil, errors.New(ErrInsufficientWithdrawable.Error())
+	}
+
+	oldPrice := big.NewInt(0)
+	newPrice := big.NewInt(0)
+	priceDiff := big.NewInt(0)
+	maxPriceDiff := big.NewInt(0)
+	// from whatever pool higher amount of swap is routing we are taking that as final price, does not matter much because both pools final price should be same
+	if amountInCollateral.Cmp(amountInDebt) > 0 {
+		// new pool price from col pool
+		if swap0To1 {
+			oldPrice.Div(oldPrice.Mul(colIReserveOut, bI1e27), colIReserveIn)
+			newPrice.Div(newPrice.Mul(new(big.Int).Sub(colIReserveOut, amountOutCollateral), bI1e27), new(big.Int).Add(colIReserveIn, amountInCollateral))
+		} else {
+			oldPrice.Div(oldPrice.Mul(colIReserveIn, bI1e27), colIReserveOut)
+			newPrice.Div(newPrice.Mul(new(big.Int).Add(colIReserveIn, amountInCollateral), bI1e27), new(big.Int).Sub(colIReserveOut, amountOutCollateral))
+		}
+	} else {
+		// new pool price from debt pool
+		if swap0To1 {
+			oldPrice.Div(oldPrice.Mul(debtIReserveOut, bI1e27), debtIReserveIn)
+			newPrice.Div(newPrice.Mul(new(big.Int).Sub(debtIReserveOut, amountOutDebt), bI1e27), new(big.Int).Add(debtIReserveIn, amountInDebt))
+		} else {
+			oldPrice.Div(oldPrice.Mul(debtIReserveIn, bI1e27), debtIReserveOut)
+			newPrice.Div(newPrice.Mul(new(big.Int).Add(debtIReserveIn, amountInDebt), bI1e27), new(big.Int).Sub(debtIReserveOut, amountOutDebt))
+		}
+	}
+	priceDiff.Abs(priceDiff.Sub(oldPrice, newPrice))
+	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, big.NewInt(MaxPriceDiff)), bI100)
+	if priceDiff.Cmp(maxPriceDiff) > 0 {
+		// if price diff is > 5% then swap would revert.
+		return nil, errors.New(ErrInsufficientMaxPrice.Error())
+	}
+
+	if triggerUpdateColReserves && triggerUpdateDebtReserves {
+		updateBothReservesAndLimits(swap0To1, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt, colReserves, debtReserves, currentLimits)
+	} else if triggerUpdateColReserves {
+		updateCollateralReservesAndLimits(swap0To1, amountToSwap, amountOutCollateral, colReserves, currentLimits)
+	} else if triggerUpdateDebtReserves {
+		updateDebtReservesAndLimits(swap0To1, amountToSwap, amountOutDebt, debtReserves, currentLimits)
+	}
+
+	return new(big.Int).Add(amountOutCollateral, amountOutDebt), nil
 }
 
 /**
@@ -443,8 +593,25 @@ func swapInAdjusted(swap0To1 bool, amountToSwap *big.Int, colReserves Collateral
  * @param {number} debtReserves.token1ImaginaryReserves - Imaginary reserves of token1 in the debt pool.
  * @param {number} inDecimals - The number of decimals for the input token.
  * @param {number} outDecimals - The number of decimals for the output token.
- * @returns {number} amountIn - The input amount.
- * @returns {number} amountOut - The calculated output amount scaled to token decimals
+ * @param {Object} currentLimits - current borrowable & withdrawable of the pool. in token decimals.
+ * @param {Object} currentLimits.borrowableToken0 - token0 borrow limit
+ * @param {number} currentLimits.borrowableToken0.available - token0 instant borrowable available
+ * @param {number} currentLimits.borrowableToken0.expandsTo - token0 maximum amount the available borrow amount expands to
+ * @param {number} currentLimits.borrowableToken0.expandDuration - duration for token0 available to grow to expandsTo
+ * @param {Object} currentLimits.borrowableToken1 - token1 borrow limit
+ * @param {number} currentLimits.borrowableToken1.available - token1 instant borrowable available
+ * @param {number} currentLimits.borrowableToken1.expandsTo - token1 maximum amount the available borrow amount expands to
+ * @param {number} currentLimits.borrowableToken1.expandDuration - duration for token1 available to grow to expandsTo
+ * @param {Object} currentLimits.withdrawableToken0 - token0 withdraw limit
+ * @param {number} currentLimits.withdrawableToken0.available - token0 instant withdrawable available
+ * @param {number} currentLimits.withdrawableToken0.expandsTo - token0 maximum amount the available withdraw amount expands to
+ * @param {number} currentLimits.withdrawableToken0.expandDuration - duration for token0 available to grow to expandsTo
+ * @param {Object} currentLimits.withdrawableToken1 - token1 withdraw limit
+ * @param {number} currentLimits.withdrawableToken1.available - token1 instant withdrawable available
+ * @param {number} currentLimits.withdrawableToken1.expandsTo - token1 maximum amount the available withdraw amount expands to
+ * @param {number} currentLimits.withdrawableToken1.expandDuration - duration for token1 available to grow to expandsTo
+ * @param {number} syncTime - timestamp in seconds when the limits were synced
+ * @returns {number} amountOut - The calculated output amount.
  * @returns {error} - An error object if the operation fails.
  */
 func swapIn(
@@ -454,32 +621,30 @@ func swapIn(
 	debtReserves DebtReserves,
 	inDecimals int64,
 	outDecimals int64,
-) (*big.Int, *big.Int, error) {
+	currentLimits DexLimits,
+	syncTime int64,
+) (*big.Int, error) {
 	var amountInAdjusted *big.Int
 
 	if inDecimals > DexAmountsDecimals {
-		amountInAdjusted = new(big.Int).Div(amountIn,
-			new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-DexAmountsDecimals), nil))
+		amountInAdjusted = new(big.Int).Div(amountIn, new(big.Int).Exp(bI10, big.NewInt(inDecimals-DexAmountsDecimals), nil))
 	} else {
-		amountInAdjusted = new(big.Int).Mul(amountIn,
-			new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-inDecimals), nil))
+		amountInAdjusted = new(big.Int).Mul(amountIn, new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-inDecimals), nil))
 	}
 
-	_, amountOut, err := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves)
+	amountOut, err := swapInAdjusted(swap0To1, amountInAdjusted, colReserves, debtReserves, outDecimals, currentLimits, syncTime)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if outDecimals > DexAmountsDecimals {
-		amountOut = new(big.Int).Mul(amountOut,
-			new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-DexAmountsDecimals), nil))
+		amountOut = new(big.Int).Mul(amountOut, new(big.Int).Exp(bI10, big.NewInt(outDecimals-DexAmountsDecimals), nil))
 	} else {
-		amountOut = new(big.Int).Div(amountOut,
-			new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-outDecimals), nil))
+		amountOut = new(big.Int).Div(amountOut, new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil))
 	}
 
-	return amountIn, amountOut, nil
+	return amountOut, nil
 }
 
 /**
@@ -496,15 +661,41 @@ func swapIn(
  * @param {number} debtReserves.token1RealReserves - Real reserves of token1 in the debt pool.
  * @param {number} debtReserves.token0ImaginaryReserves - Imaginary reserves of token0 in the debt pool.
  * @param {number} debtReserves.token1ImaginaryReserves - Imaginary reserves of token1 in the debt pool.
+ * @param {number} outDecimals - The number of decimals for the output token.
+ * @param {Object} currentLimits - current borrowable & withdrawable of the pool. in token decimals.
+ * @param {Object} currentLimits.borrowableToken0 - token0 borrow limit
+ * @param {number} currentLimits.borrowableToken0.available - token0 instant borrowable available
+ * @param {number} currentLimits.borrowableToken0.expandsTo - token0 maximum amount the available borrow amount expands to
+ * @param {number} currentLimits.borrowableToken0.expandDuration - duration for token0 available to grow to expandsTo
+ * @param {Object} currentLimits.borrowableToken1 - token1 borrow limit
+ * @param {number} currentLimits.borrowableToken1.available - token1 instant borrowable available
+ * @param {number} currentLimits.borrowableToken1.expandsTo - token1 maximum amount the available borrow amount expands to
+ * @param {number} currentLimits.borrowableToken1.expandDuration - duration for token1 available to grow to expandsTo
+ * @param {Object} currentLimits.withdrawableToken0 - token0 withdraw limit
+ * @param {number} currentLimits.withdrawableToken0.available - token0 instant withdrawable available
+ * @param {number} currentLimits.withdrawableToken0.expandsTo - token0 maximum amount the available withdraw amount expands to
+ * @param {number} currentLimits.withdrawableToken0.expandDuration - duration for token0 available to grow to expandsTo
+ * @param {Object} currentLimits.withdrawableToken1 - token1 withdraw limit
+ * @param {number} currentLimits.withdrawableToken1.available - token1 instant withdrawable available
+ * @param {number} currentLimits.withdrawableToken1.expandsTo - token1 maximum amount the available withdraw amount expands to
+ * @param {number} currentLimits.withdrawableToken1.expandDuration - duration for token1 available to grow to expandsTo
+ * @param {number} syncTime - timestamp in seconds when the limits were synced
  * @returns {number} amountIn - The calculated input amount required for the swap.
- * @returns {number} amountOut - The specified output amount of the swap.
  * @returns {error} - An error object if the operation fails.
  */
-func swapOutAdjusted(swap0To1 bool, amountOut *big.Int, colReserves CollateralReserves,
-	debtReserves DebtReserves) (*big.Int, *big.Int, error) {
+func swapOutAdjusted(
+	swap0To1 bool,
+	amountOut *big.Int,
+	colReserves CollateralReserves,
+	debtReserves DebtReserves,
+	outDecimals int64,
+	currentLimits DexLimits,
+	syncTime int64,
+) (*big.Int, error) {
 	var (
 		colIReserveIn, colIReserveOut, debtIReserveIn, debtIReserveOut *big.Int
 		colReserveOut, debtReserveOut                                  *big.Int
+		borrowable, withdrawable                                       *big.Int
 	)
 
 	if swap0To1 {
@@ -514,6 +705,8 @@ func swapOutAdjusted(swap0To1 bool, amountOut *big.Int, colReserves CollateralRe
 		debtReserveOut = debtReserves.Token1RealReserves
 		debtIReserveIn = debtReserves.Token0ImaginaryReserves
 		debtIReserveOut = debtReserves.Token1ImaginaryReserves
+		borrowable = getExpandedLimit(syncTime, currentLimits.BorrowableToken1)
+		withdrawable = getExpandedLimit(syncTime, currentLimits.WithdrawableToken1)
 	} else {
 		colReserveOut = colReserves.Token0RealReserves
 		colIReserveIn = colReserves.Token1ImaginaryReserves
@@ -521,6 +714,20 @@ func swapOutAdjusted(swap0To1 bool, amountOut *big.Int, colReserves CollateralRe
 		debtReserveOut = debtReserves.Token0RealReserves
 		debtIReserveIn = debtReserves.Token1ImaginaryReserves
 		debtIReserveOut = debtReserves.Token0ImaginaryReserves
+		borrowable = getExpandedLimit(syncTime, currentLimits.BorrowableToken0)
+		withdrawable = getExpandedLimit(syncTime, currentLimits.WithdrawableToken0)
+	}
+
+	// bring borrowable and withdrawable from token decimals to 1e12 decimals, same as amounts
+	var factor *big.Int
+	if DexAmountsDecimals > outDecimals {
+		factor = new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil)
+		borrowable = new(big.Int).Mul(borrowable, factor)
+		withdrawable = new(big.Int).Mul(withdrawable, factor)
+	} else {
+		factor = new(big.Int).Exp(bI10, big.NewInt(outDecimals-DexAmountsDecimals), nil)
+		borrowable = new(big.Int).Div(borrowable, factor)
+		withdrawable = new(big.Int).Div(withdrawable, factor)
 	}
 
 	// Check if all reserves of collateral pool are greater than 0
@@ -543,45 +750,99 @@ func swapOutAdjusted(swap0To1 bool, amountOut *big.Int, colReserves CollateralRe
 	} else if colPoolEnabled {
 		a = new(big.Int).Add(amountOut, big.NewInt(1)) // Route from collateral pool
 	} else {
-		return nil, nil, errors.New("no pools are enabled")
+		return nil, errors.New("no pools are enabled")
 	}
 
-	var amountInCollateral, amountInDebt *big.Int = bignumber.ZeroBI, bignumber.ZeroBI
+	amountInCollateral := big.NewInt(0)
+	amountOutCollateral := big.NewInt(0)
+	amountInDebt := big.NewInt(0)
+	amountOutDebt := big.NewInt(0)
+
+	triggerUpdateDebtReserves := false
+	triggerUpdateColReserves := false
+
 	if a.Cmp(bignumber.ZeroBI) <= 0 {
 		// Entire trade routes through debt pool
+		amountOutDebt = amountOut
 		amountInDebt = getAmountIn(amountOut, debtIReserveIn, debtIReserveOut)
 
 		if amountOut.Cmp(debtReserveOut) > 0 {
-			return nil, nil, errors.New("insufficient liquidity")
+			return nil, errors.New(ErrInsufficientReserve.Error())
 		}
 
-		updateDebtReserves(swap0To1, amountInDebt, amountOut, debtReserves)
+		triggerUpdateDebtReserves = true
 	} else if a.Cmp(amountOut) >= 0 {
 		// Entire trade routes through collateral pool
+		amountOutCollateral = amountOut
 		amountInCollateral = getAmountIn(amountOut, colIReserveIn, colIReserveOut)
 		if amountOut.Cmp(colReserveOut) > 0 {
-			return nil, nil, errors.New("insufficient liquidity")
+			return nil, errors.New(ErrInsufficientReserve.Error())
 		}
 
-		updateCollateralReserves(swap0To1, amountInCollateral, amountOut, colReserves)
+		triggerUpdateColReserves = true
 	} else {
 		// Trade routes through both pools
-		var (
-			amountOutCollateral = a
-			amountOutDebt       = new(big.Int).Sub(amountOut, a)
-		)
-
-		amountInCollateral = getAmountIn(amountOutCollateral, colIReserveIn, colIReserveOut)
+		amountOutCollateral = a
+		amountInCollateral = getAmountIn(a, colIReserveIn, colIReserveOut)
+		amountOutDebt.Sub(amountOut, a)
 		amountInDebt = getAmountIn(amountOutDebt, debtIReserveIn, debtIReserveOut)
 
-		if new(big.Int).Sub(amountOut, a).Cmp(debtReserveOut) > 0 || a.Cmp(debtReserveOut) > 0 {
-			return nil, nil, errors.New("insufficient liquidity")
+		if amountOutDebt.Cmp(debtReserveOut) > 0 || amountOutCollateral.Cmp(colReserveOut) > 0 {
+			return nil, errors.New(ErrInsufficientReserve.Error())
 		}
 
-		updateBothReserves(swap0To1, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt, colReserves, debtReserves)
+		triggerUpdateDebtReserves = true
+		triggerUpdateColReserves = true
 	}
 
-	return new(big.Int).Add(amountInCollateral, amountInDebt), amountOut, nil
+	if amountOutDebt.Cmp(borrowable) > 0 {
+		return nil, errors.New(ErrInsufficientBorrowable.Error())
+	}
+
+	if amountOutCollateral.Cmp(withdrawable) > 0 {
+		return nil, errors.New(ErrInsufficientWithdrawable.Error())
+	}
+
+	oldPrice := big.NewInt(0)
+	newPrice := big.NewInt(0)
+	priceDiff := big.NewInt(0)
+	maxPriceDiff := big.NewInt(0)
+	// from whatever pool higher amount of swap is routing we are taking that as final price, does not matter much because both pools final price should be same
+	if amountOutCollateral.Cmp(amountOutDebt) > 0 {
+		// new pool price from col pool
+		if swap0To1 {
+			oldPrice.Div(oldPrice.Mul(colIReserveOut, bI1e27), colIReserveIn)
+			newPrice.Div(newPrice.Mul(new(big.Int).Sub(colIReserveOut, amountOutCollateral), bI1e27), new(big.Int).Add(colIReserveIn, amountInCollateral))
+		} else {
+			oldPrice.Div(oldPrice.Mul(colIReserveIn, bI1e27), colIReserveOut)
+			newPrice.Div(newPrice.Mul(new(big.Int).Add(colIReserveIn, amountInCollateral), bI1e27), new(big.Int).Sub(colIReserveOut, amountOutCollateral))
+		}
+	} else {
+		// new pool price from debt pool
+		if swap0To1 {
+			oldPrice.Div(oldPrice.Mul(debtIReserveOut, bI1e27), debtIReserveIn)
+			newPrice.Div(newPrice.Mul(new(big.Int).Sub(debtIReserveOut, amountOutDebt), bI1e27), new(big.Int).Add(debtIReserveIn, amountInDebt))
+		} else {
+			oldPrice.Div(oldPrice.Mul(debtIReserveIn, bI1e27), debtIReserveOut)
+			newPrice.Div(newPrice.Mul(new(big.Int).Add(debtIReserveIn, amountInDebt), bI1e27), new(big.Int).Sub(debtIReserveOut, amountOutDebt))
+		}
+	}
+	priceDiff.Abs(priceDiff.Sub(oldPrice, newPrice))
+	maxPriceDiff.Div(maxPriceDiff.Mul(oldPrice, big.NewInt(MaxPriceDiff)), bI100)
+	if priceDiff.Cmp(maxPriceDiff) > 0 {
+		// if price diff is > 5% then swap would revert.
+		return nil, errors.New(ErrInsufficientMaxPrice.Error())
+	}
+
+	if triggerUpdateColReserves && triggerUpdateDebtReserves {
+		updateBothReservesAndLimits(swap0To1, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt, colReserves, debtReserves, currentLimits)
+	} else if triggerUpdateColReserves {
+		updateCollateralReservesAndLimits(swap0To1, amountInCollateral, amountOutCollateral, colReserves, currentLimits)
+	} else if triggerUpdateDebtReserves {
+		updateDebtReservesAndLimits(swap0To1, amountInDebt, amountOutDebt, debtReserves, currentLimits)
+	}
+
+	return new(big.Int).Add(amountInCollateral, amountInDebt), nil
 }
 
 /**
@@ -600,8 +861,25 @@ func swapOutAdjusted(swap0To1 bool, amountOut *big.Int, colReserves CollateralRe
  * @param {number} debtReserves.token1ImaginaryReserves - Imaginary reserves of token1 in the debt pool.
  * @param {number} inDecimals - The number of decimals for the input token.
  * @param {number} outDecimals - The number of decimals for the output token.
- * @returns {number} amountIn - The calculated input amount required for the swap scaled to token decimals.
- * @returns {number} amountOut - The specified output amount of the swap.
+ * @param {Object} currentLimits - current borrowable & withdrawable of the pool. in token decimals.
+ * @param {Object} currentLimits.borrowableToken0 - token0 borrow limit
+ * @param {number} currentLimits.borrowableToken0.available - token0 instant borrowable available
+ * @param {number} currentLimits.borrowableToken0.expandsTo - token0 maximum amount the available borrow amount expands to
+ * @param {number} currentLimits.borrowableToken0.expandDuration - duration for token0 available to grow to expandsTo
+ * @param {Object} currentLimits.borrowableToken1 - token1 borrow limit
+ * @param {number} currentLimits.borrowableToken1.available - token1 instant borrowable available
+ * @param {number} currentLimits.borrowableToken1.expandsTo - token1 maximum amount the available borrow amount expands to
+ * @param {number} currentLimits.borrowableToken1.expandDuration - duration for token1 available to grow to expandsTo
+ * @param {Object} currentLimits.withdrawableToken0 - token0 withdraw limit
+ * @param {number} currentLimits.withdrawableToken0.available - token0 instant withdrawable available
+ * @param {number} currentLimits.withdrawableToken0.expandsTo - token0 maximum amount the available withdraw amount expands to
+ * @param {number} currentLimits.withdrawableToken0.expandDuration - duration for token0 available to grow to expandsTo
+ * @param {Object} currentLimits.withdrawableToken1 - token1 withdraw limit
+ * @param {number} currentLimits.withdrawableToken1.available - token1 instant withdrawable available
+ * @param {number} currentLimits.withdrawableToken1.expandsTo - token1 maximum amount the available withdraw amount expands to
+ * @param {number} currentLimits.withdrawableToken1.expandDuration - duration for token1 available to grow to expandsTo
+ * @param {number} syncTime - timestamp in seconds when the limits were synced
+ * @returns {number} amountIn - The calculated input amount required for the swap.
  * @returns {error} - An error object if the operation fails.
  */
 func swapOut(
@@ -611,64 +889,110 @@ func swapOut(
 	debtReserves DebtReserves,
 	inDecimals int64,
 	outDecimals int64,
-) (*big.Int, *big.Int, error) {
+	currentLimits DexLimits,
+	syncTime int64,
+) (*big.Int, error) {
 	var amountOutAdjusted *big.Int
 
 	if outDecimals > DexAmountsDecimals {
 		amountOutAdjusted = new(big.Int).Div(amountOut,
-			new(big.Int).Exp(big.NewInt(10), big.NewInt(outDecimals-DexAmountsDecimals), nil))
+			new(big.Int).Exp(bI10, big.NewInt(outDecimals-DexAmountsDecimals), nil))
 	} else {
 		amountOutAdjusted = new(big.Int).Mul(amountOut,
-			new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-outDecimals), nil))
+			new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-outDecimals), nil))
 	}
 
-	amountIn, _, err := swapOutAdjusted(swap0To1, amountOutAdjusted, colReserves, debtReserves)
+	amountIn, err := swapOutAdjusted(swap0To1, amountOutAdjusted, colReserves, debtReserves, outDecimals, currentLimits, syncTime)
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if inDecimals > DexAmountsDecimals {
 		amountIn = new(big.Int).Mul(amountIn,
-			new(big.Int).Exp(big.NewInt(10), big.NewInt(inDecimals-DexAmountsDecimals), nil))
+			new(big.Int).Exp(bI10, big.NewInt(inDecimals-DexAmountsDecimals), nil))
 	} else {
 		amountIn = new(big.Int).Div(amountIn,
-			new(big.Int).Exp(big.NewInt(10), big.NewInt(DexAmountsDecimals-inDecimals), nil))
+			new(big.Int).Exp(bI10, big.NewInt(DexAmountsDecimals-inDecimals), nil))
 	}
 
-	return amountIn, amountOut, nil
+	return amountIn, nil
 }
 
-func updateDebtReserves(swap0To1 bool, amountIn, amountOut *big.Int, debtReserves DebtReserves) {
+// Calculates the currently available swappable amount for a token limit considering expansion since last syncTime.
+func getExpandedLimit(syncTime int64, limit TokenLimit) *big.Int {
+	currentTime := time.Now().Unix() // get current time in seconds
+	elapsedTime := currentTime - syncTime
+
+	expandedAmount := big.NewInt(0).Set(limit.Available)
+
+	if elapsedTime < 10 {
+		// if almost no time has elapsed, return available amount
+		return expandedAmount
+	}
+
+	if elapsedTime >= limit.ExpandDuration.Int64() {
+		// if duration has passed, return max amount
+		expandedAmount = limit.ExpandsTo
+		return expandedAmount
+	}
+
+	expandedAmount = new(big.Int).Sub(limit.ExpandsTo, limit.Available)
+	expandedAmount.Mul(expandedAmount, big.NewInt(elapsedTime))
+	expandedAmount.Div(expandedAmount, limit.ExpandDuration)
+	expandedAmount.Add(expandedAmount, limit.Available)
+
+	return expandedAmount
+}
+
+func updateDebtReservesAndLimits(swap0To1 bool, amountIn, amountOut *big.Int, debtReserves DebtReserves, limits DexLimits) {
 	if swap0To1 {
 		debtReserves.Token0RealReserves.Add(debtReserves.Token0RealReserves, amountIn)
 		debtReserves.Token0ImaginaryReserves.Add(debtReserves.Token0ImaginaryReserves, amountIn)
 		debtReserves.Token1RealReserves.Sub(debtReserves.Token1RealReserves, amountOut)
 		debtReserves.Token1ImaginaryReserves.Sub(debtReserves.Token1ImaginaryReserves, amountOut)
+
+		// Comment Ref #4327563287
+		// if expandTo for borrowable and withdrawable match, that means they are a hard limit like liquidity layer balance
+		// or utilization limit. In that case, the available swap amount should increase by `amountIn` but it's not guaranteed
+		// because the actual borrow limit / withdrawal limit could be the limiting factor now, which could be even
+		// only +1 bigger. So not updating in amount to avoid any revert. The same applies on all other similar cases in the code
+		// below. Note a swap would anyway trigger an event, so the proper limits will be fetched shortly after the swap.
+		limits.BorrowableToken1.Available.Sub(limits.BorrowableToken1.Available, amountOut)
+		limits.BorrowableToken1.ExpandsTo.Sub(limits.BorrowableToken1.ExpandsTo, amountOut)
 	} else {
 		debtReserves.Token0RealReserves.Sub(debtReserves.Token0RealReserves, amountOut)
 		debtReserves.Token0ImaginaryReserves.Sub(debtReserves.Token0ImaginaryReserves, amountOut)
 		debtReserves.Token1RealReserves.Add(debtReserves.Token1RealReserves, amountIn)
 		debtReserves.Token1ImaginaryReserves.Add(debtReserves.Token1ImaginaryReserves, amountIn)
+
+		limits.BorrowableToken0.Available.Sub(limits.BorrowableToken0.Available, amountOut)
+		limits.BorrowableToken0.ExpandsTo.Sub(limits.BorrowableToken0.ExpandsTo, amountOut)
 	}
 }
 
-func updateCollateralReserves(swap0To1 bool, amountIn, amountOut *big.Int, colReserves CollateralReserves) {
+func updateCollateralReservesAndLimits(swap0To1 bool, amountIn, amountOut *big.Int, colReserves CollateralReserves, limits DexLimits) {
 	if swap0To1 {
 		colReserves.Token0RealReserves.Add(colReserves.Token0RealReserves, amountIn)
 		colReserves.Token0ImaginaryReserves.Add(colReserves.Token0ImaginaryReserves, amountIn)
 		colReserves.Token1RealReserves.Sub(colReserves.Token1RealReserves, amountOut)
 		colReserves.Token1ImaginaryReserves.Sub(colReserves.Token1ImaginaryReserves, amountOut)
+
+		limits.WithdrawableToken1.Available.Sub(limits.WithdrawableToken1.Available, amountOut)
+		limits.WithdrawableToken1.ExpandsTo.Sub(limits.WithdrawableToken1.ExpandsTo, amountOut)
 	} else {
 		colReserves.Token0RealReserves.Sub(colReserves.Token0RealReserves, amountOut)
 		colReserves.Token0ImaginaryReserves.Sub(colReserves.Token0ImaginaryReserves, amountOut)
 		colReserves.Token1RealReserves.Add(colReserves.Token1RealReserves, amountIn)
 		colReserves.Token1ImaginaryReserves.Add(colReserves.Token1ImaginaryReserves, amountIn)
+
+		limits.WithdrawableToken0.Available.Sub(limits.WithdrawableToken0.Available, amountOut)
+		limits.WithdrawableToken0.ExpandsTo.Sub(limits.WithdrawableToken0.ExpandsTo, amountOut)
 	}
 }
 
-func updateBothReserves(swap0To1 bool, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt *big.Int,
-	colReserves CollateralReserves, debtReserves DebtReserves) {
+func updateBothReservesAndLimits(swap0To1 bool, amountInCollateral, amountOutCollateral, amountInDebt, amountOutDebt *big.Int,
+	colReserves CollateralReserves, debtReserves DebtReserves, limits DexLimits) {
 	if swap0To1 {
 		colReserves.Token1RealReserves.Sub(colReserves.Token1RealReserves, amountOutCollateral)
 		colReserves.Token1ImaginaryReserves.Sub(colReserves.Token1ImaginaryReserves, amountOutCollateral)
@@ -679,6 +1003,11 @@ func updateBothReserves(swap0To1 bool, amountInCollateral, amountOutCollateral, 
 		debtReserves.Token1ImaginaryReserves.Sub(debtReserves.Token1ImaginaryReserves, amountOutDebt)
 		debtReserves.Token0RealReserves.Add(debtReserves.Token0RealReserves, amountInDebt)
 		debtReserves.Token0ImaginaryReserves.Add(debtReserves.Token0ImaginaryReserves, amountInDebt)
+
+		limits.BorrowableToken1.Available.Sub(limits.BorrowableToken1.Available, amountOutDebt)
+		limits.BorrowableToken1.ExpandsTo.Sub(limits.BorrowableToken1.ExpandsTo, amountOutDebt)
+		limits.WithdrawableToken1.Available.Sub(limits.WithdrawableToken1.Available, amountOutCollateral)
+		limits.WithdrawableToken1.ExpandsTo.Sub(limits.WithdrawableToken1.ExpandsTo, amountOutCollateral)
 	} else {
 		colReserves.Token1RealReserves.Add(colReserves.Token1RealReserves, amountInCollateral)
 		colReserves.Token1ImaginaryReserves.Add(colReserves.Token1ImaginaryReserves, amountInCollateral)
@@ -689,5 +1018,10 @@ func updateBothReserves(swap0To1 bool, amountInCollateral, amountOutCollateral, 
 		debtReserves.Token1ImaginaryReserves.Add(debtReserves.Token1ImaginaryReserves, amountInDebt)
 		debtReserves.Token0RealReserves.Sub(debtReserves.Token0RealReserves, amountOutDebt)
 		debtReserves.Token0ImaginaryReserves.Sub(debtReserves.Token0ImaginaryReserves, amountOutDebt)
+
+		limits.BorrowableToken0.Available.Sub(limits.BorrowableToken0.Available, amountOutDebt)
+		limits.BorrowableToken0.ExpandsTo.Sub(limits.BorrowableToken0.ExpandsTo, amountOutDebt)
+		limits.WithdrawableToken0.Available.Sub(limits.WithdrawableToken0.Available, amountOutCollateral)
+		limits.WithdrawableToken0.ExpandsTo.Sub(limits.WithdrawableToken0.ExpandsTo, amountOutCollateral)
 	}
 }

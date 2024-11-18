@@ -2,7 +2,6 @@ package dexT1
 
 import (
 	"context"
-	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -85,6 +84,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		extra := PoolExtra{
 			CollateralReserves: curPool.CollateralReserves,
 			DebtReserves:       curPool.DebtReserves,
+			DexLimits:          curPool.Limits,
 		}
 
 		extraBytes, err := json.Marshal(extra)
@@ -98,8 +98,16 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Exchange: string(valueobject.ExchangeFluidDexT1),
 			Type:     DexType,
 			Reserves: entity.PoolReserves{
-				new(big.Int).Add(curPool.CollateralReserves.Token0RealReserves, curPool.DebtReserves.Token0RealReserves).String(),
-				new(big.Int).Add(curPool.CollateralReserves.Token1RealReserves, curPool.DebtReserves.Token1RealReserves).String(),
+				getMaxReserves(
+					curPool.Limits.WithdrawableToken0,
+					curPool.Limits.BorrowableToken0,
+					curPool.CollateralReserves.Token0RealReserves,
+					curPool.DebtReserves.Token0RealReserves).String(),
+				getMaxReserves(
+					curPool.Limits.WithdrawableToken1,
+					curPool.Limits.BorrowableToken1,
+					curPool.CollateralReserves.Token1RealReserves,
+					curPool.DebtReserves.Token1RealReserves).String(),
 			},
 			Tokens: []*entity.PoolToken{
 				{
