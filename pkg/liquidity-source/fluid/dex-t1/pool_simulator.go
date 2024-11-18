@@ -174,14 +174,8 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 }
 
 func (s *PoolSimulator) validateAmountOut(swap0To1 bool, tokenAmountOut *big.Int) error {
-	if swap0To1 {
-		if tokenAmountOut.Cmp(s.GetReserves()[1]) > 0 {
-			return ErrInsufficientReserve
-		}
-	} else {
-		if tokenAmountOut.Cmp(s.GetReserves()[0]) > 0 {
-			return ErrInsufficientReserve
-		}
+	if tokenAmountOut.Cmp(s.GetReserves()[lo.Ternary(swap0To1, 1, 0)]) > 0 {
+		return ErrInsufficientReserve
 	}
 
 	return nil
