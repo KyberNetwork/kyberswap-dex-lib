@@ -153,16 +153,15 @@ func getMaxReserves(
 	}
 
 	maxRealReserves := new(big.Int).Add(realColReserves, realDebtReserves)
+	if decimals > DexAmountsDecimals {
+		maxRealReserves.Mul(maxRealReserves, bignumber.TenPowInt(int8(decimals)-DexAmountsDecimals))
+	} else if decimals < DexAmountsDecimals {
+		maxRealReserves.Div(maxRealReserves, bignumber.TenPowInt(DexAmountsDecimals-int8(decimals)))
+	}
 
 	var maxReserve = maxLimitReserves
 	if maxRealReserves.Cmp(maxLimitReserves) < 0 {
 		maxReserve = maxRealReserves
-	}
-
-	if decimals > DexAmountsDecimals {
-		maxReserve.Mul(maxReserve, bignumber.TenPowInt(int8(decimals)-DexAmountsDecimals))
-	} else if decimals < DexAmountsDecimals {
-		maxReserve.Div(maxReserve, bignumber.TenPowInt(DexAmountsDecimals-int8(decimals)))
 	}
 
 	return maxReserve
