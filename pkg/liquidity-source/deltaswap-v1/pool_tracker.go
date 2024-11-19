@@ -10,10 +10,10 @@ import (
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/logger"
-	"github.com/goccy/go-json"
-	"github.com/holiman/uint256"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 )
 
 type PoolTracker struct {
@@ -42,7 +42,7 @@ func (t *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
-	return p, nil
+	return t.getNewPoolState(ctx, p, params, nil)
 }
 
 func (t *PoolTracker) GetNewPoolStateWithOverrides(
