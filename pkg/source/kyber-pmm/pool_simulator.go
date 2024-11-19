@@ -163,12 +163,6 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapDirection := p.getSwapDirection(params.TokenAmountIn.Token)
 
 	if swapDirection == SwapDirectionBaseToQuote {
-		// amountInAfterDecimals := new(big.Float).Quo(
-		// 	new(big.Float).SetInt(params.TokenAmountIn.Amount),
-		// 	bignumber.TenPowDecimals(p.baseToken.Decimals),
-		// )
-
-		// p.baseToQuotePriceLevels = getNewPriceLevelsState(amountInAfterDecimals, p.baseToQuotePriceLevels)
 		newQuoteInventory, newBaseInventory, err := params.SwapLimit.UpdateLimit(p.quoteToken.Address, p.baseToken.Address, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
 		if err != nil {
 			fmt.Println("unable to update PMM info, error:", err)
@@ -176,13 +170,6 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		p.QuoteBalance = newQuoteInventory
 		p.BaseBalance = newBaseInventory
 	} else {
-		// amountInAfterDecimals := new(big.Float).Quo(
-		// 	new(big.Float).SetInt(params.TokenAmountIn.Amount),
-		// 	bignumber.TenPowDecimals(p.quoteToken.Decimals),
-		// )
-
-		// p.quoteToBasePriceLevels = getNewPriceLevelsState(amountInAfterDecimals, p.quoteToBasePriceLevels)
-
 		newBaseInventory, newQuoteInventory, err := params.SwapLimit.UpdateLimit(p.baseToken.Address, p.quoteToken.Address, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
 		if err != nil {
 			fmt.Println("unable to update PMM info, error:", err)
