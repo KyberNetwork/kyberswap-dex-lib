@@ -15,6 +15,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type PoolTracker struct {
@@ -136,19 +137,24 @@ func (d *PoolTracker) getNewPoolStateDodoV1(ctx context.Context, p entity.Pool) 
 		Params: nil,
 	}, []interface{}{&tradeAllowed})
 
-	calls.AddCall(&ethrpc.Call{
-		ABI:    v1PoolABI,
-		Target: p.Address,
-		Method: dodoV1MethodSellingAllowed,
-		Params: nil,
-	}, []interface{}{&sellingAllowed})
+	if d.config.ChainID != valueobject.ChainIDEthereum && p.Type != string(valueobject.ExchangeDodoClassical) {
+		calls.AddCall(&ethrpc.Call{
+			ABI:    v1PoolABI,
+			Target: p.Address,
+			Method: dodoV1MethodSellingAllowed,
+			Params: nil,
+		}, []interface{}{&sellingAllowed})
 
-	calls.AddCall(&ethrpc.Call{
-		ABI:    v1PoolABI,
-		Target: p.Address,
-		Method: dodoV1MethodBuyingAllowed,
-		Params: nil,
-	}, []interface{}{&buyingAllowed})
+		calls.AddCall(&ethrpc.Call{
+			ABI:    v1PoolABI,
+			Target: p.Address,
+			Method: dodoV1MethodBuyingAllowed,
+			Params: nil,
+		}, []interface{}{&buyingAllowed})
+	} else {
+		sellingAllowed = true
+		buyingAllowed = true
+	}
 
 	if _, err := calls.Aggregate(); err != nil {
 		logger.WithFields(logger.Fields{
