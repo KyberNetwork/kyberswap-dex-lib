@@ -9,6 +9,7 @@ type (
 	RemoteConfig struct {
 		Hash                  string              `json:"hash"`
 		AvailableSources      []Source            `json:"availableSources"`
+		UnscalableSources     []Source            `json:"unscalableSources"`
 		WhitelistedTokens     []WhitelistedToken  `json:"whitelistedTokens"`
 		FeatureFlags          FeatureFlags        `json:"featureFlags"`
 		BlacklistedPools      []string            `json:"blacklistedPools"`

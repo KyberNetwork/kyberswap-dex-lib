@@ -82,10 +82,6 @@ func (v *getRoutesParamsValidator) Validate(params params.GetRoutesParams) error
 		return err
 	}
 
-	if err := v.validateSources(params.ExcludedSources); err != nil {
-		return err
-	}
-
 	if err := v.validateSources(params.IncludedSources); err != nil {
 		return err
 	}

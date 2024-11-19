@@ -16,6 +16,9 @@ type GetRoutesParams struct {
 	// ExcludedSources name of sources are excluded in the route, separated by comma
 	ExcludedSources string `form:"excludedSources"`
 
+	// OnlyScalableSources whether to only include scalable sources and exclude all unscalable sources
+	OnlyScalableSources bool `form:"onlyScalableSources"`
+
 	// SaveGas best route is a single path route
 	SaveGas bool `form:"saveGas"`
 

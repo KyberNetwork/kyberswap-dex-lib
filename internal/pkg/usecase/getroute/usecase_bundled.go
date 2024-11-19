@@ -117,7 +117,7 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context, query dt
 		return nil, err
 	}
 
-	sources := u.getSources(query.IncludedSources, query.ExcludedSources)
+	sources := u.getSources(query.IncludedSources, query.ExcludedSources, query.OnlyScalableSources)
 
 	isHillClimbEnabled := u.config.Aggregator.FeatureFlags.IsHillClimbEnabled
 

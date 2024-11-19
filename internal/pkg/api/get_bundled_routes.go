@@ -92,15 +92,16 @@ func transformGetBundledRoutesParams(params params.GetBundledRoutesParams) (dto.
 	}
 
 	return dto.GetBundledRoutesQuery{
-		Pairs:           pairs,
-		IncludedSources: utils.TransformSliceParams(params.IncludedSources),
-		ExcludedSources: utils.TransformSliceParams(params.ExcludedSources),
-		SaveGas:         params.SaveGas,
-		GasInclude:      params.GasInclude,
-		GasPrice:        gasPrice,
-		ExcludedPools:   mapset.NewThreadUnsafeSet(utils.TransformSliceParams(params.ExcludedPools)...),
-		ClientId:        params.ClientId,
-		OverridePools:   params.OverridePools,
+		Pairs:               pairs,
+		IncludedSources:     utils.TransformSliceParams(params.IncludedSources),
+		ExcludedSources:     utils.TransformSliceParams(params.ExcludedSources),
+		OnlyScalableSources: params.OnlyScalableSources,
+		SaveGas:             params.SaveGas,
+		GasInclude:          params.GasInclude,
+		GasPrice:            gasPrice,
+		ExcludedPools:       mapset.NewThreadUnsafeSet(utils.TransformSliceParams(params.ExcludedPools)...),
+		ClientId:            params.ClientId,
+		OverridePools:       params.OverridePools,
 	}, nil
 }
 
@@ -110,7 +111,8 @@ func transformGetBundledRoutesResult(result *dto.GetBundledRoutesResult) *params
 	}
 
 	return &params.GetBundledRoutesResponse{
-		RoutesSummary: lo.Map(result.RoutesSummary, func(s *valueobject.RouteSummary, _ int) *params.RouteSummary { return transformRouteSummary(s) }),
+		RoutesSummary: lo.Map(result.RoutesSummary,
+			func(s *valueobject.RouteSummary, _ int) *params.RouteSummary { return transformRouteSummary(s) }),
 		RouterAddress: result.RouterAddress,
 	}
 }

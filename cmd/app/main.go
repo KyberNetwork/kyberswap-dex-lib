@@ -251,7 +251,8 @@ func apiAction(c *cli.Context) (err error) {
 		gas.NewRedisRepository(routerRedisClient.Client, ethClient, cfg.Repository.Gas.Redis),
 		cfg.Repository.Gas.Ristretto)
 
-	l1FeeParamsRepository := l2fee.NewRedisRepository(routerRedisClient.Client, l2fee.RedisL1FeeRepositoryConfig{Prefix: cfg.Redis.Prefix})
+	l1FeeParamsRepository := l2fee.NewRedisRepository(routerRedisClient.Client,
+		l2fee.RedisL1FeeRepositoryConfig{Prefix: cfg.Redis.Prefix})
 	l1FeeCalculator := usecase.NewL1FeeCalculator(l1FeeParamsRepository, common.HexToAddress(cfg.Encoder.RouterAddress))
 
 	tokenRepository := token.NewGoCacheRepository(
@@ -278,7 +279,8 @@ func apiAction(c *cli.Context) (err error) {
 			return err
 		}
 
-		onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository, cfg.Repository.OnchainPrice.Ristretto)
+		onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository,
+			cfg.Repository.OnchainPrice.Ristretto)
 		if err != nil {
 			return err
 		}
@@ -429,7 +431,8 @@ func apiAction(c *cli.Context) (err error) {
 	finderEngine := finderengine.NewPathFinderEngine(pathFinder, routeFinalizer)
 
 	customRouteConfig := getcustomroute.ReplaceAggregatorConfig(cfg.UseCase.GetRoute, cfg.UseCase.GetCustomRoute)
-	customRoutePathFinder, customRouteRouteFinalizer, err := getroute.InitializeFinderEngine(customRouteConfig, aevmClient)
+	customRoutePathFinder, customRouteRouteFinalizer, err := getroute.InitializeFinderEngine(customRouteConfig,
+		aevmClient)
 	if err != nil {
 		return err
 	}
@@ -470,7 +473,8 @@ func apiAction(c *cli.Context) (err error) {
 		rfqHandlerByPoolType[s.Handler] = rfqHandler
 	}
 
-	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, priceRepository, onchainpriceRepository, cfg.Common.GasTokenAddress,
+	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, priceRepository, onchainpriceRepository,
+		cfg.Common.GasTokenAddress,
 		cfg.Common.RouterAddress)
 	buildRouteUseCase := buildroute.NewBuildRouteUseCase(
 		tokenRepository,
@@ -495,11 +499,12 @@ func apiAction(c *cli.Context) (err error) {
 		poolRepository,
 		customRouteFinderEngine,
 		getcustomroute.Config{
-			ChainID:          customRouteConfig.ChainID,
-			RouterAddress:    customRouteConfig.RouterAddress,
-			GasTokenAddress:  customRouteConfig.GasTokenAddress,
-			AvailableSources: customRouteConfig.AvailableSources,
-			Aggregator:       customRouteConfig.Aggregator,
+			ChainID:           customRouteConfig.ChainID,
+			RouterAddress:     customRouteConfig.RouterAddress,
+			GasTokenAddress:   customRouteConfig.GasTokenAddress,
+			AvailableSources:  customRouteConfig.AvailableSources,
+			UnscalableSources: customRouteConfig.UnscalableSources,
+			Aggregator:        customRouteConfig.Aggregator,
 		},
 	)
 	l1Decoder := &decode.Decoder{}
@@ -683,7 +688,8 @@ func indexerAction(c *cli.Context) (err error) {
 			return err
 		}
 
-		onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository, cfg.Repository.OnchainPrice.Ristretto)
+		onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository,
+			cfg.Repository.OnchainPrice.Ristretto)
 		if err != nil {
 			return err
 		}
@@ -717,7 +723,8 @@ func indexerAction(c *cli.Context) (err error) {
 
 	var updateL1FeeJob *job.UpdateL1FeeJob
 	if cfg.Job.UpdateL1Fee.Interval > 0 {
-		l1FeeParamsRepository := l2fee.NewRedisRepository(routerRedisClient.Client, l2fee.RedisL1FeeRepositoryConfig{Prefix: cfg.Redis.Prefix})
+		l1FeeParamsRepository := l2fee.NewRedisRepository(routerRedisClient.Client,
+			l2fee.RedisL1FeeRepositoryConfig{Prefix: cfg.Redis.Prefix})
 
 		updateL1FeeUseCase := usecase.NewUpdateL1FeeParams(
 			cfg.Common.ChainID,

@@ -20,7 +20,8 @@ func mockHandleSuccess(w http.ResponseWriter, r *http.Request) {
 		Data: ConfigResponseData{
 			Hash: "xyz",
 			Config: ConfigResponseDataConfig{
-				AvailableSources: []valueobject.Source{"uniswap", "uniswapv3", "dmm"},
+				AvailableSources:  []valueobject.Source{"uniswap", "uniswapv3", "dmm"},
+				UnscalableSources: []valueobject.Source{"pmm"},
 				WhitelistedTokens: []valueobject.WhitelistedToken{
 					{
 						Address:  "address1",
@@ -117,8 +118,9 @@ func TestGetConfigs(t *testing.T) {
 	}
 
 	want := valueobject.RemoteConfig{
-		Hash:             "xyz",
-		AvailableSources: []valueobject.Source{"uniswap", "uniswapv3", "dmm"},
+		Hash:              "xyz",
+		AvailableSources:  []valueobject.Source{"uniswap", "uniswapv3", "dmm"},
+		UnscalableSources: []valueobject.Source{"pmm"},
 		WhitelistedTokens: []valueobject.WhitelistedToken{
 			{
 				Address:  "address1",

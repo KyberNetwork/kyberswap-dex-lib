@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
@@ -171,7 +172,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		return nil, err
 	}
 
-	sources := u.getSources(query.IncludedSources, query.ExcludedSources)
+	sources := u.getSources(query.IncludedSources, query.ExcludedSources, query.OnlyScalableSources)
 
 	isHillClimbEnabled := u.config.Aggregator.FeatureFlags.IsHillClimbEnabled
 
@@ -273,22 +274,19 @@ func (u *useCase) getGasPrice(ctx context.Context, customGasPrice *big.Float) (*
 	return new(big.Float).SetInt(suggestedGasPrice), nil
 }
 
-func (u *useCase) getSources(includedSources []string, excludedSources []string) []string {
-	sources := make([]string, 0, len(u.config.AvailableSources))
-	includedSourcesLen := len(includedSources)
-	excludedSourcesLen := len(excludedSources)
-
-	for _, source := range u.config.AvailableSources {
-		if excludedSourcesLen > 0 && utils.StringContains(excludedSources, source) {
-			continue
-		}
-
-		if includedSourcesLen > 0 && !utils.StringContains(includedSources, source) {
-			continue
-		}
-
-		sources = append(sources, source)
+func (u *useCase) getSources(includedSources []string, excludedSources []string, onlyScalableSources bool) []string {
+	var sources mapset.Set[string]
+	if len(includedSources) > 0 {
+		sources = mapset.NewThreadUnsafeSet(includedSources...)
+	} else {
+		sources = mapset.NewThreadUnsafeSet(u.config.AvailableSources...)
 	}
 
-	return sources
+	sources.RemoveAll(excludedSources...)
+
+	if onlyScalableSources {
+		sources.RemoveAll(u.config.UnscalableSources...)
+	}
+
+	return sources.ToSlice()
 }

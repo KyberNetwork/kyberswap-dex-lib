@@ -19,6 +19,7 @@ const (
 
 type ConfigResponseDataConfig struct {
 	AvailableSources      []valueobject.Source            `json:"availableSources"`
+	UnscalableSources     []valueobject.Source            `json:"unscalableSources"`
 	WhitelistedTokens     []valueobject.WhitelistedToken  `json:"whitelistedTokens"`
 	BlacklistedPools      []string                        `json:"blacklistedPools"`
 	FeatureFlags          valueobject.FeatureFlags        `json:"featureFlags"`
@@ -58,7 +59,8 @@ func NewRestRepository(url string) *RestRepository {
 	}
 }
 
-func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string, currentHash string) (valueobject.RemoteConfig, error) {
+func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string,
+	currentHash string) (valueobject.RemoteConfig, error) {
 
 	var (
 		err     error
@@ -94,6 +96,7 @@ func (f *RestRepository) GetConfigs(_ context.Context, serviceCode string, curre
 	return valueobject.RemoteConfig{
 		Hash:                  cfgResp.Data.Hash,
 		AvailableSources:      cfgResp.Data.Config.AvailableSources,
+		UnscalableSources:     cfgResp.Data.Config.UnscalableSources,
 		WhitelistedTokens:     cfgResp.Data.Config.WhitelistedTokens,
 		BlacklistedPools:      cfgResp.Data.Config.BlacklistedPools,
 		FeatureFlags:          cfgResp.Data.Config.FeatureFlags,

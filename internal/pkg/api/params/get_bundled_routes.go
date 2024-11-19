@@ -5,8 +5,10 @@ import "github.com/goccy/go-json"
 type GetBundledRoutesParams struct {
 	// TokensIn addresses of token to be swapped
 	TokensIn []string `form:"tokensIn"`
+
 	// TokensOut addresses of token to be received
 	TokensOut []string `form:"tokensOut"`
+
 	// AmountsIn amounts of TokensIn
 	AmountsIn []string `form:"amountsIn"`
 
@@ -15,6 +17,9 @@ type GetBundledRoutesParams struct {
 
 	// ExcludedSources name of sources are excluded in the route, separated by comma
 	ExcludedSources string `form:"excludedSources"`
+
+	// OnlyScalableSources whether to only include scalable sources and exclude all unscalable sources
+	OnlyScalableSources bool `form:"onlyScalableSources"`
 
 	// SaveGas best route is a single path route
 	SaveGas bool `form:"saveGas"`

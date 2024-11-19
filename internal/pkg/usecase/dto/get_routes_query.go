@@ -14,8 +14,9 @@ type GetRoutesQuery struct {
 	TokenOut string
 	AmountIn *big.Int
 
-	IncludedSources []string
-	ExcludedSources []string
+	IncludedSources     []string
+	ExcludedSources     []string
+	OnlyScalableSources bool
 
 	SaveGas    bool
 	GasInclude bool
@@ -36,8 +37,9 @@ type GetBundledRoutesQueryPair struct {
 type GetBundledRoutesQuery struct {
 	Pairs []*GetBundledRoutesQueryPair
 
-	IncludedSources []string
-	ExcludedSources []string
+	IncludedSources     []string
+	ExcludedSources     []string
+	OnlyScalableSources bool
 
 	SaveGas    bool
 	GasInclude bool

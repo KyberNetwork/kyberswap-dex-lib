@@ -163,6 +163,7 @@ func (cl *ConfigLoader) Reload(ctx context.Context) error {
 
 		// Set each field so that it does not override the address of the pointer cl.config
 		cl.setAvailableSources(remoteCfg.AvailableSources)
+		cl.setUnscalableSources(remoteCfg.UnscalableSources)
 		cl.setWhitelistedTokens(remoteCfg.WhitelistedTokens)
 		cl.setBlacklistedPools(remoteCfg.BlacklistedPools)
 		cl.setFeatureFlags(remoteCfg.FeatureFlags)
@@ -203,7 +204,19 @@ func (cl *ConfigLoader) setAvailableSources(availableSources []valueobject.Sourc
 	}
 
 	cl.config.Common.AvailableSources = strAvailableSources
+	cl.config.UseCase.GetCustomRoute.AvailableSources = strAvailableSources
 	cl.config.UseCase.GetRoute.AvailableSources = strAvailableSources
+}
+
+func (cl *ConfigLoader) setUnscalableSources(unscalableSources []valueobject.Source) {
+	strUnscalableSources := make([]string, 0, len(unscalableSources))
+
+	for _, s := range unscalableSources {
+		strUnscalableSources = append(strUnscalableSources, string(s))
+	}
+
+	cl.config.UseCase.GetCustomRoute.UnscalableSources = strUnscalableSources
+	cl.config.UseCase.GetRoute.UnscalableSources = strUnscalableSources
 }
 
 func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.WhitelistedToken) {
@@ -213,6 +226,7 @@ func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.Whi
 	}
 
 	cl.config.Common.WhitelistedTokenSet = whitelistedTokenSet
+	cl.config.UseCase.GetCustomRoute.Aggregator.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.GetRoute.Aggregator.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.BuildRoute.FaultyPoolsConfig.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.IndexPools.WhitelistedTokenSet = whitelistedTokenSet
@@ -230,6 +244,7 @@ func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {
 
 func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
 	cl.config.Common.FeatureFlags = featureFlags
+	cl.config.UseCase.GetCustomRoute.Aggregator.FeatureFlags = featureFlags
 	cl.config.UseCase.GetRoute.Aggregator.FeatureFlags = featureFlags
 	cl.config.UseCase.BuildRoute.FeatureFlags = featureFlags
 	cl.config.Validator.BuildRouteParams.FeatureFlags = featureFlags
@@ -244,6 +259,7 @@ func (cl *ConfigLoader) setLog(log valueobject.Log) {
 }
 
 func (cl *ConfigLoader) setFinderOptions(finderOptions valueobject.FinderOptions) {
+	cl.config.UseCase.GetCustomRoute.Aggregator.FinderOptions = finderOptions
 	cl.config.UseCase.GetRoute.Aggregator.FinderOptions = finderOptions
 }
 
@@ -252,6 +268,7 @@ func (cl *ConfigLoader) setPoolManagerOptionsFromFinderOptions(finderOptions val
 }
 
 func (cl *ConfigLoader) setGetBestPoolOptions(getBestPoolsOptions valueobject.GetBestPoolsOptions) {
+	cl.config.UseCase.GetCustomRoute.Aggregator.GetBestPoolsOptions = getBestPoolsOptions
 	cl.config.UseCase.GetRoute.Aggregator.GetBestPoolsOptions = getBestPoolsOptions
 }
 
