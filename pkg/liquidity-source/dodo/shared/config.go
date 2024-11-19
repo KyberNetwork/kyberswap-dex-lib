@@ -8,7 +8,7 @@ import (
 
 type Config struct {
 	DexID             string              `json:"dexID"`
-	ChainID           valueobject.ChainID `json:"chainID"`
+	ChainID           valueobject.ChainID `json:"chainId"`
 	SubgraphAPI       string              `json:"subgraphAPI"`
 	SubgraphHeaders   http.Header         `json:"subgraphHeaders"`
 	NewPoolLimit      int                 `json:"newPoolLimit"`
