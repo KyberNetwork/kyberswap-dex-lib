@@ -186,13 +186,21 @@ func withRetry[R any](ctx context.Context, c *Client, onTimeout time.Duration, o
 	return result, err
 }
 
+// LatestStateRoot returns the latest state root hash from AEVM
+// It returns empty hash if error, so the consumer of this function should handle it accordingly
 func (c *Client) LatestStateRoot(ctx context.Context) (aevmcommon.Hash, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] LatestStateRoot")
 	defer span.End()
 
-	return withRetry(ctx, c, c.retryOnTimeout, func(ctx context.Context, client aevmclient.Client) (aevmcommon.Hash, error) {
+	hash, err := withRetry(ctx, c, c.retryOnTimeout, func(ctx context.Context, client aevmclient.Client) (aevmcommon.Hash, error) {
 		return client.LatestStateRoot(ctx)
 	})
+	if err != nil {
+		// return empty hash if error
+		return aevmcommon.Hash{}, nil
+	}
+
+	return hash, nil
 }
 
 func (c *Client) SingleCall(ctx context.Context, req *aevmtypes.SingleCallParams) (*aevmtypes.CallResult, error) {

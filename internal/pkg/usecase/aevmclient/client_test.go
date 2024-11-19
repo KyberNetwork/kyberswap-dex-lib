@@ -11,6 +11,7 @@ import (
 	"github.com/KyberNetwork/aevm/common"
 	"github.com/KyberNetwork/aevm/types"
 	aevmtypes "github.com/KyberNetwork/aevm/types"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/util/sets"
 )
@@ -129,4 +130,21 @@ func TestClientWithRetry(t *testing.T) {
 	stateRoot, err := c.LatestStateRoot(context.Background())
 	require.NoError(t, err)
 	fmt.Printf("%s\n", stateRoot)
+}
+
+func TestLatestStateRoot_AEVMServerUnavailable(t *testing.T) {
+	c, err := NewClient(Config{
+		ServerURLs: []string{
+			"localhost:xxxx", // this server is not available or down
+		},
+		RetryOnTimeoutMs: 100,
+		MaxRetry:         3,
+	}, func(url string) (aevmclient.Client, error) {
+		return aevmclient.NewGRPCClient(url)
+	})
+	require.NoError(t, err)
+
+	stateRoot, err := c.LatestStateRoot(context.Background())
+	require.NoError(t, err)
+	assert.Equalf(t, common.Hash{}, stateRoot, "stateRoot should be empty")
 }

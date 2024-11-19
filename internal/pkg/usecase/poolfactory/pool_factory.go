@@ -52,7 +52,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
-	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
@@ -450,6 +449,30 @@ func (f *PoolFactory) NewSwapLimit(limits map[string]map[string]*big.Int) map[st
 	return limitMap
 }
 
+// getAEVMDexHandler gets AEVM dex handler based on the config. If the stateRoot is empty, it will return an error.
+func (f *PoolFactory) getAEVMDexHandler(
+	poolType string,
+	entityPool entity.Pool,
+	stateRoot common.Hash,
+	newAEVMFunc func(entityPool entity.Pool, stateRoot common.Hash) (*aevmpoolwrapper.PoolWrapper, error),
+	newGoSimulatorFunc func(entityPool entity.Pool) (poolpkg.IPoolSimulator, error),
+) (poolpkg.IPoolSimulator, error) {
+	if f.config.UseAEVM && f.config.DexUseAEVM[poolType] && stateRoot != (common.Hash{}) {
+		return newAEVMFunc(entityPool, stateRoot)
+	}
+
+	if newGoSimulatorFunc != nil {
+		return newGoSimulatorFunc(entityPool)
+	}
+
+	return nil, errors.WithMessagef(
+		ErrPoolTypeFactoryNotFound,
+		"[PoolFactory.getAEVMDexHandler] pool: [%s] » type: [%s]",
+		entityPool.Address,
+		entityPool.Type,
+	)
+}
+
 // newPool receives entity.Pool, based on its type to return matched factory method
 // if there is no matched factory method, it returns ErrPoolTypeFactoryNotFound
 func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (poolpkg.IPoolSimulator, error) {
@@ -639,28 +662,11 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 	case pooltypes.PoolTypes.NuriV2:
 		return f.newNuriV2(entityPool)
 	case ambient.DexTypeAmbient:
-		if f.config.UseAEVM && f.config.DexUseAEVM[ambient.DexTypeAmbient] {
-			return f.newAmbientAEVM(entityPool, stateRoot)
-		}
-		return nil, errors.WithMessagef(
-			ErrPoolTypeFactoryNotFound,
-			"[PoolFactory.NewPoolSimulator] pool: [%s] » type: [%s]",
-			entityPool.Address,
-			entityPool.Type,
-		)
+		return f.getAEVMDexHandler(ambient.DexTypeAmbient, entityPool, stateRoot, f.newAmbientAEVM, nil)
 	case pooltypes.PoolTypes.EtherVista:
 		return f.newEtherVista(entityPool)
 	case pooltypes.PoolTypes.MaverickV2:
-		if f.config.UseAEVM && f.config.DexUseAEVM[maverickv2.DexType] {
-			return f.newMaverickV2AEVM(entityPool, stateRoot)
-		}
-
-		return nil, errors.WithMessagef(
-			ErrPoolTypeFactoryNotFound,
-			"[PoolFactory.NewPoolSimulator] pool: [%s] » type: [%s]",
-			entityPool.Address,
-			entityPool.Type,
-		)
+		return f.getAEVMDexHandler(pooltypes.PoolTypes.MaverickV2, entityPool, stateRoot, f.newMaverickV2AEVM, nil)
 	case pooltypes.PoolTypes.LitePSM:
 		return f.newLitePSM(entityPool)
 	case pooltypes.PoolTypes.MkrSky:
