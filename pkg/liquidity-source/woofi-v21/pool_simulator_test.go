@@ -5,14 +5,16 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
+	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/holiman/uint256"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPoolSimulator_NewPool(t *testing.T) {
@@ -317,8 +319,10 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Amount: bignumber.NewBig10("12174493"),
 				},
 				Gas: DefaultGas.Swap,
-				SwapInfo: woofiV2SwapInfo{
-					newPrice: number.NewUint256("159708927161"),
+				SwapInfo: &woofiV2SwapInfo{
+					newPrice:           number.NewUint256("159708927161"),
+					newMaxNotionalSwap: number.NewUint256("951288835552"),
+					newMaxGamma:        number.NewUint256("2999244976951054"),
 				},
 			},
 		},
@@ -384,8 +388,10 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Amount: bignumber.NewBig10("934864"),
 				},
 				Gas: DefaultGas.Swap,
-				SwapInfo: woofiV2SwapInfo{
-					newPrice: number.NewUint256("159714925501"),
+				SwapInfo: &woofiV2SwapInfo{
+					newPrice:           number.NewUint256("159714925501"),
+					newMaxNotionalSwap: number.NewUint256("996261476638"),
+					newMaxGamma:        number.NewUint256("2994205288788900"),
 				},
 			},
 		},
@@ -465,9 +471,15 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 					Amount: bignumber.NewBig10("13032560"),
 				},
 				Gas: DefaultGas.Swap,
-				SwapInfo: woofiV2SwapInfo{
-					newBase1Price: number.NewUint256("2661411836801"),
-					newBase2Price: number.NewUint256("159814885839"),
+				SwapInfo: &woofiV2SwapInfo{
+					newPrice:           number.NewUint256("2661411836801"),
+					newMaxNotionalSwap: number.NewUint256("947843883507"),
+					newMaxGamma:        number.NewUint256("2743391906854428"),
+					base2: &woofiV2SwapInfo{
+						newPrice:           number.NewUint256("159814885839"),
+						newMaxNotionalSwap: number.NewUint256("947882791139"),
+						newMaxGamma:        number.NewUint256("2919218326265450"),
+					},
 				},
 			},
 		},
@@ -481,7 +493,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 						Address:  "poolAddress",
 						Exchange: string(valueobject.ExchangeWooFiV3),
 						Type:     DexTypeWooFiV21,
-						Tokens:   []string{"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f"},
+						Tokens: []string{"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+							"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f"},
 					},
 				},
 				quoteToken: tc.quoteToken,
@@ -708,7 +721,8 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 						Address:  "poolAddress",
 						Exchange: string(valueobject.ExchangeWooFiV3),
 						Type:     DexTypeWooFiV21,
-						Tokens:   []string{"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", "0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f"},
+						Tokens: []string{"0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+							"0xff970a61a04b1ca14834a43f5de4533ebddb5cc8", "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f"},
 					},
 				},
 				quoteToken: tc.quoteToken,
@@ -740,4 +754,43 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			assert.Equal(t, tc.expectedReserves[tokenOut], tokenOutReserve)
 		})
 	}
+}
+
+func Test_MergeSwaps(t *testing.T) {
+	var pool entity.Pool
+	_ = json.Unmarshal([]byte(`{"address":"0xed9e3f98bbed560e66b89aac922e29d4596a9642","reserveUsd":1434709.233731838,"amplifiedTvl":1434709.233731838,"exchange":"woofi-v3","type":"woofi-v21","timestamp":1732040619,"reserves":["406865559957507156307876","129023588232874584509","81929754585","123360877725096143906","241126457260"],"tokens":[{"address":"0x78c1b0c915c4faa5fffa6cabf0219da63d7f4cb8","name":"","symbol":"","decimals":18,"weight":1,"swappable":true},{"address":"0xdeaddeaddeaddeaddeaddeaddeaddeaddead1111","name":"","symbol":"","decimals":18,"weight":1,"swappable":true},{"address":"0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9","name":"","symbol":"","decimals":6,"weight":1,"swappable":true},{"address":"0xcda86a272531e8640cd7f1a92c01839911b90bb0","name":"","symbol":"","decimals":18,"weight":1,"swappable":true},{"address":"0x201eba5cc46d216ce6dc03f6a759e8e766e956ae","name":"","symbol":"","decimals":6,"weight":1,"swappable":true}],"extra":"{\"quoteToken\":\"0x201eba5cc46d216ce6dc03f6a759e8e766e956ae\",\"tokenInfos\":{\"0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9\":{\"reserve\":\"81929754585\",\"feeRate\":5,\"maxGamma\":\"500000000000000\",\"maxNotionalSwap\":\"1000000000000\"},\"0x201eba5cc46d216ce6dc03f6a759e8e766e956ae\":{\"reserve\":\"241126457260\",\"feeRate\":5,\"maxGamma\":\"500000000000000\",\"maxNotionalSwap\":\"1000000000000\"},\"0x78c1b0c915c4faa5fffa6cabf0219da63d7f4cb8\":{\"reserve\":\"406865559957507156307876\",\"feeRate\":25,\"maxGamma\":\"5000000000000000\",\"maxNotionalSwap\":\"500000000000\"},\"0xcda86a272531e8640cd7f1a92c01839911b90bb0\":{\"reserve\":\"123360877725096143906\",\"feeRate\":25,\"maxGamma\":\"3000000000000000\",\"maxNotionalSwap\":\"50000000000\"},\"0xdeaddeaddeaddeaddeaddeaddeaddeaddead1111\":{\"reserve\":\"129023588232874584509\",\"feeRate\":25,\"maxGamma\":\"3000000000000000\",\"maxNotionalSwap\":\"1000000000000\"}},\"wooracle\":{\"address\":\"0x2A375567f5E13F6bd74fDa7627Df3b1Af6BfA5a6\",\"states\":{\"0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9\":{\"price\":\"99901071\",\"spread\":101000000000000,\"coeff\":1400000000,\"woFeasible\":true},\"0x201eba5cc46d216ce6dc03f6a759e8e766e956ae\":{\"price\":\"0\",\"spread\":0,\"coeff\":0,\"woFeasible\":false},\"0x78c1b0c915c4faa5fffa6cabf0219da63d7f4cb8\":{\"price\":\"74330000\",\"spread\":994000000000000,\"coeff\":100000000000,\"woFeasible\":true},\"0xcda86a272531e8640cd7f1a92c01839911b90bb0\":{\"price\":\"326994000000\",\"spread\":755000000000000,\"coeff\":4200000000,\"woFeasible\":true},\"0xdeaddeaddeaddeaddeaddeaddeaddeaddead1111\":{\"price\":\"312108000000\",\"spread\":755000000000000,\"coeff\":4200000000,\"woFeasible\":true}},\"decimals\":{\"0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9\":8,\"0x201eba5cc46d216ce6dc03f6a759e8e766e956ae\":8,\"0x78c1b0c915c4faa5fffa6cabf0219da63d7f4cb8\":8,\"0xcda86a272531e8640cd7f1a92c01839911b90bb0\":8,\"0xdeaddeaddeaddeaddeaddeaddeaddeaddead1111\":8},\"timestamp\":1732040600,\"staleDuration\":9999999999,\"bound\":25000000000000000},\"cloracle\":{\"0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9\":{\"oracleAddress\":\"0x480c8bff72148e0934429a51e5bf9c122f30e1b4\",\"answer\":\"99995020\",\"updatedAt\":\"1732040399\",\"cloPreferred\":false},\"0x201eba5cc46d216ce6dc03f6a759e8e766e956ae\":{\"oracleAddress\":\"0xcced0e6b0850b1d62c53312f2a312c3caeb78611\",\"answer\":\"100113500\",\"updatedAt\":\"1732040399\",\"cloPreferred\":false},\"0x78c1b0c915c4faa5fffa6cabf0219da63d7f4cb8\":{\"oracleAddress\":\"0xd7a801aa8cd28ced2ef0c418e71d44d7744edc3f\",\"answer\":\"74014436\",\"updatedAt\":\"1732037657\",\"cloPreferred\":false},\"0xcda86a272531e8640cd7f1a92c01839911b90bb0\":{\"oracleAddress\":\"0x3708d5ee0dce068022f11dbb35b0cc2062f3afbb\",\"answer\":\"327647445614\",\"updatedAt\":\"1732040399\",\"cloPreferred\":false},\"0xdeaddeaddeaddeaddeaddeaddeaddeaddead1111\":{\"oracleAddress\":\"0xca941f1b43cd2d7882fc6fc0457e9d76aff377e2\",\"answer\":\"312159751502\",\"updatedAt\":\"1732037657\",\"cloPreferred\":false}}}"}`),
+		&pool)
+
+	poolSim, err := NewPoolSimulator(pool)
+	assert.NoError(t, err)
+
+	_, err = poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		TokenAmountIn: poolpkg.TokenAmount{
+			Token:  "0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9",
+			Amount: bignumber.NewBig10("400000000000"),
+		},
+		TokenOut: "0xdeaddeaddeaddeaddeaddeaddeaddeaddead1111",
+	})
+	assert.Error(t, err)
+
+	tokenAmtIn250k := poolpkg.TokenAmount{
+		Token:  "0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9",
+		Amount: bignumber.NewBig10("200000000000"),
+	}
+	res, err := poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		TokenAmountIn: tokenAmtIn250k,
+		TokenOut:      "0xdeaddeaddeaddeaddeaddeaddeaddeaddead1111",
+	})
+	assert.NoError(t, err)
+	poolSim.UpdateBalance(poolpkg.UpdateBalanceParams{
+		TokenAmountIn:  tokenAmtIn250k,
+		TokenAmountOut: *res.TokenAmountOut,
+		Fee:            *res.Fee,
+		SwapInfo:       res.SwapInfo,
+	})
+	_, err = poolSim.CalcAmountOut(poolpkg.CalcAmountOutParams{
+		TokenAmountIn: tokenAmtIn250k,
+		TokenOut:      "0xdeaddeaddeaddeaddeaddeaddeaddeaddead1111",
+	})
+	assert.Error(t, err)
 }

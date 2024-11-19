@@ -50,9 +50,10 @@ type (
 	}
 
 	woofiV2SwapInfo struct {
-		newPrice      *uint256.Int
-		newBase1Price *uint256.Int
-		newBase2Price *uint256.Int
+		newPrice           *uint256.Int
+		newMaxNotionalSwap *uint256.Int
+		newMaxGamma        *uint256.Int
+		base2              *woofiV2SwapInfo
 	}
 
 	Gas struct {
@@ -107,7 +108,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 
 	var (
 		amountOut, swapFee *uint256.Int
-		swapInfo           woofiV2SwapInfo
+		swapInfo           *woofiV2SwapInfo
 		err                error
 	)
 
@@ -116,36 +117,19 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 		return nil, ErrInvalidAmountIn
 	}
 	if tokenAmountIn.Token == s.quoteToken {
-		var newPrice *uint256.Int
-		amountOut, swapFee, newPrice, err = s._sellQuote(tokenOut, amountIn)
+		amountOut, swapFee, swapInfo, err = s._sellQuote(tokenOut, amountIn)
 		if err != nil {
 			return &poolpkg.CalcAmountOutResult{}, err
-		}
-
-		swapInfo = woofiV2SwapInfo{
-			newPrice: newPrice,
 		}
 	} else if tokenOut == s.quoteToken {
-		var newPrice *uint256.Int
-		amountOut, swapFee, newPrice, err = s._sellBase(tokenAmountIn.Token, amountIn)
+		amountOut, swapFee, swapInfo, err = s._sellBase(tokenAmountIn.Token, amountIn)
 		if err != nil {
 			return &poolpkg.CalcAmountOutResult{}, err
-		}
-
-		swapInfo = woofiV2SwapInfo{
-			newPrice: newPrice,
 		}
 	} else {
-		var newBase1Price, newBase2Price *uint256.Int
-		amountOut, swapFee, newBase1Price, newBase2Price, err = s._swapBaseToBase(tokenAmountIn.Token, tokenOut,
-			amountIn)
+		amountOut, swapFee, swapInfo, err = s._swapBaseToBase(tokenAmountIn.Token, tokenOut, amountIn)
 		if err != nil {
 			return &poolpkg.CalcAmountOutResult{}, err
-		}
-
-		swapInfo = woofiV2SwapInfo{
-			newBase1Price: newBase1Price,
-			newBase2Price: newBase2Price,
 		}
 	}
 
@@ -164,7 +148,7 @@ func (s *PoolSimulator) CalcAmountOut(params poolpkg.CalcAmountOutParams) (*pool
 }
 
 func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
-	_, ok := params.SwapInfo.(woofiV2SwapInfo)
+	_, ok := params.SwapInfo.(*woofiV2SwapInfo)
 	if !ok {
 		logger.Error("failed to UpdateBalancer for WooFiV2 pool, wrong swapInfo type")
 		return
@@ -181,64 +165,30 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} { return nil }
 
-// _sellBase
-// https://arbiscan.io/address/0xCf4EA1688bc23DD93D933edA535F8B72FC8934Ec#code#F1#L432
-func (s *PoolSimulator) _sellBase(
-	baseToken string,
-	baseAmount *uint256.Int,
-) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
-	if baseToken == s.quoteToken {
-		return nil, nil, nil, ErrBaseTokenIsQuoteToken
-	}
-
-	state := s._wooracleV2State(baseToken)
-
-	quoteAmount, newPrice, err := s._calcQuoteAmountSellBase(baseToken, baseAmount, state)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	swapFee := new(uint256.Int).Div(
-		new(uint256.Int).Mul(
-			quoteAmount,
-			uint256.NewInt(uint64(s.tokenInfos[baseToken].FeeRate)),
-		),
-		Number_1e5,
-	)
-
-	quoteAmount = new(uint256.Int).Sub(quoteAmount, swapFee)
-
-	// tokenInfos[quoteToken].reserve = uint192(tokenInfos[quoteToken].reserve - quoteAmount - swapFee);
-	if s.tokenInfos[s.quoteToken].Reserve.Lt(new(uint256.Int).Add(quoteAmount, swapFee)) {
-		return nil, nil, nil, ErrArithmeticOverflowUnderflow
-	}
-
-	return quoteAmount, swapFee, newPrice, nil
-}
-
 // _sellQuote
 // https://arbiscan.io/address/0xCf4EA1688bc23DD93D933edA535F8B72FC8934Ec#code#F1#L479
 func (s *PoolSimulator) _sellQuote(
 	baseToken string,
 	quoteAmount *uint256.Int,
-) (*uint256.Int, *uint256.Int, *uint256.Int, error) {
+) (*uint256.Int, *uint256.Int, *woofiV2SwapInfo, error) {
 	if baseToken == s.quoteToken {
 		return nil, nil, nil, ErrBaseTokenIsQuoteToken
 	}
 
-	swapFee := new(uint256.Int).Div(
-		new(uint256.Int).Mul(
+	swapFee := new(uint256.Int)
+	swapFee = swapFee.Div(
+		swapFee.Mul(
 			quoteAmount,
-			uint256.NewInt(uint64(s.tokenInfos[baseToken].FeeRate)),
+			swapFee.SetUint64(uint64(s.tokenInfos[baseToken].FeeRate)),
 		),
 		Number_1e5,
 	)
 
-	quoteAmount = new(uint256.Int).Sub(quoteAmount, swapFee)
+	quoteAmount = quoteAmount.Sub(quoteAmount, swapFee)
 
 	state := s._wooracleV2State(baseToken)
 
-	baseAmount, newPrice, err := s._calcBaseAmountSellQuote(baseToken, quoteAmount, state)
+	baseAmount, swapInfo, err := s._calcBaseAmountSellQuote(baseToken, quoteAmount, state)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -248,7 +198,43 @@ func (s *PoolSimulator) _sellQuote(
 		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
-	return baseAmount, swapFee, newPrice, nil
+	return baseAmount, swapFee, swapInfo, nil
+}
+
+// _sellBase
+// https://arbiscan.io/address/0xCf4EA1688bc23DD93D933edA535F8B72FC8934Ec#code#F1#L432
+func (s *PoolSimulator) _sellBase(
+	baseToken string,
+	baseAmount *uint256.Int,
+) (*uint256.Int, *uint256.Int, *woofiV2SwapInfo, error) {
+	if baseToken == s.quoteToken {
+		return nil, nil, nil, ErrBaseTokenIsQuoteToken
+	}
+
+	state := s._wooracleV2State(baseToken)
+
+	quoteAmount, swapInfo, err := s._calcQuoteAmountSellBase(baseToken, baseAmount, state)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	swapFee := new(uint256.Int)
+	swapFee = swapFee.Div(
+		swapFee.Mul(
+			quoteAmount,
+			swapFee.SetUint64(uint64(s.tokenInfos[baseToken].FeeRate)),
+		),
+		Number_1e5,
+	)
+
+	quoteAmount = quoteAmount.Sub(quoteAmount, swapFee)
+
+	// tokenInfos[quoteToken].reserve = uint192(tokenInfos[quoteToken].reserve - quoteAmount - swapFee);
+	if s.tokenInfos[s.quoteToken].Reserve.Lt(new(uint256.Int).Add(quoteAmount, swapFee)) {
+		return nil, nil, nil, ErrArithmeticOverflowUnderflow
+	}
+
+	return quoteAmount, swapFee, swapInfo, nil
 }
 
 // _swapBaseToBase
@@ -257,7 +243,7 @@ func (s *PoolSimulator) _swapBaseToBase(
 	baseToken1 string,
 	baseToken2 string,
 	base1Amount *uint256.Int,
-) (*uint256.Int, *uint256.Int, *uint256.Int, *uint256.Int, error) {
+) (*uint256.Int, *uint256.Int, *woofiV2SwapInfo, error) {
 	state1 := s._wooracleV2State(baseToken1)
 	state2 := s._wooracleV2State(baseToken2)
 
@@ -277,31 +263,39 @@ func (s *PoolSimulator) _swapBaseToBase(
 
 	state1.Spread, state2.Spread = spread, spread
 
-	quoteAmount, newBase1Price, err := s._calcQuoteAmountSellBase(baseToken1, base1Amount, state1)
+	quoteAmount, swapInfo, err := s._calcQuoteAmountSellBase(baseToken1, base1Amount, state1)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
-	swapFee := new(uint256.Int).Div(new(uint256.Int).Mul(quoteAmount, uint256.NewInt(uint64(feeRate))), Number_1e5)
+	swapFee := new(uint256.Int)
+	swapFee = swapFee.Div(
+		swapFee.Mul(
+			quoteAmount,
+			swapFee.SetUint64(uint64(feeRate)),
+		),
+		Number_1e5,
+	)
 
-	quoteAmount = new(uint256.Int).Sub(quoteAmount, swapFee)
+	quoteAmount = quoteAmount.Sub(quoteAmount, swapFee)
 
 	// tokenInfos[quoteToken].reserve = uint192(tokenInfos[quoteToken].reserve - swapFee);
 	if s.tokenInfos[s.quoteToken].Reserve.Lt(swapFee) {
-		return nil, nil, nil, nil, ErrArithmeticOverflowUnderflow
+		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
-	base2Amount, newBase2Price, err := s._calcBaseAmountSellQuote(baseToken2, quoteAmount, state2)
+	base2Amount, base2SwapInfo, err := s._calcBaseAmountSellQuote(baseToken2, quoteAmount, state2)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	// tokenInfos[baseToken2].reserve = uint192(tokenInfos[baseToken2].reserve - base2Amount);
 	if s.tokenInfos[baseToken2].Reserve.Lt(base2Amount) {
-		return nil, nil, nil, nil, ErrArithmeticOverflowUnderflow
+		return nil, nil, nil, ErrArithmeticOverflowUnderflow
 	}
 
-	return base2Amount, swapFee, newBase1Price, newBase2Price, nil
+	swapInfo.base2 = base2SwapInfo
+	return base2Amount, swapFee, swapInfo, nil
 }
 
 // _calcBaseAmountSellQuote
@@ -310,56 +304,65 @@ func (s *PoolSimulator) _calcBaseAmountSellQuote(
 	baseToken string,
 	quoteAmount *uint256.Int,
 	state State,
-) (*uint256.Int, *uint256.Int, error) {
+) (*uint256.Int, *woofiV2SwapInfo, error) {
 	if !state.WoFeasible {
 		return nil, nil, ErrOracleIsNotFeasible
 	}
-	if state.Price.Cmp(uint256.NewInt(0)) <= 0 {
+	if state.Price.Sign() <= 0 {
 		return nil, nil, ErrOraclePriceNotPositive
 	}
 
 	decs := s.decimalInfo(baseToken)
 	tokenInfoBase := s.tokenInfos[baseToken]
 
-	if maxNotionalSwap := tokenInfoBase.MaxNotionalSwap; maxNotionalSwap == nil || quoteAmount.Cmp(maxNotionalSwap) > 0 {
+	maxNotionalSwap := tokenInfoBase.MaxNotionalSwap
+	if maxNotionalSwap == nil || quoteAmount.Cmp(maxNotionalSwap) > 0 {
 		return nil, nil, ErrNotionalSwapExceedsLimit
 	}
 
 	// gamma = k * quote_amount; and decimal 18
-	gamma := new(uint256.Int).Div(
-		new(uint256.Int).Mul(quoteAmount, uint256.NewInt(state.Coeff)),
+	var gamma uint256.Int
+	gamma.Div(
+		gamma.Mul(quoteAmount, gamma.SetUint64(state.Coeff)),
 		decs.quoteDec,
 	)
 
-	if maxGamma := tokenInfoBase.MaxGamma; maxGamma == nil || gamma.Cmp(maxGamma) > 0 {
+	maxGamma := tokenInfoBase.MaxGamma
+	if maxGamma == nil || gamma.Cmp(maxGamma) > 0 {
 		return nil, nil, ErrGammaExceedsLimit
 	}
 
 	// baseAmount = quoteAmount / oracle.price * (1 - oracle.k * quoteAmount - oracle.spread)
-	baseAmount := new(uint256.Int).Div(
-		new(uint256.Int).Div(
-			new(uint256.Int).Mul(
-				new(uint256.Int).Mul(
+	var num, deno uint256.Int
+	baseAmount := num.Div(
+		num.Div(
+			num.Mul(
+				num.Mul(
 					quoteAmount,
-					new(uint256.Int).Mul(decs.baseDec, decs.priceDec),
+					num.Mul(decs.baseDec, decs.priceDec),
 				),
-				new(uint256.Int).Sub(
-					new(uint256.Int).Sub(number.Number_1e18, gamma),
+				deno.Sub(
+					deno.Sub(number.Number_1e18, &gamma),
 					uint256.NewInt(state.Spread),
 				),
 			),
 			state.Price,
 		),
-		new(uint256.Int).Mul(number.Number_1e18, decs.quoteDec),
+		deno.Mul(number.Number_1e18, decs.quoteDec),
 	)
 
 	// new_price = oracle.price / (1 - k * quoteAmount)
-	newPrice := new(uint256.Int).Div(
-		new(uint256.Int).Mul(number.Number_1e18, state.Price),
-		new(uint256.Int).Sub(number.Number_1e18, gamma),
+	newPrice := new(uint256.Int)
+	newPrice = newPrice.Div(
+		newPrice.Mul(number.Number_1e18, state.Price),
+		deno.Sub(number.Number_1e18, &gamma),
 	)
 
-	return baseAmount, newPrice, nil
+	return baseAmount, &woofiV2SwapInfo{
+		newPrice:           newPrice,
+		newMaxNotionalSwap: new(uint256.Int).Sub(maxNotionalSwap, quoteAmount),
+		newMaxGamma:        new(uint256.Int).Sub(maxGamma, &gamma),
+	}, nil
 }
 
 // _calcQuoteAmountSellBase
@@ -368,7 +371,7 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 	baseToken string,
 	baseAmount *uint256.Int,
 	state State,
-) (*uint256.Int, *uint256.Int, error) {
+) (*uint256.Int, *woofiV2SwapInfo, error) {
 	if !state.WoFeasible {
 		return nil, nil, ErrOracleIsNotFeasible
 	}
@@ -379,62 +382,72 @@ func (s *PoolSimulator) _calcQuoteAmountSellBase(
 	decs := s.decimalInfo(baseToken)
 	tokenInfoBase := s.tokenInfos[baseToken]
 
-	notionalSwap := new(uint256.Int).Div(
-		new(uint256.Int).Mul(
-			new(uint256.Int).Mul(baseAmount, state.Price),
+	var notionalSwap, deno uint256.Int
+	notionalSwap.Div(
+		notionalSwap.Mul(
+			notionalSwap.Mul(baseAmount, state.Price),
 			decs.quoteDec,
 		),
-		new(uint256.Int).Mul(decs.baseDec, decs.priceDec),
+		deno.Mul(decs.baseDec, decs.priceDec),
 	)
 
-	if maxNotionalSwap := tokenInfoBase.MaxNotionalSwap; maxNotionalSwap == nil || notionalSwap.Cmp(maxNotionalSwap) > 0 {
+	maxNotionalSwap := tokenInfoBase.MaxNotionalSwap
+	if maxNotionalSwap == nil || notionalSwap.Cmp(maxNotionalSwap) > 0 {
 		return nil, nil, ErrNotionalSwapExceedsLimit
 	}
 
 	// gamma = k * price * base_amount; and decimal 18
-	gamma := new(uint256.Int).Div(
-		new(uint256.Int).Mul(
-			new(uint256.Int).Mul(uint256.NewInt(state.Coeff), state.Price),
+	var gamma uint256.Int
+	gamma.Div(
+		gamma.Mul(
+			gamma.Mul(gamma.SetUint64(state.Coeff), state.Price),
 			baseAmount,
 		),
-		new(uint256.Int).Mul(decs.priceDec, decs.baseDec),
+		&deno,
 	)
 
-	if maxGamma := tokenInfoBase.MaxGamma; maxGamma == nil || gamma.Cmp(maxGamma) > 0 {
+	maxGamma := tokenInfoBase.MaxGamma
+	if maxGamma == nil || gamma.Cmp(maxGamma) > 0 {
 		return nil, nil, ErrGammaExceedsLimit
 	}
 
 	// quoteAmount = baseAmount * oracle.price * (1 - oracle.k * baseAmount * oracle.price - oracle.spread)
-	quoteAmount := new(uint256.Int).Div(
-		new(uint256.Int).Div(
-			new(uint256.Int).Mul(
-				new(uint256.Int).Div(
-					new(uint256.Int).Mul(
-						new(uint256.Int).Mul(baseAmount, state.Price),
+	quoteAmount := new(uint256.Int)
+	quoteAmount = quoteAmount.Div(
+		quoteAmount.Div(
+			quoteAmount.Mul(
+				quoteAmount.Div(
+					quoteAmount.Mul(
+						quoteAmount.Mul(baseAmount, state.Price),
 						decs.quoteDec,
 					),
 					decs.priceDec,
 				),
-				new(uint256.Int).Sub(
-					new(uint256.Int).Sub(uint256.NewInt(1e18), gamma),
+				deno.Sub(
+					deno.Sub(number.Number_1e18, &gamma),
 					uint256.NewInt(state.Spread),
 				),
 			),
-			uint256.NewInt(1e18),
+			number.Number_1e18,
 		),
 		decs.baseDec,
 	)
 
 	// newPrice = oracle.price * (1 - k * oracle.price * baseAmount)
-	newPrice := new(uint256.Int).Div(
-		new(uint256.Int).Mul(
-			new(uint256.Int).Sub(number.Number_1e18, gamma),
+	newPrice := new(uint256.Int)
+	newPrice = newPrice.Div(
+		newPrice.Mul(
+			newPrice.Sub(number.Number_1e18, &gamma),
 			state.Price,
 		),
 		number.Number_1e18,
 	)
 
-	return quoteAmount, newPrice, nil
+	return quoteAmount, &woofiV2SwapInfo{
+		newPrice:           newPrice,
+		newMaxNotionalSwap: new(uint256.Int).Sub(maxNotionalSwap, &notionalSwap),
+		newMaxGamma:        new(uint256.Int).Sub(maxGamma, &gamma),
+	}, nil
 }
 
 // decimalInfo
@@ -467,24 +480,26 @@ func (s *PoolSimulator) _wooracleV2Price(base string) (*uint256.Int, bool) {
 
 	cloPrice, _ := s._wooracleCloPriceInQuote(base, s.quoteToken)
 
-	woFeasible := !woPrice.Eq(number.Zero) && time.Now().Unix() <= s.wooracle.Timestamp+s.wooracle.StaleDuration
+	woFeasible := woPrice.Sign() != 0 && time.Now().Unix() <= s.wooracle.Timestamp+s.wooracle.StaleDuration
 
 	bound := uint256.NewInt(s.wooracle.Bound)
-	priceLowerBound := new(uint256.Int).Div(
-		new(uint256.Int).Mul(
+	priceLowerBound := new(uint256.Int)
+	priceLowerBound = priceLowerBound.Div(
+		priceLowerBound.Mul(
 			cloPrice,
-			new(uint256.Int).Sub(number.Number_1e18, bound),
+			priceLowerBound.Sub(number.Number_1e18, bound),
 		),
 		number.Number_1e18,
 	)
-	priceUpperBound := new(uint256.Int).Div(
-		new(uint256.Int).Mul(
+	priceUpperBound := new(uint256.Int)
+	priceUpperBound = priceUpperBound.Div(
+		priceUpperBound.Mul(
 			cloPrice,
-			new(uint256.Int).Add(number.Number_1e18, bound),
+			priceUpperBound.Add(number.Number_1e18, bound),
 		),
 		number.Number_1e18,
 	)
-	woPriceInbound := cloPrice.Eq(number.Zero) || (priceLowerBound.Cmp(woPrice) <= 0 && woPrice.Cmp(priceUpperBound) <= 0)
+	woPriceInbound := cloPrice.Sign() == 0 || (priceLowerBound.Cmp(woPrice) <= 0 && woPrice.Cmp(priceUpperBound) <= 0)
 
 	if woFeasible {
 		return woPrice, woPriceInbound
@@ -495,7 +510,7 @@ func (s *PoolSimulator) _wooracleV2Price(base string) (*uint256.Int, bool) {
 		priceOut = number.Zero
 	}
 
-	return priceOut, !priceOut.Eq(number.Zero)
+	return priceOut, priceOut.Sign() != 0
 }
 
 // WooracleV2._cloPriceInQuote
@@ -515,8 +530,9 @@ func (s *PoolSimulator) _wooracleCloPriceInQuote(fromToken string, toToken strin
 
 	ceoff := new(uint256.Int).Exp(number.Number_10, uint256.NewInt(quoteDecimal))
 
-	refPrice := new(uint256.Int).Div(
-		new(uint256.Int).Mul(baseRefPrice, ceoff),
+	refPrice := new(uint256.Int)
+	refPrice = refPrice.Div(
+		refPrice.Mul(baseRefPrice, ceoff),
 		quoteRefPrice,
 	)
 	refTimestamp := quoteUpdatedAt
@@ -527,48 +543,8 @@ func (s *PoolSimulator) _wooracleCloPriceInQuote(fromToken string, toToken strin
 	return refPrice, int64(refTimestamp.Uint64())
 }
 
-func (s *PoolSimulator) updateBalanceSellBase(params poolpkg.UpdateBalanceParams) {
-	swapInfo := params.SwapInfo.(woofiV2SwapInfo)
-	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
-	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
-	swapFee, _ := uint256.FromBig(params.Fee.Amount)
-	tokenInfoIn, tokenInfoOut := s.tokenInfos[params.TokenAmountIn.Token], s.tokenInfos[params.TokenAmountOut.Token]
-
-	newBaseReserves := amountIn.Add(
-		tokenInfoIn.Reserve,
-		amountIn,
-	)
-	newQuoteReserve := swapFee.Sub(
-		amountOut.Sub(
-			tokenInfoOut.Reserve,
-			amountOut,
-		),
-		swapFee,
-	)
-
-	s.tokenInfos[params.TokenAmountIn.Token] = TokenInfo{
-		Reserve:         newBaseReserves,
-		FeeRate:         tokenInfoIn.FeeRate,
-		MaxGamma:        tokenInfoIn.MaxGamma,
-		MaxNotionalSwap: tokenInfoIn.MaxNotionalSwap,
-	}
-	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
-		Reserve:         newQuoteReserve,
-		FeeRate:         tokenInfoOut.FeeRate,
-		MaxGamma:        tokenInfoOut.MaxGamma,
-		MaxNotionalSwap: tokenInfoOut.MaxNotionalSwap,
-	}
-	stateIn := s.wooracle.States[params.TokenAmountIn.Token]
-	s.wooracle.States[params.TokenAmountIn.Token] = State{
-		Price:      swapInfo.newPrice,
-		Spread:     stateIn.Spread,
-		Coeff:      stateIn.Coeff,
-		WoFeasible: stateIn.WoFeasible,
-	}
-}
-
 func (s *PoolSimulator) updateBalanceSellQuote(params poolpkg.UpdateBalanceParams) {
-	swapInfo := params.SwapInfo.(woofiV2SwapInfo)
+	swapInfo := params.SwapInfo.(*woofiV2SwapInfo)
 	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
 	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
 	swapFee, _ := uint256.FromBig(params.Fee.Amount)
@@ -592,6 +568,46 @@ func (s *PoolSimulator) updateBalanceSellQuote(params poolpkg.UpdateBalanceParam
 	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
 		Reserve:         newBaseReserves,
 		FeeRate:         tokenInfoOut.FeeRate,
+		MaxGamma:        swapInfo.newMaxGamma,
+		MaxNotionalSwap: swapInfo.newMaxNotionalSwap,
+	}
+	stateIn := s.wooracle.States[params.TokenAmountIn.Token]
+	s.wooracle.States[params.TokenAmountIn.Token] = State{
+		Price:      swapInfo.newPrice,
+		Spread:     stateIn.Spread,
+		Coeff:      stateIn.Coeff,
+		WoFeasible: stateIn.WoFeasible,
+	}
+}
+
+func (s *PoolSimulator) updateBalanceSellBase(params poolpkg.UpdateBalanceParams) {
+	swapInfo := params.SwapInfo.(*woofiV2SwapInfo)
+	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
+	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
+	swapFee, _ := uint256.FromBig(params.Fee.Amount)
+	tokenInfoIn, tokenInfoOut := s.tokenInfos[params.TokenAmountIn.Token], s.tokenInfos[params.TokenAmountOut.Token]
+
+	newBaseReserves := amountIn.Add(
+		tokenInfoIn.Reserve,
+		amountIn,
+	)
+	newQuoteReserve := swapFee.Sub(
+		amountOut.Sub(
+			tokenInfoOut.Reserve,
+			amountOut,
+		),
+		swapFee,
+	)
+
+	s.tokenInfos[params.TokenAmountIn.Token] = TokenInfo{
+		Reserve:         newBaseReserves,
+		FeeRate:         tokenInfoIn.FeeRate,
+		MaxGamma:        swapInfo.newMaxGamma,
+		MaxNotionalSwap: swapInfo.newMaxNotionalSwap,
+	}
+	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
+		Reserve:         newQuoteReserve,
+		FeeRate:         tokenInfoOut.FeeRate,
 		MaxGamma:        tokenInfoOut.MaxGamma,
 		MaxNotionalSwap: tokenInfoOut.MaxNotionalSwap,
 	}
@@ -605,7 +621,7 @@ func (s *PoolSimulator) updateBalanceSellQuote(params poolpkg.UpdateBalanceParam
 }
 
 func (s *PoolSimulator) updateBalanceSwapBaseToBase(params poolpkg.UpdateBalanceParams) {
-	swapInfo := params.SwapInfo.(woofiV2SwapInfo)
+	swapInfo := params.SwapInfo.(*woofiV2SwapInfo)
 	amountIn, _ := uint256.FromBig(params.TokenAmountIn.Amount)
 	amountOut, _ := uint256.FromBig(params.TokenAmountOut.Amount)
 	swapFee, _ := uint256.FromBig(params.Fee.Amount)
@@ -619,14 +635,14 @@ func (s *PoolSimulator) updateBalanceSwapBaseToBase(params poolpkg.UpdateBalance
 	s.tokenInfos[params.TokenAmountIn.Token] = TokenInfo{
 		Reserve:         newBase1Reserves,
 		FeeRate:         tokenInfoIn.FeeRate,
-		MaxGamma:        tokenInfoIn.MaxGamma,
-		MaxNotionalSwap: tokenInfoIn.MaxNotionalSwap,
+		MaxGamma:        swapInfo.newMaxGamma,
+		MaxNotionalSwap: swapInfo.newMaxNotionalSwap,
 	}
 	s.tokenInfos[params.TokenAmountOut.Token] = TokenInfo{
 		Reserve:         newBase2Reserves,
 		FeeRate:         tokenInfoOut.FeeRate,
-		MaxGamma:        tokenInfoOut.MaxGamma,
-		MaxNotionalSwap: tokenInfoOut.MaxNotionalSwap,
+		MaxGamma:        swapInfo.base2.newMaxGamma,
+		MaxNotionalSwap: swapInfo.base2.newMaxNotionalSwap,
 	}
 	s.tokenInfos[s.quoteToken] = TokenInfo{
 		Reserve:         newQuoteReserve,
@@ -636,13 +652,13 @@ func (s *PoolSimulator) updateBalanceSwapBaseToBase(params poolpkg.UpdateBalance
 	}
 	stateIn, stateOut := s.wooracle.States[params.TokenAmountIn.Token], s.wooracle.States[params.TokenAmountOut.Token]
 	s.wooracle.States[params.TokenAmountIn.Token] = State{
-		Price:      swapInfo.newBase1Price,
+		Price:      swapInfo.newPrice,
 		Spread:     stateIn.Spread,
 		Coeff:      stateIn.Coeff,
 		WoFeasible: stateIn.WoFeasible,
 	}
 	s.wooracle.States[params.TokenAmountOut.Token] = State{
-		Price:      swapInfo.newBase2Price,
+		Price:      swapInfo.base2.newPrice,
 		Spread:     stateOut.Spread,
 		Coeff:      stateOut.Coeff,
 		WoFeasible: stateOut.WoFeasible,
