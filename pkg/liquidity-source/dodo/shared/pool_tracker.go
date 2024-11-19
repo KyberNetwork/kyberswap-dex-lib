@@ -137,7 +137,7 @@ func (d *PoolTracker) getNewPoolStateDodoV1(ctx context.Context, p entity.Pool) 
 		Params: nil,
 	}, []interface{}{&tradeAllowed})
 
-	if d.config.ChainID != valueobject.ChainIDEthereum && d.config.DexID != string(valueobject.ExchangeDodoClassical) {
+	if d.config.ChainID != valueobject.ChainIDEthereum && p.Type != string(valueobject.ExchangeDodoClassical) {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    v1PoolABI,
 			Target: p.Address,
