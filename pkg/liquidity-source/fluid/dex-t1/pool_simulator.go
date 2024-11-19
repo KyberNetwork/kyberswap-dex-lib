@@ -156,14 +156,8 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, err
 	}
 
-	if swap0To1 {
-		if tokenAmountOut.Cmp(s.GetReserves()[1]) > 0 {
-			return nil, ErrInsufficientReserve
-		}
-	} else {
-		if tokenAmountOut.Cmp(s.GetReserves()[0]) > 0 {
-			return nil, ErrInsufficientReserve
-		}
+	if err := s.validateAmountOut(swap0To1, tokenAmountOut); err != nil {
+		return nil, err
 	}
 
 	return &poolpkg.CalcAmountOutResult{
@@ -179,6 +173,14 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}, nil
 }
 
+func (s *PoolSimulator) validateAmountOut(swap0To1 bool, tokenAmountOut *big.Int) error {
+	if tokenAmountOut.Cmp(s.GetReserves()[lo.Ternary(swap0To1, 1, 0)]) > 0 {
+		return ErrInsufficientReserve
+	}
+
+	return nil
+}
+
 func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg.CalcAmountInResult, error) {
 	if s.IsSwapAndArbitragePaused {
 		return nil, ErrSwapAndArbitragePaused
@@ -190,14 +192,8 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 
 	swap0To1 := param.TokenAmountOut.Token == s.Info.Tokens[1]
 
-	if swap0To1 {
-		if param.TokenAmountOut.Amount.Cmp(s.GetReserves()[1]) > 0 {
-			return nil, ErrInsufficientReserve
-		}
-	} else {
-		if param.TokenAmountOut.Amount.Cmp(s.GetReserves()[0]) > 0 {
-			return nil, ErrInsufficientReserve
-		}
+	if err := s.validateAmountOut(swap0To1, param.TokenAmountOut.Amount); err != nil {
+		return nil, err
 	}
 
 	var tokenInDecimals, tokenOutDecimals uint8
