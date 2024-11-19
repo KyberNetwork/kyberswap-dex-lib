@@ -13,7 +13,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -348,14 +347,4 @@ func getNewPriceLevelsState(
 	}
 
 	return priceLevels
-}
-
-// Inventory is an alias for swaplimit.InventoryWithSwapped
-// Deprecated: directly use swaplimit.InventoryWithSwapped.
-type Inventory = swaplimit.InventoryWithSwapped
-
-// NewInventory has key as token address and value as its balance.
-// Deprecated: directly use swaplimit.NewInventoryWithSwapped.
-func NewInventory(balance map[string]*big.Int) pool.SwapLimit {
-	return swaplimit.NewInventoryWithSwapped(DexTypeKyberPMM, balance)
 }
