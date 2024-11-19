@@ -1,6 +1,10 @@
 package poolmanager
 
-import "time"
+import (
+	"time"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
+)
 
 type Config struct {
 	BlacklistedPoolSet         map[string]bool `mapstructure:"blacklistedPoolSet"`
@@ -8,9 +12,9 @@ type Config struct {
 	PoolRenewalInterval        time.Duration   `mapstructure:"poolRenewalInterval" json:"poolRenewalInterval"`
 	BlackListRenewalInterval   time.Duration   `mapstructure:"blackListRenewalInterval" json:"blackListRenewalInterval"`
 	FaultyPoolsRenewalInterval time.Duration   `mapstructure:"faultyPoolsRenewalInterval" json:"faultyPoolsRenewalInterval"`
-	UseAEVM                    bool            `mapstructure:"useAEVM" json:"useAEVM"`
 	UseAEVMRemoteFinder        bool            `mapstructure:"useAEVMRemoteFinder" json:"useAEVMRemoteFinder"`
 	//StallingPMMThreshold determine the duration a PMM pool is updated before it is marked as stalled
 	// non-configured stalling threshold is treat as non-enabling stalling threshold
-	StallingPMMThreshold time.Duration `mapstructure:"stallingPMMThreshold" json:"stallingPMMThreshold"`
+	StallingPMMThreshold time.Duration            `mapstructure:"stallingPMMThreshold" json:"stallingPMMThreshold"`
+	FeatureFlags         valueobject.FeatureFlags `mapstructure:"featureFlags"`
 }

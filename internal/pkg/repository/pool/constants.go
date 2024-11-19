@@ -8,4 +8,6 @@ const (
 	KeyFaulty = "faulty"
 
 	Separator = ":"
+
+	KeyPoolByLiquiditySource = "poolByLiquiditySource"
 )

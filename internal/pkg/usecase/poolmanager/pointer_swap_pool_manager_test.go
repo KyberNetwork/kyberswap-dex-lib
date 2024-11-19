@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"testing"
 	"time"
@@ -20,9 +21,10 @@ import (
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/exp/maps"
 
 	mocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/poolmanager"
+	getPoolsMocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/getpools"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getpools"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
@@ -198,12 +200,15 @@ func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
 	poolRankRepository := mocks.NewMockIPoolRankRepository(ctrl)
 	poolRepository := mocks.NewMockIPoolRepository(ctrl)
 	poolFactory := mocks.NewMockIPoolFactory(ctrl)
+	getPoolsUsecase := mocks.NewMockIGetPoolsIncludingBasePools(ctrl)
 
 	var (
 		poolAddressList  = make([]string, len(poolByAddresses))
 		poolList         = make([]poolpkg.IPoolSimulator, len(poolByAddresses))
 		poolsInBlackList = []string{"none"}
+		whitelistDexes   = []string{pooltypes.PoolTypes.KyberPMM}
 	)
+
 	//reuse index
 	i = 0
 	for address := range poolByAddresses {
@@ -215,19 +220,19 @@ func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
 	poolRankRepository.EXPECT().FindGlobalBestPools(gomock.Any(), gomock.Any()).Return(poolAddressList, nil).AnyTimes()
 	poolRepository.EXPECT().GetPoolsInBlacklist(gomock.Any()).Return(poolsInBlackList, nil).AnyTimes()
 	poolRepository.EXPECT().GetFaultyPools(gomock.Any()).Return([]string{}, nil).AnyTimes()
-	poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Return([]*entity.Pool{}, nil).AnyTimes()
+	getPoolsUsecase.EXPECT().Handle(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*entity.Pool{}, nil).AnyTimes()
 	poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).Return(poolList).AnyTimes()
 	poolFactory.EXPECT().NewSwapLimit(gomock.Any()).Return(map[string]poolpkg.SwapLimit{}).AnyTimes()
 	poolFactory.EXPECT().NewPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any()).Return(poolByAddresses).AnyTimes()
 
 	pm, err := poolmanager.NewPointerSwapPoolManager(
 		context.Background(),
-		poolRepository, poolFactory, poolRankRepository, config, nil, nil,
+		poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
 	)
 	require.NoError(t, err)
 	// let sleep for 3 sec
 	time.Sleep(3 * time.Second)
-	state, err := pm.GetStateByPoolAddresses(context.Background(), poolAddressList, []string{pooltypes.PoolTypes.KyberPMM}, common.Hash{0x00})
+	state, err := pm.GetStateByPoolAddresses(context.Background(), poolAddressList, whitelistDexes, common.Hash{0x00})
 	require.Error(t, err)
 	assert.Equal(t, true, state == nil)
 }
@@ -276,6 +281,9 @@ func TestPointerSwapPoolManager_Start(t *testing.T) {
 	poolRepository := mocks.NewMockIPoolRepository(ctrl)
 	poolFactory := mocks.NewMockIPoolFactory(ctrl)
 
+	poolRepoUc := getPoolsMocks.NewMockIPoolRepository(ctrl)
+	getPoolsUsecase := getpools.NewGetPoolsIncludingBasePools(poolRepoUc)
+
 	// Load all address pool from global best pools with specific capacity 30
 	poolRankRepository.EXPECT().FindGlobalBestPools(gomock.Any(), gomock.Any()).Return(poolAddressList, nil).Times(1)
 
@@ -299,7 +307,7 @@ func TestPointerSwapPoolManager_Start(t *testing.T) {
 			Type: pool.GetType(),
 		})
 	}
-	poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Return(poolEntities, nil).Times(2)
+	poolRepoUc.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).Return(poolEntities, nil).Times(2)
 	numberOfPoolsToInit := 0
 	poolFactory.EXPECT().NewPoolByAddress(gomock.Any(), gomock.Any(), gomock.Any()).Return(poolByAddresses).AnyTimes().Do(func(arg0, arg1, arg2 interface{}) {
 		numberOfPoolsToInit = len(arg1.([]*entity.Pool))
@@ -307,7 +315,7 @@ func TestPointerSwapPoolManager_Start(t *testing.T) {
 
 	pm, err := poolmanager.NewPointerSwapPoolManager(
 		context.Background(),
-		poolRepository, poolFactory, poolRankRepository, config, nil, nil,
+		poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
 	)
 	assert.Equal(t, len(poolAddressList)-len(faultyList)-len(poolsInBlackList), numberOfPoolsToInit)
 	require.NoError(t, err)
@@ -431,6 +439,9 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 				poolRankRepository := mocks.NewMockIPoolRankRepository(ctrl)
 				poolFactory := mocks.NewMockIPoolFactory(ctrl)
 
+				poolRepoUsecase := getPoolsMocks.NewMockIPoolRepository(ctrl)
+				getPoolsUsecase := getpools.NewGetPoolsIncludingBasePools(poolRepoUsecase)
+
 				// Fetch pool states, only fetch pools in pools_mem.txt file
 				poolRankRepository.EXPECT().FindGlobalBestPools(gomock.Any(), gomock.Any()).Return(memPoolAddressList, nil).AnyTimes()
 
@@ -455,16 +466,16 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 				poolRepository.EXPECT().GetPoolsInBlacklist(gomock.Any()).Return(blacklist.ToSlice(), nil).AnyTimes()
 				poolRepository.EXPECT().GetFaultyPools(gomock.Any()).Return(faultyPools.ToSlice(), nil).AnyTimes()
 
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder(memPoolAddressList)).Return(memPools, nil).Times(1)
+				// mock data for getPools usecase
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder(memPoolAddressList)).Return(memPools, nil).Times(1)
 				// fetch base pool for curve family pools
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
-
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0x2482dfb5a65d901d137742ab1095f26374509352"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"]}, nil).Times(1)
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0x2482dfb5a65d901d137742ab1095f26374509352"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"]}, nil).Times(1)
 
 				pm, err := poolmanager.NewPointerSwapPoolManager(
 					context.Background(),
-					poolRepository, poolFactory, poolRankRepository, config, nil, nil,
+					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
 				)
 				require.NoError(t, err)
 
@@ -485,6 +496,9 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 				// Fetch pool states, only fetch pools in pools_mem.txt file
 				poolRankRepository.EXPECT().FindGlobalBestPools(gomock.Any(), gomock.Any()).Return(memPoolAddressList, nil).AnyTimes()
 
+				poolRepoUsecase := getPoolsMocks.NewMockIPoolRepository(ctrl)
+				getPoolsUsecase := getpools.NewGetPoolsIncludingBasePools(poolRepoUsecase)
+
 				poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(arg0, arg1, arg2 interface{}) []poolpkg.IPoolSimulator {
 					poolEntities := arg1.([]*entity.Pool)
 					res := []poolpkg.IPoolSimulator{}
@@ -506,14 +520,15 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 				poolRepository.EXPECT().GetPoolsInBlacklist(gomock.Any()).Return(blacklist.ToSlice(), nil).AnyTimes()
 				poolRepository.EXPECT().GetFaultyPools(gomock.Any()).Return(faultyPools.ToSlice(), nil).AnyTimes()
 
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder(memPoolAddressList)).Return(memPools, nil).Times(1)
+				// Fetch pools in pool uscase
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder(memPoolAddressList)).Return(memPools, nil).Times(1)
 				// fetch base pool for curve family pools
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0x2482dfb5a65d901d137742ab1095f26374509352"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0x2482dfb5a65d901d137742ab1095f26374509352"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
 
 				pm, err := poolmanager.NewPointerSwapPoolManager(
 					context.Background(),
-					poolRepository, poolFactory, poolRankRepository, config, nil, nil,
+					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
 				)
 				require.NoError(t, err)
 
@@ -534,6 +549,9 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 				// Fetch pool states, only fetch pools in pools_mem.txt file
 				poolRankRepository.EXPECT().FindGlobalBestPools(gomock.Any(), gomock.Any()).Return(memPoolAddressList, nil).AnyTimes()
 
+				poolRepoUsecase := getPoolsMocks.NewMockIPoolRepository(ctrl)
+				getPoolsUsecase := getpools.NewGetPoolsIncludingBasePools(poolRepoUsecase)
+
 				poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(arg0, arg1, arg2 interface{}) []poolpkg.IPoolSimulator {
 					poolEntities := arg1.([]*entity.Pool)
 					res := []poolpkg.IPoolSimulator{}
@@ -555,13 +573,14 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 				poolRepository.EXPECT().GetPoolsInBlacklist(gomock.Any()).Return(blacklist.ToSlice(), nil).AnyTimes()
 				poolRepository.EXPECT().GetFaultyPools(gomock.Any()).Return(faultyPools.ToSlice(), nil).AnyTimes()
 
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder(memPoolAddressList)).Return(memPools, nil).Times(1)
+				// mock data for getPools usecase
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder(memPoolAddressList)).Return(memPools, nil).Times(1)
 				// fetch base pool for curve family pools
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
 
 				pm, err := poolmanager.NewPointerSwapPoolManager(
 					context.Background(),
-					poolRepository, poolFactory, poolRankRepository, config, nil, nil,
+					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
 				)
 				require.NoError(t, err)
 
@@ -579,6 +598,9 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 				poolRankRepository := mocks.NewMockIPoolRankRepository(ctrl)
 				poolFactory := mocks.NewMockIPoolFactory(ctrl)
 
+				poolRepoUsecase := getPoolsMocks.NewMockIPoolRepository(ctrl)
+				getPoolsUsecase := getpools.NewGetPoolsIncludingBasePools(poolRepoUsecase)
+
 				// Fetch pool states, only fetch pools in pools_mem.txt file
 				poolRankRepository.EXPECT().FindGlobalBestPools(gomock.Any(), gomock.Any()).Return(memPoolAddressList, nil).AnyTimes()
 
@@ -603,13 +625,14 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 				poolRepository.EXPECT().GetPoolsInBlacklist(gomock.Any()).Return(blacklist.ToSlice(), nil).AnyTimes()
 				poolRepository.EXPECT().GetFaultyPools(gomock.Any()).Return(faultyPools.ToSlice(), nil).AnyTimes()
 
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder(memPoolAddressList)).Return(memPools, nil).Times(1)
+				// mock data for pool usecase
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder(memPoolAddressList)).Return(memPools, nil).Times(1)
 				// fetch base pool for curve family pools
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
 
 				pm, err := poolmanager.NewPointerSwapPoolManager(
 					context.Background(),
-					poolRepository, poolFactory, poolRankRepository, config, nil, nil,
+					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
 				)
 				require.NoError(t, err)
 
@@ -627,6 +650,9 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 				poolRankRepository := mocks.NewMockIPoolRankRepository(ctrl)
 				poolFactory := mocks.NewMockIPoolFactory(ctrl)
 
+				poolRepoUsecase := getPoolsMocks.NewMockIPoolRepository(ctrl)
+				getPoolsUsecase := getpools.NewGetPoolsIncludingBasePools(poolRepoUsecase)
+
 				// Fetch pool states, only fetch pools in pools_mem.txt file
 				poolRankRepository.EXPECT().FindGlobalBestPools(gomock.Any(), gomock.Any()).Return(memPoolAddressList, nil).AnyTimes()
 
@@ -651,16 +677,17 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 				poolRepository.EXPECT().GetPoolsInBlacklist(gomock.Any()).Return(blacklist.ToSlice(), nil).AnyTimes()
 				poolRepository.EXPECT().GetFaultyPools(gomock.Any()).Return(faultyPools.ToSlice(), nil).AnyTimes()
 
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder(memPoolAddressList)).Return(memPools, nil).Times(1)
+				// mock data for get pools usecase
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder(memPoolAddressList)).Return(memPools, nil).Times(1)
 				// fetch base pool for curve family pools
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder([]string{"0xba77add57760da34fbbe205fc868440fd69da2d6", "0x7fc77b5c7614e1533320ea6ddc2eb61fa00a9714"})).Return(
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder([]string{"0xba77add57760da34fbbe205fc868440fd69da2d6", "0x7fc77b5c7614e1533320ea6ddc2eb61fa00a9714"})).Return(
 					nil,
 					errors.New("some error")).Times(1)
 
 				pm, err := poolmanager.NewPointerSwapPoolManager(
 					context.Background(),
-					poolRepository, poolFactory, poolRankRepository, config, nil, nil,
+					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
 				)
 				require.NoError(t, err)
 
@@ -677,6 +704,9 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 				poolRankRepository := mocks.NewMockIPoolRankRepository(ctrl)
 				poolFactory := mocks.NewMockIPoolFactory(ctrl)
 
+				poolRepoUsecase := getPoolsMocks.NewMockIPoolRepository(ctrl)
+				getPoolsUsecase := getpools.NewGetPoolsIncludingBasePools(poolRepoUsecase)
+
 				// Fetch pool states, only fetch pools in pools_mem.txt file
 				poolRankRepository.EXPECT().FindGlobalBestPools(gomock.Any(), gomock.Any()).Return(memPoolAddressList, nil).AnyTimes()
 
@@ -701,16 +731,17 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 				poolRepository.EXPECT().GetPoolsInBlacklist(gomock.Any()).Return(blacklist.ToSlice(), nil).AnyTimes()
 				poolRepository.EXPECT().GetFaultyPools(gomock.Any()).Return(faultyPools.ToSlice(), nil).AnyTimes()
 
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder(memPoolAddressList)).Return(memPools, nil).Times(1)
+				// Mock data for get pools usecase
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder(memPoolAddressList)).Return(memPools, nil).Times(1)
 				// fetch base pool for curve family pools
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder([]string{"0xba77add57760da34fbbe205fc868440fd69da2d6", "0x9e10f9fb6f0d32b350cee2618662243d4f24c64a", "0x326290a1b0004eee78fa6ed4f1d8f4b2523ab669"})).Return(
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder([]string{"0xba77add57760da34fbbe205fc868440fd69da2d6", "0x9e10f9fb6f0d32b350cee2618662243d4f24c64a", "0x326290a1b0004eee78fa6ed4f1d8f4b2523ab669"})).Return(
 					nil,
 					errors.New("some error")).Times(1)
 
 				pm, err := poolmanager.NewPointerSwapPoolManager(
 					context.Background(),
-					poolRepository, poolFactory, poolRankRepository, config, nil, nil,
+					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
 				)
 				require.NoError(t, err)
 
@@ -730,6 +761,9 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				// Fetch pool states, only fetch pools in pools_mem.txt file
 				poolRankRepository.EXPECT().FindGlobalBestPools(gomock.Any(), gomock.Any()).Return(memPoolAddressList, nil).AnyTimes()
+
+				poolRepoUsecase := getPoolsMocks.NewMockIPoolRepository(ctrl)
+				getPoolsUsecase := getpools.NewGetPoolsIncludingBasePools(poolRepoUsecase)
 
 				poolFactory.EXPECT().NewPools(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(arg0, arg1, arg2 interface{}) []poolpkg.IPoolSimulator {
 					poolEntities := arg1.([]*entity.Pool)
@@ -758,18 +792,20 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 				filteredMemPools := lo.Filter(memPools, func(p *entity.Pool, _ int) bool {
 					return !blacklist.ContainsOne(p.Address) && !faultyPools.ContainsOne(p.Address)
 				})
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder(filteredMemAddresses)).Return(filteredMemPools, nil).Times(1)
-				// fetch base pool for curve family pools
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
 
-				poolRepository.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0x9e10f9fb6f0d32b350cee2618662243d4f24c64a"})).Return(
+				// Mock data for get pools usecase
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.InAnyOrder(filteredMemAddresses)).Return(filteredMemPools, nil).Times(1)
+				// fetch base pool for curve family pools
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0xbebc44782c7db0a1a60cb6fe97d0b483032ff1c7"})).Return([]*entity.Pool{poolOnRedisEntitiesByAddress["0x2482dfb5a65d901d137742ab1095f26374509352"]}, nil).Times(1)
+
+				poolRepoUsecase.EXPECT().FindByAddresses(gomock.Any(), gomock.Eq([]string{"0x9e10f9fb6f0d32b350cee2618662243d4f24c64a"})).Return(
 					[]*entity.Pool{
 						poolOnRedisEntitiesByAddress["0x9e10f9fb6f0d32b350cee2618662243d4f24c64a"],
 					}, nil).Times(1)
 
 				pm, err := poolmanager.NewPointerSwapPoolManager(
 					context.Background(),
-					poolRepository, poolFactory, poolRankRepository, config, nil, nil,
+					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
 				)
 				require.NoError(t, err)
 

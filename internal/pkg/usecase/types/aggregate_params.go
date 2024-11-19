@@ -21,6 +21,8 @@ type AggregateParams struct {
 	// AmountIn amount of tokenIn
 	AmountIn *big.Int
 
+	AmountInUsd float64
+
 	// Sources list of liquidity sources to be finding route on
 	Sources []string
 
@@ -43,6 +45,10 @@ type AggregateParams struct {
 	// IsHillClimbEnabled use hill climb finder to adjust split amountIn to get better amountOut
 	IsHillClimbEnabled bool
 
+	// By default, we will use nativeTvlIndex
+	// If feature flag IsLiquidityScoreIndexEnabled enable, combined tvl + liquidity score will be used, otherwise we will use liquidity score index
+	Index valueobject.IndexType
+
 	// ExcludedPools name of pool addresses are excluded when finding route, separated by comma
 	ExcludedPools mapset.Set[string]
 
@@ -54,7 +60,8 @@ type AggregateBundledParamsPair struct {
 	TokenOut string
 
 	// AmountIn amount of tokenIn
-	AmountIn *big.Int
+	AmountIn    *big.Int
+	AmountInUsd float64
 }
 
 type AggregateBundledParams struct {
@@ -78,6 +85,10 @@ type AggregateBundledParams struct {
 
 	// IsHillClimbEnabled use hill climb finder to adjust split amountIn to get better amountOut
 	IsHillClimbEnabled bool
+
+	// By default, we will use nativeTvlIndex
+	// If feature flag IsLiquidityScoreIndexEnabled enable, combined tvl + liquidity score will be used, otherwise we will use liquidity score index
+	Index valueobject.IndexType
 
 	// ExcludedPools name of pool addresses are excluded when finding route, separated by comma
 	ExcludedPools mapset.Set[string]

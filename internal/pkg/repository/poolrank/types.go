@@ -1,6 +1,8 @@
 package poolrank
 
-import "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+import (
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+)
 
 type PoolIndexRemovalParams struct {
 	Pool                *entity.Pool

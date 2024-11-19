@@ -91,6 +91,14 @@ func transformGetBundledRoutesParams(params params.GetBundledRoutesParams) (dto.
 		}
 	}
 
+	if params.Index != "" && params.Index != string(valueobject.Composite) && params.Index != string(valueobject.LiquidityScore) && params.Index != string(valueobject.NativeTvl) {
+		return dto.GetBundledRoutesQuery{}, errors.WithMessagef(
+			ErrInvalidValue,
+			"index: [%s]",
+			params.Index,
+		)
+	}
+
 	return dto.GetBundledRoutesQuery{
 		Pairs:               pairs,
 		IncludedSources:     utils.TransformSliceParams(params.IncludedSources),
@@ -102,6 +110,7 @@ func transformGetBundledRoutesParams(params params.GetBundledRoutesParams) (dto.
 		ExcludedPools:       mapset.NewThreadUnsafeSet(utils.TransformSliceParams(params.ExcludedPools)...),
 		ClientId:            params.ClientId,
 		OverridePools:       params.OverridePools,
+		Index:               params.Index,
 	}, nil
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,11 +16,11 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/goccy/go-json"
 	cachePolicy "github.com/hashicorp/golang-lru/v2"
 	"github.com/samber/lo"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -38,6 +37,8 @@ type PointerSwapPoolManager struct {
 	aevmClient          aevmclient.Client
 	poolsPublisher      IPoolsPublisher
 	publishedStorageIDs [NState]string
+
+	GetPoolsIncludingBasePools IGetPoolsIncludingBasePools
 
 	// We know that fastest state rotation happened every 3 seconds. most requests are done under 1 second.
 	// To prevent data corruption without locking, we will use tri-state swapping
@@ -68,6 +69,7 @@ func NewPointerSwapPoolManager(
 	poolRepository IPoolRepository,
 	poolFactory IPoolFactory,
 	poolRankRepository IPoolRankRepository,
+	GetPoolsIncludingBasePools IGetPoolsIncludingBasePools,
 	config Config,
 	aevmClient aevmclient.Client,
 	poolsPublisher IPoolsPublisher,
@@ -83,18 +85,19 @@ func NewPointerSwapPoolManager(
 	}
 
 	p := PointerSwapPoolManager{
-		states:             states,
-		readFrom:           atomic.Int32{},
-		config:             config,
-		configLock:         &sync.RWMutex{},
-		poolFactory:        poolFactory,
-		poolRepository:     poolRepository,
-		poolRankRepository: poolRankRepository,
-		poolCache:          poolCache,
-		blackListPools:     mapset.NewSet[string](), // we must use thread-safety map here
-		faultyPools:        mapset.NewSet[string](), // we must use thread-safety map here
-		aevmClient:         aevmClient,
-		poolsPublisher:     poolsPublisher,
+		states:                     states,
+		readFrom:                   atomic.Int32{},
+		config:                     config,
+		configLock:                 &sync.RWMutex{},
+		poolFactory:                poolFactory,
+		poolRepository:             poolRepository,
+		poolRankRepository:         poolRankRepository,
+		GetPoolsIncludingBasePools: GetPoolsIncludingBasePools,
+		poolCache:                  poolCache,
+		blackListPools:             mapset.NewSet[string](), // we must use thread-safety map here
+		faultyPools:                mapset.NewSet[string](), // we must use thread-safety map here
+		aevmClient:                 aevmClient,
+		poolsPublisher:             poolsPublisher,
 	}
 
 	if err := p.start(ctx); err != nil {
@@ -104,15 +107,11 @@ func NewPointerSwapPoolManager(
 	return &p, nil
 }
 
-func NonFilter(pool *entity.Pool) bool {
-	return true
-}
-
 func (p *PointerSwapPoolManager) start(ctx context.Context) error {
 	p.readFrom.Store(0)
 
 	// initialize pools to read from DB
-	poolAddresses, err := p.poolRankRepository.FindGlobalBestPools(ctx, int64(p.config.Capacity))
+	poolAddresses, err := p.findGlobalBestPools(ctx, int64(p.config.Capacity))
 	if err != nil {
 		return err
 	}
@@ -138,9 +137,18 @@ func (p *PointerSwapPoolManager) start(ctx context.Context) error {
 
 }
 
+func (p *PointerSwapPoolManager) findGlobalBestPools(ctx context.Context, poolCount int64) ([]string, error) {
+	// for simplified we will fetch only sorted set in composite index
+	if p.config.FeatureFlags.IsLiquidityScoreIndexEnable {
+		return p.poolRankRepository.FindGlobalBestPoolsByScores(ctx, poolCount, poolrank.SortByLiquidityScoreTvl)
+	}
+
+	return p.poolRankRepository.FindGlobalBestPools(ctx, poolCount)
+}
+
 // TODO will be refactor to remove this function from pool manager
 func (p *PointerSwapPoolManager) GetAEVMClient() aevmclient.Client {
-	if p.config.UseAEVM {
+	if p.config.FeatureFlags.IsAEVMEnabled {
 		return p.aevmClient
 	}
 
@@ -211,7 +219,7 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 
 	filteredPoolAddress := p.filterInvalidPoolAddresses(poolAddresses)
 
-	poolEntities, err := p.getPoolsFromRedis(ctx, filteredPoolAddress, NonFilter)
+	poolEntities, err := p.GetPoolsIncludingBasePools.Handle(ctx, filteredPoolAddress, nil)
 	// reserve memory for pool entities in heap memory, avoid mem allocation burden
 	// Any item stored in the Pool may be removed automatically at any time without notification.
 	// If the Pool holds the only reference when this happens, the item might be deallocated.
@@ -222,7 +230,7 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 	}
 	var stateRoot aevmcommon.Hash
 	// if running with aevm
-	if p.config.UseAEVM {
+	if p.config.FeatureFlags.IsAEVMEnabled {
 		stateRoot, err = p.aevmClient.LatestStateRoot(ctx)
 		if err != nil {
 			return fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
@@ -349,7 +357,7 @@ func (p *PointerSwapPoolManager) getPoolStates(ctx context.Context, poolAddresse
 	}
 
 	// 2. Fetch all pools that are not cached locally from Redis
-	poolEntitiesFromDB, err := p.getPoolsFromRedis(ctx, poolsToFetchFromDB, func(pool *entity.Pool) bool {
+	poolEntitiesFromDB, err := p.GetPoolsIncludingBasePools.Handle(ctx, poolsToFetchFromDB, func(pool *entity.Pool) bool {
 		return whitelistDexSet.Has(pool.Exchange)
 	})
 	// reserve memory for pool entities, avoid mem allocation burden
@@ -397,76 +405,6 @@ func (p *PointerSwapPoolManager) getPoolStates(ctx context.Context, poolAddresse
 		SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits),
 		PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 	}, nil
-}
-
-func (p *PointerSwapPoolManager) getPoolsFromRedis(
-	ctx context.Context,
-	addresses []string,
-	filter func(pool *entity.Pool) bool) ([]*entity.Pool, error) {
-
-	poolEntities, err := p.poolRepository.FindByAddresses(ctx, addresses)
-	if err != nil {
-		return nil, err
-	}
-
-	filteredPoolEntities := make([]*entity.Pool, 0, len(poolEntities))
-	// listCurveMetaBasePools collects base pools of curveMeta pools
-	// - collects already fetched curveBase and curvePainOracle pools
-	// - for each curveMeta pool
-	//   - decode its staticExtra to get its basePool address
-	//   - if it hasn't been fetched, fetch the pool data
-	alreadyFetchedSet := mapset.NewThreadUnsafeSet[string]()
-	curveMetaBasePoolAddresses := mapset.NewThreadUnsafeSet[string]()
-	for _, pool := range poolEntities {
-		if !filter(pool) {
-			continue
-		}
-		filteredPoolEntities = append(filteredPoolEntities, pool)
-
-		if pool.Type == pooltypes.PoolTypes.CurveBase ||
-			pool.Type == pooltypes.PoolTypes.CurveStablePlain ||
-			pool.Type == pooltypes.PoolTypes.CurvePlainOracle ||
-			pool.Type == pooltypes.PoolTypes.CurveAave {
-			alreadyFetchedSet.Add(pool.Address)
-		}
-
-		if pool.Type == pooltypes.PoolTypes.CurveMeta ||
-			pool.Type == pooltypes.PoolTypes.CurveStableMetaNg {
-			var staticExtra struct {
-				BasePool string `json:"basePool"`
-			}
-			if err := json.Unmarshal([]byte(pool.StaticExtra), &staticExtra); err != nil {
-				logger.WithFields(ctx, logger.Fields{
-					"pool.Address": pool.Address,
-					"pool.Type":    pool.Type,
-					"error":        err,
-				}).Warn("unable to unmarshal staticExtra")
-
-				continue
-			}
-			curveMetaBasePoolAddresses.Add(strings.ToLower(staticExtra.BasePool))
-		}
-	}
-	// only fetch pools which are not fetched
-	curveMetaBasePoolAddresses = curveMetaBasePoolAddresses.Difference(alreadyFetchedSet)
-
-	// fetch extra base pools if needed
-	if curveMetaBasePoolAddresses.Cardinality() != 0 {
-		curveMetaBasePools, err := p.poolRepository.FindByAddresses(ctx, curveMetaBasePoolAddresses.ToSlice())
-		if err != nil {
-			// need to log err here for debug
-			// If we fetch curve meta base pools fail, then IPoolSimulator for meta curve will be failed and ignored later, so ignore errors here
-			logger.WithFields(ctx, logger.Fields{
-				"pool.Address": curveMetaBasePoolAddresses,
-				"error":        err,
-			}).Errorf("failed to fetch based pools in pool manager")
-		} else {
-			filteredPoolEntities = append(filteredPoolEntities, curveMetaBasePools...)
-		}
-	}
-
-	return filteredPoolEntities, nil
-
 }
 
 func (p *PointerSwapPoolManager) isPMMStalled(pool poolpkg.IPoolSimulator) bool {

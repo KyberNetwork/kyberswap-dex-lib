@@ -15,6 +15,7 @@ type Config struct {
 	Cache             valueobject.CacheConfig                 `mapstructure:"cache" json:"cache"`
 	SafetyQuoteConfig *valueobject.SafetyQuoteReductionConfig `mapstructure:"safetyQuoteConfig" json:"safetyQuoteConfig"`
 	CorrelatedPairs   map[string]string                       `mapstructure:"correlatedPairs" json:"correlatedPairs"`
+	DefaultPoolsIndex string                                  `mapstructure:"defaultPoolsIndex" json:"defaultPoolsIndex"`
 }
 
 type AggregatorConfig struct {

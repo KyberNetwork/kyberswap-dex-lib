@@ -6,6 +6,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getpools"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -26,10 +27,16 @@ type IPoolRepository interface {
 //go:generate mockgen -destination ../../mocks/poolmanager/pool_rank_repository.go -package poolmanager github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager IPoolRankRepository
 type IPoolRankRepository interface {
 	FindGlobalBestPools(ctx context.Context, poolCount int64) ([]string, error)
+	FindGlobalBestPoolsByScores(ctx context.Context, poolCount int64, sortBy string) ([]string, error)
 }
 
 type IPoolsPublisher interface {
 	PublishedPoolIDs(storageID string) map[string]struct{}
 	PublishedPools(storageID string) map[string]poolpkg.IPoolSimulator
 	Publish(ctx context.Context, pools map[string]poolpkg.IPoolSimulator) (string, error)
+}
+
+//go:generate mockgen -destination ../../mocks/poolmanager/get_pools_included_base_pools.go -package poolmanager github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager IGetPoolsIncludingBasePools
+type IGetPoolsIncludingBasePools interface {
+	Handle(ctx context.Context, addresses []string, filter getpools.PoolFilter) ([]*entity.Pool, error)
 }

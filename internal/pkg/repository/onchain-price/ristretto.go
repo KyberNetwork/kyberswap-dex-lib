@@ -163,7 +163,7 @@ func (r *ristrettoRepository) fetchNativePriceInUSD(ctx context.Context) error {
 	// Set native price in usd to the atomic pointer
 	r.nativeUSDPrice.Store(price)
 
-	logger.Infof(ctx, "refresh cache with native price in usd: %s", price.String())
+	logger.Debugf(ctx, "refresh cache with native price in usd: %s", price.String())
 
 	return nil
 }

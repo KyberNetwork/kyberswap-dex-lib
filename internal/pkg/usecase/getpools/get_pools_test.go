@@ -1,4 +1,4 @@
-package usecase
+package getpools
 
 import (
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
@@ -18,7 +18,7 @@ func TestGetPools_Handle(t *testing.T) {
 
 	type TestCase struct {
 		name    string
-		prepare func(ctrl *gomock.Controller) *getPoolsUseCase
+		prepare func(ctrl *gomock.Controller) *GetPoolsUseCase
 		query   dto.GetPoolsQuery
 		result  *dto.GetPoolsResult
 		err     error
@@ -29,7 +29,7 @@ func TestGetPools_Handle(t *testing.T) {
 	testCases := []TestCase{
 		{
 			name: "it should return correct result when repository returns no error",
-			prepare: func(ctrl *gomock.Controller) *getPoolsUseCase {
+			prepare: func(ctrl *gomock.Controller) *GetPoolsUseCase {
 				mockPoolRepo := usecase.NewMockIPoolRepository(ctrl)
 				mockPoolRepo.EXPECT().
 					FindByAddresses(gomock.Any(), []string{"pooladdress1", "pooladdress2", "pooladdress3"}).
@@ -108,7 +108,7 @@ func TestGetPools_Handle(t *testing.T) {
 		},
 		{
 			name: "it should return correct error when repository returns error",
-			prepare: func(ctrl *gomock.Controller) *getPoolsUseCase {
+			prepare: func(ctrl *gomock.Controller) *GetPoolsUseCase {
 
 				mockPoolRepo := usecase.NewMockIPoolRepository(ctrl)
 				mockPoolRepo.EXPECT().

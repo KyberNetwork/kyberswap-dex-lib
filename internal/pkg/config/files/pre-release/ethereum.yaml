@@ -121,7 +121,7 @@ common:
     - "maverick-v2"
     - "lite-psm"
     - "fluid-vault-t1"
-    - "fluid-dex-t1" 
+    - "fluid-dex-t1"
     - "usd0pp"
     - "hashflow-v3"
     - "bancor-v21"
@@ -140,6 +140,19 @@ common:
     - "sfrxeth-convertor"
     - "ondo-usdy"
   featureFlags: &featureFlags
+    isAEVMEnabled: false
+    isLiquidityScoreEnable: true
+    isRouteCachedEnable: false
+  getBestPoolsOptions: &getBestPoolsOptions
+    directPoolsCount: 100
+    whitelistPoolsCount: 500
+    tokenInPoolsCount: 200
+    tokenOutPoolCount: 200
+    amplifiedTvlDirectPoolsCount: 50
+    amplifiedTvlWhitelistPoolsCount: 200
+    amplifiedTvlTokenInPoolsCount: 100
+    amplifiedTvlTokenOutPoolCount: 100
+    amountInThreshold: 0
   swaapAPIKey:
   hashflowAPIKey:
   nativeAPIKey:
@@ -162,7 +175,7 @@ redis:
   addresses:
   masterName: ""
   dbNumber: 0
-  password: ""
+  password:
   prefix: *chainName
   readTimeout: 3s
   writeTimeout: 3s
@@ -234,17 +247,10 @@ useCase:
     gasTokenAddress: *gasTokenAddress
     routerAddress: *routerAddress
     availableSources: *availableSources
+    defaultPoolsIndex: composite
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
-      getBestPoolsOptions: &getBestPoolsOptions
-        directPoolsCount: 100
-        whitelistPoolsCount: 500
-        tokenInPoolsCount: 200
-        tokenOutPoolCount: 200
-        amplifiedTvlDirectPoolsCount: 50
-        amplifiedTvlWhitelistPoolsCount: 200
-        amplifiedTvlTokenInPoolsCount: 100
-        amplifiedTvlTokenOutPoolCount: 100
+      getBestPoolsOptions: *getBestPoolsOptions
       dexUseAEVM: *dexUseAEVM
       finderOptions: &finderOptions
         type: retry
@@ -454,7 +460,7 @@ useCase:
     faultyPoolsRenewalInterval: 5s
     capacity: 1000000
     poolRenewalInterval: 12s
-    useAEVM: *useAEVM
+    featureFlags: *featureFlags
     useAEVMRemoteFinder: *useAEVMRemoteFinder
     faultyPoolsExpireThreshold: 3s
     stallingPMMThreshold: 30s
@@ -477,6 +483,18 @@ useCase:
     chainId: *chainId
   trackExecutor:
     subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-ethereum
+  tradeDataGenerator:
+    whitelistedTokenSet: *whitelistedTokenSet
+    chunkSize: 200
+    useAEVM: false
+    dexUseAEVM: *dexUseAEVM
+    minDataPointNumber: 6
+    maxDataPointNumber: 12
+    availableSources: *availableSources
+  updateLiquidityScore:
+    inputFileName: "./scores.csv"
+    meanType: "geometric"
+    getBestPoolsOptions: *getBestPoolsOptions
 job:
   indexPools:
     forceScanAllEveryNth: 10
@@ -500,6 +518,14 @@ job:
     interval: 1h
   generateBestPaths:
     interval: 360s
+  liquidityScoreIndexPools:
+    batchSize: 200
+    interval: 1h
+    successedFileName: "./trade_data.txt"
+    failedFileName: "./failed_trade_data.txt"
+    liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
+    exportFailedTrade: false
+    fullScanInterval: 3h
 repository:
   gas:
     redis:

@@ -197,11 +197,15 @@ func (c *correlatedPairs) getStateByAddress(
 		return nil, ErrPoolSetFiltered
 	}
 
-	bestPoolIDs, err := c.poolRankRepository.FindBestPoolIDs(
+	var bestPoolIDs []string
+	var err error
+	bestPoolIDs, err = c.poolRankRepository.FindBestPoolIDs(
 		ctx,
 		tokenMidIn,
 		tokenMidOut,
+		params.AmountInUsd,
 		c.config.Aggregator.GetBestPoolsOptions,
+		params.Index,
 	)
 	if err != nil {
 		return nil, err

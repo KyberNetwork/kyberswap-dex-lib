@@ -36,16 +36,16 @@ func (m *MockIPoolRankRepository) EXPECT() *MockIPoolRankRepositoryMockRecorder 
 }
 
 // FindBestPoolIDs mocks base method.
-func (m *MockIPoolRankRepository) FindBestPoolIDs(arg0 context.Context, arg1, arg2 string, arg3 valueobject.GetBestPoolsOptions) ([]string, error) {
+func (m *MockIPoolRankRepository) FindBestPoolIDs(arg0 context.Context, arg1, arg2 string, arg3 float64, arg4 valueobject.GetBestPoolsOptions, arg5 valueobject.IndexType) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindBestPoolIDs", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "FindBestPoolIDs", arg0, arg1, arg2, arg3, arg4, arg5)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FindBestPoolIDs indicates an expected call of FindBestPoolIDs.
-func (mr *MockIPoolRankRepositoryMockRecorder) FindBestPoolIDs(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockIPoolRankRepositoryMockRecorder) FindBestPoolIDs(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindBestPoolIDs", reflect.TypeOf((*MockIPoolRankRepository)(nil).FindBestPoolIDs), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindBestPoolIDs", reflect.TypeOf((*MockIPoolRankRepository)(nil).FindBestPoolIDs), arg0, arg1, arg2, arg3, arg4, arg5)
 }

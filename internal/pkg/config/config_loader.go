@@ -206,6 +206,8 @@ func (cl *ConfigLoader) setAvailableSources(availableSources []valueobject.Sourc
 	cl.config.Common.AvailableSources = strAvailableSources
 	cl.config.UseCase.GetCustomRoute.AvailableSources = strAvailableSources
 	cl.config.UseCase.GetRoute.AvailableSources = strAvailableSources
+	cl.config.UseCase.GetCustomRoute.AvailableSources = strAvailableSources
+	cl.config.UseCase.TradeDataGenerator.AvailableSources = strAvailableSources
 }
 
 func (cl *ConfigLoader) setUnscalableSources(unscalableSources []valueobject.Source) {
@@ -228,8 +230,10 @@ func (cl *ConfigLoader) setWhitelistedTokens(whitelistedTokens []valueobject.Whi
 	cl.config.Common.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.GetCustomRoute.Aggregator.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.GetRoute.Aggregator.WhitelistedTokenSet = whitelistedTokenSet
+	cl.config.UseCase.GetCustomRoute.Aggregator.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.BuildRoute.FaultyPoolsConfig.WhitelistedTokenSet = whitelistedTokenSet
 	cl.config.UseCase.IndexPools.WhitelistedTokenSet = whitelistedTokenSet
+	cl.config.UseCase.TradeDataGenerator.WhitelistedTokenSet = whitelistedTokenSet
 }
 
 func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {
@@ -240,6 +244,7 @@ func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {
 
 	cl.config.Common.BlacklistedPoolsSet = blacklistedPoolSet
 	cl.config.UseCase.PoolManager.BlacklistedPoolSet = blacklistedPoolSet
+	cl.config.UseCase.TradeDataGenerator.BlacklistedPoolSet = blacklistedPoolSet
 }
 
 func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
@@ -251,7 +256,8 @@ func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
 	cl.config.Validator.GetRouteEncodeParams.FeatureFlags = featureFlags
 	cl.config.AEVMEnabled = featureFlags.IsAEVMEnabled
 	cl.config.UseCase.PoolFactory.UseAEVM = featureFlags.IsAEVMEnabled
-	cl.config.UseCase.PoolManager.UseAEVM = featureFlags.IsAEVMEnabled
+	cl.config.UseCase.PoolManager.FeatureFlags = featureFlags
+	cl.config.UseCase.TradeDataGenerator.UseAEVM = featureFlags.IsAEVMEnabled
 }
 
 func (cl *ConfigLoader) setLog(log valueobject.Log) {
@@ -270,6 +276,8 @@ func (cl *ConfigLoader) setPoolManagerOptionsFromFinderOptions(finderOptions val
 func (cl *ConfigLoader) setGetBestPoolOptions(getBestPoolsOptions valueobject.GetBestPoolsOptions) {
 	cl.config.UseCase.GetCustomRoute.Aggregator.GetBestPoolsOptions = getBestPoolsOptions
 	cl.config.UseCase.GetRoute.Aggregator.GetBestPoolsOptions = getBestPoolsOptions
+	cl.config.UseCase.TradeDataGenerator.GetBestPoolsOptions = getBestPoolsOptions
+	cl.config.UseCase.GetCustomRoute.Aggregator.GetBestPoolsOptions = getBestPoolsOptions
 }
 
 func (cl *ConfigLoader) setCacheConfig(cacheConfig valueobject.CacheConfig) {

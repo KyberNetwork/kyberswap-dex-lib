@@ -8,11 +8,12 @@ import (
 
 type (
 	Config struct {
-		IndexPools              IndexPoolsJobConfig           `mapstructure:"indexPools"`
-		UpdateSuggestedGasPrice UpdateSuggestedGasPriceConfig `mapstructure:"updateSuggestedGasPrice"`
-		GenerateBestPaths       GenerateBestPathsJobConfig    `mapstructure:"generateBestPaths"`
-		TrackExecutorBalance    TrackExecutorBalanceConfig    `mapstructure:"trackExecutorBalance"`
-		UpdateL1Fee             UpdateL1FeeConfig             `mapstructure:"updateL1Fee"`
+		IndexPools               IndexPoolsJobConfig               `mapstructure:"indexPools"`
+		UpdateSuggestedGasPrice  UpdateSuggestedGasPriceConfig     `mapstructure:"updateSuggestedGasPrice"`
+		GenerateBestPaths        GenerateBestPathsJobConfig        `mapstructure:"generateBestPaths"`
+		TrackExecutorBalance     TrackExecutorBalanceConfig        `mapstructure:"trackExecutorBalance"`
+		UpdateL1Fee              UpdateL1FeeConfig                 `mapstructure:"updateL1Fee"`
+		LiquidityScoreIndexPools LiquidityScoreIndexPoolsJobConfig `mapstructure:"liquidityScoreIndexPools"`
 	}
 
 	IndexPoolsJobConfig struct {
@@ -42,5 +43,15 @@ type (
 	UpdateL1FeeConfig struct {
 		Interval      time.Duration `mapstructure:"interval" default:"0s"`
 		OracleAddress string        `mapstructure:"oracle_address"`
+	}
+
+	LiquidityScoreIndexPoolsJobConfig struct {
+		BatchSize                time.Duration `mapstructure:"batchSize"`
+		SuccessedFileName        string        `mapstructure:"successedFileName"`
+		FailedFileName           string        `mapstructure:"failedFileName"`
+		LiquidityScoreCalcScript string        `mapstructure:"liquidityScoreCalcScript"`
+		Interval                 time.Duration `mapstructure:"interval"`
+		ExportFailedTrade        bool          `mapstructure:"exportFailedTrade"`
+		FullScanInterval         time.Duration `mapstructure:"fullScanInterval"`
 	}
 )

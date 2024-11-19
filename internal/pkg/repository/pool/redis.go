@@ -167,3 +167,7 @@ func (r *redisRepository) TrackFaultyPools(ctx context.Context, trackers []route
 
 	return r.poolClient.TrackFaultyPools(ctx, trackers)
 }
+
+func (r *redisRepository) FindAddressesByDex(ctx context.Context, dex string) ([]string, error) {
+	return r.redisClient.SMembers(ctx, util.FormatKey(Separator, r.config.Redis.Prefix, KeyPoolByLiquiditySource, dex)).Result()
+}

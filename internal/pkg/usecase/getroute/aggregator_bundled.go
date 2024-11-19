@@ -70,6 +70,46 @@ func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.Aggrega
 		}
 	}
 
+	// Step 2: collect tokens and price data
+	tokenAddresses := lo.Keys(a.config.WhitelistedTokenSet)
+	for _, pair := range params.Pairs {
+		tokenAddresses = append(tokenAddresses, pair.TokenIn, pair.TokenOut)
+	}
+	tokenAddresses = append(tokenAddresses, params.GasToken)
+
+	tokenByAddress, err := a.getTokenByAddress(ctx, tokenAddresses)
+	if err != nil {
+		return nil, err
+	}
+
+	var priceUSDByAddress map[string]float64
+
+	// only get price from onchain-price-service if enabled
+	var priceByAddress map[string]*routerEntity.OnchainPrice
+	if a.onchainpriceRepository != nil {
+		priceByAddress, err = a.onchainpriceRepository.FindByAddresses(ctx, tokenAddresses)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		priceUSDByAddress, err = a.getPriceUSDByAddress(ctx, tokenAddresses)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// Calculate amountInUsd for every pair to find best pools
+	for _, pair := range params.Pairs {
+		tokenIn, ok := tokenByAddress[pair.TokenIn]
+		if !ok {
+			return nil, errors.WithMessagef(ErrInvalidToken, "invalid tokenIn: %v", pair.TokenIn)
+		}
+		tokenInPrice := GetPriceOnchainWithFallback(pair.TokenIn, priceUSDByAddress, priceByAddress, false)
+		pair.AmountInUsd = utils.CalcTokenAmountUsd(pair.AmountIn, tokenIn.Decimals, tokenInPrice)
+		if pair.AmountInUsd > MaxAmountInUSD {
+			return nil, ErrAmountInIsGreaterThanMaxAllowed
+		}
+	}
+
 	state, err := a.getStateByBundledAddress(ctx, params, common.Hash(stateRoot))
 	if err != nil {
 		return nil, err
@@ -105,34 +145,6 @@ func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.Aggrega
 		}
 	}
 
-	// Step 2: collect tokens and price data
-	tokenAddresses := lo.Keys(a.config.WhitelistedTokenSet)
-	for _, pair := range params.Pairs {
-		tokenAddresses = append(tokenAddresses, pair.TokenIn, pair.TokenOut)
-	}
-	tokenAddresses = append(tokenAddresses, params.GasToken)
-
-	tokenByAddress, err := a.getTokenByAddress(ctx, tokenAddresses)
-	if err != nil {
-		return nil, err
-	}
-
-	var priceUSDByAddress map[string]float64
-
-	// only get price from onchain-price-service if enabled
-	var priceByAddress map[string]*routerEntity.OnchainPrice
-	if a.onchainpriceRepository != nil {
-		priceByAddress, err = a.onchainpriceRepository.FindByAddresses(ctx, tokenAddresses)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		priceUSDByAddress, err = a.getPriceUSDByAddress(ctx, tokenAddresses)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// Step 3: finds best route
 	return a.findBestBundledRoute(ctx, params, tokenByAddress, priceUSDByAddress, priceByAddress, state)
 }
@@ -149,11 +161,8 @@ func (a *bundledAggregator) getStateByBundledAddress(
 	var bestPoolIDs []string
 	for _, pair := range params.Pairs {
 		pairPoolIDs, err := a.poolRankRepository.FindBestPoolIDs(
-			ctx,
-			pair.TokenIn,
-			pair.TokenOut,
-			a.config.GetBestPoolsOptions,
-		)
+			ctx, pair.TokenIn, pair.TokenOut, pair.AmountInUsd, a.config.GetBestPoolsOptions, params.Index)
+
 		if err != nil {
 			return nil, err
 		}
@@ -216,11 +225,6 @@ func (a *bundledAggregator) findBestBundledRoute(
 		tokenInPrice := GetPriceOnchainWithFallback(pair.TokenIn, priceUSDByAddress, priceByAddress, false)  // use sell price for tokenIn
 		tokenOutPrice := GetPriceOnchainWithFallback(pair.TokenOut, priceUSDByAddress, priceByAddress, true) // use buy price for token out and gas
 
-		amountInUSD := utils.CalcTokenAmountUsd(pair.AmountIn, tokenIn.Decimals, tokenInPrice)
-		if amountInUSD > MaxAmountInUSD {
-			return nil, ErrAmountInIsGreaterThanMaxAllowed
-		}
-
 		pairParams := types.AggregateParams{
 			TokenIn:            *tokenIn,
 			TokenOut:           *tokenOut,
@@ -229,6 +233,7 @@ func (a *bundledAggregator) findBestBundledRoute(
 			TokenOutPriceUSD:   tokenOutPrice,
 			GasTokenPriceUSD:   gasTokenPrice,
 			AmountIn:           pair.AmountIn,
+			AmountInUsd:        pair.AmountInUsd,
 			Sources:            params.Sources,
 			SaveGas:            params.SaveGas,
 			GasInclude:         params.GasInclude,

@@ -47,6 +47,7 @@ func TestGetRouteUseCase_Handle(t *testing.T) {
 				AmountIn:   amountIn,
 				SaveGas:    false,
 				GasInclude: true,
+				Index:      "nativeTvl",
 			},
 		},
 		{
@@ -58,6 +59,7 @@ func TestGetRouteUseCase_Handle(t *testing.T) {
 				SaveGas:         false,
 				GasInclude:      true,
 				ExcludedSources: []string{"uniswap"},
+				Index:           "nativeTvl",
 			},
 			err: ErrPoolSetFiltered,
 		},
@@ -70,6 +72,7 @@ func TestGetRouteUseCase_Handle(t *testing.T) {
 				SaveGas:       false,
 				GasInclude:    true,
 				ExcludedPools: mapset.NewThreadUnsafeSet("0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852"),
+				Index:         "nativeTvl",
 			},
 			err: ErrPoolSetFiltered,
 		},
@@ -137,7 +140,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 	// Mock IPoolRankRepository
 	poolRankRepository := getroute.NewMockIPoolRankRepository(ctrl)
 	poolRankRepository.EXPECT().
-		FindBestPoolIDs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		FindBestPoolIDs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Return(lo.Map(entityPools, func(item *entity.Pool, _ int) string { return item.Address }), nil).
 		AnyTimes()
 

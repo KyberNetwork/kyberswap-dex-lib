@@ -12,6 +12,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type bundledUseCase struct {
@@ -119,12 +120,19 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context, query dt
 
 	sources := u.getSources(query.IncludedSources, query.ExcludedSources, query.OnlyScalableSources)
 
-	isHillClimbEnabled := u.config.Aggregator.FeatureFlags.IsHillClimbEnabled
-
 	var overridePools []*entity.Pool
 	err = json.Unmarshal(query.OverridePools, &overridePools)
 	if err != nil {
 		return nil, err
+	}
+
+	index := valueobject.NativeTvl
+	if u.config.Aggregator.FeatureFlags.IsLiquidityScoreIndexEnable {
+		if query.Index != "" {
+			index = valueobject.IndexType(query.Index)
+		} else {
+			index = valueobject.IndexType(u.config.DefaultPoolsIndex)
+		}
 	}
 
 	return &types.AggregateBundledParams{
@@ -134,7 +142,8 @@ func (u *bundledUseCase) getAggregateBundledParams(ctx context.Context, query dt
 		SaveGas:            query.SaveGas,
 		GasInclude:         query.GasInclude,
 		GasPrice:           gasPrice,
-		IsHillClimbEnabled: isHillClimbEnabled,
+		IsHillClimbEnabled: u.config.Aggregator.FeatureFlags.IsHillClimbEnabled,
+		Index:              index,
 		ExcludedPools:      query.ExcludedPools,
 		ClientId:           query.ClientId,
 		OverridePools:      overridePools,

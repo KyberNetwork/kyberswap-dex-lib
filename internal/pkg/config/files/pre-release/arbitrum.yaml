@@ -16,22 +16,35 @@ common:
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
   whitelistedTokenSet: &whitelistedTokenSet
-    0x4cfa50b7ce747e2d61724fcac57f24b748ff2b2a: true # FUSDC
-    0x1622bf67e6e5747b81866fe0b85178a93c7f86e3: true # UMAMI
-    0x912ce59144191c1204e64559fe8253a0e49e6548: true # ARB
-    0xfa5ed56a203466cbbc2430a43c66b9d8723528e7: true # agEUR
-    0x82af49447d8a07e3bd95bd0d56f35241523fbab1: true # WETH
-    0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9: true # USDT
-    0xda10009cbd5d07dd0cecc66161fc93d7c9000da1: true # DAI
-    0xff970a61a04b1ca14834a43f5de4533ebddb5cc8: true # USDC
-    0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f: true # WBTC
-    0xfea7a6a0b346362bf88a9e4a88416b77a57d6c2a: true # MIM
-    0x5979d7b546e38e414f7e9822514be443a4800529: true # WSTETH
-    0xe4dddfe67e7164b0fe14e218d80dc4c08edc01cb: true # KNC
-    0x3f56e0c36d275367b8c502090edf38289b3dea0d: true # MAI
-    0x316772cfec9a3e976fde42c3ba21f5a13aaaff12: true # mKNC
-    0x13ad51ed4f1b7e9dc168d8a00cb3f4ddd85efa60: true # LDO
-    0xf97f4df75117a78c1a5a0dbb814af92458539fb4: true # LINK
+    0x1622bf67e6e5747b81866fe0b85178a93c7f86e3: true 
+    0x912ce59144191c1204e64559fe8253a0e49e6548: true
+    0xfa5ed56a203466cbbc2430a43c66b9d8723528e7: true 
+    0x82af49447d8a07e3bd95bd0d56f35241523fbab1: true
+    0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9: true
+    0xda10009cbd5d07dd0cecc66161fc93d7c9000da1: true
+    0xff970a61a04b1ca14834a43f5de4533ebddb5cc8: true
+    0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f: true
+    0xfea7a6a0b346362bf88a9e4a88416b77a57d6c2a: true
+    0x5979d7b546e38e414f7e9822514be443a4800529: true
+    0xe4dddfe67e7164b0fe14e218d80dc4c08edc01cb: true
+    0x3f56e0c36d275367b8c502090edf38289b3dea0d: true
+    0x316772cfec9a3e976fde42c3ba21f5a13aaaff12: true
+    0x13ad51ed4f1b7e9dc168d8a00cb3f4ddd85efa60: true
+    0xf97f4df75117a78c1a5a0dbb814af92458539fb4: true
+    0xaf88d065e77c8cc2239327c5edb3a432268e5831: true
+    0x88dfaaabaf06f3a41d2606ea98bc8eda109abebb: true
+    0x17fc002b466eec40dae837fc4be5c67993ddbd6f: true
+    0x894134a25a5fac1c2c26f1d8fbf05111a3cb9487: true
+    0xb448ec505c924944ca8b2c55ef05c299ee0781df: true
+    0x9cfb13e6c11054ac9fcb92ba89644f30775436e4: true
+    0xabd587f2607542723b17f14d00d99b987c29b074: true
+    0x6694340fc020c5e6b96567843da2df01b2ce1eb6: true
+    0x178412e79c25968a32e89b11f63b33f733770c2a: true
+    0xd85e038593d7a098614721eae955ec2022b9b91b: true
+    0x95ab45875cffdba1e5f451b950bc2e42c0053f39: true
+    0x8ca32924f0ea617680ac8b9f43a919911bc59690: true
+    0xe80772eaf6e2e18b651f160bc9158b2a5cafca65: true
+    0x5d3a1ff2b6bab83b63cd9ad0787074081a52ef34: true
   blacklistedPoolSet: &blacklistedPoolSet
     0x7b07164ecfaf0f0d85dfc062bc205a4674c75aa0: true
     0x1506b54a1c0ea1b2f4a84866ec5776f7f6e7f0b1: true
@@ -104,19 +117,29 @@ common:
     - "deltaswap-v1"
     - "maverick-v2"
   featureFlags: &featureFlags
+  getBestPoolsOptions: &getBestPoolsOptions
+      directPoolsCount: 100
+      whitelistPoolsCount: 500
+      tokenInPoolsCount: 200
+      tokenOutPoolCount: 200
+      amplifiedTvlDirectPoolsCount: 50
+      amplifiedTvlWhitelistPoolsCount: 200
+      amplifiedTvlTokenInPoolsCount: 100
+      amplifiedTvlTokenOutPoolCount: 100
+      amountInThreshold: 10000
   swaapAPIKey:
   nativeAPIKey:
   hashflowAPIKey:
   bebopAPIName:
   bebopAPIAuth:
-  dexalotAPIKey: 
+  dexalotAPIKey:
   dexalotUpscalePercent: 20
   clipperAPIAuth:
   dexUseAEVM: &dexUseAEVM
     maverick-v2: true
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
-  consoleLevel: info
+  consoleLevel: debug
   enableConsole: true
   enableJSONFormat: true
 redis:
@@ -167,7 +190,7 @@ keyPair:
   keyIDForSealingData:
     clientData: "1"
 reloadConfig:
-  httpUrl: ""
+  httpUrl: "https://pre-ks-setting-admin.kyberengineering.io/api/v1/admin/configurations"
   interval: 10s
   serviceName: "aggregator"
   chainID: *chainId
@@ -233,18 +256,10 @@ useCase:
     gasTokenAddress: *gasTokenAddress
     routerAddress: *routerAddress
     availableSources: *availableSources
+    defaultPoolsIndex: composite
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
-      getBestPoolsOptions:
-        directPoolsCount: 100
-        whitelistPoolsCount: 500
-        tokenInPoolsCount: 200
-        tokenOutPoolCount: 200
-        amplifiedTvlDirectPoolsCount: 50
-        amplifiedTvlWhitelistPoolsCount: 200
-        amplifiedTvlTokenInPoolsCount: 100
-        amplifiedTvlTokenOutPoolCount: 100
-      dexUseAEVM: *dexUseAEVM
+      getBestPoolsOptions: *getBestPoolsOptions
       finderOptions:
         maxHops: 3
         distributionPercent: 5
@@ -442,7 +457,7 @@ useCase:
     faultyPoolsRenewalInterval: 5s
     capacity: 1000000
     poolRenewalInterval: 3s
-    useAEVM: *useAEVM
+    featureFlags: *featureFlags
     useAEVMRemoteFinder: *useAEVMRemoteFinder
     faultyPoolsExpireThreshold: 3s
   indexPools:
@@ -453,6 +468,18 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-arbitrum
+  tradeDataGenerator:
+    whitelistedTokenSet: *whitelistedTokenSet
+    chunkSize: 200
+    useAEVM: false
+    dexUseAEVM:
+    minDataPointNumber: 6
+    maxDataPointNumber: 12
+    availableSources: *availableSources
+  updateLiquidityScore:
+    inputFileName: "./scores.csv"
+    meanType: "geometric"
+    getBestPoolsOptions: *getBestPoolsOptions
 job:
   indexPools:
     forceScanAllEveryNth: 10
@@ -474,6 +501,14 @@ job:
     interval: 15s
   trackExecutorBalance:
     interval: 1h
+  liquidityScoreIndexPools:
+    batchSize: 200
+    interval: 1h
+    successedFileName: "./trade_data.txt"
+    failedFileName: "./failed_trade_data.txt"
+    liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
+    exportFailedTrade: false
+    fullScanInterval: 3h
 repository:
   gas:
     redis:

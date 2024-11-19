@@ -39,3 +39,9 @@ app
 certs.pem
 
 cmd/data/__pycache__/
+cmd/liquidityscore/__pycache__/
+
+# files generated from indexer
+trade_data.txt
+failed_trade_data.txt
+*.csv

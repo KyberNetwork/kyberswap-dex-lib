@@ -57,7 +57,9 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute"
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getcustomroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getpools"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolfactory"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolmanager"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/poolpublisher"
@@ -164,6 +166,12 @@ func main() {
 				Name:   "executortracker",
 				Usage:  "Track executor's tokens & pool approval, to support optimize building route",
 				Action: executorTrackerAction,
+			},
+			{
+				Name:    "liquidityScoresIndexer",
+				Aliases: []string{"liqIndexer"},
+				Usage:   "Index pools by liquidity scores",
+				Action:  liquidityScoreIndexerAction,
 			},
 		}}
 
@@ -351,7 +359,8 @@ func apiAction(c *cli.Context) (err error) {
 	validateRouteUseCase := validateroute.NewValidateRouteUseCase()
 	validateRouteUseCase.RegisterValidator(synthetix.NewSynthetixValidator())
 
-	getPoolsUseCase := usecase.NewGetPoolsUseCase(poolRepository)
+	getPoolsUseCase := getpools.NewGetPoolsUseCase(poolRepository)
+	GetPoolsIncludingBasePools := getpools.NewGetPoolsIncludingBasePools(poolRepository)
 	getTokensUseCase := usecase.NewGetTokens(tokenRepository, priceRepository, onchainpriceRepository)
 
 	var (
@@ -418,7 +427,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
 	poolManager, err := poolmanager.NewPointerSwapPoolManager(ctx, poolRepository, poolFactory, poolRankRepository,
-		cfg.UseCase.PoolManager, aevmClient, poolsPublisher)
+		GetPoolsIncludingBasePools, cfg.UseCase.PoolManager, aevmClient, poolsPublisher)
 	if err != nil {
 		return err
 	}
@@ -590,7 +599,6 @@ func apiAction(c *cli.Context) (err error) {
 			aevmClientUC,
 			finderEngine,
 			aevmClient,
-			poolsPublisher,
 		)
 	}))
 
@@ -699,7 +707,7 @@ func indexerAction(c *cli.Context) (err error) {
 
 	// init use case
 	getAllPoolAddressesUseCase := usecase.NewGetAllPoolAddressesUseCase(poolRepo)
-	indexPoolsUseCase := usecase.NewIndexPoolsUseCase(
+	indexPoolsUseCase := indexpools.NewIndexPoolsUseCase(
 		poolRepo,
 		poolRankRepository,
 		onchainpriceRepository,
@@ -901,7 +909,6 @@ func applyLatestConfigForAPI(
 	aevmClientUC IAEVMClientUseCase,
 	finderEngine finderengine.IPathFinderEngine,
 	aevmClient aevmclient.Client,
-	poolsPublisher poolmanager.IPoolsPublisher,
 ) error {
 	cfg, err := configLoader.Get()
 	if err != nil {
@@ -938,7 +945,7 @@ func applyLatestConfigForAPI(
 
 func applyLatestConfigForIndexer(
 	ctx context.Context,
-	indexPoolsUseCase *usecase.IndexPoolsUseCase,
+	indexPoolsUseCase *indexpools.IndexPoolsUseCase,
 	indexPoolsJob *job.IndexPoolsJob,
 	configLoader *config.ConfigLoader,
 ) error {
@@ -956,4 +963,221 @@ func applyLatestConfigForIndexer(
 	indexPoolsUseCase.ApplyConfig(cfg.UseCase.IndexPools)
 
 	return nil
+}
+
+func applyLatestConfigForLiquidityScoreIndexer(
+	ctx context.Context,
+	tradesGenerator *indexpools.TradeDataGenerator,
+	configLoader *config.ConfigLoader,
+) error {
+	cfg, err := configLoader.Get()
+	if err != nil {
+		return err
+	}
+
+	if err = logger.SetLogLevel(cfg.Log.ConsoleLevel); err != nil {
+		logger.Warnf(ctx, "[applyLatestConfigForIndexer] reload Log level error cause by <%v>", err)
+	}
+
+	tradesGenerator.ApplyConfig(cfg.UseCase.TradeDataGenerator)
+
+	return nil
+}
+
+func liquidityScoreIndexerAction(c *cli.Context) (err error) {
+	ctx := context.Background()
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// load config
+	configFile := c.String("config")
+
+	configLoader, err := config.NewConfigLoader(configFile, []string{})
+	if err != nil {
+		return err
+	}
+	cfg, err := configLoader.Get()
+	if err != nil {
+		return err
+	}
+
+	// init logger
+	_, err = logger.InitLogger(cfg.Log.Configuration, logger.LoggerBackendZap)
+	if err != nil {
+		return err
+	}
+
+	// Initialize config reloader
+	restSettingRepo := setting.NewRestRepository(cfg.ReloadConfig.HttpUrl)
+	reloadConfigUseCase := usecase.NewReloadConfigUseCase(restSettingRepo)
+	reloadConfigFetcher := reloadconfig.NewReloadConfigFetcher(cfg.ReloadConfig, reloadConfigUseCase)
+	reloadConfigReporter := reloadconfig.NewReloadConfigReporter(cfg.ReloadConfig, reloadConfigUseCase)
+
+	configLoader.SetRemoteConfigFetcher(reloadConfigFetcher)
+
+	// reload config with remote config. Ignore error with a warning
+	err = configLoader.Reload(ctx)
+	if err != nil {
+		logger.Warnf(ctx, "[apiAction] Config could not be reloaded: %s", err)
+	} else {
+		logger.Info(ctx, "Config reloaded")
+	}
+
+	if err := cfg.Validate(); err != nil {
+		logger.Errorf(ctx, "failed to validate config, err: %v", err)
+		panic(err)
+	}
+
+	// init redis client
+	poolRedisClient, err := redis.New(&cfg.PoolRedis)
+	if err != nil {
+		logger.Errorf(ctx, "[indexerAction] fail to init redis client to pool service")
+		return err
+	}
+	routerRedisClient, err := redis.New(&cfg.Redis)
+	if err != nil {
+		return err
+	}
+
+	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
+	poolRepository, err := pool.NewRedisRepository(
+		poolRedisClient.Client,
+		poolServiceClient, cfg.Repository.Pool)
+	poolRankRepo := poolrank.NewRedisRepository(poolRedisClient.Client, cfg.Repository.PoolRank)
+
+	priceRepository, err := price.NewRistrettoRepository(
+		price.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Price.Redis),
+		cfg.Repository.Price.RistrettoConfig,
+	)
+	if err != nil {
+		return err
+	}
+
+	tokenRepository := token.NewGoCacheRepository(
+		token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis),
+		cfg.Repository.Token.GoCache,
+	)
+
+	var (
+		balanceSlotsUseCase *erc20balanceslotuc.Cache
+		aevmClient          aevmclient.Client
+	)
+	if cfg.AEVMEnabled {
+		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client,
+			cfg.Repository.ERC20BalanceSlot.Redis)
+		rpcClient, err := rpc.Dial(cfg.AEVM.RPC)
+		if err != nil {
+			return fmt.Errorf("could not dial JSON-RPC node %w", err)
+		}
+		var balanceSlotsProbe *erc20balanceslotuc.MultipleStrategy
+		if cfg.AEVM.UseHoldersListAsFallback {
+			tokenHoldersRedis, err := redis.New(&cfg.AEVM.TokenHoldersRedis)
+			if err != nil {
+				return err
+			}
+			holdersListRepo := erc20balanceslot.NewHoldersListRedisRepositoryWithCache(tokenHoldersRedis,
+				cfg.AEVM.CachedHoldersListTTLSec)
+			watchlistRepo := erc20balanceslot.NewWatchlistRedisRepository(tokenHoldersRedis)
+			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategyWithHoldersListAsFallback(rpcClient,
+				common.HexToAddress(cfg.AEVM.FakeWallet), holdersListRepo, watchlistRepo)
+		} else {
+			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategy(rpcClient,
+				common.HexToAddress(cfg.AEVM.FakeWallet))
+		}
+		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe,
+			cfg.AEVM.PredefinedBalanceSlots, cfg.Common.ChainID)
+		if err := balanceSlotsUseCase.PreloadAll(context.Background()); err != nil {
+			logger.Errorf(ctx, "could not preload balance slots %s", err)
+			return err
+		}
+
+		serverURLs := strings.Split(cfg.AEVM.AEVMServerURLs, ",")
+		publishingPoolsURLs := strings.Split(cfg.AEVM.AEVMPublishingPoolsURLs, ",")
+		logger.Infof(ctx, "AEVMServerURLs = %+v AEVMPublishingPoolsURLs = %+v", serverURLs, publishingPoolsURLs)
+		aevmClientImpl, err := aevmclientuc.NewClient(
+			aevmclientuc.Config{
+				ServerURLs:          serverURLs,
+				PublishingPoolsURLs: publishingPoolsURLs,
+
+				RetryOnTimeoutMs:          cfg.AEVM.RetryOnTimeoutMs,
+				FindrouteRetryOnTimeoutMs: cfg.AEVM.FindrouteRetryOnTimeoutMs,
+				MaxRetry:                  cfg.AEVM.MaxRetry,
+			},
+			func(url string) (aevmclient.Client, error) { return aevmclient.NewGRPCClient(url) },
+		)
+		if err != nil {
+			return err
+		}
+		defer aevmClientImpl.Close()
+		aevmClient = aevmClientImpl
+	}
+
+	var onchainpriceRepository indexpools.IOnchainPriceRepository
+	if cfg.Repository.OnchainPrice.Enabled {
+		grpcRepository, err := onchainprice.NewGRPCRepository(
+			cfg.Repository.OnchainPrice.Grpc,
+			cfg.Common.ChainID,
+			tokenRepository,
+			cfg.Common.GasTokenAddress)
+		if err != nil {
+			return err
+		}
+
+		onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository, cfg.Repository.OnchainPrice.Ristretto)
+		if err != nil {
+			return err
+		}
+
+		go onchainpriceRepository.RefreshCacheNativePriceInUSD(ctx)
+	}
+
+	getPools := getpools.NewGetPoolsIncludingBasePools(poolRepository)
+	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
+	tradeGenerator := indexpools.NewTradeDataGenerator(poolRepository, priceRepository, onchainpriceRepository, tokenRepository, getPools, aevmClient, poolFactory, cfg.UseCase.TradeDataGenerator)
+	updatePoolScores := indexpools.NewUpdatePoolsScore(poolRankRepo, cfg.UseCase.UpdateLiquidityScoreConfig)
+	indexJob := job.NewLiquidityScoreIndexPoolsJob(tradeGenerator, updatePoolScores, cfg.Job.LiquidityScoreIndexPools)
+
+	reloadManager := reload.NewManager()
+
+	// Run hot-reload manager.
+	// Add all app reloaders in order.
+	reloadManager.RegisterReloader(0, reload.ReloaderFunc(func(ctx context.Context, id string) error {
+		// If configuration fails ignore reload with a warning.
+		err = configLoader.Reload(ctx)
+		if err != nil {
+			logger.Warnf(ctx, "[indexerAction] Config could not be reloaded: %s", err)
+			return nil
+		}
+		return nil
+	}))
+
+	reloadManager.RegisterReloader(100, reload.ReloaderFunc(func(ctx context.Context, id string) error {
+		return applyLatestConfigForLiquidityScoreIndexer(ctx, tradeGenerator, configLoader)
+	}))
+
+	g, ctx := errgroup.WithContext(ctx)
+
+	// run jobs
+	g.Go(func() error {
+		return reloadManager.Run(ctx)
+	})
+
+	// run jobs
+	g.Go(func() error {
+		indexJob.Run(ctx)
+
+		return nil
+	})
+
+	// Register notifier
+	reloadChan := make(chan string)
+	reloadManager.RegisterNotifier(reload.NotifierChan(reloadChan))
+
+	g.Go(func() error {
+		reloadConfigReporter.Report(ctx, reloadChan)
+		return nil
+	})
+
+	return g.Wait()
 }

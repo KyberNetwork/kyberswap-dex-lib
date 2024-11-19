@@ -5,6 +5,8 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools"
+	mapset "github.com/deckarep/golang-set/v2"
 )
 
 // IGetAllPoolAddressesUseCase get all pool addresses from Redis
@@ -25,5 +27,17 @@ type IUpdateSuggestedGasPriceUseCase interface {
 
 // IUpdateL1FeeUseCase get L1 fee parameters for L2 chains and save to Redis
 type IUpdateL1FeeUseCase interface {
+	Handle(ctx context.Context) error
+}
+
+type ITradeGeneratorUsecase interface {
+	Handle(ctx context.Context, output chan<- indexpools.TradesGenerationOutput, indexBlacklistWlPools mapset.Set[string])
+}
+
+type IRemovePoolsFromIndexUseCase interface {
+	Handle(ctx context.Context, indexBlacklistWlPools mapset.Set[string]) error
+}
+
+type IUpdatePoolScores interface {
 	Handle(ctx context.Context) error
 }

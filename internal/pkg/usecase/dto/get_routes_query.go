@@ -26,6 +26,8 @@ type GetRoutesQuery struct {
 
 	ExcludedPools mapset.Set[string]
 	ClientId      string
+
+	Index string
 }
 
 type GetBundledRoutesQueryPair struct {
@@ -49,4 +51,6 @@ type GetBundledRoutesQuery struct {
 	ClientId      string
 
 	OverridePools json.RawMessage
+
+	Index string
 }

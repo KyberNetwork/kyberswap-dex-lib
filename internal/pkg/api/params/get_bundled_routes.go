@@ -36,6 +36,8 @@ type GetBundledRoutesParams struct {
 	ClientId string `form:"clientId"`
 
 	OverridePools json.RawMessage `form:"overridePools"`
+
+	Index string `form:"index"`
 }
 
 type GetBundledRoutesResponse struct {

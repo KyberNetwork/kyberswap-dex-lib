@@ -4,6 +4,8 @@ import (
 	"math"
 	"math/big"
 	"time"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 )
 
 const OneHundredPercent = 100
@@ -104,6 +106,8 @@ func TenPowInt(decimal uint8) *big.Int {
 	return new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimal)), nil)
 }
 
+var DexUseSwapLimit []string
+
 func init() {
 	Zero = big.NewInt(0)
 	One = big.NewInt(1)
@@ -123,6 +127,14 @@ func init() {
 		tenPowInt[i] = new(big.Int).Mul(tenPowInt[i-1], big.NewInt(10))
 	}
 	LowReserve = new(big.Float).SetFloat64(1e-6)
+
+	DexUseSwapLimit = []string{
+		pooltypes.PoolTypes.KyberPMM,
+		pooltypes.PoolTypes.Synthetix,
+		pooltypes.PoolTypes.NativeV1,
+		pooltypes.PoolTypes.LimitOrder,
+		pooltypes.PoolTypes.Dexalot,
+	}
 }
 
 const DefaultPMMStalledTime = 30 * time.Second

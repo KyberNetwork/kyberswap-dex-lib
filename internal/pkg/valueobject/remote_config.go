@@ -47,6 +47,8 @@ type (
 		ShouldValidateSender           bool `mapstructure:"shouldValidateSender" json:"shouldValidateSender"`
 		IsAEVMEnabled                  bool `mapstructure:"isAEVMEnabled" json:"isAEVMEnabled"`
 		IsFaultyPoolDetectorEnable     bool `mapstructure:"isFaultyPoolDetectorEnable" json:"isFaultyPoolDetectorEnable"`
+		IsLiquidityScoreIndexEnable    bool `mapstructure:"isLiquidityScoreEnable" json:"isLiquidityScoreEnable"`
+		IsRouteCachedEnable            bool `mapstructure:"isRouteCachedEnable" json:"isRouteCachedEnable"`
 	}
 
 	Log struct {
@@ -62,6 +64,8 @@ type (
 		AmplifiedTvlWhitelistPoolsCount int64 `mapstructure:"amplifiedTvlWhitelistPoolsCount" json:"amplifiedTvlWhitelistPoolsCount"`
 		AmplifiedTvlTokenInPoolsCount   int64 `mapstructure:"amplifiedTvlTokenInPoolsCount" json:"amplifiedTvlTokenInPoolsCount"`
 		AmplifiedTvlTokenOutPoolCount   int64 `mapstructure:"amplifiedTvlTokenOutPoolCount" json:"amplifiedTvlTokenOutPoolCount"`
+		// min threshold for amount in using in liquidity score index
+		AmountInThreshold float64 `mapstructure:"amountInThreshold" json:"amountInThreshold"`
 	}
 
 	FinderOptions struct {

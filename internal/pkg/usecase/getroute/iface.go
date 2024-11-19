@@ -56,7 +56,9 @@ type IPoolRankRepository interface {
 	FindBestPoolIDs(
 		ctx context.Context,
 		tokenIn, tokenOut string,
+		amountIn float64,
 		opt valueobject.GetBestPoolsOptions,
+		index valueobject.IndexType,
 	) ([]string, error)
 }
 

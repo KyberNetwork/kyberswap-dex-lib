@@ -1,4 +1,4 @@
-package usecase
+package indexpools
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
+	mocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/indexpools"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 )
@@ -150,7 +150,7 @@ func TestIndexPools_Handle(t *testing.T) {
 					ChunkSize: 100,
 				}
 
-				mockPoolRepo := usecase.NewMockIPoolRepository(ctrl)
+				mockPoolRepo := mocks.NewMockIPoolRepository(ctrl)
 				mockPoolRepo.EXPECT().
 					FindByAddresses(
 						gomock.Any(),
@@ -163,7 +163,7 @@ func TestIndexPools_Handle(t *testing.T) {
 						},
 					).Return(mockPools, nil)
 
-				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo := mocks.NewMockIPoolRankRepository(ctrl)
 				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
 					mockTokens[0].Address,
@@ -231,7 +231,7 @@ func TestIndexPools_Handle(t *testing.T) {
 					ChunkSize: 100,
 				}
 
-				mockPoolRepo := usecase.NewMockIPoolRepository(ctrl)
+				mockPoolRepo := mocks.NewMockIPoolRepository(ctrl)
 				mockPoolRepo.EXPECT().
 					FindByAddresses(
 						gomock.Any(),
@@ -244,7 +244,7 @@ func TestIndexPools_Handle(t *testing.T) {
 						},
 					).Return(mockPools, nil)
 
-				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo := mocks.NewMockIPoolRankRepository(ctrl)
 				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
 					mockTokens[0].Address,
@@ -307,11 +307,11 @@ func TestIndexPools_Handle(t *testing.T) {
 					ChunkSize: 100,
 				}
 
-				mockPoolRepo := usecase.NewMockIPoolRepository(ctrl)
+				mockPoolRepo := mocks.NewMockIPoolRepository(ctrl)
 				mockPoolRepo.EXPECT().
 					FindByAddresses(gomock.Any(), []string{"pooladdress1", "pooladdress2", "pooladdress3"}).
 					Return(nil, theError)
-				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo := mocks.NewMockIPoolRankRepository(ctrl)
 				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, nil, mockConfig)
 			},
 			command: dto.IndexPoolsCommand{PoolAddresses: []string{"pooladdress1", "pooladdress2", "pooladdress3"}},
@@ -340,11 +340,11 @@ func TestIndexPools_Handle(t *testing.T) {
 					TotalSupply:  "30000",
 				}
 
-				mockPoolRepo := usecase.NewMockIPoolRepository(ctrl)
+				mockPoolRepo := mocks.NewMockIPoolRepository(ctrl)
 				mockPoolRepo.EXPECT().
 					FindByAddresses(gomock.Any(), []string{mockPool.Address}).
 					Return([]*entity.Pool{mockPool}, nil)
-				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo := mocks.NewMockIPoolRankRepository(ctrl)
 				mockPoolRankRepo.EXPECT().
 					AddToSortedSet(
 						gomock.Any(),
@@ -423,7 +423,7 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					ChunkSize: 100,
 				}
 
-				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo := mocks.NewMockIPoolRankRepository(ctrl)
 				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
 					gomock.Any(),
 					mockTokens[1].Address,
@@ -466,7 +466,7 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					ChunkSize: 100,
 				}
 
-				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo := mocks.NewMockIPoolRankRepository(ctrl)
 				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
 					gomock.Any(),
 					mockTokens[0].Address,
@@ -514,7 +514,7 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					ChunkSize: 100,
 				}
 
-				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo := mocks.NewMockIPoolRankRepository(ctrl)
 				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
 					gomock.Any(),
 					mockTokens[0].Address,
@@ -578,7 +578,7 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					ChunkSize: 100,
 				}
 
-				mockPoolRankRepo := usecase.NewMockIPoolRankRepository(ctrl)
+				mockPoolRankRepo := mocks.NewMockIPoolRankRepository(ctrl)
 				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
 					gomock.Any(),
 					mockTokens[0].Address,

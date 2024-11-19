@@ -1,4 +1,4 @@
-package usecase
+package getpools
 
 import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -7,19 +7,19 @@ import (
 	"context"
 )
 
-type getPoolsUseCase struct {
+type GetPoolsUseCase struct {
 	poolRepo IPoolRepository
 }
 
 func NewGetPoolsUseCase(
 	poolRepo IPoolRepository,
-) *getPoolsUseCase {
-	return &getPoolsUseCase{
+) *GetPoolsUseCase {
+	return &GetPoolsUseCase{
 		poolRepo: poolRepo,
 	}
 }
 
-func (u *getPoolsUseCase) Handle(ctx context.Context, query dto.GetPoolsQuery) (*dto.GetPoolsResult, error) {
+func (u *GetPoolsUseCase) Handle(ctx context.Context, query dto.GetPoolsQuery) (*dto.GetPoolsResult, error) {
 	pools, err := u.poolRepo.FindByAddresses(ctx, query.IDs)
 	if err != nil {
 		return nil, err

@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/eth"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
@@ -62,8 +63,15 @@ func NewUseCase(
 		poolManager,
 		config,
 	)
-	aggregatorWithCache := NewCache(correlatedPairsAggregator, routeCacheRepository, poolManager, config.Cache, finderEngine)
-	aggregatorWithChargeExtraFee := NewChargeExtraFee(aggregatorWithCache)
+
+	var finalizedAggregator IAggregator
+	if config.Aggregator.FeatureFlags.IsRouteCachedEnable {
+		aggregatorWithCache := NewCache(correlatedPairsAggregator, routeCacheRepository, poolManager, config.Cache, finderEngine)
+		finalizedAggregator = aggregatorWithCache
+	} else {
+		finalizedAggregator = correlatedPairsAggregator
+	}
+	aggregatorWithChargeExtraFee := NewChargeExtraFee(finalizedAggregator)
 
 	return &useCase{
 		aggregator:      aggregatorWithChargeExtraFee,
@@ -99,8 +107,8 @@ func (u *useCase) Handle(ctx context.Context, query dto.GetRoutesQuery) (*dto.Ge
 		return nil, err
 	}
 
-	amountInUSD := utils.CalcTokenAmountUsd(params.AmountIn, params.TokenIn.Decimals, params.TokenInPriceUSD)
-	if amountInUSD > MaxAmountInUSD {
+	params.AmountInUsd = utils.CalcTokenAmountUsd(params.AmountIn, params.TokenIn.Decimals, params.TokenInPriceUSD)
+	if params.AmountInUsd > MaxAmountInUSD {
 		return nil, ErrAmountInIsGreaterThanMaxAllowed
 	}
 
@@ -174,7 +182,14 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 
 	sources := u.getSources(query.IncludedSources, query.ExcludedSources, query.OnlyScalableSources)
 
-	isHillClimbEnabled := u.config.Aggregator.FeatureFlags.IsHillClimbEnabled
+	index := valueobject.NativeTvl
+	if u.config.Aggregator.FeatureFlags.IsLiquidityScoreIndexEnable {
+		if query.Index != "" {
+			index = valueobject.IndexType(query.Index)
+		} else {
+			index = valueobject.IndexType(u.config.DefaultPoolsIndex)
+		}
+	}
 
 	return &types.AggregateParams{
 		TokenIn:            tokenIn,
@@ -189,7 +204,8 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		GasInclude:         query.GasInclude,
 		GasPrice:           gasPrice,
 		ExtraFee:           query.ExtraFee,
-		IsHillClimbEnabled: isHillClimbEnabled,
+		IsHillClimbEnabled: u.config.Aggregator.FeatureFlags.IsHillClimbEnabled,
+		Index:              index,
 		ExcludedPools:      query.ExcludedPools,
 		ClientId:           query.ClientId,
 	}, nil

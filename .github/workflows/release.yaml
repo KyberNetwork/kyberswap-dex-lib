@@ -16,4 +16,12 @@ jobs:
     with:
       service: ${{ github.event.repository.name }}
       version: '${{ inputs.version }}'
+      file: docker/Dockerfile
+    secrets: inherit
+  release_liqIndexer:
+    uses: KyberNetwork/service-framework/.github/workflows/release.yaml@main
+    with:
+      service: ${{ github.event.repository.name }}-liqindexer
+      version: '${{ inputs.version }}'
+      file: docker/liqIndexer.Dockerfile
     secrets: inherit

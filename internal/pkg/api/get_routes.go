@@ -112,6 +112,17 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 		}
 	}
 
+	if params.Index != "" {
+		validIndex := valueobject.IndexType(params.Index)
+		if validIndex != valueobject.Composite && validIndex != valueobject.LiquidityScore && validIndex != valueobject.NativeTvl {
+			return dto.GetRoutesQuery{}, errors.WithMessagef(
+				ErrInvalidValue,
+				"index: [%s]",
+				params.Index,
+			)
+		}
+	}
+
 	return dto.GetRoutesQuery{
 		TokenIn:             utils.CleanUpParam(params.TokenIn),
 		TokenOut:            utils.CleanUpParam(params.TokenOut),
@@ -125,6 +136,7 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 		ExtraFee:            extraFee,
 		ExcludedPools:       mapset.NewThreadUnsafeSet(utils.TransformSliceParams(params.ExcludedPools)...),
 		ClientId:            params.ClientId,
+		Index:               params.Index,
 	}, nil
 }
 

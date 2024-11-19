@@ -4,8 +4,8 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
 type LockedState struct {
@@ -15,13 +15,10 @@ type LockedState struct {
 }
 
 func NewLockedState() *LockedState {
-
 	var limits = make(map[string]map[string]*big.Int)
-	limits[pooltypes.PoolTypes.KyberPMM] = make(map[string]*big.Int)
-	limits[pooltypes.PoolTypes.Synthetix] = make(map[string]*big.Int)
-	limits[pooltypes.PoolTypes.NativeV1] = make(map[string]*big.Int)
-	limits[pooltypes.PoolTypes.LimitOrder] = make(map[string]*big.Int)
-	limits[pooltypes.PoolTypes.Dexalot] = make(map[string]*big.Int)
+	for _, poolType := range constant.DexUseSwapLimit {
+		limits[poolType] = make(map[string]*big.Int)
+	}
 
 	return &LockedState{
 		poolByAddress: make(map[string]poolpkg.IPoolSimulator),

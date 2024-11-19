@@ -22,6 +22,14 @@ jobs:
     uses: KyberNetwork/service-framework/.github/workflows/build.yaml@main
     with:
       service: ${{ github.event.repository.name }}
+      file: docker/Dockerfile
+    secrets: inherit
+  build_liqIndexer:
+    needs: build
+    uses: KyberNetwork/service-framework/.github/workflows/build.yaml@main
+    with:
+      service: ${{ github.event.repository.name }}-liqindexer
+      file: docker/liqIndexer.Dockerfile
     secrets: inherit
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -30,4 +38,12 @@ jobs:
     with:
       services: router-service/*/{api,indexer}
       tag: ${{ needs.build.outputs.tag }}
+    secrets: inherit
+  deploy_liqIndexer:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build_liqIndexer
+    uses: KyberNetwork/service-framework/.github/workflows/deploy.yaml@main
+    with:
+      services: router-service/*/liquidity-score-indexer
+      tag: ${{ needs.build_liqIndexer.outputs.tag }}
     secrets: inherit

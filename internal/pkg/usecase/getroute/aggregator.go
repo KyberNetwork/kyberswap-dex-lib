@@ -156,13 +156,15 @@ func (a *aggregator) getStateByAddress(
 	if len(params.Sources) == 0 {
 		return nil, ErrPoolSetFiltered
 	}
-
 	bestPoolIDs, err := a.poolRankRepository.FindBestPoolIDs(
 		ctx,
 		params.TokenIn.Address,
 		params.TokenOut.Address,
+		params.AmountInUsd,
 		a.config.GetBestPoolsOptions,
+		params.Index,
 	)
+
 	if err != nil {
 		return nil, err
 	}

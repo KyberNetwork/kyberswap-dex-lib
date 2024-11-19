@@ -44,6 +44,9 @@ type GetRoutesParams struct {
 	ExcludedPools string `form:"excludedPools"`
 
 	ClientId string `form:"clientId"`
+
+	// Index type
+	Index string `form:"index"`
 }
 
 type GetRoutesResponse struct {
