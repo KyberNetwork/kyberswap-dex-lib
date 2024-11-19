@@ -54,6 +54,10 @@ func (i *Inventory) GetLimit(tokenAddress string) *big.Int {
 	return balance
 }
 
+func (i *Inventory) GetSwapped() map[string]*big.Int {
+	return nil
+}
+
 // CheckLimit returns the balance for the token in Inventory. Do not modify the result.
 func (i *Inventory) CheckLimit(tokenAddress string, amount *big.Int) error {
 	i.lock.RLock()
