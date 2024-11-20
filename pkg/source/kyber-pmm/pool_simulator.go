@@ -13,7 +13,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -117,11 +116,30 @@ func (p *PoolSimulator) CalcAmountOut(
 		tokenOut      = param.TokenOut
 		limit         = param.Limit
 		swapDirection = p.getSwapDirection(tokenAmountIn.Token)
+		swapped       = limit.GetSwapped()
 	)
 
 	if swapDirection == SwapDirectionBaseToQuote {
+		swappedBaseAmount, ok := swapped[p.baseToken.Address]
+		if ok && swappedBaseAmount.Sign() > 0 {
+			swappedBaseAmountAfterDecimals := new(big.Float).Quo(
+				new(big.Float).SetInt(swappedBaseAmount),
+				bignumber.TenPowDecimals(p.baseToken.Decimals),
+			)
+			p.baseToQuotePriceLevels = getNewPriceLevelsState(swappedBaseAmountAfterDecimals, p.baseToQuotePriceLevels)
+		}
+
 		result, err = p.swapBaseToQuote(tokenAmountIn, tokenOut)
 	} else {
+		swappedQuoteAmount, ok := swapped[p.quoteToken.Address]
+		if ok && swappedQuoteAmount.Sign() > 0 {
+			swappedQuoteAmountAfterDecimals := new(big.Float).Quo(
+				new(big.Float).SetInt(param.TokenAmountIn.Amount),
+				bignumber.TenPowDecimals(p.quoteToken.Decimals),
+			)
+
+			p.quoteToBasePriceLevels = getNewPriceLevelsState(swappedQuoteAmountAfterDecimals, p.quoteToBasePriceLevels)
+		}
 		result, err = p.swapQuoteToBase(tokenAmountIn, tokenOut)
 	}
 	if err != nil {
@@ -145,12 +163,6 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	swapDirection := p.getSwapDirection(params.TokenAmountIn.Token)
 
 	if swapDirection == SwapDirectionBaseToQuote {
-		amountInAfterDecimals := new(big.Float).Quo(
-			new(big.Float).SetInt(params.TokenAmountIn.Amount),
-			bignumber.TenPowDecimals(p.baseToken.Decimals),
-		)
-
-		p.baseToQuotePriceLevels = getNewPriceLevelsState(amountInAfterDecimals, p.baseToQuotePriceLevels)
 		newQuoteInventory, newBaseInventory, err := params.SwapLimit.UpdateLimit(p.quoteToken.Address, p.baseToken.Address, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
 		if err != nil {
 			fmt.Println("unable to update PMM info, error:", err)
@@ -158,20 +170,12 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		p.QuoteBalance = newQuoteInventory
 		p.BaseBalance = newBaseInventory
 	} else {
-		amountInAfterDecimals := new(big.Float).Quo(
-			new(big.Float).SetInt(params.TokenAmountIn.Amount),
-			bignumber.TenPowDecimals(p.quoteToken.Decimals),
-		)
-
-		p.quoteToBasePriceLevels = getNewPriceLevelsState(amountInAfterDecimals, p.quoteToBasePriceLevels)
-
 		newBaseInventory, newQuoteInventory, err := params.SwapLimit.UpdateLimit(p.baseToken.Address, p.quoteToken.Address, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
 		if err != nil {
 			fmt.Println("unable to update PMM info, error:", err)
 		}
 		p.QuoteBalance = newQuoteInventory
 		p.BaseBalance = newBaseInventory
-
 	}
 }
 
@@ -330,14 +334,4 @@ func getNewPriceLevelsState(
 	}
 
 	return priceLevels
-}
-
-// Inventory is an alias for swaplimit.Inventory
-// Deprecated: directly use swaplimit.Inventory.
-type Inventory = swaplimit.Inventory
-
-// NewInventory has key as token address and value as its balance.
-// Deprecated: directly use swaplimit.NewInventory.
-func NewInventory(balance map[string]*big.Int) pool.SwapLimit {
-	return swaplimit.NewInventory(DexTypeKyberPMM, balance)
 }
