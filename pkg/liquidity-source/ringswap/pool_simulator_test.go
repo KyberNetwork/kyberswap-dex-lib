@@ -245,8 +245,8 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 						Tokens: []string{
 							"0x32a7c02e79c4ea1008dd6564b35f131428673c41",
 							"0xdac17f958d2ee523a2206206994597c13d831ec7",
-							// "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
-							// "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
+							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
 						},
 						Reserves: []*big.Int{utils.NewBig("100000000000000000000"), utils.NewBig("100000000")},
 					},
