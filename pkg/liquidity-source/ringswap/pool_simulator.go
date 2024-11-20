@@ -2,7 +2,6 @@ package ringswap
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
@@ -18,7 +17,9 @@ import (
 )
 
 var (
-	ErrTokenSwapNotAllowed = errors.New("cannot swap between original token and wrapped token")
+	ErrReserveIndexOutOfBounds = errors.New("reserve index out of bounds")
+	ErrTokenIndexOutOfBounds   = errors.New("token index out of bounds")
+	ErrTokenSwapNotAllowed     = errors.New("cannot swap between original token and wrapped token")
 )
 
 type (
@@ -77,12 +78,20 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, uniswapv2.ErrInsufficientInputAmount
 	}
 
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn%2])
+	reserveIndex := indexIn % 2
+	if reserveIndex >= len(s.Pool.Info.Reserves) {
+		return nil, ErrReserveIndexOutOfBounds
+	}
+	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[reserveIndex])
 	if overflow {
 		return nil, uniswapv2.ErrInvalidReserve
 	}
 
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut%2])
+	reserveOutIndex := indexOut % 2
+	if reserveOutIndex >= len(s.Pool.Info.Reserves) {
+		return nil, ErrReserveIndexOutOfBounds
+	}
+	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[reserveOutIndex])
 	if overflow {
 		return nil, uniswapv2.ErrInvalidReserve
 	}
@@ -96,8 +105,17 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, uniswapv2.ErrInsufficientLiquidity
 	}
 
-	wTokenIn := s.Pool.Info.Tokens[indexIn%2+2]
-	wTokenOut := s.Pool.Info.Tokens[indexOut%2+2]
+	wTokenInIndex := indexIn%2 + 2
+	if wTokenInIndex >= len(s.Pool.Info.Tokens) {
+		return nil, ErrTokenIndexOutOfBounds
+	}
+	wTokenIn := s.Pool.Info.Tokens[wTokenInIndex]
+
+	wTokenOutIndex := indexOut%2 + 2
+	if wTokenOutIndex >= len(s.Pool.Info.Tokens) {
+		return nil, ErrTokenIndexOutOfBounds
+	}
+	wTokenOut := s.Pool.Info.Tokens[wTokenOutIndex]
 
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
@@ -125,11 +143,8 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, uniswapv2.ErrInvalidToken
 	}
 
-	if len(s.Pool.Info.Reserves) < 2 {
-		return nil, fmt.Errorf("invalid reserves array length")
-	}
-	if len(s.Pool.Info.Tokens) < 4 {
-		return nil, fmt.Errorf("invalid tokens array length")
+	if indexIn%2 == indexOut%2 {
+		return nil, ErrTokenSwapNotAllowed
 	}
 
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
@@ -143,7 +158,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 
 	reserveIndex := indexIn % 2
 	if reserveIndex >= len(s.Pool.Info.Reserves) {
-		return nil, fmt.Errorf("reserve index out of bounds")
+		return nil, ErrReserveIndexOutOfBounds
 	}
 	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[reserveIndex])
 	if overflow {
@@ -152,7 +167,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 
 	reserveOutIndex := indexOut % 2
 	if reserveOutIndex >= len(s.Pool.Info.Reserves) {
-		return nil, fmt.Errorf("reserve index out of bounds")
+		return nil, ErrReserveIndexOutOfBounds
 	}
 	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[reserveOutIndex])
 	if overflow {
@@ -190,19 +205,15 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 
 	wTokenInIndex := indexIn%2 + 2
 	if wTokenInIndex >= len(s.Pool.Info.Tokens) {
-		return nil, fmt.Errorf("token index out of bounds")
+		return nil, ErrTokenIndexOutOfBounds
 	}
 	wTokenIn := s.Pool.Info.Tokens[wTokenInIndex]
 
 	wTokenOutIndex := indexOut%2 + 2
 	if wTokenOutIndex >= len(s.Pool.Info.Tokens) {
-		return nil, fmt.Errorf("token index out of bounds")
+		return nil, ErrTokenIndexOutOfBounds
 	}
 	wTokenOut := s.Pool.Info.Tokens[wTokenOutIndex]
-
-	if indexIn >= len(s.Pool.Info.Tokens) {
-		return nil, fmt.Errorf("token index out of bounds")
-	}
 
 	return &poolpkg.CalcAmountInResult{
 		TokenAmountIn: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
