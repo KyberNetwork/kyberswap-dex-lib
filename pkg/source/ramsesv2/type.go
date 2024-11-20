@@ -66,6 +66,10 @@ type Extra struct {
 	Ticks        []Tick   `json:"ticks"`
 }
 
+type PoolMeta struct {
+	PriceLimit *big.Int `json:"priceLimit"`
+}
+
 type Slot0 struct {
 	SqrtPriceX96               *big.Int `json:"sqrtPriceX96"`
 	Tick                       *big.Int `json:"tick"`

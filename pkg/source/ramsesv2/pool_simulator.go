@@ -203,5 +203,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	return nil
+	zeroForOne := strings.EqualFold(tokenIn, p.V3Pool.Token0.Address.String())
+	return PoolMeta{
+		PriceLimit: p.getSqrtPriceLimit(zeroForOne),
+	}
 }

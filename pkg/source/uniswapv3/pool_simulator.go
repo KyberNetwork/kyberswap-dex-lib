@@ -301,8 +301,12 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.V3Pool.TickCurrent = si.nextStateTickCurrent
 }
 
-func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) interface{} {
+	zeroForOne := strings.EqualFold(tokenIn, p.V3Pool.Token0.Address.String())
+	var priceLimit v3Utils.Uint160
+	_ = p.getSqrtPriceLimit(zeroForOne, &priceLimit)
 	return PoolMeta{
 		BlockNumber: p.Pool.Info.BlockNumber,
+		PriceLimit:  priceLimit.ToBig(),
 	}
 }
