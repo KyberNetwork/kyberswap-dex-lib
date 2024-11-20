@@ -215,8 +215,13 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			poolSimulator: PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
-						Address:  "0x3041cbd36888becc7bbcbc0045e3b1f144466f5f",
-						Tokens:   []string{"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "0xdac17f958d2ee523a2206206994597c13d831ec7"},
+						Address: "0x3041cbd36888becc7bbcbc0045e3b1f144466f5f",
+						Tokens: []string{
+							"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+							"0xdac17f958d2ee523a2206206994597c13d831ec7",
+							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
+						},
 						Reserves: []*big.Int{utils.NewBig("100000000"), utils.NewBig("100000000")},
 					},
 				},
@@ -236,8 +241,13 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			poolSimulator: PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
-						Address:  "0x576cea6d4461fcb3a9d43e922c9b54c0f791599a",
-						Tokens:   []string{"0x32a7c02e79c4ea1008dd6564b35f131428673c41", "0xdac17f958d2ee523a2206206994597c13d831ec7"},
+						Address: "0x576cea6d4461fcb3a9d43e922c9b54c0f791599a",
+						Tokens: []string{
+							"0x32a7c02e79c4ea1008dd6564b35f131428673c41",
+							"0xdac17f958d2ee523a2206206994597c13d831ec7",
+							// "0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+							// "0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
+						},
 						Reserves: []*big.Int{utils.NewBig("100000000000000000000"), utils.NewBig("100000000")},
 					},
 				},
