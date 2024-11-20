@@ -95,12 +95,17 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, uniswapv2.ErrInsufficientLiquidity
 	}
 
+	wTokenIn := s.Pool.Info.Tokens[indexIn%2+2]
+	wTokenOut := s.Pool.Info.Tokens[indexOut%2+2]
+
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
 		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas: s.gas.Swap,
 		SwapInfo: SwapInfo{
+			WTokenIn:    wTokenIn,
+			WTokenOut:   wTokenOut,
 			IsToken0To1: indexIn%2 == 0,
 			IsWrapIn:    indexIn < 2,
 			IsUnwrapOut: indexOut < 2,
@@ -167,12 +172,17 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, uniswapv2.ErrInvalidK
 	}
 
+	wTokenIn := s.Pool.Info.Tokens[indexIn%2+2]
+	wTokenOut := s.Pool.Info.Tokens[indexOut%2+2]
+
 	return &poolpkg.CalcAmountInResult{
 		TokenAmountIn: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
 		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
 		Gas: s.gas.Swap,
 		SwapInfo: SwapInfo{
+			WTokenIn:    wTokenIn,
+			WTokenOut:   wTokenOut,
 			IsToken0To1: indexIn%2 == 0,
 			IsWrapIn:    indexIn < 2,
 			IsUnwrapOut: indexOut < 2,
