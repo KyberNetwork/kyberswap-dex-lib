@@ -2,6 +2,7 @@ package ringswap
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
@@ -124,6 +125,13 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, uniswapv2.ErrInvalidToken
 	}
 
+	if len(s.Pool.Info.Reserves) < 2 {
+		return nil, fmt.Errorf("invalid reserves array length")
+	}
+	if len(s.Pool.Info.Tokens) < 4 {
+		return nil, fmt.Errorf("invalid tokens array length")
+	}
+
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
 	if overflow {
 		return nil, uniswapv2.ErrInvalidAmountOut
@@ -133,12 +141,20 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, uniswapv2.ErrInsufficientOutputAmount
 	}
 
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexIn%2])
+	reserveIndex := indexIn % 2
+	if reserveIndex >= len(s.Pool.Info.Reserves) {
+		return nil, fmt.Errorf("reserve index out of bounds")
+	}
+	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[reserveIndex])
 	if overflow {
 		return nil, uniswapv2.ErrInvalidReserve
 	}
 
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[indexOut%2])
+	reserveOutIndex := indexOut % 2
+	if reserveOutIndex >= len(s.Pool.Info.Reserves) {
+		return nil, fmt.Errorf("reserve index out of bounds")
+	}
+	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[reserveOutIndex])
 	if overflow {
 		return nil, uniswapv2.ErrInvalidReserve
 	}
@@ -172,8 +188,21 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, uniswapv2.ErrInvalidK
 	}
 
-	wTokenIn := s.Pool.Info.Tokens[indexIn%2+2]
-	wTokenOut := s.Pool.Info.Tokens[indexOut%2+2]
+	wTokenInIndex := indexIn%2 + 2
+	if wTokenInIndex >= len(s.Pool.Info.Tokens) {
+		return nil, fmt.Errorf("token index out of bounds")
+	}
+	wTokenIn := s.Pool.Info.Tokens[wTokenInIndex]
+
+	wTokenOutIndex := indexOut%2 + 2
+	if wTokenOutIndex >= len(s.Pool.Info.Tokens) {
+		return nil, fmt.Errorf("token index out of bounds")
+	}
+	wTokenOut := s.Pool.Info.Tokens[wTokenOutIndex]
+
+	if indexIn >= len(s.Pool.Info.Tokens) {
+		return nil, fmt.Errorf("token index out of bounds")
+	}
 
 	return &poolpkg.CalcAmountInResult{
 		TokenAmountIn: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
