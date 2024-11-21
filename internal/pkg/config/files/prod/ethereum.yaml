@@ -147,6 +147,7 @@ common:
     - "sfrxeth"
     - "sfrxeth-convertor"
     - "ondo-usdy"
+    - "ringswap"
   featureFlags: &featureFlags
   swaapAPIKey:
   hashflowAPIKey:

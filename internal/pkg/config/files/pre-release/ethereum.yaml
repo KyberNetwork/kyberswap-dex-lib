@@ -139,6 +139,7 @@ common:
     - "sfrxeth"
     - "sfrxeth-convertor"
     - "ondo-usdy"
+    - "ringswap"
   featureFlags: &featureFlags
     isAEVMEnabled: false
     isLiquidityScoreEnable: true
