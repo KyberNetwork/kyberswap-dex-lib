@@ -46,6 +46,7 @@ common:
     - "clipper"
     - "ktx"
   featureFlags: &featureFlags
+  maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
     directPoolsCount: 100
     whitelistPoolsCount: 500
@@ -55,7 +56,7 @@ common:
     amplifiedTvlWhitelistPoolsCount: 200
     amplifiedTvlTokenInPoolsCount: 100
     amplifiedTvlTokenOutPoolCount: 100
-    amountInThreshold: 10000
+    amountInThreshold: *maxThresholdAmountInUSD
   swaapAPIKey:
   nativeAPIKey:
   clipperAPIAuth:
@@ -142,7 +143,7 @@ useCase:
         maxPathsToReturn: 200
         minPartUSD: 500
         minThresholdAmountInUSD: 0
-        maxThresholdAmountInUSD: 100000000
+        maxThresholdAmountInUSD: *maxThresholdAmountInUSD
         isHillClimbEnabled: false
         hillClimbDistributionPercent: 1
         hillClimbIteration: 2

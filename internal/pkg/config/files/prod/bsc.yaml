@@ -360,6 +360,14 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-bsc
+  tradeDataGenerator:
+    whitelistedTokenSet: *whitelistedTokenSet
+    chunkSize: 200
+    useAEVM: false
+    dexUseAEVM:
+    minDataPointNumber: 6
+    maxDataPointNumber: 12
+    availableSources: *availableSources
 job:
   indexPools:
     forceScanAllEveryNth: 10
@@ -381,6 +389,14 @@ job:
     interval: 15s
   trackExecutorBalance:
     interval: 1h
+  liquidityScoreIndexPools:
+    batchSize: 500
+    interval: 1h
+    successedFileName: "./trade_data.txt"
+    failedFileName: "./failed_trade_data.txt"
+    liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
+    exportFailedTrade: false
+    fullScanInterval: 3h
 repository:
   gas:
     redis:

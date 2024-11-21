@@ -8,6 +8,7 @@ def get_top_pools(pool_scores: list, field: str, target_factor: float):
     score_values = np.array([entry[field] for entry in pool_scores])
 
     log_score_values = np.log10(score_values + 1)  # Adding 1 to avoid log(0) issue
+
     # Apply the function to each metric
     selected_score_values = entropy_based_selection(log_score_values, target_factor)
     min_score = min(10**selected_score_values - 1)
@@ -48,8 +49,12 @@ def entropy_based_selection(log_values, target_factor: float):
     entropy_log_top_values = log_values.copy()
     cumulative_sum_log = sum_log_values
 
+    current_entropy_log = initial_entropy_log
     # Step 4: Remove groups of equal values
     for value, count in zip(unique_values_sorted, counts_sorted):
+        # Step 5: Break the loop once the entropy is reduced by the target factor
+        if current_entropy_log <= target_factor * initial_entropy_log:
+            break
         # Remove all instances of the current smallest unique value
         mask = entropy_log_top_values != value
         cumulative_sum_log -= value * count
@@ -61,10 +66,6 @@ def entropy_based_selection(log_values, target_factor: float):
         # Recalculate probabilities and entropy with the remaining values
         probabilities_subset = entropy_log_top_values / cumulative_sum_log
         current_entropy_log = entropy(probabilities_subset)
-
-        # Step 5: Break the loop once the entropy is reduced by the target factor
-        if current_entropy_log <= target_factor * initial_entropy_log:
-            break
 
     # Step 6: Output the final selected values
     return np.sort(entropy_log_top_values)

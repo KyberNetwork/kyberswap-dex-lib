@@ -190,7 +190,7 @@ keyPair:
   keyIDForSealingData:
     clientData: "1"
 reloadConfig:
-  httpUrl: "https://pre-ks-setting-admin.kyberengineering.io/api/v1/admin/configurations"
+  httpUrl:
   interval: 10s
   serviceName: "aggregator"
   chainID: *chainId

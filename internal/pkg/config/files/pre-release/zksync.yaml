@@ -45,6 +45,7 @@ common:
     - "koi-cl"
     - "woofi-v3"
   featureFlags: &featureFlags
+  maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
     directPoolsCount: 100
     whitelistPoolsCount: 500
@@ -54,7 +55,7 @@ common:
     amplifiedTvlWhitelistPoolsCount: 200
     amplifiedTvlTokenInPoolsCount: 100
     amplifiedTvlTokenOutPoolCount: 100
-    amountInThreshold: 10000
+    amountInThreshold: *maxThresholdAmountInUSD
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -106,7 +107,7 @@ keyPair:
   keyIDForSealingData:
     clientData: "1"
 reloadConfig:
-  httpUrl: "https://pre-ks-setting-admin.kyberengineering.io/api/v1/admin/configurations"
+  httpUrl:
   interval: 10s
   serviceName: "aggregator"
   chainID: *chainId
@@ -148,7 +149,7 @@ useCase:
         maxPathsToReturn: 200
         minPartUSD: 500
         minThresholdAmountInUSD: 0
-        maxThresholdAmountInUSD: 100000000
+        maxThresholdAmountInUSD: *maxThresholdAmountInUSD
         isHillClimbEnabled: false
         hillClimbDistributionPercent: 1
         hillClimbIteration: 2
