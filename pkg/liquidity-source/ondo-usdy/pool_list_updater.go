@@ -14,6 +14,8 @@ import (
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type (
@@ -118,7 +120,7 @@ func (u *PoolsListUpdater) processBatch(ctx context.Context, poolItems []PoolIte
 	}
 
 	poolExtras, blockNumber, err := getExtra(
-		ctx, u.config, u.ethrpcClient, pools, rwaDynamicOracleAddresses,
+		ctx, u.config, u.ethrpcClient, pools, rwaDynamicOracleAddresses, nil,
 	)
 	if err != nil {
 		return nil, err
@@ -142,6 +144,7 @@ func getExtra(
 	client *ethrpc.Client,
 	pools []entity.Pool,
 	rwaDynamicOracleAddress []string,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]PoolExtra, uint64, error) {
 	paused := make([]bool, len(pools))
 	oraclePriceData := make([]OraclePriceData, len(pools))
@@ -150,6 +153,10 @@ func getExtra(
 	methodGetTotalShares := getMethodTotalShares(config.ChainID)
 
 	calls := client.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		calls.SetOverrides(overrides)
+	}
+
 	for i := range pools {
 		calls.AddCall(&ethrpc.Call{
 			ABI:    rUSDYABI,

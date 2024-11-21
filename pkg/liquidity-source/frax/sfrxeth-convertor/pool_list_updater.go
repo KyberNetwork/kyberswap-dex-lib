@@ -13,6 +13,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/frax/sfrxeth"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type (
@@ -59,7 +61,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 		return nil, nil, err
 	}
 
-	totalSupply, totalAssets, blockNumber, err := getReserves(ctx, poolItem.SfrxETHAddress, u.ethrpcClient)
+	totalSupply, totalAssets, blockNumber, err := getReserves(ctx, poolItem.SfrxETHAddress, u.ethrpcClient, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -99,6 +101,7 @@ func getReserves(
 	ctx context.Context,
 	poolAddress string,
 	ethrpcClient *ethrpc.Client,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*big.Int, *big.Int, uint64, error) {
 	var (
 		totalSupply *big.Int
@@ -106,6 +109,10 @@ func getReserves(
 	)
 
 	calls := ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		calls.SetOverrides(overrides)
+	}
+
 	calls.AddCall(&ethrpc.Call{
 		ABI:    frax_common.SfrxETHABI,
 		Target: poolAddress,
