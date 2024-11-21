@@ -6,7 +6,9 @@ type Extra struct {
 }
 
 type SwapInfo struct {
-	IsToken0To1 bool `json:"isToken0To1"`
-	IsWrapIn    bool `json:"isWrapIn"`
-	IsUnwrapOut bool `json:"isUnwrapOut"`
+	WTokenIn    string `json:"wTokenIn"`
+	WTokenOut   string `json:"wTokenOut"`
+	IsToken0To1 bool   `json:"isToken0To1"`
+	IsWrapIn    bool   `json:"isWrapIn"`
+	IsUnwrapOut bool   `json:"isUnwrapOut"`
 }

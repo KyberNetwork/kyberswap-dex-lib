@@ -215,9 +215,14 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			poolSimulator: PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
-						Address:  "0x3041cbd36888becc7bbcbc0045e3b1f144466f5f",
-						Tokens:   []string{"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "0xdac17f958d2ee523a2206206994597c13d831ec7"},
-						Reserves: []*big.Int{utils.NewBig("100000000"), utils.NewBig("100000000")},
+						Address: "0x3041cbd36888becc7bbcbc0045e3b1f144466f5f",
+						Tokens: []string{
+							"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+							"0xdac17f958d2ee523a2206206994597c13d831ec7",
+							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
+						},
+						Reserves: []*big.Int{utils.NewBig("100000000"), utils.NewBig("100000000"), utils.One, utils.One},
 					},
 				},
 				fee:          number.NewUint256("3"),
@@ -236,9 +241,14 @@ func TestPoolSimulator_CalcAmountIn(t *testing.T) {
 			poolSimulator: PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
-						Address:  "0x576cea6d4461fcb3a9d43e922c9b54c0f791599a",
-						Tokens:   []string{"0x32a7c02e79c4ea1008dd6564b35f131428673c41", "0xdac17f958d2ee523a2206206994597c13d831ec7"},
-						Reserves: []*big.Int{utils.NewBig("100000000000000000000"), utils.NewBig("100000000")},
+						Address: "0x576cea6d4461fcb3a9d43e922c9b54c0f791599a",
+						Tokens: []string{
+							"0x32a7c02e79c4ea1008dd6564b35f131428673c41",
+							"0xdac17f958d2ee523a2206206994597c13d831ec7",
+							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
+						},
+						Reserves: []*big.Int{utils.NewBig("100000000000000000000"), utils.NewBig("100000000"), utils.One, utils.One},
 					},
 				},
 				fee:          number.NewUint256("3"),
@@ -283,9 +293,14 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			poolSimulator: PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
-						Address:  "0x3041cbd36888becc7bbcbc0045e3b1f144466f5f",
-						Tokens:   []string{"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", "0xdac17f958d2ee523a2206206994597c13d831ec7"},
-						Reserves: []*big.Int{utils.NewBig("10089138480746"), utils.NewBig("10066716097576")},
+						Address: "0x3041cbd36888becc7bbcbc0045e3b1f144466f5f",
+						Tokens: []string{
+							"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+							"0xdac17f958d2ee523a2206206994597c13d831ec7",
+							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
+						},
+						Reserves: []*big.Int{utils.NewBig("10089138480746"), utils.NewBig("10066716097576"), utils.One, utils.One},
 					},
 				},
 				fee:          number.NewUint256("3"),
@@ -296,16 +311,21 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				TokenAmountOut: poolpkg.TokenAmount{Token: "0xdac17f958d2ee523a2206206994597c13d831ec7", Amount: utils.NewBig("124570062")},
 				Fee:            poolpkg.TokenAmount{Token: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48", Amount: utils.NewBig("375674")},
 			},
-			expectedReserves: []*big.Int{utils.NewBig("10089263705492"), utils.NewBig("10066591527514")},
+			expectedReserves: []*big.Int{utils.NewBig("10089263705492"), utils.NewBig("10066591527514"), utils.One, utils.One},
 		},
 		{
 			name: "[swap1to0] it should return correct amountOut and fee",
 			poolSimulator: PoolSimulator{
 				Pool: poolpkg.Pool{
 					Info: poolpkg.PoolInfo{
-						Address:  "0x576cea6d4461fcb3a9d43e922c9b54c0f791599a",
-						Tokens:   []string{"0x32a7c02e79c4ea1008dd6564b35f131428673c41", "0xdac17f958d2ee523a2206206994597c13d831ec7"},
-						Reserves: []*big.Int{utils.NewBig("70361282326226590645832"), utils.NewBig("54150601005")},
+						Address: "0x576cea6d4461fcb3a9d43e922c9b54c0f791599a",
+						Tokens: []string{
+							"0x32a7c02e79c4ea1008dd6564b35f131428673c41",
+							"0xdac17f958d2ee523a2206206994597c13d831ec7",
+							"0x18755d2cec785ab87680edb8e117615e4b005430", // Wrapped token 0
+							"0x66714db8f3397c767d0a602458b5b4e3c0fe7dd1", // Wrapped token 1
+						},
+						Reserves: []*big.Int{utils.NewBig("70361282326226590645832"), utils.NewBig("54150601005"), utils.One, utils.One},
 					},
 				},
 				fee:          number.NewUint256("3"),
@@ -315,7 +335,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				TokenAmountIn:  poolpkg.TokenAmount{Token: "0xdac17f958d2ee523a2206206994597c13d831ec7", Amount: utils.NewBig("124570062")},
 				TokenAmountOut: poolpkg.TokenAmount{Token: "0x32a7c02e79c4ea1008dd6564b35f131428673c41", Amount: utils.NewBig("161006857684289764421")},
 			},
-			expectedReserves: []*big.Int{utils.NewBig("70200275468542300881411"), utils.NewBig("54275171067")},
+			expectedReserves: []*big.Int{utils.NewBig("70200275468542300881411"), utils.NewBig("54275171067"), utils.One, utils.One},
 		},
 	}
 
@@ -325,6 +345,8 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 
 			assert.Equal(t, 0, tc.poolSimulator.Info.Reserves[0].Cmp(tc.expectedReserves[0]))
 			assert.Equal(t, 0, tc.poolSimulator.Info.Reserves[1].Cmp(tc.expectedReserves[1]))
+			assert.Equal(t, 0, tc.poolSimulator.Info.Reserves[2].Cmp(tc.expectedReserves[2]))
+			assert.Equal(t, 0, tc.poolSimulator.Info.Reserves[3].Cmp(tc.expectedReserves[3]))
 		})
 	}
 }
