@@ -62,6 +62,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 		poolItem.FrxETHMinterAddress,
 		poolItem.SfrxETHAddress,
 		u.ethrpcClient,
+		nil,
 	)
 
 	if err != nil {
