@@ -44,6 +44,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
+	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mx-trading"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap"
 	ondo_usdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
@@ -259,6 +260,7 @@ type Types struct {
 	SfrxETHConvertor               string
 	EtherfiVampire                 string
 	AlgebraIntegral                string
+	MxTrading                      string
 }
 
 var (
@@ -396,5 +398,6 @@ var (
 		SfrxETHConvertor:               sfrxeth_convertor.DexType,
 		EtherfiVampire:                 etherfivampire.DexType,
 		AlgebraIntegral:                algebraintegral.DexType,
+		MxTrading:                      mxtrading.DexType,
 	}
 )

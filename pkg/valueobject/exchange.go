@@ -372,6 +372,7 @@ var (
 	ExchangeSilverSwap       Exchange = "silverswap"
 	ExchangeScribe           Exchange = "scribe"
 	ExchangeHorizonIntegral  Exchange = "horizon-integral"
+	ExchangeMxTrading        Exchange = "mx-trading"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -698,6 +699,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeBebop:      {},
 	ExchangeClipper:    {},
 	ExchangeDexalot:    {},
+	ExchangeMxTrading:  {},
 }
 
 func IsRFQSource(exchange Exchange) bool {
