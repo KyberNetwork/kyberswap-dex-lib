@@ -73,6 +73,7 @@ type (
 		MaxHops                      uint            `mapstructure:"maxHops" json:"maxHops"`
 		DistributionPercent          uint            `mapstructure:"distributionPercent" json:"distributionPercent"`
 		MaxPathsInRoute              uint            `mapstructure:"maxPathsInRoute" json:"maxPathsInRoute"`
+		MaxPathsInFallbackRoute      uint            `mapstructure:"maxPathsInFallbackRoute" json:"maxPathsInFallbackRoute"`
 		MaxPathsToGenerate           uint            `mapstructure:"maxPathsToGenerate" json:"maxPathsToGenerate"`
 		MaxPathsToReturn             uint            `mapstructure:"maxPathsToReturn" json:"maxPathsToReturn"`
 		MinPartUSD                   float64         `mapstructure:"minPartUSD" json:"minPartUSD"`

@@ -101,7 +101,7 @@ common:
   nativeAPIKey:
   bebopAPIName:
   bebopAPIAuth:
-  dexalotAPIKey: 
+  dexalotAPIKey:
   dexalotUpscalePercent: 20
   clipperAPIAuth:
 log:
@@ -234,6 +234,7 @@ useCase:
         maxHops: 3
         distributionPercent: 5
         maxPathsInRoute: 20
+        maxPathsInFallbackRoute: 5
         maxPathsToGenerate: 5
         maxPathsToReturn: 200
         minPartUSD: 500

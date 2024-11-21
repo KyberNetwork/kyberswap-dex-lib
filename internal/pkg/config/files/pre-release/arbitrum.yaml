@@ -16,9 +16,9 @@ common:
   routerAddress: &routerAddress "0x6131B5fae19EA4f9D964eAc0408E4408b66337b5"
   gasTokenAddress: &gasTokenAddress "0x82af49447d8a07e3bd95bd0d56f35241523fbab1"
   whitelistedTokenSet: &whitelistedTokenSet
-    0x1622bf67e6e5747b81866fe0b85178a93c7f86e3: true 
+    0x1622bf67e6e5747b81866fe0b85178a93c7f86e3: true
     0x912ce59144191c1204e64559fe8253a0e49e6548: true
-    0xfa5ed56a203466cbbc2430a43c66b9d8723528e7: true 
+    0xfa5ed56a203466cbbc2430a43c66b9d8723528e7: true
     0x82af49447d8a07e3bd95bd0d56f35241523fbab1: true
     0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9: true
     0xda10009cbd5d07dd0cecc66161fc93d7c9000da1: true
@@ -118,15 +118,15 @@ common:
     - "maverick-v2"
   featureFlags: &featureFlags
   getBestPoolsOptions: &getBestPoolsOptions
-      directPoolsCount: 100
-      whitelistPoolsCount: 500
-      tokenInPoolsCount: 200
-      tokenOutPoolCount: 200
-      amplifiedTvlDirectPoolsCount: 50
-      amplifiedTvlWhitelistPoolsCount: 200
-      amplifiedTvlTokenInPoolsCount: 100
-      amplifiedTvlTokenOutPoolCount: 100
-      amountInThreshold: 10000
+    directPoolsCount: 100
+    whitelistPoolsCount: 500
+    tokenInPoolsCount: 200
+    tokenOutPoolCount: 200
+    amplifiedTvlDirectPoolsCount: 50
+    amplifiedTvlWhitelistPoolsCount: 200
+    amplifiedTvlTokenInPoolsCount: 100
+    amplifiedTvlTokenOutPoolCount: 100
+    amountInThreshold: 10000
   swaapAPIKey:
   nativeAPIKey:
   hashflowAPIKey:
@@ -264,6 +264,7 @@ useCase:
         maxHops: 3
         distributionPercent: 5
         maxPathsInRoute: 20
+        maxPathsInFallbackRoute: 5
         maxPathsToGenerate: 5
         maxPathsToReturn: 200
         minPartUSD: 500

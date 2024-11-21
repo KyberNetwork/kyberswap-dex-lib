@@ -228,6 +228,7 @@ func InitializeFinderEngine(
 		MaxHops:                      finderOptions.MaxHops,
 		DistributionPercent:          finderOptions.DistributionPercent,
 		MaxPathsInRoute:              finderOptions.MaxPathsInRoute,
+		MaxPathsInFallbackRoute:      finderOptions.MaxPathsInFallbackRoute,
 		MaxPathsToGenerate:           finderOptions.MaxPathsToGenerate,
 		MaxPathsToReturn:             finderOptions.MaxPathsToReturn,
 		MinPartUSD:                   finderOptions.MinPartUSD,
