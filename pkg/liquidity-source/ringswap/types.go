@@ -1,6 +1,6 @@
 package ringswap
 
-type Extra struct {
+type StaticExtra struct {
 	Fee          uint64 `json:"fee"`
 	FeePrecision uint64 `json:"feePrecision"`
 }

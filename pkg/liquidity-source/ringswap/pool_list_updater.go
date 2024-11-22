@@ -214,7 +214,7 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 	pools := make([]entity.Pool, 0, len(pairAddresses))
 
 	for i, pairAddress := range pairAddresses {
-		extra := &Extra{
+		extra := &StaticExtra{
 			Fee:          u.config.Fee,
 			FeePrecision: u.config.FeePrecision,
 		}
@@ -245,13 +245,13 @@ func (u *PoolsListUpdater) initPools(ctx context.Context, pairAddresses []common
 		}
 
 		var newPool = entity.Pool{
-			Address:   strings.ToLower(pairAddress.Hex()),
-			Exchange:  u.config.DexID,
-			Type:      DexType,
-			Timestamp: time.Now().Unix(),
-			Reserves:  []string{"0", "0", "1", "1"},
-			Tokens:    []*entity.PoolToken{originalToken0, originalToken1, wrappedToken0, wrappedToken1},
-			Extra:     string(extraBytes),
+			Address:     strings.ToLower(pairAddress.Hex()),
+			Exchange:    u.config.DexID,
+			Type:        DexType,
+			Timestamp:   time.Now().Unix(),
+			Reserves:    []string{"0", "0", "1", "1"},
+			Tokens:      []*entity.PoolToken{originalToken0, originalToken1, wrappedToken0, wrappedToken1},
+			StaticExtra: string(extraBytes),
 		}
 
 		pools = append(pools, newPool)
