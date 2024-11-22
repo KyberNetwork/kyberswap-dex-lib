@@ -21,5 +21,7 @@ const (
 	pairMethodToken1      = "token1"
 	pairMethodGetReserves = "getReserves"
 
+	pairMethodBalanceOf = "balanceOf"
+
 	fewWrappedTokenGetTokenMethod = "token"
 )
