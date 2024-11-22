@@ -86,10 +86,7 @@ func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, token
 	}
 
 	var (
-		fwReserves = uniswapv2.ReserveData{
-			Reserve0: bignumber.ZeroBI,
-			Reserve1: bignumber.ZeroBI,
-		}
+		getReservesResult uniswapv2.GetReservesResult
 
 		originalReserve0 = bignumber.ZeroBI
 		originalReserve1 = bignumber.ZeroBI
@@ -109,7 +106,7 @@ func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, token
 		Target: poolAddress,
 		Method: pairMethodGetReserves,
 		Params: nil,
-	}, []interface{}{&fwReserves})
+	}, []interface{}{&getReservesResult})
 	getReservesRequest.AddCall(&ethrpc.Call{
 		ABI:    uniswapV2PairABI,
 		Target: originalToken0.Address,
@@ -126,6 +123,11 @@ func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, token
 	resp, err := getReservesRequest.Aggregate()
 	if err != nil {
 		return uniswapv2.ReserveData{}, uniswapv2.ReserveData{}, nil, err
+	}
+
+	fwReserves := uniswapv2.ReserveData{
+		Reserve0: getReservesResult.Reserve0,
+		Reserve1: getReservesResult.Reserve1,
 	}
 
 	originalReserves := uniswapv2.ReserveData{
