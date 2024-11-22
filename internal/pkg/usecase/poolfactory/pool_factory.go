@@ -432,10 +432,12 @@ func newSwapLimit(dex string, limit map[string]*big.Int) poolpkg.SwapLimit {
 	switch dex {
 	case pooltypes.PoolTypes.Synthetix,
 		pooltypes.PoolTypes.LimitOrder,
-		pooltypes.PoolTypes.KyberPMM,
 		pooltypes.PoolTypes.NativeV1,
 		pooltypes.PoolTypes.Dexalot:
 		return swaplimit.NewInventory(dex, limit)
+
+	case pooltypes.PoolTypes.KyberPMM:
+		return swaplimit.NewSwappedInventory(dex, limit)
 	}
 
 	return nil
