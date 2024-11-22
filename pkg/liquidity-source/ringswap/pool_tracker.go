@@ -2,6 +2,7 @@ package ringswap
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"math/big"
 	"time"
@@ -44,7 +45,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
-	reserveData, blockNumber, err := d.getReserves(ctx, p.Tokens)
+	fwReserves, originalReserves, blockNumber, err := d.getReserves(ctx, p.Address, p.Tokens)
 	if err != nil {
 		return p, err
 	}
@@ -67,7 +68,7 @@ func (d *PoolTracker) GetNewPoolState(
 			logger.Fields{
 				"pool_id":          p.Address,
 				"old_reserve":      p.Reserves,
-				"new_reserve":      reserveData,
+				"new_reserve":      fwReserves,
 				"old_block_number": p.BlockNumber,
 				"new_block_number": blockNumber,
 				"duration_ms":      time.Since(startTime).Milliseconds(),
@@ -75,62 +76,82 @@ func (d *PoolTracker) GetNewPoolState(
 		).
 		Info("Finished getting new pool state")
 
-	return d.updatePool(p, reserveData, blockNumber)
+	return d.updatePool(p, fwReserves, originalReserves, blockNumber)
 }
 
-func (d *PoolTracker) getReserves(ctx context.Context, tokens []*entity.PoolToken) (uniswapv2.ReserveData, *big.Int, error) {
+func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, tokens []*entity.PoolToken) (uniswapv2.ReserveData,
+	uniswapv2.ReserveData, *big.Int, error) {
 	if len(tokens) < 4 {
-		return uniswapv2.ReserveData{}, nil, errors.New("invalid number of tokens")
+		return uniswapv2.ReserveData{}, uniswapv2.ReserveData{}, nil, errors.New("invalid number of tokens")
 	}
 
 	var (
-		reserve0 = bignumber.ZeroBI
-		reserve1 = bignumber.ZeroBI
+		fwReserves = uniswapv2.ReserveData{
+			Reserve0: bignumber.ZeroBI,
+			Reserve1: bignumber.ZeroBI,
+		}
 
-		originToken0, fwToken0 = tokens[0], tokens[2]
-		originToken1, fwToken1 = tokens[1], tokens[3]
+		originalReserve0 = bignumber.ZeroBI
+		originalReserve1 = bignumber.ZeroBI
+
+		originalToken0, fwToken0 = tokens[0], tokens[2]
+		originalToken1, fwToken1 = tokens[1], tokens[3]
 	)
 
-	if (originToken0.Address == fwToken0.Address) || (originToken1.Address == fwToken1.Address) {
-		return uniswapv2.ReserveData{}, nil, errors.New("waiting for fetching origin token address")
+	if (originalToken0.Address == fwToken0.Address) || (originalToken1.Address == fwToken1.Address) {
+		return uniswapv2.ReserveData{}, uniswapv2.ReserveData{}, nil, errors.New("waiting for fetching origin token address")
 	}
 
 	getReservesRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
 
 	getReservesRequest.AddCall(&ethrpc.Call{
 		ABI:    uniswapV2PairABI,
-		Target: originToken0.Address,
-		Method: pairMethodBalanceOf,
-		Params: []interface{}{common.HexToAddress(fwToken0.Address)},
-	}, []interface{}{&reserve0})
+		Target: poolAddress,
+		Method: pairMethodGetReserves,
+		Params: nil,
+	}, []interface{}{&fwReserves})
 	getReservesRequest.AddCall(&ethrpc.Call{
 		ABI:    uniswapV2PairABI,
-		Target: originToken1.Address,
+		Target: originalToken0.Address,
+		Method: pairMethodBalanceOf,
+		Params: []interface{}{common.HexToAddress(fwToken0.Address)},
+	}, []interface{}{&originalReserve0})
+	getReservesRequest.AddCall(&ethrpc.Call{
+		ABI:    uniswapV2PairABI,
+		Target: originalToken1.Address,
 		Method: pairMethodBalanceOf,
 		Params: []interface{}{common.HexToAddress(fwToken1.Address)},
-	}, []interface{}{&reserve1})
+	}, []interface{}{&originalReserve1})
 
 	resp, err := getReservesRequest.Aggregate()
 	if err != nil {
-		return uniswapv2.ReserveData{}, nil, err
+		return uniswapv2.ReserveData{}, uniswapv2.ReserveData{}, nil, err
 	}
 
-	return uniswapv2.ReserveData{
-		Reserve0: reserve0,
-		Reserve1: reserve1,
-	}, resp.BlockNumber, nil
+	originalReserves := uniswapv2.ReserveData{
+		Reserve0: originalReserve0,
+		Reserve1: originalReserve1,
+	}
+
+	return fwReserves, originalReserves, resp.BlockNumber, nil
 }
 
-func (d *PoolTracker) updatePool(pool entity.Pool, reserveData uniswapv2.ReserveData, blockNumber *big.Int) (entity.Pool, error) {
+func (d *PoolTracker) updatePool(pool entity.Pool, fwReserves, originalReserves uniswapv2.ReserveData, blockNumber *big.Int) (entity.Pool, error) {
+	extra, err := json.Marshal(&originalReserves)
+	if err != nil {
+		return entity.Pool{}, err
+	}
+
 	pool.Reserves = entity.PoolReserves{
-		reserveData.Reserve0.String(),
-		reserveData.Reserve1.String(),
+		fwReserves.Reserve0.String(),
+		fwReserves.Reserve1.String(),
 		"1",
 		"1",
 	}
 
 	pool.BlockNumber = blockNumber.Uint64()
 	pool.Timestamp = time.Now().Unix()
+	pool.Extra = string(extra)
 
 	return pool, nil
 }

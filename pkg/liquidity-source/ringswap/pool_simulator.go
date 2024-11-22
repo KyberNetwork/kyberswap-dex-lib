@@ -28,13 +28,19 @@ type (
 		fee          *uint256.Int
 		feePrecision *uint256.Int
 
-		gas uniswapv2.Gas
+		gas              uniswapv2.Gas
+		originalReserves uniswapv2.ReserveData
 	}
 )
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
-	var extra Extra
-	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+	var staticExtra StaticExtra
+	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
+		return nil, err
+	}
+
+	var originalReserves uniswapv2.ReserveData
+	if err := json.Unmarshal([]byte(entityPool.Extra), &originalReserves); err != nil {
 		return nil, err
 	}
 
@@ -48,9 +54,10 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		fee:          uint256.NewInt(extra.Fee),
-		feePrecision: uint256.NewInt(extra.FeePrecision),
-		gas:          defaultGas,
+		fee:              uint256.NewInt(staticExtra.Fee),
+		feePrecision:     uint256.NewInt(staticExtra.FeePrecision),
+		gas:              defaultGas,
+		originalReserves: originalReserves,
 	}, nil
 }
 
@@ -101,7 +108,19 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}
 
 	amountOut := s.getAmountOut(amountIn, reserveIn, reserveOut)
+
+	// Ensure that amountOut does not exceed the fw reserve
 	if amountOut.Cmp(reserveOut) > 0 {
+		return nil, uniswapv2.ErrInsufficientLiquidity
+	}
+
+	originalReserve, overflow := uint256.FromBig(lo.Ternary(reserveOutIndex == 0, s.originalReserves.Reserve0, s.originalReserves.Reserve1))
+	if overflow {
+		return nil, uniswapv2.ErrInvalidReserve
+	}
+
+	// Ensure that amountOut does not exceed the original reserve
+	if amountOut.Cmp(originalReserve) > 0 {
 		return nil, uniswapv2.ErrInsufficientLiquidity
 	}
 
@@ -174,7 +193,18 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, uniswapv2.ErrInvalidReserve
 	}
 
+	// Ensure that amountOut does not exceed the fw reserve
 	if reserveIn.Cmp(number.Zero) <= 0 || reserveOut.Cmp(number.Zero) <= 0 {
+		return nil, uniswapv2.ErrInsufficientLiquidity
+	}
+
+	originalReserve, overflow := uint256.FromBig(lo.Ternary(reserveOutIndex == 0, s.originalReserves.Reserve0, s.originalReserves.Reserve1))
+	if overflow {
+		return nil, uniswapv2.ErrInvalidReserve
+	}
+
+	// Ensure that amountOut does not exceed the original reserve
+	if amountOut.Cmp(originalReserve) > 0 {
 		return nil, uniswapv2.ErrInsufficientLiquidity
 	}
 
@@ -238,6 +268,14 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 
 	s.Pool.Info.Reserves[indexIn%2] = new(big.Int).Add(s.Pool.Info.Reserves[indexIn%2], params.TokenAmountIn.Amount)
 	s.Pool.Info.Reserves[indexOut%2] = new(big.Int).Sub(s.Pool.Info.Reserves[indexOut%2], params.TokenAmountOut.Amount)
+
+	if indexIn%2 == 0 {
+		s.originalReserves.Reserve0 = new(big.Int).Add(s.originalReserves.Reserve0, params.TokenAmountIn.Amount)
+		s.originalReserves.Reserve1 = new(big.Int).Sub(s.originalReserves.Reserve1, params.TokenAmountOut.Amount)
+	} else {
+		s.originalReserves.Reserve1 = new(big.Int).Add(s.originalReserves.Reserve1, params.TokenAmountIn.Amount)
+		s.originalReserves.Reserve0 = new(big.Int).Sub(s.originalReserves.Reserve0, params.TokenAmountOut.Amount)
+	}
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
