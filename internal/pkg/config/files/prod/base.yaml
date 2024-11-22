@@ -97,6 +97,16 @@ common:
     - "deltaswap-v1"
     - "clipper"
   featureFlags: &featureFlags
+  getBestPoolsOptions: &getBestPoolsOptions
+    directPoolsCount: 100
+    whitelistPoolsCount: 500
+    tokenInPoolsCount: 200
+    tokenOutPoolCount: 200
+    amplifiedTvlDirectPoolsCount: 50
+    amplifiedTvlWhitelistPoolsCount: 200
+    amplifiedTvlTokenInPoolsCount: 100
+    amplifiedTvlTokenOutPoolCount: 100
+    amountInThreshold: 10000
   swaapAPIKey:
   nativeAPIKey:
   bebopAPIName:
@@ -223,16 +233,7 @@ useCase:
     availableSources: *availableSources
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
-      getBestPoolsOptions:
-        directPoolsCount: 100
-        whitelistPoolsCount: 500
-        tokenInPoolsCount: 200
-        tokenOutPoolCount: 200
-        amplifiedTvlDirectPoolsCount: 50
-        amplifiedTvlWhitelistPoolsCount: 200
-        amplifiedTvlTokenInPoolsCount: 100
-        amplifiedTvlTokenOutPoolCount: 100
-      dexUseAEVM: *dexUseAEVM
+      getBestPoolsOptions: *getBestPoolsOptions
       finderOptions:
         maxHops: 3
         distributionPercent: 5
@@ -429,6 +430,18 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://base-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-base
+  tradeDataGenerator:
+    whitelistedTokenSet: *whitelistedTokenSet
+    chunkSize: 200
+    useAEVM: false
+    dexUseAEVM: false
+    minDataPointNumber: 6
+    maxDataPointNumber: 12
+    availableSources: *availableSources
+  updateLiquidityScore:
+    inputFileName: "./scores.csv"
+    meanType: "geometric"
+    getBestPoolsOptions: *getBestPoolsOptions
 job:
   indexPools:
     forceScanAllEveryNth: 10
@@ -450,6 +463,18 @@ job:
     interval: 15s
   trackExecutorBalance:
     interval: 1h
+  liquidityScoreIndexPools:
+    batchSize: 500
+    interval: 1h
+    successedFileName: "./trade_data.txt"
+    failedFileName: "./failed_trade_data.txt"
+    liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
+    exportFailedTrade: false
+    fullScanInterval: 3h
+  updateLiquidityScore:
+    inputFileName: "./scores.csv"
+    meanType: "geometric"
+    getBestPoolsOptions: *getBestPoolsOptions
 repository:
   gas:
     redis:

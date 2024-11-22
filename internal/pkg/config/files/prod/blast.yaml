@@ -43,6 +43,16 @@ common:
     - "dackie-v3"
     - "ringswap"
   featureFlags: &featureFlags
+  getBestPoolsOptions: &getBestPoolsOptions
+    directPoolsCount: 100
+    whitelistPoolsCount: 500
+    tokenInPoolsCount: 200
+    tokenOutPoolCount: 200
+    amplifiedTvlDirectPoolsCount: 50
+    amplifiedTvlWhitelistPoolsCount: 200
+    amplifiedTvlTokenInPoolsCount: 100
+    amplifiedTvlTokenOutPoolCount: 100
+    amountInThreshold: *maxThresholdAmountInUSD
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -144,15 +154,7 @@ useCase:
     availableSources: *availableSources
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
-      getBestPoolsOptions:
-        directPoolsCount: 100
-        whitelistPoolsCount: 500
-        tokenInPoolsCount: 200
-        tokenOutPoolCount: 200
-        amplifiedTvlDirectPoolsCount: 50
-        amplifiedTvlWhitelistPoolsCount: 200
-        amplifiedTvlTokenInPoolsCount: 100
-        amplifiedTvlTokenOutPoolCount: 100
+      getBestPoolsOptions: *getBestPoolsOptions
       finderOptions:
         maxHops: 3
         distributionPercent: 5
@@ -310,6 +312,18 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://blast-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-blast
+  tradeDataGenerator:
+    whitelistedTokenSet: *whitelistedTokenSet
+    chunkSize: 200
+    useAEVM: false
+    dexUseAEVM: false
+    minDataPointNumber: 6
+    maxDataPointNumber: 12
+    availableSources: *availableSources
+  updateLiquidityScore:
+    inputFileName: "./scores.csv"
+    meanType: "geometric"
+    getBestPoolsOptions: *getBestPoolsOptions
 job:
   indexPools:
     forceScanAllEveryNth: 10
@@ -331,6 +345,18 @@ job:
     interval: 2s
   trackExecutorBalance:
     interval: 1h
+  liquidityScoreIndexPools:
+    batchSize: 500
+    interval: 1h
+    successedFileName: "./trade_data.txt"
+    failedFileName: "./failed_trade_data.txt"
+    liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
+    exportFailedTrade: false
+    fullScanInterval: 3h
+  updateLiquidityScore:
+    inputFileName: "./scores.csv"
+    meanType: "geometric"
+    getBestPoolsOptions: *getBestPoolsOptions
 repository:
   gas:
     redis:

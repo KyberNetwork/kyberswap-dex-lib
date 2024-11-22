@@ -149,6 +149,15 @@ common:
     - "ondo-usdy"
     - "ringswap"
   featureFlags: &featureFlags
+  getBestPoolsOptions: &getBestPoolsOptions
+    directPoolsCount: 100
+    whitelistPoolsCount: 500
+    tokenInPoolsCount: 200
+    tokenOutPoolCount: 200
+    amplifiedTvlDirectPoolsCount: 50
+    amplifiedTvlWhitelistPoolsCount: 200
+    amplifiedTvlTokenInPoolsCount: 100
+    amplifiedTvlTokenOutPoolCount: 100      
   swaapAPIKey:
   hashflowAPIKey:
   nativeAPIKey:
@@ -245,15 +254,7 @@ useCase:
     availableSources: *availableSources
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
-      getBestPoolsOptions: &getBestPoolsOptions
-        directPoolsCount: 100
-        whitelistPoolsCount: 500
-        tokenInPoolsCount: 200
-        tokenOutPoolCount: 200
-        amplifiedTvlDirectPoolsCount: 50
-        amplifiedTvlWhitelistPoolsCount: 200
-        amplifiedTvlTokenInPoolsCount: 100
-        amplifiedTvlTokenOutPoolCount: 100
+      getBestPoolsOptions: *getBestPoolsOptions
       dexUseAEVM: *dexUseAEVM
       finderOptions: &finderOptions
         type: retry
@@ -483,8 +484,21 @@ useCase:
     pathGeneratorDataTtl: 2h
     maintainingInterval: 360s
     chainId: *chainId
+    amountInThreshold: 10000
   trackExecutor:
     subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-ethereum
+  tradeDataGenerator:
+    whitelistedTokenSet: *whitelistedTokenSet
+    chunkSize: 200
+    useAEVM: false
+    dexUseAEVM: *dexUseAEVM
+    minDataPointNumber: 6
+    maxDataPointNumber: 12
+    availableSources: *availableSources
+  updateLiquidityScore:
+    inputFileName: "./scores.csv"
+    meanType: "geometric"
+    getBestPoolsOptions: *getBestPoolsOptions
 job:
   indexPools:
     forceScanAllEveryNth: 10

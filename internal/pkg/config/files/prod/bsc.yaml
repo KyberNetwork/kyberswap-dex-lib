@@ -77,6 +77,16 @@ common:
     - "wbeth"
     - "ktx"
   featureFlags: &featureFlags
+  getBestPoolsOptions: &getBestPoolsOptions
+    directPoolsCount: 100
+    whitelistPoolsCount: 500
+    tokenInPoolsCount: 200
+    tokenOutPoolCount: 200
+    amplifiedTvlDirectPoolsCount: 50
+    amplifiedTvlWhitelistPoolsCount: 200
+    amplifiedTvlTokenInPoolsCount: 100
+    amplifiedTvlTokenOutPoolCount: 100
+    amountInThreshold: 10000
   swaapAPIKey:
   hashflowAPIKey:
   nativeAPIKey:
@@ -164,15 +174,7 @@ useCase:
     availableSources: *availableSources
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
-      getBestPoolsOptions:
-        directPoolsCount: 100
-        whitelistPoolsCount: 500
-        tokenInPoolsCount: 200
-        tokenOutPoolCount: 200
-        amplifiedTvlDirectPoolsCount: 50
-        amplifiedTvlWhitelistPoolsCount: 200
-        amplifiedTvlTokenInPoolsCount: 100
-        amplifiedTvlTokenOutPoolCount: 100
+      getBestPoolsOptions: *getBestPoolsOptions
       finderOptions:
         maxHops: 3
         distributionPercent: 5
@@ -364,10 +366,14 @@ useCase:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 200
     useAEVM: false
-    dexUseAEVM:
+    dexUseAEVM: false
     minDataPointNumber: 6
     maxDataPointNumber: 12
     availableSources: *availableSources
+  updateLiquidityScore:
+    inputFileName: "./scores.csv"
+    meanType: "geometric"
+    getBestPoolsOptions: *getBestPoolsOptions
 job:
   indexPools:
     forceScanAllEveryNth: 10

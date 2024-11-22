@@ -52,6 +52,16 @@ common:
     - "maverick-v2"
     - "ambient"
   featureFlags: &featureFlags
+  getBestPoolsOptions: &getBestPoolsOptions
+    directPoolsCount: 100
+    whitelistPoolsCount: 500
+    tokenInPoolsCount: 200
+    tokenOutPoolCount: 200
+    amplifiedTvlDirectPoolsCount: 50
+    amplifiedTvlWhitelistPoolsCount: 200
+    amplifiedTvlTokenInPoolsCount: 100
+    amplifiedTvlTokenOutPoolCount: 100
+    amountInThreshold: *maxThresholdAmountInUSD
   swaapAPIKey:
   nativeAPIKey:
   dexUseAEVM: &dexUseAEVM
@@ -130,15 +140,7 @@ useCase:
     availableSources: *availableSources
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
-      getBestPoolsOptions:
-        directPoolsCount: 100
-        whitelistPoolsCount: 500
-        tokenInPoolsCount: 200
-        tokenOutPoolCount: 200
-        amplifiedTvlDirectPoolsCount: 50
-        amplifiedTvlWhitelistPoolsCount: 200
-        amplifiedTvlTokenInPoolsCount: 100
-        amplifiedTvlTokenOutPoolCount: 100
+      getBestPoolsOptions: *getBestPoolsOptions
       dexUseAEVM: *dexUseAEVM
       finderOptions:
         maxHops: 3
@@ -314,6 +316,18 @@ useCase:
     maxDirectIndexLenForZeroTvl: 10
   trackExecutor:
     subgraphURL: https://scroll-graph.kyberengineering.io/subgraphs/name/kybernetwork/kyberswap-aggregator-scroll
+  tradeDataGenerator:
+    whitelistedTokenSet: *whitelistedTokenSet
+    chunkSize: 200
+    useAEVM: false
+    dexUseAEVM: false
+    minDataPointNumber: 6
+    maxDataPointNumber: 12
+    availableSources: *availableSources
+  updateLiquidityScore:
+    inputFileName: "./scores.csv"
+    meanType: "geometric"
+    getBestPoolsOptions: *getBestPoolsOptions
 job:
   indexPools:
     forceScanAllEveryNth: 10
@@ -335,6 +349,14 @@ job:
     interval: 2s
   trackExecutorBalance:
     interval: 1h
+  liquidityScoreIndexPools:
+    batchSize: 500
+    interval: 1h
+    successedFileName: "./trade_data.txt"
+    failedFileName: "./failed_trade_data.txt"
+    liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
+    exportFailedTrade: false
+    fullScanInterval: 3h
   updateL1Fee:
     interval: 2s
     oracle_address: "0x5300000000000000000000000000000000000002"
