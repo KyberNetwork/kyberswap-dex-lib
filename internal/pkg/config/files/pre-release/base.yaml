@@ -222,6 +222,7 @@ encoder:
     executeSwaapV2: 38
     executeNative: 44
     executeBebop: 46
+    executeMaverickV2: 51
     executeFluidVaultT1: 53
     executeFluidDexT1: 55
     executeDexalot: 57
