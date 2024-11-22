@@ -114,6 +114,8 @@ common:
   dexalotAPIKey:
   dexalotUpscalePercent: 20
   clipperAPIAuth:
+  dexUseAEVM: &dexUseAEVM
+    maverick-v2: true
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -233,6 +235,7 @@ useCase:
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions: *getBestPoolsOptions
+      dexUseAEVM: *dexUseAEVM
       finderOptions:
         maxHops: 3
         distributionPercent: 5
@@ -247,7 +250,7 @@ useCase:
         hillClimbDistributionPercent: 1
         hillClimbIteration: 2
         hillClimbMinPartUSD: 500
-        useAEVMRemoteFinder: false
+        useAEVMRemoteFinder: &useAEVMRemoteFinder false
         remoteUseAEVMPool: false
         localUseAEVMPool: false
     cache:
@@ -410,6 +413,8 @@ useCase:
     rfqAcceptableSlippageFraction: 1000
   poolFactory:
     chainId: *chainId
+    useAEVM: &useAEVM false
+    dexUseAEVM: *dexUseAEVM
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
     blackListRenewalInterval: 30s
@@ -418,6 +423,8 @@ useCase:
     poolRenewalInterval: 3s
     faultyPoolsExpireThreshold: 3s
     featureFlags: *featureFlags
+    useAEVM: *useAEVM
+    useAEVMRemoteFinder: *useAEVMRemoteFinder
   indexPools:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 3000
@@ -549,4 +556,26 @@ validator:
     blacklistedRecipientSet:
   getRouteEncodeParams:
     blacklistedRecipientSet:
+aevmEnabled: false
+aevm:
+  serverUrl: "localhost:8246"
+  publishingPoolsUrls:
+  retryOnTimeOutMs: 500
+  findRouteRetryOnTimeOutMs: 1000
+  maxRetry: 3
+  rpc: "http://localhost:8545"
+  simulationWallet: "0x19767032471665df0fd7f6160381a103ece6261a"
+  useHoldersListAsFallback: false
+  tokenHoldersRedis:
+    addresses:
+    masterName: ""
+    dbNumber: 0
+    password: ""
+    prefix: *chainName
+    readTimeout: 3s
+    writeTimeout: 3s
+    readOnly: false
+    routeRandomly: false
+  cachedHoldersListTTLSec: 30
+  predefinedBalanceSlots:
 bundledRouteEnabled: false
