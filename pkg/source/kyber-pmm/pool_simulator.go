@@ -146,16 +146,27 @@ func (p *PoolSimulator) CalcAmountOut(
 		return nil, err
 	}
 
-	var inventoryLimit *big.Int
+	var (
+		inventoryLimitOut *big.Int
+		// inventoryLimitIn  *big.Int
+	)
 	if swapDirection == SwapDirectionBaseToQuote {
-		inventoryLimit = limit.GetLimit(p.quoteToken.Address)
+		inventoryLimitOut = limit.GetLimit(p.quoteToken.Address)
+		// inventoryLimitIn = limit.GetLimit(p.baseToken.Address)
 	} else {
-		inventoryLimit = limit.GetLimit(p.baseToken.Address)
+		inventoryLimitOut = limit.GetLimit(p.baseToken.Address)
+		// inventoryLimitIn = limit.GetLimit(p.quoteToken.Address)
 	}
 
-	if result.TokenAmountOut.Amount.Cmp(inventoryLimit) > 0 {
-		return nil, errors.New("not enough inventory")
+	// log.Println("[DEBUG] limit", param.TokenAmountIn.Token, inventoryLimitOut)
+	// if tokenAmountIn.Amount.Cmp(inventoryLimitIn) > 0 {
+	// 	log.Println("[DEBUG] not enough inventory in", param.TokenAmountIn.Token, inventoryLimitOut)
+	// 	return nil, errors.New("not enough inventory in")
+	// }
+	if result.TokenAmountOut.Amount.Cmp(inventoryLimitOut) > 0 {
+		return nil, errors.New("not enough inventory out")
 	}
+
 	return result, nil
 }
 
