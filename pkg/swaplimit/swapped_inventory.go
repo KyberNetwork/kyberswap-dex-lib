@@ -4,6 +4,8 @@ import (
 	"maps"
 	"math/big"
 	"sync"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 )
 
 type SwappedInventory struct {
@@ -49,4 +51,15 @@ func (k *SwappedInventory) UpdateLimit(decreaseTokenAddress, increaseTokenAddres
 	k.swapped[increaseTokenAddress] = swappedIn
 
 	return k.Inventory.updateLimit(decreaseTokenAddress, increaseTokenAddress, decreaseDelta, increaseDelta)
+}
+
+func (k *SwappedInventory) Clone() pool.SwapLimit {
+	return &SwappedInventory{
+		Inventory: Inventory{
+			exchange: k.exchange,
+			lock:     &sync.RWMutex{},
+			balance:  maps.Clone(k.balance),
+		},
+		swapped: maps.Clone(k.swapped),
+	}
 }
