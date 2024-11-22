@@ -78,6 +78,7 @@ common:
     - "bebop"
     - "clipper"
   featureFlags: &featureFlags
+  maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
     directPoolsCount: 100
     whitelistPoolsCount: 500
@@ -211,7 +212,7 @@ useCase:
         maxPathsToReturn: 200
         minPartUSD: 500
         minThresholdAmountInUSD: 0
-        maxThresholdAmountInUSD: 100000000
+        maxThresholdAmountInUSD: *maxThresholdAmountInUSD
         isHillClimbEnabled: false
         hillClimbDistributionPercent: 1
         hillClimbIteration: 2
@@ -400,7 +401,7 @@ useCase:
     whitelistedTokenSet: *whitelistedTokenSet
     chunkSize: 200
     useAEVM: false
-    dexUseAEVM: false
+    dexUseAEVM:
     minDataPointNumber: 6
     maxDataPointNumber: 12
     availableSources: *availableSources

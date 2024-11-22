@@ -149,6 +149,7 @@ common:
     - "ondo-usdy"
     - "ringswap"
   featureFlags: &featureFlags
+  maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
     directPoolsCount: 100
     whitelistPoolsCount: 500
@@ -157,7 +158,8 @@ common:
     amplifiedTvlDirectPoolsCount: 50
     amplifiedTvlWhitelistPoolsCount: 200
     amplifiedTvlTokenInPoolsCount: 100
-    amplifiedTvlTokenOutPoolCount: 100      
+    amplifiedTvlTokenOutPoolCount: 100  
+    amountInThreshold: 10000    
   swaapAPIKey:
   hashflowAPIKey:
   nativeAPIKey:
@@ -266,7 +268,7 @@ useCase:
         maxPathsToReturn: 200
         minPartUSD: 500
         minThresholdAmountInUSD: 0
-        maxThresholdAmountInUSD: 100000000
+        maxThresholdAmountInUSD: *maxThresholdAmountInUSD
         isHillClimbEnabled: false
         hillClimbDistributionPercent: 1
         hillClimbIteration: 2

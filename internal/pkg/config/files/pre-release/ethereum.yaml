@@ -144,6 +144,7 @@ common:
     isAEVMEnabled: false
     isLiquidityScoreEnable: true
     isRouteCachedEnable: false
+  maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
     directPoolsCount: 100
     whitelistPoolsCount: 500
@@ -263,7 +264,7 @@ useCase:
         maxPathsToReturn: 200
         minPartUSD: 500
         minThresholdAmountInUSD: 0
-        maxThresholdAmountInUSD: 100000000
+        maxThresholdAmountInUSD: *maxThresholdAmountInUSD
         fullAmountGeneratePathsPrice: 44999
         isHillClimbEnabled: false
         hillClimbDistributionPercent: 1
