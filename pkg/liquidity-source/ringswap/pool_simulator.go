@@ -13,6 +13,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
@@ -20,6 +21,8 @@ var (
 	ErrReserveIndexOutOfBounds = errors.New("reserve index out of bounds")
 	ErrTokenIndexOutOfBounds   = errors.New("token index out of bounds")
 	ErrTokenSwapNotAllowed     = errors.New("cannot swap between original token and wrapped token")
+
+	ErrNoSwapLimit = errors.New("swap limit is required")
 )
 
 type (
@@ -76,6 +79,9 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, ErrTokenSwapNotAllowed
 	}
 
+	isWrapIn := indexIn < 2
+	isUnwrapOut := indexOut < 2
+
 	amountIn, overflow := uint256.FromBig(tokenAmountIn.Amount)
 	if overflow {
 		return nil, uniswapv2.ErrInvalidAmountIn
@@ -85,56 +91,30 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, uniswapv2.ErrInsufficientInputAmount
 	}
 
-	reserveIndex := indexIn % 2
-	if reserveIndex >= len(s.Pool.Info.Reserves) {
-		return nil, ErrReserveIndexOutOfBounds
-	}
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[reserveIndex])
-	if overflow {
-		return nil, uniswapv2.ErrInvalidReserve
-	}
-
-	reserveOutIndex := indexOut % 2
-	if reserveOutIndex >= len(s.Pool.Info.Reserves) {
-		return nil, ErrReserveIndexOutOfBounds
-	}
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[reserveOutIndex])
-	if overflow {
-		return nil, uniswapv2.ErrInvalidReserve
-	}
-
-	if reserveIn.Cmp(number.Zero) <= 0 || reserveOut.Cmp(number.Zero) <= 0 {
-		return nil, uniswapv2.ErrInsufficientLiquidity
+	reserveIn, reserveOut, err := s.getReserves(indexIn, indexOut)
+	if err != nil {
+		return nil, err
 	}
 
 	amountOut := s.getAmountOut(amountIn, reserveIn, reserveOut)
-
-	// Ensure that amountOut does not exceed the fw reserve
-	if amountOut.Cmp(reserveOut) > 0 {
+	if amountOut.Cmp(reserveOut) >= 0 {
 		return nil, uniswapv2.ErrInsufficientLiquidity
 	}
 
-	originalReserve, overflow := uint256.FromBig(lo.Ternary(reserveOutIndex == 0, s.originalReserves.Reserve0, s.originalReserves.Reserve1))
-	if overflow {
-		return nil, uniswapv2.ErrInvalidReserve
+	wTokenIn, wTokenOut, err := s.getWrappedTokens(indexIn, indexOut)
+	if err != nil {
+		return nil, err
 	}
 
-	// Ensure that amountOut does not exceed the original reserve
-	if amountOut.Cmp(originalReserve) > 0 {
-		return nil, uniswapv2.ErrInsufficientLiquidity
+	// Ensure that amountOut does not exceed original reserve
+	if isUnwrapOut {
+		if param.Limit == nil {
+			return nil, ErrNoSwapLimit
+		}
+		if amountOut.CmpBig(param.Limit.GetLimit(wTokenOut)) >= 0 {
+			return nil, uniswapv2.ErrInsufficientLiquidity
+		}
 	}
-
-	wTokenInIndex := indexIn%2 + 2
-	if wTokenInIndex >= len(s.Pool.Info.Tokens) {
-		return nil, ErrTokenIndexOutOfBounds
-	}
-	wTokenIn := s.Pool.Info.Tokens[wTokenInIndex]
-
-	wTokenOutIndex := indexOut%2 + 2
-	if wTokenOutIndex >= len(s.Pool.Info.Tokens) {
-		return nil, ErrTokenIndexOutOfBounds
-	}
-	wTokenOut := s.Pool.Info.Tokens[wTokenOutIndex]
 
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
@@ -145,8 +125,8 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 			WTokenIn:    wTokenIn,
 			WTokenOut:   wTokenOut,
 			IsToken0To1: indexIn%2 == 0,
-			IsWrapIn:    indexIn < 2,
-			IsUnwrapOut: indexOut < 2,
+			IsWrapIn:    isWrapIn,
+			IsUnwrapOut: isUnwrapOut,
 		},
 	}, nil
 }
@@ -166,6 +146,9 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, ErrTokenSwapNotAllowed
 	}
 
+	isWrapIn := indexIn < 2
+	isUnwrapOut := indexOut < 2
+
 	amountOut, overflow := uint256.FromBig(tokenAmountOut.Amount)
 	if overflow {
 		return nil, uniswapv2.ErrInvalidAmountOut
@@ -175,37 +158,28 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, uniswapv2.ErrInsufficientOutputAmount
 	}
 
-	reserveIndex := indexIn % 2
-	if reserveIndex >= len(s.Pool.Info.Reserves) {
-		return nil, ErrReserveIndexOutOfBounds
-	}
-	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[reserveIndex])
-	if overflow {
-		return nil, uniswapv2.ErrInvalidReserve
+	reserveIn, reserveOut, err := s.getReserves(indexIn, indexOut)
+	if err != nil {
+		return nil, err
 	}
 
-	reserveOutIndex := indexOut % 2
-	if reserveOutIndex >= len(s.Pool.Info.Reserves) {
-		return nil, ErrReserveIndexOutOfBounds
-	}
-	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[reserveOutIndex])
-	if overflow {
-		return nil, uniswapv2.ErrInvalidReserve
-	}
-
-	// Ensure that amountOut does not exceed the fw reserve
-	if reserveIn.Cmp(number.Zero) <= 0 || reserveOut.Cmp(number.Zero) <= 0 {
+	if amountOut.Cmp(reserveOut) >= 0 {
 		return nil, uniswapv2.ErrInsufficientLiquidity
 	}
 
-	originalReserve, overflow := uint256.FromBig(lo.Ternary(reserveOutIndex == 0, s.originalReserves.Reserve0, s.originalReserves.Reserve1))
-	if overflow {
-		return nil, uniswapv2.ErrInvalidReserve
+	wTokenIn, wTokenOut, err := s.getWrappedTokens(indexIn, indexOut)
+	if err != nil {
+		return nil, err
 	}
 
-	// Ensure that amountOut does not exceed the original reserve
-	if amountOut.Cmp(originalReserve) > 0 {
-		return nil, uniswapv2.ErrInsufficientLiquidity
+	// Ensure that amountOut does not exceed original reserve
+	if isUnwrapOut {
+		if param.Limit == nil {
+			return nil, ErrNoSwapLimit
+		}
+		if amountOut.CmpBig(param.Limit.GetLimit(wTokenOut)) >= 0 {
+			return nil, uniswapv2.ErrInsufficientLiquidity
+		}
 	}
 
 	amountIn, err := s.getAmountIn(amountOut, reserveIn, reserveOut)
@@ -233,18 +207,6 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		return nil, uniswapv2.ErrInvalidK
 	}
 
-	wTokenInIndex := indexIn%2 + 2
-	if wTokenInIndex >= len(s.Pool.Info.Tokens) {
-		return nil, ErrTokenIndexOutOfBounds
-	}
-	wTokenIn := s.Pool.Info.Tokens[wTokenInIndex]
-
-	wTokenOutIndex := indexOut%2 + 2
-	if wTokenOutIndex >= len(s.Pool.Info.Tokens) {
-		return nil, ErrTokenIndexOutOfBounds
-	}
-	wTokenOut := s.Pool.Info.Tokens[wTokenOutIndex]
-
 	return &poolpkg.CalcAmountInResult{
 		TokenAmountIn: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: amountIn.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
@@ -254,8 +216,8 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 			WTokenIn:    wTokenIn,
 			WTokenOut:   wTokenOut,
 			IsToken0To1: indexIn%2 == 0,
-			IsWrapIn:    indexIn < 2,
-			IsUnwrapOut: indexOut < 2,
+			IsWrapIn:    isWrapIn,
+			IsUnwrapOut: isUnwrapOut,
 		},
 	}, nil
 }
@@ -269,12 +231,35 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	s.Pool.Info.Reserves[indexIn%2] = new(big.Int).Add(s.Pool.Info.Reserves[indexIn%2], params.TokenAmountIn.Amount)
 	s.Pool.Info.Reserves[indexOut%2] = new(big.Int).Sub(s.Pool.Info.Reserves[indexOut%2], params.TokenAmountOut.Amount)
 
+	swapInfo, ok := params.SwapInfo.(SwapInfo)
+	if !ok {
+		return
+	}
+
 	if indexIn%2 == 0 {
-		s.originalReserves.Reserve0 = new(big.Int).Add(s.originalReserves.Reserve0, params.TokenAmountIn.Amount)
-		s.originalReserves.Reserve1 = new(big.Int).Sub(s.originalReserves.Reserve1, params.TokenAmountOut.Amount)
+		if params.SwapLimit != nil {
+			if swapInfo.IsWrapIn {
+				s.originalReserves.Reserve0 = new(big.Int).Add(s.originalReserves.Reserve0, params.TokenAmountIn.Amount)
+				params.SwapLimit.UpdateLimit("", swapInfo.WTokenIn, bignumber.ZeroBI, params.TokenAmountOut.Amount)
+			}
+
+			if swapInfo.IsUnwrapOut {
+				s.originalReserves.Reserve1 = new(big.Int).Sub(s.originalReserves.Reserve1, params.TokenAmountOut.Amount)
+				params.SwapLimit.UpdateLimit(swapInfo.WTokenOut, "", params.TokenAmountIn.Amount, bignumber.ZeroBI)
+			}
+		}
 	} else {
-		s.originalReserves.Reserve1 = new(big.Int).Add(s.originalReserves.Reserve1, params.TokenAmountIn.Amount)
-		s.originalReserves.Reserve0 = new(big.Int).Sub(s.originalReserves.Reserve0, params.TokenAmountOut.Amount)
+		if params.SwapLimit != nil {
+			if swapInfo.IsWrapIn {
+				s.originalReserves.Reserve1 = new(big.Int).Add(s.originalReserves.Reserve1, params.TokenAmountIn.Amount)
+				params.SwapLimit.UpdateLimit("", swapInfo.WTokenIn, bignumber.ZeroBI, params.TokenAmountIn.Amount)
+			}
+
+			if swapInfo.IsUnwrapOut {
+				s.originalReserves.Reserve0 = new(big.Int).Sub(s.originalReserves.Reserve0, params.TokenAmountOut.Amount)
+				params.SwapLimit.UpdateLimit(swapInfo.WTokenOut, "", params.TokenAmountOut.Amount, bignumber.ZeroBI)
+			}
+		}
 	}
 }
 
@@ -284,6 +269,41 @@ func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 		FeePrecision: s.feePrecision.Uint64(),
 		BlockNumber:  s.Pool.Info.BlockNumber,
 	}
+}
+
+func (s *PoolSimulator) getReserves(indexIn, indexOut int) (*uint256.Int, *uint256.Int, error) {
+	reserveInIndex, reserveOutIndex := indexIn%2, indexOut%2
+
+	if reserveInIndex >= len(s.Pool.Info.Reserves) || reserveOutIndex >= len(s.Pool.Info.Reserves) {
+		return nil, nil, ErrReserveIndexOutOfBounds
+	}
+
+	reserveIn, overflow := uint256.FromBig(s.Pool.Info.Reserves[reserveInIndex])
+	if overflow {
+		return nil, nil, uniswapv2.ErrInvalidReserve
+	}
+
+	reserveOut, overflow := uint256.FromBig(s.Pool.Info.Reserves[reserveOutIndex])
+	if overflow {
+		return nil, nil, uniswapv2.ErrInvalidReserve
+	}
+
+	if reserveIn.Cmp(number.Zero) <= 0 || reserveOut.Cmp(number.Zero) <= 0 {
+		return nil, nil, uniswapv2.ErrInsufficientLiquidity
+	}
+
+	return reserveIn, reserveOut, nil
+}
+
+func (s *PoolSimulator) getWrappedTokens(indexIn, indexOut int) (wTokenIn, wTokenOut string, err error) {
+	wTokenInIndex := indexIn%2 + 2
+	wTokenOutIndex := indexOut%2 + 2
+
+	if wTokenInIndex >= len(s.Pool.Info.Tokens) || wTokenOutIndex >= len(s.Pool.Info.Tokens) {
+		return "", "", ErrTokenIndexOutOfBounds
+	}
+
+	return s.Pool.Info.Tokens[wTokenInIndex], s.Pool.Info.Tokens[wTokenOutIndex], nil
 }
 
 func (s *PoolSimulator) getAmountOut(amountIn, reserveIn, reserveOut *uint256.Int) *uint256.Int {
@@ -311,4 +331,17 @@ func (s *PoolSimulator) getAmountIn(amountOut, reserveIn, reserveOut *uint256.In
 	)
 
 	return uniswapv2.SafeAdd(new(uint256.Int).Div(numerator, denominator), number.Number_1), nil
+}
+
+func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
+	tokens := p.GetTokens()
+
+	limits := make(map[string]*big.Int, len(tokens))
+
+	if len(tokens) == 4 {
+		limits[tokens[2]] = p.originalReserves.Reserve0
+		limits[tokens[3]] = p.originalReserves.Reserve1
+	}
+
+	return limits
 }
