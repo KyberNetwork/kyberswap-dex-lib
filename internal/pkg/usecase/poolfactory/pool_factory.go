@@ -433,7 +433,8 @@ func newSwapLimit(dex string, limit map[string]*big.Int) poolpkg.SwapLimit {
 	case pooltypes.PoolTypes.Synthetix,
 		pooltypes.PoolTypes.LimitOrder,
 		pooltypes.PoolTypes.NativeV1,
-		pooltypes.PoolTypes.Dexalot:
+		pooltypes.PoolTypes.Dexalot,
+		pooltypes.PoolTypes.RingSwap:
 		return swaplimit.NewInventory(dex, limit)
 
 	case pooltypes.PoolTypes.KyberPMM:

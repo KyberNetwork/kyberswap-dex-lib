@@ -134,6 +134,7 @@ func init() {
 		pooltypes.PoolTypes.NativeV1,
 		pooltypes.PoolTypes.LimitOrder,
 		pooltypes.PoolTypes.Dexalot,
+		pooltypes.PoolTypes.RingSwap,
 	}
 }
 
