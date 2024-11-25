@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	DexTypeAlgebraV1      = "algebra-v1"
+	DexType               = "algebra-integral"
 	graphSkipLimit        = 5000
 	graphFirstLimit       = 1000
 	defaultTokenDecimals  = 18
