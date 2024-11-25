@@ -365,6 +365,7 @@ var (
 	ExchangeDeltaSwapV1      Exchange = "deltaswap-v1"
 	ExchangeSfrxETH          Exchange = "sfrxeth"
 	ExchangeSfrxETHConvertor Exchange = "sfrxeth-convertor"
+	ExchangeLO1inch          Exchange = "lo1inch"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -684,6 +685,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeBebop:      {},
 	ExchangeClipper:    {},
 	ExchangeDexalot:    {},
+	ExchangeLO1inch:    {},
 }
 
 func IsRFQSource(exchange Exchange) bool {

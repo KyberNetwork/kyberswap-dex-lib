@@ -59,3 +59,16 @@ func NewBig(s string) (res *big.Int) {
 	res, _ = new(big.Int).SetString(s, 0)
 	return res
 }
+
+// Min returns the smaller of a or b.
+func Min(a, b *big.Int) *big.Int {
+	if a == nil || b == nil {
+		return nil
+	}
+
+	if a.Cmp(b) < 0 {
+		return a
+	}
+
+	return b
+}

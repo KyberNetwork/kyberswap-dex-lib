@@ -38,6 +38,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
@@ -255,6 +256,7 @@ type Types struct {
 	DeltaSwapV1                    string
 	SfrxETH                        string
 	SfrxETHConvertor               string
+	LO1inch                        string
 }
 
 var (
@@ -390,5 +392,6 @@ var (
 		DeltaSwapV1:                    deltaswapv1.DexType,
 		SfrxETH:                        sfrxeth.DexType,
 		SfrxETHConvertor:               sfrxeth_convertor.DexType,
+		LO1inch:                        lo1inch.DexType,
 	}
 )
