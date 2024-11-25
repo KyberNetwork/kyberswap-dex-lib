@@ -24,4 +24,5 @@ jobs:
       service: ${{ github.event.repository.name }}-liqindexer
       version: '${{ inputs.version }}'
       file: docker/liqIndexer.Dockerfile
+      create_tag: false
     secrets: inherit
