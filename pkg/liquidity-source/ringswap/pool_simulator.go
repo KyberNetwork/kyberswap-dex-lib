@@ -235,10 +235,8 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		return
 	}
 
-	amtIn := lo.Ternary(indexIn%2 == 0, params.TokenAmountIn.Amount, params.TokenAmountOut.Amount)
-	amtOut := lo.Ternary(indexOut%2 == 1, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
-	deltaIn := lo.Ternary(swapInfo.IsWrapIn, amtIn, bignumber.ZeroBI)
-	deltaOut := lo.Ternary(swapInfo.IsUnwrapOut, amtOut, bignumber.ZeroBI)
+	deltaIn := lo.Ternary(swapInfo.IsWrapIn, params.TokenAmountIn.Amount, bignumber.ZeroBI)
+	deltaOut := lo.Ternary(swapInfo.IsUnwrapOut, params.TokenAmountOut.Amount, bignumber.ZeroBI)
 
 	_, _, _ = params.SwapLimit.UpdateLimit(swapInfo.WTokenOut, swapInfo.WTokenIn, deltaOut, deltaIn)
 }
