@@ -126,6 +126,7 @@ common:
   clipperAPIAuth:
   dexUseAEVM: &dexUseAEVM
     maverick-v2: true
+  useAEVM: &useAEVM false
 log:
   sentryDSN: "https://6cd398671bde455f8fadad6dbfe87a67@sentry-v2.knstats.com/48"
   consoleLevel: info
@@ -439,7 +440,7 @@ useCase:
     rfqAcceptableSlippageFraction: 1000
   poolFactory:
     chainId: *chainId
-    useAEVM: &useAEVM false
+    useAEVM: *useAEVM
     dexUseAEVM: *dexUseAEVM
   poolManager:
     blacklistedPoolSet: *blacklistedPoolSet
@@ -460,8 +461,9 @@ useCase:
     subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-arbitrum
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
+    blacklistedPoolSet: *blacklistedPoolSet
     chunkSize: 200
-    useAEVM: false
+    useAEVM: *useAEVM
     dexUseAEVM: *dexUseAEVM
     minDataPointNumber: 6
     maxDataPointNumber: 12
@@ -492,7 +494,7 @@ job:
   trackExecutorBalance:
     interval: 1h
   liquidityScoreIndexPools:
-    batchSize: 500
+    batchSize: 200
     interval: 1h
     successedFileName: "./trade_data.txt"
     failedFileName: "./failed_trade_data.txt"

@@ -2531,7 +2531,6 @@ func TestRedisRepository_FindGlobalBestPoolsByScores(t *testing.T) {
 				context.Background(),
 				test.counter,
 				test.sortByKey)
-			fmt.Printf("cmnguyen debug total set %v\n", pools)
 
 			assert.Equal(t, test.expectedResult, pools)
 			if test.err == nil {

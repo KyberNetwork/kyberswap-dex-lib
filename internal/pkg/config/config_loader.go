@@ -276,7 +276,7 @@ func (cl *ConfigLoader) setPoolManagerOptionsFromFinderOptions(finderOptions val
 func (cl *ConfigLoader) setGetBestPoolOptions(getBestPoolsOptions valueobject.GetBestPoolsOptions) {
 	cl.config.UseCase.GetCustomRoute.Aggregator.GetBestPoolsOptions = getBestPoolsOptions
 	cl.config.UseCase.GetRoute.Aggregator.GetBestPoolsOptions = getBestPoolsOptions
-	cl.config.UseCase.TradeDataGenerator.GetBestPoolsOptions = getBestPoolsOptions
+	cl.config.UseCase.UpdateLiquidityScoreConfig.GetBestPoolsOptions = getBestPoolsOptions
 	cl.config.UseCase.GetCustomRoute.Aggregator.GetBestPoolsOptions = getBestPoolsOptions
 }
 

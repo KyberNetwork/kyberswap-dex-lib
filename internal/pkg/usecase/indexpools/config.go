@@ -14,15 +14,14 @@ type IndexPoolsConfig struct {
 }
 
 type TradeDataGeneratorConfig struct {
-	WhitelistedTokenSet map[string]bool                 `mapstructure:"whitelistedTokenSet"`
-	BlacklistedPoolSet  map[string]bool                 `mapstructure:"blacklistedPoolSet"`
-	ChunkSize           int                             `mapstructure:"chunkSize"`
-	UseAEVM             bool                            `mapstructure:"useAEVM" json:"useAEVM"`
-	DexUseAEVM          map[string]bool                 `mapstructure:"dexUseAEVM"`
-	MinDataPointNumber  int                             `mapstructure:"minDataPointNumber"`
-	MaxDataPointNumber  int                             `mapstructure:"maxDataPointNumber"`
-	AvailableSources    []string                        `mapstructure:"availableSources" json:"availableSources"`
-	GetBestPoolsOptions valueobject.GetBestPoolsOptions `mapstructure:"getBestPoolsOptions" json:"getBestPoolsOptions"`
+	WhitelistedTokenSet map[string]bool `mapstructure:"whitelistedTokenSet"`
+	BlacklistedPoolSet  map[string]bool `mapstructure:"blacklistedPoolSet"`
+	ChunkSize           int             `mapstructure:"chunkSize"`
+	UseAEVM             bool            `mapstructure:"useAEVM" json:"useAEVM"`
+	DexUseAEVM          map[string]bool `mapstructure:"dexUseAEVM"`
+	MinDataPointNumber  int             `mapstructure:"minDataPointNumber"`
+	MaxDataPointNumber  int             `mapstructure:"maxDataPointNumber"`
+	AvailableSources    []string        `mapstructure:"availableSources" json:"availableSources"`
 }
 
 type UpdateLiquidityScoreConfig struct {

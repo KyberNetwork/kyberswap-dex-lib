@@ -161,6 +161,7 @@ common:
   bebopAPIName:
   bebopAPIAuth:
   clipperAPIAuth:
+  useAEVM: &useAEVM false
   dexUseAEVM: &dexUseAEVM
     uniswap: false
     uniswapv3: false
@@ -450,7 +451,7 @@ useCase:
     rfqAcceptableSlippageFraction: 1000
   poolFactory:
     chainId: *chainId
-    useAEVM: &useAEVM false
+    useAEVM: *useAEVM
     dexUseAEVM: *dexUseAEVM
     addressesByDex:
       uniswap:
@@ -488,8 +489,9 @@ useCase:
     subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-ethereum
   tradeDataGenerator:
     whitelistedTokenSet: *whitelistedTokenSet
+    blacklistedPoolSet: *blacklistedPoolSet
     chunkSize: 200
-    useAEVM: false
+    useAEVM: *useAEVM
     dexUseAEVM: *dexUseAEVM
     minDataPointNumber: 6
     maxDataPointNumber: 12
