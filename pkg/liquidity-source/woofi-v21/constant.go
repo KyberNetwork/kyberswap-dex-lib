@@ -1,6 +1,8 @@
 package woofiv21
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"github.com/ethereum/go-ethereum/common"
+)
 
 const (
 	DexTypeWooFiV21 = "woofi-v21"
