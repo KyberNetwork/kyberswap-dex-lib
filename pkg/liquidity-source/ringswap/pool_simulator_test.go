@@ -600,16 +600,13 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Execute update balance
 			tc.poolSimulator.UpdateBalance(tc.params)
 
-			// Verify reserves
 			assert.Equal(t, 0, tc.poolSimulator.Info.Reserves[0].Cmp(tc.expectedFwReserves[0]))
 			assert.Equal(t, 0, tc.poolSimulator.Info.Reserves[1].Cmp(tc.expectedFwReserves[1]))
 			assert.Equal(t, 0, tc.poolSimulator.Info.Reserves[2].Cmp(tc.expectedFwReserves[2]))
 			assert.Equal(t, 0, tc.poolSimulator.Info.Reserves[3].Cmp(tc.expectedFwReserves[3]))
 
-			// Verify swap limits if specified
 			if len(tc.expectedSwapLimits) > 0 {
 				inventory, ok := tc.params.SwapLimit.(*swaplimit.Inventory)
 				assert.True(t, ok)
