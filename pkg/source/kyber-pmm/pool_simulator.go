@@ -120,17 +120,19 @@ func (p *PoolSimulator) CalcAmountOut(
 	)
 
 	if swapDirection == SwapDirectionBaseToQuote {
+		baseToQuotePriceLevels := p.baseToQuotePriceLevels
 		swappedBaseAmount, ok := swapped[p.baseToken.Address]
 		if ok && swappedBaseAmount.Sign() > 0 {
 			swappedBaseAmountAfterDecimals := new(big.Float).Quo(
 				new(big.Float).SetInt(swappedBaseAmount),
 				bignumber.TenPowDecimals(p.baseToken.Decimals),
 			)
-			p.baseToQuotePriceLevels = getNewPriceLevelsState(swappedBaseAmountAfterDecimals, p.baseToQuotePriceLevels)
+			baseToQuotePriceLevels = getNewPriceLevelsState(swappedBaseAmountAfterDecimals, p.baseToQuotePriceLevels)
 		}
 
-		result, err = p.swapBaseToQuote(tokenAmountIn, tokenOut)
+		result, err = p.swapBaseToQuote(tokenAmountIn, tokenOut, baseToQuotePriceLevels)
 	} else {
+		quoteToBasePriceLevels := p.quoteToBasePriceLevels
 		swappedQuoteAmount, ok := swapped[p.quoteToken.Address]
 		if ok && swappedQuoteAmount.Sign() > 0 {
 			swappedQuoteAmountAfterDecimals := new(big.Float).Quo(
@@ -138,9 +140,9 @@ func (p *PoolSimulator) CalcAmountOut(
 				bignumber.TenPowDecimals(p.quoteToken.Decimals),
 			)
 
-			p.quoteToBasePriceLevels = getNewPriceLevelsState(swappedQuoteAmountAfterDecimals, p.quoteToBasePriceLevels)
+			quoteToBasePriceLevels = getNewPriceLevelsState(swappedQuoteAmountAfterDecimals, p.quoteToBasePriceLevels)
 		}
-		result, err = p.swapQuoteToBase(tokenAmountIn, tokenOut)
+		result, err = p.swapQuoteToBase(tokenAmountIn, tokenOut, quoteToBasePriceLevels)
 	}
 	if err != nil {
 		return nil, err
@@ -204,13 +206,13 @@ func (p *PoolSimulator) getSwapDirection(tokenIn string) SwapDirection {
 	return SwapDirectionQuoteToBase
 }
 
-func (p *PoolSimulator) swapBaseToQuote(tokenAmountIn pool.TokenAmount, tokenOut string) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) swapBaseToQuote(tokenAmountIn pool.TokenAmount, tokenOut string, priceLevels []PriceLevel) (*pool.CalcAmountOutResult, error) {
 	amountInAfterDecimals := new(big.Float).Quo(
 		new(big.Float).SetInt(tokenAmountIn.Amount),
 		bignumber.TenPowDecimals(p.baseToken.Decimals),
 	)
 
-	amountOutAfterDecimals, err := getAmountOut(amountInAfterDecimals, p.baseToQuotePriceLevels)
+	amountOutAfterDecimals, err := getAmountOut(amountInAfterDecimals, priceLevels)
 	if err != nil {
 		return nil, err
 	}
@@ -233,13 +235,13 @@ func (p *PoolSimulator) swapBaseToQuote(tokenAmountIn pool.TokenAmount, tokenOut
 	}, nil
 }
 
-func (p *PoolSimulator) swapQuoteToBase(tokenAmountIn pool.TokenAmount, tokenOut string) (*pool.CalcAmountOutResult, error) {
+func (p *PoolSimulator) swapQuoteToBase(tokenAmountIn pool.TokenAmount, tokenOut string, priceLevels []PriceLevel) (*pool.CalcAmountOutResult, error) {
 	amountInAfterDecimals := new(big.Float).Quo(
 		new(big.Float).SetInt(tokenAmountIn.Amount),
 		bignumber.TenPowDecimals(p.quoteToken.Decimals),
 	)
 
-	amountOutAfterDecimals, err := getAmountOut(amountInAfterDecimals, p.quoteToBasePriceLevels)
+	amountOutAfterDecimals, err := getAmountOut(amountInAfterDecimals, priceLevels)
 	if err != nil {
 		return nil, err
 	}
