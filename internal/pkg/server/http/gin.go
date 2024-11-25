@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/KyberNetwork/kutils/klog"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/requestid"
@@ -16,7 +17,6 @@ import (
 	clientidpkg "github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	requestidpkg "github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/util/env"
 )
 
@@ -25,7 +25,7 @@ const (
 	liveAPIPath  = "/api/v1/health/ready"
 )
 
-func GinServer(cfg *HTTPConfig, logCfg logger.Configuration, logBackend logger.LoggerBackend) (*gin.Engine, *gin.RouterGroup, error) {
+func GinServer(cfg *HTTPConfig, logCfg klog.Configuration, logBackend klog.LoggerBackend) (*gin.Engine, *gin.RouterGroup, error) {
 	gin.SetMode(cfg.Mode)
 	gin.EnableJsonDecoderUseNumber()
 

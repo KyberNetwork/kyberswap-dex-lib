@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/davecgh/go-spew/spew"
@@ -15,7 +16,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	repo "github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 )
 
@@ -26,10 +26,10 @@ const (
 func TestWholeSlotWithFStrategy(t *testing.T) {
 	t.Skip()
 
-	logger.InitLogger(logger.Configuration{
+	_, _ = klog.InitLogger(klog.Configuration{
 		EnableConsole: true,
 		ConsoleLevel:  "debug",
-	}, logger.LoggerBackendZap)
+	}, klog.LoggerBackendZap)
 
 	rpcClient, err := rpc.Dial(jsonRPCURL)
 	require.NoError(t, err)
@@ -47,10 +47,10 @@ func TestWholeSlotWithFStrategy(t *testing.T) {
 func TestDoubleFromSourceStrategy(t *testing.T) {
 	t.Skip()
 
-	logger.InitLogger(logger.Configuration{
+	_, _ = klog.InitLogger(klog.Configuration{
 		EnableConsole: true,
 		ConsoleLevel:  "debug",
-	}, logger.LoggerBackendZap)
+	}, klog.LoggerBackendZap)
 
 	rpcClient, err := rpc.Dial(jsonRPCURL)
 	require.NoError(t, err)
@@ -68,10 +68,10 @@ func TestDoubleFromSourceStrategy(t *testing.T) {
 }
 
 func TestHoldersListStrategy(t *testing.T) {
-	logger.InitLogger(logger.Configuration{
+	_, _ = klog.InitLogger(klog.Configuration{
 		EnableConsole: true,
 		ConsoleLevel:  "debug",
-	}, logger.LoggerBackendZap)
+	}, klog.LoggerBackendZap)
 
 	miniRedis := miniredis.NewMiniRedis()
 	err := miniRedis.Start()
@@ -107,10 +107,10 @@ func TestHoldersListStrategy(t *testing.T) {
 func TestMultipleStrategy(t *testing.T) {
 	t.Skip()
 
-	logger.InitLogger(logger.Configuration{
+	_, _ = klog.InitLogger(klog.Configuration{
 		EnableConsole: true,
 		ConsoleLevel:  "debug",
-	}, logger.LoggerBackendZap)
+	}, klog.LoggerBackendZap)
 
 	rpcClient, err := rpc.Dial(jsonRPCURL)
 	require.NoError(t, err)

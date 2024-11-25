@@ -117,11 +117,6 @@ func probeBalanceSlotAction(c *cli.Context) error {
 		return err
 	}
 
-	_, err = logger.InitLogger(cfg.Log.Configuration, logger.LoggerBackendZap)
-	if err != nil {
-		return err
-	}
-
 	if err := cfg.Validate(); err != nil {
 		logger.Errorf(c.Context, "failed to validate config, err: %v", err)
 		panic(err)
@@ -275,11 +270,6 @@ func convertToPreloadedAction(c *cli.Context) error {
 	}
 
 	cfg, err := configLoader.Get()
-	if err != nil {
-		return err
-	}
-
-	_, err = logger.InitLogger(cfg.Log.Configuration, logger.LoggerBackendZap)
 	if err != nil {
 		return err
 	}

@@ -5,6 +5,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel/trace"
 
@@ -12,10 +13,9 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/clientid"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/requestid"
-	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
-func New(skipPathSet map[string]struct{}, logCfg logger.Configuration, logBackend logger.LoggerBackend) gin.HandlerFunc {
+func New(skipPathSet map[string]struct{}, logCfg klog.Configuration, logBackend klog.LoggerBackend) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if _, contained := skipPathSet[c.Request.URL.Path]; contained {
 			return
@@ -25,7 +25,8 @@ func New(skipPathSet map[string]struct{}, logCfg logger.Configuration, logBacken
 		requestID := requestid.ExtractRequestID(c)
 		clientID := clientid.ExtractClientID(c)
 
-		span := trace.SpanFromContext(c.Request.Context())
+		ctx := c.Request.Context()
+		span := trace.SpanFromContext(ctx)
 
 		var buf bytes.Buffer
 		tee := io.TeeReader(c.Request.Body, &buf)
@@ -33,27 +34,27 @@ func New(skipPathSet map[string]struct{}, logCfg logger.Configuration, logBacken
 		c.Request.Body = io.NopCloser(&buf)
 
 		// build child logger with requestId and set to context to be used later
-		commonFields := logger.Fields{
+		commonFields := klog.Fields{
 			"request.id": requestID,
 		}
 
-		var reqLogger logger.Logger
+		var reqLogger klog.Logger
 		isDebugRequest := len(c.Request.Header.Get(constant.DebugHeader)) > 0
 		if isDebugRequest {
 			// create new logger to not affect other requests
-			if lg, err := logger.NewLogger(logCfg, logBackend); err == nil {
+			if lg, err := klog.NewLogger(logCfg, logBackend); err == nil {
 				reqLogger = lg.WithFields(commonFields)
-				reqLogger.SetLogLevel("debug")
+				_ = reqLogger.SetLogLevel("debug")
 			}
 		}
 
 		if reqLogger == nil {
-			reqLogger = logger.WithFieldsNonContext(commonFields)
+			reqLogger = klog.WithFields(ctx, commonFields)
 		}
 
 		c.Set(string(constant.CtxLoggerKey), reqLogger)
 
-		reqLogger.WithFields(logger.Fields{
+		reqLogger.WithFields(klog.Fields{
 			"request.method":     c.Request.Method,
 			"request.uri":        c.Request.URL.RequestURI(),
 			"request.body":       string(reqBody),
@@ -71,7 +72,7 @@ func New(skipPathSet map[string]struct{}, logCfg logger.Configuration, logBacken
 		resp, _ := io.ReadAll(blw.body)
 
 		reqLogger.WithFields(
-			logger.Fields{
+			klog.Fields{
 				"response.status":      blw.Status(),
 				"response.body":        string(resp),
 				"response.duration_ms": time.Since(startTime).Milliseconds(),

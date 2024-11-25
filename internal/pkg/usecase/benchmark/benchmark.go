@@ -48,11 +48,6 @@ package benchmark
 //		return nil, err
 //	}
 //
-//	lg, err := logger.InitLogger(cfg.Log.Configuration, logger.LoggerBackendZap)
-//	if err != nil {
-//		return nil, err
-//	}
-//
 //	// rDb to read-only secondary Redis read-replica.
 //	rDb, err := redis.New(&cfg.Redis)
 //	if err != nil {

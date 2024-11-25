@@ -201,11 +201,6 @@ func apiAction(c *cli.Context) (err error) {
 		return err
 	}
 
-	_, err = logger.InitLogger(cfg.Log.Configuration, logger.LoggerBackendZap)
-	if err != nil {
-		return err
-	}
-
 	// Initialize config reloader
 	restSettingRepo := setting.NewRestRepository(cfg.ReloadConfig.HttpUrl)
 	reloadConfigUseCase := usecase.NewReloadConfigUseCase(restSettingRepo)
@@ -629,12 +624,6 @@ func indexerAction(c *cli.Context) (err error) {
 		return err
 	}
 
-	// init logger
-	_, err = logger.InitLogger(cfg.Log.Configuration, logger.LoggerBackendZap)
-	if err != nil {
-		return err
-	}
-
 	// Initialize config reloader
 	restSettingRepo := setting.NewRestRepository(cfg.ReloadConfig.HttpUrl)
 	reloadConfigUseCase := usecase.NewReloadConfigUseCase(restSettingRepo)
@@ -823,12 +812,6 @@ func executorTrackerAction(c *cli.Context) (err error) {
 		return err
 	}
 
-	// init logger
-	_, err = logger.InitLogger(cfg.Log.Configuration, logger.LoggerBackendZap)
-	if err != nil {
-		return err
-	}
-
 	ethClient := ethrpc.New(cfg.Common.RPC)
 	ethClient.SetMulticallContract(common.HexToAddress(cfg.Common.MulticallAddress))
 
@@ -915,10 +898,6 @@ func applyLatestConfigForAPI(
 		return err
 	}
 
-	if err = logger.SetLogLevel(cfg.Log.ConsoleLevel); err != nil {
-		logger.Warnf(ctx, "[applyLatestConfigForAPI] reload Log level error cause by <%v>", err)
-	}
-
 	getRouteUseCase.ApplyConfig(cfg.UseCase.GetRoute)
 	getBundledRouteUseCase.ApplyConfig(cfg.UseCase.GetRoute)
 	buildRouteUseCase.ApplyConfig(cfg.UseCase.BuildRoute)
@@ -954,10 +933,6 @@ func applyLatestConfigForIndexer(
 		return err
 	}
 
-	if err = logger.SetLogLevel(cfg.Log.ConsoleLevel); err != nil {
-		logger.Warnf(ctx, "[applyLatestConfigForIndexer] reload Log level error cause by <%v>", err)
-	}
-
 	indexPoolsJob.ApplyConfig(cfg.Job.IndexPools)
 
 	indexPoolsUseCase.ApplyConfig(cfg.UseCase.IndexPools)
@@ -973,10 +948,6 @@ func applyLatestConfigForLiquidityScoreIndexer(
 	cfg, err := configLoader.Get()
 	if err != nil {
 		return err
-	}
-
-	if err = logger.SetLogLevel(cfg.Log.ConsoleLevel); err != nil {
-		logger.Warnf(ctx, "[applyLatestConfigForIndexer] reload Log level error cause by <%v>", err)
 	}
 
 	tradesGenerator.ApplyConfig(cfg.UseCase.TradeDataGenerator)
@@ -998,12 +969,6 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 		return err
 	}
 	cfg, err := configLoader.Get()
-	if err != nil {
-		return err
-	}
-
-	// init logger
-	_, err = logger.InitLogger(cfg.Log.Configuration, logger.LoggerBackendZap)
 	if err != nil {
 		return err
 	}

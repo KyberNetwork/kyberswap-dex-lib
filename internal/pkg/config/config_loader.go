@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/KyberNetwork/kutils/klog"
 	"github.com/goccy/go-json"
 	"github.com/mcuadros/go-defaults"
 	"github.com/mitchellh/mapstructure"
@@ -139,12 +140,14 @@ func (cl *ConfigLoader) Initialize() error {
 	cl.config = cfg
 	cl.mu.Unlock()
 
+	_, _ = klog.InitLogger(cfg.Log.Configuration, klog.LoggerBackendZap)
+
 	prettyJsonCfg, err := json.Marshal(cl.config)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("local config: %+v\n", string(prettyJsonCfg))
+	klog.Infof(context.Background(), "local config: %+v\n", string(prettyJsonCfg))
 
 	return nil
 }
@@ -152,7 +155,7 @@ func (cl *ConfigLoader) Initialize() error {
 func (cl *ConfigLoader) Reload(ctx context.Context) error {
 	remoteCfg, err := cl.GetRemoteConfig(ctx)
 	if err != nil {
-		fmt.Printf("failed to fetch config from remote: %s\n", err)
+		klog.Errorf(ctx, "failed to fetch config from remote: %s\n", err)
 		return err
 	}
 
@@ -262,6 +265,7 @@ func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
 
 func (cl *ConfigLoader) setLog(log valueobject.Log) {
 	cl.config.Log.Configuration.ConsoleLevel = log.ConsoleLevel
+	_ = klog.SetLogLevel(context.Background(), log.ConsoleLevel)
 }
 
 func (cl *ConfigLoader) setFinderOptions(finderOptions valueobject.FinderOptions) {
