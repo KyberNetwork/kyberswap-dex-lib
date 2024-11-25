@@ -236,14 +236,11 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 	}
 
 	if params.SwapLimit != nil {
-		if swapInfo.IsWrapIn {
-			amount := lo.Ternary(indexIn%2 == 0, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
-			_, _, _ = params.SwapLimit.UpdateLimit("", swapInfo.WTokenIn, bignumber.ZeroBI, amount)
-		}
-		if swapInfo.IsUnwrapOut {
-			amount := lo.Ternary(indexIn%2 == 0, params.TokenAmountIn.Amount, params.TokenAmountOut.Amount)
-			_, _, _ = params.SwapLimit.UpdateLimit(swapInfo.WTokenOut, "", amount, bignumber.ZeroBI)
-		}
+		deltaIn := lo.Ternary(indexIn%2 == 0, bignumber.ZeroBI, params.TokenAmountIn.Amount)
+		deltaOut := lo.Ternary(indexIn%2 == 0, params.TokenAmountOut.Amount, bignumber.ZeroBI)
+		wTokenIn := lo.Ternary(swapInfo.IsWrapIn, swapInfo.WTokenIn, "")
+		wTokenOut := lo.Ternary(swapInfo.IsUnwrapOut, swapInfo.WTokenOut, "")
+		_, _, _ = params.SwapLimit.UpdateLimit(wTokenOut, wTokenIn, deltaIn, deltaOut)
 	}
 }
 
