@@ -52,7 +52,7 @@ func New(skipPathSet map[string]struct{}, logCfg klog.Configuration, logBackend 
 			reqLogger = klog.WithFields(ctx, commonFields)
 		}
 
-		c.Set(string(constant.CtxLoggerKey), reqLogger)
+		c.Request = c.Request.WithContext(klog.CtxWithLogger(ctx, reqLogger))
 
 		reqLogger.WithFields(klog.Fields{
 			"request.method":     c.Request.Method,

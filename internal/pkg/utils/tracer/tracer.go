@@ -7,8 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-
-	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 )
 
 var (
@@ -28,12 +26,7 @@ func (s Span) End() {
 }
 
 func StartSpanFromGinContext(ginCtx *gin.Context, operationName string) (Span, context.Context) {
-	span, ctx := StartSpanFromContext(ginCtx.Request.Context(), operationName)
-	if reqLogger, ok := ginCtx.Get(string(constant.CtxLoggerKey)); ok {
-		return span, context.WithValue(ctx, constant.CtxLoggerKey, reqLogger)
-	}
-
-	return span, ctx
+	return StartSpanFromContext(ginCtx.Request.Context(), operationName)
 }
 
 func StartSpanFromContext(ctx context.Context, operationName string) (Span, context.Context) {
