@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"slices"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
@@ -225,9 +226,10 @@ func getNewPriceLevelsState(amountIn *big.Float, priceLevels []PriceLevel) []Pri
 			return priceLevels[currentLevelIdx+1:]
 		}
 
-		// partially filled
-		priceLevels[currentLevelIdx].Amount, _ = swappableAmount.Sub(swappableAmount, &amountInLeft).Float64()
-		return priceLevels[currentLevelIdx:]
+		// partially filled. Must clone so as not to mutate old price level
+		priceLevels = slices.Clone(priceLevels[currentLevelIdx:])
+		priceLevels[0].Amount, _ = swappableAmount.Sub(swappableAmount, &amountInLeft).Float64()
+		return priceLevels
 	}
 
 	return nil
