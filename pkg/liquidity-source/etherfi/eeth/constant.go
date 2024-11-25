@@ -6,5 +6,5 @@ const (
 
 const (
 	// unlimited reserve
-	reserves = "10000000000000000000"
+	reserves = "10000000000000000000000000"
 )
