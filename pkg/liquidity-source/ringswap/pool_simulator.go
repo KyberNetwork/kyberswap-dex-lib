@@ -236,29 +236,14 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		return
 	}
 
-	if indexIn%2 == 0 {
-		if params.SwapLimit != nil {
-			if swapInfo.IsWrapIn {
-				s.originalReserves.Reserve0 = new(big.Int).Add(s.originalReserves.Reserve0, params.TokenAmountIn.Amount)
-				_, _, _ = params.SwapLimit.UpdateLimit("", swapInfo.WTokenIn, bignumber.ZeroBI, params.TokenAmountOut.Amount)
-			}
-
-			if swapInfo.IsUnwrapOut {
-				s.originalReserves.Reserve1 = new(big.Int).Sub(s.originalReserves.Reserve1, params.TokenAmountOut.Amount)
-				_, _, _ = params.SwapLimit.UpdateLimit(swapInfo.WTokenOut, "", params.TokenAmountIn.Amount, bignumber.ZeroBI)
-			}
+	if params.SwapLimit != nil {
+		if swapInfo.IsWrapIn {
+			amount := lo.Ternary(indexIn%2 == 0, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
+			_, _, _ = params.SwapLimit.UpdateLimit("", swapInfo.WTokenIn, bignumber.ZeroBI, amount)
 		}
-	} else {
-		if params.SwapLimit != nil {
-			if swapInfo.IsWrapIn {
-				s.originalReserves.Reserve1 = new(big.Int).Add(s.originalReserves.Reserve1, params.TokenAmountIn.Amount)
-				_, _, _ = params.SwapLimit.UpdateLimit("", swapInfo.WTokenIn, bignumber.ZeroBI, params.TokenAmountIn.Amount)
-			}
-
-			if swapInfo.IsUnwrapOut {
-				s.originalReserves.Reserve0 = new(big.Int).Sub(s.originalReserves.Reserve0, params.TokenAmountOut.Amount)
-				_, _, _ = params.SwapLimit.UpdateLimit(swapInfo.WTokenOut, "", params.TokenAmountOut.Amount, bignumber.ZeroBI)
-			}
+		if swapInfo.IsUnwrapOut {
+			amount := lo.Ternary(indexIn%2 == 0, params.TokenAmountIn.Amount, params.TokenAmountOut.Amount)
+			_, _, _ = params.SwapLimit.UpdateLimit(swapInfo.WTokenOut, "", amount, bignumber.ZeroBI)
 		}
 	}
 }
