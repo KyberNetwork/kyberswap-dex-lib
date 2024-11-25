@@ -40,6 +40,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
@@ -261,6 +262,7 @@ type Types struct {
 	EtherfiVampire                 string
 	AlgebraIntegral                string
 	MxTrading                      string
+	LO1inch                        string
 }
 
 var (
@@ -399,5 +401,6 @@ var (
 		EtherfiVampire:                 etherfivampire.DexType,
 		AlgebraIntegral:                algebraintegral.DexType,
 		MxTrading:                      mxtrading.DexType,
+		LO1inch:                        lo1inch.DexType,
 	}
 )
