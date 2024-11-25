@@ -80,3 +80,16 @@ func Cap(n *big.Int, min *big.Int, max *big.Int) *big.Int {
 func CapPriceLimit(n *big.Int) *big.Int {
 	return Cap(n, MIN_SQRT_RATIO, MAX_SQRT_RATIO)
 }
+
+// Min returns the smaller of a or b.
+func Min(a, b *big.Int) *big.Int {
+	if a == nil || b == nil {
+		return nil
+	}
+
+	if a.Cmp(b) < 0 {
+		return a
+	}
+
+	return b
+}
