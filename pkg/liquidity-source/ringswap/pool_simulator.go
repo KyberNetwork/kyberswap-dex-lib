@@ -235,13 +235,20 @@ func (s *PoolSimulator) UpdateBalance(params poolpkg.UpdateBalanceParams) {
 		return
 	}
 
-	if params.SwapLimit != nil {
-		deltaIn := lo.Ternary(swapInfo.IsWrapIn, params.TokenAmountIn.Amount, bignumber.ZeroBI)
-		deltaOut := lo.Ternary(swapInfo.IsUnwrapOut, params.TokenAmountOut.Amount, bignumber.ZeroBI)
-		wTokenIn := lo.Ternary(swapInfo.IsWrapIn, swapInfo.WTokenIn, "")
-		wTokenOut := lo.Ternary(swapInfo.IsUnwrapOut, swapInfo.WTokenOut, "")
-		_, _, _ = params.SwapLimit.UpdateLimit(wTokenOut, wTokenIn, deltaOut, deltaIn)
+	amtIn, amtOut := params.TokenAmountIn.Amount, params.TokenAmountOut.Amount
+	if indexIn%2 == 0 {
+		amtIn, amtOut = amtOut, amtIn
 	}
+	updateIn, deltaIn := "", bignumber.ZeroBI
+	if swapInfo.IsWrapIn {
+		updateIn, deltaIn = swapInfo.WTokenIn, amtIn
+	}
+	updateOut, deltaOut := "", bignumber.ZeroBI
+	if swapInfo.IsUnwrapOut {
+		updateOut, deltaOut = swapInfo.WTokenOut, amtOut
+	}
+
+	_, _, _ = params.SwapLimit.UpdateLimit(updateOut, updateIn, deltaOut, deltaIn)
 }
 
 func (s *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
