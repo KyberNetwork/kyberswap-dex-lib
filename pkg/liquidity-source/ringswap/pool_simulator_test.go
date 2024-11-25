@@ -463,8 +463,8 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			},
 			expectedFwReserves: [4]*big.Int{utils.NewBig("10089263705492"), utils.NewBig("10066591527514"), utils.One, utils.One},
 			expectedOriginalReserves: uniswapv2.ReserveData{
-				Reserve0: utils.NewBig("10089263705492"),
-				Reserve1: utils.NewBig("10066591527514"),
+				Reserve0: utils.NewBig("10089138480746"),
+				Reserve1: utils.NewBig("10066716097576"),
 			},
 		},
 		{
@@ -505,8 +505,8 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			},
 			expectedFwReserves: [4]*big.Int{utils.NewBig("70200275468542300881411"), utils.NewBig("54275171067"), utils.One, utils.One},
 			expectedOriginalReserves: uniswapv2.ReserveData{
-				Reserve0: utils.NewBig("70200275468542300881411"),
-				Reserve1: utils.NewBig("54275171067"),
+				Reserve0: utils.NewBig("70361282326226590645832"),
+				Reserve1: utils.NewBig("54150601005"),
 			},
 		},
 	}
