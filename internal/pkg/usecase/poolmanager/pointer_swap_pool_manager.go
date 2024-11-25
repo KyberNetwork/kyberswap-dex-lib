@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -34,9 +35,12 @@ type PointerSwapPoolManager struct {
 	poolRepository     IPoolRepository
 	poolRankRepository IPoolRankRepository
 
-	aevmClient          aevmclient.Client
-	poolsPublisher      IPoolsPublisher
-	publishedStorageIDs [NState]string
+	aevmClient            aevmclient.Client
+	poolsPublisher        IPoolsPublisher
+	publishedStorageIDs   [NState]string
+	balanceSlotsUsecase   erc20balanceslot.ICache
+	balanceSlotsPreloaded atomic.Bool
+	addressSetsPool       sync.Pool // Pool of mapset.Set[common.Address]
 
 	GetPoolsIncludingBasePools IGetPoolsIncludingBasePools
 
@@ -73,6 +77,7 @@ func NewPointerSwapPoolManager(
 	config Config,
 	aevmClient aevmclient.Client,
 	poolsPublisher IPoolsPublisher,
+	balanceSlotsUsecase erc20balanceslot.ICache,
 ) (*PointerSwapPoolManager, error) {
 	states := [NState]*LockedState{}
 	for i := 0; i < NState; i++ {
@@ -98,6 +103,8 @@ func NewPointerSwapPoolManager(
 		faultyPools:                mapset.NewSet[string](), // we must use thread-safety map here
 		aevmClient:                 aevmClient,
 		poolsPublisher:             poolsPublisher,
+		balanceSlotsUsecase:        balanceSlotsUsecase,
+		addressSetsPool:            sync.Pool{New: func() any { return mapset.NewThreadUnsafeSet[common.Address]() }},
 	}
 
 	if err := p.start(ctx); err != nil {
@@ -236,6 +243,25 @@ func (p *PointerSwapPoolManager) preparePoolsData(ctx context.Context, poolAddre
 			return fmt.Errorf("[AEVM] could not get latest state root for AEVM pools: %w", err)
 		}
 	}
+
+	// preload ERC20 balance slots
+	if p.config.FeatureFlags.IsAEVMEnabled && !p.balanceSlotsPreloaded.Load() {
+		start := time.Now()
+		tokens := p.addressSetsPool.Get().(mapset.Set[common.Address])
+		tokens.Clear()
+		for _, pool := range poolEntities {
+			for _, token := range pool.Tokens {
+				tokens.Add(common.HexToAddress(token.Address))
+			}
+		}
+		logger.Debugf(ctx, "prepared tokens list from prepared pools took %s", time.Since(start))
+		if err := p.balanceSlotsUsecase.PreloadMany(ctx, tokens.ToSlice()); err != nil {
+			logger.Warnf(ctx, "could not PreloadMany: %s", err)
+		}
+		p.balanceSlotsPreloaded.Store(true)
+		p.addressSetsPool.Put(tokens)
+	}
+
 	poolByAddress := p.poolFactory.NewPoolByAddress(ctx, poolEntities, common.Hash(stateRoot))
 	if p.config.UseAEVMRemoteFinder && p.poolsPublisher != nil {
 		start := time.Now()

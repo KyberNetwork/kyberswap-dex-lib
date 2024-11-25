@@ -11,38 +11,38 @@ import (
 )
 
 var (
-	//go:embed preloaded/avalanche
+	//go:embed embedded/avalanche
 	avalanche []byte
-	//go:embed preloaded/ethereum
+	//go:embed embedded/ethereum
 	ethereum []byte
-	//go:embed preloaded/scroll
+	//go:embed embedded/scroll
 	scroll []byte
-	//go:embed preloaded/arbitrum
+	//go:embed embedded/arbitrum
 	arbitrum []byte
 )
 
 // ERC20 balance slots calculated beforehand. This make bootstrapping router-service more convinent.
-var preloadedByPrefix = map[valueobject.ChainID][]byte{
+var embeddedByPrefix = map[valueobject.ChainID][]byte{
 	valueobject.ChainIDAvalancheCChain: avalanche,
 	valueobject.ChainIDEthereum:        ethereum,
 	valueobject.ChainIDScroll:          scroll,
 	valueobject.ChainIDArbitrumOne:     arbitrum,
 }
 
-func SerializePreloaded(preloaded types.TokenBalanceSlots) ([]byte, error) {
+func SerializeEmbedded(embedded types.TokenBalanceSlots) ([]byte, error) {
 	buf := new(bytes.Buffer)
 	enc := gob.NewEncoder(buf)
-	if err := enc.Encode(preloaded); err != nil {
+	if err := enc.Encode(embedded); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
 }
 
-func DeserializePreloaded(d []byte) (types.TokenBalanceSlots, error) {
+func DeserializeEmbedded(d []byte) (types.TokenBalanceSlots, error) {
 	dec := gob.NewDecoder(bytes.NewBuffer(d))
-	preloaded := make(types.TokenBalanceSlots)
-	if err := dec.Decode(&preloaded); err != nil {
+	embedded := make(types.TokenBalanceSlots)
+	if err := dec.Decode(&embedded); err != nil {
 		return nil, err
 	}
-	return preloaded, nil
+	return embedded, nil
 }

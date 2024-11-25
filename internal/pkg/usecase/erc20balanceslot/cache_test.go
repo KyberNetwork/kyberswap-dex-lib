@@ -54,7 +54,7 @@ const (
 	prefix = "avalanche"
 )
 
-func TestPreload(t *testing.T) {
+func TestPreloadFromEmbedded(t *testing.T) {
 	logger.SetLogLevel("debug")
 
 	rd, err := miniredis.Run()
@@ -69,7 +69,7 @@ func TestPreload(t *testing.T) {
 		Prefix: prefix,
 	})
 	c := NewCache(repo, NewTestMultipleStrategy(&testProbe{}), nil, valueobject.ChainIDAvalancheCChain)
-	require.NoError(t, c.PreloadAll(context.Background()))
+	require.NoError(t, c.PreloadFromEmbedded(context.Background()))
 }
 
 func TestGetBalanceSlot(t *testing.T) {

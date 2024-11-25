@@ -359,7 +359,7 @@ func apiAction(c *cli.Context) (err error) {
 	getTokensUseCase := usecase.NewGetTokens(tokenRepository, priceRepository, onchainpriceRepository)
 
 	var (
-		balanceSlotsUseCase *erc20balanceslotuc.Cache
+		balanceSlotsUseCase erc20balanceslotuc.ICache
 		aevmClient          aevmclient.Client
 		aevmClientUC        IAEVMClientUseCase
 		poolsPublisher      poolmanager.IPoolsPublisher
@@ -388,7 +388,7 @@ func apiAction(c *cli.Context) (err error) {
 		}
 		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe,
 			cfg.AEVM.PredefinedBalanceSlots, cfg.Common.ChainID)
-		if err := balanceSlotsUseCase.PreloadAll(context.Background()); err != nil {
+		if err := balanceSlotsUseCase.PreloadFromEmbedded(context.Background()); err != nil {
 			logger.Errorf(ctx, "could not preload balance slots %s", err)
 			return err
 		}
@@ -422,7 +422,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
 	poolManager, err := poolmanager.NewPointerSwapPoolManager(ctx, poolRepository, poolFactory, poolRankRepository,
-		GetPoolsIncludingBasePools, cfg.UseCase.PoolManager, aevmClient, poolsPublisher)
+		GetPoolsIncludingBasePools, cfg.UseCase.PoolManager, aevmClient, poolsPublisher, balanceSlotsUseCase)
 	if err != nil {
 		return err
 	}
@@ -1025,7 +1025,7 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	)
 
 	var (
-		balanceSlotsUseCase *erc20balanceslotuc.Cache
+		balanceSlotsUseCase erc20balanceslotuc.ICache
 		aevmClient          aevmclient.Client
 	)
 	if cfg.AEVMEnabled {
@@ -1052,7 +1052,7 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 		}
 		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe,
 			cfg.AEVM.PredefinedBalanceSlots, cfg.Common.ChainID)
-		if err := balanceSlotsUseCase.PreloadAll(context.Background()); err != nil {
+		if err := balanceSlotsUseCase.PreloadFromEmbedded(context.Background()); err != nil {
 			logger.Errorf(ctx, "could not preload balance slots %s", err)
 			return err
 		}

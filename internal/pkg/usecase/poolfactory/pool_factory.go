@@ -153,12 +153,12 @@ var (
 type PoolFactory struct {
 	config              Config
 	client              aevmclient.Client
-	balanceSlotsUseCase *erc20balanceslot.Cache
+	balanceSlotsUseCase erc20balanceslot.ICache
 
 	lock sync.Mutex
 }
 
-func NewPoolFactory(config Config, client aevmclient.Client, balanceSlotsUseCase *erc20balanceslot.Cache) *PoolFactory {
+func NewPoolFactory(config Config, client aevmclient.Client, balanceSlotsUseCase erc20balanceslot.ICache) *PoolFactory {
 	return &PoolFactory{
 		config:              config,
 		client:              client,

@@ -15,6 +15,10 @@ import (
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
+const (
+	HashKeyReadChunkSize = 10_000
+)
+
 type RedisRepository struct {
 	redisClient redis.UniversalClient
 	prefix      string
@@ -27,6 +31,11 @@ func NewRedisRepository(redisClient redis.UniversalClient, config RedisRepositor
 		prefix:      config.Prefix,
 		redisKey:    utils.Join(config.Prefix, KeyERC20BalanceSlot),
 	}
+}
+
+func (r *RedisRepository) Count(ctx context.Context) (int, error) {
+	count, err := r.redisClient.HLen(ctx, r.redisKey).Result()
+	return int(count), err
 }
 
 func (r *RedisRepository) Get(ctx context.Context, token common.Address) (*types.ERC20BalanceSlot, error) {
@@ -44,6 +53,68 @@ func (r *RedisRepository) Get(ctx context.Context, token common.Address) (*types
 	}
 
 	return result, nil
+}
+
+func (r *RedisRepository) GetMany(ctx context.Context, tokens []common.Address) (map[common.Address]*types.ERC20BalanceSlot, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[erc20balanceslot] redisRepository.GetMany")
+	defer span.End()
+
+	numChunks := len(tokens) / HashKeyReadChunkSize
+	if len(tokens)%HashKeyReadChunkSize != 0 {
+		numChunks++
+	}
+	chunkedKeys := make([][]string, 0, numChunks)
+	for c := 0; c < numChunks; c++ {
+		start := c * HashKeyReadChunkSize
+		end := start + HashKeyReadChunkSize
+		if end > len(tokens) {
+			end = len(tokens)
+		}
+		keys := make([]string, 0, end-start)
+		for i := start; i < end; i++ {
+			keys = append(keys, strings.ToLower(tokens[i].String()))
+		}
+		chunkedKeys = append(chunkedKeys, keys)
+	}
+
+	cmds, _ := r.redisClient.Pipelined(ctx, func(p redis.Pipeliner) error {
+		for c := 0; c < numChunks; c++ {
+			p.HMGet(ctx, r.redisKey, chunkedKeys[c]...)
+		}
+		return nil
+	})
+	rawResults := make([]interface{}, len(tokens))
+	for _, cmd := range cmds {
+		sliceCmd, ok := cmd.(*redis.SliceCmd)
+		if !ok {
+			return nil, fmt.Errorf("expected *redis.SliceCmd")
+		}
+		chunkResults, err := sliceCmd.Result()
+		if err != nil {
+			return nil, fmt.Errorf("pipelined HMGET returns error: %w", err)
+		}
+		rawResults = append(rawResults, chunkResults...)
+	}
+
+	results := make(map[common.Address]*types.ERC20BalanceSlot, len(rawResults))
+	for _, rawResult := range rawResults {
+		if rawResult == nil {
+			continue
+		}
+		resultStr, ok := rawResult.(string)
+		if !ok {
+			logger.Warn(ctx, "result should be string")
+			continue
+		}
+		result := new(types.ERC20BalanceSlot)
+		if err := json.Unmarshal([]byte(resultStr), result); err != nil {
+			logger.Warn(ctx, "[erc20balanceslot] Get could not unmarshal entity.ERC20BalanceSlot")
+			continue
+		}
+		results[common.HexToAddress(result.Token)] = result
+	}
+
+	return results, nil
 }
 
 func (r *RedisRepository) GetAll(ctx context.Context) (map[common.Address]*types.ERC20BalanceSlot, error) {

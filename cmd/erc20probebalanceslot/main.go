@@ -82,10 +82,10 @@ func main() {
 				},
 			},
 			{
-				Name:    "convert-to-preloaded",
+				Name:    "convert-to-embedded",
 				Aliases: []string{},
-				Usage:   "Read all balance slots from Redis then convert to preloaded format for embedding into router-service.",
-				Action:  convertToPreloadedAction,
+				Usage:   "Read all balance slots from Redis then convert to embedded format for embedding into router-service.",
+				Action:  convertToEmbeddedAction,
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:     "output",
@@ -259,7 +259,7 @@ func randomizeAddress() common.Address {
 	return a
 }
 
-func convertToPreloadedAction(c *cli.Context) error {
+func convertToEmbeddedAction(c *cli.Context) error {
 	configFile := c.String("config")
 	tokenGroupConfigPath := env.StringFromEnv(envvar.TokenGroupConfigPath, "")
 	correlatedPairsConfigPath := env.StringFromEnv(envvar.CorrelatedPairsConfigPath, "")
@@ -292,7 +292,7 @@ func convertToPreloadedAction(c *cli.Context) error {
 		return err
 	}
 
-	serialized, err := erc20balanceslotuc.SerializePreloaded(bls)
+	serialized, err := erc20balanceslotuc.SerializeEmbedded(bls)
 	if err != nil {
 		return err
 	}

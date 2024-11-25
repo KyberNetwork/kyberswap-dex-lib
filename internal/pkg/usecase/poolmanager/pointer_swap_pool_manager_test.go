@@ -227,7 +227,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddresses(t *testing.T) {
 
 	pm, err := poolmanager.NewPointerSwapPoolManager(
 		context.Background(),
-		poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
+		poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil, nil,
 	)
 	require.NoError(t, err)
 	// let sleep for 3 sec
@@ -315,7 +315,7 @@ func TestPointerSwapPoolManager_Start(t *testing.T) {
 
 	pm, err := poolmanager.NewPointerSwapPoolManager(
 		context.Background(),
-		poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
+		poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil, nil,
 	)
 	assert.Equal(t, len(poolAddressList)-len(faultyList)-len(poolsInBlackList), numberOfPoolsToInit)
 	require.NoError(t, err)
@@ -475,7 +475,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				pm, err := poolmanager.NewPointerSwapPoolManager(
 					context.Background(),
-					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
+					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil, nil,
 				)
 				require.NoError(t, err)
 
@@ -528,7 +528,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				pm, err := poolmanager.NewPointerSwapPoolManager(
 					context.Background(),
-					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
+					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil, nil,
 				)
 				require.NoError(t, err)
 
@@ -580,7 +580,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				pm, err := poolmanager.NewPointerSwapPoolManager(
 					context.Background(),
-					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
+					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil, nil,
 				)
 				require.NoError(t, err)
 
@@ -632,7 +632,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				pm, err := poolmanager.NewPointerSwapPoolManager(
 					context.Background(),
-					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
+					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil, nil,
 				)
 				require.NoError(t, err)
 
@@ -687,7 +687,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				pm, err := poolmanager.NewPointerSwapPoolManager(
 					context.Background(),
-					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
+					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil, nil,
 				)
 				require.NoError(t, err)
 
@@ -741,7 +741,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				pm, err := poolmanager.NewPointerSwapPoolManager(
 					context.Background(),
-					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
+					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil, nil,
 				)
 				require.NoError(t, err)
 
@@ -805,7 +805,7 @@ func TestPointerSwapPoolManager_GetStateByPoolAddressesTest(t *testing.T) {
 
 				pm, err := poolmanager.NewPointerSwapPoolManager(
 					context.Background(),
-					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil,
+					poolRepository, poolFactory, poolRankRepository, getPoolsUsecase, config, nil, nil, nil,
 				)
 				require.NoError(t, err)
 
