@@ -127,7 +127,7 @@ func (p *PoolSimulator) CalcAmountOut(
 				new(big.Float).SetInt(swappedBaseAmount),
 				bignumber.TenPowDecimals(p.baseToken.Decimals),
 			)
-			baseToQuotePriceLevels = getNewPriceLevelsState(swappedBaseAmountAfterDecimals, p.baseToQuotePriceLevels)
+			baseToQuotePriceLevels = getNewPriceLevelsState(swappedBaseAmountAfterDecimals, baseToQuotePriceLevels)
 		}
 
 		result, err = p.swapBaseToQuote(tokenAmountIn, tokenOut, baseToQuotePriceLevels)
@@ -140,7 +140,7 @@ func (p *PoolSimulator) CalcAmountOut(
 				bignumber.TenPowDecimals(p.quoteToken.Decimals),
 			)
 
-			quoteToBasePriceLevels = getNewPriceLevelsState(swappedQuoteAmountAfterDecimals, p.quoteToBasePriceLevels)
+			quoteToBasePriceLevels = getNewPriceLevelsState(swappedQuoteAmountAfterDecimals, quoteToBasePriceLevels)
 		}
 		result, err = p.swapQuoteToBase(tokenAmountIn, tokenOut, quoteToBasePriceLevels)
 	}
