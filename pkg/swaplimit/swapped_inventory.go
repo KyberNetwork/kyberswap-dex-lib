@@ -47,7 +47,7 @@ func (k *SwappedInventory) UpdateLimit(decreaseTokenAddress, increaseTokenAddres
 	if !ok {
 		swappedIn = new(big.Int)
 	}
-	swappedIn = swappedOut.Add(swappedIn, increaseDelta)
+	swappedIn = swappedIn.Add(swappedIn, increaseDelta)
 	k.swapped[increaseTokenAddress] = swappedIn
 
 	return k.Inventory.updateLimit(decreaseTokenAddress, increaseTokenAddress, decreaseDelta, increaseDelta)

@@ -2,15 +2,17 @@ package kyberpmm
 
 import (
 	"math/big"
+	"slices"
 	"testing"
+
+	"github.com/goccy/go-json"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
-	"github.com/goccy/go-json"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestPoolSimulator_getAmountOut(t *testing.T) {
@@ -186,9 +188,11 @@ func TestPoolSimulator_getNewPriceLevelsState(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			oldPriceLevels := slices.Clone(tt.args.priceLevels)
 			newPriceLevels := getNewPriceLevelsState(tt.args.amountIn, tt.args.priceLevels)
 
 			assert.ElementsMatch(t, tt.expectedPriceLevels, newPriceLevels)
+			assert.ElementsMatch(t, oldPriceLevels, tt.args.priceLevels)
 		})
 	}
 }
