@@ -4,6 +4,7 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/samber/lo"
 	"golang.org/x/exp/constraints"
 )
 
@@ -24,12 +25,27 @@ var (
 var BONE = new(big.Int).Exp(Ten, big.NewInt(18), nil)
 var BoneFloat, _ = new(big.Float).SetString("1000000000000000000")
 
+var (
+	preTenPowDecimals = lo.Map(lo.Range(18+1), func(n int, _ int) *big.Float {
+		return big.NewFloat(math.Pow10(n))
+	})
+	preTenPowInt = lo.Map(lo.Range(18+1), func(n int, _ int) *big.Int {
+		return big.NewInt(int64(math.Pow10(n)))
+	})
+)
+
 // TenPowDecimals calculates 10^decimal
 func TenPowDecimals[T constraints.Integer](decimal T) *big.Float {
+	if decimal <= 18 {
+		return preTenPowDecimals[decimal]
+	}
 	return big.NewFloat(math.Pow10(int(decimal)))
 }
 
 func TenPowInt[T constraints.Integer](decimal T) *big.Int {
+	if decimal <= 18 {
+		return preTenPowInt[decimal]
+	}
 	y := big.NewInt(int64(decimal))
 	return y.Exp(Ten, y, nil)
 }
