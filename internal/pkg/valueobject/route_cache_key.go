@@ -1,6 +1,7 @@
 package valueobject
 
 import (
+	"encoding/binary"
 	"strings"
 	"time"
 
@@ -55,6 +56,28 @@ func (k *RouteCacheKey) String(prefix string) string {
 	)
 }
 
+// Hash produces a quick statistically unique hash for RouteCacheKey. This hash is NOT cryptographically secure.
 func (k *RouteCacheKey) Hash(prefix string) uint64 {
-	return xxhash.Sum64String(k.String(prefix))
+	d := xxhash.New()
+	_, _ = d.WriteString(prefix)
+	_, _ = d.WriteString(k.TokenIn)
+	_, _ = d.WriteString(k.TokenOut)
+	if k.SaveGas {
+		_, _ = d.Write([]byte{1})
+	}
+	_, _ = d.WriteString(k.CacheMode)
+	_, _ = d.WriteString(k.AmountIn)
+	dexHash := uint64(0)
+	for _, dex := range k.Dexes {
+		dexHash |= xxhash.Sum64String(dex)
+	}
+	for _, pool := range k.ExcludedPools {
+		dexHash |= xxhash.Sum64String(pool)
+	}
+	_, _ = d.Write(binary.LittleEndian.AppendUint64(nil, dexHash))
+	if k.GasInclude {
+		_, _ = d.Write([]byte{1})
+	}
+
+	return d.Sum64()
 }
