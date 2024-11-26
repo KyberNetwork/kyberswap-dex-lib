@@ -448,24 +448,20 @@ repository:
       faultyPools:
         cost: 1
         ttl: 5s
-  price:
-    redis:
-      prefix: *chainName
-    ristretto: &pricecache
+  onchainprice:
+    enabled: false
+    grpc:
+      base_url: onchain-price.pre-release-cluster.gke.production.internal:80
+      timeout: 300ms
+      insecure: true
+      client_id: router-service
+    ristretto:
       numCounters: 10000
       maxCost: 1000
       bufferItems: 64
       price:
         cost: 1
         ttl: 1m
-  onchainprice:
-    enabled: false
-    grpc:
-      base_url: onchain-price.core-cluster.gke.production.internal:80
-      timeout: 300ms
-      insecure: true
-      client_id: router-service
-    ristretto: *pricecache
   poolService:
     baseUrl: "0.0.0.0:10443"
     insecure: true
@@ -480,7 +476,6 @@ repository:
   poolRank:
     redis:
       prefix: *chainName
-    useNativeRanking: false
   route:
     redis:
       prefix: *chainName

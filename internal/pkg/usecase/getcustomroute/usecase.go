@@ -18,10 +18,8 @@ import (
 )
 
 type useCase struct {
-	aggregator IAggregator
-
+	aggregator      IAggregator
 	tokenRepository ITokenRepository
-	priceRepository IPriceRepository
 	gasRepository   IGasRepository
 
 	onchainpriceRepository IOnchainPriceRepository
@@ -33,7 +31,6 @@ type useCase struct {
 func NewCustomRoutesUseCase(
 	poolFactory IPoolFactory,
 	tokenRepository ITokenRepository,
-	priceRepository IPriceRepository,
 	onchainpriceRepository IOnchainPriceRepository,
 	gasRepository IGasRepository,
 	poolRepository IPoolRepository,
@@ -43,7 +40,6 @@ func NewCustomRoutesUseCase(
 	aggregator := NewCustomAggregator(
 		poolFactory,
 		tokenRepository,
-		priceRepository,
 		onchainpriceRepository,
 		poolRepository,
 		config.Aggregator,
@@ -53,7 +49,6 @@ func NewCustomRoutesUseCase(
 	return &useCase{
 		aggregator:      aggregator,
 		tokenRepository: tokenRepository,
-		priceRepository: priceRepository,
 		gasRepository:   gasRepository,
 		config:          config,
 
@@ -176,55 +171,28 @@ func (u *useCase) getTokenByAddress(ctx context.Context, addresses ...string) (m
 }
 
 func (u *useCase) getTokensPriceUSD(ctx context.Context, tokenIn, tokenOut, gasToken string) (float64, float64, float64, error) {
-	if u.onchainpriceRepository != nil {
-		priceByAddress, err := u.onchainpriceRepository.FindByAddresses(ctx, []string{tokenIn, tokenOut, gasToken})
-		if err != nil {
-			return 0, 0, 0, err
-		}
-
-		// use sell price for token in
-		tokenInPriceUSD := 0.0
-		if price, ok := priceByAddress[tokenIn]; ok && price != nil && price.USDPrice.Sell != nil {
-			tokenInPriceUSD, _ = price.USDPrice.Sell.Float64()
-		}
-
-		// use buy price for token out and gas
-		tokenOutPriceUSD := 0.0
-		if price, ok := priceByAddress[tokenOut]; ok && price != nil && price.USDPrice.Buy != nil {
-			tokenOutPriceUSD, _ = price.USDPrice.Buy.Float64()
-		}
-		gasTokenPriceUSD := 0.0
-		if price, ok := priceByAddress[gasToken]; ok && price != nil && price.USDPrice.Buy != nil {
-			gasTokenPriceUSD, _ = price.USDPrice.Buy.Float64()
-		}
-
-		return tokenInPriceUSD, tokenOutPriceUSD, gasTokenPriceUSD, nil
-	}
-
-	// fallback to legacy price-service
-	priceUSDByAddress, err := u.getPriceUSDByAddress(ctx, tokenIn, tokenOut, gasToken)
+	priceByAddress, err := u.onchainpriceRepository.FindByAddresses(ctx, []string{tokenIn, tokenOut, gasToken})
 	if err != nil {
 		return 0, 0, 0, err
 	}
-	return priceUSDByAddress[tokenIn],
-		priceUSDByAddress[tokenOut],
-		priceUSDByAddress[gasToken], nil
-}
 
-func (u *useCase) getPriceUSDByAddress(ctx context.Context, addresses ...string) (map[string]float64, error) {
-	prices, err := u.priceRepository.FindByAddresses(ctx, addresses)
-	if err != nil {
-		return nil, err
+	// use sell price for token in
+	tokenInPriceUSD := 0.0
+	if price, ok := priceByAddress[tokenIn]; ok && price != nil && price.USDPrice.Sell != nil {
+		tokenInPriceUSD, _ = price.USDPrice.Sell.Float64()
 	}
 
-	priceUSDByAddress := make(map[string]float64, len(prices))
-	for _, price := range prices {
-		priceUSD, _ := price.GetPreferredPrice()
-
-		priceUSDByAddress[price.Address] = priceUSD
+	// use buy price for token out and gas
+	tokenOutPriceUSD := 0.0
+	if price, ok := priceByAddress[tokenOut]; ok && price != nil && price.USDPrice.Buy != nil {
+		tokenOutPriceUSD, _ = price.USDPrice.Buy.Float64()
+	}
+	gasTokenPriceUSD := 0.0
+	if price, ok := priceByAddress[gasToken]; ok && price != nil && price.USDPrice.Buy != nil {
+		gasTokenPriceUSD, _ = price.USDPrice.Buy.Float64()
 	}
 
-	return priceUSDByAddress, nil
+	return tokenInPriceUSD, tokenOutPriceUSD, gasTokenPriceUSD, nil
 }
 
 func (u *useCase) getGasPrice(ctx context.Context, customGasPrice *big.Float) (*big.Float, error) {

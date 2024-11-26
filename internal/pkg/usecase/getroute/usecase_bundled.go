@@ -23,7 +23,6 @@ type bundledUseCase struct {
 func NewBundledUseCase(
 	poolRankRepository IPoolRankRepository,
 	tokenRepository ITokenRepository,
-	priceRepository IPriceRepository,
 	onchainpriceRepository IOnchainPriceRepository,
 	routeCacheRepository IRouteCacheRepository,
 	gasRepository IGasRepository,
@@ -35,7 +34,6 @@ func NewBundledUseCase(
 	aggregator := NewBundledAggregator(
 		poolRankRepository,
 		tokenRepository,
-		priceRepository,
 		onchainpriceRepository,
 		poolManager,
 		poolFactory,
@@ -44,11 +42,9 @@ func NewBundledUseCase(
 	)
 
 	uc := &useCase{
-		tokenRepository: tokenRepository,
-		priceRepository: priceRepository,
-		gasRepository:   gasRepository,
-		config:          config,
-
+		tokenRepository:        tokenRepository,
+		gasRepository:          gasRepository,
+		config:                 config,
 		onchainpriceRepository: onchainpriceRepository,
 	}
 	return &bundledUseCase{uc, aggregator}

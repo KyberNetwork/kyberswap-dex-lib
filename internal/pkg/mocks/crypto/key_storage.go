@@ -10,7 +10,7 @@ import (
 
 	crypto "github.com/KyberNetwork/router-service/pkg/crypto"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockKeyPairStorage is a mock of KeyPairStorage interface.

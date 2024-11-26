@@ -72,7 +72,6 @@ func ConvertToPathfinderParams(
 	whitelistedTokenSet map[string]bool,
 	params *types.AggregateParams,
 	tokenByAddress map[string]*entity.Token,
-	priceUSDByAddress map[string]float64,
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
 ) finderEntity.FinderParams {
@@ -86,7 +85,7 @@ func ConvertToPathfinderParams(
 		return k, struct{}{}
 	})
 
-	prices := CollectTokenPrices(params, priceUSDByAddress, priceByAddress, tokenByAddress)
+	prices := CollectTokenPrices(params, priceByAddress, tokenByAddress)
 
 	findRouteParams := finderEntity.FinderParams{
 		TokenIn:  params.TokenIn.Address,
@@ -112,7 +111,6 @@ func ConvertToPathfinderParams(
 
 func CollectTokenPrices(
 	params *types.AggregateParams,
-	priceUSDByAddress map[string]float64,
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	tokenByAddress map[string]*entity.Token,
 ) map[string]float64 {
@@ -140,17 +138,13 @@ func CollectTokenPrices(
 			prices[tokenAddress] = tokenPrice
 			continue
 		}
-
-		// Fallback to legacy price-service
-		prices[tokenAddress] = priceUSDByAddress[tokenAddress]
 	}
 
 	return prices
 }
 
-func GetPriceOnchainWithFallback(
+func GetPrice(
 	tokenAddress string,
-	priceUSDByAddress map[string]float64,
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	isBuyPrice bool,
 ) float64 {
@@ -166,8 +160,7 @@ func GetPriceOnchainWithFallback(
 		}
 	}
 
-	// Fallback to legacy price-service
-	return priceUSDByAddress[tokenAddress]
+	return float64(0)
 }
 
 func ConvertToRouteSummary(params *types.AggregateParams, route *finderEntity.Route) *valueobject.RouteSummary {

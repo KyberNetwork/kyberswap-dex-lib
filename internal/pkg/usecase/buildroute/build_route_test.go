@@ -13,13 +13,12 @@ import (
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	kyberpmmClient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/constant"
 	routerEntities "github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/buildroute"
 	mockEncode "github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/encode"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/encode/clientdata"
@@ -57,7 +56,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil).AnyTimes()
 
-				encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+				encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
 				encoder := mockEncode.NewMockIEncoder(ctrl)
 				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).Return(encoder).AnyTimes()
 				encoder.EXPECT().
@@ -67,7 +66,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					GetRouterAddress().
 					Return("0x01").AnyTimes()
 
-				tokenRepository := usecase.NewMockITokenRepository(ctrl)
+				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
@@ -77,16 +76,16 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 						},
 						nil,
 					).AnyTimes()
-
-				priceRepository := usecase.NewMockIPriceRepository(ctrl)
-				priceRepository.EXPECT().
-					FindByAddresses(gomock.Any(), gomock.Any()).
+				onchainPriceRepo := buildroute.NewMockIOnchainPriceRepository(ctrl)
+				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Price{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-						},
-						nil,
+						map[string]*routerEntities.OnchainPrice{
+							"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+								USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+							},
+							"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": {
+								USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+							}}, nil,
 					).AnyTimes()
 
 				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
@@ -101,10 +100,9 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 
 				return NewBuildRouteUseCase(
 					tokenRepository,
-					priceRepository,
 					poolRepository,
 					executorBalanceRepository,
-					nil,
+					onchainPriceRepo,
 					gasEstimator,
 					dummyL1FeeCalculator,
 					nil,
@@ -150,7 +148,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
 				encoder := mockEncode.NewMockIEncoder(ctrl)
-				encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+				encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
 				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 				encodedData := "mockEncodedData"
 
@@ -164,7 +162,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					GetRouterAddress().
 					Return("0x01").AnyTimes()
 
-				tokenRepository := usecase.NewMockITokenRepository(ctrl)
+				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
@@ -174,17 +172,18 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 						},
 						nil,
 					)
-
-				priceRepository := usecase.NewMockIPriceRepository(ctrl)
-				priceRepository.EXPECT().
-					FindByAddresses(gomock.Any(), gomock.Any()).
+				onchainPriceRepo := buildroute.NewMockIOnchainPriceRepository(ctrl)
+				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Price{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-						},
-						nil,
-					)
+						map[string]*routerEntities.OnchainPrice{
+							"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+								USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+							},
+							"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": {
+								USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+							}}, nil,
+					).AnyTimes()
+
 				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
 				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
 
@@ -204,10 +203,9 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 
 				return NewBuildRouteUseCase(
 					tokenRepository,
-					priceRepository,
 					poolRepository,
 					executorBalanceRepository,
-					nil,
+					onchainPriceRepo,
 					gasEstimator,
 					dummyL1FeeCalculator,
 					nil,
@@ -275,7 +273,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
 				encoder := mockEncode.NewMockIEncoder(ctrl)
-				encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+				encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
 				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 				encodedData := "mockEncodedData"
 
@@ -289,7 +287,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					GetRouterAddress().
 					Return("0x01").AnyTimes()
 
-				tokenRepository := usecase.NewMockITokenRepository(ctrl)
+				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
@@ -299,17 +297,18 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 						},
 						nil,
 					)
-
-				priceRepository := usecase.NewMockIPriceRepository(ctrl)
-				priceRepository.EXPECT().
-					FindByAddresses(gomock.Any(), gomock.Any()).
+				onchainPriceRepo := buildroute.NewMockIOnchainPriceRepository(ctrl)
+				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Price{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-						},
-						nil,
-					)
+						map[string]*routerEntities.OnchainPrice{
+							"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+								USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+							},
+							"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": {
+								USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+							}}, nil,
+					).AnyTimes()
+
 				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
 				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
 
@@ -329,10 +328,9 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 
 				return NewBuildRouteUseCase(
 					tokenRepository,
-					priceRepository,
 					poolRepository,
 					executorBalanceRepository,
-					nil,
+					onchainPriceRepo,
 					gasEstimator,
 					dummyL1FeeCalculator,
 					nil,
@@ -400,7 +398,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
 				encoder := mockEncode.NewMockIEncoder(ctrl)
-				encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+				encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
 				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 				encodedData := "mockEncodedData"
 
@@ -414,7 +412,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					GetRouterAddress().
 					Return("0x01").AnyTimes()
 
-				tokenRepository := usecase.NewMockITokenRepository(ctrl)
+				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
@@ -425,16 +423,17 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 						nil,
 					)
 
-				priceRepository := usecase.NewMockIPriceRepository(ctrl)
-				priceRepository.EXPECT().
-					FindByAddresses(gomock.Any(), gomock.Any()).
+				onchainPriceRepo := buildroute.NewMockIOnchainPriceRepository(ctrl)
+				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Price{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-						},
-						nil,
-					)
+						map[string]*routerEntities.OnchainPrice{
+							"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+								USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+							},
+							"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": {
+								USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+							}}, nil,
+					).AnyTimes()
 				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
 				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
 
@@ -454,10 +453,9 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 
 				return NewBuildRouteUseCase(
 					tokenRepository,
-					priceRepository,
 					poolRepository,
 					executorBalanceRepository,
-					nil,
+					onchainPriceRepo,
 					gasEstimator,
 					dummyL1FeeCalculator,
 					nil,
@@ -526,7 +524,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
 				encoder := mockEncode.NewMockIEncoder(ctrl)
-				encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+				encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
 				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 				encodedData := "mockEncodedData"
 
@@ -540,7 +538,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					GetRouterAddress().
 					Return("0x01").AnyTimes()
 
-				tokenRepository := usecase.NewMockITokenRepository(ctrl)
+				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
@@ -551,16 +549,17 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 						nil,
 					)
 
-				priceRepository := usecase.NewMockIPriceRepository(ctrl)
-				priceRepository.EXPECT().
-					FindByAddresses(gomock.Any(), gomock.Any()).
+				onchainPriceRepo := buildroute.NewMockIOnchainPriceRepository(ctrl)
+				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Price{
-							{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-						},
-						nil,
-					)
+						map[string]*routerEntities.OnchainPrice{
+							"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+								USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+							},
+							"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": {
+								USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+							}}, nil,
+					).AnyTimes()
 				wg.Add(1)
 				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
 				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
@@ -585,10 +584,9 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 
 				return NewBuildRouteUseCase(
 					tokenRepository,
-					priceRepository,
 					poolRepository,
 					executorBalanceRepository,
-					nil,
+					onchainPriceRepo,
 					gasEstimator,
 					dummyL1FeeCalculator,
 					nil,
@@ -655,7 +653,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
 				encoder := mockEncode.NewMockIEncoder(ctrl)
-				encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+				encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
 				encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 				encodedData := "mockEncodedData"
 
@@ -669,7 +667,7 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 					GetRouterAddress().
 					Return("0x01").AnyTimes()
 
-				tokenRepository := usecase.NewMockITokenRepository(ctrl)
+				tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 				tokenRepository.EXPECT().
 					FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
@@ -679,17 +677,17 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 						},
 						nil,
 					)
-
-				priceRepository := usecase.NewMockIPriceRepository(ctrl)
-				priceRepository.EXPECT().
-					FindByAddresses(gomock.Any(), gomock.Any()).
+				onchainPriceRepo := buildroute.NewMockIOnchainPriceRepository(ctrl)
+				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).
 					Return(
-						[]*entity.Price{
-							{Address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-							{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-						},
-						nil,
-					)
+						map[string]*routerEntities.OnchainPrice{
+							"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+								USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+							},
+							"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": {
+								USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+							}}, nil,
+					).AnyTimes()
 				poolRepository := buildroute.NewMockIPoolRepository(ctrl)
 				wg.Add(1)
 				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Do(func(arg0, arg1 interface{}) {
@@ -712,10 +710,9 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 
 				return NewBuildRouteUseCase(
 					tokenRepository,
-					priceRepository,
 					poolRepository,
 					executorBalanceRepository,
-					nil,
+					onchainPriceRepo,
 					gasEstimator,
 					dummyL1FeeCalculator,
 					nil,
@@ -1271,7 +1268,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
 			encoder := mockEncode.NewMockIEncoder(ctrl)
-			encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+			encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
 			encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 			encodedData := "mockEncodedData"
 
@@ -1285,7 +1282,7 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				GetRouterAddress().
 				Return("0x01").AnyTimes()
 
-			tokenRepository := usecase.NewMockITokenRepository(ctrl)
+			tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 			tokenRepository.EXPECT().
 				FindByAddresses(gomock.Any(), gomock.Any()).
 				Return(
@@ -1297,17 +1294,20 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 					nil,
 				)
 
-			priceRepository := usecase.NewMockIPriceRepository(ctrl)
-			priceRepository.EXPECT().
-				FindByAddresses(gomock.Any(), gomock.Any()).
+			onchainpriceRepo := buildroute.NewMockIOnchainPriceRepository(ctrl)
+			onchainpriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).
 				Return(
-					[]*entity.Price{
-						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-						{Address: "0x6b175474e89094c44da98b954eedeac495271d0f", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-					},
-					nil,
-				)
+					map[string]*routerEntities.OnchainPrice{
+						"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+							USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+						},
+						"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": {
+							USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+						},
+						"0x6b175474e89094c44da98b954eedeac495271d0f": {
+							USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+						}}, nil,
+				).AnyTimes()
 
 			executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
 			executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
@@ -1317,10 +1317,9 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 			poolRepository := tc.poolRepository(ctrl, &wg)
 			usecase := NewBuildRouteUseCase(
 				tokenRepository,
-				priceRepository,
 				poolRepository,
 				executorBalanceRepository,
-				nil,
+				onchainpriceRepo,
 				gasEstimator,
 				&dummyL1FeeCalculator{},
 				nil,
@@ -1987,7 +1986,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 			clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil)
 
 			encoder := mockEncode.NewMockIEncoder(ctrl)
-			encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+			encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
 			encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 			encodedData := "mockEncodedData"
 
@@ -2001,7 +2000,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				GetRouterAddress().
 				Return("0x01").AnyTimes()
 
-			tokenRepository := usecase.NewMockITokenRepository(ctrl)
+			tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 			tokenRepository.EXPECT().
 				FindByAddresses(gomock.Any(), gomock.Any()).
 				Return(
@@ -2012,18 +2011,20 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 					},
 					nil,
 				)
-
-			priceRepository := usecase.NewMockIPriceRepository(ctrl)
-			priceRepository.EXPECT().
-				FindByAddresses(gomock.Any(), gomock.Any()).
+			onchainpriceRepo := buildroute.NewMockIOnchainPriceRepository(ctrl)
+			onchainpriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).
 				Return(
-					[]*entity.Price{
-						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-						{Address: "0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-					},
-					nil,
-				)
+					map[string]*routerEntities.OnchainPrice{
+						"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+							USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+						},
+						"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": {
+							USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+						},
+						"0x9f8f72aa9304c8b593d555f12ef6589cc3a579a2": {
+							USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+						}}, nil,
+				).AnyTimes()
 
 			executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
 			executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
@@ -2033,10 +2034,9 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 
 			usecase := NewBuildRouteUseCase(
 				tokenRepository,
-				priceRepository,
 				poolRepository,
 				executorBalanceRepository,
-				nil,
+				onchainpriceRepo,
 				tc.gasEstimator(ctrl, &wg),
 				&dummyL1FeeCalculator{},
 				nil,
@@ -2339,7 +2339,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 			defer ctrl.Finish()
 
 			encoder := mockEncode.NewMockIEncoder(ctrl)
-			encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+			encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
 			encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 			encoder.EXPECT().
 				GetExecutorAddress(gomock.Any()).
@@ -2354,16 +2354,15 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 				Return([]bool{true}, nil).AnyTimes()
 
 			clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
-			tokenRepository := usecase.NewMockITokenRepository(ctrl)
-			priceRepository := usecase.NewMockIPriceRepository(ctrl)
+			tokenRepository := buildroute.NewMockITokenRepository(ctrl)
+			onchainPriceRepo := buildroute.NewMockIOnchainPriceRepository(ctrl)
 			poolRepository := tc.countTotalPools(ctrl, &wg)
 
 			usecase := NewBuildRouteUseCase(
 				tokenRepository,
-				priceRepository,
 				poolRepository,
 				executorBalanceRepository,
-				nil,
+				onchainPriceRepo,
 				nil,
 				&dummyL1FeeCalculator{},
 				tc.rfqHandlerByPoolType(ctrl),
@@ -2507,7 +2506,7 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 			clientDataEncoder.EXPECT().Encode(gomock.Any(), gomock.Any()).Return([]byte{}, nil).AnyTimes()
 
 			encoder := mockEncode.NewMockIEncoder(ctrl)
-			encodeBuilder := usecase.NewMockIEncodeBuilder(ctrl)
+			encodeBuilder := buildroute.NewMockIEncodeBuilder(ctrl)
 			encodeBuilder.EXPECT().GetEncoder(gomock.Any()).AnyTimes().Return(encoder)
 			encodedData := "mockEncodedData"
 
@@ -2521,7 +2520,7 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 				GetRouterAddress().
 				Return("0x01").AnyTimes()
 
-			tokenRepository := usecase.NewMockITokenRepository(ctrl)
+			tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 			tokenRepository.EXPECT().
 				FindByAddresses(gomock.Any(), gomock.Any()).
 				Return(
@@ -2531,16 +2530,16 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 					},
 					nil,
 				).AnyTimes()
-
-			priceRepository := usecase.NewMockIPriceRepository(ctrl)
-			priceRepository.EXPECT().
-				FindByAddresses(gomock.Any(), gomock.Any()).
+			onchainpriceRepo := buildroute.NewMockIOnchainPriceRepository(ctrl)
+			onchainpriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).
 				Return(
-					[]*entity.Price{
-						{Address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-						{Address: "0xc3d088842dcf02c13699f936bb83dfbbc6f721ab", MarketPrice: 1, PreferPriceSource: entity.PriceSourceCoingecko},
-					},
-					nil,
+					map[string]*routerEntities.OnchainPrice{
+						"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": {
+							USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+						},
+						"0xc3d088842dcf02c13699f936bb83dfbbc6f721ab": {
+							USDPrice: routerEntities.Price{Sell: big.NewFloat(1), Buy: big.NewFloat(1)},
+						}}, nil,
 				).AnyTimes()
 
 			executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
@@ -2549,10 +2548,9 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 
 			usecase := NewBuildRouteUseCase(
 				tokenRepository,
-				priceRepository,
 				nil,
 				executorBalanceRepository,
-				nil,
+				onchainpriceRepo,
 				nil,
 				&dummyL1FeeCalculator{},
 				tc.rfqHandlerByPoolType(ctrl),

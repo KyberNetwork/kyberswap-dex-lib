@@ -23,7 +23,6 @@ import (
 type aggregator struct {
 	poolRankRepository     IPoolRankRepository
 	tokenRepository        ITokenRepository
-	priceRepository        IPriceRepository
 	onchainpriceRepository IOnchainPriceRepository
 	poolManager            IPoolManager
 
@@ -36,7 +35,6 @@ type aggregator struct {
 func NewAggregator(
 	poolRankRepository IPoolRankRepository,
 	tokenRepository ITokenRepository,
-	priceRepository IPriceRepository,
 	onchainpriceRepository IOnchainPriceRepository,
 	poolManager IPoolManager,
 	config AggregatorConfig,
@@ -45,7 +43,6 @@ func NewAggregator(
 	return &aggregator{
 		poolRankRepository:     poolRankRepository,
 		tokenRepository:        tokenRepository,
-		priceRepository:        priceRepository,
 		onchainpriceRepository: onchainpriceRepository,
 		poolManager:            poolManager,
 		finderEngine:           finderEngine,
@@ -88,24 +85,14 @@ func (a *aggregator) Aggregate(ctx context.Context, params *types.AggregateParam
 		return nil, err
 	}
 
-	var priceUSDByAddress map[string]float64
-
 	// only get price from onchain-price-service if enabled
-	var priceByAddress map[string]*routerEntity.OnchainPrice
-	if a.onchainpriceRepository != nil {
-		priceByAddress, err = a.onchainpriceRepository.FindByAddresses(ctx, tokenAddresses)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		priceUSDByAddress, err = a.getPriceUSDByAddress(ctx, tokenAddresses)
-		if err != nil {
-			return nil, err
-		}
+	priceByAddress, err := a.onchainpriceRepository.FindByAddresses(ctx, tokenAddresses)
+	if err != nil {
+		return nil, err
 	}
 
 	// Step 3: finds best route
-	return a.findBestRoute(ctx, params, tokenByAddress, priceUSDByAddress, priceByAddress, state)
+	return a.findBestRoute(ctx, params, tokenByAddress, priceByAddress, state)
 }
 
 func (a *aggregator) ApplyConfig(config Config) {
@@ -120,7 +107,6 @@ func (a *aggregator) findBestRoute(
 	ctx context.Context,
 	params *types.AggregateParams,
 	tokenByAddress map[string]*entity.Token,
-	priceUSDByAddress map[string]float64,
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
 ) (*valueobject.RouteSummary, error) {
@@ -128,7 +114,6 @@ func (a *aggregator) findBestRoute(
 		a.config.WhitelistedTokenSet,
 		params,
 		tokenByAddress,
-		priceUSDByAddress,
 		priceByAddress,
 		state,
 	)
@@ -208,21 +193,4 @@ func (a *aggregator) getTokenByAddress(ctx context.Context, tokenAddresses []str
 	}
 
 	return tokenByAddress, nil
-}
-
-// getPriceUSDByAddress receives a list of address and returns a map of address to its preferred price in USD
-func (a *aggregator) getPriceUSDByAddress(ctx context.Context, tokenAddresses []string) (map[string]float64, error) {
-	prices, err := a.priceRepository.FindByAddresses(ctx, tokenAddresses)
-	if err != nil {
-		return nil, err
-	}
-
-	priceUSDByAddress := make(map[string]float64, len(prices))
-	for _, price := range prices {
-		priceUSD, _ := price.GetPreferredPrice()
-
-		priceUSDByAddress[price.Address] = priceUSD
-	}
-
-	return priceUSDByAddress, nil
 }

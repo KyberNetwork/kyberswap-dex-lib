@@ -9,7 +9,6 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	finderEntity "github.com/KyberNetwork/pathfinder-lib/pkg/entity"
 	finderEngine "github.com/KyberNetwork/pathfinder-lib/pkg/finderengine"
-	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	"github.com/ethereum/go-ethereum/common"
@@ -25,7 +24,6 @@ type correlatedPairs struct {
 
 	poolRankRepository     IPoolRankRepository
 	tokenRepository        ITokenRepository
-	priceRepository        IPriceRepository
 	onchainPriceRepository IOnchainPriceRepository
 	poolManager            IPoolManager
 
@@ -40,7 +38,6 @@ func NewCorrelatedPairs(
 	aggregator IAggregator,
 	poolRankRepository IPoolRankRepository,
 	tokenRepository ITokenRepository,
-	priceRepository IPriceRepository,
 	onchainPriceRepository IOnchainPriceRepository,
 	poolManager IPoolManager,
 	config Config,
@@ -55,7 +52,6 @@ func NewCorrelatedPairs(
 
 		poolRankRepository:     poolRankRepository,
 		tokenRepository:        tokenRepository,
-		priceRepository:        priceRepository,
 		onchainPriceRepository: onchainPriceRepository,
 		poolManager:            poolManager,
 
@@ -115,18 +111,9 @@ func (c *correlatedPairs) Aggregate(
 		return nil, err
 	}
 
-	var usdPrices map[string]float64
-	var onchainPrices map[string]*routerEntity.OnchainPrice
-	if c.onchainPriceRepository != nil {
-		onchainPrices, err = c.onchainPriceRepository.FindByAddresses(ctx, tokenAddresses)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		usdPrices, err = c.getPriceUSDByAddress(ctx, tokenAddresses)
-		if err != nil {
-			return nil, err
-		}
+	onchainPrices, err := c.onchainPriceRepository.FindByAddresses(ctx, tokenAddresses)
+	if err != nil {
+		return nil, err
 	}
 
 	whitelistTokens := map[string]bool{}
@@ -141,7 +128,6 @@ func (c *correlatedPairs) Aggregate(
 		whitelistTokens,
 		params,
 		tokens,
-		usdPrices,
 		onchainPrices,
 		state,
 	)
@@ -249,20 +235,4 @@ func (a *correlatedPairs) getTokenByAddress(ctx context.Context, tokenAddresses 
 	}
 
 	return tokenByAddress, nil
-}
-
-func (a *correlatedPairs) getPriceUSDByAddress(ctx context.Context, tokenAddresses []string) (map[string]float64, error) {
-	prices, err := a.priceRepository.FindByAddresses(ctx, tokenAddresses)
-	if err != nil {
-		return nil, err
-	}
-
-	priceUSDByAddress := make(map[string]float64, len(prices))
-	for _, price := range prices {
-		priceUSD, _ := price.GetPreferredPrice()
-
-		priceUSDByAddress[price.Address] = priceUSD
-	}
-
-	return priceUSDByAddress, nil
 }

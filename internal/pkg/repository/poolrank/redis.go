@@ -39,11 +39,7 @@ func (r *redisRepository) findBestPoolByTvl(
 	span, ctx := tracer.StartSpanFromContext(ctx, "[poolrank] redisRepository.FindBestPoolIDs")
 	defer span.End()
 
-	if r.config.UseNativeRanking {
-		return r.findBestPoolIDsByNativeTvl(ctx, tokenIn, tokenOut, opt)
-	}
-
-	return r.findBestPoolIDsByTvl(ctx, tokenIn, tokenOut, opt)
+	return r.findBestPoolIDsByNativeTvl(ctx, tokenIn, tokenOut, opt)
 }
 
 func (r *redisRepository) FindBestPoolIDs(
@@ -69,28 +65,6 @@ func (r *redisRepository) FindBestPoolIDs(
 			sortBy,
 		)
 	}
-}
-
-func (r *redisRepository) findBestPoolIDsByTvl(
-	ctx context.Context,
-	tokenIn, tokenOut string,
-	opt valueobject.GetBestPoolsOptions,
-) ([]string, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "[poolrank] redisRepository.FindBestPoolIDsByTvl")
-	defer span.End()
-
-	tvlMap := map[string]*redis.ZRangeBy{}
-	tvlMap[r.keyGenerator.directPairKey(SortByTVL, tokenIn, tokenOut)] = r.zrangeBy(opt.DirectPoolsCount)
-	tvlMap[r.keyGenerator.whitelistToWhitelistPairKey(SortByTVL)] = r.zrangeBy(opt.WhitelistPoolsCount)
-	tvlMap[r.keyGenerator.whitelistToTokenPairKey(SortByTVL, tokenIn)] = r.zrangeBy(opt.TokenInPoolsCount)
-	tvlMap[r.keyGenerator.whitelistToTokenPairKey(SortByTVL, tokenOut)] = r.zrangeBy(opt.TokenOutPoolCount)
-
-	tvlMap[r.keyGenerator.directPairKey(SortByAmplifiedTvl, tokenIn, tokenOut)] = r.zrangeBy(opt.AmplifiedTvlDirectPoolsCount)
-	tvlMap[r.keyGenerator.whitelistToWhitelistPairKey(SortByAmplifiedTvl)] = r.zrangeBy(opt.AmplifiedTvlWhitelistPoolsCount)
-	tvlMap[r.keyGenerator.whitelistToTokenPairKey(SortByAmplifiedTvl, tokenIn)] = r.zrangeBy(opt.AmplifiedTvlTokenInPoolsCount)
-	tvlMap[r.keyGenerator.whitelistToTokenPairKey(SortByAmplifiedTvl, tokenOut)] = r.zrangeBy(opt.AmplifiedTvlTokenOutPoolCount)
-
-	return r.findBestPoolIDs(ctx, tvlMap)
 }
 
 func (r *redisRepository) findBestPoolIDsByNativeTvl(
@@ -219,7 +193,6 @@ func (r *redisRepository) FindGlobalBestPoolsByScores(ctx context.Context, poolC
 	}
 
 	globalList, err := r.FindGlobalBestPools(ctx, poolCount)
-	fmt.Printf("global list %v\n", globalList)
 
 	if err != nil {
 		logger.Errorf(ctx, "failed to get global set %v err: %v\n", err)
@@ -281,7 +254,7 @@ func (r *redisRepository) RemoveFromSortedSet(
 	ctx context.Context,
 	token0, token1 string,
 	isToken0Whitelisted, isToken1Whitelisted bool,
-	key string, memberName string, score float64,
+	key string, memberName string,
 	useGlobal bool,
 ) error {
 

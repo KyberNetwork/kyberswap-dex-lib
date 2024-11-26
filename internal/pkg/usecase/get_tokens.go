@@ -14,21 +14,16 @@ import (
 )
 
 type getTokensUseCase struct {
-	tokenRepo ITokenRepository
-	priceRepo IPriceRepository
-
+	tokenRepo              ITokenRepository
 	onchainpriceRepository IOnchainPriceRepository
 }
 
 func NewGetTokens(
 	tokenRepo ITokenRepository,
-	priceRepo IPriceRepository,
 	onchainpriceRepository IOnchainPriceRepository,
 ) *getTokensUseCase {
 	return &getTokensUseCase{
-		tokenRepo: tokenRepo,
-		priceRepo: priceRepo,
-
+		tokenRepo:              tokenRepo,
 		onchainpriceRepository: onchainpriceRepository,
 	}
 }
@@ -41,16 +36,9 @@ func (u *getTokensUseCase) Handle(ctx context.Context, query dto.GetTokensQuery)
 
 	var priceByAddress map[string]*entity.Price
 	var onchainPriceByAddress map[string]*routerEntity.OnchainPrice
-	if u.onchainpriceRepository != nil {
-		onchainPriceByAddress, err = u.getOnchainPrices(ctx, query.IDs)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		priceByAddress, err = u.getPrices(ctx, query.IDs)
-		if err != nil {
-			return nil, err
-		}
+	onchainPriceByAddress, err = u.getOnchainPrices(ctx, query.IDs)
+	if err != nil {
+		return nil, err
 	}
 
 	return &dto.GetTokensResult{
@@ -73,23 +61,6 @@ func (u *getTokensUseCase) getTokens(
 	}
 
 	return tokenByAddress, nil
-}
-
-func (u *getTokensUseCase) getPrices(
-	ctx context.Context,
-	addresses []string,
-) (map[string]*entity.Price, error) {
-	prices, err := u.priceRepo.FindByAddresses(ctx, addresses)
-	if err != nil {
-		return nil, err
-	}
-
-	priceByAddress := make(map[string]*entity.Price, len(prices))
-	for _, price := range prices {
-		priceByAddress[price.Address] = price
-	}
-
-	return priceByAddress, nil
 }
 
 func (u *getTokensUseCase) getOnchainPrices(

@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	types "github.com/KyberNetwork/aggregator-encoding/pkg/types"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockIClientDataEncoder is a mock of IClientDataEncoder interface.

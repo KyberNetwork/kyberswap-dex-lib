@@ -8,7 +8,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
 	poolservice "github.com/KyberNetwork/router-service/internal/pkg/repository/pool-service"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/price"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/route"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/token"
 )
@@ -16,7 +15,6 @@ import (
 type Config struct {
 	Gas              gas.Config              `json:"gas" mapstructure:"gas"`
 	Pool             pool.Config             `json:"pool" mapstructure:"pool"`
-	Price            price.Config            `json:"price" mapstructure:"price"`
 	OnchainPrice     onchainprice.Config     `json:"onchainprice" mapstructure:"onchainprice"`
 	Token            token.Config            `json:"token" mapstructure:"token"`
 	PoolRank         poolrank.Config         `json:"poolRank" mapstructure:"poolRank"`

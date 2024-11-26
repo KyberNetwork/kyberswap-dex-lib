@@ -13,8 +13,8 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func newDefaultRouteCacheKey(amountIn float64, cacheMode valueobject.RouteCacheMode, ttl time.Duration) []valueobject.RouteCacheKeyTTL {

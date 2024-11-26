@@ -97,6 +97,7 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 		allPools, err := u.poolRepo.FindByAddresses(ctx, poolAddresses)
 		if err != nil {
 			failedPoolAddresses = append(failedPoolAddresses, poolAddresses...)
+			continue
 		}
 
 		// filter out pools that haven't been updated recently
@@ -106,14 +107,12 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 		oldPoolCount = len(allPools) - len(pools)
 
 		var nativePriceByToken map[string]*routerEntity.OnchainPrice
-		if u.config.EnableRankByNative && u.onchainPriceRepo != nil {
-			// collect prices for all pools' tokens first
-			nativePriceByToken, err = u.getPricesForAllTokens(ctx, pools)
-			if err != nil {
-				// for now still keep indexing with tvl in USD
-				logger.Errorf(ctx, "error fetching pool tokens prices %v", err)
-				nativePriceByToken = nil
-			}
+		// collect prices for all pools' tokens first
+		nativePriceByToken, err = u.getPricesForAllTokens(ctx, pools)
+		if err != nil {
+			logger.Errorf(ctx, "error fetching pool tokens prices %v", err)
+			failedPoolAddresses = append(failedPoolAddresses, poolAddresses...)
+			continue
 		}
 
 		// if `u.config.NumParallel==0` (default) then will use GOMAXPROCS
@@ -295,24 +294,6 @@ func (u *IndexPoolsUseCase) getPricesForAllTokens(ctx context.Context, pools []*
 }
 
 func (u *IndexPoolsUseCase) savePoolIndex(ctx context.Context, poolIndex *PoolIndex) error {
-	if poolIndex.Pool.HasReserves() {
-		err := u.poolRankRepo.AddToSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
-			poolrank.SortByTVL, poolIndex.Pool.Address, poolIndex.Pool.ReserveUsd, true)
-
-		if err != nil {
-			return ErrIndexResultFailed
-		}
-	}
-
-	if poolIndex.Pool.HasAmplifiedTvl() {
-		err := u.poolRankRepo.AddToSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
-			poolrank.SortByAmplifiedTvl, poolIndex.Pool.Address, poolIndex.Pool.AmplifiedTvl, false)
-
-		if err != nil {
-			return ErrIndexResultFailed
-		}
-	}
-
 	var shouldAddToTvlNativeIndex bool
 	if poolIndex.TvlNative > 0 {
 		shouldAddToTvlNativeIndex = true
@@ -328,18 +309,16 @@ func (u *IndexPoolsUseCase) savePoolIndex(ctx context.Context, poolIndex *PoolIn
 	if shouldAddToTvlNativeIndex {
 		if err := u.poolRankRepo.AddToSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
 			poolrank.SortByTVLNative, poolIndex.Pool.Address, poolIndex.TvlNative, true); err != nil {
-			// result = INDEX_RESULT_FAIL
-			// do not mark fail here as we haven't fully switched to this yet
-			logger.Debugf(ctx, "failed to add to sorted set %v", err)
+			logger.Errorf(ctx, "failed to add to sorted set %v", err)
+			return ErrIndexResultFailed
 		}
 	}
 
 	if poolIndex.AmplifiedTvlNative > 0 {
 		if err := u.poolRankRepo.AddToSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
 			poolrank.SortByAmplifiedTVLNative, poolIndex.Pool.Address, poolIndex.AmplifiedTvlNative, false); err != nil {
-			// result = INDEX_RESULT_FAIL
-			// do not mark fail here as we haven't fully switched to this yet
 			logger.Debugf(ctx, "failed to add to sorted set %v", err)
+			return ErrIndexResultFailed
 		}
 	}
 
@@ -348,57 +327,23 @@ func (u *IndexPoolsUseCase) savePoolIndex(ctx context.Context, poolIndex *PoolIn
 
 func (u *IndexPoolsUseCase) removePoolIndex(ctx context.Context, poolIndex *PoolIndex) error {
 	var result error
-	if poolIndex.Pool.HasReserves() {
-		err := u.poolRankRepo.RemoveFromSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
-			poolrank.SortByTVL, poolIndex.Pool.Address, poolIndex.Pool.ReserveUsd, true)
 
-		if err != nil {
-			logger.Errorf(ctx, "removePoolIndex SortByTVL %v", err)
-			result = err
-		}
+	if err := u.poolRankRepo.RemoveFromSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
+		poolrank.SortByTVLNative, poolIndex.Pool.Address, true); err != nil {
+		logger.Errorf(ctx, "removePoolIndex SortByTVLNative %v", err)
+		result = err
 	}
 
-	if poolIndex.Pool.HasAmplifiedTvl() {
-		err := u.poolRankRepo.RemoveFromSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
-			poolrank.SortByAmplifiedTvl, poolIndex.Pool.Address, poolIndex.Pool.AmplifiedTvl, false)
-
-		if err != nil {
-			logger.Errorf(ctx, "removePoolIndex SortByAmplifiedTvl %v", err)
-			result = err
-		}
-	}
-
-	if poolIndex.TvlNative > 0 {
-		if err := u.poolRankRepo.RemoveFromSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
-			poolrank.SortByTVLNative, poolIndex.Pool.Address, poolIndex.TvlNative, true); err != nil {
-			logger.Errorf(ctx, "removePoolIndex SortByTVLNative %v", err)
-			result = err
-		}
-	}
-
-	if poolIndex.AmplifiedTvlNative > 0 {
-		if err := u.poolRankRepo.RemoveFromSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
-			poolrank.SortByAmplifiedTVLNative, poolIndex.Pool.Address, poolIndex.AmplifiedTvlNative, false); err != nil {
-			logger.Errorf(ctx, "removePoolIndex SortByAmplifiedTVLNative %v", err)
-			result = err
-		}
+	if err := u.poolRankRepo.RemoveFromSortedSet(ctx, poolIndex.Token0, poolIndex.Token1, poolIndex.IsToken0Whitelisted, poolIndex.IsToken1Whitelisted,
+		poolrank.SortByAmplifiedTVLNative, poolIndex.Pool.Address, false); err != nil {
+		logger.Errorf(ctx, "removePoolIndex SortByAmplifiedTVLNative %v", err)
+		result = err
 	}
 
 	return result
 }
 
 func (u *IndexPoolsUseCase) RemovePoolFromIndexes(ctx context.Context, pool *entity.Pool) error {
-	nativePriceByToken := map[string]*routerEntity.OnchainPrice{}
-	var err error
-	if u.config.EnableRankByNative && u.onchainPriceRepo != nil {
-		// collect prices for all pools' tokens first
-		nativePriceByToken, err = u.getPricesForAllTokens(ctx, []*entity.Pool{pool})
-		if err != nil {
-			// for now still keep indexing with tvl in USD
-			logger.Errorf(ctx, "error fetching pool tokens prices %v", err)
-		}
-	}
-
-	return u.processIndex(ctx, pool, nativePriceByToken, u.removePoolIndex)
+	return u.processIndex(ctx, pool, nil, u.removePoolIndex)
 
 }

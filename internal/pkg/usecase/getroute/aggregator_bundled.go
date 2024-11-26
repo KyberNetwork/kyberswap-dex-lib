@@ -27,7 +27,6 @@ type bundledAggregator struct {
 func NewBundledAggregator(
 	poolRankRepository IPoolRankRepository,
 	tokenRepository ITokenRepository,
-	priceRepository IPriceRepository,
 	onchainpriceRepository IOnchainPriceRepository,
 	poolManager IPoolManager,
 	poolFactory IPoolFactory,
@@ -37,7 +36,6 @@ func NewBundledAggregator(
 	ag := &aggregator{
 		poolRankRepository:     poolRankRepository,
 		tokenRepository:        tokenRepository,
-		priceRepository:        priceRepository,
 		onchainpriceRepository: onchainpriceRepository,
 		poolManager:            poolManager,
 		finderEngine:           finderEngine,
@@ -82,20 +80,10 @@ func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.Aggrega
 		return nil, err
 	}
 
-	var priceUSDByAddress map[string]float64
-
 	// only get price from onchain-price-service if enabled
-	var priceByAddress map[string]*routerEntity.OnchainPrice
-	if a.onchainpriceRepository != nil {
-		priceByAddress, err = a.onchainpriceRepository.FindByAddresses(ctx, tokenAddresses)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		priceUSDByAddress, err = a.getPriceUSDByAddress(ctx, tokenAddresses)
-		if err != nil {
-			return nil, err
-		}
+	priceByAddress, err := a.onchainpriceRepository.FindByAddresses(ctx, tokenAddresses)
+	if err != nil {
+		return nil, err
 	}
 	// Calculate amountInUsd for every pair to find best pools
 	for _, pair := range params.Pairs {
@@ -103,7 +91,7 @@ func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.Aggrega
 		if !ok {
 			return nil, errors.WithMessagef(ErrInvalidToken, "invalid tokenIn: %v", pair.TokenIn)
 		}
-		tokenInPrice := GetPriceOnchainWithFallback(pair.TokenIn, priceUSDByAddress, priceByAddress, false)
+		tokenInPrice := GetPrice(pair.TokenIn, priceByAddress, false)
 		pair.AmountInUsd = utils.CalcTokenAmountUsd(pair.AmountIn, tokenIn.Decimals, tokenInPrice)
 		if pair.AmountInUsd > MaxAmountInUSD {
 			return nil, ErrAmountInIsGreaterThanMaxAllowed
@@ -146,7 +134,7 @@ func (a *bundledAggregator) Aggregate(ctx context.Context, params *types.Aggrega
 	}
 
 	// Step 3: finds best route
-	return a.findBestBundledRoute(ctx, params, tokenByAddress, priceUSDByAddress, priceByAddress, state)
+	return a.findBestBundledRoute(ctx, params, tokenByAddress, priceByAddress, state)
 }
 
 func (a *bundledAggregator) getStateByBundledAddress(
@@ -199,7 +187,6 @@ func (a *bundledAggregator) findBestBundledRoute(
 	ctx context.Context,
 	params *types.AggregateBundledParams,
 	tokenByAddress map[string]*entity.Token,
-	priceUSDByAddress map[string]float64,
 	priceByAddress map[string]*routerEntity.OnchainPrice,
 	state *types.FindRouteState,
 ) ([]*valueobject.RouteSummary, error) {
@@ -211,7 +198,7 @@ func (a *bundledAggregator) findBestBundledRoute(
 	if !ok {
 		return nil, errors.WithMessagef(ErrInvalidToken, "invalid gasToken: %v", params.GasToken)
 	}
-	gasTokenPrice := GetPriceOnchainWithFallback(params.GasToken, priceUSDByAddress, priceByAddress, true)
+	gasTokenPrice := GetPrice(params.GasToken, priceByAddress, true)
 
 	for _, pair := range params.Pairs {
 		tokenIn, ok := tokenByAddress[pair.TokenIn]
@@ -222,8 +209,8 @@ func (a *bundledAggregator) findBestBundledRoute(
 		if !ok {
 			return nil, errors.WithMessagef(ErrInvalidToken, "invalid tokenOut: %v", pair.TokenOut)
 		}
-		tokenInPrice := GetPriceOnchainWithFallback(pair.TokenIn, priceUSDByAddress, priceByAddress, false)  // use sell price for tokenIn
-		tokenOutPrice := GetPriceOnchainWithFallback(pair.TokenOut, priceUSDByAddress, priceByAddress, true) // use buy price for token out and gas
+		tokenInPrice := GetPrice(pair.TokenIn, priceByAddress, false)  // use sell price for tokenIn
+		tokenOutPrice := GetPrice(pair.TokenOut, priceByAddress, true) // use buy price for token out and gas
 
 		pairParams := types.AggregateParams{
 			TokenIn:            *tokenIn,
@@ -257,7 +244,6 @@ func (a *bundledAggregator) findBestBundledRoute(
 			a.config.WhitelistedTokenSet,
 			&pairParams,
 			tokenByAddress,
-			priceUSDByAddress,
 			priceByAddress,
 			state,
 		)

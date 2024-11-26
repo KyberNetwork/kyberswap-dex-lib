@@ -46,7 +46,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
 	poolservice "github.com/KyberNetwork/router-service/internal/pkg/repository/pool-service"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/price"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/route"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/setting"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/token"
@@ -263,33 +262,23 @@ func apiAction(c *cli.Context) (err error) {
 		cfg.Repository.Token.GoCache,
 	)
 
-	priceRepository, err := price.NewRistrettoRepository(
-		price.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Price.Redis),
-		cfg.Repository.Price.RistrettoConfig,
-	)
+	var onchainpriceRepository getroute.IOnchainPriceRepository
+	grpcRepository, err := onchainprice.NewGRPCRepository(
+		cfg.Repository.OnchainPrice.Grpc,
+		cfg.Common.ChainID,
+		tokenRepository,
+		cfg.Common.GasTokenAddress)
 	if err != nil {
 		return err
 	}
 
-	var onchainpriceRepository getroute.IOnchainPriceRepository
-	if cfg.Repository.OnchainPrice.Enabled {
-		grpcRepository, err := onchainprice.NewGRPCRepository(
-			cfg.Repository.OnchainPrice.Grpc,
-			cfg.Common.ChainID,
-			tokenRepository,
-			cfg.Common.GasTokenAddress)
-		if err != nil {
-			return err
-		}
-
-		onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository,
-			cfg.Repository.OnchainPrice.Ristretto)
-		if err != nil {
-			return err
-		}
-
-		go onchainpriceRepository.RefreshCacheNativePriceInUSD(ctx)
+	onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository,
+		cfg.Repository.OnchainPrice.Ristretto)
+	if err != nil {
+		return err
 	}
+
+	go onchainpriceRepository.RefreshCacheNativePriceInUSD(ctx)
 
 	poolServiceClient, err := poolservice.NewGRPCClient(cfg.Repository.PoolService)
 	poolRepository, err := pool.NewRedisRepository(poolRedisClient.Client, poolServiceClient, cfg.Repository.Pool)
@@ -356,7 +345,7 @@ func apiAction(c *cli.Context) (err error) {
 
 	getPoolsUseCase := getpools.NewGetPoolsUseCase(poolRepository)
 	GetPoolsIncludingBasePools := getpools.NewGetPoolsIncludingBasePools(poolRepository)
-	getTokensUseCase := usecase.NewGetTokens(tokenRepository, priceRepository, onchainpriceRepository)
+	getTokensUseCase := usecase.NewGetTokens(tokenRepository, onchainpriceRepository)
 
 	var (
 		balanceSlotsUseCase erc20balanceslotuc.ICache
@@ -446,7 +435,6 @@ func apiAction(c *cli.Context) (err error) {
 	getRouteUseCase := getroute.NewUseCase(
 		poolRankRepository,
 		tokenRepository,
-		priceRepository,
 		onchainpriceRepository,
 		routeRepository,
 		gasRepository,
@@ -457,7 +445,6 @@ func apiAction(c *cli.Context) (err error) {
 	getBundledRouteUseCase := getroute.NewBundledUseCase(
 		poolRankRepository,
 		tokenRepository,
-		priceRepository,
 		onchainpriceRepository,
 		routeRepository,
 		gasRepository,
@@ -477,12 +464,11 @@ func apiAction(c *cli.Context) (err error) {
 		rfqHandlerByPoolType[s.Handler] = rfqHandler
 	}
 
-	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, priceRepository, onchainpriceRepository,
+	gasEstimator := buildroute.NewGasEstimator(ethClient, gasRepository, onchainpriceRepository,
 		cfg.Common.GasTokenAddress,
 		cfg.Common.RouterAddress)
 	buildRouteUseCase := buildroute.NewBuildRouteUseCase(
 		tokenRepository,
-		priceRepository,
 		poolRepository,
 		executorBalanceRepository,
 		onchainpriceRepository,
@@ -497,7 +483,6 @@ func apiAction(c *cli.Context) (err error) {
 	getCustomRoutesUseCase := getcustomroute.NewCustomRoutesUseCase(
 		poolFactory,
 		tokenRepository,
-		priceRepository,
 		onchainpriceRepository,
 		gasRepository,
 		poolRepository,
@@ -675,24 +660,22 @@ func indexerAction(c *cli.Context) (err error) {
 	)
 
 	var onchainpriceRepository getroute.IOnchainPriceRepository
-	if cfg.Repository.OnchainPrice.Enabled {
-		grpcRepository, err := onchainprice.NewGRPCRepository(
-			cfg.Repository.OnchainPrice.Grpc,
-			cfg.Common.ChainID,
-			tokenRepository,
-			cfg.Common.GasTokenAddress)
-		if err != nil {
-			return err
-		}
-
-		onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository,
-			cfg.Repository.OnchainPrice.Ristretto)
-		if err != nil {
-			return err
-		}
-
-		go onchainpriceRepository.RefreshCacheNativePriceInUSD(ctx)
+	grpcRepository, err := onchainprice.NewGRPCRepository(
+		cfg.Repository.OnchainPrice.Grpc,
+		cfg.Common.ChainID,
+		tokenRepository,
+		cfg.Common.GasTokenAddress)
+	if err != nil {
+		return err
 	}
+
+	onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository,
+		cfg.Repository.OnchainPrice.Ristretto)
+	if err != nil {
+		return err
+	}
+
+	go onchainpriceRepository.RefreshCacheNativePriceInUSD(ctx)
 
 	// init use case
 	getAllPoolAddressesUseCase := usecase.NewGetAllPoolAddressesUseCase(poolRepo)
@@ -1011,14 +994,6 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 		poolServiceClient, cfg.Repository.Pool)
 	poolRankRepo := poolrank.NewRedisRepository(poolRedisClient.Client, cfg.Repository.PoolRank)
 
-	priceRepository, err := price.NewRistrettoRepository(
-		price.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Price.Redis),
-		cfg.Repository.Price.RistrettoConfig,
-	)
-	if err != nil {
-		return err
-	}
-
 	tokenRepository := token.NewGoCacheRepository(
 		token.NewRedisRepository(poolRedisClient.Client, cfg.Repository.Token.Redis),
 		cfg.Repository.Token.GoCache,
@@ -1079,27 +1054,24 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	}
 
 	var onchainpriceRepository indexpools.IOnchainPriceRepository
-	if cfg.Repository.OnchainPrice.Enabled {
-		grpcRepository, err := onchainprice.NewGRPCRepository(
-			cfg.Repository.OnchainPrice.Grpc,
-			cfg.Common.ChainID,
-			tokenRepository,
-			cfg.Common.GasTokenAddress)
-		if err != nil {
-			return err
-		}
-
-		onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository, cfg.Repository.OnchainPrice.Ristretto)
-		if err != nil {
-			return err
-		}
-
-		go onchainpriceRepository.RefreshCacheNativePriceInUSD(ctx)
+	grpcRepository, err := onchainprice.NewGRPCRepository(
+		cfg.Repository.OnchainPrice.Grpc,
+		cfg.Common.ChainID,
+		tokenRepository,
+		cfg.Common.GasTokenAddress)
+	if err != nil {
+		return err
 	}
+
+	onchainpriceRepository, err = onchainprice.NewRistrettoRepository(grpcRepository, cfg.Repository.OnchainPrice.Ristretto)
+	if err != nil {
+		return err
+	}
+	go onchainpriceRepository.RefreshCacheNativePriceInUSD(ctx)
 
 	getPools := getpools.NewGetPoolsIncludingBasePools(poolRepository)
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
-	tradeGenerator := indexpools.NewTradeDataGenerator(poolRepository, priceRepository, onchainpriceRepository, tokenRepository, getPools, aevmClient, poolFactory, cfg.UseCase.TradeDataGenerator)
+	tradeGenerator := indexpools.NewTradeDataGenerator(poolRepository, onchainpriceRepository, tokenRepository, getPools, aevmClient, poolFactory, cfg.UseCase.TradeDataGenerator)
 	updatePoolScores := indexpools.NewUpdatePoolsScore(poolRankRepo, cfg.UseCase.UpdateLiquidityScoreConfig)
 	indexJob := job.NewLiquidityScoreIndexPoolsJob(tradeGenerator, updatePoolScores, cfg.Job.LiquidityScoreIndexPools)
 

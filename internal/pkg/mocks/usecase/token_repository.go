@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	entity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockITokenRepository is a mock of ITokenRepository interface.

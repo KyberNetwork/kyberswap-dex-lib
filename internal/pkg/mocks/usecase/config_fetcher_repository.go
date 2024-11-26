@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	valueobject "github.com/KyberNetwork/router-service/internal/pkg/valueobject"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockIConfigFetcherRepository is a mock of IConfigFetcherRepository interface.

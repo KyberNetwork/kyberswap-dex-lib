@@ -428,16 +428,6 @@ repository:
       faultyPools:
         cost: 1
         ttl: 5s
-  price:
-    redis:
-      prefix: *chainName
-    ristretto: &pricecache
-      numCounters: 10000
-      maxCost: 1000
-      bufferItems: 64
-      price:
-        cost: 1
-        ttl: 1m
   onchainprice:
     enabled: false
     grpc:
@@ -445,7 +435,13 @@ repository:
       timeout: 300ms
       insecure: true
       client_id: router-service
-    ristretto: *pricecache
+    ristretto:
+      numCounters: 10000
+      maxCost: 1000
+      bufferItems: 64
+      price:
+        cost: 1
+        ttl: 1m
   poolService:
     baseUrl: "0.0.0.0:10443"
     insecure: true
@@ -460,7 +456,6 @@ repository:
   poolRank:
     redis:
       prefix: *chainName
-    useNativeRanking: false
   route:
     redis:
       prefix: *chainName

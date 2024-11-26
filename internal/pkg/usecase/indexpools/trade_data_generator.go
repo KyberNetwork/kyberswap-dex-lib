@@ -25,7 +25,6 @@ import (
 
 type TradeDataGenerator struct {
 	poolRepo           IPoolRepository
-	priceRepo          IPriceRepository
 	onchainPriceRepo   IOnchainPriceRepository
 	tokenRepo          ITokenRepository
 	getPoolsUseCase    IGetPoolsIncludingBasePools
@@ -39,7 +38,6 @@ type TradeDataGenerator struct {
 }
 
 func NewTradeDataGenerator(poolRepo IPoolRepository,
-	priceRepo IPriceRepository,
 	onchainPriceRepo IOnchainPriceRepository,
 	tokenRepo ITokenRepository,
 	getPoolsUseCase IGetPoolsIncludingBasePools,
@@ -56,7 +54,6 @@ func NewTradeDataGenerator(poolRepo IPoolRepository,
 	}
 	return &TradeDataGenerator{
 		poolRepo:           poolRepo,
-		priceRepo:          priceRepo,
 		onchainPriceRepo:   onchainPriceRepo,
 		tokenRepo:          tokenRepo,
 		getPoolsUseCase:    getPoolsUseCase,
@@ -75,53 +72,29 @@ func (u *TradeDataGenerator) ApplyConfig(config TradeDataGeneratorConfig) {
 }
 
 func (gen *TradeDataGenerator) getPrices(ctx context.Context, addresses []string) (map[string]*price, error) {
-	if gen.onchainPriceRepo != nil {
-		result := make(map[string]*price, len(addresses))
-		prices, err := gen.onchainPriceRepo.FindByAddresses(ctx, addresses)
-		if err != nil {
-			return nil, err
-		}
-
-		for token, p := range prices {
-			if p == nil || p.USDPrice.Buy == nil && p.USDPrice.Sell == nil {
-				logger.WithFields(ctx,
-					logger.Fields{
-						"struct": "TradeDataGenerator",
-						"method": "getPrices",
-					}).Errorf("getPrices prices of token %s is nil", token)
-				continue
-			}
-			var tokenPrice price
-			if p.USDPrice.Buy != nil {
-				tokenPrice.buyPrice, _ = p.USDPrice.Buy.Float64()
-			}
-			if p.USDPrice.Sell != nil {
-				tokenPrice.sellPrice, _ = p.USDPrice.Sell.Float64()
-			}
-			result[token] = &tokenPrice
-		}
-
-		return result, nil
-	}
-
-	return gen.falbackToPriceService(ctx, addresses)
-}
-
-func (gen *TradeDataGenerator) falbackToPriceService(ctx context.Context, addresses []string) (map[string]*price, error) {
 	result := make(map[string]*price, len(addresses))
-	prices, err := gen.priceRepo.FindByAddresses(ctx, addresses)
+	prices, err := gen.onchainPriceRepo.FindByAddresses(ctx, addresses)
 	if err != nil {
-		return result, err
+		return nil, err
 	}
-	// in the old price service, buy price and sell price are the same
-	for _, p := range prices {
-		if p == nil {
+
+	for token, p := range prices {
+		if p == nil || p.USDPrice.Buy == nil && p.USDPrice.Sell == nil {
+			logger.WithFields(ctx,
+				logger.Fields{
+					"struct": "TradeDataGenerator",
+					"method": "getPrices",
+				}).Errorf("getPrices prices of token %s is nil", token)
 			continue
 		}
-		result[p.Address] = &price{
-			buyPrice:  p.Price,
-			sellPrice: p.Price,
+		var tokenPrice price
+		if p.USDPrice.Buy != nil {
+			tokenPrice.buyPrice, _ = p.USDPrice.Buy.Float64()
 		}
+		if p.USDPrice.Sell != nil {
+			tokenPrice.sellPrice, _ = p.USDPrice.Sell.Float64()
+		}
+		result[token] = &tokenPrice
 	}
 
 	return result, nil

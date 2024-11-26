@@ -10,8 +10,8 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	poolMocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/pool"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 )
 
 func TestTradeDataGenerator_GenerateTradeData(t *testing.T) {
@@ -448,7 +448,7 @@ func TestTradeDataGenerator_GenerateTradeData(t *testing.T) {
 			config := TradeDataGeneratorConfig{
 				MaxDataPointNumber: 7,
 			}
-			generator := NewTradeDataGenerator(nil, nil, nil, nil, nil, nil, nil, config)
+			generator := NewTradeDataGenerator(nil, nil, nil, nil, nil, nil, config)
 			poolSimulator := test.prepare(ctrl, config)
 
 			result := generator.generateTradeData(context.TODO(), test.tokenIn, test.tokenOut, tokens, prices, poolSimulator, nil)

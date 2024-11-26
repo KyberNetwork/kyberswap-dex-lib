@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	entity "github.com/KyberNetwork/router-service/internal/pkg/entity"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockIPoolClient is a mock of IPoolClient interface.

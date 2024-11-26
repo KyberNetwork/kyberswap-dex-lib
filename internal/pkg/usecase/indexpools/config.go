@@ -6,7 +6,6 @@ type IndexPoolsConfig struct {
 	WhitelistedTokenSet map[string]bool `mapstructure:"whitelistedTokenSet"`
 	ChunkSize           int             `mapstructure:"chunkSize"`
 	MaxGoroutines       int             `mapstructure:"maxGoroutines"`
-	EnableRankByNative  bool            `mapstructure:"enableRankByNative"`
 
 	// If the pool has 0 TVL, and the direct index length is less than this value,
 	// we will still add the pool to the indexes.

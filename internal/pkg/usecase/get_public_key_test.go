@@ -5,8 +5,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/crypto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"

@@ -42,7 +42,6 @@ var OutputChangeNoChange = dto.OutputChange{
 
 type BuildRouteUseCase struct {
 	tokenRepository           ITokenRepository
-	priceRepository           IPriceRepository
 	poolRepository            IPoolRepository
 	executorBalanceRepository IExecutorBalanceRepository
 	onchainpriceRepository    IOnchainPriceRepository
@@ -60,7 +59,6 @@ type BuildRouteUseCase struct {
 
 func NewBuildRouteUseCase(
 	tokenRepository ITokenRepository,
-	priceRepository IPriceRepository,
 	poolRepository IPoolRepository,
 	executorBalanceRepository IExecutorBalanceRepository,
 	onchainpriceRepository IOnchainPriceRepository,
@@ -74,7 +72,6 @@ func NewBuildRouteUseCase(
 
 	return &BuildRouteUseCase{
 		tokenRepository:           tokenRepository,
-		priceRepository:           priceRepository,
 		poolRepository:            poolRepository,
 		executorBalanceRepository: executorBalanceRepository,
 		onchainpriceRepository:    onchainpriceRepository,
@@ -398,28 +395,13 @@ func (uc *BuildRouteUseCase) updateRouteSummary(ctx context.Context, routeSummar
 		tokenOutPriceUSD             float64
 		tokenOutMarketPriceAvailable bool
 	)
-	if uc.onchainpriceRepository != nil {
-		// TODO: check and deprecate these 2 fields since we no longer has `market` price
-		tokenInMarketPriceAvailable = false
-		tokenOutMarketPriceAvailable = false
+	// TODO: check and deprecate these 2 fields since we no longer has `market` price
+	tokenInMarketPriceAvailable = false
+	tokenOutMarketPriceAvailable = false
 
-		tokenInPriceUSD, tokenOutPriceUSD, err = uc.getPrices(ctx, tokenInAddress, tokenOutAddress)
-		if err != nil {
-			return routeSummary, err
-		}
-	} else {
-		tokenInPrice, tokenOutPrice, err := uc.getPricesLegacy(ctx, tokenInAddress, tokenOutAddress)
-		if err != nil {
-			return routeSummary, err
-		}
-
-		if tokenInPrice != nil {
-			tokenInPriceUSD, tokenInMarketPriceAvailable = tokenInPrice.GetPreferredPrice()
-		}
-
-		if tokenOutPrice != nil {
-			tokenOutPriceUSD, tokenOutMarketPriceAvailable = tokenOutPrice.GetPreferredPrice()
-		}
+	tokenInPriceUSD, tokenOutPriceUSD, err = uc.getPrices(ctx, tokenInAddress, tokenOutAddress)
+	if err != nil {
+		return routeSummary, err
 	}
 
 	amountInUSD := business.CalcAmountUSD(routeSummary.AmountIn, tokenIn.Decimals, tokenInPriceUSD)
@@ -537,37 +519,6 @@ func (uc *BuildRouteUseCase) getPrices(ctx context.Context, tokenIn, tokenOut st
 	}
 
 	return tokenInPriceUSD, tokenOutPriceUSD, nil
-}
-
-func (uc *BuildRouteUseCase) getPricesLegacy(
-	ctx context.Context,
-	tokenInAddress string,
-	tokenOutAddress string,
-) (*entity.Price, *entity.Price, error) {
-	span, ctx := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.getPrices")
-	defer span.End()
-
-	prices, err := uc.priceRepository.FindByAddresses(ctx, []string{tokenInAddress, tokenOutAddress})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var (
-		tokenInPrice  *entity.Price
-		tokenOutPrice *entity.Price
-	)
-
-	for _, price := range prices {
-		if strings.EqualFold(price.Address, tokenInAddress) {
-			tokenInPrice = price
-		}
-
-		if strings.EqualFold(price.Address, tokenOutAddress) {
-			tokenOutPrice = price
-		}
-	}
-
-	return tokenInPrice, tokenOutPrice, nil
 }
 
 func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary valueobject.RouteSummary, command dto.BuildRouteCommand, encodedData string) (uint64, float64, float64, error) {

@@ -13,7 +13,7 @@ import (
 
 // IPoolRepository receives pool addresses, fetch pool data from datastore, decode them and return []entity.Pool
 //
-//go:generate mockgen -destination ../../mocks/usecase/indexpools/pool_repository.go -package indexpools github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools IPoolRepository
+//go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/indexpools/pool_repository.go -package indexpools github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools IPoolRepository
 type IPoolRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Pool, error)
 	FindAllAddresses(ctx context.Context) ([]string, error)
@@ -23,25 +23,18 @@ type IPoolRepository interface {
 
 // ITokenRepository receives token addresses, fetch token data from datastore, decode them and return []entity.Token
 //
-//go:generate mockgen -destination ../../mocks/usecase/indexpools/token_repository.go -package indexpools github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools ITokenRepository
+//go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/indexpools/token_repository.go -package indexpools github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools ITokenRepository
 type ITokenRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error)
 }
 
-// IPriceRepository receives token addresses, fetch price data from datastore, decode them and return []entity.Price
-//
-//go:generate mockgen -destination ../../mocks/usecase/indexpools/price_repository.go -package indexpools github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools IPriceRepository
-type IPriceRepository interface {
-	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Price, error)
-}
-
-//go:generate mockgen -destination ../../mocks/usecase/indexpools/onchain_price_repository.go -package indexpools github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools IOnchainPriceRepository
+//go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/indexpools/onchain_price_repository.go -package indexpools github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools IOnchainPriceRepository
 type IOnchainPriceRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) (map[string]*routerEntity.OnchainPrice, error)
 	RefreshCacheNativePriceInUSD(ctx context.Context)
 }
 
-//go:generate mockgen -destination ../../mocks/usecase/indexpools/pool_rank_repository.go -package indexpools github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools IPoolRankRepository
+//go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/indexpools/pool_rank_repository.go -package indexpools github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools IPoolRankRepository
 type IPoolRankRepository interface {
 	AddToSortedSet(
 		ctx context.Context,
@@ -54,8 +47,7 @@ type IPoolRankRepository interface {
 		ctx context.Context,
 		token0, token1 string,
 		isToken0Whitelisted, isToken1Whitelisted bool,
-		key string, memberName string, score float64,
-		useGlobal bool,
+		key string, memberName string, useGlobal bool,
 	) error
 	RemoveAddressFromIndex(ctx context.Context, key string, pools []string) error
 	GetDirectIndexLength(ctx context.Context, key, token0, token1 string) (int64, error)

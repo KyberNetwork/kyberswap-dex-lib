@@ -41,10 +41,6 @@ type ITokenRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error)
 }
 
-type IPriceRepository interface {
-	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Price, error)
-}
-
 type IOnchainPriceRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) (map[string]*routerEntity.OnchainPrice, error)
 }

@@ -1,15 +1,15 @@
 package api
 
-//go:generate mockgen -destination ../mocks/api/get_pools_use_case.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IGetPoolsUseCase
-//go:generate mockgen -destination ../mocks/api/get_tokens_use_case.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IGetTokensUseCase
-//go:generate mockgen -destination ../mocks/api/get_routes_use_case.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IGetRoutesUseCase
-//go:generate mockgen -destination ../mocks/api/build_route_use_case.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IBuildRouteUseCase
-//go:generate mockgen -destination ../mocks/api/get_public_key.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IGetPublicKeyUseCase
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/api/get_pools_use_case.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IGetPoolsUseCase
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/api/get_tokens_use_case.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IGetTokensUseCase
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/api/get_routes_use_case.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IGetRoutesUseCase
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/api/build_route_use_case.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IBuildRouteUseCase
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/api/get_public_key.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IGetPublicKeyUseCase
 
-//go:generate mockgen -destination ../mocks/api/get_pools_params_validator.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IGetPoolsParamsValidator
-//go:generate mockgen -destination ../mocks/api/get_tokens_params_validator.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IGetTokensParamsValidator
-//go:generate mockgen -destination ../mocks/api/get_routes_params_validator.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IGetRoutesParamsValidator
-//go:generate mockgen -destination ../mocks/api/build_route_params_validator.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IBuildRouteParamsValidator
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/api/get_pools_params_validator.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IGetPoolsParamsValidator
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/api/get_tokens_params_validator.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IGetTokensParamsValidator
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/api/get_routes_params_validator.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IGetRoutesParamsValidator
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/api/build_route_params_validator.go -package api github.com/KyberNetwork/router-service/internal/pkg/api IBuildRouteParamsValidator
 
 import (
 	"context"

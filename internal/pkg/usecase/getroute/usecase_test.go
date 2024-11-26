@@ -13,12 +13,13 @@ import (
 	"github.com/KyberNetwork/pathfinder-lib/pkg/finderengine/finder/spfav2"
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/golang/mock/gomock"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 
 	routerpoolpkg "github.com/KyberNetwork/router-service/internal/pkg/core/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase"
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/buildroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/getroute"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/findroute"
@@ -104,10 +105,11 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		Address:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 		Decimals: 18,
 	}
-	priceWETH := &entity.Price{
-		Address:   tokenWETH.Address,
-		Price:     1576.07366,
-		Liquidity: 180000000,
+	priceWETH := &routerEntity.OnchainPrice{
+		USDPrice: routerEntity.Price{
+			Buy:  big.NewFloat(1576.07366),
+			Sell: big.NewFloat(1576.07366),
+		},
 	}
 	tokenUSDT := &entity.Token{
 		Name:     "Tether USD",
@@ -115,10 +117,11 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		Address:  "0xdac17f958d2ee523a2206206994597c13d831ec7",
 		Decimals: 6,
 	}
-	priceUSDT := &entity.Price{
-		Address:   tokenUSDT.Address,
-		Price:     1,
-		Liquidity: 99999999999999,
+	priceUSDT := &routerEntity.OnchainPrice{
+		USDPrice: routerEntity.Price{
+			Buy:  big.NewFloat(1),
+			Sell: big.NewFloat(1),
+		},
 	}
 
 	// Mock up pools
@@ -145,18 +148,19 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 		AnyTimes()
 
 	// Mock ITokenRepository
-	tokenRepository := usecase.NewMockITokenRepository(ctrl)
+	tokenRepository := buildroute.NewMockITokenRepository(ctrl)
 	tokenRepository.EXPECT().
 		FindByAddresses(gomock.Any(), gomock.Any()).
 		Return([]*entity.Token{tokenWETH, tokenUSDT}, nil).
 		AnyTimes()
 
-	// Mock IPriceRepository
-	priceRepository := usecase.NewMockIPriceRepository(ctrl)
-	priceRepository.EXPECT().
-		FindByAddresses(gomock.Any(), gomock.Any()).
-		Return([]*entity.Price{priceWETH, priceUSDT}, nil).
-		AnyTimes()
+	onchainpriceRepo := getroute.NewMockIOnchainPriceRepository(ctrl)
+	onchainpriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.Any()).
+		Return(
+			map[string]*routerEntity.OnchainPrice{
+				tokenWETH.Address: priceWETH,
+				tokenUSDT.Address: priceUSDT}, nil,
+		).AnyTimes()
 
 	// Mock IRouteCacheRepository
 	routeCacheRepository := getroute.NewMockIRouteCacheRepository(ctrl)
@@ -267,8 +271,7 @@ func prepareUsecase(ctrl *gomock.Controller) *useCase {
 	return NewUseCase(
 		poolRankRepository,
 		tokenRepository,
-		priceRepository,
-		nil,
+		onchainpriceRepo,
 		routeCacheRepository,
 		gasRepository,
 		poolManager,

@@ -14,6 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/pkg/errors"
 
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/metrics"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
@@ -295,18 +296,29 @@ func (c *cache) summarizeSimpleRoute(
 		params.GasToken.Address: &params.GasToken,
 	}
 
-	priceUSDByAddress := map[string]float64{
-		params.TokenIn.Address:  params.TokenInPriceUSD,
-		params.TokenOut.Address: params.TokenOutPriceUSD,
-		params.GasToken.Address: params.GasTokenPriceUSD,
+	priceByAddress := map[string]*routerEntity.OnchainPrice{
+		params.TokenIn.Address: {
+			USDPrice: routerEntity.Price{
+				Buy: big.NewFloat(params.TokenInPriceUSD),
+			},
+		},
+		params.TokenOut.Address: {
+			USDPrice: routerEntity.Price{
+				Buy: big.NewFloat(params.TokenOutPriceUSD),
+			},
+		},
+		params.GasToken.Address: {
+			USDPrice: routerEntity.Price{
+				Buy: big.NewFloat(params.GasTokenPriceUSD),
+			},
+		},
 	}
 
 	findRouteParams := ConvertToPathfinderParams(
 		nil,
 		params,
 		tokenByAddress,
-		priceUSDByAddress,
-		nil,
+		priceByAddress,
 		state,
 	)
 

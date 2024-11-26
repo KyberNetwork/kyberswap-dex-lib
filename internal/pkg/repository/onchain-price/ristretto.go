@@ -10,7 +10,6 @@ import (
 	"github.com/dgraph-io/ristretto"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/entity"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/price"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/pkg/backoff"
 	"github.com/KyberNetwork/router-service/pkg/logger"
@@ -19,7 +18,7 @@ import (
 type ristrettoRepository struct {
 	cache          *ristretto.Cache
 	grpcRepository *grpcRepository
-	config         price.RistrettoConfig
+	config         RistrettoConfig
 	nativeUSDPrice atomic.Pointer[big.Float]
 }
 
@@ -35,7 +34,7 @@ var (
 
 func NewRistrettoRepository(
 	grpcRepository *grpcRepository,
-	config price.RistrettoConfig,
+	config RistrettoConfig,
 ) (*ristrettoRepository, error) {
 
 	cache, err := ristretto.NewCache(&ristretto.Config{

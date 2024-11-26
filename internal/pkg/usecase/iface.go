@@ -13,13 +13,14 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
-//go:generate mockgen -destination ../mocks/usecase/pool_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IPoolRepository
-//go:generate mockgen -destination ../mocks/usecase/token_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase ITokenRepository
-//go:generate mockgen -destination ../mocks/usecase/price_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IPriceRepository
-//go:generate mockgen -destination ../mocks/usecase/config_fetcher_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IConfigFetcherRepository
-//go:generate mockgen -destination ../mocks/usecase/client_data_encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IClientDataEncoder
-//go:generate mockgen -destination ../mocks/usecase/encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IEncoder
-//go:generate mockgen -destination ../mocks/usecase/pool_rank_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IPoolRankRepository
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/usecase/pool_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IPoolRepository
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/usecase/token_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase ITokenRepository
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/usecase/price_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IPriceRepository
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/usecase/config_fetcher_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IConfigFetcherRepository
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/usecase/client_data_encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IClientDataEncoder
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/usecase/encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IEncoder
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/usecase/pool_rank_repository.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IPoolRankRepository
+//go:generate go run go.uber.org/mock/mockgen -destination ../mocks/usecase/encoder.go -package usecase github.com/KyberNetwork/router-service/internal/pkg/usecase IEncoder
 
 // IPoolRepository receives pool addresses, fetch pool data from datastore, decode them and return []entity.Pool
 type IPoolRepository interface {
@@ -30,11 +31,6 @@ type IPoolRepository interface {
 // ITokenRepository receives token addresses, fetch token data from datastore, decode them and return []entity.Token
 type ITokenRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error)
-}
-
-// IPriceRepository receives token addresses, fetch price data from datastore, decode them and return []entity.Price
-type IPriceRepository interface {
-	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Price, error)
 }
 
 type IOnchainPriceRepository interface {
@@ -57,8 +53,7 @@ type IPoolRankRepository interface {
 		ctx context.Context,
 		token0, token1 string,
 		isToken0Whitelisted, isToken1Whitelisted bool,
-		key string, memberName string, score float64,
-		useGlobal bool,
+		key string, memberName string, useGlobal bool,
 	) error
 	RemoveAddressFromIndex(ctx context.Context, key string, pools []string) error
 	GetDirectIndexLength(ctx context.Context, key, token0, token1 string) (int64, error)

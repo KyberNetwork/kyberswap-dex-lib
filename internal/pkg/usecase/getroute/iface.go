@@ -25,7 +25,7 @@ type IBundledAggregator interface {
 	ApplyConfig(config Config)
 }
 
-//go:generate mockgen -destination ../../mocks/usecase/getroute/pool_manager.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IPoolManager
+//go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/pool_manager.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IPoolManager
 type IPoolManager interface {
 	// GetStateByPoolAddresses return a map of address - pools and a map of dexType- swapLimit for
 	GetStateByPoolAddresses(
@@ -46,12 +46,12 @@ type IPoolFactory interface {
 	) []pool.IPoolSimulator
 }
 
-//go:generate mockgen -destination ../../mocks/usecase/getroute/gas_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IGasRepository
+//go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/gas_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IGasRepository
 type IGasRepository interface {
 	GetSuggestedGasPrice(ctx context.Context) (*big.Int, error)
 }
 
-//go:generate mockgen -destination ../../mocks/usecase/getroute/pool_rank_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IPoolRankRepository
+//go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/pool_rank_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IPoolRankRepository
 type IPoolRankRepository interface {
 	FindBestPoolIDs(
 		ctx context.Context,
@@ -66,21 +66,19 @@ type IPoolRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Pool, error)
 }
 
-//go:generate mockgen -destination ../../mocks/usecase/getroute/route_cache_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IRouteCacheRepository
+//go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/route_cache_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IRouteCacheRepository
 type IRouteCacheRepository interface {
 	Get(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) (map[valueobject.RouteCacheKeyTTL]*valueobject.SimpleRoute, error)
 	Set(ctx context.Context, keys []valueobject.RouteCacheKeyTTL, routes []*valueobject.SimpleRoute) error
 	Del(ctx context.Context, keys []valueobject.RouteCacheKeyTTL) error
 }
 
+//go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/token_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute ITokenRepository
 type ITokenRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Token, error)
 }
 
-type IPriceRepository interface {
-	FindByAddresses(ctx context.Context, addresses []string) ([]*entity.Price, error)
-}
-
+//go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/getroute/onchain_price_repository.go -package getroute github.com/KyberNetwork/router-service/internal/pkg/usecase/getroute IOnchainPriceRepository
 type IOnchainPriceRepository interface {
 	FindByAddresses(ctx context.Context, addresses []string) (map[string]*routerEntity.OnchainPrice, error)
 	RefreshCacheNativePriceInUSD(ctx context.Context)

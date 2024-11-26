@@ -16,11 +16,11 @@ import (
 	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
-	"github.com/golang/mock/gomock"
 	cachePolicy "github.com/hashicorp/golang-lru/v2"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	mocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/poolmanager"
 	getPoolsMocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/getpools"

@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	pool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockIPoolSimulator is a mock of IPoolSimulator interface.

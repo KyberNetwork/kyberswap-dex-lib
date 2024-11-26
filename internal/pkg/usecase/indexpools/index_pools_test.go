@@ -4,15 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/big"
 	"testing"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 
+	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	mocks "github.com/KyberNetwork/router-service/internal/pkg/mocks/usecase/indexpools"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 )
 
@@ -60,66 +63,186 @@ func mockPoolTokensTestIndexPools() []*entity.PoolToken {
 	return []*entity.PoolToken{token1, token2, token3, token4, token5}
 }
 
+func mockOnchainPrices() map[string]*routerEntity.OnchainPrice {
+	price1 := &routerEntity.OnchainPrice{
+		USDPrice: routerEntity.Price{
+			Buy:  big.NewFloat(0.5),
+			Sell: big.NewFloat(1),
+		},
+		NativePriceRaw: routerEntity.Price{
+			Buy:  big.NewFloat(1),
+			Sell: big.NewFloat(1),
+		},
+	}
+	price2 := &routerEntity.OnchainPrice{
+		USDPrice: routerEntity.Price{
+			Buy:  big.NewFloat(1),
+			Sell: big.NewFloat(1),
+		},
+		NativePriceRaw: routerEntity.Price{
+			Buy:  big.NewFloat(1),
+			Sell: big.NewFloat(1),
+		},
+	}
+	price3 := &routerEntity.OnchainPrice{
+		USDPrice: routerEntity.Price{
+			Buy:  big.NewFloat(1),
+			Sell: big.NewFloat(1),
+		},
+		NativePriceRaw: routerEntity.Price{
+			Buy:  big.NewFloat(1),
+			Sell: big.NewFloat(1),
+		},
+	}
+	price4 := &routerEntity.OnchainPrice{
+		USDPrice: routerEntity.Price{
+			Buy:  big.NewFloat(1),
+			Sell: big.NewFloat(1),
+		},
+		NativePriceRaw: routerEntity.Price{
+			Buy:  big.NewFloat(1),
+			Sell: big.NewFloat(1),
+		},
+	}
+	price5 := &routerEntity.OnchainPrice{
+		USDPrice: routerEntity.Price{
+			Buy:  big.NewFloat(1),
+			Sell: big.NewFloat(1),
+		},
+		NativePriceRaw: routerEntity.Price{
+			Buy:  big.NewFloat(1),
+			Sell: big.NewFloat(1),
+		},
+	}
+	return map[string]*routerEntity.OnchainPrice{
+		"tokenaddress1": price1,
+		"tokenaddress2": price2,
+		"tokenaddress3": price3,
+		"tokenaddress4": price4,
+		"tokenaddress5": price5,
+	}
+}
+
 func mockPoolsTestIndexPools() []*entity.Pool {
 	poolTokens := mockPoolTokensTestIndexPools()
 	return []*entity.Pool{
 		{
-			Address:      "pooladdress1",
-			ReserveUsd:   10000,
-			AmplifiedTvl: 10,
-			SwapFee:      100,
-			Exchange:     "exchange1",
-			Type:         "type1",
-			Timestamp:    1658373335,
-			Reserves:     []string{"10000", "20000"},
-			Tokens:       []*entity.PoolToken{poolTokens[0], poolTokens[1], poolTokens[2]},
-			Extra:        "extra1",
-			StaticExtra:  "staticExtra1",
-			TotalSupply:  "10000",
+			Address:     "pooladdress1",
+			SwapFee:     100,
+			Exchange:    "exchange1",
+			Type:        "type1",
+			Timestamp:   1658373335,
+			Reserves:    []string{"1000000000000000000", "2000000000000000000", "0"},
+			Tokens:      []*entity.PoolToken{poolTokens[0], poolTokens[1], poolTokens[2]},
+			Extra:       "extra1",
+			StaticExtra: "staticExtra1",
+			TotalSupply: "30000",
 		},
 		{
-			Address:      "pooladdress2",
-			ReserveUsd:   20000,
-			AmplifiedTvl: 0,
-			SwapFee:      200,
-			Exchange:     "exchange2",
-			Type:         pooltypes.PoolTypes.CurveMeta,
-			Timestamp:    1658373335,
-			Reserves:     []string{"20000", "30000"},
-			Tokens:       []*entity.PoolToken{poolTokens[1], poolTokens[0]},
-			Extra:        "extra2",
-			StaticExtra:  fmt.Sprintf(`{"underlyingTokens": ["%s", "%s", "%s"]}`, poolTokens[1].Address, poolTokens[3].Address, poolTokens[4].Address),
-			TotalSupply:  "20000",
+			Address:     "pooladdress2",
+			SwapFee:     200,
+			Exchange:    "exchange2",
+			Type:        pooltypes.PoolTypes.CurveMeta,
+			Timestamp:   1658373335,
+			Reserves:    []string{"2000000000000000000", "3000000000000000000"},
+			Tokens:      []*entity.PoolToken{poolTokens[1], poolTokens[0]},
+			Extra:       "extra2",
+			StaticExtra: fmt.Sprintf(`{"underlyingTokens": ["%s", "%s", "%s"]}`, poolTokens[1].Address, poolTokens[3].Address, poolTokens[4].Address),
+			TotalSupply: "5000000000000000000",
 		},
 		{
-			Address:      "pooladdress3",
-			ReserveUsd:   0,
+			Address:     "pooladdress3",
+			ReserveUsd:  0,
+			SwapFee:     300,
+			Exchange:    "exchange3",
+			Type:        pooltypes.PoolTypes.CurveAave,
+			Timestamp:   1658373335,
+			Reserves:    []string{"0", "0"},
+			Tokens:      []*entity.PoolToken{poolTokens[0], poolTokens[1]},
+			Extra:       "extra2",
+			StaticExtra: fmt.Sprintf(`{"underlyingTokens": ["%s", "%s"]}`, poolTokens[3].Address, poolTokens[4].Address),
+			TotalSupply: "30000",
+		},
+		{
+			Address:     "pooladdress4",
+			SwapFee:     300,
+			Exchange:    "exchange3",
+			Type:        pooltypes.PoolTypes.CurveAave,
+			Timestamp:   1658373335,
+			Reserves:    []string{"0", "0"},
+			Tokens:      []*entity.PoolToken{poolTokens[0], poolTokens[1]},
+			Extra:       "extra2",
+			StaticExtra: fmt.Sprintf(`{"underlyingTokens": ["%s", "%s"]}`, poolTokens[3].Address, poolTokens[4].Address),
+			TotalSupply: "30000",
+		},
+		{
+			Address:      "pooladdress5",
 			AmplifiedTvl: 30,
 			SwapFee:      300,
-			Exchange:     "exchange3",
-			Type:         pooltypes.PoolTypes.CurveAave,
+			Exchange:     "pancake-v3",
+			Type:         pooltypes.PoolTypes.PancakeV3,
 			Timestamp:    1658373335,
-			Reserves:     []string{},
+			Reserves:     []string{"990096161416868", "1000000000000000000"},
 			Tokens:       []*entity.PoolToken{poolTokens[0], poolTokens[1]},
-			Extra:        "extra2",
-			StaticExtra:  fmt.Sprintf(`{"underlyingTokens": ["%s", "%s"]}`, poolTokens[3].Address, poolTokens[4].Address),
-			TotalSupply:  "30000",
-		},
-		{
-			Address:      "pooladdress4",
-			ReserveUsd:   0,
-			AmplifiedTvl: 0,
-			SwapFee:      300,
-			Exchange:     "exchange3",
-			Type:         pooltypes.PoolTypes.CurveAave,
-			Timestamp:    1658373335,
-			Reserves:     []string{},
-			Tokens:       []*entity.PoolToken{poolTokens[0], poolTokens[1]},
-			Extra:        "extra2",
-			StaticExtra:  fmt.Sprintf(`{"underlyingTokens": ["%s", "%s"]}`, poolTokens[3].Address, poolTokens[4].Address),
+			Extra:        `{"liquidity":1728825575337728263438306,"sqrtPriceX96":88400328422539208376907242502325,"tickSpacing":200,"tick":140353,"ticks":[{"index":-887200,"liquidityGross":1728825575337728263438306,"liquidityNet":1728825575337728263438306},{"index":887200,"liquidityGross":1728825575337728263438306,"liquidityNet":-1728825575337728263438306}]}`,
+			StaticExtra:  `{"poolId":"0xb95ec1d6fb087ff65157ebd531f87a951dd85007"}`,
 			TotalSupply:  "30000",
 		},
 	}
+}
+
+func mockPoolsNativeTVL(pools []*entity.Pool, nativePriceByToken map[string]*routerEntity.OnchainPrice) []float64 {
+	ctx := context.TODO()
+	nativeTVL0, _ := business.CalculatePoolTVL(ctx, pools[0], nativePriceByToken)
+	nativeTVL1, _ := business.CalculatePoolTVL(ctx, pools[1], nativePriceByToken)
+	nativeTVL2, _ := business.CalculatePoolTVL(ctx, pools[2], nativePriceByToken)
+	nativeTVL3, _ := business.CalculatePoolTVL(ctx, pools[3], nativePriceByToken)
+	nativeTVL4, _ := business.CalculatePoolTVL(ctx, pools[4], nativePriceByToken)
+
+	return []float64{
+		nativeTVL0,
+		nativeTVL1,
+		nativeTVL2,
+		nativeTVL3,
+		nativeTVL4,
+	}
+
+}
+
+func mockPoolsAmplifiedNativeTVL(
+	pools []*entity.Pool,
+	nativePriceByToken map[string]*routerEntity.OnchainPrice,
+	tvlNative []float64) []float64 {
+	ctx := context.TODO()
+	amplifiedTvlNative0, useTvl0, err0 := business.CalculatePoolAmplifiedTVL(ctx, pools[0], nativePriceByToken)
+	if err0 == nil && useTvl0 {
+		amplifiedTvlNative0 = tvlNative[0]
+	}
+	amplifiedTvlNative1, useTvl1, err1 := business.CalculatePoolAmplifiedTVL(ctx, pools[1], nativePriceByToken)
+	if err1 == nil && useTvl1 {
+		amplifiedTvlNative1 = tvlNative[1]
+	}
+	amplifiedTvlNative2, useTvl2, err2 := business.CalculatePoolAmplifiedTVL(ctx, pools[2], nativePriceByToken)
+	if err2 == nil && useTvl2 {
+		amplifiedTvlNative2 = tvlNative[2]
+	}
+	amplifiedTvlNative3, useTvl3, err3 := business.CalculatePoolAmplifiedTVL(ctx, pools[3], nativePriceByToken)
+	if err3 == nil && useTvl3 {
+		amplifiedTvlNative3 = tvlNative[3]
+	}
+	amplifiedTvlNative4, useTvl4, err4 := business.CalculatePoolAmplifiedTVL(ctx, pools[4], nativePriceByToken)
+	if err4 == nil && useTvl4 {
+		amplifiedTvlNative4 = tvlNative[3]
+	}
+
+	return []float64{
+		amplifiedTvlNative0,
+		amplifiedTvlNative1,
+		amplifiedTvlNative2,
+		amplifiedTvlNative3,
+		amplifiedTvlNative4,
+	}
+
 }
 
 func TestIndexPools_Handle(t *testing.T) {
@@ -136,6 +259,9 @@ func TestIndexPools_Handle(t *testing.T) {
 
 	mockTokens := mockPoolTokensTestIndexPools()
 	mockPools := mockPoolsTestIndexPools()
+	mockPrices := mockOnchainPrices()
+	mockNativeTvls := mockPoolsNativeTVL(mockPools, mockPrices)
+	mockAmplifiedNativeTvls := mockPoolsAmplifiedNativeTVL(mockPools, mockPrices, mockNativeTvls)
 
 	testCases := []TestCase{
 		{
@@ -159,9 +285,9 @@ func TestIndexPools_Handle(t *testing.T) {
 							mockPools[1].Address,
 							mockPools[2].Address,
 							mockPools[3].Address,
-							"pooladdress5",
+							"pooladdress6",
 						},
-					).Return(mockPools, nil)
+					).Return([]*entity.Pool{mockPools[0], mockPools[1], mockPools[2], mockPools[3]}, nil)
 
 				mockPoolRankRepo := mocks.NewMockIPoolRankRepository(ctrl)
 				mockPoolRankRepo.EXPECT().AddToSortedSet(
@@ -170,7 +296,7 @@ func TestIndexPools_Handle(t *testing.T) {
 					mockTokens[1].Address,
 					true,
 					false,
-					poolrank.SortByTVL, mockPools[0].Address, mockPools[0].ReserveUsd, true,
+					poolrank.SortByTVLNative, mockPools[0].Address, mockNativeTvls[0], true,
 				).Return(nil)
 				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
@@ -178,7 +304,7 @@ func TestIndexPools_Handle(t *testing.T) {
 					mockTokens[1].Address,
 					true,
 					false,
-					poolrank.SortByAmplifiedTvl, mockPools[0].Address, mockPools[0].AmplifiedTvl, false,
+					poolrank.SortByAmplifiedTVLNative, mockPools[0].Address, mockAmplifiedNativeTvls[0], false,
 				).Return(nil)
 				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
@@ -186,7 +312,24 @@ func TestIndexPools_Handle(t *testing.T) {
 					mockTokens[0].Address,
 					false,
 					true,
-					poolrank.SortByTVL, mockPools[1].Address, mockPools[1].ReserveUsd, true,
+					poolrank.SortByTVLNative, mockPools[1].Address, mockNativeTvls[1], true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
+					gomock.Any(),
+					mockTokens[1].Address,
+					mockTokens[0].Address,
+					false,
+					true,
+					poolrank.SortByAmplifiedTVLNative, mockPools[1].Address, mockAmplifiedNativeTvls[1], false,
+				).Return(nil)
+				// for curve meta
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
+					gomock.Any(),
+					mockTokens[1].Address,
+					mockTokens[3].Address,
+					false,
+					true,
+					poolrank.SortByTVLNative, mockPools[1].Address, mockNativeTvls[1], true,
 				).Return(nil)
 				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
@@ -194,7 +337,7 @@ func TestIndexPools_Handle(t *testing.T) {
 					mockTokens[3].Address,
 					false,
 					true,
-					poolrank.SortByTVL, mockPools[1].Address, mockPools[1].ReserveUsd, true,
+					poolrank.SortByAmplifiedTVLNative, mockPools[1].Address, mockAmplifiedNativeTvls[1], false,
 				).Return(nil)
 				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
@@ -202,20 +345,32 @@ func TestIndexPools_Handle(t *testing.T) {
 					mockTokens[4].Address,
 					false,
 					false,
-					poolrank.SortByTVL, mockPools[1].Address, mockPools[1].ReserveUsd, true,
+					poolrank.SortByTVLNative, mockPools[1].Address, mockNativeTvls[1], true,
 				).Return(nil)
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
+					gomock.Any(),
+					mockTokens[1].Address,
+					mockTokens[4].Address,
+					false,
+					false,
+					poolrank.SortByAmplifiedTVLNative, mockPools[1].Address, mockAmplifiedNativeTvls[1], false,
+				).Return(nil)
+
 				mockPoolRankRepo.EXPECT().
 					GetDirectIndexLength(gomock.Any(), poolrank.SortByTVLNative, gomock.Any(), gomock.Any()).
 					Return(int64(0), nil).AnyTimes()
 
-				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, nil, mockConfig)
+				onchainPriceRepo := mocks.NewMockIOnchainPriceRepository(ctrl)
+				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.All()).Return(mockPrices, nil).AnyTimes()
+
+				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, onchainPriceRepo, mockConfig)
 			},
 			command: dto.IndexPoolsCommand{PoolAddresses: []string{
 				mockPools[0].Address,
 				mockPools[1].Address,
 				mockPools[2].Address,
 				mockPools[3].Address,
-				"pooladdress5",
+				"pooladdress6",
 			}},
 			result: dto.NewIndexPoolsResult(nil, 0),
 		},
@@ -240,9 +395,9 @@ func TestIndexPools_Handle(t *testing.T) {
 							mockPools[1].Address,
 							mockPools[2].Address,
 							mockPools[3].Address,
-							"pooladdress5",
+							"pooladdress6",
 						},
-					).Return(mockPools, nil)
+					).Return([]*entity.Pool{mockPools[0], mockPools[1], mockPools[2], mockPools[3]}, nil)
 
 				mockPoolRankRepo := mocks.NewMockIPoolRankRepository(ctrl)
 				mockPoolRankRepo.EXPECT().AddToSortedSet(
@@ -251,7 +406,7 @@ func TestIndexPools_Handle(t *testing.T) {
 					mockTokens[1].Address,
 					true,
 					false,
-					poolrank.SortByTVL, mockPools[0].Address, mockPools[0].ReserveUsd, true,
+					poolrank.SortByTVLNative, mockPools[0].Address, mockNativeTvls[0], true,
 				).Return(nil)
 				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
@@ -259,23 +414,40 @@ func TestIndexPools_Handle(t *testing.T) {
 					mockTokens[1].Address,
 					true,
 					false,
-					poolrank.SortByAmplifiedTvl, mockPools[0].Address, mockPools[0].AmplifiedTvl, false,
-				).Return(nil)
-				mockPoolRankRepo.EXPECT().AddToSortedSet(
-					gomock.Any(),
-					mockTokens[1].Address,
-					mockTokens[0].Address,
-					false,
-					true,
-					poolrank.SortByTVL, mockPools[1].Address, mockPools[1].ReserveUsd, true,
+					poolrank.SortByAmplifiedTVLNative, mockPools[0].Address, mockAmplifiedNativeTvls[0], false,
 				).Return(theError)
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
+					gomock.Any(),
+					mockTokens[1].Address,
+					mockTokens[0].Address,
+					false,
+					true,
+					poolrank.SortByTVLNative, mockPools[1].Address, mockNativeTvls[1], true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
+					gomock.Any(),
+					mockTokens[1].Address,
+					mockTokens[0].Address,
+					false,
+					true,
+					poolrank.SortByAmplifiedTVLNative, mockPools[1].Address, mockAmplifiedNativeTvls[1], false,
+				).Return(nil)
+				// for curve meta
 				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
 					mockTokens[1].Address,
 					mockTokens[3].Address,
 					false,
 					true,
-					poolrank.SortByTVL, mockPools[1].Address, mockPools[1].ReserveUsd, true,
+					poolrank.SortByTVLNative, mockPools[1].Address, mockNativeTvls[1], true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
+					gomock.Any(),
+					mockTokens[1].Address,
+					mockTokens[3].Address,
+					false,
+					true,
+					poolrank.SortByAmplifiedTVLNative, mockPools[1].Address, mockAmplifiedNativeTvls[1], false,
 				).Return(nil)
 				mockPoolRankRepo.EXPECT().AddToSortedSet(
 					gomock.Any(),
@@ -283,22 +455,32 @@ func TestIndexPools_Handle(t *testing.T) {
 					mockTokens[4].Address,
 					false,
 					false,
-					poolrank.SortByTVL, mockPools[1].Address, mockPools[1].ReserveUsd, true,
+					poolrank.SortByTVLNative, mockPools[1].Address, mockNativeTvls[1], true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().AddToSortedSet(
+					gomock.Any(),
+					mockTokens[1].Address,
+					mockTokens[4].Address,
+					false,
+					false,
+					poolrank.SortByAmplifiedTVLNative, mockPools[1].Address, mockAmplifiedNativeTvls[1], false,
 				).Return(nil)
 				mockPoolRankRepo.EXPECT().
 					GetDirectIndexLength(gomock.Any(), poolrank.SortByTVLNative, gomock.Any(), gomock.Any()).
 					Return(int64(0), nil).AnyTimes()
+				onchainPriceRepo := mocks.NewMockIOnchainPriceRepository(ctrl)
+				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.All()).Return(mockPrices, nil).AnyTimes()
 
-				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, nil, mockConfig)
+				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, onchainPriceRepo, mockConfig)
 			},
 			command: dto.IndexPoolsCommand{PoolAddresses: []string{
 				mockPools[0].Address,
 				mockPools[1].Address,
 				mockPools[2].Address,
 				mockPools[3].Address,
-				"pooladdress5",
+				"pooladdress6",
 			}},
-			result: dto.NewIndexPoolsResult([]string{"pooladdress2"}, 0),
+			result: dto.NewIndexPoolsResult([]string{"pooladdress1"}, 0),
 		},
 		{
 			name: "it should return correct failed pool addresses when repository returns error",
@@ -345,18 +527,7 @@ func TestIndexPools_Handle(t *testing.T) {
 					FindByAddresses(gomock.Any(), []string{mockPool.Address}).
 					Return([]*entity.Pool{mockPool}, nil)
 				mockPoolRankRepo := mocks.NewMockIPoolRankRepository(ctrl)
-				mockPoolRankRepo.EXPECT().
-					AddToSortedSet(
-						gomock.Any(),
-						mockPool.Tokens[0].Address,
-						mockPool.Tokens[1].Address,
-						false,
-						false,
-						poolrank.SortByTVL,
-						mockPool.Address,
-						mockPool.AmplifiedTvl,
-						true,
-					).Return(nil)
+				mockTvl, _ := business.CalculatePoolTVL(context.TODO(), mockPool, nil)
 				mockPoolRankRepo.EXPECT().
 					AddToSortedSet(
 						gomock.Any(),
@@ -366,14 +537,16 @@ func TestIndexPools_Handle(t *testing.T) {
 						false,
 						poolrank.SortByTVLNative,
 						mockPool.Address,
-						mockPool.AmplifiedTvl,
+						mockTvl,
 						true,
 					).Return(nil)
 				mockPoolRankRepo.EXPECT().
 					GetDirectIndexLength(gomock.Any(), poolrank.SortByTVLNative, mockPool.Tokens[0].Address, mockPool.Tokens[1].Address).
 					Return(int64(0), nil)
+				onchainPriceRepo := mocks.NewMockIOnchainPriceRepository(ctrl)
+				onchainPriceRepo.EXPECT().FindByAddresses(gomock.Any(), gomock.All()).Return(nil, nil).AnyTimes()
 
-				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, nil, mockConfig)
+				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, onchainPriceRepo, mockConfig)
 			},
 			command: dto.IndexPoolsCommand{PoolAddresses: []string{"pooladdress5"}},
 			result:  dto.NewIndexPoolsResult(nil, 0),
@@ -430,24 +603,49 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					mockTokens[0].Address,
 					false,
 					true,
-					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
-				).Return(nil).Times(1)
+					poolrank.SortByTVLNative, mockPools[1].Address, true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[1].Address,
+					mockTokens[0].Address,
+					false,
+					true,
+					poolrank.SortByAmplifiedTVLNative, mockPools[1].Address, false,
+				).Return(nil)
+				// for curve meta
 				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
 					gomock.Any(),
 					mockTokens[1].Address,
 					mockTokens[3].Address,
 					false,
 					true,
-					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
-				).Return(nil).Times(1)
+					poolrank.SortByTVLNative, mockPools[1].Address, true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[1].Address,
+					mockTokens[3].Address,
+					false,
+					true,
+					poolrank.SortByAmplifiedTVLNative, mockPools[1].Address, false,
+				).Return(nil)
 				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
 					gomock.Any(),
 					mockTokens[1].Address,
 					mockTokens[4].Address,
 					false,
 					false,
-					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
-				).Return(nil).Times(1)
+					poolrank.SortByTVLNative, mockPools[1].Address, true,
+				).Return(nil)
+				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
+					gomock.Any(),
+					mockTokens[1].Address,
+					mockTokens[4].Address,
+					false,
+					false,
+					poolrank.SortByAmplifiedTVLNative, mockPools[1].Address, false,
+				).Return(nil)
 
 				return NewIndexPoolsUseCase(nil, mockPoolRankRepo, nil, mockConfig)
 			},
@@ -473,7 +671,7 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					mockTokens[1].Address,
 					true,
 					true,
-					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
+					poolrank.SortByTVLNative, p.Address, true,
 				).Return(nil)
 				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
 					gomock.Any(),
@@ -481,7 +679,7 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					mockTokens[1].Address,
 					true,
 					true,
-					poolrank.SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false,
+					poolrank.SortByAmplifiedTVLNative, p.Address, false,
 				).Return(nil)
 
 				return NewIndexPoolsUseCase(nil, mockPoolRankRepo, nil, mockConfig)
@@ -521,7 +719,7 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					mockTokens[1].Address,
 					true,
 					true,
-					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
+					poolrank.SortByTVLNative, p.Address, true,
 				).Return(nil)
 				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
 					gomock.Any(),
@@ -529,7 +727,7 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					mockTokens[1].Address,
 					true,
 					true,
-					poolrank.SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false,
+					poolrank.SortByAmplifiedTVLNative, p.Address, false,
 				).Return(nil)
 				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
 					gomock.Any(),
@@ -537,7 +735,7 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					mockTokens[4].Address,
 					true,
 					false,
-					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
+					poolrank.SortByTVLNative, p.Address, true,
 				).Return(nil)
 				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
 					gomock.Any(),
@@ -545,7 +743,7 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					mockTokens[4].Address,
 					true,
 					false,
-					poolrank.SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false,
+					poolrank.SortByAmplifiedTVLNative, p.Address, false,
 				).Return(nil)
 
 				return NewIndexPoolsUseCase(nil, mockPoolRankRepo, nil, mockConfig)
@@ -585,7 +783,7 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					mockTokens[1].Address,
 					true,
 					true,
-					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
+					poolrank.SortByTVLNative, p.Address, true,
 				).Return(theError).Times(1)
 				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
 					gomock.Any(),
@@ -593,7 +791,7 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					mockTokens[1].Address,
 					true,
 					true,
-					poolrank.SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false,
+					poolrank.SortByAmplifiedTVLNative, p.Address, false,
 				).Return(nil)
 				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
 					gomock.Any(),
@@ -601,7 +799,7 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					mockTokens[4].Address,
 					true,
 					false,
-					poolrank.SortByTVL, p.Address, p.ReserveUsd, true,
+					poolrank.SortByTVLNative, p.Address, true,
 				).Return(nil)
 				mockPoolRankRepo.EXPECT().RemoveFromSortedSet(
 					gomock.Any(),
@@ -609,7 +807,7 @@ func TestIndexPools_RemovePoolFromIndexes(t *testing.T) {
 					mockTokens[4].Address,
 					true,
 					false,
-					poolrank.SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false,
+					poolrank.SortByAmplifiedTVLNative, p.Address, false,
 				).Return(nil)
 
 				return NewIndexPoolsUseCase(nil, mockPoolRankRepo, nil, mockConfig)

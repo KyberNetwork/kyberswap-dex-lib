@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/mocks/api"
 	usecasepkg "github.com/KyberNetwork/router-service/internal/pkg/usecase"

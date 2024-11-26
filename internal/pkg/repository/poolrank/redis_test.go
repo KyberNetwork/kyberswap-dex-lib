@@ -19,8 +19,7 @@ import (
 
 func wrap(cfg RedisRepositoryConfig) Config {
 	return Config{
-		Redis:            cfg,
-		UseNativeRanking: false,
+		Redis: cfg,
 	}
 }
 
@@ -147,7 +146,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 
 		for _, pool := range redisPools {
 			_ = repo.AddToSortedSet(context.Background(), "poolTokenAddress1", "poolTokenAddress2",
-				true, true, SortByTVL, pool.Address, pool.ReserveUsd, true)
+				true, true, SortByAmplifiedTVLNative, pool.Address, pool.ReserveUsd, true)
 		}
 
 		pools, err := repo.FindBestPoolIDs(
@@ -295,7 +294,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 
 		for _, pool := range redisPools {
 			_ = repo.AddToSortedSet(context.Background(), "poolTokenAddress1", "poolTokenAddress2",
-				true, false, SortByTVL, pool.Address, pool.ReserveUsd, true)
+				true, false, SortByAmplifiedTVLNative, pool.Address, pool.ReserveUsd, true)
 		}
 
 		pools, err := repo.FindBestPoolIDs(
@@ -441,7 +440,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 
 		for _, pool := range redisPools {
 			_ = repo.AddToSortedSet(context.Background(), "poolTokenAddress1", "poolTokenAddress2",
-				false, true, SortByTVL, pool.Address, pool.ReserveUsd, true)
+				false, true, SortByTVLNative, pool.Address, pool.ReserveUsd, true)
 		}
 
 		pools, err := repo.FindBestPoolIDs(
@@ -587,7 +586,7 @@ func TestRedisRepository_FindBestPoolIDs(t *testing.T) {
 
 		for _, pool := range redisPools {
 			_ = repo.AddToSortedSet(context.Background(), "poolTokenAddress1", "poolTokenAddress2",
-				false, false, SortByTVL, pool.Address, pool.ReserveUsd, true)
+				false, false, SortByTVLNative, pool.Address, pool.ReserveUsd, true)
 		}
 
 		pools, err := repo.FindBestPoolIDs(
@@ -715,13 +714,13 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 		token1Address := "poolTokenAddress1"
 		token2Address := "poolTokenAddress2"
 
-		_ = repo.AddToSortedSet(context.Background(), token1Address, token2Address, true, true, SortByTVL, p.Address, p.ReserveUsd, true)
+		_ = repo.AddToSortedSet(context.Background(), token1Address, token2Address, true, true, SortByTVLNative, p.Address, p.ReserveUsd, true)
 
 		// directKeyPair: :tvl:poolTokenAddress2-poolTokenAddress1
-		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVL, "poolTokenAddress2-poolTokenAddress1"))
-		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVL, KeyWhitelist))
-		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVL, KeyWhitelist, token1Address))
-		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVL, KeyWhitelist, token2Address))
+		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVLNative, "poolTokenAddress2-poolTokenAddress1"))
+		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVLNative, KeyWhitelist))
+		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVLNative, KeyWhitelist, token1Address))
+		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVLNative, KeyWhitelist, token2Address))
 
 		assert.Nil(t, err)
 
@@ -788,12 +787,12 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 		token1Address := "poolTokenAddress1"
 		token2Address := "poolTokenAddress2"
 
-		_ = repo.AddToSortedSet(context.Background(), token1Address, token2Address, true, false, SortByTVL, p.Address, p.ReserveUsd, true)
+		_ = repo.AddToSortedSet(context.Background(), token1Address, token2Address, true, false, SortByTVLNative, p.Address, p.ReserveUsd, true)
 
-		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVL, "poolTokenAddress2-poolTokenAddress1"))
-		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVL, KeyWhitelist))
-		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVL, KeyWhitelist, token1Address))
-		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVL, KeyWhitelist, token2Address))
+		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVLNative, "poolTokenAddress2-poolTokenAddress1"))
+		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVLNative, KeyWhitelist))
+		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVLNative, KeyWhitelist, token1Address))
+		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVLNative, KeyWhitelist, token2Address))
 
 		assert.Nil(t, err)
 
@@ -860,12 +859,12 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 		token1Address := "poolTokenAddress1"
 		token2Address := "poolTokenAddress2"
 
-		_ = repo.AddToSortedSet(context.Background(), token1Address, token2Address, false, true, SortByTVL, p.Address, p.ReserveUsd, true)
+		_ = repo.AddToSortedSet(context.Background(), token1Address, token2Address, false, true, SortByTVLNative, p.Address, p.ReserveUsd, true)
 
-		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVL, "poolTokenAddress2-poolTokenAddress1"))
-		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVL, KeyWhitelist))
-		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVL, KeyWhitelist, token1Address))
-		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVL, KeyWhitelist, token2Address))
+		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVLNative, "poolTokenAddress2-poolTokenAddress1"))
+		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVLNative, KeyWhitelist))
+		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVLNative, KeyWhitelist, token1Address))
+		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVLNative, KeyWhitelist, token2Address))
 
 		assert.Nil(t, err)
 
@@ -933,14 +932,14 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 		token1Address := "poolTokenAddress1"
 		token2Address := "poolTokenAddress2"
 
-		_ = repo.AddToSortedSet(context.Background(), token1Address, token2Address, false, false, SortByTVL, p.Address, p.ReserveUsd, true)
+		_ = repo.AddToSortedSet(context.Background(), token1Address, token2Address, false, false, SortByTVLNative, p.Address, p.ReserveUsd, true)
 
 		assert.Nil(t, err)
 
-		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVL, "poolTokenAddress2-poolTokenAddress1"))
-		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVL, KeyWhitelist))
-		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVL, KeyWhitelist, token1Address))
-		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVL, KeyWhitelist, token2Address))
+		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVLNative, "poolTokenAddress2-poolTokenAddress1"))
+		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByTVLNative, KeyWhitelist))
+		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVLNative, KeyWhitelist, token1Address))
+		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByTVLNative, KeyWhitelist, token2Address))
 
 		// Only the direct pair sorted sets should contain this pool "address1"
 		assert.Equal(t, float64(100), directPools["address1"])
@@ -974,7 +973,7 @@ func TestRedisRepository_AddToSortedSetScoreByTvl(t *testing.T) {
 		token2Address := "poolTokenAddress2"
 
 		pool := &entity.Pool{}
-		err = repo.AddToSortedSet(context.Background(), token1Address, token2Address, true, true, SortByTVL, pool.Address, pool.ReserveUsd, true)
+		err = repo.AddToSortedSet(context.Background(), token1Address, token2Address, true, true, SortByTVLNative, pool.Address, pool.ReserveUsd, true)
 
 		assert.Error(t, err)
 	})
@@ -1037,12 +1036,12 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 		token1Address := "poolTokenAddress1"
 		token2Address := "poolTokenAddress2"
 
-		err = repo.AddToSortedSet(context.Background(), token1Address, token2Address, true, true, SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false)
+		err = repo.AddToSortedSet(context.Background(), token1Address, token2Address, true, true, SortByAmplifiedTVLNative, p.Address, p.AmplifiedTvl, false)
 
-		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTvl, "poolTokenAddress2-poolTokenAddress1"))
-		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTvl, KeyWhitelist))
-		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTvl, KeyWhitelist, token1Address))
-		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTvl, KeyWhitelist, token2Address))
+		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTVLNative, "poolTokenAddress2-poolTokenAddress1"))
+		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTVLNative, KeyWhitelist))
+		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist, token1Address))
+		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist, token2Address))
 
 		assert.Nil(t, err)
 
@@ -1114,12 +1113,12 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 		token1Address := "poolTokenAddress1"
 		token2Address := "poolTokenAddress2"
 
-		err = repo.AddToSortedSet(context.Background(), token1Address, token2Address, true, false, SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false)
+		err = repo.AddToSortedSet(context.Background(), token1Address, token2Address, true, false, SortByAmplifiedTVLNative, p.Address, p.AmplifiedTvl, false)
 
-		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTvl, "poolTokenAddress2-poolTokenAddress1"))
-		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTvl, KeyWhitelist))
-		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTvl, KeyWhitelist, token1Address))
-		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTvl, KeyWhitelist, token2Address))
+		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTVLNative, "poolTokenAddress2-poolTokenAddress1"))
+		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTVLNative, KeyWhitelist))
+		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist, token1Address))
+		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist, token2Address))
 
 		assert.Nil(t, err)
 
@@ -1186,12 +1185,12 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 		token1Address := "poolTokenAddress1"
 		token2Address := "poolTokenAddress2"
 
-		err = repo.AddToSortedSet(context.Background(), token1Address, token2Address, false, true, SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false)
+		err = repo.AddToSortedSet(context.Background(), token1Address, token2Address, false, true, SortByAmplifiedTVLNative, p.Address, p.AmplifiedTvl, false)
 
-		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTvl, "poolTokenAddress2-poolTokenAddress1"))
-		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTvl, KeyWhitelist))
-		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTvl, KeyWhitelist, token1Address))
-		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTvl, KeyWhitelist, token2Address))
+		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTVLNative, "poolTokenAddress2-poolTokenAddress1"))
+		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTVLNative, KeyWhitelist))
+		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist, token1Address))
+		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist, token2Address))
 
 		assert.Nil(t, err)
 
@@ -1259,12 +1258,12 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 		token1Address := "poolTokenAddress1"
 		token2Address := "poolTokenAddress2"
 
-		err = repo.AddToSortedSet(context.Background(), token1Address, token2Address, false, false, SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false)
+		err = repo.AddToSortedSet(context.Background(), token1Address, token2Address, false, false, SortByAmplifiedTVLNative, p.Address, p.AmplifiedTvl, false)
 
-		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTvl, "poolTokenAddress2-poolTokenAddress1"))
-		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTvl, KeyWhitelist))
-		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTvl, KeyWhitelist, token1Address))
-		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTvl, KeyWhitelist, token2Address))
+		directPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTVLNative, "poolTokenAddress2-poolTokenAddress1"))
+		whitelistPools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s", SortByAmplifiedTVLNative, KeyWhitelist))
+		token1Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist, token1Address))
+		token2Pools, _ := redisServer.SortedSet(fmt.Sprintf(":%s:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist, token2Address))
 
 		assert.Nil(t, err)
 
@@ -1299,7 +1298,7 @@ func TestRedisRepository_AddToSortedSetScoreByAmplifiedTvl(t *testing.T) {
 		token1Address := "poolTokenAddress1"
 		token2Address := "poolTokenAddress2"
 
-		err = repo.AddToSortedSet(context.Background(), token1Address, token2Address, true, true, "", SortByAmplifiedTvl, 0, false)
+		err = repo.AddToSortedSet(context.Background(), token1Address, token2Address, true, true, "", SortByAmplifiedTVLNative, 0, false)
 
 		assert.Error(t, err)
 	})
@@ -1333,65 +1332,65 @@ func TestRedisRepository_RemoveFromSortedSet(t *testing.T) {
 			AmplifiedTvl: 100,
 		}
 
-		err = repo.AddToSortedSet(context.TODO(), "tokenaddress1", "tokenaddress2", true, true, SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false)
+		err = repo.AddToSortedSet(context.TODO(), "tokenaddress1", "tokenaddress2", true, true, SortByAmplifiedTVLNative, p.Address, p.AmplifiedTvl, false)
 		assert.Nil(t, err)
-		err = repo.AddToSortedSet(context.TODO(), "tokenaddress1", "tokenaddress2", true, true, SortByTVL, p.Address, p.ReserveUsd, true)
+		err = repo.AddToSortedSet(context.TODO(), "tokenaddress1", "tokenaddress2", true, true, SortByTVLNative, p.Address, p.ReserveUsd, true)
 		assert.Nil(t, err)
 
 		// assert data before delete
 		expectedTvlScore := map[string]float64{"pooladdress2": 20000}
 		expectedAmplifiedTvlScore := map[string]float64{"pooladdress2": 100}
 
-		directPoolsAmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByAmplifiedTvl, "tokenaddress2-tokenaddress1"))
+		directPoolsAmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByAmplifiedTVLNative, "tokenaddress2-tokenaddress1"))
 		assert.Equal(t, directPoolsAmplifiedTvl, expectedAmplifiedTvlScore)
-		directPoolsTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByTVL, "tokenaddress2-tokenaddress1"))
+		directPoolsTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByTVLNative, "tokenaddress2-tokenaddress1"))
 		assert.Equal(t, directPoolsTvl, expectedTvlScore)
 
-		globalTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s", SortByTVL))
+		globalTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s", SortByTVLNative))
 		assert.Equal(t, globalTvl, expectedTvlScore)
 
-		whitelistPoolsAmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByAmplifiedTvl, KeyWhitelist))
+		whitelistPoolsAmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist))
 		assert.Equal(t, whitelistPoolsAmplifiedTvl, expectedAmplifiedTvlScore)
-		whitelistPoolsTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByTVL, KeyWhitelist))
+		whitelistPoolsTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByTVLNative, KeyWhitelist))
 		assert.Equal(t, whitelistPoolsTvl, expectedTvlScore)
 
-		whitelistToken1AmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByAmplifiedTvl, KeyWhitelist, "tokenaddress1"))
+		whitelistToken1AmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist, "tokenaddress1"))
 		assert.Equal(t, whitelistToken1AmplifiedTvl, expectedAmplifiedTvlScore)
-		whitelistToken1Tvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByTVL, KeyWhitelist, "tokenaddress1"))
+		whitelistToken1Tvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByTVLNative, KeyWhitelist, "tokenaddress1"))
 		assert.Equal(t, whitelistToken1Tvl, expectedTvlScore)
 
-		whitelistToken2AmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByAmplifiedTvl, KeyWhitelist, "tokenaddress2"))
+		whitelistToken2AmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist, "tokenaddress2"))
 		assert.Equal(t, whitelistToken2AmplifiedTvl, expectedAmplifiedTvlScore)
-		whitelistToken2Tvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByTVL, KeyWhitelist, "tokenaddress2"))
+		whitelistToken2Tvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByTVLNative, KeyWhitelist, "tokenaddress2"))
 		assert.Equal(t, whitelistToken2Tvl, expectedTvlScore)
 
-		err = repo.RemoveFromSortedSet(context.TODO(), "tokenaddress1", "tokenaddress2", true, true, SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false)
+		err = repo.RemoveFromSortedSet(context.TODO(), "tokenaddress1", "tokenaddress2", true, true, SortByAmplifiedTVLNative, p.Address, false)
 		assert.Nil(t, err)
-		repo.RemoveFromSortedSet(context.TODO(), "tokenaddress1", "tokenaddress2", true, true, SortByTVL, p.Address, p.ReserveUsd, true)
+		repo.RemoveFromSortedSet(context.TODO(), "tokenaddress1", "tokenaddress2", true, true, SortByTVLNative, p.Address, true)
 		assert.Nil(t, err)
 
 		// asset data after delete
-		directPoolsAmplifiedTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByAmplifiedTvl, "tokenaddress2-tokenaddress1"))
+		directPoolsAmplifiedTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByAmplifiedTVLNative, "tokenaddress2-tokenaddress1"))
 		assert.Nil(t, directPoolsAmplifiedTvl)
-		directPoolsTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByTVL, "tokenaddress2-tokenaddress1"))
+		directPoolsTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByTVLNative, "tokenaddress2-tokenaddress1"))
 		assert.Nil(t, directPoolsTvl)
 
-		globalTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s", SortByTVL))
+		globalTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s", SortByTVLNative))
 		assert.Nil(t, globalTvl)
 
-		whitelistPoolsAmplifiedTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByAmplifiedTvl, KeyWhitelist))
+		whitelistPoolsAmplifiedTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist))
 		assert.Nil(t, whitelistPoolsAmplifiedTvl)
-		whitelistPoolsTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByTVL, KeyWhitelist))
+		whitelistPoolsTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByTVLNative, KeyWhitelist))
 		assert.Nil(t, whitelistPoolsTvl)
 
-		whitelistToken1AmplifiedTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByAmplifiedTvl, KeyWhitelist, "tokenaddress1"))
+		whitelistToken1AmplifiedTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist, "tokenaddress1"))
 		assert.Nil(t, whitelistToken1AmplifiedTvl)
-		whitelistToken1Tvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByTVL, KeyWhitelist, "tokenaddress1"))
+		whitelistToken1Tvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByTVLNative, KeyWhitelist, "tokenaddress1"))
 		assert.Nil(t, whitelistToken1Tvl)
 
-		whitelistToken2AmplifiedTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByAmplifiedTvl, KeyWhitelist, "tokenaddress2"))
+		whitelistToken2AmplifiedTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist, "tokenaddress2"))
 		assert.Nil(t, whitelistToken2AmplifiedTvl)
-		whitelistToken2Tvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByTVL, KeyWhitelist, "tokenaddress2"))
+		whitelistToken2Tvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByTVLNative, KeyWhitelist, "tokenaddress2"))
 		assert.Nil(t, whitelistToken2Tvl)
 
 	})
@@ -1424,50 +1423,50 @@ func TestRedisRepository_RemoveAddressFromIndex(t *testing.T) {
 			AmplifiedTvl: 100,
 		}
 
-		err = repo.AddToSortedSet(context.TODO(), "tokenaddress1", "tokenaddress2", true, true, SortByAmplifiedTvl, p.Address, p.AmplifiedTvl, false)
+		err = repo.AddToSortedSet(context.TODO(), "tokenaddress1", "tokenaddress2", true, true, SortByAmplifiedTVLNative, p.Address, p.AmplifiedTvl, false)
 		assert.Nil(t, err)
-		err = repo.AddToSortedSet(context.TODO(), "tokenaddress1", "tokenaddress2", true, true, SortByTVL, p.Address, p.ReserveUsd, true)
+		err = repo.AddToSortedSet(context.TODO(), "tokenaddress1", "tokenaddress2", true, true, SortByTVLNative, p.Address, p.ReserveUsd, true)
 		assert.Nil(t, err)
 
 		// assert data before delete
 		expectedTvlScore := map[string]float64{"pooladdress2": 20000}
 		expectedAmplifiedTvlScore := map[string]float64{"pooladdress2": 100}
 
-		directPoolsAmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByAmplifiedTvl, "tokenaddress2-tokenaddress1"))
+		directPoolsAmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByAmplifiedTVLNative, "tokenaddress2-tokenaddress1"))
 		assert.Equal(t, directPoolsAmplifiedTvl, expectedAmplifiedTvlScore)
-		directPoolsTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByTVL, "tokenaddress2-tokenaddress1"))
+		directPoolsTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByTVLNative, "tokenaddress2-tokenaddress1"))
 		assert.Equal(t, directPoolsTvl, expectedTvlScore)
 
-		globalTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s", SortByTVL))
+		globalTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s", SortByTVLNative))
 		assert.Equal(t, globalTvl, expectedTvlScore)
 
-		whitelistPoolsAmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByAmplifiedTvl, KeyWhitelist))
+		whitelistPoolsAmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist))
 		assert.Equal(t, whitelistPoolsAmplifiedTvl, expectedAmplifiedTvlScore)
-		whitelistPoolsTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByTVL, KeyWhitelist))
+		whitelistPoolsTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByTVLNative, KeyWhitelist))
 		assert.Equal(t, whitelistPoolsTvl, expectedTvlScore)
 
-		whitelistToken1AmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByAmplifiedTvl, KeyWhitelist, "tokenaddress1"))
+		whitelistToken1AmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist, "tokenaddress1"))
 		assert.Equal(t, whitelistToken1AmplifiedTvl, expectedAmplifiedTvlScore)
-		whitelistToken1Tvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByTVL, KeyWhitelist, "tokenaddress1"))
+		whitelistToken1Tvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByTVLNative, KeyWhitelist, "tokenaddress1"))
 		assert.Equal(t, whitelistToken1Tvl, expectedTvlScore)
 
-		whitelistToken2AmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByAmplifiedTvl, KeyWhitelist, "tokenaddress2"))
+		whitelistToken2AmplifiedTvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist, "tokenaddress2"))
 		assert.Equal(t, whitelistToken2AmplifiedTvl, expectedAmplifiedTvlScore)
-		whitelistToken2Tvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByTVL, KeyWhitelist, "tokenaddress2"))
+		whitelistToken2Tvl, _ := redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s:%s", SortByTVLNative, KeyWhitelist, "tokenaddress2"))
 		assert.Equal(t, whitelistToken2Tvl, expectedTvlScore)
 
-		err = repo.RemoveAddressFromIndex(context.TODO(), SortByTVL, []string{"pooladdress2"})
+		err = repo.RemoveAddressFromIndex(context.TODO(), SortByTVLNative, []string{"pooladdress2"})
 		assert.Nil(t, err)
-		err = repo.RemoveAddressFromIndex(context.TODO(), SortByAmplifiedTvl, []string{"pooladdress2"})
+		err = repo.RemoveAddressFromIndex(context.TODO(), SortByAmplifiedTVLNative, []string{"pooladdress2"})
 		assert.Nil(t, err)
 
 		// asset data after delete
-		globalTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s", SortByTVL))
+		globalTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s", SortByTVLNative))
 		assert.Nil(t, globalTvl)
 
-		whitelistPoolsAmplifiedTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByAmplifiedTvl, KeyWhitelist))
+		whitelistPoolsAmplifiedTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByAmplifiedTVLNative, KeyWhitelist))
 		assert.Nil(t, whitelistPoolsAmplifiedTvl)
-		whitelistPoolsTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByTVL, KeyWhitelist))
+		whitelistPoolsTvl, _ = redisServer.SortedSet(fmt.Sprintf("ethereum:%s:%s", SortByTVLNative, KeyWhitelist))
 		assert.Nil(t, whitelistPoolsTvl)
 
 	})

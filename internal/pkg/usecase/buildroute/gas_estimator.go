@@ -15,7 +15,6 @@ import (
 type GasEstimator struct {
 	gasEstimator    IEthereumGasEstimator
 	gasRepository   IGasRepository
-	priceRepository IPriceRepository
 	gasTokenAddress string
 	routerAddress   string
 
@@ -29,6 +28,7 @@ type UnsignedTransaction struct {
 	gasPrice *big.Int
 }
 
+//go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/buildroute/ethereum_gas_estimator.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IEthereumGasEstimator
 type IEthereumGasEstimator interface {
 	EstimateGas(ctx context.Context, call ethereum.CallMsg) (uint64, error)
 }
@@ -36,7 +36,6 @@ type IEthereumGasEstimator interface {
 func NewGasEstimator(
 	gasEstimator IEthereumGasEstimator,
 	gasRepo IGasRepository,
-	priceRepo IPriceRepository,
 	onchainpriceRepository IOnchainPriceRepository,
 	gasToken string,
 	routerAddress string,
@@ -44,7 +43,6 @@ func NewGasEstimator(
 	return &GasEstimator{
 		gasEstimator:    gasEstimator,
 		gasRepository:   gasRepo,
-		priceRepository: priceRepo,
 		gasTokenAddress: gasToken,
 		routerAddress:   routerAddress,
 
@@ -99,23 +97,16 @@ func (e *GasEstimator) Execute(ctx context.Context, tx UnsignedTransaction) (uin
 }
 
 func (e *GasEstimator) GetGasTokenPriceUSD(ctx context.Context) (float64, error) {
-	if e.onchainpriceRepository != nil {
-		priceByAddress, err := e.onchainpriceRepository.FindByAddresses(ctx, []string{e.gasTokenAddress})
-		if err != nil {
-			return 0, err
-		}
-		// use buy price for gas
-		if price, ok := priceByAddress[e.gasTokenAddress]; ok && price != nil && price.USDPrice.Buy != nil {
-			gasTokenPriceUSD, _ := price.USDPrice.Buy.Float64()
-			return gasTokenPriceUSD, nil
-		}
-		return 0, nil
-	}
-	gasTokenPriceUSD, err := e.getPriceUSDByAddress(ctx, e.gasTokenAddress)
-	if err != nil || gasTokenPriceUSD == nil {
+	priceByAddress, err := e.onchainpriceRepository.FindByAddresses(ctx, []string{e.gasTokenAddress})
+	if err != nil {
 		return 0, err
 	}
-	return gasTokenPriceUSD[e.gasTokenAddress], nil
+	// use buy price for gas
+	if price, ok := priceByAddress[e.gasTokenAddress]; ok && price != nil && price.USDPrice.Buy != nil {
+		gasTokenPriceUSD, _ := price.USDPrice.Buy.Float64()
+		return gasTokenPriceUSD, nil
+	}
+	return 0, nil
 }
 
 func (e *GasEstimator) getGasPrice(ctx context.Context) (*big.Float, error) {
@@ -126,20 +117,4 @@ func (e *GasEstimator) getGasPrice(ctx context.Context) (*big.Float, error) {
 	}
 
 	return new(big.Float).SetInt(suggestedGasPrice), nil
-}
-
-func (u *GasEstimator) getPriceUSDByAddress(ctx context.Context, addresses ...string) (map[string]float64, error) {
-	prices, err := u.priceRepository.FindByAddresses(ctx, addresses)
-	if err != nil {
-		return nil, err
-	}
-
-	priceUSDByAddress := make(map[string]float64, len(prices))
-	for _, price := range prices {
-		priceUSD, _ := price.GetPreferredPrice()
-
-		priceUSDByAddress[price.Address] = priceUSD
-	}
-
-	return priceUSDByAddress, nil
 }
