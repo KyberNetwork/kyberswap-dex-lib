@@ -13,6 +13,8 @@ var (
 	algebraV1DirFeeDataStorageOperatorAPI abi.ABI
 	erc20ABI                              abi.ABI
 	ticklensABI                           abi.ABI
+
+	algebraIntegralPoolABI abi.ABI
 )
 
 func init() {
@@ -26,6 +28,8 @@ func init() {
 		{&algebraV1DirFeeDataStorageOperatorAPI, algebraV1DirFeeDataStorageOperatorJson},
 		{&erc20ABI, erc20Json},
 		{&ticklensABI, ticklensJson},
+
+		{&algebraIntegralPoolABI, algebraIntegralPoolJson},
 	}
 
 	for _, b := range builder {

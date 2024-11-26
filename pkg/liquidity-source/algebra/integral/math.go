@@ -51,8 +51,8 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	currentPrice := p.globalState.Price
 	currentTick := int(p.globalState.Tick.Int64())
 	cache.amountCalculated = integer.Zero()
-	_communityFeeToken0 := p.globalState.CommunityFeeToken0
-	_communityFeeToken1 := p.globalState.CommunityFeeToken1
+	_communityFeeToken0 := p.globalState.CommunityFee
+	_communityFeeToken1 := p.globalState.CommunityFee
 
 	cmp := amountRequired.Cmp(integer.Zero())
 	if cmp == 0 {
@@ -80,9 +80,9 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	// use pre-calculated fee instead of calculating from timepoints
 	// see tracker code for more details
 	if zeroToOne {
-		cache.fee = p.globalState.FeeZto
+		cache.fee = p.globalState.LastFee
 	} else {
-		cache.fee = p.globalState.FeeOtz
+		cache.fee = p.globalState.LastFee
 	}
 	logger.Debugf("fee %v", cache.fee)
 
@@ -189,13 +189,11 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	}
 
 	nextState.GlobalState = GlobalState{
-		Price:              currentPrice,
-		Tick:               big.NewInt(int64(currentTick)),
-		FeeZto:             p.globalState.FeeZto,
-		FeeOtz:             p.globalState.FeeOtz,
-		TimepointIndex:     p.globalState.TimepointIndex,
-		CommunityFeeToken0: p.globalState.CommunityFeeToken0,
-		CommunityFeeToken1: p.globalState.CommunityFeeToken0,
+		Price:        currentPrice,
+		Tick:         big.NewInt(int64(currentTick)),
+		LastFee:      p.globalState.LastFee,
+		PluginConfig: p.globalState.PluginConfig,
+		CommunityFee: p.globalState.CommunityFee,
 	}
 
 	nextState.Liquidity = currentLiquidity

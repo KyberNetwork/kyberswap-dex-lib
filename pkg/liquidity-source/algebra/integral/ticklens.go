@@ -2,6 +2,7 @@ package integral
 
 import (
 	"context"
+	"log"
 	"sort"
 	"strconv"
 
@@ -55,8 +56,12 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 
 		_, err := rpcRequest.Call()
 		if err != nil {
+			log.Fatalf("----------%+v\n", err)
+
 			return nil, err
 		}
+
+		log.Fatalf("----------%+v\n", populatedTicks)
 
 		if len(populatedTicks) > 0 {
 			for _, pt := range populatedTicks {

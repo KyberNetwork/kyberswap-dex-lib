@@ -25,7 +25,7 @@ const (
 	methodGetFeeConfigOtz        = "feeConfigOtz"
 	methodGetTimepoints          = "timepoints"
 	methodGetTickSpacing         = "tickSpacing"
-	erc20MethodBalanceOf         = "balanceOf"
+	// erc20MethodBalanceOf         = "balanceOf"
 
 	maxSwapLoop         = 1000000
 	maxBinarySearchLoop = 1000
@@ -34,6 +34,12 @@ const (
 
 	WINDOW        = 86400 // 1 day in seconds
 	UINT16_MODULO = 65536
+
+	poolLiquidityMethod   = "liquidity"
+	poolGlobalStateMethod = "globalState"
+	poolTickSpacingMethod = "tickSpacing"
+
+	erc20BalanceOfMethod = "balanceOf"
 )
 
 var (

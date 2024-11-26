@@ -16,10 +16,6 @@ import (
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
-var (
-	subgraph = "https://subgraph-api.mantle.xyz/api/public/f077c8d4-0d6c-42d4-9bbd-050948dc5c86/subgraphs/swapsicle/blocks/prod/gn"
-)
-
 type PoolsListUpdater struct {
 	config        *Config
 	graphqlClient *graphql.Client

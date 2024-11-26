@@ -21,3 +21,6 @@ var erc20Json []byte
 
 //go:embed abis/TickLens.json
 var ticklensJson []byte
+
+//go:embed abi_temp/AlgebraPool.json
+var algebraIntegralPoolJson []byte
