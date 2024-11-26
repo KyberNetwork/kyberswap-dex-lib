@@ -69,10 +69,10 @@ func (k *RouteCacheKey) Hash(prefix string) uint64 {
 	_, _ = d.WriteString(k.AmountIn)
 	dexHash := uint64(0)
 	for _, dex := range k.Dexes {
-		dexHash |= xxhash.Sum64String(dex)
+		dexHash ^= xxhash.Sum64String(dex)
 	}
 	for _, pool := range k.ExcludedPools {
-		dexHash |= xxhash.Sum64String(pool)
+		dexHash ^= xxhash.Sum64String(pool)
 	}
 	_, _ = d.Write(binary.LittleEndian.AppendUint64(nil, dexHash))
 	if k.GasInclude {
