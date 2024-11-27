@@ -2,7 +2,6 @@ package eethorweeth
 
 import (
 	"context"
-	"math/big"
 	"strings"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -51,7 +51,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 			Exchange:  string(valueobject.ExchangeEETHOrWEETH),
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
-			Reserves:  []string{},
+			Reserves:  []string{unlimitedReserve, unlimitedReserve, unlimitedReserve, unlimitedReserve},
 			Tokens: []*entity.PoolToken{
 				{Address: stETH, Symbol: "stETH", Decimals: 18, Swappable: true},
 				{Address: wstETH, Symbol: "wstETH", Decimals: 18, Swappable: true},
@@ -131,7 +131,7 @@ func getPoolExtra(
 		return PoolExtra{}, 0, err
 	}
 	if resp.BlockNumber == nil {
-		resp.BlockNumber = big.NewInt(0)
+		resp.BlockNumber = bignumber.ZeroBI
 	}
 
 	// Update poolExtra.StETHTokenInfo from tokenInfo

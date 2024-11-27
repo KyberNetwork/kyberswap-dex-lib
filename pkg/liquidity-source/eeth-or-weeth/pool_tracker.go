@@ -55,7 +55,6 @@ func (t *PoolTracker) getNewPoolState(
 		return p, err
 	}
 
-	p.Reserves = []string{}
 	p.Extra = string(extraBytes)
 	p.BlockNumber = blockNumber
 	p.Timestamp = time.Now().Unix()

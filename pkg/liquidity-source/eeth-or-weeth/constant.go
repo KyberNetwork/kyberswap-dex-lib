@@ -11,4 +11,6 @@ const (
 	liquidityPool = "0x308861a430be4cce5502d0a12724771fc6daf216"
 
 	vampire = "0x9ffdf407cde9a93c47611799da23924af3ef764f"
+
+	unlimitedReserve = "1000000000000000000000"
 )
