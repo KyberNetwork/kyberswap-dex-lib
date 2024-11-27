@@ -228,6 +228,7 @@ encoder:
     executeFluidDexT1: 55
     executeDexalot: 57
     executeClipperRfq: 58
+    executeEtherVista: 60
 useCase:
   getRoute:
     chainId: *chainId

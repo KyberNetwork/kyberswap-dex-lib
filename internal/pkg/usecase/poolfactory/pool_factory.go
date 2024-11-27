@@ -2144,7 +2144,7 @@ func (f *PoolFactory) newAmbientAEVM(entityPool entity.Pool, stateRoot common.Ha
 }
 
 func (f *PoolFactory) newEtherVista(entityPool entity.Pool) (*ethervista.PoolSimulator, error) {
-	corePool, err := ethervista.NewPoolSimulator(entityPool)
+	corePool, err := ethervista.NewPoolSimulator(entityPool, f.config.ChainID)
 	if err != nil {
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
