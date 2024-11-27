@@ -1,9 +1,6 @@
-//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
-//msgp:tuple MinimalPath
-
 package entity
 
-import "encoding/json"
+import "github.com/goccy/go-json"
 
 const BestPathKey = "bestpaths"
 

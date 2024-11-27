@@ -2,19 +2,20 @@ package pancakev3
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 	"github.com/sourcegraph/conc/pool"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -28,7 +29,11 @@ func NewPoolTracker(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) (*PoolTracker, error) {
-	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
+	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
+		Url:     cfg.SubgraphAPI,
+		Header:  cfg.SubgraphHeaders,
+		Timeout: graphQLRequestTimeout,
+	})
 
 	return &PoolTracker{
 		config:        cfg,
@@ -40,7 +45,7 @@ func NewPoolTracker(
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ sourcePool.GetNewPoolStateParams,
+	param sourcePool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
@@ -65,7 +70,7 @@ func (d *PoolTracker) GetNewPoolState(
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, err = d.fetchRPCData(ctx, p)
+		rpcData, err = d.fetchRPCData(ctx, p, 0)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
@@ -77,6 +82,16 @@ func (d *PoolTracker) GetNewPoolState(
 	})
 	g.Go(func(context.Context) error {
 		var err error
+		if d.config.AlwaysUseTickLens {
+			poolTicks, err = ticklens.GetPoolTicksFromSC(ctx, d.ethrpcClient, d.config.TickLensAddress, p, param)
+			if err != nil {
+				logger.WithFields(logger.Fields{
+					"error": err,
+				}).Error("failed to call SC for pool ticks")
+			}
+			return err
+		}
+
 		poolTicks, err = d.getPoolTicks(ctx, p.Address)
 		if err != nil {
 			l.WithFields(logger.Fields{
@@ -134,8 +149,8 @@ func (d *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool) ([]byte, error) {
-	rpcData, err := d.fetchRPCData(ctx, p)
+func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, blockNumber uint64) ([]byte, error) {
+	rpcData, err := d.fetchRPCData(ctx, p, blockNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +163,7 @@ func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool) ([]b
 	return rpcDataBytes, nil
 }
 
-func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPCResult, error) {
+func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumber uint64) (FetchRPCResult, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 		"dexID":       d.config.DexID,
@@ -164,6 +179,11 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
+	if blockNumber > 0 {
+		var blockNumberBI big.Int
+		blockNumberBI.SetUint64(blockNumber)
+		rpcRequest.SetBlockNumber(&blockNumberBI)
+	}
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    pancakeV3PoolABI,
@@ -249,7 +269,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 
 		resp.Meta.CheckIsLagging(d.config.DexID, poolAddress)
 
-		if resp.Ticks == nil || len(resp.Ticks) == 0 {
+		if len(resp.Ticks) == 0 {
 			break
 		}
 

@@ -2,7 +2,6 @@ package gyro3clp
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"math/big"
 	"strings"
@@ -11,6 +10,8 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -38,7 +39,24 @@ func NewPoolTracker(
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
+	params pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"dexId":       t.config.DexID,
@@ -66,7 +84,7 @@ func (t *PoolTracker) GetNewPoolState(
 	}
 
 	// call RPC
-	rpcRes, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID, staticExtra.Vault, p.Tokens)
+	rpcRes, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID, staticExtra.Vault, p.Tokens, overrides)
 	if err != nil {
 		return p, err
 	}
@@ -159,6 +177,7 @@ func (t *PoolTracker) queryRPC(
 	poolID string,
 	vault string,
 	tokens []*entity.PoolToken,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*rpcRes, error) {
 	var (
 		poolTokens        PoolTokensResp
@@ -172,6 +191,9 @@ func (t *PoolTracker) queryRPC(
 	req := t.ethrpcClient.R().
 		SetContext(ctx).
 		SetRequireSuccess(true)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    shared.VaultABI,

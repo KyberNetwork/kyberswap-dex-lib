@@ -8,6 +8,8 @@ import (
 	"github.com/KyberNetwork/int256"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	"github.com/holiman/uint256"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 type Gas struct {
@@ -15,14 +17,14 @@ type Gas struct {
 	CrossInitTickGas int64
 }
 
-// UniV3SwapInfo present the after state of a swap
-type UniV3SwapInfoBigInt struct {
+// SwapInfoBigInt present the after state of a swap
+type SwapInfoBigInt struct {
 	nextStateSqrtRatioX96 *big.Int
 	nextStateLiquidity    *big.Int
 	nextStateTickCurrent  int
 }
 
-type UniV3SwapInfo struct {
+type SwapInfo struct {
 	nextStateSqrtRatioX96 *v3Utils.Uint160
 	nextStateLiquidity    *v3Utils.Uint128
 	nextStateTickCurrent  int
@@ -48,11 +50,7 @@ type SubgraphPool struct {
 	Token1             Token  `json:"token1"`
 }
 
-type TickResp struct {
-	TickIdx        string `json:"tickIdx"`
-	LiquidityGross string `json:"liquidityGross"`
-	LiquidityNet   string `json:"liquidityNet"`
-}
+type TickResp = ticklens.TickResp
 
 type SubgraphPoolTicks struct {
 	ID    string     `json:"id"`
@@ -105,12 +103,6 @@ type preGenesisPool struct {
 	ID string `json:"id"`
 }
 
-type populatedTick struct {
-	Tick           *big.Int
-	LiquidityNet   *big.Int
-	LiquidityGross *big.Int
-}
-
 type FetchRPCResult struct {
 	Liquidity   *big.Int `json:"liquidity"`
 	Slot0       Slot0    `json:"slot0"`
@@ -120,7 +112,8 @@ type FetchRPCResult struct {
 }
 
 type PoolMeta struct {
-	BlockNumber uint64 `json:"blockNumber"`
+	BlockNumber uint64   `json:"blockNumber"`
+	PriceLimit  *big.Int `json:"priceLimit"`
 }
 
 func transformTickRespToTick(tickResp TickResp) (Tick, error) {

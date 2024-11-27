@@ -14,6 +14,7 @@ const (
 	zeroString            = "0"
 	emptyString           = ""
 	graphQLRequestTimeout = 60 * time.Second
+	rpcChunkSize          = 100
 )
 
 const (

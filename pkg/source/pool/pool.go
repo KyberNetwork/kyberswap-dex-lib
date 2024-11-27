@@ -1,26 +1,25 @@
-//go:generate go run github.com/tinylib/msgp -unexported -tests=false -v
-//msgp:tuple Pool PoolToken PoolInfo
-//msgp:ignore CalcAmountOutResult UpdateBalanceParams CalcAmountOutParams CalcAmountInParams CalcAmountInResult ApproxAmountInParams ApproxAmountInResult
-//msgp:shim *big.Int as:[]byte using:msgpencode.EncodeInt/msgpencode.DecodeInt
-
 package pool
 
 import (
-	"errors"
 	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/pkg/errors"
 )
 
 var (
-	ErrCalcAmountOutPanic = errors.New("calcAmountOut was panic")
+	ErrCalcAmountOutPanic = errors.New("calcAmountOut panicked")
 	ErrInsufficientAmount = errors.New("not enough amount")
 	ErrNotConverge        = errors.New("secant loop cannot converged")
 )
 
 type Pool struct {
 	Info PoolInfo
+}
+
+func (t *Pool) CloneState() IPoolSimulator {
+	return nil
 }
 
 func (t *Pool) GetInfo() PoolInfo {
@@ -92,8 +91,8 @@ type CalcAmountOutResult struct {
 }
 
 func (r *CalcAmountOutResult) IsValid() bool {
-	isRemainingValid := r.RemainingTokenAmountIn == nil || (r.RemainingTokenAmountIn != nil && r.RemainingTokenAmountIn.Amount.Cmp(ZeroBI) >= 0)
-	return r.TokenAmountOut != nil && r.TokenAmountOut.Amount != nil && r.TokenAmountOut.Amount.Cmp(ZeroBI) > 0 && isRemainingValid
+	isRemainingValid := r.RemainingTokenAmountIn == nil || (r.RemainingTokenAmountIn != nil && r.RemainingTokenAmountIn.Amount.Sign() >= 0)
+	return r.TokenAmountOut != nil && r.TokenAmountOut.Amount != nil && r.TokenAmountOut.Amount.Sign() > 0 && isRemainingValid
 }
 
 type UpdateBalanceParams struct {
@@ -106,14 +105,6 @@ type UpdateBalanceParams struct {
 	// key is tokenAddress, balance is big.Float
 	// Must use reference (not copy)
 	SwapLimit SwapLimit
-}
-
-type PoolToken struct {
-	Token               string
-	Balance             *big.Int
-	Weight              uint
-	PrecisionMultiplier *big.Int
-	VReserve            *big.Int
 }
 
 type PoolInfo struct {
@@ -157,16 +148,16 @@ type CalcAmountInResult struct {
 	SwapInfo                interface{}
 }
 
-// wrap around pool.CalcAmountOut and catch panic
+// CalcAmountOut wraps pool.CalcAmountOut and catch panic
 func CalcAmountOut(pool IPoolSimulator, tokenAmountIn TokenAmount, tokenOut string, limit SwapLimit) (res *CalcAmountOutResult, err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			err = ErrCalcAmountOutPanic
+			err = errors.WithStack(ErrCalcAmountOutPanic)
 			logger.WithFields(
 				logger.Fields{
 					"recover":     r,
 					"poolAddress": pool.GetAddress(),
-				}).Warn(err.Error())
+				}).Debug(err.Error())
 		}
 	}()
 

@@ -10,7 +10,8 @@ const (
 
 var (
 	DefaultGas = Gas{
-		SellBase: 170000,
-		BuyBase:  224000,
+		SellBase:  170000,
+		SellQuote: 224000,
+		BuyBase:   224000,
 	}
 )

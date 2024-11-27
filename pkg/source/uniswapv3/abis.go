@@ -8,7 +8,6 @@ import (
 
 var (
 	uniswapV3PoolABI abi.ABI
-	tickLensABI      abi.ABI
 	erc20ABI         abi.ABI
 )
 
@@ -18,7 +17,6 @@ func init() {
 		data []byte
 	}{
 		{&uniswapV3PoolABI, uniswapV3PoolJson},
-		{&tickLensABI, tickLensProxyJson},
 		{&erc20ABI, erc20Json},
 	}
 

@@ -1,13 +1,13 @@
 package iziswap
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/iZiSwap-SDK-go/swap"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 	"github.com/pkg/errors"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -17,6 +17,7 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 	PoolInfo swap.PoolInfo
+	gas      Gas
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
@@ -107,6 +108,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				Token:  tokenAmountIn.Token,
 				Amount: nil,
 			},
+			Gas: p.gas.Swap,
 			SwapInfo: iZiSwapInfo{
 				nextPoint:      ret.CurrentPoint,
 				nextLiquidity:  new(big.Int).Set(ret.Liquidity),
@@ -134,6 +136,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 				Token:  tokenAmountIn.Token,
 				Amount: nil,
 			},
+			Gas: p.gas.Swap,
 			SwapInfo: iZiSwapInfo{
 				nextPoint:      ret.CurrentPoint,
 				nextLiquidity:  new(big.Int).Set(ret.Liquidity),
@@ -200,6 +203,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 				Token:  tokenAmountOut.Token,
 				Amount: nil,
 			},
+			Gas:      p.gas.Swap,
 			SwapInfo: swapInfo,
 		}, nil
 	} else {
@@ -230,6 +234,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 				Token:  tokenAmountOut.Token,
 				Amount: nil,
 			},
+			Gas: p.gas.Swap,
 			SwapInfo: iZiSwapInfo{
 				nextPoint:      ret.CurrentPoint,
 				nextLiquidity:  new(big.Int).Set(ret.Liquidity),

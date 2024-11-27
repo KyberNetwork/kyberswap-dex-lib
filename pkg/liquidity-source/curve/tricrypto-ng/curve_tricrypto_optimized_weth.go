@@ -1,7 +1,6 @@
 package tricryptong
 
 import (
-	"errors"
 	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/number"
@@ -32,6 +31,11 @@ func (t *PoolSimulator) GetDy(
 	// output
 	dy, fee, K0 *uint256.Int, xp []uint256.Int,
 ) error {
+	// assert dx > 0, "do not exchange 0 coins"
+	if dx.IsZero() {
+		return ErrExchange0Coins
+	}
+
 	yOrg := number.Set(&t.Reserves[j])
 	for k := 0; k < NumTokens; k += 1 {
 		if k == i {
@@ -42,7 +46,7 @@ func (t *PoolSimulator) GetDy(
 	}
 
 	number.SafeMulZ(&xp[0], &t.precisionMultipliers[0], &xp[0])
-	for k := 0; k < 2; k += 1 {
+	for k := 0; k < NumTokens-1; k += 1 {
 		xp[k+1].Div(
 			number.SafeMul(number.SafeMul(&xp[k+1], &t.Extra.PriceScale[k]), &t.precisionMultipliers[k+1]),
 			Precision,
@@ -55,10 +59,14 @@ func (t *PoolSimulator) GetDy(
 	if err != nil {
 		return err
 	}
-	number.SafeSubZ(number.SafeSub(&xp[j], &y), number.Number_1, dy)
+	number.SafeSubZ(&xp[j], &y, dy)
+	if dy.Sign() <= 0 {
+		return ErrExchange0Coins
+	}
+	dy.SubUint64(dy, 1)
 	xp[j] = y
 	if j > 0 {
-		dy.Div(number.SafeMul(dy, U_1e18), &t.Extra.PriceScale[j-1])
+		dy.Div(number.SafeMul(dy, Precision), &t.Extra.PriceScale[j-1])
 	}
 	dy.Div(dy, &t.precisionMultipliers[j])
 
@@ -73,7 +81,7 @@ func (t *PoolSimulator) GetDy(
 	number.SafeSubZ(yOrg, dy, yOrg)
 	number.SafeMulZ(yOrg, &t.precisionMultipliers[j], yOrg)
 	if j > 0 {
-		yOrg.Div(number.SafeMul(yOrg, &t.Extra.PriceScale[j-1]), U_1e18)
+		yOrg.Div(number.SafeMul(yOrg, &t.Extra.PriceScale[j-1]), Precision)
 	}
 	xp[j].Set(yOrg)
 
@@ -114,12 +122,12 @@ func (t *PoolSimulator) _getDxFee(
 ) error {
 	// 	assert i != j and i < N_COINS and j < N_COINS, "coin index out of range"
 	if i == j || i >= NumTokens || j >= NumTokens {
-		return errors.New("coin index out of range")
+		return ErrCoinIndexOutOfRange
 	}
 
 	// 	assert dy > 0, "do not exchange out 0 coins"
 	if dy.Cmp(number.Zero) <= 0 {
-		return errors.New("do not exchange out 0 coins")
+		return ErrExchange0Coins
 	}
 
 	A, gamma := t._A_gamma()
@@ -131,7 +139,7 @@ func (t *PoolSimulator) _getDxFee(
 
 	number.SafeMulZ(&xp[0], &t.precisionMultipliers[0], &xp[0])
 
-	for k := 0; k < 2; k += 1 {
+	for k := 0; k < NumTokens-1; k += 1 {
 		xp[k+1].Div(
 			number.SafeMul(number.SafeMul(&xp[k+1], &t.Extra.PriceScale[k]), &t.precisionMultipliers[k+1]),
 			Precision,
@@ -158,7 +166,8 @@ func (t *PoolSimulator) _getDxFee(
 }
 
 // https://github.com/curvefi/tricrypto-ng/blob/c4093cbda18ec8f3da21bf7e40a3f8d01c5c4bd3/contracts/main/CurveTricryptoOptimizedWETH.vy#L964
-func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint256.Int, new_D, K0_prev *uint256.Int) error {
+func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint256.Int,
+	new_D, K0_prev *uint256.Int) error {
 	/*
 				@notice Tweaks price_oracle, last_price and conditionally adjusts
 		            price_scale. This is called whenever there is an unbalanced
@@ -236,7 +245,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 		if t.Extra.FutureAGammaTime < blockTimestamp {
 			// assert virtual_price > old_virtual_price, "Loss"
 			if virtual_price.Cmp(old_virtual_price) <= 0 {
-				return errors.New("loss")
+				return ErrLoss
 			}
 		}
 	}
@@ -250,7 +259,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 
 		// #                Calculate the vector distance between price_scale and
 		// #                                                        price_oracle.
-		var norm = uint256.NewInt(0)
+		var norm = new(uint256.Int)
 		for k := 0; k < NumTokens-1; k += 1 {
 			var ratio = number.Div(number.SafeMul(&t.Extra.PriceOracle[k], U_1e18), &t.Extra.PriceScale[k])
 			if ratio.Cmp(U_1e18) > 0 {
@@ -303,7 +312,7 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 			for k := 0; k < NumTokens; k += 1 {
 				frac := number.Div(number.SafeMul(&xp[k], U_1e18), D)
 				if frac.Cmp(MinFrac) < 0 || frac.Cmp(MaxFrac) > 0 {
-					return errors.New("unsafe values x[i]")
+					return ErrUnsafeXi
 				}
 			}
 
@@ -318,7 +327,8 @@ func (t *PoolSimulator) tweak_price(A, gamma *uint256.Int, _xp [NumTokens]uint25
 			old_virtual_price = number.Div(number.SafeMul(U_1e18, temp), total_supply)
 
 			// # ---------------------------- Proceed if we've got enough profit.
-			if old_virtual_price.Cmp(U_1e18) > 0 && number.SafeSub(number.SafeMul(number.Number_2, old_virtual_price), U_1e18).Cmp(xcp_profit) > 0 {
+			if old_virtual_price.Cmp(U_1e18) > 0 && number.SafeSub(number.SafeMul(number.Number_2, old_virtual_price),
+				U_1e18).Cmp(xcp_profit) > 0 {
 				for k := 0; k < NumTokens-1; k += 1 {
 					t.Extra.PriceScale[k].Set(&p_new[k])
 				}

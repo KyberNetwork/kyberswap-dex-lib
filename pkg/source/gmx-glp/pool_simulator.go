@@ -1,12 +1,12 @@
 package gmxglp
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -162,4 +162,11 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 		YearnVault:    p.yearnTokenVault.Address,
 		DirectionFlag: directionFlag,
 	}
+}
+
+func (p *PoolSimulator) AfterMsgpackUnmarshal() error {
+	if p.vaultUtils != nil {
+		p.vaultUtils.vault = p.vault
+	}
+	return nil
 }

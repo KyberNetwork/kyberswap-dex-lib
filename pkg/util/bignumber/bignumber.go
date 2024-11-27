@@ -3,11 +3,14 @@ package bignumber
 import (
 	"math"
 	"math/big"
+
+	"github.com/samber/lo"
+	"golang.org/x/exp/constraints"
 )
 
 var (
 	// TwoPow128 2^128
-	TwoPow128 = new(big.Int).Exp(big.NewInt(2), big.NewInt(128), nil)
+	TwoPow128 = new(big.Int).Exp(Two, big.NewInt(128), nil)
 
 	ZeroBI = big.NewInt(0)
 	One    = big.NewInt(1)
@@ -16,18 +19,35 @@ var (
 	Four   = big.NewInt(4)
 	Five   = big.NewInt(5)
 	Six    = big.NewInt(6)
+	Ten    = big.NewInt(10)
 )
 
-var BONE = new(big.Int).Exp(big.NewInt(10), big.NewInt(18), nil)
+var BONE = new(big.Int).Exp(Ten, big.NewInt(18), nil)
 var BoneFloat, _ = new(big.Float).SetString("1000000000000000000")
 
+var (
+	preTenPowDecimals = lo.Map(lo.Range(18+1), func(n int, _ int) *big.Float {
+		return big.NewFloat(math.Pow10(n))
+	})
+	preTenPowInt = lo.Map(lo.Range(18+1), func(n int, _ int) *big.Int {
+		return big.NewInt(int64(math.Pow10(n)))
+	})
+)
+
 // TenPowDecimals calculates 10^decimal
-func TenPowDecimals(decimal uint8) *big.Float {
+func TenPowDecimals[T constraints.Integer](decimal T) *big.Float {
+	if decimal <= 18 {
+		return preTenPowDecimals[decimal]
+	}
 	return big.NewFloat(math.Pow10(int(decimal)))
 }
 
-func TenPowInt(decimal uint8) *big.Int {
-	return new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(decimal)), nil)
+func TenPowInt[T constraints.Integer](decimal T) *big.Int {
+	if decimal <= 18 {
+		return preTenPowInt[decimal]
+	}
+	y := big.NewInt(int64(decimal))
+	return y.Exp(Ten, y, nil)
 }
 
 func NewBig10(s string) (res *big.Int) {

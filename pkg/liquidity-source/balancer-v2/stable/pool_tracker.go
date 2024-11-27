@@ -16,6 +16,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 var ErrReserveNotFound = errors.New("reserve not found")
@@ -38,7 +39,24 @@ func NewPoolTracker(
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
+	params poolpkg.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params poolpkg.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, poolpkg.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
 	_ poolpkg.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"dexId":       t.config.DexID,
@@ -78,7 +96,7 @@ func (t *PoolTracker) GetNewPoolState(
 	scalingFactors := oldExtra.ScalingFactors
 
 	// call RPC
-	rpcRes, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID, staticExtra.Vault, staticExtra.PoolType)
+	rpcRes, err := t.queryRPC(ctx, p.Address, staticExtra.PoolID, staticExtra.Vault, staticExtra.PoolType, overrides)
 	if err != nil {
 		return p, err
 	}
@@ -168,6 +186,7 @@ func (t *PoolTracker) queryRPC(
 	poolID string,
 	vault string,
 	poolType string,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*rpcRes, error) {
 	var (
 		poolTokens        PoolTokens
@@ -180,6 +199,9 @@ func (t *PoolTracker) queryRPC(
 	req := t.ethrpcClient.R().
 		SetContext(ctx).
 		SetRequireSuccess(true)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    shared.VaultABI,

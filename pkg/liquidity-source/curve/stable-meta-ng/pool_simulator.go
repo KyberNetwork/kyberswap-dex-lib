@@ -46,6 +46,9 @@ func NewPoolSimulator(entityPool entity.Pool, basePool ICurveBasePool) (*PoolSim
 	return &PoolSimulator{*sim, basePool}, err
 }
 
+func (t *PoolSimulator) GetBasePool() ICurveBasePool         { return t.basePool }
+func (t *PoolSimulator) SetBasePool(basePool ICurveBasePool) { t.basePool = basePool }
+
 func (t *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	tokenAmountIn := param.TokenAmountIn
 	tokenOut := param.TokenOut
@@ -184,12 +187,9 @@ func (t *PoolSimulator) CanSwapTo(address string) []string {
 			for i := 0; i < t.NumTokens-1; i += 1 {
 				ret = append(ret, t.Info.Tokens[i])
 			}
-			underlyingTokens := t.basePool.GetInfo().Tokens
-			for i := 0; i < len(underlyingTokens); i += 1 {
-				if i != tokenIndex {
-					ret = append(ret, underlyingTokens[i])
-				}
-			}
+
+			// We don't allow swapping between underlying tokens here.
+			// Swap between underlying tokens must go directly through the base pool.
 		}
 		return ret
 	}

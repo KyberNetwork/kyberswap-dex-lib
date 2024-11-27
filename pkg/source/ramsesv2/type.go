@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 type Gas struct {
@@ -38,11 +40,7 @@ type SubgraphPool struct {
 	Token1             Token  `json:"token1"`
 }
 
-type TickResp struct {
-	TickIdx        string `json:"tickIdx"`
-	LiquidityGross string `json:"liquidityGross"`
-	LiquidityNet   string `json:"liquidityNet"`
-}
+type TickResp = ticklens.TickResp
 
 type SubgraphPoolTicks struct {
 	ID    string     `json:"id"`
@@ -63,9 +61,13 @@ type Extra struct {
 	Liquidity    *big.Int `json:"liquidity"`
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
 	FeeTier      int64    `json:"feeTier"`
-	TickSpacing  int64    `json:"tickSpacing"`
+	TickSpacing  uint64   `json:"tickSpacing"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
+}
+
+type PoolMeta struct {
+	PriceLimit *big.Int `json:"priceLimit"`
 }
 
 type Slot0 struct {
@@ -82,7 +84,7 @@ type FetchRPCResult struct {
 	Liquidity   *big.Int
 	Slot0       Slot0
 	FeeTier     int64
-	TickSpacing int64
+	TickSpacing uint64
 	Reserve0    *big.Int
 	Reserve1    *big.Int
 }

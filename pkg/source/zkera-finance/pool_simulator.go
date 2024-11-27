@@ -1,9 +1,10 @@
 package zkerafinance
 
 import (
-	"encoding/json"
 	"math/big"
 	"strings"
+
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -139,6 +140,9 @@ func (p *PoolSimulator) getAmountOut(tokenIn string, tokenOut string, amountIn *
 	if err != nil {
 		return nil, nil, err
 	}
+	if priceOut.Cmp(bignumber.ZeroBI) == 0 {
+		return nil, nil, ErrDivisionByZero
+	}
 
 	amountOut := new(big.Int).Div(new(big.Int).Mul(amountIn, priceIn), priceOut)
 	amountOut = p.vault.AdjustForDecimals(amountOut, tokenIn, tokenOut)
@@ -219,5 +223,12 @@ func (p *PoolSimulator) validateBufferAmount(token string, amount *big.Int) erro
 		return ErrVaultPoolAmountLessThanBufferAmount
 	}
 
+	return nil
+}
+
+func (p *PoolSimulator) AfterMsgpackUnmarshal() error {
+	if p.vaultUtils != nil {
+		p.vaultUtils.vault = p.vault
+	}
 	return nil
 }

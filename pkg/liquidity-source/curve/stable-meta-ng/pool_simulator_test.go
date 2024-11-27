@@ -1,10 +1,10 @@
 package stablemetang
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -146,9 +146,8 @@ func TestCalcAmountOut(t *testing.T) {
 		assert.Equal(t, []string{p.Info.Tokens[0]}, p.CanSwapTo(p.Info.Tokens[1]))
 
 		// base token can be swapped to anything other than the last meta token and itself
-		for i, baseToken := range p.GetBasePoolTokens() {
-			baseExcluded := lo.Filter(p.GetBasePoolTokens(), func(_ string, ii int) bool { return ii != i })
-			assert.Equal(t, append([]string{p.Info.Tokens[0]}, baseExcluded...), p.CanSwapTo(baseToken))
+		for _, baseToken := range p.GetBasePoolTokens() {
+			assert.Equal(t, []string{p.Info.Tokens[0]}, p.CanSwapTo(baseToken))
 		}
 
 		return p

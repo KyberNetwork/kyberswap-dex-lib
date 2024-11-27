@@ -2,15 +2,18 @@ package limitorder
 
 import (
 	"context"
-	"encoding/json"
+	"strings"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type RFQHandler struct {
+	pool.RFQHandler
 	config *Config
 	client *httpClient
 }
@@ -34,6 +37,21 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		return nil, InvalidSwapInfo
 	}
 
+	for _, o := range swapInfo.FilledOrders {
+		var receiver = o.Receiver
+		if len(receiver) == 0 || strings.EqualFold(receiver, valueobject.ZeroAddress) {
+			receiver = o.Maker
+		}
+		if strings.EqualFold(receiver, params.Recipient) {
+			logger.WithFields(logger.Fields{
+				"params":  params,
+				"orderId": o.OrderID,
+				"error":   ErrSameSenderMaker,
+			}).Error("rejected")
+			return nil, ErrSameSenderMaker
+		}
+	}
+
 	orderIds := lo.Map(swapInfo.FilledOrders, func(o *FilledOrderInfo, _ int) int64 { return o.OrderID })
 	result, err := h.client.GetOpSignatures(ctx, ChainID(h.config.ChainID), orderIds)
 	if err != nil {
@@ -51,4 +69,8 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 			OperatorSignaturesById: lo.SliceToMap(result, func(sig *operatorSignatures) (int64, *operatorSignatures) { return sig.ID, sig }),
 		},
 	}, nil
+}
+
+func (h *RFQHandler) BatchRFQ(context.Context, []pool.RFQParams) ([]*pool.RFQResult, error) {
+	return nil, nil
 }

@@ -13,8 +13,9 @@ import (
 const rfqDefaultChainType = "evm"
 
 type Config struct {
-	DexID string           `json:"dexId"`
-	HTTP  HTTPClientConfig `mapstructure:"http" json:"http"`
+	DexID               string           `json:"dexId"`
+	ExcludeMarketMakers []string         `mapstructure:"excludeMarketMakers" json:"excludeMarketMakers"`
+	HTTP                HTTPClientConfig `mapstructure:"http" json:"http"`
 }
 
 type IClient interface {
@@ -22,6 +23,7 @@ type IClient interface {
 }
 
 type RFQHandler struct {
+	pool.RFQHandler
 	config *Config
 	client IClient
 }
@@ -34,51 +36,76 @@ func NewRFQHandler(config *Config, client IClient) *RFQHandler {
 }
 
 func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQResult, error) {
-	swapInfoBytes, err := json.Marshal(params.SwapInfo)
+	results, err := h.BatchRFQ(ctx, []pool.RFQParams{params})
 	if err != nil {
 		return nil, err
 	}
 
-	var swapInfo SwapInfo
-	if err = json.Unmarshal(swapInfoBytes, &swapInfo); err != nil {
-		return nil, err
+	return results[0], nil
+}
+
+func (h *RFQHandler) BatchRFQ(ctx context.Context, paramsSlice []pool.RFQParams) ([]*pool.RFQResult, error) {
+	if len(paramsSlice) == 0 {
+		return nil, errors.New("empty batch params")
 	}
 
-	result, err := h.client.RFQ(ctx, QuoteParams{
+	quoteParams := QuoteParams{
 		BaseChain: Chain{
 			ChainType: rfqDefaultChainType,
-			ChainId:   params.NetworkID,
+			ChainId:   paramsSlice[0].NetworkID,
 		},
 		QuoteChain: Chain{
 			ChainType: rfqDefaultChainType,
-			ChainId:   params.NetworkID,
+			ChainId:   paramsSlice[0].NetworkID,
 		},
-		RFQs: []RFQ{
-			{
-				BaseToken:       swapInfo.BaseToken,
-				QuoteToken:      swapInfo.QuoteToken,
-				BaseTokenAmount: swapInfo.BaseTokenAmount,
+	}
 
-				Trader:          params.RFQRecipient,
-				EffectiveTrader: params.Recipient,
+	for _, params := range paramsSlice {
+		swapInfoBytes, err := json.Marshal(params.SwapInfo)
+		if err != nil {
+			return nil, err
+		}
 
-				// Intentionally exclude market makers to have higher chance to successfully RFQ
-				// MarketMakers: []string{swapInfo.MarketMaker},
-			},
-		},
-	})
+		var swapInfo SwapInfo
+		if err = json.Unmarshal(swapInfoBytes, &swapInfo); err != nil {
+			return nil, err
+		}
+
+		quoteParams.RFQs = append(quoteParams.RFQs, RFQ{
+			BaseToken:       swapInfo.BaseToken,
+			QuoteToken:      swapInfo.QuoteToken,
+			BaseTokenAmount: swapInfo.BaseTokenAmount,
+			Trader:          params.RFQRecipient,
+			EffectiveTrader: params.Recipient,
+
+			// Intentionally not specific marketMakers field to have higher chance to successfully RFQ
+			// MarketMakers: []string{swapInfo.MarketMaker},
+
+			ExcludeMarketMakers: h.config.ExcludeMarketMakers,
+		})
+	}
+
+	quoteResult, err := h.client.RFQ(ctx, quoteParams)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(result.Quotes) != 1 {
+	if len(quoteResult.Quotes) != len(paramsSlice) {
 		return nil, errors.New("mismatch quotes length")
 	}
 
-	newAmountOut, _ := new(big.Int).SetString(result.Quotes[0].QuoteData.QuoteTokenAmount, 10)
+	var results []*pool.RFQResult
+	for i := range quoteResult.Quotes {
+		newAmountOut, _ := new(big.Int).SetString(quoteResult.Quotes[i].QuoteData.QuoteTokenAmount, 10)
+		results = append(results, &pool.RFQResult{
+			NewAmountOut: newAmountOut,
+			Extra:        quoteResult.Quotes[i],
+		})
+	}
 
-	return &pool.RFQResult{
-		NewAmountOut: newAmountOut,
-		Extra:        result.Quotes[0],
-	}, nil
+	return results, nil
+}
+
+func (h *RFQHandler) SupportBatch() bool {
+	return true
 }

@@ -14,6 +14,8 @@ type Extra struct {
 	ActiveBinID            uint32            `json:"activeBinId"`
 	BinStep                uint16            `json:"binStep"`
 	Bins                   []Bin             `json:"bins"`
+	Liquidity              *big.Int          `json:"liquidity"`
+	PriceX128              *big.Int          `json:"priceX128"`
 }
 
 type SwapInfo struct {
@@ -30,6 +32,8 @@ type QueryRpcPoolStateResult struct {
 	Reserves          reserves          `json:"reserves"`
 	ActiveBinID       uint32            `json:"activeBinId"`
 	BinStep           uint16            `json:"binStep"`
+	Liquidity         *big.Int          `json:"liquidity"`
+	PriceX128         *big.Int          `json:"priceX128"`
 }
 
 type querySubgraphPoolStateResult struct {

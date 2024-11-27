@@ -2,13 +2,14 @@ package reth
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -35,7 +36,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 
 	u.hasInitialized = true
 
-	extra, blockNumber, err := getExtra(ctx, u.ethrpcClient)
+	extra, blockNumber, err := getExtra(ctx, u.ethrpcClient, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -62,7 +63,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	}, nil, nil
 }
 
-func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint64, error) {
+func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client, overrides map[common.Address]gethclient.OverrideAccount) (PoolExtra, uint64, error) {
 	var poolExtra PoolExtra
 	balanceAt, err := ethrpcClient.BalanceAt(ctx, common.HexToAddress(RocketTokenRETH), nil)
 	if err != nil {
@@ -71,6 +72,9 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 	poolExtra.RETHBalance = balanceAt
 
 	rpcCalls := ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		rpcCalls.SetOverrides(overrides)
+	}
 
 	rpcCalls.AddCall(&ethrpc.Call{
 		ABI:    RocketDAOProtocolSettingsDepositABI,

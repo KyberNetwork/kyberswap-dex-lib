@@ -104,7 +104,8 @@ type FetchRPCResult struct {
 }
 
 type PoolMeta struct {
-	BlockNumber uint64 `json:"blockNumber"`
+	BlockNumber uint64   `json:"blockNumber"`
+	PriceLimit  *big.Int `json:"priceLimit"`
 }
 
 func transformTickRespToTick(tickResp TickResp) (Tick, error) {

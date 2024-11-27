@@ -1,11 +1,11 @@
 package fxdx
 
 import (
-	"encoding/json"
 	"math/big"
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -228,5 +228,12 @@ func (p *PoolSimulator) validateBufferAmount(token string, amount *big.Int) erro
 		return ErrVaultPoolAmountLessThanBufferAmount
 	}
 
+	return nil
+}
+
+func (p *PoolSimulator) AfterMsgpackUnmarshal() error {
+	if p.feeUtils != nil {
+		p.feeUtils.Vault = p.vault
+	}
 	return nil
 }

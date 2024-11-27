@@ -1,11 +1,11 @@
 package woofiv2
 
 import (
-	"encoding/json"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/goccy/go-json"
 	"github.com/stretchr/testify/require"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

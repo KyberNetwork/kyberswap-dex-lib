@@ -2,7 +2,6 @@ package wombat
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
@@ -10,11 +9,12 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 )
 
 type PoolsListUpdater struct {
@@ -27,7 +27,11 @@ func NewPoolsListUpdater(
 	cfg *Config,
 	ethrpcClient *ethrpc.Client,
 ) *PoolsListUpdater {
-	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
+	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
+		Url:     cfg.SubgraphAPI,
+		Header:  cfg.SubgraphHeaders,
+		Timeout: graphQLRequestTimeout,
+	})
 
 	return &PoolsListUpdater{
 		config:        cfg,

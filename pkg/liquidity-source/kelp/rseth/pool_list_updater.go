@@ -2,18 +2,19 @@ package rseth
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	gethcommon "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	gethcommon "github.com/ethereum/go-ethereum/common"
 )
 
 type PoolListUpdater struct {
@@ -38,7 +39,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	startTime := time.Now()
 	u.hasInitialized = true
 
-	extra, blockNumber, err := getExtra(ctx, u.ethrpcClient)
+	extra, blockNumber, err := getExtra(ctx, u.ethrpcClient, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -86,7 +87,11 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	}, nil, nil
 }
 
-func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint64, error) {
+func getExtra(
+	ctx context.Context,
+	ethrpcClient *ethrpc.Client,
+	overrides map[gethcommon.Address]gethclient.OverrideAccount,
+) (PoolExtra, uint64, error) {
 	// Step 1:
 	// - call LRTConfig.getSupportedAssetList to get supported assets
 	// Step 2:
@@ -108,6 +113,9 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 
 	// Get supportedAssetList, minAmountToDeposit & rsETHPrice
 	getPoolStateRequest := ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		getPoolStateRequest.SetOverrides(overrides)
+	}
 
 	getPoolStateRequest.AddCall(&ethrpc.Call{
 		ABI:    common.LRTConfigABI,
@@ -143,6 +151,10 @@ func getExtra(ctx context.Context, ethrpcClient *ethrpc.Client) (PoolExtra, uint
 	)
 
 	getAssetStateRequest := ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		getAssetStateRequest.SetOverrides(overrides)
+	}
+
 	for i, asset := range assets {
 		getAssetStateRequest.AddCall(&ethrpc.Call{
 			ABI:    common.LRTConfigABI,

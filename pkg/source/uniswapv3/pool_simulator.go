@@ -1,7 +1,6 @@
 package uniswapv3
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -13,6 +12,7 @@ import (
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	coreEntities "github.com/daoleno/uniswap-sdk-core/entities"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -191,7 +191,7 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 					Amount: nil,
 				},
 				Gas: totalGas,
-				SwapInfo: UniV3SwapInfo{
+				SwapInfo: SwapInfo{
 					nextStateSqrtRatioX96: new(uint256.Int).Set(newPoolState.SqrtRatioX96),
 					nextStateLiquidity:    new(uint256.Int).Set(newPoolState.Liquidity),
 					nextStateTickCurrent:  newPoolState.TickCurrent,
@@ -263,7 +263,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 					Amount: nil,
 				},
 				Gas: totalGas,
-				SwapInfo: UniV3SwapInfo{
+				SwapInfo: SwapInfo{
 					nextStateSqrtRatioX96: new(uint256.Int).Set(amountOutResult.SqrtRatioX96),
 					nextStateLiquidity:    new(uint256.Int).Set(amountOutResult.Liquidity),
 					nextStateTickCurrent:  amountOutResult.CurrentTick,
@@ -277,8 +277,21 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 }
 
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	v3Pool := *p.V3Pool
+	v3Pool.SqrtRatioX96 = v3Pool.SqrtRatioX96.Clone()
+	v3Pool.Liquidity = v3Pool.Liquidity.Clone()
+	return &PoolSimulator{
+		V3Pool:  &v3Pool,
+		Pool:    p.Pool,
+		gas:     p.gas,
+		tickMin: p.tickMin,
+		tickMax: p.tickMax,
+	}
+}
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
-	si, ok := params.SwapInfo.(UniV3SwapInfo)
+	si, ok := params.SwapInfo.(SwapInfo)
 	if !ok {
 		logger.Warn("failed to UpdateBalance for UniV3 pool, wrong swapInfo type")
 		return
@@ -288,8 +301,12 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.V3Pool.TickCurrent = si.nextStateTickCurrent
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) interface{} {
+	zeroForOne := strings.EqualFold(tokenIn, p.V3Pool.Token0.Address.String())
+	var priceLimit v3Utils.Uint160
+	_ = p.getSqrtPriceLimit(zeroForOne, &priceLimit)
 	return PoolMeta{
 		BlockNumber: p.Pool.Info.BlockNumber,
+		PriceLimit:  priceLimit.ToBig(),
 	}
 }

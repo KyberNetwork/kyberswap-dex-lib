@@ -1,7 +1,6 @@
 package solidlyv3
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -13,6 +12,7 @@ import (
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -276,5 +276,8 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
-	return nil
+	zeroForOne := strings.EqualFold(tokenIn, p.V3Pool.Token0.Address.String())
+	return PoolMeta{
+		PriceLimit: p.getSqrtPriceLimit(zeroForOne),
+	}
 }

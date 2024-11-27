@@ -16,7 +16,8 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/ticklens"
 )
 
 type PoolTracker struct {
@@ -34,7 +35,11 @@ func NewPoolTracker(
 		return nil, err
 	}
 
-	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
+	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
+		Url:     cfg.SubgraphAPI,
+		Header:  cfg.SubgraphHeaders,
+		Timeout: graphQLRequestTimeout,
+	})
 
 	return &PoolTracker{
 		config:        initializedCfg,
@@ -74,7 +79,7 @@ func initializeConfig(cfg *Config) (*Config, error) {
 func (d *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
-	_ sourcePool.GetNewPoolStateParams,
+	param sourcePool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
@@ -99,7 +104,7 @@ func (d *PoolTracker) GetNewPoolState(
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
-		rpcData, err = d.fetchRPCData(ctx, p)
+		rpcData, err = d.fetchRPCData(ctx, p, 0)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
@@ -115,8 +120,8 @@ func (d *PoolTracker) GetNewPoolState(
 		// Link to issue: https://www.notion.so/kybernetwork/Aggregator-1-20-defect-1caec6062f9d4da0918fc3443e6e1963#0810d1462cc14f0a9465f935c9e641fe
 		// TLDR: Optimism has some pre-genesis Uniswap V3 pool. Subgraph does not have data for these pools
 		// So we have to fetch ticks data from the TickLens smart contract (which is slower).
-		if lo.Contains[string](d.config.preGenesisPoolIDs, p.Address) {
-			poolTicks, err = d.getPoolTicksFromSC(ctx, p)
+		if d.config.AlwaysUseTickLens || lo.Contains[string](d.config.preGenesisPoolIDs, p.Address) {
+			poolTicks, err = ticklens.GetPoolTicksFromSC(ctx, d.ethrpcClient, d.config.TickLensAddress, p, param)
 			if err != nil {
 				l.WithFields(logger.Fields{
 					"error": err,
@@ -182,8 +187,8 @@ func (d *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool) ([]byte, error) {
-	rpcData, err := d.fetchRPCData(ctx, p)
+func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, blockNumber uint64) ([]byte, error) {
+	rpcData, err := d.fetchRPCData(ctx, p, blockNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +201,7 @@ func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool) ([]b
 	return rpcDataBytes, nil
 }
 
-func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPCResult, error) {
+func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumber uint64) (FetchRPCResult, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": p.Address,
 		"dexID":       d.config.DexID,
@@ -212,6 +217,11 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool) (FetchRPC
 
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
+	if blockNumber > 0 {
+		var blockNumberBI big.Int
+		blockNumberBI.SetUint64(blockNumber)
+		rpcRequest.SetBlockNumber(&blockNumberBI)
+	}
 
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    uniswapV3PoolABI,
@@ -305,7 +315,7 @@ func (d *PoolTracker) getPoolTicks(ctx context.Context, poolAddress string) ([]T
 			}
 		}
 
-		if resp.Ticks == nil || len(resp.Ticks) == 0 {
+		if len(resp.Ticks) == 0 {
 			break
 		}
 

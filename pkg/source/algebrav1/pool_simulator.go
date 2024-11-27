@@ -1,16 +1,15 @@
 package algebrav1
 
 import (
-	"encoding/json"
 	"fmt"
 	"math/big"
 	"strings"
 
-	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
-	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
-
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
+	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
+	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -172,8 +171,10 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	p.globalState = si.GlobalState
 }
 
-func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
+func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) interface{} {
+	zeroForOne := strings.EqualFold(tokenIn, p.Info.Tokens[0])
 	return PoolMeta{
 		BlockNumber: p.Pool.Info.BlockNumber,
+		PriceLimit:  p.getSqrtPriceLimit(zeroForOne),
 	}
 }

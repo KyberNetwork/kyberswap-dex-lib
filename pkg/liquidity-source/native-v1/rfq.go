@@ -9,6 +9,7 @@ import (
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 type Config struct {
@@ -21,6 +22,7 @@ type IClient interface {
 }
 
 type RFQHandler struct {
+	pool.RFQHandler
 	config *Config
 	client IClient
 }
@@ -40,7 +42,7 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 	logger.Debugf("params.SwapInfo: %v -> swapInfo: %v", params.SwapInfo, swapInfo)
 
 	result, err := h.client.Quote(ctx, QuoteParams{
-		ChainID:            params.NetworkID,
+		Chain:              ChainById(valueobject.ChainID(params.NetworkID)),
 		TokenIn:            swapInfo.BaseToken,
 		TokenOut:           swapInfo.QuoteToken,
 		AmountWei:          swapInfo.BaseTokenAmount,
@@ -60,4 +62,8 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		NewAmountOut: newAmountOut,
 		Extra:        result,
 	}, nil
+}
+
+func (h *RFQHandler) BatchRFQ(context.Context, []pool.RFQParams) ([]*pool.RFQResult, error) {
+	return nil, nil
 }

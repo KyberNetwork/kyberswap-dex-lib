@@ -1,0 +1,23 @@
+[
+  {
+    "id": "0x5e8422345238f34275888049021821e8e08caa1f",
+    "type": "generic-simple-rate",
+    "lpToken": "",
+    "tokens": [
+      {
+        "address": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "name": "Wrapped Ether",
+        "symbol": "WETH",
+        "decimals": 18,
+        "swappable": true
+      },
+      {
+        "address": "0x5e8422345238f34275888049021821e8e08caa1f",
+        "name": "Frax Ether",
+        "symbol": "frxETH",
+        "decimals": 18,
+        "swappable": true
+      }
+    ]
+  }
+]

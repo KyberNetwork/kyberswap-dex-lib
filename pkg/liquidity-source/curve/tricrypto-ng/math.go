@@ -1,7 +1,6 @@
 package tricryptong
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -74,7 +73,7 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 	// assert x[0] < max_value(uint256) / 10**18 * N_COINS**N_COINS  # dev: out of limits
 	// assert x[0] > 0  # dev: empty pool
 	if x[0].IsZero() || x[0].Cmp(MaxX) >= 0 {
-		return nil, errors.New("unsafe values x[0]")
+		return nil, ErrUnsafeX0
 	}
 
 	// S: uint256 = unsafe_add(unsafe_add(x[0], x[1]), x[2])
@@ -262,13 +261,13 @@ func newton_D(ANN *uint256.Int, gamma *uint256.Int, x_unsorted []uint256.Int, K0
 			for i := range x {
 				var frac = number.Div(number.Mul(&x[i], U_1e18), D)
 				if frac.Cmp(MinFrac) < 0 || frac.Cmp(MaxFrac) > 0 {
-					return nil, errors.New("unsafe values x[i]")
+					return nil, ErrUnsafeXi
 				}
 			}
 			return D, nil
 		}
 	}
-	return nil, errors.New("did not converge")
+	return nil, ErrDDoesNotConverge
 }
 
 func get_y(
@@ -277,15 +276,15 @@ func get_y(
 	y, K0 *uint256.Int,
 ) error {
 	if _ann.Cmp(MinA) < 0 || _ann.Cmp(MaxA) > 0 {
-		return errors.New("unsafe values A")
+		return ErrUnsafeA
 	}
 
 	if _gamma.Cmp(MinGamma) < 0 || _gamma.Cmp(MaxGamma) > 0 {
-		return errors.New("unsafe values gamma")
+		return ErrUnsafeGamma
 	}
 
 	if _D.Cmp(MinD) < 0 || _D.Cmp(MaxD) > 0 {
-		return errors.New("unsafe values D")
+		return ErrUnsafeGamma
 	}
 
 	for k := 0; k < NumTokens; k++ {
@@ -846,7 +845,7 @@ func _snekmate_wad_exp(x *int256.Int) (*uint256.Int, error) {
 	// # When the result is "> (2 ** 255 - 1) / 1e18" we cannot represent it as a signed integer.
 	// # This happens when "x >= floor(log((2 ** 255 - 1) / 1e18) * 1e18) ~ 135".
 	if x.Cmp(i256.MustFromDecimal("135305999368893231589")) >= 0 {
-		return nil, errors.New("wad_exp overflow")
+		return nil, ErrWadExpOverflow
 	}
 
 	// # `x` is now in the range "(-42, 136) * 1e18". Convert to "(-42, 136) * 2 ** 96" for higher
@@ -931,7 +930,7 @@ func get_p(_xp [NumTokens]uint256.Int, _D, A, gamma *uint256.Int, out []uint256.
 
 	// assert _D > 10**17 - 1 and _D < 10**15 * 10**18 + 1  # dev: unsafe D values
 	if _D.Cmp(MinD) < 0 || _D.Cmp(MaxD) > 0 {
-		return errors.New("unsafe D values")
+		return ErrUnsafeD
 	}
 
 	// # K0 = P * N**N / D**N.

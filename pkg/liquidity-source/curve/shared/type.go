@@ -1,11 +1,11 @@
 package shared
 
 import (
-	"encoding/json"
 	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/logger"
+	"github.com/goccy/go-json"
 )
 
 type (

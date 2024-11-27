@@ -2,7 +2,6 @@ package curve
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
@@ -10,6 +9,8 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
@@ -140,6 +141,7 @@ func (d *PoolsListUpdater) getNewPoolsTypePlainOracle(
 func (d *PoolTracker) getNewPoolStateTypePlainOracle(
 	ctx context.Context,
 	p entity.Pool,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.Infof("[Curve] Start getting new state of pool %v with type %v", p.Address, p.Type)
 
@@ -159,6 +161,9 @@ func (d *PoolTracker) getNewPoolStateTypePlainOracle(
 	}
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		calls.SetOverrides(overrides)
+	}
 
 	calls.AddCall(&ethrpc.Call{
 		ABI:    plainOracleABI,

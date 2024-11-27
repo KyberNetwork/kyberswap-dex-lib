@@ -17,6 +17,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/math"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/shared"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type PoolTracker struct {
@@ -37,7 +38,24 @@ func NewPoolTracker(
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
+	params poolpkg.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params poolpkg.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, poolpkg.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
 	_ poolpkg.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"dexId":       t.config.DexID,
@@ -72,6 +90,7 @@ func (t *PoolTracker) GetNewPoolState(
 		staticExtra.PoolTypeVer,
 		p.Tokens,
 		staticExtra.Vault,
+		overrides,
 	)
 	if err != nil {
 		logger.WithFields(logger.Fields{
@@ -127,6 +146,7 @@ func (t *PoolTracker) queryRPC(
 	poolTypeVer int,
 	tokens []*entity.PoolToken,
 	vault string,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*rpcRes, error) {
 	var (
 		tokenNbr = len(tokens)
@@ -166,6 +186,10 @@ func (t *PoolTracker) queryRPC(
 	*/
 
 	req := t.ethrpcClient.R().SetContext(ctx)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
+
 	req.AddCall(&ethrpc.Call{
 		ABI:    shared.VaultABI,
 		Target: vault,
@@ -266,6 +290,10 @@ func (t *PoolTracker) queryRPC(
 
 	canNotUpdateTokenRates := false
 	req = t.ethrpcClient.R().SetContext(ctx).SetBlockNumber(blockNbr)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
+
 	rateUpdatedTokenIndexes := []int{}
 	updatedRate := make([]*big.Int, tokenNbr)
 	for i, token := range tokens {

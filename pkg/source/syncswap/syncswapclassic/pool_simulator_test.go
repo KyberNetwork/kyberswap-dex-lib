@@ -203,3 +203,55 @@ func TestGetAmountIn(t *testing.T) {
 		})
 	}
 }
+
+func TestGetAmountOutWithUpdateBalance(t *testing.T) {
+	entityPool := entity.Pool{
+		Address:  "0x624202a3913fc479bd29f0e5165164575b74a8e6",
+		Exchange: "syncswap",
+		Type:     "syncswap-classic",
+		Reserves: []string{"11064950780", "20363616"},
+		Tokens: []*entity.PoolToken{
+			{Address: "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4", Swappable: true},
+			{Address: "0x3c1bca5a656e69edcd0d4e36bebb3fcdaca60cf1", Swappable: true},
+		},
+		Extra: "{\"swapFee0To1\":300,\"swapFee1To0\":300}",
+	}
+
+	pool, err := NewPoolSimulator(entityPool)
+	assert.NoError(t, err)
+	res, err := pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
+		TokenAmountIn: poolPkg.TokenAmount{
+			Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
+			Amount: big.NewInt(52436037),
+		},
+		TokenOut: "0x3c1bca5a656e69edcd0d4e36bebb3fcdaca60cf1",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, res.TokenAmountOut.Amount.String(), "95759")
+
+	pool.UpdateBalance(poolPkg.UpdateBalanceParams{
+		TokenAmountIn: poolPkg.TokenAmount{
+			Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
+			Amount: big.NewInt(52436037),
+		},
+		TokenAmountOut: poolPkg.TokenAmount{
+			Token:  "0x3c1bca5a656e69edcd0d4e36bebb3fcdaca60cf1",
+			Amount: res.TokenAmountOut.Amount,
+		},
+		Fee: poolPkg.TokenAmount{
+			Token:  res.Fee.Token,
+			Amount: res.Fee.Amount,
+		},
+		SwapInfo: res.SwapInfo,
+	})
+
+	res, err = pool.CalcAmountOut(poolPkg.CalcAmountOutParams{
+		TokenAmountIn: poolPkg.TokenAmount{
+			Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
+			Amount: big.NewInt(78292),
+		},
+		TokenOut: "0x3c1bca5a656e69edcd0d4e36bebb3fcdaca60cf1",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, res.TokenAmountOut.Amount.String(), "142")
+}

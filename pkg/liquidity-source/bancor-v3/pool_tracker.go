@@ -12,6 +12,8 @@ import (
 	"github.com/holiman/uint256"
 	"github.com/pkg/errors"
 
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
@@ -41,7 +43,24 @@ func NewPoolTracker(
 func (t *PoolTracker) GetNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
+	params poolpkg.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params poolpkg.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, poolpkg.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (t *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
 	_ poolpkg.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"dexId":       t.config.DexID,
@@ -57,7 +76,7 @@ func (t *PoolTracker) GetNewPoolState(
 		}).Info("Finish updating state.")
 	}()
 
-	liquidityPools, blockNbr, err := t.getLiquidityPools(ctx, p.Address)
+	liquidityPools, blockNbr, err := t.getLiquidityPools(ctx, p.Address, overrides)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
@@ -67,7 +86,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	collectionByPool, err := t.getCollectionByPool(ctx, blockNbr, p.Address, liquidityPools)
+	collectionByPool, err := t.getCollectionByPool(ctx, blockNbr, p.Address, liquidityPools, overrides)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
@@ -77,7 +96,7 @@ func (t *PoolTracker) GetNewPoolState(
 		return p, err
 	}
 
-	poolCollections, err := t.getPoolCollections(ctx, blockNbr, collectionByPool)
+	poolCollections, err := t.getPoolCollections(ctx, blockNbr, collectionByPool, overrides)
 	if err != nil {
 		logger.WithFields(logger.Fields{
 			"dexId":       t.config.DexID,
@@ -194,6 +213,7 @@ func (t *PoolTracker) getPoolCollections(
 	ctx context.Context,
 	blockNbr *big.Int,
 	collectionByPool map[string]string,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (map[string]*poolCollectionResp, error) {
 	ret := map[string]*poolCollectionResp{}
 	poolsByPoolCollection := t.groupPoolsByPoolCollection(collectionByPool)
@@ -203,6 +223,7 @@ func (t *PoolTracker) getPoolCollections(
 			blockNbr,
 			poolCollectionAddr,
 			pools,
+			overrides,
 		)
 		if err != nil {
 			return nil, err
@@ -217,11 +238,14 @@ func (t *PoolTracker) getPoolCollection(
 	blockNbr *big.Int,
 	poolCollection string,
 	pools []string,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (*poolCollectionResp, error) {
 	req := t.ethrpcClient.R().
 		SetContext(ctx).
 		SetBlockNumber(blockNbr)
-
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
 	poolDatResp := make([]*poolDataResp, len(pools))
 	for idx, p := range pools {
 		poolDatResp[idx] = &poolDataResp{}
@@ -261,10 +285,14 @@ func (t *PoolTracker) getCollectionByPool(
 	blockNbr *big.Int,
 	bancorNetworkAddress string,
 	liquidityPools []string,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (map[string]string, error) {
 	req := t.ethrpcClient.R().
 		SetContext(ctx).
 		SetBlockNumber(blockNbr)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
 	poolCollections := make([]common.Address, len(liquidityPools))
 	for idx, liquidityPool := range liquidityPools {
 		req.AddCall(&ethrpc.Call{
@@ -290,9 +318,14 @@ func (t *PoolTracker) getCollectionByPool(
 func (t *PoolTracker) getLiquidityPools(
 	ctx context.Context,
 	bancorNetworkAddress string,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) ([]string, *big.Int, error) {
 	var addresses []common.Address
 	req := t.ethrpcClient.R().SetContext(ctx)
+	if overrides != nil {
+		req.SetOverrides(overrides)
+	}
+
 	req.AddCall(&ethrpc.Call{
 		ABI:    bancorNetworkABI,
 		Target: bancorNetworkAddress,

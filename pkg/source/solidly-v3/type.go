@@ -58,9 +58,13 @@ type Tick struct {
 type Extra struct {
 	Liquidity    *big.Int `json:"liquidity"`
 	SqrtPriceX96 *big.Int `json:"sqrtPriceX96"`
-	TickSpacing  int32    `json:"tickSpacing"`
+	TickSpacing  uint64   `json:"tickSpacing"`
 	Tick         *big.Int `json:"tick"`
 	Ticks        []Tick   `json:"ticks"`
+}
+
+type PoolMeta struct {
+	PriceLimit *big.Int `json:"priceLimit"`
 }
 
 type Slot0 struct {

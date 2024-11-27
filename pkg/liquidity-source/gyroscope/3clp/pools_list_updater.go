@@ -2,7 +2,6 @@ package gyro3clp
 
 import (
 	"context"
-	"encoding/json"
 	"math/big"
 	"strings"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -25,10 +25,11 @@ type PoolsListUpdater struct {
 
 func NewPoolsListUpdater(config *Config, ethrpcClient *ethrpc.Client) *PoolsListUpdater {
 	sharedUpdater := shared.NewPoolsListUpdater(&shared.Config{
-		DexID:        config.DexID,
-		SubgraphAPI:  config.SubgraphAPI,
-		NewPoolLimit: config.NewPoolLimit,
-		PoolTypes:    []string{poolType},
+		DexID:           config.DexID,
+		SubgraphAPI:     config.SubgraphAPI,
+		SubgraphHeaders: config.SubgraphHeaders,
+		NewPoolLimit:    config.NewPoolLimit,
+		PoolTypes:       []string{poolType},
 	})
 
 	return &PoolsListUpdater{

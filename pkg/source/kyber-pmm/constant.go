@@ -14,13 +14,6 @@ const (
 	poolReserve = "1000000000000000000000000" // 1e6 * 1e18
 )
 
-const (
-	// SwapDirectionBaseToQuote is the direction of swap from base to quote
-	SwapDirectionBaseToQuote SwapDirection = iota
-	// SwapDirectionQuoteToBase is the direction of swap from quote to base
-	SwapDirectionQuoteToBase
-)
-
 var (
 	DefaultGas = Gas{Swap: 100000}
 )

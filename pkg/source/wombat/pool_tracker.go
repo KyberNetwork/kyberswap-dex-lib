@@ -2,22 +2,24 @@ package wombat
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"github.com/KyberNetwork/blockchain-toolkit/dsmath"
 	"math/big"
 	"strings"
 	"time"
 
+	"github.com/KyberNetwork/blockchain-toolkit/dsmath"
 	"github.com/KyberNetwork/ethrpc"
+	"github.com/KyberNetwork/logger"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
+	"github.com/goccy/go-json"
+	"github.com/machinebox/graphql"
+
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/eth"
-	graphqlPkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
+	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/KyberNetwork/logger"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/machinebox/graphql"
 )
 
 type PoolTracker struct {
@@ -27,7 +29,11 @@ type PoolTracker struct {
 }
 
 func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
-	graphqlClient := graphqlPkg.NewWithTimeout(cfg.SubgraphAPI, graphQLRequestTimeout)
+	graphqlClient := graphqlpkg.New(graphqlpkg.Config{
+		Url:     cfg.SubgraphAPI,
+		Header:  cfg.SubgraphHeaders,
+		Timeout: graphQLRequestTimeout,
+	})
 
 	return &PoolTracker{
 		config:        cfg,
@@ -36,10 +42,27 @@ func NewPoolTracker(cfg *Config, ethrpcClient *ethrpc.Client) *PoolTracker {
 	}
 }
 
-func (d *PoolTracker) GetNewPoolState(
+func (t *PoolTracker) GetNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, params, nil)
+}
+
+func (t *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return t.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (d *PoolTracker) getNewPoolState(
 	ctx context.Context,
 	p entity.Pool,
 	_ pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{
 		"address": p.Address,
@@ -50,6 +73,10 @@ func (d *PoolTracker) GetNewPoolState(
 	var assetAddresses = make([]common.Address, len(p.Tokens))
 
 	calls := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		calls.SetOverrides(overrides)
+	}
+
 	calls.AddCall(&ethrpc.Call{
 		ABI:    PoolV2ABI,
 		Target: p.Address,
@@ -103,6 +130,10 @@ func (d *PoolTracker) GetNewPoolState(
 	)
 
 	assetCalls := d.ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		assetCalls.SetOverrides(overrides)
+	}
+
 	for i, assetAddress := range assetAddresses {
 		assetCalls.AddCall(&ethrpc.Call{
 			ABI:    DynamicAssetABI,
@@ -147,9 +178,11 @@ func (d *PoolTracker) GetNewPoolState(
 	for i, token := range p.Tokens {
 		isPaused := false
 		reserves[i] = zeroString
-		for _, assetQuery := range subgraphQuery.Assets {
-			if strings.EqualFold(assetQuery.ID, assetAddresses[i].Hex()) {
-				isPaused = assetQuery.IsPaused
+		if subgraphQuery != nil {
+			for _, assetQuery := range subgraphQuery.Assets {
+				if strings.EqualFold(assetQuery.ID, assetAddresses[i].Hex()) {
+					isPaused = assetQuery.IsPaused
+				}
 			}
 		}
 

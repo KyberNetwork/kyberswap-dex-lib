@@ -7,8 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
-	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/swaplimit"
 )
 
 var entityPool = entity.Pool{
@@ -101,7 +101,7 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 			params := pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{Token: tokenIn, Amount: amountIn},
 				TokenOut:      tokenOut,
-				Limit:         kyberpmm.NewInventory(poolSimulator.CalculateLimit()),
+				Limit:         swaplimit.NewInventory("", poolSimulator.CalculateLimit()),
 			}
 
 			result, err := poolSimulator.CalcAmountOut(params)
@@ -179,7 +179,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			if amountIn == nil {
 				token, amountIn = entityPool.Tokens[1].Address, tt.amountIn1
 			}
-			limit := kyberpmm.NewInventory(p.CalculateLimit())
+			limit := swaplimit.NewInventory("", p.CalculateLimit())
 			amountOut, err := p.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{Token: token, Amount: amountIn},
 				Limit:         limit,

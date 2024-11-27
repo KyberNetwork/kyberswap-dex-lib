@@ -442,15 +442,19 @@ func (p *PoolSimulator) velocoreExecuteFallback(tokens []string, r_ []*big.Int) 
 	for i := range r {
 		r[i] = integer.Zero()
 	}
-	j := 1
 	for i, token := range tokens {
 		if tokens[i] == t[0] {
 			idx[i] = 0
 			r[0] = r_[i]
 		} else {
-			for token != t[j] {
-				j++
+			var j int
+			for idx, tToken := range t {
+				if token == tToken {
+					j = idx
+					break
+				}
 			}
+
 			idx[i] = j
 			r[j] = r_[i]
 		}

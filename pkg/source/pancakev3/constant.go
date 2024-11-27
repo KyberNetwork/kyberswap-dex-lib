@@ -3,6 +3,9 @@ package pancakev3
 import (
 	"math/big"
 	"time"
+
+	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
+	"github.com/samber/lo"
 )
 
 const (
@@ -26,4 +29,8 @@ const (
 var (
 	zeroBI     = big.NewInt(0)
 	defaultGas = Gas{BaseGas: 85000, CrossInitTickGas: 24000}
+
+	TickSpacings = lo.Assign(constants.TickSpacings, map[constants.FeeAmount]int{
+		constants.Fee2500: 50,
+	})
 )

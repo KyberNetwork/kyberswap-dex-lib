@@ -190,7 +190,7 @@ func getAmountOut(amtIn, minAmtIn, maxAmtOut float64, priceLevels []PriceLevel) 
 
 	for _, priceLevel := range priceLevels {
 		if amtIn <= priceLevel.Quote {
-			amountOut += amtIn*priceLevel.Price
+			amountOut += amtIn * priceLevel.Price
 			if amountOut > maxAmtOut {
 				return 0, ErrAmountOutIsGreaterThanInventory
 			}

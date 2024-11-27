@@ -1,0 +1,21 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "bytes32",
+                "name": "slot_",
+                "type": "bytes32"
+            }
+        ],
+        "name": "readFromStorage",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "result_",
+                "type": "uint256"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]

@@ -26,6 +26,7 @@ var (
 	ExchangeEmpireDex       Exchange = "empiredex"
 	ExchangePhotonSwap      Exchange = "photonswap"
 	ExchangeUniSwap         Exchange = "uniswap"
+	ExchangeUniSwapV1       Exchange = "uniswap-v1"
 	ExchangeUniSwapV2       Exchange = "uniswap-v2"
 	ExchangeShibaSwap       Exchange = "shibaswap"
 	ExchangeDefiSwap        Exchange = "defiswap"
@@ -74,6 +75,7 @@ var (
 	ExchangeCurveStableNg     Exchange = "curve-stable-ng"
 	ExchangeCurveStableMetaNg Exchange = "curve-stable-meta-ng"
 	ExchangeCurveTriCryptoNg  Exchange = "curve-tricrypto-ng"
+	ExchangeCurveTwoCryptoNg  Exchange = "curve-twocrypto-ng"
 
 	ExchangeUniSwapV3        Exchange = "uniswapv3"
 	ExchangeKyberswapElastic Exchange = "kyberswap-elastic"
@@ -219,13 +221,15 @@ var (
 
 	ExchangeKyberSwapLimitOrderDS Exchange = "kyberswap-limit-order-v2"
 
-	ExchangeKyberPMM   Exchange = "kyber-pmm"
-	ExchangeSwaapV2    Exchange = "swaap-v2"
-	ExchangeHashflowV3 Exchange = "hashflow-v3"
-	ExchangeNativeV1   Exchange = "native-v1"
-
+	ExchangeKyberPMM     Exchange = "kyber-pmm"
+	ExchangeSwaapV2      Exchange = "swaap-v2"
+	ExchangeHashflowV3   Exchange = "hashflow-v3"
+	ExchangeNativeV1     Exchange = "native-v1"
+	ExchangeBebop        Exchange = "bebop"
+	ExchangeDexalot      Exchange = "dexalot"
 	ExchangeTraderJoeV20 Exchange = "traderjoe-v20"
 	ExchangeTraderJoeV21 Exchange = "traderjoe-v21"
+	ExchangeTraderJoeV22 Exchange = "traderjoe-v22"
 
 	ExchangeIZiSwap Exchange = "iziswap"
 
@@ -241,6 +245,8 @@ var (
 	ExchangePolMatic Exchange = "pol-matic"
 
 	ExchangeSmardex Exchange = "smardex"
+
+	ExchangeIntegral Exchange = "integral"
 
 	ExchangeZebra  Exchange = "zebra"
 	ExchangeZKSwap Exchange = "zkswap"
@@ -286,7 +292,6 @@ var (
 
 	ExchangePufferPufETH Exchange = "puffer-pufeth"
 
-	ExchangeRingSwap        Exchange = "ring-swap"
 	ExchangeThrusterV2      Exchange = "thruster-v2"
 	ExchangeThrusterV2Degen Exchange = "thruster-v2-degen"
 	ExchangeDyorSwap        Exchange = "dyor-swap"
@@ -317,8 +322,9 @@ var (
 	ExchangeXLayerSwap   Exchange = "xlayer-swap"
 	ExchangeStationDexV3 Exchange = "station-dex-v3"
 
-	ExchangeVelodromeCL Exchange = "velodrome-cl"
-	ExchangeAerodromeCL Exchange = "aerodrome-cl"
+	ExchangeVelodromeCL  Exchange = "velodrome-cl"
+	ExchangeAerodromeCL  Exchange = "aerodrome-cl"
+	ExchangeVelodromeCL2 Exchange = "velodrome-cl-2"
 
 	ExchangeLineHubV2 Exchange = "linehub-v2"
 	ExchangeLineHubV3 Exchange = "linehub-v3"
@@ -333,6 +339,35 @@ var (
 	ExchangeAlienBaseCL  Exchange = "alien-base-cl"
 	ExchangeKinetixV2    Exchange = "kinetix-v2"
 	ExchangeKinetixV3    Exchange = "kinetix-v3"
+
+	ExchangeAlienBaseDegen Exchange = "alien-base-degen"
+	ExchangeKoiCL          Exchange = "koi-cl"
+	ExchangeTokan          Exchange = "tokan-exchange"
+	ExchangeSectaV2        Exchange = "secta-v2"
+	ExchangeSectaV3        Exchange = "secta-v3"
+	ExchangeQuickSwapUniV3 Exchange = "quickswap-uni-v3"
+	ExchangeAmbient        Exchange = "ambient"
+
+	ExchangeMaverickV2       Exchange = "maverick-v2"
+	ExchangeEtherVista       Exchange = "ether-vista"
+	ExchangeLitePSM          Exchange = "lite-psm"
+	ExchangeMkrSky           Exchange = "mkr-sky"
+	ExchangeDaiUsds          Exchange = "dai-usds"
+	ExchangeUsd0PP           Exchange = "usd0pp"
+	ExchangeWBETH            Exchange = "wbeth"
+	ExchangeOETH             Exchange = "oeth"
+	ExchangeRingSwap         Exchange = "ringswap"
+	ExchangePrimeETH         Exchange = "primeeth"
+	ExchangeStaderETHx       Exchange = "staderethx"
+	ExchangeFrxETH           Exchange = "frxeth"
+	ExchangeFluidVaultT1     Exchange = "fluid-vault-t1"
+	ExchangeFluidDexT1       Exchange = "fluid-dex-t1"
+	ExchangeMantleETH        Exchange = "meth"
+	ExchangeOndoUSDY         Exchange = "ondo-usdy"
+	ExchangeClipper          Exchange = "clipper"
+	ExchangeDeltaSwapV1      Exchange = "deltaswap-v1"
+	ExchangeSfrxETH          Exchange = "sfrxeth"
+	ExchangeSfrxETHConvertor Exchange = "sfrxeth-convertor"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -359,6 +394,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeEmpireDex:                  {},
 	ExchangePhotonSwap:                 {},
 	ExchangeUniSwap:                    {},
+	ExchangeUniSwapV1:                  {},
 	ExchangeUniSwapV2:                  {},
 	ExchangeShibaSwap:                  {},
 	ExchangeDefiSwap:                   {},
@@ -397,6 +433,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeCurveStableNg:              {},
 	ExchangeCurveStableMetaNg:          {},
 	ExchangeCurveTriCryptoNg:           {},
+	ExchangeCurveTwoCryptoNg:           {},
 	ExchangeEllipsis:                   {},
 	ExchangePancakeStable:              {},
 	ExchangeUniSwapV3:                  {},
@@ -514,6 +551,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeKyberPMM:                   {},
 	ExchangeTraderJoeV20:               {},
 	ExchangeTraderJoeV21:               {},
+	ExchangeTraderJoeV22:               {},
 	ExchangeIZiSwap:                    {},
 	ExchangeWooFiV2:                    {},
 	ExchangeWooFiV3:                    {},
@@ -523,6 +561,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeVooi:                       {},
 	ExchangePolMatic:                   {},
 	ExchangeSmardex:                    {},
+	ExchangeIntegral:                   {},
 	ExchangeZebra:                      {},
 	ExchangeZKSwap:                     {},
 	ExchangeBalancerV1:                 {},
@@ -594,6 +633,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeStationDexV3:               {},
 	ExchangeVelodromeCL:                {},
 	ExchangeAerodromeCL:                {},
+	ExchangeVelodromeCL2:               {},
 	ExchangeLineHubV2:                  {},
 	ExchangeLineHubV3:                  {},
 	ExchangeWigoSwap:                   {},
@@ -605,6 +645,32 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeAlienBaseCL:                {},
 	ExchangeKinetixV2:                  {},
 	ExchangeKinetixV3:                  {},
+	ExchangeAlienBaseDegen:             {},
+	ExchangeKoiCL:                      {},
+	ExchangeTokan:                      {},
+	ExchangeSectaV2:                    {},
+	ExchangeSectaV3:                    {},
+	ExchangeQuickSwapUniV3:             {},
+	ExchangeAmbient:                    {},
+	ExchangeMaverickV2:                 {},
+	ExchangeEtherVista:                 {},
+	ExchangeLitePSM:                    {},
+	ExchangeMkrSky:                     {},
+	ExchangeDaiUsds:                    {},
+	ExchangeFluidVaultT1:               {},
+	ExchangeFluidDexT1:                 {},
+	ExchangeUsd0PP:                     {},
+	ExchangeWBETH:                      {},
+	ExchangeOETH:                       {},
+	ExchangeRingSwap:                   {},
+	ExchangePrimeETH:                   {},
+	ExchangeStaderETHx:                 {},
+	ExchangeFrxETH:                     {},
+	ExchangeMantleETH:                  {},
+	ExchangeOndoUSDY:                   {},
+	ExchangeDeltaSwapV1:                {},
+	ExchangeSfrxETH:                    {},
+	ExchangeSfrxETHConvertor:           {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
@@ -614,15 +680,33 @@ func IsAMMSource(exchange Exchange) bool {
 }
 
 var RFQSourceSet = map[Exchange]struct{}{
-	ExchangeKyberPMM:   {},
-	ExchangeSwaapV2:    {},
-	ExchangeHashflowV3: {},
+	ExchangeKyberPMM: {},
 
 	ExchangeKyberSwapLimitOrderDS: {},
+
+	ExchangeSwaapV2:    {},
+	ExchangeHashflowV3: {},
+	ExchangeNativeV1:   {},
+	ExchangeBebop:      {},
+	ExchangeClipper:    {},
+	ExchangeDexalot:    {},
 }
 
 func IsRFQSource(exchange Exchange) bool {
 	_, contained := RFQSourceSet[exchange]
+
+	return contained
+}
+
+// SingleSwapSourceSet is a set of exchanges that
+// only allow a single swap in a route.
+var SingleSwapSourceSet = map[Exchange]struct{}{
+	ExchangeClipper: {},
+	ExchangeBebop:   {},
+}
+
+func IsSingleSwapSource(exchange Exchange) bool {
+	_, contained := SingleSwapSourceSet[exchange]
 
 	return contained
 }
