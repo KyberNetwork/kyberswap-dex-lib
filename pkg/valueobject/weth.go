@@ -42,3 +42,7 @@ func WrapETHLower(token string, chainID ChainID) string {
 	}
 	return strings.ToLower(token)
 }
+
+func IsWETH(address string, chainID ChainID) bool {
+	return strings.EqualFold(address, WETHByChainID[chainID])
+}

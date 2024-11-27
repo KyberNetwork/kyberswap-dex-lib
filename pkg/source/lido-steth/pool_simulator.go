@@ -19,7 +19,7 @@ type PoolSimulator struct {
 
 func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	numTokens := len(entityPool.Tokens)
-	if numTokens != 2 || !isWrappedEther(entityPool.Tokens[0].Address, chainID) {
+	if numTokens != 2 || !valueobject.IsWETH(entityPool.Tokens[0].Address, chainID) {
 		return nil, fmt.Errorf("invalid pool tokens %v, %v", entityPool, numTokens)
 	}
 	if numTokens != len(entityPool.Reserves) {
@@ -53,7 +53,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	tokenOut := param.TokenOut
 	stEth := p.Info.Tokens[1]
 	// can only swap from ETH to stETH
-	if !isWrappedEther(tokenAmountIn.Token, p.chainID) || !strings.EqualFold(tokenOut, stEth) {
+	if !valueobject.IsWETH(tokenAmountIn.Token, p.chainID) || !strings.EqualFold(tokenOut, stEth) {
 		return nil, fmt.Errorf("Invalid tokenIn/Out %v %v", tokenAmountIn.Token, tokenOut)
 	}
 
@@ -120,8 +120,4 @@ func (p *PoolSimulator) CanSwapFrom(address string) []string {
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return nil
-}
-
-func isWrappedEther(address string, chainID valueobject.ChainID) bool {
-	return strings.EqualFold(valueobject.WETHByChainID[chainID], address)
 }
