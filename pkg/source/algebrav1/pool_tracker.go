@@ -7,7 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
+	v3Entities "github.com/KyberNetwork/uniswapv3-sdk/entities"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
@@ -113,7 +113,7 @@ func (d *PoolTracker) GetNewPoolState(
 
 	ticks := make([]v3Entities.Tick, 0, len(poolTicks))
 	for _, tickResp := range poolTicks {
-		tick, err := transformTickRespToTick(tickResp)
+		tick, err := transformTickRespToTickBigInt(tickResp)
 		if err != nil {
 			l.WithFields(logger.Fields{
 				"error": err,
@@ -298,7 +298,8 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 	return res, err
 }
 
-func (d *PoolTracker) approximateFee(ctx context.Context, poolAddress, dataStorageOperator string, state *GlobalState, currentLiquidity *big.Int) error {
+func (d *PoolTracker) approximateFee(ctx context.Context, poolAddress, dataStorageOperator string,
+	state *GlobalState, currentLiquidity *big.Int) error {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": poolAddress,
 		"dexID":       d.config.DexID,
@@ -373,7 +374,8 @@ func (d *PoolTracker) approximateFee(ctx context.Context, poolAddress, dataStora
 	return nil
 }
 
-func (d *PoolTracker) getPoolFeeConfig(ctx context.Context, dataStorageOperatorAddress string, feeConf *FeeConfiguration) error {
+func (d *PoolTracker) getPoolFeeConfig(ctx context.Context, dataStorageOperatorAddress string,
+	feeConf *FeeConfiguration) error {
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 
@@ -395,7 +397,8 @@ func (d *PoolTracker) getPoolFeeConfig(ctx context.Context, dataStorageOperatorA
 	return nil
 }
 
-func (d *PoolTracker) getPoolDirectionalFeeConfig(ctx context.Context, dataStorageOperatorAddress string, feeConfZto *FeeConfiguration, feeConfOtz *FeeConfiguration) error {
+func (d *PoolTracker) getPoolDirectionalFeeConfig(ctx context.Context, dataStorageOperatorAddress string,
+	feeConfZto *FeeConfiguration, feeConfOtz *FeeConfiguration) error {
 	rpcRequest := d.ethrpcClient.NewRequest()
 	rpcRequest.SetContext(ctx)
 
@@ -423,7 +426,8 @@ func (d *PoolTracker) getPoolDirectionalFeeConfig(ctx context.Context, dataStora
 	return nil
 }
 
-func (d *PoolTracker) getPoolTimepoints(ctx context.Context, currentIndex uint16, poolAddress string, yesterday uint32) (map[uint16]Timepoint, error) {
+func (d *PoolTracker) getPoolTimepoints(ctx context.Context, currentIndex uint16, poolAddress string,
+	yesterday uint32) (map[uint16]Timepoint, error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": poolAddress,
 		"dexID":       d.config.DexID,
@@ -548,7 +552,7 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, currentIndex uint16
 		end = begin
 		begin = end - timepointPageSize
 		if begin <= currentIndex && currentIndex < end {
-			//we've wrapped around full circle, so break here
+			// we've wrapped around full circle, so break here
 			break
 		}
 	}
@@ -571,7 +575,8 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, currentIndex uint16
 	return timepoints, nil
 }
 
-func (d *PoolTracker) getPoolVolumePerLiquidityInBlock(ctx context.Context, poolAddress common.Address) (*big.Int, error) {
+func (d *PoolTracker) getPoolVolumePerLiquidityInBlock(ctx context.Context, poolAddress common.Address) (*big.Int,
+	error) {
 	l := logger.WithFields(logger.Fields{
 		"poolAddress": poolAddress,
 		"dexID":       d.config.DexID,

@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
@@ -60,9 +59,7 @@ func (d *PoolsListUpdater) getPoolsList(ctx context.Context, lastCreatedAtTimest
 }
 
 func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte) ([]entity.Pool, []byte, error) {
-	metadata := Metadata{
-		LastCreatedAtTimestamp: integer.Zero(),
-	}
+	var metadata Metadata
 	if len(metadataBytes) != 0 {
 		err := json.Unmarshal(metadataBytes, &metadata)
 		if err != nil {
@@ -88,7 +85,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	}
 
 	// Track the last pool's CreatedAtTimestamp
-	lastPoolIds := []string{}
+	var lastPoolIds []string
 	lastCreatedAtTimestampStr := subgraphPools[numSubgraphPools-1].CreatedAtTimestamp
 	lastCreatedAtTimestamp, ok := new(big.Int).SetString(lastCreatedAtTimestampStr, 10)
 	if !ok {

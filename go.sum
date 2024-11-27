@@ -18,6 +18,8 @@ github.com/KyberNetwork/pancake-v3-sdk v0.2.0 h1:dd5k2Z223kkzSky8SFgRy2/eQGp4bf5
 github.com/KyberNetwork/pancake-v3-sdk v0.2.0/go.mod h1:AhHu1v2KZAXKFZ9AnjwYPPx1+dDFHBqmSpSeg4fnvzg=
 github.com/KyberNetwork/uniswapv3-sdk v0.5.0 h1:Akl6KR27K+gVMOf9x9u9dV32j9YTIEnY99R9z+WlVGI=
 github.com/KyberNetwork/uniswapv3-sdk v0.5.0/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
+github.com/KyberNetwork/uniswapv3-sdk v0.5.5 h1:PLkDL8YWgN00yfNGbQpOGRcKRD3eoFXOFzjvuHP9Gmo=
+github.com/KyberNetwork/uniswapv3-sdk v0.5.5/go.mod h1:XFySgQXZ+dl0yRze6Rj8jloILcFP8FbXJjcyk/1RmSU=
 github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.0 h1:AkEmCEBmyYAUU+WHGrgw9uaXHteqNn66CD36FaXoUig=
 github.com/KyberNetwork/uniswapv3-sdk-uint256 v0.5.0/go.mod h1:VQNKmTwlX6gyW1gzaSQjYG+xCBpqmgH0VQslYMtqzAg=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=

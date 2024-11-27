@@ -5,14 +5,18 @@ import (
 	"math/big"
 	"strconv"
 
-	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
+	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
+	v3EntitiesBigInt "github.com/KyberNetwork/uniswapv3-sdk/entities"
+	"github.com/holiman/uint256"
+	"github.com/pkg/errors"
 )
 
 type int24 = int32
 type int56 = int64
 
 type Metadata struct {
-	LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp"`
+	LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp,string"`
 	LastPoolIds            []string `json:"lastPoolIds"` // pools that share lastCreatedAtTimestamp
 }
 
@@ -53,7 +57,7 @@ type rpcGlobalStateSingleFee struct {
 	Unlocked           bool
 }
 
-// for algebra v1 camelot and similar (directional fee)
+// rpcGlobalStateDirFee for algebra v1 camelot and similar (directional fee)
 type rpcGlobalStateDirFee struct {
 	Price              *big.Int
 	Tick               *big.Int
@@ -65,7 +69,19 @@ type rpcGlobalStateDirFee struct {
 	Unlocked           bool
 }
 
-// unified data for simulation
+// GlobalStateUint256 contains unified data for simulation
+type GlobalStateUint256 struct {
+	Price              *v3Utils.Uint160 `json:"price"`
+	Tick               int     `json:"tick"`
+	FeeZto             uint16           `json:"feeZto"`
+	FeeOtz             uint16           `json:"feeOtz"`
+	TimepointIndex     uint16           `json:"timepoint_index"`
+	CommunityFeeToken0 uint16           `json:"community_fee_token0"`
+	CommunityFeeToken1 uint16           `json:"community_fee_token1"`
+	Unlocked           bool             `json:"unlocked"`
+}
+
+// GlobalState contains unified data for simulation
 type GlobalState struct {
 	Price              *big.Int `json:"price"`
 	Tick               *big.Int `json:"tick"`
@@ -97,6 +113,16 @@ type FetchRPCResult struct {
 	Reserve1    *big.Int    `json:"reserve1"`
 }
 
+type TimepointUint256 struct {
+	Initialized                   bool         `json:"initialized"`                   // whether or not the timepoint is initialized
+	BlockTimestamp                uint32       `json:"blockTimestamp"`                // the block timestamp of the timepoint
+	AverageTick                   int24        `json:"averageTick"`                   // average tick at this blockTimestamp
+	TickCumulative                int56        `json:"tickCumulative"`                // the tick accumulator, i.e. tick * time elapsed since the pool was first initialized
+	SecondsPerLiquidityCumulative *uint256.Int `json:"secondsPerLiquidityCumulative"` // the seconds per liquidity since the pool was first initialized
+	VolatilityCumulative          *uint256.Int `json:"volatilityCumulative"`          // the volatility accumulator; overflow after ~34800 years is desired :)
+	VolumePerLiquidityCumulative  *uint256.Int `json:"volumePerLiquidityCumulative"`  // the gmean(volumes)/liquidity accumulator
+}
+
 type Timepoint struct {
 	Initialized                   bool     `json:"initialized"`                   // whether or not the timepoint is initialized
 	BlockTimestamp                uint32   `json:"blockTimestamp"`                // the block timestamp of the timepoint
@@ -107,7 +133,7 @@ type Timepoint struct {
 	VolumePerLiquidityCumulative  *big.Int `json:"volumePerLiquidityCumulative"`  // the gmean(volumes)/liquidity accumulator
 }
 
-// same as Timepoint but with bigInt for correct deserialization
+// TimepointRPC is same as Timepoint but with bigInt for correct deserialization
 type TimepointRPC struct {
 	Initialized                   bool
 	BlockTimestamp                uint32
@@ -118,15 +144,28 @@ type TimepointRPC struct {
 	VolumePerLiquidityCumulative  *big.Int
 }
 
-type Extra struct {
-	Liquidity   *big.Int          `json:"liquidity"`
-	GlobalState GlobalState       `json:"globalState"`
-	Ticks       []v3Entities.Tick `json:"ticks"`
-	TickSpacing int24             `json:"tickSpacing"`
+type ExtraUint256 struct {
+	Liquidity   *uint256.Int       `json:"liquidity"`
+	GlobalState GlobalStateUint256 `json:"globalState"`
+	Ticks       []v3Entities.Tick  `json:"ticks"`
+	TickSpacing int24              `json:"tickSpacing"`
 }
 
-// we won't update the state when calculating amountOut, return this struct instead
+type Extra struct {
+	Liquidity   *big.Int                `json:"liquidity"`
+	GlobalState GlobalState             `json:"globalState"`
+	Ticks       []v3EntitiesBigInt.Tick `json:"ticks"`
+	TickSpacing int24                   `json:"tickSpacing"`
+}
+
+// StateUpdate should be returned instead since we won't update the state when calculating amountOut
 type StateUpdate struct {
+	Liquidity   *uint256.Int
+	GlobalState GlobalStateUint256
+}
+
+// StateUpdateBigInt should be returned instead since we won't update the state when calculating amountOut
+type StateUpdateBigInt struct {
 	Liquidity   *big.Int
 	GlobalState GlobalState
 }
@@ -137,24 +176,49 @@ type PoolMeta struct {
 }
 
 func transformTickRespToTick(tickResp TickResp) (v3Entities.Tick, error) {
+	liquidityGross := new(uint256.Int)
+	if err := liquidityGross.SetFromDecimal(tickResp.LiquidityGross); err != nil {
+		return v3Entities.Tick{}, errors.WithMessagef(err, "liquidityGross at tick=%v", tickResp.TickIdx)
+	}
+
+	liquidityNet := new(v3Utils.Int128)
+	if err := liquidityNet.SetFromDec(tickResp.LiquidityNet); err != nil {
+		return v3Entities.Tick{}, errors.WithMessagef(err, "liquidityNet at tick=%v", tickResp.TickIdx)
+	}
+
+	tickIdx, err := strconv.Atoi(tickResp.TickIdx)
+	if err != nil {
+		return v3Entities.Tick{}, errors.WithMessagef(err, "tickIdx at tick=%v", tickResp.TickIdx)
+	}
+
+	return v3Entities.Tick{
+		Index:          tickIdx,
+		LiquidityGross: liquidityGross,
+		LiquidityNet:   liquidityNet,
+	}, nil
+}
+
+func transformTickRespToTickBigInt(tickResp TickResp) (v3EntitiesBigInt.Tick, error) {
 	liquidityGross := new(big.Int)
 	liquidityGross, ok := liquidityGross.SetString(tickResp.LiquidityGross, 10)
 	if !ok {
-		return v3Entities.Tick{}, fmt.Errorf("can not convert liquidityGross string to bigInt, tick: %v", tickResp.TickIdx)
+		return v3EntitiesBigInt.Tick{}, fmt.Errorf("can not convert liquidityGross string to bigInt, tick: %v",
+			tickResp.TickIdx)
 	}
 
 	liquidityNet := new(big.Int)
 	liquidityNet, ok = liquidityNet.SetString(tickResp.LiquidityNet, 10)
 	if !ok {
-		return v3Entities.Tick{}, fmt.Errorf("can not convert liquidityNet string to bigInt, tick: %v", tickResp.TickIdx)
+		return v3EntitiesBigInt.Tick{}, fmt.Errorf("can not convert liquidityNet string to bigInt, tick: %v",
+			tickResp.TickIdx)
 	}
 
 	tickIdx, err := strconv.Atoi(tickResp.TickIdx)
 	if err != nil {
-		return v3Entities.Tick{}, fmt.Errorf("can not convert tickIdx string to int, tick: %v", tickResp.TickIdx)
+		return v3EntitiesBigInt.Tick{}, fmt.Errorf("can not convert tickIdx string to int, tick: %v", tickResp.TickIdx)
 	}
 
-	return v3Entities.Tick{
+	return v3EntitiesBigInt.Tick{
 		Index:          tickIdx,
 		LiquidityGross: liquidityGross,
 		LiquidityNet:   liquidityNet,

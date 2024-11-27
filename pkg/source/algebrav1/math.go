@@ -1,78 +1,72 @@
 package algebrav1
 
 import (
-	"math/big"
-
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
-	"github.com/KyberNetwork/logger"
-	"github.com/daoleno/uniswapv3-sdk/constants"
-	"github.com/daoleno/uniswapv3-sdk/utils"
+	"github.com/KyberNetwork/uniswapv3-sdk-uint256/constants"
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
+	"github.com/holiman/uint256"
 )
 
 type SwapCalculationCache struct {
-	communityFee *big.Int // The community fee of the selling token, uint256 to minimize casts
-	// volumePerLiquidityInBlock     *big.Int
-	// tickCumulative                int64    // The global tickCumulative at the moment
-	// secondsPerLiquidityCumulative *big.Int // The global secondPerLiquidity at the moment
-	// computedLatestTimepoint       bool     //  if we have already fetched _tickCumulative_ and _secondPerLiquidity_ from the DataOperator
-	amountRequiredInitial *big.Int // The initial value of the exact input\output amount
-	amountCalculated      *big.Int // The additive amount of total output\input calculated trough the swap
-	// totalFeeGrowth                *big.Int // The initial totalFeeGrowth + the fee growth during a swap
-	// totalFeeGrowthB               *big.Int
-	// incentiveStatus               IAlgebraVirtualPool.Status // If there is an active incentive at the moment
-	exactInput bool   // Whether the exact input or output is specified
-	fee        uint16 // The current dynamic fee
-	// startTick  int    // The tick at the start of a swap
-	// timepointIndex uint16 // The index of last written timepoint
+	communityFee     uint256.Int    // The community fee of the selling token, uint256 to minimize casts
+	amountRequired   v3Utils.Int256 // The required value of the exact input\output amount
+	amountCalculated v3Utils.Int256 // The additive amount of total output\input calculated through the swap
+	exactInput       bool           // Whether the exact input or output is specified
+	fee              uint16         // The current dynamic fee
 }
 
 type PriceMovementCache struct {
-	stepSqrtPrice *big.Int // The Q64.96 sqrt of the price at the start of the step
-	nextTick      int      // The tick till the current step goes
-	initialized   bool     // True if the _nextTick is initialized
-	nextTickPrice *big.Int // The Q64.96 sqrt of the price calculated from the _nextTick
-	input         *big.Int // The additive amount of tokens that have been provided
-	output        *big.Int // The additive amount of token that have been withdrawn
-	feeAmount     *big.Int // The total amount of fee earned within a current step
+	stepSqrtPrice v3Utils.Uint160 // The Q64.96 sqrt of the price at the start of the step
+	nextTick      int             // The tick till the current step goes
+	initialized   bool            // True if the _nextTick is initialized
+	nextTickPrice v3Utils.Uint160 // The Q64.96 sqrt of the price calculated from the _nextTick
+	input         uint256.Int     // The additive amount of tokens that have been provided
+	output        uint256.Int     // The additive amount of token that have been withdrawn
+	feeAmount     uint256.Int     // The total amount of fee earned within a current step
+}
+
+type SwapResult struct {
+	*StateUpdate
+	amountCalculated   *v3Utils.Int256
+	remainingAmountIn  *v3Utils.Int256
+	crossInitTickLoops int64
 }
 
 // https://github.com/cryptoalgebra/AlgebraV1/blob/dfebf532a27803dafcbf2ba49724740bd6220505/src/core/contracts/AlgebraPool.sol#L703
 func (p *PoolSimulator) _calculateSwapAndLock(
 	zeroToOne bool,
-	amountRequired *big.Int,
-	limitSqrtPrice *big.Int,
-) (error, *big.Int, *big.Int, *StateUpdate) {
+	amountRequired *v3Utils.Int256,
+	limitSqrtPrice *v3Utils.Uint160,
+) (*SwapResult, error) {
 	var cache SwapCalculationCache
 	var err error
 
 	nextState := &StateUpdate{}
 
-	// load from one storage slot
-	currentPrice := p.globalState.Price
-	currentTick := int(p.globalState.Tick.Int64())
-	cache.amountCalculated = integer.Zero()
+	var currentPrice v3Utils.Uint160
+	currentPrice.Set(p.globalState.Price)
+	currentTick := p.globalState.Tick
 	_communityFeeToken0 := p.globalState.CommunityFeeToken0
 	_communityFeeToken1 := p.globalState.CommunityFeeToken1
 
-	cmp := amountRequired.Cmp(integer.Zero())
+	cmp := amountRequired.Sign()
 	if cmp == 0 {
-		return ErrZeroAmountIn, nil, nil, nil
+		return nil, ErrZeroAmountIn
 	}
 
-	cache.amountRequiredInitial, cache.exactInput = amountRequired, cmp > 0
+	cache.amountRequired, cache.exactInput = *amountRequired, cmp > 0
 
 	currentLiquidity := p.liquidity
 
 	if zeroToOne {
-		if limitSqrtPrice.Cmp(currentPrice) >= 0 || limitSqrtPrice.Cmp(utils.MinSqrtRatio) <= 0 {
-			return ErrSPL, nil, nil, nil
+		if limitSqrtPrice.Cmp(&currentPrice) >= 0 || limitSqrtPrice.Cmp(v3Utils.MinSqrtRatioU256) <= 0 {
+			return nil, ErrSPL
 		}
-		cache.communityFee = big.NewInt(int64(_communityFeeToken0))
+		cache.communityFee.SetUint64(uint64(_communityFeeToken0))
 	} else {
-		if limitSqrtPrice.Cmp(currentPrice) <= 0 || limitSqrtPrice.Cmp(utils.MaxSqrtRatio) >= 0 {
-			return ErrSPL, nil, nil, nil
+		if limitSqrtPrice.Cmp(&currentPrice) <= 0 || limitSqrtPrice.Cmp(v3Utils.MaxSqrtRatioU256) >= 0 {
+			return nil, ErrSPL
 		}
-		cache.communityFee = big.NewInt(int64(_communityFeeToken1))
+		cache.communityFee.SetUint64(uint64(_communityFeeToken1))
 	}
 
 	// don't need to care about activeIncentive
@@ -84,57 +78,70 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	} else {
 		cache.fee = p.globalState.FeeOtz
 	}
-	logger.Debugf("fee %v", cache.fee)
 
+	var crossInitTickLoops int64
 	var step PriceMovementCache
-	// swap until there is remaining input or output tokens or we reach the price limit
+	// swap until there is remaining input or output tokens, or we reach the price limit.
 	// limit by maxSwapLoop to make sure we won't loop infinitely because of a bug somewhere
 	for i := 0; i < maxSwapLoop; i++ {
 		step.stepSqrtPrice = currentPrice
 
-		step.nextTick, step.initialized, err = p.ticks.NextInitializedTickWithinOneWord(currentTick, zeroToOne, p.tickSpacing)
-		if err != nil {
-			return err, nil, nil, nil
+		if step.nextTick, step.initialized, err = p.ticks.NextInitializedTickWithinOneWord(currentTick, zeroToOne,
+			p.tickSpacing); err != nil {
+			return nil, err
 		}
 
-		step.nextTickPrice, err = utils.GetSqrtRatioAtTick(step.nextTick)
-		if err != nil {
-			return err, nil, nil, nil
+		if err := v3Utils.GetSqrtRatioAtTickV2(step.nextTick, &step.nextTickPrice); err != nil {
+			return nil, err
 		}
 
 		// calculate the amounts needed to move the price to the next target if it is possible or as much as possible
-		targetPrice := step.nextTickPrice
-		ltLimit := step.nextTickPrice.Cmp(limitSqrtPrice) < 0
-		if zeroToOne == ltLimit {
+		targetPrice := &step.nextTickPrice
+		if zeroToOne == (step.nextTickPrice.Cmp(limitSqrtPrice) < 0) {
 			targetPrice = limitSqrtPrice
 		}
-		currentPrice, step.input, step.output, step.feeAmount, err = utils.ComputeSwapStep(
-			currentPrice,
-			targetPrice,
-			currentLiquidity,
-			amountRequired,
-			constants.FeeAmount(cache.fee),
-		)
-		if err != nil {
-			return err, nil, nil, nil
+
+		var nxtSqrtPriceX96 v3Utils.Uint160
+		if err = v3Utils.ComputeSwapStep(
+			&currentPrice, targetPrice, currentLiquidity, &cache.amountRequired, constants.FeeAmount(cache.fee),
+			&nxtSqrtPriceX96, &step.input, &step.output, &step.feeAmount,
+		); err != nil {
+			return nil, err
+		}
+		currentPrice.Set(&nxtSqrtPriceX96)
+
+		var amountInPlusFee v3Utils.Uint256
+		amountInPlusFee.Add(&step.input, &step.feeAmount)
+
+		var amountInPlusFeeSigned v3Utils.Int256
+		if err := v3Utils.ToInt256(&amountInPlusFee, &amountInPlusFeeSigned); err != nil {
+			return nil, err
+		}
+
+		var amountOutSigned v3Utils.Int256
+		if err := v3Utils.ToInt256(&step.output, &amountOutSigned); err != nil {
+			return nil, err
 		}
 
 		if cache.exactInput {
-			amountRequired = new(big.Int).Sub(amountRequired, new(big.Int).Add(step.input, step.feeAmount)) // decrease remaining input amount
-			cache.amountCalculated = new(big.Int).Sub(cache.amountCalculated, step.output)                  // decrease calculated output amount
+			cache.amountRequired.Sub(&cache.amountRequired,
+				&amountInPlusFeeSigned) // decrease remaining input amount
+			cache.amountCalculated.Sub(&cache.amountCalculated,
+				&amountOutSigned) // decrease calculated output amount
 		} else {
-			amountRequired = new(big.Int).Add(amountRequired, step.output) // increase remaining output amount (since its negative)
-			cache.amountCalculated = new(big.Int).Add(cache.amountCalculated,
-				new(big.Int).Add(step.input, step.feeAmount),
+			cache.amountRequired.Add(&cache.amountRequired,
+				&amountOutSigned) // increase remaining output amount (since its negative)
+			cache.amountCalculated.Add(&cache.amountCalculated,
+				&amountInPlusFeeSigned,
 			) // increase calculated input amount
 		}
 
-		if cache.communityFee.Cmp(integer.Zero()) > 0 {
-			delta := new(big.Int).Div(
-				new(big.Int).Mul(step.feeAmount, cache.communityFee),
+		if cache.communityFee.Sign() > 0 {
+			delta := amountInPlusFee.Div(
+				amountInPlusFee.Mul(&step.feeAmount, &cache.communityFee),
 				COMMUNITY_FEE_DENOMINATOR,
 			)
-			step.feeAmount = new(big.Int).Sub(step.feeAmount, delta)
+			step.feeAmount.Sub(&step.feeAmount, delta)
 		}
 
 		if currentPrice == step.nextTickPrice {
@@ -148,16 +155,15 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 
 				nextTickData, err := p.ticks.GetTick(step.nextTick)
 				if err != nil {
-					return err, nil, nil, nil
+					return nil, err
 				}
-				var liquidityDelta *big.Int
+				liquidityDelta := nextTickData.LiquidityNet
 				if zeroToOne {
-					liquidityDelta = new(big.Int).Neg(nextTickData.LiquidityNet)
-				} else {
-					liquidityDelta = nextTickData.LiquidityNet
+					liquidityDelta = new(v3Utils.Int128).Neg(nextTickData.LiquidityNet)
 				}
 
-				currentLiquidity = utils.AddDelta(currentLiquidity, liquidityDelta)
+				_ = v3Utils.AddDeltaInPlace(currentLiquidity, liquidityDelta)
+				crossInitTickLoops++
 			}
 			if zeroToOne {
 				currentTick = step.nextTick - 1
@@ -166,31 +172,21 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 			}
 		} else if currentPrice != step.stepSqrtPrice {
 			// if the price has changed but hasn't reached the target
-			currentTick, err = utils.GetTickAtSqrtRatio(currentPrice)
-			if err != nil {
-				return err, nil, nil, nil
+			if currentTick, err = v3Utils.GetTickAtSqrtRatioV2(&currentPrice); err != nil {
+				return nil, err
 			}
 			break // since the price hasn't reached the target, amountRequired should be 0
 		}
 
 		// check stop condition
-		if amountRequired.Cmp(integer.Zero()) == 0 || currentPrice.Cmp(limitSqrtPrice) == 0 {
+		if cache.amountRequired.IsZero() || currentPrice.Cmp(limitSqrtPrice) == 0 {
 			break
 		}
 	}
 
-	var amount0, amount1 *big.Int
-	// the amount to provide could be less then initially specified (e.g. reached limit)
-	if zeroToOne == cache.exactInput {
-		// the amount to get could be less then initially specified (e.g. reached limit)
-		amount0, amount1 = new(big.Int).Sub(cache.amountRequiredInitial, amountRequired), cache.amountCalculated
-	} else {
-		amount0, amount1 = cache.amountCalculated, new(big.Int).Sub(cache.amountRequiredInitial, amountRequired)
-	}
-
-	nextState.GlobalState = GlobalState{
-		Price:              currentPrice,
-		Tick:               big.NewInt(int64(currentTick)),
+	nextState.GlobalState = GlobalStateUint256{
+		Price:              &currentPrice,
+		Tick:               currentTick,
 		FeeZto:             p.globalState.FeeZto,
 		FeeOtz:             p.globalState.FeeOtz,
 		TimepointIndex:     p.globalState.TimepointIndex,
@@ -200,5 +196,10 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 
 	nextState.Liquidity = currentLiquidity
 
-	return nil, amount0, amount1, nextState
+	return &SwapResult{
+		StateUpdate:        nextState,
+		amountCalculated:   &cache.amountCalculated,
+		remainingAmountIn:  &cache.amountRequired,
+		crossInitTickLoops: crossInitTickLoops,
+	}, nil
 }
