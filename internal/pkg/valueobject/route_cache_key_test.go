@@ -83,7 +83,7 @@ func TestRouteCacheKey_Hash(t *testing.T) {
 				SaveGas:       true,
 				CacheMode:     RouteCacheModePoint,
 				AmountIn:      "5000000000000000000000",
-				Dexes:         append(dexes, "dex" + kutils.Itoa(extraDex)),
+				Dexes:         append(dexes, "dex"+kutils.Itoa(extraDex)),
 				GasInclude:    true,
 				ExcludedPools: []string{"0x2", "0x1"},
 			}
