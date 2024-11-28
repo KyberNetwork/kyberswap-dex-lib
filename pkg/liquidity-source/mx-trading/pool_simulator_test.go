@@ -234,7 +234,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 		},
 		{
 			name:      "fill token1",
-			amountIn1: bignumber.NewBig("201363000000000000000000"),
+			amountIn1: bignumber.NewBig("201362500000000000000000"),
 			expectedZeroToOnePriceLevels: []PriceLevel{
 				{Size: 0.719, Price: 3347.4385889037885},
 				{Size: 0.015, Price: 3347.141106167435},
@@ -256,8 +256,7 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				{Size: 2.9644734252274776, Price: 3343.4441414468833},
 			},
 			expectedOneToZeroPriceLevels: []PriceLevel{
-				// {Size:0.15671334804153958, Price:0.00029728778191376684}}
-				{Size: 0.1567133481576093, Price: 0.00029728778191376684},
+				{Size: 0.6567133481576093, Price: 0.00029728778191376684}, // {Size:0.656713348088, Price:0.00029728778191376684}}
 			},
 		},
 		{
