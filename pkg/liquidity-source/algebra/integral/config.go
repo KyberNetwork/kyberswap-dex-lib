@@ -12,4 +12,6 @@ type Config struct {
 
 	AlwaysUseTickLens bool
 	TickLensAddress   string
+
+	UseBasePluginV2 bool
 }

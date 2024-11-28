@@ -11,6 +11,14 @@ import (
 type int24 = int32
 type int56 = int64
 
+type uint24 = uint32
+type uint56 = uint64
+
+type PluginFee struct {
+	OverrideFee uint24
+	PluginFee   uint24
+}
+
 type Metadata struct {
 	LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp"`
 	LastPoolIds            []string `json:"lastPoolIds"` // pools that share lastCreatedAtTimestamp
@@ -66,8 +74,10 @@ type rpcGlobalStateDirFee struct {
 
 // unified data for simulation
 type GlobalState struct {
+	OverrideFee  *big.Int `json:"overrideFee"`
+	PluginFee    *big.Int `json:"pluginFee"`
 	Price        *big.Int `json:"price"`
-	Tick         *big.Int `json:"tick"`
+	Tick         int32    `json:"tick"`
 	LastFee      uint16   `json:"lastFee"`
 	PluginConfig uint8    `json:"pluginConfig"`
 	CommunityFee uint16   `json:"communityFee"`
@@ -94,25 +104,35 @@ type FetchRPCResult struct {
 	Reserve1    *big.Int    `json:"reserve1"`
 }
 
+// type Timepoint struct {
+// 	Initialized                   bool     `json:"initialized"`                   // whether or not the timepoint is initialized
+// 	BlockTimestamp                uint32   `json:"blockTimestamp"`                // the block timestamp of the timepoint
+// 	TickCumulative                int56    `json:"tickCumulative"`                // the tick accumulator, i.e. tick * time elapsed since the pool was first initialized
+// 	SecondsPerLiquidityCumulative *big.Int `json:"secondsPerLiquidityCumulative"` // the seconds per liquidity since the pool was first initialized
+// 	VolatilityCumulative          *big.Int `json:"volatilityCumulative"`          // the volatility accumulator; overflow after ~34800 years is desired :)
+// 	AverageTick                   int24    `json:"averageTick"`                   // average tick at this blockTimestamp
+// 	VolumePerLiquidityCumulative  *big.Int `json:"volumePerLiquidityCumulative"`  // the gmean(volumes)/liquidity accumulator
+// }
+
 type Timepoint struct {
-	Initialized                   bool     `json:"initialized"`                   // whether or not the timepoint is initialized
-	BlockTimestamp                uint32   `json:"blockTimestamp"`                // the block timestamp of the timepoint
-	TickCumulative                int56    `json:"tickCumulative"`                // the tick accumulator, i.e. tick * time elapsed since the pool was first initialized
-	SecondsPerLiquidityCumulative *big.Int `json:"secondsPerLiquidityCumulative"` // the seconds per liquidity since the pool was first initialized
-	VolatilityCumulative          *big.Int `json:"volatilityCumulative"`          // the volatility accumulator; overflow after ~34800 years is desired :)
-	AverageTick                   int24    `json:"averageTick"`                   // average tick at this blockTimestamp
-	VolumePerLiquidityCumulative  *big.Int `json:"volumePerLiquidityCumulative"`  // the gmean(volumes)/liquidity accumulator
+	Initialized          bool     // whether or not the timepoint is initialized
+	BlockTimestamp       uint32   // the block timestamp of the timepoint
+	TickCumulative       int64    // the tick accumulator, i.e., tick * time elapsed since the pool was first initialized
+	VolatilityCumulative *big.Int // the volatility accumulator; overflow after ~34800 years is desired :)
+	Tick                 int32    // tick at this blockTimestamp
+	AverageTick          int32    // average tick at this blockTimestamp (for WINDOW seconds)
+	WindowStartIndex     uint16   // closest timepoint lte WINDOW seconds ago (or oldest timepoint), should be used only from the last timepoint!
 }
 
 // same as Timepoint but with bigInt for correct deserialization
 type TimepointRPC struct {
-	Initialized                   bool
-	BlockTimestamp                uint32
-	TickCumulative                *big.Int
-	SecondsPerLiquidityCumulative *big.Int
-	VolatilityCumulative          *big.Int
-	AverageTick                   *big.Int
-	VolumePerLiquidityCumulative  *big.Int
+	Initialized          bool
+	BlockTimestamp       uint32
+	TickCumulative       *big.Int
+	VolatilityCumulative *big.Int
+	Tick                 *big.Int
+	AverageTick          *big.Int
+	WindowStartIndex     uint16
 }
 
 type Extra struct {
@@ -160,12 +180,45 @@ func transformTickRespToTick(tickResp TickResp) (v3Entities.Tick, error) {
 
 func (tp *TimepointRPC) toTimepoint() Timepoint {
 	return Timepoint{
-		Initialized:                   tp.Initialized,
-		BlockTimestamp:                tp.BlockTimestamp,
-		TickCumulative:                tp.TickCumulative.Int64(),
-		SecondsPerLiquidityCumulative: tp.SecondsPerLiquidityCumulative,
-		VolatilityCumulative:          tp.VolatilityCumulative,
-		AverageTick:                   int24(tp.AverageTick.Int64()),
-		VolumePerLiquidityCumulative:  tp.VolumePerLiquidityCumulative,
+		Initialized:          tp.Initialized,
+		BlockTimestamp:       tp.BlockTimestamp,
+		TickCumulative:       tp.TickCumulative.Int64(),
+		VolatilityCumulative: tp.VolatilityCumulative,
+		Tick:                 int32(tp.Tick.Int64()),
+		AverageTick:          int24(tp.AverageTick.Int64()),
+		WindowStartIndex:     tp.WindowStartIndex,
 	}
+}
+
+type FeesAmount struct {
+	communityFeeAmount *big.Int
+	pluginFeeAmount    *big.Int
+}
+
+type SwapCalculationCache struct {
+	communityFee          *big.Int // The community fee of the selling token, uint256 to minimize casts
+	crossedAnyTick        bool     // If we have already crossed at least one active tick
+	amountRequiredInitial *big.Int // The initial value of the exact input/output amount
+	amountCalculated      *big.Int // The additive amount of total output/input calculated through the swap
+	totalFeeGrowthInput   *big.Int // The initial totalFeeGrowth + the fee growth during a swap
+	totalFeeGrowthOutput  *big.Int // The initial totalFeeGrowth for output token, should not change during swap
+	exactInput            bool     // Whether the exact input or output is specified
+	fee                   uint32   // The current fee value in hundredths of a bip, i.e. 1e-6
+	prevInitializedTick   int32    // The previous initialized tick in linked list
+	nextInitializedTick   int32    // The next initialized tick in linked list
+	pluginFee             uint32   // The plugin fee
+}
+
+type PriceMovementCache struct {
+	stepSqrtPrice *big.Int // The Q64.96 sqrt of the price at the start of the step, uint256 to minimize casts
+	nextTickPrice *big.Int // The Q64.96 sqrt of the price calculated from the _nextTick_, uint256 to minimize casts
+	input         *big.Int // The additive amount of tokens that have been provided
+	output        *big.Int // The additive amount of token that have been withdrawn
+	feeAmount     *big.Int // The total amount of fee earned within a current step
+}
+
+type SwapEventParams struct {
+	currentPrice     *big.Int
+	currentTick      int32
+	currentLiquidity *big.Int
 }

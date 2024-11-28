@@ -13,16 +13,9 @@ import (
 // / maximum value capped by baseFee + alpha1 + alpha2
 func getFee(
 	volatility *big.Int,
-	volumePerLiquidity *big.Int,
-	config *FeeConfiguration,
+	config FeeConfiguration,
 ) uint16 {
-	sumOfSigmoids := sigmoid(volatility, config.Gamma1, config.Alpha1, big.NewInt(int64(config.Beta1))) +
-		sigmoid(volatility, config.Gamma2, config.Alpha2, big.NewInt(int64(config.Beta2)))
-
-	// safe since alpha1 + alpha2 + baseFee _must_ be <= type(uint16).max
-	return uint16(config.BaseFee +
-		sigmoid(volumePerLiquidity, config.VolumeGamma, uint16(sumOfSigmoids), big.NewInt(int64(config.VolumeBeta))),
-	)
+	return 0
 }
 
 // / @notice calculates α / (1 + e^( (β-x) / γ))

@@ -15,6 +15,8 @@ var (
 	ticklensABI                           abi.ABI
 
 	algebraIntegralPoolABI abi.ABI
+	algebraPluginABI       abi.ABI
+	algebraBasePluginV1ABI abi.ABI
 )
 
 func init() {
@@ -30,6 +32,8 @@ func init() {
 		{&ticklensABI, ticklensJson},
 
 		{&algebraIntegralPoolABI, algebraIntegralPoolJson},
+		{&algebraPluginABI, algebraPluginJson},
+		{&algebraBasePluginV1ABI, algebraBasePluginV1Json},
 	}
 
 	for _, b := range builder {

@@ -24,3 +24,9 @@ var ticklensJson []byte
 
 //go:embed abi_temp/AlgebraPool.json
 var algebraIntegralPoolJson []byte
+
+//go:embed abi_temp/AlgebraPlugin.json
+var algebraPluginJson []byte
+
+//go:embed abi_temp/AlgebraBasePluginV1.json
+var algebraBasePluginV1Json []byte

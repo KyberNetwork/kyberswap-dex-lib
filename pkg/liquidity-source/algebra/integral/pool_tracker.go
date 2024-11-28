@@ -2,6 +2,7 @@ package integral
 
 import (
 	"context"
+	"log"
 	"math/big"
 	"time"
 
@@ -218,13 +219,6 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 		}, []interface{}{rpcState})
 	}
 
-	// rpcRequest.AddCall(&ethrpc.Call{
-	// 	ABI:    algebraV1PoolABI,
-	// 	Target: p.Address,
-	// 	Method: methodGetDataStorageOperator,
-	// 	Params: nil,
-	// }, []interface{}{&dataStorageOperator})
-
 	rpcRequest.AddCall(&ethrpc.Call{
 		ABI:    algebraIntegralPoolABI,
 		Target: p.Address,
@@ -256,37 +250,22 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 		return res, err
 	}
 
-	if d.config.UseDirectionalFee {
-		// rpcStateRes := rpcState.(*rpcGlobalStateDirFee)
-		// res.State = GlobalState{
-		// 	Price:              rpcStateRes.Price,
-		// 	Tick:               rpcStateRes.Tick,
-		// 	FeeZto:             rpcStateRes.FeeZto,
-		// 	FeeOtz:             rpcStateRes.FeeOtz,
-		// 	TimepointIndex:     rpcStateRes.TimepointIndex,
-		// 	CommunityFeeToken0: uint16(rpcStateRes.CommunityFeeToken0),
-		// 	CommunityFeeToken1: uint16(rpcStateRes.CommunityFeeToken1),
-		// 	Unlocked:           rpcStateRes.Unlocked,
-		// }
-	} else {
-		// for v1 without directional fee, we'll use Fee for both FeeZto/FeeOtz
-		rpcStateRes := rpcState.(*rpcGlobalStateSingleFee)
-		res.State = GlobalState{
-			Price:        rpcStateRes.Price,
-			Tick:         rpcStateRes.Tick,
-			LastFee:      rpcStateRes.LastFee,
-			PluginConfig: rpcStateRes.PluginConfig,
-			CommunityFee: rpcStateRes.CommunityFee,
-			Unlocked:     rpcStateRes.Unlocked,
-		}
+	rpcStateRes := rpcState.(*rpcGlobalStateSingleFee)
+	res.State = GlobalState{
+		Price:        rpcStateRes.Price,
+		Tick:         int32(rpcStateRes.Tick.Uint64()),
+		LastFee:      rpcStateRes.LastFee,
+		PluginConfig: rpcStateRes.PluginConfig,
+		CommunityFee: rpcStateRes.CommunityFee,
+		Unlocked:     rpcStateRes.Unlocked,
 	}
 
-	// if !d.config.SkipFeeCalculating {
-	// 	err = d.approximateFee(ctx, p.Address, dataStorageOperator.Hex(), &res.State, res.Liquidity)
-	// 	if err != nil {
-	// 		return res, err
-	// 	}
-	// }
+	if d.config.SkipFeeCalculating {
+		err = d.approximateFee(ctx, p.Address, &res.State, res.Liquidity)
+		if err != nil {
+			return res, err
+		}
+	}
 
 	if !res.State.Unlocked {
 		l.Info("pool has been locked and not usable")
@@ -295,61 +274,57 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 	return res, err
 }
 
-func (d *PoolTracker) approximateFee(ctx context.Context, poolAddress, dataStorageOperator string, state *GlobalState, currentLiquidity *big.Int) error {
-	l := logger.WithFields(logger.Fields{
-		"poolAddress": poolAddress,
-		"dexID":       d.config.DexID,
-	})
+func (d *PoolTracker) approximateFee(ctx context.Context, poolAddress string, state *GlobalState, currentLiquidity *big.Int) error {
+	// l := logger.WithFields(logger.Fields{
+	// 	"poolAddress": poolAddress,
+	// 	"dexID":       d.config.DexID,
+	// })
 
 	// fee approximation: assume that the swap will be soon after this
-	blockTimestamp := uint32(time.Now().Unix())
-	yesterday := blockTimestamp - WINDOW
-	timepoints, err := d.getPoolTimepoints(ctx, 0, poolAddress, yesterday)
+	// blockTimestamp := uint32(time.Now().Unix())
+	// yesterday := blockTimestamp - WINDOW
+	// timepoints, err := d.getPoolTimepoints(ctx, 0, poolAddress, yesterday)
+	// if err != nil {
+	// 	l.WithFields(logger.Fields{
+	// 		"error": err,
+	// 	}).Error("failed to fetch pool timepoints")
+	// 	return err
+	// }
+
+	// if timepoints == nil {
+	// 	// not initialized pool has been locked already, but set here just for sure
+	// 	state.Unlocked = false
+	// 	return nil
+	// }
+
+	feeConfig, err := d.getFeeConfig(ctx, poolAddress)
 	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to fetch pool timepoints")
+		log.Fatalf("--------%+v\n", err)
 		return err
 	}
 
-	if timepoints == nil {
-		// not initialized pool has been locked already, but set here just for sure
-		state.Unlocked = false
-		return nil
-	}
+	log.Fatalf("--------%+v\n", feeConfig)
 
-	feeConf := FeeConfiguration{}
-	feeConfZto := FeeConfiguration{}
-	feeConfOtz := FeeConfiguration{}
-	if d.config.UseDirectionalFee {
-		err = d.getPoolDirectionalFeeConfig(ctx, dataStorageOperator, &feeConfZto, &feeConfOtz)
-	} else {
-		err = d.getPoolFeeConfig(ctx, dataStorageOperator, &feeConf)
-	}
-	if err != nil {
-		return err
-	}
+	// volumePerLiquidityInBlock, err := d.getPoolVolumePerLiquidityInBlock(ctx, common.HexToAddress(poolAddress))
+	// if err != nil {
+	// 	return err
+	// }
 
-	volumePerLiquidityInBlock, err := d.getPoolVolumePerLiquidityInBlock(ctx, common.HexToAddress(poolAddress))
-	if err != nil {
-		return err
-	}
-
-	ts := TimepointStorage{
-		data:    timepoints,
-		updates: map[uint16]Timepoint{},
-	}
-	currentTick := int24(state.Tick.Int64())
-	newTimepointIndex, err := ts.write(
-		0,
-		blockTimestamp,
-		currentTick,
-		currentLiquidity,
-		volumePerLiquidityInBlock,
-	)
-	if err != nil {
-		return err
-	}
+	// ts := TimepointStorage{
+	// 	data:    timepoints,
+	// 	updates: map[uint16]Timepoint{},
+	// }
+	// currentTick := int24(state.Tick.Int64())
+	// newTimepointIndex, err := ts.write(
+	// 	0,
+	// 	blockTimestamp,
+	// 	currentTick,
+	// 	currentLiquidity,
+	// 	volumePerLiquidityInBlock,
+	// )
+	// if err != nil {
+	// 	return err
+	// }
 
 	if d.config.UseDirectionalFee {
 		// state.FeeZto, err = ts._getNewFee(blockTimestamp, currentTick, newTimepointIndex, currentLiquidity, &feeConfZto)
@@ -361,63 +336,51 @@ func (d *PoolTracker) approximateFee(ctx context.Context, poolAddress, dataStora
 		// 	return err
 		// }
 	} else {
-		state.LastFee, err = ts._getNewFee(blockTimestamp, currentTick, newTimepointIndex, currentLiquidity, &feeConf)
-		if err != nil {
-			return err
-		}
-		state.LastFee = state.LastFee
+		// state.LastFee, err = ts._getNewFee(blockTimestamp, currentTick, newTimepointIndex, currentLiquidity, &feeConf)
+		// if err != nil {
+		// 	return err
+		// }
+		// state.LastFee = state.LastFee
 	}
 	return nil
 }
 
-func (d *PoolTracker) getPoolFeeConfig(ctx context.Context, dataStorageOperatorAddress string, feeConf *FeeConfiguration) error {
-	rpcRequest := d.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
+func (d *PoolTracker) getFeeConfig(ctx context.Context, poolAddress string) (FeeConfiguration, error) {
+	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    algebraV1DataStorageOperatorAPI,
-		Target: dataStorageOperatorAddress,
-		Method: methodGetFeeConfig,
+	var plugin common.Address
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    algebraIntegralPoolABI,
+		Target: poolAddress,
+		Method: poolPluginMethod,
 		Params: nil,
-	}, []interface{}{feeConf})
+	}, []interface{}{&plugin})
 
-	_, err := rpcRequest.Aggregate()
+	_, err := req.Call()
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dataStorageAddress": dataStorageOperatorAddress,
-			"error":              err,
-		}).Error("failed to fetch from data storage operator")
-		return err
+		log.Fatalln(err.Error())
+		return FeeConfiguration{}, err
 	}
-	return nil
-}
 
-func (d *PoolTracker) getPoolDirectionalFeeConfig(ctx context.Context, dataStorageOperatorAddress string, feeConfZto *FeeConfiguration, feeConfOtz *FeeConfiguration) error {
-	rpcRequest := d.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
+	var feeConfig FeeConfiguration
 
-	rpcRequest.AddCall(&ethrpc.Call{
-		ABI:    algebraV1DirFeeDataStorageOperatorAPI,
-		Target: dataStorageOperatorAddress,
-		Method: methodGetFeeConfigZto,
+	getFeeCfgRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
+
+	getFeeCfgRequest.AddCall(&ethrpc.Call{
+		ABI:    algebraBasePluginV1ABI,
+		Target: plugin.Hex(),
+		Method: basePluginV1FeeConfigMethod,
 		Params: nil,
-	}, []interface{}{feeConfZto},
-	).AddCall(&ethrpc.Call{
-		ABI:    algebraV1DirFeeDataStorageOperatorAPI,
-		Target: dataStorageOperatorAddress,
-		Method: methodGetFeeConfigOtz,
-		Params: nil,
-	}, []interface{}{feeConfOtz})
+	}, []interface{}{&feeConfig})
 
-	_, err := rpcRequest.Aggregate()
+	_, err = getFeeCfgRequest.Call()
 	if err != nil {
-		logger.WithFields(logger.Fields{
-			"dataStorageAddress": dataStorageOperatorAddress,
-			"error":              err,
-		}).Error("failed to fetch from data storage operator")
-		return err
+		log.Fatalln(err.Error())
+		return FeeConfiguration{}, err
 	}
-	return nil
+
+	return feeConfig, nil
 }
 
 func (d *PoolTracker) getPoolTimepoints(ctx context.Context, currentIndex uint16, poolAddress string, yesterday uint32) (map[uint16]Timepoint, error) {
@@ -425,6 +388,8 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, currentIndex uint16
 		"poolAddress": poolAddress,
 		"dexID":       d.config.DexID,
 	})
+
+	return nil, nil
 
 	timepoints := make(map[uint16]Timepoint, UINT16_MODULO)
 
