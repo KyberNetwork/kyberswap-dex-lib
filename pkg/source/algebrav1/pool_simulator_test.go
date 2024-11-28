@@ -48,7 +48,6 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.out,
-					Limit:         nil,
 				})
 			})
 			require.Nil(t, err)
@@ -64,7 +63,8 @@ func TestPoolSimulator_CalcAmountOut(t *testing.T) {
 			})
 			require.Nil(t, err)
 			diff := new(big.Int).Abs(new(big.Int).Sub(approx.TokenAmountOut.Amount, out.TokenAmountOut.Amount))
-			assert.Truef(t, diff.Cmp(threshold) < 0, "ApproxAmountIn not exact enough: %v vs %v", approx.TokenAmountOut.Amount, out.TokenAmountOut.Amount)
+			assert.Truef(t, diff.Cmp(threshold) < 0, "ApproxAmountIn not exact enough: %v vs %v",
+				approx.TokenAmountOut.Amount, out.TokenAmountOut.Amount)
 			fmt.Println("approx", approx.TokenAmountIn.Amount, approx.TokenAmountOut.Amount)
 		})
 	}
@@ -105,7 +105,6 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.out,
-					Limit:         nil,
 				})
 			})
 			require.Nil(t, err)
@@ -151,7 +150,6 @@ func TestPoolSimulator_CalcAmountOut_SPL(t *testing.T) {
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.out,
-					Limit:         nil,
 				})
 			})
 			require.NotNil(t, err)
@@ -190,7 +188,6 @@ func TestPoolSimulator_CalcAmountOut_CommFee(t *testing.T) {
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.out,
-					Limit:         nil,
 				})
 			})
 			require.Nil(t, err)
@@ -206,7 +203,8 @@ func TestPoolSimulator_CalcAmountOut_CommFee(t *testing.T) {
 			})
 			require.Nil(t, err)
 			diff := new(big.Int).Abs(new(big.Int).Sub(approx.TokenAmountOut.Amount, out.TokenAmountOut.Amount))
-			assert.Truef(t, diff.Cmp(threshold) < 0, "ApproxAmountIn not exact enough: %v vs %v", approx.TokenAmountOut.Amount, out.TokenAmountOut.Amount)
+			assert.Truef(t, diff.Cmp(threshold) < 0, "ApproxAmountIn not exact enough: %v vs %v",
+				approx.TokenAmountOut.Amount, out.TokenAmountOut.Amount)
 			fmt.Println("approx", approx.TokenAmountIn.Amount, approx.TokenAmountOut.Amount)
 		})
 	}
@@ -241,7 +239,6 @@ func TestPoolSimulator_CalcAmountOut_v1_9(t *testing.T) {
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.out,
-					Limit:         nil,
 				})
 			})
 			require.Nil(t, err)
@@ -282,7 +279,6 @@ func TestPoolSimulator_CalcAmountOut_DirFee(t *testing.T) {
 				return p.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.out,
-					Limit:         nil,
 				})
 			})
 			require.Nil(t, err)
@@ -327,7 +323,6 @@ func TestPoolSimulator_UpdateBalance_DirFee(t *testing.T) {
 			out, err := p.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: in,
 				TokenOut:      tc.out,
-				Limit:         nil,
 			})
 			require.Nil(t, err)
 			assert.Equal(t, bignumber.NewBig10(tc.expectedOutAmount), out.TokenAmountOut.Amount)

@@ -7,16 +7,15 @@ import (
 
 	v3Entities "github.com/KyberNetwork/uniswapv3-sdk-uint256/entities"
 	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
-	v3EntitiesBigInt "github.com/KyberNetwork/uniswapv3-sdk/entities"
+	v3EntitiesBigInt "github.com/daoleno/uniswapv3-sdk/entities"
 	"github.com/holiman/uint256"
-	"github.com/pkg/errors"
 )
 
 type int24 = int32
 type int56 = int64
 
 type Metadata struct {
-	LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp,string"`
+	LastCreatedAtTimestamp *big.Int `json:"lastCreatedAtTimestamp"`
 	LastPoolIds            []string `json:"lastPoolIds"` // pools that share lastCreatedAtTimestamp
 }
 
@@ -72,7 +71,7 @@ type rpcGlobalStateDirFee struct {
 // GlobalStateUint256 contains unified data for simulation
 type GlobalStateUint256 struct {
 	Price              *v3Utils.Uint160 `json:"price"`
-	Tick               int     `json:"tick"`
+	Tick               int              `json:"tick"`
 	FeeZto             uint16           `json:"feeZto"`
 	FeeOtz             uint16           `json:"feeOtz"`
 	TimepointIndex     uint16           `json:"timepoint_index"`
@@ -173,29 +172,6 @@ type StateUpdateBigInt struct {
 type PoolMeta struct {
 	BlockNumber uint64   `json:"blockNumber"`
 	PriceLimit  *big.Int `json:"priceLimit"`
-}
-
-func transformTickRespToTick(tickResp TickResp) (v3Entities.Tick, error) {
-	liquidityGross := new(uint256.Int)
-	if err := liquidityGross.SetFromDecimal(tickResp.LiquidityGross); err != nil {
-		return v3Entities.Tick{}, errors.WithMessagef(err, "liquidityGross at tick=%v", tickResp.TickIdx)
-	}
-
-	liquidityNet := new(v3Utils.Int128)
-	if err := liquidityNet.SetFromDec(tickResp.LiquidityNet); err != nil {
-		return v3Entities.Tick{}, errors.WithMessagef(err, "liquidityNet at tick=%v", tickResp.TickIdx)
-	}
-
-	tickIdx, err := strconv.Atoi(tickResp.TickIdx)
-	if err != nil {
-		return v3Entities.Tick{}, errors.WithMessagef(err, "tickIdx at tick=%v", tickResp.TickIdx)
-	}
-
-	return v3Entities.Tick{
-		Index:          tickIdx,
-		LiquidityGross: liquidityGross,
-		LiquidityNet:   liquidityNet,
-	}, nil
 }
 
 func transformTickRespToTickBigInt(tickResp TickResp) (v3EntitiesBigInt.Tick, error) {

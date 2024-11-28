@@ -113,9 +113,9 @@ func (p *PoolSimulatorBigInt) _calculateSwapAndLock(
 
 		if cache.exactInput {
 			amountRequired = new(big.Int).Sub(amountRequired,
-				new(big.Int).Add(step.input, step.feeAmount))                              // decrease remaining input amount
+				new(big.Int).Add(step.input, step.feeAmount)) // decrease remaining input amount
 			cache.amountCalculated = new(big.Int).Sub(cache.amountCalculated,
-				step.output)                                                               // decrease calculated output amount
+				step.output) // decrease calculated output amount
 		} else {
 			amountRequired = new(big.Int).Add(amountRequired,
 				step.output) // increase remaining output amount (since its negative)

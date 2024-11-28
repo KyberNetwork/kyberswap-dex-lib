@@ -1,9 +1,5 @@
 package swapbasedperp
 
-// NOTE: we generate mock files in the same package to avoid cycle dependencies
-
-//go:generate mockgen -destination ./mock_iface.go -package swapbasedperp -source=iface.go
-
 import (
 	"context"
 	"math/big"

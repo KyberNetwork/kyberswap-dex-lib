@@ -11,7 +11,7 @@ var (
 	ErrTickNil             = errors.New("tick is nil")
 	ErrTickInvalid         = errors.New("tick is invalid")
 	ErrTicksEmpty          = errors.New("ticks list is empty")
-	ErrInvalidToken        = errors.New("invalid token info")
+	ErrInvalidToken        = errors.New("invalid token")
 	ErrZeroAmountIn        = errors.New("amountIn is 0")
 	ErrZeroAmountOut       = errors.New("amountOut is 0")
 	ErrSPL                 = errors.New("invalid sqrt price limit")

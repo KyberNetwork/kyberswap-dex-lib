@@ -7,8 +7,8 @@ import (
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
-	v3Entities "github.com/KyberNetwork/uniswapv3-sdk/entities"
-	v3Utils "github.com/KyberNetwork/uniswapv3-sdk/utils"
+	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
+	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"

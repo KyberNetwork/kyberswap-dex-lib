@@ -1,11 +1,7 @@
 package metavault
 
 // NOTE: we generate mock files in the same package to avoid cycle dependencies
-//go:generate mockgen -destination ./mock_vault_reader.go -package metavault pool-service/internal/dex/metavault IVaultReader
-//go:generate mockgen -destination ./mock_vault_price_feed_reader.go -package metavault pool-service/internal/dex/metavault IVaultPriceFeedReader
-//go:generate mockgen -destination ./mock_fast_price_feed_reader_v1.go -package metavault pool-service/internal/dex/metavault IFastPriceFeedV1Reader
-//go:generate mockgen -destination ./mock_price_feed_reader.go -package metavault pool-service/internal/dex/metavault IPriceFeedReader
-//go:generate mockgen -destination ./mock_usdm_reader.go -package metavault pool-service/internal/dex/metavault IUSDMReader
+//go:generate go run go.uber.org/mock/mockgen -destination ./mocks.go -package metavault . IVaultReader,IVaultPriceFeedReader,IFastPriceFeedV1Reader,IPriceFeedReader,IUSDMReader
 
 import (
 	"context"

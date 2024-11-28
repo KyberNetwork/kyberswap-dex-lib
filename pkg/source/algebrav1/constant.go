@@ -36,12 +36,12 @@ const (
 	WINDOW        = 86400 // 1 day in seconds
 	UINT16_MODULO = 65536
 
-	BaseGas = int64(242000)
+	BaseGas          = int64(242000)
 	CrossInitTickGas = int64(21000)
 )
 
 var (
-	COMMUNITY_FEE_DENOMINATOR = uint256.NewInt(1000)
+	COMMUNITY_FEE_DENOMINATOR        = uint256.NewInt(1000)
 	COMMUNITY_FEE_DENOMINATOR_BIGINT = big.NewInt(1000)
 
 	slot3 = common.BigToHash(big.NewInt(3))

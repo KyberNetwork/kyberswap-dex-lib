@@ -7,7 +7,7 @@ import (
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
-	v3Entities "github.com/KyberNetwork/uniswapv3-sdk/entities"
+	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
