@@ -1,6 +1,7 @@
 package eethorweeth
 
 import (
+	"encoding/json"
 	"errors"
 	"math/big"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -21,9 +23,29 @@ var (
 type PoolSimulator struct {
 	poolpkg.Pool
 	PoolExtra
+	curveStETHToETHSimulator *plain.PoolSimulator
 }
 
 func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+	var extra PoolExtra
+	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
+		return nil, err
+	}
+
+	curveStETHToETHSimulator, err := plain.NewPoolSimulator(entity.Pool{
+		Address:  curveStETHToETHPool,
+		Reserves: extra.CurveStETHToETH.Reserves,
+		Tokens: []*entity.PoolToken{
+			{Address: weth, Decimals: 18, Swappable: true},
+			{Address: stETH, Decimals: 18, Swappable: true},
+		},
+		Extra:       extra.CurveStETHToETH.Extra,
+		StaticExtra: extra.CurveStETHToETH.StaticExtra,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return &PoolSimulator{
 		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
 			Address:     entityPool.Address,
@@ -34,6 +56,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return bignumber.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
+		PoolExtra:                extra,
+		curveStETHToETHSimulator: curveStETHToETHSimulator,
 	}, nil
 }
 
@@ -76,6 +100,10 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 			Amount: amountOut,
 		},
 		Gas: 0, // TODO: calculate gas
+		Fee: &poolpkg.TokenAmount{
+			Token:  param.TokenAmountIn.Token,
+			Amount: bignumber.ZeroBI,
+		},
 	}, nil
 }
 
@@ -98,19 +126,28 @@ func (s *PoolSimulator) vampireDepositWithERC20StETH(amountIn *big.Int) (*big.In
 	// Step 1: vampire.quoteByDiscountedValue
 	// Assume with StETH, `isWhitelisted` is always true & `isL2Eth` is always false.
 
-	// quoteByMarketValue returns 1:1 from stETH to eETH,
+	// vampire.quoteByMarketValue
+	var amount big.Int
+	amount.Set(amountIn)
+	if s.Vampire.QuoteStEthWithCurve {
+		quoteWithCurve, _, _ := s.curveStETHToETHSimulator.GetDy(1, 0, amountIn, nil)
+		if quoteWithCurve.Cmp(&amount) < 0 {
+			amount.Set(quoteWithCurve)
+		}
+	}
+
 	// We only need to apply `discountInBasisPoints`.
 	var dx big.Int
 	dx.
 		Sub(bignumber.BasisPoint, big.NewInt(int64(s.StETHTokenInfo.DiscountInBasisPoints))).
-		Mul(&dx, amountIn).
+		Mul(&dx, &amount).
 		Div(&dx, bignumber.BasisPoint)
 
 	// Step 2: check vampire.isDepositCapReached
 	info := s.StETHTokenInfo
 	var totalDepositedThisPeriod big.Int
 	totalDepositedThisPeriod.Set(info.TotalDepositedThisPeriod)
-	if time.Now().Unix() >= int64(info.TimeBoundCapClockStartTime)+int64(s.TimeBoundCapRefreshInterval) {
+	if time.Now().Unix() >= int64(info.TimeBoundCapClockStartTime)+int64(s.Vampire.TimeBoundCapRefreshInterval) {
 		totalDepositedThisPeriod.SetUint64(0)
 	}
 
@@ -124,7 +161,13 @@ func (s *PoolSimulator) vampireDepositWithERC20StETH(amountIn *big.Int) (*big.In
 	}
 
 	// Step 3: liquidityPool.depositToRecipient
-	eEthShare := new(big.Int).Mul(&dx, s.EETH.TotalShares).Div(&dx, s.StETH.TotalPooledEther)
+	var eEthShare big.Int
+	eEthShare.
+		Mul(&dx, s.EETH.TotalShares).
+		Div(
+			&eEthShare,
+			tmp.Add(s.EtherFiPool.TotalPooledEther, &dx), // Since now totalValueOutOfLp includes _amountOutOfLp (aka dx).
+		)
 	var uint128Max big.Int
 	uint128Max.SetUint64(1).Lsh(&uint128Max, 128).Sub(&uint128Max, bignumber.One)
 
@@ -132,7 +175,7 @@ func (s *PoolSimulator) vampireDepositWithERC20StETH(amountIn *big.Int) (*big.In
 		return nil, ErrInvalidAmount
 	}
 
-	return eEthShare, nil
+	return &eEthShare, nil
 }
 
 func (s *PoolSimulator) etherFiAmountForShare(share *big.Int) *big.Int {

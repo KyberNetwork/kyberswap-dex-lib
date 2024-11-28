@@ -2,14 +2,17 @@ package eethorweeth
 
 import _ "embed"
 
-//go:embed abi/eETH.json
+//go:embed abi/CurvePlain.json
+var curvePlainABIJson []byte
+
+//go:embed abi/EETH.json
 var eETHABIJson []byte
 
-//go:embed abi/liquidityPool.json
+//go:embed abi/LiquidityPool.json
 var liquidityPoolABIJson []byte
 
-//go:embed abi/stETH.json
+//go:embed abi/StETH.json
 var stETHABIJson []byte
 
-//go:embed abi/vampire.json
+//go:embed abi/Vampire.json
 var vampireABIJson []byte

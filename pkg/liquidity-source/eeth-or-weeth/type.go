@@ -21,7 +21,10 @@ type PoolExtra struct {
 		TotalCapInEther            uint32
 	}
 
-	TimeBoundCapRefreshInterval uint32
+	Vampire struct {
+		QuoteStEthWithCurve         bool
+		TimeBoundCapRefreshInterval uint32
+	}
 
 	EtherFiPool struct {
 		TotalPooledEther *big.Int
@@ -30,6 +33,23 @@ type PoolExtra struct {
 	EETH struct {
 		TotalShares *big.Int
 	}
+
+	CurveStETHToETH CurvePoolInfo
+}
+
+type CurvePoolInfo struct {
+	Reserves    []string
+	Extra       string
+	StaticExtra string
+}
+
+type CurvePlainExtra struct {
+	InitialA     *big.Int
+	FutureA      *big.Int
+	InitialATime *big.Int
+	FutureATime  *big.Int
+	SwapFee      *big.Int
+	AdminFee     *big.Int
 }
 
 type VampireTokenInfo struct {

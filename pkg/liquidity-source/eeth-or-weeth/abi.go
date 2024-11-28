@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	curvePlainABI    abi.ABI
 	eETHABI          abi.ABI
 	liquidityPoolABI abi.ABI
 	stETHABI         abi.ABI
@@ -18,6 +19,7 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
+		{&curvePlainABI, curvePlainABIJson},
 		{&eETHABI, eETHABIJson},
 		{&liquidityPoolABI, liquidityPoolABIJson},
 		{&stETHABI, stETHABIJson},

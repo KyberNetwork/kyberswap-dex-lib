@@ -2,6 +2,7 @@ package eethorweeth
 
 import (
 	"context"
+	"math/big"
 	"strings"
 	"time"
 
@@ -107,7 +108,14 @@ func getPoolExtra(
 		Target: vampire,
 		Method: "timeBoundCapRefreshInterval",
 		Params: []interface{}{},
-	}, []interface{}{&poolExtra.TimeBoundCapRefreshInterval})
+	}, []interface{}{&poolExtra.Vampire.TimeBoundCapRefreshInterval})
+
+	r.AddCall(&ethrpc.Call{
+		ABI:    vampireABI,
+		Target: vampire,
+		Method: "quoteStEthWithCurve",
+		Params: []interface{}{},
+	}, []interface{}{&poolExtra.Vampire.QuoteStEthWithCurve})
 
 	// poolExtra.EtherFiPool
 	r.AddCall(&ethrpc.Call{
@@ -142,5 +150,103 @@ func getPoolExtra(
 	poolExtra.StETHTokenInfo.TimeBoundCapInEther = tokenInfo.TimeBoundCapInEther
 	poolExtra.StETHTokenInfo.TotalCapInEther = tokenInfo.TotalCapInEther
 
+	// Get and update CurvePoolInfo
+	curvePoolInfo, err := getCurvePoolInfo(ctx, ethrpcClient, overrides)
+	if err != nil {
+		return PoolExtra{}, 0, err
+	}
+	poolExtra.CurveStETHToETH = curvePoolInfo
+
 	return poolExtra, resp.BlockNumber.Uint64(), nil
+}
+
+func getCurvePoolInfo(
+	ctx context.Context,
+	ethrpcClient *ethrpc.Client,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (CurvePoolInfo, error) {
+	var (
+		curvePlainExtra CurvePlainExtra
+		curvePoolInfo   CurvePoolInfo
+	)
+
+	r := ethrpcClient.NewRequest().SetContext(ctx)
+	if overrides != nil {
+		r.SetOverrides(overrides)
+	}
+
+	r.AddCall(&ethrpc.Call{
+		ABI:    curvePlainABI,
+		Target: curveStETHToETHPool,
+		Method: "initial_A",
+		Params: nil,
+	}, []interface{}{&curvePlainExtra.InitialA})
+
+	r.AddCall(&ethrpc.Call{
+		ABI:    curvePlainABI,
+		Target: curveStETHToETHPool,
+		Method: "future_A",
+		Params: nil,
+	}, []interface{}{&curvePlainExtra.FutureA})
+
+	r.AddCall(&ethrpc.Call{
+		ABI:    curvePlainABI,
+		Target: curveStETHToETHPool,
+		Method: "initial_A_time",
+		Params: nil,
+	}, []interface{}{&curvePlainExtra.InitialATime})
+
+	r.AddCall(&ethrpc.Call{
+		ABI:    curvePlainABI,
+		Target: curveStETHToETHPool,
+		Method: "future_A_time",
+		Params: nil,
+	}, []interface{}{&curvePlainExtra.FutureATime})
+
+	r.AddCall(&ethrpc.Call{
+		ABI:    curvePlainABI,
+		Target: curveStETHToETHPool,
+		Method: "fee",
+		Params: nil,
+	}, []interface{}{&curvePlainExtra.SwapFee})
+
+	r.AddCall(&ethrpc.Call{
+		ABI:    curvePlainABI,
+		Target: curveStETHToETHPool,
+		Method: "admin_fee",
+		Params: nil,
+	}, []interface{}{&curvePlainExtra.AdminFee})
+
+	nCoins := 2
+	balances := make([]*big.Int, nCoins)
+
+	for i := 0; i < nCoins; i++ {
+		r.AddCall(&ethrpc.Call{
+			ABI:    curvePlainABI,
+			Target: curveStETHToETHPool,
+			Method: "balances",
+			Params: []interface{}{big.NewInt(int64(i))},
+		}, []interface{}{&balances[i]})
+	}
+
+	if _, err := r.TryAggregate(); err != nil {
+		return CurvePoolInfo{}, err
+	}
+
+	curvePoolInfo.Reserves = make([]string, nCoins+1)
+	for i := 0; i < nCoins; i++ {
+		curvePoolInfo.Reserves[i] = balances[i].String()
+	}
+	curvePoolInfo.Reserves[nCoins] = "0"
+
+	extraBytes, err := json.Marshal(curvePlainExtra)
+	if err != nil {
+		return CurvePoolInfo{}, err
+	}
+	curvePoolInfo.Extra = string(extraBytes)
+
+	// Since staticExtra doesn't change, we can hardcode it here.
+	curvePoolInfo.StaticExtra = "{\"APrecision\":\"100\",\"LpToken\":\"0x06325440D014e39736583c165C2963BA99fAf14E\",\"IsNativeCoin\":[true,false]}"
+
+	return curvePoolInfo, nil
 }
