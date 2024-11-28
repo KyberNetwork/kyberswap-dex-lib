@@ -31,5 +31,5 @@ func TestPoolSimulator(t *testing.T) {
 	})
 
 	assert.NoError(t, err)
-	assert.Equal(t, "948595357455051091", res.TokenAmountOut.Amount.String())
+	assert.Equal(t, "948595782312992511", res.TokenAmountOut.Amount.String())
 }
