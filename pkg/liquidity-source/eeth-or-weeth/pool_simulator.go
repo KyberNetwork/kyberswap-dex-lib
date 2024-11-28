@@ -164,10 +164,7 @@ func (s *PoolSimulator) vampireDepositWithERC20StETH(amountIn *big.Int) (*big.In
 	var eEthShare big.Int
 	eEthShare.
 		Mul(&dx, s.EETH.TotalShares).
-		Div(
-			&eEthShare,
-			tmp.Add(s.EtherFiPool.TotalPooledEther, &dx), // Since now totalValueOutOfLp includes _amountOutOfLp (aka dx).
-		)
+		Div(&eEthShare, s.EtherFiPool.TotalPooledEther)
 	var uint128Max big.Int
 	uint128Max.SetUint64(1).Lsh(&uint128Max, 128).Sub(&uint128Max, bignumber.One)
 
