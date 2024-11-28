@@ -64,8 +64,8 @@ type rpcGlobalStateDirFee struct {
 	FeeZto             uint16
 	FeeOtz             uint16
 	TimepointIndex     uint16
-	CommunityFeeToken0 uint8
-	CommunityFeeToken1 uint8
+	CommunityFeeToken0 uint16
+	CommunityFeeToken1 uint16
 	Unlocked           bool
 }
 

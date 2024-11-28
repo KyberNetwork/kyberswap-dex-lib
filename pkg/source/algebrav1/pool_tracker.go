@@ -265,8 +265,8 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 			FeeZto:             rpcStateRes.FeeZto,
 			FeeOtz:             rpcStateRes.FeeOtz,
 			TimepointIndex:     rpcStateRes.TimepointIndex,
-			CommunityFeeToken0: uint16(rpcStateRes.CommunityFeeToken0),
-			CommunityFeeToken1: uint16(rpcStateRes.CommunityFeeToken1),
+			CommunityFeeToken0: rpcStateRes.CommunityFeeToken0,
+			CommunityFeeToken1: rpcStateRes.CommunityFeeToken1,
 			Unlocked:           rpcStateRes.Unlocked,
 		}
 	} else {
