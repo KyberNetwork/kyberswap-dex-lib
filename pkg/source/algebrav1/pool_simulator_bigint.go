@@ -177,6 +177,6 @@ func (p *PoolSimulatorBigInt) GetMetaInfo(tokenIn string, _ string) interface{} 
 	zeroForOne := strings.EqualFold(tokenIn, p.Info.Tokens[0])
 	return PoolMeta{
 		BlockNumber: p.Pool.Info.BlockNumber,
-		PriceLimit:  p.getSqrtPriceLimit(zeroForOne),
+		PriceLimit:  bignumber.CapPriceLimit(p.getSqrtPriceLimit(zeroForOne)),
 	}
 }

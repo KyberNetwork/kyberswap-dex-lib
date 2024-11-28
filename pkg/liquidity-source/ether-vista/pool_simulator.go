@@ -4,15 +4,15 @@ import (
 	"errors"
 	"math/big"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
-	"github.com/KyberNetwork/blockchain-toolkit/number"
 	"github.com/goccy/go-json"
 	"github.com/holiman/uint256"
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	utils "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
 var (
@@ -29,8 +29,9 @@ var (
 type (
 	PoolSimulator struct {
 		poolpkg.Pool
-		gas   Gas
-		extra Extra
+		chainID valueobject.ChainID
+		gas     Gas
+		extra   Extra
 	}
 
 	Gas struct {
@@ -38,7 +39,7 @@ type (
 	}
 )
 
-func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
+func NewPoolSimulator(entityPool entity.Pool, chainID valueobject.ChainID) (*PoolSimulator, error) {
 	var extra Extra
 	if err := json.Unmarshal([]byte(entityPool.Extra), &extra); err != nil {
 		return nil, err
@@ -46,16 +47,19 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 	return &PoolSimulator{
 		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
-			Address:     entityPool.Address,
-			ReserveUsd:  entityPool.ReserveUsd,
-			Exchange:    entityPool.Exchange,
-			Type:        entityPool.Type,
-			Tokens:      lo.Map(entityPool.Tokens, func(item *entity.PoolToken, index int) string { return item.Address }),
-			Reserves:    lo.Map(entityPool.Reserves, func(item string, index int) *big.Int { return utils.NewBig(item) }),
+			Address:    entityPool.Address,
+			ReserveUsd: entityPool.ReserveUsd,
+			Exchange:   entityPool.Exchange,
+			Type:       entityPool.Type,
+			Tokens: lo.Map(entityPool.Tokens,
+				func(item *entity.PoolToken, index int) string { return item.Address }),
+			Reserves: lo.Map(entityPool.Reserves,
+				func(item string, index int) *big.Int { return utils.NewBig(item) }),
 			BlockNumber: entityPool.BlockNumber,
 		}},
-		gas:   defaultGas,
-		extra: extra,
+		chainID: chainID,
+		gas:     defaultGas,
+		extra:   extra,
 	}, nil
 }
 
@@ -75,12 +79,12 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	}
 
 	// Take Router fee if swap from ETH -> Token
-	if param.TokenAmountIn.Token == WETH {
+	if valueobject.IsWETH(param.TokenAmountIn.Token, s.chainID) {
 		fee, _ := uint256.FromBig(s.extra.USDCToETHBuyTotalFee)
 		amountIn.Sub(amountIn, fee)
 	}
 
-	if amountIn.Cmp(number.Zero) <= 0 {
+	if amountIn.Sign() < 0 {
 		return nil, ErrInsufficientInputAmount
 	}
 
@@ -94,24 +98,26 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, ErrInvalidReserve
 	}
 
-	if reserveIn.Cmp(number.Zero) <= 0 || reserveOut.Cmp(number.Zero) <= 0 {
+	if reserveIn.Sign() <= 0 || reserveOut.Sign() <= 0 {
 		return nil, ErrInsufficientLiquidity
 	}
 
 	amountOut := s.getAmountOut(amountIn, reserveIn, reserveOut)
-	if param.TokenOut == WETH {
+	if valueobject.IsWETH(param.TokenOut, s.chainID) {
 		fee, _ := uint256.FromBig(s.extra.USDCToETHSellTotalFee)
 		amountOut.Sub(amountOut, fee)
 	}
 
-	if amountOut.Cmp(reserveOut) > 0 || amountOut.Cmp(number.Zero) <= 0 {
+	if amountOut.Sign() <= 0 {
+		return nil, ErrInsufficientOutputAmount
+	} else if amountOut.Cmp(reserveOut) > 0 {
 		return nil, ErrInsufficientLiquidity
 	}
 
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		// NOTE: we don't use fee to update balance so that we don't need to calculate it. I put it number.Zero to avoid null pointer exception
-		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: integer.Zero()},
+		Fee: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: bignumber.ZeroBI},
 		Gas: s.gas.Swap,
 	}, nil
 }
