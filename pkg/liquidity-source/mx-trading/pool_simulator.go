@@ -138,6 +138,7 @@ func (p *PoolSimulator) CalculateLimit() map[string]*big.Int {
 	for i, token := range tokens {
 		inventory[token] = new(big.Int).Set(reserves[i])
 	}
+
 	return inventory
 }
 
@@ -153,7 +154,6 @@ func findFillPrice(amountInF float64, levels []PriceLevel) (float64, error) {
 	var sizeFilled, price float64
 	for _, level := range levels {
 		partFillSize := amountInF - sizeFilled
-
 		if level.Size >= partFillSize {
 			price += (level.Price * partFillSize) / amountInF
 			sizeFilled += partFillSize
