@@ -65,3 +65,7 @@ type VampireTokenInfo struct {
 	TotalDeposited                 *big.Int
 	IsL2Eth                        bool
 }
+
+type SwapInfo struct {
+	dx *big.Int
+}
