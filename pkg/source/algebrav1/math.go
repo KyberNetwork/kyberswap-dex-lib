@@ -55,7 +55,7 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 
 	cache.amountRequired, cache.exactInput = *amountRequired, cmp > 0
 
-	currentLiquidity := p.liquidity
+	currentLiquidity := p.liquidity.Clone()
 
 	if zeroToOne {
 		if limitSqrtPrice.Cmp(&currentPrice) >= 0 || limitSqrtPrice.Cmp(v3Utils.MinSqrtRatioU256) <= 0 {

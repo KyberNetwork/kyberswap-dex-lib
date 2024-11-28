@@ -447,7 +447,7 @@ func remaining(remainingAmt *pool.TokenAmount) string {
 	return remainingAmt.Amount.String()
 }
 
-func TestCloneState(t *testing.T) {
+func TestMultiUse(t *testing.T) {
 	poolEntity := new(entity.Pool)
 	err := json.Unmarshal([]byte(poolEncoded), poolEntity)
 	require.NoError(t, err)
@@ -471,23 +471,36 @@ func TestCloneState(t *testing.T) {
 	require.NoError(t, err)
 	expectedAmountOut := result.TokenAmountOut.Amount.String()
 
+	t.Run("same outputs for same inputs", func(t *testing.T) {
+		result, err := poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: tokenAmountIn,
+			TokenOut:      tokenOut,
+		})
+		require.NoError(t, err)
+		require.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
+	})
+
 	poolSim.UpdateBalance(pool.UpdateBalanceParams{
 		TokenAmountIn:  tokenAmountIn,
 		TokenAmountOut: *result.TokenAmountOut,
 		SwapInfo:       result.SwapInfo,
 	})
 
-	result, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: tokenAmountIn,
-		TokenOut:      tokenOut,
+	t.Run("different output after update", func(t *testing.T) {
+		result, err = poolSim.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: tokenAmountIn,
+			TokenOut:      tokenOut,
+		})
+		require.NoError(t, err)
+		require.NotEqual(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 	})
-	require.NoError(t, err)
-	require.NotEqual(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 
-	result, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
-		TokenAmountIn: tokenAmountIn,
-		TokenOut:      tokenOut,
+	t.Run("same output of cloned", func(t *testing.T) {
+		result, err = cloned.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: tokenAmountIn,
+			TokenOut:      tokenOut,
+		})
+		require.NoError(t, err)
+		require.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 	})
-	require.NoError(t, err)
-	require.Equal(t, expectedAmountOut, result.TokenAmountOut.Amount.String())
 }
