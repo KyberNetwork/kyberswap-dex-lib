@@ -17,6 +17,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -289,6 +290,6 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{}
 	_ = p.getSqrtPriceLimit(zeroForOne, &priceLimit)
 	return PoolMeta{
 		BlockNumber: p.Pool.Info.BlockNumber,
-		PriceLimit:  priceLimit.ToBig(),
+		PriceLimit:  bignumber.CapPriceLimit(priceLimit.ToBig()),
 	}
 }

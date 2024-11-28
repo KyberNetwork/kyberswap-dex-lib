@@ -20,6 +20,9 @@ var (
 	Five   = big.NewInt(5)
 	Six    = big.NewInt(6)
 	Ten    = big.NewInt(10)
+
+	MIN_SQRT_RATIO    = big.NewInt(4295128739)
+	MAX_SQRT_RATIO, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970342", 10)
 )
 
 var BONE = new(big.Int).Exp(Ten, big.NewInt(18), nil)
@@ -58,4 +61,18 @@ func NewBig10(s string) (res *big.Int) {
 func NewBig(s string) (res *big.Int) {
 	res, _ = new(big.Int).SetString(s, 0)
 	return res
+}
+
+func Cap(n *big.Int, min *big.Int, max *big.Int) *big.Int {
+	if n.Cmp(min) <= 0 {
+		return new(big.Int).Add(min, One)
+	}
+	if n.Cmp(max) >= 0 {
+		return new(big.Int).Sub(max, One)
+	}
+	return n
+}
+
+func CapPriceLimit(n *big.Int) *big.Int {
+	return Cap(n, MIN_SQRT_RATIO, MAX_SQRT_RATIO)
 }
