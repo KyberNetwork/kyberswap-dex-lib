@@ -22,6 +22,7 @@ import (
 	dododpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	dododsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	dododvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
+	eethorweeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/eeth-or-weeth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
@@ -255,6 +256,7 @@ type Types struct {
 	DeltaSwapV1                    string
 	SfrxETH                        string
 	SfrxETHConvertor               string
+	EETHOrWeETH                    string
 }
 
 var (
@@ -390,5 +392,6 @@ var (
 		DeltaSwapV1:                    deltaswapv1.DexType,
 		SfrxETH:                        sfrxeth.DexType,
 		SfrxETHConvertor:               sfrxeth_convertor.DexType,
+		EETHOrWeETH:                    eethorweeth.DexType,
 	}
 )

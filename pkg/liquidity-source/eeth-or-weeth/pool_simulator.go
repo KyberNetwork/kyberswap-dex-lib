@@ -80,6 +80,11 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 }
 
 func (s *PoolSimulator) UpdateBalance(param poolpkg.UpdateBalanceParams) {
+	// TODO: implement this
+}
+
+func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
+	return nil
 }
 
 func (s *PoolSimulator) wstETHUnwrap(amountIn *big.Int) *big.Int {
