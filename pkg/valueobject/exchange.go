@@ -666,6 +666,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeDeltaSwapV1:                {},
 	ExchangeSfrxETH:                    {},
 	ExchangeSfrxETHConvertor:           {},
+	ExchangeEtherfiVampire:             {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
