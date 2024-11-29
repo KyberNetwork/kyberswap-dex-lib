@@ -3,10 +3,11 @@ package client
 import (
 	"context"
 
-	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	"github.com/KyberNetwork/logger"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
+
+	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 )
 
 const (
@@ -39,6 +40,7 @@ func NewHTTPClient(config *hashflowv3.HTTPClientConfig) *httpClient {
 	client := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
+		SetDebug(config.Debug).
 		SetRetryCount(config.RetryCount).
 		SetHeader(authorizationHeaderKey, config.APIKey)
 

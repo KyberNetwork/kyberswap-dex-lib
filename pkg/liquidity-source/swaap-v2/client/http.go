@@ -27,6 +27,7 @@ func NewHTTPClient(config *HTTPClientConfig) *HTTPClient {
 		SetHeader(headerAPIKey, config.APIKey).
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
+		SetDebug(config.Debug).
 		SetRetryCount(config.RetryCount)
 
 	return &HTTPClient{

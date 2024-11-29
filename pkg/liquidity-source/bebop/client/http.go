@@ -9,7 +9,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/goccy/go-json"
 
-	bebop "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/bebop"
 )
 
 const (
@@ -48,6 +48,7 @@ func NewHTTPClient(config *bebop.HTTPClientConfig) *HTTPClient {
 	client := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
+		SetDebug(config.Debug).
 		SetRetryCount(config.RetryCount).
 		SetHeader(headerSourceAuthKey, config.Authorization)
 

@@ -30,6 +30,7 @@ func NewHTTPClient(config *dexalot.HTTPClientConfig) *HTTPClient {
 	client := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
+		SetDebug(config.Debug).
 		SetRetryCount(config.RetryCount).
 		SetHeader(headerApiKey, config.APIKey)
 

@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 	"github.com/KyberNetwork/logger"
 	"github.com/go-resty/resty/v2"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper"
 )
 
 const (
@@ -32,6 +33,7 @@ func NewHTTPClient(config clipper.HTTPClientConfig) *httpClient {
 	client := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
+		SetDebug(config.Debug).
 		SetRetryCount(config.RetryCount).
 		SetHeader("Authorization", "Basic "+config.BasicAuthKey)
 

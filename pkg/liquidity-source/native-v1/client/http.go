@@ -7,7 +7,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
+	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 )
 
 const (
@@ -39,6 +39,7 @@ func NewHTTPClient(config *nativev1.HTTPClientConfig) *HTTPClient {
 	client := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
+		SetDebug(config.Debug).
 		SetRetryCount(config.RetryCount).
 		SetHeaderVerbatim(headerApiKey, config.APIKey)
 

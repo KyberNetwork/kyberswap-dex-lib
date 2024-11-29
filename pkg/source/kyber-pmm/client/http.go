@@ -26,6 +26,7 @@ func NewHTTPClient(config *kyberpmm.HTTPConfig) *httpClient {
 	client := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
+		SetDebug(config.Debug).
 		SetRetryCount(config.RetryCount)
 
 	return &httpClient{

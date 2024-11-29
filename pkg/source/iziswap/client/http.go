@@ -5,9 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
+
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/iziswap"
 )
 
 type httpClient struct {
@@ -26,6 +27,7 @@ func NewHTTPClient(config *iziswap.HTTPConfig) *httpClient {
 	client := resty.New().
 		SetBaseURL(config.BaseURL).
 		SetTimeout(config.Timeout.Duration).
+		SetDebug(config.Debug).
 		SetRetryCount(config.RetryCount)
 
 	return &httpClient{
