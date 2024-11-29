@@ -1,4 +1,4 @@
-package vampire
+package etherfivampire
 
 import (
 	"errors"
@@ -153,7 +153,7 @@ func (s *PoolSimulator) vampireDepositWithERC20StETH(amountIn *big.Int) (*big.In
 	// We only need to apply `discountInBasisPoints`.
 	var dx big.Int
 	dx.
-		Sub(bignumber.BasisPoint, big.NewInt(int64(s.StETHTokenInfo.DiscountInBasisPoints))).
+		Sub(bignumber.BasisPoint, s.StETHTokenInfo.DiscountInBasisPoints).
 		Mul(&dx, &amount).
 		Div(&dx, bignumber.BasisPoint)
 
@@ -179,10 +179,8 @@ func (s *PoolSimulator) vampireDepositWithERC20StETH(amountIn *big.Int) (*big.In
 	eEthShare.
 		Mul(&dx, s.EETH.TotalShares).
 		Div(&eEthShare, s.LiquidityPool.TotalPooledEther)
-	var uint128Max big.Int
-	uint128Max.SetUint64(1).Lsh(&uint128Max, 128).Sub(&uint128Max, bignumber.One)
 
-	if dx.Cmp(&uint128Max) > 0 || dx.Sign() == 0 || eEthShare.Sign() == 0 {
+	if dx.Cmp(bignumber.MAX_UINT_128) > 0 || dx.Sign() == 0 || eEthShare.Sign() == 0 {
 		return nil, nil, ErrInvalidAmount
 	}
 

@@ -1,4 +1,4 @@
-package vampire
+package etherfivampire
 
 const (
 	DexType = "etherfi-vampire"

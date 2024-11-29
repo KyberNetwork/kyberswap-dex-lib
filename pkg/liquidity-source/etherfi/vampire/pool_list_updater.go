@@ -1,4 +1,4 @@
-package vampire
+package etherfivampire
 
 import (
 	"context"
@@ -144,7 +144,7 @@ func getPoolExtra(
 	}
 
 	// Update poolExtra.StETHTokenInfo from tokenInfo
-	poolExtra.StETHTokenInfo.DiscountInBasisPoints = tokenInfo.DiscountInBasisPoints
+	poolExtra.StETHTokenInfo.DiscountInBasisPoints = big.NewInt(int64(tokenInfo.DiscountInBasisPoints))
 	poolExtra.StETHTokenInfo.TotalDepositedThisPeriod = tokenInfo.TotalDepositedThisPeriod
 	poolExtra.StETHTokenInfo.TotalDeposited = tokenInfo.TotalDeposited
 	poolExtra.StETHTokenInfo.TimeBoundCapClockStartTime = tokenInfo.TimeBoundCapClockStartTime

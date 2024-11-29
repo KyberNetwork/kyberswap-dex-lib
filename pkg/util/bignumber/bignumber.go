@@ -25,6 +25,8 @@ var (
 	MAX_SQRT_RATIO, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970342", 10)
 
 	BasisPoint = big.NewInt(10000)
+
+	MAX_UINT_128 = new(big.Int).Sub(new(big.Int).Lsh(One, 128), One)
 )
 
 var BONE = new(big.Int).Exp(Ten, big.NewInt(18), nil)

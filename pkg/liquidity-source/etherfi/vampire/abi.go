@@ -1,4 +1,4 @@
-package vampire
+package etherfivampire
 
 import (
 	"bytes"

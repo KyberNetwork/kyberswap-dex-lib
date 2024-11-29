@@ -1,4 +1,4 @@
-package vampire
+package etherfivampire
 
 import (
 	"math/big"
@@ -13,7 +13,7 @@ type PoolExtra struct {
 	}
 
 	StETHTokenInfo struct {
-		DiscountInBasisPoints      uint16
+		DiscountInBasisPoints      *big.Int
 		TotalDepositedThisPeriod   *big.Int
 		TotalDeposited             *big.Int
 		TimeBoundCapClockStartTime uint32
