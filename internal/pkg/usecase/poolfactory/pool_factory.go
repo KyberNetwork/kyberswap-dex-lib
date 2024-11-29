@@ -37,6 +37,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
+	etherfivampire "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/vampire"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	fluiddext1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	fluidvaultt1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
@@ -702,6 +703,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newSfrxETH(entityPool)
 	case pooltypes.PoolTypes.SfrxETHConvertor:
 		return f.newSfrxETHConvertor(entityPool)
+	case pooltypes.PoolTypes.EtherfiVampire:
+		return f.newEtherfiVampire(entityPool)
 
 	default:
 		return nil, errors.WithMessagef(
@@ -2397,6 +2400,20 @@ func (f *PoolFactory) newSfrxETHConvertor(entityPool entity.Pool) (*sfrxeth_conv
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSfrxETHConvertor] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newEtherfiVampire(entityPool entity.Pool) (*etherfivampire.PoolSimulator, error) {
+	corePool, err := etherfivampire.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newEtherfiVampire] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

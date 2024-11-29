@@ -202,6 +202,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeSfrxETHConvertor
 	dexValueObject.ExchangeSfrxETHConvertor: {},
+
+	// executeEETHOrWeETH
+	dexValueObject.ExchangeEtherfiVampire: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {

@@ -140,6 +140,7 @@ common:
     - "sfrxeth-convertor"
     - "ondo-usdy"
     - "ringswap"
+    - "etherfi-vampire"
   featureFlags: &featureFlags
     isAEVMEnabled: false
     isLiquidityScoreEnable: true
