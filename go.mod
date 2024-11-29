@@ -17,7 +17,7 @@ require (
 	github.com/KyberNetwork/grpc-service v0.3.2-0.20240705221303-511311ba0545
 	github.com/KyberNetwork/kutils v0.3.7
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.81.0
+	github.com/KyberNetwork/kyberswap-dex-lib v0.81.1
 	github.com/KyberNetwork/kyberswap-dex-lib-private v0.4.0
 	github.com/KyberNetwork/logger v0.2.1
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
