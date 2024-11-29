@@ -237,6 +237,8 @@ func getCurvePoolInfo(
 	for i := 0; i < nCoins; i++ {
 		curvePoolInfo.Reserves[i] = balances[i].String()
 	}
+	// The last reserve is from the balanceV1 pool,
+	// we don't need to use it so set it to "0" instead of tracking.
 	curvePoolInfo.Reserves[nCoins] = "0"
 
 	extraBytes, err := json.Marshal(curvePlainExtra)
