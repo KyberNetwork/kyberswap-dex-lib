@@ -365,6 +365,7 @@ var (
 	ExchangeDeltaSwapV1      Exchange = "deltaswap-v1"
 	ExchangeSfrxETH          Exchange = "sfrxeth"
 	ExchangeSfrxETHConvertor Exchange = "sfrxeth-convertor"
+	ExchangeEtherfiVampire   Exchange = "etherfi-vampire"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
