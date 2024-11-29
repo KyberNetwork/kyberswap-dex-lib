@@ -26,10 +26,10 @@ import (
 	pkg_liquiditysource_dodo_dpp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dpp"
 	pkg_liquiditysource_dodo_dsp "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dsp"
 	pkg_liquiditysource_dodo_dvm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dodo/dvm"
-	pkg_liquiditysource_eethorweeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/eeth-or-weeth"
 	pkg_liquiditysource_ethena_susde "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ethena/susde"
 	pkg_liquiditysource_ethervista "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ether-vista"
 	pkg_liquiditysource_etherfi_eeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/eeth"
+	pkg_liquiditysource_etherfi_vampire "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/vampire"
 	pkg_liquiditysource_etherfi_weeth "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/weeth"
 	pkg_liquiditysource_fluid_dext1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/dex-t1"
 	pkg_liquiditysource_fluid_vaultt1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/fluid/vault-t1"
@@ -149,10 +149,10 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dpp.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dsp.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_dodo_dvm.PoolSimulator{})
-	msgpack.RegisterConcreteType(&pkg_liquiditysource_eethorweeth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_ethena_susde.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_ethervista.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_eeth.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_vampire.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_etherfi_weeth.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_fluid_dext1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_fluid_vaultt1.PoolSimulator{})

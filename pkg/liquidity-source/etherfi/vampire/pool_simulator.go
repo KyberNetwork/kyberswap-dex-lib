@@ -1,15 +1,17 @@
-package eethorweeth
+package vampire
 
 import (
-	"encoding/json"
 	"errors"
 	"math/big"
 	"time"
+
+	"github.com/goccy/go-json"
 
 	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/curve/plain"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/common"
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
@@ -19,7 +21,6 @@ var (
 	ErrInvalidAmount     = errors.New("invalid amount")
 )
 
-// PoolSimulator only support deposits ETH and get eETH
 type PoolSimulator struct {
 	poolpkg.Pool
 	PoolExtra
@@ -36,8 +37,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		Address:  curveStETHToETHPool,
 		Reserves: extra.CurveStETHToETH.Reserves,
 		Tokens: []*entity.PoolToken{
-			{Address: weth, Decimals: 18, Swappable: true},
-			{Address: stETH, Decimals: 18, Swappable: true},
+			{Address: common.WETH, Decimals: 18, Swappable: true},
+			{Address: common.STETH, Decimals: 18, Swappable: true},
 		},
 		Extra:       extra.CurveStETHToETH.Extra,
 		StaticExtra: extra.CurveStETHToETH.StaticExtra,
@@ -62,16 +63,16 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 }
 
 func (s *PoolSimulator) CanSwapTo(token string) []string {
-	if token == eETH || token == weETH {
-		return []string{stETH, wstETH}
+	if token == common.EETH || token == common.WEETH {
+		return []string{common.STETH, common.WSTETH}
 	}
 
 	return nil
 }
 
 func (s *PoolSimulator) CanSwapFrom(token string) []string {
-	if token == stETH || token == wstETH {
-		return []string{eETH, weETH}
+	if token == common.STETH || token == common.WSTETH {
+		return []string{common.EETH, common.WEETH}
 	}
 
 	return nil
@@ -81,7 +82,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 	gasUsed := int64(0)
 	amountIn := new(big.Int).Set(param.TokenAmountIn.Amount)
 
-	if param.TokenAmountIn.Token == wstETH {
+	if param.TokenAmountIn.Token == common.WSTETH {
 		amountIn = s.wstETHUnwrap(amountIn)
 		gasUsed += wstETHUnwrapGas
 	}
@@ -91,15 +92,15 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		return nil, err
 	}
 
-	if param.TokenAmountIn.Token == stETH {
+	if param.TokenAmountIn.Token == common.STETH {
 		gasUsed += stETHDepositWithERC20Gas
 	} else {
 		gasUsed += wstETHDepositWithERC20Gas
 	}
 
-	if param.TokenOut == weETH {
-		eETHAmount := s.etherFiAmountForShare(amountOut)
-		amountOut = s.etherFiSharesForAmount(eETHAmount)
+	if param.TokenOut == common.WEETH {
+		eETHAmount := s.liquidityPoolAmountForShare(amountOut)
+		amountOut = s.liquidityPoolSharesForAmount(eETHAmount)
 		gasUsed += wrapWeETHGas
 	}
 
@@ -121,7 +122,7 @@ func (s *PoolSimulator) UpdateBalance(param poolpkg.UpdateBalanceParams) {
 	swapInfo := param.SwapInfo.(SwapInfo)
 	s.StETHTokenInfo.TotalDepositedThisPeriod.Add(s.StETHTokenInfo.TotalDepositedThisPeriod, swapInfo.dx)
 	s.StETHTokenInfo.TotalDeposited.Add(s.StETHTokenInfo.TotalDeposited, swapInfo.dx)
-	s.EtherFiPool.TotalPooledEther.Add(s.EtherFiPool.TotalPooledEther, swapInfo.dx)
+	s.LiquidityPool.TotalPooledEther.Add(s.LiquidityPool.TotalPooledEther, swapInfo.dx)
 }
 
 func (s *PoolSimulator) GetMetaInfo(_, _ string) interface{} {
@@ -177,7 +178,7 @@ func (s *PoolSimulator) vampireDepositWithERC20StETH(amountIn *big.Int) (*big.In
 	var eEthShare big.Int
 	eEthShare.
 		Mul(&dx, s.EETH.TotalShares).
-		Div(&eEthShare, s.EtherFiPool.TotalPooledEther)
+		Div(&eEthShare, s.LiquidityPool.TotalPooledEther)
 	var uint128Max big.Int
 	uint128Max.SetUint64(1).Lsh(&uint128Max, 128).Sub(&uint128Max, bignumber.One)
 
@@ -188,26 +189,26 @@ func (s *PoolSimulator) vampireDepositWithERC20StETH(amountIn *big.Int) (*big.In
 	return &eEthShare, &dx, nil
 }
 
-func (s *PoolSimulator) etherFiAmountForShare(share *big.Int) *big.Int {
+func (s *PoolSimulator) liquidityPoolAmountForShare(share *big.Int) *big.Int {
 	if s.EETH.TotalShares.Sign() == 0 {
 		return bignumber.ZeroBI
 	}
 
 	res := new(big.Int)
-	res.Mul(share, s.EtherFiPool.TotalPooledEther)
+	res.Mul(share, s.LiquidityPool.TotalPooledEther)
 	res.Div(res, s.EETH.TotalShares)
 
 	return res
 }
 
-func (s *PoolSimulator) etherFiSharesForAmount(amount *big.Int) *big.Int {
-	if s.EtherFiPool.TotalPooledEther.Sign() == 0 {
+func (s *PoolSimulator) liquidityPoolSharesForAmount(amount *big.Int) *big.Int {
+	if s.LiquidityPool.TotalPooledEther.Sign() == 0 {
 		return bignumber.ZeroBI
 	}
 
 	res := new(big.Int)
 	res.Mul(amount, s.EETH.TotalShares)
-	res.Div(res, s.EtherFiPool.TotalPooledEther)
+	res.Div(res, s.LiquidityPool.TotalPooledEther)
 
 	return res
 }

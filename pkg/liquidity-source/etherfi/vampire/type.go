@@ -1,4 +1,4 @@
-package eethorweeth
+package vampire
 
 import (
 	"math/big"
@@ -26,7 +26,7 @@ type PoolExtra struct {
 		TimeBoundCapRefreshInterval uint32
 	}
 
-	EtherFiPool struct {
+	LiquidityPool struct {
 		TotalPooledEther *big.Int
 	}
 

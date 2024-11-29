@@ -1,4 +1,4 @@
-package eethorweeth
+package vampire
 
 const (
 	wstETHUnwrapGas           = 51000

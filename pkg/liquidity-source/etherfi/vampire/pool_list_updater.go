@@ -1,4 +1,4 @@
-package eethorweeth
+package vampire
 
 import (
 	"context"
@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
-	"github.com/ethereum/go-ethereum/common"
+	gethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/etherfi/common"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -49,15 +50,15 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 	return []entity.Pool{
 		{
 			Address:   strings.ToLower(vampire),
-			Exchange:  string(valueobject.ExchangeEETHOrWeETH),
+			Exchange:  string(valueobject.ExchangeEtherfiVampire),
 			Type:      DexType,
 			Timestamp: time.Now().Unix(),
 			Reserves:  []string{unlimitedReserve, unlimitedReserve, unlimitedReserve, unlimitedReserve},
 			Tokens: []*entity.PoolToken{
-				{Address: stETH, Symbol: "stETH", Decimals: 18, Swappable: true},
-				{Address: wstETH, Symbol: "wstETH", Decimals: 18, Swappable: true},
-				{Address: eETH, Symbol: "eETH", Decimals: 18, Swappable: true},
-				{Address: weETH, Symbol: "weETH", Decimals: 18, Swappable: true},
+				{Address: common.STETH, Symbol: "stETH", Decimals: 18, Swappable: true},
+				{Address: common.WSTETH, Symbol: "wstETH", Decimals: 18, Swappable: true},
+				{Address: common.EETH, Symbol: "eETH", Decimals: 18, Swappable: true},
+				{Address: common.WEETH, Symbol: "weETH", Decimals: 18, Swappable: true},
 			},
 			BlockNumber: blockNumber,
 			Extra:       string(extraBytes),
@@ -68,7 +69,7 @@ func (u *PoolListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte)
 func getPoolExtra(
 	ctx context.Context,
 	ethrpcClient *ethrpc.Client,
-	overrides map[common.Address]gethclient.OverrideAccount,
+	overrides map[gethcommon.Address]gethclient.OverrideAccount,
 ) (PoolExtra, uint64, error) {
 	var (
 		poolExtra PoolExtra
@@ -83,14 +84,14 @@ func getPoolExtra(
 	// poolExtra.StETH
 	r.AddCall(&ethrpc.Call{
 		ABI:    stETHABI,
-		Target: stETH,
+		Target: common.STETH,
 		Method: "getTotalPooledEther",
 		Params: []interface{}{},
 	}, []interface{}{&poolExtra.StETH.TotalPooledEther})
 
 	r.AddCall(&ethrpc.Call{
 		ABI:    stETHABI,
-		Target: stETH,
+		Target: common.STETH,
 		Method: "getTotalShares",
 		Params: []interface{}{},
 	}, []interface{}{&poolExtra.StETH.TotalShares})
@@ -100,7 +101,7 @@ func getPoolExtra(
 		ABI:    vampireABI,
 		Target: vampire,
 		Method: "tokenInfos",
-		Params: []interface{}{common.HexToAddress(stETH)},
+		Params: []interface{}{gethcommon.HexToAddress(common.STETH)},
 	}, []interface{}{&tokenInfo})
 
 	r.AddCall(&ethrpc.Call{
@@ -117,18 +118,18 @@ func getPoolExtra(
 		Params: []interface{}{},
 	}, []interface{}{&poolExtra.Vampire.QuoteStEthWithCurve})
 
-	// poolExtra.EtherFiPool
+	// poolExtra.LiquidityPool
 	r.AddCall(&ethrpc.Call{
 		ABI:    liquidityPoolABI,
-		Target: liquidityPool,
+		Target: common.LiquidityPool,
 		Method: "getTotalPooledEther",
 		Params: []interface{}{},
-	}, []interface{}{&poolExtra.EtherFiPool.TotalPooledEther})
+	}, []interface{}{&poolExtra.LiquidityPool.TotalPooledEther})
 
 	// poolExtra.EETH
 	r.AddCall(&ethrpc.Call{
 		ABI:    eETHABI,
-		Target: eETH,
+		Target: common.EETH,
 		Method: "totalShares",
 		Params: []interface{}{},
 	}, []interface{}{&poolExtra.EETH.TotalShares})
@@ -163,7 +164,7 @@ func getPoolExtra(
 func getCurvePoolInfo(
 	ctx context.Context,
 	ethrpcClient *ethrpc.Client,
-	overrides map[common.Address]gethclient.OverrideAccount,
+	overrides map[gethcommon.Address]gethclient.OverrideAccount,
 ) (CurvePoolInfo, error) {
 	var (
 		curvePlainExtra CurvePlainExtra
