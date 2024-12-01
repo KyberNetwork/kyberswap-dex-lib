@@ -20,6 +20,7 @@ def main():
     mean_type = os.environ.get('MEAN__TYPE')
     target_factor_entropy = os.environ.get('TARGET__FACTOR__ENTROPY')
     min_threshold_amount_out_percentage = os.environ.get('MIN__THRESHOLD__PERCENTAGE')
+    min_filtered_pools_len = os.environ.get('MIN__FILTERED__POOL__LEN')
 
     pools = read_trade_data(trade_data_filename, float(min_threshold_amount_out_percentage))
     if len(pools) == 0:
@@ -35,8 +36,22 @@ def main():
     min_score = entropy.get_top_pools(pool_scores, mean_type, float(target_factor_entropy))
 
     filter_score_filename = os.environ.get('USECASE__UPDATELIQUIDITYSCORE__INPUTFILENAME')
-    filter_scores = [v for v in pool_scores if v[mean_type] > min_score]
-    save_scores(filter_score_filename, filter_scores)
+
+    final_scores = filter_scores(pool_scores, mean_type, min_score, int(min_filtered_pools_len))
+    print(f'Length of final scores after filtering: {len(final_scores)}')
+    save_scores(filter_score_filename, final_scores)
+
+
+def filter_scores(pool_scores, mean_type, min_score, min_len) -> list:
+    pool_scores = sorted(pool_scores, key=lambda pool_score: pool_score[mean_type], reverse=True)
+    filter_scores = []
+    for v in pool_scores:
+        if v[mean_type] >= min_score or len(filter_scores) < min_len:
+            filter_scores.append(v)
+        else:
+            break
+    
+    return filter_scores
 
 
 def save_scores(filename: str, scores: list):
