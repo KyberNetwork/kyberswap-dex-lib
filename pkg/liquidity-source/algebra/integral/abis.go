@@ -7,15 +7,8 @@ import (
 )
 
 var (
-	algebraV1PoolABI                      abi.ABI
-	algebraV1DirFeePoolABI                abi.ABI
-	algebraV1DataStorageOperatorAPI       abi.ABI
-	algebraV1DirFeeDataStorageOperatorAPI abi.ABI
-	erc20ABI                              abi.ABI
-	ticklensABI                           abi.ABI
-
+	erc20ABI               abi.ABI
 	algebraIntegralPoolABI abi.ABI
-	algebraPluginABI       abi.ABI
 	algebraBasePluginV1ABI abi.ABI
 )
 
@@ -24,15 +17,8 @@ func init() {
 		ABI  *abi.ABI
 		data []byte
 	}{
-		{&algebraV1PoolABI, algebraV1PoolJson},
-		{&algebraV1DirFeePoolABI, algebraV1DirFeePoolJson},
-		{&algebraV1DataStorageOperatorAPI, algebraV1DataStorageOperatorJson},
-		{&algebraV1DirFeeDataStorageOperatorAPI, algebraV1DirFeeDataStorageOperatorJson},
 		{&erc20ABI, erc20Json},
-		{&ticklensABI, ticklensJson},
-
 		{&algebraIntegralPoolABI, algebraIntegralPoolJson},
-		{&algebraPluginABI, algebraPluginJson},
 		{&algebraBasePluginV1ABI, algebraBasePluginV1Json},
 	}
 

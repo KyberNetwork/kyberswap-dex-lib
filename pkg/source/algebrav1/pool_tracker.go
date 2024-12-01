@@ -2,6 +2,7 @@ package algebrav1
 
 import (
 	"context"
+	"log"
 	"math/big"
 	"time"
 
@@ -464,6 +465,8 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, currentIndex uint16
 			}).Error("failed to fetch pool timepoints")
 			return nil, err
 		}
+
+		log.Fatalf("------------%+v\n", page)
 
 		enough := false
 		enoughAtIdx := uint16(0)

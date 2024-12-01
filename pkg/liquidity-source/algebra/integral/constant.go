@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
-	"github.com/ethereum/go-ethereum/common"
 )
 
 const (
@@ -18,35 +17,37 @@ const (
 	emptyString           = ""
 	graphQLRequestTimeout = 20 * time.Second
 
-	methodGetLiquidity           = "liquidity"
-	methodGetGlobalState         = "globalState"
-	methodGetDataStorageOperator = "dataStorageOperator"
-	methodGetFeeConfig           = "feeConfig"
-	methodGetFeeConfigZto        = "feeConfigZto"
-	methodGetFeeConfigOtz        = "feeConfigOtz"
-	methodGetTimepoints          = "timepoints"
-	methodGetTickSpacing         = "tickSpacing"
-
-	maxSwapLoop         = 1000000
-	maxBinarySearchLoop = 1000
-
 	timepointPageSize = uint16(300)
 
 	WINDOW        = 86400 // 1 day in seconds
 	UINT16_MODULO = 65536
 
+	poolTicksMethod       = "ticks"
 	poolLiquidityMethod   = "liquidity"
 	poolGlobalStateMethod = "globalState"
 	poolTickSpacingMethod = "tickSpacing"
 	poolPluginMethod      = "plugin"
 
-	basePluginV1FeeConfigMethod = "feeConfig"
+	dynamicFeeManagerPluginFeeConfigMethod = "feeConfig"
+
+	slidingFeePluginFeeFactorsMethod = "s_feeFactors"
+
+	votalityOraclePluginTimepointsMethod             = "timepoints"
+	votalityOraclePluginTimepointIndexMethod         = "timepointIndex"
+	votalityOraclePluginLastTimepointTimestampMethod = "lastTimepointTimestamp"
+	votalityOraclePluginIsInitializedMethod          = "isInitialized"
 
 	erc20BalanceOfMethod = "balanceOf"
 
 	BEFORE_SWAP_FLAG = 1
 	AFTER_SWAP_FLAG  = 1 << 1
 	RESOLUTION       = 96
+
+	s_priceChangeFactor = 1000
+	s_baseFee           = 500
+
+	FACTOR_DENOMINATOR = 1000
+	FEE_FACTOR_SHIFT   = 96
 )
 
 var (
@@ -56,7 +57,8 @@ var (
 	MIN_INT256  = new(big.Int).Neg(new(big.Int).Lsh(bignumber.One, 255)) // -2^255
 	MAX_UINT256 = new(big.Int).Sub(new(big.Int).Lsh(bignumber.One, 256), bignumber.One)
 
-	slot3 = common.BigToHash(big.NewInt(3))
+	MAX_UINT16 = new(big.Int).SetUint64(1<<16 - 1)
+	MIN_UINT16 = new(big.Int).SetUint64(1)
 
 	EIGHT   = big.NewInt(8)
 	SIXTEEN = big.NewInt(16)
@@ -65,4 +67,7 @@ var (
 	MAX_SQRT_RATIO, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970342", 10)
 	Q96               = new(big.Int).Lsh(bignumber.One, 96)
 	Q128              = new(big.Int).Lsh(bignumber.One, 128)
+
+	BASE_FEE_MULTIPLIER   = new(big.Int).Lsh(bignumber.One, FEE_FACTOR_SHIFT)
+	DOUBLE_FEE_MULTIPLIER = new(big.Int).Lsh(bignumber.One, 2*FEE_FACTOR_SHIFT)
 )

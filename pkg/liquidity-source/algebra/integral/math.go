@@ -27,7 +27,7 @@ func getOutputTokenDelta10(to, from, liquidity *big.Int) (*big.Int, error) {
 func getToken0Delta(priceLower, priceUpper, liquidity *big.Int, roundUp bool) (*big.Int, error) {
 	priceDelta := new(big.Int).Sub(priceUpper, priceLower)
 	if priceDelta.Cmp(priceUpper) >= 0 {
-		return nil, errors.New("----")
+		return nil, errors.New("price delta must be greater than price upper")
 	}
 
 	liquidityShifted := new(big.Int).Lsh(liquidity, RESOLUTION)
@@ -58,7 +58,7 @@ func getToken0Delta(priceLower, priceUpper, liquidity *big.Int, roundUp bool) (*
 
 func getToken1Delta(priceLower, priceUpper, liquidity *big.Int, roundUp bool) (*big.Int, error) {
 	if priceUpper.Cmp(priceLower) < 0 {
-		return nil, errors.New("----")
+		return nil, errors.New("price upper must be greater than price lower")
 	}
 
 	priceDelta := new(big.Int).Sub(priceUpper, priceLower)
@@ -282,18 +282,6 @@ func mulDiv(a, b, denominator *big.Int) (*big.Int, error) {
 	result.Mod(result, new(big.Int).Lsh(bignumber.One, 256))
 
 	return result, nil
-}
-
-func mul(x, y *big.Int) (*big.Int, error) {
-	// Multiply x and y
-	z := new(big.Int).Mul(x, y)
-
-	// Check for overflow by verifying if x == 0 or (z / x) == y
-	if x.Sign() != 0 && new(big.Int).Div(z, x).Cmp(y) != 0 {
-		return nil, fmt.Errorf("multiplication overflow")
-	}
-
-	return z, nil
 }
 
 func addDelta(x *big.Int, y *big.Int) (*big.Int, error) {

@@ -4,20 +4,15 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/KyberNetwork/elastic-go-sdk/v2/utils"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/logger"
+	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
 )
 
 var (
 	ErrTargetIsTooOld = errors.New("target is too old")
 )
-
-// func getAverageVolatilityLast(timePoints ,tick int24, timepointIndex uint16) (*uint256.Int, error) {
-// 	timestamp := time.Now().UnixMilli()
-
-// 	lastTimepointIndex := timepointIndex
-// 	oldestIndex :=
-// }
 
 type TimepointStorage struct {
 	data    map[uint16]Timepoint
@@ -475,4 +470,50 @@ func (s *TimepointStorage) binarySearchInternal(
 		beforeOrAt = s.Get(uint16(indexBeforeOrAt.Uint64()))
 		firstIteration = false
 	}
+}
+
+func calculateFeeFactors(currentTick, lastTick int32, priceChangeFactor uint16) (FeeFactors, error) {
+	tickDelta := new(big.Int).Sub(big.NewInt(int64(currentTick)), big.NewInt(int64(lastTick)))
+	if tickDelta.Int64() > int64(utils.MaxTick) {
+		tickDelta = big.NewInt(int64(utils.MaxTick))
+	} else if tickDelta.Int64() < int64(utils.MinTick) {
+		tickDelta = big.NewInt(int64(utils.MinTick))
+	}
+
+	sqrtPriceDelta, err := v3Utils.GetSqrtRatioAtTick(int(tickDelta.Int64()))
+	if err != nil {
+		return FeeFactors{}, err
+	}
+
+	priceRatioSquared, err := mulDiv(sqrtPriceDelta, sqrtPriceDelta, DOUBLE_FEE_MULTIPLIER)
+	if err != nil {
+		return FeeFactors{}, err
+	}
+
+	priceChangeRatio := new(big.Int).Sub(priceRatioSquared, BASE_FEE_MULTIPLIER)
+
+	factor := new(big.Int).SetInt64(int64(priceChangeFactor))
+	feeFactorImpact := new(big.Int).Div(new(big.Int).Mul(priceChangeRatio, factor), big.NewInt(FACTOR_DENOMINATOR))
+
+	feeFactors := FeeFactors{
+		zeroToOneFeeFactor: BASE_FEE_MULTIPLIER,
+		oneToZeroFeeFactor: BASE_FEE_MULTIPLIER,
+	}
+
+	newZeroToOneFeeFactor := new(big.Int).Sub(feeFactors.zeroToOneFeeFactor, feeFactorImpact)
+
+	twoShift := DOUBLE_FEE_MULTIPLIER
+
+	if newZeroToOneFeeFactor.Cmp(bignumber.ZeroBI) > 0 && newZeroToOneFeeFactor.Cmp(twoShift) < 0 {
+		feeFactors.zeroToOneFeeFactor = newZeroToOneFeeFactor
+		feeFactors.oneToZeroFeeFactor = new(big.Int).Add(feeFactors.oneToZeroFeeFactor, feeFactorImpact)
+	} else if newZeroToOneFeeFactor.Cmp(bignumber.ZeroBI) <= 0 {
+		feeFactors.zeroToOneFeeFactor = bignumber.ZeroBI
+		feeFactors.oneToZeroFeeFactor = twoShift
+	} else {
+		feeFactors.zeroToOneFeeFactor = twoShift
+		feeFactors.oneToZeroFeeFactor = bignumber.ZeroBI
+	}
+
+	return feeFactors, nil
 }
