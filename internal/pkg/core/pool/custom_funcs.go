@@ -2,6 +2,8 @@ package pool
 
 import (
 	"context"
+	"strconv"
+	"time"
 
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/pathfinder-lib/pkg/entity"
@@ -26,16 +28,15 @@ func NewCustomFuncs(dexUseAEVM map[string]bool) *customFuncs {
 func (c *customFuncs) CalcAmountOut(ctx context.Context, pool poolpkg.IPoolSimulator, tokenAmountIn poolpkg.TokenAmount, tokenOut string, limit poolpkg.SwapLimit) (*poolpkg.CalcAmountOutResult, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "CalcAmountOut")
 	defer span.End()
-
-	if c.dexUseAEVM[pool.GetType()] {
-		span.SetTag("dexUseAEVM", "true")
-	} else {
-		span.SetTag("dexUseAEVM", "false")
-	}
-	span.SetTag("dex", pool.GetExchange())
+	dexUseAEVM, exchange := c.dexUseAEVM[pool.GetType()], pool.GetExchange()
+	span.SetTag("dexUseAEVM", strconv.FormatBool(dexUseAEVM))
+	span.SetTag("dex", exchange)
+	defer func(now time.Time) {
+		metrics.RecordCalcAmountOutDuration(ctx, time.Since(now), dexUseAEVM, exchange)
+	}(time.Now())
 
 	if c := ctx.Value(metrics.CalcAmountOutCounterContextKey); c != nil {
-		c.(*metrics.CalcAmountOutCounter).Inc(pool.GetType(), 1)
+		c.(*metrics.CalcAmountOutCounter).Inc(pool.GetExchange(), 1)
 	}
 
 	return c.ICustomFuncs.CalcAmountOut(ctx, pool, tokenAmountIn, tokenOut, limit)
@@ -44,7 +45,11 @@ func (c *customFuncs) CalcAmountOut(ctx context.Context, pool poolpkg.IPoolSimul
 func (c *customFuncs) ClonePool(ctx context.Context, pool poolpkg.IPoolSimulator) poolpkg.IPoolSimulator {
 	span, ctx := tracer.StartSpanFromContext(ctx, "ClonePool")
 	defer span.End()
-	span.SetTag("dex", pool.GetExchange())
+	exchange := pool.GetExchange()
+	span.SetTag("dex", exchange)
+	defer func(now time.Time) {
+		metrics.RecordClonePoolDuration(ctx, time.Since(now), exchange)
+	}(time.Now())
 
 	return c.ICustomFuncs.ClonePool(ctx, pool)
 }

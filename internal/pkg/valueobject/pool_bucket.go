@@ -68,7 +68,7 @@ func (b *PoolBucket) ClonePool(poolAddress string) (pool poolpkg.IPoolSimulator)
 			}).Error("panic in ClonePool")
 
 			// Push metrics
-			metrics.IncrClonePoolPanicCounter(context.TODO())
+			metrics.CountClonePoolPanic(context.TODO())
 
 			pool = nil
 			return

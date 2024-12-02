@@ -159,8 +159,8 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 			// Step 2.1.9: update input of the next swap is output of current swap
 			currentAmountIn = reducedNextAmountIn.Amount
 
-			metrics.IncrDexHitRate(ctx, string(swap.Exchange))
-			metrics.IncrPoolTypeHitRate(ctx, swap.PoolType)
+			metrics.CountDexHit(ctx, string(swap.Exchange))
+			metrics.CountPoolTypeHit(ctx, swap.PoolType)
 		}
 
 		// Step 2.2: add up amountOut

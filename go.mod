@@ -17,7 +17,7 @@ require (
 	github.com/KyberNetwork/grpc-service v0.3.2-0.20240705221303-511311ba0545
 	github.com/KyberNetwork/kutils v0.3.7
 	github.com/KyberNetwork/kyber-trace-go v0.1.2
-	github.com/KyberNetwork/kyberswap-dex-lib v0.81.1
+	github.com/KyberNetwork/kyberswap-dex-lib v0.81.3-0.20241202100950-7366447b6432
 	github.com/KyberNetwork/kyberswap-dex-lib-private v0.4.0
 	github.com/KyberNetwork/logger v0.2.1
 	github.com/KyberNetwork/msgpack/v5 v5.4.2
@@ -66,7 +66,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.27.0
 	go.opentelemetry.io/otel/trace v1.27.0
 	go.uber.org/automaxprocs v1.5.2
-	go.uber.org/mock v0.4.0
+	go.uber.org/mock v0.5.0
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0
 	golang.org/x/sync v0.8.0
 	google.golang.org/grpc v1.67.1

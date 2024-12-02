@@ -73,7 +73,7 @@ func (e *GasEstimator) EstimateGas(ctx context.Context, tx UnsignedTransaction) 
 		AccessList: nil,
 	})
 	clientid := clientid.GetClientIDFromCtx(ctx)
-	metrics.IncrEstimateGas(ctx, err == nil, "allDexes", clientid)
+	metrics.CountEstimateGas(ctx, err == nil, "allDexes", clientid)
 
 	return estimatedGas, err
 }

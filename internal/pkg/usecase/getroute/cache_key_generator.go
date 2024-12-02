@@ -53,9 +53,7 @@ func newCacheKeyGenerator(
 func (g *routeKeyGenerator) genKey(ctx context.Context, params *types.AggregateParams) (mapset.Set[valueobject.RouteCacheKeyTTL], error) {
 	// If request has excluded more than 1 pool, we will not hit cache.
 	if params.ExcludedPools != nil && params.ExcludedPools.Cardinality() > 1 {
-		metrics.IncrFindRouteCacheCount(ctx, false, map[string]string{
-			"excludePools": "true",
-		})
+		metrics.CountFindRouteCache(ctx, false, "excludePools", "true")
 		return mapset.NewThreadUnsafeSet[valueobject.RouteCacheKeyTTL](), nil
 	}
 

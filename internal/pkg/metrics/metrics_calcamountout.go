@@ -35,7 +35,7 @@ func (c *CalcAmountOutCounter) CommitMetrics(ctx context.Context) {
 	c.inner.Range(func(key, value any) bool {
 		dexType := key.(string)
 		counter := value.(*atomic.Uint64)
-		HistogramCalcAmountOutCountPerRequest(ctx, int64(counter.Load()), dexType)
+		RecordCalcAmountOutCountPerRequest(ctx, int64(counter.Load()), dexType)
 		return true
 	})
 }

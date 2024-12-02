@@ -604,7 +604,7 @@ func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
 
 	for _, path := range routeSummary.Route {
 		for _, swap := range path {
-			metrics.IncrEstimateGas(ctx, err == nil, string(swap.Exchange), clientId)
+			metrics.CountEstimateGas(ctx, err == nil, string(swap.Exchange), clientId)
 			poolTags = append(poolTags, fmt.Sprintf("%s:%s", swap.Exchange, swap.Pool))
 		}
 	}
@@ -616,13 +616,8 @@ func (uc *BuildRouteUseCase) sendEstimateGasLogsAndMetrics(ctx context.Context,
 			"pool":      strings.Join(poolTags, ","),
 		}).Infof("EstimateGas failed error %s", err)
 
-		if isErrReturnAmountIsNotEnough(err) {
-			// send failed metrics with slippage when error is Return amount is not enough
-			metrics.HistogramEstimateGasWithSlippage(ctx, float64(slippage), false)
-		} else {
-			// send success metrics with slippage
-			metrics.HistogramEstimateGasWithSlippage(ctx, float64(slippage), true)
-		}
+		// send failed metrics with slippage when error is Return amount is not enough
+		metrics.RecordEstimateGasWithSlippage(ctx, float64(slippage), !isErrReturnAmountIsNotEnough(err))
 	}
 }
 

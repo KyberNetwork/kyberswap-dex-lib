@@ -134,7 +134,7 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 				failedPoolAddresses = append(failedPoolAddresses, p.Address)
 			}
 		}
-		mempool.ReserveMany(pools)
+		mempool.ReserveMany(allPools)
 	}
 
 	return dto.NewIndexPoolsResult(failedPoolAddresses, oldPoolCount)

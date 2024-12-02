@@ -158,7 +158,7 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 				"client_id":  clientid.GetClientIDFromCtx(ctx),
 			}).
 			Debug("cache missed")
-		metrics.IncrFindRouteCacheCount(ctx, false, map[string]string{"reason": "getCachedRouteFailed"})
+		metrics.CountFindRouteCache(ctx, false, "reason", "getCachedRouteFailed")
 
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 				"client_id":  clientid.GetClientIDFromCtx(ctx),
 			}).
 			Debug("cache missed")
-		metrics.IncrFindRouteCacheCount(ctx, false, map[string]string{"reason": "summarizeCachedRouteFailed"})
+		metrics.CountFindRouteCache(ctx, false, "reason", "summarizeCachedRouteFailed")
 		return nil, err
 	}
 
@@ -196,13 +196,7 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 				"client_id":  clientid.GetClientIDFromCtx(ctx),
 			}).
 			Debug("cache missed")
-		metrics.IncrFindRouteCacheCount(
-			ctx,
-			false,
-			map[string]string{
-				"reason": "priceImpactIsGreaterThanEpsilon",
-			},
-		)
+		metrics.CountFindRouteCache(ctx, false, "reason", "priceImpactIsGreaterThanEpsilon")
 
 		// it's meaningless to keep a route which cannot be used
 		// when we round a get-route input to multiple points, we need to delete multiple cached points if they are useless as well
@@ -223,7 +217,7 @@ func (c *cache) getRouteFromCache(ctx context.Context,
 			"client_id":  clientid.GetClientIDFromCtx(ctx),
 		}).
 		Debug("cache hit")
-	metrics.IncrFindRouteCacheCount(ctx, true, nil)
+	metrics.CountFindRouteCache(ctx, true)
 
 	return routeSummary, nil
 }

@@ -6,221 +6,121 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/KyberNetwork/kutils"
+	"github.com/KyberNetwork/kutils/klog"
+	kybermetric "github.com/KyberNetwork/kyber-trace-go/pkg/metric"
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"golang.org/x/exp/maps"
-
-	kybermetric "github.com/KyberNetwork/kyber-trace-go/pkg/metric"
-
-	"github.com/KyberNetwork/router-service/pkg/logger"
-)
-
-const (
-	DexHitRateMetricsName              = "dex_hit_rate_count"
-	PoolTypeHitRateMetricsName         = "pool_hit_rate_count"
-	FindRouteCacheCountMetricsName     = "find_route_cache_count"
-	RequestCountMetricsName            = "request_count"
-	InvalidSynthetixVolumeMetricsName  = "invalid_synthetix_volume_count"
-	EstimateGasStatusMetricsName       = "estimate_gas_count"
-	EstimateGasWithSlippageMetricsName = "estimate_gas_slippage"
-	IndexPoolsMetricsCounterName       = "index_pools_count"
-	ClonePoolPanicMetricsName          = "clone_pool_panic_count"
-	IndexPoolsDelayMetricsName         = "index_job_pools_delay"
-
-	CalcAmountOutCountPerRequest = "calc_amount_out_count_per_request"
 )
 
 var (
-	dexHitRateCounter             metric.Float64Counter
-	poolTypeHitRateCounter        metric.Float64Counter
-	findRouteCacheCounter         metric.Float64Counter
-	requestCountCounter           metric.Float64Counter
-	invalidSynthetixVolumeCounter metric.Float64Counter
-	estimateGasStatusCounter      metric.Float64Counter
-	mapMetricNameToCounter        map[string]metric.Float64Counter
-	indexPoolsDelayCounter        metric.Float64Counter
-	clonePoolPanicCounter         metric.Float64Counter
+	meter = kybermetric.Meter()
 
-	// histogram metrics
-	indexPoolsDelayHistogram     metric.Int64Histogram
-	estimateGasSlippageHistogram metric.Float64Histogram
+	counterDexHitRate, _             = meter.Int64Counter("dex_hit_rate_count")
+	counterPoolTypeHitRate, _        = meter.Int64Counter("pool_hit_rate_count")
+	counterFindRouteCache, _         = meter.Int64Counter("find_route_cache_count")
+	counterRequestCount, _           = meter.Int64Counter("request_count")
+	counterInvalidSynthetixVolume, _ = meter.Int64Counter("invalid_synthetix_volume_count")
+	counterEstimateGasStatus, _      = meter.Int64Counter("estimate_gas_count")
+	counterIndexPoolsDelay, _        = meter.Int64Counter("index_pools_count")
+	counterClonePoolPanic, _         = meter.Int64Counter("clone_pool_panic_count")
 
-	calcAmountOutCountPerRequestHistogram metric.Int64Histogram
-
-	mapMetricNameToHistogram        map[string]metric.Int64Histogram
-	mapMetricNameToFloat64Histogram map[string]metric.Float64Histogram
+	histogramEstimateGasSlippage, _ = meter.Float64Histogram("estimate_gas_slippage")
+	histogramIndexPoolsDelay, _     = meter.Int64Histogram("index_job_pools_delay",
+		metric.WithExplicitBucketBoundaries(0, 50, 300, 1200, 2500, 5000, 10e3, 30e3, 90e3, 300e3, 1200e3, 3600e3))
+	histogramCalcAmountOutCountPerRequest, _ = meter.Int64Histogram("calc_amount_out_count_per_request",
+		metric.WithExplicitBucketBoundaries(1, 10, 100, 1000, math.Inf(1)))
+	histogramCalcAmountOutCountDuration, _ = meter.Float64Histogram("calc_amount_out_ms")
+	histogramClonePoolDuration, _          = meter.Float64Histogram("clone_pool_ms")
 )
 
-func init() {
-	dexHitRateCounter, _ = kybermetric.Meter().Float64Counter(DexHitRateMetricsName)
-	poolTypeHitRateCounter, _ = kybermetric.Meter().Float64Counter(PoolTypeHitRateMetricsName)
-	findRouteCacheCounter, _ = kybermetric.Meter().Float64Counter(FindRouteCacheCountMetricsName)
-	requestCountCounter, _ = kybermetric.Meter().Float64Counter(RequestCountMetricsName)
-	invalidSynthetixVolumeCounter, _ = kybermetric.Meter().Float64Counter(InvalidSynthetixVolumeMetricsName)
-	estimateGasStatusCounter, _ = kybermetric.Meter().Float64Counter(EstimateGasStatusMetricsName)
-	estimateGasSlippageHistogram, _ = kybermetric.Meter().Float64Histogram(EstimateGasWithSlippageMetricsName)
-	indexPoolsDelayHistogram, _ = kybermetric.Meter().Int64Histogram(IndexPoolsDelayMetricsName,
-		metric.WithExplicitBucketBoundaries(0, 50, 300, 1200, 2500, 5000, 10e3, 30e3, 90e3, 300e3, 1200e3, 3600e3))
-	indexPoolsDelayCounter, _ = kybermetric.Meter().Float64Counter(IndexPoolsMetricsCounterName)
-	clonePoolPanicCounter, _ = kybermetric.Meter().Float64Counter(ClonePoolPanicMetricsName)
-	calcAmountOutCountPerRequestHistogram, _ = kybermetric.Meter().Int64Histogram(CalcAmountOutCountPerRequest)
-	metric.WithExplicitBucketBoundaries(1, 10, 100, 1000, math.Inf(1))
-
-	mapMetricNameToCounter = map[string]metric.Float64Counter{
-		DexHitRateMetricsName:             dexHitRateCounter,
-		PoolTypeHitRateMetricsName:        poolTypeHitRateCounter,
-		FindRouteCacheCountMetricsName:    findRouteCacheCounter,
-		RequestCountMetricsName:           requestCountCounter,
-		InvalidSynthetixVolumeMetricsName: invalidSynthetixVolumeCounter,
-		EstimateGasStatusMetricsName:      estimateGasStatusCounter,
-		IndexPoolsMetricsCounterName:      indexPoolsDelayCounter,
-		ClonePoolPanicMetricsName:         clonePoolPanicCounter,
-	}
-	mapMetricNameToHistogram = map[string]metric.Int64Histogram{
-		IndexPoolsDelayMetricsName: indexPoolsDelayHistogram,
-	}
-	mapMetricNameToFloat64Histogram = map[string]metric.Float64Histogram{
-		EstimateGasWithSlippageMetricsName: estimateGasSlippageHistogram,
-	}
-
+func CountDexHit(ctx context.Context, dex string) {
+	add(ctx, counterDexHitRate, 1, "dex", dex)
 }
 
-func IncrDexHitRate(ctx context.Context, dex string) {
-	tags := map[string]string{
-		"dex": dex,
-	}
-
-	incr(ctx, DexHitRateMetricsName, tags, 0.1)
+func CountPoolTypeHit(ctx context.Context, poolType string) {
+	add(ctx, counterPoolTypeHitRate, 1, "pool_type", poolType)
 }
 
-func IncrPoolTypeHitRate(ctx context.Context, poolType string) {
-	tags := map[string]string{
-		"pool_type": poolType,
-	}
-
-	incr(ctx, PoolTypeHitRateMetricsName, tags, 0.1)
+func CountIndexPools(ctx context.Context, jobName string, isSuccess bool, counter int) {
+	add(ctx, counterIndexPoolsDelay, int64(counter),
+		"job_name", jobName, "state", lo.Ternary(isSuccess, "success", "failed"))
 }
 
-func IncrIndexPoolsCounter(ctx context.Context, jobName string, isSuccess bool, counter int) {
-	state := "failed"
-	if isSuccess {
-		state = "success"
-	}
-	incr(ctx, IndexPoolsMetricsCounterName, map[string]string{
-		"job_name": jobName,
-		"state":    state,
-	}, float64(counter))
+func CountClonePoolPanic(ctx context.Context) {
+	add(ctx, counterClonePoolPanic, 1)
 }
 
-func IncrClonePoolPanicCounter(ctx context.Context) {
-	incr(ctx, ClonePoolPanicMetricsName, nil, 1)
+func CountFindRouteCache(ctx context.Context, cacheHit bool, kvTags ...string) {
+	add(ctx, counterFindRouteCache, 1, append(kvTags, "hit", strconv.FormatBool(cacheHit))...)
 }
 
-func IncrFindRouteCacheCount(ctx context.Context, cacheHit bool, otherTags map[string]string) {
-	tags := map[string]string{
-		"hit": strconv.FormatBool(cacheHit),
-	}
-
-	maps.Copy(tags, otherTags)
-
-	incr(ctx, FindRouteCacheCountMetricsName, tags, 1)
+func CountRequest(ctx context.Context, clientID string, responseStatus int) {
+	add(ctx, counterRequestCount, 1, "client_id", clientID, "http_status", kutils.Itoa(responseStatus))
 }
 
-func IncrRequestCount(ctx context.Context, clientID string, responseStatus int) {
-	tags := map[string]string{
-		"client_id":   clientID,
-		"http_status": strconv.FormatInt(int64(responseStatus), 10),
-	}
-
-	incr(ctx, RequestCountMetricsName, tags, 1)
+func CountInvalidSynthetixVolume(ctx context.Context) {
+	add(ctx, counterInvalidSynthetixVolume, 1)
 }
 
-func IncrInvalidSynthetixVolume(ctx context.Context) {
-	incr(ctx, InvalidSynthetixVolumeMetricsName, nil, 1)
+func CountEstimateGas(ctx context.Context, isSuccess bool, dexID string, clientId string) {
+	add(ctx, counterEstimateGasStatus, 1,
+		"dex_id", dexID, "state", lo.Ternary(isSuccess, "success", "failed"), "client_id", clientId)
 }
 
-func IncrEstimateGas(ctx context.Context, isSuccess bool, dexID string, clientId string) {
-	state := "success"
-	if !isSuccess {
-		state = "failed"
-	}
-	tags := map[string]string{
-		"dex_id":    dexID,
-		"state":     state,
-		"client_id": clientId,
-	}
-
-	incr(ctx, EstimateGasStatusMetricsName, tags, 1)
+func RecordEstimateGasWithSlippage(ctx context.Context, slippage float64, isSuccess bool) {
+	record(ctx, histogramEstimateGasSlippage, slippage, "state", lo.Ternary(isSuccess, "success", "failed"))
 }
 
-func HistogramEstimateGasWithSlippage(ctx context.Context, slippage float64, isSuccess bool) {
-	state := "success"
-	if !isSuccess {
-		state = "failed"
-	}
-	tags := map[string]string{
-		"state": state,
-	}
-	histogram(ctx, EstimateGasWithSlippageMetricsName, slippage, tags)
+func RecordIndexPoolsDelay(ctx context.Context, jobName string, delay time.Duration, isSuccess bool) {
+	record(ctx, histogramIndexPoolsDelay, delay.Milliseconds(),
+		"job_name", jobName, "state", lo.Ternary(isSuccess, "success", "failed"))
 }
 
-func HistogramIndexPoolsDelay(ctx context.Context, jobName string, delay time.Duration, isSuccess bool) {
-	state := "failed"
-	if isSuccess {
-		state = "success"
-	}
-	delayMs := delay.Milliseconds()
-	histogram(ctx, IndexPoolsDelayMetricsName, delayMs, map[string]string{
-		"job_name": jobName,
-		"state":    state,
-	})
+func RecordCalcAmountOutCountPerRequest(ctx context.Context, count int64, dexType string) {
+	record(ctx, histogramCalcAmountOutCountPerRequest, count, "dexType", dexType)
 }
 
-func HistogramCalcAmountOutCountPerRequest(ctx context.Context, count int64, dexType string) {
-	calcAmountOutCountPerRequestHistogram.Record(ctx, count, metric.WithAttributes(attribute.String("dexType", dexType)))
+func RecordCalcAmountOutDuration(ctx context.Context, duration time.Duration, dexUseAEVM bool, dex string) {
+	record(ctx, histogramCalcAmountOutCountDuration, float64(duration.Nanoseconds())/1e6,
+		"dexUseAEVM", strconv.FormatBool(dexUseAEVM), "dex", dex)
+}
+
+func RecordClonePoolDuration(ctx context.Context, duration time.Duration, dex string) {
+	record(ctx, histogramClonePoolDuration, float64(duration.Nanoseconds())/1e6, "dex", dex)
 }
 
 func Flush() {
-	// Flush VanPT
 	if err := kybermetric.Flush(context.Background()); err != nil {
-		logger.WithFieldsNonContext(logger.Fields{
+		klog.WithFields(context.Background(), klog.Fields{
 			"error": err,
 		}).Warn("failed to flush VanPT metrics")
 	}
 }
 
-func incr(ctx context.Context, name string, tags map[string]string, rate float64) {
-	// Incr VanPT
-	if counter, exist := mapMetricNameToCounter[name]; counter != nil && exist {
-		attributes := make([]attribute.KeyValue, 0, len(tags))
-		for key, value := range tags {
-			attributes = append(attributes, attribute.String(key, value))
-		}
-		counter.Add(context.Background(), rate, metric.WithAttributes(attributes...))
-	} else {
-		logger.Warnf(ctx, "counter for %s metrics not found", name)
+func add[T int64 | float64](ctx context.Context, counter interface {
+	Add(ctx context.Context, incr T, options ...metric.AddOption)
+}, rate T, tagKvs ...string) {
+	if counter == nil {
+		return
 	}
+	attributes := make([]attribute.KeyValue, len(tagKvs)/2)
+	for i := range attributes {
+		attributes[i] = attribute.String(tagKvs[i*2], tagKvs[i*2+1])
+	}
+	counter.Add(ctx, rate, metric.WithAttributeSet(attribute.NewSet(attributes...)))
 }
 
-func histogram[T int64 | float64](ctx context.Context, name string, value T, tags map[string]string) {
-	attributes := make([]attribute.KeyValue, 0, len(tags))
-	for key, value := range tags {
-		attributes = append(attributes, attribute.String(key, value))
+func record[T int64 | float64](ctx context.Context, histogram interface {
+	Record(ctx context.Context, incr T, options ...metric.RecordOption)
+}, incr T, tagKvs ...string) {
+	if histogram == nil {
+		return
 	}
-
-	switch val := any(value).(type) {
-	case int64:
-		if histogramMetric, exist := mapMetricNameToHistogram[name]; histogramMetric != nil && exist {
-			histogramMetric.Record(context.Background(), val, metric.WithAttributes(attributes...))
-		} else {
-			logger.Warnf(ctx, "int64histogram for %s metrics not found", name)
-		}
-	case float64:
-		if histogramMetric, exist := mapMetricNameToFloat64Histogram[name]; histogramMetric != nil && exist {
-			histogramMetric.Record(context.Background(), val, metric.WithAttributes(attributes...))
-		} else {
-			logger.Warnf(ctx, "float64histogram for %s metrics not found", name)
-		}
+	attributes := make([]attribute.KeyValue, len(tagKvs)/2)
+	for i := range attributes {
+		attributes[i] = attribute.String(tagKvs[i*2], tagKvs[i*2+1])
 	}
-
+	histogram.Record(ctx, incr, metric.WithAttributes(attributes...))
 }

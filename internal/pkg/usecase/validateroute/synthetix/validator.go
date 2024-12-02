@@ -33,7 +33,7 @@ func (v *SynthetixValidator) Validate(ctx context.Context, poolByAddress map[str
 
 	if errors.Is(err, synthetix.ErrSurpassedVolumeLimit) {
 		logger.Debug("invalid Synthetix volume for route")
-		metrics.IncrInvalidSynthetixVolume(ctx)
+		metrics.CountInvalidSynthetixVolume(ctx)
 	}
 
 	return nil

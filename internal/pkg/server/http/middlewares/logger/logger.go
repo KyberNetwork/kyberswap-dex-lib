@@ -78,7 +78,7 @@ func New(skipPathSet map[string]struct{}, logCfg klog.Configuration, logBackend 
 				"response.duration_ms": time.Since(startTime).Milliseconds(),
 			}).
 			Info("inbound response")
-		metrics.IncrRequestCount(c, clientID, blw.Status())
+		metrics.CountRequest(c, clientID, blw.Status())
 	}
 }
 
