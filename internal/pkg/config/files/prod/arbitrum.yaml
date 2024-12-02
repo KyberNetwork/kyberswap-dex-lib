@@ -246,6 +246,7 @@ useCase:
     gasTokenAddress: *gasTokenAddress
     routerAddress: *routerAddress
     availableSources: *availableSources
+    defaultPoolsIndex: nativeTvl
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions: *getBestPoolsOptions

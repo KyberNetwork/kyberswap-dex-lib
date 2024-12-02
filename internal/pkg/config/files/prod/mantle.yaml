@@ -131,6 +131,7 @@ useCase:
     gasTokenAddress: *gasTokenAddress
     routerAddress: *routerAddress
     availableSources: *availableSources
+    defaultPoolsIndex: nativeTvl
     aggregator:
       whitelistedTokenSet: *whitelistedTokenSet
       getBestPoolsOptions: *getBestPoolsOptions
@@ -377,7 +378,6 @@ repository:
         cost: 1
         ttl: 5s
   onchainprice:
-    enabled: false
     grpc:
       base_url: onchain-price.core-cluster.gke.production.internal:80
       timeout: 300ms
