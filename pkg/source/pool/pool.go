@@ -121,7 +121,7 @@ type PoolInfo struct {
 
 func (t *PoolInfo) GetTokenIndex(address string) int {
 	for i, poolToken := range t.Tokens {
-		if poolToken == address {
+		if strings.EqualFold(poolToken, address) {
 			return i
 		}
 	}
