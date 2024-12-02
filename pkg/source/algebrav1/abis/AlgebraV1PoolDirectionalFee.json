@@ -29,8 +29,8 @@
   {
     "anonymous": false,
     "inputs": [
-      { "indexed": false, "internalType": "uint8", "name": "communityFee0New", "type": "uint8" },
-      { "indexed": false, "internalType": "uint8", "name": "communityFee1New", "type": "uint8" }
+      { "indexed": false, "internalType": "uint16", "name": "communityFee0New", "type": "uint16" },
+      { "indexed": false, "internalType": "uint16", "name": "communityFee1New", "type": "uint16" }
     ],
     "name": "CommunityFee",
     "type": "event"
@@ -177,8 +177,8 @@
       { "internalType": "uint16", "name": "feeZto", "type": "uint16" },
       { "internalType": "uint16", "name": "feeOtz", "type": "uint16" },
       { "internalType": "uint16", "name": "timepointIndex", "type": "uint16" },
-      { "internalType": "uint8", "name": "communityFeeToken0", "type": "uint8" },
-      { "internalType": "uint8", "name": "communityFeeToken1", "type": "uint8" },
+      { "internalType": "uint16", "name": "communityFeeToken0", "type": "uint16" },
+      { "internalType": "uint16", "name": "communityFeeToken1", "type": "uint16" },
       { "internalType": "bool", "name": "unlocked", "type": "bool" }
     ],
     "stateMutability": "view",
@@ -222,8 +222,8 @@
   },
   {
     "inputs": [
-      { "internalType": "uint8", "name": "communityFee0", "type": "uint8" },
-      { "internalType": "uint8", "name": "communityFee1", "type": "uint8" }
+      { "internalType": "uint16", "name": "communityFee0", "type": "uint16" },
+      { "internalType": "uint16", "name": "communityFee1", "type": "uint16" }
     ],
     "name": "setCommunityFee",
     "outputs": [],
