@@ -11,6 +11,7 @@ import (
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/iter"
+	"golang.org/x/exp/maps"
 
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/poolrank"
@@ -256,21 +257,20 @@ type priceAndError struct {
 }
 
 func (u *IndexPoolsUseCase) getPricesForAllTokens(ctx context.Context, pools []*entity.Pool) (map[string]*routerEntity.OnchainPrice, error) {
-
 	// collect all tokens
-	tokens := make([]string, 0, len(pools)*3)
+	tokens := make(map[string]struct{}, len(pools)*3)
 	for _, p := range pools {
 		if !p.HasReserves() {
 			continue
 		}
 		for _, t := range p.Tokens {
-			tokens = append(tokens, t.Address)
+			tokens[t.Address] = struct{}{}
 		}
 	}
 
 	// then get price for each chunks in parallel
 	prices := make(map[string]*routerEntity.OnchainPrice, len(tokens))
-	chunks := lo.Chunk(tokens, 100)
+	chunks := lo.Chunk(maps.Keys(tokens), 100)
 
 	mapper := iter.Mapper[[]string, priceAndError]{MaxGoroutines: u.config.MaxGoroutines}
 	chunkResults := mapper.Map(chunks, func(chunk *[]string) priceAndError {

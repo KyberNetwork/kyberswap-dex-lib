@@ -86,6 +86,7 @@ func (r *ristrettoRepository) FindByAddresses(ctx context.Context, addresses []s
 
 	uncachedPrices, err := r.grpcRepository.FindByAddresses(ctx, uncachedAddresses)
 	if err != nil {
+		logger.Errorf(ctx, "[onchainprice] ristrettoRepository.FindByAddresses GetUncachedPrices err: %v", err)
 		// just return what we have instead of discarding everything
 		return prices, nil
 	}
