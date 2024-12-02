@@ -2,7 +2,6 @@ package integral
 
 import (
 	"context"
-	"log"
 	"math/big"
 	"time"
 
@@ -129,7 +128,7 @@ func (d *PoolTracker) GetNewPoolState(
 		ticks = append(ticks, tick)
 	}
 
-	extraBytes, err := json.Marshal(Extra{
+	extraBytes, err := json.Marshal(&Extra{
 		Liquidity:        rpcData.Liquidity,
 		GlobalState:      rpcData.State,
 		Ticks:            ticks,
@@ -159,20 +158,6 @@ func (d *PoolTracker) GetNewPoolState(
 
 	return p, nil
 }
-
-// func min(a, b int32) int32 {
-// 	if a < b {
-// 		return a
-// 	}
-// 	return b
-// }
-
-// func max(a, b int32) int32 {
-// 	if a > b {
-// 		return a
-// 	}
-// 	return b
-// }
 
 func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, blockNumber uint64) ([]byte, error) {
 	rpcData, err := d.fetchRPCData(ctx, p, blockNumber)
@@ -270,7 +255,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 	res.SlidingFee = slidingFeeData
 	res.DynamicFee = dynamicFeeData
 
-	return res, err
+	return res, nil
 }
 
 func (d *PoolTracker) getPluginData(ctx context.Context, poolAddress string) (VotatilityOraclePlugin, DynamicFeePlugin, SlidingFeePlugin, error) {
@@ -330,96 +315,77 @@ func (d *PoolTracker) getPluginData(ctx context.Context, poolAddress string) (Vo
 
 func (d *PoolTracker) getVotalityOracleData(ctx context.Context, pluginAddress string,
 	blocknumber *big.Int) (VotatilityOraclePlugin, error) {
+	var result VotatilityOraclePlugin
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blocknumber)
-
-	var (
-		isInitialized          bool
-		lastTimepointTimestamp uint32
-		timepointIndex         uint16
-	)
-
 	req.AddCall(&ethrpc.Call{
 		ABI:    algebraBasePluginV1ABI,
 		Target: pluginAddress,
 		Method: votalityOraclePluginIsInitializedMethod,
 		Params: nil,
-	}, []interface{}{&isInitialized})
+	}, []interface{}{&result.IsInitialized})
 	req.AddCall(&ethrpc.Call{
 		ABI:    algebraBasePluginV1ABI,
 		Target: pluginAddress,
 		Method: votalityOraclePluginLastTimepointTimestampMethod,
 		Params: nil,
-	}, []interface{}{&lastTimepointTimestamp})
+	}, []interface{}{&result.LastTimepointTimestamp})
 	req.AddCall(&ethrpc.Call{
 		ABI:    algebraBasePluginV1ABI,
 		Target: pluginAddress,
 		Method: votalityOraclePluginTimepointIndexMethod,
 		Params: nil,
-	}, []interface{}{&timepointIndex})
+	}, []interface{}{&result.TimepointIndex})
 
 	_, err := req.Aggregate()
 	if err != nil {
 		return VotatilityOraclePlugin{}, err
 	}
 
-	timepoints, err := d.fetchTimepoints(ctx, blocknumber, pluginAddress)
-	if err != nil {
-		return VotatilityOraclePlugin{}, err
-	}
+	// result.timepoints, err = d.fetchTimepoints(ctx, blocknumber, pluginAddress)
+	// if err != nil {
+	// 	return VotatilityOraclePlugin{}, err
+	// }
 
-	return VotatilityOraclePlugin{
-		timepoints:             timepoints,
-		isInitialized:          isInitialized,
-		timepointIndex:         timepointIndex,
-		lastTimepointTimestamp: lastTimepointTimestamp,
-	}, nil
+	return result, nil
 }
 
 func (d *PoolTracker) getSlidingFeeData(ctx context.Context, pluginAddress string, blocknumber *big.Int) (SlidingFeePlugin, error) {
-	var feeFactors FeeFactors
+	var result SlidingFeePlugin
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blocknumber)
-
 	req.AddCall(&ethrpc.Call{
 		ABI:    algebraBasePluginV1ABI,
 		Target: pluginAddress,
 		Method: slidingFeePluginFeeFactorsMethod,
 		Params: nil,
-	}, []interface{}{&feeFactors})
+	}, []interface{}{&result.FeeFactors})
 
 	_, err := req.Call()
 	if err != nil {
-		log.Fatalln(err.Error())
 		return SlidingFeePlugin{}, err
 	}
 
-	return SlidingFeePlugin{
-		feeFactors: feeFactors,
-	}, nil
+	return result, nil
 }
 
 func (d *PoolTracker) getDynamicFeeData(ctx context.Context, pluginAddress string, blocknumber *big.Int) (DynamicFeePlugin, error) {
-	var feeConfig FeeConfiguration
+	var result DynamicFeePlugin
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blocknumber)
-
 	req.AddCall(&ethrpc.Call{
 		ABI:    algebraBasePluginV1ABI,
 		Target: pluginAddress,
 		Method: dynamicFeeManagerPluginFeeConfigMethod,
 		Params: nil,
-	}, []interface{}{&feeConfig})
+	}, []interface{}{&result.FeeConfig})
 
 	_, err := req.Call()
 	if err != nil {
-		log.Fatalln(err.Error())
 		return DynamicFeePlugin{}, err
 	}
 
-	return DynamicFeePlugin{
-		feeConfig: feeConfig,
-	}, nil
+	return result, nil
 }
 
 func (d *PoolTracker) fetchTimepoints(ctx context.Context, blocknumber *big.Int, pluginAddress string) (TimepointStorage, error) {

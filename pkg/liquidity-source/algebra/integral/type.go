@@ -137,8 +137,6 @@ type Extra struct {
 	Liquidity        *big.Int               `json:"liquidity"`
 	GlobalState      GlobalState            `json:"globalState"`
 	Ticks            []v3Entities.Tick      `json:"ticks"`
-	TickMin          int32                  `json:"tickMin"`
-	TickMax          int32                  `json:"tickMax"`
 	TickSpacing      int32                  `json:"tickSpacing"`
 	VotatilityOracle VotatilityOraclePlugin `json:"votalityOracle"`
 	SlidingFee       SlidingFeePlugin       `json:"slidingFee"`

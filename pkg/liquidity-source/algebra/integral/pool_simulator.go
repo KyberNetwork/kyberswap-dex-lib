@@ -22,10 +22,8 @@ import (
 type PoolSimulator struct {
 	pool.Pool
 
-	globalState    GlobalState
-	liquidity      *big.Int
-	nextTickGlobal int32
-	prevTickGlobal int32
+	globalState GlobalState
+	liquidity   *big.Int
 
 	ticks       *v3Entities.TickListDataProvider
 	gas         int64
@@ -41,18 +39,18 @@ type PoolSimulator struct {
 }
 
 type VotatilityOraclePlugin struct {
-	timepoints             TimepointStorage
-	timepointIndex         uint16
-	lastTimepointTimestamp uint32
-	isInitialized          bool
+	Timepoints             TimepointStorage
+	TimepointIndex         uint16
+	LastTimepointTimestamp uint32
+	IsInitialized          bool
 }
 
 type DynamicFeePlugin struct {
-	feeConfig FeeConfiguration
+	FeeConfig FeeConfiguration
 }
 
 type SlidingFeePlugin struct {
-	feeFactors FeeFactors
+	FeeFactors FeeFactors
 }
 
 func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator, error) {
@@ -87,6 +85,9 @@ func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator,
 		return nil, err
 	}
 
+	tickMin := extra.Ticks[0].Index
+	tickMax := extra.Ticks[len(extra.Ticks)-1].Index
+
 	var info = pool.PoolInfo{
 		Address:    strings.ToLower(entityPool.Address),
 		ReserveUsd: entityPool.ReserveUsd,
@@ -103,8 +104,8 @@ func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator,
 		liquidity:        extra.Liquidity,
 		ticks:            ticks,
 		gas:              defaultGas,
-		tickMin:          extra.TickMin,
-		tickMax:          extra.TickMax,
+		tickMin:          int32(tickMin),
+		tickMax:          int32(tickMax),
 		tickSpacing:      int(extra.TickSpacing),
 		volatilityOracle: &extra.VotatilityOracle,
 		dynamicFee:       &extra.DynamicFee,
@@ -158,10 +159,10 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) interface{} {
 }
 
 func (p *PoolSimulator) writeTimepoint() error {
-	lastIndex := p.volatilityOracle.timepointIndex
-	lastTimepointTimestamp := p.volatilityOracle.lastTimepointTimestamp
+	lastIndex := p.volatilityOracle.TimepointIndex
+	lastTimepointTimestamp := p.volatilityOracle.LastTimepointTimestamp
 
-	if !p.volatilityOracle.isInitialized {
+	if !p.volatilityOracle.IsInitialized {
 		return ErrNotInitialized
 	}
 
@@ -171,13 +172,13 @@ func (p *PoolSimulator) writeTimepoint() error {
 	}
 
 	tick := p.globalState.Tick
-	newLastIndex, _, err := p.volatilityOracle.timepoints.write(lastIndex, uint32(currentTimestamp), tick)
+	newLastIndex, _, err := p.volatilityOracle.Timepoints.write(lastIndex, uint32(currentTimestamp), tick)
 	if err != nil {
 		return err
 	}
 
-	p.volatilityOracle.timepointIndex = newLastIndex
-	p.volatilityOracle.lastTimepointTimestamp = uint32(currentTimestamp)
+	p.volatilityOracle.TimepointIndex = newLastIndex
+	p.volatilityOracle.LastTimepointTimestamp = uint32(currentTimestamp)
 
 	return nil
 }
@@ -194,10 +195,10 @@ func (p *PoolSimulator) beforeSwapV1() (uint32, uint32, error) {
 		}
 
 		var newFee uint16
-		if p.dynamicFee.feeConfig.Alpha1|p.dynamicFee.feeConfig.Alpha2 == 0 {
-			newFee = p.dynamicFee.feeConfig.BaseFee
+		if p.dynamicFee.FeeConfig.Alpha1|p.dynamicFee.FeeConfig.Alpha2 == 0 {
+			newFee = p.dynamicFee.FeeConfig.BaseFee
 		} else {
-			newFee = getFee(votatilityAverage, p.dynamicFee.feeConfig)
+			newFee = getFee(votatilityAverage, p.dynamicFee.FeeConfig)
 		}
 
 		if newFee != p.globalState.LastFee {
@@ -233,9 +234,9 @@ func (p *PoolSimulator) getFeeAndUpdateFactors(zeroToOne bool, currentTick, last
 			return 0, err
 		}
 
-		p.slidingFee.feeFactors = currentFeeFactors
+		p.slidingFee.FeeFactors = currentFeeFactors
 	} else {
-		currentFeeFactors = p.slidingFee.feeFactors
+		currentFeeFactors = p.slidingFee.FeeFactors
 	}
 
 	var adjustedFee *big.Int
@@ -263,8 +264,8 @@ func (p *PoolSimulator) getFeeAndUpdateFactors(zeroToOne bool, currentTick, last
 }
 
 func (p *PoolSimulator) getLastTick() int32 {
-	lastTimepointIndex := p.volatilityOracle.timepointIndex
-	lastTimepoint := p.volatilityOracle.timepoints.Get(lastTimepointIndex)
+	lastTimepointIndex := p.volatilityOracle.TimepointIndex
+	lastTimepoint := p.volatilityOracle.Timepoints.Get(lastTimepointIndex)
 
 	return lastTimepoint.Tick
 }
@@ -273,10 +274,10 @@ func (p *PoolSimulator) getAverageVotatilityLast() (*big.Int, error) {
 	currentTimestamp := uint32(time.Now().Unix())
 
 	tick := p.globalState.Tick
-	lastTimepointIndex := p.volatilityOracle.timepointIndex
-	oldestIndex := p.volatilityOracle.timepoints.getOldestIndex(lastTimepointIndex)
+	lastTimepointIndex := p.volatilityOracle.TimepointIndex
+	oldestIndex := p.volatilityOracle.Timepoints.getOldestIndex(lastTimepointIndex)
 
-	votatilityAverage, err := p.volatilityOracle.timepoints.getAverageVolatility(currentTimestamp, tick, lastTimepointIndex, oldestIndex)
+	votatilityAverage, err := p.volatilityOracle.Timepoints.getAverageVolatility(currentTimestamp, tick, lastTimepointIndex, oldestIndex)
 	if err != nil {
 		return nil, err
 	}
