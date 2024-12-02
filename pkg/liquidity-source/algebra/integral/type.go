@@ -193,12 +193,6 @@ type PriceMovementCache struct {
 	initialized bool  // True if the _nextTick is initialized
 }
 
-type SwapEventParams struct {
-	currentPrice     *big.Int
-	currentTick      int32
-	currentLiquidity *big.Int
-}
-
 type FeeFactors struct {
 	zeroToOneFeeFactor *big.Int
 	oneToZeroFeeFactor *big.Int

@@ -298,7 +298,7 @@ func (d *PoolTracker) getPluginData(ctx context.Context, poolAddress string) (Vo
 		return VotatilityOraclePlugin{}, DynamicFeePlugin{}, SlidingFeePlugin{}, err
 	}
 
-	volatilityOracleData, err := d.getVotalityOracleData(ctx, poolAddress, plugin.Hex(), req.BlockNumber)
+	volatilityOracleData, err := d.getVotalityOracleData(ctx, plugin.Hex(), req.BlockNumber)
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -328,8 +328,9 @@ func (d *PoolTracker) getPluginData(ctx context.Context, poolAddress string) (Vo
 	return volatilityOracleData, dynamicFeeData, slidingFeeData, nil
 }
 
-func (d *PoolTracker) getVotalityOracleData(ctx context.Context, poolAddress, pluginAddress string,
+func (d *PoolTracker) getVotalityOracleData(ctx context.Context, pluginAddress string,
 	blocknumber *big.Int) (VotatilityOraclePlugin, error) {
+
 	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blocknumber)
 
 	var (
@@ -359,11 +360,10 @@ func (d *PoolTracker) getVotalityOracleData(ctx context.Context, poolAddress, pl
 
 	_, err := req.Aggregate()
 	if err != nil {
-		log.Fatalln(err.Error())
 		return VotatilityOraclePlugin{}, err
 	}
 
-	timepoints, err := d.fetchTimepoints(ctx, blocknumber, poolAddress, pluginAddress)
+	timepoints, err := d.fetchTimepoints(ctx, blocknumber, pluginAddress)
 	if err != nil {
 		return VotatilityOraclePlugin{}, err
 	}
@@ -379,20 +379,20 @@ func (d *PoolTracker) getVotalityOracleData(ctx context.Context, poolAddress, pl
 func (d *PoolTracker) getSlidingFeeData(ctx context.Context, pluginAddress string, blocknumber *big.Int) (SlidingFeePlugin, error) {
 	var feeFactors FeeFactors
 
-	// req := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blocknumber)
+	req := d.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(blocknumber)
 
-	// req.AddCall(&ethrpc.Call{
-	// 	ABI:    algebraBasePluginV1ABI,
-	// 	Target: pluginAddress,
-	// 	Method: slidingFeePluginFeeFactorsMethod,
-	// 	Params: nil,
-	// }, []interface{}{&feeFactors})
+	req.AddCall(&ethrpc.Call{
+		ABI:    algebraBasePluginV1ABI,
+		Target: pluginAddress,
+		Method: slidingFeePluginFeeFactorsMethod,
+		Params: nil,
+	}, []interface{}{&feeFactors})
 
-	// _, err := req.Call()
-	// if err != nil {
-	// 	log.Fatalln(err.Error())
-	// 	return SlidingFeePlugin{}, err
-	// }
+	_, err := req.Call()
+	if err != nil {
+		log.Fatalln(err.Error())
+		return SlidingFeePlugin{}, err
+	}
 
 	return SlidingFeePlugin{
 		feeFactors: feeFactors,
@@ -422,19 +422,11 @@ func (d *PoolTracker) getDynamicFeeData(ctx context.Context, pluginAddress strin
 	}, nil
 }
 
-func (d *PoolTracker) fetchTimepoints(ctx context.Context, blocknumber *big.Int, poolAddress, pluginAddress string) (TimepointStorage, error) {
-	l := logger.WithFields(logger.Fields{
-		"poolAddress": poolAddress,
-		"dexID":       d.config.DexID,
-	})
-
+func (d *PoolTracker) fetchTimepoints(ctx context.Context, blocknumber *big.Int, pluginAddress string) (TimepointStorage, error) {
 	blockTimestamp := uint32(time.Now().Unix())
 	yesterday := blockTimestamp - WINDOW
 	timepoints, err := d.getPoolTimepoints(ctx, blocknumber, pluginAddress, 0, yesterday)
 	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to fetch pool timepoints")
 		return TimepointStorage{}, err
 	}
 
@@ -505,7 +497,7 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blocknumber *big.In
 					ABI:    algebraBasePluginV1ABI,
 					Target: pluginAddress,
 					Method: votalityOraclePluginTimepointsMethod,
-					Params: []interface{}{big.NewInt(0)},
+					Params: []interface{}{bignumber.ZeroBI},
 				},
 				[]interface{}{&tp0},
 			).AddCall(

@@ -77,7 +77,6 @@ var (
 	DOUBLE_FEE_MULTIPLIER = new(big.Int).Lsh(bignumber.One, 2*FEE_FACTOR_SHIFT)
 
 	// Predefined e values multiplied by 10^20 as constants
-
 	CLOSEST_VALUE_0, _       = new(big.Int).SetString("100000000000000000000", 10)   // 1
 	CLOSEST_VALUE_1, _       = new(big.Int).SetString("271828182845904523536", 10)   // ~= e
 	CLOSEST_VALUE_2, _       = new(big.Int).SetString("738905609893065022723", 10)   // ~= e^2

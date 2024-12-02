@@ -101,6 +101,8 @@ func getPoolTicksQuery(allowSubgraphError bool, poolAddress string, skip int) st
 			id
 			ticks(orderBy: tickIdx, orderDirection: asc, first: 1000, skip: {{.Skip}}) {
 				tickIdx
+				liquidityNet
+				liquidityGross
 			}
 		}
 		_meta { block { timestamp }}
