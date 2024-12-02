@@ -94,6 +94,13 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 	}
 
 	amountIn := swapResult.amountCalculated.ToBig()
+	var remainingTokenAmountOut *pool.TokenAmount
+	if swapResult.remainingAmountRequired != nil {
+		remainingTokenAmountOut = &pool.TokenAmount{
+			Token:  tokenAmountOut.Token,
+			Amount: swapResult.remainingAmountRequired.ToBig(),
+		}
+	}
 	return &pool.CalcAmountInResult{
 		TokenAmountIn: &pool.TokenAmount{
 			Token:  tokenIn,
@@ -102,7 +109,9 @@ func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcA
 		Fee: &pool.TokenAmount{
 			Token: tokenIn,
 		},
-		SwapInfo: swapResult.StateUpdate,
+		RemainingTokenAmountOut: remainingTokenAmountOut,
+		Gas:                     BaseGas + swapResult.crossInitTickLoops*CrossInitTickGas,
+		SwapInfo:                swapResult.StateUpdate,
 	}, nil
 }
 
@@ -132,10 +141,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	amountOut := swapResult.amountCalculated.Neg(swapResult.amountCalculated).ToBig()
 	var remainingTokenAmountIn *pool.TokenAmount
-	if swapResult.remainingAmountIn != nil {
+	if swapResult.remainingAmountRequired != nil {
 		remainingTokenAmountIn = &pool.TokenAmount{
 			Token:  tokenAmountIn.Token,
-			Amount: swapResult.remainingAmountIn.ToBig(),
+			Amount: swapResult.remainingAmountRequired.ToBig(),
 		}
 	}
 	return &pool.CalcAmountOutResult{

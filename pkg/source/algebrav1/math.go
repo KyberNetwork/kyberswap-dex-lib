@@ -26,9 +26,9 @@ type PriceMovementCache struct {
 
 type SwapResult struct {
 	*StateUpdate
-	amountCalculated   *v3Utils.Int256
-	remainingAmountIn  *v3Utils.Int256
-	crossInitTickLoops int64
+	amountCalculated        *v3Utils.Int256
+	remainingAmountRequired *v3Utils.Int256
+	crossInitTickLoops      int64
 }
 
 // https://github.com/cryptoalgebra/AlgebraV1/blob/dfebf532a27803dafcbf2ba49724740bd6220505/src/core/contracts/AlgebraPool.sol#L703
@@ -197,9 +197,9 @@ func (p *PoolSimulator) _calculateSwapAndLock(
 	nextState.Liquidity = currentLiquidity
 
 	return &SwapResult{
-		StateUpdate:        nextState,
-		amountCalculated:   &cache.amountCalculated,
-		remainingAmountIn:  &cache.amountRequired,
-		crossInitTickLoops: crossInitTickLoops,
+		StateUpdate:             nextState,
+		amountCalculated:        &cache.amountCalculated,
+		remainingAmountRequired: &cache.amountRequired,
+		crossInitTickLoops:      crossInitTickLoops,
 	}, nil
 }
