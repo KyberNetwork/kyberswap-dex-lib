@@ -141,6 +141,13 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			reserves = append(reserves, zeroString)
 		}
 
+		staticExtra, err := json.Marshal(&StaticExtra{
+			UseBasePluginV2: d.config.UseBasePluginV2,
+		})
+		if err != nil {
+			return nil, metadataBytes, err
+		}
+
 		var newPool = entity.Pool{
 			Address:      p.ID,
 			ReserveUsd:   0,
@@ -150,6 +157,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			Timestamp:    time.Now().Unix(),
 			Reserves:     reserves,
 			Tokens:       tokens,
+			StaticExtra:  string(staticExtra),
 		}
 
 		pools = append(pools, newPool)

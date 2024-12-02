@@ -136,7 +136,7 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	Liquidity        *uint256.Int           `json:"liquidity"`
+	Liquidity        *big.Int               `json:"liquidity"`
 	GlobalState      GlobalState            `json:"globalState"`
 	Ticks            []v3Entities.Tick      `json:"ticks"`
 	TickSpacing      int32                  `json:"tickSpacing"`
@@ -156,11 +156,8 @@ type PoolMeta struct {
 	PriceLimit  *uint256.Int `json:"priceLimit"`
 }
 
-func (tp *TimepointRPC) toTimepoint() (Timepoint, error) {
-	volatilityCumulative, ok := uint256.FromBig(tp.VolatilityCumulative)
-	if !ok {
-		return Timepoint{}, ErrOutOfRangeOrInvalid
-	}
+func (tp *TimepointRPC) toTimepoint() Timepoint {
+	volatilityCumulative := uint256.MustFromBig(tp.VolatilityCumulative)
 
 	return Timepoint{
 		Initialized:          tp.Initialized,
@@ -170,7 +167,7 @@ func (tp *TimepointRPC) toTimepoint() (Timepoint, error) {
 		Tick:                 int32(tp.Tick.Int64()),
 		AverageTick:          int32(tp.AverageTick.Int64()),
 		WindowStartIndex:     tp.WindowStartIndex,
-	}, nil
+	}
 }
 
 type FeesAmount struct {

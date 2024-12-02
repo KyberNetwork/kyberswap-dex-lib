@@ -3,6 +3,7 @@ package integral
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"strings"
 	"time"
@@ -62,6 +63,7 @@ func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator,
 
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &extra); err != nil {
+		log.Fatalln(err)
 		return nil, err
 	}
 
@@ -102,7 +104,7 @@ func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator,
 	return &PoolSimulator{
 		Pool:             pool.Pool{Info: info},
 		globalState:      extra.GlobalState,
-		liquidity:        extra.Liquidity,
+		liquidity:        uint256.MustFromBig(extra.Liquidity),
 		ticks:            ticks,
 		gas:              defaultGas,
 		tickMin:          int32(tickMin),

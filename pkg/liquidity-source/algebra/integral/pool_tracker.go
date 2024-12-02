@@ -129,16 +129,8 @@ func (d *PoolTracker) GetNewPoolState(
 		ticks = append(ticks, tick)
 	}
 
-	var (
-		liquidity *uint256.Int
-		ok        bool
-	)
-	if liquidity, ok = uint256.FromBig(rpcData.Liquidity); !ok {
-		return entity.Pool{}, ErrOutOfRangeOrInvalid
-	}
-
 	extraBytes, err := json.Marshal(&Extra{
-		Liquidity:        liquidity,
+		Liquidity:        rpcData.Liquidity,
 		GlobalState:      rpcData.State,
 		Ticks:            ticks,
 		TickSpacing:      int32(rpcData.TickSpacing.Int64()),
@@ -243,16 +235,8 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 		return res, err
 	}
 
-	var (
-		price *uint256.Int
-		ok    bool
-	)
-	if price, ok = uint256.FromBig(rpcState.Price); !ok {
-		return res, ErrOutOfRangeOrInvalid
-	}
-
 	res.State = GlobalState{
-		Price:        price,
+		Price:        uint256.MustFromBig(rpcState.Price),
 		Tick:         int32(rpcState.Tick.Uint64()),
 		LastFee:      rpcState.LastFee,
 		PluginConfig: rpcState.PluginConfig,
@@ -359,10 +343,10 @@ func (d *PoolTracker) getVotalityOracleData(ctx context.Context, pluginAddress s
 		return VotatilityOraclePlugin{}, err
 	}
 
-	// result.timepoints, err = d.fetchTimepoints(ctx, blocknumber, pluginAddress)
-	// if err != nil {
-	// 	return VotatilityOraclePlugin{}, err
-	// }
+	result.Timepoints, err = d.fetchTimepoints(ctx, blocknumber, pluginAddress, result.TimepointIndex)
+	if err != nil {
+		return VotatilityOraclePlugin{}, err
+	}
 
 	return result, nil
 }
@@ -405,10 +389,10 @@ func (d *PoolTracker) getDynamicFeeData(ctx context.Context, pluginAddress strin
 	return result, nil
 }
 
-func (d *PoolTracker) fetchTimepoints(ctx context.Context, blocknumber *big.Int, pluginAddress string) (TimepointStorage, error) {
+func (d *PoolTracker) fetchTimepoints(ctx context.Context, blocknumber *big.Int, pluginAddress string, currentIndex uint16) (TimepointStorage, error) {
 	blockTimestamp := uint32(time.Now().Unix())
 	yesterday := blockTimestamp - WINDOW
-	timepoints, err := d.getPoolTimepoints(ctx, blocknumber, pluginAddress, 0, yesterday)
+	timepoints, err := d.getPoolTimepoints(ctx, blocknumber, pluginAddress, currentIndex, yesterday)
 	if err != nil {
 		return TimepointStorage{}, err
 	}
@@ -465,7 +449,7 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blocknumber *big.In
 				enough = true
 				enoughAtIdx = tpIdx
 			} else {
-				timepoints[tpIdx], _ = tp.toTimepoint()
+				timepoints[tpIdx] = tp.toTimepoint()
 			}
 		}
 		logger.Debugf("done fetching timepoints page %v - %v %v %v", begin, end, enough, enoughAtIdx)
@@ -480,7 +464,7 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blocknumber *big.In
 					ABI:    algebraBasePluginV1ABI,
 					Target: pluginAddress,
 					Method: votalityOraclePluginTimepointsMethod,
-					Params: []interface{}{bignumber.ZeroBI},
+					Params: []interface{}{big.NewInt(0)},
 				},
 				[]interface{}{&tp0},
 			).AddCall(
@@ -517,16 +501,16 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blocknumber *big.In
 				[]interface{}{&tpCurPrev},
 			)
 
-			_, err := rpcRequest.Aggregate()
+			_, err = rpcRequest.Aggregate()
 			if err != nil {
 				return nil, err
 			}
 
-			timepoints[0], _ = tp0.toTimepoint()
-			timepoints[currentIndexNext], _ = tpCurNext.toTimepoint()
-			timepoints[currentIndexNextNext], _ = tpCurNextNext.toTimepoint()
-			timepoints[enoughAtIdx], _ = tpLowest.toTimepoint() // needed to ensure binary search will terminate
-			timepoints[currentIndexPrev], _ = tpCurPrev.toTimepoint()
+			timepoints[0] = tp0.toTimepoint()
+			timepoints[currentIndexNext] = tpCurNext.toTimepoint()
+			timepoints[currentIndexNextNext] = tpCurNextNext.toTimepoint()
+			timepoints[enoughAtIdx] = tpLowest.toTimepoint() // needed to ensure binary search will terminate
+			timepoints[currentIndexPrev] = tpCurPrev.toTimepoint()
 
 			break
 		}
@@ -542,13 +526,13 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blocknumber *big.In
 
 	// the currentIndex might has been increased onchain while we're fetching
 	// so detect staleness here
-	// currentTs := timepoints[currentIndex].BlockTimestamp
-	// if timepoints[currentIndexNext].Initialized && timepoints[currentIndexNext].BlockTimestamp > currentTs {
-	// 	return nil, ErrStaleTimepoints
-	// }
-	// if timepoints[currentIndexNextNext].Initialized && timepoints[currentIndexNextNext].BlockTimestamp > currentTs {
-	// 	return nil, ErrStaleTimepoints
-	// }
+	currentTs := timepoints[currentIndex].BlockTimestamp
+	if timepoints[currentIndexNext].Initialized && timepoints[currentIndexNext].BlockTimestamp > currentTs {
+		return nil, ErrStaleTimepoints
+	}
+	if timepoints[currentIndexNextNext].Initialized && timepoints[currentIndexNextNext].BlockTimestamp > currentTs {
+		return nil, ErrStaleTimepoints
+	}
 
 	if !timepoints[currentIndex].Initialized {
 		// some new pools don't have timepoints initialized yet, ignore them

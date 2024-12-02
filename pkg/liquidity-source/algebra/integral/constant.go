@@ -69,7 +69,6 @@ var (
 	uZERO       = uint256.NewInt(0)
 	uONE        = uint256.NewInt(1)
 	uTWO        = uint256.NewInt(2)
-	uTHREE      = uint256.NewInt(3)
 	uFOUR       = uint256.NewInt(4)
 	uSIX        = uint256.NewInt(6)
 	uEIGHT      = uint256.NewInt(8)
