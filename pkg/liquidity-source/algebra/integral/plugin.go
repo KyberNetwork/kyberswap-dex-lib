@@ -17,16 +17,16 @@ var (
 )
 
 type TimepointStorage struct {
-	data    map[uint16]Timepoint
-	updates map[uint16]Timepoint
+	data map[uint16]Timepoint
+}
+
+func NewTimepointStorage(data map[uint16]Timepoint) *TimepointStorage {
+	return &TimepointStorage{
+		data: data,
+	}
 }
 
 func (s *TimepointStorage) Get(index uint16) Timepoint {
-	if v, ok := s.updates[index]; ok {
-		logger.Debugf("access new %v %v", index, v)
-		return v
-	}
-
 	if v, ok := s.data[index]; ok {
 		logger.Debugf("access exists %v %v", index, v)
 		return v
@@ -44,8 +44,8 @@ func (s *TimepointStorage) Get(index uint16) Timepoint {
 		WindowStartIndex:     0,
 	}
 }
-func (s *TimepointStorage) Set(index uint16, v Timepoint) {
-	s.updates[index] = v
+func (s *TimepointStorage) set(index uint16, v Timepoint) {
+	s.data[index] = v
 }
 
 func (s *TimepointStorage) write(lastIndex uint16, blockTimestamp uint32, tick int32) (uint16, uint16, error) {
@@ -71,7 +71,7 @@ func (s *TimepointStorage) write(lastIndex uint16, blockTimestamp uint32, tick i
 		windowStartIndex++
 	}
 
-	s.Set(indexUpdated, createNewTimepoint(last, blockTimestamp, tick, avgTick, windowStartIndex))
+	s.set(indexUpdated, createNewTimepoint(last, blockTimestamp, tick, avgTick, windowStartIndex))
 
 	if oldestIndex == indexUpdated {
 		oldestIndex++
@@ -490,23 +490,23 @@ func calculateFeeFactors(currentTick, lastTick int32, priceChangeFactor uint16) 
 	feeFactorImpact := new(uint256.Int).Div(new(uint256.Int).Mul(priceChangeRatio, factor), uint256.NewInt(FACTOR_DENOMINATOR))
 
 	feeFactors := FeeFactors{
-		zeroToOneFeeFactor: BASE_FEE_MULTIPLIER,
-		oneToZeroFeeFactor: BASE_FEE_MULTIPLIER,
+		ZeroToOneFeeFactor: BASE_FEE_MULTIPLIER,
+		OneToZeroFeeFactor: BASE_FEE_MULTIPLIER,
 	}
 
-	newZeroToOneFeeFactor := new(uint256.Int).Sub(feeFactors.zeroToOneFeeFactor, feeFactorImpact)
+	newZeroToOneFeeFactor := new(uint256.Int).Sub(feeFactors.ZeroToOneFeeFactor, feeFactorImpact)
 
 	twoShift := DOUBLE_FEE_MULTIPLIER
 
 	if newZeroToOneFeeFactor.Cmp(uZERO) > 0 && newZeroToOneFeeFactor.Cmp(twoShift) < 0 {
-		feeFactors.zeroToOneFeeFactor = newZeroToOneFeeFactor
-		feeFactors.oneToZeroFeeFactor = new(uint256.Int).Add(feeFactors.oneToZeroFeeFactor, feeFactorImpact)
+		feeFactors.ZeroToOneFeeFactor = newZeroToOneFeeFactor
+		feeFactors.OneToZeroFeeFactor = new(uint256.Int).Add(feeFactors.OneToZeroFeeFactor, feeFactorImpact)
 	} else if newZeroToOneFeeFactor.Cmp(uZERO) <= 0 {
-		feeFactors.zeroToOneFeeFactor = uZERO
-		feeFactors.oneToZeroFeeFactor = twoShift
+		feeFactors.ZeroToOneFeeFactor = uZERO
+		feeFactors.OneToZeroFeeFactor = twoShift
 	} else {
-		feeFactors.zeroToOneFeeFactor = twoShift
-		feeFactors.oneToZeroFeeFactor = uZERO
+		feeFactors.ZeroToOneFeeFactor = twoShift
+		feeFactors.OneToZeroFeeFactor = uZERO
 	}
 
 	return feeFactors, nil

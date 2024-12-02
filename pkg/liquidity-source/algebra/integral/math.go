@@ -46,7 +46,7 @@ func addDelta(x *uint256.Int, y *int256.Int) (*uint256.Int, error) {
 }
 
 func ToUInt256(x *int256.Int) (*uint256.Int, error) {
-	var res *uint256.Int
+	var res = new(uint256.Int)
 	if err := v3Utils.ToUInt256(x, res); err != nil {
 		return nil, err
 	}

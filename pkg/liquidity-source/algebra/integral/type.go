@@ -105,6 +105,7 @@ type FetchRPCResult struct {
 	Reserve0    *big.Int    `json:"reserve0"`
 	Reserve1    *big.Int    `json:"reserve1"`
 
+	Timepoints       map[uint16]Timepoint
 	VotatilityOracle VotatilityOraclePlugin
 	SlidingFee       SlidingFeePlugin
 	DynamicFee       DynamicFeePlugin
@@ -140,6 +141,7 @@ type Extra struct {
 	GlobalState      GlobalState            `json:"globalState"`
 	Ticks            []v3Entities.Tick      `json:"ticks"`
 	TickSpacing      int32                  `json:"tickSpacing"`
+	Timepoints       map[uint16]Timepoint   `json:"timepoints"`
 	VotatilityOracle VotatilityOraclePlugin `json:"votalityOracle"`
 	SlidingFee       SlidingFeePlugin       `json:"slidingFee"`
 	DynamicFee       DynamicFeePlugin       `json:"dynamicFee"`
@@ -196,6 +198,6 @@ type PriceMovementCache struct {
 }
 
 type FeeFactors struct {
-	zeroToOneFeeFactor *uint256.Int
-	oneToZeroFeeFactor *uint256.Int
+	ZeroToOneFeeFactor *uint256.Int
+	OneToZeroFeeFactor *uint256.Int
 }
