@@ -34,11 +34,22 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		tokens = append(tokens, poolToken.Address)
 	}
 
+	reserves := make([]*big.Int, len(entityPool.Reserves))
+	for i, reserve := range entityPool.Reserves {
+		reserveBI, ok := new(big.Int).SetString(reserve, 10)
+		if !ok {
+			reserveBI = integer.Zero()
+		}
+
+		reserves[i] = reserveBI
+	}
+
 	info := pool.PoolInfo{
 		Address:  entityPool.Address,
 		Exchange: entityPool.Exchange,
 		Type:     entityPool.Type,
 		Tokens:   tokens,
+		Reserves: reserves,
 	}
 
 	vault := extra.Vault
