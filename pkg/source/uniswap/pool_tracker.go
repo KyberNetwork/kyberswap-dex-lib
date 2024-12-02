@@ -2,6 +2,7 @@ package uniswap
 
 import (
 	"context"
+	"math/big"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -68,8 +69,8 @@ func (d *PoolTracker) GetNewPoolState(
 
 	p.Timestamp = time.Now().Unix()
 	p.Reserves = entity.PoolReserves{
-		reserves.Reserve0.String(),
-		reserves.Reserve1.String(),
+		reserveString(reserves.Reserve0),
+		reserveString(reserves.Reserve1),
 	}
 
 	logger.Infof("[Uniswap V2] Finish getting new state of pool: %v", p.Address)
@@ -97,4 +98,11 @@ func (d *PoolTracker) fetchReservesFromNode(ctx context.Context, poolAddress str
 	}
 
 	return reserves, nil
+}
+
+func reserveString(reserve *big.Int) string {
+	if reserve == nil {
+		return reserveZero
+	}
+	return reserve.String()
 }
