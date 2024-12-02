@@ -10,6 +10,7 @@ import (
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 	"github.com/machinebox/graphql"
 	"github.com/sourcegraph/conc/pool"
 
@@ -128,8 +129,16 @@ func (d *PoolTracker) GetNewPoolState(
 		ticks = append(ticks, tick)
 	}
 
+	var (
+		liquidity *uint256.Int
+		ok        bool
+	)
+	if liquidity, ok = uint256.FromBig(rpcData.Liquidity); !ok {
+		return entity.Pool{}, ErrOutOfRangeOrInvalid
+	}
+
 	extraBytes, err := json.Marshal(&Extra{
-		Liquidity:        rpcData.Liquidity,
+		Liquidity:        liquidity,
 		GlobalState:      rpcData.State,
 		Ticks:            ticks,
 		TickSpacing:      int32(rpcData.TickSpacing.Int64()),
@@ -234,8 +243,16 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 		return res, err
 	}
 
+	var (
+		price *uint256.Int
+		ok    bool
+	)
+	if price, ok = uint256.FromBig(rpcState.Price); !ok {
+		return res, ErrOutOfRangeOrInvalid
+	}
+
 	res.State = GlobalState{
-		Price:        rpcState.Price,
+		Price:        price,
 		Tick:         int32(rpcState.Tick.Uint64()),
 		LastFee:      rpcState.LastFee,
 		PluginConfig: rpcState.PluginConfig,
@@ -448,7 +465,7 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blocknumber *big.In
 				enough = true
 				enoughAtIdx = tpIdx
 			} else {
-				timepoints[tpIdx] = tp.toTimepoint()
+				timepoints[tpIdx], _ = tp.toTimepoint()
 			}
 		}
 		logger.Debugf("done fetching timepoints page %v - %v %v %v", begin, end, enough, enoughAtIdx)
@@ -505,11 +522,11 @@ func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blocknumber *big.In
 				return nil, err
 			}
 
-			timepoints[0] = tp0.toTimepoint()
-			timepoints[currentIndexNext] = tpCurNext.toTimepoint()
-			timepoints[currentIndexNextNext] = tpCurNextNext.toTimepoint()
-			timepoints[enoughAtIdx] = tpLowest.toTimepoint() // needed to ensure binary search will terminate
-			timepoints[currentIndexPrev] = tpCurPrev.toTimepoint()
+			timepoints[0], _ = tp0.toTimepoint()
+			timepoints[currentIndexNext], _ = tpCurNext.toTimepoint()
+			timepoints[currentIndexNextNext], _ = tpCurNextNext.toTimepoint()
+			timepoints[enoughAtIdx], _ = tpLowest.toTimepoint() // needed to ensure binary search will terminate
+			timepoints[currentIndexPrev], _ = tpCurPrev.toTimepoint()
 
 			break
 		}

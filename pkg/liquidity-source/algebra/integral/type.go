@@ -5,7 +5,9 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/KyberNetwork/int256"
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
+	"github.com/holiman/uint256"
 )
 
 type Metadata struct {
@@ -76,12 +78,12 @@ type GlobalStateFromRPC struct {
 
 // unified data for simulation
 type GlobalState struct {
-	Price        *big.Int `json:"price"`
-	Tick         int32    `json:"tick"`
-	LastFee      uint16   `json:"lastFee"`
-	PluginConfig uint8    `json:"pluginConfig"`
-	CommunityFee uint16   `json:"communityFee"`
-	Unlocked     bool     `json:"unlocked"`
+	Price        *uint256.Int `json:"price"`
+	Tick         int32        `json:"tick"`
+	LastFee      uint16       `json:"lastFee"`
+	PluginConfig uint8        `json:"pluginConfig"`
+	CommunityFee uint16       `json:"communityFee"`
+	Unlocked     bool         `json:"unlocked"`
 }
 
 type FeeConfiguration struct {
@@ -109,13 +111,13 @@ type FetchRPCResult struct {
 }
 
 type Timepoint struct {
-	Initialized          bool     // whether or not the timepoint is initialized
-	BlockTimestamp       uint32   // the block timestamp of the timepoint
-	TickCumulative       int64    // the tick accumulator, i.e., tick * time elapsed since the pool was first initialized
-	VolatilityCumulative *big.Int // the volatility accumulator; overflow after ~34800 years is desired :)
-	Tick                 int32    // tick at this blockTimestamp
-	AverageTick          int32    // average tick at this blockTimestamp (for WINDOW seconds)
-	WindowStartIndex     uint16   // closest timepoint lte WINDOW seconds ago (or oldest timepoint), should be used only from the last timepoint!
+	Initialized          bool         // whether or not the timepoint is initialized
+	BlockTimestamp       uint32       // the block timestamp of the timepoint
+	TickCumulative       int64        // the tick accumulator, i.e., tick * time elapsed since the pool was first initialized
+	VolatilityCumulative *uint256.Int // the volatility accumulator; overflow after ~34800 years is desired :)
+	Tick                 int32        // tick at this blockTimestamp
+	AverageTick          int32        // average tick at this blockTimestamp (for WINDOW seconds)
+	WindowStartIndex     uint16       // closest timepoint lte WINDOW seconds ago (or oldest timepoint), should be used only from the last timepoint!
 }
 
 // same as Timepoint but with bigInt for correct deserialization
@@ -134,7 +136,7 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	Liquidity        *big.Int               `json:"liquidity"`
+	Liquidity        *uint256.Int           `json:"liquidity"`
 	GlobalState      GlobalState            `json:"globalState"`
 	Ticks            []v3Entities.Tick      `json:"ticks"`
 	TickSpacing      int32                  `json:"tickSpacing"`
@@ -145,53 +147,58 @@ type Extra struct {
 
 // we won't update the state when calculating amountOut, return this struct instead
 type StateUpdate struct {
-	Liquidity   *big.Int
+	Liquidity   *uint256.Int
 	GlobalState GlobalState
 }
 
 type PoolMeta struct {
-	BlockNumber uint64   `json:"blockNumber"`
-	PriceLimit  *big.Int `json:"priceLimit"`
+	BlockNumber uint64       `json:"blockNumber"`
+	PriceLimit  *uint256.Int `json:"priceLimit"`
 }
 
-func (tp *TimepointRPC) toTimepoint() Timepoint {
+func (tp *TimepointRPC) toTimepoint() (Timepoint, error) {
+	volatilityCumulative, ok := uint256.FromBig(tp.VolatilityCumulative)
+	if !ok {
+		return Timepoint{}, ErrOutOfRangeOrInvalid
+	}
+
 	return Timepoint{
 		Initialized:          tp.Initialized,
 		BlockTimestamp:       tp.BlockTimestamp,
 		TickCumulative:       tp.TickCumulative.Int64(),
-		VolatilityCumulative: tp.VolatilityCumulative,
+		VolatilityCumulative: volatilityCumulative,
 		Tick:                 int32(tp.Tick.Int64()),
 		AverageTick:          int32(tp.AverageTick.Int64()),
 		WindowStartIndex:     tp.WindowStartIndex,
-	}
+	}, nil
 }
 
 type FeesAmount struct {
-	communityFeeAmount *big.Int
-	pluginFeeAmount    *big.Int
+	communityFeeAmount *uint256.Int
+	pluginFeeAmount    *uint256.Int
 }
 
 type SwapCalculationCache struct {
-	communityFee          *big.Int // The community fee of the selling token, uint256 to minimize casts
-	amountRequiredInitial *big.Int // The initial value of the exact input/output amount
-	amountCalculated      *big.Int // The additive amount of total output/input calculated through the swap
-	exactInput            bool     // Whether the exact input or output is specified
-	fee                   uint32   // The current fee value in hundredths of a bip, i.e. 1e-6
-	pluginFee             uint32   // The plugin fee
+	communityFee          *uint256.Int // The community fee of the selling token, uint256 to minimize casts
+	amountRequiredInitial *int256.Int  // The initial value of the exact input/output amount
+	amountCalculated      *int256.Int  // The additive amount of total output/input calculated through the swap
+	exactInput            bool         // Whether the exact input or output is specified
+	fee                   uint32       // The current fee value in hundredths of a bip, i.e. 1e-6
+	pluginFee             uint32       // The plugin fee
 }
 
 type PriceMovementCache struct {
-	stepSqrtPrice *big.Int // The Q64.96 sqrt of the price at the start of the step, uint256 to minimize casts
-	nextTickPrice *big.Int // The Q64.96 sqrt of the price calculated from the _nextTick_, uint256 to minimize casts
-	input         *big.Int // The additive amount of tokens that have been provided
-	output        *big.Int // The additive amount of token that have been withdrawn
-	feeAmount     *big.Int // The total amount of fee earned within a current step
+	stepSqrtPrice *uint256.Int // The Q64.96 sqrt of the price at the start of the step, uint256 to minimize casts
+	nextTickPrice *uint256.Int // The Q64.96 sqrt of the price calculated from the _nextTick_, uint256 to minimize casts
+	input         *uint256.Int // The additive amount of tokens that have been provided
+	output        *uint256.Int // The additive amount of token that have been withdrawn
+	feeAmount     *uint256.Int // The total amount of fee earned within a current step
 
 	nextTick    int32 // The tick till the current step goes
 	initialized bool  // True if the _nextTick is initialized
 }
 
 type FeeFactors struct {
-	zeroToOneFeeFactor *big.Int
-	oneToZeroFeeFactor *big.Int
+	zeroToOneFeeFactor *uint256.Int
+	oneToZeroFeeFactor *uint256.Int
 }

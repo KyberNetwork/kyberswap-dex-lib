@@ -17,4 +17,8 @@ var (
 	ErrNotInitialized        = errors.New("not initialized")
 	ErrInvalidAmountRequired = errors.New("invalid amount required")
 	ErrZeroAmountRequired    = errors.New("zero amount required")
+
+	ErrOutOfRangeOrInvalid = errors.New("value out of range or invalid")
+	ErrLiquiditySub        = errors.New("liquidity sub error")
+	ErrLiquidityAdd        = errors.New("liquidity add error")
 )

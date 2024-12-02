@@ -2,71 +2,63 @@ package integral
 
 import (
 	"errors"
-	"math/big"
 
-	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
+	"github.com/KyberNetwork/int256"
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
+	"github.com/holiman/uint256"
 )
 
-func unsafeDivRoundingUp(x, y *big.Int) (*big.Int, error) {
+func unsafeDivRoundingUp(x, y *uint256.Int) (*uint256.Int, error) {
 	if y.Sign() == 0 {
 		return nil, errors.New("division by zero")
 	}
 
-	quotient := new(big.Int).Div(x, y)
+	quotient := new(uint256.Int).Div(x, y)
 
-	remainder := new(big.Int).Mod(x, y)
+	remainder := new(uint256.Int).Mod(x, y)
 	if remainder.Sign() > 0 {
-		quotient.Add(quotient, bignumber.One)
+		quotient.Add(quotient, uONE)
 	}
 
 	return quotient, nil
 }
 
-func mulDiv(a, b, denominator *big.Int) (*big.Int, error) {
-	if denominator.Sign() == 0 {
-		return nil, errors.New("denominator must be greater than zero")
+func addDelta(x *uint256.Int, y *int256.Int) (*uint256.Int, error) {
+	uY, err := ToUInt256(y)
+	if err != nil {
+		return nil, err
 	}
 
-	prod0 := new(big.Int).Mul(a, b)
-	prod1 := new(big.Int)
-
-	mulMod := new(big.Int).Mod(new(big.Int).Mul(a, b), new(big.Int).SetUint64(^uint64(0)))
-	prod1 = new(big.Int).Sub(new(big.Int).Sub(mulMod, prod0), bignumber.ZeroBI)
-	if mulMod.Cmp(prod0) < 0 {
-		prod1.Sub(prod1, bignumber.One)
+	var res *uint256.Int
+	if y.Sign() < 0 {
+		res := new(uint256.Int).Sub(x, uY.Neg(uY))
+		if res.Cmp(x) >= 0 {
+			return nil, ErrLiquiditySub
+		}
+	} else {
+		res := new(uint256.Int).Add(x, uY)
+		if res.Cmp(x) < 0 {
+			return nil, ErrLiquidityAdd
+		}
 	}
 
-	if denominator.Cmp(prod1) <= 0 {
-		return nil, errors.New("denominator must be greater than prod1")
+	return res, nil
+}
+
+func ToUInt256(x *int256.Int) (*uint256.Int, error) {
+	var res *uint256.Int
+	if err := v3Utils.ToUInt256(x, res); err != nil {
+		return nil, err
 	}
 
-	if prod1.Sign() == 0 {
-		return new(big.Int).Div(prod0, denominator), nil
+	return res, nil
+}
+
+func ToInt256(x *uint256.Int) (*int256.Int, error) {
+	var res *int256.Int
+	if err := v3Utils.ToInt256(x, res); err != nil {
+		return nil, err
 	}
 
-	remainder := new(big.Int).Mod(new(big.Int).Mul(a, b), denominator)
-	prod1.Sub(prod1, bignumber.ZeroBI)
-	if remainder.Cmp(prod0) > 0 {
-		prod1.Sub(prod1, bignumber.One)
-	}
-	prod0.Sub(prod0, remainder)
-
-	twos := new(big.Int).And(new(big.Int).Neg(denominator), denominator)
-	denominator.Div(denominator, twos)
-
-	prod0.Div(prod0, twos)
-
-	twosComplement := new(big.Int).Add(new(big.Int).Div(new(big.Int).Sub(bignumber.ZeroBI, twos), twos), bignumber.One)
-	prod0.Or(prod0, new(big.Int).Mul(prod1, twosComplement))
-
-	inv := new(big.Int).Mul(denominator, bignumber.Three)
-	inv.Xor(inv, bignumber.Two)
-	for i := 0; i < 6; i++ {
-		inv.Mul(inv, new(big.Int).Sub(bignumber.Two, new(big.Int).Mul(denominator, inv)))
-	}
-
-	result := new(big.Int).Mul(prod0, inv)
-	result.Mod(result, new(big.Int).Lsh(bignumber.One, 256))
-
-	return result, nil
+	return res, nil
 }

@@ -7,12 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/int256"
 	"github.com/KyberNetwork/logger"
+	v3Utils "github.com/KyberNetwork/uniswapv3-sdk-uint256/utils"
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	"github.com/daoleno/uniswapv3-sdk/utils"
-	v3Utils "github.com/daoleno/uniswapv3-sdk/utils"
 	"github.com/goccy/go-json"
+	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -23,7 +24,7 @@ type PoolSimulator struct {
 	pool.Pool
 
 	globalState GlobalState
-	liquidity   *big.Int
+	liquidity   *uint256.Int
 
 	ticks       *v3Entities.TickListDataProvider
 	gas         int64
@@ -117,7 +118,7 @@ func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator,
 /**
  * getSqrtPriceLimit get the price limit of pool based on the initialized ticks that this pool has
  */
-func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) *big.Int {
+func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) (*uint256.Int, error) {
 	var tickLimit int32
 	if zeroForOne {
 		tickLimit = p.tickMin
@@ -125,19 +126,20 @@ func (p *PoolSimulator) getSqrtPriceLimit(zeroForOne bool) *big.Int {
 		tickLimit = p.tickMax
 	}
 
-	sqrtPriceX96Limit, err := v3Utils.GetSqrtRatioAtTick(int(tickLimit))
+	sqrtPriceX96LimitBig, err := v3Utils.GetSqrtRatioAtTick(int(tickLimit))
+	if err != nil {
+		return nil, err
+	}
+
+	sqrtPriceX96Limit := uint256.MustFromBig(sqrtPriceX96LimitBig)
 
 	if zeroForOne {
-		sqrtPriceX96Limit = new(big.Int).Add(sqrtPriceX96Limit, integer.One()) // = (sqrtPrice at minTick) + 1
+		sqrtPriceX96Limit = new(uint256.Int).Add(sqrtPriceX96Limit, uONE) // = (sqrtPrice at minTick) + 1
 	} else {
-		sqrtPriceX96Limit = new(big.Int).Sub(sqrtPriceX96Limit, integer.One()) // = (sqrtPrice at maxTick) - 1
+		sqrtPriceX96Limit = new(uint256.Int).Sub(sqrtPriceX96Limit, uONE) // = (sqrtPrice at maxTick) - 1
 	}
 
-	if err != nil {
-		return nil
-	}
-
-	return sqrtPriceX96Limit
+	return sqrtPriceX96Limit, nil
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -146,15 +148,16 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 		logger.Warnf("failed to UpdateBalance for Algebra %v %v pool, wrong swapInfo type", p.Info.Address, p.Info.Exchange)
 		return
 	}
-	p.liquidity = new(big.Int).Set(si.Liquidity)
+	p.liquidity = new(uint256.Int).Set(si.Liquidity)
 	p.globalState = si.GlobalState
 }
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) interface{} {
 	zeroForOne := strings.EqualFold(tokenIn, p.Info.Tokens[0])
+	priceLimit, _ := p.getSqrtPriceLimit(zeroForOne)
 	return PoolMeta{
 		BlockNumber: p.Pool.Info.BlockNumber,
-		PriceLimit:  p.getSqrtPriceLimit(zeroForOne),
+		PriceLimit:  priceLimit,
 	}
 }
 
@@ -239,17 +242,17 @@ func (p *PoolSimulator) getFeeAndUpdateFactors(zeroToOne bool, currentTick, last
 		currentFeeFactors = p.slidingFee.FeeFactors
 	}
 
-	var adjustedFee *big.Int
-	baseFeeBig := big.NewInt(s_baseFee)
+	var adjustedFee *uint256.Int
+	baseFeeBig := uint256.NewInt(s_baseFee)
 
 	if zeroToOne {
-		adjustedFee = new(big.Int).Rsh(
-			new(big.Int).Mul(baseFeeBig, currentFeeFactors.zeroToOneFeeFactor),
+		adjustedFee = new(uint256.Int).Rsh(
+			new(uint256.Int).Mul(baseFeeBig, currentFeeFactors.zeroToOneFeeFactor),
 			FEE_FACTOR_SHIFT,
 		)
 	} else {
-		adjustedFee = new(big.Int).Rsh(
-			new(big.Int).Mul(baseFeeBig, currentFeeFactors.oneToZeroFeeFactor),
+		adjustedFee = new(uint256.Int).Rsh(
+			new(uint256.Int).Mul(baseFeeBig, currentFeeFactors.oneToZeroFeeFactor),
 			FEE_FACTOR_SHIFT,
 		)
 	}
@@ -260,7 +263,7 @@ func (p *PoolSimulator) getFeeAndUpdateFactors(zeroToOne bool, currentTick, last
 		adjustedFee.Set(MAX_UINT16)
 	}
 
-	return uint16(adjustedFee.Int64()), nil
+	return uint16(adjustedFee.Uint64()), nil
 }
 
 func (p *PoolSimulator) getLastTick() int32 {
@@ -270,7 +273,7 @@ func (p *PoolSimulator) getLastTick() int32 {
 	return lastTimepoint.Tick
 }
 
-func (p *PoolSimulator) getAverageVotatilityLast() (*big.Int, error) {
+func (p *PoolSimulator) getAverageVotatilityLast() (*uint256.Int, error) {
 	currentTimestamp := uint32(time.Now().Unix())
 
 	tick := p.globalState.Tick
@@ -322,10 +325,15 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return nil, errors.New("pool has been locked and not usable")
 	}
 
-	priceLimit := p.getSqrtPriceLimit(zeroForOne)
+	priceLimit, err := p.getSqrtPriceLimit(zeroForOne)
+	if err != nil {
+		return nil, err
+	}
+
+	amountRequired := int256.MustFromBig(tokenAmountIn.Amount)
 
 	amount0, amount1, currentPrice, currentTick, currentLiquidity, fees, err := p.calculateSwap(
-		overrideFee, pluginFee, zeroForOne, tokenAmountIn.Amount, priceLimit)
+		overrideFee, pluginFee, zeroForOne, amountRequired, priceLimit)
 
 	if err != nil {
 		return nil, err
@@ -340,7 +348,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		Unlocked:     p.globalState.Unlocked,
 	}
 
-	var amountOut *big.Int
+	var amountOut *int256.Int
 	if zeroForOne {
 		amountOut = amount1
 		if amount1.Sign() < 0 {
@@ -357,11 +365,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return &pool.CalcAmountOutResult{
 		TokenAmountOut: &pool.TokenAmount{
 			Token:  tokenOut,
-			Amount: amountOut,
+			Amount: amountOut.ToBig(),
 		},
 		Fee: &pool.TokenAmount{
 			Token:  param.TokenAmountIn.Token,
-			Amount: new(big.Int).Add(fees.communityFeeAmount, fees.pluginFeeAmount),
+			Amount: new(big.Int).Add(fees.communityFeeAmount.ToBig(), fees.pluginFeeAmount.ToBig()),
 		},
 		SwapInfo: StateUpdate{
 			GlobalState: newState,
@@ -371,8 +379,8 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 }
 
-func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne bool, amountRequired, limitSqrtPrice *big.Int) (
-	*big.Int, *big.Int, *big.Int, int32, *big.Int, FeesAmount, error) {
+func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne bool, amountRequired *int256.Int, limitSqrtPrice *uint256.Int) (
+	*int256.Int, *int256.Int, *uint256.Int, int32, *uint256.Int, FeesAmount, error) {
 	if amountRequired.Sign() == 0 {
 		return nil, nil, nil, 0, nil, FeesAmount{}, ErrZeroAmountRequired
 	}
@@ -393,7 +401,7 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 	currentPrice := p.globalState.Price
 	currentTick := p.globalState.Tick
 	cache.fee = uint32(p.globalState.LastFee)
-	cache.communityFee = big.NewInt(int64(p.globalState.CommunityFee))
+	cache.communityFee = uint256.NewInt(uint64(p.globalState.CommunityFee))
 
 	if currentPrice.Sign() == 0 {
 		return nil, nil, nil, 0, nil, FeesAmount{}, ErrNotInitialized
@@ -412,12 +420,12 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 	}
 
 	if zeroToOne {
-		if limitSqrtPrice.Cmp(currentPrice) >= 0 || limitSqrtPrice.Cmp(MIN_SQRT_RATIO) <= 0 {
+		if currentPrice.CmpBig(limitSqrtPrice.ToBig()) <= 0 || limitSqrtPrice.Cmp(MIN_SQRT_RATIO) <= 0 {
 			return nil, nil, nil, 0, nil, FeesAmount{}, ErrInvalidLimitSqrtPrice
 		}
 
 	} else {
-		if limitSqrtPrice.Cmp(currentPrice) <= 0 || limitSqrtPrice.Cmp(MAX_SQRT_RATIO) >= 0 {
+		if currentPrice.CmpBig(limitSqrtPrice.ToBig()) >= 0 || limitSqrtPrice.Cmp(MAX_SQRT_RATIO) >= 0 {
 			return nil, nil, nil, 0, nil, FeesAmount{}, ErrInvalidLimitSqrtPrice
 		}
 
@@ -436,13 +444,15 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 		if err != nil {
 			return nil, nil, nil, 0, nil, FeesAmount{}, err
 		}
-		step.nextTick = int32(nextTick)
 
+		step.nextTick = int32(nextTick)
 		step.stepSqrtPrice = currentPrice
-		step.nextTickPrice, err = utils.GetSqrtRatioAtTick(int(step.nextTick))
+
+		nextTickPrice, err := utils.GetSqrtRatioAtTick(int(step.nextTick))
 		if err != nil {
 			return nil, nil, nil, 0, nil, FeesAmount{}, err
 		}
+		step.nextTickPrice = uint256.MustFromBig(nextTickPrice)
 
 		var targetPrice = step.nextTickPrice
 		if zeroToOne == (step.nextTickPrice.Cmp(limitSqrtPrice) < 0) {
@@ -454,16 +464,26 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 			return nil, nil, nil, 0, nil, FeesAmount{}, err
 		}
 
+		output, err := ToInt256(step.output)
+		if err != nil {
+			return nil, nil, nil, 0, nil, FeesAmount{}, err
+		}
+
+		amountDelta, err := ToInt256(new(uint256.Int).Add(step.input, step.feeAmount))
+		if err != nil {
+			return nil, nil, nil, 0, nil, FeesAmount{}, err
+		}
+
 		if cache.exactInput {
-			amountRequired.Sub(amountRequired, new(big.Int).Add(step.input, step.feeAmount))
-			cache.amountCalculated = new(big.Int).Sub(cache.amountCalculated, step.output)
+			amountRequired.Sub(amountRequired, amountDelta)
+			cache.amountCalculated = new(int256.Int).Sub(cache.amountCalculated, output)
 		} else {
-			amountRequired.Add(amountRequired, step.output)
-			cache.amountCalculated = new(big.Int).Add(cache.amountCalculated, new(big.Int).Add(step.input, step.feeAmount))
+			amountRequired.Add(amountRequired, output)
+			cache.amountCalculated = new(int256.Int).Add(cache.amountCalculated, amountDelta)
 		}
 
 		if cache.pluginFee > 0 && cache.fee > 0 {
-			delta, err := mulDiv(step.feeAmount, big.NewInt(int64(cache.pluginFee)), big.NewInt(int64(cache.fee)))
+			delta, err := v3Utils.MulDiv(step.feeAmount, uint256.NewInt(uint64(cache.pluginFee)), uint256.NewInt(uint64(cache.fee)))
 			if err != nil {
 				return nil, nil, nil, 0, nil, FeesAmount{}, err
 			}
@@ -473,8 +493,8 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 		}
 
 		if cache.communityFee.Sign() > 0 {
-			delta := new(big.Int).Div(
-				new(big.Int).Mul(step.feeAmount, cache.communityFee),
+			delta := new(uint256.Int).Div(
+				new(uint256.Int).Mul(step.feeAmount, cache.communityFee),
 				COMMUNITY_FEE_DENOMINATOR,
 			)
 
@@ -489,14 +509,19 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 					return nil, nil, nil, 0, nil, FeesAmount{}, err
 				}
 
-				var liquidityDelta *big.Int
+				liquidityNet := int256.MustFromBig(tickData.LiquidityNet)
+
+				var liquidityDelta = new(int256.Int)
 				if zeroToOne {
-					liquidityDelta = new(big.Int).Neg(tickData.LiquidityNet)
+					liquidityDelta = liquidityDelta.Neg(liquidityNet)
 				} else {
-					liquidityDelta = tickData.LiquidityNet
+					liquidityDelta = liquidityNet
 				}
 
-				currentLiquidity = utils.AddDelta(currentLiquidity, liquidityDelta)
+				currentLiquidity, err = addDelta(currentLiquidity, liquidityDelta)
+				if err != nil {
+					return nil, nil, nil, 0, nil, FeesAmount{}, err
+				}
 			}
 
 			if zeroToOne {
@@ -506,7 +531,7 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 			}
 
 		} else if currentPrice.Cmp(step.stepSqrtPrice) != 0 {
-			currentTickInt, err := utils.GetTickAtSqrtRatio(currentPrice)
+			currentTickInt, err := utils.GetTickAtSqrtRatio(currentPrice.ToBig())
 			if err != nil {
 				return nil, nil, nil, 0, nil, FeesAmount{}, err
 			}
@@ -521,7 +546,7 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 		}
 	}
 
-	amountSpent := new(big.Int).Sub(cache.amountRequiredInitial, amountRequired)
+	amountSpent := new(int256.Int).Sub(cache.amountRequiredInitial, amountRequired)
 
 	amount0, amount1 := cache.amountCalculated, amountSpent
 	if zeroToOne == cache.exactInput {
@@ -533,10 +558,18 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 
 func movePriceTowardsTarget(
 	zeroToOne bool,
-	currentPrice, targetPrice, liquidity, amountAvailable *big.Int,
+	currentPrice, targetPrice, liquidity *uint256.Int,
+	amountAvailableInt256 *int256.Int,
 	fee uint32,
-) (*big.Int, *big.Int, *big.Int, *big.Int, error) {
-	var getInputTokenAmount, getOutputTokenAmount func(target, current *big.Int, liquidity *big.Int) (*big.Int, error)
+) (*uint256.Int, *uint256.Int, *uint256.Int, *uint256.Int, error) {
+	var amountAvailable *uint256.Int
+	err := v3Utils.ToUInt256(amountAvailableInt256, amountAvailable)
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+
+	var getInputTokenAmount, getOutputTokenAmount func(target, current, liquidity *uint256.Int) (*uint256.Int, error)
+
 	if zeroToOne {
 		getInputTokenAmount = getInputTokenDelta01
 		getOutputTokenAmount = getOutputTokenDelta01
@@ -546,13 +579,11 @@ func movePriceTowardsTarget(
 	}
 
 	var (
-		resultPrice, input, output, feeAmount *big.Int
-		err                                   error
+		resultPrice, input, output, feeAmount *uint256.Int
 	)
 
 	if amountAvailable.Sign() >= 0 {
-		// amountAvailableAfterFee = amountAvailable * (FEE_DENOMINATOR - fee) / FEE_DENOMINATOR
-		amountAvailableAfterFee := new(big.Int).Mul(amountAvailable, new(big.Int).Sub(FEE_DENOMINATOR, big.NewInt(int64(fee))))
+		amountAvailableAfterFee := new(uint256.Int).Mul(amountAvailable, new(uint256.Int).Sub(FEE_DENOMINATOR, uint256.NewInt(uint64(fee))))
 		amountAvailableAfterFee.Div(amountAvailableAfterFee, FEE_DENOMINATOR)
 
 		input, err = getInputTokenAmount(targetPrice, currentPrice, liquidity)
@@ -561,8 +592,11 @@ func movePriceTowardsTarget(
 		}
 
 		if amountAvailableAfterFee.Cmp(input) >= 0 {
-			resultPrice = new(big.Int).Set(targetPrice)
-			feeAmount = utils.MulDivRoundingUp(input, big.NewInt(int64(fee)), new(big.Int).Sub(FEE_DENOMINATOR, big.NewInt(int64(fee))))
+			resultPrice = targetPrice
+			feeAmount, err = v3Utils.MulDivRoundingUp(input, uint256.NewInt(uint64(fee)), new(uint256.Int).Sub(FEE_DENOMINATOR, uint256.NewInt(uint64(fee))))
+			if err != nil {
+				return nil, nil, nil, nil, err
+			}
 		} else {
 			resultPrice, err = getNewPriceAfterInput(currentPrice, liquidity, amountAvailableAfterFee, zeroToOne)
 			if err != nil {
@@ -578,7 +612,7 @@ func movePriceTowardsTarget(
 				return nil, nil, nil, nil, err
 			}
 
-			feeAmount = new(big.Int).Sub(amountAvailable, input)
+			feeAmount = new(uint256.Int).Sub(amountAvailable, input)
 		}
 
 		output, err = getOutputTokenAmount(resultPrice, currentPrice, liquidity)
@@ -595,7 +629,7 @@ func movePriceTowardsTarget(
 		}
 
 		if amountAvailable.Cmp(output) >= 0 {
-			resultPrice = new(big.Int).Set(targetPrice)
+			resultPrice = new(uint256.Int).Set(targetPrice)
 		} else {
 			resultPrice, err = getNewPriceAfterOutput(currentPrice, liquidity, amountAvailable, zeroToOne)
 			if err != nil {
@@ -619,7 +653,10 @@ func movePriceTowardsTarget(
 			return nil, nil, nil, nil, err
 		}
 
-		feeAmount = utils.MulDivRoundingUp(input, big.NewInt(int64(fee)), new(big.Int).Sub(FEE_DENOMINATOR, big.NewInt(int64(fee))))
+		feeAmount, err = v3Utils.MulDivRoundingUp(input, uint256.NewInt(uint64(fee)), new(uint256.Int).Sub(FEE_DENOMINATOR, uint256.NewInt(uint64(fee))))
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
 	}
 
 	return resultPrice, input, output, feeAmount, nil
