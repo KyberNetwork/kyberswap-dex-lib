@@ -8,8 +8,8 @@ type Config struct {
 	SubgraphHeaders    http.Header `json:"subgraphHeaders"`
 	AllowSubgraphError bool        `json:"allowSubgraphError"`
 
-	// AlwaysUseTickLens bool
-	// TickLensAddress   string
+	AlwaysUseTickLens bool
+	TickLensAddress   string
 
-	UseBasePluginV2 bool
+	UseBasePluginV2 bool `json:"useBasePluginV2"`
 }

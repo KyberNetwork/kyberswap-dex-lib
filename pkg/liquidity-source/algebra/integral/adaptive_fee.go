@@ -6,115 +6,132 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
-// port https://github.com/cryptoalgebra/AlgebraV1/blob/dfebf532a27803dafcbf2ba49724740bd6220505/src/core/contracts/libraries/AdaptiveFee.sol
-
 // / @notice Calculates fee based on formula:
-// / baseFee + sigmoidVolume(sigmoid1(volatility, volumePerLiquidity) + sigmoid2(volatility, volumePerLiquidity))
+// / baseFee + sigmoid1(volatility) + sigmoid2(volatility)
 // / maximum value capped by baseFee + alpha1 + alpha2
-func getFee(
-	volatility *big.Int,
-	config FeeConfiguration,
-) uint16 {
-	return 0
+func getFee(volatility *big.Int, config FeeConfiguration) uint16 {
+	// normalize for 15 sec interval
+	normalizedVolatility := new(big.Int).Div(volatility, FIFTEEN)
+
+	sumOfSigmoids := new(big.Int).Add(
+		sigmoid(normalizedVolatility, config.Gamma1, config.Alpha1, big.NewInt(int64(config.Beta1))),
+		sigmoid(normalizedVolatility, config.Gamma2, config.Alpha2, big.NewInt(int64(config.Beta2))),
+	)
+
+	result := new(big.Int).Add(
+		new(big.Int).SetUint64(uint64(config.BaseFee)),
+		sumOfSigmoids,
+	)
+
+	if result.Cmp(MAX_UINT16) > 0 { // should always be true
+		panic("Fee calculation exceeded uint16 max value")
+	}
+
+	return uint16(result.Uint64())
 }
 
 // / @notice calculates α / (1 + e^( (β-x) / γ))
 // / that is a sigmoid with a maximum value of α, x-shifted by β, and stretched by γ
 // / @dev returns uint256 for fuzzy testing. Guaranteed that the result is not greater than alpha
-func sigmoid(
-	x *big.Int,
-	g uint16,
-	alpha uint16,
-	beta *big.Int,
-) (res uint16) {
-	alphaBI := big.NewInt(int64(alpha))
-	_6g := big.NewInt(6 * int64(g))
-	g8 := new(big.Int).Exp(big.NewInt(int64(g)), big.NewInt(8), nil)
-	if x.Cmp(beta) > 0 {
-		x = new(big.Int).Sub(x, beta)
-		if x.Cmp(_6g) >= 0 {
-			return alpha // so x < 19 bits
+func sigmoid(x *big.Int, g uint16, alpha uint16, beta *big.Int) *big.Int {
+	// Determine if x is greater than beta
+	comparison := x.Cmp(beta)
+
+	var res *big.Int
+	if comparison > 0 {
+		// x > beta case
+		x.Sub(x, beta)
+
+		// If x >= 6*g, return alpha
+		sixTimesG := new(big.Int).Mul(bignumber.Six, big.NewInt(int64(g)))
+		if x.Cmp(sixTimesG) >= 0 {
+			return new(big.Int).SetUint64(uint64(alpha))
 		}
-		// < 128 bits (8*16)
-		ex := exp(x, g, g8) // < 155 bits
-		resBI := new(big.Int).Div(
-			new(big.Int).Mul(alphaBI, ex),
-			new(big.Int).Add(g8, ex),
-		) // in worst case: (16 + 155 bits) / 155 bits
-		// so res <= alpha
-		res = uint16(resBI.Int64())
+
+		g4 := new(big.Int).Exp(big.NewInt(int64(g)), big.NewInt(4), nil)
+		ex := expXg4(x, g, g4)
+
+		// (alpha * ex) / (g4 + ex)
+		numerator := new(big.Int).Mul(big.NewInt(int64(alpha)), ex)
+		denominator := new(big.Int).Add(g4, ex)
+		res = new(big.Int).Div(numerator, denominator)
 	} else {
-		x = new(big.Int).Sub(beta, x)
-		if x.Cmp(_6g) >= 0 {
-			return 0 // so x < 19 bits
+		// x <= beta case
+		x.Sub(beta, x)
+
+		// If x >= 6*g, return 0
+		sixTimesG := new(big.Int).Mul(bignumber.Six, big.NewInt(int64(g)))
+		if x.Cmp(sixTimesG) >= 0 {
+			return bignumber.ZeroBI
 		}
-		// < 128 bits (8*16)
-		ex := new(big.Int).Add(g8, exp(x, g, g8)) // < 156 bits
-		resBI := new(big.Int).Div(
-			new(big.Int).Mul(alphaBI, g8),
-			ex,
-		) // in worst case: (16 + 128 bits) / 156 bits
-		// g8 <= ex, so res <= alpha
-		res = uint16(resBI.Int64())
+
+		g4 := new(big.Int).Exp(big.NewInt(int64(g)), big.NewInt(4), nil)
+		ex := new(big.Int).Add(g4, expXg4(x, g, g4))
+
+		// (alpha * g4) / ex
+		numerator := new(big.Int).Mul(big.NewInt(int64(alpha)), g4)
+		res = new(big.Int).Div(numerator, ex)
 	}
-	return
+
+	return res
 }
 
-// / @notice calculates e^(x/g) * g^8 in a series, since (around zero):
-// / e^x = 1 + x + x^2/2 + ... + x^n/n! + ...
-// / e^(x/g) = 1 + x/g + x^2/(2*g^2) + ... + x^(n)/(g^n * n!) + ...
-func exp(
-	x *big.Int,
-	_g uint16,
-	gHighestDegree *big.Int,
-) *big.Int {
-	// calculating:
-	// g**8 + x * g**7 + (x**2 * g**6) / 2 + (x**3 * g**5) / 6 + (x**4 * g**4) / 24 + (x**5 * g**3) / 120 + (x**6 * g^2) / 720 + x**7 * g / 5040 + x**8 / 40320
+func expXg4(x *big.Int, g uint16, gHighestDegree *big.Int) *big.Int {
+	var closestValue *big.Int
 
-	// x**8 < 152 bits (19*8) and g**8 < 128 bits (8*16)
-	// so each summand < 152 bits and res < 155 bits
-	xLowestDegree := x
-	res := gHighestDegree // g**8
+	gBig := big.NewInt(int64(g))
 
-	g := big.NewInt(int64(_g))
+	// Predefined e values multiplied by 10^20
+	xdg := new(big.Int).Div(x, gBig)
+	switch xdg.Uint64() {
+	case 0:
+		closestValue = CLOSEST_VALUE_0
+	case 1:
+		closestValue = CLOSEST_VALUE_1
+	case 2:
+		closestValue = CLOSEST_VALUE_2
+	case 3:
+		closestValue = CLOSEST_VALUE_3
+	case 4:
+		closestValue = CLOSEST_VALUE_4
+	default:
+		closestValue = CLOSEST_VALUE_DEFAULT
+	}
 
-	gHighestDegree = new(big.Int).Div(gHighestDegree, g) // g**7
-	res = new(big.Int).Add(res,
+	x.Mod(x, gBig)
+
+	gDiv2 := new(big.Int).Div(gBig, bignumber.Two)
+	if x.Cmp(gDiv2) >= 0 {
+		// (x - closestValue) >= 0.5, so closestValue := closestValue * e^0.5
+		x.Sub(x, gDiv2)
+		closestValue.Mul(closestValue, E_HALF_MULTIPLIER).Div(closestValue, E_MULTIPLIER_BIG)
+	}
+
+	// After calculating the closestValue x/g is <= 0.5, so that the series in the neighborhood of zero converges with sufficient speed
+	xLowestDegree := new(big.Int).Set(x)
+	res := new(big.Int).Set(gHighestDegree) // g**4
+
+	gHighestDegree.Div(gHighestDegree, gBig)                      // g**3
+	res.Add(res, new(big.Int).Mul(xLowestDegree, gHighestDegree)) // g**4 + x*g**3
+
+	gHighestDegree.Div(gHighestDegree, gBig) // g**2
+	xLowestDegree.Mul(xLowestDegree, x)      // x**2
+	res.Add(res, new(big.Int).Div(
 		new(big.Int).Mul(xLowestDegree, gHighestDegree),
-	)
+		bignumber.Two,
+	))
 
-	gHighestDegree = new(big.Int).Div(gHighestDegree, g) // g**6
-	xLowestDegree = new(big.Int).Mul(xLowestDegree, x)   // x**2
-	res = new(big.Int).Add(res, new(big.Int).Div(new(big.Int).Mul(xLowestDegree, gHighestDegree), bignumber.Two))
-
-	gHighestDegree = new(big.Int).Div(gHighestDegree, g) // g**5
-	xLowestDegree = new(big.Int).Mul(xLowestDegree, x)   // x**3
-	res = new(big.Int).Add(res, new(big.Int).Div(new(big.Int).Mul(xLowestDegree, gHighestDegree), bignumber.Six))
-
-	gHighestDegree = new(big.Int).Div(gHighestDegree, g) // g**4
-	xLowestDegree = new(big.Int).Mul(xLowestDegree, x)   // x**4
-	res = new(big.Int).Add(res, new(big.Int).Div(new(big.Int).Mul(xLowestDegree, gHighestDegree), big.NewInt(24)))
-
-	gHighestDegree = new(big.Int).Div(gHighestDegree, g) // g**3
-	xLowestDegree = new(big.Int).Mul(xLowestDegree, x)   // x**5
-	res = new(big.Int).Add(res, new(big.Int).Div(new(big.Int).Mul(xLowestDegree, gHighestDegree), big.NewInt(120)))
-
-	gHighestDegree = new(big.Int).Div(gHighestDegree, g) // g**2
-	xLowestDegree = new(big.Int).Mul(xLowestDegree, x)   // x**6
-	res = new(big.Int).Add(res, new(big.Int).Div(new(big.Int).Mul(xLowestDegree, gHighestDegree), big.NewInt(720)))
-
-	xLowestDegree = new(big.Int).Mul(xLowestDegree, x) // x**7
-	res = new(big.Int).Add(res,
+	gHighestDegree.Div(gHighestDegree, gBig) // g
+	xLowestDegree.Mul(xLowestDegree, x)      // x**3
+	res.Add(res, new(big.Int).Div(
 		new(big.Int).Add(
-			new(big.Int).Div(
-				new(big.Int).Mul(xLowestDegree, g),
-				big.NewInt(5040),
-			),
-			new(big.Int).Div(
-				new(big.Int).Mul(xLowestDegree, x),
-				big.NewInt(40320),
-			),
+			new(big.Int).Mul(xLowestDegree, new(big.Int).Mul(gBig, bignumber.Four)),
+			new(big.Int).Mul(xLowestDegree, x),
 		),
-	)
+		TWENTYFOUR,
+	))
+
+	res.Mul(res, closestValue).Div(res, E_MULTIPLIER_BIG)
+
 	return res
 }

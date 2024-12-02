@@ -18,6 +18,7 @@ const (
 	graphQLRequestTimeout = 20 * time.Second
 
 	timepointPageSize = uint16(300)
+	maxSwapLoop       = 1000000
 
 	WINDOW        = 86400 // 1 day in seconds
 	UINT16_MODULO = 65536
@@ -38,6 +39,8 @@ const (
 	votalityOraclePluginIsInitializedMethod          = "isInitialized"
 
 	erc20BalanceOfMethod = "balanceOf"
+
+	ticklensGetPopulatedTicksInWordMethod = "getPopulatedTicksInWord"
 
 	BEFORE_SWAP_FLAG = 1
 	AFTER_SWAP_FLAG  = 1 << 1
@@ -60,8 +63,10 @@ var (
 	MAX_UINT16 = new(big.Int).SetUint64(1<<16 - 1)
 	MIN_UINT16 = new(big.Int).SetUint64(1)
 
-	EIGHT   = big.NewInt(8)
-	SIXTEEN = big.NewInt(16)
+	EIGHT      = big.NewInt(8)
+	FIFTEEN    = big.NewInt(15)
+	SIXTEEN    = big.NewInt(16)
+	TWENTYFOUR = big.NewInt(24)
 
 	MIN_SQRT_RATIO    = big.NewInt(4295128739)
 	MAX_SQRT_RATIO, _ = new(big.Int).SetString("1461446703485210103287273052203988822378723970342", 10)
@@ -70,4 +75,16 @@ var (
 
 	BASE_FEE_MULTIPLIER   = new(big.Int).Lsh(bignumber.One, FEE_FACTOR_SHIFT)
 	DOUBLE_FEE_MULTIPLIER = new(big.Int).Lsh(bignumber.One, 2*FEE_FACTOR_SHIFT)
+
+	// Predefined e values multiplied by 10^20 as constants
+
+	CLOSEST_VALUE_0, _       = new(big.Int).SetString("100000000000000000000", 10)   // 1
+	CLOSEST_VALUE_1, _       = new(big.Int).SetString("271828182845904523536", 10)   // ~= e
+	CLOSEST_VALUE_2, _       = new(big.Int).SetString("738905609893065022723", 10)   // ~= e^2
+	CLOSEST_VALUE_3, _       = new(big.Int).SetString("2008553692318766774092", 10)  // ~= e^3
+	CLOSEST_VALUE_4, _       = new(big.Int).SetString("5459815003314423907811", 10)  // ~= e^4
+	CLOSEST_VALUE_DEFAULT, _ = new(big.Int).SetString("14841315910257660342111", 10) // ~= e^5
+
+	E_HALF_MULTIPLIER, _ = new(big.Int).SetString("164872127070012814684", 10) // e^0.5
+	E_MULTIPLIER_BIG, _  = new(big.Int).SetString("100000000000000000000", 10) // 1e20
 )

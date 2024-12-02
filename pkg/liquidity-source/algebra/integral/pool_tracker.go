@@ -2,15 +2,13 @@ package integral
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"math"
 	"math/big"
-	"strconv"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
+	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
@@ -18,6 +16,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	sourcePool "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	graphqlpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/graphql"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
@@ -85,15 +84,15 @@ func (d *PoolTracker) GetNewPoolState(
 	})
 	g.Go(func(context.Context) error {
 		var err error
-		// if d.config.AlwaysUseTickLens {
-		// 	poolTicks, err = d.getPoolTicksFromSC(ctx, p, param)
-		// 	if err != nil {
-		// 		l.WithFields(logger.Fields{
-		// 			"error": err,
-		// 		}).Error("failed to call SC for pool ticks")
-		// 	}
-		// 	return err
-		// }
+		if d.config.AlwaysUseTickLens {
+			poolTicks, err = d.getPoolTicksFromSC(ctx, p, param)
+			if err != nil {
+				l.WithFields(logger.Fields{
+					"error": err,
+				}).Error("failed to call SC for pool ticks")
+			}
+			return err
+		}
 
 		poolTicks, err = d.getPoolTicks(ctx, p.Address)
 		if err != nil {
@@ -112,23 +111,33 @@ func (d *PoolTracker) GetNewPoolState(
 		return entity.Pool{}, err
 	}
 
-	ticks, tickMin, tickMax, err := d.fetchPoolTicks(ctx, p.Address, blockNumber, poolTicks)
-	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to fetch pool ticks from RPC")
-		return entity.Pool{}, err
+	ticks := make([]v3Entities.Tick, 0, len(poolTicks))
+	for _, tickResp := range poolTicks {
+		tick, err := tickResp.transformTickRespToTick()
+		if err != nil {
+			l.WithFields(logger.Fields{
+				"error": err,
+			}).Error("failed to transform tickResp to tick")
+			continue
+		}
+
+		// LiquidityGross = 0 means that the tick is uninitialized
+		if tick.LiquidityGross.Cmp(bignumber.ZeroBI) == 0 {
+			continue
+		}
+
+		ticks = append(ticks, tick)
 	}
 
 	extraBytes, err := json.Marshal(Extra{
-		Liquidity:   rpcData.Liquidity,
-		GlobalState: rpcData.State,
-		TickMin:     tickMin,
-		TickMax:     tickMax,
-		Ticks:       ticks,
-		TickSpacing: int32(rpcData.TickSpacing.Int64()),
+		Liquidity:        rpcData.Liquidity,
+		GlobalState:      rpcData.State,
+		Ticks:            ticks,
+		TickSpacing:      int32(rpcData.TickSpacing.Int64()),
+		VotatilityOracle: rpcData.VotatilityOracle,
+		SlidingFee:       rpcData.SlidingFee,
+		DynamicFee:       rpcData.DynamicFee,
 	})
-
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
@@ -151,85 +160,19 @@ func (d *PoolTracker) GetNewPoolState(
 	return p, nil
 }
 
-func (d *PoolTracker) fetchPoolTicks(ctx context.Context, poolAddress string, blockNumber uint64, ticks []TickResp) (map[int32]Tick, int32, int32, error) {
-	const chunkSize = 100
+// func min(a, b int32) int32 {
+// 	if a < b {
+// 		return a
+// 	}
+// 	return b
+// }
 
-	poolTicks := make(map[int32]*TickFromRPC, len(ticks))
-	tickManager := make(map[int32]Tick, len(ticks))
-
-	var (
-		tickMin int32 = math.MaxInt32
-		tickMax int32 = math.MinInt32
-
-		blockNumberBig = new(big.Int).SetUint64(blockNumber)
-		tickIdxBig     = new(big.Int)
-	)
-
-	results := make([]*TickFromRPC, chunkSize)
-	for i := range results {
-		results[i] = &TickFromRPC{}
-	}
-
-	for i := 0; i < len(ticks); i += chunkSize {
-		end := i + chunkSize
-		if end > len(ticks) {
-			end = len(ticks)
-		}
-
-		chunkSize := end - i
-		currentResults := make([]*TickFromRPC, chunkSize)
-
-		rpcRequest := d.ethrpcClient.NewRequest().
-			SetContext(ctx).
-			SetBlockNumber(blockNumberBig)
-
-		for j, tickResp := range ticks[i:end] {
-			tickIdx, err := strconv.Atoi(tickResp.TickIdx)
-			if err != nil {
-				return nil, 0, 0, fmt.Errorf("invalid tickIdx '%v': %w", tickResp.TickIdx, err)
-			}
-
-			int32TickIdx := int32(tickIdx)
-			tickMin = min(tickMin, int32TickIdx)
-			tickMax = max(tickMax, int32TickIdx)
-
-			currentResults[j] = &TickFromRPC{}
-			poolTicks[int32TickIdx] = currentResults[j]
-
-			rpcRequest.AddCall(&ethrpc.Call{
-				ABI:    algebraIntegralPoolABI,
-				Target: poolAddress,
-				Method: poolTicksMethod,
-				Params: []interface{}{tickIdxBig.SetInt64(int64(tickIdx))},
-			}, []interface{}{currentResults[j]})
-		}
-
-		_, err := rpcRequest.Aggregate()
-		if err != nil {
-			return nil, 0, 0, fmt.Errorf("failed to fetch ticks for chunk [%d:%d]: %w", i, end, err)
-		}
-	}
-
-	for tickIdx, tickRPC := range poolTicks {
-		tickManager[tickIdx] = tickRPC.toTick()
-	}
-
-	return tickManager, tickMin, tickMax, nil
-}
-
-func min(a, b int32) int32 {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int32) int32 {
-	if a > b {
-		return a
-	}
-	return b
-}
+// func max(a, b int32) int32 {
+// 	if a > b {
+// 		return a
+// 	}
+// 	return b
+// }
 
 func (d *PoolTracker) FetchStateFromRPC(ctx context.Context, p entity.Pool, blockNumber uint64) ([]byte, error) {
 	rpcData, err := d.fetchRPCData(ctx, p, blockNumber)
@@ -253,15 +196,14 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 
 	res := FetchRPCResult{}
 
-	rpcRequest := d.ethrpcClient.NewRequest()
-	rpcRequest.SetContext(ctx)
+	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 	if blockNumber > 0 {
 		var blockNumberBI big.Int
 		blockNumberBI.SetUint64(blockNumber)
-		rpcRequest.SetBlockNumber(&blockNumberBI)
+		req.SetBlockNumber(&blockNumberBI)
 	}
 
-	rpcRequest.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    algebraIntegralPoolABI,
 		Target: p.Address,
 		Method: poolLiquidityMethod,
@@ -269,14 +211,14 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 	}, []interface{}{&res.Liquidity})
 
 	rpcState := &GlobalStateFromRPC{}
-	rpcRequest.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    algebraIntegralPoolABI,
 		Target: p.Address,
 		Method: poolGlobalStateMethod,
 		Params: nil,
 	}, []interface{}{rpcState})
 
-	rpcRequest.AddCall(&ethrpc.Call{
+	req.AddCall(&ethrpc.Call{
 		ABI:    algebraIntegralPoolABI,
 		Target: p.Address,
 		Method: poolTickSpacingMethod,
@@ -284,14 +226,14 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 	}, []interface{}{&res.TickSpacing})
 
 	if len(p.Tokens) == 2 {
-		rpcRequest.AddCall(&ethrpc.Call{
+		req.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[0].Address,
 			Method: erc20BalanceOfMethod,
 			Params: []interface{}{common.HexToAddress(p.Address)},
 		}, []interface{}{&res.Reserve0})
 
-		rpcRequest.AddCall(&ethrpc.Call{
+		req.AddCall(&ethrpc.Call{
 			ABI:    erc20ABI,
 			Target: p.Tokens[1].Address,
 			Method: erc20BalanceOfMethod,
@@ -299,11 +241,11 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 		}, []interface{}{&res.Reserve1})
 	}
 
-	_, err := rpcRequest.Aggregate()
+	_, err := req.Aggregate()
 	if err != nil {
 		l.WithFields(logger.Fields{
 			"error": err,
-		}).Error("failed to process tryAggregate")
+		}).Error("failed to fetch pool data")
 		return res, err
 	}
 
@@ -318,6 +260,9 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 
 	votalityOracleData, dynamicFeeData, slidingFeeData, err := d.getPluginData(ctx, p.Address)
 	if err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch plugin data")
 		return res, err
 	}
 
@@ -325,34 +270,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 	res.SlidingFee = slidingFeeData
 	res.DynamicFee = dynamicFeeData
 
-	// log.Fatalf("\n%+v\n%+v\n%+v\n", votalityOracleData, slidingFeeData, dynamicFeeData)
-
 	return res, err
-}
-
-func (d *PoolTracker) fetchTimepoints(ctx context.Context, blocknumber *big.Int, poolAddress, pluginAddress string) (TimepointStorage, error) {
-	l := logger.WithFields(logger.Fields{
-		"poolAddress": poolAddress,
-		"dexID":       d.config.DexID,
-	})
-
-	// fee approximation: assume that the swap will be soon after this
-	blockTimestamp := uint32(time.Now().Unix())
-	yesterday := blockTimestamp - WINDOW
-	timepoints, err := d.getPoolTimepoints(ctx, blocknumber, pluginAddress, 0, yesterday)
-	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to fetch pool timepoints")
-		return TimepointStorage{}, err
-	}
-
-	ts := TimepointStorage{
-		data:    timepoints,
-		updates: map[uint16]Timepoint{},
-	}
-
-	return ts, nil
 }
 
 func (d *PoolTracker) getPluginData(ctx context.Context, poolAddress string) (VotatilityOraclePlugin, DynamicFeePlugin, SlidingFeePlugin, error) {
@@ -378,7 +296,6 @@ func (d *PoolTracker) getPluginData(ctx context.Context, poolAddress string) (Vo
 			"error": err,
 		}).Error("failed to fetch Plugin address from pool")
 		return VotatilityOraclePlugin{}, DynamicFeePlugin{}, SlidingFeePlugin{}, err
-
 	}
 
 	volatilityOracleData, err := d.getVotalityOracleData(ctx, poolAddress, plugin.Hex(), req.BlockNumber)
@@ -503,6 +420,30 @@ func (d *PoolTracker) getDynamicFeeData(ctx context.Context, pluginAddress strin
 	return DynamicFeePlugin{
 		feeConfig: feeConfig,
 	}, nil
+}
+
+func (d *PoolTracker) fetchTimepoints(ctx context.Context, blocknumber *big.Int, poolAddress, pluginAddress string) (TimepointStorage, error) {
+	l := logger.WithFields(logger.Fields{
+		"poolAddress": poolAddress,
+		"dexID":       d.config.DexID,
+	})
+
+	blockTimestamp := uint32(time.Now().Unix())
+	yesterday := blockTimestamp - WINDOW
+	timepoints, err := d.getPoolTimepoints(ctx, blocknumber, pluginAddress, 0, yesterday)
+	if err != nil {
+		l.WithFields(logger.Fields{
+			"error": err,
+		}).Error("failed to fetch pool timepoints")
+		return TimepointStorage{}, err
+	}
+
+	ts := TimepointStorage{
+		data:    timepoints,
+		updates: map[uint16]Timepoint{},
+	}
+
+	return ts, nil
 }
 
 func (d *PoolTracker) getPoolTimepoints(ctx context.Context, blocknumber *big.Int, pluginAddress string, currentIndex uint16, yesterday uint32) (map[uint16]Timepoint, error) {

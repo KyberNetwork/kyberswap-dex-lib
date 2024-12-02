@@ -12,3 +12,6 @@ var algebraIntegralPoolJson []byte
 
 //go:embed abis/AlgebraBasePluginV1.json
 var algebraBasePluginV1Json []byte
+
+//go:embed abis/TickLens.json
+var ticklenJson []byte

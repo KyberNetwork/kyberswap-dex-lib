@@ -1,7 +1,11 @@
 package integral
 
 import (
+	"fmt"
 	"math/big"
+	"strconv"
+
+	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 )
 
 type Metadata struct {
@@ -25,7 +29,34 @@ type SubgraphPool struct {
 }
 
 type TickResp struct {
-	TickIdx string `json:"tickIdx"`
+	TickIdx        string `json:"tickIdx"`
+	LiquidityGross string `json:"liquidityGross"`
+	LiquidityNet   string `json:"liquidityNet"`
+}
+
+func (t TickResp) transformTickRespToTick() (v3Entities.Tick, error) {
+	liquidityGross := new(big.Int)
+	liquidityGross, ok := liquidityGross.SetString(t.LiquidityGross, 10)
+	if !ok {
+		return v3Entities.Tick{}, fmt.Errorf("can not convert liquidityGross string to bigInt, tick: %v", t.TickIdx)
+	}
+
+	liquidityNet := new(big.Int)
+	liquidityNet, ok = liquidityNet.SetString(t.LiquidityNet, 10)
+	if !ok {
+		return v3Entities.Tick{}, fmt.Errorf("can not convert liquidityNet string to bigInt, tick: %v", t.TickIdx)
+	}
+
+	tickIdx, err := strconv.Atoi(t.TickIdx)
+	if err != nil {
+		return v3Entities.Tick{}, fmt.Errorf("can not convert tickIdx string to int, tick: %v", t.TickIdx)
+	}
+
+	return v3Entities.Tick{
+		Index:          tickIdx,
+		LiquidityGross: liquidityGross,
+		LiquidityNet:   liquidityNet,
+	}, nil
 }
 
 type SubgraphPoolTicks struct {
@@ -105,7 +136,7 @@ type StaticExtra struct {
 type Extra struct {
 	Liquidity        *big.Int               `json:"liquidity"`
 	GlobalState      GlobalState            `json:"globalState"`
-	Ticks            map[int32]Tick         `json:"ticks"`
+	Ticks            []v3Entities.Tick      `json:"ticks"`
 	TickMin          int32                  `json:"tickMin"`
 	TickMax          int32                  `json:"tickMax"`
 	TickSpacing      int32                  `json:"tickSpacing"`
@@ -144,16 +175,11 @@ type FeesAmount struct {
 
 type SwapCalculationCache struct {
 	communityFee          *big.Int // The community fee of the selling token, uint256 to minimize casts
-	crossedAnyTick        bool     // If we have already crossed at least one active tick
 	amountRequiredInitial *big.Int // The initial value of the exact input/output amount
 	amountCalculated      *big.Int // The additive amount of total output/input calculated through the swap
-	// totalFeeGrowthInput   *big.Int // The initial totalFeeGrowth + the fee growth during a swap
-	// totalFeeGrowthOutput  *big.Int // The initial totalFeeGrowth for output token, should not change during swap
-	exactInput          bool   // Whether the exact input or output is specified
-	fee                 uint32 // The current fee value in hundredths of a bip, i.e. 1e-6
-	prevInitializedTick int32  // The previous initialized tick in linked list
-	nextInitializedTick int32  // The next initialized tick in linked list
-	pluginFee           uint32 // The plugin fee
+	exactInput            bool     // Whether the exact input or output is specified
+	fee                   uint32   // The current fee value in hundredths of a bip, i.e. 1e-6
+	pluginFee             uint32   // The plugin fee
 }
 
 type PriceMovementCache struct {
@@ -162,6 +188,9 @@ type PriceMovementCache struct {
 	input         *big.Int // The additive amount of tokens that have been provided
 	output        *big.Int // The additive amount of token that have been withdrawn
 	feeAmount     *big.Int // The total amount of fee earned within a current step
+
+	nextTick    int32 // The tick till the current step goes
+	initialized bool  // True if the _nextTick is initialized
 }
 
 type SwapEventParams struct {

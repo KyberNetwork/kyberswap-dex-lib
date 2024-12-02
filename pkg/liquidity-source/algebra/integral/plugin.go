@@ -2,6 +2,7 @@ package integral
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/KyberNetwork/elastic-go-sdk/v2/utils"
@@ -320,16 +321,6 @@ func (s *TimepointStorage) getOldestIndex(lastIndex uint16) uint16 {
 	return 0
 }
 
-func lteConsideringOverflow(a, b, currentTime uint32) bool {
-	res := a > currentTime
-
-	if res == (b > currentTime) {
-		res = a <= b
-	}
-
-	return res
-}
-
 func createNewTimepoint(last Timepoint, blockTimestamp uint32, tick, averageTick int32, windowStartIndex uint16) Timepoint {
 	delta := blockTimestamp - last.BlockTimestamp
 
@@ -405,7 +396,7 @@ func (s *TimepointStorage) binarySearch(
 ) (beforeOrAt, atOrAfter Timepoint, indexBeforeOrAt *big.Int) {
 	var right *big.Int
 
-	left := big.NewInt(int64(lowerIndex)) // oldest timepoint
+	left := big.NewInt(int64(lowerIndex))
 
 	if upperIndex < lowerIndex {
 		right = big.NewInt(int64(upperIndex) + UINT16_MODULO)
@@ -516,4 +507,182 @@ func calculateFeeFactors(currentTick, lastTick int32, priceChangeFactor uint16) 
 	}
 
 	return feeFactors, nil
+}
+
+func getInputTokenDelta01(to, from, liquidity *big.Int) (*big.Int, error) {
+	return getToken0Delta(to, from, liquidity, true)
+}
+
+func getInputTokenDelta10(to, from, liquidity *big.Int) (*big.Int, error) {
+	return getToken1Delta(from, to, liquidity, true)
+}
+
+func getOutputTokenDelta01(to, from, liquidity *big.Int) (*big.Int, error) {
+	return getToken1Delta(to, from, liquidity, false)
+}
+
+func getOutputTokenDelta10(to, from, liquidity *big.Int) (*big.Int, error) {
+	return getToken0Delta(from, to, liquidity, false)
+}
+
+func getToken0Delta(priceLower, priceUpper, liquidity *big.Int, roundUp bool) (*big.Int, error) {
+	priceDelta := new(big.Int).Sub(priceUpper, priceLower)
+	if priceDelta.Cmp(priceUpper) >= 0 {
+		return nil, errors.New("price delta must be greater than price upper")
+	}
+
+	liquidityShifted := new(big.Int).Lsh(liquidity, RESOLUTION)
+
+	if roundUp {
+		token0Delta, err := unsafeDivRoundingUp(utils.MulDivRoundingUp(priceDelta, liquidityShifted, priceUpper), priceLower)
+		if err != nil {
+			return nil, err
+		}
+
+		return token0Delta, nil
+	} else {
+		mulDivResult, err := mulDiv(priceDelta, liquidityShifted, priceUpper)
+		if err != nil {
+			return nil, err
+		}
+
+		token0Delta := new(big.Int).Div(mulDivResult, priceLower)
+
+		return token0Delta, nil
+	}
+}
+
+func getToken1Delta(priceLower, priceUpper, liquidity *big.Int, roundUp bool) (*big.Int, error) {
+	if priceUpper.Cmp(priceLower) < 0 {
+		return nil, errors.New("price upper must be greater than price lower")
+	}
+
+	priceDelta := new(big.Int).Sub(priceUpper, priceLower)
+
+	if roundUp {
+		return utils.MulDivRoundingUp(priceDelta, liquidity, Q96), nil
+	} else {
+		token1Delta, err := mulDiv(priceDelta, liquidity, Q96)
+		if err != nil {
+			return nil, err
+		}
+
+		return token1Delta, nil
+	}
+}
+
+func getNewPriceAfterInput(price, liquidity, input *big.Int, zeroToOne bool) (*big.Int, error) {
+	return getNewPrice(price, liquidity, input, zeroToOne, true)
+}
+
+func getNewPriceAfterOutput(price, liquidity, output *big.Int, zeroToOne bool) (*big.Int, error) {
+	return getNewPrice(price, liquidity, output, zeroToOne, false)
+}
+
+func getNewPrice(
+	price, liquidity *big.Int,
+	amount *big.Int,
+	zeroToOne, fromInput bool,
+) (*big.Int, error) {
+	if price.Sign() == 0 {
+		return nil, fmt.Errorf("price cannot be zero")
+	}
+	if liquidity.Sign() == 0 {
+		return nil, fmt.Errorf("liquidity cannot be zero")
+	}
+	if amount.Sign() == 0 {
+		return new(big.Int).Set(price), nil
+	}
+
+	liquidityShifted := new(big.Int).Lsh(liquidity, RESOLUTION)
+
+	if zeroToOne == fromInput {
+		if fromInput {
+			product := new(big.Int).Mul(amount, price)
+			if new(big.Int).Div(product, amount).Cmp(price) != 0 {
+				return nil, fmt.Errorf("product overflow")
+			}
+
+			denominator := new(big.Int).Add(liquidityShifted, product)
+			if denominator.Cmp(liquidityShifted) < 0 {
+				return nil, fmt.Errorf("denominator underflow")
+			}
+
+			resultPrice := utils.MulDivRoundingUp(liquidityShifted, price, denominator)
+			if resultPrice.BitLen() > 160 {
+				return nil, fmt.Errorf("resulting price exceeds 160 bits")
+			}
+
+			return resultPrice, nil
+		} else {
+			product := new(big.Int).Mul(amount, price)
+			if new(big.Int).Div(product, amount).Cmp(price) != 0 {
+				return nil, fmt.Errorf("product overflow")
+			}
+			if liquidityShifted.Cmp(product) <= 0 {
+				return nil, fmt.Errorf("denominator underflow")
+			}
+
+			denominator := new(big.Int).Sub(liquidityShifted, product)
+
+			resultPrice := utils.MulDivRoundingUp(liquidityShifted, price, denominator)
+			if resultPrice.BitLen() > 160 {
+				return nil, fmt.Errorf("resulting price exceeds 160 bits")
+			}
+
+			return resultPrice, nil
+		}
+	} else {
+		if fromInput {
+			shiftedAmount := new(big.Int)
+			var err error
+			if amount.Cmp(new(big.Int).Sub(new(big.Int).Lsh(bignumber.One, 160), bignumber.One)) <= 0 {
+				shiftedAmount = new(big.Int).Lsh(amount, RESOLUTION)
+				shiftedAmount.Div(shiftedAmount, liquidity)
+			} else {
+				shiftedAmount, err = mulDiv(amount, new(big.Int).Lsh(bignumber.One, RESOLUTION), liquidity)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			resultPrice := new(big.Int).Add(price, shiftedAmount)
+			if resultPrice.BitLen() > 160 {
+				return nil, fmt.Errorf("resulting price exceeds 160 bits")
+			}
+			return resultPrice, nil
+		} else {
+			var quotient *big.Int
+			var err error
+			if amount.Cmp(new(big.Int).Sub(new(big.Int).Lsh(bignumber.One, 160), bignumber.One)) <= 0 {
+				shiftedAmount := new(big.Int).Lsh(amount, RESOLUTION)
+				quotient, err = unsafeDivRoundingUp(shiftedAmount, liquidity)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				quotient = utils.MulDivRoundingUp(amount, new(big.Int).Lsh(bignumber.One, RESOLUTION), liquidity)
+			}
+
+			if price.Cmp(quotient) <= 0 {
+				return nil, fmt.Errorf("price must be greater than quotient")
+			}
+
+			resultPrice := new(big.Int).Sub(price, quotient)
+			if resultPrice.BitLen() > 160 {
+				return nil, fmt.Errorf("resulting price exceeds 160 bits")
+			}
+			return resultPrice, nil
+		}
+	}
+}
+
+func lteConsideringOverflow(a, b, currentTime uint32) bool {
+	res := a > currentTime
+
+	if res == (b > currentTime) {
+		res = a <= b
+	}
+
+	return res
 }

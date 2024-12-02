@@ -10,6 +10,7 @@ var (
 	erc20ABI               abi.ABI
 	algebraIntegralPoolABI abi.ABI
 	algebraBasePluginV1ABI abi.ABI
+	ticklensABI            abi.ABI
 )
 
 func init() {
@@ -20,6 +21,7 @@ func init() {
 		{&erc20ABI, erc20Json},
 		{&algebraIntegralPoolABI, algebraIntegralPoolJson},
 		{&algebraBasePluginV1ABI, algebraBasePluginV1Json},
+		{&ticklensABI, ticklenJson},
 	}
 
 	for _, b := range builder {
