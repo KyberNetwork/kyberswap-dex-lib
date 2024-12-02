@@ -81,6 +81,8 @@ func (p *PoolSimulator) swap(
 	inventoryLimit *big.Int,
 	priceLevel []PriceLevel,
 ) (*pool.CalcAmountOutResult, error) {
+	// TODO: handle min amountIn
+
 	amountInF, _ := amountIn.Float64()
 	amountInAfterDecimalsF := amountInF / math.Pow10(int(baseToken.Decimals))
 	fillPrice, err := findFillPrice(amountInAfterDecimalsF, priceLevel)
