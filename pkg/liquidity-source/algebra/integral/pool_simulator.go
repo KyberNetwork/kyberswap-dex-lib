@@ -63,7 +63,6 @@ func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator,
 
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &extra); err != nil {
-		log.Fatalln(err)
 		return nil, err
 	}
 
@@ -117,6 +116,96 @@ func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator,
 		dynamicFee:       &extra.DynamicFee,
 		slidingFee:       &extra.SlidingFee,
 		useBasePluginV2:  staticExtra.UseBasePluginV2,
+	}, nil
+}
+
+func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
+	tokenAmountIn := param.TokenAmountIn
+	tokenOut := param.TokenOut
+
+	var (
+		tokenInIndex  = p.GetTokenIndex(tokenAmountIn.Token)
+		tokenOutIndex = p.GetTokenIndex(tokenOut)
+
+		zeroForOne             bool
+		overrideFee, pluginFee uint32
+		err                    error
+	)
+
+	if tokenInIndex < 0 || tokenOutIndex < 0 {
+		return nil, ErrInvalidToken
+	}
+
+	if tokenInIndex == 0 {
+		zeroForOne = true
+	}
+
+	if p.useBasePluginV2 {
+		overrideFee, pluginFee, err = p.beforeSwapV2(zeroForOne)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		overrideFee, pluginFee, err = p.beforeSwapV1()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if !p.globalState.Unlocked {
+		return nil, errors.New("pool has been locked and not usable")
+	}
+
+	priceLimit, err := p.getSqrtPriceLimit(zeroForOne)
+	if err != nil {
+		return nil, err
+	}
+
+	amountRequired := int256.MustFromBig(tokenAmountIn.Amount)
+
+	amount0, amount1, currentPrice, currentTick, currentLiquidity, fees, err := p.calculateSwap(
+		overrideFee, pluginFee, zeroForOne, amountRequired, priceLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	newState := GlobalState{
+		Price:        currentPrice,
+		Tick:         currentTick,
+		LastFee:      p.globalState.LastFee,
+		PluginConfig: p.globalState.PluginConfig,
+		CommunityFee: p.globalState.CommunityFee,
+		Unlocked:     p.globalState.Unlocked,
+	}
+
+	var amountOut *int256.Int
+	if zeroForOne {
+		amountOut = amount1
+		if amount1.Sign() < 0 {
+			amountOut = amount1.Neg(amount1)
+		}
+
+	} else {
+		amountOut = amount0
+		if amount0.Sign() < 0 {
+			amountOut = amount0.Neg(amount0)
+		}
+	}
+
+	return &pool.CalcAmountOutResult{
+		TokenAmountOut: &pool.TokenAmount{
+			Token:  tokenOut,
+			Amount: amountOut.ToBig(),
+		},
+		Fee: &pool.TokenAmount{
+			Token:  param.TokenAmountIn.Token,
+			Amount: new(big.Int).Add(fees.communityFeeAmount.ToBig(), fees.pluginFeeAmount.ToBig()),
+		},
+		Gas: p.gas,
+		SwapInfo: StateUpdate{
+			GlobalState: newState,
+			Liquidity:   currentLiquidity,
+		},
 	}, nil
 }
 
@@ -293,97 +382,6 @@ func (p *PoolSimulator) getAverageVotatilityLast() (*uint256.Int, error) {
 	return votatilityAverage, nil
 }
 
-func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
-	tokenAmountIn := param.TokenAmountIn
-	tokenOut := param.TokenOut
-
-	var (
-		tokenInIndex  = p.GetTokenIndex(tokenAmountIn.Token)
-		tokenOutIndex = p.GetTokenIndex(tokenOut)
-
-		zeroForOne             bool
-		overrideFee, pluginFee uint32
-		err                    error
-	)
-
-	if tokenInIndex < 0 || tokenOutIndex < 0 {
-		return nil, ErrInvalidToken
-	}
-
-	if tokenInIndex == 0 {
-		zeroForOne = true
-	}
-
-	if p.useBasePluginV2 {
-		overrideFee, pluginFee, err = p.beforeSwapV2(zeroForOne)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		overrideFee, pluginFee, err = p.beforeSwapV1()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if !p.globalState.Unlocked {
-		return nil, errors.New("pool has been locked and not usable")
-	}
-
-	priceLimit, err := p.getSqrtPriceLimit(zeroForOne)
-	if err != nil {
-		log.Fatalf("-----------%+v\n", err)
-		return nil, err
-	}
-
-	amountRequired := int256.MustFromBig(tokenAmountIn.Amount)
-
-	amount0, amount1, currentPrice, currentTick, currentLiquidity, fees, err := p.calculateSwap(
-		overrideFee, pluginFee, zeroForOne, amountRequired, priceLimit)
-	if err != nil {
-		log.Fatalf("-----------%+v\n", err)
-		return nil, err
-	}
-
-	newState := GlobalState{
-		Price:        currentPrice,
-		Tick:         currentTick,
-		LastFee:      p.globalState.LastFee,
-		PluginConfig: p.globalState.PluginConfig,
-		CommunityFee: p.globalState.CommunityFee,
-		Unlocked:     p.globalState.Unlocked,
-	}
-
-	var amountOut *int256.Int
-	if zeroForOne {
-		amountOut = amount1
-		if amount1.Sign() < 0 {
-			amountOut = amount1.Neg(amount1)
-		}
-
-	} else {
-		amountOut = amount0
-		if amount0.Sign() < 0 {
-			amountOut = amount0.Neg(amount0)
-		}
-	}
-
-	return &pool.CalcAmountOutResult{
-		TokenAmountOut: &pool.TokenAmount{
-			Token:  tokenOut,
-			Amount: amountOut.ToBig(),
-		},
-		Fee: &pool.TokenAmount{
-			Token:  param.TokenAmountIn.Token,
-			Amount: new(big.Int).Add(fees.communityFeeAmount.ToBig(), fees.pluginFeeAmount.ToBig()),
-		},
-		SwapInfo: StateUpdate{
-			GlobalState: newState,
-			Liquidity:   currentLiquidity,
-		},
-	}, nil
-}
-
 func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne bool, amountRequired *int256.Int, limitSqrtPrice *uint256.Int) (
 	*int256.Int, *int256.Int, *uint256.Int, int32, *uint256.Int, FeesAmount, error) {
 	if amountRequired.Sign() == 0 {
@@ -395,11 +393,15 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 	}
 
 	var cache SwapCalculationCache
-	var fees FeesAmount
+	var fees = FeesAmount{
+		communityFeeAmount: new(uint256.Int),
+		pluginFeeAmount:    new(uint256.Int),
+	}
 
 	cache.amountRequiredInitial = amountRequired
 	cache.exactInput = amountRequired.Sign() > 0
 	cache.pluginFee = pluginFee
+	cache.amountCalculated = new(int256.Int)
 
 	currentLiquidity := p.liquidity
 
@@ -447,8 +449,18 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 		if err != nil {
 			return nil, nil, nil, 0, nil, FeesAmount{}, err
 		}
-
 		step.nextTick = int32(nextTick)
+
+		if !step.initialized {
+			if zeroToOne {
+				currentTick = step.nextTick - 1
+			} else {
+				currentTick = step.nextTick
+			}
+
+			continue
+		}
+
 		step.stepSqrtPrice = currentPrice
 
 		nextTickPrice, err := utils.GetSqrtRatioAtTick(int(step.nextTick))
@@ -462,10 +474,14 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 			targetPrice = limitSqrtPrice
 		}
 
+		log.Printf("--------\nBEFORE: %+v\n", currentPrice)
+
 		currentPrice, step.input, step.output, step.feeAmount, err = movePriceTowardsTarget(zeroToOne, currentPrice, targetPrice, currentLiquidity, amountRequired, cache.fee)
 		if err != nil {
 			return nil, nil, nil, 0, nil, FeesAmount{}, err
 		}
+
+		log.Printf("--------\nAFTER: %+v\n", currentPrice)
 
 		output, err := ToInt256(step.output)
 		if err != nil {
@@ -506,33 +522,24 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 		}
 
 		if currentPrice.Cmp(step.nextTickPrice) == 0 {
-			if step.initialized {
-				tickData, err := p.ticks.GetTick(int(step.nextTick))
-				if err != nil {
-					return nil, nil, nil, 0, nil, FeesAmount{}, err
-				}
-
-				liquidityNet := int256.MustFromBig(tickData.LiquidityNet)
-
-				var liquidityDelta = new(int256.Int)
-				if zeroToOne {
-					liquidityDelta = liquidityDelta.Neg(liquidityNet)
-				} else {
-					liquidityDelta = liquidityNet
-				}
-
-				currentLiquidity, err = addDelta(currentLiquidity, liquidityDelta)
-				if err != nil {
-					return nil, nil, nil, 0, nil, FeesAmount{}, err
-				}
+			tickData, err := p.ticks.GetTick(int(step.nextTick))
+			if err != nil {
+				return nil, nil, nil, 0, nil, FeesAmount{}, err
 			}
 
+			liquidityNet := int256.MustFromBig(tickData.LiquidityNet)
+
+			var liquidityDelta = new(int256.Int)
 			if zeroToOne {
-				currentTick = step.nextTick - 1
+				liquidityDelta = liquidityDelta.Neg(liquidityNet)
 			} else {
-				currentTick = step.nextTick
+				liquidityDelta = liquidityNet
 			}
 
+			currentLiquidity, err = addDelta(currentLiquidity, liquidityDelta)
+			if err != nil {
+				return nil, nil, nil, 0, nil, FeesAmount{}, err
+			}
 		} else if currentPrice.Cmp(step.stepSqrtPrice) != 0 {
 			currentTickInt, err := utils.GetTickAtSqrtRatio(currentPrice.ToBig())
 			if err != nil {

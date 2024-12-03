@@ -55,7 +55,7 @@ func ToUInt256(x *int256.Int) (*uint256.Int, error) {
 }
 
 func ToInt256(x *uint256.Int) (*int256.Int, error) {
-	var res *int256.Int
+	var res = new(int256.Int)
 	if err := v3Utils.ToInt256(x, res); err != nil {
 		return nil, err
 	}
