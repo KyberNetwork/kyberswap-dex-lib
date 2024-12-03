@@ -1,9 +1,11 @@
 package integral
 
 import (
+	"encoding/json"
 	"math/big"
 	"testing"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	v3Entities "github.com/daoleno/uniswapv3-sdk/entities"
 	"github.com/holiman/uint256"
@@ -456,4 +458,24 @@ func TestCalcAmountOut(t *testing.T) {
 			}
 		})
 	}
+}
+
+var mockPool = []byte(`{"address":"0xbe9c1d237d002c8d9402f30c16ace1436d008f0c","exchange":"silverswap","type":"algebra-integral","timestamp":1733225338,"reserves":["9999999999999944","2620057588865"],"tokens":[{"address":"0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83","name":"Wrapped Fantom","symbol":"WFTM","decimals":18,"weight":50,"swappable":true},{"address":"0xfe7eda5f2c56160d406869a8aa4b2f365d544c7b","name":"Axelar Wrapped ETH","symbol":"axlETH","decimals":18,"weight":50,"swappable":true}],"extra":"{\"liquidity\":161865919478591,\"globalState\":{\"price\":\"1282433937397070526017841373\",\"tick\":82476,\"lastFee\":100,\"pluginConfig\":193,\"communityFee\":100,\"unlocked\":true},\"ticks\":[{\"Index\":-887220,\"LiquidityGross\":161865919478591,\"LiquidityNet\":161865919478591},{\"Index\":887220,\"LiquidityGross\":161865919478591,\"LiquidityNet\":-161865919478591}],\"tickSpacing\":60,\"timepoints\":{\"0\":{\"Initialized\":true,\"BlockTimestamp\":1712116096,\"TickCumulative\":0,\"VolatilityCumulative\":\"0\",\"Tick\":-82476,\"AverageTick\":-82476,\"WindowStartIndex\":0},\"1\":{\"Initialized\":false,\"BlockTimestamp\":0,\"TickCumulative\":0,\"VolatilityCumulative\":\"0\",\"Tick\":0,\"AverageTick\":0,\"WindowStartIndex\":0},\"2\":{\"Initialized\":false,\"BlockTimestamp\":0,\"TickCumulative\":0,\"VolatilityCumulative\":\"0\",\"Tick\":0,\"AverageTick\":0,\"WindowStartIndex\":0},\"65535\":{\"Initialized\":false,\"BlockTimestamp\":0,\"TickCumulative\":0,\"VolatilityCumulative\":\"0\",\"Tick\":0,\"AverageTick\":0,\"WindowStartIndex\":0}},\"votalityOracle\":{\"TimepointIndex\":0,\"LastTimepointTimestamp\":1712116096,\"IsInitialized\":true},\"slidingFee\":{\"FeeFactors\":{\"ZeroToOneFeeFactor\":null,\"OneToZeroFeeFactor\":null}},\"dynamicFee\":{\"FeeConfig\":{\"alpha1\":2900,\"alpha2\":12000,\"beta1\":360,\"beta2\":60000,\"gamma1\":59,\"gamma2\":8500,\"volumeBeta\":0,\"volumeGamma\":0,\"baseFee\":100}}}","staticExtra":"{\"useBasePluginV2\":false}","blockNumber":99019509}`)
+
+func TestCalcAmountOut_FromPool(t *testing.T) {
+	var p entity.Pool
+	err := json.Unmarshal(mockPool, &p)
+	require.NoError(t, err)
+
+	ps, err := NewPoolSimulator(p, 280000)
+	require.NoError(t, err)
+
+	_, err = ps.CalcAmountOut(pool.CalcAmountOutParams{
+		TokenAmountIn: pool.TokenAmount{
+			Token:  "0xfe7eda5f2c56160d406869a8aa4b2f365d544c7b",
+			Amount: big.NewInt(1000000000000000000),
+		},
+		TokenOut: "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+	})
+	require.NoError(t, err)
 }

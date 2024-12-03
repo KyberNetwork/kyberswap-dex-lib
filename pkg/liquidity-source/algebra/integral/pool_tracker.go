@@ -61,14 +61,6 @@ func (d *PoolTracker) GetNewPoolState(
 		poolTicks []TickResp
 	)
 
-	blockNumber, err := d.ethrpcClient.GetBlockNumber(ctx)
-	if err != nil {
-		l.WithFields(logger.Fields{
-			"error": err,
-		}).Error("failed to get block number")
-		return entity.Pool{}, err
-	}
-
 	g := pool.New().WithContext(ctx)
 	g.Go(func(context.Context) error {
 		var err error
@@ -77,7 +69,6 @@ func (d *PoolTracker) GetNewPoolState(
 			l.WithFields(logger.Fields{
 				"error": err,
 			}).Error("failed to fetch data from RPC")
-
 		}
 
 		return err
@@ -151,6 +142,11 @@ func (d *PoolTracker) GetNewPoolState(
 	p.Reserves = entity.PoolReserves{
 		rpcData.Reserve0.String(),
 		rpcData.Reserve1.String(),
+	}
+
+	var blockNumber uint64
+	if rpcData.BlockNumber != nil {
+		blockNumber = rpcData.BlockNumber.Uint64()
 	}
 	p.BlockNumber = blockNumber
 
@@ -255,6 +251,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 	res.VotatilityOracle = votalityOracleData
 	res.SlidingFee = slidingFeeData
 	res.DynamicFee = dynamicFeeData
+	res.BlockNumber = result.BlockNumber
 
 	return res, nil
 }

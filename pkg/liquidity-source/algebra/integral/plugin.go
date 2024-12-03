@@ -649,8 +649,10 @@ func getNewPrice(
 		}
 	} else {
 		if fromInput {
-			shiftedAmount := new(uint256.Int)
-			var err error
+			var (
+				shiftedAmount = new(uint256.Int)
+				err           error
+			)
 			if amount.Cmp(new(uint256.Int).Sub(new(uint256.Int).Lsh(uONE, 160), uONE)) <= 0 {
 				shiftedAmount = new(uint256.Int).Lsh(amount, RESOLUTION)
 				shiftedAmount.Div(shiftedAmount, liquidity)
@@ -667,8 +669,10 @@ func getNewPrice(
 			}
 			return resultPrice, nil
 		} else {
-			var quotient *uint256.Int
-			var err error
+			var (
+				quotient *uint256.Int
+				err      error
+			)
 			if amount.Cmp(new(uint256.Int).Sub(new(uint256.Int).Lsh(uONE, 160), uONE)) <= 0 {
 				shiftedAmount := new(uint256.Int).Lsh(amount, RESOLUTION)
 				quotient, err = unsafeDivRoundingUp(shiftedAmount, liquidity)
@@ -678,9 +682,7 @@ func getNewPrice(
 			} else {
 				quotient, err = v3Utils.MulDivRoundingUp(amount, new(uint256.Int).Lsh(uONE, RESOLUTION), liquidity)
 				if err != nil {
-					if err != nil {
-						return nil, err
-					}
+					return nil, err
 				}
 			}
 

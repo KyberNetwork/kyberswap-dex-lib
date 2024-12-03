@@ -109,6 +109,7 @@ type FetchRPCResult struct {
 	VotatilityOracle VotatilityOraclePlugin
 	SlidingFee       SlidingFeePlugin
 	DynamicFee       DynamicFeePlugin
+	BlockNumber      *big.Int
 }
 
 type Timepoint struct {

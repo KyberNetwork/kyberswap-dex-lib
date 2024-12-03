@@ -92,13 +92,14 @@ func NewPoolSimulator(entityPool entity.Pool, defaultGas int64) (*PoolSimulator,
 	tickMax := extra.Ticks[len(extra.Ticks)-1].Index
 
 	var info = pool.PoolInfo{
-		Address:    strings.ToLower(entityPool.Address),
-		ReserveUsd: entityPool.ReserveUsd,
-		Exchange:   entityPool.Exchange,
-		Type:       entityPool.Type,
-		Tokens:     tokens,
-		Reserves:   reserves,
-		Checked:    false,
+		Address:     strings.ToLower(entityPool.Address),
+		ReserveUsd:  entityPool.ReserveUsd,
+		Exchange:    entityPool.Exchange,
+		Type:        entityPool.Type,
+		Tokens:      tokens,
+		Reserves:    reserves,
+		Checked:     false,
+		BlockNumber: entityPool.BlockNumber,
 	}
 
 	return &PoolSimulator{
