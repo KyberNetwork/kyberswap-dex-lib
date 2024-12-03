@@ -178,11 +178,11 @@ func TestUpdateBalance(t *testing.T) {
 				Token:  tc.tokenIn,
 				Amount: bignumber.NewBig10(tc.amountIn),
 			}
+			cloned := sim.CloneState()
 			result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
 				return sim.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.tokenOut,
-					Limit:         nil,
 				})
 			})
 			require.Nil(t, err)
@@ -195,6 +195,25 @@ func TestUpdateBalance(t *testing.T) {
 				SwapInfo:       result.SwapInfo,
 			}
 			sim.UpdateBalance(updateBalanceParams)
+
+			resultAfterUpdate, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return sim.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: in,
+					TokenOut:      tc.tokenOut,
+				})
+			})
+			if err == nil {
+				require.NotEqual(t, result.TokenAmountOut.Amount.String(), resultAfterUpdate.TokenAmountOut.Amount.String())
+			}
+
+			resultOfCloned, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return cloned.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: in,
+					TokenOut:      tc.tokenOut,
+				})
+			})
+			require.Nil(t, err)
+			require.Equal(t, tc.expAmountOut, resultOfCloned.TokenAmountOut.Amount.String())
 		})
 	}
 }
@@ -234,7 +253,6 @@ func TestUpdateBalanceNextTick(t *testing.T) {
 				return sim.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.tokenOut,
-					Limit:         nil,
 				})
 			})
 			require.Nil(t, err)
@@ -289,7 +307,6 @@ func TestNextActive(t *testing.T) {
 			result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: in,
 				TokenOut:      tc.tokenOut,
-				Limit:         nil,
 			})
 			require.Nil(t, err)
 			assert.Equal(t, tc.expAmountOut, result.TokenAmountOut.Amount.String())
@@ -353,7 +370,6 @@ func TestGas(t *testing.T) {
 			result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: in,
 				TokenOut:      tc.tokenOut,
-				Limit:         nil,
 			})
 			require.Nil(t, err)
 
