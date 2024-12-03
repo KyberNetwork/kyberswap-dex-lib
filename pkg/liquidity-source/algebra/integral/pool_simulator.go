@@ -3,7 +3,6 @@ package integral
 import (
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"strings"
 	"time"
@@ -474,14 +473,10 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 			targetPrice = limitSqrtPrice
 		}
 
-		log.Printf("--------\nBEFORE: %+v\n", currentPrice)
-
 		currentPrice, step.input, step.output, step.feeAmount, err = movePriceTowardsTarget(zeroToOne, currentPrice, targetPrice, currentLiquidity, amountRequired, cache.fee)
 		if err != nil {
 			return nil, nil, nil, 0, nil, FeesAmount{}, err
 		}
-
-		log.Printf("--------\nAFTER: %+v\n", currentPrice)
 
 		output, err := ToInt256(step.output)
 		if err != nil {
