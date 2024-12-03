@@ -136,10 +136,14 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 		expectedErr                  error
 	}{
 		{
+			name:        "amountIn is less than lowest price level",
+			amountIn0:   bignumber.NewBig("10000000000000000"),
+			expectedErr: ErrAmountInIsLessThanLowestPriceLevel,
+		},
+		{
 			name:      "fill token0",
-			amountIn0: bignumber.NewBig("10000000000000000"),
+			amountIn0: bignumber.NewBig("719000000000000000"),
 			expectedZeroToOnePriceLevels: []PriceLevel{
-				{Size: 0.709, Price: 3347.4385889037885},
 				{Size: 0.015, Price: 3347.141106167435},
 				{Size: 0.012, Price: 3347.131414506469},
 				{Size: 0.015, Price: 3347.1120311845366},
