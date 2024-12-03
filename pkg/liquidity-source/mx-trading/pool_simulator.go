@@ -16,6 +16,7 @@ import (
 
 var (
 	ErrEmptyPriceLevels                    = errors.New("empty price levels")
+	ErrAmountInIsLessThanLowestPriceLevel  = errors.New("amountIn is less than lowest price level")
 	ErrAmountInIsGreaterThanTotalLevelSize = errors.New("amountIn is greater than total level size")
 	ErrAmountOutIsGreaterThanInventory     = errors.New("amountOut is greater than inventory")
 )
@@ -81,8 +82,6 @@ func (p *PoolSimulator) swap(
 	inventoryLimit *big.Int,
 	priceLevel []PriceLevel,
 ) (*pool.CalcAmountOutResult, error) {
-	// TODO: handle min amountIn
-
 	amountInF, _ := amountIn.Float64()
 	amountInAfterDecimalsF := amountInF / math.Pow10(int(baseToken.Decimals))
 	fillPrice, err := findFillPrice(amountInAfterDecimalsF, priceLevel)
@@ -151,6 +150,10 @@ func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 func findFillPrice(amountInF float64, levels []PriceLevel) (float64, error) {
 	if len(levels) == 0 {
 		return 0, ErrEmptyPriceLevels
+	}
+
+	if amountInF < levels[0].Size {
+		return 0, ErrAmountInIsLessThanLowestPriceLevel
 	}
 
 	var sizeFilled, price float64
