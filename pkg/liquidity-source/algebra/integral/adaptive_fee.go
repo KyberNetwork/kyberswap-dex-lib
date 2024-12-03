@@ -83,17 +83,17 @@ func expXg4(x *uint256.Int, g uint16, gHighestDegree *uint256.Int) *uint256.Int 
 	xdg := new(uint256.Int).Div(x, gBig)
 	switch xdg.Uint64() {
 	case 0:
-		closestValue = CLOSEST_VALUE_0
+		closestValue = uint256.MustFromBig(CLOSEST_VALUE_0)
 	case 1:
-		closestValue = CLOSEST_VALUE_1
+		closestValue = uint256.MustFromBig(CLOSEST_VALUE_1)
 	case 2:
-		closestValue = CLOSEST_VALUE_2
+		closestValue = uint256.MustFromBig(CLOSEST_VALUE_2)
 	case 3:
-		closestValue = CLOSEST_VALUE_3
+		closestValue = uint256.MustFromBig(CLOSEST_VALUE_3)
 	case 4:
-		closestValue = CLOSEST_VALUE_4
+		closestValue = uint256.MustFromBig(CLOSEST_VALUE_4)
 	default:
-		closestValue = CLOSEST_VALUE_DEFAULT
+		closestValue = uint256.MustFromBig(CLOSEST_VALUE_DEFAULT)
 	}
 
 	x.Mod(x, gBig)
@@ -102,7 +102,7 @@ func expXg4(x *uint256.Int, g uint16, gHighestDegree *uint256.Int) *uint256.Int 
 	if x.Cmp(gDiv2) >= 0 {
 		// (x - closestValue) >= 0.5, so closestValue := closestValue * e^0.5
 		x.Sub(x, gDiv2)
-		closestValue.Mul(closestValue, E_HALF_MULTIPLIER).Div(closestValue, E_MULTIPLIER_BIG)
+		closestValue.Mul(closestValue, uint256.MustFromBig(E_HALF_MULTIPLIER)).Div(closestValue, uint256.MustFromBig(E_MULTIPLIER_BIG))
 	}
 
 	// After calculating the closestValue x/g is <= 0.5, so that the series in the neighborhood of zero converges with sufficient speed
@@ -129,7 +129,7 @@ func expXg4(x *uint256.Int, g uint16, gHighestDegree *uint256.Int) *uint256.Int 
 		uTWENTYFOUR,
 	))
 
-	res.Mul(res, closestValue).Div(res, E_MULTIPLIER_BIG)
+	res.Mul(res, closestValue).Div(res, uint256.MustFromBig(E_MULTIPLIER_BIG))
 
 	return res
 }

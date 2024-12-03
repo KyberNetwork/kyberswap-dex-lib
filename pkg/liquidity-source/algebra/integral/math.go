@@ -24,24 +24,27 @@ func unsafeDivRoundingUp(x, y *uint256.Int) (*uint256.Int, error) {
 }
 
 func addDelta(x *uint256.Int, y *int256.Int) (*uint256.Int, error) {
-	uY, err := ToUInt256(y)
-	if err != nil {
-		return nil, err
-	}
-
-	var res *uint256.Int
-	if y.Sign() < 0 {
-		res := new(uint256.Int).Sub(x, uY.Neg(uY))
-		if res.Cmp(x) >= 0 {
-			return nil, ErrLiquiditySub
+	if y.Sign() >= 0 {
+		uY, err := ToUInt256(y)
+		if err != nil {
+			return nil, err
 		}
-	} else {
 		res := new(uint256.Int).Add(x, uY)
 		if res.Cmp(x) < 0 {
 			return nil, ErrLiquidityAdd
 		}
+		return res, nil
 	}
 
+	uY, err := ToUInt256(new(int256.Int).Neg(y))
+	if err != nil {
+		return nil, err
+	}
+
+	res := new(uint256.Int).Sub(x, uY)
+	if res.Cmp(x) >= 0 {
+		return nil, ErrLiquiditySub
+	}
 	return res, nil
 }
 

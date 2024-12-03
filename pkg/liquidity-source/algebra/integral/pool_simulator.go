@@ -179,16 +179,13 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 	var amountOut *int256.Int
 	if zeroForOne {
-		amountOut = amount1
-		if amount1.Sign() < 0 {
-			amountOut = amount1.Neg(amount1)
-		}
-
+		amountOut = new(int256.Int).Neg(amount1)
 	} else {
-		amountOut = amount0
-		if amount0.Sign() < 0 {
-			amountOut = amount0.Neg(amount0)
-		}
+		amountOut = new(int256.Int).Neg(amount0)
+	}
+
+	if amountOut.Cmp(ZERO) == 0 {
+		return nil, ErrZeroAmountOut
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -426,11 +423,11 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 	}
 
 	if zeroToOne {
-		if limitSqrtPrice.Cmp(currentPrice) >= 0 || limitSqrtPrice.Cmp(MIN_SQRT_RATIO) <= 0 {
+		if limitSqrtPrice.Cmp(currentPrice) >= 0 || limitSqrtPrice.Cmp(uint256.MustFromBig(MIN_SQRT_RATIO)) <= 0 {
 			return nil, nil, nil, 0, nil, FeesAmount{}, ErrInvalidLimitSqrtPrice
 		}
 	} else {
-		if limitSqrtPrice.Cmp(currentPrice) <= 0 || limitSqrtPrice.Cmp(MAX_SQRT_RATIO) >= 0 {
+		if limitSqrtPrice.Cmp(currentPrice) <= 0 || limitSqrtPrice.Cmp(uint256.MustFromBig(MAX_SQRT_RATIO)) >= 0 {
 			return nil, nil, nil, 0, nil, FeesAmount{}, ErrInvalidLimitSqrtPrice
 		}
 	}

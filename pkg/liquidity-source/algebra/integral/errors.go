@@ -9,6 +9,7 @@ var (
 	ErrTickNil         = errors.New("tick is nil")
 	ErrTicksEmpty      = errors.New("ticks list is empty")
 	ErrInvalidToken    = errors.New("invalid token info")
+	ErrZeroAmountOut   = errors.New("amountOut is 0")
 
 	ErrNotSupportFetchFullTick = errors.New("not support fetching full ticks")
 
