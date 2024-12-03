@@ -20,9 +20,8 @@ func getFee(
 		sigmoid(volatility, config.Gamma2, config.Alpha2, big.NewInt(int64(config.Beta2)))
 
 	// safe since alpha1 + alpha2 + baseFee _must_ be <= type(uint16).max
-	return uint16(config.BaseFee +
-		sigmoid(volumePerLiquidity, config.VolumeGamma, uint16(sumOfSigmoids), big.NewInt(int64(config.VolumeBeta))),
-	)
+	return config.BaseFee +
+		sigmoid(volumePerLiquidity, config.VolumeGamma, sumOfSigmoids, big.NewInt(int64(config.VolumeBeta)))
 }
 
 // / @notice calculates α / (1 + e^( (β-x) / γ))

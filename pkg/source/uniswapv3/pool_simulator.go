@@ -17,6 +17,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 )
 
@@ -278,16 +279,12 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 }
 
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
 	v3Pool := *p.V3Pool
 	v3Pool.SqrtRatioX96 = v3Pool.SqrtRatioX96.Clone()
 	v3Pool.Liquidity = v3Pool.Liquidity.Clone()
-	return &PoolSimulator{
-		V3Pool:  &v3Pool,
-		Pool:    p.Pool,
-		gas:     p.gas,
-		tickMin: p.tickMin,
-		tickMax: p.tickMax,
-	}
+	cloned.V3Pool = &v3Pool
+	return &cloned
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
@@ -307,6 +304,6 @@ func (p *PoolSimulator) GetMetaInfo(tokenIn string, _ string) interface{} {
 	_ = p.getSqrtPriceLimit(zeroForOne, &priceLimit)
 	return PoolMeta{
 		BlockNumber: p.Pool.Info.BlockNumber,
-		PriceLimit:  priceLimit.ToBig(),
+		PriceLimit:  bignumber.CapPriceLimit(priceLimit.ToBig()),
 	}
 }

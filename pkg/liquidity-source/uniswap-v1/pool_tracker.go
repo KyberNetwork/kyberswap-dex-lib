@@ -3,17 +3,16 @@ package uniswapv1
 import (
 	"context"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
-	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 )
 
 type PoolTracker struct {
@@ -120,7 +119,7 @@ func (d *PoolTracker) getReserves(
 	}
 
 	for i, token := range tokens {
-		if strings.EqualFold(token.Address, valueobject.WETHByChainID[d.config.ChainID]) {
+		if valueobject.IsWETH(token.Address, d.config.ChainID) {
 			req.AddCall(&ethrpc.Call{
 				ABI:    multicallABI,
 				Target: d.config.MulticallContractAddress,

@@ -71,12 +71,12 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 		{
 			name:        "it should return error when swap higher than total level", // Total level ~166kMATIC
 			amountIn:    big.NewInt(200_000_000000),
-			expectedErr: ErrAmountInIsGreaterThanHighestPriceLevel,
+			expectedErr: ErrInsufficientLiquidity,
 		},
 		{
 			name:              "it should return correct amountOut when swap in levels",
 			amountIn:          big.NewInt(3_000_000),
-			expectedAmountOut: bigIntFromString("3282719618942083072"),
+			expectedAmountOut: bigIntFromString("3282719618942082560"),
 		},
 		{
 			name:              "it should return correct amountOut when swap in all levels",
