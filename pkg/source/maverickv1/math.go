@@ -628,6 +628,8 @@ func adjustAB(bin *Bin, delta *Delta, thisBinAmount, totalAmount, activeTick *bi
 		deltaOut, err = mulDiv(delta.DeltaOutErc, thisBinAmount, totalAmount, true)
 		if err != nil {
 			return err
+		} else if deltaOut.Sign() == 0 {
+			return ErrInvalidDeltaOut
 		}
 	}
 
