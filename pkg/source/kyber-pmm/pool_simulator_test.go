@@ -101,6 +101,90 @@ func TestPoolSimulator_getAmountOut(t *testing.T) {
 	}
 }
 
+func TestPoolSimulator_getAmountIn(t *testing.T) {
+	type args struct {
+		amountOut   *big.Float
+		priceLevels []PriceLevel
+	}
+	tests := []struct {
+		name             string
+		args             args
+		expectedAmountIn *big.Float
+		expectedErr      error
+	}{
+		{
+			name: "it should return error when price levels is empty",
+			args: args{
+				amountOut:   new(big.Float).SetFloat64(1),
+				priceLevels: []PriceLevel{},
+			},
+			expectedAmountIn: nil,
+			expectedErr:      ErrEmptyPriceLevels,
+		},
+		{
+			name: "it should return insufficient liquidity error when the requested amount is greater than available amount in price levels",
+			args: args{
+				amountOut: new(big.Float).SetFloat64(200),
+				priceLevels: []PriceLevel{
+					{
+						Price:  100,
+						Amount: 1,
+					},
+					{
+						Price:  99,
+						Amount: 1,
+					},
+				},
+			},
+			expectedAmountIn: nil,
+			expectedErr:      ErrInsufficientLiquidity,
+		},
+		{
+			name: "it should return correct amount in when fully filled",
+			args: args{
+				amountOut: new(big.Float).SetFloat64(100),
+				priceLevels: []PriceLevel{
+					{
+						Price:  100,
+						Amount: 1,
+					},
+				},
+			},
+			expectedAmountIn: new(big.Float).SetFloat64(1),
+		},
+		{
+			name: "it should return correct amount in when partially filled",
+			args: args{
+				amountOut: new(big.Float).SetFloat64(199),
+				priceLevels: []PriceLevel{
+					{
+						Price:  100,
+						Amount: 1,
+					},
+					{
+						Price:  99,
+						Amount: 2,
+					},
+				},
+			},
+			expectedAmountIn: new(big.Float).SetFloat64(2),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			amountIn, err := testutil.MustConcurrentSafe[*big.Float](t, func() (any, error) {
+				return getAmountIn(tt.args.amountOut, tt.args.priceLevels)
+			})
+			assert.Equal(t, tt.expectedErr, err)
+
+			if amountIn != nil {
+				assert.Equal(t, tt.expectedAmountIn, amountIn)
+			}
+		})
+	}
+}
+
 func TestPoolSimulator_getNewPriceLevelsState(t *testing.T) {
 	type args struct {
 		amountIn    *big.Float

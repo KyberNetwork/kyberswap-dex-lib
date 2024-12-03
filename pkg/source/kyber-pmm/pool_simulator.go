@@ -158,6 +158,62 @@ func (p *PoolSimulator) CalcAmountOut(
 	}, nil
 }
 
+func (p *PoolSimulator) CalcAmountIn(
+	param pool.CalcAmountInParams,
+) (result *pool.CalcAmountInResult, err error) {
+	if param.Limit == nil {
+		return nil, ErrNoSwapLimit
+	}
+
+	var (
+		tokenAmountOut = param.TokenAmountOut
+		tokenIn        = param.TokenIn
+		limit          = param.Limit
+	)
+
+	priceLevels := p.baseToQuotePriceLevels
+	inToken, outToken := p.baseToken, p.quoteToken
+	if strings.EqualFold(tokenIn, p.quoteToken.Address) {
+		priceLevels = p.quoteToBasePriceLevels
+		inToken, outToken = p.quoteToken, p.baseToken
+	}
+
+	swapped := limit.GetSwapped()
+	swappedAmount, ok := swapped[inToken.Address]
+	if ok && swappedAmount.Sign() > 0 {
+		swappedAmountAfterDecimals := amountAfterDecimals(swappedAmount, inToken.Decimals)
+		priceLevels = getNewPriceLevelsState(swappedAmountAfterDecimals, priceLevels)
+	}
+
+	amountOutAfterDecimals := amountAfterDecimals(tokenAmountOut.Amount, outToken.Decimals)
+	amountInAfterDecimals, err := getAmountIn(amountOutAfterDecimals, priceLevels)
+	if err != nil {
+		return nil, err
+	}
+	amountIn, _ := amountInAfterDecimals.Mul(
+		amountInAfterDecimals,
+		bignumber.TenPowDecimals(inToken.Decimals),
+	).Int(nil)
+
+	inventoryLimitIn := limit.GetLimit(inToken.Address)
+
+	if amountIn.Cmp(inventoryLimitIn) > 0 {
+		return nil, errors.New("not enough inventory in")
+	}
+
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{Token: tokenIn, Amount: amountIn},
+		Fee:           &pool.TokenAmount{Token: tokenIn, Amount: bignumber.ZeroBI},
+		Gas:           p.gas.Swap,
+		SwapInfo: SwapExtra{
+			TakerAsset:   tokenIn,
+			TakingAmount: amountIn.String(),
+			MakerAsset:   tokenAmountOut.Token,
+			MakingAmount: tokenAmountOut.Amount.String(),
+		},
+	}, nil
+}
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	_, _, err := params.SwapLimit.UpdateLimit(params.TokenAmountOut.Token,
 		params.TokenAmountIn.Token, params.TokenAmountOut.Amount, params.TokenAmountIn.Amount)
@@ -208,6 +264,44 @@ func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel) (*big.Float, er
 	}
 
 	return amountOut, nil
+}
+
+func getAmountIn(amountOut *big.Float, priceLevels []PriceLevel) (*big.Float, error) {
+	if len(priceLevels) == 0 {
+		return nil, ErrEmptyPriceLevels
+	}
+
+	var availableAmountBF big.Float
+	availableAmountBF.SetFloat64(lo.SumBy(priceLevels, func(priceLevel PriceLevel) float64 {
+		return priceLevel.Amount * priceLevel.Price
+	}))
+
+	if amountOut.Cmp(&availableAmountBF) > 0 {
+		return nil, ErrInsufficientLiquidity
+	}
+
+	amountIn := new(big.Float)
+	amountOutLeft := availableAmountBF.Set(amountOut)
+	var tmp, price big.Float
+	for _, priceLevel := range priceLevels {
+		swappableAmount := tmp.SetFloat64(priceLevel.Amount * priceLevel.Price)
+		if swappableAmount.Cmp(amountOutLeft) > 0 {
+			swappableAmount = amountOutLeft
+		}
+
+		amountIn = amountIn.Add(
+			amountIn,
+			price.Quo(swappableAmount, price.SetFloat64(priceLevel.Price)),
+		)
+
+		if amountOutLeft.Cmp(swappableAmount) == 0 {
+			break
+		}
+
+		amountOutLeft = amountOutLeft.Sub(amountOutLeft, swappableAmount)
+	}
+
+	return amountIn, nil
 }
 
 func getNewPriceLevelsState(amountIn *big.Float, priceLevels []PriceLevel) []PriceLevel {
