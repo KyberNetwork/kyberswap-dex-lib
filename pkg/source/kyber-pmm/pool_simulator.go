@@ -142,7 +142,7 @@ func (p *PoolSimulator) CalcAmountOut(
 	// 	return nil, errors.New("not enough inventory in")
 	// }
 	if amountOut.Cmp(inventoryLimitOut) > 0 {
-		return nil, errors.New("not enough inventory out")
+		return nil, ErrNotEnoughInventoryOut
 	}
 
 	return &pool.CalcAmountOutResult{
@@ -178,6 +178,11 @@ func (p *PoolSimulator) CalcAmountIn(
 		inToken, outToken = p.quoteToken, p.baseToken
 	}
 
+	inventoryLimitOut := limit.GetLimit(outToken.Address)
+	if tokenAmountOut.Amount.Cmp(inventoryLimitOut) > 0 {
+		return nil, ErrNotEnoughInventoryOut
+	}
+
 	swapped := limit.GetSwapped()
 	swappedAmount, ok := swapped[inToken.Address]
 	if ok && swappedAmount.Sign() > 0 {
@@ -196,9 +201,8 @@ func (p *PoolSimulator) CalcAmountIn(
 	).Int(nil)
 
 	inventoryLimitIn := limit.GetLimit(inToken.Address)
-
 	if amountIn.Cmp(inventoryLimitIn) > 0 {
-		return nil, errors.New("not enough inventory in")
+		return nil, ErrNotEnoughInventoryIn
 	}
 
 	return &pool.CalcAmountInResult{
