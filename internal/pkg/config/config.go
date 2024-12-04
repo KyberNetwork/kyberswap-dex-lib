@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"os"
 
 	"github.com/KyberNetwork/aggregator-encoding/pkg/encode"
 	"github.com/ethereum/go-ethereum/common"
@@ -22,6 +23,8 @@ var (
 	ErrNoExecutorAddress  = errors.New("no aggregation executor address")
 	ErrZeroAEVMFakeWallet = errors.New("zero AEVM fake wallet")
 	ErrMissingAEVMConfigs = errors.New("missing AEVM configs")
+
+	forceDisableAEVM = os.Getenv("FORCE_DISABLE_AEVM") != ""
 )
 
 type Config struct {

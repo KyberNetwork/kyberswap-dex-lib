@@ -257,10 +257,10 @@ func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
 	cl.config.UseCase.BuildRoute.FeatureFlags = featureFlags
 	cl.config.Validator.BuildRouteParams.FeatureFlags = featureFlags
 	cl.config.Validator.GetRouteEncodeParams.FeatureFlags = featureFlags
-	cl.config.AEVMEnabled = featureFlags.IsAEVMEnabled
-	cl.config.UseCase.PoolFactory.UseAEVM = featureFlags.IsAEVMEnabled
+	cl.config.AEVMEnabled = featureFlags.IsAEVMEnabled && !forceDisableAEVM
+	cl.config.UseCase.PoolFactory.UseAEVM = cl.config.AEVMEnabled
 	cl.config.UseCase.PoolManager.FeatureFlags = featureFlags
-	cl.config.UseCase.TradeDataGenerator.UseAEVM = featureFlags.IsAEVMEnabled
+	cl.config.UseCase.TradeDataGenerator.UseAEVM = cl.config.AEVMEnabled
 }
 
 func (cl *ConfigLoader) setLog(log valueobject.Log) {
