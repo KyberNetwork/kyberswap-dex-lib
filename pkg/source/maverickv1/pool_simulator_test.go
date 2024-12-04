@@ -187,6 +187,14 @@ func TestUpdateBalance(t *testing.T) {
 			})
 			require.Nil(t, err)
 			require.Equal(t, tc.expAmountOut, result.TokenAmountOut.Amount.String())
+			resultBeforeUpdate, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return sim.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: in,
+					TokenOut:      tc.tokenOut,
+				})
+			})
+			require.Nil(t, err)
+			require.Equal(t, result.TokenAmountOut.Amount.String(), resultBeforeUpdate.TokenAmountOut.Amount.String())
 
 			updateBalanceParams := pool.UpdateBalanceParams{
 				TokenAmountIn:  in,

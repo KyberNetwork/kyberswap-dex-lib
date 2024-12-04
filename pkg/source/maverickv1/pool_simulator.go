@@ -273,11 +273,11 @@ func (p *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 
 func (state *MaverickPoolState) Clone() *MaverickPoolState {
 	cloned := *state
-	state.Bins = lo.MapValues(state.Bins, func(bin Bin, _ string) Bin {
+	cloned.Bins = lo.MapValues(state.Bins, func(bin Bin, _ string) Bin {
 		bin.ReserveA = new(big.Int).Set(bin.ReserveA)
 		bin.ReserveB = new(big.Int).Set(bin.ReserveB)
 		return bin
 	})
-	state.ActiveTick = new(big.Int).Set(state.ActiveTick)
+	cloned.ActiveTick = new(big.Int).Set(state.ActiveTick)
 	return &cloned
 }
