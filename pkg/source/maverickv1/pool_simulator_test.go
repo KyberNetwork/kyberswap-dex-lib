@@ -16,350 +16,91 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/testutil"
 )
 
-var maverickPool, err = NewPoolSimulator(entity.Pool{
-	Tokens: []*entity.PoolToken{
-		{
-			Address:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-			Decimals: 6,
-		},
-		{
-			Address:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-			Decimals: 18,
-		},
-	},
-	Reserves: []string{
-		"7448514891591076678798",
-		"4960078724015931105",
-	},
-	Extra:       "{\"fee\":400000000000000,\"protocolFeeRatio\":0,\"activeTick\":379,\"binCounter\":122,\"bins\":{\"1\":{\"reserveA\":17453201008635512394640,\"reserveB\":0,\"lowerTick\":375,\"kind\":0,\"mergeId\":0},\"10\":{\"reserveA\":0,\"reserveB\":632634315831505118,\"lowerTick\":384,\"kind\":0,\"mergeId\":0},\"11\":{\"reserveA\":0,\"reserveB\":568174206788937614,\"lowerTick\":385,\"kind\":0,\"mergeId\":0},\"12\":{\"reserveA\":0,\"reserveB\":0,\"lowerTick\":379,\"kind\":1,\"mergeId\":0},\"13\":{\"reserveA\":0,\"reserveB\":24179624473369718938,\"lowerTick\":384,\"kind\":1,\"mergeId\":0},\"15\":{\"reserveA\":7448514891591076678798,\"reserveB\":4960078724015931105,\"lowerTick\":379,\"kind\":3,\"mergeId\":0},\"16\":{\"reserveA\":1631153083876778654919,\"reserveB\":0,\"lowerTick\":373,\"kind\":0,\"mergeId\":0},\"17\":{\"reserveA\":14604684077518837517486,\"reserveB\":0,\"lowerTick\":374,\"kind\":0,\"mergeId\":0},\"2\":{\"reserveA\":21271280872855300434039,\"reserveB\":0,\"lowerTick\":376,\"kind\":0,\"mergeId\":0},\"23\":{\"reserveA\":0,\"reserveB\":0,\"lowerTick\":379,\"kind\":2,\"mergeId\":0},\"25\":{\"reserveA\":426150857836353291022,\"reserveB\":0,\"lowerTick\":373,\"kind\":2,\"mergeId\":0},\"3\":{\"reserveA\":25965452451154862154091,\"reserveB\":0,\"lowerTick\":377,\"kind\":0,\"mergeId\":0},\"32\":{\"reserveA\":0,\"reserveB\":30757567785565755,\"lowerTick\":386,\"kind\":0,\"mergeId\":0},\"34\":{\"reserveA\":0,\"reserveB\":0,\"lowerTick\":379,\"kind\":3,\"mergeId\":0},\"37\":{\"reserveA\":973003208635914825127,\"reserveB\":0,\"lowerTick\":372,\"kind\":0,\"mergeId\":0},\"4\":{\"reserveA\":22309339486762762891065,\"reserveB\":0,\"lowerTick\":378,\"kind\":0,\"mergeId\":0},\"41\":{\"reserveA\":28773102441950282148,\"reserveB\":0,\"lowerTick\":371,\"kind\":0,\"mergeId\":0},\"47\":{\"reserveA\":596733989717113121,\"reserveB\":0,\"lowerTick\":369,\"kind\":0,\"mergeId\":0},\"48\":{\"reserveA\":993638242463261223,\"reserveB\":0,\"lowerTick\":370,\"kind\":0,\"mergeId\":0},\"5\":{\"reserveA\":9361000987001231865441,\"reserveB\":6233632141023853827,\"lowerTick\":379,\"kind\":0,\"mergeId\":0},\"50\":{\"reserveA\":968206263636201246648,\"reserveB\":0,\"lowerTick\":376,\"kind\":2,\"mergeId\":0},\"53\":{\"reserveA\":2153035881950200782250,\"reserveB\":1433739158145507548,\"lowerTick\":379,\"kind\":2,\"mergeId\":0},\"6\":{\"reserveA\":0,\"reserveB\":10375023547668913537,\"lowerTick\":380,\"kind\":0,\"mergeId\":0},\"7\":{\"reserveA\":0,\"reserveB\":9381324932473456976,\"lowerTick\":381,\"kind\":0,\"mergeId\":0},\"8\":{\"reserveA\":0,\"reserveB\":8271837842446867401,\"lowerTick\":382,\"kind\":0,\"mergeId\":0},\"84\":{\"reserveA\":0,\"reserveB\":821816663509517,\"lowerTick\":387,\"kind\":0,\"mergeId\":0},\"87\":{\"reserveA\":0,\"reserveB\":140916273379942,\"lowerTick\":388,\"kind\":0,\"mergeId\":0},\"9\":{\"reserveA\":0,\"reserveB\":732155171838690157,\"lowerTick\":383,\"kind\":0,\"mergeId\":0}},\"binPositions\":{\"369\":{\"0\":47},\"370\":{\"0\":48},\"371\":{\"0\":41},\"372\":{\"0\":37},\"373\":{\"0\":16,\"2\":25},\"374\":{\"0\":17},\"375\":{\"0\":1},\"376\":{\"0\":2,\"2\":50},\"377\":{\"0\":3},\"378\":{\"0\":4},\"379\":{\"0\":5,\"1\":12,\"2\":53,\"3\":15},\"380\":{\"0\":6},\"381\":{\"0\":7},\"382\":{\"0\":8},\"383\":{\"0\":9},\"384\":{\"0\":10,\"1\":13},\"385\":{\"0\":11},\"386\":{\"0\":32},\"387\":{\"0\":84},\"388\":{\"0\":87}},\"binMap\":{\"5\":7721018714868875516017241010155757617493946277325927722722110067420054945792,\"6\":69907},\"liquidity\":60474424673766490639024,\"sqrtPriceX96\":42792872587486068317}",
-	StaticExtra: "{\"tickSpacing\":198}",
-})
+var (
+	rawPool entity.Pool
+	_ = json.Unmarshal([]byte(`{"address":"0x5bdb08ae195c8f085704582a27d566028a719265","reserveUsd":6125.460669340948,"amplifiedTvl":1.5317046591839606e+36,"swapFee":0.0002,"exchange":"maverick-v1","type":"maverick-v1","timestamp":1733251521,"reserves":["171389885714232604","5520719430817218266406"],"tokens":[{"address":"0x4200000000000000000000000000000000000006","name":"","symbol":"","decimals":18,"weight":50,"swappable":true},{"address":"0x50c5725949a6f0c72e6c4a641f24049a917db0cb","name":"","symbol":"","decimals":18,"weight":50,"swappable":true}],"extra":"{\"fee\":200000000000000,\"protocolFeeRatio\":0,\"activeTick\":-414,\"binCounter\":288,\"bins\":{\"10\":{\"reserveA\":0,\"reserveB\":366061918078398110287,\"lowerTick\":-382,\"kind\":0,\"mergeId\":0},\"11\":{\"reserveA\":0,\"reserveB\":6883201841157069692,\"lowerTick\":-381,\"kind\":0,\"mergeId\":0},\"110\":{\"reserveA\":132717611565218673,\"reserveB\":0,\"lowerTick\":-419,\"kind\":2,\"mergeId\":0},\"12\":{\"reserveA\":0,\"reserveB\":11618854453023835182,\"lowerTick\":-380,\"kind\":0,\"mergeId\":0},\"13\":{\"reserveA\":0,\"reserveB\":12437524481813913437,\"lowerTick\":-379,\"kind\":0,\"mergeId\":0},\"14\":{\"reserveA\":0,\"reserveB\":14401602762318260592,\"lowerTick\":-378,\"kind\":0,\"mergeId\":0},\"15\":{\"reserveA\":0,\"reserveB\":20285507739545552151,\"lowerTick\":-377,\"kind\":0,\"mergeId\":0},\"16\":{\"reserveA\":0,\"reserveB\":31435697110122283023,\"lowerTick\":-376,\"kind\":0,\"mergeId\":0},\"17\":{\"reserveA\":0,\"reserveB\":788483706236166152,\"lowerTick\":-413,\"kind\":3,\"mergeId\":0},\"179\":{\"reserveA\":21032489559537,\"reserveB\":0,\"lowerTick\":-418,\"kind\":2,\"mergeId\":0},\"18\":{\"reserveA\":0,\"reserveB\":51073932713153201416,\"lowerTick\":-375,\"kind\":0,\"mergeId\":0},\"19\":{\"reserveA\":0,\"reserveB\":222307057404855279,\"lowerTick\":-371,\"kind\":1,\"mergeId\":0},\"20\":{\"reserveA\":0,\"reserveB\":34704569490663933549,\"lowerTick\":-374,\"kind\":0,\"mergeId\":0},\"21\":{\"reserveA\":0,\"reserveB\":20840557123719804560,\"lowerTick\":-373,\"kind\":0,\"mergeId\":0},\"22\":{\"reserveA\":0,\"reserveB\":12589042725147163216,\"lowerTick\":-372,\"kind\":0,\"mergeId\":0},\"229\":{\"reserveA\":61392297107235,\"reserveB\":0,\"lowerTick\":-417,\"kind\":2,\"mergeId\":0},\"23\":{\"reserveA\":0,\"reserveB\":7693776205599244096,\"lowerTick\":-371,\"kind\":0,\"mergeId\":0},\"24\":{\"reserveA\":124749357780963,\"reserveB\":0,\"lowerTick\":-420,\"kind\":2,\"mergeId\":0},\"26\":{\"reserveA\":0,\"reserveB\":4596108634618399595,\"lowerTick\":-370,\"kind\":0,\"mergeId\":0},\"28\":{\"reserveA\":0,\"reserveB\":602275039904554226,\"lowerTick\":-369,\"kind\":0,\"mergeId\":0},\"32\":{\"reserveA\":0,\"reserveB\":136281208928706118,\"lowerTick\":-368,\"kind\":0,\"mergeId\":0},\"34\":{\"reserveA\":0,\"reserveB\":63986755290069521,\"lowerTick\":-367,\"kind\":0,\"mergeId\":0},\"38\":{\"reserveA\":0,\"reserveB\":33174150853905978,\"lowerTick\":-366,\"kind\":0,\"mergeId\":0},\"40\":{\"reserveA\":0,\"reserveB\":21828411692540749,\"lowerTick\":-379,\"kind\":1,\"mergeId\":0},\"43\":{\"reserveA\":0,\"reserveB\":409922429801838876933,\"lowerTick\":-387,\"kind\":0,\"mergeId\":0},\"44\":{\"reserveA\":0,\"reserveB\":492481576830109445182,\"lowerTick\":-391,\"kind\":0,\"mergeId\":0},\"45\":{\"reserveA\":0,\"reserveB\":456855429833934711881,\"lowerTick\":-390,\"kind\":0,\"mergeId\":0},\"46\":{\"reserveA\":0,\"reserveB\":426147559216634848646,\"lowerTick\":-389,\"kind\":0,\"mergeId\":0},\"47\":{\"reserveA\":0,\"reserveB\":412526863298037002614,\"lowerTick\":-388,\"kind\":0,\"mergeId\":0},\"50\":{\"reserveA\":0,\"reserveB\":515602886856476035020,\"lowerTick\":-392,\"kind\":0,\"mergeId\":0},\"52\":{\"reserveA\":0,\"reserveB\":23418069379099730041,\"lowerTick\":-395,\"kind\":0,\"mergeId\":0},\"53\":{\"reserveA\":0,\"reserveB\":30757477984328343036,\"lowerTick\":-394,\"kind\":0,\"mergeId\":0},\"54\":{\"reserveA\":0,\"reserveB\":45386269011903114868,\"lowerTick\":-393,\"kind\":0,\"mergeId\":0},\"55\":{\"reserveA\":0,\"reserveB\":15265455037673920297,\"lowerTick\":-396,\"kind\":0,\"mergeId\":0},\"56\":{\"reserveA\":0,\"reserveB\":5499269864763066638,\"lowerTick\":-398,\"kind\":0,\"mergeId\":0},\"57\":{\"reserveA\":0,\"reserveB\":10172273266654089188,\"lowerTick\":-397,\"kind\":0,\"mergeId\":0},\"59\":{\"reserveA\":0,\"reserveB\":253084860784686155015,\"lowerTick\":-390,\"kind\":1,\"mergeId\":0},\"6\":{\"reserveA\":0,\"reserveB\":403448772752780592117,\"lowerTick\":-386,\"kind\":0,\"mergeId\":0},\"66\":{\"reserveA\":0,\"reserveB\":3808911750074946479,\"lowerTick\":-400,\"kind\":0,\"mergeId\":0},\"67\":{\"reserveA\":0,\"reserveB\":4688520546816020959,\"lowerTick\":-399,\"kind\":0,\"mergeId\":0},\"7\":{\"reserveA\":0,\"reserveB\":388504816646649170875,\"lowerTick\":-385,\"kind\":0,\"mergeId\":0},\"70\":{\"reserveA\":0,\"reserveB\":3798807329530486046,\"lowerTick\":-401,\"kind\":0,\"mergeId\":0},\"71\":{\"reserveA\":0,\"reserveB\":10071572048021564215,\"lowerTick\":-404,\"kind\":0,\"mergeId\":0},\"72\":{\"reserveA\":0,\"reserveB\":7209707634661330902,\"lowerTick\":-403,\"kind\":0,\"mergeId\":0},\"73\":{\"reserveA\":0,\"reserveB\":4814826238401964821,\"lowerTick\":-402,\"kind\":0,\"mergeId\":0},\"75\":{\"reserveA\":0,\"reserveB\":9819174046092950091,\"lowerTick\":-405,\"kind\":0,\"mergeId\":0},\"77\":{\"reserveA\":0,\"reserveB\":10099921674660620524,\"lowerTick\":-406,\"kind\":0,\"mergeId\":0},\"79\":{\"reserveA\":0,\"reserveB\":9995893308994472369,\"lowerTick\":-407,\"kind\":0,\"mergeId\":0},\"8\":{\"reserveA\":0,\"reserveB\":379893740110116757293,\"lowerTick\":-384,\"kind\":0,\"mergeId\":0},\"80\":{\"reserveA\":0,\"reserveB\":16142986122983682089,\"lowerTick\":-409,\"kind\":0,\"mergeId\":0},\"81\":{\"reserveA\":0,\"reserveB\":13506369485623416752,\"lowerTick\":-408,\"kind\":0,\"mergeId\":0},\"85\":{\"reserveA\":0,\"reserveB\":22690331704117185877,\"lowerTick\":-410,\"kind\":0,\"mergeId\":0},\"86\":{\"reserveA\":0,\"reserveB\":30883697387599607669,\"lowerTick\":-411,\"kind\":0,\"mergeId\":0},\"87\":{\"reserveA\":10309755817688041,\"reserveB\":17311324165380548343,\"lowerTick\":-414,\"kind\":0,\"mergeId\":0},\"88\":{\"reserveA\":0,\"reserveB\":71542867536434719695,\"lowerTick\":-413,\"kind\":0,\"mergeId\":0},\"89\":{\"reserveA\":0,\"reserveB\":46464456107563260886,\"lowerTick\":-412,\"kind\":0,\"mergeId\":0},\"9\":{\"reserveA\":0,\"reserveB\":372411683364983853951,\"lowerTick\":-383,\"kind\":0,\"mergeId\":0},\"90\":{\"reserveA\":5222845979037199,\"reserveB\":0,\"lowerTick\":-417,\"kind\":0,\"mergeId\":0},\"91\":{\"reserveA\":7004064916583540,\"reserveB\":0,\"lowerTick\":-416,\"kind\":0,\"mergeId\":0},\"92\":{\"reserveA\":10362207657057631,\"reserveB\":0,\"lowerTick\":-415,\"kind\":0,\"mergeId\":0},\"93\":{\"reserveA\":155404053438863,\"reserveB\":0,\"lowerTick\":-422,\"kind\":0,\"mergeId\":0},\"94\":{\"reserveA\":276984568134181,\"reserveB\":0,\"lowerTick\":-421,\"kind\":0,\"mergeId\":0},\"95\":{\"reserveA\":559418756547705,\"reserveB\":0,\"lowerTick\":-420,\"kind\":0,\"mergeId\":0},\"96\":{\"reserveA\":1242440220441584,\"reserveB\":0,\"lowerTick\":-419,\"kind\":0,\"mergeId\":0},\"97\":{\"reserveA\":3300929649906974,\"reserveB\":0,\"lowerTick\":-418,\"kind\":0,\"mergeId\":0},\"98\":{\"reserveA\":885667833527,\"reserveB\":0,\"lowerTick\":-424,\"kind\":0,\"mergeId\":0},\"99\":{\"reserveA\":30162717691326,\"reserveB\":0,\"lowerTick\":-423,\"kind\":0,\"mergeId\":0}},\"binPositions\":{\"-366\":{\"0\":38},\"-367\":{\"0\":34},\"-368\":{\"0\":32},\"-369\":{\"0\":28},\"-370\":{\"0\":26},\"-371\":{\"0\":23,\"1\":19},\"-372\":{\"0\":22},\"-373\":{\"0\":21},\"-374\":{\"0\":20},\"-375\":{\"0\":18},\"-376\":{\"0\":16},\"-377\":{\"0\":15},\"-378\":{\"0\":14},\"-379\":{\"0\":13,\"1\":40},\"-380\":{\"0\":12},\"-381\":{\"0\":11},\"-382\":{\"0\":10},\"-383\":{\"0\":9},\"-384\":{\"0\":8},\"-385\":{\"0\":7},\"-386\":{\"0\":6},\"-387\":{\"0\":43},\"-388\":{\"0\":47},\"-389\":{\"0\":46},\"-390\":{\"0\":45,\"1\":59},\"-391\":{\"0\":44},\"-392\":{\"0\":50},\"-393\":{\"0\":54},\"-394\":{\"0\":53},\"-395\":{\"0\":52},\"-396\":{\"0\":55},\"-397\":{\"0\":57},\"-398\":{\"0\":56},\"-399\":{\"0\":67},\"-400\":{\"0\":66},\"-401\":{\"0\":70},\"-402\":{\"0\":73},\"-403\":{\"0\":72},\"-404\":{\"0\":71},\"-405\":{\"0\":75},\"-406\":{\"0\":77},\"-407\":{\"0\":79},\"-408\":{\"0\":81},\"-409\":{\"0\":80},\"-410\":{\"0\":85},\"-411\":{\"0\":86},\"-412\":{\"0\":89},\"-413\":{\"0\":88,\"3\":17},\"-414\":{\"0\":87},\"-415\":{\"0\":92},\"-416\":{\"0\":91},\"-417\":{\"0\":90,\"2\":229},\"-418\":{\"0\":97,\"2\":179},\"-419\":{\"0\":96,\"2\":110},\"-420\":{\"0\":95,\"2\":24},\"-421\":{\"0\":94},\"-422\":{\"0\":93},\"-423\":{\"0\":99},\"-424\":{\"0\":98}},\"binMap\":{\"-6\":5037199922260211732753,\"-7\":7719486419313773276032307203424262894732243725133358814731333581099956699136},\"binMapHex\":{\"-6\":5037199922260211732753,\"-7\":7719486419313773276032307203424262894732243725133358814731333581099956699136},\"liquidity\":91798642659145483704,\"sqrtPriceX96\":16711602883141162,\"minBinMapIndex\":-7,\"maxBinMapIndex\":-6}","staticExtra":"{\"tickSpacing\":198}"}`), &rawPool)
+	maverickPool, err = NewPoolSimulator(rawPool)
+)
 
 func TestPoolCalcAmountOut(t *testing.T) {
 	assert.Nil(t, err)
 
 	// make sure that we can calculate min/max index if pool-service hasn't done that yet
-	assert.Equal(t, big.NewInt(5), maverickPool.state.minBinMapIndex)
-	assert.Equal(t, big.NewInt(6), maverickPool.state.maxBinMapIndex)
+	assert.Equal(t, big.NewInt(-7), maverickPool.state.minBinMapIndex)
+	assert.Equal(t, big.NewInt(-6), maverickPool.state.maxBinMapIndex)
 
 	result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
 		return maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{
-				Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-				Amount: bignumber.NewBig10("1000000000000000000"),
+				Token:  "0x4200000000000000000000000000000000000006",
+				Amount: bignumber.NewBig10("100100100100100100"),
 			},
-			TokenOut: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-			Limit:    nil,
+			TokenOut: "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
 		})
 	})
 
-	assert.Nil(t, err)
-	assert.Equal(t, "1829711602", result.TokenAmountOut.Amount.String())
+	if assert.Nil(t, err) {
+		assert.Equal(t, "319754866834816685427", result.TokenAmountOut.Amount.String())
+	}
+}
 
-	//var bins = map[string]maverickv1.Bin{
-	//	"1": {
-	//		ReserveA:  bignumber.NewBig10("17453201008635512394640"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("375"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"2": {
-	//		ReserveA:  bignumber.NewBig10("21271280872855300434039"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("376"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"3": {
-	//		ReserveA:  bignumber.NewBig10("25965452451154862154091"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("377"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"4": {
-	//		ReserveA:  bignumber.NewBig10("22309339486762762891065"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("378"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"5": {
-	//		ReserveA:  bignumber.NewBig10("9361000987001231865441"),
-	//		ReserveB:  bignumber.NewBig10("6233632141023853827"),
-	//		LowerTick: bignumber.NewBig10("379"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"6": {
-	//		ReserveA:  bignumber.NewBig10("0"),
-	//		ReserveB:  bignumber.NewBig10("10375023547668914000"),
-	//		LowerTick: bignumber.NewBig10("380"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"7": {
-	//		ReserveA:  bignumber.NewBig10("0"),
-	//		ReserveB:  bignumber.NewBig10("9381324932473457000"),
-	//		LowerTick: bignumber.NewBig10("381"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"8": {
-	//		ReserveA:  bignumber.NewBig10("0"),
-	//		ReserveB:  bignumber.NewBig10("8271837842446867000"),
-	//		LowerTick: bignumber.NewBig10("382"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"9": {
-	//		ReserveA:  bignumber.NewBig10("0"),
-	//		ReserveB:  bignumber.NewBig10("732155171838690200"),
-	//		LowerTick: bignumber.NewBig10("383"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"10": {
-	//		ReserveA:  bignumber.NewBig10("0"),
-	//		ReserveB:  bignumber.NewBig10("632634315831505200"),
-	//		LowerTick: bignumber.NewBig10("384"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"11": {
-	//		ReserveA:  bignumber.NewBig10("0"),
-	//		ReserveB:  bignumber.NewBig10("568174206788937600"),
-	//		LowerTick: bignumber.NewBig10("385"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"12": {
-	//		ReserveA:  bignumber.NewBig10("0"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("379"),
-	//		Kind:      bignumber.NewBig10("1"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"13": {
-	//		ReserveA:  bignumber.NewBig10("0"),
-	//		ReserveB:  bignumber.NewBig10("24179624473369720000"),
-	//		LowerTick: bignumber.NewBig10("384"),
-	//		Kind:      bignumber.NewBig10("1"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"15": {
-	//		ReserveA:  bignumber.NewBig10("7448514891591076678798"),
-	//		ReserveB:  bignumber.NewBig10("4960078724015931105"),
-	//		LowerTick: bignumber.NewBig10("379"),
-	//		Kind:      bignumber.NewBig10("3"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"16": {
-	//		ReserveA:  bignumber.NewBig10("1631153083876778654919"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("373"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"17": {
-	//		ReserveA:  bignumber.NewBig10("14604684077518837517486"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("374"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"23": {
-	//		ReserveA:  bignumber.NewBig10("0"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("379"),
-	//		Kind:      bignumber.NewBig10("2"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"25": {
-	//		ReserveA:  bignumber.NewBig10("426150857836353300000"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("373"),
-	//		Kind:      bignumber.NewBig10("2"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"32": {
-	//		ReserveA:  bignumber.NewBig10("0"),
-	//		ReserveB:  bignumber.NewBig10("30757567785565756"),
-	//		LowerTick: bignumber.NewBig10("386"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"34": {
-	//		ReserveA:  bignumber.NewBig10("0"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("379"),
-	//		Kind:      bignumber.NewBig10("3"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"37": {
-	//		ReserveA:  bignumber.NewBig10("973003208635914800000"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("372"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"41": {
-	//		ReserveA:  bignumber.NewBig10("28773102441950280000"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("371"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"47": {
-	//		ReserveA:  bignumber.NewBig10("596733989717113100"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("369"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"48": {
-	//		ReserveA:  bignumber.NewBig10("993638242463261200"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("370"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"50": {
-	//		ReserveA:  bignumber.NewBig10("968206263636201300000"),
-	//		ReserveB:  bignumber.NewBig10("0"),
-	//		LowerTick: bignumber.NewBig10("376"),
-	//		Kind:      bignumber.NewBig10("2"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"53": {
-	//		ReserveA:  bignumber.NewBig10("2153035881950200782250"),
-	//		ReserveB:  bignumber.NewBig10("1433739158145507548"),
-	//		LowerTick: bignumber.NewBig10("379"),
-	//		Kind:      bignumber.NewBig10("2"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"84": {
-	//		ReserveA:  bignumber.NewBig10("0"),
-	//		ReserveB:  bignumber.NewBig10("821816663509517"),
-	//		LowerTick: bignumber.NewBig10("387"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//	"87": {
-	//		ReserveA:  bignumber.NewBig10("0"),
-	//		ReserveB:  bignumber.NewBig10("140916273379942"),
-	//		LowerTick: bignumber.NewBig10("388"),
-	//		Kind:      bignumber.NewBig10("0"),
-	//		MergeID:   bignumber.NewBig10("0"),
-	//	},
-	//}
-	//
-	//var binPositions = map[string]map[string]*big.Int{
-	//	"369": {
-	//		"0": bignumber.NewBig10("47"),
-	//	},
-	//	"370": {
-	//		"0": bignumber.NewBig10("48"),
-	//	},
-	//	"371": {
-	//		"0": bignumber.NewBig10("41"),
-	//	},
-	//	"372": {
-	//		"0": bignumber.NewBig10("37"),
-	//	},
-	//	"373": {
-	//		"0": bignumber.NewBig10("16"),
-	//		"2": bignumber.NewBig10("25"),
-	//	},
-	//	"374": {
-	//		"0": bignumber.NewBig10("17"),
-	//	},
-	//	"375": {
-	//		"0": bignumber.NewBig10("1"),
-	//	},
-	//	"376": {
-	//		"0": bignumber.NewBig10("2"),
-	//		"2": bignumber.NewBig10("50"),
-	//	},
-	//	"377": {
-	//		"0": bignumber.NewBig10("3"),
-	//	},
-	//	"378": {
-	//		"0": bignumber.NewBig10("4"),
-	//	},
-	//	"379": {
-	//		"0": bignumber.NewBig10("5"),
-	//		"1": bignumber.NewBig10("12"),
-	//		"2": bignumber.NewBig10("53"),
-	//		"3": bignumber.NewBig10("34"),
-	//	},
-	//	"380": {
-	//		"0": bignumber.NewBig10("6"),
-	//	},
-	//	"381": {
-	//		"0": bignumber.NewBig10("7"),
-	//	},
-	//	"382": {
-	//		"0": bignumber.NewBig10("8"),
-	//	},
-	//	"383": {
-	//		"0": bignumber.NewBig10("9"),
-	//	},
-	//	"384": {
-	//		"0": bignumber.NewBig10("10"),
-	//		"1": bignumber.NewBig10("13"),
-	//	},
-	//	"385": {
-	//		"0": bignumber.NewBig10("11"),
-	//	},
-	//	"386": {
-	//		"0": bignumber.NewBig10("32"),
-	//	},
-	//	"387": {
-	//		"0": bignumber.NewBig10("84"),
-	//	},
-	//	"388": {
-	//		"0": bignumber.NewBig10("87"),
-	//	},
-	//}
-	//
-	//var binMap = map[string]*big.Int{
-	//	"5": bignumber.NewBig10("7721018714868875516017241010155757617493946277325927722722110067420054945792"),
-	//}
+func TestPoolCalcAmountOut_RevertL(t *testing.T) {
+	for _, amtIn := range []string{"17299124533583919",
+		"3717299124533583919",
+		"37172991245335839190",
+		"371729912453358391945",
+		"37172991245335839191"} {
+		_, err := maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
+				Amount: bignumber.NewBig10(amtIn),
+			},
+			TokenOut: "0x4200000000000000000000000000000000000006",
+		})
+		assert.NoError(t, err, amtIn)
+	}
+	for _, amtIn := range []string{"37172991245335839192",
+		"37172991245335839193",
+		"37172991245335839196789"} {
+		_, err := maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
+			TokenAmountIn: pool.TokenAmount{
+				Token:  "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
+				Amount: bignumber.NewBig10(amtIn),
+			},
+			TokenOut: "0x4200000000000000000000000000000000000006",
+		})
+		assert.Error(t, err, amtIn)
+	}
 }
 
 func TestPoolCalcAmountIn(t *testing.T) {
-	assert.Nil(t, err)
-
 	// make sure that we can calculate min/max index if pool-service hasn't done that yet
-	assert.Equal(t, big.NewInt(5), maverickPool.state.minBinMapIndex)
-	assert.Equal(t, big.NewInt(6), maverickPool.state.maxBinMapIndex)
+	assert.Equal(t, big.NewInt(-7), maverickPool.state.minBinMapIndex)
+	assert.Equal(t, big.NewInt(-6), maverickPool.state.maxBinMapIndex)
 
 	result, err := testutil.MustConcurrentSafe[*pool.CalcAmountInResult](t, func() (any, error) {
 		return maverickPool.CalcAmountIn(pool.CalcAmountInParams{
 			TokenAmountOut: pool.TokenAmount{
-				Token:  "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-				Amount: bignumber.NewBig10("1829711602"),
+				Token:  "0x50c5725949a6f0c72e6c4a641f24049a917db0cb",
+				Amount: bignumber.NewBig10("319754866834816685427"),
 			},
-			TokenIn: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-			Limit:   nil,
+			TokenIn: "0x4200000000000000000000000000000000000006",
 		})
 	})
 
-	assert.Nil(t, err)
-	assert.Equal(t, "999999999596233925", result.TokenAmountIn.Amount.String())
+	if assert.Nil(t, err) {
+		assert.Equal(t, "100100100100099386", result.TokenAmountIn.Amount.String())
+	}
 }
 
 func BenchmarkCalcAmountOut(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_, err = maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
+		_, _ = maverickPool.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{
 				Token:  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
 				Amount: bignumber.NewBig10("1000000000000000000"),
 			},
 			TokenOut: "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-			Limit:    nil,
 		})
 	}
 }
@@ -380,7 +121,6 @@ func BenchmarkNextActive(b *testing.B) {
 				Amount: bignumber.NewBig10("1000000000"),
 			},
 			TokenOut: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-			Limit:    nil,
 		})
 	}
 }
@@ -438,15 +178,23 @@ func TestUpdateBalance(t *testing.T) {
 				Token:  tc.tokenIn,
 				Amount: bignumber.NewBig10(tc.amountIn),
 			}
+			cloned := sim.CloneState()
 			result, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
 				return sim.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.tokenOut,
-					Limit:         nil,
 				})
 			})
 			require.Nil(t, err)
 			require.Equal(t, tc.expAmountOut, result.TokenAmountOut.Amount.String())
+			resultBeforeUpdate, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return sim.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: in,
+					TokenOut:      tc.tokenOut,
+				})
+			})
+			require.Nil(t, err)
+			require.Equal(t, result.TokenAmountOut.Amount.String(), resultBeforeUpdate.TokenAmountOut.Amount.String())
 
 			updateBalanceParams := pool.UpdateBalanceParams{
 				TokenAmountIn:  in,
@@ -455,6 +203,25 @@ func TestUpdateBalance(t *testing.T) {
 				SwapInfo:       result.SwapInfo,
 			}
 			sim.UpdateBalance(updateBalanceParams)
+
+			resultAfterUpdate, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return sim.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: in,
+					TokenOut:      tc.tokenOut,
+				})
+			})
+			if err == nil {
+				require.NotEqual(t, result.TokenAmountOut.Amount.String(), resultAfterUpdate.TokenAmountOut.Amount.String())
+			}
+
+			resultOfCloned, err := testutil.MustConcurrentSafe[*pool.CalcAmountOutResult](t, func() (any, error) {
+				return cloned.CalcAmountOut(pool.CalcAmountOutParams{
+					TokenAmountIn: in,
+					TokenOut:      tc.tokenOut,
+				})
+			})
+			require.Nil(t, err)
+			require.Equal(t, tc.expAmountOut, resultOfCloned.TokenAmountOut.Amount.String())
 		})
 	}
 }
@@ -494,7 +261,6 @@ func TestUpdateBalanceNextTick(t *testing.T) {
 				return sim.CalcAmountOut(pool.CalcAmountOutParams{
 					TokenAmountIn: in,
 					TokenOut:      tc.tokenOut,
-					Limit:         nil,
 				})
 			})
 			require.Nil(t, err)
@@ -549,7 +315,6 @@ func TestNextActive(t *testing.T) {
 			result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: in,
 				TokenOut:      tc.tokenOut,
-				Limit:         nil,
 			})
 			require.Nil(t, err)
 			assert.Equal(t, tc.expAmountOut, result.TokenAmountOut.Amount.String())
@@ -613,7 +378,6 @@ func TestGas(t *testing.T) {
 			result, err := sim.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: in,
 				TokenOut:      tc.tokenOut,
-				Limit:         nil,
 			})
 			require.Nil(t, err)
 
