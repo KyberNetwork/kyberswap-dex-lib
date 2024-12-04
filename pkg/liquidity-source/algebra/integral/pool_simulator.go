@@ -434,6 +434,7 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 	}
 
 	var step PriceMovementCache
+	initializedTick := currentTick
 	// swap until there is remaining input or output tokens or we reach the price limit
 	// limit by maxSwapLoop to make sure we won't loop infinitely because of a bug somewhere
 	for i := 0; i < maxSwapLoop; i++ {
@@ -442,7 +443,7 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 			err      error
 		)
 
-		nextTick, step.initialized, err = p.ticks.NextInitializedTickWithinOneWord(int(currentTick), zeroToOne, p.tickSpacing)
+		nextTick, step.initialized, err = p.ticks.NextInitializedTickWithinOneWord(int(initializedTick), zeroToOne, p.tickSpacing)
 		if err != nil {
 			return nil, nil, nil, 0, nil, FeesAmount{}, err
 		}
@@ -450,9 +451,9 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 
 		if !step.initialized {
 			if zeroToOne {
-				currentTick = step.nextTick - 1
+				initializedTick = step.nextTick - 1
 			} else {
-				currentTick = step.nextTick
+				initializedTick = step.nextTick
 			}
 			continue
 		}
@@ -529,6 +530,8 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 				currentTick = step.nextTick
 				liquidityDelta = liquidityNet
 			}
+
+			initializedTick = step.nextTick
 
 			currentLiquidity, err = addDelta(currentLiquidity, liquidityDelta)
 			if err != nil {

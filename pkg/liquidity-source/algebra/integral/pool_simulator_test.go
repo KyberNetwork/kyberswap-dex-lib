@@ -361,17 +361,17 @@ func TestCalcAmountOut(t *testing.T) {
 			expectedResult: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
-					Amount: big.NewInt(1425476892), // Expected amount after swap
+					Amount: big.NewInt(279874986), // Expected amount after swap
 				},
 				Fee: &pool.TokenAmount{
 					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
-					Amount: big.NewInt(3207826239749998), // Expected fees
+					Amount: big.NewInt(641334), // Expected fees
 				},
 				SwapInfo: StateUpdate{
 					GlobalState: GlobalState{
 						Unlocked:     true,
 						LastFee:      15000,
-						Tick:         -487914,
+						Tick:         -61,
 						PluginConfig: mockPluginConfig,
 						CommunityFee: mockCommunityFee,
 					},
@@ -510,13 +510,14 @@ func TestCalcAmountOut_FromPool(t *testing.T) {
 	ps, err := NewPoolSimulator(p, 280000)
 	require.NoError(t, err)
 
-	_, err = ps.CalcAmountOut(pool.CalcAmountOutParams{
+	res, err := ps.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{
 			Token:  "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
-			Amount: big.NewInt(100000000000),
+			Amount: big.NewInt(100000000000000),
 		},
 		TokenOut: "0xfe7eda5f2c56160d406869a8aa4b2f365d544c7b",
 	})
 
 	require.NoError(t, err)
+	assert.Equal(t, big.NewInt(25555842204), res.TokenAmountOut.Amount)
 }
