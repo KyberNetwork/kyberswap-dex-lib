@@ -114,6 +114,7 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 	}
 	c.AEVMEnabled = c.AEVMEnabled && !forceDisableAEVM
 	c.UseCase.PoolFactory.UseAEVM = c.AEVMEnabled
+	c.UseCase.PoolManager.FeatureFlags.IsAEVMEnabled = c.AEVMEnabled
 	c.UseCase.TradeDataGenerator.UseAEVM = c.AEVMEnabled
 	fmt.Println(viper.GetString("ENV"))
 	fmt.Println("GOMAXPROCS: ", runtime.GOMAXPROCS(0))
@@ -254,16 +255,17 @@ func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {
 }
 
 func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
+	featureFlags.IsAEVMEnabled = featureFlags.IsAEVMEnabled && !forceDisableAEVM
 	cl.config.Common.FeatureFlags = featureFlags
 	cl.config.UseCase.GetCustomRoute.Aggregator.FeatureFlags = featureFlags
 	cl.config.UseCase.GetRoute.Aggregator.FeatureFlags = featureFlags
 	cl.config.UseCase.BuildRoute.FeatureFlags = featureFlags
 	cl.config.Validator.BuildRouteParams.FeatureFlags = featureFlags
 	cl.config.Validator.GetRouteEncodeParams.FeatureFlags = featureFlags
-	cl.config.AEVMEnabled = featureFlags.IsAEVMEnabled && !forceDisableAEVM
-	cl.config.UseCase.PoolFactory.UseAEVM = cl.config.AEVMEnabled
+	cl.config.AEVMEnabled = featureFlags.IsAEVMEnabled
+	cl.config.UseCase.PoolFactory.UseAEVM = featureFlags.IsAEVMEnabled
 	cl.config.UseCase.PoolManager.FeatureFlags = featureFlags
-	cl.config.UseCase.TradeDataGenerator.UseAEVM = cl.config.AEVMEnabled
+	cl.config.UseCase.TradeDataGenerator.UseAEVM = featureFlags.IsAEVMEnabled
 }
 
 func (cl *ConfigLoader) setLog(log valueobject.Log) {
