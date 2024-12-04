@@ -112,6 +112,9 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 			Host: "0.0.0.0",
 		}
 	}
+	c.AEVMEnabled = c.AEVMEnabled && !forceDisableAEVM
+	c.UseCase.PoolFactory.UseAEVM = c.AEVMEnabled
+	c.UseCase.TradeDataGenerator.UseAEVM = c.AEVMEnabled
 	fmt.Println(viper.GetString("ENV"))
 	fmt.Println("GOMAXPROCS: ", runtime.GOMAXPROCS(0))
 
