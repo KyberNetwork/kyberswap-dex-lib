@@ -9,4 +9,6 @@ var (
 	ErrInsufficientLiquidity  = errors.New("insufficient liquidity")
 	ErrInvalidFirmQuoteParams = errors.New("invalid firm quote params")
 	ErrNoSwapLimit            = errors.New("swap limit is required for PMM pools")
+	ErrNotEnoughInventoryIn   = errors.New("not enough inventory in")
+	ErrNotEnoughInventoryOut  = errors.New("not enough inventory out")
 )
