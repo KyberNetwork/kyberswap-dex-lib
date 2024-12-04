@@ -26,10 +26,16 @@ type AggregateParams struct {
 	// Sources list of liquidity sources to be finding route on
 	Sources []string
 
+	// Deprecated. Use `OnlySinglePath` instead.
 	// SaveGas
 	//	- if true: finds single path route only
 	//	- if false: finds single path route and multi path route then return the better one
 	SaveGas bool
+
+	// OnlySinglePath
+	//	- if true: finds single path route only
+	//	- if false: finds single path route and multi path route then return the better one
+	OnlySinglePath bool
 
 	// GasInclude
 	// 	- if true: better route has more (amountOutUSD - gasUSD)

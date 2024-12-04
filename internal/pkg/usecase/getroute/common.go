@@ -103,7 +103,8 @@ func ConvertToPathfinderParams(
 		GasToken:    params.GasToken.Address,
 		GasPrice:    gasPriceBI,
 
-		ClientId: params.ClientId,
+		ClientId:       params.ClientId,
+		OnlySinglePath: params.OnlySinglePath,
 	}
 
 	return findRouteParams

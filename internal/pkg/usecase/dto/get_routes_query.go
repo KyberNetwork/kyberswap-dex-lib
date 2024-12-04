@@ -18,9 +18,10 @@ type GetRoutesQuery struct {
 	ExcludedSources     []string
 	OnlyScalableSources bool
 
-	SaveGas    bool
-	GasInclude bool
-	GasPrice   *big.Float
+	SaveGas        bool
+	OnlySinglePath bool
+	GasInclude     bool
+	GasPrice       *big.Float
 
 	ExtraFee valueobject.ExtraFee
 

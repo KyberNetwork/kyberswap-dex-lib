@@ -131,6 +131,7 @@ func transformGetRoutesParams(params params.GetRoutesParams) (dto.GetRoutesQuery
 		ExcludedSources:     utils.TransformSliceParams(params.ExcludedSources),
 		OnlyScalableSources: params.OnlyScalableSources,
 		SaveGas:             params.SaveGas,
+		OnlySinglePath:      params.OnlySinglePath,
 		GasInclude:          params.GasInclude,
 		GasPrice:            gasPrice,
 		ExtraFee:            extraFee,

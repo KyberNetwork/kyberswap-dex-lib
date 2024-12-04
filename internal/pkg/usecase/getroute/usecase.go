@@ -196,6 +196,7 @@ func (u *useCase) getAggregateParams(ctx context.Context, query dto.GetRoutesQue
 		AmountIn:           query.AmountIn,
 		Sources:            sources,
 		SaveGas:            query.SaveGas,
+		OnlySinglePath:     query.OnlySinglePath,
 		GasInclude:         query.GasInclude,
 		GasPrice:           gasPrice,
 		ExtraFee:           query.ExtraFee,

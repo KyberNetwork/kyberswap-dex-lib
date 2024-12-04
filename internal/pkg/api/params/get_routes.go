@@ -19,11 +19,15 @@ type GetRoutesParams struct {
 	// OnlyScalableSources whether to only include scalable sources and exclude all unscalable sources
 	OnlyScalableSources bool `form:"onlyScalableSources"`
 
+	// Deprecated. Use `onlySinglePath` instead.
 	// SaveGas best route is a single path route
 	SaveGas bool `form:"saveGas"`
 
+	// OnlySinglePath only find & return single path route
+	OnlySinglePath bool `form:"onlySinglePath"`
+
 	// GasInclude gas is included when finding route
-	GasInclude bool `form:"gasInclude"`
+	GasInclude bool `form:"gasInclude,default=true"`
 
 	// GasPrice custom gas price
 	GasPrice string `form:"gasPrice"`
