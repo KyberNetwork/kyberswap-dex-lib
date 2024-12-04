@@ -297,70 +297,90 @@ func TestCalcAmountOut(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
-		// {
-		// 	name: "swap token 0 to token 1 with large amount in",
-		// 	simulator: &PoolSimulator{
-		// 		Pool: pool.Pool{
-		// 			Info: pool.PoolInfo{
-		// 				Address:  "0x3b4d8548aa8dccd0ae7643a84049687bf16d1851",
-		// 				Exchange: "scribe",
-		// 				Type:     DexType,
-		// 				Reserves: []*big.Int{
-		// 					big.NewInt(817408052),
-		// 					big.NewInt(1425700551),
-		// 				},
-		// 				Tokens: []string{
-		// 					"0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4", // USDC
-		// 					"0xf55bec9cafdbe8730f096aa55dad6d22d44099df", // USDT
-		// 				},
-		// 				BlockNumber: 11587102,
-		// 			},
-		// 		},
-		// 		globalState: GlobalState{
-		// 			Price:        uint256.MustFromBig(mockPrice),
-		// 			Tick:         mockTick,
-		// 			LastFee:      mockLastFee,
-		// 			PluginConfig: mockPluginConfig,
-		// 			CommunityFee: mockCommunityFee,
-		// 			Unlocked:     true,
-		// 		},
-		// 		liquidity:   mockLiquidity,
-		// 		ticks:       mockTicks,
-		// 		tickMin:     mockTickmin,
-		// 		tickMax:     mockTickmax,
-		// 		tickSpacing: mockTickSpacing,
-		// 		timepoints:  mockTimepoints,
-		// 		volatilityOracle: &VotatilityOraclePlugin{
-		// 			TimepointIndex:         mockTimepointIndex,
-		// 			LastTimepointTimestamp: mockLastTimepointTimestamp,
-		// 			IsInitialized:          mockIsInitialized,
-		// 		},
-		// 		dynamicFee: &DynamicFeePlugin{
-		// 			FeeConfig: FeeConfiguration{
-		// 				Alpha1:      mockAlpha1,
-		// 				Alpha2:      mockAlpha2,
-		// 				Beta1:       mockBeta1,
-		// 				Beta2:       mockBeta2,
-		// 				Gamma1:      mockGamma1,
-		// 				Gamma2:      mockGamma2,
-		// 				VolumeBeta:  mockVolumeBeta,
-		// 				VolumeGamma: mockVolumeGamma,
-		// 				BaseFee:     mockBaseFee,
-		// 			},
-		// 		},
-		// 		useBasePluginV2: false,
-		// 		gas:             mockGas,
-		// 	},
-		// 	input: pool.CalcAmountOutParams{
-		// 		TokenAmountIn: pool.TokenAmount{
-		// 			Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4", // USDC
-		// 			Amount: big.NewInt(1425700551000000000),
-		// 		},
-		// 		TokenOut: "0xf55bec9cafdbe8730f096aa55dad6d22d44099df", // USDT
-		// 	},
-
-		// 	expectedErr: ErrLiquiditySub,
-		// },
+		{
+			name: "swap token 0 to token 1 with large amount in",
+			simulator: &PoolSimulator{
+				Pool: pool.Pool{
+					Info: pool.PoolInfo{
+						Address:  "0x3b4d8548aa8dccd0ae7643a84049687bf16d1851",
+						Exchange: "scribe",
+						Type:     DexType,
+						Reserves: []*big.Int{
+							big.NewInt(817408052),
+							big.NewInt(1425700551),
+						},
+						Tokens: []string{
+							"0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4", // USDC
+							"0xf55bec9cafdbe8730f096aa55dad6d22d44099df", // USDT
+						},
+						BlockNumber: 11587102,
+					},
+				},
+				globalState: GlobalState{
+					Price:        uint256.MustFromBig(mockPrice),
+					Tick:         mockTick,
+					LastFee:      mockLastFee,
+					PluginConfig: mockPluginConfig,
+					CommunityFee: mockCommunityFee,
+					Unlocked:     true,
+				},
+				liquidity:   mockLiquidity,
+				ticks:       mockTicks,
+				tickMin:     mockTickmin,
+				tickMax:     mockTickmax,
+				tickSpacing: mockTickSpacing,
+				timepoints:  mockTimepoints,
+				volatilityOracle: &VotatilityOraclePlugin{
+					TimepointIndex:         mockTimepointIndex,
+					LastTimepointTimestamp: mockLastTimepointTimestamp,
+					IsInitialized:          mockIsInitialized,
+				},
+				dynamicFee: &DynamicFeePlugin{
+					FeeConfig: FeeConfiguration{
+						Alpha1:      mockAlpha1,
+						Alpha2:      mockAlpha2,
+						Beta1:       mockBeta1,
+						Beta2:       mockBeta2,
+						Gamma1:      mockGamma1,
+						Gamma2:      mockGamma2,
+						VolumeBeta:  mockVolumeBeta,
+						VolumeGamma: mockVolumeGamma,
+						BaseFee:     mockBaseFee,
+					},
+				},
+				useBasePluginV2: false,
+				gas:             mockGas,
+			},
+			input: pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{
+					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4", // USDC
+					Amount: big.NewInt(1425700551000000000),
+				},
+				TokenOut: "0xf55bec9cafdbe8730f096aa55dad6d22d44099df", // USDT
+			},
+			expectedResult: &pool.CalcAmountOutResult{
+				TokenAmountOut: &pool.TokenAmount{
+					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
+					Amount: big.NewInt(1425476892), // Expected amount after swap
+				},
+				Fee: &pool.TokenAmount{
+					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
+					Amount: big.NewInt(3207826239749998), // Expected fees
+				},
+				SwapInfo: StateUpdate{
+					GlobalState: GlobalState{
+						Unlocked:     true,
+						LastFee:      15000,
+						Tick:         -487914,
+						PluginConfig: mockPluginConfig,
+						CommunityFee: mockCommunityFee,
+					},
+					Liquidity: uint256.NewInt(98862330578), // Expected liquidity
+				},
+				Gas: mockGas,
+			},
+			expectedErr: nil,
+		},
 		{
 			name: "swap token 1 to token 0 with large amount in",
 			simulator: &PoolSimulator{
@@ -422,8 +442,28 @@ func TestCalcAmountOut(t *testing.T) {
 				},
 				TokenOut: "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4", // USDC
 			},
-
-			expectedErr: ErrLiquiditySub,
+			expectedResult: &pool.CalcAmountOutResult{
+				TokenAmountOut: &pool.TokenAmount{
+					Token:  "0x06efdbff2a14a7c8e15944d1f4a48f9f95f663a4",
+					Amount: big.NewInt(768004061), // Expected amount after swap
+				},
+				Fee: &pool.TokenAmount{
+					Token:  "0xf55bec9cafdbe8730f096aa55dad6d22d44099df",
+					Amount: big.NewInt(1839166), // Expected fees
+				},
+				SwapInfo: StateUpdate{
+					GlobalState: GlobalState{
+						Unlocked:     true,
+						LastFee:      15000,
+						Tick:         1721,
+						PluginConfig: mockPluginConfig,
+						CommunityFee: mockCommunityFee,
+					},
+					Liquidity: uint256.NewInt(98862330578), // Expected liquidity
+				},
+				Gas: mockGas,
+			},
+			expectedErr: nil,
 		},
 	}
 
@@ -472,10 +512,11 @@ func TestCalcAmountOut_FromPool(t *testing.T) {
 
 	_, err = ps.CalcAmountOut(pool.CalcAmountOutParams{
 		TokenAmountIn: pool.TokenAmount{
-			Token:  "0xfe7eda5f2c56160d406869a8aa4b2f365d544c7b",
-			Amount: big.NewInt(1000000000000000000),
+			Token:  "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+			Amount: big.NewInt(100000000000),
 		},
-		TokenOut: "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83",
+		TokenOut: "0xfe7eda5f2c56160d406869a8aa4b2f365d544c7b",
 	})
+
 	require.NoError(t, err)
 }

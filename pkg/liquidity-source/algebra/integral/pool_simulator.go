@@ -454,7 +454,6 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 			} else {
 				currentTick = step.nextTick
 			}
-
 			continue
 		}
 
@@ -524,8 +523,10 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 
 			var liquidityDelta = new(int256.Int)
 			if zeroToOne {
+				currentTick = step.nextTick - 1
 				liquidityDelta = liquidityDelta.Neg(liquidityNet)
 			} else {
+				currentTick = step.nextTick
 				liquidityDelta = liquidityNet
 			}
 
@@ -533,6 +534,7 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 			if err != nil {
 				return nil, nil, nil, 0, nil, FeesAmount{}, err
 			}
+
 		} else if currentPrice.Cmp(step.stepSqrtPrice) != 0 {
 			currentTickInt, err := utils.GetTickAtSqrtRatio(currentPrice.ToBig())
 			if err != nil {
