@@ -113,20 +113,13 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	amountIn, amountOut := params.TokenAmountIn.Amount, params.TokenAmountOut.Amount
 	amountInF, _ := amountIn.Float64()
 
-	var (
-		amountInAfterDecimalsF float64
-		priceLevels            *[]PriceLevel
-	)
-
 	if tokenIn == p.token0.Address {
-		amountInAfterDecimalsF = amountInF / math.Pow10(int(p.token0.Decimals))
-		priceLevels = &p.ZeroToOnePriceLevels
+		amountInAfterDecimalsF := amountInF / math.Pow10(int(p.token0.Decimals))
+		p.ZeroToOnePriceLevels = getNewPriceLevelsState(amountInAfterDecimalsF, p.ZeroToOnePriceLevels)
 	} else {
-		amountInAfterDecimalsF = amountInF / math.Pow10(int(p.token1.Decimals))
-		priceLevels = &p.OneToZeroPriceLevels
+		amountInAfterDecimalsF := amountInF / math.Pow10(int(p.token1.Decimals))
+		p.OneToZeroPriceLevels = getNewPriceLevelsState(amountInAfterDecimalsF, p.OneToZeroPriceLevels)
 	}
-
-	*priceLevels = getNewPriceLevelsState(amountInAfterDecimalsF, *priceLevels)
 
 	if _, _, err := params.SwapLimit.UpdateLimit(tokenOut, tokenIn, amountOut, amountIn); err != nil {
 		logger.Errorf("unable to update mx-trading limit, error: %v", err)
