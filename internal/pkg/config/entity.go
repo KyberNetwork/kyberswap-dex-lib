@@ -55,8 +55,8 @@ type AEVM struct {
 	// Node URL for probing balance slot. The node must be enabled tracing feature.
 	RPC string `mapstructure:"rpc"`
 
-	// The wallet to probe balance slot for new tokens.
-	FakeWallet string `mapstructure:"simulationWallet"`
+	// The wallet address used for simulations.
+	SimulationWallet string `mapstructure:"simulationWallet"`
 
 	// Balance slots defined maunally
 	PredefinedBalanceSlots map[string]*types.ERC20BalanceSlot `mapstructure:"predefinedBalanceSlots"`

@@ -112,7 +112,6 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 			Host: "0.0.0.0",
 		}
 	}
-	c.AEVMEnabled = c.AEVMEnabled && !forceDisableAEVM
 	c.UseCase.PoolFactory.UseAEVM = c.AEVMEnabled
 	c.UseCase.PoolManager.FeatureFlags.IsAEVMEnabled = c.AEVMEnabled
 	c.UseCase.TradeDataGenerator.UseAEVM = c.AEVMEnabled
@@ -255,14 +254,13 @@ func (cl *ConfigLoader) setBlacklistedPools(blacklistedPools []string) {
 }
 
 func (cl *ConfigLoader) setFeatureFlags(featureFlags valueobject.FeatureFlags) {
-	featureFlags.IsAEVMEnabled = featureFlags.IsAEVMEnabled && !forceDisableAEVM
+	featureFlags.IsAEVMEnabled = featureFlags.IsAEVMEnabled && cl.config.AEVMEnabled
 	cl.config.Common.FeatureFlags = featureFlags
 	cl.config.UseCase.GetCustomRoute.Aggregator.FeatureFlags = featureFlags
 	cl.config.UseCase.GetRoute.Aggregator.FeatureFlags = featureFlags
 	cl.config.UseCase.BuildRoute.FeatureFlags = featureFlags
 	cl.config.Validator.BuildRouteParams.FeatureFlags = featureFlags
 	cl.config.Validator.GetRouteEncodeParams.FeatureFlags = featureFlags
-	cl.config.AEVMEnabled = featureFlags.IsAEVMEnabled
 	cl.config.UseCase.PoolFactory.UseAEVM = featureFlags.IsAEVMEnabled
 	cl.config.UseCase.PoolManager.FeatureFlags = featureFlags
 	cl.config.UseCase.TradeDataGenerator.UseAEVM = featureFlags.IsAEVMEnabled

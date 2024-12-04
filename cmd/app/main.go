@@ -92,10 +92,6 @@ type IBuildRouteUseCase interface {
 	ApplyConfig(config buildroute.Config)
 }
 
-type IAEVMClientUseCase interface {
-	ApplyConfig(config aevmclientuc.Config)
-}
-
 // TODO: refactor main file -> separate to many folders with per folder is application. The main file should contains call root action per application.
 func main() {
 
@@ -349,64 +345,15 @@ func apiAction(c *cli.Context) (err error) {
 
 	var (
 		balanceSlotsUseCase erc20balanceslotuc.ICache
-		aevmClient          aevmclient.Client
-		aevmClientUC        IAEVMClientUseCase
+		aevmClient          aevmclientuc.IAEVMClientUseCase
 		poolsPublisher      poolmanager.IPoolsPublisher
 	)
 	if cfg.AEVMEnabled {
-		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client,
-			cfg.Repository.ERC20BalanceSlot.Redis)
-		rpcClient, err := rpc.Dial(cfg.AEVM.RPC)
+		balanceSlotsUseCase, aevmClient, poolsPublisher, err = initializeAEVMComponents(ctx, cfg, routerRedisClient)
 		if err != nil {
-			return fmt.Errorf("could not dial JSON-RPC node %w", err)
+			return fmt.Errorf("could not initilize AEVM components, perhaps AEVM is not confitured: %w", err)
 		}
-		var balanceSlotsProbe *erc20balanceslotuc.MultipleStrategy
-		if cfg.AEVM.UseHoldersListAsFallback {
-			tokenHoldersRedis, err := redis.New(&cfg.AEVM.TokenHoldersRedis)
-			if err != nil {
-				return err
-			}
-			holdersListRepo := erc20balanceslot.NewHoldersListRedisRepositoryWithCache(tokenHoldersRedis,
-				cfg.AEVM.CachedHoldersListTTLSec)
-			watchlistRepo := erc20balanceslot.NewWatchlistRedisRepository(tokenHoldersRedis)
-			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategyWithHoldersListAsFallback(rpcClient,
-				common.HexToAddress(cfg.AEVM.FakeWallet), holdersListRepo, watchlistRepo)
-		} else {
-			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategy(rpcClient,
-				common.HexToAddress(cfg.AEVM.FakeWallet))
-		}
-		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe,
-			cfg.AEVM.PredefinedBalanceSlots, cfg.Common.ChainID)
-		if err := balanceSlotsUseCase.PreloadFromEmbedded(context.Background()); err != nil {
-			logger.Errorf(ctx, "could not preload balance slots %s", err)
-			return err
-		}
-
-		serverURLs := strings.Split(cfg.AEVM.AEVMServerURLs, ",")
-		publishingPoolsURLs := strings.Split(cfg.AEVM.AEVMPublishingPoolsURLs, ",")
-		logger.Infof(ctx, "AEVMServerURLs = %+v AEVMPublishingPoolsURLs = %+v", serverURLs, publishingPoolsURLs)
-		aevmClientImpl, err := aevmclientuc.NewClient(
-			aevmclientuc.Config{
-				ServerURLs:          serverURLs,
-				PublishingPoolsURLs: publishingPoolsURLs,
-
-				RetryOnTimeoutMs:          cfg.AEVM.RetryOnTimeoutMs,
-				FindrouteRetryOnTimeoutMs: cfg.AEVM.FindrouteRetryOnTimeoutMs,
-				MaxRetry:                  cfg.AEVM.MaxRetry,
-			},
-			func(url string) (aevmclient.Client, error) { return aevmclient.NewGRPCClient(url) },
-		)
-		if err != nil {
-			return err
-		}
-		defer aevmClientImpl.Close()
-		aevmClient = aevmClientImpl
-		aevmClientUC = aevmClientImpl
-
-		poolsPublisher, err = poolpublisher.NewPoolPublisher(aevmClient, poolmanager.NState)
-		if err != nil {
-			return fmt.Errorf("could not NewPoolPublisher: %w", err)
-		}
+		defer aevmClient.Close()
 	}
 
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
@@ -576,9 +523,8 @@ func apiAction(c *cli.Context) (err error) {
 			poolManager,
 			buildRouteParamsValidator,
 			getRouteEncodeParamsValidator,
-			aevmClientUC,
-			finderEngine,
 			aevmClient,
+			finderEngine,
 		)
 	}))
 
@@ -872,9 +818,8 @@ func applyLatestConfigForAPI(
 	poolManager IPoolManager,
 	buildRouteParamsValidator api.IBuildRouteParamsValidator,
 	getRouteEncodeParamsValidator api.IGetRouteEncodeParamsValidator,
-	aevmClientUC IAEVMClientUseCase,
+	aevmClientUC aevmclientuc.IAEVMClientUseCase,
 	finderEngine finderengine.IPathFinderEngine,
-	aevmClient aevmclient.Client,
 ) error {
 	cfg, err := configLoader.Get()
 	if err != nil {
@@ -894,7 +839,7 @@ func applyLatestConfigForAPI(
 	}
 
 	// Reload FinderEngine with new config
-	pathFinder, routeFinalizer, err := getroute.InitializeFinderEngine(cfg.UseCase.GetRoute, aevmClient)
+	pathFinder, routeFinalizer, err := getroute.InitializeFinderEngine(cfg.UseCase.GetRoute, aevmClientUC)
 	if err != nil {
 		return err
 	}
@@ -1001,56 +946,14 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 
 	var (
 		balanceSlotsUseCase erc20balanceslotuc.ICache
-		aevmClient          aevmclient.Client
+		aevmClient          aevmclientuc.IAEVMClientUseCase
 	)
 	if cfg.AEVMEnabled {
-		balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client,
-			cfg.Repository.ERC20BalanceSlot.Redis)
-		rpcClient, err := rpc.Dial(cfg.AEVM.RPC)
+		balanceSlotsUseCase, aevmClient, _, err = initializeAEVMComponents(ctx, cfg, routerRedisClient)
 		if err != nil {
-			return fmt.Errorf("could not dial JSON-RPC node %w", err)
+			return fmt.Errorf("could not initilize AEVM components, perhaps AEVM is not confitured: %w", err)
 		}
-		var balanceSlotsProbe *erc20balanceslotuc.MultipleStrategy
-		if cfg.AEVM.UseHoldersListAsFallback {
-			tokenHoldersRedis, err := redis.New(&cfg.AEVM.TokenHoldersRedis)
-			if err != nil {
-				return err
-			}
-			holdersListRepo := erc20balanceslot.NewHoldersListRedisRepositoryWithCache(tokenHoldersRedis,
-				cfg.AEVM.CachedHoldersListTTLSec)
-			watchlistRepo := erc20balanceslot.NewWatchlistRedisRepository(tokenHoldersRedis)
-			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategyWithHoldersListAsFallback(rpcClient,
-				common.HexToAddress(cfg.AEVM.FakeWallet), holdersListRepo, watchlistRepo)
-		} else {
-			balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategy(rpcClient,
-				common.HexToAddress(cfg.AEVM.FakeWallet))
-		}
-		balanceSlotsUseCase = erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe,
-			cfg.AEVM.PredefinedBalanceSlots, cfg.Common.ChainID)
-		if err := balanceSlotsUseCase.PreloadFromEmbedded(context.Background()); err != nil {
-			logger.Errorf(ctx, "could not preload balance slots %s", err)
-			return err
-		}
-
-		serverURLs := strings.Split(cfg.AEVM.AEVMServerURLs, ",")
-		publishingPoolsURLs := strings.Split(cfg.AEVM.AEVMPublishingPoolsURLs, ",")
-		logger.Infof(ctx, "AEVMServerURLs = %+v AEVMPublishingPoolsURLs = %+v", serverURLs, publishingPoolsURLs)
-		aevmClientImpl, err := aevmclientuc.NewClient(
-			aevmclientuc.Config{
-				ServerURLs:          serverURLs,
-				PublishingPoolsURLs: publishingPoolsURLs,
-
-				RetryOnTimeoutMs:          cfg.AEVM.RetryOnTimeoutMs,
-				FindrouteRetryOnTimeoutMs: cfg.AEVM.FindrouteRetryOnTimeoutMs,
-				MaxRetry:                  cfg.AEVM.MaxRetry,
-			},
-			func(url string) (aevmclient.Client, error) { return aevmclient.NewGRPCClient(url) },
-		)
-		if err != nil {
-			return err
-		}
-		defer aevmClientImpl.Close()
-		aevmClient = aevmClientImpl
+		defer aevmClient.Close()
 	}
 
 	var onchainpriceRepository indexpools.IOnchainPriceRepository
@@ -1117,4 +1020,59 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	})
 
 	return g.Wait()
+}
+
+func initializeAEVMComponents(ctx context.Context, cfg *config.Config, routerRedisClient *redis.Redis) (erc20balanceslotuc.ICache, aevmclientuc.IAEVMClientUseCase, poolmanager.IPoolsPublisher, error) {
+	balanceSlotsRepo := erc20balanceslot.NewRedisRepository(routerRedisClient.Client,
+		cfg.Repository.ERC20BalanceSlot.Redis)
+	rpcClient, err := rpc.Dial(cfg.AEVM.RPC)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("could not dial JSON-RPC node %w", err)
+	}
+	var balanceSlotsProbe *erc20balanceslotuc.MultipleStrategy
+	if cfg.AEVM.UseHoldersListAsFallback {
+		tokenHoldersRedis, err := redis.New(&cfg.AEVM.TokenHoldersRedis)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		holdersListRepo := erc20balanceslot.NewHoldersListRedisRepositoryWithCache(tokenHoldersRedis,
+			cfg.AEVM.CachedHoldersListTTLSec)
+		watchlistRepo := erc20balanceslot.NewWatchlistRedisRepository(tokenHoldersRedis)
+		balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategyWithHoldersListAsFallback(rpcClient,
+			common.HexToAddress(cfg.AEVM.SimulationWallet), holdersListRepo, watchlistRepo)
+	} else {
+		balanceSlotsProbe = erc20balanceslotuc.NewMultipleStrategy(rpcClient,
+			common.HexToAddress(cfg.AEVM.SimulationWallet))
+	}
+	balanceSlotsUseCase := erc20balanceslotuc.NewCache(balanceSlotsRepo, balanceSlotsProbe,
+		cfg.AEVM.PredefinedBalanceSlots, cfg.Common.ChainID)
+	if err := balanceSlotsUseCase.PreloadFromEmbedded(context.Background()); err != nil {
+		logger.Errorf(ctx, "could not preload balance slots %s", err)
+		return nil, nil, nil, err
+	}
+
+	serverURLs := strings.Split(cfg.AEVM.AEVMServerURLs, ",")
+	publishingPoolsURLs := strings.Split(cfg.AEVM.AEVMPublishingPoolsURLs, ",")
+	logger.Infof(ctx, "AEVMServerURLs = %+v AEVMPublishingPoolsURLs = %+v", serverURLs, publishingPoolsURLs)
+	aevmClient, err := aevmclientuc.NewClient(
+		aevmclientuc.Config{
+			ServerURLs:          serverURLs,
+			PublishingPoolsURLs: publishingPoolsURLs,
+
+			RetryOnTimeoutMs:          cfg.AEVM.RetryOnTimeoutMs,
+			FindrouteRetryOnTimeoutMs: cfg.AEVM.FindrouteRetryOnTimeoutMs,
+			MaxRetry:                  cfg.AEVM.MaxRetry,
+		},
+		func(url string) (aevmclient.Client, error) { return aevmclient.NewGRPCClient(url) },
+	)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	poolsPublisher, err := poolpublisher.NewPoolPublisher(aevmClient, poolmanager.NState)
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("could not NewPoolPublisher: %w", err)
+	}
+
+	return balanceSlotsUseCase, aevmClient, poolsPublisher, nil
 }
