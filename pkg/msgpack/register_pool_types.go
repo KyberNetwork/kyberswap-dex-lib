@@ -5,6 +5,7 @@ package msgpack
 import (
 	"github.com/KyberNetwork/msgpack/v5"
 
+	pkg_liquiditysource_algebra_integral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral"
 	pkg_liquiditysource_balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v1"
 	pkg_liquiditysource_balancerv2_composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
 	pkg_liquiditysource_balancerv2_stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/stable"
@@ -128,6 +129,7 @@ import (
 	pkg_source_zkerafinance "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/zkera-finance"
 )
 func init() {
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_algebra_integral.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv2_composablestable.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_balancerv2_stable.PoolSimulator{})

@@ -1,0 +1,135 @@
+[
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "pool",
+                "type": "address"
+            },
+            {
+                "internalType": "int24",
+                "name": "targetTick",
+                "type": "int24"
+            }
+        ],
+        "name": "getClosestActiveTicks",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "int24",
+                        "name": "tick",
+                        "type": "int24"
+                    },
+                    {
+                        "internalType": "int128",
+                        "name": "liquidityNet",
+                        "type": "int128"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "liquidityGross",
+                        "type": "uint128"
+                    }
+                ],
+                "internalType": "struct ITickLens.PopulatedTick[2]",
+                "name": "populatedTicks",
+                "type": "tuple[2]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "pool",
+                "type": "address"
+            },
+            {
+                "internalType": "int24",
+                "name": "startingTick",
+                "type": "int24"
+            },
+            {
+                "internalType": "uint256",
+                "name": "amount",
+                "type": "uint256"
+            },
+            {
+                "internalType": "bool",
+                "name": "upperDirection",
+                "type": "bool"
+            }
+        ],
+        "name": "getNextActiveTicks",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "int24",
+                        "name": "tick",
+                        "type": "int24"
+                    },
+                    {
+                        "internalType": "int128",
+                        "name": "liquidityNet",
+                        "type": "int128"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "liquidityGross",
+                        "type": "uint128"
+                    }
+                ],
+                "internalType": "struct ITickLens.PopulatedTick[]",
+                "name": "populatedTicks",
+                "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "pool",
+                "type": "address"
+            },
+            {
+                "internalType": "int16",
+                "name": "tickTableIndex",
+                "type": "int16"
+            }
+        ],
+        "name": "getPopulatedTicksInWord",
+        "outputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "int24",
+                        "name": "tick",
+                        "type": "int24"
+                    },
+                    {
+                        "internalType": "int128",
+                        "name": "liquidityNet",
+                        "type": "int128"
+                    },
+                    {
+                        "internalType": "uint128",
+                        "name": "liquidityGross",
+                        "type": "uint128"
+                    }
+                ],
+                "internalType": "struct ITickLens.PopulatedTick[]",
+                "name": "populatedTicks",
+                "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]
