@@ -30,6 +30,7 @@ def main():
     pool_scores = liq.pool_score(pools)
     # using score.txt for debug only purpose
     if env == DEV_ENV:
+        pool_scores = sorted(pool_scores, key=lambda pool_score: pool_score[mean_type], reverse=True)
         save_scores(score_filename, pool_scores)
 
     # run filter score by calculating entropy

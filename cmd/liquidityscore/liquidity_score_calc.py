@@ -3,7 +3,7 @@ import numpy as np
 from scipy.optimize import minimize
 
 class Pool:
-    def __init__(self, name, level,trades_data):
+    def __init__(self, name, level, trades_data):
         self.name = name
         self.level = level
         self.data = []
@@ -40,10 +40,30 @@ def distance(m, trades):
     return np.sum(np.abs(y_values - (10**np.array(x_values) - 1) / (m + 10**np.array(x_values) - 1)))
 
 def find_best_m(trades):
-    max_score = 10**max(trades, key=lambda x: x[0])[0]
-    mean_x = 10**np.mean([trade[0] for trade in trades])
-    result = minimize(lambda m: distance(m[0], trades), [mean_x], method='Nelder-Mead',bounds=[(0.001, max_score)])
+    x_values, y_values, _, _ = zip(*trades)
+    x_values = np.array(x_values)
+    y_values = np.array(y_values)
 
+    # Compute initial m estimates from the data
+    m_values = ((1 - y_values) / y_values) * (10**x_values - 1)
+
+    # Filter out any non-positive m_values
+    m_values = m_values[m_values > 0]
+
+    if len(m_values) == 0:
+        initial_m = 0.001  # Default to 0.001 if no positive m_values
+    else:
+        initial_m = np.mean(m_values)
+
+    # Ensure initial_m is within bounds
+    max_score = 10**max(trades, key=lambda x: x[0])[0]
+    initial_m = np.clip(initial_m, 0.001, max_score)
+    result = minimize(
+        lambda m: distance(m[0], trades),
+        [initial_m],
+        method='Nelder-Mead',
+        bounds=[(0.001, max_score)]
+    )
     return result.x[0]
 
 def pool_score(pools) -> list:
@@ -58,7 +78,6 @@ def pool_score(pools) -> list:
         price_impact_zero_tokens = set()
         valid_scores = []
         for score, token_in, token_out in tmp_trade_data:
-            # print(f"debug score {score} {token_in} {token_out}")
             if score == 0:
                 price_impact_zero_tokens.add(token_in)
             if token_in not in price_impact_zero_tokens:
