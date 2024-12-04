@@ -53,7 +53,6 @@ type (
 )
 
 type RFQExtra struct {
-	Router    string `json:"router"`
-	Recipient string `json:"recipient"`
+	Router string `json:"router"`
 	SignedOrderResult
 }

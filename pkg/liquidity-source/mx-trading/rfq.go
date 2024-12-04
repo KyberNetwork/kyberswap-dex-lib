@@ -61,7 +61,6 @@ func (h *RFQHandler) RFQ(ctx context.Context, params pool.RFQParams) (*pool.RFQR
 		NewAmountOut: newAmountOut,
 		Extra: RFQExtra{
 			Router:            h.config.Router,
-			Recipient:         params.RFQRecipient,
 			SignedOrderResult: result,
 		},
 	}, nil
