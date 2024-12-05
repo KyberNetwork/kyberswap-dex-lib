@@ -205,6 +205,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeEETHOrWeETH
 	dexValueObject.ExchangeEtherfiVampire: {},
+
+	// executeOneInchV6Rfq
+	dexValueObject.ExchangeMxTrading: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {

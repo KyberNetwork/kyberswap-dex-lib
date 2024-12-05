@@ -141,6 +141,7 @@ common:
     - "ondo-usdy"
     - "ringswap"
     - "etherfi-vampire"
+    - "mx-trading"
   featureFlags: &featureFlags
     isAEVMEnabled: false
     isLiquidityScoreEnable: true
@@ -444,6 +445,14 @@ useCase:
         properties:
           http:
             base_url: "https://api.clipper.exchange"
+            timeout: 10s
+            retry_count: 3
+      - id: mx-trading
+        handler: mx-trading
+        properties:
+          router: 0x111111125421ca6dc452d289314280a0f8842a65
+          http:
+            base_url: "https://lht6f850if.execute-api.ap-southeast-1.amazonaws.com"
             timeout: 10s
             retry_count: 3
     faultyPools:

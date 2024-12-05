@@ -8,6 +8,7 @@ import (
 	clipper "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper/client"
 	dexalot "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot/client"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
+	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mx-trading/client"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2/client"
 	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm/client"
@@ -48,7 +49,9 @@ func isPMMFaultyPoolError(err error) bool {
 		errors.Is(err, bebopclient.ErrRFQFailed) ||
 		errors.Is(err, clipper.ErrQuoteFailed) ||
 		errors.Is(err, clipper.ErrSignFailed) ||
-		errors.Is(err, dexalot.ErrRFQFailed) {
+		errors.Is(err, dexalot.ErrRFQFailed) ||
+		errors.Is(err, mxtrading.ErrOrderIsTooSmall) ||
+		errors.Is(err, mxtrading.ErrRFQFailed) {
 		return true
 	}
 

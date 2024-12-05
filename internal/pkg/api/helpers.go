@@ -9,6 +9,7 @@ import (
 	clipperclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/clipper/client"
 	dexalotClient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot/client"
 	hashflowclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
+	mxtradingclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mx-trading/client"
 	nativeclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
 	kyberpmmclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm/client"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/limitorder"
@@ -314,6 +315,16 @@ var ErrorResponseByError = map[error]ErrorResponse{
 		Code:       4228,
 		Message:    "clipper sign failed",
 		Details:    []interface{}{clipperclient.ErrQuoteConflict.Error()},
+	},
+	mxtradingclient.ErrOrderIsTooSmall: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4228,
+		Message:    "mx-trading order is too small",
+	},
+	mxtradingclient.ErrRFQFailed: {
+		HTTPStatus: http.StatusUnprocessableEntity,
+		Code:       4228,
+		Message:    "mx-trading RFQ failed",
 	},
 }
 

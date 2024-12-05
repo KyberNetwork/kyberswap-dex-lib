@@ -104,6 +104,7 @@ common:
     - "deltaswap-v1"
     - "maverick-v2"
     - "ktx"
+    - "mx-trading"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
@@ -236,6 +237,7 @@ encoder:
     executeMaverickV2: 51
     executeIntegral: 52
     executeFluidVaultT1: 53
+    executeBatchOneInchV6: 54
     executeFluidDexT1: 55
     executeDexalot: 57
     executeClipperRfq: 58
@@ -433,6 +435,14 @@ useCase:
         properties:
           http:
             base_url: "https://api.clipper.exchange"
+            timeout: 10s
+            retry_count: 3
+      - id: mx-trading
+        handler: mx-trading
+        properties:
+          router: 0x111111125421ca6dc452d289314280a0f8842a65
+          http:
+            base_url: "http://ec2-13-212-180-71.ap-southeast-1.compute.amazonaws.com:6061"
             timeout: 10s
             retry_count: 3
     faultyPools:

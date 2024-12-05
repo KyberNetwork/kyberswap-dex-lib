@@ -135,6 +135,7 @@ func init() {
 		pooltypes.PoolTypes.LimitOrder,
 		pooltypes.PoolTypes.Dexalot,
 		pooltypes.PoolTypes.RingSwap,
+		pooltypes.PoolTypes.MxTrading,
 	}
 }
 

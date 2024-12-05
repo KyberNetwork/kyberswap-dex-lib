@@ -11,6 +11,8 @@ import (
 	dexalotclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/dexalot/client"
 	hashflowv3 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3"
 	hashflowv3client "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/hashflow-v3/client"
+	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mx-trading"
+	mxtradingclient "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mx-trading/client"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	nativev1client "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1/client"
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
@@ -139,6 +141,16 @@ func NewRFQHandler(
 		httpClient := dexalotclient.NewHTTPClient(&cfg.HTTP)
 
 		return dexalot.NewRFQHandler(&cfg, httpClient), nil
+	case mxtrading.DexType:
+		var cfg mxtrading.Config
+		err := PropertiesToStruct(rfqCfg.Properties, &cfg)
+		if err != nil {
+			return nil, err
+		}
+		cfg.DexID = rfqCfg.Id
+		httpClient := mxtradingclient.NewHTTPClient(&cfg.HTTP)
+
+		return mxtrading.NewRFQHandler(&cfg, httpClient), nil
 	default:
 		return NewNoopRFQHandler(), nil
 	}

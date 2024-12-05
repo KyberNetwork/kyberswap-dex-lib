@@ -56,6 +56,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
+	mxtrading "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mx-trading"
 	nativev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/native-v1"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/nomiswap/nomiswapstable"
 	ondo_usdy "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ondo-usdy"
@@ -436,7 +437,8 @@ func newSwapLimit(dex string, limit map[string]*big.Int) poolpkg.SwapLimit {
 		pooltypes.PoolTypes.LimitOrder,
 		pooltypes.PoolTypes.NativeV1,
 		pooltypes.PoolTypes.Dexalot,
-		pooltypes.PoolTypes.RingSwap:
+		pooltypes.PoolTypes.RingSwap,
+		pooltypes.PoolTypes.MxTrading:
 		return swaplimit.NewInventory(dex, limit)
 
 	case pooltypes.PoolTypes.KyberPMM:
@@ -708,6 +710,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newEtherfiVampire(entityPool)
 	case pooltypes.PoolTypes.AlgebraIntegral:
 		return f.newAlgebraIntegral(entityPool)
+	case pooltypes.PoolTypes.MxTrading:
+		return f.newMxTrading(entityPool)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -2432,6 +2436,21 @@ func (f *PoolFactory) newEtherfiVampire(entityPool entity.Pool) (*etherfivampire
 			"[PoolFactory.newEtherfiVampire] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newMxTrading(entityPool entity.Pool) (*mxtrading.PoolSimulator, error) {
+	corePool, err := mxtrading.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newMxTrading] pool: [%s] » type: [%s] » exchange: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+			err,
 		)
 	}
 
