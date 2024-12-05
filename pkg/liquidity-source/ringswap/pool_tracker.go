@@ -9,6 +9,7 @@ import (
 	"github.com/KyberNetwork/ethrpc"
 	"github.com/KyberNetwork/logger"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient/gethclient"
 	"github.com/goccy/go-json"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -41,11 +42,28 @@ func (d *PoolTracker) GetNewPoolState(
 	p entity.Pool,
 	params pool.GetNewPoolStateParams,
 ) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, params, nil)
+}
+
+func (d *PoolTracker) GetNewPoolStateWithOverrides(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateWithOverridesParams,
+) (entity.Pool, error) {
+	return d.getNewPoolState(ctx, p, pool.GetNewPoolStateParams{Logs: params.Logs}, params.Overrides)
+}
+
+func (d *PoolTracker) getNewPoolState(
+	ctx context.Context,
+	p entity.Pool,
+	params pool.GetNewPoolStateParams,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (entity.Pool, error) {
 	startTime := time.Now()
 
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
-	fwReserves, originalReserves, blockNumber, err := d.getReserves(ctx, p.Address, p.Tokens)
+	fwReserves, originalReserves, blockNumber, err := d.getReserves(ctx, p.Address, p.Tokens, overrides)
 	if err != nil {
 		return p, err
 	}
@@ -79,7 +97,12 @@ func (d *PoolTracker) GetNewPoolState(
 	return d.updatePool(p, fwReserves, originalReserves, blockNumber)
 }
 
-func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, tokens []*entity.PoolToken) (uniswapv2.ReserveData,
+func (d *PoolTracker) getReserves(
+	ctx context.Context,
+	poolAddress string,
+	tokens []*entity.PoolToken,
+	overrides map[common.Address]gethclient.OverrideAccount,
+) (uniswapv2.ReserveData,
 	uniswapv2.ReserveData, *big.Int, error) {
 	if len(tokens) < 4 {
 		return uniswapv2.ReserveData{}, uniswapv2.ReserveData{}, nil, errors.New("invalid number of tokens")
@@ -100,7 +123,9 @@ func (d *PoolTracker) getReserves(ctx context.Context, poolAddress string, token
 	}
 
 	getReservesRequest := d.ethrpcClient.NewRequest().SetContext(ctx)
-
+	if overrides != nil {
+		getReservesRequest.SetOverrides(overrides)
+	}
 	getReservesRequest.AddCall(&ethrpc.Call{
 		ABI:    uniswapV2PairABI,
 		Target: poolAddress,
