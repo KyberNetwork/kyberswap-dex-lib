@@ -3,6 +3,7 @@ package integral
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/KyberNetwork/elastic-go-sdk/v2/utils"
 	"github.com/KyberNetwork/int256"
@@ -17,6 +18,7 @@ var (
 )
 
 type TimepointStorage struct {
+	mu   sync.RWMutex
 	data map[uint16]Timepoint
 }
 
@@ -27,6 +29,9 @@ func NewTimepointStorage(data map[uint16]Timepoint) *TimepointStorage {
 }
 
 func (s *TimepointStorage) Get(index uint16) Timepoint {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	if v, ok := s.data[index]; ok {
 		logger.Debugf("access exists %v %v", index, v)
 		return v
@@ -45,6 +50,9 @@ func (s *TimepointStorage) Get(index uint16) Timepoint {
 	}
 }
 func (s *TimepointStorage) set(index uint16, v Timepoint) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	s.data[index] = v
 }
 
