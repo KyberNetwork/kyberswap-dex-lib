@@ -32,12 +32,13 @@ def arithmetic_mean(nums):
     return sum(nums) / len(nums)
 
 def compute_price_impacts_log_scale(trades_data):
-    price_impacts_original = [(trade, (1 - (received / trade)), token_in, token_out) for trade, received, token_in, token_out in trades_data]
-    return [(math.log(trade, 10), impact, token_in, token_out) for trade, impact, token_in, token_out in price_impacts_original]
+    price_impacts_original = [(received, (1 - (received / trade)), token_in, token_out) for trade, received, token_in, token_out in trades_data]
+    return [(math.log(received, 10), impact, token_in, token_out) for received, impact, token_in, token_out in price_impacts_original]
 
 def distance(m, trades):
     x_values, y_values, _, _ = zip(*trades)
-    return np.sum(np.abs(y_values - (10**np.array(x_values) - 1) / (m + 10**np.array(x_values) - 1)))
+    return np.sum(np.abs(y_values - (10**np.array(x_values) - 1) / m))
+
 
 def find_best_m(trades):
     x_values, y_values, _, _ = zip(*trades)
@@ -45,26 +46,31 @@ def find_best_m(trades):
     y_values = np.array(y_values)
 
     # Compute initial m estimates from the data
-    m_values = ((1 - y_values) / y_values) * (10**x_values - 1)
+    m_values = (10**x_values - 1) / y_values
 
     # Filter out any non-positive m_values
     m_values = m_values[m_values > 0]
-
     if len(m_values) == 0:
-        initial_m = 0.001  # Default to 0.001 if no positive m_values
+        best_m = 0.001  # Default to 0.001 if no positive m_values
+
     else:
         initial_m = np.mean(m_values)
 
-    # Ensure initial_m is within bounds
-    max_score = 10**max(trades, key=lambda x: x[0])[0]
-    initial_m = np.clip(initial_m, 0.001, max_score)
-    result = minimize(
-        lambda m: distance(m[0], trades),
-        [initial_m],
-        method='Nelder-Mead',
-        bounds=[(0.001, max_score)]
-    )
-    return result.x[0]
+        # Ensure initial_m is within bounds
+        max_m = np.max(m_values) if len(m_values) > 0 else 1e6  # Cap max_m to avoid overly large values
+        max_m = max(max_m, 0.001 + 1e-6)  # Add a small value to max_m
+
+        initial_m = np.clip(initial_m, 0.001, max_m)
+
+        # Minimize the distance function to find the optimal m
+        result = minimize(
+            lambda m: distance(m[0], trades),
+            [initial_m],
+            method='Nelder-Mead',
+            bounds=[(0.001, max_m)]
+        )
+        best_m=result.x[0]
+    return best_m
 
 def pool_score(pools) -> list:
     result = []
