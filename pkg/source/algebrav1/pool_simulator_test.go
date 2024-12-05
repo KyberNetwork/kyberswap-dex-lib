@@ -356,13 +356,6 @@ func RandNumberString(maxLen int) string {
 	return string(s)
 }
 
-func remaining(remainingAmt *pool.TokenAmount) string {
-	if remainingAmt == nil || remainingAmt.Amount == nil {
-		return "0"
-	}
-	return remainingAmt.Amount.String()
-}
-
 func TestMultiUse(t *testing.T) {
 	poolEntity := new(entity.Pool)
 	err := json.Unmarshal([]byte(poolEncoded), poolEntity)
