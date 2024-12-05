@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -167,6 +168,6 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return syncswap.Meta{
-		VaultAddress: p.vaultAddress,
+		VaultAddress: common.Address{}.Hex(),
 	}
 }
