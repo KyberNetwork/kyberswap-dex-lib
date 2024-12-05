@@ -15,11 +15,13 @@ import (
 )
 
 var (
-	ErrEmptyPriceLevels                       = errors.New("empty price levels")
-	ErrInsufficientLiquidity                  = errors.New("insufficient liquidity")
-	ErrParsingBigFloat                        = errors.New("invalid float number")
-	ErrAmountInIsLessThanLowestPriceLevel     = errors.New("amountIn is less than lowest price level")
-	ErrAmountInIsGreaterThanHighestPriceLevel = errors.New("amountIn is greater than highest price level")
+	ErrEmptyPriceLevels                        = errors.New("empty price levels")
+	ErrInsufficientLiquidity                   = errors.New("insufficient liquidity")
+	ErrParsingBigFloat                         = errors.New("invalid float number")
+	ErrAmountInIsLessThanLowestPriceLevel      = errors.New("amountIn is less than lowest price level")
+	ErrAmountInIsGreaterThanHighestPriceLevel  = errors.New("amountIn is greater than highest price level")
+	ErrAmountOutIsLessThanLowestPriceLevel     = errors.New("amountOut is less than lowest price level")
+	ErrAmountOutIsGreaterThanHighestPriceLevel = errors.New("amountOut is greater than highest price level")
 )
 
 type (
@@ -149,6 +151,14 @@ func (p *PoolSimulator) CalcAmountOut(params pool.CalcAmountOutParams) (*pool.Ca
 	}
 }
 
+func (p *PoolSimulator) CalcAmountIn(params pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	if params.TokenAmountOut.Token == p.Token1.Address {
+		return p.swapExactOut(params.TokenAmountOut.Amount, p.Token0, p.Token1, p.ZeroToOnePriceLevels)
+	} else {
+		return p.swapExactOut(params.TokenAmountOut.Amount, p.Token1, p.Token0, p.OneToZeroPriceLevels)
+	}
+}
+
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	var amountInAfterDecimals, decimalsPow, amountInBF big.Float
 	amountInBF.SetInt(params.TokenAmountIn.Amount)
@@ -207,6 +217,43 @@ func (p *PoolSimulator) swap(amountIn *big.Int, baseToken, quoteToken entity.Poo
 	}, nil
 }
 
+func (p *PoolSimulator) swapExactOut(amountOut *big.Int, baseToken, quoteToken entity.PoolToken, priceLevel []PriceLevel) (*pool.CalcAmountInResult, error) {
+	var amountOutAfterDecimals, decimalsPow, amountInBF, amountOutBF, priceToleranceBF, amountInToleranceBF big.Float
+
+	amountOutBF.SetInt(amountOut)
+	decimalsPow.SetFloat64(math.Pow10(int(quoteToken.Decimals)))
+	amountOutAfterDecimals.Quo(&amountOutBF, &decimalsPow)
+
+	var amountInAfterDecimals big.Float
+	// Passing amountInAfterDecimals to the function to avoid allocation
+	err := getAmountIn(&amountOutAfterDecimals, priceLevel, &amountInAfterDecimals)
+	if err != nil {
+		return nil, err
+	}
+
+	decimalsPow.SetFloat64(math.Pow10(int(baseToken.Decimals)))
+	amountInBF.Mul(&amountInAfterDecimals, &decimalsPow)
+
+	priceToleranceBF.SetFloat64(float64(p.priceTolerance) / float64(priceToleranceBps))
+	amountInToleranceBF.Mul(&priceToleranceBF, &amountInBF)
+	amountInBF.Add(&amountInBF, &amountInToleranceBF) // amountIn = amountIn + tolerance
+
+	amountIn, _ := amountInBF.Int(nil)
+
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{Token: baseToken.Address, Amount: amountIn},
+		Fee:           &pool.TokenAmount{Token: baseToken.Address, Amount: bignumber.ZeroBI},
+		Gas:           p.gas.Quote,
+		SwapInfo: SwapInfo{
+			BaseToken:        baseToken.Address,
+			BaseTokenAmount:  amountIn.String(),
+			QuoteToken:       quoteToken.Address,
+			QuoteTokenAmount: amountOut.String(),
+			MarketMaker:      p.MarketMaker,
+		},
+	}, nil
+}
+
 func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel, amountOut *big.Float) error {
 	if len(priceLevels) == 0 {
 		return ErrEmptyPriceLevels
@@ -245,6 +292,48 @@ func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel, amountOut *big.
 		if amountLeft.Cmp(zeroBF) == 0 || currentLevelIdx == len(priceLevels) {
 			break
 		}
+	}
+
+	return nil
+}
+
+func getAmountIn(amountOut *big.Float, priceLevels []PriceLevel, amountIn *big.Float) error {
+	if len(priceLevels) == 0 {
+		return ErrEmptyPriceLevels
+	}
+
+	// Check lower bound
+	if amountOut.Cmp(new(big.Float).Mul(priceLevels[0].Quote, priceLevels[0].Price)) < 0 {
+		return ErrAmountOutIsLessThanLowestPriceLevel
+	}
+
+	// Check upper bound
+	var supportedAmountOut big.Float
+	for _, priceLevel := range priceLevels {
+		supportedAmountOut.Add(&supportedAmountOut, new(big.Float).Mul(priceLevel.Quote, priceLevel.Price))
+	}
+	if amountOut.Cmp(&supportedAmountOut) > 0 {
+		return ErrAmountOutIsGreaterThanHighestPriceLevel
+	}
+
+	amountLeft := new(big.Float).Set(amountOut)
+
+	for _, priceLevel := range priceLevels {
+		swappableAmount := new(big.Float).Mul(priceLevel.Quote, priceLevel.Price)
+		if swappableAmount.Cmp(amountLeft) > 0 {
+			swappableAmount = new(big.Float).Set(amountLeft)
+		}
+
+		amountIn.Add(amountIn, new(big.Float).Quo(swappableAmount, priceLevel.Price))
+		amountLeft = amountLeft.Sub(amountLeft, swappableAmount)
+
+		if amountLeft.Cmp(zeroBF) == 0 {
+			break
+		}
+	}
+
+	if amountLeft.Cmp(zeroBF) != 0 {
+		return ErrInsufficientLiquidity // Should not happen
 	}
 
 	return nil
