@@ -73,8 +73,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			baseToken = *entityPool.Tokens[i]
 		}
 
-		if _, exist := quoteAddresessesMap[strings.ToLower(entityPool.Tokens[i].Address)]; !exist {
-			continue
+		if _, exist := quoteAddresessesMap[strings.ToLower(entityPool.Tokens[i].Address)]; exist {
+			quoteTokens = append(quoteTokens, *entityPool.Tokens[i])
 		}
 
 		reserves[i] = amount

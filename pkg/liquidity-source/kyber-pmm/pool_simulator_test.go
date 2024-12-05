@@ -379,7 +379,7 @@ func TestPoolSimulator_swapLimit(t *testing.T) {
 
 	// test base -> quote
 	{
-		limit := swaplimit.NewSwappedInventory("kyber-pmm", ps.CalculateLimit())
+		limit := swaplimit.NewInventory("kyber-pmm", ps.CalculateLimit())
 		amtIn1, _ := new(big.Int).SetString("10000000000000000000", 10) // 10 KNC
 		res1, err := ps.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{
@@ -443,7 +443,7 @@ func TestPoolSimulator_swapLimit(t *testing.T) {
 
 	// test quote -> base
 	{
-		limit := swaplimit.NewSwappedInventory("kyber-pmm", ps.CalculateLimit())
+		limit := swaplimit.NewInventory("kyber-pmm", ps.CalculateLimit())
 		amtIn1, _ := new(big.Int).SetString("1000000", 10) // 1 USDT
 		res1, err := ps.CalcAmountOut(pool.CalcAmountOutParams{
 			TokenAmountIn: pool.TokenAmount{
