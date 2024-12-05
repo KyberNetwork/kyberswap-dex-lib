@@ -54,10 +54,14 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	}
 
 	var (
-		baseToken   entity.PoolToken
-		quoteTokens = make([]entity.PoolToken, 0, numTokens-1)
-		priceLevels = make([]BaseQuotePriceLevels, 0, numTokens-1)
+		baseToken           entity.PoolToken
+		quoteTokens         = make([]entity.PoolToken, 0, numTokens-1)
+		priceLevels         = make([]BaseQuotePriceLevels, 0, numTokens-1)
+		quoteAddresessesMap = make(map[string]struct{}, len(staticExtra.QuoteTokenAddresses))
 	)
+	for _, qAddr := range staticExtra.QuoteTokenAddresses {
+		quoteAddresessesMap[strings.ToLower(qAddr)] = struct{}{}
+	}
 
 	for i := 0; i < numTokens; i += 1 {
 		tokens[i] = entityPool.Tokens[i].Address
@@ -69,10 +73,8 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			baseToken = *entityPool.Tokens[i]
 		}
 
-		if slices.ContainsFunc(staticExtra.QuoteTokenAddresses, func(s string) bool {
-			return strings.EqualFold(s, entityPool.Tokens[i].Address)
-		}) {
-			quoteTokens = append(quoteTokens, *entityPool.Tokens[i])
+		if _, exist := quoteAddresessesMap[strings.ToLower(entityPool.Tokens[i].Address)]; !exist {
+			continue
 		}
 
 		reserves[i] = amount
@@ -118,7 +120,8 @@ func (p *PoolSimulator) CalcAmountOut(
 		inventoryLimitIn  = limit.GetLimit(param.TokenAmountIn.Token)
 	)
 	if param.TokenAmountIn.Amount.Cmp(inventoryLimitIn) > 0 {
-		return nil, errors.New("not enough inventory in")
+		return nil, fmt.Errorf("ErrNotEnoughInventoryIn: inv %s, req %s",
+			inventoryLimitIn.String(), param.TokenAmountIn.Amount.String())
 	}
 
 	var (
@@ -222,6 +225,10 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 	}
 
 	return []string{p.baseToken.Address}
+}
+
+func (p *PoolSimulator) CanSwapFrom(address string) []string {
+	return p.CanSwapTo(address)
 }
 
 func getAmountOut(amountIn *big.Float, priceLevels []PriceLevel) (*big.Float, error) {

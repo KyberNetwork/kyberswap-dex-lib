@@ -7,7 +7,7 @@ import (
 	"github.com/KyberNetwork/logger"
 	"github.com/dgraph-io/ristretto"
 
-	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/kyber-pmm"
+	kyberpmm "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kyber-pmm"
 )
 
 const (
