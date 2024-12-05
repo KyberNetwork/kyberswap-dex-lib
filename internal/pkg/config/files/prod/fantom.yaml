@@ -54,6 +54,7 @@ common:
     - "spookyswap-v3"
     - "e3"
     - "woofi-v2"
+    - "silverswap"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

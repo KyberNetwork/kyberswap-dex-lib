@@ -45,6 +45,7 @@ common:
     - "ondo-usdy"
     - "clipper"
     - "ktx"
+    - "swapsicle"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 10000000
   getBestPoolsOptions: &getBestPoolsOptions

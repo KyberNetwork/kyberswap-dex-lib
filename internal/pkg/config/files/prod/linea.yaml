@@ -55,6 +55,7 @@ common:
     - "dodo-dvm"
     - "native-v1"
     - "woofi-v3"
+    - "horizon-integral"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

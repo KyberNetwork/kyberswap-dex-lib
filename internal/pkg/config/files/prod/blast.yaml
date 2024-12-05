@@ -42,6 +42,8 @@ common:
     - "dackie-v2"
     - "dackie-v3"
     - "ringswap"
+    - "blade"
+    - "fenix"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

@@ -51,6 +51,8 @@ common:
     - "native-v1"
     - "maverick-v2"
     - "ambient"
+    - "scribe"
+
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

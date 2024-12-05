@@ -13,6 +13,7 @@ import (
 	maverickv2aevm "github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/liquidity-source/maverick-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib-private/pkg/types"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	algebraintegral "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/algebra/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/ambient"
 	balancerv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v1"
 	balancerv2composablestable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/balancer-v2/composable-stable"
@@ -705,7 +706,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newSfrxETHConvertor(entityPool)
 	case pooltypes.PoolTypes.EtherfiVampire:
 		return f.newEtherfiVampire(entityPool)
-
+	case pooltypes.PoolTypes.AlgebraIntegral:
+		return f.newAlgebraIntegral(entityPool)
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -1396,12 +1398,26 @@ func (f *PoolFactory) newMaverickV1(entityPool entity.Pool) (*maverickv1.Pool, e
 }
 
 func (f *PoolFactory) newAlgebraV1(entityPool entity.Pool) (*algebrav1.PoolSimulator, error) {
-	defaultGas := DefaultGasAlgebra[valueobject.Exchange(entityPool.Exchange)]
+	defaultGas := DefaultGasAlgebraV1[valueobject.Exchange(entityPool.Exchange)]
 	corePool, err := algebrav1.NewPoolSimulator(entityPool, defaultGas)
 	if err != nil {
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newAlgebraV1] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newAlgebraIntegral(entityPool entity.Pool) (*algebraintegral.PoolSimulator, error) {
+	defaultGas := DefaultGasAlgebraIntegral[valueobject.Exchange(entityPool.Exchange)]
+	corePool, err := algebraintegral.NewPoolSimulator(entityPool, defaultGas)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newAlgebraIntegral] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type)
 	}
