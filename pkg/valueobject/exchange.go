@@ -345,32 +345,33 @@ var (
 	ExchangeQuickSwapUniV3 Exchange = "quickswap-uni-v3"
 	ExchangeAmbient        Exchange = "ambient"
 
-	ExchangeMaverickV2       Exchange = "maverick-v2"
-	ExchangeEtherVista       Exchange = "ether-vista"
-	ExchangeLitePSM          Exchange = "lite-psm"
-	ExchangeMkrSky           Exchange = "mkr-sky"
-	ExchangeDaiUsds          Exchange = "dai-usds"
-	ExchangeUsd0PP           Exchange = "usd0pp"
-	ExchangeWBETH            Exchange = "wbeth"
-	ExchangeOETH             Exchange = "oeth"
-	ExchangeRingSwap         Exchange = "ringswap"
-	ExchangePrimeETH         Exchange = "primeeth"
-	ExchangeStaderETHx       Exchange = "staderethx"
-	ExchangeFrxETH           Exchange = "frxeth"
-	ExchangeFluidVaultT1     Exchange = "fluid-vault-t1"
-	ExchangeFluidDexT1       Exchange = "fluid-dex-t1"
-	ExchangeMantleETH        Exchange = "meth"
-	ExchangeOndoUSDY         Exchange = "ondo-usdy"
-	ExchangeClipper          Exchange = "clipper"
-	ExchangeDeltaSwapV1      Exchange = "deltaswap-v1"
-	ExchangeSfrxETH          Exchange = "sfrxeth"
-	ExchangeSfrxETHConvertor Exchange = "sfrxeth-convertor"
-	ExchangeEtherfiVampire   Exchange = "etherfi-vampire"
-	ExchangeSwapsicle        Exchange = "swapsicle"
-	ExchangeFenix            Exchange = "fenix"
-	ExchangeBlade            Exchange = "blade"
-	ExchangeSilverSwap       Exchange = "silverswap"
-	ExchangeScribe           Exchange = "scribe"
+	ExchangeMaverickV2         Exchange = "maverick-v2"
+	ExchangeEtherVista         Exchange = "ether-vista"
+	ExchangeLitePSM            Exchange = "lite-psm"
+	ExchangeMkrSky             Exchange = "mkr-sky"
+	ExchangeDaiUsds            Exchange = "dai-usds"
+	ExchangeUsd0PP             Exchange = "usd0pp"
+	ExchangeWBETH              Exchange = "wbeth"
+	ExchangeOETH               Exchange = "oeth"
+	ExchangeRingSwap           Exchange = "ringswap"
+	ExchangePrimeETH           Exchange = "primeeth"
+	ExchangeStaderETHx         Exchange = "staderethx"
+	ExchangeFrxETH             Exchange = "frxeth"
+	ExchangeFluidVaultT1       Exchange = "fluid-vault-t1"
+	ExchangeFluidDexT1         Exchange = "fluid-dex-t1"
+	ExchangeMantleETH          Exchange = "meth"
+	ExchangeOndoUSDY           Exchange = "ondo-usdy"
+	ExchangeClipper            Exchange = "clipper"
+	ExchangeDeltaSwapV1        Exchange = "deltaswap-v1"
+	ExchangeSfrxETH            Exchange = "sfrxeth"
+	ExchangeSfrxETHConvertor   Exchange = "sfrxeth-convertor"
+	ExchangeEtherfiVampire     Exchange = "etherfi-vampire"
+	ExchangeSwapsicle          Exchange = "swapsicle"
+	ExchangeFenix              Exchange = "fenix"
+	ExchangeBlade              Exchange = "blade"
+	ExchangeSilverSwap         Exchange = "silverswap"
+	ExchangeScribe             Exchange = "scribe"
+	ExchangeHorizonDexIntegral Exchange = "horizon-dex-integral"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -677,6 +678,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeBlade:                      {},
 	ExchangeSilverSwap:                 {},
 	ExchangeScribe:                     {},
+	ExchangeHorizonDexIntegral:         {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
