@@ -525,13 +525,13 @@ func (p *PoolSimulator) calculateSwap(overrideFee, pluginFee uint32, zeroToOne b
 			var liquidityDelta = new(int256.Int)
 			if zeroToOne {
 				currentTick = step.nextTick - 1
+				initializedTick = step.nextTick - 1
 				liquidityDelta = liquidityDelta.Neg(liquidityNet)
 			} else {
 				currentTick = step.nextTick
+				initializedTick = step.nextTick
 				liquidityDelta = liquidityNet
 			}
-
-			initializedTick = step.nextTick
 
 			currentLiquidity, err = addDelta(currentLiquidity, liquidityDelta)
 			if err != nil {
