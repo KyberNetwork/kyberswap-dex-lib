@@ -390,7 +390,7 @@ func (p *PointerSwapPoolManager) getPoolStates(ctx context.Context, poolAddresse
 	defer mempool.ReserveMany(poolEntitiesFromDB)
 
 	if err != nil {
-		logger.Errorf(ctx, "poolRepository.FindByAddresses crashed into err ", err)
+		logger.Errorf(ctx, "poolRepository.FindByAddresses crashed into err : %v", err)
 		return &types.FindRouteState{
 			Pools:                   resultPoolByAddress,
 			SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits),
