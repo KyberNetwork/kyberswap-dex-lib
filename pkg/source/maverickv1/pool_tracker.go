@@ -184,18 +184,18 @@ func (d *PoolTracker) getNewPoolState(
 	binMapHex := make(map[string]*big.Int)
 	var minBinMapIndex, maxBinMapIndex *big.Int
 	for i, binRaw := range binRaws {
-		if binRaw.BinState.MergeID.Cmp(zeroBI) != 0 ||
-			(binRaw.BinState.ReserveA.Cmp(zeroBI) == 0 && binRaw.BinState.ReserveB.Cmp(zeroBI) == 0) {
+		if binRaw.BinState.MergeID.Sign() != 0 ||
+			(binRaw.BinState.ReserveA.Sign() == 0 && binRaw.BinState.ReserveB.Sign() == 0) {
 			continue
 		}
 
 		strI := strconv.Itoa(i)
 		bin := Bin{
-			ReserveA:  new(big.Int).Set(binRaw.BinState.ReserveA),
-			ReserveB:  new(big.Int).Set(binRaw.BinState.ReserveB),
+			ReserveA:  binRaw.BinState.ReserveA,
+			ReserveB:  binRaw.BinState.ReserveB,
 			LowerTick: big.NewInt(int64(binRaw.BinState.LowerTick)),
 			Kind:      big.NewInt(int64(binRaw.BinState.Kind)),
-			MergeID:   new(big.Int).Set(binRaw.BinState.MergeID),
+			MergeID:   binRaw.BinState.MergeID,
 		}
 		bins[strI] = bin
 
@@ -206,15 +206,11 @@ func (d *PoolTracker) getNewPoolState(
 			}
 			binPositions[bin.LowerTick.String()][bin.Kind.String()] = big.NewInt(int64(i))
 
-			if minBinMapIndex == nil {
-				minBinMapIndex = new(big.Int).Set(binIndex)
-			} else if minBinMapIndex.Cmp(binIndex) > 0 {
-				minBinMapIndex.Set(binIndex)
+			if minBinMapIndex == nil || minBinMapIndex.Cmp(binIndex) > 0 {
+				minBinMapIndex = binIndex
 			}
-			if maxBinMapIndex == nil {
-				maxBinMapIndex = new(big.Int).Set(binIndex)
-			} else if maxBinMapIndex.Cmp(binIndex) < 0 {
-				maxBinMapIndex.Set(binIndex)
+			if maxBinMapIndex == nil || maxBinMapIndex.Cmp(binIndex) < 0 {
+				maxBinMapIndex = binIndex
 			}
 		}
 	}
@@ -284,9 +280,10 @@ func (d *PoolTracker) putTypeAtTick(
 	binMapHex map[string]*big.Int,
 	kind, tick *big.Int,
 ) *big.Int {
+	var tmp big.Int
 	offset, mapIndex := d.getMapPointer(
-		new(big.Int).Add(
-			new(big.Int).Mul(tick, Kinds),
+		tmp.Add(
+			tmp.Mul(tick, Kinds),
 			kind,
 		))
 	subMap := binMap[mapIndex.String()]
@@ -294,9 +291,7 @@ func (d *PoolTracker) putTypeAtTick(
 		subMap = big.NewInt(0)
 	}
 
-	value := new(big.Int).Or(
-		subMap,
-		new(big.Int).Lsh(big.NewInt(1), uint(offset.Int64())))
+	value := subMap.SetBit(subMap, int(offset.Int64()), 1)
 
 	binMap[mapIndex.String()] = value
 	binMapHex[mapIndex.Text(16)] = value
