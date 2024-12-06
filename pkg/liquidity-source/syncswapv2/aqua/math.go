@@ -10,9 +10,11 @@ import (
 )
 
 var (
-	ErrDenominatorZero      = errors.New("denominator should not be 0")
-	PriceMask               = new(uint256.Int).Sub(new(uint256.Int).Lsh(constant.One, 128), constant.One)
-	PriceSize          uint = 128
+	ErrDenominatorZero              = errors.New("denominator should not be 0")
+	ErrAmountOutSmallerThanFee      = errors.New("amount out smaller than fee")
+	ErrReserveViolation             = errors.New("reserve violation")
+	PriceMask                       = new(uint256.Int).Sub(new(uint256.Int).Lsh(constant.One, 128), constant.One)
+	PriceSize                  uint = 128
 )
 
 func sortArray(A0 []*uint256.Int) []*uint256.Int {
@@ -356,6 +358,10 @@ func (t *PoolSimulator) GetDy(i int, j int, dx *uint256.Int) (*uint256.Int, *uin
 		return nil, nil, err
 	}
 
+	if xp[j].Cmp(new(uint256.Int).Add(y, constant.One)) < 0 {
+		return nil, nil, ErrReserveViolation
+	}
+
 	var dy = new(uint256.Int).Sub(new(uint256.Int).Sub(xp[j], y), constant.One) // dy: uint256 = xp[j] - y - 1
 	xp[j] = y
 	if j > 0 {
@@ -371,6 +377,11 @@ func (t *PoolSimulator) GetDy(i int, j int, dx *uint256.Int) (*uint256.Int, *uin
 		),
 		uint256.NewInt(100000),
 	)
+
+	if dy.Cmp(amountFee) < 0 {
+		return nil, nil, ErrAmountOutSmallerThanFee
+	}
+
 	amountOutAfterFee := new(uint256.Int).Sub(
 		dy, amountFee,
 	)
@@ -702,6 +713,7 @@ func getCryptoFee(minFee, maxFee, gamma, xp0, xp1 *uint256.Int) *uint256.Int {
 			),
 		),
 	)
+
 	// const fee = minFee.mul(f).add(maxFee.mul(ETHER.sub(f))).div(ETHER);
 	fee := new(uint256.Int).Div(
 		new(uint256.Int).Add(

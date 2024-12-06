@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
-	"github.com/ethereum/go-ethereum/common"
+	"github.com/KyberNetwork/logger"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -78,7 +78,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		return &pool.CalcAmountOutResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 	}
 
-	amountOut := getAmountOut(
+	amountOut, feeDeductedAmountIn := getAmountOut(
 		uint256.MustFromBig(tokenAmountIn.Amount),
 		uint256.MustFromBig(p.Info.Reserves[tokenInIndex]),
 		uint256.MustFromBig(p.Info.Reserves[tokenOutIndex]),
@@ -110,6 +110,7 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 		TokenAmountOut: tokenAmountOut,
 		Fee:            fee,
 		Gas:            p.gas.Swap,
+		SwapInfo:       SwapInfo{FeeDeductedAmountIn: uint256.MustFromBig(feeDeductedAmountIn)},
 	}, nil
 }
 
@@ -158,8 +159,12 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	var input, output = params.TokenAmountIn, params.TokenAmountOut
 	var tokenInIndex = p.GetTokenIndex(input.Token)
 	var tokenOutIndex = p.GetTokenIndex(output.Token)
-
-	var inputAmount, _ = calAmountAfterFee(uint256.MustFromBig(input.Amount), p.swapFees[tokenInIndex])
+	info, ok := params.SwapInfo.(SwapInfo)
+	if !ok {
+		logger.Warnf("failed to UpdateBalance for syncswapv2stable %v %v pool, wrong swapInfo type", p.Info.Address, p.Info.Exchange)
+		return
+	}
+	var inputAmount = info.FeeDeductedAmountIn
 	var outputAmount = output.Amount
 
 	p.Info.Reserves[tokenInIndex] = new(big.Int).Add(p.Info.Reserves[tokenInIndex], inputAmount.ToBig())
@@ -168,6 +173,6 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return syncswap.Meta{
-		VaultAddress: common.Address{}.Hex(),
+		VaultAddress: addressZero,
 	}
 }

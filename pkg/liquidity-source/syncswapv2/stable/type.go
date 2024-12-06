@@ -14,3 +14,7 @@ type ExtraStablePool struct {
 	VaultAddress string       `json:"vaultAddress"`
 	A            *uint256.Int `json:"a"`
 }
+
+type SwapInfo struct {
+	FeeDeductedAmountIn *uint256.Int `json:"feeDeductedAmountIn"`
+}

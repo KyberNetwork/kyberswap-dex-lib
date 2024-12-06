@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/holiman/uint256"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -168,6 +167,6 @@ func (t *PoolSimulator) Swap(
 
 func (p *PoolSimulator) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return syncswap.Meta{
-		VaultAddress: common.Address{}.Hex(),
+		VaultAddress: addressZero,
 	}
 }
