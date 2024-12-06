@@ -134,10 +134,7 @@ func (p *Pool) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOu
 			}
 		}
 
-		newState, err := DeepcopyState(p.state)
-		if err != nil {
-			return &pool.CalcAmountOutResult{}, fmt.Errorf("can not deepcopy maverick state, err: %v", err)
-		}
+		newState := p.state.Clone()
 
 		_, amountOut, binCrossed, err := swap(newState, scaleAmount, tokenAIn, false, false)
 		if err != nil {
@@ -209,10 +206,7 @@ func (p *Pool) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInRe
 			}
 		}
 
-		newState, err := DeepcopyState(p.state)
-		if err != nil {
-			return &pool.CalcAmountInResult{}, fmt.Errorf("can not deepcopy maverick state, err: %v", err)
-		}
+		newState := p.state.Clone()
 
 		amountIn, _, binCrossed, err := swap(newState, scaleAmount, tokenAIn, true, false)
 		if err != nil {
@@ -256,6 +250,12 @@ func (p *Pool) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInRe
 	return &pool.CalcAmountInResult{}, fmt.Errorf("tokenInIndex %v or tokenOutIndex %v is not correct", tokenInIndex, tokenOutIndex)
 }
 
+func (p *Pool) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.state = p.state.Clone()
+	return &cloned
+}
+
 func (p *Pool) UpdateBalance(params pool.UpdateBalanceParams) {
 	newState, ok := params.SwapInfo.(maverickSwapInfo)
 	if !ok {
@@ -271,51 +271,13 @@ func (p *Pool) GetMetaInfo(tokenIn string, tokenOut string) interface{} {
 	return nil
 }
 
-func DeepcopyState(state *MaverickPoolState) (*MaverickPoolState, error) {
-	newState := &MaverickPoolState{
-		TickSpacing:      new(big.Int).Set(state.TickSpacing),
-		Fee:              new(big.Int).Set(state.Fee),
-		ProtocolFeeRatio: new(big.Int).Set(state.ProtocolFeeRatio),
-		ActiveTick:       new(big.Int).Set(state.ActiveTick),
-		BinCounter:       new(big.Int).Set(state.BinCounter),
-		minBinMapIndex:   new(big.Int).Set(state.minBinMapIndex),
-		maxBinMapIndex:   new(big.Int).Set(state.maxBinMapIndex),
-	}
-
-	// Clone state.Bins
-	newState.Bins = make(map[string]Bin, len(state.Bins))
-	for k, v := range state.Bins {
-		newState.Bins[k] = Bin{
-			ReserveA:  new(big.Int).Set(v.ReserveA),
-			ReserveB:  new(big.Int).Set(v.ReserveB),
-			LowerTick: new(big.Int).Set(v.LowerTick),
-			Kind:      new(big.Int).Set(v.Kind),
-			MergeID:   new(big.Int).Set(v.MergeID),
-		}
-	}
-
-	// Clone state.BinPositions
-	newState.BinPositions = make(map[string]map[string]*big.Int, len(state.BinPositions))
-	for k, v := range state.BinPositions {
-		newState.BinPositions[k] = make(map[string]*big.Int, len(v))
-		for k1, v1 := range v {
-			newState.BinPositions[k][k1] = new(big.Int).Set(v1)
-		}
-	}
-
-	// Clone state.BinMap
-	binMapHexLen := len(state.BinMapHex)
-	if binMapHexLen > 0 {
-		newState.BinMapHex = make(map[string]*big.Int, binMapHexLen)
-		for k, v := range state.BinMapHex {
-			newState.BinMapHex[k] = new(big.Int).Set(v)
-		}
-	} else {
-		newState.BinMap = make(map[string]*big.Int, len(state.BinMap))
-		for k, v := range state.BinMap {
-			newState.BinMap[k] = new(big.Int).Set(v)
-		}
-	}
-
-	return newState, nil
+func (state *MaverickPoolState) Clone() *MaverickPoolState {
+	cloned := *state
+	cloned.Bins = lo.MapValues(state.Bins, func(bin Bin, _ string) Bin {
+		bin.ReserveA = new(big.Int).Set(bin.ReserveA)
+		bin.ReserveB = new(big.Int).Set(bin.ReserveB)
+		return bin
+	})
+	cloned.ActiveTick = new(big.Int).Set(state.ActiveTick)
+	return &cloned
 }

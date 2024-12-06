@@ -1,0 +1,181 @@
+[
+  { "inputs": [{ "internalType": "address", "name": "_pool", "type": "address" }], "stateMutability": "nonpayable", "type": "constructor" },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "components": [
+          { "internalType": "uint16", "name": "alpha1", "type": "uint16" },
+          { "internalType": "uint16", "name": "alpha2", "type": "uint16" },
+          { "internalType": "uint32", "name": "beta1", "type": "uint32" },
+          { "internalType": "uint32", "name": "beta2", "type": "uint32" },
+          { "internalType": "uint16", "name": "gamma1", "type": "uint16" },
+          { "internalType": "uint16", "name": "gamma2", "type": "uint16" },
+          { "internalType": "uint32", "name": "volumeBeta", "type": "uint32" },
+          { "internalType": "uint16", "name": "volumeGamma", "type": "uint16" },
+          { "internalType": "uint16", "name": "baseFee", "type": "uint16" }
+        ],
+        "indexed": false,
+        "internalType": "struct AdaptiveFee.Configuration",
+        "name": "feeConfig",
+        "type": "tuple"
+      }
+    ],
+    "name": "FeeConfiguration",
+    "type": "event"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint128", "name": "liquidity", "type": "uint128" },
+      { "internalType": "int256", "name": "amount0", "type": "int256" },
+      { "internalType": "int256", "name": "amount1", "type": "int256" }
+    ],
+    "name": "calculateVolumePerLiquidity",
+    "outputs": [{ "internalType": "uint128", "name": "volumePerLiquidity", "type": "uint128" }],
+    "stateMutability": "pure",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          { "internalType": "uint16", "name": "alpha1", "type": "uint16" },
+          { "internalType": "uint16", "name": "alpha2", "type": "uint16" },
+          { "internalType": "uint32", "name": "beta1", "type": "uint32" },
+          { "internalType": "uint32", "name": "beta2", "type": "uint32" },
+          { "internalType": "uint16", "name": "gamma1", "type": "uint16" },
+          { "internalType": "uint16", "name": "gamma2", "type": "uint16" },
+          { "internalType": "uint32", "name": "volumeBeta", "type": "uint32" },
+          { "internalType": "uint16", "name": "volumeGamma", "type": "uint16" },
+          { "internalType": "uint16", "name": "baseFee", "type": "uint16" }
+        ],
+        "internalType": "struct AdaptiveFee.Configuration",
+        "name": "_feeConfig",
+        "type": "tuple"
+      }
+    ],
+    "name": "changeFeeConfiguration",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "feeConfig",
+    "outputs": [
+      { "internalType": "uint16", "name": "alpha1", "type": "uint16" },
+      { "internalType": "uint16", "name": "alpha2", "type": "uint16" },
+      { "internalType": "uint32", "name": "beta1", "type": "uint32" },
+      { "internalType": "uint32", "name": "beta2", "type": "uint32" },
+      { "internalType": "uint16", "name": "gamma1", "type": "uint16" },
+      { "internalType": "uint16", "name": "gamma2", "type": "uint16" },
+      { "internalType": "uint32", "name": "volumeBeta", "type": "uint32" },
+      { "internalType": "uint16", "name": "volumeGamma", "type": "uint16" },
+      { "internalType": "uint16", "name": "baseFee", "type": "uint16" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint32", "name": "time", "type": "uint32" },
+      { "internalType": "int24", "name": "tick", "type": "int24" },
+      { "internalType": "uint16", "name": "index", "type": "uint16" },
+      { "internalType": "uint128", "name": "liquidity", "type": "uint128" }
+    ],
+    "name": "getAverages",
+    "outputs": [
+      { "internalType": "uint112", "name": "TWVolatilityAverage", "type": "uint112" },
+      { "internalType": "uint256", "name": "TWVolumePerLiqAverage", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint32", "name": "_time", "type": "uint32" },
+      { "internalType": "int24", "name": "_tick", "type": "int24" },
+      { "internalType": "uint16", "name": "_index", "type": "uint16" },
+      { "internalType": "uint128", "name": "_liquidity", "type": "uint128" }
+    ],
+    "name": "getFee",
+    "outputs": [{ "internalType": "uint16", "name": "fee", "type": "uint16" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint32", "name": "time", "type": "uint32" },
+      { "internalType": "uint32", "name": "secondsAgo", "type": "uint32" },
+      { "internalType": "int24", "name": "tick", "type": "int24" },
+      { "internalType": "uint16", "name": "index", "type": "uint16" },
+      { "internalType": "uint128", "name": "liquidity", "type": "uint128" }
+    ],
+    "name": "getSingleTimepoint",
+    "outputs": [
+      { "internalType": "int56", "name": "tickCumulative", "type": "int56" },
+      { "internalType": "uint160", "name": "secondsPerLiquidityCumulative", "type": "uint160" },
+      { "internalType": "uint112", "name": "volatilityCumulative", "type": "uint112" },
+      { "internalType": "uint256", "name": "volumePerAvgLiquidity", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint32", "name": "time", "type": "uint32" },
+      { "internalType": "uint32[]", "name": "secondsAgos", "type": "uint32[]" },
+      { "internalType": "int24", "name": "tick", "type": "int24" },
+      { "internalType": "uint16", "name": "index", "type": "uint16" },
+      { "internalType": "uint128", "name": "liquidity", "type": "uint128" }
+    ],
+    "name": "getTimepoints",
+    "outputs": [
+      { "internalType": "int56[]", "name": "tickCumulatives", "type": "int56[]" },
+      { "internalType": "uint160[]", "name": "secondsPerLiquidityCumulatives", "type": "uint160[]" },
+      { "internalType": "uint112[]", "name": "volatilityCumulatives", "type": "uint112[]" },
+      { "internalType": "uint256[]", "name": "volumePerAvgLiquiditys", "type": "uint256[]" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "uint32", "name": "time", "type": "uint32" },
+      { "internalType": "int24", "name": "tick", "type": "int24" }
+    ],
+    "name": "initialize",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "name": "timepoints",
+    "outputs": [
+      { "internalType": "bool", "name": "initialized", "type": "bool" },
+      { "internalType": "uint32", "name": "blockTimestamp", "type": "uint32" },
+      { "internalType": "int56", "name": "tickCumulative", "type": "int56" },
+      { "internalType": "uint160", "name": "secondsPerLiquidityCumulative", "type": "uint160" },
+      { "internalType": "uint88", "name": "volatilityCumulative", "type": "uint88" },
+      { "internalType": "int24", "name": "averageTick", "type": "int24" },
+      { "internalType": "uint144", "name": "volumePerLiquidityCumulative", "type": "uint144" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  { "inputs": [], "name": "window", "outputs": [{ "internalType": "uint32", "name": "", "type": "uint32" }], "stateMutability": "pure", "type": "function" },
+  {
+    "inputs": [
+      { "internalType": "uint16", "name": "index", "type": "uint16" },
+      { "internalType": "uint32", "name": "blockTimestamp", "type": "uint32" },
+      { "internalType": "int24", "name": "tick", "type": "int24" },
+      { "internalType": "uint128", "name": "liquidity", "type": "uint128" },
+      { "internalType": "uint128", "name": "volumePerLiquidity", "type": "uint128" }
+    ],
+    "name": "write",
+    "outputs": [{ "internalType": "uint16", "name": "indexUpdated", "type": "uint16" }],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
+]

@@ -366,6 +366,13 @@ var (
 	ExchangeSfrxETH          Exchange = "sfrxeth"
 	ExchangeSfrxETHConvertor Exchange = "sfrxeth-convertor"
 	ExchangeEtherfiVampire   Exchange = "etherfi-vampire"
+	ExchangeSwapsicle        Exchange = "swapsicle"
+	ExchangeFenix            Exchange = "fenix"
+	ExchangeBlade            Exchange = "blade"
+	ExchangeSilverSwap       Exchange = "silverswap"
+	ExchangeScribe           Exchange = "scribe"
+	ExchangeHorizonIntegral  Exchange = "horizon-integral"
+	ExchangeMxTrading        Exchange = "mx-trading"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -667,6 +674,12 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSfrxETH:                    {},
 	ExchangeSfrxETHConvertor:           {},
 	ExchangeEtherfiVampire:             {},
+	ExchangeSwapsicle:                  {},
+	ExchangeFenix:                      {},
+	ExchangeBlade:                      {},
+	ExchangeSilverSwap:                 {},
+	ExchangeScribe:                     {},
+	ExchangeHorizonIntegral:            {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
@@ -686,6 +699,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeBebop:      {},
 	ExchangeClipper:    {},
 	ExchangeDexalot:    {},
+	ExchangeMxTrading:  {},
 }
 
 func IsRFQSource(exchange Exchange) bool {
