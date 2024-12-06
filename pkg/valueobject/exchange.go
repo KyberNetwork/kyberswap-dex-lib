@@ -212,7 +212,10 @@ var (
 	ExchangeWombat     Exchange = "wombat"
 	ExchangeMantisSwap Exchange = "mantisswap"
 
-	ExchangeSyncSwap Exchange = "syncswap"
+	ExchangeSyncSwap          Exchange = "syncswap"
+	ExchangeSyncSwapV2Classic Exchange = "syncswapv2-classic"
+	ExchangeSyncSwapV2Stable  Exchange = "syncswapv2-stable"
+	ExchangeSyncSwapV2Aqua    Exchange = "syncswapv2-aqua"
 
 	ExchangeMaverickV1 Exchange = "maverick-v1"
 
@@ -549,6 +552,9 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWombat:                     {},
 	ExchangeMantisSwap:                 {},
 	ExchangeSyncSwap:                   {},
+	ExchangeSyncSwapV2Classic:          {},
+	ExchangeSyncSwapV2Stable:           {},
+	ExchangeSyncSwapV2Aqua:             {},
 	ExchangeMaverickV1:                 {},
 	ExchangeKyberSwapLimitOrderDS:      {},
 	ExchangeKyberPMM:                   {},
