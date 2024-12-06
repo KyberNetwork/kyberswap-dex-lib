@@ -224,7 +224,13 @@ func (p *PoolSimulator) CanSwapTo(address string) []string {
 		return result
 	}
 
-	return []string{p.baseToken.Address}
+	if slices.ContainsFunc(p.quoteTokens, func(t entity.PoolToken) bool {
+		return strings.EqualFold(t.Address, address)
+	}) {
+		return []string{p.baseToken.Address}
+	}
+
+	return nil
 }
 
 func (p *PoolSimulator) CanSwapFrom(address string) []string {
