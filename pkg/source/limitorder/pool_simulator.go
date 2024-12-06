@@ -330,12 +330,16 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 	return totalAmountOutWei, swapInfo, totalFeeAmountWei, nil
 }
 
-// feeAmount = (params.makingAmount * params.order.makerTokenFeePercent + BPS - 1) / BPS
-func (p *PoolSimulator) calcFeeAmountPerOrder(order *order, filledMakingAmount *big.Int) *big.Int {
+// calcFeeAmountPerOrder calculates the fee amount for a filled order
+// feeAmount = (filledAmount * order.makerTokenFeePercent + BPS - 1) / BPS
+// where filledAmount is:
+// - filledTakingAmount if order.IsTakerAssetFee is true
+// - filledMakingAmount if order.IsTakerAssetFee is false
+func (p *PoolSimulator) calcFeeAmountPerOrder(order *order, filledAmount *big.Int) *big.Int {
 	if order.MakerTokenFeePercent == 0 {
 		return constant.ZeroBI
 	}
-	amount := new(big.Int).Mul(filledMakingAmount, big.NewInt(int64(order.MakerTokenFeePercent)))
+	amount := new(big.Int).Mul(filledAmount, big.NewInt(int64(order.MakerTokenFeePercent)))
 	return new(big.Int).Div(new(big.Int).Sub(new(big.Int).Add(amount, valueobject.BasisPoint), constant.One), valueobject.BasisPoint)
 }
 
