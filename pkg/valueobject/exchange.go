@@ -160,6 +160,7 @@ var (
 	ExchangeHoriza      Exchange = "horiza"
 	ExchangeBaseSwapV3  Exchange = "baseswap-v3"
 	ExchangeArbiDexV3   Exchange = "arbidex-v3"
+	ExchangeSuperSwapV3 Exchange = "superswap-v3"
 	ExchangeWagmi       Exchange = "wagmi"
 	ExchangeMetavaultV3 Exchange = "metavault-v3"
 	ExchangeSolidlyV3   Exchange = "solidly-v3"
@@ -511,6 +512,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHoriza:                     {},
 	ExchangeBaseSwapV3:                 {},
 	ExchangeArbiDexV3:                  {},
+	ExchangeSuperSwapV3:                {},
 	ExchangeWagmi:                      {},
 	ExchangeMetavaultV3:                {},
 	ExchangeSolidlyV3:                  {},
