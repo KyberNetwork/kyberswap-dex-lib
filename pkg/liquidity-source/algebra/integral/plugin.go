@@ -539,7 +539,7 @@ func getOutputTokenDelta10(to, from, liquidity *uint256.Int) (*uint256.Int, erro
 func getToken0Delta(priceLower, priceUpper, liquidity *uint256.Int, roundUp bool) (*uint256.Int, error) {
 	priceDelta := new(uint256.Int).Sub(priceUpper, priceLower)
 	if priceDelta.Cmp(priceUpper) >= 0 {
-		return nil, errors.New("price delta must be greater than price upper")
+		return nil, errors.New("price delta must be smaller than price upper")
 	}
 
 	liquidityShifted := new(uint256.Int).Lsh(liquidity, RESOLUTION)
@@ -570,7 +570,7 @@ func getToken0Delta(priceLower, priceUpper, liquidity *uint256.Int, roundUp bool
 
 func getToken1Delta(priceLower, priceUpper, liquidity *uint256.Int, roundUp bool) (*uint256.Int, error) {
 	if priceUpper.Cmp(priceLower) < 0 {
-		return nil, errors.New("price upper must be greater than price lower")
+		return nil, errors.New("price upper must be greater or equal than price lower")
 	}
 
 	priceDelta := new(uint256.Int).Sub(priceUpper, priceLower)
