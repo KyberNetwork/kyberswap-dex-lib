@@ -72,6 +72,7 @@ type (
 		Permit               string `json:"permit"`
 		Interaction          string `json:"interaction"`
 		ExpiredAt            int64  `json:"expiredAt"`
+		IsTakerAssetFee      bool   `json:"isTakerAssetFee"`
 
 		AvailableMakingAmount string `json:"availableMakingAmount"`
 		MakerBalanceAllowance string `json:"makerBalanceAllowance"`
@@ -112,6 +113,7 @@ type (
 		Permit               string   `json:"permit"`
 		Interaction          string   `json:"interaction"`
 		ExpiredAt            int64    `json:"expiredAt"`
+		IsTakerAssetFee      bool     `json:"isTakerAssetFee"`
 
 		AvailableMakingAmount *big.Int `json:"availableMakingAmount"`
 
@@ -132,24 +134,25 @@ func toOrder(ordersData []*orderData) ([]*order, error) {
 	result := make([]*order, len(ordersData))
 	for i, o := range ordersData {
 		result[i] = &order{
-			ID:             o.ID,
-			Salt:           o.Salt,
-			ChainID:        o.ChainID,
-			Signature:      o.Signature,
-			MakerAsset:     o.MakerAsset,
-			TakerAsset:     o.TakerAsset,
-			Maker:          o.Maker,
-			Receiver:       o.Receiver,
-			AllowedSenders: o.AllowedSenders,
-			FeeRecipient:   o.FeeRecipient,
-			MakerAssetData: o.MakerAssetData,
-			TakerAssetData: o.TakerAssetData,
-			GetMakerAmount: o.GetMakerAmount,
-			GetTakerAmount: o.GetTakerAmount,
-			Predicate:      o.Predicate,
-			Permit:         o.Permit,
-			Interaction:    o.Interaction,
-			ExpiredAt:      o.ExpiredAt,
+			ID:              o.ID,
+			Salt:            o.Salt,
+			ChainID:         o.ChainID,
+			Signature:       o.Signature,
+			MakerAsset:      o.MakerAsset,
+			TakerAsset:      o.TakerAsset,
+			Maker:           o.Maker,
+			Receiver:        o.Receiver,
+			AllowedSenders:  o.AllowedSenders,
+			FeeRecipient:    o.FeeRecipient,
+			MakerAssetData:  o.MakerAssetData,
+			TakerAssetData:  o.TakerAssetData,
+			GetMakerAmount:  o.GetMakerAmount,
+			GetTakerAmount:  o.GetTakerAmount,
+			Predicate:       o.Predicate,
+			Permit:          o.Permit,
+			Interaction:     o.Interaction,
+			ExpiredAt:       o.ExpiredAt,
+			IsTakerAssetFee: o.IsTakerAssetFee,
 		}
 		makerTokenFeePercent, err := strconv.ParseInt(o.MakerTokenFeePercent, 10, 32)
 		if err != nil {
