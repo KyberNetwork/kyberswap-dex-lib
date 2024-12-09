@@ -266,10 +266,15 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 
 			var feeAmountWeiByOrder *big.Int
 			if order.IsTakerAssetFee {
+				// Calculate fee in taker asset
 				feeAmountWeiByOrder = p.calcFeeAmountPerOrder(order, filledTakingAmountWei)
+				// Convert fee to maker asset equivalent
+				feeInMakerAsset := new(big.Float).Mul(new(big.Float).SetInt(feeAmountWeiByOrder), rate)
+				feeAmountWeiByOrder, _ = feeInMakerAsset.Int(nil)
 			} else {
 				feeAmountWeiByOrder = p.calcFeeAmountPerOrder(order, filledMakingAmountWei)
 			}
+
 			totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, feeAmountWeiByOrder)
 			actualAmountOut := new(big.Int).Sub(filledMakingAmountWei, feeAmountWeiByOrder)
 			totalAmountOutWei = new(big.Int).Add(totalAmountOutWei, actualAmountOut)
@@ -310,10 +315,15 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 			}
 			break
 		}
+
 		totalAmountIn = new(big.Int).Sub(totalAmountIn, remainingTakingAmountWei)
 		var feeAmountWeiByOrder *big.Int
 		if order.IsTakerAssetFee {
+			// Calculate fee in taker asset
 			feeAmountWeiByOrder = p.calcFeeAmountPerOrder(order, remainingTakingAmountWei)
+			// Convert fee to maker asset equivalent
+			feeInMakerAsset := new(big.Float).Mul(new(big.Float).SetInt(feeAmountWeiByOrder), rate)
+			feeAmountWeiByOrder, _ = feeInMakerAsset.Int(nil)
 		} else {
 			feeAmountWeiByOrder = p.calcFeeAmountPerOrder(order, remainingMakingAmountWei)
 		}
