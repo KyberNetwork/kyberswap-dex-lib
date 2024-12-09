@@ -70,6 +70,9 @@ import (
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
+	syncswapv2aqua "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/aqua"
+	syncswapv2classic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/classic"
+	syncswapv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
 	uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v1"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
@@ -564,6 +567,12 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newSyncswapClassic(entityPool)
 	case pooltypes.PoolTypes.SyncSwapStable:
 		return f.newSyncswapStable(entityPool)
+	case pooltypes.PoolTypes.SyncSwapV2Classic:
+		return f.newSyncswapV2Classic(entityPool)
+	case pooltypes.PoolTypes.SyncSwapV2Stable:
+		return f.newSyncswapV2Stable(entityPool)
+	case pooltypes.PoolTypes.SyncSwapV2Aqua:
+		return f.newSyncswapV2Aqua(entityPool)
 	case pooltypes.PoolTypes.PancakeV3:
 		return f.newPancakeV3(entityPool)
 	case pooltypes.PoolTypes.MaverickV1:
@@ -1372,6 +1381,48 @@ func (f *PoolFactory) newSyncswapStable(entityPool entity.Pool) (*syncswapstable
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newSyncswapClassic] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newSyncswapV2Classic(entityPool entity.Pool) (*syncswapv2classic.PoolSimulator, error) {
+	corePool, err := syncswapv2classic.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newSyncswapv2Classic] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newSyncswapV2Stable(entityPool entity.Pool) (*syncswapv2stable.PoolSimulator, error) {
+	corePool, err := syncswapv2stable.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newSyncswapV2Stable] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newSyncswapV2Aqua(entityPool entity.Pool) (*syncswapv2aqua.PoolSimulator, error) {
+	corePool, err := syncswapv2aqua.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newSyncswapV2Aqua] pool: [%s] » type: [%s]",
 			entityPool.Address,
 			entityPool.Type,
 		)

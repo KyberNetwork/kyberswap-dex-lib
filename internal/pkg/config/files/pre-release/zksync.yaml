@@ -22,6 +22,9 @@ common:
     0x8e86e46278518efc1c5ced245cba2c7e3ef11557: true # USD+
   blacklistedPoolSet: &blacklistedPoolSet
   availableSources: &availableSources
+    - "syncswapv2-classic"
+    - "syncswapv2-stable"
+    - "syncswapv2-aqua"
     - "velocore"
     - "muteswitch"
     - "maverick-v1"
