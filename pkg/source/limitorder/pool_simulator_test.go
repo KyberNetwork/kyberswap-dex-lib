@@ -31,7 +31,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 		err        error
 	}{
 		{
-			name: "Should return correct CalcAmountOutResult when swapSide is BUY(strings.ToLower(tokeIn) <= strings.ToLower(TokenOut)) and IsTakerAssetFee true",
+			name: "Should return correct CalcAmountOutResult when swapSide is BUY(strings.ToLower(tokeIn) <= strings.ToLower(TokenOut)) and IsTakerAssetFee=true",
 			poolEntity: entity.Pool{
 				Address:      "pool_limit_order_",
 				ReserveUsd:   1000000000,
@@ -129,12 +129,12 @@ func TestPool_CalcAmountOut(t *testing.T) {
 			want: &pool.CalcAmountOutResult{
 				TokenAmountOut: &pool.TokenAmount{
 					Token:     "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
-					Amount:    parseBigInt("499"),
+					Amount:    parseBigInt("498"),
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
 					Token:     "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-					Amount:    big.NewInt(1),
+					Amount:    big.NewInt(2),
 					AmountUsd: 0,
 				},
 				Gas: 136616,
@@ -165,7 +165,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 							Permit:               "",
 							Interaction:          "",
 							Signature:            "signature1",
-							FeeAmount:            "1",
+							FeeAmount:            "2",
 						},
 						{
 							OrderID:            1382,
