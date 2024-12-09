@@ -160,6 +160,7 @@ var (
 	ExchangeHoriza      Exchange = "horiza"
 	ExchangeBaseSwapV3  Exchange = "baseswap-v3"
 	ExchangeArbiDexV3   Exchange = "arbidex-v3"
+	ExchangeSuperSwapV3 Exchange = "superswap-v3"
 	ExchangeWagmi       Exchange = "wagmi"
 	ExchangeMetavaultV3 Exchange = "metavault-v3"
 	ExchangeSolidlyV3   Exchange = "solidly-v3"
@@ -212,7 +213,10 @@ var (
 	ExchangeWombat     Exchange = "wombat"
 	ExchangeMantisSwap Exchange = "mantisswap"
 
-	ExchangeSyncSwap Exchange = "syncswap"
+	ExchangeSyncSwap          Exchange = "syncswap"
+	ExchangeSyncSwapV2Classic Exchange = "syncswapv2-classic"
+	ExchangeSyncSwapV2Stable  Exchange = "syncswapv2-stable"
+	ExchangeSyncSwapV2Aqua    Exchange = "syncswapv2-aqua"
 
 	ExchangeMaverickV1 Exchange = "maverick-v1"
 
@@ -373,6 +377,7 @@ var (
 	ExchangeScribe           Exchange = "scribe"
 	ExchangeHorizonIntegral  Exchange = "horizon-integral"
 	ExchangeMxTrading        Exchange = "mx-trading"
+	ExchangeLO1inch          Exchange = "lo1inch"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -507,6 +512,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeHoriza:                     {},
 	ExchangeBaseSwapV3:                 {},
 	ExchangeArbiDexV3:                  {},
+	ExchangeSuperSwapV3:                {},
 	ExchangeWagmi:                      {},
 	ExchangeMetavaultV3:                {},
 	ExchangeSolidlyV3:                  {},
@@ -548,6 +554,9 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWombat:                     {},
 	ExchangeMantisSwap:                 {},
 	ExchangeSyncSwap:                   {},
+	ExchangeSyncSwapV2Classic:          {},
+	ExchangeSyncSwapV2Stable:           {},
+	ExchangeSyncSwapV2Aqua:             {},
 	ExchangeMaverickV1:                 {},
 	ExchangeKyberSwapLimitOrderDS:      {},
 	ExchangeKyberPMM:                   {},
@@ -700,6 +709,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeClipper:    {},
 	ExchangeDexalot:    {},
 	ExchangeMxTrading:  {},
+	ExchangeLO1inch:    {},
 }
 
 func IsRFQSource(exchange Exchange) bool {

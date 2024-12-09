@@ -40,6 +40,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	maverickv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maverick-v2"
@@ -57,6 +58,9 @@ import (
 	swaapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swaap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/rsweth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/swell/sweth"
+	syncswapv2aqua "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/aqua"
+	syncswapv2classic "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/classic"
+	syncswapv2stable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/syncswapv2/stable"
 	uniswapv1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v1"
 	uniswapv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/uniswap-v2"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/usd0pp"
@@ -174,6 +178,9 @@ type Types struct {
 	MuteSwitch                     string
 	SyncSwapClassic                string
 	SyncSwapStable                 string
+	SyncSwapV2Classic              string
+	SyncSwapV2Stable               string
+	SyncSwapV2Aqua                 string
 	PancakeV3                      string
 	MaverickV1                     string
 	AlgebraV1                      string
@@ -261,6 +268,7 @@ type Types struct {
 	EtherfiVampire                 string
 	AlgebraIntegral                string
 	MxTrading                      string
+	LO1inch                        string
 }
 
 var (
@@ -313,6 +321,9 @@ var (
 		MuteSwitch:                     muteswitch.DexTypeMuteSwitch,
 		SyncSwapClassic:                syncswap.PoolTypeSyncSwapClassic,
 		SyncSwapStable:                 syncswap.PoolTypeSyncSwapStable,
+		SyncSwapV2Classic:              syncswapv2classic.PoolTypeSyncSwapV2Classic,
+		SyncSwapV2Stable:               syncswapv2stable.PoolTypeSyncSwapV2Stable,
+		SyncSwapV2Aqua:                 syncswapv2aqua.PoolTypeSyncSwapV2Aqua,
 		PancakeV3:                      pancakev3.DexTypePancakeV3,
 		MaverickV1:                     maverickv1.DexTypeMaverickV1,
 		AlgebraV1:                      algebrav1.DexTypeAlgebraV1,
@@ -399,5 +410,6 @@ var (
 		EtherfiVampire:                 etherfivampire.DexType,
 		AlgebraIntegral:                algebraintegral.DexType,
 		MxTrading:                      mxtrading.DexType,
+		LO1inch:                        lo1inch.DexType,
 	}
 )
