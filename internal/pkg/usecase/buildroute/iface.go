@@ -46,8 +46,8 @@ type IL1FeeCalculator interface {
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/buildroute/executor_balance_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IExecutorBalanceRepository
 type IExecutorBalanceRepository interface {
-	HasToken(executorAddress string, queries []string) ([]bool, error)
-	HasPoolApproval(executorAddress string, queries []dto.PoolApprovalQuery) ([]bool, error)
+	HasToken(ctx context.Context, executorAddress string, queries []string) ([]bool, error)
+	HasPoolApproval(ctx context.Context, executorAddress string, queries []dto.PoolApprovalQuery) ([]bool, error)
 }
 
 //go:generate go run go.uber.org/mock/mockgen -destination ../../mocks/usecase/buildroute/pool_repository.go -package buildroute github.com/KyberNetwork/router-service/internal/pkg/usecase/buildroute IPoolRepository

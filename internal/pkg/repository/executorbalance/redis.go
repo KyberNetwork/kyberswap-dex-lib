@@ -36,7 +36,7 @@ func NewRedisRepository(
 	}
 }
 
-func (r *RedisRepository) HasToken(executorAddress string, queries []string) ([]bool, error) {
+func (r *RedisRepository) HasToken(ctx context.Context, executorAddress string, queries []string) ([]bool, error) {
 	if len(queries) == 0 {
 		return nil, nil
 	}
@@ -44,7 +44,7 @@ func (r *RedisRepository) HasToken(executorAddress string, queries []string) ([]
 	key := utils.Join(r.tokenBalancePrefix, executorAddress)
 	members := lo.Map(queries, func(query string, _ int) interface{} { return query })
 
-	result, err := r.redisClient.SMIsMember(context.Background(), key, members...).Result()
+	result, err := r.redisClient.SMIsMember(ctx, key, members...).Result()
 
 	if err != nil {
 		return nil, err
@@ -53,15 +53,15 @@ func (r *RedisRepository) HasToken(executorAddress string, queries []string) ([]
 	return result, nil
 }
 
-func (r *RedisRepository) HasPoolApproval(executorAddress string, queries []dto.PoolApprovalQuery) ([]bool, error) {
+func (r *RedisRepository) HasPoolApproval(ctx context.Context, executorAddress string, queries []dto.PoolApprovalQuery) ([]bool, error) {
 	if len(queries) == 0 {
 		return nil, nil
 	}
 
-	cmds, err := r.redisClient.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
+	cmds, err := r.redisClient.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for _, query := range queries {
 			key := utils.Join(r.poolApprovalPrefix, executorAddress, query.TokenIn)
-			pipe.SIsMember(context.Background(), key, query.PoolAddress)
+			pipe.SIsMember(ctx, key, query.PoolAddress)
 		}
 		return nil
 	})
@@ -78,7 +78,7 @@ func (r *RedisRepository) HasPoolApproval(executorAddress string, queries []dto.
 	return result, nil
 }
 
-func (r *RedisRepository) AddToken(executorAddress string, data []string) error {
+func (r *RedisRepository) AddToken(ctx context.Context, executorAddress string, data []string) error {
 	if len(data) == 0 {
 		return nil
 	}
@@ -86,33 +86,45 @@ func (r *RedisRepository) AddToken(executorAddress string, data []string) error 
 	key := utils.Join(r.tokenBalancePrefix, executorAddress)
 	members := lo.Map(data, func(query string, _ int) interface{} { return query })
 
-	_, err := r.redisClient.SAdd(context.Background(), key, members...).Result()
+	_, err := r.redisClient.SAdd(ctx, key, members...).Result()
 	return err
 }
 
-func (r *RedisRepository) ApprovePool(executorAddress string, data []dto.PoolApprovalQuery) error {
+func (r *RedisRepository) RemoveToken(ctx context.Context, executorAddress string, data []string) error {
 	if len(data) == 0 {
 		return nil
 	}
 
-	_, err := r.redisClient.Pipelined(context.Background(), func(pipe redis.Pipeliner) error {
+	key := utils.Join(r.tokenBalancePrefix, executorAddress)
+	members := lo.Map(data, func(query string, _ int) interface{} { return query })
+
+	_, err := r.redisClient.SRem(ctx, key, members...).Result()
+	return err
+}
+
+func (r *RedisRepository) ApprovePool(ctx context.Context, executorAddress string, data []dto.PoolApprovalQuery) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	_, err := r.redisClient.Pipelined(ctx, func(pipe redis.Pipeliner) error {
 		for _, query := range data {
 			key := utils.Join(r.poolApprovalPrefix, executorAddress, query.TokenIn)
-			pipe.SAdd(context.Background(), key, query.PoolAddress)
+			pipe.SAdd(ctx, key, query.PoolAddress)
 		}
 		return nil
 	})
 	return err
 }
 
-func (r *RedisRepository) CleanUp(executorAddress string) error {
+func (r *RedisRepository) CleanUp(ctx context.Context, executorAddress string) error {
 	// TODO: Low priority feature, will implement later.
 	return nil
 }
 
-func (r *RedisRepository) GetLatestProcessedBlockNumber(executorAddress string) (uint64, error) {
+func (r *RedisRepository) GetLatestProcessedBlockNumber(ctx context.Context, executorAddress string) (uint64, error) {
 	key := utils.Join(r.blockNumberPrefix, executorAddress)
-	blockNumberString, err := r.redisClient.Get(context.Background(), key).Result()
+	blockNumberString, err := r.redisClient.Get(ctx, key).Result()
 	if err != nil {
 		if err == redis.Nil {
 			return 0, nil
@@ -123,8 +135,8 @@ func (r *RedisRepository) GetLatestProcessedBlockNumber(executorAddress string) 
 	return strconv.ParseUint(blockNumberString, 10, 64)
 }
 
-func (r *RedisRepository) UpdateLatestProcessedBlockNumber(executorAddress string, blockNumber uint64) error {
+func (r *RedisRepository) UpdateLatestProcessedBlockNumber(ctx context.Context, executorAddress string, blockNumber uint64) error {
 	key := utils.Join(r.blockNumberPrefix, executorAddress)
-	_, err := r.redisClient.Set(context.Background(), key, blockNumber, 0).Result()
+	_, err := r.redisClient.Set(ctx, key, blockNumber, 0).Result()
 	return err
 }

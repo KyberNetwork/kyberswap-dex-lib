@@ -77,7 +77,7 @@ func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) err
 	}
 
 	for {
-		blockNumber, err := u.executorBalanceRepository.GetLatestProcessedBlockNumber(executorAddress)
+		blockNumber, err := u.executorBalanceRepository.GetLatestProcessedBlockNumber(ctx, executorAddress)
 		if err != nil {
 			return err
 		}
@@ -109,7 +109,7 @@ func (u *useCase) trackExecutor(ctx context.Context, executorAddress string) err
 		if err != nil {
 			return err
 		}
-		err = u.executorBalanceRepository.UpdateLatestProcessedBlockNumber(executorAddress, lastBlockNumber)
+		err = u.executorBalanceRepository.UpdateLatestProcessedBlockNumber(ctx, executorAddress, lastBlockNumber)
 		if err != nil {
 			return err
 		}
@@ -139,7 +139,7 @@ func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress stri
 	}
 	tokenOutSlice := tokenOutSet.ToSlice() // To persist the index of elements.
 
-	existed, err := u.executorBalanceRepository.HasToken(executorAddress, tokenOutSlice)
+	existed, err := u.executorBalanceRepository.HasToken(ctx, executorAddress, tokenOutSlice)
 	if err != nil {
 		return err
 	}
@@ -176,6 +176,9 @@ func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress stri
 
 	// missTokens are tokens that have Exchange events,
 	// however executor still does not have 1 wei of them.
+	// This can happen after the Merge swap feature, since
+	// executor will use all the current balance of the token
+	// to swap.
 	missTokens := lo.Filter(candidateTokenOuts, func(item string, idx int) bool {
 		return !rpcResponse.Result[idx] || tokenBalances[idx] == nil || tokenBalances[idx].Cmp(constants.Zero) == 0
 	})
@@ -183,10 +186,14 @@ func (u *useCase) trackExecutorBalance(ctx context.Context, executorAddress stri
 	logger.WithFields(ctx, logger.Fields{
 		"executor":        executorAddress,
 		"numUpdateTokens": len(updateTokens),
-		"missTokens":      missTokens,
-	}).Info("Add tokens that executor has balance")
+		"missTokens":      len(missTokens),
+	}).Info("Track tokens that executor has balance")
 
-	if err := u.executorBalanceRepository.AddToken(executorAddress, updateTokens); err != nil {
+	if err := u.executorBalanceRepository.AddToken(ctx, executorAddress, updateTokens); err != nil {
+		return err
+	}
+
+	if err := u.executorBalanceRepository.RemoveToken(ctx, executorAddress, missTokens); err != nil {
 		return err
 	}
 
@@ -251,7 +258,7 @@ func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress
 	}
 
 	poolApprovalQueries := poolApprovalSet.ToSlice()
-	existed, err := u.executorBalanceRepository.HasPoolApproval(executorAddress, poolApprovalQueries)
+	existed, err := u.executorBalanceRepository.HasPoolApproval(ctx, executorAddress, poolApprovalQueries)
 	if err != nil {
 		return err
 	}
@@ -295,7 +302,7 @@ func (u *useCase) trackExecutorPoolApproval(ctx context.Context, executorAddress
 		"numMissPoolApprovals":   len(poolApprovalCandidates) - len(updatePoolApprovals),
 	}).Info("Add pool approvals for executor")
 
-	if err := u.executorBalanceRepository.ApprovePool(executorAddress, updatePoolApprovals); err != nil {
+	if err := u.executorBalanceRepository.ApprovePool(ctx, executorAddress, updatePoolApprovals); err != nil {
 		return err
 	}
 

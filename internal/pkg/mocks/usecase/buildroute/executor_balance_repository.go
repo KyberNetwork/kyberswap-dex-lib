@@ -10,6 +10,7 @@
 package buildroute
 
 import (
+	context "context"
 	reflect "reflect"
 
 	dto "github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
@@ -41,31 +42,31 @@ func (m *MockIExecutorBalanceRepository) EXPECT() *MockIExecutorBalanceRepositor
 }
 
 // HasPoolApproval mocks base method.
-func (m *MockIExecutorBalanceRepository) HasPoolApproval(executorAddress string, queries []dto.PoolApprovalQuery) ([]bool, error) {
+func (m *MockIExecutorBalanceRepository) HasPoolApproval(ctx context.Context, executorAddress string, queries []dto.PoolApprovalQuery) ([]bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasPoolApproval", executorAddress, queries)
+	ret := m.ctrl.Call(m, "HasPoolApproval", ctx, executorAddress, queries)
 	ret0, _ := ret[0].([]bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // HasPoolApproval indicates an expected call of HasPoolApproval.
-func (mr *MockIExecutorBalanceRepositoryMockRecorder) HasPoolApproval(executorAddress, queries any) *gomock.Call {
+func (mr *MockIExecutorBalanceRepositoryMockRecorder) HasPoolApproval(ctx, executorAddress, queries any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasPoolApproval", reflect.TypeOf((*MockIExecutorBalanceRepository)(nil).HasPoolApproval), executorAddress, queries)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasPoolApproval", reflect.TypeOf((*MockIExecutorBalanceRepository)(nil).HasPoolApproval), ctx, executorAddress, queries)
 }
 
 // HasToken mocks base method.
-func (m *MockIExecutorBalanceRepository) HasToken(executorAddress string, queries []string) ([]bool, error) {
+func (m *MockIExecutorBalanceRepository) HasToken(ctx context.Context, executorAddress string, queries []string) ([]bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasToken", executorAddress, queries)
+	ret := m.ctrl.Call(m, "HasToken", ctx, executorAddress, queries)
 	ret0, _ := ret[0].([]bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // HasToken indicates an expected call of HasToken.
-func (mr *MockIExecutorBalanceRepositoryMockRecorder) HasToken(executorAddress, queries any) *gomock.Call {
+func (mr *MockIExecutorBalanceRepositoryMockRecorder) HasToken(ctx, executorAddress, queries any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasToken", reflect.TypeOf((*MockIExecutorBalanceRepository)(nil).HasToken), executorAddress, queries)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasToken", reflect.TypeOf((*MockIExecutorBalanceRepository)(nil).HasToken), ctx, executorAddress, queries)
 }

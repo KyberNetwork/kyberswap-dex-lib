@@ -432,6 +432,7 @@ func (uc *BuildRouteUseCase) encode(
 	}
 
 	encodingData := types.NewEncodingDataBuilder(
+		ctx,
 		uc.executorBalanceRepository,
 		uc.config.FeatureFlags.IsOptimizeExecutorFlagsEnabled).
 		SetRoute(&routeSummary, executorAddress, command.Recipient).
@@ -639,7 +640,7 @@ func (uc *BuildRouteUseCase) checkToKeepDustTokenOut(
 	span, _ := tracer.StartSpanFromContext(ctx, "BuildRouteUseCase.checkToKeepDustTokenOut")
 	defer span.End()
 
-	hasTokens, err := uc.executorBalanceRepository.HasToken(executorAddress, []string{routeSummary.TokenOut})
+	hasTokens, err := uc.executorBalanceRepository.HasToken(ctx, executorAddress, []string{routeSummary.TokenOut})
 	if err != nil {
 		return routeSummary, err
 	}

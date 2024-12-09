@@ -1,6 +1,7 @@
 package types
 
 import (
+	"context"
 	"math/big"
 	"strings"
 
@@ -16,21 +17,24 @@ import (
 )
 
 type IExecutorBalanceRepository interface {
-	HasToken(executorAddress string, queries []string) ([]bool, error)
-	HasPoolApproval(executorAddress string, queries []dto.PoolApprovalQuery) ([]bool, error)
+	HasToken(ctx context.Context, executorAddress string, queries []string) ([]bool, error)
+	HasPoolApproval(ctx context.Context, executorAddress string, queries []dto.PoolApprovalQuery) ([]bool, error)
 }
 
 type EncodingDataBuilder struct {
+	ctx                            context.Context
 	data                           types.EncodingData
 	executorBalanceRepository      IExecutorBalanceRepository
 	isOptimizeExecutorFlagsEnabled bool
 }
 
 func NewEncodingDataBuilder(
+	ctx context.Context,
 	executorBalanceRepository IExecutorBalanceRepository,
 	isOptimizeExecutorFlagsEnabled bool,
 ) *EncodingDataBuilder {
 	return &EncodingDataBuilder{
+		ctx:                            ctx,
 		data:                           types.EncodingData{},
 		executorBalanceRepository:      executorBalanceRepository,
 		isOptimizeExecutorFlagsEnabled: isOptimizeExecutorFlagsEnabled,
@@ -163,7 +167,7 @@ func (b *EncodingDataBuilder) getRouteEncodingSwapFlags(route [][]types.Encoding
 			hasTokenQueries = append(hasTokenQueries, swap.TokenOut)
 		}
 	}
-	hasTokens, err := b.executorBalanceRepository.HasToken(executorAddress, hasTokenQueries)
+	hasTokens, err := b.executorBalanceRepository.HasToken(b.ctx, executorAddress, hasTokenQueries)
 	if err == nil {
 		idx := 0
 		for pathIdx, path := range route {
@@ -198,7 +202,7 @@ func (b *EncodingDataBuilder) getRouteEncodingSwapFlags(route [][]types.Encoding
 		}
 	}
 
-	hasPoolApprovals, err := b.executorBalanceRepository.HasPoolApproval(executorAddress, hasPoolApprovalQueries)
+	hasPoolApprovals, err := b.executorBalanceRepository.HasPoolApproval(b.ctx, executorAddress, hasPoolApprovalQueries)
 	if err == nil {
 		for idx, hasPoolApproval := range hasPoolApprovals {
 			if hasPoolApproval {

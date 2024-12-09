@@ -92,8 +92,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
 
 				executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
-				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
-				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
 
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
 				gasEstimator.EXPECT().EstimateGas(gomock.Any(), gomock.Any()).Times(0)
@@ -188,8 +188,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
 
 				executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
-				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{true}, nil).AnyTimes()
-				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{true}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
 
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
 				tx := NewUnsignedTransaction(
@@ -313,8 +313,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
 
 				executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
-				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
-				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
 
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
 				tx := NewUnsignedTransaction(
@@ -438,8 +438,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				poolRepository.EXPECT().TrackFaultyPools(gomock.Any(), gomock.Any()).Times(0)
 
 				executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
-				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
-				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
 
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
 				tx := NewUnsignedTransaction(
@@ -567,8 +567,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				}).Return([]string{}, nil).Times(1)
 
 				executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
-				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
-				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
 
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
 				tx := NewUnsignedTransaction(
@@ -695,8 +695,8 @@ func TestBuildRouteUseCase_Handle(t *testing.T) {
 				}).Return([]string{}, nil).Times(1)
 
 				executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
-				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
-				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+				executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
 
 				gasEstimator := buildroute.NewMockIGasEstimator(ctrl)
 				tx := NewUnsignedTransaction(
@@ -1310,8 +1310,8 @@ func TestBuildRouteUseCase_HandleWithGasEstimation(t *testing.T) {
 				).AnyTimes()
 
 			executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
-			executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
-			executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+			executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+			executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
 
 			gasEstimator := tc.estimateGas(ctrl, &wg)
 			poolRepository := tc.poolRepository(ctrl, &wg)
@@ -2027,8 +2027,8 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPools(t *testing.T) {
 				).AnyTimes()
 
 			executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
-			executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
-			executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+			executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+			executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
 
 			poolRepository := tc.countTotalPools(ctrl, &wg)
 
@@ -2350,7 +2350,7 @@ func TestBuildRouteUseCase_HandleWithTrackingFaultyPoolsRFQ(t *testing.T) {
 
 			executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
 			executorBalanceRepository.EXPECT().
-				HasToken(gomock.Any(), gomock.Any()).
+				HasToken(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return([]bool{true}, nil).AnyTimes()
 
 			clientDataEncoder := clientdata.NewMockIClientDataEncoder(ctrl)
@@ -2543,8 +2543,8 @@ func TestBuildRouteUseCase_RFQAcceptableSlippage(t *testing.T) {
 				).AnyTimes()
 
 			executorBalanceRepository := buildroute.NewMockIExecutorBalanceRepository(ctrl)
-			executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
-			executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+			executorBalanceRepository.EXPECT().HasToken(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
+			executorBalanceRepository.EXPECT().HasPoolApproval(gomock.Any(), gomock.Any(), gomock.Any()).Return([]bool{false}, nil).AnyTimes()
 
 			usecase := NewBuildRouteUseCase(
 				tokenRepository,
