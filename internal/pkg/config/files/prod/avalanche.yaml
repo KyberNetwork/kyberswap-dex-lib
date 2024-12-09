@@ -77,6 +77,7 @@ common:
     - "traderjoe-v22"
     - "woofi-v3"
     - "dexalot"
+    - "lo1inch"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

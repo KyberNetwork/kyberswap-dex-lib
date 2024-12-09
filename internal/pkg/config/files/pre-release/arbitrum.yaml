@@ -117,6 +117,7 @@ common:
     - "deltaswap-v1"
     - "maverick-v2"
     - "mx-trading"
+    - "lo1inch"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

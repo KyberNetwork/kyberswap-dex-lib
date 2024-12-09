@@ -55,6 +55,7 @@ common:
     - "e3"
     - "woofi-v2"
     - "silverswap"
+    - "lo1inch"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

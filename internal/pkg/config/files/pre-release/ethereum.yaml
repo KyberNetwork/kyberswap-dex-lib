@@ -142,6 +142,7 @@ common:
     - "ringswap"
     - "etherfi-vampire"
     - "mx-trading"
+    - "lo1inch"
   featureFlags: &featureFlags
     isAEVMEnabled: false
     isLiquidityScoreEnable: true

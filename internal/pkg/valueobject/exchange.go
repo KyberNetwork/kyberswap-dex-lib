@@ -208,6 +208,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeOneInchV6Rfq
 	dexValueObject.ExchangeMxTrading: {},
+
+	// executeBatchOneInchV6
+	dexValueObject.ExchangeLO1inch: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {

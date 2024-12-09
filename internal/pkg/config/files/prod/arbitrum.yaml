@@ -105,6 +105,7 @@ common:
     - "maverick-v2"
     - "ktx"
     - "mx-trading"
+    - "lo1inch"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

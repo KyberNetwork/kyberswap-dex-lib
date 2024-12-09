@@ -76,6 +76,7 @@ common:
     - "bebop"
     - "wbeth"
     - "ktx"
+    - "lo1inch"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

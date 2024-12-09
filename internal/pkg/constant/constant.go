@@ -136,6 +136,7 @@ func init() {
 		pooltypes.PoolTypes.Dexalot,
 		pooltypes.PoolTypes.RingSwap,
 		pooltypes.PoolTypes.MxTrading,
+		pooltypes.PoolTypes.LO1inch,
 	}
 }
 

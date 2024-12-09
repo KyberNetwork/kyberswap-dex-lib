@@ -428,7 +428,7 @@ func (p *PointerSwapPoolManager) getPoolStates(ctx context.Context, poolAddresse
 
 	return &types.FindRouteState{
 		Pools:                   resultPoolByAddress,
-		SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits),
+		SwapLimit:               p.poolFactory.NewSwapLimit(resultLimits), // TODO: do we need to update swap limit here for pools from DB?
 		PublishedPoolsStorageID: p.publishedStorageIDs[readFrom],
 	}, nil
 }

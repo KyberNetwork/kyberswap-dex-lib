@@ -77,6 +77,7 @@ common:
     - "woofi-v3"
     - "bebop"
     - "clipper"
+    - "lo1inch"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
@@ -194,6 +195,7 @@ encoder:
     executeKyberDSLO: 28
     executeSwaapV2: 38
     executeBebop: 46
+    executeBatchOneInchV6: 54
     executeClipperRfq: 58
 useCase:
   getRoute:

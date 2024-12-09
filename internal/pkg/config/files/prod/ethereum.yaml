@@ -150,6 +150,7 @@ common:
     - "ringswap"
     - "etherfi-vampire"
     - "mx-trading"
+    - "lo1inch"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

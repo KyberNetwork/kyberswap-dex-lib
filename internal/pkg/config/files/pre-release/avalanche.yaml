@@ -78,6 +78,7 @@ common:
     - "woofi-v3"
     - "bebop"
     - "dexalot"
+    - "lo1inch"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions

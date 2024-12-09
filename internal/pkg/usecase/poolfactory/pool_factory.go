@@ -53,6 +53,7 @@ import (
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/integral"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/kelp/rseth"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/litepsm"
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/lo1inch"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/maker/savingsdai"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mantle/meth"
 	mkrsky "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/mkr-sky"
@@ -438,7 +439,8 @@ func newSwapLimit(dex string, limit map[string]*big.Int) poolpkg.SwapLimit {
 		pooltypes.PoolTypes.NativeV1,
 		pooltypes.PoolTypes.Dexalot,
 		pooltypes.PoolTypes.RingSwap,
-		pooltypes.PoolTypes.MxTrading:
+		pooltypes.PoolTypes.MxTrading,
+		pooltypes.PoolTypes.LO1inch:
 		return swaplimit.NewInventory(dex, limit)
 
 	case pooltypes.PoolTypes.KyberPMM:
@@ -712,6 +714,9 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newAlgebraIntegral(entityPool)
 	case pooltypes.PoolTypes.MxTrading:
 		return f.newMxTrading(entityPool)
+	case pooltypes.PoolTypes.LO1inch:
+		return f.newLO1inch(entityPool)
+
 	default:
 		return nil, errors.WithMessagef(
 			ErrPoolTypeFactoryNotFound,
@@ -1317,6 +1322,7 @@ func (f *PoolFactory) newFraxswap(entityPool entity.Pool) (*fraxswap.PoolSimulat
 	return corePool, nil
 
 }
+
 func (f *PoolFactory) newLimitOrder(entityPool entity.Pool) (*limitorder.PoolSimulator, error) {
 	corePool, err := limitorder.NewPoolSimulator(entityPool)
 	if err != nil {
@@ -2448,6 +2454,21 @@ func (f *PoolFactory) newMxTrading(entityPool entity.Pool) (*mxtrading.PoolSimul
 		return nil, errors.WithMessagef(
 			ErrInitializePoolFailed,
 			"[PoolFactory.newMxTrading] pool: [%s] » type: [%s] » exchange: [%s]",
+			entityPool.Address,
+			entityPool.Type,
+			err,
+		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newLO1inch(entityPool entity.Pool) (*lo1inch.PoolSimulator, error) {
+	corePool, err := lo1inch.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newLO1inch] pool: [%s] » type: [%s] cause by %v",
 			entityPool.Address,
 			entityPool.Type,
 			err,
