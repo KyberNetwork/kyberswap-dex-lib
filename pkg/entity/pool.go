@@ -58,25 +58,21 @@ type Pool struct {
 	BlockNumber  uint64       `json:"blockNumber,omitempty"`
 }
 
-func (p Pool) IsZero() bool { return len(p.Address) == 0 && len(p.Tokens) == 0 }
+func (p *Pool) IsZero() bool { return len(p.Address) == 0 && len(p.Tokens) == 0 }
 
-func (p Pool) GetTotalSupply() float64 {
+func (p *Pool) GetTotalSupply() float64 {
 	totalSupplyBF, _ := new(big.Float).SetString(p.TotalSupply)
-	totalSupply, _ := new(big.Float).Quo(totalSupplyBF, bignumber.TenPowDecimals(18)).Float64()
-
+	totalSupply, _ := totalSupplyBF.Quo(totalSupplyBF, bignumber.TenPowDecimals(18)).Float64()
 	return totalSupply
 }
 
 // GetLpToken returns the LpToken of the pool
 // If there is a LpToken in the StaticExtra, we use it. If not, we get the pool's address
-func (p Pool) GetLpToken() string {
-
+func (p *Pool) GetLpToken() string {
 	var staticExtra = struct {
 		LpToken string `json:"lpToken"`
 	}{}
-
 	_ = json.Unmarshal([]byte(p.StaticExtra), &staticExtra)
-
 	if len(staticExtra.LpToken) > 0 {
 		return strings.ToLower(staticExtra.LpToken)
 	}
@@ -84,34 +80,23 @@ func (p Pool) GetLpToken() string {
 	return p.Address
 }
 
-// HasReserves check if a pool has correct reserves or not
-// if there is no reserve in pool, or reserve is empty string, or reserve = "0", this function returns false
-// if pool has equals or more than 2 tokens have reserve, this function returns true
-func (p Pool) HasReserves() bool {
-	if (len(p.Reserves)) == 0 {
-		return false
-	}
-
-	zeroReserveCount := 0
+// HasReserves check if a pool has some reserves or not.
+// Returns false if there is no reserve in pool, or all reserves are empty string or "0". True otherwise.
+func (p *Pool) HasReserves() bool {
 	for _, reserve := range p.Reserves {
-		if len(reserve) == 0 || reserve == "0" {
-			zeroReserveCount += 1
+		if p.HasReserve(reserve) {
+			return true
 		}
 	}
-
-	return len(p.Reserves)-zeroReserveCount >= 2
+	return false
 }
 
-func (p Pool) HasReserve(reserve string) bool {
-	if len(reserve) == 0 || reserve == "0" {
-		return false
-	}
-
-	return true
+func (p *Pool) HasReserve(reserve string) bool {
+	return len(reserve) > 0 && reserve != "0"
 }
 
 // HasAmplifiedTvl check if the pool has amplifiedTvl or not
-func (p Pool) HasAmplifiedTvl() bool {
+func (p *Pool) HasAmplifiedTvl() bool {
 	return p.AmplifiedTvl > 0
 }
 
