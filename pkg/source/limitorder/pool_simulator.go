@@ -265,19 +265,17 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 			}
 
 			var feeAmountWeiByOrder *big.Int
+			var actualAmountOut *big.Int
 			if order.IsTakerAssetFee {
 				// Calculate fee in taker asset
-				feeAmountWeiByOrder = p.calcFeeAmountPerOrder(order, filledTakingAmountWei)
-				// Convert fee to maker asset equivalent
-				feeInMakerAsset := new(big.Float).Mul(new(big.Float).SetInt(feeAmountWeiByOrder), rate)
-				feeAmountWeiByOrder, _ = feeInMakerAsset.Int(nil)
+				feeAmountWeiByOrder = p.calcFeeAmountPerOrder(order, remainingTakingAmountWei)
+				actualAmountOut = new(big.Int).Sub(remainingTakingAmountWei, feeAmountWeiByOrder)
 			} else {
 				feeAmountWeiByOrder = p.calcFeeAmountPerOrder(order, filledMakingAmountWei)
+				actualAmountOut = new(big.Int).Sub(filledMakingAmountWei, feeAmountWeiByOrder)
 			}
-
-			totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, feeAmountWeiByOrder)
-			actualAmountOut := new(big.Int).Sub(filledMakingAmountWei, feeAmountWeiByOrder)
 			totalAmountOutWei = new(big.Int).Add(totalAmountOutWei, actualAmountOut)
+			totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, feeAmountWeiByOrder)
 			filledOrderInfo := newFilledOrderInfo(order, filledTakingAmountWei.String(), filledMakingAmountWei.String(), feeAmountWeiByOrder.String())
 			swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
 			isFulfillAmountIn = true
@@ -317,17 +315,17 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 		}
 
 		totalAmountIn = new(big.Int).Sub(totalAmountIn, remainingTakingAmountWei)
+
 		var feeAmountWeiByOrder *big.Int
+		var actualAmountOut *big.Int
 		if order.IsTakerAssetFee {
 			// Calculate fee in taker asset
 			feeAmountWeiByOrder = p.calcFeeAmountPerOrder(order, remainingTakingAmountWei)
-			// Convert fee to maker asset equivalent
-			feeInMakerAsset := new(big.Float).Mul(new(big.Float).SetInt(feeAmountWeiByOrder), rate)
-			feeAmountWeiByOrder, _ = feeInMakerAsset.Int(nil)
+			actualAmountOut = new(big.Int).Sub(remainingTakingAmountWei, feeAmountWeiByOrder)
 		} else {
 			feeAmountWeiByOrder = p.calcFeeAmountPerOrder(order, remainingMakingAmountWei)
+			actualAmountOut = new(big.Int).Sub(remainingMakingAmountWei, feeAmountWeiByOrder)
 		}
-		actualAmountOut := new(big.Int).Sub(remainingMakingAmountWei, feeAmountWeiByOrder)
 		totalAmountOutWei = new(big.Int).Add(totalAmountOutWei, actualAmountOut)
 		totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, feeAmountWeiByOrder)
 		filledOrderInfo := newFilledOrderInfo(order, remainingTakingAmountWei.String(), remainingMakingAmountWei.String(), feeAmountWeiByOrder.String())
