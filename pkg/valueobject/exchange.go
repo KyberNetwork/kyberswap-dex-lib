@@ -158,6 +158,7 @@ var (
 	ExchangeRamsesV2    Exchange = "ramses-v2"
 	ExchangePharaohV2   Exchange = "pharaoh-v2"
 	ExchangeDackieV3    Exchange = "dackie-v3"
+	ExchangeZkSwapV3    Exchange = "zkswap-v3"
 	ExchangeHoriza      Exchange = "horiza"
 	ExchangeBaseSwapV3  Exchange = "baseswap-v3"
 	ExchangeArbiDexV3   Exchange = "arbidex-v3"
@@ -511,6 +512,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSushiSwapV3:                {},
 	ExchangeRamsesV2:                   {},
 	ExchangeDackieV3:                   {},
+	ExchangeZkSwapV3:                   {},
 	ExchangeHoriza:                     {},
 	ExchangeBaseSwapV3:                 {},
 	ExchangeArbiDexV3:                  {},
