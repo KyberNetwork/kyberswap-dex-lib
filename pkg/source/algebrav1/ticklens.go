@@ -92,6 +92,9 @@ func (d *PoolTracker) getPoolTicksFromSC(ctx context.Context, pool entity.Pool, 
 				// changed, use new value
 				combined = append(combined, tick)
 				delete(changedTickMap, t.Index)
+			} else if changedTickSet.ContainsOne(int64(t.Index)) {
+				// some changed ticks might be consumed entirely and are not in `changedTickMap`, delete them
+				logger.Infof("deleted tick %v %v", pool.Address, t)
 			} else {
 				// use old value
 				combined = append(combined, TickResp{
