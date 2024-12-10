@@ -42,6 +42,8 @@ common:
     - "syncswapv2-aqua"
     - "pancake-v3"
     - "zkswap-finance"
+    - "zkswap-stable"
+    - "zkswap-v3"
     - "zkera-finance"
     - "woofi-v2"
     - "kyberswap-limit-order-v2"
