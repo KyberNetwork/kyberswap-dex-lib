@@ -78,6 +78,11 @@ var arbitrumPancakeStablePoolsBytes []byte
 //go:embed pools/pancake-stable/bsc.json
 var bscPancakeStablePoolsBytes []byte
 
+// ZkSwap-stable pool bytes
+
+//go:embed pools/zkswap-stable/zksync.json
+var zksyncPoolsBytes []byte
+
 var bytesByPath = map[string][]byte{
 	"pools/arbitrum.json":  arbitrumPoolsBytes,
 	"pools/avalanche.json": avalanchePoolsBytes,
@@ -90,4 +95,5 @@ var bytesByPath = map[string][]byte{
 	"pools/ellipsis/bsc.json":            ellipsisBscPoolsBytes,
 	"pools/pancake-stable/arbitrum.json": arbitrumPancakeStablePoolsBytes,
 	"pools/pancake-stable/bsc.json":      bscPancakeStablePoolsBytes,
+	"pools/zkswap-stable/zksync.json":    zksyncPoolsBytes,
 }
