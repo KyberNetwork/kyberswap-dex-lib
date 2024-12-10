@@ -365,14 +365,16 @@ func TestIndexPools_Handle(t *testing.T) {
 
 				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, onchainPriceRepo, mockConfig)
 			},
-			command: dto.IndexPoolsCommand{PoolAddresses: []string{
-				mockPools[0].Address,
-				mockPools[1].Address,
-				mockPools[2].Address,
-				mockPools[3].Address,
-				"pooladdress6",
-			}},
-			result: dto.NewIndexPoolsResult(nil, 0),
+			command: dto.IndexPoolsCommand{
+				UsePoolAddresses: true,
+				PoolAddresses: []string{
+					mockPools[0].Address,
+					mockPools[1].Address,
+					mockPools[2].Address,
+					mockPools[3].Address,
+					"pooladdress6",
+				}},
+			result: dto.NewIndexPoolsResult(5, nil, 0),
 		},
 		{
 			name: "it should return correct failed pool addresses when some pools were failed to index",
@@ -473,14 +475,16 @@ func TestIndexPools_Handle(t *testing.T) {
 
 				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, onchainPriceRepo, mockConfig)
 			},
-			command: dto.IndexPoolsCommand{PoolAddresses: []string{
-				mockPools[0].Address,
-				mockPools[1].Address,
-				mockPools[2].Address,
-				mockPools[3].Address,
-				"pooladdress6",
-			}},
-			result: dto.NewIndexPoolsResult([]string{"pooladdress1"}, 0),
+			command: dto.IndexPoolsCommand{
+				UsePoolAddresses: true,
+				PoolAddresses: []string{
+					mockPools[0].Address,
+					mockPools[1].Address,
+					mockPools[2].Address,
+					mockPools[3].Address,
+					"pooladdress6",
+				}},
+			result: dto.NewIndexPoolsResult(5, []string{"pooladdress1"}, 0),
 		},
 		{
 			name: "it should return correct failed pool addresses when repository returns error",
@@ -496,8 +500,8 @@ func TestIndexPools_Handle(t *testing.T) {
 				mockPoolRankRepo := mocks.NewMockIPoolRankRepository(ctrl)
 				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, nil, mockConfig)
 			},
-			command: dto.IndexPoolsCommand{PoolAddresses: []string{"pooladdress1", "pooladdress2", "pooladdress3"}},
-			result:  dto.NewIndexPoolsResult([]string{"pooladdress1", "pooladdress2", "pooladdress3"}, 0),
+			command: dto.IndexPoolsCommand{UsePoolAddresses: true, PoolAddresses: []string{"pooladdress1", "pooladdress2", "pooladdress3"}},
+			result:  dto.NewIndexPoolsResult(3, []string{"pooladdress1", "pooladdress2", "pooladdress3"}, 0),
 		},
 		{
 			name: "it should index 0 native TVL pools if number of direct pools is too small",
@@ -548,8 +552,8 @@ func TestIndexPools_Handle(t *testing.T) {
 
 				return NewIndexPoolsUseCase(mockPoolRepo, mockPoolRankRepo, onchainPriceRepo, mockConfig)
 			},
-			command: dto.IndexPoolsCommand{PoolAddresses: []string{"pooladdress5"}},
-			result:  dto.NewIndexPoolsResult(nil, 0),
+			command: dto.IndexPoolsCommand{UsePoolAddresses: true, PoolAddresses: []string{"pooladdress5"}},
+			result:  dto.NewIndexPoolsResult(1, nil, 0),
 		},
 	}
 

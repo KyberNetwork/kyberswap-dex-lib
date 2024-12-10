@@ -8,6 +8,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/iter"
@@ -18,7 +19,6 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/pkg/logger"
-	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 type IndexPoolsUseCase struct {
@@ -89,30 +89,46 @@ func (u *IndexPoolsUseCase) ApplyConfig(config IndexPoolsConfig) {
 }
 
 func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCommand) *dto.IndexPoolsResult {
-	var failedPoolAddresses []string
-	var oldPoolCount = 0
+	var (
+		totalCount, oldPoolCount int
+		totalFailedPoolAddresses []string
+	)
+
+	if command.UsePoolAddresses {
+		totalCount = len(command.PoolAddresses)
+	} else {
+		totalCount = int(u.poolRepo.Count(ctx))
+	}
 
 	// process chunk by chunk
-	chunks := lo.Chunk(command.PoolAddresses, u.config.ChunkSize)
-	for _, poolAddresses := range chunks {
-		allPools, err := u.poolRepo.FindByAddresses(ctx, poolAddresses)
+	getChunkPoolCommand := dto.NewGetChunkPoolCommand(
+		u.config.ChunkSize, command.UsePoolAddresses, command.PoolAddresses,
+	)
+	for {
+		if getChunkPoolCommand.IsLastCommand {
+			break
+		}
+
+		chunkPool, failedPoolAddresses, err := u.getChunkPool(ctx, &getChunkPoolCommand)
 		if err != nil {
-			failedPoolAddresses = append(failedPoolAddresses, poolAddresses...)
+			logger.Errorf(ctx, "error get chunk pool: %v", err)
+			totalFailedPoolAddresses = append(totalFailedPoolAddresses, failedPoolAddresses...)
 			continue
 		}
 
 		// filter out pools that haven't been updated recently
-		pools := lo.Filter(allPools, func(pool *entity.Pool, _ int) bool {
+		pools := lo.Filter(chunkPool, func(pool *entity.Pool, _ int) bool {
 			return command.IgnorePoolsBeforeTimestamp <= 0 || (*pool).Timestamp >= command.IgnorePoolsBeforeTimestamp
 		})
-		oldPoolCount = len(allPools) - len(pools)
+		oldPoolCount += len(chunkPool) - len(pools)
 
 		var nativePriceByToken map[string]*routerEntity.OnchainPrice
 		// collect prices for all pools' tokens first
 		nativePriceByToken, err = u.getPricesForAllTokens(ctx, pools)
 		if err != nil {
 			logger.Errorf(ctx, "error fetching pool tokens prices %v", err)
-			failedPoolAddresses = append(failedPoolAddresses, poolAddresses...)
+			totalFailedPoolAddresses = append(totalFailedPoolAddresses,
+				lo.Map(pools, func(pool *entity.Pool, _ int) string { return pool.Address })...)
 			continue
 		}
 
@@ -131,13 +147,57 @@ func (u *IndexPoolsUseCase) Handle(ctx context.Context, command dto.IndexPoolsCo
 
 		for i, p := range pools {
 			if indexPoolsResults[i] == INDEX_RESULT_FAIL {
-				failedPoolAddresses = append(failedPoolAddresses, p.Address)
+				totalFailedPoolAddresses = append(totalFailedPoolAddresses, p.Address)
 			}
 		}
-		mempool.ReserveMany(allPools)
+		mempool.ReserveMany(chunkPool)
 	}
 
-	return dto.NewIndexPoolsResult(failedPoolAddresses, oldPoolCount)
+	return dto.NewIndexPoolsResult(totalCount, totalFailedPoolAddresses, oldPoolCount)
+}
+
+func (u *IndexPoolsUseCase) getChunkPool(
+	ctx context.Context,
+	command *dto.GetChunkPoolCommand,
+) ([]*entity.Pool, []string, error) {
+	if command.IsLastCommand {
+		return nil, nil, nil
+	}
+
+	var chunkPool []*entity.Pool
+	var failedPoolAddresses []string
+	var err error
+
+	if command.UsePoolAddresses {
+		startIndex := command.AddressChunkIndex * command.ChunkSize
+		lastIndex := (command.AddressChunkIndex + 1) * command.ChunkSize
+		if lastIndex > len(command.PoolAddresses) {
+			lastIndex = len(command.PoolAddresses)
+		}
+		chunkPool, err = u.poolRepo.FindByAddresses(ctx, command.PoolAddresses[startIndex:lastIndex])
+		if err != nil {
+			logger.Errorf(ctx, "error get pools by addresses: %v", err)
+			failedPoolAddresses = command.PoolAddresses[startIndex:lastIndex]
+		}
+
+		command.AddressChunkIndex += 1
+		if lastIndex >= len(command.PoolAddresses) {
+			command.IsLastCommand = true
+		}
+	} else {
+		var newCursor uint64
+		chunkPool, failedPoolAddresses, newCursor, err = u.poolRepo.ScanPools(ctx, command.Cursor, command.ChunkSize)
+		if err != nil {
+			logger.Errorf(ctx, "error get all pools: %v", err)
+		}
+
+		command.Cursor = newCursor
+		if command.Cursor == 0 {
+			command.IsLastCommand = true
+		}
+	}
+
+	return chunkPool, failedPoolAddresses, err
 }
 
 func (u *IndexPoolsUseCase) processIndex(ctx context.Context, pool *entity.Pool, nativePriceByToken map[string]*routerEntity.OnchainPrice, handler IndexProcessingHandler) error {

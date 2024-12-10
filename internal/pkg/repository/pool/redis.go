@@ -171,3 +171,34 @@ func (r *redisRepository) TrackFaultyPools(ctx context.Context, trackers []route
 func (r *redisRepository) FindAddressesByDex(ctx context.Context, dex string) ([]string, error) {
 	return r.redisClient.SMembers(ctx, util.FormatKey(Separator, r.config.Redis.Prefix, KeyPoolByLiquiditySource, dex)).Result()
 }
+
+func (r *redisRepository) Count(ctx context.Context) int64 {
+	return r.redisClient.HLen(ctx, r.keyPools).Val()
+}
+
+func (r *redisRepository) ScanPools(ctx context.Context, cursor uint64, count int) ([]*entity.Pool, []string, uint64, error) {
+	span, ctx := tracer.StartSpanFromContext(ctx, "[pool] redisRepository.ScanPools")
+	defer span.End()
+
+	failedPoolAddresses := make([]string, 0)
+
+	poolDataList, cursor, err := r.redisClient.HScan(ctx, r.keyPools, cursor, "", int64(count)).Result()
+	if err != nil {
+		return nil, failedPoolAddresses, cursor, err
+	}
+
+	var pools = make([]*entity.Pool, 0, len(poolDataList)/2)
+	for i := 0; i < len(poolDataList); i += 2 {
+		pool, err := decodePool(poolDataList[i], poolDataList[i+1])
+		if err != nil {
+			logger.
+				WithFields(ctx, logger.Fields{"error": err, "key": poolDataList[i]}).
+				Warn("decode pool data failed")
+			failedPoolAddresses = append(failedPoolAddresses, poolDataList[i])
+			continue
+		}
+		pools = append(pools, pool)
+	}
+
+	return pools, failedPoolAddresses, cursor, nil
+}

@@ -19,6 +19,8 @@ type IPoolRepository interface {
 	FindAllAddresses(ctx context.Context) ([]string, error)
 	GetPoolsInBlacklist(ctx context.Context) ([]string, error)
 	FindAddressesByDex(ctx context.Context, dex string) ([]string, error)
+	Count(ctx context.Context) int64
+	ScanPools(ctx context.Context, cursor uint64, count int) ([]*entity.Pool, []string, uint64, error)
 }
 
 // ITokenRepository receives token addresses, fetch token data from datastore, decode them and return []entity.Token

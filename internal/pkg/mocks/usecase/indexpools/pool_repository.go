@@ -41,6 +41,20 @@ func (m *MockIPoolRepository) EXPECT() *MockIPoolRepositoryMockRecorder {
 	return m.recorder
 }
 
+// Count mocks base method.
+func (m *MockIPoolRepository) Count(ctx context.Context) int64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Count", ctx)
+	ret0, _ := ret[0].(int64)
+	return ret0
+}
+
+// Count indicates an expected call of Count.
+func (mr *MockIPoolRepositoryMockRecorder) Count(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Count", reflect.TypeOf((*MockIPoolRepository)(nil).Count), ctx)
+}
+
 // FindAddressesByDex mocks base method.
 func (m *MockIPoolRepository) FindAddressesByDex(ctx context.Context, dex string) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -99,4 +113,21 @@ func (m *MockIPoolRepository) GetPoolsInBlacklist(ctx context.Context) ([]string
 func (mr *MockIPoolRepositoryMockRecorder) GetPoolsInBlacklist(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPoolsInBlacklist", reflect.TypeOf((*MockIPoolRepository)(nil).GetPoolsInBlacklist), ctx)
+}
+
+// ScanPools mocks base method.
+func (m *MockIPoolRepository) ScanPools(ctx context.Context, cursor uint64, count int) ([]*entity.Pool, []string, uint64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ScanPools", ctx, cursor, count)
+	ret0, _ := ret[0].([]*entity.Pool)
+	ret1, _ := ret[1].([]string)
+	ret2, _ := ret[2].(uint64)
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
+}
+
+// ScanPools indicates an expected call of ScanPools.
+func (mr *MockIPoolRepositoryMockRecorder) ScanPools(ctx, cursor, count any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ScanPools", reflect.TypeOf((*MockIPoolRepository)(nil).ScanPools), ctx, cursor, count)
 }

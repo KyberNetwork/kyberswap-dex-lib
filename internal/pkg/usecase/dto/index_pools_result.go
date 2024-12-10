@@ -1,6 +1,9 @@
 package dto
 
 type IndexPoolsResult struct {
+	// Total number of pools should be indexed
+	TotalCount int
+
 	// List of pool addresses that was failed to index
 	FailedPoolAddresses []string
 
@@ -8,8 +11,9 @@ type IndexPoolsResult struct {
 	OldPoolCount int
 }
 
-func NewIndexPoolsResult(failedPoolAddresses []string, oldPoolCount int) *IndexPoolsResult {
+func NewIndexPoolsResult(totalCount int, failedPoolAddresses []string, oldPoolCount int) *IndexPoolsResult {
 	return &IndexPoolsResult{
+		TotalCount:          totalCount,
 		FailedPoolAddresses: failedPoolAddresses,
 		OldPoolCount:        oldPoolCount,
 	}

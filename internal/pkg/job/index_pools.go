@@ -87,22 +87,8 @@ func (u *IndexPoolsJob) scanAndIndex(ctx context.Context, forceScanAllPools bool
 			Info("job duration")
 	}()
 
-	poolAddresses, err := u.getAllPoolAddressesUseCase.Handle(ctx)
-	if err != nil {
-		logger.
-			WithFields(ctx,
-				logger.Fields{
-					"job.id":   jobID,
-					"job.name": IndexPools,
-					"error":    err,
-				}).
-			Error("job failed: get all pool addresses")
-
-		return
-	}
-
 	indexPoolsCmd := dto.IndexPoolsCommand{
-		PoolAddresses: poolAddresses,
+		UsePoolAddresses: false,
 	}
 	if !forceScanAllPools {
 		indexPoolsCmd.IgnorePoolsBeforeTimestamp = u.lastScanSuccessTime
@@ -114,8 +100,7 @@ func (u *IndexPoolsJob) scanAndIndex(ctx context.Context, forceScanAllPools bool
 	if result != nil {
 		failedCount = len(result.FailedPoolAddresses)
 	}
-	totalCount := len(poolAddresses)
-	if successCount := totalCount - failedCount; successCount > 0 {
+	if successCount := result.TotalCount - failedCount; successCount > 0 {
 		metrics.RecordIndexPoolsDelay(ctx, IndexPools, time.Since(startTime), true)
 		metrics.CountIndexPools(ctx, IndexPools, true, successCount)
 	}
@@ -127,7 +112,7 @@ func (u *IndexPoolsJob) scanAndIndex(ctx context.Context, forceScanAllPools bool
 				logger.Fields{
 					"job.id":       jobID,
 					"job.name":     IndexPools,
-					"total_count":  totalCount,
+					"total_count":  result.TotalCount,
 					"failed_count": failedCount,
 				}).
 			Warn("job done")
@@ -142,7 +127,7 @@ func (u *IndexPoolsJob) scanAndIndex(ctx context.Context, forceScanAllPools bool
 			logger.Fields{
 				"job.id":      jobID,
 				"job.name":    IndexPools,
-				"total_count": totalCount,
+				"total_count": result.TotalCount,
 				"total_skip":  result.OldPoolCount,
 				"forced":      forceScanAllPools,
 			}).
@@ -209,7 +194,8 @@ func (u *IndexPoolsJob) handleStreamEvents(msgs []*BatchedPoolAddress) {
 	})
 
 	indexPoolsCmd := dto.IndexPoolsCommand{
-		PoolAddresses: poolAddresses,
+		UsePoolAddresses: true,
+		PoolAddresses:    poolAddresses,
 	}
 	result := u.indexPoolsUseCase.Handle(ctx, indexPoolsCmd)
 
