@@ -8,4 +8,5 @@ var (
 	// BasisPoint is one hundredth of 1 percentage point
 	// https://en.wikipedia.org/wiki/Basis_point
 	BasisPoint   = big.NewInt(10000)
+	BasisPointM1 = big.NewInt(10000 - 1)
 )
