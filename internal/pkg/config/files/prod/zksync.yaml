@@ -50,6 +50,7 @@ common:
     - "koi-cl"
     - "woofi-v3"
     - "lo1inch"
+    - "hold-fun"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
