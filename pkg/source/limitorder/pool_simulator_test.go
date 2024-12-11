@@ -971,6 +971,7 @@ func TestPool_CalcAmountOut_v2(t *testing.T) {
 			assert.Equal(t, tc.expAmountOut, res.TokenAmountOut.Amount.String())
 
 			si := res.SwapInfo.(SwapInfo)
+			assert.Equal(t, bignumber.NewBig10(tc.amountIn), bignumber.NewBig10(si.AmountIn))
 			oid := make([]int64, 0, len(si.FilledOrders))
 			oinfo := ""
 			for _, o := range si.FilledOrders {
@@ -1079,6 +1080,7 @@ func TestPool_UpdateBalance(t *testing.T) {
 				assert.Equal(t, swap.expAmountOut, res.TokenAmountOut.Amount.String())
 
 				si := res.SwapInfo.(SwapInfo)
+				assert.Equal(t, bignumber.NewBig10(swap.amountIn), bignumber.NewBig10(si.AmountIn))
 				oid := make([]int64, 0, len(si.FilledOrders))
 				oinfo := ""
 				for _, o := range si.FilledOrders {
@@ -1229,6 +1231,7 @@ func TestPool_Inventory(t *testing.T) {
 				assert.Equal(t, swap.expAmountOut, res.TokenAmountOut.Amount.String())
 
 				si := res.SwapInfo.(SwapInfo)
+				assert.Equal(t, bignumber.NewBig10(swap.amountIn), bignumber.NewBig10(si.AmountIn))
 				oid := make([]int64, 0, len(si.FilledOrders))
 				oinfo := ""
 				for _, o := range si.FilledOrders {
@@ -1363,6 +1366,7 @@ func TestPool_CalcAmountOut_TakerAssetFee(t *testing.T) {
 			}
 			assert.Equal(t, tc.expOrderIds, oid, oinfo)
 			fmt.Println(oinfo)
+			fmt.Println("--", si.AmountIn)
 		})
 	}
 }

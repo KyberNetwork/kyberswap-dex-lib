@@ -215,6 +215,7 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 		SwapSide:     swapSide,
 		AmountIn:     tokenAmountIn.Amount.String(),
 	}
+	totalFilledMakingAmountWei := big.NewInt(0)
 	isFulfillAmountIn := false
 	totalFeeAmountWei := new(big.Int)
 
@@ -276,6 +277,7 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 			swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
 			isFulfillAmountIn = true
 			addFilledMakingAmount(filledMakingAmountByMaker, order.Maker, filledMakingAmountWei)
+			totalFilledMakingAmountWei.Add(totalFilledMakingAmountWei, filledTakingAmountWei)
 
 			// Currently, when Aggregator finds route and returns some orders and sends them to the smart contract to execute.
 			// We will often meet edge cases that these orders can be fulfilled by a trading bot or taker on Aggregator.
@@ -318,10 +320,12 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 		filledOrderInfo := newFilledOrderInfo(order, remainingTakingAmountWei.String(), remainingMakingAmountWei.String(), feeAmountWeiByOrder.String())
 		swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
 		addFilledMakingAmount(filledMakingAmountByMaker, order.Maker, remainingMakingAmountWei)
+		totalFilledMakingAmountWei.Add(totalFilledMakingAmountWei, remainingTakingAmountWei)
 	}
 	if !isFulfillAmountIn {
 		return nil, SwapInfo{}, nil, ErrCannotFulfillAmountIn
 	}
+	swapInfo.AmountIn = totalFilledMakingAmountWei.String()
 	return totalAmountOutWei, swapInfo, totalFeeAmountWei, nil
 }
 
