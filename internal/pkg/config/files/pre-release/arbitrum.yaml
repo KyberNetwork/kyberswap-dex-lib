@@ -405,7 +405,7 @@ useCase:
         handler: limit-order
         properties:
           chainID: *chainId
-          limitOrderHTTPUrl: http://limit-order.pre-release-cluster.gke.production.internal
+          limitOrderHTTPUrl: http://limit-order.pre-release-patch1-cluster.gke.production.internal
       - id: swaap-v2
         handler: swaap-v2
         properties:
