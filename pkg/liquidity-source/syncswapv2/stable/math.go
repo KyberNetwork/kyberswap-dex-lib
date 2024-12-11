@@ -56,7 +56,7 @@ func _getAmountIn(
 	// amountIn = MAX_FEE * (x - adjustedReserveIn) / (MAX_FEE - swapFee) + 1;
 	// amountIn /= tokenInPrecisionMultiplier;
 	amountIn := new(uint256.Int)
-	amountIn.Set(x).Sub(amountIn, adjustedReserveIn).Mul(amountIn, MaxFee).Div(
+	amountIn.Sub(x, adjustedReserveIn).Mul(amountIn, MaxFee).Div(
 		amountIn,
 		new(uint256.Int).Sub(MaxFee, swapFee),
 	).Add(amountIn, constant.One).Div(amountIn, tokenInPrecisionMultiplier)
@@ -126,18 +126,16 @@ func computeDFromAdjustedBalances(xp0, xp1 *uint256.Int, A *uint256.Int) *uint25
 		//d = (((2000 * s) + 2 * dP) * d) / ((2000 - 1) * d + 3 * dP);
 		num := new(uint256.Int)
 		den := new(uint256.Int)
-		d = num.Div(
-			num.Mul(
-				num.Add(
-					num.Set(A).Mul(num, s),
-					new(uint256.Int).Mul(constant.Two, dp),
-				), d),
-			den.Add(
-				den.Mul(den.Set(A).Sub(den, constant.One), d),
+		d = num.Mul(A, s).Add(
+			num,
+			new(uint256.Int).Mul(constant.Two, dp),
+		).Mul(num, d).Div(
+			num,
+			den.Sub(A, constant.One).Mul(den, d).Add(
+				den,
 				new(uint256.Int).Mul(constant.Three, dp),
 			),
 		)
-
 		if within1(d, prevD) {
 			break
 		}

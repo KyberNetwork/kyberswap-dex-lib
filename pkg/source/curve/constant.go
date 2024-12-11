@@ -108,6 +108,5 @@ var weth9 = map[int]string{
 
 var (
 	zeroBI            = big.NewInt(0)
-	emptyString       = ""
 	zero        int64 = 0
 )
