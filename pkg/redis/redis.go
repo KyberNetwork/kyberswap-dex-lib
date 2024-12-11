@@ -4,10 +4,15 @@ import (
 	"context"
 
 	"github.com/goccy/go-json"
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/KyberNetwork/kutils/klog"
+	"github.com/KyberNetwork/kyber-trace-go/pkg/metric"
+	"github.com/KyberNetwork/kyber-trace-go/pkg/tracer"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/pkg/logger"
+	redisclient "github.com/KyberNetwork/service-framework/pkg/client/redis/reconnectable"
 )
 
 type Redis struct {
@@ -16,7 +21,7 @@ type Redis struct {
 }
 
 func New(cfg *Config) (*Redis, error) {
-	rdb := redis.NewUniversalClient(&redis.UniversalOptions{
+	rdb := redisclient.New(&redis.UniversalOptions{
 		Addrs:         cfg.Addresses,
 		DB:            cfg.DBNumber,
 		Password:      cfg.Password,
@@ -29,6 +34,17 @@ func New(cfg *Config) (*Redis, error) {
 
 	if _, err := rdb.Ping(context.Background()).Result(); err != nil {
 		return nil, err
+	}
+
+	if metric.Provider() != nil {
+		if err := redisotel.InstrumentMetrics(rdb); err != nil {
+			klog.Errorf(context.Background(), "RedisCfg.OnUpdate|redisotel.InstrumentMetrics failed|err=%v", err)
+		}
+	}
+	if tracer.Provider() != nil {
+		if err := redisotel.InstrumentTracing(rdb); err != nil {
+			klog.Errorf(context.Background(), "RedisCfg.OnUpdate|redisotel.InstrumentTracing failed|err=%v", err)
+		}
 	}
 
 	logRedisOption(rdb)
