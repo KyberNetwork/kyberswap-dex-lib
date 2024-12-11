@@ -139,58 +139,60 @@ func newtonD(ANN *uint256.Int, gamma *uint256.Int, xUnsorted []*uint256.Int) (*u
 		} else {
 			_g1k0 = new(uint256.Int).Add(new(uint256.Int).Sub(K0, _g1k0), constant.One)
 		}
-		var mul1 = new(uint256.Int).Div(
-			new(uint256.Int).Mul(
-				new(uint256.Int).Mul(
-					new(uint256.Int).Div(
-						new(uint256.Int).Mul(
-							new(uint256.Int).Div(new(uint256.Int).Mul(constant.BONE, D), gamma), _g1k0,
-						), gamma,
-					),
-					_g1k0,
-				),
-				AMultiplier,
-			), ANN,
+		// var mul1 = new(uint256.Int).Div(
+		// 	new(uint256.Int).Mul(
+		// 		new(uint256.Int).Mul(
+		// 			new(uint256.Int).Div(
+		// 				new(uint256.Int).Mul(
+		// 					new(uint256.Int).Div(new(uint256.Int).Mul(constant.BONE, D), gamma), _g1k0,
+		// 				), gamma,
+		// 			),
+		// 			_g1k0,
+		// 		),
+		// 		AMultiplier,
+		// 	), ANN,
+		// )
+		var mul1 = new(uint256.Int)
+		mul1.Mul(constant.BONE, D).Div(mul1, gamma).Mul(mul1, _g1k0).Div(mul1, gamma).Mul(mul1, _g1k0).Mul(mul1, AMultiplier).Div(mul1, ANN)
+		// var mul2 = new(uint256.Int).Div(
+		// 	new(uint256.Int).Mul(
+		// 		new(uint256.Int).Mul(
+		// 			new(uint256.Int).Mul(constant.Two, constant.BONE), nCoinsBi,
+		// 		), K0,
+		// 	), _g1k0,
+		// )
+		var mul2 = new(uint256.Int)
+		mul2.Mul(constant.Two, constant.BONE).Mul(mul2, nCoinsBi).Mul(mul2, K0).Div(mul2, _g1k0)
+		// var negFprime = new(uint256.Int).Sub(
+		// 	new(uint256.Int).Add(
+		// 		new(uint256.Int).Add(S, new(uint256.Int).Div(new(uint256.Int).Mul(S, mul2), constant.BONE)),
+		// 		new(uint256.Int).Div(new(uint256.Int).Mul(mul1, nCoinsBi), K0),
+		// 	),
+		// 	new(uint256.Int).Div(new(uint256.Int).Mul(mul2, D), constant.BONE),
+		// )
+		var negFprime = new(uint256.Int)
+		negFprime.Mul(S, mul2).Div(negFprime, constant.BONE).Add(S, negFprime).Add(
+			new(uint256.Int).Set(negFprime),
+			negFprime.Mul(mul1, nCoinsBi).Div(negFprime, K0),
+		).Sub(
+			new(uint256.Int).Set(negFprime),
+			negFprime.Mul(mul2, D).Div(negFprime, constant.BONE),
 		)
-		var mul2 = new(uint256.Int).Div(
-			new(uint256.Int).Mul(
-				new(uint256.Int).Mul(
-					new(uint256.Int).Mul(constant.Two, constant.BONE), nCoinsBi,
-				), K0,
-			), _g1k0,
-		)
-		var negFprime = new(uint256.Int).Sub(
-			new(uint256.Int).Add(
-				new(uint256.Int).Add(S, new(uint256.Int).Div(new(uint256.Int).Mul(S, mul2), constant.BONE)),
-				new(uint256.Int).Div(new(uint256.Int).Mul(mul1, nCoinsBi), K0),
-			),
-			new(uint256.Int).Div(new(uint256.Int).Mul(mul2, D), constant.BONE),
-		)
-		var DPlus = new(uint256.Int).Div(new(uint256.Int).Mul(D, new(uint256.Int).Add(negFprime, S)), negFprime)
-		var DMinus = new(uint256.Int).Div(new(uint256.Int).Mul(D, D), negFprime)
+		// var DPlus = new(uint256.Int).Div(new(uint256.Int).Mul(D, new(uint256.Int).Add(negFprime, S)), negFprime)
+		var DPlus = new(uint256.Int)
+		DPlus.Add(negFprime, S).Mul(D, DPlus).Div(DPlus, negFprime)
+		// var DMinus = new(uint256.Int).Div(new(uint256.Int).Mul(D, D), negFprime)
+		var DMinus = new(uint256.Int)
+		DMinus.Mul(D, D).Div(DMinus, negFprime)
 		if constant.BONE.Cmp(K0) > 0 {
-			DMinus = new(uint256.Int).Add(
-				DMinus,
-				new(uint256.Int).Div(
-					new(uint256.Int).Mul(
-						new(uint256.Int).Div(
-							new(uint256.Int).Mul(D, new(uint256.Int).Div(mul1, negFprime)), constant.BONE,
-						), new(uint256.Int).Sub(constant.BONE, K0),
-					),
-					K0,
-				),
+			DMinus.Add(new(
+				uint256.Int).Set(DMinus),
+				DMinus.Div(mul1, negFprime).Mul(D, DMinus).Div(DMinus, constant.BONE).Mul(DMinus, new(uint256.Int).Sub(constant.BONE, K0)).Div(DMinus, K0),
 			)
 		} else {
-			DMinus = new(uint256.Int).Sub(
-				DMinus,
-				new(uint256.Int).Div(
-					new(uint256.Int).Mul(
-						new(uint256.Int).Div(
-							new(uint256.Int).Mul(D, new(uint256.Int).Div(mul1, negFprime)), constant.BONE,
-						), new(uint256.Int).Sub(K0, constant.BONE),
-					),
-					K0,
-				),
+			DMinus.Add(new(
+				uint256.Int).Set(DMinus),
+				DMinus.Div(mul1, negFprime).Mul(D, DMinus).Div(DMinus, constant.BONE).Mul(DMinus, new(uint256.Int).Sub(K0, constant.BONE)).Div(DMinus, K0),
 			)
 		}
 		if DPlus.Cmp(DMinus) > 0 {
@@ -267,24 +269,28 @@ func newtonY(ann *uint256.Int, gamma *uint256.Int, x []*uint256.Int, D *uint256.
 		} else {
 			_g1k0 = new(uint256.Int).Add(new(uint256.Int).Sub(K0, _g1k0), constant.One)
 		}
-		var mul1 = new(uint256.Int).Div(
-			new(uint256.Int).Mul(
-				new(uint256.Int).Div(
-					new(uint256.Int).Mul(
-						new(uint256.Int).Div(new(uint256.Int).Mul(constant.BONE, D), gamma),
-						_g1k0,
-					), gamma,
-				),
-				new(uint256.Int).Mul(_g1k0, AMultiplier),
-			), ann,
-		)
-		var mul2 = new(uint256.Int).Add(
-			new(uint256.Int).Div(
-				new(uint256.Int).Mul(
-					new(uint256.Int).Mul(constant.Two, constant.BONE), K0,
-				), _g1k0,
-			), constant.BONE,
-		)
+		// var mul1 = new(uint256.Int).Div(
+		// 	new(uint256.Int).Mul(
+		// 		new(uint256.Int).Div(
+		// 			new(uint256.Int).Mul(
+		// 				new(uint256.Int).Div(new(uint256.Int).Mul(constant.BONE, D), gamma),
+		// 				_g1k0,
+		// 			), gamma,
+		// 		),
+		// 		new(uint256.Int).Mul(_g1k0, AMultiplier),
+		// 	), ann,
+		// )
+		var mul1 = new(uint256.Int)
+		mul1.Mul(constant.BONE, D).Div(mul1, gamma).Mul(mul1, _g1k0).Div(mul1, gamma).Mul(mul1, _g1k0).Mul(mul1, AMultiplier).Div(mul1, ann)
+		// var mul2 = new(uint256.Int).Add(
+		// 	new(uint256.Int).Div(
+		// 		new(uint256.Int).Mul(
+		// 			new(uint256.Int).Mul(constant.Two, constant.BONE), K0,
+		// 		), _g1k0,
+		// 	), constant.BONE,
+		// )
+		var mul2 = new(uint256.Int)
+		mul2.Mul(constant.Two, constant.BONE).Mul(mul2, K0).Div(mul2, _g1k0).Add(mul2, constant.BONE)
 		var yfprime = new(uint256.Int).Add(
 			new(uint256.Int).Add(new(uint256.Int).Mul(constant.BONE, y), new(uint256.Int).Mul(S, mul2)), mul1,
 		)
@@ -685,50 +691,58 @@ func getCryptoFee(minFee, maxFee, gamma, xp0, xp1 *uint256.Int) *uint256.Int {
 	//     gamma.add(ETHER).sub(ETHER.mul(4).mul(xp0).div(f).mul(xp1).div(f))
 	// );
 
-	f = new(uint256.Int).Div(
-		new(uint256.Int).Mul(
-			gamma,
-			constant.BONE,
-		),
-		new(uint256.Int).Sub(
-			new(uint256.Int).Add(
-				gamma,
-				constant.BONE,
-			),
-			new(uint256.Int).Div(
-				new(uint256.Int).Mul(
-					new(uint256.Int).Div(
-						new(uint256.Int).Mul(
-							new(uint256.Int).Mul(
-								constant.BONE,
-								constant.Four,
-							),
-							xp0,
-						),
-						f,
-					),
-					xp1,
-				),
-				f,
-			),
-		),
+	// f = new(uint256.Int).Div(
+	// 	new(uint256.Int).Mul(
+	// 		gamma,
+	// 		constant.BONE,
+	// 	),
+	// 	new(uint256.Int).Sub(
+	// 		new(uint256.Int).Add(
+	// 			gamma,
+	// 			constant.BONE,
+	// 		),
+	// 		new(uint256.Int).Div(
+	// 			new(uint256.Int).Mul(
+	// 				new(uint256.Int).Div(
+	// 					new(uint256.Int).Mul(
+	// 						new(uint256.Int).Mul(
+	// 							constant.BONE,
+	// 							constant.Four,
+	// 						),
+	// 						xp0,
+	// 					),
+	// 					f,
+	// 				),
+	// 				xp1,
+	// 			),
+	// 			f,
+	// 		),
+	// 	),
+	// )
+	f1 := new(uint256.Int).Set(f)
+	f = f.Mul(constant.BONE, constant.Four).Mul(f, xp0).Div(f, f1).Mul(f, xp1).Div(f, f1).Sub(
+		new(uint256.Int).Add(gamma, constant.BONE), f,
+	).Div(
+		new(uint256.Int).Mul(gamma, constant.BONE), f,
 	)
 
 	// const fee = minFee.mul(f).add(maxFee.mul(ETHER.sub(f))).div(ETHER);
-	fee := new(uint256.Int).Div(
-		new(uint256.Int).Add(
-			new(uint256.Int).Mul(
-				minFee, f,
-			),
-			new(uint256.Int).Mul(
-				maxFee,
-				new(uint256.Int).Sub(
-					constant.BONE, f,
-				),
-			),
-		),
-		constant.BONE,
-	)
+	// fee := new(uint256.Int).Div(
+	// 	new(uint256.Int).Add(
+	// 		new(uint256.Int).Mul(
+	// 			minFee, f,
+	// 		),
+	// 		new(uint256.Int).Mul(
+	// 			maxFee,
+	// 			new(uint256.Int).Sub(
+	// 				constant.BONE, f,
+	// 			),
+	// 		),
+	// 	),
+	// 	constant.BONE,
+	// )
+	var fee = new(uint256.Int)
+	fee.Sub(constant.BONE, f).Mul(maxFee, fee).Add(fee, new(uint256.Int).Mul(minFee, f)).Div(fee, constant.BONE)
 	return fee
 }
 
