@@ -31,121 +31,6 @@ func TestPool_CalcAmountOut(t *testing.T) {
 		err        error
 	}{
 		{
-			name: "Should return correct CalcAmountOutResult when IsTakerAssetFee=true",
-			poolEntity: entity.Pool{
-				Address:      "pool_limit_order_",
-				ReserveUsd:   1000000000,
-				AmplifiedTvl: 0,
-				SwapFee:      0,
-				Exchange:     "kyberswap_limit-order",
-				Type:         "limit-order",
-				Timestamp:    0,
-				Reserves:     []string{"10000000000000000000", "10000000000000000000"},
-				Tokens: []*entity.PoolToken{
-					{
-						Address:   "0x4200000000000000000000000000000000000006",
-						Name:      "WETH",
-						Symbol:    "WETH",
-						Decimals:  18,
-						Swappable: true,
-					},
-					{
-						Address:   "0x1dd2d631c92b1acdfcdd51a0f7145a50130050c4",
-						Name:      "ALB",
-						Symbol:    "ALB",
-						Decimals:  18,
-						Swappable: true,
-					},
-				},
-				Extra: marshalPoolExtra(&Extra{
-					SellOrders: []*order{
-						{
-							ID:                   1383,
-							ChainID:              "5",
-							Salt:                 "154002081474686290844625688130661839166",
-							Signature:            "signature1",
-							TakerAsset:           "0x1dd2d631c92b1acdfcdd51a0f7145a50130050c4",
-							MakerAsset:           "0x4200000000000000000000000000000000000006",
-							Receiver:             "0xa246ec8bf7f2e54cc2f7bfdd869302ae4a08a590",
-							Maker:                "0xa246ec8bf7f2e54cc2f7bfdd869302ae4a08a590",
-							AllowedSenders:       "0x0000000000000000000000000000000000000000",
-							TakingAmount:         parseBigInt("10094237807104621"),
-							MakingAmount:         parseBigInt("1000000000000"),
-							FeeConfig:            parseBigInt("6277103196897319986124780282469434185881440815774577556840"),
-							FeeRecipient:         "0x0000000000000000000000000000000000000000",
-							FilledMakingAmount:   parseBigInt("0"),
-							FilledTakingAmount:   parseBigInt("0"),
-							MakerTokenFeePercent: 100,
-							MakerAssetData:       "",
-							TakerAssetData:       "",
-							GetMakerAmount:       "f4a215c3000000000000000000000000000000000000000000000000000000e8d4a510000000000000000000000000000000000000000000000000000023dca7e2c5526d",
-							GetTakerAmount:       "296637bf000000000000000000000000000000000000000000000000000000e8d4a510000000000000000000000000000000000000000000000000000023dca7e2c5526d",
-							Predicate:            "961d5b1e000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000020000000000000000000000008869bd40f0fe077f8857ad27e7cecdcafd4e52550000000000000000000000008869bd40f0fe077f8857ad27e7cecdcafd4e52550000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000044cf6fc6e30000000000000000000000002b9b20295b6f1bea547271982f62432f526706e9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002463592c2b00000000000000000000000000000000000000000000000000000001235001cd00000000000000000000000000000000000000000000000000000000",
-							Permit:               "",
-							Interaction:          "",
-							ExpiredAt:            0,
-							IsTakerAssetFee:      true,
-						},
-					},
-					BuyOrders: []*order{},
-				}),
-				TotalSupply: "",
-			},
-			args: args{
-				tokenAmountIn: pool.TokenAmount{
-					Token:     "0x4200000000000000000000000000000000000006",
-					Amount:    parseBigInt("1000000000000"),
-					AmountUsd: 0,
-				},
-				tokenOut: "0x1dd2d631c92b1acdfcdd51a0f7145a50130050c4",
-			},
-			want: &pool.CalcAmountOutResult{
-				TokenAmountOut: &pool.TokenAmount{
-					Token:     "0x1dd2d631c92b1acdfcdd51a0f7145a50130050c4",
-					Amount:    parseBigInt("9993295429033574"),
-					AmountUsd: 0,
-				},
-				Fee: &pool.TokenAmount{
-					Token:     "0x4200000000000000000000000000000000000006",
-					Amount:    parseBigInt("100942378071047"),
-					AmountUsd: 0,
-				},
-				Gas: 113308,
-				SwapInfo: SwapInfo{
-					AmountIn: "1000000000000",
-					SwapSide: Sell,
-					FilledOrders: []*FilledOrderInfo{
-						{
-							OrderID:              1383,
-							FilledTakingAmount:   "1000000000000",
-							FilledMakingAmount:   "99066419",
-							TakingAmount:         "10094237807104621",
-							MakingAmount:         "1000000000000",
-							Salt:                 "154002081474686290844625688130661839166",
-							TakerAsset:           "0x1dd2d631c92b1acdfcdd51a0f7145a50130050c4",
-							MakerAsset:           "0x4200000000000000000000000000000000000006",
-							Maker:                "0xa246ec8bf7f2e54cc2f7bfdd869302ae4a08a590",
-							Receiver:             "0xa246ec8bf7f2e54cc2f7bfdd869302ae4a08a590",
-							AllowedSenders:       "0x0000000000000000000000000000000000000000",
-							GetMakerAmount:       "f4a215c3000000000000000000000000000000000000000000000000000000e8d4a510000000000000000000000000000000000000000000000000000023dca7e2c5526d",
-							GetTakerAmount:       "296637bf000000000000000000000000000000000000000000000000000000e8d4a510000000000000000000000000000000000000000000000000000023dca7e2c5526d",
-							FeeConfig:            "6277103196897319986124780282469434185881440815774577556840",
-							FeeRecipient:         "0x0000000000000000000000000000000000000000",
-							MakerTokenFeePercent: 100,
-							MakerAssetData:       "",
-							TakerAssetData:       "",
-							Predicate:            "961d5b1e000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000020000000000000000000000008869bd40f0fe077f8857ad27e7cecdcafd4e52550000000000000000000000008869bd40f0fe077f8857ad27e7cecdcafd4e52550000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000c00000000000000000000000000000000000000000000000000000000000000044cf6fc6e30000000000000000000000002b9b20295b6f1bea547271982f62432f526706e9000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002463592c2b00000000000000000000000000000000000000000000000000000001235001cd00000000000000000000000000000000000000000000000000000000",
-							Permit:               "",
-							Interaction:          "",
-							Signature:            "signature1",
-							FeeAmount:            "100942378071047",
-						},
-					},
-				},
-			},
-			err: nil,
-		},
-		{
 			name: "Should return correct CalcAmountOutResult when swapSide is BUY(strings.ToLower(tokeIn) <= strings.ToLower(TokenOut))",
 			poolEntity: entity.Pool{
 				Address:      "pool_limit_order_",
@@ -1368,5 +1253,116 @@ func TestPool_Inventory(t *testing.T) {
 				})
 			})
 		}
+	}
+}
+
+func TestPool_CalcAmountOut_TakerAssetFee(t *testing.T) {
+	type testorder struct {
+		id              int64
+		makingAmount    string
+		takingAmount    string
+		feePct          uint32
+		IsTakerAssetFee bool
+	}
+
+	pools := map[string][]testorder{
+		"pool1": {
+			{1001, "10000000", "12000000", 100, true},
+			{1002, "10000000", "10000000", 100, true},
+		},
+		"pool2": { // mixed takerAssetFee and makerAssetFee
+			{1001, "10000000", "12000000", 100, true},
+			{1002, "10000000", "10000000", 100, false},
+		},
+		"pool3": { // test order on prerelease
+			{1001, "10000000000000", "99522200853987088", 100, true},
+		},
+	}
+
+	testcases := []struct {
+		name         string
+		pool         string
+		amountIn     string
+		expAmountOut string
+		expOrderIds  []int64
+	}{
+		{"p-fill 1st order", "pool1", "10000000", "8250825", []int64{1001, 1002}},  // 1002 as backup
+		{"p-fill 1st order", "pool1", "12000000", "9900990", []int64{1001, 1002}},  // 1002 as backup
+		{"f-fill 1st order", "pool1", "12120000", "10000000", []int64{1001, 1002}}, // 1002 as backup
+		{"f-fill 1st order, p-fill 2nd one", "pool1", "15000000", "12851485", []int64{1001, 1002}},
+		{"f-fill both orders", "pool1", "22220000", "20000000", []int64{1001, 1002}},
+		{"cannot be filled", "pool1", "22220003", "", nil}, // we expect 22220001 to not be filled, but due to fee rounding down it need 22220003
+
+		{"p-fill 1st order", "pool2", "10000000", "8250825", []int64{1001, 1002}},  // 1002 as backup
+		{"p-fill 1st order", "pool2", "12000000", "9900990", []int64{1001, 1002}},  // 1002 as backup
+		{"f-fill 1st order", "pool2", "12120000", "10000000", []int64{1001, 1002}}, // 1002 as backup
+		{"f-fill 1st order, p-fill 2nd one", "pool2", "15000000", "12851200", []int64{1001, 1002}},
+		{"f-fill both orders", "pool2", "22120000", "19900000", []int64{1001, 1002}},
+		{"cannot be filled", "pool2", "22120001", "", nil},
+
+		// 49522200853987088 + 495222008539871
+		{"p-fill 1st order", "pool3", "50017422862526959", "4975995348680", []int64{1001}},
+	}
+
+	sims := lo.MapValues(pools, func(orders []testorder, _ string) *PoolSimulator {
+		extra := Extra{
+			BuyOrders: lo.Map(orders, func(o testorder, _ int) *order {
+				return &order{
+					ID:                    o.id,
+					MakingAmount:          bignumber.NewBig10(o.makingAmount),
+					TakingAmount:          bignumber.NewBig10(o.takingAmount),
+					AvailableMakingAmount: bignumber.NewBig10(o.makingAmount),
+					MakerBalanceAllowance: bignumber.NewBig10("100000000000000000000"),
+					MakerTokenFeePercent:  o.feePct,
+					IsTakerAssetFee:       o.IsTakerAssetFee,
+				}
+			}),
+		}
+		sExtra, _ := json.Marshal(extra)
+		poolEnt := entity.Pool{
+			Tokens:      []*entity.PoolToken{{Address: "A"}, {Address: "B"}},
+			Reserves:    entity.PoolReserves{"0", "0"},
+			StaticExtra: `{"ContractAddress":""}`,
+			Extra:       string(sExtra),
+		}
+		p, err := NewPoolSimulator(poolEnt)
+		require.Nil(t, err)
+		return p
+	})
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			limit := swaplimit.NewInventory("", sims[tc.pool].CalculateLimit())
+			res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
+				TokenAmountIn: pool.TokenAmount{
+					Token:  "A",
+					Amount: bignumber.NewBig10(tc.amountIn),
+				},
+				TokenOut: "B",
+				Limit:    limit,
+			})
+
+			if tc.expOrderIds == nil {
+				require.NotNil(t, err)
+				return
+			}
+
+			require.Nil(t, err)
+
+			assert.Equal(t, tc.expAmountOut, res.TokenAmountOut.Amount.String())
+
+			si := res.SwapInfo.(SwapInfo)
+			oid := make([]int64, 0, len(si.FilledOrders))
+			oinfo := ""
+			for _, o := range si.FilledOrders {
+				if o.FilledTakingAmount == "" {
+					break
+				}
+				oid = append(oid, o.OrderID)
+				oinfo += fmt.Sprintf("order %v %v %v\n", o.OrderID, o.FilledMakingAmount, o.FilledTakingAmount)
+			}
+			assert.Equal(t, tc.expOrderIds, oid, oinfo)
+			fmt.Println(oinfo)
+		})
 	}
 }
