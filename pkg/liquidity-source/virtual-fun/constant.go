@@ -8,7 +8,7 @@ import (
 var (
 	defaultGas = Gas{Swap: 250000}
 
-	executeBondingCurveApplicationGas int64 = 4_700_000
+	bondingCurveApplicationGas int64 = 5_000_000
 
 	ZERO_ADDRESS = common.Address{}
 

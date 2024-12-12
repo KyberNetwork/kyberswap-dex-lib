@@ -155,7 +155,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 
 	gas := s.gas.Swap
 	if newReserveA.Cmp(s.gradThreshold) <= 0 {
-		gas += executeBondingCurveApplicationGas
+		gas += bondingCurveApplicationGas
 	}
 
 	return &poolpkg.CalcAmountOutResult{
