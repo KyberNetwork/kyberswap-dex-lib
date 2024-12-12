@@ -170,7 +170,7 @@ func TestPool_HasReserves(t *testing.T) {
 			expectedResult: false,
 		},
 		{
-			name: "it should return false when at least one reserve is empty string",
+			name: "it should return true when at least one reserve is not empty",
 			pool: Pool{
 				Address:      "address1",
 				ReserveUsd:   100,
@@ -202,10 +202,10 @@ func TestPool_HasReserves(t *testing.T) {
 				StaticExtra: "staticExtra1",
 				TotalSupply: "totalSupply1",
 			},
-			expectedResult: false,
+			expectedResult: true,
 		},
 		{
-			name: "it should return false when at least one reserve is 0",
+			name: "it should return true when at least one reserve is not 0",
 			pool: Pool{
 				Address:      "address1",
 				ReserveUsd:   100,
@@ -237,7 +237,7 @@ func TestPool_HasReserves(t *testing.T) {
 				StaticExtra: "staticExtra1",
 				TotalSupply: "totalSupply1",
 			},
-			expectedResult: false,
+			expectedResult: true,
 		},
 	}
 
