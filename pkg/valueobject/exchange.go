@@ -349,9 +349,11 @@ var (
 	ExchangeSectaV2        Exchange = "secta-v2"
 	ExchangeSectaV3        Exchange = "secta-v3"
 	ExchangeQuickSwapUniV3 Exchange = "quickswap-uni-v3"
-	ExchangeAmbient        Exchange = "ambient"
+	ExchangeHoldFun        Exchange = "hold-fun"
 
-	ExchangeMaverickV2       Exchange = "maverick-v2"
+	ExchangeAmbient    Exchange = "ambient"
+	ExchangeMaverickV2 Exchange = "maverick-v2"
+
 	ExchangeEtherVista       Exchange = "ether-vista"
 	ExchangeLitePSM          Exchange = "lite-psm"
 	ExchangeMkrSky           Exchange = "mkr-sky"
@@ -667,6 +669,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSectaV2:                    {},
 	ExchangeSectaV3:                    {},
 	ExchangeQuickSwapUniV3:             {},
+	ExchangeHoldFun:                    {},
 	ExchangeAmbient:                    {},
 	ExchangeMaverickV2:                 {},
 	ExchangeEtherVista:                 {},
