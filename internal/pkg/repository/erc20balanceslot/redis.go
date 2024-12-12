@@ -121,16 +121,28 @@ func (r *RedisRepository) GetAll(ctx context.Context) (map[common.Address]*types
 	span, ctx := tracer.StartSpanFromContext(ctx, "[erc20balanceslot] redisRepository.GetAll")
 	defer span.End()
 
-	rawResult := r.redisClient.HGetAll(ctx, r.redisKey).Val()
 	result := make(map[common.Address]*types.ERC20BalanceSlot)
-	for token, rawValue := range rawResult {
-		token = strings.ToLower(token)
-		balanceSlot := new(types.ERC20BalanceSlot)
-		if err := json.Unmarshal([]byte(rawValue), balanceSlot); err != nil {
-			logger.WithFields(ctx, logger.Fields{"token": token}).Warn("could not unmarshal entity.ERC20BalanceSlot")
-			continue
+	cursor := uint64(0)
+	for {
+		keyValues, newCursor, err := r.redisClient.HScan(ctx, r.redisKey, cursor, "", HashKeyReadChunkSize).Result()
+		if err != nil {
+			return nil, err
 		}
-		result[common.HexToAddress(token)] = balanceSlot
+
+		for i := 0; i < len(keyValues); i += 2 {
+			token := strings.ToLower(keyValues[i])
+			balanceSlot := new(types.ERC20BalanceSlot)
+			if err := json.Unmarshal([]byte(keyValues[i+1]), balanceSlot); err != nil {
+				logger.WithFields(ctx, logger.Fields{"token": token}).Warn("could not unmarshal entity.ERC20BalanceSlot")
+				continue
+			}
+			result[common.HexToAddress(token)] = balanceSlot
+		}
+
+		cursor = newCursor
+		if cursor == 0 {
+			break
+		}
 	}
 
 	return result, nil
