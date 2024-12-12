@@ -306,7 +306,6 @@ func (r *redisRepository) GetDirectIndexLength(ctx context.Context, key, token0,
 }
 
 func (r *redisRepository) AddToWhitelistSortedSet(ctx context.Context, scores []entity.PoolScore, sortBy string, count int64) error {
-	// do not allow save empty list to redis, otherwise the whole old list is cleaned up
 	if len(scores) == 0 {
 		return errors.New("can not add empty list to whitelist sorted set")
 	}
@@ -322,29 +321,5 @@ func (r *redisRepository) AddToWhitelistSortedSet(ctx context.Context, scores []
 		newPoolSet.Add(score.Pool)
 	}
 
-	// Get list score in the old set
-	oldPools, err := r.redisClient.ZRevRangeByScore(
-		ctx, r.keyGenerator.whitelistToWhitelistPairKey(sortBy), &redis.ZRangeBy{
-			Min:   "0",
-			Max:   "+inf",
-			Count: count,
-		},
-	).Result()
-
-	if err != nil {
-		return err
-	}
-	oldPoolSet := mapset.NewThreadUnsafeSet(oldPools...)
-	poolDiff := oldPoolSet.Difference(newPoolSet)
-
-	err = r.redisClient.ZAdd(ctx, r.keyGenerator.whitelistToWhitelistPairKey(sortBy), members...).Err()
-	if err != nil {
-		return err
-	}
-
-	if !poolDiff.IsEmpty() {
-		return r.redisClient.ZRem(ctx, r.keyGenerator.whitelistToWhitelistPairKey(sortBy), poolDiff.ToSlice()).Err()
-	}
-
-	return nil
+	return r.redisClient.ZAdd(ctx, r.keyGenerator.whitelistToWhitelistPairKey(sortBy), members...).Err()
 }

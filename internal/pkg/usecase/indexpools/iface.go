@@ -8,6 +8,7 @@ import (
 	poolpkg "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
 	routerEntity "github.com/KyberNetwork/router-service/internal/pkg/entity"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/getpools"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/ethereum/go-ethereum/common"
 )
 
@@ -21,6 +22,11 @@ type IPoolRepository interface {
 	FindAddressesByDex(ctx context.Context, dex string) ([]string, error)
 	Count(ctx context.Context) int64
 	ScanPools(ctx context.Context, cursor uint64, count int) ([]*entity.Pool, []string, uint64, error)
+}
+
+type IBlacklistIndexPoolRepository interface {
+	AddToBlacklistIndexPools(ctx context.Context, addresses []string)
+	GetBlacklistIndexPools(ctx context.Context) mapset.Set[string]
 }
 
 // ITokenRepository receives token addresses, fetch token data from datastore, decode them and return []entity.Token

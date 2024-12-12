@@ -162,7 +162,7 @@ common:
     amplifiedTvlWhitelistPoolsCount: 200
     amplifiedTvlTokenInPoolsCount: 100
     amplifiedTvlTokenOutPoolCount: 100
-    amountInThreshold: 10000
+    amountInThreshold: *maxThresholdAmountInUSD
   swaapAPIKey:
   hashflowAPIKey:
   nativeAPIKey:
@@ -499,7 +499,6 @@ useCase:
     pathGeneratorDataTtl: 2h
     maintainingInterval: 360s
     chainId: *chainId
-    amountInThreshold: 10000
   trackExecutor:
     subgraphURL: https://api.thegraph.com/subgraphs/name/kybernetwork/kyberswap-aggregator-ethereum
   tradeDataGenerator:
@@ -544,8 +543,7 @@ job:
     successedFileName: "./trade_data.txt"
     failedFileName: "./failed_trade_data.txt"
     liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
-    exportFailedTrade: false
-    fullScanInterval: 3h
+    exportFailedTrade: true
 repository:
   gas:
     redis:
@@ -562,12 +560,15 @@ repository:
       prefix: *chainName
       maxFaultyPoolSize: 500
     ristretto:
-      numCounters: 5000
-      maxCost: 500
+      numCounters: 40000
+      maxCost: 4000
       bufferItems: 64
       faultyPools:
         cost: 1
         ttl: 5s
+      faultyIndexPools:
+        cost: 1
+        ttl: 30m
   onchainprice:
     grpc:
       base_url: onchain-price.core-cluster.gke.production.internal:80
@@ -575,8 +576,8 @@ repository:
       insecure: true
       client_id: router-service
     ristretto:
-      numCounters: 10000
-      maxCost: 1000
+      numCounters: 20000
+      maxCost: 2000
       bufferItems: 64
       price:
         cost: 1

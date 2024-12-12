@@ -52,6 +52,5 @@ type (
 		LiquidityScoreCalcScript string        `mapstructure:"liquidityScoreCalcScript"`
 		Interval                 time.Duration `mapstructure:"interval"`
 		ExportFailedTrade        bool          `mapstructure:"exportFailedTrade"`
-		FullScanInterval         time.Duration `mapstructure:"fullScanInterval"`
 	}
 )

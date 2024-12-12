@@ -365,7 +365,6 @@ job:
     failedFileName: "./failed_trade_data.txt"
     liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
     exportFailedTrade: false
-    fullScanInterval: 3h
   updateL1Fee:
     interval: 2s
     oracle_address: "0x5300000000000000000000000000000000000002"
@@ -385,12 +384,15 @@ repository:
       prefix: *chainName
       maxFaultyPoolSize: 500
     ristretto:
-      numCounters: 5000
-      maxCost: 500
+      numCounters: 10000
+      maxCost: 1000
       bufferItems: 64
       faultyPools:
         cost: 1
         ttl: 5s
+      faultyIndexPools:
+        cost: 1
+        ttl: 30m
   onchainprice:
     grpc:
       base_url: onchain-price.core-cluster.gke.production.internal:80

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
@@ -1501,7 +1502,7 @@ func TestRedisRepository_AddToWhitelistSortedSet(t *testing.T) {
 			},
 		},
 		{
-			name: "it should save correct data and delete the old score set",
+			name: "it should save correct data and not delete the old score set",
 			oldScores: []routerEntity.PoolScore{
 				{
 					LiquidityScore: 270110,
@@ -1522,38 +1523,6 @@ func TestRedisRepository_AddToWhitelistSortedSet(t *testing.T) {
 					LiquidityScore: 464598,
 					Pool:           "0x99c7550be72f05ec31c446cd536f8a29c89fdb77",
 					Level:          3,
-				},
-			},
-			scores: []routerEntity.PoolScore{
-				{
-					LiquidityScore: 92129,
-					Pool:           "0x764510ab1d39cf300e7abe8f5b8977d18f290628",
-					Level:          2,
-				},
-				{
-					LiquidityScore: 4645,
-					Pool:           "0x99c7550be72f05ec31c446cd536f8a29c89fdb77",
-					Level:          2,
-				},
-				{
-					LiquidityScore: 3392940,
-					Pool:           "bebop_0x6b175474e89094c44da98b954eedeac495271d0f_0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-					Level:          6,
-				},
-			},
-		},
-		{
-			name: "it should save correct data and delete the whole old score set",
-			oldScores: []routerEntity.PoolScore{
-				{
-					LiquidityScore: 270110,
-					Pool:           "0xc7cbff2a23d0926604f9352f65596e65729b8a17",
-					Level:          4,
-				},
-				{
-					LiquidityScore: 107094,
-					Pool:           "hashflow_v3_mm29_5_0x6b175474e89094c44da98b954eedeac495271d0f_0xdac17f958d2ee523a2206206994597c13d831ec7",
-					Level:          5,
 				},
 			},
 			scores: []routerEntity.PoolScore{
@@ -1647,9 +1616,18 @@ func TestRedisRepository_AddToWhitelistSortedSet(t *testing.T) {
 			// verify scores after inserting
 			if len(test.scores) != 0 {
 				sortedSet, _ := redisServer.SortedSet(key)
-				assert.Equal(t, len(sortedSet), len(test.scores))
+				newSet := mapset.NewThreadUnsafeSet[string]()
 				for _, score := range test.scores {
 					encoded := score.EncodeScore(true)
+					newSet.Add(score.Pool)
+					assert.Equal(t, sortedSet[score.Pool], encoded)
+				}
+
+				for _, score := range test.oldScores {
+					encoded := score.EncodeScore(true)
+					if newSet.ContainsOne(score.Pool) {
+						continue
+					}
 					assert.Equal(t, sortedSet[score.Pool], encoded)
 				}
 			}

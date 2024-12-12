@@ -41,3 +41,8 @@ type IRemovePoolsFromIndexUseCase interface {
 type IUpdatePoolScores interface {
 	Handle(ctx context.Context) error
 }
+
+type IBlacklistIndexPoolsUsecase interface {
+	GetBlacklistIndexPools(ctx context.Context) mapset.Set[string]
+	AddToBlacklistIndexPools(ctx context.Context, addresses []string)
+}

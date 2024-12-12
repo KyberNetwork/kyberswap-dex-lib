@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	mapset "github.com/deckarep/golang-set/v2"
 	"github.com/dgraph-io/ristretto"
 	"github.com/redis/go-redis/v9"
 
@@ -18,6 +19,7 @@ import (
 )
 
 var faultyPoolKey = "faultyPools"
+var faultyIndexPoolKey = "faultyIndexPools"
 
 type redisRepository struct {
 	redisClient redis.UniversalClient
@@ -29,8 +31,10 @@ type redisRepository struct {
 
 	poolClient IPoolClient
 
-	// local cache to cache only faulty pools
-	cache *ristretto.Cache
+	// local cache to cache only pool addresses which are faulty pools and blacklist pools during indexing process
+	cache                   *ristretto.Cache
+	faultyPoolCacheKey      string
+	faultyIndexPoolCacheKey string
 }
 
 func NewRedisRepository(redisClient redis.UniversalClient, poolClient IPoolClient, config Config) (*redisRepository, error) {
@@ -55,6 +59,10 @@ func NewRedisRepository(redisClient redis.UniversalClient, poolClient IPoolClien
 		keyBlacklistedPools: utils.Join(config.Redis.Prefix, KeyBlacklistedPools),
 
 		keyFaultyPools: util.Join(config.Redis.Prefix, KeyPools, KeyFaulty),
+
+		faultyPoolCacheKey: utils.Join(config.Redis.Prefix, faultyPoolKey),
+
+		faultyIndexPoolCacheKey: utils.Join(config.Redis.Prefix, faultyIndexPoolKey),
 
 		cache: cache,
 	}, nil
@@ -129,8 +137,7 @@ func (r *redisRepository) GetFaultyPools(ctx context.Context) ([]string, error) 
 	// we accept cached data can be temporarily wrong during TTL time (5s) to reduce number of request in pool-service
 	// faulty list will be reset after 5s
 
-	cachedKey := utils.Join(r.config.Redis.Prefix, faultyPoolKey)
-	if cachedData, ok := r.cache.Get(cachedKey); ok {
+	if cachedData, ok := r.cache.Get(r.faultyPoolCacheKey); ok {
 		if addresses, ok := cachedData.([]string); ok {
 			logger.Debugf(ctx, "[pool] redisRepository.GetFaultyPools get faulty pools list %s, return from local cached", cachedData)
 			return addresses, nil
@@ -155,7 +162,7 @@ func (r *redisRepository) GetFaultyPools(ctx context.Context) ([]string, error) 
 		offset += r.config.Redis.MaxFaultyPoolSize
 	}
 	logger.Debugf(ctx, "[pool] redisRepository.GetFaultyPools get faulty pools list %s from pool-service", result)
-	r.cache.SetWithTTL(cachedKey, result, 1, r.config.Ristretto.FaultyPools.TTL)
+	r.cache.SetWithTTL(r.faultyPoolCacheKey, result, 1, r.config.Ristretto.FaultyPools.TTL)
 
 	return result, nil
 
@@ -170,6 +177,22 @@ func (r *redisRepository) TrackFaultyPools(ctx context.Context, trackers []route
 
 func (r *redisRepository) FindAddressesByDex(ctx context.Context, dex string) ([]string, error) {
 	return r.redisClient.SMembers(ctx, util.FormatKey(Separator, r.config.Redis.Prefix, KeyPoolByLiquiditySource, dex)).Result()
+}
+
+func (r *redisRepository) AddToBlacklistIndexPools(ctx context.Context, addresses []string) {
+	r.cache.SetWithTTL(r.faultyIndexPoolCacheKey, addresses, r.config.Ristretto.FaultyIndexPools.Cost, r.config.Ristretto.FaultyIndexPools.TTL)
+}
+
+func (r *redisRepository) GetBlacklistIndexPools(ctx context.Context) mapset.Set[string] {
+	result := mapset.NewThreadUnsafeSet[string]()
+	if cachedData, ok := r.cache.Get(r.faultyIndexPoolCacheKey); ok {
+		if addresses, ok := cachedData.([]string); ok {
+			logger.Debugf(ctx, "[pool] redisRepository.GetFaultyIndexPools return from local cached", cachedData)
+			result.Append(addresses...)
+		}
+	}
+
+	return result
 }
 
 func (r *redisRepository) Count(ctx context.Context) int64 {

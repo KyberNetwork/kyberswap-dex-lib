@@ -352,11 +352,6 @@ job:
     failedFileName: "./failed_trade_data.txt"
     liquidityScoreCalcScript: "./cmd/liquidityscore/main.py"
     exportFailedTrade: false
-    fullScanInterval: 3h
-  updateLiquidityScore:
-    inputFileName: "./scores.csv"
-    meanType: "geometric"
-    getBestPoolsOptions: *getBestPoolsOptions
 repository:
   gas:
     redis:
@@ -373,13 +368,15 @@ repository:
       prefix: *chainName
       maxFaultyPoolSize: 500
     ristretto:
-      numCounters: 5000
-      maxCost: 500
+      numCounters: 10000
+      maxCost: 1000
       bufferItems: 64
       faultyPools:
         cost: 1
         ttl: 5s
-  onchainprice:
+      faultyIndexPools:
+        cost: 1
+        ttl: 30m
     grpc:
       base_url: onchain-price.core-cluster.gke.production.internal:80
       timeout: 300ms

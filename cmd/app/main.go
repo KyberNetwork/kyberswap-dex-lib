@@ -976,7 +976,8 @@ func liquidityScoreIndexerAction(c *cli.Context) (err error) {
 	poolFactory := poolfactory.NewPoolFactory(cfg.UseCase.PoolFactory, aevmClient, balanceSlotsUseCase)
 	tradeGenerator := indexpools.NewTradeDataGenerator(poolRepository, onchainpriceRepository, tokenRepository, getPools, aevmClient, poolFactory, cfg.UseCase.TradeDataGenerator)
 	updatePoolScores := indexpools.NewUpdatePoolsScore(poolRankRepo, cfg.UseCase.UpdateLiquidityScoreConfig)
-	indexJob := job.NewLiquidityScoreIndexPoolsJob(tradeGenerator, updatePoolScores, cfg.Job.LiquidityScoreIndexPools)
+	blacklistIndexPools := indexpools.NewBlacklistPoolIndex(poolRepository)
+	indexJob := job.NewLiquidityScoreIndexPoolsJob(tradeGenerator, updatePoolScores, blacklistIndexPools, cfg.Job.LiquidityScoreIndexPools)
 
 	reloadManager := reload.NewManager()
 

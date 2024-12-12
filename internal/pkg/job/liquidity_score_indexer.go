@@ -10,47 +10,37 @@ import (
 	"os/exec"
 	"time"
 
-	mapset "github.com/deckarep/golang-set/v2"
-
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/indexpools"
 	ctxutils "github.com/KyberNetwork/router-service/internal/pkg/utils/context"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
 
 type LiquidityScoreIndexPoolsJob struct {
-	indexUsecase     ITradeGeneratorUsecase
-	updatePoolScores IUpdatePoolScores
-	config           LiquidityScoreIndexPoolsJobConfig
+	indexUsecase               ITradeGeneratorUsecase
+	updatePoolScores           IUpdatePoolScores
+	blacklistIndexPoolsUsecase IBlacklistIndexPoolsUsecase
+	config                     LiquidityScoreIndexPoolsJobConfig
 }
 
 func NewLiquidityScoreIndexPoolsJob(
 	indexUseCase ITradeGeneratorUsecase,
 	updatePoolScores IUpdatePoolScores,
+	blacklistIndexPoolsUsecase IBlacklistIndexPoolsUsecase,
 	config LiquidityScoreIndexPoolsJobConfig) *LiquidityScoreIndexPoolsJob {
 	return &LiquidityScoreIndexPoolsJob{
-		indexUsecase:     indexUseCase,
-		config:           config,
-		updatePoolScores: updatePoolScores,
+		indexUsecase:               indexUseCase,
+		config:                     config,
+		updatePoolScores:           updatePoolScores,
+		blacklistIndexPoolsUsecase: blacklistIndexPoolsUsecase,
 	}
 }
 
 func (job *LiquidityScoreIndexPoolsJob) Run(ctx context.Context) {
 	ticker := time.NewTicker(job.config.Interval)
 	defer ticker.Stop()
-	var lastestFullScanRun time.Time
-	// this set is kept during liquidity score calc job lifetime
-	// black list of pools which are exhausted liquidity and causes swap errors which is gotten from Redis
-	indexBlacklistWlPools := mapset.NewThreadUnsafeSet[string]()
 
 	for {
-		isFullScan := lastestFullScanRun.IsZero() || time.Since(lastestFullScanRun).Seconds() >= job.config.FullScanInterval.Seconds()
-		if isFullScan {
-			indexBlacklistWlPools.Clear()
-		}
-		job.scanAndIndex(ctxutils.NewJobCtx(ctx), isFullScan, indexBlacklistWlPools)
-		if isFullScan {
-			lastestFullScanRun = time.Now()
-		}
+		job.scanAndIndex(ctxutils.NewJobCtx(ctx))
 		select {
 		case <-ctx.Done():
 			logger.
@@ -67,7 +57,7 @@ func (job *LiquidityScoreIndexPoolsJob) Run(ctx context.Context) {
 	}
 }
 
-func (job *LiquidityScoreIndexPoolsJob) scanAndIndex(ctx context.Context, isFullScan bool, indexBlacklistWlPools mapset.Set[string]) {
+func (job *LiquidityScoreIndexPoolsJob) scanAndIndex(ctx context.Context) {
 	startTime := time.Now()
 	defer func() {
 		logger.
@@ -75,19 +65,17 @@ func (job *LiquidityScoreIndexPoolsJob) scanAndIndex(ctx context.Context, isFull
 				logger.Fields{
 					"job.name":    LiquidityScoreIndexPools,
 					"duration_ms": time.Since(startTime).Milliseconds(),
-					"is_fullscan": isFullScan,
 				},
 			).
 			Info("job done with duration")
 	}()
-	err := job.runScanJob(ctxutils.NewJobCtx(ctx), indexBlacklistWlPools)
+	err := job.runScanJob(ctxutils.NewJobCtx(ctx))
 	if err != nil {
 		logger.
 			WithFields(ctx,
 				logger.Fields{
-					"job.name":    LiquidityScoreIndexPools,
-					"error":       err,
-					"is_fullscan": isFullScan,
+					"job.name": LiquidityScoreIndexPools,
+					"error":    err,
 				}).
 			Error("job failed in generate trade data step")
 	}
@@ -97,9 +85,8 @@ func (job *LiquidityScoreIndexPoolsJob) scanAndIndex(ctx context.Context, isFull
 		logger.
 			WithFields(ctx,
 				logger.Fields{
-					"job.name":    LiquidityScoreIndexPools,
-					"error":       err,
-					"is_fullscan": isFullScan,
+					"job.name": LiquidityScoreIndexPools,
+					"error":    err,
 				}).
 			Error("job failed in liquidity score calculation step")
 	}
@@ -108,9 +95,8 @@ func (job *LiquidityScoreIndexPoolsJob) scanAndIndex(ctx context.Context, isFull
 	if err != nil {
 		logger.WithFields(ctx,
 			logger.Fields{
-				"job.name":    LiquidityScoreIndexPools,
-				"error":       err,
-				"is_fullscan": isFullScan,
+				"job.name": LiquidityScoreIndexPools,
+				"error":    err,
 			}).Errorf("update pools for whitelist index failed")
 	}
 }
@@ -131,7 +117,11 @@ func (job *LiquidityScoreIndexPoolsJob) runCalculationJob(ctx context.Context) e
 	return nil
 }
 
-func (job *LiquidityScoreIndexPoolsJob) runScanJob(ctx context.Context, indexBlacklistWlPools mapset.Set[string]) error {
+func (job *LiquidityScoreIndexPoolsJob) runScanJob(ctx context.Context) error {
+	// get blacklist index pools from local cache
+	totalBlacklistPools := job.blacklistIndexPoolsUsecase.GetBlacklistIndexPools(ctx)
+	newBlacklistPools := []string{}
+
 	// open file in order to write the output
 	file, err := os.Create(job.config.SuccessedFileName)
 	if err != nil {
@@ -154,7 +144,7 @@ func (job *LiquidityScoreIndexPoolsJob) runScanJob(ctx context.Context, indexBla
 	// failedBuffer := bufio.NewWriter(failedFile)
 	output := make(chan indexpools.TradesGenerationOutput, job.config.BatchSize)
 
-	go job.indexUsecase.Handle(ctx, output, indexBlacklistWlPools)
+	go job.indexUsecase.Handle(ctx, output, totalBlacklistPools)
 
 	for output := range output {
 		for p, trades := range output.Successed {
@@ -185,11 +175,14 @@ func (job *LiquidityScoreIndexPoolsJob) runScanJob(ctx context.Context, indexBla
 
 		// update blacklist pools
 		output.Blacklist.Each(func(s string) bool {
-			indexBlacklistWlPools.Add(s)
+			newBlacklistPools = append(newBlacklistPools, s)
 			return false
 		})
 	}
-	logger.Debugf(ctx, "Generate trade data successfully blacklist len %d\n", indexBlacklistWlPools.Cardinality())
+	logger.Debugf(ctx, "Generate trade data successfully blacklist len %d\n", len(newBlacklistPools))
+
+	// update blacklist to local cache
+	job.blacklistIndexPoolsUsecase.AddToBlacklistIndexPools(ctx, newBlacklistPools)
 
 	successedBuffer.Flush()
 	if failedBuffer != nil {

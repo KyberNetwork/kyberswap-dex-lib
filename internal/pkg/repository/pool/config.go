@@ -22,4 +22,9 @@ type RistrettoConfig struct {
 		Cost int64         `mapstructure:"cost"`
 		TTL  time.Duration `mapstructure:"ttl"`
 	} `mapstructure:"faultyPools"`
+
+	FaultyIndexPools struct {
+		Cost int64         `mapstructure:"cost"`
+		TTL  time.Duration `mapstructure:"ttl"`
+	} `mapstructure:"faultyIndexPools"`
 }

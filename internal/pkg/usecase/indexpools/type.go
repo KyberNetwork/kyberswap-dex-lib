@@ -87,3 +87,7 @@ type UpdatePoolScores struct {
 	rankingRepo IPoolRankRepository
 	config      UpdateLiquidityScoreConfig
 }
+
+type BlacklistPoolIndex struct {
+	repository IBlacklistIndexPoolRepository
+}

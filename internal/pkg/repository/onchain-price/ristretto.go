@@ -41,6 +41,7 @@ func NewRistrettoRepository(
 		NumCounters: config.NumCounters,
 		MaxCost:     config.MaxCost,
 		BufferItems: config.BufferItems,
+		Metrics:     true,
 	})
 	if err != nil {
 		return nil, err
