@@ -8,7 +8,6 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
-	"github.com/KyberNetwork/router-service/pkg/mempool"
 	"github.com/goccy/go-json"
 	"github.com/samber/lo"
 	"github.com/sourcegraph/conc/iter"
@@ -19,6 +18,7 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/business"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/dto"
 	"github.com/KyberNetwork/router-service/pkg/logger"
+	"github.com/KyberNetwork/router-service/pkg/mempool"
 )
 
 type IndexPoolsUseCase struct {
@@ -237,7 +237,7 @@ func (u *IndexPoolsUseCase) processIndex(ctx context.Context, pool *entity.Pool,
 				continue
 			}
 
-			if pool.HasReserve(pool.Reserves[i]) && pool.HasReserve(pool.Reserves[j]) {
+			if pool.HasReserve(pool.Reserves[i]) || pool.HasReserve(pool.Reserves[j]) {
 				if err := handler(ctx, NewPoolIndex(pool, tokenI.Address, tokenJ.Address, u.config.WhitelistedTokenSet, tvlNative, amplifiedTvlNative)); err != nil {
 					result = err
 				}
@@ -259,7 +259,7 @@ func (u *IndexPoolsUseCase) processIndex(ctx context.Context, pool *entity.Pool,
 					tokenI := extra.UnderlyingTokens[i]
 					tokenJ := extra.UnderlyingTokens[j]
 
-					if pool.HasReserve(pool.Reserves[i]) && pool.HasReserve(pool.Reserves[j]) {
+					if pool.HasReserve(pool.Reserves[i]) || pool.HasReserve(pool.Reserves[j]) {
 						if err := handler(ctx, NewPoolIndex(pool, tokenI, tokenJ, u.config.WhitelistedTokenSet, tvlNative, amplifiedTvlNative)); err != nil {
 							result = err
 						}

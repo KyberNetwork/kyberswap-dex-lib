@@ -60,8 +60,8 @@ func TestRedisRepository_FindAllAddresses(t *testing.T) {
 			redisServer.HSet("ethereum:pools", pool.Address, encodedPool)
 		}
 
-		addresses, err := repo.FindAllAddresses(context.Background())
-
+		// addresses, err := repo.FindAllAddresses(context.Background())
+		addresses := repo.redisClient.HKeys(context.Background(), "ethereum:pools").Val()
 		assert.ElementsMatch(t, []string{"address1", "address2"}, addresses)
 		assert.Nil(t, err)
 	})

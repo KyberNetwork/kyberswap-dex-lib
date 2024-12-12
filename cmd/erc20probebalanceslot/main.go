@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 
 	dexentity "github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
+	"github.com/KyberNetwork/router-service/internal/pkg/repository/token"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/goccy/go-json"
@@ -20,13 +21,16 @@ import (
 	"github.com/KyberNetwork/router-service/internal/pkg/config"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/repository/pool"
-	"github.com/KyberNetwork/router-service/internal/pkg/repository/token"
 	erc20balanceslotuc "github.com/KyberNetwork/router-service/internal/pkg/usecase/erc20balanceslot"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/envvar"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 	"github.com/KyberNetwork/router-service/pkg/redis"
 	"github.com/KyberNetwork/router-service/pkg/util/env"
+)
+
+const (
+	HashKeyReadChunkSize = 10_000
 )
 
 func main() {
@@ -147,23 +151,38 @@ func probeBalanceSlotAction(c *cli.Context) error {
 	}
 
 	// get all pools and group by its tokens
-	rawPools := poolRedisClient.Client.HGetAll(context.Background(), utils.Join(cfg.PoolRedis.Prefix, pool.KeyPools)).Val()
 	poolsByToken := make(map[common.Address][]*dexentity.Pool)
-	for _, rawPool := range rawPools {
-		pool := new(dexentity.Pool)
-		// ignore failed to unmarshal pools
-		if err := json.Unmarshal([]byte(rawPool), pool); err != nil {
-			continue
+	key := utils.Join(cfg.PoolRedis.Prefix, pool.KeyPools)
+	cursor := uint64(0)
+	for {
+		keyValues, newCursor, err := poolRedisClient.Client.HScan(context.Background(), key, cursor, "", HashKeyReadChunkSize).Result()
+		if err != nil {
+			return err
 		}
-		// ignore non-addressable pools
-		if !common.IsHexAddress(pool.Address) {
-			continue
+
+		for i := 0; i < len(keyValues); i += 2 {
+			pool := new(dexentity.Pool)
+			// ignore failed to unmarshal pools
+			if err := json.Unmarshal([]byte(keyValues[i+1]), pool); err != nil {
+				continue
+			}
+			// ignore non-addressable pools
+			if !common.IsHexAddress(pool.Address) {
+				continue
+			}
+
+			for _, token := range pool.Tokens {
+				tokenAddr := common.HexToAddress(token.Address)
+				poolsByToken[tokenAddr] = append(poolsByToken[tokenAddr], pool)
+			}
 		}
-		for _, token := range pool.Tokens {
-			tokenAddr := common.HexToAddress(token.Address)
-			poolsByToken[tokenAddr] = append(poolsByToken[tokenAddr], pool)
+
+		cursor = newCursor
+		if cursor == 0 {
+			break
 		}
 	}
+
 	// sort by ReserveUSD descending
 	for _, pools := range poolsByToken {
 		slices.SortFunc(pools, func(a, b *dexentity.Pool) int { return cmp.Compare(b.ReserveUsd, a.ReserveUsd) })
@@ -177,10 +196,23 @@ func probeBalanceSlotAction(c *cli.Context) error {
 			tokens[common.HexToAddress(token)] = struct{}{}
 		}
 	} else {
-		tokensList := poolRedisClient.Client.HKeys(context.Background(), utils.Join(cfg.PoolRedis.Prefix, token.KeyTokens)).Val()
-		for _, token := range tokensList {
-			if common.IsHexAddress(token) {
-				tokens[common.HexToAddress(token)] = struct{}{}
+		cursor = uint64(0)
+		for {
+			tokenAddresses, newCursor, err := poolRedisClient.Client.HScanNoValues(context.Background(),
+				utils.Join(cfg.PoolRedis.Prefix, token.KeyTokens), cursor, "", HashKeyReadChunkSize).Result()
+			if err != nil {
+				return err
+			}
+
+			for _, tokenAddress := range tokenAddresses {
+				if common.IsHexAddress(tokenAddress) {
+					tokens[common.HexToAddress(tokenAddress)] = struct{}{}
+				}
+			}
+
+			cursor = newCursor
+			if cursor == 0 {
+				break
 			}
 		}
 	}
