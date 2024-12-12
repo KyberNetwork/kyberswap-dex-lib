@@ -53,11 +53,11 @@ func (d *PoolTracker) getNewPoolState(
 	_ pool.GetNewPoolStateParams,
 	overrides map[common.Address]gethclient.OverrideAccount,
 ) (entity.Pool, error) {
-	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
-
 	if !p.Tokens[0].Swappable && !p.Tokens[1].Swappable {
 		return p, nil
 	}
+
+	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
 	tokenReserves, pairReserves, canPoolTradable, blockNumber, err := d.getReserves(ctx, p.Address, p.Tokens, overrides)
 	if err != nil {
