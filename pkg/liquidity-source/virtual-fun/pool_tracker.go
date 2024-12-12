@@ -207,7 +207,7 @@ func (d *PoolTracker) canPoolTradable(ctx context.Context, tokenAddress string) 
 		ABI:    bondingABI,
 		Target: d.config.BondingAddress,
 		Method: bondingTokenInfoMethod,
-		Params: []interface{}{tokenAddress},
+		Params: []interface{}{common.HexToAddress(tokenAddress)},
 	}, []interface{}{&tokenInfo})
 
 	if _, err := req.Call(); err != nil {
