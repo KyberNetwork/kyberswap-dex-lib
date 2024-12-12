@@ -6,7 +6,9 @@ import (
 )
 
 var (
-	defaultGas = Gas{Swap: 165000}
+	defaultGas = Gas{Swap: 250000}
+
+	bondingCurveApplicationGas int64 = 5_000_000
 
 	ZERO_ADDRESS = common.Address{}
 
@@ -30,6 +32,6 @@ const (
 	factorySellTaxMethod = "sellTax"
 	factoryBuyTaxMethod  = "buyTax"
 
-	bondingTokenInfoMethod   = "tokenInfo"
-	bondingUnwrapTokenMethod = "unwrapToken"
+	bondingUnwrapTokenMethod   = "unwrapToken"
+	bondingGradThresholdMethod = "gradThreshold"
 )

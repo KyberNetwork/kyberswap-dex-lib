@@ -59,7 +59,7 @@ func (d *PoolTracker) getNewPoolState(
 
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
-	tokenReserves, pairReserves, canPoolTradable, blockNumber, err := d.getReserves(ctx, p.Address, p.Tokens, overrides)
+	tokenReserves, pairReserves, canPoolTradable, gradThreshold, blockNumber, err := d.getBondingData(ctx, p.Address, p.Tokens, overrides)
 	if err != nil {
 		return p, err
 	}
@@ -93,11 +93,12 @@ func (d *PoolTracker) getNewPoolState(
 	}
 
 	var extra = Extra{
-		SellTax:  sellTax,
-		BuyTax:   buyTax,
-		ReserveA: pairReserves[0],
-		ReserveB: pairReserves[1],
-		KLast:    kLast,
+		GradThreshold: gradThreshold,
+		SellTax:       sellTax,
+		BuyTax:        buyTax,
+		ReserveA:      pairReserves[0],
+		ReserveB:      pairReserves[1],
+		KLast:         kLast,
 	}
 
 	newExtra, err := json.Marshal(&extra)
@@ -113,15 +114,16 @@ func (d *PoolTracker) getNewPoolState(
 	return p, nil
 }
 
-func (d *PoolTracker) getReserves(
+func (d *PoolTracker) getBondingData(
 	ctx context.Context,
 	poolAddress string,
 	tokens []*entity.PoolToken,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) ([]*big.Int, [2]*big.Int, bool, *big.Int, error) {
+) ([]*big.Int, [2]*big.Int, bool, *big.Int, *big.Int, error) {
 	var (
 		tokenReserves = make([]*big.Int, len(tokens))
 		pairReserves  [2]*big.Int
+		gradThreshold *big.Int
 		tradable      = true
 	)
 
@@ -148,6 +150,13 @@ func (d *PoolTracker) getReserves(
 		Params: nil,
 	}, []interface{}{&pairReserves})
 
+	req.AddCall(&ethrpc.Call{
+		ABI:    bondingABI,
+		Target: d.config.BondingAddress,
+		Method: bondingGradThresholdMethod,
+		Params: nil,
+	}, []interface{}{&gradThreshold})
+
 	// Call to detect if pool can tradable ? Tradable if there is an error
 	req.AddCall(&ethrpc.Call{
 		ABI:    bondingABI,
@@ -158,7 +167,7 @@ func (d *PoolTracker) getReserves(
 
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
-		return nil, [2]*big.Int{}, tradable, nil, err
+		return nil, [2]*big.Int{}, tradable, nil, nil, err
 	}
 
 	// Check the last call result
@@ -166,7 +175,7 @@ func (d *PoolTracker) getReserves(
 		tradable = false
 	}
 
-	return tokenReserves, pairReserves, tradable, resp.BlockNumber, nil
+	return tokenReserves, pairReserves, tradable, gradThreshold, resp.BlockNumber, nil
 }
 
 func (d *PoolTracker) getTax(ctx context.Context, poolAddress string, blocknumber *big.Int) (*big.Int, *big.Int, *big.Int, error) {

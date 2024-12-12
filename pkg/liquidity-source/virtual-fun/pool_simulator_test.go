@@ -16,11 +16,12 @@ import (
 
 func createTestPoolSimulator() *PoolSimulator {
 	extra := Extra{
-		BuyTax:   big.NewInt(5),  // 5% buy tax
-		SellTax:  big.NewInt(10), // 10% sell tax
-		KLast:    big.NewInt(1500000),
-		ReserveA: big.NewInt(1500),
-		ReserveB: big.NewInt(1000),
+		GradThreshold: big.NewInt(0),
+		BuyTax:        big.NewInt(5),  // 5% buy tax
+		SellTax:       big.NewInt(10), // 10% sell tax
+		KLast:         big.NewInt(1500000),
+		ReserveA:      big.NewInt(1500),
+		ReserveB:      big.NewInt(1000),
 	}
 	extraBytes, _ := json.Marshal(extra)
 
