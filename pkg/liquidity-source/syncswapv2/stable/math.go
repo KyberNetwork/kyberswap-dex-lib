@@ -51,7 +51,7 @@ func _getAmountIn(
 		return integer.One()
 	}
 
-	x := getY(y, d)
+	x := getY(y, d, A)
 
 	// amountIn = MAX_FEE * (x - adjustedReserveIn) / (MAX_FEE - swapFee) + 1;
 	// amountIn /= tokenInPrecisionMultiplier;
@@ -87,7 +87,7 @@ func getExactQuote(
 	var d = computeDFromAdjustedBalances(adjustedReserveIn, adjustedReserveOut, A)
 
 	var x = new(uint256.Int).Add(adjustedReserveIn, new(uint256.Int).Mul(feeDeductedAmountIn, tokenInPrecisionMultiplier))
-	var y = getY(x, d)
+	var y = getY(x, d, A)
 
 	// (adjustedReserveOut - y - 1) / tokenOutPrecisionMultiplier
 	if adjustedReserveOut.Cmp(new(uint256.Int).Add(y, constant.One)) < 0 {
@@ -107,6 +107,7 @@ func calAmountAfterFee(amountIn, swapFee *uint256.Int) (*uint256.Int, *uint256.I
 }
 
 func computeDFromAdjustedBalances(xp0, xp1 *uint256.Int, A *uint256.Int) *uint256.Int {
+	nA := new(uint256.Int).Mul(A, constant.Two)
 	var computed = uint256.NewInt(0)
 
 	var s = new(uint256.Int).Add(xp0, xp1)
@@ -126,12 +127,12 @@ func computeDFromAdjustedBalances(xp0, xp1 *uint256.Int, A *uint256.Int) *uint25
 		//d = (((2000 * s) + 2 * dP) * d) / ((2000 - 1) * d + 3 * dP);
 		num := new(uint256.Int)
 		den := new(uint256.Int)
-		d = num.Mul(A, s).Add(
+		d = num.Mul(nA, s).Add(
 			num,
 			new(uint256.Int).Mul(constant.Two, dp),
 		).Mul(num, d).Div(
 			num,
-			den.Sub(A, constant.One).Mul(den, d).Add(
+			den.Sub(nA, constant.One).Mul(den, d).Add(
 				den,
 				new(uint256.Int).Mul(constant.Three, dp),
 			),
@@ -145,9 +146,8 @@ func computeDFromAdjustedBalances(xp0, xp1 *uint256.Int, A *uint256.Int) *uint25
 	return computed
 }
 
-func getY(x, d *uint256.Int) *uint256.Int {
-	var twoThousand = uint256.NewInt(2000)
-	var doubleTwoThousand = uint256.NewInt(4000)
+func getY(x, d, A *uint256.Int) *uint256.Int {
+	nA := new(uint256.Int).Mul(A, constant.Two)
 
 	c := new(uint256.Int)
 	//uint c = (d * d) / (x * 2);
@@ -155,11 +155,11 @@ func getY(x, d *uint256.Int) *uint256.Int {
 	c.Div(
 		c.Set(d).Mul(c, d),
 		new(uint256.Int).Mul(x, constant.Two),
-	).Mul(c, d).Div(c, doubleTwoThousand)
+	).Mul(c, d).Div(c, nA).Div(c, constant.Two)
 
 	b := new(uint256.Int)
 	//uint b = x + (d / 2000);
-	b.Set(d).Div(b, twoThousand).Add(b, x)
+	b.Set(d).Div(b, nA).Add(b, x)
 	var yPrev *uint256.Int
 	var y = d
 
