@@ -96,7 +96,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 		WithFields(
 			logger.Fields{
 				"dex_id":      dexID,
-				"pools_len":   len(pools),
+				"valid_pools": len(pools),
 				"offset":      offset,
 				"duration_ms": time.Since(startTime).Milliseconds(),
 			},
