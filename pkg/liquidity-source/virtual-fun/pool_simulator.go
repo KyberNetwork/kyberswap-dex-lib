@@ -57,7 +57,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		return nil, err
 	}
 
-	return &PoolSimulator{
+	p := &PoolSimulator{
 		Pool: poolpkg.Pool{Info: poolpkg.PoolInfo{
 			Address:     entityPool.Address,
 			ReserveUsd:  entityPool.ReserveUsd,
@@ -76,7 +76,9 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		bondingAddress: staticExtra.BondingAddress,
 
 		gas: defaultGas,
-	}, nil
+	}
+
+	return p, nil
 }
 
 func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolpkg.CalcAmountOutResult, error) {
@@ -155,6 +157,7 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		SwapInfo: SwapInfo{
 			IsBuy:          isBuy,
 			BondingAddress: s.bondingAddress,
+			TokenAddress:   s.Pool.Info.Tokens[0],
 			NewReserveA:    newReserveA,
 			NewReserveB:    newReserveB,
 			NewBalanceA:    newBalanceA,
@@ -245,6 +248,7 @@ func (s *PoolSimulator) CalcAmountIn(param poolpkg.CalcAmountInParams) (*poolpkg
 		SwapInfo: SwapInfo{
 			IsBuy:          isBuy,
 			BondingAddress: s.bondingAddress,
+			TokenAddress:   s.Pool.Info.Tokens[0],
 			NewReserveA:    newReserveA,
 			NewReserveB:    newReserveB,
 			NewBalanceA:    newBalanceA,

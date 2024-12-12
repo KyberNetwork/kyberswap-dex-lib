@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
-	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -60,9 +59,13 @@ func (d *PoolTracker) getNewPoolState(
 		return p, nil
 	}
 
-	canPoolTradable, err := d.canPoolTradable(ctx, p.Tokens[0].Address)
+	tokenReserves, pairReserves, canPoolTradable, blockNumber, err := d.getReserves(ctx, p.Address, p.Tokens, overrides)
 	if err != nil {
 		return p, err
+	}
+
+	if p.BlockNumber > blockNumber.Uint64() {
+		return p, nil
 	}
 
 	// Disable pool : need a solution to clear these pools
@@ -72,15 +75,6 @@ func (d *PoolTracker) getNewPoolState(
 		p.Reserves[0] = "0"
 		p.Reserves[1] = "0"
 
-		return p, nil
-	}
-
-	tokenReserves, pairReserves, blockNumber, err := d.getReserves(ctx, p.Address, p.Tokens, overrides)
-	if err != nil {
-		return p, err
-	}
-
-	if p.BlockNumber > blockNumber.Uint64() {
 		return p, nil
 	}
 
@@ -124,10 +118,11 @@ func (d *PoolTracker) getReserves(
 	poolAddress string,
 	tokens []*entity.PoolToken,
 	overrides map[common.Address]gethclient.OverrideAccount,
-) ([]*big.Int, [2]*big.Int, *big.Int, error) {
+) ([]*big.Int, [2]*big.Int, bool, *big.Int, error) {
 	var (
 		tokenReserves = make([]*big.Int, len(tokens))
 		pairReserves  [2]*big.Int
+		tradable      = true
 	)
 
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
@@ -153,12 +148,25 @@ func (d *PoolTracker) getReserves(
 		Params: nil,
 	}, []interface{}{&pairReserves})
 
+	// Call to detect if pool can tradable ? Tradable if there is an error
+	req.AddCall(&ethrpc.Call{
+		ABI:    bondingABI,
+		Target: d.config.BondingAddress,
+		Method: bondingUnwrapTokenMethod,
+		Params: []interface{}{common.HexToAddress(tokens[0].Address), []common.Address{}},
+	}, []interface{}{&struct{}{}})
+
 	resp, err := req.TryBlockAndAggregate()
 	if err != nil {
-		return nil, [2]*big.Int{}, nil, err
+		return nil, [2]*big.Int{}, tradable, nil, err
 	}
 
-	return tokenReserves, pairReserves, resp.BlockNumber, nil
+	// Check the last call result
+	if resp.Result[len(resp.Result)-1] {
+		tradable = false
+	}
+
+	return tokenReserves, pairReserves, tradable, resp.BlockNumber, nil
 }
 
 func (d *PoolTracker) getTax(ctx context.Context, poolAddress string, blocknumber *big.Int) (*big.Int, *big.Int, *big.Int, error) {
@@ -197,25 +205,4 @@ func (d *PoolTracker) getTax(ctx context.Context, poolAddress string, blocknumbe
 	}
 
 	return buyTax, sellTax, kLast, nil
-}
-
-func (d *PoolTracker) canPoolTradable(ctx context.Context, tokenAddress string) (bool, error) {
-	req := d.ethrpcClient.NewRequest().SetContext(ctx)
-
-	req.AddCall(&ethrpc.Call{
-		ABI:    bondingABI,
-		Target: d.config.BondingAddress,
-		Method: bondingUnwrapTokenMethod,
-		Params: []interface{}{common.HexToAddress(tokenAddress), []common.Address{}},
-	}, []interface{}{&struct{}{}})
-
-	if _, err := req.Call(); err != nil {
-		if strings.Contains(err.Error(), "execution reverted") {
-			return true, nil
-		}
-
-		return true, err
-	}
-
-	return false, nil
 }

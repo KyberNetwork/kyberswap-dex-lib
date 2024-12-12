@@ -21,6 +21,7 @@ type Extra struct {
 type SwapInfo struct {
 	IsBuy          bool         `json:"isBuy"`
 	BondingAddress string       `json:"bondingAddress"`
+	TokenAddress   string       `json:"tokenAddress"`
 	NewReserveA    *uint256.Int `json:"-"`
 	NewReserveB    *uint256.Int `json:"-"`
 	NewBalanceA    *uint256.Int `json:"-"`
