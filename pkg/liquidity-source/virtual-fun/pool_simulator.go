@@ -37,6 +37,8 @@ type (
 
 		kLast          *uint256.Int
 		bondingAddress string
+
+		gradThreshold *uint256.Int
 	}
 
 	Gas struct {
@@ -73,6 +75,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 		kLast:          uint256.MustFromBig(extra.KLast),
 		reserveA:       uint256.MustFromBig(extra.ReserveA),
 		reserveB:       uint256.MustFromBig(extra.ReserveB),
+		gradThreshold:  uint256.MustFromBig(extra.GradThreshold),
 		bondingAddress: staticExtra.BondingAddress,
 
 		gas: defaultGas,
@@ -150,10 +153,15 @@ func (s *PoolSimulator) CalcAmountOut(param poolpkg.CalcAmountOutParams) (*poolp
 		isBuy = true
 	}
 
+	gas := s.gas.Swap
+	if newReserveA.Cmp(s.gradThreshold) <= 0 {
+		gas += executeBondingCurveApplicationGas
+	}
+
 	return &poolpkg.CalcAmountOutResult{
 		TokenAmountOut: &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexOut], Amount: amountOut.ToBig()},
 		Fee:            &poolpkg.TokenAmount{Token: s.Pool.Info.Tokens[indexIn], Amount: ZERO.ToBig()},
-		Gas:            s.gas.Swap,
+		Gas:            gas,
 		SwapInfo: SwapInfo{
 			IsBuy:          isBuy,
 			BondingAddress: s.bondingAddress,

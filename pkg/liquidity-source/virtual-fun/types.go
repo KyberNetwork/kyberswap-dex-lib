@@ -11,11 +11,12 @@ type StaticExtra struct {
 }
 
 type Extra struct {
-	KLast    *big.Int `json:"kLast"`
-	BuyTax   *big.Int `json:"buyTax"`
-	SellTax  *big.Int `json:"sellTax"`
-	ReserveA *big.Int `json:"reserveA"`
-	ReserveB *big.Int `json:"reserveB"`
+	GradThreshold *big.Int `json:"gradThreshold"`
+	KLast         *big.Int `json:"kLast"`
+	BuyTax        *big.Int `json:"buyTax"`
+	SellTax       *big.Int `json:"sellTax"`
+	ReserveA      *big.Int `json:"reserveA"`
+	ReserveB      *big.Int `json:"reserveB"`
 }
 
 type SwapInfo struct {
