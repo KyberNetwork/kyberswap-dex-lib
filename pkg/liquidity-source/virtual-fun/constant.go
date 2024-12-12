@@ -30,5 +30,6 @@ const (
 	factorySellTaxMethod = "sellTax"
 	factoryBuyTaxMethod  = "buyTax"
 
-	bondingTokenInfoMethod = "tokenInfo"
+	bondingTokenInfoMethod   = "tokenInfo"
+	bondingUnwrapTokenMethod = "unwrapToken"
 )

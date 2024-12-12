@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/KyberNetwork/ethrpc"
@@ -199,20 +200,22 @@ func (d *PoolTracker) getTax(ctx context.Context, poolAddress string, blocknumbe
 }
 
 func (d *PoolTracker) canPoolTradable(ctx context.Context, tokenAddress string) (bool, error) {
-	var tokenInfo TokenInfo
-
 	req := d.ethrpcClient.NewRequest().SetContext(ctx)
 
 	req.AddCall(&ethrpc.Call{
 		ABI:    bondingABI,
 		Target: d.config.BondingAddress,
-		Method: bondingTokenInfoMethod,
-		Params: []interface{}{common.HexToAddress(tokenAddress)},
-	}, []interface{}{&tokenInfo})
+		Method: bondingUnwrapTokenMethod,
+		Params: []interface{}{common.HexToAddress(tokenAddress), []common.Address{}},
+	}, []interface{}{&struct{}{}})
 
 	if _, err := req.Call(); err != nil {
-		return false, err
+		if strings.Contains(err.Error(), "execution reverted") {
+			return true, nil
+		}
+
+		return true, err
 	}
 
-	return tokenInfo.Trading, nil
+	return false, nil
 }

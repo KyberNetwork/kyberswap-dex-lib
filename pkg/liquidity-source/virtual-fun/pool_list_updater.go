@@ -241,26 +241,25 @@ func (u *PoolsListUpdater) getListToken0(ctx context.Context, pairAddresses []co
 	}
 
 	if u.config.IgnoreUntradablePools {
-		tokensInfo := make([]TokenInfo, len(pairAddresses))
-
 		req := u.ethrpcClient.NewRequest().SetContext(ctx).SetBlockNumber(res.BlockNumber)
 
-		for i, token := range listToken0Result {
+		var temp *struct{}
+		for _, token := range listToken0Result {
 			req.AddCall(&ethrpc.Call{
 				ABI:    bondingABI,
 				Target: u.config.BondingAddress,
-				Method: bondingTokenInfoMethod,
-				Params: []interface{}{token},
-			}, []interface{}{&tokensInfo[i]})
+				Method: bondingUnwrapTokenMethod,
+				Params: []interface{}{token, []common.Address{}},
+			}, []interface{}{temp})
 		}
 
-		_, err = req.Aggregate()
+		result, err := req.TryAggregate()
 		if err != nil {
 			return nil, err
 		}
 
-		for i, tokenInfo := range tokensInfo {
-			if !tokenInfo.Trading {
+		for i := range result.Result {
+			if result.Result[i] {
 				listToken0Result[i] = ZERO_ADDRESS // ignore the pool has this token
 			}
 		}
