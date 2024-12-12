@@ -377,6 +377,7 @@ repository:
       faultyIndexPools:
         cost: 1
         ttl: 30m
+  onchainprice:
     grpc:
       base_url: onchain-price.core-cluster.gke.production.internal:80
       timeout: 300ms
