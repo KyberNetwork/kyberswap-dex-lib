@@ -80,6 +80,7 @@ import (
 	velocorev2wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
 	velodrome "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
+	virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun"
 	woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
@@ -725,6 +726,8 @@ func (f *PoolFactory) newPool(entityPool entity.Pool, stateRoot common.Hash) (po
 		return f.newMxTrading(entityPool)
 	case pooltypes.PoolTypes.LO1inch:
 		return f.newLO1inch(entityPool)
+	case pooltypes.PoolTypes.VirtualFun:
+		return f.newVirtualFun(entityPool)
 
 	default:
 		return nil, errors.WithMessagef(
@@ -2524,6 +2527,19 @@ func (f *PoolFactory) newLO1inch(entityPool entity.Pool) (*lo1inch.PoolSimulator
 			entityPool.Type,
 			err,
 		)
+	}
+
+	return corePool, nil
+}
+
+func (f *PoolFactory) newVirtualFun(entityPool entity.Pool) (*virtualfun.PoolSimulator, error) {
+	corePool, err := virtualfun.NewPoolSimulator(entityPool)
+	if err != nil {
+		return nil, errors.WithMessagef(
+			ErrInitializePoolFailed,
+			"[PoolFactory.newVirtualFun] pool: [%s] » type: [%s]",
+			entityPool.Address,
+			entityPool.Type)
 	}
 
 	return corePool, nil

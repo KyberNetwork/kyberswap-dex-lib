@@ -64,6 +64,7 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executePancakeStableSwap
 	dexValueObject.ExchangePancakeStable: {},
+	dexValueObject.ExchangeZkSwapStable:  {},
 
 	// executeBalV2
 	dexValueObject.ExchangeBalancerV2Weighted:         {},
@@ -211,6 +212,9 @@ var useApproveMaxExchangeSet = map[Exchange]struct{}{
 
 	// executeBatchOneInchV6
 	dexValueObject.ExchangeLO1inch: {},
+
+	// executeVirtualBC
+	dexValueObject.ExchangeVirtualFun: {},
 }
 
 func IsApproveMaxExchange(exchange Exchange) bool {

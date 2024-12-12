@@ -97,6 +97,7 @@ common:
     - "deltaswap-v1"
     - "clipper"
     - "lo1inch"
+    - "virtual-fun"
   featureFlags: &featureFlags
   maxThresholdAmountInUSD: &maxThresholdAmountInUSD 100000000
   getBestPoolsOptions: &getBestPoolsOptions
@@ -231,6 +232,7 @@ encoder:
     executeDexalot: 57
     executeClipperRfq: 58
     executeEtherVista: 60
+    executeVirtualBC: 61
 useCase:
   getRoute:
     chainId: *chainId
