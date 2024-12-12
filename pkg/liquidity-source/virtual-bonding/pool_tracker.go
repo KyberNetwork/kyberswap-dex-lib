@@ -55,6 +55,25 @@ func (d *PoolTracker) getNewPoolState(
 ) (entity.Pool, error) {
 	logger.WithFields(logger.Fields{"pool_id": p.Address}).Info("Started getting new pool state")
 
+	if !p.Tokens[0].Swappable && !p.Tokens[1].Swappable {
+		return p, nil
+	}
+
+	canPoolTradable, err := d.canPoolTradable(ctx, p.Tokens[0].Address)
+	if err != nil {
+		return p, err
+	}
+
+	// Disable pool : need a solution to clear these pools
+	if !canPoolTradable {
+		p.Tokens[0].Swappable = false
+		p.Tokens[1].Swappable = false
+		p.Reserves[0] = "0"
+		p.Reserves[1] = "0"
+
+		return p, nil
+	}
+
 	tokenReserves, pairReserves, blockNumber, err := d.getReserves(ctx, p.Address, p.Tokens, overrides)
 	if err != nil {
 		return p, err
@@ -177,4 +196,23 @@ func (d *PoolTracker) getTax(ctx context.Context, poolAddress string, blocknumbe
 	}
 
 	return buyTax, sellTax, kLast, nil
+}
+
+func (d *PoolTracker) canPoolTradable(ctx context.Context, tokenAddress string) (bool, error) {
+	var tokenInfo TokenInfo
+
+	req := d.ethrpcClient.NewRequest().SetContext(ctx)
+
+	req.AddCall(&ethrpc.Call{
+		ABI:    bondingABI,
+		Target: d.config.BondingAddress,
+		Method: bondingTokenInfoMethod,
+		Params: []interface{}{tokenAddress},
+	}, []interface{}{&tokenInfo})
+
+	if _, err := req.Call(); err != nil {
+		return false, err
+	}
+
+	return tokenInfo.Trading, nil
 }
