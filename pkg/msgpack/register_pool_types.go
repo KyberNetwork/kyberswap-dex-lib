@@ -72,6 +72,7 @@ import (
 	pkg_liquiditysource_velocorev2_wombatstable "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velocore-v2/wombat-stable"
 	pkg_liquiditysource_velodromev1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v1"
 	pkg_liquiditysource_velodromev2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/velodrome-v2"
+	pkg_liquiditysource_virtualfun "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/virtual-fun"
 	pkg_liquiditysource_woofiv2 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v2"
 	pkg_liquiditysource_woofiv21 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/liquidity-source/woofi-v21"
 	pkg_source_algebrav1 "github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/algebrav1"
@@ -202,6 +203,7 @@ func init() {
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_velocorev2_wombatstable.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_velodromev1.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_velodromev2.PoolSimulator{})
+	msgpack.RegisterConcreteType(&pkg_liquiditysource_virtualfun.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_woofiv2.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_liquiditysource_woofiv21.PoolSimulator{})
 	msgpack.RegisterConcreteType(&pkg_source_algebrav1.PoolSimulator{})
