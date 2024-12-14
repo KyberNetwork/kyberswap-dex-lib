@@ -50,11 +50,10 @@ var (
 
 func NewGRPCRepository(config GrpcConfig, chainId valueobject.ChainID, tokenRepository ITokenRepository, nativeTokenAddress string) (*grpcRepository, error) {
 	grpcConfig := grpcclient.Config{
-		BaseURL:     config.BaseURL,
-		Timeout:     config.Timeout,
-		Insecure:    config.Insecure,
-		ClientID:    config.ClientID,
-		Compression: grpcclient.GzipCompression,
+		BaseURL:  config.BaseURL,
+		Timeout:  config.Timeout,
+		Insecure: config.Insecure,
+		ClientID: config.ClientID,
 	}
 
 	grpcClient, err := grpcclient.New(onchainpricev1.NewOnchainPriceServiceClient, grpcclient.WithConfig(&grpcConfig))
