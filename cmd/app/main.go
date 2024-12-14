@@ -25,9 +25,8 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
-	"github.com/grafana/pyroscope-go"
 	"github.com/urfave/cli/v2"
-	_ "go.uber.org/automaxprocs"
+	"go.uber.org/automaxprocs/maxprocs"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/KyberNetwork/router-service/internal/pkg/api"
@@ -94,46 +93,8 @@ type IBuildRouteUseCase interface {
 
 // TODO: refactor main file -> separate to many folders with per folder is application. The main file should contains call root action per application.
 func main() {
-
-	if env.StringFromEnv(envvar.PYROSCOPEEnabled, "") != "" {
-		pyroscopeServer := env.StringFromEnv(envvar.PYROSCOPEHost, "")
-		if pyroscopeServer == "" {
-			log.Fatal("pyroscope server is not set")
-			return
-		}
-		pyroscope.Start(pyroscope.Config{
-			ApplicationName: env.StringFromEnv(envvar.OTELService, "router-service-unknown"),
-
-			// replace this with the address of pyroscope server
-			ServerAddress: pyroscopeServer,
-
-			// you can disable logging by setting this to nil
-			Logger: pyroscope.StandardLogger,
-
-			// you can provide static tags via a map:
-			Tags: map[string]string{
-				"hostname": env.StringFromEnv(envvar.OTELService, "router-service-unknown"),
-				"env":      env.StringFromEnv(envvar.OTELEnv, ""),
-				"version":  env.StringFromEnv(envvar.OTELServiceVersion, ""),
-			},
-
-			ProfileTypes: []pyroscope.ProfileType{
-				// these profile types are enabled by default:
-				pyroscope.ProfileCPU,
-				pyroscope.ProfileAllocObjects,
-				pyroscope.ProfileAllocSpace,
-				pyroscope.ProfileInuseObjects,
-				pyroscope.ProfileInuseSpace,
-
-				// these profile types are optional:
-				// pyroscope.ProfileGoroutines,
-				// pyroscope.ProfileMutexCount,
-				// pyroscope.ProfileMutexDuration,
-				// pyroscope.ProfileBlockCount,
-				// pyroscope.ProfileBlockDuration,
-			},
-		})
-	}
+	_, _ = maxprocs.Set(maxprocs.Logger(log.Printf), maxprocs.Min(2))
+	defer Pyroscope(context.Background())()
 
 	app := &cli.App{
 		Flags: []cli.Flag{
