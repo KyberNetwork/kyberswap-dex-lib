@@ -1061,14 +1061,16 @@ func TestPool_UpdateBalance(t *testing.T) {
 		limit := swaplimit.NewInventory("", sims[tc.pool].CalculateLimit())
 		for i, swap := range tc.swaps {
 			t.Run(fmt.Sprintf("%v swap %d", tc.name, i), func(t *testing.T) {
-				res, err := sims[tc.pool].CalcAmountOut(pool.CalcAmountOutParams{
+				cloned := sims[tc.pool].CloneState()
+				calcAmountOutParams := pool.CalcAmountOutParams{
 					TokenAmountIn: pool.TokenAmount{
 						Token:  "A",
 						Amount: bignumber.NewBig10(swap.amountIn),
 					},
 					TokenOut: "B",
 					Limit:    limit,
-				})
+				}
+				res, err := sims[tc.pool].CalcAmountOut(calcAmountOutParams)
 
 				if swap.expOrderIds == nil {
 					require.NotNil(t, err)
@@ -1078,6 +1080,10 @@ func TestPool_UpdateBalance(t *testing.T) {
 				require.Nil(t, err)
 
 				assert.Equal(t, swap.expAmountOut, res.TokenAmountOut.Amount.String())
+
+				clonedRes, err := cloned.CalcAmountOut(calcAmountOutParams)
+				require.Nil(t, err)
+				assert.Equal(t, res.TokenAmountOut, clonedRes.TokenAmountOut)
 
 				si := res.SwapInfo.(SwapInfo)
 				assert.Equal(t, bignumber.NewBig10(swap.amountIn), bignumber.NewBig10(si.AmountIn))
@@ -1103,6 +1109,10 @@ func TestPool_UpdateBalance(t *testing.T) {
 					SwapInfo:       res.SwapInfo,
 					SwapLimit:      limit,
 				})
+
+				clonedRes, err = cloned.CalcAmountOut(calcAmountOutParams)
+				require.Nil(t, err)
+				assert.Equal(t, res.TokenAmountOut, clonedRes.TokenAmountOut)
 			})
 		}
 	}
