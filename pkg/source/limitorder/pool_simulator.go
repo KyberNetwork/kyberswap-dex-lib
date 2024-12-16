@@ -48,7 +48,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 	var contractAddress string
 	var staticExtra StaticExtra
 	if err := json.Unmarshal([]byte(entityPool.StaticExtra), &staticExtra); err != nil {
-		// this is optional for now, will changed to required later
+		// this is optional for now, will be changed to required later
 		contractAddress = ""
 	} else {
 		contractAddress = staticExtra.ContractAddress
@@ -108,6 +108,10 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return p.calcAmountOut(param.TokenAmountIn, param.TokenOut, param.Limit)
 }
 
+func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	return p.calcAmountIn(param.TokenAmountOut, param.TokenIn, param.Limit)
+}
+
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.ordersMapping = lo.MapEntries(p.ordersMapping, func(k int64, v *order) (int64, *order) {
@@ -161,7 +165,7 @@ func (p *PoolSimulator) calcAmountOut(
 	limit pool.SwapLimit,
 ) (*pool.CalcAmountOutResult, error) {
 	swapSide := p.getSwapSide(tokenAmountIn.Token, tokenOut)
-	amountOut, swapInfo, feeAmount, err := p.calcAmountWithSwapInfo(swapSide, tokenAmountIn, limit)
+	amountOut, swapInfo, feeAmount, err := p.calcAmountOutWithSwapInfo(swapSide, tokenAmountIn, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -172,7 +176,31 @@ func (p *PoolSimulator) calcAmountOut(
 			Amount: amountOut,
 		},
 		Fee: &pool.TokenAmount{
-			Token:  tokenAmountIn.Token,
+			Token:  tokenOut,
+			Amount: feeAmount,
+		},
+		Gas:      p.estimateGas(len(swapInfo.FilledOrders)),
+		SwapInfo: swapInfo,
+	}, nil
+}
+
+func (p *PoolSimulator) calcAmountIn(
+	tokenAmountOut pool.TokenAmount,
+	tokenIn string,
+	limit pool.SwapLimit,
+) (*pool.CalcAmountInResult, error) {
+	swapSide := p.getSwapSide(tokenIn, tokenAmountOut.Token)
+	amountIn, swapInfo, feeAmount, err := p.calcAmountInWithSwapInfo(swapSide, tokenAmountOut, limit)
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{
+			Token:  tokenIn,
+			Amount: amountIn,
+		},
+		Fee: &pool.TokenAmount{
+			Token:  tokenIn,
 			Amount: feeAmount,
 		},
 		Gas:      p.estimateGas(len(swapInfo.FilledOrders)),
@@ -215,8 +243,7 @@ func getMakerRemainingBalance(
 	}
 }
 
-func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn pool.TokenAmount, limit pool.SwapLimit) (*big.Int, SwapInfo, *big.Int, error) {
-
+func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmountIn pool.TokenAmount, limit pool.SwapLimit) (*big.Int, SwapInfo, *big.Int, error) {
 	orderIDs := p.getOrderIDsBySwapSide(swapSide)
 	if len(orderIDs) == 0 {
 		return big.NewInt(0), SwapInfo{}, nil, nil
@@ -247,22 +274,10 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 		if !ok {
 			return nil, swapInfo, nil, fmt.Errorf("order %d is not existed in pool", orderID)
 		}
-		// rate should be the result of making amount/taking amount when dividing decimals per token.
-		// However, we can also use rate with making amount/taking amount (wei) to calculate the amount out instead of converting to measure per token. Because we will return amount out(wei) (we have to multip amountOut(taken out) with decimals)
-		rate := new(big.Float).Quo(new(big.Float).SetInt(order.MakingAmount), new(big.Float).SetInt(order.TakingAmount))
-		var remainingMakingAmountWei, remainingTakingAmountWei *big.Int
-		if order.AvailableMakingAmount == nil {
-			remainingMakingAmountWei = new(big.Int).Sub(order.MakingAmount, order.FilledMakingAmount)
-			remainingTakingAmountWei = new(big.Int).Sub(order.TakingAmount, order.FilledTakingAmount)
-		} else {
-			remainingMakingAmountWei = order.AvailableMakingAmount
-			// the actual available balance might be less than `AvailableMakingAmount`
-			// for example if we has used another order for this same maker and makerAsset (but with different takerAsset) before
-			if makerRemainingBalance := getMakerRemainingBalance(limit, filledMakingAmountByMaker, order.Maker, order.MakerAsset); makerRemainingBalance != nil && remainingMakingAmountWei.Cmp(makerRemainingBalance) > 0 {
-				remainingMakingAmountWei = makerRemainingBalance
-			}
-			remainingTakingAmountWei = new(big.Int).Div(new(big.Int).Mul(remainingMakingAmountWei, order.TakingAmount), order.MakingAmount)
-		}
+
+		// Get remaining making amount, taking amount
+		remainingMakingAmountWei, remainingTakingAmountWei := order.RemainingAmount(limit, filledMakingAmountByMaker)
+
 		totalMakingAmountWei = new(big.Int).Add(totalMakingAmountWei, remainingMakingAmountWei)
 		// Order was filled out.
 		if remainingMakingAmountWei.Cmp(constant.ZeroBI) <= 0 {
@@ -274,6 +289,9 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 		// but for now it's not used, and we might get mixed up with makerAsset fee, so will ignore for now
 
 		if remainingTakingAmountWei.Cmp(totalAmountInAfterFee) >= 0 {
+			// rate should be the result of making amount/taking amount when dividing decimals per token.
+			// However, we can also use rate with making amount/taking amount (wei) to calculate the amount out instead of converting to measure per token. Because we will return amount out(wei) (we have to multip amountOut(taken out) with decimals)
+			rate := new(big.Float).Quo(new(big.Float).SetInt(order.MakingAmount), new(big.Float).SetInt(order.TakingAmount))
 			amountOutWei := new(big.Float).Mul(new(big.Float).SetInt(totalAmountInAfterFee), rate)
 			filledTakingAmountWei := totalAmountInAfterFee
 			filledMakingAmountWei, _ := amountOutWei.Int(nil)
@@ -283,7 +301,7 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 				continue
 			}
 
-			feeAmountWeiByOrder := p.calcMakerAsetFeeAmount(order, filledMakingAmountWei)
+			feeAmountWeiByOrder := p.calcMakerAssetFeeAmount(order, filledMakingAmountWei)
 			totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, feeAmountWeiByOrder)
 			actualAmountOut := new(big.Int).Sub(filledMakingAmountWei, feeAmountWeiByOrder)
 			totalAmountOutWei = new(big.Int).Add(totalAmountOutWei, actualAmountOut)
@@ -305,18 +323,11 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 				if !ok {
 					continue
 				}
-				var remainingMakingAmountWei *big.Int
-				if order.AvailableMakingAmount == nil {
-					remainingMakingAmountWei = new(big.Int).Sub(order.MakingAmount, order.FilledMakingAmount)
-				} else {
-					remainingMakingAmountWei = order.AvailableMakingAmount
-					if makerRemainingBalance := getMakerRemainingBalance(limit, filledMakingAmountByMaker, order.Maker, order.MakerAsset); makerRemainingBalance != nil && remainingMakingAmountWei.Cmp(makerRemainingBalance) > 0 {
-						remainingMakingAmountWei = makerRemainingBalance
-					}
-				}
+				remainingMakingAmountWei, _ := order.RemainingAmount(limit, filledMakingAmountByMaker)
 				if remainingMakingAmountWei.Cmp(constant.ZeroBI) == 0 {
 					continue
 				}
+
 				totalMakingAmountWei = new(big.Int).Add(totalMakingAmountWei, remainingMakingAmountWei)
 				filledOrderInfo := newFilledOrderInfo(order, "0", "0", "0")
 				filledOrderInfo.IsFallBack = true
@@ -326,7 +337,7 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 		}
 		_, takerAssetFee := p.calcTakerAssetFeeAmountExactOut(order, remainingTakingAmountWei)
 		totalAmountIn = new(big.Int).Sub(new(big.Int).Sub(totalAmountIn, takerAssetFee), remainingTakingAmountWei)
-		feeAmountWeiByOrder := p.calcMakerAsetFeeAmount(order, remainingMakingAmountWei)
+		feeAmountWeiByOrder := p.calcMakerAssetFeeAmount(order, remainingMakingAmountWei)
 		actualAmountOut := new(big.Int).Sub(remainingMakingAmountWei, feeAmountWeiByOrder)
 		totalAmountOutWei = new(big.Int).Add(totalAmountOutWei, actualAmountOut)
 		totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, feeAmountWeiByOrder)
@@ -341,7 +352,7 @@ func (p *PoolSimulator) calcAmountWithSwapInfo(swapSide SwapSide, tokenAmountIn 
 }
 
 // feeAmount = (params.makingAmount * params.order.makerTokenFeePercent + BPS - 1) / BPS
-func (p *PoolSimulator) calcMakerAsetFeeAmount(order *order, filledMakingAmount *big.Int) *big.Int {
+func (p *PoolSimulator) calcMakerAssetFeeAmount(order *order, filledMakingAmount *big.Int) *big.Int {
 	if order.IsTakerAssetFee {
 		return constant.ZeroBI
 	}
@@ -409,7 +420,6 @@ func (p *PoolSimulator) estimateGasForExecutor(numberOfFilledOrders int) int64 {
 
 func (p *PoolSimulator) estimateGasForRouter(numberOfFilledOrders int) int64 {
 	return int64(numberOfFilledOrders) * int64(GasPerOrderRouter)
-
 }
 
 func (p *PoolSimulator) getOrderIDsBySwapSide(swapSide SwapSide) []int64 {

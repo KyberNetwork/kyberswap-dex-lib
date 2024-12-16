@@ -18,7 +18,6 @@ import (
 )
 
 func TestPool_CalcAmountOut(t *testing.T) {
-
 	type args struct {
 		tokenAmountIn pool.TokenAmount
 		tokenOut      string
