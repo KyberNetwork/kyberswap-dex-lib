@@ -288,6 +288,7 @@ useCase:
           chainID: *chainId
           limitOrderHTTPUrl: http://limit-order.pre-release-patch1-cluster.gke.production.internal
     rfqAcceptableSlippageFraction: 1000
+    faultyPoolDetectorDisabled: false
   poolFactory:
     chainId: *chainId
   poolManager:

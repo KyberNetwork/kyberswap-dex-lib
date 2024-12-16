@@ -11,6 +11,7 @@ type (
 		FeatureFlags                  valueobject.FeatureFlags `mapstructure:"featureFlags"`
 		FaultyPoolsConfig             FaultyPoolsConfig        `mapstructure:"faultyPools"`
 		RFQAcceptableSlippageFraction int64                    `mapstructure:"rfqAcceptableSlippageFraction"` // Config in BPS
+		FaultyPoolDetectorDisabled    bool                     `mapstructure:"faultyPoolDetectorDisabled"`
 	}
 	RFQConfig struct {
 		Id         string                 `mapstructure:"id"`

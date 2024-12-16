@@ -304,6 +304,7 @@ useCase:
             timeout: 10s
             retry_count: 3
     rfqAcceptableSlippageFraction: 1000
+    faultyPoolDetectorDisabled: false
   poolFactory:
     chainId: *chainId
     useAEVM: *useAEVM

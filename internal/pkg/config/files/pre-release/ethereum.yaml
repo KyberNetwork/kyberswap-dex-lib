@@ -461,6 +461,7 @@ useCase:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
     rfqAcceptableSlippageFraction: 1000
+    faultyPoolDetectorDisabled: false
   poolFactory:
     chainId: *chainId
     useAEVM: *useAEVM

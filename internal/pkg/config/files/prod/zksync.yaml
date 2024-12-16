@@ -290,6 +290,7 @@ useCase:
           chainID: *chainId
           limitOrderHTTPUrl: http://limit-order.core-cluster.gke.production.internal
     rfqAcceptableSlippageFraction: 1000
+    faultyPoolDetectorDisabled: false
   poolFactory:
     chainId: *chainId
   poolManager:
