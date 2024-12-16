@@ -28,7 +28,7 @@ func (u *TradeDataGenerator) isWhitelistPoolHasReserves(p *entity.Pool) bool {
 		}
 	}
 
-	return totalWhitelistTokens-zeroReserveCount >= 2
+	return totalWhitelistTokens-zeroReserveCount >= 1
 }
 
 func (u *TradeDataGenerator) removeZeroReservesPools(pools []*entity.Pool) ([]*entity.Pool, mapset.Set[string]) {

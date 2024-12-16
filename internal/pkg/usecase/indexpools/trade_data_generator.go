@@ -425,7 +425,7 @@ func (gen *TradeDataGenerator) proceedChunk(ctx context.Context,
 	// for pools with only 2 tokens, but they allow only one direction swap, these pools are still valid to be indexed
 	for p, trades := range result {
 		_, ok := hasError[p]
-		if ok && len(trades) < 2 {
+		if ok && len(trades) < 1 {
 			delete(result, p)
 		}
 	}
