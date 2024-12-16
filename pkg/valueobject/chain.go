@@ -117,6 +117,8 @@ func ToString(chainID ChainID) (string, error) {
 		return "berachain", nil
 	case 0:
 		return "solana", nil
+	case 146:
+		return "sonic", nil
 	default:
 		return "", ErrChainUnsupported
 	}
