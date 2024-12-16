@@ -2,12 +2,15 @@ package types
 
 import (
 	"math/big"
+
+	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 type (
 	SafetyQuoteCategory string
 
 	SafetyQuotingParams struct {
+		Exchange             valueobject.Exchange
 		PoolType             string
 		TokenIn              string
 		TokenOut             string
@@ -18,6 +21,7 @@ type (
 
 const (
 	Default        SafetyQuoteCategory = "Default"
+	Converter      SafetyQuoteCategory = "Converter"
 	StrictlyStable SafetyQuoteCategory = "StrictlyStable"
 	Stable         SafetyQuoteCategory = "Stable"
 	Correlated     SafetyQuoteCategory = "Correlated"
@@ -30,6 +34,7 @@ var (
 	// SafetyQuoteMappingDefault defines the default safety quote factors for each category
 	SafetyQuoteMappingDefault = map[SafetyQuoteCategory]float64{
 		Default:        0,
+		Converter:      0,
 		StrictlyStable: 0,
 		Stable:         0.5,
 		Correlated:     1.5,

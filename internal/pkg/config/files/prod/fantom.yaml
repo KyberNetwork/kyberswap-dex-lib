@@ -271,6 +271,7 @@ useCase:
       excludeOneSwapEnable: true
       factor:
         Default: 0
+        Converter: 0
         StrictlyStable: 0
         Stable: 0.5
         Correlated: 1.5

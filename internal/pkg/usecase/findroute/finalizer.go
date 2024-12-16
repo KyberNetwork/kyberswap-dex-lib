@@ -122,6 +122,7 @@ func (f *SafetyQuotingRouteFinalizer) Finalize(
 			pool.UpdateBalance(updateBalanceParams)
 
 			sqParams := types.SafetyQuotingParams{
+				Exchange:             valueobject.Exchange(pool.GetExchange()),
 				PoolType:             pool.GetType(),
 				TokenIn:              tokenAmountIn.Token,
 				TokenOut:             res.TokenAmountOut.Token,
