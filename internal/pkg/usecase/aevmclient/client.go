@@ -236,7 +236,7 @@ func (c *Client) MultipleCall(ctx context.Context, req *aevmtypes.MultipleCallPa
 	startTime := time.Now()
 	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] MultipleCall")
 	defer func() {
-		c.multipleCallStats.Add(startTime.Unix(), time.Since(startTime))
+		c.multipleCallStats.Add(startTime, time.Since(startTime))
 		span.End()
 	}()
 

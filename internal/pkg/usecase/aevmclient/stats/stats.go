@@ -27,14 +27,14 @@ func PN[T any](datapoints SortedDatapoints[T], percentile int) *T {
 }
 
 type HistoricalStat[T any] struct {
-	ts         [maxHistoricalStatLength]int64
+	tsUs       [maxHistoricalStatLength]int64
 	datapoints [maxHistoricalStatLength]T
 	len        int
 	next       int
 }
 
-func (h *HistoricalStat[T]) Push(timestamp int64, datapoint T) {
-	h.ts[h.next] = timestamp
+func (h *HistoricalStat[T]) Push(timestamp time.Time, datapoint T) {
+	h.tsUs[h.next] = timestamp.UnixMicro()
 	h.datapoints[h.next] = datapoint
 	h.next = (h.next + 1) % maxHistoricalStatLength
 	if h.len < maxHistoricalStatLength {
@@ -52,7 +52,7 @@ func (h *HistoricalStat[T]) Query(fromTimestampUs int64, toTimestampExclusiveUs 
 		datapoints []T
 	)
 	for i := 0; i < h.len; i++ {
-		if h.ts[index] >= fromTimestampUs && h.ts[index] < toTimestampExclusiveUs {
+		if h.tsUs[index] >= fromTimestampUs && h.tsUs[index] < toTimestampExclusiveUs {
 			datapoints = append(datapoints, h.datapoints[index])
 		}
 
@@ -93,12 +93,12 @@ func NewShardedStats[T any](n int, cmp func(T, T) int) *ShardedStats[T] {
 	}
 }
 
-func (s *ShardedStats[T]) Add(ts int64, datapoint T) {
+func (s *ShardedStats[T]) Add(timestamp time.Time, datapoint T) {
 	index := (s.shardCounter.Add(1) - 1) % uint64(s.n)
 	s.shardLock[index].Lock()
 	s.globalLock.RLock()
 	s.counterShards[index].Add(1)
-	s.dataShards[index].Push(ts, datapoint)
+	s.dataShards[index].Push(timestamp, datapoint)
 	s.globalLock.RUnlock()
 	s.shardLock[index].Unlock()
 }
