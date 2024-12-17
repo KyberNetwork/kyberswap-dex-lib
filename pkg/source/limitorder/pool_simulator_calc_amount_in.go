@@ -151,17 +151,10 @@ func (p *PoolSimulator) calcMakerAssetAmountBeforeFee(order *order, makingAmount
 	}
 
 	// makingAmountBeforeFee = makingAmount * BasisPoint / (BasisPoint - feePct)
-
-	basicPointF := new(big.Float).SetInt(constant.BasisPoint)
-	makingAmountBeforeFeeF := new(big.Float).Mul(
-		new(big.Float).SetInt(makingAmount),
-		new(big.Float).Quo(
-			basicPointF,
-			new(big.Float).Sub(basicPointF, new(big.Float).SetInt64(int64(feePct))),
-		),
+	makingAmountBeforeFee = divCeil(
+		new(big.Int).Mul(makingAmount, constant.BasisPoint),
+		new(big.Int).Sub(constant.BasisPoint, big.NewInt(int64(feePct))),
 	)
-
-	makingAmountBeforeFee, _ = makingAmountBeforeFeeF.Int(nil)
 
 	// fee = makingAmount - makingAmountBeforeFee
 	fee = new(big.Int).Sub(makingAmount, makingAmountBeforeFee)
