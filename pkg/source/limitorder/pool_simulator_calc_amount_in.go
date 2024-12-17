@@ -80,13 +80,11 @@ func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountO
 		totalAmountOutBeforeFee, _ := p.calcMakerAssetAmountBeforeFee(order, totalAmountOut)
 
 		if remainingMakingAmountWei.Cmp(totalAmountOutBeforeFee) >= 0 {
-			rate := new(big.Float).Quo(new(big.Float).SetInt(order.MakingAmount), new(big.Float).SetInt(order.TakingAmount))
-			amountInWei := new(big.Float).Quo(new(big.Float).SetInt(totalAmountOutBeforeFee), rate)
 			filledMakingAmountWei := totalAmountOutBeforeFee
-			filledTakingAmountWei, acc := amountInWei.Int(nil)
-			if acc == big.Below {
-				filledTakingAmountWei.Add(filledTakingAmountWei, big.NewInt(1))
-			}
+			filledTakingAmountWei := divCeil(
+				new(big.Int).Mul(totalAmountOutBeforeFee, order.TakingAmount),
+				order.MakingAmount,
+			) // filledTakingAmountWei =  ceil(takingAmount * totalAmountOutBeforeFee / makingAmount)
 
 			// order too small
 			if filledTakingAmountWei.Sign() == 0 {
@@ -169,4 +167,12 @@ func (p *PoolSimulator) calcMakerAssetAmountBeforeFee(order *order, makingAmount
 	fee = new(big.Int).Sub(makingAmount, makingAmountBeforeFee)
 
 	return makingAmountBeforeFee, fee
+}
+
+func divCeil(a, b *big.Int) *big.Int {
+	// (a + b - 1) / b
+	return new(big.Int).Div(
+		new(big.Int).Sub(new(big.Int).Add(a, b), big.NewInt(1)),
+		b,
+	)
 }

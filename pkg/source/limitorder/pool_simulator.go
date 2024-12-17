@@ -261,12 +261,11 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 		// but for now it's not used, and we might get mixed up with makerAsset fee, so will ignore for now
 
 		if remainingTakingAmountWei.Cmp(totalAmountInAfterFee) >= 0 {
-			// rate should be the result of making amount/taking amount when dividing decimals per token.
-			// However, we can also use rate with making amount/taking amount (wei) to calculate the amount out instead of converting to measure per token. Because we will return amount out(wei) (we have to multip amountOut(taken out) with decimals)
-			rate := new(big.Float).Quo(new(big.Float).SetInt(order.MakingAmount), new(big.Float).SetInt(order.TakingAmount))
-			amountOutWei := new(big.Float).Mul(new(big.Float).SetInt(totalAmountInAfterFee), rate)
 			filledTakingAmountWei := totalAmountInAfterFee
-			filledMakingAmountWei, _ := amountOutWei.Int(nil)
+			filledMakingAmountWei := new(big.Int).Div(
+				new(big.Int).Mul(filledTakingAmountWei, remainingMakingAmountWei),
+				remainingTakingAmountWei,
+			) // filledMakingAmountWei = filledTakingAmountWei * remainingMakingAmountWei / remainingTakingAmountWei
 
 			// order too small
 			if filledMakingAmountWei.Sign() <= 0 {
