@@ -273,9 +273,9 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 			}
 
 			feeAmountWeiByOrder := p.calcMakerAssetFeeAmount(order, filledMakingAmountWei)
-			totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, feeAmountWeiByOrder)
+			totalFeeAmountWei.Add(totalFeeAmountWei, feeAmountWeiByOrder)
 			actualAmountOut := new(big.Int).Sub(filledMakingAmountWei, feeAmountWeiByOrder)
-			totalAmountOutWei = new(big.Int).Add(totalAmountOutWei, actualAmountOut)
+			totalAmountOutWei.Add(totalAmountOutWei, actualAmountOut)
 			filledOrderInfo := newFilledOrderInfo(order, filledTakingAmountWei.String(), filledMakingAmountWei.String(), feeAmountWeiByOrder.String())
 			swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
 			isFulfillAmountIn = true
@@ -306,11 +306,12 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 			break
 		}
 		_, takerAssetFee := p.calcTakerAssetFeeAmountExactOut(order, remainingTakingAmountWei)
-		totalAmountIn = new(big.Int).Sub(new(big.Int).Sub(totalAmountIn, takerAssetFee), remainingTakingAmountWei)
+		totalAmountIn.Sub(totalAmountIn, takerAssetFee)
+		totalAmountIn.Sub(totalAmountIn, remainingTakingAmountWei)
 		feeAmountWeiByOrder := p.calcMakerAssetFeeAmount(order, remainingMakingAmountWei)
 		actualAmountOut := new(big.Int).Sub(remainingMakingAmountWei, feeAmountWeiByOrder)
-		totalAmountOutWei = new(big.Int).Add(totalAmountOutWei, actualAmountOut)
-		totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, feeAmountWeiByOrder)
+		totalAmountOutWei.Add(totalAmountOutWei, actualAmountOut)
+		totalFeeAmountWei.Add(totalFeeAmountWei, feeAmountWeiByOrder)
 		filledOrderInfo := newFilledOrderInfo(order, remainingTakingAmountWei.String(), remainingMakingAmountWei.String(), feeAmountWeiByOrder.String())
 		swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
 		addFilledMakingAmount(filledMakingAmountByMaker, order.Maker, remainingMakingAmountWei)
