@@ -43,7 +43,7 @@ func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountO
 	}
 
 	totalAmountInWei := big.NewInt(0)
-	totalAmountOut := tokenAmountOut.Amount
+	totalAmountOut := new(big.Int).Set(tokenAmountOut.Amount)
 
 	swapInfo := SwapInfo{
 		FilledOrders: make([]*FilledOrderInfo, 0, len(orderIDs)),
