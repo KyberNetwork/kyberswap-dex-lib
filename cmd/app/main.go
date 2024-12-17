@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -1016,7 +1017,8 @@ func initializeAEVMComponents(ctx context.Context, cfg *config.Config, routerRed
 	serverURLs := strings.Split(cfg.AEVM.AEVMServerURLs, ",")
 	publishingPoolsURLs := strings.Split(cfg.AEVM.AEVMPublishingPoolsURLs, ",")
 	logger.Infof(ctx, "AEVMServerURLs = %+v AEVMPublishingPoolsURLs = %+v", serverURLs, publishingPoolsURLs)
-	aevmClient, err := aevmclientuc.NewClient(
+	clientPoolSize := runtime.GOMAXPROCS(0)
+	aevmClient, err := aevmclientuc.NewLoadBalancingClient(
 		aevmclientuc.Config{
 			ServerURLs:          serverURLs,
 			PublishingPoolsURLs: publishingPoolsURLs,
@@ -1025,7 +1027,11 @@ func initializeAEVMComponents(ctx context.Context, cfg *config.Config, routerRed
 			FindrouteRetryOnTimeoutMs: cfg.AEVM.FindrouteRetryOnTimeoutMs,
 			MaxRetry:                  cfg.AEVM.MaxRetry,
 		},
-		func(url string) (aevmclient.Client, error) { return aevmclient.NewGRPCClient(url) },
+		func(serverURL string) (aevmclient.Client, error) {
+			return aevmclientuc.NewFixedPooledClient(clientPoolSize, serverURL, func(serverURL string) (aevmclient.Client, error) {
+				return aevmclient.NewGRPCClient(serverURL)
+			})
+		},
 	)
 	if err != nil {
 		return nil, nil, nil, err

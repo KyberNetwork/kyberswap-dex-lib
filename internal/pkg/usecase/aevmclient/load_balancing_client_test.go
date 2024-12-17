@@ -70,7 +70,7 @@ func TestApplyConfig(t *testing.T) {
 		reqDuration  = 1 * time.Second
 	)
 
-	c, err := NewClient(Config{
+	c, err := NewLoadBalancingClient(Config{
 		ServerURLs: []string{"c0", "c1", "c2"},
 	}, func(url string) (aevmclient.Client, error) {
 		return newTestClient(t, url, reqDuration, closedURLsCh), nil
@@ -116,7 +116,7 @@ func TestApplyConfig(t *testing.T) {
 func TestClientWithRetry(t *testing.T) {
 	t.Skip()
 
-	c, err := NewClient(Config{
+	c, err := NewLoadBalancingClient(Config{
 		ServerURLs: []string{
 			"localhost:8247",
 		},
@@ -133,7 +133,7 @@ func TestClientWithRetry(t *testing.T) {
 }
 
 func TestLatestStateRoot_AEVMServerUnavailable(t *testing.T) {
-	c, err := NewClient(Config{
+	c, err := NewLoadBalancingClient(Config{
 		ServerURLs: []string{
 			"localhost:xxxx", // this server is not available or down
 		},
@@ -150,7 +150,7 @@ func TestLatestStateRoot_AEVMServerUnavailable(t *testing.T) {
 }
 
 func TestReportStats(t *testing.T) {
-	c, err := NewClient(Config{}, nil)
+	c, err := NewLoadBalancingClient(Config{}, nil)
 	require.NoError(t, err)
 	defer c.Close()
 
