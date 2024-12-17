@@ -168,6 +168,6 @@ func (p *PoolSimulator) calcMakerAssetAmountBeforeFee(order *order, makingAmount
 func divCeil(a, b *big.Int) *big.Int {
 	// (a + b - 1) / b
 	a = new(big.Int).Add(a, b)
-	a = new(big.Int).Sub(a, big.NewInt(1))
+	a.Sub(a, big.NewInt(1))
 	return a.Div(a, b)
 }
