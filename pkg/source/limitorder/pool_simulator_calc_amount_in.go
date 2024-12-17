@@ -145,12 +145,12 @@ func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountO
 // input is the received amount after fee.
 func (p *PoolSimulator) calcMakerAssetAmountBeforeFee(order *order, makingAmount *big.Int) (makingAmountBeforeFee *big.Int, fee *big.Int) {
 	if order.IsTakerAssetFee {
-		return makingAmount, big.NewInt(0)
+		return new(big.Int).Set(makingAmount), big.NewInt(0)
 	}
 
 	feePct := order.MakerTokenFeePercent
 	if feePct == 0 {
-		return makingAmount, big.NewInt(0)
+		return new(big.Int).Set(makingAmount), big.NewInt(0)
 	}
 
 	// makingAmountBeforeFee = makingAmount * BasisPoint / (BasisPoint - feePct)
@@ -167,8 +167,7 @@ func (p *PoolSimulator) calcMakerAssetAmountBeforeFee(order *order, makingAmount
 
 func divCeil(a, b *big.Int) *big.Int {
 	// (a + b - 1) / b
-	return new(big.Int).Div(
-		new(big.Int).Sub(new(big.Int).Add(a, b), big.NewInt(1)),
-		b,
-	)
+	a = new(big.Int).Add(a, b)
+	a = new(big.Int).Sub(a, big.NewInt(1))
+	return a.Div(a, b)
 }

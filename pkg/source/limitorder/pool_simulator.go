@@ -339,12 +339,12 @@ func (p *PoolSimulator) calcMakerAssetFeeAmount(order *order, filledMakingAmount
 // given total takingAmount, calculate fee and takingAmountAfterFee
 func (p *PoolSimulator) calcTakerAssetFeeAmountExactIn(order *order, takingAmount *big.Int) (takingAmountAfterFee *big.Int, fee *big.Int) {
 	if !order.IsTakerAssetFee {
-		return takingAmount, big.NewInt(0)
+		return new(big.Int).Set(takingAmount), big.NewInt(0)
 	}
 
 	feePct := order.MakerTokenFeePercent // reuse same field
 	if feePct == 0 {
-		return takingAmount, big.NewInt(0)
+		return new(big.Int).Set(takingAmount), big.NewInt(0)
 	}
 
 	// fee = ceiling(takingAmountAfterFee * feePct / BasisPoint)
@@ -365,12 +365,12 @@ func (p *PoolSimulator) calcTakerAssetFeeAmountExactIn(order *order, takingAmoun
 // given filled takingAmountAfterFee, calculate fee and total takingAmount
 func (p *PoolSimulator) calcTakerAssetFeeAmountExactOut(order *order, takingAmountAfterFee *big.Int) (takingAmount *big.Int, fee *big.Int) {
 	if !order.IsTakerAssetFee {
-		return takingAmountAfterFee, big.NewInt(0)
+		return new(big.Int).Set(takingAmountAfterFee), big.NewInt(0)
 	}
 
 	feePct := order.MakerTokenFeePercent // reuse same field
 	if feePct == 0 {
-		return takingAmountAfterFee, big.NewInt(0)
+		return new(big.Int).Set(takingAmountAfterFee), big.NewInt(0)
 	}
 
 	amount := new(big.Int).Mul(takingAmountAfterFee, big.NewInt(int64(feePct)))
