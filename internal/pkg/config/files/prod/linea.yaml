@@ -141,8 +141,14 @@ encoder:
   isPositiveSlippageEnabled: true
   executorAddressByClientID:
     defillama: *executorAddress
+    llamaswap: *executorAddress
   partnerPositiveSlippageInfo:
     defillama:
+      receiver:
+      percent:
+      feeMode:
+      feeSharingAddress:
+    llamaswap:
       receiver:
       percent:
       feeMode:

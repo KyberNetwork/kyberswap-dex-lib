@@ -241,8 +241,14 @@ encoder:
   executorAddressByClientID:
     unibot-tg: 0x1BC5cF80f308518f000dDE4c8f8139268aA014DB
     defillama: *executorAddress
+    llamaswap: *executorAddress
   partnerPositiveSlippageInfo:
     defillama:
+      receiver:
+      percent:
+      feeMode:
+      feeSharingAddress:
+    llamaswap:
       receiver:
       percent:
       feeMode:

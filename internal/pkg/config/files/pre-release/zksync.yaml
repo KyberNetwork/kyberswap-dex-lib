@@ -130,8 +130,14 @@ encoder:
   minimumPSThreshold: 1000000
   executorAddressByClientID:
     defillama: *executorAddress
+    llamaswap: *executorAddress
   partnerPositiveSlippageInfo:
     defillama:
+      receiver:
+      percent:
+      feeMode:
+      feeSharingAddress:
+    llamaswap:
       receiver:
       percent:
       feeMode:
