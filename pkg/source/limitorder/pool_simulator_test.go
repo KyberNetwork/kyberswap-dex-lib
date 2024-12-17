@@ -130,7 +130,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+					Token:     "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
@@ -292,7 +292,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+					Token:     "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},
@@ -452,7 +452,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+					Token:     "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
 					Amount:    big.NewInt(4),
 					AmountUsd: 0,
 				},
@@ -662,7 +662,7 @@ func TestPool_CalcAmountOut(t *testing.T) {
 					AmountUsd: 0,
 				},
 				Fee: &pool.TokenAmount{
-					Token:     "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+					Token:     "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
 					Amount:    big.NewInt(0),
 					AmountUsd: 0,
 				},

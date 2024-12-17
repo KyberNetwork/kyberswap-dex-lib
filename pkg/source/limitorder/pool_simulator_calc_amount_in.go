@@ -87,8 +87,7 @@ func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountO
 				}
 
 				totalMakingAmountWei = new(big.Int).Add(totalMakingAmountWei, remainingMakingAmountWei)
-				filledOrderInfo := newFilledOrderInfo(order, "0", "0", "0")
-				filledOrderInfo.IsFallBack = true
+				filledOrderInfo := newFallbackOrderInfo(order)
 				swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
 			}
 			break

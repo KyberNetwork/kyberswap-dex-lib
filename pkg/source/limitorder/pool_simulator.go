@@ -329,8 +329,7 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 				}
 
 				totalMakingAmountWei = new(big.Int).Add(totalMakingAmountWei, remainingMakingAmountWei)
-				filledOrderInfo := newFilledOrderInfo(order, "0", "0", "0")
-				filledOrderInfo.IsFallBack = true
+				filledOrderInfo := newFallbackOrderInfo(order)
 				swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
 			}
 			break
@@ -438,6 +437,12 @@ func (p *PoolSimulator) getSwapSide(tokenIn string, TokenOut string) SwapSide {
 
 func (p *PoolSimulator) GetMetaInfo(_ string, _ string) interface{} {
 	return p.contractAddress
+}
+
+func newFallbackOrderInfo(order *order) *FilledOrderInfo {
+	orderInfo := newFilledOrderInfo(order, "0", "0", "0")
+	orderInfo.IsFallBack = true
+	return orderInfo
 }
 
 func newFilledOrderInfo(order *order, filledTakingAmount, filledMakingAmount string, feeAmount string) *FilledOrderInfo {
