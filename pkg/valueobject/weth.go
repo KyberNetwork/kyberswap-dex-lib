@@ -33,7 +33,7 @@ var WETHByChainID = map[ChainID]string{
 	ChainIDScroll:          "0x5300000000000000000000000000000000000004",
 	ChainIDBlast:           "0x4300000000000000000000000000000000000004",
 	ChainIDMantle:          "0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8",
-	ChainIDSonic:           "", // Temporarily not set the value, waiting for the official address
+	ChainIDSonic:           "0x309C92261178fA0CF748A855e90Ae73FDb79EBc7",
 }
 
 // WrapETHLower wraps, if applicable, native token to wrapped token; and then lowercase it.
