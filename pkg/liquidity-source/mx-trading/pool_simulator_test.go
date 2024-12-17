@@ -84,13 +84,19 @@ func TestPoolSimulator_GetAmountOut(t *testing.T) {
 			expectedErr: ErrAmountInIsGreaterThanTotalLevelSize,
 		},
 		{
-			name:              "it should return correct amountOut1 when all levels are filled",
-			amountIn0:         bignumber.NewBig("4929473425227476992"),
+			name:        "it should return correct amountOut1 when all levels are filled",
+			amountIn0:   bignumber.NewBig("4929473425227476992"),
+			expectedErr: ErrAmountOutIsGreaterThanInventory,
+
+			// Expected output before reducing inventory limit
 			expectedAmountOut: bignumber.NewBig("16488225768595991298048"),
 		},
 		{
-			name:              "it should return correct amountOut0 when all levels are filled",
-			amountIn1:         bignumber.NewBig("201363156713348041539584"),
+			name:        "it should return correct amountOut0 when all levels are filled",
+			amountIn1:   bignumber.NewBig("201363156713348041539584"),
+			expectedErr: ErrAmountOutIsGreaterThanInventory,
+
+			// Expected output before reducing inventory limit
 			expectedAmountOut: bignumber.NewBig("59925038314246815744"),
 		},
 		{
@@ -198,8 +204,11 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			},
 		},
 		{
-			name:                         "fill all levels 0to1",
-			amountIn0:                    bignumber.NewBig("4929473425227476992"),
+			name:        "fill all levels 0to1",
+			amountIn0:   bignumber.NewBig("4929473425227476992"),
+			expectedErr: ErrAmountOutIsGreaterThanInventory,
+
+			// Expected output before reducing inventory limit
 			expectedZeroToOnePriceLevels: nil,
 			expectedOneToZeroPriceLevels: []PriceLevel{
 				{Size: 546.1, Price: 0.00029818453400477844},
@@ -237,8 +246,11 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			},
 		},
 		{
-			name:      "fill token1",
-			amountIn1: bignumber.NewBig("201362500000000000000000"),
+			name:        "fill token1",
+			amountIn1:   bignumber.NewBig("201362500000000000000000"),
+			expectedErr: ErrAmountOutIsGreaterThanInventory,
+
+			// Expected output before reducing inventory limit
 			expectedZeroToOnePriceLevels: []PriceLevel{
 				{Size: 0.719, Price: 3347.4385889037885},
 				{Size: 0.015, Price: 3347.141106167435},
@@ -284,8 +296,8 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 			}
 			limit := swaplimit.NewInventory("mx-trading", p.CalculateLimit())
 
-			assert.Equal(t, entityPoolData.Reserves[0], limit.GetLimit(p.token0.Address).String())
-			assert.Equal(t, entityPoolData.Reserves[1], limit.GetLimit(p.token1.Address).String())
+			assert.Equal(t, getReducedReserve(p.GetReserves()[0]).String(), limit.GetLimit(p.token0.Address).String())
+			assert.Equal(t, getReducedReserve(p.GetReserves()[1]).String(), limit.GetLimit(p.token1.Address).String())
 
 			calcAmountOutResult, err := p.CalcAmountOut(pool.CalcAmountOutParams{
 				TokenAmountIn: pool.TokenAmount{Token: token, Amount: amountIn},
@@ -309,13 +321,20 @@ func TestPoolSimulator_UpdateBalance(t *testing.T) {
 
 			tokenInIndex := p.GetTokenIndex(token)
 			assert.Equal(t,
-				new(big.Int).Add(p.GetReserves()[tokenInIndex], amountIn).String(),
+				new(big.Int).Add(getReducedReserve(p.GetReserves()[tokenInIndex]), amountIn).String(),
 				limit.GetLimit(token).String(),
 			)
 			assert.Equal(t,
-				new(big.Int).Sub(p.GetReserves()[1-tokenInIndex], calcAmountOutResult.TokenAmountOut.Amount).String(),
+				new(big.Int).Sub(getReducedReserve(p.GetReserves()[1-tokenInIndex]), calcAmountOutResult.TokenAmountOut.Amount).String(),
 				limit.GetLimit(calcAmountOutResult.TokenAmountOut.Token).String(),
 			)
 		})
 	}
+}
+
+func getReducedReserve(reserve *big.Int) *big.Int {
+	reducedReserve := new(big.Float).SetInt(reserve)
+	reducedReserve.Mul(reducedReserve, big.NewFloat(0.95))
+	reserveInt, _ := reducedReserve.Int(nil)
+	return reserveInt
 }
