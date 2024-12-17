@@ -83,7 +83,10 @@ func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountO
 			rate := new(big.Float).Quo(new(big.Float).SetInt(order.MakingAmount), new(big.Float).SetInt(order.TakingAmount))
 			amountInWei := new(big.Float).Quo(new(big.Float).SetInt(totalAmountOutBeforeFee), rate)
 			filledMakingAmountWei := totalAmountOutBeforeFee
-			filledTakingAmountWei, _ := amountInWei.Int(nil)
+			filledTakingAmountWei, acc := amountInWei.Int(nil)
+			if acc == big.Below {
+				filledTakingAmountWei.Add(filledTakingAmountWei, big.NewInt(1))
+			}
 
 			// order too small
 			if filledTakingAmountWei.Cmp(constant.ZeroBI) == 0 {
@@ -91,8 +94,8 @@ func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountO
 			}
 
 			actualAmountIn, feeAmountWeiByOrder := p.calcTakerAssetFeeAmountExactOut(order, filledTakingAmountWei)
-			totalFeeAmountWei.Add(totalFeeAmountWei, feeAmountWeiByOrder)
-			totalAmountInWei.Add(totalAmountInWei, actualAmountIn)
+			totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, feeAmountWeiByOrder)
+			totalAmountInWei = new(big.Int).Add(totalAmountInWei, actualAmountIn)
 			filledOrderInfo := newFilledOrderInfo(order, filledTakingAmountWei.String(), filledMakingAmountWei.String(), feeAmountWeiByOrder.String())
 			swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
 			isFulfillAmountOut = true
@@ -120,10 +123,10 @@ func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountO
 			}
 			break
 		}
-		totalAmountOut.Sub(totalAmountOut, remainingMakingAmountWei)
+		totalAmountOut = new(big.Int).Sub(totalAmountOut, remainingMakingAmountWei)
 		_, takerAssetFee := p.calcTakerAssetFeeAmountExactOut(order, remainingTakingAmountWei)
 		actualAmountIn := new(big.Int).Add(remainingTakingAmountWei, takerAssetFee)
-		totalAmountInWei.Add(totalAmountInWei, actualAmountIn)
+		totalAmountInWei = new(big.Int).Add(totalAmountInWei, actualAmountIn)
 		totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, takerAssetFee)
 		filledOrderInfo := newFilledOrderInfo(order, remainingTakingAmountWei.String(), remainingMakingAmountWei.String(), takerAssetFee.String())
 		swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
