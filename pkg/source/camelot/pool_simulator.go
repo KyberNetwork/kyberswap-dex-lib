@@ -88,11 +88,11 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	if strings.EqualFold(params.TokenAmountIn.Token, p.Info.Tokens[0]) {
-		p.Info.Reserves[0] = new(big.Int).Sub(new(big.Int).Add(p.Info.Reserves[0], params.TokenAmountIn.Amount), params.Fee.Amount)
-		p.Info.Reserves[1] = new(big.Int).Add(p.Info.Reserves[1], params.TokenAmountOut.Amount)
-	} else {
 		p.Info.Reserves[0] = new(big.Int).Add(p.Info.Reserves[0], params.TokenAmountOut.Amount)
 		p.Info.Reserves[1] = new(big.Int).Sub(new(big.Int).Add(p.Info.Reserves[1], params.TokenAmountIn.Amount), params.Fee.Amount)
+	} else {
+		p.Info.Reserves[0] = new(big.Int).Sub(new(big.Int).Add(p.Info.Reserves[0], params.TokenAmountIn.Amount), params.Fee.Amount)
+		p.Info.Reserves[1] = new(big.Int).Add(p.Info.Reserves[1], params.TokenAmountOut.Amount)
 	}
 }
 
