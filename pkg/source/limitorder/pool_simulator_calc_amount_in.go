@@ -100,9 +100,12 @@ func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountO
 			addFilledMakingAmount(filledMakingAmountByMaker, order.Maker, filledMakingAmountWei)
 			totalFilledTakingAmountWei.Add(totalFilledTakingAmountWei, filledTakingAmountWei)
 
-			totalAmountOutWeiBigFloat := new(big.Float).SetInt(totalAmountOutBeforeFee)
+			// threshold = totalAmountOutBeforeFee * FallbackPercentageOfTotalMakingAmount
+			threshold := new(big.Float).SetInt(totalAmountOutBeforeFee)
+			threshold.Mul(threshold, FallbackPercentageOfTotalMakingAmount)
+
 			for j := i + 1; j < len(orderIDs); j++ {
-				if new(big.Float).SetInt(totalMakingAmountWei).Cmp(new(big.Float).Mul(totalAmountOutWeiBigFloat, FallbackPercentageOfTotalMakingAmount)) >= 0 {
+				if new(big.Float).SetInt(totalMakingAmountWei).Cmp(threshold) >= 0 {
 					break
 				}
 				order, ok := p.ordersMapping[orderIDs[j]]

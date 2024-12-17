@@ -285,9 +285,11 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 			// We will often meet edge cases that these orders can be fulfilled by a trading bot or taker on Aggregator.
 			// From that, the estimated amount out and filled orders are not correct. So we need to add more orders when sending to SC to the executor.
 			// In this case, we will some orders util total MakingAmount(remainMakingAmount)/estimated amountOut >= 1.3 (130%)
-			totalAmountOutWeiBigFloat := new(big.Float).SetInt64(totalAmountOutWei.Int64())
+			totalAmountOutWeiBigFloat := new(big.Float).SetInt(totalAmountOutWei)
+			// threshold = totalAmountOutWei * FallbackPercentageOfTotalMakingAmount
+			threshold := new(big.Float).Mul(totalAmountOutWeiBigFloat, FallbackPercentageOfTotalMakingAmount)
 			for j := i + 1; j < len(orderIDs); j++ {
-				if new(big.Float).SetInt(totalMakingAmountWei).Cmp(new(big.Float).Mul(totalAmountOutWeiBigFloat, FallbackPercentageOfTotalMakingAmount)) >= 0 {
+				if new(big.Float).SetInt(totalMakingAmountWei).Cmp(threshold) >= 0 {
 					break
 				}
 				order, ok := p.ordersMapping[orderIDs[j]]
