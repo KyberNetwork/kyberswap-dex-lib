@@ -42,7 +42,7 @@ func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountO
 		return big.NewInt(0), SwapInfo{}, nil, nil
 	}
 
-	totalAmountInWei := constant.ZeroBI
+	totalAmountInWei := big.NewInt(0)
 	totalAmountOut := tokenAmountOut.Amount
 
 	swapInfo := SwapInfo{
@@ -51,7 +51,7 @@ func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountO
 	}
 	totalFilledTakingAmountWei := big.NewInt(0)
 	isFulfillAmountOut := false
-	totalFeeAmountWei := new(big.Int)
+	totalFeeAmountWei := big.NewInt(0)
 
 	// we need to update maker's remaining balance in 2 places:
 	// - in UpdateBalance: mainly to deal with case where maker has orders with same makerAsset but different takerAsset
@@ -73,7 +73,7 @@ func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountO
 
 		totalMakingAmountWei = new(big.Int).Add(totalMakingAmountWei, remainingMakingAmountWei)
 		// Order was filled out.
-		if remainingMakingAmountWei.Cmp(constant.ZeroBI) <= 0 {
+		if remainingMakingAmountWei.Sign() <= 0 {
 			continue
 		}
 
@@ -89,7 +89,7 @@ func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountO
 			}
 
 			// order too small
-			if filledTakingAmountWei.Cmp(constant.ZeroBI) == 0 {
+			if filledTakingAmountWei.Sign() == 0 {
 				continue
 			}
 
@@ -113,7 +113,7 @@ func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountO
 				}
 
 				remainingMakingAmountWei, _ := order.RemainingAmount(limit, filledMakingAmountByMaker)
-				if remainingMakingAmountWei.Cmp(constant.ZeroBI) == 0 {
+				if remainingMakingAmountWei.Sign() == 0 {
 					continue
 				}
 
@@ -126,8 +126,8 @@ func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountO
 		totalAmountOut = new(big.Int).Sub(totalAmountOut, remainingMakingAmountWei)
 		_, takerAssetFee := p.calcTakerAssetFeeAmountExactOut(order, remainingTakingAmountWei)
 		actualAmountIn := new(big.Int).Add(remainingTakingAmountWei, takerAssetFee)
-		totalAmountInWei = new(big.Int).Add(totalAmountInWei, actualAmountIn)
-		totalFeeAmountWei = new(big.Int).Add(totalFeeAmountWei, takerAssetFee)
+		totalAmountInWei.Add(totalAmountInWei, actualAmountIn)
+		totalFeeAmountWei.Add(totalFeeAmountWei, takerAssetFee)
 		filledOrderInfo := newFilledOrderInfo(order, remainingTakingAmountWei.String(), remainingMakingAmountWei.String(), takerAssetFee.String())
 		swapInfo.FilledOrders = append(swapInfo.FilledOrders, filledOrderInfo)
 		addFilledMakingAmount(filledMakingAmountByMaker, order.Maker, remainingMakingAmountWei)

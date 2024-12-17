@@ -86,7 +86,7 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 			Info: pool.PoolInfo{
 				Address:    strings.ToLower(entityPool.Address),
 				ReserveUsd: entityPool.ReserveUsd,
-				SwapFee:    constant.ZeroBI,
+				SwapFee:    big.NewInt(0),
 				Exchange:   entityPool.Exchange,
 				Type:       entityPool.Type,
 				Tokens:     tokens,
@@ -221,7 +221,7 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 		return big.NewInt(0), SwapInfo{}, nil, nil
 	}
 
-	totalAmountOutWei := constant.ZeroBI
+	totalAmountOutWei := big.NewInt(0)
 	totalAmountIn := tokenAmountIn.Amount
 
 	swapInfo := SwapInfo{
@@ -252,7 +252,7 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 
 		totalMakingAmountWei = new(big.Int).Add(totalMakingAmountWei, remainingMakingAmountWei)
 		// Order was filled out.
-		if remainingMakingAmountWei.Cmp(constant.ZeroBI) <= 0 {
+		if remainingMakingAmountWei.Sign() <= 0 {
 			continue
 		}
 
@@ -269,7 +269,7 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 			filledMakingAmountWei, _ := amountOutWei.Int(nil)
 
 			// order too small
-			if filledMakingAmountWei.Cmp(constant.ZeroBI) <= 0 {
+			if filledMakingAmountWei.Sign() <= 0 {
 				continue
 			}
 
@@ -296,7 +296,7 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 					continue
 				}
 				remainingMakingAmountWei, _ := order.RemainingAmount(limit, filledMakingAmountByMaker)
-				if remainingMakingAmountWei.Cmp(constant.ZeroBI) == 0 {
+				if remainingMakingAmountWei.Sign() == 0 {
 					continue
 				}
 
@@ -325,10 +325,10 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 // feeAmount = (params.makingAmount * params.order.makerTokenFeePercent + BPS - 1) / BPS
 func (p *PoolSimulator) calcMakerAssetFeeAmount(order *order, filledMakingAmount *big.Int) *big.Int {
 	if order.IsTakerAssetFee {
-		return constant.ZeroBI
+		return big.NewInt(0)
 	}
 	if order.MakerTokenFeePercent == 0 {
-		return constant.ZeroBI
+		return big.NewInt(0)
 	}
 	amount := new(big.Int).Mul(filledMakingAmount, big.NewInt(int64(order.MakerTokenFeePercent)))
 	return new(big.Int).Div(new(big.Int).Sub(new(big.Int).Add(amount, valueobject.BasisPoint), constant.One), valueobject.BasisPoint)
@@ -337,12 +337,12 @@ func (p *PoolSimulator) calcMakerAssetFeeAmount(order *order, filledMakingAmount
 // given total takingAmount, calculate fee and takingAmountAfterFee
 func (p *PoolSimulator) calcTakerAssetFeeAmountExactIn(order *order, takingAmount *big.Int) (takingAmountAfterFee *big.Int, fee *big.Int) {
 	if !order.IsTakerAssetFee {
-		return takingAmount, constant.ZeroBI
+		return takingAmount, big.NewInt(0)
 	}
 
 	feePct := order.MakerTokenFeePercent // reuse same field
 	if feePct == 0 {
-		return takingAmount, constant.ZeroBI
+		return takingAmount, big.NewInt(0)
 	}
 
 	// fee = ceiling(takingAmountAfterFee * feePct / BasisPoint)
@@ -363,12 +363,12 @@ func (p *PoolSimulator) calcTakerAssetFeeAmountExactIn(order *order, takingAmoun
 // given filled takingAmountAfterFee, calculate fee and total takingAmount
 func (p *PoolSimulator) calcTakerAssetFeeAmountExactOut(order *order, takingAmountAfterFee *big.Int) (takingAmount *big.Int, fee *big.Int) {
 	if !order.IsTakerAssetFee {
-		return takingAmountAfterFee, constant.ZeroBI
+		return takingAmountAfterFee, big.NewInt(0)
 	}
 
 	feePct := order.MakerTokenFeePercent // reuse same field
 	if feePct == 0 {
-		return takingAmountAfterFee, constant.ZeroBI
+		return takingAmountAfterFee, big.NewInt(0)
 	}
 
 	amount := new(big.Int).Mul(takingAmountAfterFee, big.NewInt(int64(feePct)))
