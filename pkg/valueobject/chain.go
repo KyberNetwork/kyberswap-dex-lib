@@ -110,10 +110,10 @@ func ToString(chainID ChainID) (string, error) {
 		return "blast", nil
 	case 5000:
 		return "mantle", nil
-	case 0:
-		return "solana", nil
 	case 146:
 		return "sonic", nil
+	case 0:
+		return "solana", nil
 	default:
 		return "", ErrChainUnsupported
 	}
