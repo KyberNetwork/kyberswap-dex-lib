@@ -8,6 +8,34 @@ import (
 	constant "github.com/KyberNetwork/kyberswap-dex-lib/pkg/util/bignumber"
 )
 
+func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
+	return p.calcAmountIn(param.TokenAmountOut, param.TokenIn, param.Limit)
+}
+
+func (p *PoolSimulator) calcAmountIn(
+	tokenAmountOut pool.TokenAmount,
+	tokenIn string,
+	limit pool.SwapLimit,
+) (*pool.CalcAmountInResult, error) {
+	swapSide := p.getSwapSide(tokenIn, tokenAmountOut.Token)
+	amountIn, swapInfo, feeAmount, err := p.calcAmountInWithSwapInfo(swapSide, tokenAmountOut, limit)
+	if err != nil {
+		return nil, err
+	}
+	return &pool.CalcAmountInResult{
+		TokenAmountIn: &pool.TokenAmount{
+			Token:  tokenIn,
+			Amount: amountIn,
+		},
+		Fee: &pool.TokenAmount{
+			Token:  tokenIn,
+			Amount: feeAmount,
+		},
+		Gas:      p.estimateGas(len(swapInfo.FilledOrders)),
+		SwapInfo: swapInfo,
+	}, nil
+}
+
 func (p *PoolSimulator) calcAmountInWithSwapInfo(swapSide SwapSide, tokenAmountOut pool.TokenAmount, limit pool.SwapLimit) (*big.Int, SwapInfo, *big.Int, error) {
 	orderIDs := p.getOrderIDsBySwapSide(swapSide)
 	if len(orderIDs) == 0 {

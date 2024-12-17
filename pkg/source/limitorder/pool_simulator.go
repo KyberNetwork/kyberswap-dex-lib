@@ -108,10 +108,6 @@ func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.Cal
 	return p.calcAmountOut(param.TokenAmountIn, param.TokenOut, param.Limit)
 }
 
-func (p *PoolSimulator) CalcAmountIn(param pool.CalcAmountInParams) (*pool.CalcAmountInResult, error) {
-	return p.calcAmountIn(param.TokenAmountOut, param.TokenIn, param.Limit)
-}
-
 func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
 	cloned := *p
 	cloned.ordersMapping = lo.MapEntries(p.ordersMapping, func(k int64, v *order) (int64, *order) {
@@ -177,30 +173,6 @@ func (p *PoolSimulator) calcAmountOut(
 		},
 		Fee: &pool.TokenAmount{
 			Token:  tokenOut,
-			Amount: feeAmount,
-		},
-		Gas:      p.estimateGas(len(swapInfo.FilledOrders)),
-		SwapInfo: swapInfo,
-	}, nil
-}
-
-func (p *PoolSimulator) calcAmountIn(
-	tokenAmountOut pool.TokenAmount,
-	tokenIn string,
-	limit pool.SwapLimit,
-) (*pool.CalcAmountInResult, error) {
-	swapSide := p.getSwapSide(tokenIn, tokenAmountOut.Token)
-	amountIn, swapInfo, feeAmount, err := p.calcAmountInWithSwapInfo(swapSide, tokenAmountOut, limit)
-	if err != nil {
-		return nil, err
-	}
-	return &pool.CalcAmountInResult{
-		TokenAmountIn: &pool.TokenAmount{
-			Token:  tokenIn,
-			Amount: amountIn,
-		},
-		Fee: &pool.TokenAmount{
-			Token:  tokenIn,
 			Amount: feeAmount,
 		},
 		Gas:      p.estimateGas(len(swapInfo.FilledOrders)),
