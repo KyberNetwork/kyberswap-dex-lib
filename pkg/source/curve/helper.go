@@ -98,7 +98,7 @@ func convertToEtherAddress(address string, chain int) string {
 
 func safeCastBigIntToString(num *big.Int) string {
 	if num == nil {
-		return emptyString
+		return zeroString
 	}
 
 	return num.String()

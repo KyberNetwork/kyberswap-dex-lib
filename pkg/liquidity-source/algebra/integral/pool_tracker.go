@@ -232,7 +232,7 @@ func (d *PoolTracker) fetchRPCData(ctx context.Context, p entity.Pool, blockNumb
 
 	res.State = GlobalState{
 		Price:        uint256.MustFromBig(rpcState.Price),
-		Tick:         int32(rpcState.Tick.Uint64()),
+		Tick:         int32(rpcState.Tick.Int64()),
 		LastFee:      rpcState.LastFee,
 		PluginConfig: rpcState.PluginConfig,
 		CommunityFee: rpcState.CommunityFee,

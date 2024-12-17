@@ -70,6 +70,7 @@ var (
 	ExchangeCurve         Exchange = "curve"
 	ExchangeEllipsis      Exchange = "ellipsis"
 	ExchangePancakeStable Exchange = "pancake-stable"
+	ExchangeZkSwapStable  Exchange = "zkswap-stable"
 
 	ExchangeCurveStablePlain  Exchange = "curve-stable-plain"
 	ExchangeCurveStableNg     Exchange = "curve-stable-ng"
@@ -157,9 +158,11 @@ var (
 	ExchangeRamsesV2    Exchange = "ramses-v2"
 	ExchangePharaohV2   Exchange = "pharaoh-v2"
 	ExchangeDackieV3    Exchange = "dackie-v3"
+	ExchangeZkSwapV3    Exchange = "zkswap-v3"
 	ExchangeHoriza      Exchange = "horiza"
 	ExchangeBaseSwapV3  Exchange = "baseswap-v3"
 	ExchangeArbiDexV3   Exchange = "arbidex-v3"
+	ExchangeSuperSwapV3 Exchange = "superswap-v3"
 	ExchangeWagmi       Exchange = "wagmi"
 	ExchangeMetavaultV3 Exchange = "metavault-v3"
 	ExchangeSolidlyV3   Exchange = "solidly-v3"
@@ -212,7 +215,10 @@ var (
 	ExchangeWombat     Exchange = "wombat"
 	ExchangeMantisSwap Exchange = "mantisswap"
 
-	ExchangeSyncSwap Exchange = "syncswap"
+	ExchangeSyncSwap          Exchange = "syncswap"
+	ExchangeSyncSwapV2Classic Exchange = "syncswapv2-classic"
+	ExchangeSyncSwapV2Stable  Exchange = "syncswapv2-stable"
+	ExchangeSyncSwapV2Aqua    Exchange = "syncswapv2-aqua"
 
 	ExchangeMaverickV1 Exchange = "maverick-v1"
 
@@ -343,9 +349,11 @@ var (
 	ExchangeSectaV2        Exchange = "secta-v2"
 	ExchangeSectaV3        Exchange = "secta-v3"
 	ExchangeQuickSwapUniV3 Exchange = "quickswap-uni-v3"
-	ExchangeAmbient        Exchange = "ambient"
+	ExchangeHoldFun        Exchange = "hold-fun"
 
-	ExchangeMaverickV2       Exchange = "maverick-v2"
+	ExchangeAmbient    Exchange = "ambient"
+	ExchangeMaverickV2 Exchange = "maverick-v2"
+
 	ExchangeEtherVista       Exchange = "ether-vista"
 	ExchangeLitePSM          Exchange = "lite-psm"
 	ExchangeMkrSky           Exchange = "mkr-sky"
@@ -373,6 +381,8 @@ var (
 	ExchangeScribe           Exchange = "scribe"
 	ExchangeHorizonIntegral  Exchange = "horizon-integral"
 	ExchangeMxTrading        Exchange = "mx-trading"
+	ExchangeLO1inch          Exchange = "lo1inch"
+	ExchangeVirtualFun       Exchange = "virtual-fun"
 )
 
 var AMMSourceSet = map[Exchange]struct{}{
@@ -441,6 +451,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeCurveTwoCryptoNg:           {},
 	ExchangeEllipsis:                   {},
 	ExchangePancakeStable:              {},
+	ExchangeZkSwapStable:               {},
 	ExchangeUniSwapV3:                  {},
 	ExchangeKyberswapElastic:           {},
 	ExchangeBalancer:                   {},
@@ -504,9 +515,11 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSushiSwapV3:                {},
 	ExchangeRamsesV2:                   {},
 	ExchangeDackieV3:                   {},
+	ExchangeZkSwapV3:                   {},
 	ExchangeHoriza:                     {},
 	ExchangeBaseSwapV3:                 {},
 	ExchangeArbiDexV3:                  {},
+	ExchangeSuperSwapV3:                {},
 	ExchangeWagmi:                      {},
 	ExchangeMetavaultV3:                {},
 	ExchangeSolidlyV3:                  {},
@@ -548,6 +561,9 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeWombat:                     {},
 	ExchangeMantisSwap:                 {},
 	ExchangeSyncSwap:                   {},
+	ExchangeSyncSwapV2Classic:          {},
+	ExchangeSyncSwapV2Stable:           {},
+	ExchangeSyncSwapV2Aqua:             {},
 	ExchangeMaverickV1:                 {},
 	ExchangeKyberSwapLimitOrderDS:      {},
 	ExchangeKyberPMM:                   {},
@@ -653,6 +669,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSectaV2:                    {},
 	ExchangeSectaV3:                    {},
 	ExchangeQuickSwapUniV3:             {},
+	ExchangeHoldFun:                    {},
 	ExchangeAmbient:                    {},
 	ExchangeMaverickV2:                 {},
 	ExchangeEtherVista:                 {},
@@ -680,6 +697,7 @@ var AMMSourceSet = map[Exchange]struct{}{
 	ExchangeSilverSwap:                 {},
 	ExchangeScribe:                     {},
 	ExchangeHorizonIntegral:            {},
+	ExchangeVirtualFun:                 {},
 }
 
 func IsAMMSource(exchange Exchange) bool {
@@ -700,6 +718,7 @@ var RFQSourceSet = map[Exchange]struct{}{
 	ExchangeClipper:    {},
 	ExchangeDexalot:    {},
 	ExchangeMxTrading:  {},
+	ExchangeLO1inch:    {},
 }
 
 func IsRFQSource(exchange Exchange) bool {
