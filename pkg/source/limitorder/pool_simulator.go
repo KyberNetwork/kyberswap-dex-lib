@@ -7,6 +7,7 @@ import (
 
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
+	"github.com/samber/lo"
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/entity"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
@@ -105,6 +106,20 @@ func NewPoolSimulator(entityPool entity.Pool) (*PoolSimulator, error) {
 
 func (p *PoolSimulator) CalcAmountOut(param pool.CalcAmountOutParams) (*pool.CalcAmountOutResult, error) {
 	return p.calcAmountOut(param.TokenAmountIn, param.TokenOut, param.Limit)
+}
+
+func (p *PoolSimulator) CloneState() pool.IPoolSimulator {
+	cloned := *p
+	cloned.ordersMapping = lo.MapEntries(p.ordersMapping, func(k int64, v *order) (int64, *order) {
+		c := *v
+		c.FilledTakingAmount = new(big.Int).Set(v.FilledTakingAmount)
+		c.FilledMakingAmount = new(big.Int).Set(v.FilledMakingAmount)
+		if c.AvailableMakingAmount != nil {
+			c.AvailableMakingAmount = new(big.Int).Set(v.AvailableMakingAmount)
+		}
+		return k, &c
+	})
+	return &cloned
 }
 
 func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
