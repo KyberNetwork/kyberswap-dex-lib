@@ -100,6 +100,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 	input, output := params.TokenAmountIn, params.TokenAmountOut
 	if strings.EqualFold(input.Token, DAIAddress) {
 		p.PSM.updateBalanceBuyingGem(input.Amount)
+		return
 	}
 
 	p.PSM.updateBalanceSellingGem(output.Amount)
