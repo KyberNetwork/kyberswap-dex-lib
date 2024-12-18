@@ -6,6 +6,7 @@ import (
 
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/pooltypes"
 	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/source/pool"
+	dexValueObject "github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/KyberNetwork/router-service/internal/pkg/usecase/types"
 	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 	mapset "github.com/deckarep/golang-set/v2"
@@ -66,11 +67,21 @@ func (f *SafetyQuoteReduction) GetSafetyQuotingRate(params types.SafetyQuotingPa
 		return 0
 	}
 
+	// Check converter exchanges
+	switch params.Exchange {
+	case dexValueObject.ExchangeFrxETH, dexValueObject.ExchangeDaiUsds,
+		dexValueObject.ExchangeUsd0PP, dexValueObject.ExchangeOETH,
+		dexValueObject.ExchangePolMatic:
+		return f.deductionFactorInBps[types.Converter]
+	}
+
 	// Check safety quoting rate by pool types
 	switch params.PoolType {
 	case pooltypes.PoolTypes.LimitOrder, pooltypes.PoolTypes.KyberPMM,
 		pooltypes.PoolTypes.HashflowV3, pooltypes.PoolTypes.NativeV1,
-		pooltypes.PoolTypes.SwaapV2:
+		pooltypes.PoolTypes.SwaapV2, pooltypes.PoolTypes.Dexalot,
+		pooltypes.PoolTypes.Bebop, pooltypes.PoolTypes.Clipper,
+		pooltypes.PoolTypes.LO1inch, pooltypes.PoolTypes.MxTrading:
 		return f.deductionFactorInBps[types.StrictlyStable]
 	}
 
@@ -91,8 +102,9 @@ func (f *SafetyQuoteReduction) GetSafetyQuotingRate(params types.SafetyQuotingPa
 
 // This function wrap the whole logic of safety quoting calculation
 // which is describe in https://www.notion.so/kybernetwork/Safety-Quoting-for-KyberSwap-DEX-Aggregator-a673869729fe45adae8e1258ab6e43f4?pvs=4
+// Deduction factor can be positive in optimistic case
 func (f *SafetyQuoteReduction) Reduce(amount *pool.TokenAmount, deductionFactor float64) pool.TokenAmount {
-	if deductionFactor <= 0 {
+	if deductionFactor == 0 {
 		return *amount
 	}
 	// convert deductionFactor from float to integer by multiply it by 10, then we will div (BasisPoint * 10)
@@ -121,7 +133,7 @@ func getFactor(config *valueobject.SafetyQuoteReductionConfig) map[types.SafetyQ
 		// if remote config doesn't contains enough value, default value will be used instead.
 		if v, ok := config.Factor[string(category)]; ok {
 			factors[category] = v
-		} else if value, ok := config.Factor[strings.ToLower(string(category))]; !ok {
+		} else if value, ok := config.Factor[strings.ToLower(string(category))]; ok {
 			factors[category] = value
 		} else {
 			factors[category] = defaultVal

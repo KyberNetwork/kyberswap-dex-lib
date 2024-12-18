@@ -18,9 +18,8 @@ import (
 )
 
 type IndexPoolsJob struct {
-	getAllPoolAddressesUseCase IGetAllPoolAddressesUseCase
-	indexPoolsUseCase          IIndexPoolsUseCase
-	poolEventsStreamConsumer   consumer.Consumer[*message.EventMessage]
+	indexPoolsUseCase        IIndexPoolsUseCase
+	poolEventsStreamConsumer consumer.Consumer[*message.EventMessage]
 
 	lastScanSuccessTime int64
 
@@ -28,13 +27,12 @@ type IndexPoolsJob struct {
 	mu     sync.RWMutex
 }
 
-func NewIndexPoolsJob(poolUseCase IGetAllPoolAddressesUseCase, indexPoolsUseCase IIndexPoolsUseCase,
+func NewIndexPoolsJob(indexPoolsUseCase IIndexPoolsUseCase,
 	streamConsumer *consumer.PoolEventsStreamConsumer, config IndexPoolsJobConfig) *IndexPoolsJob {
 	return &IndexPoolsJob{
-		getAllPoolAddressesUseCase: poolUseCase,
-		indexPoolsUseCase:          indexPoolsUseCase,
-		poolEventsStreamConsumer:   streamConsumer,
-		config:                     config,
+		indexPoolsUseCase:        indexPoolsUseCase,
+		poolEventsStreamConsumer: streamConsumer,
+		config:                   config,
 	}
 }
 

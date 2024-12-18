@@ -1,6 +1,10 @@
 package valueobject
 
-type ChainID uint
+import (
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
+type ChainID = valueobject.ChainID
 
 const (
 	ChainIDEthereum        ChainID = 1
@@ -31,7 +35,7 @@ const (
 	ChainIDScroll          ChainID = 534352
 	ChainIDBlast           ChainID = 81457
 	ChainIDMantle          ChainID = 5000
-	ChainIDXlayer          ChainID = 196
+	ChainIDSonic           ChainID = 146
 )
 
 var l2EncoderSupportedChains = map[ChainID]struct{}{

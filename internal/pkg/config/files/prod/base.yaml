@@ -190,8 +190,14 @@ encoder:
   executorAddressByClientID:
     unibot-tg: 0x1BC5cF80f308518f000dDE4c8f8139268aA014DB
     defillama: *l2ExecutorAddress
+    llamaswap: *l2ExecutorAddress
   partnerPositiveSlippageInfo:
     defillama:
+      receiver:
+      percent:
+      feeMode:
+      feeSharingAddress:
+    llamaswap:
       receiver:
       percent:
       feeMode:
@@ -360,6 +366,7 @@ useCase:
       excludeOneSwapEnable: true
       factor:
         Default: 0
+        Converter: 0
         StrictlyStable: 0
         Stable: 0.5
         Correlated: 1.5
@@ -418,6 +425,7 @@ useCase:
       minSlippageThreshold: 1000
       whitelistedTokenSet: *whitelistedTokenSet
     rfqAcceptableSlippageFraction: 1000
+    faultyPoolDetectorDisabled: false
   poolFactory:
     chainId: *chainId
     useAEVM: *useAEVM

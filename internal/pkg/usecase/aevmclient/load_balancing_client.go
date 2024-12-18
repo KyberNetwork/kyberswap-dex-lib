@@ -3,6 +3,7 @@ package aevmclient
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/sets"
 
+	"github.com/KyberNetwork/router-service/internal/pkg/usecase/aevmclient/stats"
 	"github.com/KyberNetwork/router-service/internal/pkg/utils/tracer"
 	"github.com/KyberNetwork/router-service/pkg/logger"
 )
@@ -23,7 +25,7 @@ type Closer interface {
 
 type MakeClient = func(url string) (aevmclient.Client, error)
 
-type Client struct {
+type LoadBalancingClient struct {
 	cfg               Config
 	makeClientFunc    MakeClient
 	clients           []aevmclient.Client // clients[i]'s URL = cfg.ServerURLs[i]
@@ -31,12 +33,14 @@ type Client struct {
 	publishingClients []aevmclient.Client // publishingClients[i]'s URL = cfg.PublishingURLs[i]
 	curIndex          atomic.Uint64
 	lock              sync.RWMutex // lock for mutating clients list
+	quitCh            chan struct{}
+	multipleCallStats *stats.ShardedStats[time.Duration]
 
 	retryOnTimeout          time.Duration
 	findrouteRetryOnTimeout time.Duration
 }
 
-func NewClient(cfg Config, makeClientFunc MakeClient) (*Client, error) {
+func NewLoadBalancingClient(cfg Config, makeClientFunc MakeClient) (*LoadBalancingClient, error) {
 	// unique ServerURLs
 	cfg.ServerURLs = sets.NewString(cfg.ServerURLs...).List()
 	clients := make([]aevmclient.Client, len(cfg.ServerURLs))
@@ -61,21 +65,37 @@ func NewClient(cfg Config, makeClientFunc MakeClient) (*Client, error) {
 		publishingClients[i] = client
 	}
 
-	return &Client{
+	c := &LoadBalancingClient{
 		cfg:               cfg,
 		makeClientFunc:    makeClientFunc,
 		clients:           clients,
 		clientWg:          clientWg,
 		publishingClients: publishingClients,
+		quitCh:            make(chan struct{}),
+		multipleCallStats: stats.NewShardedStats(runtime.GOMAXPROCS(0), func(a, b time.Duration) int {
+			if a.Microseconds() < b.Microseconds() {
+				return -1
+			}
+			if a.Microseconds() > b.Microseconds() {
+				return 1
+			}
+			return 0
+		}),
 
 		retryOnTimeout:          time.Duration(cfg.RetryOnTimeoutMs) * time.Millisecond,
 		findrouteRetryOnTimeout: time.Duration(cfg.FindrouteRetryOnTimeoutMs) * time.Millisecond,
-	}, nil
+	}
+
+	go c.ReportMultipleCallStatsRoutine()
+
+	return c, nil
 }
 
-func (c *Client) Close() {
+func (c *LoadBalancingClient) Close() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
+
+	close(c.quitCh)
 
 	for _, client := range c.clients {
 		// we don't wait for client
@@ -90,7 +110,7 @@ func (c *Client) Close() {
 	}
 }
 
-func (c *Client) ApplyConfig(cfg Config) {
+func (c *LoadBalancingClient) ApplyConfig(cfg Config) {
 	if len(cfg.ServerURLs) == 0 {
 		return
 	}
@@ -144,7 +164,7 @@ func (c *Client) ApplyConfig(cfg Config) {
 	}()
 }
 
-func (c *Client) accquireNextClient() (client aevmclient.Client, done func()) {
+func (c *LoadBalancingClient) accquireNextClient() (client aevmclient.Client, done func()) {
 	var wg *sync.WaitGroup
 
 	// accquire read lock to safely get next index
@@ -160,7 +180,7 @@ func (c *Client) accquireNextClient() (client aevmclient.Client, done func()) {
 	return
 }
 
-func withRetry[R any](ctx context.Context, c *Client, onTimeout time.Duration, op func(context.Context, aevmclient.Client) (R, error)) (R, error) {
+func withRetry[R any](ctx context.Context, c *LoadBalancingClient, onTimeout time.Duration, op func(context.Context, aevmclient.Client) (R, error)) (R, error) {
 	var (
 		result R
 		err    error
@@ -188,7 +208,7 @@ func withRetry[R any](ctx context.Context, c *Client, onTimeout time.Duration, o
 
 // LatestStateRoot returns the latest state root hash from AEVM
 // It returns empty hash if error, so the consumer of this function should handle it accordingly
-func (c *Client) LatestStateRoot(ctx context.Context) (aevmcommon.Hash, error) {
+func (c *LoadBalancingClient) LatestStateRoot(ctx context.Context) (aevmcommon.Hash, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] LatestStateRoot")
 	defer span.End()
 
@@ -203,7 +223,7 @@ func (c *Client) LatestStateRoot(ctx context.Context) (aevmcommon.Hash, error) {
 	return hash, nil
 }
 
-func (c *Client) SingleCall(ctx context.Context, req *aevmtypes.SingleCallParams) (*aevmtypes.CallResult, error) {
+func (c *LoadBalancingClient) SingleCall(ctx context.Context, req *aevmtypes.SingleCallParams) (*aevmtypes.CallResult, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] SingleCall")
 	defer span.End()
 
@@ -212,16 +232,20 @@ func (c *Client) SingleCall(ctx context.Context, req *aevmtypes.SingleCallParams
 	})
 }
 
-func (c *Client) MultipleCall(ctx context.Context, req *aevmtypes.MultipleCallParams) (*aevmtypes.MultipleCallResult, error) {
+func (c *LoadBalancingClient) MultipleCall(ctx context.Context, req *aevmtypes.MultipleCallParams) (*aevmtypes.MultipleCallResult, error) {
+	startTime := time.Now()
 	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] MultipleCall")
-	defer span.End()
+	defer func() {
+		c.multipleCallStats.Add(startTime, time.Since(startTime))
+		span.End()
+	}()
 
 	return withRetry(ctx, c, c.retryOnTimeout, func(ctx context.Context, client aevmclient.Client) (*aevmtypes.MultipleCallResult, error) {
 		return client.MultipleCall(ctx, req)
 	})
 }
 
-func (c *Client) StorePreparedPools(ctx context.Context, req *aevmtypes.StorePreparedPoolsParams) (*aevmtypes.StorePreparedPoolsResult, error) {
+func (c *LoadBalancingClient) StorePreparedPools(ctx context.Context, req *aevmtypes.StorePreparedPoolsParams) (*aevmtypes.StorePreparedPoolsResult, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] StorePreparedPools")
 	defer span.End()
 
@@ -257,11 +281,43 @@ func (c *Client) StorePreparedPools(ctx context.Context, req *aevmtypes.StorePre
 	return &aevmtypes.StorePreparedPoolsResult{StorageID: storageIDs[0]}, nil
 }
 
-func (c *Client) FindRoute(ctx context.Context, req *aevmtypes.FindRouteParams) (*aevmtypes.FindRouteResult, error) {
+func (c *LoadBalancingClient) FindRoute(ctx context.Context, req *aevmtypes.FindRouteParams) (*aevmtypes.FindRouteResult, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] FindRoute")
 	defer span.End()
 
 	return withRetry(ctx, c, c.findrouteRetryOnTimeout, func(ctx context.Context, client aevmclient.Client) (*aevmtypes.FindRouteResult, error) {
 		return client.FindRoute(ctx, req)
 	})
+}
+
+func (c *LoadBalancingClient) ReportMultipleCallStatsRoutine() {
+	// this code is copied from https://github.com/KyberNetwork/cevm/blob/9b327c77afe9efb31e8f898fdf934e1f67d319d7/aevmserver/stats/stats_streamer.go#L25
+
+	var (
+		ticker                = time.NewTicker(1 * time.Second)
+		windowDuration        = 5 * time.Minute
+		percentile     uint64 = 95
+		requestCounter uint64
+	)
+
+	for {
+		select {
+		case <-ticker.C:
+			windowEnd := time.Now()
+			windowStart := windowEnd.Add(-windowDuration)
+			windowEnd = windowEnd.Add(1 * time.Microsecond)
+
+			nextRequestCounter, requestDurations := c.multipleCallStats.Query(windowStart, windowEnd)
+			numRequest := nextRequestCounter - requestCounter
+			requestCounter = nextRequestCounter
+
+			var requestDurationByPercentile time.Duration
+			if d := stats.PN(requestDurations, int(percentile)); d != nil {
+				requestDurationByPercentile = *d
+			}
+			fmt.Printf("MultipleCall stats: { numRequest: %d, request_duration_p%d: %dus }\n", numRequest, percentile, requestDurationByPercentile.Microseconds())
+		case <-c.quitCh:
+			break
+		}
+	}
 }

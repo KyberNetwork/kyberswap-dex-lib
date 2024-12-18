@@ -120,8 +120,14 @@ encoder:
   minimumPSThreshold: 1000000
   executorAddressByClientID:
     defillama: *executorAddress
+    llamaswap: *executorAddress
   partnerPositiveSlippageInfo:
     defillama:
+      receiver:
+      percent:
+      feeMode:
+      feeSharingAddress:
+    llamaswap:
       receiver:
       percent:
       feeMode:
@@ -253,6 +259,7 @@ useCase:
       excludeOneSwapEnable: true
       factor:
         Default: 0
+        Converter: 0
         StrictlyStable: 0
         Stable: 0.5
         Correlated: 1.5
@@ -297,6 +304,7 @@ useCase:
             timeout: 10s
             retry_count: 3
     rfqAcceptableSlippageFraction: 1000
+    faultyPoolDetectorDisabled: false
   poolFactory:
     chainId: *chainId
   poolManager:

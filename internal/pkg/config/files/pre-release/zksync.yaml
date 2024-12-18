@@ -130,8 +130,14 @@ encoder:
   minimumPSThreshold: 1000000
   executorAddressByClientID:
     defillama: *executorAddress
+    llamaswap: *executorAddress
   partnerPositiveSlippageInfo:
     defillama:
+      receiver:
+      percent:
+      feeMode:
+      feeSharingAddress:
+    llamaswap:
       receiver:
       percent:
       feeMode:
@@ -264,6 +270,7 @@ useCase:
       excludeOneSwapEnable: true
       factor:
         Default: 0
+        Converter: 0
         StrictlyStable: 0
         Stable: 0.5
         Correlated: 1.5
@@ -287,6 +294,7 @@ useCase:
           chainID: *chainId
           limitOrderHTTPUrl: http://limit-order.pre-release-patch1-cluster.gke.production.internal
     rfqAcceptableSlippageFraction: 1000
+    faultyPoolDetectorDisabled: false
   poolFactory:
     chainId: *chainId
   poolManager:

@@ -554,7 +554,7 @@ func (uc *BuildRouteUseCase) estimateGas(ctx context.Context, routeSummary value
 		if err != nil {
 			return 0, 0.0, 0, ErrEstimateGasFailed(err)
 		}
-	} else if uc.config.FeatureFlags.IsFaultyPoolDetectorEnable && !utils.IsEmptyString(command.Sender) {
+	} else if uc.config.FeatureFlags.IsFaultyPoolDetectorEnable && !uc.config.FaultyPoolDetectorDisabled && !utils.IsEmptyString(command.Sender) {
 		go func(ctx context.Context) {
 			_, err := uc.gasEstimator.EstimateGas(ctx, tx)
 			uc.sendEstimateGasLogsAndMetrics(ctx, routeSummary, err, command.SlippageTolerance)
