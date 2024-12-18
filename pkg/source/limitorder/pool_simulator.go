@@ -263,9 +263,9 @@ func (p *PoolSimulator) calcAmountOutWithSwapInfo(swapSide SwapSide, tokenAmount
 		if remainingTakingAmountWei.Cmp(totalAmountInAfterFee) >= 0 {
 			filledTakingAmountWei := totalAmountInAfterFee
 			filledMakingAmountWei := new(big.Int).Div(
-				new(big.Int).Mul(filledTakingAmountWei, remainingMakingAmountWei),
-				remainingTakingAmountWei,
-			) // filledMakingAmountWei = filledTakingAmountWei * remainingMakingAmountWei / remainingTakingAmountWei
+				new(big.Int).Mul(filledTakingAmountWei, order.MakingAmount),
+				order.TakingAmount,
+			) // filledMakingAmountWei = filledTakingAmountWei * order.MakingAmount / order.TakingAmount
 
 			// order too small
 			if filledMakingAmountWei.Sign() <= 0 {
