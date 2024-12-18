@@ -35,6 +35,7 @@ type RouteCacheKey struct {
 	Dexes         []string
 	GasInclude    bool
 	ExcludedPools []string
+	Index         string
 }
 
 type RouteCacheKeyTTL struct {
@@ -44,7 +45,7 @@ type RouteCacheKeyTTL struct {
 
 // String receives prefix and returns cache key
 func (k *RouteCacheKey) String(prefix string) string {
-	return utils.Join(
+	args := []interface{}{
 		prefix,
 		strings.Join([]string{k.TokenIn, k.TokenOut}, RouteCacheKeyTokensDelimiter),
 		k.SaveGas,
@@ -53,7 +54,11 @@ func (k *RouteCacheKey) String(prefix string) string {
 		strings.Join(k.Dexes, RouteCacheKeyDexesDelimiter),
 		k.GasInclude,
 		strings.Join(k.ExcludedPools, RouteCacheKeyExcludedPoolsDelimiter),
-	)
+	}
+	if k.Index != "" {
+		args = append(args, k.Index)
+	}
+	return utils.Join(args...)
 }
 
 // Hash produces a quick statistically unique hash for RouteCacheKey. This hash is NOT cryptographically secure.
@@ -67,6 +72,9 @@ func (k *RouteCacheKey) Hash(prefix string) uint64 {
 	}
 	_, _ = d.WriteString(k.CacheMode)
 	_, _ = d.WriteString(k.AmountIn)
+	if k.Index != "" {
+		_, _ = d.WriteString(k.Index)
+	}
 	dexHash := uint64(0)
 	for _, dex := range k.Dexes {
 		dexHash ^= xxhash.Sum64String(dex)

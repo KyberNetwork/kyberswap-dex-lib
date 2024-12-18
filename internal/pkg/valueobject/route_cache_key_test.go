@@ -36,6 +36,22 @@ func TestRouteCacheKey_String(t *testing.T) {
 		assert.Equal(t, key.String("prefix"),
 			"prefix:0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be-0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7:1:token:5000000000000000000000:gmx-uniswap:1:0x")
 	})
+	t.Run("it should return correct key with index", func(t *testing.T) {
+		key := RouteCacheKey{
+			TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+			TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+			SaveGas:       true,
+			CacheMode:     RouteCacheModePoint,
+			AmountIn:      "5000000000000000000000",
+			Dexes:         []string{"gmx", "uniswap"},
+			GasInclude:    true,
+			ExcludedPools: []string{"0x"},
+			Index:         "composite",
+		}
+
+		assert.Equal(t, key.String("prefix"),
+			"prefix:0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be-0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7:1:token:5000000000000000000000:gmx-uniswap:1:0x:composite")
+	})
 }
 
 func TestRouteCacheKey_Hash(t *testing.T) {
@@ -91,6 +107,60 @@ func TestRouteCacheKey_Hash(t *testing.T) {
 			assert.NotEqual(t, key1.Hash("prefix"), key2.Hash("prefix"),
 				"extraDex=dex%d", extraDex)
 		}
+	})
+	t.Run("same indexes should return same hashes", func(t *testing.T) {
+		key1 := RouteCacheKey{
+			TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+			TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+			SaveGas:       true,
+			CacheMode:     RouteCacheModePoint,
+			AmountIn:      "5000000000000000000000",
+			Dexes:         []string{"gmx", "uniswap"},
+			GasInclude:    true,
+			ExcludedPools: []string{"0x1", "0x2"},
+			Index:         "composite",
+		}
+
+		key2 := RouteCacheKey{
+			TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+			TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+			SaveGas:       true,
+			CacheMode:     RouteCacheModePoint,
+			AmountIn:      "5000000000000000000000",
+			Dexes:         []string{"uniswap", "gmx"},
+			GasInclude:    true,
+			ExcludedPools: []string{"0x2", "0x1"},
+			Index:         "composite",
+		}
+
+		assert.Equal(t, key1.Hash("prefix"), key2.Hash("prefix"))
+	})
+	t.Run("different indexes should return different hashes", func(t *testing.T) {
+		key1 := RouteCacheKey{
+			TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+			TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+			SaveGas:       true,
+			CacheMode:     RouteCacheModePoint,
+			AmountIn:      "5000000000000000000000",
+			Dexes:         []string{"gmx", "uniswap"},
+			GasInclude:    true,
+			ExcludedPools: []string{"0x1", "0x2"},
+			Index:         "composite",
+		}
+
+		key2 := RouteCacheKey{
+			TokenIn:       "0x2b2c81e08f1af8835a78bb2a90ae924ace0ea4be",
+			TokenOut:      "0xb31f66aa3c1e785363f0875a1b74e27b85fd66c7",
+			SaveGas:       true,
+			CacheMode:     RouteCacheModePoint,
+			AmountIn:      "5000000000000000000000",
+			Dexes:         []string{"uniswap", "gmx"},
+			GasInclude:    true,
+			ExcludedPools: []string{"0x2", "0x1"},
+			Index:         "nativeTvl",
+		}
+
+		assert.NotEqual(t, key1.Hash("prefix"), key2.Hash("prefix"))
 	})
 }
 

@@ -120,6 +120,7 @@ func (g *routeKeyGenerator) genKeyByCachePointTTL(params *types.AggregateParams)
 				GasInclude:    params.GasInclude,
 				Dexes:         params.Sources,
 				ExcludedPools: setToSlice(params.ExcludedPools),
+				Index:         string(params.Index),
 			}, cachePoint.TTL, nil
 		}
 	}
@@ -147,6 +148,7 @@ func (g *routeKeyGenerator) genKeyByAmountInUSD(params *types.AggregateParams, a
 			GasInclude:    params.GasInclude,
 			Dexes:         params.Sources,
 			ExcludedPools: setToSlice(params.ExcludedPools),
+			Index:         string(params.Index),
 		},
 		TTL: ttl,
 	}), nil
@@ -186,6 +188,7 @@ func (g *routeKeyGenerator) genKeyByAmountIn(params *types.AggregateParams) (map
 					GasInclude:    params.GasInclude,
 					Dexes:         params.Sources,
 					ExcludedPools: setToSlice(params.ExcludedPools),
+					Index:         string(params.Index),
 				},
 				TTL: ttl,
 			})
