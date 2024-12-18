@@ -3,9 +3,8 @@ package eth
 import (
 	"strings"
 
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
 	"github.com/pkg/errors"
-
-	"github.com/KyberNetwork/router-service/internal/pkg/valueobject"
 )
 
 func IsEther(tokenAddress string) bool {

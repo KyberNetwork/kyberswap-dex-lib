@@ -1,6 +1,10 @@
 package valueobject
 
-type ChainID uint
+import (
+	"github.com/KyberNetwork/kyberswap-dex-lib/pkg/valueobject"
+)
+
+type ChainID = valueobject.ChainID
 
 const (
 	ChainIDEthereum        ChainID = 1

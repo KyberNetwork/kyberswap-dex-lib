@@ -90,7 +90,7 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 			if err := configViper.ReadInConfig(); err != nil {
 				return nil, fmt.Errorf("failed to read config path: %s, err: %w", configPath, err)
 			}
-			viper.MergeConfigMap(configViper.AllSettings())
+			_ = viper.MergeConfigMap(configViper.AllSettings())
 		}
 	}
 
@@ -112,11 +112,13 @@ func (cl *ConfigLoader) GetLocalConfig() (*Config, error) {
 			Host: "0.0.0.0",
 		}
 	}
+	c.Common.GasTokenAddress = strings.ToLower(c.Common.GasTokenAddress)
+	c.UseCase.GetRoute.GasTokenAddress = strings.ToLower(c.UseCase.GetRoute.GasTokenAddress)
 	c.UseCase.PoolFactory.UseAEVM = c.AEVMEnabled
 	c.UseCase.PoolManager.FeatureFlags.IsAEVMEnabled = c.AEVMEnabled
 	c.UseCase.TradeDataGenerator.UseAEVM = c.AEVMEnabled
-	fmt.Println(viper.GetString("ENV"))
-	fmt.Println("GOMAXPROCS: ", runtime.GOMAXPROCS(0))
+	fmt.Println("ENV:", viper.GetString("ENV"))
+	fmt.Println("GOMAXPROCS:", runtime.GOMAXPROCS(0))
 
 	return c, nil
 }
