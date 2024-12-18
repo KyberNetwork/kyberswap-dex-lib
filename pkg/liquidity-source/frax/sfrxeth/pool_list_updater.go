@@ -92,7 +92,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, _ []byte) ([]entity.
 			Timestamp: time.Now().Unix(),
 			Tokens: []*entity.PoolToken{
 				{
-					Address:   valueobject.WrapETHLower(valueobject.EtherAddress, u.config.ChainID),
+					Address:   valueobject.WrapNativeLower(valueobject.NativeAddress, u.config.ChainID),
 					Swappable: true,
 				},
 				{

@@ -198,7 +198,7 @@ func (u *PoolsListUpdater) initPools(exchanges []ExchangeInfo) ([]entity.Pool, e
 
 	for _, exchange := range exchanges {
 		token0 := &entity.PoolToken{
-			Address:   strings.ToLower(valueobject.WETHByChainID[u.config.ChainID]),
+			Address:   strings.ToLower(valueobject.WrappedNativeMap[u.config.ChainID]),
 			Swappable: true,
 		}
 
