@@ -586,7 +586,6 @@ func indexerAction(c *cli.Context) (err error) {
 	go onchainpriceRepository.RefreshCacheNativePriceInUSD(ctx)
 
 	// init use case
-	getAllPoolAddressesUseCase := usecase.NewGetAllPoolAddressesUseCase(poolRepo)
 	indexPoolsUseCase := indexpools.NewIndexPoolsUseCase(
 		poolRepo,
 		poolRankRepository,
@@ -597,7 +596,6 @@ func indexerAction(c *cli.Context) (err error) {
 		&cfg.Job.IndexPools.PoolEvent.ConsumerConfig)
 
 	indexPoolsJob := job.NewIndexPoolsJob(
-		getAllPoolAddressesUseCase,
 		indexPoolsUseCase,
 		poolEventStreamConsumer,
 		cfg.Job.IndexPools,

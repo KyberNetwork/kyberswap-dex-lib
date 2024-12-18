@@ -196,23 +196,10 @@ func probeBalanceSlotAction(c *cli.Context) error {
 			tokens[common.HexToAddress(token)] = struct{}{}
 		}
 	} else {
-		cursor = uint64(0)
-		for {
-			tokenAddresses, newCursor, err := poolRedisClient.Client.HScanNoValues(context.Background(),
-				utils.Join(cfg.PoolRedis.Prefix, token.KeyTokens), cursor, "", HashKeyReadChunkSize).Result()
-			if err != nil {
-				return err
-			}
-
-			for _, tokenAddress := range tokenAddresses {
-				if common.IsHexAddress(tokenAddress) {
-					tokens[common.HexToAddress(tokenAddress)] = struct{}{}
-				}
-			}
-
-			cursor = newCursor
-			if cursor == 0 {
-				break
+		tokensList := poolRedisClient.Client.HKeys(context.Background(), utils.Join(cfg.PoolRedis.Prefix, token.KeyTokens)).Val()
+		for _, token := range tokensList {
+			if common.IsHexAddress(token) {
+				tokens[common.HexToAddress(token)] = struct{}{}
 			}
 		}
 	}

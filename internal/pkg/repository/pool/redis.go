@@ -74,22 +74,7 @@ func NewRedisRepository(redisClient redis.UniversalClient, poolClient IPoolClien
 
 // FindAllAddresses returns all pool addresses
 func (r *redisRepository) FindAllAddresses(ctx context.Context) ([]string, error) {
-	poolAddresses := make([]string, 0, r.redisClient.HLen(ctx, r.keyPools).Val())
-	cursor := uint64(0)
-	for {
-		keys, newCursor, err := r.redisClient.HScanNoValues(ctx, r.keyPools, cursor, "", HashKeyReadChunkSize).Result()
-		if err != nil {
-			return nil, err
-		}
-
-		poolAddresses = append(poolAddresses, keys...)
-
-		cursor = newCursor
-		if cursor == 0 {
-			break
-		}
-	}
-	return poolAddresses, nil
+	return r.redisClient.HKeys(ctx, r.keyPools).Result()
 }
 
 func (r *redisRepository) GetPoolsInBlacklist(ctx context.Context) ([]string, error) {
