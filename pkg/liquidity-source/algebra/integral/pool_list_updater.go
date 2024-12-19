@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
+	"github.com/KyberNetwork/kutils"
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
 	"github.com/machinebox/graphql"
@@ -147,8 +148,8 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, metadataBytes, err
 		}
 
-		createdAtTimestamp, ok := new(big.Int).SetString(p.CreatedAtTimestamp, 10)
-		if !ok {
+		createdAtTimestamp, err := kutils.Atoi[int64](p.CreatedAtTimestamp)
+		if err != nil {
 			return nil, metadataBytes, fmt.Errorf("invalid CreatedAtTimestamp: %v, pool: %v", p.CreatedAtTimestamp, p.ID)
 		}
 
@@ -158,7 +159,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			AmplifiedTvl: 0,
 			Exchange:     d.config.DexID,
 			Type:         DexType,
-			Timestamp:    createdAtTimestamp.Int64(),
+			Timestamp:    createdAtTimestamp,
 			Reserves:     reserves,
 			Tokens:       tokens,
 			StaticExtra:  string(staticExtra),
