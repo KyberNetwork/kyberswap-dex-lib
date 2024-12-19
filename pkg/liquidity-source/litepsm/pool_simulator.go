@@ -133,6 +133,7 @@ func (p *PoolSimulator) UpdateBalance(params pool.UpdateBalanceParams) {
 
 	if strings.EqualFold(input.Token, DAIAddress) {
 		p.litePSM.updateBalanceBuyingGem(inputAmount, outputAmount)
+		return
 	}
 
 	p.litePSM.updateBalanceSellingGem(inputAmount, outputAmount)
