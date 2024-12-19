@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
-	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/logger"
@@ -148,13 +147,18 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			return nil, metadataBytes, err
 		}
 
+		createdAtTimestamp, ok := new(big.Int).SetString(p.CreatedAtTimestamp, 10)
+		if !ok {
+			return nil, metadataBytes, fmt.Errorf("invalid CreatedAtTimestamp: %v, pool: %v", p.CreatedAtTimestamp, p.ID)
+		}
+
 		var newPool = entity.Pool{
 			Address:      p.ID,
 			ReserveUsd:   0,
 			AmplifiedTvl: 0,
 			Exchange:     d.config.DexID,
 			Type:         DexType,
-			Timestamp:    time.Now().Unix(),
+			Timestamp:    createdAtTimestamp.Int64(),
 			Reserves:     reserves,
 			Tokens:       tokens,
 			StaticExtra:  string(staticExtra),

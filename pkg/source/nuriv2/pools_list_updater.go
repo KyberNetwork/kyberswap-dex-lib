@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
-	"time"
 
 	"github.com/KyberNetwork/blockchain-toolkit/integer"
 	"github.com/KyberNetwork/ethrpc"
@@ -141,6 +140,12 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			reserves = append(reserves, zeroString)
 		}
 
+		createdAtTimestamp, ok := new(big.Int).SetString(p.CreatedAtTimestamp, 10)
+		if !ok {
+			return nil, metadataBytes, fmt.Errorf("invalid CreatedAtTimestamp: %v, pool: %v",
+				p.CreatedAtTimestamp, p.ID)
+		}
+
 		var swapFee, _ = strconv.ParseFloat(p.FeeTier, 64)
 
 		extraBytes, _ := json.Marshal(extraField)
@@ -152,7 +157,7 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			SwapFee:      swapFee,
 			Exchange:     d.config.DexID,
 			Type:         DexType,
-			Timestamp:    time.Now().Unix(),
+			Timestamp:    createdAtTimestamp.Int64(),
 			Reserves:     reserves,
 			Tokens:       tokens,
 			Extra:        string(extraBytes),

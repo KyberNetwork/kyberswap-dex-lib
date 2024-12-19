@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
-	"time"
 
 	"github.com/KyberNetwork/logger"
 	"github.com/goccy/go-json"
@@ -138,13 +137,19 @@ func (d *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 			reserves = append(reserves, zeroString)
 		}
 
+		createdAtTimestamp, ok := new(big.Int).SetString(p.CreatedAtTimestamp, 10)
+		if !ok {
+			return nil, metadataBytes, fmt.Errorf("invalid CreatedAtTimestamp: %v, pool: %v",
+				p.CreatedAtTimestamp, p.ID)
+		}
+
 		var newPool = entity.Pool{
 			Address:      p.ID,
 			ReserveUsd:   0,
 			AmplifiedTvl: 0,
 			Exchange:     d.config.DexID,
 			Type:         DexTypeAlgebraV1,
-			Timestamp:    time.Now().Unix(),
+			Timestamp:    createdAtTimestamp.Int64(),
 			Reserves:     reserves,
 			Tokens:       tokens,
 		}
