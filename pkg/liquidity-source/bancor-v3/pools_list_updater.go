@@ -62,7 +62,7 @@ func (u *PoolsListUpdater) GetNewPools(ctx context.Context, metadataBytes []byte
 	)
 
 	for _, tokenAddress := range tokenAddresses {
-		addr := valueobject.WrapETHLower(tokenAddress, u.config.ChainID)
+		addr := valueobject.WrapNativeLower(tokenAddress, u.config.ChainID)
 		poolTokens = append(poolTokens, &entity.PoolToken{Address: addr, Swappable: true})
 		reserves = append(reserves, "0")
 	}
