@@ -1021,6 +1021,7 @@ func initializeAEVMComponents(ctx context.Context, cfg *config.Config, routerRed
 			RetryOnTimeoutMs:          cfg.AEVM.RetryOnTimeoutMs,
 			FindrouteRetryOnTimeoutMs: cfg.AEVM.FindrouteRetryOnTimeoutMs,
 			MaxRetry:                  cfg.AEVM.MaxRetry,
+			EnableStats:               cfg.AEVM.EnableStats,
 		},
 		func(serverURL string) (aevmclient.Client, error) {
 			return aevmclientuc.NewFixedPooledClient(clientPoolSize, serverURL, func(serverURL string) (aevmclient.Client, error) {

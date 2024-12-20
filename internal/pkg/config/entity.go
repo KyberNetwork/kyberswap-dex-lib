@@ -49,6 +49,9 @@ type AEVM struct {
 	// The maximum number of retry attempts. If zero, the request is performed once.
 	MaxRetry uint64 `mapstructure:"maxRetry"`
 
+	// Enable stats
+	EnableStats bool `mapstructure:"enableStats"`
+
 	// AddressesByDex Addresses needed to simulate a dex such as router and factory address.
 	AddressesByDex map[string]map[string]string `mapstructure:"addressesByDex"`
 

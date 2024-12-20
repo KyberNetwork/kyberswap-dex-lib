@@ -11,6 +11,7 @@ import (
 	aevmclient "github.com/KyberNetwork/aevm/client"
 	aevmcommon "github.com/KyberNetwork/aevm/common"
 	aevmtypes "github.com/KyberNetwork/aevm/types"
+	"github.com/KyberNetwork/kutils/klog"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -72,7 +73,13 @@ func NewLoadBalancingClient(cfg Config, makeClientFunc MakeClient) (*LoadBalanci
 		clientWg:          clientWg,
 		publishingClients: publishingClients,
 		quitCh:            make(chan struct{}),
-		multipleCallStats: stats.NewShardedStats(runtime.GOMAXPROCS(0), func(a, b time.Duration) int {
+
+		retryOnTimeout:          time.Duration(cfg.RetryOnTimeoutMs) * time.Millisecond,
+		findrouteRetryOnTimeout: time.Duration(cfg.FindrouteRetryOnTimeoutMs) * time.Millisecond,
+	}
+
+	if cfg.EnableStats {
+		c.multipleCallStats = stats.NewShardedStats(runtime.GOMAXPROCS(0), func(a, b time.Duration) int {
 			if a.Microseconds() < b.Microseconds() {
 				return -1
 			}
@@ -80,13 +87,9 @@ func NewLoadBalancingClient(cfg Config, makeClientFunc MakeClient) (*LoadBalanci
 				return 1
 			}
 			return 0
-		}),
-
-		retryOnTimeout:          time.Duration(cfg.RetryOnTimeoutMs) * time.Millisecond,
-		findrouteRetryOnTimeout: time.Duration(cfg.FindrouteRetryOnTimeoutMs) * time.Millisecond,
+		})
+		go c.ReportMultipleCallStatsRoutine()
 	}
-
-	go c.ReportMultipleCallStatsRoutine()
 
 	return c, nil
 }
@@ -180,7 +183,8 @@ func (c *LoadBalancingClient) accquireNextClient() (client aevmclient.Client, do
 	return
 }
 
-func withRetry[R any](ctx context.Context, c *LoadBalancingClient, onTimeout time.Duration, op func(context.Context, aevmclient.Client) (R, error)) (R, error) {
+func withRetry[R any](ctx context.Context, c *LoadBalancingClient, onTimeout time.Duration,
+	op func(context.Context, aevmclient.Client) (R, error)) (R, error) {
 	var (
 		result R
 		err    error
@@ -212,9 +216,10 @@ func (c *LoadBalancingClient) LatestStateRoot(ctx context.Context) (aevmcommon.H
 	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] LatestStateRoot")
 	defer span.End()
 
-	hash, err := withRetry(ctx, c, c.retryOnTimeout, func(ctx context.Context, client aevmclient.Client) (aevmcommon.Hash, error) {
-		return client.LatestStateRoot(ctx)
-	})
+	hash, err := withRetry(ctx, c, c.retryOnTimeout,
+		func(ctx context.Context, client aevmclient.Client) (aevmcommon.Hash, error) {
+			return client.LatestStateRoot(ctx)
+		})
 	if err != nil {
 		// return empty hash if error
 		return aevmcommon.Hash{}, nil
@@ -223,29 +228,36 @@ func (c *LoadBalancingClient) LatestStateRoot(ctx context.Context) (aevmcommon.H
 	return hash, nil
 }
 
-func (c *LoadBalancingClient) SingleCall(ctx context.Context, req *aevmtypes.SingleCallParams) (*aevmtypes.CallResult, error) {
+func (c *LoadBalancingClient) SingleCall(ctx context.Context, req *aevmtypes.SingleCallParams) (*aevmtypes.CallResult,
+	error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] SingleCall")
 	defer span.End()
 
-	return withRetry(ctx, c, c.retryOnTimeout, func(ctx context.Context, client aevmclient.Client) (*aevmtypes.CallResult, error) {
-		return client.SingleCall(ctx, req)
-	})
+	return withRetry(ctx, c, c.retryOnTimeout,
+		func(ctx context.Context, client aevmclient.Client) (*aevmtypes.CallResult, error) {
+			return client.SingleCall(ctx, req)
+		})
 }
 
-func (c *LoadBalancingClient) MultipleCall(ctx context.Context, req *aevmtypes.MultipleCallParams) (*aevmtypes.MultipleCallResult, error) {
+func (c *LoadBalancingClient) MultipleCall(ctx context.Context,
+	req *aevmtypes.MultipleCallParams) (*aevmtypes.MultipleCallResult, error) {
 	startTime := time.Now()
 	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] MultipleCall")
 	defer func() {
-		c.multipleCallStats.Add(startTime, time.Since(startTime))
+		if c.cfg.EnableStats {
+			c.multipleCallStats.Add(startTime, time.Since(startTime))
+		}
 		span.End()
 	}()
 
-	return withRetry(ctx, c, c.retryOnTimeout, func(ctx context.Context, client aevmclient.Client) (*aevmtypes.MultipleCallResult, error) {
-		return client.MultipleCall(ctx, req)
-	})
+	return withRetry(ctx, c, c.retryOnTimeout,
+		func(ctx context.Context, client aevmclient.Client) (*aevmtypes.MultipleCallResult, error) {
+			return client.MultipleCall(ctx, req)
+		})
 }
 
-func (c *LoadBalancingClient) StorePreparedPools(ctx context.Context, req *aevmtypes.StorePreparedPoolsParams) (*aevmtypes.StorePreparedPoolsResult, error) {
+func (c *LoadBalancingClient) StorePreparedPools(ctx context.Context,
+	req *aevmtypes.StorePreparedPoolsParams) (*aevmtypes.StorePreparedPoolsResult, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] StorePreparedPools")
 	defer span.End()
 
@@ -261,9 +273,11 @@ func (c *LoadBalancingClient) StorePreparedPools(ctx context.Context, req *aevmt
 				EncodedPools: req.EncodedPools,
 			})
 			if err != nil {
-				return fmt.Errorf("[publishing client] could not StorePreparedPools to client %s: %s", c.cfg.PublishingPoolsURLs[i], err)
+				return fmt.Errorf("[publishing client] could not StorePreparedPools to client %s: %s",
+					c.cfg.PublishingPoolsURLs[i], err)
 			}
-			logger.Infof(ctx, "[publishing client] StorePreparedPools to client %s took = %s", c.cfg.PublishingPoolsURLs[i], time.Since(start).String())
+			logger.Infof(ctx, "[publishing client] StorePreparedPools to client %s took = %s",
+				c.cfg.PublishingPoolsURLs[i], time.Since(start).String())
 			storageIDs[i] = result.StorageID
 			return nil
 		})
@@ -281,13 +295,15 @@ func (c *LoadBalancingClient) StorePreparedPools(ctx context.Context, req *aevmt
 	return &aevmtypes.StorePreparedPoolsResult{StorageID: storageIDs[0]}, nil
 }
 
-func (c *LoadBalancingClient) FindRoute(ctx context.Context, req *aevmtypes.FindRouteParams) (*aevmtypes.FindRouteResult, error) {
+func (c *LoadBalancingClient) FindRoute(ctx context.Context,
+	req *aevmtypes.FindRouteParams) (*aevmtypes.FindRouteResult, error) {
 	span, ctx := tracer.StartSpanFromContext(ctx, "[aevmclient] FindRoute")
 	defer span.End()
 
-	return withRetry(ctx, c, c.findrouteRetryOnTimeout, func(ctx context.Context, client aevmclient.Client) (*aevmtypes.FindRouteResult, error) {
-		return client.FindRoute(ctx, req)
-	})
+	return withRetry(ctx, c, c.findrouteRetryOnTimeout,
+		func(ctx context.Context, client aevmclient.Client) (*aevmtypes.FindRouteResult, error) {
+			return client.FindRoute(ctx, req)
+		})
 }
 
 func (c *LoadBalancingClient) ReportMultipleCallStatsRoutine() {
@@ -315,7 +331,8 @@ func (c *LoadBalancingClient) ReportMultipleCallStatsRoutine() {
 			if d := stats.PN(requestDurations, int(percentile)); d != nil {
 				requestDurationByPercentile = *d
 			}
-			fmt.Printf("MultipleCall stats: { numRequest: %d, request_duration_p%d: %dus }\n", numRequest, percentile, requestDurationByPercentile.Microseconds())
+			klog.Infof(context.Background(), "MultipleCall stats: { numRequest: %d, request_duration_p%d: %dus }\n",
+				numRequest, percentile, requestDurationByPercentile.Microseconds())
 		case <-c.quitCh:
 			break
 		}
